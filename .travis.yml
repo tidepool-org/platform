@@ -1,0 +1,21 @@
+language: go
+
+go:
+  - 1.5
+
+services:
+  - mongodb
+
+script:
+  - make pre-build
+  - make build
+  - make test
+
+notifications:
+  email:
+    on_success: change
+    on_failure: always
+
+matrix:
+  allow_failures:
+    - go: tip
