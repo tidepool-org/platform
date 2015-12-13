@@ -8,7 +8,7 @@ VERSION_STRING:=0.0.1
 GO_LD_FLAGS:=-ldflags "-X github.com/tidepool-org/platform/version.String=$(VERSION_STRING)"
 
 # Commands for later use
-MAIN_FIND_CMD:=find . -type f -name '*.go' -not -path './Godeps/*' -exec egrep -l '^\s*func\s+main\s*\(' {} \;
+MAIN_FIND_CMD:=find . -not -path './Godeps/*' -name '*.go' -type f -exec egrep -l '^\s*func\s+main\s*\(' {} \;
 MAIN_TRANSFORM_CMD:=sed 's/\(.*\/\([^\/]*\)\.go\)/_bin\/\2 \1/'
 GO_BUILD_CMD:=godep go build $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -o
 
@@ -72,15 +72,15 @@ editable: buildable gocode godef oracle ginkgo
 
 format: check-environment
 	@echo "gofmt -d -e -s"
-	@cd $(ROOT_DIRECTORY) && O=`find . -type f -name '*.go' -not -path './Godeps/*' -exec gofmt -d -e -s {} \; 2>&1` && [ -z "$${O}" ] || (echo "$${O}" && exit 1)
+	@cd $(ROOT_DIRECTORY) && O=`find . -not -path './Godeps/*' -name '*.go' -type f -exec gofmt -d -e -s {} \; 2>&1` && [ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 imports: goimports
 	@echo "goimports -d -e"
-	@cd $(ROOT_DIRECTORY) && O=`find . -type f -name '*.go' -not -path './Godeps/*' -exec goimports -d -e {} \; 2>&1` && [ -z "$${O}" ] || (echo "$${O}" && exit 1)
+	@cd $(ROOT_DIRECTORY) && O=`find . -not -path './Godeps/*' -name '*.go' -type f -exec goimports -d -e {} \; 2>&1` && [ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 vet: check-environment
 	@echo "go tool vet -test"
-	@cd $(ROOT_DIRECTORY) && O=`find . -type d -not -path "./Godeps" -depth 1 -exec go tool vet -test {} \; 2>&1` && [ -z "$${O}" ] || (echo "$${O}" && exit 1)
+	@cd $(ROOT_DIRECTORY) && O=`find . -not -path "./Godeps" -depth 1 -type d -exec go tool vet -test {} \; 2>&1` && [ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 lint: golint
 	@echo "golint"
@@ -115,7 +115,7 @@ pre-commit: format imports vet
 
 # Remove everything in GOPATH except REPOSITORY
 gopath-implode: check-environment
-	cd $(GOPATH) && rm -rf {bin,pkg} && find src -type f -not -path "src/$(REPOSITORY)/*" -delete && find src -type d -not -path "src/$(REPOSITORY)/*" -empty -delete
+	cd $(GOPATH) && rm -rf {bin,pkg} && find src -not -path "src/$(REPOSITORY)/*" -type f -delete && find src -not -path "src/$(REPOSITORY)/*" -type d -empty -delete
 
 # Remove saved dependencies in REPOSITORY
 dependencies-implode: check-environment
