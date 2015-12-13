@@ -2,13 +2,12 @@ language: go
 
 go:
   - 1.5
-  - tip
 
 services:
   - mongodb
 
 script:
-  - make pre-commit
+  - make pre-build
   - make build
   - make test
 

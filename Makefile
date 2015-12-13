@@ -80,17 +80,13 @@ imports: goimports
 
 vet: check-environment
 	@echo "go tool vet -test"
-	@cd $(ROOT_DIRECTORY) && O=`find . -type d -depth 1 -not -path "./Godeps" -exec go tool vet -test {} \; 2>&1` && [ -z "$${O}" ] || (echo "$${O}" && exit 1)
+	@cd $(ROOT_DIRECTORY) && O=`find . -type d -not -path "./Godeps" -depth 1 -exec go tool vet -test {} \; 2>&1` && [ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 lint: golint
 	@echo "golint"
 	@cd $(ROOT_DIRECTORY) && golint ./...
 
-git-hooks:
-	@echo "Installing git hooks..."
-	@cd $(ROOT_DIRECTORY) && cp _tools/git/hooks/* .git/hooks/
-
-pre-commit: format imports vet
+pre-build: format imports vet
 
 build: godep
 	@echo "Building..."
@@ -108,6 +104,12 @@ clean: check-environment
 
 clean-all: clean
 	@cd $(ROOT_DIRECTORY) && rm -rf Godeps/_workspace/{bin,pkg}
+
+git-hooks:
+	@echo "Installing git hooks..."
+	@cd $(ROOT_DIRECTORY) && cp _tools/git/hooks/* .git/hooks/
+
+pre-commit: format imports vet
 
 # DO NOT USE THE FOLLOWING TARGETS UNDER NORMAL CIRCUMSTANCES!!!
 
