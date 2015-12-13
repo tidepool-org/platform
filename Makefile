@@ -92,6 +92,13 @@ build: godep
 	@echo "godep go build"
 	@cd $(ROOT_DIRECTORY) && mkdir -p _bin && $(MAIN_FIND_CMD) | $(MAIN_TRANSFORM_CMD) | xargs -L1 $(GO_BUILD_CMD)
 
+start: stop build
+	@cd $(ROOT_DIRECTORY) && _bin/dataservices >> service.log 2>&1 &
+	@cd $(ROOT_DIRECTORY) && _bin/userservices >> service.log 2>&1 &
+
+stop: check-environment
+	@killall -v dataservices userservices &> /dev/null || exit 0
+
 test: ginkgo
 	@echo "ginkgo -r"
 	@cd $(ROOT_DIRECTORY) && GOPATH=$(shell godep path):$(GOPATH) ginkgo -r $(TEST)
@@ -100,8 +107,8 @@ watch: ginkgo
 	@echo "ginkgo watch -r -p -randomizeAllSpecs -succinct -notify"
 	@cd $(ROOT_DIRECTORY) && GOPATH=$(shell godep path):$(GOPATH) ginkgo watch -r -p -randomizeAllSpecs -succinct -notify $(WATCH)
 
-clean: check-environment
-	@cd $(ROOT_DIRECTORY) && rm -rf _bin
+clean: stop
+	@cd $(ROOT_DIRECTORY) && rm -rf _bin service.log
 
 clean-all: clean
 	@cd $(ROOT_DIRECTORY) && rm -rf Godeps/_workspace/{bin,pkg}
