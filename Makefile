@@ -89,14 +89,15 @@ lint: golint
 pre-build: format imports vet
 
 build: godep
-	@echo "Building..."
+	@echo "godep go build"
 	@cd $(ROOT_DIRECTORY) && mkdir -p _bin && $(MAIN_FIND_CMD) | $(MAIN_TRANSFORM_CMD) | xargs -L1 $(GO_BUILD_CMD)
 
 test: ginkgo
-	@echo "Testing..."
+	@echo "ginkgo -r"
 	@cd $(ROOT_DIRECTORY) && GOPATH=$(shell godep path):$(GOPATH) ginkgo -r $(TEST)
 
 watch: ginkgo
+	@echo "ginkgo watch -r -p -randomizeAllSpecs -succinct -notify"
 	@cd $(ROOT_DIRECTORY) && GOPATH=$(shell godep path):$(GOPATH) ginkgo watch -r -p -randomizeAllSpecs -succinct -notify $(WATCH)
 
 clean: check-environment

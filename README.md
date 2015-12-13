@@ -35,10 +35,22 @@ All executables are built in the `_bin` directory.
 make test
 ```
 
+The environment variable `TEST` indicates which test to execute. If not specified, then all tests are executed. For example,
+
+```
+TEST=user make test
+```
+
 * To run all of the tests automatically after any changes are made, in a separate terminal window:
 
 ```
 make watch
+```
+
+The environment variable `WATCH` indicates which test to execute. If not specified, then all tests are executed. For example,
+
+```
+WATCH=user make watch
 ```
 
 * To run `go fmt`, `goimports`, and `golint` all at once:
