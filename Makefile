@@ -12,7 +12,7 @@ MAIN_FIND_CMD:=find . -type f -name '*.go' -not -path './Godeps/*' -exec egrep -
 MAIN_TRANSFORM_CMD:=sed 's/\(.*\/\([^\/]*\)\.go\)/bin\/\2 \1/'
 GO_BUILD_CMD:=godep go build $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -o
 
-default: test
+default: build test
 
 check-go:
 ifeq ($(GO15VENDOREXPERIMENT), 1)
@@ -28,14 +28,7 @@ ifndef GOPATH
 endif
 	@exit 0
 
-check-repository:
-ifneq ($(ROOT_DIRECTORY), $(realpath $(GOPATH)/src/$(REPOSITORY)))
-	@echo "FATAL: repository not in expected location of $(GOPATH)/src/$(REPOSITORY)."
-	@exit 1
-endif
-	@exit 0
-
-check-env: check-go check-gopath check-repository
+check-env: check-go check-gopath
 
 godep: check-env
 	@[ "$(shell which godep)" ] || go get -u github.com/tools/godep
