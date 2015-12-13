@@ -1,4 +1,22 @@
 language: go
 
 go:
- - 1.5
+  - 1.5
+  - tip
+
+services:
+  - mongodb
+
+script:
+  - make pre-commit
+  - make build
+  - make test
+
+notifications:
+  email:
+    on_success: change
+    on_failure: always
+
+matrix:
+  allow_failures:
+    - go: tip

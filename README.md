@@ -27,7 +27,7 @@ make editable
 make build
 ```
 
-All executables are built in the `bin` directory.
+All executables are built in the `_bin` directory.
 
 * To run all of the tests manually:
 
@@ -51,6 +51,12 @@ make precommit
 
 ```
 make clean
+```
+
+* To add the required git hooks:
+
+```
+make git-hooks
 ```
 
 # Sublime Text

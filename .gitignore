@@ -2,7 +2,7 @@
 *.coverprofile
 
 # Project
-/bin
+/_bin
 
 # Sublime Text
 /platform.sublime-workspace

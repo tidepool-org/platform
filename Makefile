@@ -9,10 +9,10 @@ GO_LD_FLAGS:=-ldflags "-X github.com/tidepool-org/platform/version.String=$(VERS
 
 # Commands for later use
 MAIN_FIND_CMD:=find . -type f -name '*.go' -not -path './Godeps/*' -exec egrep -l '^\s*func\s+main\s*\(' {} \;
-MAIN_TRANSFORM_CMD:=sed 's/\(.*\/\([^\/]*\)\.go\)/bin\/\2 \1/'
+MAIN_TRANSFORM_CMD:=sed 's/\(.*\/\([^\/]*\)\.go\)/_bin\/\2 \1/'
 GO_BUILD_CMD:=godep go build $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -o
 
-default: build test
+default: test
 
 check-go:
 ifeq ($(GO15VENDOREXPERIMENT), 1)
@@ -28,54 +28,83 @@ ifndef GOPATH
 endif
 	@exit 0
 
-check-env: check-go check-gopath
+check-environment: check-go check-gopath
 
-godep: check-env
-	@[ "$(shell which godep)" ] || go get -u github.com/tools/godep
+godep: check-environment
+ifeq ($(shell which godep),)
+	go get -u github.com/tools/godep
+endif
 
-goimports: check-env
-	@[ "$(shell which goimports)" ] || go get -u golang.org/x/tools/cmd/goimports
+goimports: check-environment
+ifeq ($(shell which goimports),)
+	go get -u golang.org/x/tools/cmd/goimports
+endif
 
-golint: check-env
-	@[ "$(shell which golint)" ] || go get -u github.com/golang/lint/golint
+golint: check-environment
+ifeq ($(shell which golint),)
+	go get -u github.com/golang/lint/golint
+endif
 
-gocode: check-env
-	@[ "$(shell which gocode)" ] || go get -u github.com/nsf/gocode
+gocode: check-environment
+ifeq ($(shell which gocode),)
+	go get -u github.com/nsf/gocode
+endif
 
-godef: check-env
-	@[ "$(shell which godef)" ] || go get -u github.com/rogpeppe/godef
+godef: check-environment
+ifeq ($(shell which godef),)
+	go get -u github.com/rogpeppe/godef
+endif
 
-oracle: check-env
-	@[ "$(shell which oracle)" ] || go get -u golang.org/x/tools/cmd/oracle
+oracle: check-environment
+ifeq ($(shell which oracle),)
+	go get -u golang.org/x/tools/cmd/oracle
+endif
+
+# Use godep to install ginkgo
+ginkgo: godep
+ifeq ($(shell which ginkgo),)
+	godep go install github.com/onsi/ginkgo/ginkgo
+endif
 
 buildable: godep goimports golint
 
-editable: buildable gocode godef oracle
+editable: buildable gocode godef oracle ginkgo
 
-ginkgo: godep
-	@[ "$(shell which ginkgo)" ] || cd $(ROOT_DIRECTORY) && godep go install github.com/onsi/ginkgo/ginkgo
+format: check-environment
+	@echo "gofmt -d -e -s"
+	@cd $(ROOT_DIRECTORY) && O=`find . -type f -name '*.go' -not -path './Godeps/*' -exec gofmt -d -e -s {} \; 2>&1` && [ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 imports: goimports
-	@cd $(ROOT_DIRECTORY) && find . -type f -name '*.go' -not -path './Godeps/*' -exec goimports -d -e {} \;
+	@echo "goimports -d -e"
+	@cd $(ROOT_DIRECTORY) && O=`find . -type f -name '*.go' -not -path './Godeps/*' -exec goimports -d -e {} \; 2>&1` && [ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
-format: imports
+vet: check-environment
+	@echo "go tool vet -test"
+	@cd $(ROOT_DIRECTORY) && O=`find . -type d -depth 1 -not -path "./Godeps" -exec go tool vet -test {} \; 2>&1` && [ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 lint: golint
+	@echo "golint"
 	@cd $(ROOT_DIRECTORY) && golint ./...
 
-precommit: imports lint
+git-hooks:
+	@echo "Installing git hooks..."
+	@cd $(ROOT_DIRECTORY) && cp _tools/git/hooks/* .git/hooks/
+
+pre-commit: format imports vet
 
 build: godep
-	@cd $(ROOT_DIRECTORY) && mkdir -p bin && $(MAIN_FIND_CMD) | $(MAIN_TRANSFORM_CMD) | xargs -L1 $(GO_BUILD_CMD)
+	@echo "Building..."
+	@cd $(ROOT_DIRECTORY) && mkdir -p _bin && $(MAIN_FIND_CMD) | $(MAIN_TRANSFORM_CMD) | xargs -L1 $(GO_BUILD_CMD)
 
 test: ginkgo
+	@echo "Testing..."
 	@cd $(ROOT_DIRECTORY) && GOPATH=$(shell godep path):$(GOPATH) ginkgo -r $(TEST)
 
-watch: check-env
+watch: ginkgo
 	@cd $(ROOT_DIRECTORY) && GOPATH=$(shell godep path):$(GOPATH) ginkgo watch -r -p -randomizeAllSpecs -succinct -notify $(WATCH)
 
-clean: check-env
-	@cd $(ROOT_DIRECTORY) && rm -rf bin
+clean: check-environment
+	@cd $(ROOT_DIRECTORY) && rm -rf _bin
 
 clean-all: clean
 	@cd $(ROOT_DIRECTORY) && rm -rf Godeps/_workspace/{bin,pkg}
@@ -83,11 +112,11 @@ clean-all: clean
 # DO NOT USE THE FOLLOWING TARGETS UNDER NORMAL CIRCUMSTANCES!!!
 
 # Remove everything in GOPATH except REPOSITORY
-gopath-implode: check-env
+gopath-implode: check-environment
 	cd $(GOPATH) && rm -rf {bin,pkg} && find src -type f -not -path "src/$(REPOSITORY)/*" -delete && find src -type d -not -path "src/$(REPOSITORY)/*" -empty -delete
 
 # Remove saved dependencies in REPOSITORY
-dependencies-implode: check-env
+dependencies-implode: check-environment
 	cd $(ROOT_DIRECTORY) && rm -rf {Godeps,vendor}
 
 bootstrap-implode: gopath-implode dependencies-implode
@@ -101,11 +130,11 @@ bootstrap-save: bootstrap-dependencies
 
 # Bootstrap REPOSITORY with initial dependencies
 bootstrap: 
-	@$(MAKE) bootstrap-implode 
-	@$(MAKE) bootstrap-save 
+	@$(MAKE) bootstrap-implode
+	@$(MAKE) bootstrap-save
 	@$(MAKE) gopath-implode
 
-.PHONY: default check-go check-gopath check-repository check-env \
+.PHONY: default check-go check-gopath check-environment \
 	godep goimports golint gocode godef oracle buildable editable ginkgo \
-	imports format lint precommit build test watch clean clean-all \
+	format imports vet lint git-hooks precommit build test watch clean clean-all \
 	gopath-implode dependencies-implode bootstrap-implode bootstrap-dependencies bootstrap-save bootstrap
