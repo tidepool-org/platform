@@ -80,7 +80,7 @@ imports: goimports
 
 vet: check-environment
 	@echo "go tool vet -test"
-	@cd $(ROOT_DIRECTORY) && O=`find . -depth 1 -not -path "./Godeps" -type d -exec go tool vet -test {} \; 2>&1` && [ -z "$${O}" ] || (echo "$${O}" && exit 1)
+	@cd $(ROOT_DIRECTORY) && O=`find . -mindepth 1 -maxdepth 1 -not -path "./.*" -not -path "./_*" -not -path "./Godeps" -type d -exec go tool vet -test {} \; 2>&1` && [ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 lint: golint
 	@echo "golint"
