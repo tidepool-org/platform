@@ -66,9 +66,9 @@ ifeq ($(shell which ginkgo),)
 	godep go install github.com/onsi/ginkgo/ginkgo
 endif
 
-buildable: godep goimports golint
+buildable: godep goimports golint ginkgo
 
-editable: buildable gocode godef oracle ginkgo
+editable: buildable gocode godef oracle
 
 format: check-environment
 	@echo "gofmt -d -e -s"
