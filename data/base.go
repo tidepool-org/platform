@@ -15,23 +15,23 @@ type Base struct {
 
 var validator = validate.PlatformValidator{}
 
-func buildBase(t map[string]interface{}) (Base, error) {
+func buildBase(obj map[string]interface{}) (Base, error) {
 	const (
-		typeField             = "type"
-		deviceTimeField       = "deviceTime"
-		timezoneOffsetField   = "timezoneOffset"
-		timeField             = "time"
-		conversionOffsetField = "conversionOffset"
-		deviceIdField         = "deviceId"
+		type_field              = "type"
+		device_time_field       = "deviceTime"
+		timezone_offset_field   = "timezoneOffset"
+		time_field              = "time"
+		conversion_offset_field = "conversionOffset"
+		device_id_field         = "deviceId"
 	)
 
 	base := Base{
-		ConversionOffset: t[conversionOffsetField].(float64),
-		TimezoneOffset:   t[timezoneOffsetField].(float64),
-		DeviceId:         t[deviceIdField].(string),
-		DeviceTime:       t[deviceTimeField].(string),
-		Time:             t[timeField].(string),
-		Type:             t[typeField].(string),
+		ConversionOffset: obj[conversion_offset_field].(float64),
+		TimezoneOffset:   obj[timezone_offset_field].(float64),
+		DeviceId:         obj[device_id_field].(string),
+		DeviceTime:       obj[device_time_field].(string),
+		Time:             obj[time_field].(string),
+		Type:             obj[type_field].(string),
 	}
 
 	_, err := validator.Validate(base)

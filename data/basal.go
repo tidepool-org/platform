@@ -15,25 +15,25 @@ type SupressedBasal struct {
 	Value        float32 `json:"value" valid:"required"`
 }
 
-func BuildBasal(t map[string]interface{}) (*Basal, error) {
+func BuildBasal(obj map[string]interface{}) (*Basal, error) {
 
 	const (
-		deliveryTypeField = "deliveryType"
-		insulinField      = "insulin"
-		valueField        = "value"
-		durationField     = "duration"
+		delivery_type_field = "deliveryType"
+		insulin_field       = "insulin"
+		value_field         = "value"
+		duration_field      = "duration"
 	)
 
-	base, err := buildBase(t)
+	base, err := buildBase(obj)
 	if err != nil {
 		return nil, err
 	}
 
 	basal := &Basal{
-		Insulin:      t[insulinField].(string),
-		Value:        t[valueField].(float32),
-		Duration:     t[durationField].(int64),
-		DeliveryType: t[deliveryTypeField].(string),
+		Insulin:      obj[insulin_field].(string),
+		Value:        obj[value_field].(float32),
+		Duration:     obj[duration_field].(int64),
+		DeliveryType: obj[delivery_type_field].(string),
 		Base:         base,
 	}
 
