@@ -1,11 +1,6 @@
 package data
 
-import (
-	"errors"
-	"fmt"
-
-	"github.com/tidepool-org/platform/validate"
-)
+import "github.com/tidepool-org/platform/validate"
 
 type Base struct {
 	Type             string `json:"type" valid:"required"`
@@ -16,29 +11,9 @@ type Base struct {
 	DeviceId         string `json:"deviceId" valid:"required"`
 }
 
-type buildErrors []error
-
 var validator = validate.PlatformValidator{}
 
-func (errs buildErrors) addFeildError(name string, detail interface{}) {
-	errs = append(
-		errs,
-		errors.New(
-			fmt.Sprintf("errored building type field %s when %v ", name, detail),
-		),
-	)
-	return
-}
-
-func (errs buildErrors) addError(err error) {
-	errs = append(
-		errs,
-		err,
-	)
-	return
-}
-
-func buildBase(obj map[string]interface{}, errs *buildErrors) Base {
+func buildBase(obj map[string]interface{}) (Base, *DataError) {
 	const (
 		type_field              = "type"
 		device_time_field       = "deviceTime"
@@ -48,34 +23,36 @@ func buildBase(obj map[string]interface{}, errs *buildErrors) Base {
 		device_id_field         = "deviceId"
 	)
 
+	errs := NewDataError(obj)
+
 	conversionOffset, ok := obj[conversion_offset_field].(int)
 	if !ok {
-		errs.addFeildError(conversion_offset_field, obj[conversion_offset_field])
+		errs.AppendFieldError(conversion_offset_field, obj[conversion_offset_field])
 	}
 
 	timezoneOffset, ok := obj[timezone_offset_field].(int)
 	if !ok {
-		errs.addFeildError(timezone_offset_field, obj[timezone_offset_field])
+		errs.AppendFieldError(timezone_offset_field, obj[timezone_offset_field])
 	}
 
 	deviceId, ok := obj[device_id_field].(string)
 	if !ok {
-		errs.addFeildError(device_id_field, obj[device_id_field])
+		errs.AppendFieldError(device_id_field, obj[device_id_field])
 	}
 
 	deviceTime, ok := obj[device_time_field].(string)
 	if !ok {
-		errs.addFeildError(device_time_field, obj[device_time_field])
+		errs.AppendFieldError(device_time_field, obj[device_time_field])
 	}
 
 	time, ok := obj[time_field].(string)
 	if !ok {
-		errs.addFeildError(time_field, obj[time_field])
+		errs.AppendFieldError(time_field, obj[time_field])
 	}
 
 	typeOf, ok := obj[type_field].(string)
 	if !ok {
-		errs.addFeildError(type_field, obj[type_field])
+		errs.AppendFieldError(type_field, obj[type_field])
 	}
 
 	base := Base{
@@ -88,8 +65,8 @@ func buildBase(obj map[string]interface{}, errs *buildErrors) Base {
 	}
 
 	_, err := validator.Validate(base)
-	errs.addError(err)
-	return base
+	errs.AppendError(err)
+	return base, errs
 }
 
 func GetData() string {
