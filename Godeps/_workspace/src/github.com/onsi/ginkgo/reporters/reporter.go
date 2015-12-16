@@ -1,8 +1,8 @@
 package reporters
 
 import (
-	"github.com/onsi/ginkgo/config"
-	"github.com/onsi/ginkgo/types"
+	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo/config"
+	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo/types"
 )
 
 type Reporter interface {

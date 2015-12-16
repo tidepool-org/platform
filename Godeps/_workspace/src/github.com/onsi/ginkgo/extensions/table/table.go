@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/onsi/ginkgo"
+	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo"
 )
 
 /*
