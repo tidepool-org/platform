@@ -43,6 +43,6 @@ func (this *TypeBuilder) Build(raw []byte) (interface{}, error) {
 		return nil, errors.New(fmt.Sprintf("sorry but we can't deal with `type` %s", data[type_field].(string)))
 	}
 
-	return nil, errors.New(fmt.Sprintf("the data had no `type` specified %s", data))
+	return nil, errors.New(fmt.Sprintf("there is no type that matches %s", data))
 
 }
