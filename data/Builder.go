@@ -20,7 +20,11 @@ func NewTypeBuilder() Builder {
 
 func (this *TypeBuilder) Build(raw []byte) (interface{}, error) {
 
-	const type_field = "type"
+	const (
+		type_field        = "type"
+		basal_type        = "basal"
+		device_event_type = "deviceevent"
+	)
 
 	var data map[string]interface{}
 	err := json.Unmarshal(raw, &data)
@@ -31,9 +35,9 @@ func (this *TypeBuilder) Build(raw []byte) (interface{}, error) {
 
 	if data[type_field] != nil {
 
-		if strings.ToLower(data[type_field].(string)) == "basal" {
+		if strings.ToLower(data[type_field].(string)) == basal_type {
 			return BuildBasal(data)
-		} else if strings.ToLower(data[type_field].(string)) == "deviceevent" {
+		} else if strings.ToLower(data[type_field].(string)) == device_event_type {
 			return BuildDeviceEvent(data)
 		}
 		return nil, errors.New(fmt.Sprintf("sorry but we can't deal with `type` %s", data[type_field].(string)))
