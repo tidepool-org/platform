@@ -5,26 +5,32 @@ type DeviceEvent struct {
 	Base
 }
 
-func BuildDeviceEvent(obj map[string]interface{}) (*DeviceEvent, error) {
+func BuildDeviceEvent(obj map[string]interface{}) (*DeviceEvent, []error) {
 
 	const (
 		sub_type_field = "subType"
 	)
 
-	base, err := buildBase(obj)
-	if err != nil {
-		return nil, err
+	var errs buildErrors
+
+	base := buildBase(obj, &errs)
+
+	subType, ok := obj[sub_type_field].(string)
+	if !ok {
+		errs.addFeildError(sub_type_field, obj[sub_type_field])
 	}
 
 	deviceEvent := &DeviceEvent{
-		SubType: obj[sub_type_field].(string),
+		SubType: subType,
 		Base:    base,
 	}
 
-	valid, err := validator.Validate(deviceEvent)
+	_, err := validator.Validate(deviceEvent)
+	errs.addError(err)
+	return deviceEvent, errs
+}
 
-	if valid {
-		return deviceEvent, nil
-	}
-	return nil, err
+func (this *DeviceEvent) Validate() error {
+	_, err := validator.Validate(this)
+	return err
 }
