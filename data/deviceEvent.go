@@ -5,19 +5,19 @@ type DeviceEvent struct {
 	Base
 }
 
-func BuildDeviceEvent(t map[string]interface{}) (*DeviceEvent, error) {
+func BuildDeviceEvent(obj map[string]interface{}) (*DeviceEvent, error) {
 
 	const (
-		subTypeField = "subType"
+		sub_type_field = "subType"
 	)
 
-	base, err := buildBase(t)
+	base, err := buildBase(obj)
 	if err != nil {
 		return nil, err
 	}
 
 	deviceEvent := &DeviceEvent{
-		SubType: t[subTypeField].(string),
+		SubType: obj[sub_type_field].(string),
 		Base:    base,
 	}
 

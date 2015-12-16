@@ -20,23 +20,23 @@ func NewTypeBuilder() Builder {
 
 func (this *TypeBuilder) Build(raw []byte) (interface{}, error) {
 
-	const typeField = "type"
+	const type_field = "type"
 
 	var data map[string]interface{}
 	err := json.Unmarshal(raw, &data)
 	if err != nil {
-		log.Println("error unmarshelling type", err.Error())
+		log.Println("error doing an unmarshal", err.Error())
 		return nil, errors.New(fmt.Sprintf("sorry but we do anything with %s", string(raw)))
 	}
 
-	if data[typeField] != nil {
+	if data[type_field] != nil {
 
-		if strings.ToLower(data[typeField].(string)) == "basal" {
+		if strings.ToLower(data[type_field].(string)) == "basal" {
 			return BuildBasal(data)
-		} else if strings.ToLower(data[typeField].(string)) == "deviceevent" {
+		} else if strings.ToLower(data[type_field].(string)) == "deviceevent" {
 			return BuildDeviceEvent(data)
 		}
-		return nil, errors.New(fmt.Sprintf("sorry but we can't deal with `type` %s", data[typeField].(string)))
+		return nil, errors.New(fmt.Sprintf("sorry but we can't deal with `type` %s", data[type_field].(string)))
 	}
 
 	return nil, errors.New(fmt.Sprintf("the data had no `type` specified %s", data))
