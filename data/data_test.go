@@ -36,6 +36,10 @@ var _ = Describe("Builder", func() {
 			_, err := builder.Build([]byte(`{"Stuff": "2014-06-11T06:00:00"}`))
 			Expect(err).To(Not(BeNil()))
 		})
+		It("should tell user what is invalid in error", func() {
+			_, err := builder.Build([]byte(`{"Stuff": "2014-06-11T06:00:00"}`))
+			Expect(err.Error()).To(Equal("there is no type that matches map[Stuff:2014-06-11T06:00:00]"))
+		})
 	})
 
 	Context("for basal json", func() {
