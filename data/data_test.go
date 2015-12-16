@@ -34,11 +34,11 @@ var _ = Describe("Builder", func() {
 	Context("for unkown json", func() {
 		It("should return an error", func() {
 			_, errs := builder.Build([]byte(`{"Stuff": "2014-06-11T06:00:00"}`))
-			Expect(errs).To(Not(BeEmpty()))
+			Expect(errs).To(Not(BeNil()))
 		})
 		It("should tell user what is invalid in error", func() {
 			_, errs := builder.Build([]byte(`{"Stuff": "2014-06-11T06:00:00"}`))
-			Expect(errs[0].Error()).To(Equal("there is no type that matches map[Stuff:2014-06-11T06:00:00]"))
+			Expect(errs.Error()).To(Equal("processing map[Stuff:2014-06-11T06:00:00] found: there is no match for that type"))
 		})
 	})
 
