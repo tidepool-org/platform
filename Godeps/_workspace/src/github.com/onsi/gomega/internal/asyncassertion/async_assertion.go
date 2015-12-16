@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega/internal/oraclematcher"
-	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega/types"
+	"github.com/onsi/gomega/internal/oraclematcher"
+	"github.com/onsi/gomega/types"
 )
 
 type AsyncAssertionType uint

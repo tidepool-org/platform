@@ -10,8 +10,8 @@ import (
 	"reflect"
 
 	"github.com/golang/protobuf/proto"
-	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega"
-	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega/types"
+	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/types"
 )
 
 //CombineHandler takes variadic list of handlers and produces one handler

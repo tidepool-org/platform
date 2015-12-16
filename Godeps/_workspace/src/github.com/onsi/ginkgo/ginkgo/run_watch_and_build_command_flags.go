@@ -4,7 +4,7 @@ import (
 	"flag"
 	"runtime"
 
-	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo/config"
+	"github.com/onsi/ginkgo/config"
 )
 
 type RunWatchAndBuildCommandFlags struct {
