@@ -33,12 +33,12 @@ var _ = Describe("Builder", func() {
 
 	Context("for unkown json", func() {
 		It("should return an error", func() {
-			_, err := builder.Build([]byte(`{"Stuff": "2014-06-11T06:00:00"}`))
-			Expect(err).To(Not(BeNil()))
+			_, errs := builder.Build([]byte(`{"Stuff": "2014-06-11T06:00:00"}`))
+			Expect(errs).To(Not(BeEmpty()))
 		})
 		It("should tell user what is invalid in error", func() {
-			_, err := builder.Build([]byte(`{"Stuff": "2014-06-11T06:00:00"}`))
-			Expect(err.Error()).To(Equal("there is no type that matches map[Stuff:2014-06-11T06:00:00]"))
+			_, errs := builder.Build([]byte(`{"Stuff": "2014-06-11T06:00:00"}`))
+			Expect(errs[0].Error()).To(Equal("there is no type that matches map[Stuff:2014-06-11T06:00:00]"))
 		})
 	})
 
@@ -68,6 +68,55 @@ var _ = Describe("Builder", func() {
 			event, _ := builder.Build(jsonDeviceEventDataExtras)
 			var deviceEventType *DeviceEvent
 			Expect(event).To(BeAssignableToTypeOf(deviceEventType))
+		})
+	})
+})
+
+var _ = Describe("Basal", func() {
+
+	var (
+		basalObj = map[string]interface{}{
+			"deviceTime":       "2014-06-11T06:00:00",
+			"time":             "2014-06-11T06:00:00.000Z",
+			"timezoneOffset":   0,
+			"conversionOffset": 0,
+			"type":             "basal",
+			"deliveryType":     "scheduled",
+			"scheduleName":     "Standard",
+			"rate":             2,
+			"duration":         21600000,
+			"deviceId":         "tools",
+		}
+	)
+
+	Context("can be built from obj", func() {
+		It("should return a basal if the obj is valid", func() {
+			basal, _ := BuildBasal(basalObj)
+			var basalType *Basal
+			Expect(basal).To(BeAssignableToTypeOf(basalType))
+		})
+	})
+})
+
+var _ = Describe("DeviceEvent", func() {
+
+	var (
+		deviceEventObj = map[string]interface{}{
+			"deviceTime":       "2014-06-11T06:00:00",
+			"time":             "2014-06-11T06:00:00.000Z",
+			"timezoneOffset":   0,
+			"conversionOffset": 0,
+			"type":             "deviceEvent",
+			"subType":          "alarm",
+			"deviceId":         "platform-tests",
+		}
+	)
+
+	Context("can be built from obj", func() {
+		It("should return a basal if the obj is valid", func() {
+			deviceEvent, _ := BuildDeviceEvent(deviceEventObj)
+			var deviceEventType *DeviceEvent
+			Expect(deviceEvent).To(BeAssignableToTypeOf(deviceEventType))
 		})
 	})
 })

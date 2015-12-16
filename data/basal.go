@@ -15,7 +15,9 @@ type SupressedBasal struct {
 	Value        float32 `json:"value" valid:"required"`
 }
 
-func BuildBasal(obj map[string]interface{}) (*Basal, error) {
+func BuildBasal(obj map[string]interface{}) (*Basal, []error) {
+
+	var errs buildErrors
 
 	const (
 		delivery_type_field = "deliveryType"
@@ -24,23 +26,42 @@ func BuildBasal(obj map[string]interface{}) (*Basal, error) {
 		duration_field      = "duration"
 	)
 
-	base, err := buildBase(obj)
-	if err != nil {
-		return nil, err
+	base := buildBase(obj, &errs)
+
+	insulin, ok := obj[insulin_field].(string)
+	if !ok {
+		errs.addFeildError(insulin_field, obj[insulin_field])
+	}
+
+	value, ok := obj[value_field].(float32)
+	if !ok {
+		errs.addFeildError(value_field, obj[value_field])
+	}
+
+	duration, ok := obj[duration_field].(int64)
+	if !ok {
+		errs.addFeildError(duration_field, obj[duration_field])
+	}
+
+	deliveryType, ok := obj[delivery_type_field].(string)
+	if !ok {
+		errs.addFeildError(delivery_type_field, obj[delivery_type_field])
 	}
 
 	basal := &Basal{
-		Insulin:      obj[insulin_field].(string),
-		Value:        obj[value_field].(float32),
-		Duration:     obj[duration_field].(int64),
-		DeliveryType: obj[delivery_type_field].(string),
+		Insulin:      insulin,
+		Value:        value,
+		Duration:     duration,
+		DeliveryType: deliveryType,
 		Base:         base,
 	}
 
-	valid, err := validator.Validate(basal)
+	_, err := validator.Validate(basal)
+	errs.addError(err)
+	return basal, errs
+}
 
-	if valid {
-		return basal, nil
-	}
-	return nil, err
+func (this *Basal) Validate() error {
+	_, err := validator.Validate(this)
+	return err
 }
