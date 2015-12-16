@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/onsi/gomega/format"
+	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega/format"
 	"reflect"
 )
 
