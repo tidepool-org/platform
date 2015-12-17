@@ -2,8 +2,7 @@ package data
 
 type Basal struct {
 	DeliveryType string          `json:"deliveryType" valid:"required"`
-	Insulin      string          `json:"insulin" valid:"required"`
-	Value        float32         `json:"value" valid:"required"`
+	Rate         float64         `json:"rate" valid:"required"`
 	Duration     int64           `json:"duration" valid:"required"`
 	Suppressed   *SupressedBasal `json:"suppressed"`
 	Base
@@ -20,25 +19,25 @@ func BuildBasal(obj map[string]interface{}) (*Basal, *DataError) {
 	const (
 		delivery_type_field = "deliveryType"
 		insulin_field       = "insulin"
-		value_field         = "value"
+		rate_field          = "rate"
 		duration_field      = "duration"
 	)
 
 	base, errs := buildBase(obj)
 
-	insulin, ok := obj[insulin_field].(string)
+	rate, ok := obj[rate_field].(float64)
 	if !ok {
-		errs.AppendFieldError(insulin_field, obj[insulin_field])
-	}
-
-	value, ok := obj[value_field].(float32)
-	if !ok {
-		errs.AppendFieldError(value_field, obj[value_field])
+		errs.AppendFieldError(rate_field, obj[rate_field])
 	}
 
 	duration, ok := obj[duration_field].(int64)
 	if !ok {
-		errs.AppendFieldError(duration_field, obj[duration_field])
+
+		duration_float64, ok := obj[duration_field].(float64)
+		duration = int64(duration_float64)
+		if !ok {
+			errs.AppendFieldError(duration_field, obj[duration_field])
+		}
 	}
 
 	deliveryType, ok := obj[delivery_type_field].(string)
@@ -47,8 +46,7 @@ func BuildBasal(obj map[string]interface{}) (*Basal, *DataError) {
 	}
 
 	basal := &Basal{
-		Insulin:      insulin,
-		Value:        value,
+		Rate:         rate,
 		Duration:     duration,
 		DeliveryType: deliveryType,
 		Base:         base,

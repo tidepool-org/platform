@@ -15,6 +15,9 @@ func NewDataError(data map[string]interface{}) *DataError {
 }
 
 func (e *DataError) AppendError(err error) {
+	if err == nil {
+		return
+	}
 	e.errors = append(e.errors, err)
 	return
 }
@@ -22,7 +25,7 @@ func (e *DataError) AppendError(err error) {
 func (e *DataError) AppendFieldError(name string, detail interface{}) {
 
 	e.errors = append(e.errors, errors.New(
-		fmt.Sprintf("errored building type field %s when %v ", name, detail),
+		fmt.Sprintf("encountered an error on type field %s when given %v ", name, detail),
 	))
 	return
 }
