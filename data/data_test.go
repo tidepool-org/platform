@@ -20,11 +20,11 @@ var _ = Describe("Builder", func() {
 	var (
 		builder Builder
 
-		jsonBasalData       = []byte(`{"deviceTime": "2014-06-11T06:00:00", "time": "2014-06-11T06:00:00.000Z","timezoneOffset": 0, "conversionOffset": 0, "type": "basal", "deliveryType": "scheduled", "scheduleName": "Standard", "rate": 2, "duration": 21600000, "deviceId": "tools"}`)
-		jsonBasalDataExtras = []byte(`{"deviceTime": "2014-06-11T06:00:00", "time": "2014-06-11T06:00:00.000Z","timezoneOffset": 0, "conversionOffset": 0, "type": "basal", "deliveryType": "scheduled", "scheduleName": "Standard", "rate": 2, "duration": 21600000, "deviceId": "tools", "stuff": "feed me", "moar": 0}`)
+		jsonBasalData       = []byte(`{"deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z","timezoneOffset": 0, "conversionOffset": 0, "type": "basal", "deliveryType": "scheduled", "scheduleName": "Standard", "rate": 2, "duration": 21600000, "deviceId": "tools"}`)
+		jsonBasalDataExtras = []byte(`{"deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z","timezoneOffset": 0, "conversionOffset": 0, "type": "basal", "deliveryType": "scheduled", "scheduleName": "Standard", "rate": 2, "duration": 21600000, "deviceId": "tools", "stuff": "feed me", "moar": 0}`)
 
-		jsonDeviceEventData       = []byte(`{"deviceTime": "2014-06-11T06:00:00", "time": "2014-06-11T06:00:00.000Z","timezoneOffset": 0, "conversionOffset": 0, "type": "deviceEvent", "subType": "alarm", "deviceId": "platform-tests"}`)
-		jsonDeviceEventDataExtras = []byte(`{"deviceTime": "2014-06-11T06:00:00", "time": "2014-06-11T06:00:00.000Z","timezoneOffset": 0, "conversionOffset": 0, "type": "deviceEvent", "subType": "alarm", "deviceId": "platform-tests", "stuff": "feed me", "moar": 0}`)
+		jsonDeviceEventData       = []byte(`{"deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z","timezoneOffset": 0, "conversionOffset": 0, "type": "deviceEvent", "subType": "alarm", "deviceId": "platform-tests"}`)
+		jsonDeviceEventDataExtras = []byte(`{"deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z","timezoneOffset": 0, "conversionOffset": 0, "type": "deviceEvent", "subType": "alarm", "deviceId": "platform-tests", "stuff": "feed me", "moar": 0}`)
 	)
 
 	BeforeEach(func() {
@@ -49,10 +49,20 @@ var _ = Describe("Builder", func() {
 			Expect(event).To(BeAssignableToTypeOf(basalType))
 		})
 
+		It("should return no error when there is a match", func() {
+			_, err := builder.Build(jsonBasalData)
+			Expect(err).To(BeNil())
+		})
+
 		It("should return return a basal even when there are extra feilds", func() {
 			event, _ := builder.Build(jsonBasalDataExtras)
 			var basalType *Basal
 			Expect(event).To(BeAssignableToTypeOf(basalType))
+		})
+
+		It("should return no error even when there are extra feilds", func() {
+			_, err := builder.Build(jsonBasalDataExtras)
+			Expect(err).To(BeNil())
 		})
 
 	})
@@ -76,7 +86,7 @@ var _ = Describe("Basal", func() {
 
 	var (
 		basalObj = map[string]interface{}{
-			"deviceTime":       "2014-06-11T06:00:00",
+			"deviceTime":       "2014-06-11T06:00:00.000Z",
 			"time":             "2014-06-11T06:00:00.000Z",
 			"timezoneOffset":   0,
 			"conversionOffset": 0,
@@ -102,7 +112,7 @@ var _ = Describe("DeviceEvent", func() {
 
 	var (
 		deviceEventObj = map[string]interface{}{
-			"deviceTime":       "2014-06-11T06:00:00",
+			"deviceTime":       "2014-06-11T06:00:00.000Z",
 			"time":             "2014-06-11T06:00:00.000Z",
 			"timezoneOffset":   0,
 			"conversionOffset": 0,
