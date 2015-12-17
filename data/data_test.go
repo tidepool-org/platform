@@ -93,7 +93,7 @@ var _ = Describe("Basal", func() {
 			"type":             "basal",
 			"deliveryType":     "scheduled",
 			"scheduleName":     "Standard",
-			"rate":             2,
+			"rate":             2.2,
 			"duration":         21600000,
 			"deviceId":         "tools",
 		}
@@ -104,6 +104,10 @@ var _ = Describe("Basal", func() {
 			basal, _ := BuildBasal(basalObj)
 			var basalType *Basal
 			Expect(basal).To(BeAssignableToTypeOf(basalType))
+		})
+		It("should produce no error when valid", func() {
+			_, err := BuildBasal(basalObj)
+			Expect(err).To(BeNil())
 		})
 	})
 })
@@ -127,6 +131,10 @@ var _ = Describe("DeviceEvent", func() {
 			deviceEvent, _ := BuildDeviceEvent(deviceEventObj)
 			var deviceEventType *DeviceEvent
 			Expect(deviceEvent).To(BeAssignableToTypeOf(deviceEventType))
+		})
+		It("should produce no error when valid", func() {
+			_, err := BuildDeviceEvent(deviceEventObj)
+			Expect(err).To(BeNil())
 		})
 	})
 })

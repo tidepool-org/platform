@@ -3,7 +3,7 @@ package data
 type Basal struct {
 	DeliveryType string          `json:"deliveryType" valid:"required"`
 	Rate         float64         `json:"rate" valid:"required"`
-	Duration     int64           `json:"duration" valid:"required"`
+	Duration     int             `json:"duration" valid:"required"`
 	Suppressed   *SupressedBasal `json:"suppressed"`
 	Base
 }
@@ -11,7 +11,7 @@ type Basal struct {
 type SupressedBasal struct {
 	Type         string  `json:"type" valid:"required"`
 	DeliveryType string  `json:"deliveryType" valid:"required"`
-	Value        float32 `json:"value" valid:"required"`
+	Rate         float64 `json:"rate" valid:"required"`
 }
 
 func BuildBasal(obj map[string]interface{}) (*Basal, *DataError) {
@@ -30,11 +30,11 @@ func BuildBasal(obj map[string]interface{}) (*Basal, *DataError) {
 		errs.AppendFieldError(rate_field, obj[rate_field])
 	}
 
-	duration, ok := obj[duration_field].(int64)
+	duration, ok := obj[duration_field].(int)
 	if !ok {
 
 		duration_float64, ok := obj[duration_field].(float64)
-		duration = int64(duration_float64)
+		duration = int(duration_float64)
 		if !ok {
 			errs.AppendFieldError(duration_field, obj[duration_field])
 		}
