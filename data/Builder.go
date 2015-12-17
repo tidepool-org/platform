@@ -28,9 +28,6 @@ func (this *TypeBuilder) Build(raw []byte) (interface{}, *DataError) {
 
 	var data map[string]interface{}
 
-	//d := json.NewDecoder(strings.NewReader(string(raw))).Decode(v)
-	//d.UseNumber()
-
 	if err := json.NewDecoder(strings.NewReader(string(raw))).Decode(&data); err != nil {
 		log.Println("error doing an unmarshal", err.Error())
 		e := NewDataError(data)
