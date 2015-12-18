@@ -11,7 +11,7 @@ func BuildDeviceEvent(obj map[string]interface{}) (*DeviceEvent, *DataError) {
 		sub_type_field = "subType"
 	)
 
-	base, errs := buildBase(obj)
+	base, errs := BuildBase(obj)
 	cast := NewCaster(errs)
 
 	deviceEvent := &DeviceEvent{

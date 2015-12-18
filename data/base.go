@@ -17,18 +17,7 @@ type Base struct {
 
 var validator = validate.PlatformValidator{}
 
-func getTime(name string, detail interface{}, e *DataError) time.Time {
-	timeStr, ok := detail.(string)
-	if ok {
-		theTime, err := time.Parse(time.RFC3339, timeStr)
-		e.AppendError(err)
-		return theTime
-	}
-	e.AppendFieldError(name, detail)
-	return time.Time{}
-}
-
-func buildBase(obj map[string]interface{}) (Base, *DataError) {
+func BuildBase(obj map[string]interface{}) (Base, *DataError) {
 	const (
 		type_field              = "type"
 		device_time_field       = "deviceTime"
@@ -59,6 +48,7 @@ func GetData() string {
 	return "data"
 }
 
+//For casting of our incoming generic json data to the expected types that our data model uses
 type Cast struct {
 	err *DataError
 }
