@@ -10,6 +10,10 @@ type Store interface {
 
 type MongoStore struct{}
 
+func NewMongoStore() *MongoStore {
+	return &MongoStore{}
+}
+
 func (this *MongoStore) Save(d interface{}) error { return nil }
 
 func (this *MongoStore) Update(d interface{}) error { return nil }
