@@ -12,14 +12,10 @@ func BuildDeviceEvent(obj map[string]interface{}) (*DeviceEvent, *DataError) {
 	)
 
 	base, errs := buildBase(obj)
-
-	subType, ok := obj[sub_type_field].(string)
-	if !ok {
-		errs.AppendFieldError(sub_type_field, obj[sub_type_field])
-	}
+	cast := NewCaster(errs)
 
 	deviceEvent := &DeviceEvent{
-		SubType: subType,
+		SubType: cast.ToString(sub_type_field, obj[sub_type_field]),
 		Base:    base,
 	}
 

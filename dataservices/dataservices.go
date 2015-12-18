@@ -49,9 +49,11 @@ func postDataset(w rest.ResponseWriter, r *rest.Request) {
 }
 
 func getDataset(w rest.ResponseWriter, r *rest.Request) {
-	w.WriteJson(version.String)
+	w.WriteHeader(http.StatusNotImplemented)
+	return
 }
 
 func getData(w rest.ResponseWriter, r *rest.Request) {
-	w.WriteJson(version.String)
+	w.WriteHeader(http.StatusNotImplemented)
+	return
 }

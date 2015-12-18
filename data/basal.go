@@ -24,31 +24,12 @@ func BuildBasal(obj map[string]interface{}) (*Basal, *DataError) {
 	)
 
 	base, errs := buildBase(obj)
-
-	rate, ok := obj[rate_field].(float64)
-	if !ok {
-		errs.AppendFieldError(rate_field, obj[rate_field])
-	}
-
-	duration, ok := obj[duration_field].(int)
-	if !ok {
-
-		duration_float64, ok := obj[duration_field].(float64)
-		duration = int(duration_float64)
-		if !ok {
-			errs.AppendFieldError(duration_field, obj[duration_field])
-		}
-	}
-
-	deliveryType, ok := obj[delivery_type_field].(string)
-	if !ok {
-		errs.AppendFieldError(delivery_type_field, obj[delivery_type_field])
-	}
+	cast := NewCaster(errs)
 
 	basal := &Basal{
-		Rate:         rate,
-		Duration:     duration,
-		DeliveryType: deliveryType,
+		Rate:         cast.ToFloat64(rate_field, obj[rate_field]),
+		Duration:     cast.ToInt(duration_field, obj[duration_field]),
+		DeliveryType: cast.ToString(delivery_type_field, obj[delivery_type_field]),
 		Base:         base,
 	}
 

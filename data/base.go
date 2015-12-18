@@ -39,45 +39,15 @@ func buildBase(obj map[string]interface{}) (Base, *DataError) {
 	)
 
 	errs := NewDataError(obj)
-
-	conversionOffset, ok := obj[conversion_offset_field].(int)
-	if !ok {
-		conversionOffset_float64, ok := obj[conversion_offset_field].(float64)
-		conversionOffset = int(conversionOffset_float64)
-		if !ok {
-			errs.AppendFieldError(conversion_offset_field, obj[conversion_offset_field])
-		}
-	}
-
-	timezoneOffset, ok := obj[timezone_offset_field].(int)
-	if !ok {
-		timezoneOffset_float64, ok := obj[timezone_offset_field].(float64)
-		timezoneOffset = int(timezoneOffset_float64)
-		if !ok {
-			errs.AppendFieldError(timezone_offset_field, obj[timezone_offset_field])
-		}
-	}
-
-	deviceId, ok := obj[device_id_field].(string)
-	if !ok {
-		errs.AppendFieldError(device_id_field, obj[device_id_field])
-	}
-
-	deviceTime := getTime(device_time_field, obj[device_time_field], errs)
-	eventTime := getTime(time_field, obj[time_field], errs)
-
-	typeOf, ok := obj[type_field].(string)
-	if !ok {
-		errs.AppendFieldError(type_field, obj[type_field])
-	}
+	cast := NewCaster(errs)
 
 	base := Base{
-		ConversionOffset: conversionOffset,
-		TimezoneOffset:   timezoneOffset,
-		DeviceId:         deviceId,
-		DeviceTime:       deviceTime,
-		Time:             eventTime,
-		Type:             typeOf,
+		ConversionOffset: cast.ToInt(conversion_offset_field, obj[conversion_offset_field]),
+		TimezoneOffset:   cast.ToInt(timezone_offset_field, obj[timezone_offset_field]),
+		DeviceId:         cast.ToString(device_id_field, obj[device_id_field]),
+		DeviceTime:       cast.ToTime(device_time_field, obj[device_time_field]),
+		Time:             cast.ToTime(time_field, obj[time_field]),
+		Type:             cast.ToString(type_field, obj[type_field]),
 	}
 
 	_, err := validator.Validate(base)
@@ -87,4 +57,48 @@ func buildBase(obj map[string]interface{}) (Base, *DataError) {
 
 func GetData() string {
 	return "data"
+}
+
+type Cast struct {
+	err *DataError
+}
+
+func NewCaster(err *DataError) *Cast {
+	return &Cast{err: err}
+}
+
+func (this *Cast) ToString(fieldName string, data interface{}) string {
+	aString, ok := data.(string)
+	if !ok {
+		this.err.AppendFieldError(fieldName, data)
+	}
+	return aString
+}
+
+func (this *Cast) ToFloat64(fieldName string, data interface{}) float64 {
+	theFloat, ok := data.(float64)
+	if !ok {
+		this.err.AppendFieldError(fieldName, data)
+	}
+	return theFloat
+}
+
+func (this *Cast) ToInt(fieldName string, data interface{}) int {
+	theInt, ok := data.(int)
+	if !ok {
+		theFloat := this.ToFloat64(fieldName, data)
+		theInt = int(theFloat)
+	}
+	return theInt
+}
+
+func (this *Cast) ToTime(fieldName string, data interface{}) time.Time {
+	timeStr, ok := data.(string)
+	if ok {
+		theTime, err := time.Parse(time.RFC3339, timeStr)
+		this.err.AppendError(err)
+		return theTime
+	}
+	this.err.AppendFieldError(fieldName, data)
+	return time.Time{}
 }
