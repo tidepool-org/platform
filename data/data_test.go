@@ -82,6 +82,37 @@ var _ = Describe("Builder", func() {
 	})
 })
 
+var _ = Describe("Base", func() {
+
+	var (
+		basalObj = map[string]interface{}{
+			"deviceTime":       "2014-06-11T06:00:00.000Z",
+			"time":             "2014-06-11T06:00:00.000Z",
+			"timezoneOffset":   0,
+			"conversionOffset": 0,
+			"type":             "basal",
+			"deliveryType":     "scheduled",
+			"scheduleName":     "Standard",
+			"rate":             2.2,
+			"duration":         21600000,
+			"deviceId":         "tools",
+		}
+	)
+
+	Context("can be built from obj", func() {
+		It("should return a the base types if the obj is valid", func() {
+			base, _ := BuildBase(basalObj)
+			var baseType Base
+			Expect(base).To(BeAssignableToTypeOf(baseType))
+		})
+		It("should return and error object that is empty but not nil", func() {
+			_, err := BuildBase(basalObj)
+			Expect(err).To(Not(BeNil()))
+			Expect(err.IsEmpty()).To(BeTrue())
+		})
+	})
+})
+
 var _ = Describe("Basal", func() {
 
 	var (

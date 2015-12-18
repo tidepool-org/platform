@@ -23,7 +23,7 @@ func BuildBasal(obj map[string]interface{}) (*Basal, *DataError) {
 		duration_field      = "duration"
 	)
 
-	base, errs := buildBase(obj)
+	base, errs := BuildBase(obj)
 	cast := NewCaster(errs)
 
 	basal := &Basal{
