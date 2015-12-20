@@ -35,17 +35,16 @@ func getVersion(w rest.ResponseWriter, r *rest.Request) {
 }
 
 func postDataset(w rest.ResponseWriter, r *rest.Request) {
-	var requied map[string]interface{}
+	var dataSet data.GenericDataset
 
-	err := r.DecodeJsonPayload(&requied)
+	err := r.DecodeJsonPayload(&dataSet)
 
 	if err != nil {
 		rest.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if requied == nil {
-	}
-	w.WriteJson(&requied)
+	w.WriteJson(&dataSet)
+	return
 }
 
 func getDataset(w rest.ResponseWriter, r *rest.Request) {
