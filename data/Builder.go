@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+type GenericDataset []map[string]interface{}
+
 type Builder interface {
 	Build(raw []byte) (interface{}, *DataError)
 }
