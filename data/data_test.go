@@ -33,35 +33,35 @@ var _ = Describe("Builder", func() {
 
 	Context("for unkown json", func() {
 		It("should return an error", func() {
-			_, errs := builder.Build([]byte(`{"Stuff": "2014-06-11T06:00:00"}`))
+			_, errs := builder.BuildFromRaw([]byte(`{"Stuff": "2014-06-11T06:00:00"}`))
 			Expect(errs).To(Not(BeNil()))
 		})
 		It("should tell user what is invalid in error", func() {
-			_, errs := builder.Build([]byte(`{"Stuff": "2014-06-11T06:00:00"}`))
+			_, errs := builder.BuildFromRaw([]byte(`{"Stuff": "2014-06-11T06:00:00"}`))
 			Expect(errs.Error()).To(Equal("processing map[Stuff:2014-06-11T06:00:00] found: there is no match for that type"))
 		})
 	})
 
 	Context("for basal json", func() {
 		It("should return a basal when there is a match", func() {
-			event, _ := builder.Build(jsonBasalData)
+			event, _ := builder.BuildFromRaw(jsonBasalData)
 			var basalType *Basal
 			Expect(event).To(BeAssignableToTypeOf(basalType))
 		})
 
 		It("should return no error when there is a match", func() {
-			_, err := builder.Build(jsonBasalData)
+			_, err := builder.BuildFromRaw(jsonBasalData)
 			Expect(err).To(BeNil())
 		})
 
 		It("should return return a basal even when there are extra feilds", func() {
-			event, _ := builder.Build(jsonBasalDataExtras)
+			event, _ := builder.BuildFromRaw(jsonBasalDataExtras)
 			var basalType *Basal
 			Expect(event).To(BeAssignableToTypeOf(basalType))
 		})
 
 		It("should return no error even when there are extra feilds", func() {
-			_, err := builder.Build(jsonBasalDataExtras)
+			_, err := builder.BuildFromRaw(jsonBasalDataExtras)
 			Expect(err).To(BeNil())
 		})
 
@@ -69,13 +69,13 @@ var _ = Describe("Builder", func() {
 
 	Context("for deviceEvent json", func() {
 		It("should return deviceEvent when there is a match", func() {
-			event, _ := builder.Build(jsonDeviceEventData)
+			event, _ := builder.BuildFromRaw(jsonDeviceEventData)
 			var deviceEventType *DeviceEvent
 			Expect(event).To(BeAssignableToTypeOf(deviceEventType))
 		})
 
 		It("should return return a basal even when there are extra feilds", func() {
-			event, _ := builder.Build(jsonDeviceEventDataExtras)
+			event, _ := builder.BuildFromRaw(jsonDeviceEventDataExtras)
 			var deviceEventType *DeviceEvent
 			Expect(event).To(BeAssignableToTypeOf(deviceEventType))
 		})

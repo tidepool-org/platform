@@ -26,8 +26,3 @@ func BuildDeviceEvent(obj map[string]interface{}) (*DeviceEvent, *DataError) {
 	}
 	return deviceEvent, errs
 }
-
-func (this *DeviceEvent) Validate() error {
-	_, err := validator.Validate(this)
-	return err
-}

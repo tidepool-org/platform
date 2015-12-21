@@ -5,6 +5,36 @@ import (
 	"fmt"
 )
 
+type DataSetError struct {
+	errors []*DataError
+}
+
+func NewDataSetError() *DataSetError {
+	return &DataSetError{}
+}
+
+func (e *DataSetError) AppendError(err *DataError) {
+	if err == nil || err.IsEmpty() {
+		return
+	}
+	e.errors = append(e.errors, err)
+	return
+}
+
+func (e *DataSetError) Error() string {
+
+	errorsStr := ""
+	if e != nil {
+		for i := range e.errors {
+			if e.errors[i] != nil {
+				errorsStr = fmt.Sprintln(errorsStr, e.errors[i].Error())
+			}
+		}
+	}
+
+	return errorsStr
+}
+
 type DataError struct {
 	errors []error
 	data   map[string]interface{}

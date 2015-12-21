@@ -11,7 +11,9 @@ import (
 type GenericDataset []map[string]interface{}
 
 type Builder interface {
-	Build(raw []byte) (interface{}, *DataError)
+	BuildFromRaw(raw []byte) (interface{}, *DataError)
+	BuildFromData(data map[string]interface{}) (interface{}, *DataError)
+	BuildFromDataSet(dataSet GenericDataset) ([]interface{}, *DataSetError)
 }
 
 type TypeBuilder struct{}
@@ -20,13 +22,25 @@ func NewTypeBuilder() Builder {
 	return &TypeBuilder{}
 }
 
-func (this *TypeBuilder) Build(raw []byte) (interface{}, *DataError) {
+func (this *TypeBuilder) BuildFromDataSet(dataSet GenericDataset) ([]interface{}, *DataSetError) {
 
-	const (
-		type_field        = "type"
-		basal_type        = "basal"
-		device_event_type = "deviceevent"
-	)
+	var set []interface{}
+	var buildError *DataSetError
+
+	for i := range dataSet {
+		item, err := this.BuildFromData(dataSet[i])
+		if err != nil && !err.IsEmpty() {
+			if buildError == nil {
+				buildError = NewDataSetError()
+			}
+			buildError.AppendError(err)
+		}
+		set = append(set, item)
+	}
+	return set, buildError
+}
+
+func (this *TypeBuilder) BuildFromRaw(raw []byte) (interface{}, *DataError) {
 
 	var data map[string]interface{}
 
@@ -36,7 +50,16 @@ func (this *TypeBuilder) Build(raw []byte) (interface{}, *DataError) {
 		e.AppendError(errors.New(fmt.Sprintf("sorry but we do anything with %s", string(raw))))
 		return nil, e
 	}
+	return this.BuildFromData(data)
+}
 
+func (this *TypeBuilder) BuildFromData(data map[string]interface{}) (interface{}, *DataError) {
+
+	const (
+		type_field        = "type"
+		basal_type        = "basal"
+		device_event_type = "deviceevent"
+	)
 	if data[type_field] != nil {
 
 		if strings.ToLower(data[type_field].(string)) == basal_type {

@@ -40,8 +40,3 @@ func BuildBasal(obj map[string]interface{}) (*Basal, *DataError) {
 	}
 	return basal, errs
 }
-
-func (this *Basal) Validate() error {
-	_, err := validator.Validate(this)
-	return err
-}
