@@ -40,11 +40,13 @@ type (
 		closed chan chan bool
 	}
 
+	//TODO: things like `secret` will be from environment vars e.g. like Heroku
 	ClientConfig struct {
-		Host                 string        `json:"host"`                 // URL of the user client host e.g. "http://localhost:9107"
-		Name                 string        `json:"name"`                 // The name of this server for use in obtaining a server token
-		Secret               string        `json:"secret"`               // The secret used along with the name to obtain a server token
-		TokenRefreshInterval time.Duration `json:"tokenRefreshInterval"` // The amount of time between refreshes of the server token
+		Host                 string `json:"host"`                 // URL of the user client host e.g. "http://localhost:9107"
+		Name                 string `json:"name"`                 // The name of this server for use in obtaining a server token
+		Secret               string `json:"secret"`               // The secret used along with the name to obtain a server token
+		TokenRefreshInterval string `json:"tokenRefreshInterval"` // The amount of time between refreshes of the server token
+		TokenRefreshDuration time.Duration
 	}
 
 	// UserData is the data structure returned from a successful Login query.
@@ -79,11 +81,11 @@ func NewUserServicesClient(config *ClientConfig) *UserServicesClient {
 	}
 
 	//TODO: this is hardcoded
-	dur, err := time.ParseDuration("6h")
+	dur, err := time.ParseDuration(config.TokenRefreshInterval)
 	if err != nil {
 		log.Panic("err getting the duration ", err.Error())
 	}
-	config.TokenRefreshInterval = dur
+	config.TokenRefreshDuration = dur
 
 	return &UserServicesClient{
 		httpClient: http.DefaultClient,
@@ -101,7 +103,7 @@ func (client *UserServicesClient) Start() error {
 
 	go func() {
 		for {
-			timer := time.After(time.Duration(client.config.TokenRefreshInterval))
+			timer := time.After(time.Duration(client.config.TokenRefreshDuration))
 			select {
 			case twoWay := <-client.closed:
 				twoWay <- true
