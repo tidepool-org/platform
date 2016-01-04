@@ -1,0 +1,6 @@
+{
+    "host": "http://localhost:9107",
+    "name": "dataservices-local",
+    "secret": "This needs to be the same secret everywhere. YaHut75NsK1f9UKUXuWqxNN0RUwHFBCy",
+    "tokenRefreshInterval": "1h"
+}

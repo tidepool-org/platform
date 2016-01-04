@@ -1,4 +1,6 @@
 // This is a client module to support server-side use of user-api.
+//
+// NOTE: This client was largly ported from `github.com/tidepool-org/go-common` and will be re-written
 package user
 
 import (
