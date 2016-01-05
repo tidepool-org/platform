@@ -4,8 +4,8 @@ import (
 	"log"
 	"time"
 
-	"labix.org/v2/mgo"
-	"labix.org/v2/mgo/bson"
+	"github.com/tidepool-org/platform/Godeps/_workspace/src/labix.org/v2/mgo"
+	"github.com/tidepool-org/platform/Godeps/_workspace/src/labix.org/v2/mgo/bson"
 
 	"github.com/tidepool-org/platform/config"
 )

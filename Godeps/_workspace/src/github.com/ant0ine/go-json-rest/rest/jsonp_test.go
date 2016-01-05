@@ -3,7 +3,7 @@ package rest
 import (
 	"testing"
 
-	"github.com/ant0ine/go-json-rest/rest/test"
+	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/ant0ine/go-json-rest/rest/test"
 )
 
 func TestJsonpMiddleware(t *testing.T) {

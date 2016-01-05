@@ -16,6 +16,10 @@
 			"Rev": "1a4bf7e7a98e6a6484254ac41c52ef20ec30814e"
 		},
 		{
+			"ImportPath": "github.com/jinzhu/configor",
+			"Rev": "f740b0b16fc10bacdb09fc3fbac9048aa827e952"
+		},
+		{
 			"ImportPath": "github.com/onsi/ginkgo",
 			"Comment": "v1.2.0-29-g7f8ab55",
 			"Rev": "7f8ab55aaf3b86885aa55b762e803744d1674700"
@@ -24,6 +28,15 @@
 			"ImportPath": "github.com/onsi/gomega",
 			"Comment": "v1.0-75-g0fe2044",
 			"Rev": "0fe204460da2c8fa1babcaac196e694de8f1aaa1"
+		},
+		{
+			"ImportPath": "gopkg.in/yaml.v2",
+			"Rev": "49c95bdc21843256fb6c4e0d370a05f24a0bf213"
+		},
+		{
+			"ImportPath": "labix.org/v2/mgo",
+			"Comment": "275",
+			"Rev": "gustavo@niemeyer.net-20140501184651-975yyw9ipld92pji"
 		}
 	]
 }

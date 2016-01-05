@@ -5,9 +5,9 @@ import (
 	"io"
 	"time"
 
-	"github.com/onsi/ginkgo/internal/containernode"
-	"github.com/onsi/ginkgo/internal/leafnodes"
-	"github.com/onsi/ginkgo/types"
+	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo/internal/containernode"
+	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo/internal/leafnodes"
+	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo/types"
 )
 
 type Spec struct {

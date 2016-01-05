@@ -3,8 +3,8 @@ package data_test
 import (
 	. "github.com/tidepool-org/platform/data"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo"
+	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega"
 )
 
 var _ = Describe("Data", func() {

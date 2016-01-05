@@ -1,14 +1,15 @@
 package config
 
 import (
-	"log"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 
-	"github.com/jinzhu/configor"
+	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/jinzhu/configor"
 )
 
-func FromJson(config interface{}, name string) {
+func FromJson(config interface{}, name string) error {
 
 	// we need to get the absolute path and also test it because of the
 	// difference of how this code runs in different environments
@@ -21,15 +22,15 @@ func FromJson(config interface{}, name string) {
 		absPath, _ = filepath.Abs(config_lib_path + name)
 	}
 
-	configor.Load(&config, absPath)
+	return configor.Load(&config, absPath)
 }
 
-func FromEnv(name string) string {
+func FromEnv(name string) (string, error) {
 
 	value := os.Getenv(name)
 
 	if value == "" {
-		log.Fatalf("$%s must be set", name)
+		return "", errors.New(fmt.Sprintf("$%s must be set", name))
 	}
-	return value
+	return value, nil
 }

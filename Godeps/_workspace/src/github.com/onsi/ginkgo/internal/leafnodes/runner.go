@@ -2,9 +2,9 @@ package leafnodes
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo/internal/codelocation"
-	"github.com/onsi/ginkgo/internal/failer"
-	"github.com/onsi/ginkgo/types"
+	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo/internal/codelocation"
+	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo/internal/failer"
+	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo/types"
 	"reflect"
 	"time"
 )
