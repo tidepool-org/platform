@@ -1,5 +1,8 @@
 language: go
 
+services:
+  - mongodb
+
 go:
   - 1.5
 
