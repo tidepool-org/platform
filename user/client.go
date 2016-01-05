@@ -12,6 +12,8 @@ import (
 	"net/url"
 	"sync"
 	"time"
+
+	"github.com/tidepool-org/platform/config"
 )
 
 type (
@@ -33,6 +35,9 @@ type (
 		// Configuration for the client
 		config *ClientConfig
 
+		//secret used along with the name to obtain a server token
+		secret string
+
 		mut sync.Mutex
 
 		// stores the most recently received server token
@@ -42,11 +47,9 @@ type (
 		closed chan chan bool
 	}
 
-	//TODO: things like `secret` will be from environment vars e.g. like Heroku
 	ClientConfig struct {
 		Host                 string `json:"host"`                 // URL of the user client host e.g. "http://localhost:9107"
 		Name                 string `json:"name"`                 // The name of this server for use in obtaining a server token
-		Secret               string `json:"secret"`               // The secret used along with the name to obtain a server token
 		TokenRefreshInterval string `json:"tokenRefreshInterval"` // The amount of time between refreshes of the server token
 		TokenRefreshDuration time.Duration
 	}
@@ -69,29 +72,33 @@ const (
 	x_tidepool_server_name   = "x-tidepool-server-name"
 	x_tidepool_server_secret = "x-tidepool-server-secret"
 	x_tidepool_session_token = "x-tidepool-session-token"
+	tidepool_client_secret   = "TIDEPOOL_USER_CLIENT_SECRET"
 )
 
-func NewUserServicesClient(config *ClientConfig) *UserServicesClient {
-	if config.Name == "" {
+func NewUserServicesClient(cfg *ClientConfig) *UserServicesClient {
+	if cfg.Name == "" {
 		panic("UserServicesClient requires a name to be set")
 	}
-	if config.Secret == "" {
-		panic("UserServicesClient requires a secret to be set")
-	}
-	if config.Host == "" {
+	if cfg.Host == "" {
 		panic("UserServicesClient requires a host to be set")
 	}
 
 	//TODO: this is hardcoded
-	dur, err := time.ParseDuration(config.TokenRefreshInterval)
+	dur, err := time.ParseDuration(cfg.TokenRefreshInterval)
 	if err != nil {
 		log.Panic("err getting the duration ", err.Error())
 	}
-	config.TokenRefreshDuration = dur
+	cfg.TokenRefreshDuration = dur
+
+	secret, err := config.FromEnv(tidepool_client_secret)
+	if err != nil {
+		log.Panic("err getting client secret ", err.Error())
+	}
 
 	return &UserServicesClient{
 		httpClient: http.DefaultClient,
-		config:     config,
+		config:     cfg,
+		secret:     secret,
 		closed:     make(chan chan bool),
 	}
 }
@@ -143,7 +150,7 @@ func (client *UserServicesClient) serverLogin() error {
 
 	req, _ := http.NewRequest("POST", host.String(), nil)
 	req.Header.Add(x_tidepool_server_name, client.config.Name)
-	req.Header.Add(x_tidepool_server_secret, client.config.Secret)
+	req.Header.Add(x_tidepool_server_secret, client.secret)
 
 	res, err := client.httpClient.Do(req)
 	if err != nil {
