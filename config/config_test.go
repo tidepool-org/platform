@@ -22,8 +22,9 @@ var _ = Describe("Config", func() {
 		})
 		It("should error if the config doen't exist", func() {
 			var random interface{}
-			FromJson(&random, "random.json")
+			err := FromJson(&random, "random.json")
 			Expect(random).To(BeNil())
+			Expect(err).ToNot(BeNil())
 		})
 	})
 
@@ -33,7 +34,7 @@ var _ = Describe("Config", func() {
 			const platform_key, platform_val = "CONFIG_TEST", "yay I exist!"
 			os.Setenv(platform_key, platform_val)
 
-			platfromValue := FromEnv(platform_key)
+			platfromValue, _ := FromEnv(platform_key)
 			Expect(platfromValue).To(Equal(platform_val))
 
 			os.Unsetenv(platform_key)
@@ -42,7 +43,10 @@ var _ = Describe("Config", func() {
 		It("should error if the value doesn't exist", func() {
 			const other_key = "OTHER"
 			os.Unsetenv(other_key) // make sure it doesn't exist
-			Expect(FromEnv("OTHER")).To(MatchError("$OTHER must be set"))
+
+			_, err := FromEnv("OTHER")
+
+			Expect(err).To(MatchError("$OTHER must be set"))
 		})
 	})
 
