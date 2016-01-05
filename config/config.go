@@ -33,13 +33,3 @@ func FromEnv(name string) string {
 	}
 	return value
 }
-
-func FromEnvWithDefault(name, defaultValue string) string {
-
-	value := os.Getenv(name)
-
-	if value == "" {
-		value = defaultValue
-	}
-	return value
-}

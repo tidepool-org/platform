@@ -1,0 +1,5 @@
+{
+    "connectionUrl": "mongodb://localhost/platform_test",
+    "databaseName": "",
+    "timeout": 200
+}
