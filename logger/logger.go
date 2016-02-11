@@ -22,14 +22,10 @@ var Logging Logger
 
 type PlatformLogger struct{}
 
-func NewPlatformLogger() Logger {
+func init() {
 	log.Formatter = new(logrus.JSONFormatter)
 	log.Level = logrus.ErrorLevel
-	return &PlatformLogger{}
-}
-
-func init() {
-	Logging = NewPlatformLogger()
+	Logging = &PlatformLogger{}
 }
 
 func (this *PlatformLogger) Debug(args ...interface{}) { log.Debug(args) }

@@ -15,7 +15,7 @@ var _ = Describe("Logger", func() {
 
 	It("should be assignable to the interface", func() {
 		var testLogger Logger
-		testLogger = NewPlatformLogger()
+		testLogger = Logging
 		Expect(testLogger).To(Not(BeNil()))
 	})
 

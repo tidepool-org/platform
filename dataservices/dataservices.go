@@ -40,7 +40,7 @@ func main() {
 	}
 	api.SetApp(router)
 	//TODO: config
-	log.Logging.Fatal(http.ListenAndServe(":8080", api.MakeHandler()))
+	log.Logging.Fatal(http.ListenAndServe(":8077", api.MakeHandler()))
 }
 
 func getVersion(w rest.ResponseWriter, r *rest.Request) {

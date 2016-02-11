@@ -79,7 +79,7 @@ func NewUserServicesClient() *UserServicesClient {
 
 	var clientConfig *ClientConfig
 
-	config.FromJson(clientConfig, "userclient.json")
+	config.FromJson(&clientConfig, "userclient.json")
 
 	if clientConfig.Name == "" {
 		panic("UserServicesClient requires a name to be set")
