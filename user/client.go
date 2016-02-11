@@ -75,20 +75,25 @@ const (
 	tidepool_client_secret   = "TIDEPOOL_USER_CLIENT_SECRET"
 )
 
-func NewUserServicesClient(cfg *ClientConfig) *UserServicesClient {
-	if cfg.Name == "" {
+func NewUserServicesClient() *UserServicesClient {
+
+	var clientConfig *ClientConfig
+
+	config.FromJson(clientConfig, "userclient.json")
+
+	if clientConfig.Name == "" {
 		panic("UserServicesClient requires a name to be set")
 	}
-	if cfg.Host == "" {
+	if clientConfig.Host == "" {
 		panic("UserServicesClient requires a host to be set")
 	}
 
 	//TODO: this is hardcoded
-	dur, err := time.ParseDuration(cfg.TokenRefreshInterval)
+	dur, err := time.ParseDuration(clientConfig.TokenRefreshInterval)
 	if err != nil {
 		log.Panic("err getting the duration ", err.Error())
 	}
-	cfg.TokenRefreshDuration = dur
+	clientConfig.TokenRefreshDuration = dur
 
 	secret, err := config.FromEnv(tidepool_client_secret)
 	if err != nil {
@@ -97,7 +102,7 @@ func NewUserServicesClient(cfg *ClientConfig) *UserServicesClient {
 
 	return &UserServicesClient{
 		httpClient: http.DefaultClient,
-		config:     cfg,
+		config:     clientConfig,
 		secret:     secret,
 		closed:     make(chan chan bool),
 	}
