@@ -1,7 +1,7 @@
 package logger
 
 import (
-	logrus "github.com/Sirupsen/logrus"
+	logrus "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/Sirupsen/logrus"
 )
 
 type Logger interface {

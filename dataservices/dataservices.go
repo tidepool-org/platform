@@ -9,7 +9,7 @@ import (
 	"github.com/tidepool-org/platform/user"
 	"github.com/tidepool-org/platform/version"
 
-	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/ant0ine/go-json-rest/rest"
 )
 
 /*

@@ -6,6 +6,11 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v0.9.0",
+			"Rev": "be52937128b38f1d99787bb476c789e2af1147f1"
+		},
+		{
 			"ImportPath": "github.com/ant0ine/go-json-rest/rest",
 			"Comment": "v3.2.0-9-g11950f5",
 			"Rev": "11950f5f17b973642477ed31b68df64fdf4b1c08"
