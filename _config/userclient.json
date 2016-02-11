@@ -1,5 +1,5 @@
 {
-    "host": "http://localhost:9107",
+    "host": "http://localhost:9107/auth",
     "name": "dataservices-local",
     "tokenRefreshInterval": "1h"
 }

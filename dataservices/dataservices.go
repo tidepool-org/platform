@@ -2,17 +2,18 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/tidepool-org/platform/data"
+	log "github.com/tidepool-org/platform/logger"
 	"github.com/tidepool-org/platform/user"
 	"github.com/tidepool-org/platform/version"
 
-	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/ant0ine/go-json-rest/rest"
+	"github.com/ant0ine/go-json-rest/rest"
 )
 
-//TODO: faking it for now
+/*
+TODO: faking it for now
 type FakeUserClient struct{}
 
 func (c FakeUserClient) Start() error { return nil }
@@ -23,16 +24,25 @@ func (c FakeUserClient) CheckToken(token string) *user.ClientTokenData {
 }
 func (c FakeUserClient) GetUser(userID, token string) (*user.ClientData, error) {
 	return &user.ClientData{}, nil
+}*/
+
+var userClient user.Client
+
+func initUserClient() {
+	userClient = user.NewUserServicesClient()
+	userClient.Start()
 }
 
 func main() {
 	fmt.Println(version.String)
 	fmt.Println(data.GetData())
 
+	initUserClient()
+
 	api := rest.NewApi()
 	api.Use(rest.DefaultDevStack...)
 	api.Use(&rest.GzipMiddleware{})
-	api.Use(&user.AuthorizationMiddleware{Client: &FakeUserClient{}})
+	api.Use(&user.AuthorizationMiddleware{Client: userClient})
 
 	router, err := rest.MakeRouter(
 		rest.Get("/version", getVersion),
@@ -41,10 +51,10 @@ func main() {
 		rest.Get("/dataset", getDataset),
 	)
 	if err != nil {
-		log.Fatal(err)
+		log.Logging.Fatal(err)
 	}
 	api.SetApp(router)
-	log.Fatal(http.ListenAndServe(":8080", api.MakeHandler()))
+	log.Logging.Fatal(http.ListenAndServe(":8080", api.MakeHandler()))
 }
 
 func getVersion(w rest.ResponseWriter, r *rest.Request) {

@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
+
+	log "github.com/tidepool-org/platform/logger"
 )
 
 type GenericDataset []map[string]interface{}
@@ -45,7 +46,7 @@ func (this *TypeBuilder) BuildFromRaw(raw []byte) (interface{}, *DataError) {
 	var data map[string]interface{}
 
 	if err := json.NewDecoder(strings.NewReader(string(raw))).Decode(&data); err != nil {
-		log.Println("error doing an unmarshal", err.Error())
+		log.Logging.Info("error doing an unmarshal", err.Error())
 		e := NewDataError(data)
 		e.AppendError(errors.New(fmt.Sprintf("sorry but we do anything with %s", string(raw))))
 		return nil, e
