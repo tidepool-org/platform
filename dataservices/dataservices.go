@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/tidepool-org/platform/data"
@@ -12,20 +11,6 @@ import (
 	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/ant0ine/go-json-rest/rest"
 )
 
-/*
-TODO: faking it for now
-type FakeUserClient struct{}
-
-func (c FakeUserClient) Start() error { return nil }
-func (c FakeUserClient) Close()       { return }
-func (c FakeUserClient) CheckToken(token string) *user.ClientTokenData {
-	fmt.Println("checking token...")
-	return &user.ClientTokenData{}
-}
-func (c FakeUserClient) GetUser(userID, token string) (*user.ClientData, error) {
-	return &user.ClientData{}, nil
-}*/
-
 var userClient user.Client
 
 func initUserClient() {
@@ -34,8 +19,8 @@ func initUserClient() {
 }
 
 func main() {
-	fmt.Println(version.String)
-	fmt.Println(data.GetData())
+	log.Logging.Info(version.String)
+	log.Logging.Info(data.GetData())
 
 	initUserClient()
 
@@ -54,6 +39,7 @@ func main() {
 		log.Logging.Fatal(err)
 	}
 	api.SetApp(router)
+	//TODO: config
 	log.Logging.Fatal(http.ListenAndServe(":8080", api.MakeHandler()))
 }
 
