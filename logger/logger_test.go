@@ -9,4 +9,14 @@ import (
 
 var _ = Describe("Logger", func() {
 
+	It("should be initialise on creation", func() {
+		Expect(Logging).Should(Not(BeZero()))
+	})
+
+	It("should be assignable to the interface", func() {
+		var testLogger Logger
+		testLogger = NewPlatformLogger()
+		Expect(testLogger).To(Not(BeNil()))
+	})
+
 })
