@@ -3,6 +3,8 @@ package user
 import (
 	"net/http"
 
+	log "github.com/tidepool-org/platform/logger"
+
 	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/ant0ine/go-json-rest/rest"
 )
 
@@ -29,6 +31,7 @@ func (mw *AuthorizationMiddleware) MiddlewareFunc(h rest.HandlerFunc) rest.Handl
 		token := r.Header.Get(x_tidepool_session_token)
 
 		if tokenData := mw.Client.CheckToken(token); tokenData != nil {
+			log.Logging.Info("token", token)
 			h(w, r)
 			return
 		}

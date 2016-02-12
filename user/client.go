@@ -7,13 +7,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"sync"
 	"time"
 
 	"github.com/tidepool-org/platform/config"
+	log "github.com/tidepool-org/platform/logger"
 )
 
 type (
@@ -91,13 +91,13 @@ func NewUserServicesClient() *UserServicesClient {
 	//TODO: this is hardcoded
 	dur, err := time.ParseDuration(clientConfig.TokenRefreshInterval)
 	if err != nil {
-		log.Panic("err getting the duration ", err.Error())
+		log.Logging.Error("err getting the duration ", err.Error())
 	}
 	clientConfig.TokenRefreshDuration = dur
 
 	secret, err := config.FromEnv(tidepool_client_secret)
 	if err != nil {
-		log.Panic("err getting client secret ", err.Error())
+		log.Logging.Error("err getting client secret ", err.Error())
 	}
 
 	return &UserServicesClient{
@@ -112,7 +112,7 @@ func NewUserServicesClient() *UserServicesClient {
 // that requires a server token
 func (client *UserServicesClient) Start() error {
 	if err := client.serverLogin(); err != nil {
-		log.Printf("Problem with initial server token acquisition, [%v]", err)
+		log.Logging.Error("Problem with initial server token acquisition:", err.Error())
 	}
 
 	go func() {
@@ -124,7 +124,7 @@ func (client *UserServicesClient) Start() error {
 				return
 			case <-timer:
 				if err := client.serverLogin(); err != nil {
-					log.Print("Error when refreshing server login", err)
+					log.Logging.Error("Error when refreshing server login:", err.Error())
 				}
 			}
 		}
@@ -180,7 +180,7 @@ func (client *UserServicesClient) serverLogin() error {
 func (client *UserServicesClient) CheckToken(token string) *ClientTokenData {
 	host := client.getHost()
 	if host == nil {
-		log.Println("No known user-api hosts.")
+		log.Logging.Error("No known user-api hosts.")
 		return nil
 	}
 
@@ -191,7 +191,7 @@ func (client *UserServicesClient) CheckToken(token string) *ClientTokenData {
 
 	res, err := client.httpClient.Do(req)
 	if err != nil {
-		log.Println("Error checking token", err)
+		log.Logging.Error("Error checking token", err.Error())
 		return nil
 	}
 
@@ -199,14 +199,14 @@ func (client *UserServicesClient) CheckToken(token string) *ClientTokenData {
 	case http.StatusOK:
 		var td ClientTokenData
 		if err = json.NewDecoder(res.Body).Decode(&td); err != nil {
-			log.Println("Error parsing JSON results", err)
+			log.Logging.Error("Error parsing JSON results", err.Error())
 			return nil
 		}
 		return &td
 	case http.StatusNoContent:
 		return nil
 	default:
-		log.Printf("Unknown response code[%d] from service[%s]", res.StatusCode, req.URL)
+		log.Logging.Errorf("Unknown response code[%d] from service[%s]", res.StatusCode, req.URL)
 		return nil
 	}
 }
@@ -234,7 +234,7 @@ func (client *UserServicesClient) GetUser(userID, token string) (*ClientData, er
 	case http.StatusOK:
 		var cd ClientData
 		if err = json.NewDecoder(res.Body).Decode(&cd); err != nil {
-			log.Println("Error parsing JSON results", err)
+			log.Logging.Error("Error parsing JSON results:", err.Error())
 			return nil, err
 		}
 		return &cd, nil
@@ -248,7 +248,7 @@ func (client *UserServicesClient) GetUser(userID, token string) (*ClientData, er
 func (client *UserServicesClient) getHost() *url.URL {
 	theUrl, err := url.Parse(client.config.Host)
 	if err != nil {
-		log.Printf("Unable to parse urlString[%s]", client.config.Host)
+		log.Logging.Error("Unable to parse urlString:", client.config.Host)
 		return nil
 	}
 	return theUrl
