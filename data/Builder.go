@@ -9,7 +9,8 @@ import (
 	log "github.com/tidepool-org/platform/logger"
 )
 
-type GenericDataset []map[string]interface{}
+type GenericDatam map[string]interface{}
+type GenericDataset []GenericDatam
 
 type Builder interface {
 	BuildFromRaw(raw []byte) (interface{}, *DataError)

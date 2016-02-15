@@ -24,7 +24,7 @@ type PlatformLogger struct{}
 
 func init() {
 	log.Formatter = new(logrus.JSONFormatter)
-	log.Level = logrus.ErrorLevel
+	log.Level = logrus.InfoLevel
 	Logging = &PlatformLogger{}
 }
 

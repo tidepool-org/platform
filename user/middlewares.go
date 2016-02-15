@@ -29,11 +29,14 @@ func (mw *AuthorizationMiddleware) MiddlewareFunc(h rest.HandlerFunc) rest.Handl
 	return func(w rest.ResponseWriter, r *rest.Request) {
 
 		token := r.Header.Get(x_tidepool_session_token)
+		userid := r.PathParam("userid")
 
 		if tokenData := mw.Client.CheckToken(token); tokenData != nil {
-			log.Logging.Info("token", token)
-			h(w, r)
-			return
+			if tokenData.IsServer || tokenData.UserID == userid {
+				h(w, r)
+				return
+			}
+			log.Logging.Info("id's don't match and not server token", tokenData.UserID, userid)
 		}
 		w.WriteHeader(http.StatusUnauthorized)
 		return

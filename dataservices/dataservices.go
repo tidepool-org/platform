@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/tidepool-org/platform/data"
 	log "github.com/tidepool-org/platform/logger"
@@ -11,29 +12,34 @@ import (
 	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/ant0ine/go-json-rest/rest"
 )
 
-var userClient user.Client
+const (
+	error_userid_required  = "userid required"
+	error_datumid_required = "datumid required"
+)
 
-func initUserClient() {
-	userClient = user.NewUserServicesClient()
+var authorizationMiddleware *user.AuthorizationMiddleware
+
+func initAuthorizationMiddleware() {
+	userClient := user.NewUserServicesClient()
 	userClient.Start()
+	authorizationMiddleware = user.NewAuthorizationMiddleware(userClient)
 }
 
 func main() {
 	log.Logging.Info(version.String)
 	log.Logging.Info(data.GetData())
 
-	initUserClient()
+	initAuthorizationMiddleware()
 
 	api := rest.NewApi()
 	api.Use(rest.DefaultDevStack...)
 	api.Use(&rest.GzipMiddleware{})
-	api.Use(&user.AuthorizationMiddleware{Client: userClient})
 
 	router, err := rest.MakeRouter(
 		rest.Get("/version", getVersion),
-		rest.Get("/data", getData),
-		rest.Post("/dataset", postDataset),
-		rest.Get("/dataset", getDataset),
+		rest.Get("/data/:userid/:datumid", authorizationMiddleware.MiddlewareFunc(getData)),
+		rest.Post("/dataset/:userid", authorizationMiddleware.MiddlewareFunc(postDataset)),
+		rest.Get("/dataset/:userid", authorizationMiddleware.MiddlewareFunc(getDataset)),
 	)
 	if err != nil {
 		log.Logging.Fatal(err)
@@ -54,6 +60,9 @@ func postDataset(w rest.ResponseWriter, r *rest.Request) {
 		Errors  string        `json:"Errors"`
 	}
 
+	userid := r.PathParam("userid")
+	log.Logging.Info("userid", userid)
+
 	err := r.DecodeJsonPayload(&dataSet)
 
 	if err != nil {
@@ -71,11 +80,44 @@ func postDataset(w rest.ResponseWriter, r *rest.Request) {
 }
 
 func getDataset(w rest.ResponseWriter, r *rest.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
+
+	var foundDataset struct {
+		data.GenericDataset `json:"Dataset"`
+		Errors              string `json:"Errors"`
+	}
+
+	userid := r.PathParam("userid")
+	log.Logging.Info("userid", userid)
+
+	types := strings.Split(r.URL.Query().Get("type"), ",")
+	subTypes := strings.Split(r.URL.Query().Get("subType"), ",")
+	start := r.URL.Query().Get("startDate")
+	end := r.URL.Query().Get("endDate")
+
+	log.Logging.Info("params", types, subTypes, start, end)
+
+	foundDataset.GenericDataset = data.GenericDataset{}
+	foundDataset.Errors = ""
+
+	w.WriteJson(&foundDataset)
 	return
+
 }
 
 func getData(w rest.ResponseWriter, r *rest.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
+	var foundDatum struct {
+		data.GenericDatam `json:"Datum"`
+		Errors            string `json:"Errors"`
+	}
+
+	userid := r.PathParam("userid")
+	datumid := r.PathParam("datumid")
+
+	log.Logging.Info("userid and datum", userid, datumid)
+
+	foundDatum.GenericDatam = data.GenericDatam{}
+	foundDatum.Errors = ""
+
+	w.WriteJson(&foundDatum)
 	return
 }
