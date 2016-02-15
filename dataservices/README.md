@@ -55,10 +55,18 @@ GET /dataset
 curl -H "Content-Type: application/json" -H "x-tidepool-session-token: <your-token>" -X GET http://localhost:8077/dataset/<userid>
 ```
 
-and with query params
+`type` (optional) : The Tidepool data type to search for. Only objects with a type field matching the specified type param will be returned.
+can be /userid?type=smbg or a comma seperated list e.g /userid?type=smgb,cbg . If is a comma seperatedlist, then objects matching any of the sub types will be returned.
 
+`subType` (optional) : The Tidepool data subtype to search for. Only objects with a subtype field matching the specified subtype param will be returned. can be /userid?subtype=physicalactivity or a comma seperated list e.g /userid?subtypetype=physicalactivity,steps . If is a comma seperatedlist, then objects matching any of the types will be returned.
+
+`startDate` (optional) : Only objects with 'time' field equal to or greater than start date will be returned . Must be in ISO date/time format e.g. 2015-10-10T15:00:00.000Z
+
+`endDate` (optional) : Only objects with 'time' field less than to or equal to start date will be returned . Must be in ISO date/time format e.g. 2015-10-10T15:00:00.000Z
+
+e.g.
 ```
-curl -H "Content-Type: application/json" -H "x-tidepool-session-token: <your-token>" -X GET 'http://localhost:8077/dataset/<userid>?type=&subType=&startDate=&endDate='
+curl -H "Content-Type: application/json" -H "x-tidepool-session-token: <your-token>" -X GET 'http://localhost:8077/dataset/<userid>?type=smbg&subType=linked&startDate=2015-10-10T15:00:00.000Z&endDate=2015-10-10T15:00:00.000Z'
 ```
 
 ### Get datum
