@@ -23,7 +23,7 @@ x-tidepool-session-token: <your-token>
 POST /dataset
 
 ```
-curl -H "Content-Type: application/json" -H "x-tidepool-session-token: <your-token>" -X POST -d '[{"deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z", "timezoneOffset": 0, "conversionOffset": 0, "type": "basal", "deliveryType": "scheduled", "scheduleName": "Standard", "rate": 2, "duration": 21600000, "deviceId": "tools"}]' http://localhost:8077/dataset
+curl -H "Content-Type: application/json" -H "x-tidepool-session-token: <your-token>" -X POST -d '[{"deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z", "timezoneOffset": 0, "conversionOffset": 0, "type": "basal", "deliveryType": "scheduled", "scheduleName": "Standard", "rate": 2, "duration": 21600000, "deviceId": "tools"}]' http://localhost:8077/dataset/<userid>
 ```
 
 Response
@@ -52,14 +52,19 @@ Response
 GET /dataset
 
 ```
-curl -H "Content-Type: application/json" -H "x-tidepool-session-token: <your-token>" -X GET http://localhost:8077/dataset
+curl -H "Content-Type: application/json" -H "x-tidepool-session-token: <your-token>" -X GET http://localhost:8077/dataset/<userid>
 ```
 
+and with query params
 
-### Save dataset
+```
+curl -H "Content-Type: application/json" -H "x-tidepool-session-token: <your-token>" -X GET 'http://localhost:8077/dataset/<userid>?type=&subType=&startDate=&endDate='
+```
+
+### Get datum
 
 GET /data
 
 ```
-curl -H "Content-Type: application/json" -H "x-tidepool-session-token: <your-token>" -X GET http://localhost:8077/dataset
+curl -H "Content-Type: application/json" -H "x-tidepool-session-token: <your-token>" -X GET http://localhost:8077/data/<userid>/<datumid>
 ```
