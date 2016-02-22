@@ -16,13 +16,13 @@ var _ = Describe("Config", func() {
 
 		It("should load the given config file", func() {
 			var mgoConfig store.MongoConfig
-			FromJson(&mgoConfig, "mongo.json")
+			FromJSON(&mgoConfig, "mongo.json")
 			Expect(mgoConfig).To(Not(BeNil()))
-			Expect(mgoConfig.Url).To(Not(BeEmpty()))
+			Expect(mgoConfig.URL).To(Not(BeEmpty()))
 		})
 		It("should error if the config doen't exist", func() {
 			var random interface{}
-			err := FromJson(&random, "random.json")
+			err := FromJSON(&random, "random.json")
 			Expect(random).To(BeNil())
 			Expect(err).ToNot(BeNil())
 		})

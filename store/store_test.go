@@ -23,7 +23,7 @@ var _ = Describe("Store", func() {
 		)
 
 		BeforeEach(func() {
-			config.FromJson(&mgoConfig, "mongo.json")
+			config.FromJSON(&mgoConfig, "mongo.json")
 		})
 
 		It("should be assingable to the interface", func() {
@@ -80,7 +80,7 @@ var _ = Describe("Store", func() {
 			var updated SaveMe
 			updated = saveMe
 			updated.Stuff = []string{"just", "1"}
-			Expect(testStore.Update(StoreIdField{"id", updated.Id}, updated)).To(BeNil())
+			Expect(testStore.Update(IDField{"id", updated.Id}, updated)).To(BeNil())
 
 		})
 		It("should be able to delete", func() {
@@ -92,7 +92,7 @@ var _ = Describe("Store", func() {
 			}
 
 			Expect(testStore.Save(saveMe)).To(BeNil())
-			Expect(testStore.Delete(StoreIdField{"id", saveMe.Id})).To(BeNil())
+			Expect(testStore.Delete(IDField{"id", saveMe.Id})).To(BeNil())
 		})
 		It("should be able to get one", func() {
 			saveMe := SaveMe{
@@ -105,7 +105,7 @@ var _ = Describe("Store", func() {
 			var found SaveMe
 
 			Expect(testStore.Save(saveMe)).To(BeNil())
-			Expect(testStore.Read(StoreIdField{"id", saveMe.Id}, &found)).To(BeNil())
+			Expect(testStore.Read(IDField{"id", saveMe.Id}, &found)).To(BeNil())
 			Expect(found).To(Equal(saveMe))
 		})
 		It("should be able to get all", func() {
@@ -125,7 +125,7 @@ var _ = Describe("Store", func() {
 			var found []SaveMe
 			Expect(testStore.Save(one)).To(BeNil())
 			Expect(testStore.Save(two)).To(BeNil())
-			Expect(testStore.ReadAll(StoreIdField{"userid", one.UserId}, &found)).To(BeNil())
+			Expect(testStore.ReadAll(IDField{"userid", one.UserId}, &found)).To(BeNil())
 			Expect(len(found)).To(Equal(2))
 			Expect(found[0]).To(Equal(one))
 			Expect(found[1]).To(Equal(two))

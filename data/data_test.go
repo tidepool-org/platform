@@ -7,14 +7,6 @@ import (
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega"
 )
 
-var _ = Describe("Data", func() {
-	Context("with no parameters", func() {
-		It("should return data", func() {
-			Expect(GetData()).To(Equal("data"))
-		})
-	})
-})
-
 var _ = Describe("Builder", func() {
 
 	var (
