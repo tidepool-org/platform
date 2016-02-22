@@ -1,21 +1,23 @@
 package data
 
+//DeviceEvent represents a deviceevent data record
 type DeviceEvent struct {
 	SubType string `json:"subType" bson:"subType" valid:"required"`
 	Base
 }
 
-func BuildDeviceEvent(obj map[string]interface{}) (*DeviceEvent, *DataError) {
+//BuildDeviceEvent will build a DeviceEvent record
+func BuildDeviceEvent(obj map[string]interface{}) (*DeviceEvent, *Error) {
 
 	const (
-		sub_type_field = "subType"
+		subTypeField = "subType"
 	)
 
 	base, errs := BuildBase(obj)
 	cast := NewCaster(errs)
 
 	deviceEvent := &DeviceEvent{
-		SubType: cast.ToString(sub_type_field, obj[sub_type_field]),
+		SubType: cast.ToString(subTypeField, obj[subTypeField]),
 		Base:    base,
 	}
 

@@ -10,41 +10,45 @@ import (
 	log "github.com/tidepool-org/platform/logger"
 )
 
-// Generic store interface for all operations that we need
+//Store is a generic store interface for all operations that we need
 // Note: there will be a specific implementation for the store
 // type we are using, which could also be a mock
 type Store interface {
 	Save(d interface{}) error
-	Update(id StoreIdField, d interface{}) error
-	Delete(id StoreIdField) error
-	Read(id StoreIdField, result interface{}) error
-	ReadAll(id StoreIdField, results interface{}) error
+	Update(id IDField, d interface{}) error
+	Delete(id IDField) error
+	Read(id IDField, result interface{}) error
+	ReadAll(id IDField, results interface{}) error
 }
 
-type StoreIdField struct {
+//IDField used for finding an item based on its specific ID
+type IDField struct {
 	Name  string
 	Value string
 }
 
+//MongoStore is the mongo implementation of Store
 type MongoStore struct {
 	Session        *mgo.Session
 	CollectionName string
 	Config         MongoConfig
 }
 
+//MongoConfig is the required config for the MongoStore
 type MongoConfig struct {
-	Url     string `json:"connectionUrl"`
+	URL     string `json:"connectionUrl"`
 	DbName  string `json:"databaseName"`
 	Timeout int    `json:"timeout"`
 }
 
+//NewMongoStore returns an initailised instance of MongoStore
 func NewMongoStore(name string) *MongoStore {
 
 	store := &MongoStore{CollectionName: name}
-	config.FromJson(&store.Config, "mongo.json")
+	config.FromJSON(&store.Config, "mongo.json")
 
 	var err error
-	store.Session, err = mgo.DialWithTimeout(store.Config.Url, time.Duration(store.Config.Timeout)*time.Second)
+	store.Session, err = mgo.DialWithTimeout(store.Config.URL, time.Duration(store.Config.Timeout)*time.Second)
 
 	if err != nil {
 		log.Logging.Fatal(err)
@@ -53,63 +57,64 @@ func NewMongoStore(name string) *MongoStore {
 	return store
 }
 
-func (this *MongoStore) Cleanup() {
-	cpy := this.Session.Copy()
+//Cleanup will cleanup the collection, used for testing purposes
+func (mongoStore *MongoStore) Cleanup() {
+	cpy := mongoStore.Session.Copy()
 	defer cpy.Close()
 
-	cpy.DB(this.Config.DbName).C(this.CollectionName).DropCollection()
+	cpy.DB(mongoStore.Config.DbName).C(mongoStore.CollectionName).DropCollection()
 }
 
-func (this *MongoStore) Save(d interface{}) error {
-	cpy := this.Session.Copy()
+//Save will save the specified data
+func (mongoStore *MongoStore) Save(d interface{}) error {
+	cpy := mongoStore.Session.Copy()
 	defer cpy.Close()
 
-	if err := cpy.DB(this.Config.DbName).C(this.CollectionName).Insert(d); err != nil {
+	if err := cpy.DB(mongoStore.Config.DbName).C(mongoStore.CollectionName).Insert(d); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (this *MongoStore) Update(id StoreIdField, d interface{}) error {
-	cpy := this.Session.Copy()
+//Update will update the specified data based on its IDField
+func (mongoStore *MongoStore) Update(id IDField, d interface{}) error {
+	cpy := mongoStore.Session.Copy()
 	defer cpy.Close()
 
-	if _, err := cpy.DB(this.Config.DbName).C(this.CollectionName).Upsert(bson.M{id.Name: id.Value}, d); err != nil {
+	if _, err := cpy.DB(mongoStore.Config.DbName).C(mongoStore.CollectionName).Upsert(bson.M{id.Name: id.Value}, d); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (this *MongoStore) Delete(id StoreIdField) error {
-
-	cpy := this.Session.Copy()
+//Delete will delete the specified data based on its IDField
+func (mongoStore *MongoStore) Delete(id IDField) error {
+	cpy := mongoStore.Session.Copy()
 	defer cpy.Close()
 
-	if err := cpy.DB(this.Config.DbName).C(this.CollectionName).Remove(bson.M{id.Name: id.Value}); err != nil {
+	if err := cpy.DB(mongoStore.Config.DbName).C(mongoStore.CollectionName).Remove(bson.M{id.Name: id.Value}); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (this *MongoStore) Read(id StoreIdField, result interface{}) error {
-	cpy := this.Session.Copy()
+//Read will get the specified data based on its IDField
+func (mongoStore *MongoStore) Read(id IDField, result interface{}) error {
+	cpy := mongoStore.Session.Copy()
 	defer cpy.Close()
 
-	log.Logging.Info("read", id)
-
-	if err := cpy.DB(this.Config.DbName).C(this.CollectionName).Find(bson.M{id.Name: id.Value}).One(result); err != nil {
+	if err := cpy.DB(mongoStore.Config.DbName).C(mongoStore.CollectionName).Find(bson.M{id.Name: id.Value}).One(result); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (this *MongoStore) ReadAll(id StoreIdField, results interface{}) error {
-	cpy := this.Session.Copy()
+//ReadAll all data that matches the specified IDField
+func (mongoStore *MongoStore) ReadAll(id IDField, results interface{}) error {
+	cpy := mongoStore.Session.Copy()
 	defer cpy.Close()
 
-	log.Logging.Info("read all", id)
-
-	if err := cpy.DB(this.Config.DbName).C(this.CollectionName).Find(bson.M{id.Name: id.Value}).All(results); err != nil {
+	if err := cpy.DB(mongoStore.Config.DbName).C(mongoStore.CollectionName).Find(bson.M{id.Name: id.Value}).All(results); err != nil {
 		return err
 	}
 	return nil

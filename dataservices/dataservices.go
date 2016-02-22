@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	missing_permissions_error = "missing required permissions"
+	missingPermissionsError = "missing required permissions"
 )
 
 var (
@@ -24,7 +24,7 @@ var (
 )
 
 func initMiddleware() {
-	userClient := user.NewUserServicesClient()
+	userClient := user.NewServicesClient()
 	userClient.Start()
 	validateToken = user.NewAuthorizationMiddleware(userClient).ValidateToken
 	getPermissons = user.NewPermissonsMiddleware(userClient).GetPermissons
@@ -32,7 +32,6 @@ func initMiddleware() {
 
 func main() {
 	log.Logging.Info(version.String)
-	log.Logging.Info(data.GetData())
 
 	initMiddleware()
 
@@ -88,7 +87,6 @@ func postDataset(w rest.ResponseWriter, r *rest.Request) {
 			Errors  string        `json:"Errors"`
 		}
 
-		//userid := r.PathParam("userid")
 		log.Logging.Info("processing")
 
 		err := r.DecodeJsonPayload(&dataSet)
@@ -99,18 +97,26 @@ func postDataset(w rest.ResponseWriter, r *rest.Request) {
 		}
 
 		data, err := data.NewTypeBuilder().BuildFromDataSet(dataSet)
+		processedDataset.Dataset = data
 
-		for i := range data {
-			dataStore.Save(data[i])
+		if err != nil {
+			rest.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
-		processedDataset.Dataset = data
-		processedDataset.Errors = err.Error()
+		//TODO: should this be a bulk insert?
+		for i := range data {
+			err := dataStore.Save(data[i])
+			if err != nil {
+				rest.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
 
 		w.WriteJson(&processedDataset)
 		return
 	}
-	rest.Error(w, missing_permissions_error, http.StatusUnauthorized)
+	rest.Error(w, missingPermissionsError, http.StatusUnauthorized)
 	return
 }
 
@@ -136,7 +142,7 @@ func getDataset(w rest.ResponseWriter, r *rest.Request) {
 		log.Logging.Info("params", types, subTypes, start, end)
 
 		var dataSet data.GenericDataset
-		err := dataStore.ReadAll(store.StoreIdField{Name: "userId", Value: userid}, &dataSet)
+		err := dataStore.ReadAll(store.IDField{Name: "userId", Value: userid}, &dataSet)
 
 		if err != nil {
 			foundDataset.Errors = err.Error()
@@ -146,7 +152,7 @@ func getDataset(w rest.ResponseWriter, r *rest.Request) {
 		w.WriteJson(&foundDataset)
 		return
 	}
-	rest.Error(w, missing_permissions_error, http.StatusUnauthorized)
+	rest.Error(w, missingPermissionsError, http.StatusUnauthorized)
 	return
 }
 
@@ -171,6 +177,6 @@ func getData(w rest.ResponseWriter, r *rest.Request) {
 		w.WriteJson(&foundDatum)
 		return
 	}
-	rest.Error(w, missing_permissions_error, http.StatusUnauthorized)
+	rest.Error(w, missingPermissionsError, http.StatusUnauthorized)
 	return
 }

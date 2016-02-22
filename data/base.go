@@ -8,42 +8,44 @@ import (
 	"github.com/tidepool-org/platform/validate"
 )
 
+//Base represents tha base types that all device data records contain
 type Base struct {
-	Id               bson.ObjectId `json:"_id" bson:"_id"`
-	UserId           string        `json:"userId" bson:"userId" valid:"required"`
+	ID               bson.ObjectId `json:"_id" bson:"_id"`
+	UserID           string        `json:"userId" bson:"userId" valid:"required"`
 	Type             string        `json:"type" bson:"type" valid:"required"`
 	DeviceTime       time.Time     `json:"deviceTime" bson:"deviceTime" valid:"required"`
 	Time             time.Time     `json:"time" bson:"time" valid:"required"`
 	TimezoneOffset   int           `json:"timezoneOffset" bson:"timezoneOffset,omitempty"`
 	ConversionOffset int           `json:"conversionOffset" bson:"conversionOffset,omitempty"`
-	DeviceId         string        `json:"deviceId" bson:"deviceId" valid:"required"`
+	DeviceID         string        `json:"deviceId" bson:"deviceId" valid:"required"`
 }
 
 var validator = validate.PlatformValidator{}
 
-func BuildBase(obj map[string]interface{}) (Base, *DataError) {
+//BuildBase builds the base fields that all device data records contain
+func BuildBase(obj map[string]interface{}) (Base, *Error) {
 	const (
-		userid_field            = "userId"
-		type_field              = "type"
-		device_time_field       = "deviceTime"
-		timezone_offset_field   = "timezoneOffset"
-		time_field              = "time"
-		conversion_offset_field = "conversionOffset"
-		device_id_field         = "deviceId"
+		useridField           = "userId"
+		typeField             = "type"
+		deviceTimeField       = "deviceTime"
+		timezoneOffsetField   = "timezoneOffset"
+		timeField             = "time"
+		conversionOffsetField = "conversionOffset"
+		deviceIDField         = "deviceId"
 	)
 
-	errs := NewDataError(obj)
+	errs := NewError(obj)
 	cast := NewCaster(errs)
 
 	base := Base{
-		Id:               bson.NewObjectId(),
-		UserId:           cast.ToString(userid_field, obj[userid_field]),
-		ConversionOffset: cast.ToInt(conversion_offset_field, obj[conversion_offset_field]),
-		TimezoneOffset:   cast.ToInt(timezone_offset_field, obj[timezone_offset_field]),
-		DeviceId:         cast.ToString(device_id_field, obj[device_id_field]),
-		DeviceTime:       cast.ToTime(device_time_field, obj[device_time_field]),
-		Time:             cast.ToTime(time_field, obj[time_field]),
-		Type:             cast.ToString(type_field, obj[type_field]),
+		ID:               bson.NewObjectId(),
+		UserID:           cast.ToString(useridField, obj[useridField]),
+		ConversionOffset: cast.ToInt(conversionOffsetField, obj[conversionOffsetField]),
+		TimezoneOffset:   cast.ToInt(timezoneOffsetField, obj[timezoneOffsetField]),
+		DeviceID:         cast.ToString(deviceIDField, obj[deviceIDField]),
+		DeviceTime:       cast.ToTime(deviceTimeField, obj[deviceTimeField]),
+		Time:             cast.ToTime(timeField, obj[timeField]),
+		Type:             cast.ToString(typeField, obj[typeField]),
 	}
 
 	_, err := validator.Validate(base)
@@ -51,51 +53,52 @@ func BuildBase(obj map[string]interface{}) (Base, *DataError) {
 	return base, errs
 }
 
-func GetData() string {
-	return "data"
-}
-
-//For casting of our incoming generic json data to the expected types that our data model uses
+//Cast type for use in casting our incoming generic json data to the expected types that our data model uses
 type Cast struct {
-	err *DataError
+	err *Error
 }
 
-func NewCaster(err *DataError) *Cast {
+//NewCaster creates a Cast
+func NewCaster(err *Error) *Cast {
 	return &Cast{err: err}
 }
 
-func (this *Cast) ToString(fieldName string, data interface{}) string {
+//ToString will return the given data as a string or add an error to the cast obj
+func (cast *Cast) ToString(fieldName string, data interface{}) string {
 	aString, ok := data.(string)
 	if !ok {
-		this.err.AppendFieldError(fieldName, data)
+		cast.err.AppendFieldError(fieldName, data)
 	}
 	return aString
 }
 
-func (this *Cast) ToFloat64(fieldName string, data interface{}) float64 {
+//ToFloat64 will return the given data as a float64 or add an error to the cast obj
+func (cast *Cast) ToFloat64(fieldName string, data interface{}) float64 {
 	theFloat, ok := data.(float64)
 	if !ok {
-		this.err.AppendFieldError(fieldName, data)
+		cast.err.AppendFieldError(fieldName, data)
 	}
 	return theFloat
 }
 
-func (this *Cast) ToInt(fieldName string, data interface{}) int {
+//ToInt will return the given data as a int or add an error to the cast obj
+func (cast *Cast) ToInt(fieldName string, data interface{}) int {
 	theInt, ok := data.(int)
 	if !ok {
-		theFloat := this.ToFloat64(fieldName, data)
+		theFloat := cast.ToFloat64(fieldName, data)
 		theInt = int(theFloat)
 	}
 	return theInt
 }
 
-func (this *Cast) ToTime(fieldName string, data interface{}) time.Time {
+//ToTime will return the given data as time.Time or add an error to the cast obj
+func (cast *Cast) ToTime(fieldName string, data interface{}) time.Time {
 	timeStr, ok := data.(string)
 	if ok {
 		theTime, err := time.Parse(time.RFC3339, timeStr)
-		this.err.AppendError(err)
+		cast.err.AppendError(err)
 		return theTime
 	}
-	this.err.AppendFieldError(fieldName, data)
+	cast.err.AppendFieldError(fieldName, data)
 	return time.Time{}
 }

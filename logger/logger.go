@@ -6,6 +6,7 @@ import (
 	logrus "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/Sirupsen/logrus"
 )
 
+//Logger interface
 type Logger interface {
 	AddTrace(id string)
 	Debug(args ...interface{})
@@ -16,10 +17,13 @@ type Logger interface {
 }
 
 var log = logrus.New()
+
+//Logging variable
 var Logging Logger
 
-const trace_id = "traceid"
+const traceID = "traceID"
 
+//PlatformLogger type
 type PlatformLogger struct {
 	field string
 }
@@ -31,39 +35,49 @@ func init() {
 	Logging = &PlatformLogger{}
 }
 
-func (this *PlatformLogger) AddTrace(id string) { this.field = id }
+//AddTrace will log add a trace id to the logs
+func (platformLogger *PlatformLogger) AddTrace(id string) { platformLogger.field = id }
 
-func (this *PlatformLogger) Debug(args ...interface{}) {
-	if this.field != "" {
-		log.WithField(trace_id, this.field).Debug(args)
+//Debug will log at the Debug Level
+func (platformLogger *PlatformLogger) Debug(args ...interface{}) {
+	if platformLogger.field != "" {
+		log.WithField(traceID, platformLogger.field).Debug(args)
 		return
 	}
 	log.Debug(args)
 }
-func (this *PlatformLogger) Info(args ...interface{}) {
-	if this.field != "" {
-		log.WithField(trace_id, this.field).Info(args)
+
+//Info will log at the Info Level
+func (platformLogger *PlatformLogger) Info(args ...interface{}) {
+	if platformLogger.field != "" {
+		log.WithField(traceID, platformLogger.field).Info(args)
 		return
 	}
 	log.Info(args)
 }
-func (this *PlatformLogger) Warn(args ...interface{}) {
-	if this.field != "" {
-		log.WithField(trace_id, this.field).Warn(args)
+
+//Warn will log at the Warn Level
+func (platformLogger *PlatformLogger) Warn(args ...interface{}) {
+	if platformLogger.field != "" {
+		log.WithField(traceID, platformLogger.field).Warn(args)
 		return
 	}
 	log.Warn(args)
 }
-func (this *PlatformLogger) Error(args ...interface{}) {
-	if this.field != "" {
-		log.WithField(trace_id, this.field).Error(args)
+
+//Error will log at the Error Level
+func (platformLogger *PlatformLogger) Error(args ...interface{}) {
+	if platformLogger.field != "" {
+		log.WithField(traceID, platformLogger.field).Error(args)
 		return
 	}
 	log.Error(args)
 }
-func (this *PlatformLogger) Fatal(args ...interface{}) {
-	if this.field != "" {
-		log.WithField(trace_id, this.field).Fatal(args)
+
+//Fatal will log at the Fatal Level
+func (platformLogger *PlatformLogger) Fatal(args ...interface{}) {
+	if platformLogger.field != "" {
+		log.WithField(traceID, platformLogger.field).Fatal(args)
 		return
 	}
 	log.Fatal(args)

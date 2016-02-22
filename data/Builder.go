@@ -9,31 +9,38 @@ import (
 	log "github.com/tidepool-org/platform/logger"
 )
 
+//GenericDatam represent one data point
 type GenericDatam map[string]interface{}
+
+//GenericDataset represents an array of data points
 type GenericDataset []GenericDatam
 
+//Builder interface that the TypeBuilder implements
 type Builder interface {
-	BuildFromRaw(raw []byte) (interface{}, *DataError)
-	BuildFromData(data map[string]interface{}) (interface{}, *DataError)
-	BuildFromDataSet(dataSet GenericDataset) ([]interface{}, *DataSetError)
+	BuildFromRaw(raw []byte) (interface{}, *Error)
+	BuildFromData(data map[string]interface{}) (interface{}, *Error)
+	BuildFromDataSet(dataSet GenericDataset) ([]interface{}, *ErrorSet)
 }
 
+//TypeBuilder that is used to build data types that the platform understands
 type TypeBuilder struct{}
 
+//NewTypeBuilder returns an instance of TypeBuilder
 func NewTypeBuilder() Builder {
 	return &TypeBuilder{}
 }
 
-func (this *TypeBuilder) BuildFromDataSet(dataSet GenericDataset) ([]interface{}, *DataSetError) {
+//BuildFromDataSet will build the matching type(s) from the given GenericDataset
+func (typeBuilder *TypeBuilder) BuildFromDataSet(dataSet GenericDataset) ([]interface{}, *ErrorSet) {
 
 	var set []interface{}
-	var buildError *DataSetError
+	var buildError *ErrorSet
 
 	for i := range dataSet {
-		item, err := this.BuildFromData(dataSet[i])
+		item, err := typeBuilder.BuildFromData(dataSet[i])
 		if err != nil && !err.IsEmpty() {
 			if buildError == nil {
-				buildError = NewDataSetError()
+				buildError = NewErrorSet()
 			}
 			buildError.AppendError(err)
 		}
@@ -42,39 +49,41 @@ func (this *TypeBuilder) BuildFromDataSet(dataSet GenericDataset) ([]interface{}
 	return set, buildError
 }
 
-func (this *TypeBuilder) BuildFromRaw(raw []byte) (interface{}, *DataError) {
+//BuildFromRaw will build the matching type(s) from the given raw data
+func (typeBuilder *TypeBuilder) BuildFromRaw(raw []byte) (interface{}, *Error) {
 
 	var data map[string]interface{}
 
 	if err := json.NewDecoder(strings.NewReader(string(raw))).Decode(&data); err != nil {
 		log.Logging.Info("error doing an unmarshal", err.Error())
-		e := NewDataError(data)
-		e.AppendError(errors.New(fmt.Sprintf("sorry but we do anything with %s", string(raw))))
+		e := NewError(data)
+		e.AppendError(fmt.Errorf("sorry but we do anything with %s", string(raw)))
 		return nil, e
 	}
-	return this.BuildFromData(data)
+	return typeBuilder.BuildFromData(data)
 }
 
-func (this *TypeBuilder) BuildFromData(data map[string]interface{}) (interface{}, *DataError) {
+//BuildFromData will build the matching type from the given raw data
+func (typeBuilder *TypeBuilder) BuildFromData(data map[string]interface{}) (interface{}, *Error) {
 
 	const (
-		type_field        = "type"
-		basal_type        = "basal"
-		device_event_type = "deviceevent"
+		typeField       = "type"
+		basalType       = "basal"
+		deviceEventType = "deviceevent"
 	)
-	if data[type_field] != nil {
+	if data[typeField] != nil {
 
-		if strings.ToLower(data[type_field].(string)) == basal_type {
+		if strings.ToLower(data[typeField].(string)) == basalType {
 			return BuildBasal(data)
-		} else if strings.ToLower(data[type_field].(string)) == device_event_type {
+		} else if strings.ToLower(data[typeField].(string)) == deviceEventType {
 			return BuildDeviceEvent(data)
 		}
-		e := NewDataError(data)
-		e.AppendError(errors.New(fmt.Sprintf("we can't deal with `type`=%s", data[type_field].(string))))
+		e := NewError(data)
+		e.AppendError(fmt.Errorf("we can't deal with `type`=%s", data[typeField].(string)))
 		return nil, e
 	}
 
-	e := NewDataError(data)
+	e := NewError(data)
 	e.AppendError(errors.New("there is no match for that type"))
 
 	return nil, e

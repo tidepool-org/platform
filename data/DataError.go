@@ -1,19 +1,19 @@
 package data
 
-import (
-	"errors"
-	"fmt"
-)
+import "fmt"
 
-type DataSetError struct {
-	errors []*DataError
+//ErrorSet contains a list of Error's
+type ErrorSet struct {
+	errors []*Error
 }
 
-func NewDataSetError() *DataSetError {
-	return &DataSetError{}
+//NewErrorSet creates an initialised ErrorSet
+func NewErrorSet() *ErrorSet {
+	return &ErrorSet{}
 }
 
-func (e *DataSetError) AppendError(err *DataError) {
+//AppendError appends an error to the ErrorSet
+func (e *ErrorSet) AppendError(err *Error) {
 	if err == nil || err.IsEmpty() {
 		return
 	}
@@ -21,7 +21,8 @@ func (e *DataSetError) AppendError(err *DataError) {
 	return
 }
 
-func (e *DataSetError) Error() string {
+//Error returns a string representation of the errors
+func (e *ErrorSet) Error() string {
 
 	errorsStr := ""
 	if e != nil {
@@ -35,16 +36,19 @@ func (e *DataSetError) Error() string {
 	return errorsStr
 }
 
-type DataError struct {
+//Error contains a list or errors and asscociated data
+type Error struct {
 	errors []error
 	data   map[string]interface{}
 }
 
-func NewDataError(data map[string]interface{}) *DataError {
-	return &DataError{data: data}
+//NewError creates and instance of Error
+func NewError(data map[string]interface{}) *Error {
+	return &Error{data: data}
 }
 
-func (e *DataError) AppendError(err error) {
+//AppendError appends an error to the Error
+func (e *Error) AppendError(err error) {
 	if err == nil {
 		return
 	}
@@ -52,19 +56,22 @@ func (e *DataError) AppendError(err error) {
 	return
 }
 
-func (e *DataError) AppendFieldError(name string, detail interface{}) {
+//AppendFieldError appends a error and associated field name
+func (e *Error) AppendFieldError(name string, detail interface{}) {
 
-	e.errors = append(e.errors, errors.New(
-		fmt.Sprintf("encountered an error on type field %s when given %v ", name, detail),
-	))
+	e.errors = append(e.errors,
+		fmt.Errorf("encountered an error on type field %s when given %v ", name, detail),
+	)
 	return
 }
 
-func (e *DataError) IsEmpty() bool {
+//IsEmpty return true if there are no errors contained
+func (e *Error) IsEmpty() bool {
 	return len(e.errors) == 0
 }
 
-func (e *DataError) Error() string {
+//Error returns a string representation of the errors
+func (e *Error) Error() string {
 
 	errorsStr := ""
 

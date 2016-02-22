@@ -8,24 +8,25 @@ import (
 	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/ant0ine/go-json-rest/rest"
 )
 
+//ChainedMiddleware used for join Middleware function calls
 type ChainedMiddleware func(rest.HandlerFunc) rest.HandlerFunc
 
-//Authorization middleware is used for validation of incoming tokens
+//AuthorizationMiddleware is used for validation of incoming tokens
 type AuthorizationMiddleware struct {
 	Client Client
 }
 
+//NewAuthorizationMiddleware creates an initialised AuthorizationMiddleware
 func NewAuthorizationMiddleware(userClient Client) *AuthorizationMiddleware {
 	return &AuthorizationMiddleware{Client: userClient}
 }
 
-//Valid - then we continue
-//Invalid - then we return 401 (http.StatusUnauthorized)
+//ValidateToken returns if valid or sends http.StatusUnauthorized if invalid
 func (mw *AuthorizationMiddleware) ValidateToken(h rest.HandlerFunc) rest.HandlerFunc {
 
 	return func(w rest.ResponseWriter, r *rest.Request) {
 
-		token := r.Header.Get(x_tidepool_session_token)
+		token := r.Header.Get(xTidepoolSessionToken)
 		userid := r.PathParam("userid")
 
 		if tokenData := mw.Client.CheckToken(token); tokenData != nil {
@@ -40,24 +41,26 @@ func (mw *AuthorizationMiddleware) ValidateToken(h rest.HandlerFunc) rest.Handle
 	}
 }
 
-//Authorization middleware is used for getting user permissons
+//PermissonsMiddleware middleware is used for getting user permissons
 type PermissonsMiddleware struct {
 	Client Client
 }
 
+//PERMISSIONS constant for accessing permissions that are attached to request.Env
 const PERMISSIONS = "PERMISSIONS"
 
+//NewPermissonsMiddleware creates initialised PermissonsMiddleware
 func NewPermissonsMiddleware(userClient Client) *PermissonsMiddleware {
 	return &PermissonsMiddleware{Client: userClient}
 }
 
-//Attach permissons if they exist
+//GetPermissons attach's permissons if they exist
 //http.StatusInternalServerError if there is an error getting the user permissons
 func (mw *PermissonsMiddleware) GetPermissons(h rest.HandlerFunc) rest.HandlerFunc {
 
 	return func(w rest.ResponseWriter, r *rest.Request) {
 
-		token := r.Header.Get(x_tidepool_session_token)
+		token := r.Header.Get(xTidepoolSessionToken)
 		userid := r.PathParam("userid")
 
 		permissions, err := mw.Client.GetUserPermissons(userid, token)
