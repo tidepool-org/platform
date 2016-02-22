@@ -1,17 +1,17 @@
 package data
 
 type Basal struct {
-	DeliveryType string          `json:"deliveryType" valid:"required"`
-	Rate         float64         `json:"rate" valid:"required"`
-	Duration     int             `json:"duration" valid:"required"`
-	Suppressed   *SupressedBasal `json:"suppressed"`
-	Base
+	DeliveryType string          `json:"deliveryType" bson:"deliveryType" valid:"required"`
+	Rate         float64         `json:"rate" bson:"rate" valid:"required"`
+	Duration     int             `json:"duration" bson:"duration" valid:"required"`
+	Suppressed   *SupressedBasal `json:"suppressed" bson:"suppressed,omitempty"`
+	Base         `bson:",inline"`
 }
 
 type SupressedBasal struct {
-	Type         string  `json:"type" valid:"required"`
-	DeliveryType string  `json:"deliveryType" valid:"required"`
-	Rate         float64 `json:"rate" valid:"required"`
+	Type         string  `json:"type" bson:"type" valid:"required"`
+	DeliveryType string  `json:"deliveryType" bson:"deliveryType" valid:"required"`
+	Rate         float64 `json:"rate" bson:"rate" valid:"required"`
 }
 
 func BuildBasal(obj map[string]interface{}) (*Basal, *DataError) {

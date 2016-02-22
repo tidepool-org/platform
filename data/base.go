@@ -3,22 +3,27 @@ package data
 import (
 	"time"
 
+	"github.com/tidepool-org/platform/Godeps/_workspace/src/labix.org/v2/mgo/bson"
+
 	"github.com/tidepool-org/platform/validate"
 )
 
 type Base struct {
-	Type             string    `json:"type" valid:"required"`
-	DeviceTime       time.Time `json:"deviceTime" valid:"required"`
-	Time             time.Time `json:"time" valid:"required"`
-	TimezoneOffset   int       `json:"timezoneOffset"`
-	ConversionOffset int       `json:"conversionOffset"`
-	DeviceId         string    `json:"deviceId" valid:"required"`
+	Id               bson.ObjectId `json:"_id" bson:"_id"`
+	UserId           string        `json:"userId" bson:"userId" valid:"required"`
+	Type             string        `json:"type" bson:"type" valid:"required"`
+	DeviceTime       time.Time     `json:"deviceTime" bson:"deviceTime" valid:"required"`
+	Time             time.Time     `json:"time" bson:"time" valid:"required"`
+	TimezoneOffset   int           `json:"timezoneOffset" bson:"timezoneOffset,omitempty"`
+	ConversionOffset int           `json:"conversionOffset" bson:"conversionOffset,omitempty"`
+	DeviceId         string        `json:"deviceId" bson:"deviceId" valid:"required"`
 }
 
 var validator = validate.PlatformValidator{}
 
 func BuildBase(obj map[string]interface{}) (Base, *DataError) {
 	const (
+		userid_field            = "userId"
 		type_field              = "type"
 		device_time_field       = "deviceTime"
 		timezone_offset_field   = "timezoneOffset"
@@ -31,6 +36,8 @@ func BuildBase(obj map[string]interface{}) (Base, *DataError) {
 	cast := NewCaster(errs)
 
 	base := Base{
+		Id:               bson.NewObjectId(),
+		UserId:           cast.ToString(userid_field, obj[userid_field]),
 		ConversionOffset: cast.ToInt(conversion_offset_field, obj[conversion_offset_field]),
 		TimezoneOffset:   cast.ToInt(timezone_offset_field, obj[timezone_offset_field]),
 		DeviceId:         cast.ToString(device_id_field, obj[device_id_field]),

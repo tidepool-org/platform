@@ -22,8 +22,9 @@ type (
 	Client interface {
 		Start() error
 		Close()
-		CheckToken(token string) *ClientTokenData
-		GetUser(userID, token string) (*ClientData, error)
+		CheckToken(token string) *UserTokenData
+		GetUser(userID, token string) (*UserData, error)
+		GetUserPermissons(userID, token string) (*UsersPermissions, error)
 	}
 
 	// UserApiClient manages the local data for a client. A client is intended to be shared among multiple
@@ -54,18 +55,27 @@ type (
 		TokenRefreshDuration time.Duration
 	}
 
-	// UserData is the data structure returned from a successful Login query.
-	ClientData struct {
-		UserID   string   // the tidepool-assigned user ID
-		UserName string   // the user-assigned name for the login (usually an email address)
-		Emails   []string // the array of email addresses associated with this account
+	// UserData is the data structure returned when we get a user
+	UserData struct {
+		UserID         string   `json:"userid,omitempty"`         // the tidepool-assigned user ID
+		Username       string   `json:"username,omitempty"`       // the user-assigned name for the login (usually an email address)
+		Emails         []string `json:"emails,omitempty"`         // the array of email addresses associated with this account
+		PasswordExists bool     `json:"passwordExists,omitempty"` // Does a password exist for the user?
+		Roles          []string `json:"roles,omitempty"`          // User roles
+		TermsAccepted  string   `json:"termsAccepted,omitempty"`  // When were the terms accepted
+		EmailVerified  bool     `json:"emailVerified,omitempty"`  // the user has verified the email used as part of signup
 	}
 
 	// TokenData is the data structure returned from a successful CheckToken query.
-	ClientTokenData struct {
+	UserTokenData struct {
 		UserID   string // the UserID stored in the token
 		IsServer bool   // true or false depending on whether the token was a servertoken
 	}
+
+	//permissons types
+	Permission       map[string]interface{}
+	Permissions      map[string]Permission
+	UsersPermissions map[string]Permissions
 )
 
 const (
@@ -73,6 +83,9 @@ const (
 	x_tidepool_server_secret = "x-tidepool-server-secret"
 	x_tidepool_session_token = "x-tidepool-session-token"
 	tidepool_client_secret   = "TIDEPOOL_USER_CLIENT_SECRET"
+
+	user_path        = "/auth"
+	permissions_path = "/access"
 )
 
 func NewUserServicesClient() *UserServicesClient {
@@ -88,7 +101,6 @@ func NewUserServicesClient() *UserServicesClient {
 		panic("UserServicesClient requires a host to be set")
 	}
 
-	//TODO: this is hardcoded
 	dur, err := time.ParseDuration(clientConfig.TokenRefreshInterval)
 	if err != nil {
 		log.Logging.Error("err getting the duration ", err.Error())
@@ -146,7 +158,7 @@ func (client *UserServicesClient) Close() {
 // secret that was passed in on the creation of the client object. If
 // successful, it stores the returned token in ServerToken.
 func (client *UserServicesClient) serverLogin() error {
-	host := client.getHost()
+	host := client.getUserHost()
 	if host == nil {
 		return errors.New("No known user-api hosts.")
 	}
@@ -163,7 +175,7 @@ func (client *UserServicesClient) serverLogin() error {
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode != 200 {
+	if res.StatusCode != http.StatusOK {
 		return errors.New(fmt.Sprintf("Unknown response %d from service[%s]", res.StatusCode, req.URL))
 	}
 	token := res.Header.Get(x_tidepool_session_token)
@@ -177,8 +189,8 @@ func (client *UserServicesClient) serverLogin() error {
 
 // CheckToken tests a token with the user-api to make sure it's current;
 // if so, it returns the data encoded in the token.
-func (client *UserServicesClient) CheckToken(token string) *ClientTokenData {
-	host := client.getHost()
+func (client *UserServicesClient) CheckToken(token string) *UserTokenData {
+	host := client.getUserHost()
 	if host == nil {
 		log.Logging.Error("No known user-api hosts.")
 		return nil
@@ -197,7 +209,7 @@ func (client *UserServicesClient) CheckToken(token string) *ClientTokenData {
 
 	switch res.StatusCode {
 	case http.StatusOK:
-		var td ClientTokenData
+		var td UserTokenData
 		if err = json.NewDecoder(res.Body).Decode(&td); err != nil {
 			log.Logging.Error("Error parsing JSON results", err.Error())
 			return nil
@@ -206,15 +218,15 @@ func (client *UserServicesClient) CheckToken(token string) *ClientTokenData {
 	case http.StatusNoContent:
 		return nil
 	default:
-		log.Logging.Errorf("Unknown response code[%d] from service[%s]", res.StatusCode, req.URL)
+		log.Logging.Error("Unknown response ", res.StatusCode, req.URL)
 		return nil
 	}
 }
 
 // Get user details for the given user
 // In this case the userID could be the actual ID or an email address
-func (client *UserServicesClient) GetUser(userID, token string) (*ClientData, error) {
-	host := client.getHost()
+func (client *UserServicesClient) GetUser(userID, token string) (*UserData, error) {
+	host := client.getUserHost()
 	if host == nil {
 		return nil, errors.New("No known user-api hosts.")
 	}
@@ -232,23 +244,64 @@ func (client *UserServicesClient) GetUser(userID, token string) (*ClientData, er
 
 	switch res.StatusCode {
 	case http.StatusOK:
-		var cd ClientData
+		var cd UserData
 		if err = json.NewDecoder(res.Body).Decode(&cd); err != nil {
 			log.Logging.Error("Error parsing JSON results:", err.Error())
 			return nil, err
 		}
 		return &cd, nil
 	case http.StatusNoContent:
-		return &ClientData{}, nil
+		return &UserData{}, nil
 	default:
 		return nil, errors.New(fmt.Sprintf("Unknown response %d from service[%s]", res.StatusCode, req.URL))
 	}
 }
 
-func (client *UserServicesClient) getHost() *url.URL {
-	theUrl, err := url.Parse(client.config.Host)
+func (client *UserServicesClient) GetUserPermissons(userID, token string) (*UsersPermissions, error) {
+	host := client.getPermissionsHost()
+	if host == nil {
+		return nil, errors.New("No known user-api hosts.")
+	}
+
+	host.Path += fmt.Sprintf("/groups/%s", userID)
+
+	req, _ := http.NewRequest("GET", host.String(), nil)
+	req.Header.Add(x_tidepool_session_token, token)
+
+	res, err := client.httpClient.Do(req)
 	if err != nil {
-		log.Logging.Error("Unable to parse urlString:", client.config.Host)
+		return nil, errors.New(fmt.Sprintf("Failure to get a groups for user \n\n %v", err))
+	}
+	defer res.Body.Close()
+
+	switch res.StatusCode {
+	case http.StatusOK:
+		var perms UsersPermissions
+		if err = json.NewDecoder(res.Body).Decode(&perms); err != nil {
+			log.Logging.Error("Error parsing JSON results:", err.Error())
+			return nil, err
+		}
+		return &perms, nil
+	case http.StatusNoContent:
+		return &UsersPermissions{}, nil
+	default:
+		return nil, errors.New(fmt.Sprintf("Unknown response %d from service[%s]", res.StatusCode, req.URL))
+	}
+}
+
+func (client *UserServicesClient) getPermissionsHost() *url.URL {
+	theUrl, err := url.Parse(client.config.Host + permissions_path)
+	if err != nil {
+		log.Logging.Error("Unable to parse permissions urlString:", client.config.Host+permissions_path)
+		return nil
+	}
+	return theUrl
+}
+
+func (client *UserServicesClient) getUserHost() *url.URL {
+	theUrl, err := url.Parse(client.config.Host + user_path)
+	if err != nil {
+		log.Logging.Error("Unable to parse user urlString:", client.config.Host+user_path)
 		return nil
 	}
 	return theUrl

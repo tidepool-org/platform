@@ -1,7 +1,7 @@
 package data
 
 type DeviceEvent struct {
-	SubType string `json:"subType" valid:"required"`
+	SubType string `json:"subType" bson:"subType" valid:"required"`
 	Base
 }
 

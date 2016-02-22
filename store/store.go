@@ -1,13 +1,13 @@
 package store
 
 import (
-	"log"
 	"time"
 
 	"github.com/tidepool-org/platform/Godeps/_workspace/src/labix.org/v2/mgo"
 	"github.com/tidepool-org/platform/Godeps/_workspace/src/labix.org/v2/mgo/bson"
 
 	"github.com/tidepool-org/platform/config"
+	log "github.com/tidepool-org/platform/logger"
 )
 
 // Generic store interface for all operations that we need
@@ -47,7 +47,7 @@ func NewMongoStore(name string) *MongoStore {
 	store.Session, err = mgo.DialWithTimeout(store.Config.Url, time.Duration(store.Config.Timeout)*time.Second)
 
 	if err != nil {
-		log.Fatal(err)
+		log.Logging.Fatal(err)
 	}
 
 	return store
@@ -95,6 +95,8 @@ func (this *MongoStore) Read(id StoreIdField, result interface{}) error {
 	cpy := this.Session.Copy()
 	defer cpy.Close()
 
+	log.Logging.Info("read", id)
+
 	if err := cpy.DB(this.Config.DbName).C(this.CollectionName).Find(bson.M{id.Name: id.Value}).One(result); err != nil {
 		return err
 	}
@@ -104,6 +106,8 @@ func (this *MongoStore) Read(id StoreIdField, result interface{}) error {
 func (this *MongoStore) ReadAll(id StoreIdField, results interface{}) error {
 	cpy := this.Session.Copy()
 	defer cpy.Close()
+
+	log.Logging.Info("read all", id)
 
 	if err := cpy.DB(this.Config.DbName).C(this.CollectionName).Find(bson.M{id.Name: id.Value}).All(results); err != nil {
 		return err

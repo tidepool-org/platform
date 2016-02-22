@@ -8,10 +8,7 @@ import (
 	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/ant0ine/go-json-rest/rest"
 )
 
-//Interface that all middleware components implement
-type MiddleWare interface {
-	MiddlewareFunc(h rest.HandlerFunc) rest.HandlerFunc
-}
+type ChainedMiddleware func(rest.HandlerFunc) rest.HandlerFunc
 
 //Authorization middleware is used for validation of incoming tokens
 type AuthorizationMiddleware struct {
@@ -24,7 +21,7 @@ func NewAuthorizationMiddleware(userClient Client) *AuthorizationMiddleware {
 
 //Valid - then we continue
 //Invalid - then we return 401 (http.StatusUnauthorized)
-func (mw *AuthorizationMiddleware) MiddlewareFunc(h rest.HandlerFunc) rest.HandlerFunc {
+func (mw *AuthorizationMiddleware) ValidateToken(h rest.HandlerFunc) rest.HandlerFunc {
 
 	return func(w rest.ResponseWriter, r *rest.Request) {
 
@@ -40,5 +37,38 @@ func (mw *AuthorizationMiddleware) MiddlewareFunc(h rest.HandlerFunc) rest.Handl
 		}
 		w.WriteHeader(http.StatusUnauthorized)
 		return
+	}
+}
+
+//Authorization middleware is used for getting user permissons
+type PermissonsMiddleware struct {
+	Client Client
+}
+
+const PERMISSIONS = "PERMISSIONS"
+
+func NewPermissonsMiddleware(userClient Client) *PermissonsMiddleware {
+	return &PermissonsMiddleware{Client: userClient}
+}
+
+//Attach permissons if they exist
+//http.StatusInternalServerError if there is an error getting the user permissons
+func (mw *PermissonsMiddleware) GetPermissons(h rest.HandlerFunc) rest.HandlerFunc {
+
+	return func(w rest.ResponseWriter, r *rest.Request) {
+
+		token := r.Header.Get(x_tidepool_session_token)
+		userid := r.PathParam("userid")
+
+		permissions, err := mw.Client.GetUserPermissons(userid, token)
+		if err != nil {
+			rest.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		r.Env[PERMISSIONS] = permissions
+		h(w, r)
+		return
+
 	}
 }
