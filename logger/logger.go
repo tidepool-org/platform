@@ -3,8 +3,8 @@ package logger
 import (
 	"os"
 
-	"github.com/satori/go.uuid"
 	logrus "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/Sirupsen/logrus"
+	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/satori/go.uuid"
 )
 
 //Logger interface
