@@ -9,38 +9,47 @@ import (
 
 var _ = Describe("Log", func() {
 
+	It("should GetNamed", func() {
+		Expect(Log.GetNamed("test")).Should(Not(BeNil()))
+	})
+
 	It("should have Debug", func() {
-		var debug = Debug
+		var debug = Log.Debug
 		Expect(debug).Should(Not(BeNil()))
 	})
 
 	It("should have Info", func() {
-		var info = Info
+		var info = Log.Info
 		Expect(info).Should(Not(BeNil()))
 	})
 
 	It("should have Warn", func() {
-		var warn = Warn
+		var warn = Log.Warn
 		Expect(warn).Should(Not(BeNil()))
 	})
 
 	It("should have Error", func() {
-		var err = Error
+		var err = Log.Error
 		Expect(err).Should(Not(BeNil()))
 	})
 
 	It("should have Fatal", func() {
-		var fatal = Fatal
+		var fatal = Log.Fatal
 		Expect(fatal).Should(Not(BeNil()))
 	})
 
 	It("should have WithField", func() {
-		var withField = WithField
+		var withField = Log.WithField
 		Expect(withField).Should(Not(BeNil()))
 	})
 
 	It("should have AddTrace", func() {
-		var addTrace = AddTrace
+		var addTrace = Log.AddTrace
 		Expect(addTrace).Should(Not(BeNil()))
+	})
+
+	It("should have AddTraceUUID", func() {
+		var addTraceUUID = Log.AddTraceUUID
+		Expect(addTraceUUID).Should(Not(BeNil()))
 	})
 })

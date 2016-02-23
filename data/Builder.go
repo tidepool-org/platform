@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-
-	log "github.com/tidepool-org/platform/logger"
 )
 
 //GenericDatam represent one data point

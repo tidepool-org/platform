@@ -7,7 +7,11 @@ import (
 	"github.com/tidepool-org/platform/Godeps/_workspace/src/labix.org/v2/mgo/bson"
 
 	"github.com/tidepool-org/platform/config"
-	log "github.com/tidepool-org/platform/logger"
+	"github.com/tidepool-org/platform/logger"
+)
+
+var (
+	log = logger.Log.GetNamed("store")
 )
 
 //Store is a generic store interface for all operations that we need

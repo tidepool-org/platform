@@ -3,75 +3,98 @@ package logger
 import (
 	"os"
 
+	"github.com/satori/go.uuid"
 	logrus "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/Sirupsen/logrus"
 )
 
 //Logger interface
 type Logger interface {
+	GetNamed(name string) Logger
 	AddTrace(id string)
+	AddTraceUUID()
+	WithField(key string, value interface{})
 	Debug(args ...interface{})
 	Info(args ...interface{})
 	Warn(args ...interface{})
 	Error(args ...interface{})
 	Fatal(args ...interface{})
-	WithField(key string, value interface{})
 }
 
 const traceID = "traceID"
 
-//platformLogger type
-type platformLogger struct {
+//PlatformLog type
+type PlatformLog struct {
 	fields   map[string]interface{}
 	internal *logrus.Logger
 }
 
-var std *platformLogger
+//Log is an initialised PlatformLog instance
+var Log *PlatformLog
 
 //init will create a std logger that implements the `Logger` interface with all methods exported below
 //your other option is to roll your own logger again making sure that it implements the `Logger` interface
 func init() {
+	Log = setup()
+}
 
-	std = &platformLogger{
-		internal: logrus.New(),
+func setup() *PlatformLog {
+
+	logger := logrus.New()
+	logger.Out = os.Stdout
+	logger.Formatter = new(logrus.JSONFormatter)
+	logger.Level = logrus.InfoLevel
+
+	return &PlatformLog{
+		internal: logger,
+		fields:   make(map[string]interface{}),
 	}
 
-	std.internal.Out = os.Stdout
-	std.internal.Formatter = new(logrus.JSONFormatter)
-	std.internal.Level = logrus.InfoLevel
+}
 
+//GetNamed return a named instance of the logger
+func (log *PlatformLog) GetNamed(name string) Logger {
+	named := setup()
+	named.WithField("name", name)
+	return named
 }
 
 //AddTrace will add a trace id to the logs
-func AddTrace(id string) {
-	std.internal.WithField(traceID, id)
+func (log *PlatformLog) AddTrace(id string) {
+	Log.internal.WithField(traceID, id)
+}
+
+//AddTraceUUID will add a trace id to the logs
+func (log *PlatformLog) AddTraceUUID() {
+	id := uuid.NewV4().String()
+	Log.internal.WithField(traceID, id)
 }
 
 //WithField will log the message with and extra attached details
-func WithField(key string, value interface{}) {
-	std.fields[key] = value
+func (log *PlatformLog) WithField(key string, value interface{}) {
+	Log.fields[key] = value
 }
 
 //Debug will log at the Debug Level
-func Debug(args ...interface{}) {
-	std.internal.WithFields(std.fields).Debug(args)
+func (log *PlatformLog) Debug(args ...interface{}) {
+	Log.internal.WithFields(Log.fields).Debug(args)
 }
 
 //Info will log at the Info Level
-func Info(args ...interface{}) {
-	std.internal.WithFields(std.fields).Info(args)
+func (log *PlatformLog) Info(args ...interface{}) {
+	Log.internal.WithFields(Log.fields).Info(args)
 }
 
 //Warn will log at the Warn Level
-func Warn(args ...interface{}) {
-	std.internal.WithFields(std.fields).Warn(args)
+func (log *PlatformLog) Warn(args ...interface{}) {
+	Log.internal.WithFields(Log.fields).Warn(args)
 }
 
 //Error will log at the Error Level
-func Error(args ...interface{}) {
-	std.internal.WithFields(std.fields).Error(args)
+func (log *PlatformLog) Error(args ...interface{}) {
+	Log.internal.WithFields(Log.fields).Error(args)
 }
 
 //Fatal will log at the Fatal Level
-func Fatal(args ...interface{}) {
-	std.internal.WithFields(std.fields).Fatal(args)
+func (log *PlatformLog) Fatal(args ...interface{}) {
+	Log.internal.WithFields(Log.fields).Fatal(args)
 }

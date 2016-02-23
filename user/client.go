@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/config"
-	log "github.com/tidepool-org/platform/logger"
 )
 
 type (

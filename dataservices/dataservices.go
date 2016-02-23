@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/tidepool-org/platform/data"
-	log "github.com/tidepool-org/platform/logger"
+	"github.com/tidepool-org/platform/logger"
 	"github.com/tidepool-org/platform/store"
 	"github.com/tidepool-org/platform/user"
 	"github.com/tidepool-org/platform/version"
@@ -15,12 +15,16 @@ import (
 
 const (
 	missingPermissionsError = "missing required permissions"
+
+	dataservicesName = "dataservices"
+	useridParamName  = "userid"
 )
 
 var (
 	validateToken user.ChainedMiddleware
 	getPermissons user.ChainedMiddleware
 	dataStore     store.Store
+	log           = logger.Log.GetNamed(dataservicesName)
 )
 
 func initMiddleware() {
@@ -36,7 +40,7 @@ func main() {
 
 	initMiddleware()
 
-	dataStore = store.NewMongoStore("dataservices")
+	dataStore = store.NewMongoStore(dataservicesName)
 
 	api := rest.NewApi()
 	api.Use(rest.DefaultDevStack...)
@@ -69,13 +73,20 @@ func checkPermisson(r *rest.Request, expected user.Permission) bool {
 	return false
 }
 
+func logRequest(r *rest.Request) {
+	log.AddTrace("todo")
+	log.Info(r.BaseUrl())
+	log.Info(r.ContentLength)
+	log.Info(r.PathParams)
+}
+
 func getVersion(w rest.ResponseWriter, r *rest.Request) {
 	w.WriteJson(version.String)
 }
 
 func postDataset(w rest.ResponseWriter, r *rest.Request) {
 
-	log.AddTrace(r.PathParam("userid"))
+	log.AddTrace(r.PathParam(useridParamName))
 
 	if checkPermisson(r, user.Permission{}) {
 
@@ -120,7 +131,7 @@ func postDataset(w rest.ResponseWriter, r *rest.Request) {
 
 func getDataset(w rest.ResponseWriter, r *rest.Request) {
 
-	log.AddTrace(r.PathParam("userid"))
+	log.AddTrace(r.PathParam(useridParamName))
 
 	if checkPermisson(r, user.Permission{}) {
 
@@ -129,8 +140,8 @@ func getDataset(w rest.ResponseWriter, r *rest.Request) {
 			Errors              string `json:"Errors"`
 		}
 
-		userid := r.PathParam("userid")
-		log.Info("userid", userid)
+		userid := r.PathParam(useridParamName)
+		log.Info(useridParamName, userid)
 
 		types := strings.Split(r.URL.Query().Get("type"), ",")
 		subTypes := strings.Split(r.URL.Query().Get("subType"), ",")
@@ -156,7 +167,7 @@ func getDataset(w rest.ResponseWriter, r *rest.Request) {
 
 func getData(w rest.ResponseWriter, r *rest.Request) {
 
-	log.AddTrace(r.PathParam("userid"))
+	log.AddTrace(r.PathParam(useridParamName))
 
 	if checkPermisson(r, user.Permission{}) {
 		var foundDatum struct {
@@ -164,7 +175,7 @@ func getData(w rest.ResponseWriter, r *rest.Request) {
 			Errors            string `json:"Errors"`
 		}
 
-		userid := r.PathParam("userid")
+		userid := r.PathParam(useridParamName)
 		datumid := r.PathParam("datumid")
 
 		log.Info("userid and datum", userid, datumid)
