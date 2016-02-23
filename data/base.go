@@ -48,7 +48,7 @@ func BuildBase(obj map[string]interface{}) (Base, *Error) {
 		Type:             cast.ToString(typeField, obj[typeField]),
 	}
 
-	_, err := validator.Validate(base)
+	_, err := validator.ValidateStruct(base)
 	errs.AppendError(err)
 	return base, errs
 }

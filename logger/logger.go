@@ -14,71 +14,64 @@ type Logger interface {
 	Warn(args ...interface{})
 	Error(args ...interface{})
 	Fatal(args ...interface{})
+	WithField(key string, value interface{})
 }
-
-var log = logrus.New()
-
-//Logging variable
-var Logging Logger
 
 const traceID = "traceID"
 
-//PlatformLogger type
-type PlatformLogger struct {
-	field string
+//platformLogger type
+type platformLogger struct {
+	fields   map[string]interface{}
+	internal *logrus.Logger
 }
 
+var std *platformLogger
+
+//init will create a std logger that implements the `Logger` interface with all methods exported below
+//your other option is to roll your own logger again making sure that it implements the `Logger` interface
 func init() {
-	log.Out = os.Stdout
-	log.Formatter = new(logrus.JSONFormatter)
-	log.Level = logrus.InfoLevel
-	Logging = &PlatformLogger{}
+
+	std = &platformLogger{
+		internal: logrus.New(),
+	}
+
+	std.internal.Out = os.Stdout
+	std.internal.Formatter = new(logrus.JSONFormatter)
+	std.internal.Level = logrus.InfoLevel
+
 }
 
-//AddTrace will log add a trace id to the logs
-func (platformLogger *PlatformLogger) AddTrace(id string) { platformLogger.field = id }
+//AddTrace will add a trace id to the logs
+func AddTrace(id string) {
+	std.internal.WithField(traceID, id)
+}
+
+//WithField will log the message with and extra attached details
+func WithField(key string, value interface{}) {
+	std.fields[key] = value
+}
 
 //Debug will log at the Debug Level
-func (platformLogger *PlatformLogger) Debug(args ...interface{}) {
-	if platformLogger.field != "" {
-		log.WithField(traceID, platformLogger.field).Debug(args)
-		return
-	}
-	log.Debug(args)
+func Debug(args ...interface{}) {
+	std.internal.WithFields(std.fields).Debug(args)
 }
 
 //Info will log at the Info Level
-func (platformLogger *PlatformLogger) Info(args ...interface{}) {
-	if platformLogger.field != "" {
-		log.WithField(traceID, platformLogger.field).Info(args)
-		return
-	}
-	log.Info(args)
+func Info(args ...interface{}) {
+	std.internal.WithFields(std.fields).Info(args)
 }
 
 //Warn will log at the Warn Level
-func (platformLogger *PlatformLogger) Warn(args ...interface{}) {
-	if platformLogger.field != "" {
-		log.WithField(traceID, platformLogger.field).Warn(args)
-		return
-	}
-	log.Warn(args)
+func Warn(args ...interface{}) {
+	std.internal.WithFields(std.fields).Warn(args)
 }
 
 //Error will log at the Error Level
-func (platformLogger *PlatformLogger) Error(args ...interface{}) {
-	if platformLogger.field != "" {
-		log.WithField(traceID, platformLogger.field).Error(args)
-		return
-	}
-	log.Error(args)
+func Error(args ...interface{}) {
+	std.internal.WithFields(std.fields).Error(args)
 }
 
 //Fatal will log at the Fatal Level
-func (platformLogger *PlatformLogger) Fatal(args ...interface{}) {
-	if platformLogger.field != "" {
-		log.WithField(traceID, platformLogger.field).Fatal(args)
-		return
-	}
-	log.Fatal(args)
+func Fatal(args ...interface{}) {
+	std.internal.WithFields(std.fields).Fatal(args)
 }

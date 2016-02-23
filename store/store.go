@@ -51,7 +51,7 @@ func NewMongoStore(name string) *MongoStore {
 	store.Session, err = mgo.DialWithTimeout(store.Config.URL, time.Duration(store.Config.Timeout)*time.Second)
 
 	if err != nil {
-		log.Logging.Fatal(err)
+		log.Fatal(err)
 	}
 
 	return store

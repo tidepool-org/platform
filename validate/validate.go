@@ -10,7 +10,7 @@ type Validator interface {
 //PlatformValidator type that implements Validator
 type PlatformValidator struct{}
 
-//Validate for the PlatformValidator
-func (platformValidator PlatformValidator) Validate(s interface{}) (bool, error) {
+//ValidateStruct for the PlatformValidator
+func (platformValidator PlatformValidator) ValidateStruct(s interface{}) (bool, error) {
 	return govalidator.ValidateStruct(s)
 }

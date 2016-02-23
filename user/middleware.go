@@ -34,7 +34,7 @@ func (mw *AuthorizationMiddleware) ValidateToken(h rest.HandlerFunc) rest.Handle
 				h(w, r)
 				return
 			}
-			log.Logging.Info("id's don't match and not server token", tokenData.UserID, userid)
+			log.Info("id's don't match and not server token", tokenData.UserID, userid)
 		}
 		w.WriteHeader(http.StatusUnauthorized)
 		return

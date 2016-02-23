@@ -31,7 +31,8 @@ func initMiddleware() {
 }
 
 func main() {
-	log.Logging.Info(version.String)
+
+	log.Info(version.String)
 
 	initMiddleware()
 
@@ -41,8 +42,6 @@ func main() {
 	api.Use(rest.DefaultDevStack...)
 	api.Use(&rest.GzipMiddleware{})
 
-	log.Logging.AddTrace("123-546")
-
 	router, err := rest.MakeRouter(
 		rest.Get("/version", getVersion),
 		rest.Get("/data/:userid/:datumid", validateToken(getPermissons(getData))),
@@ -50,18 +49,17 @@ func main() {
 		rest.Get("/dataset/:userid", validateToken(getPermissons(getDataset))),
 	)
 	if err != nil {
-		log.Logging.Fatal(err)
+		log.Fatal(err)
 	}
 	api.SetApp(router)
-	//TODO: config for statis port
-	log.Logging.Fatal(http.ListenAndServe(":8077", api.MakeHandler()))
+	log.Fatal(http.ListenAndServe(":8077", api.MakeHandler()))
 }
 
 func checkPermisson(r *rest.Request, expected user.Permission) bool {
 	//userid := r.PathParam("userid")
 	if permissions := r.Env[user.PERMISSIONS].(*user.UsersPermissions); permissions != nil {
 
-		log.Logging.Info("perms found ", permissions)
+		log.Info("perms found ", permissions)
 
 		//	perms := permissions[userid]
 		//	if perms != nil && perms[""] != nil {
@@ -77,7 +75,7 @@ func getVersion(w rest.ResponseWriter, r *rest.Request) {
 
 func postDataset(w rest.ResponseWriter, r *rest.Request) {
 
-	log.Logging.AddTrace(r.PathParam("userid"))
+	log.AddTrace(r.PathParam("userid"))
 
 	if checkPermisson(r, user.Permission{}) {
 
@@ -87,7 +85,7 @@ func postDataset(w rest.ResponseWriter, r *rest.Request) {
 			Errors  string        `json:"Errors"`
 		}
 
-		log.Logging.Info("processing")
+		log.Info("processing")
 
 		err := r.DecodeJsonPayload(&dataSet)
 
@@ -122,7 +120,7 @@ func postDataset(w rest.ResponseWriter, r *rest.Request) {
 
 func getDataset(w rest.ResponseWriter, r *rest.Request) {
 
-	log.Logging.AddTrace(r.PathParam("userid"))
+	log.AddTrace(r.PathParam("userid"))
 
 	if checkPermisson(r, user.Permission{}) {
 
@@ -132,14 +130,14 @@ func getDataset(w rest.ResponseWriter, r *rest.Request) {
 		}
 
 		userid := r.PathParam("userid")
-		log.Logging.Info("userid", userid)
+		log.Info("userid", userid)
 
 		types := strings.Split(r.URL.Query().Get("type"), ",")
 		subTypes := strings.Split(r.URL.Query().Get("subType"), ",")
 		start := r.URL.Query().Get("startDate")
 		end := r.URL.Query().Get("endDate")
 
-		log.Logging.Info("params", types, subTypes, start, end)
+		log.Info("params", types, subTypes, start, end)
 
 		var dataSet data.GenericDataset
 		err := dataStore.ReadAll(store.IDField{Name: "userId", Value: userid}, &dataSet)
@@ -158,7 +156,7 @@ func getDataset(w rest.ResponseWriter, r *rest.Request) {
 
 func getData(w rest.ResponseWriter, r *rest.Request) {
 
-	log.Logging.AddTrace(r.PathParam("userid"))
+	log.AddTrace(r.PathParam("userid"))
 
 	if checkPermisson(r, user.Permission{}) {
 		var foundDatum struct {
@@ -169,7 +167,7 @@ func getData(w rest.ResponseWriter, r *rest.Request) {
 		userid := r.PathParam("userid")
 		datumid := r.PathParam("datumid")
 
-		log.Logging.Info("userid and datum", userid, datumid)
+		log.Info("userid and datum", userid, datumid)
 
 		foundDatum.GenericDatam = data.GenericDatam{}
 		foundDatum.Errors = ""

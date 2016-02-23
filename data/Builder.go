@@ -55,7 +55,7 @@ func (typeBuilder *TypeBuilder) BuildFromRaw(raw []byte) (interface{}, *Error) {
 	var data map[string]interface{}
 
 	if err := json.NewDecoder(strings.NewReader(string(raw))).Decode(&data); err != nil {
-		log.Logging.Info("error doing an unmarshal", err.Error())
+		log.Info("error doing an unmarshal", err.Error())
 		e := NewError(data)
 		e.AppendError(fmt.Errorf("sorry but we do anything with %s", string(raw)))
 		return nil, e

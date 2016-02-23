@@ -36,7 +36,7 @@ func BuildBasal(obj map[string]interface{}) (*Basal, *Error) {
 		Base:         base,
 	}
 
-	_, err := validator.Validate(basal)
+	_, err := validator.ValidateStruct(basal)
 	errs.AppendError(err)
 	if errs.IsEmpty() {
 		return basal, nil

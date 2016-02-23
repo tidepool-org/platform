@@ -21,7 +21,7 @@ func BuildDeviceEvent(obj map[string]interface{}) (*DeviceEvent, *Error) {
 		Base:    base,
 	}
 
-	_, err := validator.Validate(deviceEvent)
+	_, err := validator.ValidateStruct(deviceEvent)
 	errs.AppendError(err)
 	if errs.IsEmpty() {
 		return deviceEvent, nil
