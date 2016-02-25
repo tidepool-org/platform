@@ -21,44 +21,57 @@ const (
 )
 
 var (
-	validateToken user.ChainedMiddleware
-	getPermissons user.ChainedMiddleware
-	dataStore     store.Store
-	log           = logger.Log.GetNamed(dataservicesName)
+	log = logger.Log.GetNamed(dataservicesName)
 )
 
-func initMiddleware() {
-	userClient := user.NewServicesClient()
-	userClient.Start()
-	validateToken = user.NewAuthorizationMiddleware(userClient).ValidateToken
-	getPermissons = user.NewPermissonsMiddleware(userClient).GetPermissons
+func main() {
+	log.Fatal(NewDataServiceClient().Run(":8077"))
 }
 
-func main() {
+//DataServiceClient for the data service
+type DataServiceClient struct {
+	api           *rest.Api
+	dataStore     store.Store
+	validateToken user.ChainedMiddleware
+	getPermissons user.ChainedMiddleware
+}
 
+//NewDataServiceClient returns an initialised client
+func NewDataServiceClient() *DataServiceClient {
 	log.Info(version.String)
 
-	initMiddleware()
+	userClient := user.NewServicesClient()
+	userClient.Start()
 
-	dataStore = store.NewMongoStore(dataservicesName)
+	return &DataServiceClient{
+		api:           rest.NewApi(),
+		dataStore:     store.NewMongoStore(dataservicesName),
+		validateToken: user.NewAuthorizationMiddleware(userClient).ValidateToken,
+		getPermissons: user.NewPermissonsMiddleware(userClient).GetPermissons,
+	}
 
-	api := rest.NewApi()
-	api.Use(rest.DefaultDevStack...)
-	api.Use(&rest.GzipMiddleware{})
+}
+
+//Run will run the service
+func (client *DataServiceClient) Run(URL string) error {
+	client.api.Use(rest.DefaultDevStack...)
+	client.api.Use(&rest.GzipMiddleware{})
 
 	router, err := rest.MakeRouter(
-		rest.Get("/version", getVersion),
-		rest.Get("/data/:userid/:datumid", validateToken(getPermissons(getData))),
-		rest.Post("/dataset/:userid", validateToken(getPermissons(postDataset))),
-		rest.Get("/dataset/:userid", validateToken(getPermissons(getDataset))),
+		rest.Get("/version", client.GetVersion),
+		rest.Get("/data/:userid/:datumid", client.validateToken(client.getPermissons(client.GetData))),
+		rest.Post("/dataset/:userid", client.validateToken(client.getPermissons(client.PostDataset))),
+		rest.Get("/dataset/:userid", client.validateToken(client.getPermissons(client.GetDataset))),
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
-	api.SetApp(router)
-	log.Fatal(http.ListenAndServe(":8077", api.MakeHandler()))
+	client.api.SetApp(router)
+
+	return http.ListenAndServe(URL, client.api.MakeHandler())
 }
 
+//checkPermisson will check that we have the expected permisson
 func checkPermisson(r *rest.Request, expected user.Permission) bool {
 	//userid := r.PathParam("userid")
 	if permissions := r.Env[user.PERMISSIONS].(*user.UsersPermissions); permissions != nil {
@@ -73,18 +86,14 @@ func checkPermisson(r *rest.Request, expected user.Permission) bool {
 	return false
 }
 
-func logRequest(r *rest.Request) {
-	log.AddTrace("todo")
-	log.Info(r.BaseUrl())
-	log.Info(r.ContentLength)
-	log.Info(r.PathParams)
+//GetVersion will return the current API version
+func (client *DataServiceClient) GetVersion(w rest.ResponseWriter, r *rest.Request) {
+	w.WriteJson(&version.String)
+	return
 }
 
-func getVersion(w rest.ResponseWriter, r *rest.Request) {
-	w.WriteJson(version.String)
-}
-
-func postDataset(w rest.ResponseWriter, r *rest.Request) {
+//PostDataset will process a posted dataset for the requested user if permissons are sufficient
+func (client *DataServiceClient) PostDataset(w rest.ResponseWriter, r *rest.Request) {
 
 	log.AddTrace(r.PathParam(useridParamName))
 
@@ -115,7 +124,7 @@ func postDataset(w rest.ResponseWriter, r *rest.Request) {
 
 		//TODO: should this be a bulk insert?
 		for i := range data {
-			err := dataStore.Save(data[i])
+			err := client.dataStore.Save(data[i])
 			if err != nil {
 				rest.Error(w, err.Error(), http.StatusInternalServerError)
 				return
@@ -129,7 +138,8 @@ func postDataset(w rest.ResponseWriter, r *rest.Request) {
 	return
 }
 
-func getDataset(w rest.ResponseWriter, r *rest.Request) {
+//GetDataset will return the requested users data set if permissons are sufficient
+func (client *DataServiceClient) GetDataset(w rest.ResponseWriter, r *rest.Request) {
 
 	log.AddTrace(r.PathParam(useridParamName))
 
@@ -151,7 +161,7 @@ func getDataset(w rest.ResponseWriter, r *rest.Request) {
 		log.Info("params", types, subTypes, start, end)
 
 		var dataSet data.GenericDataset
-		err := dataStore.ReadAll(store.IDField{Name: "userId", Value: userid}, &dataSet)
+		err := client.dataStore.ReadAll(store.IDField{Name: "userId", Value: userid}, &dataSet)
 
 		if err != nil {
 			foundDataset.Errors = err.Error()
@@ -165,7 +175,8 @@ func getDataset(w rest.ResponseWriter, r *rest.Request) {
 	return
 }
 
-func getData(w rest.ResponseWriter, r *rest.Request) {
+//GetData will return the requested users data point if permissons are sufficient
+func (client *DataServiceClient) GetData(w rest.ResponseWriter, r *rest.Request) {
 
 	log.AddTrace(r.PathParam(useridParamName))
 

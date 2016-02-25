@@ -1,7 +1,7 @@
 package version
 
 //String representation of the version
-var String string
+var String = "v0.0.1"
 
 // Any additional implementation required should consider:
 //   - type Version interface
