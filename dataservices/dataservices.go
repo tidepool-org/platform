@@ -105,8 +105,6 @@ func (client *DataServiceClient) PostDataset(w rest.ResponseWriter, r *rest.Requ
 			Errors  string        `json:"Errors"`
 		}
 
-		log.Info("processing")
-
 		err := r.DecodeJsonPayload(&dataSet)
 
 		if err != nil {
@@ -116,11 +114,7 @@ func (client *DataServiceClient) PostDataset(w rest.ResponseWriter, r *rest.Requ
 
 		data, err := data.NewTypeBuilder().BuildFromDataSet(dataSet)
 		processedDataset.Dataset = data
-
-		if err != nil {
-			rest.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		processedDataset.Errors = err.Error()
 
 		//TODO: should this be a bulk insert?
 		for i := range data {

@@ -2,7 +2,7 @@ package service
 
 import (
 	"encoding/json"
-	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -13,8 +13,8 @@ import (
 
 // MakeSimpleRequest returns a http.Request. The returned request object can be
 // further prepared by adding headers and query string parmaters, for instance.
-func MakeSimpleRequest(method string, urlStr string, payload interface{}) *http.Request {
-	var s string
+func MakeSimpleRequest(method string, urlStr string, body io.Reader) *http.Request {
+	/*var s string
 
 	if payload != nil {
 		b, err := json.Marshal(payload)
@@ -22,14 +22,14 @@ func MakeSimpleRequest(method string, urlStr string, payload interface{}) *http.
 			panic(err)
 		}
 		s = fmt.Sprintf("%s", b)
-	}
+	}*/
 
-	r, err := http.NewRequest(method, urlStr, strings.NewReader(s))
+	r, err := http.NewRequest(method, urlStr, body)
 	if err != nil {
 		panic(err)
 	}
 	r.Header.Set("Accept-Encoding", "gzip")
-	if payload != nil {
+	if body != nil {
 		r.Header.Set("Content-Type", "application/json")
 	}
 
@@ -61,6 +61,11 @@ func ContentEncodingIsGzip(r *httptest.ResponseRecorder) bool {
 func BodyIs(r *httptest.ResponseRecorder, expectedBody string) bool {
 	body := r.Body.String()
 	return strings.Trim(body, "\"") == expectedBody
+}
+
+// BodyContains compares the rescorded body
+func BodyContains(r *httptest.ResponseRecorder, expectedToContain string) bool {
+	return strings.Contains(r.Body.String(), expectedToContain)
 }
 
 // DecodeJSONPayload decodes the recorded payload to JSON
@@ -129,20 +134,20 @@ func (w *responseWriter) Write(b []byte) (int, error) {
 
 // Handle the transition between net/http and go-json-rest objects.
 // It intanciates the rest.Request and rest.ResponseWriter, ...
-func adapterFunc(handler rest.HandlerFunc) http.HandlerFunc {
+func adapterFunc(handler rest.HandlerFunc, env map[string]interface{}) http.HandlerFunc {
 
 	return func(origWriter http.ResponseWriter, origRequest *http.Request) {
 
 		// instantiate the rest objects
 		request := &rest.Request{
-			origRequest,
-			nil,
-			map[string]interface{}{},
+			Request:    origRequest,
+			PathParams: nil,
+			Env:        env,
 		}
 
 		writer := &responseWriter{
-			origWriter,
-			false,
+			ResponseWriter: origWriter,
+			wroteHeader:    false,
 		}
 
 		// call the wrapped handler
@@ -151,8 +156,8 @@ func adapterFunc(handler rest.HandlerFunc) http.HandlerFunc {
 }
 
 // RunRequest runs a HTTP request through the given handler
-func RunRequest(restHandler rest.HandlerFunc, request *http.Request) *Recorded {
-	handler := adapterFunc(restHandler)
+func RunRequest(restHandler rest.HandlerFunc, request *http.Request, env map[string]interface{}) *Recorded {
+	handler := adapterFunc(restHandler, env)
 	recorder := httptest.NewRecorder()
 	handler(recorder, request)
 	return &Recorded{recorder}
@@ -179,7 +184,12 @@ func (rd *Recorded) ContentEncodingIsGzip() bool {
 }
 
 // BodyIs for Recorded
-func (rd *Recorded) BodyIs(expectedBody string) bool {
+func (rd *Recorded) BodyIs(expectedToContain string) bool {
+	return BodyIs(rd.Recorder, expectedToContain)
+}
+
+// BodyContains for Recorded
+func (rd *Recorded) BodyContains(expectedBody string) bool {
 	return BodyIs(rd.Recorder, expectedBody)
 }
 
