@@ -83,7 +83,7 @@ var _ = Describe("The Dataservices client", func() {
 			})
 		})
 
-		Describe("when given invalid data", func() {
+		Describe("when given invalid data type", func() {
 
 			jsonData := []byte(`[{"userId": "9999999", "deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z", "timezoneOffset": 0, "conversionOffset": 0, "type": "NOT_VALID", "deliveryType": "scheduled", "scheduleName": "Standard", "rate": 2, "duration": 21600000, "deviceId": "tools"}]`)
 
@@ -103,6 +103,36 @@ var _ = Describe("The Dataservices client", func() {
 				Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
 				Expect(payload.Errors).ToNot(Equal(""), "Expected the return errors to not be empty")
 				Expect(strings.Contains(payload.Errors, "we can't deal with `type`=NOT_VALID")).To(BeTrue(), "Expected the return errors to not be empty")
+			})
+
+			It("should return the no items in the processed dataset with the payload", func() {
+				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userId, bytes.NewBuffer(jsonData)), perms)
+				recorded.DecodeJSONPayload(&payload)
+				Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
+				Expect(len(payload.Dataset)).To(Equal(0), "Expected no processed datum to be returned")
+			})
+
+		})
+
+		Describe("when given invalid data", func() {
+
+			jsonData := []byte(`[{"blah": "9999999", "time": "2014-06-11T06:00:00.000Z"}]`)
+
+			It("should return status 200", func() {
+				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userId, bytes.NewBuffer(jsonData)), perms)
+				Expect(recorded.CodeIs(http.StatusOK)).To(BeTrue(), fmt.Sprintf("Expected %d to be %d", recorded.Recorder.Code, http.StatusOK))
+			})
+
+			It("should be content type of json", func() {
+				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userId, bytes.NewBuffer(jsonData)), perms)
+				Expect(recorded.ContentTypeIsJSON()).To(BeTrue(), "Expected content type to be JSON")
+			})
+
+			It("should return an error saying there is no match for the type", func() {
+				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userId, bytes.NewBuffer(jsonData)), perms)
+				recorded.DecodeJSONPayload(&payload)
+				Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
+				Expect(strings.Contains(payload.Errors, "there is no match for that type")).To(BeTrue(), "Expected the return errors to not be empty")
 			})
 
 			It("should return the no items in the processed dataset with the payload", func() {
