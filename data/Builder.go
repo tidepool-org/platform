@@ -41,6 +41,7 @@ func (typeBuilder *TypeBuilder) BuildFromDataSet(dataSet GenericDataset) ([]inte
 				buildError = NewErrorSet()
 			}
 			buildError.AppendError(err)
+			continue
 		}
 		set = append(set, item)
 	}

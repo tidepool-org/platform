@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"strings"
 
 	. "github.com/tidepool-org/platform/dataservices"
 	"github.com/tidepool-org/platform/service"
@@ -50,32 +51,67 @@ var _ = Describe("The Dataservices client", func() {
 			Errors  string        `json:"Errors"`
 		}
 
-		jsonData := []byte(`[{"userId": "9999999", "deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z", "timezoneOffset": 0, "conversionOffset": 0, "type": "basal", "deliveryType": "scheduled", "scheduleName": "Standard", "rate": 2, "duration": 21600000, "deviceId": "tools"}]`)
-
 		perms := make(map[string]interface{})
 		perms[user.PERMISSIONS] = &user.UsersPermissions{}
 
-		It("should return status 200", func() {
-			recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userId, bytes.NewBuffer(jsonData)), perms)
-			Expect(recorded.CodeIs(http.StatusOK)).To(BeTrue(), fmt.Sprintf("Expected %d to be %d", recorded.Recorder.Code, http.StatusOK))
+		Describe("when given valid data", func() {
+
+			jsonData := []byte(`[{"userId": "9999999", "deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z", "timezoneOffset": 0, "conversionOffset": 0, "type": "basal", "deliveryType": "scheduled", "scheduleName": "Standard", "rate": 2, "duration": 21600000, "deviceId": "tools"}]`)
+
+			It("should return status 200", func() {
+				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userId, bytes.NewBuffer(jsonData)), perms)
+				Expect(recorded.CodeIs(http.StatusOK)).To(BeTrue(), fmt.Sprintf("Expected %d to be %d", recorded.Recorder.Code, http.StatusOK))
+			})
+
+			It("should be content type of json", func() {
+				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userId, bytes.NewBuffer(jsonData)), perms)
+				Expect(recorded.ContentTypeIsJSON()).To(BeTrue(), "Expected content type to be JSON")
+			})
+
+			It("should return no error with the payload", func() {
+				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userId, bytes.NewBuffer(jsonData)), perms)
+				recorded.DecodeJSONPayload(&payload)
+				Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
+				Expect(payload.Errors).To(Equal(""), "Expected the return errors to be empty")
+			})
+
+			It("should return the processed dataset with the payload", func() {
+				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userId, bytes.NewBuffer(jsonData)), perms)
+				recorded.DecodeJSONPayload(&payload)
+				Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
+				Expect(len(payload.Dataset)).To(Equal(1), "Expected one processed datum to be returned")
+			})
 		})
 
-		It("should be content type of json", func() {
-			recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userId, bytes.NewBuffer(jsonData)), perms)
-			Expect(recorded.ContentTypeIsJSON()).To(BeTrue(), "Expected content type to be JSON")
-		})
+		Describe("when given invalid data", func() {
 
-		It("should return no error with the payload", func() {
-			recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userId, bytes.NewBuffer(jsonData)), perms)
-			recorded.DecodeJSONPayload(&payload)
-			Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
-			Expect(payload.Errors).To(Equal(""), "Expected the return errors to be empty")
-		})
-		It("should return the processed dataset with the payload", func() {
-			recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userId, bytes.NewBuffer(jsonData)), perms)
-			recorded.DecodeJSONPayload(&payload)
-			Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
-			Expect(len(payload.Dataset)).To(Equal(1), "Expected one processed datum to be returned")
+			jsonData := []byte(`[{"userId": "9999999", "deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z", "timezoneOffset": 0, "conversionOffset": 0, "type": "NOT_VALID", "deliveryType": "scheduled", "scheduleName": "Standard", "rate": 2, "duration": 21600000, "deviceId": "tools"}]`)
+
+			It("should return status 200", func() {
+				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userId, bytes.NewBuffer(jsonData)), perms)
+				Expect(recorded.CodeIs(http.StatusOK)).To(BeTrue(), fmt.Sprintf("Expected %d to be %d", recorded.Recorder.Code, http.StatusOK))
+			})
+
+			It("should be content type of json", func() {
+				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userId, bytes.NewBuffer(jsonData)), perms)
+				Expect(recorded.ContentTypeIsJSON()).To(BeTrue(), "Expected content type to be JSON")
+			})
+
+			It("should return an error with the payload", func() {
+				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userId, bytes.NewBuffer(jsonData)), perms)
+				recorded.DecodeJSONPayload(&payload)
+				Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
+				Expect(payload.Errors).ToNot(Equal(""), "Expected the return errors to not be empty")
+				Expect(strings.Contains(payload.Errors, "we can't deal with `type`=NOT_VALID")).To(BeTrue(), "Expected the return errors to not be empty")
+			})
+
+			It("should return the no items in the processed dataset with the payload", func() {
+				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userId, bytes.NewBuffer(jsonData)), perms)
+				recorded.DecodeJSONPayload(&payload)
+				Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
+				Expect(len(payload.Dataset)).To(Equal(0), "Expected no processed datum to be returned")
+			})
+
 		})
 
 	})
