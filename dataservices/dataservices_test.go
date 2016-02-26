@@ -83,7 +83,7 @@ var _ = Describe("The Dataservices client", func() {
 			})
 		})
 
-		Describe("when given invalid data type", func() {
+		Describe("when given valid data but wrong type", func() {
 
 			jsonData := []byte(`[{"userId": "9999999", "deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z", "timezoneOffset": 0, "conversionOffset": 0, "type": "NOT_VALID", "deliveryType": "scheduled", "scheduleName": "Standard", "rate": 2, "duration": 21600000, "deviceId": "tools"}]`)
 
@@ -140,6 +140,15 @@ var _ = Describe("The Dataservices client", func() {
 				recorded.DecodeJSONPayload(&payload)
 				Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
 				Expect(len(payload.Dataset)).To(Equal(0), "Expected no processed datum to be returned")
+			})
+
+		})
+
+		Describe("when given no data", func() {
+
+			It("should return status 400", func() {
+				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userId, nil), perms)
+				Expect(recorded.CodeIs(http.StatusBadRequest)).To(BeTrue(), fmt.Sprintf("Expected %d to be %d", recorded.Recorder.Code, http.StatusBadRequest))
 			})
 
 		})

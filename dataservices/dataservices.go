@@ -15,6 +15,7 @@ import (
 
 const (
 	missingPermissionsError = "missing required permissions"
+	missingDataError        = "missing data to process"
 
 	dataservicesName = "dataservices"
 	useridParamName  = "userid"
@@ -98,6 +99,11 @@ func (client *DataServiceClient) PostDataset(w rest.ResponseWriter, r *rest.Requ
 	log.AddTrace(r.PathParam(useridParamName))
 
 	if checkPermisson(r, user.Permission{}) {
+
+		if r.ContentLength == 0 {
+			rest.Error(w, missingDataError, http.StatusBadRequest)
+			return
+		}
 
 		var dataSet data.GenericDataset
 		var processedDataset struct {
