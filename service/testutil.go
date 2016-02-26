@@ -14,17 +14,9 @@ import (
 // MakeSimpleRequest returns a http.Request. The returned request object can be
 // further prepared by adding headers and query string parmaters, for instance.
 func MakeSimpleRequest(method string, urlStr string, body io.Reader) *http.Request {
-	/*var s string
-
-	if payload != nil {
-		b, err := json.Marshal(payload)
-		if err != nil {
-			panic(err)
-		}
-		s = fmt.Sprintf("%s", b)
-	}*/
 
 	r, err := http.NewRequest(method, urlStr, body)
+
 	if err != nil {
 		panic(err)
 	}
@@ -134,14 +126,14 @@ func (w *responseWriter) Write(b []byte) (int, error) {
 
 // Handle the transition between net/http and go-json-rest objects.
 // It intanciates the rest.Request and rest.ResponseWriter, ...
-func adapterFunc(handler rest.HandlerFunc, env map[string]interface{}) http.HandlerFunc {
+func adapterFunc(handler rest.HandlerFunc, env map[string]interface{}, pathParams map[string]string) http.HandlerFunc {
 
 	return func(origWriter http.ResponseWriter, origRequest *http.Request) {
 
 		// instantiate the rest objects
 		request := &rest.Request{
 			Request:    origRequest,
-			PathParams: nil,
+			PathParams: pathParams,
 			Env:        env,
 		}
 
@@ -156,8 +148,8 @@ func adapterFunc(handler rest.HandlerFunc, env map[string]interface{}) http.Hand
 }
 
 // RunRequest runs a HTTP request through the given handler
-func RunRequest(restHandler rest.HandlerFunc, request *http.Request, env map[string]interface{}) *Recorded {
-	handler := adapterFunc(restHandler, env)
+func RunRequest(restHandler rest.HandlerFunc, request *http.Request, pathParams map[string]string, env map[string]interface{}) *Recorded {
+	handler := adapterFunc(restHandler, env, pathParams)
 	recorder := httptest.NewRecorder()
 	handler(recorder, request)
 	return &Recorded{recorder}
