@@ -74,15 +74,9 @@ func (client *DataServiceClient) Run(URL string) error {
 
 //checkPermisson will check that we have the expected permisson
 func checkPermisson(r *rest.Request, expected user.Permission) bool {
-	//userid := r.PathParam("userid")
+	//TODO: fill in the details
 	if permissions := r.Env[user.PERMISSIONS].(*user.UsersPermissions); permissions != nil {
-
-		log.Info("perms found ", permissions)
-
-		//	perms := permissions[userid]
-		//	if perms != nil && perms[""] != nil {
 		return true
-		//	}
 	}
 	return false
 }
