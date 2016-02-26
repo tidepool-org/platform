@@ -221,6 +221,20 @@ var _ = Describe("The Dataservices client", func() {
 				Expect(recorded.ContentTypeIsJSON()).To(BeTrue(), "Expected content type to be JSON")
 			})
 
+			It("should return no error with the payload", func() {
+				recorded := service.RunRequest(client.GetDataset, service.MakeSimpleRequest("GET", "http://localhost/dataset/"+userId, nil), idParams, perms)
+				recorded.DecodeJSONPayload(&payload)
+				Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
+				Expect(payload.Errors).To(Equal(""), "Expected the return errors to be empty")
+			})
+
+			It("should return no dataset with the payload", func() {
+				recorded := service.RunRequest(client.GetDataset, service.MakeSimpleRequest("GET", "http://localhost/dataset/"+userId, nil), idParams, perms)
+				recorded.DecodeJSONPayload(&payload)
+				Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
+				Expect(len(payload.Dataset)).To(Equal(0), "Expected no data to be returned")
+			})
+
 		})
 	})
 
