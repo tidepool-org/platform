@@ -151,6 +151,12 @@ var _ = Describe("The Dataservices client", func() {
 				Expect(recorded.CodeIs(http.StatusBadRequest)).To(BeTrue(), fmt.Sprintf("Expected %d to be %d", recorded.Recorder.Code, http.StatusBadRequest))
 			})
 
+			It("should return body with error message", func() {
+				expectedError := `{"Error":"missing data to process"}`
+				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userId, nil), perms)
+				Expect(recorded.BodyIs(expectedError)).To(BeTrue(), "Expected "+recorded.Recorder.Body.String()+" to be "+expectedError)
+			})
+
 		})
 
 	})
