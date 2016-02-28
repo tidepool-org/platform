@@ -3,6 +3,7 @@ package data
 //Basal represents a basal device data record
 type Basal struct {
 	DeliveryType string          `json:"deliveryType" bson:"deliveryType" valid:"required"`
+	ScheduleName string          `json:"scheduleName" bson:"scheduleName" valid:"required"`
 	Rate         float64         `json:"rate" bson:"rate" valid:"required"`
 	Duration     int             `json:"duration" bson:"duration" valid:"required"`
 	Suppressed   *SupressedBasal `json:"suppressed" bson:"suppressed,omitempty"`
@@ -13,6 +14,7 @@ type Basal struct {
 type SupressedBasal struct {
 	Type         string  `json:"type" bson:"type" valid:"required"`
 	DeliveryType string  `json:"deliveryType" bson:"deliveryType" valid:"required"`
+	ScheduleName string  `json:"scheduleName" bson:"scheduleName" valid:"required"`
 	Rate         float64 `json:"rate" bson:"rate" valid:"required"`
 }
 
@@ -21,6 +23,7 @@ func BuildBasal(obj map[string]interface{}) (*Basal, *Error) {
 
 	const (
 		deliveryTypeField = "deliveryType"
+		scheduleNameField = "scheduleName"
 		insulinField      = "insulin"
 		rateField         = "rate"
 		durationField     = "duration"
@@ -33,6 +36,7 @@ func BuildBasal(obj map[string]interface{}) (*Basal, *Error) {
 		Rate:         cast.ToFloat64(rateField, obj[rateField]),
 		Duration:     cast.ToInt(durationField, obj[durationField]),
 		DeliveryType: cast.ToString(deliveryTypeField, obj[deliveryTypeField]),
+		ScheduleName: cast.ToString(scheduleNameField, obj[scheduleNameField]),
 		Base:         base,
 	}
 
