@@ -63,6 +63,7 @@ func (client *DataServiceClient) Run(URL string) error {
 		rest.Get("/data/:userid/:datumid", client.validateToken(client.getPermissons(client.GetData))),
 		rest.Post("/dataset/:userid", client.validateToken(client.getPermissons(client.PostDataset))),
 		rest.Get("/dataset/:userid", client.validateToken(client.getPermissons(client.GetDataset))),
+		rest.Post("/blob/:userid", client.validateToken(client.getPermissons(client.PostBlob))),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -130,6 +131,41 @@ func (client *DataServiceClient) PostDataset(w rest.ResponseWriter, r *rest.Requ
 	}
 	rest.Error(w, missingPermissionsError, http.StatusUnauthorized)
 	return
+}
+
+//PostBlob will save a posted blob of  data for the requested user if permissons are sufficient
+func (client *DataServiceClient) PostBlob(w rest.ResponseWriter, r *rest.Request) {
+
+	userid := r.PathParam(useridParamName)
+	log.AddTrace(userid)
+
+	if checkPermisson(r, user.Permission{}) {
+
+		/*
+			r.ParseMultipartForm(32 << 20)
+			file, handler, err := r.FormFile("uploadfile")
+			if err != nil {
+				log.Error(err.Error())
+				rest.Error(w, "Error trying to get upload file", http.StatusInternalServerError)
+				return
+			}
+			defer file.Close()
+			f, err := os.OpenFile(fmt.Sprintf("./blob/%s/%s", userid, handler.Filename), os.O_WRONLY|os.O_CREATE, 0666)
+			if err != nil {
+				log.Error(err.Error())
+				rest.Error(w, "Error trying to save upload file", http.StatusInternalServerError)
+				return
+			}
+			defer f.Close()
+			io.Copy(f, file)
+		*/
+
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	rest.Error(w, missingPermissionsError, http.StatusUnauthorized)
+	return
+
 }
 
 //GetDataset will return the requested users data set if permissons are sufficient

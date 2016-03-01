@@ -28,6 +28,23 @@ func MakeSimpleRequest(method string, urlStr string, body io.Reader) *http.Reque
 	return r
 }
 
+// MakeBlobRequest returns a http.Request. The returned request object can be
+// further prepared by adding headers and query string parmaters, for instance.
+func MakeBlobRequest(method string, urlStr string, body io.Reader) *http.Request {
+
+	r, err := http.NewRequest(method, urlStr, body)
+
+	if err != nil {
+		panic(err)
+	}
+	r.Header.Set("Accept-Encoding", "gzip")
+	if body != nil {
+		r.Header.Set("Content-Type", "mime/multipart")
+	}
+
+	return r
+}
+
 // CodeIs compares the rescorded status code
 func CodeIs(r *httptest.ResponseRecorder, expectedCode int) bool {
 	return r.Code == expectedCode
@@ -167,12 +184,12 @@ func (rd *Recorded) HeaderIs(headerKey, expectedValue string) bool {
 
 // ContentTypeIsJSON for Recorded
 func (rd *Recorded) ContentTypeIsJSON() bool {
-	return rd.HeaderIs("Content-Type", "application/json")
+	return ContentTypeIsJSON(rd.Recorder)
 }
 
 // ContentEncodingIsGzip for Recorded
 func (rd *Recorded) ContentEncodingIsGzip() bool {
-	return rd.HeaderIs("Content-Encoding", "gzip")
+	return ContentEncodingIsGzip(rd.Recorder)
 }
 
 // BodyIs for Recorded

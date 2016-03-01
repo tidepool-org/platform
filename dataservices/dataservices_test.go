@@ -164,6 +164,28 @@ var _ = Describe("The Dataservices client", func() {
 		})
 
 	})
+	Describe("PostBlob", func() {
+
+		const userId = "9999999"
+
+		perms := make(map[string]interface{})
+		perms[user.PERMISSIONS] = &user.UsersPermissions{}
+		jsonData := []byte(`[{"userId": "9999999", "deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z", "timezoneOffset": 0, "conversionOffset": 0, "type": "basal", "deliveryType": "scheduled", "scheduleName": "Standard", "rate": 2, "duration": 21600000, "deviceId": "tools"}]`)
+
+		Describe("when given valid data", func() {
+
+			It("should return status 200", func() {
+				recorded := service.RunRequest(client.PostBlob, service.MakeBlobRequest("POST", "http://localhost/blob/"+userId, bytes.NewBuffer(jsonData)), params, perms)
+				Expect(recorded.CodeIs(http.StatusOK)).To(BeTrue(), fmt.Sprintf("Expected %d to be %d", recorded.Recorder.Code, http.StatusOK))
+			})
+
+			It("should return be content type of json", func() {
+				recorded := service.RunRequest(client.PostBlob, service.MakeBlobRequest("POST", "http://localhost/blob/"+userId, bytes.NewBuffer(jsonData)), params, perms)
+				Expect(recorded.ContentTypeIsJSON()).To(BeTrue(), "Expected content type to be JSON")
+			})
+		})
+
+	})
 	Describe("GetDataset", func() {
 
 		var payload struct {
