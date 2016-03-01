@@ -7,7 +7,7 @@ type Basal struct {
 	Previous   *BaseBasal      `json:"previous" bson:"previous,omitempty"`
 }
 
-//BasalBase represents the standard basal type fields
+//BaseBasal represents the standard basal type fields
 type BaseBasal struct {
 	DeliveryType string  `json:"deliveryType" bson:"deliveryType" valid:"required"`
 	ScheduleName string  `json:"scheduleName" bson:"scheduleName" valid:"required"`

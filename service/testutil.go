@@ -1,25 +1,32 @@
 package service
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 
 	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/ant0ine/go-json-rest/rest"
 )
+
+func panicOnError(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
 
 // MakeSimpleRequest returns a http.Request. The returned request object can be
 // further prepared by adding headers and query string parmaters, for instance.
 func MakeSimpleRequest(method string, urlStr string, body io.Reader) *http.Request {
 
 	r, err := http.NewRequest(method, urlStr, body)
+	panicOnError(err)
 
-	if err != nil {
-		panic(err)
-	}
 	r.Header.Set("Accept-Encoding", "gzip")
 	if body != nil {
 		r.Header.Set("Content-Type", "application/json")
@@ -30,17 +37,34 @@ func MakeSimpleRequest(method string, urlStr string, body io.Reader) *http.Reque
 
 // MakeBlobRequest returns a http.Request. The returned request object can be
 // further prepared by adding headers and query string parmaters, for instance.
-func MakeBlobRequest(method string, urlStr string, body io.Reader) *http.Request {
+func MakeBlobRequest(method string, urlStr string, filename string) *http.Request {
 
-	r, err := http.NewRequest(method, urlStr, body)
-
-	if err != nil {
-		panic(err)
+	if filename == "" {
+		r, err := http.NewRequest(method, urlStr, nil)
+		panicOnError(err)
+		return r
 	}
+
+	bodyBuf := &bytes.Buffer{}
+	bodyWriter := multipart.NewWriter(bodyBuf)
+
+	fileWriter, err := bodyWriter.CreateFormFile("uploadfile", filename)
+	panicOnError(err)
+
+	fileHandler, err := os.Open(filename)
+	panicOnError(err)
+
+	_, err = io.Copy(fileWriter, fileHandler)
+	panicOnError(err)
+
+	r, err := http.NewRequest(method, urlStr, bodyBuf)
+
+	panicOnError(err)
+
+	r.Header.Set("Content-Type", bodyWriter.FormDataContentType())
 	r.Header.Set("Accept-Encoding", "gzip")
-	if body != nil {
-		r.Header.Set("Content-Type", "mime/multipart")
-	}
+
+	bodyWriter.Close()
 
 	return r
 }
