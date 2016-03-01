@@ -2,11 +2,17 @@ package data
 
 //Basal represents a basal device data record
 type Basal struct {
-	DeliveryType string          `json:"deliveryType" bson:"deliveryType" valid:"required"`
-	ScheduleName string          `json:"scheduleName" bson:"scheduleName" valid:"required"`
-	Rate         float64         `json:"rate" bson:"rate" valid:"required"`
-	Duration     int             `json:"duration" bson:"duration" valid:"required"`
-	Suppressed   *SupressedBasal `json:"suppressed" bson:"suppressed,omitempty"`
+	BaseBasal  `bson:",inline"`
+	Suppressed *SupressedBasal `json:"suppressed" bson:"suppressed,omitempty"`
+	Previous   *BaseBasal      `json:"previous" bson:"previous,omitempty"`
+}
+
+//BasalBase represents the standard basal type fields
+type BaseBasal struct {
+	DeliveryType string  `json:"deliveryType" bson:"deliveryType" valid:"required"`
+	ScheduleName string  `json:"scheduleName" bson:"scheduleName" valid:"required"`
+	Rate         float64 `json:"rate" bson:"rate" valid:"required"`
+	Duration     int     `json:"duration" bson:"duration" valid:"required"`
 	Base         `bson:",inline"`
 }
 
@@ -33,11 +39,20 @@ func BuildBasal(obj map[string]interface{}) (*Basal, *Error) {
 	cast := NewCaster(errs)
 
 	basal := &Basal{
-		Rate:         cast.ToFloat64(rateField, obj[rateField]),
-		Duration:     cast.ToInt(durationField, obj[durationField]),
-		DeliveryType: cast.ToString(deliveryTypeField, obj[deliveryTypeField]),
-		ScheduleName: cast.ToString(scheduleNameField, obj[scheduleNameField]),
-		Base:         base,
+		BaseBasal: BaseBasal{
+			Rate:         cast.ToFloat64(rateField, obj[rateField]),
+			Duration:     cast.ToInt(durationField, obj[durationField]),
+			DeliveryType: cast.ToString(deliveryTypeField, obj[deliveryTypeField]),
+			ScheduleName: cast.ToString(scheduleNameField, obj[scheduleNameField]),
+			Base:         base,
+		},
+		Previous: &BaseBasal{
+			Rate:         cast.ToFloat64(rateField, obj[rateField]),
+			Duration:     cast.ToInt(durationField, obj[durationField]),
+			DeliveryType: cast.ToString(deliveryTypeField, obj[deliveryTypeField]),
+			ScheduleName: cast.ToString(scheduleNameField, obj[scheduleNameField]),
+			Base:         base,
+		},
 	}
 
 	_, err := validator.ValidateStruct(basal)

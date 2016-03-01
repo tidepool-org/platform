@@ -18,6 +18,8 @@ type Base struct {
 	TimezoneOffset   int           `json:"timezoneOffset" bson:"timezoneOffset,omitempty"`
 	ConversionOffset int           `json:"conversionOffset" bson:"conversionOffset,omitempty"`
 	DeviceID         string        `json:"deviceId" bson:"deviceId" valid:"required"`
+	Payload          interface{}   `json:"payload" bson:"payload,omitempty"`
+	Annotations      interface{}   `json:"annotations" bson:"annotations,omitempty"`
 }
 
 var validator = validate.PlatformValidator{}
@@ -32,6 +34,8 @@ func BuildBase(obj map[string]interface{}) (Base, *Error) {
 		timeField             = "time"
 		conversionOffsetField = "conversionOffset"
 		deviceIDField         = "deviceId"
+		payloadField          = "payload"
+		annotationsField      = "annotations"
 	)
 
 	errs := NewError(obj)
@@ -46,6 +50,8 @@ func BuildBase(obj map[string]interface{}) (Base, *Error) {
 		DeviceTime:       cast.ToTime(deviceTimeField, obj[deviceTimeField]),
 		Time:             cast.ToTime(timeField, obj[timeField]),
 		Type:             cast.ToString(typeField, obj[typeField]),
+		Payload:          obj[payloadField],
+		Annotations:      obj[annotationsField],
 	}
 
 	_, err := validator.ValidateStruct(base)

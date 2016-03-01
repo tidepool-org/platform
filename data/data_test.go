@@ -1,6 +1,9 @@
 package data_test
 
 import (
+	"encoding/json"
+	"io/ioutil"
+
 	. "github.com/tidepool-org/platform/data"
 
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo"
@@ -31,6 +34,24 @@ var _ = Describe("Builder", func() {
 		It("should tell user what is invalid in error", func() {
 			_, errs := builder.BuildFromRaw([]byte(`{"Stuff": "2014-06-11T06:00:00"}`))
 			Expect(errs.Error()).To(Equal("processing map[Stuff:2014-06-11T06:00:00] found: there is no match for that type"))
+		})
+	})
+
+	Context("for data stream", func() {
+		var (
+			dataSet GenericDataset
+		)
+		BeforeEach(func() {
+			rawTestData, _ := ioutil.ReadFile("./test_data_stream.json")
+			json.Unmarshal(rawTestData, &dataSet)
+		})
+		It("should not return an error as is valid", func() {
+			_, errs := builder.BuildFromDataSet(dataSet)
+			Expect(errs).To(BeNil())
+		})
+		It("should return process data when valid", func() {
+			data, _ := builder.BuildFromDataSet(dataSet)
+			Expect(data).To(Not(BeEmpty()))
 		})
 	})
 
@@ -110,20 +131,33 @@ var _ = Describe("Basal", func() {
 	var (
 		basalObj = map[string]interface{}{
 			"userId":           "b676436f60",
-			"deviceTime":       "2014-06-11T06:00:00.000Z",
-			"time":             "2014-06-11T06:00:00.000Z",
-			"timezoneOffset":   0,
+			"time":             "2016-02-25T23:02:00.000Z",
+			"timezoneOffset":   -480,
+			"clockDriftOffset": 0,
 			"conversionOffset": 0,
+			"deviceTime":       "2016-02-25T15:02:00.000Z",
+			"deviceId":         "IR1285-79-36047-15",
 			"type":             "basal",
 			"deliveryType":     "scheduled",
-			"scheduleName":     "Standard",
-			"rate":             2.2,
-			"duration":         21600000,
-			"deviceId":         "tools",
+			"scheduleName":     "DEFAULT",
+			"rate":             1.75,
+			"duration":         28800000,
 		}
 	)
 
-	Context("can be built from obj", func() {
+	Context("datum from obj", func() {
+		It("should return a basal if the obj is valid", func() {
+			basal, _ := BuildBasal(basalObj)
+			var basalType *Basal
+			Expect(basal).To(BeAssignableToTypeOf(basalType))
+		})
+		It("should produce no error when valid", func() {
+			_, err := BuildBasal(basalObj)
+			Expect(err).To(BeNil())
+		})
+	})
+
+	Context("dataset from builder", func() {
 		It("should return a basal if the obj is valid", func() {
 			basal, _ := BuildBasal(basalObj)
 			var basalType *Basal
