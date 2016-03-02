@@ -21,11 +21,15 @@ type Builder interface {
 }
 
 //TypeBuilder that is used to build data types that the platform understands
-type TypeBuilder struct{}
+type TypeBuilder struct {
+	inject map[string]interface{}
+}
 
 //NewTypeBuilder returns an instance of TypeBuilder
-func NewTypeBuilder() Builder {
-	return &TypeBuilder{}
+func NewTypeBuilder(inject map[string]interface{}) Builder {
+	return &TypeBuilder{
+		inject: inject,
+	}
 }
 
 //BuildFromDataSet will build the matching type(s) from the given GenericDataset
@@ -71,6 +75,10 @@ func (typeBuilder *TypeBuilder) BuildFromData(data map[string]interface{}) (inte
 		deviceEventType = "deviceevent"
 	)
 	if data[typeField] != nil {
+
+		for k, v := range typeBuilder.inject {
+			data[k] = v
+		}
 
 		if strings.ToLower(data[typeField].(string)) == basalType {
 			return BuildBasal(data)

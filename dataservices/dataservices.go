@@ -91,7 +91,9 @@ func (client *DataServiceClient) GetVersion(w rest.ResponseWriter, r *rest.Reque
 //PostDataset will process a posted dataset for the requested user if permissons are sufficient
 func (client *DataServiceClient) PostDataset(w rest.ResponseWriter, r *rest.Request) {
 
-	log.AddTrace(r.PathParam(useridParamName))
+	userid := r.PathParam(useridParamName)
+
+	log.AddTrace(userid)
 
 	if checkPermisson(r, user.Permission{}) {
 
@@ -113,7 +115,7 @@ func (client *DataServiceClient) PostDataset(w rest.ResponseWriter, r *rest.Requ
 			return
 		}
 
-		data, err := data.NewTypeBuilder().BuildFromDataSet(dataSet)
+		data, err := data.NewTypeBuilder(map[string]interface{}{"userId": userid}).BuildFromDataSet(dataSet)
 		processedDataset.Dataset = data
 		processedDataset.Errors = err.Error()
 

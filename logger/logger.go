@@ -42,7 +42,7 @@ func setup() *PlatformLog {
 	logger := logrus.New()
 	logger.Out = os.Stdout
 	logger.Formatter = new(logrus.JSONFormatter)
-	logger.Level = logrus.InfoLevel
+	logger.Level = logrus.ErrorLevel
 
 	return &PlatformLog{
 		internal: logger,

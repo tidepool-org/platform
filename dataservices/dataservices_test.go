@@ -58,9 +58,13 @@ var _ = Describe("The Dataservices client", func() {
 		perms := make(map[string]interface{})
 		perms[user.PERMISSIONS] = &user.UsersPermissions{}
 
+		//the userid is used in the saving of the data so we attach it to the request in the `RunRequest` test handler
+		params := make(map[string]string)
+		params["userid"] = userId
+
 		Describe("when given valid data", func() {
 
-			jsonData := []byte(`[{"userId": "9999999", "deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z", "timezoneOffset": 0, "conversionOffset": 0, "type": "basal", "deliveryType": "scheduled", "scheduleName": "Standard", "rate": 2, "duration": 21600000, "deviceId": "tools"}]`)
+			jsonData := []byte(`[{"deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z", "timezoneOffset": 0, "conversionOffset": 0, "type": "basal", "deliveryType": "scheduled", "scheduleName": "Standard", "rate": 2, "duration": 21600000, "deviceId": "tools"}]`)
 
 			It("should return status 200", func() {
 				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userId, bytes.NewBuffer(jsonData)), params, perms)
