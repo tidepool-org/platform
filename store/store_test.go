@@ -80,7 +80,10 @@ var _ = Describe("Store", func() {
 			var updated SaveMe
 			updated = saveMe
 			updated.Stuff = []string{"just", "1"}
-			Expect(testStore.Update(IDField{"id", updated.Id}, updated)).To(BeNil())
+
+			selector := map[string]interface{}{"id": updated.Id}
+
+			Expect(testStore.Update(selector, updated)).To(BeNil())
 
 		})
 		It("should be able to delete", func() {

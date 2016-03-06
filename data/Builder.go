@@ -7,17 +7,30 @@ import (
 	"strings"
 )
 
-//GenericDatam represent one data point
-type GenericDatam map[string]interface{}
+//Datum represent one data point
+type Datum map[string]interface{}
 
-//GenericDataset represents an array of data points
-type GenericDataset []GenericDatam
+//Dataset represents an array of data points
+type Dataset []Datum
+
+//GetSelector returns the selector fields for a given platform datatype, or nil if there is no match
+func GetSelector(data interface{}) interface{} {
+
+	switch data.(type) {
+	case *Basal:
+		return data.(*Basal).Selector()
+	case *DeviceEvent:
+		return data.(*DeviceEvent).Selector()
+	default:
+		return nil
+	}
+}
 
 //Builder interface that the TypeBuilder implements
 type Builder interface {
 	BuildFromRaw(raw []byte) (interface{}, *Error)
 	BuildFromData(data map[string]interface{}) (interface{}, *Error)
-	BuildFromDataSet(dataSet GenericDataset) ([]interface{}, *ErrorSet)
+	BuildFromDataSet(dataSet Dataset) ([]interface{}, *ErrorSet)
 }
 
 //TypeBuilder that is used to build data types that the platform understands
@@ -32,8 +45,8 @@ func NewTypeBuilder(inject map[string]interface{}) Builder {
 	}
 }
 
-//BuildFromDataSet will build the matching type(s) from the given GenericDataset
-func (typeBuilder *TypeBuilder) BuildFromDataSet(dataSet GenericDataset) ([]interface{}, *ErrorSet) {
+//BuildFromDataSet will build the matching type(s) from the given Dataset
+func (typeBuilder *TypeBuilder) BuildFromDataSet(dataSet Dataset) ([]interface{}, *ErrorSet) {
 
 	var set []interface{}
 	var buildError *ErrorSet
@@ -70,19 +83,18 @@ func (typeBuilder *TypeBuilder) BuildFromRaw(raw []byte) (interface{}, *Error) {
 func (typeBuilder *TypeBuilder) BuildFromData(data map[string]interface{}) (interface{}, *Error) {
 
 	const (
-		typeField       = "type"
-		basalType       = "basal"
-		deviceEventType = "deviceevent"
+		typeField = "type"
 	)
+
 	if data[typeField] != nil {
 
 		for k, v := range typeBuilder.inject {
 			data[k] = v
 		}
 
-		if strings.ToLower(data[typeField].(string)) == basalType {
+		if strings.ToLower(data[typeField].(string)) == strings.ToLower(BasalName) {
 			return BuildBasal(data)
-		} else if strings.ToLower(data[typeField].(string)) == deviceEventType {
+		} else if strings.ToLower(data[typeField].(string)) == strings.ToLower(DeviceEventName) {
 			return BuildDeviceEvent(data)
 		}
 		e := NewError(data)

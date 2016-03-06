@@ -15,13 +15,13 @@ var _ = Describe("Builder", func() {
 	var (
 		builder Builder
 
-		injectedFields = map[string]interface{}{"userId": "b676436f60"}
+		injectedFields = map[string]interface{}{"userId": "b676436f60", "uploadId": "upid_b856b0e6e519"}
 
-		jsonBasalData       = []byte(`{ "deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z","timezoneOffset": 0, "conversionOffset": 0, "type": "basal", "deliveryType": "scheduled", "scheduleName": "Standard", "rate": 2, "duration": 21600000, "deviceId": "tools"}`)
-		jsonBasalDataExtras = []byte(`{ "deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z","timezoneOffset": 0, "conversionOffset": 0, "type": "basal", "deliveryType": "scheduled", "scheduleName": "Standard", "rate": 2, "duration": 21600000, "deviceId": "tools", "stuff": "feed me", "moar": 0}`)
+		jsonBasalData       = []byte(`{ "deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z","timezoneOffset": 0, "conversionOffset": 0, "type": "basal", "deliveryType": "scheduled", "scheduleName": "Standard", "rate": 2, "duration": 21600000, "deviceId": "InsOmn-3333333333"}`)
+		jsonBasalDataExtras = []byte(`{ "deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z","timezoneOffset": 0, "conversionOffset": 0, "type": "basal", "deliveryType": "scheduled", "scheduleName": "Standard", "rate": 2, "duration": 21600000, "deviceId": "InsOmn-3333333333", "stuff": "feed me", "moar": 0}`)
 
-		jsonDeviceEventData       = []byte(`{ "deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z","timezoneOffset": 0, "conversionOffset": 0, "type": "deviceEvent", "subType": "alarm", "deviceId": "platform-tests"}`)
-		jsonDeviceEventDataExtras = []byte(`{ "deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z","timezoneOffset": 0, "conversionOffset": 0, "type": "deviceEvent", "subType": "alarm", "deviceId": "platform-tests", "stuff": "feed me", "moar": 0}`)
+		jsonDeviceEventData       = []byte(`{ "deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z","timezoneOffset": 0, "conversionOffset": 0, "type": "deviceEvent", "subType": "alarm", "deviceId": "InsOmn-3333333333"}`)
+		jsonDeviceEventDataExtras = []byte(`{ "deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z","timezoneOffset": 0, "conversionOffset": 0, "type": "deviceEvent", "subType": "alarm", "deviceId": "InsOmn-3333333333", "stuff": "feed me", "moar": 0}`)
 	)
 
 	BeforeEach(func() {
@@ -41,7 +41,7 @@ var _ = Describe("Builder", func() {
 
 	Context("for data stream", func() {
 		var (
-			dataSet GenericDataset
+			dataSet Dataset
 		)
 		BeforeEach(func() {
 			rawTestData, _ := ioutil.ReadFile("./test_data_stream.json")
@@ -101,16 +101,18 @@ var _ = Describe("Base", func() {
 	var (
 		basalObj = map[string]interface{}{
 			"userId":           "b676436f60", //userid would have been injected by now via the builder
+			"uploadId":         "upid_b856b0e6e519",
 			"deviceTime":       "2014-06-11T06:00:00.000Z",
 			"time":             "2014-06-11T06:00:00.000Z",
 			"timezoneOffset":   0,
 			"conversionOffset": 0,
+			"clockDriftOffset": 0,
 			"type":             "basal",
 			"deliveryType":     "scheduled",
 			"scheduleName":     "Standard",
 			"rate":             2.2,
 			"duration":         21600000,
-			"deviceId":         "tools",
+			"deviceId":         "InsOmn-111111111",
 		}
 	)
 
@@ -133,6 +135,7 @@ var _ = Describe("Basal", func() {
 	var (
 		basalObj = map[string]interface{}{
 			"userId":           "b676436f60", //userid would have been injected by now via the builder
+			"uploadId":         "upid_b856b0e6e519",
 			"time":             "2016-02-25T23:02:00.000Z",
 			"timezoneOffset":   -480,
 			"clockDriftOffset": 0,
@@ -177,13 +180,15 @@ var _ = Describe("DeviceEvent", func() {
 	var (
 		deviceEventObj = map[string]interface{}{
 			"userId":           "b676436f60", //userid would have been injected by now via the builder
+			"uploadId":         "upid_b856b0e6e519",
 			"deviceTime":       "2014-06-11T06:00:00.000Z",
 			"time":             "2014-06-11T06:00:00.000Z",
 			"timezoneOffset":   0,
 			"conversionOffset": 0,
+			"clockDriftOffset": 0,
 			"type":             "deviceEvent",
 			"subType":          "alarm",
-			"deviceId":         "platform-tests",
+			"deviceId":         "InsOmn-888888888",
 		}
 	)
 

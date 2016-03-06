@@ -46,7 +46,7 @@ func NewDataServiceClient() *DataServiceClient {
 
 	return &DataServiceClient{
 		api:           rest.NewApi(),
-		dataStore:     store.NewMongoStore(dataservicesName),
+		dataStore:     store.NewMongoStore("deviceData"), //TODO: config
 		validateToken: user.NewAuthorizationMiddleware(userClient).ValidateToken,
 		getPermissons: user.NewPermissonsMiddleware(userClient).GetPermissons,
 	}
@@ -102,7 +102,7 @@ func (client *DataServiceClient) PostDataset(w rest.ResponseWriter, r *rest.Requ
 			return
 		}
 
-		var dataSet data.GenericDataset
+		var dataSet data.Dataset
 		var processedDataset struct {
 			Dataset []interface{} `json:"Dataset"`
 			Errors  string        `json:"Errors"`
@@ -115,14 +115,13 @@ func (client *DataServiceClient) PostDataset(w rest.ResponseWriter, r *rest.Requ
 			return
 		}
 
-		data, err := data.NewTypeBuilder(map[string]interface{}{"userId": userid}).BuildFromDataSet(dataSet)
-		processedDataset.Dataset = data
+		platformData, err := data.NewTypeBuilder(map[string]interface{}{"userId": userid}).BuildFromDataSet(dataSet)
+		processedDataset.Dataset = platformData
 		processedDataset.Errors = err.Error()
 
 		//TODO: should this be a bulk insert?
-		for i := range data {
-			err := client.dataStore.Save(data[i])
-			if err != nil {
+		for i := range platformData {
+			if err = client.dataStore.Save(platformData[i]); err != nil {
 				rest.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
@@ -142,27 +141,7 @@ func (client *DataServiceClient) PostBlob(w rest.ResponseWriter, r *rest.Request
 	log.AddTrace(userid)
 
 	if checkPermisson(r, user.Permission{}) {
-
-		/*
-			r.ParseMultipartForm(32 << 20)
-			file, handler, err := r.FormFile("uploadfile")
-			if err != nil {
-				log.Error(err.Error())
-				rest.Error(w, "Error trying to get upload file", http.StatusInternalServerError)
-				return
-			}
-			defer file.Close()
-			f, err := os.OpenFile(fmt.Sprintf("./blob/%s/%s", userid, handler.Filename), os.O_WRONLY|os.O_CREATE, 0666)
-			if err != nil {
-				log.Error(err.Error())
-				rest.Error(w, "Error trying to save upload file", http.StatusInternalServerError)
-				return
-			}
-			defer f.Close()
-			io.Copy(f, file)
-		*/
-
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusNotImplemented)
 		return
 	}
 	rest.Error(w, missingPermissionsError, http.StatusUnauthorized)
@@ -178,8 +157,8 @@ func (client *DataServiceClient) GetDataset(w rest.ResponseWriter, r *rest.Reque
 	if checkPermisson(r, user.Permission{}) {
 
 		var foundDataset struct {
-			data.GenericDataset `json:"Dataset"`
-			Errors              string `json:"Errors"`
+			data.Dataset `json:"Dataset"`
+			Errors       string `json:"Errors"`
 		}
 
 		userid := r.PathParam(useridParamName)
@@ -192,13 +171,13 @@ func (client *DataServiceClient) GetDataset(w rest.ResponseWriter, r *rest.Reque
 
 		log.Info("params", types, subTypes, start, end)
 
-		var dataSet data.GenericDataset
+		var dataSet data.Dataset
 		err := client.dataStore.ReadAll(store.IDField{Name: "userId", Value: userid}, &dataSet)
 
 		if err != nil {
 			foundDataset.Errors = err.Error()
 		}
-		foundDataset.GenericDataset = dataSet
+		foundDataset.Dataset = dataSet
 
 		w.WriteJson(&foundDataset)
 		return
@@ -214,8 +193,8 @@ func (client *DataServiceClient) GetData(w rest.ResponseWriter, r *rest.Request)
 
 	if checkPermisson(r, user.Permission{}) {
 		var foundDatum struct {
-			data.GenericDatam `json:"Datum"`
-			Errors            string `json:"Errors"`
+			data.Datum `json:"Datum"`
+			Errors     string `json:"Errors"`
 		}
 
 		userid := r.PathParam(useridParamName)
@@ -223,7 +202,7 @@ func (client *DataServiceClient) GetData(w rest.ResponseWriter, r *rest.Request)
 
 		log.Info("userid and datum", userid, datumid)
 
-		foundDatum.GenericDatam = data.GenericDatam{}
+		foundDatum.Datum = data.Datum{}
 		foundDatum.Errors = ""
 
 		w.WriteJson(&foundDatum)

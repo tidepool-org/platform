@@ -3,6 +3,7 @@ package main_test
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
@@ -86,6 +87,10 @@ var _ = Describe("The Dataservices client", func() {
 			It("should return the processed dataset with the payload", func() {
 				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userId, bytes.NewBuffer(jsonData)), params, perms)
 				recorded.DecodeJSONPayload(&payload)
+
+				log.Printf("payload data %#v", payload.Dataset)
+				log.Printf("payload error %#v", payload.Errors)
+
 				Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
 				Expect(len(payload.Dataset)).To(Equal(1), "Expected one processed datum to be returned")
 			})
@@ -178,9 +183,9 @@ var _ = Describe("The Dataservices client", func() {
 
 		Describe("when given valid data", func() {
 
-			It("should return status 200", func() {
+			It("should return status 501", func() {
 				recorded := service.RunRequest(client.PostBlob, service.MakeBlobRequest("POST", "http://localhost/blob/"+userId, fileName), params, perms)
-				Expect(recorded.CodeIs(http.StatusOK)).To(BeTrue(), fmt.Sprintf("Expected %d to be %d", recorded.Recorder.Code, http.StatusOK))
+				Expect(recorded.CodeIs(http.StatusNotImplemented)).To(BeTrue(), fmt.Sprintf("Expected %d to be %d", recorded.Recorder.Code, http.StatusNotImplemented))
 			})
 
 			It("should return be content type of json", func() {

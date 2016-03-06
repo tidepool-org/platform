@@ -2,22 +2,31 @@ package data
 
 //DeviceEvent represents a deviceevent data record
 type DeviceEvent struct {
-	SubType string `json:"subType" bson:"subType" valid:"required"`
-	Base
+	SubType string      `json:"subType" bson:"subType" valid:"required"`
+	Status  string      `json:"status" bson:"status,omitempty" valid:"-"`
+	Reason  interface{} `json:"reason" bson:"reason,omitempty" valid:"-"`
+	Base    `bson:",inline"`
 }
+
+const (
+	//DeviceEventName is the given name for the type of a `DeviceEvent` datum
+	DeviceEventName = "deviceEvent"
+
+	subTypeField = "subType"
+	statusField  = "status"
+	reasonField  = "reason"
+)
 
 //BuildDeviceEvent will build a DeviceEvent record
 func BuildDeviceEvent(obj map[string]interface{}) (*DeviceEvent, *Error) {
-
-	const (
-		subTypeField = "subType"
-	)
 
 	base, errs := BuildBase(obj)
 	cast := NewCaster(errs)
 
 	deviceEvent := &DeviceEvent{
 		SubType: cast.ToString(subTypeField, obj[subTypeField]),
+		Status:  cast.ToString(statusField, obj[statusField]),
+		Reason:  obj[reasonField],
 		Base:    base,
 	}
 
@@ -27,4 +36,15 @@ func BuildDeviceEvent(obj map[string]interface{}) (*DeviceEvent, *Error) {
 		return deviceEvent, nil
 	}
 	return deviceEvent, errs
+}
+
+//Selector will return the `unique` fields used in upserts
+func (d *DeviceEvent) Selector() interface{} {
+
+	unique := map[string]interface{}{}
+
+	unique[subTypeField] = d.SubType
+	unique[deviceTimeField] = d.DeviceTime
+	unique[typeField] = d.Type
+	return unique
 }

@@ -19,7 +19,7 @@ var (
 // type we are using, which could also be a mock
 type Store interface {
 	Save(d interface{}) error
-	Update(id IDField, d interface{}) error
+	Update(selector interface{}, d interface{}) error
 	Delete(id IDField) error
 	Read(id IDField, result interface{}) error
 	ReadAll(id IDField, results interface{}) error
@@ -30,6 +30,9 @@ type IDField struct {
 	Name  string
 	Value string
 }
+
+//IDFields for finding or updating an item
+type IDFields []IDField
 
 //MongoStore is the mongo implementation of Store
 type MongoStore struct {
@@ -81,11 +84,11 @@ func (mongoStore *MongoStore) Save(d interface{}) error {
 }
 
 //Update will update the specified data based on its IDField
-func (mongoStore *MongoStore) Update(id IDField, d interface{}) error {
+func (mongoStore *MongoStore) Update(selector interface{}, d interface{}) error {
 	cpy := mongoStore.Session.Copy()
 	defer cpy.Close()
 
-	if _, err := cpy.DB(mongoStore.Config.DbName).C(mongoStore.CollectionName).Upsert(bson.M{id.Name: id.Value}, d); err != nil {
+	if _, err := cpy.DB(mongoStore.Config.DbName).C(mongoStore.CollectionName).Upsert(selector, d); err != nil {
 		return err
 	}
 	return nil
