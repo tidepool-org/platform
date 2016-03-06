@@ -10,18 +10,19 @@ import (
 
 //Base represents tha base types that all device data records contain
 type Base struct {
-	ID               string      `json:"id" bson:"_id" valid:"required"`
-	UserID           string      `json:"userId" bson:"userId" valid:"required"`
-	DeviceID         string      `json:"deviceId" bson:"deviceId" valid:"required"`
-	UploadID         string      `json:"uploadId" bson:"uploadId" valid:"-"`
-	DeviceTime       string      `json:"deviceTime" bson:"deviceTime" valid:"required"`
-	Time             string      `json:"time" bson:"time" valid:"required"`
-	TimezoneOffset   int         `json:"timezoneOffset" bson:"timezoneOffset,omitempty" valid:"-"`
-	ConversionOffset int         `json:"conversionOffset" bson:"conversionOffset,omitempty" valid:"-"`
-	ClockDriftOffset int         `json:"clockDriftOffset" bson:"clockDriftOffset,omitempty" valid:"-"`
-	Type             string      `json:"type" bson:"type" valid:"required"`
-	Payload          interface{} `json:"payload" bson:"payload,omitempty" valid:"-"`
-	Annotations      interface{} `json:"annotations" bson:"annotations,omitempty" valid:"-"`
+	_ID              bson.ObjectId `bson:"_id" valid:"mongo,required"`
+	ID               string        `json:"id" bson:"id" valid:"required"`
+	UserID           string        `json:"userId" bson:"userId" valid:"required"`
+	DeviceID         string        `json:"deviceId" bson:"deviceId" valid:"required"`
+	UploadID         string        `json:"uploadId" bson:"uploadId" valid:"-"`
+	DeviceTime       string        `json:"deviceTime" bson:"deviceTime" valid:"required"`
+	Time             string        `json:"time" bson:"time" valid:"required"`
+	TimezoneOffset   int           `json:"timezoneOffset" bson:"timezoneOffset,omitempty" valid:"-"`
+	ConversionOffset int           `json:"conversionOffset" bson:"conversionOffset,omitempty" valid:"-"`
+	ClockDriftOffset int           `json:"clockDriftOffset" bson:"clockDriftOffset,omitempty" valid:"-"`
+	Type             string        `json:"type" bson:"type" valid:"required"`
+	Payload          interface{}   `json:"payload" bson:"payload,omitempty" valid:"-"`
+	Annotations      interface{}   `json:"annotations" bson:"annotations,omitempty" valid:"-"`
 	BaseDataStorage  `bson:",inline"`
 }
 
@@ -60,6 +61,7 @@ func BuildBase(obj map[string]interface{}) (Base, *Error) {
 	cast := NewCaster(errs)
 
 	base := Base{
+		_ID:              bson.NewObjectId(),
 		ID:               bson.NewObjectId().Hex(),
 		UserID:           cast.ToString(userIDField, obj[userIDField]),
 		DeviceID:         cast.ToString(deviceIDField, obj[deviceIDField]),
