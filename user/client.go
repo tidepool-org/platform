@@ -19,8 +19,9 @@ type (
 		Start() error
 		Close()
 		CheckToken(token string) *TokenData
-		GetUser(userID, token string) (*Data, error)
-		GetUserPermissons(userID, token string) (*UsersPermissions, error)
+		GetUser(userID string) (*Data, error)
+		GetUserPermissons(userID string) (*UsersPermissions, error)
+		GetUserGroupID(userID string) (string, error)
 	}
 
 	// ServicesClient manages the local data for a client. A client is intended to be shared among multiple
@@ -85,6 +86,7 @@ const (
 
 	userPath        = "/auth"
 	permissionsPath = "/access"
+	metaDataPath    = "/metadata"
 )
 
 //NewServicesClient returns and initailised ServicesClient instance
@@ -159,7 +161,7 @@ func (client *ServicesClient) Close() {
 // secret that was passed in on the creation of the client object. If
 // successful, it stores the returned token in ServerToken.
 func (client *ServicesClient) serverLogin() error {
-	host := client.getUserHost()
+	host := client.getHost(userPath)
 	if host == nil {
 		return errors.New("No known user-api hosts.")
 	}
@@ -188,12 +190,19 @@ func (client *ServicesClient) serverLogin() error {
 	return nil
 }
 
+//tokenProvide will return a servertoken that is internally provided for service calls
+func (client *ServicesClient) tokenProvide() string {
+	client.mut.Lock()
+	defer client.mut.Unlock()
+	return client.serverToken
+}
+
 //CheckToken tests a token with the user-api to make sure it's current;
 //if so, it returns the data encoded in the token.
 func (client *ServicesClient) CheckToken(token string) *TokenData {
-	host := client.getUserHost()
+	host := client.getHost(userPath)
 	if host == nil {
-		log.Error("No known user-api hosts.")
+		log.Error("No known host for ", userPath)
 		return nil
 	}
 
@@ -226,16 +235,16 @@ func (client *ServicesClient) CheckToken(token string) *TokenData {
 
 //GetUser details for the given user
 //In this case the userID could be the actual ID or an email address
-func (client *ServicesClient) GetUser(userID, token string) (*Data, error) {
-	host := client.getUserHost()
+func (client *ServicesClient) GetUser(userID string) (*Data, error) {
+	host := client.getHost(userPath)
 	if host == nil {
-		return nil, errors.New("No known user-api hosts.")
+		return nil, fmt.Errorf("No known %s host", userPath)
 	}
 
 	host.Path += fmt.Sprintf("user/%s", userID)
 
 	req, _ := http.NewRequest("GET", host.String(), nil)
-	req.Header.Add(xTidepoolSessionToken, token)
+	req.Header.Add(xTidepoolSessionToken, client.tokenProvide())
 
 	res, err := client.httpClient.Do(req)
 	if err != nil {
@@ -259,16 +268,16 @@ func (client *ServicesClient) GetUser(userID, token string) (*Data, error) {
 }
 
 //GetUserPermissons for the given userID
-func (client *ServicesClient) GetUserPermissons(userID, token string) (*UsersPermissions, error) {
-	host := client.getPermissionsHost()
+func (client *ServicesClient) GetUserPermissons(userID string) (*UsersPermissions, error) {
+	host := client.getHost(permissionsPath)
 	if host == nil {
-		return nil, errors.New("No known user-api hosts.")
+		return nil, fmt.Errorf("No known %s host", permissionsPath)
 	}
 
 	host.Path += fmt.Sprintf("/groups/%s", userID)
 
 	req, _ := http.NewRequest("GET", host.String(), nil)
-	req.Header.Add(xTidepoolSessionToken, token)
+	req.Header.Add(xTidepoolSessionToken, client.tokenProvide())
 
 	res, err := client.httpClient.Do(req)
 	if err != nil {
@@ -291,20 +300,44 @@ func (client *ServicesClient) GetUserPermissons(userID, token string) (*UsersPer
 	}
 }
 
-func (client *ServicesClient) getPermissionsHost() *url.URL {
-	theURL, err := url.Parse(client.config.Host + permissionsPath)
-	if err != nil {
-		log.Error("Unable to parse permissions urlString:", client.config.Host+permissionsPath)
-		return nil
+//GetUserGroupID for the given userID
+func (client *ServicesClient) GetUserGroupID(userID string) (string, error) {
+	host := client.getHost(metaDataPath)
+	if host == nil {
+		return "", fmt.Errorf("No known %s host", metaDataPath)
 	}
-	return theURL
+
+	host.Path += fmt.Sprintf("%s/private/uploads", userID)
+
+	req, _ := http.NewRequest("GET", host.String(), nil)
+	req.Header.Add(xTidepoolSessionToken, client.tokenProvide())
+
+	res, err := client.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("Failure to get groupID for user \n\n %v", err)
+	}
+	defer res.Body.Close()
+
+	switch res.StatusCode {
+	case http.StatusOK:
+		var pair struct {
+			ID    string
+			Value string
+		}
+		if err = json.NewDecoder(res.Body).Decode(&pair); err != nil {
+			log.Error("Error parsing JSON results:", err.Error())
+			return "", err
+		}
+		return pair.ID, nil
+	default:
+		return "", fmt.Errorf("Unknown response %d from service[%s]", res.StatusCode, req.URL)
+	}
 }
 
-func (client *ServicesClient) getUserHost() *url.URL {
-	theURL, err := url.Parse(client.config.Host + userPath)
+func (client *ServicesClient) getHost(pathName string) *url.URL {
+	theURL, err := url.Parse(client.config.Host + pathName)
 	if err != nil {
-		log.Error("Unable to parse user urlString:", client.config.Host+userPath)
-		return nil
+		log.Fatal("Unable to parse urlString:", client.config.Host+pathName)
 	}
 	return theURL
 }

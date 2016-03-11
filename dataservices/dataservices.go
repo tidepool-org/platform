@@ -26,15 +26,17 @@ var (
 )
 
 func main() {
+	//TODO: from config
 	log.Fatal(NewDataServiceClient().Run(":8077"))
 }
 
 //DataServiceClient for the data service
 type DataServiceClient struct {
-	api           *rest.Api
-	dataStore     store.Store
-	validateToken user.ChainedMiddleware
-	getPermissons user.ChainedMiddleware
+	api              *rest.Api
+	dataStore        store.Store
+	validateToken    user.ChainedMiddleware
+	attachPermissons user.ChainedMiddleware
+	resolveGroupID   user.ChainedMiddleware
 }
 
 //NewDataServiceClient returns an initialised client
@@ -45,10 +47,12 @@ func NewDataServiceClient() *DataServiceClient {
 	userClient.Start()
 
 	return &DataServiceClient{
-		api:           rest.NewApi(),
-		dataStore:     store.NewMongoStore("deviceData"), //TODO: config
-		validateToken: user.NewAuthorizationMiddleware(userClient).ValidateToken,
-		getPermissons: user.NewPermissonsMiddleware(userClient).GetPermissons,
+		api: rest.NewApi(),
+		//TODO: from config
+		dataStore:        store.NewMongoStore("deviceData"),
+		validateToken:    user.NewAuthorizationMiddleware(userClient).ValidateToken,
+		attachPermissons: user.NewMetadataMiddleware(userClient).GetPermissons,
+		resolveGroupID:   user.NewMetadataMiddleware(userClient).GetGroupID,
 	}
 
 }
@@ -60,10 +64,10 @@ func (client *DataServiceClient) Run(URL string) error {
 
 	router, err := rest.MakeRouter(
 		rest.Get("/version", client.GetVersion),
-		rest.Get("/data/:userid/:datumid", client.validateToken(client.getPermissons(client.GetData))),
-		rest.Post("/dataset/:userid", client.validateToken(client.getPermissons(client.PostDataset))),
-		rest.Get("/dataset/:userid", client.validateToken(client.getPermissons(client.GetDataset))),
-		rest.Post("/blob/:userid", client.validateToken(client.getPermissons(client.PostBlob))),
+		rest.Get("/data/:userid/:datumid", client.validateToken(client.resolveGroupID((client.GetData)))),
+		rest.Post("/dataset/:userid", client.validateToken(client.attachPermissons(client.resolveGroupID(client.PostDataset)))),
+		rest.Get("/dataset/:userid", client.validateToken(client.attachPermissons(client.resolveGroupID(client.GetDataset)))),
+		rest.Post("/blob/:userid", client.validateToken(client.attachPermissons(client.resolveGroupID(client.PostBlob)))),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -97,7 +101,9 @@ func (client *DataServiceClient) PostDataset(w rest.ResponseWriter, r *rest.Requ
 
 	if checkPermisson(r, user.Permission{}) {
 
-		if r.ContentLength == 0 {
+		groupID := r.Env[user.GROUPID]
+
+		if r.ContentLength == 0 || groupID == "" {
 			rest.Error(w, missingDataError, http.StatusBadRequest)
 			return
 		}
@@ -115,7 +121,7 @@ func (client *DataServiceClient) PostDataset(w rest.ResponseWriter, r *rest.Requ
 			return
 		}
 
-		platformData, err := data.NewTypeBuilder(map[string]interface{}{"userId": userid}).BuildFromDataSet(dataSet)
+		platformData, err := data.NewTypeBuilder(map[string]interface{}{data.UserIDField: userid, data.GroupIDField: groupID}).BuildFromDataSet(dataSet)
 		processedDataset.Dataset = platformData
 		processedDataset.Errors = err.Error()
 
@@ -172,7 +178,7 @@ func (client *DataServiceClient) GetDataset(w rest.ResponseWriter, r *rest.Reque
 		log.Info("params", types, subTypes, start, end)
 
 		var dataSet data.Dataset
-		err := client.dataStore.ReadAll(store.IDField{Name: "userId", Value: userid}, &dataSet)
+		err := client.dataStore.ReadAll(store.IDField{Name: data.UserIDField, Value: userid}, &dataSet)
 
 		if err != nil {
 			foundDataset.Errors = err.Error()

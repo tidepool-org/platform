@@ -39,35 +39,63 @@ func (mw *AuthorizationMiddleware) ValidateToken(h rest.HandlerFunc) rest.Handle
 	}
 }
 
-//PermissonsMiddleware middleware is used for getting user permissons
-type PermissonsMiddleware struct {
+//MetadataMiddleware middleware is used for getting user permissons
+type MetadataMiddleware struct {
 	Client Client
 }
 
-//PERMISSIONS constant for accessing permissions that are attached to request.Env
-const PERMISSIONS = "PERMISSIONS"
+//PERMISSIONS constant for accessing users permissions that are attached to request.Env
+const PERMISSIONS = "permissons"
 
-//NewPermissonsMiddleware creates initialised PermissonsMiddleware
-func NewPermissonsMiddleware(userClient Client) *PermissonsMiddleware {
-	return &PermissonsMiddleware{Client: userClient}
+//GROUPID constant for accessing users groupID that are attached to request.Env
+const GROUPID = "groupID"
+
+//NewMetadataMiddleware creates initialised MetadataMiddleware
+func NewMetadataMiddleware(userClient Client) *MetadataMiddleware {
+	return &MetadataMiddleware{Client: userClient}
 }
 
 //GetPermissons attach's permissons if they exist
 //http.StatusInternalServerError if there is an error getting the user permissons
-func (mw *PermissonsMiddleware) GetPermissons(h rest.HandlerFunc) rest.HandlerFunc {
+func (mw *MetadataMiddleware) GetPermissons(h rest.HandlerFunc) rest.HandlerFunc {
 
 	return func(w rest.ResponseWriter, r *rest.Request) {
 
-		token := r.Header.Get(xTidepoolSessionToken)
 		userid := r.PathParam("userid")
 
-		permissions, err := mw.Client.GetUserPermissons(userid, token)
+		permissions, err := mw.Client.GetUserPermissons(userid)
 		if err != nil {
 			rest.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		r.Env[PERMISSIONS] = permissions
+		h(w, r)
+		return
+
+	}
+}
+
+//GetGroupID attach's the users groupId
+//http.StatusInternalServerError if there is an error getting the groupID
+//http.StatusBadRequest if there is no groupID found for the given userID
+func (mw *MetadataMiddleware) GetGroupID(h rest.HandlerFunc) rest.HandlerFunc {
+
+	return func(w rest.ResponseWriter, r *rest.Request) {
+
+		userid := r.PathParam("userid")
+
+		groupID, err := mw.Client.GetUserGroupID(userid)
+		if err != nil {
+			rest.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if groupID == "" {
+			rest.Error(w, "no groupID found for user", http.StatusBadRequest)
+			return
+		}
+
+		r.Env[GROUPID] = groupID
 		h(w, r)
 		return
 
