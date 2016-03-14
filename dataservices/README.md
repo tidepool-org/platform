@@ -5,9 +5,12 @@ This service requires the rest of the tidpool platform also running at this stag
 Running this service can be done with the command
 
 ```
-go run dataservices/dataservices.go
+make build
 ```
 
+```
+bin/dataservices
+```
 
 ## Examples
 
@@ -15,12 +18,12 @@ go run dataservices/dataservices.go
 
 POST /auth/login
 
+Example Request
 ```
 curl -X POST -i -u <user-name> -d '' "http://localhost:8009/auth/login"
 ```
 
-Response
-
+Example Response
 ```
 HTTP/1.1 200 OK
 
@@ -33,11 +36,12 @@ x-tidepool-session-token: <your-token>
 
 POST /dataset
 
+Example Request
 ```
-curl -H "Content-Type: application/json" -H "x-tidepool-session-token: <your-token>" -X POST -d '[{"deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z", "timezoneOffset": 0, "conversionOffset": 0, "type": "basal", "deliveryType": "scheduled", "scheduleName": "Standard", "rate": 2, "duration": 21600000, "deviceId": "tools"}]' http://localhost:8077/dataset/<userid>
+curl -H "Content-Type: application/json" -H "x-tidepool-session-token: <session-token>" -X POST -d '[{"time": "2016-02-05T07:02:00.000Z", "timezoneOffset": 0, "clockDriftOffset": 0, "conversionOffset": 0, "deviceTime": "2016-02-05T07:02:00", "deviceId": "IR1285-79-36047-15", "type": "basal", "deliveryType": "scheduled", "scheduleName": "DEFAULT", "rate": 0.1, "duration": 10800000, "payload": {"logIndices": [58 ] }, "index": 58 }, {"time": "2016-02-05T13:34:00.000Z", "timezoneOffset": 0, "clockDriftOffset": 0, "conversionOffset": 0, "deviceTime": "2016-02-05T13:34:00", "deviceId": "IR1285-79-36047-15", "type": "deviceEvent", "subType": "status", "status": "suspended", "reason": {"suspended": "manual"}, "payload": {"logIndices": [24 ] }, "index": 24 }, {"time": "2016-02-05T10:02:00.000Z", "timezoneOffset": 0, "clockDriftOffset": 0, "conversionOffset": 0, "deviceTime": "2016-02-05T10:02:00", "deviceId": "IR1285-79-36047-15", "type": "basal", "deliveryType": "scheduled", "scheduleName": "DEFAULT", "rate": 2, "duration": 12780000, "payload": {"logIndices": [57 ] }, "index": 57 }, {"time": "2016-02-05T13:35:00.000Z", "timezoneOffset": 0, "clockDriftOffset": 0, "conversionOffset": 0, "deviceTime": "2016-02-05T13:35:00", "deviceId": "IR1285-79-36047-15", "type": "basal", "deliveryType": "suspend", "scheduleName": "DEFAULT", "rate": 0, "duration": 1260000, "payload": {"logIndices": [56 ] }, "index": 56 }, {"time": "2016-02-05T13:56:00.000Z", "timezoneOffset": 0, "clockDriftOffset": 0, "conversionOffset": 0, "deviceTime": "2016-02-05T13:56:00", "deviceId": "IR1285-79-36047-15", "type": "deviceEvent", "subType": "status", "status": "resumed", "reason": {"resumed": "manual"}, "payload": {"logIndices": [24 ] }, "index": 24 }, {"time": "2016-02-05T14:04:00.000Z", "timezoneOffset": 0, "clockDriftOffset": 0, "conversionOffset": 0, "deviceTime": "2016-02-05T14:04:00", "deviceId": "IR1285-79-36047-15", "type": "deviceEvent", "subType": "status", "status": "suspended", "reason": {"suspended": "manual"}, "payload": {"logIndices": [23 ] }, "index": 23 }, {"time": "2016-02-05T13:56:00.000Z", "timezoneOffset": 0, "clockDriftOffset": 0, "conversionOffset": 0, "deviceTime": "2016-02-05T13:56:00", "deviceId": "IR1285-79-36047-15", "type": "basal", "deliveryType": "scheduled", "scheduleName": "DEFAULT", "rate": 2, "duration": 540000, "payload": {"logIndices": [55 ] }, "index": 55 }, {"time": "2016-02-05T15:29:00.000Z", "timezoneOffset": 0, "clockDriftOffset": 0, "conversionOffset": 0, "deviceTime": "2016-02-05T15:29:00", "deviceId": "IR1285-79-36047-15", "type": "deviceEvent", "subType": "status", "status": "resumed", "reason": {"resumed": "manual"}, "payload": {"logIndices": [23 ] }, "index": 23 }, {"time": "2016-02-05T15:30:00.000Z", "timezoneOffset": 0, "clockDriftOffset": 0, "conversionOffset": 0, "deviceTime": "2016-02-05T15:30:00", "deviceId": "IR1285-79-36047-15", "type": "deviceEvent", "subType": "status", "status": "suspended", "reason": {"suspended": "manual"}, "payload": {"logIndices": [22 ] }, "index": 22 }, {"time": "2016-02-05T15:50:00.000Z", "timezoneOffset": 0, "clockDriftOffset": 0, "conversionOffset": 0, "deviceTime": "2016-02-05T15:50:00", "deviceId": "IR1285-79-36047-15", "type": "deviceEvent", "subType": "status", "status": "resumed", "reason": {"resumed": "manual"}, "payload": {"logIndices": [22 ] }, "index": 22 }, {"time": "2016-02-05T14:05:00.000Z", "timezoneOffset": 0, "clockDriftOffset": 0, "conversionOffset": 0, "deviceTime": "2016-02-05T14:05:00", "deviceId": "IR1285-79-36047-15", "type": "basal", "deliveryType": "suspend", "scheduleName": "DEFAULT", "rate": 0, "duration": 6480000, "payload": {"logIndices": [54 ] }, "index": 54 }, {"time": "2016-02-05T15:53:00.000Z", "timezoneOffset": 0, "clockDriftOffset": 0, "conversionOffset": 0, "deviceTime": "2016-02-05T15:53:00", "deviceId": "IR1285-79-36047-15", "type": "basal", "deliveryType": "scheduled", "scheduleName": "DEFAULT", "rate": 1.75, "duration": 432000000, "payload": {"logIndices": [53 ] }, "index": 53, "annotations": [{"code": "animas/basal/flat-rate"} ] } ]' http://localhost:8077/dataset/<userid>
 ```
 
-Response
+Example Response
 ```
 {
   "Dataset": [
@@ -127,6 +131,7 @@ Response
 
 POST /blob
 
+Example Request
 ```
 curl -i -H "x-tidepool-session-token: <your-token>" -F "data=@my.blob" -X POST http://localhost:8077/blob/<userid>
 ```
@@ -136,9 +141,12 @@ curl -i -H "x-tidepool-session-token: <your-token>" -F "data=@my.blob" -X POST h
 
 GET /dataset
 
+Example Request
 ```
 curl -H "Content-Type: application/json" -H "x-tidepool-session-token: <your-token>" -X GET http://localhost:8077/dataset/<userid>
 ```
+
+
 
 `type` (optional) : The Tidepool data type to search for. Only objects with a type field matching the specified type param will be returned.
 can be /userid?type=smbg or a comma seperated list e.g /userid?type=smgb,cbg . If is a comma seperatedlist, then objects matching any of the sub types will be returned.
@@ -149,7 +157,7 @@ can be /userid?type=smbg or a comma seperated list e.g /userid?type=smgb,cbg . I
 
 `endDate` (optional) : Only objects with 'time' field less than to or equal to start date will be returned . Must be in ISO date/time format e.g. 2015-10-10T15:00:00.000Z
 
-e.g.
+Example Request (with optional params)
 ```
 curl -H "Content-Type: application/json" -H "x-tidepool-session-token: <your-token>" -X GET 'http://localhost:8077/dataset/<userid>?type=smbg&subType=linked&startDate=2015-10-10T15:00:00.000Z&endDate=2015-10-10T15:00:00.000Z'
 ```
@@ -219,6 +227,7 @@ curl -H "Content-Type: application/json" -H "x-tidepool-session-token: <your-tok
 
 GET /data
 
+Example Request
 ```
 curl -H "Content-Type: application/json" -H "x-tidepool-session-token: <your-token>" -X GET http://localhost:8077/data/<userid>/<datumid>
 ```

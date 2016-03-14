@@ -1,4 +1,4 @@
-package main_test
+package validate_test
 
 import (
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestDataservices(t *testing.T) {
+func TestValidate(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Dataservices Suite")
+	RunSpecs(t, "Validate Suite")
 }

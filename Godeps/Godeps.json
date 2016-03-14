@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/tidepool-org/platform",
-	"GoVersion": "go1.5.1",
+	"GoVersion": "go1.6",
 	"Packages": [
 		"./..."
 	],
@@ -14,11 +14,6 @@
 			"ImportPath": "github.com/ant0ine/go-json-rest/rest",
 			"Comment": "v3.2.0-9-g11950f5",
 			"Rev": "11950f5f17b973642477ed31b68df64fdf4b1c08"
-		},
-		{
-			"ImportPath": "github.com/asaskevich/govalidator",
-			"Comment": "v2-43-g1a4bf7e",
-			"Rev": "1a4bf7e7a98e6a6484254ac41c52ef20ec30814e"
 		},
 		{
 			"ImportPath": "github.com/jinzhu/configor",
@@ -37,6 +32,11 @@
 		{
 			"ImportPath": "github.com/satori/go.uuid",
 			"Rev": "afe1e2ddf0f05b7c29d388a3f8e76cb15c2231ca"
+		},
+		{
+			"ImportPath": "gopkg.in/bluesuncorp/validator.v8",
+			"Comment": "v8.17.1",
+			"Rev": "014792cf3e266caff1e916876be12282b33059e0"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",

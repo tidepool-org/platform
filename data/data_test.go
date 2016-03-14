@@ -10,12 +10,18 @@ import (
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega"
 )
 
+const (
+	userid   = "b676436f60"
+	groupid  = "43099shgs55"
+	uploadid = "upid_b856b0e6e519"
+)
+
 var _ = Describe("Builder", func() {
 
 	var (
 		builder Builder
 
-		injectedFields = map[string]interface{}{"userId": "b676436f60", "uploadId": "upid_b856b0e6e519", "groupId": "43099shgs55"}
+		injectedFields = map[string]interface{}{"userId": userid, "uploadId": uploadid, "groupId": groupid}
 	)
 
 	BeforeEach(func() {
@@ -128,8 +134,9 @@ var _ = Describe("Base", func() {
 	Context("can be built with all fields", func() {
 		var (
 			basalObj = map[string]interface{}{
-				"userId":           "b676436f60", //userid would have been injected by now via the builder
-				"uploadId":         "upid_b856b0e6e519",
+				"userId":           userid,  //userid would have been injected by now via the builder
+				"groupId":          groupid, //groupId would have been injected by now via the builder
+				"uploadId":         uploadid,
 				"deviceTime":       "2014-06-11T06:00:00.000Z",
 				"time":             "2014-06-11T06:00:00.000Z",
 				"timezoneOffset":   0,
@@ -158,9 +165,9 @@ var _ = Describe("Base", func() {
 
 		var (
 			basalObj = map[string]interface{}{
-				"userId":     "b676436f60", //userid would have been injected by now via the builder
-				"_groupId":   "f606436222",
-				"uploadId":   "upid_b856b0e6e519",
+				"userId":     userid, //userid would have been injected by now via the builder
+				"groupId":    groupid,
+				"uploadId":   uploadid,
 				"deviceTime": "2014-06-11T06:00:00.000Z",
 				"time":       "2014-06-11T06:00:00.000Z",
 				"type":       "basal",
@@ -184,8 +191,9 @@ var _ = Describe("Basal", func() {
 
 	var (
 		basalObj = map[string]interface{}{
-			"userId":           "b676436f60", //userid would have been injected by now via the builder
-			"uploadId":         "upid_b856b0e6e519",
+			"userId":           userid, //userid would have been injected by now via the builder
+			"groupId":          groupid,
+			"uploadId":         uploadid,
 			"time":             "2016-02-25T23:02:00.000Z",
 			"timezoneOffset":   -480,
 			"clockDriftOffset": 0,
@@ -229,8 +237,9 @@ var _ = Describe("DeviceEvent", func() {
 
 	var (
 		deviceEventObj = map[string]interface{}{
-			"userId":           "b676436f60", //userid would have been injected by now via the builder
-			"uploadId":         "upid_b856b0e6e519",
+			"userId":           userid, //userid would have been injected by now via the builder
+			"groupId":          groupid,
+			"uploadId":         uploadid,
 			"deviceTime":       "2014-06-11T06:00:00.000Z",
 			"time":             "2014-06-11T06:00:00.000Z",
 			"timezoneOffset":   0,

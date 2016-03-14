@@ -11,33 +11,33 @@ import (
 //Base represents tha base types that all device data records contain
 type Base struct {
 	//required data
-	_ID              bson.ObjectId `bson:"_id" valid:"mongo,required"`
-	ID               string        `json:"id" bson:"id" valid:"required"`
-	UserID           string        `json:"userId" bson:"userId" valid:"required"`
-	DeviceID         string        `json:"deviceId" bson:"deviceId" valid:"required"`
-	Time             string        `json:"time" bson:"time" valid:"required"`
-	Type             string        `json:"type" bson:"type" valid:"required"`
-	UploadID         string        `json:"uploadId" bson:"uploadId" valid:"-"`
-	CreatedTime      string        `json:"createdTime" bson:"createdTime" valid:"required"`
-	OptionalBaseData `bson:",inline"`
-	BaseDataStorage  `bson:",inline"`
-}
+	_ID         bson.ObjectId `bson:"_id" valid:"mongo,required"`
+	ID          string        `json:"id" bson:"id" valid:"required"`
+	UserID      string        `json:"userId" bson:"userId" valid:"required"`
+	DeviceID    string        `json:"deviceId" bson:"deviceId" valid:"required"`
+	Time        string        `json:"time" bson:"time" valid:"required"`
+	Type        string        `json:"type" bson:"type" valid:"required"`
+	UploadID    string        `json:"uploadId" bson:"uploadId" valid:"-"`
+	CreatedTime string        `json:"createdTime" bson:"createdTime" valid:"required"`
 
-//OptionalBaseData are fields that if they exist we save them otherwise they are omitted
-type OptionalBaseData struct {
-	DeviceTime       string      `json:"deviceTime,omitempty" bson:"deviceTime,omitempty" valid:"-"`
-	TimezoneOffset   int         `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty" valid:"-"`
-	ConversionOffset int         `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty" valid:"-"`
-	ClockDriftOffset int         `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty" valid:"-"`
+	//optional data
+	DeviceTime string `json:"deviceTime,omitempty" bson:"deviceTime,omitempty" valid:"omitempty,required"`
+	//if set is in the range of UTC -840 to UTC 720
+	TimezoneOffset   int         `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty" valid:"omitempty,min=-840,max=720"`
+	ConversionOffset int         `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty" valid:"omitempty,required"`
+	ClockDriftOffset int         `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty" valid:"omitempty,required"`
 	Payload          interface{} `json:"payload,omitempty" bson:"payload,omitempty" valid:"-"`
 	Annotations      interface{} `json:"annotations,omitempty" bson:"annotations,omitempty" valid:"-"`
+
+	//used for versioning and de-deping
+	Storage `bson:",inline"`
 }
 
-//BaseDataStorage are existing fields used for versioning and de-deping
-type BaseDataStorage struct {
+//Storage are existing fields used for versioning and de-deping
+type Storage struct {
 	GroupID       string `json:"-" bson:"_groupId" valid:"required"`
 	ActiveFlag    bool   `json:"-" bson:"_active" valid:"required"`
-	SchemaVersion int    `json:"-" bson:"_schemaVersion" valid:"required"`
+	SchemaVersion int    `json:"-" bson:"_schemaVersion" valid:"required,min=0"`
 
 	Version int `json:"-" bson:"_version,omitempty" valid:"-"`
 }
@@ -65,29 +65,6 @@ const (
 	annotationsField = "annotations"
 )
 
-func initOptionalBaseData(obj map[string]interface{}, caster *Cast) OptionalBaseData {
-	optional := OptionalBaseData{}
-
-	if obj[conversionOffsetField] != nil {
-		optional.ConversionOffset = caster.ToInt(conversionOffsetField, obj[conversionOffsetField])
-	}
-	if obj[conversionOffsetField] != nil {
-		optional.ConversionOffset = caster.ToInt(conversionOffsetField, obj[conversionOffsetField])
-	}
-	if obj[timezoneOffsetField] != nil {
-		optional.TimezoneOffset = caster.ToInt(timezoneOffsetField, obj[timezoneOffsetField])
-	}
-	if obj[timezoneOffsetField] != nil {
-		optional.ClockDriftOffset = caster.ToInt(clockDriftOffsetField, obj[clockDriftOffsetField])
-	}
-	if obj[timezoneOffsetField] != nil {
-		optional.DeviceTime = caster.ToString(deviceTimeField, obj[deviceTimeField])
-	}
-	optional.Payload = obj[payloadField]
-	optional.Annotations = obj[annotationsField]
-	return optional
-}
-
 //BuildBase builds the base fields that all device data records contain
 func BuildBase(obj map[string]interface{}) (Base, *Error) {
 
@@ -95,24 +72,41 @@ func BuildBase(obj map[string]interface{}) (Base, *Error) {
 	cast := NewCaster(errs)
 
 	base := Base{
-		_ID:              bson.NewObjectId(),
-		ID:               bson.NewObjectId().Hex(),
-		CreatedTime:      time.Now().Format(time.RFC3339),
-		UserID:           cast.ToString(UserIDField, obj[UserIDField]),
-		DeviceID:         cast.ToString(deviceIDField, obj[deviceIDField]),
-		UploadID:         cast.ToString(uploadIDField, obj[uploadIDField]),
-		Time:             cast.ToString(timeField, obj[timeField]),
-		Type:             cast.ToString(typeField, obj[typeField]),
-		OptionalBaseData: initOptionalBaseData(obj, cast),
-		BaseDataStorage: BaseDataStorage{
+		_ID:         bson.NewObjectId(),
+		ID:          bson.NewObjectId().Hex(),
+		CreatedTime: time.Now().Format(time.RFC3339),
+		UserID:      cast.ToString(UserIDField, obj[UserIDField]),
+		DeviceID:    cast.ToString(deviceIDField, obj[deviceIDField]),
+		UploadID:    cast.ToString(uploadIDField, obj[uploadIDField]),
+		Time:        cast.ToString(timeField, obj[timeField]),
+		Type:        cast.ToString(typeField, obj[typeField]),
+		Payload:     obj[payloadField],
+		Annotations: obj[annotationsField],
+		Storage: Storage{
 			GroupID:       cast.ToString(GroupIDField, obj[GroupIDField]),
 			ActiveFlag:    true,
-			SchemaVersion: 1,
+			SchemaVersion: 1, //TODO: configured ??
 		},
 	}
 
-	_, err := validator.ValidateStruct(base)
-	errs.AppendError(err)
+	//set optional data
+	if obj[conversionOffsetField] != nil {
+		base.ConversionOffset = cast.ToInt(conversionOffsetField, obj[conversionOffsetField])
+	}
+	if obj[conversionOffsetField] != nil {
+		base.ConversionOffset = cast.ToInt(conversionOffsetField, obj[conversionOffsetField])
+	}
+	if obj[timezoneOffsetField] != nil {
+		base.TimezoneOffset = cast.ToInt(timezoneOffsetField, obj[timezoneOffsetField])
+	}
+	if obj[timezoneOffsetField] != nil {
+		base.ClockDriftOffset = cast.ToInt(clockDriftOffsetField, obj[clockDriftOffsetField])
+	}
+	if obj[timezoneOffsetField] != nil {
+		base.DeviceTime = cast.ToString(deviceTimeField, obj[deviceTimeField])
+	}
+
+	errs.AppendError(validator.ValidateStruct(base))
 	return base, errs
 }
 

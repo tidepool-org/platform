@@ -3,7 +3,7 @@ package data
 //DeviceEvent represents a deviceevent data record
 type DeviceEvent struct {
 	SubType string      `json:"subType" bson:"subType" valid:"required"`
-	Status  string      `json:"status" bson:"status,omitempty" valid:"-"`
+	Status  string      `json:"status" bson:"status,omitempty" valid:"omitempty,required"`
 	Reason  interface{} `json:"reason" bson:"reason,omitempty" valid:"-"`
 	Base    `bson:",inline"`
 }
@@ -30,8 +30,7 @@ func BuildDeviceEvent(obj map[string]interface{}) (*DeviceEvent, *Error) {
 		Base:    base,
 	}
 
-	_, err := validator.ValidateStruct(deviceEvent)
-	errs.AppendError(err)
+	errs.AppendError(validator.ValidateStruct(deviceEvent))
 	if errs.IsEmpty() {
 		return deviceEvent, nil
 	}
