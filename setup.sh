@@ -1,1 +1,0 @@
-export TIDEPOOL_USER_CLIENT_SECRET="This needs to be the same secret everywhere. YaHut75NsK1f9UKUXuWqxNN0RUwHFBCy"

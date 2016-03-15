@@ -39,7 +39,7 @@ var _ = Describe("The Dataservices client", func() {
 		It("should return version as the body", func() {
 			recorded := service.RunRequest(client.GetVersion, service.MakeSimpleRequest("GET", "http://localhost/version", nil), params, env)
 			Expect(recorded.ContentTypeIsJSON()).To(BeTrue(), "Expected content type to be JSON")
-			Expect(recorded.BodyIs(version.String)).To(BeTrue(), "Expected "+recorded.Recorder.Body.String()+" to be "+version.String)
+			Expect(recorded.BodyIs(version.Long())).To(BeTrue(), "Expected "+recorded.Recorder.Body.String()+" to be "+version.Long())
 		})
 		It("should be content type of json", func() {
 			recorded := service.RunRequest(client.GetVersion, service.MakeSimpleRequest("GET", "http://localhost/version", nil), params, env)
