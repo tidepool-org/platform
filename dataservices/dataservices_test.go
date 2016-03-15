@@ -22,15 +22,15 @@ var _ = Describe("The Dataservices client", func() {
 
 	BeforeEach(func() {
 		client = NewDataServiceClient()
-		env = make(map[string]interface{})
-		params = make(map[string]string)
-	})
-
-	AfterEach(func() {
-		//shut down the server between tests
 	})
 
 	Describe("Version", func() {
+
+		BeforeEach(func() {
+			env = make(map[string]interface{})
+			params = make(map[string]string)
+		})
+
 		It("should return status 200", func() {
 			recorded := service.RunRequest(client.GetVersion, service.MakeSimpleRequest("GET", "http://localhost/version", nil), params, env)
 			Expect(recorded.ContentTypeIsJSON()).To(BeTrue(), "Expected content type to be JSON")
@@ -55,13 +55,15 @@ var _ = Describe("The Dataservices client", func() {
 			Errors  string        `json:"Errors"`
 		}
 
-		env := make(map[string]interface{})
-		env[user.PERMISSIONS] = &user.UsersPermissions{}
-		env[user.GROUPID] = "223377628"
+		BeforeEach(func() {
+			env = make(map[string]interface{})
+			env[user.PERMISSIONS] = &user.UsersPermissions{}
+			env[user.GROUPID] = "223377628"
 
-		//the userid is used in the saving of the data so we attach it to the request in the `RunRequest` test handler
-		params := make(map[string]string)
-		params["userid"] = userId
+			//the userid is used in the saving of the data so we attach it to the request in the `RunRequest` test handler
+			params = make(map[string]string)
+			params["userid"] = userId
+		})
 
 		Describe("when given valid data", func() {
 
@@ -172,11 +174,14 @@ var _ = Describe("The Dataservices client", func() {
 	Describe("PostBlob", func() {
 
 		const userId = "9999999"
+		var fileName string
 
-		env := make(map[string]interface{})
-		env[user.PERMISSIONS] = &user.UsersPermissions{}
-		env[user.GROUPID] = "3887276s"
-		fileName := ""
+		BeforeEach(func() {
+			env = make(map[string]interface{})
+			env[user.PERMISSIONS] = &user.UsersPermissions{}
+			env[user.GROUPID] = "3887276s"
+			fileName = ""
+		})
 
 		Describe("when given valid data", func() {
 
@@ -199,15 +204,21 @@ var _ = Describe("The Dataservices client", func() {
 			Errors  string        `json:"Errors"`
 		}
 
-		env := make(map[string]interface{})
-		env[user.PERMISSIONS] = &user.UsersPermissions{}
-		env[user.GROUPID] = "3887276s"
+		var idParams map[string]string
+
+		BeforeEach(func() {
+			env = make(map[string]interface{})
+			env[user.PERMISSIONS] = &user.UsersPermissions{}
+			env[user.GROUPID] = "3887276s"
+		})
 
 		Describe("when valid userId", func() {
 
 			const userId = "9999999"
-			idParams := make(map[string]string)
-			idParams["userid"] = userId
+			BeforeEach(func() {
+				idParams = make(map[string]string)
+				idParams["userid"] = userId
+			})
 
 			It("should return status 200", func() {
 				recorded := service.RunRequest(client.GetDataset, service.MakeSimpleRequest("GET", "http://localhost/dataset/"+userId, nil), idParams, env)
@@ -237,8 +248,10 @@ var _ = Describe("The Dataservices client", func() {
 		Describe("when userId unknown", func() {
 
 			const userId = "9???9"
-			idParams := make(map[string]string)
-			idParams["userid"] = userId
+			BeforeEach(func() {
+				idParams = make(map[string]string)
+				idParams["userid"] = userId
+			})
 
 			It("should return status 200", func() {
 				recorded := service.RunRequest(client.GetDataset, service.MakeSimpleRequest("GET", "http://localhost/dataset/"+userId, nil), idParams, env)
