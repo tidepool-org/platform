@@ -15,13 +15,13 @@ type Base struct {
 	ID          string        `json:"id" bson:"id" valid:"required"`
 	UserID      string        `json:"userId" bson:"userId" valid:"required"`
 	DeviceID    string        `json:"deviceId" bson:"deviceId" valid:"required"`
-	Time        string        `json:"time" bson:"time" valid:"required"`
+	Time        string        `json:"time" bson:"time" valid:"datetime"`
 	Type        string        `json:"type" bson:"type" valid:"required"`
 	UploadID    string        `json:"uploadId" bson:"uploadId" valid:"-"`
-	CreatedTime string        `json:"createdTime" bson:"createdTime" valid:"required"`
+	CreatedTime string        `json:"createdTime" bson:"createdTime" valid:"datetime"`
 
 	//optional data
-	DeviceTime string `json:"deviceTime,omitempty" bson:"deviceTime,omitempty" valid:"omitempty,required"`
+	DeviceTime string `json:"deviceTime,omitempty" bson:"deviceTime,omitempty" valid:"omitempty,datetime"`
 	//if set is in the range of UTC -840 to UTC 720
 	TimezoneOffset   int         `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty" valid:"omitempty,min=-840,max=720"`
 	ConversionOffset int         `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty" valid:"omitempty,required"`
@@ -42,7 +42,7 @@ type Storage struct {
 	Version int `json:"-" bson:"_version,omitempty" valid:"-"`
 }
 
-var validator = validate.PlatformValidator{}
+var validator = validate.NewPlatformValidator()
 
 const (
 	//UserIDField is the userID
