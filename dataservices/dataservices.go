@@ -41,7 +41,7 @@ type DataServiceClient struct {
 
 //NewDataServiceClient returns an initialised client
 func NewDataServiceClient() *DataServiceClient {
-	log.Info(version.String)
+	log.Info(version.Long())
 
 	userClient := user.NewServicesClient()
 	userClient.Start()
@@ -88,7 +88,7 @@ func checkPermisson(r *rest.Request, expected user.Permission) bool {
 
 //GetVersion will return the current API version
 func (client *DataServiceClient) GetVersion(w rest.ResponseWriter, r *rest.Request) {
-	w.WriteJson(&version.String)
+	w.WriteJson(version.Long())
 	return
 }
 

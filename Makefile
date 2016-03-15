@@ -1,13 +1,11 @@
-REPOSITORY:=github.com/tidepool-org/platform
-
 ROOT_DIRECTORY:=$(realpath $(dir $(realpath $(lastword $(MAKEFILE_LIST)))))
+REPOSITORY:=$(ROOT_DIRECTORY:$(realpath $(ROOT_DIRECTORY)/../../../)/%=%)
 
-# TODO: Need to make this work
-VERSION_STRING:=0.0.1
+VERSION_BASE=$(shell cat .version)
+VERSION_COMMIT=$(shell git rev-parse HEAD)
 
-GO_LD_FLAGS:=-ldflags "-X github.com/tidepool-org/platform/version.String=$(VERSION_STRING)"
+GO_LD_FLAGS:=-ldflags "-X $(REPOSITORY)/version.Base=$(VERSION_BASE) -X $(REPOSITORY)/version.Commit=$(VERSION_COMMIT)"
 
-# Commands for later use
 MAIN_FIND_CMD:=find . -not -path './Godeps/*' -name '*.go' -type f -exec egrep -l '^\s*func\s+main\s*\(' {} \;
 MAIN_TRANSFORM_CMD:=sed 's/\(.*\/\([^\/]*\)\.go\)/_bin\/\2 \1/'
 GO_BUILD_CMD:=godep go build $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -o
@@ -84,7 +82,7 @@ vet: check-environment
 
 lint: golint
 	@echo "golint"
-	@cd $(ROOT_DIRECTORY) && golint ./...
+	@cd $(ROOT_DIRECTORY) && O=`find . -not -path './Godeps/*' -name '*.go' -type f -exec golint {} \; | grep -v 'exported.*should have comment.*or be unexported' 2>&1` && [ -z "$${O}" ] || (echo "$${O}" && exit 0)
 
 pre-build: format imports vet
 
@@ -93,8 +91,9 @@ build: godep
 	@cd $(ROOT_DIRECTORY) && mkdir -p _bin && $(MAIN_FIND_CMD) | $(MAIN_TRANSFORM_CMD) | xargs -L1 $(GO_BUILD_CMD)
 
 start: stop build
-	@cd $(ROOT_DIRECTORY) && _bin/dataservices >> service.log 2>&1 &
-	@cd $(ROOT_DIRECTORY) && _bin/userservices >> service.log 2>&1 &
+	@mkdir _log
+	@cd $(ROOT_DIRECTORY) && _bin/dataservices >> _log/service.log 2>&1 &
+	@cd $(ROOT_DIRECTORY) && _bin/userservices >> _log/service.log 2>&1 &
 
 stop: check-environment
 	@killall -v dataservices userservices &> /dev/null || exit 0
@@ -108,7 +107,7 @@ watch: ginkgo
 	@cd $(ROOT_DIRECTORY) && GOPATH=$(shell godep path):$(GOPATH) ginkgo watch -r -p -randomizeAllSpecs -succinct -notify $(WATCH)
 
 clean: stop
-	@cd $(ROOT_DIRECTORY) && rm -rf _bin service.log
+	@cd $(ROOT_DIRECTORY) && rm -rf _bin _log/service.log
 
 clean-all: clean
 	@cd $(ROOT_DIRECTORY) && rm -rf Godeps/_workspace/{bin,pkg}
@@ -139,12 +138,12 @@ bootstrap-save: bootstrap-dependencies
 	cd $(ROOT_DIRECTORY) && godep save ./...
 
 # Bootstrap REPOSITORY with initial dependencies
-bootstrap: 
+bootstrap:
 	@$(MAKE) bootstrap-implode
 	@$(MAKE) bootstrap-save
 	@$(MAKE) gopath-implode
 
 .PHONY: default check-go check-gopath check-environment \
-	godep goimports golint gocode godef oracle buildable editable ginkgo \
-	format imports vet lint git-hooks precommit build test watch clean clean-all \
+	godep goimports golint gocode godef oracle ginkgo buildable editable \
+	format imports vet lint pre-build build start stop test watch clean clean-all git-hooks pre-commit \
 	gopath-implode dependencies-implode bootstrap-implode bootstrap-dependencies bootstrap-save bootstrap

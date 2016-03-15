@@ -1,8 +1,5 @@
 language: go
 
-services:
-  - mongodb
-
 go:
   - 1.6
 
@@ -18,7 +15,3 @@ notifications:
   email:
     on_success: change
     on_failure: always
-
-matrix:
-  allow_failures:
-    - go: tip

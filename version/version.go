@@ -1,8 +1,14 @@
 package version
 
-//String representation of the version
-var String = "v0.0.1"
+import "fmt"
 
-// Any additional implementation required should consider:
-//   - type Version interface
-//   - https://github.com/blang/semver
+var Base string
+var Commit string
+
+func Short() string {
+	return fmt.Sprintf("%s+%s", Base, Commit[0:8])
+}
+
+func Long() string {
+	return fmt.Sprintf("%s+%s", Base, Commit)
+}
