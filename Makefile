@@ -96,7 +96,7 @@ lint: golint tmp
 	@echo "golint"
 	cat .golintignore
 	ls -al _tmp
-	cd $(ROOT_DIRECTORY) && find . -not -path './Godeps/*' -name '*.go' -type f -exec golint {} \; | grep -v 'exported.*should have comment.*or be unexported' &> _tmp/golint.out
+	cd $(ROOT_DIRECTORY); find . -not -path './Godeps/*' -name '*.go' -type f -exec golint {} \; | grep -v 'exported.*should have comment.*or be unexported' &> _tmp/golint.out; diff --changed-group-format='%>' --unchanged-group-format='' --ignore-trailing-space .golintignore _tmp/golint.out
 	cat _tmp/golint.out
 	which diff
 	diff --help
