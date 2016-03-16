@@ -125,6 +125,12 @@ func (client *DataServiceClient) PostDataset(w rest.ResponseWriter, r *rest.Requ
 		processedDataset.Dataset = platformData
 		processedDataset.Errors = err.Error()
 
+		if err.Error() != "" {
+			w.WriteHeader(http.StatusBadRequest)
+			w.WriteJson(&processedDataset)
+			return
+		}
+
 		//TODO: should this be a bulk insert?
 		for i := range platformData {
 			if err = client.dataStore.Save(platformData[i]); err != nil {

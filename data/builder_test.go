@@ -6,17 +6,17 @@ import (
 
 	. "github.com/tidepool-org/platform/data"
 
-	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo"
-	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega"
-)
-
-const (
-	userid   = "b676436f60"
-	groupid  = "43099shgs55"
-	uploadid = "upid_b856b0e6e519"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Builder", func() {
+
+	const (
+		userid   = "b676436f60"
+		groupid  = "43099shgs55"
+		uploadid = "upid_b856b0e6e519"
+	)
 
 	var (
 		builder Builder
@@ -125,141 +125,6 @@ var _ = Describe("Builder", func() {
 				var deviceEventType *DeviceEvent
 				Expect(event).To(BeAssignableToTypeOf(deviceEventType))
 			})
-		})
-	})
-})
-
-var _ = Describe("Base", func() {
-
-	Context("can be built with all fields", func() {
-		var (
-			basalObj = map[string]interface{}{
-				"userId":           userid,  //userid would have been injected by now via the builder
-				"groupId":          groupid, //groupId would have been injected by now via the builder
-				"uploadId":         uploadid,
-				"deviceTime":       "2014-06-11T06:00:00.000Z",
-				"time":             "2014-06-11T06:00:00.000Z",
-				"timezoneOffset":   0,
-				"conversionOffset": 0,
-				"clockDriftOffset": 0,
-				"type":             "basal",
-				"deliveryType":     "scheduled",
-				"scheduleName":     "Standard",
-				"rate":             2.2,
-				"duration":         21600000,
-				"deviceId":         "InsOmn-111111111",
-			}
-		)
-		It("should return a the base types if the obj is valid", func() {
-			base, _ := BuildBase(basalObj)
-			var baseType Base
-			Expect(base).To(BeAssignableToTypeOf(baseType))
-		})
-		It("should return and error object that is empty but not nil", func() {
-			_, err := BuildBase(basalObj)
-			Expect(err).To(Not(BeNil()))
-			Expect(err.IsEmpty()).To(BeTrue())
-		})
-	})
-	Context("can be built with only core fields", func() {
-
-		var (
-			basalObj = map[string]interface{}{
-				"userId":     userid, //userid would have been injected by now via the builder
-				"groupId":    groupid,
-				"uploadId":   uploadid,
-				"deviceTime": "2014-06-11T06:00:00.000Z",
-				"time":       "2014-06-11T06:00:00.000Z",
-				"type":       "basal",
-				"deviceId":   "InsOmn-111111111",
-			}
-		)
-		It("should return a the base types if the obj is valid", func() {
-			base, _ := BuildBase(basalObj)
-			var baseType Base
-			Expect(base).To(BeAssignableToTypeOf(baseType))
-		})
-		It("should return and error object that is empty but not nil", func() {
-			_, err := BuildBase(basalObj)
-			Expect(err).To(Not(BeNil()))
-			Expect(err.IsEmpty()).To(BeTrue())
-		})
-	})
-})
-
-var _ = Describe("Basal", func() {
-
-	var (
-		basalObj = map[string]interface{}{
-			"userId":           userid, //userid would have been injected by now via the builder
-			"groupId":          groupid,
-			"uploadId":         uploadid,
-			"time":             "2016-02-25T23:02:00.000Z",
-			"timezoneOffset":   -480,
-			"clockDriftOffset": 0,
-			"conversionOffset": 0,
-			"deviceTime":       "2016-02-25T15:02:00.000Z",
-			"deviceId":         "IR1285-79-36047-15",
-			"type":             "basal",
-			"deliveryType":     "scheduled",
-			"scheduleName":     "DEFAULT",
-			"rate":             1.75,
-			"duration":         28800000,
-		}
-	)
-
-	Context("datum from obj", func() {
-		It("should return a basal if the obj is valid", func() {
-			basal, _ := BuildBasal(basalObj)
-			var basalType *Basal
-			Expect(basal).To(BeAssignableToTypeOf(basalType))
-		})
-		It("should produce no error when valid", func() {
-			_, err := BuildBasal(basalObj)
-			Expect(err).To(BeNil())
-		})
-	})
-
-	Context("dataset from builder", func() {
-		It("should return a basal if the obj is valid", func() {
-			basal, _ := BuildBasal(basalObj)
-			var basalType *Basal
-			Expect(basal).To(BeAssignableToTypeOf(basalType))
-		})
-		It("should produce no error when valid", func() {
-			_, err := BuildBasal(basalObj)
-			Expect(err).To(BeNil())
-		})
-	})
-})
-
-var _ = Describe("DeviceEvent", func() {
-
-	var (
-		deviceEventObj = map[string]interface{}{
-			"userId":           userid, //userid would have been injected by now via the builder
-			"groupId":          groupid,
-			"uploadId":         uploadid,
-			"deviceTime":       "2014-06-11T06:00:00.000Z",
-			"time":             "2014-06-11T06:00:00.000Z",
-			"timezoneOffset":   0,
-			"conversionOffset": 0,
-			"clockDriftOffset": 0,
-			"type":             "deviceEvent",
-			"subType":          "alarm",
-			"deviceId":         "InsOmn-888888888",
-		}
-	)
-
-	Context("can be built from obj", func() {
-		It("should return a basal if the obj is valid", func() {
-			deviceEvent, _ := BuildDeviceEvent(deviceEventObj)
-			var deviceEventType *DeviceEvent
-			Expect(deviceEvent).To(BeAssignableToTypeOf(deviceEventType))
-		})
-		It("should produce no error when valid", func() {
-			_, err := BuildDeviceEvent(deviceEventObj)
-			Expect(err).To(BeNil())
 		})
 	})
 })

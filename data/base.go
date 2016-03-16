@@ -1,12 +1,25 @@
 package data
 
 import (
+	"reflect"
 	"time"
 
+	valid "github.com/tidepool-org/platform/Godeps/_workspace/src/gopkg.in/bluesuncorp/validator.v8"
 	"github.com/tidepool-org/platform/Godeps/_workspace/src/labix.org/v2/mgo/bson"
 
 	"github.com/tidepool-org/platform/validate"
 )
+
+//used for all data types
+var validator = validate.NewPlatformValidator()
+
+func init() {
+	validator.RegisterValidation("timestr", TimeStringValidator)
+	validator.RegisterValidation("timeobj", TimeObjectValidator)
+	validator.RegisterValidation("timezoneoffset", TimezoneOffsetValidator)
+	validator.RegisterValidation("payload", PayloadValidator)
+	validator.RegisterValidation("annotations", AnnotationsValidator)
+}
 
 //Base represents tha base types that all device data records contain
 type Base struct {
@@ -15,19 +28,18 @@ type Base struct {
 	ID          string        `json:"id" bson:"id" valid:"required"`
 	UserID      string        `json:"userId" bson:"userId" valid:"required"`
 	DeviceID    string        `json:"deviceId" bson:"deviceId" valid:"required"`
-	Time        string        `json:"time" bson:"time" valid:"datetime"`
+	Time        string        `json:"time" bson:"time" valid:"timestr"`
 	Type        string        `json:"type" bson:"type" valid:"required"`
 	UploadID    string        `json:"uploadId" bson:"uploadId" valid:"-"`
-	CreatedTime string        `json:"createdTime" bson:"createdTime" valid:"datetime"`
+	CreatedTime string        `json:"createdTime" bson:"createdTime" valid:"timestr"`
 
 	//optional data
-	DeviceTime string `json:"deviceTime,omitempty" bson:"deviceTime,omitempty" valid:"omitempty,datetime"`
-	//if set is in the range of UTC -840 to UTC 720
-	TimezoneOffset   int         `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty" valid:"omitempty,min=-840,max=720"`
+	DeviceTime       string      `json:"deviceTime,omitempty" bson:"deviceTime,omitempty" valid:"omitempty,timestr"`
+	TimezoneOffset   int         `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty" valid:"omitempty,timezoneoffset"`
 	ConversionOffset int         `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty" valid:"omitempty,required"`
 	ClockDriftOffset int         `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty" valid:"omitempty,required"`
-	Payload          interface{} `json:"payload,omitempty" bson:"payload,omitempty" valid:"-"`
-	Annotations      interface{} `json:"annotations,omitempty" bson:"annotations,omitempty" valid:"-"`
+	Payload          interface{} `json:"payload,omitempty" bson:"payload,omitempty" valid:"omitempty,payload"`
+	Annotations      interface{} `json:"annotations,omitempty" bson:"annotations,omitempty" valid:"omitempty,annotations"`
 
 	//used for versioning and de-deping
 	Storage `bson:",inline"`
@@ -38,11 +50,8 @@ type Storage struct {
 	GroupID       string `json:"-" bson:"_groupId" valid:"required"`
 	ActiveFlag    bool   `json:"-" bson:"_active" valid:"required"`
 	SchemaVersion int    `json:"-" bson:"_schemaVersion" valid:"required,min=0"`
-
-	Version int `json:"-" bson:"_version,omitempty" valid:"-"`
+	Version       int    `json:"-" bson:"_version,omitempty" valid:"-"`
 }
-
-var validator = validate.NewPlatformValidator()
 
 const (
 	//UserIDField is the userID
@@ -108,6 +117,64 @@ func BuildBase(obj map[string]interface{}) (Base, *Error) {
 
 	errs.AppendError(validator.ValidateStruct(base))
 	return base, errs
+}
+
+func PayloadValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+	//a place holder for more through validation
+	if _, ok := field.Interface().(interface{}); ok {
+		return true
+	}
+	return false
+}
+
+func AnnotationsValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+	//a place holder for more through validation
+	if _, ok := field.Interface().(interface{}); ok {
+		return true
+	}
+	return false
+}
+
+func TimezoneOffsetValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+	if offset, ok := field.Interface().(int); ok {
+		if offset >= -840 && offset <= 720 {
+			return true
+		}
+	}
+	return false
+}
+
+func TimeObjectValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+	if timeObject, ok := field.Interface().(time.Time); !ok {
+		return false
+	} else {
+		return isTimeObjectValid(timeObject)
+	}
+}
+
+func isTimeObjectValid(timeObject time.Time) bool {
+	return !timeObject.IsZero() && timeObject.Before(time.Now())
+}
+
+func TimeStringValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+	if timeString, ok := field.Interface().(string); !ok {
+		return false
+	} else {
+		return isTimeStringValid(timeString)
+	}
+}
+
+func isTimeStringValid(timeString string) bool {
+	var timeObject time.Time
+	timeObject, err := time.Parse(time.RFC3339, timeString)
+	if err != nil {
+		timeObject, err = time.Parse("2006-01-02T15:04:05", timeString)
+		if err != nil {
+			return false
+		}
+	}
+
+	return isTimeObjectValid(timeObject)
 }
 
 //Cast type for use in casting our incoming generic json data to the expected types that our data model uses

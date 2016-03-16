@@ -8,17 +8,21 @@ import (
 )
 
 func init() {
-	validator.RegisterStructValidation(BasalValidation, Basal{})
+	validator.RegisterValidation("basalrate", BasalRateValidator)
+	validator.RegisterValidation("basalduration", BasalDurationValidator)
+	validator.RegisterValidation("basaldeliverytype", BasalDeliveryTypeValidator)
+	validator.RegisterValidation("basalinjection", BasalInjectionTypeValidator)
+	validator.RegisterValidation("basalinjectionvalue", BasalInjectionValueValidator)
 }
 
 //Basal represents a basal device data record
 type Basal struct {
-	DeliveryType string          `json:"deliveryType" bson:"deliveryType"`
+	DeliveryType string          `json:"deliveryType" bson:"deliveryType" valid:"basaldeliverytype"`
 	ScheduleName string          `json:"scheduleName" bson:"scheduleName" valid:"omitempty,required"`
-	Rate         float64         `json:"rate" bson:"rate" valid:"omitempty,gte=0"`
-	Duration     int             `json:"duration" bson:"duration" valid:"omitempty,gte=0"`
-	Insulin      string          `json:"insulin" bson:"insulin,omitempty"`
-	Value        int             `json:"value" bson:"value,omitempty"`
+	Rate         float64         `json:"rate" bson:"rate" valid:"omitempty,basalrate"`
+	Duration     int             `json:"duration" bson:"duration" valid:"omitempty,basalduration"`
+	Insulin      string          `json:"insulin" bson:"insulin,omitempty" valid:"omitempty,basalinjection"`
+	Value        int             `json:"value" bson:"value,omitempty" valid:"omitempty,basalinjectionvalue"`
 	Suppressed   *SupressedBasal `json:"suppressed" bson:"suppressed,omitempty" valid:"omitempty,required"`
 	Base         `bson:",inline"`
 }
@@ -81,25 +85,49 @@ func BuildBasal(obj map[string]interface{}) (*Basal, *Error) {
 	return basal, errs
 }
 
-//BasalValidation used to validate the built basal record
-// TODO: fixup signature so not using `validator.v8`
-func BasalValidation(v *valid.Validate, structLevel *valid.StructLevel) {
-
-	basal := structLevel.CurrentStruct.Interface().(Basal)
-
-	if val, ok := allowedDeliveryTypes[strings.ToLower(basal.DeliveryType)]; !ok {
-		structLevel.ReportError(reflect.ValueOf(basal.DeliveryType), "DeliveryType", deliveryTypeField, "deliverytypes")
-	} else {
-		switch val {
-		case injectedDelivery:
-			if _, ok := allowedInsulins[strings.ToLower(basal.Insulin)]; !ok {
-				structLevel.ReportError(reflect.ValueOf(basal.Insulin), "Insulin", insulinField, "insulintypes")
-			}
-			if basal.Value <= 0 {
-				structLevel.ReportError(reflect.ValueOf(basal.Value), "Value", valueField, "insulinvalue")
-			}
+func BasalRateValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+	if rate, ok := field.Interface().(float64); ok {
+		if rate > 0 {
+			return true
 		}
 	}
+	return false
+}
+
+func BasalDurationValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+	if duration, ok := field.Interface().(int); ok {
+		if duration > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func BasalDeliveryTypeValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+	if deliveryType, ok := field.Interface().(string); ok {
+		if _, ok = allowedDeliveryTypes[strings.ToLower(deliveryType)]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+func BasalInjectionTypeValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+	if insulin, ok := field.Interface().(string); ok {
+		if _, ok = allowedInsulins[strings.ToLower(insulin)]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+func BasalInjectionValueValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+	if value, ok := field.Interface().(int); ok {
+		if value > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 //Selector will return the `unique` fields used in upserts
