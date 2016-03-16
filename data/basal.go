@@ -11,7 +11,7 @@ func init() {
 	validator.RegisterValidation("basalrate", BasalRateValidator)
 	validator.RegisterValidation("basalduration", BasalDurationValidator)
 	validator.RegisterValidation("basaldeliverytype", BasalDeliveryTypeValidator)
-	validator.RegisterValidation("basalinjection", BasalInjectionTypeValidator)
+	validator.RegisterValidation("basalinjection", BasalInjectionValidator)
 	validator.RegisterValidation("basalinjectionvalue", BasalInjectionValueValidator)
 }
 
@@ -30,9 +30,9 @@ type Basal struct {
 //SupressedBasal represents a suppressed basal portion of a basal
 type SupressedBasal struct {
 	Type         string  `json:"type" bson:"type" valid:"required"`
-	DeliveryType string  `json:"deliveryType" bson:"deliveryType" valid:"required"`
+	DeliveryType string  `json:"deliveryType" bson:"deliveryType" valid:"basaldeliverytype"`
 	ScheduleName string  `json:"scheduleName" bson:"scheduleName" valid:"omitempty,required"`
-	Rate         float64 `json:"rate" bson:"rate" valid:"omitempty,gte=0"`
+	Rate         float64 `json:"rate" bson:"rate" valid:"omitempty,basalrate"`
 }
 
 const (
@@ -112,7 +112,7 @@ func BasalDeliveryTypeValidator(v *valid.Validate, topStruct reflect.Value, curr
 	return false
 }
 
-func BasalInjectionTypeValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+func BasalInjectionValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
 	if insulin, ok := field.Interface().(string); ok {
 		if _, ok = allowedInsulins[strings.ToLower(insulin)]; ok {
 			return true
