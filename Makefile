@@ -101,6 +101,8 @@ lint: golint tmp
 	which diff
 	diff --help
 	diff --changed-group-format='%>' --unchanged-group-format='' .golintignore .golintignore
+	diff --changed-group-format='%>' --unchanged-group-format='' --strip-trailing-cr .golintignore _tmp/golint.out
+	diff --changed-group-format='%>' --unchanged-group-format='' --ignore-trailing-space .golintignore _tmp/golint.out
 	diff --changed-group-format='%>' --unchanged-group-format='' .golintignore _tmp/golint.out
 	ls -al _tmp
 
