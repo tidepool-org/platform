@@ -44,7 +44,7 @@ var _ = Describe("Builder", func() {
 			dataSet Dataset
 		)
 		BeforeEach(func() {
-			rawTestData, _ := ioutil.ReadFile("./test_data_stream.json")
+			rawTestData, _ := ioutil.ReadFile("./_fixtures/test_data_stream.json")
 			json.Unmarshal(rawTestData, &dataSet)
 		})
 		It("should not return an error as is valid", func() {
