@@ -31,18 +31,18 @@ var _ = Describe("Config", func() {
 	var _ = Describe("FromEnv", func() {
 
 		It("should load the given config value from env", func() {
-			const platform_key, platform_val = "CONFIG_TEST", "yay I exist!"
-			os.Setenv(platform_key, platform_val)
+			const platformKey, platformValue = "CONFIG_TEST", "yay I exist!"
+			os.Setenv(platformKey, platformValue)
 
-			platfromValue, _ := FromEnv(platform_key)
-			Expect(platfromValue).To(Equal(platform_val))
+			platfromValue, _ := FromEnv(platformKey)
+			Expect(platfromValue).To(Equal(platformValue))
 
-			os.Unsetenv(platform_key)
+			os.Unsetenv(platformKey)
 		})
 
 		It("should error if the value doesn't exist", func() {
-			const other_key = "OTHER"
-			os.Unsetenv(other_key) // make sure it doesn't exist
+			const otherKey = "OTHER"
+			os.Unsetenv(otherKey) // make sure it doesn't exist
 
 			_, err := FromEnv("OTHER")
 
