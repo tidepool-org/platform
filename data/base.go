@@ -129,7 +129,7 @@ func PayloadValidator(v *valid.Validate, topStruct reflect.Value, currentStructO
 
 func AnnotationsValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
 	//a place holder for more through validation
-	if _, ok := field.Interface().(interface{}); ok {
+	if _, ok := field.Interface().([]interface{}); ok {
 		return true
 	}
 	return false

@@ -182,5 +182,53 @@ var _ = Describe("Base", func() {
 				})
 			})
 		})
+		Context("Payload", func() {
+			type testStruct struct {
+				Payload interface{} `json:"payload"  valid:"payload"`
+			}
+			BeforeEach(func() {
+				validator.RegisterValidation("payload", PayloadValidator)
+			})
+			Context("is valid when", func() {
+				It("an interface", func() {
+					payload := testStruct{Payload: map[string]string{"some": "stuff", "in": "here"}}
+					Expect(validator.ValidateStruct(payload)).To(BeNil())
+				})
+				It("not an interface", func() {
+					type testStruct struct {
+						Payload int `json:"payload"  valid:"payload"`
+					}
+					intPayload := testStruct{Payload: 100}
+					Expect(validator.ValidateStruct(intPayload)).To(BeNil())
+				})
+			})
+		})
+		Context("Annotations", func() {
+			type testStruct struct {
+				Annotations []interface{} `json:"annotations"  valid:"annotations"`
+			}
+			BeforeEach(func() {
+				validator.RegisterValidation("annotations", AnnotationsValidator)
+			})
+			Context("is valid when", func() {
+				It("many annotations", func() {
+					annotations := testStruct{Annotations: []interface{}{"some", "stuff", "in", "here"}}
+					Expect(validator.ValidateStruct(annotations)).To(BeNil())
+				})
+				It("one annotation", func() {
+					annotation := testStruct{Annotations: []interface{}{"some"}}
+					Expect(validator.ValidateStruct(annotation)).To(BeNil())
+				})
+			})
+			Context("is invalid when", func() {
+				It("not an array", func() {
+					type testStruct struct {
+						Annotations interface{} `json:"annotations"  valid:"annotations"`
+					}
+					badAnnotation := testStruct{Annotations: "some"}
+					Expect(validator.ValidateStruct(badAnnotation)).ToNot(BeNil())
+				})
+			})
+		})
 	})
 })
