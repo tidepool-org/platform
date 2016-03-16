@@ -94,7 +94,9 @@ vet: check-environment
 
 lint: golint tmp
 	@echo "golint"
-	@cd $(ROOT_DIRECTORY) && \
+	cat .golintignore
+	ls -al _tmp
+	cd $(ROOT_DIRECTORY) && \
 		find . -not -path './Godeps/*' -name '*.go' -type f -exec golint {} \; | grep -v 'exported.*should have comment.*or be unexported' &> _tmp/golint.out && \
 		diff --changed-group-format='%>' --unchanged-group-format='' .golintignore _tmp/golint.out
 
