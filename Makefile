@@ -94,12 +94,14 @@ vet: check-environment
 
 lint: golint tmp
 	@echo "golint"
-	cat .golintignore && echo $?
-	ls -al _tmp && echo $?
-	cd $(ROOT_DIRECTORY) && find . -not -path './Godeps/*' -name '*.go' -type f -exec golint {} \; | grep -v 'exported.*should have comment.*or be unexported' &> _tmp/golint.out && echo $?
-	cat _tmp/golint.out && echo $?
-	diff --changed-group-format='%>' --unchanged-group-format='' .golintignore _tmp/golint.out && echo $?
-	ls -al _tmp && echo $?
+	cat .golintignore
+	ls -al _tmp
+	cd $(ROOT_DIRECTORY) && find . -not -path './Godeps/*' -name '*.go' -type f -exec golint {} \; | grep -v 'exported.*should have comment.*or be unexported' &> _tmp/golint.out
+	cat _tmp/golint.out
+	which diff
+	diff --help
+	diff --changed-group-format='%>' --unchanged-group-format='' .golintignore _tmp/golint.out
+	ls -al _tmp
 
 lint-ignore:
 	@cd $(ROOT_DIRECTORY) && cp _tmp/golint.out .golintignore
