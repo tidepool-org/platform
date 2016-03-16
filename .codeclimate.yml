@@ -5,6 +5,8 @@ engines:
     enabled: true
   golint:
     enabled: true
+    exclude_fingerprints:
+    - d2641253142732c8d01ed15760dba123
     checks:
       GoLint/Comments/DocComments:
         enabled: false
