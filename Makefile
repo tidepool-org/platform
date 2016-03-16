@@ -100,6 +100,7 @@ lint: golint tmp
 	cat _tmp/golint.out
 	which diff
 	diff --help
+	diff --changed-group-format='%>' --unchanged-group-format='' .golintignore .golintignore
 	diff --changed-group-format='%>' --unchanged-group-format='' .golintignore _tmp/golint.out
 	ls -al _tmp
 
