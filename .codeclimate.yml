@@ -5,6 +5,13 @@ engines:
     enabled: true
   golint:
     enabled: true
+    checks:
+      GoLint/Comments/DocComments:
+        enabled: false
+      GoLint/Comments/PackageComments:
+        enabled: false
+      GoLint/Imports/ImportDot:
+        enabled: false
   govet:
     enabled: true
 ratings:
