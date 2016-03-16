@@ -1,13 +1,15 @@
 language: go
 
-services:
-  - mongodb
-
 go:
   - 1.6
 
 services:
   - mongodb
+
+env:
+  global:
+    - GO15VENDOREXPERIMENT=0
+    - TIDEPOOL_USER_CLIENT_SECRET="This needs to be the same secret everywhere. YaHut75NsK1f9UKUXuWqxNN0RUwHFBCy"
 
 script:
   - make pre-build
@@ -18,7 +20,3 @@ notifications:
   email:
     on_success: change
     on_failure: always
-
-matrix:
-  allow_failures:
-    - go: tip

@@ -1,10 +1,10 @@
+# Sublime Text
+/platform.sublime-workspace
+
 # Go
 *.coverprofile
 
 # Project
 /_bin
-
-# Sublime Text
-/platform.sublime-workspace
-
-data/data2.json
+/_log
+/_tmp

@@ -145,11 +145,10 @@ func TimezoneOffsetValidator(v *valid.Validate, topStruct reflect.Value, current
 }
 
 func TimeObjectValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	if timeObject, ok := field.Interface().(time.Time); !ok {
-		return false
-	} else {
+	if timeObject, ok := field.Interface().(time.Time); ok {
 		return isTimeObjectValid(timeObject)
 	}
+	return false
 }
 
 func isTimeObjectValid(timeObject time.Time) bool {
@@ -157,11 +156,10 @@ func isTimeObjectValid(timeObject time.Time) bool {
 }
 
 func TimeStringValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	if timeString, ok := field.Interface().(string); !ok {
-		return false
-	} else {
+	if timeString, ok := field.Interface().(string); ok {
 		return isTimeStringValid(timeString)
 	}
+	return false
 }
 
 func isTimeStringValid(timeString string) bool {

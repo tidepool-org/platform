@@ -58,7 +58,7 @@ WATCH=user make watch
 * To run `go fmt`, `goimports`, and `golint` all at once:
 
 ```
-make precommit
+make pre-commit
 ```
 
 * To clean the project of all build files:
