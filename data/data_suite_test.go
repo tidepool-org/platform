@@ -1,4 +1,4 @@
-package data_test
+package data
 
 import (
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo"

@@ -1,9 +1,8 @@
-package data_test
+package data
 
 import (
 	"time"
 
-	. "github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/validate"
 
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo"
@@ -82,151 +81,126 @@ var _ = Describe("Base", func() {
 
 		Context("TimeStringValidator", func() {
 			BeforeEach(func() {
-				validator.RegisterValidation("timestr", TimeStringValidator)
+				validator.RegisterValidation(timeStrTag, TimeStringValidator)
 			})
-			type testStruct struct {
-				GivenDate string `json:"givenDate"  valid:"timestr"`
-			}
+
 			Context("is invalid when", func() {
 				It("there is no date", func() {
-					nodate := testStruct{GivenDate: ""}
-					Expect(validator.ValidateStruct(nodate)).ToNot(BeNil())
+					nodate := Base{DeviceTime: ""}
+					Expect(validator.Field(nodate.DeviceTime, timeStrTag)).ToNot(BeNil())
 				})
 				It("the date is not the right spec", func() {
-					wrongspec := testStruct{GivenDate: "Monday, 02 Jan 2016"}
-					Expect(validator.ValidateStruct(wrongspec)).ToNot(BeNil())
+					wrongspec := Base{DeviceTime: "Monday, 02 Jan 2016"}
+					Expect(validator.Field(wrongspec.DeviceTime, timeStrTag)).ToNot(BeNil())
 				})
 				It("the date does not include hours and mins", func() {
-					notime := testStruct{GivenDate: "2016-02-05"}
-					Expect(validator.ValidateStruct(notime)).ToNot(BeNil())
+					notime := Base{DeviceTime: "2016-02-05"}
+					Expect(validator.Field(notime.DeviceTime, timeStrTag)).ToNot(BeNil())
 				})
 				It("the date does not include mins", func() {
-					notime := testStruct{GivenDate: "2016-02-05T20"}
-					Expect(validator.ValidateStruct(notime)).ToNot(BeNil())
+					notime := Base{DeviceTime: "2016-02-05T20"}
+					Expect(validator.Field(notime.DeviceTime, timeStrTag)).ToNot(BeNil())
 				})
 			})
 			Context("is valid when", func() {
 				It("the date is RFC3339 formated - e.g. 1", func() {
-					validdate := testStruct{GivenDate: "2016-03-14T20:22:21+13:00"}
-					Expect(validator.ValidateStruct(validdate)).To(BeNil())
+					valid := Base{DeviceTime: "2016-03-14T20:22:21+13:00"}
+					Expect(validator.Field(valid.DeviceTime, timeStrTag)).To(BeNil())
 				})
 				It("the date is RFC3339 formated - e.g. 2", func() {
-					validdate := testStruct{GivenDate: "2016-02-05T15:53:00"}
-					Expect(validator.ValidateStruct(validdate)).To(BeNil())
+					valid := Base{DeviceTime: "2016-02-05T15:53:00"}
+					Expect(validator.Field(valid.DeviceTime, timeStrTag)).To(BeNil())
 				})
 				It("the date is RFC3339 formated - e.g. 3", func() {
-					validdate := testStruct{GivenDate: "2016-02-05T15:53:00.000Z"}
-					Expect(validator.ValidateStruct(validdate)).To(BeNil())
+					valid := Base{DeviceTime: "2016-02-05T15:53:00.000Z"}
+					Expect(validator.Field(valid.DeviceTime, timeStrTag)).To(BeNil())
 				})
 			})
 		})
 		Context("TimeObjectValidator", func() {
 			type testStruct struct {
-				GivenDate time.Time `json:"givenDate"  valid:"timeobj"`
+				GivenDate time.Time `json:"givenDate" valid:"timeobj"`
 			}
 			BeforeEach(func() {
-				validator.RegisterValidation("timeobj", TimeObjectValidator)
+				validator.RegisterValidation(timeObjTag, TimeObjectValidator)
 			})
 			Context("is invalid when", func() {
 
 				It("in the future", func() {
 					furturedate := testStruct{GivenDate: time.Now().Add(time.Hour * 36)}
-					Expect(validator.ValidateStruct(furturedate)).ToNot(BeNil())
+					Expect(validator.Struct(furturedate)).ToNot(BeNil())
 				})
 				It("zero", func() {
 					zerodate := testStruct{}
-					Expect(validator.ValidateStruct(zerodate)).ToNot(BeNil())
+					Expect(validator.Struct(zerodate)).ToNot(BeNil())
 				})
 			})
 			Context("is valid when", func() {
 
 				It("set now", func() {
 					nowdate := testStruct{GivenDate: time.Now()}
-					Expect(validator.ValidateStruct(nowdate)).To(BeNil())
+					Expect(validator.Struct(nowdate)).To(BeNil())
 				})
 				It("set in the past", func() {
 					pastdate := testStruct{GivenDate: time.Now().AddDate(0, -2, 0)}
-					Expect(validator.ValidateStruct(pastdate)).To(BeNil())
+					Expect(validator.Struct(pastdate)).To(BeNil())
 				})
 			})
 		})
 		Context("TimezoneOffsetValidator", func() {
-			type testStruct struct {
-				Offset int `json:"offset"  valid:"tzoffset"`
-			}
+
 			BeforeEach(func() {
-				validator.RegisterValidation("tzoffset", TimezoneOffsetValidator)
+				validator.RegisterValidation(timeZoneOffsetTag, TimezoneOffsetValidator)
 			})
 			Context("is invalid when", func() {
 				It("less then -840", func() {
-					under := testStruct{Offset: -841}
-					Expect(validator.ValidateStruct(under)).ToNot(BeNil())
+					under := Base{TimezoneOffset: -841}
+					Expect(validator.Field(under.TimezoneOffset, timeZoneOffsetTag)).ToNot(BeNil())
 				})
 				It("greater than 720", func() {
-					over := testStruct{Offset: 721}
-					Expect(validator.ValidateStruct(over)).ToNot(BeNil())
+					over := Base{TimezoneOffset: 721}
+					Expect(validator.Field(over.TimezoneOffset, timeZoneOffsetTag)).ToNot(BeNil())
 				})
 			})
 			Context("is valid when", func() {
 				It("-840", func() {
-					under := testStruct{Offset: -840}
-					Expect(validator.ValidateStruct(under)).To(BeNil())
+					onLower := Base{TimezoneOffset: -840}
+					Expect(validator.Field(onLower.TimezoneOffset, timeZoneOffsetTag)).To(BeNil())
 				})
 				It("720", func() {
-					over := testStruct{Offset: 720}
-					Expect(validator.ValidateStruct(over)).To(BeNil())
+					onUpper := Base{TimezoneOffset: 720}
+					Expect(validator.Field(onUpper.TimezoneOffset, timeZoneOffsetTag)).To(BeNil())
 				})
 				It("0", func() {
-					over := testStruct{Offset: 0}
-					Expect(validator.ValidateStruct(over)).To(BeNil())
+					zero := Base{TimezoneOffset: 0}
+					Expect(validator.Field(zero.TimezoneOffset, timeZoneOffsetTag)).To(BeNil())
 				})
 			})
 		})
 		Context("Payload", func() {
-			type testStruct struct {
-				Payload interface{} `json:"payload"  valid:"payload"`
-			}
 			BeforeEach(func() {
-				validator.RegisterValidation("payload", PayloadValidator)
+				validator.RegisterValidation(payloadTag, PayloadValidator)
 			})
 			Context("is valid when", func() {
 				It("an interface", func() {
-					payload := testStruct{Payload: map[string]string{"some": "stuff", "in": "here"}}
-					Expect(validator.ValidateStruct(payload)).To(BeNil())
-				})
-				It("not an interface", func() {
-					type testStruct struct {
-						Payload int `json:"payload"  valid:"payload"`
-					}
-					intPayload := testStruct{Payload: 100}
-					Expect(validator.ValidateStruct(intPayload)).To(BeNil())
+					base := Base{Payload: map[string]string{"some": "stuff", "in": "here"}}
+					Expect(validator.Field(base.Payload, payloadTag)).To(BeNil())
 				})
 			})
 		})
 		Context("Annotations", func() {
-			type testStruct struct {
-				Annotations []interface{} `json:"annotations"  valid:"annotations"`
-			}
+
 			BeforeEach(func() {
-				validator.RegisterValidation("annotations", AnnotationsValidator)
+				validator.RegisterValidation(annotationsTag, AnnotationsValidator)
 			})
 			Context("is valid when", func() {
 				It("many annotations", func() {
-					annotations := testStruct{Annotations: []interface{}{"some", "stuff", "in", "here"}}
-					Expect(validator.ValidateStruct(annotations)).To(BeNil())
+					base := Base{Annotations: []interface{}{"some", "stuff", "in", "here"}}
+					Expect(validator.Field(base.Annotations, annotationsTag)).To(BeNil())
 				})
 				It("one annotation", func() {
-					annotation := testStruct{Annotations: []interface{}{"some"}}
-					Expect(validator.ValidateStruct(annotation)).To(BeNil())
-				})
-			})
-			Context("is invalid when", func() {
-				It("not an array", func() {
-					type testStruct struct {
-						Annotations interface{} `json:"annotations"  valid:"annotations"`
-					}
-					badAnnotation := testStruct{Annotations: "some"}
-					Expect(validator.ValidateStruct(badAnnotation)).ToNot(BeNil())
+					base := Base{Annotations: []interface{}{"some"}}
+					Expect(validator.Field(base.Annotations, annotationsTag)).To(BeNil())
 				})
 			})
 		})

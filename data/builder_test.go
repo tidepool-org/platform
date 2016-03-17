@@ -1,10 +1,8 @@
-package data_test
+package data
 
 import (
 	"encoding/json"
 	"io/ioutil"
-
-	. "github.com/tidepool-org/platform/data"
 
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo"
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega"

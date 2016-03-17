@@ -1,6 +1,7 @@
 package data
 
 import (
+	"fmt"
 	"reflect"
 	"time"
 
@@ -14,11 +15,11 @@ import (
 var validator = validate.NewPlatformValidator()
 
 func init() {
-	validator.RegisterValidation("timestr", TimeStringValidator)
-	validator.RegisterValidation("timeobj", TimeObjectValidator)
-	validator.RegisterValidation("timezoneoffset", TimezoneOffsetValidator)
-	validator.RegisterValidation("payload", PayloadValidator)
-	validator.RegisterValidation("annotations", AnnotationsValidator)
+	validator.RegisterValidation(timeStrTag, TimeStringValidator)
+	validator.RegisterValidation(timeObjTag, TimeObjectValidator)
+	validator.RegisterValidation(timeZoneOffsetTag, TimezoneOffsetValidator)
+	validator.RegisterValidation(payloadTag, PayloadValidator)
+	validator.RegisterValidation(annotationsTag, AnnotationsValidator)
 }
 
 //Base represents tha base types that all device data records contain
@@ -34,12 +35,12 @@ type Base struct {
 	CreatedTime string        `json:"createdTime" bson:"createdTime" valid:"timestr"`
 
 	//optional data
-	DeviceTime       string      `json:"deviceTime,omitempty" bson:"deviceTime,omitempty" valid:"omitempty,timestr"`
-	TimezoneOffset   int         `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty" valid:"omitempty,timezoneoffset"`
-	ConversionOffset int         `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty" valid:"omitempty,required"`
-	ClockDriftOffset int         `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty" valid:"omitempty,required"`
-	Payload          interface{} `json:"payload,omitempty" bson:"payload,omitempty" valid:"omitempty,payload"`
-	Annotations      interface{} `json:"annotations,omitempty" bson:"annotations,omitempty" valid:"omitempty,annotations"`
+	DeviceTime       string        `json:"deviceTime,omitempty" bson:"deviceTime,omitempty" valid:"omitempty,timestr"`
+	TimezoneOffset   int           `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty" valid:"omitempty,timezoneoffset"`
+	ConversionOffset int           `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty" valid:"omitempty,required"`
+	ClockDriftOffset int           `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty" valid:"omitempty,required"`
+	Payload          interface{}   `json:"payload,omitempty" bson:"payload,omitempty" valid:"omitempty,payload"`
+	Annotations      []interface{} `json:"annotations,omitempty" bson:"annotations,omitempty" valid:"omitempty,annotations"`
 
 	//used for versioning and de-deping
 	Storage `bson:",inline"`
@@ -72,6 +73,17 @@ const (
 
 	payloadField     = "payload"
 	annotationsField = "annotations"
+
+	//validation
+	tzValidationLowerLimit = -840
+	tzValidationUpperLimit = 720
+	timeStrValidationMsg   = "Times need to be ISO 8601 format and not in the future"
+
+	timeStrTag        validate.ValidationTag = "timestr"
+	timeObjTag        validate.ValidationTag = "timeobj"
+	timeZoneOffsetTag validate.ValidationTag = "timezoneoffset"
+	payloadTag        validate.ValidationTag = "payload"
+	annotationsTag    validate.ValidationTag = "annotations"
 )
 
 //BuildBase builds the base fields that all device data records contain
@@ -90,7 +102,6 @@ func BuildBase(obj map[string]interface{}) (Base, *Error) {
 		Time:        cast.ToString(timeField, obj[timeField]),
 		Type:        cast.ToString(typeField, obj[typeField]),
 		Payload:     obj[payloadField],
-		Annotations: obj[annotationsField],
 		Storage: Storage{
 			GroupID:       cast.ToString(GroupIDField, obj[GroupIDField]),
 			ActiveFlag:    true,
@@ -114,9 +125,20 @@ func BuildBase(obj map[string]interface{}) (Base, *Error) {
 	if obj[timezoneOffsetField] != nil {
 		base.DeviceTime = cast.ToString(deviceTimeField, obj[deviceTimeField])
 	}
+	if obj[annotationsField] != nil {
+		base.Annotations = cast.ToArray(annotationsField, obj[annotationsField])
+	}
 
-	errs.AppendError(validator.ValidateStruct(base))
+	if validationErrors := validator.Struct(base); len(validationErrors) > 0 {
+		errs.AppendError(validationErrors.GetError(validationFailureReasons))
+	}
+
 	return base, errs
+}
+
+var validationFailureReasons = validate.ErrorReasons{
+	timeStrTag:        timeStrValidationMsg,
+	timeZoneOffsetTag: fmt.Sprintf("TimezoneOffset needs to be in minutes and greater than %d and less than %d", tzValidationLowerLimit, tzValidationUpperLimit),
 }
 
 func PayloadValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
@@ -137,7 +159,7 @@ func AnnotationsValidator(v *valid.Validate, topStruct reflect.Value, currentStr
 
 func TimezoneOffsetValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
 	if offset, ok := field.Interface().(int); ok {
-		if offset >= -840 && offset <= 720 {
+		if offset >= tzValidationLowerLimit && offset <= tzValidationUpperLimit {
 			return true
 		}
 	}
@@ -237,4 +259,17 @@ func (cast *Cast) ToTime(fieldName string, data interface{}) time.Time {
 	}
 	cast.err.AppendFieldError(fieldName, data)
 	return time.Time{}
+}
+
+//ToArray will return the given data as []interface{}
+func (cast *Cast) ToArray(fieldName string, data interface{}) []interface{} {
+	if data == nil {
+		return nil
+	}
+	arrayData, ok := data.([]interface{})
+	if !ok {
+		cast.err.AppendFieldError(fieldName, data)
+		return nil
+	}
+	return arrayData
 }

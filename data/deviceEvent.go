@@ -1,5 +1,7 @@
 package data
 
+import "github.com/tidepool-org/platform/validate"
+
 //DeviceEvent represents a deviceevent data record
 type DeviceEvent struct {
 	SubType string      `json:"subType" bson:"subType" valid:"required"`
@@ -30,7 +32,10 @@ func BuildDeviceEvent(obj map[string]interface{}) (*DeviceEvent, *Error) {
 		Base:    base,
 	}
 
-	errs.AppendError(validator.ValidateStruct(deviceEvent))
+	if validationErrors := validator.Struct(deviceEvent); len(validationErrors) > 0 {
+		errs.AppendError(validationErrors.GetError(validate.ErrorReasons{}))
+	}
+
 	if errs.IsEmpty() {
 		return deviceEvent, nil
 	}

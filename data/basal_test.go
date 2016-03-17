@@ -1,7 +1,6 @@
-package data_test
+package data
 
 import (
-	. "github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/validate"
 
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo"
@@ -65,117 +64,112 @@ var _ = Describe("Basal", func() {
 
 		Context("BasalRateValidator", func() {
 			BeforeEach(func() {
-				validator.RegisterValidation("basalrate", BasalRateValidator)
+				validator.RegisterValidation(rateTag, BasalRateValidator)
 			})
-			type testStruct struct {
-				Rate float64 `json:"rate"  valid:"basalrate"`
-			}
+
 			Context("is invalid when", func() {
 				It("zero", func() {
-					zeroRate := testStruct{Rate: 0}
-					Expect(validator.ValidateStruct(zeroRate)).ToNot(BeNil())
+					zeroRate := Basal{Rate: 0}
+					Expect(validator.Field(zeroRate.Rate, rateTag)).ToNot(BeNil())
+				})
+				It("zero and gives me context in error", func() {
+					zeroRate := Basal{Rate: 0}
+					errs := validator.Field(zeroRate.Rate, rateTag)
+
+					if errs != nil {
+						Expect(errs.GetError(basalFailureReasons).Error()).To(Equal("Error:Field validation failed with 'Must be greater than 0.000000' when given '0' for type 'float64'"))
+					}
+
 				})
 			})
 			Context("is valid when", func() {
 				It("greater than zero", func() {
-					greaterThanZeroRate := testStruct{Rate: 10.6}
-					Expect(validator.ValidateStruct(greaterThanZeroRate)).To(BeNil())
+					greaterThanZeroRate := Basal{Rate: 10.6}
+					Expect(validator.Field(greaterThanZeroRate.Rate, rateTag)).To(BeNil())
 				})
 			})
 		})
 		Context("BasalDurationValidator", func() {
 			BeforeEach(func() {
-				validator.RegisterValidation("basalduration", BasalDurationValidator)
+				validator.RegisterValidation(durationTag, BasalDurationValidator)
 			})
-			type testStruct struct {
-				Duration int `json:"duration"  valid:"basalduration"`
-			}
 			Context("is invalid when", func() {
 				It("zero", func() {
-					zeroDuration := testStruct{Duration: 0}
-					Expect(validator.ValidateStruct(zeroDuration)).ToNot(BeNil())
+					zeroDuration := Basal{Duration: 0}
+					Expect(validator.Field(zeroDuration.Duration, durationTag)).ToNot(BeNil())
 				})
 			})
 			Context("is valid when", func() {
 				It("greater than zero", func() {
-					greaterThanZeroDuration := testStruct{Duration: 4000}
-					Expect(validator.ValidateStruct(greaterThanZeroDuration)).To(BeNil())
+					greaterThanZeroDuration := Basal{Duration: 4000}
+					Expect(validator.Field(greaterThanZeroDuration.Duration, durationTag)).To(BeNil())
 				})
 			})
 		})
 		Context("BasalDeliveryTypeValidator", func() {
 			BeforeEach(func() {
-				validator.RegisterValidation("basaldeliverytype", BasalDeliveryTypeValidator)
+				validator.RegisterValidation(deliveryTypeTag, BasalDeliveryTypeValidator)
 			})
-			type testStruct struct {
-				DeliveryType string `json:"deliverytype"  valid:"basaldeliverytype"`
-			}
 			Context("is invalid when", func() {
 				It("there is no matching type", func() {
-					naType := testStruct{DeliveryType: "superfly"}
-					Expect(validator.ValidateStruct(naType)).ToNot(BeNil())
+					naType := Basal{DeliveryType: "superfly"}
+					Expect(validator.Field(naType.DeliveryType, deliveryTypeTag)).ToNot(BeNil())
 				})
 			})
 			Context("is valid when", func() {
 				It("injected type", func() {
-					injectedType := testStruct{DeliveryType: "injected"}
-					Expect(validator.ValidateStruct(injectedType)).To(BeNil())
+					injectedType := Basal{DeliveryType: "injected"}
+					Expect(validator.Field(injectedType.DeliveryType, deliveryTypeTag)).To(BeNil())
 				})
 				It("scheduled type", func() {
-					scheduledType := testStruct{DeliveryType: "scheduled"}
-					Expect(validator.ValidateStruct(scheduledType)).To(BeNil())
+					scheduledType := Basal{DeliveryType: "scheduled"}
+					Expect(validator.Field(scheduledType.DeliveryType, deliveryTypeTag)).To(BeNil())
 				})
 				It("suspend type", func() {
-					suspendType := testStruct{DeliveryType: "suspend"}
-					Expect(validator.ValidateStruct(suspendType)).To(BeNil())
+					suspendType := Basal{DeliveryType: "suspend"}
+					Expect(validator.Field(suspendType.DeliveryType, deliveryTypeTag)).To(BeNil())
 				})
 				It("temp type", func() {
-					tempType := testStruct{DeliveryType: "temp"}
-					Expect(validator.ValidateStruct(tempType)).To(BeNil())
+					tempType := Basal{DeliveryType: "temp"}
+					Expect(validator.Field(tempType.DeliveryType, deliveryTypeTag)).To(BeNil())
 				})
 			})
 		})
-		Context("BasalInjectionValidator", func() {
+		Context("BasalInsulinValidator", func() {
 			BeforeEach(func() {
-				validator.RegisterValidation("injection", BasalInjectionValidator)
+				validator.RegisterValidation(insulinTag, BasalInsulinValidator)
 			})
-			type testStruct struct {
-				Injection string `json:"injection"  valid:"injection"`
-			}
 			Context("is invalid when", func() {
 				It("there is no matching type", func() {
-					naType := testStruct{Injection: "good"}
-					Expect(validator.ValidateStruct(naType)).ToNot(BeNil())
+					naType := Basal{Insulin: "good"}
+					Expect(validator.Field(naType.Insulin, insulinTag)).ToNot(BeNil())
 				})
 			})
 			Context("is valid when", func() {
 				It("levemir type", func() {
-					levemirType := testStruct{Injection: "levemir"}
-					Expect(validator.ValidateStruct(levemirType)).To(BeNil())
+					levemirType := Basal{Insulin: "levemir"}
+					Expect(validator.Field(levemirType.Insulin, insulinTag)).To(BeNil())
 				})
 				It("lantus type", func() {
-					lantusType := testStruct{Injection: "lantus"}
-					Expect(validator.ValidateStruct(lantusType)).To(BeNil())
+					lantusType := Basal{Insulin: "lantus"}
+					Expect(validator.Field(lantusType.Insulin, insulinTag)).To(BeNil())
 				})
 			})
 		})
-		Context("BasalInjectionValueValidator", func() {
+		Context("BasalValueValidator", func() {
 			BeforeEach(func() {
-				validator.RegisterValidation("injectionvalue", BasalInjectionValueValidator)
+				validator.RegisterValidation(valueTag, BasalValueValidator)
 			})
-			type testStruct struct {
-				Value int `json:"value"  valid:"injectionvalue"`
-			}
 			Context("is invalid when", func() {
 				It("zero", func() {
-					zeroValue := testStruct{Value: 0}
-					Expect(validator.ValidateStruct(zeroValue)).ToNot(BeNil())
+					zeroValue := Basal{Value: 0}
+					Expect(validator.Field(zeroValue.Value, valueTag)).ToNot(BeNil())
 				})
 			})
 			Context("is valid when", func() {
 				It("greater than zero", func() {
-					greaterThanZeroValue := testStruct{Value: 1}
-					Expect(validator.ValidateStruct(greaterThanZeroValue)).To(BeNil())
+					greaterThanZeroValue := Basal{Value: 1}
+					Expect(validator.Field(greaterThanZeroValue.Value, valueTag)).To(BeNil())
 				})
 			})
 		})
