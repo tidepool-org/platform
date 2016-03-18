@@ -13,8 +13,8 @@ import (
 //Validator interface
 type Validator interface {
 	Struct(s interface{}) Errors
-	Field(field interface{}, tag string) Errors
-	RegisterValidation(tag string, fn validator.Func)
+	Field(field interface{}, tag ValidationTag) Errors
+	RegisterValidation(tag ValidationTag, fn validator.Func)
 }
 
 //PlatformValidator type that implements Validator
