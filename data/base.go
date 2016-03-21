@@ -25,14 +25,13 @@ func init() {
 //Base represents tha base types that all device data records contain
 type Base struct {
 	//required data
-	_ID         bson.ObjectId `bson:"_id" valid:"mongo,required"`
-	ID          string        `json:"id" bson:"id" valid:"required"`
-	UserID      string        `json:"userId" bson:"userId" valid:"required"`
-	DeviceID    string        `json:"deviceId" bson:"deviceId" valid:"required"`
-	Time        string        `json:"time" bson:"time" valid:"timestr"`
-	Type        string        `json:"type" bson:"type" valid:"required"`
-	UploadID    string        `json:"uploadId" bson:"uploadId" valid:"-"`
-	CreatedTime string        `json:"createdTime" bson:"createdTime" valid:"timestr"`
+	_ID      bson.ObjectId `bson:"_id" valid:"mongo,required"`
+	ID       string        `json:"id" bson:"id" valid:"required"`
+	UserID   string        `json:"userId" bson:"userId" valid:"required"`
+	DeviceID string        `json:"deviceId" bson:"deviceId" valid:"required"`
+	Time     string        `json:"time" bson:"time" valid:"timestr"`
+	Type     string        `json:"type" bson:"type" valid:"required"`
+	UploadID string        `json:"uploadId" bson:"uploadId" valid:"-"`
 
 	//optional data
 	DeviceTime       string        `json:"deviceTime,omitempty" bson:"deviceTime,omitempty" valid:"omitempty,timestr"`
@@ -43,16 +42,28 @@ type Base struct {
 	Annotations      []interface{} `json:"annotations,omitempty" bson:"annotations,omitempty" valid:"omitempty,annotations"`
 
 	//used for versioning and de-deping
-	Storage `bson:",inline"`
+	Internal `bson:",inline"`
 }
 
-//Storage are existing fields used for versioning and de-deping
-type Storage struct {
+//Internal are existing fields used for versioning and de-deping
+type Internal struct {
+	CreatedTime   string `json:"createdTime" bson:"createdTime" valid:"timestr"`
 	GroupID       string `json:"-" bson:"_groupId" valid:"required"`
 	ActiveFlag    bool   `json:"-" bson:"_active" valid:"required"`
 	SchemaVersion int    `json:"-" bson:"_schemaVersion" valid:"required,min=0"`
 	Version       int    `json:"-" bson:"_version,omitempty" valid:"-"`
 }
+
+var (
+	//InternalFields are what we only use internally in the service and don't wish to return
+	InternalFields = map[string]interface{}{
+		"_groupId":       0,
+		"_active":        0,
+		"_schemaVersion": 0,
+		"_version":       0,
+		"createdTime":    0,
+	}
+)
 
 const (
 	//UserIDField is the userID
@@ -93,19 +104,19 @@ func BuildBase(obj map[string]interface{}) (Base, *Error) {
 	cast := NewCaster(errs)
 
 	base := Base{
-		_ID:         bson.NewObjectId(),
-		ID:          bson.NewObjectId().Hex(),
-		CreatedTime: time.Now().Format(time.RFC3339),
-		UserID:      cast.ToString(UserIDField, obj[UserIDField]),
-		DeviceID:    cast.ToString(deviceIDField, obj[deviceIDField]),
-		UploadID:    cast.ToString(uploadIDField, obj[uploadIDField]),
-		Time:        cast.ToString(timeField, obj[timeField]),
-		Type:        cast.ToString(typeField, obj[typeField]),
-		Payload:     obj[payloadField],
-		Storage: Storage{
+		_ID:      bson.NewObjectId(),
+		ID:       bson.NewObjectId().Hex(),
+		UserID:   cast.ToString(UserIDField, obj[UserIDField]),
+		DeviceID: cast.ToString(deviceIDField, obj[deviceIDField]),
+		UploadID: cast.ToString(uploadIDField, obj[uploadIDField]),
+		Time:     cast.ToString(timeField, obj[timeField]),
+		Type:     cast.ToString(typeField, obj[typeField]),
+		Payload:  obj[payloadField],
+		Internal: Internal{
 			GroupID:       cast.ToString(GroupIDField, obj[GroupIDField]),
 			ActiveFlag:    true,
 			SchemaVersion: 1, //TODO: configured ??
+			CreatedTime:   time.Now().Format(time.RFC3339),
 		},
 	}
 

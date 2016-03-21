@@ -20,19 +20,25 @@ var (
 type Store interface {
 	Save(d interface{}) error
 	Update(selector interface{}, d interface{}) error
-	Delete(id IDField) error
-	Read(id IDField, result interface{}) error
-	ReadAll(id IDField, results interface{}) error
+	Delete(find Fields) error
+	Read(find Fields, remove Fields, result interface{}) error
+	ReadAll(find Fields, remove Fields) Iterator
 }
 
-//IDField used for finding an item based on its specific ID
-type IDField struct {
-	Name  string
-	Value string
+//Iterator for the query iterator
+type Iterator interface {
+	Next(result interface{}) bool
+	Close() error
 }
 
-//IDFields for finding or updating an item
-type IDFields []IDField
+//ClosingSessionIterator so we can manage the session for our iterator
+type ClosingSessionIterator struct {
+	*mgo.Session
+	*mgo.Iter
+}
+
+//Fields for finding or updating an item
+type Fields map[string]interface{}
 
 //MongoStore is the mongo implementation of Store
 type MongoStore struct {
@@ -64,6 +70,14 @@ func NewMongoStore(name string) *MongoStore {
 	return store
 }
 
+func mapFields(fields Fields) bson.M {
+	mapped := bson.M{}
+	for key, val := range fields {
+		mapped[key] = val
+	}
+	return mapped
+}
+
 //Cleanup will cleanup the collection, used for testing purposes
 func (mongoStore *MongoStore) Cleanup() {
 	cpy := mongoStore.Session.Copy()
@@ -88,41 +102,79 @@ func (mongoStore *MongoStore) Update(selector interface{}, d interface{}) error 
 	cpy := mongoStore.Session.Copy()
 	defer cpy.Close()
 
-	if _, err := cpy.DB(mongoStore.Config.DbName).C(mongoStore.CollectionName).Upsert(selector, d); err != nil {
+	if _, err := cpy.DB(mongoStore.Config.DbName).
+		C(mongoStore.CollectionName).
+		Upsert(selector, d); err != nil {
 		return err
 	}
 	return nil
 }
 
-//Delete will delete the specified data based on its IDField
-func (mongoStore *MongoStore) Delete(id IDField) error {
+//Delete will delete the specified data based on its Fields
+// find `IDFields` are the feilds used to find the data to be deleted
+func (mongoStore *MongoStore) Delete(find Fields) error {
 	cpy := mongoStore.Session.Copy()
 	defer cpy.Close()
 
-	if err := cpy.DB(mongoStore.Config.DbName).C(mongoStore.CollectionName).Remove(bson.M{id.Name: id.Value}); err != nil {
+	if err := cpy.DB(mongoStore.Config.DbName).
+		C(mongoStore.CollectionName).
+		Remove(mapFields(find)); err != nil {
 		return err
 	}
 	return nil
 }
 
-//Read will get the specified data based on its IDField
-func (mongoStore *MongoStore) Read(id IDField, result interface{}) error {
+//Read will get the specified data based on its find Fields
+// find `Fields` are the feilds used to find the data
+// remove `Fields` are the feilds used to remove feilds from being returned.
+//   e.g. _version:0 means that the `_version` feild will not be returned in the results
+// results is the interface that the result set will be saved into
+func (mongoStore *MongoStore) Read(find Fields, remove Fields, result interface{}) error {
 	cpy := mongoStore.Session.Copy()
 	defer cpy.Close()
 
-	if err := cpy.DB(mongoStore.Config.DbName).C(mongoStore.CollectionName).Find(bson.M{id.Name: id.Value}).One(result); err != nil {
+	if err := cpy.DB(mongoStore.Config.DbName).
+		C(mongoStore.CollectionName).
+		Find(mapFields(find)).
+		Select(mapFields(remove)).
+		One(result); err != nil {
 		return err
 	}
 	return nil
 }
 
-//ReadAll all data that matches the specified IDField
-func (mongoStore *MongoStore) ReadAll(id IDField, results interface{}) error {
+//ReadAll all data that matches the specified find Fields
+// find `Fields` are the feilds used to find the data
+// remove `Fields` are the feilds used to remove fields from being returned.
+//   e.g. _version:0 means that the `_version` field will not be returned in the results
+func (mongoStore *MongoStore) ReadAll(find Fields, remove Fields) Iterator {
 	cpy := mongoStore.Session.Copy()
 	defer cpy.Close()
 
-	if err := cpy.DB(mongoStore.Config.DbName).C(mongoStore.CollectionName).Find(bson.M{id.Name: id.Value}).All(results); err != nil {
-		return err
+	iter := cpy.DB(mongoStore.Config.DbName).
+		C(mongoStore.CollectionName).
+		Find(mapFields(find)).
+		Select(mapFields(remove)).
+		Iter()
+
+	return &ClosingSessionIterator{Session: cpy, Iter: iter}
+}
+
+func (i *ClosingSessionIterator) Next(result interface{}) bool {
+	if i.Iter != nil {
+		return i.Iter.Next(result)
 	}
-	return nil
+	return false
+}
+
+func (i *ClosingSessionIterator) Close() (err error) {
+	if i.Iter != nil {
+		err = i.Iter.Close()
+		i.Iter = nil
+	}
+	if i.Session != nil {
+		i.Session.Close()
+		i.Session = nil
+	}
+	return err
 }

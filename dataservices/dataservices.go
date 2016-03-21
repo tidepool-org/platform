@@ -16,6 +16,7 @@ import (
 const (
 	missingPermissionsError = "missing required permissions"
 	missingDataError        = "missing data to process"
+	gettingDataError        = "there was an error getting your data"
 
 	dataservicesName = "dataservices"
 	useridParamName  = "userid"
@@ -161,6 +162,19 @@ func (client *DataServiceClient) PostBlob(w rest.ResponseWriter, r *rest.Request
 
 }
 
+//process the found data and send the appropriate response
+func process(iter store.Iterator) data.Dataset {
+
+	var chunk data.Datum
+	var all = data.Dataset{}
+
+	for iter.Next(&chunk) {
+		all = append(all, chunk)
+	}
+
+	return all
+}
+
 //GetDataset will return the requested users data set if permissons are sufficient
 func (client *DataServiceClient) GetDataset(w rest.ResponseWriter, r *rest.Request) {
 
@@ -168,7 +182,7 @@ func (client *DataServiceClient) GetDataset(w rest.ResponseWriter, r *rest.Reque
 
 	if checkPermisson(r, user.Permission{}) {
 
-		var foundDataset struct {
+		var found struct {
 			data.Dataset `json:"Dataset"`
 			Errors       string `json:"Errors"`
 		}
@@ -183,15 +197,15 @@ func (client *DataServiceClient) GetDataset(w rest.ResponseWriter, r *rest.Reque
 
 		log.Info("params", types, subTypes, start, end)
 
-		var dataSet data.Dataset
-		err := client.dataStore.ReadAll(store.IDField{Name: data.UserIDField, Value: userid}, &dataSet)
+		iter := client.dataStore.ReadAll(
+			store.Fields{data.UserIDField: userid},
+			data.InternalFields,
+		)
+		defer iter.Close()
 
-		if err != nil {
-			foundDataset.Errors = err.Error()
-		}
-		foundDataset.Dataset = dataSet
+		found.Dataset = process(iter)
 
-		w.WriteJson(&foundDataset)
+		w.WriteJson(&found)
 		return
 	}
 	rest.Error(w, missingPermissionsError, http.StatusUnauthorized)
