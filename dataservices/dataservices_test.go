@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	. "github.com/tidepool-org/platform/dataservices"
@@ -19,6 +20,8 @@ var _ = Describe("The Dataservices client", func() {
 	var client *DataServiceClient
 	var env map[string]interface{}
 	var params map[string]string
+	const userID = "9999999"
+	const groupID = "223377628"
 
 	BeforeEach(func() {
 		client = NewDataServiceClient()
@@ -49,7 +52,6 @@ var _ = Describe("The Dataservices client", func() {
 
 	Describe("PostDataset", func() {
 
-		const userID = "9999999"
 		var payload struct {
 			Dataset []interface{} `json:"Dataset"`
 			Errors  string        `json:"Errors"`
@@ -58,7 +60,7 @@ var _ = Describe("The Dataservices client", func() {
 		BeforeEach(func() {
 			env = make(map[string]interface{})
 			env[user.PERMISSIONS] = &user.UsersPermissions{}
-			env[user.GROUPID] = "223377628"
+			env[user.GROUPID] = groupID
 
 			//the userid is used in the saving of the data so we attach it to the request in the `RunRequest` test handler
 			params = make(map[string]string)
@@ -235,15 +237,14 @@ var _ = Describe("The Dataservices client", func() {
 		BeforeEach(func() {
 			env = make(map[string]interface{})
 			env[user.PERMISSIONS] = &user.UsersPermissions{}
-			env[user.GROUPID] = "3887276s"
 		})
 
 		Describe("when valid userID", func() {
 
-			const userID = "9999999"
 			BeforeEach(func() {
 				idParams = make(map[string]string)
 				idParams["userid"] = userID
+				env[user.GROUPID] = groupID
 			})
 
 			It("should return status 200", func() {
@@ -271,12 +272,57 @@ var _ = Describe("The Dataservices client", func() {
 			})
 		})
 
+		Describe("when query params provided", func() {
+
+			var queryParams map[string]string
+
+			BeforeEach(func() {
+				queryParams = make(map[string]string)
+				queryParams["userid"] = userID
+				env[user.GROUPID] = groupID
+			})
+
+			It("should return basals", func() {
+
+				req := service.MakeSimpleRequest("GET", "http://localhost/dataset", nil)
+				url, _ := url.Parse("?type=basal")
+				req.URL = url
+
+				recorded := service.RunRequest(client.GetDataset, req, queryParams, env)
+				recorded.DecodeJSONPayload(&payload)
+				Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
+				Expect(len(payload.Dataset) > 1).To(BeTrue(), "Expected one processed datum to be returned")
+			})
+			It("should return no basals when no subtype match", func() {
+				req := service.MakeSimpleRequest("GET", "http://localhost/dataset", nil)
+				url, _ := url.Parse("?type=basal&subType=good")
+				req.URL = url
+
+				recorded := service.RunRequest(client.GetDataset, req, queryParams, env)
+				recorded.DecodeJSONPayload(&payload)
+				Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
+				Expect(len(payload.Dataset) == 0).To(BeTrue(), "Expected no processed datum to be returned")
+			})
+			It("should return nothing", func() {
+				req := service.MakeSimpleRequest("GET", "http://localhost/dataset", nil)
+				url, _ := url.Parse("?type=none")
+				req.URL = url
+
+				recorded := service.RunRequest(client.GetDataset, req, queryParams, env)
+				recorded.DecodeJSONPayload(&payload)
+				Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
+				Expect(len(payload.Dataset) == 0).To(BeTrue(), "Expected no processed datum to be returned when no type match")
+			})
+		})
+
 		Describe("when userID unknown", func() {
 
 			const userID = "9???9"
+
 			BeforeEach(func() {
 				idParams = make(map[string]string)
 				idParams["userid"] = userID
+				env[user.GROUPID] = userID
 			})
 
 			It("should return status 200", func() {

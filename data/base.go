@@ -56,12 +56,12 @@ type Internal struct {
 
 var (
 	//InternalFields are what we only use internally in the service and don't wish to return
-	InternalFields = map[string]interface{}{
-		"_groupId":       0,
-		"_active":        0,
-		"_schemaVersion": 0,
-		"_version":       0,
-		"createdTime":    0,
+	InternalFields = []string{
+		"_groupId",
+		"_active",
+		"_schemaVersion",
+		"_version",
+		"createdTime",
 	}
 )
 
@@ -69,18 +69,21 @@ const (
 	//UserIDField is the userID
 	UserIDField = "userId"
 	//GroupIDField id the groupID
-	GroupIDField = "groupId"
+	GroupIDField         = "groupId"
+	InternalGroupIDField = "_groupId"
+	//TypeField type of the datum
+	TypeField = "type"
+	//SubTypeField subType of the datum
+	SubTypeField = "subType"
+	//TimeField time for the datum
+	TimeField = "time"
 
-	deviceIDField = "deviceId"
-	uploadIDField = "uploadId"
-
+	deviceIDField         = "deviceId"
+	uploadIDField         = "uploadId"
+	deviceTimeField       = "deviceTime"
 	timezoneOffsetField   = "timezoneOffset"
 	conversionOffsetField = "conversionOffset"
 	clockDriftOffsetField = "clockDriftOffset"
-
-	typeField       = "type"
-	timeField       = "time"
-	deviceTimeField = "deviceTime"
 
 	payloadField     = "payload"
 	annotationsField = "annotations"
@@ -109,8 +112,8 @@ func BuildBase(obj map[string]interface{}) (Base, *Error) {
 		UserID:   cast.ToString(UserIDField, obj[UserIDField]),
 		DeviceID: cast.ToString(deviceIDField, obj[deviceIDField]),
 		UploadID: cast.ToString(uploadIDField, obj[uploadIDField]),
-		Time:     cast.ToString(timeField, obj[timeField]),
-		Type:     cast.ToString(typeField, obj[typeField]),
+		Time:     cast.ToString(TimeField, obj[TimeField]),
+		Type:     cast.ToString(TypeField, obj[TypeField]),
 		Payload:  obj[payloadField],
 		Internal: Internal{
 			GroupID:       cast.ToString(GroupIDField, obj[GroupIDField]),

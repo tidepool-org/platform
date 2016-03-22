@@ -14,9 +14,8 @@ const (
 	//DeviceEventName is the given name for the type of a `DeviceEvent` datum
 	DeviceEventName = "deviceEvent"
 
-	subTypeField = "subType"
-	statusField  = "status"
-	reasonField  = "reason"
+	statusField = "status"
+	reasonField = "reason"
 )
 
 //BuildDeviceEvent will build a DeviceEvent record
@@ -26,7 +25,7 @@ func BuildDeviceEvent(obj map[string]interface{}) (*DeviceEvent, *Error) {
 	cast := NewCaster(errs)
 
 	deviceEvent := &DeviceEvent{
-		SubType: cast.ToString(subTypeField, obj[subTypeField]),
+		SubType: cast.ToString(SubTypeField, obj[SubTypeField]),
 		Status:  cast.ToString(statusField, obj[statusField]),
 		Reason:  obj[reasonField],
 		Base:    base,
@@ -47,8 +46,8 @@ func (d *DeviceEvent) Selector() interface{} {
 
 	unique := map[string]interface{}{}
 
-	unique[subTypeField] = d.SubType
+	unique[SubTypeField] = d.SubType
 	unique[deviceTimeField] = d.DeviceTime
-	unique[typeField] = d.Type
+	unique[TypeField] = d.Type
 	return unique
 }

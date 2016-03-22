@@ -161,6 +161,6 @@ func (b *Basal) Selector() interface{} {
 	unique[deliveryTypeField] = b.DeliveryType
 	unique[scheduleNameField] = b.ScheduleName
 	unique[deviceTimeField] = b.Time
-	unique[typeField] = b.Type
+	unique[TypeField] = b.Type
 	return unique
 }

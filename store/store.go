@@ -20,10 +20,16 @@ var (
 type Store interface {
 	Save(d interface{}) error
 	Update(selector interface{}, d interface{}) error
-	Delete(find Fields) error
-	Read(find Fields, remove Fields, result interface{}) error
-	ReadAll(find Fields, remove Fields) Iterator
+	Delete(id Field) error
+	Read(id Field, filter Filter, result interface{}) error
+	ReadAll(id Field, query Query, filter Filter) Iterator
 }
+
+const (
+	GreaterThanEquals string = "$gte"
+	LessThanEquals    string = "$lte"
+	In                string = "$in"
+)
 
 //Iterator for the query iterator
 type Iterator interface {
@@ -37,8 +43,18 @@ type ClosingSessionIterator struct {
 	*mgo.Iter
 }
 
-//Fields for finding or updating an item
-type Fields map[string]interface{}
+//Filter for removing unwanted fields from the return data
+type Filter []string
+
+//Query for querying of the dataset
+// e.g. ["time"] {"$gte":"2010-01-01", "$lte":"2016-01-01"}
+type Query map[string]map[string]interface{}
+
+//Field used when accessing data
+type Field struct {
+	Name  string
+	Value interface{}
+}
 
 //MongoStore is the mongo implementation of Store
 type MongoStore struct {
@@ -70,12 +86,37 @@ func NewMongoStore(name string) *MongoStore {
 	return store
 }
 
-func mapFields(fields Fields) bson.M {
+func buildFilter(fields Filter) bson.M {
 	mapped := bson.M{}
-	for key, val := range fields {
-		mapped[key] = val
+	for _, val := range fields {
+		mapped[val] = 0
 	}
 	return mapped
+}
+
+func buildQuery(id Field, query Query) bson.M {
+
+	builtQuery := bson.M{
+		id.Name: id.Value,
+		//TODO: specify scheme version
+		//"_active":        true,
+		//"_schemaVersion": bson.M{GreaterThanEquals: 0, LessThanEquals: 10},
+	}
+
+	//Example so its not too abstract
+	//["type"] {"$in": ["basal","bolus"]}
+	//["time"] {"$gte":"2010", "$lte":"2016"}
+
+	for fieldName, opParams := range query {
+		fieldQuery := bson.M{}
+
+		for op, vals := range opParams {
+			fieldQuery[op] = vals
+		}
+
+		builtQuery[fieldName] = fieldQuery
+	}
+	return builtQuery
 }
 
 //Cleanup will cleanup the collection, used for testing purposes
@@ -111,32 +152,34 @@ func (mongoStore *MongoStore) Update(selector interface{}, d interface{}) error 
 }
 
 //Delete will delete the specified data based on its Fields
-// find `IDFields` are the feilds used to find the data to be deleted
-func (mongoStore *MongoStore) Delete(find Fields) error {
+// id - `Field` name and value that represents the id for the data
+//		e.g. {"userid":"123"}
+func (mongoStore *MongoStore) Delete(id Field) error {
 	cpy := mongoStore.Session.Copy()
 	defer cpy.Close()
 
 	if err := cpy.DB(mongoStore.Config.DbName).
 		C(mongoStore.CollectionName).
-		Remove(mapFields(find)); err != nil {
+		Remove(bson.M{id.Name: id.Value}); err != nil {
 		return err
 	}
 	return nil
 }
 
 //Read will get the specified data based on its find Fields
-// find `Fields` are the feilds used to find the data
-// remove `Fields` are the feilds used to remove feilds from being returned.
-//   e.g. _version:0 means that the `_version` feild will not be returned in the results
+// id - `Field` name and value that represents the id for the data
+//		e.g. {"userid":"123"}
+// filter - field names that will be filtered out of the returned data
+// 		e.g. `_version` means that the `_version` field will not be returned in the results
 // results is the interface that the result set will be saved into
-func (mongoStore *MongoStore) Read(find Fields, remove Fields, result interface{}) error {
+func (mongoStore *MongoStore) Read(id Field, filter Filter, result interface{}) error {
 	cpy := mongoStore.Session.Copy()
 	defer cpy.Close()
 
 	if err := cpy.DB(mongoStore.Config.DbName).
 		C(mongoStore.CollectionName).
-		Find(mapFields(find)).
-		Select(mapFields(remove)).
+		Find(buildQuery(id, Query{})).
+		Select(buildFilter(filter)).
 		One(result); err != nil {
 		return err
 	}
@@ -144,17 +187,20 @@ func (mongoStore *MongoStore) Read(find Fields, remove Fields, result interface{
 }
 
 //ReadAll all data that matches the specified find Fields
-// find `Fields` are the feilds used to find the data
-// remove `Fields` are the feilds used to remove fields from being returned.
-//   e.g. _version:0 means that the `_version` field will not be returned in the results
-func (mongoStore *MongoStore) ReadAll(find Fields, remove Fields) Iterator {
+// id - `Field` name and value that represents the id for the data
+//		e.g. {"userid":"123"}
+// query -  `Query` is the query data the will be used in getting the data
+//		e.g.  ["type"] {"$in": ["basal","bolus"]} would return all datum of the specified type
+// filter - field names that will be filtered out of the returned data
+// 		e.g. `_version` means that the `_version` field will not be returned in the results
+func (mongoStore *MongoStore) ReadAll(id Field, query Query, filter Filter) Iterator {
 	cpy := mongoStore.Session.Copy()
 	defer cpy.Close()
 
 	iter := cpy.DB(mongoStore.Config.DbName).
 		C(mongoStore.CollectionName).
-		Find(mapFields(find)).
-		Select(mapFields(remove)).
+		Find(buildQuery(id, query)).
+		Select(buildFilter(filter)).
 		Iter()
 
 	return &ClosingSessionIterator{Session: cpy, Iter: iter}
