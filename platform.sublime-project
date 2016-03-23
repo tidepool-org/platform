@@ -1,0 +1,15 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "GoSublime": {
+      "env": {
+        "GOPATH": "$GS_GOPATH:$GS_GOPATH/src/github.com/tidepool-org/platform/Godeps/_workspace",
+        "PATH": "$GS_GOPATH/src/github.com/tidepool-org/platform/Godeps/_workspace/bin:$PATH"
+      }
+    }
+  }
+}

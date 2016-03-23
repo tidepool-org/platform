@@ -1,0 +1,5 @@
+{
+    "connectionUrl": "mongodb://localhost/streams",
+    "databaseName": "",
+    "timeout": 200
+}

@@ -1,0 +1,80 @@
+[
+  {
+    "time": "2016-02-25T23:00:00.000Z",
+    "timezoneOffset": -480,
+    "clockDriftOffset": 0,
+    "conversionOffset": 0,
+    "deviceTime": "2016-02-25T15:00:00.000Z",
+    "deviceId": "IR3333-22-11111-00",
+    "type": "basal",
+    "deliveryType": "scheduled",
+    "scheduleName": "DEFAULT",
+    "rate": 1.75,
+    "duration": 120000,
+    "payload": {
+      "logIndices": [
+        6
+      ]
+    }
+  },
+  {
+    "time": "2016-02-25T23:02:00.000Z",
+    "timezoneOffset": -480,
+    "clockDriftOffset": 0,
+    "conversionOffset": 0,
+    "deviceTime": "2016-02-25T15:02:00.000Z",
+    "deviceId": "IR3333-22-11111-00",
+    "type": "basal",
+    "deliveryType": "scheduled",
+    "scheduleName": "DEFAULT",
+    "rate": 1.75,
+    "duration": 28800000,
+    "payload": {
+      "logIndices": [
+        1
+      ]
+    }
+  },
+  {
+    "time": "2016-02-26T07:02:00.000Z",
+    "timezoneOffset": -480,
+    "clockDriftOffset": 0,
+    "conversionOffset": 0,
+    "deviceTime": "2016-02-25T23:02:00.000Z",
+    "deviceId": "IR3333-22-11111-00",
+    "type": "basal",
+    "deliveryType": "scheduled",
+    "scheduleName": "DEFAULT",
+    "rate": 0.6,
+    "duration": 0,
+    "payload": {
+      "logIndices": [
+        0
+      ]
+    },
+    "annotations": [
+      {
+        "code": "basal/unknown-duration"
+      }
+    ]
+  },
+  {
+    "time": "2016-02-26T17:35:00.000Z",
+    "timezoneOffset": -480,
+    "clockDriftOffset": 0,
+    "conversionOffset": 0,
+    "deviceTime": "2016-02-26T09:35:00.000Z",
+    "deviceId": "IR3333-22-11111-00",
+    "type": "deviceEvent",
+    "subType": "status",
+    "status": "suspended",
+    "reason": {
+      "suspended": "manual"
+    },
+    "payload": {
+      "logIndices": [
+        0
+      ]
+    }
+  }
+]
