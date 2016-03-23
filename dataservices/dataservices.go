@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/logger"
 	"github.com/tidepool-org/platform/store"
@@ -23,12 +24,12 @@ const (
 )
 
 var (
-	log = logger.Log.GetNamed(dataservicesName)
+	log           = logger.Log.GetNamed(dataservicesName)
+	serviceConfig *dataServiceConfig
 )
 
 func main() {
-	//TODO: from config
-	log.Fatal(NewDataServiceClient().Run(":8077"))
+	log.Fatal(NewDataServiceClient().Run(serviceConfig.Port))
 }
 
 //DataServiceClient for the data service
@@ -40,6 +41,18 @@ type DataServiceClient struct {
 	resolveGroupID   user.ChainedMiddleware
 }
 
+type dataServiceConfig struct {
+	Port          string `json:"port"`
+	Protocol      string `json:"protocol"`
+	KeyFile       string `json:"keyFile"`
+	CertFile      string `json:"certFile"`
+	SchemaVersion struct {
+		Minimum int
+		Maximum int
+	} `json:"schemaVersion"`
+	StoreName string `json:"storeName"`
+}
+
 //NewDataServiceClient returns an initialised client
 func NewDataServiceClient() *DataServiceClient {
 	log.Info(version.Long())
@@ -47,10 +60,11 @@ func NewDataServiceClient() *DataServiceClient {
 	userClient := user.NewServicesClient()
 	userClient.Start()
 
+	config.FromJSON(&serviceConfig, "dataservices.json")
+
 	return &DataServiceClient{
-		api: rest.NewApi(),
-		//TODO: from config
-		dataStore:        store.NewMongoStore("deviceData"),
+		api:              rest.NewApi(),
+		dataStore:        store.NewMongoStore(serviceConfig.StoreName),
 		validateToken:    user.NewAuthorizationMiddleware(userClient).ValidateToken,
 		attachPermissons: user.NewMetadataMiddleware(userClient).GetPermissons,
 		resolveGroupID:   user.NewMetadataMiddleware(userClient).GetGroupID,
@@ -75,6 +89,11 @@ func (client *DataServiceClient) Run(URL string) error {
 	}
 	client.api.SetApp(router)
 
+	if serviceConfig.Protocol == "https" {
+
+		return http.ListenAndServeTLS(URL, serviceConfig.CertFile, serviceConfig.KeyFile, client.api.MakeHandler())
+		//return server.ListenAndServeTLS(URL, serviceConfig.CertFile, serviceConfig.KeyFile, client.api.MakeHandler())
+	}
 	return http.ListenAndServe(URL, client.api.MakeHandler())
 }
 
