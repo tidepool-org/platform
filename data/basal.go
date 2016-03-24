@@ -17,20 +17,18 @@ func init() {
 	validator.RegisterValidation(valueTag, BasalValueValidator)
 }
 
-//Basal represents a basal device data record
 type Basal struct {
-	DeliveryType string          `json:"deliveryType" bson:"deliveryType" valid:"basaldeliverytype"`
-	ScheduleName string          `json:"scheduleName" bson:"scheduleName" valid:"omitempty,required"`
-	Rate         float64         `json:"rate" bson:"rate" valid:"omitempty,basalrate"`
-	Duration     int             `json:"duration" bson:"duration" valid:"omitempty,basalduration"`
-	Insulin      string          `json:"insulin" bson:"insulin,omitempty" valid:"omitempty,basalinsulin"`
-	Value        int             `json:"value" bson:"value,omitempty" valid:"omitempty,basalvalue"`
-	Suppressed   *SupressedBasal `json:"suppressed" bson:"suppressed,omitempty" valid:"omitempty,required"`
+	DeliveryType string           `json:"deliveryType" bson:"deliveryType" valid:"basaldeliverytype"`
+	ScheduleName string           `json:"scheduleName" bson:"scheduleName" valid:"omitempty,required"`
+	Rate         float64          `json:"rate" bson:"rate" valid:"omitempty,basalrate"`
+	Duration     int              `json:"duration" bson:"duration" valid:"omitempty,basalduration"`
+	Insulin      string           `json:"insulin" bson:"insulin,omitempty" valid:"omitempty,basalinsulin"`
+	Value        int              `json:"value" bson:"value,omitempty" valid:"omitempty,basalvalue"`
+	Suppressed   *SuppressedBasal `json:"suppressed" bson:"suppressed,omitempty" valid:"omitempty,required"`
 	Base         `bson:",inline"`
 }
 
-//SupressedBasal represents a suppressed basal portion of a basal
-type SupressedBasal struct {
+type SuppressedBasal struct {
 	Type         string  `json:"type" bson:"type" valid:"required"`
 	DeliveryType string  `json:"deliveryType" bson:"deliveryType" valid:"basaldeliverytype"`
 	ScheduleName string  `json:"scheduleName" bson:"scheduleName" valid:"omitempty,required"`
@@ -38,7 +36,6 @@ type SupressedBasal struct {
 }
 
 const (
-	//BasalName is the given name for the type of a `Basal` datum
 	BasalName = "basal"
 
 	deliveryTypeField = "deliveryType"
@@ -54,9 +51,13 @@ const (
 	insulinTag      validate.ValidationTag = "basalinsulin"
 	valueTag        validate.ValidationTag = "basalvalue"
 
-	injectedDelivery, scheduledDelivery, suspendDelivery, tempDelivery = "injected", "scheduled", "suspend", "temp"
+	injectedDelivery  = "injected"
+	scheduledDelivery = "scheduled"
+	suspendDelivery   = "suspend"
+	tempDelivery      = "temp"
 
-	levemirInsulin, lantusInsulin = "levemir", "lantus"
+	levemirInsulin = "levemir"
+	lantusInsulin  = "lantus"
 
 	rateValidationLowerLimit     = 0.0
 	durationValidationLowerLimit = 0
@@ -78,25 +79,25 @@ var (
 )
 
 //BuildBasal will build a Basal record
-func BuildBasal(obj map[string]interface{}) (*Basal, *Error) {
+func BuildBasal(datum Datum) (*Basal, *Error) {
 
-	base, errs := BuildBase(obj)
+	base, errs := BuildBase(datum)
 	cast := NewCaster(errs)
 
 	basal := &Basal{
-		DeliveryType: cast.ToString(deliveryTypeField, obj[deliveryTypeField]),
-		ScheduleName: cast.ToString(scheduleNameField, obj[scheduleNameField]),
+		DeliveryType: cast.ToString(deliveryTypeField, datum[deliveryTypeField]),
+		ScheduleName: cast.ToString(scheduleNameField, datum[scheduleNameField]),
 		Base:         base,
 	}
 
-	if obj[rateField] != nil {
-		basal.Rate = cast.ToFloat64(rateField, obj[rateField])
+	if datum[rateField] != nil {
+		basal.Rate = cast.ToFloat64(rateField, datum[rateField])
 	}
-	if obj[durationField] != nil {
-		basal.Duration = cast.ToInt(durationField, obj[durationField])
+	if datum[durationField] != nil {
+		basal.Duration = cast.ToInt(durationField, datum[durationField])
 	}
-	if obj[insulinField] != nil {
-		basal.Insulin = cast.ToString(insulinField, obj[insulinField])
+	if datum[insulinField] != nil {
+		basal.Insulin = cast.ToString(insulinField, datum[insulinField])
 	}
 
 	if validationErrors := validator.Struct(basal); len(validationErrors) > 0 {
@@ -152,15 +153,4 @@ func BasalValueValidator(v *valid.Validate, topStruct reflect.Value, currentStru
 		}
 	}
 	return false
-}
-
-//Selector will return the `unique` fields used in upserts
-func (b *Basal) Selector() interface{} {
-
-	unique := map[string]interface{}{}
-	unique[deliveryTypeField] = b.DeliveryType
-	unique[scheduleNameField] = b.ScheduleName
-	unique[deviceTimeField] = b.Time
-	unique[typeField] = b.Type
-	return unique
 }

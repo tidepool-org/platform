@@ -15,8 +15,8 @@ import (
 var validator = validate.NewPlatformValidator()
 
 func init() {
-	validator.RegisterValidation(timeStrTag, TimeStringValidator)
-	validator.RegisterValidation(timeObjTag, TimeObjectValidator)
+	validator.RegisterValidation(timeStringTag, TimeStringValidator)
+	validator.RegisterValidation(timeObjectTag, TimeObjectValidator)
 	validator.RegisterValidation(timeZoneOffsetTag, TimezoneOffsetValidator)
 	validator.RegisterValidation(payloadTag, PayloadValidator)
 	validator.RegisterValidation(annotationsTag, AnnotationsValidator)
@@ -66,9 +66,7 @@ var (
 )
 
 const (
-	//UserIDField is the userID
-	UserIDField = "userId"
-	//GroupIDField id the groupID
+	UserIDField  = "userId"
 	GroupIDField = "groupId"
 
 	deviceIDField = "deviceId"
@@ -85,19 +83,17 @@ const (
 	payloadField     = "payload"
 	annotationsField = "annotations"
 
-	//validation
 	tzValidationLowerLimit = -840
 	tzValidationUpperLimit = 720
 	timeStrValidationMsg   = "Times need to be ISO 8601 format and not in the future"
 
-	timeStrTag        validate.ValidationTag = "timestr"
-	timeObjTag        validate.ValidationTag = "timeobj"
+	timeStringTag     validate.ValidationTag = "timestr"
+	timeObjectTag     validate.ValidationTag = "timeobj"
 	timeZoneOffsetTag validate.ValidationTag = "timezoneoffset"
 	payloadTag        validate.ValidationTag = "payload"
 	annotationsTag    validate.ValidationTag = "annotations"
 )
 
-//BuildBase builds the base fields that all device data records contain
 func BuildBase(obj map[string]interface{}) (Base, *Error) {
 
 	errs := NewError(obj)
@@ -148,7 +144,7 @@ func BuildBase(obj map[string]interface{}) (Base, *Error) {
 }
 
 var validationFailureReasons = validate.ErrorReasons{
-	timeStrTag:        timeStrValidationMsg,
+	timeStringTag:     timeStrValidationMsg,
 	timeZoneOffsetTag: fmt.Sprintf("TimezoneOffset needs to be in minutes and greater than %d and less than %d", tzValidationLowerLimit, tzValidationUpperLimit),
 }
 
@@ -208,55 +204,49 @@ func isTimeStringValid(timeString string) bool {
 	return isTimeObjectValid(timeObject)
 }
 
-//Cast type for use in casting our incoming generic json data to the expected types that our data model uses
 type Cast struct {
 	err *Error
 }
 
-//NewCaster creates a Cast
 func NewCaster(err *Error) *Cast {
 	return &Cast{err: err}
 }
 
-//ToString will return the given data as a string or add an error to the cast obj
-func (cast *Cast) ToString(fieldName string, data interface{}) string {
+func (c *Cast) ToString(fieldName string, data interface{}) string {
 	if data == nil {
 		return ""
 	}
 	aString, ok := data.(string)
 	if !ok {
-		cast.err.AppendFieldError(fieldName, data)
+		c.err.AppendFieldError(fieldName, data)
 	}
 	return aString
 }
 
-//ToFloat64 will return the given data as a float64 or add an error to the cast obj
-func (cast *Cast) ToFloat64(fieldName string, data interface{}) float64 {
+func (c *Cast) ToFloat64(fieldName string, data interface{}) float64 {
 	if data == nil {
 		return 0.0
 	}
 	theFloat, ok := data.(float64)
 	if !ok {
-		cast.err.AppendFieldError(fieldName, data)
+		c.err.AppendFieldError(fieldName, data)
 	}
 	return theFloat
 }
 
-//ToInt will return the given data as a int or add an error to the cast obj
-func (cast *Cast) ToInt(fieldName string, data interface{}) int {
+func (c *Cast) ToInt(fieldName string, data interface{}) int {
 	if data == nil {
 		return 0
 	}
 	theInt, ok := data.(int)
 	if !ok {
-		theFloat := cast.ToFloat64(fieldName, data)
+		theFloat := c.ToFloat64(fieldName, data)
 		theInt = int(theFloat)
 	}
 	return theInt
 }
 
-//ToTime will return the given data as time.Time or add an error to the cast obj
-func (cast *Cast) ToTime(fieldName string, data interface{}) time.Time {
+func (c *Cast) ToTime(fieldName string, data interface{}) time.Time {
 	timeStr, ok := data.(string)
 	if ok {
 		theTime, err := time.Parse(time.RFC3339, timeStr)
@@ -265,21 +255,20 @@ func (cast *Cast) ToTime(fieldName string, data interface{}) time.Time {
 			theTime, err = time.Parse("2006-01-02T15:04:05", timeStr)
 		}
 
-		cast.err.AppendError(err)
+		c.err.AppendError(err)
 		return theTime
 	}
-	cast.err.AppendFieldError(fieldName, data)
+	c.err.AppendFieldError(fieldName, data)
 	return time.Time{}
 }
 
-//ToArray will return the given data as []interface{}
-func (cast *Cast) ToArray(fieldName string, data interface{}) []interface{} {
+func (c *Cast) ToArray(fieldName string, data interface{}) []interface{} {
 	if data == nil {
 		return nil
 	}
 	arrayData, ok := data.([]interface{})
 	if !ok {
-		cast.err.AppendFieldError(fieldName, data)
+		c.err.AppendFieldError(fieldName, data)
 		return nil
 	}
 	return arrayData
