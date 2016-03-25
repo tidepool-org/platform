@@ -12,7 +12,7 @@ import (
 
 //Validator interface
 type Validator interface {
-	Struct(s interface{}) Errors
+	Struct(s interface{}, errs *ErrorsArray)
 	Field(field interface{}, tag ValidationTag) Errors
 	RegisterValidation(tag ValidationTag, fn validator.Func)
 }
@@ -20,6 +20,7 @@ type Validator interface {
 //PlatformValidator type that implements Validator
 type PlatformValidator struct {
 	validate *validator.Validate
+	reasons  ErrorReasons
 }
 
 // FieldError contains a single field's validation error along
@@ -67,8 +68,8 @@ func (e Errors) Error() string {
 func (e Errors) GetError(reasons ErrorReasons) error {
 
 	const (
-		fieldErrorMsg = "Error:Field validation for '%s' failed with '%s' when given '%v' for type '%s' "
-		tagErrorMsg   = "Error:Field validation failed with '%s' when given '%v' for type '%s'"
+		fieldErrorMsg = "Field validation for '%s' failed with '%s' when given '%v' for type '%s' "
+		tagErrorMsg   = "Field validation failed with '%s' when given '%v' for type '%s'"
 	)
 
 	if len(e) > 0 {
@@ -91,14 +92,13 @@ func (e Errors) GetError(reasons ErrorReasons) error {
 		}
 		return errors.New(strings.TrimSpace(buff.String()))
 	}
-
 	return nil
 }
 
 //NewPlatformValidator returns initialised PlatformValidator with custom tidepool validation
-func NewPlatformValidator() *PlatformValidator {
+func NewPlatformValidator(reasons ErrorReasons) *PlatformValidator {
 	validate := validator.New(&validator.Config{TagName: "valid"})
-	return &PlatformValidator{validate: validate}
+	return &PlatformValidator{validate: validate, reasons: reasons}
 }
 
 func toErrors(ve validator.ValidationErrors) Errors {
@@ -109,13 +109,25 @@ func toErrors(ve validator.ValidationErrors) Errors {
 	return errs
 }
 
-//Struct validation for the PlatformValidator
-func (pv *PlatformValidator) Struct(s interface{}) Errors {
-	errs := pv.validate.Struct(s)
-	if errs != nil {
-		return toErrors(errs.(validator.ValidationErrors))
+func (pv *PlatformValidator) toErrorsArray(ve validator.ValidationErrors, errs *ErrorsArray) {
+
+	for _, v := range ve {
+		if reason, ok := pv.reasons[ValidationTag(v.Tag)]; ok {
+			errs.Append(NewPointerError(
+				fmt.Sprintf("//%s", v.Type),
+				"Validation Error",
+				fmt.Sprintf("Field validation for '%s' failed with '%s' when given '%v' for type '%s' ", v.Field, reason, v.Value, v.Type)),
+			)
+		}
 	}
-	return nil
+}
+
+//Struct validation for the PlatformValidator
+func (pv *PlatformValidator) Struct(s interface{}, errs *ErrorsArray) {
+	validationErrors := pv.validate.Struct(s)
+	if validationErrors != nil {
+		pv.toErrorsArray(validationErrors.(validator.ValidationErrors), errs)
+	}
 }
 
 //Field for the PlatformValidator

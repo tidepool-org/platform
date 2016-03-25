@@ -20,7 +20,7 @@ var _ = Describe("Validate", func() {
 			Payload interface{} `json:"payload,omitempty"  valid:"-"`
 		}
 		var (
-			validator = NewPlatformValidator()
+			validator = NewPlatformValidator(ErrorReasons{})
 		)
 		Context("is valid", func() {
 			It("all feilds set correctly", func() {
@@ -59,7 +59,7 @@ var _ = Describe("Validate", func() {
 			User   nestedUser
 		}
 		var (
-			validator = NewPlatformValidator()
+			validator = NewPlatformValidator(ErrorReasons{})
 		)
 		Context("is valid when", func() {
 			It("all feilds set correctly", func() {
@@ -89,8 +89,6 @@ var _ = Describe("Validate", func() {
 
 	Context("custom validator", func() {
 		var (
-			validator = NewPlatformValidator()
-
 			testValidator = func(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
 				//a place holder for more through validation
 				if val, ok := field.Interface().(int); ok {
@@ -103,6 +101,7 @@ var _ = Describe("Validate", func() {
 			validationFailureReasons = ErrorReasons{
 				"custom": "Bad offset sorry",
 			}
+			validator = NewPlatformValidator(validationFailureReasons)
 		)
 		type ValidationTest struct {
 			Offset int `json:"offset" valid:"custom"`
@@ -120,7 +119,7 @@ var _ = Describe("Validate", func() {
 			none := ValidationTest{Offset: 0}
 			errs := validator.Struct(none)
 			if errs != nil {
-				Expect(errs.GetError(validationFailureReasons).Error()).To(Equal("Error:Field validation for 'Offset' failed with 'Bad offset sorry' when given '0' for type 'int'"))
+				Expect(errs.Errors[0].Detail).To(ContainSubstring("Field validation for 'Offset' failed with 'Bad offset sorry' when given '0' for type 'int'"))
 			}
 		})
 		It("fails field validation", func() {
@@ -131,7 +130,7 @@ var _ = Describe("Validate", func() {
 			none := ValidationTest{Offset: 99}
 			errs := validator.Field(none.Offset, "custom")
 			if errs != nil {
-				Expect(errs.GetError(validationFailureReasons).Error()).To(Equal("Error:Field validation failed with 'Bad offset sorry' when given '99' for type 'int'"))
+				Expect(errs.GetError(validationFailureReasons).Error()).To(Equal("Field validation failed with 'Bad offset sorry' when given '99' for type 'int'"))
 			}
 		})
 		It("passes field validation", func() {

@@ -12,7 +12,7 @@ import (
 )
 
 //used for all data types
-var validator = validate.NewPlatformValidator()
+var validator = validate.NewPlatformValidator(validationFailureReasons)
 
 func init() {
 	validator.RegisterValidation(timeStringTag, TimeStringValidator)
@@ -34,10 +34,10 @@ type Base struct {
 	UploadID string        `json:"uploadId" bson:"uploadId" valid:"-"`
 
 	//optional data
-	DeviceTime       string        `json:"deviceTime,omitempty" bson:"deviceTime,omitempty" valid:"omitempty,timestr"`
-	TimezoneOffset   int           `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty" valid:"omitempty,timezoneoffset"`
-	ConversionOffset int           `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty" valid:"omitempty,required"`
-	ClockDriftOffset int           `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty" valid:"omitempty,required"`
+	DeviceTime       *string       `json:"deviceTime,omitempty" bson:"deviceTime,omitempty" valid:"omitempty,timestr"`
+	TimezoneOffset   *int          `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty" valid:"omitempty,timezoneoffset"`
+	ConversionOffset *int          `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty" valid:"omitempty,required"`
+	ClockDriftOffset *int          `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty" valid:"omitempty,required"`
 	Payload          interface{}   `json:"payload,omitempty" bson:"payload,omitempty" valid:"omitempty,payload"`
 	Annotations      []interface{} `json:"annotations,omitempty" bson:"annotations,omitempty" valid:"omitempty,annotations"`
 
@@ -88,59 +88,64 @@ const (
 	timeStrValidationMsg   = "Times need to be ISO 8601 format and not in the future"
 
 	timeStringTag     validate.ValidationTag = "timestr"
-	timeObjectTag     validate.ValidationTag = "timeobj"
+	timeObjectTag     validate.ValidationTag = "timeobject"
 	timeZoneOffsetTag validate.ValidationTag = "timezoneoffset"
 	payloadTag        validate.ValidationTag = "payload"
 	annotationsTag    validate.ValidationTag = "annotations"
 )
 
-func BuildBase(obj map[string]interface{}) (Base, *Error) {
-
-	errs := NewError(obj)
-	cast := NewCaster(errs)
+func BuildBase(datum Datum, errs *validate.ErrorsArray) Base {
 
 	base := Base{
 		_ID:      bson.NewObjectId(),
 		ID:       bson.NewObjectId().Hex(),
-		UserID:   cast.ToString(UserIDField, obj[UserIDField]),
-		DeviceID: cast.ToString(deviceIDField, obj[deviceIDField]),
-		UploadID: cast.ToString(uploadIDField, obj[uploadIDField]),
-		Time:     cast.ToString(timeField, obj[timeField]),
-		Type:     cast.ToString(typeField, obj[typeField]),
-		Payload:  obj[payloadField],
+		UserID:   datum[UserIDField].(string),
+		DeviceID: datum[deviceIDField].(string),
+		UploadID: datum[uploadIDField].(string),
+		Time:     datum[timeField].(string),
+		Type:     datum[typeField].(string),
+		Payload:  datum[payloadField],
 		Internal: Internal{
-			GroupID:       cast.ToString(GroupIDField, obj[GroupIDField]),
+			GroupID:       datum[GroupIDField].(string),
 			ActiveFlag:    true,
 			SchemaVersion: 1, //TODO: configured ??
 			CreatedTime:   time.Now().Format(time.RFC3339),
 		},
 	}
 
-	//set optional data
-	if obj[conversionOffsetField] != nil {
-		base.ConversionOffset = cast.ToInt(conversionOffsetField, obj[conversionOffsetField])
-	}
-	if obj[conversionOffsetField] != nil {
-		base.ConversionOffset = cast.ToInt(conversionOffsetField, obj[conversionOffsetField])
-	}
-	if obj[timezoneOffsetField] != nil {
-		base.TimezoneOffset = cast.ToInt(timezoneOffsetField, obj[timezoneOffsetField])
-	}
-	if obj[timezoneOffsetField] != nil {
-		base.ClockDriftOffset = cast.ToInt(clockDriftOffsetField, obj[clockDriftOffsetField])
-	}
-	if obj[timezoneOffsetField] != nil {
-		base.DeviceTime = cast.ToString(deviceTimeField, obj[deviceTimeField])
-	}
-	if obj[annotationsField] != nil {
-		base.Annotations = cast.ToArray(annotationsField, obj[annotationsField])
+	if offset, err := ToInt(conversionOffsetField, datum[conversionOffsetField]); err == nil {
+		base.ConversionOffset = offset
+	} else {
+		errs.Append(err)
 	}
 
-	if validationErrors := validator.Struct(base); len(validationErrors) > 0 {
-		errs.AppendError(validationErrors.GetError(validationFailureReasons))
+	if timezoneOffset, err := ToInt(timezoneOffsetField, datum[timezoneOffsetField]); err == nil {
+		base.TimezoneOffset = timezoneOffset
+	} else {
+		errs.Append(err)
 	}
 
-	return base, errs
+	if clockDriftOffset, err := ToInt(clockDriftOffsetField, datum[clockDriftOffsetField]); err == nil {
+		base.ClockDriftOffset = clockDriftOffset
+	} else {
+		errs.Append(err)
+	}
+
+	if deviceTime, err := ToString(deviceTimeField, datum[deviceTimeField]); err == nil {
+		base.DeviceTime = deviceTime
+	} else {
+		errs.Append(err)
+	}
+
+	if annotations, err := ToArray(annotationsField, datum[annotationsField]); err == nil {
+		base.Annotations = annotations
+	} else {
+		errs.Append(err)
+	}
+
+	validator.Struct(base, errs)
+
+	return base
 }
 
 var validationFailureReasons = validate.ErrorReasons{
@@ -174,14 +179,14 @@ func TimezoneOffsetValidator(v *valid.Validate, topStruct reflect.Value, current
 }
 
 func TimeObjectValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	if timeObject, ok := field.Interface().(time.Time); ok {
-		return isTimeObjectValid(timeObject)
+	if timedatumect, ok := field.Interface().(time.Time); ok {
+		return isTimeObjectValid(timedatumect)
 	}
 	return false
 }
 
-func isTimeObjectValid(timeObject time.Time) bool {
-	return !timeObject.IsZero() && timeObject.Before(time.Now())
+func isTimeObjectValid(timedatumect time.Time) bool {
+	return !timedatumect.IsZero() && timedatumect.Before(time.Now())
 }
 
 func TimeStringValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
@@ -192,61 +197,52 @@ func TimeStringValidator(v *valid.Validate, topStruct reflect.Value, currentStru
 }
 
 func isTimeStringValid(timeString string) bool {
-	var timeObject time.Time
-	timeObject, err := time.Parse(time.RFC3339, timeString)
+	var timedatumect time.Time
+	timedatumect, err := time.Parse(time.RFC3339, timeString)
 	if err != nil {
-		timeObject, err = time.Parse("2006-01-02T15:04:05", timeString)
+		timedatumect, err = time.Parse("2006-01-02T15:04:05", timeString)
 		if err != nil {
 			return false
 		}
 	}
 
-	return isTimeObjectValid(timeObject)
+	return isTimedatumectValid(timedatumect)
 }
 
-type Cast struct {
-	err *Error
-}
-
-func NewCaster(err *Error) *Cast {
-	return &Cast{err: err}
-}
-
-func (c *Cast) ToString(fieldName string, data interface{}) string {
+func ToString(fieldName string, data interface{}) (*string, *validate.Error) {
 	if data == nil {
-		return ""
+		return nil, nil
 	}
-	aString, ok := data.(string)
+	aString, ok := data.(*string)
 	if !ok {
-		c.err.AppendFieldError(fieldName, data)
+		return nil, validate.NewPointerError(fieldName, "Invalid type", "detail")
 	}
-	return aString
+	return aString, nil
 }
 
-func (c *Cast) ToFloat64(fieldName string, data interface{}) float64 {
+func ToFloat64(fieldName string, data interface{}) (*float64, *validate.Error) {
 	if data == nil {
-		return 0.0
+		return nil, nil
 	}
-	theFloat, ok := data.(float64)
+	theFloat, ok := data.(*float64)
 	if !ok {
-		c.err.AppendFieldError(fieldName, data)
+		return nil, validate.NewPointerError(fieldName, "Invalid type", "detail")
 	}
-	return theFloat
+	return theFloat, nil
 }
 
-func (c *Cast) ToInt(fieldName string, data interface{}) int {
+func ToInt(fieldName string, data interface{}) (*int, *validate.Error) {
 	if data == nil {
-		return 0
+		return nil, nil
 	}
-	theInt, ok := data.(int)
+	theInt, ok := data.(*int)
 	if !ok {
-		theFloat := c.ToFloat64(fieldName, data)
-		theInt = int(theFloat)
+		return nil, validate.NewPointerError(fieldName, "Invalid type", "detail")
 	}
-	return theInt
+	return theInt, nil
 }
 
-func (c *Cast) ToTime(fieldName string, data interface{}) time.Time {
+func ToTime(fieldName string, data interface{}) (*time.Time, *validate.Error) {
 	timeStr, ok := data.(string)
 	if ok {
 		theTime, err := time.Parse(time.RFC3339, timeStr)
@@ -262,7 +258,7 @@ func (c *Cast) ToTime(fieldName string, data interface{}) time.Time {
 	return time.Time{}
 }
 
-func (c *Cast) ToArray(fieldName string, data interface{}) []interface{} {
+func ToArray(fieldName string, data interface{}) ([]interface{}, *validate.Error) {
 	if data == nil {
 		return nil
 	}

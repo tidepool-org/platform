@@ -12,17 +12,17 @@ import (
 var _ = Describe("Base", func() {
 
 	const (
-		userid   = "b676436f60"
-		groupid  = "43099shgs55"
-		uploadid = "upid_b856b0e6e519"
+		userID   = "b676436f60"
+		groupID  = "43099shgs55"
+		uploadID = "upid_b856b0e6e519"
 	)
 
 	Context("can be built with all fields", func() {
 		var (
 			basalObj = map[string]interface{}{
-				"userId":           userid,  //userid would have been injected by now via the builder
-				"groupId":          groupid, //groupId would have been injected by now via the builder
-				"uploadId":         uploadid,
+				"userId":           userID,  //userID would have been injected by now via the builder
+				"groupId":          groupID, //groupId would have been injected by now via the builder
+				"uploadId":         uploadID,
 				"deviceTime":       "2014-06-11T06:00:00.000Z",
 				"time":             "2014-06-11T06:00:00.000Z",
 				"timezoneOffset":   0,
@@ -52,9 +52,9 @@ var _ = Describe("Base", func() {
 
 		var (
 			basalObj = map[string]interface{}{
-				"userId":     userid, //userid would have been injected by now via the builder
-				"groupId":    groupid,
-				"uploadId":   uploadid,
+				"userId":     userID, //userID would have been injected by now via the builder
+				"groupId":    groupID,
+				"uploadId":   uploadID,
 				"deviceTime": "2014-06-11T06:00:00.000Z",
 				"time":       "2014-06-11T06:00:00.000Z",
 				"type":       "basal",

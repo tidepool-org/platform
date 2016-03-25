@@ -20,11 +20,11 @@ func init() {
 type Basal struct {
 	DeliveryType string           `json:"deliveryType" bson:"deliveryType" valid:"basaldeliverytype"`
 	ScheduleName string           `json:"scheduleName" bson:"scheduleName" valid:"omitempty,required"`
-	Rate         float64          `json:"rate" bson:"rate" valid:"omitempty,basalrate"`
-	Duration     int              `json:"duration" bson:"duration" valid:"omitempty,basalduration"`
-	Insulin      string           `json:"insulin" bson:"insulin,omitempty" valid:"omitempty,basalinsulin"`
-	Value        int              `json:"value" bson:"value,omitempty" valid:"omitempty,basalvalue"`
-	Suppressed   *SuppressedBasal `json:"suppressed" bson:"suppressed,omitempty" valid:"omitempty,required"`
+	Rate         float64          `json:"rate,omitempty" bson:"rate,omitempty" valid:"omitempty,basalrate"`
+	Duration     int              `json:"duration,omitempty" bson:"duration,omitempty" valid:"omitempty,basalduration"`
+	Insulin      string           `json:"insulin,omitempty" bson:"insulin,omitempty" valid:"omitempty,basalinsulin"`
+	Value        int              `json:"value,omitempty" bson:"value,omitempty" valid:"omitempty,basalvalue"`
+	Suppressed   *SuppressedBasal `json:"suppressed,omitempty" bson:"suppressed,omitempty" valid:"omitempty,required"`
 	Base         `bson:",inline"`
 }
 
@@ -79,35 +79,47 @@ var (
 )
 
 //BuildBasal will build a Basal record
-func BuildBasal(datum Datum) (*Basal, *Error) {
+func BuildBasal(datum Datum, errs *validate.ErrorsArray) *Basal {
 
-	base, errs := BuildBase(datum)
-	cast := NewCaster(errs)
+	base := BuildBase(datum, errs)
 
 	basal := &Basal{
-		DeliveryType: cast.ToString(deliveryTypeField, datum[deliveryTypeField]),
-		ScheduleName: cast.ToString(scheduleNameField, datum[scheduleNameField]),
-		Base:         base,
+		Base: base,
 	}
 
-	if datum[rateField] != nil {
-		basal.Rate = cast.ToFloat64(rateField, datum[rateField])
-	}
-	if datum[durationField] != nil {
-		basal.Duration = cast.ToInt(durationField, datum[durationField])
-	}
-	if datum[insulinField] != nil {
-		basal.Insulin = cast.ToString(insulinField, datum[insulinField])
+	if scheduleName, err := ToString(scheduleNameField, datum[scheduleNameField]); err == nil {
+		basal.ScheduleName = scheduleName
+	} else {
+		errs.Append(err)
 	}
 
-	if validationErrors := validator.Struct(basal); len(validationErrors) > 0 {
-		errs.AppendError(validationErrors.GetError(basalFailureReasons))
+	if deliveryType, err := ToString(deliveryTypeField, datum[deliveryTypeField]); err == nil {
+		basal.DeliveryType = deliveryType
+	} else {
+		errs.Append(err)
 	}
 
-	if errs.IsEmpty() {
-		return basal, nil
+	if rate, err := ToFloat64(rateField, datum[rateField]); err == nil {
+		basal.Rate = rate
+	} else {
+		errs.Append(err)
 	}
-	return basal, errs
+
+	if duration, err := ToInt(durationField, datum[durationField]); err == nil {
+		basal.Duration = duration
+	} else {
+		errs.Append(err)
+	}
+
+	if insulin, err := ToString(insulinField, datum[insulinField]); err == nil {
+		basal.Insulin = insulin
+	} else {
+		errs.Append(err)
+	}
+
+	validator.Struct(basal, errs)
+
+	return basal
 }
 
 func BasalRateValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
