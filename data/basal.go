@@ -18,21 +18,21 @@ func init() {
 }
 
 type Basal struct {
-	DeliveryType string           `json:"deliveryType" bson:"deliveryType" valid:"basaldeliverytype"`
-	ScheduleName string           `json:"scheduleName" bson:"scheduleName" valid:"omitempty,required"`
-	Rate         float64          `json:"rate,omitempty" bson:"rate,omitempty" valid:"omitempty,basalrate"`
-	Duration     int              `json:"duration,omitempty" bson:"duration,omitempty" valid:"omitempty,basalduration"`
-	Insulin      string           `json:"insulin,omitempty" bson:"insulin,omitempty" valid:"omitempty,basalinsulin"`
-	Value        int              `json:"value,omitempty" bson:"value,omitempty" valid:"omitempty,basalvalue"`
+	DeliveryType *string          `json:"deliveryType" bson:"deliveryType" valid:"basaldeliverytype"`
+	ScheduleName *string          `json:"scheduleName" bson:"scheduleName" valid:"omitempty,required"`
+	Rate         *float64         `json:"rate,omitempty" bson:"rate,omitempty" valid:"omitempty,basalrate"`
+	Duration     *int             `json:"duration,omitempty" bson:"duration,omitempty" valid:"omitempty,basalduration"`
+	Insulin      *string          `json:"insulin,omitempty" bson:"insulin,omitempty" valid:"omitempty,basalinsulin"`
+	Value        *int             `json:"value,omitempty" bson:"value,omitempty" valid:"omitempty,basalvalue"`
 	Suppressed   *SuppressedBasal `json:"suppressed,omitempty" bson:"suppressed,omitempty" valid:"omitempty,required"`
 	Base         `bson:",inline"`
 }
 
 type SuppressedBasal struct {
-	Type         string  `json:"type" bson:"type" valid:"required"`
-	DeliveryType string  `json:"deliveryType" bson:"deliveryType" valid:"basaldeliverytype"`
-	ScheduleName string  `json:"scheduleName" bson:"scheduleName" valid:"omitempty,required"`
-	Rate         float64 `json:"rate" bson:"rate" valid:"omitempty,basalrate"`
+	Type         *string  `json:"type" bson:"type" valid:"required"`
+	DeliveryType *string  `json:"deliveryType" bson:"deliveryType" valid:"basaldeliverytype"`
+	ScheduleName *string  `json:"scheduleName" bson:"scheduleName" valid:"omitempty,required"`
+	Rate         *float64 `json:"rate" bson:"rate" valid:"omitempty,basalrate"`
 }
 
 const (
@@ -79,45 +79,18 @@ var (
 )
 
 //BuildBasal will build a Basal record
-func BuildBasal(datum Datum, errs *validate.ErrorsArray) *Basal {
-
-	base := BuildBase(datum, errs)
+func BuildBasal(datum Datum, errs validate.ErrorProcessing) *Basal {
 
 	basal := &Basal{
-		Base: base,
+		ScheduleName: ToString(scheduleNameField, datum[scheduleNameField], errs),
+		DeliveryType: ToString(deliveryTypeField, datum[deliveryTypeField], errs),
+		Rate:         ToFloat64(rateField, datum[rateField], errs),
+		Duration:     ToInt(durationField, datum[durationField], errs),
+		Insulin:      ToString(insulinField, datum[insulinField], errs),
+		Base:         BuildBase(datum, errs),
 	}
 
-	if scheduleName, err := ToString(scheduleNameField, datum[scheduleNameField]); err == nil {
-		basal.ScheduleName = scheduleName
-	} else {
-		errs.Append(err)
-	}
-
-	if deliveryType, err := ToString(deliveryTypeField, datum[deliveryTypeField]); err == nil {
-		basal.DeliveryType = deliveryType
-	} else {
-		errs.Append(err)
-	}
-
-	if rate, err := ToFloat64(rateField, datum[rateField]); err == nil {
-		basal.Rate = rate
-	} else {
-		errs.Append(err)
-	}
-
-	if duration, err := ToInt(durationField, datum[durationField]); err == nil {
-		basal.Duration = duration
-	} else {
-		errs.Append(err)
-	}
-
-	if insulin, err := ToString(insulinField, datum[insulinField]); err == nil {
-		basal.Insulin = insulin
-	} else {
-		errs.Append(err)
-	}
-
-	validator.Struct(basal, errs)
+	validator.SetErrorReasons(basalFailureReasons).Struct(basal, errs)
 
 	return basal
 }

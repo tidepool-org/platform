@@ -12,7 +12,7 @@ import (
 )
 
 //used for all data types
-var validator = validate.NewPlatformValidator(validationFailureReasons)
+var validator = validate.NewPlatformValidator()
 
 func init() {
 	validator.RegisterValidation(timeStringTag, TimeStringValidator)
@@ -94,17 +94,22 @@ const (
 	annotationsTag    validate.ValidationTag = "annotations"
 )
 
-func BuildBase(datum Datum, errs *validate.ErrorsArray) Base {
+func BuildBase(datum Datum, errs validate.ErrorProcessing) Base {
 
 	base := Base{
-		_ID:      bson.NewObjectId(),
-		ID:       bson.NewObjectId().Hex(),
-		UserID:   datum[UserIDField].(string),
-		DeviceID: datum[deviceIDField].(string),
-		UploadID: datum[uploadIDField].(string),
-		Time:     datum[timeField].(string),
-		Type:     datum[typeField].(string),
-		Payload:  datum[payloadField],
+		_ID:              bson.NewObjectId(),
+		ID:               bson.NewObjectId().Hex(),
+		UserID:           datum[UserIDField].(string),
+		DeviceID:         datum[deviceIDField].(string),
+		UploadID:         datum[uploadIDField].(string),
+		Time:             datum[timeField].(string),
+		Type:             datum[typeField].(string),
+		Payload:          datum[payloadField],
+		ConversionOffset: ToInt(conversionOffsetField, datum[conversionOffsetField], errs),
+		TimezoneOffset:   ToInt(timezoneOffsetField, datum[timezoneOffsetField], errs),
+		ClockDriftOffset: ToInt(clockDriftOffsetField, datum[clockDriftOffsetField], errs),
+		DeviceTime:       ToString(deviceTimeField, datum[deviceTimeField], errs),
+		Annotations:      ToArray(annotationsField, datum[annotationsField], errs),
 		Internal: Internal{
 			GroupID:       datum[GroupIDField].(string),
 			ActiveFlag:    true,
@@ -113,37 +118,7 @@ func BuildBase(datum Datum, errs *validate.ErrorsArray) Base {
 		},
 	}
 
-	if offset, err := ToInt(conversionOffsetField, datum[conversionOffsetField]); err == nil {
-		base.ConversionOffset = offset
-	} else {
-		errs.Append(err)
-	}
-
-	if timezoneOffset, err := ToInt(timezoneOffsetField, datum[timezoneOffsetField]); err == nil {
-		base.TimezoneOffset = timezoneOffset
-	} else {
-		errs.Append(err)
-	}
-
-	if clockDriftOffset, err := ToInt(clockDriftOffsetField, datum[clockDriftOffsetField]); err == nil {
-		base.ClockDriftOffset = clockDriftOffset
-	} else {
-		errs.Append(err)
-	}
-
-	if deviceTime, err := ToString(deviceTimeField, datum[deviceTimeField]); err == nil {
-		base.DeviceTime = deviceTime
-	} else {
-		errs.Append(err)
-	}
-
-	if annotations, err := ToArray(annotationsField, datum[annotationsField]); err == nil {
-		base.Annotations = annotations
-	} else {
-		errs.Append(err)
-	}
-
-	validator.Struct(base, errs)
+	validator.SetErrorReasons(validationFailureReasons).Struct(base, errs)
 
 	return base
 }
@@ -179,14 +154,14 @@ func TimezoneOffsetValidator(v *valid.Validate, topStruct reflect.Value, current
 }
 
 func TimeObjectValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	if timedatumect, ok := field.Interface().(time.Time); ok {
-		return isTimeObjectValid(timedatumect)
+	if timeObject, ok := field.Interface().(time.Time); ok {
+		return isTimeObjectValid(timeObject)
 	}
 	return false
 }
 
-func isTimeObjectValid(timedatumect time.Time) bool {
-	return !timedatumect.IsZero() && timedatumect.Before(time.Now())
+func isTimeObjectValid(timeObject time.Time) bool {
+	return !timeObject.IsZero() && timeObject.Before(time.Now())
 }
 
 func TimeStringValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
@@ -197,74 +172,80 @@ func TimeStringValidator(v *valid.Validate, topStruct reflect.Value, currentStru
 }
 
 func isTimeStringValid(timeString string) bool {
-	var timedatumect time.Time
-	timedatumect, err := time.Parse(time.RFC3339, timeString)
+	var timeObject time.Time
+	timeObject, err := time.Parse(time.RFC3339, timeString)
 	if err != nil {
-		timedatumect, err = time.Parse("2006-01-02T15:04:05", timeString)
+		timeObject, err = time.Parse("2006-01-02T15:04:05", timeString)
 		if err != nil {
 			return false
 		}
 	}
 
-	return isTimedatumectValid(timedatumect)
+	return isTimeObjectValid(timeObject)
 }
 
-func ToString(fieldName string, data interface{}) (*string, *validate.Error) {
+func ToString(fieldName string, data interface{}, errs validate.ErrorProcessing) *string {
 	if data == nil {
-		return nil, nil
+		return nil
 	}
 	aString, ok := data.(*string)
 	if !ok {
-		return nil, validate.NewPointerError(fieldName, "Invalid type", "detail")
+		errs.Append(validate.NewPointerError(errs.BasePath+"/"+fieldName, "Invalid type", "should be of type string"))
+		return nil
 	}
-	return aString, nil
+	return aString
 }
 
-func ToFloat64(fieldName string, data interface{}) (*float64, *validate.Error) {
+func ToFloat64(fieldName string, data interface{}, errs validate.ErrorProcessing) *float64 {
 	if data == nil {
-		return nil, nil
+		return nil
 	}
 	theFloat, ok := data.(*float64)
 	if !ok {
-		return nil, validate.NewPointerError(fieldName, "Invalid type", "detail")
+		errs.Append(validate.NewPointerError(errs.BasePath+"/"+fieldName, "Invalid type", "should be of type float"))
+		return nil
 	}
-	return theFloat, nil
+	return theFloat
 }
 
-func ToInt(fieldName string, data interface{}) (*int, *validate.Error) {
+func ToInt(fieldName string, data interface{}, errs validate.ErrorProcessing) *int {
 	if data == nil {
-		return nil, nil
+		return nil
 	}
 	theInt, ok := data.(*int)
 	if !ok {
-		return nil, validate.NewPointerError(fieldName, "Invalid type", "detail")
+		errs.Append(validate.NewPointerError(errs.BasePath+"/"+fieldName, "Invalid type", "should be of type integer"))
+		return nil
 	}
-	return theInt, nil
+	return theInt
 }
 
-func ToTime(fieldName string, data interface{}) (*time.Time, *validate.Error) {
+func ToTime(fieldName string, data interface{}, errs validate.ErrorProcessing) *time.Time {
+
 	timeStr, ok := data.(string)
-	if ok {
-		theTime, err := time.Parse(time.RFC3339, timeStr)
-		if err != nil {
-			//try this format also before we fail
-			theTime, err = time.Parse("2006-01-02T15:04:05", timeStr)
-		}
-
-		c.err.AppendError(err)
-		return theTime
+	if !ok {
+		errs.Append(validate.NewPointerError(errs.BasePath+"/"+fieldName, "Invalid type", "should be of type string"))
+		return nil
 	}
-	c.err.AppendFieldError(fieldName, data)
-	return time.Time{}
+	theTime, err := time.Parse(time.RFC3339, timeStr)
+	if err != nil {
+		//try this format also before we fail
+		theTime, err = time.Parse("2006-01-02T15:04:05", timeStr)
+		if err != nil {
+			errs.Append(validate.NewPointerError(errs.BasePath+"/"+fieldName, "Invalid type", "should be of type string"))
+			return nil
+		}
+	}
+	return &theTime
 }
 
-func ToArray(fieldName string, data interface{}) ([]interface{}, *validate.Error) {
+func ToArray(fieldName string, data interface{}, errs validate.ErrorProcessing) []interface{} {
 	if data == nil {
 		return nil
 	}
 	arrayData, ok := data.([]interface{})
 	if !ok {
-		c.err.AppendFieldError(fieldName, data)
+		errs.Append(validate.NewPointerError(errs.BasePath+"/"+fieldName, "Invalid type", "should be of type array"))
 		return nil
 	}
 	return arrayData

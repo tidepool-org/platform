@@ -58,9 +58,9 @@ func (t *TypeBuilder) BuildFromDatum(datum Datum) interface{} {
 		}
 
 		if strings.ToLower(datum[typeField].(string)) == strings.ToLower(BasalName) {
-			return BuildBasal(datum, t.Errors)
+			return BuildBasal(datum, validate.ErrorProcessing{BasePath: fmt.Sprintf("%d/%s", t.Index, strings.ToLower(BasalName)), ErrorsArray: t.Errors})
 		} else if strings.ToLower(datum[typeField].(string)) == strings.ToLower(DeviceEventName) {
-			return BuildDeviceEvent(datum, t.Errors)
+			return BuildDeviceEvent(datum, validate.ErrorProcessing{BasePath: fmt.Sprintf("%d/%s", t.Index, strings.ToLower(BasalName)), ErrorsArray: t.Errors})
 		}
 		t.Errors.Append(validate.NewPointerError(fmt.Sprintf("%d/type", t.Index), "Invalid type", "The type must be one of `basal`, `deviceEvent`"))
 		return nil

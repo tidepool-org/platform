@@ -96,9 +96,14 @@ func (e Errors) GetError(reasons ErrorReasons) error {
 }
 
 //NewPlatformValidator returns initialised PlatformValidator with custom tidepool validation
-func NewPlatformValidator(reasons ErrorReasons) *PlatformValidator {
+func NewPlatformValidator() *PlatformValidator {
 	validate := validator.New(&validator.Config{TagName: "valid"})
-	return &PlatformValidator{validate: validate, reasons: reasons}
+	return &PlatformValidator{validate: validate}
+}
+
+func (pv *PlatformValidator) SetErrorReasons(reasons ErrorReasons) *PlatformValidator {
+	pv.reasons = reasons
+	return pv
 }
 
 func toErrors(ve validator.ValidationErrors) Errors {
@@ -109,35 +114,32 @@ func toErrors(ve validator.ValidationErrors) Errors {
 	return errs
 }
 
-func (pv *PlatformValidator) toErrorsArray(ve validator.ValidationErrors, errs *ErrorsArray) {
-
+func (pv *PlatformValidator) toErrorsArray(ve validator.ValidationErrors, errorProcessing ErrorProcessing) {
 	for _, v := range ve {
 		if reason, ok := pv.reasons[ValidationTag(v.Tag)]; ok {
-			errs.Append(NewPointerError(
-				fmt.Sprintf("//%s", v.Type),
+			errorProcessing.Append(NewPointerError(
+				fmt.Sprintf("%s/%s", errorProcessing.BasePath, v.Type),
 				"Validation Error",
-				fmt.Sprintf("Field validation for '%s' failed with '%s' when given '%v' for type '%s' ", v.Field, reason, v.Value, v.Type)),
+				fmt.Sprintf("'%s' failed with '%s' when given '%v' for type '%s' ", v.Field, reason, v.Value, v.Type)),
 			)
 		}
 	}
 }
 
 //Struct validation for the PlatformValidator
-func (pv *PlatformValidator) Struct(s interface{}, errs *ErrorsArray) {
+func (pv *PlatformValidator) Struct(s interface{}, errorProcessing ErrorProcessing) {
 	validationErrors := pv.validate.Struct(s)
 	if validationErrors != nil {
-		pv.toErrorsArray(validationErrors.(validator.ValidationErrors), errs)
+		pv.toErrorsArray(validationErrors.(validator.ValidationErrors), errorProcessing)
 	}
 }
 
 //Field for the PlatformValidator
-//NOTE: this is really used in tests at this stage
-func (pv *PlatformValidator) Field(field interface{}, tag ValidationTag) Errors {
-	errs := pv.validate.Field(field, string(tag))
-	if errs != nil {
-		return toErrors(errs.(validator.ValidationErrors))
+func (pv *PlatformValidator) Field(field interface{}, tag ValidationTag, errorProcessing ErrorProcessing) {
+	validationErrors := pv.validate.Field(field, string(tag))
+	if validationErrors != nil {
+		pv.toErrorsArray(validationErrors.(validator.ValidationErrors), errorProcessing)
 	}
-	return nil
 }
 
 //RegisterValidation so we can add our own validation functions

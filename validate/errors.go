@@ -10,6 +10,11 @@ type ErrorsArray struct {
 	Errors []*Error `json:"errors"`
 }
 
+type ErrorProcessing struct {
+	BasePath string
+	*ErrorsArray
+}
+
 func NewErrorsArray() *ErrorsArray {
 	return &ErrorsArray{Errors: []*Error{}}
 }

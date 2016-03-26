@@ -100,50 +100,44 @@ func (client *DataServiceClient) PostDataset(w rest.ResponseWriter, r *rest.Requ
 
 	log.AddTrace(userid)
 
-	if checkPermisson(r, user.Permission{}) {
+	if !checkPermisson(r, user.Permission{}) {
+		rest.Error(w, missingPermissionsError, http.StatusUnauthorized)
+		return
+	}
 
-		groupID := r.Env[user.GROUPID]
+	groupID := r.Env[user.GROUPID]
 
-		if r.ContentLength == 0 || groupID == "" {
-			rest.Error(w, missingDataError, http.StatusBadRequest)
-			return
-		}
+	if r.ContentLength == 0 || groupID == "" {
+		rest.Error(w, missingDataError, http.StatusBadRequest)
+		return
+	}
 
-		var datumArray data.DatumArray
-		var processedDataset struct {
-			Data   []interface{} `json:"Data"`
-			Errors string        `json:"Errors"`
-		}
+	var datumArray data.DatumArray
 
-		err := r.DecodeJsonPayload(&datumArray)
+	err := r.DecodeJsonPayload(&datumArray)
 
-		if err != nil {
+	if err != nil {
+		rest.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	builder := data.NewTypeBuilder(map[string]interface{}{data.UserIDField: userid, data.GroupIDField: groupID})
+	platformData, platformErrors := builder.BuildFromDatumArray(datumArray)
+
+	if platformErrors.HasErrors() {
+		w.WriteHeader(http.StatusBadRequest)
+		w.WriteJson(&err)
+		return
+	}
+
+	//TODO: should this be a bulk insert?
+	for i := range platformData {
+		if err = client.dataStore.Save(platformData[i]); err != nil {
 			rest.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-
-		platformData, err := data.NewTypeBuilder(map[string]interface{}{data.UserIDField: userid, data.GroupIDField: groupID}).BuildFromDatumArray(datumArray)
-		processedDataset.Data = platformData
-		processedDataset.Errors = err.Error()
-
-		if err.Error() != "" {
-			w.WriteHeader(http.StatusBadRequest)
-			w.WriteJson(&processedDataset)
-			return
-		}
-
-		//TODO: should this be a bulk insert?
-		for i := range platformData {
-			if err = client.dataStore.Save(platformData[i]); err != nil {
-				rest.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		}
-
-		w.WriteJson(&processedDataset)
-		return
 	}
-	rest.Error(w, missingPermissionsError, http.StatusUnauthorized)
+	w.WriteHeader(http.StatusOK)
 	return
 }
 
