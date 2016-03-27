@@ -9,7 +9,6 @@ import (
 //Validator interface
 type Validator interface {
 	Struct(s interface{}, errorProcessing ErrorProcessing)
-	//Field(field interface{}, tag ValidationTag) Errors
 	RegisterValidation(tag ValidationTag, fn validator.Func)
 }
 
