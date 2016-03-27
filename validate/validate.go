@@ -42,7 +42,7 @@ func (pv *PlatformValidator) toErrorsArray(ve validator.ValidationErrors, errorP
 			errorProcessing.Append(NewPointerError(
 				fmt.Sprintf("%s/%s", errorProcessing.BasePath, v.Type),
 				"Validation Error",
-				fmt.Sprintf("'%s' failed with '%s' when given '%v' for type '%s' ", v.Field, reason, v.Value, v.Type)),
+				fmt.Sprintf("'%s' failed with '%s' when given '%v'", v.Field, reason, v.Value)),
 			)
 		}
 	}

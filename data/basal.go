@@ -62,7 +62,6 @@ const (
 	rateValidationLowerLimit     = 0.0
 	durationValidationLowerLimit = 0
 	valueValidationLowerLimit    = 0
-	validationGreaterThanInt     = "Must be greater than %d"
 )
 
 var (
@@ -71,9 +70,9 @@ var (
 
 	basalFailureReasons = validate.ErrorReasons{
 		deliveryTypeTag: fmt.Sprintf("Must be one of %s,%s,%s,%s", injectedDelivery, scheduledDelivery, suspendDelivery, tempDelivery),
-		rateTag:         fmt.Sprintf("Must be greater than %f", rateValidationLowerLimit),
-		durationTag:     fmt.Sprintf(validationGreaterThanInt, durationValidationLowerLimit),
-		valueTag:        fmt.Sprintf(validationGreaterThanInt, valueValidationLowerLimit),
+		rateTag:         fmt.Sprintf("Must be greater than %.1f", rateValidationLowerLimit),
+		durationTag:     fmt.Sprintf("Must be greater than %d", durationValidationLowerLimit),
+		valueTag:        fmt.Sprintf("Must be greater than %d", valueValidationLowerLimit),
 		insulinTag:      fmt.Sprintf("Must be one of %s,%s", levemirInsulin, lantusInsulin),
 	}
 )

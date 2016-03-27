@@ -188,36 +188,36 @@ func ToString(fieldName string, data interface{}, errs validate.ErrorProcessing)
 	if data == nil {
 		return nil
 	}
-	aString, ok := data.(*string)
+	aString, ok := data.(string)
 	if !ok {
 		errs.Append(validate.NewPointerError(errs.BasePath+"/"+fieldName, "Invalid type", "should be of type string"))
 		return nil
 	}
-	return aString
+	return &aString
 }
 
 func ToFloat64(fieldName string, data interface{}, errs validate.ErrorProcessing) *float64 {
 	if data == nil {
 		return nil
 	}
-	theFloat, ok := data.(*float64)
+	theFloat, ok := data.(float64)
 	if !ok {
 		errs.Append(validate.NewPointerError(errs.BasePath+"/"+fieldName, "Invalid type", "should be of type float"))
 		return nil
 	}
-	return theFloat
+	return &theFloat
 }
 
 func ToInt(fieldName string, data interface{}, errs validate.ErrorProcessing) *int {
 	if data == nil {
 		return nil
 	}
-	theInt, ok := data.(*int)
+	theInt, ok := data.(int)
 	if !ok {
 		errs.Append(validate.NewPointerError(errs.BasePath+"/"+fieldName, "Invalid type", "should be of type integer"))
 		return nil
 	}
-	return theInt
+	return &theInt
 }
 
 func ToTime(fieldName string, data interface{}, errs validate.ErrorProcessing) *time.Time {
