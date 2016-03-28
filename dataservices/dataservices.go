@@ -124,7 +124,7 @@ func (client *DataServiceClient) PostDataset(w rest.ResponseWriter, r *rest.Requ
 	builder := data.NewTypeBuilder(map[string]interface{}{data.UserIDField: userid, data.GroupIDField: groupID})
 	platformData, platformErrors := builder.BuildFromDatumArray(datumArray)
 
-	if platformErrors.HasErrors() {
+	if platformErrors != nil && platformErrors.HasErrors() {
 		w.WriteHeader(http.StatusBadRequest)
 		w.WriteJson(&err)
 		return

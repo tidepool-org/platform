@@ -213,7 +213,12 @@ func ToInt(fieldName string, data interface{}, errs validate.ErrorProcessing) *i
 		return nil
 	}
 	theInt, ok := data.(int)
+
 	if !ok {
+		if theInt == 0 {
+			return &theInt
+		}
+		log.Error("ToInt failure: ", theInt)
 		errs.Append(validate.NewPointerError(errs.BasePath+"/"+fieldName, "Invalid type", "should be of type integer"))
 		return nil
 	}

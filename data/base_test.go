@@ -76,7 +76,7 @@ var _ = Describe("Base", func() {
 
 		var processing validate.ErrorProcessing
 
-		Context("TimeStringValidator", func() {
+		Context("time", func() {
 			BeforeEach(func() {
 				processing = validate.ErrorProcessing{BasePath: "0/base", ErrorsArray: validate.NewErrorsArray()}
 			})
@@ -132,7 +132,7 @@ var _ = Describe("Base", func() {
 				})
 			})
 		})
-		Context("TimezoneOffsetValidator", func() {
+		Context("timezoneOffset", func() {
 
 			BeforeEach(func() {
 				processing = validate.ErrorProcessing{BasePath: "0/base", ErrorsArray: validate.NewErrorsArray()}
@@ -178,7 +178,7 @@ var _ = Describe("Base", func() {
 				})
 			})
 		})
-		Context("Payload", func() {
+		Context("payload", func() {
 			BeforeEach(func() {
 				processing = validate.ErrorProcessing{BasePath: "0/base", ErrorsArray: validate.NewErrorsArray()}
 			})
@@ -193,7 +193,7 @@ var _ = Describe("Base", func() {
 
 			})
 		})
-		Context("Annotations", func() {
+		Context("annotations", func() {
 
 			BeforeEach(func() {
 				processing = validate.ErrorProcessing{BasePath: "0/base", ErrorsArray: validate.NewErrorsArray()}
@@ -214,6 +214,18 @@ var _ = Describe("Base", func() {
 					Expect(processing.HasErrors()).To(BeFalse())
 				})
 			})
+		})
+	})
+	Context("convertions", func() {
+		It("int when zero", func() {
+			var intVal = map[string]interface{}{"myint": 0}
+			var processing = validate.ErrorProcessing{BasePath: "0/test", ErrorsArray: validate.NewErrorsArray()}
+			zero := 0
+
+			converted := ToInt("myint", intVal["myint"], processing)
+			Expect(converted).To(Equal(&zero))
+			Expect(processing.HasErrors()).To(BeFalse())
+
 		})
 	})
 })
