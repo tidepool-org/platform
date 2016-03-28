@@ -27,11 +27,11 @@ type Base struct {
 	//required data
 	_ID      bson.ObjectId `bson:"_id" valid:"mongo,required"`
 	ID       string        `json:"id" bson:"id" valid:"required"`
-	UserID   string        `json:"userId" bson:"userId" valid:"required"`
-	DeviceID string        `json:"deviceId" bson:"deviceId" valid:"required"`
-	Time     string        `json:"time" bson:"time" valid:"timestr"`
-	Type     string        `json:"type" bson:"type" valid:"required"`
-	UploadID string        `json:"uploadId" bson:"uploadId" valid:"-"`
+	UserID   *string       `json:"userId" bson:"userId" valid:"required"`
+	DeviceID *string       `json:"deviceId" bson:"deviceId" valid:"required"`
+	Time     *string       `json:"time" bson:"time" valid:"timestr"`
+	Type     *string       `json:"type" bson:"type" valid:"required"`
+	UploadID *string       `json:"uploadId" bson:"uploadId" valid:"-"`
 
 	//optional data
 	DeviceTime       *string       `json:"deviceTime,omitempty" bson:"deviceTime,omitempty" valid:"omitempty,timestr"`
@@ -99,11 +99,11 @@ func BuildBase(datum Datum, errs validate.ErrorProcessing) Base {
 	base := Base{
 		_ID:              bson.NewObjectId(),
 		ID:               bson.NewObjectId().Hex(),
-		UserID:           datum[UserIDField].(string),
-		DeviceID:         datum[deviceIDField].(string),
-		UploadID:         datum[uploadIDField].(string),
-		Time:             datum[timeField].(string),
-		Type:             datum[typeField].(string),
+		UserID:           ToString(UserIDField, datum[UserIDField], errs),
+		DeviceID:         ToString(deviceIDField, datum[deviceIDField], errs),
+		UploadID:         ToString(uploadIDField, datum[uploadIDField], errs),
+		Time:             ToString(timeField, datum[timeField], errs),
+		Type:             ToString(typeField, datum[typeField], errs),
 		Payload:          datum[payloadField],
 		ConversionOffset: ToInt(conversionOffsetField, datum[conversionOffsetField], errs),
 		TimezoneOffset:   ToInt(timezoneOffsetField, datum[timezoneOffsetField], errs),
