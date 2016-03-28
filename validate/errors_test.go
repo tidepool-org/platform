@@ -15,11 +15,13 @@ var _ = Describe("ErrorsArray", func() {
 		errs := validate.NewErrorsArray()
 		Expect(errs.HasErrors()).To(BeFalse())
 	})
+
 	It("returns true is it has errors", func() {
 		errs := validate.NewErrorsArray()
 		errs.Append(validate.NewPointerError("16/deviceTags/0", "Device tag is unknown.", "Device tags values must be one of cgm, ..."))
 		Expect(errs.HasErrors()).To(BeTrue())
 	})
+
 	It("when in JSON format is readable and of use to clients", func() {
 		errs := validate.NewErrorsArray()
 

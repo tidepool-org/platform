@@ -6,26 +6,22 @@ import (
 	"github.com/tidepool-org/platform/Godeps/_workspace/src/gopkg.in/bluesuncorp/validator.v8"
 )
 
-//Validator interface
 type Validator interface {
 	Struct(s interface{}, errorProcessing ErrorProcessing)
 	RegisterValidation(tag ValidationTag, fn validator.Func)
 }
 
-//PlatformValidator type that implements Validator
 type PlatformValidator struct {
 	validate *validator.Validate
 	reasons  ErrorReasons
 }
 
-//ValidationTag that all tags will be of this type
 type ValidationTag string
 
 // ErrorReasons is a type of map[ValidationTag]string
 // it allows us to map a ValidationTag to a reason why the validation failed
 type ErrorReasons map[ValidationTag]string
 
-//NewPlatformValidator returns initialised PlatformValidator with custom tidepool validation
 func NewPlatformValidator() *PlatformValidator {
 	validate := validator.New(&validator.Config{TagName: "valid"})
 	return &PlatformValidator{validate: validate}
@@ -48,7 +44,6 @@ func (pv *PlatformValidator) toErrorsArray(ve validator.ValidationErrors, errorP
 	}
 }
 
-//Struct validation for the PlatformValidator
 func (pv *PlatformValidator) Struct(s interface{}, errorProcessing ErrorProcessing) {
 	validationErrors := pv.validate.Struct(s)
 	if validationErrors != nil {
@@ -56,7 +51,6 @@ func (pv *PlatformValidator) Struct(s interface{}, errorProcessing ErrorProcessi
 	}
 }
 
-//RegisterValidation so we can add our own validation functions
 func (pv *PlatformValidator) RegisterValidation(tag ValidationTag, fn validator.Func) {
 	pv.validate.RegisterValidation(string(tag), fn)
 }
