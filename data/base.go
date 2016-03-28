@@ -22,7 +22,6 @@ func init() {
 	validator.RegisterValidation(annotationsTag, AnnotationsValidator)
 }
 
-//Base represents tha base types that all device data records contain
 type Base struct {
 	//required data
 	_ID      bson.ObjectId `bson:"_id" valid:"mongo,required"`
@@ -55,7 +54,7 @@ type Internal struct {
 }
 
 var (
-	//InternalFields are what we only use internally in the service and don't wish to return
+	//InternalFields are what we only use internally in the service and don't wish to return to any clients
 	InternalFields = map[string]interface{}{
 		"_groupId":       0,
 		"_active":        0,

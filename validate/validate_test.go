@@ -60,7 +60,7 @@ var _ = Describe("Validate", func() {
 				none := ValidationTest{Offset: 0}
 				validator.Struct(none, processing)
 				Expect(processing.ErrorsArray.HasErrors()).To(BeTrue())
-				Expect(processing.ErrorsArray.Errors[0].Detail).To(ContainSubstring("'Offset' failed with 'Bad offset sorry' when given '0' for type 'int'"))
+				Expect(processing.ErrorsArray.Errors[0].Detail).To(ContainSubstring("'Offset' failed with 'Bad offset sorry' when given '0'"))
 			})
 		})
 

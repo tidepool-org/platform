@@ -126,7 +126,7 @@ func (client *DataServiceClient) PostDataset(w rest.ResponseWriter, r *rest.Requ
 
 	if platformErrors != nil && platformErrors.HasErrors() {
 		w.WriteHeader(http.StatusBadRequest)
-		w.WriteJson(&err)
+		w.WriteJson(&platformErrors.Errors)
 		return
 	}
 
