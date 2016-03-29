@@ -12,10 +12,16 @@ func FromJSON(config interface{}, name string) error {
 
 	// we need to get the absolute path and also test it because of the
 	// difference of how this code runs in different environments
-	absPath, _ := filepath.Abs(filepath.Join("./_config/", name))
+	absPath, err := filepath.Abs(filepath.Join("_config/", name))
+	if err != nil {
+		return err
+	}
 
 	if _, err := os.Stat(absPath); os.IsNotExist(err) {
-		absPath, _ = filepath.Abs(filepath.Join("./../_config/", name))
+		absPath, err = filepath.Abs(filepath.Join("../_config/", name))
+		if err != nil {
+			return err
+		}
 		if _, err := os.Stat(absPath); os.IsNotExist(err) {
 			return err
 		}
