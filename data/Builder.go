@@ -7,102 +7,78 @@ import (
 	"strings"
 )
 
-//Datum represent one data point
 type Datum map[string]interface{}
 
-//Dataset represents an array of data points
-type Dataset []Datum
+type DatumArray []Datum
 
-//GetSelector returns the selector fields for a given platform datatype, or nil if there is no match
-func GetSelector(data interface{}) interface{} {
-
-	switch data.(type) {
-	case *Basal:
-		return data.(*Basal).Selector()
-	case *DeviceEvent:
-		return data.(*DeviceEvent).Selector()
-	default:
-		return nil
-	}
-}
-
-//Builder interface that the TypeBuilder implements
 type Builder interface {
-	BuildFromRaw(raw []byte) (interface{}, *Error)
-	BuildFromData(data map[string]interface{}) (interface{}, *Error)
-	BuildFromDataSet(dataSet Dataset) ([]interface{}, *ErrorSet)
+	BuildFromBytes(byteArray []byte) (interface{}, *Error)
+	BuildFromDatum(datum Datum) (interface{}, *Error)
+	BuildFromDatumArray(datumArray DatumArray) ([]interface{}, *ErrorArray)
 }
 
-//TypeBuilder that is used to build data types that the platform understands
 type TypeBuilder struct {
 	inject map[string]interface{}
 }
 
-//NewTypeBuilder returns an instance of TypeBuilder
 func NewTypeBuilder(inject map[string]interface{}) Builder {
 	return &TypeBuilder{
 		inject: inject,
 	}
 }
 
-//BuildFromDataSet will build the matching type(s) from the given Dataset
-func (typeBuilder *TypeBuilder) BuildFromDataSet(dataSet Dataset) ([]interface{}, *ErrorSet) {
+func (t *TypeBuilder) BuildFromBytes(byteArray []byte) (interface{}, *Error) {
+
+	var datum Datum
+
+	if err := json.NewDecoder(strings.NewReader(string(byteArray))).Decode(&datum); err != nil {
+		log.Info("error doing an unmarshal", err.Error())
+		e := NewError(datum)
+		e.AppendError(fmt.Errorf("sorry but we do anything with %s", string(byteArray)))
+		return nil, e
+	}
+	return t.BuildFromDatum(datum)
+}
+
+func (t *TypeBuilder) BuildFromDatumArray(datumArray DatumArray) ([]interface{}, *ErrorArray) {
 
 	var set []interface{}
-	var buildError *ErrorSet
+	buildError := NewErrorArray()
 
-	for i := range dataSet {
-		item, err := typeBuilder.BuildFromData(dataSet[i])
-		if err != nil && !err.IsEmpty() {
-			if buildError == nil {
-				buildError = NewErrorSet()
-			}
+	for i := range datumArray {
+		if item, err := t.BuildFromDatum(datumArray[i]); err.IsEmpty() {
+			set = append(set, item)
+		} else {
 			buildError.AppendError(err)
-			continue
 		}
-		set = append(set, item)
 	}
-	return set, buildError
+	if len(buildError.errors) > 0 {
+		return nil, buildError
+	}
+	return set, nil
 }
 
-//BuildFromRaw will build the matching type(s) from the given raw data
-func (typeBuilder *TypeBuilder) BuildFromRaw(raw []byte) (interface{}, *Error) {
+func (t *TypeBuilder) BuildFromDatum(datum Datum) (interface{}, *Error) {
 
-	var data map[string]interface{}
+	const typeField = "type"
 
-	if err := json.NewDecoder(strings.NewReader(string(raw))).Decode(&data); err != nil {
-		log.Info("error doing an unmarshal", err.Error())
-		e := NewError(data)
-		e.AppendError(fmt.Errorf("sorry but we do anything with %s", string(raw)))
-		return nil, e
-	}
-	return typeBuilder.BuildFromData(data)
-}
+	if datum[typeField] != nil {
 
-//BuildFromData will build the matching type from the given raw data
-func (typeBuilder *TypeBuilder) BuildFromData(data map[string]interface{}) (interface{}, *Error) {
-
-	const (
-		typeField = "type"
-	)
-
-	if data[typeField] != nil {
-
-		for k, v := range typeBuilder.inject {
-			data[k] = v
+		for k, v := range t.inject {
+			datum[k] = v
 		}
 
-		if strings.ToLower(data[typeField].(string)) == strings.ToLower(BasalName) {
-			return BuildBasal(data)
-		} else if strings.ToLower(data[typeField].(string)) == strings.ToLower(DeviceEventName) {
-			return BuildDeviceEvent(data)
+		if strings.ToLower(datum[typeField].(string)) == strings.ToLower(BasalName) {
+			return BuildBasal(datum)
+		} else if strings.ToLower(datum[typeField].(string)) == strings.ToLower(DeviceEventName) {
+			return BuildDeviceEvent(datum)
 		}
-		e := NewError(data)
-		e.AppendError(fmt.Errorf("we can't deal with `type`=%s", data[typeField].(string)))
+		e := NewError(datum)
+		e.AppendError(fmt.Errorf("we can't deal with `type`=%s", datum[typeField].(string)))
 		return nil, e
 	}
 
-	e := NewError(data)
+	e := NewError(datum)
 	e.AppendError(errors.New("there is no match for that type"))
 
 	return nil, e

@@ -2,7 +2,6 @@ package data
 
 import "github.com/tidepool-org/platform/validate"
 
-//DeviceEvent represents a deviceevent data record
 type DeviceEvent struct {
 	SubType string      `json:"subType" bson:"subType" valid:"required"`
 	Status  string      `json:"status" bson:"status,omitempty" valid:"omitempty,required"`
@@ -11,23 +10,21 @@ type DeviceEvent struct {
 }
 
 const (
-	//DeviceEventName is the given name for the type of a `DeviceEvent` datum
 	DeviceEventName = "deviceEvent"
 
 	statusField = "status"
 	reasonField = "reason"
 )
 
-//BuildDeviceEvent will build a DeviceEvent record
-func BuildDeviceEvent(obj map[string]interface{}) (*DeviceEvent, *Error) {
+func BuildDeviceEvent(datum Datum) (*DeviceEvent, *Error) {
 
-	base, errs := BuildBase(obj)
+	base, errs := BuildBase(datum)
 	cast := NewCaster(errs)
 
 	deviceEvent := &DeviceEvent{
-		SubType: cast.ToString(SubTypeField, obj[SubTypeField]),
-		Status:  cast.ToString(statusField, obj[statusField]),
-		Reason:  obj[reasonField],
+		SubType: cast.ToString(SubTypeField, datum[SubTypeField]),
+		Status:  cast.ToString(statusField, datum[statusField]),
+		Reason:  datum[reasonField],
 		Base:    base,
 	}
 
@@ -39,15 +36,4 @@ func BuildDeviceEvent(obj map[string]interface{}) (*DeviceEvent, *Error) {
 		return deviceEvent, nil
 	}
 	return deviceEvent, errs
-}
-
-//Selector will return the `unique` fields used in upserts
-func (d *DeviceEvent) Selector() interface{} {
-
-	unique := map[string]interface{}{}
-
-	unique[SubTypeField] = d.SubType
-	unique[deviceTimeField] = d.DeviceTime
-	unique[TypeField] = d.Type
-	return unique
 }

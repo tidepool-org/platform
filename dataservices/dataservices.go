@@ -110,21 +110,21 @@ func (client *DataServiceClient) PostDataset(w rest.ResponseWriter, r *rest.Requ
 			return
 		}
 
-		var dataSet data.Dataset
+		var datumArray data.DatumArray
 		var processedDataset struct {
-			Dataset []interface{} `json:"Dataset"`
-			Errors  string        `json:"Errors"`
+			Data   []interface{} `json:"Data"`
+			Errors string        `json:"Errors"`
 		}
 
-		err := r.DecodeJsonPayload(&dataSet)
+		err := r.DecodeJsonPayload(&datumArray)
 
 		if err != nil {
 			rest.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		platformData, err := data.NewTypeBuilder(map[string]interface{}{data.UserIDField: userid, data.GroupIDField: groupID}).BuildFromDataSet(dataSet)
-		processedDataset.Dataset = platformData
+		platformData, err := data.NewTypeBuilder(map[string]interface{}{data.UserIDField: userid, data.GroupIDField: groupID}).BuildFromDatumArray(datumArray)
+		processedDataset.Data = platformData
 		processedDataset.Errors = err.Error()
 
 		if err.Error() != "" {
@@ -164,10 +164,10 @@ func (client *DataServiceClient) PostBlob(w rest.ResponseWriter, r *rest.Request
 }
 
 //process the found data and send the appropriate response
-func process(iter store.Iterator) data.Dataset {
+func process(iter store.Iterator) data.DatumArray {
 
 	var chunk data.Datum
-	var all = data.Dataset{}
+	var all = data.DatumArray{}
 
 	for iter.Next(&chunk) {
 		all = append(all, chunk)
@@ -215,8 +215,8 @@ func (client *DataServiceClient) GetDataset(w rest.ResponseWriter, r *rest.Reque
 		}
 
 		var found struct {
-			data.Dataset `json:"Dataset"`
-			Errors       string `json:"Errors"`
+			data.DatumArray `json:"Dataset"`
+			Errors          string `json:"Errors"`
 		}
 
 		userid := r.PathParam(useridParamName)
@@ -229,7 +229,7 @@ func (client *DataServiceClient) GetDataset(w rest.ResponseWriter, r *rest.Reque
 		)
 		defer iter.Close()
 
-		found.Dataset = process(iter)
+		found.DatumArray = process(iter)
 
 		w.WriteJson(&found)
 		return

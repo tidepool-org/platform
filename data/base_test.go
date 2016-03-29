@@ -81,39 +81,39 @@ var _ = Describe("Base", func() {
 
 		Context("TimeStringValidator", func() {
 			BeforeEach(func() {
-				validator.RegisterValidation(timeStrTag, TimeStringValidator)
+				validator.RegisterValidation(timeStringTag, TimeStringValidator)
 			})
 
 			Context("is invalid when", func() {
 				It("there is no date", func() {
 					nodate := Base{DeviceTime: ""}
-					Expect(validator.Field(nodate.DeviceTime, timeStrTag)).ToNot(BeNil())
+					Expect(validator.Field(nodate.DeviceTime, timeStringTag)).ToNot(BeNil())
 				})
 				It("the date is not the right spec", func() {
 					wrongspec := Base{DeviceTime: "Monday, 02 Jan 2016"}
-					Expect(validator.Field(wrongspec.DeviceTime, timeStrTag)).ToNot(BeNil())
+					Expect(validator.Field(wrongspec.DeviceTime, timeStringTag)).ToNot(BeNil())
 				})
 				It("the date does not include hours and mins", func() {
 					notime := Base{DeviceTime: "2016-02-05"}
-					Expect(validator.Field(notime.DeviceTime, timeStrTag)).ToNot(BeNil())
+					Expect(validator.Field(notime.DeviceTime, timeStringTag)).ToNot(BeNil())
 				})
 				It("the date does not include mins", func() {
 					notime := Base{DeviceTime: "2016-02-05T20"}
-					Expect(validator.Field(notime.DeviceTime, timeStrTag)).ToNot(BeNil())
+					Expect(validator.Field(notime.DeviceTime, timeStringTag)).ToNot(BeNil())
 				})
 			})
 			Context("is valid when", func() {
 				It("the date is RFC3339 formated - e.g. 1", func() {
 					valid := Base{DeviceTime: "2016-03-14T20:22:21+13:00"}
-					Expect(validator.Field(valid.DeviceTime, timeStrTag)).To(BeNil())
+					Expect(validator.Field(valid.DeviceTime, timeStringTag)).To(BeNil())
 				})
 				It("the date is RFC3339 formated - e.g. 2", func() {
 					valid := Base{DeviceTime: "2016-02-05T15:53:00"}
-					Expect(validator.Field(valid.DeviceTime, timeStrTag)).To(BeNil())
+					Expect(validator.Field(valid.DeviceTime, timeStringTag)).To(BeNil())
 				})
 				It("the date is RFC3339 formated - e.g. 3", func() {
 					valid := Base{DeviceTime: "2016-02-05T15:53:00.000Z"}
-					Expect(validator.Field(valid.DeviceTime, timeStrTag)).To(BeNil())
+					Expect(validator.Field(valid.DeviceTime, timeStringTag)).To(BeNil())
 				})
 			})
 		})
@@ -122,7 +122,7 @@ var _ = Describe("Base", func() {
 				GivenDate time.Time `json:"givenDate" valid:"timeobj"`
 			}
 			BeforeEach(func() {
-				validator.RegisterValidation(timeObjTag, TimeObjectValidator)
+				validator.RegisterValidation(timeObjectTag, TimeObjectValidator)
 			})
 			Context("is invalid when", func() {
 
