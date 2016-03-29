@@ -33,12 +33,12 @@ type Base struct {
 	UploadID *string       `json:"uploadId" bson:"uploadId" valid:"-"`
 
 	//optional data
-	DeviceTime       *string       `json:"deviceTime,omitempty" bson:"deviceTime,omitempty" valid:"omitempty,timestr"`
-	TimezoneOffset   *int          `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty" valid:"omitempty,timezoneoffset"`
-	ConversionOffset *int          `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty" valid:"omitempty,required"`
-	ClockDriftOffset *int          `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty" valid:"omitempty,required"`
-	Payload          interface{}   `json:"payload,omitempty" bson:"payload,omitempty" valid:"omitempty,payload"`
-	Annotations      []interface{} `json:"annotations,omitempty" bson:"annotations,omitempty" valid:"omitempty,annotations"`
+	DeviceTime       *string        `json:"deviceTime,omitempty" bson:"deviceTime,omitempty" valid:"omitempty,timestr"`
+	TimezoneOffset   *int           `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty" valid:"omitempty,timezoneoffset"`
+	ConversionOffset *int           `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty" valid:"omitempty,required"`
+	ClockDriftOffset *int           `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty" valid:"omitempty,required"`
+	Payload          *interface{}   `json:"payload,omitempty" bson:"payload,omitempty" valid:"omitempty,payload"`
+	Annotations      *[]interface{} `json:"annotations,omitempty" bson:"annotations,omitempty" valid:"omitempty,annotations"`
 
 	//used for versioning and de-deping
 	Internal `bson:",inline"`
@@ -91,6 +91,9 @@ const (
 	timeZoneOffsetTag validate.ValidationTag = "timezoneoffset"
 	payloadTag        validate.ValidationTag = "payload"
 	annotationsTag    validate.ValidationTag = "annotations"
+
+	invalidTypeTitle       = "Invalid type"
+	invalidTypeDescription = "should be of type %s"
 )
 
 func BuildBase(datum Datum, errs validate.ErrorProcessing) Base {
@@ -103,7 +106,7 @@ func BuildBase(datum Datum, errs validate.ErrorProcessing) Base {
 		UploadID:         ToString(uploadIDField, datum[uploadIDField], errs),
 		Time:             ToString(timeField, datum[timeField], errs),
 		Type:             ToString(typeField, datum[typeField], errs),
-		Payload:          datum[payloadField],
+		Payload:          ToObject(payloadField, datum[payloadField], errs),
 		ConversionOffset: ToInt(conversionOffsetField, datum[conversionOffsetField], errs),
 		TimezoneOffset:   ToInt(timezoneOffsetField, datum[timezoneOffsetField], errs),
 		ClockDriftOffset: ToInt(clockDriftOffsetField, datum[clockDriftOffsetField], errs),
@@ -189,7 +192,7 @@ func ToString(fieldName string, data interface{}, errs validate.ErrorProcessing)
 	}
 	aString, ok := data.(string)
 	if !ok {
-		errs.Append(validate.NewPointerError(errs.BasePath+"/"+fieldName, "Invalid type", "should be of type string"))
+		errs.AppendPointerError(fieldName, invalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "string"))
 		return nil
 	}
 	return &aString
@@ -201,7 +204,7 @@ func ToFloat64(fieldName string, data interface{}, errs validate.ErrorProcessing
 	}
 	theFloat, ok := data.(float64)
 	if !ok {
-		errs.Append(validate.NewPointerError(errs.BasePath+"/"+fieldName, "Invalid type", "should be of type float"))
+		errs.AppendPointerError(fieldName, invalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "float"))
 		return nil
 	}
 	return &theFloat
@@ -211,16 +214,13 @@ func ToInt(fieldName string, data interface{}, errs validate.ErrorProcessing) *i
 	if data == nil {
 		return nil
 	}
-	theInt, ok := data.(int)
-
-	if !ok {
-		if theInt == 0 {
-			return &theInt
-		}
-		log.Error("ToInt failure: ", theInt)
-		errs.Append(validate.NewPointerError(errs.BasePath+"/"+fieldName, "Invalid type", "should be of type integer"))
-		return nil
-	}
+	theInt, _ := data.(int)
+	//TODO:
+	/*if !ok {
+		return 0
+		appendInvalidTypeError(errs, fieldName, "integer")
+		return 0
+	}*/
 	return &theInt
 }
 
@@ -228,7 +228,7 @@ func ToTime(fieldName string, data interface{}, errs validate.ErrorProcessing) *
 
 	timeStr, ok := data.(string)
 	if !ok {
-		errs.Append(validate.NewPointerError(errs.BasePath+"/"+fieldName, "Invalid type", "should be of type string"))
+		errs.AppendPointerError(fieldName, invalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "string"))
 		return nil
 	}
 	theTime, err := time.Parse(time.RFC3339, timeStr)
@@ -236,21 +236,33 @@ func ToTime(fieldName string, data interface{}, errs validate.ErrorProcessing) *
 		//try this format also before we fail
 		theTime, err = time.Parse("2006-01-02T15:04:05", timeStr)
 		if err != nil {
-			errs.Append(validate.NewPointerError(errs.BasePath+"/"+fieldName, "Invalid type", "should be of type string"))
+			errs.AppendPointerError(fieldName, invalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "string"))
 			return nil
 		}
 	}
 	return &theTime
 }
 
-func ToArray(fieldName string, data interface{}, errs validate.ErrorProcessing) []interface{} {
+func ToArray(fieldName string, data interface{}, errs validate.ErrorProcessing) *[]interface{} {
 	if data == nil {
 		return nil
 	}
 	arrayData, ok := data.([]interface{})
 	if !ok {
-		errs.Append(validate.NewPointerError(errs.BasePath+"/"+fieldName, "Invalid type", "should be of type array"))
+		errs.AppendPointerError(fieldName, invalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "array"))
 		return nil
 	}
-	return arrayData
+	return &arrayData
+}
+
+func ToObject(fieldName string, data interface{}, errs validate.ErrorProcessing) *interface{} {
+	if data == nil {
+		return nil
+	}
+	objectData, ok := data.(interface{})
+	if !ok {
+		errs.AppendPointerError(fieldName, invalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "object"))
+		return nil
+	}
+	return &objectData
 }

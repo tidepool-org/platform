@@ -35,11 +35,13 @@ func (pv *PlatformValidator) SetErrorReasons(reasons ErrorReasons) *PlatformVali
 func (pv *PlatformValidator) toErrorsArray(ve validator.ValidationErrors, errorProcessing ErrorProcessing) {
 	for _, v := range ve {
 		if reason, ok := pv.reasons[ValidationTag(v.Tag)]; ok {
-			errorProcessing.Append(NewPointerError(
-				fmt.Sprintf("%s/%s", errorProcessing.BasePath, v.Type),
+
+			errorProcessing.AppendPointerError(
+				v.Type.String(),
 				"Validation Error",
-				fmt.Sprintf("'%s' failed with '%s' when given '%v'", v.Field, reason, v.Value)),
+				fmt.Sprintf("'%s' failed with '%s' when given '%v'", v.Field, reason, v.Value),
 			)
+
 		}
 	}
 }

@@ -5,9 +5,9 @@ import (
 )
 
 type DeviceEvent struct {
-	SubType *string     `json:"subType" bson:"subType" valid:"required"`
-	Status  *string     `json:"status,omitempty" bson:"status,omitempty" valid:"omitempty,required"`
-	Reason  interface{} `json:"reason,omitempty" bson:"reason,omitempty" valid:"-"`
+	SubType *string      `json:"subType" bson:"subType" valid:"required"`
+	Status  *string      `json:"status,omitempty" bson:"status,omitempty" valid:"omitempty,required"`
+	Reason  *interface{} `json:"reason,omitempty" bson:"reason,omitempty" valid:"-"`
 	Base    `bson:",inline"`
 }
 
@@ -22,7 +22,7 @@ const (
 func BuildDeviceEvent(datum Datum, errs validate.ErrorProcessing) *DeviceEvent {
 
 	deviceEvent := &DeviceEvent{
-		Reason:  datum[reasonField],
+		Reason:  ToObject(reasonField, datum[reasonField], errs),
 		SubType: ToString(subTypeField, datum[subTypeField], errs),
 		Status:  ToString(statusField, datum[statusField], errs),
 		Base:    BuildBase(datum, errs),

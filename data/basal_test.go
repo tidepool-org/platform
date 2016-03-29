@@ -1,10 +1,10 @@
 package data
 
 import (
-	"github.com/tidepool-org/platform/validate"
-
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo"
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega"
+
+	"github.com/tidepool-org/platform/validate"
 )
 
 var _ = Describe("Basal", func() {

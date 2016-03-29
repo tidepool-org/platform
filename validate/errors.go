@@ -15,6 +15,10 @@ type ErrorProcessing struct {
 	*ErrorsArray
 }
 
+func (e ErrorProcessing) AppendPointerError(fieldName, title, detail string) {
+	e.ErrorsArray.Append(NewPointerError(e.BasePath+"/"+fieldName, title, detail))
+}
+
 func NewErrorsArray() *ErrorsArray {
 	return &ErrorsArray{Errors: []*Error{}}
 }
