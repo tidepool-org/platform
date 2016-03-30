@@ -3,7 +3,6 @@ package data
 import (
 	"fmt"
 	"reflect"
-	"strings"
 
 	"github.com/tidepool-org/platform/Godeps/_workspace/src/gopkg.in/bluesuncorp/validator.v8"
 
@@ -96,46 +95,43 @@ func BuildBasal(datum Datum, errs validate.ErrorProcessing) *Basal {
 }
 
 func BasalRateValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	if rate, ok := field.Interface().(float64); ok {
-		if rate > rateValidationLowerLimit {
-			return true
-		}
+	rate, ok := field.Interface().(float64)
+	if !ok {
+		return false
 	}
-	return false
+	return rate > rateValidationLowerLimit
 }
 
 func BasalDurationValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	if duration, ok := field.Interface().(int); ok {
-		if duration > durationValidationLowerLimit {
-			return true
-		}
+	duration, ok := field.Interface().(int)
+	if !ok {
+		return false
 	}
-	return false
+	return duration > durationValidationLowerLimit
 }
 
 func BasalDeliveryTypeValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	if deliveryType, ok := field.Interface().(string); ok {
-		if _, ok = allowedDeliveryTypes[strings.ToLower(deliveryType)]; ok {
-			return true
-		}
+	deliveryType, ok := field.Interface().(string)
+	if !ok {
+		return false
 	}
-	return false
+	_, ok = allowedDeliveryTypes[deliveryType]
+	return ok
 }
 
 func BasalInsulinValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	if insulin, ok := field.Interface().(string); ok {
-		if _, ok = allowedInsulins[strings.ToLower(insulin)]; ok {
-			return true
-		}
+	insulin, ok := field.Interface().(string)
+	if !ok {
+		return false
 	}
-	return false
+	_, ok = allowedInsulins[insulin]
+	return ok
 }
 
 func BasalValueValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	if value, ok := field.Interface().(int); ok {
-		if value > valueValidationLowerLimit {
-			return true
-		}
+	value, ok := field.Interface().(int)
+	if !ok {
+		return false
 	}
-	return false
+	return value > valueValidationLowerLimit
 }

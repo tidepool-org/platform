@@ -12,8 +12,8 @@ import (
 )
 
 func init() {
-	getPlatformValidator().RegisterValidation(timeStringTag, TimeStringValidator)
-	getPlatformValidator().RegisterValidation(timeObjectTag, TimeObjectValidator)
+	getPlatformValidator().RegisterValidation(timeStringTag, PastTimeStringValidator)
+	getPlatformValidator().RegisterValidation(timeObjectTag, PastTimeObjectValidator)
 	getPlatformValidator().RegisterValidation(timeZoneOffsetTag, TimezoneOffsetValidator)
 	getPlatformValidator().RegisterValidation(payloadTag, PayloadValidator)
 	getPlatformValidator().RegisterValidation(annotationsTag, AnnotationsValidator)
@@ -127,46 +127,42 @@ var validationFailureReasons = validate.ErrorReasons{
 }
 
 func PayloadValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	//a place holder for more through validation
-	if _, ok := field.Interface().(interface{}); ok {
-		return true
-	}
-	return false
+	//TODO: a place holder for more through validation
+	return true
 }
 
 func AnnotationsValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	//a place holder for more through validation
-	if _, ok := field.Interface().([]interface{}); ok {
-		return true
-	}
-	return false
+	//TODO: a place holder for more through validation
+	return true
 }
 
 func TimezoneOffsetValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	if offset, ok := field.Interface().(int); ok {
-		if offset >= tzValidationLowerLimit && offset <= tzValidationUpperLimit {
-			return true
-		}
+	offset, ok := field.Interface().(int)
+	if !ok {
+		return false
 	}
-	return false
+	//TODO: needs to be confirmed that this is all we should validate
+	return offset >= tzValidationLowerLimit && offset <= tzValidationUpperLimit
 }
 
-func TimeObjectValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	if timeObject, ok := field.Interface().(time.Time); ok {
-		return isTimeObjectValid(timeObject)
+func PastTimeObjectValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+	timeObject, ok := field.Interface().(time.Time)
+	if !ok {
+		return false
 	}
-	return false
+	return isTimeObjectValid(timeObject)
 }
 
 func isTimeObjectValid(timeObject time.Time) bool {
 	return !timeObject.IsZero() && timeObject.Before(time.Now())
 }
 
-func TimeStringValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	if timeString, ok := field.Interface().(string); ok {
-		return isTimeStringValid(timeString)
+func PastTimeStringValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+	timeString, ok := field.Interface().(string)
+	if !ok {
+		return false
 	}
-	return false
+	return isTimeStringValid(timeString)
 }
 
 func isTimeStringValid(timeString string) bool {
