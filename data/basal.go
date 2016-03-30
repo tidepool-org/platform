@@ -5,17 +5,17 @@ import (
 	"reflect"
 	"strings"
 
-	valid "github.com/tidepool-org/platform/Godeps/_workspace/src/gopkg.in/bluesuncorp/validator.v8"
+	"github.com/tidepool-org/platform/Godeps/_workspace/src/gopkg.in/bluesuncorp/validator.v8"
 
 	"github.com/tidepool-org/platform/validate"
 )
 
 func init() {
-	validator.RegisterValidation(rateTag, BasalRateValidator)
-	validator.RegisterValidation(durationTag, BasalDurationValidator)
-	validator.RegisterValidation(deliveryTypeTag, BasalDeliveryTypeValidator)
-	validator.RegisterValidation(insulinTag, BasalInsulinValidator)
-	validator.RegisterValidation(valueTag, BasalValueValidator)
+	getPlatformValidator().RegisterValidation(rateTag, BasalRateValidator)
+	getPlatformValidator().RegisterValidation(durationTag, BasalDurationValidator)
+	getPlatformValidator().RegisterValidation(deliveryTypeTag, BasalDeliveryTypeValidator)
+	getPlatformValidator().RegisterValidation(insulinTag, BasalInsulinValidator)
+	getPlatformValidator().RegisterValidation(valueTag, BasalValueValidator)
 }
 
 type Basal struct {
@@ -90,12 +90,12 @@ func BuildBasal(datum Datum, errs validate.ErrorProcessing) *Basal {
 		Base:         BuildBase(datum, errs),
 	}
 
-	validator.SetErrorReasons(basalFailureReasons).Struct(basal, errs)
+	getPlatformValidator().SetErrorReasons(basalFailureReasons).Struct(basal, errs)
 
 	return basal
 }
 
-func BasalRateValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+func BasalRateValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
 	if rate, ok := field.Interface().(float64); ok {
 		if rate > rateValidationLowerLimit {
 			return true
@@ -104,7 +104,7 @@ func BasalRateValidator(v *valid.Validate, topStruct reflect.Value, currentStruc
 	return false
 }
 
-func BasalDurationValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+func BasalDurationValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
 	if duration, ok := field.Interface().(int); ok {
 		if duration > durationValidationLowerLimit {
 			return true
@@ -113,7 +113,7 @@ func BasalDurationValidator(v *valid.Validate, topStruct reflect.Value, currentS
 	return false
 }
 
-func BasalDeliveryTypeValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+func BasalDeliveryTypeValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
 	if deliveryType, ok := field.Interface().(string); ok {
 		if _, ok = allowedDeliveryTypes[strings.ToLower(deliveryType)]; ok {
 			return true
@@ -122,7 +122,7 @@ func BasalDeliveryTypeValidator(v *valid.Validate, topStruct reflect.Value, curr
 	return false
 }
 
-func BasalInsulinValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+func BasalInsulinValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
 	if insulin, ok := field.Interface().(string); ok {
 		if _, ok = allowedInsulins[strings.ToLower(insulin)]; ok {
 			return true
@@ -131,7 +131,7 @@ func BasalInsulinValidator(v *valid.Validate, topStruct reflect.Value, currentSt
 	return false
 }
 
-func BasalValueValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+func BasalValueValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
 	if value, ok := field.Interface().(int); ok {
 		if value > valueValidationLowerLimit {
 			return true

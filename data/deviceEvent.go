@@ -28,7 +28,7 @@ func BuildDeviceEvent(datum Datum, errs validate.ErrorProcessing) *DeviceEvent {
 		Base:    BuildBase(datum, errs),
 	}
 
-	validator.Struct(deviceEvent, errs)
+	getPlatformValidator().Struct(deviceEvent, errs)
 
 	return deviceEvent
 }

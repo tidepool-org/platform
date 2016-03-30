@@ -5,21 +5,18 @@ import (
 	"reflect"
 	"time"
 
-	valid "github.com/tidepool-org/platform/Godeps/_workspace/src/gopkg.in/bluesuncorp/validator.v8"
+	"github.com/tidepool-org/platform/Godeps/_workspace/src/gopkg.in/bluesuncorp/validator.v8"
 	"github.com/tidepool-org/platform/Godeps/_workspace/src/labix.org/v2/mgo/bson"
 
 	"github.com/tidepool-org/platform/validate"
 )
 
-//used for all data types
-var validator = validate.NewPlatformValidator()
-
 func init() {
-	validator.RegisterValidation(timeStringTag, TimeStringValidator)
-	validator.RegisterValidation(timeObjectTag, TimeObjectValidator)
-	validator.RegisterValidation(timeZoneOffsetTag, TimezoneOffsetValidator)
-	validator.RegisterValidation(payloadTag, PayloadValidator)
-	validator.RegisterValidation(annotationsTag, AnnotationsValidator)
+	getPlatformValidator().RegisterValidation(timeStringTag, TimeStringValidator)
+	getPlatformValidator().RegisterValidation(timeObjectTag, TimeObjectValidator)
+	getPlatformValidator().RegisterValidation(timeZoneOffsetTag, TimezoneOffsetValidator)
+	getPlatformValidator().RegisterValidation(payloadTag, PayloadValidator)
+	getPlatformValidator().RegisterValidation(annotationsTag, AnnotationsValidator)
 }
 
 type Base struct {
@@ -92,8 +89,7 @@ const (
 	payloadTag        validate.ValidationTag = "payload"
 	annotationsTag    validate.ValidationTag = "annotations"
 
-	invalidTypeTitle       = "Invalid type"
-	invalidTypeDescription = "should be of type %s"
+	invalidTypeDescription = "should be of type '%s'"
 )
 
 func BuildBase(datum Datum, errs validate.ErrorProcessing) Base {
@@ -120,7 +116,7 @@ func BuildBase(datum Datum, errs validate.ErrorProcessing) Base {
 		},
 	}
 
-	validator.SetErrorReasons(validationFailureReasons).Struct(base, errs)
+	getPlatformValidator().SetErrorReasons(validationFailureReasons).Struct(base, errs)
 
 	return base
 }
@@ -130,7 +126,7 @@ var validationFailureReasons = validate.ErrorReasons{
 	timeZoneOffsetTag: fmt.Sprintf("TimezoneOffset needs to be in minutes and greater than %d and less than %d", tzValidationLowerLimit, tzValidationUpperLimit),
 }
 
-func PayloadValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+func PayloadValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
 	//a place holder for more through validation
 	if _, ok := field.Interface().(interface{}); ok {
 		return true
@@ -138,7 +134,7 @@ func PayloadValidator(v *valid.Validate, topStruct reflect.Value, currentStructO
 	return false
 }
 
-func AnnotationsValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+func AnnotationsValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
 	//a place holder for more through validation
 	if _, ok := field.Interface().([]interface{}); ok {
 		return true
@@ -146,7 +142,7 @@ func AnnotationsValidator(v *valid.Validate, topStruct reflect.Value, currentStr
 	return false
 }
 
-func TimezoneOffsetValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+func TimezoneOffsetValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
 	if offset, ok := field.Interface().(int); ok {
 		if offset >= tzValidationLowerLimit && offset <= tzValidationUpperLimit {
 			return true
@@ -155,7 +151,7 @@ func TimezoneOffsetValidator(v *valid.Validate, topStruct reflect.Value, current
 	return false
 }
 
-func TimeObjectValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+func TimeObjectValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
 	if timeObject, ok := field.Interface().(time.Time); ok {
 		return isTimeObjectValid(timeObject)
 	}
@@ -166,7 +162,7 @@ func isTimeObjectValid(timeObject time.Time) bool {
 	return !timeObject.IsZero() && timeObject.Before(time.Now())
 }
 
-func TimeStringValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+func TimeStringValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
 	if timeString, ok := field.Interface().(string); ok {
 		return isTimeStringValid(timeString)
 	}
@@ -192,7 +188,7 @@ func ToString(fieldName string, data interface{}, errs validate.ErrorProcessing)
 	}
 	aString, ok := data.(string)
 	if !ok {
-		errs.AppendPointerError(fieldName, invalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "string"))
+		errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "string"))
 		return nil
 	}
 	return &aString
@@ -204,7 +200,7 @@ func ToFloat64(fieldName string, data interface{}, errs validate.ErrorProcessing
 	}
 	theFloat, ok := data.(float64)
 	if !ok {
-		errs.AppendPointerError(fieldName, invalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "float"))
+		errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "float"))
 		return nil
 	}
 	return &theFloat
@@ -228,7 +224,7 @@ func ToTime(fieldName string, data interface{}, errs validate.ErrorProcessing) *
 
 	timeStr, ok := data.(string)
 	if !ok {
-		errs.AppendPointerError(fieldName, invalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "string"))
+		errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "string"))
 		return nil
 	}
 	theTime, err := time.Parse(time.RFC3339, timeStr)
@@ -236,7 +232,7 @@ func ToTime(fieldName string, data interface{}, errs validate.ErrorProcessing) *
 		//try this format also before we fail
 		theTime, err = time.Parse("2006-01-02T15:04:05", timeStr)
 		if err != nil {
-			errs.AppendPointerError(fieldName, invalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "string"))
+			errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "string"))
 			return nil
 		}
 	}
@@ -249,7 +245,7 @@ func ToArray(fieldName string, data interface{}, errs validate.ErrorProcessing) 
 	}
 	arrayData, ok := data.([]interface{})
 	if !ok {
-		errs.AppendPointerError(fieldName, invalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "array"))
+		errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "array"))
 		return nil
 	}
 	return &arrayData
@@ -261,7 +257,7 @@ func ToObject(fieldName string, data interface{}, errs validate.ErrorProcessing)
 	}
 	objectData, ok := data.(interface{})
 	if !ok {
-		errs.AppendPointerError(fieldName, invalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "object"))
+		errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "object"))
 		return nil
 	}
 	return &objectData

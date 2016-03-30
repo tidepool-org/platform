@@ -6,6 +6,11 @@ import (
 	"github.com/tidepool-org/platform/validate"
 )
 
+const (
+	InvalidTypeTitle = "Invalid type"
+	InvalidDataTitle = "Invalid data"
+)
+
 type Datum map[string]interface{}
 type DatumArray []Datum
 
@@ -18,14 +23,14 @@ type Builder interface {
 }
 
 type TypeBuilder struct {
-	inject map[string]interface{}
-	Index  int
+	commonDatum Datum
+	Index       int
 	validate.ErrorProcessing
 }
 
-func NewTypeBuilder(inject map[string]interface{}) Builder {
+func NewTypeBuilder(commonDatum Datum) Builder {
 	return &TypeBuilder{
-		inject:          inject,
+		commonDatum:     commonDatum,
 		ErrorProcessing: validate.ErrorProcessing{ErrorsArray: validate.NewErrorsArray()},
 		Index:           0,
 	}
@@ -33,19 +38,18 @@ func NewTypeBuilder(inject map[string]interface{}) Builder {
 
 func (t *TypeBuilder) BuildFromDatumArray(datumArray DatumArray) (BuiltDatumArray, *validate.ErrorsArray) {
 
-	var set BuiltDatumArray
+	var builtDatumArray BuiltDatumArray
 
 	for i := range datumArray {
-		if item := t.BuildFromDatum(datumArray[i]); item != nil {
-			set = append(set, item)
-		}
+		builtDatumArray = append(builtDatumArray, t.BuildFromDatum(datumArray[i]))
 		t.Index++
 	}
+
 	if t.ErrorProcessing.HasErrors() {
 		return nil, t.ErrorsArray
 	}
 
-	return set, nil
+	return builtDatumArray, nil
 }
 
 func (t *TypeBuilder) buildType(typeName string, datum Datum) BuiltDatum {
@@ -58,7 +62,7 @@ func (t *TypeBuilder) buildType(typeName string, datum Datum) BuiltDatum {
 	case DeviceEventName:
 		return BuildDeviceEvent(datum, t.ErrorProcessing)
 	default:
-		t.ErrorProcessing.AppendPointerError("type", "Invalid type", "The type must be one of `basal`, `deviceEvent`")
+		t.ErrorProcessing.AppendPointerError("type", InvalidTypeTitle, "The type must be one of 'basal', 'deviceEvent'")
 		return nil
 	}
 }
@@ -66,11 +70,11 @@ func (t *TypeBuilder) buildType(typeName string, datum Datum) BuiltDatum {
 func (t *TypeBuilder) BuildFromDatum(datum Datum) BuiltDatum {
 
 	if datum["type"] == nil {
-		t.ErrorProcessing.Append(validate.NewParameterError(fmt.Sprintf("%d", t.Index), "Invalid data", "Missing required `type` field."))
+		t.ErrorProcessing.Append(validate.NewParameterError(fmt.Sprintf("%d", t.Index), InvalidDataTitle, "Missing required 'type' field"))
 		return nil
 	}
 
-	for k, v := range t.inject {
+	for k, v := range t.commonDatum {
 		datum[k] = v
 	}
 	return t.buildType(datum["type"].(string), datum)
