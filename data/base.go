@@ -52,29 +52,30 @@ type Internal struct {
 
 var (
 	//InternalFields are what we only use internally in the service and don't wish to return to any clients
-	InternalFields = map[string]interface{}{
-		"_groupId":       0,
-		"_active":        0,
-		"_schemaVersion": 0,
-		"_version":       0,
-		"createdTime":    0,
+	InternalFields = []string{
+		"_groupId",
+		"_active",
+		"_schemaVersion",
+		"_version",
+		"createdTime",
 	}
 )
 
 const (
-	UserIDField  = "userId"
-	GroupIDField = "groupId"
+	UserIDField          = "userId"
+	GroupIDField         = "groupId"
+	InternalGroupIDField = "_groupId"
+	TypeField            = "type"
+	SubTypeField         = "subType"
+	TimeField            = "time"
 
-	deviceIDField = "deviceId"
-	uploadIDField = "uploadId"
+	deviceIDField   = "deviceId"
+	uploadIDField   = "uploadId"
+	deviceTimeField = "deviceTime"
 
 	timezoneOffsetField   = "timezoneOffset"
 	conversionOffsetField = "conversionOffset"
 	clockDriftOffsetField = "clockDriftOffset"
-
-	typeField       = "type"
-	timeField       = "time"
-	deviceTimeField = "deviceTime"
 
 	payloadField     = "payload"
 	annotationsField = "annotations"
@@ -100,8 +101,8 @@ func BuildBase(datum Datum, errs validate.ErrorProcessing) Base {
 		UserID:           ToString(UserIDField, datum[UserIDField], errs),
 		DeviceID:         ToString(deviceIDField, datum[deviceIDField], errs),
 		UploadID:         ToString(uploadIDField, datum[uploadIDField], errs),
-		Time:             ToString(timeField, datum[timeField], errs),
-		Type:             ToString(typeField, datum[typeField], errs),
+		Time:             ToString(TimeField, datum[TimeField], errs),
+		Type:             ToString(TypeField, datum[TypeField], errs),
 		Payload:          ToObject(payloadField, datum[payloadField], errs),
 		ConversionOffset: ToInt(conversionOffsetField, datum[conversionOffsetField], errs),
 		TimezoneOffset:   ToInt(timezoneOffsetField, datum[timezoneOffsetField], errs),

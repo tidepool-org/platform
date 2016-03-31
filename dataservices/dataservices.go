@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/tidepool-org/platform/data"
@@ -169,12 +170,43 @@ func process(iter store.Iterator) data.DatumArray {
 	return all
 }
 
+func buildQuery(params url.Values) store.Query {
+
+	types := strings.Split(params.Get("type"), ",")
+	subTypes := strings.Split(params.Get("subType"), ",")
+	start := params.Get("startDate")
+	end := params.Get("endDate")
+
+	query := store.Query{}
+	if len(types) > 0 && types[0] != "" {
+		query[data.TypeField] = map[string]interface{}{store.In: types}
+	}
+	if len(subTypes) > 0 && subTypes[0] != "" {
+		query[data.SubTypeField] = map[string]interface{}{store.In: subTypes}
+	}
+	if start != "" && end != "" {
+		query[data.TimeField] = map[string]interface{}{store.GreaterThanEquals: start, store.LessThanEquals: end}
+	} else if start != "" {
+		query[data.TimeField] = map[string]interface{}{store.GreaterThanEquals: start}
+	} else if end != "" {
+		query[data.TimeField] = map[string]interface{}{store.LessThanEquals: end}
+	}
+	return query
+}
+
 //GetDataset will return the requested users data set if permissons are sufficient
 func (client *DataServiceClient) GetDataset(w rest.ResponseWriter, r *rest.Request) {
 
 	log.AddTrace(r.PathParam(useridParamName))
 
 	if checkPermisson(r, user.Permission{}) {
+
+		groupID := r.Env[user.GROUPID]
+
+		if groupID == "" {
+			rest.Error(w, missingDataError, http.StatusBadRequest)
+			return
+		}
 
 		var found struct {
 			data.DatumArray `json:"Dataset"`
@@ -184,15 +216,9 @@ func (client *DataServiceClient) GetDataset(w rest.ResponseWriter, r *rest.Reque
 		userid := r.PathParam(useridParamName)
 		log.Info(useridParamName, userid)
 
-		types := strings.Split(r.URL.Query().Get("type"), ",")
-		subTypes := strings.Split(r.URL.Query().Get("subType"), ",")
-		start := r.URL.Query().Get("startDate")
-		end := r.URL.Query().Get("endDate")
-
-		log.Info("params", types, subTypes, start, end)
-
 		iter := client.dataStore.ReadAll(
-			store.Fields{data.UserIDField: userid},
+			store.Field{Name: data.InternalGroupIDField, Value: groupID},
+			buildQuery(r.URL.Query()),
 			data.InternalFields,
 		)
 		defer iter.Close()

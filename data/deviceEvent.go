@@ -14,16 +14,15 @@ type DeviceEvent struct {
 const (
 	DeviceEventName = "deviceEvent"
 
-	subTypeField = "subType"
-	statusField  = "status"
-	reasonField  = "reason"
+	statusField = "status"
+	reasonField = "reason"
 )
 
 func BuildDeviceEvent(datum Datum, errs validate.ErrorProcessing) *DeviceEvent {
 
 	deviceEvent := &DeviceEvent{
 		Reason:  ToObject(reasonField, datum[reasonField], errs),
-		SubType: ToString(subTypeField, datum[subTypeField], errs),
+		SubType: ToString(SubTypeField, datum[SubTypeField], errs),
 		Status:  ToString(statusField, datum[statusField], errs),
 		Base:    BuildBase(datum, errs),
 	}
