@@ -91,9 +91,7 @@ func (client *DataServiceClient) Run(URL string) error {
 	client.api.SetApp(router)
 
 	if serviceConfig.Protocol == "https" {
-
 		return http.ListenAndServeTLS(URL, serviceConfig.CertFile, serviceConfig.KeyFile, client.api.MakeHandler())
-		//return server.ListenAndServeTLS(URL, serviceConfig.CertFile, serviceConfig.KeyFile, client.api.MakeHandler())
 	}
 	return http.ListenAndServe(URL, client.api.MakeHandler())
 }
