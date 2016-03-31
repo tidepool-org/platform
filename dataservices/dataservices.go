@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/tidepool-org/platform/config"
@@ -119,50 +120,44 @@ func (client *DataServiceClient) PostDataset(w rest.ResponseWriter, r *rest.Requ
 
 	log.AddTrace(userid)
 
-	if checkPermisson(r, user.Permission{}) {
+	if !checkPermisson(r, user.Permission{}) {
+		rest.Error(w, missingPermissionsError, http.StatusUnauthorized)
+		return
+	}
 
-		groupID := r.Env[user.GROUPID]
+	groupID := r.Env[user.GROUPID]
 
-		if r.ContentLength == 0 || groupID == "" {
-			rest.Error(w, missingDataError, http.StatusBadRequest)
-			return
-		}
+	if r.ContentLength == 0 || groupID == "" {
+		rest.Error(w, missingDataError, http.StatusBadRequest)
+		return
+	}
 
-		var dataSet data.Dataset
-		var processedDataset struct {
-			Dataset []interface{} `json:"Dataset"`
-			Errors  string        `json:"Errors"`
-		}
+	var datumArray data.DatumArray
 
-		err := r.DecodeJsonPayload(&dataSet)
+	err := r.DecodeJsonPayload(&datumArray)
 
-		if err != nil {
+	if err != nil {
+		rest.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	builder := data.NewTypeBuilder(map[string]interface{}{data.UserIDField: userid, data.GroupIDField: groupID})
+	platformData, platformErrors := builder.BuildFromDatumArray(datumArray)
+
+	if platformErrors != nil && platformErrors.HasErrors() {
+		w.WriteHeader(http.StatusBadRequest)
+		w.WriteJson(&platformErrors.Errors)
+		return
+	}
+
+	//TODO: should this be a bulk insert?
+	for i := range platformData {
+		if err = client.dataStore.Save(platformData[i]); err != nil {
 			rest.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-
-		platformData, err := data.NewTypeBuilder(map[string]interface{}{data.UserIDField: userid, data.GroupIDField: groupID}).BuildFromDataSet(dataSet)
-		processedDataset.Dataset = platformData
-		processedDataset.Errors = err.Error()
-
-		if err.Error() != "" {
-			w.WriteHeader(http.StatusBadRequest)
-			w.WriteJson(&processedDataset)
-			return
-		}
-
-		//TODO: should this be a bulk insert?
-		for i := range platformData {
-			if err = client.dataStore.Save(platformData[i]); err != nil {
-				rest.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		}
-
-		w.WriteJson(&processedDataset)
-		return
 	}
-	rest.Error(w, missingPermissionsError, http.StatusUnauthorized)
+	w.WriteHeader(http.StatusOK)
 	return
 }
 
@@ -182,16 +177,40 @@ func (client *DataServiceClient) PostBlob(w rest.ResponseWriter, r *rest.Request
 }
 
 //process the found data and send the appropriate response
-func process(iter store.Iterator) data.Dataset {
+func process(iter store.Iterator) data.DatumArray {
 
 	var chunk data.Datum
-	var all = data.Dataset{}
+	var all = data.DatumArray{}
 
 	for iter.Next(&chunk) {
 		all = append(all, chunk)
 	}
 
 	return all
+}
+
+func buildQuery(params url.Values) store.Query {
+
+	types := strings.Split(params.Get("type"), ",")
+	subTypes := strings.Split(params.Get("subType"), ",")
+	start := params.Get("startDate")
+	end := params.Get("endDate")
+
+	query := store.Query{}
+	if len(types) > 0 && types[0] != "" {
+		query[data.TypeField] = map[string]interface{}{store.In: types}
+	}
+	if len(subTypes) > 0 && subTypes[0] != "" {
+		query[data.SubTypeField] = map[string]interface{}{store.In: subTypes}
+	}
+	if start != "" && end != "" {
+		query[data.TimeField] = map[string]interface{}{store.GreaterThanEquals: start, store.LessThanEquals: end}
+	} else if start != "" {
+		query[data.TimeField] = map[string]interface{}{store.GreaterThanEquals: start}
+	} else if end != "" {
+		query[data.TimeField] = map[string]interface{}{store.LessThanEquals: end}
+	}
+	return query
 }
 
 //GetDataset will return the requested users data set if permissons are sufficient
@@ -201,28 +220,29 @@ func (client *DataServiceClient) GetDataset(w rest.ResponseWriter, r *rest.Reque
 
 	if checkPermisson(r, user.Permission{}) {
 
+		groupID := r.Env[user.GROUPID]
+
+		if groupID == "" {
+			rest.Error(w, missingDataError, http.StatusBadRequest)
+			return
+		}
+
 		var found struct {
-			data.Dataset `json:"Dataset"`
-			Errors       string `json:"Errors"`
+			data.DatumArray `json:"Dataset"`
+			Errors          string `json:"Errors"`
 		}
 
 		userid := r.PathParam(useridParamName)
 		log.Info(useridParamName, userid)
 
-		types := strings.Split(r.URL.Query().Get("type"), ",")
-		subTypes := strings.Split(r.URL.Query().Get("subType"), ",")
-		start := r.URL.Query().Get("startDate")
-		end := r.URL.Query().Get("endDate")
-
-		log.Info("params", types, subTypes, start, end)
-
 		iter := client.dataStore.ReadAll(
-			store.Fields{data.UserIDField: userid},
+			store.Field{Name: data.InternalGroupIDField, Value: groupID},
+			buildQuery(r.URL.Query()),
 			data.InternalFields,
 		)
 		defer iter.Close()
 
-		found.Dataset = process(iter)
+		found.DatumArray = process(iter)
 
 		w.WriteJson(&found)
 		return

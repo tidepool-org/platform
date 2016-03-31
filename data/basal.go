@@ -3,42 +3,39 @@ package data
 import (
 	"fmt"
 	"reflect"
-	"strings"
 
-	valid "github.com/tidepool-org/platform/Godeps/_workspace/src/gopkg.in/bluesuncorp/validator.v8"
+	"github.com/tidepool-org/platform/Godeps/_workspace/src/gopkg.in/bluesuncorp/validator.v8"
+
 	"github.com/tidepool-org/platform/validate"
 )
 
 func init() {
-	validator.RegisterValidation(rateTag, BasalRateValidator)
-	validator.RegisterValidation(durationTag, BasalDurationValidator)
-	validator.RegisterValidation(deliveryTypeTag, BasalDeliveryTypeValidator)
-	validator.RegisterValidation(insulinTag, BasalInsulinValidator)
-	validator.RegisterValidation(valueTag, BasalValueValidator)
+	getPlatformValidator().RegisterValidation(rateTag, BasalRateValidator)
+	getPlatformValidator().RegisterValidation(durationTag, BasalDurationValidator)
+	getPlatformValidator().RegisterValidation(deliveryTypeTag, BasalDeliveryTypeValidator)
+	getPlatformValidator().RegisterValidation(insulinTag, BasalInsulinValidator)
+	getPlatformValidator().RegisterValidation(valueTag, BasalValueValidator)
 }
 
-//Basal represents a basal device data record
 type Basal struct {
-	DeliveryType string          `json:"deliveryType" bson:"deliveryType" valid:"basaldeliverytype"`
-	ScheduleName string          `json:"scheduleName" bson:"scheduleName" valid:"omitempty,required"`
-	Rate         float64         `json:"rate" bson:"rate" valid:"omitempty,basalrate"`
-	Duration     int             `json:"duration" bson:"duration" valid:"omitempty,basalduration"`
-	Insulin      string          `json:"insulin" bson:"insulin,omitempty" valid:"omitempty,basalinsulin"`
-	Value        int             `json:"value" bson:"value,omitempty" valid:"omitempty,basalvalue"`
-	Suppressed   *SupressedBasal `json:"suppressed" bson:"suppressed,omitempty" valid:"omitempty,required"`
+	DeliveryType *string          `json:"deliveryType" bson:"deliveryType" valid:"basaldeliverytype"`
+	ScheduleName *string          `json:"scheduleName" bson:"scheduleName" valid:"omitempty,required"`
+	Rate         *float64         `json:"rate,omitempty" bson:"rate,omitempty" valid:"omitempty,basalrate"`
+	Duration     *int             `json:"duration,omitempty" bson:"duration,omitempty" valid:"omitempty,basalduration"`
+	Insulin      *string          `json:"insulin,omitempty" bson:"insulin,omitempty" valid:"omitempty,basalinsulin"`
+	Value        *int             `json:"value,omitempty" bson:"value,omitempty" valid:"omitempty,basalvalue"`
+	Suppressed   *SuppressedBasal `json:"suppressed,omitempty" bson:"suppressed,omitempty" valid:"omitempty,required"`
 	Base         `bson:",inline"`
 }
 
-//SupressedBasal represents a suppressed basal portion of a basal
-type SupressedBasal struct {
-	Type         string  `json:"type" bson:"type" valid:"required"`
-	DeliveryType string  `json:"deliveryType" bson:"deliveryType" valid:"basaldeliverytype"`
-	ScheduleName string  `json:"scheduleName" bson:"scheduleName" valid:"omitempty,required"`
-	Rate         float64 `json:"rate" bson:"rate" valid:"omitempty,basalrate"`
+type SuppressedBasal struct {
+	Type         *string  `json:"type" bson:"type" valid:"required"`
+	DeliveryType *string  `json:"deliveryType" bson:"deliveryType" valid:"basaldeliverytype"`
+	ScheduleName *string  `json:"scheduleName" bson:"scheduleName" valid:"omitempty,required"`
+	Rate         *float64 `json:"rate" bson:"rate" valid:"omitempty,basalrate"`
 }
 
 const (
-	//BasalName is the given name for the type of a `Basal` datum
 	BasalName = "basal"
 
 	deliveryTypeField = "deliveryType"
@@ -54,14 +51,17 @@ const (
 	insulinTag      validate.ValidationTag = "basalinsulin"
 	valueTag        validate.ValidationTag = "basalvalue"
 
-	injectedDelivery, scheduledDelivery, suspendDelivery, tempDelivery = "injected", "scheduled", "suspend", "temp"
+	injectedDelivery  = "injected"
+	scheduledDelivery = "scheduled"
+	suspendDelivery   = "suspend"
+	tempDelivery      = "temp"
 
-	levemirInsulin, lantusInsulin = "levemir", "lantus"
+	levemirInsulin = "levemir"
+	lantusInsulin  = "lantus"
 
 	rateValidationLowerLimit     = 0.0
 	durationValidationLowerLimit = 0
 	valueValidationLowerLimit    = 0
-	validationGreaterThanInt     = "Must be greater than %d"
 )
 
 var (
@@ -70,97 +70,68 @@ var (
 
 	basalFailureReasons = validate.ErrorReasons{
 		deliveryTypeTag: fmt.Sprintf("Must be one of %s,%s,%s,%s", injectedDelivery, scheduledDelivery, suspendDelivery, tempDelivery),
-		rateTag:         fmt.Sprintf("Must be greater than %f", rateValidationLowerLimit),
-		durationTag:     fmt.Sprintf(validationGreaterThanInt, durationValidationLowerLimit),
-		valueTag:        fmt.Sprintf(validationGreaterThanInt, valueValidationLowerLimit),
+		rateTag:         fmt.Sprintf("Must be greater than %.1f", rateValidationLowerLimit),
+		durationTag:     fmt.Sprintf("Must be greater than %d", durationValidationLowerLimit),
+		valueTag:        fmt.Sprintf("Must be greater than %d", valueValidationLowerLimit),
 		insulinTag:      fmt.Sprintf("Must be one of %s,%s", levemirInsulin, lantusInsulin),
 	}
 )
 
 //BuildBasal will build a Basal record
-func BuildBasal(obj map[string]interface{}) (*Basal, *Error) {
-
-	base, errs := BuildBase(obj)
-	cast := NewCaster(errs)
+func BuildBasal(datum Datum, errs validate.ErrorProcessing) *Basal {
 
 	basal := &Basal{
-		DeliveryType: cast.ToString(deliveryTypeField, obj[deliveryTypeField]),
-		ScheduleName: cast.ToString(scheduleNameField, obj[scheduleNameField]),
-		Base:         base,
+		ScheduleName: ToString(scheduleNameField, datum[scheduleNameField], errs),
+		DeliveryType: ToString(deliveryTypeField, datum[deliveryTypeField], errs),
+		Rate:         ToFloat64(rateField, datum[rateField], errs),
+		Duration:     ToInt(durationField, datum[durationField], errs),
+		Insulin:      ToString(insulinField, datum[insulinField], errs),
+		Base:         BuildBase(datum, errs),
 	}
 
-	if obj[rateField] != nil {
-		basal.Rate = cast.ToFloat64(rateField, obj[rateField])
-	}
-	if obj[durationField] != nil {
-		basal.Duration = cast.ToInt(durationField, obj[durationField])
-	}
-	if obj[insulinField] != nil {
-		basal.Insulin = cast.ToString(insulinField, obj[insulinField])
-	}
+	getPlatformValidator().SetErrorReasons(basalFailureReasons).Struct(basal, errs)
 
-	if validationErrors := validator.Struct(basal); len(validationErrors) > 0 {
-		errs.AppendError(validationErrors.GetError(basalFailureReasons))
-	}
-
-	if errs.IsEmpty() {
-		return basal, nil
-	}
-	return basal, errs
+	return basal
 }
 
-func BasalRateValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	if rate, ok := field.Interface().(float64); ok {
-		if rate > rateValidationLowerLimit {
-			return true
-		}
+func BasalRateValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+	rate, ok := field.Interface().(float64)
+	if !ok {
+		return false
 	}
-	return false
+	return rate > rateValidationLowerLimit
 }
 
-func BasalDurationValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	if duration, ok := field.Interface().(int); ok {
-		if duration > durationValidationLowerLimit {
-			return true
-		}
+func BasalDurationValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+	duration, ok := field.Interface().(int)
+	if !ok {
+		return false
 	}
-	return false
+	return duration > durationValidationLowerLimit
 }
 
-func BasalDeliveryTypeValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	if deliveryType, ok := field.Interface().(string); ok {
-		if _, ok = allowedDeliveryTypes[strings.ToLower(deliveryType)]; ok {
-			return true
-		}
+func BasalDeliveryTypeValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+	deliveryType, ok := field.Interface().(string)
+	if !ok {
+		return false
 	}
-	return false
+	_, ok = allowedDeliveryTypes[deliveryType]
+	return ok
 }
 
-func BasalInsulinValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	if insulin, ok := field.Interface().(string); ok {
-		if _, ok = allowedInsulins[strings.ToLower(insulin)]; ok {
-			return true
-		}
+func BasalInsulinValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+	insulin, ok := field.Interface().(string)
+	if !ok {
+		return false
 	}
-	return false
+	_, ok = allowedInsulins[insulin]
+	return ok
 }
 
-func BasalValueValidator(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	if value, ok := field.Interface().(int); ok {
-		if value > valueValidationLowerLimit {
-			return true
-		}
+func BasalValueValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+	value, ok := field.Interface().(int)
+	if !ok {
+		return false
 	}
-	return false
-}
-
-//Selector will return the `unique` fields used in upserts
-func (b *Basal) Selector() interface{} {
-
-	unique := map[string]interface{}{}
-	unique[deliveryTypeField] = b.DeliveryType
-	unique[scheduleNameField] = b.ScheduleName
-	unique[deviceTimeField] = b.Time
-	unique[typeField] = b.Type
-	return unique
+	return value > valueValidationLowerLimit
 }

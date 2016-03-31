@@ -1,54 +1,33 @@
 package data
 
-import "github.com/tidepool-org/platform/validate"
+import (
+	"github.com/tidepool-org/platform/validate"
+)
 
-//DeviceEvent represents a deviceevent data record
 type DeviceEvent struct {
-	SubType string      `json:"subType" bson:"subType" valid:"required"`
-	Status  string      `json:"status" bson:"status,omitempty" valid:"omitempty,required"`
-	Reason  interface{} `json:"reason" bson:"reason,omitempty" valid:"-"`
+	SubType *string      `json:"subType" bson:"subType" valid:"required"`
+	Status  *string      `json:"status,omitempty" bson:"status,omitempty" valid:"omitempty,required"`
+	Reason  *interface{} `json:"reason,omitempty" bson:"reason,omitempty" valid:"-"`
 	Base    `bson:",inline"`
 }
 
 const (
-	//DeviceEventName is the given name for the type of a `DeviceEvent` datum
 	DeviceEventName = "deviceEvent"
 
-	subTypeField = "subType"
-	statusField  = "status"
-	reasonField  = "reason"
+	statusField = "status"
+	reasonField = "reason"
 )
 
-//BuildDeviceEvent will build a DeviceEvent record
-func BuildDeviceEvent(obj map[string]interface{}) (*DeviceEvent, *Error) {
-
-	base, errs := BuildBase(obj)
-	cast := NewCaster(errs)
+func BuildDeviceEvent(datum Datum, errs validate.ErrorProcessing) *DeviceEvent {
 
 	deviceEvent := &DeviceEvent{
-		SubType: cast.ToString(subTypeField, obj[subTypeField]),
-		Status:  cast.ToString(statusField, obj[statusField]),
-		Reason:  obj[reasonField],
-		Base:    base,
+		Reason:  ToObject(reasonField, datum[reasonField], errs),
+		SubType: ToString(SubTypeField, datum[SubTypeField], errs),
+		Status:  ToString(statusField, datum[statusField], errs),
+		Base:    BuildBase(datum, errs),
 	}
 
-	if validationErrors := validator.Struct(deviceEvent); len(validationErrors) > 0 {
-		errs.AppendError(validationErrors.GetError(validate.ErrorReasons{}))
-	}
+	getPlatformValidator().Struct(deviceEvent, errs)
 
-	if errs.IsEmpty() {
-		return deviceEvent, nil
-	}
-	return deviceEvent, errs
-}
-
-//Selector will return the `unique` fields used in upserts
-func (d *DeviceEvent) Selector() interface{} {
-
-	unique := map[string]interface{}{}
-
-	unique[subTypeField] = d.SubType
-	unique[deviceTimeField] = d.DeviceTime
-	unique[typeField] = d.Type
-	return unique
+	return deviceEvent
 }
