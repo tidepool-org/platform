@@ -1,66 +1,58 @@
 package validate
 
 import (
-	"errors"
-	"reflect"
-	"time"
+	"fmt"
 
 	"github.com/tidepool-org/platform/Godeps/_workspace/src/gopkg.in/bluesuncorp/validator.v8"
 )
 
-//Validator interface
 type Validator interface {
-	ValidateStruct(s interface{}) error
-	RegisterStructValidation(fn validator.StructLevelFunc, types ...interface{})
+	Struct(s interface{}, errorProcessing ErrorProcessing)
+	RegisterValidation(tag ValidationTag, fn validator.Func)
 }
 
-//PlatformValidator type that implements Validator
 type PlatformValidator struct {
 	validate *validator.Validate
+	reasons  ErrorReasons
 }
 
-//NewPlatformValidator returns initialised PlatformValidator with custom tidepool validation
+type ValidationTag string
+
+// ErrorReasons is a type of map[ValidationTag]string
+// it allows us to map a ValidationTag to a reason why the validation failed
+type ErrorReasons map[ValidationTag]string
+
 func NewPlatformValidator() *PlatformValidator {
 	validate := validator.New(&validator.Config{TagName: "valid"})
-	validate.RegisterValidation("datetime", datetime)
 	return &PlatformValidator{validate: validate}
 }
 
-//ValidateStruct for the PlatformValidator
-func (pv *PlatformValidator) ValidateStruct(s interface{}) error {
-
-	if errs := pv.validate.Struct(s); errs != nil {
-		return errors.New(errs.Error())
-	}
-	return nil
+func (pv *PlatformValidator) SetErrorReasons(reasons ErrorReasons) *PlatformValidator {
+	pv.reasons = reasons
+	return pv
 }
 
-// RegisterStructValidation registers a DataStructLevelFunc against a number of data types
-// NOTE: this method is not thread-safe it is intended that these all be registered prior to any validation
-func (pv *PlatformValidator) RegisterStructValidation(fn validator.StructLevelFunc, types ...interface{}) {
-	pv.validate.RegisterStructValidation(fn, types)
+func (pv *PlatformValidator) toErrorsArray(ve validator.ValidationErrors, errorProcessing ErrorProcessing) {
+	for _, v := range ve {
+		if reason, ok := pv.reasons[ValidationTag(v.Tag)]; ok {
+
+			errorProcessing.AppendPointerError(
+				v.Type.String(),
+				"Validation Error",
+				fmt.Sprintf("'%s' failed with '%s' when given '%v'", v.Field, reason, v.Value),
+			)
+
+		}
+	}
 }
 
-//datetime is a custom validation method for how we require dates are formated
-func datetime(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-
-	if timeTime, ok := field.Interface().(time.Time); ok {
-		if !timeTime.IsZero() && timeTime.Before(time.Now()) {
-			return true
-		}
-		return false
+func (pv *PlatformValidator) Struct(s interface{}, errorProcessing ErrorProcessing) {
+	validationErrors := pv.validate.Struct(s)
+	if validationErrors != nil {
+		pv.toErrorsArray(validationErrors.(validator.ValidationErrors), errorProcessing)
 	}
+}
 
-	if timeStr, ok := field.Interface().(string); ok {
-		_, err := time.Parse(time.RFC3339, timeStr)
-		if err != nil {
-			//try this format also before we fail
-			_, err = time.Parse("2006-01-02T15:04:05", timeStr)
-			if err != nil {
-				return false
-			}
-		}
-		return true
-	}
-	return false
+func (pv *PlatformValidator) RegisterValidation(tag ValidationTag, fn validator.Func) {
+	pv.validate.RegisterValidation(string(tag), fn)
 }

@@ -10,9 +10,9 @@ import (
 //Logger interface
 type Logger interface {
 	GetNamed(name string) Logger
+	WithField(key string, value interface{}) Logger
 	AddTrace(id string)
 	AddTraceUUID()
-	WithField(key string, value interface{})
 	Debug(args ...interface{})
 	Info(args ...interface{})
 	Warn(args ...interface{})
@@ -70,31 +70,32 @@ func (log *PlatformLog) AddTraceUUID() {
 }
 
 //WithField will log the message with and extra attached details
-func (log *PlatformLog) WithField(key string, value interface{}) {
+func (log *PlatformLog) WithField(key string, value interface{}) Logger {
 	Log.fields[key] = value
+	return log
 }
 
-//Debug will log at the Debug Level
+//Debug Level
 func (log *PlatformLog) Debug(args ...interface{}) {
 	Log.internal.WithFields(Log.fields).Debug(args)
 }
 
-//Info will log at the Info Level
+//Info Level
 func (log *PlatformLog) Info(args ...interface{}) {
 	Log.internal.WithFields(Log.fields).Info(args)
 }
 
-//Warn will log at the Warn Level
+//Warn Level
 func (log *PlatformLog) Warn(args ...interface{}) {
 	Log.internal.WithFields(Log.fields).Warn(args)
 }
 
-//Error will log at the Error Level
+//Error Level
 func (log *PlatformLog) Error(args ...interface{}) {
 	Log.internal.WithFields(Log.fields).Error(args)
 }
 
-//Fatal will log at the Fatal Level
+//Fatal Level
 func (log *PlatformLog) Fatal(args ...interface{}) {
 	Log.internal.WithFields(Log.fields).Fatal(args)
 }

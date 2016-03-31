@@ -95,7 +95,7 @@ var _ = Describe("Store", func() {
 			}
 
 			Expect(testStore.Save(saveMe)).To(BeNil())
-			Expect(testStore.Delete(IDField{"id", saveMe.ID})).To(BeNil())
+			Expect(testStore.Delete(Field{Name: "id", Value: saveMe.ID})).To(BeNil())
 		})
 		It("should be able to get one", func() {
 			saveMe := SaveMe{
@@ -108,7 +108,7 @@ var _ = Describe("Store", func() {
 			var found SaveMe
 
 			Expect(testStore.Save(saveMe)).To(BeNil())
-			Expect(testStore.Read(IDField{"id", saveMe.ID}, &found)).To(BeNil())
+			Expect(testStore.Read(Field{Name: "id", Value: saveMe.ID}, Filter{}, &found)).To(BeNil())
 			Expect(found).To(Equal(saveMe))
 		})
 		It("should be able to get all", func() {
@@ -126,9 +126,23 @@ var _ = Describe("Store", func() {
 				Stuff:     []string{"100", "99", "miss", "a", "few", "2", "1"},
 			}
 			var found []SaveMe
+
+			process := func(iter Iterator) []SaveMe {
+				var chunk SaveMe
+				var all = []SaveMe{}
+
+				for iter.Next(&chunk) {
+					all = append(all, chunk)
+				}
+				return all
+			}
+
 			Expect(testStore.Save(one)).To(BeNil())
 			Expect(testStore.Save(two)).To(BeNil())
-			Expect(testStore.ReadAll(IDField{"userid", one.UserID}, &found)).To(BeNil())
+
+			iter := testStore.ReadAll(Field{Name: "userid", Value: one.UserID}, Query{}, Filter{})
+			found = process(iter)
+
 			Expect(len(found)).To(Equal(2))
 			Expect(found[0]).To(Equal(one))
 			Expect(found[1]).To(Equal(two))
