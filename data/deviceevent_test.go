@@ -3,6 +3,8 @@ package data
 import (
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo"
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega"
+
+	"github.com/tidepool-org/platform/validate"
 )
 
 var _ = Describe("DeviceEvent", func() {
@@ -27,17 +29,18 @@ var _ = Describe("DeviceEvent", func() {
 			"subType":          "alarm",
 			"deviceId":         "InsOmn-888888888",
 		}
+		processing = validate.ErrorProcessing{BasePath: "0/deviceEvent", ErrorsArray: validate.NewErrorsArray()}
 	)
 
 	Context("can be built from obj", func() {
 		It("should return a basal if the obj is valid", func() {
-			deviceEvent, _ := BuildDeviceEvent(deviceEventObj)
+			deviceEvent := BuildDeviceEvent(deviceEventObj, processing)
 			var deviceEventType *DeviceEvent
 			Expect(deviceEvent).To(BeAssignableToTypeOf(deviceEventType))
 		})
 		It("should produce no error when valid", func() {
-			_, err := BuildDeviceEvent(deviceEventObj)
-			Expect(err).To(BeNil())
+			BuildDeviceEvent(deviceEventObj, processing)
+			Expect(processing.HasErrors()).To(BeFalse())
 		})
 	})
 })
