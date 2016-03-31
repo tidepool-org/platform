@@ -15,10 +15,10 @@ var _ = Describe("Config", func() {
 	Describe("FromJson", func() {
 
 		It("loads the given config file", func() {
-			var mgoConfig store.MongoConfig
-			config.FromJSON(&mgoConfig, "mongo.json")
-			Expect(mgoConfig).To(Not(BeNil()))
-			Expect(mgoConfig.URL).To(Not(BeEmpty()))
+			var mongoConfig store.MongoConfig
+			config.FromJSON(&mongoConfig, "mongo.json")
+			Expect(mongoConfig).To(Not(BeNil()))
+			Expect(mongoConfig.URL).To(Not(BeEmpty()))
 		})
 
 		It("returns error if the config doen't exist", func() {
@@ -44,9 +44,9 @@ var _ = Describe("Config", func() {
 
 		It("returns error if the value doesn't exist", func() {
 			const otherKey = "OTHER"
-			os.Unsetenv(otherKey) // make sure it doesn't exist
+			os.Unsetenv(otherKey)
 
-			_, err := config.FromEnv("OTHER")
+			_, err := config.FromEnv(otherKey)
 
 			Expect(err).To(MatchError("$OTHER must be set"))
 		})

@@ -1,86 +1,82 @@
 package data
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
-	"strings"
+
+	"github.com/tidepool-org/platform/validate"
+)
+
+const (
+	InvalidTypeTitle = "Invalid type"
+	InvalidDataTitle = "Invalid data"
 )
 
 type Datum map[string]interface{}
-
 type DatumArray []Datum
 
+type BuiltDatum interface{}
+type BuiltDatumArray []BuiltDatum
+
 type Builder interface {
-	BuildFromBytes(byteArray []byte) (interface{}, *Error)
-	BuildFromDatum(datum Datum) (interface{}, *Error)
-	BuildFromDatumArray(datumArray DatumArray) ([]interface{}, *ErrorArray)
+	BuildFromDatum(datum Datum) BuiltDatum
+	BuildFromDatumArray(datumArray DatumArray) (BuiltDatumArray, *validate.ErrorsArray)
 }
 
 type TypeBuilder struct {
-	inject map[string]interface{}
+	commonDatum Datum
+	Index       int
+	validate.ErrorProcessing
 }
 
-func NewTypeBuilder(inject map[string]interface{}) Builder {
+func NewTypeBuilder(commonDatum Datum) Builder {
 	return &TypeBuilder{
-		inject: inject,
+		commonDatum:     commonDatum,
+		ErrorProcessing: validate.ErrorProcessing{ErrorsArray: validate.NewErrorsArray()},
+		Index:           0,
 	}
 }
 
-func (t *TypeBuilder) BuildFromBytes(byteArray []byte) (interface{}, *Error) {
+func (t *TypeBuilder) BuildFromDatumArray(datumArray DatumArray) (BuiltDatumArray, *validate.ErrorsArray) {
 
-	var datum Datum
-
-	if err := json.NewDecoder(strings.NewReader(string(byteArray))).Decode(&datum); err != nil {
-		log.Info("error doing an unmarshal", err.Error())
-		e := NewError(datum)
-		e.AppendError(fmt.Errorf("sorry but we do anything with %s", string(byteArray)))
-		return nil, e
-	}
-	return t.BuildFromDatum(datum)
-}
-
-func (t *TypeBuilder) BuildFromDatumArray(datumArray DatumArray) ([]interface{}, *ErrorArray) {
-
-	var set []interface{}
-	buildError := NewErrorArray()
+	var builtDatumArray BuiltDatumArray
 
 	for i := range datumArray {
-		if item, err := t.BuildFromDatum(datumArray[i]); err.IsEmpty() {
-			set = append(set, item)
-		} else {
-			buildError.AppendError(err)
-		}
+		builtDatumArray = append(builtDatumArray, t.BuildFromDatum(datumArray[i]))
+		t.Index++
 	}
-	if len(buildError.errors) > 0 {
-		return nil, buildError
+
+	if t.ErrorProcessing.HasErrors() {
+		return nil, t.ErrorsArray
 	}
-	return set, nil
+
+	return builtDatumArray, nil
 }
 
-func (t *TypeBuilder) BuildFromDatum(datum Datum) (interface{}, *Error) {
+func (t *TypeBuilder) buildType(typeName string, datum Datum) BuiltDatum {
 
-	const typeField = "type"
+	t.ErrorProcessing.BasePath = fmt.Sprintf("%d/%s", t.Index, typeName)
 
-	if datum[typeField] != nil {
+	switch typeName {
+	case BasalName:
+		return BuildBasal(datum, t.ErrorProcessing)
+	case DeviceEventName:
+		return BuildDeviceEvent(datum, t.ErrorProcessing)
+	default:
+		t.ErrorProcessing.AppendPointerError("type", InvalidTypeTitle, "The type must be one of 'basal', 'deviceEvent'")
+		return nil
+	}
+}
 
-		for k, v := range t.inject {
-			datum[k] = v
-		}
+func (t *TypeBuilder) BuildFromDatum(datum Datum) BuiltDatum {
 
-		if strings.ToLower(datum[typeField].(string)) == strings.ToLower(BasalName) {
-			return BuildBasal(datum)
-		} else if strings.ToLower(datum[typeField].(string)) == strings.ToLower(DeviceEventName) {
-			return BuildDeviceEvent(datum)
-		}
-		e := NewError(datum)
-		e.AppendError(fmt.Errorf("we can't deal with `type`=%s", datum[typeField].(string)))
-		return nil, e
+	if datum["type"] == nil {
+		t.ErrorProcessing.Append(validate.NewParameterError(fmt.Sprintf("%d", t.Index), InvalidDataTitle, "Missing required 'type' field"))
+		return nil
 	}
 
-	e := NewError(datum)
-	e.AppendError(errors.New("there is no match for that type"))
-
-	return nil, e
+	for k, v := range t.commonDatum {
+		datum[k] = v
+	}
+	return t.buildType(datum["type"].(string), datum)
 
 }

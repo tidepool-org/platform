@@ -1,11 +1,13 @@
 package data
 
-import "github.com/tidepool-org/platform/validate"
+import (
+	"github.com/tidepool-org/platform/validate"
+)
 
 type DeviceEvent struct {
-	SubType string      `json:"subType" bson:"subType" valid:"required"`
-	Status  string      `json:"status" bson:"status,omitempty" valid:"omitempty,required"`
-	Reason  interface{} `json:"reason" bson:"reason,omitempty" valid:"-"`
+	SubType *string      `json:"subType" bson:"subType" valid:"required"`
+	Status  *string      `json:"status,omitempty" bson:"status,omitempty" valid:"omitempty,required"`
+	Reason  *interface{} `json:"reason,omitempty" bson:"reason,omitempty" valid:"-"`
 	Base    `bson:",inline"`
 }
 
@@ -16,24 +18,16 @@ const (
 	reasonField = "reason"
 )
 
-func BuildDeviceEvent(datum Datum) (*DeviceEvent, *Error) {
-
-	base, errs := BuildBase(datum)
-	cast := NewCaster(errs)
+func BuildDeviceEvent(datum Datum, errs validate.ErrorProcessing) *DeviceEvent {
 
 	deviceEvent := &DeviceEvent{
-		SubType: cast.ToString(SubTypeField, datum[SubTypeField]),
-		Status:  cast.ToString(statusField, datum[statusField]),
-		Reason:  datum[reasonField],
-		Base:    base,
+		Reason:  ToObject(reasonField, datum[reasonField], errs),
+		SubType: ToString(SubTypeField, datum[SubTypeField], errs),
+		Status:  ToString(statusField, datum[statusField], errs),
+		Base:    BuildBase(datum, errs),
 	}
 
-	if validationErrors := validator.Struct(deviceEvent); len(validationErrors) > 0 {
-		errs.AppendError(validationErrors.GetError(validate.ErrorReasons{}))
-	}
+	getPlatformValidator().Struct(deviceEvent, errs)
 
-	if errs.IsEmpty() {
-		return deviceEvent, nil
-	}
-	return deviceEvent, errs
+	return deviceEvent
 }
