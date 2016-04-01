@@ -73,7 +73,6 @@ func NewDataServiceClient() *DataServiceClient {
 
 }
 
-//Run will run the service
 func (client *DataServiceClient) Run(URL string) error {
 	client.api.Use(rest.DefaultDevStack...)
 	client.api.Use(&rest.GzipMiddleware{})
@@ -216,37 +215,37 @@ func (client *DataServiceClient) GetDataset(w rest.ResponseWriter, r *rest.Reque
 
 	log.AddTrace(r.PathParam(useridParamName))
 
-	if checkPermisson(r, user.Permission{}) {
-
-		groupID := r.Env[user.GROUPID]
-
-		if groupID == "" {
-			rest.Error(w, missingDataError, http.StatusBadRequest)
-			return
-		}
-
-		var found struct {
-			data.DatumArray `json:"Dataset"`
-			Errors          string `json:"Errors"`
-		}
-
-		userid := r.PathParam(useridParamName)
-		log.Info(useridParamName, userid)
-
-		iter := client.dataStore.ReadAll(
-			store.Field{Name: data.InternalGroupIDField, Value: groupID},
-			buildQuery(r.URL.Query()),
-			data.InternalFields,
-		)
-		defer iter.Close()
-
-		found.DatumArray = process(iter)
-
-		w.WriteJson(&found)
+	if !checkPermisson(r, user.Permission{}) {
+		rest.Error(w, missingPermissionsError, http.StatusUnauthorized)
 		return
 	}
-	rest.Error(w, missingPermissionsError, http.StatusUnauthorized)
+
+	groupID := r.Env[user.GROUPID]
+
+	if groupID == "" {
+		rest.Error(w, missingDataError, http.StatusBadRequest)
+		return
+	}
+
+	var found struct {
+		data.DatumArray `json:"Dataset"`
+	}
+
+	userid := r.PathParam(useridParamName)
+	log.Info(useridParamName, userid)
+
+	iter := client.dataStore.ReadAll(
+		store.Field{Name: data.InternalGroupIDField, Value: groupID},
+		buildQuery(r.URL.Query()),
+		data.InternalFields,
+	)
+	defer iter.Close()
+
+	found.DatumArray = process(iter)
+
+	w.WriteJson(&found)
 	return
+
 }
 
 //GetData will return the requested users data point if permissons are sufficient
