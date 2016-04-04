@@ -7,30 +7,28 @@ import (
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega"
 )
 
-var _ = Describe("Base", func() {
-
-	const (
-		userID   = "b676436f60"
-		groupID  = "43099shgs55"
-		uploadID = "upid_b856b0e6e519"
-	)
-
-	var basalObj = map[string]interface{}{
-		"userId":           userID,  //userID would have been injected by now via the builder
-		"groupId":          groupID, //groupId would have been injected by now via the builder
-		"uploadId":         uploadID,
+func testingDatumBase() map[string]interface{} {
+	return map[string]interface{}{
+		"userId":           "b676436f60",
+		"groupId":          "43099shgs55",
+		"uploadId":         "upid_b856b0e6e519",
 		"deviceTime":       "2014-06-11T06:00:00.000Z",
 		"time":             "2014-06-11T06:00:00.000Z",
 		"timezoneOffset":   0,
 		"conversionOffset": 0,
 		"clockDriftOffset": 0,
-		"type":             "basal",
-		"deliveryType":     "scheduled",
-		"scheduleName":     "Standard",
-		"rate":             2.2,
-		"duration":         21600000,
 		"deviceId":         "InsOmn-111111111",
 	}
+}
+
+var _ = Describe("Base", func() {
+
+	var basalObj = testingDatumBase()
+	basalObj["type"] = "basal"
+	basalObj["deliveryType"] = "scheduled"
+	basalObj["scheduleName"] = "Standard"
+	basalObj["rate"] = 2.2
+	basalObj["duration"] = 21600000
 
 	Context("can be built with all fields", func() {
 		var (
@@ -49,25 +47,15 @@ var _ = Describe("Base", func() {
 
 	Context("can be built with only core fields", func() {
 
-		var (
-			basalObj = map[string]interface{}{
-				"userId":     userID, //userID would have been injected by now via the builder
-				"groupId":    groupID,
-				"uploadId":   uploadID,
-				"deviceTime": "2014-06-11T06:00:00.000Z",
-				"time":       "2014-06-11T06:00:00.000Z",
-				"type":       "basal",
-				"deviceId":   "InsOmn-111111111",
-			}
-			processing = validate.ErrorProcessing{BasePath: "0/base", ErrorsArray: validate.NewErrorsArray()}
-		)
+		var processing = validate.ErrorProcessing{BasePath: "0/base", ErrorsArray: validate.NewErrorsArray()}
+
 		It("should return a the base types if the obj is valid", func() {
-			base := BuildBase(basalObj, processing)
+			base := BuildBase(testingDatumBase(), processing)
 			var baseType Base
 			Expect(base).To(BeAssignableToTypeOf(baseType))
 		})
 		It("should return and error object that is empty but not nil", func() {
-			BuildBase(basalObj, processing)
+			BuildBase(testingDatumBase(), processing)
 			Expect(processing.HasErrors()).To(BeFalse())
 		})
 	})
@@ -144,7 +132,7 @@ var _ = Describe("Base", func() {
 					base := BuildBase(basalObj, processing)
 					getPlatformValidator().Struct(base, processing)
 					Expect(processing.HasErrors()).To(BeTrue())
-					Expect(processing.Errors[0].Detail).To(ContainSubstring("'TimezoneOffset' failed with 'TimezoneOffset needs to be in minutes and greater than -840 and less than 720' when given '-841'"))
+					Expect(processing.Errors[0].Detail).To(ContainSubstring("'TimezoneOffset' failed with 'needs to be in minutes and >= -840 and <= 720' when given '-841'"))
 				})
 
 				It("greater than 720", func() {
@@ -152,7 +140,7 @@ var _ = Describe("Base", func() {
 					base := BuildBase(basalObj, processing)
 					getPlatformValidator().Struct(base, processing)
 					Expect(processing.HasErrors()).To(BeTrue())
-					Expect(processing.Errors[0].Detail).To(ContainSubstring("'TimezoneOffset' failed with 'TimezoneOffset needs to be in minutes and greater than -840 and less than 720' when given '721'"))
+					Expect(processing.Errors[0].Detail).To(ContainSubstring("'TimezoneOffset' failed with 'needs to be in minutes and >= -840 and <= 720' when given '721'"))
 				})
 			})
 			Context("is valid when", func() {
@@ -218,11 +206,11 @@ var _ = Describe("Base", func() {
 	})
 	Context("convertions", func() {
 		It("int when zero", func() {
-			var intVal = map[string]interface{}{"myint": 0}
+			var intVal = Datum{"myint": 0}
 			var processing = validate.ErrorProcessing{BasePath: "0/test", ErrorsArray: validate.NewErrorsArray()}
 			zero := 0
 
-			converted := ToInt("myint", intVal["myint"], processing)
+			converted := intVal.ToInt("myint", processing)
 			Expect(converted).To(Equal(&zero))
 			Expect(processing.HasErrors()).To(BeFalse())
 

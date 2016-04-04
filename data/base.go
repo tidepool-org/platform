@@ -12,11 +12,11 @@ import (
 )
 
 func init() {
-	getPlatformValidator().RegisterValidation(timeStringTag, PastTimeStringValidator)
-	getPlatformValidator().RegisterValidation(timeObjectTag, PastTimeObjectValidator)
-	getPlatformValidator().RegisterValidation(timeZoneOffsetTag, TimezoneOffsetValidator)
-	getPlatformValidator().RegisterValidation(payloadTag, PayloadValidator)
-	getPlatformValidator().RegisterValidation(annotationsTag, AnnotationsValidator)
+	getPlatformValidator().RegisterValidation(BaseTimeField.Tag, PastTimeStringValidator)
+	getPlatformValidator().RegisterValidation("timeobject", PastTimeObjectValidator)
+	getPlatformValidator().RegisterValidation(baseTimezoneOffsetField.Tag, TimezoneOffsetValidator)
+	getPlatformValidator().RegisterValidation(basePayloadField.Tag, PayloadValidator)
+	getPlatformValidator().RegisterValidation(baseAnnotationsField.Tag, AnnotationsValidator)
 }
 
 type Base struct {
@@ -59,58 +59,62 @@ var (
 		"_version",
 		"createdTime",
 	}
+
+	BaseUserIDField           = DatumField{Name: "userId"}
+	BaseGroupIDField          = DatumField{Name: "groupId"}
+	BaseInternalGroupIDField  = DatumField{Name: "_groupId"}
+	BaseTypeField             = DatumField{Name: "type"}
+	BaseSubTypeField          = DatumField{Name: "subType"}
+	baseDeviceIDField         = DatumField{Name: "deviceId"}
+	baseUploadIDField         = DatumField{Name: "uploadId"}
+	baseDeviceTimeField       = DatumField{Name: "deviceTime"}
+	baseConversionOffsetField = DatumField{Name: "conversionOffset"}
+	baseClockDriftOffsetField = DatumField{Name: "clockDriftOffset"}
+
+	BaseTimeField = TypesDatumField{
+		DatumField: &DatumField{Name: "time"},
+		Tag:        "timestr",
+		Message:    "Times need to be ISO 8601 format and not in the future",
+	}
+
+	baseTimezoneOffsetField = IntDatumField{
+		DatumField:      &DatumField{Name: "timezoneOffset"},
+		Tag:             "timezoneoffset",
+		Message:         "needs to be in minutes and >= -840 and <= 720",
+		AllowedIntRange: &AllowedIntRange{LowerLimit: -840, UpperLimit: 720},
+	}
+
+	basePayloadField     = TypesDatumField{DatumField: &DatumField{Name: "payload"}, Tag: "payload"}
+	baseAnnotationsField = TypesDatumField{DatumField: &DatumField{Name: "annotations"}, Tag: "annotations"}
+
+	validationFailureReasons = validate.ErrorReasons{
+		BaseTimeField.Tag:           BaseTimeField.Message,
+		baseTimezoneOffsetField.Tag: baseTimezoneOffsetField.Message,
+		basePayloadField.Tag:        basePayloadField.Message,
+		baseAnnotationsField.Tag:    baseAnnotationsField.Message,
+	}
 )
 
-const (
-	UserIDField          = "userId"
-	GroupIDField         = "groupId"
-	InternalGroupIDField = "_groupId"
-	TypeField            = "type"
-	SubTypeField         = "subType"
-	TimeField            = "time"
-
-	deviceIDField   = "deviceId"
-	uploadIDField   = "uploadId"
-	deviceTimeField = "deviceTime"
-
-	timezoneOffsetField   = "timezoneOffset"
-	conversionOffsetField = "conversionOffset"
-	clockDriftOffsetField = "clockDriftOffset"
-
-	payloadField     = "payload"
-	annotationsField = "annotations"
-
-	tzValidationLowerLimit = -840
-	tzValidationUpperLimit = 720
-	timeStrValidationMsg   = "Times need to be ISO 8601 format and not in the future"
-
-	timeStringTag     validate.ValidationTag = "timestr"
-	timeObjectTag     validate.ValidationTag = "timeobject"
-	timeZoneOffsetTag validate.ValidationTag = "timezoneoffset"
-	payloadTag        validate.ValidationTag = "payload"
-	annotationsTag    validate.ValidationTag = "annotations"
-
-	invalidTypeDescription = "should be of type '%s'"
-)
+const invalidTypeDescription = "should be of type '%s'"
 
 func BuildBase(datum Datum, errs validate.ErrorProcessing) Base {
 
 	base := Base{
 		_ID:              bson.NewObjectId(),
 		ID:               bson.NewObjectId().Hex(),
-		UserID:           ToString(UserIDField, datum[UserIDField], errs),
-		DeviceID:         ToString(deviceIDField, datum[deviceIDField], errs),
-		UploadID:         ToString(uploadIDField, datum[uploadIDField], errs),
-		Time:             ToString(TimeField, datum[TimeField], errs),
-		Type:             ToString(TypeField, datum[TypeField], errs),
-		Payload:          ToObject(payloadField, datum[payloadField], errs),
-		ConversionOffset: ToInt(conversionOffsetField, datum[conversionOffsetField], errs),
-		TimezoneOffset:   ToInt(timezoneOffsetField, datum[timezoneOffsetField], errs),
-		ClockDriftOffset: ToInt(clockDriftOffsetField, datum[clockDriftOffsetField], errs),
-		DeviceTime:       ToString(deviceTimeField, datum[deviceTimeField], errs),
-		Annotations:      ToArray(annotationsField, datum[annotationsField], errs),
+		UserID:           datum.ToString(BaseUserIDField.Name, errs),
+		DeviceID:         datum.ToString(baseDeviceIDField.Name, errs),
+		UploadID:         datum.ToString(baseUploadIDField.Name, errs),
+		Time:             datum.ToString(BaseTimeField.Name, errs),
+		Type:             datum.ToString(BaseTypeField.Name, errs),
+		Payload:          datum.ToObject(basePayloadField.Name, errs),
+		ConversionOffset: datum.ToInt(baseConversionOffsetField.Name, errs),
+		TimezoneOffset:   datum.ToInt(baseTimezoneOffsetField.Name, errs),
+		ClockDriftOffset: datum.ToInt(baseClockDriftOffsetField.Name, errs),
+		DeviceTime:       datum.ToString(baseDeviceTimeField.Name, errs),
+		Annotations:      datum.ToArray(baseAnnotationsField.Name, errs),
 		Internal: Internal{
-			GroupID:       datum[GroupIDField].(string),
+			GroupID:       datum[BaseGroupIDField.Name].(string),
 			ActiveFlag:    true,
 			SchemaVersion: 1, //TODO: configured ??
 			CreatedTime:   time.Now().Format(time.RFC3339),
@@ -120,11 +124,6 @@ func BuildBase(datum Datum, errs validate.ErrorProcessing) Base {
 	getPlatformValidator().SetErrorReasons(validationFailureReasons).Struct(base, errs)
 
 	return base
-}
-
-var validationFailureReasons = validate.ErrorReasons{
-	timeStringTag:     timeStrValidationMsg,
-	timeZoneOffsetTag: fmt.Sprintf("TimezoneOffset needs to be in minutes and greater than %d and less than %d", tzValidationLowerLimit, tzValidationUpperLimit),
 }
 
 func PayloadValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
@@ -143,7 +142,7 @@ func TimezoneOffsetValidator(v *validator.Validate, topStruct reflect.Value, cur
 		return false
 	}
 	//TODO: needs to be confirmed that this is all we should validate
-	return offset >= tzValidationLowerLimit && offset <= tzValidationUpperLimit
+	return offset >= baseTimezoneOffsetField.LowerLimit && offset <= baseTimezoneOffsetField.UpperLimit
 }
 
 func PastTimeObjectValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
@@ -179,11 +178,11 @@ func isTimeStringValid(timeString string) bool {
 	return isTimeObjectValid(timeObject)
 }
 
-func ToString(fieldName string, data interface{}, errs validate.ErrorProcessing) *string {
-	if data == nil {
+func (d Datum) ToString(fieldName string, errs validate.ErrorProcessing) *string {
+	if d[fieldName] == nil {
 		return nil
 	}
-	aString, ok := data.(string)
+	aString, ok := d[fieldName].(string)
 	if !ok {
 		errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "string"))
 		return nil
@@ -191,11 +190,11 @@ func ToString(fieldName string, data interface{}, errs validate.ErrorProcessing)
 	return &aString
 }
 
-func ToFloat64(fieldName string, data interface{}, errs validate.ErrorProcessing) *float64 {
-	if data == nil {
+func (d Datum) ToFloat64(fieldName string, errs validate.ErrorProcessing) *float64 {
+	if d[fieldName] == nil {
 		return nil
 	}
-	theFloat, ok := data.(float64)
+	theFloat, ok := d[fieldName].(float64)
 	if !ok {
 		errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "float"))
 		return nil
@@ -203,11 +202,11 @@ func ToFloat64(fieldName string, data interface{}, errs validate.ErrorProcessing
 	return &theFloat
 }
 
-func ToInt(fieldName string, data interface{}, errs validate.ErrorProcessing) *int {
-	if data == nil {
+func (d Datum) ToInt(fieldName string, errs validate.ErrorProcessing) *int {
+	if d[fieldName] == nil {
 		return nil
 	}
-	theInt, _ := data.(int)
+	theInt, _ := d[fieldName].(int)
 	//TODO:
 	/*if !ok {
 		return 0
@@ -217,9 +216,9 @@ func ToInt(fieldName string, data interface{}, errs validate.ErrorProcessing) *i
 	return &theInt
 }
 
-func ToTime(fieldName string, data interface{}, errs validate.ErrorProcessing) *time.Time {
+func (d Datum) ToTime(fieldName string, errs validate.ErrorProcessing) *time.Time {
 
-	timeStr, ok := data.(string)
+	timeStr, ok := d[fieldName].(string)
 	if !ok {
 		errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "string"))
 		return nil
@@ -236,11 +235,11 @@ func ToTime(fieldName string, data interface{}, errs validate.ErrorProcessing) *
 	return &theTime
 }
 
-func ToArray(fieldName string, data interface{}, errs validate.ErrorProcessing) *[]interface{} {
-	if data == nil {
+func (d Datum) ToArray(fieldName string, errs validate.ErrorProcessing) *[]interface{} {
+	if d[fieldName] == nil {
 		return nil
 	}
-	arrayData, ok := data.([]interface{})
+	arrayData, ok := d[fieldName].([]interface{})
 	if !ok {
 		errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "array"))
 		return nil
@@ -248,11 +247,11 @@ func ToArray(fieldName string, data interface{}, errs validate.ErrorProcessing) 
 	return &arrayData
 }
 
-func ToObject(fieldName string, data interface{}, errs validate.ErrorProcessing) *interface{} {
-	if data == nil {
+func (d Datum) ToObject(fieldName string, errs validate.ErrorProcessing) *interface{} {
+	if d[fieldName] == nil {
 		return nil
 	}
-	objectData, ok := data.(interface{})
+	objectData, ok := d[fieldName].(interface{})
 	if !ok {
 		errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "object"))
 		return nil

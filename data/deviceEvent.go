@@ -11,19 +11,20 @@ type DeviceEvent struct {
 	Base    `bson:",inline"`
 }
 
-const (
-	DeviceEventName = "deviceEvent"
+const DeviceEventName = "deviceEvent"
 
-	statusField = "status"
-	reasonField = "reason"
+var (
+	deviceEventStatusField  = DatumField{Name: "status"}
+	deviceEventReasonField  = DatumField{Name: "reason"}
+	deviceEventSubTypeField = DatumField{Name: "subType"}
 )
 
 func BuildDeviceEvent(datum Datum, errs validate.ErrorProcessing) *DeviceEvent {
 
 	deviceEvent := &DeviceEvent{
-		Reason:  ToObject(reasonField, datum[reasonField], errs),
-		SubType: ToString(SubTypeField, datum[SubTypeField], errs),
-		Status:  ToString(statusField, datum[statusField], errs),
+		Reason:  datum.ToObject(deviceEventReasonField.Name, errs),
+		SubType: datum.ToString(deviceEventSubTypeField.Name, errs),
+		Status:  datum.ToString(deviceEventStatusField.Name, errs),
 		Base:    BuildBase(datum, errs),
 	}
 

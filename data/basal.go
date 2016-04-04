@@ -1,7 +1,6 @@
 package data
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/tidepool-org/platform/Godeps/_workspace/src/gopkg.in/bluesuncorp/validator.v8"
@@ -10,11 +9,11 @@ import (
 )
 
 func init() {
-	getPlatformValidator().RegisterValidation(rateTag, BasalRateValidator)
-	getPlatformValidator().RegisterValidation(durationTag, BasalDurationValidator)
-	getPlatformValidator().RegisterValidation(deliveryTypeTag, BasalDeliveryTypeValidator)
-	getPlatformValidator().RegisterValidation(insulinTag, BasalInsulinValidator)
-	getPlatformValidator().RegisterValidation(valueTag, BasalValueValidator)
+	getPlatformValidator().RegisterValidation(basalRateField.Tag, BasalRateValidator)
+	getPlatformValidator().RegisterValidation(basalDurationField.Tag, BasalDurationValidator)
+	getPlatformValidator().RegisterValidation(basalDeliveryTypeField.Tag, BasalDeliveryTypeValidator)
+	getPlatformValidator().RegisterValidation(basalInsulinField.Tag, BasalInsulinValidator)
+	getPlatformValidator().RegisterValidation(basalValueField.Tag, BasalValueValidator)
 }
 
 type Basal struct {
@@ -35,45 +34,52 @@ type SuppressedBasal struct {
 	Rate         *float64 `json:"rate" bson:"rate" valid:"omitempty,basalrate"`
 }
 
-const (
-	BasalName = "basal"
-
-	deliveryTypeField = "deliveryType"
-	scheduleNameField = "scheduleName"
-	insulinField      = "insulin"
-	valueField        = "value"
-	rateField         = "rate"
-	durationField     = "duration"
-
-	deliveryTypeTag validate.ValidationTag = "basaldeliverytype"
-	rateTag         validate.ValidationTag = "basalrate"
-	durationTag     validate.ValidationTag = "basalduration"
-	insulinTag      validate.ValidationTag = "basalinsulin"
-	valueTag        validate.ValidationTag = "basalvalue"
-
-	injectedDelivery  = "injected"
-	scheduledDelivery = "scheduled"
-	suspendDelivery   = "suspend"
-	tempDelivery      = "temp"
-
-	levemirInsulin = "levemir"
-	lantusInsulin  = "lantus"
-
-	rateValidationLowerLimit     = 0.0
-	durationValidationLowerLimit = 0
-	valueValidationLowerLimit    = 0
-)
+const BasalName = "basal"
 
 var (
-	allowedDeliveryTypes = map[string]string{injectedDelivery: injectedDelivery, scheduledDelivery: scheduledDelivery, suspendDelivery: suspendDelivery, tempDelivery: tempDelivery}
-	allowedInsulins      = map[string]string{levemirInsulin: levemirInsulin, lantusInsulin: lantusInsulin}
+	basalDeliveryTypeField = TypesDatumField{
+		DatumField:   &DatumField{Name: "deliveryType"},
+		Tag:          "basaldeliverytype",
+		Message:      "Must be one of injected, scheduled, suspend, temp",
+		AllowedTypes: AllowedTypes{"injected": true, "scheduled": true, "suspend": true, "temp": true},
+	}
+
+	basalRateField = FloatDatumField{
+		DatumField:        &DatumField{Name: "rate"},
+		Tag:               "basalrate",
+		Message:           "Must be greater than 0.0",
+		AllowedFloatRange: &AllowedFloatRange{LowerLimit: 0.0},
+	}
+
+	basalScheduleNameField = DatumField{Name: "scheduleName"}
+
+	basalInsulinField = TypesDatumField{
+		DatumField:   &DatumField{Name: "insulin"},
+		Tag:          "basalinsulin",
+		Message:      "Must be one of levemir, lantus",
+		AllowedTypes: AllowedTypes{"levemir": true, "lantus": true},
+	}
+
+	basalDurationField = IntDatumField{
+		DatumField:      &DatumField{Name: "duration"},
+		Tag:             "basalduration",
+		Message:         "Must be greater than 0",
+		AllowedIntRange: &AllowedIntRange{LowerLimit: 0},
+	}
+
+	basalValueField = IntDatumField{
+		DatumField:      &DatumField{Name: "value"},
+		Tag:             "basalvalue",
+		Message:         "Must be greater than 0",
+		AllowedIntRange: &AllowedIntRange{LowerLimit: 0},
+	}
 
 	basalFailureReasons = validate.ErrorReasons{
-		deliveryTypeTag: fmt.Sprintf("Must be one of %s,%s,%s,%s", injectedDelivery, scheduledDelivery, suspendDelivery, tempDelivery),
-		rateTag:         fmt.Sprintf("Must be greater than %.1f", rateValidationLowerLimit),
-		durationTag:     fmt.Sprintf("Must be greater than %d", durationValidationLowerLimit),
-		valueTag:        fmt.Sprintf("Must be greater than %d", valueValidationLowerLimit),
-		insulinTag:      fmt.Sprintf("Must be one of %s,%s", levemirInsulin, lantusInsulin),
+		basalDeliveryTypeField.Tag: basalDeliveryTypeField.Message,
+		basalRateField.Tag:         basalRateField.Message,
+		basalDurationField.Tag:     basalDurationField.Message,
+		basalValueField.Tag:        basalValueField.Message,
+		basalInsulinField.Tag:      basalInsulinField.Message,
 	}
 )
 
@@ -81,11 +87,11 @@ var (
 func BuildBasal(datum Datum, errs validate.ErrorProcessing) *Basal {
 
 	basal := &Basal{
-		ScheduleName: ToString(scheduleNameField, datum[scheduleNameField], errs),
-		DeliveryType: ToString(deliveryTypeField, datum[deliveryTypeField], errs),
-		Rate:         ToFloat64(rateField, datum[rateField], errs),
-		Duration:     ToInt(durationField, datum[durationField], errs),
-		Insulin:      ToString(insulinField, datum[insulinField], errs),
+		ScheduleName: datum.ToString(basalScheduleNameField.Name, errs),
+		DeliveryType: datum.ToString(basalDeliveryTypeField.Name, errs),
+		Rate:         datum.ToFloat64(basalRateField.Name, errs),
+		Duration:     datum.ToInt(basalDurationField.Name, errs),
+		Insulin:      datum.ToString(basalInsulinField.Name, errs),
 		Base:         BuildBase(datum, errs),
 	}
 
@@ -99,7 +105,7 @@ func BasalRateValidator(v *validator.Validate, topStruct reflect.Value, currentS
 	if !ok {
 		return false
 	}
-	return rate > rateValidationLowerLimit
+	return rate > basalRateField.LowerLimit
 }
 
 func BasalDurationValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
@@ -107,7 +113,7 @@ func BasalDurationValidator(v *validator.Validate, topStruct reflect.Value, curr
 	if !ok {
 		return false
 	}
-	return duration > durationValidationLowerLimit
+	return duration > basalDurationField.LowerLimit
 }
 
 func BasalDeliveryTypeValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
@@ -115,7 +121,7 @@ func BasalDeliveryTypeValidator(v *validator.Validate, topStruct reflect.Value, 
 	if !ok {
 		return false
 	}
-	_, ok = allowedDeliveryTypes[deliveryType]
+	_, ok = basalDeliveryTypeField.AllowedTypes[deliveryType]
 	return ok
 }
 
@@ -124,7 +130,7 @@ func BasalInsulinValidator(v *validator.Validate, topStruct reflect.Value, curre
 	if !ok {
 		return false
 	}
-	_, ok = allowedInsulins[insulin]
+	_, ok = basalInsulinField.AllowedTypes[insulin]
 	return ok
 }
 
@@ -133,5 +139,5 @@ func BasalValueValidator(v *validator.Validate, topStruct reflect.Value, current
 	if !ok {
 		return false
 	}
-	return value > valueValidationLowerLimit
+	return value > basalValueField.LowerLimit
 }

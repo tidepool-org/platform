@@ -138,7 +138,7 @@ func (client *DataServiceClient) PostDataset(w rest.ResponseWriter, r *rest.Requ
 		return
 	}
 
-	builder := data.NewTypeBuilder(map[string]interface{}{data.UserIDField: userid, data.GroupIDField: groupID})
+	builder := data.NewTypeBuilder(map[string]interface{}{data.BaseUserIDField.Name: userid, data.BaseGroupIDField.Name: groupID})
 	platformData, platformErrors := builder.BuildFromDatumArray(datumArray)
 
 	if platformErrors != nil && platformErrors.HasErrors() {
@@ -195,17 +195,17 @@ func buildQuery(params url.Values) store.Query {
 
 	query := store.Query{}
 	if len(types) > 0 && types[0] != "" {
-		query[data.TypeField] = map[string]interface{}{store.In: types}
+		query[data.BaseTypeField.Name] = map[string]interface{}{store.In: types}
 	}
 	if len(subTypes) > 0 && subTypes[0] != "" {
-		query[data.SubTypeField] = map[string]interface{}{store.In: subTypes}
+		query[data.BaseSubTypeField.Name] = map[string]interface{}{store.In: subTypes}
 	}
 	if start != "" && end != "" {
-		query[data.TimeField] = map[string]interface{}{store.GreaterThanEquals: start, store.LessThanEquals: end}
+		query[data.BaseTimeField.Name] = map[string]interface{}{store.GreaterThanEquals: start, store.LessThanEquals: end}
 	} else if start != "" {
-		query[data.TimeField] = map[string]interface{}{store.GreaterThanEquals: start}
+		query[data.BaseTimeField.Name] = map[string]interface{}{store.GreaterThanEquals: start}
 	} else if end != "" {
-		query[data.TimeField] = map[string]interface{}{store.LessThanEquals: end}
+		query[data.BaseTimeField.Name] = map[string]interface{}{store.LessThanEquals: end}
 	}
 	return query
 }
@@ -235,7 +235,7 @@ func (client *DataServiceClient) GetDataset(w rest.ResponseWriter, r *rest.Reque
 	log.Info(useridParamName, userid)
 
 	iter := client.dataStore.ReadAll(
-		store.Field{Name: data.InternalGroupIDField, Value: groupID},
+		store.Field{Name: data.BaseInternalGroupIDField.Name, Value: groupID},
 		buildQuery(r.URL.Query()),
 		data.InternalFields,
 	)

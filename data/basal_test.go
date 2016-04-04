@@ -9,32 +9,14 @@ import (
 
 var _ = Describe("Basal", func() {
 
-	const (
-		userid   = "b676436f60"
-		groupid  = "43099shgs55"
-		uploadid = "upid_b856b0e6e519"
-	)
+	var processing validate.ErrorProcessing
 
-	var (
-		basalObj = map[string]interface{}{
-			"userId":           userid, //userid would have been injected by now via the builder
-			"groupId":          groupid,
-			"uploadId":         uploadid,
-			"time":             "2016-02-25T23:02:00.000Z",
-			"timezoneOffset":   -480,
-			"clockDriftOffset": 0,
-			"conversionOffset": 0,
-			"deviceTime":       "2016-02-25T15:02:00.000Z",
-			"deviceId":         "IR1285-79-36047-15",
-			"type":             "basal",
-			"deliveryType":     "scheduled",
-			"scheduleName":     "DEFAULT",
-			"rate":             1.75,
-			"duration":         28800000,
-		}
-
-		processing validate.ErrorProcessing
-	)
+	var basalObj = testingDatumBase()
+	basalObj["type"] = "basal"
+	basalObj["deliveryType"] = "scheduled"
+	basalObj["scheduleName"] = "DEFAULT"
+	basalObj["rate"] = 1.75
+	basalObj["duration"] = 28800000
 
 	Context("datum from obj", func() {
 
@@ -53,6 +35,39 @@ var _ = Describe("Basal", func() {
 			Expect(processing.HasErrors()).To(BeFalse())
 		})
 
+	})
+
+	Context("injection", func() {
+		var basalObj = testingDatumBase()
+		basalObj["type"] = "basal"
+		basalObj["deliveryType"] = "injected"
+		basalObj["value"] = 3.0
+		basalObj["insulin"] = "levemir"
+	})
+
+	Context("scheduled", func() {
+		var basalObj = testingDatumBase()
+		basalObj["type"] = "basal"
+		basalObj["deliveryType"] = "scheduled"
+		basalObj["scheduleName"] = "DEFAULT"
+		basalObj["rate"] = 1.75
+		basalObj["duration"] = 7200000
+	})
+
+	Context("temp", func() {
+		var basalObj = testingDatumBase()
+		basalObj["type"] = "basal"
+		basalObj["deliveryType"] = "temp"
+		basalObj["rate"] = 1.75
+		basalObj["percent"] = 0.5
+		basalObj["duration"] = 1800000
+	})
+
+	Context("suspend", func() {
+		var basalObj = testingDatumBase()
+		basalObj["type"] = "basal"
+		basalObj["deliveryType"] = "suspend"
+		basalObj["duration"] = 1800000
 	})
 
 	Context("validation", func() {
@@ -142,7 +157,7 @@ var _ = Describe("Basal", func() {
 					basal := BuildBasal(basalObj, processing)
 					getPlatformValidator().Struct(basal, processing)
 					Expect(processing.HasErrors()).To(BeTrue())
-					Expect(processing.Errors[0].Detail).To(ContainSubstring("'DeliveryType' failed with 'Must be one of injected,scheduled,suspend,temp' when given 'superfly'"))
+					Expect(processing.Errors[0].Detail).To(ContainSubstring("'DeliveryType' failed with 'Must be one of injected, scheduled, suspend, temp' when given 'superfly'"))
 				})
 			})
 			Context("is valid when", func() {
@@ -190,7 +205,7 @@ var _ = Describe("Basal", func() {
 					basal := BuildBasal(basalObj, processing)
 					getPlatformValidator().Struct(basal, processing)
 					Expect(processing.HasErrors()).To(BeTrue())
-					Expect(processing.Errors[0].Detail).To(ContainSubstring("'Insulin' failed with 'Must be one of levemir,lantus' when given 'good'"))
+					Expect(processing.Errors[0].Detail).To(ContainSubstring("'Insulin' failed with 'Must be one of levemir, lantus' when given 'good'"))
 				})
 
 			})
@@ -229,7 +244,7 @@ var _ = Describe("Basal", func() {
 					basal := BuildBasal(basalObj, processing)
 					getPlatformValidator().Struct(basal, processing)
 					Expect(processing.HasErrors()).To(BeTrue())
-					Expect(processing.Errors[0].Detail).To(ContainSubstring("'Insulin' failed with 'Must be one of levemir,lantus' when given 'good'"))
+					Expect(processing.Errors[0].Detail).To(ContainSubstring("'Insulin' failed with 'Must be one of levemir, lantus' when given 'good'"))
 				})*/
 
 			})
