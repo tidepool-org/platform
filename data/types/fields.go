@@ -1,13 +1,13 @@
-package data
+package types
 
 import "github.com/tidepool-org/platform/validate"
 
 type (
-	TypesDatumField struct {
+	DatumFieldInformation struct {
 		*DatumField
 		Tag     validate.ValidationTag
 		Message string
-		AllowedTypes
+		Allowed
 	}
 
 	FloatDatumField struct {
@@ -38,5 +38,5 @@ type (
 		LowerLimit int
 	}
 
-	AllowedTypes map[string]bool
+	Allowed map[string]bool
 )

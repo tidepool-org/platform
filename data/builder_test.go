@@ -6,6 +6,8 @@ import (
 
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo"
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega"
+
+	"github.com/tidepool-org/platform/data/types"
 )
 
 var _ = Describe("Builder", func() {
@@ -21,7 +23,7 @@ var _ = Describe("Builder", func() {
 
 	Context("for data stream", func() {
 		var (
-			datumArray DatumArray
+			datumArray types.DatumArray
 		)
 		BeforeEach(func() {
 			rawTestData, _ := ioutil.ReadFile("./_fixtures/test_data_stream.json")

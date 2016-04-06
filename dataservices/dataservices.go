@@ -7,6 +7,7 @@ import (
 
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/logger"
 	"github.com/tidepool-org/platform/store"
 	"github.com/tidepool-org/platform/user"
@@ -129,7 +130,7 @@ func (client *DataServiceClient) PostDataset(w rest.ResponseWriter, r *rest.Requ
 		return
 	}
 
-	var datumArray data.DatumArray
+	var datumArray types.DatumArray
 
 	err := r.DecodeJsonPayload(&datumArray)
 
@@ -138,7 +139,7 @@ func (client *DataServiceClient) PostDataset(w rest.ResponseWriter, r *rest.Requ
 		return
 	}
 
-	builder := data.NewTypeBuilder(map[string]interface{}{data.BaseUserIDField.Name: userid, data.BaseGroupIDField.Name: groupID})
+	builder := data.NewTypeBuilder(map[string]interface{}{types.BaseUserIDField.Name: userid, types.BaseGroupIDField.Name: groupID})
 	platformData, platformErrors := builder.BuildFromDatumArray(datumArray)
 
 	if platformErrors != nil && platformErrors.HasErrors() {
@@ -174,10 +175,10 @@ func (client *DataServiceClient) PostBlob(w rest.ResponseWriter, r *rest.Request
 }
 
 //process the found data and send the appropriate response
-func process(iter store.Iterator) data.DatumArray {
+func process(iter store.Iterator) types.DatumArray {
 
-	var chunk data.Datum
-	var all = data.DatumArray{}
+	var chunk types.Datum
+	var all = types.DatumArray{}
 
 	for iter.Next(&chunk) {
 		all = append(all, chunk)
@@ -188,24 +189,24 @@ func process(iter store.Iterator) data.DatumArray {
 
 func buildQuery(params url.Values) store.Query {
 
-	types := strings.Split(params.Get("type"), ",")
+	theTypes := strings.Split(params.Get("type"), ",")
 	subTypes := strings.Split(params.Get("subType"), ",")
 	start := params.Get("startDate")
 	end := params.Get("endDate")
 
 	query := store.Query{}
-	if len(types) > 0 && types[0] != "" {
-		query[data.BaseTypeField.Name] = map[string]interface{}{store.In: types}
+	if len(theTypes) > 0 && theTypes[0] != "" {
+		query[types.BaseTypeField.Name] = map[string]interface{}{store.In: theTypes}
 	}
 	if len(subTypes) > 0 && subTypes[0] != "" {
-		query[data.BaseSubTypeField.Name] = map[string]interface{}{store.In: subTypes}
+		query[types.BaseSubTypeField.Name] = map[string]interface{}{store.In: subTypes}
 	}
 	if start != "" && end != "" {
-		query[data.BaseTimeField.Name] = map[string]interface{}{store.GreaterThanEquals: start, store.LessThanEquals: end}
+		query[types.BaseTimeField.Name] = map[string]interface{}{store.GreaterThanEquals: start, store.LessThanEquals: end}
 	} else if start != "" {
-		query[data.BaseTimeField.Name] = map[string]interface{}{store.GreaterThanEquals: start}
+		query[types.BaseTimeField.Name] = map[string]interface{}{store.GreaterThanEquals: start}
 	} else if end != "" {
-		query[data.BaseTimeField.Name] = map[string]interface{}{store.LessThanEquals: end}
+		query[types.BaseTimeField.Name] = map[string]interface{}{store.LessThanEquals: end}
 	}
 	return query
 }
@@ -228,16 +229,16 @@ func (client *DataServiceClient) GetDataset(w rest.ResponseWriter, r *rest.Reque
 	}
 
 	var found struct {
-		data.DatumArray `json:"Dataset"`
+		types.DatumArray `json:"Dataset"`
 	}
 
 	userid := r.PathParam(useridParamName)
 	log.Info(useridParamName, userid)
 
 	iter := client.dataStore.ReadAll(
-		store.Field{Name: data.BaseInternalGroupIDField.Name, Value: groupID},
+		store.Field{Name: types.BaseInternalGroupIDField.Name, Value: groupID},
 		buildQuery(r.URL.Query()),
-		data.InternalFields,
+		types.InternalFields,
 	)
 	defer iter.Close()
 
@@ -255,8 +256,8 @@ func (client *DataServiceClient) GetData(w rest.ResponseWriter, r *rest.Request)
 
 	if checkPermisson(r, user.Permission{}) {
 		var foundDatum struct {
-			data.Datum `json:"Datum"`
-			Errors     string `json:"Errors"`
+			types.Datum `json:"Datum"`
+			Errors      string `json:"Errors"`
 		}
 
 		userid := r.PathParam(useridParamName)
@@ -264,7 +265,7 @@ func (client *DataServiceClient) GetData(w rest.ResponseWriter, r *rest.Request)
 
 		log.Info("userid and datum", userid, datumid)
 
-		foundDatum.Datum = data.Datum{}
+		foundDatum.Datum = types.Datum{}
 		foundDatum.Errors = ""
 
 		w.WriteJson(&foundDatum)

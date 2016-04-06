@@ -1,4 +1,4 @@
-package data
+package types
 
 import (
 	"fmt"
@@ -12,43 +12,49 @@ import (
 )
 
 func init() {
-	getPlatformValidator().RegisterValidation(BaseTimeField.Tag, PastTimeStringValidator)
-	getPlatformValidator().RegisterValidation("timeobject", PastTimeObjectValidator)
-	getPlatformValidator().RegisterValidation(baseTimezoneOffsetField.Tag, TimezoneOffsetValidator)
-	getPlatformValidator().RegisterValidation(basePayloadField.Tag, PayloadValidator)
-	getPlatformValidator().RegisterValidation(baseAnnotationsField.Tag, AnnotationsValidator)
+	GetPlatformValidator().RegisterValidation(BaseTimeField.Tag, PastTimeStringValidator)
+	GetPlatformValidator().RegisterValidation("timeobject", PastTimeObjectValidator)
+	GetPlatformValidator().RegisterValidation(baseTimezoneOffsetField.Tag, TimezoneOffsetValidator)
+	GetPlatformValidator().RegisterValidation(basePayloadField.Tag, PayloadValidator)
+	GetPlatformValidator().RegisterValidation(baseAnnotationsField.Tag, AnnotationsValidator)
 }
 
-type Base struct {
-	//required data
-	_ID      bson.ObjectId `bson:"_id" valid:"mongo,required"`
-	ID       string        `json:"id" bson:"id" valid:"required"`
-	UserID   *string       `json:"userId" bson:"userId" valid:"required"`
-	DeviceID *string       `json:"deviceId" bson:"deviceId" valid:"required"`
-	Time     *string       `json:"time" bson:"time" valid:"timestr"`
-	Type     *string       `json:"type" bson:"type" valid:"required"`
-	UploadID *string       `json:"uploadId" bson:"uploadId" valid:"-"`
+type (
+	Datum map[string]interface{}
 
-	//optional data
-	DeviceTime       *string        `json:"deviceTime,omitempty" bson:"deviceTime,omitempty" valid:"omitempty,timestr"`
-	TimezoneOffset   *int           `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty" valid:"omitempty,timezoneoffset"`
-	ConversionOffset *int           `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty" valid:"omitempty,required"`
-	ClockDriftOffset *int           `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty" valid:"omitempty,required"`
-	Payload          *interface{}   `json:"payload,omitempty" bson:"payload,omitempty" valid:"omitempty,payload"`
-	Annotations      *[]interface{} `json:"annotations,omitempty" bson:"annotations,omitempty" valid:"omitempty,annotations"`
+	DatumArray []Datum
 
-	//used for versioning and de-deping
-	Internal `bson:",inline"`
-}
+	Base struct {
+		//required data
+		_ID      bson.ObjectId `bson:"_id" valid:"mongo,required"`
+		ID       string        `json:"id" bson:"id" valid:"required"`
+		UserID   *string       `json:"userId" bson:"userId" valid:"required"`
+		DeviceID *string       `json:"deviceId" bson:"deviceId" valid:"required"`
+		Time     *string       `json:"time" bson:"time" valid:"timestr"`
+		Type     *string       `json:"type" bson:"type" valid:"required"`
+		UploadID *string       `json:"uploadId" bson:"uploadId" valid:"-"`
 
-//Internal are existing fields used for versioning and de-deping
-type Internal struct {
-	CreatedTime   string `json:"createdTime" bson:"createdTime" valid:"timestr"`
-	GroupID       string `json:"-" bson:"_groupId" valid:"required"`
-	ActiveFlag    bool   `json:"-" bson:"_active" valid:"required"`
-	SchemaVersion int    `json:"-" bson:"_schemaVersion" valid:"required,min=0"`
-	Version       int    `json:"-" bson:"_version,omitempty" valid:"-"`
-}
+		//optional data
+		DeviceTime       *string        `json:"deviceTime,omitempty" bson:"deviceTime,omitempty" valid:"omitempty,timestr"`
+		TimezoneOffset   *int           `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty" valid:"omitempty,timezoneoffset"`
+		ConversionOffset *int           `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty" valid:"omitempty,required"`
+		ClockDriftOffset *int           `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty" valid:"omitempty,required"`
+		Payload          *interface{}   `json:"payload,omitempty" bson:"payload,omitempty" valid:"omitempty,payload"`
+		Annotations      *[]interface{} `json:"annotations,omitempty" bson:"annotations,omitempty" valid:"omitempty,annotations"`
+
+		//used for versioning and de-deping
+		Internal `bson:",inline"`
+	}
+
+	//Internal are existing fields used for versioning and de-deping
+	Internal struct {
+		CreatedTime   string `json:"createdTime" bson:"createdTime" valid:"timestr"`
+		GroupID       string `json:"-" bson:"_groupId" valid:"required"`
+		ActiveFlag    bool   `json:"-" bson:"_active" valid:"required"`
+		SchemaVersion int    `json:"-" bson:"_schemaVersion" valid:"required,min=0"`
+		Version       int    `json:"-" bson:"_version,omitempty" valid:"-"`
+	}
+)
 
 var (
 	//InternalFields are what we only use internally in the service and don't wish to return to any clients
@@ -71,7 +77,7 @@ var (
 	baseConversionOffsetField = DatumField{Name: "conversionOffset"}
 	baseClockDriftOffsetField = DatumField{Name: "clockDriftOffset"}
 
-	BaseTimeField = TypesDatumField{
+	BaseTimeField = DatumFieldInformation{
 		DatumField: &DatumField{Name: "time"},
 		Tag:        "timestr",
 		Message:    "Times need to be ISO 8601 format and not in the future",
@@ -84,8 +90,8 @@ var (
 		AllowedIntRange: &AllowedIntRange{LowerLimit: -840, UpperLimit: 720},
 	}
 
-	basePayloadField     = TypesDatumField{DatumField: &DatumField{Name: "payload"}, Tag: "payload"}
-	baseAnnotationsField = TypesDatumField{DatumField: &DatumField{Name: "annotations"}, Tag: "annotations"}
+	basePayloadField     = DatumFieldInformation{DatumField: &DatumField{Name: "payload"}, Tag: "payload"}
+	baseAnnotationsField = DatumFieldInformation{DatumField: &DatumField{Name: "annotations"}, Tag: "annotations"}
 
 	validationFailureReasons = validate.ErrorReasons{
 		BaseTimeField.Tag:           BaseTimeField.Message,
@@ -95,7 +101,12 @@ var (
 	}
 )
 
-const invalidTypeDescription = "should be of type '%s'"
+const (
+	InvalidTypeTitle = "Invalid type"
+	InvalidDataTitle = "Invalid data"
+
+	invalidTypeDescription = "should be of type '%s'"
+)
 
 func BuildBase(datum Datum, errs validate.ErrorProcessing) Base {
 
@@ -121,7 +132,7 @@ func BuildBase(datum Datum, errs validate.ErrorProcessing) Base {
 		},
 	}
 
-	getPlatformValidator().SetErrorReasons(validationFailureReasons).Struct(base, errs)
+	GetPlatformValidator().SetErrorReasons(validationFailureReasons).Struct(base, errs)
 
 	return base
 }

@@ -1,9 +1,9 @@
-package data
+package types
 
 import "github.com/tidepool-org/platform/validate"
 
 var _platformValidator = validate.NewPlatformValidator()
 
-func getPlatformValidator() *validate.PlatformValidator {
+func GetPlatformValidator() *validate.PlatformValidator {
 	return _platformValidator
 }
