@@ -26,8 +26,8 @@ var (
 	subTypeField = types.DatumFieldInformation{
 		DatumField: &types.DatumField{Name: "subType"},
 		Tag:        "bolussubtype",
-		Message:    "Must be one of injected, normal, square, dual/square",
-		Allowed:    types.Allowed{"injected": true, "normal": true, "square": true, "dual/square": true},
+		Message:    "Must be one of normal, square, dual/square",
+		Allowed:    types.Allowed{"normal": true, "square": true, "dual/square": true},
 	}
 
 	extendedField = types.FloatDatumField{
@@ -52,11 +52,9 @@ var (
 	}
 
 	failureReasons = validate.ErrorReasons{
-		valueField.Tag:    valueField.Message,
 		normalField.Tag:   normalField.Message,
 		extendedField.Tag: extendedField.Message,
 		durationField.Tag: durationField.Message,
-		insulinField.Tag:  insulinField.Message,
 		subTypeField.Tag:  subTypeField.Message,
 	}
 )
@@ -69,16 +67,16 @@ func Build(datum types.Datum, errs validate.ErrorProcessing) interface{} {
 	}
 
 	switch *base.SubType {
-	case "injected":
-		return base.makeInjected(datum, errs)
 	case "normal":
 		return base.makeNormal(datum, errs)
 	case "square":
 		return base.makeSquare(datum, errs)
 	case "dual/square":
 		return base.makeDualSquare(datum, errs)
+	default:
+		types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(base, errs)
+		return base
 	}
-	return nil
 }
 
 func NormalValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {

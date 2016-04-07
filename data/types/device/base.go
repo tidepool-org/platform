@@ -45,6 +45,19 @@ var (
 			"resumed":   true,
 		},
 	}
+
+	failureReasons = validate.ErrorReasons{
+		alarmTypeField.Tag:         alarmTypeField.Message,
+		unitsField.Tag:             unitsField.Message,
+		valueField.Tag:             valueField.Message,
+		volumeField.Tag:            volumeField.Message,
+		primeTargetField.Tag:       primeTargetField.Message,
+		reasonField.Tag:            reasonField.Message,
+		timeChangeReasonsField.Tag: timeChangeReasonsField.Message,
+		timeChangeAgentField.Tag:   timeChangeAgentField.Message,
+		statusField.Tag:            statusField.Message,
+		subTypeField.Tag:           subTypeField.Message,
+	}
 )
 
 func Build(datum types.Datum, errs validate.ErrorProcessing) interface{} {
@@ -67,8 +80,10 @@ func Build(datum types.Datum, errs validate.ErrorProcessing) interface{} {
 		return base.makeTimeChange(datum, errs)
 	case "reservoirChange":
 		return base.makeReservoirChange(datum, errs)
+	default:
+		types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(base, errs)
+		return base
 	}
-	return nil
 }
 
 func StatusValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {

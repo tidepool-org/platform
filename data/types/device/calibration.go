@@ -47,7 +47,7 @@ func (b Base) makeCalibration(datum types.Datum, errs validate.ErrorProcessing) 
 		Units: datum.ToString(unitsField.Name, errs),
 		Base:  b,
 	}
-	types.GetPlatformValidator().Struct(Calibration, errs)
+	types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(Calibration, errs)
 	return Calibration
 }
 

@@ -33,8 +33,8 @@ var (
 	deliveryTypeField = types.DatumFieldInformation{
 		DatumField: &types.DatumField{Name: "deliveryType"},
 		Tag:        "basaldeliverytype",
-		Message:    "Must be one of injected, scheduled, suspend, temp",
-		Allowed:    types.Allowed{"injected": true, "scheduled": true, "suspend": true, "temp": true},
+		Message:    "Must be one of scheduled, suspend, temp",
+		Allowed:    types.Allowed{"scheduled": true, "suspend": true, "temp": true},
 	}
 
 	durationField = types.IntDatumField{
@@ -48,8 +48,6 @@ var (
 		deliveryTypeField.Tag: deliveryTypeField.Message,
 		rateField.Tag:         rateField.Message,
 		durationField.Tag:     durationField.Message,
-		valueField.Tag:        valueField.Message,
-		insulinField.Tag:      insulinField.Message,
 		percentField.Tag:      percentField.Message,
 	}
 )
@@ -72,16 +70,16 @@ func Build(datum types.Datum, errs validate.ErrorProcessing) interface{} {
 	}
 
 	switch *base.DeliveryType {
-	case "injected":
-		return base.makeInjected(datum, errs)
 	case "scheduled":
 		return base.makeScheduled(datum, errs)
 	case "suspend":
 		return base.makeSuspend(datum, errs)
 	case "temp":
 		return base.makeTemporary(datum, errs)
+	default:
+		types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(base, errs)
+		return base
 	}
-	return nil
 }
 
 func DurationValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {

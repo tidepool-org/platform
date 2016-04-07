@@ -5,6 +5,7 @@ import (
 
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/basal"
+	"github.com/tidepool-org/platform/data/types/bloodglucose"
 	"github.com/tidepool-org/platform/data/types/bolus"
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/validate"
@@ -59,6 +60,10 @@ func (t *TypeBuilder) buildType(typeName string, datum types.Datum) BuiltDatum {
 		return device.Build(datum, t.ErrorProcessing)
 	case bolus.Name:
 		return bolus.Build(datum, t.ErrorProcessing)
+	case bloodglucose.ContinuousName:
+		return bloodglucose.BuildContinuous(datum, t.ErrorProcessing)
+	case bloodglucose.SelfMonitoredName:
+		return bloodglucose.BuildSelfMonitored(datum, t.ErrorProcessing)
 	default:
 		t.ErrorProcessing.AppendPointerError("type", types.InvalidTypeTitle, "The type must be one of 'basal', 'deviceEvent'")
 		return nil

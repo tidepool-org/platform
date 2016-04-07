@@ -37,18 +37,23 @@ func (b Base) makeStatus(datum types.Datum, errs validate.ErrorProcessing) *Stat
 		Reason: datum.ToObject(reasonField.Name, errs),
 		Base:   b,
 	}
-	types.GetPlatformValidator().Struct(status, errs)
+	types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(status, errs)
 	return status
 }
 
 func ReasonValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	reason, ok := field.Interface().(map[string]string)
-	if !ok {
-		return false
-	}
-	ok = false
-	for _, val := range reason {
-		_, ok = reasonField.Allowed[val]
-	}
-	return ok
+
+	return true
+	/*
+		TODO:
+		reason, ok := field.Interface().(map[string]string)
+
+		if !ok {
+			return false
+		}
+
+		for _, val := range reason {
+			_, ok = reasonField.Allowed[val]
+		}
+		return ok*/
 }

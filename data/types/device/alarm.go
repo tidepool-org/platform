@@ -42,7 +42,7 @@ func (b Base) makeAlarm(datum types.Datum, errs validate.ErrorProcessing) *Alarm
 		AlarmType: datum.ToString(alarmTypeField.Name, errs),
 		Base:      b,
 	}
-	types.GetPlatformValidator().Struct(Alarm, errs)
+	types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(Alarm, errs)
 	return Alarm
 }
 

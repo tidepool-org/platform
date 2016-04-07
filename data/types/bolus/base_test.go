@@ -26,21 +26,19 @@ var _ = Describe("Bolus", func() {
 
 	var bolusObj = TestingDatumBase()
 	bolusObj["type"] = "bolus"
-	bolusObj["subType"] = "injected"
-	bolusObj["value"] = 3.0
-	bolusObj["insulin"] = "novolog"
-
+	bolusObj["subType"] = "normal"
+	bolusObj["normal"] = 1.0
 	var processing validate.ErrorProcessing
 
 	Context("bolus type from obj", func() {
 
 		BeforeEach(func() {
-			processing = validate.ErrorProcessing{BasePath: "0/bolus", ErrorsArray: validate.NewErrorsArray()}
+			processing = validate.ErrorProcessing{BasePath: "0", ErrorsArray: validate.NewErrorsArray()}
 		})
 
 		It("returns a bolus if the obj is valid", func() {
 			bolus := Build(bolusObj, processing)
-			var bolusType *Injected
+			var bolusType *Normal
 			Expect(bolus).To(BeAssignableToTypeOf(bolusType))
 			Expect(processing.HasErrors()).To(BeFalse())
 		})
@@ -49,7 +47,7 @@ var _ = Describe("Bolus", func() {
 
 			Context("subType", func() {
 				BeforeEach(func() {
-					processing = validate.ErrorProcessing{BasePath: "0/Bolus", ErrorsArray: validate.NewErrorsArray()}
+					processing = validate.ErrorProcessing{BasePath: "0", ErrorsArray: validate.NewErrorsArray()}
 				})
 				Context("is invalid when", func() {
 					It("there is no matching type", func() {
@@ -57,16 +55,16 @@ var _ = Describe("Bolus", func() {
 						bolus := Build(bolusObj, processing)
 						types.GetPlatformValidator().Struct(bolus, processing)
 						Expect(processing.HasErrors()).To(BeTrue())
-						Expect(processing.Errors[0].Detail).To(ContainSubstring("'SubType' failed with 'Must be one of injected, normal, square, dual/square' when given 'superfly'"))
+						Expect(processing.Errors[0].Detail).To(ContainSubstring("'SubType' failed with 'Must be one of normal, square, dual/square' when given 'superfly'"))
 					})
-				})
-				Context("is valid when", func() {
-					It("injected type", func() {
+					It("injected type is unsupported", func() {
 						bolusObj["subType"] = "injected"
 						bolus := Build(bolusObj, processing)
 						types.GetPlatformValidator().Struct(bolus, processing)
-						Expect(processing.HasErrors()).To(BeFalse())
+						Expect(processing.HasErrors()).To(BeTrue())
 					})
+				})
+				Context("is valid when", func() {
 					It("normal type", func() {
 						bolusObj["subType"] = "normal"
 						bolus := Build(bolusObj, processing)

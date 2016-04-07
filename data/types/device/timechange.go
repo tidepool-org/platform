@@ -15,7 +15,6 @@ func init() {
 }
 
 type TimeChange struct {
-	Status *string `json:"status" bson:"status" valid:"devicestatus"`
 	Change `json:"change" bson:"change"`
 	Base   `bson:",inline"`
 }
@@ -72,7 +71,7 @@ func (b Base) makeTimeChange(datum types.Datum, errs validate.ErrorProcessing) *
 		Change: makeChange(datum["change"].(map[string]interface{}), errs),
 		Base:   b,
 	}
-	types.GetPlatformValidator().Struct(timeChange, errs)
+	types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(timeChange, errs)
 	return timeChange
 }
 
@@ -86,10 +85,15 @@ func TimeChangeAgentValidator(v *validator.Validate, topStruct reflect.Value, cu
 }
 
 func TimeChangeReasonsValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	reason, ok := field.Interface().(string)
+	reasons, ok := field.Interface().([]string)
 	if !ok {
 		return false
 	}
-	_, ok = timeChangeReasonsField.Allowed[reason]
+	for i := range reasons {
+		_, ok = timeChangeReasonsField.Allowed[reasons[i]]
+		if !ok {
+			break
+		}
+	}
 	return ok
 }

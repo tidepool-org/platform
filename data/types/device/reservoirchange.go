@@ -15,6 +15,6 @@ func (b Base) makeReservoirChange(datum types.Datum, errs validate.ErrorProcessi
 		Status: datum.ToString(statusField.Name, errs),
 		Base:   b,
 	}
-	types.GetPlatformValidator().Struct(reservoirChange, errs)
+	types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(reservoirChange, errs)
 	return reservoirChange
 }
