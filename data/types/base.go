@@ -258,6 +258,18 @@ func (d Datum) ToArray(fieldName string, errs validate.ErrorProcessing) *[]inter
 	return &arrayData
 }
 
+func (d Datum) ToStringArray(fieldName string, errs validate.ErrorProcessing) *[]string {
+	if d[fieldName] == nil {
+		return nil
+	}
+	arrayData, ok := d[fieldName].([]string)
+	if !ok {
+		errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "string array"))
+		return nil
+	}
+	return &arrayData
+}
+
 func (d Datum) ToObject(fieldName string, errs validate.ErrorProcessing) *interface{} {
 	if d[fieldName] == nil {
 		return nil
