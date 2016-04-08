@@ -1,7 +1,6 @@
 package upload
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/tidepool-org/platform/Godeps/_workspace/src/gopkg.in/bluesuncorp/validator.v8"
@@ -92,13 +91,7 @@ func Build(datum types.Datum, errs validate.ErrorProcessing) *Record {
 		Base:                types.BuildBase(datum, errs),
 	}
 
-	types.GetPlatformValidator().Struct(record, errs)
-
-	//types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(record, errs)
-
-	if errs.HasErrors() {
-		fmt.Println("## Errors ## ", errs.Errors)
-	}
+	types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(record, errs)
 
 	return record
 }

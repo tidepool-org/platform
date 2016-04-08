@@ -42,13 +42,13 @@ var (
 )
 
 func (b Base) makeCalibration(datum types.Datum, errs validate.ErrorProcessing) *Calibration {
-	Calibration := &Calibration{
+	calibration := &Calibration{
 		Value: datum.ToFloat64(valueField.Name, errs),
 		Units: datum.ToString(unitsField.Name, errs),
 		Base:  b,
 	}
-	types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(Calibration, errs)
-	return Calibration
+	types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(calibration, errs)
+	return calibration
 }
 
 func UnitsValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
