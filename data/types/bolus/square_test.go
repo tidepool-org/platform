@@ -4,13 +4,14 @@ import (
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo"
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/data/_fixtures"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/validate"
 )
 
 var _ = Describe("Bolus", func() {
 
-	var bolusObj = TestingDatumBase()
+	var bolusObj = fixtures.TestingDatumBase()
 	bolusObj["type"] = "bolus"
 	bolusObj["subType"] = "square"
 	bolusObj["extended"] = 1.0

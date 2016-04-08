@@ -5,6 +5,7 @@ import (
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega"
 	"github.com/tidepool-org/platform/data/types"
 
+	"github.com/tidepool-org/platform/data/_fixtures"
 	"github.com/tidepool-org/platform/validate"
 )
 
@@ -12,7 +13,7 @@ var _ = Describe("Basal", func() {
 
 	var processing validate.ErrorProcessing
 
-	var basalObj = TestingDatumBase()
+	var basalObj = fixtures.TestingDatumBase()
 	basalObj["type"] = "basal"
 	basalObj["deliveryType"] = "scheduled"
 	basalObj["scheduleName"] = "DEFAULT"

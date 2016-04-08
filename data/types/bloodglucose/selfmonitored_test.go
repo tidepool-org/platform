@@ -3,12 +3,13 @@ package bloodglucose
 import (
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo"
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega"
+	"github.com/tidepool-org/platform/data/_fixtures"
 	"github.com/tidepool-org/platform/validate"
 )
 
 var _ = Describe("Selfmonitored", func() {
 
-	var bgObj = TestingDatumBase()
+	var bgObj = fixtures.TestingDatumBase()
 	bgObj["type"] = "smbg"
 	bgObj["value"] = 5.5
 	bgObj["units"] = "mmol/l"

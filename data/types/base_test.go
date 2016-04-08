@@ -1,29 +1,16 @@
 package types
 
 import (
+	"github.com/tidepool-org/platform/data/_fixtures"
 	"github.com/tidepool-org/platform/validate"
 
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo"
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega"
 )
 
-func TestingDatumBase() map[string]interface{} {
-	return map[string]interface{}{
-		"userId":           "b676436f60",
-		"groupId":          "43099shgs55",
-		"uploadId":         "upid_b856b0e6e519",
-		"deviceTime":       "2014-06-11T06:00:00.000Z",
-		"time":             "2014-06-11T06:00:00.000Z",
-		"timezoneOffset":   0,
-		"conversionOffset": 0,
-		"clockDriftOffset": 0,
-		"deviceId":         "InsOmn-111111111",
-	}
-}
-
 var _ = Describe("Base", func() {
 
-	var basalObj = TestingDatumBase()
+	var basalObj = fixtures.TestingDatumBase()
 	basalObj["type"] = "basal"
 	basalObj["deliveryType"] = "scheduled"
 	basalObj["scheduleName"] = "Standard"
@@ -50,12 +37,12 @@ var _ = Describe("Base", func() {
 		var processing = validate.ErrorProcessing{BasePath: "0/base", ErrorsArray: validate.NewErrorsArray()}
 
 		It("should return a the base types if the obj is valid", func() {
-			base := BuildBase(TestingDatumBase(), processing)
+			base := BuildBase(fixtures.TestingDatumBase(), processing)
 			var baseType Base
 			Expect(base).To(BeAssignableToTypeOf(baseType))
 		})
 		It("should return and error object that is empty but not nil", func() {
-			BuildBase(TestingDatumBase(), processing)
+			BuildBase(fixtures.TestingDatumBase(), processing)
 			Expect(processing.HasErrors()).To(BeFalse())
 		})
 	})

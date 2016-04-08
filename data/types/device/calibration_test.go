@@ -4,6 +4,7 @@ import (
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo"
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/data/_fixtures"
 	"github.com/tidepool-org/platform/validate"
 )
 
@@ -13,7 +14,7 @@ var _ = Describe("DeviceEvent", func() {
 
 	Context("calibration", func() {
 
-		var deviceEventObj = TestingDatumBase()
+		var deviceEventObj = fixtures.TestingDatumBase()
 		deviceEventObj["type"] = "deviceEvent"
 		deviceEventObj["subType"] = "calibration"
 		deviceEventObj["value"] = 3.0
