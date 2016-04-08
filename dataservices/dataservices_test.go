@@ -11,8 +11,8 @@ import (
 	"github.com/tidepool-org/platform/user"
 	"github.com/tidepool-org/platform/version"
 
-	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo"
-	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("The Dataservices client", func() {

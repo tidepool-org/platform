@@ -3,7 +3,7 @@ package calculator
 import (
 	"reflect"
 
-	"github.com/tidepool-org/platform/Godeps/_workspace/src/gopkg.in/bluesuncorp/validator.v8"
+	"gopkg.in/bluesuncorp/validator.v8"
 
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/validate"

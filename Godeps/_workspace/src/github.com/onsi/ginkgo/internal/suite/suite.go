@@ -4,15 +4,15 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo/config"
-	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo/internal/containernode"
-	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo/internal/failer"
-	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo/internal/leafnodes"
-	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo/internal/spec"
-	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo/internal/specrunner"
-	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo/internal/writer"
-	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo/reporters"
-	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo/types"
+	"github.com/onsi/ginkgo/config"
+	"github.com/onsi/ginkgo/internal/containernode"
+	"github.com/onsi/ginkgo/internal/failer"
+	"github.com/onsi/ginkgo/internal/leafnodes"
+	"github.com/onsi/ginkgo/internal/spec"
+	"github.com/onsi/ginkgo/internal/specrunner"
+	"github.com/onsi/ginkgo/internal/writer"
+	"github.com/onsi/ginkgo/reporters"
+	"github.com/onsi/ginkgo/types"
 )
 
 type ginkgoTestingT interface {
@@ -71,6 +71,7 @@ func (suite *Suite) generateSpecs(description string, config config.GinkgoConfig
 	}
 
 	specs := spec.NewSpecs(specsSlice)
+	specs.RegexScansFilePath = config.RegexScansFilePath
 
 	if config.RandomizeAllSpecs {
 		specs.Shuffle(rand.New(rand.NewSource(config.RandomSeed)))
@@ -85,7 +86,6 @@ func (suite *Suite) generateSpecs(description string, config config.GinkgoConfig
 	if config.ParallelTotal > 1 {
 		specs.TrimForParallelization(config.ParallelTotal, config.ParallelNode)
 	}
-
 	return specs
 }
 

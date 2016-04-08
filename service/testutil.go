@@ -11,7 +11,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/ant0ine/go-json-rest/rest"
+	"github.com/ant0ine/go-json-rest/rest"
 )
 
 func panicOnError(err error) {

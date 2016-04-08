@@ -3,7 +3,7 @@ package validate
 import (
 	"fmt"
 
-	"github.com/tidepool-org/platform/Godeps/_workspace/src/gopkg.in/bluesuncorp/validator.v8"
+	"gopkg.in/bluesuncorp/validator.v8"
 )
 
 type Validator interface {

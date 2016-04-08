@@ -29,6 +29,7 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"crypto/sha1"
+	"database/sql/driver"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -226,30 +227,37 @@ func (u UUID) MarshalText() (text []byte, err error) {
 // "urn:uuid:6ba7b810-9dad-11d1-80b4-00c04fd430c8"
 func (u *UUID) UnmarshalText(text []byte) (err error) {
 	if len(text) < 32 {
-		err = fmt.Errorf("uuid: invalid UUID string: %s", text)
+		err = fmt.Errorf("uuid: UUID string too short: %s", text)
 		return
 	}
 
-	if bytes.Equal(text[:9], urnPrefix) {
-		text = text[9:]
-	} else if text[0] == '{' {
-		text = text[1:]
+	t := text[:]
+
+	if bytes.Equal(t[:9], urnPrefix) {
+		t = t[9:]
+	} else if t[0] == '{' {
+		t = t[1:]
 	}
 
 	b := u[:]
 
 	for _, byteGroup := range byteGroups {
-		if text[0] == '-' {
-			text = text[1:]
+		if t[0] == '-' {
+			t = t[1:]
 		}
 
-		_, err = hex.Decode(b[:byteGroup/2], text[:byteGroup])
+		if len(t) < byteGroup {
+			err = fmt.Errorf("uuid: UUID string too short: %s", text)
+			return
+		}
+
+		_, err = hex.Decode(b[:byteGroup/2], t[:byteGroup])
 
 		if err != nil {
 			return
 		}
 
-		text = text[byteGroup:]
+		t = t[byteGroup:]
 		b = b[byteGroup/2:]
 	}
 
@@ -272,6 +280,11 @@ func (u *UUID) UnmarshalBinary(data []byte) (err error) {
 	copy(u[:], data)
 
 	return
+}
+
+// Value implements the driver.Valuer interface.
+func (u UUID) Value() (driver.Value, error) {
+	return u.String(), nil
 }
 
 // Scan implements the sql.Scanner interface.
@@ -299,11 +312,31 @@ func FromBytes(input []byte) (u UUID, err error) {
 	return
 }
 
+// FromBytesOrNil returns UUID converted from raw byte slice input.
+// Same behavior as FromBytes, but returns a Nil UUID on error.
+func FromBytesOrNil(input []byte) UUID {
+	uuid, err := FromBytes(input)
+	if err != nil {
+		return Nil
+	}
+	return uuid
+}
+
 // FromString returns UUID parsed from string input.
 // Input is expected in a form accepted by UnmarshalText.
 func FromString(input string) (u UUID, err error) {
 	err = u.UnmarshalText([]byte(input))
 	return
+}
+
+// FromStringOrNil returns UUID parsed from string input.
+// Same behavior as FromString, but returns a Nil UUID on error.
+func FromStringOrNil(input string) UUID {
+	uuid, err := FromString(input)
+	if err != nil {
+		return Nil
+	}
+	return uuid
 }
 
 // Returns UUID v1/v2 storage state.

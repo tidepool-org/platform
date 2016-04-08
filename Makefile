@@ -149,9 +149,11 @@ bootstrap-implode: gopath-implode dependencies-implode
 bootstrap-dependencies: godep
 	go get github.com/onsi/ginkgo/ginkgo
 	go get github.com/onsi/gomega
+	go get golang.org/x/sys/unix
+	go get ./...
 
 bootstrap-save: bootstrap-dependencies
-	cd $(ROOT_DIRECTORY) && godep save ./...
+	cd $(ROOT_DIRECTORY) && godep save ./... github.com/onsi/ginkgo/ginkgo
 
 # Bootstrap REPOSITORY with initial dependencies
 bootstrap:

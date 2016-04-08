@@ -3,8 +3,8 @@ package store
 import (
 	"time"
 
-	"github.com/tidepool-org/platform/Godeps/_workspace/src/labix.org/v2/mgo"
-	"github.com/tidepool-org/platform/Godeps/_workspace/src/labix.org/v2/mgo/bson"
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/logger"

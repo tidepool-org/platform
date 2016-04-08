@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/jinzhu/configor"
+	"github.com/jinzhu/configor"
 )
 
 func FromJSON(config interface{}, name string) error {

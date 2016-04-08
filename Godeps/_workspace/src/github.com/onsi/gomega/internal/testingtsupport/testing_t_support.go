@@ -5,7 +5,7 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega/types"
+	"github.com/onsi/gomega/types"
 )
 
 type gomegaTestingT interface {

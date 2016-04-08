@@ -1,8 +1,8 @@
 package bolus
 
 import (
-	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo"
-	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/tidepool-org/platform/data/types"
 
 	"github.com/tidepool-org/platform/data/_fixtures"

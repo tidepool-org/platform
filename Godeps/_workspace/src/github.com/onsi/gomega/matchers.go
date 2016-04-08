@@ -3,8 +3,8 @@ package gomega
 import (
 	"time"
 
-	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega/matchers"
-	"github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega/types"
+	"github.com/onsi/gomega/matchers"
+	"github.com/onsi/gomega/types"
 )
 
 //Equal uses reflect.DeepEqual to compare actual with expected.  Equal is strict about
@@ -22,6 +22,15 @@ func Equal(expected interface{}) types.GomegaMatcher {
 //It is an error for actual and expected to be nil.  Use BeNil() instead.
 func BeEquivalentTo(expected interface{}) types.GomegaMatcher {
 	return &matchers.BeEquivalentToMatcher{
+		Expected: expected,
+	}
+}
+
+//BeIdenticalTo uses the == operator to compare actual with expected.
+//BeIdenticalTo is strict about types when performing comparisons.
+//It is an error for both actual and expected to be nil.  Use BeNil() instead.
+func BeIdenticalTo(expected interface{}) types.GomegaMatcher {
+	return &matchers.BeIdenticalToMatcher{
 		Expected: expected,
 	}
 }
@@ -213,6 +222,13 @@ func BeEmpty() types.GomegaMatcher {
 //HaveLen succeeds if actual has the passed-in length.  Actual must be of type string, array, map, chan, or slice.
 func HaveLen(count int) types.GomegaMatcher {
 	return &matchers.HaveLenMatcher{
+		Count: count,
+	}
+}
+
+//HaveCap succeeds if actual has the passed-in capacity.  Actual must be of type array, chan, or slice.
+func HaveCap(count int) types.GomegaMatcher {
+	return &matchers.HaveCapMatcher{
 		Count: count,
 	}
 }

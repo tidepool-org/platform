@@ -6,8 +6,8 @@ import (
 	"github.com/tidepool-org/platform/config"
 	. "github.com/tidepool-org/platform/store"
 
-	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/ginkgo"
-	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Store", func() {
