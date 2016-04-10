@@ -24,7 +24,7 @@ var _ = Describe("Upload", func() {
 			uploadObj["version"] = "tidepool-uploader 0.1.0"
 			uploadObj["deviceManufacturers"] = []string{"Medtronic"}
 			uploadObj["deviceModel"] = "Paradigm 522"
-			uploadObj["deviceSerialNumber"] = "12345"
+			uploadObj["deviceSerialNumber"] = "123456-blah"
 			uploadObj["deviceTags"] = []string{"insulin-pump"}
 			uploadObj["deviceId"] = "123-my-upload-id"
 			uploadObj["timeProcessing"] = "none"
@@ -39,12 +39,13 @@ var _ = Describe("Upload", func() {
 
 		Context("validation", func() {
 			Context("computerTime", func() {
-				/*It("fails if not valid time", func() {
+				It("fails if not valid time", func() {
 					uploadObj["computerTime"] = "Tuesday 14th May, 2015"
 					uploadRec := Build(uploadObj, processing)
 					Expect(processing.HasErrors()).To(BeTrue())
 					Expect(uploadRec).To(Not(BeNil()))
 				})
+
 				It("is required", func() {
 					delete(uploadObj, "computerTime")
 					uploadRec := Build(uploadObj, processing)
@@ -56,109 +57,109 @@ var _ = Describe("Upload", func() {
 					uploadRec := Build(uploadObj, processing)
 					Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
 					Expect(uploadRec).To(Not(BeNil()))
-				})*/
+				})
 			})
-			/*
-				Context("uploadId", func() {
-					It("is required", func() {
-						delete(uploadObj, "uploadId")
-						uploadRec := Build(uploadObj, processing)
-						Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
-						Expect(uploadRec).To(Not(BeNil()))
-					})
-					It("cannot be empty", func() {
-						uploadObj["uploadId"] = ""
-						uploadRec := Build(uploadObj, processing)
-						Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
-						Expect(uploadRec).To(Not(BeNil()))
-					})
+
+			Context("uploadId", func() {
+				It("is required", func() {
+					delete(uploadObj, "uploadId")
+					uploadRec := Build(uploadObj, processing)
+					Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
+					Expect(uploadRec).To(Not(BeNil()))
 				})
-				Context("byUser", func() {
-					It("is required", func() {
-						delete(uploadObj, "byUser")
-						uploadRec := Build(uploadObj, processing)
-						Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
-						Expect(uploadRec).To(Not(BeNil()))
-					})
-					It("cannot be empty", func() {
-						uploadObj["byUser"] = ""
-						uploadRec := Build(uploadObj, processing)
-						Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
-						Expect(uploadRec).To(Not(BeNil()))
-					})
+				It("cannot be empty", func() {
+					uploadObj["uploadId"] = ""
+					uploadRec := Build(uploadObj, processing)
+					Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
+					Expect(uploadRec).To(Not(BeNil()))
 				})
-				Context("version", func() {
-					It("is required", func() {
-						delete(uploadObj, "version")
-						uploadRec := Build(uploadObj, processing)
-						Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
-						Expect(uploadRec).To(Not(BeNil()))
-					})
-					It("cannot be empty", func() {
-						uploadObj["version"] = ""
-						uploadRec := Build(uploadObj, processing)
-						Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
-						Expect(uploadRec).To(Not(BeNil()))
-					})
+			})
+			Context("byUser", func() {
+				It("is required", func() {
+					delete(uploadObj, "byUser")
+					uploadRec := Build(uploadObj, processing)
+					Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
+					Expect(uploadRec).To(Not(BeNil()))
 				})
-				Context("deviceModel", func() {
-					It("is required", func() {
-						delete(uploadObj, "deviceModel")
-						uploadRec := Build(uploadObj, processing)
-						Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
-						Expect(uploadRec).To(Not(BeNil()))
-					})
-					It("cannot be empty", func() {
-						uploadObj["deviceModel"] = ""
-						uploadRec := Build(uploadObj, processing)
-						Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
-						Expect(uploadRec).To(Not(BeNil()))
-					})
+				It("cannot be empty", func() {
+					uploadObj["byUser"] = ""
+					uploadRec := Build(uploadObj, processing)
+					Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
+					Expect(uploadRec).To(Not(BeNil()))
 				})
-				Context("deviceSerialNumber", func() {
-					It("is required", func() {
-						delete(uploadObj, "deviceSerialNumber")
-						uploadRec := Build(uploadObj, processing)
-						Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
-						Expect(uploadRec).To(Not(BeNil()))
-					})
-					It("cannot be empty", func() {
-						uploadObj["deviceSerialNumber"] = ""
-						uploadRec := Build(uploadObj, processing)
-						Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
-						Expect(uploadRec).To(Not(BeNil()))
-					})
+			})
+			Context("version", func() {
+				It("is required", func() {
+					delete(uploadObj, "version")
+					uploadRec := Build(uploadObj, processing)
+					Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
+					Expect(uploadRec).To(Not(BeNil()))
 				})
-				Context("deviceId", func() {
-					It("is required", func() {
-						delete(uploadObj, "deviceId")
-						uploadRec := Build(uploadObj, processing)
-						Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
-						Expect(uploadRec).To(Not(BeNil()))
-					})
-					It("cannot be empty", func() {
-						uploadObj["deviceId"] = ""
-						uploadRec := Build(uploadObj, processing)
-						Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
-						Expect(uploadRec).To(Not(BeNil()))
-					})
-				})*/
+				It("cannot be empty", func() {
+					uploadObj["version"] = ""
+					uploadRec := Build(uploadObj, processing)
+					Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
+					Expect(uploadRec).To(Not(BeNil()))
+				})
+			})
+			Context("deviceModel", func() {
+				It("is required", func() {
+					delete(uploadObj, "deviceModel")
+					uploadRec := Build(uploadObj, processing)
+					Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
+					Expect(uploadRec).To(Not(BeNil()))
+				})
+				It("cannot be empty", func() {
+					uploadObj["deviceModel"] = ""
+					uploadRec := Build(uploadObj, processing)
+					Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
+					Expect(uploadRec).To(Not(BeNil()))
+				})
+			})
+			Context("deviceSerialNumber", func() {
+				It("is required", func() {
+					delete(uploadObj, "deviceSerialNumber")
+					uploadRec := Build(uploadObj, processing)
+					Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
+					Expect(uploadRec).To(Not(BeNil()))
+				})
+				It("cannot be empty", func() {
+					uploadObj["deviceSerialNumber"] = ""
+					uploadRec := Build(uploadObj, processing)
+					Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
+					Expect(uploadRec).To(Not(BeNil()))
+				})
+			})
+			Context("deviceId", func() {
+				It("is required", func() {
+					delete(uploadObj, "deviceId")
+					uploadRec := Build(uploadObj, processing)
+					Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
+					Expect(uploadRec).To(Not(BeNil()))
+				})
+				It("cannot be empty", func() {
+					uploadObj["deviceId"] = ""
+					uploadRec := Build(uploadObj, processing)
+					Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
+					Expect(uploadRec).To(Not(BeNil()))
+				})
+			})
 			Context("deviceManufacturers", func() {
-				/*It("is required", func() {
+				It("is required", func() {
 					delete(uploadObj, "deviceManufacturers")
 					uploadRec := Build(uploadObj, processing)
 					Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
 					Expect(uploadRec).To(Not(BeNil()))
 				})
 				It("cannot be empty", func() {
-					uploadObj["deviceManufacturers"] = []string{""}
+					uploadObj["deviceManufacturers"] = []string{}
 					uploadRec := Build(uploadObj, processing)
 					Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
 					Expect(uploadRec).To(Not(BeNil()))
-				})*/
+				})
 			})
 			Context("deviceTags", func() {
-				/*It("is required", func() {
+				It("is required", func() {
 					delete(uploadObj, "deviceTags")
 					uploadRec := Build(uploadObj, processing)
 					Expect(processing.HasErrors()).To(BeTrue())
@@ -175,7 +176,7 @@ var _ = Describe("Upload", func() {
 					uploadRec := Build(uploadObj, processing)
 					Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
 					Expect(uploadRec).To(Not(BeNil()))
-				})*/
+				})
 				It("can be any of insulin-pump, cgm, bgm", func() {
 					uploadObj["deviceTags"] = []string{"insulin-pump", "cgm", "bgm"}
 					uploadRec := Build(uploadObj, processing)
@@ -184,7 +185,7 @@ var _ = Describe("Upload", func() {
 				})
 			})
 			Context("timeProcessing", func() {
-				/*It("is required", func() {
+				It("is required", func() {
 					delete(uploadObj, "timeProcessing")
 					uploadRec := Build(uploadObj, processing)
 					Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
@@ -195,7 +196,7 @@ var _ = Describe("Upload", func() {
 					uploadRec := Build(uploadObj, processing)
 					Expect(processing.HasErrors()).To(BeTrue(), "No errors found when expected")
 					Expect(uploadRec).To(Not(BeNil()))
-				})*/
+				})
 				It("can be across-the-board-timezone", func() {
 					uploadObj["timeProcessing"] = "across-the-board-timezone"
 					uploadRec := Build(uploadObj, processing)

@@ -69,6 +69,7 @@ var (
 	versionField            = types.DatumField{Name: "version"}
 
 	failureReasons = validate.ErrorReasons{
+		types.BaseTimeField.Tag:      types.BaseTimeField.Message,
 		deviceTagsField.Tag:          deviceTagsField.Message,
 		timeProcessingField.Tag:      timeProcessingField.Message,
 		deviceManufacturersField.Tag: deviceManufacturersField.Message,
@@ -107,6 +108,7 @@ func TimeProcessingValidator(v *validator.Validate, topStruct reflect.Value, cur
 
 func DeviceTagsValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
 	tags, ok := field.Interface().([]string)
+
 	if !ok {
 		return false
 	}

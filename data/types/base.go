@@ -169,11 +169,13 @@ func isTimeObjectValid(timeObject time.Time) bool {
 }
 
 func PastTimeStringValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+
 	timeString, ok := field.Interface().(string)
 	if !ok {
 		return false
 	}
-	return isTimeStringValid(timeString)
+	valid := isTimeStringValid(timeString)
+	return valid
 }
 
 func isTimeStringValid(timeString string) bool {
@@ -228,6 +230,8 @@ func (d Datum) ToInt(fieldName string, errs validate.ErrorProcessing) *int {
 }
 
 func (d Datum) ToTime(fieldName string, errs validate.ErrorProcessing) *time.Time {
+
+	fmt.Println("## Convert to time")
 
 	timeStr, ok := d[fieldName].(string)
 	if !ok {

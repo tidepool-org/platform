@@ -21,12 +21,12 @@ var _ = Describe("Base", func() {
 		var (
 			processing = validate.ErrorProcessing{BasePath: "0/base", ErrorsArray: validate.NewErrorsArray()}
 		)
-		It("should return a the base types if the obj is valid", func() {
+		It("and be of type base if the obj is valid", func() {
 			base := BuildBase(basalObj, processing)
 			var baseType Base
 			Expect(base).To(BeAssignableToTypeOf(baseType))
 		})
-		It("should return and error object that is empty but not nil", func() {
+		It("and not have any errors", func() {
 			BuildBase(basalObj, processing)
 			Expect(processing.HasErrors()).To(BeFalse())
 		})
@@ -36,13 +36,16 @@ var _ = Describe("Base", func() {
 
 		var processing = validate.ErrorProcessing{BasePath: "0/base", ErrorsArray: validate.NewErrorsArray()}
 
-		It("should return a the base types if the obj is valid", func() {
-			base := BuildBase(fixtures.TestingDatumBase(), processing)
+		core := fixtures.TestingDatumBase()
+		core["type"] = "tbd"
+
+		It("and be of type base if the obj is valid", func() {
+			base := BuildBase(core, processing)
 			var baseType Base
 			Expect(base).To(BeAssignableToTypeOf(baseType))
 		})
-		It("should return and error object that is empty but not nil", func() {
-			BuildBase(fixtures.TestingDatumBase(), processing)
+		It("and not have any errors", func() {
+			BuildBase(core, processing)
 			Expect(processing.HasErrors()).To(BeFalse())
 		})
 	})
