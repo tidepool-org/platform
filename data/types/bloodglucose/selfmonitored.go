@@ -9,16 +9,16 @@ import (
 const SelfMonitoredName = "smbg"
 
 type SelfMonitored struct {
-	Value      *float64 `json:"value" bson:"value" valid:"bloodglucosevalue"`
-	Units      *string  `json:"units" bson:"units" valid:"bloodglucoseunits"`
+	Value      *float64 `json:"value" bson:"value" valid:"bloodvalue"`
+	Units      *string  `json:"units" bson:"units" valid:"mmolmgunits"`
 	types.Base `bson:",inline"`
 }
 
 func BuildSelfMonitored(datum types.Datum, errs validate.ErrorProcessing) *SelfMonitored {
 
 	selfMonitored := &SelfMonitored{
-		Value: datum.ToFloat64(valueField.Name, errs),
-		Units: datum.ToString(unitsField.Name, errs),
+		Value: datum.ToFloat64(types.BloodValueField.Name, errs),
+		Units: datum.ToString(types.MmolOrMgUnitsField.Name, errs),
 		Base:  types.BuildBase(datum, errs),
 	}
 

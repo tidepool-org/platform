@@ -16,8 +16,8 @@ func init() {
 const ContinuousName = "cbg"
 
 type Continuous struct {
-	Value      *float64 `json:"value" bson:"value" valid:"bloodglucosevalue"`
-	Units      *string  `json:"units" bson:"units" valid:"bloodglucoseunits"`
+	Value      *float64 `json:"value" bson:"value" valid:"bloodvalue"`
+	Units      *string  `json:"units" bson:"units" valid:"mmolmgunits"`
 	Isig       *float64 `json:"isig" bson:"isig" valid:"cbgisig"`
 	types.Base `bson:",inline"`
 }
@@ -32,8 +32,8 @@ var isigField = types.FloatDatumField{
 func BuildContinuous(datum types.Datum, errs validate.ErrorProcessing) *Continuous {
 
 	continuous := &Continuous{
-		Value: datum.ToFloat64(valueField.Name, errs),
-		Units: datum.ToString(unitsField.Name, errs),
+		Value: datum.ToFloat64(types.BloodValueField.Name, errs),
+		Units: datum.ToString(types.MmolOrMgUnitsField.Name, errs),
 		Isig:  datum.ToFloat64(isigField.Name, errs),
 		Base:  types.BuildBase(datum, errs),
 	}

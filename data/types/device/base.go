@@ -47,16 +47,16 @@ var (
 	}
 
 	failureReasons = validate.ErrorReasons{
-		alarmTypeField.Tag:         alarmTypeField.Message,
-		unitsField.Tag:             unitsField.Message,
-		valueField.Tag:             valueField.Message,
-		volumeField.Tag:            volumeField.Message,
-		primeTargetField.Tag:       primeTargetField.Message,
-		reasonField.Tag:            reasonField.Message,
-		timeChangeReasonsField.Tag: timeChangeReasonsField.Message,
-		timeChangeAgentField.Tag:   timeChangeAgentField.Message,
-		statusField.Tag:            statusField.Message,
-		subTypeField.Tag:           subTypeField.Message,
+		alarmTypeField.Tag:           alarmTypeField.Message,
+		types.MmolOrMgUnitsField.Tag: types.MmolOrMgUnitsField.Message,
+		types.BloodValueField.Tag:    types.BloodValueField.Message,
+		volumeField.Tag:              volumeField.Message,
+		primeTargetField.Tag:         primeTargetField.Message,
+		reasonField.Tag:              reasonField.Message,
+		timeChangeReasonsField.Tag:   timeChangeReasonsField.Message,
+		timeChangeAgentField.Tag:     timeChangeAgentField.Message,
+		statusField.Tag:              statusField.Message,
+		subTypeField.Tag:             subTypeField.Message,
 	}
 )
 
