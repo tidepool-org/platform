@@ -14,9 +14,9 @@ func init() {
 }
 
 type Temporary struct {
-	Rate       *float64         `json:"rate,omitempty" bson:"rate,omitempty" valid:"omitempty,basalrate"`
-	Percent    *float64         `json:"percent,omitempty" bson:"percent,omitempty" valid:"omitempty,basalpercent"`
-	Suppressed *SuppressedBasal `json:"suppressed,omitempty" bson:"suppressed,omitempty" valid:"omitempty,required"`
+	Rate       *float64    `json:"rate,omitempty" bson:"rate,omitempty" valid:"omitempty,basalrate"`
+	Percent    *float64    `json:"percent,omitempty" bson:"percent,omitempty" valid:"omitempty,basalpercent"`
+	Suppressed *Suppressed `json:"suppressed,omitempty" bson:"suppressed,omitempty" valid:"omitempty,required"`
 	Base       `bson:",inline"`
 }
 
@@ -31,10 +31,16 @@ var (
 
 func (b Base) makeTemporary(datum types.Datum, errs validate.ErrorProcessing) *Temporary {
 
+	var suppressed *Suppressed
+	suppressedDatum, ok := datum["suppressed"].(map[string]interface{})
+	if ok {
+		suppressed = makeSuppressed(suppressedDatum, errs)
+	}
+
 	temporary := &Temporary{
 		Rate:       datum.ToFloat64(rateField.Name, errs),
 		Percent:    datum.ToFloat64(percentField.Name, errs),
-		Suppressed: makeSuppressed(datum["suppressed"].(map[string]interface{}), errs),
+		Suppressed: suppressed,
 		Base:       b,
 	}
 	types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(temporary, errs)

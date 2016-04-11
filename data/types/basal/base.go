@@ -1,6 +1,7 @@
 package basal
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/tidepool-org/platform/Godeps/_workspace/src/gopkg.in/bluesuncorp/validator.v8"
@@ -15,16 +16,16 @@ func init() {
 }
 
 type Base struct {
-	DeliveryType *string `json:"deliveryType" bson:"deliveryType" valid:"basaldeliverytype"`
+	DeliveryType *string `json:"deliveryType" bson:"deliveryType" valid:"required,basaldeliverytype"`
 	Duration     *int    `json:"duration,omitempty" bson:"duration,omitempty" valid:"omitempty,basalduration"`
 	types.Base   `bson:",inline"`
 }
 
-type SuppressedBasal struct {
+type Suppressed struct {
 	Type         *string  `json:"type" bson:"type" valid:"required"`
 	DeliveryType *string  `json:"deliveryType" bson:"deliveryType" valid:"basaldeliverytype"`
 	ScheduleName *string  `json:"scheduleName" bson:"scheduleName" valid:"omitempty,required"`
-	Rate         *float64 `json:"rate" bson:"rate" valid:"omitempty,basalrate"`
+	Rate         *float64 `json:"rate" bson:"rate" valid:"basalrate"`
 }
 
 const Name = "basal"
@@ -52,8 +53,10 @@ var (
 	}
 )
 
-func makeSuppressed(datum types.Datum, errs validate.ErrorProcessing) *SuppressedBasal {
-	return &SuppressedBasal{
+func makeSuppressed(datum types.Datum, errs validate.ErrorProcessing) *Suppressed {
+
+	fmt.Println("## making suppressed ", datum)
+	return &Suppressed{
 		Type:         datum.ToString("type", errs),
 		DeliveryType: datum.ToString(deliveryTypeField.Name, errs),
 		ScheduleName: datum.ToString(scheduleNameField.Name, errs),
@@ -69,17 +72,19 @@ func Build(datum types.Datum, errs validate.ErrorProcessing) interface{} {
 		Base:         types.BuildBase(datum, errs),
 	}
 
-	switch *base.DeliveryType {
-	case "scheduled":
-		return base.makeScheduled(datum, errs)
-	case "suspend":
-		return base.makeSuspend(datum, errs)
-	case "temp":
-		return base.makeTemporary(datum, errs)
-	default:
-		types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(base, errs)
-		return base
+	if base.DeliveryType != nil {
+
+		switch *base.DeliveryType {
+		case "scheduled":
+			return base.makeScheduled(datum, errs)
+		case "suspend":
+			return base.makeSuspend(datum, errs)
+		case "temp":
+			return base.makeTemporary(datum, errs)
+		}
 	}
+	types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(base, errs)
+	return base
 }
 
 func DurationValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {

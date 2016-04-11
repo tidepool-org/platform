@@ -9,7 +9,7 @@ import (
 	"github.com/tidepool-org/platform/validate"
 )
 
-var _ = Describe("Basal", func() {
+var _ = Describe("Scheduled", func() {
 
 	var processing validate.ErrorProcessing
 
@@ -20,7 +20,7 @@ var _ = Describe("Basal", func() {
 	basalObj["rate"] = 1.75
 	basalObj["duration"] = 7200000
 
-	Context("scheduled from obj", func() {
+	Context("from obj", func() {
 
 		BeforeEach(func() {
 			processing = validate.ErrorProcessing{BasePath: "0", ErrorsArray: validate.NewErrorsArray()}
@@ -41,34 +41,49 @@ var _ = Describe("Basal", func() {
 					processing = validate.ErrorProcessing{BasePath: "0", ErrorsArray: validate.NewErrorsArray()}
 				})
 
-				Context("is invalid when", func() {
-
-					It("zero", func() {
-						basalObj["rate"] = -1.0
-						basal := Build(basalObj, processing)
-						types.GetPlatformValidator().Struct(basal, processing)
-						Expect(processing.HasErrors()).To(BeTrue())
-					})
-
-					It("zero and gives me context in error", func() {
-						basalObj["rate"] = -0.1
-						basal := Build(basalObj, processing)
-						types.GetPlatformValidator().Struct(basal, processing)
-						Expect(processing.HasErrors()).To(BeTrue())
-						Expect(processing.Errors[0].Detail).To(ContainSubstring("'Rate' failed with 'Must be greater than 0.0' when given '-0.1'"))
-					})
-
+				It("is required", func() {
+					delete(basalObj, "rate")
+					basal := Build(basalObj, processing)
+					types.GetPlatformValidator().Struct(basal, processing)
+					Expect(processing.HasErrors()).To(BeTrue())
 				})
-				Context("is valid when", func() {
 
-					It("greater than zero", func() {
-						basalObj["rate"] = 0.7
-						basal := Build(basalObj, processing)
-						types.GetPlatformValidator().Struct(basal, processing)
-						Expect(processing.HasErrors()).To(BeFalse())
-					})
-
+				It("invalid when zero", func() {
+					basalObj["rate"] = 0.0
+					basal := Build(basalObj, processing)
+					types.GetPlatformValidator().Struct(basal, processing)
+					Expect(processing.HasErrors()).To(BeTrue())
+					Expect(processing.Errors[0].Detail).To(Equal("'Rate' failed with 'required' when given '0'"))
 				})
+
+				It("valid when greater than zero", func() {
+					basalObj["rate"] = 0.7
+					basal := Build(basalObj, processing)
+					types.GetPlatformValidator().Struct(basal, processing)
+					Expect(processing.HasErrors()).To(BeFalse())
+				})
+
+			})
+			Context("scheduleName", func() {
+
+				BeforeEach(func() {
+					processing = validate.ErrorProcessing{BasePath: "0", ErrorsArray: validate.NewErrorsArray()}
+				})
+
+				It("is not required", func() {
+					delete(basalObj, "scheduleName")
+					basal := Build(basalObj, processing)
+					types.GetPlatformValidator().Struct(basal, processing)
+					Expect(processing.HasErrors()).To(BeFalse())
+				})
+
+				It("is free text", func() {
+					basalObj["scheduleName"] = "my schedule"
+					basal := Build(basalObj, processing)
+					types.GetPlatformValidator().Struct(basal, processing)
+					Expect(processing.HasErrors()).To(BeFalse())
+				})
+
 			})
 		})
 	})

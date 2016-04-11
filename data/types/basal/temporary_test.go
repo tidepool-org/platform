@@ -9,7 +9,7 @@ import (
 	"github.com/tidepool-org/platform/validate"
 )
 
-var _ = Describe("Basal", func() {
+var _ = Describe("Temporary", func() {
 
 	var processing validate.ErrorProcessing
 

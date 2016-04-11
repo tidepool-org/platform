@@ -15,7 +15,7 @@ func init() {
 
 type Scheduled struct {
 	ScheduleName *string  `json:"scheduleName" bson:"scheduleName" valid:"omitempty,required"`
-	Rate         *float64 `json:"rate,omitempty" bson:"rate,omitempty" valid:"omitempty,basalrate"`
+	Rate         *float64 `json:"rate" bson:"rate" valid:"required,basalrate"`
 	Base         `bson:",inline"`
 }
 

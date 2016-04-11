@@ -7,16 +7,23 @@ import (
 )
 
 type Suspend struct {
-	Suppressed *SuppressedBasal `json:"suppressed,omitempty" bson:"suppressed,omitempty" valid:"omitempty,required"`
+	Suppressed *Suppressed `json:"suppressed,omitempty" bson:"suppressed,omitempty" valid:"-"`
 	Base       `bson:",inline"`
 }
 
 func (b Base) makeSuspend(datum types.Datum, errs validate.ErrorProcessing) *Suspend {
 
+	var suppressed *Suppressed
+	suppressedDatum, ok := datum["suppressed"].(map[string]interface{})
+	if ok {
+		suppressed = makeSuppressed(suppressedDatum, errs)
+	}
+
 	suspend := &Suspend{
-		Suppressed: makeSuppressed(datum["suppressed"].(map[string]interface{}), errs),
+		Suppressed: suppressed,
 		Base:       b,
 	}
 	types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(suspend, errs)
 	return suspend
+
 }

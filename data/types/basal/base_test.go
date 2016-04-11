@@ -16,17 +16,18 @@ var _ = Describe("Basal", func() {
 	var basalObj = fixtures.TestingDatumBase()
 	basalObj["type"] = "basal"
 	basalObj["deliveryType"] = "scheduled"
+	basalObj["rate"] = 1.0
 	basalObj["duration"] = 28800000
 
-	Context("datum from obj", func() {
+	Context("type from obj", func() {
 
 		BeforeEach(func() {
-			processing = validate.ErrorProcessing{BasePath: "0/basal", ErrorsArray: validate.NewErrorsArray()}
+			processing = validate.ErrorProcessing{BasePath: "0", ErrorsArray: validate.NewErrorsArray()}
 		})
 
-		It("should return a basal if the obj is valid", func() {
+		It("returns a valid basal type", func() {
 			basal := Build(basalObj, processing)
-			var basalType *Base
+			var basalType *Scheduled
 			Expect(basal).To(BeAssignableToTypeOf(basalType))
 			Expect(processing.HasErrors()).To(BeFalse())
 		})
@@ -37,89 +38,83 @@ var _ = Describe("Basal", func() {
 
 		Context("duration", func() {
 			BeforeEach(func() {
-				processing = validate.ErrorProcessing{BasePath: "0/basal", ErrorsArray: validate.NewErrorsArray()}
+				processing = validate.ErrorProcessing{BasePath: "0", ErrorsArray: validate.NewErrorsArray()}
 			})
-			Context("is invalid when", func() {
 
-				It("zero", func() {
-					basalObj["duration"] = -1
-					basal := Build(basalObj, processing)
-					types.GetPlatformValidator().Struct(basal, processing)
-					Expect(processing.HasErrors()).To(BeTrue())
-				})
-
-				It("gives detailed error", func() {
-					basalObj["duration"] = -1
-					basal := Build(basalObj, processing)
-					types.GetPlatformValidator().Struct(basal, processing)
-					Expect(processing.HasErrors()).To(BeTrue())
-					Expect(processing.Errors[0].Detail).To(ContainSubstring("'Duration' failed with 'Must be greater than 0' when given '-1'"))
-				})
-
+			It("is not required", func() {
+				delete(basalObj, "duration")
+				basal := Build(basalObj, processing)
+				types.GetPlatformValidator().Struct(basal, processing)
+				Expect(processing.HasErrors()).To(BeFalse())
 			})
-			Context("is valid when", func() {
 
-				It("greater than zero", func() {
-					basalObj["duration"] = 4000
-					basal := Build(basalObj, processing)
-					types.GetPlatformValidator().Struct(basal, processing)
-					Expect(processing.HasErrors()).To(BeFalse())
-				})
-
+			It("fails if less than zero", func() {
+				basalObj["duration"] = -1
+				basal := Build(basalObj, processing)
+				types.GetPlatformValidator().Struct(basal, processing)
+				Expect(processing.HasErrors()).To(BeTrue())
+				Expect(processing.Errors[0].Detail).To(ContainSubstring("'Duration' failed with 'Must be greater than 0' when given '-1'"))
 			})
+
+			It("valid when greater than zero", func() {
+				basalObj["duration"] = 4000
+				basal := Build(basalObj, processing)
+				types.GetPlatformValidator().Struct(basal, processing)
+				Expect(processing.HasErrors()).To(BeFalse())
+			})
+
 		})
 
 		Context("deliveryType", func() {
 			BeforeEach(func() {
-				processing = validate.ErrorProcessing{BasePath: "0/basal", ErrorsArray: validate.NewErrorsArray()}
+				processing = validate.ErrorProcessing{BasePath: "0", ErrorsArray: validate.NewErrorsArray()}
 			})
-			Context("is invalid when", func() {
 
-				It("there is no matching type", func() {
-					basalObj["deliveryType"] = "superfly"
-					basal := Build(basalObj, processing)
-					types.GetPlatformValidator().Struct(basal, processing)
-					Expect(processing.HasErrors()).To(BeTrue())
-				})
-
-				It("gives detailed error", func() {
-					basalObj["deliveryType"] = "superfly"
-					basal := Build(basalObj, processing)
-					types.GetPlatformValidator().Struct(basal, processing)
-					Expect(processing.HasErrors()).To(BeTrue())
-					Expect(processing.Errors[0].Detail).To(ContainSubstring("'DeliveryType' failed with 'Must be one of scheduled, suspend, temp' when given 'superfly'"))
-				})
-
-				It("injected type is unsupported", func() {
-					basalObj["deliveryType"] = "injected"
-					basal := Build(basalObj, processing)
-					types.GetPlatformValidator().Struct(basal, processing)
-					Expect(processing.HasErrors()).To(BeTrue())
-				})
+			It("is required", func() {
+				delete(basalObj, "deliveryType")
+				basal := Build(basalObj, processing)
+				types.GetPlatformValidator().Struct(basal, processing)
+				Expect(processing.HasErrors()).To(BeTrue())
+				Expect(processing.Errors[0].Detail).To(Equal("'DeliveryType' failed with 'required' when given '<nil>'"))
 			})
-			Context("is valid when", func() {
 
-				It("scheduled type", func() {
-					basalObj["deliveryType"] = "scheduled"
-					basal := Build(basalObj, processing)
-					types.GetPlatformValidator().Struct(basal, processing)
-					Expect(processing.HasErrors()).To(BeFalse())
-				})
+			It("invalid when no matching type", func() {
+				basalObj["deliveryType"] = "superfly"
+				basal := Build(basalObj, processing)
+				types.GetPlatformValidator().Struct(basal, processing)
+				Expect(processing.HasErrors()).To(BeTrue())
+				Expect(processing.Errors[0].Detail).To(ContainSubstring("'DeliveryType' failed with 'Must be one of scheduled, suspend, temp' when given 'superfly'"))
 
-				It("suspend type", func() {
-					basalObj["deliveryType"] = "suspend"
-					basal := Build(basalObj, processing)
-					types.GetPlatformValidator().Struct(basal, processing)
-					Expect(processing.HasErrors()).To(BeFalse())
-				})
-
-				It("temp type", func() {
-					basalObj["deliveryType"] = "temp"
-					basal := Build(basalObj, processing)
-					types.GetPlatformValidator().Struct(basal, processing)
-					Expect(processing.HasErrors()).To(BeFalse())
-				})
 			})
+
+			It("valid if unsupported injected type", func() {
+				basalObj["deliveryType"] = "injected"
+				basal := Build(basalObj, processing)
+				types.GetPlatformValidator().Struct(basal, processing)
+				Expect(processing.HasErrors()).To(BeTrue())
+			})
+
+			It("valid if scheduled type", func() {
+				basalObj["deliveryType"] = "scheduled"
+				basal := Build(basalObj, processing)
+				types.GetPlatformValidator().Struct(basal, processing)
+				Expect(processing.HasErrors()).To(BeFalse())
+			})
+
+			It("valid if suspend type", func() {
+				basalObj["deliveryType"] = "suspend"
+				basal := Build(basalObj, processing)
+				types.GetPlatformValidator().Struct(basal, processing)
+				Expect(processing.HasErrors()).To(BeFalse())
+			})
+
+			It("valid if temp type", func() {
+				basalObj["deliveryType"] = "temp"
+				basal := Build(basalObj, processing)
+				types.GetPlatformValidator().Struct(basal, processing)
+				Expect(processing.HasErrors()).To(BeFalse())
+			})
+
 		})
 	})
 })
