@@ -36,40 +36,48 @@ var _ = Describe("Bolus", func() {
 				BeforeEach(func() {
 					processing = validate.ErrorProcessing{BasePath: "0", ErrorsArray: validate.NewErrorsArray()}
 				})
-				Context("is invalid when", func() {
-					It("there is no matching type", func() {
-						bolusObj["subType"] = "superfly"
-						bolus := Build(bolusObj, processing)
-						types.GetPlatformValidator().Struct(bolus, processing)
-						Expect(processing.HasErrors()).To(BeTrue())
-						Expect(processing.Errors[0].Detail).To(ContainSubstring("'SubType' failed with 'Must be one of normal, square, dual/square' when given 'superfly'"))
-					})
-					It("injected type is unsupported", func() {
-						bolusObj["subType"] = "injected"
-						bolus := Build(bolusObj, processing)
-						types.GetPlatformValidator().Struct(bolus, processing)
-						Expect(processing.HasErrors()).To(BeTrue())
-					})
+
+				It("is required", func() {
+					delete(bolusObj, "subType")
+					bolus := Build(bolusObj, processing)
+					types.GetPlatformValidator().Struct(bolus, processing)
+					Expect(processing.HasErrors()).To(BeTrue())
 				})
-				Context("is valid when", func() {
-					It("normal type", func() {
-						bolusObj["subType"] = "normal"
-						bolus := Build(bolusObj, processing)
-						types.GetPlatformValidator().Struct(bolus, processing)
-						Expect(processing.HasErrors()).To(BeFalse())
-					})
-					It("square type", func() {
-						bolusObj["subType"] = "square"
-						bolus := Build(bolusObj, processing)
-						types.GetPlatformValidator().Struct(bolus, processing)
-						Expect(processing.HasErrors()).To(BeFalse())
-					})
-					It("dual/square type", func() {
-						bolusObj["subType"] = "dual/square"
-						bolus := Build(bolusObj, processing)
-						types.GetPlatformValidator().Struct(bolus, processing)
-						Expect(processing.HasErrors()).To(BeFalse())
-					})
+
+				It("invalid when no matching subType", func() {
+					bolusObj["subType"] = "superfly"
+					bolus := Build(bolusObj, processing)
+					types.GetPlatformValidator().Struct(bolus, processing)
+					Expect(processing.HasErrors()).To(BeTrue())
+					Expect(processing.Errors[0].Detail).To(ContainSubstring("'SubType' failed with 'Must be one of normal, square, dual/square' when given 'superfly'"))
+				})
+
+				It("injected type is not supported", func() {
+					bolusObj["subType"] = "injected"
+					bolus := Build(bolusObj, processing)
+					types.GetPlatformValidator().Struct(bolus, processing)
+					Expect(processing.HasErrors()).To(BeTrue())
+				})
+
+				It("normal type is supported", func() {
+					bolusObj["subType"] = "normal"
+					bolus := Build(bolusObj, processing)
+					types.GetPlatformValidator().Struct(bolus, processing)
+					Expect(processing.HasErrors()).To(BeFalse())
+				})
+
+				It("square type is supported", func() {
+					bolusObj["subType"] = "square"
+					bolus := Build(bolusObj, processing)
+					types.GetPlatformValidator().Struct(bolus, processing)
+					Expect(processing.HasErrors()).To(BeFalse())
+				})
+
+				It("dual/square type is supported", func() {
+					bolusObj["subType"] = "dual/square"
+					bolus := Build(bolusObj, processing)
+					types.GetPlatformValidator().Struct(bolus, processing)
+					Expect(processing.HasErrors()).To(BeFalse())
 				})
 
 			})

@@ -39,79 +39,85 @@ var _ = Describe("Bolus", func() {
 				BeforeEach(func() {
 					processing = validate.ErrorProcessing{BasePath: "0", ErrorsArray: validate.NewErrorsArray()}
 				})
-				Context("is invalid when", func() {
 
-					It("zero", func() {
-						bolusObj["duration"] = -1
-						bolus := Build(bolusObj, processing)
-						types.GetPlatformValidator().Struct(bolus, processing)
-						Expect(processing.HasErrors()).To(BeTrue())
-						Expect(processing.Errors[0].Detail).To(ContainSubstring("'Duration' failed with 'Must be greater than 0' when given '-1'"))
-					})
-
+				It("is not required", func() {
+					delete(bolusObj, "duration")
+					bolus := Build(bolusObj, processing)
+					types.GetPlatformValidator().Struct(bolus, processing)
+					Expect(processing.HasErrors()).To(BeFalse())
 				})
-				Context("is valid when", func() {
 
-					It("greater than zero", func() {
-						bolusObj["duration"] = 4000
-						bolus := Build(bolusObj, processing)
-						types.GetPlatformValidator().Struct(bolus, processing)
-						Expect(processing.HasErrors()).To(BeFalse())
-					})
-
+				It("invalid when less than zero", func() {
+					bolusObj["duration"] = -1
+					bolus := Build(bolusObj, processing)
+					types.GetPlatformValidator().Struct(bolus, processing)
+					Expect(processing.HasErrors()).To(BeTrue())
+					Expect(processing.Errors[0].Detail).To(ContainSubstring("'Duration' failed with 'Must be greater than 0' when given '-1'"))
 				})
+
+				It("valid greater than zero", func() {
+					bolusObj["duration"] = 4000
+					bolus := Build(bolusObj, processing)
+					types.GetPlatformValidator().Struct(bolus, processing)
+					Expect(processing.HasErrors()).To(BeFalse())
+				})
+
 			})
 			Context("extended", func() {
 				BeforeEach(func() {
 					processing = validate.ErrorProcessing{BasePath: "0", ErrorsArray: validate.NewErrorsArray()}
 				})
-				Context("is invalid when", func() {
 
-					It("zero", func() {
-						bolusObj["extended"] = -0.1
-						bolus := Build(bolusObj, processing)
-						types.GetPlatformValidator().Struct(bolus, processing)
-						Expect(processing.HasErrors()).To(BeTrue())
-						Expect(processing.Errors[0].Detail).To(ContainSubstring("'Extended' failed with 'Must be greater than 0.0' when given '-0.1'"))
-					})
-
+				It("is not required", func() {
+					delete(bolusObj, "extended")
+					bolus := Build(bolusObj, processing)
+					types.GetPlatformValidator().Struct(bolus, processing)
+					Expect(processing.HasErrors()).To(BeFalse())
 				})
-				Context("is valid when", func() {
 
-					It("greater than zero", func() {
-						bolusObj["extended"] = 0.7
-						bolus := Build(bolusObj, processing)
-						types.GetPlatformValidator().Struct(bolus, processing)
-						Expect(processing.HasErrors()).To(BeFalse())
-					})
-
+				It("invalid when zero", func() {
+					bolusObj["extended"] = -0.1
+					bolus := Build(bolusObj, processing)
+					types.GetPlatformValidator().Struct(bolus, processing)
+					Expect(processing.HasErrors()).To(BeTrue())
+					Expect(processing.Errors[0].Detail).To(ContainSubstring("'Extended' failed with 'Must be greater than 0.0' when given '-0.1'"))
 				})
+
+				It("valid when greater than zero", func() {
+					bolusObj["extended"] = 0.7
+					bolus := Build(bolusObj, processing)
+					types.GetPlatformValidator().Struct(bolus, processing)
+					Expect(processing.HasErrors()).To(BeFalse())
+				})
+
 			})
 			Context("normal", func() {
 				BeforeEach(func() {
 					processing = validate.ErrorProcessing{BasePath: "0", ErrorsArray: validate.NewErrorsArray()}
 				})
-				Context("is invalid when", func() {
 
-					It("zero", func() {
-						bolusObj["normal"] = -0.1
-						bolus := Build(bolusObj, processing)
-						types.GetPlatformValidator().Struct(bolus, processing)
-						Expect(processing.HasErrors()).To(BeTrue())
-						Expect(processing.Errors[0].Detail).To(ContainSubstring("'Normal' failed with 'Must be greater than 0.0' when given '-0.1'"))
-					})
-
+				It("is not required", func() {
+					delete(bolusObj, "normal")
+					bolus := Build(bolusObj, processing)
+					types.GetPlatformValidator().Struct(bolus, processing)
+					Expect(processing.HasErrors()).To(BeFalse())
 				})
-				Context("is valid when", func() {
 
-					It("greater than zero", func() {
-						bolusObj["normal"] = 0.7
-						bolus := Build(bolusObj, processing)
-						types.GetPlatformValidator().Struct(bolus, processing)
-						Expect(processing.HasErrors()).To(BeFalse())
-					})
-
+				It("invalid when zero", func() {
+					bolusObj["normal"] = -0.1
+					bolus := Build(bolusObj, processing)
+					types.GetPlatformValidator().Struct(bolus, processing)
+					Expect(processing.HasErrors()).To(BeTrue())
+					Expect(processing.Errors[0].Detail).To(ContainSubstring("'Normal' failed with 'Must be greater than 0.0' when given '-0.1'"))
 				})
+
+				It("valid when greater than zero", func() {
+					bolusObj["normal"] = 0.7
+					bolus := Build(bolusObj, processing)
+					types.GetPlatformValidator().Struct(bolus, processing)
+					Expect(processing.HasErrors()).To(BeFalse())
+				})
+
 			})
 		})
 	})
