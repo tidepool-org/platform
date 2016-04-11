@@ -26,7 +26,7 @@ var _ = Describe("Bolus", func() {
 			processing = validate.ErrorProcessing{BasePath: "0", ErrorsArray: validate.NewErrorsArray()}
 		})
 
-		It("returns a bolus if the obj is valid", func() {
+		It("if the obj is valid", func() {
 			bolus := Build(bolusObj, processing)
 			var bolusType *DualSquare
 			Expect(bolus).To(BeAssignableToTypeOf(bolusType))

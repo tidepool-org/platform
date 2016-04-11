@@ -9,7 +9,7 @@ import (
 	"github.com/tidepool-org/platform/validate"
 )
 
-var _ = Describe("Bolus", func() {
+var _ = Describe("Normal", func() {
 
 	var bolusObj = fixtures.TestingDatumBase()
 	bolusObj["type"] = "bolus"
@@ -18,20 +18,16 @@ var _ = Describe("Bolus", func() {
 
 	var processing validate.ErrorProcessing
 
-	Context("normal from obj", func() {
+	Context("from obj", func() {
 
 		BeforeEach(func() {
 			processing = validate.ErrorProcessing{BasePath: "0", ErrorsArray: validate.NewErrorsArray()}
 		})
 
-		It("returns a bolus if the obj is valid", func() {
+		It("if the obj is valid", func() {
 			bolus := Build(bolusObj, processing)
 			var bolusType *Normal
 			Expect(bolus).To(BeAssignableToTypeOf(bolusType))
-		})
-
-		It("produces no error when valid", func() {
-			Build(bolusObj, processing)
 			Expect(processing.HasErrors()).To(BeFalse())
 		})
 
@@ -41,26 +37,27 @@ var _ = Describe("Bolus", func() {
 				BeforeEach(func() {
 					processing = validate.ErrorProcessing{BasePath: "0", ErrorsArray: validate.NewErrorsArray()}
 				})
-				Context("is invalid when", func() {
 
-					It("zero", func() {
-						bolusObj["normal"] = -0.1
-						bolus := Build(bolusObj, processing)
-						types.GetPlatformValidator().Struct(bolus, processing)
-						Expect(processing.HasErrors()).To(BeTrue())
-						Expect(processing.Errors[0].Detail).To(ContainSubstring("'Normal' failed with 'Must be greater than 0.0' when given '-0.1'"))
-					})
-
+				It("is not required", func() {
+					delete(bolusObj, "normal")
+					bolus := Build(bolusObj, processing)
+					types.GetPlatformValidator().Struct(bolus, processing)
+					Expect(processing.HasErrors()).To(BeFalse())
 				})
-				Context("is valid when", func() {
 
-					It("greater than zero", func() {
-						bolusObj["normal"] = 0.7
-						bolus := Build(bolusObj, processing)
-						types.GetPlatformValidator().Struct(bolus, processing)
-						Expect(processing.HasErrors()).To(BeFalse())
-					})
+				It("invalid when less than 0.0", func() {
+					bolusObj["normal"] = -0.1
+					bolus := Build(bolusObj, processing)
+					types.GetPlatformValidator().Struct(bolus, processing)
+					Expect(processing.HasErrors()).To(BeTrue())
+					Expect(processing.Errors[0].Detail).To(ContainSubstring("'Normal' failed with 'Must be greater than 0.0' when given '-0.1'"))
+				})
 
+				It("valid when than 0.0", func() {
+					bolusObj["normal"] = 0.7
+					bolus := Build(bolusObj, processing)
+					types.GetPlatformValidator().Struct(bolus, processing)
+					Expect(processing.HasErrors()).To(BeFalse())
 				})
 
 			})
