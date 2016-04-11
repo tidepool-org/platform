@@ -41,11 +41,10 @@ func (pv *PlatformValidator) toErrorsArray(ve validator.ValidationErrors, errorP
 				fmt.Sprintf("'%s' failed with '%s' when given '%v'", v.Field, reason, v.Value),
 			)
 		} else {
-			fmt.Println("TAG? ", v.ActualTag)
 			errorProcessing.AppendPointerError(
 				v.Type.String(),
 				"Validation Error",
-				fmt.Sprintf("'%s' failed with '%s' when given '%v'", v.Field, v.Tag, v.Value),
+				fmt.Sprintf("'%s' failed with '%s' when given '%v'", v.Field, v.ActualTag, v.Value),
 			)
 		}
 	}

@@ -17,13 +17,13 @@ var _ = Describe("Bolus", func() {
 	bolusObj["normal"] = 1.0
 	var processing validate.ErrorProcessing
 
-	Context("bolus type from obj", func() {
+	Context("type from obj", func() {
 
 		BeforeEach(func() {
 			processing = validate.ErrorProcessing{BasePath: "0", ErrorsArray: validate.NewErrorsArray()}
 		})
 
-		It("returns a bolus if the obj is valid", func() {
+		It("returns a valid bolus", func() {
 			bolus := Build(bolusObj, processing)
 			var bolusType *Normal
 			Expect(bolus).To(BeAssignableToTypeOf(bolusType))

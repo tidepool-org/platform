@@ -67,8 +67,14 @@ func makeChange(datum types.Datum, errs validate.ErrorProcessing) Change {
 
 func (b Base) makeTimeChange(datum types.Datum, errs validate.ErrorProcessing) *TimeChange {
 
+	change := Change{}
+	changeDatum, ok := datum["change"].(map[string]interface{})
+	if ok {
+		change = makeChange(changeDatum, errs)
+	}
+
 	timeChange := &TimeChange{
-		Change: makeChange(datum["change"].(map[string]interface{}), errs),
+		Change: change,
 		Base:   b,
 	}
 	types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(timeChange, errs)
