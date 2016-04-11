@@ -1,7 +1,6 @@
 package basal
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/tidepool-org/platform/Godeps/_workspace/src/gopkg.in/bluesuncorp/validator.v8"
@@ -22,7 +21,6 @@ type Base struct {
 }
 
 type Suppressed struct {
-	Type         *string  `json:"type" bson:"type" valid:"required"`
 	DeliveryType *string  `json:"deliveryType" bson:"deliveryType" valid:"basaldeliverytype"`
 	ScheduleName *string  `json:"scheduleName" bson:"scheduleName" valid:"omitempty,required"`
 	Rate         *float64 `json:"rate" bson:"rate" valid:"basalrate"`
@@ -54,10 +52,7 @@ var (
 )
 
 func makeSuppressed(datum types.Datum, errs validate.ErrorProcessing) *Suppressed {
-
-	fmt.Println("## making suppressed ", datum)
 	return &Suppressed{
-		Type:         datum.ToString("type", errs),
 		DeliveryType: datum.ToString(deliveryTypeField.Name, errs),
 		ScheduleName: datum.ToString(scheduleNameField.Name, errs),
 		Rate:         datum.ToFloat64(rateField.Name, errs),

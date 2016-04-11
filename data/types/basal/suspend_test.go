@@ -51,10 +51,6 @@ var _ = Describe("Suspend", func() {
 				})
 
 				It("when present is validated", func() {
-					delete(suppressed, "deliveryType")
-					suppressed["scheduleName"] = "DEFAULT"
-					suppressed["rate"] = 1.75
-					basalObj["suppressed"] = suppressed
 					basal := Build(basalObj, processing)
 					types.GetPlatformValidator().Struct(basal, processing)
 					Expect(processing.HasErrors()).To(BeFalse())
