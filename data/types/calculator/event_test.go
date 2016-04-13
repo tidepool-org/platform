@@ -52,26 +52,76 @@ var _ = Describe("Event", func() {
 
 		Context("validation", func() {
 
-			/*Context("timeProcessing", func() {
+			Context("carbInput", func() {
+
+				It("is not required", func() {
+					delete(calculatorObj, "carbInput")
+					Expect(helper.ValidDataType(Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
+				})
+
+			})
+
+			Context("bgInput", func() {
+
+				It("is not required", func() {
+					delete(calculatorObj, "bgInput")
+					Expect(helper.ValidDataType(Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
+				})
+
+			})
+
+			Context("insulinOnBoard", func() {
+
+				It("is not required", func() {
+					delete(calculatorObj, "insulinOnBoard")
+					Expect(helper.ValidDataType(Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
+				})
+
+			})
+
+			Context("units", func() {
 
 				It("is required", func() {
-					delete(uploadObj, "timeProcessing")
+					delete(calculatorObj, "units")
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(uploadObj, helper.ErrorProcessing),
+							Build(calculatorObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
-								Path:   "0/timeProcessing",
-								Detail: "Must be one of across-the-board-timezone, utc-bootstrapping, none given '<nil>'",
+								Path:   "0/units",
+								Detail: "Must be one of mmol/L, mg/dL given '<nil>'",
 							}),
 					).To(BeNil())
 				})
 
-				It("can be across-the-board-timezone", func() {
-					uploadObj["timeProcessing"] = "across-the-board-timezone"
-					Expect(helper.ValidDataType(Build(uploadObj, helper.ErrorProcessing))).To(BeNil())
+			})
+
+			Context("recommended", func() {
+
+				It("is not required", func() {
+					delete(calculatorObj, "recommended")
+					Expect(helper.ValidDataType(Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
 				})
-			})*/
+
+			})
+
+			Context("bolus", func() {
+
+				It("is not required", func() {
+					delete(calculatorObj, "bolus")
+					Expect(helper.ValidDataType(Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
+				})
+
+			})
+
+			Context("bgTarget", func() {
+
+				It("is not required", func() {
+					delete(calculatorObj, "bgTarget")
+					Expect(helper.ValidDataType(Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
+				})
+
+			})
 		})
 
 	})
