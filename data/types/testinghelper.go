@@ -9,10 +9,7 @@ import (
 
 type TestingHelper struct {
 	validate.ErrorProcessing
-	//	BuildFunc
 }
-
-//type BuildFunc func(Datum, validate.ErrorProcessing) interface{}
 
 type ExpectedErrorDetails struct {
 	Path   string
@@ -22,13 +19,17 @@ type ExpectedErrorDetails struct {
 func NewTestingHelper() *TestingHelper {
 	return &TestingHelper{
 		ErrorProcessing: validate.ErrorProcessing{BasePath: "0", ErrorsArray: validate.NewErrorsArray()},
-		//BuildFunc:       buildFunc,
 	}
 }
 
 func (t *TestingHelper) ValidDataType(builtType interface{}) error {
 
 	if t.HasErrors() {
+		fmt.Println("details of unexpected errors: ")
+		for i := range t.Errors {
+			fmt.Println(t.Errors[i].Source["pointer"])
+			fmt.Println(t.Errors[i].Detail)
+		}
 		return errors.New("type errored while being built and validated")
 	}
 	if builtType == nil {
