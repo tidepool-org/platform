@@ -202,11 +202,11 @@ func buildQuery(params url.Values) store.Query {
 		query[types.BaseSubTypeField.Name] = map[string]interface{}{store.In: subTypes}
 	}
 	if start != "" && end != "" {
-		query[types.BaseTimeField.Name] = map[string]interface{}{store.GreaterThanEquals: start, store.LessThanEquals: end}
+		query[types.TimeStringField.Name] = map[string]interface{}{store.GreaterThanEquals: start, store.LessThanEquals: end}
 	} else if start != "" {
-		query[types.BaseTimeField.Name] = map[string]interface{}{store.GreaterThanEquals: start}
+		query[types.TimeStringField.Name] = map[string]interface{}{store.GreaterThanEquals: start}
 	} else if end != "" {
-		query[types.BaseTimeField.Name] = map[string]interface{}{store.LessThanEquals: end}
+		query[types.TimeStringField.Name] = map[string]interface{}{store.LessThanEquals: end}
 	}
 	return query
 }

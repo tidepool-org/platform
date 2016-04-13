@@ -13,7 +13,6 @@ type Validator interface {
 
 type PlatformValidator struct {
 	validate *validator.Validate
-	reasons  ErrorReasons
 	FailureReasons
 }
 
@@ -24,20 +23,11 @@ type VaidationInfo struct {
 
 type ValidationTag string
 
-// ErrorReasons is a type of map[ValidationTag]string
-// it allows us to map a ValidationTag to a reason why the validation failed
-type ErrorReasons map[ValidationTag]string
-
 type FailureReasons map[string]VaidationInfo
 
 func NewPlatformValidator() *PlatformValidator {
 	validate := validator.New(&validator.Config{TagName: "valid"})
 	return &PlatformValidator{validate: validate}
-}
-
-func (pv *PlatformValidator) SetErrorReasons(reasons ErrorReasons) *PlatformValidator {
-	pv.reasons = reasons
-	return pv
 }
 
 func (pv *PlatformValidator) SetFailureReasons(reasons FailureReasons) *PlatformValidator {
@@ -54,19 +44,7 @@ func (pv *PlatformValidator) toErrorsArray(ve validator.ValidationErrors, errorP
 				"Validation Error",
 				fmt.Sprintf("%s given '%v'", reason.Message, v.Value),
 			)
-		} /*else if reason, ok := pv.reasons[ValidationTag(v.Tag)]; ok {
-			errorProcessing.AppendPointerError(
-				v.Field,
-				"Validation Error",
-				fmt.Sprintf("%s given '%v'", reason, v.Value),
-			)
-		} else {
-			errorProcessing.AppendPointerError(
-				v.Field,
-				"Validation Error",
-				fmt.Sprintf("%s given '%v'", v.ActualTag, v.Value),
-			)
-		}*/
+		}
 	}
 }
 

@@ -25,7 +25,6 @@ var _ = Describe("Upload", func() {
 		uploadObj["deviceModel"] = "Paradigm 522"
 		uploadObj["deviceSerialNumber"] = "123456-blah"
 		uploadObj["deviceTags"] = []string{"insulin-pump"}
-		uploadObj["deviceId"] = "123-my-upload-id"
 		uploadObj["timeProcessing"] = "none"
 	})
 
@@ -76,31 +75,6 @@ var _ = Describe("Upload", func() {
 					).To(BeNil())
 				})
 
-			})
-
-			Context("uploadId", func() {
-				It("is required", func() {
-					delete(uploadObj, "uploadId")
-					Expect(
-						helper.ErrorIsExpected(
-							Build(uploadObj, helper.ErrorProcessing),
-							types.ExpectedErrorDetails{
-								Path:   "0/uploadId",
-								Detail: "This is a required field need needs to be 10+ characters in length given '<nil>'",
-							}),
-					).To(BeNil())
-				})
-				It("cannot be empty", func() {
-					uploadObj["uploadId"] = ""
-					Expect(
-						helper.ErrorIsExpected(
-							Build(uploadObj, helper.ErrorProcessing),
-							types.ExpectedErrorDetails{
-								Path:   "0/uploadId",
-								Detail: "This is a required field need needs to be 10+ characters in length given ''",
-							}),
-					).To(BeNil())
-				})
 			})
 			Context("byUser", func() {
 
@@ -215,32 +189,6 @@ var _ = Describe("Upload", func() {
 					).To(BeNil())
 				})
 
-			})
-			Context("deviceId", func() {
-				It("is required", func() {
-					delete(uploadObj, "deviceId")
-
-					Expect(
-						helper.ErrorIsExpected(
-							Build(uploadObj, helper.ErrorProcessing),
-							types.ExpectedErrorDetails{
-								Path:   "0/deviceId",
-								Detail: "This is a required field need needs to be 10+ characters in length given '<nil>'",
-							}),
-					).To(BeNil())
-				})
-				It("cannot be empty", func() {
-					uploadObj["deviceId"] = ""
-
-					Expect(
-						helper.ErrorIsExpected(
-							Build(uploadObj, helper.ErrorProcessing),
-							types.ExpectedErrorDetails{
-								Path:   "0/deviceId",
-								Detail: "This is a required field need needs to be 10+ characters in length given ''",
-							}),
-					).To(BeNil())
-				})
 			})
 			Context("deviceManufacturers", func() {
 

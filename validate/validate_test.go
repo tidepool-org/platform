@@ -26,17 +26,20 @@ var _ = Describe("Validate", func() {
 				}
 				return false
 			}
-			validationFailureReasons = ErrorReasons{
-				"custom": "Bad offset sorry",
+
+			failureReasons = FailureReasons{
+				"Offset": VaidationInfo{FieldName: "offset", Message: "Bad offset sorry"},
 			}
+
 			validator = NewPlatformValidator()
 
-			processing = ErrorProcessing{BasePath: "0/validationtest", ErrorsArray: NewErrorsArray()}
+			processing ErrorProcessing
 		)
 
 		BeforeEach(func() {
 			validator.RegisterValidation("custom", testValidator)
-			validator.SetErrorReasons(validationFailureReasons)
+			validator.SetFailureReasons(failureReasons)
+			processing = ErrorProcessing{BasePath: "0", ErrorsArray: NewErrorsArray()}
 		})
 
 		Context("succeeds", func() {
@@ -60,7 +63,8 @@ var _ = Describe("Validate", func() {
 				none := ValidationTest{Offset: 0}
 				validator.Struct(none, processing)
 				Expect(processing.ErrorsArray.HasErrors()).To(BeTrue())
-				Expect(processing.ErrorsArray.Errors[0].Detail).To(ContainSubstring("'Offset' failed with 'Bad offset sorry' when given '0'"))
+				Expect(len(processing.ErrorsArray.Errors)).To(Equal(1))
+				Expect(processing.ErrorsArray.Errors[0].Detail).To(Equal("Bad offset sorry given '0'"))
 			})
 		})
 

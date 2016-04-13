@@ -67,13 +67,22 @@ var (
 	BaseUserIDField           = DatumField{Name: "userId"}
 	BaseGroupIDField          = DatumField{Name: "groupId"}
 	BaseInternalGroupIDField  = DatumField{Name: "_groupId"}
-	BaseTypeField             = DatumField{Name: "type"}
 	BaseSubTypeField          = DatumField{Name: "subType"}
-	baseDeviceIDField         = DatumField{Name: "deviceId"}
 	baseUploadIDField         = DatumField{Name: "uploadId"}
-	baseDeviceTimeField       = DatumField{Name: "deviceTime"}
 	baseConversionOffsetField = DatumField{Name: "conversionOffset"}
 	baseClockDriftOffsetField = DatumField{Name: "clockDriftOffset"}
+
+	BaseTypeField = DatumFieldInformation{
+		DatumField: &DatumField{Name: "type"},
+		Tag:        "required",
+		Message:    "This is a required field",
+	}
+
+	baseDeviceTimeField = DatumFieldInformation{
+		DatumField: &DatumField{Name: "deviceTime"},
+		Tag:        TimeStringField.Tag,
+		Message:    TimeStringField.Message,
+	}
 
 	baseTimezoneOffsetField = IntDatumField{
 		DatumField:      &DatumField{Name: "timezoneOffset"},
@@ -82,14 +91,32 @@ var (
 		AllowedIntRange: &AllowedIntRange{LowerLimit: -840, UpperLimit: 720},
 	}
 
-	basePayloadField     = DatumFieldInformation{DatumField: &DatumField{Name: "payload"}, Tag: "payload"}
-	baseAnnotationsField = DatumFieldInformation{DatumField: &DatumField{Name: "annotations"}, Tag: "annotations"}
+	basePayloadField = DatumFieldInformation{
+		DatumField: &DatumField{Name: "payload"},
+		Tag:        "payload",
+		Message:    "",
+	}
+
+	baseAnnotationsField = DatumFieldInformation{
+		DatumField: &DatumField{Name: "annotations"},
+		Tag:        "annotations",
+		Message:    "",
+	}
+
+	baseDeviceIDField = DatumFieldInformation{
+		DatumField: &DatumField{Name: "deviceId"},
+		Tag:        "required",
+		Message:    "This is a required field",
+	}
 
 	failureReasons = validate.FailureReasons{
-		"DeviceTime":     validate.VaidationInfo{FieldName: TimeStringField.Name, Message: TimeStringField.Message},
+		"DeviceTime":     validate.VaidationInfo{FieldName: baseDeviceTimeField.Name, Message: baseDeviceTimeField.Message},
+		"Time":           validate.VaidationInfo{FieldName: TimeStringField.Name, Message: TimeStringField.Message},
 		"TimezoneOffset": validate.VaidationInfo{FieldName: baseTimezoneOffsetField.Name, Message: baseTimezoneOffsetField.Message},
 		"Payload":        validate.VaidationInfo{FieldName: basePayloadField.Name, Message: basePayloadField.Message},
 		"Annotations":    validate.VaidationInfo{FieldName: baseAnnotationsField.Name, Message: baseAnnotationsField.Message},
+		"DeviceID":       validate.VaidationInfo{FieldName: baseDeviceIDField.Name, Message: baseDeviceIDField.Message},
+		"Type":           validate.VaidationInfo{FieldName: BaseTypeField.Name, Message: BaseTypeField.Message},
 	}
 )
 

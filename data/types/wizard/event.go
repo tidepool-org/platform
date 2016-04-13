@@ -43,11 +43,12 @@ var (
 	insulinSensitivityField = types.DatumField{Name: "insulinSensitivity"}
 	bloodGlucoseInputField  = types.DatumField{Name: "bgInput"}
 
-	failureReasons = validate.ErrorReasons{
-		types.TimeStringField.Tag:        types.TimeStringField.Message,
-		types.BloodGlucoseValueField.Tag: types.BloodGlucoseValueField.Message,
-		types.MmolOrMgUnitsField.Tag:     types.MmolOrMgUnitsField.Message,
-		types.BolusSubTypeField.Tag:      types.BolusSubTypeField.Message,
+	failureReasons = validate.FailureReasons{
+		"Time":    validate.VaidationInfo{FieldName: types.TimeStringField.Name, Message: types.TimeStringField.Message},
+		"High":    validate.VaidationInfo{FieldName: "high", Message: types.BloodGlucoseValueField.Message},
+		"Low":     validate.VaidationInfo{FieldName: "low", Message: types.BloodGlucoseValueField.Message},
+		"Units":   validate.VaidationInfo{FieldName: types.MmolOrMgUnitsField.Name, Message: types.MmolOrMgUnitsField.Message},
+		"SubType": validate.VaidationInfo{FieldName: types.BolusSubTypeField.Name, Message: types.BolusSubTypeField.Message},
 	}
 )
 
@@ -102,7 +103,7 @@ func Build(datum types.Datum, errs validate.ErrorProcessing) *Event {
 		Base:               types.BuildBase(datum, errs),
 	}
 
-	types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(event, errs)
+	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(event, errs)
 
 	return event
 }

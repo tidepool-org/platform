@@ -20,7 +20,6 @@ type Record struct {
 	UploadUserID        *string   `json:"byUser" bson:"byUser" valid:"gt=10"`
 	Version             *string   `json:"version" bson:"version" valid:"gt=10"`
 	ComputerTime        *string   `json:"computerTime" bson:"computerTime" valid:"timestr"`
-	DeviceID            *string   `json:"deviceId" bson:"deviceId" valid:"gt=10"`
 	DeviceTags          *[]string `json:"deviceTags" bson:"deviceTags" valid:"uploaddevicetags"`
 	DeviceManufacturers *[]string `json:"deviceManufacturers" bson:"deviceManufacturers" valid:"uploaddevicemanufacturers"`
 	DeviceModel         *string   `json:"deviceModel" bson:"deviceModel" valid:"gt=10"`
@@ -78,12 +77,6 @@ var (
 		Message:    "This is a required field need needs to be 10+ characters in length",
 	}
 
-	deviceIDField = types.DatumFieldInformation{
-		DatumField: &types.DatumField{Name: "deviceId"},
-		Tag:        "gt",
-		Message:    "This is a required field need needs to be 10+ characters in length",
-	}
-
 	deviceModelField = types.DatumFieldInformation{
 		DatumField: &types.DatumField{Name: "deviceModel"},
 		Tag:        "gt",
@@ -109,7 +102,6 @@ var (
 		"ComputerTime":        validate.VaidationInfo{FieldName: computerTimeField.Name, Message: computerTimeField.Message},
 		"UploadID":            validate.VaidationInfo{FieldName: uploadIDField.Name, Message: uploadIDField.Message},
 		"UploadUserID":        validate.VaidationInfo{FieldName: uploadUserIDField.Name, Message: uploadUserIDField.Message},
-		"DeviceID":            validate.VaidationInfo{FieldName: deviceIDField.Name, Message: deviceIDField.Message},
 		"DeviceModel":         validate.VaidationInfo{FieldName: deviceModelField.Name, Message: deviceModelField.Message},
 		"DeviceSerialNumber":  validate.VaidationInfo{FieldName: deviceSerialNumberField.Name, Message: deviceSerialNumberField.Message},
 		"Version":             validate.VaidationInfo{FieldName: versionField.Name, Message: versionField.Message},
@@ -128,7 +120,6 @@ func Build(datum types.Datum, errs validate.ErrorProcessing) *Record {
 		DeviceManufacturers: datum.ToStringArray(deviceManufacturersField.Name, errs),
 		DeviceTags:          datum.ToStringArray(deviceTagsField.Name, errs),
 		DeviceSerialNumber:  datum.ToString(deviceSerialNumberField.Name, errs),
-		DeviceID:            datum.ToString(deviceIDField.Name, errs),
 		Base:                types.BuildBase(datum, errs),
 	}
 
