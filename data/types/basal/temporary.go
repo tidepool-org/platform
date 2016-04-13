@@ -43,7 +43,7 @@ func (b Base) makeTemporary(datum types.Datum, errs validate.ErrorProcessing) *T
 		Suppressed: suppressed,
 		Base:       b,
 	}
-	types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(temporary, errs)
+	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(temporary, errs)
 	return temporary
 }
 

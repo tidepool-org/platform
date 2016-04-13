@@ -36,7 +36,7 @@ func (b Base) makeScheduled(datum types.Datum, errs validate.ErrorProcessing) *S
 		Rate:         datum.ToFloat64(rateField.Name, errs),
 		Base:         b,
 	}
-	types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(scheduled, errs)
+	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(scheduled, errs)
 	return scheduled
 }
 

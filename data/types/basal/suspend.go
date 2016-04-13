@@ -23,7 +23,7 @@ func (b Base) makeSuspend(datum types.Datum, errs validate.ErrorProcessing) *Sus
 		Suppressed: suppressed,
 		Base:       b,
 	}
-	types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(suspend, errs)
+	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(suspend, errs)
 	return suspend
 
 }

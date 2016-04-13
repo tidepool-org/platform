@@ -46,17 +46,16 @@ var (
 		},
 	}
 
-	failureReasons = validate.ErrorReasons{
-		alarmTypeField.Tag:           alarmTypeField.Message,
-		types.MmolOrMgUnitsField.Tag: types.MmolOrMgUnitsField.Message,
-		types.BloodValueField.Tag:    types.BloodValueField.Message,
-		volumeField.Tag:              volumeField.Message,
-		primeTargetField.Tag:         primeTargetField.Message,
-		reasonField.Tag:              reasonField.Message,
-		timeChangeReasonsField.Tag:   timeChangeReasonsField.Message,
-		timeChangeAgentField.Tag:     timeChangeAgentField.Message,
-		statusField.Tag:              statusField.Message,
-		subTypeField.Tag:             subTypeField.Message,
+	failureReasons = validate.FailureReasons{
+		"AlarmType":   validate.VaidationInfo{FieldName: alarmTypeField.Name, Message: alarmTypeField.Message},
+		"Value":       validate.VaidationInfo{FieldName: types.BloodGlucoseValueField.Name, Message: types.BloodGlucoseValueField.Message},
+		"Volume":      validate.VaidationInfo{FieldName: volumeField.Name, Message: volumeField.Message},
+		"PrimeTarget": validate.VaidationInfo{FieldName: primeTargetField.Name, Message: primeTargetField.Message},
+		"Reason":      validate.VaidationInfo{FieldName: reasonField.Name, Message: reasonField.Message},
+		"Reasons":     validate.VaidationInfo{FieldName: timeChangeReasonsField.Name, Message: timeChangeReasonsField.Message},
+		"Agent":       validate.VaidationInfo{FieldName: timeChangeAgentField.Name, Message: timeChangeAgentField.Message},
+		"Status":      validate.VaidationInfo{FieldName: statusField.Name, Message: statusField.Message},
+		"SubType":     validate.VaidationInfo{FieldName: subTypeField.Name, Message: subTypeField.Message},
 	}
 )
 
@@ -67,23 +66,25 @@ func Build(datum types.Datum, errs validate.ErrorProcessing) interface{} {
 		Base:    types.BuildBase(datum, errs),
 	}
 
-	switch *base.SubType {
-	case "alarm":
-		return base.makeAlarm(datum, errs)
-	case "calibration":
-		return base.makeCalibration(datum, errs)
-	case "status":
-		return base.makeStatus(datum, errs)
-	case "prime":
-		return base.makePrime(datum, errs)
-	case "timeChange":
-		return base.makeTimeChange(datum, errs)
-	case "reservoirChange":
-		return base.makeReservoirChange(datum, errs)
-	default:
-		types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(base, errs)
-		return base
+	if base.SubType != nil {
+
+		switch *base.SubType {
+		case "alarm":
+			return base.makeAlarm(datum, errs)
+		case "calibration":
+			return base.makeCalibration(datum, errs)
+		case "status":
+			return base.makeStatus(datum, errs)
+		case "prime":
+			return base.makePrime(datum, errs)
+		case "timeChange":
+			return base.makeTimeChange(datum, errs)
+		case "reservoirChange":
+			return base.makeReservoirChange(datum, errs)
+		}
 	}
+	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(base, errs)
+	return base
 }
 
 func StatusValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {

@@ -17,6 +17,6 @@ func (b Base) makeSquare(datum types.Datum, errs validate.ErrorProcessing) *Squa
 		Extended: datum.ToFloat64(extendedField.Name, errs),
 		Base:     b,
 	}
-	types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(square, errs)
+	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(square, errs)
 	return square
 }

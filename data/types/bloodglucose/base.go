@@ -9,10 +9,10 @@ var (
 	mmol = "mmol/L"
 	mg   = "mg/dL"
 
-	failureReasons = validate.ErrorReasons{
-		types.MmolOrMgUnitsField.Tag: types.MmolOrMgUnitsField.Message,
-		types.BloodValueField.Tag:    types.BloodValueField.Message,
-		isigField.Tag:                isigField.Message,
+	failureReasons = validate.FailureReasons{
+		"Units": validate.VaidationInfo{FieldName: types.MmolOrMgUnitsField.Name, Message: types.MmolOrMgUnitsField.Message},
+		"Value": validate.VaidationInfo{FieldName: types.BloodGlucoseValueField.Name, Message: types.BloodGlucoseValueField.Message},
+		"Isig":  validate.VaidationInfo{FieldName: isigField.Name, Message: isigField.Message},
 	}
 )
 

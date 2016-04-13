@@ -77,7 +77,7 @@ func (b Base) makeTimeChange(datum types.Datum, errs validate.ErrorProcessing) *
 		Change: change,
 		Base:   b,
 	}
-	types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(timeChange, errs)
+	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(timeChange, errs)
 	return timeChange
 }
 

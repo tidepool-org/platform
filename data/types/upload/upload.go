@@ -16,15 +16,15 @@ func init() {
 }
 
 type Record struct {
-	UploadID            *string   `json:"uploadId" bson:"uploadId" valid:"required,gt=10"`
-	UploadUserID        *string   `json:"byUser" bson:"byUser" valid:"required,gt=10"`
-	Version             *string   `json:"version" bson:"version" valid:"required,gt=10"`
+	UploadID            *string   `json:"uploadId" bson:"uploadId" valid:"gt=10"`
+	UploadUserID        *string   `json:"byUser" bson:"byUser" valid:"gt=10"`
+	Version             *string   `json:"version" bson:"version" valid:"gt=10"`
 	ComputerTime        *string   `json:"computerTime" bson:"computerTime" valid:"timestr"`
-	DeviceID            *string   `json:"deviceId" bson:"deviceId" valid:"required,gt=10"`
+	DeviceID            *string   `json:"deviceId" bson:"deviceId" valid:"gt=10"`
 	DeviceTags          *[]string `json:"deviceTags" bson:"deviceTags" valid:"uploaddevicetags"`
 	DeviceManufacturers *[]string `json:"deviceManufacturers" bson:"deviceManufacturers" valid:"uploaddevicemanufacturers"`
-	DeviceModel         *string   `json:"deviceModel" bson:"deviceModel" valid:"required,gt=10"`
-	DeviceSerialNumber  *string   `json:"deviceSerialNumber" bson:"deviceSerialNumber" valid:"required,gt=10"`
+	DeviceModel         *string   `json:"deviceModel" bson:"deviceModel" valid:"gt=10"`
+	DeviceSerialNumber  *string   `json:"deviceSerialNumber" bson:"deviceSerialNumber" valid:"gt=10"`
 	TimeProcessing      *string   `json:"timeProcessing" bson:"timeProcessing" valid:"uploadtimeprocessing"`
 	types.Base          `bson:",inline"`
 }
@@ -60,19 +60,59 @@ var (
 		},
 	}
 
-	computerTimeField       = types.DatumField{Name: "computerTime"}
-	uploadIDField           = types.DatumField{Name: "uploadId"}
-	uploadUserIDField       = types.DatumField{Name: "byUser"}
-	deviceIDField           = types.DatumField{Name: "deviceId"}
-	deviceModelField        = types.DatumField{Name: "deviceModel"}
-	deviceSerialNumberField = types.DatumField{Name: "deviceSerialNumber"}
-	versionField            = types.DatumField{Name: "version"}
+	computerTimeField = types.DatumFieldInformation{
+		DatumField: &types.DatumField{Name: "computerTime"},
+		Tag:        "timestr",
+		Message:    types.TimeStringField.Message,
+	}
 
-	failureReasons = validate.ErrorReasons{
-		types.BaseTimeField.Tag:      types.BaseTimeField.Message,
-		deviceTagsField.Tag:          deviceTagsField.Message,
-		timeProcessingField.Tag:      timeProcessingField.Message,
-		deviceManufacturersField.Tag: deviceManufacturersField.Message,
+	uploadIDField = types.DatumFieldInformation{
+		DatumField: &types.DatumField{Name: "uploadId"},
+		Tag:        "gt",
+		Message:    "This is a required field need needs to be 10+ characters in length",
+	}
+
+	uploadUserIDField = types.DatumFieldInformation{
+		DatumField: &types.DatumField{Name: "byUser"},
+		Tag:        "gt",
+		Message:    "This is a required field need needs to be 10+ characters in length",
+	}
+
+	deviceIDField = types.DatumFieldInformation{
+		DatumField: &types.DatumField{Name: "deviceId"},
+		Tag:        "gt",
+		Message:    "This is a required field need needs to be 10+ characters in length",
+	}
+
+	deviceModelField = types.DatumFieldInformation{
+		DatumField: &types.DatumField{Name: "deviceModel"},
+		Tag:        "gt",
+		Message:    "This is a required field need needs to be 10+ characters in length",
+	}
+
+	deviceSerialNumberField = types.DatumFieldInformation{
+		DatumField: &types.DatumField{Name: "deviceSerialNumber"},
+		Tag:        "gt",
+		Message:    "This is a required field need needs to be 10+ characters in length",
+	}
+
+	versionField = types.DatumFieldInformation{
+		DatumField: &types.DatumField{Name: "version"},
+		Tag:        "gt",
+		Message:    "This is a required field need needs to be 10+ characters in length",
+	}
+
+	failureReasons = validate.FailureReasons{
+		"DeviceTags":          validate.VaidationInfo{FieldName: deviceTagsField.Name, Message: deviceTagsField.Message},
+		"TimeProcessing":      validate.VaidationInfo{FieldName: timeProcessingField.Name, Message: timeProcessingField.Message},
+		"DeviceManufacturers": validate.VaidationInfo{FieldName: deviceManufacturersField.Name, Message: deviceManufacturersField.Message},
+		"ComputerTime":        validate.VaidationInfo{FieldName: computerTimeField.Name, Message: computerTimeField.Message},
+		"UploadID":            validate.VaidationInfo{FieldName: uploadIDField.Name, Message: uploadIDField.Message},
+		"UploadUserID":        validate.VaidationInfo{FieldName: uploadUserIDField.Name, Message: uploadUserIDField.Message},
+		"DeviceID":            validate.VaidationInfo{FieldName: deviceIDField.Name, Message: deviceIDField.Message},
+		"DeviceModel":         validate.VaidationInfo{FieldName: deviceModelField.Name, Message: deviceModelField.Message},
+		"DeviceSerialNumber":  validate.VaidationInfo{FieldName: deviceSerialNumberField.Name, Message: deviceSerialNumberField.Message},
+		"Version":             validate.VaidationInfo{FieldName: versionField.Name, Message: versionField.Message},
 	}
 )
 
@@ -92,7 +132,7 @@ func Build(datum types.Datum, errs validate.ErrorProcessing) *Record {
 		Base:                types.BuildBase(datum, errs),
 	}
 
-	types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(record, errs)
+	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(record, errs)
 
 	return record
 }

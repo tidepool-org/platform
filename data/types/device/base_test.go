@@ -5,14 +5,15 @@ import (
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data/_fixtures"
-	"github.com/tidepool-org/platform/validate"
+	"github.com/tidepool-org/platform/data/types"
 )
 
 var _ = Describe("DeviceEvent", func() {
 
-	var processing validate.ErrorProcessing
+	var helper *types.TestingHelper
+
 	BeforeEach(func() {
-		processing = validate.ErrorProcessing{BasePath: "0", ErrorsArray: validate.NewErrorsArray()}
+		helper = types.NewTestingHelper()
 	})
 
 	Context("base", func() {
@@ -24,10 +25,7 @@ var _ = Describe("DeviceEvent", func() {
 			deviceEventObj["alarmType"] = "low_insulin"
 
 			It("returns a Alarm if the obj is valid", func() {
-				deviceEvent := Build(deviceEventObj, processing)
-				var deviceEventType *Alarm
-				Expect(deviceEvent).To(BeAssignableToTypeOf(deviceEventType))
-				Expect(processing.HasErrors()).To(BeFalse())
+				Expect(helper.ValidDataType(Build(deviceEventObj, helper.ErrorProcessing))).To(BeNil())
 			})
 		})
 
@@ -40,10 +38,7 @@ var _ = Describe("DeviceEvent", func() {
 			deviceEventObj["units"] = "mg/dL"
 
 			It("returns a Calibration if the obj is valid", func() {
-				deviceEvent := Build(deviceEventObj, processing)
-				var deviceEventType *Calibration
-				Expect(deviceEvent).To(BeAssignableToTypeOf(deviceEventType))
-				Expect(processing.HasErrors()).To(BeFalse())
+				Expect(helper.ValidDataType(Build(deviceEventObj, helper.ErrorProcessing))).To(BeNil())
 			})
 		})
 

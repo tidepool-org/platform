@@ -45,7 +45,7 @@ func (b Base) makePrime(datum types.Datum, errs validate.ErrorProcessing) *Prime
 		Volume:      datum.ToFloat64(volumeField.Name, errs),
 		Base:        b,
 	}
-	types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(prime, errs)
+	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(prime, errs)
 	return prime
 }
 

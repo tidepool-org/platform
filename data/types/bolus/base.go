@@ -9,7 +9,6 @@ import (
 )
 
 func init() {
-	types.GetPlatformValidator().RegisterValidation(subTypeField.Tag, SubTypeValidator)
 	types.GetPlatformValidator().RegisterValidation(extendedField.Tag, ExtendedValidator)
 	types.GetPlatformValidator().RegisterValidation(durationField.Tag, DurationValidator)
 	types.GetPlatformValidator().RegisterValidation(normalField.Tag, NormalValidator)
@@ -23,7 +22,7 @@ type Base struct {
 const Name = "Bolus"
 
 var (
-	subTypeField = types.DatumFieldInformation{
+	BolusSubTypeField = types.DatumFieldInformation{
 		DatumField: &types.DatumField{Name: "subType"},
 		Tag:        "bolussubtype",
 		Message:    "Must be one of normal, square, dual/square",
@@ -51,32 +50,35 @@ var (
 		AllowedFloatRange: &types.AllowedFloatRange{LowerLimit: 0.0},
 	}
 
-	failureReasons = validate.ErrorReasons{
-		normalField.Tag:   normalField.Message,
-		extendedField.Tag: extendedField.Message,
-		durationField.Tag: durationField.Message,
-		subTypeField.Tag:  subTypeField.Message,
+	failureReasons = validate.FailureReasons{
+		"SubType":  validate.VaidationInfo{FieldName: types.BolusSubTypeField.Name, Message: types.BolusSubTypeField.Message},
+		"Normal":   validate.VaidationInfo{FieldName: normalField.Name, Message: normalField.Message},
+		"Extended": validate.VaidationInfo{FieldName: extendedField.Name, Message: extendedField.Message},
+		"Duration": validate.VaidationInfo{FieldName: durationField.Name, Message: durationField.Message},
 	}
 )
 
 func Build(datum types.Datum, errs validate.ErrorProcessing) interface{} {
 
 	base := &Base{
-		SubType: datum.ToString(subTypeField.Name, errs),
+		SubType: datum.ToString(types.BolusSubTypeField.Name, errs),
 		Base:    types.BuildBase(datum, errs),
 	}
 
-	switch *base.SubType {
-	case "normal":
-		return base.makeNormal(datum, errs)
-	case "square":
-		return base.makeSquare(datum, errs)
-	case "dual/square":
-		return base.makeDualSquare(datum, errs)
-	default:
-		types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(base, errs)
-		return base
+	if base.SubType != nil {
+
+		switch *base.SubType {
+		case "normal":
+			return base.makeNormal(datum, errs)
+		case "square":
+			return base.makeSquare(datum, errs)
+		case "dual/square":
+			return base.makeDualSquare(datum, errs)
+		}
 	}
+
+	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(base, errs)
+	return base
 }
 
 func NormalValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
@@ -85,15 +87,6 @@ func NormalValidator(v *validator.Validate, topStruct reflect.Value, currentStru
 		return false
 	}
 	return normal > normalField.LowerLimit
-}
-
-func SubTypeValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	subType, ok := field.Interface().(string)
-	if !ok {
-		return false
-	}
-	_, ok = subTypeField.Allowed[subType]
-	return ok
 }
 
 func ExtendedValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {

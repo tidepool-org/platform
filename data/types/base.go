@@ -12,8 +12,6 @@ import (
 )
 
 func init() {
-	GetPlatformValidator().RegisterValidation(BaseTimeField.Tag, PastTimeStringValidator)
-	GetPlatformValidator().RegisterValidation("timeobject", PastTimeObjectValidator)
 	GetPlatformValidator().RegisterValidation(baseTimezoneOffsetField.Tag, TimezoneOffsetValidator)
 	GetPlatformValidator().RegisterValidation(basePayloadField.Tag, PayloadValidator)
 	GetPlatformValidator().RegisterValidation(baseAnnotationsField.Tag, AnnotationsValidator)
@@ -77,12 +75,6 @@ var (
 	baseConversionOffsetField = DatumField{Name: "conversionOffset"}
 	baseClockDriftOffsetField = DatumField{Name: "clockDriftOffset"}
 
-	BaseTimeField = DatumFieldInformation{
-		DatumField: &DatumField{Name: "time"},
-		Tag:        "timestr",
-		Message:    "Times need to be ISO 8601 format and not in the future",
-	}
-
 	baseTimezoneOffsetField = IntDatumField{
 		DatumField:      &DatumField{Name: "timezoneOffset"},
 		Tag:             "timezoneoffset",
@@ -93,11 +85,11 @@ var (
 	basePayloadField     = DatumFieldInformation{DatumField: &DatumField{Name: "payload"}, Tag: "payload"}
 	baseAnnotationsField = DatumFieldInformation{DatumField: &DatumField{Name: "annotations"}, Tag: "annotations"}
 
-	validationFailureReasons = validate.ErrorReasons{
-		BaseTimeField.Tag:           BaseTimeField.Message,
-		baseTimezoneOffsetField.Tag: baseTimezoneOffsetField.Message,
-		basePayloadField.Tag:        basePayloadField.Message,
-		baseAnnotationsField.Tag:    baseAnnotationsField.Message,
+	failureReasons = validate.FailureReasons{
+		"DeviceTime":     validate.VaidationInfo{FieldName: TimeStringField.Name, Message: TimeStringField.Message},
+		"TimezoneOffset": validate.VaidationInfo{FieldName: baseTimezoneOffsetField.Name, Message: baseTimezoneOffsetField.Message},
+		"Payload":        validate.VaidationInfo{FieldName: basePayloadField.Name, Message: basePayloadField.Message},
+		"Annotations":    validate.VaidationInfo{FieldName: baseAnnotationsField.Name, Message: baseAnnotationsField.Message},
 	}
 )
 
@@ -116,7 +108,7 @@ func BuildBase(datum Datum, errs validate.ErrorProcessing) Base {
 		UserID:           datum.ToString(BaseUserIDField.Name, errs),
 		DeviceID:         datum.ToString(baseDeviceIDField.Name, errs),
 		UploadID:         datum.ToString(baseUploadIDField.Name, errs),
-		Time:             datum.ToString(BaseTimeField.Name, errs),
+		Time:             datum.ToString(TimeStringField.Name, errs),
 		Type:             datum.ToString(BaseTypeField.Name, errs),
 		Payload:          datum.ToObject(basePayloadField.Name, errs),
 		ConversionOffset: datum.ToInt(baseConversionOffsetField.Name, errs),
@@ -132,7 +124,7 @@ func BuildBase(datum Datum, errs validate.ErrorProcessing) Base {
 		},
 	}
 
-	GetPlatformValidator().SetErrorReasons(validationFailureReasons).Struct(base, errs)
+	GetPlatformValidator().SetFailureReasons(failureReasons).Struct(base, errs)
 
 	return base
 }
@@ -154,41 +146,6 @@ func TimezoneOffsetValidator(v *validator.Validate, topStruct reflect.Value, cur
 	}
 	//TODO: needs to be confirmed that this is all we should validate
 	return offset >= baseTimezoneOffsetField.LowerLimit && offset <= baseTimezoneOffsetField.UpperLimit
-}
-
-func PastTimeObjectValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	timeObject, ok := field.Interface().(time.Time)
-	if !ok {
-		return false
-	}
-	return isTimeObjectValid(timeObject)
-}
-
-func isTimeObjectValid(timeObject time.Time) bool {
-	return !timeObject.IsZero() && timeObject.Before(time.Now())
-}
-
-func PastTimeStringValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-
-	timeString, ok := field.Interface().(string)
-	if !ok {
-		return false
-	}
-	valid := isTimeStringValid(timeString)
-	return valid
-}
-
-func isTimeStringValid(timeString string) bool {
-	var timeObject time.Time
-	timeObject, err := time.Parse(time.RFC3339, timeString)
-	if err != nil {
-		timeObject, err = time.Parse("2006-01-02T15:04:05", timeString)
-		if err != nil {
-			return false
-		}
-	}
-
-	return isTimeObjectValid(timeObject)
 }
 
 func (d Datum) ToString(fieldName string, errs validate.ErrorProcessing) *string {
@@ -230,8 +187,6 @@ func (d Datum) ToInt(fieldName string, errs validate.ErrorProcessing) *int {
 }
 
 func (d Datum) ToTime(fieldName string, errs validate.ErrorProcessing) *time.Time {
-
-	fmt.Println("## Convert to time")
 
 	timeStr, ok := d[fieldName].(string)
 	if !ok {

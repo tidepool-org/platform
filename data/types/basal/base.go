@@ -43,11 +43,11 @@ var (
 		AllowedIntRange: &types.AllowedIntRange{LowerLimit: 0},
 	}
 
-	failureReasons = validate.ErrorReasons{
-		deliveryTypeField.Tag: deliveryTypeField.Message,
-		rateField.Tag:         rateField.Message,
-		durationField.Tag:     durationField.Message,
-		percentField.Tag:      percentField.Message,
+	failureReasons = validate.FailureReasons{
+		"DeliveryType": validate.VaidationInfo{FieldName: deliveryTypeField.Name, Message: deliveryTypeField.Message},
+		"Rate":         validate.VaidationInfo{FieldName: rateField.Name, Message: rateField.Message},
+		"Duration":     validate.VaidationInfo{FieldName: durationField.Name, Message: durationField.Message},
+		"Percent":      validate.VaidationInfo{FieldName: percentField.Name, Message: percentField.Message},
 	}
 )
 
@@ -78,7 +78,7 @@ func Build(datum types.Datum, errs validate.ErrorProcessing) interface{} {
 			return base.makeTemporary(datum, errs)
 		}
 	}
-	types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(base, errs)
+	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(base, errs)
 	return base
 }
 

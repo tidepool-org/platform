@@ -5,28 +5,25 @@ import (
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data/_fixtures"
-	"github.com/tidepool-org/platform/validate"
+	"github.com/tidepool-org/platform/data/types"
 )
 
 var _ = Describe("DeviceEvent", func() {
 
-	var processing validate.ErrorProcessing
+	var helper *types.TestingHelper
 
+	BeforeEach(func() {
+		helper = types.NewTestingHelper()
+	})
 	Context("reservoirChange", func() {
-
-		BeforeEach(func() {
-			processing = validate.ErrorProcessing{BasePath: "0", ErrorsArray: validate.NewErrorsArray()}
-		})
 
 		var deviceEventObj = fixtures.TestingDatumBase()
 		deviceEventObj["type"] = "deviceEvent"
 		deviceEventObj["subType"] = "reservoirChange"
 		deviceEventObj["status"] = "suspended"
+
 		It("returns a ReservoirChange if the obj is valid", func() {
-			deviceEvent := Build(deviceEventObj, processing)
-			var deviceEventType *ReservoirChange
-			Expect(deviceEvent).To(BeAssignableToTypeOf(deviceEventType))
-			Expect(processing.HasErrors()).To(BeFalse())
+			Expect(helper.ValidDataType(Build(deviceEventObj, helper.ErrorProcessing))).To(BeNil())
 		})
 
 		Context("validation", func() {})

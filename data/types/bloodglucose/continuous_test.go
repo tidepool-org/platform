@@ -6,17 +6,19 @@ import (
 
 	"github.com/tidepool-org/platform/data/_fixtures"
 	"github.com/tidepool-org/platform/data/types"
-	"github.com/tidepool-org/platform/validate"
 )
 
 var _ = Describe("Continuous", func() {
 	var bgObj = fixtures.TestingDatumBase()
-	var processing validate.ErrorProcessing
+	var helper *types.TestingHelper
+
+	BeforeEach(func() {
+		helper = types.NewTestingHelper()
+	})
 
 	Context("cbg from obj", func() {
 
 		BeforeEach(func() {
-			processing = validate.ErrorProcessing{BasePath: "0", ErrorsArray: validate.NewErrorsArray()}
 			bgObj["type"] = "cbg"
 			bgObj["value"] = 5.5
 			bgObj["units"] = "mmol/l"
@@ -24,17 +26,13 @@ var _ = Describe("Continuous", func() {
 		})
 
 		It("returns a bolus if the obj is valid", func() {
-			continuous := BuildContinuous(bgObj, processing)
-			var bgType *Continuous
-			Expect(continuous).To(BeAssignableToTypeOf(bgType))
-			Expect(processing.HasErrors()).To(BeFalse())
+			Expect(helper.ValidDataType(BuildContinuous(bgObj, helper.ErrorProcessing))).To(BeNil())
 		})
 
 	})
 	Context("validation", func() {
 
 		BeforeEach(func() {
-			processing = validate.ErrorProcessing{BasePath: "0", ErrorsArray: validate.NewErrorsArray()}
 			bgObj["type"] = "cbg"
 			bgObj["value"] = 5.5
 			bgObj["units"] = "mmol/l"
@@ -44,48 +42,66 @@ var _ = Describe("Continuous", func() {
 		Context("units", func() {
 			It("is required", func() {
 				delete(bgObj, "units")
-				cbg := BuildContinuous(bgObj, processing)
-				types.GetPlatformValidator().Struct(cbg, processing)
-				Expect(processing.HasErrors()).To(BeTrue())
+				Expect(
+					helper.ErrorIsExpected(
+						BuildContinuous(bgObj, helper.ErrorProcessing),
+						types.ExpectedErrorDetails{
+							Path:   "0/units",
+							Detail: "Must be one of mmol/L, mg/dL given '<nil>'",
+						}),
+				).To(BeNil())
 			})
 
 			It("can be mmol/l", func() {
 				bgObj["units"] = "mmol/l"
-				cbg := BuildContinuous(bgObj, processing)
-				types.GetPlatformValidator().Struct(cbg, processing)
-				Expect(processing.HasErrors()).To(BeFalse())
+				Expect(helper.ValidDataType(BuildContinuous(bgObj, helper.ErrorProcessing))).To(BeNil())
 			})
 
 			It("can be mg/dl", func() {
 				bgObj["units"] = "mg/dl"
-				cbg := BuildContinuous(bgObj, processing)
-				types.GetPlatformValidator().Struct(cbg, processing)
-				Expect(processing.HasErrors()).To(BeFalse())
+				Expect(helper.ValidDataType(BuildContinuous(bgObj, helper.ErrorProcessing))).To(BeNil())
 			})
 
 			It("cannot be anything else", func() {
 				bgObj["units"] = "grams"
-				cbg := BuildContinuous(bgObj, processing)
-				types.GetPlatformValidator().Struct(cbg, processing)
-				Expect(processing.HasErrors()).To(BeTrue())
+
+				Expect(
+					helper.ErrorIsExpected(
+						BuildContinuous(bgObj, helper.ErrorProcessing),
+						types.ExpectedErrorDetails{
+							Path:   "0/units",
+							Detail: "Must be one of mmol/L, mg/dL given 'grams'",
+						}),
+				).To(BeNil())
+
 			})
 
 		})
 		Context("value", func() {
 			It("is required", func() {
 				delete(bgObj, "value")
-				cbg := BuildContinuous(bgObj, processing)
-				types.GetPlatformValidator().Struct(cbg, processing)
-				Expect(processing.HasErrors()).To(BeTrue())
+				Expect(
+					helper.ErrorIsExpected(
+						BuildContinuous(bgObj, helper.ErrorProcessing),
+						types.ExpectedErrorDetails{
+							Path:   "0/value",
+							Detail: "Must be greater than 0.0 given '<nil>'",
+						}),
+				).To(BeNil())
 			})
 		})
 		Context("isig", func() {
 
 			It("is required", func() {
 				delete(bgObj, "isig")
-				cbg := BuildContinuous(bgObj, processing)
-				types.GetPlatformValidator().Struct(cbg, processing)
-				Expect(processing.HasErrors()).To(BeTrue())
+				Expect(
+					helper.ErrorIsExpected(
+						BuildContinuous(bgObj, helper.ErrorProcessing),
+						types.ExpectedErrorDetails{
+							Path:   "0/isig",
+							Detail: "Must be greater than 0.0 given '<nil>'",
+						}),
+				).To(BeNil())
 			})
 		})
 	})

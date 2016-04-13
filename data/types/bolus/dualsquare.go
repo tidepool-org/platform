@@ -19,6 +19,6 @@ func (b Base) makeDualSquare(datum types.Datum, errs validate.ErrorProcessing) *
 		Normal:   datum.ToFloat64(normalField.Name, errs),
 		Base:     b,
 	}
-	types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(dualSquare, errs)
+	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(dualSquare, errs)
 	return dualSquare
 }

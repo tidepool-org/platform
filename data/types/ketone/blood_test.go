@@ -5,46 +5,53 @@ import (
 	. "github.com/tidepool-org/platform/Godeps/_workspace/src/github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data/_fixtures"
-	"github.com/tidepool-org/platform/validate"
+	"github.com/tidepool-org/platform/data/types"
 )
 
 var _ = Describe("Blood", func() {
 	var bloodKetoneObj = fixtures.TestingDatumBase()
-	var processing validate.ErrorProcessing
+	var helper *types.TestingHelper
+
+	BeforeEach(func() {
+		helper = types.NewTestingHelper()
+		bloodKetoneObj["type"] = "bloodKetone"
+		bloodKetoneObj["value"] = 2.2
+		bloodKetoneObj["units"] = "mmol/L"
+	})
 
 	Context("ketone from obj", func() {
 
-		BeforeEach(func() {
-			processing = validate.ErrorProcessing{BasePath: "0", ErrorsArray: validate.NewErrorsArray()}
-			bloodKetoneObj["type"] = "bloodKetone"
-			bloodKetoneObj["value"] = 2.2
-			bloodKetoneObj["units"] = "mmol/L"
-
-		})
-
 		It("when valid", func() {
-			bloodKetone := Build(bloodKetoneObj, processing)
-			var recordType *Blood
-			Expect(bloodKetone).To(BeAssignableToTypeOf(recordType))
-			Expect(processing.HasErrors()).To(BeFalse())
+			Expect(helper.ValidDataType(Build(bloodKetoneObj, helper.ErrorProcessing))).To(BeNil())
 		})
 
 		Context("validation", func() {
 			Context("value", func() {
 				It("fails greater than zero", func() {
 					bloodKetoneObj["value"] = 0.0
-					bloodKetone := Build(bloodKetoneObj, processing)
-					Expect(processing.HasErrors()).To(BeTrue())
-					Expect(bloodKetone).To(Not(BeNil()))
+
+					Expect(
+						helper.ErrorIsExpected(
+							Build(bloodKetoneObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/value",
+								Detail: "Must be greater than 0.0 given '0'",
+							}),
+					).To(BeNil())
 				})
 
 			})
 			Context("iunits", func() {
 				It("fails if not mmol/L", func() {
 					bloodKetoneObj["units"] = "mg/dL"
-					bloodKetone := Build(bloodKetoneObj, processing)
-					Expect(processing.HasErrors()).To(BeTrue())
-					Expect(bloodKetone).To(Not(BeNil()))
+					Expect(
+						helper.ErrorIsExpected(
+							Build(bloodKetoneObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/units",
+								Detail: "Must be mmol/L given 'mg/dL'",
+							}),
+					).To(BeNil())
 				})
 
 			})

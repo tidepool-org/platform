@@ -37,7 +37,7 @@ func (b Base) makeStatus(datum types.Datum, errs validate.ErrorProcessing) *Stat
 		Reason: datum.ToObject(reasonField.Name, errs),
 		Base:   b,
 	}
-	types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(status, errs)
+	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(status, errs)
 	return status
 }
 

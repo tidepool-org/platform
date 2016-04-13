@@ -15,6 +15,6 @@ func (b Base) makeNormal(datum types.Datum, errs validate.ErrorProcessing) *Norm
 		Normal: datum.ToFloat64(normalField.Name, errs),
 		Base:   b,
 	}
-	types.GetPlatformValidator().SetErrorReasons(failureReasons).Struct(normal, errs)
+	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(normal, errs)
 	return normal
 }

@@ -14,6 +14,12 @@ type Validator interface {
 type PlatformValidator struct {
 	validate *validator.Validate
 	reasons  ErrorReasons
+	FailureReasons
+}
+
+type VaidationInfo struct {
+	FieldName string
+	Message   string
 }
 
 type ValidationTag string
@@ -21,6 +27,8 @@ type ValidationTag string
 // ErrorReasons is a type of map[ValidationTag]string
 // it allows us to map a ValidationTag to a reason why the validation failed
 type ErrorReasons map[ValidationTag]string
+
+type FailureReasons map[string]VaidationInfo
 
 func NewPlatformValidator() *PlatformValidator {
 	validate := validator.New(&validator.Config{TagName: "valid"})
@@ -32,21 +40,33 @@ func (pv *PlatformValidator) SetErrorReasons(reasons ErrorReasons) *PlatformVali
 	return pv
 }
 
+func (pv *PlatformValidator) SetFailureReasons(reasons FailureReasons) *PlatformValidator {
+	pv.FailureReasons = reasons
+	return pv
+}
+
 func (pv *PlatformValidator) toErrorsArray(ve validator.ValidationErrors, errorProcessing ErrorProcessing) {
 	for _, v := range ve {
-		if reason, ok := pv.reasons[ValidationTag(v.Tag)]; ok {
+
+		if reason, ok := pv.FailureReasons[v.Field]; ok {
 			errorProcessing.AppendPointerError(
-				v.Type.String(),
+				reason.FieldName,
 				"Validation Error",
-				fmt.Sprintf("'%s' failed with '%s' when given '%v'", v.Field, reason, v.Value),
+				fmt.Sprintf("%s given '%v'", reason.Message, v.Value),
+			)
+		} /*else if reason, ok := pv.reasons[ValidationTag(v.Tag)]; ok {
+			errorProcessing.AppendPointerError(
+				v.Field,
+				"Validation Error",
+				fmt.Sprintf("%s given '%v'", reason, v.Value),
 			)
 		} else {
 			errorProcessing.AppendPointerError(
-				v.Type.String(),
+				v.Field,
 				"Validation Error",
-				fmt.Sprintf("'%s' failed with '%s' when given '%v'", v.Field, v.ActualTag, v.Value),
+				fmt.Sprintf("%s given '%v'", v.ActualTag, v.Value),
 			)
-		}
+		}*/
 	}
 }
 
