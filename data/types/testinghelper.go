@@ -66,3 +66,22 @@ func (t *TestingHelper) ErrorIsExpected(builtType interface{}, expected Expected
 
 	return nil
 }
+
+func (t *TestingHelper) ErrorsAreExpected(builtType interface{}, expected ExpectedErrorDetails) error {
+
+	if !t.HasErrors() {
+		return errors.New("there are no errors when we expected one")
+	}
+
+	for i := range t.Errors {
+		if expected.Detail != t.Errors[i].Detail {
+			return fmt.Errorf("expected: %s actual: %s", expected.Detail, t.Errors[i].Detail)
+		}
+
+		if expected.Path != t.Errors[i].Source["pointer"] {
+			return fmt.Errorf("expected: %s actual: %s", expected.Path, t.Errors[i].Source["pointer"])
+		}
+	}
+
+	return nil
+}
