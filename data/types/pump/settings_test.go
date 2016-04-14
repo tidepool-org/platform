@@ -40,8 +40,8 @@ var _ = Describe("Settings", func() {
 			settingsObj["insulinSensitivity"] = insulinSensitivitiesObj
 
 			basalSchedulesObj = map[string][]map[string]interface{}{
-				"standard":  []map[string]interface{}{{"rate": 0.8, "start": 0}, {"rate": 0.75, "start": 3600000}},
-				"pattern a": []map[string]interface{}{{"rate": 0.95, "start": 0}, {"rate": 0.9, "start": 3600000}},
+				"standard":  {{"rate": 0.8, "start": 0}, {"rate": 0.75, "start": 3600000}},
+				"pattern a": {{"rate": 0.95, "start": 0}, {"rate": 0.9, "start": 3600000}},
 			}
 
 			settingsObj["basalSchedules"] = basalSchedulesObj
