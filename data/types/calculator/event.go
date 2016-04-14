@@ -15,15 +15,16 @@ func init() {
 }
 
 type Event struct {
-	*Recommended        `json:"recommended,omitempty" bson:"recommended,omitempty" valid:"-"`
-	CarbohydrateInput   *int     `json:"carbInput,omitempty" bson:"carbInput,omitempty" valid:"omitempty,required"`
-	InsulinOnBoard      *float64 `json:"insulinOnBoard,omitempty" bson:"insulinOnBoard,omitempty" valid:"omitempty,insulinvalue"`
-	InsulinSensitivity  *int     `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty" valid:"omitempty,insulinsensitivity"`
-	*BloodGlucoseTarget `json:"bgTarget,omitempty" bson:"bgTarget,omitempty" valid:"-"`
-	BloodGlucoseInput   *float64 `json:"bgInput,omitempty" bson:"bgInput,omitempty" valid:"omitempty,bloodglucosevalue"`
-	*Bolus              `json:"bolus,omitempty" bson:"bolus,omitempty" valid:"-"`
-	Units               *string `json:"units" bson:"units" valid:"mmolmgunits"`
-	types.Base          `bson:",inline"`
+	*Recommended        `json:"recommended,omitempty" bson:"recommended,omitempty"`
+	*BloodGlucoseTarget `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`
+	*Bolus              `json:"bolus,omitempty" bson:"bolus,omitempty"`
+
+	CarbohydrateInput  *int     `json:"carbInput,omitempty" bson:"carbInput,omitempty" valid:"omitempty,required"`
+	InsulinOnBoard     *float64 `json:"insulinOnBoard,omitempty" bson:"insulinOnBoard,omitempty" valid:"omitempty,insulinvalue"`
+	InsulinSensitivity *int     `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty" valid:"omitempty,insulinsensitivity"`
+	BloodGlucoseInput  *float64 `json:"bgInput,omitempty" bson:"bgInput,omitempty" valid:"omitempty,bloodglucosevalue"`
+	Units              *string  `json:"units" bson:"units" valid:"mmolmgunits"`
+	types.Base         `bson:",inline"`
 }
 
 type Recommended struct {
@@ -40,11 +41,11 @@ type Bolus struct {
 }
 
 type BloodGlucoseTarget struct {
-	High *float64 `json:"high" bson:"high" valid:"bloodvalue"`
-	Low  *float64 `json:"low" bson:"low" valid:"bloodvalue"`
+	High *float64 `json:"high" bson:"high" valid:"bloodglucosevalue"`
+	Low  *float64 `json:"low" bson:"low" valid:"bloodglucosevalue"`
 }
 
-//NOTE: for backwards compatatbilty the type name is `wizard` but will be migrated to `calculator`
+//Name is currently `wizard` for backwards compatatbilty but will be migrated to `calculator`
 const Name = "wizard"
 
 var (
@@ -95,8 +96,10 @@ var (
 		"BloodGlucoseInput": validate.VaidationInfo{FieldName: bloodGlucoseInputField.Name, Message: bloodGlucoseInputField.Message},
 		"CarbohydrateInput": validate.VaidationInfo{FieldName: carbohydrateInputField.Name, Message: carbohydrateInputField.Message},
 		"Units":             validate.VaidationInfo{FieldName: types.MmolOrMgUnitsField.Name, Message: types.MmolOrMgUnitsField.Message},
-		"SubType":           validate.VaidationInfo{FieldName: types.BolusSubTypeField.Name, Message: types.BolusSubTypeField.Message},
 		"InsulinOnBoard":    validate.VaidationInfo{FieldName: types.BolusSubTypeField.Name, Message: types.BolusSubTypeField.Message},
+
+		"SubType":  validate.VaidationInfo{FieldName: types.BolusSubTypeField.Name, Message: types.BolusSubTypeField.Message},
+		"DeviceID": validate.VaidationInfo{FieldName: types.BaseDeviceIDField.Name, Message: types.BaseDeviceIDField.Message},
 
 		"High": validate.VaidationInfo{FieldName: "high", Message: types.BloodGlucoseValueField.Message},
 		"Low":  validate.VaidationInfo{FieldName: "low", Message: types.BloodGlucoseValueField.Message},
@@ -107,49 +110,55 @@ var (
 	}
 )
 
-func buildRecommended(datum types.Datum, errs validate.ErrorProcessing) *Recommended {
-	recommendedDatum, ok := datum["recommended"].(types.Datum)
-	if ok {
-		return &Recommended{
-			Carbohydrate: recommendedDatum.ToFloat64(carbField.Name, errs),
-			Correction:   recommendedDatum.ToFloat64(correctionField.Name, errs),
-			Net:          recommendedDatum.ToFloat64(netField.Name, errs),
-		}
+func buildRecommended(recommendedDatum types.Datum, errs validate.ErrorProcessing) *Recommended {
+	return &Recommended{
+		Carbohydrate: recommendedDatum.ToFloat64(carbField.Name, errs),
+		Correction:   recommendedDatum.ToFloat64(correctionField.Name, errs),
+		Net:          recommendedDatum.ToFloat64(netField.Name, errs),
 	}
-	return nil
 }
 
-func buildBolus(datum types.Datum, errs validate.ErrorProcessing) *Bolus {
-	bolusDatum, ok := datum["bolus"].(types.Datum)
-	if ok {
-		bolus := "bolus"
-		return &Bolus{
-			Type:     &bolus,
-			SubType:  bolusDatum.ToString(types.BolusSubTypeField.Name, errs),
-			Time:     bolusDatum.ToString(types.TimeStringField.Name, errs),
-			DeviceID: bolusDatum.ToString("deviceId", errs),
-		}
+func buildBolus(bolusDatum types.Datum, errs validate.ErrorProcessing) *Bolus {
+	bolusType := "bolus"
+	return &Bolus{
+		Type:     &bolusType,
+		SubType:  bolusDatum.ToString(types.BolusSubTypeField.Name, errs),
+		Time:     bolusDatum.ToString(types.TimeStringField.Name, errs),
+		DeviceID: bolusDatum.ToString("deviceId", errs),
 	}
-	return nil
 }
 
-func buildBloodGlucoseTarget(datum types.Datum, errs validate.ErrorProcessing) *BloodGlucoseTarget {
-	bgTargetDatum, ok := datum["bgTarget"].(types.Datum)
-	if ok {
-		return &BloodGlucoseTarget{
-			High: bgTargetDatum.ToFloat64("high", errs),
-			Low:  bgTargetDatum.ToFloat64("low", errs),
-		}
+func buildBloodGlucoseTarget(bgTargetDatum types.Datum, errs validate.ErrorProcessing) *BloodGlucoseTarget {
+	return &BloodGlucoseTarget{
+		High: bgTargetDatum.ToFloat64("high", errs),
+		Low:  bgTargetDatum.ToFloat64("low", errs),
 	}
-	return nil
 }
 
 func Build(datum types.Datum, errs validate.ErrorProcessing) *Event {
 
+	var bolus *Bolus
+	bolusDatum, ok := datum["bolus"].(map[string]interface{})
+	if ok {
+		bolus = buildBolus(bolusDatum, errs)
+	}
+
+	var bloodGlucoseTarget *BloodGlucoseTarget
+	bloodGlucoseTargetDatum, ok := datum["bgTarget"].(map[string]interface{})
+	if ok {
+		bloodGlucoseTarget = buildBloodGlucoseTarget(bloodGlucoseTargetDatum, errs)
+	}
+
+	var recommended *Recommended
+	recommendedDatum, ok := datum["recommended"].(map[string]interface{})
+	if ok {
+		recommended = buildRecommended(recommendedDatum, errs)
+	}
+
 	event := &Event{
-		Recommended:        buildRecommended(datum, errs),
-		Bolus:              buildBolus(datum, errs),
-		BloodGlucoseTarget: buildBloodGlucoseTarget(datum, errs),
+		Recommended:        recommended,
+		Bolus:              bolus,
+		BloodGlucoseTarget: bloodGlucoseTarget,
 		CarbohydrateInput:  datum.ToInt(carbohydrateInputField.Name, errs),
 		InsulinOnBoard:     datum.ToFloat64(insulinOnBoardField.Name, errs),
 		InsulinSensitivity: datum.ToInt(insulinSensitivityField.Name, errs),

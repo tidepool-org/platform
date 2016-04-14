@@ -37,8 +37,8 @@ var _ = Describe("Event", func() {
 
 		calculatorObj["bolus"] = bolusObj
 
-		bgTargetObj["high"] = 120
-		bgTargetObj["low"] = 80
+		bgTargetObj["high"] = 120.0
+		bgTargetObj["low"] = 80.0
 
 		calculatorObj["bgTarget"] = bgTargetObj
 
@@ -103,6 +103,51 @@ var _ = Describe("Event", func() {
 					Expect(helper.ValidDataType(Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
+				It("if present requires net", func() {
+
+					delete(recommendedObj, "net")
+					calculatorObj["recommended"] = recommendedObj
+
+					Expect(
+						helper.ErrorIsExpected(
+							Build(calculatorObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/net",
+								Detail: "This is a required field given '<nil>'",
+							}),
+					).To(BeNil())
+				})
+
+				It("if present requires correction", func() {
+
+					delete(recommendedObj, "correction")
+					calculatorObj["recommended"] = recommendedObj
+
+					Expect(
+						helper.ErrorIsExpected(
+							Build(calculatorObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/correction",
+								Detail: "This is a required field given '<nil>'",
+							}),
+					).To(BeNil())
+				})
+
+				It("if present requires carb", func() {
+
+					delete(recommendedObj, "carb")
+					calculatorObj["recommended"] = recommendedObj
+
+					Expect(
+						helper.ErrorIsExpected(
+							Build(calculatorObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/carb",
+								Detail: "This is a required field given '<nil>'",
+							}),
+					).To(BeNil())
+				})
+
 			})
 
 			Context("bolus", func() {
@@ -112,6 +157,51 @@ var _ = Describe("Event", func() {
 					Expect(helper.ValidDataType(Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
+				It("if present requires subType", func() {
+
+					delete(bolusObj, "subType")
+					calculatorObj["bolus"] = bolusObj
+
+					Expect(
+						helper.ErrorIsExpected(
+							Build(calculatorObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/subType",
+								Detail: "Must be one of normal, square, dual/square given '<nil>'",
+							}),
+					).To(BeNil())
+				})
+
+				It("if present requires time", func() {
+
+					delete(bolusObj, "time")
+					calculatorObj["bolus"] = bolusObj
+
+					Expect(
+						helper.ErrorIsExpected(
+							Build(calculatorObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/time",
+								Detail: "Times need to be ISO 8601 format and not in the future given '<nil>'",
+							}),
+					).To(BeNil())
+				})
+
+				It("if present requires deviceId", func() {
+
+					delete(bolusObj, "deviceId")
+					calculatorObj["bolus"] = bolusObj
+
+					Expect(
+						helper.ErrorIsExpected(
+							Build(calculatorObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/deviceId",
+								Detail: "This is a required field given '<nil>'",
+							}),
+					).To(BeNil())
+				})
+
 			})
 
 			Context("bgTarget", func() {
@@ -119,6 +209,36 @@ var _ = Describe("Event", func() {
 				It("is not required", func() {
 					delete(calculatorObj, "bgTarget")
 					Expect(helper.ValidDataType(Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
+				})
+
+				It("if present requires high", func() {
+
+					delete(bgTargetObj, "high")
+					calculatorObj["bgTarget"] = bgTargetObj
+
+					Expect(
+						helper.ErrorIsExpected(
+							Build(calculatorObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/high",
+								Detail: "Must be greater than 0.0 given '<nil>'",
+							}),
+					).To(BeNil())
+				})
+
+				It("if present requires low", func() {
+
+					delete(bgTargetObj, "low")
+					calculatorObj["bgTarget"] = bgTargetObj
+
+					Expect(
+						helper.ErrorIsExpected(
+							Build(calculatorObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/low",
+								Detail: "Must be greater than 0.0 given '<nil>'",
+							}),
+					).To(BeNil())
 				})
 
 			})

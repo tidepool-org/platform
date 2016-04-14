@@ -50,6 +50,7 @@ func (pv *PlatformValidator) toErrorsArray(ve validator.ValidationErrors, errorP
 
 func (pv *PlatformValidator) Struct(s interface{}, errorProcessing ErrorProcessing) {
 	validationErrors := pv.validate.Struct(s)
+
 	if validationErrors != nil {
 		pv.toErrorsArray(validationErrors.(validator.ValidationErrors), errorProcessing)
 	}

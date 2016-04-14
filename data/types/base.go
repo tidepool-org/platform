@@ -103,7 +103,7 @@ var (
 		Message:    "",
 	}
 
-	baseDeviceIDField = DatumFieldInformation{
+	BaseDeviceIDField = DatumFieldInformation{
 		DatumField: &DatumField{Name: "deviceId"},
 		Tag:        "required",
 		Message:    "This is a required field",
@@ -115,7 +115,7 @@ var (
 		"TimezoneOffset": validate.VaidationInfo{FieldName: baseTimezoneOffsetField.Name, Message: baseTimezoneOffsetField.Message},
 		"Payload":        validate.VaidationInfo{FieldName: basePayloadField.Name, Message: basePayloadField.Message},
 		"Annotations":    validate.VaidationInfo{FieldName: baseAnnotationsField.Name, Message: baseAnnotationsField.Message},
-		"DeviceID":       validate.VaidationInfo{FieldName: baseDeviceIDField.Name, Message: baseDeviceIDField.Message},
+		"DeviceID":       validate.VaidationInfo{FieldName: BaseDeviceIDField.Name, Message: BaseDeviceIDField.Message},
 		"Type":           validate.VaidationInfo{FieldName: BaseTypeField.Name, Message: BaseTypeField.Message},
 	}
 )
@@ -133,7 +133,7 @@ func BuildBase(datum Datum, errs validate.ErrorProcessing) Base {
 		_ID:              bson.NewObjectId(),
 		ID:               bson.NewObjectId().Hex(),
 		UserID:           datum.ToString(BaseUserIDField.Name, errs),
-		DeviceID:         datum.ToString(baseDeviceIDField.Name, errs),
+		DeviceID:         datum.ToString(BaseDeviceIDField.Name, errs),
 		UploadID:         datum.ToString(baseUploadIDField.Name, errs),
 		Time:             datum.ToString(TimeStringField.Name, errs),
 		Type:             datum.ToString(BaseTypeField.Name, errs),
