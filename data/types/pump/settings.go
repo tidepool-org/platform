@@ -14,11 +14,11 @@ func init() {
 }
 
 type Settings struct {
-	*Units `json:"units,omitempty" bson:"units,omitempty"`
-	//BasalSchedules       map[string]*BasalSchedule `json:"basalSchedules,omitempty" bson:"basalSchedules,omitempty"`
-	CarbohydrateRatios   []*CarbohydrateRatio  `json:"carbRatio,omitempty" bson:"carbRatio,omitempty"`
-	InsulinSensitivities []*InsulinSensitivity `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`
-	BloodGlucoseTargets  []*BloodGlucoseTarget `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`
+	*Units               `json:"units,omitempty" bson:"units,omitempty"`
+	BasalSchedules       map[string][]*BasalSchedule `json:"basalSchedules,omitempty" bson:"basalSchedules,omitempty"`
+	CarbohydrateRatios   []*CarbohydrateRatio        `json:"carbRatio,omitempty" bson:"carbRatio,omitempty"`
+	InsulinSensitivities []*InsulinSensitivity       `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`
+	BloodGlucoseTargets  []*BloodGlucoseTarget       `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`
 
 	ActiveSchedule *string `json:"activeSchedule" bson:"activeSchedule" valid:"required"`
 	types.Base     `bson:",inline"`
@@ -178,6 +178,33 @@ func buildCarbohydrateRatios(sensitivitiesDatum []map[string]interface{}, errs v
 
 }
 
+func buildBasalSchedules(schedulesDatum map[string][]map[string]interface{}, errs validate.ErrorProcessing) map[string][]*BasalSchedule {
+
+	namedSchedules := make(map[string][]*BasalSchedule, 0)
+
+	for key, vals := range schedulesDatum {
+
+		var schedules []*BasalSchedule
+
+		for i := range vals {
+			datum := types.Datum(vals[i])
+
+			schedule := &BasalSchedule{
+				Rate:  datum.ToFloat64(rateField.Name, errs),
+				Start: datum.ToInt(startField.Name, errs),
+			}
+
+			types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(schedule, errs)
+
+		}
+
+		namedSchedules[key] = schedules
+	}
+
+	return namedSchedules
+
+}
+
 func Build(datum types.Datum, errs validate.ErrorProcessing) *Settings {
 
 	var units *Units
@@ -187,7 +214,6 @@ func Build(datum types.Datum, errs validate.ErrorProcessing) *Settings {
 	}
 
 	var targets []*BloodGlucoseTarget
-
 	targetsDatum, ok := datum["bgTarget"].([]map[string]interface{})
 	if ok {
 		targets = buildBloodGlucoseTargets(targetsDatum, errs)
@@ -205,11 +231,18 @@ func Build(datum types.Datum, errs validate.ErrorProcessing) *Settings {
 		carbohydrateRatios = buildCarbohydrateRatios(carbRatioDatum, errs)
 	}
 
+	var basalSchedules map[string][]*BasalSchedule
+	basalSchedulesDatum, ok := datum["basalSchedules"].(map[string][]map[string]interface{})
+	if ok {
+		basalSchedules = buildBasalSchedules(basalSchedulesDatum, errs)
+	}
+
 	settings := &Settings{
 		Units:                units,
 		BloodGlucoseTargets:  targets,
 		InsulinSensitivities: insulinSensitivities,
 		CarbohydrateRatios:   carbohydrateRatios,
+		BasalSchedules:       basalSchedules,
 		ActiveSchedule:       datum.ToString(activeScheduleField.Name, errs),
 		Base:                 types.BuildBase(datum, errs),
 	}

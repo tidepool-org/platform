@@ -13,7 +13,7 @@ var _ = Describe("Settings", func() {
 	var unitsObj = make(map[string]interface{})
 	var carbRatiosObj = make([]map[string]interface{}, 0)
 	var insulinSensitivitiesObj = make([]map[string]interface{}, 0)
-	//var basalSchedulesObj = make(map[string]map[string]interface{}, 0)
+	var basalSchedulesObj = make(map[string][]map[string]interface{}, 0)
 	var bgTargetsObj = make([]map[string]interface{}, 0)
 	var helper *types.TestingHelper
 
@@ -39,13 +39,12 @@ var _ = Describe("Settings", func() {
 			insulinSensitivitiesObj = []map[string]interface{}{{"amount": 3.6, "start": 0}, {"amount": 2.5, "start": 18000000}}
 			settingsObj["insulinSensitivity"] = insulinSensitivitiesObj
 
-			/*basalSchedulesObj = map[string]string{
-				"standard":  map[string]interface{}{{"rate": 0.8, "start": 0}, {"rate": 0.75, "start": 3600000}},
-				"pattern a": map[string]interface{}{{"rate": 0.95, "start": 0}, {"rate": 0.9, "start": 3600000}},
+			basalSchedulesObj = map[string][]map[string]interface{}{
+				"standard":  []map[string]interface{}{{"rate": 0.8, "start": 0}, {"rate": 0.75, "start": 3600000}},
+				"pattern a": []map[string]interface{}{{"rate": 0.95, "start": 0}, {"rate": 0.9, "start": 3600000}},
 			}
 
 			settingsObj["basalSchedules"] = basalSchedulesObj
-			*/
 
 		})
 
@@ -295,6 +294,12 @@ var _ = Describe("Settings", func() {
 				It("is not required", func() {
 					delete(settingsObj, "basalSchedules")
 					Expect(helper.ValidDataType(Build(settingsObj, helper.ErrorProcessing))).To(BeNil())
+				})
+
+				It("will have two", func() {
+					settings := Build(settingsObj, helper.ErrorProcessing)
+					Expect(helper.ValidDataType(settings)).To(BeNil())
+					Expect(len(settings.BasalSchedules)).To(Equal(2))
 				})
 
 			})
