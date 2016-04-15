@@ -26,6 +26,8 @@ type Store interface {
 }
 
 const (
+	dbName = ""
+
 	GreaterThanEquals string = "$gte"
 	LessThanEquals    string = "$lte"
 	In                string = "$in"
@@ -65,9 +67,7 @@ type MongoStore struct {
 
 //MongoConfig is the required config for the MongoStore
 type MongoConfig struct {
-	URL     string `json:"connectionUrl"`
-	DbName  string `json:"databaseName"`
-	Timeout int    `json:"timeout"`
+	Timeout int `json:"timeout"`
 }
 
 //NewMongoStore returns an initailised instance of MongoStore
@@ -76,8 +76,12 @@ func NewMongoStore(name string) *MongoStore {
 	store := &MongoStore{CollectionName: name}
 	config.FromJSON(&store.Config, "mongo.json")
 
-	var err error
-	store.Session, err = mgo.DialWithTimeout(store.Config.URL, time.Duration(store.Config.Timeout)*time.Second)
+	url, err := config.FromEnv("TIDEPOOL_DATASERVICES_MONGO_URI")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	store.Session, err = mgo.DialWithTimeout(url, time.Duration(store.Config.Timeout)*time.Second)
 
 	if err != nil {
 		log.Fatal(err)
@@ -100,7 +104,6 @@ func buildQuery(id Field, query Query) bson.M {
 		id.Name: id.Value,
 		//TODO: specify scheme version
 		//"_active":        true,
-		//"_schemaVersion": bson.M{GreaterThanEquals: 0, LessThanEquals: 10},
 	}
 
 	//Example so its not too abstract
@@ -124,7 +127,7 @@ func (mongoStore *MongoStore) Cleanup() {
 	cpy := mongoStore.Session.Copy()
 	defer cpy.Close()
 
-	cpy.DB(mongoStore.Config.DbName).C(mongoStore.CollectionName).DropCollection()
+	cpy.DB(dbName).C(mongoStore.CollectionName).DropCollection()
 }
 
 //Save will save the specified data
@@ -132,7 +135,7 @@ func (mongoStore *MongoStore) Save(d interface{}) error {
 	cpy := mongoStore.Session.Copy()
 	defer cpy.Close()
 
-	if err := cpy.DB(mongoStore.Config.DbName).C(mongoStore.CollectionName).Insert(d); err != nil {
+	if err := cpy.DB(dbName).C(mongoStore.CollectionName).Insert(d); err != nil {
 		return err
 	}
 	return nil
@@ -143,7 +146,7 @@ func (mongoStore *MongoStore) Update(selector interface{}, d interface{}) error 
 	cpy := mongoStore.Session.Copy()
 	defer cpy.Close()
 
-	if _, err := cpy.DB(mongoStore.Config.DbName).
+	if _, err := cpy.DB(dbName).
 		C(mongoStore.CollectionName).
 		Upsert(selector, d); err != nil {
 		return err
@@ -158,7 +161,7 @@ func (mongoStore *MongoStore) Delete(id Field) error {
 	cpy := mongoStore.Session.Copy()
 	defer cpy.Close()
 
-	if err := cpy.DB(mongoStore.Config.DbName).
+	if err := cpy.DB(dbName).
 		C(mongoStore.CollectionName).
 		Remove(bson.M{id.Name: id.Value}); err != nil {
 		return err
@@ -176,7 +179,7 @@ func (mongoStore *MongoStore) Read(id Field, filter Filter, result interface{}) 
 	cpy := mongoStore.Session.Copy()
 	defer cpy.Close()
 
-	if err := cpy.DB(mongoStore.Config.DbName).
+	if err := cpy.DB(dbName).
 		C(mongoStore.CollectionName).
 		Find(buildQuery(id, Query{})).
 		Select(buildFilter(filter)).
@@ -197,7 +200,7 @@ func (mongoStore *MongoStore) ReadAll(id Field, query Query, filter Filter) Iter
 	cpy := mongoStore.Session.Copy()
 	defer cpy.Close()
 
-	iter := cpy.DB(mongoStore.Config.DbName).
+	iter := cpy.DB(dbName).
 		C(mongoStore.CollectionName).
 		Find(buildQuery(id, query)).
 		Select(buildFilter(filter)).

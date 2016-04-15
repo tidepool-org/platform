@@ -35,10 +35,6 @@ var _ = Describe("Store", func() {
 			mgo := NewMongoStore(testCollection)
 			Expect(mgo.CollectionName).To(Equal(testCollection))
 		})
-		It("should set the db name", func() {
-			mgo := NewMongoStore(testCollection)
-			Expect(mgo.Config.DbName).To(Equal(mgoConfig.DbName))
-		})
 	})
 
 	Context("When used", func() {

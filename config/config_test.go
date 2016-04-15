@@ -18,7 +18,7 @@ var _ = Describe("Config", func() {
 			var mongoConfig store.MongoConfig
 			config.FromJSON(&mongoConfig, "mongo.json")
 			Expect(mongoConfig).To(Not(BeNil()))
-			Expect(mongoConfig.URL).To(Not(BeEmpty()))
+			Expect(mongoConfig.Timeout).To(Not(BeNil()))
 		})
 
 		It("returns error if the config doen't exist", func() {

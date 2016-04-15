@@ -21,8 +21,13 @@ const (
 	missingDataError        = "missing data to process"
 	gettingDataError        = "there was an error getting your data"
 
-	dataservicesName = "dataservices"
-	useridParamName  = "userid"
+	dataservicesName      = "dataservices"
+	dataservicesStoreName = "deviceData"
+
+	minimumSchemaVersion = 0
+	maximumSchemaVersion = 99
+
+	useridParamName = "userid"
 )
 
 var (
@@ -31,7 +36,13 @@ var (
 )
 
 func main() {
-	log.Fatal(NewDataServiceClient().Run(serviceConfig.Port))
+
+	port, err := config.FromEnv("TIDEPOOL_DATASERVICES_PORT")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Fatal(NewDataServiceClient().Run(port))
 }
 
 //DataServiceClient for the data service
@@ -44,15 +55,8 @@ type DataServiceClient struct {
 }
 
 type dataServiceConfig struct {
-	Port          string `json:"port"`
-	Protocol      string `json:"protocol"`
-	KeyFile       string `json:"keyFile"`
-	CertFile      string `json:"certFile"`
-	SchemaVersion struct {
-		Minimum int
-		Maximum int
-	} `json:"schemaVersion"`
-	StoreName string `json:"storeName"`
+	KeyFile  string `json:"keyFile"`
+	CertFile string `json:"certFile"`
 }
 
 //NewDataServiceClient returns an initialised client
@@ -66,7 +70,7 @@ func NewDataServiceClient() *DataServiceClient {
 
 	return &DataServiceClient{
 		api:              rest.NewApi(),
-		dataStore:        store.NewMongoStore(serviceConfig.StoreName),
+		dataStore:        store.NewMongoStore(dataservicesStoreName),
 		validateToken:    user.NewAuthorizationMiddleware(userClient).ValidateToken,
 		attachPermissons: user.NewMetadataMiddleware(userClient).GetPermissons,
 		resolveGroupID:   user.NewMetadataMiddleware(userClient).GetGroupID,
@@ -90,7 +94,12 @@ func (client *DataServiceClient) Run(URL string) error {
 	}
 	client.api.SetApp(router)
 
-	if serviceConfig.Protocol == "https" {
+	protocol, err := config.FromEnv("TIDEPOOL_DATASERVICES_PROTOCOL")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if protocol == "https" {
 		return http.ListenAndServeTLS(URL, serviceConfig.CertFile, serviceConfig.KeyFile, client.api.MakeHandler())
 	}
 	return http.ListenAndServe(URL, client.api.MakeHandler())
@@ -208,6 +217,9 @@ func buildQuery(params url.Values) store.Query {
 	} else if end != "" {
 		query[types.TimeStringField.Name] = map[string]interface{}{store.LessThanEquals: end}
 	}
+
+	query["_schemaVersion"] = map[string]interface{}{store.GreaterThanEquals: minimumSchemaVersion, store.LessThanEquals: maximumSchemaVersion}
+
 	return query
 }
 

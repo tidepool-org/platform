@@ -1,11 +1,4 @@
 {
-  "protocol": "http",
   "keyFile": "_config/key.pem",
-  "certFile": "_config/cert.pem",
-  "port": ":8077",
-  "schemaVersion": {
-    "minimum": 1,
-    "maximum": 99
-  },
-  "storeName": "deviceData"
+  "certFile": "_config/cert.pem"
 }

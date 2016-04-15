@@ -47,7 +47,7 @@ type (
 
 	//ClientConfig for initialising ServicesClient
 	ClientConfig struct {
-		Host                 string `json:"host"`                 // URL of the user client host e.g. "http://localhost:9107"
+		Host                 string
 		Name                 string `json:"name"`                 // The name of this server for use in obtaining a server token
 		TokenRefreshInterval string `json:"tokenRefreshInterval"` // The amount of time between refreshes of the server token
 		TokenRefreshDuration time.Duration
@@ -99,9 +99,12 @@ func NewServicesClient() *ServicesClient {
 	if clientConfig.Name == "" {
 		panic("ServicesClient requires a name to be set")
 	}
-	if clientConfig.Host == "" {
+
+	host, err := config.FromEnv("TIDEPOOL_USERCLIENT_HOST")
+	if err != nil {
 		panic("ServicesClient requires a host to be set")
 	}
+	clientConfig.Host = host
 
 	dur, err := time.ParseDuration(clientConfig.TokenRefreshInterval)
 	if err != nil {
