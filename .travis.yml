@@ -10,6 +10,10 @@ env:
   global:
     - GO15VENDOREXPERIMENT=0
     - TIDEPOOL_USER_CLIENT_SECRET="This needs to be the same secret everywhere. YaHut75NsK1f9UKUXuWqxNN0RUwHFBCy"
+    - TIDEPOOL_DATASERVICES_PORT="8077"
+    - TIDEPOOL_DATASERVICES_PROTOCOL="http"
+    - TIDEPOOL_DATASERVICES_MONGO_URI="mongodb://localhost/streams"
+    - TIDEPOOL_USERCLIENT_HOST="http://localhost:8009"
 
 script:
   - make pre-build
