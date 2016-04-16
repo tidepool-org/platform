@@ -1,3 +1,17 @@
 #! /bin/bash -eu
 
+export GOPATH=`pwd`
+
+come_deps.sh
+
+PROJECT=platform
+
+OUTDIR=dist
+rm -rf ${OUTDIR}
+mkdir ${OUTDIR}
+
 make build
+
+cp _bin/dataservices ${OUTDIR}/${PROJECT}
+
+cp start ${OUTDIR}/
