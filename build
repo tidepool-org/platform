@@ -2,8 +2,6 @@
 
 export GOPATH=`pwd`
 
-come_deps.sh
-
 PROJECT=platform
 
 OUTDIR=dist
