@@ -2,6 +2,8 @@
 
 export GOPATH=`pwd`
 
+make editable
+
 PROJECT=platform
 
 OUTDIR=dist
