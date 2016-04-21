@@ -9,5 +9,5 @@ import (
 
 func TestDeviceevent(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Deviceevent Suite")
+	RunSpecs(t, "Device Suite")
 }

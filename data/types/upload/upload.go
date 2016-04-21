@@ -15,7 +15,7 @@ func init() {
 	types.GetPlatformValidator().RegisterValidation(deviceManufacturersField.Tag, DeviceManufacturersValidator)
 }
 
-type Record struct {
+type Upload struct {
 	UploadID            *string   `json:"uploadId" bson:"uploadId" valid:"gt=10"`
 	UploadUserID        *string   `json:"byUser" bson:"byUser" valid:"gt=10"`
 	Version             *string   `json:"version" bson:"version" valid:"gt=10"`
@@ -108,9 +108,9 @@ var (
 	}
 )
 
-func Build(datum types.Datum, errs validate.ErrorProcessing) *Record {
+func Build(datum types.Datum, errs validate.ErrorProcessing) *Upload {
 
-	record := &Record{
+	record := &Upload{
 		UploadID:            datum.ToString(uploadIDField.Name, errs),
 		ComputerTime:        datum.ToString(computerTimeField.Name, errs),
 		UploadUserID:        datum.ToString(uploadUserIDField.Name, errs),
