@@ -3,7 +3,8 @@ package bloodglucose
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/tidepool-org/platform/data/_fixtures"
+
+	fixtures "github.com/tidepool-org/platform/data/_fixtures"
 	"github.com/tidepool-org/platform/data/types"
 )
 

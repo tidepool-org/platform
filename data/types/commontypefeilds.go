@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"time"
 
-	"gopkg.in/bluesuncorp/validator.v8"
+	validator "gopkg.in/bluesuncorp/validator.v8"
 )
 
 func init() {

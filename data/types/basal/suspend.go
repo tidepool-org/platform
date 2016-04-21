@@ -2,7 +2,6 @@ package basal
 
 import (
 	"github.com/tidepool-org/platform/data/types"
-
 	"github.com/tidepool-org/platform/validate"
 )
 

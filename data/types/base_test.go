@@ -1,10 +1,10 @@
 package types
 
 import (
-	"github.com/tidepool-org/platform/data/_fixtures"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	fixtures "github.com/tidepool-org/platform/data/_fixtures"
 )
 
 var _ = Describe("Base", func() {

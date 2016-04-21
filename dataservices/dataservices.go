@@ -5,6 +5,8 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/ant0ine/go-json-rest/rest"
+
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
@@ -12,8 +14,6 @@ import (
 	"github.com/tidepool-org/platform/store"
 	"github.com/tidepool-org/platform/user"
 	"github.com/tidepool-org/platform/version"
-
-	"github.com/ant0ine/go-json-rest/rest"
 )
 
 const (

@@ -3,9 +3,10 @@ package bolus
 import (
 	"reflect"
 
+	validator "gopkg.in/bluesuncorp/validator.v8"
+
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/validate"
-	"gopkg.in/bluesuncorp/validator.v8"
 )
 
 func init() {

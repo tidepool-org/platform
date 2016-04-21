@@ -4,7 +4,7 @@ import (
 	"os"
 
 	logrus "github.com/Sirupsen/logrus"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 //Logger interface

@@ -3,7 +3,7 @@ package device
 import (
 	"reflect"
 
-	"gopkg.in/bluesuncorp/validator.v8"
+	validator "gopkg.in/bluesuncorp/validator.v8"
 
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/validate"

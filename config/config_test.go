@@ -3,11 +3,11 @@ package config_test
 import (
 	"os"
 
-	"github.com/tidepool-org/platform/config"
-	"github.com/tidepool-org/platform/store"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"github.com/tidepool-org/platform/config"
+	"github.com/tidepool-org/platform/store"
 )
 
 var _ = Describe("Config", func() {

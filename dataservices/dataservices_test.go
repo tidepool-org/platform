@@ -6,13 +6,13 @@ import (
 	"net/http"
 	"net/url"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	. "github.com/tidepool-org/platform/dataservices"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/user"
 	"github.com/tidepool-org/platform/version"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("The Dataservices client", func() {

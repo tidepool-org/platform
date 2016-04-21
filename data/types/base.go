@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"time"
 
-	"gopkg.in/bluesuncorp/validator.v8"
+	validator "gopkg.in/bluesuncorp/validator.v8"
 	"gopkg.in/mgo.v2/bson"
 
 	"github.com/tidepool-org/platform/validate"

@@ -3,7 +3,7 @@ package validate
 import (
 	"fmt"
 
-	"gopkg.in/bluesuncorp/validator.v8"
+	validator "gopkg.in/bluesuncorp/validator.v8"
 )
 
 type Validator interface {

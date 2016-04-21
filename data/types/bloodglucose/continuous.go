@@ -3,9 +3,9 @@ package bloodglucose
 import (
 	"reflect"
 
-	"github.com/tidepool-org/platform/data/types"
-	"gopkg.in/bluesuncorp/validator.v8"
+	validator "gopkg.in/bluesuncorp/validator.v8"
 
+	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/validate"
 )
 
