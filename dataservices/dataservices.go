@@ -1,4 +1,4 @@
-package main
+package dataservices
 
 import (
 	"net/http"
@@ -45,7 +45,6 @@ func main() {
 	log.Fatal(NewDataServiceClient().Run(port))
 }
 
-//DataServiceClient for the data service
 type DataServiceClient struct {
 	api              *rest.Api
 	dataStore        store.Store
@@ -59,7 +58,6 @@ type dataServiceConfig struct {
 	CertFile string `json:"certFile"`
 }
 
-//NewDataServiceClient returns an initialised client
 func NewDataServiceClient() *DataServiceClient {
 	log.Info(version.Long())
 

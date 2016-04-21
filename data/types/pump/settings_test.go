@@ -1,4 +1,4 @@
-package pump
+package pump_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -6,6 +6,7 @@ import (
 
 	fixtures "github.com/tidepool-org/platform/data/_fixtures"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/pump"
 )
 
 var _ = Describe("Settings", func() {
@@ -49,7 +50,7 @@ var _ = Describe("Settings", func() {
 		})
 
 		It("when valid", func() {
-			Expect(helper.ValidDataType(Build(settingsObj, helper.ErrorProcessing))).To(BeNil())
+			Expect(helper.ValidDataType(pump.Build(settingsObj, helper.ErrorProcessing))).To(BeNil())
 		})
 
 		Context("validation", func() {
@@ -60,7 +61,7 @@ var _ = Describe("Settings", func() {
 					delete(settingsObj, "activeSchedule")
 					Expect(
 						helper.ErrorIsExpected(
-							Build(settingsObj, helper.ErrorProcessing),
+							pump.Build(settingsObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/activeSchedule",
 								Detail: "This is a required field given '<nil>'",
@@ -74,7 +75,7 @@ var _ = Describe("Settings", func() {
 
 				It("is not required", func() {
 					delete(settingsObj, "units")
-					Expect(helper.ValidDataType(Build(settingsObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(pump.Build(settingsObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 				It("if present requires carb", func() {
@@ -84,7 +85,7 @@ var _ = Describe("Settings", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(settingsObj, helper.ErrorProcessing),
+							pump.Build(settingsObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/carb",
 								Detail: "This is a required field given '<nil>'",
@@ -99,7 +100,7 @@ var _ = Describe("Settings", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(settingsObj, helper.ErrorProcessing),
+							pump.Build(settingsObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/bg",
 								Detail: "Must be one of mmol/L, mg/dL given '<nil>'",
@@ -113,11 +114,11 @@ var _ = Describe("Settings", func() {
 
 				It("is not required", func() {
 					delete(settingsObj, "carbRatio")
-					Expect(helper.ValidDataType(Build(settingsObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(pump.Build(settingsObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 				It("will have two", func() {
-					settings := Build(settingsObj, helper.ErrorProcessing)
+					settings := pump.Build(settingsObj, helper.ErrorProcessing)
 					Expect(helper.ValidDataType(settings)).To(BeNil())
 					Expect(len(settings.CarbohydrateRatios)).To(Equal(2))
 				})
@@ -129,7 +130,7 @@ var _ = Describe("Settings", func() {
 
 					Expect(
 						helper.ErrorsAreExpected(
-							Build(settingsObj, helper.ErrorProcessing),
+							pump.Build(settingsObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/start",
 								Detail: "Needs to be in the range of >= 0 and < 86400000 given '<nil>'",
@@ -144,7 +145,7 @@ var _ = Describe("Settings", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(settingsObj, helper.ErrorProcessing),
+							pump.Build(settingsObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/start",
 								Detail: "Needs to be in the range of >= 0 and < 86400000 given '-10'",
@@ -159,7 +160,7 @@ var _ = Describe("Settings", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(settingsObj, helper.ErrorProcessing),
+							pump.Build(settingsObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/start",
 								Detail: "Needs to be in the range of >= 0 and < 86400000 given '86400000'",
@@ -174,7 +175,7 @@ var _ = Describe("Settings", func() {
 
 					Expect(
 						helper.ErrorsAreExpected(
-							Build(settingsObj, helper.ErrorProcessing),
+							pump.Build(settingsObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/amount",
 								Detail: "This is a required field given '<nil>'",
@@ -188,11 +189,11 @@ var _ = Describe("Settings", func() {
 
 				It("is not required", func() {
 					delete(settingsObj, "bgTarget")
-					Expect(helper.ValidDataType(Build(settingsObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(pump.Build(settingsObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 				It("will have two", func() {
-					settings := Build(settingsObj, helper.ErrorProcessing)
+					settings := pump.Build(settingsObj, helper.ErrorProcessing)
 					Expect(helper.ValidDataType(settings)).To(BeNil())
 					Expect(len(settings.BloodGlucoseTargets)).To(Equal(2))
 				})
@@ -204,7 +205,7 @@ var _ = Describe("Settings", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(settingsObj, helper.ErrorProcessing),
+							pump.Build(settingsObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/start",
 								Detail: "Needs to be in the range of >= 0 and < 86400000 given '<nil>'",
@@ -219,7 +220,7 @@ var _ = Describe("Settings", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(settingsObj, helper.ErrorProcessing),
+							pump.Build(settingsObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/low",
 								Detail: "Must be greater than 0.0 given '<nil>'",
@@ -234,7 +235,7 @@ var _ = Describe("Settings", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(settingsObj, helper.ErrorProcessing),
+							pump.Build(settingsObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/high",
 								Detail: "Must be greater than 0.0 given '<nil>'",
@@ -248,11 +249,11 @@ var _ = Describe("Settings", func() {
 
 				It("is not required", func() {
 					delete(settingsObj, "insulinSensitivity")
-					Expect(helper.ValidDataType(Build(settingsObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(pump.Build(settingsObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 				It("will have two", func() {
-					settings := Build(settingsObj, helper.ErrorProcessing)
+					settings := pump.Build(settingsObj, helper.ErrorProcessing)
 					Expect(helper.ValidDataType(settings)).To(BeNil())
 					Expect(len(settings.InsulinSensitivities)).To(Equal(2))
 				})
@@ -264,7 +265,7 @@ var _ = Describe("Settings", func() {
 
 					Expect(
 						helper.ErrorsAreExpected(
-							Build(settingsObj, helper.ErrorProcessing),
+							pump.Build(settingsObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/start",
 								Detail: "Needs to be in the range of >= 0 and < 86400000 given '<nil>'",
@@ -279,7 +280,7 @@ var _ = Describe("Settings", func() {
 
 					Expect(
 						helper.ErrorsAreExpected(
-							Build(settingsObj, helper.ErrorProcessing),
+							pump.Build(settingsObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/amount",
 								Detail: "This is a required field given '<nil>'",
@@ -293,11 +294,11 @@ var _ = Describe("Settings", func() {
 
 				It("is not required", func() {
 					delete(settingsObj, "basalSchedules")
-					Expect(helper.ValidDataType(Build(settingsObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(pump.Build(settingsObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 				It("will have two", func() {
-					settings := Build(settingsObj, helper.ErrorProcessing)
+					settings := pump.Build(settingsObj, helper.ErrorProcessing)
 					Expect(helper.ValidDataType(settings)).To(BeNil())
 					Expect(len(settings.BasalSchedules)).To(Equal(2))
 				})

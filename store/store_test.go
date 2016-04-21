@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/config"
-	. "github.com/tidepool-org/platform/store"
+	"github.com/tidepool-org/platform/store"
 )
 
 var _ = Describe("Store", func() {
@@ -19,20 +19,20 @@ var _ = Describe("Store", func() {
 	Context("When created", func() {
 
 		var (
-			mgoConfig MongoConfig
+			mongoConfig store.MongoConfig
 		)
 
 		BeforeEach(func() {
-			config.FromJSON(&mgoConfig, "mongo.json")
+			config.FromJSON(&mongoConfig, "mongo.json")
 		})
 
 		It("should be assingable to the interface", func() {
-			var testStore Store
-			testStore = NewMongoStore(testCollection)
+			var testStore store.Store
+			testStore = store.NewMongoStore(testCollection)
 			Expect(testStore).To(Not(BeNil()))
 		})
 		It("should set the collection name", func() {
-			mgo := NewMongoStore(testCollection)
+			mgo := store.NewMongoStore(testCollection)
 			Expect(mgo.CollectionName).To(Equal(testCollection))
 		})
 	})
@@ -47,11 +47,11 @@ var _ = Describe("Store", func() {
 		}
 
 		var (
-			testStore *MongoStore
+			testStore *store.MongoStore
 		)
 
 		BeforeEach(func() {
-			testStore = NewMongoStore(testCollection)
+			testStore = store.NewMongoStore(testCollection)
 			testStore.Cleanup()
 		})
 
@@ -91,7 +91,7 @@ var _ = Describe("Store", func() {
 			}
 
 			Expect(testStore.Save(saveMe)).To(BeNil())
-			Expect(testStore.Delete(Field{Name: "id", Value: saveMe.ID})).To(BeNil())
+			Expect(testStore.Delete(store.Field{Name: "id", Value: saveMe.ID})).To(BeNil())
 		})
 		It("should be able to get one", func() {
 			saveMe := SaveMe{
@@ -104,7 +104,7 @@ var _ = Describe("Store", func() {
 			var found SaveMe
 
 			Expect(testStore.Save(saveMe)).To(BeNil())
-			Expect(testStore.Read(Field{Name: "id", Value: saveMe.ID}, Filter{}, &found)).To(BeNil())
+			Expect(testStore.Read(store.Field{Name: "id", Value: saveMe.ID}, store.Filter{}, &found)).To(BeNil())
 			Expect(found).To(Equal(saveMe))
 		})
 		It("should be able to get all", func() {
@@ -123,7 +123,7 @@ var _ = Describe("Store", func() {
 			}
 			var found []SaveMe
 
-			process := func(iter Iterator) []SaveMe {
+			process := func(iter store.Iterator) []SaveMe {
 				var chunk SaveMe
 				var all = []SaveMe{}
 
@@ -136,7 +136,7 @@ var _ = Describe("Store", func() {
 			Expect(testStore.Save(one)).To(BeNil())
 			Expect(testStore.Save(two)).To(BeNil())
 
-			iter := testStore.ReadAll(Field{Name: "userid", Value: one.UserID}, Query{}, Filter{})
+			iter := testStore.ReadAll(store.Field{Name: "userid", Value: one.UserID}, store.Query{}, store.Filter{})
 			found = process(iter)
 
 			Expect(len(found)).To(Equal(2))

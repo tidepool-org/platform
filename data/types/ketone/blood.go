@@ -15,8 +15,8 @@ const Name = "bloodKetone"
 
 var (
 	failureReasons = validate.FailureReasons{
-		"Value": validate.VaidationInfo{FieldName: types.BloodGlucoseValueField.Name, Message: types.BloodGlucoseValueField.Message},
-		"Units": validate.VaidationInfo{FieldName: types.MmolUnitsField.Name, Message: types.MmolUnitsField.Message},
+		"Value": validate.ValidationInfo{FieldName: types.BloodGlucoseValueField.Name, Message: types.BloodGlucoseValueField.Message},
+		"Units": validate.ValidationInfo{FieldName: types.MmolUnitsField.Name, Message: types.MmolUnitsField.Message},
 	}
 )
 

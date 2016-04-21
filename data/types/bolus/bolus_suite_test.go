@@ -1,4 +1,4 @@
-package bolus
+package bolus_test
 
 import (
 	"testing"

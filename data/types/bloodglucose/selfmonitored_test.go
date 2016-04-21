@@ -1,4 +1,4 @@
-package bloodglucose
+package bloodglucose_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -6,6 +6,7 @@ import (
 
 	fixtures "github.com/tidepool-org/platform/data/_fixtures"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/bloodglucose"
 )
 
 var _ = Describe("Selfmonitored", func() {
@@ -27,7 +28,7 @@ var _ = Describe("Selfmonitored", func() {
 		})
 
 		It("returns a bolus if the obj is valid", func() {
-			Expect(helper.ValidDataType(BuildSelfMonitored(bgObj, helper.ErrorProcessing))).To(BeNil())
+			Expect(helper.ValidDataType(bloodglucose.BuildSelfMonitored(bgObj, helper.ErrorProcessing))).To(BeNil())
 		})
 
 	})
@@ -45,7 +46,7 @@ var _ = Describe("Selfmonitored", func() {
 
 				Expect(
 					helper.ErrorIsExpected(
-						BuildSelfMonitored(bgObj, helper.ErrorProcessing),
+						bloodglucose.BuildSelfMonitored(bgObj, helper.ErrorProcessing),
 						types.ExpectedErrorDetails{
 							Path:   "0/units",
 							Detail: "Must be one of mmol/L, mg/dL given '<nil>'",
@@ -55,19 +56,19 @@ var _ = Describe("Selfmonitored", func() {
 
 			It("can be mmol/l", func() {
 				bgObj["units"] = "mmol/l"
-				Expect(helper.ValidDataType(BuildSelfMonitored(bgObj, helper.ErrorProcessing))).To(BeNil())
+				Expect(helper.ValidDataType(bloodglucose.BuildSelfMonitored(bgObj, helper.ErrorProcessing))).To(BeNil())
 			})
 
 			It("can be mg/dl", func() {
 				bgObj["units"] = "mg/dl"
-				Expect(helper.ValidDataType(BuildSelfMonitored(bgObj, helper.ErrorProcessing))).To(BeNil())
+				Expect(helper.ValidDataType(bloodglucose.BuildSelfMonitored(bgObj, helper.ErrorProcessing))).To(BeNil())
 			})
 
 			It("cannot be anything else", func() {
 				bgObj["units"] = "grams"
 				Expect(
 					helper.ErrorIsExpected(
-						BuildSelfMonitored(bgObj, helper.ErrorProcessing),
+						bloodglucose.BuildSelfMonitored(bgObj, helper.ErrorProcessing),
 						types.ExpectedErrorDetails{
 							Path:   "0/units",
 							Detail: "Must be one of mmol/L, mg/dL given 'grams'",
@@ -81,7 +82,7 @@ var _ = Describe("Selfmonitored", func() {
 				delete(bgObj, "value")
 				Expect(
 					helper.ErrorIsExpected(
-						BuildSelfMonitored(bgObj, helper.ErrorProcessing),
+						bloodglucose.BuildSelfMonitored(bgObj, helper.ErrorProcessing),
 						types.ExpectedErrorDetails{
 							Path:   "0/value",
 							Detail: "Must be greater than 0.0 given '<nil>'",

@@ -1,4 +1,4 @@
-package bolus
+package bolus_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -6,6 +6,7 @@ import (
 
 	fixtures "github.com/tidepool-org/platform/data/_fixtures"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/bolus"
 )
 
 var _ = Describe("Bolus", func() {
@@ -24,7 +25,7 @@ var _ = Describe("Bolus", func() {
 	Context("type from obj", func() {
 
 		It("returns a valid bolus", func() {
-			Expect(helper.ValidDataType(Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
+			Expect(helper.ValidDataType(bolus.Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
 		})
 
 		Context("validation", func() {
@@ -36,7 +37,7 @@ var _ = Describe("Bolus", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(bolusObj, helper.ErrorProcessing),
+							bolus.Build(bolusObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/subType",
 								Detail: "Must be one of normal, square, dual/square given '<nil>'",
@@ -48,7 +49,7 @@ var _ = Describe("Bolus", func() {
 					bolusObj["subType"] = "superfly"
 					Expect(
 						helper.ErrorIsExpected(
-							Build(bolusObj, helper.ErrorProcessing),
+							bolus.Build(bolusObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/subType",
 								Detail: "Must be one of normal, square, dual/square given 'superfly'",
@@ -60,7 +61,7 @@ var _ = Describe("Bolus", func() {
 					bolusObj["subType"] = "injected"
 					Expect(
 						helper.ErrorIsExpected(
-							Build(bolusObj, helper.ErrorProcessing),
+							bolus.Build(bolusObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/subType",
 								Detail: "Must be one of normal, square, dual/square given 'injected'",
@@ -70,17 +71,17 @@ var _ = Describe("Bolus", func() {
 
 				It("normal type is supported", func() {
 					bolusObj["subType"] = "normal"
-					Expect(helper.ValidDataType(Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(bolus.Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 				It("square type is supported", func() {
 					bolusObj["subType"] = "square"
-					Expect(helper.ValidDataType(Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(bolus.Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 				It("dual/square type is supported", func() {
 					bolusObj["subType"] = "dual/square"
-					Expect(helper.ValidDataType(Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(bolus.Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 			})

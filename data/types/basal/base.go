@@ -44,10 +44,10 @@ var (
 	}
 
 	failureReasons = validate.FailureReasons{
-		"DeliveryType": validate.VaidationInfo{FieldName: deliveryTypeField.Name, Message: deliveryTypeField.Message},
-		"Rate":         validate.VaidationInfo{FieldName: rateField.Name, Message: rateField.Message},
-		"Duration":     validate.VaidationInfo{FieldName: durationField.Name, Message: durationField.Message},
-		"Percent":      validate.VaidationInfo{FieldName: percentField.Name, Message: percentField.Message},
+		"DeliveryType": validate.ValidationInfo{FieldName: deliveryTypeField.Name, Message: deliveryTypeField.Message},
+		"Rate":         validate.ValidationInfo{FieldName: rateField.Name, Message: rateField.Message},
+		"Duration":     validate.ValidationInfo{FieldName: durationField.Name, Message: durationField.Message},
+		"Percent":      validate.ValidationInfo{FieldName: percentField.Name, Message: percentField.Message},
 	}
 )
 

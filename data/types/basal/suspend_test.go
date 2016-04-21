@@ -1,4 +1,4 @@
-package basal
+package basal_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -6,6 +6,7 @@ import (
 
 	fixtures "github.com/tidepool-org/platform/data/_fixtures"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/basal"
 )
 
 var _ = Describe("Suspend", func() {
@@ -24,7 +25,7 @@ var _ = Describe("Suspend", func() {
 	Context("from obj", func() {
 
 		It("should return a basal if the obj is valid", func() {
-			Expect(helper.ValidDataType(Build(basalObj, helper.ErrorProcessing))).To(BeNil())
+			Expect(helper.ValidDataType(basal.Build(basalObj, helper.ErrorProcessing))).To(BeNil())
 		})
 
 		Context("validation", func() {
@@ -41,11 +42,11 @@ var _ = Describe("Suspend", func() {
 
 				It("is not required", func() {
 					delete(basalObj, "suppressed")
-					Expect(helper.ValidDataType(Build(basalObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(basal.Build(basalObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 				It("when present is validated", func() {
-					Expect(helper.ValidDataType(Build(basalObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(basal.Build(basalObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 			})

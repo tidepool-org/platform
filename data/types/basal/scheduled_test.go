@@ -1,4 +1,4 @@
-package basal
+package basal_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -6,6 +6,7 @@ import (
 
 	fixtures "github.com/tidepool-org/platform/data/_fixtures"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/basal"
 )
 
 var _ = Describe("Scheduled", func() {
@@ -26,7 +27,7 @@ var _ = Describe("Scheduled", func() {
 	Context("from obj", func() {
 
 		It("should return a basal if the obj is valid", func() {
-			Expect(helper.ValidDataType(Build(basalObj, helper.ErrorProcessing))).To(BeNil())
+			Expect(helper.ValidDataType(basal.Build(basalObj, helper.ErrorProcessing))).To(BeNil())
 		})
 
 		Context("validation", func() {
@@ -37,7 +38,7 @@ var _ = Describe("Scheduled", func() {
 					delete(basalObj, "rate")
 					Expect(
 						helper.ErrorIsExpected(
-							Build(basalObj, helper.ErrorProcessing),
+							basal.Build(basalObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/rate",
 								Detail: "Must be greater than 0.0 given '<nil>'",
@@ -50,7 +51,7 @@ var _ = Describe("Scheduled", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(basalObj, helper.ErrorProcessing),
+							basal.Build(basalObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/rate",
 								Detail: "Must be greater than 0.0 given '0'",
@@ -60,7 +61,7 @@ var _ = Describe("Scheduled", func() {
 
 				It("valid when greater than zero", func() {
 					basalObj["rate"] = 0.7
-					Expect(helper.ValidDataType(Build(basalObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(basal.Build(basalObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 			})
@@ -73,7 +74,7 @@ var _ = Describe("Scheduled", func() {
 
 				It("is free text", func() {
 					basalObj["scheduleName"] = "my schedule"
-					Expect(helper.ValidDataType(Build(basalObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(basal.Build(basalObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 			})

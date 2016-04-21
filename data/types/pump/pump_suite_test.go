@@ -1,4 +1,4 @@
-package pump
+package pump_test
 
 import (
 	"testing"

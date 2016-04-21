@@ -1,4 +1,4 @@
-package calculator
+package calculator_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -6,6 +6,7 @@ import (
 
 	fixtures "github.com/tidepool-org/platform/data/_fixtures"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/calculator"
 )
 
 var _ = Describe("Event", func() {
@@ -47,7 +48,7 @@ var _ = Describe("Event", func() {
 	Context("calculator record from obj", func() {
 
 		It("when valid", func() {
-			Expect(helper.ValidDataType(Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
+			Expect(helper.ValidDataType(calculator.Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
 		})
 
 		Context("validation", func() {
@@ -56,7 +57,7 @@ var _ = Describe("Event", func() {
 
 				It("is not required", func() {
 					delete(calculatorObj, "carbInput")
-					Expect(helper.ValidDataType(Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(calculator.Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 			})
@@ -65,7 +66,7 @@ var _ = Describe("Event", func() {
 
 				It("is not required", func() {
 					delete(calculatorObj, "bgInput")
-					Expect(helper.ValidDataType(Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(calculator.Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 			})
@@ -74,7 +75,7 @@ var _ = Describe("Event", func() {
 
 				It("is not required", func() {
 					delete(calculatorObj, "insulinOnBoard")
-					Expect(helper.ValidDataType(Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(calculator.Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 			})
@@ -86,7 +87,7 @@ var _ = Describe("Event", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(calculatorObj, helper.ErrorProcessing),
+							calculator.Build(calculatorObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/units",
 								Detail: "Must be one of mmol/L, mg/dL given '<nil>'",
@@ -100,7 +101,7 @@ var _ = Describe("Event", func() {
 
 				It("is not required", func() {
 					delete(calculatorObj, "recommended")
-					Expect(helper.ValidDataType(Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(calculator.Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 				It("if present requires net", func() {
@@ -110,7 +111,7 @@ var _ = Describe("Event", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(calculatorObj, helper.ErrorProcessing),
+							calculator.Build(calculatorObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/net",
 								Detail: "This is a required field given '<nil>'",
@@ -125,7 +126,7 @@ var _ = Describe("Event", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(calculatorObj, helper.ErrorProcessing),
+							calculator.Build(calculatorObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/correction",
 								Detail: "This is a required field given '<nil>'",
@@ -140,7 +141,7 @@ var _ = Describe("Event", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(calculatorObj, helper.ErrorProcessing),
+							calculator.Build(calculatorObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/carb",
 								Detail: "This is a required field given '<nil>'",
@@ -154,7 +155,7 @@ var _ = Describe("Event", func() {
 
 				It("is not required", func() {
 					delete(calculatorObj, "bolus")
-					Expect(helper.ValidDataType(Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(calculator.Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 				It("if present requires subType", func() {
@@ -164,7 +165,7 @@ var _ = Describe("Event", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(calculatorObj, helper.ErrorProcessing),
+							calculator.Build(calculatorObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/subType",
 								Detail: "Must be one of normal, square, dual/square given '<nil>'",
@@ -179,7 +180,7 @@ var _ = Describe("Event", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(calculatorObj, helper.ErrorProcessing),
+							calculator.Build(calculatorObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/time",
 								Detail: "Times need to be ISO 8601 format and not in the future given '<nil>'",
@@ -194,7 +195,7 @@ var _ = Describe("Event", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(calculatorObj, helper.ErrorProcessing),
+							calculator.Build(calculatorObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/deviceId",
 								Detail: "This is a required field given '<nil>'",
@@ -208,7 +209,7 @@ var _ = Describe("Event", func() {
 
 				It("is not required", func() {
 					delete(calculatorObj, "bgTarget")
-					Expect(helper.ValidDataType(Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(calculator.Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 				It("if present requires high", func() {
@@ -218,7 +219,7 @@ var _ = Describe("Event", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(calculatorObj, helper.ErrorProcessing),
+							calculator.Build(calculatorObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/high",
 								Detail: "Must be greater than 0.0 given '<nil>'",
@@ -233,7 +234,7 @@ var _ = Describe("Event", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(calculatorObj, helper.ErrorProcessing),
+							calculator.Build(calculatorObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/low",
 								Detail: "Must be greater than 0.0 given '<nil>'",

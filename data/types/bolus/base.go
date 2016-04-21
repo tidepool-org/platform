@@ -52,10 +52,10 @@ var (
 	}
 
 	failureReasons = validate.FailureReasons{
-		"SubType":  validate.VaidationInfo{FieldName: types.BolusSubTypeField.Name, Message: types.BolusSubTypeField.Message},
-		"Normal":   validate.VaidationInfo{FieldName: normalField.Name, Message: normalField.Message},
-		"Extended": validate.VaidationInfo{FieldName: extendedField.Name, Message: extendedField.Message},
-		"Duration": validate.VaidationInfo{FieldName: durationField.Name, Message: durationField.Message},
+		"SubType":  validate.ValidationInfo{FieldName: types.BolusSubTypeField.Name, Message: types.BolusSubTypeField.Message},
+		"Normal":   validate.ValidationInfo{FieldName: normalField.Name, Message: normalField.Message},
+		"Extended": validate.ValidationInfo{FieldName: extendedField.Name, Message: extendedField.Message},
+		"Duration": validate.ValidationInfo{FieldName: durationField.Name, Message: durationField.Message},
 	}
 )
 

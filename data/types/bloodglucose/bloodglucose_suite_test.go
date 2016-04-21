@@ -1,4 +1,4 @@
-package bloodglucose
+package bloodglucose_test
 
 import (
 	"testing"

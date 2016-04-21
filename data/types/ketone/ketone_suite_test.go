@@ -1,4 +1,4 @@
-package ketone
+package ketone_test
 
 import (
 	"testing"

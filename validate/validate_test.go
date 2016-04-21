@@ -5,19 +5,19 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	valid "gopkg.in/bluesuncorp/validator.v8"
+	validator "gopkg.in/bluesuncorp/validator.v8"
 
-	. "github.com/tidepool-org/platform/validate"
+	"github.com/tidepool-org/platform/validate"
 )
 
 var _ = Describe("Validate", func() {
 
-	Context("using custom validator", func() {
+	Context("using custom platform validator", func() {
 		type ValidationTest struct {
 			Offset int `json:"offset" valid:"custom"`
 		}
 		var (
-			testValidator = func(v *valid.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+			testValidator = func(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
 				//a place holder for more through validation
 				if val, ok := field.Interface().(int); ok {
 					if val == 5 {
@@ -27,26 +27,26 @@ var _ = Describe("Validate", func() {
 				return false
 			}
 
-			failureReasons = FailureReasons{
-				"Offset": VaidationInfo{FieldName: "offset", Message: "Bad offset sorry"},
+			failureReasons = validate.FailureReasons{
+				"Offset": validate.ValidationInfo{FieldName: "offset", Message: "Bad offset sorry"},
 			}
 
-			validator = NewPlatformValidator()
+			platformValidator = validate.NewPlatformValidator()
 
-			processing ErrorProcessing
+			processing validate.ErrorProcessing
 		)
 
 		BeforeEach(func() {
-			validator.RegisterValidation("custom", testValidator)
-			validator.SetFailureReasons(failureReasons)
-			processing = ErrorProcessing{BasePath: "0", ErrorsArray: NewErrorsArray()}
+			platformValidator.RegisterValidation("custom", testValidator)
+			platformValidator.SetFailureReasons(failureReasons)
+			processing = validate.ErrorProcessing{BasePath: "0", ErrorsArray: validate.NewErrorsArray()}
 		})
 
 		Context("succeeds", func() {
 
 			It("when offset match's expected value", func() {
 				none := ValidationTest{Offset: 5}
-				validator.Struct(none, processing)
+				platformValidator.Struct(none, processing)
 				Expect(processing.ErrorsArray.HasErrors()).To(BeFalse())
 			})
 		})
@@ -55,19 +55,17 @@ var _ = Describe("Validate", func() {
 
 			It("when offset doesn't match expected value", func() {
 				none := ValidationTest{Offset: 0}
-				validator.Struct(none, processing)
+				platformValidator.Struct(none, processing)
 				Expect(processing.ErrorsArray.HasErrors()).To(BeTrue())
 			})
 
 			It("gives meaningfull failure message", func() {
 				none := ValidationTest{Offset: 0}
-				validator.Struct(none, processing)
+				platformValidator.Struct(none, processing)
 				Expect(processing.ErrorsArray.HasErrors()).To(BeTrue())
 				Expect(len(processing.ErrorsArray.Errors)).To(Equal(1))
 				Expect(processing.ErrorsArray.Errors[0].Detail).To(Equal("Bad offset sorry given '0'"))
 			})
 		})
-
 	})
-
 })

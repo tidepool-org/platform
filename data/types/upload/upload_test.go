@@ -1,4 +1,4 @@
-package upload
+package upload_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -6,6 +6,7 @@ import (
 
 	fixtures "github.com/tidepool-org/platform/data/_fixtures"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/upload"
 )
 
 var _ = Describe("Upload", func() {
@@ -31,7 +32,7 @@ var _ = Describe("Upload", func() {
 	Context("upload record from obj", func() {
 
 		It("when valid", func() {
-			Expect(helper.ValidDataType(Build(uploadObj, helper.ErrorProcessing))).To(BeNil())
+			Expect(helper.ValidDataType(upload.Build(uploadObj, helper.ErrorProcessing))).To(BeNil())
 		})
 
 		Context("validation", func() {
@@ -41,7 +42,7 @@ var _ = Describe("Upload", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(uploadObj, helper.ErrorProcessing),
+							upload.Build(uploadObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/computerTime",
 								Detail: "Times need to be ISO 8601 format and not in the future given 'Tuesday 14th May, 2015'",
@@ -55,7 +56,7 @@ var _ = Describe("Upload", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(uploadObj, helper.ErrorProcessing),
+							upload.Build(uploadObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/computerTime",
 								Detail: "Times need to be ISO 8601 format and not in the future given '<nil>'",
@@ -67,7 +68,7 @@ var _ = Describe("Upload", func() {
 					uploadObj["computerTime"] = ""
 					Expect(
 						helper.ErrorIsExpected(
-							Build(uploadObj, helper.ErrorProcessing),
+							upload.Build(uploadObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/computerTime",
 								Detail: "Times need to be ISO 8601 format and not in the future given ''",
@@ -82,7 +83,7 @@ var _ = Describe("Upload", func() {
 					delete(uploadObj, "byUser")
 					Expect(
 						helper.ErrorIsExpected(
-							Build(uploadObj, helper.ErrorProcessing),
+							upload.Build(uploadObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/byUser",
 								Detail: "This is a required field need needs to be 10+ characters in length given '<nil>'",
@@ -95,7 +96,7 @@ var _ = Describe("Upload", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(uploadObj, helper.ErrorProcessing),
+							upload.Build(uploadObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/byUser",
 								Detail: "This is a required field need needs to be 10+ characters in length given ''",
@@ -110,7 +111,7 @@ var _ = Describe("Upload", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(uploadObj, helper.ErrorProcessing),
+							upload.Build(uploadObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/version",
 								Detail: "This is a required field need needs to be 10+ characters in length given '<nil>'",
@@ -123,7 +124,7 @@ var _ = Describe("Upload", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(uploadObj, helper.ErrorProcessing),
+							upload.Build(uploadObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/version",
 								Detail: "This is a required field need needs to be 10+ characters in length given ''",
@@ -139,7 +140,7 @@ var _ = Describe("Upload", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(uploadObj, helper.ErrorProcessing),
+							upload.Build(uploadObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/deviceModel",
 								Detail: "This is a required field need needs to be 10+ characters in length given '<nil>'",
@@ -152,7 +153,7 @@ var _ = Describe("Upload", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(uploadObj, helper.ErrorProcessing),
+							upload.Build(uploadObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/deviceModel",
 								Detail: "This is a required field need needs to be 10+ characters in length given ''",
@@ -168,7 +169,7 @@ var _ = Describe("Upload", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(uploadObj, helper.ErrorProcessing),
+							upload.Build(uploadObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/deviceSerialNumber",
 								Detail: "This is a required field need needs to be 10+ characters in length given '<nil>'",
@@ -181,7 +182,7 @@ var _ = Describe("Upload", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(uploadObj, helper.ErrorProcessing),
+							upload.Build(uploadObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/deviceSerialNumber",
 								Detail: "This is a required field need needs to be 10+ characters in length given ''",
@@ -197,7 +198,7 @@ var _ = Describe("Upload", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(uploadObj, helper.ErrorProcessing),
+							upload.Build(uploadObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/deviceManufacturers",
 								Detail: "Must contain at least one manufacturer name given '<nil>'",
@@ -211,7 +212,7 @@ var _ = Describe("Upload", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(uploadObj, helper.ErrorProcessing),
+							upload.Build(uploadObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/deviceManufacturers",
 								Detail: "Must contain at least one manufacturer name given '[]'",
@@ -227,7 +228,7 @@ var _ = Describe("Upload", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(uploadObj, helper.ErrorProcessing),
+							upload.Build(uploadObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/deviceTags",
 								Detail: "Must be one of insulin-pump, cgm, bgm given '<nil>'",
@@ -240,7 +241,7 @@ var _ = Describe("Upload", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(uploadObj, helper.ErrorProcessing),
+							upload.Build(uploadObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/deviceTags",
 								Detail: "Must be one of insulin-pump, cgm, bgm given '[]'",
@@ -253,7 +254,7 @@ var _ = Describe("Upload", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(uploadObj, helper.ErrorProcessing),
+							upload.Build(uploadObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/deviceTags",
 								Detail: "Must be one of insulin-pump, cgm, bgm given '[unknown]'",
@@ -263,7 +264,7 @@ var _ = Describe("Upload", func() {
 
 				It("can be any of insulin-pump, cgm, bgm", func() {
 					uploadObj["deviceTags"] = []string{"insulin-pump", "cgm", "bgm"}
-					Expect(helper.ValidDataType(Build(uploadObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(upload.Build(uploadObj, helper.ErrorProcessing))).To(BeNil())
 				})
 			})
 			Context("timeProcessing", func() {
@@ -273,7 +274,7 @@ var _ = Describe("Upload", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(uploadObj, helper.ErrorProcessing),
+							upload.Build(uploadObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/timeProcessing",
 								Detail: "Must be one of across-the-board-timezone, utc-bootstrapping, none given '<nil>'",
@@ -286,7 +287,7 @@ var _ = Describe("Upload", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(uploadObj, helper.ErrorProcessing),
+							upload.Build(uploadObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/timeProcessing",
 								Detail: "Must be one of across-the-board-timezone, utc-bootstrapping, none given ''",
@@ -296,17 +297,17 @@ var _ = Describe("Upload", func() {
 
 				It("can be across-the-board-timezone", func() {
 					uploadObj["timeProcessing"] = "across-the-board-timezone"
-					Expect(helper.ValidDataType(Build(uploadObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(upload.Build(uploadObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 				It("can be utc-bootstrapping", func() {
 					uploadObj["timeProcessing"] = "utc-bootstrapping"
-					Expect(helper.ValidDataType(Build(uploadObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(upload.Build(uploadObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 				It("can be none", func() {
 					uploadObj["timeProcessing"] = "none"
-					Expect(helper.ValidDataType(Build(uploadObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(upload.Build(uploadObj, helper.ErrorProcessing))).To(BeNil())
 				})
 			})
 		})

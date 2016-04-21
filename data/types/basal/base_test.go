@@ -1,4 +1,4 @@
-package basal
+package basal_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -6,6 +6,7 @@ import (
 
 	fixtures "github.com/tidepool-org/platform/data/_fixtures"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/basal"
 )
 
 var _ = Describe("Basal", func() {
@@ -25,7 +26,7 @@ var _ = Describe("Basal", func() {
 	Context("type from obj", func() {
 
 		It("returns a valid basal type", func() {
-			Expect(helper.ValidDataType(Build(basalObj, helper.ErrorProcessing))).To(BeNil())
+			Expect(helper.ValidDataType(basal.Build(basalObj, helper.ErrorProcessing))).To(BeNil())
 		})
 
 	})
@@ -36,7 +37,7 @@ var _ = Describe("Basal", func() {
 
 			It("is not required", func() {
 				delete(basalObj, "duration")
-				Expect(helper.ValidDataType(Build(basalObj, helper.ErrorProcessing))).To(BeNil())
+				Expect(helper.ValidDataType(basal.Build(basalObj, helper.ErrorProcessing))).To(BeNil())
 			})
 
 			It("fails if less than zero", func() {
@@ -44,7 +45,7 @@ var _ = Describe("Basal", func() {
 
 				Expect(
 					helper.ErrorIsExpected(
-						Build(basalObj, helper.ErrorProcessing),
+						basal.Build(basalObj, helper.ErrorProcessing),
 						types.ExpectedErrorDetails{
 							Path:   "0/duration",
 							Detail: "Must be greater than 0 given '-1'",
@@ -55,7 +56,7 @@ var _ = Describe("Basal", func() {
 
 			It("valid when greater than zero", func() {
 				basalObj["duration"] = 4000
-				Expect(helper.ValidDataType(Build(basalObj, helper.ErrorProcessing))).To(BeNil())
+				Expect(helper.ValidDataType(basal.Build(basalObj, helper.ErrorProcessing))).To(BeNil())
 			})
 
 		})
@@ -67,7 +68,7 @@ var _ = Describe("Basal", func() {
 
 				Expect(
 					helper.ErrorIsExpected(
-						Build(basalObj, helper.ErrorProcessing),
+						basal.Build(basalObj, helper.ErrorProcessing),
 						types.ExpectedErrorDetails{
 							Path:   "0/deliveryType",
 							Detail: "Must be one of scheduled, suspend, temp given '<nil>'",
@@ -80,7 +81,7 @@ var _ = Describe("Basal", func() {
 				basalObj["deliveryType"] = "superfly"
 				Expect(
 					helper.ErrorIsExpected(
-						Build(basalObj, helper.ErrorProcessing),
+						basal.Build(basalObj, helper.ErrorProcessing),
 						types.ExpectedErrorDetails{
 							Path:   "0/deliveryType",
 							Detail: "Must be one of scheduled, suspend, temp given 'superfly'",
@@ -94,7 +95,7 @@ var _ = Describe("Basal", func() {
 
 				Expect(
 					helper.ErrorIsExpected(
-						Build(basalObj, helper.ErrorProcessing),
+						basal.Build(basalObj, helper.ErrorProcessing),
 						types.ExpectedErrorDetails{
 							Path:   "0/deliveryType",
 							Detail: "Must be one of scheduled, suspend, temp given 'injected'",
@@ -104,17 +105,17 @@ var _ = Describe("Basal", func() {
 
 			It("valid if scheduled type", func() {
 				basalObj["deliveryType"] = "scheduled"
-				Expect(helper.ValidDataType(Build(basalObj, helper.ErrorProcessing))).To(BeNil())
+				Expect(helper.ValidDataType(basal.Build(basalObj, helper.ErrorProcessing))).To(BeNil())
 			})
 
 			It("valid if suspend type", func() {
 				basalObj["deliveryType"] = "suspend"
-				Expect(helper.ValidDataType(Build(basalObj, helper.ErrorProcessing))).To(BeNil())
+				Expect(helper.ValidDataType(basal.Build(basalObj, helper.ErrorProcessing))).To(BeNil())
 			})
 
 			It("valid if temp type", func() {
 				basalObj["deliveryType"] = "temp"
-				Expect(helper.ValidDataType(Build(basalObj, helper.ErrorProcessing))).To(BeNil())
+				Expect(helper.ValidDataType(basal.Build(basalObj, helper.ErrorProcessing))).To(BeNil())
 			})
 
 		})

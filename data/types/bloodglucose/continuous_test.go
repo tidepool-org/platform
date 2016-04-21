@@ -1,4 +1,4 @@
-package bloodglucose
+package bloodglucose_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -6,6 +6,7 @@ import (
 
 	fixtures "github.com/tidepool-org/platform/data/_fixtures"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/bloodglucose"
 )
 
 var _ = Describe("Continuous", func() {
@@ -26,7 +27,7 @@ var _ = Describe("Continuous", func() {
 		})
 
 		It("returns a bolus if the obj is valid", func() {
-			Expect(helper.ValidDataType(BuildContinuous(bgObj, helper.ErrorProcessing))).To(BeNil())
+			Expect(helper.ValidDataType(bloodglucose.BuildContinuous(bgObj, helper.ErrorProcessing))).To(BeNil())
 		})
 
 	})
@@ -44,7 +45,7 @@ var _ = Describe("Continuous", func() {
 				delete(bgObj, "units")
 				Expect(
 					helper.ErrorIsExpected(
-						BuildContinuous(bgObj, helper.ErrorProcessing),
+						bloodglucose.BuildContinuous(bgObj, helper.ErrorProcessing),
 						types.ExpectedErrorDetails{
 							Path:   "0/units",
 							Detail: "Must be one of mmol/L, mg/dL given '<nil>'",
@@ -54,12 +55,12 @@ var _ = Describe("Continuous", func() {
 
 			It("can be mmol/l", func() {
 				bgObj["units"] = "mmol/l"
-				Expect(helper.ValidDataType(BuildContinuous(bgObj, helper.ErrorProcessing))).To(BeNil())
+				Expect(helper.ValidDataType(bloodglucose.BuildContinuous(bgObj, helper.ErrorProcessing))).To(BeNil())
 			})
 
 			It("can be mg/dl", func() {
 				bgObj["units"] = "mg/dl"
-				Expect(helper.ValidDataType(BuildContinuous(bgObj, helper.ErrorProcessing))).To(BeNil())
+				Expect(helper.ValidDataType(bloodglucose.BuildContinuous(bgObj, helper.ErrorProcessing))).To(BeNil())
 			})
 
 			It("cannot be anything else", func() {
@@ -67,7 +68,7 @@ var _ = Describe("Continuous", func() {
 
 				Expect(
 					helper.ErrorIsExpected(
-						BuildContinuous(bgObj, helper.ErrorProcessing),
+						bloodglucose.BuildContinuous(bgObj, helper.ErrorProcessing),
 						types.ExpectedErrorDetails{
 							Path:   "0/units",
 							Detail: "Must be one of mmol/L, mg/dL given 'grams'",
@@ -82,7 +83,7 @@ var _ = Describe("Continuous", func() {
 				delete(bgObj, "value")
 				Expect(
 					helper.ErrorIsExpected(
-						BuildContinuous(bgObj, helper.ErrorProcessing),
+						bloodglucose.BuildContinuous(bgObj, helper.ErrorProcessing),
 						types.ExpectedErrorDetails{
 							Path:   "0/value",
 							Detail: "Must be greater than 0.0 given '<nil>'",
@@ -96,7 +97,7 @@ var _ = Describe("Continuous", func() {
 				delete(bgObj, "isig")
 				Expect(
 					helper.ErrorIsExpected(
-						BuildContinuous(bgObj, helper.ErrorProcessing),
+						bloodglucose.BuildContinuous(bgObj, helper.ErrorProcessing),
 						types.ExpectedErrorDetails{
 							Path:   "0/isig",
 							Detail: "Must be greater than 0.0 given '<nil>'",

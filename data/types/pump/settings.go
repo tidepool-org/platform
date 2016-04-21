@@ -91,17 +91,17 @@ var (
 	}
 
 	failureReasons = validate.FailureReasons{
-		"ActiveSchedule": validate.VaidationInfo{FieldName: activeScheduleField.Name, Message: activeScheduleField.Message},
+		"ActiveSchedule": validate.ValidationInfo{FieldName: activeScheduleField.Name, Message: activeScheduleField.Message},
 
-		"Carbohydrate": validate.VaidationInfo{FieldName: carbohydrateUnitsField.Name, Message: carbohydrateUnitsField.Message},
-		"BloodGlucose": validate.VaidationInfo{FieldName: bloodGlucoseUnitsField.Name, Message: bloodGlucoseUnitsField.Message},
+		"Carbohydrate": validate.ValidationInfo{FieldName: carbohydrateUnitsField.Name, Message: carbohydrateUnitsField.Message},
+		"BloodGlucose": validate.ValidationInfo{FieldName: bloodGlucoseUnitsField.Name, Message: bloodGlucoseUnitsField.Message},
 
-		"High": validate.VaidationInfo{FieldName: "high", Message: types.BloodGlucoseValueField.Message},
-		"Low":  validate.VaidationInfo{FieldName: "low", Message: types.BloodGlucoseValueField.Message},
+		"High": validate.ValidationInfo{FieldName: "high", Message: types.BloodGlucoseValueField.Message},
+		"Low":  validate.ValidationInfo{FieldName: "low", Message: types.BloodGlucoseValueField.Message},
 
-		"Rate":   validate.VaidationInfo{FieldName: rateField.Name, Message: rateField.Message},
-		"Start":  validate.VaidationInfo{FieldName: startField.Name, Message: startField.Message},
-		"Amount": validate.VaidationInfo{FieldName: amountField.Name, Message: amountField.Message},
+		"Rate":   validate.ValidationInfo{FieldName: rateField.Name, Message: rateField.Message},
+		"Start":  validate.ValidationInfo{FieldName: startField.Name, Message: startField.Message},
+		"Amount": validate.ValidationInfo{FieldName: amountField.Name, Message: amountField.Message},
 	}
 )
 

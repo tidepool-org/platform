@@ -38,8 +38,8 @@ func BuildContinuous(datum types.Datum, errs validate.ErrorProcessing) *Continuo
 		Base:  types.BuildBase(datum, errs),
 	}
 
-	continuous.Units = normalizeUnitName(continuous.Units)
-	continuous.Value = convertMgToMmol(continuous.Value, continuous.Units)
+	continuous.Units = NormalizeUnitName(continuous.Units)
+	continuous.Value = ConvertMgToMmol(continuous.Value, continuous.Units)
 
 	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(continuous, errs)
 	return continuous

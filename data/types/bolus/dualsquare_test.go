@@ -1,4 +1,4 @@
-package bolus
+package bolus_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -6,6 +6,7 @@ import (
 
 	fixtures "github.com/tidepool-org/platform/data/_fixtures"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/bolus"
 )
 
 var _ = Describe("Bolus", func() {
@@ -26,7 +27,7 @@ var _ = Describe("Bolus", func() {
 	Context("dual/square from obj", func() {
 
 		It("if the obj is valid", func() {
-			Expect(helper.ValidDataType(Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
+			Expect(helper.ValidDataType(bolus.Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
 		})
 
 		Context("validation", func() {
@@ -35,7 +36,7 @@ var _ = Describe("Bolus", func() {
 
 				It("is not required", func() {
 					delete(bolusObj, "duration")
-					Expect(helper.ValidDataType(Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(bolus.Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 				It("invalid when less than zero", func() {
@@ -43,7 +44,7 @@ var _ = Describe("Bolus", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(bolusObj, helper.ErrorProcessing),
+							bolus.Build(bolusObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/duration",
 								Detail: "Must be greater than 0 given '-1'",
@@ -54,7 +55,7 @@ var _ = Describe("Bolus", func() {
 
 				It("valid greater than zero", func() {
 					bolusObj["duration"] = 4000
-					Expect(helper.ValidDataType(Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(bolus.Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 			})
@@ -62,7 +63,7 @@ var _ = Describe("Bolus", func() {
 
 				It("is not required", func() {
 					delete(bolusObj, "extended")
-					Expect(helper.ValidDataType(Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(bolus.Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 				It("invalid when zero", func() {
@@ -70,7 +71,7 @@ var _ = Describe("Bolus", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(bolusObj, helper.ErrorProcessing),
+							bolus.Build(bolusObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/extended",
 								Detail: "Must be greater than 0.0 given '-0.1'",
@@ -80,7 +81,7 @@ var _ = Describe("Bolus", func() {
 
 				It("valid when greater than zero", func() {
 					bolusObj["extended"] = 0.7
-					Expect(helper.ValidDataType(Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(bolus.Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 			})
@@ -88,7 +89,7 @@ var _ = Describe("Bolus", func() {
 
 				It("is not required", func() {
 					delete(bolusObj, "normal")
-					Expect(helper.ValidDataType(Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(bolus.Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 				It("invalid when zero", func() {
@@ -96,7 +97,7 @@ var _ = Describe("Bolus", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(bolusObj, helper.ErrorProcessing),
+							bolus.Build(bolusObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/normal",
 								Detail: "Must be greater than 0.0 given '-0.1'",
@@ -107,7 +108,7 @@ var _ = Describe("Bolus", func() {
 
 				It("valid when greater than zero", func() {
 					bolusObj["normal"] = 0.7
-					Expect(helper.ValidDataType(Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(bolus.Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 			})

@@ -16,14 +16,14 @@ type PlatformValidator struct {
 	FailureReasons
 }
 
-type VaidationInfo struct {
+type ValidationInfo struct {
 	FieldName string
 	Message   string
 }
 
 type ValidationTag string
 
-type FailureReasons map[string]VaidationInfo
+type FailureReasons map[string]ValidationInfo
 
 func NewPlatformValidator() *PlatformValidator {
 	validate := validator.New(&validator.Config{TagName: "valid"})

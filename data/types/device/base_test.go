@@ -1,4 +1,4 @@
-package device
+package device_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -6,6 +6,7 @@ import (
 
 	fixtures "github.com/tidepool-org/platform/data/_fixtures"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/device"
 )
 
 var _ = Describe("DeviceEvent", func() {
@@ -25,7 +26,7 @@ var _ = Describe("DeviceEvent", func() {
 			deviceEventObj["alarmType"] = "low_insulin"
 
 			It("returns a Alarm if the obj is valid", func() {
-				Expect(helper.ValidDataType(Build(deviceEventObj, helper.ErrorProcessing))).To(BeNil())
+				Expect(helper.ValidDataType(device.Build(deviceEventObj, helper.ErrorProcessing))).To(BeNil())
 			})
 		})
 
@@ -38,7 +39,7 @@ var _ = Describe("DeviceEvent", func() {
 			deviceEventObj["units"] = "mg/dL"
 
 			It("returns a Calibration if the obj is valid", func() {
-				Expect(helper.ValidDataType(Build(deviceEventObj, helper.ErrorProcessing))).To(BeNil())
+				Expect(helper.ValidDataType(device.Build(deviceEventObj, helper.ErrorProcessing))).To(BeNil())
 			})
 		})
 

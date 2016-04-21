@@ -10,13 +10,13 @@ var (
 	mg   = "mg/dL"
 
 	failureReasons = validate.FailureReasons{
-		"Units": validate.VaidationInfo{FieldName: types.MmolOrMgUnitsField.Name, Message: types.MmolOrMgUnitsField.Message},
-		"Value": validate.VaidationInfo{FieldName: types.BloodGlucoseValueField.Name, Message: types.BloodGlucoseValueField.Message},
-		"Isig":  validate.VaidationInfo{FieldName: isigField.Name, Message: isigField.Message},
+		"Units": validate.ValidationInfo{FieldName: types.MmolOrMgUnitsField.Name, Message: types.MmolOrMgUnitsField.Message},
+		"Value": validate.ValidationInfo{FieldName: types.BloodGlucoseValueField.Name, Message: types.BloodGlucoseValueField.Message},
+		"Isig":  validate.ValidationInfo{FieldName: isigField.Name, Message: isigField.Message},
 	}
 )
 
-func normalizeUnitName(unitsName *string) *string {
+func NormalizeUnitName(unitsName *string) *string {
 	if unitsName == nil {
 		return unitsName
 	}
@@ -31,13 +31,13 @@ func normalizeUnitName(unitsName *string) *string {
 	}
 }
 
-func convertMgToMmol(mgValue *float64, units *string) *float64 {
+func ConvertMgToMmol(mgValue *float64, units *string) *float64 {
 
 	if mgValue == nil || units == nil {
 		return mgValue
 	}
 
-	switch *normalizeUnitName(units) {
+	switch *NormalizeUnitName(units) {
 	case mg:
 		converted := *mgValue / 18.01559
 		return &converted

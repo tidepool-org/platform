@@ -1,4 +1,4 @@
-package upload
+package upload_test
 
 import (
 	"testing"

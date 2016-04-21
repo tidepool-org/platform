@@ -1,4 +1,4 @@
-package ketone
+package ketone_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -6,6 +6,7 @@ import (
 
 	fixtures "github.com/tidepool-org/platform/data/_fixtures"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/ketone"
 )
 
 var _ = Describe("Blood", func() {
@@ -22,7 +23,7 @@ var _ = Describe("Blood", func() {
 	Context("ketone from obj", func() {
 
 		It("when valid", func() {
-			Expect(helper.ValidDataType(Build(bloodKetoneObj, helper.ErrorProcessing))).To(BeNil())
+			Expect(helper.ValidDataType(ketone.Build(bloodKetoneObj, helper.ErrorProcessing))).To(BeNil())
 		})
 
 		Context("validation", func() {
@@ -32,7 +33,7 @@ var _ = Describe("Blood", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							Build(bloodKetoneObj, helper.ErrorProcessing),
+							ketone.Build(bloodKetoneObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/value",
 								Detail: "Must be greater than 0.0 given '0'",
@@ -46,7 +47,7 @@ var _ = Describe("Blood", func() {
 					bloodKetoneObj["units"] = "mg/dL"
 					Expect(
 						helper.ErrorIsExpected(
-							Build(bloodKetoneObj, helper.ErrorProcessing),
+							ketone.Build(bloodKetoneObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/units",
 								Detail: "Must be mmol/L given 'mg/dL'",

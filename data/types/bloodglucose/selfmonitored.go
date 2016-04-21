@@ -21,8 +21,8 @@ func BuildSelfMonitored(datum types.Datum, errs validate.ErrorProcessing) *SelfM
 		Base:  types.BuildBase(datum, errs),
 	}
 
-	selfMonitored.Units = normalizeUnitName(selfMonitored.Units)
-	selfMonitored.Value = convertMgToMmol(selfMonitored.Value, selfMonitored.Units)
+	selfMonitored.Units = NormalizeUnitName(selfMonitored.Units)
+	selfMonitored.Value = ConvertMgToMmol(selfMonitored.Value, selfMonitored.Units)
 
 	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(selfMonitored, errs)
 	return selfMonitored

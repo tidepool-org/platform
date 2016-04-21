@@ -92,21 +92,21 @@ var (
 	}
 
 	failureReasons = validate.FailureReasons{
-		"Time":              validate.VaidationInfo{FieldName: types.TimeStringField.Name, Message: types.TimeStringField.Message},
-		"BloodGlucoseInput": validate.VaidationInfo{FieldName: bloodGlucoseInputField.Name, Message: bloodGlucoseInputField.Message},
-		"CarbohydrateInput": validate.VaidationInfo{FieldName: carbohydrateInputField.Name, Message: carbohydrateInputField.Message},
-		"Units":             validate.VaidationInfo{FieldName: types.MmolOrMgUnitsField.Name, Message: types.MmolOrMgUnitsField.Message},
-		"InsulinOnBoard":    validate.VaidationInfo{FieldName: types.BolusSubTypeField.Name, Message: types.BolusSubTypeField.Message},
+		"Time":              validate.ValidationInfo{FieldName: types.TimeStringField.Name, Message: types.TimeStringField.Message},
+		"BloodGlucoseInput": validate.ValidationInfo{FieldName: bloodGlucoseInputField.Name, Message: bloodGlucoseInputField.Message},
+		"CarbohydrateInput": validate.ValidationInfo{FieldName: carbohydrateInputField.Name, Message: carbohydrateInputField.Message},
+		"Units":             validate.ValidationInfo{FieldName: types.MmolOrMgUnitsField.Name, Message: types.MmolOrMgUnitsField.Message},
+		"InsulinOnBoard":    validate.ValidationInfo{FieldName: types.BolusSubTypeField.Name, Message: types.BolusSubTypeField.Message},
 
-		"SubType":  validate.VaidationInfo{FieldName: types.BolusSubTypeField.Name, Message: types.BolusSubTypeField.Message},
-		"DeviceID": validate.VaidationInfo{FieldName: types.BaseDeviceIDField.Name, Message: types.BaseDeviceIDField.Message},
+		"SubType":  validate.ValidationInfo{FieldName: types.BolusSubTypeField.Name, Message: types.BolusSubTypeField.Message},
+		"DeviceID": validate.ValidationInfo{FieldName: types.BaseDeviceIDField.Name, Message: types.BaseDeviceIDField.Message},
 
-		"High": validate.VaidationInfo{FieldName: "high", Message: types.BloodGlucoseValueField.Message},
-		"Low":  validate.VaidationInfo{FieldName: "low", Message: types.BloodGlucoseValueField.Message},
+		"High": validate.ValidationInfo{FieldName: "high", Message: types.BloodGlucoseValueField.Message},
+		"Low":  validate.ValidationInfo{FieldName: "low", Message: types.BloodGlucoseValueField.Message},
 
-		"Net":          validate.VaidationInfo{FieldName: netField.Name, Message: netField.Message},
-		"Correction":   validate.VaidationInfo{FieldName: correctionField.Name, Message: correctionField.Message},
-		"Carbohydrate": validate.VaidationInfo{FieldName: carbField.Name, Message: carbField.Message},
+		"Net":          validate.ValidationInfo{FieldName: netField.Name, Message: netField.Message},
+		"Correction":   validate.ValidationInfo{FieldName: correctionField.Name, Message: correctionField.Message},
+		"Carbohydrate": validate.ValidationInfo{FieldName: carbField.Name, Message: carbField.Message},
 	}
 )
 

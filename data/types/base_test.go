@@ -1,19 +1,20 @@
-package types
+package types_test
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	fixtures "github.com/tidepool-org/platform/data/_fixtures"
+	"github.com/tidepool-org/platform/data/types"
 )
 
 var _ = Describe("Base", func() {
 
-	var baseObj Datum
-	var helper *TestingHelper
+	var baseObj types.Datum
+	var helper *types.TestingHelper
 
 	BeforeEach(func() {
-		helper = NewTestingHelper()
+		helper = types.NewTestingHelper()
 		baseObj = fixtures.TestingDatumBase()
 		baseObj["type"] = "testing"
 	})
@@ -21,7 +22,7 @@ var _ = Describe("Base", func() {
 	Context("can be built with all fields", func() {
 
 		It("and be of type base if the obj is valid", func() {
-			Expect(helper.ValidDataType(BuildBase(baseObj, helper.ErrorProcessing))).To(BeNil())
+			Expect(helper.ValidDataType(types.BuildBase(baseObj, helper.ErrorProcessing))).To(BeNil())
 		})
 
 		Context("validation", func() {
@@ -33,8 +34,8 @@ var _ = Describe("Base", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							BuildBase(baseObj, helper.ErrorProcessing),
-							ExpectedErrorDetails{
+							types.BuildBase(baseObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
 								Path:   "0/time",
 								Detail: "Times need to be ISO 8601 format and not in the future given ''",
 							}),
@@ -47,8 +48,8 @@ var _ = Describe("Base", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							BuildBase(baseObj, helper.ErrorProcessing),
-							ExpectedErrorDetails{
+							types.BuildBase(baseObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
 								Path:   "0/time",
 								Detail: "Times need to be ISO 8601 format and not in the future given 'Monday, 02 Jan 2016'",
 							}),
@@ -61,8 +62,8 @@ var _ = Describe("Base", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							BuildBase(baseObj, helper.ErrorProcessing),
-							ExpectedErrorDetails{
+							types.BuildBase(baseObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
 								Path:   "0/time",
 								Detail: "Times need to be ISO 8601 format and not in the future given '2016-02-05'",
 							}),
@@ -74,8 +75,8 @@ var _ = Describe("Base", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							BuildBase(baseObj, helper.ErrorProcessing),
-							ExpectedErrorDetails{
+							types.BuildBase(baseObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
 								Path:   "0/time",
 								Detail: "Times need to be ISO 8601 format and not in the future given '2016-02-05T20'",
 							}),
@@ -84,17 +85,17 @@ var _ = Describe("Base", func() {
 
 				It("the date is RFC3339 formated - e.g. 1", func() {
 					baseObj["time"] = "2016-03-14T20:22:21+13:00"
-					Expect(helper.ValidDataType(BuildBase(baseObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(types.BuildBase(baseObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 				It("the date is RFC3339 formated - e.g. 2", func() {
 					baseObj["time"] = "2016-02-05T15:53:00"
-					Expect(helper.ValidDataType(BuildBase(baseObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(types.BuildBase(baseObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 				It("the date is RFC3339 formated - e.g. 3", func() {
 					baseObj["time"] = "2016-02-05T15:53:00.000Z"
-					Expect(helper.ValidDataType(BuildBase(baseObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(types.BuildBase(baseObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 			})
@@ -105,8 +106,8 @@ var _ = Describe("Base", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							BuildBase(baseObj, helper.ErrorProcessing),
-							ExpectedErrorDetails{
+							types.BuildBase(baseObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
 								Path:   "0/deviceId",
 								Detail: "This is a required field given '<nil>'",
 							}),
@@ -118,8 +119,8 @@ var _ = Describe("Base", func() {
 
 					Expect(
 						helper.ErrorIsExpected(
-							BuildBase(baseObj, helper.ErrorProcessing),
-							ExpectedErrorDetails{
+							types.BuildBase(baseObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
 								Path:   "0/deviceId",
 								Detail: "This is a required field given ''",
 							}),
@@ -133,8 +134,8 @@ var _ = Describe("Base", func() {
 					baseObj["timezoneOffset"] = -841
 					Expect(
 						helper.ErrorIsExpected(
-							BuildBase(baseObj, helper.ErrorProcessing),
-							ExpectedErrorDetails{
+							types.BuildBase(baseObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
 								Path:   "0/timezoneOffset",
 								Detail: "needs to be in minutes and >= -840 and <= 720 given '-841'",
 							}),
@@ -145,8 +146,8 @@ var _ = Describe("Base", func() {
 					baseObj["timezoneOffset"] = 721
 					Expect(
 						helper.ErrorIsExpected(
-							BuildBase(baseObj, helper.ErrorProcessing),
-							ExpectedErrorDetails{
+							types.BuildBase(baseObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
 								Path:   "0/timezoneOffset",
 								Detail: "needs to be in minutes and >= -840 and <= 720 given '721'",
 							}),
@@ -156,17 +157,17 @@ var _ = Describe("Base", func() {
 
 				It("-840", func() {
 					baseObj["timezoneOffset"] = -840
-					Expect(helper.ValidDataType(BuildBase(baseObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(types.BuildBase(baseObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 				It("720", func() {
 					baseObj["timezoneOffset"] = 720
-					Expect(helper.ValidDataType(BuildBase(baseObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(types.BuildBase(baseObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 				It("0", func() {
 					baseObj["timezoneOffset"] = 0
-					Expect(helper.ValidDataType(BuildBase(baseObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(types.BuildBase(baseObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 			})
@@ -174,7 +175,7 @@ var _ = Describe("Base", func() {
 
 				It("an interface", func() {
 					baseObj["payload"] = map[string]string{"some": "stuff", "in": "here"}
-					Expect(helper.ValidDataType(BuildBase(baseObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(types.BuildBase(baseObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 			})
@@ -182,12 +183,12 @@ var _ = Describe("Base", func() {
 
 				It("many annotations", func() {
 					baseObj["annotations"] = []interface{}{"some", "stuff", "in", "here"}
-					Expect(helper.ValidDataType(BuildBase(baseObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(types.BuildBase(baseObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 				It("one annotation", func() {
 					baseObj["annotations"] = []interface{}{"one"}
-					Expect(helper.ValidDataType(BuildBase(baseObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(helper.ValidDataType(types.BuildBase(baseObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 			})
@@ -195,7 +196,7 @@ var _ = Describe("Base", func() {
 		Context("convertions", func() {
 
 			It("int when zero", func() {
-				var intVal = Datum{"myint": 0}
+				var intVal = types.Datum{"myint": 0}
 				zero := 0
 
 				converted := intVal.ToInt("myint", helper.ErrorProcessing)

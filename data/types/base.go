@@ -110,13 +110,13 @@ var (
 	}
 
 	failureReasons = validate.FailureReasons{
-		"DeviceTime":     validate.VaidationInfo{FieldName: baseDeviceTimeField.Name, Message: baseDeviceTimeField.Message},
-		"Time":           validate.VaidationInfo{FieldName: TimeStringField.Name, Message: TimeStringField.Message},
-		"TimezoneOffset": validate.VaidationInfo{FieldName: baseTimezoneOffsetField.Name, Message: baseTimezoneOffsetField.Message},
-		"Payload":        validate.VaidationInfo{FieldName: basePayloadField.Name, Message: basePayloadField.Message},
-		"Annotations":    validate.VaidationInfo{FieldName: baseAnnotationsField.Name, Message: baseAnnotationsField.Message},
-		"DeviceID":       validate.VaidationInfo{FieldName: BaseDeviceIDField.Name, Message: BaseDeviceIDField.Message},
-		"Type":           validate.VaidationInfo{FieldName: BaseTypeField.Name, Message: BaseTypeField.Message},
+		"DeviceTime":     validate.ValidationInfo{FieldName: baseDeviceTimeField.Name, Message: baseDeviceTimeField.Message},
+		"Time":           validate.ValidationInfo{FieldName: TimeStringField.Name, Message: TimeStringField.Message},
+		"TimezoneOffset": validate.ValidationInfo{FieldName: baseTimezoneOffsetField.Name, Message: baseTimezoneOffsetField.Message},
+		"Payload":        validate.ValidationInfo{FieldName: basePayloadField.Name, Message: basePayloadField.Message},
+		"Annotations":    validate.ValidationInfo{FieldName: baseAnnotationsField.Name, Message: baseAnnotationsField.Message},
+		"DeviceID":       validate.ValidationInfo{FieldName: BaseDeviceIDField.Name, Message: BaseDeviceIDField.Message},
+		"Type":           validate.ValidationInfo{FieldName: BaseTypeField.Name, Message: BaseTypeField.Message},
 	}
 )
 

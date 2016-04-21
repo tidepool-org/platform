@@ -1,4 +1,4 @@
-package basal
+package basal_test
 
 import (
 	"testing"

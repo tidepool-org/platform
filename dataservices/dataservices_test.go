@@ -1,4 +1,4 @@
-package main_test
+package dataservices_test
 
 import (
 	"bytes"
@@ -9,21 +9,21 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	. "github.com/tidepool-org/platform/dataservices"
+	"github.com/tidepool-org/platform/dataservices"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/user"
 	"github.com/tidepool-org/platform/version"
 )
 
 var _ = Describe("The Dataservices client", func() {
-	var client *DataServiceClient
+	var client *dataservices.DataServiceClient
 	var env map[string]interface{}
 	var params map[string]string
 	const userID = "9999999"
 	const groupID = "223377628"
 
 	BeforeEach(func() {
-		client = NewDataServiceClient()
+		client = dataservices.NewDataServiceClient()
 	})
 
 	Describe("Version", func() {
