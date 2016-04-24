@@ -145,7 +145,7 @@ func BuildBase(datum Datum, errs validate.ErrorProcessing) Base {
 		Annotations:      datum.ToArray(baseAnnotationsField.Name, errs),
 		Internal: Internal{
 			GroupID:       datum[BaseGroupIDField.Name].(string),
-			ActiveFlag:    true,
+			ActiveFlag:    false,
 			SchemaVersion: 1, //TODO: configured ??
 			CreatedTime:   time.Now().Format(time.RFC3339),
 		},
@@ -248,12 +248,21 @@ func (d Datum) ToStringArray(fieldName string, errs validate.ErrorProcessing) *[
 	if d[fieldName] == nil {
 		return nil
 	}
-	arrayData, ok := d[fieldName].([]string)
+	objectArray, ok := d[fieldName].([]interface{})
 	if !ok {
 		errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "string array"))
 		return nil
 	}
-	return &arrayData
+	stringArray := []string{}
+	for _, object := range objectArray {
+		str, ok := object.(string)
+		if !ok {
+			errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "string array"))
+			return nil
+		}
+		stringArray = append(stringArray, str)
+	}
+	return &stringArray
 }
 
 func (d Datum) ToObject(fieldName string, errs validate.ErrorProcessing) *interface{} {

@@ -22,7 +22,7 @@ type TimeChange struct {
 type Change struct {
 	From     *string   `json:"from" bson:"from" valid:"timestr"`
 	To       *string   `json:"to" bson:"to" valid:"timestr"`
-	Agent    *string   `json:"from" bson:"from" valid:"devicechangeagent"`
+	Agent    *string   `json:"agent" bson:"agent" valid:"devicechangeagent"`
 	Timezone *string   `json:"timezone,omitempty" bson:"timezone,omitempty" valid:"-"`
 	Reasons  *[]string `json:"reasons,omitempty" bson:"reasons,omitempty" valid:"omitempty,devicechangereasons"`
 }
