@@ -19,10 +19,21 @@ var _ = Describe("Base", func() {
 		baseObj["type"] = "testing"
 	})
 
+	Context("CurrentSchemaVersion is set", func() {
+		It("as 10", func() {
+			Expect(types.CurrentSchemaVersion).To(Equal(10))
+		})
+	})
+
 	Context("can be built with all fields", func() {
 
 		It("and be of type base if the obj is valid", func() {
 			Expect(helper.ValidDataType(types.BuildBase(baseObj, helper.ErrorProcessing))).To(BeNil())
+		})
+
+		It("will have schema version set as CurrentSchemaVersion", func() {
+			base := types.BuildBase(baseObj, helper.ErrorProcessing)
+			Expect(base.SchemaVersion).To(Equal(types.CurrentSchemaVersion))
 		})
 
 		Context("validation", func() {

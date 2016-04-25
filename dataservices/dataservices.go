@@ -21,8 +21,9 @@ const (
 
 	dataservicesStoreName = "deviceData"
 
+	//TODO: this will removed when updated store is integrated
 	minimumSchemaVersion = 0
-	maximumSchemaVersion = 99
+	currentSchemaVersion = 10
 
 	useridParamName = "userid"
 )
@@ -277,7 +278,7 @@ func (s *Server) withContext(handler HandlerFunc) rest.HandlerFunc {
 // 		query[types.TimeStringField.Name] = map[string]interface{}{store.LessThanEquals: end}
 // 	}
 
-// 	query["_schemaVersion"] = map[string]interface{}{store.GreaterThanEquals: minimumSchemaVersion, store.LessThanEquals: maximumSchemaVersion}
+//	query["_schemaVersion"] = map[string]interface{}{store.GreaterThanEquals: minimumSchemaVersion, store.LessThanEquals: currentSchemaVersion}
 
 // 	return query
 // }

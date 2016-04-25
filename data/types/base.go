@@ -124,6 +124,8 @@ const (
 	InvalidDataTitle = "Invalid data"
 
 	invalidTypeDescription = "should be of type '%s'"
+
+	CurrentSchemaVersion = 10
 )
 
 func BuildBase(datum Datum, errs validate.ErrorProcessing) Base {
@@ -145,7 +147,7 @@ func BuildBase(datum Datum, errs validate.ErrorProcessing) Base {
 		Internal: Internal{
 			GroupID:       datum[BaseGroupIDField.Name].(string),
 			ActiveFlag:    false,
-			SchemaVersion: 1, //TODO: configured ??
+			SchemaVersion: CurrentSchemaVersion,
 			CreatedTime:   time.Now().Format(time.RFC3339),
 		},
 	}
