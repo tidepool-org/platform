@@ -91,19 +91,19 @@ var _ = Describe("Continuous", func() {
 				).To(BeNil())
 			})
 		})
-		Context("isig", func() {
+		// Context("isig", func() {
 
-			It("is required", func() {
-				delete(bgObj, "isig")
-				Expect(
-					helper.ErrorIsExpected(
-						bloodglucose.BuildContinuous(bgObj, helper.ErrorProcessing),
-						types.ExpectedErrorDetails{
-							Path:   "0/isig",
-							Detail: "Must be greater than 0.0 given '<nil>'",
-						}),
-				).To(BeNil())
-			})
-		})
+		// 	It("is required", func() {
+		// 		delete(bgObj, "isig")
+		// 		Expect(
+		// 			helper.ErrorIsExpected(
+		// 				bloodglucose.BuildContinuous(bgObj, helper.ErrorProcessing),
+		// 				types.ExpectedErrorDetails{
+		// 					Path:   "0/isig",
+		// 					Detail: "Must be greater than 0.0 given '<nil>'",
+		// 				}),
+		// 		).To(BeNil())
+		// 	})
+		// })
 	})
 })

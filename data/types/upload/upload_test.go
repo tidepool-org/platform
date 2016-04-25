@@ -22,10 +22,10 @@ var _ = Describe("Upload", func() {
 		uploadObj["uploadId"] = "123-my-upload-id"
 		uploadObj["byUser"] = "123-my-user-id"
 		uploadObj["version"] = "tidepool-uploader 0.1.0"
-		uploadObj["deviceManufacturers"] = []string{"Medtronic"}
+		uploadObj["deviceManufacturers"] = []interface{}{"Medtronic"}
 		uploadObj["deviceModel"] = "Paradigm 522"
 		uploadObj["deviceSerialNumber"] = "123456-blah"
-		uploadObj["deviceTags"] = []string{"insulin-pump"}
+		uploadObj["deviceTags"] = []interface{}{"insulin-pump"}
 		uploadObj["timeProcessing"] = "none"
 	})
 
@@ -208,7 +208,7 @@ var _ = Describe("Upload", func() {
 				})
 
 				It("cannot be empty", func() {
-					uploadObj["deviceManufacturers"] = []string{}
+					uploadObj["deviceManufacturers"] = []interface{}{}
 
 					Expect(
 						helper.ErrorIsExpected(
@@ -237,7 +237,7 @@ var _ = Describe("Upload", func() {
 				})
 
 				It("cannot be empty", func() {
-					uploadObj["deviceTags"] = []string{""}
+					uploadObj["deviceTags"] = []interface{}{""}
 
 					Expect(
 						helper.ErrorIsExpected(
@@ -250,7 +250,7 @@ var _ = Describe("Upload", func() {
 				})
 
 				It("has to be in approved list", func() {
-					uploadObj["deviceTags"] = []string{"unknown"}
+					uploadObj["deviceTags"] = []interface{}{"unknown"}
 
 					Expect(
 						helper.ErrorIsExpected(
@@ -263,7 +263,7 @@ var _ = Describe("Upload", func() {
 				})
 
 				It("can be any of insulin-pump, cgm, bgm", func() {
-					uploadObj["deviceTags"] = []string{"insulin-pump", "cgm", "bgm"}
+					uploadObj["deviceTags"] = []interface{}{"insulin-pump", "cgm", "bgm"}
 					Expect(helper.ValidDataType(upload.Build(uploadObj, helper.ErrorProcessing))).To(BeNil())
 				})
 			})

@@ -16,15 +16,15 @@ func init() {
 }
 
 type Upload struct {
-	UploadID            *string   `json:"uploadId" bson:"uploadId" valid:"gt=10"`
+	UploadID            *string     `json:"uploadId" bson:"uploadId" valid:"gt=10"`
 	UploadUserID        *string     `json:"byUser" bson:"byUser" valid:"gte=10"`
 	Version             *string     `json:"version" bson:"version" valid:"gte=5"`
-	ComputerTime        *string   `json:"computerTime" bson:"computerTime" valid:"timestr"`
-	DeviceTags          *[]string `json:"deviceTags" bson:"deviceTags" valid:"uploaddevicetags"`
-	DeviceManufacturers *[]string `json:"deviceManufacturers" bson:"deviceManufacturers" valid:"uploaddevicemanufacturers"`
+	ComputerTime        *string     `json:"computerTime" bson:"computerTime" valid:"timestr"`
+	DeviceTags          *[]string   `json:"deviceTags" bson:"deviceTags" valid:"uploaddevicetags"`
+	DeviceManufacturers *[]string   `json:"deviceManufacturers" bson:"deviceManufacturers" valid:"uploaddevicemanufacturers"`
 	DeviceModel         *string     `json:"deviceModel" bson:"deviceModel" valid:"gte=1"`
 	DeviceSerialNumber  *string     `json:"deviceSerialNumber" bson:"deviceSerialNumber" valid:"gte=10"`
-	TimeProcessing      *string   `json:"timeProcessing" bson:"timeProcessing" valid:"uploadtimeprocessing"`
+	TimeProcessing      *string     `json:"timeProcessing" bson:"timeProcessing" valid:"uploadtimeprocessing"`
 	DataState           *string     `json:"dataState" bson:"dataState"`
 	Deduplicator        interface{} `json:"deduplicator" bson:"deduplicator"`
 	types.Base          `bson:",inline"`

@@ -1,17 +1,13 @@
 package dataservices_test
 
 import (
-	"bytes"
-	"fmt"
 	"net/http"
-	"net/url"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/dataservices"
 	"github.com/tidepool-org/platform/service"
-	"github.com/tidepool-org/platform/user"
 	"github.com/tidepool-org/platform/version"
 )
 
@@ -49,272 +45,272 @@ var _ = Describe("The Dataservices client", func() {
 		})
 	})
 
-	Describe("PostDataset", func() {
+	// Describe("PostDataset", func() {
 
-		const userID = "9999999"
-		var errorPayload interface{}
+	// 	const userID = "9999999"
+	// 	var errorPayload interface{}
 
-		BeforeEach(func() {
-			env = make(map[string]interface{})
-			env[user.PERMISSIONS] = &user.UsersPermissions{}
-			env[user.GROUPID] = groupID
+	// 	BeforeEach(func() {
+	// 		env = make(map[string]interface{})
+	// 		env[user.PERMISSIONS] = &user.UsersPermissions{}
+	// 		env[user.GROUPID] = groupID
 
-			//the userid is used in the saving of the data so we attach it to the request in the `RunRequest` test handler
-			params = make(map[string]string)
-			params["userid"] = userID
-		})
+	// 		//the userid is used in the saving of the data so we attach it to the request in the `RunRequest` test handler
+	// 		params = make(map[string]string)
+	// 		params["userid"] = userID
+	// 	})
 
-		Describe("when given valid data", func() {
+	// 	Describe("when given valid data", func() {
 
-			jsonData := []byte(`[{"deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z", "timezoneOffset": 0, "conversionOffset": 0, "type": "basal", "deliveryType": "scheduled", "scheduleName": "Standard", "rate": 2, "duration": 21600000, "deviceId": "tools"}]`)
+	// 		jsonData := []byte(`[{"deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z", "timezoneOffset": 0, "conversionOffset": 0, "type": "basal", "deliveryType": "scheduled", "scheduleName": "Standard", "rate": 2, "duration": 21600000, "deviceId": "tools"}]`)
 
-			It("returns status 200", func() {
-				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userID, bytes.NewBuffer(jsonData)), params, env)
-				Expect(recorded.CodeIs(http.StatusOK)).To(BeTrue(), fmt.Sprintf("Expected %d to be %d", recorded.Recorder.Code, http.StatusOK))
-			})
+	// 		It("returns status 200", func() {
+	// 			recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userID, bytes.NewBuffer(jsonData)), params, env)
+	// 			Expect(recorded.CodeIs(http.StatusOK)).To(BeTrue(), fmt.Sprintf("Expected %d to be %d", recorded.Recorder.Code, http.StatusOK))
+	// 		})
 
-			It("has content type of json", func() {
-				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userID, bytes.NewBuffer(jsonData)), params, env)
-				Expect(recorded.ContentTypeIsJSON()).To(BeTrue(), "Expected content type to be JSON")
-			})
+	// 		It("has content type of json", func() {
+	// 			recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userID, bytes.NewBuffer(jsonData)), params, env)
+	// 			Expect(recorded.ContentTypeIsJSON()).To(BeTrue(), "Expected content type to be JSON")
+	// 		})
 
-			It("no data is returned", func() {
-				var payload interface{}
-				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userID, bytes.NewBuffer(jsonData)), params, env)
-				recorded.DecodeJSONPayload(&payload)
-				Expect(payload).To(BeNil(), "Expected that not data was returned")
-			})
-		})
+	// 		It("no data is returned", func() {
+	// 			var payload interface{}
+	// 			recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userID, bytes.NewBuffer(jsonData)), params, env)
+	// 			recorded.DecodeJSONPayload(&payload)
+	// 			Expect(payload).To(BeNil(), "Expected that not data was returned")
+	// 		})
+	// 	})
 
-		Describe("when given valid data but wrong type", func() {
+	// 	Describe("when given valid data but wrong type", func() {
 
-			jsonData := []byte(`[{"userID": "9999999", "deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z", "timezoneOffset": 0, "conversionOffset": 0, "type": "NOT_VALID", "deliveryType": "scheduled", "scheduleName": "Standard", "rate": 2, "duration": 21600000, "deviceId": "tools"}]`)
+	// 		jsonData := []byte(`[{"userID": "9999999", "deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z", "timezoneOffset": 0, "conversionOffset": 0, "type": "NOT_VALID", "deliveryType": "scheduled", "scheduleName": "Standard", "rate": 2, "duration": 21600000, "deviceId": "tools"}]`)
 
-			It("returns status 400", func() {
-				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userID, bytes.NewBuffer(jsonData)), params, env)
-				Expect(recorded.CodeIs(http.StatusBadRequest)).To(BeTrue(), fmt.Sprintf("Expected %d to be %d", recorded.Recorder.Code, http.StatusBadRequest))
-			})
+	// 		It("returns status 400", func() {
+	// 			recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userID, bytes.NewBuffer(jsonData)), params, env)
+	// 			Expect(recorded.CodeIs(http.StatusBadRequest)).To(BeTrue(), fmt.Sprintf("Expected %d to be %d", recorded.Recorder.Code, http.StatusBadRequest))
+	// 		})
 
-			It("has content type of json", func() {
-				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userID, bytes.NewBuffer(jsonData)), params, env)
-				Expect(recorded.ContentTypeIsJSON()).To(BeTrue(), "Expected content type to be JSON")
-			})
+	// 		It("has content type of json", func() {
+	// 			recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userID, bytes.NewBuffer(jsonData)), params, env)
+	// 			Expect(recorded.ContentTypeIsJSON()).To(BeTrue(), "Expected content type to be JSON")
+	// 		})
 
-			It("should return an error with the payload", func() {
-				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userID, bytes.NewBuffer(jsonData)), params, env)
-				recorded.DecodeJSONPayload(&errorPayload)
-				Expect(errorPayload).ToNot(BeNil(), "Expected the return payload to not be nil")
-			})
+	// 		It("should return an error with the payload", func() {
+	// 			recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userID, bytes.NewBuffer(jsonData)), params, env)
+	// 			recorded.DecodeJSONPayload(&errorPayload)
+	// 			Expect(errorPayload).ToNot(BeNil(), "Expected the return payload to not be nil")
+	// 		})
 
-		})
+	// 	})
 
-		Describe("when given invalid data", func() {
+	// 	Describe("when given invalid data", func() {
 
-			jsonData := []byte(`[{"blah": "9999999", "time": "2014-06-11T06:00:00.000Z"}]`)
+	// 		jsonData := []byte(`[{"blah": "9999999", "time": "2014-06-11T06:00:00.000Z"}]`)
 
-			It("returns status 400", func() {
-				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userID, bytes.NewBuffer(jsonData)), params, env)
-				Expect(recorded.CodeIs(http.StatusBadRequest)).To(BeTrue(), fmt.Sprintf("Expected %d to be %d", recorded.Recorder.Code, http.StatusBadRequest))
-			})
+	// 		It("returns status 400", func() {
+	// 			recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userID, bytes.NewBuffer(jsonData)), params, env)
+	// 			Expect(recorded.CodeIs(http.StatusBadRequest)).To(BeTrue(), fmt.Sprintf("Expected %d to be %d", recorded.Recorder.Code, http.StatusBadRequest))
+	// 		})
 
-			It("has content type of json", func() {
-				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userID, bytes.NewBuffer(jsonData)), params, env)
-				Expect(recorded.ContentTypeIsJSON()).To(BeTrue(), "Expected content type to be JSON")
-			})
+	// 		It("has content type of json", func() {
+	// 			recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userID, bytes.NewBuffer(jsonData)), params, env)
+	// 			Expect(recorded.ContentTypeIsJSON()).To(BeTrue(), "Expected content type to be JSON")
+	// 		})
 
-			It("should return an error saying there is no match for the type", func() {
-				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userID, bytes.NewBuffer(jsonData)), params, env)
-				recorded.DecodeJSONPayload(&errorPayload)
-				Expect(errorPayload).ToNot(BeNil(), "Expected the return payload to not be nil")
-			})
+	// 		It("should return an error saying there is no match for the type", func() {
+	// 			recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userID, bytes.NewBuffer(jsonData)), params, env)
+	// 			recorded.DecodeJSONPayload(&errorPayload)
+	// 			Expect(errorPayload).ToNot(BeNil(), "Expected the return payload to not be nil")
+	// 		})
 
-		})
+	// 	})
 
-		Describe("when any datapoint is invalid", func() {
+	// 	Describe("when any datapoint is invalid", func() {
 
-			//contains `"deliveryType": "unknown"` which does not pass validation
-			jsonData := []byte(`[{"deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z", "timezoneOffset": 0, "conversionOffset": 0, "type": "basal", "deliveryType": "scheduled", "scheduleName": "Standard", "rate": 2, "duration": 21600000, "deviceId": "tools"},{"deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z", "timezoneOffset": 0, "conversionOffset": 0, "type": "basal", "deliveryType": "unknown", "scheduleName": "Standard", "rate": 2, "duration": 21600000, "deviceId": "tools"}]`)
+	// 		//contains `"deliveryType": "unknown"` which does not pass validation
+	// 		jsonData := []byte(`[{"deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z", "timezoneOffset": 0, "conversionOffset": 0, "type": "basal", "deliveryType": "scheduled", "scheduleName": "Standard", "rate": 2, "duration": 21600000, "deviceId": "tools"},{"deviceTime": "2014-06-11T06:00:00.000Z", "time": "2014-06-11T06:00:00.000Z", "timezoneOffset": 0, "conversionOffset": 0, "type": "basal", "deliveryType": "unknown", "scheduleName": "Standard", "rate": 2, "duration": 21600000, "deviceId": "tools"}]`)
 
-			It("returns status 400", func() {
-				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userID, bytes.NewBuffer(jsonData)), params, env)
-				Expect(recorded.CodeIs(http.StatusBadRequest)).To(BeTrue(), fmt.Sprintf("Expected %d to be %d", recorded.Recorder.Code, http.StatusBadRequest))
-			})
+	// 		It("returns status 400", func() {
+	// 			recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userID, bytes.NewBuffer(jsonData)), params, env)
+	// 			Expect(recorded.CodeIs(http.StatusBadRequest)).To(BeTrue(), fmt.Sprintf("Expected %d to be %d", recorded.Recorder.Code, http.StatusBadRequest))
+	// 		})
 
-			It("should return an error saying there is no match for the type", func() {
-				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userID, bytes.NewBuffer(jsonData)), params, env)
-				recorded.DecodeJSONPayload(&errorPayload)
-				Expect(errorPayload).ToNot(BeNil(), "Expected the return payload to not be nil")
-			})
+	// 		It("should return an error saying there is no match for the type", func() {
+	// 			recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userID, bytes.NewBuffer(jsonData)), params, env)
+	// 			recorded.DecodeJSONPayload(&errorPayload)
+	// 			Expect(errorPayload).ToNot(BeNil(), "Expected the return payload to not be nil")
+	// 		})
 
-		})
+	// 	})
 
-		Describe("when given no data", func() {
+	// 	Describe("when given no data", func() {
 
-			It("returns status 400", func() {
-				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userID, nil), params, env)
-				Expect(recorded.CodeIs(http.StatusBadRequest)).To(BeTrue(), fmt.Sprintf("Expected %d to be %d", recorded.Recorder.Code, http.StatusBadRequest))
-			})
+	// 		It("returns status 400", func() {
+	// 			recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userID, nil), params, env)
+	// 			Expect(recorded.CodeIs(http.StatusBadRequest)).To(BeTrue(), fmt.Sprintf("Expected %d to be %d", recorded.Recorder.Code, http.StatusBadRequest))
+	// 		})
 
-			It("should return body with error message", func() {
-				ExpectedError := `{"Error":"missing data to process"}`
-				recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userID, nil), params, env)
-				Expect(recorded.BodyIs(ExpectedError)).To(BeTrue(), "Expected "+recorded.Recorder.Body.String()+" to be "+ExpectedError)
-			})
+	// 		It("should return body with error message", func() {
+	// 			ExpectedError := `{"Error":"missing data to process"}`
+	// 			recorded := service.RunRequest(client.PostDataset, service.MakeSimpleRequest("POST", "http://localhost/dataset/"+userID, nil), params, env)
+	// 			Expect(recorded.BodyIs(ExpectedError)).To(BeTrue(), "Expected "+recorded.Recorder.Body.String()+" to be "+ExpectedError)
+	// 		})
 
-		})
+	// 	})
 
-	})
-	Describe("PostBlob", func() {
+	// })
+	// Describe("PostBlob", func() {
 
-		const userID = "9999999"
-		var fileName string
+	// 	const userID = "9999999"
+	// 	var fileName string
 
-		BeforeEach(func() {
-			env = make(map[string]interface{})
-			env[user.PERMISSIONS] = &user.UsersPermissions{}
-			env[user.GROUPID] = "3887276s"
-			fileName = ""
-		})
+	// 	BeforeEach(func() {
+	// 		env = make(map[string]interface{})
+	// 		env[user.PERMISSIONS] = &user.UsersPermissions{}
+	// 		env[user.GROUPID] = "3887276s"
+	// 		fileName = ""
+	// 	})
 
-		Describe("when given valid data", func() {
+	// 	Describe("when given valid data", func() {
 
-			It("returns status 501", func() {
-				recorded := service.RunRequest(client.PostBlob, service.MakeBlobRequest("POST", "http://localhost/blob/"+userID, fileName), params, env)
-				Expect(recorded.CodeIs(http.StatusNotImplemented)).To(BeTrue(), fmt.Sprintf("Expected %d to be %d", recorded.Recorder.Code, http.StatusNotImplemented))
-			})
+	// 		It("returns status 501", func() {
+	// 			recorded := service.RunRequest(client.PostBlob, service.MakeBlobRequest("POST", "http://localhost/blob/"+userID, fileName), params, env)
+	// 			Expect(recorded.CodeIs(http.StatusNotImplemented)).To(BeTrue(), fmt.Sprintf("Expected %d to be %d", recorded.Recorder.Code, http.StatusNotImplemented))
+	// 		})
 
-			It("should return be content type of json", func() {
-				recorded := service.RunRequest(client.PostBlob, service.MakeBlobRequest("POST", "http://localhost/blob/"+userID, fileName), params, env)
-				Expect(recorded.ContentTypeIsJSON()).To(BeTrue(), "Expected content type to be JSON")
-			})
-		})
+	// 		It("should return be content type of json", func() {
+	// 			recorded := service.RunRequest(client.PostBlob, service.MakeBlobRequest("POST", "http://localhost/blob/"+userID, fileName), params, env)
+	// 			Expect(recorded.ContentTypeIsJSON()).To(BeTrue(), "Expected content type to be JSON")
+	// 		})
+	// 	})
 
-	})
-	Describe("GetDataset", func() {
+	// })
+	// Describe("GetDataset", func() {
 
-		var payload struct {
-			Dataset []interface{} `json:"Dataset"`
-			Errors  string        `json:"Errors"`
-		}
+	// 	var payload struct {
+	// 		Dataset []interface{} `json:"Dataset"`
+	// 		Errors  string        `json:"Errors"`
+	// 	}
 
-		var idParams map[string]string
+	// 	var idParams map[string]string
 
-		BeforeEach(func() {
-			env = make(map[string]interface{})
-			env[user.PERMISSIONS] = &user.UsersPermissions{}
-		})
+	// 	BeforeEach(func() {
+	// 		env = make(map[string]interface{})
+	// 		env[user.PERMISSIONS] = &user.UsersPermissions{}
+	// 	})
 
-		Describe("when valid userID", func() {
+	// 	Describe("when valid userID", func() {
 
-			BeforeEach(func() {
-				idParams = make(map[string]string)
-				idParams["userid"] = userID
-				env[user.GROUPID] = groupID
-			})
+	// 		BeforeEach(func() {
+	// 			idParams = make(map[string]string)
+	// 			idParams["userid"] = userID
+	// 			env[user.GROUPID] = groupID
+	// 		})
 
-			It("returns status 200", func() {
-				recorded := service.RunRequest(client.GetDataset, service.MakeSimpleRequest("GET", "http://localhost/dataset/"+userID, nil), idParams, env)
-				Expect(recorded.CodeIs(http.StatusOK)).To(BeTrue(), fmt.Sprintf("Expected %d to be %d", recorded.Recorder.Code, http.StatusOK))
-			})
+	// 		It("returns status 200", func() {
+	// 			recorded := service.RunRequest(client.GetDataset, service.MakeSimpleRequest("GET", "http://localhost/dataset/"+userID, nil), idParams, env)
+	// 			Expect(recorded.CodeIs(http.StatusOK)).To(BeTrue(), fmt.Sprintf("Expected %d to be %d", recorded.Recorder.Code, http.StatusOK))
+	// 		})
 
-			It("has content type of json", func() {
-				recorded := service.RunRequest(client.GetDataset, service.MakeSimpleRequest("GET", "http://localhost/dataset/"+userID, nil), idParams, env)
-				Expect(recorded.ContentTypeIsJSON()).To(BeTrue(), "Expected content type to be JSON")
-			})
+	// 		It("has content type of json", func() {
+	// 			recorded := service.RunRequest(client.GetDataset, service.MakeSimpleRequest("GET", "http://localhost/dataset/"+userID, nil), idParams, env)
+	// 			Expect(recorded.ContentTypeIsJSON()).To(BeTrue(), "Expected content type to be JSON")
+	// 		})
 
-			It("should return no error with the payload", func() {
-				recorded := service.RunRequest(client.GetDataset, service.MakeSimpleRequest("GET", "http://localhost/dataset/"+userID, nil), idParams, env)
-				recorded.DecodeJSONPayload(&payload)
-				Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
-				Expect(payload.Errors).To(Equal(""), "Expected the return errors to be empty")
-			})
+	// 		It("should return no error with the payload", func() {
+	// 			recorded := service.RunRequest(client.GetDataset, service.MakeSimpleRequest("GET", "http://localhost/dataset/"+userID, nil), idParams, env)
+	// 			recorded.DecodeJSONPayload(&payload)
+	// 			Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
+	// 			Expect(payload.Errors).To(Equal(""), "Expected the return errors to be empty")
+	// 		})
 
-			It("should return the processed dataset with the payload", func() {
-				recorded := service.RunRequest(client.GetDataset, service.MakeSimpleRequest("GET", "http://localhost/dataset/"+userID, nil), idParams, env)
-				recorded.DecodeJSONPayload(&payload)
-				Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
-				Expect(len(payload.Dataset) > 1).To(BeTrue(), "Expected one processed datum to be returned")
-			})
-		})
+	// 		It("should return the processed dataset with the payload", func() {
+	// 			recorded := service.RunRequest(client.GetDataset, service.MakeSimpleRequest("GET", "http://localhost/dataset/"+userID, nil), idParams, env)
+	// 			recorded.DecodeJSONPayload(&payload)
+	// 			Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
+	// 			Expect(len(payload.Dataset) > 1).To(BeTrue(), "Expected one processed datum to be returned")
+	// 		})
+	// 	})
 
-		Describe("when query params provided", func() {
+	// 	Describe("when query params provided", func() {
 
-			var queryParams map[string]string
+	// 		var queryParams map[string]string
 
-			BeforeEach(func() {
-				queryParams = make(map[string]string)
-				queryParams["userid"] = userID
-				env[user.GROUPID] = groupID
-			})
+	// 		BeforeEach(func() {
+	// 			queryParams = make(map[string]string)
+	// 			queryParams["userid"] = userID
+	// 			env[user.GROUPID] = groupID
+	// 		})
 
-			It("should return basals", func() {
+	// 		It("should return basals", func() {
 
-				req := service.MakeSimpleRequest("GET", "http://localhost/dataset", nil)
-				url, _ := url.Parse("?type=basal")
-				req.URL = url
+	// 			req := service.MakeSimpleRequest("GET", "http://localhost/dataset", nil)
+	// 			url, _ := url.Parse("?type=basal")
+	// 			req.URL = url
 
-				recorded := service.RunRequest(client.GetDataset, req, queryParams, env)
-				recorded.DecodeJSONPayload(&payload)
-				Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
-				Expect(len(payload.Dataset) > 1).To(BeTrue(), "Expected one processed datum to be returned")
-			})
-			It("should return no basals when no subtype match", func() {
-				req := service.MakeSimpleRequest("GET", "http://localhost/dataset", nil)
-				url, _ := url.Parse("?type=basal&subType=good")
-				req.URL = url
+	// 			recorded := service.RunRequest(client.GetDataset, req, queryParams, env)
+	// 			recorded.DecodeJSONPayload(&payload)
+	// 			Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
+	// 			Expect(len(payload.Dataset) > 1).To(BeTrue(), "Expected one processed datum to be returned")
+	// 		})
+	// 		It("should return no basals when no subtype match", func() {
+	// 			req := service.MakeSimpleRequest("GET", "http://localhost/dataset", nil)
+	// 			url, _ := url.Parse("?type=basal&subType=good")
+	// 			req.URL = url
 
-				recorded := service.RunRequest(client.GetDataset, req, queryParams, env)
-				recorded.DecodeJSONPayload(&payload)
-				Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
-				Expect(len(payload.Dataset) == 0).To(BeTrue(), "Expected no processed datum to be returned")
-			})
-			It("should return nothing", func() {
-				req := service.MakeSimpleRequest("GET", "http://localhost/dataset", nil)
-				url, _ := url.Parse("?type=none")
-				req.URL = url
+	// 			recorded := service.RunRequest(client.GetDataset, req, queryParams, env)
+	// 			recorded.DecodeJSONPayload(&payload)
+	// 			Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
+	// 			Expect(len(payload.Dataset) == 0).To(BeTrue(), "Expected no processed datum to be returned")
+	// 		})
+	// 		It("should return nothing", func() {
+	// 			req := service.MakeSimpleRequest("GET", "http://localhost/dataset", nil)
+	// 			url, _ := url.Parse("?type=none")
+	// 			req.URL = url
 
-				recorded := service.RunRequest(client.GetDataset, req, queryParams, env)
-				recorded.DecodeJSONPayload(&payload)
-				Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
-				Expect(len(payload.Dataset) == 0).To(BeTrue(), "Expected no processed datum to be returned when no type match")
-			})
-		})
+	// 			recorded := service.RunRequest(client.GetDataset, req, queryParams, env)
+	// 			recorded.DecodeJSONPayload(&payload)
+	// 			Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
+	// 			Expect(len(payload.Dataset) == 0).To(BeTrue(), "Expected no processed datum to be returned when no type match")
+	// 		})
+	// 	})
 
-		Describe("when userID unknown", func() {
+	// 	Describe("when userID unknown", func() {
 
-			const userID = "9???9"
+	// 		const userID = "9???9"
 
-			BeforeEach(func() {
-				idParams = make(map[string]string)
-				idParams["userid"] = userID
-				env[user.GROUPID] = userID
-			})
+	// 		BeforeEach(func() {
+	// 			idParams = make(map[string]string)
+	// 			idParams["userid"] = userID
+	// 			env[user.GROUPID] = userID
+	// 		})
 
-			It("returns status 200", func() {
-				recorded := service.RunRequest(client.GetDataset, service.MakeSimpleRequest("GET", "http://localhost/dataset/"+userID, nil), idParams, env)
-				Expect(recorded.CodeIs(http.StatusOK)).To(BeTrue(), fmt.Sprintf("Expected %d to be %d", recorded.Recorder.Code, http.StatusOK))
-			})
+	// 		It("returns status 200", func() {
+	// 			recorded := service.RunRequest(client.GetDataset, service.MakeSimpleRequest("GET", "http://localhost/dataset/"+userID, nil), idParams, env)
+	// 			Expect(recorded.CodeIs(http.StatusOK)).To(BeTrue(), fmt.Sprintf("Expected %d to be %d", recorded.Recorder.Code, http.StatusOK))
+	// 		})
 
-			It("has content type of json", func() {
-				recorded := service.RunRequest(client.GetDataset, service.MakeSimpleRequest("GET", "http://localhost/dataset/"+userID, nil), idParams, env)
-				Expect(recorded.ContentTypeIsJSON()).To(BeTrue(), "Expected content type to be JSON")
-			})
+	// 		It("has content type of json", func() {
+	// 			recorded := service.RunRequest(client.GetDataset, service.MakeSimpleRequest("GET", "http://localhost/dataset/"+userID, nil), idParams, env)
+	// 			Expect(recorded.ContentTypeIsJSON()).To(BeTrue(), "Expected content type to be JSON")
+	// 		})
 
-			It("should return no error with the payload", func() {
-				recorded := service.RunRequest(client.GetDataset, service.MakeSimpleRequest("GET", "http://localhost/dataset/"+userID, nil), idParams, env)
-				recorded.DecodeJSONPayload(&payload)
-				Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
-				Expect(payload.Errors).To(Equal(""), "Expected the return errors to be empty")
-			})
+	// 		It("should return no error with the payload", func() {
+	// 			recorded := service.RunRequest(client.GetDataset, service.MakeSimpleRequest("GET", "http://localhost/dataset/"+userID, nil), idParams, env)
+	// 			recorded.DecodeJSONPayload(&payload)
+	// 			Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
+	// 			Expect(payload.Errors).To(Equal(""), "Expected the return errors to be empty")
+	// 		})
 
-			It("should return no dataset with the payload", func() {
-				recorded := service.RunRequest(client.GetDataset, service.MakeSimpleRequest("GET", "http://localhost/dataset/"+userID, nil), idParams, env)
-				recorded.DecodeJSONPayload(&payload)
-				Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
-				Expect(len(payload.Dataset)).To(Equal(0), "Expected no data to be returned")
-			})
+	// 		It("should return no dataset with the payload", func() {
+	// 			recorded := service.RunRequest(client.GetDataset, service.MakeSimpleRequest("GET", "http://localhost/dataset/"+userID, nil), idParams, env)
+	// 			recorded.DecodeJSONPayload(&payload)
+	// 			Expect(payload).ToNot(BeNil(), "Expected the return payload to not be nil")
+	// 			Expect(len(payload.Dataset)).To(Equal(0), "Expected no data to be returned")
+	// 		})
 
-		})
-	})
+	// 	})
+	// })
 
 })
