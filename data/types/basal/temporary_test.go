@@ -39,7 +39,7 @@ var _ = Describe("Temporary", func() {
 					Expect(helper.ValidDataType(basal.Build(basalObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
-				It("invalid less than zero", func() {
+				It("invalid when < 0", func() {
 					basalObj["rate"] = -0.1
 
 					Expect(
@@ -47,14 +47,33 @@ var _ = Describe("Temporary", func() {
 							basal.Build(basalObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/rate",
-								Detail: "Must be greater than 0.0 given '-0.1'",
+								Detail: "Must be  >= 0.0 and <= 20.0 given '-0.1'",
 							}),
 					).To(BeNil())
 
 				})
 
-				It("valid when greater than zero", func() {
-					basalObj["rate"] = 0.7
+				It("invalid when > 20.0", func() {
+					basalObj["rate"] = 20.1
+
+					Expect(
+						helper.ErrorIsExpected(
+							basal.Build(basalObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/rate",
+								Detail: "Must be  >= 0.0 and <= 20.0 given '20.1'",
+							}),
+					).To(BeNil())
+
+				})
+
+				It("valid when >= 0.0", func() {
+					basalObj["rate"] = 0.0
+					Expect(helper.ValidDataType(basal.Build(basalObj, helper.ErrorProcessing))).To(BeNil())
+				})
+
+				It("valid when <= 20.0", func() {
+					basalObj["rate"] = 20.0
 					Expect(helper.ValidDataType(basal.Build(basalObj, helper.ErrorProcessing))).To(BeNil())
 				})
 

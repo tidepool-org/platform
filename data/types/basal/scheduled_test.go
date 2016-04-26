@@ -41,20 +41,33 @@ var _ = Describe("Scheduled", func() {
 							basal.Build(basalObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/rate",
-								Detail: "Must be greater than 0.0 given '<nil>'",
+								Detail: "Must be  >= 0.0 and <= 20.0 given '<nil>'",
 							}),
 					).To(BeNil())
 				})
 
-				It("invalid when zero", func() {
-					basalObj["rate"] = 0.0
+				It("invalid < 0", func() {
+					basalObj["rate"] = -0.1
 
 					Expect(
 						helper.ErrorIsExpected(
 							basal.Build(basalObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/rate",
-								Detail: "Must be greater than 0.0 given '0'",
+								Detail: "Must be  >= 0.0 and <= 20.0 given '-0.1'",
+							}),
+					).To(BeNil())
+				})
+
+				It("invalid > 20", func() {
+					basalObj["rate"] = 20.1
+
+					Expect(
+						helper.ErrorIsExpected(
+							basal.Build(basalObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/rate",
+								Detail: "Must be  >= 0.0 and <= 20.0 given '20.1'",
 							}),
 					).To(BeNil())
 				})

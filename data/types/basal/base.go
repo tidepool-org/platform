@@ -39,8 +39,8 @@ var (
 	durationField = types.IntDatumField{
 		DatumField:      &types.DatumField{Name: "duration"},
 		Tag:             "basalduration",
-		Message:         "Must be greater than 0",
-		AllowedIntRange: &types.AllowedIntRange{LowerLimit: 0},
+		Message:         "Must be  >= 0 and <= 432000000",
+		AllowedIntRange: &types.AllowedIntRange{LowerLimit: 0, UpperLimit: 432000000},
 	}
 
 	failureReasons = validate.FailureReasons{
@@ -87,7 +87,7 @@ func DurationValidator(v *validator.Validate, topStruct reflect.Value, currentSt
 	if !ok {
 		return false
 	}
-	return duration > durationField.LowerLimit
+	return duration >= durationField.LowerLimit && duration <= durationField.UpperLimit
 }
 
 func DeliveryTypeValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {

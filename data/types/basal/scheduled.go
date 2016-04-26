@@ -23,8 +23,8 @@ var (
 	rateField = types.FloatDatumField{
 		DatumField:        &types.DatumField{Name: "rate"},
 		Tag:               "basalrate",
-		Message:           "Must be greater than 0.0",
-		AllowedFloatRange: &types.AllowedFloatRange{LowerLimit: 0.0},
+		Message:           "Must be  >= 0.0 and <= 20.0",
+		AllowedFloatRange: &types.AllowedFloatRange{LowerLimit: 0.0, UpperLimit: 20.0},
 	}
 
 	scheduleNameField = types.DatumField{Name: "scheduleName"}
@@ -45,5 +45,5 @@ func RateValidator(v *validator.Validate, topStruct reflect.Value, currentStruct
 	if !ok {
 		return false
 	}
-	return rate > rateField.LowerLimit
+	return rate >= rateField.LowerLimit && rate <= rateField.UpperLimit
 }
