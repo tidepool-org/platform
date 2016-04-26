@@ -2,6 +2,7 @@ package validate
 
 import (
 	"fmt"
+	"reflect"
 
 	validator "gopkg.in/bluesuncorp/validator.v8"
 )
@@ -19,6 +20,7 @@ type PlatformValidator struct {
 type ValidationInfo struct {
 	FieldName string
 	Message   string
+	Allowed   map[string]bool
 }
 
 type ValidationTag string
@@ -35,15 +37,43 @@ func (pv *PlatformValidator) SetFailureReasons(reasons FailureReasons) *Platform
 	return pv
 }
 
+func buildErrors(err *validator.FieldError, info ValidationInfo, errorProcessing ErrorProcessing) {
+
+	switch err.Kind {
+	case reflect.Slice:
+		if len(info.Allowed) > 0 {
+			if actual, ok := err.Value.([]string); ok {
+				for i := range actual {
+					if _, ok := info.Allowed[actual[i]]; !ok {
+						errorProcessing.AppendPointerError(
+							fmt.Sprintf("%s/%d", info.FieldName, i),
+							"Validation Error",
+							fmt.Sprintf("%s given '%v'", info.Message, err.Value),
+						)
+					}
+				}
+			}
+		} else {
+			errorProcessing.AppendPointerError(
+				fmt.Sprintf("%s/0", info.FieldName),
+				"Validation Error",
+				fmt.Sprintf("%s given '%v'", info.Message, err.Value),
+			)
+		}
+	default:
+		errorProcessing.AppendPointerError(
+			info.FieldName,
+			"Validation Error",
+			fmt.Sprintf("%s given '%v'", info.Message, err.Value),
+		)
+	}
+}
+
 func (pv *PlatformValidator) toErrorsArray(ve validator.ValidationErrors, errorProcessing ErrorProcessing) {
 	for _, v := range ve {
 
 		if reason, ok := pv.FailureReasons[v.Field]; ok {
-			errorProcessing.AppendPointerError(
-				reason.FieldName,
-				"Validation Error",
-				fmt.Sprintf("%s given '%v'", reason.Message, v.Value),
-			)
+			buildErrors(v, reason, errorProcessing)
 		}
 	}
 }

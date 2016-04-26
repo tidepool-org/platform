@@ -23,7 +23,6 @@ var _ = Describe("Continuous", func() {
 			bgObj["type"] = "cbg"
 			bgObj["value"] = 5.5
 			bgObj["units"] = "mmol/l"
-			bgObj["isig"] = 6.5
 		})
 
 		It("returns a bolus if the obj is valid", func() {
@@ -37,7 +36,6 @@ var _ = Describe("Continuous", func() {
 			bgObj["type"] = "cbg"
 			bgObj["value"] = 5.5
 			bgObj["units"] = "mmol/l"
-			bgObj["isig"] = 6.5
 		})
 
 		Context("units", func() {
@@ -91,19 +89,5 @@ var _ = Describe("Continuous", func() {
 				).To(BeNil())
 			})
 		})
-		// Context("isig", func() {
-
-		// 	It("is required", func() {
-		// 		delete(bgObj, "isig")
-		// 		Expect(
-		// 			helper.ErrorIsExpected(
-		// 				bloodglucose.BuildContinuous(bgObj, helper.ErrorProcessing),
-		// 				types.ExpectedErrorDetails{
-		// 					Path:   "0/isig",
-		// 					Detail: "Must be greater than 0.0 given '<nil>'",
-		// 				}),
-		// 		).To(BeNil())
-		// 	})
-		// })
 	})
 })

@@ -214,7 +214,7 @@ var _ = Describe("Upload", func() {
 						helper.ErrorIsExpected(
 							upload.Build(uploadObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
-								Path:   "0/deviceManufacturers",
+								Path:   "0/deviceManufacturers/0",
 								Detail: "Must contain at least one manufacturer name given '[]'",
 							}),
 					).To(BeNil())
@@ -243,8 +243,21 @@ var _ = Describe("Upload", func() {
 						helper.ErrorIsExpected(
 							upload.Build(uploadObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
-								Path:   "0/deviceTags",
+								Path:   "0/deviceTags/0",
 								Detail: "Must be one of insulin-pump, cgm, bgm given '[]'",
+							}),
+					).To(BeNil())
+				})
+
+				It("cannot have any invalid entries", func() {
+					uploadObj["deviceTags"] = []interface{}{"insulin-pump", "nope", "cgm"}
+
+					Expect(
+						helper.ErrorIsExpected(
+							upload.Build(uploadObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/deviceTags/1",
+								Detail: "Must be one of insulin-pump, cgm, bgm given '[insulin-pump nope cgm]'",
 							}),
 					).To(BeNil())
 				})
@@ -256,7 +269,7 @@ var _ = Describe("Upload", func() {
 						helper.ErrorIsExpected(
 							upload.Build(uploadObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
-								Path:   "0/deviceTags",
+								Path:   "0/deviceTags/0",
 								Detail: "Must be one of insulin-pump, cgm, bgm given '[unknown]'",
 							}),
 					).To(BeNil())

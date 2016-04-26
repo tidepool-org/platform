@@ -98,15 +98,43 @@ var (
 	}
 
 	failureReasons = validate.FailureReasons{
-		"DeviceTags":          validate.ValidationInfo{FieldName: deviceTagsField.Name, Message: deviceTagsField.Message},
-		"TimeProcessing":      validate.ValidationInfo{FieldName: timeProcessingField.Name, Message: timeProcessingField.Message},
-		"DeviceManufacturers": validate.ValidationInfo{FieldName: deviceManufacturersField.Name, Message: deviceManufacturersField.Message},
-		"ComputerTime":        validate.ValidationInfo{FieldName: computerTimeField.Name, Message: computerTimeField.Message},
-		"UploadID":            validate.ValidationInfo{FieldName: uploadIDField.Name, Message: uploadIDField.Message},
-		"UploadUserID":        validate.ValidationInfo{FieldName: uploadUserIDField.Name, Message: uploadUserIDField.Message},
-		"DeviceModel":         validate.ValidationInfo{FieldName: deviceModelField.Name, Message: deviceModelField.Message},
-		"DeviceSerialNumber":  validate.ValidationInfo{FieldName: deviceSerialNumberField.Name, Message: deviceSerialNumberField.Message},
-		"Version":             validate.ValidationInfo{FieldName: versionField.Name, Message: versionField.Message},
+		"DeviceTags": validate.ValidationInfo{
+			FieldName: deviceTagsField.Name,
+			Message:   deviceTagsField.Message,
+			Allowed:   deviceTagsField.Allowed,
+		},
+		"TimeProcessing": validate.ValidationInfo{
+			FieldName: timeProcessingField.Name,
+			Message:   timeProcessingField.Message,
+		},
+		"DeviceManufacturers": validate.ValidationInfo{
+			FieldName: deviceManufacturersField.Name,
+			Message:   deviceManufacturersField.Message,
+		},
+		"ComputerTime": validate.ValidationInfo{
+			FieldName: computerTimeField.Name,
+			Message:   computerTimeField.Message,
+		},
+		"UploadID": validate.ValidationInfo{
+			FieldName: uploadIDField.Name,
+			Message:   uploadIDField.Message,
+		},
+		"UploadUserID": validate.ValidationInfo{
+			FieldName: uploadUserIDField.Name,
+			Message:   uploadUserIDField.Message,
+		},
+		"DeviceModel": validate.ValidationInfo{
+			FieldName: deviceModelField.Name,
+			Message:   deviceModelField.Message,
+		},
+		"DeviceSerialNumber": validate.ValidationInfo{
+			FieldName: deviceSerialNumberField.Name,
+			Message:   deviceSerialNumberField.Message,
+		},
+		"Version": validate.ValidationInfo{
+			FieldName: versionField.Name,
+			Message:   versionField.Message,
+		},
 	}
 )
 

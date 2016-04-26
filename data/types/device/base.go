@@ -51,11 +51,18 @@ var (
 		"Value":       validate.ValidationInfo{FieldName: types.BloodGlucoseValueField.Name, Message: types.BloodGlucoseValueField.Message},
 		"Volume":      validate.ValidationInfo{FieldName: volumeField.Name, Message: volumeField.Message},
 		"PrimeTarget": validate.ValidationInfo{FieldName: primeTargetField.Name, Message: primeTargetField.Message},
-		"Reason":      validate.ValidationInfo{FieldName: reasonField.Name, Message: reasonField.Message},
-		"Reasons":     validate.ValidationInfo{FieldName: timeChangeReasonsField.Name, Message: timeChangeReasonsField.Message},
-		"Agent":       validate.ValidationInfo{FieldName: timeChangeAgentField.Name, Message: timeChangeAgentField.Message},
-		"Status":      validate.ValidationInfo{FieldName: statusField.Name, Message: statusField.Message},
-		"SubType":     validate.ValidationInfo{FieldName: subTypeField.Name, Message: subTypeField.Message},
+		"Reason": validate.ValidationInfo{
+			FieldName: reasonField.Name,
+			Message:   reasonField.Message,
+		},
+		"Reasons": validate.ValidationInfo{
+			FieldName: timeChangeReasonsField.Name,
+			Message:   timeChangeReasonsField.Message,
+			Allowed:   timeChangeReasonsField.Allowed,
+		},
+		"Agent":   validate.ValidationInfo{FieldName: timeChangeAgentField.Name, Message: timeChangeAgentField.Message},
+		"Status":  validate.ValidationInfo{FieldName: statusField.Name, Message: statusField.Message},
+		"SubType": validate.ValidationInfo{FieldName: subTypeField.Name, Message: subTypeField.Message},
 	}
 )
 

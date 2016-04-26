@@ -12,7 +12,6 @@ var (
 	failureReasons = validate.FailureReasons{
 		"Units": validate.ValidationInfo{FieldName: types.MmolOrMgUnitsField.Name, Message: types.MmolOrMgUnitsField.Message},
 		"Value": validate.ValidationInfo{FieldName: types.BloodGlucoseValueField.Name, Message: types.BloodGlucoseValueField.Message},
-		"Isig":  validate.ValidationInfo{FieldName: isigField.Name, Message: isigField.Message},
 	}
 )
 
