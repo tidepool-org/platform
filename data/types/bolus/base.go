@@ -68,13 +68,17 @@ func Build(datum types.Datum, errs validate.ErrorProcessing) interface{} {
 
 	if base.SubType != nil {
 
+		//TODO: we have a naming mismatch on the `SubType` until these names are
+		// migrated to reflect the name of the struct
+		//  i.e. `square` => `extended`
+		//  i.e. `dual/square` => `combo`
 		switch *base.SubType {
 		case "normal":
 			return base.makeNormal(datum, errs)
 		case "square":
-			return base.makeSquare(datum, errs)
+			return base.makeExtended(datum, errs)
 		case "dual/square":
-			return base.makeDualSquare(datum, errs)
+			return base.makeCombo(datum, errs)
 		}
 	}
 
