@@ -71,16 +71,16 @@ func (t *TestingHelper) ErrorIsExpected(builtType interface{}, expected Expected
 func (t *TestingHelper) HasExpectedErrors(builtType interface{}, expected map[string]ExpectedErrorDetails) error {
 
 	if !t.ErrorProcessing.HasErrors() {
-		return errors.New("there are no errors when we expected them")
+		return fmt.Errorf("no errors when we expected %d", len(expected))
 	}
 
 	for _, err := range t.ErrorProcessing.GetErrors() {
-		if found, ok := expected[err.Source["pointer"]]; !ok {
+		found, ok := expected[err.Source["pointer"]]
+		if !ok {
 			return fmt.Errorf("unexpected error source: %s", err.Source["pointer"])
-		} else {
-			if found.Detail != err.Detail {
-				return fmt.Errorf("expected: %s actual: %s", found.Detail, err.Detail)
-			}
+		}
+		if found.Detail != err.Detail {
+			return fmt.Errorf("expected: %s actual: %s", found.Detail, err.Detail)
 		}
 	}
 
