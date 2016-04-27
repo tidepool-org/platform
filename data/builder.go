@@ -8,6 +8,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/bloodglucose"
 	"github.com/tidepool-org/platform/data/types/bolus"
 	"github.com/tidepool-org/platform/data/types/calculator"
+	"github.com/tidepool-org/platform/data/types/cgm"
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/types/pump"
 	"github.com/tidepool-org/platform/data/types/upload"
@@ -95,8 +96,8 @@ func (t *TypeBuilder) build(datum types.Datum, errorProcessing validate.ErrorPro
 		return calculator.Build(datum, errorProcessing)
 	case pump.Name:
 		return pump.Build(datum, errorProcessing)
-	case "cgmSettings":
-		return BuildAny(datum, errorProcessing)
+	case cgm.Name:
+		return cgm.Build(datum, errorProcessing)
 	default:
 		// TODO: Use types package for this
 		errorProcessing.AppendPointerError("type", types.InvalidTypeTitle, "Unknown type")
