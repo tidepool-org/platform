@@ -17,7 +17,7 @@ var _ = Describe("Basal", func() {
 	basalObj["type"] = "basal"
 	basalObj["deliveryType"] = "scheduled"
 	basalObj["rate"] = 1.0
-	basalObj["duration"] = 28800000
+	basalObj["duration"] = 86400000
 
 	BeforeEach(func() {
 		helper = types.NewTestingHelper()
@@ -32,52 +32,6 @@ var _ = Describe("Basal", func() {
 	})
 
 	Context("validation", func() {
-
-		Context("duration", func() {
-
-			It("is not required", func() {
-				delete(basalObj, "duration")
-				Expect(helper.ValidDataType(basal.Build(basalObj, helper.ErrorProcessing))).To(BeNil())
-			})
-
-			It("fails if < 0", func() {
-				basalObj["duration"] = -1
-
-				Expect(
-					helper.ErrorIsExpected(
-						basal.Build(basalObj, helper.ErrorProcessing),
-						types.ExpectedErrorDetails{
-							Path:   "0/duration",
-							Detail: "Must be  >= 0 and <= 432000000 given '-1'",
-						}),
-				).To(BeNil())
-
-			})
-
-			It("fails if > 432000000", func() {
-				basalObj["duration"] = 432000001
-
-				Expect(
-					helper.ErrorIsExpected(
-						basal.Build(basalObj, helper.ErrorProcessing),
-						types.ExpectedErrorDetails{
-							Path:   "0/duration",
-							Detail: "Must be  >= 0 and <= 432000000 given '432000001'",
-						}),
-				).To(BeNil())
-
-			})
-
-			It("valid when greater when >= 0", func() {
-				basalObj["duration"] = 0
-				Expect(helper.ValidDataType(basal.Build(basalObj, helper.ErrorProcessing))).To(BeNil())
-			})
-			It("valid when greater when <= 432000000", func() {
-				basalObj["duration"] = 432000000
-				Expect(helper.ValidDataType(basal.Build(basalObj, helper.ErrorProcessing))).To(BeNil())
-			})
-
-		})
 
 		Context("deliveryType", func() {
 

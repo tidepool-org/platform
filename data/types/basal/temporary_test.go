@@ -34,9 +34,16 @@ var _ = Describe("Temporary", func() {
 
 			Context("rate", func() {
 
-				It("is not required", func() {
+				It("is required", func() {
 					delete(basalObj, "rate")
-					Expect(helper.ValidDataType(basal.Build(basalObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(
+						helper.ErrorIsExpected(
+							basal.Build(basalObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/rate",
+								Detail: "Must be >= 0.0 and <= 20.0 given '<nil>'",
+							}),
+					).To(BeNil())
 				})
 
 				It("invalid when < 0", func() {
@@ -47,7 +54,7 @@ var _ = Describe("Temporary", func() {
 							basal.Build(basalObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/rate",
-								Detail: "Must be  >= 0.0 and <= 20.0 given '-0.1'",
+								Detail: "Must be >= 0.0 and <= 20.0 given '-0.1'",
 							}),
 					).To(BeNil())
 
@@ -61,7 +68,7 @@ var _ = Describe("Temporary", func() {
 							basal.Build(basalObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/rate",
-								Detail: "Must be  >= 0.0 and <= 20.0 given '20.1'",
+								Detail: "Must be >= 0.0 and <= 20.0 given '20.1'",
 							}),
 					).To(BeNil())
 
@@ -74,6 +81,62 @@ var _ = Describe("Temporary", func() {
 
 				It("valid when <= 20.0", func() {
 					basalObj["rate"] = 20.0
+					Expect(helper.ValidDataType(basal.Build(basalObj, helper.ErrorProcessing))).To(BeNil())
+				})
+
+			})
+
+			Context("duration", func() {
+
+				It("is required", func() {
+					delete(basalObj, "duration")
+
+					Expect(
+						helper.ErrorIsExpected(
+							basal.Build(basalObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/duration",
+								Detail: "Must be >= 0 and <= 86400000 given '<nil>'",
+							}),
+					).To(BeNil())
+
+				})
+
+				It("invalid when < 0", func() {
+					basalObj["duration"] = -1
+
+					Expect(
+						helper.ErrorIsExpected(
+							basal.Build(basalObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/duration",
+								Detail: "Must be >= 0 and <= 86400000 given '-1'",
+							}),
+					).To(BeNil())
+
+				})
+
+				It("invalid when > 86400000", func() {
+					basalObj["duration"] = 86400001
+
+					Expect(
+						helper.ErrorIsExpected(
+							basal.Build(basalObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/duration",
+								Detail: "Must be >= 0 and <= 86400000 given '86400001'",
+							}),
+					).To(BeNil())
+
+				})
+
+				It("valid when >= 0", func() {
+					basalObj["duration"] = 0
+					Expect(helper.ValidDataType(basal.Build(basalObj, helper.ErrorProcessing))).To(BeNil())
+				})
+
+				It("valid when <= 86400000", func() {
+					basalObj["duration"] = 86400000
 					Expect(helper.ValidDataType(basal.Build(basalObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
@@ -94,25 +157,29 @@ var _ = Describe("Temporary", func() {
 							basal.Build(basalObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/percent",
-								Detail: "Must be greater than 0.0 given '-0.1'",
+								Detail: "Must be >= 0.0 and <= 10.0 given '-0.1'",
 							}),
 					).To(BeNil())
 				})
 
-				It("invalid when greater than 1.0", func() {
-					basalObj["percent"] = 1.1
+				It("invalid when greater than 10.0", func() {
+					basalObj["percent"] = 10.1
 					Expect(
 						helper.ErrorIsExpected(
 							basal.Build(basalObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/percent",
-								Detail: "Must be greater than 0.0 given '1.1'",
+								Detail: "Must be >= 0.0 and <= 10.0 given '10.1'",
 							}),
 					).To(BeNil())
 				})
 
-				It("valid when between 0.0 and 1.0", func() {
-					basalObj["percent"] = 0.7
+				It("valid when >= 0.0", func() {
+					basalObj["percent"] = 0.0
+					Expect(helper.ValidDataType(basal.Build(basalObj, helper.ErrorProcessing))).To(BeNil())
+				})
+				It("valid when <= 10.0", func() {
+					basalObj["percent"] = 10.0
 					Expect(helper.ValidDataType(basal.Build(basalObj, helper.ErrorProcessing))).To(BeNil())
 				})
 

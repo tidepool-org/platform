@@ -12,11 +12,11 @@ import (
 func init() {
 	types.GetPlatformValidator().RegisterValidation(durationField.Tag, DurationValidator)
 	types.GetPlatformValidator().RegisterValidation(deliveryTypeField.Tag, DeliveryTypeValidator)
+	types.GetPlatformValidator().RegisterValidation(rateField.Tag, RateValidator)
 }
 
 type Base struct {
-	DeliveryType *string `json:"deliveryType" bson:"deliveryType" valid:"required,basaldeliverytype"`
-	Duration     *int    `json:"duration,omitempty" bson:"duration,omitempty" valid:"omitempty,basalduration"`
+	DeliveryType *string `json:"deliveryType" bson:"deliveryType" valid:"basaldeliverytype"`
 	types.Base   `bson:",inline"`
 }
 
@@ -39,14 +39,22 @@ var (
 	durationField = types.IntDatumField{
 		DatumField:      &types.DatumField{Name: "duration"},
 		Tag:             "basalduration",
-		Message:         "Must be  >= 0 and <= 432000000",
+		Message:         "Must be >= 0 and <= 432000000",
 		AllowedIntRange: &types.AllowedIntRange{LowerLimit: 0, UpperLimit: 432000000},
+	}
+
+	rateField = types.FloatDatumField{
+		DatumField:        &types.DatumField{Name: "rate"},
+		Tag:               "basalrate",
+		Message:           "Must be >= 0.0 and <= 20.0",
+		AllowedFloatRange: &types.AllowedFloatRange{LowerLimit: 0.0, UpperLimit: 20.0},
 	}
 
 	failureReasons = validate.FailureReasons{
 		"DeliveryType": validate.ValidationInfo{FieldName: deliveryTypeField.Name, Message: deliveryTypeField.Message},
 		"Rate":         validate.ValidationInfo{FieldName: rateField.Name, Message: rateField.Message},
 		"Duration":     validate.ValidationInfo{FieldName: durationField.Name, Message: durationField.Message},
+		"TempDuration": validate.ValidationInfo{FieldName: tempDurationField.Name, Message: tempDurationField.Message},
 		"Percent":      validate.ValidationInfo{FieldName: percentField.Name, Message: percentField.Message},
 	}
 )
@@ -63,7 +71,6 @@ func Build(datum types.Datum, errs validate.ErrorProcessing) interface{} {
 
 	base := &Base{
 		DeliveryType: datum.ToString(deliveryTypeField.Name, errs),
-		Duration:     datum.ToInt(durationField.Name, errs),
 		Base:         types.BuildBase(datum, errs),
 	}
 
@@ -80,6 +87,14 @@ func Build(datum types.Datum, errs validate.ErrorProcessing) interface{} {
 	}
 	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(base, errs)
 	return base
+}
+
+func RateValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+	rate, ok := field.Interface().(float64)
+	if !ok {
+		return false
+	}
+	return rate >= rateField.LowerLimit && rate <= rateField.UpperLimit
 }
 
 func DurationValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
