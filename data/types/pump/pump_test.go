@@ -128,13 +128,14 @@ var _ = Describe("Settings", func() {
 					carbRatiosObj = []map[string]interface{}{{"amount": 12.0}, {"amount": 10.0}}
 					settingsObj["carbRatio"] = carbRatiosObj
 
+					expected := make(map[string]types.ExpectedErrorDetails, 0)
+					expected["0/start"] = types.ExpectedErrorDetails{Detail: "Needs to be in the range of >= 0 and < 86400000 given '<nil>'"}
+
 					Expect(
-						helper.ErrorsAreExpected(
+						helper.HasExpectedErrors(
 							pump.Build(settingsObj, helper.ErrorProcessing),
-							types.ExpectedErrorDetails{
-								Path:   "0/start",
-								Detail: "Needs to be in the range of >= 0 and < 86400000 given '<nil>'",
-							}),
+							expected,
+						),
 					).To(BeNil())
 				})
 
@@ -173,13 +174,14 @@ var _ = Describe("Settings", func() {
 					carbRatiosObj = []map[string]interface{}{{"start": 0}, {"start": 6400000}}
 					settingsObj["carbRatio"] = carbRatiosObj
 
+					expected := make(map[string]types.ExpectedErrorDetails, 0)
+					expected["0/amount"] = types.ExpectedErrorDetails{Detail: "This is a required field given '<nil>'"}
+
 					Expect(
-						helper.ErrorsAreExpected(
+						helper.HasExpectedErrors(
 							pump.Build(settingsObj, helper.ErrorProcessing),
-							types.ExpectedErrorDetails{
-								Path:   "0/amount",
-								Detail: "This is a required field given '<nil>'",
-							}),
+							expected,
+						),
 					).To(BeNil())
 				})
 
@@ -263,13 +265,14 @@ var _ = Describe("Settings", func() {
 					insulinSensitivitiesObj = []map[string]interface{}{{"amount": 3.6, "start": 0}, {"amount": 2.5}}
 					settingsObj["insulinSensitivity"] = insulinSensitivitiesObj
 
+					expected := make(map[string]types.ExpectedErrorDetails, 0)
+					expected["0/start"] = types.ExpectedErrorDetails{Detail: "Needs to be in the range of >= 0 and < 86400000 given '<nil>'"}
+
 					Expect(
-						helper.ErrorsAreExpected(
+						helper.HasExpectedErrors(
 							pump.Build(settingsObj, helper.ErrorProcessing),
-							types.ExpectedErrorDetails{
-								Path:   "0/start",
-								Detail: "Needs to be in the range of >= 0 and < 86400000 given '<nil>'",
-							}),
+							expected,
+						),
 					).To(BeNil())
 				})
 
@@ -278,13 +281,14 @@ var _ = Describe("Settings", func() {
 					insulinSensitivitiesObj = []map[string]interface{}{{"start": 0}, {"amount": 2.5, "start": 18000000}}
 					settingsObj["insulinSensitivity"] = insulinSensitivitiesObj
 
+					expected := make(map[string]types.ExpectedErrorDetails, 0)
+					expected["0/amount"] = types.ExpectedErrorDetails{Detail: "This is a required field given '<nil>'"}
+
 					Expect(
-						helper.ErrorsAreExpected(
+						helper.HasExpectedErrors(
 							pump.Build(settingsObj, helper.ErrorProcessing),
-							types.ExpectedErrorDetails{
-								Path:   "0/amount",
-								Detail: "This is a required field given '<nil>'",
-							}),
+							expected,
+						),
 					).To(BeNil())
 				})
 

@@ -106,7 +106,69 @@ var _ = Describe("Settings", func() {
 					).To(BeNil())
 				})
 
+				It("is free text", func() {
+					settingsObj["transmitterId"] = "my transmitter"
+					Expect(helper.ValidDataType(cgm.Build(settingsObj, helper.ErrorProcessing))).To(BeNil())
+				})
+
 			})
+
+			Context("lowAlerts", func() {
+
+				It("is required", func() {
+					delete(settingsObj, "lowAlerts")
+
+					expected := make(map[string]types.ExpectedErrorDetails, 0)
+					expected["0/level"] = types.ExpectedErrorDetails{Detail: "Must be >= 3.0 and <= 15.0 given '<nil>'"}
+					expected["0/enabled"] = types.ExpectedErrorDetails{Detail: "This is a required field given '<nil>'"}
+					expected["0/snooze"] = types.ExpectedErrorDetails{Detail: "Must be >= 0 and <= 432000000 given '<nil>'"}
+
+					Expect(
+						helper.HasExpectedErrors(
+							cgm.Build(settingsObj, helper.ErrorProcessing),
+							expected,
+						),
+					).To(BeNil())
+				})
+			})
+			Context("highAlerts", func() {
+
+				It("is required", func() {
+					delete(settingsObj, "highAlerts")
+
+					expected := make(map[string]types.ExpectedErrorDetails, 0)
+					expected["0/level"] = types.ExpectedErrorDetails{Detail: "Must be >= 3.0 and <= 15.0 given '<nil>'"}
+					expected["0/enabled"] = types.ExpectedErrorDetails{Detail: "This is a required field given '<nil>'"}
+					expected["0/snooze"] = types.ExpectedErrorDetails{Detail: "Must be >= 0 and <= 432000000 given '<nil>'"}
+
+					Expect(
+						helper.HasExpectedErrors(
+							cgm.Build(settingsObj, helper.ErrorProcessing),
+							expected,
+						),
+					).To(BeNil())
+				})
+			})
+			Context("outOfRangeAlerts", func() {
+				It("is not required", func() {
+					delete(settingsObj, "outOfRangeAlerts")
+					Expect(helper.ValidDataType(cgm.Build(settingsObj, helper.ErrorProcessing))).To(BeNil())
+				})
+			})
+			/*Context("rateOfChangeAlerts", func() {
+				It("is required", func() {
+					delete(settingsObj, "rateOfChangeAlerts")
+					Expect(
+						helper.ErrorIsExpected(
+							cgm.Build(settingsObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/rateOfChangeAlerts",
+								Detail: "This is a required field given '<nil>'",
+							}),
+					).To(BeNil())
+				})
+
+			})*/
 
 		})
 	})

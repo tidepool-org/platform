@@ -20,7 +20,7 @@ type Settings struct {
 
 	High               Alert `json:"highAlerts" bson:"highAlerts"`
 	Low                Alert `json:"lowAlerts" bson:"lowAlerts"`
-	*OutOfRangeAlert   `json:"outOfRangeAlerts,omitempty" bson:"outOfRangeAlerts,omitempty"`
+	*OutOfRangeAlert   `json:"outOfRangeAlerts,omitempty" bson:"outOfRangeAlerts,omitempty" valid:"-"`
 	ChangeOfRateAlerts map[string]ChangeOfRateAlert `json:"rateOfChangeAlerts" bson:"rateOfChangeAlerts"`
 
 	types.Base `bson:",inline"`
@@ -167,6 +167,8 @@ func Build(datum types.Datum, errs validate.ErrorProcessing) *Settings {
 	outOfRangeDatum, ok := datum["outOfRangeAlerts"].(map[string]interface{})
 	if ok {
 		outOfRangeAlert = buildOutOfRangeAlert(outOfRangeDatum, errs)
+	} else {
+		outOfRangeAlert = nil
 	}
 
 	var changeOfRateAlerts map[string]ChangeOfRateAlert
