@@ -176,6 +176,18 @@ func TimezoneOffsetValidator(v *validator.Validate, topStruct reflect.Value, cur
 	return offset >= baseTimezoneOffsetField.LowerLimit && offset <= baseTimezoneOffsetField.UpperLimit
 }
 
+func (d Datum) ToBool(fieldName string, errs validate.ErrorProcessing) *bool {
+	if d[fieldName] == nil {
+		return nil
+	}
+	aBool, ok := d[fieldName].(bool)
+	if !ok {
+		errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "bool"))
+		return nil
+	}
+	return &aBool
+}
+
 func (d Datum) ToString(fieldName string, errs validate.ErrorProcessing) *string {
 	if d[fieldName] == nil {
 		return nil
