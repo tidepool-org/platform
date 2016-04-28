@@ -47,10 +47,11 @@ func (f *Factory) CanDeduplicateDataset(datasetUpload *upload.Upload) (bool, err
 			return false, nil
 		}
 	} else if deviceModel := datasetUpload.DeviceModel; deviceModel != nil {
-		switch *deviceModel {
-		case "G4Receiver":
-			return true, nil
-		}
+		// switch *deviceModel {
+		// case "G4Receiver":
+		// 	return true, nil
+		// }
+		return true, nil
 	}
 	return false, nil
 }
