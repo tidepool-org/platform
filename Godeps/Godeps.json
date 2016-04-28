@@ -4,13 +4,14 @@
 	"GodepVersion": "v62",
 	"Packages": [
 		"./...",
-		"github.com/onsi/ginkgo/ginkgo"
+		"github.com/onsi/ginkgo/ginkgo",
+		"github.com/onsi/ginkgo/extensions/table"
 	],
 	"Deps": [
 		{
 			"ImportPath": "github.com/Sirupsen/logrus",
-			"Comment": "v0.10.0-14-g081307d",
-			"Rev": "081307d9bc1364753142d5962fc1d795c742baaf"
+			"Comment": "v0.10.0-16-gcd7d1bb",
+			"Rev": "cd7d1bbe41066b6c1f19780f895901052150a575"
 		},
 		{
 			"ImportPath": "github.com/ant0ine/go-json-rest/rest",
@@ -33,6 +34,11 @@
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo/config",
+			"Comment": "v1.2.0-52-g2c2e9bb",
+			"Rev": "2c2e9bb47b4e44067024f29339588cac8b34dd12"
+		},
+		{
+			"ImportPath": "github.com/onsi/ginkgo/extensions/table",
 			"Comment": "v1.2.0-52-g2c2e9bb",
 			"Rev": "2c2e9bb47b4e44067024f29339588cac8b34dd12"
 		},

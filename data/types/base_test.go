@@ -201,7 +201,7 @@ var _ = Describe("Base", func() {
 
 				converted := intVal.ToInt("myint", helper.ErrorProcessing)
 				Expect(converted).To(Equal(&zero))
-				Expect(helper.HasErrors()).To(BeFalse())
+				Expect(helper.ErrorProcessing.HasErrors()).To(BeFalse())
 
 			})
 

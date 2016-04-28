@@ -25,14 +25,10 @@ func (mw *AuthorizationMiddleware) ValidateToken(h rest.HandlerFunc) rest.Handle
 	return func(w rest.ResponseWriter, r *rest.Request) {
 
 		token := r.Header.Get(xTidepoolSessionToken)
-		userid := r.PathParam("userid")
 
 		if tokenData := mw.Client.CheckToken(token); tokenData != nil {
-			if tokenData.IsServer || tokenData.UserID == userid {
-				h(w, r)
-				return
-			}
-			log.Info("id's don't match and not server token", tokenData.UserID, userid)
+			h(w, r)
+			return
 		}
 		w.WriteHeader(http.StatusUnauthorized)
 		return

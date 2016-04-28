@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"sync"
 	"time"
 
+	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/config"
+	"github.com/tidepool-org/platform/log"
 )
 
 type (
@@ -27,14 +30,11 @@ type (
 	// ServicesClient manages the local data for a client. A client is intended to be shared among multiple
 	// goroutines so it's OK to treat it as a singleton (and probably a good idea).
 	ServicesClient struct {
+		logger log.Logger
+		config *Config
+
 		// store a reference to the http client so we can reuse it
 		httpClient *http.Client
-
-		// ClientConfig for the client
-		config *ClientConfig
-
-		//secret used along with the name to obtain a server token
-		secret string
 
 		mut sync.Mutex
 
@@ -45,12 +45,10 @@ type (
 		closed chan chan bool
 	}
 
-	//ClientConfig for initialising ServicesClient
-	ClientConfig struct {
-		Host                 string
-		Name                 string `json:"name"`                 // The name of this server for use in obtaining a server token
-		TokenRefreshInterval string `json:"tokenRefreshInterval"` // The amount of time between refreshes of the server token
-		TokenRefreshDuration time.Duration
+	Config struct {
+		Address       string `json:"address"`
+		Secret        string `json:"secret"`
+		TokenDuration int    `json:"tokenDuration"`
 	}
 
 	//Data is the data structure returned when we get a user
@@ -82,66 +80,60 @@ const (
 	xTidepoolServerName   = "x-tidepool-server-name"
 	xTidepoolServerSecret = "x-tidepool-server-secret"
 	xTidepoolSessionToken = "x-tidepool-session-token"
-	tidepoolClientSecret  = "TIDEPOOL_USER_CLIENT_SECRET"
 
 	userPath        = "/auth"
 	permissionsPath = "/access"
 	metaDataPath    = "/metadata"
 )
 
-//NewServicesClient returns and initailised ServicesClient instance
-func NewServicesClient() *ServicesClient {
-
-	var clientConfig *ClientConfig
-
-	config.FromJSON(&clientConfig, "userclient.json")
-
-	if clientConfig.Name == "" {
-		panic("ServicesClient requires a name to be set")
+func (c *Config) Validate() error {
+	if c.Address == "" {
+		return app.Error("dataservices", "address is not specified")
 	}
-
-	host, err := config.FromEnv("TIDEPOOL_USERCLIENT_HOST")
-	if err != nil {
-		panic("ServicesClient requires a host to be set")
+	if c.Secret == "" {
+		return app.Error("dataservices", "secret is not specified")
 	}
-	clientConfig.Host = host
-
-	dur, err := time.ParseDuration(clientConfig.TokenRefreshInterval)
-	if err != nil {
-		log.Error("err getting the duration ", err.Error())
+	if c.TokenDuration == 0 {
+		c.TokenDuration = 60
 	}
-	clientConfig.TokenRefreshDuration = dur
+	return nil
+}
 
-	secret, err := config.FromEnv(tidepoolClientSecret)
-	if err != nil {
-		log.Error("err getting client secret ", err.Error())
+func NewServicesClient(logger log.Logger) (*ServicesClient, error) {
+	clientConfig := &Config{}
+	if err := config.Load("userservices_client", clientConfig); err != nil {
+		return nil, app.ExtError(err, "user", "unable to load config")
+	}
+	if err := clientConfig.Validate(); err != nil {
+		return nil, app.ExtError(err, "user", "config is not valid")
 	}
 
 	return &ServicesClient{
-		httpClient: http.DefaultClient,
+		logger:     logger,
 		config:     clientConfig,
-		secret:     secret,
+		httpClient: http.DefaultClient,
 		closed:     make(chan chan bool),
-	}
+	}, nil
 }
 
 // Start starts the client and makes it ready for use.  This must be done before using any of the functionality
 // that requires a server token
 func (client *ServicesClient) Start() error {
 	if err := client.serverLogin(); err != nil {
-		log.Error("Problem with initial server token acquisition:", err.Error())
+		// TODO: Is this right?
+		client.logger.WithError(err).Error("Problem with initial server token acquisition")
 	}
 
 	go func() {
 		for {
-			timer := time.After(time.Duration(client.config.TokenRefreshDuration))
+			timer := time.After(time.Duration(client.config.TokenDuration) * time.Minute)
 			select {
 			case twoWay := <-client.closed:
 				twoWay <- true
 				return
 			case <-timer:
 				if err := client.serverLogin(); err != nil {
-					log.Error("Error when refreshing server login:", err.Error())
+					client.logger.WithError(err).Error("Error when refreshing server login")
 				}
 			}
 		}
@@ -172,8 +164,8 @@ func (client *ServicesClient) serverLogin() error {
 	host.Path += "/serverlogin"
 
 	req, _ := http.NewRequest("POST", host.String(), nil)
-	req.Header.Add(xTidepoolServerName, client.config.Name)
-	req.Header.Add(xTidepoolServerSecret, client.secret)
+	req.Header.Add(xTidepoolServerName, "dataservices")
+	req.Header.Add(xTidepoolServerSecret, client.config.Secret)
 
 	res, err := client.httpClient.Do(req)
 	if err != nil {
@@ -205,7 +197,7 @@ func (client *ServicesClient) tokenProvide() string {
 func (client *ServicesClient) CheckToken(token string) *TokenData {
 	host := client.getHost(userPath)
 	if host == nil {
-		log.Error("No known host for ", userPath)
+		client.logger.Error(fmt.Sprintf("No known host for %s", userPath))
 		return nil
 	}
 
@@ -216,7 +208,7 @@ func (client *ServicesClient) CheckToken(token string) *TokenData {
 
 	res, err := client.httpClient.Do(req)
 	if err != nil {
-		log.Error("Error checking token", err.Error())
+		client.logger.WithError(err).Error("Error checking token")
 		return nil
 	}
 
@@ -224,14 +216,14 @@ func (client *ServicesClient) CheckToken(token string) *TokenData {
 	case http.StatusOK:
 		var td TokenData
 		if err = json.NewDecoder(res.Body).Decode(&td); err != nil {
-			log.Error("Error parsing JSON results", err.Error())
+			client.logger.WithError(err).Error("Error parsing JSON results")
 			return nil
 		}
 		return &td
 	case http.StatusNoContent:
 		return nil
 	default:
-		log.Error("Unknown response ", res.StatusCode, req.URL)
+		client.logger.Error(fmt.Sprintf("Unknown response %d %s", res.StatusCode, req.URL))
 		return nil
 	}
 }
@@ -259,7 +251,7 @@ func (client *ServicesClient) GetUser(userID string) (*Data, error) {
 	case http.StatusOK:
 		var cd Data
 		if err = json.NewDecoder(res.Body).Decode(&cd); err != nil {
-			log.Error("Error parsing JSON results:", err.Error())
+			client.logger.WithError(err).Error("Error parsing JSON results")
 			return nil, err
 		}
 		return &cd, nil
@@ -292,7 +284,7 @@ func (client *ServicesClient) GetUserPermissons(userID string) (*UsersPermission
 	case http.StatusOK:
 		var perms UsersPermissions
 		if err = json.NewDecoder(res.Body).Decode(&perms); err != nil {
-			log.Error("Error parsing JSON results:", err.Error())
+			client.logger.WithError(err).Error("Error parsing JSON results")
 			return nil, err
 		}
 		return &perms, nil
@@ -328,7 +320,7 @@ func (client *ServicesClient) GetUserGroupID(userID string) (string, error) {
 			Value string
 		}
 		if err = json.NewDecoder(res.Body).Decode(&pair); err != nil {
-			log.Error("Error parsing JSON results:", err.Error())
+			client.logger.WithError(err).Error("Error parsing JSON results")
 			return "", err
 		}
 		return pair.ID, nil
@@ -338,9 +330,12 @@ func (client *ServicesClient) GetUserGroupID(userID string) (string, error) {
 }
 
 func (client *ServicesClient) getHost(pathName string) *url.URL {
-	theURL, err := url.Parse(client.config.Host + pathName)
+	urlString := client.config.Address + pathName
+	theURL, err := url.Parse(urlString)
 	if err != nil {
-		log.Fatal("Unable to parse urlString:", client.config.Host+pathName)
+		// TODO: Why does this exit here?
+		client.logger.WithError(err).WithField("url", urlString).Error("Unable to parse urlString")
+		os.Exit(1)
 	}
 	return theURL
 }

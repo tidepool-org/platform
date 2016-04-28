@@ -9,5 +9,5 @@ import (
 
 func TestBloodglucose(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Bloodglucose Suite")
+	RunSpecs(t, "data/types/bloodglucose")
 }

@@ -1,4 +1,3 @@
 {
-  "keyFile": "_config/key.pem",
-  "certFile": "_config/cert.pem"
+  "tls": {}
 }

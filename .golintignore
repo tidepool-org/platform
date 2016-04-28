@@ -1,2 +1,0 @@
-./service/testutil.go:139:26: method EncodeJson should be EncodeJSON
-./service/testutil.go:148:26: method WriteJson should be WriteJSON

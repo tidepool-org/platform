@@ -65,8 +65,7 @@ var (
 	}
 
 	BaseUserIDField           = DatumField{Name: "userId"}
-	BaseGroupIDField          = DatumField{Name: "groupId"}
-	BaseInternalGroupIDField  = DatumField{Name: "_groupId"}
+	BaseGroupIDField          = DatumField{Name: "_groupId"}
 	BaseSubTypeField          = DatumField{Name: "subType"}
 	baseUploadIDField         = DatumField{Name: "uploadId"}
 	baseConversionOffsetField = DatumField{Name: "conversionOffset"}

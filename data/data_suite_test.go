@@ -9,5 +9,5 @@ import (
 
 func TestData(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Data Suite")
+	RunSpecs(t, "data")
 }

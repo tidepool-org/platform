@@ -9,5 +9,5 @@ import (
 
 func TestUpload(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Upload Suite")
+	RunSpecs(t, "data/types/upload")
 }

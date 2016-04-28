@@ -4,38 +4,56 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+	"sync"
 
 	"github.com/jinzhu/configor"
+
+	"github.com/tidepool-org/platform/app"
 )
 
-func FromJSON(config interface{}, name string) error {
+const (
+	EnvPrefixDefault = "TIDEPOOL"
+)
 
-	// we need to get the absolute path and also test it because of the
-	// difference of how this code runs in different environments
-	absPath, err := filepath.Abs(filepath.Join("_config/", name))
-	if err != nil {
-		return err
+var (
+	_once      sync.Once
+	_error     error
+	_directory string
+)
+
+func Load(name string, config interface{}) error {
+	_once.Do(func() {
+		if env := os.Getenv("TIDEPOOL_ENV"); env == "" {
+			_error = app.Error("config", "TIDEPOOL_ENV not defined")
+		} else if err := os.Setenv("CONFIGOR_ENV", env); err != nil {
+			_error = app.ExtError(err, "config", "unable to set CONFIGOR_ENV")
+		} else if err := os.Setenv("CONFIGOR_ENV_PREFIX", EnvPrefixDefault); err != nil {
+			_error = app.ExtError(err, "config", "unable to set CONFIGOR_ENV_PREFIX")
+		} else if directory := os.Getenv("TIDEPOOL_CONFIG_DIRECTORY"); directory == "" {
+			_error = app.Error("config", "TIDEPOOL_CONFIG_DIRECTORY not defined")
+		} else if _directory, err = filepath.Abs(directory); err != nil {
+			_error = app.ExtError(err, "config", "unable to determine absolute path to directory")
+		}
+	})
+
+	if _error != nil {
+		return _error
 	}
 
-	if _, err := os.Stat(absPath); os.IsNotExist(err) {
-		absPath, err = filepath.Abs(filepath.Join("../_config/", name))
-		if err != nil {
+	prefix := fmt.Sprintf("%s_%s", EnvPrefixDefault, strings.ToUpper(name))
+	if err := os.Setenv("CONFIGOR_ENV_PREFIX", prefix); err != nil {
+		return app.ExtError(err, "config", "unable to set CONFIGOR_ENV_PREFIX")
+	}
+	defer os.Setenv("CONFIGOR_ENV_PREFIX", EnvPrefixDefault)
+
+	for _, extension := range []string{"json", "yaml"} {
+		path := filepath.Join(_directory, fmt.Sprintf("%s.%s", name, extension))
+		if _, err := os.Stat(path); err == nil {
+			return configor.Load(config, path)
+		} else if !os.IsNotExist(err) {
 			return err
 		}
-		if _, err := os.Stat(absPath); os.IsNotExist(err) {
-			return err
-		}
 	}
-
-	return configor.Load(&config, absPath)
-}
-
-func FromEnv(name string) (string, error) {
-
-	value := os.Getenv(name)
-
-	if value == "" {
-		return "", fmt.Errorf("$%s must be set", name)
-	}
-	return value, nil
+	return configor.Load(config)
 }

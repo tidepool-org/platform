@@ -15,7 +15,7 @@ var _ = Describe("Builder", func() {
 
 	var (
 		builder        data.Builder
-		injectedFields = map[string]interface{}{"userId": "b676436f60", "uploadId": "43099shgs55", "groupId": "upid_b856b0e6e519"}
+		injectedFields = map[string]interface{}{"userId": "b676436f60", "uploadId": "43099shgs55", "_groupId": "upid_b856b0e6e519"}
 	)
 
 	BeforeEach(func() {
@@ -31,8 +31,8 @@ var _ = Describe("Builder", func() {
 			json.Unmarshal(rawTestData, &datumArray)
 		})
 		It("should not return an error as is valid", func() {
-			_, errs := builder.BuildFromDatumArray(datumArray)
-			Expect(errs.HasErrors()).To(BeFalse())
+			_, errors := builder.BuildFromDatumArray(datumArray)
+			Expect(errors).To(BeEmpty())
 		})
 		It("should return process data when valid", func() {
 			data, _ := builder.BuildFromDatumArray(datumArray)

@@ -1,5 +1,7 @@
 package types
 
+// TODO: This needs to be moved to its own /data/types/test package so it is separate
+
 import (
 	"errors"
 	"fmt"
@@ -8,7 +10,7 @@ import (
 )
 
 type TestingHelper struct {
-	validate.ErrorProcessing
+	ErrorProcessing validate.ErrorProcessing
 }
 
 type ExpectedErrorDetails struct {
@@ -18,17 +20,17 @@ type ExpectedErrorDetails struct {
 
 func NewTestingHelper() *TestingHelper {
 	return &TestingHelper{
-		ErrorProcessing: validate.ErrorProcessing{BasePath: "0", ErrorsArray: validate.NewErrorsArray()},
+		ErrorProcessing: validate.NewErrorProcessing("0"),
 	}
 }
 
 func (t *TestingHelper) ValidDataType(builtType interface{}) error {
 
-	if t.HasErrors() {
+	if t.ErrorProcessing.HasErrors() {
 		fmt.Println("details of unexpected errors: ")
-		for i := range t.Errors {
-			fmt.Println(t.Errors[i].Source["pointer"])
-			fmt.Println(t.Errors[i].Detail)
+		for _, err := range t.ErrorProcessing.GetErrors() {
+			fmt.Println(err.Source.Pointer)
+			fmt.Println(err.Detail)
 		}
 		return errors.New("type errored while being built and validated")
 	}
@@ -41,27 +43,26 @@ func (t *TestingHelper) ValidDataType(builtType interface{}) error {
 
 func (t *TestingHelper) ErrorIsExpected(builtType interface{}, expected ExpectedErrorDetails) error {
 
-	if !t.HasErrors() {
+	if !t.ErrorProcessing.HasErrors() {
 		return errors.New("there are no errors when we expected one")
 	}
 
-	if len(t.Errors) != 1 {
-
+	if errorCount := len(t.ErrorProcessing.GetErrors()); errorCount != 1 {
 		fmt.Println("details of unexpected errors: ")
-		for i := range t.Errors {
-			fmt.Println(t.Errors[i].Source["pointer"])
-			fmt.Println(t.Errors[i].Detail)
+		for _, err := range t.ErrorProcessing.GetErrors() {
+			fmt.Println(err.Source.Pointer)
+			fmt.Println(err.Detail)
 		}
 
-		return fmt.Errorf("we expected only one error but found %d", len(t.Errors))
+		return fmt.Errorf("we expected only one error but found %d", errorCount)
 	}
 
-	if expected.Detail != t.Errors[0].Detail {
-		return fmt.Errorf("expected: %s actual: %s", expected.Detail, t.Errors[0].Detail)
+	err := t.ErrorProcessing.GetErrors()[0]
+	if expected.Detail != err.Detail {
+		return fmt.Errorf("expected: %s actual: %s", expected.Detail, err.Detail)
 	}
-
-	if expected.Path != t.Errors[0].Source["pointer"] {
-		return fmt.Errorf("expected: %s actual: %s", expected.Path, t.Errors[0].Source["pointer"])
+	if expected.Path != err.Source.Pointer {
+		return fmt.Errorf("expected: %s actual: %s", expected.Path, err.Source.Pointer)
 	}
 
 	return nil
@@ -69,17 +70,17 @@ func (t *TestingHelper) ErrorIsExpected(builtType interface{}, expected Expected
 
 func (t *TestingHelper) ErrorsAreExpected(builtType interface{}, expected ExpectedErrorDetails) error {
 
-	if !t.HasErrors() {
+	if !t.ErrorProcessing.HasErrors() {
 		return errors.New("there are no errors when we expected one")
 	}
 
-	for i := range t.Errors {
-		if expected.Detail != t.Errors[i].Detail {
-			return fmt.Errorf("expected: %s actual: %s", expected.Detail, t.Errors[i].Detail)
+	for _, err := range t.ErrorProcessing.GetErrors() {
+		if expected.Detail != err.Detail {
+			return fmt.Errorf("expected: %s actual: %s", expected.Detail, err.Detail)
 		}
 
-		if expected.Path != t.Errors[i].Source["pointer"] {
-			return fmt.Errorf("expected: %s actual: %s", expected.Path, t.Errors[i].Source["pointer"])
+		if expected.Path != err.Source.Pointer {
+			return fmt.Errorf("expected: %s actual: %s", expected.Path, err.Source.Pointer)
 		}
 	}
 

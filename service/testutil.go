@@ -1,232 +1,234 @@
 package service
 
-import (
-	"bytes"
-	"encoding/json"
-	"io"
-	"io/ioutil"
-	"mime/multipart"
-	"net/http"
-	"net/http/httptest"
-	"os"
-	"strings"
+// TODO: Reenable as necessary when other tests functional
 
-	"github.com/ant0ine/go-json-rest/rest"
-)
+// import (
+// 	"bytes"
+// 	"encoding/json"
+// 	"io"
+// 	"io/ioutil"
+// 	"mime/multipart"
+// 	"net/http"
+// 	"net/http/httptest"
+// 	"os"
+// 	"strings"
 
-func panicOnError(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
+// 	"github.com/ant0ine/go-json-rest/rest"
+// )
 
-// MakeSimpleRequest returns a http.Request. The returned request object can be
-// further prepared by adding headers and query string parmaters, for instance.
-func MakeSimpleRequest(method string, urlStr string, body io.Reader) *http.Request {
+// func panicOnError(err error) {
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// }
 
-	r, err := http.NewRequest(method, urlStr, body)
-	panicOnError(err)
+// // MakeSimpleRequest returns a http.Request. The returned request object can be
+// // further prepared by adding headers and query string parmaters, for instance.
+// func MakeSimpleRequest(method string, urlStr string, body io.Reader) *http.Request {
 
-	r.Header.Set("Accept-Encoding", "gzip")
-	if body != nil {
-		r.Header.Set("Content-Type", "application/json")
-	}
+// 	r, err := http.NewRequest(method, urlStr, body)
+// 	panicOnError(err)
 
-	return r
-}
+// 	r.Header.Set("Accept-Encoding", "gzip")
+// 	if body != nil {
+// 		r.Header.Set("Content-Type", "application/json")
+// 	}
 
-// MakeBlobRequest returns a http.Request. The returned request object can be
-// further prepared by adding headers and query string parmaters, for instance.
-func MakeBlobRequest(method string, urlStr string, filename string) *http.Request {
+// 	return r
+// }
 
-	if filename == "" {
-		r, err := http.NewRequest(method, urlStr, nil)
-		panicOnError(err)
-		return r
-	}
+// // MakeBlobRequest returns a http.Request. The returned request object can be
+// // further prepared by adding headers and query string parmaters, for instance.
+// func MakeBlobRequest(method string, urlStr string, filename string) *http.Request {
 
-	bodyBuf := &bytes.Buffer{}
-	bodyWriter := multipart.NewWriter(bodyBuf)
+// 	if filename == "" {
+// 		r, err := http.NewRequest(method, urlStr, nil)
+// 		panicOnError(err)
+// 		return r
+// 	}
 
-	fileWriter, err := bodyWriter.CreateFormFile("uploadfile", filename)
-	panicOnError(err)
+// 	bodyBuf := &bytes.Buffer{}
+// 	bodyWriter := multipart.NewWriter(bodyBuf)
 
-	fileHandler, err := os.Open(filename)
-	panicOnError(err)
+// 	fileWriter, err := bodyWriter.CreateFormFile("uploadfile", filename)
+// 	panicOnError(err)
 
-	_, err = io.Copy(fileWriter, fileHandler)
-	panicOnError(err)
+// 	fileHandler, err := os.Open(filename)
+// 	panicOnError(err)
 
-	r, err := http.NewRequest(method, urlStr, bodyBuf)
+// 	_, err = io.Copy(fileWriter, fileHandler)
+// 	panicOnError(err)
 
-	panicOnError(err)
+// 	r, err := http.NewRequest(method, urlStr, bodyBuf)
 
-	r.Header.Set("Content-Type", bodyWriter.FormDataContentType())
-	r.Header.Set("Accept-Encoding", "gzip")
+// 	panicOnError(err)
 
-	bodyWriter.Close()
+// 	r.Header.Set("Content-Type", bodyWriter.FormDataContentType())
+// 	r.Header.Set("Accept-Encoding", "gzip")
 
-	return r
-}
+// 	bodyWriter.Close()
 
-// CodeIs compares the rescorded status code
-func CodeIs(r *httptest.ResponseRecorder, expectedCode int) bool {
-	return r.Code == expectedCode
-}
+// 	return r
+// }
 
-// HeaderIs tests the first value for the given headerKey
-func HeaderIs(r *httptest.ResponseRecorder, headerKey, expectedValue string) bool {
-	value := r.HeaderMap.Get(headerKey)
-	return value == expectedValue
-}
+// // CodeIs compares the rescorded status code
+// func CodeIs(r *httptest.ResponseRecorder, expectedCode int) bool {
+// 	return r.Code == expectedCode
+// }
 
-// ContentTypeIsJSON tests that application/json is set
-func ContentTypeIsJSON(r *httptest.ResponseRecorder) bool {
-	return HeaderIs(r, "Content-Type", "application/json")
-}
+// // HeaderIs tests the first value for the given headerKey
+// func HeaderIs(r *httptest.ResponseRecorder, headerKey, expectedValue string) bool {
+// 	value := r.HeaderMap.Get(headerKey)
+// 	return value == expectedValue
+// }
 
-// ContentEncodingIsGzip tests that gzip is set
-func ContentEncodingIsGzip(r *httptest.ResponseRecorder) bool {
-	return HeaderIs(r, "Content-Encoding", "gzip")
-}
+// // ContentTypeIsJSON tests that application/json is set
+// func ContentTypeIsJSON(r *httptest.ResponseRecorder) bool {
+// 	return HeaderIs(r, "Content-Type", "application/json")
+// }
 
-// BodyIs compares the rescorded body
-func BodyIs(r *httptest.ResponseRecorder, expectedBody string) bool {
-	body := r.Body.String()
-	return strings.Trim(body, "\"") == expectedBody
-}
+// // ContentEncodingIsGzip tests that gzip is set
+// func ContentEncodingIsGzip(r *httptest.ResponseRecorder) bool {
+// 	return HeaderIs(r, "Content-Encoding", "gzip")
+// }
 
-// BodyContains compares the rescorded body
-func BodyContains(r *httptest.ResponseRecorder, expectedToContain string) bool {
-	return strings.Contains(r.Body.String(), expectedToContain)
-}
+// // BodyIs compares the rescorded body
+// func BodyIs(r *httptest.ResponseRecorder, expectedBody string) bool {
+// 	body := r.Body.String()
+// 	return strings.Trim(body, "\"") == expectedBody
+// }
 
-// DecodeJSONPayload decodes the recorded payload to JSON
-func DecodeJSONPayload(r *httptest.ResponseRecorder, v interface{}) error {
-	content, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return err
-	}
-	err = json.Unmarshal(content, v)
-	if err != nil {
-		return err
-	}
-	return nil
-}
+// // BodyContains compares the rescorded body
+// func BodyContains(r *httptest.ResponseRecorder, expectedToContain string) bool {
+// 	return strings.Contains(r.Body.String(), expectedToContain)
+// }
 
-// Recorded type
-type Recorded struct {
-	Recorder *httptest.ResponseRecorder
-}
+// // DecodeJSONPayload decodes the recorded payload to JSON
+// func DecodeJSONPayload(r *httptest.ResponseRecorder, v interface{}) error {
+// 	content, err := ioutil.ReadAll(r.Body)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	err = json.Unmarshal(content, v)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
-// Private responseWriter intantiated by the resource handler.
-// It implements the following interfaces:
-// ResponseWriter
-// http.ResponseWriter
-type responseWriter struct {
-	http.ResponseWriter
-	wroteHeader bool
-}
+// // Recorded type
+// type Recorded struct {
+// 	Recorder *httptest.ResponseRecorder
+// }
 
-func (w *responseWriter) WriteHeader(code int) {
-	if w.Header().Get("Content-Type") == "" {
-		w.Header().Set("Content-Type", "application/json")
-	}
-	w.ResponseWriter.WriteHeader(code)
-	w.wroteHeader = true
-}
+// // Private responseWriter intantiated by the resource handler.
+// // It implements the following interfaces:
+// // ResponseWriter
+// // http.ResponseWriter
+// type responseWriter struct {
+// 	http.ResponseWriter
+// 	wroteHeader bool
+// }
 
-func (w *responseWriter) EncodeJson(v interface{}) ([]byte, error) {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return nil, err
-	}
-	return b, nil
-}
+// func (w *responseWriter) WriteHeader(code int) {
+// 	if w.Header().Get("Content-Type") == "" {
+// 		w.Header().Set("Content-Type", "application/json")
+// 	}
+// 	w.ResponseWriter.WriteHeader(code)
+// 	w.wroteHeader = true
+// }
 
-// Encode the object in JSON and call Write.
-func (w *responseWriter) WriteJson(v interface{}) error {
-	b, err := w.EncodeJson(v)
-	if err != nil {
-		return err
-	}
-	_, err = w.Write(b)
-	if err != nil {
-		return err
-	}
-	return nil
-}
+// func (w *responseWriter) EncodeJson(v interface{}) ([]byte, error) {
+// 	b, err := json.Marshal(v)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return b, nil
+// }
 
-// Provided in order to implement the http.ResponseWriter interface.
-func (w *responseWriter) Write(b []byte) (int, error) {
-	if !w.wroteHeader {
-		w.WriteHeader(http.StatusOK)
-	}
-	return w.ResponseWriter.Write(b)
-}
+// // Encode the object in JSON and call Write.
+// func (w *responseWriter) WriteJson(v interface{}) error {
+// 	b, err := w.EncodeJson(v)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	_, err = w.Write(b)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
-// Handle the transition between net/http and go-json-rest objects.
-// It intanciates the rest.Request and rest.ResponseWriter, ...
-func adapterFunc(handler rest.HandlerFunc, env map[string]interface{}, pathParams map[string]string) http.HandlerFunc {
+// // Provided in order to implement the http.ResponseWriter interface.
+// func (w *responseWriter) Write(b []byte) (int, error) {
+// 	if !w.wroteHeader {
+// 		w.WriteHeader(http.StatusOK)
+// 	}
+// 	return w.ResponseWriter.Write(b)
+// }
 
-	return func(origWriter http.ResponseWriter, origRequest *http.Request) {
+// // Handle the transition between net/http and go-json-rest objects.
+// // It intanciates the rest.Request and rest.ResponseWriter, ...
+// func adapterFunc(handler rest.HandlerFunc, env map[string]interface{}, pathParams map[string]string) http.HandlerFunc {
 
-		// instantiate the rest objects
-		request := &rest.Request{
-			Request:    origRequest,
-			PathParams: pathParams,
-			Env:        env,
-		}
+// 	return func(origWriter http.ResponseWriter, origRequest *http.Request) {
 
-		writer := &responseWriter{
-			ResponseWriter: origWriter,
-			wroteHeader:    false,
-		}
+// 		// instantiate the rest objects
+// 		request := &rest.Request{
+// 			Request:    origRequest,
+// 			PathParams: pathParams,
+// 			Env:        env,
+// 		}
 
-		// call the wrapped handler
-		handler(writer, request)
-	}
-}
+// 		writer := &responseWriter{
+// 			ResponseWriter: origWriter,
+// 			wroteHeader:    false,
+// 		}
 
-// RunRequest runs a HTTP request through the given handler
-func RunRequest(restHandler rest.HandlerFunc, request *http.Request, pathParams map[string]string, env map[string]interface{}) *Recorded {
-	handler := adapterFunc(restHandler, env, pathParams)
-	recorder := httptest.NewRecorder()
-	handler(recorder, request)
-	return &Recorded{recorder}
-}
+// 		// call the wrapped handler
+// 		handler(writer, request)
+// 	}
+// }
 
-// CodeIs for Recorded
-func (rd *Recorded) CodeIs(expectedCode int) bool {
-	return CodeIs(rd.Recorder, expectedCode)
-}
+// // RunRequest runs a HTTP request through the given handler
+// func RunRequest(restHandler rest.HandlerFunc, request *http.Request, pathParams map[string]string, env map[string]interface{}) *Recorded {
+// 	handler := adapterFunc(restHandler, env, pathParams)
+// 	recorder := httptest.NewRecorder()
+// 	handler(recorder, request)
+// 	return &Recorded{recorder}
+// }
 
-// HeaderIs for Recorded
-func (rd *Recorded) HeaderIs(headerKey, expectedValue string) bool {
-	return HeaderIs(rd.Recorder, headerKey, expectedValue)
-}
+// // CodeIs for Recorded
+// func (rd *Recorded) CodeIs(expectedCode int) bool {
+// 	return CodeIs(rd.Recorder, expectedCode)
+// }
 
-// ContentTypeIsJSON for Recorded
-func (rd *Recorded) ContentTypeIsJSON() bool {
-	return ContentTypeIsJSON(rd.Recorder)
-}
+// // HeaderIs for Recorded
+// func (rd *Recorded) HeaderIs(headerKey, expectedValue string) bool {
+// 	return HeaderIs(rd.Recorder, headerKey, expectedValue)
+// }
 
-// ContentEncodingIsGzip for Recorded
-func (rd *Recorded) ContentEncodingIsGzip() bool {
-	return ContentEncodingIsGzip(rd.Recorder)
-}
+// // ContentTypeIsJSON for Recorded
+// func (rd *Recorded) ContentTypeIsJSON() bool {
+// 	return ContentTypeIsJSON(rd.Recorder)
+// }
 
-// BodyIs for Recorded
-func (rd *Recorded) BodyIs(expectedToContain string) bool {
-	return BodyIs(rd.Recorder, expectedToContain)
-}
+// // ContentEncodingIsGzip for Recorded
+// func (rd *Recorded) ContentEncodingIsGzip() bool {
+// 	return ContentEncodingIsGzip(rd.Recorder)
+// }
 
-// BodyContains for Recorded
-func (rd *Recorded) BodyContains(expectedBody string) bool {
-	return BodyIs(rd.Recorder, expectedBody)
-}
+// // BodyIs for Recorded
+// func (rd *Recorded) BodyIs(expectedToContain string) bool {
+// 	return BodyIs(rd.Recorder, expectedToContain)
+// }
 
-// DecodeJSONPayload for Recorded
-func (rd *Recorded) DecodeJSONPayload(v interface{}) error {
-	return DecodeJSONPayload(rd.Recorder, v)
-}
+// // BodyContains for Recorded
+// func (rd *Recorded) BodyContains(expectedBody string) bool {
+// 	return BodyIs(rd.Recorder, expectedBody)
+// }
+
+// // DecodeJSONPayload for Recorded
+// func (rd *Recorded) DecodeJSONPayload(v interface{}) error {
+// 	return DecodeJSONPayload(rd.Recorder, v)
+// }

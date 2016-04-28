@@ -9,5 +9,5 @@ import (
 
 func TestPump(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Pump Suite")
+	RunSpecs(t, "data/types/pump")
 }

@@ -11,84 +11,95 @@ import (
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/types/pump"
 	"github.com/tidepool-org/platform/data/types/upload"
+	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/validate"
 )
 
 type BuiltDatum interface{}
-type BuiltDatumArray []BuiltDatum
+type BuiltDatumArray []interface{}
 
 type Builder interface {
-	BuildFromDatum(datum types.Datum) BuiltDatum
-	BuildFromDatumArray(datumArray types.DatumArray) (BuiltDatumArray, *validate.ErrorsArray)
+	BuildFromDatum(datum types.Datum) (BuiltDatum, []*service.Error)
+	BuildFromDatumArray(datumArray types.DatumArray) (BuiltDatumArray, []*service.Error)
 }
 
 type TypeBuilder struct {
 	commonDatum types.Datum
-	Index       int
-	validate.ErrorProcessing
 }
 
 func NewTypeBuilder(commonDatum types.Datum) Builder {
 	return &TypeBuilder{
-		commonDatum:     commonDatum,
-		ErrorProcessing: validate.ErrorProcessing{ErrorsArray: validate.NewErrorsArray()},
-		Index:           0,
+		commonDatum: commonDatum,
 	}
 }
 
-func (t *TypeBuilder) BuildFromDatumArray(datumArray types.DatumArray) (BuiltDatumArray, *validate.ErrorsArray) {
+func (t *TypeBuilder) BuildFromDatumArray(datumArray types.DatumArray) (BuiltDatumArray, []*service.Error) {
 
-	var builtDatumArray BuiltDatumArray
+	errors := service.NewErrors()
 
-	for i := range datumArray {
-		builtDatumArray = append(builtDatumArray, t.BuildFromDatum(datumArray[i]))
-		t.Index++
+	builtDatumArray := BuiltDatumArray{}
+	for index := range datumArray {
+		errorProcessing := validate.NewErrorProcessing(fmt.Sprintf("%d", index))
+		errorProcessing.Errors = errors
+		builtDatumArray = append(builtDatumArray, t.build(datumArray[index], errorProcessing))
 	}
 
-	if t.ErrorProcessing.HasErrors() {
-		return nil, t.ErrorsArray
+	if errors.HasErrors() {
+		return nil, errors.GetErrors()
 	}
 
 	return builtDatumArray, nil
 }
 
-func (t *TypeBuilder) buildType(typeName string, datum types.Datum) BuiltDatum {
+func (t *TypeBuilder) BuildFromDatum(datum types.Datum) (BuiltDatum, []*service.Error) {
 
-	t.ErrorProcessing.BasePath = fmt.Sprintf("%d/%s", t.Index, typeName)
+	errorProcessing := validate.NewErrorProcessing("")
 
-	switch typeName {
-	case basal.Name:
-		return basal.Build(datum, t.ErrorProcessing)
-	case device.Name:
-		return device.Build(datum, t.ErrorProcessing)
-	case bolus.Name:
-		return bolus.Build(datum, t.ErrorProcessing)
-	case bloodglucose.ContinuousName:
-		return bloodglucose.BuildContinuous(datum, t.ErrorProcessing)
-	case bloodglucose.SelfMonitoredName:
-		return bloodglucose.BuildSelfMonitored(datum, t.ErrorProcessing)
-	case upload.Name:
-		return upload.Build(datum, t.ErrorProcessing)
-	case calculator.Name:
-		return calculator.Build(datum, t.ErrorProcessing)
-	case pump.Name:
-		return pump.Build(datum, t.ErrorProcessing)
-	default:
-		t.ErrorProcessing.AppendPointerError("type", types.InvalidTypeTitle, "The type must be one of 'basal', 'deviceEvent'")
-		return nil
+	builtDatum := t.build(datum, errorProcessing)
+
+	if errorProcessing.HasErrors() {
+		return nil, errorProcessing.GetErrors()
 	}
+
+	return builtDatum, nil
 }
 
-func (t *TypeBuilder) BuildFromDatum(datum types.Datum) BuiltDatum {
-
-	if datum["type"] == nil {
-		t.ErrorProcessing.Append(validate.NewParameterError(fmt.Sprintf("%d", t.Index), types.InvalidDataTitle, "Missing required 'type' field"))
+func (t *TypeBuilder) build(datum types.Datum, errorProcessing validate.ErrorProcessing) BuiltDatum {
+	typeName, ok := datum["type"].(string)
+	if !ok {
+		// TODO: Use types package for this
+		errorProcessing.AppendPointerError("type", types.InvalidDataTitle, "Missing type")
 		return nil
 	}
 
 	for k, v := range t.commonDatum {
 		datum[k] = v
 	}
-	return t.buildType(datum["type"].(string), datum)
 
+	// datum["id"] = uuid.NewV4().String()		// TODO: Is this necessary?
+
+	switch typeName {
+	case basal.Name:
+		return basal.Build(datum, errorProcessing)
+	case device.Name:
+		return device.Build(datum, errorProcessing)
+	case bolus.Name:
+		return bolus.Build(datum, errorProcessing)
+	case bloodglucose.ContinuousName:
+		return bloodglucose.BuildContinuous(datum, errorProcessing)
+	case bloodglucose.SelfMonitoredName:
+		return bloodglucose.BuildSelfMonitored(datum, errorProcessing)
+	case upload.Name:
+		return upload.Build(datum, errorProcessing)
+	case calculator.Name:
+		return calculator.Build(datum, errorProcessing)
+	case pump.Name:
+		return pump.Build(datum, errorProcessing)
+	case "cgmSettings":
+		return BuildAny(datum, errorProcessing)
+	default:
+		// TODO: Use types package for this
+		errorProcessing.AppendPointerError("type", types.InvalidTypeTitle, "Unknown type")
+		return nil
+	}
 }

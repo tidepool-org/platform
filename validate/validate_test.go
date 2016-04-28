@@ -39,7 +39,7 @@ var _ = Describe("Validate", func() {
 		BeforeEach(func() {
 			platformValidator.RegisterValidation("custom", testValidator)
 			platformValidator.SetFailureReasons(failureReasons)
-			processing = validate.ErrorProcessing{BasePath: "0", ErrorsArray: validate.NewErrorsArray()}
+			processing = validate.NewErrorProcessing("0")
 		})
 
 		Context("succeeds", func() {
@@ -47,7 +47,7 @@ var _ = Describe("Validate", func() {
 			It("when offset match's expected value", func() {
 				none := ValidationTest{Offset: 5}
 				platformValidator.Struct(none, processing)
-				Expect(processing.ErrorsArray.HasErrors()).To(BeFalse())
+				Expect(processing.HasErrors()).To(BeFalse())
 			})
 		})
 
@@ -56,15 +56,15 @@ var _ = Describe("Validate", func() {
 			It("when offset doesn't match expected value", func() {
 				none := ValidationTest{Offset: 0}
 				platformValidator.Struct(none, processing)
-				Expect(processing.ErrorsArray.HasErrors()).To(BeTrue())
+				Expect(processing.HasErrors()).To(BeTrue())
 			})
 
 			It("gives meaningfull failure message", func() {
 				none := ValidationTest{Offset: 0}
 				platformValidator.Struct(none, processing)
-				Expect(processing.ErrorsArray.HasErrors()).To(BeTrue())
-				Expect(len(processing.ErrorsArray.Errors)).To(Equal(1))
-				Expect(processing.ErrorsArray.Errors[0].Detail).To(Equal("Bad offset sorry given '0'"))
+				Expect(processing.HasErrors()).To(BeTrue())
+				Expect(len(processing.GetErrors())).To(Equal(1))
+				Expect(processing.GetErrors()[0].Detail).To(Equal("Bad offset sorry given '0'"))
 			})
 		})
 	})

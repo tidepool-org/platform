@@ -16,7 +16,7 @@ func init() {
 }
 
 type Upload struct {
-	UploadID            *string     `json:"uploadId" bson:"uploadId" valid:"gt=10"`
+	// UploadID            *string     `json:"uploadId" bson:"uploadId"` // valid:"gte=10"
 	UploadUserID        *string     `json:"byUser" bson:"byUser" valid:"gte=10"`
 	Version             *string     `json:"version" bson:"version" valid:"gte=5"`
 	ComputerTime        *string     `json:"computerTime" bson:"computerTime" valid:"timestr"`
@@ -113,7 +113,7 @@ var (
 func Build(datum types.Datum, errs validate.ErrorProcessing) *Upload {
 
 	record := &Upload{
-		UploadID:            datum.ToString(uploadIDField.Name, errs),
+		// UploadID:            datum.ToString(uploadIDField.Name, errs),
 		ComputerTime:        datum.ToString(computerTimeField.Name, errs),
 		UploadUserID:        datum.ToString(uploadUserIDField.Name, errs),
 		Version:             datum.ToString(versionField.Name, errs),

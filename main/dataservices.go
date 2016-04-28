@@ -1,17 +1,20 @@
 package main
 
 import (
-	"log"
-
-	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/dataservices"
+	"github.com/tidepool-org/platform/log"
 )
 
 func main() {
-	port, err := config.FromEnv("TIDEPOOL_DATASERVICES_PORT")
-	if err != nil {
-		log.Fatal(err)
-	}
+	logger := log.RootLogger()
 
-	log.Fatal(dataservices.NewDataServiceClient().Run(port))
+	server, err := dataservices.NewServer(logger)
+	if err != nil {
+		logger.WithError(err).Fatal("Failure creating dataservices server")
+	}
+	defer server.Close()
+
+	if err := server.Run(); err != nil {
+		logger.WithError(err).Fatal("Failure running dataservices server")
+	}
 }

@@ -9,5 +9,5 @@ import (
 
 func TestBolus(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Bolus Suite")
+	RunSpecs(t, "data/types/bolus")
 }

@@ -9,5 +9,5 @@ import (
 
 func TestCalculator(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Calculator Suite")
+	RunSpecs(t, "data/types/calculator")
 }

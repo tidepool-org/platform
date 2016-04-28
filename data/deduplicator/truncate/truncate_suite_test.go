@@ -1,4 +1,4 @@
-package logger_test
+package truncate_test
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestLogger(t *testing.T) {
+func TestDataservices(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Logger Suite")
+	RunSpecs(t, "data/deduplicator/truncate")
 }

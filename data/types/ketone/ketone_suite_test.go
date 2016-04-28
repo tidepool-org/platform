@@ -9,5 +9,5 @@ import (
 
 func TestKetone(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Ketone Suite")
+	RunSpecs(t, "data/types/ketone")
 }
