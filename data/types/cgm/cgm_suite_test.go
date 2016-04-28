@@ -9,5 +9,5 @@ import (
 
 func TestCgm(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Cgm Settings Suite")
+	RunSpecs(t, "data/types/cgm")
 }
