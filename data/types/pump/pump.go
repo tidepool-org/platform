@@ -16,9 +16,9 @@ func init() {
 type Settings struct {
 	*Units               `json:"units,omitempty" bson:"units,omitempty"`
 	BasalSchedules       map[string][]*BasalSchedule `json:"basalSchedules,omitempty" bson:"basalSchedules,omitempty"`
-	CarbohydrateRatios   []*CarbohydrateRatio        `json:"carbRatio,omitempty" bson:"carbRatio,omitempty"`
-	InsulinSensitivities []*InsulinSensitivity       `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`
-	BloodGlucoseTargets  []*BloodGlucoseTarget       `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`
+	CarbohydrateRatios   `json:"carbRatio,omitempty" bson:"carbRatio,omitempty"`
+	InsulinSensitivities []*InsulinSensitivity `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`
+	BloodGlucoseTargets  []*BloodGlucoseTarget `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`
 
 	ActiveSchedule *string `json:"activeSchedule" bson:"activeSchedule" valid:"required"`
 	types.Base     `bson:",inline"`
@@ -39,6 +39,8 @@ type CarbohydrateRatio struct {
 	Amount *float64 `json:"amount" bson:"amount" valid:"required"`
 	Start  *int     `json:"start" bson:"start" valid:"startrange"`
 }
+
+type CarbohydrateRatios []CarbohydrateRatio
 
 type InsulinSensitivity struct {
 	Amount *float64 `json:"amount" bson:"amount" valid:"required"`
@@ -95,33 +97,49 @@ var (
 			FieldName: activeScheduleField.Name,
 			Message:   activeScheduleField.Message,
 		},
-		"Carbohydrate": validate.ValidationInfo{
-			FieldName: carbohydrateUnitsField.Name,
+		"Units.Carbohydrate": validate.ValidationInfo{
+			FieldName: "units/" + carbohydrateUnitsField.Name,
 			Message:   carbohydrateUnitsField.Message,
 		},
-		"BloodGlucose": validate.ValidationInfo{
-			FieldName: bloodGlucoseUnitsField.Name,
+		"Units.BloodGlucose": validate.ValidationInfo{
+			FieldName: "units/" + bloodGlucoseUnitsField.Name,
 			Message:   bloodGlucoseUnitsField.Message,
 		},
-		"High": validate.ValidationInfo{
-			FieldName: "high",
-			Message:   types.BloodGlucoseValueField.Message,
-		},
-		"Low": validate.ValidationInfo{
-			FieldName: "low",
-			Message:   types.BloodGlucoseValueField.Message,
-		},
-		"Rate": validate.ValidationInfo{
-			FieldName: rateField.Name,
-			Message:   rateField.Message,
-		},
-		"Start": validate.ValidationInfo{
-			FieldName: startField.Name,
+		"BloodGlucoseTarget.Start": validate.ValidationInfo{
+			FieldName: "bgTarget/" + startField.Name,
 			Message:   startField.Message,
 		},
-		"Amount": validate.ValidationInfo{
-			FieldName: amountField.Name,
+		"BloodGlucoseTarget.High": validate.ValidationInfo{
+			FieldName: "bgTarget/high",
+			Message:   types.BloodGlucoseValueField.Message,
+		},
+		"BloodGlucoseTarget.Low": validate.ValidationInfo{
+			FieldName: "bgTarget/low",
+			Message:   types.BloodGlucoseValueField.Message,
+		},
+		"CarbohydrateRatio.Start": validate.ValidationInfo{
+			FieldName: "carbRatio/" + startField.Name,
+			Message:   startField.Message,
+		},
+		"CarbohydrateRatio.Amount": validate.ValidationInfo{
+			FieldName: "carbRatio/" + amountField.Name,
 			Message:   amountField.Message,
+		},
+		"InsulinSensitivity.Start": validate.ValidationInfo{
+			FieldName: "insulinSensitivity/" + startField.Name,
+			Message:   startField.Message,
+		},
+		"InsulinSensitivity.Amount": validate.ValidationInfo{
+			FieldName: "insulinSensitivity/" + amountField.Name,
+			Message:   amountField.Message,
+		},
+		"BasalSchedule.Start": validate.ValidationInfo{
+			FieldName: "basalSchedules/" + startField.Name,
+			Message:   startField.Message,
+		},
+		"BasalSchedule.Rate": validate.ValidationInfo{
+			FieldName: "basalSchedules/" + rateField.Name,
+			Message:   rateField.Message,
 		},
 	}
 )
@@ -147,7 +165,7 @@ func buildBloodGlucoseTargets(targetsDatum []map[string]interface{}, errs valida
 			Start: datum.ToInt(startField.Name, errs),
 		}
 
-		types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(target, errs)
+		//types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(target, errs)
 
 		targets = append(targets, target)
 
@@ -168,7 +186,7 @@ func buildInsulinSensitivities(sensitivitiesDatum []map[string]interface{}, errs
 			Start:  datum.ToInt(startField.Name, errs),
 		}
 
-		types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(sensitivity, errs)
+		//types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(sensitivity, errs)
 
 		sensitivities = append(sensitivities, sensitivity)
 
@@ -177,26 +195,28 @@ func buildInsulinSensitivities(sensitivitiesDatum []map[string]interface{}, errs
 	return sensitivities
 }
 
-func buildCarbohydrateRatios(sensitivitiesDatum []map[string]interface{}, errs validate.ErrorProcessing) []*CarbohydrateRatio {
+func buildCarbohydrateRatios(carbohydrateRatiosDatum []map[string]interface{}, errs validate.ErrorProcessing) CarbohydrateRatios {
 
-	var ratios []*CarbohydrateRatio
+	ratios := make(CarbohydrateRatios, 0)
 
-	for _, val := range sensitivitiesDatum {
+	for _, val := range carbohydrateRatiosDatum {
 
 		datum := types.Datum(val)
 
-		ratio := &CarbohydrateRatio{
+		ratio := CarbohydrateRatio{
 			Amount: datum.ToFloat64(amountField.Name, errs),
 			Start:  datum.ToInt(startField.Name, errs),
 		}
 
-		types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(ratio, errs)
+		//log.Println("## Amount failure ", failureReasons["CarbohydrateRatio.Amount"])
+		//log.Println("## Start failure ", failureReasons["CarbohydrateRatio.Start"])
+		//types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(ratio, errs)
+		//log.Println("## errs ", errs)
+		//log.Printf("## built %#v ", ratio)
 
 		ratios = append(ratios, ratio)
 	}
-
 	return ratios
-
 }
 
 func buildBasalSchedules(schedulesDatum map[string][]map[string]interface{}, errs validate.ErrorProcessing) map[string][]*BasalSchedule {
@@ -215,7 +235,9 @@ func buildBasalSchedules(schedulesDatum map[string][]map[string]interface{}, err
 				Start: datum.ToInt(startField.Name, errs),
 			}
 
-			types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(schedule, errs)
+			//types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(schedule, errs)
+
+			schedules = append(schedules, schedule)
 
 		}
 
@@ -246,7 +268,7 @@ func Build(datum types.Datum, errs validate.ErrorProcessing) *Settings {
 		insulinSensitivities = buildInsulinSensitivities(sensitivitiesDatum, errs)
 	}
 
-	var carbohydrateRatios []*CarbohydrateRatio
+	var carbohydrateRatios CarbohydrateRatios
 	carbRatioDatum, ok := datum["carbRatio"].([]map[string]interface{})
 	if ok {
 		carbohydrateRatios = buildCarbohydrateRatios(carbRatioDatum, errs)

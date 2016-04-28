@@ -92,21 +92,21 @@ var (
 	}
 
 	failureReasons = validate.FailureReasons{
-		"Time":              validate.ValidationInfo{FieldName: types.TimeStringField.Name, Message: types.TimeStringField.Message},
 		"BloodGlucoseInput": validate.ValidationInfo{FieldName: bloodGlucoseInputField.Name, Message: bloodGlucoseInputField.Message},
 		"CarbohydrateInput": validate.ValidationInfo{FieldName: carbohydrateInputField.Name, Message: carbohydrateInputField.Message},
 		"Units":             validate.ValidationInfo{FieldName: types.MmolOrMgUnitsField.Name, Message: types.MmolOrMgUnitsField.Message},
 		"InsulinOnBoard":    validate.ValidationInfo{FieldName: types.BolusSubTypeField.Name, Message: types.BolusSubTypeField.Message},
 
-		"SubType":  validate.ValidationInfo{FieldName: types.BolusSubTypeField.Name, Message: types.BolusSubTypeField.Message},
-		"DeviceID": validate.ValidationInfo{FieldName: types.BaseDeviceIDField.Name, Message: types.BaseDeviceIDField.Message},
+		"Bolus.SubType":  validate.ValidationInfo{FieldName: "bolus/" + types.BolusSubTypeField.Name, Message: types.BolusSubTypeField.Message},
+		"Bolus.DeviceID": validate.ValidationInfo{FieldName: "bolus/" + types.BaseDeviceIDField.Name, Message: types.BaseDeviceIDField.Message},
+		"Bolus.Time":     validate.ValidationInfo{FieldName: "bolus/" + types.TimeStringField.Name, Message: types.TimeStringField.Message},
 
-		"High": validate.ValidationInfo{FieldName: "high", Message: types.BloodGlucoseValueField.Message},
-		"Low":  validate.ValidationInfo{FieldName: "low", Message: types.BloodGlucoseValueField.Message},
+		"BloodGlucoseTarget.High": validate.ValidationInfo{FieldName: "bgTarget/high", Message: types.BloodGlucoseValueField.Message},
+		"BloodGlucoseTarget.Low":  validate.ValidationInfo{FieldName: "bgTarget/low", Message: types.BloodGlucoseValueField.Message},
 
-		"Net":          validate.ValidationInfo{FieldName: netField.Name, Message: netField.Message},
-		"Correction":   validate.ValidationInfo{FieldName: correctionField.Name, Message: correctionField.Message},
-		"Carbohydrate": validate.ValidationInfo{FieldName: carbField.Name, Message: carbField.Message},
+		"Recommended.Net":          validate.ValidationInfo{FieldName: "recommended/" + netField.Name, Message: netField.Message},
+		"Recommended.Correction":   validate.ValidationInfo{FieldName: "recommended/" + correctionField.Name, Message: correctionField.Message},
+		"Recommended.Carbohydrate": validate.ValidationInfo{FieldName: "recommended/" + carbField.Name, Message: carbField.Message},
 	}
 )
 

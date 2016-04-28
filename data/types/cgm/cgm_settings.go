@@ -20,7 +20,7 @@ type Settings struct {
 
 	High               Alert `json:"highAlerts" bson:"highAlerts"`
 	Low                Alert `json:"lowAlerts" bson:"lowAlerts"`
-	*OutOfRangeAlert   `json:"outOfRangeAlerts,omitempty" bson:"outOfRangeAlerts,omitempty" valid:"-"`
+	*OutOfRangeAlert   `json:"outOfRangeAlerts,omitempty" bson:"outOfRangeAlerts,omitempty"`
 	ChangeOfRateAlerts map[string]ChangeOfRateAlert `json:"rateOfChangeAlerts" bson:"rateOfChangeAlerts"`
 
 	types.Base `bson:",inline"`
@@ -79,16 +79,36 @@ var (
 	}
 
 	failureReasons = validate.FailureReasons{
-		"Enabled": validate.ValidationInfo{
-			FieldName: enabledField.Name,
+		"High.Enabled": validate.ValidationInfo{
+			FieldName: "highAlerts/" + enabledField.Name,
 			Message:   enabledField.Message,
 		},
-		"Level": validate.ValidationInfo{
-			FieldName: levelField.Name,
+		"Low.Enabled": validate.ValidationInfo{
+			FieldName: "lowAlerts/" + enabledField.Name,
+			Message:   enabledField.Message,
+		},
+		"OutOfRangeAlert.Enabled": validate.ValidationInfo{
+			FieldName: "outOfRangeAlerts/" + enabledField.Name,
+			Message:   enabledField.Message,
+		},
+		"Low.Level": validate.ValidationInfo{
+			FieldName: "lowAlerts/" + levelField.Name,
 			Message:   levelField.Message,
 		},
-		"Snooze": validate.ValidationInfo{
-			FieldName: snoozeField.Name,
+		"High.Level": validate.ValidationInfo{
+			FieldName: "highAlerts/" + levelField.Name,
+			Message:   levelField.Message,
+		},
+		"Low.Snooze": validate.ValidationInfo{
+			FieldName: "lowAlerts/" + snoozeField.Name,
+			Message:   snoozeField.Message,
+		},
+		"High.Snooze": validate.ValidationInfo{
+			FieldName: "highAlerts/" + snoozeField.Name,
+			Message:   snoozeField.Message,
+		},
+		"OutOfRangeAlert.Snooze": validate.ValidationInfo{
+			FieldName: "outOfRangeAlerts/" + snoozeField.Name,
 			Message:   snoozeField.Message,
 		},
 		"Rate": validate.ValidationInfo{
@@ -107,25 +127,18 @@ var (
 )
 
 func buildAlert(alertDatum types.Datum, errs validate.ErrorProcessing) Alert {
-	alert := Alert{
+	return Alert{
 		Enabled: alertDatum.ToBool(enabledField.Name, errs),
 		Level:   alertDatum.ToFloat64(levelField.Name, errs),
 		Snooze:  alertDatum.ToInt(snoozeField.Name, errs),
 	}
-
-	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(alert, errs)
-	return alert
 }
 
 func buildOutOfRangeAlert(changeOfRateDatum types.Datum, errs validate.ErrorProcessing) *OutOfRangeAlert {
-
-	outOfRange := &OutOfRangeAlert{
+	return &OutOfRangeAlert{
 		Enabled: changeOfRateDatum.ToBool(enabledField.Name, errs),
 		Snooze:  changeOfRateDatum.ToInt(snoozeField.Name, errs),
 	}
-
-	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(outOfRange, errs)
-	return outOfRange
 }
 
 func buildChangeOfRateAlerts(changeOfRateAlertsDatum []map[string]interface{}, errs validate.ErrorProcessing) map[string]ChangeOfRateAlert {
@@ -140,8 +153,6 @@ func buildChangeOfRateAlerts(changeOfRateAlertsDatum []map[string]interface{}, e
 			Enabled: datum.ToBool(enabledField.Name, errs),
 			Rate:    datum.ToFloat64(rateField.Name, errs),
 		}
-
-		types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(change, errs)
 
 		changes["todo"] = change
 	}

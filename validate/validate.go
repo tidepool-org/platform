@@ -39,6 +39,9 @@ func (pv *PlatformValidator) SetFailureReasons(reasons FailureReasons) *Platform
 
 func buildErrors(err *validator.FieldError, info ValidationInfo, errorProcessing ErrorProcessing) {
 
+	//TODO: debug needs removing
+	//fmt.Println("field namespace:", err.FieldNamespace, "name namespace:", err.NameNamespace)
+
 	switch err.Kind {
 	case reflect.Slice:
 		if len(info.Allowed) > 0 {
@@ -72,7 +75,7 @@ func buildErrors(err *validator.FieldError, info ValidationInfo, errorProcessing
 func (pv *PlatformValidator) toErrorsArray(ve validator.ValidationErrors, errorProcessing ErrorProcessing) {
 	for _, v := range ve {
 
-		if reason, ok := pv.FailureReasons[v.Field]; ok {
+		if reason, ok := pv.FailureReasons[v.NameNamespace]; ok {
 			buildErrors(v, reason, errorProcessing)
 		}
 	}

@@ -11,9 +11,9 @@ import (
 
 var _ = Describe("Event", func() {
 	var calculatorObj = fixtures.TestingDatumBase()
-	var recommendedObj = make(map[string]interface{})
-	var bolusObj = make(map[string]interface{})
-	var bgTargetObj = make(map[string]interface{})
+	var recommendedObj = make(map[string]interface{}, 0)
+	var bolusObj = make(map[string]interface{}, 0)
+	var bgTargetObj = make(map[string]interface{}, 0)
 	var helper *types.TestingHelper
 
 	BeforeEach(func() {
@@ -113,7 +113,7 @@ var _ = Describe("Event", func() {
 						helper.ErrorIsExpected(
 							calculator.Build(calculatorObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
-								Path:   "0/net",
+								Path:   "0/recommended/net",
 								Detail: "This is a required field given '<nil>'",
 							}),
 					).To(BeNil())
@@ -128,7 +128,7 @@ var _ = Describe("Event", func() {
 						helper.ErrorIsExpected(
 							calculator.Build(calculatorObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
-								Path:   "0/correction",
+								Path:   "0/recommended/correction",
 								Detail: "This is a required field given '<nil>'",
 							}),
 					).To(BeNil())
@@ -143,7 +143,7 @@ var _ = Describe("Event", func() {
 						helper.ErrorIsExpected(
 							calculator.Build(calculatorObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
-								Path:   "0/carb",
+								Path:   "0/recommended/carb",
 								Detail: "This is a required field given '<nil>'",
 							}),
 					).To(BeNil())
@@ -167,7 +167,7 @@ var _ = Describe("Event", func() {
 						helper.ErrorIsExpected(
 							calculator.Build(calculatorObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
-								Path:   "0/subType",
+								Path:   "0/bolus/subType",
 								Detail: "Must be one of normal, square, dual/square given '<nil>'",
 							}),
 					).To(BeNil())
@@ -182,7 +182,7 @@ var _ = Describe("Event", func() {
 						helper.ErrorIsExpected(
 							calculator.Build(calculatorObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
-								Path:   "0/time",
+								Path:   "0/bolus/time",
 								Detail: "Times need to be ISO 8601 format and not in the future given '<nil>'",
 							}),
 					).To(BeNil())
@@ -197,7 +197,7 @@ var _ = Describe("Event", func() {
 						helper.ErrorIsExpected(
 							calculator.Build(calculatorObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
-								Path:   "0/deviceId",
+								Path:   "0/bolus/deviceId",
 								Detail: "This is a required field given '<nil>'",
 							}),
 					).To(BeNil())
@@ -221,7 +221,7 @@ var _ = Describe("Event", func() {
 						helper.ErrorIsExpected(
 							calculator.Build(calculatorObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
-								Path:   "0/high",
+								Path:   "0/bgTarget/high",
 								Detail: "Must be greater than 0.0 given '<nil>'",
 							}),
 					).To(BeNil())
@@ -236,7 +236,7 @@ var _ = Describe("Event", func() {
 						helper.ErrorIsExpected(
 							calculator.Build(calculatorObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
-								Path:   "0/low",
+								Path:   "0/bgTarget/low",
 								Detail: "Must be greater than 0.0 given '<nil>'",
 							}),
 					).To(BeNil())
