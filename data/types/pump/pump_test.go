@@ -71,7 +71,7 @@ var _ = Describe("Settings", func() {
 
 			})
 
-			/*Context("units", func() {
+			Context("units", func() {
 
 				It("is not required", func() {
 					delete(settingsObj, "units")
@@ -110,7 +110,7 @@ var _ = Describe("Settings", func() {
 
 			})
 
-			Context("carbRatio", func() {
+			/*Context("carbRatio", func() {
 
 				It("is not required", func() {
 					delete(settingsObj, "carbRatio")
