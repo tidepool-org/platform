@@ -110,7 +110,7 @@ var _ = Describe("Settings", func() {
 
 			})
 
-			/*Context("carbRatio", func() {
+			Context("carbRatio", func() {
 
 				It("is not required", func() {
 					delete(settingsObj, "carbRatio")
@@ -123,7 +123,7 @@ var _ = Describe("Settings", func() {
 					Expect(len(settings.CarbohydrateRatios)).To(Equal(2))
 				})
 
-				It("if present requires start", func() {
+				/*It("if present requires start", func() {
 
 					carbRatiosObj = []map[string]interface{}{{"amount": 12.0}, {"amount": 10.0}}
 					settingsObj["carbRatio"] = carbRatiosObj
@@ -139,7 +139,7 @@ var _ = Describe("Settings", func() {
 					).To(BeNil())
 				})
 
-				/*It("start needs to be greater than equal to 0", func() {
+				It("start needs to be greater than equal to 0", func() {
 
 					carbRatiosObj = []map[string]interface{}{{"amount": 12.0, "start": -10}, {"amount": 10.0, "start": 0}}
 					settingsObj["carbRatio"] = carbRatiosObj
@@ -183,7 +183,7 @@ var _ = Describe("Settings", func() {
 							expected,
 						),
 					).To(BeNil())
-				})
+				})*/
 
 			})
 
@@ -200,7 +200,7 @@ var _ = Describe("Settings", func() {
 					Expect(len(settings.BloodGlucoseTargets)).To(Equal(2))
 				})
 
-				It("if present requires start", func() {
+				/*It("if present requires start", func() {
 
 					bgTargetsObj = []map[string]interface{}{{"low": 5.5, "high": 6.7}, {"low": 5.0, "high": 6.1, "start": 18000000}}
 					settingsObj["bgTarget"] = bgTargetsObj
@@ -243,7 +243,7 @@ var _ = Describe("Settings", func() {
 								Detail: "Must be greater than 0.0 given '<nil>'",
 							}),
 					).To(BeNil())
-				})
+				})*/
 
 			})
 
@@ -260,7 +260,7 @@ var _ = Describe("Settings", func() {
 					Expect(len(settings.InsulinSensitivities)).To(Equal(2))
 				})
 
-				It("if present requires start", func() {
+				/*It("if present requires start", func() {
 
 					insulinSensitivitiesObj = []map[string]interface{}{{"amount": 3.6, "start": 0}, {"amount": 2.5}}
 					settingsObj["insulinSensitivity"] = insulinSensitivitiesObj
@@ -290,7 +290,7 @@ var _ = Describe("Settings", func() {
 							expected,
 						),
 					).To(BeNil())
-				})
+				})*/
 
 			})
 
@@ -307,7 +307,7 @@ var _ = Describe("Settings", func() {
 					Expect(len(settings.BasalSchedules)).To(Equal(2))
 				})
 
-			})*/
+			})
 		})
 	})
 })
