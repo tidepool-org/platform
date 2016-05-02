@@ -52,11 +52,9 @@ func (f *Factory) CanDeduplicateDataset(datasetUpload *upload.Upload) (bool, err
 			return false, nil
 		}
 	} else if deviceModel := datasetUpload.DeviceModel; deviceModel != nil {
-		// switch *deviceModel {
-		// case "G4Receiver":
-		// 	return true, nil
-		// }
-		return true, nil
+		if deviceID := datasetUpload.DeviceID; deviceID != nil {
+			return true, nil
+		}
 	}
 	return false, nil
 }
@@ -93,16 +91,17 @@ func (d *Deduplicator) AddDataToDataset(datumArray data.BuiltDatumArray) error {
 
 func (d *Deduplicator) FinalizeDataset() error {
 	datasetID := *d.datasetUpload.UploadID
+	deviceID := *d.datasetUpload.DeviceID
 
 	// TODO: Technically, UpdateAll could succeed, but RemoveAll fail. This which result in duplicate (and possible incorrect) data.
 	// TODO: Is there a way to resolve this?
 
 	if err := d.storeSession.UpdateAll(bson.M{"uploadId": datasetID}, bson.M{"$set": bson.M{"_active": true}}); err != nil {
-		return app.ExtErrorf(err, "truncate", "unable to activate data in dataset with id %s", datasetID)
+		return app.ExtErrorf(err, "truncate", "unable to activate data in dataset with id '%s'", datasetID)
 	}
 
-	if err := d.storeSession.RemoveAll(bson.M{"uploadId": bson.M{"$ne": datasetID}, "type": bson.M{"$ne": "upload"}}); err != nil {
-		return app.ExtErrorf(err, "truncate", "unable to delete data in datasets other than with id %s", datasetID)
+	if err := d.storeSession.RemoveAll(bson.M{"uploadId": bson.M{"$ne": datasetID}, "deviceId": deviceID, "type": bson.M{"$ne": "upload"}}); err != nil {
+		return app.ExtErrorf(err, "truncate", "unable to delete data in datasets with device ID '%s' other than with id '%s'", deviceID, datasetID)
 	}
 
 	return nil
