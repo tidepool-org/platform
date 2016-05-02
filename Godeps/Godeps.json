@@ -208,8 +208,12 @@
 			"Rev": "f9ab0dce87d815821e221626b772e3475a0d2749"
 		},
 		{
+			"ImportPath": "golang.org/x/net/netutil",
+			"Rev": "1aafd77e1e7f6849ad16a7bdeb65e3589a10b2bb"
+		},
+		{
 			"ImportPath": "golang.org/x/sys/unix",
-			"Rev": "f64b50fbea64174967a8882830d621a18ee1548e"
+			"Rev": "b776ec39b3e54652e09028aaaaac9757f4f8211a"
 		},
 		{
 			"ImportPath": "gopkg.in/bluesuncorp/validator.v8",
@@ -235,6 +239,11 @@
 			"ImportPath": "gopkg.in/mgo.v2/internal/scram",
 			"Comment": "r2016.02.04-1-gb6e2fa3",
 			"Rev": "b6e2fa371e64216a45e61072a96d4e3859f169da"
+		},
+		{
+			"ImportPath": "gopkg.in/tylerb/graceful.v1",
+			"Comment": "v1.2.5",
+			"Rev": "9a3d4236b03bb5d26f7951134d248f9d5510d599"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",
