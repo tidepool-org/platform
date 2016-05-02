@@ -8,8 +8,8 @@ import (
 const SelfMonitoredName = "smbg"
 
 type SelfMonitored struct {
-	Value      *float64 `json:"value" bson:"value" valid:"bloodglucosevalue"`
-	Units      *string  `json:"units" bson:"units" valid:"mmolmgunits"`
+	Value      *float64 `json:"value" bson:"value" valid:"-"`
+	Units      *string  `json:"units" bson:"units" valid:"-"`
 	types.Base `bson:",inline"`
 }
 
@@ -21,9 +21,10 @@ func BuildSelfMonitored(datum types.Datum, errs validate.ErrorProcessing) *SelfM
 		Base:  types.BuildBase(datum, errs),
 	}
 
-	selfMonitored.Units = NormalizeUnitName(selfMonitored.Units)
-	selfMonitored.Value = ConvertMgToMmol(selfMonitored.Value, selfMonitored.Units)
+	bgValidator := types.NewBloodGlucoseValidation(selfMonitored.Value, selfMonitored.Units)
+	selfMonitored.Value, selfMonitored.Units = bgValidator.ValidateAndConvertBloodGlucoseValue(errs)
 
-	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(selfMonitored, errs)
+	types.GetPlatformValidator().Struct(selfMonitored, errs)
+
 	return selfMonitored
 }

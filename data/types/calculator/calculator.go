@@ -22,8 +22,8 @@ type Event struct {
 	CarbohydrateInput  *int     `json:"carbInput,omitempty" bson:"carbInput,omitempty" valid:"omitempty,required"`
 	InsulinOnBoard     *float64 `json:"insulinOnBoard,omitempty" bson:"insulinOnBoard,omitempty" valid:"omitempty,insulinvalue"`
 	InsulinSensitivity *int     `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty" valid:"omitempty,insulinsensitivity"`
-	BloodGlucoseInput  *float64 `json:"bgInput,omitempty" bson:"bgInput,omitempty" valid:"omitempty,bloodglucosevalue"`
-	Units              *string  `json:"units" bson:"units" valid:"mmolmgunits"`
+	BloodGlucoseInput  *float64 `json:"bgInput,omitempty" bson:"bgInput,omitempty" valid:"-"`
+	Units              *string  `json:"units" bson:"units" valid:"-"`
 	types.Base         `bson:",inline"`
 }
 
@@ -41,8 +41,8 @@ type Bolus struct {
 }
 
 type BloodGlucoseTarget struct {
-	High *float64 `json:"high" bson:"high" valid:"bloodglucosevalue"`
-	Low  *float64 `json:"low" bson:"low" valid:"bloodglucosevalue"`
+	High *float64 `json:"high" bson:"high" valid:"-"`
+	Low  *float64 `json:"low" bson:"low" valid:"-"`
 }
 
 //Name is currently `wizard` for backwards compatatbilty but will be migrated to `calculator`
@@ -92,17 +92,17 @@ var (
 	}
 
 	failureReasons = validate.FailureReasons{
-		"BloodGlucoseInput": validate.ValidationInfo{FieldName: bloodGlucoseInputField.Name, Message: bloodGlucoseInputField.Message},
+		//"BloodGlucoseInput": validate.ValidationInfo{FieldName: bloodGlucoseInputField.Name, Message: bloodGlucoseInputField.Message},
 		"CarbohydrateInput": validate.ValidationInfo{FieldName: carbohydrateInputField.Name, Message: carbohydrateInputField.Message},
-		"Units":             validate.ValidationInfo{FieldName: types.MmolOrMgUnitsField.Name, Message: types.MmolOrMgUnitsField.Message},
-		"InsulinOnBoard":    validate.ValidationInfo{FieldName: types.BolusSubTypeField.Name, Message: types.BolusSubTypeField.Message},
+		//"Units":             validate.ValidationInfo{FieldName: types.MmolOrMgUnitsField.Name, Message: types.MmolOrMgUnitsField.Message},
+		"InsulinOnBoard": validate.ValidationInfo{FieldName: types.BolusSubTypeField.Name, Message: types.BolusSubTypeField.Message},
 
 		"Bolus.SubType":  validate.ValidationInfo{FieldName: "bolus/" + types.BolusSubTypeField.Name, Message: types.BolusSubTypeField.Message},
 		"Bolus.DeviceID": validate.ValidationInfo{FieldName: "bolus/" + types.BaseDeviceIDField.Name, Message: types.BaseDeviceIDField.Message},
 		"Bolus.Time":     validate.ValidationInfo{FieldName: "bolus/" + types.TimeStringField.Name, Message: types.TimeStringField.Message},
 
-		"BloodGlucoseTarget.High": validate.ValidationInfo{FieldName: "bgTarget/high", Message: types.BloodGlucoseValueField.Message},
-		"BloodGlucoseTarget.Low":  validate.ValidationInfo{FieldName: "bgTarget/low", Message: types.BloodGlucoseValueField.Message},
+		//"BloodGlucoseTarget.High": validate.ValidationInfo{FieldName: "bgTarget/high", Message: types.BloodGlucoseValueField.Message},
+		//"BloodGlucoseTarget.Low":  validate.ValidationInfo{FieldName: "bgTarget/low", Message: types.BloodGlucoseValueField.Message},
 
 		"Recommended.Net":          validate.ValidationInfo{FieldName: "recommended/" + netField.Name, Message: netField.Message},
 		"Recommended.Correction":   validate.ValidationInfo{FieldName: "recommended/" + correctionField.Name, Message: correctionField.Message},
@@ -128,14 +128,20 @@ func buildBolus(bolusDatum types.Datum, errs validate.ErrorProcessing) *Bolus {
 	}
 }
 
-func buildBloodGlucoseTarget(bgTargetDatum types.Datum, errs validate.ErrorProcessing) *BloodGlucoseTarget {
-	return &BloodGlucoseTarget{
+func buildBloodGlucoseTarget(units *string, bgTargetDatum types.Datum, errs validate.ErrorProcessing) *BloodGlucoseTarget {
+	bgTarget := &BloodGlucoseTarget{
 		High: bgTargetDatum.ToFloat64("high", errs),
 		Low:  bgTargetDatum.ToFloat64("low", errs),
 	}
+	bgTarget.High, _ = types.NewBloodGlucoseValidation(bgTarget.High, units).SetValueErrorPath("bgTarget/high").ValidateAndConvertBloodGlucoseValue(errs)
+	bgTarget.Low, _ = types.NewBloodGlucoseValidation(bgTarget.Low, units).SetValueErrorPath("bgTarget/low").ValidateAndConvertBloodGlucoseValue(errs)
+
+	return bgTarget
 }
 
 func Build(datum types.Datum, errs validate.ErrorProcessing) *Event {
+
+	originalBloodGlucoseUnits := datum.ToString(types.MmolOrMgUnitsField.Name, errs)
 
 	var bolus *Bolus
 	bolusDatum, ok := datum["bolus"].(map[string]interface{})
@@ -146,7 +152,7 @@ func Build(datum types.Datum, errs validate.ErrorProcessing) *Event {
 	var bloodGlucoseTarget *BloodGlucoseTarget
 	bloodGlucoseTargetDatum, ok := datum["bgTarget"].(map[string]interface{})
 	if ok {
-		bloodGlucoseTarget = buildBloodGlucoseTarget(bloodGlucoseTargetDatum, errs)
+		bloodGlucoseTarget = buildBloodGlucoseTarget(originalBloodGlucoseUnits, bloodGlucoseTargetDatum, errs)
 	}
 
 	var recommended *Recommended
@@ -163,9 +169,11 @@ func Build(datum types.Datum, errs validate.ErrorProcessing) *Event {
 		InsulinOnBoard:     datum.ToFloat64(insulinOnBoardField.Name, errs),
 		InsulinSensitivity: datum.ToInt(insulinSensitivityField.Name, errs),
 		BloodGlucoseInput:  datum.ToFloat64(bloodGlucoseInputField.Name, errs),
-		Units:              datum.ToString(types.MmolOrMgUnitsField.Name, errs),
+		Units:              originalBloodGlucoseUnits,
 		Base:               types.BuildBase(datum, errs),
 	}
+
+	event.BloodGlucoseInput, event.Units = types.NewBloodGlucoseValidation(event.BloodGlucoseInput, event.Units).SetValueAllowedToBeEmpty(true).ValidateAndConvertBloodGlucoseValue(errs)
 
 	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(event, errs)
 

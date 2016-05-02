@@ -222,7 +222,7 @@ var _ = Describe("Event", func() {
 							calculator.Build(calculatorObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/bgTarget/high",
-								Detail: "Must be greater than 0.0 given '<nil>'",
+								Detail: "Must be between 0.0 and 1000.0 given '<nil>'",
 							}),
 					).To(BeNil())
 				})
@@ -237,7 +237,7 @@ var _ = Describe("Event", func() {
 							calculator.Build(calculatorObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/bgTarget/low",
-								Detail: "Must be greater than 0.0 given '<nil>'",
+								Detail: "Must be between 0.0 and 1000.0 given '<nil>'",
 							}),
 					).To(BeNil())
 				})

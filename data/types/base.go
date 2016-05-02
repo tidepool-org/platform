@@ -116,6 +116,7 @@ var (
 		"Annotations":    validate.ValidationInfo{FieldName: baseAnnotationsField.Name, Message: baseAnnotationsField.Message},
 		"DeviceID":       validate.ValidationInfo{FieldName: BaseDeviceIDField.Name, Message: BaseDeviceIDField.Message},
 		"Type":           validate.ValidationInfo{FieldName: BaseTypeField.Name, Message: BaseTypeField.Message},
+		"Units":          validate.ValidationInfo{FieldName: MmolOrMgUnitsField.Name, Message: MmolOrMgUnitsField.Message},
 	}
 )
 
@@ -216,14 +217,18 @@ func (d Datum) ToInt(fieldName string, errs validate.ErrorProcessing) *int {
 	if d[fieldName] == nil {
 		return nil
 	}
-	theInt, _ := d[fieldName].(int)
-	//TODO:
-	/*if !ok {
-		return 0
-		appendInvalidTypeError(errs, fieldName, "integer")
-		return 0
-	}*/
-	return &theInt
+
+	intValue, ok := d[fieldName].(int)
+	if !ok {
+		if floatValue, ok := d[fieldName].(float64); !ok {
+			errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "int"))
+			return nil
+		} else {
+			intValue = int(floatValue)
+		}
+	}
+
+	return &intValue
 }
 
 func (d Datum) ToTime(fieldName string, errs validate.ErrorProcessing) *time.Time {

@@ -12,6 +12,7 @@ import (
 var _ = Describe("Continuous", func() {
 	var bgObj = fixtures.TestingDatumBase()
 	var helper *types.TestingHelper
+	var mmolL = "mmol/L"
 
 	BeforeEach(func() {
 		helper = types.NewTestingHelper()
@@ -51,14 +52,19 @@ var _ = Describe("Continuous", func() {
 				).To(BeNil())
 			})
 
-			It("can be mmol/l", func() {
+			It("can be mmol/l but saved as mmol/L", func() {
 				bgObj["units"] = "mmol/l"
-				Expect(helper.ValidDataType(bloodglucose.BuildContinuous(bgObj, helper.ErrorProcessing))).To(BeNil())
+				continuous := bloodglucose.BuildContinuous(bgObj, helper.ErrorProcessing)
+				Expect(helper.ValidDataType(continuous)).To(BeNil())
+				Expect(continuous.Units).To(Equal(&mmolL))
 			})
 
-			It("can be mg/dl", func() {
+			It("can be mg/dl but saved as mmol/L", func() {
 				bgObj["units"] = "mg/dl"
-				Expect(helper.ValidDataType(bloodglucose.BuildContinuous(bgObj, helper.ErrorProcessing))).To(BeNil())
+
+				continuous := bloodglucose.BuildContinuous(bgObj, helper.ErrorProcessing)
+				Expect(helper.ValidDataType(continuous)).To(BeNil())
+				Expect(continuous.Units).To(Equal(&mmolL))
 			})
 
 			It("cannot be anything else", func() {
@@ -84,7 +90,7 @@ var _ = Describe("Continuous", func() {
 						bloodglucose.BuildContinuous(bgObj, helper.ErrorProcessing),
 						types.ExpectedErrorDetails{
 							Path:   "0/value",
-							Detail: "Must be greater than 0.0 given '<nil>'",
+							Detail: "Must be between 0.0 and 55.0 given '<nil>'",
 						}),
 				).To(BeNil())
 			})

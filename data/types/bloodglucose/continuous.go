@@ -8,8 +8,8 @@ import (
 const ContinuousName = "cbg"
 
 type Continuous struct {
-	Value      *float64 `json:"value" bson:"value" valid:"bloodglucosevalue"`
-	Units      *string  `json:"units" bson:"units" valid:"mmolmgunits"`
+	Value      *float64 `json:"value" bson:"value" valid:"-"`
+	Units      *string  `json:"units" bson:"units" valid:"-"`
 	types.Base `bson:",inline"`
 }
 
@@ -21,9 +21,10 @@ func BuildContinuous(datum types.Datum, errs validate.ErrorProcessing) *Continuo
 		Base:  types.BuildBase(datum, errs),
 	}
 
-	continuous.Units = NormalizeUnitName(continuous.Units)
-	continuous.Value = ConvertMgToMmol(continuous.Value, continuous.Units)
+	bgValidator := types.NewBloodGlucoseValidation(continuous.Value, continuous.Units)
+	continuous.Value, continuous.Units = bgValidator.ValidateAndConvertBloodGlucoseValue(errs)
 
-	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(continuous, errs)
+	types.GetPlatformValidator().Struct(continuous, errs)
+
 	return continuous
 }

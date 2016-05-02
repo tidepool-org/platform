@@ -6,8 +6,8 @@ import (
 )
 
 type Calibration struct {
-	Value *float64 `json:"value" bson:"value" valid:"bloodglucosevalue"`
-	Units *string  `json:"units" bson:"units" valid:"mmolmgunits"`
+	Value *float64 `json:"value" bson:"value" valid:"-"`
+	Units *string  `json:"units" bson:"units" valid:"-"`
 	Base  `bson:",inline"`
 }
 
@@ -17,6 +17,9 @@ func (b Base) makeCalibration(datum types.Datum, errs validate.ErrorProcessing) 
 		Units: datum.ToString(types.MmolOrMgUnitsField.Name, errs),
 		Base:  b,
 	}
+
+	calibration.Value, calibration.Units = types.NewBloodGlucoseValidation(calibration.Value, calibration.Units).ValidateAndConvertBloodGlucoseValue(errs)
+
 	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(calibration, errs)
 	return calibration
 }
