@@ -32,9 +32,16 @@ var _ = Describe("Normal", func() {
 
 			Context("normal", func() {
 
-				It("is not required", func() {
+				It("is required", func() {
 					delete(bolusObj, "normal")
-					Expect(helper.ValidDataType(bolus.Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
+					Expect(
+						helper.ErrorIsExpected(
+							bolus.Build(bolusObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/normal",
+								Detail: "Must be greater than 0 and less than or equal to 100.0 given '<nil>'",
+							}),
+					).To(BeNil())
 				})
 
 				It("invalid when less than 0.0", func() {
@@ -45,7 +52,7 @@ var _ = Describe("Normal", func() {
 							bolus.Build(bolusObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/normal",
-								Detail: "Must be greater than 0.0 given '-0.1'",
+								Detail: "Must be greater than 0 and less than or equal to 100.0 given '-0.1'",
 							}),
 					).To(BeNil())
 

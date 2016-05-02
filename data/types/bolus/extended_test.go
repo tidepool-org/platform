@@ -33,9 +33,17 @@ var _ = Describe("Square", func() {
 
 			Context("duration", func() {
 
-				It("is not required", func() {
+				It("is required", func() {
 					delete(bolusObj, "duration")
-					Expect(helper.ValidDataType(bolus.Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
+
+					Expect(
+						helper.ErrorIsExpected(
+							bolus.Build(bolusObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/duration",
+								Detail: "Must be greater than 0 and less than 86400000 given '<nil>'",
+							}),
+					).To(BeNil())
 				})
 
 				It("invalid when less than zero", func() {
@@ -46,7 +54,21 @@ var _ = Describe("Square", func() {
 							bolus.Build(bolusObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/duration",
-								Detail: "Must be greater than 0 given '-1'",
+								Detail: "Must be greater than 0 and less than 86400000 given '-1'",
+							}),
+					).To(BeNil())
+
+				})
+
+				It("invalid when over 86400000", func() {
+					bolusObj["duration"] = 86400001
+
+					Expect(
+						helper.ErrorIsExpected(
+							bolus.Build(bolusObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/duration",
+								Detail: "Must be greater than 0 and less than 86400000 given '86400001'",
 							}),
 					).To(BeNil())
 
@@ -60,20 +82,43 @@ var _ = Describe("Square", func() {
 			})
 			Context("extended", func() {
 
-				It("is not required", func() {
+				It("is required", func() {
 					delete(bolusObj, "extended")
-					Expect(helper.ValidDataType(bolus.Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
-				})
-
-				It("invalid when less than zero", func() {
-					bolusObj["extended"] = -0.1
 
 					Expect(
 						helper.ErrorIsExpected(
 							bolus.Build(bolusObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/extended",
-								Detail: "Must be greater than 0.0 given '-0.1'",
+								Detail: "Must be greater than 0 and less than or equal to 100.0 given '<nil>'",
+							}),
+					).To(BeNil())
+
+				})
+
+				It("invalid when zero", func() {
+					bolusObj["extended"] = 0.0
+
+					Expect(
+						helper.ErrorIsExpected(
+							bolus.Build(bolusObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/extended",
+								Detail: "Must be greater than 0 and less than or equal to 100.0 given '0'",
+							}),
+					).To(BeNil())
+
+				})
+
+				It("invalid when greater than 100", func() {
+					bolusObj["extended"] = 105.0
+
+					Expect(
+						helper.ErrorIsExpected(
+							bolus.Build(bolusObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/extended",
+								Detail: "Must be greater than 0 and less than or equal to 100.0 given '105'",
 							}),
 					).To(BeNil())
 

@@ -33,22 +33,22 @@ var (
 	extendedField = types.FloatDatumField{
 		DatumField:        &types.DatumField{Name: "extended"},
 		Tag:               "bolusextended",
-		Message:           "Must be greater than 0.0",
-		AllowedFloatRange: &types.AllowedFloatRange{LowerLimit: 0.0},
+		Message:           "Must be greater than 0 and less than or equal to 100.0",
+		AllowedFloatRange: &types.AllowedFloatRange{LowerLimit: 0.0, UpperLimit: 100.0},
 	}
 
 	durationField = types.IntDatumField{
 		DatumField:      &types.DatumField{Name: "duration"},
 		Tag:             "bolusduration",
-		Message:         "Must be greater than 0",
-		AllowedIntRange: &types.AllowedIntRange{LowerLimit: 0},
+		Message:         "Must be greater than 0 and less than 86400000",
+		AllowedIntRange: &types.AllowedIntRange{LowerLimit: 0, UpperLimit: 86400000},
 	}
 
 	normalField = types.FloatDatumField{
 		DatumField:        &types.DatumField{Name: "normal"},
 		Tag:               "bolusnormal",
-		Message:           "Must be greater than 0.0",
-		AllowedFloatRange: &types.AllowedFloatRange{LowerLimit: 0.0},
+		Message:           "Must be greater than 0 and less than or equal to 100.0",
+		AllowedFloatRange: &types.AllowedFloatRange{LowerLimit: 0.0, UpperLimit: 100.0},
 	}
 
 	failureReasons = validate.FailureReasons{
@@ -103,7 +103,7 @@ func NormalValidator(v *validator.Validate, topStruct reflect.Value, currentStru
 	if !ok {
 		return false
 	}
-	return normal > normalField.LowerLimit
+	return normal > normalField.LowerLimit && normal <= normalField.UpperLimit
 }
 
 func ExtendedValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
@@ -111,7 +111,7 @@ func ExtendedValidator(v *validator.Validate, topStruct reflect.Value, currentSt
 	if !ok {
 		return false
 	}
-	return extended > extendedField.LowerLimit
+	return extended > extendedField.LowerLimit && extended <= extendedField.UpperLimit
 }
 
 func DurationValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
@@ -119,5 +119,5 @@ func DurationValidator(v *validator.Validate, topStruct reflect.Value, currentSt
 	if !ok {
 		return false
 	}
-	return duration > durationField.LowerLimit
+	return duration >= durationField.LowerLimit && duration <= durationField.UpperLimit
 }

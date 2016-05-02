@@ -6,8 +6,8 @@ import (
 )
 
 type Extended struct {
-	Extended *float64 `json:"extended,omitempty" bson:"extended,omitempty" valid:"omitempty,bolusextended"`
-	Duration *int     `json:"duration,omitempty" bson:"duration,omitempty" valid:"omitempty,bolusduration"`
+	Extended *float64 `json:"extended" bson:"extended" valid:"bolusextended"`
+	Duration *int     `json:"duration" bson:"duration" valid:"bolusduration"`
 	Base     `bson:",inline"`
 }
 

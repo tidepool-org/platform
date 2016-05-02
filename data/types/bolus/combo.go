@@ -6,9 +6,9 @@ import (
 )
 
 type Combo struct {
-	Normal   *float64 `json:"normal,omitempty" bson:"normal,omitempty" valid:"omitempty,bolusnormal"`
-	Extended *float64 `json:"extended,omitempty" bson:"extended,omitempty" valid:"omitempty,bolusextended"`
-	Duration *int     `json:"duration,omitempty" bson:"duration,omitempty" valid:"omitempty,bolusduration"`
+	Normal   *float64 `json:"normal" bson:"normal" valid:"bolusnormal"`
+	Extended *float64 `json:"extended" bson:"extended" valid:"bolusextended"`
+	Duration *int     `json:"duration" bson:"duration" valid:"bolusduration"`
 	Base     `bson:",inline"`
 }
 

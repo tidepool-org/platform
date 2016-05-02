@@ -76,11 +76,15 @@ var _ = Describe("Bolus", func() {
 
 				It("square type is supported", func() {
 					bolusObj["subType"] = "square"
+					bolusObj["extended"] = 1.0
+					bolusObj["duration"] = 3600000
 					Expect(helper.ValidDataType(bolus.Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 				It("dual/square type is supported", func() {
 					bolusObj["subType"] = "dual/square"
+					bolusObj["extended"] = 1.0
+					bolusObj["duration"] = 3600000
 					Expect(helper.ValidDataType(bolus.Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
 				})
 

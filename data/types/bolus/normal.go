@@ -6,7 +6,7 @@ import (
 )
 
 type Normal struct {
-	Normal *float64 `json:"normal,omitempty" bson:"normal,omitempty" valid:"omitempty,bolusnormal"`
+	Normal *float64 `json:"normal" bson:"normal" valid:"bolusnormal"`
 	Base   `bson:",inline"`
 }
 
