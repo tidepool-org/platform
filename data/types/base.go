@@ -220,12 +220,12 @@ func (d Datum) ToInt(fieldName string, errs validate.ErrorProcessing) *int {
 
 	intValue, ok := d[fieldName].(int)
 	if !ok {
-		if floatValue, ok := d[fieldName].(float64); !ok {
+		floatValue, ok := d[fieldName].(float64)
+		if !ok {
 			errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "int"))
 			return nil
-		} else {
-			intValue = int(floatValue)
 		}
+		intValue = int(floatValue)
 	}
 
 	return &intValue
