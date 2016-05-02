@@ -20,7 +20,7 @@ type Base struct {
 	types.Base `bson:",inline"`
 }
 
-const Name = "Bolus"
+const Name = "bolus"
 
 var (
 	BolusSubTypeField = types.DatumFieldInformation{

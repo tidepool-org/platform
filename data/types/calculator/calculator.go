@@ -29,7 +29,7 @@ type Event struct {
 
 type Recommended struct {
 	Carbohydrate *float64 `json:"carb" bson:"carb" valid:"required"`
-	Correction   *float64 `json:"correction" bson:"correction" valid:"required"`
+	Correction   *float64 `json:"correction" bson:"correction"`
 	Net          *float64 `json:"net" bson:"net" valid:"required"`
 }
 

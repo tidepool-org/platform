@@ -6,7 +6,7 @@ import (
 )
 
 type ReservoirChange struct {
-	Status *string `json:"status" bson:"status" valid:"devicestatus"`
+	Status *string `json:"status" bson:"status" valid:"omitempty,devicestatus"`
 	Base   `bson:",inline"`
 }
 

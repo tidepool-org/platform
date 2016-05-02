@@ -62,7 +62,7 @@ var (
 		DatumField:        &types.DatumField{Name: "level"},
 		Tag:               "cgmsettingslevel",
 		Message:           "Must be >= 3.0 and <= 15.0",
-		AllowedFloatRange: &types.AllowedFloatRange{LowerLimit: 3.0, UpperLimit: 15.0},
+		AllowedFloatRange: &types.AllowedFloatRange{LowerLimit: 3.0, UpperLimit: 1000.0},
 	}
 
 	rateField = types.FloatDatumField{
