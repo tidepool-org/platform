@@ -1,5 +1,15 @@
 package mongo
 
+/* CHECKLIST
+ * [ ] Uses interfaces as appropriate
+ * [ ] Private package variables use underscore prefix
+ * [ ] All parameters validated
+ * [ ] All errors handled
+ * [ ] Reviewed for concurrency safety
+ * [ ] Code complete
+ * [ ] Full test coverage
+ */
+
 import (
 	"crypto/tls"
 	"net"
@@ -182,6 +192,29 @@ func (s *Session) Close() {
 	}
 }
 
+func (s *Session) Find(query store.Query, result interface{}) error {
+	if s.IsClosed() {
+		return app.Error("mongo", "session closed")
+	}
+
+	s.logger.WithField("query", query).Debug("Find")
+
+	if err := s.C().Find(query).One(result); err != nil {
+		return app.ExtError(err, "mongo", "unable to find")
+	}
+	return nil
+}
+
+func (s *Session) FindAll(query store.Query, sort []string, filter store.Filter) store.Iterator {
+	if s.IsClosed() {
+		return &Iterator{}
+	}
+
+	s.logger.WithField("query", query).WithField("sort", sort).WithField("filter", filter).Debug("FindAll")
+
+	return &Iterator{s.logger, s.C().Find(query).Sort(sort...).Select(filter).Iter()}
+}
+
 func (s *Session) Insert(document interface{}) error {
 	if s.IsClosed() {
 		return app.Error("mongo", "session closed")
@@ -240,27 +273,17 @@ func (s *Session) UpdateAll(selector interface{}, update interface{}) error {
 	return nil
 }
 
-func (s *Session) Find(query store.Query, result interface{}) error {
+func (s *Session) RemoveAll(selector interface{}) error {
 	if s.IsClosed() {
 		return app.Error("mongo", "session closed")
 	}
 
-	s.logger.WithField("query", query).Debug("Find")
+	s.logger.WithField("selector", selector).Debug("RemoveAll")
 
-	if err := s.C().Find(query).One(result); err != nil {
-		return app.ExtError(err, "mongo", "unable to find")
+	if _, err := s.C().RemoveAll(selector); err != nil {
+		return app.ExtError(err, "mongo", "unable to remove all")
 	}
 	return nil
-}
-
-func (s *Session) FindAll(query store.Query, sort []string, filter store.Filter) store.Iterator {
-	if s.IsClosed() {
-		return &Iterator{}
-	}
-
-	s.logger.WithField("query", query).WithField("sort", sort).WithField("filter", filter).Debug("FindAll")
-
-	return &Iterator{s.logger, s.C().Find(query).Sort(sort...).Select(filter).Iter()}
 }
 
 func (s *Session) C() *mgo.Collection {

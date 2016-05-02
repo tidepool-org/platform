@@ -1,12 +1,21 @@
 package user
 
+/* CHECKLIST
+ * [ ] Uses interfaces as appropriate
+ * [ ] Private package variables use underscore prefix
+ * [ ] All parameters validated
+ * [ ] All errors handled
+ * [ ] Reviewed for concurrency safety
+ * [ ] Code complete
+ * [ ] Full test coverage
+ */
+
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"sync"
 	"time"
 
@@ -21,7 +30,7 @@ type (
 	Client interface {
 		Start() error
 		Close()
-		CheckToken(token string) *TokenData
+		CheckToken(token string) (*TokenData, error)
 		GetUser(userID string) (*Data, error)
 		GetUserPermissons(userID string) (*UsersPermissions, error)
 		GetUserGroupID(userID string) (string, error)
@@ -156,7 +165,10 @@ func (client *ServicesClient) Close() {
 // secret that was passed in on the creation of the client object. If
 // successful, it stores the returned token in ServerToken.
 func (client *ServicesClient) serverLogin() error {
-	host := client.getHost(userPath)
+	host, err := client.getHost(userPath)
+	if err != nil {
+		return err
+	}
 	if host == nil {
 		return errors.New("No known user-api hosts.")
 	}
@@ -194,11 +206,14 @@ func (client *ServicesClient) tokenProvide() string {
 
 //CheckToken tests a token with the user-api to make sure it's current;
 //if so, it returns the data encoded in the token.
-func (client *ServicesClient) CheckToken(token string) *TokenData {
-	host := client.getHost(userPath)
+func (client *ServicesClient) CheckToken(token string) (*TokenData, error) {
+	host, err := client.getHost(userPath)
+	if err != nil {
+		return nil, err
+	}
 	if host == nil {
 		client.logger.Error(fmt.Sprintf("No known host for %s", userPath))
-		return nil
+		return nil, nil
 	}
 
 	host.Path += "/token/" + token
@@ -209,7 +224,7 @@ func (client *ServicesClient) CheckToken(token string) *TokenData {
 	res, err := client.httpClient.Do(req)
 	if err != nil {
 		client.logger.WithError(err).Error("Error checking token")
-		return nil
+		return nil, err
 	}
 
 	switch res.StatusCode {
@@ -217,21 +232,24 @@ func (client *ServicesClient) CheckToken(token string) *TokenData {
 		var td TokenData
 		if err = json.NewDecoder(res.Body).Decode(&td); err != nil {
 			client.logger.WithError(err).Error("Error parsing JSON results")
-			return nil
+			return nil, err
 		}
-		return &td
+		return &td, nil
 	case http.StatusNoContent:
-		return nil
+		return nil, nil
 	default:
 		client.logger.Error(fmt.Sprintf("Unknown response %d %s", res.StatusCode, req.URL))
-		return nil
+		return nil, nil
 	}
 }
 
 //GetUser details for the given user
 //In this case the userID could be the actual ID or an email address
 func (client *ServicesClient) GetUser(userID string) (*Data, error) {
-	host := client.getHost(userPath)
+	host, err := client.getHost(userPath)
+	if err != nil {
+		return nil, err
+	}
 	if host == nil {
 		return nil, fmt.Errorf("No known %s host", userPath)
 	}
@@ -264,7 +282,10 @@ func (client *ServicesClient) GetUser(userID string) (*Data, error) {
 
 //GetUserPermissons for the given userID
 func (client *ServicesClient) GetUserPermissons(userID string) (*UsersPermissions, error) {
-	host := client.getHost(permissionsPath)
+	host, err := client.getHost(permissionsPath)
+	if err != nil {
+		return nil, err
+	}
 	if host == nil {
 		return nil, fmt.Errorf("No known %s host", permissionsPath)
 	}
@@ -297,7 +318,10 @@ func (client *ServicesClient) GetUserPermissons(userID string) (*UsersPermission
 
 //GetUserGroupID for the given userID
 func (client *ServicesClient) GetUserGroupID(userID string) (string, error) {
-	host := client.getHost(metaDataPath)
+	host, err := client.getHost(metaDataPath)
+	if err != nil {
+		return "", err
+	}
 	if host == nil {
 		return "", fmt.Errorf("No known %s host", metaDataPath)
 	}
@@ -329,13 +353,11 @@ func (client *ServicesClient) GetUserGroupID(userID string) (string, error) {
 	}
 }
 
-func (client *ServicesClient) getHost(pathName string) *url.URL {
+func (client *ServicesClient) getHost(pathName string) (*url.URL, error) {
 	urlString := client.config.Address + pathName
 	theURL, err := url.Parse(urlString)
 	if err != nil {
-		// TODO: Why does this exit here?
-		client.logger.WithError(err).WithField("url", urlString).Error("Unable to parse urlString")
-		os.Exit(1)
+		return nil, app.ExtError(err, "user", "unable to determine host url")
 	}
-	return theURL
+	return theURL, nil
 }

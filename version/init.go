@@ -1,4 +1,4 @@
-package hashed
+package version
 
 /* CHECKLIST
  * [ ] Uses interfaces as appropriate
@@ -9,3 +9,13 @@ package hashed
  * [ ] Code complete
  * [ ] Full test coverage
  */
+
+var (
+	_base    string
+	_commit  string
+	_current Version
+)
+
+func init() {
+	_current = NewBaseCommit(_base, _commit)
+}

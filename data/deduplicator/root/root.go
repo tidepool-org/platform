@@ -1,10 +1,21 @@
 package root
 
+/* CHECKLIST
+ * [ ] Uses interfaces as appropriate
+ * [ ] Private package variables use underscore prefix
+ * [ ] All parameters validated
+ * [ ] All errors handled
+ * [ ] Reviewed for concurrency safety
+ * [ ] Code complete
+ * [ ] Full test coverage
+ */
+
 import (
 	"fmt"
 
 	"github.com/tidepool-org/platform/data/deduplicator"
 	"github.com/tidepool-org/platform/data/deduplicator/alignment"
+	"github.com/tidepool-org/platform/data/deduplicator/truncate"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/store"
@@ -13,6 +24,7 @@ import (
 func NewFactory() deduplicator.Factory {
 	return &Factory{
 		[]deduplicator.Factory{
+			truncate.NewFactory(),
 			alignment.NewFactory(),
 		},
 	}

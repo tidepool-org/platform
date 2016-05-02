@@ -1,63 +1,73 @@
 package main
 
-import (
-	"crypto/tls"
-	"fmt"
-	"net"
-	"os"
-	"strings"
-	"time"
+/* CHECKLIST
+ * [ ] Uses interfaces as appropriate
+ * [ ] Private package variables use underscore prefix
+ * [ ] All parameters validated
+ * [ ] All errors handled
+ * [ ] Reviewed for concurrency safety
+ * [ ] Code complete
+ * [ ] Full test coverage
+ */
 
-	mgo "gopkg.in/mgo.v2"
-)
+// import (
+// 	"crypto/tls"
+// 	"fmt"
+// 	"net"
+// 	"os"
+// 	"strings"
+// 	"time"
 
-func main() {
-	if len(os.Args) != 4 {
-		fmt.Println("ERROR: Specify Mongo server address(es), database, and SSL(true|false)")
-		os.Exit(1)
-	}
+// 	mgo "gopkg.in/mgo.v2"
+// )
 
-	addresses := strings.Split(os.Args[1], ",")
-	database := os.Args[2]
-	ssl := os.Args[3]
+// func main() {
+// 	if len(os.Args) != 4 {
+// 		fmt.Println("ERROR: Specify Mongo server address(es), database, and SSL(true|false)")
+// 		os.Exit(1)
+// 	}
 
-	dialInfo := &mgo.DialInfo{
-		Addrs:    addresses,
-		Timeout:  10 * time.Second,
-		Database: database,
-	}
+// 	addresses := strings.Split(os.Args[1], ",")
+// 	database := os.Args[2]
+// 	ssl := os.Args[3]
 
-	if ssl == "true" {
-		dialInfo.DialServer = func(serverAddr *mgo.ServerAddr) (net.Conn, error) {
-			return tls.Dial("tcp", serverAddr.String(), &tls.Config{InsecureSkipVerify: true})
-		}
-	}
+// 	dialInfo := &mgo.DialInfo{
+// 		Addrs:    addresses,
+// 		Timeout:  10 * time.Second,
+// 		Database: database,
+// 	}
 
-	session, err := mgo.DialWithInfo(dialInfo)
-	if err != nil {
-		fmt.Printf("ERROR: Failure connecting to Mongo: %s\n", err.Error())
-		os.Exit(1)
-	}
+// 	if ssl == "true" {
+// 		dialInfo.DialServer = func(serverAddr *mgo.ServerAddr) (net.Conn, error) {
+// 			return tls.Dial("tcp", serverAddr.String(), &tls.Config{InsecureSkipVerify: true})
+// 		}
+// 	}
 
-	if err := session.Ping(); err != nil {
-		fmt.Printf("ERROR: Failure during Ping: %s\n", err.Error())
-		os.Exit(1)
-	}
+// 	session, err := mgo.DialWithInfo(dialInfo)
+// 	if err != nil {
+// 		fmt.Printf("ERROR: Failure connecting to Mongo: %s\n", err.Error())
+// 		os.Exit(1)
+// 	}
 
-	buildInfo, err := session.BuildInfo()
-	if err != nil {
-		fmt.Printf("ERROR: Failure obtaining BuildInfo: %s\n", err.Error())
-		os.Exit(1)
-	}
+// 	if err := session.Ping(); err != nil {
+// 		fmt.Printf("ERROR: Failure during Ping: %s\n", err.Error())
+// 		os.Exit(1)
+// 	}
 
-	mode := session.Mode()
-	safe := session.Safe()
-	liveServers := session.LiveServers()
+// 	buildInfo, err := session.BuildInfo()
+// 	if err != nil {
+// 		fmt.Printf("ERROR: Failure obtaining BuildInfo: %s\n", err.Error())
+// 		os.Exit(1)
+// 	}
 
-	fmt.Printf("BuildInfo: %#v\n", buildInfo)
-	fmt.Printf("Mode: %#v\n", mode)
-	fmt.Printf("Safe: %#v\n", safe)
-	fmt.Printf("LiveServers: %#v\n", liveServers)
+// 	mode := session.Mode()
+// 	safe := session.Safe()
+// 	liveServers := session.LiveServers()
 
-	os.Exit(0)
-}
+// 	fmt.Printf("BuildInfo: %#v\n", buildInfo)
+// 	fmt.Printf("Mode: %#v\n", mode)
+// 	fmt.Printf("Safe: %#v\n", safe)
+// 	fmt.Printf("LiveServers: %#v\n", liveServers)
+
+// 	os.Exit(0)
+// }

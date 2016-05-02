@@ -1,9 +1,21 @@
 package dataservices
 
+/* CHECKLIST
+ * [ ] Uses interfaces as appropriate
+ * [ ] Private package variables use underscore prefix
+ * [ ] All parameters validated
+ * [ ] All errors handled
+ * [ ] Reviewed for concurrency safety
+ * [ ] Code complete
+ * [ ] Full test coverage
+ */
+
 import (
 	"net/http"
+	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
+	graceful "gopkg.in/tylerb/graceful.v1"
 
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/config"
@@ -47,6 +59,7 @@ type TLS struct {
 type Config struct {
 	Address string `json:"address"`
 	TLS     *TLS   `json:"tls"`
+	Timeout int    `json:"timeout" default:"60"`
 }
 
 func (c *Config) Validate() error {
@@ -158,14 +171,23 @@ func (s *Server) setupRouter() error {
 	}
 
 	s.api.SetApp(router)
+
 	return nil
 }
 
 func (s *Server) serve() (err error) {
+	server := &graceful.Server{
+		Timeout: time.Duration(s.config.Timeout) * time.Second,
+		Server: &http.Server{
+			Addr:    s.config.Address,
+			Handler: s.api.MakeHandler(),
+		},
+	}
+
 	if s.config.TLS != nil {
-		err = http.ListenAndServeTLS(s.config.Address, s.config.TLS.CertificateFile, s.config.TLS.KeyFile, s.api.MakeHandler())
+		err = server.ListenAndServeTLS(s.config.TLS.CertificateFile, s.config.TLS.KeyFile)
 	} else {
-		err = http.ListenAndServe(s.config.Address, s.api.MakeHandler())
+		err = server.ListenAndServe()
 	}
 	return err
 }

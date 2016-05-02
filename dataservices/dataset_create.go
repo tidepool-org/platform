@@ -1,11 +1,21 @@
 package dataservices
 
+/* CHECKLIST
+ * [ ] Uses interfaces as appropriate
+ * [ ] Private package variables use underscore prefix
+ * [ ] All parameters validated
+ * [ ] All errors handled
+ * [ ] Reviewed for concurrency safety
+ * [ ] Code complete
+ * [ ] Full test coverage
+ */
+
 import (
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
-	uuid "github.com/satori/go.uuid"
 
+	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator/root"
 	"github.com/tidepool-org/platform/data/types"
@@ -60,7 +70,7 @@ func (s *Server) DatasetCreate(context *Context) {
 	}
 
 	// TODO: Move this to a better location
-	uploadID := uuid.NewV4().String()
+	uploadID := app.NewUUID()
 	dataState := "open"
 
 	datasetUpload.UploadID = &uploadID

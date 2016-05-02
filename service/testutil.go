@@ -1,5 +1,15 @@
 package service
 
+/* CHECKLIST
+ * [ ] Uses interfaces as appropriate
+ * [ ] Private package variables use underscore prefix
+ * [ ] All parameters validated
+ * [ ] All errors handled
+ * [ ] Reviewed for concurrency safety
+ * [ ] Code complete
+ * [ ] Full test coverage
+ */
+
 // TODO: Reenable as necessary when other tests functional
 
 // import (
@@ -190,7 +200,6 @@ package service
 // 	}
 // }
 
-// // RunRequest runs a HTTP request through the given handler
 // func RunRequest(restHandler rest.HandlerFunc, request *http.Request, pathParams map[string]string, env map[string]interface{}) *Recorded {
 // 	handler := adapterFunc(restHandler, env, pathParams)
 // 	recorder := httptest.NewRecorder()
@@ -198,37 +207,30 @@ package service
 // 	return &Recorded{recorder}
 // }
 
-// // CodeIs for Recorded
 // func (rd *Recorded) CodeIs(expectedCode int) bool {
 // 	return CodeIs(rd.Recorder, expectedCode)
 // }
 
-// // HeaderIs for Recorded
 // func (rd *Recorded) HeaderIs(headerKey, expectedValue string) bool {
 // 	return HeaderIs(rd.Recorder, headerKey, expectedValue)
 // }
 
-// // ContentTypeIsJSON for Recorded
 // func (rd *Recorded) ContentTypeIsJSON() bool {
 // 	return ContentTypeIsJSON(rd.Recorder)
 // }
 
-// // ContentEncodingIsGzip for Recorded
 // func (rd *Recorded) ContentEncodingIsGzip() bool {
 // 	return ContentEncodingIsGzip(rd.Recorder)
 // }
 
-// // BodyIs for Recorded
 // func (rd *Recorded) BodyIs(expectedToContain string) bool {
 // 	return BodyIs(rd.Recorder, expectedToContain)
 // }
 
-// // BodyContains for Recorded
 // func (rd *Recorded) BodyContains(expectedBody string) bool {
 // 	return BodyIs(rd.Recorder, expectedBody)
 // }
 
-// // DecodeJSONPayload for Recorded
 // func (rd *Recorded) DecodeJSONPayload(v interface{}) error {
 // 	return DecodeJSONPayload(rd.Recorder, v)
 // }

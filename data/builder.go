@@ -1,5 +1,15 @@
 package data
 
+/* CHECKLIST
+ * [ ] Uses interfaces as appropriate
+ * [ ] Private package variables use underscore prefix
+ * [ ] All parameters validated
+ * [ ] All errors handled
+ * [ ] Reviewed for concurrency safety
+ * [ ] Code complete
+ * [ ] Full test coverage
+ */
+
 import (
 	"fmt"
 
@@ -77,7 +87,7 @@ func (t *TypeBuilder) build(datum types.Datum, errorProcessing validate.ErrorPro
 		datum[k] = v
 	}
 
-	// datum["id"] = uuid.NewV4().String()		// TODO: Is this necessary?
+	// datum["id"] = app.NewUUID()		// TODO: Is this necessary?
 
 	switch typeName {
 	case basal.Name:
@@ -100,7 +110,7 @@ func (t *TypeBuilder) build(datum types.Datum, errorProcessing validate.ErrorPro
 		return cgm.Build(datum, errorProcessing)
 	default:
 		// TODO: Use types package for this
-		errorProcessing.AppendPointerError("type", types.InvalidTypeTitle, "Unknown type")
+		errorProcessing.AppendPointerError("type", types.InvalidTypeTitle, fmt.Sprintf("Unknown type '%s'", typeName))
 		return nil
 	}
 }

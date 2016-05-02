@@ -1,11 +1,22 @@
 package alignment
 
+/* CHECKLIST
+ * [ ] Uses interfaces as appropriate
+ * [ ] Private package variables use underscore prefix
+ * [ ] All parameters validated
+ * [ ] All errors handled
+ * [ ] Reviewed for concurrency safety
+ * [ ] Code complete
+ * [ ] Full test coverage
+ */
+
 import (
 	"fmt"
 	"reflect"
 
 	"gopkg.in/mgo.v2/bson"
 
+	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	"github.com/tidepool-org/platform/data/types/upload"
@@ -36,7 +47,7 @@ type Deduplicator struct {
 
 func (f *Factory) CanDeduplicateDataset(datasetUpload *upload.Upload) (bool, error) {
 	if datasetUpload == nil {
-		return false, fmt.Errorf("Dataset upload is nil")
+		return false, app.Error("alignment", "dataset upload is nil")
 	}
 	if config := datasetUpload.Deduplicator; config != nil {
 		if configAsMap, ok := config.(map[string]interface{}); ok {
@@ -58,10 +69,13 @@ func (f *Factory) CanDeduplicateDataset(datasetUpload *upload.Upload) (bool, err
 
 func (f *Factory) NewDeduplicator(datasetUpload *upload.Upload, storeSession store.Session, logger log.Logger) (deduplicator.Deduplicator, error) {
 	if datasetUpload == nil {
-		return nil, fmt.Errorf("Dataset datum is nil")
+		return nil, app.Error("alignment", "dataset upload is nil")
 	}
 	if storeSession == nil {
-		return nil, fmt.Errorf("Dataset datum is nil")
+		return nil, app.Error("alignment", "store session is nil")
+	}
+	if logger == nil {
+		return nil, app.Error("alignment", "logger is nil")
 	}
 	return &Deduplicator{
 		logger:        logger,
@@ -83,15 +97,7 @@ func (d *Deduplicator) InitializeDataset() error {
 }
 
 func (d *Deduplicator) AddDataToDataset(datumArray data.BuiltDatumArray) error {
-	// Go is a STUPID language! I've used it long enough to decide this. I've never thought a modern language was such
-	// a piece of crap as Go. I think Google is purposefully trying to convince developers that a "simple" language is
-	// *SO* much better that these more complicated languages. Yea, like I want to write my own copy functions ten thousand
-	// times.  What a piece of bullshit Google is peddling.
-	saveArray := make([]interface{}, len(datumArray))
-	for index, datum := range datumArray {
-		saveArray[index] = datum
-	}
-	return d.storeSession.InsertAll(saveArray...)
+	return d.storeSession.InsertAll(datumArray...)
 }
 
 func (d *Deduplicator) FinalizeDataset() error {

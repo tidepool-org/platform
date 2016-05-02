@@ -19,39 +19,39 @@ var _ = Describe("Log", func() {
 		})
 
 		It("exists", func() {
-			Expect(rootLogger).Should(Not(BeNil()))
+			Expect(rootLogger).ToNot(BeNil())
 		})
 
 		It("receives Debug", func() {
-			Expect(rootLogger.Debug).Should(Not(BeNil()))
+			Expect(rootLogger.Debug).ToNot(BeNil())
 		})
 
 		It("receives Info", func() {
-			Expect(rootLogger.Info).Should(Not(BeNil()))
+			Expect(rootLogger.Info).ToNot(BeNil())
 		})
 
 		It("receives Warn", func() {
-			Expect(rootLogger.Warn).Should(Not(BeNil()))
+			Expect(rootLogger.Warn).ToNot(BeNil())
 		})
 
 		It("receives Error", func() {
-			Expect(rootLogger.Error).Should(Not(BeNil()))
+			Expect(rootLogger.Error).ToNot(BeNil())
 		})
 
 		It("receives Fatal", func() {
-			Expect(rootLogger.Fatal).Should(Not(BeNil()))
+			Expect(rootLogger.Fatal).ToNot(BeNil())
 		})
 
 		It("returns a new Logger from WithError", func() {
-			Expect(rootLogger.WithError(fmt.Errorf("test"))).Should(Not(BeNil()))
+			Expect(rootLogger.WithError(fmt.Errorf("test"))).ToNot(BeNil())
 		})
 
 		It("returns a new Logger from WithField", func() {
-			Expect(rootLogger.WithField("key", "value")).Should(Not(BeNil()))
+			Expect(rootLogger.WithField("key", "value")).ToNot(BeNil())
 		})
 
 		It("returns a new Logger from WithFields", func() {
-			Expect(rootLogger.WithFields(map[string]interface{}{"key": "value"})).Should(Not(BeNil()))
+			Expect(rootLogger.WithFields(map[string]interface{}{"key": "value"})).ToNot(BeNil())
 		})
 	})
 })

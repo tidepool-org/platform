@@ -9,7 +9,7 @@ import (
 	"github.com/tidepool-org/platform/app"
 )
 
-var _ = Describe("App", func() {
+var _ = Describe("Error", func() {
 
 	Describe("Error", func() {
 		It("returns a formatted error", func() {
@@ -28,12 +28,20 @@ var _ = Describe("App", func() {
 			err := fmt.Errorf("error: inner")
 			Expect(app.ExtError(err, "test", "three").Error()).To(Equal("test: three; error: inner"))
 		})
+
+		It("does not fail when err is nil", func() {
+			Expect(app.ExtError(nil, "test", "three").Error()).To(Equal("test: three; app: error is nil"))
+		})
 	})
 
 	Describe("ExtErrorf", func() {
 		It("returns a formatted error", func() {
 			err := fmt.Errorf("error: inner")
 			Expect(app.ExtErrorf(err, "test", "%d %s", 4, "four").Error()).To(Equal("test: 4 four; error: inner"))
+		})
+
+		It("does not fail when err is nil", func() {
+			Expect(app.ExtErrorf(nil, "test", "%d %s", 4, "four").Error()).To(Equal("test: 4 four; app: error is nil"))
 		})
 	})
 })

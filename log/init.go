@@ -1,5 +1,15 @@
 package log
 
+/* CHECKLIST
+ * [ ] Uses interfaces as appropriate
+ * [ ] Private package variables use underscore prefix
+ * [ ] All parameters validated
+ * [ ] All errors handled
+ * [ ] Reviewed for concurrency safety
+ * [ ] Code complete
+ * [ ] Full test coverage
+ */
+
 import (
 	"fmt"
 	"os"
@@ -48,6 +58,8 @@ func (l *loggerWithFields) Warn(message string) {
 func (l *loggerWithFields) Error(message string) {
 	l.finalizeFields().Error(message)
 }
+
+// TODO: Remove Fatal
 
 func (l *loggerWithFields) Fatal(message string) {
 	l.finalizeFields().Fatal(message)
@@ -108,7 +120,7 @@ func init() {
 		map[string]interface{}{
 			"process": filepath.Base(os.Args[0]),
 			"pid":     os.Getpid(),
-			"version": version.Short(),
+			"version": version.Current().Short(),
 		},
 		ignoredFileSegments,
 	}

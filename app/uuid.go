@@ -1,4 +1,4 @@
-package data
+package app
 
 /* CHECKLIST
  * [ ] Uses interfaces as appropriate
@@ -11,14 +11,11 @@ package data
  */
 
 import (
-	"github.com/tidepool-org/platform/data/types"
-	"github.com/tidepool-org/platform/validate"
+	"strings"
+
+	uuid "github.com/satori/go.uuid"
 )
 
-// TODO: Temporary until all data types properly built
-
-type Any interface{}
-
-func BuildAny(datum types.Datum, errs validate.ErrorProcessing) Any {
-	return datum
+func NewUUID() string {
+	return strings.Replace(uuid.NewV4().String(), "-", "", -1)
 }

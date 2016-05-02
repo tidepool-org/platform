@@ -1,5 +1,15 @@
 package user
 
+/* CHECKLIST
+ * [ ] Uses interfaces as appropriate
+ * [ ] Private package variables use underscore prefix
+ * [ ] All parameters validated
+ * [ ] All errors handled
+ * [ ] Reviewed for concurrency safety
+ * [ ] Code complete
+ * [ ] Full test coverage
+ */
+
 import (
 	"net/http"
 
@@ -26,7 +36,7 @@ func (mw *AuthorizationMiddleware) ValidateToken(h rest.HandlerFunc) rest.Handle
 
 		token := r.Header.Get(xTidepoolSessionToken)
 
-		if tokenData := mw.Client.CheckToken(token); tokenData != nil {
+		if tokenData, err := mw.Client.CheckToken(token); err == nil && tokenData != nil {
 			h(w, r)
 			return
 		}

@@ -1,11 +1,19 @@
 package service
 
+/* CHECKLIST
+ * [ ] Uses interfaces as appropriate
+ * [ ] Private package variables use underscore prefix
+ * [ ] All parameters validated
+ * [ ] All errors handled
+ * [ ] Reviewed for concurrency safety
+ * [ ] Code complete
+ * [ ] Full test coverage
+ */
+
 import (
-	"strings"
-
 	"github.com/ant0ine/go-json-rest/rest"
-	uuid "github.com/satori/go.uuid"
 
+	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/log"
 )
 
@@ -29,7 +37,7 @@ const (
 
 func (l *LoggerMiddleware) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
-		traceRequest := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+		traceRequest := app.NewUUID()
 		request.Env[RequestEnvTraceRequest] = traceRequest
 		response.Header().Add(HTTPHeaderTraceRequest, traceRequest)
 		logger := l.Logger.WithField(LogTraceRequest, traceRequest)

@@ -1,5 +1,15 @@
 package service
 
+/* CHECKLIST
+ * [ ] Uses interfaces as appropriate
+ * [ ] Private package variables use underscore prefix
+ * [ ] All parameters validated
+ * [ ] All errors handled
+ * [ ] Reviewed for concurrency safety
+ * [ ] Code complete
+ * [ ] Full test coverage
+ */
+
 import (
 	"fmt"
 	"net"
@@ -77,6 +87,9 @@ func (l *AccessLogMiddleware) MiddlewareFunc(handler rest.HandlerFunc) rest.Hand
 		}
 
 		message := fmt.Sprintf("%s %s", request.Method, request.URL.RequestURI())
+
+		// TODO: Log this to a special logger level "access".
+		// Will need to revamp log package, though.
 
 		GetRequestLogger(request).WithFields(loggerFields).Info(message)
 	}

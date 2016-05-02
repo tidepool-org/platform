@@ -1,6 +1,18 @@
 package service
 
+/* CHECKLIST
+ * [ ] Uses interfaces as appropriate
+ * [ ] Private package variables use underscore prefix
+ * [ ] All parameters validated
+ * [ ] All errors handled
+ * [ ] Reviewed for concurrency safety
+ * [ ] Code complete
+ * [ ] Full test coverage
+ */
+
 import (
+	"fmt"
+
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/log"
@@ -65,6 +77,11 @@ func (c *Context) RespondWithError(err *Error) {
 func (c *Context) RespondWithServerFailure(message string, failure ...interface{}) {
 	logger := c.Logger()
 	if len(failure) > 0 {
+		for index := range failure {
+			if stringer, ok := failure[index].(fmt.Stringer); ok {
+				failure[index] = stringer.String()
+			}
+		}
 		logger = logger.WithField("failure", failure)
 	}
 	logger.Error(message)
