@@ -104,37 +104,23 @@ var _ = Describe("Event", func() {
 					Expect(helper.ValidDataType(calculator.Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
-				It("if present requires net", func() {
+				It("net is not required", func() {
 
 					delete(recommendedObj, "net")
 					calculatorObj["recommended"] = recommendedObj
 
-					Expect(
-						helper.ErrorIsExpected(
-							calculator.Build(calculatorObj, helper.ErrorProcessing),
-							types.ExpectedErrorDetails{
-								Path:   "0/recommended/net",
-								Detail: "This is a required field given '<nil>'",
-							}),
-					).To(BeNil())
+					Expect(helper.ValidDataType(calculator.Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
-				// It("if present requires correction", func() {
+				It("correction is not required", func() {
 
-				// 	delete(recommendedObj, "correction")
-				// 	calculatorObj["recommended"] = recommendedObj
+					delete(recommendedObj, "correction")
+					calculatorObj["recommended"] = recommendedObj
 
-				// 	Expect(
-				// 		helper.ErrorIsExpected(
-				// 			calculator.Build(calculatorObj, helper.ErrorProcessing),
-				// 			types.ExpectedErrorDetails{
-				// 				Path:   "0/recommended/correction",
-				// 				Detail: "This is a required field given '<nil>'",
-				// 			}),
-				// 	).To(BeNil())
-				// })
+					Expect(helper.ValidDataType(calculator.Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
+				})
 
-				It("if present requires carb", func() {
+				It("carb required", func() {
 
 					delete(recommendedObj, "carb")
 					calculatorObj["recommended"] = recommendedObj

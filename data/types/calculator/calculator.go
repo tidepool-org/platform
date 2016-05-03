@@ -29,8 +29,10 @@ type Event struct {
 
 type Recommended struct {
 	Carbohydrate *float64 `json:"carb" bson:"carb" valid:"required"`
-	Correction   *float64 `json:"correction" bson:"correction"`
-	Net          *float64 `json:"net" bson:"net" valid:"required"`
+
+	//TODO: validation to be confirmed but based on device uploads isn't always present
+	Correction *float64 `json:"correction" bson:"correction" valid:"-"`
+	Net        *float64 `json:"net" bson:"net" valid:"-"`
 }
 
 type Bolus struct {
@@ -81,7 +83,7 @@ var (
 
 	netField = types.DatumFieldInformation{
 		DatumField: &types.DatumField{Name: "net"},
-		Tag:        "required",
+		Tag:        "",
 		Message:    "This is a required field",
 	}
 
@@ -92,19 +94,13 @@ var (
 	}
 
 	failureReasons = validate.FailureReasons{
-		//"BloodGlucoseInput": validate.ValidationInfo{FieldName: bloodGlucoseInputField.Name, Message: bloodGlucoseInputField.Message},
 		"CarbohydrateInput": validate.ValidationInfo{FieldName: carbohydrateInputField.Name, Message: carbohydrateInputField.Message},
-		//"Units":             validate.ValidationInfo{FieldName: types.MmolOrMgUnitsField.Name, Message: types.MmolOrMgUnitsField.Message},
-		"InsulinOnBoard": validate.ValidationInfo{FieldName: types.BolusSubTypeField.Name, Message: types.BolusSubTypeField.Message},
+		"InsulinOnBoard":    validate.ValidationInfo{FieldName: types.BolusSubTypeField.Name, Message: types.BolusSubTypeField.Message},
 
 		"Bolus.SubType":  validate.ValidationInfo{FieldName: "bolus/" + types.BolusSubTypeField.Name, Message: types.BolusSubTypeField.Message},
 		"Bolus.DeviceID": validate.ValidationInfo{FieldName: "bolus/" + types.BaseDeviceIDField.Name, Message: types.BaseDeviceIDField.Message},
 		"Bolus.Time":     validate.ValidationInfo{FieldName: "bolus/" + types.TimeStringField.Name, Message: types.TimeStringField.Message},
 
-		//"BloodGlucoseTarget.High": validate.ValidationInfo{FieldName: "bgTarget/high", Message: types.BloodGlucoseValueField.Message},
-		//"BloodGlucoseTarget.Low":  validate.ValidationInfo{FieldName: "bgTarget/low", Message: types.BloodGlucoseValueField.Message},
-
-		"Recommended.Net":          validate.ValidationInfo{FieldName: "recommended/" + netField.Name, Message: netField.Message},
 		"Recommended.Correction":   validate.ValidationInfo{FieldName: "recommended/" + correctionField.Name, Message: correctionField.Message},
 		"Recommended.Carbohydrate": validate.ValidationInfo{FieldName: "recommended/" + carbField.Name, Message: carbField.Message},
 	}
