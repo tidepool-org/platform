@@ -119,20 +119,20 @@ var _ = Describe("Event", func() {
 					).To(BeNil())
 				})
 
-				It("if present requires correction", func() {
+				// It("if present requires correction", func() {
 
-					delete(recommendedObj, "correction")
-					calculatorObj["recommended"] = recommendedObj
+				// 	delete(recommendedObj, "correction")
+				// 	calculatorObj["recommended"] = recommendedObj
 
-					Expect(
-						helper.ErrorIsExpected(
-							calculator.Build(calculatorObj, helper.ErrorProcessing),
-							types.ExpectedErrorDetails{
-								Path:   "0/recommended/correction",
-								Detail: "This is a required field given '<nil>'",
-							}),
-					).To(BeNil())
-				})
+				// 	Expect(
+				// 		helper.ErrorIsExpected(
+				// 			calculator.Build(calculatorObj, helper.ErrorProcessing),
+				// 			types.ExpectedErrorDetails{
+				// 				Path:   "0/recommended/correction",
+				// 				Detail: "This is a required field given '<nil>'",
+				// 			}),
+				// 	).To(BeNil())
+				// })
 
 				It("if present requires carb", func() {
 

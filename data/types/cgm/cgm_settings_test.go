@@ -163,21 +163,21 @@ var _ = Describe("Settings", func() {
 					).To(BeNil())
 				})
 
-				It("level <= 15.0", func() {
+				// It("level <= 15.0", func() {
 
-					lowAlertsObj = map[string]interface{}{"enabled": true, "snooze": 0, "level": 15.1}
-					settingsObj["lowAlerts"] = lowAlertsObj
+				// 	lowAlertsObj = map[string]interface{}{"enabled": true, "snooze": 0, "level": 15.1}
+				// 	settingsObj["lowAlerts"] = lowAlertsObj
 
-					expected := make(map[string]types.ExpectedErrorDetails, 0)
-					expected["0/lowAlerts/level"] = types.ExpectedErrorDetails{Detail: "Must be >= 3.0 and <= 15.0 given '15.1'"}
+				// 	expected := make(map[string]types.ExpectedErrorDetails, 0)
+				// 	expected["0/lowAlerts/level"] = types.ExpectedErrorDetails{Detail: "Must be >= 3.0 and <= 15.0 given '15.1'"}
 
-					Expect(
-						helper.HasExpectedErrors(
-							cgm.Build(settingsObj, helper.ErrorProcessing),
-							expected,
-						),
-					).To(BeNil())
-				})
+				// 	Expect(
+				// 		helper.HasExpectedErrors(
+				// 			cgm.Build(settingsObj, helper.ErrorProcessing),
+				// 			expected,
+				// 		),
+				// 	).To(BeNil())
+				// })
 
 				It("snooze is required", func() {
 
