@@ -84,14 +84,30 @@ var _ = Describe("DeviceEvent", func() {
 				})
 
 				It("if cannula in range of 0.0 to 3.0", func() {
-
+					deviceEventObj["primeTarget"] = "cannula"
 					deviceEventObj["volume"] = 1.0
 
 					Expect(helper.ValidDataType(device.Build(deviceEventObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
+				It("if cannula > 3.0 fails", func() {
+
+					deviceEventObj["primeTarget"] = "cannula"
+					deviceEventObj["volume"] = 3.1
+
+					Expect(
+						helper.ErrorIsExpected(
+							device.Build(deviceEventObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/volume",
+								Detail: "Must be >= 0.0 and <= 3.0 given '3.1'",
+							}),
+					).To(BeNil())
+				})
+
 				It("if cannula < 0.0 fails", func() {
 
+					deviceEventObj["primeTarget"] = "cannula"
 					deviceEventObj["volume"] = -0.1
 
 					Expect(
@@ -100,6 +116,44 @@ var _ = Describe("DeviceEvent", func() {
 							types.ExpectedErrorDetails{
 								Path:   "0/volume",
 								Detail: "Must be >= 0.0 and <= 3.0 given '-0.1'",
+							}),
+					).To(BeNil())
+				})
+
+				It("if tubing in range of 0.0 to 100.0", func() {
+
+					deviceEventObj["primeTarget"] = "tubing"
+					deviceEventObj["volume"] = 55.0
+
+					Expect(helper.ValidDataType(device.Build(deviceEventObj, helper.ErrorProcessing))).To(BeNil())
+				})
+
+				It("if tubing > 100.0 fails", func() {
+
+					deviceEventObj["primeTarget"] = "tubing"
+					deviceEventObj["volume"] = 100.1
+
+					Expect(
+						helper.ErrorIsExpected(
+							device.Build(deviceEventObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/volume",
+								Detail: "Must be >= 0.0 and <= 100.0 given '100.1'",
+							}),
+					).To(BeNil())
+				})
+
+				It("if tubing < 0.0 fails", func() {
+
+					deviceEventObj["primeTarget"] = "tubing"
+					deviceEventObj["volume"] = -0.1
+
+					Expect(
+						helper.ErrorIsExpected(
+							device.Build(deviceEventObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/volume",
+								Detail: "Must be >= 0.0 and <= 100.0 given '-0.1'",
 							}),
 					).To(BeNil())
 				})

@@ -283,6 +283,18 @@ func (d Datum) ToStringArray(fieldName string, errs validate.ErrorProcessing) *[
 	return &stringArray
 }
 
+func (d Datum) ToMap(fieldName string, errs validate.ErrorProcessing) *map[string]interface{} {
+	if d[fieldName] == nil {
+		return nil
+	}
+	mapData, ok := d[fieldName].(map[string]interface{})
+	if !ok {
+		errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "object"))
+		return nil
+	}
+	return &mapData
+}
+
 func (d Datum) ToObject(fieldName string, errs validate.ErrorProcessing) *interface{} {
 	if d[fieldName] == nil {
 		return nil
