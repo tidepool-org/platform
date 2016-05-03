@@ -15,9 +15,10 @@ func init() {
 }
 
 type Status struct {
-	Status   *string                 `json:"status" bson:"status" valid:"devicestatus"`
-	Reason   *map[string]interface{} `json:"reason" bson:"reason" valid:"devicereason"`
-	Duration *int                    `json:"duration,omitempty" bson:"duration,omitempty" valid:"omitempty,devicestatusduration"`
+	Status *string                 `json:"status" bson:"status" valid:"devicestatus"`
+	Reason *map[string]interface{} `json:"reason" bson:"reason" valid:"devicereason"`
+	//TODO: this should become required for the platform but is currently optional
+	Duration *int `json:"duration,omitempty" bson:"duration,omitempty" valid:"omitempty,devicestatusduration"`
 	Base     `bson:",inline"`
 }
 
