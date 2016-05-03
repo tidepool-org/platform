@@ -15,10 +15,15 @@ func init() {
 
 type Alarm struct {
 	AlarmType *string `json:"alarmType" bson:"alarmType" valid:"devicealarmtype"`
+	Status    *string `json:"status,omitempty" bson:"status,omitempty" valid:"-"`
 	Base      `bson:",inline"`
 }
 
 var (
+	alarmStatusField = types.DatumFieldInformation{
+		DatumField: &types.DatumField{Name: "status"},
+	}
+
 	alarmTypeField = types.DatumFieldInformation{
 		DatumField: &types.DatumField{Name: "alarmType"},
 		Tag:        "devicealarmtype",
@@ -40,6 +45,7 @@ var (
 func (b Base) makeAlarm(datum types.Datum, errs validate.ErrorProcessing) *Alarm {
 	Alarm := &Alarm{
 		AlarmType: datum.ToString(alarmTypeField.Name, errs),
+		Status:    datum.ToString(alarmStatusField.Name, errs),
 		Base:      b,
 	}
 	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(Alarm, errs)

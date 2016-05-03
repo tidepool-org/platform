@@ -41,6 +41,7 @@ var _ = Describe("Blood", func() {
 							}),
 					).To(BeNil())
 				})
+
 				It("fails < 0.0", func() {
 					bloodKetoneObj["value"] = -0.1
 
@@ -87,6 +88,7 @@ var _ = Describe("Blood", func() {
 							}),
 					).To(BeNil())
 				})
+
 				It("fails if not mmol/L", func() {
 					bloodKetoneObj["units"] = "mg/dL"
 					Expect(

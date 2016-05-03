@@ -11,7 +11,6 @@ import (
 
 func init() {
 	types.GetPlatformValidator().RegisterValidation(primeTargetField.Tag, PrimeTargetValidator)
-	types.GetPlatformValidator().RegisterValidation(volumeField.Tag, VolumeValidator)
 }
 
 type Prime struct {
@@ -21,11 +20,18 @@ type Prime struct {
 }
 
 var (
-	volumeField = types.FloatDatumField{
+	cannulaVolumeField = types.FloatDatumField{
 		DatumField:        &types.DatumField{Name: "volume"},
 		Tag:               "devicevolume",
-		Message:           "Must be greater than 0.0",
-		AllowedFloatRange: &types.AllowedFloatRange{LowerLimit: 0.0},
+		Message:           "Must be >= 0.0 and <= 3.0",
+		AllowedFloatRange: &types.AllowedFloatRange{LowerLimit: 0.0, UpperLimit: 3.0},
+	}
+
+	tubingVolumeField = types.FloatDatumField{
+		DatumField:        &types.DatumField{Name: "volume"},
+		Tag:               "devicevolume",
+		Message:           "Must be >= 0.0 and <= 100.0",
+		AllowedFloatRange: &types.AllowedFloatRange{LowerLimit: 0.0, UpperLimit: 100.0},
 	}
 
 	primeTargetField = types.DatumFieldInformation{
@@ -40,21 +46,54 @@ var (
 )
 
 func (b Base) makePrime(datum types.Datum, errs validate.ErrorProcessing) *Prime {
-	prime := &Prime{
-		PrimeTarget: datum.ToString(primeTargetField.Name, errs),
-		Volume:      datum.ToFloat64(volumeField.Name, errs),
-		Base:        b,
+
+	var prime *Prime
+
+	primeTarget := datum.ToString(primeTargetField.Name, errs)
+
+	if primeTarget == nil {
+		prime = &Prime{
+			PrimeTarget: primeTarget,
+			Base:        b,
+		}
+	} else if *primeTarget == "cannula" {
+		prime = &Prime{
+			PrimeTarget: primeTarget,
+			Volume:      datum.ToFloat64(cannulaVolumeField.Name, errs),
+			Base:        b,
+		}
+		types.GetPlatformValidator().RegisterValidation(cannulaVolumeField.Tag, CannulaVolumeValidator)
+		failureReasons["Volume"] = validate.ValidationInfo{FieldName: cannulaVolumeField.Name, Message: cannulaVolumeField.Message}
+	} else {
+		prime = &Prime{
+			PrimeTarget: primeTarget,
+			Volume:      datum.ToFloat64(tubingVolumeField.Name, errs),
+			Base:        b,
+		}
+		types.GetPlatformValidator().RegisterValidation(tubingVolumeField.Tag, TubingVolumeValidator)
+		failureReasons["Volume"] = validate.ValidationInfo{FieldName: tubingVolumeField.Name, Message: tubingVolumeField.Message}
 	}
+
 	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(prime, errs)
 	return prime
 }
 
-func VolumeValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+func CannulaVolumeValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
 	volume, ok := field.Interface().(float64)
 	if !ok {
 		return false
 	}
-	return volume > volumeField.LowerLimit
+
+	return volume >= cannulaVolumeField.LowerLimit && volume <= cannulaVolumeField.UpperLimit
+}
+
+func TubingVolumeValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+	volume, ok := field.Interface().(float64)
+	if !ok {
+		return false
+	}
+
+	return volume >= tubingVolumeField.LowerLimit && volume <= tubingVolumeField.UpperLimit
 }
 
 func PrimeTargetValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {

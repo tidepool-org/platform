@@ -12,23 +12,101 @@ import (
 var _ = Describe("DeviceEvent", func() {
 
 	var helper *types.TestingHelper
+	var deviceEventObj = fixtures.TestingDatumBase()
 
 	BeforeEach(func() {
 		helper = types.NewTestingHelper()
-	})
-
-	Context("prime", func() {
-
-		var deviceEventObj = fixtures.TestingDatumBase()
 		deviceEventObj["type"] = "deviceEvent"
 		deviceEventObj["subType"] = "prime"
 		deviceEventObj["primeTarget"] = "cannula"
+		deviceEventObj["volume"] = 1.0
+	})
+
+	Context("prime", func() {
 
 		It("returns a PrimeDeviceEvent if the obj is valid", func() {
 			Expect(helper.ValidDataType(device.Build(deviceEventObj, helper.ErrorProcessing))).To(BeNil())
 		})
 
-		Context("validation", func() {})
+		Context("validation", func() {
+			Context("primeTarget", func() {
+
+				It("is required", func() {
+
+					delete(deviceEventObj, "primeTarget")
+
+					Expect(
+						helper.ErrorIsExpected(
+							device.Build(deviceEventObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/primeTarget",
+								Detail: "Must be one of cannula, tubing given '<nil>'",
+							}),
+					).To(BeNil())
+				})
+
+				It("can be tubing", func() {
+
+					deviceEventObj["primeTarget"] = "tubing"
+
+					Expect(helper.ValidDataType(device.Build(deviceEventObj, helper.ErrorProcessing))).To(BeNil())
+				})
+
+				It("can be cannula", func() {
+
+					deviceEventObj["primeTarget"] = "cannula"
+
+					Expect(helper.ValidDataType(device.Build(deviceEventObj, helper.ErrorProcessing))).To(BeNil())
+				})
+
+				It("can't be anything else required", func() {
+
+					deviceEventObj["primeTarget"] = "other"
+
+					Expect(
+						helper.ErrorIsExpected(
+							device.Build(deviceEventObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/primeTarget",
+								Detail: "Must be one of cannula, tubing given 'other'",
+							}),
+					).To(BeNil())
+				})
+			})
+
+			Context("volume", func() {
+
+				It("is not required", func() {
+
+					delete(deviceEventObj, "volume")
+
+					Expect(helper.ValidDataType(device.Build(deviceEventObj, helper.ErrorProcessing))).To(BeNil())
+				})
+
+				It("if cannula in range of 0.0 to 3.0", func() {
+
+					deviceEventObj["volume"] = 1.0
+
+					Expect(helper.ValidDataType(device.Build(deviceEventObj, helper.ErrorProcessing))).To(BeNil())
+				})
+
+				It("if cannula < 0.0 fails", func() {
+
+					deviceEventObj["volume"] = -0.1
+
+					Expect(
+						helper.ErrorIsExpected(
+							device.Build(deviceEventObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/volume",
+								Detail: "Must be >= 0.0 and <= 3.0 given '-0.1'",
+							}),
+					).To(BeNil())
+				})
+
+			})
+
+		})
 	})
 
 })

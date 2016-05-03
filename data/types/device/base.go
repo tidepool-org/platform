@@ -49,7 +49,6 @@ var (
 	failureReasons = validate.FailureReasons{
 		"AlarmType":   validate.ValidationInfo{FieldName: alarmTypeField.Name, Message: alarmTypeField.Message},
 		"Value":       validate.ValidationInfo{FieldName: types.BloodGlucoseValueField.Name, Message: types.BloodGlucoseValueField.Message},
-		"Volume":      validate.ValidationInfo{FieldName: volumeField.Name, Message: volumeField.Message},
 		"PrimeTarget": validate.ValidationInfo{FieldName: primeTargetField.Name, Message: primeTargetField.Message},
 		"Reason": validate.ValidationInfo{
 			FieldName: reasonField.Name,
