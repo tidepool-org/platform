@@ -198,35 +198,37 @@ var _ = Describe("Event", func() {
 					Expect(helper.ValidDataType(calculator.Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
-				It("if present requires high", func() {
+				// TODO_DATA: Commented out due to changes in calculator.go adding .SetValueAllowedToBeEmpty(true)
+				// It("if present requires high", func() {
 
-					delete(bgTargetObj, "high")
-					calculatorObj["bgTarget"] = bgTargetObj
+				// 	delete(bgTargetObj, "high")
+				// 	calculatorObj["bgTarget"] = bgTargetObj
 
-					Expect(
-						helper.ErrorIsExpected(
-							calculator.Build(calculatorObj, helper.ErrorProcessing),
-							types.ExpectedErrorDetails{
-								Path:   "0/bgTarget/high",
-								Detail: "Must be between 0.0 and 1000.0 given '<nil>'",
-							}),
-					).To(BeNil())
-				})
+				// 	Expect(
+				// 		helper.ErrorIsExpected(
+				// 			calculator.Build(calculatorObj, helper.ErrorProcessing),
+				// 			types.ExpectedErrorDetails{
+				// 				Path:   "0/bgTarget/high",
+				// 				Detail: "Must be between 0.0 and 1000.0 given '<nil>'",
+				// 			}),
+				// 	).To(BeNil())
+				// })
 
-				It("if present requires low", func() {
+				// TODO_DATA: Commented out due to changes in calculator.go adding .SetValueAllowedToBeEmpty(true)
+				// It("if present requires low", func() {
 
-					delete(bgTargetObj, "low")
-					calculatorObj["bgTarget"] = bgTargetObj
+				// 	delete(bgTargetObj, "low")
+				// 	calculatorObj["bgTarget"] = bgTargetObj
 
-					Expect(
-						helper.ErrorIsExpected(
-							calculator.Build(calculatorObj, helper.ErrorProcessing),
-							types.ExpectedErrorDetails{
-								Path:   "0/bgTarget/low",
-								Detail: "Must be between 0.0 and 1000.0 given '<nil>'",
-							}),
-					).To(BeNil())
-				})
+				// 	Expect(
+				// 		helper.ErrorIsExpected(
+				// 			calculator.Build(calculatorObj, helper.ErrorProcessing),
+				// 			types.ExpectedErrorDetails{
+				// 				Path:   "0/bgTarget/low",
+				// 				Detail: "Must be between 0.0 and 1000.0 given '<nil>'",
+				// 			}),
+				// 	).To(BeNil())
+				// })
 
 			})
 		})

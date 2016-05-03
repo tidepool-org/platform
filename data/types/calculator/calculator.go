@@ -47,7 +47,7 @@ type BloodGlucoseTarget struct {
 	Low  *float64 `json:"low" bson:"low" valid:"-"`
 }
 
-//Name is currently `wizard` for backwards compatatbilty but will be migrated to `calculator`
+//Name is currently `wizard` for backwards compatability but will be migrated to `calculator`
 const Name = "wizard"
 
 var (
@@ -129,8 +129,10 @@ func buildBloodGlucoseTarget(units *string, bgTargetDatum types.Datum, errs vali
 		High: bgTargetDatum.ToFloat64("high", errs),
 		Low:  bgTargetDatum.ToFloat64("low", errs),
 	}
-	bgTarget.High, _ = types.NewBloodGlucoseValidation(bgTarget.High, units).SetValueErrorPath("bgTarget/high").ValidateAndConvertBloodGlucoseValue(errs)
-	bgTarget.Low, _ = types.NewBloodGlucoseValidation(bgTarget.Low, units).SetValueErrorPath("bgTarget/low").ValidateAndConvertBloodGlucoseValue(errs)
+
+	// TODO_DATA: Please review addition of .SetValueAllowedToBeEmpty(true)
+	bgTarget.High, _ = types.NewBloodGlucoseValidation(bgTarget.High, units).SetValueErrorPath("bgTarget/high").SetValueAllowedToBeEmpty(true).ValidateAndConvertBloodGlucoseValue(errs)
+	bgTarget.Low, _ = types.NewBloodGlucoseValidation(bgTarget.Low, units).SetValueErrorPath("bgTarget/low").SetValueAllowedToBeEmpty(true).ValidateAndConvertBloodGlucoseValue(errs)
 
 	return bgTarget
 }
