@@ -20,6 +20,10 @@ func NewErrorProcessing(pointer string) ErrorProcessing {
 	}
 }
 
+func (e *ErrorProcessing) Pointer() string {
+	return e.pointer
+}
+
 func (e *ErrorProcessing) AppendPointerError(pointer string, title string, detail string) {
 	e.AppendError(&service.Error{
 		Source: &service.Source{

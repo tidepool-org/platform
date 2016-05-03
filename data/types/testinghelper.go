@@ -75,9 +75,9 @@ func (t *TestingHelper) HasExpectedErrors(builtType interface{}, expected map[st
 	}
 
 	for _, err := range t.ErrorProcessing.GetErrors() {
-		found, ok := expected[err.Source["pointer"]]
+		found, ok := expected[err.Source.Pointer]
 		if !ok {
-			return fmt.Errorf("unexpected error source: %s", err.Source["pointer"])
+			return fmt.Errorf("unexpected error source: %s", err.Source.Pointer)
 		}
 		if found.Detail != err.Detail {
 			return fmt.Errorf("expected: %s actual: %s", found.Detail, err.Detail)

@@ -25,9 +25,9 @@ var _ = Describe("Common", func() {
 
 			bgValidator.ValidateAndConvertBloodGlucoseValue(helper.ErrorProcessing)
 
-			Expect(helper.HasErrors()).To(BeTrue())
-			Expect(len(helper.Errors)).To(Equal(1))
-			Expect(helper.Errors[0].Detail).To(Equal("Must be between 0.0 and 55.0 given '<nil>'"))
+			Expect(helper.ErrorProcessing.HasErrors()).To(BeTrue())
+			Expect(helper.ErrorProcessing.GetErrors()).To(HaveLen(1))
+			Expect(helper.ErrorProcessing.GetErrors()[0].Detail).To(Equal("Must be between 0.0 and 55.0 given '<nil>'"))
 		})
 
 		It("creates error if units are nil", func() {
@@ -37,9 +37,9 @@ var _ = Describe("Common", func() {
 
 			bgValidator.ValidateAndConvertBloodGlucoseValue(helper.ErrorProcessing)
 
-			Expect(helper.HasErrors()).To(BeTrue())
-			Expect(len(helper.Errors)).To(Equal(1))
-			Expect(helper.Errors[0].Detail).To(Equal("Must be one of mmol/L, mg/dL given '<nil>'"))
+			Expect(helper.ErrorProcessing.HasErrors()).To(BeTrue())
+			Expect(helper.ErrorProcessing.GetErrors()).To(HaveLen(1))
+			Expect(helper.ErrorProcessing.GetErrors()[0].Detail).To(Equal("Must be one of mmol/L, mg/dL given '<nil>'"))
 		})
 
 		It("returns same value if already mmol/L", func() {
@@ -50,7 +50,7 @@ var _ = Describe("Common", func() {
 
 			Expect(convertedBg).To(Equal(&fiveFive))
 			Expect(convertedUnits).To(Equal(&mmolL))
-			Expect(helper.HasErrors()).To(BeFalse())
+			Expect(helper.ErrorProcessing.HasErrors()).To(BeFalse())
 		})
 
 		It("creates error if outside of the expected range for mmol/L", func() {
@@ -58,9 +58,9 @@ var _ = Describe("Common", func() {
 			bgValidator := types.NewBloodGlucoseValidation(&fiftyFiveFive, &mmolL)
 			bgValidator.ValidateAndConvertBloodGlucoseValue(helper.ErrorProcessing)
 
-			Expect(helper.HasErrors()).To(BeTrue())
-			Expect(len(helper.Errors)).To(Equal(1))
-			Expect(helper.Errors[0].Detail).To(Equal("Must be between 0.0 and 55.0 given '55.5'"))
+			Expect(helper.ErrorProcessing.HasErrors()).To(BeTrue())
+			Expect(helper.ErrorProcessing.GetErrors()).To(HaveLen(1))
+			Expect(helper.ErrorProcessing.GetErrors()[0].Detail).To(Equal("Must be between 0.0 and 55.0 given '55.5'"))
 		})
 
 		It("allows for the value to be optional", func() {
@@ -68,7 +68,7 @@ var _ = Describe("Common", func() {
 
 			convertedBg, convertedUnits := bgValidator.ValidateAndConvertBloodGlucoseValue(helper.ErrorProcessing)
 
-			Expect(helper.HasErrors()).To(BeFalse())
+			Expect(helper.ErrorProcessing.HasErrors()).To(BeFalse())
 			Expect(convertedUnits).To(Equal(&mmolL))
 			Expect(convertedBg).To(BeNil())
 		})
@@ -82,7 +82,7 @@ var _ = Describe("Common", func() {
 
 			Expect(convertedBg).To(Equal(&expected))
 			Expect(convertedUnits).To(Equal(&mmolL))
-			Expect(helper.HasErrors()).To(BeFalse())
+			Expect(helper.ErrorProcessing.HasErrors()).To(BeFalse())
 		})
 
 		It("creates error if outside of the expected range for mg/dL", func() {
@@ -90,9 +90,9 @@ var _ = Describe("Common", func() {
 			bgValidator := types.NewBloodGlucoseValidation(&oneThousandAndOne, &mgdL)
 			bgValidator.ValidateAndConvertBloodGlucoseValue(helper.ErrorProcessing)
 
-			Expect(helper.HasErrors()).To(BeTrue())
-			Expect(len(helper.Errors)).To(Equal(1))
-			Expect(helper.Errors[0].Detail).To(Equal("Must be between 0.0 and 1000.0 given '1001'"))
+			Expect(helper.ErrorProcessing.HasErrors()).To(BeTrue())
+			Expect(helper.ErrorProcessing.GetErrors()).To(HaveLen(1))
+			Expect(helper.ErrorProcessing.GetErrors()[0].Detail).To(Equal("Must be between 0.0 and 1000.0 given '1001'"))
 		})
 
 	})

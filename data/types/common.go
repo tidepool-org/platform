@@ -98,8 +98,8 @@ func (b *BloodGlucoseValidation) SetValueAllowedToBeEmpty(valueAllowedToBeEmpty 
 
 func (b *BloodGlucoseValidation) addError(msg, path string, errs validate.ErrorProcessing) {
 	//TODO: this needs to be handled with map
-	for i := range errs.Errors {
-		if errs.Errors[i].Source["pointer"] == errs.BasePath+"/"+path {
+	for _, err := range errs.GetErrors() {
+		if err.Source.Pointer == errs.Pointer()+"/"+path {
 			return
 		}
 	}
