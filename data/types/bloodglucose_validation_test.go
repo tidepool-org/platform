@@ -7,7 +7,7 @@ import (
 	"github.com/tidepool-org/platform/data/types"
 )
 
-var _ = Describe("Common", func() {
+var _ = Describe("Bloodglucose Validation", func() {
 
 	mmolL := "mmol/L"
 	mgdL := "mg/dL"

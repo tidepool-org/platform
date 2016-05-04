@@ -3,7 +3,6 @@ package types
 import (
 	"fmt"
 	"reflect"
-	"time"
 
 	validator "gopkg.in/bluesuncorp/validator.v8"
 
@@ -13,9 +12,6 @@ import (
 func init() {
 	GetPlatformValidator().RegisterValidation(MmolUnitsField.Tag, MmolUnitsValidator)
 	GetPlatformValidator().RegisterValidation(MmolOrMgUnitsField.Tag, MmolOrMgUnitsValidator)
-	GetPlatformValidator().RegisterValidation(BolusSubTypeField.Tag, BolusSubTypeValidator)
-	GetPlatformValidator().RegisterValidation(TimeStringField.Tag, PastTimeStringValidator)
-	GetPlatformValidator().RegisterValidation("timeobject", PastTimeObjectValidator)
 }
 
 var (
@@ -61,19 +57,6 @@ var (
 		Tag:               "bloodglucosevalue",
 		Message:           "Must be between 0.0 and 1000.0",
 		AllowedFloatRange: &AllowedFloatRange{LowerLimit: 0.0, UpperLimit: 1000.0},
-	}
-
-	BolusSubTypeField = DatumFieldInformation{
-		DatumField: &DatumField{Name: "subType"},
-		Tag:        "bolussubtype",
-		Message:    "Must be one of normal, square, dual/square",
-		Allowed:    Allowed{"normal": true, "square": true, "dual/square": true},
-	}
-
-	TimeStringField = DatumFieldInformation{
-		DatumField: &DatumField{Name: "time"},
-		Tag:        "timestr",
-		Message:    "Times need to be ISO 8601 format and not in the future",
 	}
 )
 
@@ -248,15 +231,6 @@ func (b *BloodGlucoseValidation) ValidateAndConvertBloodGlucoseValue(errs valida
 
 }
 
-func BolusSubTypeValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	subType, ok := field.Interface().(string)
-	if !ok {
-		return false
-	}
-	_, ok = BolusSubTypeField.Allowed[subType]
-	return ok
-}
-
 func MmolUnitsValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
 	units, ok := field.Interface().(string)
 	if !ok {
@@ -273,39 +247,4 @@ func MmolOrMgUnitsValidator(v *validator.Validate, topStruct reflect.Value, curr
 	}
 	_, ok = MmolOrMgUnitsField.Allowed[units]
 	return ok
-}
-
-func PastTimeObjectValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	timeObject, ok := field.Interface().(time.Time)
-	if !ok {
-		return false
-	}
-	return isTimeObjectValid(timeObject)
-}
-
-func isTimeObjectValid(timeObject time.Time) bool {
-	return !timeObject.IsZero() && timeObject.Before(time.Now())
-}
-
-func PastTimeStringValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-
-	timeString, ok := field.Interface().(string)
-	if !ok {
-		return false
-	}
-	valid := isTimeStringValid(timeString)
-	return valid
-}
-
-func isTimeStringValid(timeString string) bool {
-	var timeObject time.Time
-	timeObject, err := time.Parse(time.RFC3339, timeString)
-	if err != nil {
-		timeObject, err = time.Parse("2006-01-02T15:04:05", timeString)
-		if err != nil {
-			return false
-		}
-	}
-
-	return isTimeObjectValid(timeObject)
 }
