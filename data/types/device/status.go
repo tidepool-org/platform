@@ -10,17 +10,20 @@ import (
 )
 
 func init() {
-	types.GetPlatformValidator().RegisterValidation(reasonField.Tag, ReasonValidator)
+	types.GetPlatformValidator().RegisterValidation(statusReasonField.Tag, StatusReasonValidator)
+	types.GetPlatformValidator().RegisterValidation(statusDurationField.Tag, StatusDurationValidator)
 }
 
 type Status struct {
-	Status *string      `json:"status" bson:"status" valid:"devicestatus"`
-	Reason *interface{} `json:"reason" bson:"reason" valid:"devicereason"`
-	Base   `bson:",inline"`
+	Status *string                `json:"status" bson:"status" valid:"devicestatus"`
+	Reason map[string]interface{} `json:"reason" bson:"reason" valid:"devicereason"`
+	//TODO: this should become required for the platform but is currently optional
+	Duration *int `json:"duration,omitempty" bson:"duration,omitempty" valid:"omitempty,devicestatusduration"`
+	Base     `bson:",inline"`
 }
 
 var (
-	reasonField = types.DatumFieldInformation{
+	statusReasonField = types.DatumFieldInformation{
 		DatumField: &types.DatumField{Name: "reason"},
 		Tag:        "devicereason",
 		Message:    "Must be one of manual, automatic",
@@ -29,31 +32,49 @@ var (
 			"automatic": true,
 		},
 	}
+
+	statusDurationField = types.IntDatumField{
+		DatumField:      &types.DatumField{Name: "duration"},
+		Tag:             "devicestatusduration",
+		Message:         "Must be one of manual, automatic",
+		AllowedIntRange: &types.AllowedIntRange{LowerLimit: 0},
+	}
 )
 
 func (b Base) makeStatus(datum types.Datum, errs validate.ErrorProcessing) *Status {
 	status := &Status{
-		Status: datum.ToString(statusField.Name, errs),
-		Reason: datum.ToObject(reasonField.Name, errs),
-		Base:   b,
+		Status:   datum.ToString(statusField.Name, errs),
+		Reason:   datum.ToMap(statusReasonField.Name, errs),
+		Duration: datum.ToInt(statusDurationField.Name, errs),
+		Base:     b,
 	}
 	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(status, errs)
 	return status
 }
 
-func ReasonValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+func StatusReasonValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+	reason, ok := field.Interface().(map[string]interface{})
+	if !ok || reason == nil {
+		return false
+	}
 
-	return true
-	/*
-		TODO:
-		reason, ok := field.Interface().(map[string]string)
-
+	for _, v := range reason {
+		_, ok = statusReasonField.Allowed[v.(string)]
 		if !ok {
 			return false
 		}
+	}
 
-		for _, val := range reason {
-			_, ok = reasonField.Allowed[val]
-		}
-		return ok*/
+	return true
+
+}
+
+func StatusDurationValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+	duration, ok := field.Interface().(int)
+	if !ok {
+		return false
+	}
+
+	return duration >= statusDurationField.LowerLimit
+
 }

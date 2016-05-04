@@ -33,12 +33,12 @@ type (
 		UploadID *string       `json:"uploadId" bson:"uploadId" valid:"-"`
 
 		//optional data
-		DeviceTime       *string        `json:"deviceTime,omitempty" bson:"deviceTime,omitempty" valid:"omitempty,timestr"`
-		TimezoneOffset   *int           `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty" valid:"omitempty,timezoneoffset"`
-		ConversionOffset *int           `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty" valid:"omitempty,required"`
-		ClockDriftOffset *int           `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty" valid:"omitempty,required"`
-		Payload          *interface{}   `json:"payload,omitempty" bson:"payload,omitempty" valid:"omitempty,payload"`
-		Annotations      *[]interface{} `json:"annotations,omitempty" bson:"annotations,omitempty" valid:"omitempty,annotations"`
+		DeviceTime       *string       `json:"deviceTime,omitempty" bson:"deviceTime,omitempty" valid:"omitempty,timestr"`
+		TimezoneOffset   *int          `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty" valid:"omitempty,timezoneoffset"`
+		ConversionOffset *int          `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty" valid:"omitempty,required"`
+		ClockDriftOffset *int          `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty" valid:"omitempty,required"`
+		Payload          interface{}   `json:"payload,omitempty" bson:"payload,omitempty" valid:"omitempty,payload"`
+		Annotations      []interface{} `json:"annotations,omitempty" bson:"annotations,omitempty" valid:"omitempty,annotations"`
 
 		//used for versioning and de-deping
 		Internal `bson:",inline"`
@@ -250,7 +250,7 @@ func (d Datum) ToTime(fieldName string, errs validate.ErrorProcessing) *time.Tim
 	return &theTime
 }
 
-func (d Datum) ToArray(fieldName string, errs validate.ErrorProcessing) *[]interface{} {
+func (d Datum) ToArray(fieldName string, errs validate.ErrorProcessing) []interface{} {
 	if d[fieldName] == nil {
 		return nil
 	}
@@ -259,31 +259,34 @@ func (d Datum) ToArray(fieldName string, errs validate.ErrorProcessing) *[]inter
 		errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "array"))
 		return nil
 	}
-	return &arrayData
+	return arrayData
 }
 
-func (d Datum) ToStringArray(fieldName string, errs validate.ErrorProcessing) *[]string {
+func (d Datum) ToStringArray(fieldName string, errs validate.ErrorProcessing) []string {
 	if d[fieldName] == nil {
 		return nil
 	}
-	objectArray, ok := d[fieldName].([]interface{})
+	stringArray, ok := d[fieldName].([]string)
 	if !ok {
 		errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "string array"))
 		return nil
 	}
-	stringArray := []string{}
-	for _, object := range objectArray {
-		str, ok := object.(string)
-		if !ok {
-			errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "string array"))
-			return nil
-		}
-		stringArray = append(stringArray, str)
-	}
-	return &stringArray
+	return stringArray
 }
 
-func (d Datum) ToObject(fieldName string, errs validate.ErrorProcessing) *interface{} {
+func (d Datum) ToMap(fieldName string, errs validate.ErrorProcessing) map[string]interface{} {
+	if d[fieldName] == nil {
+		return nil
+	}
+	mapData, ok := d[fieldName].(map[string]interface{})
+	if !ok {
+		errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "object"))
+		return nil
+	}
+	return mapData
+}
+
+func (d Datum) ToObject(fieldName string, errs validate.ErrorProcessing) interface{} {
 	if d[fieldName] == nil {
 		return nil
 	}
@@ -292,5 +295,5 @@ func (d Datum) ToObject(fieldName string, errs validate.ErrorProcessing) *interf
 		errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "object"))
 		return nil
 	}
-	return &objectData
+	return objectData
 }

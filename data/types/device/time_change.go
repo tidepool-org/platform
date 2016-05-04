@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	//types.GetPlatformValidator().RegisterValidation(timeChangeReasonsField.Tag, TimeChangeReasonsValidator)
+	types.GetPlatformValidator().RegisterValidation(timeChangeReasonsField.Tag, TimeChangeReasonsValidator)
 	types.GetPlatformValidator().RegisterValidation(timeChangeAgentField.Tag, TimeChangeAgentValidator)
 }
 
@@ -20,11 +20,11 @@ type TimeChange struct {
 }
 
 type Change struct {
-	From     *string   `json:"from" bson:"from" valid:"timestr"`
-	To       *string   `json:"to" bson:"to" valid:"timestr"`
-	Agent    *string   `json:"agent" bson:"agent" valid:"changeagent"`
-	Timezone *string   `json:"timezone,omitempty" bson:"timezone,omitempty"`
-	Reasons  *[]string `json:"reasons" bson:"reasons" valid:"omitempty,changereasons"`
+	From     *string  `json:"from" bson:"from" valid:"timestr"`
+	To       *string  `json:"to" bson:"to" valid:"timestr"`
+	Agent    *string  `json:"agent" bson:"agent" valid:"timechangeagent"`
+	Timezone *string  `json:"timezone,omitempty" bson:"timezone,omitempty" valid:"-"`
+	Reasons  []string `json:"reasons,omitempty" bson:"reasons,omitempty" valid:"timechangereasons"`
 }
 
 var (
@@ -43,7 +43,7 @@ var (
 
 	timeChangeAgentField = types.DatumFieldInformation{
 		DatumField: &types.DatumField{Name: "agent"},
-		Tag:        "changeagent",
+		Tag:        "timechangeagent",
 		Message:    "Must be one of manual, automatic",
 		Allowed: types.Allowed{
 			"manual":    true,
@@ -51,22 +51,31 @@ var (
 		},
 	}
 
-	timeChangeFromField     = types.DatumField{Name: "from"}
-	timeChangeToField       = types.DatumField{Name: "to"}
-	timeChangeTimezoneField = types.DatumField{Name: "timezone"}
+	timeChangeFromField = types.DatumFieldInformation{
+		DatumField: &types.DatumField{Name: "from"},
+		Tag:        types.TimeStringField.Tag,
+		Message:    types.TimeStringField.Message,
+	}
+
+	timeChangeToField = types.DatumFieldInformation{
+		DatumField: &types.DatumField{Name: "to"},
+		Tag:        types.TimeStringField.Tag,
+		Message:    types.TimeStringField.Message,
+	}
+
+	timeChangeTimezoneField = types.DatumFieldInformation{
+		DatumField: &types.DatumField{Name: "timezone"},
+	}
 )
 
 func makeChange(datum types.Datum, errs validate.ErrorProcessing) Change {
-	change := Change{
+	return Change{
 		From:     datum.ToString(timeChangeFromField.Name, errs),
 		To:       datum.ToString(timeChangeToField.Name, errs),
 		Agent:    datum.ToString(timeChangeAgentField.Name, errs),
 		Timezone: datum.ToString(timeChangeTimezoneField.Name, errs),
+		Reasons:  datum.ToStringArray(timeChangeReasonsField.Name, errs),
 	}
-
-	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(change, errs)
-
-	return change
 }
 
 func (b Base) makeTimeChange(datum types.Datum, errs validate.ErrorProcessing) *TimeChange {
@@ -77,10 +86,14 @@ func (b Base) makeTimeChange(datum types.Datum, errs validate.ErrorProcessing) *
 		change = makeChange(changeDatum, errs)
 	}
 
-	return &TimeChange{
+	timeChange := &TimeChange{
 		Change: change,
 		Base:   b,
 	}
+
+	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(timeChange, errs)
+	return timeChange
+
 }
 
 func TimeChangeAgentValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
@@ -93,14 +106,10 @@ func TimeChangeAgentValidator(v *validator.Validate, topStruct reflect.Value, cu
 	return ok
 }
 
-/*func TimeChangeReasonsValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+func TimeChangeReasonsValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
 
-	log.Println("## TimeChangeReasonsValidator  ##")
-	return false
-	//log.Println("## TimeChangeReasonsValidator  ##")
 	reasons, ok := field.Interface().([]string)
 	if !ok {
-		//log.Println("## TimeChangeReasonsValidator  ##", reasons)
 		return false
 	}
 
@@ -111,4 +120,4 @@ func TimeChangeAgentValidator(v *validator.Validate, topStruct reflect.Value, cu
 		}
 	}
 	return ok
-}*/
+}

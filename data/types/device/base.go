@@ -49,20 +49,20 @@ var (
 	failureReasons = validate.FailureReasons{
 		"AlarmType":   validate.ValidationInfo{FieldName: alarmTypeField.Name, Message: alarmTypeField.Message},
 		"Value":       validate.ValidationInfo{FieldName: types.BloodGlucoseValueField.Name, Message: types.BloodGlucoseValueField.Message},
-		"Volume":      validate.ValidationInfo{FieldName: volumeField.Name, Message: volumeField.Message},
 		"PrimeTarget": validate.ValidationInfo{FieldName: primeTargetField.Name, Message: primeTargetField.Message},
-		"Reason": validate.ValidationInfo{
-			FieldName: reasonField.Name,
-			Message:   reasonField.Message,
-		},
-		"Reasons": validate.ValidationInfo{
-			FieldName: timeChangeReasonsField.Name,
+		"Reason":      validate.ValidationInfo{FieldName: statusReasonField.Name, Message: statusReasonField.Message},
+		"Duration":    validate.ValidationInfo{FieldName: statusDurationField.Name, Message: statusDurationField.Message},
+		"Status":      validate.ValidationInfo{FieldName: statusField.Name, Message: statusField.Message},
+		"SubType":     validate.ValidationInfo{FieldName: subTypeField.Name, Message: subTypeField.Message},
+
+		"Change.From":  validate.ValidationInfo{FieldName: "change/" + timeChangeFromField.Name, Message: timeChangeFromField.Message},
+		"Change.To":    validate.ValidationInfo{FieldName: "change/" + timeChangeToField.Name, Message: timeChangeToField.Message},
+		"Change.Agent": validate.ValidationInfo{FieldName: "change/" + timeChangeAgentField.Name, Message: timeChangeAgentField.Message},
+		"Change.Reasons": validate.ValidationInfo{
+			FieldName: "change/" + timeChangeReasonsField.Name,
 			Message:   timeChangeReasonsField.Message,
 			Allowed:   timeChangeReasonsField.Allowed,
 		},
-		"Agent":   validate.ValidationInfo{FieldName: timeChangeAgentField.Name, Message: timeChangeAgentField.Message},
-		"Status":  validate.ValidationInfo{FieldName: statusField.Name, Message: statusField.Message},
-		"SubType": validate.ValidationInfo{FieldName: subTypeField.Name, Message: subTypeField.Message},
 	}
 )
 

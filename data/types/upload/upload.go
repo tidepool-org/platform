@@ -20,8 +20,8 @@ type Upload struct {
 	UploadUserID        *string     `json:"byUser" bson:"byUser" valid:"gte=10"`
 	Version             *string     `json:"version" bson:"version" valid:"gte=5"`
 	ComputerTime        *string     `json:"computerTime" bson:"computerTime" valid:"timestr"`
-	DeviceTags          *[]string   `json:"deviceTags" bson:"deviceTags" valid:"uploaddevicetags"`
-	DeviceManufacturers *[]string   `json:"deviceManufacturers" bson:"deviceManufacturers" valid:"uploaddevicemanufacturers"`
+	DeviceTags          []string    `json:"deviceTags" bson:"deviceTags" valid:"uploaddevicetags"`
+	DeviceManufacturers []string    `json:"deviceManufacturers" bson:"deviceManufacturers" valid:"uploaddevicemanufacturers"`
 	DeviceModel         *string     `json:"deviceModel" bson:"deviceModel" valid:"gte=1"`
 	DeviceSerialNumber  *string     `json:"deviceSerialNumber" bson:"deviceSerialNumber" valid:"gte=10"`
 	TimeProcessing      *string     `json:"timeProcessing" bson:"timeProcessing" valid:"uploadtimeprocessing"`
@@ -170,25 +170,23 @@ func TimeProcessingValidator(v *validator.Validate, topStruct reflect.Value, cur
 func DeviceTagsValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
 	tags, ok := field.Interface().([]string)
 
-	if !ok {
+	if !ok || tags == nil || len(tags) == 0 {
 		return false
 	}
-	if len(tags) == 0 {
-		return false
-	}
+
 	for i := range tags {
 		_, ok = deviceTagsField.Allowed[tags[i]]
-		if ok == false {
-			break
+		if !ok {
+			return false
 		}
 	}
 	return ok
 }
 
 func DeviceManufacturersValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	deviceManufacturersField, ok := field.Interface().([]string)
-	if !ok {
+	deviceManufacturers, ok := field.Interface().([]string)
+	if !ok || deviceManufacturers == nil {
 		return false
 	}
-	return len(deviceManufacturersField) > 0
+	return len(deviceManufacturers) > 0
 }
