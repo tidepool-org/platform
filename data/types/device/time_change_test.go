@@ -46,7 +46,7 @@ var _ = Describe("DeviceEvent", func() {
 
 					Expect(helper.ValidDataType(device.Build(deviceEventObj, helper.ErrorProcessing))).To(BeNil())
 				})
-				/*It("can be empty", func() {
+				It("can be empty", func() {
 
 					change["reasons"] = []string{}
 					deviceEventObj["change"] = change
@@ -70,12 +70,13 @@ var _ = Describe("DeviceEvent", func() {
 						helper.ErrorIsExpected(
 							device.Build(deviceEventObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
-								Path:   "change/reasons/1",
-								Detail: "Must be one of from_daylight_savings, to_daylight_savings, travel, correction, other given '[from_daylight_savings nope travel correction other]'",
+								Path:   "0/change/reasons/1",
+								Detail: "Must be any of from_daylight_savings, to_daylight_savings, travel, correction, other given '[from_daylight_savings nope travel correction other]'",
 							}),
 					).To(BeNil())
-				})*/
+				})
 			})
+
 			Context("agent", func() {
 				It("is required", func() {
 					delete(change, "agent")
@@ -85,12 +86,79 @@ var _ = Describe("DeviceEvent", func() {
 						helper.ErrorIsExpected(
 							device.Build(deviceEventObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
-								Path:   "0/agent",
+								Path:   "0/change/agent",
 								Detail: "Must be one of manual, automatic given '<nil>'",
 							}),
 					).To(BeNil())
 				})
+
+				It("cannot be anything other than manual, automatic", func() {
+					change["agent"] = "other"
+					deviceEventObj["change"] = change
+
+					Expect(
+						helper.ErrorIsExpected(
+							device.Build(deviceEventObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/change/agent",
+								Detail: "Must be one of manual, automatic given 'other'",
+							}),
+					).To(BeNil())
+				})
+
+				It("can be manual", func() {
+					change["agent"] = "manual"
+					deviceEventObj["change"] = change
+					Expect(helper.ValidDataType(device.Build(deviceEventObj, helper.ErrorProcessing))).To(BeNil())
+				})
+
+				It("can be automatic", func() {
+					change["agent"] = "automatic"
+					deviceEventObj["change"] = change
+					Expect(helper.ValidDataType(device.Build(deviceEventObj, helper.ErrorProcessing))).To(BeNil())
+				})
 			})
+
+			Context("to", func() {
+				It("is required", func() {
+					delete(change, "to")
+					deviceEventObj["change"] = change
+
+					Expect(
+						helper.ErrorIsExpected(
+							device.Build(deviceEventObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/change/to",
+								Detail: "Times need to be ISO 8601 format and not in the future given '<nil>'",
+							}),
+					).To(BeNil())
+				})
+			})
+
+			Context("from", func() {
+				It("is required", func() {
+					delete(change, "from")
+					deviceEventObj["change"] = change
+
+					Expect(
+						helper.ErrorIsExpected(
+							device.Build(deviceEventObj, helper.ErrorProcessing),
+							types.ExpectedErrorDetails{
+								Path:   "0/change/from",
+								Detail: "Times need to be ISO 8601 format and not in the future given '<nil>'",
+							}),
+					).To(BeNil())
+				})
+			})
+
+			Context("timezone", func() {
+				It("is not required", func() {
+					delete(change, "timezone")
+					deviceEventObj["change"] = change
+					Expect(helper.ValidDataType(device.Build(deviceEventObj, helper.ErrorProcessing))).To(BeNil())
+				})
+			})
+
 		})
 	})
 })

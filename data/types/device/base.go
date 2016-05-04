@@ -52,11 +52,14 @@ var (
 		"PrimeTarget": validate.ValidationInfo{FieldName: primeTargetField.Name, Message: primeTargetField.Message},
 		"Reason":      validate.ValidationInfo{FieldName: statusReasonField.Name, Message: statusReasonField.Message},
 		"Duration":    validate.ValidationInfo{FieldName: statusDurationField.Name, Message: statusDurationField.Message},
-		"Agent":       validate.ValidationInfo{FieldName: timeChangeAgentField.Name, Message: timeChangeAgentField.Message},
 		"Status":      validate.ValidationInfo{FieldName: statusField.Name, Message: statusField.Message},
 		"SubType":     validate.ValidationInfo{FieldName: subTypeField.Name, Message: subTypeField.Message},
-		"Reasons": validate.ValidationInfo{
-			FieldName: timeChangeReasonsField.Name,
+
+		"Change.From":  validate.ValidationInfo{FieldName: "change/" + timeChangeFromField.Name, Message: timeChangeFromField.Message},
+		"Change.To":    validate.ValidationInfo{FieldName: "change/" + timeChangeToField.Name, Message: timeChangeToField.Message},
+		"Change.Agent": validate.ValidationInfo{FieldName: "change/" + timeChangeAgentField.Name, Message: timeChangeAgentField.Message},
+		"Change.Reasons": validate.ValidationInfo{
+			FieldName: "change/" + timeChangeReasonsField.Name,
 			Message:   timeChangeReasonsField.Message,
 			Allowed:   timeChangeReasonsField.Allowed,
 		},
