@@ -20,11 +20,11 @@ type TimeChange struct {
 }
 
 type Change struct {
-	From     *string   `json:"from" bson:"from" valid:"timestr"`
-	To       *string   `json:"to" bson:"to" valid:"timestr"`
-	Agent    *string   `json:"agent" bson:"agent" valid:"timechangeagent"`
-	Timezone *string   `json:"timezone,omitempty" bson:"timezone,omitempty" valid:"-"`
-	Reasons  *[]string `json:"reasons,omitempty" bson:"reasons,omitempty" valid:"timechangereasons"`
+	From     *string  `json:"from" bson:"from" valid:"timestr"`
+	To       *string  `json:"to" bson:"to" valid:"timestr"`
+	Agent    *string  `json:"agent" bson:"agent" valid:"timechangeagent"`
+	Timezone *string  `json:"timezone,omitempty" bson:"timezone,omitempty" valid:"-"`
+	Reasons  []string `json:"reasons,omitempty" bson:"reasons,omitempty" valid:"timechangereasons"`
 }
 
 var (
@@ -69,15 +69,12 @@ var (
 )
 
 func makeChange(datum types.Datum, errs validate.ErrorProcessing) Change {
-
-	reasons, _ := datum["reasons"].([]string)
-
 	return Change{
 		From:     datum.ToString(timeChangeFromField.Name, errs),
 		To:       datum.ToString(timeChangeToField.Name, errs),
 		Agent:    datum.ToString(timeChangeAgentField.Name, errs),
 		Timezone: datum.ToString(timeChangeTimezoneField.Name, errs),
-		Reasons:  &reasons,
+		Reasons:  datum.ToStringArray(timeChangeReasonsField.Name, errs),
 	}
 }
 

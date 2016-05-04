@@ -15,8 +15,8 @@ func init() {
 }
 
 type Status struct {
-	Status *string                 `json:"status" bson:"status" valid:"devicestatus"`
-	Reason *map[string]interface{} `json:"reason" bson:"reason" valid:"devicereason"`
+	Status *string                `json:"status" bson:"status" valid:"devicestatus"`
+	Reason map[string]interface{} `json:"reason" bson:"reason" valid:"devicereason"`
 	//TODO: this should become required for the platform but is currently optional
 	Duration *int `json:"duration,omitempty" bson:"duration,omitempty" valid:"omitempty,devicestatusduration"`
 	Base     `bson:",inline"`
@@ -54,7 +54,7 @@ func (b Base) makeStatus(datum types.Datum, errs validate.ErrorProcessing) *Stat
 
 func StatusReasonValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
 	reason, ok := field.Interface().(map[string]interface{})
-	if !ok {
+	if !ok || reason == nil {
 		return false
 	}
 

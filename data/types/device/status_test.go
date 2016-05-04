@@ -79,8 +79,9 @@ var _ = Describe("DeviceEvent", func() {
 						helper.ErrorIsExpected(
 							device.Build(deviceEventObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
-								Path:   "0/reason",
-								Detail: "Must be one of manual, automatic given '<nil>'",
+								Path: "0/reason",
+								//TODO: client's of service shouldn't need to know about maps
+								Detail: "Must be one of manual, automatic given 'map[]'",
 							}),
 					).To(BeNil())
 				})
