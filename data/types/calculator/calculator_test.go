@@ -12,7 +12,6 @@ import (
 var _ = Describe("Event", func() {
 	var calculatorObj = fixtures.TestingDatumBase()
 	var recommendedObj = make(map[string]interface{}, 0)
-	var bolusObj = make(map[string]interface{}, 0)
 	var bgTargetObj = make(map[string]interface{}, 0)
 	var helper *types.TestingHelper
 
@@ -24,19 +23,13 @@ var _ = Describe("Event", func() {
 		calculatorObj["insulinOnBoard"] = 1.3
 		calculatorObj["insulinSensitivity"] = 75
 		calculatorObj["units"] = "mg/dL"
+		calculatorObj["bolus"] = "linked-bolus-id"
 
 		recommendedObj["carb"] = 4.0
 		recommendedObj["correction"] = 1.0
 		recommendedObj["net"] = 4.0
 
 		calculatorObj["recommended"] = recommendedObj
-
-		bolusObj["type"] = "bolus"
-		bolusObj["subType"] = "normal"
-		bolusObj["deviceId"] = "test"
-		bolusObj["time"] = "2014-01-01T01:00:00.000Z"
-
-		calculatorObj["bolus"] = bolusObj
 
 		bgTargetObj["high"] = 120.0
 		bgTargetObj["low"] = 80.0
@@ -142,51 +135,6 @@ var _ = Describe("Event", func() {
 				It("is not required", func() {
 					delete(calculatorObj, "bolus")
 					Expect(helper.ValidDataType(calculator.Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
-				})
-
-				It("if present requires subType", func() {
-
-					delete(bolusObj, "subType")
-					calculatorObj["bolus"] = bolusObj
-
-					Expect(
-						helper.ErrorIsExpected(
-							calculator.Build(calculatorObj, helper.ErrorProcessing),
-							types.ExpectedErrorDetails{
-								Path:   "0/bolus/subType",
-								Detail: "Must be one of normal, square, dual/square given '<nil>'",
-							}),
-					).To(BeNil())
-				})
-
-				It("if present requires time", func() {
-
-					delete(bolusObj, "time")
-					calculatorObj["bolus"] = bolusObj
-
-					Expect(
-						helper.ErrorIsExpected(
-							calculator.Build(calculatorObj, helper.ErrorProcessing),
-							types.ExpectedErrorDetails{
-								Path:   "0/bolus/time",
-								Detail: "Times need to be ISO 8601 format and not in the future given '<nil>'",
-							}),
-					).To(BeNil())
-				})
-
-				It("if present requires deviceId", func() {
-
-					delete(bolusObj, "deviceId")
-					calculatorObj["bolus"] = bolusObj
-
-					Expect(
-						helper.ErrorIsExpected(
-							calculator.Build(calculatorObj, helper.ErrorProcessing),
-							types.ExpectedErrorDetails{
-								Path:   "0/bolus/deviceId",
-								Detail: "This is a required field given '<nil>'",
-							}),
-					).To(BeNil())
 				})
 
 			})

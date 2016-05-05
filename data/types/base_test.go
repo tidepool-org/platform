@@ -48,7 +48,7 @@ var _ = Describe("Base", func() {
 							types.BuildBase(baseObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/time",
-								Detail: "Times need to be ISO 8601 format and not in the future given ''",
+								Detail: "An ISO 8601-formatted timestamp including either a timezone offset from UTC OR converted to UTC with a final Z for 'Zulu' time. e.g.2013-05-04T03:58:44.584Z OR 2013-05-04T03:58:44-08:00 given ''",
 							}),
 					).To(BeNil())
 
@@ -62,7 +62,7 @@ var _ = Describe("Base", func() {
 							types.BuildBase(baseObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/time",
-								Detail: "Times need to be ISO 8601 format and not in the future given 'Monday, 02 Jan 2016'",
+								Detail: "An ISO 8601-formatted timestamp including either a timezone offset from UTC OR converted to UTC with a final Z for 'Zulu' time. e.g.2013-05-04T03:58:44.584Z OR 2013-05-04T03:58:44-08:00 given 'Monday, 02 Jan 2016'",
 							}),
 					).To(BeNil())
 
@@ -76,7 +76,7 @@ var _ = Describe("Base", func() {
 							types.BuildBase(baseObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/time",
-								Detail: "Times need to be ISO 8601 format and not in the future given '2016-02-05'",
+								Detail: "An ISO 8601-formatted timestamp including either a timezone offset from UTC OR converted to UTC with a final Z for 'Zulu' time. e.g.2013-05-04T03:58:44.584Z OR 2013-05-04T03:58:44-08:00 given '2016-02-05'",
 							}),
 					).To(BeNil())
 				})
@@ -89,24 +89,9 @@ var _ = Describe("Base", func() {
 							types.BuildBase(baseObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/time",
-								Detail: "Times need to be ISO 8601 format and not in the future given '2016-02-05T20'",
+								Detail: "An ISO 8601-formatted timestamp including either a timezone offset from UTC OR converted to UTC with a final Z for 'Zulu' time. e.g.2013-05-04T03:58:44.584Z OR 2013-05-04T03:58:44-08:00 given '2016-02-05T20'",
 							}),
 					).To(BeNil())
-				})
-
-				It("the date is RFC3339 formated - e.g. 1", func() {
-					baseObj["time"] = "2016-03-14T20:22:21+13:00"
-					Expect(helper.ValidDataType(types.BuildBase(baseObj, helper.ErrorProcessing))).To(BeNil())
-				})
-
-				It("the date is RFC3339 formated - e.g. 2", func() {
-					baseObj["time"] = "2016-02-05T15:53:00"
-					Expect(helper.ValidDataType(types.BuildBase(baseObj, helper.ErrorProcessing))).To(BeNil())
-				})
-
-				It("the date is RFC3339 formated - e.g. 3", func() {
-					baseObj["time"] = "2016-02-05T15:53:00.000Z"
-					Expect(helper.ValidDataType(types.BuildBase(baseObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
 			})

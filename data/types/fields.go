@@ -10,6 +10,18 @@ type (
 		Allowed
 	}
 
+	DateDatumField struct {
+		*DatumField
+		Tag     validate.ValidationTag
+		Message string
+		*AllowedDate
+	}
+
+	AllowedDate struct {
+		Format     string
+		LowerLimit string
+	}
+
 	FloatDatumField struct {
 		*DatumField
 		Tag     validate.ValidationTag

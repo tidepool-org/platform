@@ -13,6 +13,7 @@ func init() {
 	types.GetPlatformValidator().RegisterValidation(extendedField.Tag, ExtendedValidator)
 	types.GetPlatformValidator().RegisterValidation(durationField.Tag, DurationValidator)
 	types.GetPlatformValidator().RegisterValidation(normalField.Tag, NormalValidator)
+	types.GetPlatformValidator().RegisterValidation(bolusSubTypeField.Tag, BolusSubTypeValidator)
 }
 
 type Base struct {
@@ -51,10 +52,17 @@ var (
 		AllowedFloatRange: &types.AllowedFloatRange{LowerLimit: 0.0, UpperLimit: 100.0},
 	}
 
+	bolusSubTypeField = types.DatumFieldInformation{
+		DatumField: &types.DatumField{Name: "subType"},
+		Tag:        "bolussubtype",
+		Message:    "Must be one of normal, square, dual/square",
+		Allowed:    types.Allowed{"normal": true, "square": true, "dual/square": true},
+	}
+
 	failureReasons = validate.FailureReasons{
 		"SubType": validate.ValidationInfo{
-			FieldName: types.BolusSubTypeField.Name,
-			Message:   types.BolusSubTypeField.Message,
+			FieldName: bolusSubTypeField.Name,
+			Message:   bolusSubTypeField.Message,
 		},
 		"Normal": validate.ValidationInfo{
 			FieldName: normalField.Name,
@@ -74,7 +82,7 @@ var (
 func Build(datum types.Datum, errs validate.ErrorProcessing) interface{} {
 
 	base := &Base{
-		SubType: datum.ToString(types.BolusSubTypeField.Name, errs),
+		SubType: datum.ToString(bolusSubTypeField.Name, errs),
 		Base:    types.BuildBase(datum, errs),
 	}
 
@@ -96,6 +104,15 @@ func Build(datum types.Datum, errs validate.ErrorProcessing) interface{} {
 
 	types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(base, errs)
 	return base
+}
+
+func BolusSubTypeValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+	subType, ok := field.Interface().(string)
+	if !ok {
+		return false
+	}
+	_, ok = bolusSubTypeField.Allowed[subType]
+	return ok
 }
 
 func NormalValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {

@@ -45,7 +45,7 @@ var _ = Describe("Upload", func() {
 							upload.Build(uploadObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/computerTime",
-								Detail: "Times need to be ISO 8601 format and not in the future given 'Tuesday 14th May, 2015'",
+								Detail: "An ISO 8601 formatted timestamp without any timezone offset information e.g 2013-05-04T03:58:44.584 given 'Tuesday 14th May, 2015'",
 							}),
 					).To(BeNil())
 
@@ -59,7 +59,7 @@ var _ = Describe("Upload", func() {
 							upload.Build(uploadObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/computerTime",
-								Detail: "Times need to be ISO 8601 format and not in the future given '<nil>'",
+								Detail: "An ISO 8601 formatted timestamp without any timezone offset information e.g 2013-05-04T03:58:44.584 given '<nil>'",
 							}),
 					).To(BeNil())
 				})
@@ -71,7 +71,7 @@ var _ = Describe("Upload", func() {
 							upload.Build(uploadObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/computerTime",
-								Detail: "Times need to be ISO 8601 format and not in the future given ''",
+								Detail: "An ISO 8601 formatted timestamp without any timezone offset information e.g 2013-05-04T03:58:44.584 given ''",
 							}),
 					).To(BeNil())
 				})

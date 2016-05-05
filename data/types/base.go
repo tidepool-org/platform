@@ -28,12 +28,12 @@ type (
 		ID       string        `json:"id" bson:"id" valid:"required"`
 		UserID   *string       `json:"userId" bson:"userId" valid:"required"`
 		DeviceID *string       `json:"deviceId" bson:"deviceId" valid:"required"`
-		Time     *string       `json:"time" bson:"time" valid:"timestr"`
+		Time     *string       `json:"time" bson:"time" valid:"offsetOrZuluTimeString"`
 		Type     *string       `json:"type" bson:"type" valid:"required"`
 		UploadID *string       `json:"uploadId" bson:"uploadId" valid:"-"`
 
 		//optional data
-		DeviceTime       *string       `json:"deviceTime,omitempty" bson:"deviceTime,omitempty" valid:"omitempty,timestr"`
+		DeviceTime       *string       `json:"deviceTime,omitempty" bson:"deviceTime,omitempty" valid:"omitempty,nonZuluTimeString"`
 		TimezoneOffset   *int          `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty" valid:"omitempty,timezoneoffset"`
 		ConversionOffset *int          `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty" valid:"omitempty,required"`
 		ClockDriftOffset *int          `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty" valid:"omitempty,required"`
@@ -46,7 +46,7 @@ type (
 
 	//Internal are existing fields used for versioning and de-deping
 	Internal struct {
-		CreatedTime   string `json:"createdTime" bson:"createdTime" valid:"timestr"`
+		CreatedTime   string `json:"createdTime" bson:"createdTime" valid:"zuluTimeString"`
 		GroupID       string `json:"-" bson:"_groupId" valid:"required"`
 		ActiveFlag    bool   `json:"-" bson:"_active" valid:"required"`
 		SchemaVersion int    `json:"-" bson:"_schemaVersion" valid:"required,min=0"`
@@ -79,8 +79,8 @@ var (
 
 	baseDeviceTimeField = DatumFieldInformation{
 		DatumField: &DatumField{Name: "deviceTime"},
-		Tag:        TimeStringField.Tag,
-		Message:    TimeStringField.Message,
+		Tag:        NonZuluTimeStringField.Tag,
+		Message:    NonZuluTimeStringField.Message,
 	}
 
 	baseTimezoneOffsetField = IntDatumField{
@@ -110,8 +110,9 @@ var (
 
 	failureReasons = validate.FailureReasons{
 		"DeviceTime":     validate.ValidationInfo{FieldName: baseDeviceTimeField.Name, Message: baseDeviceTimeField.Message},
-		"Time":           validate.ValidationInfo{FieldName: TimeStringField.Name, Message: TimeStringField.Message},
+		"Time":           validate.ValidationInfo{FieldName: OffsetOrZuluTimeStringField.Name, Message: OffsetOrZuluTimeStringField.Message},
 		"TimezoneOffset": validate.ValidationInfo{FieldName: baseTimezoneOffsetField.Name, Message: baseTimezoneOffsetField.Message},
+		"CreatedTime":    validate.ValidationInfo{FieldName: "createdTime", Message: ZuluTimeStringField.Message},
 		"Payload":        validate.ValidationInfo{FieldName: basePayloadField.Name, Message: basePayloadField.Message},
 		"Annotations":    validate.ValidationInfo{FieldName: baseAnnotationsField.Name, Message: baseAnnotationsField.Message},
 		"DeviceID":       validate.ValidationInfo{FieldName: BaseDeviceIDField.Name, Message: BaseDeviceIDField.Message},
@@ -137,7 +138,7 @@ func BuildBase(datum Datum, errs validate.ErrorProcessing) Base {
 		UserID:           datum.ToString(BaseUserIDField.Name, errs),
 		DeviceID:         datum.ToString(BaseDeviceIDField.Name, errs),
 		UploadID:         datum.ToString(baseUploadIDField.Name, errs),
-		Time:             datum.ToString(TimeStringField.Name, errs),
+		Time:             datum.ToString(OffsetOrZuluTimeStringField.Name, errs),
 		Type:             datum.ToString(BaseTypeField.Name, errs),
 		Payload:          datum.ToObject(basePayloadField.Name, errs),
 		ConversionOffset: datum.ToInt(baseConversionOffsetField.Name, errs),

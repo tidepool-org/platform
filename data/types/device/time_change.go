@@ -20,8 +20,8 @@ type TimeChange struct {
 }
 
 type Change struct {
-	From     *string  `json:"from" bson:"from" valid:"timestr"`
-	To       *string  `json:"to" bson:"to" valid:"timestr"`
+	From     *string  `json:"from" bson:"from" valid:"nonZuluTimeString"`
+	To       *string  `json:"to" bson:"to" valid:"nonZuluTimeString"`
 	Agent    *string  `json:"agent" bson:"agent" valid:"timechangeagent"`
 	Timezone *string  `json:"timezone,omitempty" bson:"timezone,omitempty" valid:"-"`
 	Reasons  []string `json:"reasons,omitempty" bson:"reasons,omitempty" valid:"timechangereasons"`
@@ -53,14 +53,14 @@ var (
 
 	timeChangeFromField = types.DatumFieldInformation{
 		DatumField: &types.DatumField{Name: "from"},
-		Tag:        types.TimeStringField.Tag,
-		Message:    types.TimeStringField.Message,
+		Tag:        types.NonZuluTimeStringField.Tag,
+		Message:    types.NonZuluTimeStringField.Message,
 	}
 
 	timeChangeToField = types.DatumFieldInformation{
 		DatumField: &types.DatumField{Name: "to"},
-		Tag:        types.TimeStringField.Tag,
-		Message:    types.TimeStringField.Message,
+		Tag:        types.NonZuluTimeStringField.Tag,
+		Message:    types.NonZuluTimeStringField.Message,
 	}
 
 	timeChangeTimezoneField = types.DatumFieldInformation{

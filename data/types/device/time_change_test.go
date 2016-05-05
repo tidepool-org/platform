@@ -129,7 +129,7 @@ var _ = Describe("DeviceEvent", func() {
 							device.Build(deviceEventObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/change/to",
-								Detail: "Times need to be ISO 8601 format and not in the future given '<nil>'",
+								Detail: "An ISO 8601 formatted timestamp without any timezone offset information e.g 2013-05-04T03:58:44.584 given '<nil>'",
 							}),
 					).To(BeNil())
 				})
@@ -145,7 +145,7 @@ var _ = Describe("DeviceEvent", func() {
 							device.Build(deviceEventObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/change/from",
-								Detail: "Times need to be ISO 8601 format and not in the future given '<nil>'",
+								Detail: "An ISO 8601 formatted timestamp without any timezone offset information e.g 2013-05-04T03:58:44.584 given '<nil>'",
 							}),
 					).To(BeNil())
 				})

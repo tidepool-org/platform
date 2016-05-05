@@ -17,8 +17,8 @@ func init() {
 type Event struct {
 	*Recommended        `json:"recommended,omitempty" bson:"recommended,omitempty"`
 	*BloodGlucoseTarget `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`
-	*Bolus              `json:"bolus,omitempty" bson:"bolus,omitempty"`
 
+	BolusID            *string  `json:"bolus,omitempty" bson:"bolus,omitempty" valid:"-"`
 	CarbohydrateInput  *int     `json:"carbInput,omitempty" bson:"carbInput,omitempty" valid:"omitempty,required"`
 	InsulinOnBoard     *float64 `json:"insulinOnBoard,omitempty" bson:"insulinOnBoard,omitempty" valid:"omitempty,insulinvalue"`
 	InsulinSensitivity *int     `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty" valid:"omitempty,insulinsensitivity"`
@@ -33,13 +33,6 @@ type Recommended struct {
 	//TODO: validation to be confirmed but based on device uploads isn't always present
 	Correction *float64 `json:"correction" bson:"correction" valid:"-"`
 	Net        *float64 `json:"net" bson:"net" valid:"-"`
-}
-
-type Bolus struct {
-	Type     *string `json:"type" bson:"type" valid:"-"`
-	SubType  *string `json:"subType" bson:"subType" valid:"bolussubtype"`
-	Time     *string `json:"time" bson:"time" valid:"timestr"`
-	DeviceID *string `json:"deviceId" bson:"deviceId" valid:"required"`
 }
 
 type BloodGlucoseTarget struct {
@@ -69,6 +62,10 @@ var (
 		Message:    "This is a required field",
 	}
 
+	bolusIDField = types.DatumFieldInformation{
+		DatumField: &types.DatumField{Name: "bolus"},
+	}
+
 	insulinOnBoardField = types.DatumFieldInformation{
 		DatumField: &types.DatumField{Name: "insulinOnBoard"},
 		Tag:        "insulinvalue",
@@ -95,11 +92,7 @@ var (
 
 	failureReasons = validate.FailureReasons{
 		"CarbohydrateInput": validate.ValidationInfo{FieldName: carbohydrateInputField.Name, Message: carbohydrateInputField.Message},
-		"InsulinOnBoard":    validate.ValidationInfo{FieldName: types.BolusSubTypeField.Name, Message: types.BolusSubTypeField.Message},
-
-		"Bolus.SubType":  validate.ValidationInfo{FieldName: "bolus/" + types.BolusSubTypeField.Name, Message: types.BolusSubTypeField.Message},
-		"Bolus.DeviceID": validate.ValidationInfo{FieldName: "bolus/" + types.BaseDeviceIDField.Name, Message: types.BaseDeviceIDField.Message},
-		"Bolus.Time":     validate.ValidationInfo{FieldName: "bolus/" + types.TimeStringField.Name, Message: types.TimeStringField.Message},
+		"InsulinOnBoard":    validate.ValidationInfo{FieldName: insulinOnBoardField.Name, Message: insulinOnBoardField.Message},
 
 		"Recommended.Correction":   validate.ValidationInfo{FieldName: "recommended/" + correctionField.Name, Message: correctionField.Message},
 		"Recommended.Carbohydrate": validate.ValidationInfo{FieldName: "recommended/" + carbField.Name, Message: carbField.Message},
@@ -111,16 +104,6 @@ func buildRecommended(recommendedDatum types.Datum, errs validate.ErrorProcessin
 		Carbohydrate: recommendedDatum.ToFloat64(carbField.Name, errs),
 		Correction:   recommendedDatum.ToFloat64(correctionField.Name, errs),
 		Net:          recommendedDatum.ToFloat64(netField.Name, errs),
-	}
-}
-
-func buildBolus(bolusDatum types.Datum, errs validate.ErrorProcessing) *Bolus {
-	bolusType := "bolus"
-	return &Bolus{
-		Type:     &bolusType,
-		SubType:  bolusDatum.ToString(types.BolusSubTypeField.Name, errs),
-		Time:     bolusDatum.ToString(types.TimeStringField.Name, errs),
-		DeviceID: bolusDatum.ToString("deviceId", errs),
 	}
 }
 
@@ -141,12 +124,6 @@ func Build(datum types.Datum, errs validate.ErrorProcessing) *Event {
 
 	originalBloodGlucoseUnits := datum.ToString(types.MmolOrMgUnitsField.Name, errs)
 
-	var bolus *Bolus
-	bolusDatum, ok := datum["bolus"].(map[string]interface{})
-	if ok {
-		bolus = buildBolus(bolusDatum, errs)
-	}
-
 	var bloodGlucoseTarget *BloodGlucoseTarget
 	bloodGlucoseTargetDatum, ok := datum["bgTarget"].(map[string]interface{})
 	if ok {
@@ -161,7 +138,7 @@ func Build(datum types.Datum, errs validate.ErrorProcessing) *Event {
 
 	event := &Event{
 		Recommended:        recommended,
-		Bolus:              bolus,
+		BolusID:            datum.ToString(bolusIDField.Name, errs),
 		BloodGlucoseTarget: bloodGlucoseTarget,
 		CarbohydrateInput:  datum.ToInt(carbohydrateInputField.Name, errs),
 		InsulinOnBoard:     datum.ToFloat64(insulinOnBoardField.Name, errs),
