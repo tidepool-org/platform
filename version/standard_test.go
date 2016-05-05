@@ -8,22 +8,22 @@ import (
 	"github.com/tidepool-org/platform/version"
 )
 
-var _ = Describe("BaseCommit", func() {
+var _ = Describe("Standard", func() {
 
 	It("has default values", func() {
-		baseCommit := version.NewBaseCommit("", "")
-		Expect(baseCommit.Base()).To(Equal("0.0.0"))
-		Expect(baseCommit.Commit()).To(Equal("0000000000000000000000000000000000000000"))
-		Expect(baseCommit.ShortCommit()).To(Equal("00000000"))
-		Expect(baseCommit.Short()).To(Equal("0.0.0+00000000"))
-		Expect(baseCommit.Long()).To(Equal("0.0.0+0000000000000000000000000000000000000000"))
+		standard := version.NewStandard("", "")
+		Expect(standard.Base()).To(Equal("0.0.0"))
+		Expect(standard.Commit()).To(Equal("0000000000000000000000000000000000000000"))
+		Expect(standard.ShortCommit()).To(Equal("00000000"))
+		Expect(standard.Short()).To(Equal("0.0.0+00000000"))
+		Expect(standard.Long()).To(Equal("0.0.0+0000000000000000000000000000000000000000"))
 	})
 
 	DescribeTable("properly constructs the Short and Long alternatives",
 		func(base string, commit string, short string, long string) {
-			baseCommit := version.NewBaseCommit(base, commit)
-			Expect(baseCommit.Short()).To(Equal(short))
-			Expect(baseCommit.Long()).To(Equal(long))
+			standard := version.NewStandard(base, commit)
+			Expect(standard.Short()).To(Equal(short))
+			Expect(standard.Long()).To(Equal(long))
 		},
 		Entry("returns the default base with default commit", "", "", "0.0.0+00000000", "0.0.0+0000000000000000000000000000000000000000"),
 		Entry("returns the major base with default commit", "1", "", "1+00000000", "1+0000000000000000000000000000000000000000"),
