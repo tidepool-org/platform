@@ -6,6 +6,7 @@ import (
 	validator "gopkg.in/bluesuncorp/validator.v8"
 
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/bolus"
 	"github.com/tidepool-org/platform/validate"
 )
 
@@ -17,8 +18,9 @@ func init() {
 type Event struct {
 	*Recommended        `json:"recommended,omitempty" bson:"recommended,omitempty"`
 	*BloodGlucoseTarget `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`
+	*Bolus              `json:"bolus,omitempty" bson:"bolus,omitempty"` // TODO_DATA: Reversed changes as Tandem does not have bolus as string id, but as structure
 
-	BolusID            *string  `json:"bolus,omitempty" bson:"bolus,omitempty" valid:"-"`
+	BolusID            *string  `json:"bolusId,omitempty" bson:"bolusId,omitempty" valid:"-"`
 	CarbohydrateInput  *int     `json:"carbInput,omitempty" bson:"carbInput,omitempty" valid:"omitempty,required"`
 	InsulinOnBoard     *float64 `json:"insulinOnBoard,omitempty" bson:"insulinOnBoard,omitempty" valid:"omitempty,insulinvalue"`
 	InsulinSensitivity *int     `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty" valid:"omitempty,insulinsensitivity"`
@@ -33,6 +35,15 @@ type Recommended struct {
 	//TODO: validation to be confirmed but based on device uploads isn't always present
 	Correction *float64 `json:"correction" bson:"correction" valid:"-"`
 	Net        *float64 `json:"net" bson:"net" valid:"-"`
+}
+
+// TODO_DATA: Reversed changes as Tandem does not have bolus as string id, but as structure
+
+type Bolus struct {
+	Type     *string `json:"type" bson:"type" valid:"-"`
+	SubType  *string `json:"subType" bson:"subType" valid:"bolussubtype"`
+	Time     *string `json:"time" bson:"time" valid:"offsetOrZuluTimeString"`
+	DeviceID *string `json:"deviceId" bson:"deviceId" valid:"required"`
 }
 
 type BloodGlucoseTarget struct {
@@ -63,7 +74,7 @@ var (
 	}
 
 	bolusIDField = types.DatumFieldInformation{
-		DatumField: &types.DatumField{Name: "bolus"},
+		DatumField: &types.DatumField{Name: "bolusId"},
 	}
 
 	insulinOnBoardField = types.DatumFieldInformation{
@@ -90,8 +101,12 @@ var (
 		Message:    "This is a required field",
 	}
 
+	// TODO_DATA: Reversed changes as Tandem does not have bolus as string id, but as structure
 	failureReasons = validate.FailureReasons{
 		"CarbohydrateInput": validate.ValidationInfo{FieldName: carbohydrateInputField.Name, Message: carbohydrateInputField.Message},
+		"Bolus.SubType":     validate.ValidationInfo{FieldName: "bolus/" + bolus.SubTypeField.Name, Message: bolus.SubTypeField.Message},
+		"Bolus.DeviceID":    validate.ValidationInfo{FieldName: "bolus/" + types.BaseDeviceIDField.Name, Message: types.BaseDeviceIDField.Message},
+		"Bolus.Time":        validate.ValidationInfo{FieldName: "bolus/" + types.NonZuluTimeStringField.Name, Message: types.NonZuluTimeStringField.Message},
 		"InsulinOnBoard":    validate.ValidationInfo{FieldName: insulinOnBoardField.Name, Message: insulinOnBoardField.Message},
 
 		"Recommended.Correction":   validate.ValidationInfo{FieldName: "recommended/" + correctionField.Name, Message: correctionField.Message},
@@ -104,6 +119,17 @@ func buildRecommended(recommendedDatum types.Datum, errs validate.ErrorProcessin
 		Carbohydrate: recommendedDatum.ToFloat64(carbField.Name, errs),
 		Correction:   recommendedDatum.ToFloat64(correctionField.Name, errs),
 		Net:          recommendedDatum.ToFloat64(netField.Name, errs),
+	}
+}
+
+// TODO_DATA: Reversed changes as Tandem does not have bolus as string id, but as structure
+func buildBolus(bolusDatum types.Datum, errs validate.ErrorProcessing) *Bolus {
+	bolusType := "bolus"
+	return &Bolus{
+		Type:     &bolusType,
+		SubType:  bolusDatum.ToString(bolus.SubTypeField.Name, errs),
+		Time:     bolusDatum.ToString(types.NonZuluTimeStringField.Name, errs),
+		DeviceID: bolusDatum.ToString("deviceId", errs),
 	}
 }
 
@@ -124,6 +150,13 @@ func Build(datum types.Datum, errs validate.ErrorProcessing) *Event {
 
 	originalBloodGlucoseUnits := datum.ToString(types.MmolOrMgUnitsField.Name, errs)
 
+	// TODO_DATA: Reversed changes as Tandem does not have bolus as string id, but as structure
+	var bolus *Bolus
+	bolusDatum, ok := datum["bolus"].(map[string]interface{})
+	if ok {
+		bolus = buildBolus(bolusDatum, errs)
+	}
+
 	var bloodGlucoseTarget *BloodGlucoseTarget
 	bloodGlucoseTargetDatum, ok := datum["bgTarget"].(map[string]interface{})
 	if ok {
@@ -139,6 +172,7 @@ func Build(datum types.Datum, errs validate.ErrorProcessing) *Event {
 	event := &Event{
 		Recommended:        recommended,
 		BolusID:            datum.ToString(bolusIDField.Name, errs),
+		Bolus:              bolus, // TODO_DATA: Reversed changes as Tandem does not have bolus as string id, but as structure
 		BloodGlucoseTarget: bloodGlucoseTarget,
 		CarbohydrateInput:  datum.ToInt(carbohydrateInputField.Name, errs),
 		InsulinOnBoard:     datum.ToFloat64(insulinOnBoardField.Name, errs),

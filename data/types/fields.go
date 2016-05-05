@@ -18,8 +18,9 @@ type (
 	}
 
 	AllowedDate struct {
-		Format     string
-		LowerLimit string
+		Format        string
+		LowerLimit    string
+		AllowedFuture bool // TODO_DATA: NonZulu dates allow future dates, others do not
 	}
 
 	FloatDatumField struct {

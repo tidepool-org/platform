@@ -135,20 +135,14 @@ var _ = Describe("Time Validation", func() {
 
 		})
 
-		It("invalid if in the future", func() {
+		// TODO_DATA: NonZulu dates can be in the future
+		It("valid if in the future", func() {
 
 			future := time.Now().AddDate(0, 0, 10)
 
 			timeStruct.NonZuluTimeString = future.Format(types.NonZuluTimeStringField.Format)
 			types.GetPlatformValidator().SetFailureReasons(failureReasons).Struct(timeStruct, helper.ErrorProcessing)
-			Expect(
-				helper.ErrorIsExpected(
-					timeStruct,
-					types.ExpectedErrorDetails{
-						Path:   "0/nonZuluTimeString",
-						Detail: fmt.Sprintf("An ISO 8601 formatted timestamp without any timezone offset information e.g 2013-05-04T03:58:44.584 given '%s'", timeStruct.NonZuluTimeString),
-					}),
-			).To(BeNil())
+			Expect(helper.ValidDataType(timeStruct)).To(BeNil())
 		})
 
 		It("invalid if wrong format", func() {

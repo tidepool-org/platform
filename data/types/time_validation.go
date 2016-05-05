@@ -21,8 +21,9 @@ var (
 		Message:    "An ISO 8601-formatted UTC timestamp with a final Z for 'Zulu' time e.g 2013-05-04T03:58:44.584Z",
 		AllowedDate: &AllowedDate{
 			//refer to https://golang.org/pkg/time/#pkg-constants
-			Format:     "2006-01-02T15:04:05Z",
-			LowerLimit: "2007-01-01T00:00:00Z",
+			Format:        "2006-01-02T15:04:05Z",
+			LowerLimit:    "2007-01-01T00:00:00Z",
+			AllowedFuture: false, // TODO_DATA: Do not allow future dates
 		},
 	}
 
@@ -32,8 +33,9 @@ var (
 		Message:    "An ISO 8601 formatted timestamp without any timezone offset information e.g 2013-05-04T03:58:44.584",
 		AllowedDate: &AllowedDate{
 			//refer to https://golang.org/pkg/time/#pkg-constants
-			Format:     "2006-01-02T15:04:05",
-			LowerLimit: "2007-01-01T00:00:00",
+			Format:        "2006-01-02T15:04:05",
+			LowerLimit:    "2007-01-01T00:00:00",
+			AllowedFuture: true, // TODO_DATA: Allow future dates
 		},
 	}
 
@@ -43,8 +45,9 @@ var (
 		Message:    "An ISO 8601-formatted timestamp including a timezone offset from UTC e.g 2013-05-04T03:58:44-08:00",
 		AllowedDate: &AllowedDate{
 			//refer to https://golang.org/pkg/time/#pkg-constants
-			Format:     "2006-01-02T15:04:05-07:00",
-			LowerLimit: "2007-01-01T00:00:00-00:00",
+			Format:        "2006-01-02T15:04:05-07:00",
+			LowerLimit:    "2007-01-01T00:00:00-00:00",
+			AllowedFuture: false, // TODO_DATA: Do not allow future dates
 		},
 	}
 
@@ -54,10 +57,6 @@ var (
 		Message:    "An ISO 8601-formatted timestamp including either a timezone offset from UTC OR converted to UTC with a final Z for 'Zulu' time. e.g.2013-05-04T03:58:44.584Z OR 2013-05-04T03:58:44-08:00",
 	}
 )
-
-func isTimeObjectValid(timeObject time.Time) bool {
-	return !timeObject.IsZero() && timeObject.Before(time.Now())
-}
 
 func NonZuluPastTimeStringValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
 
@@ -105,7 +104,8 @@ func isTimeStringValid(timeString string, dateDatum DateDatumField) bool {
 		return false
 	}
 
-	if !isTimeObjectValid(timeObject) {
+	// TODO_DATA: Are future dates allowed?
+	if !dateDatum.AllowedFuture && timeObject.After(time.Now()) {
 		return false
 	}
 
