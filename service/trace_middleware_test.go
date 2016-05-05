@@ -5,5 +5,5 @@ import (
 	// . "github.com/onsi/gomega"
 )
 
-var _ = PDescribe("LoggerMiddleware", func() {
+var _ = PDescribe("TraceMiddleware", func() {
 })

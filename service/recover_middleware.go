@@ -18,6 +18,10 @@ import (
 
 type RecoverMiddleware struct{}
 
+func NewRecoverMiddleware() (*RecoverMiddleware, error) {
+	return &RecoverMiddleware{}, nil
+}
+
 func (r *RecoverMiddleware) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
 		defer func() {

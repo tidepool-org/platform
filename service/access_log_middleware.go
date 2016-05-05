@@ -42,6 +42,10 @@ const (
 	RequestEnvStatusCode   = "STATUS_CODE"
 )
 
+func NewAccessLogMiddleware() (*AccessLogMiddleware, error) {
+	return &AccessLogMiddleware{}, nil
+}
+
 func (l *AccessLogMiddleware) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
 		handler(response, request)
@@ -91,6 +95,6 @@ func (l *AccessLogMiddleware) MiddlewareFunc(handler rest.HandlerFunc) rest.Hand
 		// TODO: Log this to a special logger level "access".
 		// Will need to revamp log package, though.
 
-		GetRequestLogger(request).WithFields(loggerFields).Info(message)
+		GetRequestLogger(request).WithFields(loggerFields).Warn(message)
 	}
 }
