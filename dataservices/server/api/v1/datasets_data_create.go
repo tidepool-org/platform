@@ -20,17 +20,11 @@ import (
 	"github.com/tidepool-org/platform/dataservices/server/api"
 	"github.com/tidepool-org/platform/dataservices/server/api/v1/errors"
 	"github.com/tidepool-org/platform/store"
-)
-
-// TODO: Move this to more common location
-const (
-	ParamDatasetID = "datasetid"
-	ParamUserID    = "userid"
+	"github.com/tidepool-org/platform/userservices/client"
 )
 
 func DatasetsDataCreate(context *api.Context) {
-	// TODO: Further validation of datasetID
-	datasetID := context.Request().PathParam(ParamDatasetID)
+	datasetID := context.Request().PathParam("datasetid")
 	if datasetID == "" {
 		context.RespondWithError(errors.ConstructError(errors.DatasetIDMissing))
 		return
@@ -43,13 +37,19 @@ func DatasetsDataCreate(context *api.Context) {
 		return
 	}
 
-	userID := *datasetUpload.UserID
-	groupID := datasetUpload.GroupID
+	// TODO: Validate
+	targetUserID := *datasetUpload.UserID
+	targetGroupID := datasetUpload.GroupID
 
-	// if !checkPermisson(context.Request(), user.Permission{}) {
-	// 	rest.Error(context.Response, missingPermissionsError, http.StatusUnauthorized)
-	// 	return
-	// }
+	err := context.Client().ValidateTargetUserPermissions(context.Context, context.RequestUserID, targetUserID, client.UploadPermissions)
+	if err != nil {
+		if client.IsUnauthorizedError(err) {
+			context.RespondWithError(errors.ConstructError(errors.Unauthorized))
+		} else {
+			context.RespondWithServerFailure("Unable to validate target user permissions", err)
+		}
+		return
+	}
 
 	if datasetUpload.DataState == nil || *datasetUpload.DataState != "open" {
 		context.RespondWithError(errors.ConstructError(errors.DatasetClosed, datasetID))
@@ -70,7 +70,7 @@ func DatasetsDataCreate(context *api.Context) {
 	}
 
 	// TODO: Fix common data
-	commonData := map[string]interface{}{types.BaseUserIDField.Name: userID, types.BaseGroupIDField.Name: groupID, "uploadId": datasetID, "_active": false, "_schemaVersion": 1}
+	commonData := map[string]interface{}{types.BaseUserIDField.Name: targetUserID, types.BaseGroupIDField.Name: targetGroupID, "uploadId": datasetID, "_active": false, "_schemaVersion": 1}
 	datumArray, errors := data.NewTypeBuilder(commonData).BuildFromDatumArray(rawDatumArray)
 	if errors != nil {
 		context.RespondWithStatusAndErrors(http.StatusBadRequest, errors)

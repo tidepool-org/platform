@@ -18,11 +18,11 @@ import (
 	"github.com/tidepool-org/platform/dataservices/server/api"
 	"github.com/tidepool-org/platform/dataservices/server/api/v1/errors"
 	"github.com/tidepool-org/platform/store"
+	"github.com/tidepool-org/platform/userservices/client"
 )
 
 func DatasetsUpdate(context *api.Context) {
-	// TODO: Further validation of datasetID
-	datasetID := context.Request().PathParam(ParamDatasetID)
+	datasetID := context.Request().PathParam("datasetid")
 	if datasetID == "" {
 		context.RespondWithError(errors.ConstructError(errors.DatasetIDMissing))
 		return
@@ -32,6 +32,19 @@ func DatasetsUpdate(context *api.Context) {
 	var datasetUpload upload.Upload
 	if err := context.Store().Find(store.Query{"type": "upload", "uploadId": datasetID}, &datasetUpload); err != nil {
 		context.RespondWithError(errors.ConstructError(errors.DatasetIDNotFound, datasetID))
+		return
+	}
+
+	// TODO: Validate
+	targetUserID := *datasetUpload.UserID
+
+	err := context.Client().ValidateTargetUserPermissions(context.Context, context.RequestUserID, targetUserID, client.UploadPermissions)
+	if err != nil {
+		if client.IsUnauthorizedError(err) {
+			context.RespondWithError(errors.ConstructError(errors.Unauthorized))
+		} else {
+			context.RespondWithServerFailure("Unable to validate target user permissions", err)
+		}
 		return
 	}
 

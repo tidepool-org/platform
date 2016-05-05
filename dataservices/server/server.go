@@ -206,13 +206,6 @@ func (s *Server) setupAPIMiddleware() error {
 
 	s.statusMiddleware = statusMiddleware
 
-	// s.validateToken = client.NewAuthorizationMiddlewareOld(s.client).ValidateToken
-	// s.attachPermissons = client.NewMetadataMiddleware(s.client).GetPermissons
-	// s.resolveGroupID = client.NewMetadataMiddleware(s.client).GetGroupID
-	// TODO: Add content checker
-
-	// s.authorizationMiddleware = client.NewAuthorizationMiddleware(s.client)
-
 	return nil
 }
 
@@ -224,9 +217,9 @@ func (s *Server) setupAPIRouter() error {
 		rest.Get("/status", s.GetStatus),
 		rest.Get("/version", s.GetVersion),
 		rest.Get("/api/v1/users/:userid/check", s.withContext(middleware.Authenticate(v1.UsersCheck))),
-		// rest.Post("/api/v1/users/:userid/datasets", s.validateToken(s.resolveGroupID(s.withContext(v1.DatasetCreate)))),
-		// rest.Put("/api/v1/datasets/:datasetid", s.validateToken(s.withContext(v1.DatasetUpdate))),
-		// rest.Post("/api/v1/datasets/:datasetid/data", s.validateToken(s.withContext(v1.DatasetDataCreate))),
+		rest.Post("/api/v1/users/:userid/datasets", s.withContext(middleware.Authenticate(v1.UsersDatasetsCreate))),
+		rest.Put("/api/v1/datasets/:datasetid", s.withContext(middleware.Authenticate(v1.DatasetsUpdate))),
+		rest.Post("/api/v1/datasets/:datasetid/data", s.withContext(middleware.Authenticate(v1.DatasetsDataCreate))),
 	)
 	if err != nil {
 		return app.ExtError(err, "server", "unable to setup router")
@@ -238,6 +231,9 @@ func (s *Server) setupAPIRouter() error {
 }
 
 func (s *Server) serve() error {
+
+	s.logger.Debug("Serving")
+
 	server := &graceful.Server{
 		Timeout: time.Duration(s.config.Timeout) * time.Second,
 		Server: &http.Server{

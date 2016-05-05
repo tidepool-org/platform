@@ -13,8 +13,6 @@ package v1
 import (
 	"net/http"
 
-	"github.com/ant0ine/go-json-rest/rest"
-
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator/root"
@@ -22,32 +20,35 @@ import (
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/dataservices/server/api"
 	"github.com/tidepool-org/platform/dataservices/server/api/v1/errors"
+	"github.com/tidepool-org/platform/userservices/client"
 )
 
 func UsersDatasetsCreate(context *api.Context) {
-	// TODO: Further validation of userID
-	userID := context.Request().PathParam(ParamUserID)
-	if userID == "" {
+	targetUserID := context.Request().PathParam("userid")
+	if targetUserID == "" {
 		context.RespondWithError(errors.ConstructError(errors.UserIDMissing))
 		return
 	}
 
-	// if !checkPermisson(context.Request(), user.Permission{}) {
-	// 	rest.Error(context.Response(), missingPermissionsError, http.StatusUnauthorized) // TODO: JSON error
-	// 	return
-	// }
-
-	groupID := context.Request().Env["GROUPID"]
-	if groupID == "" {
-		rest.Error(context.Response(), "Group id is missing", http.StatusBadRequest) // TODO: Fix this
+	err := context.Client().ValidateTargetUserPermissions(context.Context, context.RequestUserID, targetUserID, client.UploadPermissions)
+	if err != nil {
+		if client.IsUnauthorizedError(err) {
+			context.RespondWithError(errors.ConstructError(errors.Unauthorized))
+		} else {
+			context.RespondWithServerFailure("Unable to validate target user permissions", err)
+		}
 		return
 	}
 
-	// TODO: Do we need to do this? Shouldn't we fail on no group ID earlier and let context.Request().ContentLength fail when decoding JSON?
-	// if context.Request().ContentLength == 0 || groupID == "" {
-	// 	rest.Error(context.Response(), missingDataError, http.StatusBadRequest) // TODO: JSON error
-	// 	return
-	// }
+	targetUserGroupID, err := context.Client().GetUserGroupID(context.Context, targetUserID)
+	if err != nil {
+		if client.IsUnauthorizedError(err) {
+			context.RespondWithError(errors.ConstructError(errors.Unauthorized))
+		} else {
+			context.RespondWithServerFailure("Unable to get group id for target user", err)
+		}
+		return
+	}
 
 	var rawDatasetDatum types.Datum
 	if err := context.Request().DecodeJsonPayload(&rawDatasetDatum); err != nil {
@@ -57,7 +58,7 @@ func UsersDatasetsCreate(context *api.Context) {
 
 	// TODO: Not sure about how best to represent these constants?
 	// TODO: Move uploadId and dataState into type builder (verify not there originally)
-	commonDatum := types.Datum{types.BaseUserIDField.Name: userID, types.BaseGroupIDField.Name: groupID}
+	commonDatum := types.Datum{types.BaseUserIDField.Name: targetUserID, types.BaseGroupIDField.Name: targetUserGroupID}
 	datasetBuiltDatum, errors := data.NewTypeBuilder(commonDatum).BuildFromDatum(rawDatasetDatum)
 	if errors != nil {
 		context.RespondWithStatusAndErrors(http.StatusBadRequest, errors)
