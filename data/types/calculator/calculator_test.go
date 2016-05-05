@@ -113,20 +113,21 @@ var _ = Describe("Event", func() {
 					Expect(helper.ValidDataType(calculator.Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
-				It("carb required", func() {
+				// TODO_DATA: No longer require because require means does not accept default value of 0, but Tandem can give 0 here
+				// It("carb required", func() {
 
-					delete(recommendedObj, "carb")
-					calculatorObj["recommended"] = recommendedObj
+				// 	delete(recommendedObj, "carb")
+				// 	calculatorObj["recommended"] = recommendedObj
 
-					Expect(
-						helper.ErrorIsExpected(
-							calculator.Build(calculatorObj, helper.ErrorProcessing),
-							types.ExpectedErrorDetails{
-								Path:   "0/recommended/carb",
-								Detail: "This is a required field given '<nil>'",
-							}),
-					).To(BeNil())
-				})
+				// 	Expect(
+				// 		helper.ErrorIsExpected(
+				// 			calculator.Build(calculatorObj, helper.ErrorProcessing),
+				// 			types.ExpectedErrorDetails{
+				// 				Path:   "0/recommended/carb",
+				// 				Detail: "This is a required field given '<nil>'",
+				// 			}),
+				// 	).To(BeNil())
+				// })
 
 			})
 

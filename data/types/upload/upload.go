@@ -23,7 +23,7 @@ type Upload struct {
 	DeviceTags          []string    `json:"deviceTags" bson:"deviceTags" valid:"uploaddevicetags"`
 	DeviceManufacturers []string    `json:"deviceManufacturers" bson:"deviceManufacturers" valid:"uploaddevicemanufacturers"`
 	DeviceModel         *string     `json:"deviceModel" bson:"deviceModel" valid:"gte=1"`
-	DeviceSerialNumber  *string     `json:"deviceSerialNumber" bson:"deviceSerialNumber" valid:"gte=10"`
+	DeviceSerialNumber  *string     `json:"deviceSerialNumber" bson:"deviceSerialNumber" valid:"gte=1"` // TODO_DATA: Serial number on Tandem is only 6 numbers
 	TimeProcessing      *string     `json:"timeProcessing" bson:"timeProcessing" valid:"uploadtimeprocessing"`
 	DataState           *string     `json:"dataState" bson:"dataState"`
 	Deduplicator        interface{} `json:"deduplicator" bson:"deduplicator"`
@@ -88,7 +88,7 @@ var (
 	deviceSerialNumberField = types.DatumFieldInformation{
 		DatumField: &types.DatumField{Name: "deviceSerialNumber"},
 		Tag:        "gte",
-		Message:    "This is a required field need needs to be 10+ characters in length",
+		Message:    "This is a required field need needs to be 1+ characters in length", // TODO_DATA: Serial number on Tandem is only 6 numbers
 	}
 
 	versionField = types.DatumFieldInformation{

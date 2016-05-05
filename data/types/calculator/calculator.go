@@ -28,7 +28,7 @@ type Event struct {
 }
 
 type Recommended struct {
-	Carbohydrate *float64 `json:"carb" bson:"carb" valid:"required"`
+	Carbohydrate *float64 `json:"carb" bson:"carb" valid:"-"` // TODO_DATA: We can't have `required` validation here because it can be zero.
 
 	//TODO: validation to be confirmed but based on device uploads isn't always present
 	Correction *float64 `json:"correction" bson:"correction" valid:"-"`

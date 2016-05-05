@@ -172,7 +172,7 @@ var _ = Describe("Upload", func() {
 							upload.Build(uploadObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/deviceSerialNumber",
-								Detail: "This is a required field need needs to be 10+ characters in length given '<nil>'",
+								Detail: "This is a required field need needs to be 1+ characters in length given '<nil>'", // TODO_DATA: Updated due to data changes
 							}),
 					).To(BeNil())
 				})
@@ -185,7 +185,7 @@ var _ = Describe("Upload", func() {
 							upload.Build(uploadObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/deviceSerialNumber",
-								Detail: "This is a required field need needs to be 10+ characters in length given ''",
+								Detail: "This is a required field need needs to be 1+ characters in length given ''", // TODO_DATA: Updated due to data changes
 							}),
 					).To(BeNil())
 				})

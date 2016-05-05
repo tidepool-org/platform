@@ -129,6 +129,7 @@ var _ = Describe("Bolus", func() {
 			})
 			Context("normal", func() {
 
+				// TODO_DATA: Updated to reflect data changes
 				It("is required", func() {
 					delete(bolusObj, "normal")
 					Expect(
@@ -136,26 +137,28 @@ var _ = Describe("Bolus", func() {
 							bolus.Build(bolusObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/normal",
-								Detail: "Must be greater than 0 and less than or equal to 100.0 given '<nil>'",
+								Detail: "Must be greater than or equal to 0 and less than or equal to 100 given '<nil>'",
 							}),
 					).To(BeNil())
 				})
 
-				It("invalid when zero", func() {
-					bolusObj["normal"] = 0.0
+				// TODO_DATA: Updated to reflect data changes
+				It("invalid < 0", func() {
+					bolusObj["normal"] = -0.1
 
 					Expect(
 						helper.ErrorIsExpected(
 							bolus.Build(bolusObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/normal",
-								Detail: "Must be greater than 0 and less than or equal to 100.0 given '0'",
+								Detail: "Must be greater than or equal to 0 and less than or equal to 100 given '-0.1'",
 							}),
 					).To(BeNil())
 
 				})
 
-				It("invalid when > 100.0", func() {
+				// TODO_DATA: Updated to reflect data changes
+				It("invalid when > 100", func() {
 					bolusObj["normal"] = 100.1
 
 					Expect(
@@ -163,17 +166,29 @@ var _ = Describe("Bolus", func() {
 							bolus.Build(bolusObj, helper.ErrorProcessing),
 							types.ExpectedErrorDetails{
 								Path:   "0/normal",
-								Detail: "Must be greater than 0 and less than or equal to 100.0 given '100.1'",
+								Detail: "Must be greater than or equal to 0 and less than or equal to 100 given '100.1'",
 							}),
 					).To(BeNil())
 
 				})
 
-				It("valid when greater than zero", func() {
+				// TODO_DATA: Updated to reflect data changes
+				It("valid when exactly 0", func() {
+					bolusObj["normal"] = 0
+					Expect(helper.ValidDataType(bolus.Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
+				})
+
+				// TODO_DATA: Updated to reflect data changes
+				It("valid when between 0 and 100", func() {
 					bolusObj["normal"] = 22.7
 					Expect(helper.ValidDataType(bolus.Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
+				// TODO_DATA: Updated to reflect data changes
+				It("valid when exactly 100", func() {
+					bolusObj["normal"] = 100
+					Expect(helper.ValidDataType(bolus.Build(bolusObj, helper.ErrorProcessing))).To(BeNil())
+				})
 			})
 		})
 	})
