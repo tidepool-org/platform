@@ -1,4 +1,4 @@
-package dataservices
+package server
 
 /* CHECKLIST
  * [ ] Uses interfaces as appropriate
@@ -17,16 +17,16 @@ import (
 )
 
 type Status struct {
-	Version   string
-	DataStore interface{}
-	Server    interface{}
+	Version string
+	Store   interface{}
+	Server  interface{}
 }
 
 func (s *Server) GetStatus(response rest.ResponseWriter, request *rest.Request) {
 	status := &Status{
-		Version:   version.Current().Long(),
-		DataStore: s.dataStore.GetStatus(),
-		Server:    s.statusMiddleware.GetStatus(),
+		Version: version.Current().Long(),
+		Store:   s.store.GetStatus(),
+		Server:  s.statusMiddleware.GetStatus(),
 	}
 	response.WriteJson(status)
 }

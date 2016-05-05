@@ -1,4 +1,4 @@
-package dataservices
+package v1
 
 /* CHECKLIST
  * [ ] Uses interfaces as appropriate
@@ -15,26 +15,28 @@ import (
 
 	"github.com/tidepool-org/platform/data/deduplicator/root"
 	"github.com/tidepool-org/platform/data/types/upload"
+	"github.com/tidepool-org/platform/dataservices/server/api"
+	"github.com/tidepool-org/platform/dataservices/server/api/v1/errors"
 	"github.com/tidepool-org/platform/store"
 )
 
-func (s *Server) DatasetUpdate(context *Context) {
+func DatasetsUpdate(context *api.Context) {
 	// TODO: Further validation of datasetID
 	datasetID := context.Request().PathParam(ParamDatasetID)
 	if datasetID == "" {
-		context.RespondWithError(ConstructError(ErrorDatasetIDMalformed, datasetID))
+		context.RespondWithError(errors.ConstructError(errors.DatasetIDMissing))
 		return
 	}
 
 	// TODO: Improve context.Store() Find - more specific
 	var datasetUpload upload.Upload
 	if err := context.Store().Find(store.Query{"type": "upload", "uploadId": datasetID}, &datasetUpload); err != nil {
-		context.RespondWithError(ConstructError(ErrorDatasetIDNotFound, datasetID))
+		context.RespondWithError(errors.ConstructError(errors.DatasetIDNotFound, datasetID))
 		return
 	}
 
 	if datasetUpload.DataState == nil || *datasetUpload.DataState != "open" {
-		context.RespondWithError(ConstructError(ErrorDatasetClosed, datasetID))
+		context.RespondWithError(errors.ConstructError(errors.DatasetClosed, datasetID))
 		return
 	}
 

@@ -1,4 +1,4 @@
-package dataservices_test
+package v1_test
 
 import (
 	"testing"
@@ -9,5 +9,5 @@ import (
 
 func TestDataservices(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "dataservices")
+	RunSpecs(t, "dataservices/server/api/v1")
 }

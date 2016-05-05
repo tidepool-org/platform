@@ -1,4 +1,4 @@
-package dataservices
+package errors
 
 /* CHECKLIST
  * [ ] Uses interfaces as appropriate
@@ -18,41 +18,59 @@ import (
 )
 
 const (
-	ErrorJSONMalformed      = "json-malformed"
-	ErrorUserIDMalformed    = "user-id-malformed"
-	ErrorUserIDNotFound     = "user-id-not-found"
-	ErrorDatasetIDMalformed = "dataset-id-malformed"
-	ErrorDatasetIDNotFound  = "dataset-id-not-found"
-	ErrorDatasetClosed      = "dataset-closed"
+	AuthenticationTokenMissing = "authentication-token-missing"
+	Unauthenticated            = "unauthenticated"
+	Unauthorized               = "unauthorized"
+	JSONMalformed              = "json-malformed"
+	UserIDMissing              = "user-id-missing"
+	UserIDNotFound             = "user-id-not-found"
+	DatasetIDMissing           = "dataset-id-missing"
+	DatasetIDNotFound          = "dataset-id-not-found"
+	DatasetClosed              = "dataset-closed"
 )
 
 var errorTemplates = map[string]*service.Error{
-	ErrorJSONMalformed: {
+	AuthenticationTokenMissing: {
+		Status: http.StatusUnauthorized,
+		Title:  "authentication token missing",
+		Detail: "Authentication token missing",
+	},
+	Unauthenticated: {
+		Status: http.StatusUnauthorized,
+		Title:  "authentication token is invalid",
+		Detail: "Authentication token is invalid",
+	},
+	Unauthorized: {
+		Status: http.StatusForbidden,
+		Title:  "authentication token is not authorized for requested action",
+		Detail: "Authentication token is not authorized for requested action",
+	},
+	JSONMalformed: {
 		Status: http.StatusBadRequest,
 		Title:  "json is malformed",
 		Detail: "JSON is malformed",
 	},
-	ErrorUserIDMalformed: {
+	UserIDMissing: {
 		Status: http.StatusBadRequest,
-		Title:  "user id is malformed",
-		Detail: "User id '%s' is malformed",
+		Title:  "user id is missing",
+		Detail: "User id is missing",
 	},
-	ErrorUserIDNotFound: {
+	UserIDNotFound: {
 		Status: http.StatusNotFound,
 		Title:  "user with specified id not found",
 		Detail: "User with id '%s' not found",
 	},
-	ErrorDatasetIDMalformed: {
+	DatasetIDMissing: {
 		Status: http.StatusBadRequest,
-		Title:  "dataset id is malformed",
-		Detail: "Dataset id '%s' is malformed",
+		Title:  "dataset id is missing",
+		Detail: "Dataset id is missing",
 	},
-	ErrorDatasetIDNotFound: {
+	DatasetIDNotFound: {
 		Status: http.StatusNotFound,
 		Title:  "dataset with specified id not found",
 		Detail: "Dataset with id '%s' not found",
 	},
-	ErrorDatasetClosed: {
+	DatasetClosed: {
 		Status: http.StatusConflict,
 		Title:  "dataset with specified id is closed for new data",
 		Detail: "Dataset with id '%s' is closed for new data",

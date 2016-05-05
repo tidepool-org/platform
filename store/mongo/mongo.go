@@ -60,7 +60,7 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-func NewStore(config *Config, logger log.Logger) (*Store, error) {
+func New(config *Config, logger log.Logger) (*Store, error) {
 	if err := config.Validate(); err != nil {
 		return nil, app.ExtError(err, "mongo", "config is not valid")
 	}

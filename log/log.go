@@ -10,16 +10,17 @@ package log
  * [ ] Full test coverage
  */
 
+type Fields map[string]interface{}
+
 type Logger interface {
 	Debug(message string)
 	Info(message string)
 	Warn(message string)
 	Error(message string)
-	Fatal(message string)
 
 	WithError(err error) Logger
 	WithField(key string, value interface{}) Logger
-	WithFields(fields map[string]interface{}) Logger
+	WithFields(fields Fields) Logger
 }
 
 // NOTE: Use RootLogger sparingly. Prefer using a derived logger based upon

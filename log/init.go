@@ -59,22 +59,20 @@ func (l *loggerWithFields) Error(message string) {
 	l.finalizeFields().Error(message)
 }
 
-// TODO: Remove Fatal
-
-func (l *loggerWithFields) Fatal(message string) {
-	l.finalizeFields().Fatal(message)
-}
-
 func (l *loggerWithFields) WithError(err error) Logger {
-	return l.WithFields(map[string]interface{}{"error": err.Error()})
+	var errorString string
+	if err != nil {
+		errorString = err.Error()
+	}
+	return l.WithFields(map[string]interface{}{"error": errorString})
 }
 
 func (l *loggerWithFields) WithField(key string, value interface{}) Logger {
 	return l.WithFields(map[string]interface{}{key: value})
 }
 
-func (l *loggerWithFields) WithFields(fields map[string]interface{}) Logger {
-	withFields := make(map[string]interface{})
+func (l *loggerWithFields) WithFields(fields Fields) Logger {
+	withFields := Fields{}
 	for k, v := range l.fields {
 		withFields[k] = v
 	}
@@ -127,15 +125,15 @@ func init() {
 
 	loggerConfig := &Config{}
 	if err := config.Load("logger", loggerConfig); err != nil {
-		_logger.WithError(err).Fatal("unable to load logger config")
+		_logger.WithError(err).Error("unable to load logger config")
 	}
 	if err := loggerConfig.Validate(); err != nil {
-		_logger.WithError(err).Fatal("logger config is not valid")
+		_logger.WithError(err).Error("logger config is not valid")
 	}
 
 	level, err := logrus.ParseLevel(loggerConfig.Level)
 	if err != nil {
-		_logger.WithError(err).Fatal("unable to parse logger level")
+		_logger.WithError(err).Error("unable to parse logger level")
 	}
 
 	_logger.logger.Level = level

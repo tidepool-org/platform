@@ -19,6 +19,7 @@ import (
 )
 
 // TODO: Make this an interface
+
 type Context struct {
 	response rest.ResponseWriter
 	request  *rest.Request

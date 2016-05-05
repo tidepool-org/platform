@@ -1,4 +1,4 @@
-package dataservices
+package v1
 
 /* CHECKLIST
  * [ ] Uses interfaces as appropriate
@@ -20,14 +20,15 @@ import (
 	"github.com/tidepool-org/platform/data/deduplicator/root"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/upload"
-	"github.com/tidepool-org/platform/user"
+	"github.com/tidepool-org/platform/dataservices/server/api"
+	"github.com/tidepool-org/platform/dataservices/server/api/v1/errors"
 )
 
-func (s *Server) DatasetCreate(context *Context) {
+func UsersDatasetsCreate(context *api.Context) {
 	// TODO: Further validation of userID
 	userID := context.Request().PathParam(ParamUserID)
 	if userID == "" {
-		context.RespondWithError(ConstructError(ErrorUserIDMalformed, userID))
+		context.RespondWithError(errors.ConstructError(errors.UserIDMissing))
 		return
 	}
 
@@ -36,7 +37,7 @@ func (s *Server) DatasetCreate(context *Context) {
 	// 	return
 	// }
 
-	groupID := context.Request().Env[user.GROUPID]
+	groupID := context.Request().Env["GROUPID"]
 	if groupID == "" {
 		rest.Error(context.Response(), "Group id is missing", http.StatusBadRequest) // TODO: Fix this
 		return
@@ -50,7 +51,7 @@ func (s *Server) DatasetCreate(context *Context) {
 
 	var rawDatasetDatum types.Datum
 	if err := context.Request().DecodeJsonPayload(&rawDatasetDatum); err != nil {
-		context.RespondWithError(ConstructError(ErrorJSONMalformed))
+		context.RespondWithError(errors.ConstructError(errors.JSONMalformed))
 		return
 	}
 

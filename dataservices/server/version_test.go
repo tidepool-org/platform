@@ -1,9 +1,9 @@
-package dataservices_test
+package server_test
 
 import (
 	. "github.com/onsi/ginkgo"
 	// . "github.com/onsi/gomega"
 )
 
-var _ = PDescribe("DatasetDataCreate", func() {
+var _ = PDescribe("Version", func() {
 })
