@@ -49,13 +49,13 @@ type Status struct {
 func (c *Config) Validate() error {
 	addresses := strings.Split(c.Addresses, ",")
 	if len(addresses) < 1 {
-		return app.Error("mongo", "addresses is not specified")
+		return app.Error("mongo", "addresses is missing")
 	}
 	if c.Database == "" {
-		return app.Error("mongo", "database is not specified")
+		return app.Error("mongo", "database is missing")
 	}
 	if c.Collection == "" {
-		return app.Error("mongo", "collection is not specified")
+		return app.Error("mongo", "collection is missing")
 	}
 	return nil
 }
@@ -89,14 +89,14 @@ func NewStore(config *Config, logger log.Logger) (*Store, error) {
 		}
 	}
 
-	logger.Info("Dialing Mongo database")
+	logger.Debug("Dialing Mongo database")
 
 	session, err := mgo.DialWithInfo(&dialInfo)
 	if err != nil {
 		return nil, app.ExtError(err, "mongo", "unable to dial database")
 	}
 
-	logger.Info("Verifying Mongo build version is supported")
+	logger.Debug("Verifying Mongo build version is supported")
 
 	buildInfo, err := session.BuildInfo()
 	if err != nil {
@@ -109,7 +109,7 @@ func NewStore(config *Config, logger log.Logger) (*Store, error) {
 		return nil, app.ExtError(err, "mongo", "unsupported mongo build version")
 	}
 
-	logger.Info("Setting Mongo consistency mode to Strong")
+	logger.Debug("Setting Mongo consistency mode to Strong")
 
 	session.SetMode(mgo.Strong, true)
 

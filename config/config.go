@@ -23,10 +23,10 @@ import (
 
 func Load(name string, config interface{}) error {
 	if name == "" {
-		return app.Error("config", "name is not specified")
+		return app.Error("config", "name is missing")
 	}
 	if config == nil {
-		return app.Error("config", "config is not specified")
+		return app.Error("config", "config is missing")
 	}
 
 	if _error != nil {
