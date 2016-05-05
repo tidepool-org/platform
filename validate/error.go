@@ -35,9 +35,12 @@ func (e *ErrorProcessing) Pointer() string {
 }
 
 func (e *ErrorProcessing) AppendPointerError(pointer string, title string, detail string) {
+	if e.pointer != "" {
+		pointer = fmt.Sprintf("%s/%s", e.pointer, pointer)
+	}
 	e.AppendError(&service.Error{
 		Source: &service.Source{
-			Pointer: fmt.Sprintf("%s/%s", e.pointer, pointer),
+			Pointer: pointer,
 		},
 		Title:  title,
 		Detail: detail,
