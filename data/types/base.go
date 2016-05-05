@@ -267,10 +267,19 @@ func (d Datum) ToStringArray(fieldName string, errs validate.ErrorProcessing) []
 	if d[fieldName] == nil {
 		return nil
 	}
-	stringArray, ok := d[fieldName].([]string)
+	objectArray, ok := d[fieldName].([]interface{})
 	if !ok {
 		errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "string array"))
 		return nil
+	}
+	stringArray := []string{}
+	for _, object := range objectArray {
+		str, ok := object.(string)
+		if !ok {
+			errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "string array"))
+			return nil
+		}
+		stringArray = append(stringArray, str)
 	}
 	return stringArray
 }
