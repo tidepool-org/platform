@@ -13,7 +13,7 @@ func init() {
 	types.GetPlatformValidator().RegisterValidation(extendedField.Tag, ExtendedValidator)
 	types.GetPlatformValidator().RegisterValidation(durationField.Tag, DurationValidator)
 	types.GetPlatformValidator().RegisterValidation(normalField.Tag, NormalValidator)
-	types.GetPlatformValidator().RegisterValidation(bolusSubTypeField.Tag, BolusSubTypeValidator)
+	types.GetPlatformValidator().RegisterValidation(bolusSubTypeField.Tag, SubTypeValidator)
 }
 
 type Base struct {
@@ -106,7 +106,7 @@ func Build(datum types.Datum, errs validate.ErrorProcessing) interface{} {
 	return base
 }
 
-func BolusSubTypeValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+func SubTypeValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
 	subType, ok := field.Interface().(string)
 	if !ok {
 		return false
