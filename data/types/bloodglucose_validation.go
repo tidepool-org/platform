@@ -129,55 +129,55 @@ func (b *BloodGlucoseValidation) normalizeBloodGlucoseUnits(errs validate.ErrorP
 }
 
 func (b *BloodGlucoseValidation) convertBloodGlucoseValueMgToMmol() {
-	if !b.valueAllowedToBeEmpty {
-		if *b.returnUnits == mg {
-			converted := *b.Value / 18.01559
-			b.returnValue = &converted
-			b.returnUnits = &mmol
-		}
+	if *b.returnUnits == mg && b.Value != nil {
+		converted := *b.Value / 18.01559
+		b.returnValue = &converted
+		b.returnUnits = &mmol
 	}
 }
 
 func (b *BloodGlucoseValidation) validateBloodGlucoseValue(errs validate.ErrorProcessing) {
 
-	if !b.valueAllowedToBeEmpty {
-		switch *b.returnUnits {
-		case mmol:
-			if b.Value == nil {
+	if b.Value == nil && b.valueAllowedToBeEmpty {
+		return
+	}
 
-				b.continueValidation = false
-				b.addError(
-					fmt.Sprintf("%s given '%v'", mmolBloodGlucoseValueField.Message, b.Value),
-					b.valueErrorPath,
-					errs,
-				)
+	switch *b.returnUnits {
+	case mmol:
+		if b.Value == nil {
 
-			} else if *b.Value < mmolBloodGlucoseValueField.LowerLimit || *b.Value > mmolBloodGlucoseValueField.UpperLimit {
-				b.continueValidation = false
-				b.addError(
-					fmt.Sprintf("%s given '%v'", mmolBloodGlucoseValueField.Message, *b.Value),
-					b.valueErrorPath,
-					errs,
-				)
-			}
+			b.continueValidation = false
+			b.addError(
+				fmt.Sprintf("%s given '%v'", mmolBloodGlucoseValueField.Message, b.Value),
+				b.valueErrorPath,
+				errs,
+			)
 
-		default:
-			if b.Value == nil {
-				b.continueValidation = false
-				b.addError(
-					fmt.Sprintf("%s given '%v'", mgdlBloodGlucoseValueField.Message, b.Value),
-					b.valueErrorPath,
-					errs,
-				)
+		} else if *b.Value < mmolBloodGlucoseValueField.LowerLimit || *b.Value > mmolBloodGlucoseValueField.UpperLimit {
+			b.continueValidation = false
+			b.addError(
+				fmt.Sprintf("%s given '%v'", mmolBloodGlucoseValueField.Message, *b.Value),
+				b.valueErrorPath,
+				errs,
+			)
+		}
 
-			} else if *b.Value < mgdlBloodGlucoseValueField.LowerLimit || *b.Value > mgdlBloodGlucoseValueField.UpperLimit {
-				b.continueValidation = false
-				b.addError(
-					fmt.Sprintf("%s given '%v'", mgdlBloodGlucoseValueField.Message, *b.Value),
-					b.valueErrorPath,
-					errs,
-				)
-			}
+	default:
+		if b.Value == nil {
+			b.continueValidation = false
+			b.addError(
+				fmt.Sprintf("%s given '%v'", mgdlBloodGlucoseValueField.Message, b.Value),
+				b.valueErrorPath,
+				errs,
+			)
+
+		} else if *b.Value < mgdlBloodGlucoseValueField.LowerLimit || *b.Value > mgdlBloodGlucoseValueField.UpperLimit {
+			b.continueValidation = false
+			b.addError(
+				fmt.Sprintf("%s given '%v'", mgdlBloodGlucoseValueField.Message, *b.Value),
+				b.valueErrorPath,
+				errs,
+			)
 		}
 	}
 
@@ -224,7 +224,6 @@ func (b *BloodGlucoseValidation) ValidateAndConvertBloodGlucoseValue(errs valida
 		//b.debug()
 		return b.returnValue, b.returnUnits
 	}
-
 	b.convertBloodGlucoseValueMgToMmol()
 	//b.debug()
 	return b.returnValue, b.returnUnits
