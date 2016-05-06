@@ -57,9 +57,39 @@ var _ = Describe("Event", func() {
 
 			Context("bgInput", func() {
 
+				var mmol = "mmol/L"
+
 				It("is not required", func() {
 					delete(calculatorObj, "bgInput")
 					Expect(helper.ValidDataType(calculator.Build(calculatorObj, helper.ErrorProcessing))).To(BeNil())
+				})
+
+				It("is converts the units when mg/dL", func() {
+
+					nintyNine := 99.0
+					calculatorObj["units"] = "mg/dL"
+					calculatorObj["bgInput"] = nintyNine
+
+					expectedMmolValue := nintyNine / 18.01559
+					bolusCalculator := calculator.Build(calculatorObj, helper.ErrorProcessing)
+					Expect(helper.ValidDataType(bolusCalculator)).To(BeNil())
+					Expect(bolusCalculator.Units).To(Equal(&mmol))
+					Expect(bolusCalculator.BloodGlucoseInput).To(Equal(&expectedMmolValue))
+				})
+
+				It("also allows mmol/L", func() {
+					nine := 9.0
+					calculatorObj["units"] = "mmol/L"
+					calculatorObj["bgInput"] = nine
+					//also need updating inline with units
+					bgTargetObj["high"] = 10.0
+					bgTargetObj["low"] = 5.0
+					calculatorObj["bgTarget"] = bgTargetObj
+
+					bolusCalculator := calculator.Build(calculatorObj, helper.ErrorProcessing)
+					Expect(helper.ValidDataType(bolusCalculator)).To(BeNil())
+					Expect(bolusCalculator.Units).To(Equal(&mmol))
+					Expect(bolusCalculator.BloodGlucoseInput).To(Equal(&nine))
 				})
 
 			})

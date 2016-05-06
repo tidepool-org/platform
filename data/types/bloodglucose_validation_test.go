@@ -44,9 +44,9 @@ var _ = Describe("Bloodglucose Validation", func() {
 
 		It("returns same value if already mmol/L", func() {
 			fiveFive := 5.5
-			bgValidator := types.NewBloodGlucoseValidation(&fiveFive, &mmolL)
 
-			convertedBg, convertedUnits := bgValidator.ValidateAndConvertBloodGlucoseValue(helper.ErrorProcessing)
+			convertedBg, convertedUnits := types.NewBloodGlucoseValidation(&fiveFive, &mmolL).
+				ValidateAndConvertBloodGlucoseValue(helper.ErrorProcessing)
 
 			Expect(convertedBg).To(Equal(&fiveFive))
 			Expect(convertedUnits).To(Equal(&mmolL))
@@ -55,8 +55,9 @@ var _ = Describe("Bloodglucose Validation", func() {
 
 		It("creates error if outside of the expected range for mmol/L", func() {
 			fiftyFiveFive := 55.5
-			bgValidator := types.NewBloodGlucoseValidation(&fiftyFiveFive, &mmolL)
-			bgValidator.ValidateAndConvertBloodGlucoseValue(helper.ErrorProcessing)
+
+			types.NewBloodGlucoseValidation(&fiftyFiveFive, &mmolL).
+				ValidateAndConvertBloodGlucoseValue(helper.ErrorProcessing)
 
 			Expect(helper.ErrorProcessing.HasErrors()).To(BeTrue())
 			Expect(helper.ErrorProcessing.GetErrors()).To(HaveLen(1))
@@ -64,9 +65,10 @@ var _ = Describe("Bloodglucose Validation", func() {
 		})
 
 		It("allows for the value to be optional", func() {
-			bgValidator := types.NewBloodGlucoseValidation(nil, &mmolL).SetValueAllowedToBeEmpty(true)
 
-			convertedBg, convertedUnits := bgValidator.ValidateAndConvertBloodGlucoseValue(helper.ErrorProcessing)
+			convertedBg, convertedUnits := types.NewBloodGlucoseValidation(nil, &mmolL).
+				SetValueAllowedToBeEmpty(true).
+				ValidateAndConvertBloodGlucoseValue(helper.ErrorProcessing)
 
 			Expect(helper.ErrorProcessing.HasErrors()).To(BeFalse())
 			Expect(convertedUnits).To(Equal(&mmolL))
@@ -76,9 +78,9 @@ var _ = Describe("Bloodglucose Validation", func() {
 		It("returns value in mmol/L if mg/dL", func() {
 			threeSixty := 360.0
 			expected := threeSixty / 18.01559
-			bgValidator := types.NewBloodGlucoseValidation(&threeSixty, &mgdL)
 
-			convertedBg, convertedUnits := bgValidator.ValidateAndConvertBloodGlucoseValue(helper.ErrorProcessing)
+			convertedBg, convertedUnits := types.NewBloodGlucoseValidation(&threeSixty, &mgdL).
+				ValidateAndConvertBloodGlucoseValue(helper.ErrorProcessing)
 
 			Expect(convertedBg).To(Equal(&expected))
 			Expect(convertedUnits).To(Equal(&mmolL))
@@ -87,8 +89,9 @@ var _ = Describe("Bloodglucose Validation", func() {
 
 		It("creates error if outside of the expected range for mg/dL", func() {
 			oneThousandAndOne := 1001.0
-			bgValidator := types.NewBloodGlucoseValidation(&oneThousandAndOne, &mgdL)
-			bgValidator.ValidateAndConvertBloodGlucoseValue(helper.ErrorProcessing)
+
+			types.NewBloodGlucoseValidation(&oneThousandAndOne, &mgdL).
+				ValidateAndConvertBloodGlucoseValue(helper.ErrorProcessing)
 
 			Expect(helper.ErrorProcessing.HasErrors()).To(BeTrue())
 			Expect(helper.ErrorProcessing.GetErrors()).To(HaveLen(1))
