@@ -38,10 +38,6 @@ var _ = Describe("Log", func() {
 			Expect(rootLogger.Error).ToNot(BeNil())
 		})
 
-		It("receives Fatal", func() {
-			Expect(rootLogger.Fatal).ToNot(BeNil())
-		})
-
 		It("returns a new Logger from WithError", func() {
 			Expect(rootLogger.WithError(fmt.Errorf("test"))).ToNot(BeNil())
 		})

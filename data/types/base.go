@@ -208,8 +208,13 @@ func (d Datum) ToFloat64(fieldName string, errs validate.ErrorProcessing) *float
 	}
 	theFloat, ok := d[fieldName].(float64)
 	if !ok {
-		errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "float"))
-		return nil
+		// TODO_DATA: Also cast from int to float64 - Tandem uses "0" (int) for this field
+		theInt, ok := d[fieldName].(int)
+		if !ok {
+			errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "float"))
+			return nil
+		}
+		theFloat = float64(theInt)
 	}
 	return &theFloat
 }
@@ -267,10 +272,19 @@ func (d Datum) ToStringArray(fieldName string, errs validate.ErrorProcessing) []
 	if d[fieldName] == nil {
 		return nil
 	}
-	stringArray, ok := d[fieldName].([]string)
+	objectArray, ok := d[fieldName].([]interface{})
 	if !ok {
 		errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "string array"))
 		return nil
+	}
+	stringArray := []string{}
+	for _, object := range objectArray {
+		str, ok := object.(string)
+		if !ok {
+			errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "string array"))
+			return nil
+		}
+		stringArray = append(stringArray, str)
 	}
 	return stringArray
 }

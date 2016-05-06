@@ -24,7 +24,7 @@ var _ = Describe("DeviceEvent", func() {
 			"from":     "2015-03-08T12:02:00",
 			"to":       "2015-03-08T13:00:00",
 			"agent":    "manual",
-			"reasons":  []string{"to_daylight_savings", "correction"},
+			"reasons":  []interface{}{"to_daylight_savings", "correction"},
 			"timezone": "US/Pacific",
 		}
 
@@ -48,7 +48,7 @@ var _ = Describe("DeviceEvent", func() {
 				})
 				It("can be empty", func() {
 
-					change["reasons"] = []string{}
+					change["reasons"] = []interface{}{}
 					deviceEventObj["change"] = change
 
 					Expect(helper.ValidDataType(device.Build(deviceEventObj, helper.ErrorProcessing))).To(BeNil())
@@ -56,14 +56,14 @@ var _ = Describe("DeviceEvent", func() {
 
 				It("can be any of the approved types", func() {
 
-					change["reasons"] = []string{"from_daylight_savings", "to_daylight_savings", "travel", "correction", "other"}
+					change["reasons"] = []interface{}{"from_daylight_savings", "to_daylight_savings", "travel", "correction", "other"}
 					deviceEventObj["change"] = change
 
 					Expect(helper.ValidDataType(device.Build(deviceEventObj, helper.ErrorProcessing))).To(BeNil())
 				})
 				It("cannot be an un-approved type ", func() {
 
-					change["reasons"] = []string{"from_daylight_savings", "nope", "travel", "correction", "other"}
+					change["reasons"] = []interface{}{"from_daylight_savings", "nope", "travel", "correction", "other"}
 					deviceEventObj["change"] = change
 
 					Expect(

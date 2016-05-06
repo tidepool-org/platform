@@ -18,6 +18,8 @@ import (
 	"github.com/tidepool-org/platform/log"
 )
 
+// TODO: Make this an interface
+
 type Context struct {
 	response rest.ResponseWriter
 	request  *rest.Request
@@ -78,7 +80,9 @@ func (c *Context) RespondWithServerFailure(message string, failure ...interface{
 	logger := c.Logger()
 	if len(failure) > 0 {
 		for index := range failure {
-			if stringer, ok := failure[index].(fmt.Stringer); ok {
+			if err, ok := failure[index].(error); ok {
+				failure[index] = err.Error()
+			} else if stringer, ok := failure[index].(fmt.Stringer); ok {
 				failure[index] = stringer.String()
 			}
 		}

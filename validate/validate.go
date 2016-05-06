@@ -67,11 +67,7 @@ func buildErrors(err *validator.FieldError, info ValidationInfo, errorProcessing
 				}
 			}
 		} else {
-			errorProcessing.AppendPointerError(
-				fmt.Sprintf("%s/0", info.FieldName),
-				"Validation Error",
-				fmt.Sprintf("%s given '%v'", info.Message, err.Value),
-			)
+			errorProcessing.AppendPointerError(info.FieldName, "Validation Error", info.Message)
 		}
 	default:
 		errorProcessing.AppendPointerError(

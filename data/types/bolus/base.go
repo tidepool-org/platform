@@ -13,7 +13,7 @@ func init() {
 	types.GetPlatformValidator().RegisterValidation(extendedField.Tag, ExtendedValidator)
 	types.GetPlatformValidator().RegisterValidation(durationField.Tag, DurationValidator)
 	types.GetPlatformValidator().RegisterValidation(normalField.Tag, NormalValidator)
-	types.GetPlatformValidator().RegisterValidation(bolusSubTypeField.Tag, BolusSubTypeValidator)
+	types.GetPlatformValidator().RegisterValidation(SubTypeField.Tag, SubTypeValidator)
 }
 
 type Base struct {
@@ -48,11 +48,11 @@ var (
 	normalField = types.FloatDatumField{
 		DatumField:        &types.DatumField{Name: "normal"},
 		Tag:               "bolusnormal",
-		Message:           "Must be greater than 0 and less than or equal to 100.0",
+		Message:           "Must be greater than or equal to 0 and less than or equal to 100", // TODO_DATA: Tandem can have 0 normal
 		AllowedFloatRange: &types.AllowedFloatRange{LowerLimit: 0.0, UpperLimit: 100.0},
 	}
 
-	bolusSubTypeField = types.DatumFieldInformation{
+	SubTypeField = types.DatumFieldInformation{
 		DatumField: &types.DatumField{Name: "subType"},
 		Tag:        "bolussubtype",
 		Message:    "Must be one of normal, square, dual/square",
@@ -61,8 +61,8 @@ var (
 
 	failureReasons = validate.FailureReasons{
 		"SubType": validate.ValidationInfo{
-			FieldName: bolusSubTypeField.Name,
-			Message:   bolusSubTypeField.Message,
+			FieldName: SubTypeField.Name,
+			Message:   SubTypeField.Message,
 		},
 		"Normal": validate.ValidationInfo{
 			FieldName: normalField.Name,
@@ -82,7 +82,7 @@ var (
 func Build(datum types.Datum, errs validate.ErrorProcessing) interface{} {
 
 	base := &Base{
-		SubType: datum.ToString(bolusSubTypeField.Name, errs),
+		SubType: datum.ToString(SubTypeField.Name, errs),
 		Base:    types.BuildBase(datum, errs),
 	}
 
@@ -106,12 +106,12 @@ func Build(datum types.Datum, errs validate.ErrorProcessing) interface{} {
 	return base
 }
 
-func BolusSubTypeValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
+func SubTypeValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
 	subType, ok := field.Interface().(string)
 	if !ok {
 		return false
 	}
-	_, ok = bolusSubTypeField.Allowed[subType]
+	_, ok = SubTypeField.Allowed[subType]
 	return ok
 }
 
@@ -120,7 +120,7 @@ func NormalValidator(v *validator.Validate, topStruct reflect.Value, currentStru
 	if !ok {
 		return false
 	}
-	return normal > normalField.LowerLimit && normal <= normalField.UpperLimit
+	return normal >= normalField.LowerLimit && normal <= normalField.UpperLimit // TODO_DATA: Tandem can have 0 normal
 }
 
 func ExtendedValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {

@@ -5,5 +5,5 @@ import (
 	// . "github.com/onsi/gomega"
 )
 
-var _ = PDescribe("Recover", func() {
+var _ = PDescribe("RecoverMiddleware", func() {
 })

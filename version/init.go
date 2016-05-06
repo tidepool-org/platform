@@ -17,5 +17,5 @@ var (
 )
 
 func init() {
-	_current = NewBaseCommit(_base, _commit)
+	_current = NewStandard(_base, _commit)
 }
