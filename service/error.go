@@ -42,20 +42,14 @@ var (
 	}
 )
 
-func (e *Error) Clone() *Error {
-	err := &Error{
-		Code:   e.Code,
-		Detail: e.Detail,
-		Status: e.Status,
-		Title:  e.Title,
-	}
-	if e.Source != nil {
-		err.Source = &Source{
-			Parameter: e.Source.Parameter,
-			Pointer:   e.Source.Pointer,
-		}
-	}
-	return err
+func (e *Error) WithParameter(parameter string) *Error {
+	e.Source = &Source{Parameter: parameter}
+	return e
+}
+
+func (e *Error) WithPointer(pointer string) *Error {
+	e.Source = &Source{Pointer: pointer}
+	return e
 }
 
 func NewErrors() *Errors {

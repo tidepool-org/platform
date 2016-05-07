@@ -60,32 +60,6 @@ var _ = Describe("Error", func() {
 					"}"))
 			})
 		})
-
-		Context("Clone", func() {
-			It("copies the simple fields", func() {
-				err := &service.Error{
-					Code:   "test-code",
-					Detail: "test-detail",
-					Status: 400,
-					Title:  "test-title",
-				}
-				clone := err.Clone()
-				Expect(clone).To(Equal(err))
-				Expect(clone).ToNot(BeIdenticalTo(err))
-			})
-			It("copies the complex structs", func() {
-				err := &service.Error{
-					Source: &service.Source{
-						Parameter: "test-parameter",
-						Pointer:   "test-pointer",
-					},
-				}
-				clone := err.Clone()
-				Expect(clone).To(Equal(err))
-				Expect(clone).ToNot(BeIdenticalTo(err))
-				Expect(clone.Source).ToNot(BeIdenticalTo(err.Source))
-			})
-		})
 	})
 
 	Context("InternalServerError", func() {

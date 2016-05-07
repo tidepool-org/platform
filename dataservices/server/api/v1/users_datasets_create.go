@@ -19,21 +19,20 @@ import (
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/dataservices/server/api"
-	"github.com/tidepool-org/platform/dataservices/server/api/v1/errors"
 	"github.com/tidepool-org/platform/userservices/client"
 )
 
 func UsersDatasetsCreate(context *api.Context) {
 	targetUserID := context.Request().PathParam("userid")
 	if targetUserID == "" {
-		context.RespondWithError(errors.ConstructError(errors.UserIDMissing))
+		context.RespondWithError(ErrorUserIDMissing())
 		return
 	}
 
 	err := context.Client().ValidateTargetUserPermissions(context.Context, context.RequestUserID, targetUserID, client.UploadPermissions)
 	if err != nil {
 		if client.IsUnauthorizedError(err) {
-			context.RespondWithError(errors.ConstructError(errors.Unauthorized))
+			context.RespondWithError(ErrorUnauthorized())
 		} else {
 			context.RespondWithServerFailure("Unable to validate target user permissions", err)
 		}
@@ -43,7 +42,7 @@ func UsersDatasetsCreate(context *api.Context) {
 	targetUserGroupID, err := context.Client().GetUserGroupID(context.Context, targetUserID)
 	if err != nil {
 		if client.IsUnauthorizedError(err) {
-			context.RespondWithError(errors.ConstructError(errors.Unauthorized))
+			context.RespondWithError(ErrorUnauthorized())
 		} else {
 			context.RespondWithServerFailure("Unable to get group id for target user", err)
 		}
@@ -52,7 +51,7 @@ func UsersDatasetsCreate(context *api.Context) {
 
 	var rawDatasetDatum types.Datum
 	if err := context.Request().DecodeJsonPayload(&rawDatasetDatum); err != nil {
-		context.RespondWithError(errors.ConstructError(errors.JSONMalformed))
+		context.RespondWithError(ErrorJSONMalformed())
 		return
 	}
 

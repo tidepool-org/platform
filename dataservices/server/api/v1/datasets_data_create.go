@@ -18,7 +18,6 @@ import (
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/dataservices/server/api"
-	"github.com/tidepool-org/platform/dataservices/server/api/v1/errors"
 	"github.com/tidepool-org/platform/store"
 	"github.com/tidepool-org/platform/userservices/client"
 )
@@ -26,14 +25,14 @@ import (
 func DatasetsDataCreate(context *api.Context) {
 	datasetID := context.Request().PathParam("datasetid")
 	if datasetID == "" {
-		context.RespondWithError(errors.ConstructError(errors.DatasetIDMissing))
+		context.RespondWithError(ErrorDatasetIDMissing())
 		return
 	}
 
 	// TODO: Improve context.Store() Find - more specific
 	var datasetUpload upload.Upload
 	if err := context.Store().Find(store.Query{"type": "upload", "uploadId": datasetID}, &datasetUpload); err != nil {
-		context.RespondWithError(errors.ConstructError(errors.DatasetIDNotFound, datasetID))
+		context.RespondWithError(ErrorDatasetIDNotFound(datasetID))
 		return
 	}
 
@@ -44,7 +43,7 @@ func DatasetsDataCreate(context *api.Context) {
 	err := context.Client().ValidateTargetUserPermissions(context.Context, context.RequestUserID, targetUserID, client.UploadPermissions)
 	if err != nil {
 		if client.IsUnauthorizedError(err) {
-			context.RespondWithError(errors.ConstructError(errors.Unauthorized))
+			context.RespondWithError(ErrorUnauthorized())
 		} else {
 			context.RespondWithServerFailure("Unable to validate target user permissions", err)
 		}
@@ -52,7 +51,7 @@ func DatasetsDataCreate(context *api.Context) {
 	}
 
 	if datasetUpload.DataState == nil || *datasetUpload.DataState != "open" {
-		context.RespondWithError(errors.ConstructError(errors.DatasetClosed, datasetID))
+		context.RespondWithError(ErrorDatasetClosed(datasetID))
 		return
 	}
 
@@ -65,7 +64,7 @@ func DatasetsDataCreate(context *api.Context) {
 
 	var rawDatumArray types.DatumArray
 	if err := context.Request().DecodeJsonPayload(&rawDatumArray); err != nil {
-		context.RespondWithError(errors.ConstructError(errors.JSONMalformed))
+		context.RespondWithError(ErrorJSONMalformed())
 		return
 	}
 
