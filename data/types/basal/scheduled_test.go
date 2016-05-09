@@ -77,6 +77,10 @@ var _ = Describe("Scheduled", func() {
 					Expect(helper.ValidDataType(basal.Build(basalObj, helper.ErrorProcessing))).To(BeNil())
 				})
 
+				It("valid when equal to zero", func() {
+					basalObj["rate"] = 0.0
+					Expect(helper.ValidDataType(basal.Build(basalObj, helper.ErrorProcessing))).To(BeNil())
+				})
 			})
 
 			Context("duration", func() {
