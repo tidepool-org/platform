@@ -12,9 +12,15 @@ env:
     - TIDEPOOL_CONFIG_DIRECTORY="${PWD}/_config"
 
 script:
-  - make pre-build
-  - make build
-  - make test
+  - make ci-deploy
+
+addons:
+  artifacts:
+    s3_region: "us-west-2"
+    paths:
+    - $(git ls-files -o deploy/platform/platform-*.tar.gz | tr "\n" ":")
+    target_paths:
+    - /
 
 notifications:
   email:

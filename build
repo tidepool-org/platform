@@ -1,3 +1,0 @@
-#!/bin/bash -eu
-
-GOPATH=$(pwd) make dist
