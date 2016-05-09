@@ -111,6 +111,9 @@ build: godep
 
 ci-build: build
 
+dist: pre-commit build test # TODO: Should be 'pre-commit ci-build ci-test' once ci-* targets function properly
+	@cd $(ROOT_DIRECTORY) && rm -rf dist && mkdir -p dist && cp -r _bin _config start dist/
+
 start: stop build log
 	@cd $(ROOT_DIRECTORY) && _bin/dataservices >> _log/service.log 2>&1 &
 
@@ -130,7 +133,7 @@ watch: ginkgo
 	@cd $(ROOT_DIRECTORY) && GOPATH=$(shell godep path):$(GOPATH) TIDEPOOL_ENV=test ginkgo watch -r --randomizeSuites -randomizeAllSpecs -succinct -notify $(WATCH)
 
 clean: stop
-	@cd $(ROOT_DIRECTORY) && rm -rf _bin _log _tmp
+	@cd $(ROOT_DIRECTORY) && rm -rf _bin _log _tmp dist
 	@cd $(ROOT_DIRECTORY) && find . -type f -name "*.coverprofile" -delete
 
 clean-all: clean
@@ -173,5 +176,5 @@ bootstrap:
 
 .PHONY: default log tmp check-go check-gopath check-environment \
 	godep goimports golint gocode godef oracle ginkgo buildable editable \
-	format imports vet lint pre-build build ci-build start stop test ci-test watch clean clean-all git-hooks pre-commit \
+	format imports vet lint pre-build build ci-build dist start stop test ci-test watch clean clean-all git-hooks pre-commit \
 	gopath-implode dependencies-implode bootstrap-implode bootstrap-dependencies bootstrap-save bootstrap

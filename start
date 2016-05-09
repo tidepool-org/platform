@@ -1,4 +1,4 @@
-#! /bin/bash -eu
+#!/bin/bash -eu
 
-source _config/.env
+source .env
 _bin/dataservices

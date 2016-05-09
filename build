@@ -1,17 +1,3 @@
-#! /bin/bash -eu
+#!/bin/bash -eu
 
-export GOPATH=`pwd`
-
-make editable
-
-PROJECT=platform
-
-OUTDIR=dist
-rm -rf ${OUTDIR}
-mkdir ${OUTDIR}
-
-make build
-
-cp _bin/dataservices ${OUTDIR}/${PROJECT}
-
-cp start ${OUTDIR}/
+GOPATH=$(pwd) make dist
