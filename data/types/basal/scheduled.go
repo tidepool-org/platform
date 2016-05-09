@@ -8,7 +8,7 @@ import (
 type Scheduled struct {
 	ScheduleName *string  `json:"scheduleName,omitempty" bson:"scheduleName,omitempty"`
 	Duration     *int     `json:"duration" bson:"duration" valid:"basalduration"`
-	Rate         *float64 `json:"rate" bson:"rate" valid:"required,basalrate"`
+	Rate         *float64 `json:"rate" bson:"rate" valid:"basalrate"`
 
 	Base `bson:",inline"`
 }
