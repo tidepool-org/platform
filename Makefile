@@ -88,11 +88,14 @@ imports: goimports
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 vet: check-environment tmp
-	@echo "go tool vet -test"
+	@echo "go tool vet -test -shadowstrict -printfuncs=Errorf:1"
 	@cd $(ROOT_DIRECTORY) && \
-		find . -mindepth 1 -maxdepth 1 -not -path "./.*" -not -path "./_*" -not -path "./Godeps" -type d -exec go tool vet -test {} \; &> _tmp/govet.out && \
+		find . -mindepth 1 -maxdepth 1 -not -path "./.*" -not -path "./_*" -not -path "./Godeps" -type d -exec go tool vet -test -shadowstrict -printfuncs=Errorf:1 {} \; &> _tmp/govet.out && \
 		O=`diff .govetignore _tmp/govet.out` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
+
+vet-ignore:
+	@cd $(ROOT_DIRECTORY) && cp _tmp/govet.out .govetignore
 
 lint: golint tmp
 	@echo "golint"
@@ -184,5 +187,5 @@ bootstrap:
 
 .PHONY: default log tmp check-go check-gopath check-environment \
 	godep goimports golint gocode godef oracle ginkgo buildable editable \
-	format imports vet lint pre-build build ci-build ci-deploy start stop test ci-test watch clean clean-all git-hooks pre-commit \
+	format imports vet vet-ignore lint lint-ignore pre-build build ci-build ci-deploy start stop test ci-test watch clean clean-all git-hooks pre-commit \
 	gopath-implode dependencies-implode bootstrap-implode bootstrap-dependencies bootstrap-save bootstrap

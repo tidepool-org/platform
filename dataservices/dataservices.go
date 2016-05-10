@@ -27,7 +27,7 @@ func main() {
 	}
 	defer server.Close()
 
-	if err := server.Run(); err != nil {
+	if err = server.Run(); err != nil {
 		logger.WithError(err).Error("Failure running dataservices server")
 		os.Exit(1)
 	}

@@ -90,10 +90,10 @@ func Build(datum types.Datum, errs validate.ErrorProcessing) interface{} {
 }
 
 func RateValidator(v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value, field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string) bool {
-	rate, ok := field.Interface().(float64)
-	if !ok {
-		rateInt, ok := field.Interface().(int) // TODO_DATA: Try int as well
-		if !ok {
+	rate, rateOk := field.Interface().(float64)
+	if !rateOk {
+		rateInt, rateIntOk := field.Interface().(int) // TODO_DATA: Try int as well
+		if !rateIntOk {
 			return false
 		}
 		rate = float64(rateInt)

@@ -206,17 +206,17 @@ func (d Datum) ToFloat64(fieldName string, errs validate.ErrorProcessing) *float
 	if d[fieldName] == nil {
 		return nil
 	}
-	theFloat, ok := d[fieldName].(float64)
-	if !ok {
+	floatValue, floatOk := d[fieldName].(float64)
+	if !floatOk {
 		// TODO_DATA: Also cast from int to float64 - Tandem uses "0" (int) for this field
-		theInt, ok := d[fieldName].(int)
-		if !ok {
+		intValue, intOk := d[fieldName].(int)
+		if !intOk {
 			errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "float"))
 			return nil
 		}
-		theFloat = float64(theInt)
+		floatValue = float64(intValue)
 	}
-	return &theFloat
+	return &floatValue
 }
 
 func (d Datum) ToInt(fieldName string, errs validate.ErrorProcessing) *int {
@@ -224,10 +224,10 @@ func (d Datum) ToInt(fieldName string, errs validate.ErrorProcessing) *int {
 		return nil
 	}
 
-	intValue, ok := d[fieldName].(int)
-	if !ok {
-		floatValue, ok := d[fieldName].(float64)
-		if !ok {
+	intValue, intOk := d[fieldName].(int)
+	if !intOk {
+		floatValue, floatOk := d[fieldName].(float64)
+		if !floatOk {
 			errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "int"))
 			return nil
 		}
@@ -272,15 +272,15 @@ func (d Datum) ToStringArray(fieldName string, errs validate.ErrorProcessing) []
 	if d[fieldName] == nil {
 		return nil
 	}
-	objectArray, ok := d[fieldName].([]interface{})
-	if !ok {
+	objectArray, objectArrayOk := d[fieldName].([]interface{})
+	if !objectArrayOk {
 		errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "string array"))
 		return nil
 	}
 	stringArray := []string{}
 	for _, object := range objectArray {
-		str, ok := object.(string)
-		if !ok {
+		str, strOk := object.(string)
+		if !strOk {
 			errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "string array"))
 			return nil
 		}

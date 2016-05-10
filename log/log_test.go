@@ -1,7 +1,7 @@
 package log_test
 
 import (
-	"fmt"
+	"errors"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -39,7 +39,7 @@ var _ = Describe("Log", func() {
 		})
 
 		It("returns a new Logger from WithError", func() {
-			Expect(rootLogger.WithError(fmt.Errorf("test"))).ToNot(BeNil())
+			Expect(rootLogger.WithError(errors.New("test"))).ToNot(BeNil())
 		})
 
 		It("returns a new Logger from WithField", func() {

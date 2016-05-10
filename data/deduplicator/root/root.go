@@ -11,7 +11,7 @@ package root
  */
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/tidepool-org/platform/data/deduplicator"
 	"github.com/tidepool-org/platform/data/deduplicator/alignment"
@@ -53,5 +53,5 @@ func (f *Factory) NewDeduplicator(datasetUpload *upload.Upload, storeSession sto
 			return factory.NewDeduplicator(datasetUpload, storeSession, logger)
 		}
 	}
-	return nil, fmt.Errorf("Deduplicator not found")
+	return nil, errors.New("Deduplicator not found")
 }

@@ -138,7 +138,7 @@ func (s *Server) setupClient() error {
 	}
 
 	s.logger.Debug("Starting userservices client")
-	if err := userservicesClient.Start(); err != nil {
+	if err = userservicesClient.Start(); err != nil {
 
 		return app.ExtError(err, "dataservices", "unable to start userservices client")
 	}

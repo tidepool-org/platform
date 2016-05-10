@@ -55,7 +55,7 @@ func DatasetsUpdate(context *api.Context) {
 	dataState := "closed"
 	datasetUpload.DataState = &dataState
 
-	if err := context.Store().Update(map[string]interface{}{"type": "upload", "uploadId": datasetID}, datasetUpload); err != nil {
+	if err = context.Store().Update(map[string]interface{}{"type": "upload", "uploadId": datasetID}, datasetUpload); err != nil {
 		context.RespondWithServerFailure("Unable to insert dataset", err)
 		return
 	}
@@ -67,7 +67,7 @@ func DatasetsUpdate(context *api.Context) {
 		return
 	}
 
-	if err := deduplicator.FinalizeDataset(); err != nil {
+	if err = deduplicator.FinalizeDataset(); err != nil {
 		context.RespondWithServerFailure("Unable to finalize dataset", err)
 		return
 	}

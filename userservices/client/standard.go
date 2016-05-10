@@ -219,7 +219,7 @@ func (s *Standard) sendRequest(context *service.Context, method string, url stri
 	switch response.StatusCode {
 	case http.StatusOK:
 		if responseObject != nil {
-			if err := json.NewDecoder(response.Body).Decode(responseObject); err != nil {
+			if err = json.NewDecoder(response.Body).Decode(responseObject); err != nil {
 				return app.ExtErrorf(err, "standard", "error decoding JSON response from %s %s", request.Method, request.URL.String())
 			}
 		}

@@ -50,7 +50,7 @@ func UsersDatasetsCreate(context *api.Context) {
 	}
 
 	var rawDatasetDatum types.Datum
-	if err := context.Request().DecodeJsonPayload(&rawDatasetDatum); err != nil {
+	if err = context.Request().DecodeJsonPayload(&rawDatasetDatum); err != nil {
 		context.RespondWithError(ErrorJSONMalformed())
 		return
 	}
@@ -77,7 +77,7 @@ func UsersDatasetsCreate(context *api.Context) {
 	datasetUpload.UploadID = &uploadID
 	datasetUpload.DataState = &dataState
 
-	if err := context.Store().Insert(datasetUpload); err != nil {
+	if err = context.Store().Insert(datasetUpload); err != nil {
 		context.RespondWithServerFailure("Unable to insert dataset", err)
 		return
 	}
@@ -89,7 +89,7 @@ func UsersDatasetsCreate(context *api.Context) {
 		return
 	}
 
-	if err := deduplicator.InitializeDataset(); err != nil {
+	if err = deduplicator.InitializeDataset(); err != nil {
 		context.RespondWithServerFailure("Unable to initialize dataset", err)
 		return
 	}

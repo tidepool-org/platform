@@ -1,7 +1,7 @@
 package app_test
 
 import (
-	"fmt"
+	"errors"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -25,7 +25,7 @@ var _ = Describe("Error", func() {
 
 	Describe("ExtError", func() {
 		It("returns a formatted error", func() {
-			err := fmt.Errorf("error: inner")
+			err := errors.New("error: inner")
 			Expect(app.ExtError(err, "test", "three").Error()).To(Equal("test: three; error: inner"))
 		})
 
@@ -36,7 +36,7 @@ var _ = Describe("Error", func() {
 
 	Describe("ExtErrorf", func() {
 		It("returns a formatted error", func() {
-			err := fmt.Errorf("error: inner")
+			err := errors.New("error: inner")
 			Expect(app.ExtErrorf(err, "test", "%d %s", 4, "four").Error()).To(Equal("test: 4 four; error: inner"))
 		})
 

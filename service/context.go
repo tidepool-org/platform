@@ -80,9 +80,9 @@ func (c *Context) RespondWithServerFailure(message string, failure ...interface{
 	logger := c.Logger()
 	if len(failure) > 0 {
 		for index := range failure {
-			if err, ok := failure[index].(error); ok {
+			if err, errOk := failure[index].(error); errOk {
 				failure[index] = err.Error()
-			} else if stringer, ok := failure[index].(fmt.Stringer); ok {
+			} else if stringer, stringerOk := failure[index].(fmt.Stringer); stringerOk {
 				failure[index] = stringer.String()
 			}
 		}

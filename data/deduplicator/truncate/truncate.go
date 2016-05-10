@@ -44,9 +44,9 @@ func (f *Factory) CanDeduplicateDataset(datasetUpload *upload.Upload) (bool, err
 		return false, app.Error("truncate", "dataset upload is nil")
 	}
 	if config := datasetUpload.Deduplicator; config != nil {
-		if configAsMap, ok := config.(map[string]interface{}); ok {
+		if configAsMap, configAsMapOk := config.(map[string]interface{}); configAsMapOk {
 			return configAsMap["name"] == "truncate", nil
-		} else if configAsM, ok := config.(bson.M); ok {
+		} else if configAsM, configAsMOk := config.(bson.M); configAsMOk {
 			return configAsM["name"] == "truncate", nil
 		} else {
 			return false, nil

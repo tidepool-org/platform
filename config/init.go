@@ -27,7 +27,7 @@ func init() {
 		_error = app.Error("config", "TIDEPOOL_ENV is not defined")
 	} else if err := os.Setenv("CONFIGOR_ENV", env); err != nil {
 		_error = app.ExtError(err, "config", "unable to set CONFIGOR_ENV")
-	} else if err := os.Setenv("CONFIGOR_ENV_PREFIX", "TIDEPOOL"); err != nil {
+	} else if err = os.Setenv("CONFIGOR_ENV_PREFIX", "TIDEPOOL"); err != nil {
 		_error = app.ExtError(err, "config", "unable to set CONFIGOR_ENV_PREFIX")
 	} else if directory := os.Getenv("TIDEPOOL_CONFIG_DIRECTORY"); directory == "" {
 		_error = app.Error("config", "TIDEPOOL_CONFIG_DIRECTORY is not defined")

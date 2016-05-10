@@ -63,7 +63,7 @@ func DatasetsDataCreate(context *api.Context) {
 	}
 
 	var rawDatumArray types.DatumArray
-	if err := context.Request().DecodeJsonPayload(&rawDatumArray); err != nil {
+	if err = context.Request().DecodeJsonPayload(&rawDatumArray); err != nil {
 		context.RespondWithError(ErrorJSONMalformed())
 		return
 	}
@@ -76,7 +76,7 @@ func DatasetsDataCreate(context *api.Context) {
 		return
 	}
 
-	if err := deduplicator.AddDataToDataset(datumArray); err != nil {
+	if err = deduplicator.AddDataToDataset(datumArray); err != nil {
 		context.RespondWithServerFailure("Unable to add data to dataset", err)
 		return
 	}
