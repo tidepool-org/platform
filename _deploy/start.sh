@@ -1,4 +1,4 @@
 #!/bin/bash -eu
 
-source .env
-_bin/dataservices
+source env.sh
+exec _bin/dataservices
