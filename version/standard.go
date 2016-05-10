@@ -16,31 +16,30 @@ import (
 	"github.com/tidepool-org/platform/app"
 )
 
-func NewStandard(base string, commit string) *Standard {
+func NewStandard(base string, shortCommit string, fullCommit string) *Standard {
 	return &Standard{
-		base:   app.FirstStringNotEmpty(base, "0.0.0"),
-		commit: app.FirstStringNotEmpty(commit, "0000000000000000000000000000000000000000"),
+		base:        app.FirstStringNotEmpty(base, "0.0.0"),
+		shortCommit: app.FirstStringNotEmpty(shortCommit, "0000000"),
+		fullCommit:  app.FirstStringNotEmpty(fullCommit, "0000000000000000000000000000000000000000"),
 	}
 }
 
 type Standard struct {
-	base   string
-	commit string
+	base        string
+	shortCommit string
+	fullCommit  string
 }
 
 func (v *Standard) Base() string {
 	return v.base
 }
 
-func (v *Standard) Commit() string {
-	return v.commit
+func (v *Standard) ShortCommit() string {
+	return v.shortCommit
 }
 
-func (v *Standard) ShortCommit() string {
-	if len(v.commit) > 8 {
-		return v.commit[:8]
-	}
-	return v.commit
+func (v *Standard) FullCommit() string {
+	return v.fullCommit
 }
 
 func (v *Standard) Short() string {
@@ -48,5 +47,5 @@ func (v *Standard) Short() string {
 }
 
 func (v *Standard) Long() string {
-	return fmt.Sprintf("%s+%s", v.Base(), v.Commit())
+	return fmt.Sprintf("%s+%s", v.Base(), v.FullCommit())
 }

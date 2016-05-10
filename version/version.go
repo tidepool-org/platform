@@ -12,8 +12,8 @@ package version
 
 type Version interface {
 	Base() string
-	Commit() string
 	ShortCommit() string
+	FullCommit() string
 	Short() string
 	Long() string
 }

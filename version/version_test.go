@@ -24,12 +24,12 @@ var _ = Describe("Version", func() {
 			Expect(current.Base).ToNot(BeNil())
 		})
 
-		It("responds to Commit", func() {
-			Expect(current.Commit).ToNot(BeNil())
-		})
-
 		It("responds to ShortCommit", func() {
 			Expect(current.ShortCommit).ToNot(BeNil())
+		})
+
+		It("responds to FullCommit", func() {
+			Expect(current.FullCommit).ToNot(BeNil())
 		})
 
 		It("responds to Short", func() {

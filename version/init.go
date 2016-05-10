@@ -11,11 +11,12 @@ package version
  */
 
 var (
-	_base    string
-	_commit  string
-	_current Version
+	_base        string
+	_shortCommit string
+	_fullCommit  string
+	_current     Version
 )
 
 func init() {
-	_current = NewStandard(_base, _commit)
+	_current = NewStandard(_base, _shortCommit, _fullCommit)
 }
