@@ -127,7 +127,7 @@ const (
 
 	invalidTypeDescription = "should be of type '%s'"
 
-	CurrentSchemaVersion = 10
+	CurrentSchemaVersion = 3
 )
 
 func BuildBase(datum Datum, errs validate.ErrorProcessing) Base {

@@ -20,8 +20,8 @@ var _ = Describe("Base", func() {
 	})
 
 	Context("CurrentSchemaVersion is set", func() {
-		It("as 10", func() {
-			Expect(types.CurrentSchemaVersion).To(Equal(10))
+		It("as 3", func() {
+			Expect(types.CurrentSchemaVersion).To(Equal(3))
 		})
 	})
 

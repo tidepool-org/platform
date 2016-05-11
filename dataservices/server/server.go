@@ -29,20 +29,6 @@ import (
 	"github.com/tidepool-org/platform/userservices/client"
 )
 
-const (
-	missingPermissionsError = "missing required permissions"
-	missingDataError        = "missing data to process"
-	gettingDataError        = "there was an error getting your data"
-
-	dataservicesStoreName = "deviceData"
-
-	//TODO: this will removed when updated store is integrated
-	minimumSchemaVersion = 0
-	currentSchemaVersion = 10
-
-	useridParamName = "userid"
-)
-
 type Server struct {
 	logger           log.Logger
 	config           *Config
@@ -257,6 +243,11 @@ func (s *Server) withContext(handler api.HandlerFunc) rest.HandlerFunc {
 
 // TODO: Fix all this
 
+// const (
+// 	minimumSchemaVersion = 0
+// 	currentSchemaVersion = 3
+// )
+
 //checkPermisson will check that we have the expected permisson
 // func checkPermisson(r *rest.Request, expected client.Permission) bool {
 // 	//TODO: fill in the details
@@ -269,17 +260,17 @@ func (s *Server) withContext(handler api.HandlerFunc) rest.HandlerFunc {
 // //PostDataset will process a posted dataset for the requested user if permissons are sufficient
 // func (client *Server) PostDataset(w rest.ResponseWriter, r *rest.Request) {
 
-// 	userid := r.PathParam(useridParamName)
+// 	userid := r.PathParam("userid")
 
 // 	if !checkPermisson(r, client.Permission{}) {
-// 		rest.Error(w, missingPermissionsError, http.StatusUnauthorized)
+// 		rest.Error(w, "missing required permissions", http.StatusUnauthorized)
 // 		return
 // 	}
 
 // 	groupID := r.Env[client.GROUPID]
 
 // 	if r.ContentLength == 0 || groupID == "" {
-// 		rest.Error(w, missingDataError, http.StatusBadRequest)
+// 		rest.Error(w, "missing data to process", http.StatusBadRequest)
 // 		return
 // 	}
 
@@ -319,7 +310,7 @@ func (s *Server) withContext(handler api.HandlerFunc) rest.HandlerFunc {
 // 		w.WriteHeader(http.StatusNotImplemented)
 // 		return
 // 	}
-// 	rest.Error(w, missingPermissionsError, http.StatusUnauthorized)
+// 	rest.Error(w, "missing required permissions", http.StatusUnauthorized)
 // 	return
 
 // }
@@ -368,14 +359,14 @@ func (s *Server) withContext(handler api.HandlerFunc) rest.HandlerFunc {
 // func (client *Server) GetDataset(w rest.ResponseWriter, r *rest.Request) {
 
 // 	if !checkPermisson(r, client.Permission{}) {
-// 		rest.Error(w, missingPermissionsError, http.StatusUnauthorized)
+// 		rest.Error(w, "missing required permissions", http.StatusUnauthorized)
 // 		return
 // 	}
 
 // 	groupID := r.Env[client.GROUPID]
 
 // 	if groupID == "" {
-// 		rest.Error(w, missingDataError, http.StatusBadRequest)
+// 		rest.Error(w, "missing data to process", http.StatusBadRequest)
 // 		return
 // 	}
 
@@ -383,8 +374,8 @@ func (s *Server) withContext(handler api.HandlerFunc) rest.HandlerFunc {
 // 		types.DatumArray `json:"Dataset"`
 // 	}
 
-// 	userid := r.PathParam(useridParamName)
-// 	client.logger.WithField(useridParamName, userid).Debug("GetDataset")
+// 	userid := r.PathParam("userid")
+// 	client.logger.WithField("userid", userid).Debug("GetDataset")
 
 // 	iter := client.store.ReadAll(
 // 		store.Field{Name: types.BaseGroupIDField.Name, Value: groupID},
@@ -410,7 +401,7 @@ func (s *Server) withContext(handler api.HandlerFunc) rest.HandlerFunc {
 // 			Errors      string `json:"Errors"`
 // 		}
 
-// 		userid := r.PathParam(useridParamName)
+// 		userid := r.PathParam("userid")
 // 		datumid := r.PathParam("datumid")
 
 // 		client.logger.WithFields(map[string]interface{}{"userid": userid, "datumid": datumid}).Debug("GetData")
@@ -421,6 +412,6 @@ func (s *Server) withContext(handler api.HandlerFunc) rest.HandlerFunc {
 // 		w.WriteJson(&foundDatum)
 // 		return
 // 	}
-// 	rest.Error(w, missingPermissionsError, http.StatusUnauthorized)
+// 	rest.Error(w, "missing required permissions", http.StatusUnauthorized)
 // 	return
 // }
