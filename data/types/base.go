@@ -206,11 +206,11 @@ func (d Datum) ToFloat64(fieldName string, errs validate.ErrorProcessing) *float
 	if d[fieldName] == nil {
 		return nil
 	}
-	floatValue, floatOk := d[fieldName].(float64)
-	if !floatOk {
+	floatValue, floatValueOk := d[fieldName].(float64)
+	if !floatValueOk {
 		// TODO_DATA: Also cast from int to float64 - Tandem uses "0" (int) for this field
-		intValue, intOk := d[fieldName].(int)
-		if !intOk {
+		intValue, intValueOk := d[fieldName].(int)
+		if !intValueOk {
 			errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "float"))
 			return nil
 		}
@@ -224,10 +224,10 @@ func (d Datum) ToInt(fieldName string, errs validate.ErrorProcessing) *int {
 		return nil
 	}
 
-	intValue, intOk := d[fieldName].(int)
-	if !intOk {
-		floatValue, floatOk := d[fieldName].(float64)
-		if !floatOk {
+	intValue, intValueOk := d[fieldName].(int)
+	if !intValueOk {
+		floatValue, floatValueOk := d[fieldName].(float64)
+		if !floatValueOk {
 			errs.AppendPointerError(fieldName, InvalidTypeTitle, fmt.Sprintf(invalidTypeDescription, "int"))
 			return nil
 		}
