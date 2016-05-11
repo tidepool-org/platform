@@ -1,12 +1,5 @@
 package client
 
-import (
-	"fmt"
-	"net/http"
-
-	"github.com/tidepool-org/platform/service"
-)
-
 /* CHECKLIST
  * [ ] Uses interfaces as appropriate
  * [ ] Private package variables use underscore prefix
@@ -16,6 +9,13 @@ import (
  * [ ] Code complete
  * [ ] Full test coverage
  */
+
+import (
+	"fmt"
+	"net/http"
+
+	"github.com/tidepool-org/platform/service"
+)
 
 type Client interface {
 	Start() error
