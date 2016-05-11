@@ -1,5 +1,7 @@
 package data
 
+import "time"
+
 /* CHECKLIST
  * [ ] Uses interfaces as appropriate
  * [ ] Private package variables use underscore prefix
@@ -23,6 +25,8 @@ type Validator interface {
 	ValidateInterface(reference interface{}, value *interface{}) Interface
 	ValidateInterfaceArray(reference interface{}, value *[]interface{}) InterfaceArray
 
+	ValidateStringAsTime(reference interface{}, stringValue *string, timeLayout string) Time
+
 	NewChildValidator(reference interface{}) Validator
 }
 
@@ -36,33 +40,40 @@ type Boolean interface {
 type Integer interface {
 	Exists() Integer
 
-	EqualTo(limit int) Integer
-	NotEqualTo(limit int) Integer
+	EqualTo(value int) Integer
+	NotEqualTo(value int) Integer
+
 	LessThan(limit int) Integer
 	LessThanOrEqualTo(limit int) Integer
 	GreaterThan(limit int) Integer
 	GreaterThanOrEqualTo(limit int) Integer
 	InRange(lowerlimit int, upperLimit int) Integer
 
-	OneOf(possibleValues []int) Integer
+	OneOf(allowedValues []int) Integer
+	NotOneOf(disallowedValues []int) Integer
 }
 
 type Float interface {
 	Exists() Float
 
-	EqualTo(limit float64) Float
-	NotEqualTo(limit float64) Float
+	EqualTo(value float64) Float
+	NotEqualTo(value float64) Float
+
 	LessThan(limit float64) Float
 	LessThanOrEqualTo(limit float64) Float
 	GreaterThan(limit float64) Float
 	GreaterThanOrEqualTo(limit float64) Float
 	InRange(lowerlimit float64, upperLimit float64) Float
 
-	OneOf(possibleValues []float64) Float
+	OneOf(allowedValues []float64) Float
+	NotOneOf(disallowedValues []float64) Float
 }
 
 type String interface {
 	Exists() String
+
+	EqualTo(value string) String
+	NotEqualTo(value string) String
 
 	LengthEqualTo(limit int) String
 	LengthNotEqualTo(limit int) String
@@ -72,7 +83,8 @@ type String interface {
 	LengthGreaterThanOrEqualTo(limit int) String
 	LengthInRange(lowerlimit int, upperLimit int) String
 
-	OneOf(possibleValues []string) String
+	OneOf(allowedValues []string) String
+	NotOneOf(disallowedValues []string) String
 }
 
 type StringArray interface {
@@ -86,7 +98,8 @@ type StringArray interface {
 	LengthGreaterThanOrEqualTo(limit int) StringArray
 	LengthInRange(lowerlimit int, upperLimit int) StringArray
 
-	EachOneOf(possibleValues []string) StringArray
+	EachOneOf(allowedValues []string) StringArray
+	EachNotOneOf(disallowedValues []string) StringArray
 }
 
 type Object interface {
@@ -103,6 +116,8 @@ type ObjectArray interface {
 	LengthGreaterThan(limit int) ObjectArray
 	LengthGreaterThanOrEqualTo(limit int) ObjectArray
 	LengthInRange(lowerlimit int, upperLimit int) ObjectArray
+
+	// TODO: SizeLessThanOrEqualTo(limit int) ObjectArray
 }
 
 type Interface interface {
@@ -119,4 +134,15 @@ type InterfaceArray interface {
 	LengthGreaterThan(limit int) InterfaceArray
 	LengthGreaterThanOrEqualTo(limit int) InterfaceArray
 	LengthInRange(lowerlimit int, upperLimit int) InterfaceArray
+
+	// TODO: SizeLessThanOrEqualTo(limit int) InterfaceArray
+}
+
+type Time interface {
+	Exists() Time
+
+	After(limit time.Time) Time
+	AfterNow() Time
+	Before(limit time.Time) Time
+	BeforeNow() Time
 }

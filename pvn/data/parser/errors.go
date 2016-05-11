@@ -16,6 +16,9 @@ import (
 	"github.com/tidepool-org/platform/service"
 )
 
+// TODO: Review all errors for consistency and language
+// Once shipped, Code and Title cannot change
+
 func ErrorTypeNotBoolean(value interface{}) *service.Error {
 	return &service.Error{
 		Code:   "type-not-boolean",

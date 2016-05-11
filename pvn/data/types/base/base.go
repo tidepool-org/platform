@@ -17,7 +17,6 @@ type Base struct {
 }
 
 func (b *Base) Parse(parser data.ObjectParser) {
-	b.Type = parser.ParseString("type")
 }
 
 func (b *Base) Validate(validator data.Validator) {

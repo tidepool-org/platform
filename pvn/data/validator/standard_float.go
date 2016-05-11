@@ -33,19 +33,19 @@ func (s *StandardFloat) Exists() data.Float {
 	return s
 }
 
-func (s *StandardFloat) EqualTo(limit float64) data.Float {
+func (s *StandardFloat) EqualTo(value float64) data.Float {
 	if s.value != nil {
-		if *s.value != limit {
-			s.context.AppendError(s.reference, ErrorValueNotEqualTo(*s.value, limit))
+		if *s.value != value {
+			s.context.AppendError(s.reference, ErrorValueNotEqualTo(*s.value, value))
 		}
 	}
 	return s
 }
 
-func (s *StandardFloat) NotEqualTo(limit float64) data.Float {
+func (s *StandardFloat) NotEqualTo(value float64) data.Float {
 	if s.value != nil {
-		if *s.value == limit {
-			s.context.AppendError(s.reference, ErrorValueEqualTo(*s.value, limit))
+		if *s.value == value {
+			s.context.AppendError(s.reference, ErrorValueEqualTo(*s.value, value))
 		}
 	}
 	return s
@@ -96,14 +96,26 @@ func (s *StandardFloat) InRange(lowerlimit float64, upperLimit float64) data.Flo
 	return s
 }
 
-func (s *StandardFloat) OneOf(possibleValues []float64) data.Float {
+func (s *StandardFloat) OneOf(allowedValues []float64) data.Float {
 	if s.value != nil {
-		for _, possibleValue := range possibleValues {
+		for _, possibleValue := range allowedValues {
 			if possibleValue == *s.value {
 				return s
 			}
 		}
-		s.context.AppendError(s.reference, ErrorFloatNotOneOf(*s.value, possibleValues))
+		s.context.AppendError(s.reference, ErrorFloatNotOneOf(*s.value, allowedValues))
+	}
+	return s
+}
+
+func (s *StandardFloat) NotOneOf(disallowedValues []float64) data.Float {
+	if s.value != nil {
+		for _, possibleValue := range disallowedValues {
+			if possibleValue == *s.value {
+				s.context.AppendError(s.reference, ErrorFloatOneOf(*s.value, disallowedValues))
+				return s
+			}
+		}
 	}
 	return s
 }

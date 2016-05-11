@@ -96,17 +96,33 @@ func (s *StandardStringArray) LengthInRange(lowerlimit int, upperLimit int) data
 	return s
 }
 
-func (s *StandardStringArray) EachOneOf(possibleValues []string) data.StringArray {
+func (s *StandardStringArray) EachOneOf(allowedValues []string) data.StringArray {
 	if s.value != nil {
 		context := s.context.NewChildContext(s.reference)
 	outer:
 		for index, value := range *s.value {
-			for _, possibleValue := range possibleValues {
+			for _, possibleValue := range allowedValues {
 				if possibleValue == value {
 					continue outer
 				}
 			}
-			context.AppendError(index, ErrorStringNotOneOf(value, possibleValues))
+			context.AppendError(index, ErrorStringNotOneOf(value, allowedValues))
+		}
+	}
+	return s
+}
+
+func (s *StandardStringArray) EachNotOneOf(disallowedValues []string) data.StringArray {
+	if s.value != nil {
+		context := s.context.NewChildContext(s.reference)
+	outer:
+		for index, value := range *s.value {
+			for _, possibleValue := range disallowedValues {
+				if possibleValue == value {
+					context.AppendError(index, ErrorStringOneOf(value, disallowedValues))
+					continue outer
+				}
+			}
 		}
 	}
 	return s

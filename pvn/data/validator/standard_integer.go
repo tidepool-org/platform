@@ -33,19 +33,19 @@ func (s *StandardInteger) Exists() data.Integer {
 	return s
 }
 
-func (s *StandardInteger) EqualTo(limit int) data.Integer {
+func (s *StandardInteger) EqualTo(value int) data.Integer {
 	if s.value != nil {
-		if *s.value != limit {
-			s.context.AppendError(s.reference, ErrorValueNotEqualTo(*s.value, limit))
+		if *s.value != value {
+			s.context.AppendError(s.reference, ErrorValueNotEqualTo(*s.value, value))
 		}
 	}
 	return s
 }
 
-func (s *StandardInteger) NotEqualTo(limit int) data.Integer {
+func (s *StandardInteger) NotEqualTo(value int) data.Integer {
 	if s.value != nil {
-		if *s.value == limit {
-			s.context.AppendError(s.reference, ErrorValueEqualTo(*s.value, limit))
+		if *s.value == value {
+			s.context.AppendError(s.reference, ErrorValueEqualTo(*s.value, value))
 		}
 	}
 	return s
@@ -96,14 +96,26 @@ func (s *StandardInteger) InRange(lowerlimit int, upperLimit int) data.Integer {
 	return s
 }
 
-func (s *StandardInteger) OneOf(possibleValues []int) data.Integer {
+func (s *StandardInteger) OneOf(allowedValues []int) data.Integer {
 	if s.value != nil {
-		for _, possibleValue := range possibleValues {
+		for _, possibleValue := range allowedValues {
 			if possibleValue == *s.value {
 				return s
 			}
 		}
-		s.context.AppendError(s.reference, ErrorIntegerNotOneOf(*s.value, possibleValues))
+		s.context.AppendError(s.reference, ErrorIntegerNotOneOf(*s.value, allowedValues))
+	}
+	return s
+}
+
+func (s *StandardInteger) NotOneOf(disallowedValues []int) data.Integer {
+	if s.value != nil {
+		for _, possibleValue := range disallowedValues {
+			if possibleValue == *s.value {
+				s.context.AppendError(s.reference, ErrorIntegerOneOf(*s.value, disallowedValues))
+				return s
+			}
+		}
 	}
 	return s
 }

@@ -14,9 +14,13 @@ import (
 	"fmt"
 	"html"
 	"strings"
+	"time"
 
 	"github.com/tidepool-org/platform/service"
 )
+
+// TODO: Review all errors for consistency and language
+// Once shipped, Code and Title cannot change
 
 func ErrorValueDoesNotExist() *service.Error {
 	return &service.Error{
@@ -106,29 +110,55 @@ func ErrorFloatNotInRange(value float64, lowerlimit float64, upperLimit float64)
 	}
 }
 
-func ErrorIntegerNotOneOf(value int, possibleValues []int) *service.Error {
-	possibleValuesStrings := []string{}
-	for _, possibleValue := range possibleValues {
-		possibleValuesStrings = append(possibleValuesStrings, fmt.Sprintf("%d", possibleValue))
+func ErrorIntegerOneOf(value int, disallowedValues []int) *service.Error {
+	disallowedValuesStrings := []string{}
+	for _, disallowedValue := range disallowedValues {
+		disallowedValuesStrings = append(disallowedValuesStrings, fmt.Sprintf("%d", disallowedValue))
 	}
-	possibleValuesString := strings.Join(possibleValuesStrings, ", ")
+	disallowedValuesString := strings.Join(disallowedValuesStrings, ", ")
 	return &service.Error{
-		Code:   "value-not-allowed",
-		Title:  "value is not one of the allowed values",
-		Detail: fmt.Sprintf("Value %d is not one of [%s]", value, possibleValuesString),
+		Code:   "value-disallowed",
+		Title:  "value is one of the disallowed values",
+		Detail: fmt.Sprintf("Value %d is one of [%s]", value, disallowedValuesString),
 	}
 }
 
-func ErrorFloatNotOneOf(value float64, possibleValues []float64) *service.Error {
-	possibleValuesStrings := []string{}
-	for _, possibleValue := range possibleValues {
-		possibleValuesStrings = append(possibleValuesStrings, fmt.Sprintf("%v", possibleValue))
+func ErrorIntegerNotOneOf(value int, allowedValues []int) *service.Error {
+	allowedValuesStrings := []string{}
+	for _, allowedValue := range allowedValues {
+		allowedValuesStrings = append(allowedValuesStrings, fmt.Sprintf("%d", allowedValue))
 	}
-	possibleValuesString := strings.Join(possibleValuesStrings, ", ")
+	allowedValuesString := strings.Join(allowedValuesStrings, ", ")
 	return &service.Error{
 		Code:   "value-not-allowed",
 		Title:  "value is not one of the allowed values",
-		Detail: fmt.Sprintf("Value %v is not one of [%s]", value, possibleValuesString),
+		Detail: fmt.Sprintf("Value %d is not one of [%s]", value, allowedValuesString),
+	}
+}
+
+func ErrorFloatOneOf(value float64, disallowedValues []float64) *service.Error {
+	disallowedValuesStrings := []string{}
+	for _, disallowedValue := range disallowedValues {
+		disallowedValuesStrings = append(disallowedValuesStrings, fmt.Sprintf("%v", disallowedValue))
+	}
+	disallowedValuesString := strings.Join(disallowedValuesStrings, ", ")
+	return &service.Error{
+		Code:   "value-disallowed",
+		Title:  "value is one of the disallowed values",
+		Detail: fmt.Sprintf("Value %v is one of [%s]", value, disallowedValuesString),
+	}
+}
+
+func ErrorFloatNotOneOf(value float64, allowedValues []float64) *service.Error {
+	allowedValuesStrings := []string{}
+	for _, allowedValue := range allowedValues {
+		allowedValuesStrings = append(allowedValuesStrings, fmt.Sprintf("%v", allowedValue))
+	}
+	allowedValuesString := strings.Join(allowedValuesStrings, ", ")
+	return &service.Error{
+		Code:   "value-not-allowed",
+		Title:  "value is not one of the allowed values",
+		Detail: fmt.Sprintf("Value %v is not one of [%s]", value, allowedValuesString),
 	}
 }
 
@@ -188,15 +218,68 @@ func ErrorLengthNotInRange(length int, lowerlimit int, upperLimit int) *service.
 	}
 }
 
-func ErrorStringNotOneOf(value string, possibleValues []string) *service.Error {
-	possibleValuesStrings := []string{}
-	for _, possibleValue := range possibleValues {
-		possibleValuesStrings = append(possibleValuesStrings, fmt.Sprintf("'%s'", html.EscapeString(possibleValue)))
+func ErrorStringOneOf(value string, disallowedValues []string) *service.Error {
+	disallowedValuesStrings := []string{}
+	for _, disallowedValue := range disallowedValues {
+		disallowedValuesStrings = append(disallowedValuesStrings, fmt.Sprintf("'%s'", html.EscapeString(disallowedValue)))
 	}
-	possibleValuesString := strings.Join(possibleValuesStrings, ", ")
+	disallowedValuesString := strings.Join(disallowedValuesStrings, ", ")
+	return &service.Error{
+		Code:   "value-disallowed",
+		Title:  "value is one of the disallowed values",
+		Detail: fmt.Sprintf("Value '%s' is one of [%v]", value, disallowedValuesString),
+	}
+}
+
+func ErrorStringNotOneOf(value string, allowedValues []string) *service.Error {
+	allowedValuesStrings := []string{}
+	for _, allowedValue := range allowedValues {
+		allowedValuesStrings = append(allowedValuesStrings, fmt.Sprintf("'%s'", html.EscapeString(allowedValue)))
+	}
+	allowedValuesString := strings.Join(allowedValuesStrings, ", ")
 	return &service.Error{
 		Code:   "value-not-allowed",
 		Title:  "value is not one of the allowed values",
-		Detail: fmt.Sprintf("Value '%s' is not one of [%v]", value, possibleValuesString),
+		Detail: fmt.Sprintf("Value '%s' is not one of [%v]", value, allowedValuesString),
+	}
+}
+
+func ErrorTimeNotValid(value string, timeLayout string) *service.Error {
+	return &service.Error{
+		Code:   "time-not-valid",
+		Title:  "value is not a valid time",
+		Detail: fmt.Sprintf("Value '%s' is not a valid time of format '%s'", value, timeLayout),
+	}
+}
+
+func ErrorTimeNotAfter(value time.Time, limit time.Time, timeLayout string) *service.Error {
+	return &service.Error{
+		Code:   "time-not-after",
+		Title:  "value is not after the specified time",
+		Detail: fmt.Sprintf("Value '%s' is not after '%s'", value.Format(timeLayout), limit.Format(timeLayout)),
+	}
+}
+
+func ErrorTimeNotAfterNow(value time.Time, timeLayout string) *service.Error {
+	return &service.Error{
+		Code:   "time-not-after",
+		Title:  "value is not after the specified time",
+		Detail: fmt.Sprintf("Value '%s' is not after now", value.Format(timeLayout)),
+	}
+}
+
+func ErrorTimeNotBefore(value time.Time, limit time.Time, timeLayout string) *service.Error {
+	return &service.Error{
+		Code:   "time-not-before",
+		Title:  "value is not before the specified time",
+		Detail: fmt.Sprintf("Value '%s' is not before '%s'", value.Format(timeLayout), limit.Format(timeLayout)),
+	}
+}
+
+func ErrorTimeNotBeforeNow(value time.Time, timeLayout string) *service.Error {
+	return &service.Error{
+		Code:   "time-not-before",
+		Title:  "value is not before the specified time",
+		Detail: fmt.Sprintf("Value '%s' is not before now", value.Format(timeLayout)),
 	}
 }

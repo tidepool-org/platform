@@ -25,6 +25,7 @@ type Sample struct {
 	ObjectArray    *[]map[string]interface{} `json:"objectArray,omitempty"`
 	Interface      *interface{}              `json:"interface,omitempty"`
 	InterfaceArray *[]interface{}            `json:"interfaceArray,omitempty"`
+	Time           *string                   `json:"time,omitempty"`
 }
 
 func Type() string {
@@ -55,6 +56,7 @@ func (s *Sample) Parse(parser data.ObjectParser) {
 	s.ObjectArray = parser.ParseObjectArray("objectArray")
 	s.Interface = parser.ParseInterface("interface")
 	s.InterfaceArray = parser.ParseInterfaceArray("interfaceArray")
+	s.Time = parser.ParseString("time")
 }
 
 func (s *Sample) Validate(validator data.Validator) {
@@ -67,6 +69,7 @@ func (s *Sample) Validate(validator data.Validator) {
 	// function (eg. validation phase, or something like that)
 
 	s.Base.Validate(validator)
+	validator.ValidateString("type", s.Type).Exists().EqualTo(Type())
 	validator.ValidateString("subType", s.SubType).Exists()
 	validator.ValidateBoolean("boolean", s.Boolean).Exists().True()
 	validator.ValidateInteger("integer", s.Integer).Exists().LessThan(1).GreaterThan(3).OneOf([]int{4, 7, 9}).EqualTo(6)
@@ -77,6 +80,7 @@ func (s *Sample) Validate(validator data.Validator) {
 	validator.ValidateObjectArray("objectArray", s.ObjectArray).Exists().LengthGreaterThanOrEqualTo(5)
 	validator.ValidateInterface("interface", s.Interface).Exists()
 	validator.ValidateInterfaceArray("interfaceArray", s.InterfaceArray).Exists().LengthNotEqualTo(5)
+	validator.ValidateStringAsTime("time", s.Time, "2006-01-02T15:04:05Z07:00").Exists().BeforeNow()
 }
 
 func (s *Sample) Normalize(normalizer data.Normalizer) {

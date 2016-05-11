@@ -52,6 +52,7 @@ func (s *Sub) Parse(parser data.ObjectParser) {
 
 func (s *Sub) Validate(validator data.Validator) {
 	s.Sample.Validate(validator)
+	validator.ValidateString("subType", s.SubType).Exists().EqualTo(SubType())
 
 	// NOTE: Anytime we have a CONTAINED object, we create a new CHILD validator with a
 	// reference to the CONTAINED object

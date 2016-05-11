@@ -62,6 +62,10 @@ func (s *Standard) ValidateInterfaceArray(reference interface{}, value *[]interf
 	return NewStandardInterfaceArray(s.context, reference, value)
 }
 
+func (s *Standard) ValidateStringAsTime(reference interface{}, stringValue *string, timeLayout string) data.Time {
+	return NewStandardStringAsTime(s.context, reference, stringValue, timeLayout)
+}
+
 func (s *Standard) NewChildValidator(reference interface{}) data.Validator {
 	return NewStandard(s.context.NewChildContext(reference))
 }

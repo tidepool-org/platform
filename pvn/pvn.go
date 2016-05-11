@@ -50,7 +50,8 @@ var rawJSON = `
         "bravo": "b"
       },
       -999
-    ]
+    ],
+    "time": "2016-05-10T17:52:28Z"
   },
   {
     "type": "sample",
@@ -107,7 +108,8 @@ var rawJSON = `
       {
         "one": "1"
       }
-    ]
+    ],
+    "time": "2017-05-10T17:52:28-08:00"
   },
   {
     "type": "sample",
@@ -141,7 +143,8 @@ var rawJSON = `
       {
         "one": false
       }
-    ]
+    ],
+    "time": "non-time string"
   },
   {
     "type": "sample",

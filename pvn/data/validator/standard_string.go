@@ -33,6 +33,24 @@ func (s *StandardString) Exists() data.String {
 	return s
 }
 
+func (s *StandardString) EqualTo(value string) data.String {
+	if s.value != nil {
+		if *s.value != value {
+			s.context.AppendError(s.reference, ErrorValueNotEqualTo(*s.value, value))
+		}
+	}
+	return s
+}
+
+func (s *StandardString) NotEqualTo(value string) data.String {
+	if s.value != nil {
+		if *s.value == value {
+			s.context.AppendError(s.reference, ErrorValueEqualTo(*s.value, value))
+		}
+	}
+	return s
+}
+
 func (s *StandardString) LengthEqualTo(limit int) data.String {
 	if s.value != nil {
 		if length := len(*s.value); length != limit {
@@ -96,14 +114,26 @@ func (s *StandardString) LengthInRange(lowerlimit int, upperLimit int) data.Stri
 	return s
 }
 
-func (s *StandardString) OneOf(possibleValues []string) data.String {
+func (s *StandardString) OneOf(allowedValues []string) data.String {
 	if s.value != nil {
-		for _, possibleValue := range possibleValues {
+		for _, possibleValue := range allowedValues {
 			if possibleValue == *s.value {
 				return s
 			}
 		}
-		s.context.AppendError(s.reference, ErrorStringNotOneOf(*s.value, possibleValues))
+		s.context.AppendError(s.reference, ErrorStringNotOneOf(*s.value, allowedValues))
+	}
+	return s
+}
+
+func (s *StandardString) NotOneOf(disallowedValues []string) data.String {
+	if s.value != nil {
+		for _, possibleValue := range disallowedValues {
+			if possibleValue == *s.value {
+				s.context.AppendError(s.reference, ErrorStringOneOf(*s.value, disallowedValues))
+				return s
+			}
+		}
 	}
 	return s
 }
