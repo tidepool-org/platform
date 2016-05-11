@@ -62,6 +62,14 @@ func (e *Errors) HasErrors() bool {
 	return len(e.errors) > 0
 }
 
+func (e *Errors) GetError(index int) *Error {
+	if index < 0 || index >= len(e.errors) {
+		return nil
+	}
+
+	return e.errors[index]
+}
+
 func (e *Errors) GetErrors() []*Error {
 	return e.errors
 }
