@@ -1,9 +1,76 @@
 package base_test
 
 import (
+	"fmt"
+
+	"github.com/tidepool-org/platform/pvn/data/context"
+	"github.com/tidepool-org/platform/pvn/data/parser"
+	"github.com/tidepool-org/platform/pvn/data/types"
+	"github.com/tidepool-org/platform/pvn/data/validator"
+
 	. "github.com/onsi/ginkgo"
-	// . "github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/gomega"
 )
 
-var _ = PDescribe("Base", func() {
+var _ = Describe("Base", func() {
+
+	var rawObject = map[string]interface{}{
+		"userId":           "b676436f60",
+		"_groupId":         "43099shgs55",
+		"uploadId":         "upid_b856b0e6e519",
+		"deviceTime":       "2014-06-11T06:00:00.000",
+		"time":             "2014-06-11T06:00:00.000Z",
+		"timezoneOffset":   720,
+		"conversionOffset": 0,
+		"clockDriftOffset": 0,
+		"deviceId":         "InsOmn-111111111",
+		"type":             "sample",
+	}
+
+	var objectParser *parser.StandardObject
+	var testContext *context.Standard
+	var standardValidator *validator.Standard
+
+	BeforeEach(func() {
+		testContext = context.NewStandard()
+		standardValidator = validator.NewStandard(testContext)
+	})
+
+	var isValid = func(feild string, val interface{}) {
+		rawObject[feild] = val
+		objectParser = parser.NewStandardObject(testContext, &rawObject)
+		Expect(testContext.HasErrors()).To(BeFalse(), "there should not be errors after creating the object")
+		parsedObject := types.Parse(objectParser)
+		Expect(testContext.HasErrors()).To(BeFalse(), "there should not be errors after doing a parse")
+		parsedObject.Validate(standardValidator)
+		Expect(testContext.HasErrors()).To(Equal(false), fmt.Sprintf("Unexpected errors %#v", testContext.GetErrors()[0]))
+	}
+
+	/*var notValid = func(feild string, val interface{}, expectedErrors *service.Errors) {
+		rawObject[feild] = val
+		objectParser = parser.NewStandardObject(testContext, &rawObject)
+		Expect(testContext.HasErrors()).To(BeFalse(), "there should not be errors after creating the object")
+		parsedObject := types.Parse(objectParser)
+		Expect(testContext.HasErrors()).To(BeFalse(), "there should not be errors after doing a parse")
+		parsedObject.Validate(standardValidator)
+		Expect(testContext.HasErrors()).To(Equal(true))
+		Expect(testContext.Errors).To(Equal(expectedErrors))
+	}*/
+
+	DescribeTable("userId valid", isValid,
+		Entry("when given string id", "userId", "b676436f60"),
+		Entry("when given string id", "userId", "dddddddddddddd"),
+	)
+
+	DescribeTable("uploadId valid", isValid,
+		Entry("when given string id", "uploadId", "upid_b856b0e6e519"),
+		Entry("when given string id", "uploadId", "dddddddddddddd"),
+	)
+
+	DescribeTable("deviceId valid", isValid,
+		Entry("when given string id", "deviceId", "InsOmn-111111111"),
+		Entry("when given string id", "deviceId", "dddddddddddddd"),
+	)
+
 })
