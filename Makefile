@@ -140,8 +140,8 @@ ci-test: ginkgo
 	@cd $(ROOT_DIRECTORY) && GOPATH=$(shell godep path):$(GOPATH) TIDEPOOL_ENV=test ginkgo -r --randomizeSuites --randomizeAllSpecs -succinct --failOnPending --cover --trace --race --progress $(TEST)
 
 watch: ginkgo
-	@echo "ginkgo watch -r --randomizeSuites -randomizeAllSpecs -succinct -notify $(WATCH)"
-	@cd $(ROOT_DIRECTORY) && GOPATH=$(shell godep path):$(GOPATH) TIDEPOOL_ENV=test ginkgo watch -r --randomizeSuites -randomizeAllSpecs -succinct -notify $(WATCH)
+	@echo "ginkgo watch -r -notify $(WATCH)"
+	@cd $(ROOT_DIRECTORY) && GOPATH=$(shell godep path):$(GOPATH) TIDEPOOL_ENV=test ginkgo watch -r -notify $(WATCH)
 
 clean: stop
 	@cd $(ROOT_DIRECTORY) && rm -rf _bin _log _tmp deploy
