@@ -1,7 +1,9 @@
 package upload
 
-import "github.com/tidepool-org/platform/pvn/data"
-import "github.com/tidepool-org/platform/pvn/data/types/base"
+import (
+	"github.com/tidepool-org/platform/pvn/data"
+	"github.com/tidepool-org/platform/pvn/data/types/base"
+)
 
 type Upload struct {
 	base.Base `bson:",inline"`
@@ -51,13 +53,13 @@ func (u *Upload) Validate(validator data.Validator) {
 	validator.ValidateString("type", u.Type).Exists()
 	validator.ValidateString("byUser", u.UploadUserID).Exists().LengthGreaterThanOrEqualTo(10)
 	validator.ValidateString("version", u.Version).Exists().LengthGreaterThan(5)
-	validator.ValidateString("computerTime", u.ComputerTime).Exists()
+	validator.ValidateStringAsTime("computerTime", u.ComputerTime, "2006-01-02T15:04:05").Exists()
 	validator.ValidateStringArray("deviceTags", u.DeviceTags).Exists().LengthGreaterThanOrEqualTo(1).EachOneOf([]string{"insulin-pump", "cgm", "bgm"})
 	validator.ValidateStringArray("deviceManufacturers", u.DeviceManufacturers).Exists().LengthGreaterThanOrEqualTo(1)
 	validator.ValidateString("deviceModel", u.DeviceModel).Exists().LengthGreaterThan(1)
 	validator.ValidateString("deviceSerialNumber", u.DeviceSerialNumber).Exists().LengthGreaterThan(1)
 	validator.ValidateString("timeProcessing", u.TimeProcessing).Exists().OneOf([]string{"across-the-board-timezone", "utc-bootstrapping", "none"})
-	validator.ValidateString("dataState", u.DataState).Exists()
+	validator.ValidateString("dataState", u.DataState).Exists().LengthGreaterThan(1)
 	validator.ValidateInterface("deduplicator", u.Deduplicator).Exists()
 }
 

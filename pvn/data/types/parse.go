@@ -53,7 +53,7 @@ func Parse(context data.Context, parser data.ObjectParser) (data.Datum, error) {
 			datum = sample.New()
 		}
 	case upload.Type():
-		return upload.New()
+		datum = upload.New()
 	default:
 		context.AppendError("type", ErrorTypeInvalid(*datumType))
 		return nil, nil

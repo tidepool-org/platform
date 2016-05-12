@@ -87,12 +87,9 @@ func (s *StandardStringAsTime) BeforeNow() data.Time {
 
 func (s *StandardStringAsTime) parse() {
 	if s.stringValue != nil {
-		//fmt.Println("LAYOUT: ", s.timeLayout, "TIME STR: ", *s.stringValue)
 		if timeValue, err := time.Parse(s.timeLayout, *s.stringValue); err != nil {
-			//fmt.Println("ERRORED: ", err.Error())
 			s.context.AppendError(s.reference, ErrorTimeNotValid(*s.stringValue, s.timeLayout))
 		} else {
-
 			s.timeValue = &timeValue
 		}
 	}
