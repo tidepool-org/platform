@@ -59,16 +59,18 @@ func (b *Base) Parse(parser data.ObjectParser) {
 
 func (b *Base) Validate(validator data.Validator) {
 	validator.ValidateString("type", b.Type).Exists()
-	validator.ValidateString("userId", b.UserID).Exists()
-	validator.ValidateString("deviceId", b.DeviceID).Exists()
-	validator.ValidateString("time", b.Time).Exists()
-	validator.ValidateString("uploadId", b.UploadID).Exists()
-	validator.ValidateString("_groupId", b.GroupID).Exists()
+	validator.ValidateString("userId", b.UserID).Exists().LengthGreaterThanOrEqualTo(10)
+	validator.ValidateString("deviceId", b.DeviceID).Exists().LengthGreaterThanOrEqualTo(1)
+	validator.ValidateStringAsTime("time", b.Time, "2006-01-02T15:04:05Z").Exists()
+	validator.ValidateString("uploadId", b.UploadID).Exists().LengthGreaterThanOrEqualTo(1)
+	validator.ValidateString("_groupId", b.GroupID).Exists().LengthGreaterThanOrEqualTo(10)
 
 	validator.ValidateString("deviceTime", b.DeviceTime)
+
+	//validator.ValidateStringAsTime("deviceTime", b.DeviceTime, "2006-01-02T15:04:05")
 	validator.ValidateInteger("timezoneOffset", b.TimezoneOffset)
-	validator.ValidateInteger("conversionOffset", b.ConversionOffset)
-	validator.ValidateInteger("clockDriftOffset", b.ClockDriftOffset)
+	validator.ValidateInteger("conversionOffset", b.ConversionOffset).GreaterThanOrEqualTo(0)
+	validator.ValidateInteger("clockDriftOffset", b.ClockDriftOffset).GreaterThanOrEqualTo(0)
 	validator.ValidateInterface("payload", b.Payload)
 	validator.ValidateInterfaceArray("annotations", b.Annotations)
 }
