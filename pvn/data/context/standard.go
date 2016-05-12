@@ -30,24 +30,28 @@ func NewStandard() *Standard {
 }
 
 func (s *Standard) AppendError(reference interface{}, err *service.Error) {
-	s.Errors.AppendError(err.WithPointer(joinStringReferences(s.pointer, stringifyReference(reference))))
+	if reference == nil || err == nil {
+		return
+	}
+
+	s.Errors.AppendError(err.WithPointer(s.appendReference(reference)))
 }
 
 func (s *Standard) NewChildContext(reference interface{}) data.Context {
-	pointer := stringifyReference(reference)
-	if s.pointer != "" {
-		pointer = joinStringReferences(s.pointer, pointer)
+	if reference == nil {
+		return nil
 	}
+
 	return &Standard{
 		Errors:  s.Errors,
-		pointer: pointer,
+		pointer: s.appendReference(reference),
 	}
 }
 
-func stringifyReference(reference interface{}) string {
-	return fmt.Sprintf("%v", reference)
-}
-
-func joinStringReferences(references ...string) string {
-	return strings.Join(references, "/")
+func (s *Standard) appendReference(reference interface{}) string {
+	pointer := fmt.Sprintf("%v", reference)
+	if s.pointer != "" {
+		pointer = strings.Join([]string{s.pointer, pointer}, "/")
+	}
+	return pointer
 }
