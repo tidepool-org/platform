@@ -53,6 +53,8 @@ func (b *Base) Parse(parser data.ObjectParser) {
 	b.ClockDriftOffset = parser.ParseInteger("clockDriftOffset")
 	b.Payload = parser.ParseInterface("payload")
 	b.Annotations = parser.ParseInterfaceArray("annotations")
+
+	b.GroupID = parser.ParseString("_groupId")
 }
 
 func (b *Base) Validate(validator data.Validator) {

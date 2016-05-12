@@ -15,6 +15,7 @@ import (
 	"github.com/tidepool-org/platform/pvn/data"
 	"github.com/tidepool-org/platform/pvn/data/types/base/sample"
 	"github.com/tidepool-org/platform/pvn/data/types/base/sample/sub"
+	"github.com/tidepool-org/platform/pvn/data/types/base/upload"
 )
 
 func Parse(context data.Context, parser data.ObjectParser) (data.Datum, error) {
@@ -51,6 +52,8 @@ func Parse(context data.Context, parser data.ObjectParser) (data.Datum, error) {
 		} else {
 			datum = sample.New()
 		}
+	case upload.Type():
+		return upload.New()
 	default:
 		context.AppendError("type", ErrorTypeInvalid(*datumType))
 		return nil, nil
