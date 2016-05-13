@@ -11,18 +11,26 @@ package types
  */
 
 import (
+	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/pvn/data"
 	"github.com/tidepool-org/platform/pvn/data/types/base/sample"
 	"github.com/tidepool-org/platform/pvn/data/types/base/sample/sub"
 )
 
-func Parse(context data.Context, parser data.ObjectParser) data.Datum {
+func Parse(context data.Context, parser data.ObjectParser) (data.Datum, error) {
+	if context == nil {
+		return nil, app.Error("types", "context is missing")
+	}
+	if parser == nil {
+		return nil, app.Error("types", "parser is missing")
+	}
+
 	var datum data.Datum
 
 	datumType := parser.ParseString("type")
 	if datumType == nil {
 		context.AppendError("type", ErrorValueMissing())
-		return nil
+		return nil, nil
 	}
 
 	datumSubType := parser.ParseString("subType")
@@ -38,17 +46,17 @@ func Parse(context data.Context, parser data.ObjectParser) data.Datum {
 				datum = sub.New()
 			default:
 				context.AppendError("subType", ErrorSubTypeInvalid(*datumSubType))
-				return nil
+				return nil, nil
 			}
 		} else {
 			datum = sample.New()
 		}
 	default:
 		context.AppendError("type", ErrorTypeInvalid(*datumType))
-		return nil
+		return nil, nil
 	}
 
 	datum.Parse(parser)
 
-	return datum
+	return datum, nil
 }

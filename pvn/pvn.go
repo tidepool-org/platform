@@ -175,9 +175,13 @@ func main() {
 		log.Printf("--- Parsing object #%d", index)
 		standardObjectParser := standardArrayParser.NewChildObjectParser(index)
 		log.Printf("Raw: %v", *standardObjectParser.Object())
-		parsedObject := types.Parse(standardContext, standardObjectParser)
-		log.Printf("Parsed: %s", stringifyObject(parsedObject))
-		parsedObjects = append(parsedObjects, parsedObject)
+		parsedObject, err := types.Parse(standardContext, standardObjectParser)
+		if err != nil {
+			log.Printf("ERROR: %s", err.Error())
+		} else {
+			log.Printf("Parsed: %s", stringifyObject(parsedObject))
+			parsedObjects = append(parsedObjects, parsedObject)
+		}
 	}
 
 	log.Printf("==> Parsed objects!")
