@@ -31,7 +31,7 @@ var _ = Describe("Standard", func() {
 			Expect(standard.Errors()).To(BeEmpty())
 		})
 
-		Describe("AppendError with an error with a nil reference", func() {
+		Context("AppendError with an error with a nil reference", func() {
 			var nilReferenceError *service.Error
 
 			BeforeEach(func() {
@@ -55,7 +55,7 @@ var _ = Describe("Standard", func() {
 			})
 		})
 
-		Describe("AppendError with a first error", func() {
+		Context("AppendError with a first error", func() {
 			var firstError *service.Error
 
 			BeforeEach(func() {
@@ -78,7 +78,7 @@ var _ = Describe("Standard", func() {
 				Expect(standard.Errors()[0].Source.Pointer).To(Equal("/first"))
 			})
 
-			Describe("and AppendError with a second error", func() {
+			Context("and AppendError with a second error", func() {
 				var secondError *service.Error
 
 				BeforeEach(func() {
@@ -106,7 +106,7 @@ var _ = Describe("Standard", func() {
 			})
 		})
 
-		Describe("creating a child context", func() {
+		Context("creating a child context", func() {
 			var child data.Context
 
 			BeforeEach(func() {
@@ -117,7 +117,7 @@ var _ = Describe("Standard", func() {
 				Expect(child).ToNot(BeNil())
 			})
 
-			Describe("AppendError with a first error", func() {
+			Context("AppendError with a first error", func() {
 				var firstError *service.Error
 
 				BeforeEach(func() {
@@ -140,7 +140,7 @@ var _ = Describe("Standard", func() {
 					Expect(standard.Errors()[0].Source.Pointer).To(Equal("/child/first"))
 				})
 
-				Describe("and AppendError with a second error to the parent context", func() {
+				Context("and AppendError with a second error to the parent context", func() {
 					var secondError *service.Error
 
 					BeforeEach(func() {
@@ -168,7 +168,7 @@ var _ = Describe("Standard", func() {
 				})
 			})
 
-			Describe("creating a grandchild of the child context", func() {
+			Context("creating a grandchild of the child context", func() {
 				var grandchild data.Context
 
 				BeforeEach(func() {
@@ -179,7 +179,7 @@ var _ = Describe("Standard", func() {
 					Expect(grandchild).ToNot(BeNil())
 				})
 
-				Describe("AppendError with a first error", func() {
+				Context("AppendError with a first error", func() {
 					var firstError *service.Error
 
 					BeforeEach(func() {

@@ -16,7 +16,7 @@ var _ = Describe("StandardArray", func() {
 		Expect(err).To(HaveOccurred())
 	})
 
-	Describe("new standard array with nil array", func() {
+	Context("new standard array with nil array", func() {
 		var standardArray *parser.StandardArray
 
 		BeforeEach(func() {
@@ -82,7 +82,7 @@ var _ = Describe("StandardArray", func() {
 		})
 	})
 
-	Describe("new standard array with valid, empty array", func() {
+	Context("new standard array with valid, empty array", func() {
 		var standardContext *context.Standard
 		var standardArray *parser.StandardArray
 
@@ -102,7 +102,7 @@ var _ = Describe("StandardArray", func() {
 		})
 	})
 
-	Describe("parsing elements with", func() {
+	Context("parsing elements with", func() {
 		var standardContext *context.Standard
 		var standardArray *parser.StandardArray
 

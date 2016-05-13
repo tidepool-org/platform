@@ -45,7 +45,7 @@ var _ = Describe("Standard", func() {
 			Expect(standard.Data()).To(BeEmpty())
 		})
 
-		Describe("AddDatum with a first datum", func() {
+		Context("AddDatum with a first datum", func() {
 			var firstDatum *TestDatum
 
 			BeforeEach(func() {
@@ -61,7 +61,7 @@ var _ = Describe("Standard", func() {
 				Expect(standard.Data()).To(ConsistOf(firstDatum))
 			})
 
-			Describe("and AddDatum with a second data", func() {
+			Context("and AddDatum with a second data", func() {
 				var secondDatum *TestDatum
 
 				BeforeEach(func() {
@@ -79,7 +79,7 @@ var _ = Describe("Standard", func() {
 			})
 		})
 
-		Describe("NewChildNormalizer", func() {
+		Context("NewChildNormalizer", func() {
 			var child data.Normalizer
 
 			BeforeEach(func() {
@@ -90,7 +90,7 @@ var _ = Describe("Standard", func() {
 				Expect(child).ToNot(BeNil())
 			})
 
-			Describe("AppendDatum with a first error", func() {
+			Context("AppendDatum with a first error", func() {
 				var firstDatum *TestDatum
 
 				BeforeEach(func() {
@@ -106,7 +106,7 @@ var _ = Describe("Standard", func() {
 					Expect(standard.Data()).To(ConsistOf(firstDatum))
 				})
 
-				Describe("and AppendDatum with a second error to the parent context", func() {
+				Context("and AppendDatum with a second error to the parent context", func() {
 					var secondDatum *TestDatum
 
 					BeforeEach(func() {

@@ -16,7 +16,7 @@ var _ = Describe("StandardObject", func() {
 		Expect(err).To(HaveOccurred())
 	})
 
-	Describe("new standard object with nil object", func() {
+	Context("new standard object with nil object", func() {
 		var standardObject *parser.StandardObject
 
 		BeforeEach(func() {
@@ -82,7 +82,7 @@ var _ = Describe("StandardObject", func() {
 		})
 	})
 
-	Describe("new standard object with valid, empty object", func() {
+	Context("new standard object with valid, empty object", func() {
 		var standardContext *context.Standard
 		var standardObject *parser.StandardObject
 
@@ -102,7 +102,7 @@ var _ = Describe("StandardObject", func() {
 		})
 	})
 
-	Describe("parsing elements with", func() {
+	Context("parsing elements with", func() {
 		var standardContext *context.Standard
 		var standardObject *parser.StandardObject
 
