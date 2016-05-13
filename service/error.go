@@ -12,10 +12,10 @@ package service
 
 type Error struct {
 	Code   string  `json:"code,omitempty"`
-	Detail string  `json:"detail,omitempty"`
-	Source *Source `json:"source,omitempty"`
-	Status int     `json:"status,string,omitempty"`
 	Title  string  `json:"title,omitempty"`
+	Detail string  `json:"detail,omitempty"`
+	Status int     `json:"status,string,omitempty"`
+	Source *Source `json:"source,omitempty"`
 }
 
 type Source struct {
@@ -23,18 +23,26 @@ type Source struct {
 	Pointer   string `json:"pointer,omitempty"`
 }
 
-type Errors struct {
-	errors []*Error
-}
-
 func (e *Error) WithParameter(parameter string) *Error {
-	e.Source = &Source{Parameter: parameter}
+	if e.Source == nil {
+		e.Source = &Source{}
+	}
+	e.Source.Parameter = parameter
 	return e
 }
 
 func (e *Error) WithPointer(pointer string) *Error {
-	e.Source = &Source{Pointer: pointer}
+	if e.Source == nil {
+		e.Source = &Source{}
+	}
+	e.Source.Pointer = pointer
 	return e
+}
+
+// TODO: Deprecate below Errors struct
+
+type Errors struct {
+	errors []*Error
 }
 
 func NewErrors() *Errors {
