@@ -26,7 +26,7 @@ func (r *RecoverMiddleware) MiddlewareFunc(handler rest.HandlerFunc) rest.Handle
 	return func(response rest.ResponseWriter, request *rest.Request) {
 		defer func() {
 			if r := recover(); r != nil {
-				NewContext(response, request).RespondWithServerFailure("Recovered from unhandled panic", string(debug.Stack()))
+				NewContext(response, request).RespondWithInternalServerFailure("Recovered from unhandled panic", string(debug.Stack()))
 			}
 		}()
 

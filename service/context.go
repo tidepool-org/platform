@@ -12,6 +12,7 @@ package service
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
 
@@ -70,13 +71,13 @@ func (c *Context) Response() rest.ResponseWriter {
 
 func (c *Context) RespondWithError(err *Error) {
 	if statusCode := err.Status; statusCode <= 0 { // TODO: Do we want to validate the status code is okay? More than >= 0?
-		c.RespondWithServerFailure("Status field missing from error", err)
+		c.RespondWithInternalServerFailure("Status field missing from error", err)
 	} else {
 		c.RespondWithStatusAndErrors(statusCode, []*Error{err})
 	}
 }
 
-func (c *Context) RespondWithServerFailure(message string, failure ...interface{}) {
+func (c *Context) RespondWithInternalServerFailure(message string, failure ...interface{}) {
 	logger := c.Logger()
 	if len(failure) > 0 {
 		for index := range failure {
@@ -89,7 +90,7 @@ func (c *Context) RespondWithServerFailure(message string, failure ...interface{
 		logger = logger.WithField("failure", failure)
 	}
 	logger.Error(message)
-	c.RespondWithError(InternalServerFailure)
+	c.RespondWithError(ErrorInternalServerFailure())
 }
 
 func (c *Context) RespondWithStatusAndErrors(statusCode int, errors []*Error) {
@@ -110,4 +111,13 @@ func (c *Context) RespondWithStatusAndErrors(statusCode int, errors []*Error) {
 
 	c.Response().WriteHeader(statusCode)
 	c.Response().WriteJson(response)
+}
+
+func ErrorInternalServerFailure() *Error {
+	return &Error{
+		Code:   "internal-server-failure",
+		Status: http.StatusInternalServerError,
+		Title:  "internal server failure",
+		Detail: "Internal server failure",
+	}
 }

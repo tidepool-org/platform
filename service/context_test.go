@@ -92,6 +92,18 @@ var _ = Describe("Context", func() {
 		})
 	})
 
+	Context("InternalServerError", func() {
+		It("matches the expected error", func() {
+			Expect(service.ErrorInternalServerFailure()).To(Equal(
+				&service.Error{
+					Code:   "internal-server-failure",
+					Status: 500,
+					Title:  "internal server failure",
+					Detail: "Internal server failure",
+				}))
+		})
+	})
+
 	PContext("NewContext", func() {})
 
 	PContext("Context", func() {})

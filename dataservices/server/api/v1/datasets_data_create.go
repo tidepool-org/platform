@@ -45,7 +45,7 @@ func DatasetsDataCreate(context *api.Context) {
 		if client.IsUnauthorizedError(err) {
 			context.RespondWithError(ErrorUnauthorized())
 		} else {
-			context.RespondWithServerFailure("Unable to validate target user permissions", err)
+			context.RespondWithInternalServerFailure("Unable to validate target user permissions", err)
 		}
 		return
 	}
@@ -58,7 +58,7 @@ func DatasetsDataCreate(context *api.Context) {
 	// TODO: Pass in logger here
 	deduplicator, err := root.NewFactory().NewDeduplicator(&datasetUpload, context.Store(), context.Logger())
 	if err != nil {
-		context.RespondWithServerFailure("No duplicator found matching dataset", err)
+		context.RespondWithInternalServerFailure("No duplicator found matching dataset", err)
 		return
 	}
 
@@ -77,7 +77,7 @@ func DatasetsDataCreate(context *api.Context) {
 	}
 
 	if err = deduplicator.AddDataToDataset(datumArray); err != nil {
-		context.RespondWithServerFailure("Unable to add data to dataset", err)
+		context.RespondWithInternalServerFailure("Unable to add data to dataset", err)
 		return
 	}
 

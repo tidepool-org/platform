@@ -29,7 +29,7 @@ func UsersCheck(context *api.Context) {
 		if client.IsUnauthorizedError(err) {
 			context.RespondWithError(ErrorUnauthorized())
 		} else {
-			context.RespondWithServerFailure("Unable to validate target user permissions", err)
+			context.RespondWithInternalServerFailure("Unable to validate target user permissions", err)
 		}
 		return
 	}
@@ -39,7 +39,7 @@ func UsersCheck(context *api.Context) {
 		if client.IsUnauthorizedError(err) {
 			context.RespondWithError(ErrorUnauthorized())
 		} else {
-			context.RespondWithServerFailure("Unable to get group id for user", err)
+			context.RespondWithInternalServerFailure("Unable to get group id for user", err)
 		}
 		return
 	}

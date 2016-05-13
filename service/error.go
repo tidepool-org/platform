@@ -10,8 +10,6 @@ package service
  * [ ] Full test coverage
  */
 
-import "net/http"
-
 type Error struct {
 	Code   string  `json:"code,omitempty"`
 	Detail string  `json:"detail,omitempty"`
@@ -28,19 +26,6 @@ type Source struct {
 type Errors struct {
 	errors []*Error
 }
-
-const (
-	ErrorInternalServerFailure = "internal-server-failure"
-)
-
-var (
-	InternalServerFailure = &Error{
-		Code:   ErrorInternalServerFailure,
-		Status: http.StatusInternalServerError,
-		Detail: "Internal server failure",
-		Title:  "internal server failure",
-	}
-)
 
 func (e *Error) WithParameter(parameter string) *Error {
 	e.Source = &Source{Parameter: parameter}

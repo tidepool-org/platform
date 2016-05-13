@@ -42,7 +42,7 @@ func DatasetsUpdate(context *api.Context) {
 		if client.IsUnauthorizedError(err) {
 			context.RespondWithError(ErrorUnauthorized())
 		} else {
-			context.RespondWithServerFailure("Unable to validate target user permissions", err)
+			context.RespondWithInternalServerFailure("Unable to validate target user permissions", err)
 		}
 		return
 	}
@@ -56,19 +56,19 @@ func DatasetsUpdate(context *api.Context) {
 	datasetUpload.DataState = &dataState
 
 	if err = context.Store().Update(map[string]interface{}{"type": "upload", "uploadId": datasetID}, datasetUpload); err != nil {
-		context.RespondWithServerFailure("Unable to insert dataset", err)
+		context.RespondWithInternalServerFailure("Unable to insert dataset", err)
 		return
 	}
 
 	// TODO: Pass in logger here
 	deduplicator, err := root.NewFactory().NewDeduplicator(&datasetUpload, context.Store(), context.Logger())
 	if err != nil {
-		context.RespondWithServerFailure("No duplicator found matching dataset", err)
+		context.RespondWithInternalServerFailure("No duplicator found matching dataset", err)
 		return
 	}
 
 	if err = deduplicator.FinalizeDataset(); err != nil {
-		context.RespondWithServerFailure("Unable to finalize dataset", err)
+		context.RespondWithInternalServerFailure("Unable to finalize dataset", err)
 		return
 	}
 

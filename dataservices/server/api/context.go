@@ -33,7 +33,7 @@ func WithContext(dataStore store.Store, client client.Client, handler HandlerFun
 
 		store, err := dataStore.NewSession(context.Logger())
 		if err != nil {
-			context.RespondWithServerFailure("Unable to create new data store session for request", err)
+			context.RespondWithInternalServerFailure("Unable to create new data store session for request", err)
 			return
 		}
 		defer store.Close()

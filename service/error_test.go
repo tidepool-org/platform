@@ -61,16 +61,4 @@ var _ = Describe("Error", func() {
 			})
 		})
 	})
-
-	Context("InternalServerError", func() {
-		It("matches the expected error", func() {
-			Expect(service.InternalServerFailure).To(Equal(
-				&service.Error{
-					Code:   "internal-server-failure",
-					Status: 500,
-					Detail: "Internal server failure",
-					Title:  "internal server failure",
-				}))
-		})
-	})
 })

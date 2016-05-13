@@ -34,7 +34,7 @@ func UsersDatasetsCreate(context *api.Context) {
 		if client.IsUnauthorizedError(err) {
 			context.RespondWithError(ErrorUnauthorized())
 		} else {
-			context.RespondWithServerFailure("Unable to validate target user permissions", err)
+			context.RespondWithInternalServerFailure("Unable to validate target user permissions", err)
 		}
 		return
 	}
@@ -44,7 +44,7 @@ func UsersDatasetsCreate(context *api.Context) {
 		if client.IsUnauthorizedError(err) {
 			context.RespondWithError(ErrorUnauthorized())
 		} else {
-			context.RespondWithServerFailure("Unable to get group id for target user", err)
+			context.RespondWithInternalServerFailure("Unable to get group id for target user", err)
 		}
 		return
 	}
@@ -66,7 +66,7 @@ func UsersDatasetsCreate(context *api.Context) {
 
 	datasetUpload, ok := datasetBuiltDatum.(*upload.Upload)
 	if !ok {
-		context.RespondWithServerFailure("Unexpected datum type", datasetBuiltDatum)
+		context.RespondWithInternalServerFailure("Unexpected datum type", datasetBuiltDatum)
 		return
 	}
 
@@ -78,19 +78,19 @@ func UsersDatasetsCreate(context *api.Context) {
 	datasetUpload.DataState = &dataState
 
 	if err = context.Store().Insert(datasetUpload); err != nil {
-		context.RespondWithServerFailure("Unable to insert dataset", err)
+		context.RespondWithInternalServerFailure("Unable to insert dataset", err)
 		return
 	}
 
 	// TODO: Pass in logger here
 	deduplicator, err := root.NewFactory().NewDeduplicator(datasetUpload, context.Store(), context.Logger())
 	if err != nil {
-		context.RespondWithServerFailure("No duplicator found matching dataset", err)
+		context.RespondWithInternalServerFailure("No duplicator found matching dataset", err)
 		return
 	}
 
 	if err = deduplicator.InitializeDataset(); err != nil {
-		context.RespondWithServerFailure("Unable to initialize dataset", err)
+		context.RespondWithInternalServerFailure("Unable to initialize dataset", err)
 		return
 	}
 

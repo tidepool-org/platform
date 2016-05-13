@@ -29,7 +29,7 @@ func Authenticate(handler api.HandlerFunc) api.HandlerFunc {
 			if client.IsUnauthorizedError(err) {
 				context.RespondWithError(v1.ErrorUnauthenticated())
 			} else {
-				context.RespondWithServerFailure("Unable to validate user session", err, userSessionToken)
+				context.RespondWithInternalServerFailure("Unable to validate user session", err, userSessionToken)
 			}
 			return
 		}
