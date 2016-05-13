@@ -11,6 +11,8 @@ package parser
  */
 
 import (
+	"math"
+
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/pvn/data"
 )
@@ -70,6 +72,10 @@ func (s *StandardArray) ParseInteger(index int) *int {
 	if !integerValueOk {
 		floatValue, floatValueOk := rawValue.(float64)
 		if !floatValueOk {
+			s.context.AppendError(index, ErrorTypeNotInteger(rawValue))
+			return nil
+		}
+		if math.Trunc(floatValue) != floatValue {
 			s.context.AppendError(index, ErrorTypeNotInteger(rawValue))
 			return nil
 		}
@@ -144,9 +150,9 @@ func (s *StandardArray) ParseStringArray(index int) *[]string {
 
 		stringArrayValue = []string{}
 		parser, _ := NewStandardArray(s.context.NewChildContext(index), &arrayValue)
-		for index := range arrayValue {
+		for arrayIndex := range arrayValue {
 			var stringElement string
-			if stringParsed := parser.ParseString(index); stringParsed != nil {
+			if stringParsed := parser.ParseString(arrayIndex); stringParsed != nil {
 				stringElement = *stringParsed
 			}
 			stringArrayValue = append(stringArrayValue, stringElement)
@@ -196,9 +202,9 @@ func (s *StandardArray) ParseObjectArray(index int) *[]map[string]interface{} {
 		}
 
 		parser, _ := NewStandardArray(s.context.NewChildContext(index), &arrayValue)
-		for index := range arrayValue {
+		for arrayIndex := range arrayValue {
 			var objectElement map[string]interface{}
-			if objectParsed := parser.ParseObject(index); objectParsed != nil {
+			if objectParsed := parser.ParseObject(arrayIndex); objectParsed != nil {
 				objectElement = *objectParsed
 			}
 			objectArrayValue = append(objectArrayValue, objectElement)
