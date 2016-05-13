@@ -1,4 +1,4 @@
-package ketone_test
+package bloodglucose_test
 
 import (
 	"github.com/tidepool-org/platform/pvn/data/types/base/testing"
@@ -9,11 +9,11 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 )
 
-var _ = Describe("Blood Ketone", func() {
+var _ = Describe("Selfmonitored BloodGlucose", func() {
 
 	var rawObject = testing.RawBaseObject()
 
-	rawObject["type"] = "bloodKetone"
+	rawObject["type"] = "smbg"
 	rawObject["units"] = "mmol/L"
 	rawObject["value"] = 5
 
@@ -43,7 +43,7 @@ var _ = Describe("Blood Ketone", func() {
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
 			Entry("above 0", rawObject, "value", 0.1),
 			Entry("below 1000", rawObject, "value", 999.99),
-			Entry("as integer", rawObject, "value", 4),
+			Entry("as integer", rawObject, "value", 12),
 		)
 
 	})
