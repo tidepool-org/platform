@@ -10,20 +10,23 @@ package validator
  * [ ] Full test coverage
  */
 
-import "github.com/tidepool-org/platform/pvn/data"
+import (
+	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/pvn/data"
+)
 
 type Standard struct {
 	context data.Context
 }
 
-func NewStandard(context data.Context) *Standard {
+func NewStandard(context data.Context) (*Standard, error) {
+	if context == nil {
+		return nil, app.Error("parser", "context is missing")
+	}
+
 	return &Standard{
 		context: context,
-	}
-}
-
-func (s *Standard) Context() data.Context {
-	return s.context
+	}, nil
 }
 
 func (s *Standard) ValidateBoolean(reference interface{}, value *bool) data.Boolean {
@@ -67,5 +70,6 @@ func (s *Standard) ValidateStringAsTime(reference interface{}, stringValue *stri
 }
 
 func (s *Standard) NewChildValidator(reference interface{}) data.Validator {
-	return NewStandard(s.context.NewChildContext(reference))
+	standard, _ := NewStandard(s.context.NewChildContext(reference))
+	return standard
 }

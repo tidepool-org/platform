@@ -11,10 +11,7 @@ package data
  */
 
 type Normalizer interface {
-	Context() Context
-
-	AddData(datum Datum)
-	Data() []Datum
+	AppendDatum(datum Datum)
 
 	NewChildNormalizer(reference interface{}) Normalizer
 }

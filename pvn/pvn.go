@@ -164,18 +164,18 @@ func main() {
 
 	log.Printf("==> Loaded %d objects!", len(rawObjects))
 
-	context := context.NewStandard()
+	standardContext := context.NewStandard()
 
 	log.Printf("==> Parsing objects...")
 
-	standardArrayParser := parser.NewStandardArray(context, &rawObjects)
+	standardArrayParser, _ := parser.NewStandardArray(standardContext, &rawObjects)
 
 	parsedObjects := []data.Datum{}
 	for index := range *standardArrayParser.Array() {
 		log.Printf("--- Parsing object #%d", index)
 		standardObjectParser := standardArrayParser.NewChildObjectParser(index)
 		log.Printf("Raw: %v", *standardObjectParser.Object())
-		parsedObject := types.Parse(standardObjectParser)
+		parsedObject := types.Parse(standardContext, standardObjectParser)
 		log.Printf("Parsed: %s", stringifyObject(parsedObject))
 		parsedObjects = append(parsedObjects, parsedObject)
 	}
@@ -184,7 +184,7 @@ func main() {
 
 	log.Printf("==> Validating objects...")
 
-	standardValidator := validator.NewStandard(context)
+	standardValidator, _ := validator.NewStandard(standardContext)
 
 	for index, parsedObject := range parsedObjects {
 		log.Printf("--- Validating object #%d", index)
@@ -195,7 +195,7 @@ func main() {
 
 	log.Printf("==> Normalizing objects...")
 
-	standardNormalizer := normalizer.NewStandard(context)
+	standardNormalizer, _ := normalizer.NewStandard(standardContext)
 
 	for index, parsedObject := range parsedObjects {
 		log.Printf("--- Normalizing object #%d", index)
@@ -210,9 +210,9 @@ func main() {
 
 	log.Printf("==> Normalized objects!")
 
-	if context.HasErrors() {
-		log.Printf("There were %d errors:", len(context.GetErrors()))
-		for _, err := range context.GetErrors() {
+	if errorsLength := len(standardContext.Errors()); errorsLength > 0 {
+		log.Printf("There were %d errors:", errorsLength)
+		for _, err := range standardContext.Errors() {
 			log.Print(stringifyObject(err))
 		}
 	} else {

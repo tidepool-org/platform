@@ -51,7 +51,7 @@ func (i *InnerStruct) Normalize(normalizer data.Normalizer) {
 	datum.String = i.One
 	datum.StringArray = i.Twos
 
-	normalizer.AddData(datum)
+	normalizer.AppendDatum(datum)
 }
 
 func ParseInnerStruct(parser data.ObjectParser) *InnerStruct {

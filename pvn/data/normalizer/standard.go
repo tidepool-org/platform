@@ -10,30 +10,35 @@ package normalizer
  * [ ] Full test coverage
  */
 
-import "github.com/tidepool-org/platform/pvn/data"
+import (
+	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/pvn/data"
+)
 
 type Standard struct {
 	context data.Context
 	data    *[]data.Datum
 }
 
-func NewStandard(context data.Context) *Standard {
+func NewStandard(context data.Context) (*Standard, error) {
+	if context == nil {
+		return nil, app.Error("normalizer", "context is missing")
+	}
+
 	return &Standard{
 		context: context,
 		data:    &[]data.Datum{},
-	}
-}
-
-func (s *Standard) Context() data.Context {
-	return s.context
-}
-
-func (s *Standard) AddData(datum data.Datum) {
-	*s.data = append(*s.data, datum)
+	}, nil
 }
 
 func (s *Standard) Data() []data.Datum {
 	return *s.data
+}
+
+func (s *Standard) AppendDatum(datum data.Datum) {
+	if datum != nil {
+		*s.data = append(*s.data, datum)
+	}
 }
 
 func (s *Standard) NewChildNormalizer(reference interface{}) data.Normalizer {

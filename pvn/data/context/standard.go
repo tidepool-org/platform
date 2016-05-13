@@ -19,39 +19,33 @@ import (
 )
 
 type Standard struct {
-	*service.Errors
+	errors  *[]*service.Error
 	pointer string
 }
 
 func NewStandard() *Standard {
 	return &Standard{
-		Errors: service.NewErrors(),
+		errors: &[]*service.Error{},
 	}
+}
+
+func (s *Standard) Errors() []*service.Error {
+	return *s.errors
 }
 
 func (s *Standard) AppendError(reference interface{}, err *service.Error) {
-	if reference == nil || err == nil {
-		return
+	if err != nil {
+		*s.errors = append(*s.errors, err.WithPointer(s.appendReference(reference)))
 	}
-
-	s.Errors.AppendError(err.WithPointer(s.appendReference(reference)))
 }
 
 func (s *Standard) NewChildContext(reference interface{}) data.Context {
-	if reference == nil {
-		return nil
-	}
-
 	return &Standard{
-		Errors:  s.Errors,
+		errors:  s.errors,
 		pointer: s.appendReference(reference),
 	}
 }
 
 func (s *Standard) appendReference(reference interface{}) string {
-	pointer := fmt.Sprintf("%v", reference)
-	if s.pointer != "" {
-		pointer = strings.Join([]string{s.pointer, pointer}, "/")
-	}
-	return pointer
+	return strings.Join([]string{s.pointer, fmt.Sprintf("%v", reference)}, "/")
 }

@@ -11,8 +11,7 @@ import (
 
 var _ = Describe("Standard", func() {
 
-	Describe("newly created", func() {
-
+	Describe("New", func() {
 		var standard *context.Standard
 
 		BeforeEach(func() {
@@ -24,24 +23,39 @@ var _ = Describe("Standard", func() {
 		})
 
 		It("has a contained Errors that is empty", func() {
-			Expect(standard.Errors).ToNot(BeNil())
-			Expect(standard.Errors.HasErrors()).To(BeFalse())
-			Expect(standard.Errors.GetErrors()).To(BeEmpty())
+			Expect(standard.Errors()).To(BeEmpty())
 		})
 
-		It("ignores a nil reference to AppendError", func() {
-			standard.AppendError(nil, &service.Error{})
-			Expect(standard.Errors.HasErrors()).To(BeFalse())
-			Expect(standard.Errors.GetErrors()).To(BeEmpty())
-		})
-
-		It("ignores a nil err to AppendError", func() {
+		It("ignores sending a nil error to AppendError", func() {
 			standard.AppendError("ignore", nil)
-			Expect(standard.Errors.HasErrors()).To(BeFalse())
-			Expect(standard.Errors.GetErrors()).To(BeEmpty())
+			Expect(standard.Errors()).To(BeEmpty())
 		})
 
-		Describe("after appending a first error", func() {
+		Describe("AppendError with an error with a nil reference", func() {
+			var nilReferenceError *service.Error
+
+			BeforeEach(func() {
+				nilReferenceError = &service.Error{}
+				standard.AppendError(nil, nilReferenceError)
+			})
+
+			It("has errors", func() {
+				Expect(standard.Errors()).ToNot(BeEmpty())
+			})
+
+			It("has the error", func() {
+				Expect(standard.Errors()).To(ConsistOf(nilReferenceError))
+			})
+
+			It("added the <nil> source pointer", func() {
+				Expect(standard.Errors()).To(HaveLen(1))
+				Expect(standard.Errors()[0]).ToNot(BeNil())
+				Expect(standard.Errors()[0].Source).ToNot(BeNil())
+				Expect(standard.Errors()[0].Source.Pointer).To(Equal("/<nil>"))
+			})
+		})
+
+		Describe("AppendError with a first error", func() {
 			var firstError *service.Error
 
 			BeforeEach(func() {
@@ -50,21 +64,21 @@ var _ = Describe("Standard", func() {
 			})
 
 			It("has errors", func() {
-				Expect(standard.Errors.HasErrors()).To(BeTrue())
+				Expect(standard.Errors()).ToNot(BeEmpty())
 			})
 
 			It("has the error", func() {
-				Expect(standard.Errors.GetErrors()).To(ConsistOf(firstError))
+				Expect(standard.Errors()).To(ConsistOf(firstError))
 			})
 
 			It("added the error source pointer", func() {
-				Expect(standard.Errors.GetErrors()).To(HaveLen(1))
-				Expect(standard.Errors.GetError(0)).ToNot(BeNil())
-				Expect(standard.Errors.GetError(0).Source).ToNot(BeNil())
-				Expect(standard.Errors.GetError(0).Source.Pointer).To(Equal("first"))
+				Expect(standard.Errors()).To(HaveLen(1))
+				Expect(standard.Errors()[0]).ToNot(BeNil())
+				Expect(standard.Errors()[0].Source).ToNot(BeNil())
+				Expect(standard.Errors()[0].Source.Pointer).To(Equal("/first"))
 			})
 
-			Describe("and appending a second error", func() {
+			Describe("and AppendError with a second error", func() {
 				var secondError *service.Error
 
 				BeforeEach(func() {
@@ -73,27 +87,23 @@ var _ = Describe("Standard", func() {
 				})
 
 				It("has errors", func() {
-					Expect(standard.Errors.HasErrors()).To(BeTrue())
+					Expect(standard.Errors()).ToNot(BeEmpty())
 				})
 
 				It("has both errors", func() {
-					Expect(standard.Errors.GetErrors()).To(ConsistOf(firstError, secondError))
+					Expect(standard.Errors()).To(ConsistOf(firstError, secondError))
 				})
 
 				It("added the error source pointer", func() {
-					Expect(standard.Errors.GetErrors()).To(HaveLen(2))
-					Expect(standard.Errors.GetError(0)).ToNot(BeNil())
-					Expect(standard.Errors.GetError(0).Source).ToNot(BeNil())
-					Expect(standard.Errors.GetError(0).Source.Pointer).To(Equal("first"))
-					Expect(standard.Errors.GetError(1)).ToNot(BeNil())
-					Expect(standard.Errors.GetError(1).Source).ToNot(BeNil())
-					Expect(standard.Errors.GetError(1).Source.Pointer).To(Equal("second"))
+					Expect(standard.Errors()).To(HaveLen(2))
+					Expect(standard.Errors()[0]).ToNot(BeNil())
+					Expect(standard.Errors()[0].Source).ToNot(BeNil())
+					Expect(standard.Errors()[0].Source.Pointer).To(Equal("/first"))
+					Expect(standard.Errors()[1]).ToNot(BeNil())
+					Expect(standard.Errors()[1].Source).ToNot(BeNil())
+					Expect(standard.Errors()[1].Source.Pointer).To(Equal("/second"))
 				})
 			})
-		})
-
-		It("returns a nil if NewChildContext is invoked with a nil child context", func() {
-			Expect(standard.NewChildContext(nil)).To(BeNil())
 		})
 
 		Describe("creating a child context", func() {
@@ -107,7 +117,7 @@ var _ = Describe("Standard", func() {
 				Expect(child).ToNot(BeNil())
 			})
 
-			Describe("after appending a first error", func() {
+			Describe("AppendError with a first error", func() {
 				var firstError *service.Error
 
 				BeforeEach(func() {
@@ -116,21 +126,21 @@ var _ = Describe("Standard", func() {
 				})
 
 				It("has errors", func() {
-					Expect(standard.Errors.HasErrors()).To(BeTrue())
+					Expect(standard.Errors()).ToNot(BeEmpty())
 				})
 
 				It("has the error", func() {
-					Expect(standard.Errors.GetErrors()).To(ConsistOf(firstError))
+					Expect(standard.Errors()).To(ConsistOf(firstError))
 				})
 
 				It("added the error source pointer", func() {
-					Expect(standard.Errors.GetErrors()).To(HaveLen(1))
-					Expect(standard.Errors.GetError(0)).ToNot(BeNil())
-					Expect(standard.Errors.GetError(0).Source).ToNot(BeNil())
-					Expect(standard.Errors.GetError(0).Source.Pointer).To(Equal("child/first"))
+					Expect(standard.Errors()).To(HaveLen(1))
+					Expect(standard.Errors()[0]).ToNot(BeNil())
+					Expect(standard.Errors()[0].Source).ToNot(BeNil())
+					Expect(standard.Errors()[0].Source.Pointer).To(Equal("/child/first"))
 				})
 
-				Describe("and appending a second error to the parent context", func() {
+				Describe("and AppendError with a second error to the parent context", func() {
 					var secondError *service.Error
 
 					BeforeEach(func() {
@@ -139,21 +149,21 @@ var _ = Describe("Standard", func() {
 					})
 
 					It("has errors", func() {
-						Expect(standard.Errors.HasErrors()).To(BeTrue())
+						Expect(standard.Errors()).ToNot(BeEmpty())
 					})
 
 					It("has both errors", func() {
-						Expect(standard.Errors.GetErrors()).To(ConsistOf(firstError, secondError))
+						Expect(standard.Errors()).To(ConsistOf(firstError, secondError))
 					})
 
 					It("added the error source pointer", func() {
-						Expect(standard.Errors.GetErrors()).To(HaveLen(2))
-						Expect(standard.Errors.GetError(0)).ToNot(BeNil())
-						Expect(standard.Errors.GetError(0).Source).ToNot(BeNil())
-						Expect(standard.Errors.GetError(0).Source.Pointer).To(Equal("child/first"))
-						Expect(standard.Errors.GetError(1)).ToNot(BeNil())
-						Expect(standard.Errors.GetError(1).Source).ToNot(BeNil())
-						Expect(standard.Errors.GetError(1).Source.Pointer).To(Equal("second"))
+						Expect(standard.Errors()).To(HaveLen(2))
+						Expect(standard.Errors()[0]).ToNot(BeNil())
+						Expect(standard.Errors()[0].Source).ToNot(BeNil())
+						Expect(standard.Errors()[0].Source.Pointer).To(Equal("/child/first"))
+						Expect(standard.Errors()[1]).ToNot(BeNil())
+						Expect(standard.Errors()[1].Source).ToNot(BeNil())
+						Expect(standard.Errors()[1].Source.Pointer).To(Equal("/second"))
 					})
 				})
 			})
@@ -169,7 +179,7 @@ var _ = Describe("Standard", func() {
 					Expect(grandchild).ToNot(BeNil())
 				})
 
-				Describe("after appending a first error", func() {
+				Describe("AppendError with a first error", func() {
 					var firstError *service.Error
 
 					BeforeEach(func() {
@@ -178,18 +188,18 @@ var _ = Describe("Standard", func() {
 					})
 
 					It("has errors", func() {
-						Expect(standard.Errors.HasErrors()).To(BeTrue())
+						Expect(standard.Errors()).ToNot(BeEmpty())
 					})
 
 					It("has the error", func() {
-						Expect(standard.Errors.GetErrors()).To(ConsistOf(firstError))
+						Expect(standard.Errors()).To(ConsistOf(firstError))
 					})
 
 					It("added the error source pointer", func() {
-						Expect(standard.Errors.GetErrors()).To(HaveLen(1))
-						Expect(standard.Errors.GetError(0)).ToNot(BeNil())
-						Expect(standard.Errors.GetError(0).Source).ToNot(BeNil())
-						Expect(standard.Errors.GetError(0).Source.Pointer).To(Equal("child/grandchild/first"))
+						Expect(standard.Errors()).To(HaveLen(1))
+						Expect(standard.Errors()[0]).ToNot(BeNil())
+						Expect(standard.Errors()[0].Source).ToNot(BeNil())
+						Expect(standard.Errors()[0].Source.Pointer).To(Equal("/child/grandchild/first"))
 					})
 				})
 			})

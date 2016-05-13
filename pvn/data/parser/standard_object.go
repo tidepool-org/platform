@@ -10,22 +10,25 @@ package parser
  * [ ] Full test coverage
  */
 
-import "github.com/tidepool-org/platform/pvn/data"
+import (
+	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/pvn/data"
+)
 
 type StandardObject struct {
 	context data.Context
 	object  *map[string]interface{}
 }
 
-func NewStandardObject(context data.Context, object *map[string]interface{}) *StandardObject {
+func NewStandardObject(context data.Context, object *map[string]interface{}) (*StandardObject, error) {
+	if context == nil {
+		return nil, app.Error("parser", "context is missing")
+	}
+
 	return &StandardObject{
 		context: context,
 		object:  object,
-	}
-}
-
-func (s *StandardObject) Context() data.Context {
-	return s.context
+	}, nil
 }
 
 func (s *StandardObject) Object() *map[string]interface{} {
@@ -135,7 +138,7 @@ func (s *StandardObject) ParseStringArray(key string) *[]string {
 		}
 
 		stringArrayValue = []string{}
-		parser := NewStandardArray(s.context.NewChildContext(key), &arrayValue)
+		parser, _ := NewStandardArray(s.context.NewChildContext(key), &arrayValue)
 		for index := range arrayValue {
 			var stringElement string
 			if stringParsed := parser.ParseString(index); stringParsed != nil {
@@ -185,7 +188,7 @@ func (s *StandardObject) ParseObjectArray(key string) *[]map[string]interface{} 
 			return nil
 		}
 
-		parser := NewStandardArray(s.context.NewChildContext(key), &arrayValue)
+		parser, _ := NewStandardArray(s.context.NewChildContext(key), &arrayValue)
 		for index := range arrayValue {
 			var objectElement map[string]interface{}
 			if objectParsed := parser.ParseObject(index); objectParsed != nil {
@@ -231,9 +234,11 @@ func (s *StandardObject) ParseInterfaceArray(key string) *[]interface{} {
 }
 
 func (s *StandardObject) NewChildObjectParser(key string) data.ObjectParser {
-	return NewStandardObject(s.context.NewChildContext(key), s.ParseObject(key))
+	standardObject, _ := NewStandardObject(s.context.NewChildContext(key), s.ParseObject(key))
+	return standardObject
 }
 
 func (s *StandardObject) NewChildArrayParser(key string) data.ArrayParser {
-	return NewStandardArray(s.context.NewChildContext(key), s.ParseInterfaceArray(key))
+	standardArray, _ := NewStandardArray(s.context.NewChildContext(key), s.ParseInterfaceArray(key))
+	return standardArray
 }

@@ -11,7 +11,6 @@ package data
  */
 
 type ObjectParser interface {
-	Context() Context
 	Object() *map[string]interface{}
 
 	ParseBoolean(key string) *bool
@@ -29,7 +28,6 @@ type ObjectParser interface {
 }
 
 type ArrayParser interface {
-	Context() Context
 	Array() *[]interface{}
 
 	ParseBoolean(index int) *bool

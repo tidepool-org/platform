@@ -13,8 +13,6 @@ import "time"
  */
 
 type Validator interface {
-	Context() Context
-
 	ValidateBoolean(reference interface{}, value *bool) Boolean
 	ValidateInteger(reference interface{}, value *int) Integer
 	ValidateFloat(reference interface{}, value *float64) Float

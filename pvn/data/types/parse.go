@@ -16,12 +16,12 @@ import (
 	"github.com/tidepool-org/platform/pvn/data/types/base/sample/sub"
 )
 
-func Parse(parser data.ObjectParser) data.Datum {
+func Parse(context data.Context, parser data.ObjectParser) data.Datum {
 	var datum data.Datum
 
 	datumType := parser.ParseString("type")
 	if datumType == nil {
-		parser.Context().AppendError("type", ErrorValueMissing())
+		context.AppendError("type", ErrorValueMissing())
 		return nil
 	}
 
@@ -37,14 +37,14 @@ func Parse(parser data.ObjectParser) data.Datum {
 			case sub.SubType():
 				datum = sub.New()
 			default:
-				parser.Context().AppendError("subType", ErrorSubTypeInvalid(*datumSubType))
+				context.AppendError("subType", ErrorSubTypeInvalid(*datumSubType))
 				return nil
 			}
 		} else {
 			datum = sample.New()
 		}
 	default:
-		parser.Context().AppendError("type", ErrorTypeInvalid(*datumType))
+		context.AppendError("type", ErrorTypeInvalid(*datumType))
 		return nil
 	}
 

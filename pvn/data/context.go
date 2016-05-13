@@ -14,5 +14,6 @@ import "github.com/tidepool-org/platform/service"
 
 type Context interface {
 	AppendError(reference interface{}, err *service.Error)
+
 	NewChildContext(reference interface{}) Context
 }
