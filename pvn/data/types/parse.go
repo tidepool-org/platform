@@ -13,6 +13,7 @@ package types
 import (
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/pvn/data"
+	"github.com/tidepool-org/platform/pvn/data/types/base/ketone"
 	"github.com/tidepool-org/platform/pvn/data/types/base/sample"
 	"github.com/tidepool-org/platform/pvn/data/types/base/sample/sub"
 	"github.com/tidepool-org/platform/pvn/data/types/base/upload"
@@ -54,6 +55,8 @@ func Parse(context data.Context, parser data.ObjectParser) (data.Datum, error) {
 		}
 	case upload.Type():
 		datum = upload.New()
+	case ketone.BloodType():
+		datum = ketone.NewBlood()
 	default:
 		context.AppendError("type", ErrorTypeInvalid(*datumType))
 		return nil, nil
