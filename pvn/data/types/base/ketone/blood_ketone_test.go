@@ -2,6 +2,7 @@ package ketone_test
 
 import (
 	"github.com/tidepool-org/platform/pvn/data/types/base/testing"
+	"github.com/tidepool-org/platform/pvn/data/validator"
 	"github.com/tidepool-org/platform/service"
 
 	. "github.com/onsi/ginkgo"
@@ -19,8 +20,8 @@ var _ = Describe("Blood Ketone", func() {
 	Context("units", func() {
 
 		DescribeTable("units when", testing.ExpectFieldNotValid,
-			Entry("empty", rawObject, "units", "", []*service.Error{&service.Error{}}),
-			Entry("not one of the predefined values", rawObject, "units", "wrong", []*service.Error{&service.Error{}}),
+			Entry("empty", rawObject, "units", "", []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("not one of the predefined values", rawObject, "units", "wrong", []*service.Error{validator.ErrorValueNotTrue()}),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -35,8 +36,8 @@ var _ = Describe("Blood Ketone", func() {
 	Context("value", func() {
 
 		DescribeTable("value when", testing.ExpectFieldNotValid,
-			Entry("less than 0", rawObject, "value", -0.1, []*service.Error{&service.Error{}}),
-			Entry("greater than 1000", rawObject, "value", 1000.1, []*service.Error{&service.Error{}}),
+			Entry("less than 0", rawObject, "value", -0.1, []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("greater than 1000", rawObject, "value", 1000.1, []*service.Error{validator.ErrorValueNotTrue()}),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,

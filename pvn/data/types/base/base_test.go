@@ -5,6 +5,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 
 	"github.com/tidepool-org/platform/pvn/data/types/base/testing"
+	"github.com/tidepool-org/platform/pvn/data/validator"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -45,8 +46,8 @@ var _ = Describe("Base", func() {
 	Context("userId", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("empty", rawObject, "userId", "", []*service.Error{&service.Error{}}),
-			Entry("less than 10 characters", rawObject, "userId", "123456789", []*service.Error{&service.Error{}}),
+			Entry("empty", rawObject, "userId", "", []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("less than 10 characters", rawObject, "userId", "123456789", []*service.Error{validator.ErrorValueNotTrue()}),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -59,7 +60,7 @@ var _ = Describe("Base", func() {
 	Context("uploadId", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("empty", rawObject, "uploadId", "", []*service.Error{&service.Error{}}),
+			Entry("empty", rawObject, "uploadId", "", []*service.Error{validator.ErrorValueNotTrue()}),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -72,7 +73,7 @@ var _ = Describe("Base", func() {
 	Context("deviceId", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("empty", rawObject, "deviceId", "", []*service.Error{&service.Error{}}),
+			Entry("empty", rawObject, "deviceId", "", []*service.Error{validator.ErrorValueNotTrue()}),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -95,7 +96,7 @@ var _ = Describe("Base", func() {
 	Context("conversionOffset", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("negative", rawObject, "conversionOffset", -1, []*service.Error{&service.Error{}}),
+			Entry("negative", rawObject, "conversionOffset", -1, []*service.Error{validator.ErrorValueNotTrue()}),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -108,7 +109,7 @@ var _ = Describe("Base", func() {
 	Context("clockDriftOffset", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("negative", rawObject, "clockDriftOffset", -1, []*service.Error{&service.Error{}}),
+			Entry("negative", rawObject, "clockDriftOffset", -1, []*service.Error{validator.ErrorValueNotTrue()}),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -125,7 +126,7 @@ var _ = Describe("Base", func() {
 		)
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("non zulu time", rawObject, "time", "2013-05-04T03:58:44.584", []*service.Error{&service.Error{}}),
+			Entry("non zulu time", rawObject, "time", "2013-05-04T03:58:44.584", []*service.Error{validator.ErrorValueNotTrue()}),
 		)
 
 	})
