@@ -36,7 +36,7 @@ func (s *Settings) Parse(parser data.ObjectParser) {
 
 	s.Units = ParseUnits(parser.NewChildObjectParser("units"))
 
-	//s.CarbohydrateRatios = ParseCarbohydrateRatioArray(parser.NewChildArrayParser("carbRatio"))
+	s.CarbohydrateRatios = ParseCarbohydrateRatioArray(parser.NewChildArrayParser("carbRatio"))
 	//s.InsulinSensitivities = ParseInsulinSensitivityArray(parser.NewChildArrayParser("insulinSensitivity"))
 	//s.BloodGlucoseTargets = ParseBloodGlucoseTargetArray(parser.NewChildArrayParser("bgTarget"))
 }

@@ -1,14 +1,10 @@
 package pump
 
-import (
-	"fmt"
-
-	"github.com/tidepool-org/platform/pvn/data"
-)
+import "github.com/tidepool-org/platform/pvn/data"
 
 type CarbohydrateRatio struct {
-	Amount *float64 `json:"amount" bson:"amount"`
-	Start  *int     `json:"start" bson:"start"`
+	Amount *int `json:"amount" bson:"amount"`
+	Start  *int `json:"start" bson:"start"`
 }
 
 func NewCarbohydrateRatio() *CarbohydrateRatio {
@@ -16,13 +12,13 @@ func NewCarbohydrateRatio() *CarbohydrateRatio {
 }
 
 func (c *CarbohydrateRatio) Parse(parser data.ObjectParser) {
-	c.Amount = parser.ParseFloat("amount")
+	c.Amount = parser.ParseInteger("amount")
 	c.Start = parser.ParseInteger("start")
 }
 
 func (c *CarbohydrateRatio) Validate(validator data.Validator) {
-	validator.ValidateFloat("amount", c.Amount).Exists().GreaterThanOrEqualTo(0)
-	validator.ValidateInteger("start", c.Start).Exists().GreaterThanOrEqualTo(0)
+	validator.ValidateInteger("amount", c.Amount).Exists().GreaterThanOrEqualTo(0).LessThanOrEqualTo(250)
+	validator.ValidateInteger("start", c.Start).Exists().GreaterThanOrEqualTo(0).LessThanOrEqualTo(86400000)
 }
 
 func (b *CarbohydrateRatio) Normalize(normalizer data.Normalizer) {
@@ -30,8 +26,6 @@ func (b *CarbohydrateRatio) Normalize(normalizer data.Normalizer) {
 
 func ParseCarbohydrateRatio(parser data.ObjectParser) *CarbohydrateRatio {
 	var carbohydrateRatio *CarbohydrateRatio
-
-	fmt.Println("ParseCarbohydrateRatio", parser.Object())
 
 	if parser.Object() != nil {
 		carbohydrateRatio = NewCarbohydrateRatio()
@@ -41,8 +35,6 @@ func ParseCarbohydrateRatio(parser data.ObjectParser) *CarbohydrateRatio {
 }
 
 func ParseCarbohydrateRatioArray(parser data.ArrayParser) *[]*CarbohydrateRatio {
-
-	fmt.Println("ParseCarbohydrateRatioArray", parser.Array())
 
 	var carbohydrateRatioArray *[]*CarbohydrateRatio
 	if parser.Array() != nil {
