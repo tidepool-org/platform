@@ -102,4 +102,33 @@ var _ = Describe("Pump Settings", func() {
 
 	})
 
+	Context("insulinSensitivity", func() {
+
+		DescribeTable("invalid when", testing.ExpectFieldNotValid,
+			Entry("start negative", rawObject, "insulinSensitivity",
+				[]interface{}{map[string]interface{}{"amount": 12, "start": -1}},
+				[]*service.Error{validator.ErrorValueNotTrue()},
+			),
+			Entry("start greater then 86400000", rawObject, "insulinSensitivity",
+				[]interface{}{map[string]interface{}{"amount": 12, "start": 86400001}},
+				[]*service.Error{validator.ErrorValueNotTrue()},
+			),
+			Entry("amount negative", rawObject, "insulinSensitivity",
+				[]interface{}{map[string]interface{}{"amount": -0.1, "start": 21600000}},
+				[]*service.Error{validator.ErrorValueNotTrue()},
+			),
+			Entry("amount greater then 1000.0", rawObject, "insulinSensitivity",
+				[]interface{}{map[string]interface{}{"amount": 1000.1, "start": 21600000}},
+				[]*service.Error{validator.ErrorValueNotTrue()},
+			),
+		)
+
+		DescribeTable("valid when", testing.ExpectFieldIsValid,
+			Entry("start and amount within bounds", rawObject, "insulinSensitivity",
+				[]interface{}{map[string]interface{}{"amount": 12, "start": 0}},
+			),
+		)
+
+	})
+
 })
