@@ -1,6 +1,8 @@
 package testing
 
 import (
+	"fmt"
+
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/pvn/data/context"
@@ -24,16 +26,25 @@ func RawBaseObject() map[string]interface{} {
 	}
 }
 
+func reportAndFailOnErrors(testContext *context.Standard, step string) {
+	if testContext.HasErrors() {
+		for i := range testContext.GetErrors() {
+			fmt.Println(testContext.GetErrors()[i].Source, testContext.GetErrors()[i].Detail)
+		}
+		Expect(testContext.HasErrors()).To(BeFalse(), step)
+	}
+}
+
 var ExpectFieldIsValid = func(object map[string]interface{}, field string, val interface{}) {
 	object[field] = val
 	testContext := context.NewStandard()
 	standardValidator := validator.NewStandard(testContext)
 	objectParser := parser.NewStandardObject(testContext, &object)
-	Expect(testContext.HasErrors()).To(BeFalse(), "Unexpected initialization errors")
+	reportAndFailOnErrors(testContext, "Initialization:")
 	parsedObject := types.Parse(objectParser)
-	Expect(testContext.HasErrors()).To(BeFalse(), "Unexpected parse errors")
+	reportAndFailOnErrors(testContext, "Parsing:")
 	parsedObject.Validate(standardValidator)
-	Expect(testContext.HasErrors()).To(BeFalse(), "Unexpected validate errors")
+	reportAndFailOnErrors(testContext, "Validation:")
 }
 
 var ExpectFieldNotValid = func(object map[string]interface{}, field string, val interface{}, expectedErrors []*service.Error) {
@@ -41,9 +52,9 @@ var ExpectFieldNotValid = func(object map[string]interface{}, field string, val 
 	testContext := context.NewStandard()
 	standardValidator := validator.NewStandard(testContext)
 	objectParser := parser.NewStandardObject(testContext, &object)
-	Expect(testContext.HasErrors()).To(BeFalse(), "Unexpected initialization errors")
+	reportAndFailOnErrors(testContext, "Initialization:")
 	parsedObject := types.Parse(objectParser)
-	Expect(testContext.HasErrors()).To(BeFalse(), "Unexpected parse errors")
+	reportAndFailOnErrors(testContext, "Parsing:")
 	parsedObject.Validate(standardValidator)
 	Expect(testContext.HasErrors()).To(BeTrue())
 	Expect(len(testContext.GetErrors())).To(Equal(len(expectedErrors)))
