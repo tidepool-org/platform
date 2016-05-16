@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 )
 
-var _ = Describe("Susepnd Basal", func() {
+var _ = Describe("Suspend Basal", func() {
 
 	var rawObject = testing.RawBaseObject()
 
