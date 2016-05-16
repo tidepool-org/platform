@@ -13,6 +13,8 @@ package types
 import (
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/pvn/data"
+	"github.com/tidepool-org/platform/pvn/data/types/base/basal"
+	"github.com/tidepool-org/platform/pvn/data/types/base/basal/suspend"
 	"github.com/tidepool-org/platform/pvn/data/types/base/bloodglucose"
 	"github.com/tidepool-org/platform/pvn/data/types/base/ketone"
 	"github.com/tidepool-org/platform/pvn/data/types/base/pump"
@@ -54,6 +56,21 @@ func Parse(context data.Context, parser data.ObjectParser) (data.Datum, error) {
 			}
 		} else {
 			datum = sample.New()
+		}
+	case basal.Type():
+
+		datumDeliveryType := parser.ParseString("deliveryType")
+
+		if datumDeliveryType != nil {
+			switch *datumDeliveryType {
+			case suspend.DeliveryType():
+				datum = suspend.New()
+			default:
+				parser.Context().AppendError("deliveryType", ErrorSubTypeInvalid(*datumDeliveryType))
+				return nil
+			}
+		} else {
+			datum = basal.New()
 		}
 	case upload.Type():
 		datum = upload.New()
