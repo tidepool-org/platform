@@ -3,9 +3,11 @@ package pump
 import "github.com/tidepool-org/platform/pvn/data"
 
 type BloodGlucoseTarget struct {
-	Low   *float64 `json:"low" bson:"low"`
-	High  *float64 `json:"high" bson:"high"`
-	Start *int     `json:"start" bson:"start"`
+	Low    *float64 `json:"low" bson:"low"`
+	High   *float64 `json:"high" bson:"high"`
+	Target *float64 `json:"target" bson:"target"`
+	Start  *int     `json:"start" bson:"start"`
+	Range  *int     `json:"range" bson:"range"`
 }
 
 func NewBloodGlucoseTarget() *BloodGlucoseTarget {
@@ -15,13 +17,30 @@ func NewBloodGlucoseTarget() *BloodGlucoseTarget {
 func (b *BloodGlucoseTarget) Parse(parser data.ObjectParser) {
 	b.High = parser.ParseFloat("high")
 	b.Low = parser.ParseFloat("low")
+	b.Target = parser.ParseFloat("target")
+
 	b.Start = parser.ParseInteger("start")
+	b.Range = parser.ParseInteger("range")
 }
 
 func (b *BloodGlucoseTarget) Validate(validator data.Validator) {
-	validator.ValidateFloat("low", b.Low).Exists().GreaterThanOrEqualTo(0.0).LessThanOrEqualTo(*b.High)
-	validator.ValidateFloat("high", b.High).Exists().GreaterThanOrEqualTo(*b.Low).LessThanOrEqualTo(1000.0)
-	validator.ValidateInteger("start", b.Start).Exists().GreaterThanOrEqualTo(0)
+
+	if b.High != nil {
+		validator.ValidateFloat("low", b.Low).GreaterThanOrEqualTo(0.0).LessThanOrEqualTo(*b.High)
+	} else {
+		validator.ValidateFloat("low", b.Low).GreaterThanOrEqualTo(0.0).LessThanOrEqualTo(1000.0)
+	}
+
+	validator.ValidateFloat("target", b.Target).GreaterThanOrEqualTo(0.0).LessThanOrEqualTo(1000.0)
+
+	if b.Low != nil {
+		validator.ValidateFloat("high", b.High).GreaterThanOrEqualTo(*b.Low).LessThanOrEqualTo(1000.0)
+	} else if b.Target != nil {
+		validator.ValidateFloat("high", b.High).GreaterThanOrEqualTo(*b.Target).LessThanOrEqualTo(1000.0)
+	}
+
+	validator.ValidateInteger("range", b.Range).GreaterThanOrEqualTo(0).LessThanOrEqualTo(50)
+	validator.ValidateInteger("start", b.Start).Exists().GreaterThanOrEqualTo(0).LessThanOrEqualTo(86400000)
 }
 
 func (b *BloodGlucoseTarget) Normalize(normalizer data.Normalizer) {

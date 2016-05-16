@@ -80,7 +80,7 @@ var _ = Describe("Pump Settings", func() {
 				[]interface{}{map[string]interface{}{"amount": 12, "start": -1}},
 				[]*service.Error{validator.ErrorValueNotTrue()},
 			),
-			Entry("start greater then 86400000", rawObject, "carbRatio",
+			Entry("start greater than 86400000", rawObject, "carbRatio",
 				[]interface{}{map[string]interface{}{"amount": 12, "start": 86400001}},
 				[]*service.Error{validator.ErrorValueNotTrue()},
 			),
@@ -88,7 +88,7 @@ var _ = Describe("Pump Settings", func() {
 				[]interface{}{map[string]interface{}{"amount": -1, "start": 21600000}},
 				[]*service.Error{validator.ErrorValueNotTrue()},
 			),
-			Entry("amount greater then 250", rawObject, "carbRatio",
+			Entry("amount greater than 250", rawObject, "carbRatio",
 				[]interface{}{map[string]interface{}{"amount": 251, "start": 21600000}},
 				[]*service.Error{validator.ErrorValueNotTrue()},
 			),
@@ -109,7 +109,7 @@ var _ = Describe("Pump Settings", func() {
 				[]interface{}{map[string]interface{}{"amount": 12, "start": -1}},
 				[]*service.Error{validator.ErrorValueNotTrue()},
 			),
-			Entry("start greater then 86400000", rawObject, "insulinSensitivity",
+			Entry("start greater than 86400000", rawObject, "insulinSensitivity",
 				[]interface{}{map[string]interface{}{"amount": 12, "start": 86400001}},
 				[]*service.Error{validator.ErrorValueNotTrue()},
 			),
@@ -117,7 +117,7 @@ var _ = Describe("Pump Settings", func() {
 				[]interface{}{map[string]interface{}{"amount": -0.1, "start": 21600000}},
 				[]*service.Error{validator.ErrorValueNotTrue()},
 			),
-			Entry("amount greater then 1000.0", rawObject, "insulinSensitivity",
+			Entry("amount greater than 1000.0", rawObject, "insulinSensitivity",
 				[]interface{}{map[string]interface{}{"amount": 1000.1, "start": 21600000}},
 				[]*service.Error{validator.ErrorValueNotTrue()},
 			),
@@ -128,6 +128,82 @@ var _ = Describe("Pump Settings", func() {
 				[]interface{}{map[string]interface{}{"amount": 12, "start": 0}},
 			),
 		)
+
+	})
+
+	Context("bgTarget", func() {
+
+		Context("start, target, range", func() {
+
+			DescribeTable("invalid when", testing.ExpectFieldNotValid,
+				Entry("start negative", rawObject, "bgTarget",
+					[]interface{}{map[string]interface{}{"start": -1, "target": 99.0, "range": 15}},
+					[]*service.Error{validator.ErrorValueNotTrue()},
+				),
+				Entry("start greater than 86400000", rawObject, "bgTarget",
+					[]interface{}{map[string]interface{}{"start": 86400001, "target": 99.0, "range": 15}},
+					[]*service.Error{validator.ErrorValueNotTrue()},
+				),
+				Entry("target negative", rawObject, "bgTarget",
+					[]interface{}{map[string]interface{}{"start": 21600000, "target": -0.1, "range": 15}},
+					[]*service.Error{validator.ErrorValueNotTrue()},
+				),
+				Entry("target greater than 1000.0", rawObject, "bgTarget",
+					[]interface{}{map[string]interface{}{"start": 21600000, "target": 1000.1, "range": 15}},
+					[]*service.Error{validator.ErrorValueNotTrue()},
+				),
+				Entry("range negative", rawObject, "bgTarget",
+					[]interface{}{map[string]interface{}{"start": 21600000, "target": 99.0, "range": -1}},
+					[]*service.Error{validator.ErrorValueNotTrue()},
+				),
+				Entry("range greater than 51", rawObject, "bgTarget",
+					[]interface{}{map[string]interface{}{"start": 21600000, "target": 199.0, "range": 51}},
+					[]*service.Error{validator.ErrorValueNotTrue()},
+				),
+			)
+
+			DescribeTable("valid when", testing.ExpectFieldIsValid,
+				Entry("within bounds", rawObject, "bgTarget",
+					[]interface{}{map[string]interface{}{"start": 21600000, "target": 99.9, "range": 10}},
+				),
+			)
+		})
+
+		Context("start, target, high", func() {
+
+			DescribeTable("invalid when", testing.ExpectFieldNotValid,
+				Entry("start negative", rawObject, "bgTarget",
+					[]interface{}{map[string]interface{}{"start": -1, "target": 99.0, "high": 180.0}},
+					[]*service.Error{validator.ErrorValueNotTrue()},
+				),
+				Entry("start greater than 86400000", rawObject, "bgTarget",
+					[]interface{}{map[string]interface{}{"start": 86400001, "target": 99.0, "high": 180.0}},
+					[]*service.Error{validator.ErrorValueNotTrue()},
+				),
+				Entry("target negative", rawObject, "bgTarget",
+					[]interface{}{map[string]interface{}{"start": 21600000, "target": -0.1, "high": 180.0}},
+					[]*service.Error{validator.ErrorValueNotTrue()},
+				),
+				Entry("target greater than 1000.0", rawObject, "bgTarget",
+					[]interface{}{map[string]interface{}{"start": 21600000, "target": 1000.1, "high": 180.0}},
+					[]*service.Error{validator.ErrorValueNotTrue(), validator.ErrorValueNotTrue()},
+				),
+				Entry("high less than target", rawObject, "bgTarget",
+					[]interface{}{map[string]interface{}{"start": 21600000, "target": 90.0, "high": 80.0}},
+					[]*service.Error{validator.ErrorValueNotTrue()},
+				),
+				Entry("high greater than 1000.0", rawObject, "bgTarget",
+					[]interface{}{map[string]interface{}{"start": 21600000, "target": 90.0, "high": 1000.1}},
+					[]*service.Error{validator.ErrorValueNotTrue()},
+				),
+			)
+
+			DescribeTable("valid when", testing.ExpectFieldIsValid,
+				Entry("within bounds", rawObject, "bgTarget",
+					[]interface{}{map[string]interface{}{"start": 21600000, "target": 99.9, "high": 180.0}},
+				),
+			)
+		})
 
 	})
 

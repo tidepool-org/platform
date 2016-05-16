@@ -1,7 +1,7 @@
 package testing
 
 import (
-	"fmt"
+	"log"
 
 	. "github.com/onsi/gomega"
 
@@ -29,7 +29,7 @@ func RawBaseObject() map[string]interface{} {
 func reportAndFailOnErrors(testContext *context.Standard, step string) {
 	if testContext.HasErrors() {
 		for i := range testContext.GetErrors() {
-			fmt.Println(testContext.GetErrors()[i].Source, testContext.GetErrors()[i].Detail)
+			log.Println(testContext.GetErrors()[i].Source, testContext.GetErrors()[i].Detail)
 		}
 		Expect(testContext.HasErrors()).To(BeFalse(), step)
 	}
