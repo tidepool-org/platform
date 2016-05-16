@@ -1,4 +1,4 @@
-package scheduled_test
+package temporary_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestScheduled(t *testing.T) {
+func TestTemporary(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "pvn/data/types/base/basal/scheduled")
+	RunSpecs(t, "pvn/data/types/base/basal/temporary")
 }

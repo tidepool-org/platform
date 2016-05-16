@@ -16,6 +16,7 @@ import (
 	"github.com/tidepool-org/platform/pvn/data/types/base/basal"
 	"github.com/tidepool-org/platform/pvn/data/types/base/basal/scheduled"
 	"github.com/tidepool-org/platform/pvn/data/types/base/basal/suspend"
+	"github.com/tidepool-org/platform/pvn/data/types/base/basal/temporary"
 	"github.com/tidepool-org/platform/pvn/data/types/base/bloodglucose"
 	"github.com/tidepool-org/platform/pvn/data/types/base/ketone"
 	"github.com/tidepool-org/platform/pvn/data/types/base/pump"
@@ -68,6 +69,8 @@ func Parse(context data.Context, parser data.ObjectParser) (data.Datum, error) {
 				datum = suspend.New()
 			case scheduled.DeliveryType():
 				datum = scheduled.New()
+			case temporary.DeliveryType():
+				datum = temporary.New()
 			default:
 				parser.Context().AppendError("deliveryType", ErrorSubTypeInvalid(*datumDeliveryType))
 				return nil
