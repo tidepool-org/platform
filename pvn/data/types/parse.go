@@ -18,6 +18,10 @@ import (
 	"github.com/tidepool-org/platform/pvn/data/types/base/basal/suspend"
 	"github.com/tidepool-org/platform/pvn/data/types/base/basal/temporary"
 	"github.com/tidepool-org/platform/pvn/data/types/base/bloodglucose"
+	"github.com/tidepool-org/platform/pvn/data/types/base/bolus"
+	"github.com/tidepool-org/platform/pvn/data/types/base/bolus/combination"
+	"github.com/tidepool-org/platform/pvn/data/types/base/bolus/extended"
+	"github.com/tidepool-org/platform/pvn/data/types/base/bolus/normal"
 	"github.com/tidepool-org/platform/pvn/data/types/base/ketone"
 	"github.com/tidepool-org/platform/pvn/data/types/base/pump"
 	"github.com/tidepool-org/platform/pvn/data/types/base/sample"
@@ -77,6 +81,25 @@ func Parse(context data.Context, parser data.ObjectParser) (data.Datum, error) {
 			}
 		} else {
 			datum = basal.New()
+		}
+	case bolus.Type():
+
+		bolusSubType := parser.ParseString("subType")
+
+		if bolusSubType != nil {
+			switch *bolusSubType {
+			case normal.SubType():
+				datum = normal.New()
+			case extended.SubType():
+				datum = extended.New()
+			case combination.SubType():
+				datum = combination.New()
+			default:
+				parser.Context().AppendError("subType", ErrorSubTypeInvalid(*bolusSubType))
+				return nil
+			}
+		} else {
+			datum = bolus.New()
 		}
 	case upload.Type():
 		datum = upload.New()
