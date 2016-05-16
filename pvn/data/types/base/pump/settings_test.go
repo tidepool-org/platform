@@ -38,10 +38,13 @@ var _ = Describe("Pump Settings", func() {
 			map[string]interface{}{"amount": 2.5, "start": 18000000},
 		}
 
-		/*rawObject["basalSchedules"] = map[string][]map[string]interface{}{
-			"standard":  {{"rate": 0.8, "start": 0}, {"rate": 0.75, "start": 3600000}},
-			"pattern a": {{"rate": 0.95, "start": 0}, {"rate": 0.9, "start": 3600000}},
-		}*/
+		rawObject["basalSchedules"] = []interface{}{
+			map[string][]interface{}{
+				"standard": {
+					map[string]interface{}{"rate": 0.8, "start": 0},
+					map[string]interface{}{"rate": 0.75, "start": 3600000},
+				}},
+		}
 
 	})
 

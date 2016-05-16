@@ -17,8 +17,8 @@ func (b *BasalSchedule) Parse(parser data.ObjectParser) {
 }
 
 func (b *BasalSchedule) Validate(validator data.Validator) {
-	validator.ValidateFloat("rate", b.Rate).Exists().GreaterThanOrEqualTo(0)
-	validator.ValidateInteger("start", b.Start).Exists().GreaterThanOrEqualTo(0)
+	validator.ValidateFloat("rate", b.Rate).Exists().GreaterThanOrEqualTo(0.0).LessThanOrEqualTo(20.0)
+	validator.ValidateInteger("start", b.Start).Exists().GreaterThanOrEqualTo(0).LessThanOrEqualTo(86400000)
 }
 
 func (b *BasalSchedule) Normalize(normalizer data.Normalizer) {
@@ -33,13 +33,14 @@ func ParseBasalSchedule(parser data.ObjectParser) *BasalSchedule {
 	return basalSchedule
 }
 
-func ParseBasalScheduleArray(parser data.ArrayParser) *[]*BasalSchedule {
-	var basalScheduleArray *[]*BasalSchedule
+func ParseBasalScheduleArray(parser data.ArrayParser) *map[string][]*BasalSchedule {
+	var basalScheduleArray *map[string][]*BasalSchedule
 	if parser.Array() != nil {
-		basalScheduleArray = &[]*BasalSchedule{}
-		for index := range *parser.Array() {
-			*basalScheduleArray = append(*basalScheduleArray, ParseBasalSchedule(parser.NewChildObjectParser(index)))
-		}
+		basalScheduleArray = &map[string][]*BasalSchedule{}
+
+		// for index := range *parser.Array() {
+		// 	*basalScheduleArray[key] = ParseBasalSchedule(parser.NewChildObjectParser(key))
+		// }
 	}
 	return basalScheduleArray
 }
