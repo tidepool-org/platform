@@ -119,6 +119,17 @@ var _ = Describe("TimeChange Event", func() {
 			)
 
 		})
+
+		Context("timezone", func() {
+
+			DescribeTable("valid when", testing.ExpectFieldIsValid,
+				Entry("set", rawObject, "change",
+					map[string]interface{}{"from": "2016-05-04T08:18:06", "to": "2016-05-04T07:21:31", "timezone": "US/Central", "agent": "manual", "reasons": []string{"travel"}}),
+				Entry("empty", rawObject, "change",
+					map[string]interface{}{"from": "2016-05-04T08:18:06", "to": "2016-05-04T07:21:31", "timezone": "", "agent": "manual", "reasons": []string{"travel"}}),
+			)
+
+		})
 	})
 
 })
