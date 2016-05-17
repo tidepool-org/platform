@@ -23,6 +23,8 @@ import (
 	"github.com/tidepool-org/platform/pvn/data/types/base/bolus/combination"
 	"github.com/tidepool-org/platform/pvn/data/types/base/bolus/extended"
 	"github.com/tidepool-org/platform/pvn/data/types/base/bolus/normal"
+	"github.com/tidepool-org/platform/pvn/data/types/base/device"
+	"github.com/tidepool-org/platform/pvn/data/types/base/device/alarm"
 	"github.com/tidepool-org/platform/pvn/data/types/base/ketone"
 	"github.com/tidepool-org/platform/pvn/data/types/base/pump"
 	"github.com/tidepool-org/platform/pvn/data/types/base/sample"
@@ -103,6 +105,22 @@ func Parse(context data.Context, parser data.ObjectParser) (data.Datum, error) {
 			datum = combination.New()
 		default:
 			parser.Context().AppendError("subType", ErrorSubTypeInvalid(*bolusSubType))
+			return nil
+		}
+	case device.Type():
+
+		deviceSubType := parser.ParseString("subType")
+
+		if deviceSubType == nil {
+			parser.Context().AppendError("subType", ErrorSubTypeInvalid(*deviceSubType))
+			return nil
+		}
+
+		switch *deviceSubType {
+		case alarm.SubType():
+			datum = alarm.New()
+		default:
+			parser.Context().AppendError("subType", ErrorSubTypeInvalid(*deviceSubType))
 			return nil
 		}
 	case calculator.Type():
