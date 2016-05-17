@@ -12,7 +12,7 @@ package validator
 
 import (
 	"fmt"
-	"html"
+	"strconv"
 	"strings"
 	"time"
 
@@ -50,7 +50,7 @@ func ErrorValueNotEqualTo(value interface{}, limit interface{}) *service.Error {
 	return &service.Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is not equal to %v", value, limit),
+		Detail: fmt.Sprintf("Value %v is not equal to %v", service.QuoteIfString(value), service.QuoteIfString(limit)),
 	}
 }
 
@@ -58,7 +58,7 @@ func ErrorValueEqualTo(value interface{}, limit interface{}) *service.Error {
 	return &service.Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is equal to %v", value, limit),
+		Detail: fmt.Sprintf("Value %v is equal to %v", service.QuoteIfString(value), service.QuoteIfString(limit)),
 	}
 }
 
@@ -66,7 +66,7 @@ func ErrorValueNotLessThan(value interface{}, limit interface{}) *service.Error 
 	return &service.Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is not less than %v", value, limit),
+		Detail: fmt.Sprintf("Value %v is not less than %v", service.QuoteIfString(value), service.QuoteIfString(limit)),
 	}
 }
 
@@ -74,7 +74,7 @@ func ErrorValueNotLessThanOrEqual(value interface{}, limit interface{}) *service
 	return &service.Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is not less than or equal to %v", value, limit),
+		Detail: fmt.Sprintf("Value %v is not less than or equal to %v", service.QuoteIfString(value), service.QuoteIfString(limit)),
 	}
 }
 
@@ -82,7 +82,7 @@ func ErrorValueNotGreaterThan(value interface{}, limit interface{}) *service.Err
 	return &service.Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is not greater than %v", value, limit),
+		Detail: fmt.Sprintf("Value %v is not greater than %v", service.QuoteIfString(value), service.QuoteIfString(limit)),
 	}
 }
 
@@ -90,7 +90,7 @@ func ErrorValueNotGreaterThanOrEqual(value interface{}, limit interface{}) *serv
 	return &service.Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is not greater than or equal to %v", value, limit),
+		Detail: fmt.Sprintf("Value %v is not greater than or equal to %v", service.QuoteIfString(value), service.QuoteIfString(limit)),
 	}
 }
 
@@ -221,26 +221,26 @@ func ErrorLengthNotInRange(length int, lowerlimit int, upperLimit int) *service.
 func ErrorStringOneOf(value string, disallowedValues []string) *service.Error {
 	disallowedValuesStrings := []string{}
 	for _, disallowedValue := range disallowedValues {
-		disallowedValuesStrings = append(disallowedValuesStrings, fmt.Sprintf("'%s'", html.EscapeString(disallowedValue)))
+		disallowedValuesStrings = append(disallowedValuesStrings, strconv.Quote(disallowedValue))
 	}
 	disallowedValuesString := strings.Join(disallowedValuesStrings, ", ")
 	return &service.Error{
 		Code:   "value-disallowed",
 		Title:  "value is one of the disallowed values",
-		Detail: fmt.Sprintf("Value '%s' is one of [%v]", value, disallowedValuesString),
+		Detail: fmt.Sprintf("Value %s is one of [%v]", strconv.Quote(value), disallowedValuesString),
 	}
 }
 
 func ErrorStringNotOneOf(value string, allowedValues []string) *service.Error {
 	allowedValuesStrings := []string{}
 	for _, allowedValue := range allowedValues {
-		allowedValuesStrings = append(allowedValuesStrings, fmt.Sprintf("'%s'", html.EscapeString(allowedValue)))
+		allowedValuesStrings = append(allowedValuesStrings, strconv.Quote(allowedValue))
 	}
 	allowedValuesString := strings.Join(allowedValuesStrings, ", ")
 	return &service.Error{
 		Code:   "value-not-allowed",
 		Title:  "value is not one of the allowed values",
-		Detail: fmt.Sprintf("Value '%s' is not one of [%v]", value, allowedValuesString),
+		Detail: fmt.Sprintf("Value %s is not one of [%v]", strconv.Quote(value), allowedValuesString),
 	}
 }
 
@@ -248,7 +248,7 @@ func ErrorTimeNotValid(value string, timeLayout string) *service.Error {
 	return &service.Error{
 		Code:   "time-not-valid",
 		Title:  "value is not a valid time",
-		Detail: fmt.Sprintf("Value '%s' is not a valid time of format '%s'", value, timeLayout),
+		Detail: fmt.Sprintf("Value %s is not a valid time of format %s", strconv.Quote(value), strconv.Quote(timeLayout)),
 	}
 }
 
@@ -256,7 +256,7 @@ func ErrorTimeNotAfter(value time.Time, limit time.Time, timeLayout string) *ser
 	return &service.Error{
 		Code:   "time-not-after",
 		Title:  "value is not after the specified time",
-		Detail: fmt.Sprintf("Value '%s' is not after '%s'", value.Format(timeLayout), limit.Format(timeLayout)),
+		Detail: fmt.Sprintf("Value %s is not after %s", strconv.Quote(value.Format(timeLayout)), strconv.Quote(limit.Format(timeLayout))),
 	}
 }
 
@@ -264,7 +264,7 @@ func ErrorTimeNotAfterNow(value time.Time, timeLayout string) *service.Error {
 	return &service.Error{
 		Code:   "time-not-after",
 		Title:  "value is not after the specified time",
-		Detail: fmt.Sprintf("Value '%s' is not after now", value.Format(timeLayout)),
+		Detail: fmt.Sprintf("Value %s is not after now", strconv.Quote(value.Format(timeLayout))),
 	}
 }
 
@@ -272,7 +272,7 @@ func ErrorTimeNotBefore(value time.Time, limit time.Time, timeLayout string) *se
 	return &service.Error{
 		Code:   "time-not-before",
 		Title:  "value is not before the specified time",
-		Detail: fmt.Sprintf("Value '%s' is not before '%s'", value.Format(timeLayout), limit.Format(timeLayout)),
+		Detail: fmt.Sprintf("Value %s is not before %s", strconv.Quote(value.Format(timeLayout)), strconv.Quote(limit.Format(timeLayout))),
 	}
 }
 
@@ -280,6 +280,6 @@ func ErrorTimeNotBeforeNow(value time.Time, timeLayout string) *service.Error {
 	return &service.Error{
 		Code:   "time-not-before",
 		Title:  "value is not before the specified time",
-		Detail: fmt.Sprintf("Value '%s' is not before now", value.Format(timeLayout)),
+		Detail: fmt.Sprintf("Value %s is not before now", strconv.Quote(value.Format(timeLayout))),
 	}
 }

@@ -12,6 +12,7 @@ package types
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/tidepool-org/platform/service"
 )
@@ -31,7 +32,7 @@ func ErrorTypeInvalid(invalidType string) *service.Error {
 	return &service.Error{
 		Code:   "type-invalid",
 		Title:  "type is invalid",
-		Detail: fmt.Sprintf("Type '%s' is invalid", invalidType),
+		Detail: fmt.Sprintf("Type %s is invalid", strconv.Quote(invalidType)),
 	}
 }
 
@@ -39,6 +40,6 @@ func ErrorSubTypeInvalid(invalidSubType string) *service.Error {
 	return &service.Error{
 		Code:   "sub-type-invalid",
 		Title:  "sub type is invalid",
-		Detail: fmt.Sprintf("Sub type '%s' is invalid", invalidSubType),
+		Detail: fmt.Sprintf("Sub type %s is invalid", strconv.Quote(invalidSubType)),
 	}
 }
