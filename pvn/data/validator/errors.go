@@ -70,7 +70,7 @@ func ErrorValueNotLessThan(value interface{}, limit interface{}) *service.Error 
 	}
 }
 
-func ErrorValueNotLessThanOrEqual(value interface{}, limit interface{}) *service.Error {
+func ErrorValueNotLessThanOrEqualTo(value interface{}, limit interface{}) *service.Error {
 	return &service.Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
@@ -86,7 +86,7 @@ func ErrorValueNotGreaterThan(value interface{}, limit interface{}) *service.Err
 	}
 }
 
-func ErrorValueNotGreaterThanOrEqual(value interface{}, limit interface{}) *service.Error {
+func ErrorValueNotGreaterThanOrEqualTo(value interface{}, limit interface{}) *service.Error {
 	return &service.Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
@@ -186,7 +186,7 @@ func ErrorLengthNotLessThan(length int, limit int) *service.Error {
 	}
 }
 
-func ErrorLengthNotLessThanOrEqual(length int, limit int) *service.Error {
+func ErrorLengthNotLessThanOrEqualTo(length int, limit int) *service.Error {
 	return &service.Error{
 		Code:   "length-out-of-range",
 		Title:  "length is out of range",
@@ -202,7 +202,7 @@ func ErrorLengthNotGreaterThan(length int, limit int) *service.Error {
 	}
 }
 
-func ErrorLengthNotGreaterThanOrEqual(length int, limit int) *service.Error {
+func ErrorLengthNotGreaterThanOrEqualTo(length int, limit int) *service.Error {
 	return &service.Error{
 		Code:   "length-out-of-range",
 		Title:  "length is out of range",

@@ -81,7 +81,7 @@ func (s *StandardString) LengthLessThan(limit int) data.String {
 func (s *StandardString) LengthLessThanOrEqualTo(limit int) data.String {
 	if s.value != nil {
 		if length := len(*s.value); length > limit {
-			s.context.AppendError(s.reference, ErrorLengthNotLessThanOrEqual(length, limit))
+			s.context.AppendError(s.reference, ErrorLengthNotLessThanOrEqualTo(length, limit))
 		}
 	}
 	return s
@@ -99,7 +99,7 @@ func (s *StandardString) LengthGreaterThan(limit int) data.String {
 func (s *StandardString) LengthGreaterThanOrEqualTo(limit int) data.String {
 	if s.value != nil {
 		if length := len(*s.value); length < limit {
-			s.context.AppendError(s.reference, ErrorLengthNotGreaterThanOrEqual(length, limit))
+			s.context.AppendError(s.reference, ErrorLengthNotGreaterThanOrEqualTo(length, limit))
 		}
 	}
 	return s

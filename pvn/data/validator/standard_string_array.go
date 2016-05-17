@@ -63,7 +63,7 @@ func (s *StandardStringArray) LengthLessThan(limit int) data.StringArray {
 func (s *StandardStringArray) LengthLessThanOrEqualTo(limit int) data.StringArray {
 	if s.value != nil {
 		if length := len(*s.value); length > limit {
-			s.context.AppendError(s.reference, ErrorLengthNotLessThanOrEqual(length, limit))
+			s.context.AppendError(s.reference, ErrorLengthNotLessThanOrEqualTo(length, limit))
 		}
 	}
 	return s
@@ -81,7 +81,7 @@ func (s *StandardStringArray) LengthGreaterThan(limit int) data.StringArray {
 func (s *StandardStringArray) LengthGreaterThanOrEqualTo(limit int) data.StringArray {
 	if s.value != nil {
 		if length := len(*s.value); length < limit {
-			s.context.AppendError(s.reference, ErrorLengthNotGreaterThanOrEqual(length, limit))
+			s.context.AppendError(s.reference, ErrorLengthNotGreaterThanOrEqualTo(length, limit))
 		}
 	}
 	return s

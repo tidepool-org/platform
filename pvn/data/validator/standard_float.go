@@ -63,7 +63,7 @@ func (s *StandardFloat) LessThan(limit float64) data.Float {
 func (s *StandardFloat) LessThanOrEqualTo(limit float64) data.Float {
 	if s.value != nil {
 		if *s.value > limit {
-			s.context.AppendError(s.reference, ErrorValueNotLessThanOrEqual(*s.value, limit))
+			s.context.AppendError(s.reference, ErrorValueNotLessThanOrEqualTo(*s.value, limit))
 		}
 	}
 	return s
@@ -81,7 +81,7 @@ func (s *StandardFloat) GreaterThan(limit float64) data.Float {
 func (s *StandardFloat) GreaterThanOrEqualTo(limit float64) data.Float {
 	if s.value != nil {
 		if *s.value < limit {
-			s.context.AppendError(s.reference, ErrorValueNotGreaterThanOrEqual(*s.value, limit))
+			s.context.AppendError(s.reference, ErrorValueNotGreaterThanOrEqualTo(*s.value, limit))
 		}
 	}
 	return s

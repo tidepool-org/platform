@@ -63,7 +63,7 @@ func (s *StandardInterfaceArray) LengthLessThan(limit int) data.InterfaceArray {
 func (s *StandardInterfaceArray) LengthLessThanOrEqualTo(limit int) data.InterfaceArray {
 	if s.value != nil {
 		if length := len(*s.value); length > limit {
-			s.context.AppendError(s.reference, ErrorLengthNotLessThanOrEqual(length, limit))
+			s.context.AppendError(s.reference, ErrorLengthNotLessThanOrEqualTo(length, limit))
 		}
 	}
 	return s
@@ -81,7 +81,7 @@ func (s *StandardInterfaceArray) LengthGreaterThan(limit int) data.InterfaceArra
 func (s *StandardInterfaceArray) LengthGreaterThanOrEqualTo(limit int) data.InterfaceArray {
 	if s.value != nil {
 		if length := len(*s.value); length < limit {
-			s.context.AppendError(s.reference, ErrorLengthNotGreaterThanOrEqual(length, limit))
+			s.context.AppendError(s.reference, ErrorLengthNotGreaterThanOrEqualTo(length, limit))
 		}
 	}
 	return s

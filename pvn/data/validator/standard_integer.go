@@ -63,7 +63,7 @@ func (s *StandardInteger) LessThan(limit int) data.Integer {
 func (s *StandardInteger) LessThanOrEqualTo(limit int) data.Integer {
 	if s.value != nil {
 		if *s.value > limit {
-			s.context.AppendError(s.reference, ErrorValueNotLessThanOrEqual(*s.value, limit))
+			s.context.AppendError(s.reference, ErrorValueNotLessThanOrEqualTo(*s.value, limit))
 		}
 	}
 	return s
@@ -81,7 +81,7 @@ func (s *StandardInteger) GreaterThan(limit int) data.Integer {
 func (s *StandardInteger) GreaterThanOrEqualTo(limit int) data.Integer {
 	if s.value != nil {
 		if *s.value < limit {
-			s.context.AppendError(s.reference, ErrorValueNotGreaterThanOrEqual(*s.value, limit))
+			s.context.AppendError(s.reference, ErrorValueNotGreaterThanOrEqualTo(*s.value, limit))
 		}
 	}
 	return s
