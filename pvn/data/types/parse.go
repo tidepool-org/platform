@@ -25,6 +25,7 @@ import (
 	"github.com/tidepool-org/platform/pvn/data/types/base/bolus/normal"
 	"github.com/tidepool-org/platform/pvn/data/types/base/device"
 	"github.com/tidepool-org/platform/pvn/data/types/base/device/alarm"
+	"github.com/tidepool-org/platform/pvn/data/types/base/device/calibration"
 	"github.com/tidepool-org/platform/pvn/data/types/base/device/prime"
 	"github.com/tidepool-org/platform/pvn/data/types/base/ketone"
 	"github.com/tidepool-org/platform/pvn/data/types/base/pump"
@@ -122,6 +123,8 @@ func Parse(context data.Context, parser data.ObjectParser) (data.Datum, error) {
 			datum = alarm.New()
 		case prime.SubType():
 			datum = prime.New()
+		case calibration.SubType():
+			datum = calibration.New()
 		default:
 			parser.Context().AppendError("subType", ErrorSubTypeInvalid(*deviceSubType))
 			return nil
