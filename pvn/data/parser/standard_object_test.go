@@ -161,14 +161,14 @@ var _ = Describe("StandardObject", func() {
 			It("with key with value with integer type returns value", func() {
 				value := standardObject.ParseInteger("one")
 				Expect(value).ToNot(BeNil())
-				Expect(*value).To(Equal(3))
+				Expect(*value).To(BeNumerically("==", 3))
 				Expect(standardContext.Errors()).To(BeEmpty())
 			})
 
 			It("with key with value with float type and whole number returns value", func() {
 				value := standardObject.ParseInteger("two")
 				Expect(value).ToNot(BeNil())
-				Expect(*value).To(Equal(4))
+				Expect(*value).To(BeNumerically("==", 4))
 				Expect(standardContext.Errors()).To(BeEmpty())
 			})
 
@@ -203,21 +203,21 @@ var _ = Describe("StandardObject", func() {
 			It("with key with value with integer type returns value", func() {
 				value := standardObject.ParseFloat("one")
 				Expect(value).ToNot(BeNil())
-				Expect(*value).To(Equal(3.))
+				Expect(*value).To(BeNumerically("==", 3.))
 				Expect(standardContext.Errors()).To(BeEmpty())
 			})
 
 			It("with key with value with float type and whole number returns value", func() {
 				value := standardObject.ParseFloat("two")
 				Expect(value).ToNot(BeNil())
-				Expect(*value).To(Equal(4.0))
+				Expect(*value).To(BeNumerically("==", 4.0))
 				Expect(standardContext.Errors()).To(BeEmpty())
 			})
 
 			It("with key with value with float type and not whole number returns value", func() {
 				value := standardObject.ParseFloat("three")
 				Expect(value).ToNot(BeNil())
-				Expect(*value).To(Equal(5.67))
+				Expect(*value).To(BeNumerically("==", 5.67))
 				Expect(standardContext.Errors()).To(BeEmpty())
 			})
 		})

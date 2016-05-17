@@ -171,14 +171,14 @@ var _ = Describe("StandardArray", func() {
 			It("with index parameter with integer type returns value", func() {
 				value := standardArray.ParseInteger(1)
 				Expect(value).ToNot(BeNil())
-				Expect(*value).To(Equal(3))
+				Expect(*value).To(BeNumerically("==", 3))
 				Expect(standardContext.Errors()).To(BeEmpty())
 			})
 
 			It("with index parameter with float type and whole number returns value", func() {
 				value := standardArray.ParseInteger(2)
 				Expect(value).ToNot(BeNil())
-				Expect(*value).To(Equal(4))
+				Expect(*value).To(BeNumerically("==", 4))
 				Expect(standardContext.Errors()).To(BeEmpty())
 			})
 
@@ -218,21 +218,21 @@ var _ = Describe("StandardArray", func() {
 			It("with index parameter with integer type returns value", func() {
 				value := standardArray.ParseFloat(1)
 				Expect(value).ToNot(BeNil())
-				Expect(*value).To(Equal(3.))
+				Expect(*value).To(BeNumerically("==", 3.))
 				Expect(standardContext.Errors()).To(BeEmpty())
 			})
 
 			It("with index parameter with float type and whole number returns value", func() {
 				value := standardArray.ParseFloat(2)
 				Expect(value).ToNot(BeNil())
-				Expect(*value).To(Equal(4.0))
+				Expect(*value).To(BeNumerically("==", 4.0))
 				Expect(standardContext.Errors()).To(BeEmpty())
 			})
 
 			It("with index parameter with float type and not whole number returns value", func() {
 				value := standardArray.ParseFloat(3)
 				Expect(value).ToNot(BeNil())
-				Expect(*value).To(Equal(5.67))
+				Expect(*value).To(BeNumerically("==", 5.67))
 				Expect(standardContext.Errors()).To(BeEmpty())
 			})
 		})
