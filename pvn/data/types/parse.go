@@ -19,6 +19,7 @@ import (
 	"github.com/tidepool-org/platform/pvn/data/types/base/basal/temporary"
 	"github.com/tidepool-org/platform/pvn/data/types/base/bloodglucose"
 	"github.com/tidepool-org/platform/pvn/data/types/base/bolus"
+	"github.com/tidepool-org/platform/pvn/data/types/base/bolus/calculator"
 	"github.com/tidepool-org/platform/pvn/data/types/base/bolus/combination"
 	"github.com/tidepool-org/platform/pvn/data/types/base/bolus/extended"
 	"github.com/tidepool-org/platform/pvn/data/types/base/bolus/normal"
@@ -67,40 +68,45 @@ func Parse(context data.Context, parser data.ObjectParser) (data.Datum, error) {
 
 		datumDeliveryType := parser.ParseString("deliveryType")
 
-		if datumDeliveryType != nil {
-			switch *datumDeliveryType {
-			case suspend.DeliveryType():
-				datum = suspend.New()
-			case scheduled.DeliveryType():
-				datum = scheduled.New()
-			case temporary.DeliveryType():
-				datum = temporary.New()
-			default:
-				parser.Context().AppendError("deliveryType", ErrorSubTypeInvalid(*datumDeliveryType))
-				return nil
-			}
-		} else {
-			datum = basal.New()
+		if datumDeliveryType == nil {
+			parser.Context().AppendError("deliveryType", ErrorSubTypeInvalid(*datumDeliveryType))
+			return nil
 		}
+
+		switch *datumDeliveryType {
+		case suspend.DeliveryType():
+			datum = suspend.New()
+		case scheduled.DeliveryType():
+			datum = scheduled.New()
+		case temporary.DeliveryType():
+			datum = temporary.New()
+		default:
+			parser.Context().AppendError("deliveryType", ErrorSubTypeInvalid(*datumDeliveryType))
+			return nil
+		}
+
 	case bolus.Type():
 
 		bolusSubType := parser.ParseString("subType")
 
-		if bolusSubType != nil {
-			switch *bolusSubType {
-			case normal.SubType():
-				datum = normal.New()
-			case extended.SubType():
-				datum = extended.New()
-			case combination.SubType():
-				datum = combination.New()
-			default:
-				parser.Context().AppendError("subType", ErrorSubTypeInvalid(*bolusSubType))
-				return nil
-			}
-		} else {
-			datum = bolus.New()
+		if bolusSubType == nil {
+			parser.Context().AppendError("subType", ErrorSubTypeInvalid(*bolusSubType))
+			return nil
 		}
+
+		switch *bolusSubType {
+		case normal.SubType():
+			datum = normal.New()
+		case extended.SubType():
+			datum = extended.New()
+		case combination.SubType():
+			datum = combination.New()
+		default:
+			parser.Context().AppendError("subType", ErrorSubTypeInvalid(*bolusSubType))
+			return nil
+		}
+	case calculator.Type():
+		datum = calculator.New()
 	case upload.Type():
 		datum = upload.New()
 	case ketone.BloodType():
