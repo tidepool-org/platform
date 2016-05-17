@@ -18,8 +18,8 @@ import (
 type Calculator struct {
 	base.Base `bson:",inline"`
 
-	//*Recommended        `json:"recommended,omitempty" bson:"recommended,omitempty"`
-	//*BloodGlucoseTarget `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`
+	*Recommended        `json:"recommended,omitempty" bson:"recommended,omitempty"`
+	*BloodGlucoseTarget `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`
 	//*bolus.Bolus `json:"bolus,omitempty" bson:"bolus,omitempty"`
 
 	BolusID                  *string  `json:"bolusId,omitempty" bson:"bolusId,omitempty"`
@@ -51,6 +51,9 @@ func (c *Calculator) Parse(parser data.ObjectParser) {
 	c.InsulinCarbohydrateRatio = parser.ParseInteger("insulinCarbRatio")
 	c.BloodGlucoseInput = parser.ParseFloat("bgInput")
 	c.Units = parser.ParseString("units")
+
+	c.Recommended = ParseRecommended(parser.NewChildObjectParser("recommended"))
+	c.BloodGlucoseTarget = ParseBloodGlucoseTarget(parser.NewChildObjectParser("bgTarget"))
 }
 
 func (c *Calculator) Validate(validator data.Validator) {
@@ -61,6 +64,14 @@ func (c *Calculator) Validate(validator data.Validator) {
 	validator.ValidateFloat("bgInput", c.BloodGlucoseInput).GreaterThanOrEqualTo(0.0).LessThanOrEqualTo(1000.0)
 	validator.ValidateInteger("insulinCarbRatio", c.InsulinCarbohydrateRatio).GreaterThanOrEqualTo(0).LessThanOrEqualTo(250)
 	validator.ValidateString("units", c.Units).Exists().OneOf([]string{"mmol/l", "mmol/L", "mg/dl", "mg/dL"})
+
+	if c.Recommended != nil {
+		c.Recommended.Validate(validator.NewChildValidator("recommended"))
+	}
+
+	if c.BloodGlucoseTarget != nil {
+		c.BloodGlucoseTarget.Validate(validator.NewChildValidator("bgTarget"))
+	}
 }
 
 func (c *Calculator) Normalize(normalizer data.Normalizer) {
