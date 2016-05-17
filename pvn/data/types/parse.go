@@ -29,6 +29,7 @@ import (
 	"github.com/tidepool-org/platform/pvn/data/types/base/device/prime"
 	"github.com/tidepool-org/platform/pvn/data/types/base/device/reservoirchange"
 	"github.com/tidepool-org/platform/pvn/data/types/base/device/status"
+	"github.com/tidepool-org/platform/pvn/data/types/base/device/timechange"
 	"github.com/tidepool-org/platform/pvn/data/types/base/ketone"
 	"github.com/tidepool-org/platform/pvn/data/types/base/pump"
 	"github.com/tidepool-org/platform/pvn/data/types/base/sample"
@@ -131,6 +132,8 @@ func Parse(context data.Context, parser data.ObjectParser) (data.Datum, error) {
 			datum = reservoirchange.New()
 		case status.SubType():
 			datum = status.New()
+		case timechange.SubType():
+			datum = timechange.New()
 		default:
 			parser.Context().AppendError("subType", ErrorSubTypeInvalid(*deviceSubType))
 			return nil
