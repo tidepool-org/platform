@@ -1,5 +1,7 @@
 package service
 
+import "strconv"
+
 /* CHECKLIST
  * [ ] Uses interfaces as appropriate
  * [ ] Private package variables use underscore prefix
@@ -37,6 +39,13 @@ func (e *Error) WithPointer(pointer string) *Error {
 	}
 	e.Source.Pointer = pointer
 	return e
+}
+
+func QuoteIfString(interfaceValue interface{}) interface{} {
+	if stringValue, ok := interfaceValue.(string); ok {
+		return strconv.Quote(stringValue)
+	}
+	return interfaceValue
 }
 
 // TODO: Deprecate below Errors struct
