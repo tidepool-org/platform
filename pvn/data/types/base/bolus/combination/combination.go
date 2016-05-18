@@ -51,7 +51,7 @@ func (c *Combination) Parse(parser data.ObjectParser) {
 func (c *Combination) Validate(validator data.Validator) {
 	c.Bolus.Validate(validator)
 	validator.ValidateInteger("duration", c.Duration).Exists().GreaterThanOrEqualTo(0).LessThanOrEqualTo(86400000)
-	validator.ValidateFloat("extended", c.Extended).Exists().GreaterThan(0.0).LessThanOrEqualTo(100.0)
+	validator.ValidateFloat("extended", c.Extended).Exists().GreaterThanOrEqualTo(0.0).LessThanOrEqualTo(100.0)
 	validator.ValidateFloat("normal", c.Normal).Exists().GreaterThan(0.0).LessThanOrEqualTo(100.0)
 }
 

@@ -40,13 +40,13 @@ var _ = Describe("Combination Bolus", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("negative", rawObject, "extended", -0.1, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("zero", rawObject, "extended", 0.0, []*service.Error{validator.ErrorValueNotTrue()}),
 			Entry("greater than 100", rawObject, "extended", 100.1, []*service.Error{validator.ErrorValueNotTrue()}),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
 			Entry("within bounds", rawObject, "extended", 5.5),
 			Entry("also without decimal", rawObject, "extended", 5),
+			Entry("zero", rawObject, "extended", 0),
 		)
 
 	})
