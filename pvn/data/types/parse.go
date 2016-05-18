@@ -76,8 +76,8 @@ func Parse(context data.Context, parser data.ObjectParser) (data.Datum, error) {
 		datumDeliveryType := parser.ParseString("deliveryType")
 
 		if datumDeliveryType == nil {
-			parser.Context().AppendError("deliveryType", ErrorSubTypeInvalid(*datumDeliveryType))
-			return nil
+			context.AppendError("deliveryType", ErrorSubTypeInvalid(*datumDeliveryType))
+			return nil, nil
 		}
 
 		switch *datumDeliveryType {
@@ -88,8 +88,8 @@ func Parse(context data.Context, parser data.ObjectParser) (data.Datum, error) {
 		case temporary.DeliveryType():
 			datum = temporary.New()
 		default:
-			parser.Context().AppendError("deliveryType", ErrorSubTypeInvalid(*datumDeliveryType))
-			return nil
+			context.AppendError("deliveryType", ErrorSubTypeInvalid(*datumDeliveryType))
+			return nil, nil
 		}
 
 	case bolus.Type():
@@ -97,8 +97,8 @@ func Parse(context data.Context, parser data.ObjectParser) (data.Datum, error) {
 		bolusSubType := parser.ParseString("subType")
 
 		if bolusSubType == nil {
-			parser.Context().AppendError("subType", ErrorSubTypeInvalid(*bolusSubType))
-			return nil
+			context.AppendError("subType", ErrorSubTypeInvalid(*bolusSubType))
+			return nil, nil
 		}
 
 		switch *bolusSubType {
@@ -109,16 +109,16 @@ func Parse(context data.Context, parser data.ObjectParser) (data.Datum, error) {
 		case combination.SubType():
 			datum = combination.New()
 		default:
-			parser.Context().AppendError("subType", ErrorSubTypeInvalid(*bolusSubType))
-			return nil
+			context.AppendError("subType", ErrorSubTypeInvalid(*bolusSubType))
+			return nil, nil
 		}
 	case device.Type():
 
 		deviceSubType := parser.ParseString("subType")
 
 		if deviceSubType == nil {
-			parser.Context().AppendError("subType", ErrorSubTypeInvalid(*deviceSubType))
-			return nil
+			context.AppendError("subType", ErrorSubTypeInvalid(*deviceSubType))
+			return nil, nil
 		}
 
 		switch *deviceSubType {
@@ -135,8 +135,8 @@ func Parse(context data.Context, parser data.ObjectParser) (data.Datum, error) {
 		case timechange.SubType():
 			datum = timechange.New()
 		default:
-			parser.Context().AppendError("subType", ErrorSubTypeInvalid(*deviceSubType))
-			return nil
+			context.AppendError("subType", ErrorSubTypeInvalid(*deviceSubType))
+			return nil, nil
 		}
 	case calculator.Type():
 		datum = calculator.New()

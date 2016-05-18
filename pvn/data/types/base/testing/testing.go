@@ -3,7 +3,7 @@ package testing
 import (
 	"log"
 
-	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/pvn/data/context"
 	"github.com/tidepool-org/platform/pvn/data/parser"
@@ -27,21 +27,19 @@ func RawBaseObject() map[string]interface{} {
 }
 
 func reportAndFailOnErrors(testContext *context.Standard, step string) {
-	if testContext.HasErrors() {
-		for i := range testContext.GetErrors() {
-			log.Println(testContext.GetErrors()[i].Source, testContext.GetErrors()[i].Detail)
-		}
-		Expect(testContext.HasErrors()).To(BeFalse(), step)
+	gomega.Expect(testContext.Errors()).To(gomega.BeEmpty(), step)
+	for _, err := range testContext.Errors() {
+		log.Println(err.Source, err.Detail)
 	}
 }
 
 var ExpectFieldIsValid = func(object map[string]interface{}, field string, val interface{}) {
 	object[field] = val
 	testContext := context.NewStandard()
-	standardValidator := validator.NewStandard(testContext)
-	objectParser := parser.NewStandardObject(testContext, &object)
+	standardValidator, _ := validator.NewStandard(testContext)        // TODO: Need to check error here
+	objectParser, _ := parser.NewStandardObject(testContext, &object) // TODO: Need to check error here
 	reportAndFailOnErrors(testContext, "Initialization:")
-	parsedObject := types.Parse(objectParser)
+	parsedObject, _ := types.Parse(testContext, objectParser) // TODO: Need to check error here
 	reportAndFailOnErrors(testContext, "Parsing:")
 	parsedObject.Validate(standardValidator)
 	reportAndFailOnErrors(testContext, "Validation:")
@@ -50,12 +48,12 @@ var ExpectFieldIsValid = func(object map[string]interface{}, field string, val i
 var ExpectFieldNotValid = func(object map[string]interface{}, field string, val interface{}, expectedErrors []*service.Error) {
 	object[field] = val
 	testContext := context.NewStandard()
-	standardValidator := validator.NewStandard(testContext)
-	objectParser := parser.NewStandardObject(testContext, &object)
+	standardValidator, _ := validator.NewStandard(testContext)        // TODO: Need to check error here
+	objectParser, _ := parser.NewStandardObject(testContext, &object) // TODO: Need to check error here
 	reportAndFailOnErrors(testContext, "Initialization:")
-	parsedObject := types.Parse(objectParser)
+	parsedObject, _ := types.Parse(testContext, objectParser) // TODO: Need to check error here
 	reportAndFailOnErrors(testContext, "Parsing:")
 	parsedObject.Validate(standardValidator)
-	Expect(testContext.HasErrors()).To(BeTrue())
-	Expect(len(testContext.GetErrors())).To(Equal(len(expectedErrors)))
+	gomega.Expect(testContext.Errors()).ToNot(gomega.BeEmpty())
+	gomega.Expect(testContext.Errors()).To(gomega.HaveLen(len(expectedErrors)))
 }

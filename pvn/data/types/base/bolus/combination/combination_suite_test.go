@@ -9,5 +9,5 @@ import (
 
 func TestCombination(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "pvn/data/types/base/bolus/combination")
+	RunSpecs(t, "data/types/base/bolus/combination")
 }

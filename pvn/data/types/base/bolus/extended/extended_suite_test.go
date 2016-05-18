@@ -9,5 +9,5 @@ import (
 
 func TestExtended(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "pvn/data/types/base/bolus/extended")
+	RunSpecs(t, "data/types/base/bolus/extended")
 }

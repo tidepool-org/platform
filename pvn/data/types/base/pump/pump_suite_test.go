@@ -9,5 +9,5 @@ import (
 
 func TestPump(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "pvn/data/types/base/pump")
+	RunSpecs(t, "data/types/base/pump")
 }

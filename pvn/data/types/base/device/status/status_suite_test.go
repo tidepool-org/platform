@@ -9,5 +9,5 @@ import (
 
 func TestStatus(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "pvn/data/types/base/device/status")
+	RunSpecs(t, "data/types/base/device/status")
 }

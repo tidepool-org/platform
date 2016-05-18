@@ -9,5 +9,5 @@ import (
 
 func TestCalibration(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "pvn/data/types/base/device/calibration")
+	RunSpecs(t, "data/types/base/device/calibration")
 }

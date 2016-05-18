@@ -9,5 +9,5 @@ import (
 
 func TestTimeChange(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "pvn/data/types/base/device/timechange")
+	RunSpecs(t, "data/types/base/device/timechange")
 }

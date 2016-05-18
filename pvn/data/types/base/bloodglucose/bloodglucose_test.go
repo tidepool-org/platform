@@ -9,5 +9,5 @@ import (
 
 func TestKetone(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "pvn/data/types/base/bloodglucose")
+	RunSpecs(t, "data/types/base/bloodglucose")
 }

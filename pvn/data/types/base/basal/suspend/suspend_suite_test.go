@@ -9,5 +9,5 @@ import (
 
 func TestSuspend(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "pvn/data/types/base/basal/suspend")
+	RunSpecs(t, "data/types/base/basal/suspend")
 }

@@ -9,5 +9,5 @@ import (
 
 func TestUpload(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "pvn/data/types/base/upload")
+	RunSpecs(t, "data/types/base/upload")
 }

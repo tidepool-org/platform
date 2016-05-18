@@ -9,5 +9,5 @@ import (
 
 func TestPrime(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "pvn/data/types/base/device/prime")
+	RunSpecs(t, "data/types/base/device/prime")
 }

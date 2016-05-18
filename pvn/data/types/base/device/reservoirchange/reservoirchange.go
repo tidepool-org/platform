@@ -49,6 +49,6 @@ func (r *ReservoirChange) Validate(validator data.Validator) {
 	validator.ValidateString("status", r.StatusID).Exists().LengthGreaterThan(1)
 }
 
-func (c *ReservoirChange) Normalize(normalizer data.Normalizer) {
-	c.Device.Normalize(normalizer)
+func (r *ReservoirChange) Normalize(normalizer data.Normalizer) {
+	r.Device.Normalize(normalizer)
 }

@@ -9,5 +9,5 @@ import (
 
 func TestReservoirChange(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "pvn/data/types/base/device/reservoirchange")
+	RunSpecs(t, "data/types/base/device/reservoirchange")
 }

@@ -9,5 +9,5 @@ import (
 
 func TestBase(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "pvn/data/types/base")
+	RunSpecs(t, "data/types/base")
 }

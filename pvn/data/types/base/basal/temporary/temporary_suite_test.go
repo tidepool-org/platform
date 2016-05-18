@@ -9,5 +9,5 @@ import (
 
 func TestTemporary(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "pvn/data/types/base/basal/temporary")
+	RunSpecs(t, "data/types/base/basal/temporary")
 }
