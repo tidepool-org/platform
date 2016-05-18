@@ -10,7 +10,6 @@ import (
 )
 
 var _ = Describe("Standard", func() {
-
 	Describe("New", func() {
 		var standard *context.Standard
 

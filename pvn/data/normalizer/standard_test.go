@@ -16,7 +16,6 @@ func (t *TestDatum) Validate(validator data.Validator)    {}
 func (t *TestDatum) Normalize(normalizer data.Normalizer) {}
 
 var _ = Describe("Standard", func() {
-
 	It("New returns an error if context is nil", func() {
 		standard, err := normalizer.NewStandard(nil)
 		Expect(standard).To(BeNil())

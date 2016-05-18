@@ -9,7 +9,6 @@ import (
 )
 
 var _ = Describe("StandardArray", func() {
-
 	It("NewStandardArray returns an error if context is nil", func() {
 		standard, err := parser.NewStandardArray(nil, &[]interface{}{})
 		Expect(standard).To(BeNil())
