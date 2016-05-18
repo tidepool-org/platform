@@ -19,6 +19,10 @@ type StandardObject struct {
 }
 
 func NewStandardObject(context data.Context, reference interface{}, value *map[string]interface{}) *StandardObject {
+	if context == nil {
+		return nil
+	}
+
 	return &StandardObject{
 		context:   context,
 		reference: reference,

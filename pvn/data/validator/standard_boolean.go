@@ -19,6 +19,10 @@ type StandardBoolean struct {
 }
 
 func NewStandardBoolean(context data.Context, reference interface{}, value *bool) *StandardBoolean {
+	if context == nil {
+		return nil
+	}
+
 	return &StandardBoolean{
 		context:   context,
 		reference: reference,

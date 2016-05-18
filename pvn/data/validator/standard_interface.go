@@ -19,6 +19,10 @@ type StandardInterface struct {
 }
 
 func NewStandardInterface(context data.Context, reference interface{}, value *interface{}) *StandardInterface {
+	if context == nil {
+		return nil
+	}
+
 	return &StandardInterface{
 		context:   context,
 		reference: reference,

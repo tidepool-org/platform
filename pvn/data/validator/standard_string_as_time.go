@@ -25,6 +25,13 @@ type StandardStringAsTime struct {
 }
 
 func NewStandardStringAsTime(context data.Context, reference interface{}, stringValue *string, timeLayout string) *StandardStringAsTime {
+	if context == nil {
+		return nil
+	}
+	if timeLayout == "" {
+		return nil
+	}
+
 	standardStringAsTime := &StandardStringAsTime{
 		context:     context,
 		reference:   reference,

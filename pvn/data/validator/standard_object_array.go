@@ -19,6 +19,10 @@ type StandardObjectArray struct {
 }
 
 func NewStandardObjectArray(context data.Context, reference interface{}, value *[]map[string]interface{}) *StandardObjectArray {
+	if context == nil {
+		return nil
+	}
+
 	return &StandardObjectArray{
 		context:   context,
 		reference: reference,

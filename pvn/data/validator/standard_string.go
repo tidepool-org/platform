@@ -19,6 +19,10 @@ type StandardString struct {
 }
 
 func NewStandardString(context data.Context, reference interface{}, value *string) *StandardString {
+	if context == nil {
+		return nil
+	}
+
 	return &StandardString{
 		context:   context,
 		reference: reference,

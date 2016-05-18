@@ -19,6 +19,10 @@ type StandardFloat struct {
 }
 
 func NewStandardFloat(context data.Context, reference interface{}, value *float64) *StandardFloat {
+	if context == nil {
+		return nil
+	}
+
 	return &StandardFloat{
 		context:   context,
 		reference: reference,

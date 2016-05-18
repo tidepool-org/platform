@@ -19,6 +19,10 @@ type StandardInteger struct {
 }
 
 func NewStandardInteger(context data.Context, reference interface{}, value *int) *StandardInteger {
+	if context == nil {
+		return nil
+	}
+
 	return &StandardInteger{
 		context:   context,
 		reference: reference,

@@ -19,6 +19,10 @@ type StandardInterfaceArray struct {
 }
 
 func NewStandardInterfaceArray(context data.Context, reference interface{}, value *[]interface{}) *StandardInterfaceArray {
+	if context == nil {
+		return nil
+	}
+
 	return &StandardInterfaceArray{
 		context:   context,
 		reference: reference,

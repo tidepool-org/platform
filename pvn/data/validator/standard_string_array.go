@@ -19,6 +19,10 @@ type StandardStringArray struct {
 }
 
 func NewStandardStringArray(context data.Context, reference interface{}, value *[]string) *StandardStringArray {
+	if context == nil {
+		return nil
+	}
+
 	return &StandardStringArray{
 		context:   context,
 		reference: reference,
