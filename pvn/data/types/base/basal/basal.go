@@ -22,14 +22,6 @@ func Type() string {
 	return "basal"
 }
 
-func New() *Basal {
-	basalType := Type()
-
-	basal := &Basal{}
-	basal.Type = &basalType
-	return basal
-}
-
 func (b *Basal) Parse(parser data.ObjectParser) {
 	b.Base.Parse(parser)
 }

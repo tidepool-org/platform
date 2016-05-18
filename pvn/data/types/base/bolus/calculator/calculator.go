@@ -58,11 +58,11 @@ func (c *Calculator) Parse(parser data.ObjectParser) {
 
 func (c *Calculator) Validate(validator data.Validator) {
 	c.Base.Validate(validator)
-	validator.ValidateInteger("carbInput", c.CarbohydrateInput).GreaterThanOrEqualTo(0).LessThanOrEqualTo(1000)
-	validator.ValidateFloat("insulinOnBoard", c.InsulinOnBoard).GreaterThanOrEqualTo(0.0).LessThanOrEqualTo(250.0)
-	validator.ValidateFloat("insulinSensitivity", c.InsulinSensitivity).GreaterThanOrEqualTo(0.0).LessThanOrEqualTo(1000.0)
-	validator.ValidateFloat("bgInput", c.BloodGlucoseInput).GreaterThanOrEqualTo(0.0).LessThanOrEqualTo(1000.0)
-	validator.ValidateInteger("insulinCarbRatio", c.InsulinCarbohydrateRatio).GreaterThanOrEqualTo(0).LessThanOrEqualTo(250)
+	validator.ValidateInteger("carbInput", c.CarbohydrateInput).InRange(0, 1000)
+	validator.ValidateFloat("insulinOnBoard", c.InsulinOnBoard).InRange(0.0, 250.0)
+	validator.ValidateFloat("insulinSensitivity", c.InsulinSensitivity).InRange(0.0, 1000.0)
+	validator.ValidateFloat("bgInput", c.BloodGlucoseInput).InRange(0.0, 1000.0)
+	validator.ValidateInteger("insulinCarbRatio", c.InsulinCarbohydrateRatio).InRange(0, 250)
 	validator.ValidateString("units", c.Units).Exists().OneOf([]string{"mmol/l", "mmol/L", "mg/dl", "mg/dL"})
 
 	if c.Recommended != nil {

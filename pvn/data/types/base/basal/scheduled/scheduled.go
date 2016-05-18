@@ -50,8 +50,8 @@ func (s *Scheduled) Parse(parser data.ObjectParser) {
 
 func (s *Scheduled) Validate(validator data.Validator) {
 	s.Basal.Validate(validator)
-	validator.ValidateInteger("duration", s.Duration).Exists().GreaterThanOrEqualTo(0).LessThanOrEqualTo(432000000)
-	validator.ValidateFloat("rate", s.Rate).Exists().GreaterThanOrEqualTo(0.0).LessThanOrEqualTo(20.0)
+	validator.ValidateInteger("duration", s.Duration).Exists().InRange(0, 432000000)
+	validator.ValidateFloat("rate", s.Rate).Exists().InRange(0.0, 20.0)
 	validator.ValidateString("scheduleName", s.Name).LengthGreaterThan(1)
 }
 

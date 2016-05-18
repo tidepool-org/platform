@@ -22,8 +22,8 @@ func (b *BloodGlucoseTarget) Parse(parser data.ObjectParser) {
 }
 
 func (b *BloodGlucoseTarget) Validate(validator data.Validator) {
-	validator.ValidateFloat("target", b.Target).GreaterThanOrEqualTo(0.0).LessThanOrEqualTo(1000.0)
-	validator.ValidateInteger("range", b.Range).GreaterThanOrEqualTo(0).LessThanOrEqualTo(50)
+	validator.ValidateFloat("target", b.Target).InRange(0.0, 1000.0)
+	validator.ValidateInteger("range", b.Range).InRange(0, 50)
 }
 
 func (b *BloodGlucoseTarget) Normalize(normalizer data.Normalizer) {

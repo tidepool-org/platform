@@ -50,9 +50,9 @@ func (t *Temporary) Parse(parser data.ObjectParser) {
 
 func (t *Temporary) Validate(validator data.Validator) {
 	t.Basal.Validate(validator)
-	validator.ValidateInteger("duration", t.Duration).Exists().GreaterThanOrEqualTo(0).LessThanOrEqualTo(86400000)
-	validator.ValidateFloat("rate", t.Rate).Exists().GreaterThanOrEqualTo(0.0).LessThanOrEqualTo(20.0)
-	validator.ValidateFloat("percent", t.Percent).Exists().GreaterThanOrEqualTo(0.0).LessThanOrEqualTo(10.0)
+	validator.ValidateInteger("duration", t.Duration).Exists().InRange(0, 86400000)
+	validator.ValidateFloat("rate", t.Rate).Exists().InRange(0.0, 20.0)
+	validator.ValidateFloat("percent", t.Percent).Exists().InRange(0.0, 10.0)
 }
 
 func (t *Temporary) Normalize(normalizer data.Normalizer) {

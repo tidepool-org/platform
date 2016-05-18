@@ -34,7 +34,7 @@ func (s *SelfMonitored) Parse(parser data.ObjectParser) {
 func (s *SelfMonitored) Validate(validator data.Validator) {
 	s.Base.Validate(validator)
 
-	validator.ValidateFloat("value", s.Value).Exists().GreaterThanOrEqualTo(0.0).LessThanOrEqualTo(1000.0)
+	validator.ValidateFloat("value", s.Value).Exists().InRange(0.0, 1000.0)
 	validator.ValidateString("units", s.Units).Exists().OneOf([]string{"mmol/l", "mmol/L", "mg/dl", "mg/dL"})
 
 }

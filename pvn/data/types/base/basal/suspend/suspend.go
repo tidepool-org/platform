@@ -46,7 +46,7 @@ func (s *Suspend) Parse(parser data.ObjectParser) {
 
 func (s *Suspend) Validate(validator data.Validator) {
 	s.Basal.Validate(validator)
-	validator.ValidateInteger("duration", s.Duration).Exists().GreaterThanOrEqualTo(0).LessThanOrEqualTo(86400000)
+	validator.ValidateInteger("duration", s.Duration).Exists().InRange(0, 86400000)
 }
 
 func (s *Suspend) Normalize(normalizer data.Normalizer) {

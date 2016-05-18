@@ -48,7 +48,7 @@ func (e *Extended) Parse(parser data.ObjectParser) {
 
 func (e *Extended) Validate(validator data.Validator) {
 	e.Bolus.Validate(validator)
-	validator.ValidateInteger("duration", e.Duration).Exists().GreaterThanOrEqualTo(0).LessThanOrEqualTo(86400000)
+	validator.ValidateInteger("duration", e.Duration).Exists().InRange(0, 86400000)
 	validator.ValidateFloat("extended", e.Extended).Exists().GreaterThan(0.0).LessThanOrEqualTo(100.0)
 }
 

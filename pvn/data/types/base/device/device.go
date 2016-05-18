@@ -22,14 +22,6 @@ func Type() string {
 	return "deviceEvent"
 }
 
-func New() *Device {
-	deviceType := Type()
-
-	device := &Device{}
-	device.Type = &deviceType
-	return device
-}
-
 func (d *Device) Parse(parser data.ObjectParser) {
 	d.Base.Parse(parser)
 }

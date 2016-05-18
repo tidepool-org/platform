@@ -22,14 +22,6 @@ func Type() string {
 	return "bolus"
 }
 
-func New() *Bolus {
-	bolusType := Type()
-
-	bolus := &Bolus{}
-	bolus.Type = &bolusType
-	return bolus
-}
-
 func (b *Bolus) Parse(parser data.ObjectParser) {
 	b.Base.Parse(parser)
 }

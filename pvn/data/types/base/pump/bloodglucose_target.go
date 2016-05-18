@@ -26,21 +26,21 @@ func (b *BloodGlucoseTarget) Parse(parser data.ObjectParser) {
 func (b *BloodGlucoseTarget) Validate(validator data.Validator) {
 
 	if b.High != nil {
-		validator.ValidateFloat("low", b.Low).GreaterThanOrEqualTo(0.0).LessThanOrEqualTo(*b.High)
+		validator.ValidateFloat("low", b.Low).InRange(0.0, *b.High)
 	} else {
-		validator.ValidateFloat("low", b.Low).GreaterThanOrEqualTo(0.0).LessThanOrEqualTo(1000.0)
+		validator.ValidateFloat("low", b.Low).InRange(0.0, 1000.0)
 	}
 
-	validator.ValidateFloat("target", b.Target).GreaterThanOrEqualTo(0.0).LessThanOrEqualTo(1000.0)
+	validator.ValidateFloat("target", b.Target).InRange(0.0, 1000.0)
 
 	if b.Low != nil {
-		validator.ValidateFloat("high", b.High).GreaterThanOrEqualTo(*b.Low).LessThanOrEqualTo(1000.0)
+		validator.ValidateFloat("high", b.High).GreaterThan(*b.Low).LessThanOrEqualTo(1000.0)
 	} else if b.Target != nil {
-		validator.ValidateFloat("high", b.High).GreaterThanOrEqualTo(*b.Target).LessThanOrEqualTo(1000.0)
+		validator.ValidateFloat("high", b.High).GreaterThan(*b.Target).LessThanOrEqualTo(1000.0)
 	}
 
-	validator.ValidateInteger("range", b.Range).GreaterThanOrEqualTo(0).LessThanOrEqualTo(50)
-	validator.ValidateInteger("start", b.Start).Exists().GreaterThanOrEqualTo(0).LessThanOrEqualTo(86400000)
+	validator.ValidateInteger("range", b.Range).InRange(0, 50)
+	validator.ValidateInteger("start", b.Start).Exists().InRange(0, 86400000)
 }
 
 func (b *BloodGlucoseTarget) Normalize(normalizer data.Normalizer) {

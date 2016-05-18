@@ -53,9 +53,9 @@ func (p *Prime) Validate(validator data.Validator) {
 
 	if p.Target != nil {
 		if *p.Target == "cannula" {
-			validator.ValidateFloat("volume", p.Volume).GreaterThanOrEqualTo(0.0).LessThanOrEqualTo(3.0)
+			validator.ValidateFloat("volume", p.Volume).InRange(0.0, 3.0)
 		} else if *p.Target == "tubing" {
-			validator.ValidateFloat("volume", p.Volume).GreaterThanOrEqualTo(0.0).LessThanOrEqualTo(100.0)
+			validator.ValidateFloat("volume", p.Volume).InRange(0.0, 100.0)
 		}
 	}
 }

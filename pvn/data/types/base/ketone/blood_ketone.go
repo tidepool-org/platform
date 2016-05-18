@@ -34,7 +34,7 @@ func (b *Blood) Parse(parser data.ObjectParser) {
 func (b *Blood) Validate(validator data.Validator) {
 	b.Base.Validate(validator)
 
-	validator.ValidateFloat("value", b.Value).Exists().GreaterThanOrEqualTo(0.0).LessThanOrEqualTo(1000.0)
+	validator.ValidateFloat("value", b.Value).Exists().InRange(0.0, 1000.0)
 	validator.ValidateString("units", b.Units).Exists().OneOf([]string{"mmol/l", "mmol/L", "mg/dl", "mg/dL"})
 
 }

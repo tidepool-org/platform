@@ -17,8 +17,8 @@ func (c *CarbohydrateRatio) Parse(parser data.ObjectParser) {
 }
 
 func (c *CarbohydrateRatio) Validate(validator data.Validator) {
-	validator.ValidateInteger("amount", c.Amount).Exists().GreaterThanOrEqualTo(0).LessThanOrEqualTo(250)
-	validator.ValidateInteger("start", c.Start).Exists().GreaterThanOrEqualTo(0).LessThanOrEqualTo(86400000)
+	validator.ValidateInteger("amount", c.Amount).Exists().InRange(0, 250)
+	validator.ValidateInteger("start", c.Start).Exists().InRange(0, 86400000)
 }
 
 func (c *CarbohydrateRatio) Normalize(normalizer data.Normalizer) {

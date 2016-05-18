@@ -17,8 +17,8 @@ func (i *InsulinSensitivity) Parse(parser data.ObjectParser) {
 }
 
 func (i *InsulinSensitivity) Validate(validator data.Validator) {
-	validator.ValidateFloat("amount", i.Amount).Exists().GreaterThanOrEqualTo(0.0).LessThanOrEqualTo(1000.0)
-	validator.ValidateInteger("start", i.Start).Exists().GreaterThanOrEqualTo(0).LessThanOrEqualTo(86400000)
+	validator.ValidateFloat("amount", i.Amount).Exists().InRange(0.0, 1000.0)
+	validator.ValidateInteger("start", i.Start).Exists().InRange(0, 86400000)
 }
 
 func (i *InsulinSensitivity) Normalize(normalizer data.Normalizer) {

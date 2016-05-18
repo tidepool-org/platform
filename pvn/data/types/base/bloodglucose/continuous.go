@@ -34,7 +34,7 @@ func (c *Continuous) Parse(parser data.ObjectParser) {
 func (c *Continuous) Validate(validator data.Validator) {
 	c.Base.Validate(validator)
 
-	validator.ValidateFloat("value", c.Value).Exists().GreaterThanOrEqualTo(0.0).LessThanOrEqualTo(1000.0)
+	validator.ValidateFloat("value", c.Value).Exists().InRange(0.0, 1000.0)
 	validator.ValidateString("units", c.Units).Exists().OneOf([]string{"mmol/l", "mmol/L", "mg/dl", "mg/dL"})
 
 }
