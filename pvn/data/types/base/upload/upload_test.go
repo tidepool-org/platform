@@ -24,6 +24,7 @@ var _ = Describe("Upload", func() {
 	rawObject["timeProcessing"] = "utc-bootstrapping"
 	rawObject["dataState"] = "running"
 	rawObject["deduplicator"] = "something"
+	rawObject["timezone"] = "US/Central"
 
 	Context("byUser", func() {
 
@@ -123,6 +124,19 @@ var _ = Describe("Upload", func() {
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
 			Entry("2 characters", rawObject, "deviceSerialNumber", "xx"),
 			Entry("more than 2 characters", rawObject, "deviceSerialNumber", "model-x"),
+		)
+
+	})
+
+	Context("timezone", func() {
+
+		DescribeTable("invalid when", testing.ExpectFieldNotValid,
+			Entry("empty", rawObject, "timezone", "", []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("only one character", rawObject, "timezone", "a", []*service.Error{validator.ErrorValueNotTrue()}),
+		)
+
+		DescribeTable("valid when", testing.ExpectFieldIsValid,
+			Entry("set", rawObject, "timezone", "US/Central"),
 		)
 
 	})

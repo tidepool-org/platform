@@ -16,6 +16,7 @@ type Upload struct {
 	DeviceModel         *string      `json:"deviceModel" bson:"deviceModel"`
 	DeviceSerialNumber  *string      `json:"deviceSerialNumber" bson:"deviceSerialNumber"`
 	TimeProcessing      *string      `json:"timeProcessing" bson:"timeProcessing"`
+	TimeZone            *string      `json:"timezone" bson:"timezone"`
 	DataState           *string      `json:"dataState" bson:"dataState"`
 	Deduplicator        *interface{} `json:"deduplicator" bson:"deduplicator"`
 }
@@ -43,6 +44,7 @@ func (u *Upload) Parse(parser data.ObjectParser) {
 	u.DeviceModel = parser.ParseString("deviceModel")
 	u.DeviceSerialNumber = parser.ParseString("deviceSerialNumber")
 	u.TimeProcessing = parser.ParseString("timeProcessing")
+	u.TimeZone = parser.ParseString("timezone")
 	u.DataState = parser.ParseString("dataState")
 	u.Deduplicator = parser.ParseInterface("deduplicator")
 }
@@ -59,6 +61,7 @@ func (u *Upload) Validate(validator data.Validator) {
 	validator.ValidateString("deviceModel", u.DeviceModel).Exists().LengthGreaterThan(1)
 	validator.ValidateString("deviceSerialNumber", u.DeviceSerialNumber).Exists().LengthGreaterThan(1)
 	validator.ValidateString("timeProcessing", u.TimeProcessing).Exists().OneOf([]string{"across-the-board-timezone", "utc-bootstrapping", "none"})
+	validator.ValidateString("timezone", u.TimeZone).Exists().LengthGreaterThan(1)
 	validator.ValidateString("dataState", u.DataState).Exists().LengthGreaterThan(1)
 	validator.ValidateInterface("deduplicator", u.Deduplicator).Exists()
 }
