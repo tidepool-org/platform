@@ -222,8 +222,8 @@ var _ = Describe("Pump Settings", func() {
 			pumpSettings.Units = &pump.Units{BloodGlucose: &common.MmolL}
 
 			pumpSettings.BloodGlucoseTargets = &[]*pump.BloodGlucoseTarget{
-				&pump.BloodGlucoseTarget{High: &highVal, Low: &lowVal, Target: &targetVal},
-				&pump.BloodGlucoseTarget{High: &highVal, Low: &lowVal, Target: &targetVal},
+				{High: &highVal, Low: &lowVal, Target: &targetVal},
+				{High: &highVal, Low: &lowVal, Target: &targetVal},
 			}
 
 			testContext := context.NewStandard()
@@ -248,8 +248,8 @@ var _ = Describe("Pump Settings", func() {
 			pumpSettings.Units = &pump.Units{BloodGlucose: &common.MgdL}
 
 			pumpSettings.BloodGlucoseTargets = &[]*pump.BloodGlucoseTarget{
-				&pump.BloodGlucoseTarget{High: &highVal, Low: &lowVal, Target: &targetVal},
-				&pump.BloodGlucoseTarget{High: &highVal, Low: &lowVal, Target: &targetVal},
+				{High: &highVal, Low: &lowVal, Target: &targetVal},
+				{High: &highVal, Low: &lowVal, Target: &targetVal},
 			}
 
 			testContext := context.NewStandard()
