@@ -11,113 +11,18 @@ package service
  */
 
 import (
-	"fmt"
-	"net/http"
-
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/log"
 )
 
-// TODO: Make this an interface
+type Context interface {
+	Logger() log.Logger
 
-type Context struct {
-	response rest.ResponseWriter
-	request  *rest.Request
-	logger   log.Logger
-}
+	Request() *rest.Request
+	Response() rest.ResponseWriter
 
-type Trace struct {
-	Request string `json:"request,omitempty"`
-	Session string `json:"session,omitempty"`
-}
-
-type Meta struct {
-	Trace *Trace `json:"trace,omitempty"`
-}
-
-type JSONResponse struct {
-	Errors []*Error `json:"errors,omitempty"`
-	Meta   *Meta    `json:"meta,omitempty"`
-}
-
-type HandlerFunc func(context *Context)
-
-func NewContext(response rest.ResponseWriter, request *rest.Request) *Context {
-	return &Context{
-		response: response,
-		request:  request,
-		logger:   GetRequestLogger(request),
-	}
-}
-
-func WithContext(handler HandlerFunc) rest.HandlerFunc {
-	return func(response rest.ResponseWriter, request *rest.Request) {
-		handler(NewContext(response, request))
-	}
-}
-
-func (c *Context) Logger() log.Logger {
-	return c.logger
-}
-
-func (c *Context) Request() *rest.Request {
-	return c.request
-}
-
-func (c *Context) Response() rest.ResponseWriter {
-	return c.response
-}
-
-func (c *Context) RespondWithError(err *Error) {
-	if statusCode := err.Status; statusCode <= 0 { // TODO: Do we want to validate the status code is okay? More than >= 0?
-		c.RespondWithInternalServerFailure("Status field missing from error", err)
-	} else {
-		c.RespondWithStatusAndErrors(statusCode, []*Error{err})
-	}
-}
-
-func (c *Context) RespondWithInternalServerFailure(message string, failure ...interface{}) {
-	logger := c.Logger()
-	if len(failure) > 0 {
-		for index := range failure {
-			if err, errOk := failure[index].(error); errOk {
-				failure[index] = err.Error()
-			} else if stringer, stringerOk := failure[index].(fmt.Stringer); stringerOk {
-				failure[index] = stringer.String()
-			}
-		}
-		logger = logger.WithField("failure", failure)
-	}
-	logger.Error(message)
-	c.RespondWithError(ErrorInternalServerFailure())
-}
-
-func (c *Context) RespondWithStatusAndErrors(statusCode int, errors []*Error) {
-	c.Request().Env[RequestEnvErrors] = errors
-
-	response := &JSONResponse{
-		Errors: errors,
-		Meta: &Meta{
-			Trace: &Trace{
-				Request: GetRequestTraceRequest(c.Request()),
-			},
-		},
-	}
-
-	if traceSession := GetRequestTraceSession(c.Request()); traceSession != "" {
-		response.Meta.Trace.Session = traceSession
-	}
-
-	c.Response().WriteHeader(statusCode)
-	c.Response().WriteJson(response)
-}
-
-func ErrorInternalServerFailure() *Error {
-	return &Error{
-		Code:   "internal-server-failure",
-		Status: http.StatusInternalServerError,
-		Title:  "internal server failure",
-		Detail: "Internal server failure",
-	}
+	RespondWithError(err *Error)
+	RespondWithInternalServerFailure(message string, failure ...interface{})
+	RespondWithStatusAndErrors(statusCode int, errors []*Error)
 }

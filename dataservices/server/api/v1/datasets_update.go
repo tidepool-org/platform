@@ -15,12 +15,12 @@ import (
 
 	"github.com/tidepool-org/platform/data/deduplicator/root"
 	"github.com/tidepool-org/platform/data/types/upload"
-	"github.com/tidepool-org/platform/dataservices/server/api"
+	"github.com/tidepool-org/platform/dataservices/server"
 	"github.com/tidepool-org/platform/store"
 	"github.com/tidepool-org/platform/userservices/client"
 )
 
-func DatasetsUpdate(context *api.Context) {
+func DatasetsUpdate(context server.Context) {
 	datasetID := context.Request().PathParam("datasetid")
 	if datasetID == "" {
 		context.RespondWithError(ErrorDatasetIDMissing())
@@ -37,7 +37,7 @@ func DatasetsUpdate(context *api.Context) {
 	// TODO: Validate
 	targetUserID := *datasetUpload.UserID
 
-	err := context.Client().ValidateTargetUserPermissions(context.Context, context.RequestUserID, targetUserID, client.UploadPermissions)
+	err := context.Client().ValidateTargetUserPermissions(context, context.RequestUserID(), targetUserID, client.UploadPermissions)
 	if err != nil {
 		if client.IsUnauthorizedError(err) {
 			context.RespondWithError(ErrorUnauthorized())
@@ -60,8 +60,7 @@ func DatasetsUpdate(context *api.Context) {
 		return
 	}
 
-	// TODO: Pass in logger here
-	deduplicator, err := root.NewFactory().NewDeduplicator(&datasetUpload, context.Store(), context.Logger())
+	deduplicator, err := root.NewFactory().NewDeduplicator(context.Logger(), context.Store(), &datasetUpload)
 	if err != nil {
 		context.RespondWithInternalServerFailure("No duplicator found matching dataset", err)
 		return

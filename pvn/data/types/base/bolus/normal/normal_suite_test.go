@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestNormal(t *testing.T) {
+func TestSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "data/types/base/bolus/normal")
 }

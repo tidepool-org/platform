@@ -18,7 +18,7 @@ type Store interface {
 	IsClosed() bool
 	Close()
 	GetStatus() interface{}
-	NewSession(log log.Logger) (Session, error)
+	NewSession(logger log.Logger) (Session, error)
 }
 
 type Session interface {

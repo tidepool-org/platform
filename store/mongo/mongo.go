@@ -14,7 +14,6 @@ import (
 	"crypto/tls"
 	"net"
 	"strings"
-	"time"
 
 	mgo "gopkg.in/mgo.v2"
 
@@ -27,16 +26,6 @@ import (
 // TODO: Consider SetDebug and SetLogger
 // TODO: Consider findAndModify via Query.Apply
 
-type Config struct {
-	Addresses  string         `yaml:"addresses"` // TODO: This should be an array, but configor doesn't support that. Bleech! Fix?
-	Database   string         `yaml:"database"`
-	Collection string         `yaml:"collection"`
-	Username   *string        `yaml:"username"`
-	Password   *string        `yaml:"password"`
-	Timeout    *time.Duration `yaml:"timeout"`
-	SSL        bool           `yaml:"ssl"`
-}
-
 type Status struct {
 	State       string
 	BuildInfo   *mgo.BuildInfo
@@ -46,23 +35,16 @@ type Status struct {
 	Ping        string
 }
 
-func (c *Config) Validate() error {
-	addresses := strings.Split(c.Addresses, ",")
-	if len(addresses) < 1 {
-		return app.Error("mongo", "addresses is missing")
+func New(logger log.Logger, config *Config) (*Store, error) {
+	if logger == nil {
+		return nil, app.Error("mongo", "logger is missing")
 	}
-	if c.Database == "" {
-		return app.Error("mongo", "database is missing")
+	if config == nil {
+		return nil, app.Error("mongo", "config is missing")
 	}
-	if c.Collection == "" {
-		return app.Error("mongo", "collection is missing")
-	}
-	return nil
-}
 
-func New(config *Config, logger log.Logger) (*Store, error) {
 	if err := config.Validate(); err != nil {
-		return nil, app.ExtError(err, "mongo", "config is not valid")
+		return nil, app.ExtError(err, "mongo", "config is invalid")
 	}
 
 	loggerFields := map[string]interface{}{
@@ -159,6 +141,10 @@ func (s *Store) GetStatus() interface{} {
 }
 
 func (s *Store) NewSession(logger log.Logger) (store.Session, error) {
+	if logger == nil {
+		return nil, app.Error("mongo", "logger is missing")
+	}
+
 	if s.IsClosed() {
 		return nil, app.Error("mongo", "store closed")
 	}

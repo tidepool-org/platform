@@ -49,7 +49,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := session.Ping(); err != nil {
+	if err = session.Ping(); err != nil {
 		fmt.Printf("ERROR: Failure during Ping: %s\n", err.Error())
 		os.Exit(1)
 	}

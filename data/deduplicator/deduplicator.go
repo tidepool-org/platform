@@ -25,5 +25,5 @@ type Deduplicator interface {
 
 type Factory interface {
 	CanDeduplicateDataset(datasetUpload *upload.Upload) (bool, error)
-	NewDeduplicator(datasetUpload *upload.Upload, storeSession store.Session, logger log.Logger) (Deduplicator, error)
+	NewDeduplicator(logger log.Logger, storeSession store.Session, datasetUpload *upload.Upload) (Deduplicator, error)
 }

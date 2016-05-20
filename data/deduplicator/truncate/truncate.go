@@ -34,8 +34,8 @@ type Config struct {
 
 type Deduplicator struct {
 	logger        log.Logger
-	datasetUpload *upload.Upload
 	storeSession  store.Session
+	datasetUpload *upload.Upload
 	config        Config
 }
 
@@ -59,20 +59,21 @@ func (f *Factory) CanDeduplicateDataset(datasetUpload *upload.Upload) (bool, err
 	return false, nil
 }
 
-func (f *Factory) NewDeduplicator(datasetUpload *upload.Upload, storeSession store.Session, logger log.Logger) (deduplicator.Deduplicator, error) {
-	if datasetUpload == nil {
-		return nil, app.Error("truncate", "dataset upload is nil")
+func (f *Factory) NewDeduplicator(logger log.Logger, storeSession store.Session, datasetUpload *upload.Upload) (deduplicator.Deduplicator, error) {
+	if logger == nil {
+		return nil, app.Error("truncate", "logger is nil")
 	}
 	if storeSession == nil {
 		return nil, app.Error("truncate", "store session is nil")
 	}
-	if logger == nil {
-		return nil, app.Error("truncate", "logger is nil")
+	if datasetUpload == nil {
+		return nil, app.Error("truncate", "dataset upload is nil")
 	}
+
 	return &Deduplicator{
 		logger:        logger,
-		datasetUpload: datasetUpload,
 		storeSession:  storeSession,
+		datasetUpload: datasetUpload,
 		config: Config{
 			Name: "truncate",
 		},

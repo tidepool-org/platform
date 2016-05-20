@@ -11,7 +11,6 @@ package alignment
  */
 
 import (
-	"fmt"
 	"reflect"
 
 	"gopkg.in/mgo.v2/bson"
@@ -40,8 +39,8 @@ type Config struct {
 
 type Deduplicator struct {
 	logger        log.Logger
-	datasetUpload *upload.Upload
 	storeSession  store.Session
+	datasetUpload *upload.Upload
 	config        Config
 }
 
@@ -67,20 +66,21 @@ func (f *Factory) CanDeduplicateDataset(datasetUpload *upload.Upload) (bool, err
 	return false, nil
 }
 
-func (f *Factory) NewDeduplicator(datasetUpload *upload.Upload, storeSession store.Session, logger log.Logger) (deduplicator.Deduplicator, error) {
-	if datasetUpload == nil {
-		return nil, app.Error("alignment", "dataset upload is nil")
+func (f *Factory) NewDeduplicator(logger log.Logger, storeSession store.Session, datasetUpload *upload.Upload) (deduplicator.Deduplicator, error) {
+	if logger == nil {
+		return nil, app.Error("alignment", "logger is nil")
 	}
 	if storeSession == nil {
 		return nil, app.Error("alignment", "store session is nil")
 	}
-	if logger == nil {
-		return nil, app.Error("alignment", "logger is nil")
+	if datasetUpload == nil {
+		return nil, app.Error("alignment", "dataset upload is nil")
 	}
+
 	return &Deduplicator{
 		logger:        logger,
-		datasetUpload: datasetUpload,
 		storeSession:  storeSession,
+		datasetUpload: datasetUpload,
 		config: Config{
 			Name:    "alignment",
 			Sort:    []string{"payload.internalTime"},
@@ -110,7 +110,6 @@ func (d *Deduplicator) FinalizeDataset() error {
 		return d.deduplicateDataset(previousDatasetID, newDatasetID)
 	}
 
-	d.logger.Warn("No previous dataset found; activating all data")
 	return d.activateDataInDataset(newDatasetID)
 }
 
@@ -122,17 +121,12 @@ func (d *Deduplicator) findPreviousDataset() (*upload.Upload, error) {
 	iter := d.storeSession.FindAll(store.Query{"_groupId": groupID, "type": "upload", "uploadId": map[string]interface{}{"$ne": datasetID}}, []string{}, store.Filter{})
 	defer iter.Close()
 
-	d.logger.WithField("iter.Err()", iter.Err()).Warn("findPreviousDataset iter.Err()")
-
 	// TODO Check error here
-	d.logger.WithField("d.datasetUpload", d.datasetUpload).Warn("findPreviousDataset")
 
 	var previousDatasetUpload *upload.Upload
 	datasetUpload := upload.Upload{}
 	for iter.Next(&datasetUpload) {
-		d.logger.WithField("datasetUpload", datasetUpload).Warn("findPreviousDataset possible")
 		if previousDatasetUpload == nil || *previousDatasetUpload.Time < *datasetUpload.Time {
-			d.logger.WithField("datasetUpload", datasetUpload).Warn("findPreviousDataset found")
 			previousDatasetUpload = &datasetUpload
 		}
 	}
@@ -183,7 +177,6 @@ func (d *Deduplicator) deduplicateDatasetByDatumType(previousDatumArray []bson.M
 	filter = shallowCloneMap(filter)
 	datumTypes := d.calculateDatumTypes(newDatumArray)
 	for _, datumType := range datumTypes {
-		d.logger.Warn(fmt.Sprintf("Deduplicating type: %s", datumType))
 		previousDatumArrayByType := d.filterDatumArrayByDatumType(previousDatumArray, datumType)
 		newDatumArrayByType := d.filterDatumArrayByDatumType(newDatumArray, datumType)
 		filter["type"] = datumType
@@ -232,14 +225,12 @@ func (d *Deduplicator) deduplicateDatumArray(previousDatumArray []bson.M, newDat
 			}
 
 			// TODO: Cleanup
-			d.logger.Warn(fmt.Sprintf("Deduplicating against previous dataset; activating ids: %d", len(ids)))
 			filter["id"] = bson.M{"$in": ids}
 			return d.storeSession.UpdateAll(filter, bson.M{"$set": bson.M{"_active": true}})
 		}
 	}
 
 	// TODO: Cleanup
-	d.logger.Warn("Deduplicating against previous dataset; no overlap; activating ids: all")
 	return d.storeSession.UpdateAll(filter, bson.M{"$set": bson.M{"_active": true}})
 }
 

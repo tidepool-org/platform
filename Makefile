@@ -2,10 +2,10 @@ ROOT_DIRECTORY:=$(realpath $(dir $(realpath $(lastword $(MAKEFILE_LIST)))))
 REPOSITORY:=$(ROOT_DIRECTORY:$(realpath $(ROOT_DIRECTORY)/../../../)/%=%)
 
 VERSION_BASE=$(shell cat .version)
-VERSION_COMMIT=$(shell git rev-parse HEAD)
-VERSION_COMMIT_SHORT=$(shell git rev-parse --short HEAD)
+VERSION_SHORT_COMMIT=$(shell git rev-parse --short HEAD)
+VERSION_FULL_COMMIT=$(shell git rev-parse HEAD)
 
-GO_LD_FLAGS:=-ldflags "-X $(REPOSITORY)/version._base=$(VERSION_BASE) -X $(REPOSITORY)/version._commit=$(VERSION_COMMIT) -X $(REPOSITORY)/version._commitShort=$(VERSION_COMMIT_SHORT)"
+GO_LD_FLAGS:=-ldflags "-X main.VersionBase=$(VERSION_BASE) -X main.VersionShortCommit=$(VERSION_SHORT_COMMIT) -X main.VersionFullCommit=$(VERSION_FULL_COMMIT)"
 
 MAIN_FIND_CMD:=find . -not -path './Godeps/*' -name '*.go' -type f -exec egrep -l '^\s*func\s+main\s*\(' {} \;
 MAIN_TRANSFORM_CMD:=sed 's/\(.*\/\([^\/]*\)\.go\)/_bin\/\2 \1/'

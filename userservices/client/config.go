@@ -30,13 +30,13 @@ func (c *Config) Validate() error {
 		return app.Error("client", "address is invalid")
 	}
 	if c.RequestTimeout < 0 {
-		return app.Error("client", "request timeout is not valid")
+		return app.Error("client", "request timeout is invalid")
 	}
 	if c.ServerTokenSecret == "" {
 		return app.Error("client", "server token secret is missing")
 	}
 	if c.ServerTokenTimeout < 0 {
-		return app.Error("client", "server token timeout is not valid")
+		return app.Error("client", "server token timeout is invalid")
 	}
 
 	if c.RequestTimeout == 0 {

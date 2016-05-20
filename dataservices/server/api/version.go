@@ -1,4 +1,4 @@
-package server
+package api
 
 /* CHECKLIST
  * [ ] Uses interfaces as appropriate
@@ -10,16 +10,12 @@ package server
  * [ ] Full test coverage
  */
 
-import (
-	"github.com/ant0ine/go-json-rest/rest"
-
-	"github.com/tidepool-org/platform/version"
-)
+import "github.com/ant0ine/go-json-rest/rest"
 
 type Version struct {
 	Version string `json:"version"`
 }
 
-func (s *Server) GetVersion(response rest.ResponseWriter, request *rest.Request) {
-	response.WriteJson(Version{version.Current().Long()})
+func (s *Standard) GetVersion(response rest.ResponseWriter, request *rest.Request) {
+	response.WriteJson(Version{s.versionReporter.Long()})
 }

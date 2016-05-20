@@ -13,18 +13,18 @@ package v1
 import (
 	"net/http"
 
-	"github.com/tidepool-org/platform/dataservices/server/api"
+	"github.com/tidepool-org/platform/dataservices/server"
 	"github.com/tidepool-org/platform/userservices/client"
 )
 
-func UsersCheck(context *api.Context) {
+func UsersCheck(context server.Context) {
 	targetUserID := context.Request().PathParam("userid")
 	if targetUserID == "" {
 		context.RespondWithError(ErrorUserIDMissing())
 		return
 	}
 
-	err := context.Client().ValidateTargetUserPermissions(context.Context, context.RequestUserID, targetUserID, client.UploadPermissions)
+	err := context.Client().ValidateTargetUserPermissions(context, context.RequestUserID(), targetUserID, client.UploadPermissions)
 	if err != nil {
 		if client.IsUnauthorizedError(err) {
 			context.RespondWithError(ErrorUnauthorized())
@@ -34,7 +34,7 @@ func UsersCheck(context *api.Context) {
 		return
 	}
 
-	targetUserGroupID, err := context.Client().GetUserGroupID(context.Context, targetUserID)
+	targetUserGroupID, err := context.Client().GetUserGroupID(context, targetUserID)
 	if err != nil {
 		if client.IsUnauthorizedError(err) {
 			context.RespondWithError(ErrorUnauthorized())
@@ -45,5 +45,5 @@ func UsersCheck(context *api.Context) {
 	}
 
 	context.Response().WriteHeader(http.StatusOK)
-	context.Response().WriteJson(map[string]string{"requestUserID": context.RequestUserID, "targetUserID": targetUserID, "targetGroupID": targetUserGroupID})
+	context.Response().WriteJson(map[string]string{"requestUserID": context.RequestUserID(), "targetUserID": targetUserID, "targetGroupID": targetUserGroupID})
 }

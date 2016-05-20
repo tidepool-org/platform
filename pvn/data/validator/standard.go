@@ -21,7 +21,7 @@ type Standard struct {
 
 func NewStandard(context data.Context) (*Standard, error) {
 	if context == nil {
-		return nil, app.Error("parser", "context is missing")
+		return nil, app.Error("validator", "context is missing")
 	}
 
 	return &Standard{

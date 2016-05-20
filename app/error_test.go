@@ -10,38 +10,37 @@ import (
 )
 
 var _ = Describe("Error", func() {
-
-	Describe("Error", func() {
+	Context("Error", func() {
 		It("returns a formatted error", func() {
-			Expect(app.Error("test", "one").Error()).To(Equal("test: one"))
+			Expect(app.Error("app", "one").Error()).To(Equal("app: one"))
 		})
 	})
 
-	Describe("Errorf", func() {
+	Context("Errorf", func() {
 		It("returns a formatted error", func() {
-			Expect(app.Errorf("test", "%d %s", 2, "two").Error()).To(Equal("test: 2 two"))
+			Expect(app.Errorf("app", "%d %s", 2, "two").Error()).To(Equal("app: 2 two"))
 		})
 	})
 
-	Describe("ExtError", func() {
+	Context("ExtError", func() {
 		It("returns a formatted error", func() {
 			err := errors.New("error: inner")
-			Expect(app.ExtError(err, "test", "three").Error()).To(Equal("test: three; error: inner"))
+			Expect(app.ExtError(err, "app", "three").Error()).To(Equal("app: three; error: inner"))
 		})
 
 		It("does not fail when err is nil", func() {
-			Expect(app.ExtError(nil, "test", "three").Error()).To(Equal("test: three; app: error is nil"))
+			Expect(app.ExtError(nil, "app", "three").Error()).To(Equal("app: three; app: error is nil"))
 		})
 	})
 
-	Describe("ExtErrorf", func() {
+	Context("ExtErrorf", func() {
 		It("returns a formatted error", func() {
 			err := errors.New("error: inner")
-			Expect(app.ExtErrorf(err, "test", "%d %s", 4, "four").Error()).To(Equal("test: 4 four; error: inner"))
+			Expect(app.ExtErrorf(err, "app", "%d %s", 4, "four").Error()).To(Equal("app: 4 four; error: inner"))
 		})
 
 		It("does not fail when err is nil", func() {
-			Expect(app.ExtErrorf(nil, "test", "%d %s", 4, "four").Error()).To(Equal("test: 4 four; app: error is nil"))
+			Expect(app.ExtErrorf(nil, "app", "%d %s", 4, "four").Error()).To(Equal("app: 4 four; app: error is nil"))
 		})
 	})
 })

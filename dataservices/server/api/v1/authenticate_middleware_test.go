@@ -1,9 +1,9 @@
-package middleware_test
+package v1_test
 
 import (
 	. "github.com/onsi/ginkgo"
 	// . "github.com/onsi/gomega"
 )
 
-var _ = PDescribe("Authenticate", func() {
+var _ = PDescribe("AuthenticateMiddleware", func() {
 })

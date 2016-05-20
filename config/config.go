@@ -1,13 +1,13 @@
 package config
 
 /* CHECKLIST
- * [ ] Uses interfaces as appropriate
- * [ ] Private package variables use underscore prefix
- * [ ] All parameters validated
- * [ ] All errors handled
- * [ ] Reviewed for concurrency safety
- * [ ] Code complete
- * [ ] Full test coverage
+ * [x] Uses interfaces as appropriate
+ * [x] Private package variables use underscore prefix
+ * [x] All parameters validated
+ * [x] All errors handled
+ * [x] Reviewed for concurrency safety
+ * [x] Code complete
+ * [x] Full test coverage
  */
 
 import (
@@ -15,13 +15,56 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/jinzhu/configor"
 
 	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/environment"
 )
 
-func Load(name string, config interface{}) error {
+type Loader interface {
+	Load(name string, config interface{}) error
+}
+
+func NewLoader(directory string, prefix string, environmentReporter environment.Reporter) (Loader, error) {
+	if directory == "" {
+		return nil, app.Error("config", "directory is missing")
+	}
+	if prefix == "" {
+		return nil, app.Error("config", "prefix is missing")
+	}
+	if environmentReporter == nil {
+		return nil, app.Error("config", "environment reporter is missing")
+	}
+
+	if fileInfo, err := os.Stat(directory); err != nil {
+		if !os.IsNotExist(err) {
+			return nil, app.ExtError(err, "config", "unable to stat directory")
+		}
+		return nil, app.Error("config", "directory does not exist")
+	} else if !fileInfo.IsDir() {
+		return nil, app.Error("config", "directory is not a directory")
+	}
+
+	return &loader{
+		directory:           directory,
+		prefix:              prefix,
+		environmentReporter: environmentReporter,
+	}, nil
+}
+
+type loader struct {
+	directory           string
+	prefix              string
+	environmentReporter environment.Reporter
+}
+
+var (
+	_mutex sync.Mutex
+)
+
+func (l *loader) Load(name string, config interface{}) error {
 	if name == "" {
 		return app.Error("config", "name is missing")
 	}
@@ -29,39 +72,31 @@ func Load(name string, config interface{}) error {
 		return app.Error("config", "config is missing")
 	}
 
-	if _error != nil {
-		return _error
-	}
+	paths := []string{}
 
-	for _, extension := range []string{"json", "yaml"} {
-		path := filepath.Join(_directory, fmt.Sprintf("%s.%s", name, extension))
-		if _, err := os.Stat(path); err == nil {
-			return loadWithPrefix(name, config, path)
-		} else if !os.IsNotExist(err) {
-			return app.ExtError(err, "config", "unable to find config file")
+	path := filepath.Join(l.directory, fmt.Sprintf("%s.json", name))
+	if fileInfo, err := os.Stat(path); err != nil {
+		if !os.IsNotExist(err) {
+			return app.ExtError(err, "config", "unable to stat file")
 		}
+	} else if fileInfo.IsDir() {
+		return app.Error("config", "file is a directory")
+	} else {
+		paths = append(paths, path)
 	}
 
-	return loadWithPrefix(name, config)
-}
+	_mutex.Lock()
+	defer _mutex.Unlock()
 
-func loadWithPrefix(name string, config interface{}, args ...string) error {
-	oldPrefix := os.Getenv("CONFIGOR_ENV_PREFIX")
-	newPrefix := fmt.Sprintf("%s_%s", oldPrefix, strings.ToUpper(name))
-
-	// TODO: This is NOT concurrent safe!
-
-	if err := os.Setenv("CONFIGOR_ENV_PREFIX", newPrefix); err != nil {
-		return app.ExtError(err, "config", "unable to set new CONFIGOR_ENV_PREFIX")
+	if err := os.Setenv("CONFIGOR_ENV", l.environmentReporter.Name()); err != nil {
+		return app.ExtError(err, "config", "unable to set CONFIGOR_ENV")
 	}
 
-	err := configor.Load(config, args...)
-
-	if err := os.Setenv("CONFIGOR_ENV_PREFIX", oldPrefix); err != nil {
-		return app.ExtError(err, "config", "unable to set old CONFIGOR_ENV_PREFIX")
+	if err := os.Setenv("CONFIGOR_ENV_PREFIX", fmt.Sprintf("%s_%s", l.prefix, strings.ToUpper(name))); err != nil {
+		return app.ExtError(err, "config", "unable to set CONFIGOR_ENV_PREFIX")
 	}
 
-	if err != nil {
+	if err := configor.Load(config, paths...); err != nil {
 		return app.ExtError(err, "config", "unable to load config")
 	}
 

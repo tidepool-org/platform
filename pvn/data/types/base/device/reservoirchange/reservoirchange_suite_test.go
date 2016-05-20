@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestReservoirChange(t *testing.T) {
+func TestSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "data/types/base/device/reservoirchange")
 }

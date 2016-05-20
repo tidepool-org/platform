@@ -27,8 +27,9 @@ const (
 
 func NewLoggerMiddleware(logger log.Logger) (*LoggerMiddleware, error) {
 	if logger == nil {
-		return nil, app.Error("server", "logger is missing")
+		return nil, app.Error("service", "logger is missing")
 	}
+
 	return &LoggerMiddleware{logger}, nil
 }
 
@@ -45,5 +46,5 @@ func GetRequestLogger(request *rest.Request) log.Logger {
 			return logger
 		}
 	}
-	return log.RootLogger()
+	return nil // TODO: Should probably return something other than nil here
 }

@@ -1,4 +1,4 @@
-package api
+package context
 
 /* CHECKLIST
  * [ ] Uses interfaces as appropriate
@@ -13,23 +13,23 @@ package api
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
+	"github.com/tidepool-org/platform/dataservices/server"
 	"github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/service/context"
 	"github.com/tidepool-org/platform/store"
 	"github.com/tidepool-org/platform/userservices/client"
 )
 
-type Context struct {
-	*service.Context
+type Standard struct {
+	service.Context
 	store         store.Session
 	client        client.Client
-	RequestUserID string
+	requestUserID string
 }
 
-type HandlerFunc func(context *Context)
-
-func WithContext(dataStore store.Store, client client.Client, handler HandlerFunc) rest.HandlerFunc {
+func WithContext(dataStore store.Store, client client.Client, handler server.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
-		context := service.NewContext(response, request)
+		context := context.NewStandard(response, request)
 
 		store, err := dataStore.NewSession(context.Logger())
 		if err != nil {
@@ -38,7 +38,7 @@ func WithContext(dataStore store.Store, client client.Client, handler HandlerFun
 		}
 		defer store.Close()
 
-		handler(&Context{
+		handler(&Standard{
 			Context: context,
 			store:   store,
 			client:  client,
@@ -46,10 +46,18 @@ func WithContext(dataStore store.Store, client client.Client, handler HandlerFun
 	}
 }
 
-func (c *Context) Store() store.Session {
-	return c.store
+func (s *Standard) Store() store.Session {
+	return s.store
 }
 
-func (c *Context) Client() client.Client {
-	return c.client
+func (s *Standard) Client() client.Client {
+	return s.client
+}
+
+func (s *Standard) RequestUserID() string {
+	return s.requestUserID
+}
+
+func (s *Standard) SetRequestUserID(requestUserID string) {
+	s.requestUserID = requestUserID
 }

@@ -1,16 +1,22 @@
 package version
 
 /* CHECKLIST
- * [ ] Uses interfaces as appropriate
- * [ ] Private package variables use underscore prefix
- * [ ] All parameters validated
- * [ ] All errors handled
- * [ ] Reviewed for concurrency safety
- * [ ] Code complete
- * [ ] Full test coverage
+ * [x] Uses interfaces as appropriate
+ * [x] Private package variables use underscore prefix
+ * [x] All parameters validated
+ * [x] All errors handled
+ * [x] Reviewed for concurrency safety
+ * [x] Code complete
+ * [x] Full test coverage
  */
 
-type Version interface {
+import (
+	"fmt"
+
+	"github.com/tidepool-org/platform/app"
+)
+
+type Reporter interface {
 	Base() string
 	ShortCommit() string
 	FullCommit() string
@@ -18,6 +24,46 @@ type Version interface {
 	Long() string
 }
 
-func Current() Version {
-	return _current
+func NewReporter(base string, shortCommit string, fullCommit string) (Reporter, error) {
+	if base == "" {
+		return nil, app.Error("version", "base is missing")
+	}
+	if shortCommit == "" {
+		return nil, app.Error("version", "shortCommit is missing")
+	}
+	if fullCommit == "" {
+		return nil, app.Error("version", "fullCommit is missing")
+	}
+
+	return &reporter{
+		base:        base,
+		shortCommit: shortCommit,
+		fullCommit:  fullCommit,
+	}, nil
+}
+
+type reporter struct {
+	base        string
+	shortCommit string
+	fullCommit  string
+}
+
+func (r *reporter) Base() string {
+	return r.base
+}
+
+func (r *reporter) ShortCommit() string {
+	return r.shortCommit
+}
+
+func (r *reporter) FullCommit() string {
+	return r.fullCommit
+}
+
+func (r *reporter) Short() string {
+	return fmt.Sprintf("%s+%s", r.Base(), r.ShortCommit())
+}
+
+func (r *reporter) Long() string {
+	return fmt.Sprintf("%s+%s", r.Base(), r.FullCommit())
 }

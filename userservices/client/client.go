@@ -20,9 +20,9 @@ import (
 type Client interface {
 	Start() error
 	Close()
-	ValidateUserSession(context *service.Context, sessionToken string) (string, error)
-	ValidateTargetUserPermissions(context *service.Context, requestUserID string, targetUserID string, targetPermissions Permissions) error
-	GetUserGroupID(context *service.Context, userID string) (string, error)
+	ValidateUserSession(context service.Context, sessionToken string) (string, error)
+	ValidateTargetUserPermissions(context service.Context, requestUserID string, targetUserID string, targetPermissions Permissions) error
+	GetUserGroupID(context service.Context, userID string) (string, error)
 }
 
 type Permission map[string]interface{}
