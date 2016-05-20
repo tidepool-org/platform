@@ -13,6 +13,7 @@ package calibration
 import (
 	"github.com/tidepool-org/platform/pvn/data"
 	"github.com/tidepool-org/platform/pvn/data/types/base/device"
+	"github.com/tidepool-org/platform/pvn/data/types/common/bloodglucose"
 )
 
 type Calibration struct {
@@ -48,10 +49,18 @@ func (c *Calibration) Parse(parser data.ObjectParser) {
 
 func (c *Calibration) Validate(validator data.Validator) {
 	c.Device.Validate(validator)
-	validator.ValidateString("units", c.Units).Exists().OneOf([]string{"mmol/l", "mmol/L", "mg/dl", "mg/dL"})
-	validator.ValidateFloat("value", c.Value).Exists().GreaterThanOrEqualTo(0.0).LessThanOrEqualTo(1000.0)
+
+	validator.ValidateString("units", c.Units).Exists().OneOf([]string{common.Mmoll, common.MmolL, common.Mgdl, common.MgdL})
+	switch c.Units {
+	case &common.Mmoll, &common.MmolL:
+		validator.ValidateFloat("value", c.Value).Exists().InRange(common.MmolLFromValue, common.MmolLToValue)
+	default:
+		validator.ValidateFloat("value", c.Value).Exists().InRange(common.MgdLFromValue, common.MgdLToValue)
+	}
 }
 
 func (c *Calibration) Normalize(normalizer data.Normalizer) {
 	c.Device.Normalize(normalizer)
+
+	c.Units, c.Value = normalizer.NormalizeBloodGlucose(Type(), c.Units).NormalizeUnitsAndValue(c.Value)
 }

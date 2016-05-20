@@ -5,7 +5,9 @@ import (
 
 	"github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/pvn/data"
 	"github.com/tidepool-org/platform/pvn/data/context"
+	"github.com/tidepool-org/platform/pvn/data/normalizer"
 	"github.com/tidepool-org/platform/pvn/data/parser"
 	"github.com/tidepool-org/platform/pvn/data/types"
 	"github.com/tidepool-org/platform/pvn/data/validator"
@@ -56,4 +58,19 @@ var ExpectFieldNotValid = func(object map[string]interface{}, field string, val 
 	parsedObject.Validate(standardValidator)
 	gomega.Expect(testContext.Errors()).ToNot(gomega.BeEmpty())
 	gomega.Expect(testContext.Errors()).To(gomega.HaveLen(len(expectedErrors)))
+}
+
+var ParseAndNormalize = func(object map[string]interface{}, field string, val interface{}) data.Datum {
+	object[field] = val
+	testContext := context.NewStandard()
+	standardValidator, _ := validator.NewStandard(testContext)        // TODO: Need to check error here
+	objectParser, _ := parser.NewStandardObject(testContext, &object) // TODO: Need to check error here
+	reportAndFailOnErrors(testContext, "Initialization:")
+	parsedObject, _ := types.Parse(testContext, objectParser) // TODO: Need to check error here
+	reportAndFailOnErrors(testContext, "Parsing:")
+	parsedObject.Validate(standardValidator)
+	reportAndFailOnErrors(testContext, "Validate:")
+	standardNormalizer, _ := normalizer.NewStandard(testContext)
+	parsedObject.Normalize(standardNormalizer)
+	return parsedObject
 }

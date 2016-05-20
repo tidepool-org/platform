@@ -1,12 +1,17 @@
 package pump_test
 
 import (
+	"github.com/tidepool-org/platform/pvn/data/context"
+	"github.com/tidepool-org/platform/pvn/data/normalizer"
+	"github.com/tidepool-org/platform/pvn/data/types/base/pump"
 	"github.com/tidepool-org/platform/pvn/data/types/base/testing"
+	"github.com/tidepool-org/platform/pvn/data/types/common/bloodglucose"
 	"github.com/tidepool-org/platform/pvn/data/validator"
 	"github.com/tidepool-org/platform/service"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Pump Settings", func() {
@@ -208,6 +213,61 @@ var _ = Describe("Pump Settings", func() {
 			)
 		})
 
+	})
+
+	Context("normalized", func() {
+
+		DescribeTable("normalization when mmol/L", func(lowVal, lowExpected, highVal, highExpected, targetVal, targetExpected float64) {
+			pumpSettings := pump.New()
+			pumpSettings.Units = &pump.Units{BloodGlucose: &common.MmolL}
+
+			pumpSettings.BloodGlucoseTargets = &[]*pump.BloodGlucoseTarget{
+				&pump.BloodGlucoseTarget{High: &highVal, Low: &lowVal, Target: &targetVal},
+				&pump.BloodGlucoseTarget{High: &highVal, Low: &lowVal, Target: &targetVal},
+			}
+
+			testContext := context.NewStandard()
+			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(err).To(BeNil())
+			pumpSettings.Normalize(standardNormalizer)
+			Expect(pumpSettings.Units.BloodGlucose).To(Equal(&common.MmolL))
+
+			for _, bgTarget := range *pumpSettings.BloodGlucoseTargets {
+				Expect(bgTarget.High).To(Equal(&highExpected))
+				Expect(bgTarget.Low).To(Equal(&lowExpected))
+				Expect(bgTarget.Target).To(Equal(&targetExpected))
+			}
+		},
+			Entry("expected lower bg value", 2.1, 2.1, 3.1, 3.1, 2.5, 2.5),
+			Entry("below max", 54.0, 54.0, 55.0, 55.0, 54.5, 54.5),
+			Entry("expected upper bg value", 4.0, 4.0, 12.0, 12.0, 8.0, 8.0),
+		)
+
+		DescribeTable("normalization when mg/dL", func(lowVal, lowExpected, highVal, highExpected, targetVal, targetExpected float64) {
+			pumpSettings := pump.New()
+			pumpSettings.Units = &pump.Units{BloodGlucose: &common.MgdL}
+
+			pumpSettings.BloodGlucoseTargets = &[]*pump.BloodGlucoseTarget{
+				&pump.BloodGlucoseTarget{High: &highVal, Low: &lowVal, Target: &targetVal},
+				&pump.BloodGlucoseTarget{High: &highVal, Low: &lowVal, Target: &targetVal},
+			}
+
+			testContext := context.NewStandard()
+			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(err).To(BeNil())
+			pumpSettings.Normalize(standardNormalizer)
+			Expect(pumpSettings.Units.BloodGlucose).To(Equal(&common.MmolL))
+
+			for _, bgTarget := range *pumpSettings.BloodGlucoseTargets {
+				Expect(bgTarget.High).To(Equal(&highExpected))
+				Expect(bgTarget.Low).To(Equal(&lowExpected))
+				Expect(bgTarget.Target).To(Equal(&targetExpected))
+			}
+		},
+			Entry("MgdL expected lower bg value", 50.0, 2.7753739955227665, 55.0, 3.0529113950750433, 52.0, 2.8863889553436772),
+			Entry("MgdL below max", 970.0, 53.84225551314167, 990.0, 54.95240511135078, 980.0, 54.397330312246226),
+			Entry("MgdL expected upper bg value", 70.0, 3.8855235937318735, 180.0, 9.991346383881961, 99.0, 5.495240511135078),
+		)
 	})
 
 })

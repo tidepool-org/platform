@@ -1,6 +1,9 @@
 package pump
 
-import "github.com/tidepool-org/platform/pvn/data"
+import (
+	"github.com/tidepool-org/platform/pvn/data"
+	"github.com/tidepool-org/platform/pvn/data/types/common/bloodglucose"
+)
 
 type Units struct {
 	Carbohydrate *string `json:"carb" bson:"carb"`
@@ -17,11 +20,12 @@ func (u *Units) Parse(parser data.ObjectParser) {
 }
 
 func (u *Units) Validate(validator data.Validator) {
-	validator.ValidateString("bg", u.BloodGlucose).Exists().OneOf([]string{"mmol/l", "mmol/L", "mg/dl", "mg/dL"})
+	validator.ValidateString("bg", u.BloodGlucose).Exists().OneOf([]string{common.Mmoll, common.MmolL, common.Mgdl, common.MgdL})
 	validator.ValidateString("carb", u.Carbohydrate).Exists().LengthGreaterThanOrEqualTo(1)
 }
 
 func (u *Units) Normalize(normalizer data.Normalizer) {
+	u.BloodGlucose = normalizer.NormalizeBloodGlucose("bg", u.BloodGlucose).NormalizeUnits()
 }
 
 func ParseUnits(parser data.ObjectParser) *Units {

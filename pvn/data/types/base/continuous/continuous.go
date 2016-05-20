@@ -1,4 +1,4 @@
-package ketone
+package continuous
 
 import (
 	"github.com/tidepool-org/platform/pvn/data"
@@ -6,33 +6,33 @@ import (
 	"github.com/tidepool-org/platform/pvn/data/types/common/bloodglucose"
 )
 
-type Blood struct {
+type BloodGlucose struct {
 	base.Base `bson:",inline"`
 
 	Value *float64 `json:"value" bson:"value"`
 	Units *string  `json:"units" bson:"units"`
 }
 
-func BloodType() string {
-	return "bloodKetone"
+func Type() string {
+	return "cbg"
 }
 
-func NewBlood() *Blood {
-	ketoneType := BloodType()
+func New() *BloodGlucose {
+	bloodGlucoseType := Type()
 
-	blood := &Blood{}
-	blood.Type = &ketoneType
-	return blood
+	continuous := &BloodGlucose{}
+	continuous.Type = &bloodGlucoseType
+	return continuous
 }
 
-func (b *Blood) Parse(parser data.ObjectParser) {
+func (b *BloodGlucose) Parse(parser data.ObjectParser) {
 	b.Base.Parse(parser)
 
 	b.Value = parser.ParseFloat("value")
 	b.Units = parser.ParseString("units")
 }
 
-func (b *Blood) Validate(validator data.Validator) {
+func (b *BloodGlucose) Validate(validator data.Validator) {
 	b.Base.Validate(validator)
 
 	validator.ValidateString("units", b.Units).Exists().OneOf([]string{common.Mmoll, common.MmolL, common.Mgdl, common.MgdL})
@@ -45,8 +45,7 @@ func (b *Blood) Validate(validator data.Validator) {
 
 }
 
-func (b *Blood) Normalize(normalizer data.Normalizer) {
+func (b *BloodGlucose) Normalize(normalizer data.Normalizer) {
 	b.Base.Normalize(normalizer)
-
-	b.Units, b.Value = normalizer.NormalizeBloodGlucose(BloodType(), b.Units).NormalizeUnitsAndValue(b.Value)
+	b.Units, b.Value = normalizer.NormalizeBloodGlucose(Type(), b.Units).NormalizeUnitsAndValue(b.Value)
 }

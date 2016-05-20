@@ -1,9 +1,9 @@
-package calibration_test
+package continuous_test
 
 import (
 	"github.com/tidepool-org/platform/pvn/data/context"
 	"github.com/tidepool-org/platform/pvn/data/normalizer"
-	"github.com/tidepool-org/platform/pvn/data/types/base/device/calibration"
+	"github.com/tidepool-org/platform/pvn/data/types/base/continuous"
 	"github.com/tidepool-org/platform/pvn/data/types/base/testing"
 	"github.com/tidepool-org/platform/pvn/data/types/common/bloodglucose"
 	"github.com/tidepool-org/platform/pvn/data/validator"
@@ -14,22 +14,17 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Calibration Event", func() {
+var _ = Describe("Continuous BloodGlucose", func() {
 
 	var rawObject = testing.RawBaseObject()
 
-	BeforeEach(func() {
-
-		rawObject["type"] = "deviceEvent"
-		rawObject["subType"] = "calibration"
-		rawObject["units"] = "mmol/L"
-		rawObject["value"] = 5.5
-
-	})
+	rawObject["type"] = "cbg"
+	rawObject["units"] = "mmol/L"
+	rawObject["value"] = 5
 
 	Context("units", func() {
 
-		DescribeTable("invalid when", testing.ExpectFieldNotValid,
+		DescribeTable("units when", testing.ExpectFieldNotValid,
 			Entry("empty", rawObject, "units", "", []*service.Error{validator.ErrorValueNotTrue()}),
 			Entry("not one of the predefined values", rawObject, "units", "wrong", []*service.Error{validator.ErrorValueNotTrue()}),
 		)
@@ -45,16 +40,15 @@ var _ = Describe("Calibration Event", func() {
 
 	Context("value", func() {
 
-		DescribeTable("invalid when", testing.ExpectFieldNotValid,
+		DescribeTable("value when", testing.ExpectFieldNotValid,
 			Entry("less than 0", rawObject, "value", -0.1, []*service.Error{validator.ErrorValueNotTrue()}),
 			Entry("greater than 1000", rawObject, "value", 1000.1, []*service.Error{validator.ErrorValueNotTrue()}),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("0", rawObject, "value", 0.0),
 			Entry("above 0", rawObject, "value", 0.1),
 			Entry("below max", rawObject, "value", 990.85745),
-			Entry("as integer", rawObject, "value", 4),
+			Entry("as integer", rawObject, "value", 380),
 		)
 
 	})
@@ -62,16 +56,16 @@ var _ = Describe("Calibration Event", func() {
 	Context("normalized when mmol/L", func() {
 
 		DescribeTable("normalization", func(val, expected float64) {
-			calibrationEvent := calibration.New()
-			calibrationEvent.Value = &val
-			calibrationEvent.Units = &common.Mmoll
+			continuousBg := continuous.New()
+			continuousBg.Value = &val
+			continuousBg.Units = &common.Mmoll
 
 			testContext := context.NewStandard()
 			standardNormalizer, err := normalizer.NewStandard(testContext)
 			Expect(err).To(BeNil())
-			calibrationEvent.Normalize(standardNormalizer)
-			Expect(calibrationEvent.Units).To(Equal(&common.MmolL))
-			Expect(calibrationEvent.Value).To(Equal(&expected))
+			continuousBg.Normalize(standardNormalizer)
+			Expect(continuousBg.Units).To(Equal(&common.MmolL))
+			Expect(continuousBg.Value).To(Equal(&expected))
 		},
 			Entry("expected lower bg value", 3.7, 3.7),
 			Entry("below max", 54.99, 54.99),
@@ -82,16 +76,16 @@ var _ = Describe("Calibration Event", func() {
 	Context("normalized when mg/dL", func() {
 
 		DescribeTable("normalization", func(val, expected float64) {
-			calibrationEvent := calibration.New()
-			calibrationEvent.Value = &val
-			calibrationEvent.Units = &common.Mgdl
+			continuousBg := continuous.New()
+			continuousBg.Value = &val
+			continuousBg.Units = &common.Mgdl
 
 			testContext := context.NewStandard()
 			standardNormalizer, err := normalizer.NewStandard(testContext)
 			Expect(err).To(BeNil())
-			calibrationEvent.Normalize(standardNormalizer)
-			Expect(calibrationEvent.Units).To(Equal(&common.MmolL))
-			Expect(calibrationEvent.Value).To(Equal(&expected))
+			continuousBg.Normalize(standardNormalizer)
+			Expect(continuousBg.Units).To(Equal(&common.MmolL))
+			Expect(continuousBg.Value).To(Equal(&expected))
 		},
 			Entry("expected lower bg value", 60.0, 3.33044879462732),
 			Entry("below max", 990.85745, 55.0),

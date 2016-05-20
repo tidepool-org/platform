@@ -1,12 +1,17 @@
 package calculator_test
 
 import (
+	"github.com/tidepool-org/platform/pvn/data/context"
+	"github.com/tidepool-org/platform/pvn/data/normalizer"
+	"github.com/tidepool-org/platform/pvn/data/types/base/bolus/calculator"
 	"github.com/tidepool-org/platform/pvn/data/types/base/testing"
+	"github.com/tidepool-org/platform/pvn/data/types/common/bloodglucose"
 	"github.com/tidepool-org/platform/pvn/data/validator"
 	"github.com/tidepool-org/platform/service"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Calculator Bolus", func() {
@@ -80,13 +85,17 @@ var _ = Describe("Calculator Bolus", func() {
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
 			Entry("0", rawObject, "bgInput", 0.0),
 			Entry("above 0", rawObject, "bgInput", 0.1),
-			Entry("below 1000", rawObject, "bgInput", 999.99),
+			Entry("below max", rawObject, "bgInput", 990.85745),
 			Entry("as integer", rawObject, "bgInput", 4),
 		)
 
 	})
 
 	Context("insulinSensitivity", func() {
+
+		BeforeEach(func() {
+			rawObject["units"] = common.MgdL
+		})
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("less than 0", rawObject, "insulinSensitivity", -0.1, []*service.Error{validator.ErrorValueNotTrue()}),
@@ -96,7 +105,7 @@ var _ = Describe("Calculator Bolus", func() {
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
 			Entry("0", rawObject, "insulinSensitivity", 0.0),
 			Entry("above 0", rawObject, "insulinSensitivity", 0.1),
-			Entry("below 1000", rawObject, "insulinSensitivity", 999.99),
+			Entry("below max mg/dl", rawObject, "insulinSensitivity", 990.85745),
 			Entry("as integer", rawObject, "insulinSensitivity", 4),
 		)
 
@@ -119,6 +128,10 @@ var _ = Describe("Calculator Bolus", func() {
 
 	Context("bgTarget", func() {
 
+		BeforeEach(func() {
+			rawObject["units"] = common.MgdL
+		})
+
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("range less than 0", rawObject, "bgTarget", map[string]interface{}{"target": 100, "range": -1}, []*service.Error{validator.ErrorValueNotTrue()}),
 			Entry("range greater than 50", rawObject, "bgTarget", map[string]interface{}{"target": 100, "range": 51}, []*service.Error{validator.ErrorValueNotTrue()}),
@@ -130,7 +143,7 @@ var _ = Describe("Calculator Bolus", func() {
 			Entry("range 0", rawObject, "bgTarget", map[string]interface{}{"target": 100, "range": 0}),
 			Entry("target 0", rawObject, "bgTarget", map[string]interface{}{"target": 0.0, "range": 10}),
 			Entry("range less or equal to 50", rawObject, "bgTarget", map[string]interface{}{"target": 100, "range": 50}),
-			Entry("target less or equal to 1000.0", rawObject, "bgTarget", map[string]interface{}{"target": 1000.0, "range": 10}),
+			Entry("target less or equal to max mgdl", rawObject, "bgTarget", map[string]interface{}{"target": 990.85745, "range": 10}),
 		)
 
 	})
@@ -155,6 +168,54 @@ var _ = Describe("Calculator Bolus", func() {
 			Entry("carb less or equal 50", rawObject, "recommended", map[string]interface{}{"net": 100, "correction": -50, "carb": 50}),
 		)
 
+	})
+
+	Context("normalized when mmol/L", func() {
+
+		DescribeTable("normalization", func(val, expected float64) {
+			bolusCalculator := calculator.New()
+			bolusCalculator.Units = &common.Mmoll
+			bolusCalculator.BloodGlucoseInput = &val
+			bolusCalculator.InsulinSensitivity = &val
+			bolusCalculator.BloodGlucoseTarget = &calculator.BloodGlucoseTarget{Target: &val}
+
+			testContext := context.NewStandard()
+			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(err).To(BeNil())
+			bolusCalculator.Normalize(standardNormalizer)
+			Expect(bolusCalculator.Units).To(Equal(&common.MmolL))
+			Expect(bolusCalculator.BloodGlucoseInput).To(Equal(&expected))
+			Expect(bolusCalculator.InsulinSensitivity).To(Equal(&expected))
+			Expect(bolusCalculator.BloodGlucoseTarget.Target).To(Equal(&expected))
+		},
+			Entry("expected lower bg value", 3.7, 3.7),
+			Entry("below max", 54.99, 54.99),
+			Entry("expected upper bg value", 23.0, 23.0),
+		)
+	})
+
+	Context("normalized when mg/dL", func() {
+
+		DescribeTable("normalization", func(val, expected float64) {
+			bolusCalculator := calculator.New()
+			bolusCalculator.Units = &common.Mgdl
+			bolusCalculator.BloodGlucoseInput = &val
+			bolusCalculator.InsulinSensitivity = &val
+			bolusCalculator.BloodGlucoseTarget = &calculator.BloodGlucoseTarget{Target: &val}
+
+			testContext := context.NewStandard()
+			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(err).To(BeNil())
+			bolusCalculator.Normalize(standardNormalizer)
+			Expect(bolusCalculator.Units).To(Equal(&common.MmolL))
+			Expect(bolusCalculator.BloodGlucoseInput).To(Equal(&expected))
+			Expect(bolusCalculator.InsulinSensitivity).To(Equal(&expected))
+			Expect(bolusCalculator.BloodGlucoseTarget.Target).To(Equal(&expected))
+		},
+			Entry("expected lower bg value", 60.0, 3.33044879462732),
+			Entry("below max", 990.85745, 55.0),
+			Entry("expected upper bg value", 400.0, 22.202991964182132),
+		)
 	})
 
 })

@@ -1,4 +1,4 @@
-package bloodglucose_test
+package continuous_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestKetone(t *testing.T) {
+func TestContinuous(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "data/types/base/bloodglucose")
+	RunSpecs(t, "data/types/base/continuous")
 }

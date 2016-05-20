@@ -17,12 +17,12 @@ import (
 	"github.com/tidepool-org/platform/pvn/data/types/base/basal/scheduled"
 	"github.com/tidepool-org/platform/pvn/data/types/base/basal/suspend"
 	"github.com/tidepool-org/platform/pvn/data/types/base/basal/temporary"
-	"github.com/tidepool-org/platform/pvn/data/types/base/bloodglucose"
 	"github.com/tidepool-org/platform/pvn/data/types/base/bolus"
 	"github.com/tidepool-org/platform/pvn/data/types/base/bolus/calculator"
 	"github.com/tidepool-org/platform/pvn/data/types/base/bolus/combination"
 	"github.com/tidepool-org/platform/pvn/data/types/base/bolus/extended"
 	"github.com/tidepool-org/platform/pvn/data/types/base/bolus/normal"
+	"github.com/tidepool-org/platform/pvn/data/types/base/continuous"
 	"github.com/tidepool-org/platform/pvn/data/types/base/device"
 	"github.com/tidepool-org/platform/pvn/data/types/base/device/alarm"
 	"github.com/tidepool-org/platform/pvn/data/types/base/device/calibration"
@@ -34,6 +34,7 @@ import (
 	"github.com/tidepool-org/platform/pvn/data/types/base/pump"
 	"github.com/tidepool-org/platform/pvn/data/types/base/sample"
 	"github.com/tidepool-org/platform/pvn/data/types/base/sample/sub"
+	"github.com/tidepool-org/platform/pvn/data/types/base/selfmonitored"
 	"github.com/tidepool-org/platform/pvn/data/types/base/upload"
 )
 
@@ -144,10 +145,10 @@ func Parse(context data.Context, parser data.ObjectParser) (data.Datum, error) {
 		datum = upload.New()
 	case ketone.BloodType():
 		datum = ketone.NewBlood()
-	case bloodglucose.ContinuousType():
-		datum = bloodglucose.NewContinuous()
-	case bloodglucose.SelfMonitoredType():
-		datum = bloodglucose.NewSelfMonitored()
+	case continuous.Type():
+		datum = continuous.New()
+	case selfmonitored.Type():
+		datum = selfmonitored.New()
 	case pump.Type():
 		datum = pump.New()
 	default:

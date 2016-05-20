@@ -1,13 +1,17 @@
 package pump
 
-import "github.com/tidepool-org/platform/pvn/data"
+import (
+	"github.com/tidepool-org/platform/pvn/data"
+	"github.com/tidepool-org/platform/pvn/data/types/common/bloodglucose"
+)
 
 type BloodGlucoseTarget struct {
-	Low    *float64 `json:"low" bson:"low"`
-	High   *float64 `json:"high" bson:"high"`
-	Target *float64 `json:"target" bson:"target"`
-	Start  *int     `json:"start" bson:"start"`
-	Range  *int     `json:"range" bson:"range"`
+	Low         *float64 `json:"low" bson:"low"`
+	High        *float64 `json:"high" bson:"high"`
+	Target      *float64 `json:"target" bson:"target"`
+	Start       *int     `json:"start" bson:"start"`
+	Range       *int     `json:"range" bson:"range"`
+	targetUnits *string
 }
 
 func NewBloodGlucoseTarget() *BloodGlucoseTarget {
@@ -25,18 +29,46 @@ func (b *BloodGlucoseTarget) Parse(parser data.ObjectParser) {
 
 func (b *BloodGlucoseTarget) Validate(validator data.Validator) {
 
-	if b.High != nil {
-		validator.ValidateFloat("low", b.Low).InRange(0.0, *b.High)
-	} else {
-		validator.ValidateFloat("low", b.Low).InRange(0.0, 1000.0)
+	if b.targetUnits == nil {
+		return
 	}
 
-	validator.ValidateFloat("target", b.Target).InRange(0.0, 1000.0)
+	lowBgUpperLimit := b.High
+	highBgLowerLimit := b.Low
 
-	if b.Low != nil {
-		validator.ValidateFloat("high", b.High).GreaterThan(*b.Low).LessThanOrEqualTo(1000.0)
-	} else if b.Target != nil {
-		validator.ValidateFloat("high", b.High).GreaterThan(*b.Target).LessThanOrEqualTo(1000.0)
+	switch b.targetUnits {
+	case &common.Mmoll, &common.MmolL:
+
+		if lowBgUpperLimit == nil {
+			lowBgUpperLimit = &common.MmolLToValue
+		}
+		if highBgLowerLimit == nil {
+			if b.Target != nil {
+				highBgLowerLimit = b.Target
+			} else {
+				highBgLowerLimit = &common.MmolLFromValue
+			}
+		}
+
+		validator.ValidateFloat("low", b.Low).InRange(common.MmolLFromValue, *lowBgUpperLimit)
+		validator.ValidateFloat("target", b.Target).InRange(common.MmolLFromValue, common.MmolLToValue)
+		validator.ValidateFloat("high", b.High).GreaterThan(*highBgLowerLimit).LessThanOrEqualTo(common.MmolLToValue)
+
+	default:
+
+		if lowBgUpperLimit == nil {
+			lowBgUpperLimit = &common.MgdLToValue
+		}
+		if highBgLowerLimit == nil {
+			if b.Target != nil {
+				highBgLowerLimit = b.Target
+			} else {
+				highBgLowerLimit = &common.MgdLFromValue
+			}
+		}
+		validator.ValidateFloat("low", b.Low).InRange(common.MgdLFromValue, *lowBgUpperLimit)
+		validator.ValidateFloat("target", b.Target).InRange(common.MgdLFromValue, common.MgdLToValue)
+		validator.ValidateFloat("high", b.High).GreaterThan(*highBgLowerLimit).LessThanOrEqualTo(common.MgdLToValue)
 	}
 
 	validator.ValidateInteger("range", b.Range).InRange(0, 50)
@@ -44,6 +76,18 @@ func (b *BloodGlucoseTarget) Validate(validator data.Validator) {
 }
 
 func (b *BloodGlucoseTarget) Normalize(normalizer data.Normalizer) {
+	if b.targetUnits == nil {
+		return
+	}
+	if b.Low != nil {
+		b.Low = normalizer.NormalizeBloodGlucose("low", b.targetUnits).NormalizeValue(b.Low)
+	}
+	if b.High != nil {
+		b.High = normalizer.NormalizeBloodGlucose("high", b.targetUnits).NormalizeValue(b.High)
+	}
+	if b.Target != nil {
+		b.Target = normalizer.NormalizeBloodGlucose("target", b.targetUnits).NormalizeValue(b.Target)
+	}
 }
 
 func ParseBloodGlucoseTarget(parser data.ObjectParser) *BloodGlucoseTarget {

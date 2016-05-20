@@ -76,6 +76,7 @@ func (s *Settings) Validate(validator data.Validator) {
 		bloodGlucoseTargetsValidator := validator.NewChildValidator("bgTarget")
 		for index, bgTarget := range *s.BloodGlucoseTargets {
 			if bgTarget != nil {
+				bgTarget.targetUnits = s.Units.BloodGlucose
 				bgTarget.Validate(bloodGlucoseTargetsValidator.NewChildValidator(index))
 			}
 		}
@@ -85,4 +86,22 @@ func (s *Settings) Validate(validator data.Validator) {
 
 func (s *Settings) Normalize(normalizer data.Normalizer) {
 	s.Base.Normalize(normalizer)
+
+	var originalUnits *string
+
+	if s.Units != nil {
+		originalUnits = s.Units.BloodGlucose
+		s.Units.Normalize(normalizer.NewChildNormalizer("units"))
+	}
+
+	if s.BloodGlucoseTargets != nil {
+		bloodGlucoseTargetsNormalizer := normalizer.NewChildNormalizer("bgTarget")
+		for index, bgTarget := range *s.BloodGlucoseTargets {
+			if bgTarget != nil {
+				bgTarget.targetUnits = originalUnits
+				bgTarget.Normalize(bloodGlucoseTargetsNormalizer.NewChildNormalizer(index))
+			}
+		}
+	}
+
 }

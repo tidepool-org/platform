@@ -47,3 +47,7 @@ func (s *Standard) NewChildNormalizer(reference interface{}) data.Normalizer {
 		data:    s.data,
 	}
 }
+
+func (s *Standard) NormalizeBloodGlucose(reference interface{}, units *string) data.BloodGlucoseNormalizer {
+	return NewStandardBloodGlucose(s.context, reference, units)
+}
