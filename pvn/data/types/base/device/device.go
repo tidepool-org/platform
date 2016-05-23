@@ -14,8 +14,8 @@ import "github.com/tidepool-org/platform/pvn/data"
 import "github.com/tidepool-org/platform/pvn/data/types/base"
 
 type Device struct {
-	base.Base
-	SubType *string `json:"subType" bson:"subType"`
+	base.Base `bson:",inline"`
+	SubType   *string `json:"subType" bson:"subType"`
 }
 
 func Type() string {

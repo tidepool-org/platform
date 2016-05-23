@@ -16,7 +16,7 @@ import (
 )
 
 type Prime struct {
-	device.Device
+	device.Device `bson:",inline"`
 
 	Target *string  `json:"primeTarget" bson:"primeTarget"`
 	Volume *float64 `json:"volume,omitempty" bson:"volume,omitempty"`

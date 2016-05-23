@@ -16,8 +16,8 @@ import (
 )
 
 type Normal struct {
-	bolus.Bolus
-	Normal *float64 `json:"normal" bson:"normal"`
+	bolus.Bolus `bson:",inline"`
+	Normal      *float64 `json:"normal" bson:"normal"`
 }
 
 func Type() string {

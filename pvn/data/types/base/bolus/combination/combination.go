@@ -16,7 +16,7 @@ import (
 )
 
 type Combination struct {
-	bolus.Bolus
+	bolus.Bolus `bson:",inline"`
 
 	Normal   *float64 `json:"normal" bson:"normal"`
 	Duration *int     `json:"duration" bson:"duration"`

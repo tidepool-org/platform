@@ -16,9 +16,9 @@ import (
 )
 
 type Alarm struct {
-	device.Device
-	AlarmType *string `json:"alarmType" bson:"alarmType"`
-	Status    *string `json:"status,omitempty" bson:"status,omitempty"`
+	device.Device `bson:",inline"`
+	AlarmType     *string `json:"alarmType" bson:"alarmType"`
+	Status        *string `json:"status,omitempty" bson:"status,omitempty"`
 }
 
 func Type() string {

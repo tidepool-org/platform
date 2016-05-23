@@ -17,7 +17,7 @@ import (
 )
 
 type Calibration struct {
-	device.Device
+	device.Device `bson:",inline"`
 
 	Value *float64 `json:"value" bson:"value"`
 	Units *string  `json:"units" bson:"units"`

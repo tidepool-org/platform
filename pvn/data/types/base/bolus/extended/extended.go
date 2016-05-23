@@ -16,7 +16,7 @@ import (
 )
 
 type Extended struct {
-	bolus.Bolus
+	bolus.Bolus `bson:",inline"`
 
 	Duration *int     `json:"duration" bson:"duration"`
 	Extended *float64 `json:"extended" bson:"extended"`

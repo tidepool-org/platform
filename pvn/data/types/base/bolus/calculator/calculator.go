@@ -13,15 +13,19 @@ package calculator
 import (
 	"github.com/tidepool-org/platform/pvn/data"
 	"github.com/tidepool-org/platform/pvn/data/types/base"
+	"github.com/tidepool-org/platform/pvn/data/types/base/bolus/combination"
+	"github.com/tidepool-org/platform/pvn/data/types/base/bolus/extended"
+	"github.com/tidepool-org/platform/pvn/data/types/base/bolus/normal"
 	"github.com/tidepool-org/platform/pvn/data/types/common/bloodglucose"
 )
 
 type Calculator struct {
 	base.Base `bson:",inline"`
 
+	Bolus data.Datum `json:"bolus" bson:"-"`
+
 	*Recommended        `json:"recommended,omitempty" bson:"recommended,omitempty"`
 	*BloodGlucoseTarget `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`
-	//*bolus.Bolus `json:"bolus,omitempty" bson:"bolus,omitempty"`
 
 	BolusID                  *string  `json:"bolusId,omitempty" bson:"bolusId,omitempty"`
 	CarbohydrateInput        *int     `json:"carbInput,omitempty" bson:"carbInput,omitempty"`
@@ -55,10 +59,13 @@ func (c *Calculator) Parse(parser data.ObjectParser) {
 
 	c.Recommended = ParseRecommended(parser.NewChildObjectParser("recommended"))
 	c.BloodGlucoseTarget = ParseBloodGlucoseTarget(parser.NewChildObjectParser("bgTarget"))
+	c.Bolus = ParseBolus(parser.NewChildObjectParser("bolus"))
+
 }
 
 func (c *Calculator) Validate(validator data.Validator) {
 	c.Base.Validate(validator)
+	//c.Bolus.Validate(validator)
 	validator.ValidateInteger("carbInput", c.CarbohydrateInput).InRange(0, 1000)
 	validator.ValidateFloat("insulinOnBoard", c.InsulinOnBoard).InRange(0.0, 250.0)
 	validator.ValidateInteger("insulinCarbRatio", c.InsulinCarbohydrateRatio).InRange(0, 250)
@@ -85,6 +92,19 @@ func (c *Calculator) Validate(validator data.Validator) {
 
 func (c *Calculator) Normalize(normalizer data.Normalizer) {
 	c.Base.Normalize(normalizer)
+	//c.Bolus.Normalize(normalizer)
+
+	if c.Bolus != nil {
+		switch c.Bolus.(type) {
+		case *extended.Extended:
+			c.BolusID = &c.Bolus.(*extended.Extended).ID
+		case *normal.Normal:
+			c.BolusID = &c.Bolus.(*normal.Normal).ID
+		case *combination.Combination:
+			c.BolusID = &c.Bolus.(*combination.Combination).ID
+		default:
+		}
+	}
 
 	originalUnits := c.Units
 
@@ -97,4 +117,5 @@ func (c *Calculator) Normalize(normalizer data.Normalizer) {
 	c.Units = bgNormalizer.NormalizeUnits()
 	c.InsulinSensitivity = bgNormalizer.NormalizeValue(c.InsulinSensitivity)
 	c.BloodGlucoseInput = bgNormalizer.NormalizeValue(c.BloodGlucoseInput)
+
 }

@@ -38,10 +38,13 @@ func reportAndFailOnErrors(testContext *context.Standard, step string) {
 var ExpectFieldIsValid = func(object map[string]interface{}, field string, val interface{}) {
 	object[field] = val
 	testContext := context.NewStandard()
-	standardValidator, _ := validator.NewStandard(testContext)        // TODO: Need to check error here
-	objectParser, _ := parser.NewStandardObject(testContext, &object) // TODO: Need to check error here
+	standardValidator, err := validator.NewStandard(testContext)
+	gomega.Expect(err).To(gomega.BeNil())
+	objectParser, err := parser.NewStandardObject(testContext, &object)
+	gomega.Expect(err).To(gomega.BeNil())
 	reportAndFailOnErrors(testContext, "Initialization:")
-	parsedObject, _ := types.Parse(testContext, objectParser) // TODO: Need to check error here
+	parsedObject, err := types.Parse(testContext, objectParser)
+	gomega.Expect(err).To(gomega.BeNil())
 	reportAndFailOnErrors(testContext, "Parsing:")
 	parsedObject.Validate(standardValidator)
 	reportAndFailOnErrors(testContext, "Validation:")
@@ -50,10 +53,13 @@ var ExpectFieldIsValid = func(object map[string]interface{}, field string, val i
 var ExpectFieldNotValid = func(object map[string]interface{}, field string, val interface{}, expectedErrors []*service.Error) {
 	object[field] = val
 	testContext := context.NewStandard()
-	standardValidator, _ := validator.NewStandard(testContext)        // TODO: Need to check error here
-	objectParser, _ := parser.NewStandardObject(testContext, &object) // TODO: Need to check error here
+	standardValidator, err := validator.NewStandard(testContext)
+	gomega.Expect(err).To(gomega.BeNil())
+	objectParser, err := parser.NewStandardObject(testContext, &object)
+	gomega.Expect(err).To(gomega.BeNil())
 	reportAndFailOnErrors(testContext, "Initialization:")
-	parsedObject, _ := types.Parse(testContext, objectParser) // TODO: Need to check error here
+	parsedObject, err := types.Parse(testContext, objectParser)
+	gomega.Expect(err).To(gomega.BeNil())
 	reportAndFailOnErrors(testContext, "Parsing:")
 	parsedObject.Validate(standardValidator)
 	gomega.Expect(testContext.Errors()).ToNot(gomega.BeEmpty())
@@ -63,14 +69,18 @@ var ExpectFieldNotValid = func(object map[string]interface{}, field string, val 
 var ParseAndNormalize = func(object map[string]interface{}, field string, val interface{}) data.Datum {
 	object[field] = val
 	testContext := context.NewStandard()
-	standardValidator, _ := validator.NewStandard(testContext)        // TODO: Need to check error here
-	objectParser, _ := parser.NewStandardObject(testContext, &object) // TODO: Need to check error here
+	standardValidator, err := validator.NewStandard(testContext)
+	gomega.Expect(err).To(gomega.BeNil())
+	objectParser, err := parser.NewStandardObject(testContext, &object)
+	gomega.Expect(err).To(gomega.BeNil())
 	reportAndFailOnErrors(testContext, "Initialization:")
-	parsedObject, _ := types.Parse(testContext, objectParser) // TODO: Need to check error here
+	parsedObject, err := types.Parse(testContext, objectParser)
+	gomega.Expect(err).To(gomega.BeNil())
 	reportAndFailOnErrors(testContext, "Parsing:")
 	parsedObject.Validate(standardValidator)
 	reportAndFailOnErrors(testContext, "Validate:")
-	standardNormalizer, _ := normalizer.NewStandard(testContext)
+	standardNormalizer, err := normalizer.NewStandard(testContext)
+	gomega.Expect(err).To(gomega.BeNil())
 	parsedObject.Normalize(standardNormalizer)
 	return parsedObject
 }

@@ -16,7 +16,7 @@ import (
 )
 
 type TimeChange struct {
-	device.Device
+	device.Device `bson:",inline"`
 
 	*Change `json:"change" bson:"change"`
 }

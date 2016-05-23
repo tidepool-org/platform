@@ -16,7 +16,7 @@ import (
 )
 
 type ReservoirChange struct {
-	device.Device
+	device.Device `bson:",inline"`
 
 	StatusID *string `json:"status" bson:"status"`
 }

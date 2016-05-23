@@ -16,7 +16,7 @@ import (
 )
 
 type Status struct {
-	device.Device
+	device.Device `bson:",inline"`
 
 	Name     *string                 `json:"status" bson:"status"`
 	Duration *int                    `json:"duration" bson:"duration"`

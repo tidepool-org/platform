@@ -31,6 +31,12 @@ var _ = Describe("Calculator Bolus", func() {
 		rawObject["recommended"] = map[string]interface{}{"net": 50, "correction": -50, "carb": 50}
 		rawObject["bgTarget"] = map[string]interface{}{"target": 100, "range": 10}
 
+		var rawBolus = testing.RawBaseObject()
+		rawBolus["subType"] = "normal"
+		rawBolus["normal"] = 52.1
+
+		rawObject["bolus"] = rawBolus
+
 	})
 
 	Context("insulinOnBoard", func() {
@@ -170,52 +176,72 @@ var _ = Describe("Calculator Bolus", func() {
 
 	})
 
-	Context("normalized when mmol/L", func() {
+	Context("Normalize", func() {
 
-		DescribeTable("normalization", func(val, expected float64) {
-			bolusCalculator := calculator.New()
-			bolusCalculator.Units = &common.Mmoll
-			bolusCalculator.BloodGlucoseInput = &val
-			bolusCalculator.InsulinSensitivity = &val
-			bolusCalculator.BloodGlucoseTarget = &calculator.BloodGlucoseTarget{Target: &val}
+		Context("blood glucose", func() {
 
-			testContext := context.NewStandard()
-			standardNormalizer, err := normalizer.NewStandard(testContext)
-			Expect(err).To(BeNil())
-			bolusCalculator.Normalize(standardNormalizer)
-			Expect(bolusCalculator.Units).To(Equal(&common.MmolL))
-			Expect(bolusCalculator.BloodGlucoseInput).To(Equal(&expected))
-			Expect(bolusCalculator.InsulinSensitivity).To(Equal(&expected))
-			Expect(bolusCalculator.BloodGlucoseTarget.Target).To(Equal(&expected))
-		},
-			Entry("expected lower bg value", 3.7, 3.7),
-			Entry("below max", 54.99, 54.99),
-			Entry("expected upper bg value", 23.0, 23.0),
-		)
-	})
+			DescribeTable("when mmol/L", func(val, expected float64) {
+				bolusCalculator := calculator.New()
+				bolusCalculator.Units = &common.Mmoll
+				bolusCalculator.BloodGlucoseInput = &val
+				bolusCalculator.InsulinSensitivity = &val
+				bolusCalculator.BloodGlucoseTarget = &calculator.BloodGlucoseTarget{Target: &val}
 
-	Context("normalized when mg/dL", func() {
+				testContext := context.NewStandard()
+				standardNormalizer, err := normalizer.NewStandard(testContext)
+				Expect(err).To(BeNil())
+				bolusCalculator.Normalize(standardNormalizer)
+				Expect(bolusCalculator.Units).To(Equal(&common.MmolL))
+				Expect(bolusCalculator.BloodGlucoseInput).To(Equal(&expected))
+				Expect(bolusCalculator.InsulinSensitivity).To(Equal(&expected))
+				Expect(bolusCalculator.BloodGlucoseTarget.Target).To(Equal(&expected))
+			},
+				Entry("expected lower bg value", 3.7, 3.7),
+				Entry("below max", 54.99, 54.99),
+				Entry("expected upper bg value", 23.0, 23.0),
+			)
 
-		DescribeTable("normalization", func(val, expected float64) {
-			bolusCalculator := calculator.New()
-			bolusCalculator.Units = &common.Mgdl
-			bolusCalculator.BloodGlucoseInput = &val
-			bolusCalculator.InsulinSensitivity = &val
-			bolusCalculator.BloodGlucoseTarget = &calculator.BloodGlucoseTarget{Target: &val}
+			DescribeTable("when mg/dL", func(val, expected float64) {
+				bolusCalculator := calculator.New()
+				bolusCalculator.Units = &common.Mgdl
+				bolusCalculator.BloodGlucoseInput = &val
+				bolusCalculator.InsulinSensitivity = &val
+				bolusCalculator.BloodGlucoseTarget = &calculator.BloodGlucoseTarget{Target: &val}
 
-			testContext := context.NewStandard()
-			standardNormalizer, err := normalizer.NewStandard(testContext)
-			Expect(err).To(BeNil())
-			bolusCalculator.Normalize(standardNormalizer)
-			Expect(bolusCalculator.Units).To(Equal(&common.MmolL))
-			Expect(bolusCalculator.BloodGlucoseInput).To(Equal(&expected))
-			Expect(bolusCalculator.InsulinSensitivity).To(Equal(&expected))
-			Expect(bolusCalculator.BloodGlucoseTarget.Target).To(Equal(&expected))
-		},
-			Entry("expected lower bg value", 60.0, 3.33044879462732),
-			Entry("below max", 990.85745, 55.0),
-			Entry("expected upper bg value", 400.0, 22.202991964182132),
-		)
+				testContext := context.NewStandard()
+				standardNormalizer, err := normalizer.NewStandard(testContext)
+				Expect(err).To(BeNil())
+				bolusCalculator.Normalize(standardNormalizer)
+				Expect(bolusCalculator.Units).To(Equal(&common.MmolL))
+				Expect(bolusCalculator.BloodGlucoseInput).To(Equal(&expected))
+				Expect(bolusCalculator.InsulinSensitivity).To(Equal(&expected))
+				Expect(bolusCalculator.BloodGlucoseTarget.Target).To(Equal(&expected))
+			},
+				Entry("expected lower bg value", 60.0, 3.33044879462732),
+				Entry("below max", 990.85745, 55.0),
+				Entry("expected upper bg value", 400.0, 22.202991964182132),
+			)
+		})
+
+		Context("bolus", func() {
+			DescribeTable("valid from embedded", func(rawObject map[string]interface{}, field string, val interface{}) {
+				calculatorDatum := testing.ParseAndNormalize(rawObject, field, val)
+				calculatorBolus := calculatorDatum.(*calculator.Calculator)
+				Expect(calculatorBolus.BolusID).To(Not(BeNil()))
+			},
+				Entry("normal bolus", rawObject, "bolus", map[string]interface{}{"subType": "normal", "normal": 52.1}),
+				Entry("square bolus", rawObject, "bolus", map[string]interface{}{"subType": "square", "extended": 52.1, "duration": 0}),
+				Entry("dual/square normal", rawObject, "bolus", map[string]interface{}{"subType": "dual/square", "extended": 52.1, "duration": 0, "normal": 52.1}),
+			)
+
+			DescribeTable("invalid from embedded when", func(rawObject map[string]interface{}, field string, val interface{}) {
+				calculatorDatum := testing.ParseAndNormalize(rawObject, field, val)
+				calculatorBolus := calculatorDatum.(*calculator.Calculator)
+				Expect(calculatorBolus.BolusID).To(BeNil())
+			},
+				Entry("wrong subType", rawObject, "bolus", map[string]interface{}{"subType": "wrong", "normal": 52.1}),
+			)
+		})
 	})
 
 })
