@@ -65,7 +65,7 @@ func (c *Calculator) Parse(parser data.ObjectParser) {
 
 func (c *Calculator) Validate(validator data.Validator) {
 	c.Base.Validate(validator)
-	//c.Bolus.Validate(validator)
+
 	validator.ValidateInteger("carbInput", c.CarbohydrateInput).InRange(0, 1000)
 	validator.ValidateFloat("insulinOnBoard", c.InsulinOnBoard).InRange(0.0, 250.0)
 	validator.ValidateInteger("insulinCarbRatio", c.InsulinCarbohydrateRatio).InRange(0, 250)
@@ -88,13 +88,18 @@ func (c *Calculator) Validate(validator data.Validator) {
 		c.targetUnits = c.Units
 		c.BloodGlucoseTarget.Validate(validator.NewChildValidator("bgTarget"))
 	}
+
+	if c.Bolus != nil {
+		c.Bolus.Validate(validator.NewChildValidator("bolus"))
+	}
+
 }
 
 func (c *Calculator) Normalize(normalizer data.Normalizer) {
 	c.Base.Normalize(normalizer)
-	//c.Bolus.Normalize(normalizer)
 
 	if c.Bolus != nil {
+		c.Bolus.Normalize(normalizer.NewChildNormalizer("bolus"))
 		switch c.Bolus.(type) {
 		case *extended.Extended:
 			c.BolusID = &c.Bolus.(*extended.Extended).ID

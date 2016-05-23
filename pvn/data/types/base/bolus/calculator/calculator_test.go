@@ -18,6 +18,24 @@ var _ = Describe("Calculator Bolus", func() {
 
 	var rawObject = testing.RawBaseObject()
 
+	var embeddedBolus = func(subType string, normal, extended float64, duration int) map[string]interface{} {
+		var rawBolus = testing.RawBaseObject()
+
+		rawBolus["subType"] = subType
+		rawBolus["type"] = "bolus"
+
+		if normal > 0.0 {
+			rawBolus["normal"] = normal
+		}
+		if extended > 0.0 {
+			rawBolus["extended"] = extended
+		}
+		if duration > 0 {
+			rawBolus["duration"] = duration
+		}
+		return rawBolus
+	}
+
 	BeforeEach(func() {
 
 		rawObject["type"] = "wizard"
@@ -31,11 +49,7 @@ var _ = Describe("Calculator Bolus", func() {
 		rawObject["recommended"] = map[string]interface{}{"net": 50, "correction": -50, "carb": 50}
 		rawObject["bgTarget"] = map[string]interface{}{"target": 100, "range": 10}
 
-		var rawBolus = testing.RawBaseObject()
-		rawBolus["subType"] = "normal"
-		rawBolus["normal"] = 52.1
-
-		rawObject["bolus"] = rawBolus
+		rawObject["bolus"] = embeddedBolus("normal", 52.1, 0.0, 0)
 
 	})
 
@@ -224,22 +238,22 @@ var _ = Describe("Calculator Bolus", func() {
 		})
 
 		Context("bolus", func() {
-			DescribeTable("valid from embedded", func(rawObject map[string]interface{}, field string, val interface{}) {
+			DescribeTable("valid when embedded", func(rawObject map[string]interface{}, field string, val interface{}) {
 				calculatorDatum := testing.ParseAndNormalize(rawObject, field, val)
 				calculatorBolus := calculatorDatum.(*calculator.Calculator)
 				Expect(calculatorBolus.BolusID).To(Not(BeNil()))
 			},
-				Entry("normal bolus", rawObject, "bolus", map[string]interface{}{"subType": "normal", "normal": 52.1}),
-				Entry("square bolus", rawObject, "bolus", map[string]interface{}{"subType": "square", "extended": 52.1, "duration": 0}),
-				Entry("dual/square normal", rawObject, "bolus", map[string]interface{}{"subType": "dual/square", "extended": 52.1, "duration": 0, "normal": 52.1}),
+				Entry("normal", rawObject, "bolus", embeddedBolus("normal", 52.1, 0.0, 0)),
+				Entry("square", rawObject, "bolus", embeddedBolus("square", 0.0, 52.1, 1000)),
+				Entry("dual/square", rawObject, "bolus", embeddedBolus("dual/square", 52.1, 52.1, 1000)),
 			)
 
-			DescribeTable("invalid from embedded when", func(rawObject map[string]interface{}, field string, val interface{}) {
+			DescribeTable("invalid when embedded", func(rawObject map[string]interface{}, field string, val interface{}) {
 				calculatorDatum := testing.ParseAndNormalize(rawObject, field, val)
 				calculatorBolus := calculatorDatum.(*calculator.Calculator)
 				Expect(calculatorBolus.BolusID).To(BeNil())
 			},
-				Entry("wrong subType", rawObject, "bolus", map[string]interface{}{"subType": "wrong", "normal": 52.1}),
+				Entry("wrong subType", rawObject, "bolus", embeddedBolus("wrong", 0.0, 52.1, 0)),
 			)
 		})
 	})
