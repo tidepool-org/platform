@@ -25,7 +25,7 @@ type Sample struct {
 	ObjectArray    *[]map[string]interface{} `json:"objectArray,omitempty"`
 	Interface      *interface{}              `json:"interface,omitempty"`
 	InterfaceArray *[]interface{}            `json:"interfaceArray,omitempty"`
-	Time           *string                   `json:"time,omitempty"`
+	TimeString     *string                   `json:"timeString,omitempty"`
 }
 
 func Type() string {
@@ -56,7 +56,7 @@ func (s *Sample) Parse(parser data.ObjectParser) {
 	s.ObjectArray = parser.ParseObjectArray("objectArray")
 	s.Interface = parser.ParseInterface("interface")
 	s.InterfaceArray = parser.ParseInterfaceArray("interfaceArray")
-	s.Time = parser.ParseString("time")
+	s.TimeString = parser.ParseString("timeString")
 }
 
 func (s *Sample) Validate(validator data.Validator) {
@@ -72,15 +72,15 @@ func (s *Sample) Validate(validator data.Validator) {
 	validator.ValidateString("type", s.Type).Exists().EqualTo(Type())
 	validator.ValidateString("subType", s.SubType).Exists()
 	validator.ValidateBoolean("boolean", s.Boolean).Exists().True()
-	validator.ValidateInteger("integer", s.Integer).Exists().LessThan(1).GreaterThan(3).OneOf([]int{4, 7, 9}).EqualTo(6)
-	validator.ValidateFloat("float", s.Float).Exists().LessThan(1.23).GreaterThanOrEqualTo(0.01).OneOf([]float64{4.5, 6.7}).EqualTo(3)
-	validator.ValidateString("string", s.String).Exists().LengthInRange(15, 18).OneOf([]string{"aaa", "bbb", "asdfasdf"})
-	validator.ValidateStringArray("stringArray", s.StringArray).Exists().LengthEqualTo(5).EachOneOf([]string{"bach", "blech"})
+	validator.ValidateInteger("integer", s.Integer).Exists().LessThan(10).GreaterThan(3).OneOf([]int{4, 7, 9})
+	validator.ValidateFloat("float", s.Float).Exists().LessThan(6.7).GreaterThanOrEqualTo(0.01).OneOf([]float64{4.5, 6.7})
+	validator.ValidateString("string", s.String).Exists().LengthInRange(2, 10).OneOf([]string{"aaa", "bbb", "asdfasdf"})
+	validator.ValidateStringArray("stringArray", s.StringArray).Exists().LengthEqualTo(2).EachOneOf([]string{"bach", "blech"})
 	validator.ValidateObject("object", s.Object).Exists()
-	validator.ValidateObjectArray("objectArray", s.ObjectArray).Exists().LengthGreaterThanOrEqualTo(5)
+	validator.ValidateObjectArray("objectArray", s.ObjectArray).Exists().LengthGreaterThanOrEqualTo(1)
 	validator.ValidateInterface("interface", s.Interface).Exists()
 	validator.ValidateInterfaceArray("interfaceArray", s.InterfaceArray).Exists().LengthNotEqualTo(5)
-	validator.ValidateStringAsTime("time", s.Time, "2006-01-02T15:04:05Z07:00").Exists().BeforeNow()
+	validator.ValidateStringAsTime("timeString", s.TimeString, "2006-01-02T15:04:05Z07:00").Exists().BeforeNow()
 }
 
 func (s *Sample) Normalize(normalizer data.Normalizer) {

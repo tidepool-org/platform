@@ -1,4 +1,4 @@
-package base_test
+package scheduled_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestBase(t *testing.T) {
+func TestScheduled(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "data/types/base")
+	RunSpecs(t, "data/types/base/basal/scheduled")
 }

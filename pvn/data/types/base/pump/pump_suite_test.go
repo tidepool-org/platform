@@ -1,4 +1,4 @@
-package base_test
+package pump_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestBase(t *testing.T) {
+func TestPump(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "data/types/base")
+	RunSpecs(t, "data/types/base/pump")
 }
