@@ -56,8 +56,12 @@ var _ = Describe("Calculator Bolus", func() {
 	Context("insulinOnBoard", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("negative", rawObject, "insulinOnBoard", -1, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("greater than 250", rawObject, "insulinOnBoard", 251, []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("negative", rawObject, "insulinOnBoard", -1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(-1, 0, 250), "/insulinOnBoard")},
+			),
+			Entry("greater than 250", rawObject, "insulinOnBoard", 251,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(251, 0, 250), "/insulinOnBoard")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -69,8 +73,12 @@ var _ = Describe("Calculator Bolus", func() {
 	Context("insulinCarbRatio", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("negative", rawObject, "insulinCarbRatio", -1, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("greater than 250", rawObject, "insulinCarbRatio", 251, []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("negative", rawObject, "insulinCarbRatio", -1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(-1, 0, 250), "/insulinCarbRatio")},
+			),
+			Entry("greater than 250", rawObject, "insulinCarbRatio", 251,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(251, 0, 250), "/insulinCarbRatio")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -82,8 +90,12 @@ var _ = Describe("Calculator Bolus", func() {
 	Context("units", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("empty", rawObject, "units", "", []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("not one of the predefined values", rawObject, "units", "wrong", []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("empty", rawObject, "units", "",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("", []string{common.Mmoll, common.MmolL, common.Mgdl, common.MgdL}), "/units")},
+			),
+			Entry("not one of the predefined values", rawObject, "units", "wrong",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("wrong", []string{common.Mmoll, common.MmolL, common.Mgdl, common.MgdL}), "/units")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -98,8 +110,12 @@ var _ = Describe("Calculator Bolus", func() {
 	Context("bgInput", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("less than 0", rawObject, "bgInput", -0.1, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("greater than 1000", rawObject, "bgInput", 1000.1, []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("less than 0", rawObject, "bgInput", -0.1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, common.MgdLFromValue, common.MgdLToValue), "/bgInput")},
+			),
+			Entry("greater than 1000", rawObject, "bgInput", 1000.1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(1000.1, common.MgdLFromValue, common.MgdLToValue), "/bgInput")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -118,8 +134,12 @@ var _ = Describe("Calculator Bolus", func() {
 		})
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("less than 0", rawObject, "insulinSensitivity", -0.1, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("greater than 1000", rawObject, "insulinSensitivity", 1000.1, []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("less than 0", rawObject, "insulinSensitivity", -0.1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, common.MgdLFromValue, common.MgdLToValue), "/insulinSensitivity")},
+			),
+			Entry("greater than 1000", rawObject, "insulinSensitivity", 1000.1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(1000.1, common.MgdLFromValue, common.MgdLToValue), "/insulinSensitivity")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -134,8 +154,12 @@ var _ = Describe("Calculator Bolus", func() {
 	Context("carbInput", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("less than 0", rawObject, "carbInput", -1, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("greater than 1000", rawObject, "carbInput", 1001, []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("less than 0", rawObject, "carbInput", -1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(-1, 0, 1000), "/carbInput")},
+			),
+			Entry("greater than 1000", rawObject, "carbInput", 1001,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(1001, 0, 1000), "/carbInput")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -153,10 +177,18 @@ var _ = Describe("Calculator Bolus", func() {
 		})
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("range less than 0", rawObject, "bgTarget", map[string]interface{}{"target": 100, "range": -1}, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("range greater than 50", rawObject, "bgTarget", map[string]interface{}{"target": 100, "range": 51}, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("target less than 0", rawObject, "bgTarget", map[string]interface{}{"target": -0.1, "range": 10}, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("target greater than 1000", rawObject, "bgTarget", map[string]interface{}{"target": 1000.1, "range": 10}, []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("range less than 0", rawObject, "bgTarget", map[string]interface{}{"target": 100, "range": -1},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(-1, 0, 50), "/bgTarget/range")},
+			),
+			Entry("range greater than 50", rawObject, "bgTarget", map[string]interface{}{"target": 100, "range": 51},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(51, 0, 50), "/bgTarget/range")},
+			),
+			Entry("target less than 0", rawObject, "bgTarget", map[string]interface{}{"target": -0.1, "range": 10},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, common.MgdLFromValue, common.MgdLToValue), "/bgTarget/target")},
+			),
+			Entry("target greater than 1000", rawObject, "bgTarget", map[string]interface{}{"target": 1000.1, "range": 10},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(1000.1, common.MgdLFromValue, common.MgdLToValue), "/bgTarget/target")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -171,12 +203,24 @@ var _ = Describe("Calculator Bolus", func() {
 	Context("recommended", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("net less than -100", rawObject, "recommended", map[string]interface{}{"net": -101, "correction": -50, "carb": 50}, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("net greater than 100", rawObject, "recommended", map[string]interface{}{"net": 101, "correction": -50, "carb": 50}, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("correction less than -100", rawObject, "recommended", map[string]interface{}{"net": 50, "correction": -101, "carb": 50}, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("correction greater than 100", rawObject, "recommended", map[string]interface{}{"net": 50, "correction": 101, "carb": 50}, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("carb less than 0", rawObject, "recommended", map[string]interface{}{"net": 50, "correction": -50, "carb": -1}, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("carb greater than 100", rawObject, "recommended", map[string]interface{}{"net": 50, "correction": -50, "carb": 101}, []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("net less than -100", rawObject, "recommended", map[string]interface{}{"net": -101, "correction": -50, "carb": 50},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(-101, -100, 100), "/recommended/net")},
+			),
+			Entry("net greater than 100", rawObject, "recommended", map[string]interface{}{"net": 101, "correction": -50, "carb": 50},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(101, -100, 100), "/recommended/net")},
+			),
+			Entry("correction less than -100", rawObject, "recommended", map[string]interface{}{"net": 50, "correction": -101, "carb": 50},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(-101, -100, 100), "/recommended/correction")},
+			),
+			Entry("correction greater than 100", rawObject, "recommended", map[string]interface{}{"net": 50, "correction": 101, "carb": 50},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(101, -100, 100), "/recommended/correction")},
+			),
+			Entry("carb less than 0", rawObject, "recommended", map[string]interface{}{"net": 50, "correction": -50, "carb": -1},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(-1, 0, 100), "/recommended/carb")},
+			),
+			Entry("carb greater than 100", rawObject, "recommended", map[string]interface{}{"net": 50, "correction": -50, "carb": 101},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(101, 0, 100), "/recommended/carb")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,

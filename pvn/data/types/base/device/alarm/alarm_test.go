@@ -25,8 +25,20 @@ var _ = Describe("Alarm Event", func() {
 	Context("alarmType", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("empty", rawObject, "alarmType", "", []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("not one of the predefined types", rawObject, "alarmType", "bad-robot", []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("empty", rawObject, "alarmType", "",
+				[]*service.Error{
+					testing.SetExpectedErrorSource(
+						validator.ErrorStringNotOneOf("", []string{"low_insulin", "no_insulin", "low_power", "no_power", "occlusion", "no_delivery", "auto_off", "over_limit", "other"}), "/alarmType",
+					),
+				},
+			),
+			Entry("not one of the predefined types", rawObject, "alarmType", "bad-robot",
+				[]*service.Error{
+					testing.SetExpectedErrorSource(
+						validator.ErrorStringNotOneOf("bad-robot", []string{"low_insulin", "no_insulin", "low_power", "no_power", "occlusion", "no_delivery", "auto_off", "over_limit", "other"}), "/alarmType",
+					),
+				},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -45,7 +57,9 @@ var _ = Describe("Alarm Event", func() {
 	Context("status", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("one character", rawObject, "status", "x", []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("one character", rawObject, "status", "x",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorLengthNotGreaterThan(1, 1), "/status")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,

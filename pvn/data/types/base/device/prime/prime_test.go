@@ -25,8 +25,16 @@ var _ = Describe("Prime Event", func() {
 	Context("primeTarget", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("empty", rawObject, "primeTarget", "", []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("not one of the predefined types", rawObject, "primeTarget", "bad", []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("empty", rawObject, "primeTarget", "",
+				[]*service.Error{testing.SetExpectedErrorSource(
+					validator.ErrorStringNotOneOf("", []string{"cannula", "tubing"}), "/primeTarget",
+				)},
+			),
+			Entry("not one of the predefined types", rawObject, "primeTarget", "bad",
+				[]*service.Error{testing.SetExpectedErrorSource(
+					validator.ErrorStringNotOneOf("bad", []string{"cannula", "tubing"}), "/primeTarget",
+				)},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -45,8 +53,12 @@ var _ = Describe("Prime Event", func() {
 		})
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("less than 0", rawObject, "volume", -0.1, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("more than 3", rawObject, "volume", 3.1, []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("less than 0", rawObject, "volume", -0.1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, 0.0, 3.0), "/volume")},
+			),
+			Entry("more than 3", rawObject, "volume", 3.1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(3.1, 0.0, 3.0), "/volume")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -66,8 +78,12 @@ var _ = Describe("Prime Event", func() {
 		})
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("less than 0", rawObject, "volume", -0.1, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("more than 100", rawObject, "volume", 100.1, []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("less than 0", rawObject, "volume", -0.1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, 0.0, 100.0), "/volume")},
+			),
+			Entry("more than 100", rawObject, "volume", 100.1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(100.1, 0.0, 100.0), "/volume")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,

@@ -1,10 +1,14 @@
 package pump
 
-import "github.com/tidepool-org/platform/pvn/data"
+import (
+	"github.com/tidepool-org/platform/pvn/data"
+	"github.com/tidepool-org/platform/pvn/data/types/common/bloodglucose"
+)
 
 type InsulinSensitivity struct {
-	Amount *float64 `json:"amount" bson:"amount"`
-	Start  *int     `json:"start" bson:"start"`
+	Amount      *float64 `json:"amount" bson:"amount"`
+	Start       *int     `json:"start" bson:"start"`
+	amountUnits *string
 }
 
 func NewInsulinSensitivity() *InsulinSensitivity {
@@ -17,7 +21,14 @@ func (i *InsulinSensitivity) Parse(parser data.ObjectParser) {
 }
 
 func (i *InsulinSensitivity) Validate(validator data.Validator) {
-	validator.ValidateFloat("amount", i.Amount).Exists().InRange(0.0, 1000.0)
+
+	switch i.amountUnits {
+	case &common.Mmoll, &common.MmolL:
+		validator.ValidateFloat("amount", i.Amount).Exists().InRange(common.MmolLFromValue, common.MmolLToValue)
+	default:
+		validator.ValidateFloat("amount", i.Amount).Exists().InRange(common.MgdLFromValue, common.MgdLToValue)
+	}
+
 	validator.ValidateInteger("start", i.Start).Exists().InRange(0, 86400000)
 }
 

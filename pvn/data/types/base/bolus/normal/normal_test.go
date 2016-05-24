@@ -24,8 +24,12 @@ var _ = Describe("Normal Bolus", func() {
 	Context("normal", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("negative", rawObject, "normal", -0.1, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("greater than 20", rawObject, "normal", 100.1, []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("negative", rawObject, "normal", -0.1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorValueNotGreaterThan(-0.1, 0.0), "/normal")},
+			),
+			Entry("greater than 20", rawObject, "normal", 100.1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorValueNotLessThanOrEqualTo(100.1, 100.0), "/normal")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,

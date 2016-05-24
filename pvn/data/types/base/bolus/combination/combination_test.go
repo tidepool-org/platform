@@ -26,8 +26,12 @@ var _ = Describe("Combination Bolus", func() {
 	Context("duration", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("negative", rawObject, "duration", -1, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("greater than 86400000", rawObject, "duration", 86400001, []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("negative", rawObject, "duration", -1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(-1, 0, 86400000), "/duration")},
+			),
+			Entry("greater than 86400000", rawObject, "duration", 86400001,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(86400001, 0, 86400000), "/duration")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -39,8 +43,12 @@ var _ = Describe("Combination Bolus", func() {
 	Context("extended", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("negative", rawObject, "extended", -0.1, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("greater than 100", rawObject, "extended", 100.1, []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("negative", rawObject, "extended", -0.1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, 0.0, 100.0), "/extended")},
+			),
+			Entry("greater than 100", rawObject, "extended", 100.1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(100.1, 0.0, 100.0), "/extended")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -54,9 +62,15 @@ var _ = Describe("Combination Bolus", func() {
 	Context("normal", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("negative", rawObject, "normal", -0.1, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("zero", rawObject, "normal", 0.0, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("greater than 100", rawObject, "normal", 100.1, []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("negative", rawObject, "normal", -0.1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorValueNotGreaterThan(-0.1, 0.0), "/normal")},
+			),
+			Entry("zero", rawObject, "normal", 0.0,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorValueNotGreaterThan(0.0, 0.0), "/normal")},
+			),
+			Entry("greater than 100", rawObject, "normal", 100.1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorValueNotLessThanOrEqualTo(100.1, 100.0), "/normal")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,

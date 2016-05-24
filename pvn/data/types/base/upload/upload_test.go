@@ -29,8 +29,12 @@ var _ = Describe("Upload", func() {
 	Context("byUser", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("empty", rawObject, "byUser", "", []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("less than 10 characters", rawObject, "byUser", "123456789", []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("empty", rawObject, "byUser", "",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorLengthNotGreaterThanOrEqualTo(0, 10), "/byUser")},
+			),
+			Entry("less than 10 characters", rawObject, "byUser", "123456789",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorLengthNotGreaterThanOrEqualTo(9, 10), "/byUser")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -43,8 +47,12 @@ var _ = Describe("Upload", func() {
 	Context("version", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("empty", rawObject, "version", "", []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("less than 6 characters", rawObject, "version", "aaaaa", []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("empty", rawObject, "version", "",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorLengthNotGreaterThan(0, 5), "/version")},
+			),
+			Entry("less than 6 characters", rawObject, "version", "aaaaa",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorLengthNotGreaterThan(5, 5), "/version")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -57,10 +65,15 @@ var _ = Describe("Upload", func() {
 	Context("deviceTags", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("empty array", rawObject, "deviceTags", []string{}, []*service.Error{validator.ErrorValueNotTrue()}),
-			//Entry("empty item", rawObject, "deviceTags", []string{""}, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("not one of the allowed types", rawObject, "deviceTags", []string{"not-valid"}, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("not one of the allowed types", rawObject, "deviceTags", []string{"bgm", "cgm", "not-valid"}, []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("empty array", rawObject, "deviceTags", []string{},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorLengthNotGreaterThanOrEqualTo(0, 1), "/deviceTags")},
+			),
+			Entry("not one of the allowed types", rawObject, "deviceTags", []string{"not-valid"},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("not-valid", []string{"insulin-pump", "cgm", "bgm"}), "/deviceTags/0")},
+			),
+			Entry("not one of the allowed types", rawObject, "deviceTags", []string{"bgm", "cgm", "not-valid"},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("not-valid", []string{"insulin-pump", "cgm", "bgm"}), "/deviceTags/2")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -75,8 +88,9 @@ var _ = Describe("Upload", func() {
 	Context("deviceManufacturers", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("empty array", rawObject, "deviceManufacturers", []string{}, []*service.Error{validator.ErrorValueNotTrue()}),
-			//Entry("empty item", rawObject, "deviceManufacturers", []string{""}, []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("empty array", rawObject, "deviceManufacturers", []string{},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorLengthNotGreaterThanOrEqualTo(0, 1), "/deviceManufacturers")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -89,9 +103,15 @@ var _ = Describe("Upload", func() {
 	Context("computerTime", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("empty", rawObject, "computerTime", "", []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("zulu time", rawObject, "computerTime", "2013-05-04T03:58:44.584Z", []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("offset time", rawObject, "computerTime", "2013-05-04T03:58:44-08:00", []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("empty", rawObject, "computerTime", "",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorTimeNotValid("", "2006-01-02T15:04:05"), "/computerTime")},
+			),
+			Entry("zulu time", rawObject, "computerTime", "2013-05-04T03:58:44.584Z",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorTimeNotValid("2013-05-04T03:58:44.584Z", "2006-01-02T15:04:05"), "/computerTime")},
+			),
+			Entry("offset time", rawObject, "computerTime", "2013-05-04T03:58:44-08:00",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorTimeNotValid("2013-05-04T03:58:44-08:00", "2006-01-02T15:04:05"), "/computerTime")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -103,8 +123,12 @@ var _ = Describe("Upload", func() {
 	Context("deviceModel", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("empty", rawObject, "deviceModel", "", []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("1 character", rawObject, "deviceModel", "x", []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("empty", rawObject, "deviceModel", "",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorLengthNotGreaterThan(0, 1), "/deviceModel")},
+			),
+			Entry("1 character", rawObject, "deviceModel", "x",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorLengthNotGreaterThan(1, 1), "/deviceModel")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -117,8 +141,12 @@ var _ = Describe("Upload", func() {
 	Context("deviceSerialNumber", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("empty", rawObject, "deviceSerialNumber", "", []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("1 character", rawObject, "deviceSerialNumber", "x", []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("empty", rawObject, "deviceSerialNumber", "",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorLengthNotGreaterThan(0, 1), "/deviceSerialNumber")},
+			),
+			Entry("1 character", rawObject, "deviceSerialNumber", "x",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorLengthNotGreaterThan(1, 1), "/deviceSerialNumber")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -131,8 +159,12 @@ var _ = Describe("Upload", func() {
 	Context("timezone", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("empty", rawObject, "timezone", "", []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("only one character", rawObject, "timezone", "a", []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("empty", rawObject, "timezone", "",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorLengthNotGreaterThan(0, 1), "/timezone")},
+			),
+			Entry("only one character", rawObject, "timezone", "a",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorLengthNotGreaterThan(1, 1), "/timezone")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -144,8 +176,12 @@ var _ = Describe("Upload", func() {
 	Context("timeProcessing", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("empty", rawObject, "timeProcessing", "", []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("not of predefinded type", rawObject, "timeProcessing", "invalid-time-processing", []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("empty", rawObject, "timeProcessing", "",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("", []string{"across-the-board-timezone", "utc-bootstrapping", "none"}), "/timeProcessing")},
+			),
+			Entry("not of predefinded type", rawObject, "timeProcessing", "invalid-time-processing",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("invalid-time-processing", []string{"across-the-board-timezone", "utc-bootstrapping", "none"}), "/timeProcessing")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -159,7 +195,9 @@ var _ = Describe("Upload", func() {
 	Context("dataState", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("empty", rawObject, "dataState", "", []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("empty", rawObject, "dataState", "",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorLengthNotGreaterThan(0, 1), "/dataState")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,

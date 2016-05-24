@@ -26,8 +26,12 @@ var _ = Describe("Scheduled Basal", func() {
 	Context("duration", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("negative", rawObject, "duration", -1, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("greater than 432000000", rawObject, "duration", 432000001, []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("negative", rawObject, "duration", -1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(-1, 0, 432000000), "/duration")},
+			),
+			Entry("greater than 432000000", rawObject, "duration", 432000001,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(432000001, 0, 432000000), "/duration")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -39,8 +43,13 @@ var _ = Describe("Scheduled Basal", func() {
 	Context("rate", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("negative", rawObject, "rate", -0.1, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("greater than 20", rawObject, "rate", 20.1, []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry(
+				"negative", rawObject, "rate", -0.1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, 0.0, 20.0), "/rate")},
+			),
+			Entry("greater than 20", rawObject, "rate", 20.1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(20.1, 0.0, 20.0), "/rate")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -53,7 +62,9 @@ var _ = Describe("Scheduled Basal", func() {
 	Context("scheduleName", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("one character", rawObject, "scheduleName", "a", []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("one character", rawObject, "scheduleName", "a",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorLengthNotGreaterThan(1, 1), "/scheduleName")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,

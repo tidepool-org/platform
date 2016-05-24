@@ -38,11 +38,11 @@ var _ = Describe("TimeChange Event", func() {
 			DescribeTable("invalid when", testing.ExpectFieldNotValid,
 				Entry("zulu time", rawObject, "change",
 					map[string]interface{}{"from": "2016-05-04T08:18:06Z", "to": "2016-05-04T07:21:31", "agent": "manual", "reasons": []string{"travel", "correction"}},
-					[]*service.Error{validator.ErrorValueNotTrue()},
+					[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorTimeNotValid("2016-05-04T08:18:06Z", "2006-01-02T15:04:05"), "/change/from")},
 				),
 				Entry("empty time", rawObject, "change",
 					map[string]interface{}{"from": "", "to": "2016-05-04T07:21:31", "agent": "manual", "reasons": []string{"travel", "correction"}},
-					[]*service.Error{validator.ErrorValueNotTrue()},
+					[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorTimeNotValid("", "2006-01-02T15:04:05"), "/change/from")},
 				),
 			)
 
@@ -58,11 +58,11 @@ var _ = Describe("TimeChange Event", func() {
 			DescribeTable("invalid when", testing.ExpectFieldNotValid,
 				Entry("zulu time", rawObject, "change",
 					map[string]interface{}{"from": "2016-05-04T08:18:06", "to": "2016-05-04T07:21:31Z", "agent": "manual", "reasons": []string{"travel", "correction"}},
-					[]*service.Error{validator.ErrorValueNotTrue()},
+					[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorTimeNotValid("2016-05-04T07:21:31Z", "2006-01-02T15:04:05"), "/change/to")},
 				),
 				Entry("empty time", rawObject, "change",
 					map[string]interface{}{"from": "2016-05-04T08:18:06", "to": "", "agent": "manual", "reasons": []string{"travel", "correction"}},
-					[]*service.Error{validator.ErrorValueNotTrue()},
+					[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorTimeNotValid("", "2006-01-02T15:04:05"), "/change/to")},
 				),
 			)
 
@@ -80,11 +80,11 @@ var _ = Describe("TimeChange Event", func() {
 			DescribeTable("invalid when", testing.ExpectFieldNotValid,
 				Entry("empty", rawObject, "change",
 					map[string]interface{}{"from": "2016-05-04T08:18:06", "to": "2016-05-04T07:21:31", "agent": "", "reasons": []string{"travel", "correction"}},
-					[]*service.Error{validator.ErrorValueNotTrue()},
+					[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("", []string{"manual", "automatic"}), "/change/agent")},
 				),
 				Entry("not predefined type", rawObject, "change",
 					map[string]interface{}{"from": "2016-05-04T08:18:06", "to": "2016-05-04T07:21:31", "agent": "wrong", "reasons": []string{"travel", "correction"}},
-					[]*service.Error{validator.ErrorValueNotTrue()},
+					[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("wrong", []string{"manual", "automatic"}), "/change/agent")},
 				),
 			)
 
@@ -110,11 +110,11 @@ var _ = Describe("TimeChange Event", func() {
 			DescribeTable("invalid when", testing.ExpectFieldNotValid,
 				Entry("empty", rawObject, "change",
 					map[string]interface{}{"from": "2016-05-04T08:18:06", "to": "2016-05-04T07:21:31", "agent": "manual", "reasons": []string{""}},
-					[]*service.Error{validator.ErrorValueNotTrue()},
+					[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("", []string{"from_daylight_savings", "to_daylight_savings", "travel", "correction", "other"}), "/change/reasons/0")},
 				),
 				Entry("not predefined type", rawObject, "change",
 					map[string]interface{}{"from": "2016-05-04T08:18:06", "to": "2016-05-04T07:21:31", "agent": "manual", "reasons": []string{"wrong"}},
-					[]*service.Error{validator.ErrorValueNotTrue()},
+					[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("wrong", []string{"from_daylight_savings", "to_daylight_savings", "travel", "correction", "other"}), "/change/reasons/0")},
 				),
 			)
 

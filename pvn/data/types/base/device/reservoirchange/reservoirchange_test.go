@@ -24,7 +24,9 @@ var _ = Describe("ReservoirChange Event", func() {
 	Context("status", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("empty", rawObject, "status", "", []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("empty", rawObject, "status", "",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorLengthNotGreaterThan(0, 1), "/status")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,

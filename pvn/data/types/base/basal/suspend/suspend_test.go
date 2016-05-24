@@ -24,8 +24,12 @@ var _ = Describe("Suspend Basal", func() {
 	Context("duration", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("negative", rawObject, "duration", -1, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("greater than 86400000", rawObject, "duration", 86400001, []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("negative", rawObject, "duration", -1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(-1, 0, 86400000), "/duration")},
+			),
+			Entry("greater than 86400000", rawObject, "duration", 86400001,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(86400001, 0, 86400000), "/duration")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,

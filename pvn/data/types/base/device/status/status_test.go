@@ -26,7 +26,9 @@ var _ = Describe("Status Event", func() {
 	Context("duration", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("less than 0", rawObject, "duration", -1, []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("less than 0", rawObject, "duration", -1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/duration")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -39,8 +41,12 @@ var _ = Describe("Status Event", func() {
 	Context("status", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("empty", rawObject, "status", "", []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("not one of the predefined types", rawObject, "status", "bad", []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("empty", rawObject, "status", "",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("", []string{"suspended"}), "/status")},
+			),
+			Entry("not one of the predefined types", rawObject, "status", "bad",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("bad", []string{"suspended"}), "/status")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,

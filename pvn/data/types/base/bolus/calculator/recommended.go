@@ -19,9 +19,9 @@ func (r *Recommended) Parse(parser data.ObjectParser) {
 }
 
 func (r *Recommended) Validate(validator data.Validator) {
-	validator.ValidateFloat("carb", r.Carbohydrate).GreaterThanOrEqualTo(0.0).LessThanOrEqualTo(100.0)
-	validator.ValidateFloat("correction", r.Correction).GreaterThanOrEqualTo(-100.0).LessThanOrEqualTo(100.0)
-	validator.ValidateFloat("net", r.Net).GreaterThanOrEqualTo(-100.0).LessThanOrEqualTo(100.0)
+	validator.ValidateFloat("carb", r.Carbohydrate).InRange(0.0, 100.0)
+	validator.ValidateFloat("correction", r.Correction).InRange(-100.0, 100.0)
+	validator.ValidateFloat("net", r.Net).InRange(-100.0, 100.0)
 }
 
 func (r *Recommended) Normalize(normalizer data.Normalizer) {

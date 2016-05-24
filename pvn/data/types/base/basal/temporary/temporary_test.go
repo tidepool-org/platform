@@ -26,8 +26,12 @@ var _ = Describe("Temporary Basal", func() {
 	Context("duration", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("negative", rawObject, "duration", -1, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("greater than 86400000", rawObject, "duration", 86400001, []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("negative", rawObject, "duration", -1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(-1, 0, 86400000), "/duration")},
+			),
+			Entry("greater than 86400000", rawObject, "duration", 86400001,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(86400001, 0, 86400000), "/duration")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -39,8 +43,12 @@ var _ = Describe("Temporary Basal", func() {
 	Context("rate", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("negative", rawObject, "rate", -0.1, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("greater than 20", rawObject, "rate", 20.1, []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("negative", rawObject, "rate", -0.1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, 0.0, 20.0), "/rate")},
+			),
+			Entry("greater than 20", rawObject, "rate", 20.1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(20.1, 0.0, 20.0), "/rate")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -53,8 +61,12 @@ var _ = Describe("Temporary Basal", func() {
 	Context("percent", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("negative", rawObject, "percent", -0.1, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("greater than 10", rawObject, "percent", 10.1, []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("negative", rawObject, "percent", -0.1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, 0.0, 10.0), "/percent")},
+			),
+			Entry("greater than 10", rawObject, "percent", 10.1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(10.1, 0.0, 10.0), "/percent")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,

@@ -67,6 +67,7 @@ func (s *Settings) Validate(validator data.Validator) {
 		insulinSensitivitiesValidator := validator.NewChildValidator("insulinSensitivity")
 		for index, insulinSensitivity := range *s.InsulinSensitivities {
 			if insulinSensitivity != nil {
+				insulinSensitivity.amountUnits = s.Units.BloodGlucose
 				insulinSensitivity.Validate(insulinSensitivitiesValidator.NewChildValidator(index))
 			}
 		}

@@ -25,8 +25,12 @@ var _ = Describe("Continuous BloodGlucose", func() {
 	Context("units", func() {
 
 		DescribeTable("units when", testing.ExpectFieldNotValid,
-			Entry("empty", rawObject, "units", "", []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("not one of the predefined values", rawObject, "units", "wrong", []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("empty", rawObject, "units", "",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("", []string{common.Mmoll, common.MmolL, common.Mgdl, common.MgdL}), "/units")},
+			),
+			Entry("not one of the predefined values", rawObject, "units", "wrong",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("wrong", []string{common.Mmoll, common.MmolL, common.Mgdl, common.MgdL}), "/units")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -41,8 +45,12 @@ var _ = Describe("Continuous BloodGlucose", func() {
 	Context("value", func() {
 
 		DescribeTable("value when", testing.ExpectFieldNotValid,
-			Entry("less than 0", rawObject, "value", -0.1, []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("greater than 1000", rawObject, "value", 1000.1, []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("less than 0", rawObject, "value", -0.1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, common.MgdLFromValue, common.MgdLToValue), "/value")},
+			),
+			Entry("greater than 1000", rawObject, "value", 1000.1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(1000.1, common.MgdLFromValue, common.MgdLToValue), "/value")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,

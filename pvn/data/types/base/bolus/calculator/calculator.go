@@ -100,6 +100,7 @@ func (c *Calculator) Normalize(normalizer data.Normalizer) {
 
 	if c.Bolus != nil {
 		c.Bolus.Normalize(normalizer.NewChildNormalizer("bolus"))
+		normalizer.AppendDatum(c.Bolus)
 		switch c.Bolus.(type) {
 		case *extended.Extended:
 			c.BolusID = &c.Bolus.(*extended.Extended).ID

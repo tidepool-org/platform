@@ -46,8 +46,12 @@ var _ = Describe("Base", func() {
 	Context("userId", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("empty", rawObject, "userId", "", []*service.Error{validator.ErrorValueNotTrue()}),
-			Entry("less than 10 characters", rawObject, "userId", "123456789", []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("empty", rawObject, "userId", "",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorLengthNotGreaterThanOrEqualTo(0, 10), "/userId")},
+			),
+			Entry("less than 10 characters", rawObject, "userId", "123456789",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorLengthNotGreaterThanOrEqualTo(9, 10), "/userId")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -60,7 +64,9 @@ var _ = Describe("Base", func() {
 	Context("uploadId", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("empty", rawObject, "uploadId", "", []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("empty", rawObject, "uploadId", "",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorLengthNotGreaterThanOrEqualTo(0, 1), "/uploadId")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -73,7 +79,9 @@ var _ = Describe("Base", func() {
 	Context("deviceId", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("empty", rawObject, "deviceId", "", []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("empty", rawObject, "deviceId", "",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorLengthNotGreaterThanOrEqualTo(0, 1), "/deviceId")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -96,7 +104,9 @@ var _ = Describe("Base", func() {
 	Context("conversionOffset", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("negative", rawObject, "conversionOffset", -1, []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("negative", rawObject, "conversionOffset", -1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/conversionOffset")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -109,7 +119,9 @@ var _ = Describe("Base", func() {
 	Context("clockDriftOffset", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("negative", rawObject, "clockDriftOffset", -1, []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("negative", rawObject, "clockDriftOffset", -1,
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/clockDriftOffset")},
+			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
@@ -126,7 +138,9 @@ var _ = Describe("Base", func() {
 		)
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("non zulu time", rawObject, "time", "2013-05-04T03:58:44.584", []*service.Error{validator.ErrorValueNotTrue()}),
+			Entry("non zulu time", rawObject, "time", "2013-05-04T03:58:44.584",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorTimeNotValid("2013-05-04T03:58:44.584", "2006-01-02T15:04:05Z"), "/time")},
+			),
 		)
 
 	})
