@@ -13,88 +13,110 @@ package v1
 import (
 	"net/http"
 
-	"github.com/tidepool-org/platform/app"
-	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator/root"
-	"github.com/tidepool-org/platform/data/types"
-	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/dataservices/server"
+	"github.com/tidepool-org/platform/pvn/data/context"
+	"github.com/tidepool-org/platform/pvn/data/normalizer"
+	"github.com/tidepool-org/platform/pvn/data/parser"
+	"github.com/tidepool-org/platform/pvn/data/types"
+	"github.com/tidepool-org/platform/pvn/data/types/base/upload"
+	"github.com/tidepool-org/platform/pvn/data/validator"
 	"github.com/tidepool-org/platform/userservices/client"
 )
 
-func UsersDatasetsCreate(context server.Context) {
-	targetUserID := context.Request().PathParam("userid")
+func UsersDatasetsCreate(serverContext server.Context) {
+	targetUserID := serverContext.Request().PathParam("userid")
 	if targetUserID == "" {
-		context.RespondWithError(ErrorUserIDMissing())
+		serverContext.RespondWithError(ErrorUserIDMissing())
 		return
 	}
 
-	err := context.Client().ValidateTargetUserPermissions(context, context.RequestUserID(), targetUserID, client.UploadPermissions)
+	err := serverContext.Client().ValidateTargetUserPermissions(serverContext, serverContext.RequestUserID(), targetUserID, client.UploadPermissions)
 	if err != nil {
 		if client.IsUnauthorizedError(err) {
-			context.RespondWithError(ErrorUnauthorized())
+			serverContext.RespondWithError(ErrorUnauthorized())
 		} else {
-			context.RespondWithInternalServerFailure("Unable to validate target user permissions", err)
+			serverContext.RespondWithInternalServerFailure("Unable to validate target user permissions", err)
 		}
 		return
 	}
 
-	targetUserGroupID, err := context.Client().GetUserGroupID(context, targetUserID)
+	targetUserGroupID, err := serverContext.Client().GetUserGroupID(serverContext, targetUserID)
 	if err != nil {
 		if client.IsUnauthorizedError(err) {
-			context.RespondWithError(ErrorUnauthorized())
+			serverContext.RespondWithError(ErrorUnauthorized())
 		} else {
-			context.RespondWithInternalServerFailure("Unable to get group id for target user", err)
+			serverContext.RespondWithInternalServerFailure("Unable to get group id for target user", err)
 		}
 		return
 	}
 
-	var rawDatasetDatum types.Datum
-	if err = context.Request().DecodeJsonPayload(&rawDatasetDatum); err != nil {
-		context.RespondWithError(ErrorJSONMalformed())
+	var rawDatum map[string]interface{}
+	if err = serverContext.Request().DecodeJsonPayload(&rawDatum); err != nil {
+		serverContext.RespondWithError(ErrorJSONMalformed())
 		return
 	}
 
-	// TODO: Not sure about how best to represent these constants?
-	// TODO: Move uploadId and dataState into type builder (verify not there originally)
-	commonDatum := types.Datum{types.BaseUserIDField.Name: targetUserID, types.BaseGroupIDField.Name: targetUserGroupID}
-	datasetBuiltDatum, errors := data.NewTypeBuilder(commonDatum).BuildFromDatum(rawDatasetDatum)
-	if errors != nil {
-		context.RespondWithStatusAndErrors(http.StatusBadRequest, errors)
+	datumContext := context.NewStandard()
+
+	datumParser, err := parser.NewStandardObject(datumContext, &rawDatum)
+	if err != nil {
+		serverContext.RespondWithInternalServerFailure("Unable to create datum parser", err)
 		return
 	}
 
-	datasetUpload, ok := datasetBuiltDatum.(*upload.Upload)
+	datumValidator, err := validator.NewStandard(datumContext)
+	if err != nil {
+		serverContext.RespondWithInternalServerFailure("Unable to create datum validator", err)
+		return
+	}
+
+	datumNormalizer, err := normalizer.NewStandard(datumContext)
+	if err != nil {
+		serverContext.RespondWithInternalServerFailure("Unable to create datum normalizer", err)
+		return
+	}
+
+	datasetDatum, err := types.Parse(datumContext, datumParser)
+	if err != nil {
+		serverContext.RespondWithInternalServerFailure("Unable to parse datum parser", err)
+		return
+	}
+
+	datasetDatum.Validate(datumValidator)
+
+	if errors := datumContext.Errors(); len(errors) > 0 {
+		serverContext.RespondWithStatusAndErrors(http.StatusBadRequest, errors)
+		return
+	}
+
+	datasetDatum.SetUserID(targetUserID)
+	datasetDatum.SetGroupID(targetUserGroupID)
+	datasetDatum.Normalize(datumNormalizer)
+
+	datasetUpload, ok := datasetDatum.(*upload.Upload)
 	if !ok {
-		context.RespondWithInternalServerFailure("Unexpected datum type", datasetBuiltDatum)
+		serverContext.RespondWithInternalServerFailure("Unexpected datum type", datasetDatum)
 		return
 	}
 
-	// TODO: Move this to a better location
-	uploadID := app.NewUUID()
-	dataState := "open"
-
-	datasetUpload.UploadID = &uploadID
-	datasetUpload.DataState = &dataState
-
-	if err = context.Store().Insert(datasetUpload); err != nil {
-		context.RespondWithInternalServerFailure("Unable to insert dataset", err)
+	if err = serverContext.Store().Insert(datasetUpload); err != nil {
+		serverContext.RespondWithInternalServerFailure("Unable to insert dataset", err)
 		return
 	}
 
-	// TODO: Pass in logger here
-	deduplicator, err := root.NewFactory().NewDeduplicator(context.Logger(), context.Store(), datasetUpload)
+	deduplicator, err := root.NewFactory().NewDeduplicator(serverContext.Logger(), serverContext.Store(), datasetUpload)
 	if err != nil {
-		context.RespondWithInternalServerFailure("No duplicator found matching dataset", err)
+		serverContext.RespondWithInternalServerFailure("No duplicator found matching dataset", err)
 		return
 	}
 
 	if err = deduplicator.InitializeDataset(); err != nil {
-		context.RespondWithInternalServerFailure("Unable to initialize dataset", err)
+		serverContext.RespondWithInternalServerFailure("Unable to initialize dataset", err)
 		return
 	}
 
 	// TODO: Filter datasetUpload to only "public" fields
-	context.Response().WriteHeader(http.StatusCreated)
-	context.Response().WriteJson(datasetUpload)
+	serverContext.Response().WriteHeader(http.StatusCreated)
+	serverContext.Response().WriteJson(datasetUpload)
 }

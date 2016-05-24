@@ -72,10 +72,10 @@ var _ = Describe("Pump Settings", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("bg empty", rawObject, "units", map[string]interface{}{"carb": "grams", "bg": ""},
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("", []string{common.Mmoll, common.MmolL, common.Mgdl, common.MgdL}), "/units/bg")},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("", []string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL}), "/units/bg")},
 			),
 			Entry("bg not predefined type", rawObject, "units", map[string]interface{}{"carb": "grams", "bg": "na"},
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("na", []string{common.Mmoll, common.MmolL, common.Mgdl, common.MgdL}), "/units/bg")},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("na", []string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL}), "/units/bg")},
 			),
 			Entry("carb empty", rawObject, "units", map[string]interface{}{"carb": "", "bg": "mmol/L"},
 				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorLengthNotGreaterThanOrEqualTo(0, 1), "/units/carb")},
@@ -131,11 +131,11 @@ var _ = Describe("Pump Settings", func() {
 			),
 			Entry("amount negative", rawObject, "insulinSensitivity",
 				[]interface{}{map[string]interface{}{"amount": -0.1, "start": 21600000}},
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, common.MgdLFromValue, common.MgdLToValue), "/insulinSensitivity/0/amount")},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/insulinSensitivity/0/amount")},
 			),
 			Entry("amount greater than 1000.0", rawObject, "insulinSensitivity",
 				[]interface{}{map[string]interface{}{"amount": 1000.1, "start": 21600000}},
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(1000.1, common.MgdLFromValue, common.MgdLToValue), "/insulinSensitivity/0/amount")},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(1000.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/insulinSensitivity/0/amount")},
 			),
 		)
 
@@ -162,11 +162,11 @@ var _ = Describe("Pump Settings", func() {
 				),
 				Entry("target negative", rawObject, "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": -0.1, "range": 15}},
-					[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, common.MgdLFromValue, common.MgdLToValue), "/bgTarget/0/target")},
+					[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/bgTarget/0/target")},
 				),
 				Entry("target greater than 1000.0", rawObject, "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": 1000.1, "range": 15}},
-					[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(1000.1, common.MgdLFromValue, common.MgdLToValue), "/bgTarget/0/target")},
+					[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(1000.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/bgTarget/0/target")},
 				),
 				Entry("range negative", rawObject, "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": 99.0, "range": -1}},
@@ -198,12 +198,12 @@ var _ = Describe("Pump Settings", func() {
 				),
 				Entry("target negative", rawObject, "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": -0.1, "high": 180.0}},
-					[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, common.MgdLFromValue, common.MgdLToValue), "/bgTarget/0/target")},
+					[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/bgTarget/0/target")},
 				),
 				Entry("target greater than 1000.0", rawObject, "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": 1000.1, "high": 180.0}},
 					[]*service.Error{
-						testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(1000.1, common.MgdLFromValue, common.MgdLToValue), "/bgTarget/0/target"),
+						testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(1000.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/bgTarget/0/target"),
 						testing.SetExpectedErrorSource(validator.ErrorValueNotGreaterThan(180, 1000.1), "/bgTarget/0/high"),
 					},
 				),
@@ -213,7 +213,7 @@ var _ = Describe("Pump Settings", func() {
 				),
 				Entry("high greater than 1000.0", rawObject, "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": 90.0, "high": 1000.1}},
-					[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorValueNotLessThanOrEqualTo(1000.1, common.MgdLToValue), "/bgTarget/0/high")},
+					[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorValueNotLessThanOrEqualTo(1000.1, bloodglucose.MgdLToValue), "/bgTarget/0/high")},
 				),
 			)
 
@@ -229,8 +229,9 @@ var _ = Describe("Pump Settings", func() {
 	Context("normalized", func() {
 
 		DescribeTable("normalization when mmol/L", func(lowVal, lowExpected, highVal, highExpected, targetVal, targetExpected float64) {
-			pumpSettings := pump.New()
-			pumpSettings.Units = &pump.Units{BloodGlucose: &common.MmolL}
+			pumpSettings, err := pump.New()
+			Expect(err).To(BeNil())
+			pumpSettings.Units = &pump.Units{BloodGlucose: &bloodglucose.MmolL}
 
 			pumpSettings.BloodGlucoseTargets = &[]*pump.BloodGlucoseTarget{
 				{High: &highVal, Low: &lowVal, Target: &targetVal},
@@ -241,7 +242,7 @@ var _ = Describe("Pump Settings", func() {
 			standardNormalizer, err := normalizer.NewStandard(testContext)
 			Expect(err).To(BeNil())
 			pumpSettings.Normalize(standardNormalizer)
-			Expect(pumpSettings.Units.BloodGlucose).To(Equal(&common.MmolL))
+			Expect(pumpSettings.Units.BloodGlucose).To(Equal(&bloodglucose.MmolL))
 
 			for _, bgTarget := range *pumpSettings.BloodGlucoseTargets {
 				Expect(bgTarget.High).To(Equal(&highExpected))
@@ -255,8 +256,9 @@ var _ = Describe("Pump Settings", func() {
 		)
 
 		DescribeTable("normalization when mg/dL", func(lowVal, lowExpected, highVal, highExpected, targetVal, targetExpected float64) {
-			pumpSettings := pump.New()
-			pumpSettings.Units = &pump.Units{BloodGlucose: &common.MgdL}
+			pumpSettings, err := pump.New()
+			Expect(err).To(BeNil())
+			pumpSettings.Units = &pump.Units{BloodGlucose: &bloodglucose.MgdL}
 
 			pumpSettings.BloodGlucoseTargets = &[]*pump.BloodGlucoseTarget{
 				{High: &highVal, Low: &lowVal, Target: &targetVal},
@@ -267,7 +269,7 @@ var _ = Describe("Pump Settings", func() {
 			standardNormalizer, err := normalizer.NewStandard(testContext)
 			Expect(err).To(BeNil())
 			pumpSettings.Normalize(standardNormalizer)
-			Expect(pumpSettings.Units.BloodGlucose).To(Equal(&common.MmolL))
+			Expect(pumpSettings.Units.BloodGlucose).To(Equal(&bloodglucose.MmolL))
 
 			for _, bgTarget := range *pumpSettings.BloodGlucoseTargets {
 				Expect(bgTarget.High).To(Equal(&highExpected))

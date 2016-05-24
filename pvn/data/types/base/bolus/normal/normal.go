@@ -17,37 +17,33 @@ import (
 
 type Normal struct {
 	bolus.Bolus `bson:",inline"`
-	Normal      *float64 `json:"normal" bson:"normal"`
-}
 
-func Type() string {
-	return bolus.Type()
+	Normal *float64 `json:"normal,omitempty" bson:"normal,omitempty"`
 }
 
 func SubType() string {
 	return "normal"
 }
 
-func New() *Normal {
-	normalType := Type()
-	normalSubType := SubType()
+func New() (*Normal, error) {
+	normalBolus, err := bolus.New(SubType())
+	if err != nil {
+		return nil, err
+	}
 
-	normal := &Normal{}
-	normal.Type = &normalType
-	normal.SubType = &normalSubType
-	return normal
+	return &Normal{
+		Bolus: *normalBolus,
+	}, nil
 }
 
 func (n *Normal) Parse(parser data.ObjectParser) {
 	n.Bolus.Parse(parser)
+
 	n.Normal = parser.ParseFloat("normal")
 }
 
 func (n *Normal) Validate(validator data.Validator) {
 	n.Bolus.Validate(validator)
-	validator.ValidateFloat("normal", n.Normal).Exists().GreaterThan(0.0).LessThanOrEqualTo(100.0)
-}
 
-func (n *Normal) Normalize(normalizer data.Normalizer) {
-	n.Bolus.Normalize(normalizer)
+	validator.ValidateFloat("normal", n.Normal).Exists().GreaterThan(0.0).LessThanOrEqualTo(100.0)
 }

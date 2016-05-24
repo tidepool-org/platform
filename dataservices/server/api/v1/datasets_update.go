@@ -14,8 +14,8 @@ import (
 	"net/http"
 
 	"github.com/tidepool-org/platform/data/deduplicator/root"
-	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/dataservices/server"
+	"github.com/tidepool-org/platform/pvn/data/types/base/upload"
 	"github.com/tidepool-org/platform/store"
 	"github.com/tidepool-org/platform/userservices/client"
 )
@@ -35,7 +35,7 @@ func DatasetsUpdate(context server.Context) {
 	}
 
 	// TODO: Validate
-	targetUserID := *datasetUpload.UserID
+	targetUserID := datasetUpload.UserID
 
 	err := context.Client().ValidateTargetUserPermissions(context, context.RequestUserID(), targetUserID, client.UploadPermissions)
 	if err != nil {
@@ -47,13 +47,12 @@ func DatasetsUpdate(context server.Context) {
 		return
 	}
 
-	if datasetUpload.DataState == nil || *datasetUpload.DataState != "open" {
+	if datasetUpload.DataState != "open" {
 		context.RespondWithError(ErrorDatasetClosed(datasetID))
 		return
 	}
 
-	dataState := "closed"
-	datasetUpload.DataState = &dataState
+	datasetUpload.SetDataState("closed")
 
 	if err = context.Store().Update(map[string]interface{}{"type": "upload", "uploadId": datasetID}, datasetUpload); err != nil {
 		context.RespondWithInternalServerFailure("Unable to insert dataset", err)

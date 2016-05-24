@@ -35,25 +35,27 @@ func NewStandardBloodGlucose(context data.Context, reference interface{}, units 
 }
 
 func (s *StandardBloodGlucose) NormalizeUnits() *string {
-	return &common.MmolL
+	return &bloodglucose.MmolL
 }
 
 func (s *StandardBloodGlucose) NormalizeValue(value *float64) *float64 {
 
+	// TODO: This should be a system error (not a parsing error)
 	if value == nil {
 		s.context.AppendError(s.reference, types.ErrorValueMissing())
 		return nil
 	}
 
 	switch s.units {
-	case &common.Mmoll, &common.MmolL:
+	case &bloodglucose.Mmoll, &bloodglucose.MmolL:
 		return value
 	default:
-		converted := *value / common.MgdlToMmolConversion
+		converted := *value / bloodglucose.MgdlToMmolConversion
 		return &converted
 	}
 }
 
 func (s *StandardBloodGlucose) NormalizeUnitsAndValue(value *float64) (*string, *float64) {
+	// TODO: This could yield strange results if the value is null, (units will be normalized, but not value)
 	return s.NormalizeUnits(), s.NormalizeValue(value)
 }

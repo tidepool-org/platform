@@ -26,10 +26,10 @@ var _ = Describe("Continuous BloodGlucose", func() {
 
 		DescribeTable("units when", testing.ExpectFieldNotValid,
 			Entry("empty", rawObject, "units", "",
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("", []string{common.Mmoll, common.MmolL, common.Mgdl, common.MgdL}), "/units")},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("", []string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL}), "/units")},
 			),
 			Entry("not one of the predefined values", rawObject, "units", "wrong",
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("wrong", []string{common.Mmoll, common.MmolL, common.Mgdl, common.MgdL}), "/units")},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("wrong", []string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL}), "/units")},
 			),
 		)
 
@@ -46,10 +46,10 @@ var _ = Describe("Continuous BloodGlucose", func() {
 
 		DescribeTable("value when", testing.ExpectFieldNotValid,
 			Entry("less than 0", rawObject, "value", -0.1,
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, common.MgdLFromValue, common.MgdLToValue), "/value")},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/value")},
 			),
 			Entry("greater than 1000", rawObject, "value", 1000.1,
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(1000.1, common.MgdLFromValue, common.MgdLToValue), "/value")},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(1000.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/value")},
 			),
 		)
 
@@ -64,15 +64,16 @@ var _ = Describe("Continuous BloodGlucose", func() {
 	Context("normalized when mmol/L", func() {
 
 		DescribeTable("normalization", func(val, expected float64) {
-			continuousBg := continuous.New()
+			continuousBg, err := continuous.New()
+			Expect(err).To(BeNil())
 			continuousBg.Value = &val
-			continuousBg.Units = &common.Mmoll
+			continuousBg.Units = &bloodglucose.Mmoll
 
 			testContext := context.NewStandard()
 			standardNormalizer, err := normalizer.NewStandard(testContext)
 			Expect(err).To(BeNil())
 			continuousBg.Normalize(standardNormalizer)
-			Expect(continuousBg.Units).To(Equal(&common.MmolL))
+			Expect(continuousBg.Units).To(Equal(&bloodglucose.MmolL))
 			Expect(continuousBg.Value).To(Equal(&expected))
 		},
 			Entry("expected lower bg value", 3.7, 3.7),
@@ -84,15 +85,16 @@ var _ = Describe("Continuous BloodGlucose", func() {
 	Context("normalized when mg/dL", func() {
 
 		DescribeTable("normalization", func(val, expected float64) {
-			continuousBg := continuous.New()
+			continuousBg, err := continuous.New()
+			Expect(err).To(BeNil())
 			continuousBg.Value = &val
-			continuousBg.Units = &common.Mgdl
+			continuousBg.Units = &bloodglucose.Mgdl
 
 			testContext := context.NewStandard()
 			standardNormalizer, err := normalizer.NewStandard(testContext)
 			Expect(err).To(BeNil())
 			continuousBg.Normalize(standardNormalizer)
-			Expect(continuousBg.Units).To(Equal(&common.MmolL))
+			Expect(continuousBg.Units).To(Equal(&bloodglucose.MmolL))
 			Expect(continuousBg.Value).To(Equal(&expected))
 		},
 			Entry("expected lower bg value", 60.0, 3.33044879462732),

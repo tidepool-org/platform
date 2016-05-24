@@ -17,36 +17,36 @@ import (
 
 type Alarm struct {
 	device.Device `bson:",inline"`
-	AlarmType     *string `json:"alarmType" bson:"alarmType"`
-	Status        *string `json:"status,omitempty" bson:"status,omitempty"`
-}
 
-func Type() string {
-	return device.Type()
+	AlarmType *string `json:"alarmType,omitempty" bson:"alarmType,omitempty"`
+	Status    *string `json:"status,omitempty" bson:"status,omitempty"`
 }
 
 func SubType() string {
 	return "alarm"
 }
 
-func New() *Alarm {
-	alarmType := Type()
-	alarmSubType := SubType()
+func New() (*Alarm, error) {
+	alarmDevice, err := device.New(SubType())
+	if err != nil {
+		return nil, err
+	}
 
-	alarm := &Alarm{}
-	alarm.Type = &alarmType
-	alarm.SubType = &alarmSubType
-	return alarm
+	return &Alarm{
+		Device: *alarmDevice,
+	}, nil
 }
 
 func (a *Alarm) Parse(parser data.ObjectParser) {
 	a.Device.Parse(parser)
+
 	a.AlarmType = parser.ParseString("alarmType")
 	a.Status = parser.ParseString("status")
 }
 
 func (a *Alarm) Validate(validator data.Validator) {
 	a.Device.Validate(validator)
+
 	validator.ValidateString("alarmType", a.AlarmType).Exists().OneOf(
 		[]string{
 			"low_insulin",
@@ -62,8 +62,4 @@ func (a *Alarm) Validate(validator data.Validator) {
 	)
 
 	validator.ValidateString("status", a.Status).LengthGreaterThan(1)
-}
-
-func (a *Alarm) Normalize(normalizer data.Normalizer) {
-	a.Device.Normalize(normalizer)
 }

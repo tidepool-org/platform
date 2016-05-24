@@ -3,8 +3,8 @@ package pump
 import "github.com/tidepool-org/platform/pvn/data"
 
 type CarbohydrateRatio struct {
-	Amount *int `json:"amount" bson:"amount"`
-	Start  *int `json:"start" bson:"start"`
+	Amount *int `json:"amount,omitempty" bson:"amount,omitempty"`
+	Start  *int `json:"start,omitempty" bson:"start,omitempty"`
 }
 
 func NewCarbohydrateRatio() *CarbohydrateRatio {

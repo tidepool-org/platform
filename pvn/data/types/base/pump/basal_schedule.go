@@ -3,8 +3,8 @@ package pump
 import "github.com/tidepool-org/platform/pvn/data"
 
 type BasalSchedule struct {
-	Rate  *float64 `json:"rate" bson:"rate"`
-	Start *int     `json:"start" bson:"start"`
+	Rate  *float64 `json:"rate,omitempty" bson:"rate,omitempty"`
+	Start *int     `json:"start,omitempty" bson:"start,omitempty"`
 }
 
 func NewBasalSchedule() *BasalSchedule {

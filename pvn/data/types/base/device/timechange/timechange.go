@@ -18,29 +18,27 @@ import (
 type TimeChange struct {
 	device.Device `bson:",inline"`
 
-	*Change `json:"change" bson:"change"`
-}
-
-func Type() string {
-	return device.Type()
+	*Change `json:"change,omitempty" bson:"change,omitempty"`
 }
 
 func SubType() string {
 	return "timeChange"
 }
 
-func New() *TimeChange {
-	timechangeType := Type()
-	timechangeSubType := SubType()
+func New() (*TimeChange, error) {
+	timeChangeDevice, err := device.New(SubType())
+	if err != nil {
+		return nil, err
+	}
 
-	timechange := &TimeChange{}
-	timechange.Type = &timechangeType
-	timechange.SubType = &timechangeSubType
-	return timechange
+	return &TimeChange{
+		Device: *timeChangeDevice,
+	}, nil
 }
 
 func (t *TimeChange) Parse(parser data.ObjectParser) {
 	t.Device.Parse(parser)
+
 	t.Change = ParseChange(parser.NewChildObjectParser("change"))
 }
 
@@ -50,8 +48,4 @@ func (t *TimeChange) Validate(validator data.Validator) {
 	if t.Change != nil {
 		t.Change.Validate(validator.NewChildValidator("change"))
 	}
-}
-
-func (t *TimeChange) Normalize(normalizer data.Normalizer) {
-	t.Device.Normalize(normalizer)
 }

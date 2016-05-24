@@ -9,43 +9,47 @@ import (
 type BloodGlucose struct {
 	base.Base `bson:",inline"`
 
-	Value *float64 `json:"value" bson:"value"`
-	Units *string  `json:"units" bson:"units"`
+	Units *string  `json:"units,omitempty" bson:"units,omitempty"`
+	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
 }
 
 func Type() string {
 	return "cbg"
 }
 
-func New() *BloodGlucose {
-	bloodGlucoseType := Type()
+func New() (*BloodGlucose, error) {
+	continuousBase, err := base.New(Type())
+	if err != nil {
+		return nil, err
+	}
 
-	continuous := &BloodGlucose{}
-	continuous.Type = &bloodGlucoseType
-	return continuous
+	return &BloodGlucose{
+		Base: *continuousBase,
+	}, nil
 }
 
 func (b *BloodGlucose) Parse(parser data.ObjectParser) {
 	b.Base.Parse(parser)
 
-	b.Value = parser.ParseFloat("value")
 	b.Units = parser.ParseString("units")
+	b.Value = parser.ParseFloat("value")
 }
 
 func (b *BloodGlucose) Validate(validator data.Validator) {
 	b.Base.Validate(validator)
 
-	validator.ValidateString("units", b.Units).Exists().OneOf([]string{common.Mmoll, common.MmolL, common.Mgdl, common.MgdL})
+	// TODO: Move array into bloodglucose package
+	validator.ValidateString("units", b.Units).Exists().OneOf([]string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL})
 	switch b.Units {
-	case &common.Mmoll, &common.MmolL:
-		validator.ValidateFloat("value", b.Value).Exists().InRange(common.MmolLFromValue, common.MmolLToValue)
+	case &bloodglucose.Mmoll, &bloodglucose.MmolL:
+		validator.ValidateFloat("value", b.Value).Exists().InRange(bloodglucose.MmolLFromValue, bloodglucose.MmolLToValue)
 	default:
-		validator.ValidateFloat("value", b.Value).Exists().InRange(common.MgdLFromValue, common.MgdLToValue)
+		validator.ValidateFloat("value", b.Value).Exists().InRange(bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue)
 	}
-
 }
 
 func (b *BloodGlucose) Normalize(normalizer data.Normalizer) {
 	b.Base.Normalize(normalizer)
-	b.Units, b.Value = normalizer.NormalizeBloodGlucose(Type(), b.Units).NormalizeUnitsAndValue(b.Value)
+
+	b.Units, b.Value = normalizer.NormalizeBloodGlucose("value", b.Units).NormalizeUnitsAndValue(b.Value)
 }

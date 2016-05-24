@@ -18,40 +18,35 @@ import (
 type Extended struct {
 	bolus.Bolus `bson:",inline"`
 
-	Duration *int     `json:"duration" bson:"duration"`
-	Extended *float64 `json:"extended" bson:"extended"`
-}
-
-func Type() string {
-	return bolus.Type()
+	Duration *int     `json:"duration,omitempty" bson:"duration,omitempty"`
+	Extended *float64 `json:"extended,omitempty" bson:"extended,omitempty"`
 }
 
 func SubType() string {
 	return "square"
 }
 
-func New() *Extended {
-	extendedType := Type()
-	extendedSubType := SubType()
+func New() (*Extended, error) {
+	extendedBolus, err := bolus.New(SubType())
+	if err != nil {
+		return nil, err
+	}
 
-	extended := &Extended{}
-	extended.Type = &extendedType
-	extended.SubType = &extendedSubType
-	return extended
+	return &Extended{
+		Bolus: *extendedBolus,
+	}, nil
 }
 
 func (e *Extended) Parse(parser data.ObjectParser) {
 	e.Bolus.Parse(parser)
+
 	e.Duration = parser.ParseInteger("duration")
 	e.Extended = parser.ParseFloat("extended")
 }
 
 func (e *Extended) Validate(validator data.Validator) {
 	e.Bolus.Validate(validator)
+
 	validator.ValidateInteger("duration", e.Duration).Exists().InRange(0, 86400000)
 	validator.ValidateFloat("extended", e.Extended).Exists().GreaterThan(0.0).LessThanOrEqualTo(100.0)
-}
-
-func (e *Extended) Normalize(normalizer data.Normalizer) {
-	e.Bolus.Normalize(normalizer)
 }

@@ -43,3 +43,11 @@ func ErrorSubTypeInvalid(invalidSubType string) *service.Error {
 		Detail: fmt.Sprintf("Sub type %s is invalid", strconv.Quote(invalidSubType)),
 	}
 }
+
+func ErrorDeliveryTypeInvalid(invalidDeliveryType string) *service.Error {
+	return &service.Error{
+		Code:   "delivery-type-invalid",
+		Title:  "delivery type is invalid",
+		Detail: fmt.Sprintf("Delivery type %s is invalid", strconv.Quote(invalidDeliveryType)),
+	}
+}

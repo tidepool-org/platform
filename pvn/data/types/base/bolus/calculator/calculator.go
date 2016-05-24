@@ -33,23 +33,27 @@ type Calculator struct {
 	InsulinSensitivity       *float64 `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`
 	InsulinCarbohydrateRatio *int     `json:"insulinCarbRatio,omitempty" bson:"insulinCarbRatio,omitempty"`
 	BloodGlucoseInput        *float64 `json:"bgInput,omitempty" bson:"bgInput,omitempty"`
-	Units                    *string  `json:"units" bson:"units"`
+	Units                    *string  `json:"units,omitempty" bson:"units,omitempty"`
 }
 
 func Type() string {
 	return "wizard"
 }
 
-func New() *Calculator {
-	calculatorType := Type()
+func New() (*Calculator, error) {
+	calculatorBase, err := base.New(Type())
+	if err != nil {
+		return nil, err
+	}
 
-	calculator := &Calculator{}
-	calculator.Type = &calculatorType
-	return calculator
+	return &Calculator{
+		Base: *calculatorBase,
+	}, nil
 }
 
 func (c *Calculator) Parse(parser data.ObjectParser) {
 	c.Base.Parse(parser)
+
 	c.CarbohydrateInput = parser.ParseInteger("carbInput")
 	c.InsulinOnBoard = parser.ParseFloat("insulinOnBoard")
 	c.InsulinSensitivity = parser.ParseFloat("insulinSensitivity")
@@ -60,7 +64,6 @@ func (c *Calculator) Parse(parser data.ObjectParser) {
 	c.Recommended = ParseRecommended(parser.NewChildObjectParser("recommended"))
 	c.BloodGlucoseTarget = ParseBloodGlucoseTarget(parser.NewChildObjectParser("bgTarget"))
 	c.Bolus = ParseBolus(parser.NewChildObjectParser("bolus"))
-
 }
 
 func (c *Calculator) Validate(validator data.Validator) {
@@ -70,14 +73,14 @@ func (c *Calculator) Validate(validator data.Validator) {
 	validator.ValidateFloat("insulinOnBoard", c.InsulinOnBoard).InRange(0.0, 250.0)
 	validator.ValidateInteger("insulinCarbRatio", c.InsulinCarbohydrateRatio).InRange(0, 250)
 
-	validator.ValidateString("units", c.Units).Exists().OneOf([]string{common.Mmoll, common.MmolL, common.Mgdl, common.MgdL})
+	validator.ValidateString("units", c.Units).Exists().OneOf([]string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL})
 	switch c.Units {
-	case &common.Mmoll, &common.MmolL:
-		validator.ValidateFloat("bgInput", c.BloodGlucoseInput).InRange(common.MmolLFromValue, common.MmolLToValue)
-		validator.ValidateFloat("insulinSensitivity", c.InsulinSensitivity).InRange(common.MmolLFromValue, common.MmolLToValue)
+	case &bloodglucose.Mmoll, &bloodglucose.MmolL:
+		validator.ValidateFloat("bgInput", c.BloodGlucoseInput).InRange(bloodglucose.MmolLFromValue, bloodglucose.MmolLToValue)
+		validator.ValidateFloat("insulinSensitivity", c.InsulinSensitivity).InRange(bloodglucose.MmolLFromValue, bloodglucose.MmolLToValue)
 	default:
-		validator.ValidateFloat("bgInput", c.BloodGlucoseInput).InRange(common.MgdLFromValue, common.MgdLToValue)
-		validator.ValidateFloat("insulinSensitivity", c.InsulinSensitivity).InRange(common.MgdLFromValue, common.MgdLToValue)
+		validator.ValidateFloat("bgInput", c.BloodGlucoseInput).InRange(bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue)
+		validator.ValidateFloat("insulinSensitivity", c.InsulinSensitivity).InRange(bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue)
 	}
 
 	if c.Recommended != nil {
@@ -92,7 +95,6 @@ func (c *Calculator) Validate(validator data.Validator) {
 	if c.Bolus != nil {
 		c.Bolus.Validate(validator.NewChildValidator("bolus"))
 	}
-
 }
 
 func (c *Calculator) Normalize(normalizer data.Normalizer) {
@@ -119,9 +121,7 @@ func (c *Calculator) Normalize(normalizer data.Normalizer) {
 		c.BloodGlucoseTarget.Normalize(normalizer.NewChildNormalizer("bgTarget"))
 	}
 
-	bgNormalizer := normalizer.NormalizeBloodGlucose(Type(), c.Units)
-	c.Units = bgNormalizer.NormalizeUnits()
-	c.InsulinSensitivity = bgNormalizer.NormalizeValue(c.InsulinSensitivity)
-	c.BloodGlucoseInput = bgNormalizer.NormalizeValue(c.BloodGlucoseInput)
-
+	c.InsulinSensitivity = normalizer.NormalizeBloodGlucose("insulinSensitivity", c.Units).NormalizeValue(c.InsulinSensitivity)
+	c.BloodGlucoseInput = normalizer.NormalizeBloodGlucose("bgInput", c.Units).NormalizeValue(c.BloodGlucoseInput)
+	c.Units = normalizer.NormalizeBloodGlucose("units", c.Units).NormalizeUnits()
 }

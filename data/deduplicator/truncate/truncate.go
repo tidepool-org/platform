@@ -14,10 +14,10 @@ import (
 	"gopkg.in/mgo.v2/bson"
 
 	"github.com/tidepool-org/platform/app"
-	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
-	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/pvn/data"
+	"github.com/tidepool-org/platform/pvn/data/types/base/upload"
 	"github.com/tidepool-org/platform/store"
 )
 
@@ -81,17 +81,22 @@ func (f *Factory) NewDeduplicator(logger log.Logger, storeSession store.Session,
 }
 
 func (d *Deduplicator) InitializeDataset() error {
-	d.datasetUpload.Deduplicator = d.config
+	d.datasetUpload.SetDeduplicator(d.config)
 	query := map[string]interface{}{"uploadId": d.datasetUpload.UploadID, "type": d.datasetUpload.Type}
 	return d.storeSession.Update(query, d.datasetUpload)
 }
 
-func (d *Deduplicator) AddDataToDataset(datumArray data.BuiltDatumArray) error {
-	return d.storeSession.InsertAll(datumArray...)
+func (d *Deduplicator) AddDataToDataset(datumArray []data.Datum) error {
+	// TODO: FIXME: Lame Go array conversion
+	insertArray := make([]interface{}, len(datumArray))
+	for index, datum := range datumArray {
+		insertArray[index] = datum
+	}
+	return d.storeSession.InsertAll(insertArray...)
 }
 
 func (d *Deduplicator) FinalizeDataset() error {
-	datasetID := *d.datasetUpload.UploadID
+	datasetID := d.datasetUpload.UploadID
 	deviceID := *d.datasetUpload.DeviceID
 
 	// TODO: Technically, UpdateAll could succeed, but RemoveAll fail. This which result in duplicate (and possible incorrect) data.

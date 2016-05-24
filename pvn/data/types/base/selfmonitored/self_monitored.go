@@ -9,20 +9,23 @@ import (
 type BloodGlucose struct {
 	base.Base `bson:",inline"`
 
-	Value *float64 `json:"value" bson:"value"`
-	Units *string  `json:"units" bson:"units"`
+	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
+	Units *string  `json:"units,omitempty" bson:"units,omitempty"`
 }
 
 func Type() string {
 	return "smbg"
 }
 
-func New() *BloodGlucose {
-	bloodGlucoseType := Type()
+func New() (*BloodGlucose, error) {
+	bloodGlucoseBase, err := base.New(Type())
+	if err != nil {
+		return nil, err
+	}
 
-	selfMonitored := &BloodGlucose{}
-	selfMonitored.Type = &bloodGlucoseType
-	return selfMonitored
+	return &BloodGlucose{
+		Base: *bloodGlucoseBase,
+	}, nil
 }
 
 func (b *BloodGlucose) Parse(parser data.ObjectParser) {
@@ -35,17 +38,18 @@ func (b *BloodGlucose) Parse(parser data.ObjectParser) {
 func (b *BloodGlucose) Validate(validator data.Validator) {
 	b.Base.Validate(validator)
 
-	validator.ValidateString("units", b.Units).Exists().OneOf([]string{common.Mmoll, common.MmolL, common.Mgdl, common.MgdL})
+	validator.ValidateString("units", b.Units).Exists().OneOf([]string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL})
 	switch b.Units {
-	case &common.Mmoll, &common.MmolL:
-		validator.ValidateFloat("value", b.Value).Exists().InRange(common.MmolLFromValue, common.MmolLToValue)
+	case &bloodglucose.Mmoll, &bloodglucose.MmolL:
+		validator.ValidateFloat("value", b.Value).Exists().InRange(bloodglucose.MmolLFromValue, bloodglucose.MmolLToValue)
 	default:
-		validator.ValidateFloat("value", b.Value).Exists().InRange(common.MgdLFromValue, common.MgdLToValue)
+		validator.ValidateFloat("value", b.Value).Exists().InRange(bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue)
 	}
 
 }
 
 func (b *BloodGlucose) Normalize(normalizer data.Normalizer) {
 	b.Base.Normalize(normalizer)
-	b.Units, b.Value = normalizer.NormalizeBloodGlucose(Type(), b.Units).NormalizeUnitsAndValue(b.Value)
+
+	b.Units, b.Value = normalizer.NormalizeBloodGlucose("value", b.Units).NormalizeUnitsAndValue(b.Value)
 }

@@ -6,8 +6,8 @@ import (
 )
 
 type Units struct {
-	Carbohydrate *string `json:"carb" bson:"carb"`
-	BloodGlucose *string `json:"bg" bson:"bg"`
+	Carbohydrate *string `json:"carb,omitempty" bson:"carb,omitempty"`
+	BloodGlucose *string `json:"bg,omitempty" bson:"bg,omitempty"`
 }
 
 func NewUnits() *Units {
@@ -20,7 +20,7 @@ func (u *Units) Parse(parser data.ObjectParser) {
 }
 
 func (u *Units) Validate(validator data.Validator) {
-	validator.ValidateString("bg", u.BloodGlucose).Exists().OneOf([]string{common.Mmoll, common.MmolL, common.Mgdl, common.MgdL})
+	validator.ValidateString("bg", u.BloodGlucose).Exists().OneOf([]string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL})
 	validator.ValidateString("carb", u.Carbohydrate).Exists().LengthGreaterThanOrEqualTo(1)
 }
 

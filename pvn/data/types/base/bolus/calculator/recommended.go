@@ -3,9 +3,9 @@ package calculator
 import "github.com/tidepool-org/platform/pvn/data"
 
 type Recommended struct {
-	Carbohydrate *float64 `json:"carb" bson:"carb"`
-	Correction   *float64 `json:"correction" bson:"correction"`
-	Net          *float64 `json:"net" bson:"net"`
+	Carbohydrate *float64 `json:"carb,omitempty" bson:"carb,omitempty"`
+	Correction   *float64 `json:"correction,omitempty" bson:"correction,omitempty"`
+	Net          *float64 `json:"net,omitempty" bson:"net,omitempty"`
 }
 
 func NewRecommended() *Recommended {

@@ -18,31 +18,29 @@ import (
 type Status struct {
 	device.Device `bson:",inline"`
 
-	Name     *string                 `json:"status" bson:"status"`
-	Duration *int                    `json:"duration" bson:"duration"`
-	Reason   *map[string]interface{} `json:"reason" bson:"reason"`
-}
-
-func Type() string {
-	return device.Type()
+	Name     *string                 `json:"status,omitempty" bson:"status,omitempty"`
+	Duration *int                    `json:"duration,omitempty" bson:"duration,omitempty"`
+	Reason   *map[string]interface{} `json:"reason,omitempty" bson:"reason,omitempty"`
 }
 
 func SubType() string {
 	return "status"
 }
 
-func New() *Status {
-	statusType := Type()
-	statusSubType := SubType()
+func New() (*Status, error) {
+	statusDevice, err := device.New(SubType())
+	if err != nil {
+		return nil, err
+	}
 
-	status := &Status{}
-	status.Type = &statusType
-	status.SubType = &statusSubType
-	return status
+	return &Status{
+		Device: *statusDevice,
+	}, nil
 }
 
 func (s *Status) Parse(parser data.ObjectParser) {
 	s.Device.Parse(parser)
+
 	s.Duration = parser.ParseInteger("duration")
 	s.Name = parser.ParseString("status")
 	s.Reason = parser.ParseObject("reason")
@@ -51,12 +49,8 @@ func (s *Status) Parse(parser data.ObjectParser) {
 func (s *Status) Validate(validator data.Validator) {
 	s.Device.Validate(validator)
 
-	validator.ValidateInteger("duration", s.Duration).Exists().GreaterThanOrEqualTo(0)
+	validator.ValidateInteger("duration", s.Duration).GreaterThanOrEqualTo(0) // TODO_DATA: .Exists() - Suspend events on Animas do not have duration?
 	validator.ValidateString("status", s.Name).Exists().OneOf([]string{"suspended"})
 	validator.ValidateObject("reason", s.Reason).Exists()
 
-}
-
-func (s *Status) Normalize(normalizer data.Normalizer) {
-	s.Device.Normalize(normalizer)
 }

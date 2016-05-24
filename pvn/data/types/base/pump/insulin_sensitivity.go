@@ -6,8 +6,8 @@ import (
 )
 
 type InsulinSensitivity struct {
-	Amount      *float64 `json:"amount" bson:"amount"`
-	Start       *int     `json:"start" bson:"start"`
+	Amount      *float64 `json:"amount,omitempty" bson:"amount,omitempty"`
+	Start       *int     `json:"start,omitempty" bson:"start,omitempty"`
 	amountUnits *string
 }
 
@@ -23,10 +23,10 @@ func (i *InsulinSensitivity) Parse(parser data.ObjectParser) {
 func (i *InsulinSensitivity) Validate(validator data.Validator) {
 
 	switch i.amountUnits {
-	case &common.Mmoll, &common.MmolL:
-		validator.ValidateFloat("amount", i.Amount).Exists().InRange(common.MmolLFromValue, common.MmolLToValue)
+	case &bloodglucose.Mmoll, &bloodglucose.MmolL:
+		validator.ValidateFloat("amount", i.Amount).Exists().InRange(bloodglucose.MmolLFromValue, bloodglucose.MmolLToValue)
 	default:
-		validator.ValidateFloat("amount", i.Amount).Exists().InRange(common.MgdLFromValue, common.MgdLToValue)
+		validator.ValidateFloat("amount", i.Amount).Exists().InRange(bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue)
 	}
 
 	validator.ValidateInteger("start", i.Start).Exists().InRange(0, 86400000)

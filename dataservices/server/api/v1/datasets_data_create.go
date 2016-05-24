@@ -13,72 +13,113 @@ package v1
 import (
 	"net/http"
 
-	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator/root"
-	"github.com/tidepool-org/platform/data/types"
-	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/dataservices/server"
+	"github.com/tidepool-org/platform/pvn/data"
+	"github.com/tidepool-org/platform/pvn/data/context"
+	"github.com/tidepool-org/platform/pvn/data/normalizer"
+	"github.com/tidepool-org/platform/pvn/data/parser"
+	"github.com/tidepool-org/platform/pvn/data/types"
+	"github.com/tidepool-org/platform/pvn/data/types/base/upload"
+	"github.com/tidepool-org/platform/pvn/data/validator"
 	"github.com/tidepool-org/platform/store"
 	"github.com/tidepool-org/platform/userservices/client"
 )
 
-func DatasetsDataCreate(context server.Context) {
-	datasetID := context.Request().PathParam("datasetid")
+func DatasetsDataCreate(serverContext server.Context) {
+	datasetID := serverContext.Request().PathParam("datasetid")
 	if datasetID == "" {
-		context.RespondWithError(ErrorDatasetIDMissing())
+		serverContext.RespondWithError(ErrorDatasetIDMissing())
 		return
 	}
 
-	// TODO: Improve context.Store() Find - more specific
+	// TODO: Improve serverContext.Store() Find - more specific
 	var datasetUpload upload.Upload
-	if err := context.Store().Find(store.Query{"type": "upload", "uploadId": datasetID}, &datasetUpload); err != nil {
-		context.RespondWithError(ErrorDatasetIDNotFound(datasetID))
+	if err := serverContext.Store().Find(store.Query{"type": "upload", "uploadId": datasetID}, &datasetUpload); err != nil {
+		serverContext.RespondWithError(ErrorDatasetIDNotFound(datasetID))
 		return
 	}
 
 	// TODO: Validate
-	targetUserID := *datasetUpload.UserID
+	targetUserID := datasetUpload.UserID
 	targetGroupID := datasetUpload.GroupID
 
-	err := context.Client().ValidateTargetUserPermissions(context, context.RequestUserID(), targetUserID, client.UploadPermissions)
+	err := serverContext.Client().ValidateTargetUserPermissions(serverContext, serverContext.RequestUserID(), targetUserID, client.UploadPermissions)
 	if err != nil {
 		if client.IsUnauthorizedError(err) {
-			context.RespondWithError(ErrorUnauthorized())
+			serverContext.RespondWithError(ErrorUnauthorized())
 		} else {
-			context.RespondWithInternalServerFailure("Unable to validate target user permissions", err)
+			serverContext.RespondWithInternalServerFailure("Unable to validate target user permissions", err)
 		}
 		return
 	}
 
-	if datasetUpload.DataState == nil || *datasetUpload.DataState != "open" {
-		context.RespondWithError(ErrorDatasetClosed(datasetID))
+	if datasetUpload.DataState != "open" {
+		serverContext.RespondWithError(ErrorDatasetClosed(datasetID))
 		return
 	}
 
-	deduplicator, err := root.NewFactory().NewDeduplicator(context.Logger(), context.Store(), &datasetUpload)
+	deduplicator, err := root.NewFactory().NewDeduplicator(serverContext.Logger(), serverContext.Store(), &datasetUpload)
 	if err != nil {
-		context.RespondWithInternalServerFailure("No duplicator found matching dataset", err)
+		serverContext.RespondWithInternalServerFailure("No duplicator found matching dataset", err)
 		return
 	}
 
-	var rawDatumArray types.DatumArray
-	if err = context.Request().DecodeJsonPayload(&rawDatumArray); err != nil {
-		context.RespondWithError(ErrorJSONMalformed())
+	var rawDatumArray []interface{}
+	if err = serverContext.Request().DecodeJsonPayload(&rawDatumArray); err != nil {
+		serverContext.RespondWithError(ErrorJSONMalformed())
 		return
 	}
 
-	// TODO: Fix common data
-	commonData := map[string]interface{}{types.BaseUserIDField.Name: targetUserID, types.BaseGroupIDField.Name: targetGroupID, "uploadId": datasetID, "_active": false, "_schemaVersion": 1}
-	datumArray, errors := data.NewTypeBuilder(commonData).BuildFromDatumArray(rawDatumArray)
-	if errors != nil {
-		context.RespondWithStatusAndErrors(http.StatusBadRequest, errors)
+	datumArrayContext := context.NewStandard()
+
+	datumArrayParser, err := parser.NewStandardArray(datumArrayContext, &rawDatumArray)
+	if err != nil {
+		serverContext.RespondWithInternalServerFailure("Unable to create datum parser", err)
 		return
+	}
+
+	datumValidator, err := validator.NewStandard(datumArrayContext)
+	if err != nil {
+		serverContext.RespondWithInternalServerFailure("Unable to create datum validator", err)
+		return
+	}
+
+	datumNormalizer, err := normalizer.NewStandard(datumArrayContext)
+	if err != nil {
+		serverContext.RespondWithInternalServerFailure("Unable to create datum normalizer", err)
+		return
+	}
+
+	datumArray := []data.Datum{}
+	for index := range *datumArrayParser.Array() {
+		var datum data.Datum
+		datum, err = types.Parse(datumArrayContext.NewChildContext(index), datumArrayParser.NewChildObjectParser(index))
+		if err != nil {
+			serverContext.RespondWithInternalServerFailure("Unable to parse datum", err)
+			return
+		}
+
+		datum.Validate(datumValidator.NewChildValidator(index))
+		datumArray = append(datumArray, datum)
+	}
+
+	if errors := datumArrayContext.Errors(); len(errors) > 0 {
+		serverContext.RespondWithStatusAndErrors(http.StatusBadRequest, errors)
+		return
+	}
+
+	for _, datum := range datumArray {
+		datum.SetUserID(targetUserID)
+		datum.SetGroupID(targetGroupID)
+		datum.SetDatasetID(datasetID)
+		datum.Normalize(datumNormalizer)
 	}
 
 	if err = deduplicator.AddDataToDataset(datumArray); err != nil {
-		context.RespondWithInternalServerFailure("Unable to add data to dataset", err)
+		serverContext.RespondWithInternalServerFailure("Unable to add data to dataset", err)
 		return
 	}
 
-	context.Response().WriteHeader(http.StatusOK)
+	serverContext.Response().WriteHeader(http.StatusOK)
 }

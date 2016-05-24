@@ -10,29 +10,33 @@ package bolus
  * [ ] Full test coverage
  */
 
-import "github.com/tidepool-org/platform/pvn/data"
-import "github.com/tidepool-org/platform/pvn/data/types/base"
+import (
+	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/pvn/data/types/base"
+)
 
 type Bolus struct {
 	base.Base `bson:",inline"`
-	SubType   *string `json:"subType" bson:"subType"`
+
+	SubType string `json:"subType,omitempty" bson:"subType,omitempty"`
 }
 
 func Type() string {
 	return "bolus"
 }
 
-func (b *Bolus) Parse(parser data.ObjectParser) {
-	b.Base.Parse(parser)
-}
+func New(subType string) (*Bolus, error) {
+	if subType == "" {
+		return nil, app.Error("basal", "sub type is missing")
+	}
 
-func (b *Bolus) Validate(validator data.Validator) {
+	bolusBase, err := base.New(Type())
+	if err != nil {
+		return nil, err
+	}
 
-	b.Base.Validate(validator)
-	validator.ValidateString("type", b.Type).Exists().EqualTo(Type())
-	validator.ValidateString("subType", b.SubType).Exists()
-}
-
-func (b *Bolus) Normalize(normalizer data.Normalizer) {
-	b.Base.Normalize(normalizer)
+	return &Bolus{
+		Base:    *bolusBase,
+		SubType: subType,
+	}, nil
 }

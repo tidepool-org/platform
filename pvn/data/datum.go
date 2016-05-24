@@ -14,4 +14,8 @@ type Datum interface {
 	Parse(parser ObjectParser)
 	Validate(validator Validator)
 	Normalize(normalizer Normalizer)
+
+	SetUserID(userID string)
+	SetGroupID(groupID string)
+	SetDatasetID(datasetID string)
 }

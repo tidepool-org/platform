@@ -8,28 +8,30 @@ import (
 )
 
 func ParseBolus(parser data.ObjectParser) data.Datum {
-
 	subType := parser.ParseString("subType")
 	if subType == nil {
 		return nil
 	}
 
 	var datum data.Datum
+	var err error
 
 	switch *subType {
 	case normal.SubType():
-		datum = normal.New()
-		datum.Parse(parser)
-		return datum
+		datum, err = normal.New()
 	case extended.SubType():
-		datum = extended.New()
-		datum.Parse(parser)
-		return datum
+		datum, err = extended.New()
 	case combination.SubType():
-		datum = combination.New()
-		datum.Parse(parser)
-		return datum
+		datum, err = combination.New()
 	default:
 		return nil
 	}
+
+	if err != nil {
+		return nil // TODO_DATA: Do something with error here
+	}
+	if datum != nil {
+		datum.Parse(parser)
+	}
+	return datum
 }

@@ -91,10 +91,10 @@ var _ = Describe("Calculator Bolus", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("empty", rawObject, "units", "",
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("", []string{common.Mmoll, common.MmolL, common.Mgdl, common.MgdL}), "/units")},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("", []string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL}), "/units")},
 			),
 			Entry("not one of the predefined values", rawObject, "units", "wrong",
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("wrong", []string{common.Mmoll, common.MmolL, common.Mgdl, common.MgdL}), "/units")},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("wrong", []string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL}), "/units")},
 			),
 		)
 
@@ -111,10 +111,10 @@ var _ = Describe("Calculator Bolus", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("less than 0", rawObject, "bgInput", -0.1,
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, common.MgdLFromValue, common.MgdLToValue), "/bgInput")},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/bgInput")},
 			),
 			Entry("greater than 1000", rawObject, "bgInput", 1000.1,
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(1000.1, common.MgdLFromValue, common.MgdLToValue), "/bgInput")},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(1000.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/bgInput")},
 			),
 		)
 
@@ -130,15 +130,15 @@ var _ = Describe("Calculator Bolus", func() {
 	Context("insulinSensitivity", func() {
 
 		BeforeEach(func() {
-			rawObject["units"] = common.MgdL
+			rawObject["units"] = bloodglucose.MgdL
 		})
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("less than 0", rawObject, "insulinSensitivity", -0.1,
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, common.MgdLFromValue, common.MgdLToValue), "/insulinSensitivity")},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/insulinSensitivity")},
 			),
 			Entry("greater than 1000", rawObject, "insulinSensitivity", 1000.1,
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(1000.1, common.MgdLFromValue, common.MgdLToValue), "/insulinSensitivity")},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(1000.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/insulinSensitivity")},
 			),
 		)
 
@@ -173,7 +173,7 @@ var _ = Describe("Calculator Bolus", func() {
 	Context("bgTarget", func() {
 
 		BeforeEach(func() {
-			rawObject["units"] = common.MgdL
+			rawObject["units"] = bloodglucose.MgdL
 		})
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
@@ -184,10 +184,10 @@ var _ = Describe("Calculator Bolus", func() {
 				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(51, 0, 50), "/bgTarget/range")},
 			),
 			Entry("target less than 0", rawObject, "bgTarget", map[string]interface{}{"target": -0.1, "range": 10},
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, common.MgdLFromValue, common.MgdLToValue), "/bgTarget/target")},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/bgTarget/target")},
 			),
 			Entry("target greater than 1000", rawObject, "bgTarget", map[string]interface{}{"target": 1000.1, "range": 10},
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(1000.1, common.MgdLFromValue, common.MgdLToValue), "/bgTarget/target")},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(1000.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/bgTarget/target")},
 			),
 		)
 
@@ -239,8 +239,9 @@ var _ = Describe("Calculator Bolus", func() {
 		Context("blood glucose", func() {
 
 			DescribeTable("when mmol/L", func(val, expected float64) {
-				bolusCalculator := calculator.New()
-				bolusCalculator.Units = &common.Mmoll
+				bolusCalculator, err := calculator.New()
+				Expect(err).To(BeNil())
+				bolusCalculator.Units = &bloodglucose.Mmoll
 				bolusCalculator.BloodGlucoseInput = &val
 				bolusCalculator.InsulinSensitivity = &val
 				bolusCalculator.BloodGlucoseTarget = &calculator.BloodGlucoseTarget{Target: &val}
@@ -249,7 +250,7 @@ var _ = Describe("Calculator Bolus", func() {
 				standardNormalizer, err := normalizer.NewStandard(testContext)
 				Expect(err).To(BeNil())
 				bolusCalculator.Normalize(standardNormalizer)
-				Expect(bolusCalculator.Units).To(Equal(&common.MmolL))
+				Expect(bolusCalculator.Units).To(Equal(&bloodglucose.MmolL))
 				Expect(bolusCalculator.BloodGlucoseInput).To(Equal(&expected))
 				Expect(bolusCalculator.InsulinSensitivity).To(Equal(&expected))
 				Expect(bolusCalculator.BloodGlucoseTarget.Target).To(Equal(&expected))
@@ -260,8 +261,9 @@ var _ = Describe("Calculator Bolus", func() {
 			)
 
 			DescribeTable("when mg/dL", func(val, expected float64) {
-				bolusCalculator := calculator.New()
-				bolusCalculator.Units = &common.Mgdl
+				bolusCalculator, err := calculator.New()
+				Expect(err).To(BeNil())
+				bolusCalculator.Units = &bloodglucose.Mgdl
 				bolusCalculator.BloodGlucoseInput = &val
 				bolusCalculator.InsulinSensitivity = &val
 				bolusCalculator.BloodGlucoseTarget = &calculator.BloodGlucoseTarget{Target: &val}
@@ -270,7 +272,7 @@ var _ = Describe("Calculator Bolus", func() {
 				standardNormalizer, err := normalizer.NewStandard(testContext)
 				Expect(err).To(BeNil())
 				bolusCalculator.Normalize(standardNormalizer)
-				Expect(bolusCalculator.Units).To(Equal(&common.MmolL))
+				Expect(bolusCalculator.Units).To(Equal(&bloodglucose.MmolL))
 				Expect(bolusCalculator.BloodGlucoseInput).To(Equal(&expected))
 				Expect(bolusCalculator.InsulinSensitivity).To(Equal(&expected))
 				Expect(bolusCalculator.BloodGlucoseTarget.Target).To(Equal(&expected))

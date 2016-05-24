@@ -32,8 +32,6 @@ import (
 	"github.com/tidepool-org/platform/pvn/data/types/base/device/timechange"
 	"github.com/tidepool-org/platform/pvn/data/types/base/ketone"
 	"github.com/tidepool-org/platform/pvn/data/types/base/pump"
-	"github.com/tidepool-org/platform/pvn/data/types/base/sample"
-	"github.com/tidepool-org/platform/pvn/data/types/base/sample/sub"
 	"github.com/tidepool-org/platform/pvn/data/types/base/selfmonitored"
 	"github.com/tidepool-org/platform/pvn/data/types/base/upload"
 )
@@ -46,117 +44,100 @@ func Parse(context data.Context, parser data.ObjectParser) (data.Datum, error) {
 		return nil, app.Error("types", "parser is missing")
 	}
 
-	var datum data.Datum
-
 	datumType := parser.ParseString("type")
 	if datumType == nil {
 		context.AppendError("type", ErrorValueMissing())
 		return nil, nil
 	}
 
-	datumSubType := parser.ParseString("subType")
-
-	// NOTE: This is the "master switchboard" that creates all of the datum from
-	// the type and subType
+	var datum data.Datum
+	var err error
 
 	switch *datumType {
-	case sample.Type():
-		if datumSubType != nil {
-			switch *datumSubType {
-			case sub.SubType():
-				datum = sub.New()
-			default:
-				context.AppendError("subType", ErrorSubTypeInvalid(*datumSubType))
-				return nil, nil
-			}
-		} else {
-			datum = sample.New()
-		}
 	case basal.Type():
-
-		datumDeliveryType := parser.ParseString("deliveryType")
-
-		if datumDeliveryType == nil {
-			context.AppendError("deliveryType", ErrorSubTypeInvalid(*datumDeliveryType))
+		deliveryType := parser.ParseString("deliveryType")
+		if deliveryType == nil {
+			context.AppendError("deliveryType", ErrorValueMissing())
 			return nil, nil
 		}
 
-		switch *datumDeliveryType {
-		case suspend.DeliveryType():
-			datum = suspend.New()
+		switch *deliveryType {
 		case scheduled.DeliveryType():
-			datum = scheduled.New()
+			datum, err = scheduled.New()
+		case suspend.DeliveryType():
+			datum, err = suspend.New()
 		case temporary.DeliveryType():
-			datum = temporary.New()
+			datum, err = temporary.New()
 		default:
-			context.AppendError("deliveryType", ErrorSubTypeInvalid(*datumDeliveryType))
+			context.AppendError("deliveryType", ErrorDeliveryTypeInvalid(*deliveryType))
 			return nil, nil
 		}
-
 	case bolus.Type():
-
-		bolusSubType := parser.ParseString("subType")
-
-		if bolusSubType == nil {
-			context.AppendError("subType", ErrorSubTypeInvalid(*bolusSubType))
+		subType := parser.ParseString("subType")
+		if subType == nil {
+			context.AppendError("subType", ErrorValueMissing())
 			return nil, nil
 		}
 
-		switch *bolusSubType {
-		case normal.SubType():
-			datum = normal.New()
-		case extended.SubType():
-			datum = extended.New()
+		switch *subType {
 		case combination.SubType():
-			datum = combination.New()
+			datum, err = combination.New()
+		case extended.SubType():
+			datum, err = extended.New()
+		case normal.SubType():
+			datum, err = normal.New()
 		default:
-			context.AppendError("subType", ErrorSubTypeInvalid(*bolusSubType))
-			return nil, nil
-		}
-	case device.Type():
-
-		deviceSubType := parser.ParseString("subType")
-
-		if deviceSubType == nil {
-			context.AppendError("subType", ErrorSubTypeInvalid(*deviceSubType))
-			return nil, nil
-		}
-
-		switch *deviceSubType {
-		case alarm.SubType():
-			datum = alarm.New()
-		case prime.SubType():
-			datum = prime.New()
-		case calibration.SubType():
-			datum = calibration.New()
-		case reservoirchange.SubType():
-			datum = reservoirchange.New()
-		case status.SubType():
-			datum = status.New()
-		case timechange.SubType():
-			datum = timechange.New()
-		default:
-			context.AppendError("subType", ErrorSubTypeInvalid(*deviceSubType))
+			context.AppendError("subType", ErrorSubTypeInvalid(*subType))
 			return nil, nil
 		}
 	case calculator.Type():
-		datum = calculator.New()
-	case upload.Type():
-		datum = upload.New()
-	case ketone.BloodType():
-		datum = ketone.NewBlood()
+		datum, err = calculator.New()
 	case continuous.Type():
-		datum = continuous.New()
-	case selfmonitored.Type():
-		datum = selfmonitored.New()
+		datum, err = continuous.New()
+	case device.Type():
+		subType := parser.ParseString("subType")
+		if subType == nil {
+			context.AppendError("subType", ErrorValueMissing())
+			return nil, nil
+		}
+
+		switch *subType {
+		case alarm.SubType():
+			datum, err = alarm.New()
+		case calibration.SubType():
+			datum, err = calibration.New()
+		case prime.SubType():
+			datum, err = prime.New()
+		case reservoirchange.SubType():
+			datum, err = reservoirchange.New()
+		case status.SubType():
+			datum, err = status.New()
+		case timechange.SubType():
+			datum, err = timechange.New()
+		default:
+			context.AppendError("subType", ErrorSubTypeInvalid(*subType))
+			return nil, nil
+		}
+	case ketone.Type():
+		datum, err = ketone.New()
 	case pump.Type():
-		datum = pump.New()
+		datum, err = pump.New()
+	case selfmonitored.Type():
+		datum, err = selfmonitored.New()
+	case upload.Type():
+		datum, err = upload.New()
 	default:
 		context.AppendError("type", ErrorTypeInvalid(*datumType))
 		return nil, nil
 	}
 
-	datum.Parse(parser)
+	if err != nil {
+		return nil, err
+	}
+	if datum == nil {
+		return nil, app.Error("types", "datum is missing")
+	}
 
+	datum.Parse(parser)
 	return datum, nil
 }

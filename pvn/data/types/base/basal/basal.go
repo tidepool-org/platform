@@ -10,29 +10,33 @@ package basal
  * [ ] Full test coverage
  */
 
-import "github.com/tidepool-org/platform/pvn/data"
-import "github.com/tidepool-org/platform/pvn/data/types/base"
+import (
+	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/pvn/data/types/base"
+)
 
 type Basal struct {
-	base.Base
-	DeliveryType *string `json:"deliveryType" bson:"deliveryType"`
+	base.Base `bson:",inline"`
+
+	DeliveryType string `json:"deliveryType,omitempty" bson:"deliveryType,omitempty"`
 }
 
 func Type() string {
 	return "basal"
 }
 
-func (b *Basal) Parse(parser data.ObjectParser) {
-	b.Base.Parse(parser)
-}
+func New(deliveryType string) (*Basal, error) {
+	if deliveryType == "" {
+		return nil, app.Error("basal", "delivery type is missing")
+	}
 
-func (b *Basal) Validate(validator data.Validator) {
+	basalBase, err := base.New(Type())
+	if err != nil {
+		return nil, err
+	}
 
-	b.Base.Validate(validator)
-	validator.ValidateString("type", b.Type).Exists().EqualTo(Type())
-	validator.ValidateString("deliveryType", b.DeliveryType).Exists()
-}
-
-func (b *Basal) Normalize(normalizer data.Normalizer) {
-	b.Base.Normalize(normalizer)
+	return &Basal{
+		Base:         *basalBase,
+		DeliveryType: deliveryType,
+	}, nil
 }

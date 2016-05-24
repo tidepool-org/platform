@@ -14,6 +14,9 @@ type TestDatum struct{}
 func (t *TestDatum) Parse(parser data.ObjectParser)       {}
 func (t *TestDatum) Validate(validator data.Validator)    {}
 func (t *TestDatum) Normalize(normalizer data.Normalizer) {}
+func (t *TestDatum) SetUserID(userID string)              {}
+func (t *TestDatum) SetGroupID(groupID string)            {}
+func (t *TestDatum) SetDatasetID(datasetID string)        {}
 
 var _ = Describe("Standard", func() {
 	It("New returns an error if context is nil", func() {

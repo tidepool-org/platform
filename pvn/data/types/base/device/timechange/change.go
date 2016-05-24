@@ -3,9 +3,9 @@ package timechange
 import "github.com/tidepool-org/platform/pvn/data"
 
 type Change struct {
-	From     *string   `json:"from" bson:"from"`
-	To       *string   `json:"to" bson:"to"`
-	Agent    *string   `json:"agent" bson:"agent"`
+	From     *string   `json:"from,omitempty" bson:"from,omitempty"`
+	To       *string   `json:"to,omitempty" bson:"to,omitempty"`
+	Agent    *string   `json:"agent,omitempty" bson:"agent,omitempty"`
 	Timezone *string   `json:"timezone,omitempty" bson:"timezone,omitempty"`
 	Reasons  *[]string `json:"reasons,omitempty" bson:"reasons,omitempty"`
 }

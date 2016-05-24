@@ -16,19 +16,22 @@ type Settings struct {
 	InsulinSensitivities *[]*InsulinSensitivity `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`
 	BloodGlucoseTargets  *[]*BloodGlucoseTarget `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`
 
-	ActiveSchedule *string `json:"activeSchedule" bson:"activeSchedule"`
+	ActiveSchedule *string `json:"activeSchedule,omitempty" bson:"activeSchedule,omitempty"`
 }
 
 func Type() string {
 	return "pumpSettings"
 }
 
-func New() *Settings {
-	settingsType := Type()
+func New() (*Settings, error) {
+	settingsBase, err := base.New(Type())
+	if err != nil {
+		return nil, err
+	}
 
-	settings := &Settings{}
-	settings.Type = &settingsType
-	return settings
+	return &Settings{
+		Base: *settingsBase,
+	}, nil
 }
 
 func (s *Settings) Parse(parser data.ObjectParser) {

@@ -16,39 +16,34 @@ import (
 )
 
 type Suspend struct {
-	basal.Basal
+	basal.Basal `bson:",inline"`
 
-	Duration *int `json:"duration" bson:"duration"`
-}
-
-func Type() string {
-	return basal.Type()
+	Duration *int `json:"duration,omitempty" bson:"duration,omitempty"`
 }
 
 func DeliveryType() string {
 	return "suspend"
 }
 
-func New() *Suspend {
-	suspendType := Type()
-	suspendSubType := DeliveryType()
+func New() (*Suspend, error) {
+	suspendBasal, err := basal.New(DeliveryType())
+	if err != nil {
+		return nil, err
+	}
 
-	suspend := &Suspend{}
-	suspend.Type = &suspendType
-	suspend.DeliveryType = &suspendSubType
-	return suspend
+	return &Suspend{
+		Basal: *suspendBasal,
+	}, nil
 }
 
 func (s *Suspend) Parse(parser data.ObjectParser) {
 	s.Basal.Parse(parser)
+
 	s.Duration = parser.ParseInteger("duration")
 }
 
 func (s *Suspend) Validate(validator data.Validator) {
 	s.Basal.Validate(validator)
-	validator.ValidateInteger("duration", s.Duration).Exists().InRange(0, 86400000)
-}
 
-func (s *Suspend) Normalize(normalizer data.Normalizer) {
-	s.Basal.Normalize(normalizer)
+	validator.ValidateInteger("duration", s.Duration).Exists().InRange(0, 86400000)
 }

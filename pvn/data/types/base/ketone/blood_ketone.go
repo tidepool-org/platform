@@ -9,20 +9,23 @@ import (
 type Blood struct {
 	base.Base `bson:",inline"`
 
-	Value *float64 `json:"value" bson:"value"`
-	Units *string  `json:"units" bson:"units"`
+	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
+	Units *string  `json:"units,omitempty" bson:"units,omitempty"`
 }
 
-func BloodType() string {
+func Type() string {
 	return "bloodKetone"
 }
 
-func NewBlood() *Blood {
-	ketoneType := BloodType()
+func New() (*Blood, error) {
+	bloodBase, err := base.New(Type())
+	if err != nil {
+		return nil, err
+	}
 
-	blood := &Blood{}
-	blood.Type = &ketoneType
-	return blood
+	return &Blood{
+		Base: *bloodBase,
+	}, nil
 }
 
 func (b *Blood) Parse(parser data.ObjectParser) {
@@ -35,18 +38,17 @@ func (b *Blood) Parse(parser data.ObjectParser) {
 func (b *Blood) Validate(validator data.Validator) {
 	b.Base.Validate(validator)
 
-	validator.ValidateString("units", b.Units).Exists().OneOf([]string{common.Mmoll, common.MmolL, common.Mgdl, common.MgdL})
+	validator.ValidateString("units", b.Units).Exists().OneOf([]string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL})
 	switch b.Units {
-	case &common.Mmoll, &common.MmolL:
-		validator.ValidateFloat("value", b.Value).Exists().InRange(common.MmolLFromValue, common.MmolLToValue)
+	case &bloodglucose.Mmoll, &bloodglucose.MmolL:
+		validator.ValidateFloat("value", b.Value).Exists().InRange(bloodglucose.MmolLFromValue, bloodglucose.MmolLToValue)
 	default:
-		validator.ValidateFloat("value", b.Value).Exists().InRange(common.MgdLFromValue, common.MgdLToValue)
+		validator.ValidateFloat("value", b.Value).Exists().InRange(bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue)
 	}
-
 }
 
 func (b *Blood) Normalize(normalizer data.Normalizer) {
 	b.Base.Normalize(normalizer)
 
-	b.Units, b.Value = normalizer.NormalizeBloodGlucose(BloodType(), b.Units).NormalizeUnitsAndValue(b.Value)
+	b.Units, b.Value = normalizer.NormalizeBloodGlucose("value", b.Units).NormalizeUnitsAndValue(b.Value)
 }

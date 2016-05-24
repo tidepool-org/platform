@@ -16,33 +16,31 @@ import (
 )
 
 type Temporary struct {
-	basal.Basal
+	basal.Basal `bson:",inline"`
 
-	Duration *int     `json:"duration" bson:"duration"`
-	Rate     *float64 `json:"rate" bson:"rate"`
-	Percent  *float64 `json:"percent" bson:"percent"`
-}
-
-func Type() string {
-	return basal.Type()
+	Duration *int     `json:"duration,omitempty" bson:"duration,omitempty"`
+	Rate     *float64 `json:"rate,omitempty" bson:"rate,omitempty"`
+	Percent  *float64 `json:"percent,omitempty" bson:"percent,omitempty"`
 }
 
 func DeliveryType() string {
 	return "temporary"
 }
 
-func New() *Temporary {
-	temporaryType := Type()
-	temporarySubType := DeliveryType()
+func New() (*Temporary, error) {
+	temporaryBasal, err := basal.New(DeliveryType())
+	if err != nil {
+		return nil, err
+	}
 
-	temporary := &Temporary{}
-	temporary.Type = &temporaryType
-	temporary.DeliveryType = &temporarySubType
-	return temporary
+	return &Temporary{
+		Basal: *temporaryBasal,
+	}, nil
 }
 
 func (t *Temporary) Parse(parser data.ObjectParser) {
 	t.Basal.Parse(parser)
+
 	t.Duration = parser.ParseInteger("duration")
 	t.Rate = parser.ParseFloat("rate")
 	t.Percent = parser.ParseFloat("percent")
@@ -50,11 +48,8 @@ func (t *Temporary) Parse(parser data.ObjectParser) {
 
 func (t *Temporary) Validate(validator data.Validator) {
 	t.Basal.Validate(validator)
+
 	validator.ValidateInteger("duration", t.Duration).Exists().InRange(0, 86400000)
 	validator.ValidateFloat("rate", t.Rate).Exists().InRange(0.0, 20.0)
 	validator.ValidateFloat("percent", t.Percent).Exists().InRange(0.0, 10.0)
-}
-
-func (t *Temporary) Normalize(normalizer data.Normalizer) {
-	t.Basal.Normalize(normalizer)
 }

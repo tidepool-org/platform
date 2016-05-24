@@ -16,45 +16,40 @@ import (
 )
 
 type Scheduled struct {
-	basal.Basal
+	basal.Basal `bson:",inline"`
 
-	Name     *string  `json:"scheduleName,omitempty" bson:"scheduleName,omitempty"`
-	Rate     *float64 `json:"rate" bson:"rate"`
-	Duration *int     `json:"duration" bson:"duration"`
-}
-
-func Type() string {
-	return basal.Type()
+	Duration *int     `json:"duration,omitempty" bson:"duration,omitempty"`
+	Name     *string  `json:"scheduleName,omitempty" bson:"scheduleName,omitempty"` // TODO: Data model name UPDATE
+	Rate     *float64 `json:"rate,omitempty" bson:"rate,omitempty"`
 }
 
 func DeliveryType() string {
 	return "scheduled"
 }
 
-func New() *Scheduled {
-	scheduledType := Type()
-	scheduledSubType := DeliveryType()
+func New() (*Scheduled, error) {
+	scheduledBasal, err := basal.New(DeliveryType())
+	if err != nil {
+		return nil, err
+	}
 
-	scheduled := &Scheduled{}
-	scheduled.Type = &scheduledType
-	scheduled.DeliveryType = &scheduledSubType
-	return scheduled
+	return &Scheduled{
+		Basal: *scheduledBasal,
+	}, nil
 }
 
 func (s *Scheduled) Parse(parser data.ObjectParser) {
 	s.Basal.Parse(parser)
+
 	s.Duration = parser.ParseInteger("duration")
-	s.Rate = parser.ParseFloat("rate")
 	s.Name = parser.ParseString("scheduleName")
+	s.Rate = parser.ParseFloat("rate")
 }
 
 func (s *Scheduled) Validate(validator data.Validator) {
 	s.Basal.Validate(validator)
+
 	validator.ValidateInteger("duration", s.Duration).Exists().InRange(0, 432000000)
 	validator.ValidateFloat("rate", s.Rate).Exists().InRange(0.0, 20.0)
 	validator.ValidateString("scheduleName", s.Name).LengthGreaterThan(1)
-}
-
-func (s *Scheduled) Normalize(normalizer data.Normalizer) {
-	s.Basal.Normalize(normalizer)
 }

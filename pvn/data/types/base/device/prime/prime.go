@@ -18,30 +18,28 @@ import (
 type Prime struct {
 	device.Device `bson:",inline"`
 
-	Target *string  `json:"primeTarget" bson:"primeTarget"`
+	Target *string  `json:"primeTarget,omitempty" bson:"primeTarget,omitempty"`
 	Volume *float64 `json:"volume,omitempty" bson:"volume,omitempty"`
-}
-
-func Type() string {
-	return device.Type()
 }
 
 func SubType() string {
 	return "prime"
 }
 
-func New() *Prime {
-	primeType := Type()
-	primeSubType := SubType()
+func New() (*Prime, error) {
+	primtDevice, err := device.New(SubType())
+	if err != nil {
+		return nil, err
+	}
 
-	prime := &Prime{}
-	prime.Type = &primeType
-	prime.SubType = &primeSubType
-	return prime
+	return &Prime{
+		Device: *primtDevice,
+	}, nil
 }
 
 func (p *Prime) Parse(parser data.ObjectParser) {
 	p.Device.Parse(parser)
+
 	p.Target = parser.ParseString("primeTarget")
 	p.Volume = parser.ParseFloat("volume")
 }
@@ -58,8 +56,4 @@ func (p *Prime) Validate(validator data.Validator) {
 			validator.ValidateFloat("volume", p.Volume).InRange(0.0, 100.0)
 		}
 	}
-}
-
-func (p *Prime) Normalize(normalizer data.Normalizer) {
-	p.Device.Normalize(normalizer)
 }

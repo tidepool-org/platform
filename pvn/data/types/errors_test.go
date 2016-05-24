@@ -20,5 +20,6 @@ var _ = Describe("Errors", func() {
 		Entry("ErrorValueMissing", types.ErrorValueMissing(), "value-missing", "value is missing", "Value is missing"),
 		Entry("ErrorTypeInvalid", types.ErrorTypeInvalid("unknown"), "type-invalid", "type is invalid", "Type \"unknown\" is invalid"),
 		Entry("ErrorSubTypeInvalid", types.ErrorSubTypeInvalid("unknown"), "sub-type-invalid", "sub type is invalid", "Sub type \"unknown\" is invalid"),
+		Entry("ErrorDeliveryTypeInvalid", types.ErrorDeliveryTypeInvalid("unknown"), "delivery-type-invalid", "delivery type is invalid", "Delivery type \"unknown\" is invalid"),
 	)
 })

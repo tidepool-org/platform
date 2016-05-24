@@ -12,8 +12,8 @@ import (
 // tandem: {`target`}
 
 type BloodGlucoseTarget struct {
-	Target      *float64 `json:"target" bson:"target"`
-	Range       *int     `json:"range" bson:"range"`
+	Target      *float64 `json:"target,omitempty" bson:"target,omitempty"`
+	Range       *int     `json:"range,omitempty" bson:"range,omitempty"`
 	targetUnits *string
 }
 
@@ -27,12 +27,11 @@ func (b *BloodGlucoseTarget) Parse(parser data.ObjectParser) {
 }
 
 func (b *BloodGlucoseTarget) Validate(validator data.Validator) {
-
 	switch b.targetUnits {
-	case &common.Mmoll, &common.MmolL:
-		validator.ValidateFloat("target", b.Target).InRange(common.MmolLFromValue, common.MmolLToValue)
+	case &bloodglucose.Mmoll, &bloodglucose.MmolL:
+		validator.ValidateFloat("target", b.Target).InRange(bloodglucose.MmolLFromValue, bloodglucose.MmolLToValue)
 	default:
-		validator.ValidateFloat("target", b.Target).InRange(common.MgdLFromValue, common.MgdLToValue)
+		validator.ValidateFloat("target", b.Target).InRange(bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue)
 	}
 
 	validator.ValidateInteger("range", b.Range).InRange(0, 50)

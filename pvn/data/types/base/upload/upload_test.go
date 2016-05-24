@@ -26,24 +26,6 @@ var _ = Describe("Upload", func() {
 	rawObject["deduplicator"] = "something"
 	rawObject["timezone"] = "US/Central"
 
-	Context("byUser", func() {
-
-		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("empty", rawObject, "byUser", "",
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorLengthNotGreaterThanOrEqualTo(0, 10), "/byUser")},
-			),
-			Entry("less than 10 characters", rawObject, "byUser", "123456789",
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorLengthNotGreaterThanOrEqualTo(9, 10), "/byUser")},
-			),
-		)
-
-		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("10 characters", rawObject, "byUser", "b676436f60"),
-			Entry("more than 10 characters", rawObject, "byUser", "b676436f60-b676436f60"),
-		)
-
-	})
-
 	Context("version", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
@@ -191,27 +173,4 @@ var _ = Describe("Upload", func() {
 		)
 
 	})
-
-	Context("dataState", func() {
-
-		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("empty", rawObject, "dataState", "",
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorLengthNotGreaterThan(0, 1), "/dataState")},
-			),
-		)
-
-		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("set", rawObject, "dataState", "running"),
-		)
-
-	})
-
-	Context("deduplicator", func() {
-
-		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("set", rawObject, "deduplicator", map[string]interface{}{"todod": 7}),
-		)
-
-	})
-
 })

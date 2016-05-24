@@ -18,37 +18,32 @@ import (
 type ReservoirChange struct {
 	device.Device `bson:",inline"`
 
-	StatusID *string `json:"status" bson:"status"`
-}
-
-func Type() string {
-	return device.Type()
+	StatusID *string `json:"status,omitempty" bson:"status,omitempty"`
 }
 
 func SubType() string {
 	return "reservoirChange"
 }
 
-func New() *ReservoirChange {
-	reservoirChangeType := Type()
-	reservoirChangeSubType := SubType()
+func New() (*ReservoirChange, error) {
+	reservoirChangeDevice, err := device.New(SubType())
+	if err != nil {
+		return nil, err
+	}
 
-	reservoirChange := &ReservoirChange{}
-	reservoirChange.Type = &reservoirChangeType
-	reservoirChange.SubType = &reservoirChangeSubType
-	return reservoirChange
+	return &ReservoirChange{
+		Device: *reservoirChangeDevice,
+	}, nil
 }
 
 func (r *ReservoirChange) Parse(parser data.ObjectParser) {
 	r.Device.Parse(parser)
+
 	r.StatusID = parser.ParseString("status")
 }
 
 func (r *ReservoirChange) Validate(validator data.Validator) {
 	r.Device.Validate(validator)
-	validator.ValidateString("status", r.StatusID).Exists().LengthGreaterThan(1)
-}
 
-func (r *ReservoirChange) Normalize(normalizer data.Normalizer) {
-	r.Device.Normalize(normalizer)
+	validator.ValidateString("status", r.StatusID).LengthGreaterThan(1) // TODO_DATA: .Exists() does not exist in Animas currently
 }

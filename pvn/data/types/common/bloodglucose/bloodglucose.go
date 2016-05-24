@@ -1,4 +1,4 @@
-package common
+package bloodglucose
 
 var (
 	Mmoll = "mmol/l"
