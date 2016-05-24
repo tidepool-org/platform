@@ -16,8 +16,8 @@ import (
 	"github.com/tidepool-org/platform/data/deduplicator"
 	"github.com/tidepool-org/platform/data/deduplicator/alignment"
 	"github.com/tidepool-org/platform/data/deduplicator/truncate"
+	"github.com/tidepool-org/platform/data/types/base/upload"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/pvn/data/types/base/upload"
 	"github.com/tidepool-org/platform/store"
 )
 

@@ -13,15 +13,15 @@ package v1
 import (
 	"net/http"
 
+	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/deduplicator/root"
+	"github.com/tidepool-org/platform/data/normalizer"
+	"github.com/tidepool-org/platform/data/parser"
+	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/base/upload"
+	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/dataservices/server"
-	"github.com/tidepool-org/platform/pvn/data"
-	"github.com/tidepool-org/platform/pvn/data/context"
-	"github.com/tidepool-org/platform/pvn/data/normalizer"
-	"github.com/tidepool-org/platform/pvn/data/parser"
-	"github.com/tidepool-org/platform/pvn/data/types"
-	"github.com/tidepool-org/platform/pvn/data/types/base/upload"
-	"github.com/tidepool-org/platform/pvn/data/validator"
 	"github.com/tidepool-org/platform/store"
 	"github.com/tidepool-org/platform/userservices/client"
 )

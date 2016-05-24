@@ -11,9 +11,9 @@ package deduplicator
  */
 
 import (
+	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/types/base/upload"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/pvn/data"
-	"github.com/tidepool-org/platform/pvn/data/types/base/upload"
 	"github.com/tidepool-org/platform/store"
 )
 
