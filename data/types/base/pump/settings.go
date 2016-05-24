@@ -10,7 +10,8 @@ type Settings struct {
 
 	*Units `json:"units,omitempty" bson:"units,omitempty"`
 
-	BasalSchedules *map[string][]*BasalSchedule `json:"basalSchedules,omitempty" bson:"basalSchedules,omitempty"`
+	//TODO: sorting out validation
+	//BasalSchedules *map[string][]*BasalSchedule `json:"basalSchedules,omitempty" bson:"basalSchedules,omitempty"`
 
 	CarbohydrateRatios   *[]*CarbohydrateRatio  `json:"carbRatio,omitempty" bson:"carbRatio,omitempty"`
 	InsulinSensitivities *[]*InsulinSensitivity `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`
@@ -45,7 +46,7 @@ func (s *Settings) Parse(parser data.ObjectParser) {
 	s.InsulinSensitivities = ParseInsulinSensitivityArray(parser.NewChildArrayParser("insulinSensitivity"))
 	s.BloodGlucoseTargets = ParseBloodGlucoseTargetArray(parser.NewChildArrayParser("bgTarget"))
 
-	s.BasalSchedules = ParseBasalScheduleArray(parser.NewChildArrayParser("basalSchedules"))
+	//s.BasalSchedules = ParseBasalScheduleArray(parser.NewChildArrayParser("basalSchedules"))
 }
 
 func (s *Settings) Validate(validator data.Validator) {
