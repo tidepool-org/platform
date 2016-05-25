@@ -22,8 +22,6 @@ import (
 type Calculator struct {
 	base.Base `bson:",inline"`
 
-	Bolus data.Datum `json:"bolus" bson:"-"`
-
 	*Recommended        `json:"recommended,omitempty" bson:"recommended,omitempty"`
 	*BloodGlucoseTarget `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`
 
@@ -34,6 +32,9 @@ type Calculator struct {
 	InsulinCarbohydrateRatio *int     `json:"insulinCarbRatio,omitempty" bson:"insulinCarbRatio,omitempty"`
 	BloodGlucoseInput        *float64 `json:"bgInput,omitempty" bson:"bgInput,omitempty"`
 	Units                    *string  `json:"units,omitempty" bson:"units,omitempty"`
+
+	//private field that will be used to build and normalize the embedded bolus
+	bolus data.Datum
 }
 
 func Type() string {
@@ -63,7 +64,7 @@ func (c *Calculator) Parse(parser data.ObjectParser) {
 
 	c.Recommended = ParseRecommended(parser.NewChildObjectParser("recommended"))
 	c.BloodGlucoseTarget = ParseBloodGlucoseTarget(parser.NewChildObjectParser("bgTarget"))
-	c.Bolus = ParseBolus(parser.NewChildObjectParser("bolus"))
+	c.bolus = ParseBolus(parser.NewChildObjectParser("bolus"))
 }
 
 func (c *Calculator) Validate(validator data.Validator) {
@@ -92,24 +93,24 @@ func (c *Calculator) Validate(validator data.Validator) {
 		c.BloodGlucoseTarget.Validate(validator.NewChildValidator("bgTarget"))
 	}
 
-	if c.Bolus != nil {
-		c.Bolus.Validate(validator.NewChildValidator("bolus"))
+	if c.bolus != nil {
+		c.bolus.Validate(validator.NewChildValidator("bolus"))
 	}
 }
 
 func (c *Calculator) Normalize(normalizer data.Normalizer) {
 	c.Base.Normalize(normalizer)
 
-	if c.Bolus != nil {
-		c.Bolus.Normalize(normalizer.NewChildNormalizer("bolus"))
-		normalizer.AppendDatum(c.Bolus)
-		switch c.Bolus.(type) {
+	if c.bolus != nil {
+		c.bolus.Normalize(normalizer.NewChildNormalizer("bolus"))
+		normalizer.AppendDatum(c.bolus)
+		switch c.bolus.(type) {
 		case *extended.Extended:
-			c.BolusID = &c.Bolus.(*extended.Extended).ID
+			c.BolusID = &c.bolus.(*extended.Extended).ID
 		case *normal.Normal:
-			c.BolusID = &c.Bolus.(*normal.Normal).ID
+			c.BolusID = &c.bolus.(*normal.Normal).ID
 		case *combination.Combination:
-			c.BolusID = &c.Bolus.(*combination.Combination).ID
+			c.BolusID = &c.bolus.(*combination.Combination).ID
 		default:
 		}
 	}
