@@ -51,5 +51,5 @@ func (c *Combination) Validate(validator data.Validator) {
 
 	validator.ValidateInteger("duration", c.Duration).Exists().InRange(0, 86400000)
 	validator.ValidateFloat("extended", c.Extended).Exists().InRange(0.0, 100.0)
-	validator.ValidateFloat("normal", c.Normal).Exists().GreaterThan(0.0).LessThanOrEqualTo(100.0)
+	validator.ValidateFloat("normal", c.Normal).Exists().InRange(0.0, 100.0)
 }
