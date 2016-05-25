@@ -9,8 +9,9 @@ import (
 type BloodGlucose struct {
 	base.Base `bson:",inline"`
 
-	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
-	Units *string  `json:"units,omitempty" bson:"units,omitempty"`
+	Value   *float64 `json:"value,omitempty" bson:"value,omitempty"`
+	Units   *string  `json:"units,omitempty" bson:"units,omitempty"`
+	SubType *string  `json:"subType,omitempty" bson:"subType,omitempty"`
 }
 
 func Type() string {
@@ -33,6 +34,7 @@ func (b *BloodGlucose) Parse(parser data.ObjectParser) {
 
 	b.Value = parser.ParseFloat("value")
 	b.Units = parser.ParseString("units")
+	b.SubType = parser.ParseString("subType")
 }
 
 func (b *BloodGlucose) Validate(validator data.Validator) {
@@ -45,6 +47,8 @@ func (b *BloodGlucose) Validate(validator data.Validator) {
 	default:
 		validator.ValidateFloat("value", b.Value).Exists().InRange(bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue)
 	}
+
+	validator.ValidateString("subType", b.SubType).OneOf([]string{"manual", "linked"})
 
 }
 
