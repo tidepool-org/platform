@@ -99,6 +99,14 @@ var _ = Describe("StandardArray", func() {
 		It("has a contained Array", func() {
 			Expect(standardArray.Array()).ToNot(BeNil())
 		})
+
+		Context("SetMeta", func() {
+			It("sets the meta on the context", func() {
+				meta := "metametameta"
+				standardArray.SetMeta(meta)
+				Expect(standardContext.Meta()).To(BeIdenticalTo(meta))
+			})
+		})
 	})
 
 	Context("parsing elements with", func() {

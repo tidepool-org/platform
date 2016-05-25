@@ -13,6 +13,8 @@ import "time"
  */
 
 type Validator interface {
+	SetMeta(meta interface{})
+
 	ValidateBoolean(reference interface{}, value *bool) Boolean
 	ValidateInteger(reference interface{}, value *int) Integer
 	ValidateFloat(reference interface{}, value *float64) Float

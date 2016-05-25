@@ -38,6 +38,10 @@ type Base struct {
 	Version          *int           `json:"-" bson:"_version,omitempty"`                                  // SET
 }
 
+type Meta struct {
+	Type string `json:"type,omitempty"`
+}
+
 func New(Type string) (*Base, error) {
 	if Type == "" {
 		return nil, app.Error("base", "type is missing")
@@ -52,16 +56,10 @@ func New(Type string) (*Base, error) {
 	}, nil
 }
 
-func (b *Base) SetUserID(userID string) {
-	b.UserID = userID
-}
-
-func (b *Base) SetGroupID(groupID string) {
-	b.GroupID = groupID
-}
-
-func (b *Base) SetDatasetID(datasetID string) {
-	b.UploadID = datasetID
+func (b *Base) Meta() interface{} {
+	return &Meta{
+		Type: b.Type,
+	}
 }
 
 func (b *Base) Parse(parser data.ObjectParser) {
@@ -81,7 +79,6 @@ func (b *Base) Parse(parser data.ObjectParser) {
 }
 
 func (b *Base) Validate(validator data.Validator) {
-
 	// validator.ValidateString("createdTime", &b.CreatedTime).LengthGreaterThanOrEqualTo(1)
 	// validator.ValidateString("type", &b.Type).LengthGreaterThanOrEqualTo(1)
 
@@ -102,22 +99,16 @@ func (b *Base) Validate(validator data.Validator) {
 }
 
 func (b *Base) Normalize(normalizer data.Normalizer) {
-	// b._ID = bson.NewObjectId() // TODO_DATA: We don't supply this, Mongo does
-	// b.ID = bson.NewObjectId().Hex() // TODO_DATA: Isn't this the old deduplicator id that needs to be generated?
-
-	// b.ActiveFlag = BooleanAsPointer(false) // TODO_DATA: This should be set in New function for each type
-	// b.SchemaVersion = IntegerAsPointer(3)  // TODO_DATA: Use constant here
-	// b.CreatedTime = StringAsPointer(time.Now().Format(time.RFC3339))
 }
 
-func BooleanAsPointer(boolean bool) *bool {
-	return &boolean
+func (b *Base) SetUserID(userID string) {
+	b.UserID = userID
 }
 
-func StringAsPointer(str string) *string {
-	return &str
+func (b *Base) SetGroupID(groupID string) {
+	b.GroupID = groupID
 }
 
-func IntegerAsPointer(integer int) *int {
-	return &integer
+func (b *Base) SetDatasetID(datasetID string) {
+	b.UploadID = datasetID
 }

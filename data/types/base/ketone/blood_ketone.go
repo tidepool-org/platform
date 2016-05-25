@@ -29,6 +29,8 @@ func New() (*Blood, error) {
 }
 
 func (b *Blood) Parse(parser data.ObjectParser) {
+	parser.SetMeta(b.Meta())
+
 	b.Base.Parse(parser)
 
 	b.Value = parser.ParseFloat("value")
@@ -36,6 +38,8 @@ func (b *Blood) Parse(parser data.ObjectParser) {
 }
 
 func (b *Blood) Validate(validator data.Validator) {
+	validator.SetMeta(b.Meta())
+
 	b.Base.Validate(validator)
 
 	validator.ValidateString("units", b.Units).Exists().OneOf([]string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL})
@@ -48,6 +52,8 @@ func (b *Blood) Validate(validator data.Validator) {
 }
 
 func (b *Blood) Normalize(normalizer data.Normalizer) {
+	normalizer.SetMeta(b.Meta())
+
 	b.Base.Normalize(normalizer)
 
 	b.Units, b.Value = normalizer.NormalizeBloodGlucose("value", b.Units).NormalizeUnitsAndValue(b.Value)

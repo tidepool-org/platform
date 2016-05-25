@@ -13,6 +13,8 @@ package data
 import "github.com/tidepool-org/platform/service"
 
 type Context interface {
+	SetMeta(meta interface{})
+
 	AppendError(reference interface{}, err *service.Error)
 
 	NewChildContext(reference interface{}) Context

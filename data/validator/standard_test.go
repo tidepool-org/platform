@@ -16,16 +16,26 @@ var _ = Describe("Standard", func() {
 	})
 
 	Describe("new validator", func() {
+		var standardContext *context.Standard
 		var standard *validator.Standard
 
 		BeforeEach(func() {
 			var err error
-			standard, err = validator.NewStandard(context.NewStandard())
+			standardContext = context.NewStandard()
+			standard, err = validator.NewStandard(standardContext)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("exists", func() {
 			Expect(standard).ToNot(BeNil())
+		})
+
+		Context("SetMeta", func() {
+			It("sets the meta on the context", func() {
+				meta := "metametameta"
+				standard.SetMeta(meta)
+				Expect(standardContext.Meta()).To(BeIdenticalTo(meta))
+			})
 		})
 
 		Context("ValidateBoolean", func() {

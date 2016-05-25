@@ -31,6 +31,10 @@ func NewStandard(context data.Context) (*Standard, error) {
 	}, nil
 }
 
+func (s *Standard) SetMeta(meta interface{}) {
+	s.context.SetMeta(meta)
+}
+
 func (s *Standard) Data() []data.Datum {
 	return *s.data
 }

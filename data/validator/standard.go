@@ -29,6 +29,10 @@ func NewStandard(context data.Context) (*Standard, error) {
 	}, nil
 }
 
+func (s *Standard) SetMeta(meta interface{}) {
+	s.context.SetMeta(meta)
+}
+
 func (s *Standard) ValidateBoolean(reference interface{}, value *bool) data.Boolean {
 	return NewStandardBoolean(s.context, reference, value)
 }

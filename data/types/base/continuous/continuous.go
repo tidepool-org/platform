@@ -29,6 +29,8 @@ func New() (*BloodGlucose, error) {
 }
 
 func (b *BloodGlucose) Parse(parser data.ObjectParser) {
+	parser.SetMeta(b.Meta())
+
 	b.Base.Parse(parser)
 
 	b.Units = parser.ParseString("units")
@@ -36,6 +38,8 @@ func (b *BloodGlucose) Parse(parser data.ObjectParser) {
 }
 
 func (b *BloodGlucose) Validate(validator data.Validator) {
+	validator.SetMeta(b.Meta())
+
 	b.Base.Validate(validator)
 
 	// TODO: Move array into bloodglucose package
@@ -49,6 +53,8 @@ func (b *BloodGlucose) Validate(validator data.Validator) {
 }
 
 func (b *BloodGlucose) Normalize(normalizer data.Normalizer) {
+	normalizer.SetMeta(b.Meta())
+
 	b.Base.Normalize(normalizer)
 
 	b.Units, b.Value = normalizer.NormalizeBloodGlucose("value", b.Units).NormalizeUnitsAndValue(b.Value)

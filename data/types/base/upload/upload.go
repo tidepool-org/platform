@@ -41,19 +41,9 @@ func New() (*Upload, error) {
 	}, nil
 }
 
-func (u *Upload) SetUploadUserID(uploadUserID string) {
-	u.UploadUserID = uploadUserID
-}
-
-func (u *Upload) SetDataState(dataState string) {
-	u.DataState = dataState
-}
-
-func (u *Upload) SetDeduplicator(deduplicator interface{}) {
-	u.Deduplicator = deduplicator
-}
-
 func (u *Upload) Parse(parser data.ObjectParser) {
+	parser.SetMeta(u.Meta())
+
 	u.Base.Parse(parser)
 
 	// u.UploadUserID = parser.ParseString("byUser") // TODO_DATA: Do not parse, we set this
@@ -70,6 +60,8 @@ func (u *Upload) Parse(parser data.ObjectParser) {
 }
 
 func (u *Upload) Validate(validator data.Validator) {
+	validator.SetMeta(u.Meta())
+
 	u.Base.Validate(validator)
 
 	// validator.ValidateString("type", u.Type).Exists() // TODO_DATA: Already done in Base
@@ -84,4 +76,22 @@ func (u *Upload) Validate(validator data.Validator) {
 	validator.ValidateString("timezone", u.TimeZone).Exists().LengthGreaterThan(1)
 	// validator.ValidateString("dataState", u.DataState).Exists().LengthGreaterThan(1) // TODO_DATA: Validation is for parsed data only
 	// validator.ValidateInterface("deduplicator", u.Deduplicator).Exists() // TODO_DATA: Validation is for parsed data only
+}
+
+func (u *Upload) Normalize(normalizer data.Normalizer) {
+	normalizer.SetMeta(u.Meta())
+
+	u.Base.Normalize(normalizer)
+}
+
+func (u *Upload) SetUploadUserID(uploadUserID string) {
+	u.UploadUserID = uploadUserID
+}
+
+func (u *Upload) SetDataState(dataState string) {
+	u.DataState = dataState
+}
+
+func (u *Upload) SetDeduplicator(deduplicator interface{}) {
+	u.Deduplicator = deduplicator
 }

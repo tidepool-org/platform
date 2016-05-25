@@ -99,6 +99,14 @@ var _ = Describe("StandardObject", func() {
 		It("has a contained Object", func() {
 			Expect(standardObject.Object()).ToNot(BeNil())
 		})
+
+		Context("SetMeta", func() {
+			It("sets the meta on the context", func() {
+				meta := "metametameta"
+				standardObject.SetMeta(meta)
+				Expect(standardContext.Meta()).To(BeIdenticalTo(meta))
+			})
+		})
 	})
 
 	Context("parsing elements with", func() {

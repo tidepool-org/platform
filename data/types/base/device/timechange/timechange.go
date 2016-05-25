@@ -18,7 +18,7 @@ import (
 type TimeChange struct {
 	device.Device `bson:",inline"`
 
-	*Change `json:"change,omitempty" bson:"change,omitempty"`
+	Change *Change `json:"change,omitempty" bson:"change,omitempty"`
 }
 
 func SubType() string {

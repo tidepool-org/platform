@@ -33,6 +33,10 @@ func NewStandardObject(context data.Context, object *map[string]interface{}) (*S
 	}, nil
 }
 
+func (s *StandardObject) SetMeta(meta interface{}) {
+	s.context.SetMeta(meta)
+}
+
 func (s *StandardObject) Object() *map[string]interface{} {
 	return s.object
 }
