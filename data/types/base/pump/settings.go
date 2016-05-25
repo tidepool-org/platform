@@ -10,7 +10,7 @@ type Settings struct {
 
 	*Units `json:"units,omitempty" bson:"units,omitempty"`
 
-	BasalSchedules *map[string][]*BasalSchedule `json:"basalSchedules,omitempty" bson:"basalSchedules,omitempty"`
+	BasalSchedules *map[string]*[]*BasalSchedule `json:"basalSchedules,omitempty" bson:"basalSchedules,omitempty"`
 
 	CarbohydrateRatios   *[]*CarbohydrateRatio  `json:"carbRatio,omitempty" bson:"carbRatio,omitempty"`
 	InsulinSensitivities *[]*InsulinSensitivity `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`
@@ -44,8 +44,7 @@ func (s *Settings) Parse(parser data.ObjectParser) {
 	s.CarbohydrateRatios = ParseCarbohydrateRatioArray(parser.NewChildArrayParser("carbRatio"))
 	s.InsulinSensitivities = ParseInsulinSensitivityArray(parser.NewChildArrayParser("insulinSensitivity"))
 	s.BloodGlucoseTargets = ParseBloodGlucoseTargetArray(parser.NewChildArrayParser("bgTarget"))
-
-	s.BasalSchedules = ParseBasalScheduleArray(parser.NewChildArrayParser("basalSchedules"))
+	s.BasalSchedules = ParseBasalSchedulesMap(parser.NewChildObjectParser("basalSchedules"))
 }
 
 func (s *Settings) Validate(validator data.Validator) {
@@ -86,6 +85,17 @@ func (s *Settings) Validate(validator data.Validator) {
 		}
 	}
 
+	if s.BasalSchedules != nil {
+		basalSchedulesValidator := validator.NewChildValidator("basalSchedules")
+		for _, basalSchedule := range *s.BasalSchedules {
+			if basalSchedule != nil {
+				for index, scheduleItem := range *basalSchedule {
+					scheduleItem.Validate(basalSchedulesValidator.NewChildValidator(index))
+				}
+			}
+		}
+	}
+
 }
 
 func (s *Settings) Normalize(normalizer data.Normalizer) {
@@ -104,6 +114,16 @@ func (s *Settings) Normalize(normalizer data.Normalizer) {
 			if bgTarget != nil {
 				bgTarget.targetUnits = originalUnits
 				bgTarget.Normalize(bloodGlucoseTargetsNormalizer.NewChildNormalizer(index))
+			}
+		}
+	}
+
+	if s.InsulinSensitivities != nil {
+		insulinSensitivitiesNormalizer := normalizer.NewChildNormalizer("insulinSensitivity")
+		for index, insulinSensitivity := range *s.InsulinSensitivities {
+			if insulinSensitivity != nil {
+				insulinSensitivity.amountUnits = originalUnits
+				insulinSensitivity.Normalize(insulinSensitivitiesNormalizer.NewChildNormalizer(index))
 			}
 		}
 	}

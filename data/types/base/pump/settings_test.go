@@ -43,12 +43,14 @@ var _ = Describe("Pump Settings", func() {
 			map[string]interface{}{"amount": 2.5, "start": 18000000},
 		}
 
-		rawObject["basalSchedules"] = []interface{}{
-			map[string][]interface{}{
-				"standard": {
-					map[string]interface{}{"rate": 0.8, "start": 0},
-					map[string]interface{}{"rate": 0.75, "start": 3600000},
-				}},
+		rawObject["basalSchedules"] = map[string]interface{}{
+			"standard": []interface{}{
+				map[string]interface{}{"rate": 0.6, "start": 0},
+			},
+			"pattern a": []interface{}{
+				map[string]interface{}{"rate": 1.25, "start": 0},
+			},
+			"pattern b": []interface{}{},
 		}
 
 	})
@@ -113,6 +115,80 @@ var _ = Describe("Pump Settings", func() {
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
 			Entry("start and amount within bounds", rawObject, "carbRatio",
 				[]interface{}{map[string]interface{}{"amount": 12.0, "start": 0}},
+			),
+		)
+
+	})
+
+	Context("basalSchedules", func() {
+
+		basalSchedules := map[string]interface{}{
+			"standard": []interface{}{
+				map[string]interface{}{"rate": 0.6, "start": 0},
+				map[string]interface{}{"rate": 0.6, "start": 10800000},
+				map[string]interface{}{"rate": 0.6, "start": 23400000},
+				map[string]interface{}{"rate": 0.6, "start": 43200000},
+				map[string]interface{}{"rate": 0.6, "start": 63000000},
+				map[string]interface{}{"rate": 0.6, "start": 81000000},
+			},
+			"pattern a": []interface{}{
+				map[string]interface{}{"rate": 1.25, "start": 0},
+				map[string]interface{}{"rate": 1.25, "start": 10800000},
+				map[string]interface{}{"rate": 1.25, "start": 25200000},
+				map[string]interface{}{"rate": 1.25, "start": 43200000},
+				map[string]interface{}{"rate": 1.25, "start": 72000000},
+			},
+			"pattern b": []interface{}{},
+		}
+
+		DescribeTable("valid when", testing.ExpectFieldIsValid,
+			Entry("start and rate within bounds", rawObject, "basalSchedules", basalSchedules),
+		)
+
+		DescribeTable("invalid when", testing.ExpectFieldNotValid,
+			Entry("start negative", rawObject, "basalSchedules",
+				map[string]interface{}{
+					"standard": []interface{}{
+						map[string]interface{}{"rate": 0.6, "start": -1},
+					}},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(-1, 0, 86400000), "/basalSchedules/0/start")},
+			),
+			Entry("start to large", rawObject, "basalSchedules",
+				map[string]interface{}{
+					"standard": []interface{}{
+						map[string]interface{}{"rate": 0.6, "start": 86400001},
+					}},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(86400001, 0, 86400000), "/basalSchedules/0/start")},
+			),
+			Entry("nested start to large", rawObject, "basalSchedules",
+				map[string]interface{}{
+					"standard": []interface{}{
+						map[string]interface{}{"rate": 0.6, "start": 5},
+						map[string]interface{}{"rate": 0.6, "start": 86400001},
+					}},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(86400001, 0, 86400000), "/basalSchedules/1/start")},
+			),
+			Entry("start negative", rawObject, "basalSchedules",
+				map[string]interface{}{
+					"standard": []interface{}{
+						map[string]interface{}{"rate": -0.1, "start": 10800000},
+					}},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, 0.0, 20.0), "/basalSchedules/0/rate")},
+			),
+			Entry("start to large", rawObject, "basalSchedules",
+				map[string]interface{}{
+					"standard": []interface{}{
+						map[string]interface{}{"rate": 20.1, "start": 10800000},
+					}},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(20.1, 0.0, 20.0), "/basalSchedules/0/rate")},
+			),
+			Entry("nested rate to large", rawObject, "basalSchedules",
+				map[string]interface{}{
+					"standard": []interface{}{
+						map[string]interface{}{"rate": 0.6, "start": 0},
+						map[string]interface{}{"rate": 25.1, "start": 10800000},
+					}},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(25.1, 0.0, 20.0), "/basalSchedules/1/rate")},
 			),
 		)
 

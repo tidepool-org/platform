@@ -24,7 +24,7 @@ func (b *BasalSchedule) Validate(validator data.Validator) {
 func (b *BasalSchedule) Normalize(normalizer data.Normalizer) {
 }
 
-func ParseBasalSchedule(parser data.ObjectParser) *BasalSchedule {
+func parseScheduleItem(parser data.ObjectParser) *BasalSchedule {
 	var basalSchedule *BasalSchedule
 	if parser.Object() != nil {
 		basalSchedule = NewBasalSchedule()
@@ -33,14 +33,27 @@ func ParseBasalSchedule(parser data.ObjectParser) *BasalSchedule {
 	return basalSchedule
 }
 
-func ParseBasalScheduleArray(parser data.ArrayParser) *map[string][]*BasalSchedule {
-	var basalScheduleArray *map[string][]*BasalSchedule
+func ParseBasalScheduleArray(parser data.ArrayParser) *[]*BasalSchedule {
+	var basalScheduleArray *[]*BasalSchedule
 	if parser.Array() != nil {
-		basalScheduleArray = &map[string][]*BasalSchedule{}
+		basalScheduleArray = &[]*BasalSchedule{}
 
-		// for index := range *parser.Array() {
-		// 	*basalScheduleArray[key] = ParseBasalSchedule(parser.NewChildObjectParser(key))
-		// }
+		for index := range *parser.Array() {
+			*basalScheduleArray = append(*basalScheduleArray, parseScheduleItem(parser.NewChildObjectParser(index)))
+		}
 	}
 	return basalScheduleArray
+}
+
+func ParseBasalSchedulesMap(parser data.ObjectParser) *map[string]*[]*BasalSchedule {
+
+	var basalScheduleMap map[string]*[]*BasalSchedule
+
+	if parser.Object() != nil {
+		basalScheduleMap = map[string]*[]*BasalSchedule{}
+		for key, _ := range *parser.Object() {
+			basalScheduleMap[key] = ParseBasalScheduleArray(parser.NewChildArrayParser(key))
+		}
+	}
+	return &basalScheduleMap
 }
