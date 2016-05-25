@@ -20,11 +20,12 @@ var _ = Describe("Selfmonitored BloodGlucose", func() {
 
 	rawObject["type"] = "smbg"
 	rawObject["units"] = "mmol/L"
+	rawObject["subType"] = "manual"
 	rawObject["value"] = 5
 
 	Context("units", func() {
 
-		DescribeTable("units when", testing.ExpectFieldNotValid,
+		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("empty", rawObject, "units", "",
 				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("", []string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL}), "/units")},
 			),
@@ -38,6 +39,21 @@ var _ = Describe("Selfmonitored BloodGlucose", func() {
 			Entry("mmol/L", rawObject, "units", "mmol/L"),
 			Entry("mg/dl", rawObject, "units", "mg/dl"),
 			Entry("mg/dL", rawObject, "units", "mg/dL"),
+		)
+
+	})
+
+	Context("subType", func() {
+
+		DescribeTable("invalid when", testing.ExpectFieldNotValid,
+			Entry("not one of the predefined values", rawObject, "subType", "wrong",
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("wrong", []string{"manual", "linked"}), "/subType")},
+			),
+		)
+
+		DescribeTable("valid when", testing.ExpectFieldIsValid,
+			Entry("manual", rawObject, "subType", "manual"),
+			Entry("linked", rawObject, "subType", "linked"),
 		)
 
 	})
