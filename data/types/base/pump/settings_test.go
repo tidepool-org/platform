@@ -302,7 +302,7 @@ var _ = Describe("Pump Settings", func() {
 
 	})
 
-	Context("normalized", func() {
+	Context("bgTarget normalized", func() {
 
 		DescribeTable("normalization when mmol/L", func(lowVal, lowExpected, highVal, highExpected, targetVal, targetExpected float64) {
 			pumpSettings, err := pump.New()
@@ -356,6 +356,63 @@ var _ = Describe("Pump Settings", func() {
 			Entry("expected lower bg value", 50.0, 2.7753739955227665, 55.0, 3.0529113950750433, 52.0, 2.8863889553436772),
 			Entry("below max", 970.0, 53.84225551314167, 990.0, 54.95240511135078, 980.0, 54.397330312246226),
 			Entry("expected upper bg value", 70.0, 3.8855235937318735, 180.0, 9.991346383881961, 99.0, 5.495240511135078),
+		)
+	})
+
+	Context("insulinSensitivity normalized", func() {
+
+		DescribeTable("when mmol/L", func(val, expected float64) {
+			pumpSettings, err := pump.New()
+			Expect(err).To(BeNil())
+			pumpSettings.Units = &pump.Units{BloodGlucose: &bloodglucose.MmolL}
+
+			start := 21600000
+
+			pumpSettings.InsulinSensitivities = &[]*pump.InsulinSensitivity{
+				{Amount: &val, Start: &start},
+				{Amount: &val, Start: &start},
+			}
+
+			testContext := context.NewStandard()
+			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(err).To(BeNil())
+			pumpSettings.Normalize(standardNormalizer)
+			Expect(pumpSettings.Units.BloodGlucose).To(Equal(&bloodglucose.MmolL))
+
+			for _, insulinSensitivity := range *pumpSettings.InsulinSensitivities {
+				Expect(insulinSensitivity.Amount).To(Equal(&expected))
+			}
+		},
+			Entry("very low", 0.1, 0.1),
+			Entry("very high", 55.0, 55.0),
+			Entry("normal", 8.3, 8.3),
+		)
+
+		DescribeTable("when mg/dL", func(val, expected float64) {
+			pumpSettings, err := pump.New()
+			Expect(err).To(BeNil())
+			pumpSettings.Units = &pump.Units{BloodGlucose: &bloodglucose.MgdL}
+
+			start := 21600000
+
+			pumpSettings.InsulinSensitivities = &[]*pump.InsulinSensitivity{
+				{Amount: &val, Start: &start},
+				{Amount: &val, Start: &start},
+			}
+
+			testContext := context.NewStandard()
+			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(err).To(BeNil())
+			pumpSettings.Normalize(standardNormalizer)
+			Expect(pumpSettings.Units.BloodGlucose).To(Equal(&bloodglucose.MmolL))
+
+			for _, insulinSensitivity := range *pumpSettings.InsulinSensitivities {
+				Expect(insulinSensitivity.Amount).To(Equal(&expected))
+			}
+		},
+			Entry("very low", 60.0, 3.33044879462732),
+			Entry("very high", 990.85745, 55.0),
+			Entry("normal", 160.0, 8.881196785672854),
 		)
 	})
 
