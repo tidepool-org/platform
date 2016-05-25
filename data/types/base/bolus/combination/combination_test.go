@@ -54,7 +54,8 @@ var _ = Describe("Combination Bolus", func() {
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
 			Entry("within bounds", rawObject, "extended", 5.5),
 			Entry("also without decimal", rawObject, "extended", 5),
-			Entry("zero", rawObject, "extended", 0),
+			Entry("0", rawObject, "extended", 0.0),
+			Entry("100", rawObject, "extended", 100.0),
 		)
 
 	})
@@ -63,17 +64,16 @@ var _ = Describe("Combination Bolus", func() {
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("negative", rawObject, "normal", -0.1,
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorValueNotGreaterThan(-0.1, 0.0), "/normal")},
-			),
-			Entry("zero", rawObject, "normal", 0.0,
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorValueNotGreaterThan(0.0, 0.0), "/normal")},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, 0.0, 100.0), "/normal")},
 			),
 			Entry("greater than 100", rawObject, "normal", 100.1,
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorValueNotLessThanOrEqualTo(100.1, 100.0), "/normal")},
+				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(100.1, 0.0, 100.0), "/normal")},
 			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
+			Entry("0", rawObject, "normal", 0),
+			Entry("100", rawObject, "normal", 100.0),
 			Entry("within bounds", rawObject, "normal", 25.5),
 			Entry("also without decimal", rawObject, "normal", 50),
 		)
