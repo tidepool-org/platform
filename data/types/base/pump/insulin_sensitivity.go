@@ -33,6 +33,12 @@ func (i *InsulinSensitivity) Validate(validator data.Validator) {
 }
 
 func (i *InsulinSensitivity) Normalize(normalizer data.Normalizer) {
+	if i.amountUnits == nil {
+		return
+	}
+	if i.Amount != nil {
+		i.Amount = normalizer.NormalizeBloodGlucose("low", i.amountUnits).NormalizeValue(i.Amount)
+	}
 }
 
 func ParseInsulinSensitivity(parser data.ObjectParser) *InsulinSensitivity {
