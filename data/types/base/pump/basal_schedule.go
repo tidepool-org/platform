@@ -51,7 +51,7 @@ func ParseBasalSchedulesMap(parser data.ObjectParser) *map[string]*[]*BasalSched
 
 	if parser.Object() != nil {
 		basalScheduleMap = map[string]*[]*BasalSchedule{}
-		for key, _ := range *parser.Object() {
+		for key := range *parser.Object() {
 			basalScheduleMap[key] = ParseBasalScheduleArray(parser.NewChildArrayParser(key))
 		}
 	}
