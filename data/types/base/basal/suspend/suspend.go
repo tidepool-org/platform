@@ -44,6 +44,6 @@ func (s *Suspend) Parse(parser data.ObjectParser) {
 
 func (s *Suspend) Validate(validator data.Validator) {
 	s.Basal.Validate(validator)
-
-	validator.ValidateInteger("duration", s.Duration).Exists().InRange(0, 86400000)
+	//Note: set to a max of one week as we don't yet understand what is acceptable
+	validator.ValidateInteger("duration", s.Duration).Exists().InRange(0, 604800000)
 }
