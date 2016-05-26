@@ -1,4 +1,4 @@
-package common_test
+package bloodglucose_test
 
 import (
 	"testing"
@@ -9,5 +9,5 @@ import (
 
 func TestSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "data/types/common")
+	RunSpecs(t, "data/types/common/bloodglucose")
 }
