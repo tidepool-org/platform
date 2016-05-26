@@ -38,7 +38,7 @@ const (
 	TidepoolUserSessionTokenHeaderName = "x-tidepool-session-token"
 
 	ServerTokenTimeoutOnFailureFirst = time.Second
-	ServerTokenTimeoutOnFailureLast  = time.Minute
+	ServerTokenTimeoutOnFailureLast  = 60 * time.Second
 )
 
 func NewStandard(logger log.Logger, config *Config) (*Standard, error) {
@@ -56,43 +56,51 @@ func NewStandard(logger log.Logger, config *Config) (*Standard, error) {
 	httpClient := &http.Client{
 		Timeout: time.Duration(config.RequestTimeout) * time.Second,
 	}
-	closingChannel := make(chan chan bool)
-	serverTokenTimeout := time.Duration(config.ServerTokenTimeout) * time.Minute
+	serverTokenTimeout := time.Duration(config.ServerTokenTimeout) * time.Second
 
 	return &Standard{
 		logger:             logger,
 		config:             config,
 		httpClient:         httpClient,
-		closingChannel:     closingChannel,
 		serverTokenTimeout: serverTokenTimeout,
 	}, nil
 }
 
 func (s *Standard) Start() error {
-	serverTokenTimeout := s.timeoutServerToken(0)
+	if s.closingChannel == nil {
+		closingChannel := make(chan chan bool)
+		s.closingChannel = closingChannel
 
-	go func() {
-		for {
-			timer := time.After(serverTokenTimeout)
-			select {
-			case closedChannel := <-s.closingChannel:
-				closedChannel <- true
-				return
-			case <-timer:
-				serverTokenTimeout = s.timeoutServerToken(serverTokenTimeout)
+		serverTokenTimeout := s.timeoutServerToken(0)
+
+		go func() {
+			for {
+				timer := time.After(serverTokenTimeout)
+				select {
+				case closedChannel := <-closingChannel:
+					closedChannel <- true
+					close(closedChannel)
+					return
+				case <-timer:
+					serverTokenTimeout = s.timeoutServerToken(serverTokenTimeout)
+				}
 			}
-		}
-	}()
+		}()
+	}
 
 	return nil
 }
 
 func (s *Standard) Close() {
-	closedChannel := make(chan bool)
-	s.closingChannel <- closedChannel
-	<-closedChannel
+	if s.closingChannel != nil {
+		closingChannel := s.closingChannel
+		s.closingChannel = nil
 
-	s.setServerToken("")
+		closedChannel := make(chan bool)
+		closingChannel <- closedChannel
+		close(closingChannel)
+		<-closedChannel
+	}
 }
 
 func (s *Standard) ValidateUserSession(context service.Context, sessionToken string) (string, error) {
@@ -101,6 +109,10 @@ func (s *Standard) ValidateUserSession(context service.Context, sessionToken str
 	}
 	if sessionToken == "" {
 		return "", app.Error("client", "session token is missing")
+	}
+
+	if s.closingChannel == nil {
+		return "", app.Error("client", "client is closed")
 	}
 
 	var sessionTokenData struct {
@@ -133,7 +145,11 @@ func (s *Standard) ValidateTargetUserPermissions(context service.Context, reques
 		return app.Error("client", "target user id is missing")
 	}
 	if len(targetPermissions) == 0 {
-		return app.Error("client", "target permissions is empty")
+		return app.Error("client", "target permissions is missing")
+	}
+
+	if s.closingChannel == nil {
+		return app.Error("client", "client is closed")
 	}
 
 	context.Logger().WithFields(log.Fields{"request-user-id": requestUserID, "target-user-id": targetUserID, "target-permissions": targetPermissions}).Debug("Validating target user permissions")
@@ -167,6 +183,10 @@ func (s *Standard) GetUserGroupID(context service.Context, userID string) (strin
 	}
 	if userID == "" {
 		return "", app.Error("client", "user id is missing")
+	}
+
+	if s.closingChannel == nil {
+		return "", app.Error("client", "client is closed")
 	}
 
 	context.Logger().WithField("user-id", userID).Debug("Getting user group id")

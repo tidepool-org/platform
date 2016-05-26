@@ -43,7 +43,7 @@ func (c *Config) Validate() error {
 		c.RequestTimeout = 60
 	}
 	if c.ServerTokenTimeout == 0 {
-		c.ServerTokenTimeout = 60
+		c.ServerTokenTimeout = 3600
 	}
 	return nil
 }

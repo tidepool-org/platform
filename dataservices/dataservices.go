@@ -160,7 +160,6 @@ func initializeUserservicesClient(configLoader config.Loader, logger log.Logger)
 
 	logger.Debug("Starting userservices client")
 	if err = userservicesClient.Start(); err != nil {
-
 		return nil, app.ExtError(err, "dataservices", "unable to start userservices client")
 	}
 
