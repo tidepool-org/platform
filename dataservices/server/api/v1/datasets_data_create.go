@@ -116,6 +116,8 @@ func DatasetsDataCreate(serverContext server.Context) {
 		datum.Normalize(datumNormalizer)
 	}
 
+	datumArray = append(datumArray, datumNormalizer.Data()...)
+
 	if err = deduplicator.AddDataToDataset(datumArray); err != nil {
 		serverContext.RespondWithInternalServerFailure("Unable to add data to dataset", err)
 		return
