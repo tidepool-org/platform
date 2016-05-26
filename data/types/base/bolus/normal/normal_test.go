@@ -10,32 +10,35 @@ import (
 	"github.com/tidepool-org/platform/service"
 )
 
-var _ = Describe("Normal", func() {
-	var rawObject = testing.RawBaseObject()
-	var meta = &bolus.Meta{
+func NewRawObject() map[string]interface{} {
+	rawObject := testing.RawBaseObject()
+	rawObject["type"] = "bolus"
+	rawObject["subType"] = "normal"
+	rawObject["normal"] = 52.1
+	return rawObject
+}
+
+func NewMeta() interface{} {
+	return &bolus.Meta{
 		Type:    "bolus",
 		SubType: "normal",
 	}
+}
 
-	BeforeEach(func() {
-		rawObject["type"] = "bolus"
-		rawObject["subType"] = "normal"
-		rawObject["normal"] = 52.1
-	})
-
+var _ = Describe("Normal", func() {
 	Context("normal", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("is negative", rawObject, "normal", -0.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, 0.0, 100.0), "/normal", meta)},
+			Entry("is negative", NewRawObject(), "normal", -0.1,
+				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, 0.0, 100.0), "/normal", NewMeta())},
 			),
-			Entry("is greater than 20", rawObject, "normal", 100.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(100.1, 0.0, 100.0), "/normal", meta)},
+			Entry("is greater than 20", NewRawObject(), "normal", 100.1,
+				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(100.1, 0.0, 100.0), "/normal", NewMeta())},
 			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("is within bounds", rawObject, "normal", 25.5),
-			Entry("is without decimal", rawObject, "normal", 50),
+			Entry("is within bounds", NewRawObject(), "normal", 25.5),
+			Entry("is without decimal", NewRawObject(), "normal", 50),
 		)
 	})
 })

@@ -15,48 +15,53 @@ import (
 	"github.com/tidepool-org/platform/service"
 )
 
-var _ = Describe("BloodKetone", func() {
-	var rawObject = testing.RawBaseObject()
-	var meta = &base.Meta{
-		Type: "bloodKetone",
-	}
-
+func NewRawObject() map[string]interface{} {
+	rawObject := testing.RawBaseObject()
 	rawObject["type"] = "bloodKetone"
 	rawObject["units"] = "mmol/L"
 	rawObject["value"] = 5
+	return rawObject
+}
 
+func NewMeta() interface{} {
+	return &base.Meta{
+		Type: "bloodKetone",
+	}
+}
+
+var _ = Describe("BloodKetone", func() {
 	Context("units", func() {
 		DescribeTable("units when", testing.ExpectFieldNotValid,
-			Entry("is empty", rawObject, "units", "",
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("", []string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL}), "/units", meta)},
+			Entry("is empty", NewRawObject(), "units", "",
+				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("", []string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL}), "/units", NewMeta())},
 			),
-			Entry("is not one of the predefined values", rawObject, "units", "wrong",
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("wrong", []string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL}), "/units", meta)},
+			Entry("is not one of the predefined values", NewRawObject(), "units", "wrong",
+				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("wrong", []string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL}), "/units", NewMeta())},
 			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("is mmol/l", rawObject, "units", "mmol/l"),
-			Entry("is mmol/L", rawObject, "units", "mmol/L"),
-			Entry("is mg/dl", rawObject, "units", "mg/dl"),
-			Entry("is mg/dL", rawObject, "units", "mg/dL"),
+			Entry("is mmol/l", NewRawObject(), "units", "mmol/l"),
+			Entry("is mmol/L", NewRawObject(), "units", "mmol/L"),
+			Entry("is mg/dl", NewRawObject(), "units", "mg/dl"),
+			Entry("is mg/dL", NewRawObject(), "units", "mg/dL"),
 		)
 	})
 
 	Context("value", func() {
 		DescribeTable("value when", testing.ExpectFieldNotValid,
-			Entry("is less than 0", rawObject, "value", -0.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/value", meta)},
+			Entry("is less than 0", NewRawObject(), "value", -0.1,
+				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/value", NewMeta())},
 			),
-			Entry("is greater than 1000", rawObject, "value", 1000.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(1000.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/value", meta)},
+			Entry("is greater than 1000", NewRawObject(), "value", 1000.1,
+				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(1000.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/value", NewMeta())},
 			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("is above 0", rawObject, "value", 0.1),
-			Entry("is below 1000", rawObject, "value", 990.85745),
-			Entry("is an integer", rawObject, "value", 4),
+			Entry("is above 0", NewRawObject(), "value", 0.1),
+			Entry("is below 1000", NewRawObject(), "value", 990.85745),
+			Entry("is an integer", NewRawObject(), "value", 4),
 		)
 	})
 

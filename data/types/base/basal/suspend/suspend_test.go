@@ -10,31 +10,34 @@ import (
 	"github.com/tidepool-org/platform/service"
 )
 
-var _ = Describe("Suspend", func() {
-	var rawObject = testing.RawBaseObject()
-	var meta = &basal.Meta{
+func NewRawObject() map[string]interface{} {
+	rawObject := testing.RawBaseObject()
+	rawObject["type"] = "basal"
+	rawObject["deliveryType"] = "suspend"
+	rawObject["duration"] = 0
+	return rawObject
+}
+
+func NewMeta() interface{} {
+	return &basal.Meta{
 		Type:         "basal",
 		DeliveryType: "suspend",
 	}
+}
 
-	BeforeEach(func() {
-		rawObject["type"] = "basal"
-		rawObject["deliveryType"] = "suspend"
-		rawObject["duration"] = 0
-	})
-
+var _ = Describe("Suspend", func() {
 	Context("duration", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("is negative", rawObject, "duration", -1,
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(-1, 0, 604800000), "/duration", meta)},
+			Entry("is negative", NewRawObject(), "duration", -1,
+				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(-1, 0, 604800000), "/duration", NewMeta())},
 			),
-			Entry("is greater than 604800000", rawObject, "duration", 604800001,
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(604800001, 0, 604800000), "/duration", meta)},
+			Entry("is greater than 604800000", NewRawObject(), "duration", 604800001,
+				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(604800001, 0, 604800000), "/duration", NewMeta())},
 			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("is within bounds", rawObject, "duration", 86400000),
+			Entry("is within bounds", NewRawObject(), "duration", 86400000),
 		)
 	})
 })

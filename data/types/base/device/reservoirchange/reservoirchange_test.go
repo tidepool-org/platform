@@ -10,28 +10,32 @@ import (
 	"github.com/tidepool-org/platform/service"
 )
 
-var _ = Describe("Reservoirchange", func() {
-	var rawObject = testing.RawBaseObject()
-	var meta = &device.Meta{
+func NewRawObject() map[string]interface{} {
+	rawObject := testing.RawBaseObject()
+	rawObject["type"] = "deviceEvent"
+	rawObject["subType"] = "reservoirChange"
+	rawObject["status"] = "some-id"
+	return rawObject
+}
+
+func NewMeta() interface{} {
+	return &device.Meta{
 		Type:    "deviceEvent",
 		SubType: "reservoirChange",
 	}
 
-	BeforeEach(func() {
-		rawObject["type"] = "deviceEvent"
-		rawObject["subType"] = "reservoirChange"
-		rawObject["status"] = "some-id"
-	})
+}
 
+var _ = Describe("Reservoirchange", func() {
 	Context("status", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("is empty", rawObject, "status", "",
-				[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThan(0, 1), "/status", meta)},
+			Entry("is empty", NewRawObject(), "status", "",
+				[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThan(0, 1), "/status", NewMeta())},
 			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("is longer than one character", rawObject, "status", "the-linked-status-id"),
+			Entry("is longer than one character", NewRawObject(), "status", "the-linked-status-id"),
 		)
 	})
 })
