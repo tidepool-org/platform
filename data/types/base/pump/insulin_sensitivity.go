@@ -6,9 +6,8 @@ import (
 )
 
 type InsulinSensitivity struct {
-	Amount      *float64 `json:"amount,omitempty" bson:"amount,omitempty"`
-	Start       *int     `json:"start,omitempty" bson:"start,omitempty"`
-	amountUnits *string
+	Amount *float64 `json:"amount,omitempty" bson:"amount,omitempty"`
+	Start  *int     `json:"start,omitempty" bson:"start,omitempty"`
 }
 
 func NewInsulinSensitivity() *InsulinSensitivity {
@@ -20,9 +19,13 @@ func (i *InsulinSensitivity) Parse(parser data.ObjectParser) {
 	i.Start = parser.ParseInteger("start")
 }
 
-func (i *InsulinSensitivity) Validate(validator data.Validator) {
+func (i *InsulinSensitivity) Validate(validator data.Validator, units *string) {
 
-	switch i.amountUnits {
+	if units == nil {
+		return
+	}
+
+	switch units {
 	case &bloodglucose.Mmoll, &bloodglucose.MmolL:
 		validator.ValidateFloat("amount", i.Amount).Exists().InRange(bloodglucose.MmolLFromValue, bloodglucose.MmolLToValue)
 	default:
@@ -32,12 +35,9 @@ func (i *InsulinSensitivity) Validate(validator data.Validator) {
 	validator.ValidateInteger("start", i.Start).Exists().InRange(0, 86400000)
 }
 
-func (i *InsulinSensitivity) Normalize(normalizer data.Normalizer) {
-	if i.amountUnits == nil {
-		return
-	}
-	if i.Amount != nil {
-		i.Amount = normalizer.NormalizeBloodGlucose("low", i.amountUnits).NormalizeValue(i.Amount)
+func (i *InsulinSensitivity) Normalize(normalizer data.Normalizer, units *string) {
+	if i.Amount != nil && units != nil {
+		i.Amount = normalizer.NormalizeBloodGlucose("low", units).NormalizeValue(i.Amount)
 	}
 }
 
