@@ -115,8 +115,7 @@ build: godep
 
 ci-build: build
 
-# TODO: Should be `ci-test` not `test` (after concurrency issues that currently break `ci-test` are resolved)
-ci-deploy: pre-build ci-build test
+ci-deploy: pre-build ci-build ci-test
 ifdef TRAVIS_TAG
 	@cd $(ROOT_DIRECTORY) && \
 		rm -rf deploy/ && \

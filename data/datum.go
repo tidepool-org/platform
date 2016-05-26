@@ -11,6 +11,8 @@ package data
  */
 
 type Datum interface {
+	Meta() interface{}
+
 	Parse(parser ObjectParser)
 	Validate(validator Validator)
 	Normalize(normalizer Normalizer)

@@ -99,6 +99,14 @@ var _ = Describe("StandardObject", func() {
 		It("has a contained Object", func() {
 			Expect(standardObject.Object()).ToNot(BeNil())
 		})
+
+		Context("SetMeta", func() {
+			It("sets the meta on the context", func() {
+				meta := "metametameta"
+				standardObject.SetMeta(meta)
+				Expect(standardContext.Meta()).To(BeIdenticalTo(meta))
+			})
+		})
 	})
 
 	Context("parsing elements with", func() {
@@ -109,7 +117,7 @@ var _ = Describe("StandardObject", func() {
 			standardContext = context.NewStandard()
 		})
 
-		Describe("ParseBoolean", func() {
+		Context("ParseBoolean", func() {
 			BeforeEach(func() {
 				standardObject, _ = parser.NewStandardObject(standardContext, &map[string]interface{}{
 					"zero": "not a boolean",
@@ -136,7 +144,7 @@ var _ = Describe("StandardObject", func() {
 			})
 		})
 
-		Describe("ParseInteger", func() {
+		Context("ParseInteger", func() {
 			BeforeEach(func() {
 				standardObject, _ = parser.NewStandardObject(standardContext, &map[string]interface{}{
 					"zero":  false,
@@ -178,7 +186,7 @@ var _ = Describe("StandardObject", func() {
 			})
 		})
 
-		Describe("ParseFloat", func() {
+		Context("ParseFloat", func() {
 			BeforeEach(func() {
 				standardObject, _ = parser.NewStandardObject(standardContext, &map[string]interface{}{
 					"zero":  false,
@@ -221,7 +229,7 @@ var _ = Describe("StandardObject", func() {
 			})
 		})
 
-		Describe("ParseString", func() {
+		Context("ParseString", func() {
 			BeforeEach(func() {
 				standardObject, _ = parser.NewStandardObject(standardContext, &map[string]interface{}{
 					"zero": false,
@@ -248,7 +256,7 @@ var _ = Describe("StandardObject", func() {
 			})
 		})
 
-		Describe("ParseStringArray", func() {
+		Context("ParseStringArray", func() {
 			BeforeEach(func() {
 				standardObject, _ = parser.NewStandardObject(standardContext, &map[string]interface{}{
 					"zero": false,
@@ -301,7 +309,7 @@ var _ = Describe("StandardObject", func() {
 			})
 		})
 
-		Describe("ParseObject", func() {
+		Context("ParseObject", func() {
 			BeforeEach(func() {
 				standardObject, _ = parser.NewStandardObject(standardContext, &map[string]interface{}{
 					"zero": false,
@@ -330,7 +338,7 @@ var _ = Describe("StandardObject", func() {
 			})
 		})
 
-		Describe("ParseObjectArray", func() {
+		Context("ParseObjectArray", func() {
 			BeforeEach(func() {
 				standardObject, _ = parser.NewStandardObject(standardContext, &map[string]interface{}{
 					"zero": false,
@@ -393,7 +401,7 @@ var _ = Describe("StandardObject", func() {
 			})
 		})
 
-		Describe("ParseInterface", func() {
+		Context("ParseInterface", func() {
 			BeforeEach(func() {
 				standardObject, _ = parser.NewStandardObject(standardContext, &map[string]interface{}{
 					"zero": false,
@@ -421,7 +429,7 @@ var _ = Describe("StandardObject", func() {
 			})
 		})
 
-		Describe("ParseInterfaceArray", func() {
+		Context("ParseInterfaceArray", func() {
 			BeforeEach(func() {
 				standardObject, _ = parser.NewStandardObject(standardContext, &map[string]interface{}{
 					"zero": false,
@@ -451,7 +459,7 @@ var _ = Describe("StandardObject", func() {
 			})
 		})
 
-		Describe("NewChildObjectParser", func() {
+		Context("NewChildObjectParser", func() {
 			BeforeEach(func() {
 				standardObject, _ = parser.NewStandardObject(standardContext, &map[string]interface{}{
 					"zero": false,
@@ -485,7 +493,7 @@ var _ = Describe("StandardObject", func() {
 			})
 		})
 
-		Describe("NewChildArrayParser", func() {
+		Context("NewChildArrayParser", func() {
 			BeforeEach(func() {
 				standardObject, _ = parser.NewStandardObject(standardContext, &map[string]interface{}{
 					"zero": false,

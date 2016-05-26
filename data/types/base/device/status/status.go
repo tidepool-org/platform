@@ -52,5 +52,4 @@ func (s *Status) Validate(validator data.Validator) {
 	validator.ValidateInteger("duration", s.Duration).GreaterThanOrEqualTo(0) // TODO_DATA: .Exists() - Suspend events on Animas do not have duration?
 	validator.ValidateString("status", s.Name).Exists().OneOf([]string{"suspended"})
 	validator.ValidateObject("reason", s.Reason).Exists()
-
 }

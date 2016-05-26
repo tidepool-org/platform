@@ -35,6 +35,8 @@ func New() (*Settings, error) {
 }
 
 func (s *Settings) Parse(parser data.ObjectParser) {
+	parser.SetMeta(s.Meta())
+
 	s.Base.Parse(parser)
 
 	s.ActiveSchedule = parser.ParseString("activeSchedule")
@@ -48,6 +50,8 @@ func (s *Settings) Parse(parser data.ObjectParser) {
 }
 
 func (s *Settings) Validate(validator data.Validator) {
+	validator.SetMeta(s.Meta())
+
 	s.Base.Validate(validator)
 
 	validator.ValidateString("activeSchedule", s.ActiveSchedule).Exists().LengthGreaterThanOrEqualTo(1)
@@ -93,10 +97,11 @@ func (s *Settings) Validate(validator data.Validator) {
 			}
 		}
 	}
-
 }
 
 func (s *Settings) Normalize(normalizer data.Normalizer) {
+	normalizer.SetMeta(s.Meta())
+
 	s.Base.Normalize(normalizer)
 
 	var originalUnits *string
@@ -123,5 +128,4 @@ func (s *Settings) Normalize(normalizer data.Normalizer) {
 			}
 		}
 	}
-
 }

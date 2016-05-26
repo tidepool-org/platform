@@ -53,6 +53,8 @@ func New() (*Calculator, error) {
 }
 
 func (c *Calculator) Parse(parser data.ObjectParser) {
+	parser.SetMeta(c.Meta())
+
 	c.Base.Parse(parser)
 
 	c.CarbohydrateInput = parser.ParseInteger("carbInput")
@@ -68,6 +70,8 @@ func (c *Calculator) Parse(parser data.ObjectParser) {
 }
 
 func (c *Calculator) Validate(validator data.Validator) {
+	validator.SetMeta(c.Meta())
+
 	c.Base.Validate(validator)
 
 	validator.ValidateInteger("carbInput", c.CarbohydrateInput).InRange(0, 1000)
@@ -99,6 +103,8 @@ func (c *Calculator) Validate(validator data.Validator) {
 }
 
 func (c *Calculator) Normalize(normalizer data.Normalizer) {
+	normalizer.SetMeta(c.Meta())
+
 	c.Base.Normalize(normalizer)
 
 	if c.bolus != nil {

@@ -1,126 +1,119 @@
 package pump_test
 
 import (
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/gomega"
+
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/normalizer"
+	"github.com/tidepool-org/platform/data/types/base"
 	"github.com/tidepool-org/platform/data/types/base/pump"
 	"github.com/tidepool-org/platform/data/types/base/testing"
 	"github.com/tidepool-org/platform/data/types/common/bloodglucose"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/service"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Pump Settings", func() {
+func NewRawObject() map[string]interface{} {
+	rawObject := testing.RawBaseObject()
+	rawObject["type"] = "pumpSettings"
+	rawObject["activeSchedule"] = "standard"
+	rawObject["units"] = map[string]interface{}{
+		"carb": "grams",
+		"bg":   "mmol/L",
+	}
+	rawObject["carbRatio"] = []interface{}{
+		map[string]interface{}{"amount": 12, "start": 0},
+		map[string]interface{}{"amount": 10, "start": 21600000},
+	}
+	rawObject["bgTarget"] = []interface{}{
+		map[string]interface{}{"low": 5.5, "high": 6.7, "start": 0},
+		map[string]interface{}{"low": 5.0, "high": 6.1, "start": 18000000},
+	}
+	rawObject["insulinSensitivity"] = []interface{}{
+		map[string]interface{}{"amount": 3.6, "start": 0},
+		map[string]interface{}{"amount": 2.5, "start": 18000000},
+	}
+	rawObject["basalSchedules"] = map[string]interface{}{
+		"standard": []interface{}{
+			map[string]interface{}{"rate": 0.6, "start": 0},
+		},
+		"pattern a": []interface{}{
+			map[string]interface{}{"rate": 1.25, "start": 0},
+		},
+		"pattern b": []interface{}{},
+	}
+	return rawObject
+}
 
-	var rawObject = testing.RawBaseObject()
+func NewMeta() interface{} {
+	return &base.Meta{
+		Type: "pumpSettings",
+	}
+}
 
-	BeforeEach(func() {
-
-		rawObject["type"] = "pumpSettings"
-		rawObject["activeSchedule"] = "standard"
-
-		rawObject["units"] = map[string]interface{}{
-			"carb": "grams",
-			"bg":   "mmol/L",
-		}
-
-		rawObject["carbRatio"] = []interface{}{
-			map[string]interface{}{"amount": 12, "start": 0},
-			map[string]interface{}{"amount": 10, "start": 21600000},
-		}
-
-		rawObject["bgTarget"] = []interface{}{
-			map[string]interface{}{"low": 5.5, "high": 6.7, "start": 0},
-			map[string]interface{}{"low": 5.0, "high": 6.1, "start": 18000000},
-		}
-
-		rawObject["insulinSensitivity"] = []interface{}{
-			map[string]interface{}{"amount": 3.6, "start": 0},
-			map[string]interface{}{"amount": 2.5, "start": 18000000},
-		}
-
-		rawObject["basalSchedules"] = map[string]interface{}{
-			"standard": []interface{}{
-				map[string]interface{}{"rate": 0.6, "start": 0},
-			},
-			"pattern a": []interface{}{
-				map[string]interface{}{"rate": 1.25, "start": 0},
-			},
-			"pattern b": []interface{}{},
-		}
-	})
-
+var _ = Describe("Settings", func() {
 	Context("activeSchedule", func() {
-
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("empty", rawObject, "activeSchedule", "",
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorLengthNotGreaterThanOrEqualTo(0, 1), "/activeSchedule")},
+			Entry("is empty", NewRawObject(), "activeSchedule", "",
+				[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThanOrEqualTo(0, 1), "/activeSchedule", NewMeta())},
 			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("more than 1 characters", rawObject, "activeSchedule", "A"),
-			Entry("freetext", rawObject, "activeSchedule", "standard"),
+			Entry("is more than 1 characters", NewRawObject(), "activeSchedule", "A"),
+			Entry("is freetext", NewRawObject(), "activeSchedule", "standard"),
 		)
-
 	})
 
 	Context("units", func() {
-
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("bg empty", rawObject, "units", map[string]interface{}{"carb": "grams", "bg": ""},
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("", []string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL}), "/units/bg")},
+			Entry("has bg empty", NewRawObject(), "units", map[string]interface{}{"carb": "grams", "bg": ""},
+				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("", []string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL}), "/units/bg", NewMeta())},
 			),
-			Entry("bg not predefined type", rawObject, "units", map[string]interface{}{"carb": "grams", "bg": "na"},
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("na", []string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL}), "/units/bg")},
+			Entry("has bg not predefined type", NewRawObject(), "units", map[string]interface{}{"carb": "grams", "bg": "na"},
+				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("na", []string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL}), "/units/bg", NewMeta())},
 			),
-			Entry("carb empty", rawObject, "units", map[string]interface{}{"carb": "", "bg": "mmol/L"},
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorLengthNotGreaterThanOrEqualTo(0, 1), "/units/carb")},
+			Entry("has carb empty", NewRawObject(), "units", map[string]interface{}{"carb": "", "bg": "mmol/L"},
+				[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThanOrEqualTo(0, 1), "/units/carb", NewMeta())},
 			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("carbs set and bg set as mmol/L", rawObject, "units", map[string]interface{}{"carb": "grams", "bg": "mmol/L"}),
-			Entry("carbs set and bg set as mg/dl", rawObject, "units", map[string]interface{}{"carb": "grams", "bg": "mg/dl"}),
+			Entry("has carbs set and bg set as mmol/L", NewRawObject(), "units", map[string]interface{}{"carb": "grams", "bg": "mmol/L"}),
+			Entry("has carbs set and bg set as mg/dl", NewRawObject(), "units", map[string]interface{}{"carb": "grams", "bg": "mg/dl"}),
 		)
-
 	})
 
 	Context("carbRatio", func() {
-
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("start negative", rawObject, "carbRatio",
+			Entry("has start negative", NewRawObject(), "carbRatio",
 				[]interface{}{map[string]interface{}{"amount": 12, "start": -1}},
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(-1, 0, 86400000), "/carbRatio/0/start")},
+				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(-1, 0, 86400000), "/carbRatio/0/start", NewMeta())},
 			),
-			Entry("start greater than 86400000", rawObject, "carbRatio",
+			Entry("has start greater than 86400000", NewRawObject(), "carbRatio",
 				[]interface{}{map[string]interface{}{"amount": 12, "start": 86400001}},
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(86400001, 0, 86400000), "/carbRatio/0/start")},
+				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(86400001, 0, 86400000), "/carbRatio/0/start", NewMeta())},
 			),
-			Entry("amount negative", rawObject, "carbRatio",
+			Entry("has amount negative", NewRawObject(), "carbRatio",
 				[]interface{}{map[string]interface{}{"amount": -1, "start": 21600000}},
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(-1, 0, 250), "/carbRatio/0/amount")},
+				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(-1, 0, 250), "/carbRatio/0/amount", NewMeta())},
 			),
-			Entry("amount greater than 250", rawObject, "carbRatio",
+			Entry("has amount greater than 250", NewRawObject(), "carbRatio",
 				[]interface{}{map[string]interface{}{"amount": 251, "start": 21600000}},
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(251, 0, 250), "/carbRatio/0/amount")},
+				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(251, 0, 250), "/carbRatio/0/amount", NewMeta())},
 			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("start and amount within bounds", rawObject, "carbRatio",
+			Entry("has start and amount within bounds", NewRawObject(), "carbRatio",
 				[]interface{}{map[string]interface{}{"amount": 12.0, "start": 0}},
 			),
 		)
-
 	})
 
 	Context("basalSchedules", func() {
-
 		basalSchedules := map[string]interface{}{
 			"standard": []interface{}{
 				map[string]interface{}{"rate": 0.6, "start": 0},
@@ -141,120 +134,116 @@ var _ = Describe("Pump Settings", func() {
 		}
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("start and rate within bounds", rawObject, "basalSchedules", basalSchedules),
+			Entry("has start and rate within bounds", NewRawObject(), "basalSchedules", basalSchedules),
 		)
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("start negative", rawObject, "basalSchedules",
+			Entry("has start negative", NewRawObject(), "basalSchedules",
 				map[string]interface{}{
 					"standard": []interface{}{
 						map[string]interface{}{"rate": 0.6, "start": -1},
 					}},
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(-1, 0, 86400000), "/basalSchedules/0/start")},
+				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(-1, 0, 86400000), "/basalSchedules/0/start", NewMeta())},
 			),
-			Entry("start to large", rawObject, "basalSchedules",
+			Entry("has start to large", NewRawObject(), "basalSchedules",
 				map[string]interface{}{
 					"standard": []interface{}{
 						map[string]interface{}{"rate": 0.6, "start": 86400001},
 					}},
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(86400001, 0, 86400000), "/basalSchedules/0/start")},
+				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(86400001, 0, 86400000), "/basalSchedules/0/start", NewMeta())},
 			),
-			Entry("nested start to large", rawObject, "basalSchedules",
+			Entry("has nested start to large", NewRawObject(), "basalSchedules",
 				map[string]interface{}{
 					"standard": []interface{}{
 						map[string]interface{}{"rate": 0.6, "start": 5},
 						map[string]interface{}{"rate": 0.6, "start": 86400001},
 					}},
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(86400001, 0, 86400000), "/basalSchedules/1/start")},
+				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(86400001, 0, 86400000), "/basalSchedules/1/start", NewMeta())},
 			),
-			Entry("start negative", rawObject, "basalSchedules",
+			Entry("has start negative", NewRawObject(), "basalSchedules",
 				map[string]interface{}{
 					"standard": []interface{}{
 						map[string]interface{}{"rate": -0.1, "start": 10800000},
 					}},
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, 0.0, 20.0), "/basalSchedules/0/rate")},
+				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, 0.0, 20.0), "/basalSchedules/0/rate", NewMeta())},
 			),
-			Entry("start to large", rawObject, "basalSchedules",
+			Entry("has start to large", NewRawObject(), "basalSchedules",
 				map[string]interface{}{
 					"standard": []interface{}{
 						map[string]interface{}{"rate": 20.1, "start": 10800000},
 					}},
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(20.1, 0.0, 20.0), "/basalSchedules/0/rate")},
+				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(20.1, 0.0, 20.0), "/basalSchedules/0/rate", NewMeta())},
 			),
-			Entry("nested rate to large", rawObject, "basalSchedules",
+			Entry("has nested rate to large", NewRawObject(), "basalSchedules",
 				map[string]interface{}{
 					"standard": []interface{}{
 						map[string]interface{}{"rate": 0.6, "start": 0},
 						map[string]interface{}{"rate": 25.1, "start": 10800000},
 					}},
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(25.1, 0.0, 20.0), "/basalSchedules/1/rate")},
+				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(25.1, 0.0, 20.0), "/basalSchedules/1/rate", NewMeta())},
 			),
 		)
 
 	})
 
 	Context("insulinSensitivity", func() {
-
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("start negative", rawObject, "insulinSensitivity",
+			Entry("has start negative", NewRawObject(), "insulinSensitivity",
 				[]interface{}{map[string]interface{}{"amount": 12, "start": -1}},
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(-1, 0, 86400000), "/insulinSensitivity/0/start")},
+				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(-1, 0, 86400000), "/insulinSensitivity/0/start", NewMeta())},
 			),
-			Entry("start greater than 86400000", rawObject, "insulinSensitivity",
+			Entry("has start greater than 86400000", NewRawObject(), "insulinSensitivity",
 				[]interface{}{map[string]interface{}{"amount": 12, "start": 86400001}},
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(86400001, 0, 86400000), "/insulinSensitivity/0/start")},
+				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(86400001, 0, 86400000), "/insulinSensitivity/0/start", NewMeta())},
 			),
-			Entry("amount negative", rawObject, "insulinSensitivity",
+			Entry("has amount negative", NewRawObject(), "insulinSensitivity",
 				[]interface{}{map[string]interface{}{"amount": -0.1, "start": 21600000}},
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/insulinSensitivity/0/amount")},
+				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/insulinSensitivity/0/amount", NewMeta())},
 			),
-			Entry("amount greater than 1000.0", rawObject, "insulinSensitivity",
+			Entry("has amount greater than 1000.0", NewRawObject(), "insulinSensitivity",
 				[]interface{}{map[string]interface{}{"amount": 1000.1, "start": 21600000}},
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(1000.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/insulinSensitivity/0/amount")},
+				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(1000.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/insulinSensitivity/0/amount", NewMeta())},
 			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("start and amount within bounds", rawObject, "insulinSensitivity",
+			Entry("has start and amount within bounds", NewRawObject(), "insulinSensitivity",
 				[]interface{}{map[string]interface{}{"amount": 12, "start": 0}},
 			),
 		)
-
 	})
 
 	Context("bgTarget", func() {
-
 		Context("start, target, range", func() {
-
 			DescribeTable("invalid when", testing.ExpectFieldNotValid,
-				Entry("start negative", rawObject, "bgTarget",
+				Entry("has start negative", NewRawObject(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": -1, "target": 99.0, "range": 15}},
-					[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(-1, 0, 86400000), "/bgTarget/0/start")},
+					[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(-1, 0, 86400000), "/bgTarget/0/start", NewMeta())},
 				),
-				Entry("start greater than 86400000", rawObject, "bgTarget",
+				Entry("has start greater than 86400000", NewRawObject(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 86400001, "target": 99.0, "range": 15}},
-					[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(86400001, 0, 86400000), "/bgTarget/0/start")},
+					[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(86400001, 0, 86400000), "/bgTarget/0/start", NewMeta())},
 				),
-				Entry("target negative", rawObject, "bgTarget",
+				Entry("has target negative", NewRawObject(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": -0.1, "range": 15}},
-					[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/bgTarget/0/target")},
+					[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/bgTarget/0/target", NewMeta())},
 				),
-				Entry("target greater than 1000.0", rawObject, "bgTarget",
+				Entry("has target greater than 1000.0", NewRawObject(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": 1000.1, "range": 15}},
-					[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(1000.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/bgTarget/0/target")},
+					[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(1000.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/bgTarget/0/target", NewMeta())},
 				),
-				Entry("range negative", rawObject, "bgTarget",
+				Entry("has range negative", NewRawObject(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": 99.0, "range": -1}},
-					[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(-1, 0, 50), "/bgTarget/0/range")},
+					[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(-1, 0, 50), "/bgTarget/0/range", NewMeta())},
 				),
-				Entry("range greater than 51", rawObject, "bgTarget",
+				Entry("has range greater than 51", NewRawObject(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": 199.0, "range": 51}},
-					[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(51, 0, 50), "/bgTarget/0/range")},
+					[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(51, 0, 50), "/bgTarget/0/range", NewMeta())},
 				),
 			)
 
 			DescribeTable("valid when", testing.ExpectFieldIsValid,
-				Entry("within bounds", rawObject, "bgTarget",
+				Entry("is within bounds", NewRawObject(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": 99.9, "range": 10}},
 				),
 			)
@@ -263,46 +252,44 @@ var _ = Describe("Pump Settings", func() {
 		Context("start, target, high", func() {
 
 			DescribeTable("invalid when", testing.ExpectFieldNotValid,
-				Entry("start negative", rawObject, "bgTarget",
+				Entry("has start negative", NewRawObject(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": -1, "target": 99.0, "high": 180.0}},
-					[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(-1, 0, 86400000), "/bgTarget/0/start")},
+					[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(-1, 0, 86400000), "/bgTarget/0/start", NewMeta())},
 				),
-				Entry("start greater than 86400000", rawObject, "bgTarget",
+				Entry("has start greater than 86400000", NewRawObject(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 86400001, "target": 99.0, "high": 180.0}},
-					[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorIntegerNotInRange(86400001, 0, 86400000), "/bgTarget/0/start")},
+					[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(86400001, 0, 86400000), "/bgTarget/0/start", NewMeta())},
 				),
-				Entry("target negative", rawObject, "bgTarget",
+				Entry("has target negative", NewRawObject(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": -0.1, "high": 180.0}},
-					[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/bgTarget/0/target")},
+					[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/bgTarget/0/target", NewMeta())},
 				),
-				Entry("target greater than 1000.0", rawObject, "bgTarget",
+				Entry("has target greater than 1000.0", NewRawObject(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": 1000.1, "high": 180.0}},
 					[]*service.Error{
-						testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(1000.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/bgTarget/0/target"),
-						testing.SetExpectedErrorSource(validator.ErrorValueNotGreaterThan(180, 1000.1), "/bgTarget/0/high"),
+						testing.ComposeError(validator.ErrorFloatNotInRange(1000.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/bgTarget/0/target", NewMeta()),
+						testing.ComposeError(validator.ErrorValueNotGreaterThan(180, 1000.1), "/bgTarget/0/high", NewMeta()),
 					},
 				),
-				Entry("high less than target", rawObject, "bgTarget",
+				Entry("has high less than target", NewRawObject(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": 90.0, "high": 80.0}},
-					[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorValueNotGreaterThan(80.0, 90.0), "/bgTarget/0/high")},
+					[]*service.Error{testing.ComposeError(validator.ErrorValueNotGreaterThan(80.0, 90.0), "/bgTarget/0/high", NewMeta())},
 				),
-				Entry("high greater than 1000.0", rawObject, "bgTarget",
+				Entry("has high greater than 1000.0", NewRawObject(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": 90.0, "high": 1000.1}},
-					[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorValueNotLessThanOrEqualTo(1000.1, bloodglucose.MgdLToValue), "/bgTarget/0/high")},
+					[]*service.Error{testing.ComposeError(validator.ErrorValueNotLessThanOrEqualTo(1000.1, bloodglucose.MgdLToValue), "/bgTarget/0/high", NewMeta())},
 				),
 			)
 
 			DescribeTable("valid when", testing.ExpectFieldIsValid,
-				Entry("within bounds", rawObject, "bgTarget",
+				Entry("is within bounds", NewRawObject(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": 99.9, "high": 180.0}},
 				),
 			)
 		})
-
 	})
 
 	Context("bgTarget normalized", func() {
-
 		DescribeTable("normalization when low mmol/L", func(val, expected float64) {
 			pumpSettings, err := pump.New()
 			Expect(err).To(BeNil())
@@ -326,9 +313,9 @@ var _ = Describe("Pump Settings", func() {
 				Expect(bgTarget.Low).To(Equal(&expected))
 			}
 		},
-			Entry("very low", 0.1, 0.1),
-			Entry("very high", 50.0, 50.0),
-			Entry("normal", 3.8, 3.8),
+			Entry("is very low", 0.1, 0.1),
+			Entry("is very high", 50.0, 50.0),
+			Entry("is normal", 3.8, 3.8),
 		)
 
 		DescribeTable("normalization when high mmol/L", func(val, expected float64) {
@@ -354,9 +341,9 @@ var _ = Describe("Pump Settings", func() {
 				Expect(bgTarget.High).To(Equal(&expected))
 			}
 		},
-			Entry("very low", 8.1, 8.1),
-			Entry("very high", 55.0, 55.0),
-			Entry("normal", 3.8, 3.8),
+			Entry("is very low", 8.1, 8.1),
+			Entry("is very high", 55.0, 55.0),
+			Entry("is normal", 3.8, 3.8),
 		)
 
 		DescribeTable("normalization when target mmol/L", func(val, expected float64) {
@@ -382,9 +369,9 @@ var _ = Describe("Pump Settings", func() {
 				Expect(bgTarget.Target).To(Equal(&expected))
 			}
 		},
-			Entry("very low", 8.1, 8.1),
-			Entry("very high", 49.0, 49.0),
-			Entry("normal", 10.1, 10.1),
+			Entry("is very low", 8.1, 8.1),
+			Entry("is very high", 49.0, 49.0),
+			Entry("is normal", 10.1, 10.1),
 		)
 
 		DescribeTable("normalization when low mg/dL", func(val, expected float64) {
@@ -410,9 +397,9 @@ var _ = Describe("Pump Settings", func() {
 				Expect(bgTarget.Low).To(Equal(&expected))
 			}
 		},
-			Entry("very low", 60.1, 3.3359995426183655),
-			Entry("very high", 800.0, 44.405983928364265),
-			Entry("normal", 160.0, 8.881196785672854),
+			Entry("is very low", 60.1, 3.3359995426183655),
+			Entry("is very high", 800.0, 44.405983928364265),
+			Entry("is normal", 160.0, 8.881196785672854),
 		)
 
 		DescribeTable("normalization when high mg/dL", func(val, expected float64) {
@@ -438,9 +425,9 @@ var _ = Describe("Pump Settings", func() {
 				Expect(bgTarget.High).To(Equal(&expected))
 			}
 		},
-			Entry("very low", 100.0, 5.550747991045533),
-			Entry("very high", 950.0, 52.73210591493257),
-			Entry("normal", 200.0, 11.101495982091066),
+			Entry("is very low", 100.0, 5.550747991045533),
+			Entry("is very high", 950.0, 52.73210591493257),
+			Entry("is normal", 200.0, 11.101495982091066),
 		)
 
 		DescribeTable("normalization when target mg/dL", func(val, expected float64) {
@@ -466,14 +453,13 @@ var _ = Describe("Pump Settings", func() {
 				Expect(bgTarget.Target).To(Equal(&expected))
 			}
 		},
-			Entry("very low", 70.1, 3.8910743417229186),
-			Entry("very high", 500.0, 27.75373995522767),
-			Entry("normal", 180.1, 9.996897131873006),
+			Entry("is very low", 70.1, 3.8910743417229186),
+			Entry("is very high", 500.0, 27.75373995522767),
+			Entry("is normal", 180.1, 9.996897131873006),
 		)
 	})
 
 	Context("insulinSensitivity normalized", func() {
-
 		DescribeTable("when mmol/L", func(val, expected float64) {
 			pumpSettings, err := pump.New()
 			Expect(err).To(BeNil())
@@ -496,9 +482,9 @@ var _ = Describe("Pump Settings", func() {
 				Expect(insulinSensitivity.Amount).To(Equal(&expected))
 			}
 		},
-			Entry("very low", 0.1, 0.1),
-			Entry("very high", 55.0, 55.0),
-			Entry("normal", 8.3, 8.3),
+			Entry("is very low", 0.1, 0.1),
+			Entry("is very high", 55.0, 55.0),
+			Entry("is normal", 8.3, 8.3),
 		)
 
 		DescribeTable("when mg/dL", func(val, expected float64) {
@@ -523,10 +509,9 @@ var _ = Describe("Pump Settings", func() {
 				Expect(insulinSensitivity.Amount).To(Equal(&expected))
 			}
 		},
-			Entry("very low", 60.0, 3.33044879462732),
-			Entry("very high", 990.85745, 55.0),
-			Entry("normal", 160.0, 8.881196785672854),
+			Entry("is very low", 60.0, 3.33044879462732),
+			Entry("is very high", 990.85745, 55.0),
+			Entry("is normal", 160.0, 8.881196785672854),
 		)
 	})
-
 })

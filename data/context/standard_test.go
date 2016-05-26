@@ -10,7 +10,7 @@ import (
 )
 
 var _ = Describe("Standard", func() {
-	Describe("New", func() {
+	Context("New", func() {
 		var standard *context.Standard
 
 		BeforeEach(func() {
@@ -28,6 +28,14 @@ var _ = Describe("Standard", func() {
 		It("ignores sending a nil error to AppendError", func() {
 			standard.AppendError("ignore", nil)
 			Expect(standard.Errors()).To(BeEmpty())
+		})
+
+		Context("SetMeta", func() {
+			It("sets the meta on the context", func() {
+				meta := "metametameta"
+				standard.SetMeta(meta)
+				Expect(standard.Meta()).To(BeIdenticalTo(meta))
+			})
 		})
 
 		Context("AppendError with an error with a nil reference", func() {
@@ -51,6 +59,34 @@ var _ = Describe("Standard", func() {
 				Expect(standard.Errors()[0]).ToNot(BeNil())
 				Expect(standard.Errors()[0].Source).ToNot(BeNil())
 				Expect(standard.Errors()[0].Source.Pointer).To(Equal("/<nil>"))
+			})
+		})
+
+		Context("AppendError with Meta and an error", func() {
+			var meta string
+			var firstError *service.Error
+
+			BeforeEach(func() {
+				meta = "metamorphize"
+				standard.SetMeta(meta)
+				firstError = &service.Error{}
+				standard.AppendError("first", firstError)
+			})
+
+			It("has errors", func() {
+				Expect(standard.Errors()).ToNot(BeEmpty())
+			})
+
+			It("has the error", func() {
+				Expect(standard.Errors()).To(ConsistOf(firstError))
+			})
+
+			It("added the error source pointer", func() {
+				Expect(standard.Errors()).To(HaveLen(1))
+				Expect(standard.Errors()[0]).ToNot(BeNil())
+				Expect(standard.Errors()[0].Source).ToNot(BeNil())
+				Expect(standard.Errors()[0].Source.Pointer).To(Equal("/first"))
+				Expect(standard.Errors()[0].Meta).To(Equal(meta))
 			})
 		})
 

@@ -50,8 +50,9 @@ var ExpectFieldIsValid = func(object map[string]interface{}, field string, val i
 	reportAndFailOnErrors(testContext, "Validation:")
 }
 
-func SetExpectedErrorSource(expectedError *service.Error, source string) *service.Error {
+func ComposeError(expectedError *service.Error, source string, meta interface{}) *service.Error {
 	expectedError.Source = &service.Source{Parameter: "", Pointer: source}
+	expectedError.Meta = meta
 	return expectedError
 }
 
@@ -69,8 +70,8 @@ var ExpectFieldNotValid = func(object map[string]interface{}, field string, val 
 	parsedObject.Validate(standardValidator)
 	gomega.Expect(testContext.Errors()).ToNot(gomega.BeEmpty())
 	gomega.Expect(testContext.Errors()).To(gomega.HaveLen(len(expectedErrors)))
-	for i := range expectedErrors {
-		gomega.Expect(testContext.Errors()).To(gomega.ContainElement(expectedErrors[i]))
+	for _, expectedError := range expectedErrors {
+		gomega.Expect(testContext.Errors()).To(gomega.ContainElement(expectedError))
 	}
 }
 

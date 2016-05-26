@@ -11,6 +11,8 @@ package data
  */
 
 type Normalizer interface {
+	SetMeta(meta interface{})
+
 	AppendDatum(datum Datum)
 
 	NewChildNormalizer(reference interface{}) Normalizer

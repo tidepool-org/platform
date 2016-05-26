@@ -1,97 +1,90 @@
 package prime_test
 
 import (
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
+
+	"github.com/tidepool-org/platform/data/types/base/device"
 	"github.com/tidepool-org/platform/data/types/base/testing"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/service"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
 )
 
-var _ = Describe("Prime Event", func() {
+func NewRawObject() map[string]interface{} {
+	rawObject := testing.RawBaseObject()
+	rawObject["type"] = "deviceEvent"
+	rawObject["subType"] = "prime"
+	rawObject["volume"] = 0.0
+	return rawObject
+}
 
-	var rawObject = testing.RawBaseObject()
+func NewRawObjectWithCannula() map[string]interface{} {
+	rawObject := NewRawObject()
+	rawObject["primeTarget"] = "cannula"
+	return rawObject
+}
 
-	BeforeEach(func() {
+func NewRawObjectWithTubing() map[string]interface{} {
+	rawObject := NewRawObject()
+	rawObject["primeTarget"] = "tubing"
+	return rawObject
+}
 
-		rawObject["type"] = "deviceEvent"
-		rawObject["subType"] = "prime"
-		rawObject["primeTarget"] = "cannula"
-		rawObject["volume"] = 0.0
+func NewMeta() interface{} {
+	return &device.Meta{
+		Type:    "deviceEvent",
+		SubType: "prime",
+	}
+}
 
-	})
-
+var _ = Describe("Prime", func() {
 	Context("primeTarget", func() {
-
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("empty", rawObject, "primeTarget", "",
-				[]*service.Error{testing.SetExpectedErrorSource(
-					validator.ErrorStringNotOneOf("", []string{"cannula", "tubing"}), "/primeTarget",
-				)},
+			Entry("is empty", NewRawObject(), "primeTarget", "",
+				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("", []string{"cannula", "tubing"}), "/primeTarget", NewMeta())},
 			),
-			Entry("not one of the predefined types", rawObject, "primeTarget", "bad",
-				[]*service.Error{testing.SetExpectedErrorSource(
-					validator.ErrorStringNotOneOf("bad", []string{"cannula", "tubing"}), "/primeTarget",
-				)},
+			Entry("is not one of the predefined types", NewRawObject(), "primeTarget", "bad",
+				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("bad", []string{"cannula", "tubing"}), "/primeTarget", NewMeta())},
 			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("cannula type", rawObject, "primeTarget", "cannula"),
-			Entry("tubing type", rawObject, "primeTarget", "tubing"),
+			Entry("is cannula type", NewRawObject(), "primeTarget", "cannula"),
+			Entry("is tubing type", NewRawObject(), "primeTarget", "tubing"),
 		)
-
 	})
 
 	Context("cannula volume", func() {
-
-		BeforeEach(func() {
-			rawObject["type"] = "deviceEvent"
-			rawObject["subType"] = "prime"
-			rawObject["primeTarget"] = "cannula"
-		})
-
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("less than 0", rawObject, "volume", -0.1,
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, 0.0, 3.0), "/volume")},
+			Entry("is less than 0", NewRawObjectWithCannula(), "volume", -0.1,
+				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, 0.0, 3.0), "/volume", NewMeta())},
 			),
-			Entry("more than 3", rawObject, "volume", 3.1,
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(3.1, 0.0, 3.0), "/volume")},
+			Entry("is more than 3", NewRawObjectWithCannula(), "volume", 3.1,
+				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(3.1, 0.0, 3.0), "/volume", NewMeta())},
 			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("0", rawObject, "volume", 0.0),
-			Entry("3.0", rawObject, "volume", 3.0),
-			Entry("no decimal", rawObject, "volume", 2),
+			Entry("is 0", NewRawObjectWithCannula(), "volume", 0.0),
+			Entry("is 3.0", NewRawObjectWithCannula(), "volume", 3.0),
+			Entry("is no decimal", NewRawObjectWithCannula(), "volume", 2),
 		)
-
 	})
 
 	Context("tubing volume", func() {
-
-		BeforeEach(func() {
-			rawObject["type"] = "deviceEvent"
-			rawObject["subType"] = "prime"
-			rawObject["primeTarget"] = "tubing"
-		})
-
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("less than 0", rawObject, "volume", -0.1,
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(-0.1, 0.0, 100.0), "/volume")},
+			Entry("is less than 0", NewRawObjectWithTubing(), "volume", -0.1,
+				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, 0.0, 100.0), "/volume", NewMeta())},
 			),
-			Entry("more than 100", rawObject, "volume", 100.1,
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorFloatNotInRange(100.1, 0.0, 100.0), "/volume")},
+			Entry("is more than 100", NewRawObjectWithTubing(), "volume", 100.1,
+				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(100.1, 0.0, 100.0), "/volume", NewMeta())},
 			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("0", rawObject, "volume", 0.0),
-			Entry("100.0", rawObject, "volume", 100.0),
-			Entry("no decimal", rawObject, "volume", 55),
+			Entry("is 0", NewRawObjectWithTubing(), "volume", 0.0),
+			Entry("is 100.0", NewRawObjectWithTubing(), "volume", 100.0),
+			Entry("is no decimal", NewRawObjectWithTubing(), "volume", 55),
 		)
-
 	})
-
 })

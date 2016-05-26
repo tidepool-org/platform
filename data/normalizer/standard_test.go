@@ -11,6 +11,7 @@ import (
 
 type TestDatum struct{}
 
+func (t *TestDatum) Meta() interface{}                    { return nil }
 func (t *TestDatum) Parse(parser data.ObjectParser)       {}
 func (t *TestDatum) Validate(validator data.Validator)    {}
 func (t *TestDatum) Normalize(normalizer data.Normalizer) {}
@@ -25,12 +26,14 @@ var _ = Describe("Standard", func() {
 		Expect(err).To(HaveOccurred())
 	})
 
-	Describe("new normalizer", func() {
+	Context("new normalizer", func() {
+		var standardContext *context.Standard
 		var standard *normalizer.Standard
 
 		BeforeEach(func() {
 			var err error
-			standard, err = normalizer.NewStandard(context.NewStandard())
+			standardContext = context.NewStandard()
+			standard, err = normalizer.NewStandard(standardContext)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -45,6 +48,14 @@ var _ = Describe("Standard", func() {
 		It("ignores sending a nil datum to AppendDatum", func() {
 			standard.AppendDatum(nil)
 			Expect(standard.Data()).To(BeEmpty())
+		})
+
+		Context("SetMeta", func() {
+			It("sets the meta on the context", func() {
+				meta := "metametameta"
+				standard.SetMeta(meta)
+				Expect(standardContext.Meta()).To(BeIdenticalTo(meta))
+			})
 		})
 
 		Context("AddDatum with a first datum", func() {

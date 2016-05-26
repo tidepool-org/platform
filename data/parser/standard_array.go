@@ -33,6 +33,10 @@ func NewStandardArray(context data.Context, array *[]interface{}) (*StandardArra
 	}, nil
 }
 
+func (s *StandardArray) SetMeta(meta interface{}) {
+	s.context.SetMeta(meta)
+}
+
 func (s *StandardArray) Array() *[]interface{} {
 	return s.array
 }

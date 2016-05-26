@@ -1,11 +1,11 @@
 package client_test
 
 import (
-	"net/http"
-	"time"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"net/http"
+	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/onsi/gomega/ghttp"

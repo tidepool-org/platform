@@ -11,6 +11,8 @@ package data
  */
 
 type ObjectParser interface {
+	SetMeta(meta interface{})
+
 	Object() *map[string]interface{}
 
 	ParseBoolean(key string) *bool
@@ -28,6 +30,8 @@ type ObjectParser interface {
 }
 
 type ArrayParser interface {
+	SetMeta(meta interface{})
+
 	Array() *[]interface{}
 
 	ParseBoolean(index int) *bool
