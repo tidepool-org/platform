@@ -132,16 +132,16 @@ stop: check-environment
 	@killall -v dataservices &> /dev/null || exit 0
 
 test: ginkgo
-	@echo "ginkgo -r $(TEST)"
-	@cd $(ROOT_DIRECTORY) && GOPATH=$(shell godep path):$(GOPATH) TIDEPOOL_ENV=test ginkgo -r $(TEST)
+	@echo "ginkgo --slowSpecThreshold=10 -r $(TEST)"
+	@cd $(ROOT_DIRECTORY) && GOPATH=$(shell godep path):$(GOPATH) TIDEPOOL_ENV=test ginkgo --slowSpecThreshold=10 -r $(TEST)
 
 ci-test: ginkgo
-	@echo "ginkgo -r --randomizeSuites --randomizeAllSpecs -succinct --failOnPending --cover --trace --race --progress $(TEST)"
-	@cd $(ROOT_DIRECTORY) && GOPATH=$(shell godep path):$(GOPATH) TIDEPOOL_ENV=test ginkgo -r --randomizeSuites --randomizeAllSpecs -succinct --failOnPending --cover --trace --race --progress $(TEST)
+	@echo "ginkgo --slowSpecThreshold=10 -r --randomizeSuites --randomizeAllSpecs -succinct --failOnPending --cover --trace --race --progress $(TEST)"
+	@cd $(ROOT_DIRECTORY) && GOPATH=$(shell godep path):$(GOPATH) TIDEPOOL_ENV=test ginkgo --slowSpecThreshold=10 -r --randomizeSuites --randomizeAllSpecs -succinct --failOnPending --cover --trace --race --progress $(TEST)
 
 watch: ginkgo
-	@echo "ginkgo watch -r -notify $(WATCH)"
-	@cd $(ROOT_DIRECTORY) && GOPATH=$(shell godep path):$(GOPATH) TIDEPOOL_ENV=test ginkgo watch -r -notify $(WATCH)
+	@echo "ginkgo watch --slowSpecThreshold=10 -r -notify $(WATCH)"
+	@cd $(ROOT_DIRECTORY) && GOPATH=$(shell godep path):$(GOPATH) TIDEPOOL_ENV=test ginkgo watch --slowSpecThreshold=10 -r -notify $(WATCH)
 
 clean: stop
 	@cd $(ROOT_DIRECTORY) && rm -rf _bin _log _tmp deploy
