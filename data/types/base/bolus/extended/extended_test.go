@@ -42,13 +42,10 @@ var _ = Describe("Extended", func() {
 	Context("extended", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is negative", rawObject, "extended", -0.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorValueNotGreaterThan(-0.1, 0.0), "/extended", meta)},
-			),
-			Entry("is zero", rawObject, "extended", 0.0,
-				[]*service.Error{testing.ComposeError(validator.ErrorValueNotGreaterThan(0.0, 0.0), "/extended", meta)},
+				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, 0.0, 100.0), "/extended", meta)},
 			),
 			Entry("is greater than 100", rawObject, "extended", 100.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorValueNotLessThanOrEqualTo(100.1, 100.0), "/extended", meta)},
+				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(100.1, 0.0, 100.0), "/extended", meta)},
 			),
 		)
 

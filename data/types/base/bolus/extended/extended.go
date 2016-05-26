@@ -48,5 +48,5 @@ func (e *Extended) Validate(validator data.Validator) {
 	e.Bolus.Validate(validator)
 
 	validator.ValidateInteger("duration", e.Duration).Exists().InRange(0, 86400000)
-	validator.ValidateFloat("extended", e.Extended).Exists().GreaterThan(0.0).LessThanOrEqualTo(100.0)
+	validator.ValidateFloat("extended", e.Extended).Exists().InRange(0.0, 100.0)
 }
