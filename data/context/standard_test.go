@@ -10,7 +10,7 @@ import (
 )
 
 var _ = Describe("Standard", func() {
-	Describe("New", func() {
+	Context("New", func() {
 		var standard *context.Standard
 
 		BeforeEach(func() {

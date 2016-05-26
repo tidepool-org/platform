@@ -117,7 +117,7 @@ var _ = Describe("StandardArray", func() {
 			standardContext = context.NewStandard()
 		})
 
-		Describe("ParseBoolean", func() {
+		Context("ParseBoolean", func() {
 			BeforeEach(func() {
 				standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 					"not a boolean",
@@ -149,7 +149,7 @@ var _ = Describe("StandardArray", func() {
 			})
 		})
 
-		Describe("ParseInteger", func() {
+		Context("ParseInteger", func() {
 			BeforeEach(func() {
 				standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 					false,
@@ -196,7 +196,7 @@ var _ = Describe("StandardArray", func() {
 			})
 		})
 
-		Describe("ParseFloat", func() {
+		Context("ParseFloat", func() {
 			BeforeEach(func() {
 				standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 					false,
@@ -244,7 +244,7 @@ var _ = Describe("StandardArray", func() {
 			})
 		})
 
-		Describe("ParseString", func() {
+		Context("ParseString", func() {
 			BeforeEach(func() {
 				standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 					false,
@@ -276,7 +276,7 @@ var _ = Describe("StandardArray", func() {
 			})
 		})
 
-		Describe("ParseStringArray", func() {
+		Context("ParseStringArray", func() {
 			BeforeEach(func() {
 				standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 					false,
@@ -334,7 +334,7 @@ var _ = Describe("StandardArray", func() {
 			})
 		})
 
-		Describe("ParseObject", func() {
+		Context("ParseObject", func() {
 			BeforeEach(func() {
 				standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 					false,
@@ -368,7 +368,7 @@ var _ = Describe("StandardArray", func() {
 			})
 		})
 
-		Describe("ParseObjectArray", func() {
+		Context("ParseObjectArray", func() {
 			BeforeEach(func() {
 				standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 					false,
@@ -436,7 +436,7 @@ var _ = Describe("StandardArray", func() {
 			})
 		})
 
-		Describe("ParseInterface", func() {
+		Context("ParseInterface", func() {
 			BeforeEach(func() {
 				standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 					false,
@@ -469,7 +469,7 @@ var _ = Describe("StandardArray", func() {
 			})
 		})
 
-		Describe("ParseInterfaceArray", func() {
+		Context("ParseInterfaceArray", func() {
 			BeforeEach(func() {
 				standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 					false,
@@ -504,7 +504,7 @@ var _ = Describe("StandardArray", func() {
 			})
 		})
 
-		Describe("NewChildObjectParser", func() {
+		Context("NewChildObjectParser", func() {
 			BeforeEach(func() {
 				standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 					false,
@@ -545,7 +545,7 @@ var _ = Describe("StandardArray", func() {
 			})
 		})
 
-		Describe("NewChildArrayParser", func() {
+		Context("NewChildArrayParser", func() {
 			BeforeEach(func() {
 				standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 					false,

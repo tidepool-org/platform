@@ -1,10 +1,10 @@
 package validator_test
 
 import (
-	"time"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"time"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/context"

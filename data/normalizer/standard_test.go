@@ -26,7 +26,7 @@ var _ = Describe("Standard", func() {
 		Expect(err).To(HaveOccurred())
 	})
 
-	Describe("new normalizer", func() {
+	Context("new normalizer", func() {
 		var standardContext *context.Standard
 		var standard *normalizer.Standard
 

@@ -1,67 +1,62 @@
 package status_test
 
 import (
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
+
+	"github.com/tidepool-org/platform/data/types/base/device"
 	"github.com/tidepool-org/platform/data/types/base/testing"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/service"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
 )
 
-var _ = Describe("Status Event", func() {
-
+var _ = Describe("Status", func() {
 	var rawObject = testing.RawBaseObject()
+	var meta = &device.Meta{
+		Type:    "deviceEvent",
+		SubType: "status",
+	}
 
 	BeforeEach(func() {
-
 		rawObject["type"] = "deviceEvent"
 		rawObject["subType"] = "status"
 		rawObject["duration"] = 0
 		rawObject["status"] = "suspended"
 		rawObject["reason"] = map[string]interface{}{"suspended": "manual"}
-
 	})
 
 	Context("duration", func() {
-
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("less than 0", rawObject, "duration", -1,
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/duration")},
+			Entry("is less than 0", rawObject, "duration", -1,
+				[]*service.Error{testing.ComposeError(validator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/duration", meta)},
 			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("0", rawObject, "duration", 0),
-			Entry("max of 999999999999999999", rawObject, "duration", 999999999999999999),
+			Entry("is 0", rawObject, "duration", 0),
+			Entry("is max of 999999999999999999", rawObject, "duration", 999999999999999999),
 		)
-
 	})
 
 	Context("status", func() {
-
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("empty", rawObject, "status", "",
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("", []string{"suspended"}), "/status")},
+			Entry("is empty", rawObject, "status", "",
+				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("", []string{"suspended"}), "/status", meta)},
 			),
-			Entry("not one of the predefined types", rawObject, "status", "bad",
-				[]*service.Error{testing.SetExpectedErrorSource(validator.ErrorStringNotOneOf("bad", []string{"suspended"}), "/status")},
+			Entry("is not one of the predefined types", rawObject, "status", "bad",
+				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("bad", []string{"suspended"}), "/status", meta)},
 			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("suspended type", rawObject, "status", "suspended"),
+			Entry("is suspended type", rawObject, "status", "suspended"),
 		)
-
 	})
 
 	Context("reason", func() {
-
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("manual", rawObject, "reason", map[string]interface{}{"suspended": "manual"}),
-			Entry("automatic", rawObject, "reason", map[string]interface{}{"suspended": "automatic"}),
+			Entry("is manual", rawObject, "reason", map[string]interface{}{"suspended": "manual"}),
+			Entry("is automatic", rawObject, "reason", map[string]interface{}{"suspended": "automatic"}),
 		)
-
 	})
-
 })

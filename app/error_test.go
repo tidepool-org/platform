@@ -1,10 +1,10 @@
 package app_test
 
 import (
-	"errors"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"errors"
 
 	"github.com/tidepool-org/platform/app"
 )

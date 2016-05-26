@@ -1,10 +1,10 @@
 package context_test
 
 import (
-	"encoding/json"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"encoding/json"
 
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/service/context"

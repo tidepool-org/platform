@@ -15,7 +15,7 @@ var _ = Describe("Standard", func() {
 		Expect(err).To(HaveOccurred())
 	})
 
-	Describe("new validator", func() {
+	Context("new validator", func() {
 		var standardContext *context.Standard
 		var standard *validator.Standard
 

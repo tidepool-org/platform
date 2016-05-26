@@ -1,12 +1,12 @@
 package client_test
 
 import (
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	"errors"
 	"net/http"
 	"net/url"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/userservices/client"
 )
