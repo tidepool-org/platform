@@ -6,12 +6,11 @@ import (
 )
 
 type BloodGlucoseTarget struct {
-	Low         *float64 `json:"low,omitempty" bson:"low,omitempty"`
-	High        *float64 `json:"high,omitempty" bson:"high,omitempty"`
-	Target      *float64 `json:"target,omitempty" bson:"target,omitempty"`
-	Start       *int     `json:"start,omitempty" bson:"start,omitempty"`
-	Range       *int     `json:"range,omitempty" bson:"range,omitempty"`
-	targetUnits *string
+	Low    *float64 `json:"low,omitempty" bson:"low,omitempty"`
+	High   *float64 `json:"high,omitempty" bson:"high,omitempty"`
+	Target *float64 `json:"target,omitempty" bson:"target,omitempty"`
+	Start  *int     `json:"start,omitempty" bson:"start,omitempty"`
+	Range  *int     `json:"range,omitempty" bson:"range,omitempty"`
 }
 
 func NewBloodGlucoseTarget() *BloodGlucoseTarget {
@@ -27,16 +26,16 @@ func (b *BloodGlucoseTarget) Parse(parser data.ObjectParser) {
 	b.Range = parser.ParseInteger("range")
 }
 
-func (b *BloodGlucoseTarget) Validate(validator data.Validator) {
+func (b *BloodGlucoseTarget) Validate(validator data.Validator, units *string) {
 
-	if b.targetUnits == nil {
+	if units == nil {
 		return
 	}
 
 	lowBgUpperLimit := b.High
 	highBgLowerLimit := b.Low
 
-	switch b.targetUnits {
+	switch units {
 	case &bloodglucose.Mmoll, &bloodglucose.MmolL:
 
 		if lowBgUpperLimit == nil {
@@ -75,18 +74,18 @@ func (b *BloodGlucoseTarget) Validate(validator data.Validator) {
 	validator.ValidateInteger("start", b.Start).Exists().InRange(0, 86400000)
 }
 
-func (b *BloodGlucoseTarget) Normalize(normalizer data.Normalizer) {
-	if b.targetUnits == nil {
+func (b *BloodGlucoseTarget) Normalize(normalizer data.Normalizer, units *string) {
+	if units == nil {
 		return
 	}
 	if b.Low != nil {
-		b.Low = normalizer.NormalizeBloodGlucose("low", b.targetUnits).NormalizeValue(b.Low)
+		b.Low = normalizer.NormalizeBloodGlucose("low", units).NormalizeValue(b.Low)
 	}
 	if b.High != nil {
-		b.High = normalizer.NormalizeBloodGlucose("high", b.targetUnits).NormalizeValue(b.High)
+		b.High = normalizer.NormalizeBloodGlucose("high", units).NormalizeValue(b.High)
 	}
 	if b.Target != nil {
-		b.Target = normalizer.NormalizeBloodGlucose("target", b.targetUnits).NormalizeValue(b.Target)
+		b.Target = normalizer.NormalizeBloodGlucose("target", units).NormalizeValue(b.Target)
 	}
 }
 

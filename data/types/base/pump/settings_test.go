@@ -182,6 +182,14 @@ var _ = Describe("Settings", func() {
 					}},
 				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(25.1, 0.0, 20.0), "/basalSchedules/1/rate", NewMeta())},
 			),
+			Entry("has no defined name", NewRawObject(), "basalSchedules",
+				map[string]interface{}{
+					"": []interface{}{
+						map[string]interface{}{"rate": 0.6, "start": 0},
+						map[string]interface{}{"rate": 18.1, "start": 10800000},
+					}},
+				[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThanOrEqualTo(0, 1), "/basalSchedules/name", NewMeta())},
+			),
 		)
 
 	})
