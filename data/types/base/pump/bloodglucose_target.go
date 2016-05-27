@@ -35,8 +35,8 @@ func (b *BloodGlucoseTarget) Validate(validator data.Validator, units *string) {
 	lowBgUpperLimit := b.High
 	highBgLowerLimit := b.Low
 
-	switch units {
-	case &bloodglucose.Mmoll, &bloodglucose.MmolL:
+	switch *units {
+	case bloodglucose.Mmoll, bloodglucose.MmolL:
 
 		if lowBgUpperLimit == nil {
 			lowBgUpperLimit = &bloodglucose.MmolLToValue
@@ -50,7 +50,7 @@ func (b *BloodGlucoseTarget) Validate(validator data.Validator, units *string) {
 		}
 
 		validator.ValidateFloat("low", b.Low).InRange(bloodglucose.MmolLFromValue, *lowBgUpperLimit)
-		validator.ValidateFloat("target", b.Target).InRange(bloodglucose.MmolLFromValue, bloodglucose.MmolLToValue)
+		validator.ValidateFloat("target", b.Target).InRange(bloodglucose.AllowedMmolLRange())
 		validator.ValidateFloat("high", b.High).GreaterThan(*highBgLowerLimit).LessThanOrEqualTo(bloodglucose.MmolLToValue)
 
 	default:
@@ -66,7 +66,7 @@ func (b *BloodGlucoseTarget) Validate(validator data.Validator, units *string) {
 			}
 		}
 		validator.ValidateFloat("low", b.Low).InRange(bloodglucose.MgdLFromValue, *lowBgUpperLimit)
-		validator.ValidateFloat("target", b.Target).InRange(bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue)
+		validator.ValidateFloat("target", b.Target).InRange(bloodglucose.AllowedMgdLRange())
 		validator.ValidateFloat("high", b.High).GreaterThan(*highBgLowerLimit).LessThanOrEqualTo(bloodglucose.MgdLToValue)
 	}
 

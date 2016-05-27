@@ -78,14 +78,14 @@ func (c *Calculator) Validate(validator data.Validator) {
 	validator.ValidateFloat("insulinOnBoard", c.InsulinOnBoard).InRange(0.0, 250.0)
 	validator.ValidateInteger("insulinCarbRatio", c.InsulinCarbohydrateRatio).InRange(0, 250)
 
-	validator.ValidateString("units", c.Units).Exists().OneOf([]string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL})
-	switch c.Units {
-	case &bloodglucose.Mmoll, &bloodglucose.MmolL:
-		validator.ValidateFloat("bgInput", c.BloodGlucoseInput).InRange(bloodglucose.MmolLFromValue, bloodglucose.MmolLToValue)
-		validator.ValidateFloat("insulinSensitivity", c.InsulinSensitivity).InRange(bloodglucose.MmolLFromValue, bloodglucose.MmolLToValue)
+	validator.ValidateString("units", c.Units).Exists().OneOf(bloodglucose.AllowedUnits)
+	switch *c.Units {
+	case bloodglucose.Mmoll, bloodglucose.MmolL:
+		validator.ValidateFloat("bgInput", c.BloodGlucoseInput).InRange(bloodglucose.AllowedMmolLRange())
+		validator.ValidateFloat("insulinSensitivity", c.InsulinSensitivity).InRange(bloodglucose.AllowedMmolLRange())
 	default:
-		validator.ValidateFloat("bgInput", c.BloodGlucoseInput).InRange(bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue)
-		validator.ValidateFloat("insulinSensitivity", c.InsulinSensitivity).InRange(bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue)
+		validator.ValidateFloat("bgInput", c.BloodGlucoseInput).InRange(bloodglucose.AllowedMgdLRange())
+		validator.ValidateFloat("insulinSensitivity", c.InsulinSensitivity).InRange(bloodglucose.AllowedMgdLRange())
 	}
 
 	if c.Recommended != nil {
@@ -93,8 +93,7 @@ func (c *Calculator) Validate(validator data.Validator) {
 	}
 
 	if c.BloodGlucoseTarget != nil {
-		c.targetUnits = c.Units
-		c.BloodGlucoseTarget.Validate(validator.NewChildValidator("bgTarget"))
+		c.BloodGlucoseTarget.Validate(validator.NewChildValidator("bgTarget"), c.Units)
 	}
 
 	if c.bolus != nil {
@@ -121,11 +120,8 @@ func (c *Calculator) Normalize(normalizer data.Normalizer) {
 		}
 	}
 
-	originalUnits := c.Units
-
 	if c.BloodGlucoseTarget != nil {
-		c.targetUnits = originalUnits
-		c.BloodGlucoseTarget.Normalize(normalizer.NewChildNormalizer("bgTarget"))
+		c.BloodGlucoseTarget.Normalize(normalizer.NewChildNormalizer("bgTarget"), c.Units)
 	}
 
 	c.InsulinSensitivity = normalizer.NormalizeBloodGlucose("insulinSensitivity", c.Units).NormalizeValue(c.InsulinSensitivity)

@@ -46,8 +46,8 @@ func (s *StandardBloodGlucose) NormalizeValue(value *float64) *float64 {
 		return nil
 	}
 
-	switch s.units {
-	case &bloodglucose.Mmoll, &bloodglucose.MmolL:
+	switch *s.units {
+	case bloodglucose.Mmoll, bloodglucose.MmolL:
 		return value
 	default:
 		converted := *value / bloodglucose.MgdlToMmolConversion

@@ -31,6 +31,27 @@ func NewRawObject() map[string]interface{} {
 	return rawObject
 }
 
+func NewRawObjectWithMmolL() map[string]interface{} {
+	rawObject := testing.RawBaseObject()
+	rawObject["type"] = "wizard"
+	rawObject["bgInput"] = 12.0
+	rawObject["carbInput"] = 120
+	rawObject["insulinSensitivity"] = 7.0
+	rawObject["insulinCarbRatio"] = 50
+	rawObject["insulinOnBoard"] = 70
+
+	rawObject["recommended"] = map[string]interface{}{"net": 50, "correction": -50, "carb": 50}
+	rawObject["bgTarget"] = map[string]interface{}{"target": 8.0, "range": 10}
+	rawObject["units"] = bloodglucose.MmolL
+	return rawObject
+}
+
+func NewRawObjectWithMmoll() map[string]interface{} {
+	rawObject := NewRawObjectWithMmolL()
+	rawObject["units"] = bloodglucose.Mmoll
+	return rawObject
+}
+
 func NewRawObjectWithMgdl() map[string]interface{} {
 	rawObject := NewRawObject()
 	rawObject["units"] = bloodglucose.Mgdl
@@ -101,16 +122,16 @@ var _ = Describe("Calculator", func() {
 	Context("units", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is empty", NewRawObjectWithMgdl(), "units", "",
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("", []string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL}), "/units", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("", bloodglucose.AllowedUnits), "/units", NewMeta())},
 			),
 			Entry("is not one of the predefined values", NewRawObjectWithMgdl(), "units", "wrong",
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("wrong", []string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL}), "/units", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("wrong", bloodglucose.AllowedUnits), "/units", NewMeta())},
 			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("is mmol/l", NewRawObjectWithMgdl(), "units", "mmol/l"),
-			Entry("is mmol/L", NewRawObjectWithMgdl(), "units", "mmol/L"),
+			Entry("is mmol/l", NewRawObjectWithMmoll(), "units", "mmol/l"),
+			Entry("is mmol/L", NewRawObjectWithMmolL(), "units", "mmol/L"),
 			Entry("is mg/dl", NewRawObjectWithMgdl(), "units", "mg/dl"),
 			Entry("is mg/dL", NewRawObjectWithMgdl(), "units", "mg/dL"),
 		)

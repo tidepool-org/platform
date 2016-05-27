@@ -48,12 +48,12 @@ func (c *Calibration) Parse(parser data.ObjectParser) {
 func (c *Calibration) Validate(validator data.Validator) {
 	c.Device.Validate(validator)
 
-	validator.ValidateString("units", c.Units).Exists().OneOf([]string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL})
-	switch c.Units {
-	case &bloodglucose.Mmoll, &bloodglucose.MmolL:
-		validator.ValidateFloat("value", c.Value).Exists().InRange(bloodglucose.MmolLFromValue, bloodglucose.MmolLToValue)
+	validator.ValidateString("units", c.Units).Exists().OneOf(bloodglucose.AllowedUnits)
+	switch *c.Units {
+	case bloodglucose.Mmoll, bloodglucose.MmolL:
+		validator.ValidateFloat("value", c.Value).Exists().InRange(bloodglucose.AllowedMmolLRange())
 	default:
-		validator.ValidateFloat("value", c.Value).Exists().InRange(bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue)
+		validator.ValidateFloat("value", c.Value).Exists().InRange(bloodglucose.AllowedMgdLRange())
 	}
 }
 

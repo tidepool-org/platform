@@ -44,12 +44,12 @@ func (b *BloodGlucose) Validate(validator data.Validator) {
 
 	b.Base.Validate(validator)
 
-	validator.ValidateString("units", b.Units).Exists().OneOf([]string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL})
-	switch b.Units {
-	case &bloodglucose.Mmoll, &bloodglucose.MmolL:
-		validator.ValidateFloat("value", b.Value).Exists().InRange(bloodglucose.MmolLFromValue, bloodglucose.MmolLToValue)
+	validator.ValidateString("units", b.Units).Exists().OneOf(bloodglucose.AllowedUnits)
+	switch *b.Units {
+	case bloodglucose.Mmoll, bloodglucose.MmolL:
+		validator.ValidateFloat("value", b.Value).Exists().InRange(bloodglucose.AllowedMmolLRange())
 	default:
-		validator.ValidateFloat("value", b.Value).Exists().InRange(bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue)
+		validator.ValidateFloat("value", b.Value).Exists().InRange(bloodglucose.AllowedMgdLRange())
 	}
 
 	validator.ValidateString("subType", b.SubType).OneOf([]string{"manual", "linked"})

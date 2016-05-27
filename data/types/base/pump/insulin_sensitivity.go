@@ -25,11 +25,11 @@ func (i *InsulinSensitivity) Validate(validator data.Validator, units *string) {
 		return
 	}
 
-	switch units {
-	case &bloodglucose.Mmoll, &bloodglucose.MmolL:
-		validator.ValidateFloat("amount", i.Amount).Exists().InRange(bloodglucose.MmolLFromValue, bloodglucose.MmolLToValue)
+	switch *units {
+	case bloodglucose.Mmoll, bloodglucose.MmolL:
+		validator.ValidateFloat("amount", i.Amount).Exists().InRange(bloodglucose.AllowedMmolLRange())
 	default:
-		validator.ValidateFloat("amount", i.Amount).Exists().InRange(bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue)
+		validator.ValidateFloat("amount", i.Amount).Exists().InRange(bloodglucose.AllowedMgdLRange())
 	}
 
 	validator.ValidateInteger("start", i.Start).Exists().InRange(0, 86400000)

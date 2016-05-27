@@ -15,12 +15,21 @@ import (
 	"github.com/tidepool-org/platform/service"
 )
 
-func NewRawObject() map[string]interface{} {
+func NewRawObjectMmolL() map[string]interface{} {
 	rawObject := testing.RawBaseObject()
 	rawObject["type"] = "deviceEvent"
 	rawObject["subType"] = "calibration"
-	rawObject["units"] = "mmol/L"
+	rawObject["units"] = bloodglucose.MmolL
 	rawObject["value"] = 5.5
+	return rawObject
+}
+
+func NewRawObjectMgdL() map[string]interface{} {
+	rawObject := testing.RawBaseObject()
+	rawObject["type"] = "deviceEvent"
+	rawObject["subType"] = "calibration"
+	rawObject["units"] = bloodglucose.MgdL
+	rawObject["value"] = 180
 	return rawObject
 }
 
@@ -34,37 +43,37 @@ func NewMeta() interface{} {
 var _ = Describe("Calibration", func() {
 	Context("units", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("is empty", NewRawObject(), "units", "",
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("", []string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL}), "/units", NewMeta())},
+			Entry("is empty", NewRawObjectMmolL(), "units", "",
+				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("", bloodglucose.AllowedUnits), "/units", NewMeta())},
 			),
-			Entry("is not one of the predefined values", NewRawObject(), "units", "wrong",
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("wrong", []string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL}), "/units", NewMeta())},
+			Entry("is not one of the predefined values", NewRawObjectMmolL(), "units", "wrong",
+				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("wrong", bloodglucose.AllowedUnits), "/units", NewMeta())},
 			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("is mmol/l", NewRawObject(), "units", "mmol/l"),
-			Entry("is mmol/L", NewRawObject(), "units", "mmol/L"),
-			Entry("is mg/dl", NewRawObject(), "units", "mg/dl"),
-			Entry("is mg/dL", NewRawObject(), "units", "mg/dL"),
+			Entry("is mmol/l", NewRawObjectMmolL(), "units", "mmol/l"),
+			Entry("is mmol/L", NewRawObjectMmolL(), "units", "mmol/L"),
+			Entry("is mg/dl", NewRawObjectMgdL(), "units", "mg/dl"),
+			Entry("is mg/dL", NewRawObjectMgdL(), "units", "mg/dL"),
 		)
 	})
 
 	Context("value", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("is less than 0", NewRawObject(), "value", -0.1,
+			Entry("is less than 0", NewRawObjectMgdL(), "value", -0.1,
 				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/value", NewMeta())},
 			),
-			Entry("is greater than 1000", NewRawObject(), "value", 1000.1,
+			Entry("is greater than 1000", NewRawObjectMgdL(), "value", 1000.1,
 				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(1000.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/value", NewMeta())},
 			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("is 0", NewRawObject(), "value", 0.0),
-			Entry("is above 0", NewRawObject(), "value", 0.1),
-			Entry("is below max", NewRawObject(), "value", 990.85745),
-			Entry("is an integer", NewRawObject(), "value", 4),
+			Entry("is 0", NewRawObjectMgdL(), "value", 0.0),
+			Entry("is above 0", NewRawObjectMgdL(), "value", 0.1),
+			Entry("is below max", NewRawObjectMgdL(), "value", 990.85745),
+			Entry("is an integer", NewRawObjectMgdL(), "value", 4),
 		)
 	})
 

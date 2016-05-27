@@ -20,7 +20,7 @@ func (u *Units) Parse(parser data.ObjectParser) {
 }
 
 func (u *Units) Validate(validator data.Validator) {
-	validator.ValidateString("bg", u.BloodGlucose).Exists().OneOf([]string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL})
+	validator.ValidateString("bg", u.BloodGlucose).Exists().OneOf(bloodglucose.AllowedUnits)
 	validator.ValidateString("carb", u.Carbohydrate).Exists().LengthGreaterThanOrEqualTo(1)
 }
 
