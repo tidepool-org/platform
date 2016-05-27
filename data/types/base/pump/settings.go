@@ -89,7 +89,8 @@ func (s *Settings) Validate(validator data.Validator) {
 
 	if s.BasalSchedules != nil {
 		basalSchedulesValidator := validator.NewChildValidator("basalSchedules")
-		for _, basalSchedule := range *s.BasalSchedules {
+		for basalScheduleName, basalSchedule := range *s.BasalSchedules {
+			basalSchedulesValidator.ValidateString("name", &basalScheduleName).Exists().LengthGreaterThanOrEqualTo(1)
 			if basalSchedule != nil {
 				for index, scheduleItem := range *basalSchedule {
 					scheduleItem.Validate(basalSchedulesValidator.NewChildValidator(index))
