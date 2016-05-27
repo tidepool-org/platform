@@ -45,5 +45,5 @@ func (n *Normal) Parse(parser data.ObjectParser) {
 func (n *Normal) Validate(validator data.Validator) {
 	n.Bolus.Validate(validator)
 
-	validator.ValidateFloat("normal", n.Normal).Exists().InRange(0.0, 100.0)
+	validator.ValidateFloat("normal", n.Normal).Exists().GreaterThan(0.0).LessThanOrEqualTo(100.0)
 }
