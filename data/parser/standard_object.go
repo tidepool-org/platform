@@ -15,6 +15,7 @@ import (
 
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/service"
 )
 
 type StandardObject struct {
@@ -35,6 +36,10 @@ func NewStandardObject(context data.Context, object *map[string]interface{}) (*S
 
 func (s *StandardObject) SetMeta(meta interface{}) {
 	s.context.SetMeta(meta)
+}
+
+func (s *StandardObject) AppendError(reference interface{}, err *service.Error) {
+	s.context.AppendError(reference, err)
 }
 
 func (s *StandardObject) Object() *map[string]interface{} {

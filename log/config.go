@@ -23,7 +23,7 @@ type Config struct {
 func (c *Config) Validate() error {
 	if level, err := logrus.ParseLevel(c.Level); err != nil {
 		return app.ExtError(err, "log", "level is invalid")
-	} else if level == logrus.FatalLevel || level == logrus.PanicLevel {
+	} else if level == logrus.PanicLevel {
 		return app.Error("log", "level is invalid")
 	}
 	return nil

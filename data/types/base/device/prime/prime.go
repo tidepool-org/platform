@@ -37,15 +37,21 @@ func New() (*Prime, error) {
 	}, nil
 }
 
-func (p *Prime) Parse(parser data.ObjectParser) {
-	p.Device.Parse(parser)
+func (p *Prime) Parse(parser data.ObjectParser) error {
+	if err := p.Device.Parse(parser); err != nil {
+		return err
+	}
 
 	p.Target = parser.ParseString("primeTarget")
 	p.Volume = parser.ParseFloat("volume")
+
+	return nil
 }
 
-func (p *Prime) Validate(validator data.Validator) {
-	p.Device.Validate(validator)
+func (p *Prime) Validate(validator data.Validator) error {
+	if err := p.Device.Validate(validator); err != nil {
+		return err
+	}
 
 	validator.ValidateString("primeTarget", p.Target).Exists().OneOf([]string{"cannula", "tubing"})
 
@@ -56,4 +62,6 @@ func (p *Prime) Validate(validator data.Validator) {
 			validator.ValidateFloat("volume", p.Volume).InRange(0.0, 100.0)
 		}
 	}
+
+	return nil
 }

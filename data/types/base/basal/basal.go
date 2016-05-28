@@ -54,20 +54,20 @@ func (b *Basal) Meta() interface{} {
 	}
 }
 
-func (b *Basal) Parse(parser data.ObjectParser) {
+func (b *Basal) Parse(parser data.ObjectParser) error {
 	parser.SetMeta(b.Meta())
 
-	b.Base.Parse(parser)
+	return b.Base.Parse(parser)
 }
 
-func (b *Basal) Validate(validator data.Validator) {
+func (b *Basal) Validate(validator data.Validator) error {
 	validator.SetMeta(b.Meta())
 
-	b.Base.Validate(validator)
+	return b.Base.Validate(validator)
 }
 
-func (b *Basal) Normalize(normalizer data.Normalizer) {
+func (b *Basal) Normalize(normalizer data.Normalizer) error {
 	normalizer.SetMeta(b.Meta())
 
-	b.Base.Normalize(normalizer)
+	return b.Base.Normalize(normalizer)
 }

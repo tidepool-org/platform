@@ -51,10 +51,12 @@ func New() (*Calculator, error) {
 	}, nil
 }
 
-func (c *Calculator) Parse(parser data.ObjectParser) {
+func (c *Calculator) Parse(parser data.ObjectParser) error {
 	parser.SetMeta(c.Meta())
 
-	c.Base.Parse(parser)
+	if err := c.Base.Parse(parser); err != nil {
+		return err
+	}
 
 	c.CarbohydrateInput = parser.ParseInteger("carbInput")
 	c.InsulinOnBoard = parser.ParseFloat("insulinOnBoard")
@@ -65,13 +67,22 @@ func (c *Calculator) Parse(parser data.ObjectParser) {
 
 	c.Recommended = ParseRecommended(parser.NewChildObjectParser("recommended"))
 	c.BloodGlucoseTarget = ParseBloodGlucoseTarget(parser.NewChildObjectParser("bgTarget"))
-	c.bolus = ParseBolus(parser.NewChildObjectParser("bolus"))
+
+	bolus, err := ParseBolus(parser.NewChildObjectParser("bolus"))
+	if err != nil {
+		return err
+	}
+	c.bolus = bolus
+
+	return nil
 }
 
-func (c *Calculator) Validate(validator data.Validator) {
+func (c *Calculator) Validate(validator data.Validator) error {
 	validator.SetMeta(c.Meta())
 
-	c.Base.Validate(validator)
+	if err := c.Base.Validate(validator); err != nil {
+		return err
+	}
 
 	validator.ValidateInteger("carbInput", c.CarbohydrateInput).InRange(0, 1000)
 	validator.ValidateFloat("insulinOnBoard", c.InsulinOnBoard).InRange(0.0, 250.0)
@@ -92,12 +103,16 @@ func (c *Calculator) Validate(validator data.Validator) {
 	if c.bolus != nil {
 		c.bolus.Validate(validator.NewChildValidator("bolus"))
 	}
+
+	return nil
 }
 
-func (c *Calculator) Normalize(normalizer data.Normalizer) {
+func (c *Calculator) Normalize(normalizer data.Normalizer) error {
 	normalizer.SetMeta(c.Meta())
 
-	c.Base.Normalize(normalizer)
+	if err := c.Base.Normalize(normalizer); err != nil {
+		return err
+	}
 
 	units := c.Units
 
@@ -127,4 +142,6 @@ func (c *Calculator) Normalize(normalizer data.Normalizer) {
 		}
 		c.bolus = nil
 	}
+
+	return nil
 }

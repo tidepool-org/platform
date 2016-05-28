@@ -54,20 +54,20 @@ func (d *Device) Meta() interface{} {
 	}
 }
 
-func (d *Device) Parse(parser data.ObjectParser) {
+func (d *Device) Parse(parser data.ObjectParser) error {
 	parser.SetMeta(d.Meta())
 
-	d.Base.Parse(parser)
+	return d.Base.Parse(parser)
 }
 
-func (d *Device) Validate(validator data.Validator) {
+func (d *Device) Validate(validator data.Validator) error {
 	validator.SetMeta(d.Meta())
 
-	d.Base.Validate(validator)
+	return d.Base.Validate(validator)
 }
 
-func (d *Device) Normalize(normalizer data.Normalizer) {
+func (d *Device) Normalize(normalizer data.Normalizer) error {
 	normalizer.SetMeta(d.Meta())
 
-	d.Base.Normalize(normalizer)
+	return d.Base.Normalize(normalizer)
 }

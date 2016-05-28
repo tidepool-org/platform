@@ -1,4 +1,4 @@
-package types
+package base
 
 /* CHECKLIST
  * [x] Uses interfaces as appropriate

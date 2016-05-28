@@ -10,8 +10,11 @@ package data
  * [x] Full test coverage
  */
 
+import "github.com/tidepool-org/platform/service"
+
 type ObjectParser interface {
 	SetMeta(meta interface{})
+	AppendError(reference interface{}, err *service.Error)
 
 	Object() *map[string]interface{}
 
@@ -31,6 +34,7 @@ type ObjectParser interface {
 
 type ArrayParser interface {
 	SetMeta(meta interface{})
+	AppendError(reference interface{}, err *service.Error)
 
 	Array() *[]interface{}
 

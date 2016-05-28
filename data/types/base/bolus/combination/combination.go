@@ -38,18 +38,26 @@ func New() (*Combination, error) {
 	}, nil
 }
 
-func (c *Combination) Parse(parser data.ObjectParser) {
-	c.Bolus.Parse(parser)
+func (c *Combination) Parse(parser data.ObjectParser) error {
+	if err := c.Bolus.Parse(parser); err != nil {
+		return err
+	}
 
 	c.Duration = parser.ParseInteger("duration")
 	c.Extended = parser.ParseFloat("extended")
 	c.Normal = parser.ParseFloat("normal")
+
+	return nil
 }
 
-func (c *Combination) Validate(validator data.Validator) {
-	c.Bolus.Validate(validator)
+func (c *Combination) Validate(validator data.Validator) error {
+	if err := c.Bolus.Validate(validator); err != nil {
+		return err
+	}
 
 	validator.ValidateInteger("duration", c.Duration).Exists().InRange(0, 86400000)
 	validator.ValidateFloat("extended", c.Extended).Exists().InRange(0.0, 100.0)
 	validator.ValidateFloat("normal", c.Normal).Exists().InRange(0.0, 100.0)
+
+	return nil
 }

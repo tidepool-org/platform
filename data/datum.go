@@ -13,9 +13,9 @@ package data
 type Datum interface {
 	Meta() interface{}
 
-	Parse(parser ObjectParser)
-	Validate(validator Validator)
-	Normalize(normalizer Normalizer)
+	Parse(parser ObjectParser) error
+	Validate(validator Validator) error
+	Normalize(normalizer Normalizer) error
 
 	SetUserID(userID string)
 	SetGroupID(groupID string)

@@ -7,17 +7,18 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/normalizer"
+	"github.com/tidepool-org/platform/service"
 )
 
 type TestDatum struct{}
 
-func (t *TestDatum) Meta() interface{}                    { return nil }
-func (t *TestDatum) Parse(parser data.ObjectParser)       {}
-func (t *TestDatum) Validate(validator data.Validator)    {}
-func (t *TestDatum) Normalize(normalizer data.Normalizer) {}
-func (t *TestDatum) SetUserID(userID string)              {}
-func (t *TestDatum) SetGroupID(groupID string)            {}
-func (t *TestDatum) SetDatasetID(datasetID string)        {}
+func (t *TestDatum) Meta() interface{}                          { return nil }
+func (t *TestDatum) Parse(parser data.ObjectParser) error       { return nil }
+func (t *TestDatum) Validate(validator data.Validator) error    { return nil }
+func (t *TestDatum) Normalize(normalizer data.Normalizer) error { return nil }
+func (t *TestDatum) SetUserID(userID string)                    {}
+func (t *TestDatum) SetGroupID(groupID string)                  {}
+func (t *TestDatum) SetDatasetID(datasetID string)              {}
 
 var _ = Describe("Standard", func() {
 	It("New returns an error if context is nil", func() {
@@ -55,6 +56,13 @@ var _ = Describe("Standard", func() {
 				meta := "metametameta"
 				standard.SetMeta(meta)
 				Expect(standardContext.Meta()).To(BeIdenticalTo(meta))
+			})
+		})
+
+		Context("AppendError", func() {
+			It("appends an error on the context", func() {
+				standard.AppendError("append-error", &service.Error{})
+				Expect(standardContext.Errors()).To(HaveLen(1))
 			})
 		})
 

@@ -29,11 +29,9 @@ var _ = Describe("Config", func() {
 			Expect(config.Validate()).To(Succeed())
 		})
 
-		It("returns an error for the fatal level", func() {
+		It("returns success for the fatal level", func() {
 			config := &log.Config{Level: "fatal"}
-			err := config.Validate()
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(HavePrefix("log: level is invalid"))
+			Expect(config.Validate()).To(Succeed())
 		})
 
 		It("returns an error for the panic level", func() {

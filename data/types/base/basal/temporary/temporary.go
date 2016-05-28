@@ -38,18 +38,26 @@ func New() (*Temporary, error) {
 	}, nil
 }
 
-func (t *Temporary) Parse(parser data.ObjectParser) {
-	t.Basal.Parse(parser)
+func (t *Temporary) Parse(parser data.ObjectParser) error {
+	if err := t.Basal.Parse(parser); err != nil {
+		return err
+	}
 
 	t.Duration = parser.ParseInteger("duration")
 	t.Rate = parser.ParseFloat("rate")
 	t.Percent = parser.ParseFloat("percent")
+
+	return nil
 }
 
-func (t *Temporary) Validate(validator data.Validator) {
-	t.Basal.Validate(validator)
+func (t *Temporary) Validate(validator data.Validator) error {
+	if err := t.Basal.Validate(validator); err != nil {
+		return err
+	}
 
 	validator.ValidateInteger("duration", t.Duration).Exists().InRange(0, 86400000)
 	validator.ValidateFloat("rate", t.Rate).Exists().InRange(0.0, 20.0)
 	validator.ValidateFloat("percent", t.Percent).Exists().InRange(0.0, 10.0)
+
+	return nil
 }

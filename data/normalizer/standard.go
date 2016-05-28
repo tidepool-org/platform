@@ -13,6 +13,7 @@ package normalizer
 import (
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/service"
 )
 
 type Standard struct {
@@ -33,6 +34,10 @@ func NewStandard(context data.Context) (*Standard, error) {
 
 func (s *Standard) SetMeta(meta interface{}) {
 	s.context.SetMeta(meta)
+}
+
+func (s *Standard) AppendError(reference interface{}, err *service.Error) {
+	s.context.AppendError(reference, err)
 }
 
 func (s *Standard) Data() []data.Datum {

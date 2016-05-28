@@ -10,8 +10,11 @@ package data
  * [x] Full test coverage
  */
 
+import "github.com/tidepool-org/platform/service"
+
 type Normalizer interface {
 	SetMeta(meta interface{})
+	AppendError(reference interface{}, err *service.Error)
 
 	AppendDatum(datum Datum)
 

@@ -167,6 +167,7 @@ var _ = Describe("Settings", func() {
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
 			Entry("has start and rate within bounds", NewRawObjectMgdL(), "basalSchedules", basalSchedules),
+			Entry("has an empty array", NewRawObjectMgdL(), "basalSchedules", map[string]interface{}{"empty": []interface{}{}}),
 		)
 
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
@@ -175,14 +176,14 @@ var _ = Describe("Settings", func() {
 					"standard": []interface{}{
 						map[string]interface{}{"rate": 0.6, "start": -1},
 					}},
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(-1, 0, 86400000), "/basalSchedules/0/start", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(-1, 0, 86400000), "/basalSchedules/standard/0/start", NewMeta())},
 			),
 			Entry("has start to large", NewRawObjectMgdL(), "basalSchedules",
 				map[string]interface{}{
 					"standard": []interface{}{
 						map[string]interface{}{"rate": 0.6, "start": 86400001},
 					}},
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(86400001, 0, 86400000), "/basalSchedules/0/start", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(86400001, 0, 86400000), "/basalSchedules/standard/0/start", NewMeta())},
 			),
 			Entry("has nested start to large", NewRawObjectMgdL(), "basalSchedules",
 				map[string]interface{}{
@@ -190,21 +191,21 @@ var _ = Describe("Settings", func() {
 						map[string]interface{}{"rate": 0.6, "start": 5},
 						map[string]interface{}{"rate": 0.6, "start": 86400001},
 					}},
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(86400001, 0, 86400000), "/basalSchedules/1/start", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(86400001, 0, 86400000), "/basalSchedules/standard/1/start", NewMeta())},
 			),
 			Entry("has start negative", NewRawObjectMgdL(), "basalSchedules",
 				map[string]interface{}{
 					"standard": []interface{}{
 						map[string]interface{}{"rate": -0.1, "start": 10800000},
 					}},
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, 0.0, 20.0), "/basalSchedules/0/rate", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, 0.0, 20.0), "/basalSchedules/standard/0/rate", NewMeta())},
 			),
 			Entry("has start to large", NewRawObjectMgdL(), "basalSchedules",
 				map[string]interface{}{
 					"standard": []interface{}{
 						map[string]interface{}{"rate": 20.1, "start": 10800000},
 					}},
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(20.1, 0.0, 20.0), "/basalSchedules/0/rate", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(20.1, 0.0, 20.0), "/basalSchedules/standard/0/rate", NewMeta())},
 			),
 			Entry("has nested rate to large", NewRawObjectMgdL(), "basalSchedules",
 				map[string]interface{}{
@@ -212,7 +213,7 @@ var _ = Describe("Settings", func() {
 						map[string]interface{}{"rate": 0.6, "start": 0},
 						map[string]interface{}{"rate": 25.1, "start": 10800000},
 					}},
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(25.1, 0.0, 20.0), "/basalSchedules/1/rate", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(25.1, 0.0, 20.0), "/basalSchedules/standard/1/rate", NewMeta())},
 			),
 			Entry("has no defined name", NewRawObjectMgdL(), "basalSchedules",
 				map[string]interface{}{
@@ -220,10 +221,9 @@ var _ = Describe("Settings", func() {
 						map[string]interface{}{"rate": 0.6, "start": 0},
 						map[string]interface{}{"rate": 18.1, "start": 10800000},
 					}},
-				[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThanOrEqualTo(0, 1), "/basalSchedules/name", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThanOrEqualTo(0, 1), "/basalSchedules/", NewMeta())},
 			),
 		)
-
 	})
 
 	Context("insulinSensitivity", func() {

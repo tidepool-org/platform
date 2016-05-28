@@ -37,16 +37,24 @@ func New() (*Extended, error) {
 	}, nil
 }
 
-func (e *Extended) Parse(parser data.ObjectParser) {
-	e.Bolus.Parse(parser)
+func (e *Extended) Parse(parser data.ObjectParser) error {
+	if err := e.Bolus.Parse(parser); err != nil {
+		return err
+	}
 
 	e.Duration = parser.ParseInteger("duration")
 	e.Extended = parser.ParseFloat("extended")
+
+	return nil
 }
 
-func (e *Extended) Validate(validator data.Validator) {
-	e.Bolus.Validate(validator)
+func (e *Extended) Validate(validator data.Validator) error {
+	if err := e.Bolus.Validate(validator); err != nil {
+		return err
+	}
 
 	validator.ValidateInteger("duration", e.Duration).Exists().InRange(0, 86400000)
 	validator.ValidateFloat("extended", e.Extended).Exists().InRange(0.0, 100.0)
+
+	return nil
 }

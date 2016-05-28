@@ -6,6 +6,7 @@ import (
 
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/validator"
+	"github.com/tidepool-org/platform/service"
 )
 
 var _ = Describe("Standard", func() {
@@ -35,6 +36,13 @@ var _ = Describe("Standard", func() {
 				meta := "metametameta"
 				standard.SetMeta(meta)
 				Expect(standardContext.Meta()).To(BeIdenticalTo(meta))
+			})
+		})
+
+		Context("AppendError", func() {
+			It("appends an error on the context", func() {
+				standard.AppendError("append-error", &service.Error{})
+				Expect(standardContext.Errors()).To(HaveLen(1))
 			})
 		})
 

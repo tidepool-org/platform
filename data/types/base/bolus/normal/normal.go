@@ -36,14 +36,22 @@ func New() (*Normal, error) {
 	}, nil
 }
 
-func (n *Normal) Parse(parser data.ObjectParser) {
-	n.Bolus.Parse(parser)
+func (n *Normal) Parse(parser data.ObjectParser) error {
+	if err := n.Bolus.Parse(parser); err != nil {
+		return err
+	}
 
 	n.Normal = parser.ParseFloat("normal")
+
+	return nil
 }
 
-func (n *Normal) Validate(validator data.Validator) {
-	n.Bolus.Validate(validator)
+func (n *Normal) Validate(validator data.Validator) error {
+	if err := n.Bolus.Validate(validator); err != nil {
+		return err
+	}
 
 	validator.ValidateFloat("normal", n.Normal).Exists().GreaterThan(0.0).LessThanOrEqualTo(100.0)
+
+	return nil
 }

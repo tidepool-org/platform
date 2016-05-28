@@ -26,7 +26,6 @@ func (c *CarbohydrateRatio) Normalize(normalizer data.Normalizer) {
 
 func ParseCarbohydrateRatio(parser data.ObjectParser) *CarbohydrateRatio {
 	var carbohydrateRatio *CarbohydrateRatio
-
 	if parser.Object() != nil {
 		carbohydrateRatio = NewCarbohydrateRatio()
 		carbohydrateRatio.Parse(parser)
@@ -35,7 +34,6 @@ func ParseCarbohydrateRatio(parser data.ObjectParser) *CarbohydrateRatio {
 }
 
 func ParseCarbohydrateRatioArray(parser data.ArrayParser) *[]*CarbohydrateRatio {
-
 	var carbohydrateRatioArray *[]*CarbohydrateRatio
 	if parser.Array() != nil {
 		carbohydrateRatioArray = &[]*CarbohydrateRatio{}

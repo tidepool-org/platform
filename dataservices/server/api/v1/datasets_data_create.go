@@ -94,7 +94,7 @@ func DatasetsDataCreate(serverContext server.Context) {
 	datumArray := []data.Datum{}
 	for index := range *datumArrayParser.Array() {
 		var datum data.Datum
-		datum, err = types.Parse(datumArrayContext.NewChildContext(index), datumArrayParser.NewChildObjectParser(index))
+		datum, err = types.Parse(datumArrayParser.NewChildObjectParser(index))
 		if err != nil {
 			serverContext.RespondWithInternalServerFailure("Unable to parse datum", err)
 			return

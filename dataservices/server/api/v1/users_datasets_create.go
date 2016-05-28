@@ -77,7 +77,7 @@ func UsersDatasetsCreate(serverContext server.Context) {
 		return
 	}
 
-	datasetDatum, err := types.Parse(datumContext, datumParser)
+	datasetDatum, err := types.Parse(datumParser)
 	if err != nil {
 		serverContext.RespondWithInternalServerFailure("Unable to parse datum parser", err)
 		return

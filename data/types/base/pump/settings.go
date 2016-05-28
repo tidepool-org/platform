@@ -34,10 +34,12 @@ func New() (*Settings, error) {
 	}, nil
 }
 
-func (s *Settings) Parse(parser data.ObjectParser) {
+func (s *Settings) Parse(parser data.ObjectParser) error {
 	parser.SetMeta(s.Meta())
 
-	s.Base.Parse(parser)
+	if err := s.Base.Parse(parser); err != nil {
+		return err
+	}
 
 	s.ActiveSchedule = parser.ParseString("activeSchedule")
 
@@ -47,12 +49,16 @@ func (s *Settings) Parse(parser data.ObjectParser) {
 	s.InsulinSensitivities = ParseInsulinSensitivityArray(parser.NewChildArrayParser("insulinSensitivity"))
 	s.BloodGlucoseTargets = ParseBloodGlucoseTargetArray(parser.NewChildArrayParser("bgTarget"))
 	s.BasalSchedules = ParseBasalSchedulesMap(parser.NewChildObjectParser("basalSchedules"))
+
+	return nil
 }
 
-func (s *Settings) Validate(validator data.Validator) {
+func (s *Settings) Validate(validator data.Validator) error {
 	validator.SetMeta(s.Meta())
 
-	s.Base.Validate(validator)
+	if err := s.Base.Validate(validator); err != nil {
+		return err
+	}
 
 	validator.ValidateString("activeSchedule", s.ActiveSchedule).Exists().LengthGreaterThanOrEqualTo(1)
 
@@ -90,20 +96,25 @@ func (s *Settings) Validate(validator data.Validator) {
 	if s.BasalSchedules != nil {
 		basalSchedulesValidator := validator.NewChildValidator("basalSchedules")
 		for basalScheduleName, basalSchedule := range *s.BasalSchedules {
-			basalSchedulesValidator.ValidateString("name", &basalScheduleName).Exists().LengthGreaterThanOrEqualTo(1)
+			basalSchedulesValidator.ValidateString("", &basalScheduleName).Exists().LengthGreaterThanOrEqualTo(1)
 			if basalSchedule != nil {
+				basalScheduleValidator := basalSchedulesValidator.NewChildValidator(basalScheduleName)
 				for index, scheduleItem := range *basalSchedule {
-					scheduleItem.Validate(basalSchedulesValidator.NewChildValidator(index))
+					scheduleItem.Validate(basalScheduleValidator.NewChildValidator(index))
 				}
 			}
 		}
 	}
+
+	return nil
 }
 
-func (s *Settings) Normalize(normalizer data.Normalizer) {
+func (s *Settings) Normalize(normalizer data.Normalizer) error {
 	normalizer.SetMeta(s.Meta())
 
-	s.Base.Normalize(normalizer)
+	if err := s.Base.Normalize(normalizer); err != nil {
+		return err
+	}
 
 	var originalUnits *string
 
@@ -129,4 +140,6 @@ func (s *Settings) Normalize(normalizer data.Normalizer) {
 			}
 		}
 	}
+
+	return nil
 }

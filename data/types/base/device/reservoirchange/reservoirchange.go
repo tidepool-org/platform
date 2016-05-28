@@ -36,14 +36,22 @@ func New() (*ReservoirChange, error) {
 	}, nil
 }
 
-func (r *ReservoirChange) Parse(parser data.ObjectParser) {
-	r.Device.Parse(parser)
+func (r *ReservoirChange) Parse(parser data.ObjectParser) error {
+	if err := r.Device.Parse(parser); err != nil {
+		return err
+	}
 
 	r.StatusID = parser.ParseString("status")
+
+	return nil
 }
 
-func (r *ReservoirChange) Validate(validator data.Validator) {
-	r.Device.Validate(validator)
+func (r *ReservoirChange) Validate(validator data.Validator) error {
+	if err := r.Device.Validate(validator); err != nil {
+		return err
+	}
 
 	validator.ValidateString("status", r.StatusID).LengthGreaterThan(1) // TODO_DATA: .Exists() does not exist in Animas currently
+
+	return nil
 }

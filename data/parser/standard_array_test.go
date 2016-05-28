@@ -6,6 +6,7 @@ import (
 
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/parser"
+	"github.com/tidepool-org/platform/service"
 )
 
 var _ = Describe("StandardArray", func() {
@@ -105,6 +106,13 @@ var _ = Describe("StandardArray", func() {
 				meta := "metametameta"
 				standardArray.SetMeta(meta)
 				Expect(standardContext.Meta()).To(BeIdenticalTo(meta))
+			})
+		})
+
+		Context("AppendError", func() {
+			It("appends an error on the context", func() {
+				standardArray.AppendError("append-error", &service.Error{})
+				Expect(standardContext.Errors()).To(HaveLen(1))
 			})
 		})
 	})

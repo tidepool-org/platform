@@ -36,15 +36,23 @@ func New() (*Suspend, error) {
 	}, nil
 }
 
-func (s *Suspend) Parse(parser data.ObjectParser) {
-	s.Basal.Parse(parser)
+func (s *Suspend) Parse(parser data.ObjectParser) error {
+	if err := s.Basal.Parse(parser); err != nil {
+		return err
+	}
 
 	s.Duration = parser.ParseInteger("duration")
+
+	return nil
 }
 
-func (s *Suspend) Validate(validator data.Validator) {
-	s.Basal.Validate(validator)
+func (s *Suspend) Validate(validator data.Validator) error {
+	if err := s.Basal.Validate(validator); err != nil {
+		return err
+	}
 
 	// NOTE: set to a max of one week as we don't yet understand what is acceptable
 	validator.ValidateInteger("duration", s.Duration).Exists().InRange(0, 604800000)
+
+	return nil
 }

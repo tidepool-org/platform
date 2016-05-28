@@ -12,8 +12,11 @@ import "time"
  * [x] Full test coverage
  */
 
+import "github.com/tidepool-org/platform/service"
+
 type Validator interface {
 	SetMeta(meta interface{})
+	AppendError(reference interface{}, err *service.Error)
 
 	ValidateBoolean(reference interface{}, value *bool) Boolean
 	ValidateInteger(reference interface{}, value *int) Integer

@@ -57,9 +57,33 @@ var _ = Describe("Log", func() {
 
 		BeforeEach(func() {
 			var err error
-			logger, err = log.NewLogger(&log.Config{Level: "debug"}, versionReporter)
+			logger, err = log.NewLogger(&log.Config{Level: "fatal"}, versionReporter)
 			Expect(err).To(Succeed())
 			Expect(logger).ToNot(BeNil())
+		})
+
+		Context("Debug", func() {
+			It("works as expected", func() {
+				logger.Debug("message")
+			})
+		})
+
+		Context("Info", func() {
+			It("works as expected", func() {
+				logger.Info("message")
+			})
+		})
+
+		Context("Warn", func() {
+			It("works as expected", func() {
+				logger.Warn("message")
+			})
+		})
+
+		Context("Error", func() {
+			It("works as expected", func() {
+				logger.Error("message")
+			})
 		})
 
 		Context("WithError", func() {

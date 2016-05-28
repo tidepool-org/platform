@@ -15,6 +15,7 @@ import (
 
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/service"
 )
 
 type StandardArray struct {
@@ -35,6 +36,10 @@ func NewStandardArray(context data.Context, array *[]interface{}) (*StandardArra
 
 func (s *StandardArray) SetMeta(meta interface{}) {
 	s.context.SetMeta(meta)
+}
+
+func (s *StandardArray) AppendError(reference interface{}, err *service.Error) {
+	s.context.AppendError(reference, err)
 }
 
 func (s *StandardArray) Array() *[]interface{} {

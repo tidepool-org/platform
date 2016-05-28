@@ -62,7 +62,7 @@ func (b *Base) Meta() interface{} {
 	}
 }
 
-func (b *Base) Parse(parser data.ObjectParser) {
+func (b *Base) Parse(parser data.ObjectParser) error {
 	// b.Type = parser.ParseString("type")	// TODO_DATA: We do not parse out the type (this is set in the New function)
 	// b.UserID = parser.ParseString("userId")	// TODO_DATA: We do not parse UserID, we set this when we receive the data for the target user
 	b.DeviceID = parser.ParseString("deviceId")
@@ -76,9 +76,11 @@ func (b *Base) Parse(parser data.ObjectParser) {
 	b.Annotations = parser.ParseInterfaceArray("annotations")
 
 	// b.GroupID = parser.ParseString("_groupId")	// TODO_DATA: We do not parse GroupID, we set this when we receive the data for the target user
+
+	return nil
 }
 
-func (b *Base) Validate(validator data.Validator) {
+func (b *Base) Validate(validator data.Validator) error {
 	// validator.ValidateString("createdTime", &b.CreatedTime).LengthGreaterThanOrEqualTo(1)
 	// validator.ValidateString("type", &b.Type).LengthGreaterThanOrEqualTo(1)
 
@@ -96,9 +98,12 @@ func (b *Base) Validate(validator data.Validator) {
 	// validator.ValidateInteger("clockDriftOffset", b.ClockDriftOffset).GreaterThanOrEqualTo(0) // TODO_DATA: Real data can have negative values
 	validator.ValidateInterface("payload", b.Payload)
 	validator.ValidateInterfaceArray("annotations", b.Annotations)
+
+	return nil
 }
 
-func (b *Base) Normalize(normalizer data.Normalizer) {
+func (b *Base) Normalize(normalizer data.Normalizer) error {
+	return nil
 }
 
 func (b *Base) SetUserID(userID string) {

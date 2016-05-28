@@ -37,22 +37,34 @@ func New() (*Calibration, error) {
 	}, nil
 }
 
-func (c *Calibration) Parse(parser data.ObjectParser) {
-	c.Device.Parse(parser)
+func (c *Calibration) Parse(parser data.ObjectParser) error {
+	if err := c.Device.Parse(parser); err != nil {
+		return err
+	}
 
 	c.Value = parser.ParseFloat("value")
 	c.Units = parser.ParseString("units")
+
+	return nil
 }
 
-func (c *Calibration) Validate(validator data.Validator) {
-	c.Device.Validate(validator)
+func (c *Calibration) Validate(validator data.Validator) error {
+	if err := c.Device.Validate(validator); err != nil {
+		return err
+	}
 
 	validator.ValidateStringAsBloodGlucoseUnits("units", c.Units).Exists()
 	validator.ValidateFloatAsBloodGlucoseValue("value", c.Value).Exists().InRangeForUnits(c.Units)
+
+	return nil
 }
 
-func (c *Calibration) Normalize(normalizer data.Normalizer) {
-	c.Device.Normalize(normalizer)
+func (c *Calibration) Normalize(normalizer data.Normalizer) error {
+	if err := c.Device.Normalize(normalizer); err != nil {
+		return err
+	}
 
 	c.Units, c.Value = normalizer.NormalizeBloodGlucose(c.Units).UnitsAndValue(c.Value)
+
+	return nil
 }

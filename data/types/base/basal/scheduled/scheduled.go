@@ -38,18 +38,26 @@ func New() (*Scheduled, error) {
 	}, nil
 }
 
-func (s *Scheduled) Parse(parser data.ObjectParser) {
-	s.Basal.Parse(parser)
+func (s *Scheduled) Parse(parser data.ObjectParser) error {
+	if err := s.Basal.Parse(parser); err != nil {
+		return err
+	}
 
 	s.Duration = parser.ParseInteger("duration")
 	s.Name = parser.ParseString("scheduleName")
 	s.Rate = parser.ParseFloat("rate")
+
+	return nil
 }
 
-func (s *Scheduled) Validate(validator data.Validator) {
-	s.Basal.Validate(validator)
+func (s *Scheduled) Validate(validator data.Validator) error {
+	if err := s.Basal.Validate(validator); err != nil {
+		return err
+	}
 
 	validator.ValidateInteger("duration", s.Duration).Exists().InRange(0, 432000000)
 	validator.ValidateFloat("rate", s.Rate).Exists().InRange(0.0, 20.0)
 	validator.ValidateString("scheduleName", s.Name).LengthGreaterThan(1)
+
+	return nil
 }

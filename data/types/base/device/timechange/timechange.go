@@ -36,16 +36,24 @@ func New() (*TimeChange, error) {
 	}, nil
 }
 
-func (t *TimeChange) Parse(parser data.ObjectParser) {
-	t.Device.Parse(parser)
+func (t *TimeChange) Parse(parser data.ObjectParser) error {
+	if err := t.Device.Parse(parser); err != nil {
+		return err
+	}
 
 	t.Change = ParseChange(parser.NewChildObjectParser("change"))
+
+	return nil
 }
 
-func (t *TimeChange) Validate(validator data.Validator) {
-	t.Device.Validate(validator)
+func (t *TimeChange) Validate(validator data.Validator) error {
+	if err := t.Device.Validate(validator); err != nil {
+		return err
+	}
 
 	if t.Change != nil {
 		t.Change.Validate(validator.NewChildValidator("change"))
 	}
+
+	return nil
 }

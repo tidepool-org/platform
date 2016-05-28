@@ -13,6 +13,7 @@ package types
 import (
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/types/base"
 	"github.com/tidepool-org/platform/data/types/base/basal"
 	"github.com/tidepool-org/platform/data/types/base/basal/scheduled"
 	"github.com/tidepool-org/platform/data/types/base/basal/suspend"
@@ -36,17 +37,14 @@ import (
 	"github.com/tidepool-org/platform/data/types/base/upload"
 )
 
-func Parse(context data.Context, parser data.ObjectParser) (data.Datum, error) {
-	if context == nil {
-		return nil, app.Error("types", "context is missing")
-	}
+func Parse(parser data.ObjectParser) (data.Datum, error) {
 	if parser == nil {
 		return nil, app.Error("types", "parser is missing")
 	}
 
 	datumType := parser.ParseString("type")
 	if datumType == nil {
-		context.AppendError("type", ErrorValueMissing())
+		parser.AppendError("type", base.ErrorValueMissing())
 		return nil, nil
 	}
 
@@ -57,7 +55,7 @@ func Parse(context data.Context, parser data.ObjectParser) (data.Datum, error) {
 	case basal.Type():
 		deliveryType := parser.ParseString("deliveryType")
 		if deliveryType == nil {
-			context.AppendError("deliveryType", ErrorValueMissing())
+			parser.AppendError("deliveryType", base.ErrorValueMissing())
 			return nil, nil
 		}
 
@@ -69,13 +67,13 @@ func Parse(context data.Context, parser data.ObjectParser) (data.Datum, error) {
 		case temporary.DeliveryType():
 			datum, err = temporary.New()
 		default:
-			context.AppendError("deliveryType", ErrorDeliveryTypeInvalid(*deliveryType))
+			parser.AppendError("deliveryType", base.ErrorDeliveryTypeInvalid(*deliveryType))
 			return nil, nil
 		}
 	case bolus.Type():
 		subType := parser.ParseString("subType")
 		if subType == nil {
-			context.AppendError("subType", ErrorValueMissing())
+			parser.AppendError("subType", base.ErrorValueMissing())
 			return nil, nil
 		}
 
@@ -87,7 +85,7 @@ func Parse(context data.Context, parser data.ObjectParser) (data.Datum, error) {
 		case normal.SubType():
 			datum, err = normal.New()
 		default:
-			context.AppendError("subType", ErrorSubTypeInvalid(*subType))
+			parser.AppendError("subType", base.ErrorSubTypeInvalid(*subType))
 			return nil, nil
 		}
 	case calculator.Type():
@@ -97,7 +95,7 @@ func Parse(context data.Context, parser data.ObjectParser) (data.Datum, error) {
 	case device.Type():
 		subType := parser.ParseString("subType")
 		if subType == nil {
-			context.AppendError("subType", ErrorValueMissing())
+			parser.AppendError("subType", base.ErrorValueMissing())
 			return nil, nil
 		}
 
@@ -115,7 +113,7 @@ func Parse(context data.Context, parser data.ObjectParser) (data.Datum, error) {
 		case timechange.SubType():
 			datum, err = timechange.New()
 		default:
-			context.AppendError("subType", ErrorSubTypeInvalid(*subType))
+			parser.AppendError("subType", base.ErrorSubTypeInvalid(*subType))
 			return nil, nil
 		}
 	case ketone.Type():
@@ -127,7 +125,7 @@ func Parse(context data.Context, parser data.ObjectParser) (data.Datum, error) {
 	case upload.Type():
 		datum, err = upload.New()
 	default:
-		context.AppendError("type", ErrorTypeInvalid(*datumType))
+		parser.AppendError("type", base.ErrorTypeInvalid(*datumType))
 		return nil, nil
 	}
 
@@ -138,6 +136,9 @@ func Parse(context data.Context, parser data.ObjectParser) (data.Datum, error) {
 		return nil, app.Error("types", "datum is missing")
 	}
 
-	datum.Parse(parser)
+	if err = datum.Parse(parser); err != nil {
+		return nil, err
+	}
+
 	return datum, nil
 }

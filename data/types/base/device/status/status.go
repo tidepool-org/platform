@@ -38,18 +38,26 @@ func New() (*Status, error) {
 	}, nil
 }
 
-func (s *Status) Parse(parser data.ObjectParser) {
-	s.Device.Parse(parser)
+func (s *Status) Parse(parser data.ObjectParser) error {
+	if err := s.Device.Parse(parser); err != nil {
+		return err
+	}
 
 	s.Duration = parser.ParseInteger("duration")
 	s.Name = parser.ParseString("status")
 	s.Reason = parser.ParseObject("reason")
+
+	return nil
 }
 
-func (s *Status) Validate(validator data.Validator) {
-	s.Device.Validate(validator)
+func (s *Status) Validate(validator data.Validator) error {
+	if err := s.Device.Validate(validator); err != nil {
+		return err
+	}
 
 	validator.ValidateInteger("duration", s.Duration).GreaterThanOrEqualTo(0) // TODO_DATA: .Exists() - Suspend events on Animas do not have duration?
 	validator.ValidateString("status", s.Name).Exists().OneOf([]string{"suspended"})
 	validator.ValidateObject("reason", s.Reason).Exists()
+
+	return nil
 }

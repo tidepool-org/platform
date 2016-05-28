@@ -41,10 +41,12 @@ func New() (*Upload, error) {
 	}, nil
 }
 
-func (u *Upload) Parse(parser data.ObjectParser) {
+func (u *Upload) Parse(parser data.ObjectParser) error {
 	parser.SetMeta(u.Meta())
 
-	u.Base.Parse(parser)
+	if err := u.Base.Parse(parser); err != nil {
+		return err
+	}
 
 	// u.UploadUserID = parser.ParseString("byUser") // TODO_DATA: Do not parse, we set this
 	u.Version = parser.ParseString("version")
@@ -57,12 +59,16 @@ func (u *Upload) Parse(parser data.ObjectParser) {
 	u.TimeZone = parser.ParseString("timezone")
 	// u.DataState = parser.ParseString("dataState") // TODO_DATA: Do not parse, we set this
 	// u.Deduplicator = parser.ParseInterface("deduplicator") // TODO_DATA: Do not parse, we set this
+
+	return nil
 }
 
-func (u *Upload) Validate(validator data.Validator) {
+func (u *Upload) Validate(validator data.Validator) error {
 	validator.SetMeta(u.Meta())
 
-	u.Base.Validate(validator)
+	if err := u.Base.Validate(validator); err != nil {
+		return err
+	}
 
 	// validator.ValidateString("type", u.Type).Exists() // TODO_DATA: Already done in Base
 	// validator.ValidateString("byUser", u.UploadUserID).Exists().LengthGreaterThanOrEqualTo(10) // TODO_DATA: Validation is for parsed data only
@@ -76,12 +82,14 @@ func (u *Upload) Validate(validator data.Validator) {
 	validator.ValidateString("timezone", u.TimeZone).Exists().LengthGreaterThan(1)
 	// validator.ValidateString("dataState", u.DataState).Exists().LengthGreaterThan(1) // TODO_DATA: Validation is for parsed data only
 	// validator.ValidateInterface("deduplicator", u.Deduplicator).Exists() // TODO_DATA: Validation is for parsed data only
+
+	return nil
 }
 
-func (u *Upload) Normalize(normalizer data.Normalizer) {
+func (u *Upload) Normalize(normalizer data.Normalizer) error {
 	normalizer.SetMeta(u.Meta())
 
-	u.Base.Normalize(normalizer)
+	return u.Base.Normalize(normalizer)
 }
 
 func (u *Upload) SetUploadUserID(uploadUserID string) {

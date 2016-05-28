@@ -27,28 +27,40 @@ func New() (*Blood, error) {
 	}, nil
 }
 
-func (b *Blood) Parse(parser data.ObjectParser) {
+func (b *Blood) Parse(parser data.ObjectParser) error {
 	parser.SetMeta(b.Meta())
 
-	b.Base.Parse(parser)
+	if err := b.Base.Parse(parser); err != nil {
+		return err
+	}
 
 	b.Value = parser.ParseFloat("value")
 	b.Units = parser.ParseString("units")
+
+	return nil
 }
 
-func (b *Blood) Validate(validator data.Validator) {
+func (b *Blood) Validate(validator data.Validator) error {
 	validator.SetMeta(b.Meta())
 
-	b.Base.Validate(validator)
+	if err := b.Base.Validate(validator); err != nil {
+		return err
+	}
 
 	validator.ValidateStringAsBloodGlucoseUnits("units", b.Units).Exists()
 	validator.ValidateFloatAsBloodGlucoseValue("value", b.Value).Exists().InRangeForUnits(b.Units)
+
+	return nil
 }
 
-func (b *Blood) Normalize(normalizer data.Normalizer) {
+func (b *Blood) Normalize(normalizer data.Normalizer) error {
 	normalizer.SetMeta(b.Meta())
 
-	b.Base.Normalize(normalizer)
+	if err := b.Base.Normalize(normalizer); err != nil {
+		return err
+	}
 
 	b.Units, b.Value = normalizer.NormalizeBloodGlucose(b.Units).UnitsAndValue(b.Value)
+
+	return nil
 }

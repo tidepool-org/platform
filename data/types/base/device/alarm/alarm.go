@@ -37,15 +37,21 @@ func New() (*Alarm, error) {
 	}, nil
 }
 
-func (a *Alarm) Parse(parser data.ObjectParser) {
-	a.Device.Parse(parser)
+func (a *Alarm) Parse(parser data.ObjectParser) error {
+	if err := a.Device.Parse(parser); err != nil {
+		return err
+	}
 
 	a.AlarmType = parser.ParseString("alarmType")
 	a.Status = parser.ParseString("status")
+
+	return nil
 }
 
-func (a *Alarm) Validate(validator data.Validator) {
-	a.Device.Validate(validator)
+func (a *Alarm) Validate(validator data.Validator) error {
+	if err := a.Device.Validate(validator); err != nil {
+		return err
+	}
 
 	validator.ValidateString("alarmType", a.AlarmType).Exists().OneOf(
 		[]string{
@@ -62,4 +68,6 @@ func (a *Alarm) Validate(validator data.Validator) {
 	)
 
 	validator.ValidateString("status", a.Status).LengthGreaterThan(1)
+
+	return nil
 }
