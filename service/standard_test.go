@@ -1,4 +1,4 @@
-package context_test
+package service_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,19 +7,18 @@ import (
 	"encoding/json"
 
 	"github.com/tidepool-org/platform/service"
-	"github.com/tidepool-org/platform/service/context"
 )
 
 var _ = Describe("Standard", func() {
 	Context("Trace struct", func() {
 		Context("encoded as JSON", func() {
 			It("is an empty object if no fields are specified", func() {
-				trace := &context.Trace{}
+				trace := &service.Trace{}
 				Expect(json.Marshal(trace)).To(MatchJSON("{}"))
 			})
 
 			It("is a populated object if fields are specified", func() {
-				trace := &context.Trace{
+				trace := &service.Trace{
 					Request: "test-request",
 					Session: "test-session",
 				}
@@ -34,13 +33,13 @@ var _ = Describe("Standard", func() {
 	Context("Meta struct", func() {
 		Context("encoded as JSON", func() {
 			It("is an empty object if no fields are specified", func() {
-				meta := &context.Meta{}
+				meta := &service.Meta{}
 				Expect(json.Marshal(meta)).To(MatchJSON("{}"))
 			})
 
 			It("is a populated object if fields are specified", func() {
-				meta := &context.Meta{
-					Trace: &context.Trace{
+				meta := &service.Meta{
+					Trace: &service.Trace{
 						Request: "test-request",
 						Session: "test-session",
 					},
@@ -57,12 +56,12 @@ var _ = Describe("Standard", func() {
 	Context("JSONResponse struct", func() {
 		Context("encoded as JSON", func() {
 			It("is an empty object if no fields are specified", func() {
-				jsonResponse := &context.JSONResponse{}
+				jsonResponse := &service.JSONResponse{}
 				Expect(json.Marshal(jsonResponse)).To(MatchJSON("{}"))
 			})
 
 			It("is a populated object if fields are specified", func() {
-				jsonResponse := &context.JSONResponse{
+				jsonResponse := &service.JSONResponse{
 					Errors: []*service.Error{
 						{
 							Code:   "test-code",
@@ -71,8 +70,8 @@ var _ = Describe("Standard", func() {
 							Title:  "test-title",
 						},
 					},
-					Meta: &context.Meta{
-						Trace: &context.Trace{
+					Meta: &service.Meta{
+						Trace: &service.Trace{
 							Request: "test-request",
 							Session: "test-session",
 						},
@@ -95,7 +94,7 @@ var _ = Describe("Standard", func() {
 
 	Context("InternalServerError", func() {
 		It("matches the expected error", func() {
-			Expect(context.ErrorInternalServerFailure()).To(Equal(
+			Expect(service.ErrorInternalServerFailure()).To(Equal(
 				&service.Error{
 					Code:   "internal-server-failure",
 					Status: 500,

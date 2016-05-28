@@ -99,9 +99,10 @@ func DatasetsDataCreate(serverContext server.Context) {
 			serverContext.RespondWithInternalServerFailure("Unable to parse datum", err)
 			return
 		}
-
-		datum.Validate(datumValidator.NewChildValidator(index))
-		datumArray = append(datumArray, datum)
+		if datum != nil {
+			datum.Validate(datumValidator.NewChildValidator(index))
+			datumArray = append(datumArray, datum)
+		}
 	}
 
 	if errors := datumArrayContext.Errors(); len(errors) > 0 {

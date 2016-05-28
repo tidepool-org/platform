@@ -1,4 +1,4 @@
-package context
+package service
 
 /* CHECKLIST
  * [ ] Uses interfaces as appropriate
@@ -16,7 +16,6 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/service"
 )
 
 type Standard struct {
@@ -35,15 +34,15 @@ type Meta struct {
 }
 
 type JSONResponse struct {
-	Errors []*service.Error `json:"errors,omitempty"`
-	Meta   *Meta            `json:"meta,omitempty"`
+	Errors []*Error `json:"errors,omitempty"`
+	Meta   *Meta    `json:"meta,omitempty"`
 }
 
 func NewStandard(response rest.ResponseWriter, request *rest.Request) *Standard {
 	return &Standard{
 		response: response,
 		request:  request,
-		logger:   service.GetRequestLogger(request),
+		logger:   GetRequestLogger(request),
 	}
 }
 
@@ -59,11 +58,11 @@ func (s *Standard) Response() rest.ResponseWriter {
 	return s.response
 }
 
-func (s *Standard) RespondWithError(err *service.Error) {
+func (s *Standard) RespondWithError(err *Error) {
 	if statusCode := err.Status; statusCode <= 0 { // TODO: Do we want to validate the status code is okay? More than >= 0?
 		s.RespondWithInternalServerFailure("Status field missing from error", err)
 	} else {
-		s.RespondWithStatusAndErrors(statusCode, []*service.Error{err})
+		s.RespondWithStatusAndErrors(statusCode, []*Error{err})
 	}
 }
 
@@ -83,19 +82,19 @@ func (s *Standard) RespondWithInternalServerFailure(message string, failure ...i
 	s.RespondWithError(ErrorInternalServerFailure())
 }
 
-func (s *Standard) RespondWithStatusAndErrors(statusCode int, errors []*service.Error) {
-	s.Request().Env[service.RequestEnvErrors] = errors
+func (s *Standard) RespondWithStatusAndErrors(statusCode int, errors []*Error) {
+	s.Request().Env[RequestEnvErrors] = errors
 
 	response := &JSONResponse{
 		Errors: errors,
 		Meta: &Meta{
 			Trace: &Trace{
-				Request: service.GetRequestTraceRequest(s.Request()),
+				Request: GetRequestTraceRequest(s.Request()),
 			},
 		},
 	}
 
-	if traceSession := service.GetRequestTraceSession(s.Request()); traceSession != "" {
+	if traceSession := GetRequestTraceSession(s.Request()); traceSession != "" {
 		response.Meta.Trace.Session = traceSession
 	}
 

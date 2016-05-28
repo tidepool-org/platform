@@ -15,7 +15,6 @@ import (
 
 	"github.com/tidepool-org/platform/dataservices/server"
 	"github.com/tidepool-org/platform/service"
-	"github.com/tidepool-org/platform/service/context"
 	"github.com/tidepool-org/platform/store"
 	"github.com/tidepool-org/platform/userservices/client"
 )
@@ -29,7 +28,7 @@ type Standard struct {
 
 func WithContext(dataStore store.Store, client client.Client, handler server.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
-		context := context.NewStandard(response, request)
+		context := service.NewStandard(response, request)
 
 		store, err := dataStore.NewSession(context.Logger())
 		if err != nil {
