@@ -91,10 +91,10 @@ func (s *StandardInterfaceArray) LengthGreaterThanOrEqualTo(limit int) data.Inte
 	return s
 }
 
-func (s *StandardInterfaceArray) LengthInRange(lowerlimit int, upperLimit int) data.InterfaceArray {
+func (s *StandardInterfaceArray) LengthInRange(lowerLimit int, upperLimit int) data.InterfaceArray {
 	if s.value != nil {
-		if length := len(*s.value); length < lowerlimit || length > upperLimit {
-			s.context.AppendError(s.reference, ErrorLengthNotInRange(length, lowerlimit, upperLimit))
+		if length := len(*s.value); length < lowerLimit || length > upperLimit {
+			s.context.AppendError(s.reference, ErrorLengthNotInRange(length, lowerLimit, upperLimit))
 		}
 	}
 	return s

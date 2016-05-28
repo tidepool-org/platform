@@ -91,10 +91,10 @@ func (s *StandardObjectArray) LengthGreaterThanOrEqualTo(limit int) data.ObjectA
 	return s
 }
 
-func (s *StandardObjectArray) LengthInRange(lowerlimit int, upperLimit int) data.ObjectArray {
+func (s *StandardObjectArray) LengthInRange(lowerLimit int, upperLimit int) data.ObjectArray {
 	if s.value != nil {
-		if length := len(*s.value); length < lowerlimit || length > upperLimit {
-			s.context.AppendError(s.reference, ErrorLengthNotInRange(length, lowerlimit, upperLimit))
+		if length := len(*s.value); length < lowerLimit || length > upperLimit {
+			s.context.AppendError(s.reference, ErrorLengthNotInRange(length, lowerLimit, upperLimit))
 		}
 	}
 	return s

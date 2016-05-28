@@ -13,7 +13,6 @@ package calibration
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/base/device"
-	"github.com/tidepool-org/platform/data/types/common/bloodglucose"
 )
 
 type Calibration struct {
@@ -48,17 +47,12 @@ func (c *Calibration) Parse(parser data.ObjectParser) {
 func (c *Calibration) Validate(validator data.Validator) {
 	c.Device.Validate(validator)
 
-	validator.ValidateString("units", c.Units).Exists().OneOf(bloodglucose.AllowedUnits)
-	switch *c.Units {
-	case bloodglucose.Mmoll, bloodglucose.MmolL:
-		validator.ValidateFloat("value", c.Value).Exists().InRange(bloodglucose.AllowedMmolLRange())
-	default:
-		validator.ValidateFloat("value", c.Value).Exists().InRange(bloodglucose.AllowedMgdLRange())
-	}
+	validator.ValidateStringAsBloodGlucoseUnits("units", c.Units).Exists()
+	validator.ValidateFloatAsBloodGlucoseValue("value", c.Value).Exists().InRangeForUnits(c.Units)
 }
 
 func (c *Calibration) Normalize(normalizer data.Normalizer) {
 	c.Device.Normalize(normalizer)
 
-	c.Units, c.Value = normalizer.NormalizeBloodGlucose("value", c.Units).NormalizeUnitsAndValue(c.Value)
+	c.Units, c.Value = normalizer.NormalizeBloodGlucose(c.Units).UnitsAndValue(c.Value)
 }

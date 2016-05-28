@@ -15,13 +15,13 @@ type Normalizer interface {
 
 	AppendDatum(datum Datum)
 
-	NewChildNormalizer(reference interface{}) Normalizer
+	NormalizeBloodGlucose(units *string) BloodGlucoseNormalizer
 
-	NormalizeBloodGlucose(reference interface{}, units *string) BloodGlucoseNormalizer
+	NewChildNormalizer(reference interface{}) Normalizer
 }
 
 type BloodGlucoseNormalizer interface {
-	NormalizeValue(value *float64) *float64
-	NormalizeUnits() *string
-	NormalizeUnitsAndValue(value *float64) (*string, *float64)
+	Units() *string
+	Value(value *float64) *float64
+	UnitsAndValue(value *float64) (*string, *float64)
 }

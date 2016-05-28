@@ -103,6 +103,13 @@ var _ = Describe("Config", func() {
 			Expect(err.Error()).To(HavePrefix("config: unable to load config;"))
 		})
 
+		It("successfully initialized the config without a file", func() {
+			Expect(loader.Load("missing", &testConfig)).To(Succeed())
+			Expect(testConfig.String).To(Equal(""))
+			Expect(testConfig.Integer).To(Equal(0))
+			Expect(testConfig.Float).To(Equal(0.0))
+		})
+
 		It("successfully reads a single file config", func() {
 			Expect(loader.Load("single", &testConfig)).To(Succeed())
 			Expect(testConfig.String).To(Equal("single"))

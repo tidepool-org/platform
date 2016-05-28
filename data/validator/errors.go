@@ -94,19 +94,19 @@ func ErrorValueNotGreaterThanOrEqualTo(value interface{}, limit interface{}) *se
 	}
 }
 
-func ErrorIntegerNotInRange(value int, lowerlimit int, upperLimit int) *service.Error {
+func ErrorIntegerNotInRange(value int, lowerLimit int, upperLimit int) *service.Error {
 	return &service.Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %d is not between %d and %d", value, lowerlimit, upperLimit),
+		Detail: fmt.Sprintf("Value %d is not between %d and %d", value, lowerLimit, upperLimit),
 	}
 }
 
-func ErrorFloatNotInRange(value float64, lowerlimit float64, upperLimit float64) *service.Error {
+func ErrorFloatNotInRange(value float64, lowerLimit float64, upperLimit float64) *service.Error {
 	return &service.Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is not between %v and %v", value, lowerlimit, upperLimit),
+		Detail: fmt.Sprintf("Value %v is not between %v and %v", value, lowerLimit, upperLimit),
 	}
 }
 
@@ -210,11 +210,11 @@ func ErrorLengthNotGreaterThanOrEqualTo(length int, limit int) *service.Error {
 	}
 }
 
-func ErrorLengthNotInRange(length int, lowerlimit int, upperLimit int) *service.Error {
+func ErrorLengthNotInRange(length int, lowerLimit int, upperLimit int) *service.Error {
 	return &service.Error{
 		Code:   "length-out-of-range",
 		Title:  "length is out of range",
-		Detail: fmt.Sprintf("Length %d is not between %d and %d", length, lowerlimit, upperLimit),
+		Detail: fmt.Sprintf("Length %d is not between %d and %d", length, lowerLimit, upperLimit),
 	}
 }
 

@@ -30,20 +30,20 @@ var _ = Describe("StandardStringAsTime", func() {
 		})
 
 		Context("new validator with nil reference and nil value", func() {
-			var standardInterface *validator.StandardStringAsTime
+			var standard *validator.StandardStringAsTime
 			var result data.Time
 
 			BeforeEach(func() {
-				standardInterface = validator.NewStandardStringAsTime(standardContext, nil, nil, "2006-01-02T15:04:05Z07:00")
+				standard = validator.NewStandardStringAsTime(standardContext, nil, nil, "2006-01-02T15:04:05Z07:00")
 			})
 
 			It("exists", func() {
-				Expect(standardInterface).ToNot(BeNil())
+				Expect(standard).ToNot(BeNil())
 			})
 
 			Context("Exists", func() {
 				BeforeEach(func() {
-					result = standardInterface.Exists()
+					result = standard.Exists()
 				})
 
 				It("adds the expected error", func() {
@@ -57,13 +57,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standardInterface))
+					Expect(result).To(BeIdenticalTo(standard))
 				})
 			})
 
 			Context("After", func() {
 				BeforeEach(func() {
-					result = standardInterface.After(time.Unix(1451567655, 0).UTC())
+					result = standard.After(time.Unix(1451567655, 0).UTC())
 				})
 
 				It("does not add an error", func() {
@@ -71,13 +71,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standardInterface))
+					Expect(result).To(BeIdenticalTo(standard))
 				})
 			})
 
 			Context("AfterNow", func() {
 				BeforeEach(func() {
-					result = standardInterface.AfterNow()
+					result = standard.AfterNow()
 				})
 
 				It("does not add an error", func() {
@@ -85,13 +85,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standardInterface))
+					Expect(result).To(BeIdenticalTo(standard))
 				})
 			})
 
 			Context("Before", func() {
 				BeforeEach(func() {
-					result = standardInterface.Before(time.Unix(1451567655, 0).UTC())
+					result = standard.Before(time.Unix(1451567655, 0).UTC())
 				})
 
 				It("does not add an error", func() {
@@ -99,13 +99,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standardInterface))
+					Expect(result).To(BeIdenticalTo(standard))
 				})
 			})
 
 			Context("BeforeNow", func() {
 				BeforeEach(func() {
-					result = standardInterface.BeforeNow()
+					result = standard.BeforeNow()
 				})
 
 				It("does not add an error", func() {
@@ -113,27 +113,27 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standardInterface))
+					Expect(result).To(BeIdenticalTo(standard))
 				})
 			})
 		})
 
 		Context("new validator with valid reference and an invalid value", func() {
-			var standardInterface *validator.StandardStringAsTime
+			var standard *validator.StandardStringAsTime
 			var result data.Time
 
 			BeforeEach(func() {
 				value := "invalid"
-				standardInterface = validator.NewStandardStringAsTime(standardContext, "ghost", &value, "2006-01-02T15:04:05Z07:00")
+				standard = validator.NewStandardStringAsTime(standardContext, "ghost", &value, "2006-01-02T15:04:05Z07:00")
 			})
 
 			It("exists", func() {
-				Expect(standardInterface).ToNot(BeNil())
+				Expect(standard).ToNot(BeNil())
 			})
 
 			Context("Exists", func() {
 				BeforeEach(func() {
-					result = standardInterface.Exists()
+					result = standard.Exists()
 				})
 
 				It("adds the expected error", func() {
@@ -147,13 +147,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standardInterface))
+					Expect(result).To(BeIdenticalTo(standard))
 				})
 			})
 
 			Context("After", func() {
 				BeforeEach(func() {
-					result = standardInterface.After(time.Unix(1451567655, 0).UTC())
+					result = standard.After(time.Unix(1451567655, 0).UTC())
 				})
 
 				It("adds the expected error", func() {
@@ -167,13 +167,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standardInterface))
+					Expect(result).To(BeIdenticalTo(standard))
 				})
 			})
 
 			Context("AfterNow", func() {
 				BeforeEach(func() {
-					result = standardInterface.AfterNow()
+					result = standard.AfterNow()
 				})
 
 				It("adds the expected error", func() {
@@ -187,13 +187,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standardInterface))
+					Expect(result).To(BeIdenticalTo(standard))
 				})
 			})
 
 			Context("Before", func() {
 				BeforeEach(func() {
-					result = standardInterface.Before(time.Unix(1451567655, 0).UTC())
+					result = standard.Before(time.Unix(1451567655, 0).UTC())
 				})
 
 				It("adds the expected error", func() {
@@ -207,13 +207,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standardInterface))
+					Expect(result).To(BeIdenticalTo(standard))
 				})
 			})
 
 			Context("BeforeNow", func() {
 				BeforeEach(func() {
-					result = standardInterface.BeforeNow()
+					result = standard.BeforeNow()
 				})
 
 				It("adds the expected error", func() {
@@ -227,27 +227,27 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standardInterface))
+					Expect(result).To(BeIdenticalTo(standard))
 				})
 			})
 		})
 
 		Context("new validator with valid reference and value well into the past", func() {
-			var standardInterface *validator.StandardStringAsTime
+			var standard *validator.StandardStringAsTime
 			var result data.Time
 
 			BeforeEach(func() {
 				value := "1990-01-01T14:15:16Z"
-				standardInterface = validator.NewStandardStringAsTime(standardContext, "ghost", &value, "2006-01-02T15:04:05Z07:00")
+				standard = validator.NewStandardStringAsTime(standardContext, "ghost", &value, "2006-01-02T15:04:05Z07:00")
 			})
 
 			It("exists", func() {
-				Expect(standardInterface).ToNot(BeNil())
+				Expect(standard).ToNot(BeNil())
 			})
 
 			Context("Exists", func() {
 				BeforeEach(func() {
-					result = standardInterface.Exists()
+					result = standard.Exists()
 				})
 
 				It("does not add an error", func() {
@@ -255,13 +255,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standardInterface))
+					Expect(result).To(BeIdenticalTo(standard))
 				})
 			})
 
 			Context("After", func() {
 				BeforeEach(func() {
-					result = standardInterface.After(time.Unix(1451567655, 0).UTC())
+					result = standard.After(time.Unix(1451567655, 0).UTC())
 				})
 
 				It("adds the expected error", func() {
@@ -275,13 +275,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standardInterface))
+					Expect(result).To(BeIdenticalTo(standard))
 				})
 			})
 
 			Context("AfterNow", func() {
 				BeforeEach(func() {
-					result = standardInterface.AfterNow()
+					result = standard.AfterNow()
 				})
 
 				It("adds the expected error", func() {
@@ -295,13 +295,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standardInterface))
+					Expect(result).To(BeIdenticalTo(standard))
 				})
 			})
 
 			Context("Before", func() {
 				BeforeEach(func() {
-					result = standardInterface.Before(time.Unix(1451567655, 0).UTC())
+					result = standard.Before(time.Unix(1451567655, 0).UTC())
 				})
 
 				It("does not add an error", func() {
@@ -309,13 +309,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standardInterface))
+					Expect(result).To(BeIdenticalTo(standard))
 				})
 			})
 
 			Context("BeforeNow", func() {
 				BeforeEach(func() {
-					result = standardInterface.BeforeNow()
+					result = standard.BeforeNow()
 				})
 
 				It("does not add an error", func() {
@@ -323,27 +323,27 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standardInterface))
+					Expect(result).To(BeIdenticalTo(standard))
 				})
 			})
 		})
 
 		Context("new validator with valid reference and value well into the future", func() {
-			var standardInterface *validator.StandardStringAsTime
+			var standard *validator.StandardStringAsTime
 			var result data.Time
 
 			BeforeEach(func() {
 				value := "2090-01-01T14:15:16Z"
-				standardInterface = validator.NewStandardStringAsTime(standardContext, "ghost", &value, "2006-01-02T15:04:05Z07:00")
+				standard = validator.NewStandardStringAsTime(standardContext, "ghost", &value, "2006-01-02T15:04:05Z07:00")
 			})
 
 			It("exists", func() {
-				Expect(standardInterface).ToNot(BeNil())
+				Expect(standard).ToNot(BeNil())
 			})
 
 			Context("Exists", func() {
 				BeforeEach(func() {
-					result = standardInterface.Exists()
+					result = standard.Exists()
 				})
 
 				It("does not add an error", func() {
@@ -351,13 +351,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standardInterface))
+					Expect(result).To(BeIdenticalTo(standard))
 				})
 			})
 
 			Context("After", func() {
 				BeforeEach(func() {
-					result = standardInterface.After(time.Unix(1451567655, 0).UTC())
+					result = standard.After(time.Unix(1451567655, 0).UTC())
 				})
 
 				It("does not add an error", func() {
@@ -365,13 +365,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standardInterface))
+					Expect(result).To(BeIdenticalTo(standard))
 				})
 			})
 
 			Context("AfterNow", func() {
 				BeforeEach(func() {
-					result = standardInterface.AfterNow()
+					result = standard.AfterNow()
 				})
 
 				It("does not add an error", func() {
@@ -379,13 +379,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standardInterface))
+					Expect(result).To(BeIdenticalTo(standard))
 				})
 			})
 
 			Context("Before", func() {
 				BeforeEach(func() {
-					result = standardInterface.Before(time.Unix(1451567655, 0).UTC())
+					result = standard.Before(time.Unix(1451567655, 0).UTC())
 				})
 
 				It("adds the expected error", func() {
@@ -399,13 +399,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standardInterface))
+					Expect(result).To(BeIdenticalTo(standard))
 				})
 			})
 
 			Context("BeforeNow", func() {
 				BeforeEach(func() {
-					result = standardInterface.BeforeNow()
+					result = standard.BeforeNow()
 				})
 
 				It("adds the expected error", func() {
@@ -419,7 +419,7 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standardInterface))
+					Expect(result).To(BeIdenticalTo(standard))
 				})
 			})
 		})

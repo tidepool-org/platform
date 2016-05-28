@@ -1,9 +1,6 @@
 package pump
 
-import (
-	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/types/common/bloodglucose"
-)
+import "github.com/tidepool-org/platform/data"
 
 type BloodGlucoseTarget struct {
 	Low    *float64 `json:"low,omitempty" bson:"low,omitempty"`
@@ -27,66 +24,26 @@ func (b *BloodGlucoseTarget) Parse(parser data.ObjectParser) {
 }
 
 func (b *BloodGlucoseTarget) Validate(validator data.Validator, units *string) {
+	validator.ValidateFloatAsBloodGlucoseValue("low", b.Low).InRangeForUnits(units)
+	validator.ValidateFloatAsBloodGlucoseValue("high", b.High).InRangeForUnits(units)
+	validator.ValidateFloatAsBloodGlucoseValue("target", b.Target).InRangeForUnits(units)
 
-	if units == nil {
-		return
+	if b.Low != nil {
+		validator.ValidateFloat("high", b.High).GreaterThan(*b.Low)
+	} else if b.Target != nil {
+		validator.ValidateFloat("high", b.High).GreaterThan(*b.Target)
 	}
 
-	lowBgUpperLimit := b.High
-	highBgLowerLimit := b.Low
-
-	switch *units {
-	case bloodglucose.Mmoll, bloodglucose.MmolL:
-
-		if lowBgUpperLimit == nil {
-			lowBgUpperLimit = &bloodglucose.MmolLToValue
-		}
-		if highBgLowerLimit == nil {
-			if b.Target != nil {
-				highBgLowerLimit = b.Target
-			} else {
-				highBgLowerLimit = &bloodglucose.MmolLFromValue
-			}
-		}
-
-		validator.ValidateFloat("low", b.Low).InRange(bloodglucose.MmolLFromValue, *lowBgUpperLimit)
-		validator.ValidateFloat("target", b.Target).InRange(bloodglucose.AllowedMmolLRange())
-		validator.ValidateFloat("high", b.High).GreaterThan(*highBgLowerLimit).LessThanOrEqualTo(bloodglucose.MmolLToValue)
-
-	default:
-
-		if lowBgUpperLimit == nil {
-			lowBgUpperLimit = &bloodglucose.MgdLToValue
-		}
-		if highBgLowerLimit == nil {
-			if b.Target != nil {
-				highBgLowerLimit = b.Target
-			} else {
-				highBgLowerLimit = &bloodglucose.MgdLFromValue
-			}
-		}
-		validator.ValidateFloat("low", b.Low).InRange(bloodglucose.MgdLFromValue, *lowBgUpperLimit)
-		validator.ValidateFloat("target", b.Target).InRange(bloodglucose.AllowedMgdLRange())
-		validator.ValidateFloat("high", b.High).GreaterThan(*highBgLowerLimit).LessThanOrEqualTo(bloodglucose.MgdLToValue)
-	}
-
-	validator.ValidateInteger("range", b.Range).InRange(0, 50)
+	validator.ValidateInteger("range", b.Range).InRange(0, 50) // TODO: Isn't this units dependent?
 	validator.ValidateInteger("start", b.Start).Exists().InRange(0, 86400000)
 }
 
 func (b *BloodGlucoseTarget) Normalize(normalizer data.Normalizer, units *string) {
-	if units == nil {
-		return
-	}
-	if b.Low != nil {
-		b.Low = normalizer.NormalizeBloodGlucose("low", units).NormalizeValue(b.Low)
-	}
-	if b.High != nil {
-		b.High = normalizer.NormalizeBloodGlucose("high", units).NormalizeValue(b.High)
-	}
-	if b.Target != nil {
-		b.Target = normalizer.NormalizeBloodGlucose("target", units).NormalizeValue(b.Target)
-	}
+	bloodGlucoseNormalizer := normalizer.NormalizeBloodGlucose(units)
+	b.Low = bloodGlucoseNormalizer.Value(b.Low)
+	b.High = bloodGlucoseNormalizer.Value(b.High)
+	b.Target = bloodGlucoseNormalizer.Value(b.Target)
+	// TODO: Don't we have to normalize range as well?
 }
 
 func ParseBloodGlucoseTarget(parser data.ObjectParser) *BloodGlucoseTarget {

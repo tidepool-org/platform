@@ -91,10 +91,10 @@ func (s *StandardInteger) GreaterThanOrEqualTo(limit int) data.Integer {
 	return s
 }
 
-func (s *StandardInteger) InRange(lowerlimit int, upperLimit int) data.Integer {
+func (s *StandardInteger) InRange(lowerLimit int, upperLimit int) data.Integer {
 	if s.value != nil {
-		if *s.value < lowerlimit || *s.value > upperLimit {
-			s.context.AppendError(s.reference, ErrorIntegerNotInRange(*s.value, lowerlimit, upperLimit))
+		if *s.value < lowerLimit || *s.value > upperLimit {
+			s.context.AppendError(s.reference, ErrorIntegerNotInRange(*s.value, lowerLimit, upperLimit))
 		}
 	}
 	return s

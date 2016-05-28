@@ -1,9 +1,6 @@
 package pump
 
-import (
-	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/types/common/bloodglucose"
-)
+import "github.com/tidepool-org/platform/data"
 
 type InsulinSensitivity struct {
 	Amount *float64 `json:"amount,omitempty" bson:"amount,omitempty"`
@@ -20,25 +17,12 @@ func (i *InsulinSensitivity) Parse(parser data.ObjectParser) {
 }
 
 func (i *InsulinSensitivity) Validate(validator data.Validator, units *string) {
-
-	if units == nil {
-		return
-	}
-
-	switch *units {
-	case bloodglucose.Mmoll, bloodglucose.MmolL:
-		validator.ValidateFloat("amount", i.Amount).Exists().InRange(bloodglucose.AllowedMmolLRange())
-	default:
-		validator.ValidateFloat("amount", i.Amount).Exists().InRange(bloodglucose.AllowedMgdLRange())
-	}
-
+	validator.ValidateFloatAsBloodGlucoseValue("amount", i.Amount).Exists().InRangeForUnits(units)
 	validator.ValidateInteger("start", i.Start).Exists().InRange(0, 86400000)
 }
 
 func (i *InsulinSensitivity) Normalize(normalizer data.Normalizer, units *string) {
-	if i.Amount != nil && units != nil {
-		i.Amount = normalizer.NormalizeBloodGlucose("low", units).NormalizeValue(i.Amount)
-	}
+	i.Amount = normalizer.NormalizeBloodGlucose(units).Value(i.Amount)
 }
 
 func ParseInsulinSensitivity(parser data.ObjectParser) *InsulinSensitivity {

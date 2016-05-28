@@ -27,6 +27,9 @@ type Validator interface {
 
 	ValidateStringAsTime(reference interface{}, stringValue *string, timeLayout string) Time
 
+	ValidateStringAsBloodGlucoseUnits(reference interface{}, stringValue *string) BloodGlucoseUnits
+	ValidateFloatAsBloodGlucoseValue(reference interface{}, floatValue *float64) BloodGlucoseValue
+
 	NewChildValidator(reference interface{}) Validator
 }
 
@@ -47,7 +50,7 @@ type Integer interface {
 	LessThanOrEqualTo(limit int) Integer
 	GreaterThan(limit int) Integer
 	GreaterThanOrEqualTo(limit int) Integer
-	InRange(lowerlimit int, upperLimit int) Integer
+	InRange(lowerLimit int, upperLimit int) Integer
 
 	OneOf(allowedValues []int) Integer
 	NotOneOf(disallowedValues []int) Integer
@@ -63,7 +66,7 @@ type Float interface {
 	LessThanOrEqualTo(limit float64) Float
 	GreaterThan(limit float64) Float
 	GreaterThanOrEqualTo(limit float64) Float
-	InRange(lowerlimit float64, upperLimit float64) Float
+	InRange(lowerLimit float64, upperLimit float64) Float
 
 	OneOf(allowedValues []float64) Float
 	NotOneOf(disallowedValues []float64) Float
@@ -81,7 +84,7 @@ type String interface {
 	LengthLessThanOrEqualTo(limit int) String
 	LengthGreaterThan(limit int) String
 	LengthGreaterThanOrEqualTo(limit int) String
-	LengthInRange(lowerlimit int, upperLimit int) String
+	LengthInRange(lowerLimit int, upperLimit int) String
 
 	OneOf(allowedValues []string) String
 	NotOneOf(disallowedValues []string) String
@@ -96,7 +99,7 @@ type StringArray interface {
 	LengthLessThanOrEqualTo(limit int) StringArray
 	LengthGreaterThan(limit int) StringArray
 	LengthGreaterThanOrEqualTo(limit int) StringArray
-	LengthInRange(lowerlimit int, upperLimit int) StringArray
+	LengthInRange(lowerLimit int, upperLimit int) StringArray
 
 	EachOneOf(allowedValues []string) StringArray
 	EachNotOneOf(disallowedValues []string) StringArray
@@ -115,7 +118,7 @@ type ObjectArray interface {
 	LengthLessThanOrEqualTo(limit int) ObjectArray
 	LengthGreaterThan(limit int) ObjectArray
 	LengthGreaterThanOrEqualTo(limit int) ObjectArray
-	LengthInRange(lowerlimit int, upperLimit int) ObjectArray
+	LengthInRange(lowerLimit int, upperLimit int) ObjectArray
 
 	// TODO: SizeLessThanOrEqualTo(limit int) ObjectArray
 }
@@ -133,7 +136,7 @@ type InterfaceArray interface {
 	LengthLessThanOrEqualTo(limit int) InterfaceArray
 	LengthGreaterThan(limit int) InterfaceArray
 	LengthGreaterThanOrEqualTo(limit int) InterfaceArray
-	LengthInRange(lowerlimit int, upperLimit int) InterfaceArray
+	LengthInRange(lowerLimit int, upperLimit int) InterfaceArray
 
 	// TODO: SizeLessThanOrEqualTo(limit int) InterfaceArray
 }
@@ -145,4 +148,15 @@ type Time interface {
 	AfterNow() Time
 	Before(limit time.Time) Time
 	BeforeNow() Time
+}
+
+type BloodGlucoseUnits interface {
+	Exists() BloodGlucoseUnits
+}
+
+type BloodGlucoseValue interface {
+	Exists() BloodGlucoseValue
+
+	InRange(lowerLimit float64, upperLimit float64) BloodGlucoseValue
+	InRangeForUnits(units *string) BloodGlucoseValue
 }

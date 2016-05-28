@@ -5,12 +5,12 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/data/bloodglucose"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/base"
 	"github.com/tidepool-org/platform/data/types/base/ketone"
 	"github.com/tidepool-org/platform/data/types/base/testing"
-	"github.com/tidepool-org/platform/data/types/common/bloodglucose"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/service"
 )
@@ -41,10 +41,10 @@ var _ = Describe("BloodKetone", func() {
 	Context("units", func() {
 		DescribeTable("units when", testing.ExpectFieldNotValid,
 			Entry("is empty", NewRawObjectMmolL(), "units", "",
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("", bloodglucose.AllowedUnits), "/units", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("", []string{"mmol/l", "mmol/L", "mg/dl", "mg/dL"}), "/units", NewMeta())},
 			),
 			Entry("is not one of the predefined values", NewRawObjectMmolL(), "units", "wrong",
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("wrong", bloodglucose.AllowedUnits), "/units", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("wrong", []string{"mmol/l", "mmol/L", "mg/dl", "mg/dL"}), "/units", NewMeta())},
 			),
 		)
 
@@ -59,16 +59,16 @@ var _ = Describe("BloodKetone", func() {
 	Context("value", func() {
 		DescribeTable("value when", testing.ExpectFieldNotValid,
 			Entry("is less than 0", NewRawObjectMgdL(), "value", -0.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/value", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/value", NewMeta())},
 			),
 			Entry("is greater than 1000", NewRawObjectMgdL(), "value", 1000.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(1000.1, bloodglucose.MgdLFromValue, bloodglucose.MgdLToValue), "/value", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(1000.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/value", NewMeta())},
 			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
 			Entry("is above 0", NewRawObjectMgdL(), "value", 0.1),
-			Entry("is below 1000", NewRawObjectMgdL(), "value", 990.85745),
+			Entry("is below 1000", NewRawObjectMgdL(), "value", bloodglucose.MgdLUpperLimit),
 			Entry("is an integer", NewRawObjectMgdL(), "value", 4),
 		)
 	})
@@ -76,15 +76,16 @@ var _ = Describe("BloodKetone", func() {
 	Context("normalized when mmol/L", func() {
 		DescribeTable("normalization", func(val, expected float64) {
 			bloodKetone, err := ketone.New()
+			units := bloodglucose.MmolL
+			bloodKetone.Units = &units
 			bloodKetone.Value = &val
-			bloodKetone.Units = &bloodglucose.Mmoll
 
 			testContext := context.NewStandard()
 			standardNormalizer, err := normalizer.NewStandard(testContext)
 			Expect(err).To(BeNil())
 			bloodKetone.Normalize(standardNormalizer)
-			Expect(bloodKetone.Units).To(Equal(&bloodglucose.MmolL))
-			Expect(bloodKetone.Value).To(Equal(&expected))
+			Expect(*bloodKetone.Units).To(Equal(bloodglucose.MmolL))
+			Expect(*bloodKetone.Value).To(Equal(expected))
 		},
 			Entry("is expected lower bg value", 3.7, 3.7),
 			Entry("is below max", 54.99, 54.99),
@@ -96,18 +97,19 @@ var _ = Describe("BloodKetone", func() {
 		DescribeTable("normalization", func(val, expected float64) {
 			bloodKetone, err := ketone.New()
 			Expect(err).To(BeNil())
+			units := bloodglucose.MgdL
+			bloodKetone.Units = &units
 			bloodKetone.Value = &val
-			bloodKetone.Units = &bloodglucose.Mgdl
 
 			testContext := context.NewStandard()
 			standardNormalizer, err := normalizer.NewStandard(testContext)
 			Expect(err).To(BeNil())
 			bloodKetone.Normalize(standardNormalizer)
-			Expect(bloodKetone.Units).To(Equal(&bloodglucose.MmolL))
-			Expect(bloodKetone.Value).To(Equal(&expected))
+			Expect(*bloodKetone.Units).To(Equal(bloodglucose.MmolL))
+			Expect(*bloodKetone.Value).To(Equal(expected))
 		},
 			Entry("is expected lower bg value", 60.0, 3.33044879462732),
-			Entry("is below max", 990.85745, 55.0),
+			Entry("is below max", bloodglucose.MgdLUpperLimit, 55.50747991045534),
 			Entry("is expected upper bg value", 400.0, 22.202991964182132),
 		)
 	})

@@ -16,7 +16,6 @@ import (
 	"github.com/tidepool-org/platform/data/types/base/bolus/combination"
 	"github.com/tidepool-org/platform/data/types/base/bolus/extended"
 	"github.com/tidepool-org/platform/data/types/base/bolus/normal"
-	"github.com/tidepool-org/platform/data/types/common/bloodglucose"
 )
 
 type Calculator struct {
@@ -78,15 +77,9 @@ func (c *Calculator) Validate(validator data.Validator) {
 	validator.ValidateFloat("insulinOnBoard", c.InsulinOnBoard).InRange(0.0, 250.0)
 	validator.ValidateInteger("insulinCarbRatio", c.InsulinCarbohydrateRatio).InRange(0, 250)
 
-	validator.ValidateString("units", c.Units).Exists().OneOf(bloodglucose.AllowedUnits)
-	switch *c.Units {
-	case bloodglucose.Mmoll, bloodglucose.MmolL:
-		validator.ValidateFloat("bgInput", c.BloodGlucoseInput).InRange(bloodglucose.AllowedMmolLRange())
-		validator.ValidateFloat("insulinSensitivity", c.InsulinSensitivity).InRange(bloodglucose.AllowedMmolLRange())
-	default:
-		validator.ValidateFloat("bgInput", c.BloodGlucoseInput).InRange(bloodglucose.AllowedMgdLRange())
-		validator.ValidateFloat("insulinSensitivity", c.InsulinSensitivity).InRange(bloodglucose.AllowedMgdLRange())
-	}
+	validator.ValidateStringAsBloodGlucoseUnits("units", c.Units).Exists()
+	validator.ValidateFloatAsBloodGlucoseValue("bgInput", c.BloodGlucoseInput).InRangeForUnits(c.Units)
+	validator.ValidateFloatAsBloodGlucoseValue("insulinSensitivity", c.InsulinSensitivity).InRangeForUnits(c.Units)
 
 	if c.Recommended != nil {
 		c.Recommended.Validate(validator.NewChildValidator("recommended"))
@@ -106,6 +99,21 @@ func (c *Calculator) Normalize(normalizer data.Normalizer) {
 
 	c.Base.Normalize(normalizer)
 
+	units := c.Units
+
+	bloodGlucoseNormalizer := normalizer.NormalizeBloodGlucose(c.Units)
+	c.Units = bloodGlucoseNormalizer.Units()
+	c.InsulinSensitivity = bloodGlucoseNormalizer.Value(c.InsulinSensitivity)
+	c.BloodGlucoseInput = bloodGlucoseNormalizer.Value(c.BloodGlucoseInput)
+
+	if c.Recommended != nil {
+		c.Recommended.Normalize(normalizer.NewChildNormalizer("recommended"))
+	}
+
+	if c.BloodGlucoseTarget != nil {
+		c.BloodGlucoseTarget.Normalize(normalizer.NewChildNormalizer("bgTarget"), units)
+	}
+
 	if c.bolus != nil {
 		c.bolus.Normalize(normalizer.NewChildNormalizer("bolus"))
 		normalizer.AppendDatum(c.bolus)
@@ -116,15 +124,7 @@ func (c *Calculator) Normalize(normalizer data.Normalizer) {
 			c.BolusID = &c.bolus.(*normal.Normal).ID
 		case *combination.Combination:
 			c.BolusID = &c.bolus.(*combination.Combination).ID
-		default:
 		}
+		c.bolus = nil
 	}
-
-	if c.BloodGlucoseTarget != nil {
-		c.BloodGlucoseTarget.Normalize(normalizer.NewChildNormalizer("bgTarget"), c.Units)
-	}
-
-	c.InsulinSensitivity = normalizer.NormalizeBloodGlucose("insulinSensitivity", c.Units).NormalizeValue(c.InsulinSensitivity)
-	c.BloodGlucoseInput = normalizer.NormalizeBloodGlucose("bgInput", c.Units).NormalizeValue(c.BloodGlucoseInput)
-	c.Units = normalizer.NormalizeBloodGlucose("units", c.Units).NormalizeUnits()
 }

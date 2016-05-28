@@ -91,10 +91,10 @@ func (s *StandardFloat) GreaterThanOrEqualTo(limit float64) data.Float {
 	return s
 }
 
-func (s *StandardFloat) InRange(lowerlimit float64, upperLimit float64) data.Float {
+func (s *StandardFloat) InRange(lowerLimit float64, upperLimit float64) data.Float {
 	if s.value != nil {
-		if *s.value < lowerlimit || *s.value > upperLimit {
-			s.context.AppendError(s.reference, ErrorFloatNotInRange(*s.value, lowerlimit, upperLimit))
+		if *s.value < lowerLimit || *s.value > upperLimit {
+			s.context.AppendError(s.reference, ErrorFloatNotInRange(*s.value, lowerLimit, upperLimit))
 		}
 	}
 	return s

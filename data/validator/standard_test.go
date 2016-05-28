@@ -202,6 +202,38 @@ var _ = Describe("Standard", func() {
 			})
 		})
 
+		Context("ValidateStringAsBloodGlucoseUnits", func() {
+			value := "mmol/L"
+
+			It("returns a validator when called with nil reference", func() {
+				Expect(standard.ValidateStringAsBloodGlucoseUnits(nil, &value)).ToNot(BeNil())
+			})
+
+			It("returns a validator when called with nil value", func() {
+				Expect(standard.ValidateStringAsBloodGlucoseUnits("reference", nil)).ToNot(BeNil())
+			})
+
+			It("returns a validator when called with non-nil reference and value", func() {
+				Expect(standard.ValidateStringAsBloodGlucoseUnits("reference", &value)).ToNot(BeNil())
+			})
+		})
+
+		Context("ValidateFloatAsBloodGlucoseValue", func() {
+			value := 12.345
+
+			It("returns a validator when called with nil reference", func() {
+				Expect(standard.ValidateFloatAsBloodGlucoseValue(nil, &value)).ToNot(BeNil())
+			})
+
+			It("returns a validator when called with nil value", func() {
+				Expect(standard.ValidateFloatAsBloodGlucoseValue("reference", nil)).ToNot(BeNil())
+			})
+
+			It("returns a validator when called with non-nil reference and value", func() {
+				Expect(standard.ValidateFloatAsBloodGlucoseValue("reference", &value)).ToNot(BeNil())
+			})
+		})
+
 		Context("NewChildValidator", func() {
 			It("returns a validator when called with nil reference", func() {
 				Expect(standard.NewChildValidator(nil)).ToNot(BeNil())

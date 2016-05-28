@@ -109,10 +109,10 @@ func (s *StandardString) LengthGreaterThanOrEqualTo(limit int) data.String {
 	return s
 }
 
-func (s *StandardString) LengthInRange(lowerlimit int, upperLimit int) data.String {
+func (s *StandardString) LengthInRange(lowerLimit int, upperLimit int) data.String {
 	if s.value != nil {
-		if length := len(*s.value); length < lowerlimit || length > upperLimit {
-			s.context.AppendError(s.reference, ErrorLengthNotInRange(length, lowerlimit, upperLimit))
+		if length := len(*s.value); length < lowerLimit || length > upperLimit {
+			s.context.AppendError(s.reference, ErrorLengthNotInRange(length, lowerLimit, upperLimit))
 		}
 	}
 	return s

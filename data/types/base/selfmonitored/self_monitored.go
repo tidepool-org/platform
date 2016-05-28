@@ -3,7 +3,6 @@ package selfmonitored
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/base"
-	"github.com/tidepool-org/platform/data/types/common/bloodglucose"
 )
 
 type BloodGlucose struct {
@@ -44,14 +43,8 @@ func (b *BloodGlucose) Validate(validator data.Validator) {
 
 	b.Base.Validate(validator)
 
-	validator.ValidateString("units", b.Units).Exists().OneOf(bloodglucose.AllowedUnits)
-	switch *b.Units {
-	case bloodglucose.Mmoll, bloodglucose.MmolL:
-		validator.ValidateFloat("value", b.Value).Exists().InRange(bloodglucose.AllowedMmolLRange())
-	default:
-		validator.ValidateFloat("value", b.Value).Exists().InRange(bloodglucose.AllowedMgdLRange())
-	}
-
+	validator.ValidateStringAsBloodGlucoseUnits("units", b.Units).Exists()
+	validator.ValidateFloatAsBloodGlucoseValue("value", b.Value).Exists().InRangeForUnits(b.Units)
 	validator.ValidateString("subType", b.SubType).OneOf([]string{"manual", "linked"})
 }
 
@@ -60,5 +53,5 @@ func (b *BloodGlucose) Normalize(normalizer data.Normalizer) {
 
 	b.Base.Normalize(normalizer)
 
-	b.Units, b.Value = normalizer.NormalizeBloodGlucose("value", b.Units).NormalizeUnitsAndValue(b.Value)
+	b.Units, b.Value = normalizer.NormalizeBloodGlucose(b.Units).UnitsAndValue(b.Value)
 }

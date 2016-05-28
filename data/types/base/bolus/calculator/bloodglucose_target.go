@@ -1,9 +1,6 @@
 package calculator
 
-import (
-	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/types/common/bloodglucose"
-)
+import "github.com/tidepool-org/platform/data"
 
 //NOTE: this is the matrix we are working to. Only animas at this stage
 // animas: {`target`, `range`}
@@ -26,20 +23,13 @@ func (b *BloodGlucoseTarget) Parse(parser data.ObjectParser) {
 }
 
 func (b *BloodGlucoseTarget) Validate(validator data.Validator, units *string) {
-	switch *units {
-	case bloodglucose.Mmoll, bloodglucose.MmolL:
-		validator.ValidateFloat("target", b.Target).InRange(bloodglucose.AllowedMmolLRange())
-	default:
-		validator.ValidateFloat("target", b.Target).InRange(bloodglucose.AllowedMgdLRange())
-	}
-
-	validator.ValidateInteger("range", b.Range).InRange(0, 50)
+	validator.ValidateFloatAsBloodGlucoseValue("target", b.Target).InRangeForUnits(units)
+	validator.ValidateInteger("range", b.Range).InRange(0, 50) // TODO: Isn't range relative to units? 0-50 doesn't make sense for mmoll
 }
 
 func (b *BloodGlucoseTarget) Normalize(normalizer data.Normalizer, units *string) {
-	if b.Target != nil {
-		b.Target = normalizer.NormalizeBloodGlucose("target", units).NormalizeValue(b.Target)
-	}
+	b.Target = normalizer.NormalizeBloodGlucose(units).Value(b.Target)
+	// TODO: Don't we have to normalize the range as it should be relative to the units?
 }
 
 func ParseBloodGlucoseTarget(parser data.ObjectParser) *BloodGlucoseTarget {

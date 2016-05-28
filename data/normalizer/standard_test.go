@@ -58,7 +58,7 @@ var _ = Describe("Standard", func() {
 			})
 		})
 
-		Context("AddDatum with a first datum", func() {
+		Context("AppendDatum with a first datum", func() {
 			var firstDatum *TestDatum
 
 			BeforeEach(func() {
@@ -74,7 +74,7 @@ var _ = Describe("Standard", func() {
 				Expect(standard.Data()).To(ConsistOf(firstDatum))
 			})
 
-			Context("and AddDatum with a second data", func() {
+			Context("and AppendDatum with a second data", func() {
 				var secondDatum *TestDatum
 
 				BeforeEach(func() {
@@ -89,6 +89,19 @@ var _ = Describe("Standard", func() {
 				It("has both data", func() {
 					Expect(standard.Data()).To(ConsistOf(firstDatum, secondDatum))
 				})
+			})
+		})
+
+		Context("NormalizeBloodGlucose", func() {
+			var bloodGlucoseNormalizer data.BloodGlucoseNormalizer
+
+			BeforeEach(func() {
+				units := "mg/dl"
+				bloodGlucoseNormalizer = standard.NormalizeBloodGlucose(&units)
+			})
+
+			It("exists", func() {
+				Expect(bloodGlucoseNormalizer).ToNot(BeNil())
 			})
 		})
 
