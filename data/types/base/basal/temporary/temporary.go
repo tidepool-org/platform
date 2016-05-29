@@ -24,7 +24,7 @@ type Temporary struct {
 }
 
 func DeliveryType() string {
-	return "temporary"
+	return "temp"
 }
 
 func New() (*Temporary, error) {
@@ -57,7 +57,7 @@ func (t *Temporary) Validate(validator data.Validator) error {
 
 	validator.ValidateInteger("duration", t.Duration).Exists().InRange(0, 86400000)
 	validator.ValidateFloat("rate", t.Rate).Exists().InRange(0.0, 20.0)
-	validator.ValidateFloat("percent", t.Percent).Exists().InRange(0.0, 10.0)
+	validator.ValidateFloat("percent", t.Percent).InRange(0.0, 10.0)
 
 	return nil
 }

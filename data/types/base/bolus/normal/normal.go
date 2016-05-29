@@ -51,7 +51,7 @@ func (n *Normal) Validate(validator data.Validator) error {
 		return err
 	}
 
-	validator.ValidateFloat("normal", n.Normal).Exists().GreaterThan(0.0).LessThanOrEqualTo(100.0)
+	validator.ValidateFloat("normal", n.Normal).Exists().InRange(0.0, 100.0)
 
 	return nil
 }

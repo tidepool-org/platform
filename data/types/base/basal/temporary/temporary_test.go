@@ -13,7 +13,7 @@ import (
 func NewRawObject() map[string]interface{} {
 	rawObject := testing.RawBaseObject()
 	rawObject["type"] = "basal"
-	rawObject["deliveryType"] = "temporary"
+	rawObject["deliveryType"] = "temp"
 	rawObject["duration"] = 0
 	rawObject["rate"] = 5.5
 	rawObject["percent"] = 1.1
@@ -23,7 +23,7 @@ func NewRawObject() map[string]interface{} {
 func NewMeta() interface{} {
 	return &basal.Meta{
 		Type:         "basal",
-		DeliveryType: "temporary",
+		DeliveryType: "temp",
 	}
 }
 

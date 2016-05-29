@@ -308,12 +308,12 @@ var _ = Describe("Settings", func() {
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": 1000.1, "high": 180.0}},
 					[]*service.Error{
 						testing.ComposeError(validator.ErrorFloatNotInRange(1000.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/bgTarget/0/target", NewMeta()),
-						testing.ComposeError(validator.ErrorValueNotGreaterThan(180, 1000.1), "/bgTarget/0/high", NewMeta()),
+						testing.ComposeError(validator.ErrorValueNotGreaterThanOrEqualTo(180, 1000.1), "/bgTarget/0/high", NewMeta()),
 					},
 				),
 				Entry("has high less than target", NewRawObjectMgdL(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": 90.0, "high": 80.0}},
-					[]*service.Error{testing.ComposeError(validator.ErrorValueNotGreaterThan(80.0, 90.0), "/bgTarget/0/high", NewMeta())},
+					[]*service.Error{testing.ComposeError(validator.ErrorValueNotGreaterThanOrEqualTo(80.0, 90.0), "/bgTarget/0/high", NewMeta())},
 				),
 				Entry("has high greater than 1000.0", NewRawObjectMgdL(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": 0.0, "high": 1000.1}},
@@ -324,6 +324,9 @@ var _ = Describe("Settings", func() {
 			DescribeTable("valid when", testing.ExpectFieldIsValid,
 				Entry("is within bounds", NewRawObjectMgdL(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": 99.9, "high": 180.0}},
+				),
+				Entry("is exactly at bounds", NewRawObjectMgdL(), "bgTarget",
+					[]interface{}{map[string]interface{}{"start": 21600000, "target": 100.0, "high": 100.0}},
 				),
 			)
 		})

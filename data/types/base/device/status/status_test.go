@@ -44,14 +44,15 @@ var _ = Describe("Status", func() {
 	Context("status", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is empty", NewRawObject(), "status", "",
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("", []string{"suspended"}), "/status", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("", []string{"resumed", "suspended"}), "/status", NewMeta())},
 			),
 			Entry("is not one of the predefined types", NewRawObject(), "status", "bad",
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("bad", []string{"suspended"}), "/status", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("bad", []string{"resumed", "suspended"}), "/status", NewMeta())},
 			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
+			Entry("is suspended type", NewRawObject(), "status", "resumed"),
 			Entry("is suspended type", NewRawObject(), "status", "suspended"),
 		)
 	})

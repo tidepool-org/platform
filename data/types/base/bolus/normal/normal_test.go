@@ -29,17 +29,16 @@ var _ = Describe("Normal", func() {
 	Context("normal", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is negative", NewRawObject(), "normal", -0.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorValueNotGreaterThan(-0.1, 0.0), "/normal", NewMeta())},
-			),
-			Entry("zero", NewRawObject(), "normal", 0.0,
-				[]*service.Error{testing.ComposeError(validator.ErrorValueNotGreaterThan(0.0, 0.0), "/normal", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, 0.0, 100.0), "/normal", NewMeta())},
 			),
 			Entry("is greater than 20", NewRawObject(), "normal", 100.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorValueNotLessThanOrEqualTo(100.1, 100.0), "/normal", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(100.1, 0.0, 100.0), "/normal", NewMeta())},
 			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
+			Entry("at lower limit", NewRawObject(), "normal", 0.0),
+			Entry("at upper limit", NewRawObject(), "normal", 100.0),
 			Entry("is within bounds", NewRawObject(), "normal", 25.5),
 			Entry("is without decimal", NewRawObject(), "normal", 50),
 		)

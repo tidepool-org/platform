@@ -14,7 +14,6 @@ func NewRawObject() map[string]interface{} {
 	rawObject := testing.RawBaseObject()
 	rawObject["type"] = "basal"
 	rawObject["deliveryType"] = "suspend"
-	rawObject["duration"] = 0
 	return rawObject
 }
 
@@ -37,6 +36,8 @@ var _ = Describe("Suspend", func() {
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
+			Entry("is missing", NewRawObject(), "type", "basal"),
+			Entry("is zero", NewRawObject(), "duration", 0),
 			Entry("is within bounds", NewRawObject(), "duration", 86400000),
 		)
 	})

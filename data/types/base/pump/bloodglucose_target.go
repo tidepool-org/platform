@@ -29,9 +29,9 @@ func (b *BloodGlucoseTarget) Validate(validator data.Validator, units *string) {
 	validator.ValidateFloatAsBloodGlucoseValue("target", b.Target).InRangeForUnits(units)
 
 	if b.Low != nil {
-		validator.ValidateFloat("high", b.High).GreaterThan(*b.Low)
+		validator.ValidateFloat("high", b.High).GreaterThanOrEqualTo(*b.Low)
 	} else if b.Target != nil {
-		validator.ValidateFloat("high", b.High).GreaterThan(*b.Target)
+		validator.ValidateFloat("high", b.High).GreaterThanOrEqualTo(*b.Target)
 	}
 
 	validator.ValidateInteger("range", b.Range).InRange(0, 50) // TODO: Isn't this units dependent?

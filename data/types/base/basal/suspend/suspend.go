@@ -52,7 +52,7 @@ func (s *Suspend) Validate(validator data.Validator) error {
 	}
 
 	// NOTE: set to a max of one week as we don't yet understand what is acceptable
-	validator.ValidateInteger("duration", s.Duration).Exists().InRange(0, 604800000)
+	validator.ValidateInteger("duration", s.Duration).InRange(0, 604800000)
 
 	return nil
 }
