@@ -111,13 +111,16 @@ func DatasetsDataCreate(serverContext server.Context) {
 	}
 
 	for _, datum := range datumArray {
-		datum.SetUserID(targetUserID)
-		datum.SetGroupID(targetGroupID)
-		datum.SetDatasetID(datasetID)
 		datum.Normalize(datumNormalizer)
 	}
 
 	datumArray = append(datumArray, datumNormalizer.Data()...)
+
+	for _, datum := range datumArray {
+		datum.SetUserID(targetUserID)
+		datum.SetGroupID(targetGroupID)
+		datum.SetDatasetID(datasetID)
+	}
 
 	if err = deduplicator.AddDataToDataset(datumArray); err != nil {
 		serverContext.RespondWithInternalServerFailure("Unable to add data to dataset", err)
