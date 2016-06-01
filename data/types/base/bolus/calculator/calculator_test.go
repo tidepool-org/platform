@@ -25,7 +25,7 @@ func NewRawObjectWithMmolL() map[string]interface{} {
 	rawObject["insulinOnBoard"] = 70
 
 	rawObject["recommended"] = map[string]interface{}{"net": 50, "correction": -50, "carb": 50}
-	rawObject["bgTarget"] = map[string]interface{}{"target": 8.0, "range": 10}
+	rawObject["bgTarget"] = map[string]interface{}{"target": 8.0, "range": 1.0}
 
 	rawObject["bolus"] = embeddedBolus("bolus", "normal", 52.1, 0.0, 0)
 
@@ -49,7 +49,7 @@ func NewRawObjectWithMgdL() map[string]interface{} {
 	rawObject["insulinOnBoard"] = 70
 
 	rawObject["recommended"] = map[string]interface{}{"net": 50, "correction": -50, "carb": 50}
-	rawObject["bgTarget"] = map[string]interface{}{"target": 100, "range": 10}
+	rawObject["bgTarget"] = map[string]interface{}{"target": 100, "range": 10.0}
 
 	rawObject["bolus"] = embeddedBolus("bolus", "normal", 52.1, 0.0, 0)
 

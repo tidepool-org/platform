@@ -1,13 +1,20 @@
 package pump
 
-import "github.com/tidepool-org/platform/data"
+import (
+	"math"
+
+	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/bloodglucose"
+)
+
+// TODO: Consider moving this to common along with calculator/bloodglucose_target
 
 type BloodGlucoseTarget struct {
 	Low    *float64 `json:"low,omitempty" bson:"low,omitempty"`
 	High   *float64 `json:"high,omitempty" bson:"high,omitempty"`
 	Target *float64 `json:"target,omitempty" bson:"target,omitempty"`
+	Range  *float64 `json:"range,omitempty" bson:"range,omitempty"`
 	Start  *int     `json:"start,omitempty" bson:"start,omitempty"`
-	Range  *int     `json:"range,omitempty" bson:"range,omitempty"`
 }
 
 func NewBloodGlucoseTarget() *BloodGlucoseTarget {
@@ -18,24 +25,22 @@ func (b *BloodGlucoseTarget) Parse(parser data.ObjectParser) {
 	b.High = parser.ParseFloat("high")
 	b.Low = parser.ParseFloat("low")
 	b.Target = parser.ParseFloat("target")
-
+	b.Range = parser.ParseFloat("range")
 	b.Start = parser.ParseInteger("start")
-	b.Range = parser.ParseInteger("range")
 }
 
 func (b *BloodGlucoseTarget) Validate(validator data.Validator, units *string) {
 	validator.ValidateFloatAsBloodGlucoseValue("low", b.Low).InRangeForUnits(units)
 	validator.ValidateFloatAsBloodGlucoseValue("high", b.High).InRangeForUnits(units)
 	validator.ValidateFloatAsBloodGlucoseValue("target", b.Target).InRangeForUnits(units)
+	validator.ValidateFloatAsBloodGlucoseValue("range", b.Range).InRange(RangeForUnits(units))
+	validator.ValidateInteger("start", b.Start).Exists().InRange(0, 86400000)
 
 	if b.Low != nil {
 		validator.ValidateFloat("high", b.High).GreaterThanOrEqualTo(*b.Low)
 	} else if b.Target != nil {
 		validator.ValidateFloat("high", b.High).GreaterThanOrEqualTo(*b.Target)
 	}
-
-	validator.ValidateInteger("range", b.Range).InRange(0, 50) // TODO: Isn't this units dependent?
-	validator.ValidateInteger("start", b.Start).Exists().InRange(0, 86400000)
 }
 
 func (b *BloodGlucoseTarget) Normalize(normalizer data.Normalizer, units *string) {
@@ -43,7 +48,7 @@ func (b *BloodGlucoseTarget) Normalize(normalizer data.Normalizer, units *string
 	b.Low = bloodGlucoseNormalizer.Value(b.Low)
 	b.High = bloodGlucoseNormalizer.Value(b.High)
 	b.Target = bloodGlucoseNormalizer.Value(b.Target)
-	// TODO: Don't we have to normalize range as well?
+	b.Range = bloodGlucoseNormalizer.Value(b.Range)
 }
 
 func ParseBloodGlucoseTarget(parser data.ObjectParser) *BloodGlucoseTarget {
@@ -64,4 +69,16 @@ func ParseBloodGlucoseTargetArray(parser data.ArrayParser) *[]*BloodGlucoseTarge
 		}
 	}
 	return bloodGlucoseTargetArray
+}
+
+func RangeForUnits(units *string) (float64, float64) {
+	if units != nil {
+		switch *units {
+		case bloodglucose.MmolL, bloodglucose.Mmoll:
+			return 0.0, 3.0
+		case bloodglucose.MgdL, bloodglucose.Mgdl:
+			return 0.0, 50.0
+		}
+	}
+	return -math.MaxFloat64, math.MaxFloat64
 }
