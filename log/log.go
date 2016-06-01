@@ -95,14 +95,18 @@ func (l *logger) Error(message string) {
 }
 
 func (l *logger) WithError(err error) Logger {
-	var errorString string
-	if err != nil {
-		errorString = err.Error()
+	if err == nil {
+		return l
 	}
-	return l.WithFields(Fields{"error": errorString})
+
+	return l.WithFields(Fields{"error": err.Error()})
 }
 
 func (l *logger) WithField(key string, value interface{}) Logger {
+	if key == "" || value == nil {
+		return l
+	}
+
 	return l.WithFields(Fields{key: value})
 }
 
@@ -113,10 +117,14 @@ func (l *logger) WithFields(fields Fields) Logger {
 
 	withFields := logrus.Fields{}
 	for k, v := range l.fields {
-		withFields[k] = v
+		if k != "" && v != nil {
+			withFields[k] = v
+		}
 	}
 	for k, v := range fields {
-		withFields[k] = v
+		if k != "" && v != nil {
+			withFields[k] = v
+		}
 	}
 
 	return &logger{l.logger, withFields, l.ignoredFileSegments}
