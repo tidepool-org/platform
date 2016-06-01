@@ -24,7 +24,7 @@ type Calculator struct {
 	*Recommended        `json:"recommended,omitempty" bson:"recommended,omitempty"`
 	*BloodGlucoseTarget `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`
 
-	BolusID                  *string  `json:"bolusId,omitempty" bson:"bolusId,omitempty"`
+	BolusID                  *string  `json:"bolus,omitempty" bson:"bolus,omitempty"`
 	CarbohydrateInput        *int     `json:"carbInput,omitempty" bson:"carbInput,omitempty"`
 	InsulinOnBoard           *float64 `json:"insulinOnBoard,omitempty" bson:"insulinOnBoard,omitempty"`
 	InsulinSensitivity       *float64 `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`
