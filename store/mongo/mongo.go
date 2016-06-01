@@ -14,6 +14,7 @@ import (
 	"crypto/tls"
 	"net"
 	"strings"
+	"time"
 
 	mgo "gopkg.in/mgo.v2"
 
@@ -183,9 +184,14 @@ func (s *Session) Find(query store.Query, result interface{}) error {
 		return app.Error("mongo", "session closed")
 	}
 
-	s.logger.WithField("query", query).Debug("Find")
+	startTime := time.Now()
 
-	if err := s.C().Find(query).One(result); err != nil {
+	err := s.C().Find(query).One(result)
+
+	loggerFields := log.Fields{"query": query, "result": result, "duration": time.Since(startTime) / time.Microsecond}
+	s.logger.WithFields(loggerFields).WithError(err).Debug("Find")
+
+	if err != nil {
 		return app.ExtError(err, "mongo", "unable to find")
 	}
 	return nil
@@ -196,9 +202,15 @@ func (s *Session) FindAll(query store.Query, sort []string, filter store.Filter)
 		return &Iterator{}
 	}
 
-	s.logger.WithField("query", query).WithField("sort", sort).WithField("filter", filter).Debug("FindAll")
+	startTime := time.Now()
 
-	return &Iterator{s.logger, s.C().Find(query).Sort(sort...).Select(filter).Iter()}
+	iter := &Iterator{s.logger, s.C().Find(query).Sort(sort...).Select(filter).Iter()}
+	err := iter.Err()
+
+	loggerFields := log.Fields{"query": query, "sort": sort, "filter": filter, "duration": time.Since(startTime) / time.Microsecond}
+	s.logger.WithFields(loggerFields).WithError(err).Debug("FindAll")
+
+	return iter
 }
 
 func (s *Session) Insert(document interface{}) error {
@@ -206,9 +218,14 @@ func (s *Session) Insert(document interface{}) error {
 		return app.Error("mongo", "session closed")
 	}
 
-	s.logger.WithField("document", document).Debug("Insert")
+	startTime := time.Now()
 
-	if err := s.C().Insert(document); err != nil {
+	err := s.C().Insert(document)
+
+	loggerFields := log.Fields{"document": document, "duration": time.Since(startTime) / time.Microsecond}
+	s.logger.WithFields(loggerFields).WithError(err).Debug("Insert")
+
+	if err != nil {
 		return app.ExtError(err, "mongo", "unable to insert")
 	}
 	return nil
@@ -219,16 +236,20 @@ func (s *Session) InsertAll(documents ...interface{}) error {
 		return app.Error("mongo", "session closed")
 	}
 
-	s.logger.WithField("documents", len(documents)).Debug("InsertAll")
+	startTime := time.Now()
 
 	bulk := s.C().Bulk()
 	bulk.Unordered()
 	bulk.Insert(documents...)
 
-	if _, err := bulk.Run(); err != nil {
-		return err
+	_, err := bulk.Run()
+
+	loggerFields := log.Fields{"document-count": len(documents), "duration": time.Since(startTime) / time.Microsecond}
+	s.logger.WithFields(loggerFields).WithError(err).Debug("InsertAll")
+
+	if err != nil {
+		return app.ExtError(err, "mongo", "unable to insert all")
 	}
-	// s.logger.Warn("BulkResult=", result)		// TODO: Is there anything we can do with this?
 	return nil
 }
 
@@ -237,12 +258,16 @@ func (s *Session) Update(selector interface{}, update interface{}) error {
 		return app.Error("mongo", "session closed")
 	}
 
-	s.logger.WithField("selector", selector).WithField("update", update).Debug("Update")
+	startTime := time.Now()
 
-	if err := s.C().Update(selector, update); err != nil {
+	err := s.C().Update(selector, update)
+
+	loggerFields := log.Fields{"selector": selector, "update": update, "duration": time.Since(startTime) / time.Microsecond}
+	s.logger.WithFields(loggerFields).WithError(err).Debug("Update")
+
+	if err != nil {
 		return app.ExtError(err, "mongo", "unable to update")
 	}
-
 	return nil
 }
 
@@ -251,9 +276,14 @@ func (s *Session) UpdateAll(selector interface{}, update interface{}) error {
 		return app.Error("mongo", "session closed")
 	}
 
-	s.logger.WithField("selector", selector).WithField("update", update).Debug("UpdateAll")
+	startTime := time.Now()
 
-	if _, err := s.C().UpdateAll(selector, update); err != nil {
+	changeInfo, err := s.C().UpdateAll(selector, update)
+
+	loggerFields := log.Fields{"selector": selector, "update": update, "change-info": changeInfo, "duration": time.Since(startTime) / time.Microsecond}
+	s.logger.WithFields(loggerFields).WithError(err).Debug("UpdateAll")
+
+	if err != nil {
 		return app.ExtError(err, "mongo", "unable to update all")
 	}
 	return nil
@@ -264,9 +294,14 @@ func (s *Session) RemoveAll(selector interface{}) error {
 		return app.Error("mongo", "session closed")
 	}
 
-	s.logger.WithField("selector", selector).Debug("RemoveAll")
+	startTime := time.Now()
 
-	if _, err := s.C().RemoveAll(selector); err != nil {
+	changeInfo, err := s.C().RemoveAll(selector)
+
+	loggerFields := log.Fields{"selector": selector, "change-info": changeInfo, "duration": time.Since(startTime) / time.Microsecond}
+	s.logger.WithFields(loggerFields).WithError(err).Debug("RemoveAll")
+
+	if err != nil {
 		return app.ExtError(err, "mongo", "unable to remove all")
 	}
 	return nil
