@@ -22,7 +22,7 @@ var _ = Describe("StandardStringAsTime", func() {
 		value := "2015-12-31T13:14:16-08:00"
 		standardContext, err := context.NewStandard(test.NewLogger())
 		Expect(standardContext).ToNot(BeNil())
-		Expect(err).ToNot(HaveOccurred())
+		Expect(err).To(Succeed())
 		Expect(validator.NewStandardStringAsTime(standardContext, "ghost", &value, "")).To(BeNil())
 	})
 
@@ -33,7 +33,7 @@ var _ = Describe("StandardStringAsTime", func() {
 			var err error
 			standardContext, err = context.NewStandard(test.NewLogger())
 			Expect(standardContext).ToNot(BeNil())
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).To(Succeed())
 		})
 
 		Context("new validator with nil reference and nil value", func() {

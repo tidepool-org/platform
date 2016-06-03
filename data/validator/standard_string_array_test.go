@@ -23,7 +23,7 @@ var _ = Describe("StandardStringArray", func() {
 			var err error
 			standardContext, err = context.NewStandard(test.NewLogger())
 			Expect(standardContext).ToNot(BeNil())
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).To(Succeed())
 		})
 
 		Context("new validator with nil reference and nil value", func() {

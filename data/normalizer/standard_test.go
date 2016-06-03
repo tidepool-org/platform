@@ -25,7 +25,7 @@ var _ = Describe("Standard", func() {
 	It("New returns an error if context is nil", func() {
 		standard, err := normalizer.NewStandard(nil)
 		Expect(standard).To(BeNil())
-		Expect(err).To(HaveOccurred())
+		Expect(err).To(MatchError("normalizer: context is missing"))
 	})
 
 	Context("new normalizer", func() {
@@ -36,9 +36,9 @@ var _ = Describe("Standard", func() {
 			var err error
 			standardContext, err = context.NewStandard(test.NewLogger())
 			Expect(standardContext).ToNot(BeNil())
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).To(Succeed())
 			standard, err = normalizer.NewStandard(standardContext)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).To(Succeed())
 		})
 
 		It("exists", func() {

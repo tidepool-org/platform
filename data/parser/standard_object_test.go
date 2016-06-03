@@ -14,7 +14,7 @@ var _ = Describe("StandardObject", func() {
 	It("NewStandardObject returns an error if context is nil", func() {
 		standard, err := parser.NewStandardObject(nil, &map[string]interface{}{}, parser.IgnoreNotParsed)
 		Expect(standard).To(BeNil())
-		Expect(err).To(HaveOccurred())
+		Expect(err).To(MatchError("parser: context is missing"))
 	})
 
 	Context("new standard object with nil object", func() {
@@ -25,9 +25,9 @@ var _ = Describe("StandardObject", func() {
 			var err error
 			standardContext, err = context.NewStandard(test.NewLogger())
 			Expect(standardContext).ToNot(BeNil())
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).To(Succeed())
 			standardObject, err = parser.NewStandardObject(standardContext, nil, parser.IgnoreNotParsed)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).To(Succeed())
 		})
 
 		It("exists", func() {
@@ -115,9 +115,9 @@ var _ = Describe("StandardObject", func() {
 			var err error
 			standardContext, err = context.NewStandard(test.NewLogger())
 			Expect(standardContext).ToNot(BeNil())
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).To(Succeed())
 			standardObject, err = parser.NewStandardObject(standardContext, &map[string]interface{}{}, parser.IgnoreNotParsed)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).To(Succeed())
 		})
 
 		It("exists", func() {
@@ -142,7 +142,7 @@ var _ = Describe("StandardObject", func() {
 			var err error
 			standardContext, err = context.NewStandard(test.NewLogger())
 			Expect(standardContext).ToNot(BeNil())
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).To(Succeed())
 		})
 
 		Context("ParseBoolean", func() {

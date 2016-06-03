@@ -14,7 +14,7 @@ var _ = Describe("Standard", func() {
 	It("NewStandard returns an error if logger is nil", func() {
 		standard, err := context.NewStandard(nil)
 		Expect(standard).To(BeNil())
-		Expect(err).To(HaveOccurred())
+		Expect(err).To(MatchError("context: logger is missing"))
 	})
 
 	Context("NewStandard", func() {
