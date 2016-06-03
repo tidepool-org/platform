@@ -96,7 +96,7 @@ func (d *Deduplicator) InitializeDataset() error {
 
 	d.datasetUpload.SetDeduplicator(d.config)
 
-	query := map[string]interface{}{"userId": userID, "_groupId": groupID, "uploadId": datasetID, "type": d.datasetUpload.Type}
+	query := map[string]interface{}{"_userId": userID, "_groupId": groupID, "uploadId": datasetID, "type": d.datasetUpload.Type}
 	return d.storeSession.Update(query, d.datasetUpload)
 }
 
@@ -131,11 +131,11 @@ func (d *Deduplicator) FinalizeDataset() error {
 	// TODO: Technically, UpdateAll could succeed, but RemoveAll fail. This which result in duplicate (and possible incorrect) data.
 	// TODO: Is there a way to resolve this? Would be nice to have transactions.
 
-	if err := d.storeSession.UpdateAll(bson.M{"userId": userID, "_groupId": groupID, "uploadId": datasetID}, bson.M{"$set": bson.M{"_active": true}}); err != nil {
+	if err := d.storeSession.UpdateAll(bson.M{"_userId": userID, "_groupId": groupID, "uploadId": datasetID}, bson.M{"$set": bson.M{"_active": true}}); err != nil {
 		return app.ExtErrorf(err, "truncate", "unable to activate data in dataset with id '%s'", datasetID)
 	}
 
-	if err := d.storeSession.RemoveAll(bson.M{"userId": userID, "_groupId": groupID, "deviceId": *deviceID, "type": bson.M{"$ne": "upload"}, "uploadId": bson.M{"$ne": datasetID}}); err != nil {
+	if err := d.storeSession.RemoveAll(bson.M{"_userId": userID, "_groupId": groupID, "deviceId": *deviceID, "type": bson.M{"$ne": "upload"}, "uploadId": bson.M{"$ne": datasetID}}); err != nil {
 		return app.ExtErrorf(err, "truncate", "unable to delete data in datasets with device ID '%s' other than with id '%s'", *deviceID, datasetID)
 	}
 

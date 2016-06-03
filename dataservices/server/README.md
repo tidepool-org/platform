@@ -52,7 +52,6 @@ Example Response
       "duration": 10800000,
       "suppressed": null,
       "id": "56dded32dd28e548fa00001a",
-      "userId": "b676436f60",
       "deviceId": "IR1285-79-36047-15",
       "uploadId": "",
       "deviceTime": "2016-02-05T07:02:00",
@@ -76,7 +75,6 @@ Example Response
         "resumed": "manual"
       },
       "id": "56dded32dd28e548fa00002c",
-      "userId": "b676436f60",
       "deviceId": "IR1285-79-36047-15",
       "uploadId": "",
       "deviceTime": "2016-02-05T15:50:00",
@@ -100,7 +98,6 @@ Example Response
       "duration": 432000000,
       "suppressed": null,
       "id": "56dded32dd28e548fa000030",
-      "userId": "b676436f60",
       "deviceId": "IR1285-79-36047-15",
       "uploadId": "",
       "deviceTime": "2016-02-05T15:53:00",
@@ -191,7 +188,6 @@ curl -H "Content-Type: application/json" -H "x-tidepool-session-token: <your-tok
       "time": "2016-02-05T15:53:00.000Z",
       "type": "basal",
       "uploadId": "",
-      "userId": "b676436f60"
     },
     {
       "_active": true,
@@ -213,8 +209,7 @@ curl -H "Content-Type: application/json" -H "x-tidepool-session-token: <your-tok
       "scheduleName": "DEFAULT",
       "time": "2016-02-05T14:05:00.000Z",
       "type": "basal",
-      "uploadId": "",
-      "userId": "b676436f60"
+      "uploadId": ""
     },
     ...
   ],

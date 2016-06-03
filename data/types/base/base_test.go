@@ -48,26 +48,26 @@ import (
 // TODO_DATA: Need to find another way to test base not using sample/sub
 
 var _ = PDescribe("Base", func() {
-	// Context("userId", func() {
+	// Context("_userId", func() {
 	// 	DescribeTable("invalid when", testing.ExpectFieldNotValid,
-	// 		Entry("is empty", NewRawObject(), "userId", "",
+	// 		Entry("is empty", NewRawObject(), "_userId", "",
 	// 			[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThanOrEqualTo(0, 10), "/userId", NewMeta())},
 	// 		),
-	// 		Entry("is less than 10 characters", NewRawObject(), "userId", "123456789",
+	// 		Entry("is less than 10 characters", NewRawObject(), "_userId", "123456789",
 	// 			[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThanOrEqualTo(9, 10), "/userId", NewMeta())},
 	// 		),
 	// 	)
 
 	// 	DescribeTable("valid when", testing.ExpectFieldIsValid,
-	// 		Entry("has id 10 characters in length", NewRawObject(), "userId", "b676436f60"),
-	// 		Entry("has id more 10 characters in length", NewRawObject(), "userId", "b676436f60-b676436f60"),
+	// 		Entry("has id 10 characters in length", NewRawObject(), "_userId", "b676436f60"),
+	// 		Entry("has id more 10 characters in length", NewRawObject(), "_userId", "b676436f60-b676436f60"),
 	// 	)
 	// })
 
 	// Context("uploadId", func() {
 	// 	DescribeTable("invalid when", testing.ExpectFieldNotValid,
 	// 		Entry("is empty", NewRawObject(), "uploadId", "",
-	// 			[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThanOrEqualTo(0, 1), "/uploadId", NewMeta())},
+	// 			[]*service.Error{testing.ComposeError(validator.ErrorValueEmpty(), "/uploadId", NewMeta())},
 	// 		),
 	// 	)
 
@@ -80,7 +80,7 @@ var _ = PDescribe("Base", func() {
 	// Context("deviceId", func() {
 	// 	DescribeTable("invalid when", testing.ExpectFieldNotValid,
 	// 		Entry("is empty", NewRawObject(), "deviceId", "",
-	// 			[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThanOrEqualTo(0, 1), "/deviceId", NewMeta())},
+	// 			[]*service.Error{testing.ComposeError(validator.ErrorValueEmpty(), "/deviceId", NewMeta())},
 	// 		),
 	// 	)
 
