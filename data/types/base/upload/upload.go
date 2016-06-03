@@ -33,7 +33,7 @@ func New() (*Upload, error) {
 		return nil, err
 	}
 
-	uploadBase.UploadID = app.NewUUID()
+	uploadBase.UploadID = app.NewID()
 
 	return &Upload{
 		Base:      *uploadBase,

@@ -50,8 +50,8 @@ func New(Type string) (*Base, error) {
 	return &Base{
 		Active:        false,
 		CreatedTime:   time.Now().Format(time.RFC3339),
-		ID:            app.NewUUID(), // TODO: Move calculation to Normalize to follow Jellyfish algorithm
-		SchemaVersion: 3,             // TODO: Use constant here
+		ID:            app.NewID(), // TODO: Move calculation to Normalize to follow Jellyfish algorithm
+		SchemaVersion: 3,           // TODO: Use constant here
 		Type:          Type,
 	}, nil
 }

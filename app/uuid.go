@@ -17,5 +17,9 @@ import (
 )
 
 func NewUUID() string {
-	return strings.Replace(uuid.NewV4().String(), "-", "", -1)
+	return uuid.NewV4().String()
+}
+
+func NewID() string {
+	return strings.Replace(NewUUID(), "-", "", -1)
 }

@@ -41,7 +41,7 @@ func (l *TraceMiddleware) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerF
 	return func(response rest.ResponseWriter, request *rest.Request) {
 		logger := GetRequestLogger(request)
 
-		traceRequest := app.NewUUID()
+		traceRequest := app.NewID()
 		request.Env[RequestEnvTraceRequest] = traceRequest
 		response.Header().Add(HTTPHeaderTraceRequest, traceRequest)
 		logger = logger.WithField(LogTraceRequest, traceRequest)
