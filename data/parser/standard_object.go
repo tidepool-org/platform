@@ -15,23 +15,37 @@ import (
 
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
 )
 
 type StandardObject struct {
-	context data.Context
-	object  *map[string]interface{}
+	context         data.Context
+	object          *map[string]interface{}
+	parsed          map[string]bool
+	notParsedPolicy NotParsedPolicy
 }
 
-func NewStandardObject(context data.Context, object *map[string]interface{}) (*StandardObject, error) {
+func NewStandardObject(context data.Context, object *map[string]interface{}, notParsedPolicy NotParsedPolicy) (*StandardObject, error) {
 	if context == nil {
 		return nil, app.Error("parser", "context is missing")
 	}
 
+	var parsed map[string]bool
+	if object != nil {
+		parsed = make(map[string]bool, len(*object))
+	}
+
 	return &StandardObject{
-		context: context,
-		object:  object,
+		context:         context,
+		object:          object,
+		parsed:          parsed,
+		notParsedPolicy: notParsedPolicy,
 	}, nil
+}
+
+func (s *StandardObject) Logger() log.Logger {
+	return s.context.Logger()
 }
 
 func (s *StandardObject) SetMeta(meta interface{}) {
@@ -51,6 +65,8 @@ func (s *StandardObject) ParseBoolean(key string) *bool {
 		return nil
 	}
 
+	s.parsed[key] = true
+
 	rawValue, ok := (*s.object)[key]
 	if !ok {
 		return nil
@@ -58,7 +74,7 @@ func (s *StandardObject) ParseBoolean(key string) *bool {
 
 	booleanValue, ok := rawValue.(bool)
 	if !ok {
-		s.context.AppendError(key, ErrorTypeNotBoolean(rawValue))
+		s.AppendError(key, ErrorTypeNotBoolean(rawValue))
 		return nil
 	}
 
@@ -70,6 +86,8 @@ func (s *StandardObject) ParseInteger(key string) *int {
 		return nil
 	}
 
+	s.parsed[key] = true
+
 	rawValue, ok := (*s.object)[key]
 	if !ok {
 		return nil
@@ -79,11 +97,11 @@ func (s *StandardObject) ParseInteger(key string) *int {
 	if !integerValueOk {
 		floatValue, floatValueOk := rawValue.(float64)
 		if !floatValueOk {
-			s.context.AppendError(key, ErrorTypeNotInteger(rawValue))
+			s.AppendError(key, ErrorTypeNotInteger(rawValue))
 			return nil
 		}
 		if math.Trunc(floatValue) != floatValue {
-			s.context.AppendError(key, ErrorTypeNotInteger(rawValue))
+			s.AppendError(key, ErrorTypeNotInteger(rawValue))
 			return nil
 		}
 		integerValue = int(floatValue)
@@ -97,6 +115,8 @@ func (s *StandardObject) ParseFloat(key string) *float64 {
 		return nil
 	}
 
+	s.parsed[key] = true
+
 	rawValue, ok := (*s.object)[key]
 	if !ok {
 		return nil
@@ -106,7 +126,7 @@ func (s *StandardObject) ParseFloat(key string) *float64 {
 	if !floatValueOk {
 		integerValue, integerValueOk := rawValue.(int)
 		if !integerValueOk {
-			s.context.AppendError(key, ErrorTypeNotFloat(rawValue))
+			s.AppendError(key, ErrorTypeNotFloat(rawValue))
 			return nil
 		}
 		floatValue = float64(integerValue)
@@ -120,6 +140,8 @@ func (s *StandardObject) ParseString(key string) *string {
 		return nil
 	}
 
+	s.parsed[key] = true
+
 	rawValue, ok := (*s.object)[key]
 	if !ok {
 		return nil
@@ -127,7 +149,7 @@ func (s *StandardObject) ParseString(key string) *string {
 
 	stringValue, ok := rawValue.(string)
 	if !ok {
-		s.context.AppendError(key, ErrorTypeNotString(rawValue))
+		s.AppendError(key, ErrorTypeNotString(rawValue))
 		return nil
 	}
 
@@ -139,6 +161,8 @@ func (s *StandardObject) ParseStringArray(key string) *[]string {
 		return nil
 	}
 
+	s.parsed[key] = true
+
 	rawValue, ok := (*s.object)[key]
 	if !ok {
 		return nil
@@ -148,12 +172,12 @@ func (s *StandardObject) ParseStringArray(key string) *[]string {
 	if !stringArrayValueOk {
 		arrayValue, arrayValueOk := rawValue.([]interface{})
 		if !arrayValueOk {
-			s.context.AppendError(key, ErrorTypeNotArray(rawValue))
+			s.AppendError(key, ErrorTypeNotArray(rawValue))
 			return nil
 		}
 
 		stringArrayValue = []string{}
-		parser, _ := NewStandardArray(s.context.NewChildContext(key), &arrayValue)
+		parser, _ := NewStandardArray(s.context.NewChildContext(key), &arrayValue, IgnoreNotParsed)
 		for arrayIndex := range arrayValue {
 			var stringElement string
 			if stringParsed := parser.ParseString(arrayIndex); stringParsed != nil {
@@ -171,6 +195,8 @@ func (s *StandardObject) ParseObject(key string) *map[string]interface{} {
 		return nil
 	}
 
+	s.parsed[key] = true
+
 	rawValue, ok := (*s.object)[key]
 	if !ok {
 		return nil
@@ -178,7 +204,7 @@ func (s *StandardObject) ParseObject(key string) *map[string]interface{} {
 
 	objectValue, ok := rawValue.(map[string]interface{})
 	if !ok {
-		s.context.AppendError(key, ErrorTypeNotObject(rawValue))
+		s.AppendError(key, ErrorTypeNotObject(rawValue))
 		return nil
 	}
 
@@ -190,6 +216,8 @@ func (s *StandardObject) ParseObjectArray(key string) *[]map[string]interface{} 
 		return nil
 	}
 
+	s.parsed[key] = true
+
 	rawValue, ok := (*s.object)[key]
 	if !ok {
 		return nil
@@ -199,11 +227,11 @@ func (s *StandardObject) ParseObjectArray(key string) *[]map[string]interface{} 
 	if !objectArrayValueOk {
 		arrayValue, arrayValueOk := rawValue.([]interface{})
 		if !arrayValueOk {
-			s.context.AppendError(key, ErrorTypeNotArray(rawValue))
+			s.AppendError(key, ErrorTypeNotArray(rawValue))
 			return nil
 		}
 
-		parser, _ := NewStandardArray(s.context.NewChildContext(key), &arrayValue)
+		parser, _ := NewStandardArray(s.context.NewChildContext(key), &arrayValue, IgnoreNotParsed)
 		for arrayIndex := range arrayValue {
 			var objectElement map[string]interface{}
 			if objectParsed := parser.ParseObject(arrayIndex); objectParsed != nil {
@@ -221,6 +249,8 @@ func (s *StandardObject) ParseInterface(key string) *interface{} {
 		return nil
 	}
 
+	s.parsed[key] = true
+
 	rawValue, ok := (*s.object)[key]
 	if !ok {
 		return nil
@@ -234,6 +264,8 @@ func (s *StandardObject) ParseInterfaceArray(key string) *[]interface{} {
 		return nil
 	}
 
+	s.parsed[key] = true
+
 	rawValue, ok := (*s.object)[key]
 	if !ok {
 		return nil
@@ -241,19 +273,40 @@ func (s *StandardObject) ParseInterfaceArray(key string) *[]interface{} {
 
 	arrayValue, ok := rawValue.([]interface{})
 	if !ok {
-		s.context.AppendError(key, ErrorTypeNotArray(rawValue))
+		s.AppendError(key, ErrorTypeNotArray(rawValue))
 		return nil
 	}
 
 	return &arrayValue
 }
 
+func (s *StandardObject) ProcessNotParsed() {
+	if s.object == nil {
+		return
+	}
+
+	switch s.notParsedPolicy {
+	case WarnLoggerNotParsed:
+		for key := range *s.object {
+			if !s.parsed[key] {
+				s.Logger().WithField("reference", s.context.ResolveReference(key)).Warn("Reference not parsed")
+			}
+		}
+	case AppendErrorNotParsed:
+		for key := range *s.object {
+			if !s.parsed[key] {
+				s.AppendError(key, ErrorNotParsed())
+			}
+		}
+	}
+}
+
 func (s *StandardObject) NewChildObjectParser(key string) data.ObjectParser {
-	standardObject, _ := NewStandardObject(s.context.NewChildContext(key), s.ParseObject(key))
+	standardObject, _ := NewStandardObject(s.context.NewChildContext(key), s.ParseObject(key), s.notParsedPolicy)
 	return standardObject
 }
 
 func (s *StandardObject) NewChildArrayParser(key string) data.ArrayParser {
-	standardArray, _ := NewStandardArray(s.context.NewChildContext(key), s.ParseInterfaceArray(key))
+	standardArray, _ := NewStandardArray(s.context.NewChildContext(key), s.ParseInterfaceArray(key), s.notParsedPolicy)
 	return standardArray
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/validator"
+	"github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -22,13 +23,19 @@ var _ = Describe("Standard", func() {
 
 		BeforeEach(func() {
 			var err error
-			standardContext = context.NewStandard()
+			standardContext, err = context.NewStandard(test.NewLogger())
+			Expect(standardContext).ToNot(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			standard, err = validator.NewStandard(standardContext)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("exists", func() {
 			Expect(standard).ToNot(BeNil())
+		})
+
+		It("Logger returns a logger", func() {
+			Expect(standard.Logger()).ToNot(BeNil())
 		})
 
 		Context("SetMeta", func() {
@@ -249,6 +256,10 @@ var _ = Describe("Standard", func() {
 
 			It("returns a validator when called with non-nil reference", func() {
 				Expect(standard.NewChildValidator("reference")).ToNot(BeNil())
+			})
+
+			It("Logger returns a logger", func() {
+				Expect(standard.NewChildValidator("reference").Logger()).ToNot(BeNil())
 			})
 		})
 	})

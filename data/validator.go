@@ -1,7 +1,5 @@
 package data
 
-import "time"
-
 /* CHECKLIST
  * [x] Uses interfaces as appropriate
  * [x] Private package variables use underscore prefix
@@ -12,10 +10,18 @@ import "time"
  * [x] Full test coverage
  */
 
-import "github.com/tidepool-org/platform/service"
+import (
+	"time"
+
+	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/service"
+)
 
 type Validator interface {
+	Logger() log.Logger
+
 	SetMeta(meta interface{})
+
 	AppendError(reference interface{}, err *service.Error)
 
 	ValidateBoolean(reference interface{}, value *bool) Boolean

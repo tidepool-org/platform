@@ -45,6 +45,7 @@ func ParseBloodGlucoseTarget(parser data.ObjectParser) *BloodGlucoseTarget {
 	if parser.Object() != nil {
 		bloodGlucoseTarget = NewBloodGlucoseTarget()
 		bloodGlucoseTarget.Parse(parser)
+		parser.ProcessNotParsed()
 	}
 	return bloodGlucoseTarget
 }

@@ -56,6 +56,7 @@ func ParseBloodGlucoseTarget(parser data.ObjectParser) *BloodGlucoseTarget {
 	if parser.Object() != nil {
 		bloodGlucoseTarget = NewBloodGlucoseTarget()
 		bloodGlucoseTarget.Parse(parser)
+		parser.ProcessNotParsed()
 	}
 	return bloodGlucoseTarget
 }
@@ -67,6 +68,7 @@ func ParseBloodGlucoseTargetArray(parser data.ArrayParser) *[]*BloodGlucoseTarge
 		for index := range *parser.Array() {
 			*bloodGlucoseTargetArray = append(*bloodGlucoseTargetArray, ParseBloodGlucoseTarget(parser.NewChildObjectParser(index)))
 		}
+		parser.ProcessNotParsed()
 	}
 	return bloodGlucoseTargetArray
 }

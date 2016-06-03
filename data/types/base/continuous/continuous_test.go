@@ -12,6 +12,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/base/continuous"
 	"github.com/tidepool-org/platform/data/types/base/testing"
 	"github.com/tidepool-org/platform/data/validator"
+	"github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -81,8 +82,11 @@ var _ = Describe("Continuous", func() {
 			continuousBg.Units = &units
 			continuousBg.Value = &val
 
-			testContext := context.NewStandard()
+			testContext, err := context.NewStandard(test.NewLogger())
+			Expect(testContext).ToNot(BeNil())
+			Expect(err).To(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(standardNormalizer).ToNot(BeNil())
 			Expect(err).To(BeNil())
 			continuousBg.Normalize(standardNormalizer)
 			Expect(*continuousBg.Units).To(Equal(bloodglucose.MmolL))
@@ -102,8 +106,11 @@ var _ = Describe("Continuous", func() {
 			continuousBg.Units = &units
 			continuousBg.Value = &val
 
-			testContext := context.NewStandard()
+			testContext, err := context.NewStandard(test.NewLogger())
+			Expect(testContext).ToNot(BeNil())
+			Expect(err).To(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(standardNormalizer).ToNot(BeNil())
 			Expect(err).To(BeNil())
 			continuousBg.Normalize(standardNormalizer)
 			Expect(*continuousBg.Units).To(Equal(bloodglucose.MmolL))

@@ -30,6 +30,7 @@ func ParseUnits(parser data.ObjectParser) *Units {
 	if parser.Object() != nil {
 		units = NewUnits()
 		units.Parse(parser)
+		parser.ProcessNotParsed()
 	}
 	return units
 }

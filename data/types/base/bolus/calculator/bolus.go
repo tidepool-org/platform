@@ -58,5 +58,7 @@ func ParseBolus(parser data.ObjectParser) (data.Datum, error) {
 		return nil, err
 	}
 
+	parser.ProcessNotParsed()
+
 	return datum, nil
 }

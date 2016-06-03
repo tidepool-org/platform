@@ -7,6 +7,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/normalizer"
+	"github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -33,7 +34,9 @@ var _ = Describe("Standard", func() {
 
 		BeforeEach(func() {
 			var err error
-			standardContext = context.NewStandard()
+			standardContext, err = context.NewStandard(test.NewLogger())
+			Expect(standardContext).ToNot(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			standard, err = normalizer.NewStandard(standardContext)
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -49,6 +52,10 @@ var _ = Describe("Standard", func() {
 		It("ignores sending a nil datum to AppendDatum", func() {
 			standard.AppendDatum(nil)
 			Expect(standard.Data()).To(BeEmpty())
+		})
+
+		It("Logger returns a logger", func() {
+			Expect(standard.Logger()).ToNot(BeNil())
 		})
 
 		Context("SetMeta", func() {
@@ -122,6 +129,10 @@ var _ = Describe("Standard", func() {
 
 			It("exists", func() {
 				Expect(child).ToNot(BeNil())
+			})
+
+			It("Logger returns a logger", func() {
+				Expect(child.Logger()).ToNot(BeNil())
 			})
 
 			Context("AppendDatum with a first error", func() {

@@ -12,6 +12,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/base/ketone"
 	"github.com/tidepool-org/platform/data/types/base/testing"
 	"github.com/tidepool-org/platform/data/validator"
+	"github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -80,8 +81,11 @@ var _ = Describe("BloodKetone", func() {
 			bloodKetone.Units = &units
 			bloodKetone.Value = &val
 
-			testContext := context.NewStandard()
+			testContext, err := context.NewStandard(test.NewLogger())
+			Expect(testContext).ToNot(BeNil())
+			Expect(err).To(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(standardNormalizer).ToNot(BeNil())
 			Expect(err).To(BeNil())
 			bloodKetone.Normalize(standardNormalizer)
 			Expect(*bloodKetone.Units).To(Equal(bloodglucose.MmolL))
@@ -101,8 +105,11 @@ var _ = Describe("BloodKetone", func() {
 			bloodKetone.Units = &units
 			bloodKetone.Value = &val
 
-			testContext := context.NewStandard()
+			testContext, err := context.NewStandard(test.NewLogger())
+			Expect(testContext).ToNot(BeNil())
+			Expect(err).To(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(standardNormalizer).ToNot(BeNil())
 			Expect(err).To(BeNil())
 			bloodKetone.Normalize(standardNormalizer)
 			Expect(*bloodKetone.Units).To(Equal(bloodglucose.MmolL))

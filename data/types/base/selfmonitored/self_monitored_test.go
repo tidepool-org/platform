@@ -12,6 +12,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/base/selfmonitored"
 	"github.com/tidepool-org/platform/data/types/base/testing"
 	"github.com/tidepool-org/platform/data/validator"
+	"github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -96,8 +97,11 @@ var _ = Describe("SelfMonitored", func() {
 			selfMonitoredBg.Units = &units
 			selfMonitoredBg.Value = &val
 
-			testContext := context.NewStandard()
+			testContext, err := context.NewStandard(test.NewLogger())
+			Expect(testContext).ToNot(BeNil())
+			Expect(err).To(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(standardNormalizer).ToNot(BeNil())
 			Expect(err).To(BeNil())
 			selfMonitoredBg.Normalize(standardNormalizer)
 			Expect(*selfMonitoredBg.Units).To(Equal(bloodglucose.MmolL))
@@ -116,8 +120,11 @@ var _ = Describe("SelfMonitored", func() {
 			selfMonitoredBg.Units = &units
 			selfMonitoredBg.Value = &val
 
-			testContext := context.NewStandard()
+			testContext, err := context.NewStandard(test.NewLogger())
+			Expect(testContext).ToNot(BeNil())
+			Expect(err).To(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(standardNormalizer).ToNot(BeNil())
 			Expect(err).To(BeNil())
 			selfMonitoredBg.Normalize(standardNormalizer)
 			Expect(*selfMonitoredBg.Units).To(Equal(bloodglucose.MmolL))

@@ -41,5 +41,6 @@ var _ = Describe("Errors", func() {
 		Entry("is ErrorTypeNotArray with int parameter", parser.ErrorTypeNotArray(0), "type-not-array", "type is not array", "Type is not array, but int"),
 		Entry("is ErrorTypeNotArray with string parameter", parser.ErrorTypeNotArray("test"), "type-not-array", "type is not array", "Type is not array, but string"),
 		Entry("is ErrorTypeNotArray with string array parameter", parser.ErrorTypeNotArray([]string{}), "type-not-array", "type is not array", "Type is not array, but []string"),
+		Entry("is ErrorNotParsed", parser.ErrorNotParsed(), "not-parsed", "not parsed", "Not parsed"),
 	)
 })

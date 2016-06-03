@@ -29,6 +29,7 @@ func ParseCarbohydrateRatio(parser data.ObjectParser) *CarbohydrateRatio {
 	if parser.Object() != nil {
 		carbohydrateRatio = NewCarbohydrateRatio()
 		carbohydrateRatio.Parse(parser)
+		parser.ProcessNotParsed()
 	}
 	return carbohydrateRatio
 }
@@ -40,6 +41,7 @@ func ParseCarbohydrateRatioArray(parser data.ArrayParser) *[]*CarbohydrateRatio 
 		for index := range *parser.Array() {
 			*carbohydrateRatioArray = append(*carbohydrateRatioArray, ParseCarbohydrateRatio(parser.NewChildObjectParser(index)))
 		}
+		parser.ProcessNotParsed()
 	}
 	return carbohydrateRatioArray
 }

@@ -6,19 +6,28 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/context"
+	"github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/service"
 )
 
 var _ = Describe("Standard", func() {
-	Context("New", func() {
+	It("NewStandard returns an error if logger is nil", func() {
+		standard, err := context.NewStandard(nil)
+		Expect(standard).To(BeNil())
+		Expect(err).To(HaveOccurred())
+	})
+
+	Context("NewStandard", func() {
 		var standard *context.Standard
+		var err error
 
 		BeforeEach(func() {
-			standard = context.NewStandard()
+			standard, err = context.NewStandard(test.NewLogger())
 		})
 
 		It("exists", func() {
 			Expect(standard).ToNot(BeNil())
+			Expect(err).To(Succeed())
 		})
 
 		It("has a contained Errors that is empty", func() {
@@ -30,11 +39,21 @@ var _ = Describe("Standard", func() {
 			Expect(standard.Errors()).To(BeEmpty())
 		})
 
+		It("Logger returns a logger", func() {
+			Expect(standard.Logger()).ToNot(BeNil())
+		})
+
 		Context("SetMeta", func() {
 			It("sets the meta on the context", func() {
 				meta := "metametameta"
 				standard.SetMeta(meta)
 				Expect(standard.Meta()).To(BeIdenticalTo(meta))
+			})
+		})
+
+		Context("ResolveReference", func() {
+			It("correctly returns the resolved reference", func() {
+				Expect(standard.ResolveReference("reference")).To(Equal("/reference"))
 			})
 		})
 
@@ -152,6 +171,16 @@ var _ = Describe("Standard", func() {
 				Expect(child).ToNot(BeNil())
 			})
 
+			It("Logger returns a logger", func() {
+				Expect(child.Logger()).ToNot(BeNil())
+			})
+
+			Context("ResolveReference", func() {
+				It("correctly returns the resolved reference", func() {
+					Expect(child.ResolveReference("reference")).To(Equal("/child/reference"))
+				})
+			})
+
 			Context("AppendError with a first error", func() {
 				var firstError *service.Error
 
@@ -212,6 +241,16 @@ var _ = Describe("Standard", func() {
 
 				It("exists", func() {
 					Expect(grandchild).ToNot(BeNil())
+				})
+
+				It("Logger returns a logger", func() {
+					Expect(grandchild.Logger()).ToNot(BeNil())
+				})
+
+				Context("ResolveReference", func() {
+					It("correctly returns the resolved reference", func() {
+						Expect(grandchild.ResolveReference("reference")).To(Equal("/child/grandchild/reference"))
+					})
 				})
 
 				Context("AppendError with a first error", func() {

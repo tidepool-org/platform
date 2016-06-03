@@ -38,6 +38,7 @@ func ParseChange(parser data.ObjectParser) *Change {
 	if parser.Object() != nil {
 		change = NewChange()
 		change.Parse(parser)
+		parser.ProcessNotParsed()
 	}
 	return change
 }

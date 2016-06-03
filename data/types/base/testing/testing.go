@@ -11,6 +11,7 @@ import (
 	"github.com/tidepool-org/platform/data/parser"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/validator"
+	"github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -37,10 +38,11 @@ func reportAndFailOnErrors(testContext *context.Standard, step string) {
 
 var ExpectFieldIsValid = func(object map[string]interface{}, field string, val interface{}) {
 	object[field] = val
-	testContext := context.NewStandard()
+	testContext, err := context.NewStandard(test.NewLogger())
+	gomega.Expect(err).To(gomega.BeNil())
 	standardValidator, err := validator.NewStandard(testContext)
 	gomega.Expect(err).To(gomega.BeNil())
-	objectParser, err := parser.NewStandardObject(testContext, &object)
+	objectParser, err := parser.NewStandardObject(testContext, &object, parser.IgnoreNotParsed)
 	gomega.Expect(err).To(gomega.BeNil())
 	reportAndFailOnErrors(testContext, "Initialization:")
 	parsedObject, err := types.Parse(objectParser)
@@ -58,10 +60,11 @@ func ComposeError(expectedError *service.Error, source string, meta interface{})
 
 var ExpectFieldNotValid = func(object map[string]interface{}, field string, val interface{}, expectedErrors []*service.Error) {
 	object[field] = val
-	testContext := context.NewStandard()
+	testContext, err := context.NewStandard(test.NewLogger())
+	gomega.Expect(err).To(gomega.BeNil())
 	standardValidator, err := validator.NewStandard(testContext)
 	gomega.Expect(err).To(gomega.BeNil())
-	objectParser, err := parser.NewStandardObject(testContext, &object)
+	objectParser, err := parser.NewStandardObject(testContext, &object, parser.IgnoreNotParsed)
 	gomega.Expect(err).To(gomega.BeNil())
 	reportAndFailOnErrors(testContext, "Initialization:")
 	parsedObject, err := types.Parse(objectParser)
@@ -76,10 +79,11 @@ var ExpectFieldNotValid = func(object map[string]interface{}, field string, val 
 
 var ParseAndNormalize = func(object map[string]interface{}, field string, val interface{}) data.Datum {
 	object[field] = val
-	testContext := context.NewStandard()
+	testContext, err := context.NewStandard(test.NewLogger())
+	gomega.Expect(err).To(gomega.BeNil())
 	standardValidator, err := validator.NewStandard(testContext)
 	gomega.Expect(err).To(gomega.BeNil())
-	objectParser, err := parser.NewStandardObject(testContext, &object)
+	objectParser, err := parser.NewStandardObject(testContext, &object, parser.IgnoreNotParsed)
 	gomega.Expect(err).To(gomega.BeNil())
 	reportAndFailOnErrors(testContext, "Initialization:")
 	parsedObject, err := types.Parse(objectParser)

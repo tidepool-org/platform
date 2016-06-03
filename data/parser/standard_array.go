@@ -15,23 +15,37 @@ import (
 
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
 )
 
 type StandardArray struct {
-	context data.Context
-	array   *[]interface{}
+	context         data.Context
+	array           *[]interface{}
+	parsed          []bool
+	notParsedPolicy NotParsedPolicy
 }
 
-func NewStandardArray(context data.Context, array *[]interface{}) (*StandardArray, error) {
+func NewStandardArray(context data.Context, array *[]interface{}, notParsedPolicy NotParsedPolicy) (*StandardArray, error) {
 	if context == nil {
 		return nil, app.Error("parser", "context is missing")
 	}
 
+	var parsed []bool
+	if array != nil {
+		parsed = make([]bool, len(*array))
+	}
+
 	return &StandardArray{
-		context: context,
-		array:   array,
+		context:         context,
+		array:           array,
+		parsed:          parsed,
+		notParsedPolicy: notParsedPolicy,
 	}, nil
+}
+
+func (s *StandardArray) Logger() log.Logger {
+	return s.context.Logger()
 }
 
 func (s *StandardArray) SetMeta(meta interface{}) {
@@ -55,11 +69,13 @@ func (s *StandardArray) ParseBoolean(index int) *bool {
 		return nil
 	}
 
+	s.parsed[index] = true
+
 	rawValue := (*s.array)[index]
 
 	booleanValue, ok := rawValue.(bool)
 	if !ok {
-		s.context.AppendError(index, ErrorTypeNotBoolean(rawValue))
+		s.AppendError(index, ErrorTypeNotBoolean(rawValue))
 		return nil
 	}
 
@@ -75,17 +91,19 @@ func (s *StandardArray) ParseInteger(index int) *int {
 		return nil
 	}
 
+	s.parsed[index] = true
+
 	rawValue := (*s.array)[index]
 
 	integerValue, integerValueOk := rawValue.(int)
 	if !integerValueOk {
 		floatValue, floatValueOk := rawValue.(float64)
 		if !floatValueOk {
-			s.context.AppendError(index, ErrorTypeNotInteger(rawValue))
+			s.AppendError(index, ErrorTypeNotInteger(rawValue))
 			return nil
 		}
 		if math.Trunc(floatValue) != floatValue {
-			s.context.AppendError(index, ErrorTypeNotInteger(rawValue))
+			s.AppendError(index, ErrorTypeNotInteger(rawValue))
 			return nil
 		}
 		integerValue = int(floatValue)
@@ -103,13 +121,15 @@ func (s *StandardArray) ParseFloat(index int) *float64 {
 		return nil
 	}
 
+	s.parsed[index] = true
+
 	rawValue := (*s.array)[index]
 
 	floatValue, floatValueOk := rawValue.(float64)
 	if !floatValueOk {
 		integerValue, integerValueOk := rawValue.(int)
 		if !integerValueOk {
-			s.context.AppendError(index, ErrorTypeNotFloat(rawValue))
+			s.AppendError(index, ErrorTypeNotFloat(rawValue))
 			return nil
 		}
 		floatValue = float64(integerValue)
@@ -127,11 +147,13 @@ func (s *StandardArray) ParseString(index int) *string {
 		return nil
 	}
 
+	s.parsed[index] = true
+
 	rawValue := (*s.array)[index]
 
 	stringValue, ok := rawValue.(string)
 	if !ok {
-		s.context.AppendError(index, ErrorTypeNotString(rawValue))
+		s.AppendError(index, ErrorTypeNotString(rawValue))
 		return nil
 	}
 
@@ -147,18 +169,20 @@ func (s *StandardArray) ParseStringArray(index int) *[]string {
 		return nil
 	}
 
+	s.parsed[index] = true
+
 	rawValue := (*s.array)[index]
 
 	stringArrayValue, stringArrayValueOk := rawValue.([]string)
 	if !stringArrayValueOk {
 		arrayValue, arrayValueOk := rawValue.([]interface{})
 		if !arrayValueOk {
-			s.context.AppendError(index, ErrorTypeNotArray(rawValue))
+			s.AppendError(index, ErrorTypeNotArray(rawValue))
 			return nil
 		}
 
 		stringArrayValue = []string{}
-		parser, _ := NewStandardArray(s.context.NewChildContext(index), &arrayValue)
+		parser, _ := NewStandardArray(s.context.NewChildContext(index), &arrayValue, IgnoreNotParsed)
 		for arrayIndex := range arrayValue {
 			var stringElement string
 			if stringParsed := parser.ParseString(arrayIndex); stringParsed != nil {
@@ -180,11 +204,13 @@ func (s *StandardArray) ParseObject(index int) *map[string]interface{} {
 		return nil
 	}
 
+	s.parsed[index] = true
+
 	rawValue := (*s.array)[index]
 
 	objectValue, ok := rawValue.(map[string]interface{})
 	if !ok {
-		s.context.AppendError(index, ErrorTypeNotObject(rawValue))
+		s.AppendError(index, ErrorTypeNotObject(rawValue))
 		return nil
 	}
 
@@ -200,17 +226,19 @@ func (s *StandardArray) ParseObjectArray(index int) *[]map[string]interface{} {
 		return nil
 	}
 
+	s.parsed[index] = true
+
 	rawValue := (*s.array)[index]
 
 	objectArrayValue, objectArrayValueOk := rawValue.([]map[string]interface{})
 	if !objectArrayValueOk {
 		arrayValue, arrayValueOk := rawValue.([]interface{})
 		if !arrayValueOk {
-			s.context.AppendError(index, ErrorTypeNotArray(rawValue))
+			s.AppendError(index, ErrorTypeNotArray(rawValue))
 			return nil
 		}
 
-		parser, _ := NewStandardArray(s.context.NewChildContext(index), &arrayValue)
+		parser, _ := NewStandardArray(s.context.NewChildContext(index), &arrayValue, IgnoreNotParsed)
 		for arrayIndex := range arrayValue {
 			var objectElement map[string]interface{}
 			if objectParsed := parser.ParseObject(arrayIndex); objectParsed != nil {
@@ -232,6 +260,8 @@ func (s *StandardArray) ParseInterface(index int) *interface{} {
 		return nil
 	}
 
+	s.parsed[index] = true
+
 	rawValue := (*s.array)[index]
 
 	return &rawValue
@@ -246,23 +276,46 @@ func (s *StandardArray) ParseInterfaceArray(index int) *[]interface{} {
 		return nil
 	}
 
+	s.parsed[index] = true
+
 	rawValue := (*s.array)[index]
 
 	arrayValue, ok := rawValue.([]interface{})
 	if !ok {
-		s.context.AppendError(index, ErrorTypeNotArray(rawValue))
+		s.AppendError(index, ErrorTypeNotArray(rawValue))
 		return nil
 	}
 
 	return &arrayValue
 }
 
+func (s *StandardArray) ProcessNotParsed() {
+	if s.array == nil {
+		return
+	}
+
+	switch s.notParsedPolicy {
+	case WarnLoggerNotParsed:
+		for index := range *s.array {
+			if !s.parsed[index] {
+				s.Logger().WithField("reference", s.context.ResolveReference(index)).Warn("Reference not parsed")
+			}
+		}
+	case AppendErrorNotParsed:
+		for index := range *s.array {
+			if !s.parsed[index] {
+				s.AppendError(index, ErrorNotParsed())
+			}
+		}
+	}
+}
+
 func (s *StandardArray) NewChildObjectParser(index int) data.ObjectParser {
-	standardObject, _ := NewStandardObject(s.context.NewChildContext(index), s.ParseObject(index))
+	standardObject, _ := NewStandardObject(s.context.NewChildContext(index), s.ParseObject(index), s.notParsedPolicy)
 	return standardObject
 }
 
 func (s *StandardArray) NewChildArrayParser(index int) data.ArrayParser {
-	standardArray, _ := NewStandardArray(s.context.NewChildContext(index), s.ParseInterfaceArray(index))
+	standardArray, _ := NewStandardArray(s.context.NewChildContext(index), s.ParseInterfaceArray(index), s.notParsedPolicy)
 	return standardArray
 }

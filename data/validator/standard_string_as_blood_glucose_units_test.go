@@ -8,6 +8,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/validator"
+	"github.com/tidepool-org/platform/log/test"
 )
 
 var _ = Describe("StandardStringAsBloodGlucoseUnits", func() {
@@ -20,7 +21,10 @@ var _ = Describe("StandardStringAsBloodGlucoseUnits", func() {
 		var standardContext *context.Standard
 
 		BeforeEach(func() {
-			standardContext = context.NewStandard()
+			var err error
+			standardContext, err = context.NewStandard(test.NewLogger())
+			Expect(standardContext).ToNot(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		Context("new validator with nil reference and nil units", func() {

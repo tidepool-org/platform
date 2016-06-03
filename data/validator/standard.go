@@ -13,6 +13,7 @@ package validator
 import (
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -28,6 +29,10 @@ func NewStandard(context data.Context) (*Standard, error) {
 	return &Standard{
 		context: context,
 	}, nil
+}
+
+func (s *Standard) Logger() log.Logger {
+	return s.context.Logger()
 }
 
 func (s *Standard) SetMeta(meta interface{}) {

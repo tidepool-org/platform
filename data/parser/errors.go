@@ -66,3 +66,11 @@ func ErrorTypeNotArray(value interface{}) *service.Error {
 		Detail: fmt.Sprintf("Type is not array, but %T", value),
 	}
 }
+
+func ErrorNotParsed() *service.Error {
+	return &service.Error{
+		Code:   "not-parsed",
+		Title:  "not parsed",
+		Detail: "Not parsed",
+	}
+}

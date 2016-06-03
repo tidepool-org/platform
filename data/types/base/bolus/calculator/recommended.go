@@ -32,6 +32,7 @@ func ParseRecommended(parser data.ObjectParser) *Recommended {
 	if parser.Object() != nil {
 		recommended = NewRecommended()
 		recommended.Parse(parser)
+		parser.ProcessNotParsed()
 	}
 	return recommended
 }

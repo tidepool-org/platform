@@ -12,6 +12,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/base/bolus/calculator"
 	"github.com/tidepool-org/platform/data/types/base/testing"
 	"github.com/tidepool-org/platform/data/validator"
+	"github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -280,8 +281,11 @@ var _ = Describe("Calculator", func() {
 				bolusCalculator.InsulinSensitivity = &val
 				bolusCalculator.BloodGlucoseTarget = &calculator.BloodGlucoseTarget{Target: &val}
 
-				testContext := context.NewStandard()
+				testContext, err := context.NewStandard(test.NewLogger())
+				Expect(testContext).ToNot(BeNil())
+				Expect(err).To(BeNil())
 				standardNormalizer, err := normalizer.NewStandard(testContext)
+				Expect(standardNormalizer).ToNot(BeNil())
 				Expect(err).To(BeNil())
 				bolusCalculator.Normalize(standardNormalizer)
 				Expect(*bolusCalculator.Units).To(Equal(bloodglucose.MmolL))
@@ -303,8 +307,11 @@ var _ = Describe("Calculator", func() {
 				bolusCalculator.InsulinSensitivity = &val
 				bolusCalculator.BloodGlucoseTarget = &calculator.BloodGlucoseTarget{Target: &val}
 
-				testContext := context.NewStandard()
+				testContext, err := context.NewStandard(test.NewLogger())
+				Expect(testContext).ToNot(BeNil())
+				Expect(err).To(BeNil())
 				standardNormalizer, err := normalizer.NewStandard(testContext)
+				Expect(standardNormalizer).ToNot(BeNil())
 				Expect(err).To(BeNil())
 				bolusCalculator.Normalize(standardNormalizer)
 				Expect(*bolusCalculator.Units).To(Equal(bloodglucose.MmolL))

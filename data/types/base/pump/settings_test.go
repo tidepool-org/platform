@@ -12,6 +12,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/base/pump"
 	"github.com/tidepool-org/platform/data/types/base/testing"
 	"github.com/tidepool-org/platform/data/validator"
+	"github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -347,8 +348,11 @@ var _ = Describe("Settings", func() {
 				{High: &high, Low: &val, Target: &target},
 			}
 
-			testContext := context.NewStandard()
+			testContext, err := context.NewStandard(test.NewLogger())
+			Expect(testContext).ToNot(BeNil())
+			Expect(err).To(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(standardNormalizer).ToNot(BeNil())
 			Expect(err).To(BeNil())
 			pumpSettings.Normalize(standardNormalizer)
 			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(bloodglucose.MmolL))
@@ -376,8 +380,11 @@ var _ = Describe("Settings", func() {
 				{High: &val, Low: &low, Target: &target},
 			}
 
-			testContext := context.NewStandard()
+			testContext, err := context.NewStandard(test.NewLogger())
+			Expect(testContext).ToNot(BeNil())
+			Expect(err).To(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(standardNormalizer).ToNot(BeNil())
 			Expect(err).To(BeNil())
 			pumpSettings.Normalize(standardNormalizer)
 			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(bloodglucose.MmolL))
@@ -405,8 +412,11 @@ var _ = Describe("Settings", func() {
 				{High: &high, Low: &low, Target: &val},
 			}
 
-			testContext := context.NewStandard()
+			testContext, err := context.NewStandard(test.NewLogger())
+			Expect(testContext).ToNot(BeNil())
+			Expect(err).To(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(standardNormalizer).ToNot(BeNil())
 			Expect(err).To(BeNil())
 			pumpSettings.Normalize(standardNormalizer)
 			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(bloodglucose.MmolL))
@@ -434,8 +444,11 @@ var _ = Describe("Settings", func() {
 				{High: &high, Low: &val, Target: &target},
 			}
 
-			testContext := context.NewStandard()
+			testContext, err := context.NewStandard(test.NewLogger())
+			Expect(testContext).ToNot(BeNil())
+			Expect(err).To(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(standardNormalizer).ToNot(BeNil())
 			Expect(err).To(BeNil())
 			pumpSettings.Normalize(standardNormalizer)
 			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(bloodglucose.MmolL))
@@ -463,8 +476,11 @@ var _ = Describe("Settings", func() {
 				{High: &val, Low: &low, Target: &target},
 			}
 
-			testContext := context.NewStandard()
+			testContext, err := context.NewStandard(test.NewLogger())
+			Expect(testContext).ToNot(BeNil())
+			Expect(err).To(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(standardNormalizer).ToNot(BeNil())
 			Expect(err).To(BeNil())
 			pumpSettings.Normalize(standardNormalizer)
 			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(bloodglucose.MmolL))
@@ -492,8 +508,11 @@ var _ = Describe("Settings", func() {
 				{High: &high, Low: &low, Target: &val},
 			}
 
-			testContext := context.NewStandard()
+			testContext, err := context.NewStandard(test.NewLogger())
+			Expect(testContext).ToNot(BeNil())
+			Expect(err).To(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(standardNormalizer).ToNot(BeNil())
 			Expect(err).To(BeNil())
 			pumpSettings.Normalize(standardNormalizer)
 			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(bloodglucose.MmolL))
@@ -522,8 +541,11 @@ var _ = Describe("Settings", func() {
 				{Amount: &val, Start: &start},
 			}
 
-			testContext := context.NewStandard()
+			testContext, err := context.NewStandard(test.NewLogger())
+			Expect(testContext).ToNot(BeNil())
+			Expect(err).To(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(standardNormalizer).ToNot(BeNil())
 			Expect(err).To(BeNil())
 			pumpSettings.Normalize(standardNormalizer)
 			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(bloodglucose.MmolL))
@@ -550,8 +572,11 @@ var _ = Describe("Settings", func() {
 				{Amount: &val, Start: &start},
 			}
 
-			testContext := context.NewStandard()
+			testContext, err := context.NewStandard(test.NewLogger())
+			Expect(testContext).ToNot(BeNil())
+			Expect(err).To(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(standardNormalizer).ToNot(BeNil())
 			Expect(err).To(BeNil())
 			pumpSettings.Normalize(standardNormalizer)
 			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(bloodglucose.MmolL))

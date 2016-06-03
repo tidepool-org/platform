@@ -30,6 +30,7 @@ func ParseInsulinSensitivity(parser data.ObjectParser) *InsulinSensitivity {
 	if parser.Object() != nil {
 		insulinSensitivity = NewInsulinSensitivity()
 		insulinSensitivity.Parse(parser)
+		parser.ProcessNotParsed()
 	}
 	return insulinSensitivity
 }
@@ -41,6 +42,7 @@ func ParseInsulinSensitivityArray(parser data.ArrayParser) *[]*InsulinSensitivit
 		for index := range *parser.Array() {
 			*insulinSensitivityArray = append(*insulinSensitivityArray, ParseInsulinSensitivity(parser.NewChildObjectParser(index)))
 		}
+		parser.ProcessNotParsed()
 	}
 	return insulinSensitivityArray
 }

@@ -71,11 +71,15 @@ func DatasetsDataCreate(serverContext server.Context) {
 		return
 	}
 
-	datumArrayContext := context.NewStandard()
-
-	datumArrayParser, err := parser.NewStandardArray(datumArrayContext, &rawDatumArray)
+	datumArrayContext, err := context.NewStandard(serverContext.Logger())
 	if err != nil {
-		serverContext.RespondWithInternalServerFailure("Unable to create datum parser", err)
+		serverContext.RespondWithInternalServerFailure("Unable to create datum array context", err)
+		return
+	}
+
+	datumArrayParser, err := parser.NewStandardArray(datumArrayContext, &rawDatumArray, parser.AppendErrorNotParsed)
+	if err != nil {
+		serverContext.RespondWithInternalServerFailure("Unable to create datum array parser", err)
 		return
 	}
 
@@ -93,17 +97,21 @@ func DatasetsDataCreate(serverContext server.Context) {
 
 	datumArray := []data.Datum{}
 	for index := range *datumArrayParser.Array() {
-		var datum data.Datum
-		datum, err = types.Parse(datumArrayParser.NewChildObjectParser(index))
-		if err != nil {
-			serverContext.RespondWithInternalServerFailure("Unable to parse datum", err)
+		datumObjectParser := datumArrayParser.NewChildObjectParser(index)
+		datum, datumErr := types.Parse(datumObjectParser)
+		if datumErr != nil {
+			serverContext.RespondWithInternalServerFailure("Unable to parse datum", datumErr)
 			return
 		}
+		datumObjectParser.ProcessNotParsed()
+
 		if datum != nil {
 			datum.Validate(datumValidator.NewChildValidator(index))
 			datumArray = append(datumArray, datum)
 		}
 	}
+
+	datumArrayParser.ProcessNotParsed()
 
 	if errors := datumArrayContext.Errors(); len(errors) > 0 {
 		serverContext.RespondWithStatusAndErrors(http.StatusBadRequest, errors)

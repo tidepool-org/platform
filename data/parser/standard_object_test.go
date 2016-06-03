@@ -6,22 +6,27 @@ import (
 
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/parser"
+	"github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/service"
 )
 
 var _ = Describe("StandardObject", func() {
 	It("NewStandardObject returns an error if context is nil", func() {
-		standard, err := parser.NewStandardObject(nil, &map[string]interface{}{})
+		standard, err := parser.NewStandardObject(nil, &map[string]interface{}{}, parser.IgnoreNotParsed)
 		Expect(standard).To(BeNil())
 		Expect(err).To(HaveOccurred())
 	})
 
 	Context("new standard object with nil object", func() {
+		var standardContext *context.Standard
 		var standardObject *parser.StandardObject
 
 		BeforeEach(func() {
 			var err error
-			standardObject, err = parser.NewStandardObject(context.NewStandard(), nil)
+			standardContext, err = context.NewStandard(test.NewLogger())
+			Expect(standardContext).ToNot(BeNil())
+			Expect(err).ToNot(HaveOccurred())
+			standardObject, err = parser.NewStandardObject(standardContext, nil, parser.IgnoreNotParsed)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -31,6 +36,21 @@ var _ = Describe("StandardObject", func() {
 
 		It("does not have a contained object", func() {
 			Expect(standardObject.Object()).To(BeNil())
+		})
+
+		It("Logger returns a logger", func() {
+			Expect(standardObject.Logger()).ToNot(BeNil())
+		})
+
+		It("SetMeta sets the meta on the context", func() {
+			meta := "metametameta"
+			standardObject.SetMeta(meta)
+			Expect(standardContext.Meta()).To(BeIdenticalTo(meta))
+		})
+
+		It("AppendError appends an error on the context", func() {
+			standardObject.AppendError("append-error", &service.Error{})
+			Expect(standardContext.Errors()).To(HaveLen(1))
 		})
 
 		It("ParseBoolean returns nil", func() {
@@ -69,6 +89,11 @@ var _ = Describe("StandardObject", func() {
 			Expect(standardObject.ParseInterfaceArray("0")).To(BeNil())
 		})
 
+		It("ProcessNotParsed does not add an error", func() {
+			standardObject.ProcessNotParsed()
+			Expect(standardContext.Errors()).To(BeEmpty())
+		})
+
 		It("NewChildObjectParser returns an object parser with a nil object", func() {
 			objectParser := standardObject.NewChildObjectParser("0")
 			Expect(objectParser).ToNot(BeNil())
@@ -88,8 +113,10 @@ var _ = Describe("StandardObject", func() {
 
 		BeforeEach(func() {
 			var err error
-			standardContext = context.NewStandard()
-			standardObject, err = parser.NewStandardObject(standardContext, &map[string]interface{}{})
+			standardContext, err = context.NewStandard(test.NewLogger())
+			Expect(standardContext).ToNot(BeNil())
+			Expect(err).ToNot(HaveOccurred())
+			standardObject, err = parser.NewStandardObject(standardContext, &map[string]interface{}{}, parser.IgnoreNotParsed)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -101,19 +128,9 @@ var _ = Describe("StandardObject", func() {
 			Expect(standardObject.Object()).ToNot(BeNil())
 		})
 
-		Context("SetMeta", func() {
-			It("sets the meta on the context", func() {
-				meta := "metametameta"
-				standardObject.SetMeta(meta)
-				Expect(standardContext.Meta()).To(BeIdenticalTo(meta))
-			})
-		})
-
-		Context("AppendError", func() {
-			It("appends an error on the context", func() {
-				standardObject.AppendError("append-error", &service.Error{})
-				Expect(standardContext.Errors()).To(HaveLen(1))
-			})
+		It("ProcessNotParsed does not add an error", func() {
+			standardObject.ProcessNotParsed()
+			Expect(standardContext.Errors()).To(BeEmpty())
 		})
 	})
 
@@ -122,7 +139,10 @@ var _ = Describe("StandardObject", func() {
 		var standardObject *parser.StandardObject
 
 		BeforeEach(func() {
-			standardContext = context.NewStandard()
+			var err error
+			standardContext, err = context.NewStandard(test.NewLogger())
+			Expect(standardContext).ToNot(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		Context("ParseBoolean", func() {
@@ -130,7 +150,7 @@ var _ = Describe("StandardObject", func() {
 				standardObject, _ = parser.NewStandardObject(standardContext, &map[string]interface{}{
 					"zero": "not a boolean",
 					"one":  true,
-				})
+				}, parser.IgnoreNotParsed)
 			})
 
 			It("with key not found in the object returns nil", func() {
@@ -159,7 +179,7 @@ var _ = Describe("StandardObject", func() {
 					"one":   3,
 					"two":   4.0,
 					"three": 5.67,
-				})
+				}, parser.IgnoreNotParsed)
 			})
 
 			It("with key not found in the object returns nil", func() {
@@ -201,7 +221,7 @@ var _ = Describe("StandardObject", func() {
 					"one":   3,
 					"two":   4.0,
 					"three": 5.67,
-				})
+				}, parser.IgnoreNotParsed)
 			})
 
 			It("with key not found in the object returns nil", func() {
@@ -242,7 +262,7 @@ var _ = Describe("StandardObject", func() {
 				standardObject, _ = parser.NewStandardObject(standardContext, &map[string]interface{}{
 					"zero": false,
 					"one":  "this is a string",
-				})
+				}, parser.IgnoreNotParsed)
 			})
 
 			It("with key not found in the object returns nil", func() {
@@ -280,7 +300,7 @@ var _ = Describe("StandardObject", func() {
 						"five",
 						6,
 					},
-				})
+				}, parser.IgnoreNotParsed)
 			})
 
 			It("with key not found in the object returns nil", func() {
@@ -324,7 +344,7 @@ var _ = Describe("StandardObject", func() {
 					"one": map[string]interface{}{
 						"1": "2",
 					},
-				})
+				}, parser.IgnoreNotParsed)
 			})
 
 			It("with key not found in the object returns nil", func() {
@@ -372,7 +392,7 @@ var _ = Describe("StandardObject", func() {
 						},
 						"not",
 					},
-				})
+				}, parser.IgnoreNotParsed)
 			})
 
 			It("with key not found in the object returns nil", func() {
@@ -414,7 +434,7 @@ var _ = Describe("StandardObject", func() {
 				standardObject, _ = parser.NewStandardObject(standardContext, &map[string]interface{}{
 					"zero": false,
 					"one":  "zombie",
-				})
+				}, parser.IgnoreNotParsed)
 			})
 
 			It("with key not found in the object returns nil", func() {
@@ -445,7 +465,7 @@ var _ = Describe("StandardObject", func() {
 						"1",
 						false,
 					},
-				})
+				}, parser.IgnoreNotParsed)
 			})
 
 			It("with key not found in the object returns nil", func() {
@@ -467,6 +487,72 @@ var _ = Describe("StandardObject", func() {
 			})
 		})
 
+		Context("ProcessNotParsed", func() {
+			Context("with ParsedPolicy as IgnoreNotParsed", func() {
+				BeforeEach(func() {
+					standardObject, _ = parser.NewStandardObject(standardContext, &map[string]interface{}{
+						"one":   1,
+						"two":   "two",
+						"three": 3,
+					}, parser.IgnoreNotParsed)
+				})
+
+				It("without anything parsed has no errors", func() {
+					standardObject.ProcessNotParsed()
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+			})
+
+			Context("with ParsedPolicy as WarnLoggerNotParsed", func() {
+				BeforeEach(func() {
+					standardObject, _ = parser.NewStandardObject(standardContext, &map[string]interface{}{
+						"one":   1,
+						"two":   "two",
+						"three": 3,
+					}, parser.WarnLoggerNotParsed)
+				})
+
+				It("without anything parsed has no errors", func() {
+					standardObject.ProcessNotParsed()
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+			})
+
+			Context("with ParsedPolicy as WarnLoggerNotParsed", func() {
+				BeforeEach(func() {
+					standardObject, _ = parser.NewStandardObject(standardContext, &map[string]interface{}{
+						"one":   1,
+						"two":   "two",
+						"three": 3,
+					}, parser.AppendErrorNotParsed)
+				})
+
+				It("without anything parsed appends all unparsed as errors", func() {
+					standardObject.ProcessNotParsed()
+					Expect(standardContext.Errors()).To(HaveLen(3))
+					Expect(standardContext.Errors()[0].Code).To(Equal("not-parsed"))
+					Expect(standardContext.Errors()[1].Code).To(Equal("not-parsed"))
+					Expect(standardContext.Errors()[2].Code).To(Equal("not-parsed"))
+				})
+
+				It("with some items parsed appends all unparsed as errors", func() {
+					standardObject.ParseString("two")
+					standardObject.ProcessNotParsed()
+					Expect(standardContext.Errors()).To(HaveLen(2))
+					Expect(standardContext.Errors()[0].Code).To(Equal("not-parsed"))
+					Expect(standardContext.Errors()[1].Code).To(Equal("not-parsed"))
+				})
+
+				It("with all items parsed has no errors", func() {
+					standardObject.ParseInteger("one")
+					standardObject.ParseString("two")
+					standardObject.ParseInteger("three")
+					standardObject.ProcessNotParsed()
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+			})
+		})
+
 		Context("NewChildObjectParser", func() {
 			BeforeEach(func() {
 				standardObject, _ = parser.NewStandardObject(standardContext, &map[string]interface{}{
@@ -474,7 +560,7 @@ var _ = Describe("StandardObject", func() {
 					"one": map[string]interface{}{
 						"1": "2",
 					},
-				})
+				}, parser.IgnoreNotParsed)
 			})
 
 			It("with key not found in the object returns nil", func() {
@@ -495,6 +581,7 @@ var _ = Describe("StandardObject", func() {
 			It("with key with value with object type returns value", func() {
 				objectParser := standardObject.NewChildObjectParser("one")
 				Expect(objectParser).ToNot(BeNil())
+				Expect(objectParser.Logger()).ToNot(BeNil())
 				Expect(objectParser.Object()).ToNot(BeNil())
 				Expect(*objectParser.Object()).To(Equal(map[string]interface{}{"1": "2"}))
 				Expect(standardContext.Errors()).To(BeEmpty())
@@ -509,7 +596,7 @@ var _ = Describe("StandardObject", func() {
 						"1",
 						false,
 					},
-				})
+				}, parser.IgnoreNotParsed)
 			})
 
 			It("with key not found in the object returns nil", func() {
@@ -530,6 +617,7 @@ var _ = Describe("StandardObject", func() {
 			It("with key with value with object type returns value", func() {
 				arrayParser := standardObject.NewChildArrayParser("one")
 				Expect(arrayParser).ToNot(BeNil())
+				Expect(arrayParser.Logger()).ToNot(BeNil())
 				Expect(arrayParser.Array()).ToNot(BeNil())
 				Expect(*arrayParser.Array()).To(Equal([]interface{}{"1", false}))
 				Expect(standardContext.Errors()).To(BeEmpty())

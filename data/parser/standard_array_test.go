@@ -6,22 +6,27 @@ import (
 
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/parser"
+	"github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/service"
 )
 
 var _ = Describe("StandardArray", func() {
 	It("NewStandardArray returns an error if context is nil", func() {
-		standard, err := parser.NewStandardArray(nil, &[]interface{}{})
+		standard, err := parser.NewStandardArray(nil, &[]interface{}{}, parser.IgnoreNotParsed)
 		Expect(standard).To(BeNil())
 		Expect(err).To(HaveOccurred())
 	})
 
 	Context("new standard array with nil array", func() {
+		var standardContext *context.Standard
 		var standardArray *parser.StandardArray
 
 		BeforeEach(func() {
 			var err error
-			standardArray, err = parser.NewStandardArray(context.NewStandard(), nil)
+			standardContext, err = context.NewStandard(test.NewLogger())
+			Expect(standardContext).ToNot(BeNil())
+			Expect(err).ToNot(HaveOccurred())
+			standardArray, err = parser.NewStandardArray(standardContext, nil, parser.IgnoreNotParsed)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -31,6 +36,21 @@ var _ = Describe("StandardArray", func() {
 
 		It("does not have a contained array", func() {
 			Expect(standardArray.Array()).To(BeNil())
+		})
+
+		It("Logger returns a logger", func() {
+			Expect(standardArray.Logger()).ToNot(BeNil())
+		})
+
+		It("SetMeta sets the meta on the context", func() {
+			meta := "metametameta"
+			standardArray.SetMeta(meta)
+			Expect(standardContext.Meta()).To(BeIdenticalTo(meta))
+		})
+
+		It("AppendError appends an error on the context", func() {
+			standardArray.AppendError("append-error", &service.Error{})
+			Expect(standardContext.Errors()).To(HaveLen(1))
 		})
 
 		It("ParseBoolean returns nil", func() {
@@ -69,6 +89,11 @@ var _ = Describe("StandardArray", func() {
 			Expect(standardArray.ParseInterfaceArray(9)).To(BeNil())
 		})
 
+		It("ProcessNotParsed does not add an error", func() {
+			standardArray.ProcessNotParsed()
+			Expect(standardContext.Errors()).To(BeEmpty())
+		})
+
 		It("NewChildObjectParser returns an object parser with a nil object", func() {
 			objectParser := standardArray.NewChildObjectParser(7)
 			Expect(objectParser).ToNot(BeNil())
@@ -88,8 +113,10 @@ var _ = Describe("StandardArray", func() {
 
 		BeforeEach(func() {
 			var err error
-			standardContext = context.NewStandard()
-			standardArray, err = parser.NewStandardArray(standardContext, &[]interface{}{})
+			standardContext, err = context.NewStandard(test.NewLogger())
+			Expect(standardContext).ToNot(BeNil())
+			Expect(err).ToNot(HaveOccurred())
+			standardArray, err = parser.NewStandardArray(standardContext, &[]interface{}{}, parser.IgnoreNotParsed)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -101,19 +128,9 @@ var _ = Describe("StandardArray", func() {
 			Expect(standardArray.Array()).ToNot(BeNil())
 		})
 
-		Context("SetMeta", func() {
-			It("sets the meta on the context", func() {
-				meta := "metametameta"
-				standardArray.SetMeta(meta)
-				Expect(standardContext.Meta()).To(BeIdenticalTo(meta))
-			})
-		})
-
-		Context("AppendError", func() {
-			It("appends an error on the context", func() {
-				standardArray.AppendError("append-error", &service.Error{})
-				Expect(standardContext.Errors()).To(HaveLen(1))
-			})
+		It("ProcessNotParsed does not add an error", func() {
+			standardArray.ProcessNotParsed()
+			Expect(standardContext.Errors()).To(BeEmpty())
 		})
 	})
 
@@ -122,7 +139,10 @@ var _ = Describe("StandardArray", func() {
 		var standardArray *parser.StandardArray
 
 		BeforeEach(func() {
-			standardContext = context.NewStandard()
+			var err error
+			standardContext, err = context.NewStandard(test.NewLogger())
+			Expect(standardContext).ToNot(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		Context("ParseBoolean", func() {
@@ -130,7 +150,7 @@ var _ = Describe("StandardArray", func() {
 				standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 					"not a boolean",
 					true,
-				})
+				}, parser.IgnoreNotParsed)
 			})
 
 			It("with index parameter less that the first index in the array returns nil", func() {
@@ -164,7 +184,7 @@ var _ = Describe("StandardArray", func() {
 					3,
 					4.0,
 					5.67,
-				})
+				}, parser.IgnoreNotParsed)
 			})
 
 			It("with index parameter less that the first index in the array returns nil", func() {
@@ -211,7 +231,7 @@ var _ = Describe("StandardArray", func() {
 					3,
 					4.0,
 					5.67,
-				})
+				}, parser.IgnoreNotParsed)
 			})
 
 			It("with index parameter less that the first index in the array returns nil", func() {
@@ -257,7 +277,7 @@ var _ = Describe("StandardArray", func() {
 				standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 					false,
 					"this is a string",
-				})
+				}, parser.IgnoreNotParsed)
 			})
 
 			It("with index parameter less that the first index in the array returns nil", func() {
@@ -300,7 +320,7 @@ var _ = Describe("StandardArray", func() {
 						"five",
 						6,
 					},
-				})
+				}, parser.IgnoreNotParsed)
 			})
 
 			It("with index parameter less that the first index in the array returns nil", func() {
@@ -349,7 +369,7 @@ var _ = Describe("StandardArray", func() {
 					map[string]interface{}{
 						"1": "2",
 					},
-				})
+				}, parser.IgnoreNotParsed)
 			})
 
 			It("with index parameter less that the first index in the array returns nil", func() {
@@ -402,7 +422,7 @@ var _ = Describe("StandardArray", func() {
 						},
 						"not",
 					},
-				})
+				}, parser.IgnoreNotParsed)
 			})
 
 			It("with index parameter less that the first index in the array returns nil", func() {
@@ -449,7 +469,7 @@ var _ = Describe("StandardArray", func() {
 				standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 					false,
 					"zombie",
-				})
+				}, parser.IgnoreNotParsed)
 			})
 
 			It("with index parameter less that the first index in the array returns nil", func() {
@@ -485,7 +505,7 @@ var _ = Describe("StandardArray", func() {
 						"1",
 						false,
 					},
-				})
+				}, parser.IgnoreNotParsed)
 			})
 
 			It("with index parameter less that the first index in the array returns nil", func() {
@@ -512,6 +532,77 @@ var _ = Describe("StandardArray", func() {
 			})
 		})
 
+		Context("ProcessNotParsed", func() {
+			Context("with ParsedPolicy as IgnoreNotParsed", func() {
+				BeforeEach(func() {
+					standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
+						1,
+						"two",
+						3,
+					}, parser.IgnoreNotParsed)
+				})
+
+				It("without anything parsed has no errors", func() {
+					standardArray.ProcessNotParsed()
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+			})
+
+			Context("with ParsedPolicy as WarnLoggerNotParsed", func() {
+				BeforeEach(func() {
+					standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
+						1,
+						"two",
+						3,
+					}, parser.WarnLoggerNotParsed)
+				})
+
+				It("without anything parsed has no errors", func() {
+					standardArray.ProcessNotParsed()
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+			})
+
+			Context("with ParsedPolicy as WarnLoggerNotParsed", func() {
+				BeforeEach(func() {
+					standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
+						1,
+						"two",
+						3,
+					}, parser.AppendErrorNotParsed)
+				})
+
+				It("without anything parsed appends all unparsed as errors", func() {
+					standardArray.ProcessNotParsed()
+					Expect(standardContext.Errors()).To(HaveLen(3))
+					Expect(standardContext.Errors()[0].Code).To(Equal("not-parsed"))
+					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/0"))
+					Expect(standardContext.Errors()[1].Code).To(Equal("not-parsed"))
+					Expect(standardContext.Errors()[1].Source.Pointer).To(Equal("/1"))
+					Expect(standardContext.Errors()[2].Code).To(Equal("not-parsed"))
+					Expect(standardContext.Errors()[2].Source.Pointer).To(Equal("/2"))
+				})
+
+				It("with some items parsed appends all unparsed as errors", func() {
+					standardArray.ParseString(1)
+					standardArray.ProcessNotParsed()
+					Expect(standardContext.Errors()).To(HaveLen(2))
+					Expect(standardContext.Errors()[0].Code).To(Equal("not-parsed"))
+					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/0"))
+					Expect(standardContext.Errors()[1].Code).To(Equal("not-parsed"))
+					Expect(standardContext.Errors()[1].Source.Pointer).To(Equal("/2"))
+				})
+
+				It("with all items parsed has no errors", func() {
+					standardArray.ParseInteger(0)
+					standardArray.ParseString(1)
+					standardArray.ParseInteger(2)
+					standardArray.ProcessNotParsed()
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+			})
+		})
+
 		Context("NewChildObjectParser", func() {
 			BeforeEach(func() {
 				standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
@@ -519,7 +610,7 @@ var _ = Describe("StandardArray", func() {
 					map[string]interface{}{
 						"1": "2",
 					},
-				})
+				}, parser.IgnoreNotParsed)
 			})
 
 			It("with index parameter less that the first index in the array returns nil", func() {
@@ -547,6 +638,7 @@ var _ = Describe("StandardArray", func() {
 			It("with index parameter with object type returns value", func() {
 				objectParser := standardArray.NewChildObjectParser(1)
 				Expect(objectParser).ToNot(BeNil())
+				Expect(objectParser.Logger()).ToNot(BeNil())
 				Expect(objectParser.Object()).ToNot(BeNil())
 				Expect(*objectParser.Object()).To(Equal(map[string]interface{}{"1": "2"}))
 				Expect(standardContext.Errors()).To(BeEmpty())
@@ -561,7 +653,7 @@ var _ = Describe("StandardArray", func() {
 						"1",
 						false,
 					},
-				})
+				}, parser.IgnoreNotParsed)
 			})
 
 			It("with index parameter less that the first index in the array returns nil", func() {
@@ -589,6 +681,7 @@ var _ = Describe("StandardArray", func() {
 			It("with index parameter with object type returns value", func() {
 				arrayParser := standardArray.NewChildArrayParser(1)
 				Expect(arrayParser).ToNot(BeNil())
+				Expect(arrayParser.Logger()).ToNot(BeNil())
 				Expect(arrayParser.Array()).ToNot(BeNil())
 				Expect(*arrayParser.Array()).To(Equal([]interface{}{"1", false}))
 				Expect(standardContext.Errors()).To(BeEmpty())

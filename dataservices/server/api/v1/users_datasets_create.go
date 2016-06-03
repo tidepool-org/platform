@@ -57,9 +57,13 @@ func UsersDatasetsCreate(serverContext server.Context) {
 		return
 	}
 
-	datumContext := context.NewStandard()
+	datumContext, err := context.NewStandard(serverContext.Logger())
+	if err != nil {
+		serverContext.RespondWithInternalServerFailure("Unable to create datum context", err)
+		return
+	}
 
-	datumParser, err := parser.NewStandardObject(datumContext, &rawDatum)
+	datumParser, err := parser.NewStandardObject(datumContext, &rawDatum, parser.AppendErrorNotParsed)
 	if err != nil {
 		serverContext.RespondWithInternalServerFailure("Unable to create datum parser", err)
 		return
@@ -82,6 +86,8 @@ func UsersDatasetsCreate(serverContext server.Context) {
 		serverContext.RespondWithInternalServerFailure("Unable to parse datum parser", err)
 		return
 	}
+
+	datumParser.ProcessNotParsed()
 
 	datasetDatum.Validate(datumValidator)
 

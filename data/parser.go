@@ -10,10 +10,16 @@ package data
  * [x] Full test coverage
  */
 
-import "github.com/tidepool-org/platform/service"
+import (
+	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/service"
+)
 
 type ObjectParser interface {
+	Logger() log.Logger
+
 	SetMeta(meta interface{})
+
 	AppendError(reference interface{}, err *service.Error)
 
 	Object() *map[string]interface{}
@@ -28,12 +34,17 @@ type ObjectParser interface {
 	ParseInterface(key string) *interface{}
 	ParseInterfaceArray(key string) *[]interface{}
 
+	ProcessNotParsed()
+
 	NewChildObjectParser(key string) ObjectParser
 	NewChildArrayParser(key string) ArrayParser
 }
 
 type ArrayParser interface {
+	Logger() log.Logger
+
 	SetMeta(meta interface{})
+
 	AppendError(reference interface{}, err *service.Error)
 
 	Array() *[]interface{}
@@ -47,6 +58,8 @@ type ArrayParser interface {
 	ParseObjectArray(index int) *[]map[string]interface{}
 	ParseInterface(index int) *interface{}
 	ParseInterfaceArray(index int) *[]interface{}
+
+	ProcessNotParsed()
 
 	NewChildObjectParser(index int) ObjectParser
 	NewChildArrayParser(index int) ArrayParser
