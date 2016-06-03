@@ -89,7 +89,7 @@ var _ = Describe("Settings", func() {
 	Context("activeSchedule", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is empty", NewRawObjectMmolL(), "activeSchedule", "",
-				[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThanOrEqualTo(0, 1), "/activeSchedule", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorValueEmpty(), "/activeSchedule", NewMeta())},
 			),
 		)
 
@@ -108,7 +108,7 @@ var _ = Describe("Settings", func() {
 				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("na", []string{"mmol/l", "mmol/L", "mg/dl", "mg/dL"}), "/units/bg", NewMeta())},
 			),
 			Entry("has carb empty", NewRawObjectMmolL(), "units", map[string]interface{}{"carb": "", "bg": "mmol/L"},
-				[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThanOrEqualTo(0, 1), "/units/carb", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorValueEmpty(), "/units/carb", NewMeta())},
 			),
 		)
 
@@ -221,7 +221,7 @@ var _ = Describe("Settings", func() {
 						map[string]interface{}{"rate": 0.6, "start": 0},
 						map[string]interface{}{"rate": 18.1, "start": 10800000},
 					}},
-				[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThanOrEqualTo(0, 1), "/basalSchedules/", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorValueEmpty(), "/basalSchedules/", NewMeta())},
 			),
 		)
 	})

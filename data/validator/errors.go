@@ -30,6 +30,14 @@ func ErrorValueDoesNotExist() *service.Error {
 	}
 }
 
+func ErrorValueEmpty() *service.Error {
+	return &service.Error{
+		Code:   "value-empty",
+		Title:  "value is empty",
+		Detail: "Value is empty",
+	}
+}
+
 func ErrorValueNotTrue() *service.Error {
 	return &service.Error{
 		Code:   "value-not-true",

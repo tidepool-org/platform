@@ -37,6 +37,15 @@ func (s *StandardStringArray) Exists() data.StringArray {
 	return s
 }
 
+func (s *StandardStringArray) NotEmpty() data.StringArray {
+	if s.value != nil {
+		if len(*s.value) == 0 {
+			s.context.AppendError(s.reference, ErrorValueEmpty())
+		}
+	}
+	return s
+}
+
 func (s *StandardStringArray) LengthEqualTo(limit int) data.StringArray {
 	if s.value != nil {
 		if length := len(*s.value); length != limit {

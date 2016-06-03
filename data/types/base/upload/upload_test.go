@@ -53,7 +53,7 @@ var _ = Describe("Upload", func() {
 	Context("deviceTags", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is empty array", NewRawObject(), "deviceTags", []string{},
-				[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThanOrEqualTo(0, 1), "/deviceTags", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorValueEmpty(), "/deviceTags", NewMeta())},
 			),
 			Entry("is not one of the allowed types", NewRawObject(), "deviceTags", []string{"not-valid"},
 				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("not-valid", []string{"insulin-pump", "cgm", "bgm"}), "/deviceTags/0", NewMeta())},
@@ -74,7 +74,7 @@ var _ = Describe("Upload", func() {
 	Context("deviceManufacturers", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is empty array", NewRawObject(), "deviceManufacturers", []string{},
-				[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThanOrEqualTo(0, 1), "/deviceManufacturers", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorValueEmpty(), "/deviceManufacturers", NewMeta())},
 			),
 		)
 

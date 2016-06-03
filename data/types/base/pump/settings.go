@@ -60,7 +60,7 @@ func (s *Settings) Validate(validator data.Validator) error {
 		return err
 	}
 
-	validator.ValidateString("activeSchedule", s.ActiveSchedule).Exists().LengthGreaterThanOrEqualTo(1)
+	validator.ValidateString("activeSchedule", s.ActiveSchedule).Exists().NotEmpty()
 
 	if s.Units != nil {
 		s.Units.Validate(validator.NewChildValidator("units"))
@@ -96,7 +96,7 @@ func (s *Settings) Validate(validator data.Validator) error {
 	if s.BasalSchedules != nil {
 		basalSchedulesValidator := validator.NewChildValidator("basalSchedules")
 		for basalScheduleName, basalSchedule := range *s.BasalSchedules {
-			basalSchedulesValidator.ValidateString("", &basalScheduleName).Exists().LengthGreaterThanOrEqualTo(1)
+			basalSchedulesValidator.ValidateString("", &basalScheduleName).Exists().NotEmpty()
 			if basalSchedule != nil {
 				basalScheduleValidator := basalSchedulesValidator.NewChildValidator(basalScheduleName)
 				for index, scheduleItem := range *basalSchedule {

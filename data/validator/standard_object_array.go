@@ -37,6 +37,15 @@ func (s *StandardObjectArray) Exists() data.ObjectArray {
 	return s
 }
 
+func (s *StandardObjectArray) NotEmpty() data.ObjectArray {
+	if s.value != nil {
+		if len(*s.value) == 0 {
+			s.context.AppendError(s.reference, ErrorValueEmpty())
+		}
+	}
+	return s
+}
+
 func (s *StandardObjectArray) LengthEqualTo(limit int) data.ObjectArray {
 	if s.value != nil {
 		if length := len(*s.value); length != limit {

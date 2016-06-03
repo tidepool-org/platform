@@ -54,6 +54,20 @@ var _ = Describe("StandardInterfaceArray", func() {
 				})
 			})
 
+			Context("NotEmpty", func() {
+				BeforeEach(func() {
+					result = standardInterfaceArray.NotEmpty()
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardInterfaceArray))
+				})
+			})
+
 			Context("LengthEqualTo", func() {
 				BeforeEach(func() {
 					result = standardInterfaceArray.LengthEqualTo(1)
@@ -153,6 +167,54 @@ var _ = Describe("StandardInterfaceArray", func() {
 			})
 		})
 
+		Context("new validator with valid reference and empty object array value", func() {
+			var standardInterfaceArray *validator.StandardInterfaceArray
+			var result data.InterfaceArray
+
+			BeforeEach(func() {
+				value := []interface{}{}
+				standardInterfaceArray = validator.NewStandardInterfaceArray(standardContext, "werewolf", &value)
+			})
+
+			It("exists", func() {
+				Expect(standardInterfaceArray).ToNot(BeNil())
+			})
+
+			Context("Exists", func() {
+				BeforeEach(func() {
+					result = standardInterfaceArray.Exists()
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardInterfaceArray))
+				})
+			})
+
+			Context("NotEmpty", func() {
+				BeforeEach(func() {
+					result = standardInterfaceArray.NotEmpty()
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(HaveLen(1))
+					Expect(standardContext.Errors()[0]).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-empty"))
+					Expect(standardContext.Errors()[0].Title).To(Equal("value is empty"))
+					Expect(standardContext.Errors()[0].Detail).To(Equal("Value is empty"))
+					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/werewolf"))
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardInterfaceArray))
+				})
+			})
+		})
+
 		Context("new validator with valid reference and value with length of 1", func() {
 			var standardInterfaceArray *validator.StandardInterfaceArray
 			var result data.InterfaceArray
@@ -169,6 +231,20 @@ var _ = Describe("StandardInterfaceArray", func() {
 			Context("Exists", func() {
 				BeforeEach(func() {
 					result = standardInterfaceArray.Exists()
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardInterfaceArray))
+				})
+			})
+
+			Context("NotEmpty", func() {
+				BeforeEach(func() {
+					result = standardInterfaceArray.NotEmpty()
 				})
 
 				It("does not add an error", func() {
@@ -307,6 +383,20 @@ var _ = Describe("StandardInterfaceArray", func() {
 			Context("Exists", func() {
 				BeforeEach(func() {
 					result = standardInterfaceArray.Exists()
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardInterfaceArray))
+				})
+			})
+
+			Context("NotEmpty", func() {
+				BeforeEach(func() {
+					result = standardInterfaceArray.NotEmpty()
 				})
 
 				It("does not add an error", func() {

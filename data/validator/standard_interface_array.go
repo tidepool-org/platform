@@ -37,6 +37,15 @@ func (s *StandardInterfaceArray) Exists() data.InterfaceArray {
 	return s
 }
 
+func (s *StandardInterfaceArray) NotEmpty() data.InterfaceArray {
+	if s.value != nil {
+		if len(*s.value) == 0 {
+			s.context.AppendError(s.reference, ErrorValueEmpty())
+		}
+	}
+	return s
+}
+
 func (s *StandardInterfaceArray) LengthEqualTo(limit int) data.InterfaceArray {
 	if s.value != nil {
 		if length := len(*s.value); length != limit {

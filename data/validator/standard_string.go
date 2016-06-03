@@ -37,6 +37,15 @@ func (s *StandardString) Exists() data.String {
 	return s
 }
 
+func (s *StandardString) NotEmpty() data.String {
+	if s.value != nil {
+		if len(*s.value) == 0 {
+			s.context.AppendError(s.reference, ErrorValueEmpty())
+		}
+	}
+	return s
+}
+
 func (s *StandardString) EqualTo(value string) data.String {
 	if s.value != nil {
 		if *s.value != value {

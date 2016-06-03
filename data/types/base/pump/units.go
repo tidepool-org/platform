@@ -17,7 +17,7 @@ func (u *Units) Parse(parser data.ObjectParser) {
 }
 
 func (u *Units) Validate(validator data.Validator) {
-	validator.ValidateString("carb", u.Carbohydrate).Exists().LengthGreaterThanOrEqualTo(1)
+	validator.ValidateString("carb", u.Carbohydrate).Exists().NotEmpty()
 	validator.ValidateStringAsBloodGlucoseUnits("bg", u.BloodGlucose).Exists()
 }
 

@@ -54,6 +54,20 @@ var _ = Describe("StandardStringArray", func() {
 				})
 			})
 
+			Context("NotEmpty", func() {
+				BeforeEach(func() {
+					result = standardStringArray.NotEmpty()
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardStringArray))
+				})
+			})
+
 			Context("LengthEqualTo", func() {
 				BeforeEach(func() {
 					result = standardStringArray.LengthEqualTo(1)
@@ -181,6 +195,54 @@ var _ = Describe("StandardStringArray", func() {
 			})
 		})
 
+		Context("new validator with valid reference and empty string array value", func() {
+			var standardStringArray *validator.StandardStringArray
+			var result data.StringArray
+
+			BeforeEach(func() {
+				value := []string{}
+				standardStringArray = validator.NewStandardStringArray(standardContext, "wight", &value)
+			})
+
+			It("exists", func() {
+				Expect(standardStringArray).ToNot(BeNil())
+			})
+
+			Context("Exists", func() {
+				BeforeEach(func() {
+					result = standardStringArray.Exists()
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardStringArray))
+				})
+			})
+
+			Context("NotEmpty", func() {
+				BeforeEach(func() {
+					result = standardStringArray.NotEmpty()
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(HaveLen(1))
+					Expect(standardContext.Errors()[0]).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-empty"))
+					Expect(standardContext.Errors()[0].Title).To(Equal("value is empty"))
+					Expect(standardContext.Errors()[0].Detail).To(Equal("Value is empty"))
+					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/wight"))
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardStringArray))
+				})
+			})
+		})
+
 		Context("new validator with valid reference and value with length of 1", func() {
 			var standardStringArray *validator.StandardStringArray
 			var result data.StringArray
@@ -197,6 +259,20 @@ var _ = Describe("StandardStringArray", func() {
 			Context("Exists", func() {
 				BeforeEach(func() {
 					result = standardStringArray.Exists()
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardStringArray))
+				})
+			})
+
+			Context("NotEmpty", func() {
+				BeforeEach(func() {
+					result = standardStringArray.NotEmpty()
 				})
 
 				It("does not add an error", func() {
@@ -363,6 +439,20 @@ var _ = Describe("StandardStringArray", func() {
 			Context("Exists", func() {
 				BeforeEach(func() {
 					result = standardStringArray.Exists()
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardStringArray))
+				})
+			})
+
+			Context("NotEmpty", func() {
+				BeforeEach(func() {
+					result = standardStringArray.NotEmpty()
 				})
 
 				It("does not add an error", func() {

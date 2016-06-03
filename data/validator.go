@@ -78,6 +78,8 @@ type Float interface {
 type String interface {
 	Exists() String
 
+	NotEmpty() String
+
 	EqualTo(value string) String
 	NotEqualTo(value string) String
 
@@ -95,6 +97,8 @@ type String interface {
 
 type StringArray interface {
 	Exists() StringArray
+
+	NotEmpty() StringArray
 
 	LengthEqualTo(limit int) StringArray
 	LengthNotEqualTo(limit int) StringArray
@@ -115,6 +119,8 @@ type Object interface {
 type ObjectArray interface {
 	Exists() ObjectArray
 
+	NotEmpty() ObjectArray
+
 	LengthEqualTo(limit int) ObjectArray
 	LengthNotEqualTo(limit int) ObjectArray
 	LengthLessThan(limit int) ObjectArray
@@ -132,6 +138,8 @@ type Interface interface {
 
 type InterfaceArray interface {
 	Exists() InterfaceArray
+
+	NotEmpty() InterfaceArray
 
 	LengthEqualTo(limit int) InterfaceArray
 	LengthNotEqualTo(limit int) InterfaceArray

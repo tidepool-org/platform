@@ -20,6 +20,7 @@ var _ = Describe("Errors", func() {
 			Expect(err.Detail).To(Equal(detail))
 		},
 		Entry("is ErrorValueDoesNotExist", validator.ErrorValueDoesNotExist(), "value-does-not-exist", "value does not exist", "Value does not exist"),
+		Entry("is ErrorValueEmpty", validator.ErrorValueEmpty(), "value-empty", "value is empty", "Value is empty"),
 		Entry("is ErrorValueNotTrue", validator.ErrorValueNotTrue(), "value-not-true", "value is not true", "Value is not true"),
 		Entry("is ErrorValueNotFalse", validator.ErrorValueNotFalse(), "value-not-false", "value is not false", "Value is not false"),
 		Entry("is ErrorValueNotEqualTo with int", validator.ErrorValueNotEqualTo(1, 2), "value-out-of-range", "value is out of range", "Value 1 is not equal to 2"),

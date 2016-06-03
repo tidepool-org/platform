@@ -54,6 +54,20 @@ var _ = Describe("StandardString", func() {
 				})
 			})
 
+			Context("NotEmpty", func() {
+				BeforeEach(func() {
+					result = standardString.NotEmpty()
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardString))
+				})
+			})
+
 			Context("EqualTo", func() {
 				BeforeEach(func() {
 					result = standardString.EqualTo("1")
@@ -209,6 +223,54 @@ var _ = Describe("StandardString", func() {
 			})
 		})
 
+		Context("new validator with valid reference and empty string value", func() {
+			var standardString *validator.StandardString
+			var result data.String
+
+			BeforeEach(func() {
+				value := ""
+				standardString = validator.NewStandardString(standardContext, "skeleton", &value)
+			})
+
+			It("exists", func() {
+				Expect(standardString).ToNot(BeNil())
+			})
+
+			Context("Exists", func() {
+				BeforeEach(func() {
+					result = standardString.Exists()
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardString))
+				})
+			})
+
+			Context("NotEmpty", func() {
+				BeforeEach(func() {
+					result = standardString.NotEmpty()
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(HaveLen(1))
+					Expect(standardContext.Errors()[0]).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-empty"))
+					Expect(standardContext.Errors()[0].Title).To(Equal("value is empty"))
+					Expect(standardContext.Errors()[0].Detail).To(Equal("Value is empty"))
+					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/skeleton"))
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardString))
+				})
+			})
+		})
+
 		Context("new validator with valid reference and value of \"1\"", func() {
 			var standardString *validator.StandardString
 			var result data.String
@@ -225,6 +287,20 @@ var _ = Describe("StandardString", func() {
 			Context("Exists", func() {
 				BeforeEach(func() {
 					result = standardString.Exists()
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardString))
+				})
+			})
+
+			Context("NotEmpty", func() {
+				BeforeEach(func() {
+					result = standardString.NotEmpty()
 				})
 
 				It("does not add an error", func() {
@@ -419,6 +495,20 @@ var _ = Describe("StandardString", func() {
 			Context("Exists", func() {
 				BeforeEach(func() {
 					result = standardString.Exists()
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardString))
+				})
+			})
+
+			Context("NotEmpty", func() {
+				BeforeEach(func() {
+					result = standardString.NotEmpty()
 				})
 
 				It("does not add an error", func() {

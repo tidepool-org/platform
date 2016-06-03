@@ -74,8 +74,8 @@ func (u *Upload) Validate(validator data.Validator) error {
 	// validator.ValidateString("byUser", u.UploadUserID).Exists().LengthGreaterThanOrEqualTo(10) // TODO_DATA: Validation is for parsed data only
 	validator.ValidateString("version", u.Version).Exists().LengthGreaterThan(5)
 	validator.ValidateStringAsTime("computerTime", u.ComputerTime, "2006-01-02T15:04:05").Exists()
-	validator.ValidateStringArray("deviceTags", u.DeviceTags).Exists().LengthGreaterThanOrEqualTo(1).EachOneOf([]string{"insulin-pump", "cgm", "bgm"})
-	validator.ValidateStringArray("deviceManufacturers", u.DeviceManufacturers).Exists().LengthGreaterThanOrEqualTo(1)
+	validator.ValidateStringArray("deviceTags", u.DeviceTags).Exists().NotEmpty().EachOneOf([]string{"insulin-pump", "cgm", "bgm"})
+	validator.ValidateStringArray("deviceManufacturers", u.DeviceManufacturers).Exists().NotEmpty()
 	validator.ValidateString("deviceModel", u.DeviceModel).Exists().LengthGreaterThan(1)
 	validator.ValidateString("deviceSerialNumber", u.DeviceSerialNumber).Exists().LengthGreaterThan(1)
 	validator.ValidateString("timeProcessing", u.TimeProcessing).Exists().OneOf([]string{"across-the-board-timezone", "utc-bootstrapping", "none"})
