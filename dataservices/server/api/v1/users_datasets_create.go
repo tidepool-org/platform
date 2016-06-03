@@ -106,6 +106,8 @@ func UsersDatasetsCreate(serverContext server.Context) {
 		return
 	}
 
+	datasetUpload.SetUploadUserID(serverContext.RequestUserID())
+
 	if err = serverContext.Store().Insert(datasetUpload); err != nil {
 		serverContext.RespondWithInternalServerFailure("Unable to insert dataset", err)
 		return
