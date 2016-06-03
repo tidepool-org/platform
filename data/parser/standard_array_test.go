@@ -563,7 +563,7 @@ var _ = Describe("StandardArray", func() {
 				})
 			})
 
-			Context("with ParsedPolicy as WarnLoggerNotParsed", func() {
+			Context("with ParsedPolicy as AppendErrorNotParsed", func() {
 				BeforeEach(func() {
 					standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 						1,

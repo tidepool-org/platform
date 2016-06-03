@@ -518,7 +518,7 @@ var _ = Describe("StandardObject", func() {
 				})
 			})
 
-			Context("with ParsedPolicy as WarnLoggerNotParsed", func() {
+			Context("with ParsedPolicy as AppendErrorNotParsed", func() {
 				BeforeEach(func() {
 					standardObject, _ = parser.NewStandardObject(standardContext, &map[string]interface{}{
 						"one":   1,
