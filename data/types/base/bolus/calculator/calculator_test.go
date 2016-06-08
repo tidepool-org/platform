@@ -255,7 +255,7 @@ var _ = Describe("Calculator", func() {
 			Entry("is missing", NewRawObjectWithMgdl(), "bolus", embeddedBolus(nil, "normal", 52.1, 0.0, 0),
 				[]*service.Error{testing.ComposeError(base.ErrorValueMissing(), "/bolus/type", NewMeta())},
 			),
-			Entry("has not valid", NewRawObjectWithMgdl(), "bolus", embeddedBolus("invalid", "normal", 52.1, 0.0, 0),
+			Entry("is not valid", NewRawObjectWithMgdl(), "bolus", embeddedBolus("invalid", "normal", 52.1, 0.0, 0),
 				[]*service.Error{testing.ComposeError(base.ErrorTypeInvalid("invalid"), "/bolus/type", NewMeta())},
 			),
 		)
@@ -264,7 +264,7 @@ var _ = Describe("Calculator", func() {
 			Entry("is missing", NewRawObjectWithMgdl(), "bolus", embeddedBolus("bolus", nil, 0.0, 52.1, 0),
 				[]*service.Error{testing.ComposeError(base.ErrorValueMissing(), "/bolus/subType", NewMeta())},
 			),
-			Entry("has not valid", NewRawObjectWithMgdl(), "bolus", embeddedBolus("bolus", "invalid", 0.0, 52.1, 0),
+			Entry("is not valid", NewRawObjectWithMgdl(), "bolus", embeddedBolus("bolus", "invalid", 0.0, 52.1, 0),
 				[]*service.Error{testing.ComposeError(base.ErrorSubTypeInvalid("invalid"), "/bolus/subType", NewMeta())},
 			),
 		)
