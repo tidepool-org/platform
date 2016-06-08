@@ -135,8 +135,8 @@ test: ginkgo
 	@cd $(ROOT_DIRECTORY) && GOPATH=$(shell godep path):$(GOPATH) TIDEPOOL_ENV=test ginkgo --slowSpecThreshold=10 -r $(TEST)
 
 ci-test: ginkgo
-	@echo "ginkgo --slowSpecThreshold=10 -r --randomizeSuites --randomizeAllSpecs -succinct --failOnPending --cover --trace --race --progress $(TEST)"
-	@cd $(ROOT_DIRECTORY) && GOPATH=$(shell godep path):$(GOPATH) TIDEPOOL_ENV=test ginkgo --slowSpecThreshold=10 -r --randomizeSuites --randomizeAllSpecs -succinct --failOnPending --cover --trace --race --progress $(TEST)
+	@echo "ginkgo --slowSpecThreshold=10 -r --randomizeSuites --randomizeAllSpecs -succinct --failOnPending --cover --trace --race --progress -keepGoing $(TEST)"
+	@cd $(ROOT_DIRECTORY) && GOPATH=$(shell godep path):$(GOPATH) TIDEPOOL_ENV=test ginkgo --slowSpecThreshold=10 -r --randomizeSuites --randomizeAllSpecs -succinct --failOnPending --cover --trace --race --progress -keepGoing $(TEST)
 
 watch: ginkgo
 	@echo "ginkgo watch --slowSpecThreshold=10 -r -notify $(WATCH)"
