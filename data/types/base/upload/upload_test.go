@@ -13,7 +13,6 @@ import (
 func NewRawObject() map[string]interface{} {
 	rawObject := testing.RawBaseObject()
 	rawObject["type"] = "upload"
-	rawObject["byUser"] = "123456789x"
 	rawObject["version"] = "123456"
 	rawObject["computerTime"] = "2014-06-11T06:00:00.000"
 	rawObject["deviceTags"] = []string{"cgm"}
@@ -21,8 +20,6 @@ func NewRawObject() map[string]interface{} {
 	rawObject["deviceManufacturers"] = []string{"cgm-peeps"}
 	rawObject["deviceSerialNumber"] = "InsOmn-111111111"
 	rawObject["timeProcessing"] = "utc-bootstrapping"
-	rawObject["dataState"] = "running"
-	rawObject["deduplicator"] = "something"
 	rawObject["timezone"] = "US/Central"
 	return rawObject
 }
