@@ -14,7 +14,19 @@ func NewRawObject() map[string]interface{} {
 	rawObject := testing.RawBaseObject()
 	rawObject["type"] = "bolus"
 	rawObject["subType"] = "normal"
+	return rawObject
+}
+
+func NewNormalRawObject() map[string]interface{} {
+	rawObject := NewRawObject()
 	rawObject["normal"] = 52.1
+	return rawObject
+}
+
+func NewExpectedNormalRawObject() map[string]interface{} {
+	rawObject := NewRawObject()
+	rawObject["normal"] = 0.0
+	rawObject["expectedNormal"] = 52.1
 	return rawObject
 }
 
@@ -28,19 +40,49 @@ func NewMeta() interface{} {
 var _ = Describe("Normal", func() {
 	Context("normal", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("is negative", NewRawObject(), "normal", -0.1,
+			Entry("does not exist", NewNormalRawObject(), "normal", nil,
+				[]*service.Error{testing.ComposeError(validator.ErrorValueNotExists(), "/normal", NewMeta())},
+			),
+			Entry("is less than lower limit", NewNormalRawObject(), "normal", -0.1,
 				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, 0.0, 100.0), "/normal", NewMeta())},
 			),
-			Entry("is greater than 20", NewRawObject(), "normal", 100.1,
+			Entry("is zero without expectedNormal", NewNormalRawObject(), "normal", 0.0,
+				[]*service.Error{testing.ComposeError(validator.ErrorValueNotExists(), "/expectedNormal", NewMeta())},
+			),
+			Entry("is greater than upper limit", NewNormalRawObject(), "normal", 100.1,
 				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(100.1, 0.0, 100.0), "/normal", NewMeta())},
 			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("at lower limit", NewRawObject(), "normal", 0.0),
-			Entry("at upper limit", NewRawObject(), "normal", 100.0),
-			Entry("is within bounds", NewRawObject(), "normal", 25.5),
-			Entry("is without decimal", NewRawObject(), "normal", 50),
+			Entry("is approaching lower limit", NewNormalRawObject(), "normal", 0.01),
+			Entry("is within lower and upper limit", NewNormalRawObject(), "normal", 25.5),
+			Entry("is at upper limit", NewNormalRawObject(), "normal", 100.0),
+			Entry("is without decimal", NewNormalRawObject(), "normal", 50),
+		)
+	})
+
+	Context("expectedNormal", func() {
+		DescribeTable("invalid when", testing.ExpectFieldNotValid,
+			Entry("does not exist", NewExpectedNormalRawObject(), "expectedNormal", nil,
+				[]*service.Error{testing.ComposeError(validator.ErrorValueNotExists(), "/expectedNormal", NewMeta())},
+			),
+			Entry("is less than lower limit", NewExpectedNormalRawObject(), "expectedNormal", -0.1,
+				[]*service.Error{testing.ComposeError(validator.ErrorValueNotGreaterThan(-0.1, 0.0), "/expectedNormal", NewMeta())},
+			),
+			Entry("is zero", NewExpectedNormalRawObject(), "expectedNormal", 0.0,
+				[]*service.Error{testing.ComposeError(validator.ErrorValueNotGreaterThan(0.0, 0.0), "/expectedNormal", NewMeta())},
+			),
+			Entry("is greater than upper limit", NewExpectedNormalRawObject(), "expectedNormal", 100.1,
+				[]*service.Error{testing.ComposeError(validator.ErrorValueNotLessThanOrEqualTo(100.1, 100.0), "/expectedNormal", NewMeta())},
+			),
+		)
+
+		DescribeTable("valid when", testing.ExpectFieldIsValid,
+			Entry("is approaching lower limit", NewExpectedNormalRawObject(), "expectedNormal", 0.01),
+			Entry("is within lower and upper limit", NewExpectedNormalRawObject(), "expectedNormal", 25.5),
+			Entry("is at upper limit", NewExpectedNormalRawObject(), "expectedNormal", 100.0),
+			Entry("is without decimal", NewExpectedNormalRawObject(), "expectedNormal", 50),
 		)
 	})
 })
