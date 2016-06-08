@@ -32,7 +32,23 @@ func NewStandardString(context data.Context, reference interface{}, value *strin
 
 func (s *StandardString) Exists() data.String {
 	if s.value == nil {
-		s.context.AppendError(s.reference, ErrorValueDoesNotExist())
+		s.context.AppendError(s.reference, ErrorValueNotExists())
+	}
+	return s
+}
+
+func (s *StandardString) NotExists() data.String {
+	if s.value != nil {
+		s.context.AppendError(s.reference, ErrorValueExists())
+	}
+	return s
+}
+
+func (s *StandardString) Empty() data.String {
+	if s.value != nil {
+		if len(*s.value) != 0 {
+			s.context.AppendError(s.reference, ErrorValueNotEmpty())
+		}
 	}
 	return s
 }

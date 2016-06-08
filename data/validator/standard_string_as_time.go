@@ -44,7 +44,14 @@ func NewStandardStringAsTime(context data.Context, reference interface{}, string
 
 func (s *StandardStringAsTime) Exists() data.Time {
 	if s.stringValue == nil {
-		s.context.AppendError(s.reference, ErrorValueDoesNotExist())
+		s.context.AppendError(s.reference, ErrorValueNotExists())
+	}
+	return s
+}
+
+func (s *StandardStringAsTime) NotExists() data.Time {
+	if s.stringValue != nil {
+		s.context.AppendError(s.reference, ErrorValueExists())
 	}
 	return s
 }

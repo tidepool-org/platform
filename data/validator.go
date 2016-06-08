@@ -44,6 +44,7 @@ type Validator interface {
 
 type Boolean interface {
 	Exists() Boolean
+	NotExists() Boolean
 
 	True() Boolean
 	False() Boolean
@@ -51,6 +52,7 @@ type Boolean interface {
 
 type Integer interface {
 	Exists() Integer
+	NotExists() Integer
 
 	EqualTo(value int) Integer
 	NotEqualTo(value int) Integer
@@ -67,6 +69,7 @@ type Integer interface {
 
 type Float interface {
 	Exists() Float
+	NotExists() Float
 
 	EqualTo(value float64) Float
 	NotEqualTo(value float64) Float
@@ -83,7 +86,9 @@ type Float interface {
 
 type String interface {
 	Exists() String
+	NotExists() String
 
+	Empty() String
 	NotEmpty() String
 
 	EqualTo(value string) String
@@ -103,7 +108,9 @@ type String interface {
 
 type StringArray interface {
 	Exists() StringArray
+	NotExists() StringArray
 
+	Empty() StringArray
 	NotEmpty() StringArray
 
 	LengthEqualTo(limit int) StringArray
@@ -120,11 +127,17 @@ type StringArray interface {
 
 type Object interface {
 	Exists() Object
+	NotExists() Object
+
+	Empty() Object
+	NotEmpty() Object
 }
 
 type ObjectArray interface {
 	Exists() ObjectArray
+	NotExists() ObjectArray
 
+	Empty() ObjectArray
 	NotEmpty() ObjectArray
 
 	LengthEqualTo(limit int) ObjectArray
@@ -140,11 +153,14 @@ type ObjectArray interface {
 
 type Interface interface {
 	Exists() Interface
+	NotExists() Interface
 }
 
 type InterfaceArray interface {
 	Exists() InterfaceArray
+	NotExists() InterfaceArray
 
+	Empty() InterfaceArray
 	NotEmpty() InterfaceArray
 
 	LengthEqualTo(limit int) InterfaceArray
@@ -160,6 +176,7 @@ type InterfaceArray interface {
 
 type Time interface {
 	Exists() Time
+	NotExists() Time
 
 	After(limit time.Time) Time
 	AfterNow() Time
@@ -169,10 +186,12 @@ type Time interface {
 
 type BloodGlucoseUnits interface {
 	Exists() BloodGlucoseUnits
+	NotExists() BloodGlucoseUnits
 }
 
 type BloodGlucoseValue interface {
 	Exists() BloodGlucoseValue
+	NotExists() BloodGlucoseValue
 
 	InRange(lowerLimit float64, upperLimit float64) BloodGlucoseValue
 	InRangeForUnits(units *string) BloodGlucoseValue

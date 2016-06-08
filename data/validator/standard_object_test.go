@@ -46,7 +46,7 @@ var _ = Describe("StandardObject", func() {
 				It("adds the expected error", func() {
 					Expect(standardContext.Errors()).To(HaveLen(1))
 					Expect(standardContext.Errors()[0]).ToNot(BeNil())
-					Expect(standardContext.Errors()[0].Code).To(Equal("value-does-not-exist"))
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-not-exists"))
 					Expect(standardContext.Errors()[0].Title).To(Equal("value does not exist"))
 					Expect(standardContext.Errors()[0].Detail).To(Equal("Value does not exist"))
 					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
@@ -57,9 +57,52 @@ var _ = Describe("StandardObject", func() {
 					Expect(result).To(BeIdenticalTo(standardObject))
 				})
 			})
+
+			Context("NotExists", func() {
+				BeforeEach(func() {
+					result = standardObject.NotExists()
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardObject))
+				})
+			})
+
+			Context("Empty", func() {
+				BeforeEach(func() {
+					result = standardObject.Empty()
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardObject))
+				})
+			})
+
+			Context("NotEmpty", func() {
+				BeforeEach(func() {
+					result = standardObject.NotEmpty()
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardObject))
+				})
+			})
+
 		})
 
-		Context("new validator with valid reference and a value", func() {
+		Context("new validator with valid reference and an empty value", func() {
 			var standardObject *validator.StandardObject
 			var result data.Object
 
@@ -85,6 +128,143 @@ var _ = Describe("StandardObject", func() {
 					Expect(result).To(BeIdenticalTo(standardObject))
 				})
 			})
+
+			Context("NotExists", func() {
+				BeforeEach(func() {
+					result = standardObject.NotExists()
+				})
+
+				It("adds the expected error", func() {
+					Expect(standardContext.Errors()).To(HaveLen(1))
+					Expect(standardContext.Errors()[0]).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-exists"))
+					Expect(standardContext.Errors()[0].Title).To(Equal("value exists"))
+					Expect(standardContext.Errors()[0].Detail).To(Equal("Value exists"))
+					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/lich"))
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardObject))
+				})
+			})
+
+			Context("Empty", func() {
+				BeforeEach(func() {
+					result = standardObject.Empty()
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardObject))
+				})
+			})
+
+			Context("NotEmpty", func() {
+				BeforeEach(func() {
+					result = standardObject.NotEmpty()
+				})
+
+				It("adds the expected error", func() {
+					Expect(standardContext.Errors()).To(HaveLen(1))
+					Expect(standardContext.Errors()[0]).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-empty"))
+					Expect(standardContext.Errors()[0].Title).To(Equal("value is empty"))
+					Expect(standardContext.Errors()[0].Detail).To(Equal("Value is empty"))
+					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/lich"))
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardObject))
+				})
+			})
+		})
+
+		Context("new validator with valid reference and an non-empty value", func() {
+			var standardObject *validator.StandardObject
+			var result data.Object
+
+			BeforeEach(func() {
+				value := map[string]interface{}{"a": "one", "b": "two"}
+				standardObject = validator.NewStandardObject(standardContext, "lich", &value)
+			})
+
+			It("exists", func() {
+				Expect(standardObject).ToNot(BeNil())
+			})
+
+			Context("Exists", func() {
+				BeforeEach(func() {
+					result = standardObject.Exists()
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardObject))
+				})
+			})
+
+			Context("NotExists", func() {
+				BeforeEach(func() {
+					result = standardObject.NotExists()
+				})
+
+				It("adds the expected error", func() {
+					Expect(standardContext.Errors()).To(HaveLen(1))
+					Expect(standardContext.Errors()[0]).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-exists"))
+					Expect(standardContext.Errors()[0].Title).To(Equal("value exists"))
+					Expect(standardContext.Errors()[0].Detail).To(Equal("Value exists"))
+					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/lich"))
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardObject))
+				})
+			})
+
+			Context("Empty", func() {
+				BeforeEach(func() {
+					result = standardObject.Empty()
+				})
+
+				It("adds the expected error", func() {
+					Expect(standardContext.Errors()).To(HaveLen(1))
+					Expect(standardContext.Errors()[0]).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-not-empty"))
+					Expect(standardContext.Errors()[0].Title).To(Equal("value is not empty"))
+					Expect(standardContext.Errors()[0].Detail).To(Equal("Value is not empty"))
+					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/lich"))
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardObject))
+				})
+			})
+
+			Context("NotEmpty", func() {
+				BeforeEach(func() {
+					result = standardObject.NotEmpty()
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardObject))
+				})
+			})
+
 		})
 	})
 })

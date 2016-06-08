@@ -37,26 +37,26 @@ var _ = Describe("StandardStringAsTime", func() {
 		})
 
 		Context("new validator with nil reference and nil value", func() {
-			var standard *validator.StandardStringAsTime
+			var standardStringAsTime *validator.StandardStringAsTime
 			var result data.Time
 
 			BeforeEach(func() {
-				standard = validator.NewStandardStringAsTime(standardContext, nil, nil, "2006-01-02T15:04:05Z07:00")
+				standardStringAsTime = validator.NewStandardStringAsTime(standardContext, nil, nil, "2006-01-02T15:04:05Z07:00")
 			})
 
 			It("exists", func() {
-				Expect(standard).ToNot(BeNil())
+				Expect(standardStringAsTime).ToNot(BeNil())
 			})
 
 			Context("Exists", func() {
 				BeforeEach(func() {
-					result = standard.Exists()
+					result = standardStringAsTime.Exists()
 				})
 
 				It("adds the expected error", func() {
 					Expect(standardContext.Errors()).To(HaveLen(1))
 					Expect(standardContext.Errors()[0]).ToNot(BeNil())
-					Expect(standardContext.Errors()[0].Code).To(Equal("value-does-not-exist"))
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-not-exists"))
 					Expect(standardContext.Errors()[0].Title).To(Equal("value does not exist"))
 					Expect(standardContext.Errors()[0].Detail).To(Equal("Value does not exist"))
 					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
@@ -64,13 +64,27 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standard))
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
+				})
+			})
+
+			Context("NotExists", func() {
+				BeforeEach(func() {
+					result = standardStringAsTime.NotExists()
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
 				})
 			})
 
 			Context("After", func() {
 				BeforeEach(func() {
-					result = standard.After(time.Unix(1451567655, 0).UTC())
+					result = standardStringAsTime.After(time.Unix(1451567655, 0).UTC())
 				})
 
 				It("does not add an error", func() {
@@ -78,13 +92,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standard))
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
 				})
 			})
 
 			Context("AfterNow", func() {
 				BeforeEach(func() {
-					result = standard.AfterNow()
+					result = standardStringAsTime.AfterNow()
 				})
 
 				It("does not add an error", func() {
@@ -92,13 +106,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standard))
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
 				})
 			})
 
 			Context("Before", func() {
 				BeforeEach(func() {
-					result = standard.Before(time.Unix(1451567655, 0).UTC())
+					result = standardStringAsTime.Before(time.Unix(1451567655, 0).UTC())
 				})
 
 				It("does not add an error", func() {
@@ -106,13 +120,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standard))
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
 				})
 			})
 
 			Context("BeforeNow", func() {
 				BeforeEach(func() {
-					result = standard.BeforeNow()
+					result = standardStringAsTime.BeforeNow()
 				})
 
 				It("does not add an error", func() {
@@ -120,27 +134,27 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standard))
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
 				})
 			})
 		})
 
 		Context("new validator with valid reference and an invalid value", func() {
-			var standard *validator.StandardStringAsTime
+			var standardStringAsTime *validator.StandardStringAsTime
 			var result data.Time
 
 			BeforeEach(func() {
 				value := "invalid"
-				standard = validator.NewStandardStringAsTime(standardContext, "ghost", &value, "2006-01-02T15:04:05Z07:00")
+				standardStringAsTime = validator.NewStandardStringAsTime(standardContext, "ghost", &value, "2006-01-02T15:04:05Z07:00")
 			})
 
 			It("exists", func() {
-				Expect(standard).ToNot(BeNil())
+				Expect(standardStringAsTime).ToNot(BeNil())
 			})
 
 			Context("Exists", func() {
 				BeforeEach(func() {
-					result = standard.Exists()
+					result = standardStringAsTime.Exists()
 				})
 
 				It("adds the expected error", func() {
@@ -154,13 +168,39 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standard))
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
+				})
+			})
+
+			Context("NotExists", func() {
+				BeforeEach(func() {
+					result = standardStringAsTime.NotExists()
+				})
+
+				It("adds the expected error", func() {
+					Expect(standardContext.Errors()).To(HaveLen(2))
+					Expect(standardContext.Errors()[0]).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Code).To(Equal("time-not-valid"))
+					Expect(standardContext.Errors()[0].Title).To(Equal("value is not a valid time"))
+					Expect(standardContext.Errors()[0].Detail).To(Equal("Value \"invalid\" is not a valid time of format \"2006-01-02T15:04:05Z07:00\""))
+					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/ghost"))
+					Expect(standardContext.Errors()[1]).ToNot(BeNil())
+					Expect(standardContext.Errors()[1].Code).To(Equal("value-exists"))
+					Expect(standardContext.Errors()[1].Title).To(Equal("value exists"))
+					Expect(standardContext.Errors()[1].Detail).To(Equal("Value exists"))
+					Expect(standardContext.Errors()[1].Source).ToNot(BeNil())
+					Expect(standardContext.Errors()[1].Source.Pointer).To(Equal("/ghost"))
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
 				})
 			})
 
 			Context("After", func() {
 				BeforeEach(func() {
-					result = standard.After(time.Unix(1451567655, 0).UTC())
+					result = standardStringAsTime.After(time.Unix(1451567655, 0).UTC())
 				})
 
 				It("adds the expected error", func() {
@@ -174,13 +214,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standard))
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
 				})
 			})
 
 			Context("AfterNow", func() {
 				BeforeEach(func() {
-					result = standard.AfterNow()
+					result = standardStringAsTime.AfterNow()
 				})
 
 				It("adds the expected error", func() {
@@ -194,13 +234,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standard))
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
 				})
 			})
 
 			Context("Before", func() {
 				BeforeEach(func() {
-					result = standard.Before(time.Unix(1451567655, 0).UTC())
+					result = standardStringAsTime.Before(time.Unix(1451567655, 0).UTC())
 				})
 
 				It("adds the expected error", func() {
@@ -214,13 +254,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standard))
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
 				})
 			})
 
 			Context("BeforeNow", func() {
 				BeforeEach(func() {
-					result = standard.BeforeNow()
+					result = standardStringAsTime.BeforeNow()
 				})
 
 				It("adds the expected error", func() {
@@ -234,27 +274,27 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standard))
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
 				})
 			})
 		})
 
 		Context("new validator with valid reference and value well into the past", func() {
-			var standard *validator.StandardStringAsTime
+			var standardStringAsTime *validator.StandardStringAsTime
 			var result data.Time
 
 			BeforeEach(func() {
 				value := "1990-01-01T14:15:16Z"
-				standard = validator.NewStandardStringAsTime(standardContext, "ghost", &value, "2006-01-02T15:04:05Z07:00")
+				standardStringAsTime = validator.NewStandardStringAsTime(standardContext, "ghost", &value, "2006-01-02T15:04:05Z07:00")
 			})
 
 			It("exists", func() {
-				Expect(standard).ToNot(BeNil())
+				Expect(standardStringAsTime).ToNot(BeNil())
 			})
 
 			Context("Exists", func() {
 				BeforeEach(func() {
-					result = standard.Exists()
+					result = standardStringAsTime.Exists()
 				})
 
 				It("does not add an error", func() {
@@ -262,13 +302,33 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standard))
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
+				})
+			})
+
+			Context("NotExists", func() {
+				BeforeEach(func() {
+					result = standardStringAsTime.NotExists()
+				})
+
+				It("adds the expected error", func() {
+					Expect(standardContext.Errors()).To(HaveLen(1))
+					Expect(standardContext.Errors()[0]).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-exists"))
+					Expect(standardContext.Errors()[0].Title).To(Equal("value exists"))
+					Expect(standardContext.Errors()[0].Detail).To(Equal("Value exists"))
+					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/ghost"))
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
 				})
 			})
 
 			Context("After", func() {
 				BeforeEach(func() {
-					result = standard.After(time.Unix(1451567655, 0).UTC())
+					result = standardStringAsTime.After(time.Unix(1451567655, 0).UTC())
 				})
 
 				It("adds the expected error", func() {
@@ -282,13 +342,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standard))
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
 				})
 			})
 
 			Context("AfterNow", func() {
 				BeforeEach(func() {
-					result = standard.AfterNow()
+					result = standardStringAsTime.AfterNow()
 				})
 
 				It("adds the expected error", func() {
@@ -302,13 +362,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standard))
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
 				})
 			})
 
 			Context("Before", func() {
 				BeforeEach(func() {
-					result = standard.Before(time.Unix(1451567655, 0).UTC())
+					result = standardStringAsTime.Before(time.Unix(1451567655, 0).UTC())
 				})
 
 				It("does not add an error", func() {
@@ -316,13 +376,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standard))
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
 				})
 			})
 
 			Context("BeforeNow", func() {
 				BeforeEach(func() {
-					result = standard.BeforeNow()
+					result = standardStringAsTime.BeforeNow()
 				})
 
 				It("does not add an error", func() {
@@ -330,27 +390,27 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standard))
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
 				})
 			})
 		})
 
 		Context("new validator with valid reference and value well into the future", func() {
-			var standard *validator.StandardStringAsTime
+			var standardStringAsTime *validator.StandardStringAsTime
 			var result data.Time
 
 			BeforeEach(func() {
 				value := "2090-01-01T14:15:16Z"
-				standard = validator.NewStandardStringAsTime(standardContext, "ghost", &value, "2006-01-02T15:04:05Z07:00")
+				standardStringAsTime = validator.NewStandardStringAsTime(standardContext, "ghost", &value, "2006-01-02T15:04:05Z07:00")
 			})
 
 			It("exists", func() {
-				Expect(standard).ToNot(BeNil())
+				Expect(standardStringAsTime).ToNot(BeNil())
 			})
 
 			Context("Exists", func() {
 				BeforeEach(func() {
-					result = standard.Exists()
+					result = standardStringAsTime.Exists()
 				})
 
 				It("does not add an error", func() {
@@ -358,13 +418,33 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standard))
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
+				})
+			})
+
+			Context("NotExists", func() {
+				BeforeEach(func() {
+					result = standardStringAsTime.NotExists()
+				})
+
+				It("adds the expected error", func() {
+					Expect(standardContext.Errors()).To(HaveLen(1))
+					Expect(standardContext.Errors()[0]).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-exists"))
+					Expect(standardContext.Errors()[0].Title).To(Equal("value exists"))
+					Expect(standardContext.Errors()[0].Detail).To(Equal("Value exists"))
+					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/ghost"))
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
 				})
 			})
 
 			Context("After", func() {
 				BeforeEach(func() {
-					result = standard.After(time.Unix(1451567655, 0).UTC())
+					result = standardStringAsTime.After(time.Unix(1451567655, 0).UTC())
 				})
 
 				It("does not add an error", func() {
@@ -372,13 +452,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standard))
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
 				})
 			})
 
 			Context("AfterNow", func() {
 				BeforeEach(func() {
-					result = standard.AfterNow()
+					result = standardStringAsTime.AfterNow()
 				})
 
 				It("does not add an error", func() {
@@ -386,13 +466,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standard))
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
 				})
 			})
 
 			Context("Before", func() {
 				BeforeEach(func() {
-					result = standard.Before(time.Unix(1451567655, 0).UTC())
+					result = standardStringAsTime.Before(time.Unix(1451567655, 0).UTC())
 				})
 
 				It("adds the expected error", func() {
@@ -406,13 +486,13 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standard))
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
 				})
 			})
 
 			Context("BeforeNow", func() {
 				BeforeEach(func() {
-					result = standard.BeforeNow()
+					result = standardStringAsTime.BeforeNow()
 				})
 
 				It("adds the expected error", func() {
@@ -426,7 +506,7 @@ var _ = Describe("StandardStringAsTime", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standard))
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
 				})
 			})
 		})

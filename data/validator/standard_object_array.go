@@ -32,7 +32,23 @@ func NewStandardObjectArray(context data.Context, reference interface{}, value *
 
 func (s *StandardObjectArray) Exists() data.ObjectArray {
 	if s.value == nil {
-		s.context.AppendError(s.reference, ErrorValueDoesNotExist())
+		s.context.AppendError(s.reference, ErrorValueNotExists())
+	}
+	return s
+}
+
+func (s *StandardObjectArray) NotExists() data.ObjectArray {
+	if s.value != nil {
+		s.context.AppendError(s.reference, ErrorValueExists())
+	}
+	return s
+}
+
+func (s *StandardObjectArray) Empty() data.ObjectArray {
+	if s.value != nil {
+		if len(*s.value) != 0 {
+			s.context.AppendError(s.reference, ErrorValueNotEmpty())
+		}
 	}
 	return s
 }

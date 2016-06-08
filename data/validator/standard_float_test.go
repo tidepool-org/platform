@@ -46,11 +46,25 @@ var _ = Describe("StandardFloat", func() {
 				It("adds the expected error", func() {
 					Expect(standardContext.Errors()).To(HaveLen(1))
 					Expect(standardContext.Errors()[0]).ToNot(BeNil())
-					Expect(standardContext.Errors()[0].Code).To(Equal("value-does-not-exist"))
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-not-exists"))
 					Expect(standardContext.Errors()[0].Title).To(Equal("value does not exist"))
 					Expect(standardContext.Errors()[0].Detail).To(Equal("Value does not exist"))
 					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
 					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/<nil>"))
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardFloat))
+				})
+			})
+
+			Context("NotExists", func() {
+				BeforeEach(func() {
+					result = standardFloat.NotExists()
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(BeEmpty())
 				})
 
 				It("returns self", func() {
@@ -205,6 +219,26 @@ var _ = Describe("StandardFloat", func() {
 
 				It("does not add an error", func() {
 					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardFloat))
+				})
+			})
+
+			Context("NotExists", func() {
+				BeforeEach(func() {
+					result = standardFloat.NotExists()
+				})
+
+				It("adds the expected error", func() {
+					Expect(standardContext.Errors()).To(HaveLen(1))
+					Expect(standardContext.Errors()[0]).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-exists"))
+					Expect(standardContext.Errors()[0].Title).To(Equal("value exists"))
+					Expect(standardContext.Errors()[0].Detail).To(Equal("Value exists"))
+					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/vampyre"))
 				})
 
 				It("returns self", func() {
@@ -371,6 +405,26 @@ var _ = Describe("StandardFloat", func() {
 
 				It("does not add an error", func() {
 					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardFloat))
+				})
+			})
+
+			Context("NotExists", func() {
+				BeforeEach(func() {
+					result = standardFloat.NotExists()
+				})
+
+				It("adds the expected error", func() {
+					Expect(standardContext.Errors()).To(HaveLen(1))
+					Expect(standardContext.Errors()[0]).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-exists"))
+					Expect(standardContext.Errors()[0].Title).To(Equal("value exists"))
+					Expect(standardContext.Errors()[0].Detail).To(Equal("Value exists"))
+					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/vampyre"))
 				})
 
 				It("returns self", func() {

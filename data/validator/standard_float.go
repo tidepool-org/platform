@@ -32,7 +32,14 @@ func NewStandardFloat(context data.Context, reference interface{}, value *float6
 
 func (s *StandardFloat) Exists() data.Float {
 	if s.value == nil {
-		s.context.AppendError(s.reference, ErrorValueDoesNotExist())
+		s.context.AppendError(s.reference, ErrorValueNotExists())
+	}
+	return s
+}
+
+func (s *StandardFloat) NotExists() data.Float {
+	if s.value != nil {
+		s.context.AppendError(s.reference, ErrorValueExists())
 	}
 	return s
 }

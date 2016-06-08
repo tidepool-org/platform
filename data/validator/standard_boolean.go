@@ -32,7 +32,14 @@ func NewStandardBoolean(context data.Context, reference interface{}, value *bool
 
 func (s *StandardBoolean) Exists() data.Boolean {
 	if s.value == nil {
-		s.context.AppendError(s.reference, ErrorValueDoesNotExist())
+		s.context.AppendError(s.reference, ErrorValueNotExists())
+	}
+	return s
+}
+
+func (s *StandardBoolean) NotExists() data.Boolean {
+	if s.value != nil {
+		s.context.AppendError(s.reference, ErrorValueExists())
 	}
 	return s
 }

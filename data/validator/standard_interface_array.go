@@ -32,7 +32,23 @@ func NewStandardInterfaceArray(context data.Context, reference interface{}, valu
 
 func (s *StandardInterfaceArray) Exists() data.InterfaceArray {
 	if s.value == nil {
-		s.context.AppendError(s.reference, ErrorValueDoesNotExist())
+		s.context.AppendError(s.reference, ErrorValueNotExists())
+	}
+	return s
+}
+
+func (s *StandardInterfaceArray) NotExists() data.InterfaceArray {
+	if s.value != nil {
+		s.context.AppendError(s.reference, ErrorValueExists())
+	}
+	return s
+}
+
+func (s *StandardInterfaceArray) Empty() data.InterfaceArray {
+	if s.value != nil {
+		if len(*s.value) != 0 {
+			s.context.AppendError(s.reference, ErrorValueNotEmpty())
+		}
 	}
 	return s
 }

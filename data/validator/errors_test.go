@@ -19,7 +19,9 @@ var _ = Describe("Errors", func() {
 			Expect(err.Title).To(Equal(title))
 			Expect(err.Detail).To(Equal(detail))
 		},
-		Entry("is ErrorValueDoesNotExist", validator.ErrorValueDoesNotExist(), "value-does-not-exist", "value does not exist", "Value does not exist"),
+		Entry("is ErrorValueNotExists", validator.ErrorValueNotExists(), "value-not-exists", "value does not exist", "Value does not exist"),
+		Entry("is ErrorValueExists", validator.ErrorValueExists(), "value-exists", "value exists", "Value exists"),
+		Entry("is ErrorValueNotEmpty", validator.ErrorValueNotEmpty(), "value-not-empty", "value is not empty", "Value is not empty"),
 		Entry("is ErrorValueEmpty", validator.ErrorValueEmpty(), "value-empty", "value is empty", "Value is empty"),
 		Entry("is ErrorValueNotTrue", validator.ErrorValueNotTrue(), "value-not-true", "value is not true", "Value is not true"),
 		Entry("is ErrorValueNotFalse", validator.ErrorValueNotFalse(), "value-not-false", "value is not false", "Value is not false"),

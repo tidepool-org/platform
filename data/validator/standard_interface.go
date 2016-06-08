@@ -32,7 +32,14 @@ func NewStandardInterface(context data.Context, reference interface{}, value *in
 
 func (s *StandardInterface) Exists() data.Interface {
 	if s.value == nil {
-		s.context.AppendError(s.reference, ErrorValueDoesNotExist())
+		s.context.AppendError(s.reference, ErrorValueNotExists())
+	}
+	return s
+}
+
+func (s *StandardInterface) NotExists() data.Interface {
+	if s.value != nil {
+		s.context.AppendError(s.reference, ErrorValueExists())
 	}
 	return s
 }

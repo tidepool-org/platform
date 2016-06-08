@@ -32,7 +32,32 @@ func NewStandardObject(context data.Context, reference interface{}, value *map[s
 
 func (s *StandardObject) Exists() data.Object {
 	if s.value == nil {
-		s.context.AppendError(s.reference, ErrorValueDoesNotExist())
+		s.context.AppendError(s.reference, ErrorValueNotExists())
+	}
+	return s
+}
+
+func (s *StandardObject) NotExists() data.Object {
+	if s.value != nil {
+		s.context.AppendError(s.reference, ErrorValueExists())
+	}
+	return s
+}
+
+func (s *StandardObject) Empty() data.Object {
+	if s.value != nil {
+		if len(*s.value) != 0 {
+			s.context.AppendError(s.reference, ErrorValueNotEmpty())
+		}
+	}
+	return s
+}
+
+func (s *StandardObject) NotEmpty() data.Object {
+	if s.value != nil {
+		if len(*s.value) == 0 {
+			s.context.AppendError(s.reference, ErrorValueEmpty())
+		}
 	}
 	return s
 }

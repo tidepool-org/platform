@@ -22,11 +22,27 @@ import (
 // TODO: Review all errors for consistency and language
 // Once shipped, Code and Title cannot change
 
-func ErrorValueDoesNotExist() *service.Error {
+func ErrorValueNotExists() *service.Error {
 	return &service.Error{
-		Code:   "value-does-not-exist",
+		Code:   "value-not-exists",
 		Title:  "value does not exist",
 		Detail: "Value does not exist",
+	}
+}
+
+func ErrorValueExists() *service.Error {
+	return &service.Error{
+		Code:   "value-exists",
+		Title:  "value exists",
+		Detail: "Value exists",
+	}
+}
+
+func ErrorValueNotEmpty() *service.Error {
+	return &service.Error{
+		Code:   "value-not-empty",
+		Title:  "value is not empty",
+		Detail: "Value is not empty",
 	}
 }
 

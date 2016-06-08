@@ -37,7 +37,14 @@ func NewStandardStringAsBloodGlucoseUnits(context data.Context, reference interf
 
 func (s *StandardStringAsBloodGlucoseUnits) Exists() data.BloodGlucoseUnits {
 	if s.stringValue == nil {
-		s.context.AppendError(s.reference, ErrorValueDoesNotExist())
+		s.context.AppendError(s.reference, ErrorValueNotExists())
+	}
+	return s
+}
+
+func (s *StandardStringAsBloodGlucoseUnits) NotExists() data.BloodGlucoseUnits {
+	if s.stringValue != nil {
+		s.context.AppendError(s.reference, ErrorValueExists())
 	}
 	return s
 }

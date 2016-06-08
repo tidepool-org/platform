@@ -36,7 +36,14 @@ func NewStandardFloatAsBloodGlucoseValue(context data.Context, reference interfa
 
 func (s *StandardFloatAsBloodGlucoseValue) Exists() data.BloodGlucoseValue {
 	if s.floatValue == nil {
-		s.context.AppendError(s.reference, ErrorValueDoesNotExist())
+		s.context.AppendError(s.reference, ErrorValueNotExists())
+	}
+	return s
+}
+
+func (s *StandardFloatAsBloodGlucoseValue) NotExists() data.BloodGlucoseValue {
+	if s.floatValue != nil {
+		s.context.AppendError(s.reference, ErrorValueExists())
 	}
 	return s
 }

@@ -32,7 +32,14 @@ func NewStandardInteger(context data.Context, reference interface{}, value *int)
 
 func (s *StandardInteger) Exists() data.Integer {
 	if s.value == nil {
-		s.context.AppendError(s.reference, ErrorValueDoesNotExist())
+		s.context.AppendError(s.reference, ErrorValueNotExists())
+	}
+	return s
+}
+
+func (s *StandardInteger) NotExists() data.Integer {
+	if s.value != nil {
+		s.context.AppendError(s.reference, ErrorValueExists())
 	}
 	return s
 }

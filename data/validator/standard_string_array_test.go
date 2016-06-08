@@ -46,11 +46,39 @@ var _ = Describe("StandardStringArray", func() {
 				It("adds the expected error", func() {
 					Expect(standardContext.Errors()).To(HaveLen(1))
 					Expect(standardContext.Errors()[0]).ToNot(BeNil())
-					Expect(standardContext.Errors()[0].Code).To(Equal("value-does-not-exist"))
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-not-exists"))
 					Expect(standardContext.Errors()[0].Title).To(Equal("value does not exist"))
 					Expect(standardContext.Errors()[0].Detail).To(Equal("Value does not exist"))
 					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
 					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/<nil>"))
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardStringArray))
+				})
+			})
+
+			Context("NotExists", func() {
+				BeforeEach(func() {
+					result = standardStringArray.NotExists()
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardStringArray))
+				})
+			})
+
+			Context("Empty", func() {
+				BeforeEach(func() {
+					result = standardStringArray.Empty()
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(BeEmpty())
 				})
 
 				It("returns self", func() {
@@ -226,6 +254,40 @@ var _ = Describe("StandardStringArray", func() {
 				})
 			})
 
+			Context("NotExists", func() {
+				BeforeEach(func() {
+					result = standardStringArray.NotExists()
+				})
+
+				It("adds the expected error", func() {
+					Expect(standardContext.Errors()).To(HaveLen(1))
+					Expect(standardContext.Errors()[0]).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-exists"))
+					Expect(standardContext.Errors()[0].Title).To(Equal("value exists"))
+					Expect(standardContext.Errors()[0].Detail).To(Equal("Value exists"))
+					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/wight"))
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardStringArray))
+				})
+			})
+
+			Context("Empty", func() {
+				BeforeEach(func() {
+					result = standardStringArray.Empty()
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardStringArray))
+				})
+			})
+
 			Context("NotEmpty", func() {
 				BeforeEach(func() {
 					result = standardStringArray.NotEmpty()
@@ -267,6 +329,46 @@ var _ = Describe("StandardStringArray", func() {
 
 				It("does not add an error", func() {
 					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardStringArray))
+				})
+			})
+
+			Context("NotExists", func() {
+				BeforeEach(func() {
+					result = standardStringArray.NotExists()
+				})
+
+				It("adds the expected error", func() {
+					Expect(standardContext.Errors()).To(HaveLen(1))
+					Expect(standardContext.Errors()[0]).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-exists"))
+					Expect(standardContext.Errors()[0].Title).To(Equal("value exists"))
+					Expect(standardContext.Errors()[0].Detail).To(Equal("Value exists"))
+					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/wight"))
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardStringArray))
+				})
+			})
+
+			Context("Empty", func() {
+				BeforeEach(func() {
+					result = standardStringArray.Empty()
+				})
+
+				It("adds the expected error", func() {
+					Expect(standardContext.Errors()).To(HaveLen(1))
+					Expect(standardContext.Errors()[0]).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-not-empty"))
+					Expect(standardContext.Errors()[0].Title).To(Equal("value is not empty"))
+					Expect(standardContext.Errors()[0].Detail).To(Equal("Value is not empty"))
+					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/wight"))
 				})
 
 				It("returns self", func() {
@@ -447,6 +549,46 @@ var _ = Describe("StandardStringArray", func() {
 
 				It("does not add an error", func() {
 					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardStringArray))
+				})
+			})
+
+			Context("NotExists", func() {
+				BeforeEach(func() {
+					result = standardStringArray.NotExists()
+				})
+
+				It("adds the expected error", func() {
+					Expect(standardContext.Errors()).To(HaveLen(1))
+					Expect(standardContext.Errors()[0]).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-exists"))
+					Expect(standardContext.Errors()[0].Title).To(Equal("value exists"))
+					Expect(standardContext.Errors()[0].Detail).To(Equal("Value exists"))
+					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/wight"))
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardStringArray))
+				})
+			})
+
+			Context("Empty", func() {
+				BeforeEach(func() {
+					result = standardStringArray.Empty()
+				})
+
+				It("adds the expected error", func() {
+					Expect(standardContext.Errors()).To(HaveLen(1))
+					Expect(standardContext.Errors()[0]).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-not-empty"))
+					Expect(standardContext.Errors()[0].Title).To(Equal("value is not empty"))
+					Expect(standardContext.Errors()[0].Detail).To(Equal("Value is not empty"))
+					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/wight"))
 				})
 
 				It("returns self", func() {

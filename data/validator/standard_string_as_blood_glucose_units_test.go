@@ -28,26 +28,26 @@ var _ = Describe("StandardStringAsBloodGlucoseUnits", func() {
 		})
 
 		Context("new validator with nil reference and nil units", func() {
-			var standard *validator.StandardStringAsBloodGlucoseUnits
+			var standardStringAsBloodGlucoseUnits *validator.StandardStringAsBloodGlucoseUnits
 			var result data.BloodGlucoseUnits
 
 			BeforeEach(func() {
-				standard = validator.NewStandardStringAsBloodGlucoseUnits(standardContext, nil, nil)
+				standardStringAsBloodGlucoseUnits = validator.NewStandardStringAsBloodGlucoseUnits(standardContext, nil, nil)
 			})
 
 			It("exists", func() {
-				Expect(standard).ToNot(BeNil())
+				Expect(standardStringAsBloodGlucoseUnits).ToNot(BeNil())
 			})
 
 			Context("Exists", func() {
 				BeforeEach(func() {
-					result = standard.Exists()
+					result = standardStringAsBloodGlucoseUnits.Exists()
 				})
 
 				It("adds the expected error", func() {
 					Expect(standardContext.Errors()).To(HaveLen(1))
 					Expect(standardContext.Errors()[0]).ToNot(BeNil())
-					Expect(standardContext.Errors()[0].Code).To(Equal("value-does-not-exist"))
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-not-exists"))
 					Expect(standardContext.Errors()[0].Title).To(Equal("value does not exist"))
 					Expect(standardContext.Errors()[0].Detail).To(Equal("Value does not exist"))
 					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
@@ -55,27 +55,41 @@ var _ = Describe("StandardStringAsBloodGlucoseUnits", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standard))
+					Expect(result).To(BeIdenticalTo(standardStringAsBloodGlucoseUnits))
+				})
+			})
+
+			Context("NotExists", func() {
+				BeforeEach(func() {
+					result = standardStringAsBloodGlucoseUnits.NotExists()
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardStringAsBloodGlucoseUnits))
 				})
 			})
 		})
 
 		Context("new validator with valid reference and an unknown units", func() {
-			var standard *validator.StandardStringAsBloodGlucoseUnits
+			var standardStringAsBloodGlucoseUnits *validator.StandardStringAsBloodGlucoseUnits
 			var result data.BloodGlucoseUnits
 
 			BeforeEach(func() {
 				value := "unknown"
-				standard = validator.NewStandardStringAsBloodGlucoseUnits(standardContext, "necromancer", &value)
+				standardStringAsBloodGlucoseUnits = validator.NewStandardStringAsBloodGlucoseUnits(standardContext, "necromancer", &value)
 			})
 
 			It("exists", func() {
-				Expect(standard).ToNot(BeNil())
+				Expect(standardStringAsBloodGlucoseUnits).ToNot(BeNil())
 			})
 
 			Context("Exists", func() {
 				BeforeEach(func() {
-					result = standard.Exists()
+					result = standardStringAsBloodGlucoseUnits.Exists()
 				})
 
 				It("adds the expected error", func() {
@@ -89,16 +103,42 @@ var _ = Describe("StandardStringAsBloodGlucoseUnits", func() {
 				})
 
 				It("returns self", func() {
-					Expect(result).To(BeIdenticalTo(standard))
+					Expect(result).To(BeIdenticalTo(standardStringAsBloodGlucoseUnits))
+				})
+			})
+
+			Context("NotExists", func() {
+				BeforeEach(func() {
+					result = standardStringAsBloodGlucoseUnits.NotExists()
+				})
+
+				It("adds the expected error", func() {
+					Expect(standardContext.Errors()).To(HaveLen(2))
+					Expect(standardContext.Errors()[0]).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-not-allowed"))
+					Expect(standardContext.Errors()[0].Title).To(Equal("value is not one of the allowed values"))
+					Expect(standardContext.Errors()[0].Detail).To(Equal("Value \"unknown\" is not one of [\"mmol/l\", \"mmol/L\", \"mg/dl\", \"mg/dL\"]"))
+					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/necromancer"))
+					Expect(standardContext.Errors()[1]).ToNot(BeNil())
+					Expect(standardContext.Errors()[1].Code).To(Equal("value-exists"))
+					Expect(standardContext.Errors()[1].Title).To(Equal("value exists"))
+					Expect(standardContext.Errors()[1].Detail).To(Equal("Value exists"))
+					Expect(standardContext.Errors()[1].Source).ToNot(BeNil())
+					Expect(standardContext.Errors()[1].Source.Pointer).To(Equal("/necromancer"))
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardStringAsBloodGlucoseUnits))
 				})
 			})
 		})
 
 		DescribeTable("new validator with valid reference does not add an error when",
 			func(units string) {
-				standard := validator.NewStandardStringAsBloodGlucoseUnits(standardContext, "necromancer", &units)
-				Expect(standard).ToNot(BeNil())
-				Expect(standard.Exists()).To(BeIdenticalTo(standard))
+				standardStringAsBloodGlucoseUnits := validator.NewStandardStringAsBloodGlucoseUnits(standardContext, "necromancer", &units)
+				Expect(standardStringAsBloodGlucoseUnits).ToNot(BeNil())
+				Expect(standardStringAsBloodGlucoseUnits.Exists()).To(BeIdenticalTo(standardStringAsBloodGlucoseUnits))
 				Expect(standardContext.Errors()).To(BeEmpty())
 			},
 			Entry("has mmol/l units", "mmol/l"),
