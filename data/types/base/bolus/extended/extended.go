@@ -18,8 +18,10 @@ import (
 type Extended struct {
 	bolus.Bolus `bson:",inline"`
 
-	Duration *int     `json:"duration,omitempty" bson:"duration,omitempty"`
-	Extended *float64 `json:"extended,omitempty" bson:"extended,omitempty"`
+	Extended         *float64 `json:"extended,omitempty" bson:"extended,omitempty"`
+	ExpectedExtended *float64 `json:"expectedExtended,omitempty" bson:"expectedExtended,omitempty"`
+	Duration         *int     `json:"duration,omitempty" bson:"duration,omitempty"`
+	ExpectedDuration *int     `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
 }
 
 func SubType() string {
@@ -42,8 +44,10 @@ func (e *Extended) Parse(parser data.ObjectParser) error {
 		return err
 	}
 
-	e.Duration = parser.ParseInteger("duration")
 	e.Extended = parser.ParseFloat("extended")
+	e.ExpectedExtended = parser.ParseFloat("expectedExtended")
+	e.Duration = parser.ParseInteger("duration")
+	e.ExpectedDuration = parser.ParseInteger("expectedDuration")
 
 	return nil
 }
@@ -53,8 +57,31 @@ func (e *Extended) Validate(validator data.Validator) error {
 		return err
 	}
 
-	validator.ValidateInteger("duration", e.Duration).Exists().InRange(0, 86400000)
 	validator.ValidateFloat("extended", e.Extended).Exists().InRange(0.0, 100.0)
+
+	expectedExtendedValidator := validator.ValidateFloat("expectedExtended", e.ExpectedExtended)
+	if e.Extended != nil {
+		if *e.Extended == 0.0 {
+			expectedExtendedValidator.Exists()
+		}
+		expectedExtendedValidator.GreaterThan(*e.Extended).LessThanOrEqualTo(100.0)
+	} else {
+		expectedExtendedValidator.InRange(0.0, 100.0)
+	}
+
+	validator.ValidateInteger("duration", e.Duration).Exists().InRange(0, 86400000)
+
+	expectedDurationValidator := validator.ValidateInteger("expectedDuration", e.ExpectedDuration)
+	if e.Duration != nil {
+		expectedDurationValidator.InRange(*e.Duration, 86400000)
+	} else {
+		expectedDurationValidator.InRange(0, 86400000)
+	}
+	if e.ExpectedExtended != nil {
+		expectedDurationValidator.Exists()
+	} else {
+		expectedDurationValidator.NotExists()
+	}
 
 	return nil
 }

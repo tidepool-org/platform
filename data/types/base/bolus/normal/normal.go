@@ -54,12 +54,15 @@ func (n *Normal) Validate(validator data.Validator) error {
 	}
 
 	validator.ValidateFloat("normal", n.Normal).Exists().InRange(0.0, 100.0)
+
+	expectedNormalValidator := validator.ValidateFloat("expectedNormal", n.ExpectedNormal)
 	if n.Normal != nil {
 		if *n.Normal == 0.0 {
-			validator.ValidateFloat("expectedNormal", n.ExpectedNormal).Exists().GreaterThan(0.0).LessThanOrEqualTo(100.0)
-		} else {
-			validator.ValidateFloat("expectedNormal", n.ExpectedNormal).NotExists()
+			expectedNormalValidator.Exists()
 		}
+		expectedNormalValidator.GreaterThan(*n.Normal).LessThanOrEqualTo(100.0)
+	} else {
+		expectedNormalValidator.InRange(0.0, 100.0)
 	}
 
 	return nil
