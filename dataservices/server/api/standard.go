@@ -111,7 +111,6 @@ func (s *Standard) initRouter() error {
 	router, err := rest.MakeRouter(
 		rest.Get("/status", s.GetStatus),
 		rest.Get("/version", s.GetVersion),
-		rest.Get("/api/v1/users/:userid/check", s.withContext(v1.Authenticate(v1.UsersCheck))),
 		rest.Post("/api/v1/users/:userid/datasets", s.withContext(v1.Authenticate(v1.UsersDatasetsCreate))),
 		rest.Put("/api/v1/datasets/:datasetid", s.withContext(v1.Authenticate(v1.DatasetsUpdate))),
 		rest.Post("/api/v1/datasets/:datasetid/data", s.withContext(v1.Authenticate(v1.DatasetsDataCreate))),
