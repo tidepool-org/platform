@@ -16,7 +16,7 @@ var _ = Describe("Log", func() {
 	BeforeEach(func() {
 		var err error
 		versionReporter, err = version.NewReporter("0.0.0", "0000000", "0000000000000000000000000000000000000000")
-		Expect(err).To(Succeed())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(versionReporter).ToNot(BeNil())
 	})
 
@@ -47,7 +47,7 @@ var _ = Describe("Log", func() {
 
 		It("returns successfully", func() {
 			reporter, err := log.NewLogger(&log.Config{Level: "debug"}, versionReporter)
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(reporter).ToNot(BeNil())
 		})
 	})
@@ -58,7 +58,7 @@ var _ = Describe("Log", func() {
 		BeforeEach(func() {
 			var err error
 			logger, err = log.NewLogger(&log.Config{Level: "fatal"}, versionReporter)
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(logger).ToNot(BeNil())
 		})
 

@@ -20,7 +20,7 @@ var _ = Describe("Config", func() {
 	BeforeEach(func() {
 		var err error
 		environmentReporter, err = environment.NewReporter("test")
-		Expect(err).To(Succeed())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(environmentReporter).ToNot(BeNil())
 	})
 
@@ -57,7 +57,7 @@ var _ = Describe("Config", func() {
 
 		It("returns a new object if name is specified", func() {
 			loader, err := config.NewLoader("_fixtures/config", "TIDEPOOL_TEST", environmentReporter)
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(loader).ToNot(BeNil())
 		})
 	})
@@ -69,7 +69,7 @@ var _ = Describe("Config", func() {
 		BeforeEach(func() {
 			var err error
 			loader, err = config.NewLoader("_fixtures/config", "TIDEPOOL_TEST", environmentReporter)
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(loader).ToNot(BeNil())
 			testConfig = &TestConfig{}
 		})

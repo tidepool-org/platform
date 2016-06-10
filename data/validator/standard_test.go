@@ -25,9 +25,9 @@ var _ = Describe("Standard", func() {
 			var err error
 			standardContext, err = context.NewStandard(test.NewLogger())
 			Expect(standardContext).ToNot(BeNil())
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 			standard, err = validator.NewStandard(standardContext)
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("exists", func() {

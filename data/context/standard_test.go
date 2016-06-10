@@ -27,7 +27,7 @@ var _ = Describe("Standard", func() {
 
 		It("exists", func() {
 			Expect(standard).ToNot(BeNil())
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("has a contained Errors that is empty", func() {

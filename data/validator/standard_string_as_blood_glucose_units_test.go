@@ -24,7 +24,7 @@ var _ = Describe("StandardStringAsBloodGlucoseUnits", func() {
 			var err error
 			standardContext, err = context.NewStandard(test.NewLogger())
 			Expect(standardContext).ToNot(BeNil())
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		Context("new validator with nil reference and nil units", func() {

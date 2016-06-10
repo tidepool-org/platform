@@ -29,7 +29,7 @@ var _ = Describe("Version", func() {
 
 		It("returns successfully", func() {
 			reporter, err := version.NewReporter("1.2.3", "4567890", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmn")
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(reporter).ToNot(BeNil())
 		})
 	})
@@ -40,7 +40,7 @@ var _ = Describe("Version", func() {
 		BeforeEach(func() {
 			var err error
 			reporter, err = version.NewReporter("1.2.3", "4567890", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmn")
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(reporter).ToNot(BeNil())
 		})
 

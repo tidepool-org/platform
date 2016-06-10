@@ -25,9 +25,9 @@ var _ = Describe("StandardObject", func() {
 			var err error
 			standardContext, err = context.NewStandard(test.NewLogger())
 			Expect(standardContext).ToNot(BeNil())
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 			standardObject, err = parser.NewStandardObject(standardContext, nil, parser.IgnoreNotParsed)
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("exists", func() {
@@ -115,9 +115,9 @@ var _ = Describe("StandardObject", func() {
 			var err error
 			standardContext, err = context.NewStandard(test.NewLogger())
 			Expect(standardContext).ToNot(BeNil())
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 			standardObject, err = parser.NewStandardObject(standardContext, &map[string]interface{}{}, parser.IgnoreNotParsed)
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("exists", func() {
@@ -142,7 +142,7 @@ var _ = Describe("StandardObject", func() {
 			var err error
 			standardContext, err = context.NewStandard(test.NewLogger())
 			Expect(standardContext).ToNot(BeNil())
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		Context("ParseBoolean", func() {

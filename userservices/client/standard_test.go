@@ -104,7 +104,7 @@ var _ = Describe("Standard", func() {
 		It("returns success", func() {
 			standard, err := client.NewStandard(logger, config)
 			Expect(standard).ToNot(BeNil())
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 
@@ -127,7 +127,7 @@ var _ = Describe("Standard", func() {
 			var err error
 			standard, err = client.NewStandard(logger, config)
 			Expect(standard).ToNot(BeNil())
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		AfterEach(func() {
@@ -425,7 +425,7 @@ var _ = Describe("Standard", func() {
 					It("returns the user id", func() {
 						sessionToken, err := standard.ValidateUserSession(context, "session-token")
 						Expect(sessionToken).To(Equal("session-user-id"))
-						Expect(err).To(Succeed())
+						Expect(err).ToNot(HaveOccurred())
 					})
 				})
 			})
@@ -618,7 +618,7 @@ var _ = Describe("Standard", func() {
 
 					It("returns no error", func() {
 						err := standard.ValidateTargetUserPermissions(context, "request-user-id", "target-user-id", client.ViewPermissions)
-						Expect(err).To(Succeed())
+						Expect(err).ToNot(HaveOccurred())
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
@@ -636,7 +636,7 @@ var _ = Describe("Standard", func() {
 
 					It("returns no error", func() {
 						err := standard.ValidateTargetUserPermissions(context, "request-user-id", "target-user-id", client.Permissions{"upload": {}, "view": {}})
-						Expect(err).To(Succeed())
+						Expect(err).ToNot(HaveOccurred())
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
@@ -654,7 +654,7 @@ var _ = Describe("Standard", func() {
 
 					It("returns no error", func() {
 						err := standard.ValidateTargetUserPermissions(context, "request-user-id", "target-user-id", client.ViewPermissions)
-						Expect(err).To(Succeed())
+						Expect(err).ToNot(HaveOccurred())
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
@@ -792,7 +792,7 @@ var _ = Describe("Standard", func() {
 					It("returns the group id", func() {
 						groupID, err := standard.GetUserGroupID(context, "user-id")
 						Expect(groupID).To(Equal("session-group-id"))
-						Expect(err).To(Succeed())
+						Expect(err).ToNot(HaveOccurred())
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})

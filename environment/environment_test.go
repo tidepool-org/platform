@@ -24,7 +24,7 @@ var _ = Describe("Environment", func() {
 		Context("Name", func() {
 			It("returns the name", func() {
 				reporter, err := environment.NewReporter("brownie")
-				Expect(err).To(Succeed())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(reporter).ToNot(BeNil())
 				Expect(reporter.Name()).To(Equal("brownie"))
 			})
@@ -33,14 +33,14 @@ var _ = Describe("Environment", func() {
 		Context("IsLocal", func() {
 			It("returns false if environment is not local", func() {
 				reporter, err := environment.NewReporter("brownie")
-				Expect(err).To(Succeed())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(reporter).ToNot(BeNil())
 				Expect(reporter.IsLocal()).To(BeFalse())
 			})
 
 			It("returns true if environment is local", func() {
 				reporter, err := environment.NewReporter("local")
-				Expect(err).To(Succeed())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(reporter).ToNot(BeNil())
 				Expect(reporter.IsLocal()).To(BeTrue())
 			})
@@ -49,14 +49,14 @@ var _ = Describe("Environment", func() {
 		Context("IsTest", func() {
 			It("returns false if environment is not test", func() {
 				reporter, err := environment.NewReporter("brownie")
-				Expect(err).To(Succeed())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(reporter).ToNot(BeNil())
 				Expect(reporter.IsTest()).To(BeFalse())
 			})
 
 			It("returns true if environment is test", func() {
 				reporter, err := environment.NewReporter("test")
-				Expect(err).To(Succeed())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(reporter).ToNot(BeNil())
 				Expect(reporter.IsTest()).To(BeTrue())
 			})
@@ -65,21 +65,21 @@ var _ = Describe("Environment", func() {
 		Context("IsDeployed", func() {
 			It("returns false if environment is local", func() {
 				reporter, err := environment.NewReporter("local")
-				Expect(err).To(Succeed())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(reporter).ToNot(BeNil())
 				Expect(reporter.IsDeployed()).To(BeFalse())
 			})
 
 			It("returns false if environment is test", func() {
 				reporter, err := environment.NewReporter("test")
-				Expect(err).To(Succeed())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(reporter).ToNot(BeNil())
 				Expect(reporter.IsDeployed()).To(BeFalse())
 			})
 
 			It("returns true if environment is not local nor test", func() {
 				reporter, err := environment.NewReporter("brownie")
-				Expect(err).To(Succeed())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(reporter).ToNot(BeNil())
 				Expect(reporter.IsDeployed()).To(BeTrue())
 			})
