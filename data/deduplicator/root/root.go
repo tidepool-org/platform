@@ -14,7 +14,6 @@ import (
 	"errors"
 
 	"github.com/tidepool-org/platform/data/deduplicator"
-	"github.com/tidepool-org/platform/data/deduplicator/alignment"
 	"github.com/tidepool-org/platform/data/deduplicator/truncate"
 	"github.com/tidepool-org/platform/data/types/base/upload"
 	"github.com/tidepool-org/platform/log"
@@ -25,7 +24,6 @@ func NewFactory() deduplicator.Factory {
 	return &Factory{
 		[]deduplicator.Factory{
 			truncate.NewFactory(),
-			alignment.NewFactory(),
 		},
 	}
 }
