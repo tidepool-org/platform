@@ -16,13 +16,13 @@ import (
 
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/config"
+	"github.com/tidepool-org/platform/data/store"
+	"github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/dataservices/server"
 	"github.com/tidepool-org/platform/dataservices/server/api"
 	standardServer "github.com/tidepool-org/platform/dataservices/server/server"
 	"github.com/tidepool-org/platform/environment"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/store"
-	"github.com/tidepool-org/platform/store/mongo"
 	"github.com/tidepool-org/platform/userservices/client"
 	"github.com/tidepool-org/platform/version"
 )

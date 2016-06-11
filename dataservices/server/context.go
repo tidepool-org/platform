@@ -1,8 +1,8 @@
 package server
 
 import (
+	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/service"
-	"github.com/tidepool-org/platform/store"
 	"github.com/tidepool-org/platform/userservices/client"
 )
 
