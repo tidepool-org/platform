@@ -13,6 +13,7 @@ package context
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
+	"github.com/tidepool-org/platform/data/deduplicator"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/dataservices/server"
 	"github.com/tidepool-org/platform/service"
@@ -21,12 +22,13 @@ import (
 
 type Standard struct {
 	service.Context
-	dataStoreSession   store.Session
-	userServicesClient client.Client
-	requestUserID      string
+	dataStoreSession        store.Session
+	dataDeduplicatorFactory deduplicator.Factory
+	userServicesClient      client.Client
+	requestUserID           string
 }
 
-func WithContext(dataStore store.Store, userServicesClient client.Client, handler server.HandlerFunc) rest.HandlerFunc {
+func WithContext(dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, userServicesClient client.Client, handler server.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
 		context := service.NewStandard(response, request)
 
@@ -38,15 +40,20 @@ func WithContext(dataStore store.Store, userServicesClient client.Client, handle
 		defer dataStoreSession.Close()
 
 		handler(&Standard{
-			Context:            context,
-			dataStoreSession:   dataStoreSession,
-			userServicesClient: userServicesClient,
+			Context:                 context,
+			dataStoreSession:        dataStoreSession,
+			dataDeduplicatorFactory: dataDeduplicatorFactory,
+			userServicesClient:      userServicesClient,
 		})
 	}
 }
 
 func (s *Standard) DataStoreSession() store.Session {
 	return s.dataStoreSession
+}
+
+func (s *Standard) DataDeduplicatorFactory() deduplicator.Factory {
+	return s.dataDeduplicatorFactory
 }
 
 func (s *Standard) UserServicesClient() client.Client {
