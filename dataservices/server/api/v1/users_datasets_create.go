@@ -100,20 +100,20 @@ func UsersDatasetsCreate(serverContext server.Context) {
 	datasetDatum.SetGroupID(targetUserGroupID)
 	datasetDatum.Normalize(datumNormalizer)
 
-	datasetUpload, ok := datasetDatum.(*upload.Upload)
+	dataset, ok := datasetDatum.(*upload.Upload)
 	if !ok {
 		serverContext.RespondWithInternalServerFailure("Unexpected datum type", datasetDatum)
 		return
 	}
 
-	datasetUpload.SetUploadUserID(serverContext.RequestUserID())
+	dataset.SetUploadUserID(serverContext.RequestUserID())
 
-	if err = serverContext.DataStoreSession().CreateDataset(datasetUpload); err != nil {
+	if err = serverContext.DataStoreSession().CreateDataset(dataset); err != nil {
 		serverContext.RespondWithInternalServerFailure("Unable to insert dataset", err)
 		return
 	}
 
-	deduplicator, err := root.NewFactory().NewDeduplicator(serverContext.Logger(), serverContext.DataStoreSession(), datasetUpload)
+	deduplicator, err := root.NewFactory().NewDeduplicator(serverContext.Logger(), serverContext.DataStoreSession(), dataset)
 	if err != nil {
 		serverContext.RespondWithInternalServerFailure("No duplicator found matching dataset", err)
 		return
@@ -124,7 +124,7 @@ func UsersDatasetsCreate(serverContext server.Context) {
 		return
 	}
 
-	// TODO: Filter datasetUpload to only "public" fields
+	// TODO: Filter dataset to only "public" fields
 	serverContext.Response().WriteHeader(http.StatusCreated)
-	serverContext.Response().WriteJson(datasetUpload)
+	serverContext.Response().WriteJson(dataset)
 }

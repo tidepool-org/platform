@@ -31,15 +31,15 @@ func DatasetsDataCreate(serverContext server.Context) {
 		return
 	}
 
-	datasetUpload, err := serverContext.DataStoreSession().GetDataset(datasetID)
+	dataset, err := serverContext.DataStoreSession().GetDataset(datasetID)
 	if err != nil {
 		serverContext.RespondWithError(ErrorDatasetIDNotFound(datasetID))
 		return
 	}
 
 	// TODO: Validate
-	targetUserID := datasetUpload.UserID
-	targetGroupID := datasetUpload.GroupID
+	targetUserID := dataset.UserID
+	targetGroupID := dataset.GroupID
 
 	err = serverContext.UserServicesClient().ValidateTargetUserPermissions(serverContext, serverContext.RequestUserID(), targetUserID, client.UploadPermissions)
 	if err != nil {
@@ -51,12 +51,12 @@ func DatasetsDataCreate(serverContext server.Context) {
 		return
 	}
 
-	if datasetUpload.DataState != "open" {
+	if dataset.DataState != "open" {
 		serverContext.RespondWithError(ErrorDatasetClosed(datasetID))
 		return
 	}
 
-	deduplicator, err := root.NewFactory().NewDeduplicator(serverContext.Logger(), serverContext.DataStoreSession(), datasetUpload)
+	deduplicator, err := root.NewFactory().NewDeduplicator(serverContext.Logger(), serverContext.DataStoreSession(), dataset)
 	if err != nil {
 		serverContext.RespondWithInternalServerFailure("No duplicator found matching dataset", err)
 		return
