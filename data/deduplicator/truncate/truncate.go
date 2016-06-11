@@ -11,8 +11,6 @@ package truncate
  */
 
 import (
-	"gopkg.in/mgo.v2/bson"
-
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
@@ -21,6 +19,8 @@ import (
 	"github.com/tidepool-org/platform/log"
 )
 
+const Name = "truncate"
+
 func NewFactory() deduplicator.Factory {
 	return &factory{}
 }
@@ -28,34 +28,24 @@ func NewFactory() deduplicator.Factory {
 type factory struct {
 }
 
-type Config struct {
-	Name string `bson:"name"`
-}
-
 type truncate struct {
 	logger           log.Logger
 	dataStoreSession store.Session
 	dataset          *upload.Upload
-	config           Config
 }
 
 func (f *factory) CanDeduplicateDataset(dataset *upload.Upload) (bool, error) {
 	if dataset == nil {
 		return false, app.Error("truncate", "dataset upload is nil")
 	}
-	if config := dataset.Deduplicator; config != nil {
-		if configAsMap, configAsMapOk := config.(map[string]interface{}); configAsMapOk {
-			return configAsMap["name"] == "truncate", nil
-		} else if configAsM, configAsMOk := config.(bson.M); configAsMOk {
-			return configAsM["name"] == "truncate", nil
-		} else {
-			return false, nil
-		}
-	} else if deviceModel := dataset.DeviceModel; deviceModel != nil {
-		if deviceID := dataset.DeviceID; deviceID != nil {
-			return true, nil
-		}
+
+	if dataset.Deduplicator != nil {
+		return dataset.Deduplicator.Name == Name, nil
 	}
+	if dataset.DeviceID != nil && *dataset.DeviceID != "" {
+		return true, nil
+	}
+
 	return false, nil
 }
 
@@ -74,14 +64,11 @@ func (f *factory) NewDeduplicator(logger log.Logger, dataStoreSession store.Sess
 		logger:           logger,
 		dataStoreSession: dataStoreSession,
 		dataset:          dataset,
-		config: Config{
-			Name: "truncate",
-		},
 	}, nil
 }
 
 func (t *truncate) InitializeDataset() error {
-	t.dataset.SetDeduplicator(t.config)
+	t.dataset.SetDeduplicator(&upload.Deduplicator{Name: Name})
 
 	if err := t.dataStoreSession.UpdateDataset(t.dataset); err != nil {
 		return app.ExtError(err, "truncate", "unable to initialize dataset")

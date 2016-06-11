@@ -6,12 +6,17 @@ import (
 	"github.com/tidepool-org/platform/data/types/base"
 )
 
+type Deduplicator struct {
+	Name string                 `bson:"name,omitempty"`
+	Data map[string]interface{} `bson:"data,omitempty"`
+}
+
 type Upload struct {
 	base.Base `bson:",inline"`
 
-	DataState    string      `json:"-" bson:"_dataState,omitempty"`
-	Deduplicator interface{} `json:"-" bson:"_deduplicator,omitempty"`
-	UploadUserID string      `json:"byUser,omitempty" bson:"byUser,omitempty"`
+	DataState    string        `json:"-" bson:"_dataState,omitempty"`
+	Deduplicator *Deduplicator `json:"-" bson:"_deduplicator,omitempty"`
+	UploadUserID string        `json:"byUser,omitempty" bson:"byUser,omitempty"`
 
 	ComputerTime        *string   `json:"computerTime,omitempty" bson:"computerTime,omitempty"`
 	DeviceManufacturers *[]string `json:"deviceManufacturers,omitempty" bson:"deviceManufacturers,omitempty"`
@@ -93,6 +98,6 @@ func (u *Upload) SetDataState(dataState string) {
 	u.DataState = dataState
 }
 
-func (u *Upload) SetDeduplicator(deduplicator interface{}) {
+func (u *Upload) SetDeduplicator(deduplicator *Deduplicator) {
 	u.Deduplicator = deduplicator
 }
