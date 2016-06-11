@@ -43,12 +43,12 @@ func (f *Factory) CanDeduplicateDataset(dataset *upload.Upload) (bool, error) {
 	return false, nil
 }
 
-func (f *Factory) NewDeduplicator(logger log.Logger, storeSession store.Session, dataset *upload.Upload) (deduplicator.Deduplicator, error) {
+func (f *Factory) NewDeduplicator(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (deduplicator.Deduplicator, error) {
 	for _, factory := range f.factories {
 		if can, err := factory.CanDeduplicateDataset(dataset); err != nil {
 			return nil, err
 		} else if can {
-			return factory.NewDeduplicator(logger, storeSession, dataset)
+			return factory.NewDeduplicator(logger, dataStoreSession, dataset)
 		}
 	}
 	return nil, errors.New("Deduplicator not found")
