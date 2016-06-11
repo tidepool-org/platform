@@ -11,8 +11,7 @@ package root
  */
 
 import (
-	"errors"
-
+	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	"github.com/tidepool-org/platform/data/deduplicator/truncate"
 	"github.com/tidepool-org/platform/data/store"
@@ -51,5 +50,5 @@ func (f *Factory) NewDeduplicator(logger log.Logger, dataStoreSession store.Sess
 			return factory.NewDeduplicator(logger, dataStoreSession, dataset)
 		}
 	}
-	return nil, errors.New("Deduplicator not found")
+	return nil, app.Error("root", "deduplicator not found")
 }
