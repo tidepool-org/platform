@@ -37,11 +37,7 @@ func DatasetsDataCreate(serverContext server.Context) {
 		return
 	}
 
-	// TODO: Validate
-	targetUserID := dataset.UserID
-	targetGroupID := dataset.GroupID
-
-	err = serverContext.UserServicesClient().ValidateTargetUserPermissions(serverContext, serverContext.RequestUserID(), targetUserID, client.UploadPermissions)
+	err = serverContext.UserServicesClient().ValidateTargetUserPermissions(serverContext, serverContext.RequestUserID(), dataset.UserID, client.UploadPermissions)
 	if err != nil {
 		if client.IsUnauthorizedError(err) {
 			serverContext.RespondWithError(ErrorUnauthorized())
@@ -120,12 +116,6 @@ func DatasetsDataCreate(serverContext server.Context) {
 	}
 
 	datumArray = append(datumArray, datumNormalizer.Data()...)
-
-	for _, datum := range datumArray {
-		datum.SetUserID(targetUserID)
-		datum.SetGroupID(targetGroupID)
-		datum.SetDatasetID(datasetID)
-	}
 
 	if err = deduplicator.AddDataToDataset(datumArray); err != nil {
 		serverContext.RespondWithInternalServerFailure("Unable to add data to dataset", err)
