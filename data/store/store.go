@@ -10,9 +10,11 @@ package store
  * [ ] Full test coverage
  */
 
-import "github.com/tidepool-org/platform/log"
-
-// TODO: Consider adding Collection to NewSession
+import (
+	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/types/base/upload"
+	"github.com/tidepool-org/platform/log"
+)
 
 type Store interface {
 	IsClosed() bool
@@ -24,22 +26,10 @@ type Store interface {
 type Session interface {
 	IsClosed() bool
 	Close()
-	Find(query Query, result interface{}) error
-	FindAll(query Query, sort []string, filter Filter) Iterator
-	Insert(d interface{}) error
-	InsertAll(d ...interface{}) error
-	Update(selector interface{}, d interface{}) error
-	UpdateAll(selector interface{}, update interface{}) error
-	RemoveAll(selector interface{}) error
+	GetDataset(datasetID string) (*upload.Upload, error)
+	CreateDataset(dataset *upload.Upload) error
+	UpdateDataset(dataset *upload.Upload) error
+	CreateDatasetData(dataset *upload.Upload, datasetData []data.Datum) error
+	ActivateAllDatasetData(dataset *upload.Upload) error
+	RemoveAllOtherDatasetData(dataset *upload.Upload) error
 }
-
-type Iterator interface {
-	IsClosed() bool
-	Close() error
-	Next(result interface{}) bool
-	All(result interface{}) error
-	Err() error
-}
-
-type Query map[string]interface{}
-type Filter map[string]bool

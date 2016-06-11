@@ -14,8 +14,6 @@ import (
 	"net/http"
 
 	"github.com/tidepool-org/platform/data/deduplicator/root"
-	"github.com/tidepool-org/platform/data/store"
-	"github.com/tidepool-org/platform/data/types/base/upload"
 	"github.com/tidepool-org/platform/dataservices/server"
 	"github.com/tidepool-org/platform/userservices/client"
 )
@@ -27,9 +25,8 @@ func DatasetsUpdate(context server.Context) {
 		return
 	}
 
-	// TODO: Improve context.DataStoreSession() Find - more specific
-	var datasetUpload upload.Upload
-	if err := context.DataStoreSession().Find(store.Query{"type": "upload", "uploadId": datasetID}, &datasetUpload); err != nil {
+	datasetUpload, err := context.DataStoreSession().GetDataset(datasetID)
+	if err != nil {
 		context.RespondWithError(ErrorDatasetIDNotFound(datasetID))
 		return
 	}
@@ -37,7 +34,7 @@ func DatasetsUpdate(context server.Context) {
 	// TODO: Validate
 	targetUserID := datasetUpload.UserID
 
-	err := context.UserServicesClient().ValidateTargetUserPermissions(context, context.RequestUserID(), targetUserID, client.UploadPermissions)
+	err = context.UserServicesClient().ValidateTargetUserPermissions(context, context.RequestUserID(), targetUserID, client.UploadPermissions)
 	if err != nil {
 		if client.IsUnauthorizedError(err) {
 			context.RespondWithError(ErrorUnauthorized())
@@ -54,12 +51,12 @@ func DatasetsUpdate(context server.Context) {
 
 	datasetUpload.SetDataState("closed")
 
-	if err = context.DataStoreSession().Update(map[string]interface{}{"type": "upload", "uploadId": datasetID}, datasetUpload); err != nil {
-		context.RespondWithInternalServerFailure("Unable to insert dataset", err)
+	if err = context.DataStoreSession().UpdateDataset(datasetUpload); err != nil {
+		context.RespondWithInternalServerFailure("Unable to update dataset", err)
 		return
 	}
 
-	deduplicator, err := root.NewFactory().NewDeduplicator(context.Logger(), context.DataStoreSession(), &datasetUpload)
+	deduplicator, err := root.NewFactory().NewDeduplicator(context.Logger(), context.DataStoreSession(), datasetUpload)
 	if err != nil {
 		context.RespondWithInternalServerFailure("No duplicator found matching dataset", err)
 		return

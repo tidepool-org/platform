@@ -19,7 +19,7 @@ import (
 
 type Deduplicator interface {
 	InitializeDataset() error
-	AddDataToDataset(datumArray []data.Datum) error
+	AddDataToDataset(datasetData []data.Datum) error
 	FinalizeDataset() error
 }
 

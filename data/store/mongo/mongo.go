@@ -17,9 +17,12 @@ import (
 	"time"
 
 	mgo "gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 
 	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
+	"github.com/tidepool-org/platform/data/types/base/upload"
 	"github.com/tidepool-org/platform/log"
 )
 
@@ -179,187 +182,203 @@ func (s *Session) Close() {
 	}
 }
 
-func (s *Session) Find(query store.Query, result interface{}) error {
+func (s *Session) GetDataset(datasetID string) (*upload.Upload, error) {
+	if datasetID == "" {
+		return nil, app.Error("mongo", "dataset id is missing")
+	}
+
+	if s.IsClosed() {
+		return nil, app.Error("mongo", "session closed")
+	}
+
+	startTime := time.Now()
+
+	var dataset upload.Upload
+	err := s.C().Find(bson.M{"type": "upload", "uploadId": datasetID}).One(&dataset)
+
+	loggerFields := log.Fields{"datasetID": datasetID, "dataset": dataset, "duration": time.Since(startTime) / time.Microsecond}
+	s.logger.WithFields(loggerFields).WithError(err).Debug("GetDataset")
+
+	if err != nil {
+		return nil, app.ExtError(err, "mongo", "unable to get dataset")
+	}
+	return &dataset, nil
+}
+
+func (s *Session) CreateDataset(dataset *upload.Upload) error {
+	if dataset == nil {
+		return app.Error("mongo", "dataset is missing")
+	}
+	if dataset.UserID == "" {
+		return app.Error("mongo", "dataset user id is missing")
+	}
+	if dataset.GroupID == "" {
+		return app.Error("mongo", "dataset group id is missing")
+	}
+	if dataset.UploadID == "" {
+		return app.Error("mongo", "dataset upload id is missing")
+	}
+
 	if s.IsClosed() {
 		return app.Error("mongo", "session closed")
 	}
 
 	startTime := time.Now()
 
-	err := s.C().Find(query).One(result)
+	err := s.C().Insert(dataset)
 
-	loggerFields := log.Fields{"query": query, "result": result, "duration": time.Since(startTime) / time.Microsecond}
-	s.logger.WithFields(loggerFields).WithError(err).Debug("Find")
+	loggerFields := log.Fields{"dataset": dataset, "duration": time.Since(startTime) / time.Microsecond}
+	s.logger.WithFields(loggerFields).WithError(err).Debug("CreateDataset")
 
 	if err != nil {
-		return app.ExtError(err, "mongo", "unable to find")
+		return app.ExtError(err, "mongo", "unable to create dataset")
 	}
 	return nil
 }
 
-func (s *Session) FindAll(query store.Query, sort []string, filter store.Filter) store.Iterator {
-	if s.IsClosed() {
-		return &Iterator{}
+func (s *Session) UpdateDataset(dataset *upload.Upload) error {
+	if dataset == nil {
+		return app.Error("mongo", "dataset is missing")
+	}
+	if dataset.UserID == "" {
+		return app.Error("mongo", "dataset user id is missing")
+	}
+	if dataset.GroupID == "" {
+		return app.Error("mongo", "dataset group id is missing")
+	}
+	if dataset.UploadID == "" {
+		return app.Error("mongo", "dataset upload id is missing")
 	}
 
-	startTime := time.Now()
-
-	iter := &Iterator{s.logger, s.C().Find(query).Sort(sort...).Select(filter).Iter()}
-	err := iter.Err()
-
-	loggerFields := log.Fields{"query": query, "sort": sort, "filter": filter, "duration": time.Since(startTime) / time.Microsecond}
-	s.logger.WithFields(loggerFields).WithError(err).Debug("FindAll")
-
-	return iter
-}
-
-func (s *Session) Insert(document interface{}) error {
 	if s.IsClosed() {
 		return app.Error("mongo", "session closed")
 	}
 
 	startTime := time.Now()
 
-	err := s.C().Insert(document)
+	selector := bson.M{"_userId": dataset.UserID, "_groupId": dataset.GroupID, "uploadId": dataset.UploadID, "type": dataset.Type}
+	err := s.C().Update(selector, dataset)
 
-	loggerFields := log.Fields{"document": document, "duration": time.Since(startTime) / time.Microsecond}
-	s.logger.WithFields(loggerFields).WithError(err).Debug("Insert")
+	loggerFields := log.Fields{"dataset": dataset, "duration": time.Since(startTime) / time.Microsecond}
+	s.logger.WithFields(loggerFields).WithError(err).Debug("UpdateDataset")
 
 	if err != nil {
-		return app.ExtError(err, "mongo", "unable to insert")
+		return app.ExtError(err, "mongo", "unable to update dataset")
 	}
 	return nil
 }
 
-func (s *Session) InsertAll(documents ...interface{}) error {
+func (s *Session) CreateDatasetData(dataset *upload.Upload, datasetData []data.Datum) error {
+	if dataset == nil {
+		return app.Error("mongo", "dataset is missing")
+	}
+	if dataset.UserID == "" {
+		return app.Error("mongo", "dataset user id is missing")
+	}
+	if dataset.GroupID == "" {
+		return app.Error("mongo", "dataset group id is missing")
+	}
+	if dataset.UploadID == "" {
+		return app.Error("mongo", "dataset upload id is missing")
+	}
+	if datasetData == nil {
+		return app.Error("mongo", "dataset data is missing")
+	}
+
 	if s.IsClosed() {
 		return app.Error("mongo", "session closed")
+	}
+
+	insertData := make([]interface{}, len(datasetData))
+	for index, datum := range datasetData {
+		datum.SetUserID(dataset.UserID)
+		datum.SetGroupID(dataset.GroupID)
+		datum.SetDatasetID(dataset.UploadID)
+		insertData[index] = datum
 	}
 
 	startTime := time.Now()
 
 	bulk := s.C().Bulk()
 	bulk.Unordered()
-	bulk.Insert(documents...)
+	bulk.Insert(insertData...)
 
 	_, err := bulk.Run()
 
-	loggerFields := log.Fields{"document-count": len(documents), "duration": time.Since(startTime) / time.Microsecond}
-	s.logger.WithFields(loggerFields).WithError(err).Debug("InsertAll")
+	loggerFields := log.Fields{"dataset": dataset, "dataset-data-length": len(datasetData), "duration": time.Since(startTime) / time.Microsecond}
+	s.logger.WithFields(loggerFields).WithError(err).Debug("CreateDatasetData")
 
 	if err != nil {
-		return app.ExtError(err, "mongo", "unable to insert all")
+		return app.ExtError(err, "mongo", "unable to create dataset data")
 	}
 	return nil
 }
 
-func (s *Session) Update(selector interface{}, update interface{}) error {
+func (s *Session) ActivateAllDatasetData(dataset *upload.Upload) error {
+	if dataset == nil {
+		return app.Error("mongo", "dataset is missing")
+	}
+	if dataset.UserID == "" {
+		return app.Error("mongo", "dataset user id is missing")
+	}
+	if dataset.GroupID == "" {
+		return app.Error("mongo", "dataset group id is missing")
+	}
+	if dataset.UploadID == "" {
+		return app.Error("mongo", "dataset upload id is missing")
+	}
+
 	if s.IsClosed() {
 		return app.Error("mongo", "session closed")
 	}
 
 	startTime := time.Now()
 
-	err := s.C().Update(selector, update)
-
-	loggerFields := log.Fields{"selector": selector, "update": update, "duration": time.Since(startTime) / time.Microsecond}
-	s.logger.WithFields(loggerFields).WithError(err).Debug("Update")
-
-	if err != nil {
-		return app.ExtError(err, "mongo", "unable to update")
-	}
-	return nil
-}
-
-func (s *Session) UpdateAll(selector interface{}, update interface{}) error {
-	if s.IsClosed() {
-		return app.Error("mongo", "session closed")
-	}
-
-	startTime := time.Now()
-
+	selector := bson.M{"_userId": dataset.UserID, "_groupId": dataset.GroupID, "uploadId": dataset.UploadID}
+	update := bson.M{"$set": bson.M{"_active": true}}
 	changeInfo, err := s.C().UpdateAll(selector, update)
 
-	loggerFields := log.Fields{"selector": selector, "update": update, "change-info": changeInfo, "duration": time.Since(startTime) / time.Microsecond}
-	s.logger.WithFields(loggerFields).WithError(err).Debug("UpdateAll")
+	loggerFields := log.Fields{"dataset": dataset, "change-info": changeInfo, "duration": time.Since(startTime) / time.Microsecond}
+	s.logger.WithFields(loggerFields).WithError(err).Debug("ActivateAllDatasetData")
 
 	if err != nil {
-		return app.ExtError(err, "mongo", "unable to update all")
+		return app.ExtError(err, "mongo", "unable to activate all dataset data")
 	}
 	return nil
 }
 
-func (s *Session) RemoveAll(selector interface{}) error {
+func (s *Session) RemoveAllOtherDatasetData(dataset *upload.Upload) error {
+	if dataset == nil {
+		return app.Error("mongo", "dataset is missing")
+	}
+	if dataset.UserID == "" {
+		return app.Error("mongo", "dataset user id is missing")
+	}
+	if dataset.GroupID == "" {
+		return app.Error("mongo", "dataset group id is missing")
+	}
+	if dataset.UploadID == "" {
+		return app.Error("mongo", "dataset upload id is missing")
+	}
+
 	if s.IsClosed() {
 		return app.Error("mongo", "session closed")
 	}
 
 	startTime := time.Now()
 
+	selector := bson.M{"_userId": dataset.UserID, "_groupId": dataset.GroupID, "deviceId": dataset.DeviceID, "type": bson.M{"$ne": "upload"}, "uploadId": bson.M{"$ne": dataset.UploadID}}
 	changeInfo, err := s.C().RemoveAll(selector)
 
-	loggerFields := log.Fields{"selector": selector, "change-info": changeInfo, "duration": time.Since(startTime) / time.Microsecond}
-	s.logger.WithFields(loggerFields).WithError(err).Debug("RemoveAll")
+	loggerFields := log.Fields{"dataset": dataset, "change-info": changeInfo, "duration": time.Since(startTime) / time.Microsecond}
+	s.logger.WithFields(loggerFields).WithError(err).Debug("RemoveAllOtherDatasetData")
 
 	if err != nil {
-		return app.ExtError(err, "mongo", "unable to remove all")
+		return app.ExtError(err, "mongo", "unable to remove all other dataset data")
 	}
 	return nil
 }
 
 func (s *Session) C() *mgo.Collection {
 	return s.session.DB(s.config.Database).C(s.config.Collection)
-}
-
-type Iterator struct {
-	logger   log.Logger
-	iterator *mgo.Iter
-}
-
-func (i *Iterator) IsClosed() bool {
-	return i.iterator == nil
-}
-
-func (i *Iterator) Close() (err error) {
-	if i.iterator != nil {
-		err = i.iterator.Close()
-		i.iterator = nil
-	}
-
-	if err != nil {
-		err = app.ExtError(err, "mongo", "unable to close iterator")
-	}
-	return err
-}
-
-func (i *Iterator) Err() error {
-	if i.IsClosed() {
-		return app.Error("mongo", "iterator closed")
-	}
-
-	err := i.iterator.Err()
-	if err != nil {
-		err = app.ExtError(err, "mongo", "error while iterating")
-	}
-	return err
-}
-
-func (i *Iterator) Next(result interface{}) bool {
-	if i.IsClosed() {
-		return false
-	}
-
-	return i.iterator.Next(result)
-}
-
-func (i *Iterator) All(result interface{}) error {
-	if i.IsClosed() {
-		return app.Error("mongo", "iterator closed")
-	}
-
-	err := i.iterator.All(result)
-	if err != nil {
-		err = app.ExtError(err, "mongo", "unable to get all from iterator")
-	}
-	return err
 }
