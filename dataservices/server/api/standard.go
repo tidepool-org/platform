@@ -6,12 +6,12 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/dataservices/server"
 	"github.com/tidepool-org/platform/dataservices/server/api/v1"
 	"github.com/tidepool-org/platform/dataservices/server/context"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
-	"github.com/tidepool-org/platform/store"
 	"github.com/tidepool-org/platform/userservices/client"
 	"github.com/tidepool-org/platform/version"
 )

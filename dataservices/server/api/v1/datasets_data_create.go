@@ -18,11 +18,11 @@ import (
 	"github.com/tidepool-org/platform/data/deduplicator/root"
 	"github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
+	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/base/upload"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/dataservices/server"
-	"github.com/tidepool-org/platform/store"
 	"github.com/tidepool-org/platform/userservices/client"
 )
 

@@ -19,8 +19,8 @@ import (
 	mgo "gopkg.in/mgo.v2"
 
 	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/store"
 )
 
 // TODO: Consider SetStats, GetStats

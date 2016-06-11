@@ -13,9 +13,9 @@ package context
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
+	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/dataservices/server"
 	"github.com/tidepool-org/platform/service"
-	"github.com/tidepool-org/platform/store"
 	"github.com/tidepool-org/platform/userservices/client"
 )
 

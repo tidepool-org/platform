@@ -14,9 +14,9 @@ import (
 	"net/http"
 
 	"github.com/tidepool-org/platform/data/deduplicator/root"
+	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/base/upload"
 	"github.com/tidepool-org/platform/dataservices/server"
-	"github.com/tidepool-org/platform/store"
 	"github.com/tidepool-org/platform/userservices/client"
 )
 
