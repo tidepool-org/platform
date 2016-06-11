@@ -23,7 +23,7 @@ func Authenticate(handler server.HandlerFunc) server.HandlerFunc {
 			return
 		}
 
-		requestUserID, err := context.Client().ValidateUserSession(context, userSessionToken)
+		requestUserID, err := context.UserServicesClient().ValidateUserSession(context, userSessionToken)
 		if err != nil {
 			if client.IsUnauthorizedError(err) {
 				context.RespondWithError(ErrorUnauthenticated())

@@ -9,8 +9,8 @@ import (
 type Context interface {
 	service.Context
 
-	Store() store.Session
-	Client() client.Client
+	DataStoreSession() store.Session
+	UserServicesClient() client.Client
 
 	RequestUserID() string
 	SetRequestUserID(requestUserID string)

@@ -31,7 +31,7 @@ func UsersDatasetsCreate(serverContext server.Context) {
 		return
 	}
 
-	err := serverContext.Client().ValidateTargetUserPermissions(serverContext, serverContext.RequestUserID(), targetUserID, client.UploadPermissions)
+	err := serverContext.UserServicesClient().ValidateTargetUserPermissions(serverContext, serverContext.RequestUserID(), targetUserID, client.UploadPermissions)
 	if err != nil {
 		if client.IsUnauthorizedError(err) {
 			serverContext.RespondWithError(ErrorUnauthorized())
@@ -41,7 +41,7 @@ func UsersDatasetsCreate(serverContext server.Context) {
 		return
 	}
 
-	targetUserGroupID, err := serverContext.Client().GetUserGroupID(serverContext, targetUserID)
+	targetUserGroupID, err := serverContext.UserServicesClient().GetUserGroupID(serverContext, targetUserID)
 	if err != nil {
 		if client.IsUnauthorizedError(err) {
 			serverContext.RespondWithError(ErrorUnauthorized())
@@ -108,12 +108,12 @@ func UsersDatasetsCreate(serverContext server.Context) {
 
 	datasetUpload.SetUploadUserID(serverContext.RequestUserID())
 
-	if err = serverContext.Store().Insert(datasetUpload); err != nil {
+	if err = serverContext.DataStoreSession().Insert(datasetUpload); err != nil {
 		serverContext.RespondWithInternalServerFailure("Unable to insert dataset", err)
 		return
 	}
 
-	deduplicator, err := root.NewFactory().NewDeduplicator(serverContext.Logger(), serverContext.Store(), datasetUpload)
+	deduplicator, err := root.NewFactory().NewDeduplicator(serverContext.Logger(), serverContext.DataStoreSession(), datasetUpload)
 	if err != nil {
 		serverContext.RespondWithInternalServerFailure("No duplicator found matching dataset", err)
 		return

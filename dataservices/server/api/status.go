@@ -21,7 +21,7 @@ type Status struct {
 func (s *Standard) GetStatus(response rest.ResponseWriter, request *rest.Request) {
 	status := &Status{
 		Version: s.versionReporter.Long(),
-		Store:   s.store.GetStatus(),
+		Store:   s.dataStore.GetStatus(),
 		Server:  s.statusMiddleware.GetStatus(),
 	}
 	response.WriteJson(status)

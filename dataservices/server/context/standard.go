@@ -21,36 +21,36 @@ import (
 
 type Standard struct {
 	service.Context
-	store         store.Session
-	client        client.Client
-	requestUserID string
+	dataStoreSession   store.Session
+	userServicesClient client.Client
+	requestUserID      string
 }
 
-func WithContext(dataStore store.Store, client client.Client, handler server.HandlerFunc) rest.HandlerFunc {
+func WithContext(dataStore store.Store, userServicesClient client.Client, handler server.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
 		context := service.NewStandard(response, request)
 
-		store, err := dataStore.NewSession(context.Logger())
+		dataStoreSession, err := dataStore.NewSession(context.Logger())
 		if err != nil {
 			context.RespondWithInternalServerFailure("Unable to create new data store session for request", err)
 			return
 		}
-		defer store.Close()
+		defer dataStoreSession.Close()
 
 		handler(&Standard{
-			Context: context,
-			store:   store,
-			client:  client,
+			Context:            context,
+			dataStoreSession:   dataStoreSession,
+			userServicesClient: userServicesClient,
 		})
 	}
 }
 
-func (s *Standard) Store() store.Session {
-	return s.store
+func (s *Standard) DataStoreSession() store.Session {
+	return s.dataStoreSession
 }
 
-func (s *Standard) Client() client.Client {
-	return s.client
+func (s *Standard) UserServicesClient() client.Client {
+	return s.userServicesClient
 }
 
 func (s *Standard) RequestUserID() string {

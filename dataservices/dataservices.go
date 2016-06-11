@@ -65,14 +65,14 @@ func main() {
 	}
 	defer dataStore.Close()
 
-	userservicesClient, err := initializeUserservicesClient(configLoader, logger)
+	userServicesClient, err := initializeUserServicesClient(configLoader, logger)
 	if err != nil {
 		logger.WithError(err).Error("Failure initializing userservices client")
 		os.Exit(1)
 	}
-	defer userservicesClient.Close()
+	defer userServicesClient.Close()
 
-	api, err := initializeAPI(configLoader, logger, dataStore, userservicesClient, versionReporter)
+	api, err := initializeAPI(configLoader, logger, dataStore, userServicesClient, versionReporter)
 	if err != nil {
 		logger.WithError(err).Error("Failure initializing API")
 		os.Exit(1)
@@ -142,32 +142,32 @@ func initializeDataStore(configLoader config.Loader, logger log.Logger) (store.S
 	return mongoDataStore, nil
 }
 
-func initializeUserservicesClient(configLoader config.Loader, logger log.Logger) (client.Client, error) {
+func initializeUserServicesClient(configLoader config.Loader, logger log.Logger) (client.Client, error) {
 
 	logger.Debug("Loading userservices client config")
 
-	userservicesClientConfig := &client.Config{}
-	if err := configLoader.Load("userservices_client", userservicesClientConfig); err != nil {
+	userServicesClientConfig := &client.Config{}
+	if err := configLoader.Load("userservices_client", userServicesClientConfig); err != nil {
 		return nil, app.ExtError(err, "dataservices", "unable to load userservices client config")
 	}
 
 	logger.Debug("Creating userservices client")
 
-	userservicesClient, err := client.NewStandard(logger, userservicesClientConfig)
+	userServicesClient, err := client.NewStandard(logger, userServicesClientConfig)
 	if err != nil {
 		return nil, app.ExtError(err, "dataservices", "unable to create userservices client")
 	}
 
 	logger.Debug("Starting userservices client")
-	if err = userservicesClient.Start(); err != nil {
+	if err = userServicesClient.Start(); err != nil {
 		return nil, app.ExtError(err, "dataservices", "unable to start userservices client")
 	}
 
-	return userservicesClient, nil
+	return userServicesClient, nil
 }
 
-func initializeAPI(configLoader config.Loader, logger log.Logger, dataStore store.Store, userservicesClient client.Client, reporter version.Reporter) (server.API, error) {
-	return api.NewStandard(logger, dataStore, userservicesClient, reporter)
+func initializeAPI(configLoader config.Loader, logger log.Logger, dataStore store.Store, userServicesClient client.Client, reporter version.Reporter) (server.API, error) {
+	return api.NewStandard(logger, dataStore, userServicesClient, reporter)
 }
 
 func initializeServer(configLoader config.Loader, logger log.Logger, api server.API) (server.Server, error) {
