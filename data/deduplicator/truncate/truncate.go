@@ -22,24 +22,24 @@ import (
 )
 
 func NewFactory() deduplicator.Factory {
-	return &Factory{}
+	return &factory{}
 }
 
-type Factory struct {
+type factory struct {
 }
 
 type Config struct {
 	Name string `bson:"name"`
 }
 
-type Deduplicator struct {
+type truncate struct {
 	logger           log.Logger
 	dataStoreSession store.Session
 	dataset          *upload.Upload
 	config           Config
 }
 
-func (f *Factory) CanDeduplicateDataset(dataset *upload.Upload) (bool, error) {
+func (f *factory) CanDeduplicateDataset(dataset *upload.Upload) (bool, error) {
 	if dataset == nil {
 		return false, app.Error("truncate", "dataset upload is nil")
 	}
@@ -59,7 +59,7 @@ func (f *Factory) CanDeduplicateDataset(dataset *upload.Upload) (bool, error) {
 	return false, nil
 }
 
-func (f *Factory) NewDeduplicator(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (deduplicator.Deduplicator, error) {
+func (f *factory) NewDeduplicator(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (deduplicator.Deduplicator, error) {
 	if logger == nil {
 		return nil, app.Error("truncate", "logger is nil")
 	}
@@ -70,7 +70,7 @@ func (f *Factory) NewDeduplicator(logger log.Logger, dataStoreSession store.Sess
 		return nil, app.Error("truncate", "dataset upload is nil")
 	}
 
-	return &Deduplicator{
+	return &truncate{
 		logger:           logger,
 		dataStoreSession: dataStoreSession,
 		dataset:          dataset,
@@ -80,29 +80,29 @@ func (f *Factory) NewDeduplicator(logger log.Logger, dataStoreSession store.Sess
 	}, nil
 }
 
-func (d *Deduplicator) InitializeDataset() error {
-	d.dataset.SetDeduplicator(d.config)
+func (t *truncate) InitializeDataset() error {
+	t.dataset.SetDeduplicator(t.config)
 
-	if err := d.dataStoreSession.UpdateDataset(d.dataset); err != nil {
+	if err := t.dataStoreSession.UpdateDataset(t.dataset); err != nil {
 		return app.ExtError(err, "truncate", "unable to initialize dataset")
 	}
 
 	return nil
 }
 
-func (d *Deduplicator) AddDataToDataset(datasetData []data.Datum) error {
-	return d.dataStoreSession.CreateDatasetData(d.dataset, datasetData)
+func (t *truncate) AddDataToDataset(datasetData []data.Datum) error {
+	return t.dataStoreSession.CreateDatasetData(t.dataset, datasetData)
 }
 
-func (d *Deduplicator) FinalizeDataset() error {
+func (t *truncate) FinalizeDataset() error {
 	// TODO: Technically, ActivateAllDatasetData could succeed, but RemoveAllOtherDatasetData fail. This would
 	// result in duplicate (and possible incorrect) data. Is there a way to resolve this? Would be nice to have transactions.
 
-	if err := d.dataStoreSession.ActivateAllDatasetData(d.dataset); err != nil {
-		return app.ExtErrorf(err, "truncate", "unable to activate data in dataset with id '%s'", d.dataset.UploadID)
+	if err := t.dataStoreSession.ActivateAllDatasetData(t.dataset); err != nil {
+		return app.ExtErrorf(err, "truncate", "unable to activate data in dataset with id '%s'", t.dataset.UploadID)
 	}
-	if err := d.dataStoreSession.RemoveAllOtherDatasetData(d.dataset); err != nil {
-		return app.ExtErrorf(err, "truncate", "unable to remove all other data except dataset with id '%s'", d.dataset.UploadID)
+	if err := t.dataStoreSession.RemoveAllOtherDatasetData(t.dataset); err != nil {
+		return app.ExtErrorf(err, "truncate", "unable to remove all other data except dataset with id '%s'", t.dataset.UploadID)
 	}
 
 	return nil

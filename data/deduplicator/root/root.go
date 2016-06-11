@@ -20,18 +20,18 @@ import (
 )
 
 func NewFactory() deduplicator.Factory {
-	return &Factory{
+	return &factory{
 		[]deduplicator.Factory{
 			truncate.NewFactory(),
 		},
 	}
 }
 
-type Factory struct {
+type factory struct {
 	factories []deduplicator.Factory
 }
 
-func (f *Factory) CanDeduplicateDataset(dataset *upload.Upload) (bool, error) {
+func (f *factory) CanDeduplicateDataset(dataset *upload.Upload) (bool, error) {
 	for _, factory := range f.factories {
 		if can, err := factory.CanDeduplicateDataset(dataset); err != nil {
 			return false, err
@@ -42,7 +42,7 @@ func (f *Factory) CanDeduplicateDataset(dataset *upload.Upload) (bool, error) {
 	return false, nil
 }
 
-func (f *Factory) NewDeduplicator(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (deduplicator.Deduplicator, error) {
+func (f *factory) NewDeduplicator(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (deduplicator.Deduplicator, error) {
 	for _, factory := range f.factories {
 		if can, err := factory.CanDeduplicateDataset(dataset); err != nil {
 			return nil, err
