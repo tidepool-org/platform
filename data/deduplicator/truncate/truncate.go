@@ -81,62 +81,28 @@ func (f *Factory) NewDeduplicator(logger log.Logger, storeSession store.Session,
 }
 
 func (d *Deduplicator) InitializeDataset() error {
-	userID := d.datasetUpload.UserID
-	if userID == "" {
-		return app.Error("truncate", "user id is missing")
-	}
-	groupID := d.datasetUpload.GroupID
-	if groupID == "" {
-		return app.Error("truncate", "group id is missing")
-	}
-	datasetID := d.datasetUpload.UploadID
-	if datasetID == "" {
-		return app.Error("truncate", "dataset id is missing")
-	}
-
 	d.datasetUpload.SetDeduplicator(d.config)
 
-	query := map[string]interface{}{"_userId": userID, "_groupId": groupID, "uploadId": datasetID, "type": d.datasetUpload.Type}
-	return d.storeSession.Update(query, d.datasetUpload)
-}
-
-func (d *Deduplicator) AddDataToDataset(datumArray []data.Datum) error {
-	// TODO: FIXME: Lame Go array conversion
-	insertArray := make([]interface{}, len(datumArray))
-	for index, datum := range datumArray {
-		insertArray[index] = datum
+	if err := d.storeSession.UpdateDataset(d.datasetUpload); err != nil {
+		return app.ExtError(err, "truncate", "unable to initialize dataset")
 	}
 
-	return d.storeSession.InsertAll(insertArray...)
+	return nil
+}
+
+func (d *Deduplicator) AddDataToDataset(datasetData []data.Datum) error {
+	return d.storeSession.CreateDatasetData(d.datasetUpload, datasetData)
 }
 
 func (d *Deduplicator) FinalizeDataset() error {
-	userID := d.datasetUpload.UserID
-	if userID == "" {
-		return app.Error("truncate", "user id is missing")
-	}
-	groupID := d.datasetUpload.GroupID
-	if groupID == "" {
-		return app.Error("truncate", "group id is missing")
-	}
-	datasetID := d.datasetUpload.UploadID
-	if datasetID == "" {
-		return app.Error("truncate", "dataset id is missing")
-	}
-	deviceID := d.datasetUpload.DeviceID
-	if deviceID == nil {
-		return app.Error("truncate", "device id is missing")
-	}
+	// TODO: Technically, ActivateAllDatasetData could succeed, but RemoveAllOtherDatasetData fail. This would
+	// result in duplicate (and possible incorrect) data. Is there a way to resolve this? Would be nice to have transactions.
 
-	// TODO: Technically, UpdateAll could succeed, but RemoveAll fail. This which result in duplicate (and possible incorrect) data.
-	// TODO: Is there a way to resolve this? Would be nice to have transactions.
-
-	if err := d.storeSession.UpdateAll(bson.M{"_userId": userID, "_groupId": groupID, "uploadId": datasetID}, bson.M{"$set": bson.M{"_active": true}}); err != nil {
-		return app.ExtErrorf(err, "truncate", "unable to activate data in dataset with id '%s'", datasetID)
+	if err := d.storeSession.ActivateAllDatasetData(d.datasetUpload); err != nil {
+		return app.ExtErrorf(err, "truncate", "unable to activate data in dataset with id '%s'", d.datasetUpload.UploadID)
 	}
-
-	if err := d.storeSession.RemoveAll(bson.M{"_userId": userID, "_groupId": groupID, "deviceId": *deviceID, "type": bson.M{"$ne": "upload"}, "uploadId": bson.M{"$ne": datasetID}}); err != nil {
-		return app.ExtErrorf(err, "truncate", "unable to delete data in datasets with device ID '%s' other than with id '%s'", *deviceID, datasetID)
+	if err := d.storeSession.RemoveAllOtherDatasetData(d.datasetUpload); err != nil {
+		return app.ExtErrorf(err, "truncate", "unable to remove all other data except dataset with id '%s'", d.datasetUpload.UploadID)
 	}
 
 	return nil

@@ -18,9 +18,7 @@ import (
 	"github.com/tidepool-org/platform/data/deduplicator/root"
 	"github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
-	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types"
-	"github.com/tidepool-org/platform/data/types/base/upload"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/dataservices/server"
 	"github.com/tidepool-org/platform/userservices/client"
@@ -33,9 +31,8 @@ func DatasetsDataCreate(serverContext server.Context) {
 		return
 	}
 
-	// TODO: Improve serverContext.DataStoreSession() Find - more specific
-	var datasetUpload upload.Upload
-	if err := serverContext.DataStoreSession().Find(store.Query{"type": "upload", "uploadId": datasetID}, &datasetUpload); err != nil {
+	datasetUpload, err := serverContext.DataStoreSession().GetDataset(datasetID)
+	if err != nil {
 		serverContext.RespondWithError(ErrorDatasetIDNotFound(datasetID))
 		return
 	}
@@ -44,7 +41,7 @@ func DatasetsDataCreate(serverContext server.Context) {
 	targetUserID := datasetUpload.UserID
 	targetGroupID := datasetUpload.GroupID
 
-	err := serverContext.UserServicesClient().ValidateTargetUserPermissions(serverContext, serverContext.RequestUserID(), targetUserID, client.UploadPermissions)
+	err = serverContext.UserServicesClient().ValidateTargetUserPermissions(serverContext, serverContext.RequestUserID(), targetUserID, client.UploadPermissions)
 	if err != nil {
 		if client.IsUnauthorizedError(err) {
 			serverContext.RespondWithError(ErrorUnauthorized())
@@ -59,7 +56,7 @@ func DatasetsDataCreate(serverContext server.Context) {
 		return
 	}
 
-	deduplicator, err := root.NewFactory().NewDeduplicator(serverContext.Logger(), serverContext.DataStoreSession(), &datasetUpload)
+	deduplicator, err := root.NewFactory().NewDeduplicator(serverContext.Logger(), serverContext.DataStoreSession(), datasetUpload)
 	if err != nil {
 		serverContext.RespondWithInternalServerFailure("No duplicator found matching dataset", err)
 		return
