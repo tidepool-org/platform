@@ -18,52 +18,52 @@ import (
 	"github.com/tidepool-org/platform/userservices/client"
 )
 
-func DatasetsUpdate(context server.Context) {
-	datasetID := context.Request().PathParam("datasetid")
+func DatasetsUpdate(serverContext server.Context) {
+	datasetID := serverContext.Request().PathParam("datasetid")
 	if datasetID == "" {
-		context.RespondWithError(ErrorDatasetIDMissing())
+		serverContext.RespondWithError(ErrorDatasetIDMissing())
 		return
 	}
 
-	dataset, err := context.DataStoreSession().GetDataset(datasetID)
+	dataset, err := serverContext.DataStoreSession().GetDataset(datasetID)
 	if err != nil {
-		context.RespondWithError(ErrorDatasetIDNotFound(datasetID))
+		serverContext.RespondWithError(ErrorDatasetIDNotFound(datasetID))
 		return
 	}
 
-	err = context.UserServicesClient().ValidateTargetUserPermissions(context, context.RequestUserID(), dataset.UserID, client.UploadPermissions)
+	err = serverContext.UserServicesClient().ValidateTargetUserPermissions(serverContext, serverContext.RequestUserID(), dataset.UserID, client.UploadPermissions)
 	if err != nil {
 		if client.IsUnauthorizedError(err) {
-			context.RespondWithError(ErrorUnauthorized())
+			serverContext.RespondWithError(ErrorUnauthorized())
 		} else {
-			context.RespondWithInternalServerFailure("Unable to validate target user permissions", err)
+			serverContext.RespondWithInternalServerFailure("Unable to validate target user permissions", err)
 		}
 		return
 	}
 
 	if dataset.DataState != "open" {
-		context.RespondWithError(ErrorDatasetClosed(datasetID))
+		serverContext.RespondWithError(ErrorDatasetClosed(datasetID))
 		return
 	}
 
 	dataset.SetDataState("closed")
 
-	if err = context.DataStoreSession().UpdateDataset(dataset); err != nil {
-		context.RespondWithInternalServerFailure("Unable to update dataset", err)
+	if err = serverContext.DataStoreSession().UpdateDataset(dataset); err != nil {
+		serverContext.RespondWithInternalServerFailure("Unable to update dataset", err)
 		return
 	}
 
-	deduplicator, err := root.NewFactory().NewDeduplicator(context.Logger(), context.DataStoreSession(), dataset)
+	deduplicator, err := root.NewFactory().NewDeduplicator(serverContext.Logger(), serverContext.DataStoreSession(), dataset)
 	if err != nil {
-		context.RespondWithInternalServerFailure("No duplicator found matching dataset", err)
+		serverContext.RespondWithInternalServerFailure("No duplicator found matching dataset", err)
 		return
 	}
 
 	if err = deduplicator.FinalizeDataset(); err != nil {
-		context.RespondWithInternalServerFailure("Unable to finalize dataset", err)
+		serverContext.RespondWithInternalServerFailure("Unable to finalize dataset", err)
 		return
 	}
 
-	context.Response().WriteHeader(http.StatusOK)
-	context.Response().WriteJson(dataset)
+	serverContext.Response().WriteHeader(http.StatusOK)
+	serverContext.Response().WriteJson(dataset)
 }
