@@ -13,7 +13,6 @@ package v1
 import (
 	"net/http"
 
-	"github.com/tidepool-org/platform/data/deduplicator/root"
 	"github.com/tidepool-org/platform/dataservices/server"
 	"github.com/tidepool-org/platform/userservices/client"
 )
@@ -53,7 +52,7 @@ func DatasetsUpdate(serverContext server.Context) {
 		return
 	}
 
-	deduplicator, err := root.NewFactory().NewDeduplicator(serverContext.Logger(), serverContext.DataStoreSession(), dataset)
+	deduplicator, err := serverContext.DataDeduplicatorFactory().NewDeduplicator(serverContext.Logger(), serverContext.DataStoreSession(), dataset)
 	if err != nil {
 		serverContext.RespondWithInternalServerFailure("No duplicator found matching dataset", err)
 		return

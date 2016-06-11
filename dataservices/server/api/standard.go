@@ -6,6 +6,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/data/deduplicator"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/dataservices/server"
 	"github.com/tidepool-org/platform/dataservices/server/api/v1"
@@ -17,20 +18,24 @@ import (
 )
 
 type Standard struct {
-	logger             log.Logger
-	dataStore          store.Store
-	userServicesClient client.Client
-	versionReporter    version.Reporter
-	api                *rest.Api
-	statusMiddleware   *rest.StatusMiddleware
+	logger                  log.Logger
+	dataStore               store.Store
+	dataDeduplicatorFactory deduplicator.Factory
+	userServicesClient      client.Client
+	versionReporter         version.Reporter
+	api                     *rest.Api
+	statusMiddleware        *rest.StatusMiddleware
 }
 
-func NewStandard(logger log.Logger, dataStore store.Store, userServicesClient client.Client, versionReporter version.Reporter) (*Standard, error) {
+func NewStandard(logger log.Logger, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, userServicesClient client.Client, versionReporter version.Reporter) (*Standard, error) {
 	if logger == nil {
 		return nil, app.Error("api", "logger is missing")
 	}
 	if dataStore == nil {
 		return nil, app.Error("api", "data store is missing")
+	}
+	if dataDeduplicatorFactory == nil {
+		return nil, app.Error("api", "data deduplicator factory is missing")
 	}
 	if userServicesClient == nil {
 		return nil, app.Error("api", "user services client is missing")
@@ -40,11 +45,12 @@ func NewStandard(logger log.Logger, dataStore store.Store, userServicesClient cl
 	}
 
 	standard := &Standard{
-		logger:             logger,
-		dataStore:          dataStore,
-		userServicesClient: userServicesClient,
-		versionReporter:    versionReporter,
-		api:                rest.NewApi(),
+		logger:                  logger,
+		dataStore:               dataStore,
+		dataDeduplicatorFactory: dataDeduplicatorFactory,
+		userServicesClient:      userServicesClient,
+		versionReporter:         versionReporter,
+		api:                     rest.NewApi(),
 	}
 	if err := standard.initMiddleware(); err != nil {
 		return nil, err
@@ -125,5 +131,5 @@ func (s *Standard) initRouter() error {
 }
 
 func (s *Standard) withContext(handler server.HandlerFunc) rest.HandlerFunc {
-	return context.WithContext(s.dataStore, s.userServicesClient, handler)
+	return context.WithContext(s.dataStore, s.dataDeduplicatorFactory, s.userServicesClient, handler)
 }
