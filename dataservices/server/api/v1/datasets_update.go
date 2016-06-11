@@ -25,14 +25,14 @@ func DatasetsUpdate(context server.Context) {
 		return
 	}
 
-	datasetUpload, err := context.DataStoreSession().GetDataset(datasetID)
+	dataset, err := context.DataStoreSession().GetDataset(datasetID)
 	if err != nil {
 		context.RespondWithError(ErrorDatasetIDNotFound(datasetID))
 		return
 	}
 
 	// TODO: Validate
-	targetUserID := datasetUpload.UserID
+	targetUserID := dataset.UserID
 
 	err = context.UserServicesClient().ValidateTargetUserPermissions(context, context.RequestUserID(), targetUserID, client.UploadPermissions)
 	if err != nil {
@@ -44,19 +44,19 @@ func DatasetsUpdate(context server.Context) {
 		return
 	}
 
-	if datasetUpload.DataState != "open" {
+	if dataset.DataState != "open" {
 		context.RespondWithError(ErrorDatasetClosed(datasetID))
 		return
 	}
 
-	datasetUpload.SetDataState("closed")
+	dataset.SetDataState("closed")
 
-	if err = context.DataStoreSession().UpdateDataset(datasetUpload); err != nil {
+	if err = context.DataStoreSession().UpdateDataset(dataset); err != nil {
 		context.RespondWithInternalServerFailure("Unable to update dataset", err)
 		return
 	}
 
-	deduplicator, err := root.NewFactory().NewDeduplicator(context.Logger(), context.DataStoreSession(), datasetUpload)
+	deduplicator, err := root.NewFactory().NewDeduplicator(context.Logger(), context.DataStoreSession(), dataset)
 	if err != nil {
 		context.RespondWithInternalServerFailure("No duplicator found matching dataset", err)
 		return
@@ -67,7 +67,7 @@ func DatasetsUpdate(context server.Context) {
 		return
 	}
 
-	// TODO: Filter datasetUpload to only "public" fields
+	// TODO: Filter dataset to only "public" fields
 	context.Response().WriteHeader(http.StatusOK)
-	context.Response().WriteJson(datasetUpload)
+	context.Response().WriteJson(dataset)
 }

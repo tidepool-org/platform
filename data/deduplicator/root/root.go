@@ -32,9 +32,9 @@ type Factory struct {
 	factories []deduplicator.Factory
 }
 
-func (f *Factory) CanDeduplicateDataset(datasetUpload *upload.Upload) (bool, error) {
+func (f *Factory) CanDeduplicateDataset(dataset *upload.Upload) (bool, error) {
 	for _, factory := range f.factories {
-		if can, err := factory.CanDeduplicateDataset(datasetUpload); err != nil {
+		if can, err := factory.CanDeduplicateDataset(dataset); err != nil {
 			return false, err
 		} else if can {
 			return true, nil
@@ -43,12 +43,12 @@ func (f *Factory) CanDeduplicateDataset(datasetUpload *upload.Upload) (bool, err
 	return false, nil
 }
 
-func (f *Factory) NewDeduplicator(logger log.Logger, storeSession store.Session, datasetUpload *upload.Upload) (deduplicator.Deduplicator, error) {
+func (f *Factory) NewDeduplicator(logger log.Logger, storeSession store.Session, dataset *upload.Upload) (deduplicator.Deduplicator, error) {
 	for _, factory := range f.factories {
-		if can, err := factory.CanDeduplicateDataset(datasetUpload); err != nil {
+		if can, err := factory.CanDeduplicateDataset(dataset); err != nil {
 			return nil, err
 		} else if can {
-			return factory.NewDeduplicator(logger, storeSession, datasetUpload)
+			return factory.NewDeduplicator(logger, storeSession, dataset)
 		}
 	}
 	return nil, errors.New("Deduplicator not found")
