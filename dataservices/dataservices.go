@@ -17,7 +17,7 @@ import (
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/data/deduplicator"
-	"github.com/tidepool-org/platform/data/deduplicator/root"
+	"github.com/tidepool-org/platform/data/deduplicator/delegate"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/dataservices/server"
@@ -154,7 +154,7 @@ func initializeDataDeduplicatorFactory(logger log.Logger) (deduplicator.Factory,
 
 	logger.Debug("Creating data deduplicator factory")
 
-	return root.NewFactory(), nil
+	return delegate.NewFactory(), nil
 }
 
 func initializeUserServicesClient(configLoader config.Loader, logger log.Logger) (client.Client, error) {
