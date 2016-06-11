@@ -67,7 +67,6 @@ func DatasetsUpdate(context server.Context) {
 		return
 	}
 
-	// TODO: Filter dataset to only "public" fields
 	context.Response().WriteHeader(http.StatusOK)
 	context.Response().WriteJson(dataset)
 }
