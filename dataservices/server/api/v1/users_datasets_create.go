@@ -124,7 +124,6 @@ func UsersDatasetsCreate(serverContext server.Context) {
 		return
 	}
 
-	// TODO: Filter dataset to only "public" fields
 	serverContext.Response().WriteHeader(http.StatusCreated)
 	serverContext.Response().WriteJson(dataset)
 }
