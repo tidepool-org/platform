@@ -31,10 +31,7 @@ func DatasetsUpdate(context server.Context) {
 		return
 	}
 
-	// TODO: Validate
-	targetUserID := dataset.UserID
-
-	err = context.UserServicesClient().ValidateTargetUserPermissions(context, context.RequestUserID(), targetUserID, client.UploadPermissions)
+	err = context.UserServicesClient().ValidateTargetUserPermissions(context, context.RequestUserID(), dataset.UserID, client.UploadPermissions)
 	if err != nil {
 		if client.IsUnauthorizedError(err) {
 			context.RespondWithError(ErrorUnauthorized())
