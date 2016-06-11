@@ -51,7 +51,7 @@ func (s *Suspend) Validate(validator data.Validator) error {
 		return err
 	}
 
-	// NOTE: set to a max of one week as we don't yet understand what is acceptable
+	// NOTE: set to a max of one week as we do not yet understand what is acceptable
 	validator.ValidateInteger("duration", s.Duration).InRange(0, 604800000)
 
 	return nil
