@@ -18,6 +18,7 @@ import (
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	"github.com/tidepool-org/platform/data/deduplicator/delegate"
+	"github.com/tidepool-org/platform/data/deduplicator/truncate"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/dataservices/server"
@@ -154,7 +155,21 @@ func initializeDataDeduplicatorFactory(logger log.Logger) (deduplicator.Factory,
 
 	logger.Debug("Creating data deduplicator factory")
 
-	return delegate.NewFactory(), nil
+	truncateDeduplicatorFactory, err := truncate.NewFactory()
+	if err != nil {
+		return nil, app.ExtError(err, "dataservices", "unable to create truncate deduplicator factory")
+	}
+
+	factories := []deduplicator.Factory{
+		truncateDeduplicatorFactory,
+	}
+
+	delegateDeduplicatorFactory, err := delegate.NewFactory(factories)
+	if err != nil {
+		return nil, app.ExtError(err, "dataservices", "unable to create delegate deduplicator factory")
+	}
+
+	return delegateDeduplicatorFactory, nil
 }
 
 func initializeUserServicesClient(configLoader config.Loader, logger log.Logger) (client.Client, error) {

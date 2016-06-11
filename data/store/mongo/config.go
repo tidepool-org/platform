@@ -18,7 +18,7 @@ import (
 )
 
 type Config struct {
-	Addresses  string         `yaml:"addresses"` // TODO: This should be an array, but configor doesn't support that. Bleech! Fix?
+	Addresses  string         `yaml:"addresses"` // TODO: This should be an array, but configor does not support that. Bleech! Fix?
 	Database   string         `yaml:"database"`
 	Collection string         `yaml:"collection"`
 	Username   *string        `yaml:"username"`

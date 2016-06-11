@@ -11,6 +11,8 @@ package truncate
  */
 
 import (
+	"strconv"
+
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
@@ -18,12 +20,6 @@ import (
 	"github.com/tidepool-org/platform/data/types/base/upload"
 	"github.com/tidepool-org/platform/log"
 )
-
-const Name = "truncate"
-
-func NewFactory() deduplicator.Factory {
-	return &factory{}
-}
 
 type factory struct {
 }
@@ -34,30 +30,52 @@ type truncate struct {
 	dataset          *upload.Upload
 }
 
+const Name = "truncate"
+
+func NewFactory() (deduplicator.Factory, error) {
+	return &factory{}, nil
+}
+
 func (f *factory) CanDeduplicateDataset(dataset *upload.Upload) (bool, error) {
 	if dataset == nil {
-		return false, app.Error("truncate", "dataset upload is nil")
+		return false, app.Error("truncate", "dataset is missing")
+	}
+
+	if dataset.UploadID == "" || dataset.UserID == "" || dataset.GroupID == "" {
+		return false, nil
+	}
+	if dataset.DeviceID == nil || *dataset.DeviceID == "" {
+		return false, nil
 	}
 
 	if dataset.Deduplicator != nil {
 		return dataset.Deduplicator.Name == Name, nil
 	}
-	if dataset.DeviceID != nil && *dataset.DeviceID != "" {
-		return true, nil
-	}
 
-	return false, nil
+	return true, nil
 }
 
 func (f *factory) NewDeduplicator(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (deduplicator.Deduplicator, error) {
 	if logger == nil {
-		return nil, app.Error("truncate", "logger is nil")
+		return nil, app.Error("truncate", "logger is missing")
 	}
 	if dataStoreSession == nil {
-		return nil, app.Error("truncate", "store session is nil")
+		return nil, app.Error("truncate", "data store session is missing")
 	}
 	if dataset == nil {
-		return nil, app.Error("truncate", "dataset upload is nil")
+		return nil, app.Error("truncate", "dataset is missing")
+	}
+	if dataset.UploadID == "" {
+		return nil, app.Error("truncate", "dataset id is missing")
+	}
+	if dataset.UserID == "" {
+		return nil, app.Error("truncate", "dataset user id is missing")
+	}
+	if dataset.GroupID == "" {
+		return nil, app.Error("truncate", "dataset group id is missing")
+	}
+	if dataset.DeviceID == nil || *dataset.DeviceID == "" {
+		return nil, app.Error("truncate", "dataset device id is missing")
 	}
 
 	return &truncate{
@@ -78,7 +96,15 @@ func (t *truncate) InitializeDataset() error {
 }
 
 func (t *truncate) AddDataToDataset(datasetData []data.Datum) error {
-	return t.dataStoreSession.CreateDatasetData(t.dataset, datasetData)
+	if datasetData == nil {
+		return app.Error("truncate", "dataset data is missing")
+	}
+
+	if err := t.dataStoreSession.CreateDatasetData(t.dataset, datasetData); err != nil {
+		return app.ExtError(err, "truncate", "unable to add data to dataset")
+	}
+
+	return nil
 }
 
 func (t *truncate) FinalizeDataset() error {
@@ -86,10 +112,10 @@ func (t *truncate) FinalizeDataset() error {
 	// result in duplicate (and possible incorrect) data. Is there a way to resolve this? Would be nice to have transactions.
 
 	if err := t.dataStoreSession.ActivateAllDatasetData(t.dataset); err != nil {
-		return app.ExtErrorf(err, "truncate", "unable to activate data in dataset with id '%s'", t.dataset.UploadID)
+		return app.ExtErrorf(err, "truncate", "unable to activate data in dataset with id %s", strconv.Quote(t.dataset.UploadID))
 	}
 	if err := t.dataStoreSession.RemoveAllOtherDatasetData(t.dataset); err != nil {
-		return app.ExtErrorf(err, "truncate", "unable to remove all other data except dataset with id '%s'", t.dataset.UploadID)
+		return app.ExtErrorf(err, "truncate", "unable to remove all other data except dataset with id %s", strconv.Quote(t.dataset.UploadID))
 	}
 
 	return nil
