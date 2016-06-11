@@ -27,9 +27,9 @@ func DatasetsUpdate(context server.Context) {
 		return
 	}
 
-	// TODO: Improve context.Store() Find - more specific
+	// TODO: Improve context.DataStoreSession() Find - more specific
 	var datasetUpload upload.Upload
-	if err := context.Store().Find(store.Query{"type": "upload", "uploadId": datasetID}, &datasetUpload); err != nil {
+	if err := context.DataStoreSession().Find(store.Query{"type": "upload", "uploadId": datasetID}, &datasetUpload); err != nil {
 		context.RespondWithError(ErrorDatasetIDNotFound(datasetID))
 		return
 	}
@@ -37,7 +37,7 @@ func DatasetsUpdate(context server.Context) {
 	// TODO: Validate
 	targetUserID := datasetUpload.UserID
 
-	err := context.Client().ValidateTargetUserPermissions(context, context.RequestUserID(), targetUserID, client.UploadPermissions)
+	err := context.UserServicesClient().ValidateTargetUserPermissions(context, context.RequestUserID(), targetUserID, client.UploadPermissions)
 	if err != nil {
 		if client.IsUnauthorizedError(err) {
 			context.RespondWithError(ErrorUnauthorized())
@@ -54,12 +54,12 @@ func DatasetsUpdate(context server.Context) {
 
 	datasetUpload.SetDataState("closed")
 
-	if err = context.Store().Update(map[string]interface{}{"type": "upload", "uploadId": datasetID}, datasetUpload); err != nil {
+	if err = context.DataStoreSession().Update(map[string]interface{}{"type": "upload", "uploadId": datasetID}, datasetUpload); err != nil {
 		context.RespondWithInternalServerFailure("Unable to insert dataset", err)
 		return
 	}
 
-	deduplicator, err := root.NewFactory().NewDeduplicator(context.Logger(), context.Store(), &datasetUpload)
+	deduplicator, err := root.NewFactory().NewDeduplicator(context.Logger(), context.DataStoreSession(), &datasetUpload)
 	if err != nil {
 		context.RespondWithInternalServerFailure("No duplicator found matching dataset", err)
 		return

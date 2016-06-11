@@ -17,34 +17,34 @@ import (
 )
 
 type Standard struct {
-	logger           log.Logger
-	store            store.Store
-	client           client.Client
-	versionReporter  version.Reporter
-	api              *rest.Api
-	statusMiddleware *rest.StatusMiddleware
+	logger             log.Logger
+	dataStore          store.Store
+	userServicesClient client.Client
+	versionReporter    version.Reporter
+	api                *rest.Api
+	statusMiddleware   *rest.StatusMiddleware
 }
 
-func NewStandard(logger log.Logger, store store.Store, client client.Client, versionReporter version.Reporter) (*Standard, error) {
+func NewStandard(logger log.Logger, dataStore store.Store, userServicesClient client.Client, versionReporter version.Reporter) (*Standard, error) {
 	if logger == nil {
 		return nil, app.Error("api", "logger is missing")
 	}
-	if store == nil {
-		return nil, app.Error("api", "store is missing")
+	if dataStore == nil {
+		return nil, app.Error("api", "data store is missing")
 	}
-	if client == nil {
-		return nil, app.Error("api", "client is missing")
+	if userServicesClient == nil {
+		return nil, app.Error("api", "user services client is missing")
 	}
 	if versionReporter == nil {
-		return nil, app.Error("api", "versionReporter is missing")
+		return nil, app.Error("api", "version reporter is missing")
 	}
 
 	standard := &Standard{
-		logger:          logger,
-		store:           store,
-		client:          client,
-		versionReporter: versionReporter,
-		api:             rest.NewApi(),
+		logger:             logger,
+		dataStore:          dataStore,
+		userServicesClient: userServicesClient,
+		versionReporter:    versionReporter,
+		api:                rest.NewApi(),
 	}
 	if err := standard.initMiddleware(); err != nil {
 		return nil, err
@@ -125,5 +125,5 @@ func (s *Standard) initRouter() error {
 }
 
 func (s *Standard) withContext(handler server.HandlerFunc) rest.HandlerFunc {
-	return context.WithContext(s.store, s.client, handler)
+	return context.WithContext(s.dataStore, s.userServicesClient, handler)
 }

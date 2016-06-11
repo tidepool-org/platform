@@ -33,9 +33,9 @@ func DatasetsDataCreate(serverContext server.Context) {
 		return
 	}
 
-	// TODO: Improve serverContext.Store() Find - more specific
+	// TODO: Improve serverContext.DataStoreSession() Find - more specific
 	var datasetUpload upload.Upload
-	if err := serverContext.Store().Find(store.Query{"type": "upload", "uploadId": datasetID}, &datasetUpload); err != nil {
+	if err := serverContext.DataStoreSession().Find(store.Query{"type": "upload", "uploadId": datasetID}, &datasetUpload); err != nil {
 		serverContext.RespondWithError(ErrorDatasetIDNotFound(datasetID))
 		return
 	}
@@ -44,7 +44,7 @@ func DatasetsDataCreate(serverContext server.Context) {
 	targetUserID := datasetUpload.UserID
 	targetGroupID := datasetUpload.GroupID
 
-	err := serverContext.Client().ValidateTargetUserPermissions(serverContext, serverContext.RequestUserID(), targetUserID, client.UploadPermissions)
+	err := serverContext.UserServicesClient().ValidateTargetUserPermissions(serverContext, serverContext.RequestUserID(), targetUserID, client.UploadPermissions)
 	if err != nil {
 		if client.IsUnauthorizedError(err) {
 			serverContext.RespondWithError(ErrorUnauthorized())
@@ -59,7 +59,7 @@ func DatasetsDataCreate(serverContext server.Context) {
 		return
 	}
 
-	deduplicator, err := root.NewFactory().NewDeduplicator(serverContext.Logger(), serverContext.Store(), &datasetUpload)
+	deduplicator, err := root.NewFactory().NewDeduplicator(serverContext.Logger(), serverContext.DataStoreSession(), &datasetUpload)
 	if err != nil {
 		serverContext.RespondWithInternalServerFailure("No duplicator found matching dataset", err)
 		return
