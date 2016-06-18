@@ -20,6 +20,7 @@ func (t *TestDatum) Normalize(normalizer data.Normalizer) error { return nil }
 func (t *TestDatum) SetUserID(userID string)                    {}
 func (t *TestDatum) SetGroupID(groupID string)                  {}
 func (t *TestDatum) SetDatasetID(datasetID string)              {}
+func (t *TestDatum) SetActive(active bool)                      {}
 
 var _ = Describe("Standard", func() {
 	It("New returns an error if context is nil", func() {

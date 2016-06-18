@@ -110,3 +110,7 @@ func (b *Base) SetGroupID(groupID string) {
 func (b *Base) SetDatasetID(datasetID string) {
 	b.UploadID = datasetID
 }
+
+func (b *Base) SetActive(active bool) {
+	b.Active = active
+}
