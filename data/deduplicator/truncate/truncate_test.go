@@ -73,7 +73,7 @@ func (t *TestDataStoreSession) RemoveAllOtherDatasetData(dataset *upload.Upload)
 	return output
 }
 
-func StringPtr(str string) *string { return &str }
+func StringAsPointer(sourceString string) *string { return &sourceString }
 
 var _ = Describe("Truncate", func() {
 	Context("NewFactory", func() {
@@ -98,7 +98,7 @@ var _ = Describe("Truncate", func() {
 			Expect(err).ToNot(HaveOccurred())
 			dataset.UserID = "user-id"
 			dataset.GroupID = "group-id"
-			dataset.DeviceID = StringPtr("device-id")
+			dataset.DeviceID = StringAsPointer("device-id")
 		})
 
 		Context("CanDeduplicateDataset", func() {
@@ -137,7 +137,7 @@ var _ = Describe("Truncate", func() {
 			})
 
 			It("returns false if the device id is empty", func() {
-				dataset.DeviceID = StringPtr("")
+				dataset.DeviceID = StringAsPointer("")
 				can, err := factory.CanDeduplicateDataset(dataset)
 				Expect(can).To(Equal(false))
 				Expect(err).ToNot(HaveOccurred())
@@ -224,7 +224,7 @@ var _ = Describe("Truncate", func() {
 			})
 
 			It("returns an error if the dataset device id is empty", func() {
-				dataset.DeviceID = StringPtr("")
+				dataset.DeviceID = StringAsPointer("")
 				truncateDeduplicator, err := factory.NewDeduplicator(test.NewLogger(), &TestDataStoreSession{}, dataset)
 				Expect(truncateDeduplicator).To(BeNil())
 				Expect(err).To(MatchError("truncate: dataset device id is missing"))
