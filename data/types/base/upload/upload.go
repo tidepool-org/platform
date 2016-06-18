@@ -72,14 +72,14 @@ func (u *Upload) Parse(parser data.ObjectParser) error {
 		return err
 	}
 
-	u.Version = parser.ParseString("version")
 	u.ComputerTime = parser.ParseString("computerTime")
-	u.DeviceTags = parser.ParseStringArray("deviceTags")
 	u.DeviceManufacturers = parser.ParseStringArray("deviceManufacturers")
 	u.DeviceModel = parser.ParseString("deviceModel")
 	u.DeviceSerialNumber = parser.ParseString("deviceSerialNumber")
+	u.DeviceTags = parser.ParseStringArray("deviceTags")
 	u.TimeProcessing = parser.ParseString("timeProcessing")
 	u.TimeZone = parser.ParseString("timezone")
+	u.Version = parser.ParseString("version")
 
 	return nil
 }
@@ -91,14 +91,14 @@ func (u *Upload) Validate(validator data.Validator) error {
 		return err
 	}
 
-	validator.ValidateString("version", u.Version).Exists().LengthGreaterThan(5)
 	validator.ValidateStringAsTime("computerTime", u.ComputerTime, "2006-01-02T15:04:05").Exists()
-	validator.ValidateStringArray("deviceTags", u.DeviceTags).Exists().NotEmpty().EachOneOf([]string{"insulin-pump", "cgm", "bgm"})
 	validator.ValidateStringArray("deviceManufacturers", u.DeviceManufacturers).Exists().NotEmpty()
 	validator.ValidateString("deviceModel", u.DeviceModel).Exists().LengthGreaterThan(1)
 	validator.ValidateString("deviceSerialNumber", u.DeviceSerialNumber).Exists().LengthGreaterThan(1)
+	validator.ValidateStringArray("deviceTags", u.DeviceTags).Exists().NotEmpty().EachOneOf([]string{"insulin-pump", "cgm", "bgm"})
 	validator.ValidateString("timeProcessing", u.TimeProcessing).Exists().OneOf([]string{"across-the-board-timezone", "utc-bootstrapping", "none"})
 	validator.ValidateString("timezone", u.TimeZone).Exists().LengthGreaterThan(1)
+	validator.ValidateString("version", u.Version).Exists().LengthGreaterThan(5)
 
 	return nil
 }
