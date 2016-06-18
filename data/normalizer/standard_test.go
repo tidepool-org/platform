@@ -24,7 +24,7 @@ func (t *TestDatum) SetDatasetID(datasetID string)              {}
 func (t *TestDatum) SetActive(active bool)                      {}
 
 var _ = Describe("Standard", func() {
-	It("New returns an error if context is nil", func() {
+	It("NewStandard returns an error if context is nil", func() {
 		standard, err := normalizer.NewStandard(nil)
 		Expect(standard).To(BeNil())
 		Expect(err).To(MatchError("normalizer: context is missing"))

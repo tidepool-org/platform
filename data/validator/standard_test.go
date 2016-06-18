@@ -11,7 +11,7 @@ import (
 )
 
 var _ = Describe("Standard", func() {
-	It("New returns an error if context is nil", func() {
+	It("NewStandard returns an error if context is nil", func() {
 		standard, err := validator.NewStandard(nil)
 		Expect(standard).To(BeNil())
 		Expect(err).To(MatchError("validator: context is missing"))

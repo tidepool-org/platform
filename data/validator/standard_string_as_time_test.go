@@ -13,12 +13,12 @@ import (
 )
 
 var _ = Describe("StandardStringAsTime", func() {
-	It("New returns nil if context is nil", func() {
+	It("NewStandardStringAsTime returns nil if context is nil", func() {
 		value := "2015-12-31T13:14:16-08:00"
 		Expect(validator.NewStandardStringAsTime(nil, "ghost", &value, "2006-01-02T15:04:05Z07:00")).To(BeNil())
 	})
 
-	It("New returns nil if time layout is empty string", func() {
+	It("NewStandardStringAsTime returns nil if time layout is empty string", func() {
 		value := "2015-12-31T13:14:16-08:00"
 		standardContext, err := context.NewStandard(test.NewLogger())
 		Expect(standardContext).ToNot(BeNil())

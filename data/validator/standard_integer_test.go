@@ -11,7 +11,7 @@ import (
 )
 
 var _ = Describe("StandardInteger", func() {
-	It("New returns nil if context is nil", func() {
+	It("NewStandardInteger returns nil if context is nil", func() {
 		value := 1
 		Expect(validator.NewStandardInteger(nil, "ghast", &value)).To(BeNil())
 	})

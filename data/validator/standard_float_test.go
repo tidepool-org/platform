@@ -11,7 +11,7 @@ import (
 )
 
 var _ = Describe("StandardFloat", func() {
-	It("New returns nil if context is nil", func() {
+	It("NewStandardFloat returns nil if context is nil", func() {
 		value := 1.23
 		Expect(validator.NewStandardFloat(nil, "vampyre", &value)).To(BeNil())
 	})

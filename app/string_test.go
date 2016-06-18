@@ -32,16 +32,16 @@ var _ = Describe("String", func() {
 			func(sourceString string, stringSeperator string, expectedStringArray []string) {
 				Expect(app.SplitStringAndRemoveWhitespace(sourceString, stringSeperator)).To(Equal(expectedStringArray))
 			},
-			Entry("empty source string with no comma separator", "", ",", []string{}),
-			Entry("whitespace-only source string with no comma separator", "   ", ",", []string{}),
-			Entry("source string with only comma separators", ",,,", ",", []string{}),
-			Entry("whitespace-only source string with comma separators", "  ,,   ,, ", ",", []string{}),
-			Entry("non-whitespace source string with no comma separator", "alpha", ",", []string{"alpha"}),
-			Entry("source string with whitespace no comma separator", "  alpha  ", ",", []string{"alpha"}),
-			Entry("source strings with comma separators", "alpha,beta,charlie", ",", []string{"alpha", "beta", "charlie"}),
-			Entry("source strings with whitespace and comma separators", "  alpha   ,  beta, charlie    ", ",", []string{"alpha", "beta", "charlie"}),
-			Entry("source string with whitespace and whitespace separator", "  alpha    beta   charlie", " ", []string{"alpha", "beta", "charlie"}),
-			Entry("source string with whitespace and empty separator", "  alpha    beta   charlie", "", []string{"a", "l", "p", "h", "a", "b", "e", "t", "a", "c", "h", "a", "r", "l", "i", "e"}),
+			Entry("has empty source string with no comma separator", "", ",", []string{}),
+			Entry("has whitespace-only source string with no comma separator", "   ", ",", []string{}),
+			Entry("has source string with only comma separators", ",,,", ",", []string{}),
+			Entry("has whitespace-only source string with comma separators", "  ,,   ,, ", ",", []string{}),
+			Entry("has non-whitespace source string with no comma separator", "alpha", ",", []string{"alpha"}),
+			Entry("has source string with whitespace no comma separator", "  alpha  ", ",", []string{"alpha"}),
+			Entry("has source strings with comma separators", "alpha,beta,charlie", ",", []string{"alpha", "beta", "charlie"}),
+			Entry("has source strings with whitespace and comma separators", "  alpha   ,  beta, charlie    ", ",", []string{"alpha", "beta", "charlie"}),
+			Entry("has source string with whitespace and whitespace separator", "  alpha    beta   charlie", " ", []string{"alpha", "beta", "charlie"}),
+			Entry("has source string with whitespace and empty separator", "  alpha    beta   charlie", "", []string{"a", "l", "p", "h", "a", "b", "e", "t", "a", "c", "h", "a", "r", "l", "i", "e"}),
 		)
 	})
 })

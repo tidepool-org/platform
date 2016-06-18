@@ -11,7 +11,7 @@ import (
 )
 
 var _ = Describe("StandardBoolean", func() {
-	It("New returns nil if context is nil", func() {
+	It("NewStandardBoolean returns nil if context is nil", func() {
 		value := false
 		Expect(validator.NewStandardBoolean(nil, "zombie", &value)).To(BeNil())
 	})

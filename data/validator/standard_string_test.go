@@ -11,7 +11,7 @@ import (
 )
 
 var _ = Describe("StandardString", func() {
-	It("New returns nil if context is nil", func() {
+	It("NewStandardString returns nil if context is nil", func() {
 		value := ""
 		Expect(validator.NewStandardString(nil, "skeleton", &value)).To(BeNil())
 	})

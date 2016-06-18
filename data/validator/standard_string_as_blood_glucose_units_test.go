@@ -12,7 +12,7 @@ import (
 )
 
 var _ = Describe("StandardStringAsBloodGlucoseUnits", func() {
-	It("New returns nil if context is nil", func() {
+	It("NewStandardStringAsBloodGlucoseUnits returns nil if context is nil", func() {
 		value := "mg/dL"
 		Expect(validator.NewStandardStringAsBloodGlucoseUnits(nil, "necromancer", &value)).To(BeNil())
 	})

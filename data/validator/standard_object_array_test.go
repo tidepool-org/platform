@@ -11,7 +11,7 @@ import (
 )
 
 var _ = Describe("StandardObjectArray", func() {
-	It("New returns nil if context is nil", func() {
+	It("NewStandardObjectArray returns nil if context is nil", func() {
 		value := []map[string]interface{}{}
 		Expect(validator.NewStandardObjectArray(nil, "mummy", &value)).To(BeNil())
 	})

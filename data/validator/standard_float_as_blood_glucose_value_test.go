@@ -15,7 +15,7 @@ import (
 )
 
 var _ = Describe("StandardFloatAsBloodGlucoseValue", func() {
-	It("New returns nil if context is nil", func() {
+	It("NewStandardFloatAsBloodGlucoseValue returns nil if context is nil", func() {
 		value := 12.345
 		Expect(validator.NewStandardFloatAsBloodGlucoseValue(nil, "shapeshifter", &value)).To(BeNil())
 	})

@@ -11,7 +11,7 @@ import (
 )
 
 var _ = Describe("StandardInterface", func() {
-	It("New returns nil if context is nil", func() {
+	It("NewStandardInterface returns nil if context is nil", func() {
 		var value interface{} = "one"
 		Expect(validator.NewStandardInterface(nil, "ghoul", &value)).To(BeNil())
 	})
