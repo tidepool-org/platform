@@ -33,23 +33,19 @@ func ParseBolus(parser data.ObjectParser) (data.Datum, error) {
 	}
 
 	var datum data.Datum
-	var err error
 
 	switch *subType {
 	case normal.SubType():
-		datum, err = normal.New()
+		datum = normal.Init()
 	case extended.SubType():
-		datum, err = extended.New()
+		datum = extended.Init()
 	case combination.SubType():
-		datum, err = combination.New()
+		datum = combination.Init()
 	default:
 		parser.AppendError("subType", base.ErrorSubTypeInvalid(*subType))
 		return nil, nil
 	}
 
-	if err != nil {
-		return nil, err
-	}
 	if datum == nil {
 		return nil, app.Error("calculator", "datum is missing")
 	}

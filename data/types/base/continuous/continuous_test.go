@@ -76,8 +76,7 @@ var _ = Describe("Continuous", func() {
 
 	Context("normalized when mmol/L", func() {
 		DescribeTable("normalization", func(val, expected float64) {
-			continuousBg, err := continuous.New()
-			Expect(err).To(BeNil())
+			continuousBg := continuous.Init()
 			units := bloodglucose.MmolL
 			continuousBg.Units = &units
 			continuousBg.Value = &val
@@ -100,8 +99,7 @@ var _ = Describe("Continuous", func() {
 
 	Context("normalized when mg/dL", func() {
 		DescribeTable("normalization", func(val, expected float64) {
-			continuousBg, err := continuous.New()
-			Expect(err).To(BeNil())
+			continuousBg := continuous.Init()
 			units := bloodglucose.MgdL
 			continuousBg.Units = &units
 			continuousBg.Value = &val

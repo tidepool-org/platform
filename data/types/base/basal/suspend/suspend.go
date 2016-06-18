@@ -25,15 +25,25 @@ func DeliveryType() string {
 	return "suspend"
 }
 
-func New() (*Suspend, error) {
-	suspendBasal, err := basal.New(DeliveryType())
-	if err != nil {
-		return nil, err
-	}
+func NewDatum() data.Datum {
+	return New()
+}
 
-	return &Suspend{
-		Basal: *suspendBasal,
-	}, nil
+func New() *Suspend {
+	return &Suspend{}
+}
+
+func Init() *Suspend {
+	suspend := New()
+	suspend.Init()
+	return suspend
+}
+
+func (s *Suspend) Init() {
+	s.Basal.Init()
+	s.Basal.DeliveryType = DeliveryType()
+
+	s.Duration = nil
 }
 
 func (s *Suspend) Parse(parser data.ObjectParser) error {

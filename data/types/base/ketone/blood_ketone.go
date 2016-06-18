@@ -16,15 +16,26 @@ func Type() string {
 	return "bloodKetone"
 }
 
-func New() (*Blood, error) {
-	bloodBase, err := base.New(Type())
-	if err != nil {
-		return nil, err
-	}
+func NewDatum() data.Datum {
+	return New()
+}
 
-	return &Blood{
-		Base: *bloodBase,
-	}, nil
+func New() *Blood {
+	return &Blood{}
+}
+
+func Init() *Blood {
+	blood := New()
+	blood.Init()
+	return blood
+}
+
+func (b *Blood) Init() {
+	b.Base.Init()
+	b.Base.Type = Type()
+
+	b.Value = nil
+	b.Units = nil
 }
 
 func (b *Blood) Parse(parser data.ObjectParser) error {

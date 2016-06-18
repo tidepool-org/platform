@@ -30,15 +30,30 @@ func SubType() string {
 	return "dual/square"
 }
 
-func New() (*Combination, error) {
-	combinationBolus, err := bolus.New(SubType())
-	if err != nil {
-		return nil, err
-	}
+func NewDatum() data.Datum {
+	return New()
+}
 
-	return &Combination{
-		Bolus: *combinationBolus,
-	}, nil
+func New() *Combination {
+	return &Combination{}
+}
+
+func Init() *Combination {
+	combination := New()
+	combination.Init()
+	return combination
+}
+
+func (c *Combination) Init() {
+	c.Bolus.Init()
+	c.Bolus.SubType = SubType()
+
+	c.Normal = nil
+	c.ExpectedNormal = nil
+	c.Extended = nil
+	c.ExpectedExtended = nil
+	c.Duration = nil
+	c.ExpectedDuration = nil
 }
 
 func (c *Combination) Parse(parser data.ObjectParser) error {

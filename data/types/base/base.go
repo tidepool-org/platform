@@ -45,20 +45,26 @@ type Meta struct {
 	Type string `json:"type,omitempty"`
 }
 
-func New(baseType string) (*Base, error) {
-	if baseType == "" {
-		return nil, app.Error("base", "type is missing")
-	}
+func (b *Base) Init() {
+	b.Active = false
+	b.CreatedTime = time.Now().UTC().Format(time.RFC3339)
+	b.GroupID = ""
+	b.GUID = app.NewUUID()
+	b.ID = app.NewID() // TODO: Move calculation to Normalize to follow Jellyfish algorithm
+	b.SchemaVersion = SchemaVersionCurrent
+	b.Type = ""
+	b.UploadID = ""
+	b.UserID = ""
+	b.Version = 0
 
-	return &Base{
-		Active:        false,
-		CreatedTime:   time.Now().UTC().Format(time.RFC3339),
-		GUID:          app.NewUUID(),
-		ID:            app.NewID(), // TODO: Move calculation to Normalize to follow Jellyfish algorithm
-		SchemaVersion: SchemaVersionCurrent,
-		Type:          baseType,
-		Version:       0,
-	}, nil
+	b.Annotations = nil
+	b.ClockDriftOffset = nil
+	b.ConversionOffset = nil
+	b.DeviceID = nil
+	b.DeviceTime = nil
+	b.Payload = nil
+	b.Time = nil
+	b.TimezoneOffset = nil
 }
 
 func (b *Base) Meta() interface{} {

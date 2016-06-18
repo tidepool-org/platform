@@ -27,15 +27,27 @@ func DeliveryType() string {
 	return "temp"
 }
 
-func New() (*Temporary, error) {
-	temporaryBasal, err := basal.New(DeliveryType())
-	if err != nil {
-		return nil, err
-	}
+func NewDatum() data.Datum {
+	return New()
+}
 
-	return &Temporary{
-		Basal: *temporaryBasal,
-	}, nil
+func New() *Temporary {
+	return &Temporary{}
+}
+
+func Init() *Temporary {
+	temporary := New()
+	temporary.Init()
+	return temporary
+}
+
+func (t *Temporary) Init() {
+	t.Basal.Init()
+	t.Basal.DeliveryType = DeliveryType()
+
+	t.Duration = nil
+	t.Rate = nil
+	t.Percent = nil
 }
 
 func (t *Temporary) Parse(parser data.ObjectParser) error {

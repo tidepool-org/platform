@@ -140,9 +140,8 @@ var _ = Describe("Delegate", func() {
 			delegateFactory, err = delegate.NewFactory([]deduplicator.Factory{firstFactory, secondFactory})
 			Expect(delegateFactory).ToNot(BeNil())
 			Expect(err).ToNot(HaveOccurred())
-			dataset, err = upload.New()
+			dataset = upload.Init()
 			Expect(dataset).ToNot(BeNil())
-			Expect(err).ToNot(HaveOccurred())
 		})
 
 		Context("CanDeduplicateDataset", func() {

@@ -11,7 +11,6 @@ package bolus
  */
 
 import (
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/base"
 )
@@ -31,20 +30,11 @@ func Type() string {
 	return "bolus"
 }
 
-func New(subType string) (*Bolus, error) {
-	if subType == "" {
-		return nil, app.Error("basal", "sub type is missing")
-	}
+func (b *Bolus) Init() {
+	b.Base.Init()
+	b.Base.Type = Type()
 
-	bolusBase, err := base.New(Type())
-	if err != nil {
-		return nil, err
-	}
-
-	return &Bolus{
-		Base:    *bolusBase,
-		SubType: subType,
-	}, nil
+	b.SubType = ""
 }
 
 func (b *Bolus) Meta() interface{} {

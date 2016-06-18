@@ -13,6 +13,7 @@ import (
 
 type TestDatum struct{}
 
+func (t *TestDatum) Init()                                      {}
 func (t *TestDatum) Meta() interface{}                          { return nil }
 func (t *TestDatum) Parse(parser data.ObjectParser) error       { return nil }
 func (t *TestDatum) Validate(validator data.Validator) error    { return nil }

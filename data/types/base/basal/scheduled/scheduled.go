@@ -27,15 +27,27 @@ func DeliveryType() string {
 	return "scheduled"
 }
 
-func New() (*Scheduled, error) {
-	scheduledBasal, err := basal.New(DeliveryType())
-	if err != nil {
-		return nil, err
-	}
+func NewDatum() data.Datum {
+	return New()
+}
 
-	return &Scheduled{
-		Basal: *scheduledBasal,
-	}, nil
+func New() *Scheduled {
+	return &Scheduled{}
+}
+
+func Init() *Scheduled {
+	scheduled := New()
+	scheduled.Init()
+	return scheduled
+}
+
+func (s *Scheduled) Init() {
+	s.Basal.Init()
+	s.Basal.DeliveryType = DeliveryType()
+
+	s.Duration = nil
+	s.Name = nil
+	s.Rate = nil
 }
 
 func (s *Scheduled) Parse(parser data.ObjectParser) error {

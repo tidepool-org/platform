@@ -11,6 +11,8 @@ package data
  */
 
 type Datum interface {
+	Init()
+
 	Meta() interface{}
 
 	Parse(parser ObjectParser) error

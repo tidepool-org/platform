@@ -25,15 +25,25 @@ func SubType() string {
 	return "timeChange"
 }
 
-func New() (*TimeChange, error) {
-	timeChangeDevice, err := device.New(SubType())
-	if err != nil {
-		return nil, err
-	}
+func NewDatum() data.Datum {
+	return New()
+}
 
-	return &TimeChange{
-		Device: *timeChangeDevice,
-	}, nil
+func New() *TimeChange {
+	return &TimeChange{}
+}
+
+func Init() *TimeChange {
+	timeChange := New()
+	timeChange.Init()
+	return timeChange
+}
+
+func (t *TimeChange) Init() {
+	t.Device.Init()
+	t.Device.SubType = SubType()
+
+	t.Change = nil
 }
 
 func (t *TimeChange) Parse(parser data.ObjectParser) error {

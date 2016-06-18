@@ -91,8 +91,7 @@ var _ = Describe("SelfMonitored", func() {
 
 	Context("normalized when mmol/L", func() {
 		DescribeTable("normalization", func(val, expected float64) {
-			selfMonitoredBg, err := selfmonitored.New()
-			Expect(err).To(BeNil())
+			selfMonitoredBg := selfmonitored.Init()
 			units := bloodglucose.MmolL
 			selfMonitoredBg.Units = &units
 			selfMonitoredBg.Value = &val
@@ -115,7 +114,7 @@ var _ = Describe("SelfMonitored", func() {
 
 	Context("normalized when mg/dL", func() {
 		DescribeTable("normalization", func(val, expected float64) {
-			selfMonitoredBg, err := selfmonitored.New()
+			selfMonitoredBg := selfmonitored.Init()
 			units := bloodglucose.MgdL
 			selfMonitoredBg.Units = &units
 			selfMonitoredBg.Value = &val

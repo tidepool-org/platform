@@ -11,7 +11,6 @@ package basal
  */
 
 import (
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/base"
 )
@@ -31,20 +30,11 @@ func Type() string {
 	return "basal"
 }
 
-func New(deliveryType string) (*Basal, error) {
-	if deliveryType == "" {
-		return nil, app.Error("basal", "delivery type is missing")
-	}
+func (b *Basal) Init() {
+	b.Base.Init()
+	b.Base.Type = Type()
 
-	basalBase, err := base.New(Type())
-	if err != nil {
-		return nil, err
-	}
-
-	return &Basal{
-		Base:         *basalBase,
-		DeliveryType: deliveryType,
-	}, nil
+	b.DeliveryType = ""
 }
 
 func (b *Basal) Meta() interface{} {

@@ -76,7 +76,7 @@ var _ = Describe("BloodKetone", func() {
 
 	Context("normalized when mmol/L", func() {
 		DescribeTable("normalization", func(val, expected float64) {
-			bloodKetone, err := ketone.New()
+			bloodKetone := ketone.Init()
 			units := bloodglucose.MmolL
 			bloodKetone.Units = &units
 			bloodKetone.Value = &val
@@ -99,8 +99,7 @@ var _ = Describe("BloodKetone", func() {
 
 	Context("normalized when mg/dL", func() {
 		DescribeTable("normalization", func(val, expected float64) {
-			bloodKetone, err := ketone.New()
-			Expect(err).To(BeNil())
+			bloodKetone := ketone.Init()
 			units := bloodglucose.MgdL
 			bloodKetone.Units = &units
 			bloodKetone.Value = &val

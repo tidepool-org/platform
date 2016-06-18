@@ -32,18 +32,37 @@ func Type() string {
 	return "upload"
 }
 
-func New() (*Upload, error) {
-	uploadBase, err := base.New(Type())
-	if err != nil {
-		return nil, err
-	}
+func NewDatum() data.Datum {
+	return New()
+}
 
-	uploadBase.UploadID = app.NewID()
+func New() *Upload {
+	return &Upload{}
+}
 
-	return &Upload{
-		Base:      *uploadBase,
-		DataState: "open",
-	}, nil
+func Init() *Upload {
+	upload := New()
+	upload.Init()
+	return upload
+}
+
+func (u *Upload) Init() {
+	u.Base.Init()
+	u.Base.Type = Type()
+	u.Base.UploadID = app.NewID()
+
+	u.DataState = "open"
+	u.Deduplicator = nil
+	u.UploadUserID = ""
+
+	u.ComputerTime = nil
+	u.DeviceManufacturers = nil
+	u.DeviceModel = nil
+	u.DeviceSerialNumber = nil
+	u.DeviceTags = nil
+	u.TimeProcessing = nil
+	u.TimeZone = nil
+	u.Version = nil
 }
 
 func (u *Upload) Parse(parser data.ObjectParser) error {

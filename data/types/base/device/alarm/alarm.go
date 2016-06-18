@@ -26,15 +26,26 @@ func SubType() string {
 	return "alarm"
 }
 
-func New() (*Alarm, error) {
-	alarmDevice, err := device.New(SubType())
-	if err != nil {
-		return nil, err
-	}
+func NewDatum() data.Datum {
+	return New()
+}
 
-	return &Alarm{
-		Device: *alarmDevice,
-	}, nil
+func New() *Alarm {
+	return &Alarm{}
+}
+
+func Init() *Alarm {
+	alarm := New()
+	alarm.Init()
+	return alarm
+}
+
+func (a *Alarm) Init() {
+	a.Device.Init()
+	a.Device.SubType = SubType()
+
+	a.AlarmType = nil
+	a.Status = nil
 }
 
 func (a *Alarm) Parse(parser data.ObjectParser) error {

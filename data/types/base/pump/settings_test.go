@@ -335,8 +335,7 @@ var _ = Describe("Settings", func() {
 
 	Context("bgTarget normalized", func() {
 		DescribeTable("normalization when low mmol/L", func(val, expected float64) {
-			pumpSettings, err := pump.New()
-			Expect(err).To(BeNil())
+			pumpSettings := pump.Init()
 			units := bloodglucose.MmolL
 			pumpSettings.Units = &pump.Units{BloodGlucose: &units}
 
@@ -367,8 +366,7 @@ var _ = Describe("Settings", func() {
 		)
 
 		DescribeTable("normalization when high mmol/L", func(val, expected float64) {
-			pumpSettings, err := pump.New()
-			Expect(err).To(BeNil())
+			pumpSettings := pump.Init()
 			units := bloodglucose.MmolL
 			pumpSettings.Units = &pump.Units{BloodGlucose: &units}
 
@@ -399,8 +397,7 @@ var _ = Describe("Settings", func() {
 		)
 
 		DescribeTable("normalization when target mmol/L", func(val, expected float64) {
-			pumpSettings, err := pump.New()
-			Expect(err).To(BeNil())
+			pumpSettings := pump.Init()
 			units := bloodglucose.MmolL
 			pumpSettings.Units = &pump.Units{BloodGlucose: &units}
 
@@ -431,8 +428,7 @@ var _ = Describe("Settings", func() {
 		)
 
 		DescribeTable("normalization when low mg/dL", func(val, expected float64) {
-			pumpSettings, err := pump.New()
-			Expect(err).To(BeNil())
+			pumpSettings := pump.Init()
 			units := bloodglucose.MgdL
 			pumpSettings.Units = &pump.Units{BloodGlucose: &units}
 
@@ -463,8 +459,7 @@ var _ = Describe("Settings", func() {
 		)
 
 		DescribeTable("normalization when high mg/dL", func(val, expected float64) {
-			pumpSettings, err := pump.New()
-			Expect(err).To(BeNil())
+			pumpSettings := pump.Init()
 			units := bloodglucose.MgdL
 			pumpSettings.Units = &pump.Units{BloodGlucose: &units}
 
@@ -495,8 +490,7 @@ var _ = Describe("Settings", func() {
 		)
 
 		DescribeTable("normalization when target mg/dL", func(val, expected float64) {
-			pumpSettings, err := pump.New()
-			Expect(err).To(BeNil())
+			pumpSettings := pump.Init()
 			units := bloodglucose.MgdL
 			pumpSettings.Units = &pump.Units{BloodGlucose: &units}
 
@@ -529,8 +523,7 @@ var _ = Describe("Settings", func() {
 
 	Context("insulinSensitivity normalized", func() {
 		DescribeTable("when mmol/L", func(val, expected float64) {
-			pumpSettings, err := pump.New()
-			Expect(err).To(BeNil())
+			pumpSettings := pump.Init()
 			units := bloodglucose.MmolL
 			pumpSettings.Units = &pump.Units{BloodGlucose: &units}
 
@@ -560,8 +553,7 @@ var _ = Describe("Settings", func() {
 		)
 
 		DescribeTable("when mg/dL", func(val, expected float64) {
-			pumpSettings, err := pump.New()
-			Expect(err).To(BeNil())
+			pumpSettings := pump.Init()
 			units := bloodglucose.MgdL
 			pumpSettings.Units = &pump.Units{BloodGlucose: &units}
 

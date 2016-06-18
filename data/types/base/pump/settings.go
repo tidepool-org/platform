@@ -23,15 +23,33 @@ func Type() string {
 	return "pumpSettings"
 }
 
-func New() (*Settings, error) {
-	settingsBase, err := base.New(Type())
-	if err != nil {
-		return nil, err
-	}
+func NewDatum() data.Datum {
+	return New()
+}
 
-	return &Settings{
-		Base: *settingsBase,
-	}, nil
+func New() *Settings {
+	return &Settings{}
+}
+
+func Init() *Settings {
+	settings := New()
+	settings.Init()
+	return settings
+}
+
+func (s *Settings) Init() {
+	s.Base.Init()
+	s.Base.Type = Type()
+
+	s.Units = nil
+
+	s.BasalSchedules = nil
+
+	s.CarbohydrateRatios = nil
+	s.InsulinSensitivities = nil
+	s.BloodGlucoseTargets = nil
+
+	s.ActiveSchedule = nil
 }
 
 func (s *Settings) Parse(parser data.ObjectParser) error {

@@ -93,9 +93,8 @@ var _ = Describe("Truncate", func() {
 			factory, err = truncate.NewFactory()
 			Expect(factory).ToNot(BeNil())
 			Expect(err).ToNot(HaveOccurred())
-			dataset, err = upload.New()
+			dataset = upload.Init()
 			Expect(dataset).ToNot(BeNil())
-			Expect(err).ToNot(HaveOccurred())
 			dataset.UserID = "user-id"
 			dataset.GroupID = "group-id"
 			dataset.DeviceID = StringAsPointer("device-id")

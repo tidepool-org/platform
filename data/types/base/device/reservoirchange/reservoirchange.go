@@ -25,15 +25,25 @@ func SubType() string {
 	return "reservoirChange"
 }
 
-func New() (*ReservoirChange, error) {
-	reservoirChangeDevice, err := device.New(SubType())
-	if err != nil {
-		return nil, err
-	}
+func NewDatum() data.Datum {
+	return New()
+}
 
-	return &ReservoirChange{
-		Device: *reservoirChangeDevice,
-	}, nil
+func New() *ReservoirChange {
+	return &ReservoirChange{}
+}
+
+func Init() *ReservoirChange {
+	reservoirChange := New()
+	reservoirChange.Init()
+	return reservoirChange
+}
+
+func (r *ReservoirChange) Init() {
+	r.Device.Init()
+	r.Device.SubType = SubType()
+
+	r.StatusID = nil
 }
 
 func (r *ReservoirChange) Parse(parser data.ObjectParser) error {

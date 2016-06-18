@@ -273,8 +273,7 @@ var _ = Describe("Calculator", func() {
 	Context("Normalize", func() {
 		Context("blood glucose", func() {
 			DescribeTable("when mmol/L", func(val, expected float64) {
-				bolusCalculator, err := calculator.New()
-				Expect(err).To(BeNil())
+				bolusCalculator := calculator.Init()
 				units := bloodglucose.MmolL
 				bolusCalculator.Units = &units
 				bolusCalculator.BloodGlucoseInput = &val
@@ -299,8 +298,7 @@ var _ = Describe("Calculator", func() {
 			)
 
 			DescribeTable("when mg/dL", func(val, expected float64) {
-				bolusCalculator, err := calculator.New()
-				Expect(err).To(BeNil())
+				bolusCalculator := calculator.Init()
 				units := bloodglucose.MgdL
 				bolusCalculator.Units = &units
 				bolusCalculator.BloodGlucoseInput = &val

@@ -16,15 +16,26 @@ func Type() string {
 	return "cbg"
 }
 
-func New() (*BloodGlucose, error) {
-	continuousBase, err := base.New(Type())
-	if err != nil {
-		return nil, err
-	}
+func NewDatum() data.Datum {
+	return New()
+}
 
-	return &BloodGlucose{
-		Base: *continuousBase,
-	}, nil
+func New() *BloodGlucose {
+	return &BloodGlucose{}
+}
+
+func Init() *BloodGlucose {
+	bloodGlucose := New()
+	bloodGlucose.Init()
+	return bloodGlucose
+}
+
+func (b *BloodGlucose) Init() {
+	b.Base.Init()
+	b.Base.Type = Type()
+
+	b.Units = nil
+	b.Value = nil
 }
 
 func (b *BloodGlucose) Parse(parser data.ObjectParser) error {

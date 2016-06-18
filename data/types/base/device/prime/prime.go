@@ -26,15 +26,26 @@ func SubType() string {
 	return "prime"
 }
 
-func New() (*Prime, error) {
-	primtDevice, err := device.New(SubType())
-	if err != nil {
-		return nil, err
-	}
+func NewDatum() data.Datum {
+	return New()
+}
 
-	return &Prime{
-		Device: *primtDevice,
-	}, nil
+func New() *Prime {
+	return &Prime{}
+}
+
+func Init() *Prime {
+	prime := New()
+	prime.Init()
+	return prime
+}
+
+func (p *Prime) Init() {
+	p.Device.Init()
+	p.Device.SubType = SubType()
+
+	p.Target = nil
+	p.Volume = nil
 }
 
 func (p *Prime) Parse(parser data.ObjectParser) error {

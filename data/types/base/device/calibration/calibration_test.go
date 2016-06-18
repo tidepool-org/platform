@@ -80,8 +80,7 @@ var _ = Describe("Calibration", func() {
 
 	Context("normalized when mmol/L", func() {
 		DescribeTable("normalization", func(val, expected float64) {
-			calibrationEvent, err := calibration.New()
-			Expect(err).To(BeNil())
+			calibrationEvent := calibration.Init()
 			units := bloodglucose.MmolL
 			calibrationEvent.Units = &units
 			calibrationEvent.Value = &val
@@ -104,8 +103,7 @@ var _ = Describe("Calibration", func() {
 
 	Context("normalized when mg/dL", func() {
 		DescribeTable("normalization", func(val, expected float64) {
-			calibrationEvent, err := calibration.New()
-			Expect(err).To(BeNil())
+			calibrationEvent := calibration.Init()
 			units := bloodglucose.MgdL
 			calibrationEvent.Units = &units
 			calibrationEvent.Value = &val

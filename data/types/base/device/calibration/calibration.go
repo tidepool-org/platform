@@ -26,15 +26,26 @@ func SubType() string {
 	return "calibration"
 }
 
-func New() (*Calibration, error) {
-	calibrationDevice, err := device.New(SubType())
-	if err != nil {
-		return nil, err
-	}
+func NewDatum() data.Datum {
+	return New()
+}
 
-	return &Calibration{
-		Device: *calibrationDevice,
-	}, nil
+func New() *Calibration {
+	return &Calibration{}
+}
+
+func Init() *Calibration {
+	calibration := New()
+	calibration.Init()
+	return calibration
+}
+
+func (c *Calibration) Init() {
+	c.Device.Init()
+	c.Device.SubType = SubType()
+
+	c.Value = nil
+	c.Units = nil
 }
 
 func (c *Calibration) Parse(parser data.ObjectParser) error {

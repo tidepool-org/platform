@@ -27,15 +27,27 @@ func SubType() string {
 	return "status"
 }
 
-func New() (*Status, error) {
-	statusDevice, err := device.New(SubType())
-	if err != nil {
-		return nil, err
-	}
+func NewDatum() data.Datum {
+	return New()
+}
 
-	return &Status{
-		Device: *statusDevice,
-	}, nil
+func New() *Status {
+	return &Status{}
+}
+
+func Init() *Status {
+	status := New()
+	status.Init()
+	return status
+}
+
+func (s *Status) Init() {
+	s.Device.Init()
+	s.Device.SubType = SubType()
+
+	s.Name = nil
+	s.Duration = nil
+	s.Reason = nil
 }
 
 func (s *Status) Parse(parser data.ObjectParser) error {

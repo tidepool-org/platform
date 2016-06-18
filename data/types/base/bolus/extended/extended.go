@@ -28,15 +28,28 @@ func SubType() string {
 	return "square"
 }
 
-func New() (*Extended, error) {
-	extendedBolus, err := bolus.New(SubType())
-	if err != nil {
-		return nil, err
-	}
+func NewDatum() data.Datum {
+	return New()
+}
 
-	return &Extended{
-		Bolus: *extendedBolus,
-	}, nil
+func New() *Extended {
+	return &Extended{}
+}
+
+func Init() *Extended {
+	extended := New()
+	extended.Init()
+	return extended
+}
+
+func (e *Extended) Init() {
+	e.Bolus.Init()
+	e.Bolus.SubType = SubType()
+
+	e.Extended = nil
+	e.ExpectedExtended = nil
+	e.Duration = nil
+	e.ExpectedDuration = nil
 }
 
 func (e *Extended) Parse(parser data.ObjectParser) error {

@@ -17,15 +17,27 @@ func Type() string {
 	return "smbg"
 }
 
-func New() (*BloodGlucose, error) {
-	bloodGlucoseBase, err := base.New(Type())
-	if err != nil {
-		return nil, err
-	}
+func NewDatum() data.Datum {
+	return New()
+}
 
-	return &BloodGlucose{
-		Base: *bloodGlucoseBase,
-	}, nil
+func New() *BloodGlucose {
+	return &BloodGlucose{}
+}
+
+func Init() *BloodGlucose {
+	bloodGlucose := New()
+	bloodGlucose.Init()
+	return bloodGlucose
+}
+
+func (b *BloodGlucose) Init() {
+	b.Base.Init()
+	b.Base.Type = Type()
+
+	b.Value = nil
+	b.Units = nil
+	b.SubType = nil
 }
 
 func (b *BloodGlucose) Parse(parser data.ObjectParser) error {

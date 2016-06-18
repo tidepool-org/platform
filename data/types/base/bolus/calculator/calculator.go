@@ -40,15 +40,36 @@ func Type() string {
 	return "wizard"
 }
 
-func New() (*Calculator, error) {
-	calculatorBase, err := base.New(Type())
-	if err != nil {
-		return nil, err
-	}
+func NewDatum() data.Datum {
+	return New()
+}
 
-	return &Calculator{
-		Base: *calculatorBase,
-	}, nil
+func New() *Calculator {
+	return &Calculator{}
+}
+
+func Init() *Calculator {
+	calculator := New()
+	calculator.Init()
+	return calculator
+}
+
+func (c *Calculator) Init() {
+	c.Base.Init()
+	c.Base.Type = Type()
+
+	c.Recommended = nil
+	c.BloodGlucoseTarget = nil
+
+	c.BolusID = nil
+	c.CarbohydrateInput = nil
+	c.InsulinOnBoard = nil
+	c.InsulinSensitivity = nil
+	c.InsulinCarbohydrateRatio = nil
+	c.BloodGlucoseInput = nil
+	c.Units = nil
+
+	c.bolus = nil
 }
 
 func (c *Calculator) Parse(parser data.ObjectParser) error {

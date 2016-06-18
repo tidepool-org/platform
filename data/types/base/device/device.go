@@ -11,7 +11,6 @@ package device
  */
 
 import (
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/base"
 )
@@ -31,20 +30,11 @@ func Type() string {
 	return "deviceEvent"
 }
 
-func New(subType string) (*Device, error) {
-	if subType == "" {
-		return nil, app.Error("basal", "sub type is missing")
-	}
+func (d *Device) Init() {
+	d.Base.Init()
+	d.Base.Type = Type()
 
-	deviceBase, err := base.New(Type())
-	if err != nil {
-		return nil, err
-	}
-
-	return &Device{
-		Base:    *deviceBase,
-		SubType: subType,
-	}, nil
+	d.SubType = ""
 }
 
 func (d *Device) Meta() interface{} {

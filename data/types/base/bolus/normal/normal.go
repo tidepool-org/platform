@@ -26,15 +26,26 @@ func SubType() string {
 	return "normal"
 }
 
-func New() (*Normal, error) {
-	normalBolus, err := bolus.New(SubType())
-	if err != nil {
-		return nil, err
-	}
+func NewDatum() data.Datum {
+	return New()
+}
 
-	return &Normal{
-		Bolus: *normalBolus,
-	}, nil
+func New() *Normal {
+	return &Normal{}
+}
+
+func Init() *Normal {
+	normal := New()
+	normal.Init()
+	return normal
+}
+
+func (n *Normal) Init() {
+	n.Bolus.Init()
+	n.Bolus.SubType = SubType()
+
+	n.Normal = nil
+	n.ExpectedNormal = nil
 }
 
 func (n *Normal) Parse(parser data.ObjectParser) error {
