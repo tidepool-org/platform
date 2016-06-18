@@ -348,11 +348,11 @@ var _ = Describe("Settings", func() {
 			}
 
 			testContext, err := context.NewStandard(test.NewLogger())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
-			Expect(err).To(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(err).ToNot(HaveOccurred())
 			Expect(standardNormalizer).ToNot(BeNil())
-			Expect(err).To(BeNil())
 			pumpSettings.Normalize(standardNormalizer)
 			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(bloodglucose.MmolL))
 
@@ -379,11 +379,11 @@ var _ = Describe("Settings", func() {
 			}
 
 			testContext, err := context.NewStandard(test.NewLogger())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
-			Expect(err).To(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(err).ToNot(HaveOccurred())
 			Expect(standardNormalizer).ToNot(BeNil())
-			Expect(err).To(BeNil())
 			pumpSettings.Normalize(standardNormalizer)
 			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(bloodglucose.MmolL))
 
@@ -410,11 +410,11 @@ var _ = Describe("Settings", func() {
 			}
 
 			testContext, err := context.NewStandard(test.NewLogger())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
-			Expect(err).To(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(err).ToNot(HaveOccurred())
 			Expect(standardNormalizer).ToNot(BeNil())
-			Expect(err).To(BeNil())
 			pumpSettings.Normalize(standardNormalizer)
 			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(bloodglucose.MmolL))
 
@@ -441,11 +441,11 @@ var _ = Describe("Settings", func() {
 			}
 
 			testContext, err := context.NewStandard(test.NewLogger())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
-			Expect(err).To(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(err).ToNot(HaveOccurred())
 			Expect(standardNormalizer).ToNot(BeNil())
-			Expect(err).To(BeNil())
 			pumpSettings.Normalize(standardNormalizer)
 			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(bloodglucose.MmolL))
 
@@ -472,11 +472,11 @@ var _ = Describe("Settings", func() {
 			}
 
 			testContext, err := context.NewStandard(test.NewLogger())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
-			Expect(err).To(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(err).ToNot(HaveOccurred())
 			Expect(standardNormalizer).ToNot(BeNil())
-			Expect(err).To(BeNil())
 			pumpSettings.Normalize(standardNormalizer)
 			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(bloodglucose.MmolL))
 
@@ -503,11 +503,11 @@ var _ = Describe("Settings", func() {
 			}
 
 			testContext, err := context.NewStandard(test.NewLogger())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
-			Expect(err).To(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(err).ToNot(HaveOccurred())
 			Expect(standardNormalizer).ToNot(BeNil())
-			Expect(err).To(BeNil())
 			pumpSettings.Normalize(standardNormalizer)
 			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(bloodglucose.MmolL))
 
@@ -535,11 +535,11 @@ var _ = Describe("Settings", func() {
 			}
 
 			testContext, err := context.NewStandard(test.NewLogger())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
-			Expect(err).To(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(err).ToNot(HaveOccurred())
 			Expect(standardNormalizer).ToNot(BeNil())
-			Expect(err).To(BeNil())
 			pumpSettings.Normalize(standardNormalizer)
 			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(bloodglucose.MmolL))
 
@@ -565,11 +565,11 @@ var _ = Describe("Settings", func() {
 			}
 
 			testContext, err := context.NewStandard(test.NewLogger())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
-			Expect(err).To(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(err).ToNot(HaveOccurred())
 			Expect(standardNormalizer).ToNot(BeNil())
-			Expect(err).To(BeNil())
 			pumpSettings.Normalize(standardNormalizer)
 			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(bloodglucose.MmolL))
 

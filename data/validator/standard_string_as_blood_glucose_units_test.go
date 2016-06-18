@@ -23,8 +23,8 @@ var _ = Describe("StandardStringAsBloodGlucoseUnits", func() {
 		BeforeEach(func() {
 			var err error
 			standardContext, err = context.NewStandard(test.NewLogger())
-			Expect(standardContext).ToNot(BeNil())
 			Expect(err).ToNot(HaveOccurred())
+			Expect(standardContext).ToNot(BeNil())
 		})
 
 		Context("new validator with nil reference and nil units", func() {

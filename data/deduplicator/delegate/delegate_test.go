@@ -104,26 +104,26 @@ var _ = Describe("Delegate", func() {
 	Context("NewFactory", func() {
 		It("returns an error if factories is nil", func() {
 			factory, err := delegate.NewFactory(nil)
-			Expect(factory).To(BeNil())
 			Expect(err).To(MatchError("delegate: factories is missing"))
+			Expect(factory).To(BeNil())
 		})
 
 		It("returns an error if there are no factories", func() {
 			factory, err := delegate.NewFactory([]deduplicator.Factory{})
-			Expect(factory).To(BeNil())
 			Expect(err).To(MatchError("delegate: factories is missing"))
+			Expect(factory).To(BeNil())
 		})
 
 		It("returns success with one factory", func() {
 			factory, err := delegate.NewFactory([]deduplicator.Factory{&TestFactory{}})
-			Expect(factory).ToNot(BeNil())
 			Expect(err).ToNot(HaveOccurred())
+			Expect(factory).ToNot(BeNil())
 		})
 
 		It("returns success with multiple factories", func() {
 			factory, err := delegate.NewFactory([]deduplicator.Factory{&TestFactory{}, &TestFactory{}, &TestFactory{}, &TestFactory{}})
-			Expect(factory).ToNot(BeNil())
 			Expect(err).ToNot(HaveOccurred())
+			Expect(factory).ToNot(BeNil())
 		})
 	})
 
@@ -138,8 +138,8 @@ var _ = Describe("Delegate", func() {
 			firstFactory = &TestFactory{CanDeduplicateDatasetOutputs: []CanDeduplicateDatasetOutput{{false, nil}}}
 			secondFactory = &TestFactory{CanDeduplicateDatasetOutputs: []CanDeduplicateDatasetOutput{{false, nil}}}
 			delegateFactory, err = delegate.NewFactory([]deduplicator.Factory{firstFactory, secondFactory})
-			Expect(delegateFactory).ToNot(BeNil())
 			Expect(err).ToNot(HaveOccurred())
+			Expect(delegateFactory).ToNot(BeNil())
 			dataset = upload.Init()
 			Expect(dataset).ToNot(BeNil())
 		})
@@ -149,15 +149,15 @@ var _ = Describe("Delegate", func() {
 				firstFactory.CanDeduplicateDatasetOutputs = []CanDeduplicateDatasetOutput{}
 				secondFactory.CanDeduplicateDatasetOutputs = []CanDeduplicateDatasetOutput{}
 				can, err := delegateFactory.CanDeduplicateDataset(nil)
-				Expect(can).To(BeFalse())
 				Expect(err).To(MatchError("delegate: dataset is missing"))
+				Expect(can).To(BeFalse())
 			})
 
 			It("returns an error if any contained factory returns an error", func() {
 				secondFactory.CanDeduplicateDatasetOutputs = []CanDeduplicateDatasetOutput{{false, errors.New("test error")}}
 				can, err := delegateFactory.CanDeduplicateDataset(dataset)
-				Expect(can).To(BeFalse())
 				Expect(err).To(MatchError("test error"))
+				Expect(can).To(BeFalse())
 				Expect(firstFactory.CanDeduplicateDatasetInputs).To(ConsistOf(dataset))
 				Expect(firstFactory.CanDeduplicateDatasetOutputs).To(BeEmpty())
 				Expect(secondFactory.CanDeduplicateDatasetInputs).To(ConsistOf(dataset))
@@ -166,8 +166,8 @@ var _ = Describe("Delegate", func() {
 
 			It("return false if no factory can deduplicate the dataset", func() {
 				can, err := delegateFactory.CanDeduplicateDataset(dataset)
-				Expect(can).To(BeFalse())
 				Expect(err).ToNot(HaveOccurred())
+				Expect(can).To(BeFalse())
 				Expect(firstFactory.CanDeduplicateDatasetInputs).To(ConsistOf(dataset))
 				Expect(firstFactory.CanDeduplicateDatasetOutputs).To(BeEmpty())
 				Expect(secondFactory.CanDeduplicateDatasetInputs).To(ConsistOf(dataset))
@@ -177,8 +177,8 @@ var _ = Describe("Delegate", func() {
 			It("returns true if any contained factory can deduplicate the dataset", func() {
 				secondFactory.CanDeduplicateDatasetOutputs = []CanDeduplicateDatasetOutput{{true, nil}}
 				can, err := delegateFactory.CanDeduplicateDataset(dataset)
-				Expect(can).To(BeTrue())
 				Expect(err).ToNot(HaveOccurred())
+				Expect(can).To(BeTrue())
 				Expect(firstFactory.CanDeduplicateDatasetInputs).To(ConsistOf(dataset))
 				Expect(firstFactory.CanDeduplicateDatasetOutputs).To(BeEmpty())
 				Expect(secondFactory.CanDeduplicateDatasetInputs).To(ConsistOf(dataset))
@@ -189,8 +189,8 @@ var _ = Describe("Delegate", func() {
 				firstFactory.CanDeduplicateDatasetOutputs = []CanDeduplicateDatasetOutput{{true, nil}}
 				secondFactory.CanDeduplicateDatasetOutputs = []CanDeduplicateDatasetOutput{{false, errors.New("test error")}}
 				can, err := delegateFactory.CanDeduplicateDataset(dataset)
-				Expect(can).To(BeTrue())
 				Expect(err).ToNot(HaveOccurred())
+				Expect(can).To(BeTrue())
 				Expect(firstFactory.CanDeduplicateDatasetInputs).To(ConsistOf(dataset))
 				Expect(firstFactory.CanDeduplicateDatasetOutputs).To(BeEmpty())
 				Expect(secondFactory.CanDeduplicateDatasetInputs).To(BeEmpty())
@@ -211,31 +211,31 @@ var _ = Describe("Delegate", func() {
 				firstFactory.CanDeduplicateDatasetOutputs = []CanDeduplicateDatasetOutput{}
 				secondFactory.CanDeduplicateDatasetOutputs = []CanDeduplicateDatasetOutput{}
 				deduplicator, err := delegateFactory.NewDeduplicator(nil, dataStoreSession, dataset)
-				Expect(deduplicator).To(BeNil())
 				Expect(err).To(MatchError("delegate: logger is missing"))
+				Expect(deduplicator).To(BeNil())
 			})
 
 			It("returns an error if the data store session is missing", func() {
 				firstFactory.CanDeduplicateDatasetOutputs = []CanDeduplicateDatasetOutput{}
 				secondFactory.CanDeduplicateDatasetOutputs = []CanDeduplicateDatasetOutput{}
 				deduplicator, err := delegateFactory.NewDeduplicator(logger, nil, dataset)
-				Expect(deduplicator).To(BeNil())
 				Expect(err).To(MatchError("delegate: data store session is missing"))
+				Expect(deduplicator).To(BeNil())
 			})
 
 			It("returns an error if the dataset is missing", func() {
 				firstFactory.CanDeduplicateDatasetOutputs = []CanDeduplicateDatasetOutput{}
 				secondFactory.CanDeduplicateDatasetOutputs = []CanDeduplicateDatasetOutput{}
 				deduplicator, err := delegateFactory.NewDeduplicator(logger, dataStoreSession, nil)
-				Expect(deduplicator).To(BeNil())
 				Expect(err).To(MatchError("delegate: dataset is missing"))
+				Expect(deduplicator).To(BeNil())
 			})
 
 			It("returns an error if any contained factory returns an error", func() {
 				secondFactory.CanDeduplicateDatasetOutputs = []CanDeduplicateDatasetOutput{{false, errors.New("test error")}}
 				deduplicator, err := delegateFactory.NewDeduplicator(logger, dataStoreSession, dataset)
-				Expect(deduplicator).To(BeNil())
 				Expect(err).To(MatchError("test error"))
+				Expect(deduplicator).To(BeNil())
 				Expect(firstFactory.CanDeduplicateDatasetInputs).To(ConsistOf(dataset))
 				Expect(firstFactory.CanDeduplicateDatasetOutputs).To(BeEmpty())
 				Expect(secondFactory.CanDeduplicateDatasetInputs).To(ConsistOf(dataset))
@@ -244,8 +244,8 @@ var _ = Describe("Delegate", func() {
 
 			It("returns an error if no factory can deduplicate the dataset", func() {
 				deduplicator, err := delegateFactory.NewDeduplicator(logger, dataStoreSession, dataset)
-				Expect(deduplicator).To(BeNil())
 				Expect(err).To(MatchError("delegate: deduplicator not found"))
+				Expect(deduplicator).To(BeNil())
 				Expect(firstFactory.CanDeduplicateDatasetInputs).To(ConsistOf(dataset))
 				Expect(firstFactory.CanDeduplicateDatasetOutputs).To(BeEmpty())
 				Expect(secondFactory.CanDeduplicateDatasetInputs).To(ConsistOf(dataset))
@@ -257,8 +257,8 @@ var _ = Describe("Delegate", func() {
 				secondFactory.CanDeduplicateDatasetOutputs = []CanDeduplicateDatasetOutput{{true, nil}}
 				secondFactory.NewDeduplicatorOutputs = []NewDeduplicatorOutput{{secondDeduplicator, nil}}
 				deduplicator, err := delegateFactory.NewDeduplicator(logger, dataStoreSession, dataset)
-				Expect(deduplicator).To(Equal(secondDeduplicator))
 				Expect(err).ToNot(HaveOccurred())
+				Expect(deduplicator).To(Equal(secondDeduplicator))
 				Expect(firstFactory.CanDeduplicateDatasetInputs).To(ConsistOf(dataset))
 				Expect(firstFactory.CanDeduplicateDatasetOutputs).To(BeEmpty())
 				Expect(secondFactory.CanDeduplicateDatasetInputs).To(ConsistOf(dataset))
@@ -272,8 +272,8 @@ var _ = Describe("Delegate", func() {
 				firstFactory.NewDeduplicatorOutputs = []NewDeduplicatorOutput{{firstDeduplicator, nil}}
 				secondFactory.CanDeduplicateDatasetOutputs = []CanDeduplicateDatasetOutput{{false, errors.New("test error")}}
 				deduplicator, err := delegateFactory.NewDeduplicator(logger, dataStoreSession, dataset)
-				Expect(deduplicator).To(Equal(firstDeduplicator))
 				Expect(err).ToNot(HaveOccurred())
+				Expect(deduplicator).To(Equal(firstDeduplicator))
 				Expect(firstFactory.CanDeduplicateDatasetInputs).To(ConsistOf(dataset))
 				Expect(firstFactory.CanDeduplicateDatasetOutputs).To(BeEmpty())
 				Expect(firstFactory.NewDeduplicatorInputs).To(ConsistOf(NewDeduplicatorInput{logger, dataStoreSession, dataset}))
@@ -285,8 +285,8 @@ var _ = Describe("Delegate", func() {
 				secondFactory.CanDeduplicateDatasetOutputs = []CanDeduplicateDatasetOutput{{true, nil}}
 				secondFactory.NewDeduplicatorOutputs = []NewDeduplicatorOutput{{nil, errors.New("test error")}}
 				deduplicator, err := delegateFactory.NewDeduplicator(logger, dataStoreSession, dataset)
-				Expect(deduplicator).To(BeNil())
 				Expect(err).To(MatchError("test error"))
+				Expect(deduplicator).To(BeNil())
 				Expect(firstFactory.CanDeduplicateDatasetInputs).To(ConsistOf(dataset))
 				Expect(firstFactory.CanDeduplicateDatasetOutputs).To(BeEmpty())
 				Expect(secondFactory.CanDeduplicateDatasetInputs).To(ConsistOf(dataset))

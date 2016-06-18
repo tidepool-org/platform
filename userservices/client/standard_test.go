@@ -63,48 +63,48 @@ var _ = Describe("Standard", func() {
 
 		It("returns an error if logger is missing", func() {
 			standard, err := client.NewStandard(nil, config)
-			Expect(standard).To(BeNil())
 			Expect(err).To(MatchError("client: logger is missing"))
+			Expect(standard).To(BeNil())
 		})
 
 		It("returns an error if config is missing", func() {
 			standard, err := client.NewStandard(logger, nil)
-			Expect(standard).To(BeNil())
 			Expect(err).To(MatchError("client: config is missing"))
+			Expect(standard).To(BeNil())
 		})
 
 		It("returns an error if config address is invalid", func() {
 			config.Address = ""
 			standard, err := client.NewStandard(logger, config)
-			Expect(standard).To(BeNil())
 			Expect(err).To(MatchError("client: config is invalid; client: address is missing"))
+			Expect(standard).To(BeNil())
 		})
 
 		It("returns an error if config request timeout is invalid", func() {
 			config.RequestTimeout = -1
 			standard, err := client.NewStandard(logger, config)
-			Expect(standard).To(BeNil())
 			Expect(err).To(MatchError("client: config is invalid; client: request timeout is invalid"))
+			Expect(standard).To(BeNil())
 		})
 
 		It("returns an error if config server token secret is invalid", func() {
 			config.ServerTokenSecret = ""
 			standard, err := client.NewStandard(logger, config)
-			Expect(standard).To(BeNil())
 			Expect(err).To(MatchError("client: config is invalid; client: server token secret is missing"))
+			Expect(standard).To(BeNil())
 		})
 
 		It("returns an error if config server token timeout is invalid", func() {
 			config.ServerTokenTimeout = -1
 			standard, err := client.NewStandard(logger, config)
-			Expect(standard).To(BeNil())
 			Expect(err).To(MatchError("client: config is invalid; client: server token timeout is invalid"))
+			Expect(standard).To(BeNil())
 		})
 
 		It("returns success", func() {
 			standard, err := client.NewStandard(logger, config)
-			Expect(standard).ToNot(BeNil())
 			Expect(err).ToNot(HaveOccurred())
+			Expect(standard).ToNot(BeNil())
 		})
 	})
 
@@ -126,8 +126,8 @@ var _ = Describe("Standard", func() {
 		JustBeforeEach(func() {
 			var err error
 			standard, err = client.NewStandard(logger, config)
-			Expect(standard).ToNot(BeNil())
 			Expect(err).ToNot(HaveOccurred())
+			Expect(standard).ToNot(BeNil())
 		})
 
 		AfterEach(func() {
@@ -296,23 +296,23 @@ var _ = Describe("Standard", func() {
 			Context("ValidateUserSession", func() {
 				It("returns error if context is missing", func() {
 					sessionToken, err := standard.ValidateUserSession(nil, "session-token")
-					Expect(sessionToken).To(Equal(""))
 					Expect(err).To(MatchError("client: context is missing"))
+					Expect(sessionToken).To(Equal(""))
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 
 				It("returns error if session token is missing", func() {
 					sessionToken, err := standard.ValidateUserSession(context, "")
-					Expect(sessionToken).To(Equal(""))
 					Expect(err).To(MatchError("client: session token is missing"))
+					Expect(sessionToken).To(Equal(""))
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 
 				It("returns error if client is closed", func() {
 					standard.Close()
 					sessionToken, err := standard.ValidateUserSession(context, "session-token")
-					Expect(sessionToken).To(Equal(""))
 					Expect(err).To(MatchError("client: client is closed"))
+					Expect(sessionToken).To(Equal(""))
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 
@@ -320,16 +320,16 @@ var _ = Describe("Standard", func() {
 					server.Close()
 					server = nil
 					sessionToken, err := standard.ValidateUserSession(context, "session-token")
-					Expect(sessionToken).To(Equal(""))
 					Expect(err).To(HaveOccurred())
+					Expect(sessionToken).To(Equal(""))
 					Expect(err.Error()).To(HavePrefix("client: unable to perform request GET "))
 				})
 
 				It("returns error if the context request is missing", func() {
 					context.TestRequest = nil
 					sessionToken, err := standard.ValidateUserSession(context, "session-token")
-					Expect(sessionToken).To(Equal(""))
 					Expect(err).To(MatchError("client: unable to copy request trace; service: source request is missing"))
+					Expect(sessionToken).To(Equal(""))
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 
@@ -346,8 +346,8 @@ var _ = Describe("Standard", func() {
 
 					It("returns an error", func() {
 						sessionToken, err := standard.ValidateUserSession(context, "session-token")
-						Expect(sessionToken).To(Equal(""))
 						Expect(err).To(HaveOccurred())
+						Expect(sessionToken).To(Equal(""))
 						Expect(err.Error()).To(HavePrefix("client: unexpected response status code 400 from GET "))
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
@@ -366,8 +366,8 @@ var _ = Describe("Standard", func() {
 
 					It("returns an error", func() {
 						sessionToken, err := standard.ValidateUserSession(context, "session-token")
-						Expect(sessionToken).To(Equal(""))
 						Expect(err).To(MatchError("client: unauthorized"))
+						Expect(sessionToken).To(Equal(""))
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
@@ -385,8 +385,8 @@ var _ = Describe("Standard", func() {
 
 					It("returns an error", func() {
 						sessionToken, err := standard.ValidateUserSession(context, "session-token")
-						Expect(sessionToken).To(Equal(""))
 						Expect(err).To(HaveOccurred())
+						Expect(sessionToken).To(Equal(""))
 						Expect(err.Error()).To(HavePrefix("client: error decoding JSON response from GET "))
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
@@ -405,8 +405,8 @@ var _ = Describe("Standard", func() {
 
 					It("returns an error", func() {
 						sessionToken, err := standard.ValidateUserSession(context, "session-token")
-						Expect(sessionToken).To(Equal(""))
 						Expect(err).To(MatchError("client: user id is missing"))
+						Expect(sessionToken).To(Equal(""))
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
@@ -424,8 +424,8 @@ var _ = Describe("Standard", func() {
 
 					It("returns the user id", func() {
 						sessionToken, err := standard.ValidateUserSession(context, "session-token")
-						Expect(sessionToken).To(Equal("session-user-id"))
 						Expect(err).ToNot(HaveOccurred())
+						Expect(sessionToken).To(Equal("session-user-id"))
 					})
 				})
 			})
@@ -663,23 +663,23 @@ var _ = Describe("Standard", func() {
 			Context("GetUserGroupID", func() {
 				It("returns error if context is missing", func() {
 					groupID, err := standard.GetUserGroupID(nil, "user-id")
-					Expect(groupID).To(Equal(""))
 					Expect(err).To(MatchError("client: context is missing"))
+					Expect(groupID).To(Equal(""))
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 
 				It("returns error if user id is missing", func() {
 					groupID, err := standard.GetUserGroupID(context, "")
-					Expect(groupID).To(Equal(""))
 					Expect(err).To(MatchError("client: user id is missing"))
+					Expect(groupID).To(Equal(""))
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 
 				It("returns error if client is closed", func() {
 					standard.Close()
 					groupID, err := standard.GetUserGroupID(context, "user-id")
-					Expect(groupID).To(Equal(""))
 					Expect(err).To(MatchError("client: client is closed"))
+					Expect(groupID).To(Equal(""))
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 
@@ -687,16 +687,16 @@ var _ = Describe("Standard", func() {
 					server.Close()
 					server = nil
 					groupID, err := standard.GetUserGroupID(context, "user-id")
-					Expect(groupID).To(Equal(""))
 					Expect(err).To(HaveOccurred())
+					Expect(groupID).To(Equal(""))
 					Expect(err.Error()).To(HavePrefix("client: unable to perform request GET "))
 				})
 
 				It("returns error if the context request is missing", func() {
 					context.TestRequest = nil
 					groupID, err := standard.GetUserGroupID(context, "user-id")
-					Expect(groupID).To(Equal(""))
 					Expect(err).To(MatchError("client: unable to copy request trace; service: source request is missing"))
+					Expect(groupID).To(Equal(""))
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 
@@ -713,8 +713,8 @@ var _ = Describe("Standard", func() {
 
 					It("returns an error", func() {
 						groupID, err := standard.GetUserGroupID(context, "user-id")
-						Expect(groupID).To(Equal(""))
 						Expect(err).To(HaveOccurred())
+						Expect(groupID).To(Equal(""))
 						Expect(err.Error()).To(HavePrefix("client: unexpected response status code 400 from GET "))
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
@@ -733,8 +733,8 @@ var _ = Describe("Standard", func() {
 
 					It("returns an error", func() {
 						groupID, err := standard.GetUserGroupID(context, "user-id")
-						Expect(groupID).To(Equal(""))
 						Expect(err).To(MatchError("client: unauthorized"))
+						Expect(groupID).To(Equal(""))
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
@@ -752,8 +752,8 @@ var _ = Describe("Standard", func() {
 
 					It("returns an error", func() {
 						groupID, err := standard.GetUserGroupID(context, "user-id")
-						Expect(groupID).To(Equal(""))
 						Expect(err).To(HaveOccurred())
+						Expect(groupID).To(Equal(""))
 						Expect(err.Error()).To(HavePrefix("client: error decoding JSON response from GET "))
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
@@ -772,8 +772,8 @@ var _ = Describe("Standard", func() {
 
 					It("returns an error", func() {
 						groupID, err := standard.GetUserGroupID(context, "user-id")
-						Expect(groupID).To(Equal(""))
 						Expect(err).To(MatchError("client: group id is missing"))
+						Expect(groupID).To(Equal(""))
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
@@ -791,8 +791,8 @@ var _ = Describe("Standard", func() {
 
 					It("returns the group id", func() {
 						groupID, err := standard.GetUserGroupID(context, "user-id")
-						Expect(groupID).To(Equal("session-group-id"))
 						Expect(err).ToNot(HaveOccurred())
+						Expect(groupID).To(Equal("session-group-id"))
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
@@ -818,8 +818,8 @@ var _ = Describe("Standard", func() {
 			Context("ValidateUserSession", func() {
 				It("returns an error", func() {
 					sessionToken, err := standard.ValidateUserSession(context, "session-token")
-					Expect(sessionToken).To(Equal(""))
 					Expect(err).To(HaveOccurred())
+					Expect(sessionToken).To(Equal(""))
 					Expect(err.Error()).To(HavePrefix("client: unable to obtain server token for GET "))
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
@@ -837,8 +837,8 @@ var _ = Describe("Standard", func() {
 			Context("GetUserGroupID", func() {
 				It("returns an error", func() {
 					groupID, err := standard.GetUserGroupID(context, "user-id")
-					Expect(groupID).To(Equal(""))
 					Expect(err).To(HaveOccurred())
+					Expect(groupID).To(Equal(""))
 					Expect(err.Error()).To(HavePrefix("client: unable to obtain server token for GET "))
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})

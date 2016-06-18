@@ -281,11 +281,11 @@ var _ = Describe("Calculator", func() {
 				bolusCalculator.BloodGlucoseTarget = &calculator.BloodGlucoseTarget{Target: &val}
 
 				testContext, err := context.NewStandard(test.NewLogger())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(testContext).ToNot(BeNil())
-				Expect(err).To(BeNil())
 				standardNormalizer, err := normalizer.NewStandard(testContext)
+				Expect(err).ToNot(HaveOccurred())
 				Expect(standardNormalizer).ToNot(BeNil())
-				Expect(err).To(BeNil())
 				bolusCalculator.Normalize(standardNormalizer)
 				Expect(*bolusCalculator.Units).To(Equal(bloodglucose.MmolL))
 				Expect(*bolusCalculator.BloodGlucoseInput).To(Equal(expected))
@@ -306,11 +306,11 @@ var _ = Describe("Calculator", func() {
 				bolusCalculator.BloodGlucoseTarget = &calculator.BloodGlucoseTarget{Target: &val}
 
 				testContext, err := context.NewStandard(test.NewLogger())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(testContext).ToNot(BeNil())
-				Expect(err).To(BeNil())
 				standardNormalizer, err := normalizer.NewStandard(testContext)
+				Expect(err).ToNot(HaveOccurred())
 				Expect(standardNormalizer).ToNot(BeNil())
-				Expect(err).To(BeNil())
 				bolusCalculator.Normalize(standardNormalizer)
 				Expect(*bolusCalculator.Units).To(Equal(bloodglucose.MmolL))
 				Expect(*bolusCalculator.BloodGlucoseInput).To(Equal(expected))

@@ -21,8 +21,8 @@ var _ = Describe("StandardStringAsTime", func() {
 	It("NewStandardStringAsTime returns nil if time layout is empty string", func() {
 		value := "2015-12-31T13:14:16-08:00"
 		standardContext, err := context.NewStandard(test.NewLogger())
-		Expect(standardContext).ToNot(BeNil())
 		Expect(err).ToNot(HaveOccurred())
+		Expect(standardContext).ToNot(BeNil())
 		Expect(validator.NewStandardStringAsTime(standardContext, "ghost", &value, "")).To(BeNil())
 	})
 
@@ -32,8 +32,8 @@ var _ = Describe("StandardStringAsTime", func() {
 		BeforeEach(func() {
 			var err error
 			standardContext, err = context.NewStandard(test.NewLogger())
-			Expect(standardContext).ToNot(BeNil())
 			Expect(err).ToNot(HaveOccurred())
+			Expect(standardContext).ToNot(BeNil())
 		})
 
 		Context("new validator with nil reference and nil value", func() {

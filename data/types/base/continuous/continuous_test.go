@@ -82,11 +82,11 @@ var _ = Describe("Continuous", func() {
 			continuousBg.Value = &val
 
 			testContext, err := context.NewStandard(test.NewLogger())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
-			Expect(err).To(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(err).ToNot(HaveOccurred())
 			Expect(standardNormalizer).ToNot(BeNil())
-			Expect(err).To(BeNil())
 			continuousBg.Normalize(standardNormalizer)
 			Expect(*continuousBg.Units).To(Equal(bloodglucose.MmolL))
 			Expect(*continuousBg.Value).To(Equal(expected))
@@ -105,11 +105,11 @@ var _ = Describe("Continuous", func() {
 			continuousBg.Value = &val
 
 			testContext, err := context.NewStandard(test.NewLogger())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
-			Expect(err).To(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(err).ToNot(HaveOccurred())
 			Expect(standardNormalizer).ToNot(BeNil())
-			Expect(err).To(BeNil())
 			continuousBg.Normalize(standardNormalizer)
 			Expect(*continuousBg.Units).To(Equal(bloodglucose.MmolL))
 			Expect(*continuousBg.Value).To(Equal(expected))

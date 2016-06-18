@@ -97,11 +97,11 @@ var _ = Describe("SelfMonitored", func() {
 			selfMonitoredBg.Value = &val
 
 			testContext, err := context.NewStandard(test.NewLogger())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
-			Expect(err).To(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(err).ToNot(HaveOccurred())
 			Expect(standardNormalizer).ToNot(BeNil())
-			Expect(err).To(BeNil())
 			selfMonitoredBg.Normalize(standardNormalizer)
 			Expect(*selfMonitoredBg.Units).To(Equal(bloodglucose.MmolL))
 			Expect(*selfMonitoredBg.Value).To(Equal(expected))
@@ -120,11 +120,11 @@ var _ = Describe("SelfMonitored", func() {
 			selfMonitoredBg.Value = &val
 
 			testContext, err := context.NewStandard(test.NewLogger())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
-			Expect(err).To(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
+			Expect(err).ToNot(HaveOccurred())
 			Expect(standardNormalizer).ToNot(BeNil())
-			Expect(err).To(BeNil())
 			selfMonitoredBg.Normalize(standardNormalizer)
 			Expect(*selfMonitoredBg.Units).To(Equal(bloodglucose.MmolL))
 			Expect(*selfMonitoredBg.Value).To(Equal(expected))
