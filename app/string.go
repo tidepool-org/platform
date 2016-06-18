@@ -1,5 +1,7 @@
 package app
 
+import "strings"
+
 /* CHECKLIST
  * [x] Uses interfaces as appropriate
  * [x] Private package variables use underscore prefix
@@ -10,11 +12,22 @@ package app
  * [x] Full test coverage
  */
 
-func FirstStringNotEmpty(strs ...string) string {
-	for _, str := range strs {
-		if str != "" {
-			return str
+func FirstStringNotEmpty(sourceStrings ...string) string {
+	for _, sourceString := range sourceStrings {
+		if sourceString != "" {
+			return sourceString
 		}
 	}
 	return ""
+}
+
+func SplitStringAndRemoveWhitespace(sourceString string, separator string) []string {
+	splitStrings := []string{}
+	for _, splitString := range strings.Split(sourceString, separator) {
+		splitString = strings.TrimSpace(splitString)
+		if splitString != "" {
+			splitStrings = append(splitStrings, splitString)
+		}
+	}
+	return splitStrings
 }
