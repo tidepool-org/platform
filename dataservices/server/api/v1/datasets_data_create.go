@@ -17,7 +17,6 @@ import (
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
-	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/dataservices/server"
 	"github.com/tidepool-org/platform/userservices/client"
@@ -69,7 +68,7 @@ func DatasetsDataCreate(serverContext server.Context) {
 		return
 	}
 
-	datumArrayParser, err := parser.NewStandardArray(datumArrayContext, &rawDatumArray, parser.AppendErrorNotParsed)
+	datumArrayParser, err := parser.NewStandardArray(datumArrayContext, serverContext.DataFactory(), &rawDatumArray, parser.AppendErrorNotParsed)
 	if err != nil {
 		serverContext.RespondWithInternalServerFailure("Unable to create datum array parser", err)
 		return
@@ -89,17 +88,9 @@ func DatasetsDataCreate(serverContext server.Context) {
 
 	datumArray := []data.Datum{}
 	for index := range *datumArrayParser.Array() {
-		datumObjectParser := datumArrayParser.NewChildObjectParser(index)
-		datum, datumErr := types.Parse(datumObjectParser)
-		if datumErr != nil {
-			serverContext.RespondWithInternalServerFailure("Unable to parse datum", datumErr)
-			return
-		}
-		datumObjectParser.ProcessNotParsed()
-
-		if datum != nil {
-			datum.Validate(datumValidator.NewChildValidator(index))
-			datumArray = append(datumArray, datum)
+		if datum := datumArrayParser.ParseDatum(index); datum != nil && *datum != nil {
+			(*datum).Validate(datumValidator.NewChildValidator(index))
+			datumArray = append(datumArray, *datum)
 		}
 	}
 

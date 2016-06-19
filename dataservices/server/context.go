@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/service"
@@ -10,6 +11,7 @@ import (
 type Context interface {
 	service.Context
 
+	DataFactory() data.Factory
 	DataStoreSession() store.Session
 	DataDeduplicatorFactory() deduplicator.Factory
 	UserServicesClient() client.Client

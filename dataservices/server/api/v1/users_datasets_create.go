@@ -16,7 +16,6 @@ import (
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
-	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/base/upload"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/dataservices/server"
@@ -62,7 +61,7 @@ func UsersDatasetsCreate(serverContext server.Context) {
 		return
 	}
 
-	datumParser, err := parser.NewStandardObject(datumContext, &rawDatum, parser.AppendErrorNotParsed)
+	datumParser, err := parser.NewStandardObject(datumContext, serverContext.DataFactory(), &rawDatum, parser.AppendErrorNotParsed)
 	if err != nil {
 		serverContext.RespondWithInternalServerFailure("Unable to create datum parser", err)
 		return
@@ -80,28 +79,29 @@ func UsersDatasetsCreate(serverContext server.Context) {
 		return
 	}
 
-	datasetDatum, err := types.Parse(datumParser)
+	datasetDatum, err := parser.ParseDatum(datumParser, serverContext.DataFactory())
 	if err != nil {
 		serverContext.RespondWithInternalServerFailure("Unable to parse datum parser", err)
 		return
 	}
 
-	datumParser.ProcessNotParsed()
-
-	datasetDatum.Validate(datumValidator)
+	if datasetDatum != nil && *datasetDatum != nil {
+		datumParser.ProcessNotParsed()
+		(*datasetDatum).Validate(datumValidator)
+	}
 
 	if errors := datumContext.Errors(); len(errors) > 0 {
 		serverContext.RespondWithStatusAndErrors(http.StatusBadRequest, errors)
 		return
 	}
 
-	datasetDatum.SetUserID(targetUserID)
-	datasetDatum.SetGroupID(targetUserGroupID)
-	datasetDatum.Normalize(datumNormalizer)
+	(*datasetDatum).SetUserID(targetUserID)
+	(*datasetDatum).SetGroupID(targetUserGroupID)
+	(*datasetDatum).Normalize(datumNormalizer)
 
-	dataset, ok := datasetDatum.(*upload.Upload)
+	dataset, ok := (*datasetDatum).(*upload.Upload)
 	if !ok {
-		serverContext.RespondWithInternalServerFailure("Unexpected datum type", datasetDatum)
+		serverContext.RespondWithInternalServerFailure("Unexpected datum type", *datasetDatum)
 		return
 	}
 

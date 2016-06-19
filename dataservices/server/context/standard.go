@@ -13,6 +13,7 @@ package context
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
+	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/dataservices/server"
@@ -22,13 +23,14 @@ import (
 
 type Standard struct {
 	service.Context
+	dataFactory             data.Factory
 	dataStoreSession        store.Session
 	dataDeduplicatorFactory deduplicator.Factory
 	userServicesClient      client.Client
 	requestUserID           string
 }
 
-func WithContext(dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, userServicesClient client.Client, handler server.HandlerFunc) rest.HandlerFunc {
+func WithContext(dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, userServicesClient client.Client, handler server.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
 		context := service.NewStandard(response, request)
 
@@ -41,11 +43,16 @@ func WithContext(dataStore store.Store, dataDeduplicatorFactory deduplicator.Fac
 
 		handler(&Standard{
 			Context:                 context,
+			dataFactory:             dataFactory,
 			dataStoreSession:        dataStoreSession,
 			dataDeduplicatorFactory: dataDeduplicatorFactory,
 			userServicesClient:      userServicesClient,
 		})
 	}
+}
+
+func (s *Standard) DataFactory() data.Factory {
+	return s.dataFactory
 }
 
 func (s *Standard) DataStoreSession() store.Session {

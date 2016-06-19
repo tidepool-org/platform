@@ -253,19 +253,19 @@ var _ = Describe("Calculator", func() {
 	Context("bolus", func() {
 		DescribeTable("invalid when type", testing.ExpectFieldNotValid,
 			Entry("is missing", NewRawObjectWithMgdl(), "bolus", embeddedBolus(nil, "normal", 52.1, 0.0, 0),
-				[]*service.Error{testing.ComposeError(base.ErrorValueMissing(), "/bolus/type", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorValueNotExists(), "/bolus/type", NewMeta())},
 			),
 			Entry("is not valid", NewRawObjectWithMgdl(), "bolus", embeddedBolus("invalid", "normal", 52.1, 0.0, 0),
-				[]*service.Error{testing.ComposeError(base.ErrorTypeInvalid("invalid"), "/bolus/type", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("invalid", []string{"bolus"}), "/bolus/type", NewMeta())},
 			),
 		)
 
 		DescribeTable("invalid when subType", testing.ExpectFieldNotValid,
 			Entry("is missing", NewRawObjectWithMgdl(), "bolus", embeddedBolus("bolus", nil, 0.0, 52.1, 0),
-				[]*service.Error{testing.ComposeError(base.ErrorValueMissing(), "/bolus/subType", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorValueNotExists(), "/bolus/subType", NewMeta())},
 			),
 			Entry("is not valid", NewRawObjectWithMgdl(), "bolus", embeddedBolus("bolus", "invalid", 0.0, 52.1, 0),
-				[]*service.Error{testing.ComposeError(base.ErrorSubTypeInvalid("invalid"), "/bolus/subType", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("invalid", []string{"dual/square", "normal", "square"}), "/bolus/subType", NewMeta())},
 			),
 		)
 	})

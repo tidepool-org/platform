@@ -6,6 +6,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/dataservices/server"
@@ -19,6 +20,7 @@ import (
 
 type Standard struct {
 	logger                  log.Logger
+	dataFactory             data.Factory
 	dataStore               store.Store
 	dataDeduplicatorFactory deduplicator.Factory
 	userServicesClient      client.Client
@@ -27,9 +29,12 @@ type Standard struct {
 	statusMiddleware        *rest.StatusMiddleware
 }
 
-func NewStandard(logger log.Logger, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, userServicesClient client.Client, versionReporter version.Reporter) (*Standard, error) {
+func NewStandard(logger log.Logger, dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, userServicesClient client.Client, versionReporter version.Reporter) (*Standard, error) {
 	if logger == nil {
 		return nil, app.Error("api", "logger is missing")
+	}
+	if dataFactory == nil {
+		return nil, app.Error("api", "data factory is missing")
 	}
 	if dataStore == nil {
 		return nil, app.Error("api", "data store is missing")
@@ -47,6 +52,7 @@ func NewStandard(logger log.Logger, dataStore store.Store, dataDeduplicatorFacto
 	standard := &Standard{
 		logger:                  logger,
 		dataStore:               dataStore,
+		dataFactory:             dataFactory,
 		dataDeduplicatorFactory: dataDeduplicatorFactory,
 		userServicesClient:      userServicesClient,
 		versionReporter:         versionReporter,
@@ -131,5 +137,5 @@ func (s *Standard) initRouter() error {
 }
 
 func (s *Standard) withContext(handler server.HandlerFunc) rest.HandlerFunc {
-	return context.WithContext(s.dataStore, s.dataDeduplicatorFactory, s.userServicesClient, handler)
+	return context.WithContext(s.dataFactory, s.dataStore, s.dataDeduplicatorFactory, s.userServicesClient, handler)
 }

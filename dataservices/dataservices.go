@@ -16,9 +16,11 @@ import (
 
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/config"
+	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	"github.com/tidepool-org/platform/data/deduplicator/delegate"
 	"github.com/tidepool-org/platform/data/deduplicator/truncate"
+	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/dataservices/server"
@@ -61,6 +63,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	dataFactory, err := initializeDataFactory(logger)
+	if err != nil {
+		logger.WithError(err).Error("Failure initializing data factory")
+		os.Exit(1)
+	}
+
 	dataStore, err := initializeDataStore(configLoader, logger)
 	if err != nil {
 		logger.WithError(err).Error("Failure initializing data store")
@@ -81,7 +89,7 @@ func main() {
 	}
 	defer userServicesClient.Close()
 
-	api, err := initializeAPI(configLoader, logger, dataStore, dataDeduplicatorFactory, userServicesClient, versionReporter)
+	api, err := initializeAPI(logger, dataFactory, dataStore, dataDeduplicatorFactory, userServicesClient, versionReporter)
 	if err != nil {
 		logger.WithError(err).Error("Failure initializing API")
 		os.Exit(1)
@@ -127,6 +135,18 @@ func initializeLogger(configLoader config.Loader, versionReporter version.Report
 	logger.Info(fmt.Sprintf("Logger level is %s", loggerConfig.Level))
 
 	return logger, nil
+}
+
+func initializeDataFactory(logger log.Logger) (data.Factory, error) {
+
+	logger.Debug("Creating data factory")
+
+	standardDataFactory, err := factory.NewStandard()
+	if err != nil {
+		return nil, app.ExtError(err, "dataservices", "unable to create standard data factory")
+	}
+
+	return standardDataFactory, nil
 }
 
 func initializeDataStore(configLoader config.Loader, logger log.Logger) (store.Store, error) {
@@ -196,8 +216,8 @@ func initializeUserServicesClient(configLoader config.Loader, logger log.Logger)
 	return userServicesClient, nil
 }
 
-func initializeAPI(configLoader config.Loader, logger log.Logger, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, userServicesClient client.Client, reporter version.Reporter) (server.API, error) {
-	return api.NewStandard(logger, dataStore, dataDeduplicatorFactory, userServicesClient, reporter)
+func initializeAPI(logger log.Logger, dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, userServicesClient client.Client, reporter version.Reporter) (server.API, error) {
+	return api.NewStandard(logger, dataFactory, dataStore, dataDeduplicatorFactory, userServicesClient, reporter)
 }
 
 func initializeServer(configLoader config.Loader, logger log.Logger, api server.API) (server.Server, error) {

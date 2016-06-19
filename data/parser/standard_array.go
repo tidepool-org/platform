@@ -21,14 +21,18 @@ import (
 
 type StandardArray struct {
 	context         data.Context
+	factory         data.Factory
 	array           *[]interface{}
 	parsed          []bool
 	notParsedPolicy NotParsedPolicy
 }
 
-func NewStandardArray(context data.Context, array *[]interface{}, notParsedPolicy NotParsedPolicy) (*StandardArray, error) {
+func NewStandardArray(context data.Context, factory data.Factory, array *[]interface{}, notParsedPolicy NotParsedPolicy) (*StandardArray, error) {
 	if context == nil {
 		return nil, app.Error("parser", "context is missing")
+	}
+	if factory == nil {
+		return nil, app.Error("parser", "factory is missing")
 	}
 
 	var parsed []bool
@@ -38,6 +42,7 @@ func NewStandardArray(context data.Context, array *[]interface{}, notParsedPolic
 
 	return &StandardArray{
 		context:         context,
+		factory:         factory,
 		array:           array,
 		parsed:          parsed,
 		notParsedPolicy: notParsedPolicy,
@@ -182,7 +187,7 @@ func (s *StandardArray) ParseStringArray(index int) *[]string {
 		}
 
 		stringArrayValue = []string{}
-		parser, _ := NewStandardArray(s.context.NewChildContext(index), &arrayValue, IgnoreNotParsed)
+		parser, _ := NewStandardArray(s.context.NewChildContext(index), s.factory, &arrayValue, IgnoreNotParsed)
 		for arrayIndex := range arrayValue {
 			var stringElement string
 			if stringParsed := parser.ParseString(arrayIndex); stringParsed != nil {
@@ -238,7 +243,7 @@ func (s *StandardArray) ParseObjectArray(index int) *[]map[string]interface{} {
 			return nil
 		}
 
-		parser, _ := NewStandardArray(s.context.NewChildContext(index), &arrayValue, IgnoreNotParsed)
+		parser, _ := NewStandardArray(s.context.NewChildContext(index), s.factory, &arrayValue, IgnoreNotParsed)
 		for arrayIndex := range arrayValue {
 			var objectElement map[string]interface{}
 			if objectParsed := parser.ParseObject(arrayIndex); objectParsed != nil {
@@ -289,6 +294,57 @@ func (s *StandardArray) ParseInterfaceArray(index int) *[]interface{} {
 	return &arrayValue
 }
 
+func (s *StandardArray) ParseDatum(index int) *data.Datum {
+	parser := s.NewChildObjectParser(index)
+
+	datum, err := ParseDatum(parser, s.factory)
+	if err != nil || datum == nil {
+		return nil
+	}
+
+	if datum != nil && *datum != nil {
+		parser.ProcessNotParsed()
+	}
+
+	return datum
+}
+
+func (s *StandardArray) ParseDatumArray(index int) *[]data.Datum {
+	if s.array == nil {
+		return nil
+	}
+
+	if index < 0 || index >= len(*s.array) {
+		return nil
+	}
+
+	s.parsed[index] = true
+
+	rawValue := (*s.array)[index]
+
+	arrayValue, arrayValueOk := rawValue.([]interface{})
+	if !arrayValueOk {
+		s.AppendError(index, ErrorTypeNotArray(rawValue))
+		return nil
+	}
+
+	parser, err := NewStandardArray(s.context.NewChildContext(index), s.factory, &arrayValue, IgnoreNotParsed)
+	if err != nil {
+		return nil
+	}
+
+	datumArray, err := ParseDatumArray(parser)
+	if err != nil {
+		return nil
+	}
+
+	if datumArray != nil && *datumArray != nil {
+		parser.ProcessNotParsed()
+	}
+
+	return datumArray
+}
+
 func (s *StandardArray) ProcessNotParsed() {
 	if s.array == nil {
 		return
@@ -311,11 +367,11 @@ func (s *StandardArray) ProcessNotParsed() {
 }
 
 func (s *StandardArray) NewChildObjectParser(index int) data.ObjectParser {
-	standardObject, _ := NewStandardObject(s.context.NewChildContext(index), s.ParseObject(index), s.notParsedPolicy)
+	standardObject, _ := NewStandardObject(s.context.NewChildContext(index), s.factory, s.ParseObject(index), s.notParsedPolicy)
 	return standardObject
 }
 
 func (s *StandardArray) NewChildArrayParser(index int) data.ArrayParser {
-	standardArray, _ := NewStandardArray(s.context.NewChildContext(index), s.ParseInterfaceArray(index), s.notParsedPolicy)
+	standardArray, _ := NewStandardArray(s.context.NewChildContext(index), s.factory, s.ParseInterfaceArray(index), s.notParsedPolicy)
 	return standardArray
 }

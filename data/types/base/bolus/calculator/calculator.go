@@ -13,9 +13,11 @@ package calculator
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/base"
+	"github.com/tidepool-org/platform/data/types/base/bolus"
 	"github.com/tidepool-org/platform/data/types/base/bolus/combination"
 	"github.com/tidepool-org/platform/data/types/base/bolus/extended"
 	"github.com/tidepool-org/platform/data/types/base/bolus/normal"
+	"github.com/tidepool-org/platform/data/validator"
 )
 
 type Calculator struct {
@@ -33,7 +35,7 @@ type Calculator struct {
 	Units                    *string  `json:"units,omitempty" bson:"units,omitempty"`
 
 	//private field that will be used to build and normalize the embedded bolus
-	bolus data.Datum
+	bolus *data.Datum
 }
 
 func Type() string {
@@ -89,11 +91,17 @@ func (c *Calculator) Parse(parser data.ObjectParser) error {
 	c.Recommended = ParseRecommended(parser.NewChildObjectParser("recommended"))
 	c.BloodGlucoseTarget = ParseBloodGlucoseTarget(parser.NewChildObjectParser("bgTarget"))
 
-	bolus, err := ParseBolus(parser.NewChildObjectParser("bolus"))
-	if err != nil {
-		return err
+	// TODO: This is a bit hacky to ensure we only parse true bolus data. Is there a better way?
+
+	if bolusParser := parser.NewChildObjectParser("bolus"); bolusParser.Object() != nil {
+		if bolusType := bolusParser.ParseString("type"); bolusType == nil {
+			bolusParser.AppendError("type", validator.ErrorValueNotExists())
+		} else if *bolusType != bolus.Type() {
+			bolusParser.AppendError("type", validator.ErrorStringNotOneOf(*bolusType, []string{bolus.Type()}))
+		} else {
+			c.bolus = parser.ParseDatum("bolus")
+		}
 	}
-	c.bolus = bolus
 
 	return nil
 }
@@ -122,7 +130,7 @@ func (c *Calculator) Validate(validator data.Validator) error {
 	}
 
 	if c.bolus != nil {
-		c.bolus.Validate(validator.NewChildValidator("bolus"))
+		(*c.bolus).Validate(validator.NewChildValidator("bolus"))
 	}
 
 	return nil
@@ -151,15 +159,15 @@ func (c *Calculator) Normalize(normalizer data.Normalizer) error {
 	}
 
 	if c.bolus != nil {
-		c.bolus.Normalize(normalizer.NewChildNormalizer("bolus"))
-		normalizer.AppendDatum(c.bolus)
-		switch c.bolus.(type) {
+		(*c.bolus).Normalize(normalizer.NewChildNormalizer("bolus"))
+		normalizer.AppendDatum(*c.bolus)
+		switch (*c.bolus).(type) {
 		case *extended.Extended:
-			c.BolusID = &c.bolus.(*extended.Extended).ID
+			c.BolusID = &(*c.bolus).(*extended.Extended).ID
 		case *normal.Normal:
-			c.BolusID = &c.bolus.(*normal.Normal).ID
+			c.BolusID = &(*c.bolus).(*normal.Normal).ID
 		case *combination.Combination:
-			c.BolusID = &c.bolus.(*combination.Combination).ID
+			c.BolusID = &(*c.bolus).(*combination.Combination).ID
 		}
 		c.bolus = nil
 	}
