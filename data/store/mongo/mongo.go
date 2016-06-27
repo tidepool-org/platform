@@ -13,7 +13,7 @@ package mongo
 import (
 	"crypto/tls"
 	"net"
-	"strings"
+	"strconv"
 	"time"
 
 	mgo "gopkg.in/mgo.v2"
@@ -23,6 +23,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/base/upload"
+	"github.com/tidepool-org/platform/environment"
 	"github.com/tidepool-org/platform/log"
 )
 
@@ -39,9 +40,12 @@ type Status struct {
 	Ping        string
 }
 
-func New(logger log.Logger, config *Config) (*Store, error) {
+func New(logger log.Logger, environmentReporter environment.Reporter, config *Config) (*Store, error) {
 	if logger == nil {
 		return nil, app.Error("mongo", "logger is missing")
+	}
+	if environmentReporter == nil {
+		return nil, app.Error("mongo", "environment reporter is missing")
 	}
 	if config == nil {
 		return nil, app.Error("mongo", "config is missing")
@@ -58,7 +62,7 @@ func New(logger log.Logger, config *Config) (*Store, error) {
 	logger = logger.WithFields(loggerFields)
 
 	dialInfo := mgo.DialInfo{}
-	dialInfo.Addrs = strings.Split(config.Addresses, ",")
+	dialInfo.Addrs = app.SplitStringAndRemoveWhitespace(config.Addresses, ",")
 	dialInfo.Database = config.Database
 	if config.Username != nil {
 		dialInfo.Username = *config.Username
@@ -90,9 +94,11 @@ func New(logger log.Logger, config *Config) (*Store, error) {
 		return nil, app.ExtError(err, "mongo", "unable to determine build info")
 	}
 
-	if !buildInfo.VersionAtLeast(3) {
-		session.Close()
-		return nil, app.ExtError(err, "mongo", "unsupported mongo build version")
+	if !environmentReporter.IsTest() {
+		if !buildInfo.VersionAtLeast(3) {
+			session.Close()
+			return nil, app.Errorf("mongo", "unsupported mongo build version %s", strconv.Quote(buildInfo.Version))
+		}
 	}
 
 	logger.Debug("Setting Mongo consistency mode to Strong")
@@ -102,16 +108,14 @@ func New(logger log.Logger, config *Config) (*Store, error) {
 	// TODO: Do we need to set Safe so we get write > 1?
 
 	return &Store{
-		Config:    config,
-		Session:   session,
-		BuildInfo: &buildInfo,
+		Config:  config,
+		Session: session,
 	}, nil
 }
 
 type Store struct {
-	Config    *Config
-	Session   *mgo.Session
-	BuildInfo *mgo.BuildInfo
+	Config  *Config
+	Session *mgo.Session
 }
 
 func (s *Store) IsClosed() bool {
@@ -126,22 +130,25 @@ func (s *Store) Close() {
 }
 
 func (s *Store) GetStatus() interface{} {
-	state := "OPEN"
-	ping := "OK"
-	if s.IsClosed() {
-		state = "CLOSED"
-	} else if s.Session.Ping() != nil {
-		ping = "FAILURE"
+	status := &Status{
+		State: "CLOSED",
+		Ping:  "FAILED",
 	}
 
-	return &Status{
-		State:       state,
-		BuildInfo:   s.BuildInfo,
-		LiveServers: s.Session.LiveServers(),
-		Mode:        s.Session.Mode(),
-		Safe:        s.Session.Safe(),
-		Ping:        ping,
+	if !s.IsClosed() {
+		status.State = "OPEN"
+		if buildInfo, err := s.Session.BuildInfo(); err == nil {
+			status.BuildInfo = &buildInfo
+		}
+		status.LiveServers = s.Session.LiveServers()
+		status.Mode = s.Session.Mode()
+		status.Safe = s.Session.Safe()
+		if s.Session.Ping() == nil {
+			status.Ping = "OK"
+		}
 	}
+
+	return status
 }
 
 func (s *Store) NewSession(logger log.Logger) (store.Session, error) {
@@ -194,7 +201,8 @@ func (s *Session) GetDataset(datasetID string) (*upload.Upload, error) {
 	startTime := time.Now()
 
 	var dataset upload.Upload
-	err := s.C().Find(bson.M{"type": "upload", "uploadId": datasetID}).One(&dataset)
+	selector := bson.M{"type": "upload", "uploadId": datasetID}
+	err := s.C().Find(selector).One(&dataset)
 
 	loggerFields := log.Fields{"datasetID": datasetID, "dataset": dataset, "duration": time.Since(startTime) / time.Microsecond}
 	s.logger.WithFields(loggerFields).WithError(err).Debug("GetDataset")
@@ -225,7 +233,17 @@ func (s *Session) CreateDataset(dataset *upload.Upload) error {
 
 	startTime := time.Now()
 
-	err := s.C().Insert(dataset)
+	// TODO: Consider upsert instead to prevent multiples being created?
+
+	selector := bson.M{"_userId": dataset.UserID, "_groupId": dataset.GroupID, "uploadId": dataset.UploadID, "type": dataset.Type}
+	count, err := s.C().Find(selector).Count()
+	if err == nil {
+		if count > 0 {
+			err = app.Error("mongo", "dataset already exists")
+		} else {
+			err = s.C().Insert(dataset)
+		}
+	}
 
 	loggerFields := log.Fields{"dataset": dataset, "duration": time.Since(startTime) / time.Microsecond}
 	s.logger.WithFields(loggerFields).WithError(err).Debug("CreateDataset")
@@ -272,6 +290,9 @@ func (s *Session) CreateDatasetData(dataset *upload.Upload, datasetData []data.D
 	if dataset == nil {
 		return app.Error("mongo", "dataset is missing")
 	}
+	if datasetData == nil {
+		return app.Error("mongo", "dataset data is missing")
+	}
 	if dataset.UserID == "" {
 		return app.Error("mongo", "dataset user id is missing")
 	}
@@ -280,9 +301,6 @@ func (s *Session) CreateDatasetData(dataset *upload.Upload, datasetData []data.D
 	}
 	if dataset.UploadID == "" {
 		return app.Error("mongo", "dataset upload id is missing")
-	}
-	if datasetData == nil {
-		return app.Error("mongo", "dataset data is missing")
 	}
 
 	if s.IsClosed() {
@@ -344,6 +362,8 @@ func (s *Session) ActivateAllDatasetData(dataset *upload.Upload) error {
 	if err != nil {
 		return app.ExtError(err, "mongo", "unable to activate all dataset data")
 	}
+
+	dataset.SetActive(true)
 	return nil
 }
 
@@ -360,6 +380,9 @@ func (s *Session) RemoveAllOtherDatasetData(dataset *upload.Upload) error {
 	if dataset.UploadID == "" {
 		return app.Error("mongo", "dataset upload id is missing")
 	}
+	if dataset.DeviceID == nil || *dataset.DeviceID == "" {
+		return app.Error("mongo", "dataset device id is missing")
+	}
 
 	if s.IsClosed() {
 		return app.Error("mongo", "session closed")
@@ -367,7 +390,7 @@ func (s *Session) RemoveAllOtherDatasetData(dataset *upload.Upload) error {
 
 	startTime := time.Now()
 
-	selector := bson.M{"_userId": dataset.UserID, "_groupId": dataset.GroupID, "deviceId": dataset.DeviceID, "type": bson.M{"$ne": "upload"}, "uploadId": bson.M{"$ne": dataset.UploadID}}
+	selector := bson.M{"_userId": dataset.UserID, "_groupId": dataset.GroupID, "deviceId": *dataset.DeviceID, "type": bson.M{"$ne": "upload"}, "uploadId": bson.M{"$ne": dataset.UploadID}}
 	changeInfo, err := s.C().RemoveAll(selector)
 
 	loggerFields := log.Fields{"dataset": dataset, "change-info": changeInfo, "duration": time.Since(startTime) / time.Microsecond}
