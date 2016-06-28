@@ -69,7 +69,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	dataStore, err := initializeDataStore(configLoader, logger, environmentReporter)
+	dataStore, err := initializeDataStore(configLoader, logger)
 	if err != nil {
 		logger.WithError(err).Error("Failure initializing data store")
 		os.Exit(1)
@@ -149,7 +149,7 @@ func initializeDataFactory(logger log.Logger) (data.Factory, error) {
 	return standardDataFactory, nil
 }
 
-func initializeDataStore(configLoader config.Loader, logger log.Logger, environmentReporter environment.Reporter) (store.Store, error) {
+func initializeDataStore(configLoader config.Loader, logger log.Logger) (store.Store, error) {
 
 	// TODO: Consider alternate data stores
 
@@ -163,7 +163,7 @@ func initializeDataStore(configLoader config.Loader, logger log.Logger, environm
 
 	logger.Debug("Creating mongo data store")
 
-	mongoDataStore, err := mongo.New(logger, environmentReporter, mongoDataStoreConfig)
+	mongoDataStore, err := mongo.New(logger, mongoDataStoreConfig)
 	if err != nil {
 		return nil, app.ExtError(err, "dataservices", "unable to create mongo data store")
 	}

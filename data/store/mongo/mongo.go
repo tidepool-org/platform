@@ -23,7 +23,6 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/base/upload"
-	"github.com/tidepool-org/platform/environment"
 	"github.com/tidepool-org/platform/log"
 )
 
@@ -40,12 +39,9 @@ type Status struct {
 	Ping        string
 }
 
-func New(logger log.Logger, environmentReporter environment.Reporter, config *Config) (*Store, error) {
+func New(logger log.Logger, config *Config) (*Store, error) {
 	if logger == nil {
 		return nil, app.Error("mongo", "logger is missing")
-	}
-	if environmentReporter == nil {
-		return nil, app.Error("mongo", "environment reporter is missing")
 	}
 	if config == nil {
 		return nil, app.Error("mongo", "config is missing")
@@ -94,11 +90,9 @@ func New(logger log.Logger, environmentReporter environment.Reporter, config *Co
 		return nil, app.ExtError(err, "mongo", "unable to determine build info")
 	}
 
-	if !environmentReporter.IsTest() {
-		if !buildInfo.VersionAtLeast(3) {
-			session.Close()
-			return nil, app.Errorf("mongo", "unsupported mongo build version %s", strconv.Quote(buildInfo.Version))
-		}
+	if !buildInfo.VersionAtLeast(3) {
+		session.Close()
+		return nil, app.Errorf("mongo", "unsupported mongo build version %s", strconv.Quote(buildInfo.Version))
 	}
 
 	logger.Debug("Setting Mongo consistency mode to Strong")

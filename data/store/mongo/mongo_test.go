@@ -15,7 +15,6 @@ import (
 	"github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/data/types/base"
 	"github.com/tidepool-org/platform/data/types/base/upload"
-	"github.com/tidepool-org/platform/environment"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/log/test"
 )
@@ -94,7 +93,6 @@ func ValidateDatasetData(mongoTestCollection *mgo.Collection, selector bson.M, e
 var _ = Describe("Mongo", func() {
 	Context("New", func() {
 		var logger log.Logger
-		var environmentReporter environment.Reporter
 		var mongoConfig *mongo.Config
 		var mongoStore *mongo.Store
 		var err error
@@ -102,9 +100,6 @@ var _ = Describe("Mongo", func() {
 		BeforeEach(func() {
 			logger = test.NewLogger()
 			Expect(logger).ToNot(BeNil())
-			environmentReporter, err = environment.NewReporter("test")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(environmentReporter).ToNot(BeNil())
 			mongoConfig = &mongo.Config{
 				Addresses:  MongoTestAddress(),
 				Database:   MongoTestDatabase(),
@@ -120,39 +115,33 @@ var _ = Describe("Mongo", func() {
 		})
 
 		It("returns no error if successful", func() {
-			mongoStore, err = mongo.New(logger, environmentReporter, mongoConfig)
+			mongoStore, err = mongo.New(logger, mongoConfig)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mongoStore).ToNot(BeNil())
 		})
 
 		It("returns an error if the logger is missing", func() {
-			mongoStore, err = mongo.New(nil, environmentReporter, mongoConfig)
+			mongoStore, err = mongo.New(nil, mongoConfig)
 			Expect(err).To(MatchError("mongo: logger is missing"))
 			Expect(mongoStore).To(BeNil())
 		})
 
-		It("returns an error if the environment reporter is missing", func() {
-			mongoStore, err = mongo.New(logger, nil, mongoConfig)
-			Expect(err).To(MatchError("mongo: environment reporter is missing"))
-			Expect(mongoStore).To(BeNil())
-		})
-
 		It("returns an error if the config is missing", func() {
-			mongoStore, err = mongo.New(logger, environmentReporter, nil)
+			mongoStore, err = mongo.New(logger, nil)
 			Expect(err).To(MatchError("mongo: config is missing"))
 			Expect(mongoStore).To(BeNil())
 		})
 
 		It("returns an error if the config is invalid", func() {
 			mongoConfig.Addresses = ""
-			mongoStore, err = mongo.New(logger, environmentReporter, mongoConfig)
+			mongoStore, err = mongo.New(logger, mongoConfig)
 			Expect(err).To(MatchError("mongo: config is invalid; mongo: addresses is missing"))
 			Expect(mongoStore).To(BeNil())
 		})
 
 		It("returns an error if the addresses are not reachable", func() {
 			mongoConfig.Addresses = "127.0.0.0, 127.0.0.0"
-			mongoStore, err = mongo.New(logger, environmentReporter, mongoConfig)
+			mongoStore, err = mongo.New(logger, mongoConfig)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(HavePrefix("mongo: unable to dial database; "))
 			Expect(mongoStore).To(BeNil())
@@ -161,7 +150,7 @@ var _ = Describe("Mongo", func() {
 		It("returns an error if the username or password is invalid", func() {
 			mongoConfig.Username = StringAsPointer("username")
 			mongoConfig.Password = StringAsPointer("password")
-			mongoStore, err = mongo.New(logger, environmentReporter, mongoConfig)
+			mongoStore, err = mongo.New(logger, mongoConfig)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(HavePrefix("mongo: unable to dial database; "))
 			Expect(mongoStore).To(BeNil())
@@ -169,22 +158,18 @@ var _ = Describe("Mongo", func() {
 	})
 
 	Context("with a new store", func() {
-		var environmentReporter environment.Reporter
 		var mongoConfig *mongo.Config
 		var mongoStore *mongo.Store
 		var err error
 
 		BeforeEach(func() {
-			environmentReporter, err = environment.NewReporter("test")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(environmentReporter).ToNot(BeNil())
 			mongoConfig = &mongo.Config{
 				Addresses:  MongoTestAddress(),
 				Database:   MongoTestDatabase(),
 				Collection: NewTestSuiteID(),
 				Timeout:    DurationAsPointer(5 * time.Second),
 			}
-			mongoStore, err = mongo.New(test.NewLogger(), environmentReporter, mongoConfig)
+			mongoStore, err = mongo.New(test.NewLogger(), mongoConfig)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mongoStore).ToNot(BeNil())
 		})

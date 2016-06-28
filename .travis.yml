@@ -1,7 +1,22 @@
+sudo: false
+
 language: go
 
 go:
   - 1.6.2
+
+addons:
+  apt:
+    sources:
+    - mongodb-3.0-precise
+    packages:
+    - mongodb-org-server
+  artifacts:
+    s3_region: "us-west-2"
+    paths:
+    - $(git ls-files -o deploy/platform/platform-*.tar.gz | tr "\n" ":")
+    target_paths:
+    - /
 
 services:
   - mongodb
@@ -13,14 +28,6 @@ env:
 
 script:
   - make ci-deploy
-
-addons:
-  artifacts:
-    s3_region: "us-west-2"
-    paths:
-    - $(git ls-files -o deploy/platform/platform-*.tar.gz | tr "\n" ":")
-    target_paths:
-    - /
 
 notifications:
   email:
