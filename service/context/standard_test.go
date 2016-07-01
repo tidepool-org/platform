@@ -25,7 +25,7 @@ var _ = Describe("Standard", func() {
 		Context("encoded as JSON", func() {
 			It("is an empty object if no fields are specified", func() {
 				jsonResponse := &context.JSONResponse{}
-				Expect(json.Marshal(jsonResponse)).To(MatchJSON("{}"))
+				Expect(json.Marshal(jsonResponse)).To(MatchJSON(`{}`))
 			})
 
 			It("is a populated object if fields are specified", func() {
@@ -45,17 +45,22 @@ var _ = Describe("Standard", func() {
 						},
 					},
 				}
-				Expect(json.Marshal(jsonResponse)).To(MatchJSON("{" +
-					"\"errors\":[{" +
-					"\"code\":\"test-code\"," +
-					"\"detail\":\"test-detail\"," +
-					"\"status\":\"400\"," +
-					"\"title\":\"test-title\"}]," +
-					"\"meta\":{" +
-					"\"trace\":{" +
-					"\"request\":\"test-request\"," +
-					"\"session\":\"test-session\"" +
-					"}}}"))
+				Expect(json.Marshal(jsonResponse)).To(MatchJSON(`{
+					"errors": [
+						{
+							"code": "test-code",
+							"detail": "test-detail",
+							"status": "400",
+							"title": "test-title"
+						}
+					],
+					"meta": {
+						"trace": {
+							"request": "test-request",
+							"session": "test-session"
+						}
+					}
+				}`))
 			})
 		})
 	})
@@ -64,7 +69,7 @@ var _ = Describe("Standard", func() {
 		Context("encoded as JSON", func() {
 			It("is an empty object if no fields are specified", func() {
 				meta := &context.Meta{}
-				Expect(json.Marshal(meta)).To(MatchJSON("{}"))
+				Expect(json.Marshal(meta)).To(MatchJSON(`{}`))
 			})
 
 			It("is a populated object if fields are specified", func() {
@@ -74,11 +79,12 @@ var _ = Describe("Standard", func() {
 						Session: "test-session",
 					},
 				}
-				Expect(json.Marshal(meta)).To(MatchJSON("{" +
-					"\"trace\":{" +
-					"\"request\":\"test-request\"," +
-					"\"session\":\"test-session\"" +
-					"}}"))
+				Expect(json.Marshal(meta)).To(MatchJSON(`{
+					"trace": {
+						"request": "test-request",
+						"session": "test-session"
+					}
+				}`))
 			})
 		})
 	})
@@ -87,7 +93,7 @@ var _ = Describe("Standard", func() {
 		Context("encoded as JSON", func() {
 			It("is an empty object if no fields are specified", func() {
 				trace := &context.Trace{}
-				Expect(json.Marshal(trace)).To(MatchJSON("{}"))
+				Expect(json.Marshal(trace)).To(MatchJSON(`{}`))
 			})
 
 			It("is a populated object if fields are specified", func() {
@@ -95,10 +101,10 @@ var _ = Describe("Standard", func() {
 					Request: "test-request",
 					Session: "test-session",
 				}
-				Expect(json.Marshal(trace)).To(MatchJSON("{" +
-					"\"request\":\"test-request\"," +
-					"\"session\":\"test-session\"" +
-					"}"))
+				Expect(json.Marshal(trace)).To(MatchJSON(`{
+					"request": "test-request",
+					"session": "test-session"
+				}`))
 			})
 		})
 	})
