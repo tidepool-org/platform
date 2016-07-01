@@ -12,7 +12,6 @@ import (
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/base/upload"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/log/test"
 )
 
 type CanDeduplicateDatasetOutput struct {
@@ -203,7 +202,7 @@ var _ = Describe("Delegate", func() {
 			var dataStoreSession store.Session
 
 			BeforeEach(func() {
-				logger = test.NewLogger()
+				logger = log.NewNullLogger()
 				dataStoreSession = &TestDataStoreSession{}
 			})
 

@@ -12,7 +12,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/base/pump"
 	"github.com/tidepool-org/platform/data/types/base/testing"
 	"github.com/tidepool-org/platform/data/validator"
-	"github.com/tidepool-org/platform/log/test"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -347,7 +347,7 @@ var _ = Describe("Settings", func() {
 				{High: &high, Low: &val, Target: &target},
 			}
 
-			testContext, err := context.NewStandard(test.NewLogger())
+			testContext, err := context.NewStandard(log.NewNullLogger())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
@@ -378,7 +378,7 @@ var _ = Describe("Settings", func() {
 				{High: &val, Low: &low, Target: &target},
 			}
 
-			testContext, err := context.NewStandard(test.NewLogger())
+			testContext, err := context.NewStandard(log.NewNullLogger())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
@@ -409,7 +409,7 @@ var _ = Describe("Settings", func() {
 				{High: &high, Low: &low, Target: &val},
 			}
 
-			testContext, err := context.NewStandard(test.NewLogger())
+			testContext, err := context.NewStandard(log.NewNullLogger())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
@@ -440,7 +440,7 @@ var _ = Describe("Settings", func() {
 				{High: &high, Low: &val, Target: &target},
 			}
 
-			testContext, err := context.NewStandard(test.NewLogger())
+			testContext, err := context.NewStandard(log.NewNullLogger())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
@@ -471,7 +471,7 @@ var _ = Describe("Settings", func() {
 				{High: &val, Low: &low, Target: &target},
 			}
 
-			testContext, err := context.NewStandard(test.NewLogger())
+			testContext, err := context.NewStandard(log.NewNullLogger())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
@@ -502,7 +502,7 @@ var _ = Describe("Settings", func() {
 				{High: &high, Low: &low, Target: &val},
 			}
 
-			testContext, err := context.NewStandard(test.NewLogger())
+			testContext, err := context.NewStandard(log.NewNullLogger())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
@@ -534,7 +534,7 @@ var _ = Describe("Settings", func() {
 				{Amount: &val, Start: &start},
 			}
 
-			testContext, err := context.NewStandard(test.NewLogger())
+			testContext, err := context.NewStandard(log.NewNullLogger())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
@@ -564,7 +564,7 @@ var _ = Describe("Settings", func() {
 				{Amount: &val, Start: &start},
 			}
 
-			testContext, err := context.NewStandard(test.NewLogger())
+			testContext, err := context.NewStandard(log.NewNullLogger())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)

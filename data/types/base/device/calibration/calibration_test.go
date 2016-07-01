@@ -12,7 +12,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/base/device/calibration"
 	"github.com/tidepool-org/platform/data/types/base/testing"
 	"github.com/tidepool-org/platform/data/validator"
-	"github.com/tidepool-org/platform/log/test"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -85,7 +85,7 @@ var _ = Describe("Calibration", func() {
 			calibrationEvent.Units = &units
 			calibrationEvent.Value = &val
 
-			testContext, err := context.NewStandard(test.NewLogger())
+			testContext, err := context.NewStandard(log.NewNullLogger())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
@@ -108,7 +108,7 @@ var _ = Describe("Calibration", func() {
 			calibrationEvent.Units = &units
 			calibrationEvent.Value = &val
 
-			testContext, err := context.NewStandard(test.NewLogger())
+			testContext, err := context.NewStandard(log.NewNullLogger())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)

@@ -16,7 +16,6 @@ import (
 	"github.com/tidepool-org/platform/data/types/base"
 	"github.com/tidepool-org/platform/data/types/base/upload"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/log/test"
 )
 
 func StringAsPointer(source string) *string { return &source }
@@ -98,7 +97,7 @@ var _ = Describe("Mongo", func() {
 		var err error
 
 		BeforeEach(func() {
-			logger = test.NewLogger()
+			logger = log.NewNullLogger()
 			Expect(logger).ToNot(BeNil())
 			mongoConfig = &mongo.Config{
 				Addresses:  MongoTestAddress(),
@@ -169,7 +168,7 @@ var _ = Describe("Mongo", func() {
 				Collection: NewTestSuiteID(),
 				Timeout:    DurationAsPointer(5 * time.Second),
 			}
-			mongoStore, err = mongo.New(test.NewLogger(), mongoConfig)
+			mongoStore, err = mongo.New(log.NewNullLogger(), mongoConfig)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mongoStore).ToNot(BeNil())
 		})
@@ -233,7 +232,7 @@ var _ = Describe("Mongo", func() {
 			})
 
 			It("returns no error if successful", func() {
-				mongoStoreSession, err = mongoStore.NewSession(test.NewLogger())
+				mongoStoreSession, err = mongoStore.NewSession(log.NewNullLogger())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(mongoStoreSession).ToNot(BeNil())
 			})
@@ -247,7 +246,7 @@ var _ = Describe("Mongo", func() {
 			It("returns an error if the store is closed", func() {
 				mongoStore.Close()
 				Expect(mongoStore.IsClosed()).To(BeTrue())
-				mongoStoreSession, err = mongoStore.NewSession(test.NewLogger())
+				mongoStoreSession, err = mongoStore.NewSession(log.NewNullLogger())
 				Expect(err).To(MatchError("mongo: store closed"))
 				Expect(mongoStoreSession).To(BeNil())
 			})
@@ -257,7 +256,7 @@ var _ = Describe("Mongo", func() {
 			var mongoStoreSession store.Session
 
 			BeforeEach(func() {
-				mongoStoreSession, err = mongoStore.NewSession(test.NewLogger())
+				mongoStoreSession, err = mongoStore.NewSession(log.NewNullLogger())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(mongoStoreSession).ToNot(BeNil())
 			})

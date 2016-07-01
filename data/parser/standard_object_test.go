@@ -8,7 +8,7 @@ import (
 
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/parser"
-	"github.com/tidepool-org/platform/log/test"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -18,7 +18,7 @@ var _ = Describe("StandardObject", func() {
 
 	BeforeEach(func() {
 		var err error
-		standardContext, err = context.NewStandard(test.NewLogger())
+		standardContext, err = context.NewStandard(log.NewNullLogger())
 		Expect(err).ToNot(HaveOccurred())
 		Expect(standardContext).ToNot(BeNil())
 		testFactory = &TestFactory{}

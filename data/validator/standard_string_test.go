@@ -7,7 +7,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/validator"
-	"github.com/tidepool-org/platform/log/test"
+	"github.com/tidepool-org/platform/log"
 )
 
 var _ = Describe("StandardString", func() {
@@ -21,7 +21,7 @@ var _ = Describe("StandardString", func() {
 
 		BeforeEach(func() {
 			var err error
-			standardContext, err = context.NewStandard(test.NewLogger())
+			standardContext, err = context.NewStandard(log.NewNullLogger())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(standardContext).ToNot(BeNil())
 		})
