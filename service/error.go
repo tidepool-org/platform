@@ -44,35 +44,3 @@ func (e *Error) WithMeta(meta interface{}) *Error {
 	e.Meta = meta
 	return e
 }
-
-// TODO: Deprecate below Errors struct
-
-type Errors struct {
-	errors []*Error
-}
-
-func NewErrors() *Errors {
-	return &Errors{
-		errors: []*Error{},
-	}
-}
-
-func (e *Errors) HasErrors() bool {
-	return len(e.errors) > 0
-}
-
-func (e *Errors) GetError(index int) *Error {
-	if index < 0 || index >= len(e.errors) {
-		return nil
-	}
-
-	return e.errors[index]
-}
-
-func (e *Errors) GetErrors() []*Error {
-	return e.errors
-}
-
-func (e *Errors) AppendError(err *Error) {
-	e.errors = append(e.errors, err)
-}
