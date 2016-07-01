@@ -1,7 +1,5 @@
 package app
 
-import "strings"
-
 /* CHECKLIST
  * [x] Uses interfaces as appropriate
  * [x] Private package variables use underscore prefix
@@ -11,6 +9,11 @@ import "strings"
  * [x] Code complete
  * [x] Full test coverage
  */
+
+import (
+	"strconv"
+	"strings"
+)
 
 func FirstStringNotEmpty(sourceStrings ...string) string {
 	for _, sourceString := range sourceStrings {
@@ -30,4 +33,11 @@ func SplitStringAndRemoveWhitespace(sourceString string, separator string) []str
 		}
 	}
 	return splitStrings
+}
+
+func QuoteIfString(interfaceValue interface{}) interface{} {
+	if stringValue, ok := interfaceValue.(string); ok {
+		return strconv.Quote(stringValue)
+	}
+	return interfaceValue
 }

@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -74,7 +75,7 @@ func ErrorValueNotEqualTo(value interface{}, limit interface{}) *service.Error {
 	return &service.Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is not equal to %v", service.QuoteIfString(value), service.QuoteIfString(limit)),
+		Detail: fmt.Sprintf("Value %v is not equal to %v", app.QuoteIfString(value), app.QuoteIfString(limit)),
 	}
 }
 
@@ -82,7 +83,7 @@ func ErrorValueEqualTo(value interface{}, limit interface{}) *service.Error {
 	return &service.Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is equal to %v", service.QuoteIfString(value), service.QuoteIfString(limit)),
+		Detail: fmt.Sprintf("Value %v is equal to %v", app.QuoteIfString(value), app.QuoteIfString(limit)),
 	}
 }
 
@@ -90,7 +91,7 @@ func ErrorValueNotLessThan(value interface{}, limit interface{}) *service.Error 
 	return &service.Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is not less than %v", service.QuoteIfString(value), service.QuoteIfString(limit)),
+		Detail: fmt.Sprintf("Value %v is not less than %v", app.QuoteIfString(value), app.QuoteIfString(limit)),
 	}
 }
 
@@ -98,7 +99,7 @@ func ErrorValueNotLessThanOrEqualTo(value interface{}, limit interface{}) *servi
 	return &service.Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is not less than or equal to %v", service.QuoteIfString(value), service.QuoteIfString(limit)),
+		Detail: fmt.Sprintf("Value %v is not less than or equal to %v", app.QuoteIfString(value), app.QuoteIfString(limit)),
 	}
 }
 
@@ -106,7 +107,7 @@ func ErrorValueNotGreaterThan(value interface{}, limit interface{}) *service.Err
 	return &service.Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is not greater than %v", service.QuoteIfString(value), service.QuoteIfString(limit)),
+		Detail: fmt.Sprintf("Value %v is not greater than %v", app.QuoteIfString(value), app.QuoteIfString(limit)),
 	}
 }
 
@@ -114,7 +115,7 @@ func ErrorValueNotGreaterThanOrEqualTo(value interface{}, limit interface{}) *se
 	return &service.Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is not greater than or equal to %v", service.QuoteIfString(value), service.QuoteIfString(limit)),
+		Detail: fmt.Sprintf("Value %v is not greater than or equal to %v", app.QuoteIfString(value), app.QuoteIfString(limit)),
 	}
 }
 

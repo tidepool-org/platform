@@ -5,6 +5,8 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
+	"errors"
+
 	"github.com/tidepool-org/platform/app"
 )
 
@@ -42,6 +44,25 @@ var _ = Describe("String", func() {
 			Entry("has source strings with whitespace and comma separators", "  alpha   ,  beta, charlie    ", ",", []string{"alpha", "beta", "charlie"}),
 			Entry("has source string with whitespace and whitespace separator", "  alpha    beta   charlie", " ", []string{"alpha", "beta", "charlie"}),
 			Entry("has source string with whitespace and empty separator", "  alpha    beta   charlie", "", []string{"a", "l", "p", "h", "a", "b", "e", "t", "a", "c", "h", "a", "r", "l", "i", "e"}),
+		)
+	})
+
+	Context("QuoteIfString", func() {
+		It("returns nil when the interface value is nil", func() {
+			Expect(app.QuoteIfString(nil)).To(BeNil())
+		})
+
+		DescribeTable("returns expected value when",
+			func(interfaceValue interface{}, expectedValue interface{}) {
+				Expect(app.QuoteIfString(interfaceValue)).To(Equal(expectedValue))
+			},
+			Entry("is a string", "a string", "\"a string\""),
+			Entry("is an empty string", "", "\"\""),
+			Entry("is an error", errors.New("error"), errors.New("error")),
+			Entry("is an integer", 1, 1),
+			Entry("is a float", 1.23, 1.23),
+			Entry("is an array", []string{"a"}, []string{"a"}),
+			Entry("is a map", map[string]string{"a": "b"}, map[string]string{"a": "b"}),
 		)
 	})
 })
