@@ -18,6 +18,7 @@ import (
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/dataservices/server"
 	"github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/service/context"
 	"github.com/tidepool-org/platform/userservices/client"
 )
 
@@ -32,7 +33,11 @@ type Standard struct {
 
 func WithContext(dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, userServicesClient client.Client, handler server.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
-		context := service.NewStandard(response, request)
+		context, err := context.NewStandard(response, request)
+		if err != nil {
+			context.RespondWithInternalServerFailure("Unable to create new context for request", err)
+			return
+		}
 
 		dataStoreSession, err := dataStore.NewSession(context.Logger())
 		if err != nil {

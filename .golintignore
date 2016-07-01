@@ -1,0 +1,4 @@
+./service/context/context_suite_test.go:47:30: method WriteJson should be WriteJSON
+./service/context/context_suite_test.go:54:30: method EncodeJson should be EncodeJSON
+./service/middleware/middleware_suite_test.go:47:30: method WriteJson should be WriteJSON
+./service/middleware/middleware_suite_test.go:54:30: method EncodeJson should be EncodeJSON

@@ -1,14 +1,19 @@
 package service
 
 /* CHECKLIST
- * [ ] Uses interfaces as appropriate
- * [ ] Private package variables use underscore prefix
- * [ ] All parameters validated
- * [ ] All errors handled
- * [ ] Reviewed for concurrency safety
- * [ ] Code complete
- * [ ] Full test coverage
+ * [x] Uses interfaces as appropriate
+ * [x] Private package variables use underscore prefix
+ * [x] All parameters validated
+ * [x] All errors handled
+ * [x] Reviewed for concurrency safety
+ * [x] Code complete
+ * [x] Full test coverage
  */
+
+type Source struct {
+	Parameter string `json:"parameter,omitempty"`
+	Pointer   string `json:"pointer,omitempty"`
+}
 
 type Error struct {
 	Code   string      `json:"code,omitempty"`
@@ -17,11 +22,6 @@ type Error struct {
 	Status int         `json:"status,string,omitempty"`
 	Source *Source     `json:"source,omitempty"`
 	Meta   interface{} `json:"meta,omitempty"`
-}
-
-type Source struct {
-	Parameter string `json:"parameter,omitempty"`
-	Pointer   string `json:"pointer,omitempty"`
 }
 
 func (e *Error) WithSourceParameter(parameter string) *Error {

@@ -13,7 +13,7 @@ import (
 	"github.com/tidepool-org/platform/dataservices/server/api/v1"
 	"github.com/tidepool-org/platform/dataservices/server/context"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/service/middleware"
 	"github.com/tidepool-org/platform/userservices/client"
 	"github.com/tidepool-org/platform/version"
 )
@@ -76,19 +76,19 @@ func (s *Standard) initMiddleware() error {
 
 	s.logger.Debug("Creating API middleware")
 
-	loggerMiddleware, err := service.NewLoggerMiddleware(s.logger)
+	loggerMiddleware, err := middleware.NewLogger(s.logger)
 	if err != nil {
 		return err
 	}
-	traceMiddleware, err := service.NewTraceMiddleware()
+	traceMiddleware, err := middleware.NewTrace()
 	if err != nil {
 		return err
 	}
-	accessLogMiddleware, err := service.NewAccessLogMiddleware()
+	accessLogMiddleware, err := middleware.NewAccessLog()
 	if err != nil {
 		return err
 	}
-	recoverMiddleware, err := service.NewRecoverMiddleware()
+	recoverMiddleware, err := middleware.NewRecover()
 	if err != nil {
 		return err
 	}
