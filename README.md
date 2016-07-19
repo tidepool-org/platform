@@ -31,6 +31,13 @@ source .env
 make editable
 ```
 
+For reuse, you may want to include the following lines in your shell config (e.g., .bashrc) or use a tool like [direnv](http://direnv.net/ 'direnv'):
+
+```
+export GOPATH=~/go
+export PATH=$GOPATH/bin:$PATH
+```
+
 # Execute
 
 1. Setup the environment, as above.
