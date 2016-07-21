@@ -34,7 +34,7 @@ type Calculator struct {
 	BloodGlucoseInput        *float64 `json:"bgInput,omitempty" bson:"bgInput,omitempty"`
 	Units                    *string  `json:"units,omitempty" bson:"units,omitempty"`
 
-	//private field that will be used to build and normalize the embedded bolus
+	// Embedded bolus
 	bolus *data.Datum
 }
 
@@ -159,8 +159,10 @@ func (c *Calculator) Normalize(normalizer data.Normalizer) error {
 	}
 
 	if c.bolus != nil {
-		(*c.bolus).Normalize(normalizer.NewChildNormalizer("bolus"))
-		normalizer.AppendDatum(*c.bolus)
+		if err := (*c.bolus).Normalize(normalizer.NewChildNormalizer("bolus")); err != nil {
+			return err
+		}
+
 		switch (*c.bolus).(type) {
 		case *extended.Extended:
 			c.BolusID = &(*c.bolus).(*extended.Extended).ID
@@ -169,6 +171,8 @@ func (c *Calculator) Normalize(normalizer data.Normalizer) error {
 		case *combination.Combination:
 			c.BolusID = &(*c.bolus).(*combination.Combination).ID
 		}
+
+		normalizer.AppendDatum(*c.bolus)
 		c.bolus = nil
 	}
 

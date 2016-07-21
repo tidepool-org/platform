@@ -28,7 +28,7 @@ func NewRawObjectWithMmolL() map[string]interface{} {
 	rawObject["recommended"] = map[string]interface{}{"net": 50, "correction": -50, "carb": 50}
 	rawObject["bgTarget"] = map[string]interface{}{"target": 8.0, "range": 1.0}
 
-	rawObject["bolus"] = embeddedBolus("bolus", "normal", 52.1, 0.0, 0)
+	rawObject["bolus"] = NewEmbeddedBolus("bolus", "normal", 52.1, 0.0, 0)
 
 	rawObject["units"] = bloodglucose.MmolL
 	return rawObject
@@ -52,7 +52,7 @@ func NewRawObjectWithMgdL() map[string]interface{} {
 	rawObject["recommended"] = map[string]interface{}{"net": 50, "correction": -50, "carb": 50}
 	rawObject["bgTarget"] = map[string]interface{}{"target": 100, "range": 10.0}
 
-	rawObject["bolus"] = embeddedBolus("bolus", "normal", 52.1, 0.0, 0)
+	rawObject["bolus"] = NewEmbeddedBolus("bolus", "normal", 52.1, 0.0, 0)
 
 	rawObject["units"] = bloodglucose.MgdL
 	return rawObject
@@ -70,7 +70,7 @@ func NewMeta() interface{} {
 	}
 }
 
-var embeddedBolus = func(datumType interface{}, subType interface{}, normal, extended float64, duration int) map[string]interface{} {
+func NewEmbeddedBolus(datumType interface{}, subType interface{}, normal, extended float64, duration int) map[string]interface{} {
 	var rawBolus = testing.RawBaseObject()
 
 	if datumType != nil {
@@ -252,19 +252,19 @@ var _ = Describe("Calculator", func() {
 
 	Context("bolus", func() {
 		DescribeTable("invalid when type", testing.ExpectFieldNotValid,
-			Entry("is missing", NewRawObjectWithMgdl(), "bolus", embeddedBolus(nil, "normal", 52.1, 0.0, 0),
+			Entry("is missing", NewRawObjectWithMgdl(), "bolus", NewEmbeddedBolus(nil, "normal", 52.1, 0.0, 0),
 				[]*service.Error{testing.ComposeError(validator.ErrorValueNotExists(), "/bolus/type", NewMeta())},
 			),
-			Entry("is not valid", NewRawObjectWithMgdl(), "bolus", embeddedBolus("invalid", "normal", 52.1, 0.0, 0),
+			Entry("is not valid", NewRawObjectWithMgdl(), "bolus", NewEmbeddedBolus("invalid", "normal", 52.1, 0.0, 0),
 				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("invalid", []string{"bolus"}), "/bolus/type", NewMeta())},
 			),
 		)
 
 		DescribeTable("invalid when subType", testing.ExpectFieldNotValid,
-			Entry("is missing", NewRawObjectWithMgdl(), "bolus", embeddedBolus("bolus", nil, 0.0, 52.1, 0),
+			Entry("is missing", NewRawObjectWithMgdl(), "bolus", NewEmbeddedBolus("bolus", nil, 0.0, 52.1, 0),
 				[]*service.Error{testing.ComposeError(validator.ErrorValueNotExists(), "/bolus/subType", NewMeta())},
 			),
-			Entry("is not valid", NewRawObjectWithMgdl(), "bolus", embeddedBolus("bolus", "invalid", 0.0, 52.1, 0),
+			Entry("is not valid", NewRawObjectWithMgdl(), "bolus", NewEmbeddedBolus("bolus", "invalid", 0.0, 52.1, 0),
 				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("invalid", []string{"dual/square", "normal", "square"}), "/bolus/subType", NewMeta())},
 			),
 		)
@@ -329,9 +329,9 @@ var _ = Describe("Calculator", func() {
 				calculatorBolus := calculatorDatum.(*calculator.Calculator)
 				Expect(calculatorBolus.BolusID).To(Not(BeNil()))
 			},
-				Entry("is normal", NewRawObjectWithMgdl(), "bolus", embeddedBolus("bolus", "normal", 52.1, 0.0, 0)),
-				Entry("is square", NewRawObjectWithMgdl(), "bolus", embeddedBolus("bolus", "square", 0.0, 52.1, 1000)),
-				Entry("is dual/square", NewRawObjectWithMgdl(), "bolus", embeddedBolus("bolus", "dual/square", 52.1, 52.1, 1000)),
+				Entry("is normal", NewRawObjectWithMgdl(), "bolus", NewEmbeddedBolus("bolus", "normal", 52.1, 0.0, 0)),
+				Entry("is square", NewRawObjectWithMgdl(), "bolus", NewEmbeddedBolus("bolus", "square", 0.0, 52.1, 1000)),
+				Entry("is dual/square", NewRawObjectWithMgdl(), "bolus", NewEmbeddedBolus("bolus", "dual/square", 52.1, 52.1, 1000)),
 			)
 		})
 	})
