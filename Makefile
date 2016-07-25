@@ -11,6 +11,8 @@ MAIN_FIND_CMD:=find . -not -path './Godeps/*' -name '*.go' -type f -exec egrep -
 MAIN_TRANSFORM_CMD:=sed 's/\(.*\/\([^\/]*\)\.go\)/_bin\/\2 \1/'
 GO_BUILD_CMD:=godep go build $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -o
 
+GOPATH_REPOSITORY:=$(word 1, $(subst :, ,$(GOPATH)))
+
 default: test
 
 log:
@@ -157,9 +159,9 @@ pre-commit: format imports vet lint
 
 # DO NOT USE THE FOLLOWING TARGETS UNDER NORMAL CIRCUMSTANCES!!!
 
-# Remove everything in GOPATH except REPOSITORY
+# Remove everything in GOPATH_REPOSITORY except REPOSITORY
 gopath-implode: check-environment
-	cd $(GOPATH) && rm -rf {bin,pkg} && find src -not -path "src/$(REPOSITORY)/*" -type f -delete && find src -not -path "src/$(REPOSITORY)/*" -type d -empty -delete
+	cd $(GOPATH_REPOSITORY) && rm -rf {bin,pkg} && find src -not -path "src/$(REPOSITORY)/*" -type f -delete && find src -not -path "src/$(REPOSITORY)/*" -type d -empty -delete
 
 # Remove saved dependencies in REPOSITORY
 dependencies-implode: check-environment
