@@ -7,9 +7,9 @@ VERSION_FULL_COMMIT=$(shell git rev-parse HEAD)
 
 GO_LD_FLAGS:=-ldflags "-X main.VersionBase=$(VERSION_BASE) -X main.VersionShortCommit=$(VERSION_SHORT_COMMIT) -X main.VersionFullCommit=$(VERSION_FULL_COMMIT)"
 
-MAIN_FIND_CMD:=find . -not -path './Godeps/*' -name '*.go' -type f -exec egrep -l '^\s*func\s+main\s*\(' {} \;
+MAIN_FIND_CMD:=find . -not -path './vendor/*' -name '*.go' -type f -exec egrep -l '^\s*func\s+main\s*\(' {} \;
 MAIN_TRANSFORM_CMD:=sed 's/\(.*\/\([^\/]*\)\.go\)/_bin\/\2 \1/'
-GO_BUILD_CMD:=godep go build $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -o
+GO_BUILD_CMD:=go build $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -o
 
 GOPATH_REPOSITORY:=$(word 1, $(subst :, ,$(GOPATH)))
 
@@ -67,32 +67,33 @@ ifeq ($(shell which oracle),)
 	go get -u golang.org/x/tools/cmd/oracle
 endif
 
-# Use godep to install ginkgo
-ginkgo: godep
+ginkgo: check-environment
 ifeq ($(shell which ginkgo),)
-	godep go install github.com/onsi/ginkgo/ginkgo
+	mkdir -p $(GOPATH_REPOSITORY)/src/github.com/onsi/
+	cp -r vendor/github.com/onsi/ginkgo $(GOPATH_REPOSITORY)/src/github.com/onsi/
+	go install github.com/onsi/ginkgo/ginkgo
 endif
 
-buildable: godep goimports golint ginkgo
+buildable: goimports golint ginkgo
 
 editable: buildable gocode godef oracle
 
 format: check-environment
 	@echo "gofmt -d -e -s"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`find . -not -path './Godeps/*' -name '*.go' -type f -exec gofmt -d -e -s {} \; 2>&1` && \
+		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec gofmt -d -e -s {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 imports: goimports
 	@echo "goimports -d -e"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`find . -not -path './Godeps/*' -name '*.go' -type f -exec goimports -d -e {} \; 2>&1` && \
+		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec goimports -d -e {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 vet: check-environment tmp
 	@echo "go tool vet -test -shadowstrict -printfuncs=Errorf:1"
 	@cd $(ROOT_DIRECTORY) && \
-		find . -mindepth 1 -maxdepth 1 -not -path "./.*" -not -path "./_*" -not -path "./Godeps" -type d -exec go tool vet -test -shadowstrict -printfuncs=Errorf:1 {} \; &> _tmp/govet.out && \
+		find . -mindepth 1 -maxdepth 1 -not -path "./.*" -not -path "./_*" -not -path "./vendor" -type d -exec go tool vet -test -shadowstrict -printfuncs=Errorf:1 {} \; &> _tmp/govet.out && \
 		O=`diff .govetignore _tmp/govet.out` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
@@ -102,7 +103,7 @@ vet-ignore:
 lint: golint tmp
 	@echo "golint"
 	@cd $(ROOT_DIRECTORY) && \
-		find . -not -path './Godeps/*' -name '*.go' -type f -exec golint {} \; | grep -v 'exported.*should have comment.*or be unexported' &> _tmp/golint.out && \
+		find . -not -path './vendor/*' -name '*.go' -type f -exec golint {} \; | grep -v 'exported.*should have comment.*or be unexported' &> _tmp/golint.out && \
 		diff .golintignore _tmp/golint.out || \
 		exit 0
 
@@ -111,8 +112,8 @@ lint-ignore:
 
 pre-build: format imports vet lint
 
-build: godep
-	@echo "godep go build"
+build:
+	@echo "go build"
 	@cd $(ROOT_DIRECTORY) && mkdir -p _bin && $(MAIN_FIND_CMD) | $(MAIN_TRANSFORM_CMD) | xargs -L1 $(GO_BUILD_CMD)
 
 ci-build: build
@@ -134,15 +135,15 @@ stop: check-environment
 
 test: ginkgo
 	@echo "ginkgo --slowSpecThreshold=10 -r $(TEST)"
-	@cd $(ROOT_DIRECTORY) && GOPATH=$(shell godep path):$(GOPATH) TIDEPOOL_ENV=test ginkgo --slowSpecThreshold=10 -r $(TEST)
+	@cd $(ROOT_DIRECTORY) && TIDEPOOL_ENV=test ginkgo --slowSpecThreshold=10 -r $(TEST)
 
 ci-test: ginkgo
 	@echo "ginkgo --slowSpecThreshold=10 -r --randomizeSuites --randomizeAllSpecs -succinct --failOnPending --cover --trace --race --progress -keepGoing $(TEST)"
-	@cd $(ROOT_DIRECTORY) && GOPATH=$(shell godep path):$(GOPATH) TIDEPOOL_ENV=test ginkgo --slowSpecThreshold=10 -r --randomizeSuites --randomizeAllSpecs -succinct --failOnPending --cover --trace --race --progress -keepGoing $(TEST)
+	@cd $(ROOT_DIRECTORY) && TIDEPOOL_ENV=test ginkgo --slowSpecThreshold=10 -r --randomizeSuites --randomizeAllSpecs -succinct --failOnPending --cover --trace --race --progress -keepGoing $(TEST)
 
 watch: ginkgo
 	@echo "ginkgo watch --slowSpecThreshold=10 -r -notify $(WATCH)"
-	@cd $(ROOT_DIRECTORY) && GOPATH=$(shell godep path):$(GOPATH) TIDEPOOL_ENV=test ginkgo watch --slowSpecThreshold=10 -r -notify $(WATCH)
+	@cd $(ROOT_DIRECTORY) && TIDEPOOL_ENV=test ginkgo watch --slowSpecThreshold=10 -r -notify $(WATCH)
 
 clean: stop
 	@cd $(ROOT_DIRECTORY) && rm -rf _bin _log _tmp deploy
