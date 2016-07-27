@@ -23,7 +23,6 @@ services:
 
 env:
   global:
-    - GO15VENDOREXPERIMENT=0
     - TIDEPOOL_CONFIG_DIRECTORY="${PWD}/_config"
 
 script:
