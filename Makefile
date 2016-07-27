@@ -21,13 +21,6 @@ log:
 tmp:
 	@mkdir -p $(ROOT_DIRECTORY)/_tmp
 
-check-go:
-ifeq ($(GO15VENDOREXPERIMENT), 1)
-	@echo "FATAL: GO15VENDOREXPERIMENT not supported."
-	@exit 1
-endif
-	@exit 0
-
 check-gopath:
 ifndef GOPATH
 	@echo "FATAL: GOPATH environment variable not defined. Please see http://golang.org/doc/code.html#GOPATH."
@@ -35,7 +28,7 @@ ifndef GOPATH
 endif
 	@exit 0
 
-check-environment: check-go check-gopath
+check-environment: check-gopath
 
 godep: check-environment
 ifeq ($(shell which godep),)
@@ -188,7 +181,7 @@ bootstrap:
 	@$(MAKE) bootstrap-save
 	@$(MAKE) gopath-implode
 
-.PHONY: default log tmp check-go check-gopath check-environment \
+.PHONY: default log tmp check-gopath check-environment \
 	godep goimports golint gocode godef oracle ginkgo buildable editable \
 	format imports vet vet-ignore lint lint-ignore pre-build build ci-build ci-deploy start stop test ci-test watch clean clean-all git-hooks pre-commit \
 	gopath-implode dependencies-implode bootstrap-implode bootstrap-dependencies bootstrap-save bootstrap
