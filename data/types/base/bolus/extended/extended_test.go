@@ -73,11 +73,11 @@ var _ = Describe("Extended", func() {
 					testing.ComposeError(validator.ErrorValueExists(), "/expectedDuration", NewMeta()),
 				},
 			),
-			Entry("is less than or equal to extended", NewExpectedRawObject(), "expectedExtended", 7.6,
-				[]*service.Error{testing.ComposeError(validator.ErrorValueNotGreaterThan(7.6, 7.6), "/expectedExtended", NewMeta())},
+			Entry("is less than extended", NewExpectedRawObject(), "expectedExtended", 7.5,
+				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(7.5, 7.6, 100.0), "/expectedExtended", NewMeta())},
 			),
 			Entry("is greater than upper limit", NewExpectedRawObject(), "expectedExtended", 100.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorValueNotLessThanOrEqualTo(100.1, 100.0), "/expectedExtended", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(100.1, 7.6, 100.0), "/expectedExtended", NewMeta())},
 			),
 		)
 

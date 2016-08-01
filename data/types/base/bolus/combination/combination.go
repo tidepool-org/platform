@@ -83,7 +83,7 @@ func (c *Combination) Validate(validator data.Validator) error {
 		if *c.Normal == 0.0 {
 			expectedNormalValidator.Exists()
 		}
-		expectedNormalValidator.GreaterThan(*c.Normal).LessThanOrEqualTo(100.0)
+		expectedNormalValidator.InRange(*c.Normal, 100.0)
 	} else {
 		expectedNormalValidator.InRange(0.0, 100.0)
 	}
@@ -101,7 +101,7 @@ func (c *Combination) Validate(validator data.Validator) error {
 			if *c.Extended == 0.0 {
 				expectedExtendedValidator.Exists()
 			}
-			expectedExtendedValidator.GreaterThan(*c.Extended).LessThanOrEqualTo(100.0)
+			expectedExtendedValidator.InRange(*c.Extended, 100.0)
 		} else {
 			expectedExtendedValidator.InRange(0.0, 100.0)
 		}

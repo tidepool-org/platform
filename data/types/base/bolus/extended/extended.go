@@ -77,7 +77,7 @@ func (e *Extended) Validate(validator data.Validator) error {
 		if *e.Extended == 0.0 {
 			expectedExtendedValidator.Exists()
 		}
-		expectedExtendedValidator.GreaterThan(*e.Extended).LessThanOrEqualTo(100.0)
+		expectedExtendedValidator.InRange(*e.Extended, 100.0)
 	} else {
 		expectedExtendedValidator.InRange(0.0, 100.0)
 	}

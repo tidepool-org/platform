@@ -68,11 +68,11 @@ var _ = Describe("Normal", func() {
 			Entry("is not a number", NewExpectedRawObject(), "expectedNormal", "not-a-number",
 				[]*service.Error{testing.ComposeError(parser.ErrorTypeNotFloat("not-a-number"), "/expectedNormal", NewMeta())},
 			),
-			Entry("is less than or equal to normal", NewExpectedRawObject(), "expectedNormal", 7.6,
-				[]*service.Error{testing.ComposeError(validator.ErrorValueNotGreaterThan(7.6, 7.6), "/expectedNormal", NewMeta())},
+			Entry("is less than normal", NewExpectedRawObject(), "expectedNormal", 7.5,
+				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(7.5, 7.6, 100.0), "/expectedNormal", NewMeta())},
 			),
 			Entry("is greater than upper limit", NewExpectedRawObject(), "expectedNormal", 100.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorValueNotLessThanOrEqualTo(100.1, 100.0), "/expectedNormal", NewMeta())},
+				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(100.1, 7.6, 100.0), "/expectedNormal", NewMeta())},
 			),
 		)
 

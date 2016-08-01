@@ -71,7 +71,7 @@ func (n *Normal) Validate(validator data.Validator) error {
 		if *n.Normal == 0.0 {
 			expectedNormalValidator.Exists()
 		}
-		expectedNormalValidator.GreaterThan(*n.Normal).LessThanOrEqualTo(100.0)
+		expectedNormalValidator.InRange(*n.Normal, 100.0)
 	} else {
 		expectedNormalValidator.InRange(0.0, 100.0)
 	}
