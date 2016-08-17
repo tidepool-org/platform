@@ -224,7 +224,7 @@ func (s *Standard) sendRequest(context service.Context, method string, url strin
 		return app.ExtErrorf(err, "client", "unable to create new request for %s %s", method, url)
 	}
 
-	if err := service.CopyRequestTrace(context.Request(), request); err != nil {
+	if err = service.CopyRequestTrace(context.Request(), request); err != nil {
 		return app.ExtErrorf(err, "client", "unable to copy request trace")
 	}
 
