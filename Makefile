@@ -143,7 +143,6 @@ clean: stop
 	@cd $(ROOT_DIRECTORY) && find . -type f -name "*.coverprofile" -delete
 
 clean-all: clean
-	@cd $(ROOT_DIRECTORY) && rm -rf Godeps/_workspace/{bin,pkg}
 
 git-hooks:
 	@echo "Installing git hooks..."
