@@ -1,9 +1,14 @@
 ROOT_DIRECTORY:=$(realpath $(dir $(realpath $(lastword $(MAKEFILE_LIST)))))
 REPOSITORY:=$(ROOT_DIRECTORY:$(realpath $(ROOT_DIRECTORY)/../../../)/%=%)
 
-VERSION_BASE=$(shell cat .version)
-VERSION_SHORT_COMMIT=$(shell git rev-parse --short HEAD)
-VERSION_FULL_COMMIT=$(shell git rev-parse HEAD)
+ifdef TRAVIS_TAG
+	VERSION_BASE:=$(TRAVIS_TAG)
+else
+	VERSION_BASE:=$(shell git describe --abbrev=0 --tags)
+endif
+VERSION_BASE:=$(VERSION_BASE:v%=%)
+VERSION_SHORT_COMMIT:=$(shell git rev-parse --short HEAD)
+VERSION_FULL_COMMIT:=$(shell git rev-parse HEAD)
 
 GO_LD_FLAGS:=-ldflags "-X main.VersionBase=$(VERSION_BASE) -X main.VersionShortCommit=$(VERSION_SHORT_COMMIT) -X main.VersionFullCommit=$(VERSION_FULL_COMMIT)"
 
