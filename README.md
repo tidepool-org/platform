@@ -16,7 +16,6 @@ The Tidepool Platform API.
 1. Change directory to `$GOPATH/src/github.com/tidepool-org/platform`.
 1. Source the `.env` file.
 1. Execute `make editable` to install the various Go tools needed for building and editing the project.
-1. If you are going to use the `test`, `ci-test`, or `watch` Makefile targets or the `ginkgo` executable, add `$GOPATH/src/github.com/tidepool-org/platform/Godeps/_workspace/bin` to the `PATH` environment variable. (Consider using the `direnv` tool via `homebrew` to automatically update the `GOPATH` and `PATH` environment variables when in certain directories).
 
 For example:
 
