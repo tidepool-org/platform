@@ -30,7 +30,7 @@ source .env
 make editable
 ```
 
-For reuse, you may want to include the following lines in your shell config (e.g., .bashrc) or use a tool like [direnv](http://direnv.net/ 'direnv'):
+For reuse, you may want to include the following lines in your shell config (e.g. `.bashrc`) or use a tool like [direnv](http://direnv.net/ 'direnv'):
 
 ```
 export GOPATH=~/go
@@ -47,7 +47,7 @@ In addition to the setup above, for example:
 
 ```
 make build
-_bin/dataservices
+_bin/dataservices/dataservices
 ```
 
 Use `Ctrl-C` to stop the `dataservices` executable. It may take up to 60 seconds to stop.
@@ -55,7 +55,7 @@ Use `Ctrl-C` to stop the `dataservices` executable. It may take up to 60 seconds
 
 # Makefile
 
-* To setup your GO environment for building and editing the project:
+* To setup your Go environment for building and editing the project:
 
 ```
 make editable
@@ -67,7 +67,13 @@ make editable
 make build
 ```
 
-All executables are built in the `_bin` directory.
+All executables are built to the `_bin` directory in a hierarchy that matches the locations of executable source files.
+
+The environment variable `BUILD` indicates which executables to build. If not specified, then all executables are built. For example, to build just the executables found in the `dataservices` directory:
+
+```
+BUILD=dataservices make build
+```
 
 * To run all of the tests manually:
 
@@ -75,7 +81,7 @@ All executables are built in the `_bin` directory.
 make test
 ```
 
-The environment variable `TEST` indicates which test to execute. If not specified, then all tests are executed. For example,
+The environment variable `TEST` indicates which package hierarchy to test. If not specified, then all packages are tested. For example,
 
 ```
 TEST=user make test
@@ -87,13 +93,13 @@ TEST=user make test
 make watch
 ```
 
-The environment variable `WATCH` indicates which test to execute. If not specified, then all tests are executed. For example,
+The environment variable `WATCH` indicates which package hierarchy to test. If not specified, then all packages are tested. For example,
 
 ```
 WATCH=user make watch
 ```
 
-* To run `go fmt`, `goimports`, and `golint` all at once:
+* To run `gofmt`, `goimports`, `go tool vet`, and `golint`:
 
 ```
 make pre-commit

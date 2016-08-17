@@ -12,8 +12,10 @@ VERSION_FULL_COMMIT:=$(shell git rev-parse HEAD)
 
 GO_LD_FLAGS:=-ldflags "-X main.VersionBase=$(VERSION_BASE) -X main.VersionShortCommit=$(VERSION_SHORT_COMMIT) -X main.VersionFullCommit=$(VERSION_FULL_COMMIT)"
 
-MAIN_FIND_CMD:=find . -not -path './vendor/*' -name '*.go' -type f -exec egrep -l '^\s*func\s+main\s*\(' {} \;
-MAIN_TRANSFORM_CMD:=sed 's/\(.*\/\([^\/]*\)\.go\)/_bin\/\2 \1/'
+FIND_MAIN_CMD:=find . -path './$(BUILD)*' -not -path './vendor/*' -name '*.go' -not -name '*_test.go' -type f -exec egrep -l '^\s*package\s+main\s*$$' {} \;
+TRANSFORM_MKDIR_CMD:=sed 's/\.\(.*\/\)[^\/]*\.go/_bin\1/'
+MKDIR_CMD:=mkdir -p
+TRANSFORM_GO_BUILD_CMD:=sed 's/\(\.\(\/.*\)\.go\)/_bin\2 \1/'
 GO_BUILD_CMD:=go build $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -o
 
 GOPATH_REPOSITORY:=$(word 1, $(subst :, ,$(GOPATH)))
@@ -110,9 +112,13 @@ lint-ignore:
 
 pre-build: format imports vet lint
 
+build-list:
+	@cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD)
+
 build:
 	@echo "go build"
-	@cd $(ROOT_DIRECTORY) && mkdir -p _bin && $(MAIN_FIND_CMD) | $(MAIN_TRANSFORM_CMD) | xargs -L1 $(GO_BUILD_CMD)
+	@cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD) | $(TRANSFORM_MKDIR_CMD) | xargs -L1 $(MKDIR_CMD)
+	@cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD) | $(TRANSFORM_GO_BUILD_CMD) | xargs -L1 $(GO_BUILD_CMD)
 
 ci-build: build
 
@@ -126,7 +132,7 @@ ifdef TRAVIS_TAG
 endif
 
 start: stop build log
-	@cd $(ROOT_DIRECTORY) && _bin/dataservices >> _log/service.log 2>&1 &
+	@cd $(ROOT_DIRECTORY) && _bin/dataservices/dataservices >> _log/service.log 2>&1 &
 
 stop: check-environment
 	@killall -v dataservices &> /dev/null || exit 0
@@ -143,8 +149,10 @@ watch: ginkgo
 	@echo "ginkgo watch --slowSpecThreshold=10 -r -notify $(WATCH)"
 	@cd $(ROOT_DIRECTORY) && TIDEPOOL_ENV=test ginkgo watch --slowSpecThreshold=10 -r -notify $(WATCH)
 
-clean: stop
+clean: stop clean-cover
 	@cd $(ROOT_DIRECTORY) && rm -rf _bin _log _tmp deploy
+
+clean-cover:
 	@cd $(ROOT_DIRECTORY) && find . -type f -name "*.coverprofile" -delete
 
 clean-all: clean
@@ -187,5 +195,5 @@ bootstrap:
 
 .PHONY: default log tmp check-gopath check-environment \
 	godep goimports golint gocode godef oracle ginkgo buildable editable \
-	format imports vet vet-ignore lint lint-ignore pre-build build ci-build ci-deploy start stop test ci-test watch clean clean-all git-hooks pre-commit \
+	format imports vet vet-ignore lint lint-ignore pre-build build-list build ci-build ci-deploy start stop test ci-test watch clean clean-cover clean-all git-hooks pre-commit \
 	gopath-implode dependencies-implode bootstrap-implode bootstrap-dependencies bootstrap-save bootstrap
