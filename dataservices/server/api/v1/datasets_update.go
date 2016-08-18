@@ -30,13 +30,17 @@ func DatasetsUpdate(serverContext server.Context) {
 		return
 	}
 
-	err = serverContext.UserServicesClient().ValidateTargetUserPermissions(serverContext, serverContext.RequestUserID(), dataset.UserID, client.UploadPermissions)
+	permissions, err := serverContext.UserServicesClient().GetUserPermissions(serverContext, serverContext.RequestUserID(), dataset.UserID)
 	if err != nil {
 		if client.IsUnauthorizedError(err) {
 			serverContext.RespondWithError(ErrorUnauthorized())
 		} else {
-			serverContext.RespondWithInternalServerFailure("Unable to validate target user permissions", err)
+			serverContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
 		}
+		return
+	}
+	if _, ok := permissions[client.UploadPermission]; !ok {
+		serverContext.RespondWithError(ErrorUnauthorized())
 		return
 	}
 

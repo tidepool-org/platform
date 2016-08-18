@@ -21,15 +21,17 @@ type Client interface {
 	Start() error
 	Close()
 	ValidateUserSession(context service.Context, sessionToken string) (string, error)
-	ValidateTargetUserPermissions(context service.Context, requestUserID string, targetUserID string, targetPermissions Permissions) error
+	GetUserPermissions(context service.Context, requestUserID string, targetUserID string) (Permissions, error)
 	GetUserGroupID(context service.Context, userID string) (string, error)
 }
 
 type Permission map[string]interface{}
 type Permissions map[string]Permission
 
-var UploadPermissions = Permissions{"upload": {}}
-var ViewPermissions = Permissions{"view": {}}
+const OwnerPermission = "root"
+const CustodianPermission = "custodian"
+const UploadPermission = "upload"
+const ViewPermission = "view"
 
 type UnauthorizedError struct{}
 
