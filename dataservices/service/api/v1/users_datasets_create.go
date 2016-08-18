@@ -22,70 +22,70 @@ import (
 	"github.com/tidepool-org/platform/userservices/client"
 )
 
-func UsersDatasetsCreate(serverContext service.Context) {
-	targetUserID := serverContext.Request().PathParam("userid")
+func UsersDatasetsCreate(serviceContext service.Context) {
+	targetUserID := serviceContext.Request().PathParam("userid")
 	if targetUserID == "" {
-		serverContext.RespondWithError(ErrorUserIDMissing())
+		serviceContext.RespondWithError(ErrorUserIDMissing())
 		return
 	}
 
-	permissions, err := serverContext.UserServicesClient().GetUserPermissions(serverContext, serverContext.RequestUserID(), targetUserID)
+	permissions, err := serviceContext.UserServicesClient().GetUserPermissions(serviceContext, serviceContext.RequestUserID(), targetUserID)
 	if err != nil {
 		if client.IsUnauthorizedError(err) {
-			serverContext.RespondWithError(ErrorUnauthorized())
+			serviceContext.RespondWithError(ErrorUnauthorized())
 		} else {
-			serverContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
+			serviceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
 		}
 		return
 	}
 	if _, ok := permissions[client.UploadPermission]; !ok {
-		serverContext.RespondWithError(ErrorUnauthorized())
+		serviceContext.RespondWithError(ErrorUnauthorized())
 		return
 	}
 
-	targetUserGroupID, err := serverContext.UserServicesClient().GetUserGroupID(serverContext, targetUserID)
+	targetUserGroupID, err := serviceContext.UserServicesClient().GetUserGroupID(serviceContext, targetUserID)
 	if err != nil {
 		if client.IsUnauthorizedError(err) {
-			serverContext.RespondWithError(ErrorUnauthorized())
+			serviceContext.RespondWithError(ErrorUnauthorized())
 		} else {
-			serverContext.RespondWithInternalServerFailure("Unable to get group id for target user", err)
+			serviceContext.RespondWithInternalServerFailure("Unable to get group id for target user", err)
 		}
 		return
 	}
 
 	var rawDatum map[string]interface{}
-	if err = serverContext.Request().DecodeJsonPayload(&rawDatum); err != nil {
-		serverContext.RespondWithError(ErrorJSONMalformed())
+	if err = serviceContext.Request().DecodeJsonPayload(&rawDatum); err != nil {
+		serviceContext.RespondWithError(ErrorJSONMalformed())
 		return
 	}
 
-	datumContext, err := context.NewStandard(serverContext.Logger())
+	datumContext, err := context.NewStandard(serviceContext.Logger())
 	if err != nil {
-		serverContext.RespondWithInternalServerFailure("Unable to create datum context", err)
+		serviceContext.RespondWithInternalServerFailure("Unable to create datum context", err)
 		return
 	}
 
-	datumParser, err := parser.NewStandardObject(datumContext, serverContext.DataFactory(), &rawDatum, parser.AppendErrorNotParsed)
+	datumParser, err := parser.NewStandardObject(datumContext, serviceContext.DataFactory(), &rawDatum, parser.AppendErrorNotParsed)
 	if err != nil {
-		serverContext.RespondWithInternalServerFailure("Unable to create datum parser", err)
+		serviceContext.RespondWithInternalServerFailure("Unable to create datum parser", err)
 		return
 	}
 
 	datumValidator, err := validator.NewStandard(datumContext)
 	if err != nil {
-		serverContext.RespondWithInternalServerFailure("Unable to create datum validator", err)
+		serviceContext.RespondWithInternalServerFailure("Unable to create datum validator", err)
 		return
 	}
 
 	datumNormalizer, err := normalizer.NewStandard(datumContext)
 	if err != nil {
-		serverContext.RespondWithInternalServerFailure("Unable to create datum normalizer", err)
+		serviceContext.RespondWithInternalServerFailure("Unable to create datum normalizer", err)
 		return
 	}
 
-	datasetDatum, err := parser.ParseDatum(datumParser, serverContext.DataFactory())
+	datasetDatum, err := parser.ParseDatum(datumParser, serviceContext.DataFactory())
 	if err != nil {
-		serverContext.RespondWithInternalServerFailure("Unable to parse datum parser", err)
+		serviceContext.RespondWithInternalServerFailure("Unable to parse datum parser", err)
 		return
 	}
 
@@ -95,7 +95,7 @@ func UsersDatasetsCreate(serverContext service.Context) {
 	}
 
 	if errors := datumContext.Errors(); len(errors) > 0 {
-		serverContext.RespondWithStatusAndErrors(http.StatusBadRequest, errors)
+		serviceContext.RespondWithStatusAndErrors(http.StatusBadRequest, errors)
 		return
 	}
 
@@ -105,28 +105,28 @@ func UsersDatasetsCreate(serverContext service.Context) {
 
 	dataset, ok := (*datasetDatum).(*upload.Upload)
 	if !ok {
-		serverContext.RespondWithInternalServerFailure("Unexpected datum type", *datasetDatum)
+		serviceContext.RespondWithInternalServerFailure("Unexpected datum type", *datasetDatum)
 		return
 	}
 
-	dataset.SetUploadUserID(serverContext.RequestUserID())
+	dataset.SetUploadUserID(serviceContext.RequestUserID())
 
-	if err = serverContext.DataStoreSession().CreateDataset(dataset); err != nil {
-		serverContext.RespondWithInternalServerFailure("Unable to insert dataset", err)
+	if err = serviceContext.DataStoreSession().CreateDataset(dataset); err != nil {
+		serviceContext.RespondWithInternalServerFailure("Unable to insert dataset", err)
 		return
 	}
 
-	deduplicator, err := serverContext.DataDeduplicatorFactory().NewDeduplicator(serverContext.Logger(), serverContext.DataStoreSession(), dataset)
+	deduplicator, err := serviceContext.DataDeduplicatorFactory().NewDeduplicator(serviceContext.Logger(), serviceContext.DataStoreSession(), dataset)
 	if err != nil {
-		serverContext.RespondWithInternalServerFailure("No duplicator found matching dataset", err)
+		serviceContext.RespondWithInternalServerFailure("No duplicator found matching dataset", err)
 		return
 	}
 
 	if err = deduplicator.InitializeDataset(); err != nil {
-		serverContext.RespondWithInternalServerFailure("Unable to initialize dataset", err)
+		serviceContext.RespondWithInternalServerFailure("Unable to initialize dataset", err)
 		return
 	}
 
-	serverContext.Response().WriteHeader(http.StatusCreated)
-	serverContext.Response().WriteJson(dataset)
+	serviceContext.Response().WriteHeader(http.StatusCreated)
+	serviceContext.Response().WriteJson(dataset)
 }
