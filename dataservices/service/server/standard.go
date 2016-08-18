@@ -17,17 +17,17 @@ import (
 	graceful "gopkg.in/tylerb/graceful.v1"
 
 	"github.com/tidepool-org/platform/app"
-	"github.com/tidepool-org/platform/dataservices/server"
+	"github.com/tidepool-org/platform/dataservices/service"
 	"github.com/tidepool-org/platform/log"
 )
 
 type Standard struct {
 	logger log.Logger
-	api    server.API
+	api    service.API
 	config *Config
 }
 
-func NewStandard(logger log.Logger, api server.API, config *Config) (*Standard, error) {
+func NewStandard(logger log.Logger, api service.API, config *Config) (*Standard, error) {
 	if logger == nil {
 		return nil, app.Error("server", "logger is missing")
 	}

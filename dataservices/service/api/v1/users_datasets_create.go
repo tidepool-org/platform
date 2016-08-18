@@ -18,11 +18,11 @@ import (
 	"github.com/tidepool-org/platform/data/parser"
 	"github.com/tidepool-org/platform/data/types/base/upload"
 	"github.com/tidepool-org/platform/data/validator"
-	"github.com/tidepool-org/platform/dataservices/server"
+	"github.com/tidepool-org/platform/dataservices/service"
 	"github.com/tidepool-org/platform/userservices/client"
 )
 
-func UsersDatasetsCreate(serverContext server.Context) {
+func UsersDatasetsCreate(serverContext service.Context) {
 	targetUserID := serverContext.Request().PathParam("userid")
 	if targetUserID == "" {
 		serverContext.RespondWithError(ErrorUserIDMissing())
