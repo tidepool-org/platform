@@ -25,8 +25,8 @@ type TestDataStoreSession struct {
 	CreateDatasetDataOutputs         []error
 	ActivateAllDatasetDataInputs     []*upload.Upload
 	ActivateAllDatasetDataOutputs    []error
-	RemoveAllOtherDatasetDataInputs  []*upload.Upload
-	RemoveAllOtherDatasetDataOutputs []error
+	DeleteAllOtherDatasetDataInputs  []*upload.Upload
+	DeleteAllOtherDatasetDataOutputs []error
 }
 
 func (t *TestDataStoreSession) IsClosed() bool {
@@ -66,10 +66,10 @@ func (t *TestDataStoreSession) ActivateAllDatasetData(dataset *upload.Upload) er
 	return output
 }
 
-func (t *TestDataStoreSession) RemoveAllOtherDatasetData(dataset *upload.Upload) error {
-	t.RemoveAllOtherDatasetDataInputs = append(t.RemoveAllOtherDatasetDataInputs, dataset)
-	output := t.RemoveAllOtherDatasetDataOutputs[0]
-	t.RemoveAllOtherDatasetDataOutputs = t.RemoveAllOtherDatasetDataOutputs[1:]
+func (t *TestDataStoreSession) DeleteAllOtherDatasetData(dataset *upload.Upload) error {
+	t.DeleteAllOtherDatasetDataInputs = append(t.DeleteAllOtherDatasetDataInputs, dataset)
+	output := t.DeleteAllOtherDatasetDataOutputs[0]
+	t.DeleteAllOtherDatasetDataOutputs = t.DeleteAllOtherDatasetDataOutputs[1:]
 	return output
 }
 
@@ -308,23 +308,23 @@ var _ = Describe("Truncate", func() {
 				It("returns an error if there is an error on remove", func() {
 					dataset.UploadID = "upload-id"
 					testDataStoreSession.ActivateAllDatasetDataOutputs = []error{nil}
-					testDataStoreSession.RemoveAllOtherDatasetDataOutputs = []error{errors.New("test error")}
+					testDataStoreSession.DeleteAllOtherDatasetDataOutputs = []error{errors.New("test error")}
 					err := truncateDeduplicator.FinalizeDataset()
 					Expect(err).To(MatchError("truncate: unable to remove all other data except dataset with id \"upload-id\"; test error"))
 					Expect(testDataStoreSession.ActivateAllDatasetDataInputs).To(ConsistOf(dataset))
 					Expect(testDataStoreSession.ActivateAllDatasetDataOutputs).To(BeEmpty())
-					Expect(testDataStoreSession.RemoveAllOtherDatasetDataInputs).To(ConsistOf(dataset))
-					Expect(testDataStoreSession.RemoveAllOtherDatasetDataOutputs).To(BeEmpty())
+					Expect(testDataStoreSession.DeleteAllOtherDatasetDataInputs).To(ConsistOf(dataset))
+					Expect(testDataStoreSession.DeleteAllOtherDatasetDataOutputs).To(BeEmpty())
 				})
 
 				It("returns successfully if there is no error", func() {
 					testDataStoreSession.ActivateAllDatasetDataOutputs = []error{nil}
-					testDataStoreSession.RemoveAllOtherDatasetDataOutputs = []error{nil}
+					testDataStoreSession.DeleteAllOtherDatasetDataOutputs = []error{nil}
 					Expect(truncateDeduplicator.FinalizeDataset()).To(Succeed())
 					Expect(testDataStoreSession.ActivateAllDatasetDataInputs).To(ConsistOf(dataset))
 					Expect(testDataStoreSession.ActivateAllDatasetDataOutputs).To(BeEmpty())
-					Expect(testDataStoreSession.RemoveAllOtherDatasetDataInputs).To(ConsistOf(dataset))
-					Expect(testDataStoreSession.RemoveAllOtherDatasetDataOutputs).To(BeEmpty())
+					Expect(testDataStoreSession.DeleteAllOtherDatasetDataInputs).To(ConsistOf(dataset))
+					Expect(testDataStoreSession.DeleteAllOtherDatasetDataOutputs).To(BeEmpty())
 				})
 			})
 		})
