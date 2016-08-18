@@ -95,7 +95,7 @@ func (t *TestDataStoreSession) ActivateAllDatasetData(dataset *upload.Upload) er
 	panic("unexpected")
 }
 
-func (t *TestDataStoreSession) RemoveAllOtherDatasetData(dataset *upload.Upload) error {
+func (t *TestDataStoreSession) DeleteAllOtherDatasetData(dataset *upload.Upload) error {
 	panic("unexpected")
 }
 

@@ -31,5 +31,5 @@ type Session interface {
 	UpdateDataset(dataset *upload.Upload) error
 	CreateDatasetData(dataset *upload.Upload, datasetData []data.Datum) error
 	ActivateAllDatasetData(dataset *upload.Upload) error
-	RemoveAllOtherDatasetData(dataset *upload.Upload) error
+	DeleteAllOtherDatasetData(dataset *upload.Upload) error
 }

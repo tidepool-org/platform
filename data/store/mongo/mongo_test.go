@@ -552,52 +552,52 @@ var _ = Describe("Mongo", func() {
 						})
 					})
 
-					Context("RemoveAllOtherDatasetData", func() {
+					Context("DeleteAllOtherDatasetData", func() {
 						BeforeEach(func() {
 							Expect(mongoStoreSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
 						})
 
 						It("returns no error if it successfully removes all other dataset data", func() {
-							Expect(mongoStoreSession.RemoveAllOtherDatasetData(dataset)).To(Succeed())
+							Expect(mongoStoreSession.DeleteAllOtherDatasetData(dataset)).To(Succeed())
 						})
 
 						It("returns an error if the dataset is missing", func() {
-							Expect(mongoStoreSession.RemoveAllOtherDatasetData(nil)).To(MatchError("mongo: dataset is missing"))
+							Expect(mongoStoreSession.DeleteAllOtherDatasetData(nil)).To(MatchError("mongo: dataset is missing"))
 						})
 
 						It("returns an error if the user id is missing", func() {
 							dataset.UserID = ""
-							Expect(mongoStoreSession.RemoveAllOtherDatasetData(dataset)).To(MatchError("mongo: dataset user id is missing"))
+							Expect(mongoStoreSession.DeleteAllOtherDatasetData(dataset)).To(MatchError("mongo: dataset user id is missing"))
 						})
 
 						It("returns an error if the group id is missing", func() {
 							dataset.GroupID = ""
-							Expect(mongoStoreSession.RemoveAllOtherDatasetData(dataset)).To(MatchError("mongo: dataset group id is missing"))
+							Expect(mongoStoreSession.DeleteAllOtherDatasetData(dataset)).To(MatchError("mongo: dataset group id is missing"))
 						})
 
 						It("returns an error if the upload id is missing", func() {
 							dataset.UploadID = ""
-							Expect(mongoStoreSession.RemoveAllOtherDatasetData(dataset)).To(MatchError("mongo: dataset upload id is missing"))
+							Expect(mongoStoreSession.DeleteAllOtherDatasetData(dataset)).To(MatchError("mongo: dataset upload id is missing"))
 						})
 
 						It("returns an error if the device id is missing (nil)", func() {
 							dataset.DeviceID = nil
-							Expect(mongoStoreSession.RemoveAllOtherDatasetData(dataset)).To(MatchError("mongo: dataset device id is missing"))
+							Expect(mongoStoreSession.DeleteAllOtherDatasetData(dataset)).To(MatchError("mongo: dataset device id is missing"))
 						})
 
 						It("returns an error if the device id is missing (empty)", func() {
 							dataset.DeviceID = StringAsPointer("")
-							Expect(mongoStoreSession.RemoveAllOtherDatasetData(dataset)).To(MatchError("mongo: dataset device id is missing"))
+							Expect(mongoStoreSession.DeleteAllOtherDatasetData(dataset)).To(MatchError("mongo: dataset device id is missing"))
 						})
 
 						It("returns an error if the session is closed", func() {
 							mongoStoreSession.Close()
-							Expect(mongoStoreSession.RemoveAllOtherDatasetData(dataset)).To(MatchError("mongo: session closed"))
+							Expect(mongoStoreSession.DeleteAllOtherDatasetData(dataset)).To(MatchError("mongo: session closed"))
 						})
 
 						It("has the correct stored active dataset", func() {
 							ValidateDataset(mongoTestCollection, bson.M{}, dataset, datasetExistingOne, datasetExistingTwo)
-							Expect(mongoStoreSession.RemoveAllOtherDatasetData(dataset)).To(Succeed())
+							Expect(mongoStoreSession.DeleteAllOtherDatasetData(dataset)).To(Succeed())
 							ValidateDataset(mongoTestCollection, bson.M{}, dataset, datasetExistingOne, datasetExistingTwo)
 						})
 
@@ -605,7 +605,7 @@ var _ = Describe("Mongo", func() {
 							datasetAfterRemoveData := append(datasetData, dataset, datasetExistingOne, datasetExistingTwo)
 							datasetBeforeRemoveData := append(append(datasetAfterRemoveData, datasetExistingOneData...), datasetExistingTwoData...)
 							ValidateDatasetData(mongoTestCollection, bson.M{}, datasetBeforeRemoveData)
-							Expect(mongoStoreSession.RemoveAllOtherDatasetData(dataset)).To(Succeed())
+							Expect(mongoStoreSession.DeleteAllOtherDatasetData(dataset)).To(Succeed())
 							ValidateDatasetData(mongoTestCollection, bson.M{}, datasetAfterRemoveData)
 						})
 					})
