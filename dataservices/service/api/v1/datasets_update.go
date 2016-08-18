@@ -13,11 +13,11 @@ package v1
 import (
 	"net/http"
 
-	"github.com/tidepool-org/platform/dataservices/server"
+	"github.com/tidepool-org/platform/dataservices/service"
 	"github.com/tidepool-org/platform/userservices/client"
 )
 
-func DatasetsUpdate(serverContext server.Context) {
+func DatasetsUpdate(serverContext service.Context) {
 	datasetID := serverContext.Request().PathParam("datasetid")
 	if datasetID == "" {
 		serverContext.RespondWithError(ErrorDatasetIDMissing())

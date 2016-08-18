@@ -1,4 +1,4 @@
-package server
+package service
 
 /* CHECKLIST
  * [x] Uses interfaces as appropriate

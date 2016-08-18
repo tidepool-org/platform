@@ -18,11 +18,11 @@ import (
 	"github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
 	"github.com/tidepool-org/platform/data/validator"
-	"github.com/tidepool-org/platform/dataservices/server"
+	"github.com/tidepool-org/platform/dataservices/service"
 	"github.com/tidepool-org/platform/userservices/client"
 )
 
-func DatasetsDataCreate(serverContext server.Context) {
+func DatasetsDataCreate(serverContext service.Context) {
 	datasetID := serverContext.Request().PathParam("datasetid")
 	if datasetID == "" {
 		serverContext.RespondWithError(ErrorDatasetIDMissing())

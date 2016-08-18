@@ -11,12 +11,12 @@ package v1
  */
 
 import (
-	"github.com/tidepool-org/platform/dataservices/server"
+	"github.com/tidepool-org/platform/dataservices/service"
 	"github.com/tidepool-org/platform/userservices/client"
 )
 
-func Authenticate(handler server.HandlerFunc) server.HandlerFunc {
-	return func(context server.Context) {
+func Authenticate(handler service.HandlerFunc) service.HandlerFunc {
+	return func(context service.Context) {
 		userSessionToken := context.Request().Header.Get(client.TidepoolUserSessionTokenHeaderName)
 		if userSessionToken == "" {
 			context.RespondWithError(ErrorAuthenticationTokenMissing())

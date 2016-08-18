@@ -23,9 +23,9 @@ import (
 	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/store/mongo"
-	"github.com/tidepool-org/platform/dataservices/server"
-	"github.com/tidepool-org/platform/dataservices/server/api"
-	standardServer "github.com/tidepool-org/platform/dataservices/server/server"
+	"github.com/tidepool-org/platform/dataservices/service"
+	"github.com/tidepool-org/platform/dataservices/service/api"
+	standardServer "github.com/tidepool-org/platform/dataservices/service/server"
 	"github.com/tidepool-org/platform/environment"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/userservices/client"
@@ -216,11 +216,11 @@ func initializeUserServicesClient(configLoader config.Loader, logger log.Logger)
 	return userServicesClient, nil
 }
 
-func initializeAPI(logger log.Logger, dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, userServicesClient client.Client, reporter version.Reporter) (server.API, error) {
+func initializeAPI(logger log.Logger, dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, userServicesClient client.Client, reporter version.Reporter) (service.API, error) {
 	return api.NewStandard(logger, dataFactory, dataStore, dataDeduplicatorFactory, userServicesClient, reporter)
 }
 
-func initializeServer(configLoader config.Loader, logger log.Logger, api server.API) (server.Server, error) {
+func initializeServer(configLoader config.Loader, logger log.Logger, api service.API) (service.Server, error) {
 
 	logger.Debug("Loading dataservices server config")
 

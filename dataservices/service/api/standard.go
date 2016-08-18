@@ -9,9 +9,9 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	"github.com/tidepool-org/platform/data/store"
-	"github.com/tidepool-org/platform/dataservices/server"
-	"github.com/tidepool-org/platform/dataservices/server/api/v1"
-	"github.com/tidepool-org/platform/dataservices/server/context"
+	"github.com/tidepool-org/platform/dataservices/service"
+	"github.com/tidepool-org/platform/dataservices/service/api/v1"
+	"github.com/tidepool-org/platform/dataservices/service/context"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service/middleware"
 	"github.com/tidepool-org/platform/userservices/client"
@@ -136,6 +136,6 @@ func (s *Standard) initRouter() error {
 	return nil
 }
 
-func (s *Standard) withContext(handler server.HandlerFunc) rest.HandlerFunc {
+func (s *Standard) withContext(handler service.HandlerFunc) rest.HandlerFunc {
 	return context.WithContext(s.dataFactory, s.dataStore, s.dataDeduplicatorFactory, s.userServicesClient, handler)
 }
