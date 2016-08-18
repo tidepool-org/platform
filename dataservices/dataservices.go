@@ -25,7 +25,7 @@ import (
 	"github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/dataservices/service"
 	"github.com/tidepool-org/platform/dataservices/service/api"
-	standardServer "github.com/tidepool-org/platform/dataservices/service/server"
+	"github.com/tidepool-org/platform/dataservices/service/server"
 	"github.com/tidepool-org/platform/environment"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/userservices/client"
@@ -224,14 +224,14 @@ func initializeServer(configLoader config.Loader, logger log.Logger, api service
 
 	logger.Debug("Loading dataservices server config")
 
-	dataservicesServerConfig := &standardServer.Config{}
+	dataservicesServerConfig := &server.Config{}
 	if err := configLoader.Load("dataservices_server", dataservicesServerConfig); err != nil {
 		return nil, app.ExtError(err, "dataservices", "unable to load dataservices server config")
 	}
 
 	logger.Debug("Creating dataservices server")
 
-	dataservicesServer, err := standardServer.NewStandard(logger, api, dataservicesServerConfig)
+	dataservicesServer, err := server.NewStandard(logger, api, dataservicesServerConfig)
 	if err != nil {
 		return nil, app.ExtError(err, "dataservices", "unable to create dataservices server")
 	}
