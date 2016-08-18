@@ -12,15 +12,27 @@ import (
 )
 
 var _ = Describe("Client", func() {
-	Context("UploadPermissions", func() {
+	Context("OwnerPermission", func() {
 		It("has the expected permissions", func() {
-			Expect(client.UploadPermissions).To(Equal(client.Permissions{"upload": {}}))
+			Expect(client.OwnerPermission).To(Equal("root"))
 		})
 	})
 
-	Context("ViewPermissions", func() {
+	Context("CustodianPermission", func() {
 		It("has the expected permissions", func() {
-			Expect(client.ViewPermissions).To(Equal(client.Permissions{"view": {}}))
+			Expect(client.CustodianPermission).To(Equal("custodian"))
+		})
+	})
+
+	Context("UploadPermission", func() {
+		It("has the expected permissions", func() {
+			Expect(client.UploadPermission).To(Equal("upload"))
+		})
+	})
+
+	Context("ViewPermission", func() {
+		It("has the expected permissions", func() {
+			Expect(client.ViewPermission).To(Equal("view"))
 		})
 	})
 

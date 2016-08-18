@@ -134,47 +134,44 @@ func (s *Standard) ValidateUserSession(context service.Context, sessionToken str
 	return userID, nil
 }
 
-func (s *Standard) ValidateTargetUserPermissions(context service.Context, requestUserID string, targetUserID string, targetPermissions Permissions) error {
+func (s *Standard) GetUserPermissions(context service.Context, requestUserID string, targetUserID string) (Permissions, error) {
 	if context == nil {
-		return app.Error("client", "context is missing")
+		return nil, app.Error("client", "context is missing")
 	}
 	if requestUserID == "" {
-		return app.Error("client", "request user id is missing")
+		return nil, app.Error("client", "request user id is missing")
 	}
 	if targetUserID == "" {
-		return app.Error("client", "target user id is missing")
-	}
-	if len(targetPermissions) == 0 {
-		return app.Error("client", "target permissions is missing")
+		return nil, app.Error("client", "target user id is missing")
 	}
 
 	if s.closingChannel == nil {
-		return app.Error("client", "client is closed")
+		return nil, app.Error("client", "client is closed")
 	}
 
-	context.Logger().WithFields(log.Fields{"request-user-id": requestUserID, "target-user-id": targetUserID, "target-permissions": targetPermissions}).Debug("Validating target user permissions")
+	context.Logger().WithFields(log.Fields{"request-user-id": requestUserID, "target-user-id": targetUserID}).Debug("Get user permissions")
 
-	actualPermissions := Permissions{}
-	if err := s.sendRequest(context, "GET", s.buildURL("access", targetUserID, requestUserID), &actualPermissions); err != nil {
+	permissions := Permissions{}
+	if err := s.sendRequest(context, "GET", s.buildURL("access", targetUserID, requestUserID), &permissions); err != nil {
 		if unexpectedResponseError, ok := err.(*UnexpectedResponseError); ok {
 			if unexpectedResponseError.StatusCode == http.StatusNotFound {
-				return NewUnauthorizedError()
+				return nil, NewUnauthorizedError()
 			}
 		}
-		return err
+		return nil, err
 	}
 
-	if _, ok := actualPermissions["root"]; ok {
-		return nil
-	}
-
-	for key := range targetPermissions {
-		if _, ok := actualPermissions[key]; !ok {
-			return NewUnauthorizedError()
+	// Fix missing view and upload permissions for an owner
+	if permission, ok := permissions[OwnerPermission]; ok {
+		if _, ok = permissions[UploadPermission]; !ok {
+			permissions[UploadPermission] = permission
+		}
+		if _, ok = permissions[ViewPermission]; !ok {
+			permissions[ViewPermission] = permission
 		}
 	}
 
-	return nil
+	return permissions, nil
 }
 
 func (s *Standard) GetUserGroupID(context service.Context, userID string) (string, error) {

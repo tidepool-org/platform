@@ -430,50 +430,50 @@ var _ = Describe("Standard", func() {
 				})
 			})
 
-			Context("ValidateTargetUserPermissions", func() {
+			Context("GetUserPermissions", func() {
 				It("returns error if context is missing", func() {
-					err := standard.ValidateTargetUserPermissions(nil, "request-user-id", "target-user-id", client.ViewPermissions)
+					permissions, err := standard.GetUserPermissions(nil, "request-user-id", "target-user-id")
 					Expect(err).To(MatchError("client: context is missing"))
+					Expect(permissions).To(BeNil())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 
 				It("returns error if request user id is missing", func() {
-					err := standard.ValidateTargetUserPermissions(context, "", "target-user-id", client.ViewPermissions)
+					permissions, err := standard.GetUserPermissions(context, "", "target-user-id")
 					Expect(err).To(MatchError("client: request user id is missing"))
+					Expect(permissions).To(BeNil())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 
 				It("returns error if target user id is missing", func() {
-					err := standard.ValidateTargetUserPermissions(context, "request-user-id", "", client.ViewPermissions)
+					permissions, err := standard.GetUserPermissions(context, "request-user-id", "")
 					Expect(err).To(MatchError("client: target user id is missing"))
-					Expect(server.ReceivedRequests()).To(HaveLen(1))
-				})
-
-				It("returns error if target permissions is missing", func() {
-					err := standard.ValidateTargetUserPermissions(context, "request-user-id", "target-user-id", nil)
-					Expect(err).To(MatchError("client: target permissions is missing"))
+					Expect(permissions).To(BeNil())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 
 				It("returns error if client is closed", func() {
 					standard.Close()
-					err := standard.ValidateTargetUserPermissions(context, "request-user-id", "target-user-id", client.ViewPermissions)
+					permissions, err := standard.GetUserPermissions(context, "request-user-id", "target-user-id")
 					Expect(err).To(MatchError("client: client is closed"))
+					Expect(permissions).To(BeNil())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 
 				It("returns error if server is unreachable", func() {
 					server.Close()
 					server = nil
-					err := standard.ValidateTargetUserPermissions(context, "request-user-id", "target-user-id", client.ViewPermissions)
+					permissions, err := standard.GetUserPermissions(context, "request-user-id", "target-user-id")
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(HavePrefix("client: unable to perform request GET "))
+					Expect(permissions).To(BeNil())
 				})
 
 				It("returns error if the context request is missing", func() {
 					context.TestRequest = nil
-					err := standard.ValidateTargetUserPermissions(context, "request-user-id", "target-user-id", client.ViewPermissions)
+					permissions, err := standard.GetUserPermissions(context, "request-user-id", "target-user-id")
 					Expect(err).To(MatchError("client: unable to copy request trace; service: source request is missing"))
+					Expect(permissions).To(BeNil())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 
@@ -489,9 +489,10 @@ var _ = Describe("Standard", func() {
 					})
 
 					It("returns an error", func() {
-						err := standard.ValidateTargetUserPermissions(context, "request-user-id", "target-user-id", client.ViewPermissions)
+						permissions, err := standard.GetUserPermissions(context, "request-user-id", "target-user-id")
 						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).To(HavePrefix("client: unexpected response status code 400 from GET "))
+						Expect(permissions).To(BeNil())
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
@@ -508,8 +509,9 @@ var _ = Describe("Standard", func() {
 					})
 
 					It("returns an error", func() {
-						err := standard.ValidateTargetUserPermissions(context, "request-user-id", "target-user-id", client.ViewPermissions)
+						permissions, err := standard.GetUserPermissions(context, "request-user-id", "target-user-id")
 						Expect(err).To(MatchError("client: unauthorized"))
+						Expect(permissions).To(BeNil())
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
@@ -526,8 +528,9 @@ var _ = Describe("Standard", func() {
 					})
 
 					It("returns an error", func() {
-						err := standard.ValidateTargetUserPermissions(context, "request-user-id", "target-user-id", client.ViewPermissions)
+						permissions, err := standard.GetUserPermissions(context, "request-user-id", "target-user-id")
 						Expect(err).To(MatchError("client: unauthorized"))
+						Expect(permissions).To(BeNil())
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
@@ -544,9 +547,10 @@ var _ = Describe("Standard", func() {
 					})
 
 					It("returns an error", func() {
-						err := standard.ValidateTargetUserPermissions(context, "request-user-id", "target-user-id", client.ViewPermissions)
+						permissions, err := standard.GetUserPermissions(context, "request-user-id", "target-user-id")
 						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).To(HavePrefix("client: error decoding JSON response from GET "))
+						Expect(permissions).To(BeNil())
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
@@ -563,98 +567,100 @@ var _ = Describe("Standard", func() {
 					})
 
 					It("returns an error", func() {
-						err := standard.ValidateTargetUserPermissions(context, "request-user-id", "target-user-id", client.ViewPermissions)
-						Expect(err).To(MatchError("client: unauthorized"))
+						permissions, err := standard.GetUserPermissions(context, "request-user-id", "target-user-id")
+						Expect(err).ToNot(HaveOccurred())
+						Expect(permissions).To(BeEmpty())
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
 
-				Context("with an successful response, but without the requested permission", func() {
+				Context("with an successful response with upload and view permissions", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/access/target-user-id/request-user-id"),
 								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
 								ghttp.VerifyBody([]byte{}),
-								ghttp.RespondWith(http.StatusOK, "{\"upload\": {}}", nil)),
+								ghttp.RespondWith(http.StatusOK, "{\"upload\": {}, \"view\": {}}", nil)),
 						)
 					})
 
 					It("returns an error", func() {
-						err := standard.ValidateTargetUserPermissions(context, "request-user-id", "target-user-id", client.ViewPermissions)
-						Expect(err).To(MatchError("client: unauthorized"))
+						permissions, err := standard.GetUserPermissions(context, "request-user-id", "target-user-id")
+						Expect(err).ToNot(HaveOccurred())
+						Expect(permissions).To(Equal(client.Permissions{
+							client.UploadPermission: client.Permission{},
+							client.ViewPermission:   client.Permission{},
+						}))
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
 
-				Context("with an successful response, but without the requested permissions", func() {
+				Context("with an successful response with owner permissions that already includes upload permissions", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/access/target-user-id/request-user-id"),
 								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
 								ghttp.VerifyBody([]byte{}),
-								ghttp.RespondWith(http.StatusOK, "{\"upload\": {}}", nil)),
+								ghttp.RespondWith(http.StatusOK, "{\"root\": {\"root-inner\": \"unused\"}, \"upload\": {}}", nil)),
 						)
 					})
 
 					It("returns an error", func() {
-						err := standard.ValidateTargetUserPermissions(context, "request-user-id", "target-user-id", client.Permissions{"upload": {}, "view": {}})
-						Expect(err).To(MatchError("client: unauthorized"))
+						permissions, err := standard.GetUserPermissions(context, "request-user-id", "target-user-id")
+						Expect(err).ToNot(HaveOccurred())
+						Expect(permissions).To(Equal(client.Permissions{
+							client.OwnerPermission:  client.Permission{"root-inner": "unused"},
+							client.UploadPermission: client.Permission{},
+							client.ViewPermission:   client.Permission{"root-inner": "unused"},
+						}))
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
 
-				Context("with an successful response and the requested permission", func() {
+				Context("with an successful response with owner permissions that already includes view permissions", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/access/target-user-id/request-user-id"),
 								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
 								ghttp.VerifyBody([]byte{}),
-								ghttp.RespondWith(http.StatusOK, "{\"view\": {}}", nil)),
+								ghttp.RespondWith(http.StatusOK, "{\"root\": {\"root-inner\": \"unused\"}, \"view\": {}}", nil)),
 						)
 					})
 
-					It("returns no error", func() {
-						err := standard.ValidateTargetUserPermissions(context, "request-user-id", "target-user-id", client.ViewPermissions)
+					It("returns an error", func() {
+						permissions, err := standard.GetUserPermissions(context, "request-user-id", "target-user-id")
 						Expect(err).ToNot(HaveOccurred())
+						Expect(permissions).To(Equal(client.Permissions{
+							client.OwnerPermission:  client.Permission{"root-inner": "unused"},
+							client.UploadPermission: client.Permission{"root-inner": "unused"},
+							client.ViewPermission:   client.Permission{},
+						}))
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
 
-				Context("with an successful response and the requested permissions", func() {
+				Context("with an successful response with owner permissions that already includes upload and view permissions", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/access/target-user-id/request-user-id"),
 								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
 								ghttp.VerifyBody([]byte{}),
-								ghttp.RespondWith(http.StatusOK, "{\"view\": {}, \"upload\": {}}", nil)),
+								ghttp.RespondWith(http.StatusOK, "{\"root\": {\"root-inner\": \"unused\"}, \"upload\": {}, \"view\": {}}", nil)),
 						)
 					})
 
-					It("returns no error", func() {
-						err := standard.ValidateTargetUserPermissions(context, "request-user-id", "target-user-id", client.Permissions{"upload": {}, "view": {}})
+					It("returns an error", func() {
+						permissions, err := standard.GetUserPermissions(context, "request-user-id", "target-user-id")
 						Expect(err).ToNot(HaveOccurred())
-						Expect(server.ReceivedRequests()).To(HaveLen(2))
-					})
-				})
-
-				Context("with an successful response and the root permission", func() {
-					BeforeEach(func() {
-						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", "/access/target-user-id/request-user-id"),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
-								ghttp.VerifyBody([]byte{}),
-								ghttp.RespondWith(http.StatusOK, "{\"root\": {}}", nil)),
-						)
-					})
-
-					It("returns no error", func() {
-						err := standard.ValidateTargetUserPermissions(context, "request-user-id", "target-user-id", client.ViewPermissions)
-						Expect(err).ToNot(HaveOccurred())
+						Expect(permissions).To(Equal(client.Permissions{
+							client.OwnerPermission:  client.Permission{"root-inner": "unused"},
+							client.UploadPermission: client.Permission{},
+							client.ViewPermission:   client.Permission{},
+						}))
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
@@ -825,11 +831,12 @@ var _ = Describe("Standard", func() {
 				})
 			})
 
-			Context("ValidateTargetUserPermissions", func() {
+			Context("GetUserPermissions", func() {
 				It("returns an error", func() {
-					err := standard.ValidateTargetUserPermissions(context, "request-user-id", "target-user-id", client.ViewPermissions)
+					permissions, err := standard.GetUserPermissions(context, "request-user-id", "target-user-id")
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(HavePrefix("client: unable to obtain server token for GET "))
+					Expect(permissions).To(BeNil())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 			})
