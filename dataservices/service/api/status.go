@@ -13,16 +13,18 @@ package api
 import "github.com/tidepool-org/platform/dataservices/service"
 
 type Status struct {
-	Version string
-	Store   interface{}
-	Server  interface{}
+	Version     string
+	Environment string
+	Store       interface{}
+	Server      interface{}
 }
 
 func (s *Standard) GetStatus(serviceContext service.Context) {
 	status := &Status{
-		Version: s.versionReporter.Long(),
-		Store:   s.dataStore.GetStatus(),
-		Server:  s.statusMiddleware.GetStatus(),
+		Version:     s.versionReporter.Long(),
+		Environment: s.environmentReporter.Name(),
+		Store:       s.dataStore.GetStatus(),
+		Server:      s.statusMiddleware.GetStatus(),
 	}
 	serviceContext.Response().WriteJson(status)
 }
