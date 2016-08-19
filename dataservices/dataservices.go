@@ -104,15 +104,30 @@ func main() {
 // TODO: Wrap this up into an object
 
 func initializeVersionReporter() (version.Reporter, error) {
-	return version.NewDefaultReporter()
+	versionReporter, err := version.NewDefaultReporter()
+	if err != nil {
+		return nil, app.ExtError(err, "dataservices", "unable to create version reporter")
+	}
+
+	return versionReporter, nil
 }
 
 func initializeEnvironmentReporter() (environment.Reporter, error) {
-	return environment.NewDefaultReporter()
+	environmentReporter, err := environment.NewDefaultReporter()
+	if err != nil {
+		return nil, app.ExtError(err, "dataservices", "unable to create environment reporter")
+	}
+
+	return environmentReporter, nil
 }
 
 func initializeConfigLoader(environmentReporter environment.Reporter) (config.Loader, error) {
-	return config.NewLoader(os.Getenv("TIDEPOOL_CONFIG_DIRECTORY"), "TIDEPOOL", environmentReporter)
+	configLoader, err := config.NewLoader(os.Getenv("TIDEPOOL_CONFIG_DIRECTORY"), "TIDEPOOL", environmentReporter)
+	if err != nil {
+		return nil, app.ExtError(err, "dataservices", "unable to create config loader")
+	}
+
+	return configLoader, nil
 }
 
 func initializeLogger(configLoader config.Loader, versionReporter version.Reporter) (log.Logger, error) {
@@ -123,7 +138,7 @@ func initializeLogger(configLoader config.Loader, versionReporter version.Report
 
 	logger, err := log.NewLogger(loggerConfig, versionReporter)
 	if err != nil {
-		return nil, app.ExtError(err, "dataservices", "unable to initialize logger")
+		return nil, app.ExtError(err, "dataservices", "unable to create logger")
 	}
 
 	logger.Info(fmt.Sprintf("Logger level is %s", loggerConfig.Level))
@@ -132,47 +147,44 @@ func initializeLogger(configLoader config.Loader, versionReporter version.Report
 }
 
 func initializeDataFactory(logger log.Logger) (data.Factory, error) {
-
 	logger.Debug("Creating data factory")
 
-	standardDataFactory, err := factory.NewStandard()
+	dataFactory, err := factory.NewStandard()
 	if err != nil {
-		return nil, app.ExtError(err, "dataservices", "unable to create standard data factory")
+		return nil, app.ExtError(err, "dataservices", "unable to create data factory")
 	}
 
-	return standardDataFactory, nil
+	return dataFactory, nil
 }
 
 func initializeDataStore(configLoader config.Loader, logger log.Logger) (store.Store, error) {
-
-	// TODO: Consider alternate data stores
-
-	logger.Debug("Loading mongo data store config")
+	logger.Debug("Loading data store config")
 
 	mongoDataStoreConfig := &mongo.Config{}
 	if err := configLoader.Load("data_store", mongoDataStoreConfig); err != nil {
-		return nil, app.ExtError(err, "dataservices", "unable to load mongo data store config")
+		return nil, app.ExtError(err, "dataservices", "unable to load data store config")
 	}
 	mongoDataStoreConfig.Collection = "deviceData"
 
-	logger.Debug("Creating mongo data store")
+	logger.Debug("Creating data store")
 
 	mongoDataStore, err := mongo.New(logger, mongoDataStoreConfig)
 	if err != nil {
-		return nil, app.ExtError(err, "dataservices", "unable to create mongo data store")
+		return nil, app.ExtError(err, "dataservices", "unable to create data store")
 	}
 
 	return mongoDataStore, nil
 }
 
 func initializeDataDeduplicatorFactory(logger log.Logger) (deduplicator.Factory, error) {
-
-	logger.Debug("Creating data deduplicator factory")
+	logger.Debug("Creating truncate data deduplicator factory")
 
 	truncateDeduplicatorFactory, err := truncate.NewFactory()
 	if err != nil {
-		return nil, app.ExtError(err, "dataservices", "unable to create truncate deduplicator factory")
+		return nil, app.ExtError(err, "dataservices", "unable to create truncate data deduplicator factory")
 	}
+
+	logger.Debug("Creating delegate data deduplicator factory")
 
 	factories := []deduplicator.Factory{
 		truncateDeduplicatorFactory,
@@ -180,14 +192,13 @@ func initializeDataDeduplicatorFactory(logger log.Logger) (deduplicator.Factory,
 
 	delegateDeduplicatorFactory, err := delegate.NewFactory(factories)
 	if err != nil {
-		return nil, app.ExtError(err, "dataservices", "unable to create delegate deduplicator factory")
+		return nil, app.ExtError(err, "dataservices", "unable to create delegate data deduplicator factory")
 	}
 
 	return delegateDeduplicatorFactory, nil
 }
 
 func initializeUserServicesClient(configLoader config.Loader, logger log.Logger) (client.Client, error) {
-
 	logger.Debug("Loading user services client config")
 
 	userServicesClientConfig := &client.Config{}
@@ -211,7 +222,6 @@ func initializeUserServicesClient(configLoader config.Loader, logger log.Logger)
 }
 
 func initializeDataServicesAPI(logger log.Logger, dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, userServicesClient client.Client, versionReporter version.Reporter, environmentReporter environment.Reporter) (service.API, error) {
-
 	logger.Debug("Creating data services api")
 
 	dataServicesAPI, err := api.NewStandard(logger, dataFactory, dataStore, dataDeduplicatorFactory, userServicesClient, versionReporter, environmentReporter)
@@ -223,7 +233,6 @@ func initializeDataServicesAPI(logger log.Logger, dataFactory data.Factory, data
 }
 
 func initializeDataServicesServer(configLoader config.Loader, logger log.Logger, api service.API) (service.Server, error) {
-
 	logger.Debug("Loading data services server config")
 
 	dataServicesServerConfig := &server.Config{}
