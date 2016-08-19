@@ -33,15 +33,15 @@ import (
 )
 
 func main() {
-	environmentReporter, err := initializeEnvironmentReporter()
-	if err != nil {
-		fmt.Printf("ERROR: Failure initializing environment reporter: %s\n", err.Error())
-		os.Exit(1)
-	}
-
 	versionReporter, err := initializeVersionReporter()
 	if err != nil {
 		fmt.Printf("ERROR: Failure initializing version reporter: %s\n", err.Error())
+		os.Exit(1)
+	}
+
+	environmentReporter, err := initializeEnvironmentReporter()
+	if err != nil {
+		fmt.Printf("ERROR: Failure initializing environment reporter: %s\n", err.Error())
 		os.Exit(1)
 	}
 
@@ -103,12 +103,12 @@ func main() {
 
 // TODO: Wrap this up into an object
 
-func initializeEnvironmentReporter() (environment.Reporter, error) {
-	return environment.NewDefaultReporter()
-}
-
 func initializeVersionReporter() (version.Reporter, error) {
 	return version.NewDefaultReporter()
+}
+
+func initializeEnvironmentReporter() (environment.Reporter, error) {
+	return environment.NewDefaultReporter()
 }
 
 func initializeConfigLoader(environmentReporter environment.Reporter) (config.Loader, error) {
