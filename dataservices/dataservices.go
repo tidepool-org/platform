@@ -32,12 +32,6 @@ import (
 	"github.com/tidepool-org/platform/version"
 )
 
-var (
-	VersionBase        string
-	VersionShortCommit string
-	VersionFullCommit  string
-)
-
 func main() {
 	environmentReporter, err := initializeEnvironmentReporter()
 	if err != nil {
@@ -110,11 +104,11 @@ func main() {
 // TODO: Wrap this up into an object
 
 func initializeEnvironmentReporter() (environment.Reporter, error) {
-	return environment.NewReporter(os.Getenv("TIDEPOOL_ENV"))
+	return environment.NewDefaultReporter()
 }
 
 func initializeVersionReporter() (version.Reporter, error) {
-	return version.NewReporter(VersionBase, VersionShortCommit, VersionFullCommit)
+	return version.NewDefaultReporter()
 }
 
 func initializeConfigLoader(environmentReporter environment.Reporter) (config.Loader, error) {
