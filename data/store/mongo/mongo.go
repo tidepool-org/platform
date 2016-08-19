@@ -160,27 +160,29 @@ func (s *Store) NewSession(logger log.Logger) (store.Session, error) {
 	}
 
 	return &Session{
-		config:  s.Config,
-		logger:  logger.WithFields(loggerFields),
-		session: s.Session.Copy(),
+		logger:        logger.WithFields(loggerFields),
+		config:        s.Config,
+		sourceSession: s.Session,
 	}, nil
 }
 
 type Session struct {
-	config  *Config
-	session *mgo.Session
-	logger  log.Logger
+	logger        log.Logger
+	config        *Config
+	sourceSession *mgo.Session
+	targetSession *mgo.Session
 }
 
 func (s *Session) IsClosed() bool {
-	return s.session == nil
+	return s.sourceSession == nil
 }
 
 func (s *Session) Close() {
-	if s.session != nil {
-		s.session.Close()
-		s.session = nil
+	if s.targetSession != nil {
+		s.targetSession.Close()
+		s.targetSession = nil
 	}
+	s.sourceSession = nil
 }
 
 func (s *Session) GetDataset(datasetID string) (*upload.Upload, error) {
@@ -397,5 +399,13 @@ func (s *Session) DeleteAllOtherDatasetData(dataset *upload.Upload) error {
 }
 
 func (s *Session) C() *mgo.Collection {
-	return s.session.DB(s.config.Database).C(s.config.Collection)
+	if s.IsClosed() {
+		return nil
+	}
+
+	if s.targetSession == nil {
+		s.targetSession = s.sourceSession.Copy()
+	}
+
+	return s.targetSession.DB(s.config.Database).C(s.config.Collection)
 }
