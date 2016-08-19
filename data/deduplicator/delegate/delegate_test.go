@@ -54,49 +54,49 @@ func (t *TestFactory) NewDeduplicator(logger log.Logger, dataStoreSession store.
 type TestDeduplicator struct{}
 
 func (t *TestDeduplicator) InitializeDataset() error {
-	panic("unexpected")
+	panic("Unexpected invocation of InitializeDataset on TestDeduplicator")
 }
 
 func (t *TestDeduplicator) AddDataToDataset(datasetData []data.Datum) error {
-	panic("unexpected")
+	panic("Unexpected invocation of AddDataToDataset on TestDeduplicator")
 }
 
 func (t *TestDeduplicator) FinalizeDataset() error {
-	panic("unexpected")
+	panic("Unexpected invocation of FinalizeDataset on TestDeduplicator")
 }
 
 type TestDataStoreSession struct{}
 
 func (t *TestDataStoreSession) IsClosed() bool {
-	panic("unexpected")
+	panic("Unexpected invocation of IsClosed on TestDataStoreSession")
 }
 
 func (t *TestDataStoreSession) Close() {
-	panic("unexpected")
+	panic("Unexpected invocation of Close on TestDataStoreSession")
 }
 
 func (t *TestDataStoreSession) GetDataset(datasetID string) (*upload.Upload, error) {
-	panic("unexpected")
+	panic("Unexpected invocation of GetDataset on TestDataStoreSession")
 }
 
 func (t *TestDataStoreSession) CreateDataset(dataset *upload.Upload) error {
-	panic("unexpected")
+	panic("Unexpected invocation of CreateDataset on TestDataStoreSession")
 }
 
 func (t *TestDataStoreSession) UpdateDataset(dataset *upload.Upload) error {
-	panic("unexpected")
+	panic("Unexpected invocation of UpdateDataset on TestDataStoreSession")
 }
 
 func (t *TestDataStoreSession) CreateDatasetData(dataset *upload.Upload, datasetData []data.Datum) error {
-	panic("unexpected")
+	panic("Unexpected invocation of CreateDatasetData on TestDataStoreSession")
 }
 
 func (t *TestDataStoreSession) ActivateAllDatasetData(dataset *upload.Upload) error {
-	panic("unexpected")
+	panic("Unexpected invocation of ActivateAllDatasetData on TestDataStoreSession")
 }
 
 func (t *TestDataStoreSession) DeleteAllOtherDatasetData(dataset *upload.Upload) error {
-	panic("unexpected")
+	panic("Unexpected invocation of DeleteAllOtherDatasetData on TestDataStoreSession")
 }
 
 var _ = Describe("Delegate", func() {

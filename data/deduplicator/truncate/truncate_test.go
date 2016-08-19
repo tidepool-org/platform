@@ -30,19 +30,19 @@ type TestDataStoreSession struct {
 }
 
 func (t *TestDataStoreSession) IsClosed() bool {
-	panic("unexpected")
+	panic("Unexpected invocation of IsClosed on TestDataStoreSession")
 }
 
 func (t *TestDataStoreSession) Close() {
-	panic("unexpected")
+	panic("Unexpected invocation of Close on TestDataStoreSession")
 }
 
 func (t *TestDataStoreSession) GetDataset(datasetID string) (*upload.Upload, error) {
-	panic("unexpected")
+	panic("Unexpected invocation of GetDataset on TestDataStoreSession")
 }
 
 func (t *TestDataStoreSession) CreateDataset(dataset *upload.Upload) error {
-	panic("unexpected")
+	panic("Unexpected invocation of CreateDataset on TestDataStoreSession")
 }
 
 func (t *TestDataStoreSession) UpdateDataset(dataset *upload.Upload) error {
