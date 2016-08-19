@@ -1,16 +1,20 @@
 package server
 
 /* CHECKLIST
- * [ ] Uses interfaces as appropriate
- * [ ] Private package variables use underscore prefix
- * [ ] All parameters validated
- * [ ] All errors handled
- * [ ] Reviewed for concurrency safety
- * [ ] Code complete
- * [ ] Full test coverage
+ * [x] Uses interfaces as appropriate
+ * [x] Private package variables use underscore prefix
+ * [x] All parameters validated
+ * [x] All errors handled
+ * [x] Reviewed for concurrency safety
+ * [x] Code complete
+ * [x] Full test coverage
  */
 
-import "github.com/tidepool-org/platform/app"
+import (
+	"os"
+
+	"github.com/tidepool-org/platform/app"
+)
 
 type Config struct {
 	Address string `json:"address"`
@@ -30,9 +34,23 @@ func (c *Config) Validate() error {
 	if c.TLS != nil {
 		if c.TLS.CertificateFile == "" {
 			return app.Error("server", "tls certificate file is missing")
+		} else if fileInfo, err := os.Stat(c.TLS.CertificateFile); err != nil {
+			if !os.IsNotExist(err) {
+				return app.ExtError(err, "server", "unable to stat tls certificate file")
+			}
+			return app.Error("server", "tls certificate file does not exist")
+		} else if fileInfo.IsDir() {
+			return app.Error("server", "tls certificate file is a directory")
 		}
 		if c.TLS.KeyFile == "" {
 			return app.Error("server", "tls key file is missing")
+		} else if fileInfo, err := os.Stat(c.TLS.KeyFile); err != nil {
+			if !os.IsNotExist(err) {
+				return app.ExtError(err, "server", "unable to stat tls key file")
+			}
+			return app.Error("server", "tls key file does not exist")
+		} else if fileInfo.IsDir() {
+			return app.Error("server", "tls key file is a directory")
 		}
 	}
 	if c.Timeout < 0 {
