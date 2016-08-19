@@ -9,8 +9,9 @@ endif
 VERSION_BASE:=$(VERSION_BASE:v%=%)
 VERSION_SHORT_COMMIT:=$(shell git rev-parse --short HEAD)
 VERSION_FULL_COMMIT:=$(shell git rev-parse HEAD)
+VERSION_PACKAGE:=$(REPOSITORY)/version
 
-GO_LD_FLAGS:=-ldflags "-X main.VersionBase=$(VERSION_BASE) -X main.VersionShortCommit=$(VERSION_SHORT_COMMIT) -X main.VersionFullCommit=$(VERSION_FULL_COMMIT)"
+GO_LD_FLAGS:=-ldflags "-X $(VERSION_PACKAGE).Base=$(VERSION_BASE) -X $(VERSION_PACKAGE).ShortCommit=$(VERSION_SHORT_COMMIT) -X $(VERSION_PACKAGE).FullCommit=$(VERSION_FULL_COMMIT)"
 
 FIND_MAIN_CMD:=find . -path './$(BUILD)*' -not -path './vendor/*' -name '*.go' -not -name '*_test.go' -type f -exec egrep -l '^\s*package\s+main\s*$$' {} \;
 TRANSFORM_MKDIR_CMD:=sed 's/\.\(.*\/\)[^\/]*\.go/_bin\1/'
@@ -115,7 +116,7 @@ pre-build: format imports vet lint
 build-list:
 	@cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD)
 
-build:
+build: check-environment
 	@echo "go build"
 	@cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD) | $(TRANSFORM_MKDIR_CMD) | xargs -L1 $(MKDIR_CMD)
 	@cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD) | $(TRANSFORM_GO_BUILD_CMD) | xargs -L1 $(GO_BUILD_CMD)

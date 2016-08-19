@@ -15,7 +15,7 @@ var _ = Describe("Environment", func() {
 			Expect(reporter).To(BeNil())
 		})
 
-		It("returns a new object if name is specified", func() {
+		It("returns successfully", func() {
 			Expect(environment.NewReporter("brownie")).ToNot(BeNil())
 		})
 	})
