@@ -338,6 +338,68 @@ var _ = Describe("Standard", func() {
 					})
 				})
 			})
+
+			Context("with data", func() {
+				var testData interface{}
+
+				BeforeEach(func() {
+					response.WriteJSONOutputs = []error{nil}
+					testData = []map[string]string{
+						{
+							"data-1": "value-1",
+							"data-2": "value-2",
+						},
+						{
+							"data-3": "value-3",
+							"data-4": "value-4",
+						},
+					}
+				})
+
+				Context("RespondWithStatusAndData", func() {
+					It("is successful", func() {
+						standardContext.RespondWithStatusAndData(200, testData)
+						Expect(response.WriteHeaderInputs).To(ConsistOf(200))
+						Expect(response.WriteJSONInputs).To(ConsistOf(&context.JSONResponse{
+							Data: testData,
+							Meta: &context.Meta{
+								Trace: &context.Trace{
+									Request: "request-revenant",
+									Session: "session-spectre",
+								},
+							},
+						}))
+					})
+
+					It("does not add trace request if not present", func() {
+						request.Env["TRACE-REQUEST"] = nil
+						standardContext.RespondWithStatusAndData(201, testData)
+						Expect(response.WriteHeaderInputs).To(ConsistOf(201))
+						Expect(response.WriteJSONInputs).To(ConsistOf(&context.JSONResponse{
+							Data: testData,
+							Meta: &context.Meta{
+								Trace: &context.Trace{
+									Session: "session-spectre",
+								},
+							},
+						}))
+					})
+
+					It("does not add trace session if not present", func() {
+						request.Env["TRACE-SESSION"] = nil
+						standardContext.RespondWithStatusAndData(202, testData)
+						Expect(response.WriteHeaderInputs).To(ConsistOf(202))
+						Expect(response.WriteJSONInputs).To(ConsistOf(&context.JSONResponse{
+							Data: testData,
+							Meta: &context.Meta{
+								Trace: &context.Trace{
+									Request: "request-revenant",
+								},
+							},
+						}))
+					})
+				})
+			})
 		})
 	})
 })

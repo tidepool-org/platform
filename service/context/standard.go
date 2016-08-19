@@ -21,6 +21,7 @@ import (
 )
 
 type JSONResponse struct {
+	Data   interface{}      `json:"data,omitempty"`
 	Errors []*service.Error `json:"errors,omitempty"`
 	Meta   *Meta            `json:"meta,omitempty"`
 }
@@ -103,6 +104,21 @@ func (s *Standard) RespondWithStatusAndErrors(statusCode int, errors []*service.
 
 	response := &JSONResponse{
 		Errors: errors,
+		Meta: &Meta{
+			Trace: &Trace{
+				Request: service.GetRequestTraceRequest(s.Request()),
+				Session: service.GetRequestTraceSession(s.Request()),
+			},
+		},
+	}
+
+	s.response.WriteHeader(statusCode)
+	s.response.WriteJson(response)
+}
+
+func (s *Standard) RespondWithStatusAndData(statusCode int, data interface{}) {
+	response := &JSONResponse{
+		Data: data,
 		Meta: &Meta{
 			Trace: &Trace{
 				Request: service.GetRequestTraceRequest(s.Request()),

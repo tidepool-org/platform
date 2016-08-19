@@ -36,6 +36,7 @@ func (t *TestContext) Response() rest.ResponseWriter                            
 func (t *TestContext) RespondWithError(err *service.Error)                                     {}
 func (t *TestContext) RespondWithInternalServerFailure(message string, failure ...interface{}) {}
 func (t *TestContext) RespondWithStatusAndErrors(statusCode int, errors []*service.Error)      {}
+func (t *TestContext) RespondWithStatusAndData(statusCode int, data interface{})               {}
 
 var _ = Describe("Standard", func() {
 	var logger *TestLogger

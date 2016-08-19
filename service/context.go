@@ -25,4 +25,5 @@ type Context interface {
 	RespondWithError(err *Error)
 	RespondWithInternalServerFailure(message string, failure ...interface{})
 	RespondWithStatusAndErrors(statusCode int, errors []*Error)
+	RespondWithStatusAndData(statusCode int, data interface{})
 }
