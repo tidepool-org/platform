@@ -84,25 +84,25 @@ func main() {
 
 	userServicesClient, err := initializeUserServicesClient(configLoader, logger)
 	if err != nil {
-		logger.WithError(err).Error("Failure initializing userservices client")
+		logger.WithError(err).Error("Failure initializing user services client")
 		os.Exit(1)
 	}
 	defer userServicesClient.Close()
 
-	api, err := initializeAPI(logger, dataFactory, dataStore, dataDeduplicatorFactory, userServicesClient, versionReporter, environmentReporter)
+	dataServicesAPI, err := initializeDataServicesAPI(logger, dataFactory, dataStore, dataDeduplicatorFactory, userServicesClient, versionReporter, environmentReporter)
 	if err != nil {
-		logger.WithError(err).Error("Failure initializing API")
+		logger.WithError(err).Error("Failure initializing data services API")
 		os.Exit(1)
 	}
 
-	server, err := initializeServer(configLoader, logger, api)
+	dataServicesServer, err := initializeDataServicesServer(configLoader, logger, dataServicesAPI)
 	if err != nil {
-		logger.WithError(err).Error("Failure initializing server")
+		logger.WithError(err).Error("Failure initializing data services server")
 		os.Exit(1)
 	}
 
-	if err = server.Serve(); err != nil {
-		logger.WithError(err).Error("Failure running server")
+	if err = dataServicesServer.Serve(); err != nil {
+		logger.WithError(err).Error("Failure running data services server")
 		os.Exit(1)
 	}
 }
@@ -194,47 +194,55 @@ func initializeDataDeduplicatorFactory(logger log.Logger) (deduplicator.Factory,
 
 func initializeUserServicesClient(configLoader config.Loader, logger log.Logger) (client.Client, error) {
 
-	logger.Debug("Loading userservices client config")
+	logger.Debug("Loading user services client config")
 
 	userServicesClientConfig := &client.Config{}
 	if err := configLoader.Load("userservices_client", userServicesClientConfig); err != nil {
-		return nil, app.ExtError(err, "dataservices", "unable to load userservices client config")
+		return nil, app.ExtError(err, "dataservices", "unable to load user services client config")
 	}
 
-	logger.Debug("Creating userservices client")
+	logger.Debug("Creating user services client")
 
 	userServicesClient, err := client.NewStandard(logger, userServicesClientConfig)
 	if err != nil {
-		return nil, app.ExtError(err, "dataservices", "unable to create userservices client")
+		return nil, app.ExtError(err, "dataservices", "unable to create user services client")
 	}
 
-	logger.Debug("Starting userservices client")
+	logger.Debug("Starting user services client")
 	if err = userServicesClient.Start(); err != nil {
-		return nil, app.ExtError(err, "dataservices", "unable to start userservices client")
+		return nil, app.ExtError(err, "dataservices", "unable to start user services client")
 	}
 
 	return userServicesClient, nil
 }
 
-func initializeAPI(logger log.Logger, dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, userServicesClient client.Client, versionReporter version.Reporter, environmentReporter environment.Reporter) (service.API, error) {
-	return api.NewStandard(logger, dataFactory, dataStore, dataDeduplicatorFactory, userServicesClient, versionReporter, environmentReporter)
+func initializeDataServicesAPI(logger log.Logger, dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, userServicesClient client.Client, versionReporter version.Reporter, environmentReporter environment.Reporter) (service.API, error) {
+
+	logger.Debug("Creating data services api")
+
+	dataServicesAPI, err := api.NewStandard(logger, dataFactory, dataStore, dataDeduplicatorFactory, userServicesClient, versionReporter, environmentReporter)
+	if err != nil {
+		return nil, app.ExtError(err, "dataservices", "unable to create data services api")
+	}
+
+	return dataServicesAPI, nil
 }
 
-func initializeServer(configLoader config.Loader, logger log.Logger, api service.API) (service.Server, error) {
+func initializeDataServicesServer(configLoader config.Loader, logger log.Logger, api service.API) (service.Server, error) {
 
-	logger.Debug("Loading dataservices server config")
+	logger.Debug("Loading data services server config")
 
-	dataservicesServerConfig := &server.Config{}
-	if err := configLoader.Load("dataservices_server", dataservicesServerConfig); err != nil {
-		return nil, app.ExtError(err, "dataservices", "unable to load dataservices server config")
+	dataServicesServerConfig := &server.Config{}
+	if err := configLoader.Load("dataservices_server", dataServicesServerConfig); err != nil {
+		return nil, app.ExtError(err, "dataservices", "unable to load data services server config")
 	}
 
-	logger.Debug("Creating dataservices server")
+	logger.Debug("Creating data services server")
 
-	dataservicesServer, err := server.NewStandard(logger, api, dataservicesServerConfig)
+	dataServicesServer, err := server.NewStandard(logger, api, dataServicesServerConfig)
 	if err != nil {
-		return nil, app.ExtError(err, "dataservices", "unable to create dataservices server")
+		return nil, app.ExtError(err, "dataservices", "unable to create data services server")
 	}
 
-	return dataservicesServer, nil
+	return dataServicesServer, nil
 }
