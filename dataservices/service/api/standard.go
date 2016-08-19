@@ -12,6 +12,7 @@ import (
 	"github.com/tidepool-org/platform/dataservices/service"
 	"github.com/tidepool-org/platform/dataservices/service/api/v1"
 	"github.com/tidepool-org/platform/dataservices/service/context"
+	"github.com/tidepool-org/platform/environment"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service/middleware"
 	"github.com/tidepool-org/platform/userservices/client"
@@ -25,11 +26,12 @@ type Standard struct {
 	dataDeduplicatorFactory deduplicator.Factory
 	userServicesClient      client.Client
 	versionReporter         version.Reporter
+	environmentReporter     environment.Reporter
 	api                     *rest.Api
 	statusMiddleware        *rest.StatusMiddleware
 }
 
-func NewStandard(logger log.Logger, dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, userServicesClient client.Client, versionReporter version.Reporter) (*Standard, error) {
+func NewStandard(logger log.Logger, dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, userServicesClient client.Client, versionReporter version.Reporter, environmentReporter environment.Reporter) (*Standard, error) {
 	if logger == nil {
 		return nil, app.Error("api", "logger is missing")
 	}
@@ -48,6 +50,9 @@ func NewStandard(logger log.Logger, dataFactory data.Factory, dataStore store.St
 	if versionReporter == nil {
 		return nil, app.Error("api", "version reporter is missing")
 	}
+	if environmentReporter == nil {
+		return nil, app.Error("api", "environment reporter is missing")
+	}
 
 	standard := &Standard{
 		logger:                  logger,
@@ -56,6 +61,7 @@ func NewStandard(logger log.Logger, dataFactory data.Factory, dataStore store.St
 		dataDeduplicatorFactory: dataDeduplicatorFactory,
 		userServicesClient:      userServicesClient,
 		versionReporter:         versionReporter,
+		environmentReporter:     environmentReporter,
 		api:                     rest.NewApi(),
 	}
 	if err := standard.initMiddleware(); err != nil {

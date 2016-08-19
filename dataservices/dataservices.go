@@ -89,7 +89,7 @@ func main() {
 	}
 	defer userServicesClient.Close()
 
-	api, err := initializeAPI(logger, dataFactory, dataStore, dataDeduplicatorFactory, userServicesClient, versionReporter)
+	api, err := initializeAPI(logger, dataFactory, dataStore, dataDeduplicatorFactory, userServicesClient, versionReporter, environmentReporter)
 	if err != nil {
 		logger.WithError(err).Error("Failure initializing API")
 		os.Exit(1)
@@ -216,8 +216,8 @@ func initializeUserServicesClient(configLoader config.Loader, logger log.Logger)
 	return userServicesClient, nil
 }
 
-func initializeAPI(logger log.Logger, dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, userServicesClient client.Client, reporter version.Reporter) (service.API, error) {
-	return api.NewStandard(logger, dataFactory, dataStore, dataDeduplicatorFactory, userServicesClient, reporter)
+func initializeAPI(logger log.Logger, dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, userServicesClient client.Client, versionReporter version.Reporter, environmentReporter environment.Reporter) (service.API, error) {
+	return api.NewStandard(logger, dataFactory, dataStore, dataDeduplicatorFactory, userServicesClient, versionReporter, environmentReporter)
 }
 
 func initializeServer(configLoader config.Loader, logger log.Logger, api service.API) (service.Server, error) {
