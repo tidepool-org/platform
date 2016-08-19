@@ -10,12 +10,12 @@ package api
  * [ ] Full test coverage
  */
 
-import "github.com/ant0ine/go-json-rest/rest"
+import "github.com/tidepool-org/platform/dataservices/service"
 
 type Version struct {
 	Version string `json:"version"`
 }
 
-func (s *Standard) GetVersion(response rest.ResponseWriter, request *rest.Request) {
-	response.WriteJson(Version{s.versionReporter.Long()})
+func (s *Standard) GetVersion(serviceContext service.Context) {
+	serviceContext.Response().WriteJson(Version{s.versionReporter.Long()})
 }

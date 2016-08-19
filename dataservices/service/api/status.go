@@ -10,7 +10,7 @@ package api
  * [ ] Full test coverage
  */
 
-import "github.com/ant0ine/go-json-rest/rest"
+import "github.com/tidepool-org/platform/dataservices/service"
 
 type Status struct {
 	Version string
@@ -18,11 +18,11 @@ type Status struct {
 	Server  interface{}
 }
 
-func (s *Standard) GetStatus(response rest.ResponseWriter, request *rest.Request) {
+func (s *Standard) GetStatus(serviceContext service.Context) {
 	status := &Status{
 		Version: s.versionReporter.Long(),
 		Store:   s.dataStore.GetStatus(),
 		Server:  s.statusMiddleware.GetStatus(),
 	}
-	response.WriteJson(status)
+	serviceContext.Response().WriteJson(status)
 }
