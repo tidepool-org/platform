@@ -1,5 +1,15 @@
 package api
 
+/* CHECKLIST
+ * [ ] Uses interfaces as appropriate
+ * [ ] Private package variables use underscore prefix
+ * [ ] All parameters validated
+ * [ ] All errors handled
+ * [ ] Reviewed for concurrency safety
+ * [ ] Code complete
+ * [ ] Full test coverage
+ */
+
 import (
 	"net/http"
 
@@ -10,7 +20,6 @@ import (
 	"github.com/tidepool-org/platform/data/deduplicator"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/dataservices/service"
-	"github.com/tidepool-org/platform/dataservices/service/api/v1"
 	"github.com/tidepool-org/platform/dataservices/service/context"
 	"github.com/tidepool-org/platform/environment"
 	"github.com/tidepool-org/platform/log"
@@ -31,7 +40,7 @@ type Standard struct {
 	statusMiddleware        *rest.StatusMiddleware
 }
 
-func NewStandard(versionReporter version.Reporter, environmentReporter environment.Reporter, logger log.Logger, dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, userServicesClient client.Client) (*Standard, error) {
+func NewStandard(versionReporter version.Reporter, environmentReporter environment.Reporter, logger log.Logger, dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, userServicesClient client.Client, routes []service.Route) (*Standard, error) {
 	if versionReporter == nil {
 		return nil, app.Error("api", "version reporter is missing")
 	}
@@ -53,6 +62,9 @@ func NewStandard(versionReporter version.Reporter, environmentReporter environme
 	if userServicesClient == nil {
 		return nil, app.Error("api", "user services client is missing")
 	}
+	if routes == nil {
+		return nil, app.Error("api", "routes is missing")
+	}
 
 	standard := &Standard{
 		versionReporter:         versionReporter,
@@ -67,7 +79,7 @@ func NewStandard(versionReporter version.Reporter, environmentReporter environme
 	if err := standard.initMiddleware(); err != nil {
 		return nil, err
 	}
-	if err := standard.initRouter(); err != nil {
+	if err := standard.initRouter(routes); err != nil {
 		return nil, err
 	}
 
@@ -122,19 +134,29 @@ func (s *Standard) initMiddleware() error {
 	return nil
 }
 
-func (s *Standard) initRouter() error {
+func (s *Standard) initRouter(routes []service.Route) error {
 
 	s.logger.Debug("Creating API router")
 
-	router, err := rest.MakeRouter(
-		rest.Get("/status", s.withContext(s.GetStatus)),
-		rest.Get("/version", s.withContext(s.GetVersion)),
-		rest.Post("/api/v1/users/:userid/datasets", s.withContext(v1.Authenticate(v1.UsersDatasetsCreate))),
-		rest.Put("/api/v1/datasets/:datasetid", s.withContext(v1.Authenticate(v1.DatasetsUpdate))),
-		rest.Post("/api/v1/datasets/:datasetid/data", s.withContext(v1.Authenticate(v1.DatasetsDataCreate))),
-	)
+	baseRoutes := []service.Route{
+		service.MakeRoute("GET", "/status", s.GetStatus),
+		service.MakeRoute("GET", "/version", s.GetVersion),
+	}
+
+	routes = append(baseRoutes, routes...)
+
+	var contextRoutes []*rest.Route
+	for _, route := range routes {
+		contextRoutes = append(contextRoutes, &rest.Route{
+			HttpMethod: route.Method,
+			PathExp:    route.Path,
+			Func:       s.withContext(route.Handler),
+		})
+	}
+
+	router, err := rest.MakeRouter(contextRoutes...)
 	if err != nil {
-		return app.ExtError(err, "api", "unable to setup router")
+		return app.ExtError(err, "api", "unable to create router")
 	}
 
 	s.api.SetApp(router)
