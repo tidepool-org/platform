@@ -31,7 +31,13 @@ type Standard struct {
 	statusMiddleware        *rest.StatusMiddleware
 }
 
-func NewStandard(logger log.Logger, dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, userServicesClient client.Client, versionReporter version.Reporter, environmentReporter environment.Reporter) (*Standard, error) {
+func NewStandard(versionReporter version.Reporter, environmentReporter environment.Reporter, logger log.Logger, dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, userServicesClient client.Client) (*Standard, error) {
+	if versionReporter == nil {
+		return nil, app.Error("api", "version reporter is missing")
+	}
+	if environmentReporter == nil {
+		return nil, app.Error("api", "environment reporter is missing")
+	}
 	if logger == nil {
 		return nil, app.Error("api", "logger is missing")
 	}
@@ -47,21 +53,15 @@ func NewStandard(logger log.Logger, dataFactory data.Factory, dataStore store.St
 	if userServicesClient == nil {
 		return nil, app.Error("api", "user services client is missing")
 	}
-	if versionReporter == nil {
-		return nil, app.Error("api", "version reporter is missing")
-	}
-	if environmentReporter == nil {
-		return nil, app.Error("api", "environment reporter is missing")
-	}
 
 	standard := &Standard{
+		versionReporter:         versionReporter,
+		environmentReporter:     environmentReporter,
 		logger:                  logger,
 		dataStore:               dataStore,
 		dataFactory:             dataFactory,
 		dataDeduplicatorFactory: dataDeduplicatorFactory,
 		userServicesClient:      userServicesClient,
-		versionReporter:         versionReporter,
-		environmentReporter:     environmentReporter,
 		api:                     rest.NewApi(),
 	}
 	if err := standard.initMiddleware(); err != nil {
