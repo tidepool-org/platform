@@ -6,6 +6,7 @@ import (
 
 	"errors"
 
+	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	"github.com/tidepool-org/platform/data/deduplicator/truncate"
@@ -73,8 +74,6 @@ func (t *TestDataStoreSession) DeleteAllOtherDatasetData(dataset *upload.Upload)
 	return output
 }
 
-func StringAsPointer(sourceString string) *string { return &sourceString }
-
 var _ = Describe("Truncate", func() {
 	Context("NewFactory", func() {
 		It("returns a new factory", func() {
@@ -95,7 +94,7 @@ var _ = Describe("Truncate", func() {
 			Expect(dataset).ToNot(BeNil())
 			dataset.UserID = "user-id"
 			dataset.GroupID = "group-id"
-			dataset.DeviceID = StringAsPointer("device-id")
+			dataset.DeviceID = app.StringAsPointer("device-id")
 		})
 
 		Context("CanDeduplicateDataset", func() {
@@ -126,7 +125,7 @@ var _ = Describe("Truncate", func() {
 			})
 
 			It("returns false if the device id is empty", func() {
-				dataset.DeviceID = StringAsPointer("")
+				dataset.DeviceID = app.StringAsPointer("")
 				Expect(factory.CanDeduplicateDataset(dataset)).To(Equal(false))
 			})
 
@@ -203,7 +202,7 @@ var _ = Describe("Truncate", func() {
 			})
 
 			It("returns an error if the dataset device id is empty", func() {
-				dataset.DeviceID = StringAsPointer("")
+				dataset.DeviceID = app.StringAsPointer("")
 				truncateDeduplicator, err := factory.NewDeduplicator(log.NewNullLogger(), &TestDataStoreSession{}, dataset)
 				Expect(err).To(MatchError("truncate: dataset device id is missing"))
 				Expect(truncateDeduplicator).To(BeNil())

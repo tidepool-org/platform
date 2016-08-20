@@ -18,14 +18,6 @@ import (
 	"github.com/tidepool-org/platform/log"
 )
 
-func StringAsPointer(source string) *string { return &source }
-
-func StringArrayAsPointer(source []string) *[]string { return &source }
-
-func IntegerAsPointer(source int) *int { return &source }
-
-func DurationAsPointer(source time.Duration) *time.Duration { return &source }
-
 func NewDataset(userID string, groupID string) *upload.Upload {
 	dataset := upload.Init()
 	Expect(dataset).ToNot(BeNil())
@@ -33,23 +25,23 @@ func NewDataset(userID string, groupID string) *upload.Upload {
 	dataset.GroupID = groupID
 	dataset.UserID = userID
 
-	dataset.ClockDriftOffset = IntegerAsPointer(0)
-	dataset.ConversionOffset = IntegerAsPointer(0)
-	dataset.DeviceID = StringAsPointer("tesla-aps-4242424242")
-	dataset.DeviceTime = StringAsPointer("2015-05-06T14:08:09")
-	dataset.Time = StringAsPointer("2015-05-06T07:08:09-07:00")
-	dataset.TimezoneOffset = IntegerAsPointer(-420)
+	dataset.ClockDriftOffset = app.IntegerAsPointer(0)
+	dataset.ConversionOffset = app.IntegerAsPointer(0)
+	dataset.DeviceID = app.StringAsPointer("tesla-aps-4242424242")
+	dataset.DeviceTime = app.StringAsPointer("2015-05-06T14:08:09")
+	dataset.Time = app.StringAsPointer("2015-05-06T07:08:09-07:00")
+	dataset.TimezoneOffset = app.IntegerAsPointer(-420)
 
 	dataset.UploadUserID = userID
 
-	dataset.ComputerTime = StringAsPointer("2015-06-07T08:09:10")
-	dataset.DeviceManufacturers = StringArrayAsPointer([]string{"Tesla"})
-	dataset.DeviceModel = StringAsPointer("1234")
-	dataset.DeviceSerialNumber = StringAsPointer("567890")
-	dataset.DeviceTags = StringArrayAsPointer([]string{"insulin-pump"})
-	dataset.TimeProcessing = StringAsPointer("utc-bootstrapping")
-	dataset.TimeZone = StringAsPointer("US/Pacific")
-	dataset.Version = StringAsPointer("0.260.1")
+	dataset.ComputerTime = app.StringAsPointer("2015-06-07T08:09:10")
+	dataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Tesla"})
+	dataset.DeviceModel = app.StringAsPointer("1234")
+	dataset.DeviceSerialNumber = app.StringAsPointer("567890")
+	dataset.DeviceTags = app.StringArrayAsPointer([]string{"insulin-pump"})
+	dataset.TimeProcessing = app.StringAsPointer("utc-bootstrapping")
+	dataset.TimeZone = app.StringAsPointer("US/Pacific")
+	dataset.Version = app.StringAsPointer("0.260.1")
 
 	return dataset
 }
@@ -62,12 +54,12 @@ func NewDatasetData() []data.Datum {
 
 		baseDatum.Type = "test"
 
-		baseDatum.ClockDriftOffset = IntegerAsPointer(0)
-		baseDatum.ConversionOffset = IntegerAsPointer(0)
-		baseDatum.DeviceID = StringAsPointer("tesla-aps-4242424242")
-		baseDatum.DeviceTime = StringAsPointer("2015-05-06T14:08:09")
-		baseDatum.Time = StringAsPointer("2015-05-06T07:08:09-07:00")
-		baseDatum.TimezoneOffset = IntegerAsPointer(-420)
+		baseDatum.ClockDriftOffset = app.IntegerAsPointer(0)
+		baseDatum.ConversionOffset = app.IntegerAsPointer(0)
+		baseDatum.DeviceID = app.StringAsPointer("tesla-aps-4242424242")
+		baseDatum.DeviceTime = app.StringAsPointer("2015-05-06T14:08:09")
+		baseDatum.Time = app.StringAsPointer("2015-05-06T07:08:09-07:00")
+		baseDatum.TimezoneOffset = app.IntegerAsPointer(-420)
 
 		datasetData = append(datasetData, baseDatum)
 	}
@@ -101,7 +93,7 @@ var _ = Describe("Mongo", func() {
 				Addresses:  MongoTestAddress(),
 				Database:   MongoTestDatabase(),
 				Collection: NewTestSuiteID(),
-				Timeout:    DurationAsPointer(5 * time.Second),
+				Timeout:    app.DurationAsPointer(5 * time.Second),
 			}
 		})
 
@@ -150,8 +142,8 @@ var _ = Describe("Mongo", func() {
 		})
 
 		It("returns an error if the username or password is invalid", func() {
-			mongoConfig.Username = StringAsPointer("username")
-			mongoConfig.Password = StringAsPointer("password")
+			mongoConfig.Username = app.StringAsPointer("username")
+			mongoConfig.Password = app.StringAsPointer("password")
 			var err error
 			mongoStore, err = mongo.New(logger, mongoConfig)
 			Expect(err).To(HaveOccurred())
@@ -169,7 +161,7 @@ var _ = Describe("Mongo", func() {
 				Addresses:  MongoTestAddress(),
 				Database:   MongoTestDatabase(),
 				Collection: NewTestSuiteID(),
-				Timeout:    DurationAsPointer(5 * time.Second),
+				Timeout:    app.DurationAsPointer(5 * time.Second),
 			}
 			var err error
 			mongoStore, err = mongo.New(log.NewNullLogger(), mongoConfig)
@@ -590,7 +582,7 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns an error if the device id is missing (empty)", func() {
-							dataset.DeviceID = StringAsPointer("")
+							dataset.DeviceID = app.StringAsPointer("")
 							Expect(mongoStoreSession.DeleteAllOtherDatasetData(dataset)).To(MatchError("mongo: dataset device id is missing"))
 						})
 
