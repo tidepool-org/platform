@@ -10,8 +10,6 @@ package service
  * [x] Full test coverage
  */
 
-import "net/http"
-
-type API interface {
-	Handler() http.Handler
+type Service interface {
+	Run() error
 }

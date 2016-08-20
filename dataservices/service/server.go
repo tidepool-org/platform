@@ -11,7 +11,5 @@ package service
  */
 
 type Server interface {
-	Close()
-
 	Serve() error
 }
