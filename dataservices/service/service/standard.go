@@ -159,7 +159,7 @@ func (s *Standard) initializeLogger() error {
 		return app.ExtError(err, "dataservices", "unable to load logger config")
 	}
 
-	logger, err := log.NewLogger(loggerConfig, s.versionReporter)
+	logger, err := log.NewLogger(s.versionReporter, loggerConfig)
 	if err != nil {
 		return app.ExtError(err, "dataservices", "unable to create logger")
 	}

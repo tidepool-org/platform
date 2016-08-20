@@ -21,32 +21,32 @@ var _ = Describe("Log", func() {
 	})
 
 	Context("NewLogger", func() {
-		It("returns an error if config is missing", func() {
-			reporter, err := log.NewLogger(nil, versionReporter)
-			Expect(err).To(MatchError("log: config is missing"))
-			Expect(reporter).To(BeNil())
-		})
-
 		It("returns an error if version reporter is missing", func() {
-			reporter, err := log.NewLogger(&log.Config{Level: "debug"}, nil)
+			reporter, err := log.NewLogger(nil, &log.Config{Level: "debug"})
 			Expect(err).To(MatchError("log: version reporter is missing"))
 			Expect(reporter).To(BeNil())
 		})
 
+		It("returns an error if config is missing", func() {
+			reporter, err := log.NewLogger(versionReporter, nil)
+			Expect(err).To(MatchError("log: config is missing"))
+			Expect(reporter).To(BeNil())
+		})
+
 		It("returns an error if config level is missing", func() {
-			reporter, err := log.NewLogger(&log.Config{}, versionReporter)
+			reporter, err := log.NewLogger(versionReporter, &log.Config{})
 			Expect(err).To(MatchError("log: config is invalid"))
 			Expect(reporter).To(BeNil())
 		})
 
 		It("returns an error if config level is invalid", func() {
-			reporter, err := log.NewLogger(&log.Config{Level: "invalid"}, versionReporter)
+			reporter, err := log.NewLogger(versionReporter, &log.Config{Level: "invalid"})
 			Expect(err).To(MatchError("log: config is invalid"))
 			Expect(reporter).To(BeNil())
 		})
 
 		It("returns successfully", func() {
-			reporter, err := log.NewLogger(&log.Config{Level: "debug"}, versionReporter)
+			reporter, err := log.NewLogger(versionReporter, &log.Config{Level: "debug"})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(reporter).ToNot(BeNil())
 		})
@@ -57,7 +57,7 @@ var _ = Describe("Log", func() {
 
 		BeforeEach(func() {
 			var err error
-			logger, err = log.NewLogger(&log.Config{Level: "fatal"}, versionReporter)
+			logger, err = log.NewLogger(versionReporter, &log.Config{Level: "fatal"})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(logger).ToNot(BeNil())
 		})
