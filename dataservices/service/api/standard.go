@@ -74,15 +74,6 @@ func NewStandard(logger log.Logger, dataFactory data.Factory, dataStore store.St
 	return standard, nil
 }
 
-func (s *Standard) Close() {
-	if s.userServicesClient != nil {
-		s.userServicesClient.Close()
-	}
-	if s.dataStore != nil {
-		s.dataStore.Close()
-	}
-}
-
 func (s *Standard) Handler() http.Handler {
 	return s.api.MakeHandler()
 }
