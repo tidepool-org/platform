@@ -33,77 +33,88 @@ import (
 )
 
 func main() {
-	versionReporter, err := initializeVersionReporter()
+	server, err := NewServer()
 	if err != nil {
-		fmt.Printf("ERROR: Failure initializing version reporter: %s\n", err.Error())
+		fmt.Printf("ERROR: Failure creating server: %s\n", err.Error())
 		os.Exit(1)
 	}
+	defer server.Close()
 
-	environmentReporter, err := initializeEnvironmentReporter()
-	if err != nil {
-		fmt.Printf("ERROR: Failure initializing environment reporter: %s\n", err.Error())
-		os.Exit(1)
-	}
-
-	configLoader, err := initializeConfigLoader(environmentReporter)
-	if err != nil {
-		fmt.Printf("ERROR: Failure initializing config loader: %s\n", err.Error())
-		os.Exit(1)
-	}
-
-	logger, err := initializeLogger(configLoader, versionReporter)
-	if err != nil {
-		fmt.Printf("ERROR: Failure initializing logger: %s\n", err.Error())
-		os.Exit(1)
-	}
-
-	dataFactory, err := initializeDataFactory(logger)
-	if err != nil {
-		logger.WithError(err).Error("Failure initializing data factory")
-		os.Exit(1)
-	}
-
-	dataStore, err := initializeDataStore(configLoader, logger)
-	if err != nil {
-		logger.WithError(err).Error("Failure initializing data store")
-		os.Exit(1)
-	}
-	defer dataStore.Close()
-
-	dataDeduplicatorFactory, err := initializeDataDeduplicatorFactory(logger)
-	if err != nil {
-		logger.WithError(err).Error("Failure initializing data deduplicator factory")
-		os.Exit(1)
-	}
-
-	userServicesClient, err := initializeUserServicesClient(configLoader, logger)
-	if err != nil {
-		logger.WithError(err).Error("Failure initializing user services client")
-		os.Exit(1)
-	}
-	defer userServicesClient.Close()
-
-	dataServicesAPI, err := initializeDataServicesAPI(logger, dataFactory, dataStore, dataDeduplicatorFactory, userServicesClient, versionReporter, environmentReporter)
-	if err != nil {
-		logger.WithError(err).Error("Failure initializing data services API")
-		os.Exit(1)
-	}
-	defer dataServicesAPI.Close()
-
-	dataServicesServer, err := initializeDataServicesServer(configLoader, logger, dataServicesAPI)
-	if err != nil {
-		logger.WithError(err).Error("Failure initializing data services server")
-		os.Exit(1)
-	}
-	defer dataServicesServer.Close()
-
-	if err = dataServicesServer.Serve(); err != nil {
-		logger.WithError(err).Error("Failure running data services server")
+	if err = server.Serve(); err != nil {
+		fmt.Printf("ERROR: Failure serving server: %s\n", err.Error())
 		os.Exit(1)
 	}
 }
 
-// TODO: Wrap this up into an object
+type Closer interface {
+	Close()
+}
+
+func NewServer() (service.Server, error) {
+	var failureClosers []Closer
+	defer func() {
+		for _, failureCloser := range failureClosers {
+			failureCloser.Close()
+		}
+	}()
+
+	versionReporter, err := initializeVersionReporter()
+	if err != nil {
+		return nil, err
+	}
+
+	environmentReporter, err := initializeEnvironmentReporter()
+	if err != nil {
+		return nil, err
+	}
+
+	configLoader, err := initializeConfigLoader(environmentReporter)
+	if err != nil {
+		return nil, err
+	}
+
+	logger, err := initializeLogger(configLoader, versionReporter)
+	if err != nil {
+		return nil, err
+	}
+
+	dataFactory, err := initializeDataFactory(logger)
+	if err != nil {
+		return nil, err
+	}
+
+	dataStore, err := initializeDataStore(configLoader, logger)
+	if err != nil {
+		return nil, err
+	}
+	failureClosers = append(failureClosers, dataStore)
+
+	dataDeduplicatorFactory, err := initializeDataDeduplicatorFactory(logger)
+	if err != nil {
+		return nil, err
+	}
+
+	userServicesClient, err := initializeUserServicesClient(configLoader, logger)
+	if err != nil {
+		return nil, err
+	}
+	failureClosers = append(failureClosers, userServicesClient)
+
+	dataServicesAPI, err := initializeDataServicesAPI(logger, dataFactory, dataStore, dataDeduplicatorFactory, userServicesClient, versionReporter, environmentReporter)
+	if err != nil {
+		return nil, err
+	}
+	failureClosers = append(failureClosers, dataServicesAPI)
+
+	dataServicesServer, err := initializeDataServicesServer(configLoader, logger, dataServicesAPI)
+	if err != nil {
+		return nil, err
+	}
+
+	failureClosers = nil
+
+	return dataServicesServer, nil
+}
 
 func initializeVersionReporter() (version.Reporter, error) {
 	versionReporter, err := version.NewDefaultReporter()
