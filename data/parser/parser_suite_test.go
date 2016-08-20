@@ -136,5 +136,3 @@ func (t *TestDatum) Parse(parser data.ObjectParser) error {
 	t.ParseOutputs = t.ParseOutputs[1:]
 	return output
 }
-
-func StringAsPointer(sourceString string) *string { return &sourceString }
