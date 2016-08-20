@@ -94,11 +94,9 @@ var _ = Describe("Mongo", func() {
 		var logger log.Logger
 		var mongoConfig *mongo.Config
 		var mongoStore *mongo.Store
-		var err error
 
 		BeforeEach(func() {
 			logger = log.NewNullLogger()
-			Expect(logger).ToNot(BeNil())
 			mongoConfig = &mongo.Config{
 				Addresses:  MongoTestAddress(),
 				Database:   MongoTestDatabase(),
@@ -114,18 +112,21 @@ var _ = Describe("Mongo", func() {
 		})
 
 		It("returns no error if successful", func() {
+			var err error
 			mongoStore, err = mongo.New(logger, mongoConfig)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mongoStore).ToNot(BeNil())
 		})
 
 		It("returns an error if the logger is missing", func() {
+			var err error
 			mongoStore, err = mongo.New(nil, mongoConfig)
 			Expect(err).To(MatchError("mongo: logger is missing"))
 			Expect(mongoStore).To(BeNil())
 		})
 
 		It("returns an error if the config is missing", func() {
+			var err error
 			mongoStore, err = mongo.New(logger, nil)
 			Expect(err).To(MatchError("mongo: config is missing"))
 			Expect(mongoStore).To(BeNil())
@@ -133,6 +134,7 @@ var _ = Describe("Mongo", func() {
 
 		It("returns an error if the config is invalid", func() {
 			mongoConfig.Addresses = ""
+			var err error
 			mongoStore, err = mongo.New(logger, mongoConfig)
 			Expect(err).To(MatchError("mongo: config is invalid; mongo: addresses is missing"))
 			Expect(mongoStore).To(BeNil())
@@ -140,6 +142,7 @@ var _ = Describe("Mongo", func() {
 
 		It("returns an error if the addresses are not reachable", func() {
 			mongoConfig.Addresses = "127.0.0.0, 127.0.0.0"
+			var err error
 			mongoStore, err = mongo.New(logger, mongoConfig)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(HavePrefix("mongo: unable to dial database; "))
@@ -149,6 +152,7 @@ var _ = Describe("Mongo", func() {
 		It("returns an error if the username or password is invalid", func() {
 			mongoConfig.Username = StringAsPointer("username")
 			mongoConfig.Password = StringAsPointer("password")
+			var err error
 			mongoStore, err = mongo.New(logger, mongoConfig)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(HavePrefix("mongo: unable to dial database; "))
@@ -159,7 +163,6 @@ var _ = Describe("Mongo", func() {
 	Context("with a new store", func() {
 		var mongoConfig *mongo.Config
 		var mongoStore *mongo.Store
-		var err error
 
 		BeforeEach(func() {
 			mongoConfig = &mongo.Config{
@@ -168,6 +171,7 @@ var _ = Describe("Mongo", func() {
 				Collection: NewTestSuiteID(),
 				Timeout:    DurationAsPointer(5 * time.Second),
 			}
+			var err error
 			mongoStore, err = mongo.New(log.NewNullLogger(), mongoConfig)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mongoStore).ToNot(BeNil())
@@ -232,12 +236,14 @@ var _ = Describe("Mongo", func() {
 			})
 
 			It("returns no error if successful", func() {
+				var err error
 				mongoStoreSession, err = mongoStore.NewSession(log.NewNullLogger())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(mongoStoreSession).ToNot(BeNil())
 			})
 
 			It("returns an error if the logger is missing", func() {
+				var err error
 				mongoStoreSession, err = mongoStore.NewSession(nil)
 				Expect(err).To(MatchError("mongo: logger is missing"))
 				Expect(mongoStoreSession).To(BeNil())
@@ -246,6 +252,7 @@ var _ = Describe("Mongo", func() {
 			It("returns an error if the store is closed", func() {
 				mongoStore.Close()
 				Expect(mongoStore.IsClosed()).To(BeTrue())
+				var err error
 				mongoStoreSession, err = mongoStore.NewSession(log.NewNullLogger())
 				Expect(err).To(MatchError("mongo: store closed"))
 				Expect(mongoStoreSession).To(BeNil())
@@ -256,6 +263,7 @@ var _ = Describe("Mongo", func() {
 			var mongoStoreSession store.Session
 
 			BeforeEach(func() {
+				var err error
 				mongoStoreSession, err = mongoStore.NewSession(log.NewNullLogger())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(mongoStoreSession).ToNot(BeNil())
@@ -304,33 +312,29 @@ var _ = Describe("Mongo", func() {
 				})
 
 				Context("GetDataset", func() {
-					var resultDataset *upload.Upload
-
 					BeforeEach(func() {
 						Expect(mongoTestCollection.Insert(dataset)).To(Succeed())
 					})
 
 					It("returns no error if it successfully finds the dataset", func() {
-						resultDataset, err = mongoStoreSession.GetDataset(dataset.UploadID)
-						Expect(err).ToNot(HaveOccurred())
-						Expect(resultDataset).To(Equal(dataset))
+						Expect(mongoStoreSession.GetDataset(dataset.UploadID)).To(Equal(dataset))
 					})
 
 					It("returns an error if the dataset id is missing", func() {
-						resultDataset, err = mongoStoreSession.GetDataset("")
+						resultDataset, err := mongoStoreSession.GetDataset("")
 						Expect(err).To(MatchError("mongo: dataset id is missing"))
 						Expect(resultDataset).To(BeNil())
 					})
 
 					It("returns an error if the session is closed", func() {
 						mongoStoreSession.Close()
-						resultDataset, err = mongoStoreSession.GetDataset(dataset.UploadID)
+						resultDataset, err := mongoStoreSession.GetDataset(dataset.UploadID)
 						Expect(err).To(MatchError("mongo: session closed"))
 						Expect(resultDataset).To(BeNil())
 					})
 
 					It("returns an error if the dataset cannot be found", func() {
-						resultDataset, err = mongoStoreSession.GetDataset("not-found")
+						resultDataset, err := mongoStoreSession.GetDataset("not-found")
 						Expect(err).To(MatchError("mongo: unable to get dataset; not found"))
 						Expect(resultDataset).To(BeNil())
 					})

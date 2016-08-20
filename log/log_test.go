@@ -46,9 +46,7 @@ var _ = Describe("Log", func() {
 		})
 
 		It("returns successfully", func() {
-			reporter, err := log.NewLogger(versionReporter, &log.Config{Level: "debug"})
-			Expect(err).ToNot(HaveOccurred())
-			Expect(reporter).ToNot(BeNil())
+			Expect(log.NewLogger(versionReporter, &log.Config{Level: "debug"})).ToNot(BeNil())
 		})
 	})
 

@@ -28,9 +28,7 @@ var _ = Describe("Version", func() {
 		})
 
 		It("returns successfully", func() {
-			reporter, err := version.NewReporter("1.2.3", "4567890", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmn")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(reporter).ToNot(BeNil())
+			Expect(version.NewReporter("1.2.3", "4567890", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmn")).ToNot(BeNil())
 		})
 	})
 

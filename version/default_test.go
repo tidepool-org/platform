@@ -13,9 +13,7 @@ var _ = Describe("Default", func() {
 			version.Base = "1.2.3"
 			version.ShortCommit = "4567890"
 			version.FullCommit = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmn"
-			reporter, err := version.NewDefaultReporter()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(reporter).ToNot(BeNil())
+			Expect(version.NewDefaultReporter()).ToNot(BeNil())
 		})
 	})
 })

@@ -122,9 +122,7 @@ var _ = Describe("Standard", func() {
 
 		Context("NewStandard", func() {
 			It("is successful", func() {
-				standardContext, err := context.NewStandard(response, request)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(standardContext).ToNot(BeNil())
+				Expect(context.NewStandard(response, request)).ToNot(BeNil())
 			})
 
 			It("returns an error if the response is missing", func() {

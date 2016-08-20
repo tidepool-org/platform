@@ -103,9 +103,7 @@ var _ = Describe("Standard", func() {
 		})
 
 		It("returns success", func() {
-			standard, err := client.NewStandard(logger, config)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(standard).ToNot(BeNil())
+			Expect(client.NewStandard(logger, config)).ToNot(BeNil())
 		})
 	})
 
@@ -424,9 +422,7 @@ var _ = Describe("Standard", func() {
 					})
 
 					It("returns the user id", func() {
-						sessionToken, err := standard.ValidateUserSession(context, "session-token")
-						Expect(err).ToNot(HaveOccurred())
-						Expect(sessionToken).To(Equal("session-user-id"))
+						Expect(standard.ValidateUserSession(context, "session-token")).To(Equal("session-user-id"))
 					})
 				})
 			})
@@ -568,9 +564,7 @@ var _ = Describe("Standard", func() {
 					})
 
 					It("returns an error", func() {
-						permissions, err := standard.GetUserPermissions(context, "request-user-id", "target-user-id")
-						Expect(err).ToNot(HaveOccurred())
-						Expect(permissions).To(BeEmpty())
+						Expect(standard.GetUserPermissions(context, "request-user-id", "target-user-id")).To(BeEmpty())
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
@@ -587,9 +581,7 @@ var _ = Describe("Standard", func() {
 					})
 
 					It("returns an error", func() {
-						permissions, err := standard.GetUserPermissions(context, "request-user-id", "target-user-id")
-						Expect(err).ToNot(HaveOccurred())
-						Expect(permissions).To(Equal(client.Permissions{
+						Expect(standard.GetUserPermissions(context, "request-user-id", "target-user-id")).To(Equal(client.Permissions{
 							client.UploadPermission: client.Permission{},
 							client.ViewPermission:   client.Permission{},
 						}))
@@ -609,9 +601,7 @@ var _ = Describe("Standard", func() {
 					})
 
 					It("returns an error", func() {
-						permissions, err := standard.GetUserPermissions(context, "request-user-id", "target-user-id")
-						Expect(err).ToNot(HaveOccurred())
-						Expect(permissions).To(Equal(client.Permissions{
+						Expect(standard.GetUserPermissions(context, "request-user-id", "target-user-id")).To(Equal(client.Permissions{
 							client.OwnerPermission:  client.Permission{"root-inner": "unused"},
 							client.UploadPermission: client.Permission{},
 							client.ViewPermission:   client.Permission{"root-inner": "unused"},
@@ -632,9 +622,7 @@ var _ = Describe("Standard", func() {
 					})
 
 					It("returns an error", func() {
-						permissions, err := standard.GetUserPermissions(context, "request-user-id", "target-user-id")
-						Expect(err).ToNot(HaveOccurred())
-						Expect(permissions).To(Equal(client.Permissions{
+						Expect(standard.GetUserPermissions(context, "request-user-id", "target-user-id")).To(Equal(client.Permissions{
 							client.OwnerPermission:  client.Permission{"root-inner": "unused"},
 							client.UploadPermission: client.Permission{"root-inner": "unused"},
 							client.ViewPermission:   client.Permission{},
@@ -655,9 +643,7 @@ var _ = Describe("Standard", func() {
 					})
 
 					It("returns an error", func() {
-						permissions, err := standard.GetUserPermissions(context, "request-user-id", "target-user-id")
-						Expect(err).ToNot(HaveOccurred())
-						Expect(permissions).To(Equal(client.Permissions{
+						Expect(standard.GetUserPermissions(context, "request-user-id", "target-user-id")).To(Equal(client.Permissions{
 							client.OwnerPermission:  client.Permission{"root-inner": "unused"},
 							client.UploadPermission: client.Permission{},
 							client.ViewPermission:   client.Permission{},
@@ -797,9 +783,7 @@ var _ = Describe("Standard", func() {
 					})
 
 					It("returns the group id", func() {
-						groupID, err := standard.GetUserGroupID(context, "user-id")
-						Expect(err).ToNot(HaveOccurred())
-						Expect(groupID).To(Equal("session-group-id"))
+						Expect(standard.GetUserGroupID(context, "user-id")).To(Equal("session-group-id"))
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
