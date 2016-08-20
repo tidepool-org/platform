@@ -25,9 +25,7 @@ var _ = Describe("Inspector", func() {
 		})
 
 		It("successfully returns a new inspector", func() {
-			inspector, err := parser.NewObjectParserInspector(testObjectParser)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(inspector).ToNot(BeNil())
+			Expect(parser.NewObjectParserInspector(testObjectParser)).ToNot(BeNil())
 		})
 
 		Context("with an inspector", func() {

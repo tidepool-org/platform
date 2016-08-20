@@ -78,9 +78,7 @@ func StringAsPointer(sourceString string) *string { return &sourceString }
 var _ = Describe("Truncate", func() {
 	Context("NewFactory", func() {
 		It("returns a new factory", func() {
-			factory, err := truncate.NewFactory()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(factory).ToNot(BeNil())
+			Expect(truncate.NewFactory()).ToNot(BeNil())
 		})
 	})
 
@@ -109,43 +107,31 @@ var _ = Describe("Truncate", func() {
 
 			It("returns false if the dataset id is missing", func() {
 				dataset.UploadID = ""
-				can, err := factory.CanDeduplicateDataset(dataset)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(can).To(Equal(false))
+				Expect(factory.CanDeduplicateDataset(dataset)).To(Equal(false))
 			})
 
 			It("returns false if the user id is missing", func() {
 				dataset.UserID = ""
-				can, err := factory.CanDeduplicateDataset(dataset)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(can).To(Equal(false))
+				Expect(factory.CanDeduplicateDataset(dataset)).To(Equal(false))
 			})
 
 			It("returns false if the group id is missing", func() {
 				dataset.GroupID = ""
-				can, err := factory.CanDeduplicateDataset(dataset)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(can).To(Equal(false))
+				Expect(factory.CanDeduplicateDataset(dataset)).To(Equal(false))
 			})
 
 			It("returns false if the device id is missing", func() {
 				dataset.DeviceID = nil
-				can, err := factory.CanDeduplicateDataset(dataset)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(can).To(Equal(false))
+				Expect(factory.CanDeduplicateDataset(dataset)).To(Equal(false))
 			})
 
 			It("returns false if the device id is empty", func() {
 				dataset.DeviceID = StringAsPointer("")
-				can, err := factory.CanDeduplicateDataset(dataset)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(can).To(Equal(false))
+				Expect(factory.CanDeduplicateDataset(dataset)).To(Equal(false))
 			})
 
 			It("returns true if the device id is specified", func() {
-				can, err := factory.CanDeduplicateDataset(dataset)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(can).To(Equal(true))
+				Expect(factory.CanDeduplicateDataset(dataset)).To(Equal(true))
 			})
 
 			Context("with deduplicator", func() {
@@ -154,23 +140,17 @@ var _ = Describe("Truncate", func() {
 				})
 
 				It("returns false if the deduplicator name is missing", func() {
-					can, err := factory.CanDeduplicateDataset(dataset)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(can).To(Equal(false))
+					Expect(factory.CanDeduplicateDataset(dataset)).To(Equal(false))
 				})
 
 				It("returns true if the deduplicator name is not truncate", func() {
 					dataset.Deduplicator.Name = "not-truncate"
-					can, err := factory.CanDeduplicateDataset(dataset)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(can).To(Equal(false))
+					Expect(factory.CanDeduplicateDataset(dataset)).To(Equal(false))
 				})
 
 				It("returns true if the deduplicator name is truncate", func() {
 					dataset.Deduplicator.Name = "truncate"
-					can, err := factory.CanDeduplicateDataset(dataset)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(can).To(Equal(true))
+					Expect(factory.CanDeduplicateDataset(dataset)).To(Equal(true))
 				})
 			})
 		})
@@ -230,9 +210,7 @@ var _ = Describe("Truncate", func() {
 			})
 
 			It("returns a new deduplicator upon success", func() {
-				truncateDeduplicator, err := factory.NewDeduplicator(log.NewNullLogger(), &TestDataStoreSession{}, dataset)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(truncateDeduplicator).ToNot(BeNil())
+				Expect(factory.NewDeduplicator(log.NewNullLogger(), &TestDataStoreSession{}, dataset)).ToNot(BeNil())
 			})
 		})
 

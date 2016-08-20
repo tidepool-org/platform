@@ -13,9 +13,7 @@ import (
 var _ = Describe("Trace", func() {
 	Context("NewTrace", func() {
 		It("returns successfully", func() {
-			traceMiddleware, err := middleware.NewTrace()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(traceMiddleware).ToNot(BeNil())
+			Expect(middleware.NewTrace()).ToNot(BeNil())
 		})
 	})
 

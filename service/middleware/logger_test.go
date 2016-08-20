@@ -20,9 +20,7 @@ var _ = Describe("Logger", func() {
 
 		Context("NewLogger", func() {
 			It("returns successfully", func() {
-				loggerMiddleware, err := middleware.NewLogger(logger)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(loggerMiddleware).ToNot(BeNil())
+				Expect(middleware.NewLogger(logger)).ToNot(BeNil())
 			})
 
 			It("returns an error if the logger is missing", func() {

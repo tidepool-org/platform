@@ -56,9 +56,7 @@ var _ = Describe("Config", func() {
 		})
 
 		It("returns a new object if name is specified", func() {
-			loader, err := config.NewLoader(environmentReporter, "_fixtures/config", "TIDEPOOL_TEST")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(loader).ToNot(BeNil())
+			Expect(config.NewLoader(environmentReporter, "_fixtures/config", "TIDEPOOL_TEST")).ToNot(BeNil())
 		})
 	})
 

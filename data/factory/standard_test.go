@@ -128,18 +128,14 @@ var _ = Describe("Standard", func() {
 			It("returns a NewFunc that returns nil if the datumFunc returns nil", func() {
 				newFunc := factory.NewNewFuncWithFunc(func() data.Datum { return nil })
 				Expect(newFunc).ToNot(BeNil())
-				datum, err := newFunc(testInspector)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(datum).To(BeNil())
+				Expect(newFunc(testInspector)).To(BeNil())
 			})
 
 			It("returns a NewFunc that returns the datum that the datumFunc returns", func() {
 				testDatum := &TestDatum{}
 				newFunc := factory.NewNewFuncWithFunc(func() data.Datum { return testDatum })
 				Expect(newFunc).ToNot(BeNil())
-				datum, err := newFunc(testInspector)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(datum).To(Equal(testDatum))
+				Expect(newFunc(testInspector)).To(Equal(testDatum))
 			})
 		})
 	})
@@ -165,9 +161,7 @@ var _ = Describe("Standard", func() {
 			testInspector.GetPropertyOutputs = []*string{StringAsPointer("value-datum-func-returns-datum")}
 			newFunc := factory.NewNewFuncWithKeyAndMap("key-datum-func-returns-datum", testNewFuncMap)
 			Expect(newFunc).ToNot(BeNil())
-			datum, err := newFunc(testInspector)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(datum).To(Equal(testDatum))
+			Expect(newFunc(testInspector)).To(Equal(testDatum))
 			Expect(testInspector.GetPropertyInputs).To(ConsistOf("key-datum-func-returns-datum"))
 		})
 
@@ -229,9 +223,7 @@ var _ = Describe("Standard", func() {
 
 	Context("NewStandard", func() {
 		It("returns a standard without error", func() {
-			standard, err := factory.NewStandard()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(standard).ToNot(BeNil())
+			Expect(factory.NewStandard()).ToNot(BeNil())
 		})
 
 		Context("with a new factory", func() {

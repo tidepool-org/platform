@@ -16,9 +16,7 @@ import (
 var _ = Describe("AccessLog", func() {
 	Context("NewAccessLog", func() {
 		It("returns successfully", func() {
-			accessLogMiddleware, err := middleware.NewAccessLog()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(accessLogMiddleware).ToNot(BeNil())
+			Expect(middleware.NewAccessLog()).ToNot(BeNil())
 		})
 	})
 

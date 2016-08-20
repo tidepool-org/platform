@@ -48,9 +48,7 @@ var _ = Describe("Parser", func() {
 
 		It("successfully returns a nil datum if the parser object is nil", func() {
 			testObjectParser.ObjectOutputs = []*map[string]interface{}{nil}
-			datum, err := parser.ParseDatum(testObjectParser, testFactory)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(datum).To(BeNil())
+			Expect(parser.ParseDatum(testObjectParser, testFactory)).To(BeNil())
 		})
 
 		It("returns an error if the factory init returns an error", func() {
@@ -63,9 +61,7 @@ var _ = Describe("Parser", func() {
 
 		It("successfully returns nil if the factory init returns nil", func() {
 			testFactory.InitOutputs = []InitOutput{{nil, nil}}
-			datum, err := parser.ParseDatum(testObjectParser, testFactory)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(datum).To(BeNil())
+			Expect(parser.ParseDatum(testObjectParser, testFactory)).To(BeNil())
 			Expect(testFactory.InitInputs).To(HaveLen(1))
 		})
 
@@ -108,9 +104,7 @@ var _ = Describe("Parser", func() {
 
 		It("successfully returns a nil datum array if the parser array is nil", func() {
 			testArrayParser.ArrayOutputs = []*[]interface{}{nil}
-			datumArray, err := parser.ParseDatumArray(testArrayParser)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(datumArray).To(BeNil())
+			Expect(parser.ParseDatumArray(testArrayParser)).To(BeNil())
 		})
 
 		It("successfully returns a empty datum array if the parser array is empty", func() {

@@ -12,9 +12,7 @@ import (
 var _ = Describe("Recover", func() {
 	Context("NewRecover", func() {
 		It("returns successfully", func() {
-			recoverMiddleware, err := middleware.NewRecover()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(recoverMiddleware).ToNot(BeNil())
+			Expect(middleware.NewRecover()).ToNot(BeNil())
 		})
 	})
 
