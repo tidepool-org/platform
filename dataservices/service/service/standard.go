@@ -25,6 +25,7 @@ import (
 	"github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/dataservices/service"
 	"github.com/tidepool-org/platform/dataservices/service/api"
+	"github.com/tidepool-org/platform/dataservices/service/api/v1"
 	"github.com/tidepool-org/platform/dataservices/service/server"
 	"github.com/tidepool-org/platform/environment"
 	"github.com/tidepool-org/platform/log"
@@ -251,7 +252,7 @@ func (s *Standard) initializeUserServicesClient() error {
 func (s *Standard) initializeDataServicesAPI() error {
 	s.logger.Debug("Creating data services api")
 
-	dataServicesAPI, err := api.NewStandard(s.versionReporter, s.environmentReporter, s.logger, s.dataFactory, s.dataStore, s.dataDeduplicatorFactory, s.userServicesClient)
+	dataServicesAPI, err := api.NewStandard(s.versionReporter, s.environmentReporter, s.logger, s.dataFactory, s.dataStore, s.dataDeduplicatorFactory, s.userServicesClient, v1.Routes())
 	if err != nil {
 		return app.ExtError(err, "dataservices", "unable to create data services api")
 	}
