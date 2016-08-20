@@ -27,15 +27,15 @@ type Loader interface {
 	Load(name string, config interface{}) error
 }
 
-func NewLoader(directory string, prefix string, environmentReporter environment.Reporter) (Loader, error) {
+func NewLoader(environmentReporter environment.Reporter, directory string, prefix string) (Loader, error) {
+	if environmentReporter == nil {
+		return nil, app.Error("config", "environment reporter is missing")
+	}
 	if directory == "" {
 		return nil, app.Error("config", "directory is missing")
 	}
 	if prefix == "" {
 		return nil, app.Error("config", "prefix is missing")
-	}
-	if environmentReporter == nil {
-		return nil, app.Error("config", "environment reporter is missing")
 	}
 
 	if fileInfo, err := os.Stat(directory); err != nil {
@@ -48,16 +48,16 @@ func NewLoader(directory string, prefix string, environmentReporter environment.
 	}
 
 	return &loader{
+		environmentReporter: environmentReporter,
 		directory:           directory,
 		prefix:              prefix,
-		environmentReporter: environmentReporter,
 	}, nil
 }
 
 type loader struct {
+	environmentReporter environment.Reporter
 	directory           string
 	prefix              string
-	environmentReporter environment.Reporter
 }
 
 var (

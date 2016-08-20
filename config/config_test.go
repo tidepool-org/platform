@@ -25,38 +25,38 @@ var _ = Describe("Config", func() {
 	})
 
 	Context("NewLoader", func() {
+		It("returns an error if environment reporter is missing", func() {
+			loader, err := config.NewLoader(nil, "_fixtures/config", "TIDEPOOL_TEST")
+			Expect(err).To(MatchError("config: environment reporter is missing"))
+			Expect(loader).To(BeNil())
+		})
+
 		It("returns an error if directory is missing", func() {
-			loader, err := config.NewLoader("", "TIDEPOOL_TEST", environmentReporter)
+			loader, err := config.NewLoader(environmentReporter, "", "TIDEPOOL_TEST")
 			Expect(err).To(MatchError("config: directory is missing"))
 			Expect(loader).To(BeNil())
 		})
 
 		It("returns an error if prefix is missing", func() {
-			loader, err := config.NewLoader("_fixtures/config", "", environmentReporter)
+			loader, err := config.NewLoader(environmentReporter, "_fixtures/config", "")
 			Expect(err).To(MatchError("config: prefix is missing"))
 			Expect(loader).To(BeNil())
 		})
 
-		It("returns an error if environment reporter is missing", func() {
-			loader, err := config.NewLoader("_fixtures/config", "TIDEPOOL_TEST", nil)
-			Expect(err).To(MatchError("config: environment reporter is missing"))
-			Expect(loader).To(BeNil())
-		})
-
 		It("returns an error if directory does not exist", func() {
-			loader, err := config.NewLoader("_fixtures/config/missing", "TIDEPOOL_TEST", environmentReporter)
+			loader, err := config.NewLoader(environmentReporter, "_fixtures/config/missing", "TIDEPOOL_TEST")
 			Expect(err).To(MatchError("config: directory does not exist"))
 			Expect(loader).To(BeNil())
 		})
 
 		It("returns an error if directory is a file", func() {
-			loader, err := config.NewLoader("_fixtures/config/directory.json/file", "TIDEPOOL_TEST", environmentReporter)
+			loader, err := config.NewLoader(environmentReporter, "_fixtures/config/directory.json/file", "TIDEPOOL_TEST")
 			Expect(err).To(MatchError("config: directory is not a directory"))
 			Expect(loader).To(BeNil())
 		})
 
 		It("returns a new object if name is specified", func() {
-			loader, err := config.NewLoader("_fixtures/config", "TIDEPOOL_TEST", environmentReporter)
+			loader, err := config.NewLoader(environmentReporter, "_fixtures/config", "TIDEPOOL_TEST")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(loader).ToNot(BeNil())
 		})
@@ -68,7 +68,7 @@ var _ = Describe("Config", func() {
 
 		BeforeEach(func() {
 			var err error
-			loader, err = config.NewLoader("_fixtures/config", "TIDEPOOL_TEST", environmentReporter)
+			loader, err = config.NewLoader(environmentReporter, "_fixtures/config", "TIDEPOOL_TEST")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(loader).ToNot(BeNil())
 			testConfig = &TestConfig{}

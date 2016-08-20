@@ -144,7 +144,7 @@ func (s *Standard) initializeEnvironmentReporter() error {
 }
 
 func (s *Standard) initializeConfigLoader() error {
-	configLoader, err := config.NewLoader(os.Getenv("TIDEPOOL_CONFIG_DIRECTORY"), "TIDEPOOL", s.environmentReporter)
+	configLoader, err := config.NewLoader(s.environmentReporter, os.Getenv("TIDEPOOL_CONFIG_DIRECTORY"), "TIDEPOOL")
 	if err != nil {
 		return app.ExtError(err, "dataservices", "unable to create config loader")
 	}
