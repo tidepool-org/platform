@@ -251,7 +251,7 @@ func (s *Standard) initializeUserServicesClient() error {
 func (s *Standard) initializeDataServicesAPI() error {
 	s.logger.Debug("Creating data services api")
 
-	dataServicesAPI, err := api.NewStandard(s.logger, s.dataFactory, s.dataStore, s.dataDeduplicatorFactory, s.userServicesClient, s.versionReporter, s.environmentReporter)
+	dataServicesAPI, err := api.NewStandard(s.versionReporter, s.environmentReporter, s.logger, s.dataFactory, s.dataStore, s.dataDeduplicatorFactory, s.userServicesClient)
 	if err != nil {
 		return app.ExtError(err, "dataservices", "unable to create data services api")
 	}
