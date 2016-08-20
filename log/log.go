@@ -35,12 +35,12 @@ type Logger interface {
 	WithFields(fields Fields) Logger
 }
 
-func NewLogger(config *Config, versionReporter version.Reporter) (Logger, error) {
-	if config == nil {
-		return nil, app.Error("log", "config is missing")
-	}
+func NewLogger(versionReporter version.Reporter, config *Config) (Logger, error) {
 	if versionReporter == nil {
 		return nil, app.Error("log", "version reporter is missing")
+	}
+	if config == nil {
+		return nil, app.Error("log", "config is missing")
 	}
 
 	if err := config.Validate(); err != nil {
