@@ -88,12 +88,14 @@ func main() {
 		logger.WithError(err).Error("Failure initializing data services API")
 		os.Exit(1)
 	}
+	defer dataServicesAPI.Close()
 
 	dataServicesServer, err := initializeDataServicesServer(configLoader, logger, dataServicesAPI)
 	if err != nil {
 		logger.WithError(err).Error("Failure initializing data services server")
 		os.Exit(1)
 	}
+	defer dataServicesServer.Close()
 
 	if err = dataServicesServer.Serve(); err != nil {
 		logger.WithError(err).Error("Failure running data services server")

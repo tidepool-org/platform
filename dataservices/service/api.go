@@ -13,5 +13,7 @@ package service
 import "net/http"
 
 type API interface {
+	Close()
+
 	Handler() http.Handler
 }

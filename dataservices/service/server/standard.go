@@ -49,6 +49,12 @@ func NewStandard(logger log.Logger, api service.API, config *Config) (*Standard,
 	}, nil
 }
 
+func (s *Standard) Close() {
+	if s.api != nil {
+		s.api.Close()
+	}
+}
+
 func (s *Standard) Serve() error {
 
 	s.logger.Debug("Serving")
