@@ -16,6 +16,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/base"
 	"github.com/tidepool-org/platform/data/types/base/upload"
 	"github.com/tidepool-org/platform/log"
+	commonMongo "github.com/tidepool-org/platform/store/mongo"
 )
 
 func NewDataset(userID string, groupID string) *upload.Upload {
@@ -82,27 +83,31 @@ func ValidateDatasetData(mongoTestCollection *mgo.Collection, selector bson.M, e
 }
 
 var _ = Describe("Mongo", func() {
+	var logger log.Logger
+	var mongoConfig *commonMongo.Config
+	var mongoStore *mongo.Store
+	var mongoSession store.Session
+
+	BeforeEach(func() {
+		logger = log.NewNullLogger()
+		mongoConfig = &commonMongo.Config{
+			Addresses:  MongoTestAddress(),
+			Database:   MongoTestDatabase(),
+			Collection: NewTestSuiteID(),
+			Timeout:    app.DurationAsPointer(5 * time.Second),
+		}
+	})
+
+	AfterEach(func() {
+		if mongoSession != nil {
+			mongoSession.Close()
+		}
+		if mongoStore != nil {
+			mongoStore.Close()
+		}
+	})
+
 	Context("New", func() {
-		var logger log.Logger
-		var mongoConfig *mongo.Config
-		var mongoStore *mongo.Store
-
-		BeforeEach(func() {
-			logger = log.NewNullLogger()
-			mongoConfig = &mongo.Config{
-				Addresses:  MongoTestAddress(),
-				Database:   MongoTestDatabase(),
-				Collection: NewTestSuiteID(),
-				Timeout:    app.DurationAsPointer(5 * time.Second),
-			}
-		})
-
-		AfterEach(func() {
-			if mongoStore != nil {
-				mongoStore.Close()
-			}
-		})
-
 		It("returns no error if successful", func() {
 			var err error
 			mongoStore, err = mongo.New(logger, mongoConfig)
@@ -110,177 +115,51 @@ var _ = Describe("Mongo", func() {
 			Expect(mongoStore).ToNot(BeNil())
 		})
 
-		It("returns an error if the logger is missing", func() {
+		It("returns an error if unsuccessful", func() {
 			var err error
-			mongoStore, err = mongo.New(nil, mongoConfig)
-			Expect(err).To(MatchError("mongo: logger is missing"))
-			Expect(mongoStore).To(BeNil())
-		})
-
-		It("returns an error if the config is missing", func() {
-			var err error
-			mongoStore, err = mongo.New(logger, nil)
-			Expect(err).To(MatchError("mongo: config is missing"))
-			Expect(mongoStore).To(BeNil())
-		})
-
-		It("returns an error if the config is invalid", func() {
-			mongoConfig.Addresses = ""
-			var err error
-			mongoStore, err = mongo.New(logger, mongoConfig)
-			Expect(err).To(MatchError("mongo: config is invalid; mongo: addresses is missing"))
-			Expect(mongoStore).To(BeNil())
-		})
-
-		It("returns an error if the addresses are not reachable", func() {
-			mongoConfig.Addresses = "127.0.0.0, 127.0.0.0"
-			var err error
-			mongoStore, err = mongo.New(logger, mongoConfig)
+			mongoStore, err = mongo.New(nil, nil)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(HavePrefix("mongo: unable to dial database; "))
-			Expect(mongoStore).To(BeNil())
-		})
-
-		It("returns an error if the username or password is invalid", func() {
-			mongoConfig.Username = app.StringAsPointer("username")
-			mongoConfig.Password = app.StringAsPointer("password")
-			var err error
-			mongoStore, err = mongo.New(logger, mongoConfig)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(HavePrefix("mongo: unable to dial database; "))
 			Expect(mongoStore).To(BeNil())
 		})
 	})
 
 	Context("with a new store", func() {
-		var mongoConfig *mongo.Config
-		var mongoStore *mongo.Store
-
 		BeforeEach(func() {
-			mongoConfig = &mongo.Config{
-				Addresses:  MongoTestAddress(),
-				Database:   MongoTestDatabase(),
-				Collection: NewTestSuiteID(),
-				Timeout:    app.DurationAsPointer(5 * time.Second),
-			}
 			var err error
-			mongoStore, err = mongo.New(log.NewNullLogger(), mongoConfig)
+			mongoStore, err = mongo.New(logger, mongoConfig)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mongoStore).ToNot(BeNil())
 		})
 
-		AfterEach(func() {
-			if mongoStore != nil {
-				mongoStore.Close()
-			}
-		})
-
-		Context("IsClosed/Close", func() {
-			It("returns false if it is not closed", func() {
-				Expect(mongoStore.IsClosed()).To(BeFalse())
-			})
-
-			It("returns true if it is closed", func() {
-				mongoStore.Close()
-				Expect(mongoStore.IsClosed()).To(BeTrue())
-			})
-		})
-
-		Context("GetStatus", func() {
-			It("returns the appropriate status when not closed", func() {
-				status := mongoStore.GetStatus()
-				Expect(status).ToNot(BeNil())
-				mongoStatus, ok := status.(*mongo.Status)
-				Expect(ok).To(BeTrue())
-				Expect(mongoStatus).ToNot(BeNil())
-				Expect(mongoStatus.State).To(Equal("OPEN"))
-				Expect(mongoStatus.BuildInfo).ToNot(BeNil())
-				Expect(mongoStatus.LiveServers).ToNot(BeEmpty())
-				Expect(mongoStatus.Mode).To(Equal(mgo.Strong))
-				Expect(mongoStatus.Safe).ToNot(BeNil())
-				Expect(mongoStatus.Ping).To(Equal("OK"))
-			})
-
-			It("returns the appropriate status when closed", func() {
-				mongoStore.Close()
-				Expect(mongoStore.IsClosed()).To(BeTrue())
-				status := mongoStore.GetStatus()
-				Expect(status).ToNot(BeNil())
-				mongoStatus, ok := status.(*mongo.Status)
-				Expect(ok).To(BeTrue())
-				Expect(mongoStatus).ToNot(BeNil())
-				Expect(mongoStatus.State).To(Equal("CLOSED"))
-				Expect(mongoStatus.BuildInfo).To(BeNil())
-				Expect(mongoStatus.LiveServers).To(BeEmpty())
-				Expect(mongoStatus.Mode).To(Equal(mgo.Eventual))
-				Expect(mongoStatus.Safe).To(BeNil())
-				Expect(mongoStatus.Ping).To(Equal("FAILED"))
-			})
-		})
-
 		Context("NewSession", func() {
-			var mongoStoreSession store.Session
-
-			AfterEach(func() {
-				if mongoStoreSession != nil {
-					mongoStoreSession.Close()
-				}
-			})
-
 			It("returns no error if successful", func() {
 				var err error
-				mongoStoreSession, err = mongoStore.NewSession(log.NewNullLogger())
+				mongoSession, err = mongoStore.NewSession(log.NewNullLogger())
 				Expect(err).ToNot(HaveOccurred())
-				Expect(mongoStoreSession).ToNot(BeNil())
+				Expect(mongoSession).ToNot(BeNil())
 			})
 
-			It("returns an error if the logger is missing", func() {
+			It("returns an error if unsuccessful", func() {
 				var err error
-				mongoStoreSession, err = mongoStore.NewSession(nil)
-				Expect(err).To(MatchError("mongo: logger is missing"))
-				Expect(mongoStoreSession).To(BeNil())
-			})
-
-			It("returns an error if the store is closed", func() {
-				mongoStore.Close()
-				Expect(mongoStore.IsClosed()).To(BeTrue())
-				var err error
-				mongoStoreSession, err = mongoStore.NewSession(log.NewNullLogger())
-				Expect(err).To(MatchError("mongo: store closed"))
-				Expect(mongoStoreSession).To(BeNil())
+				mongoSession, err = mongoStore.NewSession(nil)
+				Expect(err).To(HaveOccurred())
+				Expect(mongoSession).To(BeNil())
 			})
 		})
 
 		Context("with a new session", func() {
-			var mongoStoreSession store.Session
-
 			BeforeEach(func() {
 				var err error
-				mongoStoreSession, err = mongoStore.NewSession(log.NewNullLogger())
+				mongoSession, err = mongoStore.NewSession(log.NewNullLogger())
 				Expect(err).ToNot(HaveOccurred())
-				Expect(mongoStoreSession).ToNot(BeNil())
-			})
-
-			AfterEach(func() {
-				if mongoStoreSession != nil {
-					mongoStoreSession.Close()
-				}
-			})
-
-			Context("IsClosed/Close", func() {
-				It("returns false if it is not closed", func() {
-					Expect(mongoStoreSession.IsClosed()).To(BeFalse())
-				})
-
-				It("returns true if it is closed", func() {
-					mongoStoreSession.Close()
-					Expect(mongoStoreSession.IsClosed()).To(BeTrue())
-				})
+				Expect(mongoSession).ToNot(BeNil())
 			})
 
 			Context("with a dataset", func() {
 				var mongoTestSession *mgo.Session
 				var mongoTestCollection *mgo.Collection
+				var userID string
+				var groupID string
 				var datasetExistingOne *upload.Upload
 				var datasetExistingTwo *upload.Upload
 				var dataset *upload.Upload
@@ -288,8 +167,8 @@ var _ = Describe("Mongo", func() {
 				BeforeEach(func() {
 					mongoTestSession = MongoTestSession().Copy()
 					mongoTestCollection = mongoTestSession.DB(mongoConfig.Database).C(mongoConfig.Collection)
-					userID := app.NewID()
-					groupID := app.NewID()
+					userID = app.NewID()
+					groupID = app.NewID()
 					datasetExistingOne = NewDataset(userID, groupID)
 					Expect(mongoTestCollection.Insert(datasetExistingOne)).To(Succeed())
 					datasetExistingTwo = NewDataset(userID, groupID)
@@ -309,24 +188,24 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("returns no error if it successfully finds the dataset", func() {
-						Expect(mongoStoreSession.GetDataset(dataset.UploadID)).To(Equal(dataset))
+						Expect(mongoSession.GetDataset(dataset.UploadID)).To(Equal(dataset))
 					})
 
 					It("returns an error if the dataset id is missing", func() {
-						resultDataset, err := mongoStoreSession.GetDataset("")
+						resultDataset, err := mongoSession.GetDataset("")
 						Expect(err).To(MatchError("mongo: dataset id is missing"))
 						Expect(resultDataset).To(BeNil())
 					})
 
 					It("returns an error if the session is closed", func() {
-						mongoStoreSession.Close()
-						resultDataset, err := mongoStoreSession.GetDataset(dataset.UploadID)
+						mongoSession.Close()
+						resultDataset, err := mongoSession.GetDataset(dataset.UploadID)
 						Expect(err).To(MatchError("mongo: session closed"))
 						Expect(resultDataset).To(BeNil())
 					})
 
 					It("returns an error if the dataset cannot be found", func() {
-						resultDataset, err := mongoStoreSession.GetDataset("not-found")
+						resultDataset, err := mongoSession.GetDataset("not-found")
 						Expect(err).To(MatchError("mongo: unable to get dataset; not found"))
 						Expect(resultDataset).To(BeNil())
 					})
@@ -334,48 +213,48 @@ var _ = Describe("Mongo", func() {
 
 				Context("CreateDataset", func() {
 					It("returns no error if it successfully creates the dataset", func() {
-						Expect(mongoStoreSession.CreateDataset(dataset)).To(Succeed())
+						Expect(mongoSession.CreateDataset(dataset)).To(Succeed())
 					})
 
 					It("returns an error if the dataset is missing", func() {
-						Expect(mongoStoreSession.CreateDataset(nil)).To(MatchError("mongo: dataset is missing"))
+						Expect(mongoSession.CreateDataset(nil)).To(MatchError("mongo: dataset is missing"))
 					})
 
 					It("returns an error if the user id is missing", func() {
 						dataset.UserID = ""
-						Expect(mongoStoreSession.CreateDataset(dataset)).To(MatchError("mongo: dataset user id is missing"))
+						Expect(mongoSession.CreateDataset(dataset)).To(MatchError("mongo: dataset user id is missing"))
 					})
 
 					It("returns an error if the group id is missing", func() {
 						dataset.GroupID = ""
-						Expect(mongoStoreSession.CreateDataset(dataset)).To(MatchError("mongo: dataset group id is missing"))
+						Expect(mongoSession.CreateDataset(dataset)).To(MatchError("mongo: dataset group id is missing"))
 					})
 
 					It("returns an error if the upload id is missing", func() {
 						dataset.UploadID = ""
-						Expect(mongoStoreSession.CreateDataset(dataset)).To(MatchError("mongo: dataset upload id is missing"))
+						Expect(mongoSession.CreateDataset(dataset)).To(MatchError("mongo: dataset upload id is missing"))
 					})
 
 					It("returns an error if the session is closed", func() {
-						mongoStoreSession.Close()
-						Expect(mongoStoreSession.CreateDataset(dataset)).To(MatchError("mongo: session closed"))
+						mongoSession.Close()
+						Expect(mongoSession.CreateDataset(dataset)).To(MatchError("mongo: session closed"))
 					})
 
 					It("returns an error if the dataset with the same id already exists", func() {
-						Expect(mongoStoreSession.CreateDataset(dataset)).To(Succeed())
-						Expect(mongoStoreSession.CreateDataset(dataset)).To(MatchError("mongo: unable to create dataset; mongo: dataset already exists"))
+						Expect(mongoSession.CreateDataset(dataset)).To(Succeed())
+						Expect(mongoSession.CreateDataset(dataset)).To(MatchError("mongo: unable to create dataset; mongo: dataset already exists"))
 					})
 
 					It("has the correct stored datasets", func() {
 						ValidateDataset(mongoTestCollection, bson.M{}, datasetExistingOne, datasetExistingTwo)
-						Expect(mongoStoreSession.CreateDataset(dataset)).To(Succeed())
+						Expect(mongoSession.CreateDataset(dataset)).To(Succeed())
 						ValidateDataset(mongoTestCollection, bson.M{}, datasetExistingOne, datasetExistingTwo, dataset)
 					})
 				})
 
 				Context("UpdateDataset", func() {
 					BeforeEach(func() {
-						Expect(mongoStoreSession.CreateDataset(dataset)).To(Succeed())
+						Expect(mongoSession.CreateDataset(dataset)).To(Succeed())
 					})
 
 					Context("with data state closed", func() {
@@ -384,43 +263,43 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns no error if it successfully updates the dataset", func() {
-							Expect(mongoStoreSession.UpdateDataset(dataset)).To(Succeed())
+							Expect(mongoSession.UpdateDataset(dataset)).To(Succeed())
 						})
 
 						It("returns an error if the dataset is missing", func() {
-							Expect(mongoStoreSession.UpdateDataset(nil)).To(MatchError("mongo: dataset is missing"))
+							Expect(mongoSession.UpdateDataset(nil)).To(MatchError("mongo: dataset is missing"))
 						})
 
 						It("returns an error if the user id is missing", func() {
 							dataset.UserID = ""
-							Expect(mongoStoreSession.UpdateDataset(dataset)).To(MatchError("mongo: dataset user id is missing"))
+							Expect(mongoSession.UpdateDataset(dataset)).To(MatchError("mongo: dataset user id is missing"))
 						})
 
 						It("returns an error if the group id is missing", func() {
 							dataset.GroupID = ""
-							Expect(mongoStoreSession.UpdateDataset(dataset)).To(MatchError("mongo: dataset group id is missing"))
+							Expect(mongoSession.UpdateDataset(dataset)).To(MatchError("mongo: dataset group id is missing"))
 						})
 
 						It("returns an error if the upload id is missing", func() {
 							dataset.UploadID = ""
-							Expect(mongoStoreSession.UpdateDataset(dataset)).To(MatchError("mongo: dataset upload id is missing"))
+							Expect(mongoSession.UpdateDataset(dataset)).To(MatchError("mongo: dataset upload id is missing"))
 						})
 
 						It("returns an error if the session is closed", func() {
-							mongoStoreSession.Close()
-							Expect(mongoStoreSession.UpdateDataset(dataset)).To(MatchError("mongo: session closed"))
+							mongoSession.Close()
+							Expect(mongoSession.UpdateDataset(dataset)).To(MatchError("mongo: session closed"))
 						})
 
 						It("returns an error if the dataset with the same user id, group id, and upload id does not yet exist", func() {
 							dataset.UploadID = app.NewID()
-							Expect(mongoStoreSession.UpdateDataset(dataset)).To(MatchError("mongo: unable to update dataset; not found"))
+							Expect(mongoSession.UpdateDataset(dataset)).To(MatchError("mongo: unable to update dataset; not found"))
 						})
 					})
 
 					It("has the correct stored datasets", func() {
 						ValidateDataset(mongoTestCollection, bson.M{}, datasetExistingOne, datasetExistingTwo, dataset)
 						dataset.DataState = "closed"
-						Expect(mongoStoreSession.UpdateDataset(dataset)).To(Succeed())
+						Expect(mongoSession.UpdateDataset(dataset)).To(Succeed())
 						ValidateDataset(mongoTestCollection, bson.M{}, datasetExistingOne, datasetExistingTwo, dataset)
 					})
 				})
@@ -431,49 +310,49 @@ var _ = Describe("Mongo", func() {
 					var datasetData []data.Datum
 
 					BeforeEach(func() {
-						Expect(mongoStoreSession.CreateDataset(dataset)).To(Succeed())
+						Expect(mongoSession.CreateDataset(dataset)).To(Succeed())
 						datasetExistingOneData = NewDatasetData()
-						Expect(mongoStoreSession.CreateDatasetData(datasetExistingOne, datasetExistingOneData)).To(Succeed())
+						Expect(mongoSession.CreateDatasetData(datasetExistingOne, datasetExistingOneData)).To(Succeed())
 						datasetExistingTwoData = NewDatasetData()
-						Expect(mongoStoreSession.CreateDatasetData(datasetExistingTwo, datasetExistingTwoData)).To(Succeed())
+						Expect(mongoSession.CreateDatasetData(datasetExistingTwo, datasetExistingTwoData)).To(Succeed())
 						datasetData = NewDatasetData()
 					})
 
 					Context("CreateDatasetData", func() {
 						It("returns no error if it successfully creates the dataset data", func() {
-							Expect(mongoStoreSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
+							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
 						})
 
 						It("returns an error if the dataset is missing", func() {
-							Expect(mongoStoreSession.CreateDatasetData(nil, datasetData)).To(MatchError("mongo: dataset is missing"))
+							Expect(mongoSession.CreateDatasetData(nil, datasetData)).To(MatchError("mongo: dataset is missing"))
 						})
 
 						It("returns an error if the dataset data is missing", func() {
-							Expect(mongoStoreSession.CreateDatasetData(dataset, nil)).To(MatchError("mongo: dataset data is missing"))
+							Expect(mongoSession.CreateDatasetData(dataset, nil)).To(MatchError("mongo: dataset data is missing"))
 						})
 
 						It("returns an error if the user id is missing", func() {
 							dataset.UserID = ""
-							Expect(mongoStoreSession.CreateDatasetData(dataset, datasetData)).To(MatchError("mongo: dataset user id is missing"))
+							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(MatchError("mongo: dataset user id is missing"))
 						})
 
 						It("returns an error if the group id is missing", func() {
 							dataset.GroupID = ""
-							Expect(mongoStoreSession.CreateDatasetData(dataset, datasetData)).To(MatchError("mongo: dataset group id is missing"))
+							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(MatchError("mongo: dataset group id is missing"))
 						})
 
 						It("returns an error if the upload id is missing", func() {
 							dataset.UploadID = ""
-							Expect(mongoStoreSession.CreateDatasetData(dataset, datasetData)).To(MatchError("mongo: dataset upload id is missing"))
+							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(MatchError("mongo: dataset upload id is missing"))
 						})
 
 						It("returns an error if the session is closed", func() {
-							mongoStoreSession.Close()
-							Expect(mongoStoreSession.CreateDatasetData(dataset, datasetData)).To(MatchError("mongo: session closed"))
+							mongoSession.Close()
+							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(MatchError("mongo: session closed"))
 						})
 
 						It("sets the user id, group id, and upload id on the dataset data to match the dataset", func() {
-							Expect(mongoStoreSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
+							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
 							for _, datasetDatum := range datasetData {
 								baseDatum, ok := datasetDatum.(*base.Base)
 								Expect(ok).To(BeTrue())
@@ -485,7 +364,7 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("leaves the dataset data not active", func() {
-							Expect(mongoStoreSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
+							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
 							for _, datasetDatum := range datasetData {
 								baseDatum, ok := datasetDatum.(*base.Base)
 								Expect(ok).To(BeTrue())
@@ -497,103 +376,103 @@ var _ = Describe("Mongo", func() {
 						It("has the correct stored dataset data", func() {
 							datasetBeforeCreateData := append(datasetExistingOneData, datasetExistingTwoData...)
 							ValidateDatasetData(mongoTestCollection, bson.M{"type": bson.M{"$ne": "upload"}}, datasetBeforeCreateData)
-							Expect(mongoStoreSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
+							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
 							ValidateDatasetData(mongoTestCollection, bson.M{"type": bson.M{"$ne": "upload"}}, append(datasetBeforeCreateData, datasetData...))
 						})
 					})
 
 					Context("ActivateAllDatasetData", func() {
 						BeforeEach(func() {
-							Expect(mongoStoreSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
+							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
 						})
 
 						It("returns no error if it successfully activates the dataset", func() {
-							Expect(mongoStoreSession.ActivateAllDatasetData(dataset)).To(Succeed())
+							Expect(mongoSession.ActivateAllDatasetData(dataset)).To(Succeed())
 						})
 
 						It("returns an error if the dataset is missing", func() {
-							Expect(mongoStoreSession.ActivateAllDatasetData(nil)).To(MatchError("mongo: dataset is missing"))
+							Expect(mongoSession.ActivateAllDatasetData(nil)).To(MatchError("mongo: dataset is missing"))
 						})
 
 						It("returns an error if the user id is missing", func() {
 							dataset.UserID = ""
-							Expect(mongoStoreSession.ActivateAllDatasetData(dataset)).To(MatchError("mongo: dataset user id is missing"))
+							Expect(mongoSession.ActivateAllDatasetData(dataset)).To(MatchError("mongo: dataset user id is missing"))
 						})
 
 						It("returns an error if the group id is missing", func() {
 							dataset.GroupID = ""
-							Expect(mongoStoreSession.ActivateAllDatasetData(dataset)).To(MatchError("mongo: dataset group id is missing"))
+							Expect(mongoSession.ActivateAllDatasetData(dataset)).To(MatchError("mongo: dataset group id is missing"))
 						})
 
 						It("returns an error if the upload id is missing", func() {
 							dataset.UploadID = ""
-							Expect(mongoStoreSession.ActivateAllDatasetData(dataset)).To(MatchError("mongo: dataset upload id is missing"))
+							Expect(mongoSession.ActivateAllDatasetData(dataset)).To(MatchError("mongo: dataset upload id is missing"))
 						})
 
 						It("returns an error if the session is closed", func() {
-							mongoStoreSession.Close()
-							Expect(mongoStoreSession.ActivateAllDatasetData(dataset)).To(MatchError("mongo: session closed"))
+							mongoSession.Close()
+							Expect(mongoSession.ActivateAllDatasetData(dataset)).To(MatchError("mongo: session closed"))
 						})
 
 						It("has the correct stored active dataset", func() {
 							ValidateDataset(mongoTestCollection, bson.M{"_active": true})
-							Expect(mongoStoreSession.ActivateAllDatasetData(dataset)).To(Succeed())
+							Expect(mongoSession.ActivateAllDatasetData(dataset)).To(Succeed())
 							ValidateDataset(mongoTestCollection, bson.M{"_active": true}, dataset)
 						})
 
 						It("has the correct stored active dataset data", func() {
 							ValidateDatasetData(mongoTestCollection, bson.M{"_active": true}, []data.Datum{})
-							Expect(mongoStoreSession.ActivateAllDatasetData(dataset)).To(Succeed())
+							Expect(mongoSession.ActivateAllDatasetData(dataset)).To(Succeed())
 							ValidateDatasetData(mongoTestCollection, bson.M{"_active": true}, append(datasetData, dataset))
 						})
 					})
 
 					Context("DeleteAllOtherDatasetData", func() {
 						BeforeEach(func() {
-							Expect(mongoStoreSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
+							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
 						})
 
 						It("returns no error if it successfully removes all other dataset data", func() {
-							Expect(mongoStoreSession.DeleteAllOtherDatasetData(dataset)).To(Succeed())
+							Expect(mongoSession.DeleteAllOtherDatasetData(dataset)).To(Succeed())
 						})
 
 						It("returns an error if the dataset is missing", func() {
-							Expect(mongoStoreSession.DeleteAllOtherDatasetData(nil)).To(MatchError("mongo: dataset is missing"))
+							Expect(mongoSession.DeleteAllOtherDatasetData(nil)).To(MatchError("mongo: dataset is missing"))
 						})
 
 						It("returns an error if the user id is missing", func() {
 							dataset.UserID = ""
-							Expect(mongoStoreSession.DeleteAllOtherDatasetData(dataset)).To(MatchError("mongo: dataset user id is missing"))
+							Expect(mongoSession.DeleteAllOtherDatasetData(dataset)).To(MatchError("mongo: dataset user id is missing"))
 						})
 
 						It("returns an error if the group id is missing", func() {
 							dataset.GroupID = ""
-							Expect(mongoStoreSession.DeleteAllOtherDatasetData(dataset)).To(MatchError("mongo: dataset group id is missing"))
+							Expect(mongoSession.DeleteAllOtherDatasetData(dataset)).To(MatchError("mongo: dataset group id is missing"))
 						})
 
 						It("returns an error if the upload id is missing", func() {
 							dataset.UploadID = ""
-							Expect(mongoStoreSession.DeleteAllOtherDatasetData(dataset)).To(MatchError("mongo: dataset upload id is missing"))
+							Expect(mongoSession.DeleteAllOtherDatasetData(dataset)).To(MatchError("mongo: dataset upload id is missing"))
 						})
 
 						It("returns an error if the device id is missing (nil)", func() {
 							dataset.DeviceID = nil
-							Expect(mongoStoreSession.DeleteAllOtherDatasetData(dataset)).To(MatchError("mongo: dataset device id is missing"))
+							Expect(mongoSession.DeleteAllOtherDatasetData(dataset)).To(MatchError("mongo: dataset device id is missing"))
 						})
 
 						It("returns an error if the device id is missing (empty)", func() {
 							dataset.DeviceID = app.StringAsPointer("")
-							Expect(mongoStoreSession.DeleteAllOtherDatasetData(dataset)).To(MatchError("mongo: dataset device id is missing"))
+							Expect(mongoSession.DeleteAllOtherDatasetData(dataset)).To(MatchError("mongo: dataset device id is missing"))
 						})
 
 						It("returns an error if the session is closed", func() {
-							mongoStoreSession.Close()
-							Expect(mongoStoreSession.DeleteAllOtherDatasetData(dataset)).To(MatchError("mongo: session closed"))
+							mongoSession.Close()
+							Expect(mongoSession.DeleteAllOtherDatasetData(dataset)).To(MatchError("mongo: session closed"))
 						})
 
 						It("has the correct stored active dataset", func() {
 							ValidateDataset(mongoTestCollection, bson.M{}, dataset, datasetExistingOne, datasetExistingTwo)
-							Expect(mongoStoreSession.DeleteAllOtherDatasetData(dataset)).To(Succeed())
+							Expect(mongoSession.DeleteAllOtherDatasetData(dataset)).To(Succeed())
 							ValidateDataset(mongoTestCollection, bson.M{}, dataset, datasetExistingOne, datasetExistingTwo)
 						})
 
@@ -601,7 +480,7 @@ var _ = Describe("Mongo", func() {
 							datasetAfterRemoveData := append(datasetData, dataset, datasetExistingOne, datasetExistingTwo)
 							datasetBeforeRemoveData := append(append(datasetAfterRemoveData, datasetExistingOneData...), datasetExistingTwoData...)
 							ValidateDatasetData(mongoTestCollection, bson.M{}, datasetBeforeRemoveData)
-							Expect(mongoStoreSession.DeleteAllOtherDatasetData(dataset)).To(Succeed())
+							Expect(mongoSession.DeleteAllOtherDatasetData(dataset)).To(Succeed())
 							ValidateDatasetData(mongoTestCollection, bson.M{}, datasetAfterRemoveData)
 						})
 					})

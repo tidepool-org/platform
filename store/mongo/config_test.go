@@ -6,7 +6,7 @@ import (
 
 	"time"
 
-	"github.com/tidepool-org/platform/data/store/mongo"
+	"github.com/tidepool-org/platform/store/mongo"
 )
 
 var _ = Describe("Config", func() {
