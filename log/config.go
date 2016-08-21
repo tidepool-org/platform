@@ -17,7 +17,7 @@ import (
 )
 
 type Config struct {
-	Level string `default:"warn"`
+	Level string `json:"level" default:"warn"`
 }
 
 func (c *Config) Validate() error {
