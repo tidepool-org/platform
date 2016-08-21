@@ -29,6 +29,7 @@ import (
 	"github.com/tidepool-org/platform/dataservices/service/server"
 	"github.com/tidepool-org/platform/environment"
 	"github.com/tidepool-org/platform/log"
+	commonMongo "github.com/tidepool-org/platform/store/mongo"
 	"github.com/tidepool-org/platform/userservices/client"
 	"github.com/tidepool-org/platform/version"
 )
@@ -185,7 +186,7 @@ func (s *Standard) initializeDataFactory() error {
 func (s *Standard) initializeDataStore() error {
 	s.logger.Debug("Loading data store config")
 
-	dataStoreConfig := &mongo.Config{}
+	dataStoreConfig := &commonMongo.Config{}
 	if err := s.configLoader.Load("data_store", dataStoreConfig); err != nil {
 		return app.ExtError(err, "dataservices", "unable to load data store config")
 	}

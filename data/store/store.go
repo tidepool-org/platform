@@ -1,31 +1,31 @@
 package store
 
 /* CHECKLIST
- * [ ] Uses interfaces as appropriate
- * [ ] Private package variables use underscore prefix
- * [ ] All parameters validated
- * [ ] All errors handled
- * [ ] Reviewed for concurrency safety
- * [ ] Code complete
- * [ ] Full test coverage
+ * [x] Uses interfaces as appropriate
+ * [x] Private package variables use underscore prefix
+ * [x] All parameters validated
+ * [x] All errors handled
+ * [x] Reviewed for concurrency safety
+ * [x] Code complete
+ * [x] Full test coverage
  */
 
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/base/upload"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/store"
 )
 
 type Store interface {
-	IsClosed() bool
-	Close()
-	GetStatus() interface{}
+	store.Store
+
 	NewSession(logger log.Logger) (Session, error)
 }
 
 type Session interface {
-	IsClosed() bool
-	Close()
+	store.Session
+
 	GetDataset(datasetID string) (*upload.Upload, error)
 	CreateDataset(dataset *upload.Upload) error
 	UpdateDataset(dataset *upload.Upload) error

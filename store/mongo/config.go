@@ -17,13 +17,13 @@ import (
 )
 
 type Config struct {
-	Addresses  string         `yaml:"addresses"` // TODO: This should be an array, but configor does not support that. Bleech! Fix?
-	Database   string         `yaml:"database"`
-	Collection string         `yaml:"collection"`
-	Username   *string        `yaml:"username"`
-	Password   *string        `yaml:"password"`
-	Timeout    *time.Duration `yaml:"timeout"`
-	SSL        bool           `yaml:"ssl"`
+	Addresses  string         `json:"addresses"` // TODO: This should be an array, but configor does not support that. Bleech! Fix?
+	Database   string         `json:"database"`
+	Collection string         `json:"collection"`
+	Username   *string        `json:"username"`
+	Password   *string        `json:"password"`
+	Timeout    *time.Duration `json:"timeout"`
+	SSL        bool           `json:"ssl"`
 }
 
 func (c *Config) Validate() error {
