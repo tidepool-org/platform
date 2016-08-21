@@ -65,4 +65,15 @@ var _ = Describe("Config", func() {
 			Expect(config.ServerTokenTimeout).To(Equal(3600))
 		})
 	})
+
+	Context("Clone", func() {
+		It("returns successfully", func() {
+			clone := config.Clone()
+			Expect(clone).ToNot(BeIdenticalTo(config))
+			Expect(clone.Address).To(Equal(config.Address))
+			Expect(clone.RequestTimeout).To(Equal(config.RequestTimeout))
+			Expect(clone.ServerTokenSecret).To(Equal(config.ServerTokenSecret))
+			Expect(clone.ServerTokenTimeout).To(Equal(config.ServerTokenTimeout))
+		})
+	})
 })

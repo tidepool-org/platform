@@ -55,4 +55,13 @@ var _ = Describe("Config", func() {
 			Expect(err.Error()).To(HavePrefix("log: level is invalid"))
 		})
 	})
+
+	Context("Clone", func() {
+		It("returns successfully", func() {
+			config := &log.Config{Level: "debug"}
+			clone := config.Clone()
+			Expect(clone).ToNot(BeIdenticalTo(config))
+			Expect(clone.Level).To(Equal(config.Level))
+		})
+	})
 })

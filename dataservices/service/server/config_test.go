@@ -8,21 +8,21 @@ import (
 )
 
 var _ = Describe("Config", func() {
+	var config *server.Config
+
+	BeforeEach(func() {
+		config = &server.Config{
+			Address: "127.0.0.1",
+			TLS: &server.TLS{
+				CertificateFile: "config_test.go",
+				KeyFile:         "config_test.go",
+			},
+			Timeout: 120,
+		}
+	})
+
 	Context("Validate", func() {
-		var config *server.Config
-
-		BeforeEach(func() {
-			config = &server.Config{
-				Address: "127.0.0.1",
-				TLS: &server.TLS{
-					CertificateFile: "config_test.go",
-					KeyFile:         "config_test.go",
-				},
-				Timeout: 120,
-			}
-		})
-
-		It("return success if all are valid", func() {
+		It("returns success if all are valid", func() {
 			Expect(config.Validate()).To(Succeed())
 		})
 
@@ -74,6 +74,27 @@ var _ = Describe("Config", func() {
 		It("returns an error if the timeout is less than zero", func() {
 			config.Timeout = -1
 			Expect(config.Validate()).To(MatchError("server: timeout is invalid"))
+		})
+	})
+
+	Context("Clone", func() {
+		It("returns successfully", func() {
+			clone := config.Clone()
+			Expect(clone).ToNot(BeIdenticalTo(config))
+			Expect(clone.Address).To(Equal(config.Address))
+			Expect(clone.TLS).ToNot(BeIdenticalTo(config.TLS))
+			Expect(clone.TLS.CertificateFile).To(Equal(config.TLS.CertificateFile))
+			Expect(clone.TLS.KeyFile).To(Equal(config.TLS.KeyFile))
+			Expect(clone.Timeout).To(Equal(config.Timeout))
+		})
+
+		It("returns successfully if TLS is nil", func() {
+			config.TLS = nil
+			clone := config.Clone()
+			Expect(clone).ToNot(BeIdenticalTo(config))
+			Expect(clone.Address).To(Equal(config.Address))
+			Expect(clone.TLS).To(BeNil())
+			Expect(clone.Timeout).To(Equal(config.Timeout))
 		})
 	})
 })

@@ -58,3 +58,17 @@ func (c *Config) Validate() error {
 	}
 	return nil
 }
+
+func (c *Config) Clone() *Config {
+	clone := &Config{
+		Address: c.Address,
+		Timeout: c.Timeout,
+	}
+	if c.TLS != nil {
+		clone.TLS = &TLS{
+			CertificateFile: c.TLS.CertificateFile,
+			KeyFile:         c.TLS.KeyFile,
+		}
+	}
+	return clone
+}

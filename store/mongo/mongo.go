@@ -42,6 +42,7 @@ func New(logger log.Logger, config *Config) (*Store, error) {
 		return nil, app.Error("mongo", "config is missing")
 	}
 
+	config = config.Clone()
 	if err := config.Validate(); err != nil {
 		return nil, app.ExtError(err, "mongo", "config is invalid")
 	}

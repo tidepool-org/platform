@@ -38,6 +38,7 @@ func NewStandard(logger log.Logger, api service.API, config *Config) (*Standard,
 		return nil, app.Error("server", "config is missing")
 	}
 
+	config = config.Clone()
 	if err := config.Validate(); err != nil {
 		return nil, app.ExtError(err, "server", "config is invalid")
 	}
