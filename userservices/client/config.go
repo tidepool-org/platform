@@ -47,3 +47,12 @@ func (c *Config) Validate() error {
 	}
 	return nil
 }
+
+func (c *Config) Clone() *Config {
+	return &Config{
+		Address:            c.Address,
+		RequestTimeout:     c.RequestTimeout,
+		ServerTokenSecret:  c.ServerTokenSecret,
+		ServerTokenTimeout: c.ServerTokenTimeout,
+	}
+}

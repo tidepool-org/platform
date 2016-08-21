@@ -28,3 +28,9 @@ func (c *Config) Validate() error {
 	}
 	return nil
 }
+
+func (c *Config) Clone() *Config {
+	return &Config{
+		Level: c.Level,
+	}
+}

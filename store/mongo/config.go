@@ -48,3 +48,22 @@ func (c *Config) Validate() error {
 	}
 	return nil
 }
+
+func (c *Config) Clone() *Config {
+	clone := &Config{
+		Addresses:  c.Addresses,
+		Database:   c.Database,
+		Collection: c.Collection,
+		SSL:        c.SSL,
+	}
+	if c.Username != nil {
+		clone.Username = app.StringAsPointer(*c.Username)
+	}
+	if c.Password != nil {
+		clone.Password = app.StringAsPointer(*c.Password)
+	}
+	if c.Timeout != nil {
+		clone.Timeout = app.DurationAsPointer(*c.Timeout)
+	}
+	return clone
+}
