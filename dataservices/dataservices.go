@@ -20,18 +20,18 @@ import (
 func main() {
 	standardService, err := service.NewStandard()
 	if err != nil {
-		fmt.Printf("ERROR: Failure creating service: %s\n", err.Error())
+		fmt.Println("ERROR: Unable to create service:", err)
 		os.Exit(1)
 	}
 	defer standardService.Close()
 
 	if err = standardService.Initialize(); err != nil {
-		fmt.Printf("ERROR: Failure initializing service: %s\n", err.Error())
+		fmt.Println("ERROR: Unable to initialize service:", err)
 		os.Exit(1)
 	}
 
 	if err = standardService.Run(); err != nil {
-		fmt.Printf("ERROR: Failure running service: %s\n", err.Error())
+		fmt.Println("ERROR: Unable to run service:", err)
 		os.Exit(1)
 	}
 }
