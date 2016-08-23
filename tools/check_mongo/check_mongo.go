@@ -45,18 +45,18 @@ func main() {
 
 	session, err := mgo.DialWithInfo(dialInfo)
 	if err != nil {
-		fmt.Printf("ERROR: Failure connecting to Mongo: %s\n", err.Error())
+		fmt.Println("ERROR: Unable to connect to Mongo:", err)
 		os.Exit(1)
 	}
 
 	if err = session.Ping(); err != nil {
-		fmt.Printf("ERROR: Failure during Ping: %s\n", err.Error())
+		fmt.Println("ERROR: Unable to perform Ping:", err)
 		os.Exit(1)
 	}
 
 	buildInfo, err := session.BuildInfo()
 	if err != nil {
-		fmt.Printf("ERROR: Failure obtaining BuildInfo: %s\n", err.Error())
+		fmt.Println("ERROR: Unable to obtain BuildInfo:", err)
 		os.Exit(1)
 	}
 
