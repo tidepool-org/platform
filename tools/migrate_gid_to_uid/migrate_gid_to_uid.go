@@ -177,7 +177,7 @@ func buildConfigFromContext(context *cli.Context) (*Config, error) {
 }
 
 func initializeLogger(versionReporter version.Reporter, config *Config) (log.Logger, error) {
-	logger, err := log.NewLogger(versionReporter, config.Log)
+	logger, err := log.NewStandard(versionReporter, config.Log)
 	if err != nil {
 		return nil, app.ExtError(err, "migrate_gid_to_uid", "unable to create logger")
 	}

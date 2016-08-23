@@ -10,7 +10,7 @@ import (
 	"github.com/tidepool-org/platform/version"
 )
 
-var _ = Describe("Log", func() {
+var _ = Describe("Standard", func() {
 	var versionReporter version.Reporter
 
 	BeforeEach(func() {
@@ -20,101 +20,101 @@ var _ = Describe("Log", func() {
 		Expect(versionReporter).ToNot(BeNil())
 	})
 
-	Context("NewLogger", func() {
+	Context("NewStandard", func() {
 		It("returns an error if version reporter is missing", func() {
-			reporter, err := log.NewLogger(nil, &log.Config{Level: "debug"})
+			standard, err := log.NewStandard(nil, &log.Config{Level: "debug"})
 			Expect(err).To(MatchError("log: version reporter is missing"))
-			Expect(reporter).To(BeNil())
+			Expect(standard).To(BeNil())
 		})
 
 		It("returns an error if config is missing", func() {
-			reporter, err := log.NewLogger(versionReporter, nil)
+			standard, err := log.NewStandard(versionReporter, nil)
 			Expect(err).To(MatchError("log: config is missing"))
-			Expect(reporter).To(BeNil())
+			Expect(standard).To(BeNil())
 		})
 
 		It("returns an error if config level is missing", func() {
-			reporter, err := log.NewLogger(versionReporter, &log.Config{})
+			standard, err := log.NewStandard(versionReporter, &log.Config{})
 			Expect(err).To(MatchError("log: config is invalid"))
-			Expect(reporter).To(BeNil())
+			Expect(standard).To(BeNil())
 		})
 
 		It("returns an error if config level is invalid", func() {
-			reporter, err := log.NewLogger(versionReporter, &log.Config{Level: "invalid"})
+			standard, err := log.NewStandard(versionReporter, &log.Config{Level: "invalid"})
 			Expect(err).To(MatchError("log: config is invalid"))
-			Expect(reporter).To(BeNil())
+			Expect(standard).To(BeNil())
 		})
 
 		It("returns successfully", func() {
-			Expect(log.NewLogger(versionReporter, &log.Config{Level: "debug"})).ToNot(BeNil())
+			Expect(log.NewStandard(versionReporter, &log.Config{Level: "debug"})).ToNot(BeNil())
 		})
 	})
 
-	Context("Logger", func() {
-		var logger log.Logger
+	Context("with new standard logger", func() {
+		var standard *log.Standard
 
 		BeforeEach(func() {
 			var err error
-			logger, err = log.NewLogger(versionReporter, &log.Config{Level: "fatal"})
+			standard, err = log.NewStandard(versionReporter, &log.Config{Level: "fatal"})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(logger).ToNot(BeNil())
+			Expect(standard).ToNot(BeNil())
 		})
 
 		Context("Debug", func() {
 			It("works as expected", func() {
-				logger.Debug("message")
+				standard.Debug("message")
 			})
 		})
 
 		Context("Info", func() {
 			It("works as expected", func() {
-				logger.Info("message")
+				standard.Info("message")
 			})
 		})
 
 		Context("Warn", func() {
 			It("works as expected", func() {
-				logger.Warn("message")
+				standard.Warn("message")
 			})
 		})
 
 		Context("Error", func() {
 			It("works as expected", func() {
-				logger.Error("message")
+				standard.Error("message")
 			})
 		})
 
 		Context("WithError", func() {
 			It("returns a logger with an error", func() {
-				Expect(logger.WithError(errors.New("test: error"))).ToNot(BeNil())
+				Expect(standard.WithError(errors.New("test: error"))).ToNot(BeNil())
 			})
 
 			It("returns a logger with nil error", func() {
-				Expect(logger.WithError(nil)).ToNot(BeNil())
+				Expect(standard.WithError(nil)).ToNot(BeNil())
 			})
 		})
 
 		Context("WithField", func() {
 			It("returns a logger with a field", func() {
-				Expect(logger.WithField("field", 1)).ToNot(BeNil())
+				Expect(standard.WithField("field", 1)).ToNot(BeNil())
 			})
 
 			It("returns a logger with a field with empty key", func() {
-				Expect(logger.WithField("", 1)).ToNot(BeNil())
+				Expect(standard.WithField("", 1)).ToNot(BeNil())
 			})
 
 			It("returns a logger with a field with nil value", func() {
-				Expect(logger.WithField("field", nil)).ToNot(BeNil())
+				Expect(standard.WithField("field", nil)).ToNot(BeNil())
 			})
 		})
 
 		Context("WithFields", func() {
 			It("returns a logger with fields", func() {
-				Expect(logger.WithFields(log.Fields{"field": 1})).ToNot(BeNil())
+				Expect(standard.WithFields(log.Fields{"field": 1})).ToNot(BeNil())
 			})
 
 			It("returns a logger with fields", func() {
-				Expect(logger.WithFields(nil)).ToNot(BeNil())
+				Expect(standard.WithFields(nil)).ToNot(BeNil())
 			})
 		})
 	})

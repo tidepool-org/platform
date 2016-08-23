@@ -35,7 +35,13 @@ type Logger interface {
 	WithFields(fields Fields) Logger
 }
 
-func NewLogger(versionReporter version.Reporter, config *Config) (Logger, error) {
+type Standard struct {
+	logger              *logrus.Logger
+	fields              logrus.Fields
+	ignoredFileSegments int
+}
+
+func NewStandard(versionReporter version.Reporter, config *Config) (*Standard, error) {
 	if versionReporter == nil {
 		return nil, app.Error("log", "version reporter is missing")
 	}
@@ -57,7 +63,7 @@ func NewLogger(versionReporter version.Reporter, config *Config) (Logger, error)
 		ignoredFileSegments = len(strings.Split(file, "/")) - 1
 	}
 
-	return &logger{
+	return &Standard{
 		&logrus.Logger{
 			Out:       os.Stderr,
 			Formatter: &logrus.JSONFormatter{},
@@ -72,51 +78,45 @@ func NewLogger(versionReporter version.Reporter, config *Config) (Logger, error)
 	}, nil
 }
 
-type logger struct {
-	logger              *logrus.Logger
-	fields              logrus.Fields
-	ignoredFileSegments int
+func (s *Standard) Debug(message string) {
+	s.finalizeFields().Debug(message)
 }
 
-func (l *logger) Debug(message string) {
-	l.finalizeFields().Debug(message)
+func (s *Standard) Info(message string) {
+	s.finalizeFields().Info(message)
 }
 
-func (l *logger) Info(message string) {
-	l.finalizeFields().Info(message)
+func (s *Standard) Warn(message string) {
+	s.finalizeFields().Warn(message)
 }
 
-func (l *logger) Warn(message string) {
-	l.finalizeFields().Warn(message)
+func (s *Standard) Error(message string) {
+	s.finalizeFields().Error(message)
 }
 
-func (l *logger) Error(message string) {
-	l.finalizeFields().Error(message)
-}
-
-func (l *logger) WithError(err error) Logger {
+func (s *Standard) WithError(err error) Logger {
 	if err == nil {
-		return l
+		return s
 	}
 
-	return l.WithFields(Fields{"error": err.Error()})
+	return s.WithFields(Fields{"error": err.Error()})
 }
 
-func (l *logger) WithField(key string, value interface{}) Logger {
+func (s *Standard) WithField(key string, value interface{}) Logger {
 	if key == "" || value == nil {
-		return l
+		return s
 	}
 
-	return l.WithFields(Fields{key: value})
+	return s.WithFields(Fields{key: value})
 }
 
-func (l *logger) WithFields(fields Fields) Logger {
+func (s *Standard) WithFields(fields Fields) Logger {
 	if len(fields) == 0 {
-		return l
+		return s
 	}
 
 	withFields := logrus.Fields{}
-	for k, v := range l.fields {
+	for k, v := range s.fields {
 		if k != "" && v != nil {
 			withFields[k] = v
 		}
@@ -127,17 +127,17 @@ func (l *logger) WithFields(fields Fields) Logger {
 		}
 	}
 
-	return &logger{l.logger, withFields, l.ignoredFileSegments}
+	return &Standard{s.logger, withFields, s.ignoredFileSegments}
 }
 
-func (l *logger) finalizeFields() *logrus.Entry {
-	return l.logger.WithFields(l.fields).WithFields(l.locationFields())
+func (s *Standard) finalizeFields() *logrus.Entry {
+	return s.logger.WithFields(s.fields).WithFields(s.locationFields())
 }
 
-func (l *logger) locationFields() logrus.Fields {
+func (s *Standard) locationFields() logrus.Fields {
 	fields := logrus.Fields{}
 	if _, file, line, ok := runtime.Caller(3); ok {
-		fileSegments := strings.SplitN(file, "/", l.ignoredFileSegments)
+		fileSegments := strings.SplitN(file, "/", s.ignoredFileSegments)
 		fields["file"] = fileSegments[len(fileSegments)-1]
 		fields["line"] = line
 	}
