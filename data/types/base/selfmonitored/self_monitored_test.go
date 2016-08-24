@@ -96,7 +96,7 @@ var _ = Describe("SelfMonitored", func() {
 			selfMonitoredBg.Units = &units
 			selfMonitoredBg.Value = &val
 
-			testContext, err := context.NewStandard(log.NewNullLogger())
+			testContext, err := context.NewStandard(log.NewNull())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
@@ -119,7 +119,7 @@ var _ = Describe("SelfMonitored", func() {
 			selfMonitoredBg.Units = &units
 			selfMonitoredBg.Value = &val
 
-			testContext, err := context.NewStandard(log.NewNullLogger())
+			testContext, err := context.NewStandard(log.NewNull())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)

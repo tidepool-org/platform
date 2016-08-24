@@ -280,7 +280,7 @@ var _ = Describe("Calculator", func() {
 				bolusCalculator.InsulinSensitivity = &val
 				bolusCalculator.BloodGlucoseTarget = &calculator.BloodGlucoseTarget{Target: &val}
 
-				testContext, err := context.NewStandard(log.NewNullLogger())
+				testContext, err := context.NewStandard(log.NewNull())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(testContext).ToNot(BeNil())
 				standardNormalizer, err := normalizer.NewStandard(testContext)
@@ -305,7 +305,7 @@ var _ = Describe("Calculator", func() {
 				bolusCalculator.InsulinSensitivity = &val
 				bolusCalculator.BloodGlucoseTarget = &calculator.BloodGlucoseTarget{Target: &val}
 
-				testContext, err := context.NewStandard(log.NewNullLogger())
+				testContext, err := context.NewStandard(log.NewNull())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(testContext).ToNot(BeNil())
 				standardNormalizer, err := normalizer.NewStandard(testContext)

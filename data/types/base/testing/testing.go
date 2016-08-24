@@ -49,7 +49,7 @@ func checkErrorsFromParseValidateNormalize(object map[string]interface{}, field 
 		delete(object, field)
 	}
 
-	standardContext, err := context.NewStandard(log.NewNullLogger())
+	standardContext, err := context.NewStandard(log.NewNull())
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	gomega.Expect(standardContext).ToNot(gomega.BeNil())
 

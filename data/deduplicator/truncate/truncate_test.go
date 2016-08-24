@@ -162,54 +162,54 @@ var _ = Describe("Truncate", func() {
 			})
 
 			It("returns an error if the data store session is missing", func() {
-				truncateDeduplicator, err := factory.NewDeduplicator(log.NewNullLogger(), nil, dataset)
+				truncateDeduplicator, err := factory.NewDeduplicator(log.NewNull(), nil, dataset)
 				Expect(err).To(MatchError("truncate: data store session is missing"))
 				Expect(truncateDeduplicator).To(BeNil())
 			})
 
 			It("returns an error if the dataset is missing", func() {
-				truncateDeduplicator, err := factory.NewDeduplicator(log.NewNullLogger(), &TestDataStoreSession{}, nil)
+				truncateDeduplicator, err := factory.NewDeduplicator(log.NewNull(), &TestDataStoreSession{}, nil)
 				Expect(err).To(MatchError("truncate: dataset is missing"))
 				Expect(truncateDeduplicator).To(BeNil())
 			})
 
 			It("returns an error if the dataset id is missing", func() {
 				dataset.UploadID = ""
-				truncateDeduplicator, err := factory.NewDeduplicator(log.NewNullLogger(), &TestDataStoreSession{}, dataset)
+				truncateDeduplicator, err := factory.NewDeduplicator(log.NewNull(), &TestDataStoreSession{}, dataset)
 				Expect(err).To(MatchError("truncate: dataset id is missing"))
 				Expect(truncateDeduplicator).To(BeNil())
 			})
 
 			It("returns an error if the dataset user id is missing", func() {
 				dataset.UserID = ""
-				truncateDeduplicator, err := factory.NewDeduplicator(log.NewNullLogger(), &TestDataStoreSession{}, dataset)
+				truncateDeduplicator, err := factory.NewDeduplicator(log.NewNull(), &TestDataStoreSession{}, dataset)
 				Expect(err).To(MatchError("truncate: dataset user id is missing"))
 				Expect(truncateDeduplicator).To(BeNil())
 			})
 
 			It("returns an error if the dataset group id is missing", func() {
 				dataset.GroupID = ""
-				truncateDeduplicator, err := factory.NewDeduplicator(log.NewNullLogger(), &TestDataStoreSession{}, dataset)
+				truncateDeduplicator, err := factory.NewDeduplicator(log.NewNull(), &TestDataStoreSession{}, dataset)
 				Expect(err).To(MatchError("truncate: dataset group id is missing"))
 				Expect(truncateDeduplicator).To(BeNil())
 			})
 
 			It("returns an error if the dataset device id is missing", func() {
 				dataset.DeviceID = nil
-				truncateDeduplicator, err := factory.NewDeduplicator(log.NewNullLogger(), &TestDataStoreSession{}, dataset)
+				truncateDeduplicator, err := factory.NewDeduplicator(log.NewNull(), &TestDataStoreSession{}, dataset)
 				Expect(err).To(MatchError("truncate: dataset device id is missing"))
 				Expect(truncateDeduplicator).To(BeNil())
 			})
 
 			It("returns an error if the dataset device id is empty", func() {
 				dataset.DeviceID = app.StringAsPointer("")
-				truncateDeduplicator, err := factory.NewDeduplicator(log.NewNullLogger(), &TestDataStoreSession{}, dataset)
+				truncateDeduplicator, err := factory.NewDeduplicator(log.NewNull(), &TestDataStoreSession{}, dataset)
 				Expect(err).To(MatchError("truncate: dataset device id is missing"))
 				Expect(truncateDeduplicator).To(BeNil())
 			})
 
 			It("returns a new deduplicator upon success", func() {
-				Expect(factory.NewDeduplicator(log.NewNullLogger(), &TestDataStoreSession{}, dataset)).ToNot(BeNil())
+				Expect(factory.NewDeduplicator(log.NewNull(), &TestDataStoreSession{}, dataset)).ToNot(BeNil())
 			})
 		})
 
@@ -220,7 +220,7 @@ var _ = Describe("Truncate", func() {
 			BeforeEach(func() {
 				var err error
 				testDataStoreSession = &TestDataStoreSession{}
-				truncateDeduplicator, err = factory.NewDeduplicator(log.NewNullLogger(), testDataStoreSession, dataset)
+				truncateDeduplicator, err = factory.NewDeduplicator(log.NewNull(), testDataStoreSession, dataset)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(truncateDeduplicator).ToNot(BeNil())
 			})

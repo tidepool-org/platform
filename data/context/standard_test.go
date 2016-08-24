@@ -22,7 +22,7 @@ var _ = Describe("Standard", func() {
 		var err error
 
 		BeforeEach(func() {
-			standard, err = context.NewStandard(log.NewNullLogger())
+			standard, err = context.NewStandard(log.NewNull())
 			Expect(err).ToNot(HaveOccurred())
 		})
 

@@ -81,7 +81,7 @@ var _ = Describe("Continuous", func() {
 			continuousBg.Units = &units
 			continuousBg.Value = &val
 
-			testContext, err := context.NewStandard(log.NewNullLogger())
+			testContext, err := context.NewStandard(log.NewNull())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
@@ -104,7 +104,7 @@ var _ = Describe("Continuous", func() {
 			continuousBg.Units = &units
 			continuousBg.Value = &val
 
-			testContext, err := context.NewStandard(log.NewNullLogger())
+			testContext, err := context.NewStandard(log.NewNull())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)

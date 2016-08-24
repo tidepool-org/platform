@@ -85,7 +85,7 @@ var _ = Describe("Calibration", func() {
 			calibrationEvent.Units = &units
 			calibrationEvent.Value = &val
 
-			testContext, err := context.NewStandard(log.NewNullLogger())
+			testContext, err := context.NewStandard(log.NewNull())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)
@@ -108,7 +108,7 @@ var _ = Describe("Calibration", func() {
 			calibrationEvent.Units = &units
 			calibrationEvent.Value = &val
 
-			testContext, err := context.NewStandard(log.NewNullLogger())
+			testContext, err := context.NewStandard(log.NewNull())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
 			standardNormalizer, err := normalizer.NewStandard(testContext)

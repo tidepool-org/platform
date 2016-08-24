@@ -9,17 +9,17 @@ import (
 	"github.com/tidepool-org/platform/log"
 )
 
-var _ = Describe("NullLogger", func() {
-	Context("NewNullLogger", func() {
+var _ = Describe("Null", func() {
+	Context("NewNull", func() {
 		It("returns successfully", func() {
-			Expect(log.NewNullLogger()).ToNot(BeNil())
+			Expect(log.NewNull()).ToNot(BeNil())
 		})
 
 		Context("with new null logger", func() {
-			var logger *log.NullLogger
+			var logger *log.Null
 
 			BeforeEach(func() {
-				logger = log.NewNullLogger()
+				logger = log.NewNull()
 				Expect(logger).ToNot(BeNil())
 			})
 
