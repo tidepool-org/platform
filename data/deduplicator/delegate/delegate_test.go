@@ -192,7 +192,7 @@ var _ = Describe("Delegate", func() {
 			var dataStoreSession store.Session
 
 			BeforeEach(func() {
-				logger = log.NewNullLogger()
+				logger = log.NewNull()
 				dataStoreSession = &TestDataStoreSession{}
 			})
 

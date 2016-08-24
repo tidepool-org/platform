@@ -51,7 +51,7 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request) (*Standard
 
 	logger := service.GetRequestLogger(request)
 	if logger == nil {
-		logger = log.NewNullLogger()
+		logger = log.NewNull()
 	}
 
 	return &Standard{

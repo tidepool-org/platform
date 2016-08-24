@@ -15,7 +15,7 @@ var _ = Describe("Logger", func() {
 		var logger log.Logger
 
 		BeforeEach(func() {
-			logger = log.NewNullLogger()
+			logger = log.NewNull()
 		})
 
 		Context("NewLogger", func() {

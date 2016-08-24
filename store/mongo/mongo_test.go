@@ -20,7 +20,7 @@ var _ = Describe("Mongo", func() {
 	var mongoSession *mongo.Session
 
 	BeforeEach(func() {
-		logger = log.NewNullLogger()
+		logger = log.NewNull()
 		mongoConfig = &mongo.Config{
 			Addresses:  MongoTestAddress(),
 			Database:   MongoTestDatabase(),
@@ -142,7 +142,7 @@ var _ = Describe("Mongo", func() {
 		Context("NewSession", func() {
 			It("returns no error if successful", func() {
 				var err error
-				mongoSession, err = mongoStore.NewSession(log.NewNullLogger())
+				mongoSession, err = mongoStore.NewSession(log.NewNull())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(mongoSession).ToNot(BeNil())
 			})
@@ -158,7 +158,7 @@ var _ = Describe("Mongo", func() {
 				mongoStore.Close()
 				Expect(mongoStore.IsClosed()).To(BeTrue())
 				var err error
-				mongoSession, err = mongoStore.NewSession(log.NewNullLogger())
+				mongoSession, err = mongoStore.NewSession(log.NewNull())
 				Expect(err).To(MatchError("mongo: store closed"))
 				Expect(mongoSession).To(BeNil())
 			})
@@ -167,7 +167,7 @@ var _ = Describe("Mongo", func() {
 		Context("with a new session", func() {
 			BeforeEach(func() {
 				var err error
-				mongoSession, err = mongoStore.NewSession(log.NewNullLogger())
+				mongoSession, err = mongoStore.NewSession(log.NewNull())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(mongoSession).ToNot(BeNil())
 			})

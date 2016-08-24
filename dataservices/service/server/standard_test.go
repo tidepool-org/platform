@@ -44,7 +44,7 @@ var _ = Describe("Standard", func() {
 	var config *server.Config
 
 	BeforeEach(func() {
-		logger = log.NewNullLogger()
+		logger = log.NewNull()
 		handler = &TestHandler{}
 		api = &TestAPI{
 			HandlerOutputs: []http.Handler{handler},

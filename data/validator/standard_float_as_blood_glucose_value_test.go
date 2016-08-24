@@ -25,7 +25,7 @@ var _ = Describe("StandardFloatAsBloodGlucoseValue", func() {
 
 		BeforeEach(func() {
 			var err error
-			standardContext, err = context.NewStandard(log.NewNullLogger())
+			standardContext, err = context.NewStandard(log.NewNull())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(standardContext).ToNot(BeNil())
 		})

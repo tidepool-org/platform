@@ -90,7 +90,7 @@ var _ = Describe("Trace", func() {
 			var logger log.Logger
 
 			BeforeEach(func() {
-				logger = log.NewNullLogger()
+				logger = log.NewNull()
 				handler = func(response rest.ResponseWriter, request *rest.Request) {
 					Expect(request.Env["LOGGER"]).ToNot(BeNil())
 					Expect(request.Env["TRACE-REQUEST"]).ToNot(BeEmpty())

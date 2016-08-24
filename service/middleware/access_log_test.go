@@ -45,7 +45,7 @@ var _ = Describe("AccessLog", func() {
 					Detail: "test-error-detail",
 				},
 			}
-			request.Env["LOGGER"] = log.NewNullLogger()
+			request.Env["LOGGER"] = log.NewNull()
 			request.Env["REMOTE_USER"] = "gollum"
 			request.Env["START_TIME"] = &startTime
 			request.Env["STATUS_CODE"] = 400

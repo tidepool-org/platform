@@ -38,7 +38,7 @@ var _ = Describe("Request", func() {
 					Detail: "test-error-detail",
 				},
 			}
-			logger = log.NewNullLogger()
+			logger = log.NewNull()
 			request = NewTestRequest()
 			request.Env["ERRORS"] = errors
 			request.Env["LOGGER"] = logger
@@ -120,7 +120,7 @@ var _ = Describe("Request", func() {
 			var newLogger log.Logger
 
 			BeforeEach(func() {
-				newLogger = log.NewNullLogger()
+				newLogger = log.NewNull()
 			})
 
 			It("successfully sets the logger", func() {
