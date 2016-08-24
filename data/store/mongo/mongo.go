@@ -53,6 +53,34 @@ type Session struct {
 	*commonMongo.Session
 }
 
+func (s *Session) GetDatasetsForUser(userID string) ([]*upload.Upload, error) {
+	if userID == "" {
+		return nil, app.Error("mongo", "user id is missing")
+	}
+
+	if s.IsClosed() {
+		return nil, app.Error("mongo", "session closed")
+	}
+
+	startTime := time.Now()
+
+	var datasets []*upload.Upload
+	selector := bson.M{"type": "upload", "_userId": userID}
+	err := s.C().Find(selector).All(&datasets)
+
+	loggerFields := log.Fields{"userID": userID, "datasets-count": len(datasets), "duration": time.Since(startTime) / time.Microsecond}
+	s.Logger().WithFields(loggerFields).WithError(err).Debug("GetDatasetsForUser")
+
+	if err != nil {
+		return nil, app.ExtError(err, "mongo", "unable to get datasets for user")
+	}
+
+	if datasets == nil {
+		datasets = []*upload.Upload{}
+	}
+	return datasets, nil
+}
+
 func (s *Session) GetDataset(datasetID string) (*upload.Upload, error) {
 	if datasetID == "" {
 		return nil, app.Error("mongo", "dataset id is missing")
@@ -146,6 +174,29 @@ func (s *Session) UpdateDataset(dataset *upload.Upload) error {
 
 	if err != nil {
 		return app.ExtError(err, "mongo", "unable to update dataset")
+	}
+	return nil
+}
+
+func (s *Session) DeleteDataset(datasetID string) error {
+	if datasetID == "" {
+		return app.Error("mongo", "dataset id is missing")
+	}
+
+	if s.IsClosed() {
+		return app.Error("mongo", "session closed")
+	}
+
+	startTime := time.Now()
+
+	selector := bson.M{"uploadId": datasetID}
+	changeInfo, err := s.C().RemoveAll(selector)
+
+	loggerFields := log.Fields{"datasetID": datasetID, "change-info": changeInfo, "duration": time.Since(startTime) / time.Microsecond}
+	s.Logger().WithFields(loggerFields).WithError(err).Debug("DeleteDataset")
+
+	if err != nil {
+		return app.ExtError(err, "mongo", "unable to delete dataset")
 	}
 	return nil
 }

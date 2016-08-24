@@ -38,6 +38,10 @@ func (t *TestDataStoreSession) Close() {
 	panic("Unexpected invocation of Close on TestDataStoreSession")
 }
 
+func (t *TestDataStoreSession) GetDatasetsForUser(userID string) ([]*upload.Upload, error) {
+	panic("Unexpected invocation of GetDatasetsForUser on TestDataStoreSession")
+}
+
 func (t *TestDataStoreSession) GetDataset(datasetID string) (*upload.Upload, error) {
 	panic("Unexpected invocation of GetDataset on TestDataStoreSession")
 }
@@ -51,6 +55,10 @@ func (t *TestDataStoreSession) UpdateDataset(dataset *upload.Upload) error {
 	output := t.UpdateDatasetOutputs[0]
 	t.UpdateDatasetOutputs = t.UpdateDatasetOutputs[1:]
 	return output
+}
+
+func (t *TestDataStoreSession) DeleteDataset(datasetID string) error {
+	panic("Unexpected invocation of DeleteDataset on TestDataStoreSession")
 }
 
 func (t *TestDataStoreSession) CreateDatasetData(dataset *upload.Upload, datasetData []data.Datum) error {
