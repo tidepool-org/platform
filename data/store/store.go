@@ -26,9 +26,11 @@ type Store interface {
 type Session interface {
 	store.Session
 
+	GetDatasetsForUser(userID string) ([]*upload.Upload, error)
 	GetDataset(datasetID string) (*upload.Upload, error)
 	CreateDataset(dataset *upload.Upload) error
 	UpdateDataset(dataset *upload.Upload) error
+	DeleteDataset(datasetID string) error
 	CreateDatasetData(dataset *upload.Upload, datasetData []data.Datum) error
 	ActivateAllDatasetData(dataset *upload.Upload) error
 	DeleteAllOtherDatasetData(dataset *upload.Upload) error

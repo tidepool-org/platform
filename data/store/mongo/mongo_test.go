@@ -182,6 +182,36 @@ var _ = Describe("Mongo", func() {
 					}
 				})
 
+				Context("GetDatasetsForUser", func() {
+					BeforeEach(func() {
+						Expect(mongoTestCollection.Insert(dataset)).To(Succeed())
+					})
+
+					It("returns no error if it successfully finds the user datasets", func() {
+						Expect(mongoSession.GetDatasetsForUser(userID)).To(Equal([]*upload.Upload{datasetExistingOne, datasetExistingTwo, dataset}))
+					})
+
+					It("returns no error if it successfully does not find another user datasets", func() {
+						resultDatasets, err := mongoSession.GetDatasetsForUser(app.NewID())
+						Expect(err).ToNot(HaveOccurred())
+						Expect(resultDatasets).ToNot(BeNil())
+						Expect(resultDatasets).To(BeEmpty())
+					})
+
+					It("returns an error if the user id is missing", func() {
+						resultDatasets, err := mongoSession.GetDatasetsForUser("")
+						Expect(err).To(MatchError("mongo: user id is missing"))
+						Expect(resultDatasets).To(BeNil())
+					})
+
+					It("returns an error if the session is closed", func() {
+						mongoSession.Close()
+						resultDatasets, err := mongoSession.GetDatasetsForUser(userID)
+						Expect(err).To(MatchError("mongo: session closed"))
+						Expect(resultDatasets).To(BeNil())
+					})
+				})
+
 				Context("GetDataset", func() {
 					BeforeEach(func() {
 						Expect(mongoTestCollection.Insert(dataset)).To(Succeed())
@@ -301,6 +331,31 @@ var _ = Describe("Mongo", func() {
 						dataset.DataState = "closed"
 						Expect(mongoSession.UpdateDataset(dataset)).To(Succeed())
 						ValidateDataset(mongoTestCollection, bson.M{}, datasetExistingOne, datasetExistingTwo, dataset)
+					})
+				})
+
+				Context("DeleteDataset", func() {
+					BeforeEach(func() {
+						Expect(mongoTestCollection.Insert(dataset)).To(Succeed())
+					})
+
+					It("returns no error if it successfully deletes the dataset", func() {
+						Expect(mongoSession.DeleteDataset(dataset.UploadID)).To(Succeed())
+						ValidateDataset(mongoTestCollection, bson.M{}, datasetExistingOne, datasetExistingTwo)
+					})
+
+					It("returns no error if it successfully ignores an unknown dataset", func() {
+						Expect(mongoSession.DeleteDataset(app.NewID())).To(Succeed())
+						ValidateDataset(mongoTestCollection, bson.M{}, datasetExistingOne, datasetExistingTwo, dataset)
+					})
+
+					It("returns an error if the dataset id is missing", func() {
+						Expect(mongoSession.DeleteDataset("")).To(MatchError("mongo: dataset id is missing"))
+					})
+
+					It("returns an error if the session is closed", func() {
+						mongoSession.Close()
+						Expect(mongoSession.DeleteDataset(userID)).To(MatchError("mongo: session closed"))
 					})
 				})
 
