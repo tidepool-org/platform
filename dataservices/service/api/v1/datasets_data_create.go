@@ -116,5 +116,5 @@ func DatasetsDataCreate(serviceContext service.Context) {
 		return
 	}
 
-	serviceContext.Response().WriteHeader(http.StatusOK)
+	serviceContext.RespondWithStatusAndData(http.StatusOK, []struct{}{})
 }

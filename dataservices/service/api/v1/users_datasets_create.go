@@ -127,6 +127,5 @@ func UsersDatasetsCreate(serviceContext service.Context) {
 		return
 	}
 
-	serviceContext.Response().WriteHeader(http.StatusCreated)
-	serviceContext.Response().WriteJson(dataset)
+	serviceContext.RespondWithStatusAndData(http.StatusCreated, dataset)
 }

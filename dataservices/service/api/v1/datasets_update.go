@@ -67,6 +67,5 @@ func DatasetsUpdate(serviceContext service.Context) {
 		return
 	}
 
-	serviceContext.Response().WriteHeader(http.StatusOK)
-	serviceContext.Response().WriteJson(dataset)
+	serviceContext.RespondWithStatusAndData(http.StatusOK, dataset)
 }
