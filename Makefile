@@ -121,16 +121,7 @@ build: check-environment
 	@cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD) | $(TRANSFORM_MKDIR_CMD) | xargs -L1 $(MKDIR_CMD)
 	@cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD) | $(TRANSFORM_GO_BUILD_CMD) | xargs -L1 $(GO_BUILD_CMD)
 
-ci-build: build
-
-ci-deploy: pre-build ci-build ci-test
-ifdef TRAVIS_TAG
-	@cd $(ROOT_DIRECTORY) && \
-		rm -rf deploy/ && \
-		mkdir -p deploy/platform/platform-$(TRAVIS_TAG)/ && \
-		cp -r _bin _config _deploy/* deploy/platform/platform-$(TRAVIS_TAG)/ && \
-		tar -c -z -f deploy/platform/platform-$(TRAVIS_TAG).tar.gz -C deploy/platform/ platform-$(TRAVIS_TAG)
-endif
+ci-build: pre-build build
 
 start: stop build log
 	@cd $(ROOT_DIRECTORY) && _bin/dataservices/dataservices >> _log/service.log 2>&1 &
@@ -150,11 +141,40 @@ watch: ginkgo
 	@echo "ginkgo watch --slowSpecThreshold=10 -r -notify $(WATCH)"
 	@cd $(ROOT_DIRECTORY) && TIDEPOOL_ENV=test ginkgo watch --slowSpecThreshold=10 -r -notify $(WATCH)
 
-clean: stop clean-cover
-	@cd $(ROOT_DIRECTORY) && rm -rf _bin _log _tmp deploy
+deploy: clean-deploy deploy-dataservices deploy-tools
+
+deploy-dataservices:
+	@$(MAKE) bundle-deploy DEPLOY=dataservices
+
+deploy-tools:
+	@$(MAKE) bundle-deploy DEPLOY=tools
+
+ci-deploy: ci-build ci-test deploy
+
+bundle-deploy: check-environment
+ifdef DEPLOY
+ifdef TRAVIS_TAG
+	@cd $(ROOT_DIRECTORY) && \
+		DEPLOY_TAG=$(DEPLOY)-$(TRAVIS_TAG) && \
+		DEPLOY_DIR=deploy/$(DEPLOY)/$${DEPLOY_TAG} && \
+		mkdir -p $${DEPLOY_DIR}/ && \
+		cp -r _deploy/$(DEPLOY)/ $${DEPLOY_DIR}/ && \
+		for DIR in _bin _config; do if [ -d "$${DIR}/$(DEPLOY)" ]; then mkdir -p $${DEPLOY_DIR}/$${DIR}; cp -r $${DIR}/$(DEPLOY)/ $${DEPLOY_DIR}/$${DIR}/$(DEPLOY)/; fi; done && \
+		tar -c -z -f $${DEPLOY_DIR}.tar.gz -C deploy/$(DEPLOY)/ $${DEPLOY_TAG}
+endif
+endif
+
+clean: clean-bin clean-cover clean-deploy
+	@cd $(ROOT_DIRECTORY) && rm -rf _log _tmp
+
+clean-bin: stop
+	@cd $(ROOT_DIRECTORY) && rm -rf _bin
 
 clean-cover:
 	@cd $(ROOT_DIRECTORY) && find . -type f -name "*.coverprofile" -delete
+
+clean-deploy:
+	@cd $(ROOT_DIRECTORY) && rm -rf deploy
 
 clean-all: clean
 

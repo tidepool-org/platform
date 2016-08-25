@@ -13,6 +13,7 @@ package service
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/config"
@@ -146,7 +147,7 @@ func (s *Standard) initializeEnvironmentReporter() error {
 }
 
 func (s *Standard) initializeConfigLoader() error {
-	configLoader, err := config.NewLoader(s.environmentReporter, os.Getenv("TIDEPOOL_CONFIG_DIRECTORY"), "TIDEPOOL")
+	configLoader, err := config.NewLoader(s.environmentReporter, filepath.Join(os.Getenv("TIDEPOOL_CONFIG_DIRECTORY"), "dataservices"), "TIDEPOOL")
 	if err != nil {
 		return app.ExtError(err, "dataservices", "unable to create config loader")
 	}

@@ -14,7 +14,7 @@ addons:
   artifacts:
     s3_region: "us-west-2"
     paths:
-    - $(git ls-files -o deploy/platform/platform-*.tar.gz | tr "\n" ":")
+    - $(git ls-files -o deploy/*/*-*.tar.gz | tr "\n" ":")
     target_paths:
     - /
   code_climate:
