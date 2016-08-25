@@ -10,8 +10,16 @@ package service
  * [x] Full test coverage
  */
 
-import "net/http"
+type Route struct {
+	Method  string
+	Path    string
+	Handler HandlerFunc
+}
 
-type API interface {
-	Handler() http.Handler
+func MakeRoute(method string, path string, handler HandlerFunc) Route {
+	return Route{
+		Method:  method,
+		Path:    path,
+		Handler: handler,
+	}
 }

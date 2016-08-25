@@ -7,7 +7,7 @@ import (
 	"github.com/tidepool-org/platform/dataservices/service"
 )
 
-var _ = Describe("API", func() {
+var _ = Describe("Route", func() {
 	Context("MakeRoute", func() {
 		It("returns a route with missing parameters", func() {
 			route := service.MakeRoute("", "", nil)
