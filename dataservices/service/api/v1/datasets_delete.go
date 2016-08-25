@@ -14,6 +14,7 @@ import (
 	"net/http"
 
 	"github.com/tidepool-org/platform/dataservices/service"
+	commonService "github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/userservices/client"
 )
 
@@ -39,7 +40,7 @@ func DatasetsDelete(serviceContext service.Context) {
 	permissions, err := serviceContext.UserServicesClient().GetUserPermissions(serviceContext, serviceContext.RequestUserID(), targetUserID)
 	if err != nil {
 		if client.IsUnauthorizedError(err) {
-			serviceContext.RespondWithError(ErrorUnauthorized())
+			serviceContext.RespondWithError(commonService.ErrorUnauthorized())
 		} else {
 			serviceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
 		}
@@ -48,7 +49,7 @@ func DatasetsDelete(serviceContext service.Context) {
 	if _, ok := permissions[client.OwnerPermission]; !ok {
 		if _, ok = permissions[client.CustodianPermission]; !ok {
 			if _, ok = permissions[client.UploadPermission]; !ok || serviceContext.RequestUserID() != targetUserID {
-				serviceContext.RespondWithError(ErrorUnauthorized())
+				serviceContext.RespondWithError(commonService.ErrorUnauthorized())
 				return
 			}
 		}

@@ -14,6 +14,7 @@ import (
 	"net/http"
 
 	"github.com/tidepool-org/platform/dataservices/service"
+	commonService "github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/userservices/client"
 )
 
@@ -27,14 +28,14 @@ func UsersDatasetsGet(serviceContext service.Context) {
 	permissions, err := serviceContext.UserServicesClient().GetUserPermissions(serviceContext, serviceContext.RequestUserID(), targetUserID)
 	if err != nil {
 		if client.IsUnauthorizedError(err) {
-			serviceContext.RespondWithError(ErrorUnauthorized())
+			serviceContext.RespondWithError(commonService.ErrorUnauthorized())
 		} else {
 			serviceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
 		}
 		return
 	}
 	if _, ok := permissions[client.ViewPermission]; !ok {
-		serviceContext.RespondWithError(ErrorUnauthorized())
+		serviceContext.RespondWithError(commonService.ErrorUnauthorized())
 		return
 	}
 

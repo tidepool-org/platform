@@ -12,6 +12,7 @@ package v1
 
 import (
 	"github.com/tidepool-org/platform/dataservices/service"
+	commonService "github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/userservices/client"
 )
 
@@ -19,14 +20,14 @@ func Authenticate(handler service.HandlerFunc) service.HandlerFunc {
 	return func(context service.Context) {
 		userSessionToken := context.Request().Header.Get(client.TidepoolUserSessionTokenHeaderName)
 		if userSessionToken == "" {
-			context.RespondWithError(ErrorAuthenticationTokenMissing())
+			context.RespondWithError(commonService.ErrorAuthenticationTokenMissing())
 			return
 		}
 
 		requestUserID, err := context.UserServicesClient().ValidateUserSession(context, userSessionToken)
 		if err != nil {
 			if client.IsUnauthorizedError(err) {
-				context.RespondWithError(ErrorUnauthenticated())
+				context.RespondWithError(commonService.ErrorUnauthenticated())
 			} else {
 				context.RespondWithInternalServerFailure("Unable to validate user session", err, userSessionToken)
 			}

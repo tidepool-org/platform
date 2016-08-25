@@ -17,42 +17,6 @@ import (
 	"github.com/tidepool-org/platform/service"
 )
 
-func ErrorAuthenticationTokenMissing() *service.Error {
-	return &service.Error{
-		Code:   "authentication-token-missing",
-		Status: http.StatusUnauthorized,
-		Title:  "authentication token missing",
-		Detail: "Authentication token missing",
-	}
-}
-
-func ErrorUnauthenticated() *service.Error {
-	return &service.Error{
-		Code:   "unauthenticated",
-		Status: http.StatusUnauthorized,
-		Title:  "authentication token is invalid",
-		Detail: "Authentication token is invalid",
-	}
-}
-
-func ErrorUnauthorized() *service.Error {
-	return &service.Error{
-		Code:   "unauthorized",
-		Status: http.StatusForbidden,
-		Title:  "authentication token is not authorized for requested action",
-		Detail: "Authentication token is not authorized for requested action",
-	}
-}
-
-func ErrorJSONMalformed() *service.Error {
-	return &service.Error{
-		Code:   "json-malformed",
-		Status: http.StatusBadRequest,
-		Title:  "json is malformed",
-		Detail: "JSON is malformed",
-	}
-}
-
 func ErrorUserIDMissing() *service.Error {
 	return &service.Error{
 		Code:   "user-id-missing",

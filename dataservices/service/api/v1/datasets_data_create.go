@@ -19,6 +19,7 @@ import (
 	"github.com/tidepool-org/platform/data/parser"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/dataservices/service"
+	commonService "github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/userservices/client"
 )
 
@@ -38,14 +39,14 @@ func DatasetsDataCreate(serviceContext service.Context) {
 	permissions, err := serviceContext.UserServicesClient().GetUserPermissions(serviceContext, serviceContext.RequestUserID(), dataset.UserID)
 	if err != nil {
 		if client.IsUnauthorizedError(err) {
-			serviceContext.RespondWithError(ErrorUnauthorized())
+			serviceContext.RespondWithError(commonService.ErrorUnauthorized())
 		} else {
 			serviceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
 		}
 		return
 	}
 	if _, ok := permissions[client.UploadPermission]; !ok {
-		serviceContext.RespondWithError(ErrorUnauthorized())
+		serviceContext.RespondWithError(commonService.ErrorUnauthorized())
 		return
 	}
 
@@ -62,7 +63,7 @@ func DatasetsDataCreate(serviceContext service.Context) {
 
 	var rawDatumArray []interface{}
 	if err = serviceContext.Request().DecodeJsonPayload(&rawDatumArray); err != nil {
-		serviceContext.RespondWithError(ErrorJSONMalformed())
+		serviceContext.RespondWithError(commonService.ErrorJSONMalformed())
 		return
 	}
 

@@ -10,7 +10,7 @@ import (
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data/types/base/upload"
 	"github.com/tidepool-org/platform/dataservices/service/api/v1"
-	commonService "github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/userservices/client"
 )
 
@@ -51,7 +51,7 @@ var _ = Describe("UsersDatasetsGet", func() {
 		It("responds with error if not provided as a parameter", func() {
 			delete(context.RequestImpl.PathParams, "userid")
 			v1.UsersDatasetsGet(context)
-			Expect(context.RespondWithErrorInputs).To(Equal([]*commonService.Error{v1.ErrorUserIDMissing()}))
+			Expect(context.RespondWithErrorInputs).To(Equal([]*service.Error{v1.ErrorUserIDMissing()}))
 		})
 
 		It("panics if user services client is missing", func() {
@@ -63,7 +63,7 @@ var _ = Describe("UsersDatasetsGet", func() {
 			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{nil, client.NewUnauthorizedError()}}
 			v1.UsersDatasetsGet(context)
 			Expect(context.UserServicesClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, requestUserID, targetUserID}}))
-			Expect(context.RespondWithErrorInputs).To(Equal([]*commonService.Error{v1.ErrorUnauthorized()}))
+			Expect(context.RespondWithErrorInputs).To(Equal([]*service.Error{service.ErrorUnauthorized()}))
 		})
 
 		It("responds with error if user services client get user permissions returns any other error", func() {
@@ -78,7 +78,7 @@ var _ = Describe("UsersDatasetsGet", func() {
 			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{client.Permissions{client.UploadPermission: client.Permission{}}, nil}}
 			v1.UsersDatasetsGet(context)
 			Expect(context.UserServicesClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, requestUserID, targetUserID}}))
-			Expect(context.RespondWithErrorInputs).To(Equal([]*commonService.Error{v1.ErrorUnauthorized()}))
+			Expect(context.RespondWithErrorInputs).To(Equal([]*service.Error{service.ErrorUnauthorized()}))
 		})
 
 		It("panics if data store session is missing", func() {
