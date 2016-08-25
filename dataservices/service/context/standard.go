@@ -24,14 +24,14 @@ import (
 
 type Standard struct {
 	commonService.Context
+	userServicesClient      client.Client
 	dataFactory             data.Factory
 	dataStoreSession        store.Session
 	dataDeduplicatorFactory deduplicator.Factory
-	userServicesClient      client.Client
 	requestUserID           string
 }
 
-func WithContext(dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, userServicesClient client.Client, handler service.HandlerFunc) rest.HandlerFunc {
+func WithContext(userServicesClient client.Client, dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, handler service.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
 		context, err := context.NewStandard(response, request)
 		if err != nil {
@@ -48,12 +48,16 @@ func WithContext(dataFactory data.Factory, dataStore store.Store, dataDeduplicat
 
 		handler(&Standard{
 			Context:                 context,
+			userServicesClient:      userServicesClient,
 			dataFactory:             dataFactory,
 			dataStoreSession:        dataStoreSession,
 			dataDeduplicatorFactory: dataDeduplicatorFactory,
-			userServicesClient:      userServicesClient,
 		})
 	}
+}
+
+func (s *Standard) UserServicesClient() client.Client {
+	return s.userServicesClient
 }
 
 func (s *Standard) DataFactory() data.Factory {
@@ -66,10 +70,6 @@ func (s *Standard) DataStoreSession() store.Session {
 
 func (s *Standard) DataDeduplicatorFactory() deduplicator.Factory {
 	return s.dataDeduplicatorFactory
-}
-
-func (s *Standard) UserServicesClient() client.Client {
-	return s.userServicesClient
 }
 
 func (s *Standard) RequestUserID() string {

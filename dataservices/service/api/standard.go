@@ -29,18 +29,18 @@ import (
 )
 
 type Standard struct {
+	versionReporter         version.Reporter
+	environmentReporter     environment.Reporter
 	logger                  log.Logger
+	userServicesClient      client.Client
 	dataFactory             data.Factory
 	dataStore               store.Store
 	dataDeduplicatorFactory deduplicator.Factory
-	userServicesClient      client.Client
-	versionReporter         version.Reporter
-	environmentReporter     environment.Reporter
 	api                     *rest.Api
 	statusMiddleware        *rest.StatusMiddleware
 }
 
-func NewStandard(versionReporter version.Reporter, environmentReporter environment.Reporter, logger log.Logger, dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, userServicesClient client.Client, routes []service.Route) (*Standard, error) {
+func NewStandard(versionReporter version.Reporter, environmentReporter environment.Reporter, logger log.Logger, userServicesClient client.Client, dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, routes []service.Route) (*Standard, error) {
 	if versionReporter == nil {
 		return nil, app.Error("api", "version reporter is missing")
 	}
@@ -49,6 +49,9 @@ func NewStandard(versionReporter version.Reporter, environmentReporter environme
 	}
 	if logger == nil {
 		return nil, app.Error("api", "logger is missing")
+	}
+	if userServicesClient == nil {
+		return nil, app.Error("api", "user services client is missing")
 	}
 	if dataFactory == nil {
 		return nil, app.Error("api", "data factory is missing")
@@ -59,9 +62,6 @@ func NewStandard(versionReporter version.Reporter, environmentReporter environme
 	if dataDeduplicatorFactory == nil {
 		return nil, app.Error("api", "data deduplicator factory is missing")
 	}
-	if userServicesClient == nil {
-		return nil, app.Error("api", "user services client is missing")
-	}
 	if routes == nil {
 		return nil, app.Error("api", "routes is missing")
 	}
@@ -70,11 +70,11 @@ func NewStandard(versionReporter version.Reporter, environmentReporter environme
 		versionReporter:         versionReporter,
 		environmentReporter:     environmentReporter,
 		logger:                  logger,
-		dataStore:               dataStore,
-		dataFactory:             dataFactory,
-		dataDeduplicatorFactory: dataDeduplicatorFactory,
 		userServicesClient:      userServicesClient,
-		api:                     rest.NewApi(),
+		dataFactory:             dataFactory,
+		dataStore:               dataStore,
+		dataDeduplicatorFactory: dataDeduplicatorFactory,
+		api: rest.NewApi(),
 	}
 	if err := standard.initMiddleware(); err != nil {
 		return nil, err
@@ -91,7 +91,6 @@ func (s *Standard) Handler() http.Handler {
 }
 
 func (s *Standard) initMiddleware() error {
-
 	s.logger.Debug("Creating API middleware")
 
 	loggerMiddleware, err := middleware.NewLogger(s.logger)
@@ -135,7 +134,6 @@ func (s *Standard) initMiddleware() error {
 }
 
 func (s *Standard) initRouter(routes []service.Route) error {
-
 	s.logger.Debug("Creating API router")
 
 	baseRoutes := []service.Route{
@@ -165,5 +163,5 @@ func (s *Standard) initRouter(routes []service.Route) error {
 }
 
 func (s *Standard) withContext(handler service.HandlerFunc) rest.HandlerFunc {
-	return context.WithContext(s.dataFactory, s.dataStore, s.dataDeduplicatorFactory, s.userServicesClient, handler)
+	return context.WithContext(s.userServicesClient, s.dataFactory, s.dataStore, s.dataDeduplicatorFactory, handler)
 }

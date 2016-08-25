@@ -40,10 +40,10 @@ type Standard struct {
 	environmentReporter     environment.Reporter
 	configLoader            config.Loader
 	logger                  log.Logger
+	userServicesClient      client.Client
 	dataFactory             data.Factory
 	dataStore               store.Store
 	dataDeduplicatorFactory deduplicator.Factory
-	userServicesClient      client.Client
 	dataServicesAPI         service.API
 	dataServicesServer      service.Server
 }
@@ -55,16 +55,16 @@ func NewStandard() (*Standard, error) {
 func (s *Standard) Close() {
 	s.dataServicesServer = nil
 	s.dataServicesAPI = nil
-	if s.userServicesClient != nil {
-		s.userServicesClient.Close()
-		s.userServicesClient = nil
-	}
 	s.dataDeduplicatorFactory = nil
 	if s.dataStore != nil {
 		s.dataStore.Close()
 		s.dataStore = nil
 	}
 	s.dataFactory = nil
+	if s.userServicesClient != nil {
+		s.userServicesClient.Close()
+		s.userServicesClient = nil
+	}
 	s.logger = nil
 	s.configLoader = nil
 	s.environmentReporter = nil
@@ -172,6 +172,30 @@ func (s *Standard) initializeLogger() error {
 	return nil
 }
 
+func (s *Standard) initializeUserServicesClient() error {
+	s.logger.Debug("Loading user services client config")
+
+	userServicesClientConfig := &client.Config{}
+	if err := s.configLoader.Load("userservices_client", userServicesClientConfig); err != nil {
+		return app.ExtError(err, "dataservices", "unable to load user services client config")
+	}
+
+	s.logger.Debug("Creating user services client")
+
+	userServicesClient, err := client.NewStandard(s.logger, userServicesClientConfig)
+	if err != nil {
+		return app.ExtError(err, "dataservices", "unable to create user services client")
+	}
+	s.userServicesClient = userServicesClient
+
+	s.logger.Debug("Starting user services client")
+	if err = s.userServicesClient.Start(); err != nil {
+		return app.ExtError(err, "dataservices", "unable to start user services client")
+	}
+
+	return nil
+}
+
 func (s *Standard) initializeDataFactory() error {
 	s.logger.Debug("Creating data factory")
 
@@ -227,34 +251,10 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 	return nil
 }
 
-func (s *Standard) initializeUserServicesClient() error {
-	s.logger.Debug("Loading user services client config")
-
-	userServicesClientConfig := &client.Config{}
-	if err := s.configLoader.Load("userservices_client", userServicesClientConfig); err != nil {
-		return app.ExtError(err, "dataservices", "unable to load user services client config")
-	}
-
-	s.logger.Debug("Creating user services client")
-
-	userServicesClient, err := client.NewStandard(s.logger, userServicesClientConfig)
-	if err != nil {
-		return app.ExtError(err, "dataservices", "unable to create user services client")
-	}
-	s.userServicesClient = userServicesClient
-
-	s.logger.Debug("Starting user services client")
-	if err = s.userServicesClient.Start(); err != nil {
-		return app.ExtError(err, "dataservices", "unable to start user services client")
-	}
-
-	return nil
-}
-
 func (s *Standard) initializeDataServicesAPI() error {
 	s.logger.Debug("Creating data services api")
 
-	dataServicesAPI, err := api.NewStandard(s.versionReporter, s.environmentReporter, s.logger, s.dataFactory, s.dataStore, s.dataDeduplicatorFactory, s.userServicesClient, v1.Routes())
+	dataServicesAPI, err := api.NewStandard(s.versionReporter, s.environmentReporter, s.logger, s.userServicesClient, s.dataFactory, s.dataStore, s.dataDeduplicatorFactory, v1.Routes())
 	if err != nil {
 		return app.ExtError(err, "dataservices", "unable to create data services api")
 	}

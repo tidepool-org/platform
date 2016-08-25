@@ -129,8 +129,8 @@ type TestContext struct {
 	RespondWithErrorInputs                 []*service.Error
 	RespondWithInternalServerFailureInputs []RespondWithInternalServerFailureInput
 	RespondWithStatusAndDataInputs         []RespondWithStatusAndDataInput
-	DataStoreSessionImpl                   *TestDataStoreSession
 	UserServicesClientImpl                 *TestUserServicesClient
+	DataStoreSessionImpl                   *TestDataStoreSession
 	requestUserID                          string
 }
 
@@ -162,6 +162,10 @@ func (t *TestContext) RespondWithStatusAndData(statusCode int, data interface{})
 	t.RespondWithStatusAndDataInputs = append(t.RespondWithStatusAndDataInputs, RespondWithStatusAndDataInput{statusCode, data})
 }
 
+func (t *TestContext) UserServicesClient() client.Client {
+	return t.UserServicesClientImpl
+}
+
 func (t *TestContext) DataFactory() data.Factory {
 	panic("Unexpected invocation of DataFactory on TestContext")
 }
@@ -172,10 +176,6 @@ func (t *TestContext) DataStoreSession() store.Session {
 
 func (t *TestContext) DataDeduplicatorFactory() deduplicator.Factory {
 	panic("Unexpected invocation of DataDeduplicatorFactory on TestContext")
-}
-
-func (t *TestContext) UserServicesClient() client.Client {
-	return t.UserServicesClientImpl
 }
 
 func (t *TestContext) RequestUserID() string {

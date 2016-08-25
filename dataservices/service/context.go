@@ -21,10 +21,11 @@ import (
 type Context interface {
 	service.Context
 
+	UserServicesClient() client.Client
+
 	DataFactory() data.Factory
 	DataStoreSession() store.Session
 	DataDeduplicatorFactory() deduplicator.Factory
-	UserServicesClient() client.Client
 
 	RequestUserID() string
 	SetRequestUserID(requestUserID string)
