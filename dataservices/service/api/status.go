@@ -15,7 +15,7 @@ import "github.com/tidepool-org/platform/dataservices/service"
 type Status struct {
 	Version     string
 	Environment string
-	Store       interface{}
+	DataStore   interface{}
 	Server      interface{}
 }
 
@@ -23,7 +23,7 @@ func (s *Standard) GetStatus(serviceContext service.Context) {
 	status := &Status{
 		Version:     s.VersionReporter().Long(),
 		Environment: s.EnvironmentReporter().Name(),
-		Store:       s.dataStore.GetStatus(),
+		DataStore:   s.dataStore.GetStatus(),
 		Server:      s.StatusMiddleware().GetStatus(),
 	}
 	serviceContext.Response().WriteJson(status)
