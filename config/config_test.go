@@ -19,7 +19,7 @@ var _ = Describe("Config", func() {
 
 	BeforeEach(func() {
 		var err error
-		environmentReporter, err = environment.NewReporter("test")
+		environmentReporter, err = environment.NewReporter("test", "TIDEPOOL_TEST")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(environmentReporter).ToNot(BeNil())
 	})

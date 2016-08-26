@@ -137,7 +137,7 @@ func (s *Standard) initializeVersionReporter() error {
 }
 
 func (s *Standard) initializeEnvironmentReporter() error {
-	environmentReporter, err := environment.NewDefaultReporter()
+	environmentReporter, err := environment.NewDefaultReporter("TIDEPOOL")
 	if err != nil {
 		return app.ExtError(err, "dataservices", "unable to create environment reporter")
 	}

@@ -10,8 +10,6 @@ package environment
  * [x] Full test coverage
  */
 
-import "os"
-
-func NewDefaultReporter() (Reporter, error) {
-	return NewReporter(os.Getenv("TIDEPOOL_ENV"))
+func NewDefaultReporter(prefix string) (Reporter, error) {
+	return NewReporter(GetValue("ENV", prefix), prefix)
 }
