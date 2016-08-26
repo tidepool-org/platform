@@ -74,8 +74,6 @@ func (s *Standard) Handler() http.Handler {
 }
 
 func (s *Standard) InitializeMiddleware() error {
-	s.logger.Debug("Initializing middleware")
-
 	loggerMiddleware, err := middleware.NewLogger(s.logger)
 	if err != nil {
 		return err

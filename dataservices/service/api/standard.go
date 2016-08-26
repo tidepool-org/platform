@@ -72,8 +72,6 @@ func NewStandard(versionReporter version.Reporter, environmentReporter environme
 }
 
 func (s *Standard) InitializeRouter(routes []service.Route) error {
-	s.Logger().Debug("Initializing router")
-
 	baseRoutes := []service.Route{
 		service.MakeRoute("GET", "/status", s.GetStatus),
 		service.MakeRoute("GET", "/version", s.GetVersion),

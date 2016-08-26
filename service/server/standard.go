@@ -51,9 +51,6 @@ func NewStandard(logger log.Logger, api service.API, config *Config) (*Standard,
 }
 
 func (s *Standard) Serve() error {
-
-	s.logger.Debug("Serving")
-
 	server := &graceful.Server{
 		Timeout: time.Duration(s.config.Timeout) * time.Second,
 		Server: &http.Server{
