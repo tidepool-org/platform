@@ -17,8 +17,8 @@ import (
 	graceful "gopkg.in/tylerb/graceful.v1"
 
 	"github.com/tidepool-org/platform/app"
-	"github.com/tidepool-org/platform/dataservices/service"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/service"
 )
 
 type Standard struct {
