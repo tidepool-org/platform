@@ -9,5 +9,5 @@ import (
 
 func TestSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "dataservices/service/server")
+	RunSpecs(t, "service/server")
 }

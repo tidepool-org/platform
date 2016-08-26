@@ -6,8 +6,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/dataservices/service/server"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/service/server"
 )
 
 type ServeHTTPInput struct {
