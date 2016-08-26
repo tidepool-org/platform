@@ -27,15 +27,12 @@ type Loader interface {
 	Load(name string, config interface{}) error
 }
 
-func NewLoader(environmentReporter environment.Reporter, directory string, prefix string) (Loader, error) {
+func NewLoader(environmentReporter environment.Reporter, directory string) (Loader, error) {
 	if environmentReporter == nil {
 		return nil, app.Error("config", "environment reporter is missing")
 	}
 	if directory == "" {
 		return nil, app.Error("config", "directory is missing")
-	}
-	if prefix == "" {
-		return nil, app.Error("config", "prefix is missing")
 	}
 
 	if fileInfo, err := os.Stat(directory); err != nil {
@@ -50,14 +47,12 @@ func NewLoader(environmentReporter environment.Reporter, directory string, prefi
 	return &loader{
 		environmentReporter: environmentReporter,
 		directory:           directory,
-		prefix:              prefix,
 	}, nil
 }
 
 type loader struct {
 	environmentReporter environment.Reporter
 	directory           string
-	prefix              string
 }
 
 var (
@@ -92,7 +87,7 @@ func (l *loader) Load(name string, config interface{}) error {
 		return app.ExtError(err, "config", "unable to set CONFIGOR_ENV")
 	}
 
-	if err := os.Setenv("CONFIGOR_ENV_PREFIX", fmt.Sprintf("%s_%s", l.prefix, strings.ToUpper(name))); err != nil {
+	if err := os.Setenv("CONFIGOR_ENV_PREFIX", l.environmentReporter.GetKey(strings.ToUpper(name))); err != nil {
 		return app.ExtError(err, "config", "unable to set CONFIGOR_ENV_PREFIX")
 	}
 
