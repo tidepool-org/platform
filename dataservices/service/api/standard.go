@@ -11,8 +11,6 @@ package api
  */
 
 import (
-	"net/http"
-
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/app"
@@ -23,24 +21,20 @@ import (
 	"github.com/tidepool-org/platform/dataservices/service/context"
 	"github.com/tidepool-org/platform/environment"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/service/middleware"
+	"github.com/tidepool-org/platform/service/api"
 	"github.com/tidepool-org/platform/userservices/client"
 	"github.com/tidepool-org/platform/version"
 )
 
 type Standard struct {
-	versionReporter         version.Reporter
-	environmentReporter     environment.Reporter
-	logger                  log.Logger
+	*api.Standard
 	userServicesClient      client.Client
 	dataFactory             data.Factory
 	dataStore               store.Store
 	dataDeduplicatorFactory deduplicator.Factory
-	api                     *rest.Api
-	statusMiddleware        *rest.StatusMiddleware
 }
 
-func NewStandard(versionReporter version.Reporter, environmentReporter environment.Reporter, logger log.Logger, userServicesClient client.Client, dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, routes []service.Route) (*Standard, error) {
+func NewStandard(versionReporter version.Reporter, environmentReporter environment.Reporter, logger log.Logger, userServicesClient client.Client, dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory) (*Standard, error) {
 	if versionReporter == nil {
 		return nil, app.Error("api", "version reporter is missing")
 	}
@@ -62,79 +56,23 @@ func NewStandard(versionReporter version.Reporter, environmentReporter environme
 	if dataDeduplicatorFactory == nil {
 		return nil, app.Error("api", "data deduplicator factory is missing")
 	}
-	if routes == nil {
-		return nil, app.Error("api", "routes is missing")
+
+	standard, err := api.NewStandard(versionReporter, environmentReporter, logger)
+	if err != nil {
+		return nil, err
 	}
 
-	standard := &Standard{
-		versionReporter:         versionReporter,
-		environmentReporter:     environmentReporter,
-		logger:                  logger,
+	return &Standard{
+		Standard:                standard,
 		userServicesClient:      userServicesClient,
 		dataFactory:             dataFactory,
 		dataStore:               dataStore,
 		dataDeduplicatorFactory: dataDeduplicatorFactory,
-		api: rest.NewApi(),
-	}
-	if err := standard.initMiddleware(); err != nil {
-		return nil, err
-	}
-	if err := standard.initRouter(routes); err != nil {
-		return nil, err
-	}
-
-	return standard, nil
+	}, nil
 }
 
-func (s *Standard) Handler() http.Handler {
-	return s.api.MakeHandler()
-}
-
-func (s *Standard) initMiddleware() error {
-	s.logger.Debug("Creating API middleware")
-
-	loggerMiddleware, err := middleware.NewLogger(s.logger)
-	if err != nil {
-		return err
-	}
-	traceMiddleware, err := middleware.NewTrace()
-	if err != nil {
-		return err
-	}
-	accessLogMiddleware, err := middleware.NewAccessLog()
-	if err != nil {
-		return err
-	}
-	recoverMiddleware, err := middleware.NewRecover()
-	if err != nil {
-		return err
-	}
-
-	statusMiddleware := &rest.StatusMiddleware{}
-	timerMiddleware := &rest.TimerMiddleware{}
-	recorderMiddleware := &rest.RecorderMiddleware{}
-	gzipMiddleware := &rest.GzipMiddleware{}
-
-	middlewareStack := []rest.Middleware{
-		loggerMiddleware,
-		traceMiddleware,
-		accessLogMiddleware,
-		statusMiddleware,
-		timerMiddleware,
-		recorderMiddleware,
-		recoverMiddleware,
-		gzipMiddleware,
-	}
-
-	s.api.Use(middlewareStack...)
-
-	s.statusMiddleware = statusMiddleware
-
-	return nil
-}
-
-func (s *Standard) initRouter(routes []service.Route) error {
-	s.logger.Debug("Creating API router")
+func (s *Standard) InitializeRouter(routes []service.Route) error {
+	s.Logger().Debug("Initializing router")
 
 	baseRoutes := []service.Route{
 		service.MakeRoute("GET", "/status", s.GetStatus),
@@ -157,7 +95,7 @@ func (s *Standard) initRouter(routes []service.Route) error {
 		return app.ExtError(err, "api", "unable to create router")
 	}
 
-	s.api.SetApp(router)
+	s.API().SetApp(router)
 
 	return nil
 }

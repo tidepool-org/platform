@@ -21,10 +21,10 @@ type Status struct {
 
 func (s *Standard) GetStatus(serviceContext service.Context) {
 	status := &Status{
-		Version:     s.versionReporter.Long(),
-		Environment: s.environmentReporter.Name(),
+		Version:     s.VersionReporter().Long(),
+		Environment: s.EnvironmentReporter().Name(),
 		Store:       s.dataStore.GetStatus(),
-		Server:      s.statusMiddleware.GetStatus(),
+		Server:      s.StatusMiddleware().GetStatus(),
 	}
 	serviceContext.Response().WriteJson(status)
 }

@@ -43,7 +43,7 @@ type Standard struct {
 	dataFactory             data.Factory
 	dataStore               store.Store
 	dataDeduplicatorFactory deduplicator.Factory
-	dataServicesAPI         service.API
+	dataServicesAPI         *api.Standard
 	dataServicesServer      service.Server
 }
 
@@ -253,11 +253,23 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 func (s *Standard) initializeDataServicesAPI() error {
 	s.logger.Debug("Creating data services api")
 
-	dataServicesAPI, err := api.NewStandard(s.versionReporter, s.environmentReporter, s.logger, s.userServicesClient, s.dataFactory, s.dataStore, s.dataDeduplicatorFactory, v1.Routes())
+	dataServicesAPI, err := api.NewStandard(s.versionReporter, s.environmentReporter, s.logger, s.userServicesClient, s.dataFactory, s.dataStore, s.dataDeduplicatorFactory)
 	if err != nil {
 		return app.ExtError(err, "dataservices", "unable to create data services api")
 	}
 	s.dataServicesAPI = dataServicesAPI
+
+	s.logger.Debug("Initializing data services api middleware")
+
+	if err = s.dataServicesAPI.InitializeMiddleware(); err != nil {
+		return app.ExtError(err, "dataservices", "unable to initialize data services api middleware")
+	}
+
+	s.logger.Debug("Initializing data services api router")
+
+	if err = s.dataServicesAPI.InitializeRouter(v1.Routes()); err != nil {
+		return app.ExtError(err, "dataservices", "unable to initialize data services api router")
+	}
 
 	return nil
 }

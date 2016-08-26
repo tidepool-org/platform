@@ -17,5 +17,5 @@ type Version struct {
 }
 
 func (s *Standard) GetVersion(serviceContext service.Context) {
-	serviceContext.Response().WriteJson(Version{s.versionReporter.Long()})
+	serviceContext.Response().WriteJson(Version{s.VersionReporter().Long()})
 }
