@@ -11,80 +11,47 @@ package service
  */
 
 import (
-	"fmt"
-	"path/filepath"
-
 	"github.com/tidepool-org/platform/app"
-	"github.com/tidepool-org/platform/config"
-	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	"github.com/tidepool-org/platform/data/deduplicator/delegate"
 	"github.com/tidepool-org/platform/data/deduplicator/truncate"
 	"github.com/tidepool-org/platform/data/factory"
-	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/dataservices/service/api"
 	"github.com/tidepool-org/platform/dataservices/service/api/v1"
-	"github.com/tidepool-org/platform/environment"
-	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/service/server"
+	"github.com/tidepool-org/platform/service/service"
 	commonMongo "github.com/tidepool-org/platform/store/mongo"
 	"github.com/tidepool-org/platform/userservices/client"
-	"github.com/tidepool-org/platform/version"
 )
 
 type Standard struct {
-	versionReporter         version.Reporter
-	environmentReporter     environment.Reporter
-	configLoader            config.Loader
-	logger                  log.Logger
-	userServicesClient      client.Client
-	dataFactory             data.Factory
-	dataStore               store.Store
+	*service.Standard
+	userServicesClient      *client.Standard
+	dataFactory             *factory.Standard
+	dataStore               *mongo.Store
 	dataDeduplicatorFactory deduplicator.Factory
 	dataServicesAPI         *api.Standard
-	dataServicesServer      service.Server
+	dataServicesServer      *server.Standard
 }
 
 func NewStandard() (*Standard, error) {
-	return &Standard{}, nil
-}
+	standard, err := service.NewStandard("dataservices", "TIDEPOOL")
+	if err != nil {
+		return nil, err
+	}
 
-func (s *Standard) Close() {
-	s.dataServicesServer = nil
-	s.dataServicesAPI = nil
-	s.dataDeduplicatorFactory = nil
-	if s.dataStore != nil {
-		s.dataStore.Close()
-		s.dataStore = nil
-	}
-	s.dataFactory = nil
-	if s.userServicesClient != nil {
-		s.userServicesClient.Close()
-		s.userServicesClient = nil
-	}
-	s.logger = nil
-	s.configLoader = nil
-	s.environmentReporter = nil
-	s.versionReporter = nil
+	return &Standard{
+		Standard: standard,
+	}, nil
 }
 
 func (s *Standard) Initialize() error {
-	if s.dataServicesServer != nil {
-		return app.Error("dataservices", "service already initialized")
+	if err := s.Standard.Initialize(); err != nil {
+		return err
 	}
 
-	if err := s.initializeVersionReporter(); err != nil {
-		return err
-	}
-	if err := s.initializeEnvironmentReporter(); err != nil {
-		return err
-	}
-	if err := s.initializeConfigLoader(); err != nil {
-		return err
-	}
-	if err := s.initializeLogger(); err != nil {
+	if err := s.initializeUserServicesClient(); err != nil {
 		return err
 	}
 	if err := s.initializeDataFactory(); err != nil {
@@ -94,9 +61,6 @@ func (s *Standard) Initialize() error {
 		return err
 	}
 	if err := s.initializeDataDeduplicatorFactory(); err != nil {
-		return err
-	}
-	if err := s.initializeUserServicesClient(); err != nil {
 		return err
 	}
 	if err := s.initializeDataServicesAPI(); err != nil {
@@ -109,98 +73,61 @@ func (s *Standard) Initialize() error {
 	return nil
 }
 
+func (s *Standard) Terminate() {
+	s.dataServicesServer = nil
+	s.dataServicesAPI = nil
+	s.dataDeduplicatorFactory = nil
+	if s.dataStore != nil {
+		s.dataStore.Close()
+		s.dataStore = nil
+	}
+	s.dataFactory = nil
+	if s.userServicesClient != nil {
+		s.userServicesClient.Close()
+		s.userServicesClient = nil
+	}
+
+	s.Standard.Terminate()
+}
+
 func (s *Standard) Run() error {
 	if s.dataServicesServer == nil {
-		return app.Error("dataservices", "service not initialized")
+		return app.Error("service", "service not initialized")
 	}
 
 	return s.dataServicesServer.Serve()
 }
 
-func (s *Standard) API() service.API {
-	return s.dataServicesAPI
-}
-
-func (s *Standard) Server() service.Server {
-	return s.dataServicesServer
-}
-
-func (s *Standard) initializeVersionReporter() error {
-	versionReporter, err := version.NewDefaultReporter()
-	if err != nil {
-		return app.ExtError(err, "dataservices", "unable to create version reporter")
-	}
-	s.versionReporter = versionReporter
-
-	return nil
-}
-
-func (s *Standard) initializeEnvironmentReporter() error {
-	environmentReporter, err := environment.NewDefaultReporter("TIDEPOOL")
-	if err != nil {
-		return app.ExtError(err, "dataservices", "unable to create environment reporter")
-	}
-	s.environmentReporter = environmentReporter
-
-	return nil
-}
-
-func (s *Standard) initializeConfigLoader() error {
-	configLoader, err := config.NewLoader(s.environmentReporter, filepath.Join(s.environmentReporter.GetValue("CONFIG_DIRECTORY"), "dataservices"))
-	if err != nil {
-		return app.ExtError(err, "dataservices", "unable to create config loader")
-	}
-	s.configLoader = configLoader
-
-	return nil
-}
-
-func (s *Standard) initializeLogger() error {
-	loggerConfig := &log.Config{}
-	if err := s.configLoader.Load("logger", loggerConfig); err != nil {
-		return app.ExtError(err, "dataservices", "unable to load logger config")
-	}
-
-	logger, err := log.NewStandard(s.versionReporter, loggerConfig)
-	if err != nil {
-		return app.ExtError(err, "dataservices", "unable to create logger")
-	}
-	s.logger = logger
-
-	s.logger.Warn(fmt.Sprintf("Logger level is %s", loggerConfig.Level))
-	return nil
-}
-
 func (s *Standard) initializeUserServicesClient() error {
-	s.logger.Debug("Loading user services client config")
+	s.Logger().Debug("Loading user services client config")
 
 	userServicesClientConfig := &client.Config{}
-	if err := s.configLoader.Load("userservices_client", userServicesClientConfig); err != nil {
-		return app.ExtError(err, "dataservices", "unable to load user services client config")
+	if err := s.ConfigLoader().Load("userservices_client", userServicesClientConfig); err != nil {
+		return app.ExtError(err, "service", "unable to load user services client config")
 	}
 
-	s.logger.Debug("Creating user services client")
+	s.Logger().Debug("Creating user services client")
 
-	userServicesClient, err := client.NewStandard(s.logger, userServicesClientConfig)
+	userServicesClient, err := client.NewStandard(s.Logger(), userServicesClientConfig)
 	if err != nil {
-		return app.ExtError(err, "dataservices", "unable to create user services client")
+		return app.ExtError(err, "service", "unable to create user services client")
 	}
 	s.userServicesClient = userServicesClient
 
-	s.logger.Debug("Starting user services client")
+	s.Logger().Debug("Starting user services client")
 	if err = s.userServicesClient.Start(); err != nil {
-		return app.ExtError(err, "dataservices", "unable to start user services client")
+		return app.ExtError(err, "service", "unable to start user services client")
 	}
 
 	return nil
 }
 
 func (s *Standard) initializeDataFactory() error {
-	s.logger.Debug("Creating data factory")
+	s.Logger().Debug("Creating data factory")
 
 	dataFactory, err := factory.NewStandard()
 	if err != nil {
-		return app.ExtError(err, "dataservices", "unable to create data factory")
+		return app.ExtError(err, "service", "unable to create data factory")
 	}
 	s.dataFactory = dataFactory
 
@@ -208,19 +135,19 @@ func (s *Standard) initializeDataFactory() error {
 }
 
 func (s *Standard) initializeDataStore() error {
-	s.logger.Debug("Loading data store config")
+	s.Logger().Debug("Loading data store config")
 
 	dataStoreConfig := &commonMongo.Config{}
-	if err := s.configLoader.Load("data_store", dataStoreConfig); err != nil {
-		return app.ExtError(err, "dataservices", "unable to load data store config")
+	if err := s.ConfigLoader().Load("data_store", dataStoreConfig); err != nil {
+		return app.ExtError(err, "service", "unable to load data store config")
 	}
 	dataStoreConfig.Collection = "deviceData"
 
-	s.logger.Debug("Creating data store")
+	s.Logger().Debug("Creating data store")
 
-	dataStore, err := mongo.New(s.logger, dataStoreConfig)
+	dataStore, err := mongo.New(s.Logger(), dataStoreConfig)
 	if err != nil {
-		return app.ExtError(err, "dataservices", "unable to create data store")
+		return app.ExtError(err, "service", "unable to create data store")
 	}
 	s.dataStore = dataStore
 
@@ -228,14 +155,14 @@ func (s *Standard) initializeDataStore() error {
 }
 
 func (s *Standard) initializeDataDeduplicatorFactory() error {
-	s.logger.Debug("Creating truncate data deduplicator factory")
+	s.Logger().Debug("Creating truncate data deduplicator factory")
 
 	truncateDeduplicatorFactory, err := truncate.NewFactory()
 	if err != nil {
-		return app.ExtError(err, "dataservices", "unable to create truncate data deduplicator factory")
+		return app.ExtError(err, "service", "unable to create truncate data deduplicator factory")
 	}
 
-	s.logger.Debug("Creating data deduplicator factory")
+	s.Logger().Debug("Creating data deduplicator factory")
 
 	factories := []deduplicator.Factory{
 		truncateDeduplicatorFactory,
@@ -243,7 +170,7 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 
 	dataDeduplicatorFactory, err := delegate.NewFactory(factories)
 	if err != nil {
-		return app.ExtError(err, "dataservices", "unable to create data deduplicator factory")
+		return app.ExtError(err, "service", "unable to create data deduplicator factory")
 	}
 	s.dataDeduplicatorFactory = dataDeduplicatorFactory
 
@@ -251,42 +178,42 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 }
 
 func (s *Standard) initializeDataServicesAPI() error {
-	s.logger.Debug("Creating data services api")
+	s.Logger().Debug("Creating data services api")
 
-	dataServicesAPI, err := api.NewStandard(s.versionReporter, s.environmentReporter, s.logger, s.userServicesClient, s.dataFactory, s.dataStore, s.dataDeduplicatorFactory)
+	dataServicesAPI, err := api.NewStandard(s.VersionReporter(), s.EnvironmentReporter(), s.Logger(), s.userServicesClient, s.dataFactory, s.dataStore, s.dataDeduplicatorFactory)
 	if err != nil {
-		return app.ExtError(err, "dataservices", "unable to create data services api")
+		return app.ExtError(err, "service", "unable to create data services api")
 	}
 	s.dataServicesAPI = dataServicesAPI
 
-	s.logger.Debug("Initializing data services api middleware")
+	s.Logger().Debug("Initializing data services api middleware")
 
 	if err = s.dataServicesAPI.InitializeMiddleware(); err != nil {
-		return app.ExtError(err, "dataservices", "unable to initialize data services api middleware")
+		return app.ExtError(err, "service", "unable to initialize data services api middleware")
 	}
 
-	s.logger.Debug("Initializing data services api router")
+	s.Logger().Debug("Initializing data services api router")
 
 	if err = s.dataServicesAPI.InitializeRouter(v1.Routes()); err != nil {
-		return app.ExtError(err, "dataservices", "unable to initialize data services api router")
+		return app.ExtError(err, "service", "unable to initialize data services api router")
 	}
 
 	return nil
 }
 
 func (s *Standard) initializeDataServicesServer() error {
-	s.logger.Debug("Loading data services server config")
+	s.Logger().Debug("Loading data services server config")
 
 	dataServicesServerConfig := &server.Config{}
-	if err := s.configLoader.Load("dataservices_server", dataServicesServerConfig); err != nil {
-		return app.ExtError(err, "dataservices", "unable to load data services server config")
+	if err := s.ConfigLoader().Load("dataservices_server", dataServicesServerConfig); err != nil {
+		return app.ExtError(err, "service", "unable to load data services server config")
 	}
 
-	s.logger.Debug("Creating data services server")
+	s.Logger().Debug("Creating data services server")
 
-	dataServicesServer, err := server.NewStandard(s.logger, s.dataServicesAPI, dataServicesServerConfig)
+	dataServicesServer, err := server.NewStandard(s.Logger(), s.dataServicesAPI, dataServicesServerConfig)
 	if err != nil {
-		return app.ExtError(err, "dataservices", "unable to create data services server")
+		return app.ExtError(err, "service", "unable to create data services server")
 	}
 	s.dataServicesServer = dataServicesServer
 

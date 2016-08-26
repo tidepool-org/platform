@@ -18,19 +18,19 @@ import (
 )
 
 func main() {
-	standardService, err := service.NewStandard()
+	standard, err := service.NewStandard()
 	if err != nil {
 		fmt.Println("ERROR: Unable to create service:", err)
 		os.Exit(1)
 	}
-	defer standardService.Close()
+	defer standard.Terminate()
 
-	if err = standardService.Initialize(); err != nil {
+	if err = standard.Initialize(); err != nil {
 		fmt.Println("ERROR: Unable to initialize service:", err)
 		os.Exit(1)
 	}
 
-	if err = standardService.Run(); err != nil {
+	if err = standard.Run(); err != nil {
 		fmt.Println("ERROR: Unable to run service:", err)
 		os.Exit(1)
 	}
