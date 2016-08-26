@@ -65,6 +65,14 @@ func (s *Standard) Terminate() {
 	s.versionReporter = nil
 }
 
+func (s *Standard) Name() string {
+	return s.name
+}
+
+func (s *Standard) Prefix() string {
+	return s.prefix
+}
+
 func (s *Standard) VersionReporter() version.Reporter {
 	return s.versionReporter
 }
