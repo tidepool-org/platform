@@ -123,11 +123,21 @@ build: check-environment
 
 ci-build: pre-build build
 
-start: stop build log
+start: start-dataservices start-userservices
+
+start-dataservices: stop-dataservices build log
 	@cd $(ROOT_DIRECTORY) && _bin/dataservices/dataservices >> _log/service.log 2>&1 &
 
-stop: check-environment
+start-userservices: stop-userservices build log
+	@cd $(ROOT_DIRECTORY) && _bin/userservices/userservices >> _log/service.log 2>&1 &
+
+stop: stop-dataservices stop-userservices
+
+stop-dataservices: check-environment
 	@killall -v dataservices &> /dev/null || exit 0
+
+stop-userservices: check-environment
+	@killall -v userservices &> /dev/null || exit 0
 
 test: ginkgo
 	@echo "ginkgo --slowSpecThreshold=10 -r $(TEST)"
@@ -141,10 +151,13 @@ watch: ginkgo
 	@echo "ginkgo watch --slowSpecThreshold=10 -r -notify $(WATCH)"
 	@cd $(ROOT_DIRECTORY) && TIDEPOOL_ENV=test ginkgo watch --slowSpecThreshold=10 -r -notify $(WATCH)
 
-deploy: clean-deploy deploy-dataservices deploy-tools
+deploy: clean-deploy deploy-dataservices deploy-userservices deploy-tools
 
 deploy-dataservices:
 	@$(MAKE) bundle-deploy DEPLOY=dataservices
+
+deploy-userservices:
+	@$(MAKE) bundle-deploy DEPLOY=userservices
 
 deploy-tools:
 	@$(MAKE) bundle-deploy DEPLOY=tools
