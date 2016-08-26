@@ -24,6 +24,7 @@ import (
 
 type Standard struct {
 	logger             log.Logger
+	name               string
 	config             *Config
 	httpClient         *http.Client
 	closingChannel     chan chan bool
@@ -41,9 +42,12 @@ const (
 	ServerTokenTimeoutOnFailureLast  = 60 * time.Second
 )
 
-func NewStandard(logger log.Logger, config *Config) (*Standard, error) {
+func NewStandard(logger log.Logger, name string, config *Config) (*Standard, error) {
 	if logger == nil {
 		return nil, app.Error("client", "logger is missing")
+	}
+	if name == "" {
+		return nil, app.Error("client", "name is missing")
 	}
 	if config == nil {
 		return nil, app.Error("client", "config is missing")
@@ -61,6 +65,7 @@ func NewStandard(logger log.Logger, config *Config) (*Standard, error) {
 
 	return &Standard{
 		logger:             logger,
+		name:               name,
 		config:             config,
 		httpClient:         httpClient,
 		serverTokenTimeout: serverTokenTimeout,
@@ -278,7 +283,7 @@ func (s *Standard) refreshServerToken() error {
 		return app.ExtErrorf(err, "client", "unable to create new request for %s %s", method, url)
 	}
 
-	request.Header.Add(TidepoolServerNameHeaderName, "dataservices")
+	request.Header.Add(TidepoolServerNameHeaderName, s.name)
 	request.Header.Add(TidepoolServerSecretHeaderName, s.config.ServerTokenSecret)
 
 	response, err := s.httpClient.Do(request)

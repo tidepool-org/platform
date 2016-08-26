@@ -63,47 +63,53 @@ var _ = Describe("Standard", func() {
 		})
 
 		It("returns an error if logger is missing", func() {
-			standard, err := client.NewStandard(nil, config)
+			standard, err := client.NewStandard(nil, "testservices", config)
 			Expect(err).To(MatchError("client: logger is missing"))
 			Expect(standard).To(BeNil())
 		})
 
+		It("returns an error if name is missing", func() {
+			standard, err := client.NewStandard(logger, "", config)
+			Expect(err).To(MatchError("client: name is missing"))
+			Expect(standard).To(BeNil())
+		})
+
 		It("returns an error if config is missing", func() {
-			standard, err := client.NewStandard(logger, nil)
+			standard, err := client.NewStandard(logger, "testservices", nil)
 			Expect(err).To(MatchError("client: config is missing"))
 			Expect(standard).To(BeNil())
 		})
 
 		It("returns an error if config address is invalid", func() {
 			config.Address = ""
-			standard, err := client.NewStandard(logger, config)
+			standard, err := client.NewStandard(logger, "testservices", config)
 			Expect(err).To(MatchError("client: config is invalid; client: address is missing"))
 			Expect(standard).To(BeNil())
 		})
 
 		It("returns an error if config request timeout is invalid", func() {
 			config.RequestTimeout = -1
-			standard, err := client.NewStandard(logger, config)
+			standard, err := client.NewStandard(logger, "testservices", config)
 			Expect(err).To(MatchError("client: config is invalid; client: request timeout is invalid"))
 			Expect(standard).To(BeNil())
 		})
 
 		It("returns an error if config server token secret is invalid", func() {
 			config.ServerTokenSecret = ""
-			standard, err := client.NewStandard(logger, config)
+			standard, err := client.NewStandard(logger, "testservices", config)
 			Expect(err).To(MatchError("client: config is invalid; client: server token secret is missing"))
 			Expect(standard).To(BeNil())
 		})
 
 		It("returns an error if config server token timeout is invalid", func() {
 			config.ServerTokenTimeout = -1
-			standard, err := client.NewStandard(logger, config)
+			standard, err := client.NewStandard(logger, "testservices", config)
 			Expect(err).To(MatchError("client: config is invalid; client: server token timeout is invalid"))
 			Expect(standard).To(BeNil())
 		})
 
 		It("returns success", func() {
-			Expect(client.NewStandard(logger, config)).ToNot(BeNil())
+			Expect(client.NewStandard(logger, "testservices", config)).ToNot(BeNil())
 		})
 	})
 
@@ -124,7 +130,7 @@ var _ = Describe("Standard", func() {
 
 		JustBeforeEach(func() {
 			var err error
-			standard, err = client.NewStandard(logger, config)
+			standard, err = client.NewStandard(logger, "testservices", config)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(standard).ToNot(BeNil())
 		})
@@ -142,7 +148,7 @@ var _ = Describe("Standard", func() {
 					server.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("POST", "/auth/serverlogin"),
-							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "dataservices"),
+							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "testservices"),
 							ghttp.VerifyHeaderKV("X-Tidepool-Server-Secret", "I Have A Good Secret!"),
 							ghttp.VerifyBody([]byte{}),
 							ghttp.RespondWith(http.StatusOK, nil, http.Header{"x-tidepool-session-token": []string{"test-session-token"}})),
@@ -161,13 +167,13 @@ var _ = Describe("Standard", func() {
 					server.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("POST", "/auth/serverlogin"),
-							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "dataservices"),
+							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "testservices"),
 							ghttp.VerifyHeaderKV("X-Tidepool-Server-Secret", "I Have A Good Secret!"),
 							ghttp.VerifyBody([]byte{}),
 							ghttp.RespondWith(http.StatusBadRequest, nil, nil)),
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("POST", "/auth/serverlogin"),
-							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "dataservices"),
+							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "testservices"),
 							ghttp.VerifyHeaderKV("X-Tidepool-Server-Secret", "I Have A Good Secret!"),
 							ghttp.VerifyBody([]byte{}),
 							ghttp.RespondWith(http.StatusOK, nil, http.Header{"x-tidepool-session-token": []string{"test-session-token"}})),
@@ -186,19 +192,19 @@ var _ = Describe("Standard", func() {
 					server.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("POST", "/auth/serverlogin"),
-							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "dataservices"),
+							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "testservices"),
 							ghttp.VerifyHeaderKV("X-Tidepool-Server-Secret", "I Have A Good Secret!"),
 							ghttp.VerifyBody([]byte{}),
 							ghttp.RespondWith(http.StatusBadRequest, nil, nil)),
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("POST", "/auth/serverlogin"),
-							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "dataservices"),
+							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "testservices"),
 							ghttp.VerifyHeaderKV("X-Tidepool-Server-Secret", "I Have A Good Secret!"),
 							ghttp.VerifyBody([]byte{}),
 							ghttp.RespondWith(http.StatusBadRequest, nil, nil)),
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("POST", "/auth/serverlogin"),
-							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "dataservices"),
+							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "testservices"),
 							ghttp.VerifyHeaderKV("X-Tidepool-Server-Secret", "I Have A Good Secret!"),
 							ghttp.VerifyBody([]byte{}),
 							ghttp.RespondWith(http.StatusOK, nil, http.Header{"x-tidepool-session-token": []string{"test-session-token"}})),
@@ -217,13 +223,13 @@ var _ = Describe("Standard", func() {
 					server.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("POST", "/auth/serverlogin"),
-							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "dataservices"),
+							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "testservices"),
 							ghttp.VerifyHeaderKV("X-Tidepool-Server-Secret", "I Have A Good Secret!"),
 							ghttp.VerifyBody([]byte{}),
 							ghttp.RespondWith(http.StatusOK, nil, nil)),
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("POST", "/auth/serverlogin"),
-							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "dataservices"),
+							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "testservices"),
 							ghttp.VerifyHeaderKV("X-Tidepool-Server-Secret", "I Have A Good Secret!"),
 							ghttp.VerifyBody([]byte{}),
 							ghttp.RespondWith(http.StatusOK, nil, http.Header{"x-tidepool-session-token": []string{"test-session-token"}})),
@@ -243,19 +249,19 @@ var _ = Describe("Standard", func() {
 					server.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("POST", "/auth/serverlogin"),
-							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "dataservices"),
+							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "testservices"),
 							ghttp.VerifyHeaderKV("X-Tidepool-Server-Secret", "I Have A Good Secret!"),
 							ghttp.VerifyBody([]byte{}),
 							ghttp.RespondWith(http.StatusOK, nil, http.Header{"x-tidepool-session-token": []string{"test-session-token"}})),
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("POST", "/auth/serverlogin"),
-							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "dataservices"),
+							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "testservices"),
 							ghttp.VerifyHeaderKV("X-Tidepool-Server-Secret", "I Have A Good Secret!"),
 							ghttp.VerifyBody([]byte{}),
 							ghttp.RespondWith(http.StatusOK, nil, http.Header{"x-tidepool-session-token": []string{"test-session-token"}})),
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("POST", "/auth/serverlogin"),
-							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "dataservices"),
+							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "testservices"),
 							ghttp.VerifyHeaderKV("X-Tidepool-Server-Secret", "I Have A Good Secret!"),
 							ghttp.VerifyBody([]byte{}),
 							ghttp.RespondWith(http.StatusOK, nil, http.Header{"x-tidepool-session-token": []string{"test-session-token"}})),
@@ -281,7 +287,7 @@ var _ = Describe("Standard", func() {
 				server.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("POST", "/auth/serverlogin"),
-						ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "dataservices"),
+						ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "testservices"),
 						ghttp.VerifyHeaderKV("X-Tidepool-Server-Secret", "I Have A Good Secret!"),
 						ghttp.VerifyBody([]byte{}),
 						ghttp.RespondWith(http.StatusOK, nil, http.Header{"x-tidepool-session-token": []string{"test-session-token"}})),
@@ -795,7 +801,7 @@ var _ = Describe("Standard", func() {
 				server.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("POST", "/auth/serverlogin"),
-						ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "dataservices"),
+						ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "testservices"),
 						ghttp.VerifyHeaderKV("X-Tidepool-Server-Secret", "I Have A Good Secret!"),
 						ghttp.VerifyBody([]byte{}),
 						ghttp.RespondWith(http.StatusBadRequest, nil, nil)),

@@ -108,7 +108,7 @@ func (s *Standard) initializeUserServicesClient() error {
 
 	s.Logger().Debug("Creating user services client")
 
-	userServicesClient, err := client.NewStandard(s.Logger(), userServicesClientConfig)
+	userServicesClient, err := client.NewStandard(s.Logger(), s.Name(), userServicesClientConfig)
 	if err != nil {
 		return app.ExtError(err, "service", "unable to create user services client")
 	}
