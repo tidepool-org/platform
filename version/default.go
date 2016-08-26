@@ -10,6 +10,8 @@ package version
  * [x] Full test coverage
  */
 
+// WARNING: Concurrent modification of these global variables is unsupported
+
 var (
 	Base        string
 	ShortCommit string
