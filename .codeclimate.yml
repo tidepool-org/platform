@@ -6,7 +6,10 @@ engines:
   golint:
     enabled: true
     exclude_fingerprints:
-    - d2641253142732c8d01ed15760dba123
+    - 73f0c1674be696bca8fca637b43b5497
+    - c34843eb4a94298bae6c3e00dce4076d
+    - f1f39663e3c7108666de709ee8f1a5eb
+    - f6ff4e31c225082311dc853c44fe7d0e
     checks:
       GoLint/Comments/DocComments:
         enabled: false
