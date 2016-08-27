@@ -20,4 +20,4 @@ ratings:
   paths:
   - "**.go"
 exclude_paths:
-- "Godeps/**/*"
+- "vendor/**/*"
