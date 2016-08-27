@@ -25,18 +25,20 @@ func UsersDatasetsGet(serviceContext service.Context) {
 		return
 	}
 
-	permissions, err := serviceContext.UserServicesClient().GetUserPermissions(serviceContext, serviceContext.RequestUserID(), targetUserID)
-	if err != nil {
-		if client.IsUnauthorizedError(err) {
-			serviceContext.RespondWithError(commonService.ErrorUnauthorized())
-		} else {
-			serviceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
+	if !serviceContext.IsAuthenticatedServer() {
+		permissions, err := serviceContext.UserServicesClient().GetUserPermissions(serviceContext, serviceContext.AuthenticatedUserID(), targetUserID)
+		if err != nil {
+			if client.IsUnauthorizedError(err) {
+				serviceContext.RespondWithError(commonService.ErrorUnauthorized())
+			} else {
+				serviceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
+			}
+			return
 		}
-		return
-	}
-	if _, ok := permissions[client.ViewPermission]; !ok {
-		serviceContext.RespondWithError(commonService.ErrorUnauthorized())
-		return
+		if _, ok := permissions[client.ViewPermission]; !ok {
+			serviceContext.RespondWithError(commonService.ErrorUnauthorized())
+			return
+		}
 	}
 
 	datasets, err := serviceContext.DataStoreSession().GetDatasetsForUser(targetUserID)

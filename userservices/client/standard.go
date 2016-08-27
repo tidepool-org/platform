@@ -34,9 +34,9 @@ type Standard struct {
 }
 
 const (
-	TidepoolServerNameHeaderName       = "x-tidepool-server-name"
-	TidepoolServerSecretHeaderName     = "x-tidepool-server-secret"
-	TidepoolUserSessionTokenHeaderName = "x-tidepool-session-token"
+	TidepoolServerNameHeaderName          = "X-Tidepool-Server-Name"
+	TidepoolServerSecretHeaderName        = "X-Tidepool-Server-Secret"
+	TidepoolAuthenticationTokenHeaderName = "X-Tidepool-Session-Token"
 
 	ServerTokenTimeoutOnFailureFirst = time.Second
 	ServerTokenTimeoutOnFailureLast  = 60 * time.Second
@@ -109,35 +109,30 @@ func (s *Standard) Close() {
 	}
 }
 
-func (s *Standard) ValidateUserSession(context service.Context, sessionToken string) (string, error) {
+func (s *Standard) ValidateAuthenticationToken(context service.Context, authenticationToken string) (*AuthenticationInfo, error) {
 	if context == nil {
-		return "", app.Error("client", "context is missing")
+		return nil, app.Error("client", "context is missing")
 	}
-	if sessionToken == "" {
-		return "", app.Error("client", "session token is missing")
+	if authenticationToken == "" {
+		return nil, app.Error("client", "authentication token is missing")
 	}
 
 	if s.closingChannel == nil {
-		return "", app.Error("client", "client is closed")
+		return nil, app.Error("client", "client is closed")
 	}
 
-	var sessionTokenData struct {
-		UserID   string
-		IsServer bool
+	context.Logger().WithField("authentication-token", authenticationToken).Debug("Validating authentication token")
+
+	authenticationInfo := &AuthenticationInfo{}
+	if err := s.sendRequest(context, "GET", s.buildURL("auth", "token", authenticationToken), authenticationInfo); err != nil {
+		return nil, err
 	}
 
-	context.Logger().WithField("session-token", sessionToken).Debug("Validating user session")
-
-	if err := s.sendRequest(context, "GET", s.buildURL("auth", "token", sessionToken), &sessionTokenData); err != nil {
-		return "", err
+	if !authenticationInfo.IsServer && authenticationInfo.UserID == "" {
+		return nil, app.Error("client", "user id is missing")
 	}
 
-	userID := sessionTokenData.UserID
-	if userID == "" {
-		return "", app.Error("client", "user id is missing")
-	}
-
-	return userID, nil
+	return authenticationInfo, nil
 }
 
 func (s *Standard) GetUserPermissions(context service.Context, requestUserID string, targetUserID string) (Permissions, error) {
@@ -231,7 +226,7 @@ func (s *Standard) sendRequest(context service.Context, method string, url strin
 		return app.ExtErrorf(err, "client", "unable to copy request trace")
 	}
 
-	request.Header.Add(TidepoolUserSessionTokenHeaderName, serverToken)
+	request.Header.Add(TidepoolAuthenticationTokenHeaderName, serverToken)
 
 	response, err := s.httpClient.Do(request)
 	if err != nil {
@@ -296,7 +291,7 @@ func (s *Standard) refreshServerToken() error {
 		return app.Errorf("client", "unexpected response status code %d while requesting new server token", response.StatusCode)
 	}
 
-	serverTokenHeader := response.Header.Get(TidepoolUserSessionTokenHeaderName)
+	serverTokenHeader := response.Header.Get(TidepoolAuthenticationTokenHeaderName)
 	if serverTokenHeader == "" {
 		return app.Error("client", "server token is missing")
 	}

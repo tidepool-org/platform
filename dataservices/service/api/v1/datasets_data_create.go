@@ -36,18 +36,21 @@ func DatasetsDataCreate(serviceContext service.Context) {
 		return
 	}
 
-	permissions, err := serviceContext.UserServicesClient().GetUserPermissions(serviceContext, serviceContext.RequestUserID(), dataset.UserID)
-	if err != nil {
-		if client.IsUnauthorizedError(err) {
-			serviceContext.RespondWithError(commonService.ErrorUnauthorized())
-		} else {
-			serviceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
+	if !serviceContext.IsAuthenticatedServer() {
+		var permissions client.Permissions
+		permissions, err = serviceContext.UserServicesClient().GetUserPermissions(serviceContext, serviceContext.AuthenticatedUserID(), dataset.UserID)
+		if err != nil {
+			if client.IsUnauthorizedError(err) {
+				serviceContext.RespondWithError(commonService.ErrorUnauthorized())
+			} else {
+				serviceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
+			}
+			return
 		}
-		return
-	}
-	if _, ok := permissions[client.UploadPermission]; !ok {
-		serviceContext.RespondWithError(commonService.ErrorUnauthorized())
-		return
+		if _, ok := permissions[client.UploadPermission]; !ok {
+			serviceContext.RespondWithError(commonService.ErrorUnauthorized())
+			return
+		}
 	}
 
 	if dataset.DataState != "open" {

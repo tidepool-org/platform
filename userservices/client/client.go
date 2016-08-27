@@ -17,10 +17,16 @@ import (
 	"github.com/tidepool-org/platform/service"
 )
 
+type AuthenticationInfo struct {
+	IsServer bool
+	UserID   string
+}
+
 type Client interface {
 	Start() error
 	Close()
-	ValidateUserSession(context service.Context, sessionToken string) (string, error)
+
+	ValidateAuthenticationToken(context service.Context, authenticationToken string) (*AuthenticationInfo, error)
 	GetUserPermissions(context service.Context, requestUserID string, targetUserID string) (Permissions, error)
 	GetUserGroupID(context service.Context, userID string) (string, error)
 }

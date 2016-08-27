@@ -18,23 +18,23 @@ import (
 
 func Authenticate(handler service.HandlerFunc) service.HandlerFunc {
 	return func(context service.Context) {
-		userSessionToken := context.Request().Header.Get(client.TidepoolUserSessionTokenHeaderName)
-		if userSessionToken == "" {
+		authenticationToken := context.Request().Header.Get(client.TidepoolAuthenticationTokenHeaderName)
+		if authenticationToken == "" {
 			context.RespondWithError(commonService.ErrorAuthenticationTokenMissing())
 			return
 		}
 
-		requestUserID, err := context.UserServicesClient().ValidateUserSession(context, userSessionToken)
+		authenticationInfo, err := context.UserServicesClient().ValidateAuthenticationToken(context, authenticationToken)
 		if err != nil {
 			if client.IsUnauthorizedError(err) {
 				context.RespondWithError(commonService.ErrorUnauthenticated())
 			} else {
-				context.RespondWithInternalServerFailure("Unable to validate user session", err, userSessionToken)
+				context.RespondWithInternalServerFailure("Unable to validate authentication token", err, authenticationToken)
 			}
 			return
 		}
 
-		context.SetRequestUserID(requestUserID)
+		context.SetAuthenticationInfo(authenticationInfo)
 
 		handler(context)
 	}

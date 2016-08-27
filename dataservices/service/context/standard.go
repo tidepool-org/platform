@@ -28,7 +28,7 @@ type Standard struct {
 	dataFactory             data.Factory
 	dataStoreSession        store.Session
 	dataDeduplicatorFactory deduplicator.Factory
-	requestUserID           string
+	authenticationInfo      *client.AuthenticationInfo
 }
 
 func WithContext(userServicesClient client.Client, dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, handler service.HandlerFunc) rest.HandlerFunc {
@@ -72,10 +72,20 @@ func (s *Standard) DataDeduplicatorFactory() deduplicator.Factory {
 	return s.dataDeduplicatorFactory
 }
 
-func (s *Standard) RequestUserID() string {
-	return s.requestUserID
+func (s *Standard) SetAuthenticationInfo(authenticationInfo *client.AuthenticationInfo) {
+	s.authenticationInfo = authenticationInfo
 }
 
-func (s *Standard) SetRequestUserID(requestUserID string) {
-	s.requestUserID = requestUserID
+func (s *Standard) IsAuthenticatedServer() bool {
+	if s.authenticationInfo == nil {
+		return false
+	}
+	return s.authenticationInfo.IsServer
+}
+
+func (s *Standard) AuthenticatedUserID() string {
+	if s.authenticationInfo == nil {
+		return ""
+	}
+	return s.authenticationInfo.UserID
 }

@@ -27,8 +27,9 @@ type Context interface {
 	DataStoreSession() store.Session
 	DataDeduplicatorFactory() deduplicator.Factory
 
-	RequestUserID() string
-	SetRequestUserID(requestUserID string)
+	SetAuthenticationInfo(authenticationInfo *client.AuthenticationInfo)
+	IsAuthenticatedServer() bool
+	AuthenticatedUserID() string
 }
 
 type HandlerFunc func(context Context)

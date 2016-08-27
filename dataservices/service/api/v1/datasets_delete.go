@@ -37,20 +37,23 @@ func DatasetsDelete(serviceContext service.Context) {
 		return
 	}
 
-	permissions, err := serviceContext.UserServicesClient().GetUserPermissions(serviceContext, serviceContext.RequestUserID(), targetUserID)
-	if err != nil {
-		if client.IsUnauthorizedError(err) {
-			serviceContext.RespondWithError(commonService.ErrorUnauthorized())
-		} else {
-			serviceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
-		}
-		return
-	}
-	if _, ok := permissions[client.OwnerPermission]; !ok {
-		if _, ok = permissions[client.CustodianPermission]; !ok {
-			if _, ok = permissions[client.UploadPermission]; !ok || serviceContext.RequestUserID() != targetUserID {
+	if !serviceContext.IsAuthenticatedServer() {
+		var permissions client.Permissions
+		permissions, err = serviceContext.UserServicesClient().GetUserPermissions(serviceContext, serviceContext.AuthenticatedUserID(), targetUserID)
+		if err != nil {
+			if client.IsUnauthorizedError(err) {
 				serviceContext.RespondWithError(commonService.ErrorUnauthorized())
-				return
+			} else {
+				serviceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
+			}
+			return
+		}
+		if _, ok := permissions[client.OwnerPermission]; !ok {
+			if _, ok = permissions[client.CustodianPermission]; !ok {
+				if _, ok = permissions[client.UploadPermission]; !ok || serviceContext.AuthenticatedUserID() != targetUserID {
+					serviceContext.RespondWithError(commonService.ErrorUnauthorized())
+					return
+				}
 			}
 		}
 	}

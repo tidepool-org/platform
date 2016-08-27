@@ -30,18 +30,20 @@ func UsersDatasetsCreate(serviceContext service.Context) {
 		return
 	}
 
-	permissions, err := serviceContext.UserServicesClient().GetUserPermissions(serviceContext, serviceContext.RequestUserID(), targetUserID)
-	if err != nil {
-		if client.IsUnauthorizedError(err) {
-			serviceContext.RespondWithError(commonService.ErrorUnauthorized())
-		} else {
-			serviceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
+	if !serviceContext.IsAuthenticatedServer() {
+		permissions, err := serviceContext.UserServicesClient().GetUserPermissions(serviceContext, serviceContext.AuthenticatedUserID(), targetUserID)
+		if err != nil {
+			if client.IsUnauthorizedError(err) {
+				serviceContext.RespondWithError(commonService.ErrorUnauthorized())
+			} else {
+				serviceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
+			}
+			return
 		}
-		return
-	}
-	if _, ok := permissions[client.UploadPermission]; !ok {
-		serviceContext.RespondWithError(commonService.ErrorUnauthorized())
-		return
+		if _, ok := permissions[client.UploadPermission]; !ok {
+			serviceContext.RespondWithError(commonService.ErrorUnauthorized())
+			return
+		}
 	}
 
 	targetUserGroupID, err := serviceContext.UserServicesClient().GetUserGroupID(serviceContext, targetUserID)
@@ -110,7 +112,7 @@ func UsersDatasetsCreate(serviceContext service.Context) {
 		return
 	}
 
-	dataset.SetUploadUserID(serviceContext.RequestUserID())
+	dataset.SetUploadUserID(serviceContext.AuthenticatedUserID())
 
 	if err = serviceContext.DataStoreSession().CreateDataset(dataset); err != nil {
 		serviceContext.RespondWithInternalServerFailure("Unable to insert dataset", err)

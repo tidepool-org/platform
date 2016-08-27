@@ -15,16 +15,6 @@ import (
 	"github.com/tidepool-org/platform/userservices/client"
 )
 
-type TestLogger struct{}
-
-func (t *TestLogger) Debug(message string)                               {}
-func (t *TestLogger) Info(message string)                                {}
-func (t *TestLogger) Warn(message string)                                {}
-func (t *TestLogger) Error(message string)                               {}
-func (t *TestLogger) WithError(err error) log.Logger                     { return t }
-func (t *TestLogger) WithField(key string, value interface{}) log.Logger { return t }
-func (t *TestLogger) WithFields(fields log.Fields) log.Logger            { return t }
-
 type TestContext struct {
 	TestLogger  log.Logger
 	TestRequest *rest.Request
@@ -39,11 +29,11 @@ func (t *TestContext) RespondWithStatusAndErrors(statusCode int, errors []*servi
 func (t *TestContext) RespondWithStatusAndData(statusCode int, data interface{})               {}
 
 var _ = Describe("Standard", func() {
-	var logger *TestLogger
+	var logger log.Logger
 	var context *TestContext
 
 	BeforeEach(func() {
-		logger = &TestLogger{}
+		logger = log.NewNull()
 		context = &TestContext{
 			TestLogger:  logger,
 			TestRequest: &rest.Request{},
@@ -151,7 +141,7 @@ var _ = Describe("Standard", func() {
 							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "testservices"),
 							ghttp.VerifyHeaderKV("X-Tidepool-Server-Secret", "I Have A Good Secret!"),
 							ghttp.VerifyBody([]byte{}),
-							ghttp.RespondWith(http.StatusOK, nil, http.Header{"x-tidepool-session-token": []string{"test-session-token"}})),
+							ghttp.RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{"test-authentication-token"}})),
 					)
 				})
 
@@ -176,7 +166,7 @@ var _ = Describe("Standard", func() {
 							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "testservices"),
 							ghttp.VerifyHeaderKV("X-Tidepool-Server-Secret", "I Have A Good Secret!"),
 							ghttp.VerifyBody([]byte{}),
-							ghttp.RespondWith(http.StatusOK, nil, http.Header{"x-tidepool-session-token": []string{"test-session-token"}})),
+							ghttp.RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{"test-authentication-token"}})),
 					)
 				})
 
@@ -207,7 +197,7 @@ var _ = Describe("Standard", func() {
 							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "testservices"),
 							ghttp.VerifyHeaderKV("X-Tidepool-Server-Secret", "I Have A Good Secret!"),
 							ghttp.VerifyBody([]byte{}),
-							ghttp.RespondWith(http.StatusOK, nil, http.Header{"x-tidepool-session-token": []string{"test-session-token"}})),
+							ghttp.RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{"test-authentication-token"}})),
 					)
 				})
 
@@ -232,7 +222,7 @@ var _ = Describe("Standard", func() {
 							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "testservices"),
 							ghttp.VerifyHeaderKV("X-Tidepool-Server-Secret", "I Have A Good Secret!"),
 							ghttp.VerifyBody([]byte{}),
-							ghttp.RespondWith(http.StatusOK, nil, http.Header{"x-tidepool-session-token": []string{"test-session-token"}})),
+							ghttp.RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{"test-authentication-token"}})),
 					)
 				})
 
@@ -252,19 +242,19 @@ var _ = Describe("Standard", func() {
 							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "testservices"),
 							ghttp.VerifyHeaderKV("X-Tidepool-Server-Secret", "I Have A Good Secret!"),
 							ghttp.VerifyBody([]byte{}),
-							ghttp.RespondWith(http.StatusOK, nil, http.Header{"x-tidepool-session-token": []string{"test-session-token"}})),
+							ghttp.RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{"test-authentication-token"}})),
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("POST", "/auth/serverlogin"),
 							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "testservices"),
 							ghttp.VerifyHeaderKV("X-Tidepool-Server-Secret", "I Have A Good Secret!"),
 							ghttp.VerifyBody([]byte{}),
-							ghttp.RespondWith(http.StatusOK, nil, http.Header{"x-tidepool-session-token": []string{"test-session-token"}})),
+							ghttp.RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{"test-authentication-token"}})),
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("POST", "/auth/serverlogin"),
 							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "testservices"),
 							ghttp.VerifyHeaderKV("X-Tidepool-Server-Secret", "I Have A Good Secret!"),
 							ghttp.VerifyBody([]byte{}),
-							ghttp.RespondWith(http.StatusOK, nil, http.Header{"x-tidepool-session-token": []string{"test-session-token"}})),
+							ghttp.RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{"test-authentication-token"}})),
 					)
 				})
 
@@ -290,7 +280,7 @@ var _ = Describe("Standard", func() {
 						ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "testservices"),
 						ghttp.VerifyHeaderKV("X-Tidepool-Server-Secret", "I Have A Good Secret!"),
 						ghttp.VerifyBody([]byte{}),
-						ghttp.RespondWith(http.StatusOK, nil, http.Header{"x-tidepool-session-token": []string{"test-session-token"}})),
+						ghttp.RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{"test-authentication-token"}})),
 				)
 			})
 
@@ -298,43 +288,43 @@ var _ = Describe("Standard", func() {
 				Expect(standard.Start()).To(BeNil())
 			})
 
-			Context("ValidateUserSession", func() {
+			Context("ValidateAuthenticationToken", func() {
 				It("returns error if context is missing", func() {
-					sessionToken, err := standard.ValidateUserSession(nil, "session-token")
+					authenticationInfo, err := standard.ValidateAuthenticationToken(nil, "test-authentication-token")
 					Expect(err).To(MatchError("client: context is missing"))
-					Expect(sessionToken).To(Equal(""))
+					Expect(authenticationInfo).To(BeNil())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 
 				It("returns error if session token is missing", func() {
-					sessionToken, err := standard.ValidateUserSession(context, "")
-					Expect(err).To(MatchError("client: session token is missing"))
-					Expect(sessionToken).To(Equal(""))
+					authenticationInfo, err := standard.ValidateAuthenticationToken(context, "")
+					Expect(err).To(MatchError("client: authentication token is missing"))
+					Expect(authenticationInfo).To(BeNil())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 
 				It("returns error if client is closed", func() {
 					standard.Close()
-					sessionToken, err := standard.ValidateUserSession(context, "session-token")
+					authenticationInfo, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
 					Expect(err).To(MatchError("client: client is closed"))
-					Expect(sessionToken).To(Equal(""))
+					Expect(authenticationInfo).To(BeNil())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 
 				It("returns error if the server is not reachable", func() {
 					server.Close()
 					server = nil
-					sessionToken, err := standard.ValidateUserSession(context, "session-token")
+					authenticationInfo, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
 					Expect(err).To(HaveOccurred())
-					Expect(sessionToken).To(Equal(""))
+					Expect(authenticationInfo).To(BeNil())
 					Expect(err.Error()).To(HavePrefix("client: unable to perform request GET "))
 				})
 
 				It("returns error if the context request is missing", func() {
 					context.TestRequest = nil
-					sessionToken, err := standard.ValidateUserSession(context, "session-token")
+					authenticationInfo, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
 					Expect(err).To(MatchError("client: unable to copy request trace; service: source request is missing"))
-					Expect(sessionToken).To(Equal(""))
+					Expect(authenticationInfo).To(BeNil())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 
@@ -342,17 +332,17 @@ var _ = Describe("Standard", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", "/auth/token/session-token"),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
+								ghttp.VerifyRequest("GET", "/auth/token/test-authentication-token"),
+								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-authentication-token"),
 								ghttp.VerifyBody([]byte{}),
 								ghttp.RespondWith(http.StatusBadRequest, nil, nil)),
 						)
 					})
 
 					It("returns an error", func() {
-						sessionToken, err := standard.ValidateUserSession(context, "session-token")
+						authenticationInfo, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
 						Expect(err).To(HaveOccurred())
-						Expect(sessionToken).To(Equal(""))
+						Expect(authenticationInfo).To(BeNil())
 						Expect(err.Error()).To(HavePrefix("client: unexpected response status code 400 from GET "))
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
@@ -362,17 +352,17 @@ var _ = Describe("Standard", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", "/auth/token/session-token"),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
+								ghttp.VerifyRequest("GET", "/auth/token/test-authentication-token"),
+								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-authentication-token"),
 								ghttp.VerifyBody([]byte{}),
 								ghttp.RespondWith(http.StatusUnauthorized, nil, nil)),
 						)
 					})
 
 					It("returns an error", func() {
-						sessionToken, err := standard.ValidateUserSession(context, "session-token")
+						authenticationInfo, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
 						Expect(err).To(MatchError("client: unauthorized"))
-						Expect(sessionToken).To(Equal(""))
+						Expect(authenticationInfo).To(BeNil())
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
@@ -381,37 +371,37 @@ var _ = Describe("Standard", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", "/auth/token/session-token"),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
+								ghttp.VerifyRequest("GET", "/auth/token/test-authentication-token"),
+								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-authentication-token"),
 								ghttp.VerifyBody([]byte{}),
 								ghttp.RespondWith(http.StatusOK, "}{", nil)),
 						)
 					})
 
 					It("returns an error", func() {
-						sessionToken, err := standard.ValidateUserSession(context, "session-token")
+						authenticationInfo, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
 						Expect(err).To(HaveOccurred())
-						Expect(sessionToken).To(Equal(""))
+						Expect(authenticationInfo).To(BeNil())
 						Expect(err.Error()).To(HavePrefix("client: error decoding JSON response from GET "))
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
 
-				Context("with an successful response, but missing the user id", func() {
+				Context("with an successful response, but is not a server and missing the user id", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", "/auth/token/session-token"),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
+								ghttp.VerifyRequest("GET", "/auth/token/test-authentication-token"),
+								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-authentication-token"),
 								ghttp.VerifyBody([]byte{}),
 								ghttp.RespondWith(http.StatusOK, "{}", nil)),
 						)
 					})
 
 					It("returns an error", func() {
-						sessionToken, err := standard.ValidateUserSession(context, "session-token")
+						authenticationInfo, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
 						Expect(err).To(MatchError("client: user id is missing"))
-						Expect(sessionToken).To(Equal(""))
+						Expect(authenticationInfo).To(BeNil())
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
@@ -420,15 +410,38 @@ var _ = Describe("Standard", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", "/auth/token/session-token"),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
+								ghttp.VerifyRequest("GET", "/auth/token/test-authentication-token"),
+								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-authentication-token"),
 								ghttp.VerifyBody([]byte{}),
 								ghttp.RespondWith(http.StatusOK, `{"userid": "session-user-id"}`, nil)),
 						)
 					})
 
 					It("returns the user id", func() {
-						Expect(standard.ValidateUserSession(context, "session-token")).To(Equal("session-user-id"))
+						authenticationInfo, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
+						Expect(authenticationInfo).ToNot(BeNil())
+						Expect(err).ToNot(HaveOccurred())
+						Expect(authenticationInfo.IsServer).To(BeFalse())
+						Expect(authenticationInfo.UserID).To(Equal("session-user-id"))
+					})
+				})
+				Context("with an successful response and is server", func() {
+					BeforeEach(func() {
+						server.AppendHandlers(
+							ghttp.CombineHandlers(
+								ghttp.VerifyRequest("GET", "/auth/token/test-authentication-token"),
+								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-authentication-token"),
+								ghttp.VerifyBody([]byte{}),
+								ghttp.RespondWith(http.StatusOK, "{\"isserver\": true}", nil)),
+						)
+					})
+
+					It("returns is server", func() {
+						authenticationInfo, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
+						Expect(authenticationInfo).ToNot(BeNil())
+						Expect(err).ToNot(HaveOccurred())
+						Expect(authenticationInfo.IsServer).To(BeTrue())
+						Expect(authenticationInfo.UserID).To(Equal(""))
 					})
 				})
 			})
@@ -485,7 +498,7 @@ var _ = Describe("Standard", func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/access/target-user-id/request-user-id"),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
+								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-authentication-token"),
 								ghttp.VerifyBody([]byte{}),
 								ghttp.RespondWith(http.StatusBadRequest, nil, nil)),
 						)
@@ -505,7 +518,7 @@ var _ = Describe("Standard", func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/access/target-user-id/request-user-id"),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
+								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-authentication-token"),
 								ghttp.VerifyBody([]byte{}),
 								ghttp.RespondWith(http.StatusUnauthorized, nil, nil)),
 						)
@@ -524,7 +537,7 @@ var _ = Describe("Standard", func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/access/target-user-id/request-user-id"),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
+								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-authentication-token"),
 								ghttp.VerifyBody([]byte{}),
 								ghttp.RespondWith(http.StatusNotFound, nil, nil)),
 						)
@@ -543,7 +556,7 @@ var _ = Describe("Standard", func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/access/target-user-id/request-user-id"),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
+								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-authentication-token"),
 								ghttp.VerifyBody([]byte{}),
 								ghttp.RespondWith(http.StatusOK, "}{", nil)),
 						)
@@ -563,7 +576,7 @@ var _ = Describe("Standard", func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/access/target-user-id/request-user-id"),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
+								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-authentication-token"),
 								ghttp.VerifyBody([]byte{}),
 								ghttp.RespondWith(http.StatusOK, "{}", nil)),
 						)
@@ -580,7 +593,7 @@ var _ = Describe("Standard", func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/access/target-user-id/request-user-id"),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
+								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-authentication-token"),
 								ghttp.VerifyBody([]byte{}),
 								ghttp.RespondWith(http.StatusOK, `{"upload": {}, "view": {}}`, nil)),
 						)
@@ -600,7 +613,7 @@ var _ = Describe("Standard", func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/access/target-user-id/request-user-id"),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
+								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-authentication-token"),
 								ghttp.VerifyBody([]byte{}),
 								ghttp.RespondWith(http.StatusOK, `{"root": {"root-inner": "unused"}, "upload": {}}`, nil)),
 						)
@@ -621,7 +634,7 @@ var _ = Describe("Standard", func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/access/target-user-id/request-user-id"),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
+								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-authentication-token"),
 								ghttp.VerifyBody([]byte{}),
 								ghttp.RespondWith(http.StatusOK, `{"root": {"root-inner": "unused"}, "view": {}}`, nil)),
 						)
@@ -642,7 +655,7 @@ var _ = Describe("Standard", func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/access/target-user-id/request-user-id"),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
+								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-authentication-token"),
 								ghttp.VerifyBody([]byte{}),
 								ghttp.RespondWith(http.StatusOK, `{"root": {"root-inner": "unused"}, "upload": {}, "view": {}}`, nil)),
 						)
@@ -704,7 +717,7 @@ var _ = Describe("Standard", func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/metadata/user-id/private/uploads"),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
+								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-authentication-token"),
 								ghttp.VerifyBody([]byte{}),
 								ghttp.RespondWith(http.StatusBadRequest, nil, nil)),
 						)
@@ -724,7 +737,7 @@ var _ = Describe("Standard", func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/metadata/user-id/private/uploads"),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
+								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-authentication-token"),
 								ghttp.VerifyBody([]byte{}),
 								ghttp.RespondWith(http.StatusUnauthorized, nil, nil)),
 						)
@@ -743,7 +756,7 @@ var _ = Describe("Standard", func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/metadata/user-id/private/uploads"),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
+								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-authentication-token"),
 								ghttp.VerifyBody([]byte{}),
 								ghttp.RespondWith(http.StatusOK, "}{", nil)),
 						)
@@ -763,7 +776,7 @@ var _ = Describe("Standard", func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/metadata/user-id/private/uploads"),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
+								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-authentication-token"),
 								ghttp.VerifyBody([]byte{}),
 								ghttp.RespondWith(http.StatusOK, "{}", nil)),
 						)
@@ -782,7 +795,7 @@ var _ = Describe("Standard", func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/metadata/user-id/private/uploads"),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
+								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-authentication-token"),
 								ghttp.VerifyBody([]byte{}),
 								ghttp.RespondWith(http.StatusOK, `{"id": "session-group-id"}`, nil)),
 						)
@@ -812,11 +825,11 @@ var _ = Describe("Standard", func() {
 				Expect(standard.Start()).To(BeNil())
 			})
 
-			Context("ValidateUserSession", func() {
+			Context("ValidateAuthenticationToken", func() {
 				It("returns an error", func() {
-					sessionToken, err := standard.ValidateUserSession(context, "session-token")
+					authenticationInfo, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
 					Expect(err).To(HaveOccurred())
-					Expect(sessionToken).To(Equal(""))
+					Expect(authenticationInfo).To(BeNil())
 					Expect(err.Error()).To(HavePrefix("client: unable to obtain server token for GET "))
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
