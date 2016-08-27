@@ -417,7 +417,7 @@ var _ = Describe("Standard", func() {
 								ghttp.VerifyRequest("GET", "/auth/token/session-token"),
 								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
 								ghttp.VerifyBody([]byte{}),
-								ghttp.RespondWith(http.StatusOK, "{\"userid\": \"session-user-id\"}", nil)),
+								ghttp.RespondWith(http.StatusOK, `{"userid": "session-user-id"}`, nil)),
 						)
 					})
 
@@ -576,7 +576,7 @@ var _ = Describe("Standard", func() {
 								ghttp.VerifyRequest("GET", "/access/target-user-id/request-user-id"),
 								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
 								ghttp.VerifyBody([]byte{}),
-								ghttp.RespondWith(http.StatusOK, "{\"upload\": {}, \"view\": {}}", nil)),
+								ghttp.RespondWith(http.StatusOK, `{"upload": {}, "view": {}}`, nil)),
 						)
 					})
 
@@ -596,7 +596,7 @@ var _ = Describe("Standard", func() {
 								ghttp.VerifyRequest("GET", "/access/target-user-id/request-user-id"),
 								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
 								ghttp.VerifyBody([]byte{}),
-								ghttp.RespondWith(http.StatusOK, "{\"root\": {\"root-inner\": \"unused\"}, \"upload\": {}}", nil)),
+								ghttp.RespondWith(http.StatusOK, `{"root": {"root-inner": "unused"}, "upload": {}}`, nil)),
 						)
 					})
 
@@ -617,7 +617,7 @@ var _ = Describe("Standard", func() {
 								ghttp.VerifyRequest("GET", "/access/target-user-id/request-user-id"),
 								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
 								ghttp.VerifyBody([]byte{}),
-								ghttp.RespondWith(http.StatusOK, "{\"root\": {\"root-inner\": \"unused\"}, \"view\": {}}", nil)),
+								ghttp.RespondWith(http.StatusOK, `{"root": {"root-inner": "unused"}, "view": {}}`, nil)),
 						)
 					})
 
@@ -638,7 +638,7 @@ var _ = Describe("Standard", func() {
 								ghttp.VerifyRequest("GET", "/access/target-user-id/request-user-id"),
 								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
 								ghttp.VerifyBody([]byte{}),
-								ghttp.RespondWith(http.StatusOK, "{\"root\": {\"root-inner\": \"unused\"}, \"upload\": {}, \"view\": {}}", nil)),
+								ghttp.RespondWith(http.StatusOK, `{"root": {"root-inner": "unused"}, "upload": {}, "view": {}}`, nil)),
 						)
 					})
 
@@ -778,7 +778,7 @@ var _ = Describe("Standard", func() {
 								ghttp.VerifyRequest("GET", "/metadata/user-id/private/uploads"),
 								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-session-token"),
 								ghttp.VerifyBody([]byte{}),
-								ghttp.RespondWith(http.StatusOK, "{\"id\": \"session-group-id\"}", nil)),
+								ghttp.RespondWith(http.StatusOK, `{"id": "session-group-id"}`, nil)),
 						)
 					})
 

@@ -285,7 +285,7 @@ var _ = Describe("Truncate", func() {
 					dataset.UploadID = "upload-id"
 					testDataStoreSession.ActivateAllDatasetDataOutputs = []error{errors.New("test error")}
 					err := truncateDeduplicator.FinalizeDataset()
-					Expect(err).To(MatchError("truncate: unable to activate data in dataset with id \"upload-id\"; test error"))
+					Expect(err).To(MatchError(`truncate: unable to activate data in dataset with id "upload-id"; test error`))
 					Expect(testDataStoreSession.ActivateAllDatasetDataInputs).To(ConsistOf(dataset))
 					Expect(testDataStoreSession.ActivateAllDatasetDataOutputs).To(BeEmpty())
 				})
@@ -295,7 +295,7 @@ var _ = Describe("Truncate", func() {
 					testDataStoreSession.ActivateAllDatasetDataOutputs = []error{nil}
 					testDataStoreSession.DeleteAllOtherDatasetDataOutputs = []error{errors.New("test error")}
 					err := truncateDeduplicator.FinalizeDataset()
-					Expect(err).To(MatchError("truncate: unable to remove all other data except dataset with id \"upload-id\"; test error"))
+					Expect(err).To(MatchError(`truncate: unable to remove all other data except dataset with id "upload-id"; test error`))
 					Expect(testDataStoreSession.ActivateAllDatasetDataInputs).To(ConsistOf(dataset))
 					Expect(testDataStoreSession.ActivateAllDatasetDataOutputs).To(BeEmpty())
 					Expect(testDataStoreSession.DeleteAllOtherDatasetDataInputs).To(ConsistOf(dataset))

@@ -337,7 +337,7 @@ var _ = Describe("StandardString", func() {
 			})
 		})
 
-		Context("new validator with valid reference and value of \"1\"", func() {
+		Context("new validator with valid reference and value of 1", func() {
 			var standardString *validator.StandardString
 			var result data.String
 
@@ -585,7 +585,7 @@ var _ = Describe("StandardString", func() {
 			})
 		})
 
-		Context("new validator with valid reference and value with length of \"four\"", func() {
+		Context("new validator with valid reference and value with length of four", func() {
 			var standardString *validator.StandardString
 			var result data.String
 
@@ -676,7 +676,7 @@ var _ = Describe("StandardString", func() {
 					Expect(standardContext.Errors()[0]).ToNot(BeNil())
 					Expect(standardContext.Errors()[0].Code).To(Equal("value-out-of-range"))
 					Expect(standardContext.Errors()[0].Title).To(Equal("value is out of range"))
-					Expect(standardContext.Errors()[0].Detail).To(Equal("Value \"four\" is not equal to \"1\""))
+					Expect(standardContext.Errors()[0].Detail).To(Equal(`Value "four" is not equal to "1"`))
 					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
 					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/skeleton"))
 				})
@@ -696,7 +696,7 @@ var _ = Describe("StandardString", func() {
 					Expect(standardContext.Errors()[0]).ToNot(BeNil())
 					Expect(standardContext.Errors()[0].Code).To(Equal("value-out-of-range"))
 					Expect(standardContext.Errors()[0].Title).To(Equal("value is out of range"))
-					Expect(standardContext.Errors()[0].Detail).To(Equal("Value \"four\" is equal to \"four\""))
+					Expect(standardContext.Errors()[0].Detail).To(Equal(`Value "four" is equal to "four"`))
 					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
 					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/skeleton"))
 				})
@@ -844,7 +844,7 @@ var _ = Describe("StandardString", func() {
 					Expect(standardContext.Errors()[0]).ToNot(BeNil())
 					Expect(standardContext.Errors()[0].Code).To(Equal("value-not-allowed"))
 					Expect(standardContext.Errors()[0].Title).To(Equal("value is not one of the allowed values"))
-					Expect(standardContext.Errors()[0].Detail).To(Equal("Value \"four\" is not one of [\"1\", \"seven\"]"))
+					Expect(standardContext.Errors()[0].Detail).To(Equal(`Value "four" is not one of ["1", "seven"]`))
 					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
 					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/skeleton"))
 				})
@@ -864,7 +864,7 @@ var _ = Describe("StandardString", func() {
 					Expect(standardContext.Errors()[0]).ToNot(BeNil())
 					Expect(standardContext.Errors()[0].Code).To(Equal("value-disallowed"))
 					Expect(standardContext.Errors()[0].Title).To(Equal("value is one of the disallowed values"))
-					Expect(standardContext.Errors()[0].Detail).To(Equal("Value \"four\" is one of [\"seven\", \"four\"]"))
+					Expect(standardContext.Errors()[0].Detail).To(Equal(`Value "four" is one of ["seven", "four"]`))
 					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
 					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/skeleton"))
 				})
@@ -884,7 +884,7 @@ var _ = Describe("StandardString", func() {
 					Expect(standardContext.Errors()[0]).ToNot(BeNil())
 					Expect(standardContext.Errors()[0].Code).To(Equal("value-not-allowed"))
 					Expect(standardContext.Errors()[0].Title).To(Equal("value is not one of the allowed values"))
-					Expect(standardContext.Errors()[0].Detail).To(Equal("Value \"four\" is not one of []"))
+					Expect(standardContext.Errors()[0].Detail).To(Equal(`Value "four" is not one of []`))
 					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
 					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/skeleton"))
 				})
