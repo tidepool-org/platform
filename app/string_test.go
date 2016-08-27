@@ -56,8 +56,8 @@ var _ = Describe("String", func() {
 			func(interfaceValue interface{}, expectedValue interface{}) {
 				Expect(app.QuoteIfString(interfaceValue)).To(Equal(expectedValue))
 			},
-			Entry("is a string", "a string", "\"a string\""),
-			Entry("is an empty string", "", "\"\""),
+			Entry("is a string", "a string", `"a string"`),
+			Entry("is an empty string", "", `""`),
 			Entry("is an error", errors.New("error"), errors.New("error")),
 			Entry("is an integer", 1, 1),
 			Entry("is a float", 1.23, 1.23),
