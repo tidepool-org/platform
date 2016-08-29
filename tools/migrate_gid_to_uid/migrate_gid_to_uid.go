@@ -284,7 +284,7 @@ func buildGroupIDToUserIDMap(logger log.Logger, config *Config, metaIDToUserIDMa
 					} `json:"uploads"`
 				} `json:"private"`
 			}
-			if err := json.Unmarshal([]byte(result.Value), &value); err != nil {
+			if err = json.Unmarshal([]byte(result.Value), &value); err != nil {
 				logger.WithField("metaId", metaID).WithError(err).Warn("Unable to unmarshal value from meta query for meta id")
 			} else if groupID := value.Private.Uploads.ID; groupID == "" {
 				logger.WithField("metaId", metaID).Debug("Missing private uploads id in value in result from meta query for meta id")
