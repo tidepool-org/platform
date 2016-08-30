@@ -188,6 +188,7 @@ func initializeLogger(versionReporter version.Reporter, config *Config) (log.Log
 func buildMetaIDToUserIDMap(logger log.Logger, config *Config) (map[string]string, error) {
 	logger.Debug("Building meta id to user id map")
 
+	userIDMap := map[string]bool{}
 	metaIDToUserIDMap := map[string]string{}
 
 	logger.Debug("Creating users store")
@@ -222,13 +223,35 @@ func buildMetaIDToUserIDMap(logger log.Logger, config *Config) (map[string]strin
 		} `bson:"private"`
 	}
 	for iter.Next(&result) {
-		if userID := result.UserID; userID == "" {
-			logger.Warn("Missing user id in result from users query")
-		} else if metaID := result.Private.Meta.ID; metaID == "" {
-			logger.WithField("userId", userID).Warn("Missing private meta id in result from users query for user id")
-		} else {
-			metaIDToUserIDMap[metaID] = userID
+		userLogger := logger
+
+		userID := result.UserID
+		if userID == "" {
+			userLogger.Warn("Missing user id in result from users query")
+			continue
 		}
+
+		userLogger = userLogger.WithField("userId", userID)
+
+		if _, ok := userIDMap[userID]; ok {
+			userLogger.Error("Found multiple users with same user id")
+			continue
+		}
+		userIDMap[userID] = true
+
+		metaID := result.Private.Meta.ID
+		if metaID == "" {
+			userLogger.Warn("Missing private meta id in result from users query for user id")
+			continue
+		}
+
+		userLogger = userLogger.WithField("metaId", metaID)
+
+		if _, ok := metaIDToUserIDMap[metaID]; ok {
+			userLogger.Error("Found multiple users with same meta id")
+			continue
+		}
+		metaIDToUserIDMap[metaID] = userID
 	}
 	if err = iter.Close(); err != nil {
 		return nil, app.ExtError(err, "migrate_gid_to_uid", "unable to iterate users")
@@ -242,6 +265,7 @@ func buildMetaIDToUserIDMap(logger log.Logger, config *Config) (map[string]strin
 func buildGroupIDToUserIDMap(logger log.Logger, config *Config, metaIDToUserIDMap map[string]string) (map[string]string, error) {
 	logger.Debug("Building group id to user id map")
 
+	metaIDMap := map[string]bool{}
 	groupIDToUserIDMap := map[string]string{}
 
 	logger.Debug("Creating meta store")
@@ -272,28 +296,60 @@ func buildGroupIDToUserIDMap(logger log.Logger, config *Config, metaIDToUserIDMa
 		Value  string `bson:"value"`
 	}
 	for iter.Next(&result) {
-		if metaID := result.MetaID; metaID == "" {
-			logger.Warn("Missing meta id in result from meta query")
-		} else if result.Value == "" {
-			logger.WithField("metaId", metaID).Warn("Missing value in result from meta query for meta id")
-		} else {
-			var value struct {
-				Private struct {
-					Uploads struct {
-						ID string `json:"id"`
-					} `json:"uploads"`
-				} `json:"private"`
-			}
-			if err = json.Unmarshal([]byte(result.Value), &value); err != nil {
-				logger.WithField("metaId", metaID).WithError(err).Warn("Unable to unmarshal value from meta query for meta id")
-			} else if groupID := value.Private.Uploads.ID; groupID == "" {
-				logger.WithField("metaId", metaID).Debug("Missing private uploads id in value in result from meta query for meta id")
-			} else if userID, ok := metaIDToUserIDMap[metaID]; !ok {
-				logger.WithField("metaId", metaID).Warn("Missing user id for meta id")
-			} else {
-				groupIDToUserIDMap[groupID] = userID
-			}
+		metaLogger := logger
+
+		metaID := result.MetaID
+		if metaID == "" {
+			metaLogger.Warn("Missing meta id in result from meta query")
+			continue
 		}
+
+		metaLogger = metaLogger.WithField("metaId", metaID)
+
+		if _, ok := metaIDMap[metaID]; ok {
+			metaLogger.Error("Found multiple metas with same meta id")
+			continue
+		}
+		metaIDMap[metaID] = true
+
+		userID, ok := metaIDToUserIDMap[metaID]
+		if !ok {
+			metaLogger.Error("Missing user id for meta id")
+			continue
+		}
+
+		metaLogger = metaLogger.WithField("userId", userID)
+
+		if result.Value == "" {
+			metaLogger.Warn("Missing value in result from meta query for meta id")
+			continue
+		}
+
+		var value struct {
+			Private struct {
+				Uploads struct {
+					ID string `json:"id"`
+				} `json:"uploads"`
+			} `json:"private"`
+		}
+		if err = json.Unmarshal([]byte(result.Value), &value); err != nil {
+			metaLogger.WithError(err).Warn("Unable to unmarshal value from meta query for meta id")
+			continue
+		}
+
+		groupID := value.Private.Uploads.ID
+		if groupID == "" {
+			metaLogger.Debug("Missing group id in value in result from meta query for meta id")
+			continue
+		}
+
+		metaLogger = metaLogger.WithField("groupId", groupID)
+
+		if _, ok = groupIDToUserIDMap[groupID]; ok {
+			metaLogger.Error("Found multiple metas with same group id")
+			continue
+		}
+		groupIDToUserIDMap[groupID] = userID
 	}
 	if err = iter.Close(); err != nil {
 		return nil, app.ExtError(err, "migrate_gid_to_uid", "unable to iterate meta")
@@ -347,36 +403,44 @@ func migrateGroupIDToUserIDForDeviceData(logger log.Logger, config *Config, grou
 		count, err = deviceDataSession.C().Find(query).Count()
 		if err != nil {
 			dataLogger.WithError(err).Error("Unable to query for incorrect device data")
-		} else if count != 0 {
+			continue
+		}
+
+		if count != 0 {
 			dataLogger.WithField("count", count).Error("Found device data for group id with incorrect existing user id")
+			continue
+		}
+
+		dataLogger.Debug("Updating device data for group id with user id")
+
+		selector := bson.M{
+			"_groupId": groupID,
+			"_userId":  bson.M{"$exists": false},
+		}
+
+		if config.DryRun {
+			count, err = deviceDataSession.C().Find(selector).Count()
 		} else {
-			dataLogger.Debug("Updating device data for group id with user id")
-
-			selector := bson.M{
-				"_groupId": groupID,
-				"_userId":  bson.M{"$exists": false},
+			update := bson.M{
+				"$set": bson.M{"_userId": userID},
 			}
 
-			if config.DryRun {
-				count, err = deviceDataSession.C().Find(selector).Count()
-			} else {
-				update := bson.M{
-					"$set": bson.M{"_userId": userID},
-				}
+			var changeInfo *mgo.ChangeInfo
+			changeInfo, err = deviceDataSession.C().UpdateAll(selector, update)
+			if changeInfo != nil {
+				count = changeInfo.Updated
+			}
+		}
 
-				var changeInfo *mgo.ChangeInfo
-				changeInfo, err = deviceDataSession.C().UpdateAll(selector, update)
-				if changeInfo != nil {
-					count = changeInfo.Updated
-				}
-			}
-			if err != nil {
-				dataLogger.WithError(err).Error("Unable to update device data for group id with user id")
-			} else if count > 0 {
-				dataLogger.Info(fmt.Sprintf("Migrated %d device data", count))
-				migrateGroupCount++
-				migrateDeviceDataCount += count
-			}
+		if err != nil {
+			dataLogger.WithError(err).Error("Unable to update device data for group id with user id")
+			continue
+		}
+
+		if count > 0 {
+			dataLogger.Info(fmt.Sprintf("Migrated %d device data", count))
+			migrateGroupCount++
+			migrateDeviceDataCount += count
 		}
 	}
 
