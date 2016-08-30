@@ -158,7 +158,7 @@ ifdef TRAVIS_TAG
 		DEPLOY_TAG=$(DEPLOY)-$(TRAVIS_TAG) && \
 		DEPLOY_DIR=deploy/$(DEPLOY)/$${DEPLOY_TAG} && \
 		mkdir -p $${DEPLOY_DIR}/ && \
-		cp -r _deploy/$(DEPLOY)/ $${DEPLOY_DIR}/ && \
+		cp -r _deploy/$(DEPLOY)/* $${DEPLOY_DIR}/ && \
 		for DIR in _bin _config; do if [ -d "$${DIR}/$(DEPLOY)" ]; then mkdir -p $${DEPLOY_DIR}/$${DIR}; cp -r $${DIR}/$(DEPLOY)/ $${DEPLOY_DIR}/$${DIR}/$(DEPLOY)/; fi; done && \
 		tar -c -z -f $${DEPLOY_DIR}.tar.gz -C deploy/$(DEPLOY)/ $${DEPLOY_TAG}
 endif
