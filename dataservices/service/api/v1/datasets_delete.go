@@ -37,9 +37,9 @@ func DatasetsDelete(serviceContext service.Context) {
 		return
 	}
 
-	if !serviceContext.IsAuthenticatedServer() {
+	if !serviceContext.AuthenticationDetails().IsServer() {
 		var permissions client.Permissions
-		permissions, err = serviceContext.UserServicesClient().GetUserPermissions(serviceContext, serviceContext.AuthenticatedUserID(), targetUserID)
+		permissions, err = serviceContext.UserServicesClient().GetUserPermissions(serviceContext, serviceContext.AuthenticationDetails().UserID(), targetUserID)
 		if err != nil {
 			if client.IsUnauthorizedError(err) {
 				serviceContext.RespondWithError(commonService.ErrorUnauthorized())
@@ -50,7 +50,7 @@ func DatasetsDelete(serviceContext service.Context) {
 		}
 		if _, ok := permissions[client.OwnerPermission]; !ok {
 			if _, ok = permissions[client.CustodianPermission]; !ok {
-				if _, ok = permissions[client.UploadPermission]; !ok || serviceContext.AuthenticatedUserID() != targetUserID {
+				if _, ok = permissions[client.UploadPermission]; !ok || serviceContext.AuthenticationDetails().UserID() != targetUserID {
 					serviceContext.RespondWithError(commonService.ErrorUnauthorized())
 					return
 				}

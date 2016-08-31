@@ -25,8 +25,8 @@ func UsersDatasetsGet(serviceContext service.Context) {
 		return
 	}
 
-	if !serviceContext.IsAuthenticatedServer() {
-		permissions, err := serviceContext.UserServicesClient().GetUserPermissions(serviceContext, serviceContext.AuthenticatedUserID(), targetUserID)
+	if !serviceContext.AuthenticationDetails().IsServer() {
+		permissions, err := serviceContext.UserServicesClient().GetUserPermissions(serviceContext, serviceContext.AuthenticationDetails().UserID(), targetUserID)
 		if err != nil {
 			if client.IsUnauthorizedError(err) {
 				serviceContext.RespondWithError(commonService.ErrorUnauthorized())

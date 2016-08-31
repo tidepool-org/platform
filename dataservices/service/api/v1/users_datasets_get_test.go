@@ -31,8 +31,8 @@ var _ = Describe("UsersDatasetsGet", func() {
 			context.RequestImpl.PathParams["userid"] = targetUserID
 			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{client.Permissions{client.ViewPermission: client.Permission{}}, nil}}
 			context.DataStoreSessionImpl.GetDatasetsForUserOutputs = []GetDatasetsForUserOutput{{uploads, nil}}
-			context.IsAuthenticatedServerOutputs = []bool{false}
-			context.AuthenticatedUserIDOutputs = []string{authenticatedUserID}
+			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{false}
+			context.AuthenticationDetailsImpl.UserIDOutputs = []string{authenticatedUserID}
 		})
 
 		It("succeeds if authenticated as user, not server", func() {
@@ -43,8 +43,8 @@ var _ = Describe("UsersDatasetsGet", func() {
 
 		It("succeeds if authenticated as server, not user", func() {
 			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
-			context.IsAuthenticatedServerOutputs = []bool{true}
-			context.AuthenticatedUserIDOutputs = []string{}
+			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{true}
+			context.AuthenticationDetailsImpl.UserIDOutputs = []string{}
 			v1.UsersDatasetsGet(context)
 			Expect(context.RespondWithStatusAndDataInputs).To(Equal([]RespondWithStatusAndDataInput{{http.StatusOK, uploads}}))
 			Expect(context.ValidateTest()).To(BeTrue())
@@ -53,8 +53,8 @@ var _ = Describe("UsersDatasetsGet", func() {
 		It("panics if context is missing", func() {
 			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
 			context.DataStoreSessionImpl.GetDatasetsForUserOutputs = []GetDatasetsForUserOutput{}
-			context.IsAuthenticatedServerOutputs = []bool{}
-			context.AuthenticatedUserIDOutputs = []string{}
+			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{}
+			context.AuthenticationDetailsImpl.UserIDOutputs = []string{}
 			Expect(func() { v1.UsersDatasetsGet(nil) }).To(Panic())
 			Expect(context.ValidateTest()).To(BeTrue())
 		})
@@ -63,8 +63,8 @@ var _ = Describe("UsersDatasetsGet", func() {
 			context.RequestImpl = nil
 			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
 			context.DataStoreSessionImpl.GetDatasetsForUserOutputs = []GetDatasetsForUserOutput{}
-			context.IsAuthenticatedServerOutputs = []bool{}
-			context.AuthenticatedUserIDOutputs = []string{}
+			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{}
+			context.AuthenticationDetailsImpl.UserIDOutputs = []string{}
 			Expect(func() { v1.UsersDatasetsGet(context) }).To(Panic())
 			Expect(context.ValidateTest()).To(BeTrue())
 		})
@@ -72,19 +72,26 @@ var _ = Describe("UsersDatasetsGet", func() {
 		It("responds with error if not provided as a parameter", func() {
 			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
 			context.DataStoreSessionImpl.GetDatasetsForUserOutputs = []GetDatasetsForUserOutput{}
-			context.IsAuthenticatedServerOutputs = []bool{}
-			context.AuthenticatedUserIDOutputs = []string{}
+			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{}
+			context.AuthenticationDetailsImpl.UserIDOutputs = []string{}
 			delete(context.RequestImpl.PathParams, "userid")
 			v1.UsersDatasetsGet(context)
 			Expect(context.RespondWithErrorInputs).To(Equal([]*service.Error{v1.ErrorUserIDMissing()}))
 			Expect(context.ValidateTest()).To(BeTrue())
 		})
 
-		It("panics if user services client is missing", func() {
+		It("panics if authentication details is missing", func() {
 			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
 			context.DataStoreSessionImpl.GetDatasetsForUserOutputs = []GetDatasetsForUserOutput{}
-			context.IsAuthenticatedServerOutputs = []bool{}
-			context.AuthenticatedUserIDOutputs = []string{}
+			context.AuthenticationDetailsImpl = nil
+			Expect(func() { v1.UsersDatasetsGet(context) }).To(Panic())
+			Expect(context.ValidateTest()).To(BeTrue())
+		})
+
+		It("panics if user services client is missing", func() {
+			context.DataStoreSessionImpl.GetDatasetsForUserOutputs = []GetDatasetsForUserOutput{}
+			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{}
+			context.AuthenticationDetailsImpl.UserIDOutputs = []string{}
 			context.UserServicesClientImpl = nil
 			Expect(func() { v1.UsersDatasetsGet(context) }).To(Panic())
 			Expect(context.ValidateTest()).To(BeTrue())

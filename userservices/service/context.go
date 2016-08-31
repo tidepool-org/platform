@@ -20,9 +20,8 @@ type Context interface {
 
 	UserServicesClient() client.Client
 
+	AuthenticationDetails() client.AuthenticationDetails
 	SetAuthenticationDetails(authenticationDetails client.AuthenticationDetails)
-	IsAuthenticatedServer() bool
-	AuthenticatedUserID() string
 }
 
 type HandlerFunc func(context Context)

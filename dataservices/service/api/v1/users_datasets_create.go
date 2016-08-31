@@ -30,8 +30,8 @@ func UsersDatasetsCreate(serviceContext service.Context) {
 		return
 	}
 
-	if !serviceContext.IsAuthenticatedServer() {
-		permissions, err := serviceContext.UserServicesClient().GetUserPermissions(serviceContext, serviceContext.AuthenticatedUserID(), targetUserID)
+	if !serviceContext.AuthenticationDetails().IsServer() {
+		permissions, err := serviceContext.UserServicesClient().GetUserPermissions(serviceContext, serviceContext.AuthenticationDetails().UserID(), targetUserID)
 		if err != nil {
 			if client.IsUnauthorizedError(err) {
 				serviceContext.RespondWithError(commonService.ErrorUnauthorized())
@@ -112,7 +112,7 @@ func UsersDatasetsCreate(serviceContext service.Context) {
 		return
 	}
 
-	dataset.SetUploadUserID(serviceContext.AuthenticatedUserID())
+	dataset.SetUploadUserID(serviceContext.AuthenticationDetails().UserID())
 
 	if err = serviceContext.DataStoreSession().CreateDataset(dataset); err != nil {
 		serviceContext.RespondWithInternalServerFailure("Unable to insert dataset", err)

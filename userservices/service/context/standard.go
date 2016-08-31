@@ -44,20 +44,10 @@ func (s *Standard) UserServicesClient() client.Client {
 	return s.userServicesClient
 }
 
+func (s *Standard) AuthenticationDetails() client.AuthenticationDetails {
+	return s.authenticationDetails
+}
+
 func (s *Standard) SetAuthenticationDetails(authenticationDetails client.AuthenticationDetails) {
 	s.authenticationDetails = authenticationDetails
-}
-
-func (s *Standard) IsAuthenticatedServer() bool {
-	if s.authenticationDetails == nil {
-		return false
-	}
-	return s.authenticationDetails.IsServer()
-}
-
-func (s *Standard) AuthenticatedUserID() string {
-	if s.authenticationDetails == nil {
-		return ""
-	}
-	return s.authenticationDetails.UserID()
 }

@@ -31,9 +31,9 @@ func DatasetsUpdate(serviceContext service.Context) {
 		return
 	}
 
-	if !serviceContext.IsAuthenticatedServer() {
+	if !serviceContext.AuthenticationDetails().IsServer() {
 		var permissions client.Permissions
-		permissions, err = serviceContext.UserServicesClient().GetUserPermissions(serviceContext, serviceContext.AuthenticatedUserID(), dataset.UserID)
+		permissions, err = serviceContext.UserServicesClient().GetUserPermissions(serviceContext, serviceContext.AuthenticationDetails().UserID(), dataset.UserID)
 		if err != nil {
 			if client.IsUnauthorizedError(err) {
 				serviceContext.RespondWithError(commonService.ErrorUnauthorized())

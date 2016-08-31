@@ -132,6 +132,32 @@ func (t *TestDataStoreSession) ValidateTest() bool {
 	return len(t.GetDatasetsForUserOutputs) == 0
 }
 
+type TestAuthenticationDetails struct {
+	IsServerOutputs []bool
+	UserIDOutputs   []string
+}
+
+func (t *TestAuthenticationDetails) Token() string {
+	panic("Unexpected invocation of Token on TestAuthenticationDetails")
+}
+
+func (t *TestAuthenticationDetails) IsServer() bool {
+	output := t.IsServerOutputs[0]
+	t.IsServerOutputs = t.IsServerOutputs[1:]
+	return output
+}
+
+func (t *TestAuthenticationDetails) UserID() string {
+	output := t.UserIDOutputs[0]
+	t.UserIDOutputs = t.UserIDOutputs[1:]
+	return output
+}
+
+func (t *TestAuthenticationDetails) ValidateTest() bool {
+	return len(t.IsServerOutputs) == 0 &&
+		len(t.UserIDOutputs) == 0
+}
+
 type TestContext struct {
 	RequestImpl                            *rest.Request
 	RespondWithErrorInputs                 []*service.Error
@@ -139,8 +165,7 @@ type TestContext struct {
 	RespondWithStatusAndDataInputs         []RespondWithStatusAndDataInput
 	UserServicesClientImpl                 *TestUserServicesClient
 	DataStoreSessionImpl                   *TestDataStoreSession
-	IsAuthenticatedServerOutputs           []bool
-	AuthenticatedUserIDOutputs             []string
+	AuthenticationDetailsImpl              *TestAuthenticationDetails
 }
 
 func NewTestContext() *TestContext {
@@ -148,8 +173,9 @@ func NewTestContext() *TestContext {
 		RequestImpl: &rest.Request{
 			PathParams: map[string]string{},
 		},
-		UserServicesClientImpl: &TestUserServicesClient{},
-		DataStoreSessionImpl:   &TestDataStoreSession{},
+		UserServicesClientImpl:    &TestUserServicesClient{},
+		DataStoreSessionImpl:      &TestDataStoreSession{},
+		AuthenticationDetailsImpl: &TestAuthenticationDetails{},
 	}
 }
 
@@ -197,25 +223,16 @@ func (t *TestContext) DataDeduplicatorFactory() deduplicator.Factory {
 	panic("Unexpected invocation of DataDeduplicatorFactory on TestContext")
 }
 
+func (t *TestContext) AuthenticationDetails() client.AuthenticationDetails {
+	return t.AuthenticationDetailsImpl
+}
+
 func (t *TestContext) SetAuthenticationDetails(authenticationDetails client.AuthenticationDetails) {
 	panic("Unexpected invocation of SetAuthenticationDetails on TestContext")
-}
-
-func (t *TestContext) IsAuthenticatedServer() bool {
-	output := t.IsAuthenticatedServerOutputs[0]
-	t.IsAuthenticatedServerOutputs = t.IsAuthenticatedServerOutputs[1:]
-	return output
-}
-
-func (t *TestContext) AuthenticatedUserID() string {
-	output := t.AuthenticatedUserIDOutputs[0]
-	t.AuthenticatedUserIDOutputs = t.AuthenticatedUserIDOutputs[1:]
-	return output
 }
 
 func (t *TestContext) ValidateTest() bool {
 	return (t.UserServicesClientImpl == nil || t.UserServicesClientImpl.ValidateTest()) &&
 		(t.DataStoreSessionImpl == nil || t.DataStoreSessionImpl.ValidateTest()) &&
-		len(t.IsAuthenticatedServerOutputs) == 0 &&
-		len(t.AuthenticatedUserIDOutputs) == 0
+		(t.AuthenticationDetailsImpl == nil || t.AuthenticationDetailsImpl.ValidateTest())
 }
