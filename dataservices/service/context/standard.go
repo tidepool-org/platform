@@ -17,21 +17,23 @@ import (
 	"github.com/tidepool-org/platform/data/deduplicator"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/dataservices/service"
+	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
 	commonService "github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/service/context"
-	"github.com/tidepool-org/platform/userservices/client"
+	userservicesClient "github.com/tidepool-org/platform/userservices/client"
 )
 
 type Standard struct {
 	commonService.Context
-	userServicesClient      client.Client
+	metricServicesClient    metricservicesClient.Client
+	userServicesClient      userservicesClient.Client
 	dataFactory             data.Factory
 	dataStoreSession        store.Session
 	dataDeduplicatorFactory deduplicator.Factory
-	authenticationDetails   client.AuthenticationDetails
+	authenticationDetails   userservicesClient.AuthenticationDetails
 }
 
-func WithContext(userServicesClient client.Client, dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, handler service.HandlerFunc) rest.HandlerFunc {
+func WithContext(metricServicesClient metricservicesClient.Client, userServicesClient userservicesClient.Client, dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, handler service.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
 		context, err := context.NewStandard(response, request)
 		if err != nil {
@@ -48,6 +50,7 @@ func WithContext(userServicesClient client.Client, dataFactory data.Factory, dat
 
 		handler(&Standard{
 			Context:                 context,
+			metricServicesClient:    metricServicesClient,
 			userServicesClient:      userServicesClient,
 			dataFactory:             dataFactory,
 			dataStoreSession:        dataStoreSession,
@@ -56,7 +59,11 @@ func WithContext(userServicesClient client.Client, dataFactory data.Factory, dat
 	}
 }
 
-func (s *Standard) UserServicesClient() client.Client {
+func (s *Standard) MetricServicesClient() metricservicesClient.Client {
+	return s.metricServicesClient
+}
+
+func (s *Standard) UserServicesClient() userservicesClient.Client {
 	return s.userServicesClient
 }
 
@@ -72,10 +79,10 @@ func (s *Standard) DataDeduplicatorFactory() deduplicator.Factory {
 	return s.dataDeduplicatorFactory
 }
 
-func (s *Standard) AuthenticationDetails() client.AuthenticationDetails {
+func (s *Standard) AuthenticationDetails() userservicesClient.AuthenticationDetails {
 	return s.authenticationDetails
 }
 
-func (s *Standard) SetAuthenticationDetails(authenticationDetails client.AuthenticationDetails) {
+func (s *Standard) SetAuthenticationDetails(authenticationDetails userservicesClient.AuthenticationDetails) {
 	s.authenticationDetails = authenticationDetails
 }

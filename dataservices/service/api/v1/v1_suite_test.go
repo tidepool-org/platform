@@ -13,13 +13,21 @@ import (
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/base/upload"
 	"github.com/tidepool-org/platform/log"
+	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
 	"github.com/tidepool-org/platform/service"
-	"github.com/tidepool-org/platform/userservices/client"
+	userservicesClient "github.com/tidepool-org/platform/userservices/client"
 )
 
 func TestSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "dataservices/service/api/v1")
+}
+
+type TestMetricServicesClient struct {
+}
+
+func (t *TestMetricServicesClient) RecordMetric(context metricservicesClient.Context, metric string, data map[string]string) error {
+	panic("Unexpected invocation of RecordMetric on TestMetricServicesClient")
 }
 
 type GetUserPermissionsInput struct {
@@ -29,7 +37,7 @@ type GetUserPermissionsInput struct {
 }
 
 type GetUserPermissionsOutput struct {
-	permissions client.Permissions
+	permissions userservicesClient.Permissions
 	err         error
 }
 
@@ -46,11 +54,11 @@ func (t *TestUserServicesClient) Close() {
 	panic("Unexpected invocation of Close on TestUserServicesClient")
 }
 
-func (t *TestUserServicesClient) ValidateAuthenticationToken(context service.Context, authenticationToken string) (client.AuthenticationDetails, error) {
+func (t *TestUserServicesClient) ValidateAuthenticationToken(context service.Context, authenticationToken string) (userservicesClient.AuthenticationDetails, error) {
 	panic("Unexpected invocation of ValidateAuthenticationToken on TestUserServicesClient")
 }
 
-func (t *TestUserServicesClient) GetUserPermissions(context service.Context, requestUserID string, targetUserID string) (client.Permissions, error) {
+func (t *TestUserServicesClient) GetUserPermissions(context service.Context, requestUserID string, targetUserID string) (userservicesClient.Permissions, error) {
 	t.GetUserPermissionsInputs = append(t.GetUserPermissionsInputs, GetUserPermissionsInput{context, requestUserID, targetUserID})
 	output := t.GetUserPermissionsOutputs[0]
 	t.GetUserPermissionsOutputs = t.GetUserPermissionsOutputs[1:]
@@ -163,6 +171,7 @@ type TestContext struct {
 	RespondWithErrorInputs                 []*service.Error
 	RespondWithInternalServerFailureInputs []RespondWithInternalServerFailureInput
 	RespondWithStatusAndDataInputs         []RespondWithStatusAndDataInput
+	MetricServicesClientImpl               *TestMetricServicesClient
 	UserServicesClientImpl                 *TestUserServicesClient
 	DataStoreSessionImpl                   *TestDataStoreSession
 	AuthenticationDetailsImpl              *TestAuthenticationDetails
@@ -173,6 +182,7 @@ func NewTestContext() *TestContext {
 		RequestImpl: &rest.Request{
 			PathParams: map[string]string{},
 		},
+		MetricServicesClientImpl:  &TestMetricServicesClient{},
 		UserServicesClientImpl:    &TestUserServicesClient{},
 		DataStoreSessionImpl:      &TestDataStoreSession{},
 		AuthenticationDetailsImpl: &TestAuthenticationDetails{},
@@ -207,7 +217,11 @@ func (t *TestContext) RespondWithStatusAndData(statusCode int, data interface{})
 	t.RespondWithStatusAndDataInputs = append(t.RespondWithStatusAndDataInputs, RespondWithStatusAndDataInput{statusCode, data})
 }
 
-func (t *TestContext) UserServicesClient() client.Client {
+func (t *TestContext) MetricServicesClient() metricservicesClient.Client {
+	return t.MetricServicesClientImpl
+}
+
+func (t *TestContext) UserServicesClient() userservicesClient.Client {
 	return t.UserServicesClientImpl
 }
 
@@ -223,11 +237,11 @@ func (t *TestContext) DataDeduplicatorFactory() deduplicator.Factory {
 	panic("Unexpected invocation of DataDeduplicatorFactory on TestContext")
 }
 
-func (t *TestContext) AuthenticationDetails() client.AuthenticationDetails {
+func (t *TestContext) AuthenticationDetails() userservicesClient.AuthenticationDetails {
 	return t.AuthenticationDetailsImpl
 }
 
-func (t *TestContext) SetAuthenticationDetails(authenticationDetails client.AuthenticationDetails) {
+func (t *TestContext) SetAuthenticationDetails(authenticationDetails userservicesClient.AuthenticationDetails) {
 	panic("Unexpected invocation of SetAuthenticationDetails on TestContext")
 }
 

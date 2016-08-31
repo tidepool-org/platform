@@ -218,16 +218,16 @@ func (s *Standard) GetUserGroupID(context service.Context, userID string) (strin
 // AND bad session token. Since a bad server token is unlikely (though possible) we MUST assume
 // that it means bad session token.
 
-func (s *Standard) sendRequest(context service.Context, method string, url string, responseObject interface{}) error {
+func (s *Standard) sendRequest(context service.Context, requestMethod string, requestURL string, responseObject interface{}) error {
 
 	serverToken := s.serverToken()
 	if serverToken == "" {
-		return app.Errorf("client", "unable to obtain server token for %s %s", method, url)
+		return app.Errorf("client", "unable to obtain server token for %s %s", requestMethod, requestURL)
 	}
 
-	request, err := http.NewRequest(method, url, nil)
+	request, err := http.NewRequest(requestMethod, requestURL, nil)
 	if err != nil {
-		return app.ExtErrorf(err, "client", "unable to create new request for %s %s", method, url)
+		return app.ExtErrorf(err, "client", "unable to create new request for %s %s", requestMethod, requestURL)
 	}
 
 	if err = service.CopyRequestTrace(context.Request(), request); err != nil {
@@ -238,7 +238,7 @@ func (s *Standard) sendRequest(context service.Context, method string, url strin
 
 	response, err := s.httpClient.Do(request)
 	if err != nil {
-		return app.ExtErrorf(err, "client", "unable to perform request %s %s", method, url)
+		return app.ExtErrorf(err, "client", "unable to perform request %s %s", requestMethod, requestURL)
 	}
 	defer response.Body.Close()
 
@@ -279,11 +279,11 @@ func (s *Standard) refreshServerToken() error {
 
 	s.logger.Debug("Refreshing server token")
 
-	method := "POST"
-	url := s.buildURL("auth", "serverlogin")
-	request, err := http.NewRequest(method, url, nil)
+	requestMethod := "POST"
+	requestURL := s.buildURL("auth", "serverlogin")
+	request, err := http.NewRequest(requestMethod, requestURL, nil)
 	if err != nil {
-		return app.ExtErrorf(err, "client", "unable to create new request for %s %s", method, url)
+		return app.ExtErrorf(err, "client", "unable to create new request for %s %s", requestMethod, requestURL)
 	}
 
 	request.Header.Add(TidepoolServerNameHeaderName, s.name)

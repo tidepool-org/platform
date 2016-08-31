@@ -13,19 +13,21 @@ package context
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
+	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
 	commonService "github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/service/context"
-	"github.com/tidepool-org/platform/userservices/client"
+	userservicesClient "github.com/tidepool-org/platform/userservices/client"
 	"github.com/tidepool-org/platform/userservices/service"
 )
 
 type Standard struct {
 	commonService.Context
-	userServicesClient    client.Client
-	authenticationDetails client.AuthenticationDetails
+	metricServicesClient  metricservicesClient.Client
+	userServicesClient    userservicesClient.Client
+	authenticationDetails userservicesClient.AuthenticationDetails
 }
 
-func WithContext(userServicesClient client.Client, handler service.HandlerFunc) rest.HandlerFunc {
+func WithContext(metricServicesClient metricservicesClient.Client, userServicesClient userservicesClient.Client, handler service.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
 		context, err := context.NewStandard(response, request)
 		if err != nil {
@@ -34,20 +36,25 @@ func WithContext(userServicesClient client.Client, handler service.HandlerFunc) 
 		}
 
 		handler(&Standard{
-			Context:            context,
-			userServicesClient: userServicesClient,
+			Context:              context,
+			metricServicesClient: metricServicesClient,
+			userServicesClient:   userServicesClient,
 		})
 	}
 }
 
-func (s *Standard) UserServicesClient() client.Client {
+func (s *Standard) MetricServicesClient() metricservicesClient.Client {
+	return s.metricServicesClient
+}
+
+func (s *Standard) UserServicesClient() userservicesClient.Client {
 	return s.userServicesClient
 }
 
-func (s *Standard) AuthenticationDetails() client.AuthenticationDetails {
+func (s *Standard) AuthenticationDetails() userservicesClient.AuthenticationDetails {
 	return s.authenticationDetails
 }
 
-func (s *Standard) SetAuthenticationDetails(authenticationDetails client.AuthenticationDetails) {
+func (s *Standard) SetAuthenticationDetails(authenticationDetails userservicesClient.AuthenticationDetails) {
 	s.authenticationDetails = authenticationDetails
 }

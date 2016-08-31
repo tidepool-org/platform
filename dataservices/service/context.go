@@ -14,21 +14,23 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	"github.com/tidepool-org/platform/data/store"
+	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
 	"github.com/tidepool-org/platform/service"
-	"github.com/tidepool-org/platform/userservices/client"
+	userservicesClient "github.com/tidepool-org/platform/userservices/client"
 )
 
 type Context interface {
 	service.Context
 
-	UserServicesClient() client.Client
+	MetricServicesClient() metricservicesClient.Client
+	UserServicesClient() userservicesClient.Client
 
 	DataFactory() data.Factory
 	DataStoreSession() store.Session
 	DataDeduplicatorFactory() deduplicator.Factory
 
-	AuthenticationDetails() client.AuthenticationDetails
-	SetAuthenticationDetails(authenticationDetails client.AuthenticationDetails)
+	AuthenticationDetails() userservicesClient.AuthenticationDetails
+	SetAuthenticationDetails(authenticationDetails userservicesClient.AuthenticationDetails)
 }
 
 type HandlerFunc func(context Context)

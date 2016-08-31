@@ -19,15 +19,17 @@ import (
 	"github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/dataservices/service/api"
 	"github.com/tidepool-org/platform/dataservices/service/api/v1"
+	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
 	"github.com/tidepool-org/platform/service/server"
 	"github.com/tidepool-org/platform/service/service"
 	commonMongo "github.com/tidepool-org/platform/store/mongo"
-	"github.com/tidepool-org/platform/userservices/client"
+	userservicesClient "github.com/tidepool-org/platform/userservices/client"
 )
 
 type Standard struct {
 	*service.Standard
-	userServicesClient      *client.Standard
+	metricServicesClient    *metricservicesClient.Standard
+	userServicesClient      *userservicesClient.Standard
 	dataFactory             *factory.Standard
 	dataStore               *mongo.Store
 	dataDeduplicatorFactory deduplicator.Factory
@@ -51,6 +53,9 @@ func (s *Standard) Initialize() error {
 		return err
 	}
 
+	if err := s.initializeMetricServicesClient(); err != nil {
+		return err
+	}
 	if err := s.initializeUserServicesClient(); err != nil {
 		return err
 	}
@@ -86,6 +91,7 @@ func (s *Standard) Terminate() {
 		s.userServicesClient.Close()
 		s.userServicesClient = nil
 	}
+	s.metricServicesClient = nil
 
 	s.Standard.Terminate()
 }
@@ -98,17 +104,36 @@ func (s *Standard) Run() error {
 	return s.dataServicesServer.Serve()
 }
 
+func (s *Standard) initializeMetricServicesClient() error {
+	s.Logger().Debug("Loading metric services client config")
+
+	metricServicesClientConfig := &metricservicesClient.Config{}
+	if err := s.ConfigLoader().Load("metricservices_client", metricServicesClientConfig); err != nil {
+		return app.ExtError(err, "service", "unable to load metric services client config")
+	}
+
+	s.Logger().Debug("Creating metric services client")
+
+	metricServicesClient, err := metricservicesClient.NewStandard(s.Logger(), s.Name(), metricServicesClientConfig)
+	if err != nil {
+		return app.ExtError(err, "service", "unable to create metric services client")
+	}
+	s.metricServicesClient = metricServicesClient
+
+	return nil
+}
+
 func (s *Standard) initializeUserServicesClient() error {
 	s.Logger().Debug("Loading user services client config")
 
-	userServicesClientConfig := &client.Config{}
+	userServicesClientConfig := &userservicesClient.Config{}
 	if err := s.ConfigLoader().Load("userservices_client", userServicesClientConfig); err != nil {
 		return app.ExtError(err, "service", "unable to load user services client config")
 	}
 
 	s.Logger().Debug("Creating user services client")
 
-	userServicesClient, err := client.NewStandard(s.Logger(), s.Name(), userServicesClientConfig)
+	userServicesClient, err := userservicesClient.NewStandard(s.Logger(), s.Name(), userServicesClientConfig)
 	if err != nil {
 		return app.ExtError(err, "service", "unable to create user services client")
 	}
@@ -180,7 +205,7 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 func (s *Standard) initializeDataServicesAPI() error {
 	s.Logger().Debug("Creating data services api")
 
-	dataServicesAPI, err := api.NewStandard(s.VersionReporter(), s.EnvironmentReporter(), s.Logger(), s.userServicesClient, s.dataFactory, s.dataStore, s.dataDeduplicatorFactory)
+	dataServicesAPI, err := api.NewStandard(s.VersionReporter(), s.EnvironmentReporter(), s.Logger(), s.metricServicesClient, s.userServicesClient, s.dataFactory, s.dataStore, s.dataDeduplicatorFactory)
 	if err != nil {
 		return app.ExtError(err, "service", "unable to create data services api")
 	}

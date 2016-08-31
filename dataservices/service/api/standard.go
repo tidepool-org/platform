@@ -21,20 +21,22 @@ import (
 	"github.com/tidepool-org/platform/dataservices/service/context"
 	"github.com/tidepool-org/platform/environment"
 	"github.com/tidepool-org/platform/log"
+	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
 	"github.com/tidepool-org/platform/service/api"
-	"github.com/tidepool-org/platform/userservices/client"
+	userservicesClient "github.com/tidepool-org/platform/userservices/client"
 	"github.com/tidepool-org/platform/version"
 )
 
 type Standard struct {
 	*api.Standard
-	userServicesClient      client.Client
+	metricServicesClient    metricservicesClient.Client
+	userServicesClient      userservicesClient.Client
 	dataFactory             data.Factory
 	dataStore               store.Store
 	dataDeduplicatorFactory deduplicator.Factory
 }
 
-func NewStandard(versionReporter version.Reporter, environmentReporter environment.Reporter, logger log.Logger, userServicesClient client.Client, dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory) (*Standard, error) {
+func NewStandard(versionReporter version.Reporter, environmentReporter environment.Reporter, logger log.Logger, metricServicesClient metricservicesClient.Client, userServicesClient userservicesClient.Client, dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory) (*Standard, error) {
 	if versionReporter == nil {
 		return nil, app.Error("api", "version reporter is missing")
 	}
@@ -43,6 +45,9 @@ func NewStandard(versionReporter version.Reporter, environmentReporter environme
 	}
 	if logger == nil {
 		return nil, app.Error("api", "logger is missing")
+	}
+	if metricServicesClient == nil {
+		return nil, app.Error("api", "metric services client is missing")
 	}
 	if userServicesClient == nil {
 		return nil, app.Error("api", "user services client is missing")
@@ -64,6 +69,7 @@ func NewStandard(versionReporter version.Reporter, environmentReporter environme
 
 	return &Standard{
 		Standard:                standard,
+		metricServicesClient:    metricServicesClient,
 		userServicesClient:      userServicesClient,
 		dataFactory:             dataFactory,
 		dataStore:               dataStore,
@@ -99,5 +105,5 @@ func (s *Standard) InitializeRouter(routes []service.Route) error {
 }
 
 func (s *Standard) withContext(handler service.HandlerFunc) rest.HandlerFunc {
-	return context.WithContext(s.userServicesClient, s.dataFactory, s.dataStore, s.dataDeduplicatorFactory, handler)
+	return context.WithContext(s.metricServicesClient, s.userServicesClient, s.dataFactory, s.dataStore, s.dataDeduplicatorFactory, handler)
 }

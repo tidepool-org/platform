@@ -99,7 +99,10 @@ var _ = Describe("Standard", func() {
 		})
 
 		It("returns success", func() {
-			Expect(client.NewStandard(logger, "testservices", config)).ToNot(BeNil())
+			standard, err := client.NewStandard(logger, "testservices", config)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(standard).ToNot(BeNil())
+			standard.Close()
 		})
 	})
 
@@ -367,7 +370,7 @@ var _ = Describe("Standard", func() {
 					})
 				})
 
-				Context("with an successful response, but not parseable", func() {
+				Context("with a successful response, but not parseable", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
@@ -387,7 +390,7 @@ var _ = Describe("Standard", func() {
 					})
 				})
 
-				Context("with an successful response, but is not a server and missing the user id", func() {
+				Context("with a successful response, but is not a server and missing the user id", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
@@ -406,7 +409,7 @@ var _ = Describe("Standard", func() {
 					})
 				})
 
-				Context("with an successful response and a user id", func() {
+				Context("with a successful response and a user id", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
@@ -421,11 +424,13 @@ var _ = Describe("Standard", func() {
 						authenticationDetails, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
 						Expect(authenticationDetails).ToNot(BeNil())
 						Expect(err).ToNot(HaveOccurred())
+						Expect(authenticationDetails.Token()).To(Equal("test-authentication-token"))
 						Expect(authenticationDetails.IsServer()).To(BeFalse())
 						Expect(authenticationDetails.UserID()).To(Equal("session-user-id"))
 					})
 				})
-				Context("with an successful response and is server", func() {
+
+				Context("with a successful response and is server", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
@@ -440,6 +445,7 @@ var _ = Describe("Standard", func() {
 						authenticationDetails, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
 						Expect(authenticationDetails).ToNot(BeNil())
 						Expect(err).ToNot(HaveOccurred())
+						Expect(authenticationDetails.Token()).To(Equal("test-authentication-token"))
 						Expect(authenticationDetails.IsServer()).To(BeTrue())
 						Expect(authenticationDetails.UserID()).To(Equal(""))
 					})
@@ -551,7 +557,7 @@ var _ = Describe("Standard", func() {
 					})
 				})
 
-				Context("with an successful response, but not parseable", func() {
+				Context("with a successful response, but not parseable", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
@@ -571,7 +577,7 @@ var _ = Describe("Standard", func() {
 					})
 				})
 
-				Context("with an successful response, but with no permissions", func() {
+				Context("with a successful response, but with no permissions", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
@@ -588,7 +594,7 @@ var _ = Describe("Standard", func() {
 					})
 				})
 
-				Context("with an successful response with upload and view permissions", func() {
+				Context("with a successful response with upload and view permissions", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
@@ -608,7 +614,7 @@ var _ = Describe("Standard", func() {
 					})
 				})
 
-				Context("with an successful response with owner permissions that already includes upload permissions", func() {
+				Context("with a successful response with owner permissions that already includes upload permissions", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
@@ -629,7 +635,7 @@ var _ = Describe("Standard", func() {
 					})
 				})
 
-				Context("with an successful response with owner permissions that already includes view permissions", func() {
+				Context("with a successful response with owner permissions that already includes view permissions", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
@@ -650,7 +656,7 @@ var _ = Describe("Standard", func() {
 					})
 				})
 
-				Context("with an successful response with owner permissions that already includes upload and view permissions", func() {
+				Context("with a successful response with owner permissions that already includes upload and view permissions", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
@@ -751,7 +757,7 @@ var _ = Describe("Standard", func() {
 					})
 				})
 
-				Context("with an successful response, but not parseable", func() {
+				Context("with a successful response, but not parseable", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
@@ -771,7 +777,7 @@ var _ = Describe("Standard", func() {
 					})
 				})
 
-				Context("with an successful response, but missing the group id", func() {
+				Context("with a successful response, but missing the group id", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
@@ -790,7 +796,7 @@ var _ = Describe("Standard", func() {
 					})
 				})
 
-				Context("with an successful response and a group id", func() {
+				Context("with a successful response and a group id", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
