@@ -109,7 +109,7 @@ func (s *Standard) Close() {
 	}
 }
 
-func (s *Standard) ValidateAuthenticationToken(context service.Context, authenticationToken string) (*AuthenticationDetails, error) {
+func (s *Standard) ValidateAuthenticationToken(context service.Context, authenticationToken string) (AuthenticationDetails, error) {
 	if context == nil {
 		return nil, app.Error("client", "context is missing")
 	}
@@ -123,16 +123,24 @@ func (s *Standard) ValidateAuthenticationToken(context service.Context, authenti
 
 	context.Logger().WithField("authentication-token", authenticationToken).Debug("Validating authentication token")
 
-	authenticationDetails := &AuthenticationDetails{}
-	if err := s.sendRequest(context, "GET", s.buildURL("auth", "token", authenticationToken), authenticationDetails); err != nil {
+	var authentication struct {
+		IsServer bool
+		UserID   string
+	}
+
+	if err := s.sendRequest(context, "GET", s.buildURL("auth", "token", authenticationToken), &authentication); err != nil {
 		return nil, err
 	}
 
-	if !authenticationDetails.IsServer && authenticationDetails.UserID == "" {
+	if !authentication.IsServer && authentication.UserID == "" {
 		return nil, app.Error("client", "user id is missing")
 	}
 
-	return authenticationDetails, nil
+	return &authenticationDetails{
+		token:    authenticationToken,
+		isServer: authentication.IsServer,
+		userID:   authentication.UserID,
+	}, nil
 }
 
 func (s *Standard) GetUserPermissions(context service.Context, requestUserID string, targetUserID string) (Permissions, error) {
@@ -317,4 +325,22 @@ func (s *Standard) serverToken() string {
 
 func (s *Standard) buildURL(paths ...string) string {
 	return strings.Join(append([]string{s.config.Address}, paths...), "/")
+}
+
+type authenticationDetails struct {
+	token    string
+	isServer bool
+	userID   string
+}
+
+func (a *authenticationDetails) Token() string {
+	return a.token
+}
+
+func (a *authenticationDetails) IsServer() bool {
+	return a.isServer
+}
+
+func (a *authenticationDetails) UserID() string {
+	return a.userID
 }

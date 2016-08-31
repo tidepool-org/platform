@@ -22,7 +22,7 @@ import (
 type Standard struct {
 	commonService.Context
 	userServicesClient    client.Client
-	authenticationDetails *client.AuthenticationDetails
+	authenticationDetails client.AuthenticationDetails
 }
 
 func WithContext(userServicesClient client.Client, handler service.HandlerFunc) rest.HandlerFunc {
@@ -44,7 +44,7 @@ func (s *Standard) UserServicesClient() client.Client {
 	return s.userServicesClient
 }
 
-func (s *Standard) SetAuthenticationDetails(authenticationDetails *client.AuthenticationDetails) {
+func (s *Standard) SetAuthenticationDetails(authenticationDetails client.AuthenticationDetails) {
 	s.authenticationDetails = authenticationDetails
 }
 
@@ -52,12 +52,12 @@ func (s *Standard) IsAuthenticatedServer() bool {
 	if s.authenticationDetails == nil {
 		return false
 	}
-	return s.authenticationDetails.IsServer
+	return s.authenticationDetails.IsServer()
 }
 
 func (s *Standard) AuthenticatedUserID() string {
 	if s.authenticationDetails == nil {
 		return ""
 	}
-	return s.authenticationDetails.UserID
+	return s.authenticationDetails.UserID()
 }

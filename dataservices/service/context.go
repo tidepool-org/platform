@@ -27,7 +27,7 @@ type Context interface {
 	DataStoreSession() store.Session
 	DataDeduplicatorFactory() deduplicator.Factory
 
-	SetAuthenticationDetails(authenticationDetails *client.AuthenticationDetails)
+	SetAuthenticationDetails(authenticationDetails client.AuthenticationDetails)
 	IsAuthenticatedServer() bool
 	AuthenticatedUserID() string
 }
