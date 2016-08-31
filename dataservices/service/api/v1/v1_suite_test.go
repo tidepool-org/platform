@@ -46,7 +46,7 @@ func (t *TestUserServicesClient) Close() {
 	panic("Unexpected invocation of Close on TestUserServicesClient")
 }
 
-func (t *TestUserServicesClient) ValidateAuthenticationToken(context service.Context, authenticationToken string) (*client.AuthenticationInfo, error) {
+func (t *TestUserServicesClient) ValidateAuthenticationToken(context service.Context, authenticationToken string) (*client.AuthenticationDetails, error) {
 	panic("Unexpected invocation of ValidateAuthenticationToken on TestUserServicesClient")
 }
 
@@ -131,7 +131,7 @@ type TestContext struct {
 	RespondWithStatusAndDataInputs         []RespondWithStatusAndDataInput
 	UserServicesClientImpl                 *TestUserServicesClient
 	DataStoreSessionImpl                   *TestDataStoreSession
-	authenticationInfo                     *client.AuthenticationInfo
+	authenticationDetails                  *client.AuthenticationDetails
 }
 
 func (t *TestContext) Logger() log.Logger {
@@ -178,22 +178,22 @@ func (t *TestContext) DataDeduplicatorFactory() deduplicator.Factory {
 	panic("Unexpected invocation of DataDeduplicatorFactory on TestContext")
 }
 
-func (t *TestContext) SetAuthenticationInfo(authenticationInfo *client.AuthenticationInfo) {
-	t.authenticationInfo = authenticationInfo
+func (t *TestContext) SetAuthenticationDetails(authenticationDetails *client.AuthenticationDetails) {
+	t.authenticationDetails = authenticationDetails
 }
 
 func (t *TestContext) IsAuthenticatedServer() bool {
-	if t.authenticationInfo == nil {
+	if t.authenticationDetails == nil {
 		return false
 	}
-	return t.authenticationInfo.IsServer
+	return t.authenticationDetails.IsServer
 }
 
 func (t *TestContext) AuthenticatedUserID() string {
-	if t.authenticationInfo == nil {
+	if t.authenticationDetails == nil {
 		return ""
 	}
-	return t.authenticationInfo.UserID
+	return t.authenticationDetails.UserID
 }
 
 func NewTestContext() *TestContext {

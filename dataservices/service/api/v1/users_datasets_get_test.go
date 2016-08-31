@@ -31,7 +31,7 @@ var _ = Describe("UsersDatasetsGet", func() {
 			context.RequestImpl.PathParams["userid"] = targetUserID
 			context.DataStoreSessionImpl.GetDatasetsForUserOutputs = []GetDatasetsForUserOutput{{uploads, nil}}
 			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{client.Permissions{client.ViewPermission: client.Permission{}}, nil}}
-			context.SetAuthenticationInfo(&client.AuthenticationInfo{UserID: authenticatedUserID})
+			context.SetAuthenticationDetails(&client.AuthenticationDetails{UserID: authenticatedUserID})
 		})
 
 		It("succeeds if authenticated as user, not server", func() {
@@ -41,7 +41,7 @@ var _ = Describe("UsersDatasetsGet", func() {
 
 		It("succeeds if authenticated as server, not user", func() {
 			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
-			context.SetAuthenticationInfo(&client.AuthenticationInfo{IsServer: true})
+			context.SetAuthenticationDetails(&client.AuthenticationDetails{IsServer: true})
 			v1.UsersDatasetsGet(context)
 			Expect(context.RespondWithStatusAndDataInputs).To(Equal([]RespondWithStatusAndDataInput{{http.StatusOK, uploads}}))
 		})

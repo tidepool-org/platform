@@ -109,7 +109,7 @@ func (s *Standard) Close() {
 	}
 }
 
-func (s *Standard) ValidateAuthenticationToken(context service.Context, authenticationToken string) (*AuthenticationInfo, error) {
+func (s *Standard) ValidateAuthenticationToken(context service.Context, authenticationToken string) (*AuthenticationDetails, error) {
 	if context == nil {
 		return nil, app.Error("client", "context is missing")
 	}
@@ -123,16 +123,16 @@ func (s *Standard) ValidateAuthenticationToken(context service.Context, authenti
 
 	context.Logger().WithField("authentication-token", authenticationToken).Debug("Validating authentication token")
 
-	authenticationInfo := &AuthenticationInfo{}
-	if err := s.sendRequest(context, "GET", s.buildURL("auth", "token", authenticationToken), authenticationInfo); err != nil {
+	authenticationDetails := &AuthenticationDetails{}
+	if err := s.sendRequest(context, "GET", s.buildURL("auth", "token", authenticationToken), authenticationDetails); err != nil {
 		return nil, err
 	}
 
-	if !authenticationInfo.IsServer && authenticationInfo.UserID == "" {
+	if !authenticationDetails.IsServer && authenticationDetails.UserID == "" {
 		return nil, app.Error("client", "user id is missing")
 	}
 
-	return authenticationInfo, nil
+	return authenticationDetails, nil
 }
 
 func (s *Standard) GetUserPermissions(context service.Context, requestUserID string, targetUserID string) (Permissions, error) {

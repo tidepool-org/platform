@@ -290,41 +290,41 @@ var _ = Describe("Standard", func() {
 
 			Context("ValidateAuthenticationToken", func() {
 				It("returns error if context is missing", func() {
-					authenticationInfo, err := standard.ValidateAuthenticationToken(nil, "test-authentication-token")
+					authenticationDetails, err := standard.ValidateAuthenticationToken(nil, "test-authentication-token")
 					Expect(err).To(MatchError("client: context is missing"))
-					Expect(authenticationInfo).To(BeNil())
+					Expect(authenticationDetails).To(BeNil())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 
 				It("returns error if session token is missing", func() {
-					authenticationInfo, err := standard.ValidateAuthenticationToken(context, "")
+					authenticationDetails, err := standard.ValidateAuthenticationToken(context, "")
 					Expect(err).To(MatchError("client: authentication token is missing"))
-					Expect(authenticationInfo).To(BeNil())
+					Expect(authenticationDetails).To(BeNil())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 
 				It("returns error if client is closed", func() {
 					standard.Close()
-					authenticationInfo, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
+					authenticationDetails, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
 					Expect(err).To(MatchError("client: client is closed"))
-					Expect(authenticationInfo).To(BeNil())
+					Expect(authenticationDetails).To(BeNil())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 
 				It("returns error if the server is not reachable", func() {
 					server.Close()
 					server = nil
-					authenticationInfo, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
+					authenticationDetails, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
 					Expect(err).To(HaveOccurred())
-					Expect(authenticationInfo).To(BeNil())
+					Expect(authenticationDetails).To(BeNil())
 					Expect(err.Error()).To(HavePrefix("client: unable to perform request GET "))
 				})
 
 				It("returns error if the context request is missing", func() {
 					context.TestRequest = nil
-					authenticationInfo, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
+					authenticationDetails, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
 					Expect(err).To(MatchError("client: unable to copy request trace; service: source request is missing"))
-					Expect(authenticationInfo).To(BeNil())
+					Expect(authenticationDetails).To(BeNil())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 
@@ -340,9 +340,9 @@ var _ = Describe("Standard", func() {
 					})
 
 					It("returns an error", func() {
-						authenticationInfo, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
+						authenticationDetails, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
 						Expect(err).To(HaveOccurred())
-						Expect(authenticationInfo).To(BeNil())
+						Expect(authenticationDetails).To(BeNil())
 						Expect(err.Error()).To(HavePrefix("client: unexpected response status code 400 from GET "))
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
@@ -360,9 +360,9 @@ var _ = Describe("Standard", func() {
 					})
 
 					It("returns an error", func() {
-						authenticationInfo, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
+						authenticationDetails, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
 						Expect(err).To(MatchError("client: unauthorized"))
-						Expect(authenticationInfo).To(BeNil())
+						Expect(authenticationDetails).To(BeNil())
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
@@ -379,9 +379,9 @@ var _ = Describe("Standard", func() {
 					})
 
 					It("returns an error", func() {
-						authenticationInfo, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
+						authenticationDetails, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
 						Expect(err).To(HaveOccurred())
-						Expect(authenticationInfo).To(BeNil())
+						Expect(authenticationDetails).To(BeNil())
 						Expect(err.Error()).To(HavePrefix("client: error decoding JSON response from GET "))
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
@@ -399,9 +399,9 @@ var _ = Describe("Standard", func() {
 					})
 
 					It("returns an error", func() {
-						authenticationInfo, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
+						authenticationDetails, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
 						Expect(err).To(MatchError("client: user id is missing"))
-						Expect(authenticationInfo).To(BeNil())
+						Expect(authenticationDetails).To(BeNil())
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
@@ -418,11 +418,11 @@ var _ = Describe("Standard", func() {
 					})
 
 					It("returns the user id", func() {
-						authenticationInfo, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
-						Expect(authenticationInfo).ToNot(BeNil())
+						authenticationDetails, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
+						Expect(authenticationDetails).ToNot(BeNil())
 						Expect(err).ToNot(HaveOccurred())
-						Expect(authenticationInfo.IsServer).To(BeFalse())
-						Expect(authenticationInfo.UserID).To(Equal("session-user-id"))
+						Expect(authenticationDetails.IsServer).To(BeFalse())
+						Expect(authenticationDetails.UserID).To(Equal("session-user-id"))
 					})
 				})
 				Context("with an successful response and is server", func() {
@@ -437,11 +437,11 @@ var _ = Describe("Standard", func() {
 					})
 
 					It("returns is server", func() {
-						authenticationInfo, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
-						Expect(authenticationInfo).ToNot(BeNil())
+						authenticationDetails, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
+						Expect(authenticationDetails).ToNot(BeNil())
 						Expect(err).ToNot(HaveOccurred())
-						Expect(authenticationInfo.IsServer).To(BeTrue())
-						Expect(authenticationInfo.UserID).To(Equal(""))
+						Expect(authenticationDetails.IsServer).To(BeTrue())
+						Expect(authenticationDetails.UserID).To(Equal(""))
 					})
 				})
 			})
@@ -827,9 +827,9 @@ var _ = Describe("Standard", func() {
 
 			Context("ValidateAuthenticationToken", func() {
 				It("returns an error", func() {
-					authenticationInfo, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
+					authenticationDetails, err := standard.ValidateAuthenticationToken(context, "test-authentication-token")
 					Expect(err).To(HaveOccurred())
-					Expect(authenticationInfo).To(BeNil())
+					Expect(authenticationDetails).To(BeNil())
 					Expect(err.Error()).To(HavePrefix("client: unable to obtain server token for GET "))
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})

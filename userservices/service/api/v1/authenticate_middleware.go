@@ -24,7 +24,7 @@ func Authenticate(handler service.HandlerFunc) service.HandlerFunc {
 			return
 		}
 
-		authenticationInfo, err := context.UserServicesClient().ValidateAuthenticationToken(context, authenticationToken)
+		authenticationDetails, err := context.UserServicesClient().ValidateAuthenticationToken(context, authenticationToken)
 		if err != nil {
 			if client.IsUnauthorizedError(err) {
 				context.RespondWithError(commonService.ErrorUnauthenticated())
@@ -34,7 +34,7 @@ func Authenticate(handler service.HandlerFunc) service.HandlerFunc {
 			return
 		}
 
-		context.SetAuthenticationInfo(authenticationInfo)
+		context.SetAuthenticationDetails(authenticationDetails)
 
 		handler(context)
 	}

@@ -20,7 +20,7 @@ type Context interface {
 
 	UserServicesClient() client.Client
 
-	SetAuthenticationInfo(authenticationInfo *client.AuthenticationInfo)
+	SetAuthenticationDetails(authenticationDetails *client.AuthenticationDetails)
 	IsAuthenticatedServer() bool
 	AuthenticatedUserID() string
 }
