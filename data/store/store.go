@@ -17,6 +17,10 @@ import (
 	"github.com/tidepool-org/platform/store"
 )
 
+type Agent interface {
+	UserID() string
+}
+
 type Store interface {
 	store.Store
 
@@ -25,6 +29,8 @@ type Store interface {
 
 type Session interface {
 	store.Session
+
+	SetAgent(agent Agent)
 
 	GetDatasetsForUser(userID string) ([]*upload.Upload, error)
 	GetDataset(datasetID string) (*upload.Upload, error)

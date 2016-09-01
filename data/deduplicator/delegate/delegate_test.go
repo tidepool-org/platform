@@ -75,6 +75,10 @@ func (t *TestDataStoreSession) Close() {
 	panic("Unexpected invocation of Close on TestDataStoreSession")
 }
 
+func (t *TestDataStoreSession) SetAgent(agent store.Agent) {
+	panic("Unexpected invocation of SetAgent on TestDataStoreSession")
+}
+
 func (t *TestDataStoreSession) GetDatasetsForUser(userID string) ([]*upload.Upload, error) {
 	panic("Unexpected invocation of GetDatasetsForUser on TestDataStoreSession")
 }

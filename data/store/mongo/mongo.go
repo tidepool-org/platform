@@ -51,6 +51,11 @@ func (s *Store) NewSession(logger log.Logger) (store.Session, error) {
 
 type Session struct {
 	*commonMongo.Session
+	agent store.Agent
+}
+
+func (s *Session) SetAgent(agent store.Agent) {
+	s.agent = agent
 }
 
 func (s *Session) GetDatasetsForUser(userID string) ([]*upload.Upload, error) {

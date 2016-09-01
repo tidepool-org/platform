@@ -10,6 +10,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	"github.com/tidepool-org/platform/data/deduplicator/truncate"
+	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/base/upload"
 	"github.com/tidepool-org/platform/log"
 )
@@ -36,6 +37,10 @@ func (t *TestDataStoreSession) IsClosed() bool {
 
 func (t *TestDataStoreSession) Close() {
 	panic("Unexpected invocation of Close on TestDataStoreSession")
+}
+
+func (t *TestDataStoreSession) SetAgent(agent store.Agent) {
+	panic("Unexpected invocation of SetAgent on TestDataStoreSession")
 }
 
 func (t *TestDataStoreSession) GetDatasetsForUser(userID string) ([]*upload.Upload, error) {

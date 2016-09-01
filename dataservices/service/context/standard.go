@@ -85,4 +85,6 @@ func (s *Standard) AuthenticationDetails() userservicesClient.AuthenticationDeta
 
 func (s *Standard) SetAuthenticationDetails(authenticationDetails userservicesClient.AuthenticationDetails) {
 	s.authenticationDetails = authenticationDetails
+
+	s.dataStoreSession.SetAgent(authenticationDetails)
 }
