@@ -71,5 +71,9 @@ func DatasetsUpdate(serviceContext service.Context) {
 		return
 	}
 
+	if err = serviceContext.MetricServicesClient().RecordMetric(serviceContext, "datasets_update"); err != nil {
+		serviceContext.Logger().WithError(err).Error("Unable to record metric")
+	}
+
 	serviceContext.RespondWithStatusAndData(http.StatusOK, dataset)
 }

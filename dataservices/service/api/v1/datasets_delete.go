@@ -63,5 +63,9 @@ func DatasetsDelete(serviceContext service.Context) {
 		return
 	}
 
+	if err = serviceContext.MetricServicesClient().RecordMetric(serviceContext, "datasets_delete"); err != nil {
+		serviceContext.Logger().WithError(err).Error("Unable to record metric")
+	}
+
 	serviceContext.RespondWithStatusAndData(http.StatusOK, struct{}{})
 }

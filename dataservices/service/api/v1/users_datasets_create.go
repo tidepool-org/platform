@@ -130,5 +130,9 @@ func UsersDatasetsCreate(serviceContext service.Context) {
 		return
 	}
 
+	if err = serviceContext.MetricServicesClient().RecordMetric(serviceContext, "users_datasets_create"); err != nil {
+		serviceContext.Logger().WithError(err).Error("Unable to record metric")
+	}
+
 	serviceContext.RespondWithStatusAndData(http.StatusCreated, dataset)
 }

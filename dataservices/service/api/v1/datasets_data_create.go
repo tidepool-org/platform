@@ -12,6 +12,7 @@ package v1
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/context"
@@ -118,6 +119,10 @@ func DatasetsDataCreate(serviceContext service.Context) {
 	if err = deduplicator.AddDataToDataset(datumArray); err != nil {
 		serviceContext.RespondWithInternalServerFailure("Unable to add data to dataset", err)
 		return
+	}
+
+	if err = serviceContext.MetricServicesClient().RecordMetric(serviceContext, "datasets_data_create", map[string]string{"count": strconv.Itoa(len(datumArray))}); err != nil {
+		serviceContext.Logger().WithError(err).Error("Unable to record metric")
 	}
 
 	serviceContext.RespondWithStatusAndData(http.StatusOK, []struct{}{})
