@@ -16,7 +16,7 @@ type Upload struct {
 
 	DataState    string        `json:"-" bson:"_dataState,omitempty"`
 	Deduplicator *Deduplicator `json:"-" bson:"_deduplicator,omitempty"`
-	UploadUserID string        `json:"byUser,omitempty" bson:"byUser,omitempty"`
+	ByUser       string        `json:"byUser,omitempty" bson:"byUser,omitempty"`
 
 	ComputerTime        *string   `json:"computerTime,omitempty" bson:"computerTime,omitempty"`
 	DeviceManufacturers *[]string `json:"deviceManufacturers,omitempty" bson:"deviceManufacturers,omitempty"`
@@ -53,7 +53,7 @@ func (u *Upload) Init() {
 
 	u.DataState = "open"
 	u.Deduplicator = nil
-	u.UploadUserID = ""
+	u.ByUser = ""
 
 	u.ComputerTime = nil
 	u.DeviceManufacturers = nil
@@ -107,16 +107,4 @@ func (u *Upload) Normalize(normalizer data.Normalizer) error {
 	normalizer.SetMeta(u.Meta())
 
 	return u.Base.Normalize(normalizer)
-}
-
-func (u *Upload) SetUploadUserID(uploadUserID string) {
-	u.UploadUserID = uploadUserID
-}
-
-func (u *Upload) SetDataState(dataState string) {
-	u.DataState = dataState
-}
-
-func (u *Upload) SetDeduplicator(deduplicator *Deduplicator) {
-	u.Deduplicator = deduplicator
 }

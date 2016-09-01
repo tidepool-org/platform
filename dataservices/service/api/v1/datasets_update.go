@@ -53,7 +53,7 @@ func DatasetsUpdate(serviceContext service.Context) {
 		return
 	}
 
-	dataset.SetDataState("closed")
+	dataset.DataState = "closed"
 
 	if err = serviceContext.DataStoreSession().UpdateDataset(dataset); err != nil {
 		serviceContext.RespondWithInternalServerFailure("Unable to update dataset", err)

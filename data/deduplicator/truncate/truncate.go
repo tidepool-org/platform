@@ -86,7 +86,7 @@ func (f *factory) NewDeduplicator(logger log.Logger, dataStoreSession store.Sess
 }
 
 func (t *truncate) InitializeDataset() error {
-	t.dataset.SetDeduplicator(&upload.Deduplicator{Name: Name})
+	t.dataset.Deduplicator = &upload.Deduplicator{Name: Name}
 
 	if err := t.dataStoreSession.UpdateDataset(t.dataset); err != nil {
 		return app.ExtError(err, "truncate", "unable to initialize dataset")

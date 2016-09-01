@@ -33,7 +33,7 @@ func NewDataset(userID string, groupID string) *upload.Upload {
 	dataset.Time = app.StringAsPointer("2015-05-06T07:08:09-07:00")
 	dataset.TimezoneOffset = app.IntegerAsPointer(-420)
 
-	dataset.UploadUserID = userID
+	dataset.ByUser = userID
 
 	dataset.ComputerTime = app.StringAsPointer("2015-06-07T08:09:10")
 	dataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Tesla"})
