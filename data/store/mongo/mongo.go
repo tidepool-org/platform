@@ -65,7 +65,10 @@ func (s *Session) GetDatasetsForUser(userID string) ([]*upload.Upload, error) {
 	startTime := time.Now()
 
 	var datasets []*upload.Upload
-	selector := bson.M{"type": "upload", "_userId": userID}
+	selector := bson.M{
+		"_userId": userID,
+		"type":    "upload",
+	}
 	err := s.C().Find(selector).All(&datasets)
 
 	loggerFields := log.Fields{"userID": userID, "datasets-count": len(datasets), "duration": time.Since(startTime) / time.Microsecond}
@@ -93,7 +96,10 @@ func (s *Session) GetDataset(datasetID string) (*upload.Upload, error) {
 	startTime := time.Now()
 
 	var dataset upload.Upload
-	selector := bson.M{"type": "upload", "uploadId": datasetID}
+	selector := bson.M{
+		"uploadId": datasetID,
+		"type":     "upload",
+	}
 	err := s.C().Find(selector).One(&dataset)
 
 	loggerFields := log.Fields{"datasetID": datasetID, "dataset": dataset, "duration": time.Since(startTime) / time.Microsecond}
@@ -127,7 +133,12 @@ func (s *Session) CreateDataset(dataset *upload.Upload) error {
 
 	// TODO: Consider upsert instead to prevent multiples being created?
 
-	selector := bson.M{"_userId": dataset.UserID, "_groupId": dataset.GroupID, "uploadId": dataset.UploadID, "type": dataset.Type}
+	selector := bson.M{
+		"_userId":  dataset.UserID,
+		"_groupId": dataset.GroupID,
+		"uploadId": dataset.UploadID,
+		"type":     dataset.Type,
+	}
 	count, err := s.C().Find(selector).Count()
 	if err == nil {
 		if count > 0 {
@@ -166,7 +177,12 @@ func (s *Session) UpdateDataset(dataset *upload.Upload) error {
 
 	startTime := time.Now()
 
-	selector := bson.M{"_userId": dataset.UserID, "_groupId": dataset.GroupID, "uploadId": dataset.UploadID, "type": dataset.Type}
+	selector := bson.M{
+		"_userId":  dataset.UserID,
+		"_groupId": dataset.GroupID,
+		"uploadId": dataset.UploadID,
+		"type":     dataset.Type,
+	}
 	err := s.C().Update(selector, dataset)
 
 	loggerFields := log.Fields{"dataset": dataset, "duration": time.Since(startTime) / time.Microsecond}
@@ -189,7 +205,9 @@ func (s *Session) DeleteDataset(datasetID string) error {
 
 	startTime := time.Now()
 
-	selector := bson.M{"uploadId": datasetID}
+	selector := bson.M{
+		"uploadId": datasetID,
+	}
 	changeInfo, err := s.C().RemoveAll(selector)
 
 	loggerFields := log.Fields{"datasetID": datasetID, "change-info": changeInfo, "duration": time.Since(startTime) / time.Microsecond}
@@ -267,8 +285,16 @@ func (s *Session) ActivateDatasetData(dataset *upload.Upload) error {
 
 	startTime := time.Now()
 
-	selector := bson.M{"_userId": dataset.UserID, "_groupId": dataset.GroupID, "uploadId": dataset.UploadID}
-	update := bson.M{"$set": bson.M{"_active": true}}
+	selector := bson.M{
+		"_userId":  dataset.UserID,
+		"_groupId": dataset.GroupID,
+		"uploadId": dataset.UploadID,
+	}
+	update := bson.M{
+		"$set": bson.M{
+			"_active": true,
+		},
+	}
 	changeInfo, err := s.C().UpdateAll(selector, update)
 
 	loggerFields := log.Fields{"dataset": dataset, "change-info": changeInfo, "duration": time.Since(startTime) / time.Microsecond}
@@ -305,7 +331,13 @@ func (s *Session) DeleteOtherDatasetData(dataset *upload.Upload) error {
 
 	startTime := time.Now()
 
-	selector := bson.M{"_userId": dataset.UserID, "_groupId": dataset.GroupID, "deviceId": *dataset.DeviceID, "type": bson.M{"$ne": "upload"}, "uploadId": bson.M{"$ne": dataset.UploadID}}
+	selector := bson.M{
+		"_userId":  dataset.UserID,
+		"_groupId": dataset.GroupID,
+		"deviceId": *dataset.DeviceID,
+		"uploadId": bson.M{"$ne": dataset.UploadID},
+		"type":     bson.M{"$ne": "upload"},
+	}
 	changeInfo, err := s.C().RemoveAll(selector)
 
 	loggerFields := log.Fields{"dataset": dataset, "change-info": changeInfo, "duration": time.Since(startTime) / time.Microsecond}
