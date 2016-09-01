@@ -20,18 +20,23 @@ import (
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/version"
 )
 
 type Standard struct {
-	logger     log.Logger
-	name       string
-	config     *Config
-	httpClient *http.Client
+	versionReporter version.Reporter
+	logger          log.Logger
+	name            string
+	config          *Config
+	httpClient      *http.Client
 }
 
 const TidepoolAuthenticationTokenHeaderName = "X-Tidepool-Session-Token"
 
-func NewStandard(logger log.Logger, name string, config *Config) (*Standard, error) {
+func NewStandard(versionReporter version.Reporter, logger log.Logger, name string, config *Config) (*Standard, error) {
+	if versionReporter == nil {
+		return nil, app.Error("client", "version reporter is missing")
+	}
 	if logger == nil {
 		return nil, app.Error("client", "logger is missing")
 	}
@@ -52,14 +57,15 @@ func NewStandard(logger log.Logger, name string, config *Config) (*Standard, err
 	}
 
 	return &Standard{
-		logger:     logger,
-		name:       name,
-		config:     config,
-		httpClient: httpClient,
+		versionReporter: versionReporter,
+		logger:          logger,
+		name:            name,
+		config:          config,
+		httpClient:      httpClient,
 	}, nil
 }
 
-func (s *Standard) RecordMetric(context Context, metric string, data map[string]string) error {
+func (s *Standard) RecordMetric(context Context, metric string, data ...map[string]string) error {
 	if context == nil {
 		return app.Error("client", "context is missing")
 	}
@@ -67,7 +73,7 @@ func (s *Standard) RecordMetric(context Context, metric string, data map[string]
 		return app.Error("client", "metric is missing")
 	}
 
-	context.Logger().WithFields(log.Fields{"metric": metric, "data": data}).Debug("Recording metric")
+	data = append(data, map[string]string{"sourceVersion": s.versionReporter.Base()})
 
 	var requestURL string
 	if context.AuthenticationDetails().IsServer() {
@@ -76,19 +82,18 @@ func (s *Standard) RecordMetric(context Context, metric string, data map[string]
 		requestURL = s.buildURL("metrics", "thisuser", metric)
 	}
 
-	if len(data) > 0 {
-		var parameters []string
-		for key, value := range data {
+	var parameters []string
+	for _, datum := range data {
+		for key, value := range datum {
 			if key != "" {
 				parameters = append(parameters, url.QueryEscape(key)+"="+url.QueryEscape(value))
 			}
 		}
-		if len(parameters) > 0 {
-			requestURL += "?" + strings.Join(parameters, "&")
-		}
 	}
 
-	return s.sendRequest(context, "GET", requestURL)
+	context.Logger().WithFields(log.Fields{"metric": metric, "data": data}).Debug("Recording metric")
+
+	return s.sendRequest(context, "GET", requestURL+"?"+strings.Join(parameters, "&"))
 }
 
 func (s *Standard) sendRequest(context Context, requestMethod string, requestURL string) error {

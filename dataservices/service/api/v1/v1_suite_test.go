@@ -26,7 +26,7 @@ func TestSuite(t *testing.T) {
 type TestMetricServicesClient struct {
 }
 
-func (t *TestMetricServicesClient) RecordMetric(context metricservicesClient.Context, metric string, data map[string]string) error {
+func (t *TestMetricServicesClient) RecordMetric(context metricservicesClient.Context, metric string, data ...map[string]string) error {
 	panic("Unexpected invocation of RecordMetric on TestMetricServicesClient")
 }
 

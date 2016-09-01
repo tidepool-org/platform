@@ -24,5 +24,5 @@ type Context interface {
 }
 
 type Client interface {
-	RecordMetric(context Context, name string, data map[string]string) error
+	RecordMetric(context Context, name string, data ...map[string]string) error
 }
