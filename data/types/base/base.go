@@ -11,8 +11,6 @@ package base
  */
 
 import (
-	"time"
-
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 )
@@ -52,7 +50,7 @@ type Meta struct {
 
 func (b *Base) Init() {
 	b.Active = false
-	b.CreatedTime = time.Now().UTC().Format(time.RFC3339)
+	b.CreatedTime = ""
 	b.CreatedUserID = ""
 	b.DeletedTime = ""
 	b.DeletedUserID = ""

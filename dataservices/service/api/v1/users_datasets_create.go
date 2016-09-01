@@ -112,8 +112,6 @@ func UsersDatasetsCreate(serviceContext service.Context) {
 		return
 	}
 
-	dataset.ByUser = serviceContext.AuthenticationDetails().UserID()
-
 	if err = serviceContext.DataStoreSession().CreateDataset(dataset); err != nil {
 		serviceContext.RespondWithInternalServerFailure("Unable to insert dataset", err)
 		return

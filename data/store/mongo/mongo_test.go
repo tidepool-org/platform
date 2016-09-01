@@ -19,6 +19,14 @@ import (
 	commonMongo "github.com/tidepool-org/platform/store/mongo"
 )
 
+type TestAgent struct {
+	TestUserID string
+}
+
+func (t *TestAgent) UserID() string {
+	return t.TestUserID
+}
+
 func NewDataset(userID string, groupID string) *upload.Upload {
 	dataset := upload.Init()
 	Expect(dataset).ToNot(BeNil())
@@ -33,8 +41,6 @@ func NewDataset(userID string, groupID string) *upload.Upload {
 	dataset.Time = app.StringAsPointer("2015-05-06T07:08:09-07:00")
 	dataset.TimezoneOffset = app.IntegerAsPointer(-420)
 
-	dataset.ByUser = userID
-
 	dataset.ComputerTime = app.StringAsPointer("2015-06-07T08:09:10")
 	dataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Tesla"})
 	dataset.DeviceModel = app.StringAsPointer("1234")
@@ -44,6 +50,11 @@ func NewDataset(userID string, groupID string) *upload.Upload {
 	dataset.TimeZone = app.StringAsPointer("US/Pacific")
 	dataset.Version = app.StringAsPointer("0.260.1")
 
+	return dataset
+}
+
+func WithCreatedTime(dataset *upload.Upload) *upload.Upload {
+	dataset.CreatedTime = time.Now().UTC().Format(time.RFC3339)
 	return dataset
 }
 
@@ -155,6 +166,16 @@ var _ = Describe("Mongo", func() {
 				Expect(mongoSession).ToNot(BeNil())
 			})
 
+			Context("SetAgent", func() {
+				It("successfully sets the agent", func() {
+					mongoSession.SetAgent(&TestAgent{app.NewID()})
+				})
+
+				It("successfully sets the agent if nil", func() {
+					mongoSession.SetAgent(nil)
+				})
+			})
+
 			Context("with a dataset", func() {
 				var mongoTestSession *mgo.Session
 				var mongoTestCollection *mgo.Collection
@@ -169,9 +190,9 @@ var _ = Describe("Mongo", func() {
 					mongoTestCollection = mongoTestSession.DB(mongoConfig.Database).C(mongoConfig.Collection)
 					userID = app.NewID()
 					groupID = app.NewID()
-					datasetExistingOne = NewDataset(userID, groupID)
+					datasetExistingOne = WithCreatedTime(NewDataset(userID, groupID))
 					Expect(mongoTestCollection.Insert(datasetExistingOne)).To(Succeed())
-					datasetExistingTwo = NewDataset(userID, groupID)
+					datasetExistingTwo = WithCreatedTime(NewDataset(userID, groupID))
 					Expect(mongoTestCollection.Insert(datasetExistingTwo)).To(Succeed())
 					dataset = NewDataset(userID, groupID)
 				})
@@ -184,6 +205,7 @@ var _ = Describe("Mongo", func() {
 
 				Context("GetDatasetsForUser", func() {
 					BeforeEach(func() {
+						dataset = WithCreatedTime(dataset)
 						Expect(mongoTestCollection.Insert(dataset)).To(Succeed())
 					})
 
@@ -214,6 +236,7 @@ var _ = Describe("Mongo", func() {
 
 				Context("GetDataset", func() {
 					BeforeEach(func() {
+						dataset = WithCreatedTime(dataset)
 						Expect(mongoTestCollection.Insert(dataset)).To(Succeed())
 					})
 
@@ -275,10 +298,40 @@ var _ = Describe("Mongo", func() {
 						Expect(mongoSession.CreateDataset(dataset)).To(MatchError("mongo: unable to create dataset; mongo: dataset already exists"))
 					})
 
-					It("has the correct stored datasets", func() {
-						ValidateDataset(mongoTestCollection, bson.M{}, datasetExistingOne, datasetExistingTwo)
+					It("sets the created time", func() {
 						Expect(mongoSession.CreateDataset(dataset)).To(Succeed())
-						ValidateDataset(mongoTestCollection, bson.M{}, datasetExistingOne, datasetExistingTwo, dataset)
+						Expect(dataset.CreatedTime).ToNot(BeEmpty())
+						Expect(dataset.CreatedUserID).To(BeEmpty())
+						Expect(dataset.ByUser).To(BeEmpty())
+					})
+
+					It("has the correct stored datasets", func() {
+						ValidateDataset(mongoTestCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, datasetExistingOne, datasetExistingTwo)
+						Expect(mongoSession.CreateDataset(dataset)).To(Succeed())
+						ValidateDataset(mongoTestCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, datasetExistingOne, datasetExistingTwo, dataset)
+					})
+
+					Context("with agent specified", func() {
+						var agentUserID string
+
+						BeforeEach(func() {
+							agentUserID = app.NewID()
+							mongoSession.SetAgent(&TestAgent{agentUserID})
+						})
+
+						It("sets the created time and created user id", func() {
+							Expect(mongoSession.CreateDataset(dataset)).To(Succeed())
+							Expect(dataset.CreatedTime).ToNot(BeEmpty())
+							Expect(dataset.CreatedUserID).To(Equal(agentUserID))
+							Expect(dataset.ByUser).To(Equal(agentUserID))
+						})
+
+						It("has the correct stored datasets", func() {
+							ValidateDataset(mongoTestCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, datasetExistingOne, datasetExistingTwo)
+							Expect(mongoSession.CreateDataset(dataset)).To(Succeed())
+							ValidateDataset(mongoTestCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, datasetExistingOne, datasetExistingTwo)
+							ValidateDataset(mongoTestCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": agentUserID}, dataset)
+						})
 					})
 				})
 
@@ -326,16 +379,51 @@ var _ = Describe("Mongo", func() {
 						})
 					})
 
+					It("sets the modified time", func() {
+						dataset.DataState = "closed"
+						Expect(mongoSession.UpdateDataset(dataset)).To(Succeed())
+						Expect(dataset.ModifiedTime).ToNot(BeEmpty())
+						Expect(dataset.ModifiedUserID).To(BeEmpty())
+					})
+
 					It("has the correct stored datasets", func() {
 						ValidateDataset(mongoTestCollection, bson.M{}, datasetExistingOne, datasetExistingTwo, dataset)
+						ValidateDataset(mongoTestCollection, bson.M{"modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}})
 						dataset.DataState = "closed"
 						Expect(mongoSession.UpdateDataset(dataset)).To(Succeed())
 						ValidateDataset(mongoTestCollection, bson.M{}, datasetExistingOne, datasetExistingTwo, dataset)
+						ValidateDataset(mongoTestCollection, bson.M{"modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}}, dataset)
+					})
+
+					Context("with agent specified", func() {
+						var agentUserID string
+
+						BeforeEach(func() {
+							agentUserID = app.NewID()
+							mongoSession.SetAgent(&TestAgent{agentUserID})
+						})
+
+						It("sets the modified time and modified user id", func() {
+							dataset.DataState = "closed"
+							Expect(mongoSession.UpdateDataset(dataset)).To(Succeed())
+							Expect(dataset.ModifiedTime).ToNot(BeEmpty())
+							Expect(dataset.ModifiedUserID).To(Equal(agentUserID))
+						})
+
+						It("has the correct stored datasets", func() {
+							ValidateDataset(mongoTestCollection, bson.M{}, datasetExistingOne, datasetExistingTwo, dataset)
+							ValidateDataset(mongoTestCollection, bson.M{"modifiedTime": bson.M{"$exists": true}, "modifiedUserId": agentUserID})
+							dataset.DataState = "closed"
+							Expect(mongoSession.UpdateDataset(dataset)).To(Succeed())
+							ValidateDataset(mongoTestCollection, bson.M{}, datasetExistingOne, datasetExistingTwo, dataset)
+							ValidateDataset(mongoTestCollection, bson.M{"modifiedTime": bson.M{"$exists": true}, "modifiedUserId": agentUserID}, dataset)
+						})
 					})
 				})
 
 				Context("DeleteDataset", func() {
 					BeforeEach(func() {
+						dataset = WithCreatedTime(dataset)
 						Expect(mongoTestCollection.Insert(dataset)).To(Succeed())
 					})
 
@@ -428,11 +516,50 @@ var _ = Describe("Mongo", func() {
 							}
 						})
 
+						It("sets the created time on the dataset data", func() {
+							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
+							for _, datasetDatum := range datasetData {
+								baseDatum, ok := datasetDatum.(*base.Base)
+								Expect(ok).To(BeTrue())
+								Expect(baseDatum).ToNot(BeNil())
+								Expect(baseDatum.CreatedTime).ToNot(BeEmpty())
+								Expect(baseDatum.CreatedUserID).To(BeEmpty())
+							}
+						})
+
 						It("has the correct stored dataset data", func() {
 							datasetBeforeCreateData := append(datasetExistingOneData, datasetExistingTwoData...)
-							ValidateDatasetData(mongoTestCollection, bson.M{"type": bson.M{"$ne": "upload"}}, datasetBeforeCreateData)
+							ValidateDatasetData(mongoTestCollection, bson.M{"type": bson.M{"$ne": "upload"}, "createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, datasetBeforeCreateData)
 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
-							ValidateDatasetData(mongoTestCollection, bson.M{"type": bson.M{"$ne": "upload"}}, append(datasetBeforeCreateData, datasetData...))
+							ValidateDatasetData(mongoTestCollection, bson.M{"type": bson.M{"$ne": "upload"}, "createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, append(datasetBeforeCreateData, datasetData...))
+						})
+
+						Context("with agent specified", func() {
+							var agentUserID string
+
+							BeforeEach(func() {
+								agentUserID = app.NewID()
+								mongoSession.SetAgent(&TestAgent{agentUserID})
+							})
+
+							It("sets the created time and created user id on the dataset data", func() {
+								Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
+								for _, datasetDatum := range datasetData {
+									baseDatum, ok := datasetDatum.(*base.Base)
+									Expect(ok).To(BeTrue())
+									Expect(baseDatum).ToNot(BeNil())
+									Expect(baseDatum.CreatedTime).ToNot(BeEmpty())
+									Expect(baseDatum.CreatedUserID).To(Equal(agentUserID))
+								}
+							})
+
+							It("has the correct stored dataset data", func() {
+								datasetBeforeCreateData := append(datasetExistingOneData, datasetExistingTwoData...)
+								ValidateDatasetData(mongoTestCollection, bson.M{"type": bson.M{"$ne": "upload"}, "createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, datasetBeforeCreateData)
+								Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
+								ValidateDatasetData(mongoTestCollection, bson.M{"type": bson.M{"$ne": "upload"}, "createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, datasetBeforeCreateData)
+								ValidateDatasetData(mongoTestCollection, bson.M{"type": bson.M{"$ne": "upload"}, "createdTime": bson.M{"$exists": true}, "createdUserId": agentUserID}, datasetData)
+							})
 						})
 					})
 
@@ -469,16 +596,54 @@ var _ = Describe("Mongo", func() {
 							Expect(mongoSession.ActivateDatasetData(dataset)).To(MatchError("mongo: session closed"))
 						})
 
-						It("has the correct stored active dataset", func() {
-							ValidateDataset(mongoTestCollection, bson.M{"_active": true})
+						It("sets the active on the dataset", func() {
 							Expect(mongoSession.ActivateDatasetData(dataset)).To(Succeed())
-							ValidateDataset(mongoTestCollection, bson.M{"_active": true}, dataset)
+							Expect(dataset.Active).To(BeTrue())
+						})
+
+						It("sets the modified time on the dataset", func() {
+							Expect(mongoSession.ActivateDatasetData(dataset)).To(Succeed())
+							Expect(dataset.ModifiedTime).ToNot(BeEmpty())
+							Expect(dataset.ModifiedUserID).To(BeEmpty())
+						})
+
+						It("has the correct stored active dataset", func() {
+							ValidateDataset(mongoTestCollection, bson.M{"_active": true, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}})
+							Expect(mongoSession.ActivateDatasetData(dataset)).To(Succeed())
+							ValidateDataset(mongoTestCollection, bson.M{"_active": true, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}}, dataset)
 						})
 
 						It("has the correct stored active dataset data", func() {
-							ValidateDatasetData(mongoTestCollection, bson.M{"_active": true}, []data.Datum{})
+							ValidateDatasetData(mongoTestCollection, bson.M{"_active": true, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}}, []data.Datum{})
 							Expect(mongoSession.ActivateDatasetData(dataset)).To(Succeed())
-							ValidateDatasetData(mongoTestCollection, bson.M{"_active": true}, append(datasetData, dataset))
+							ValidateDatasetData(mongoTestCollection, bson.M{"_active": true, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}}, append(datasetData, dataset))
+						})
+
+						Context("with agent specified", func() {
+							var agentUserID string
+
+							BeforeEach(func() {
+								agentUserID = app.NewID()
+								mongoSession.SetAgent(&TestAgent{agentUserID})
+							})
+
+							It("sets the modified time and modified user id on the dataset", func() {
+								Expect(mongoSession.ActivateDatasetData(dataset)).To(Succeed())
+								Expect(dataset.ModifiedTime).ToNot(BeEmpty())
+								Expect(dataset.ModifiedUserID).To(Equal(agentUserID))
+							})
+
+							It("has the correct stored active dataset", func() {
+								ValidateDataset(mongoTestCollection, bson.M{"_active": true, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": agentUserID})
+								Expect(mongoSession.ActivateDatasetData(dataset)).To(Succeed())
+								ValidateDataset(mongoTestCollection, bson.M{"_active": true, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": agentUserID}, dataset)
+							})
+
+							It("has the correct stored active dataset data", func() {
+								ValidateDatasetData(mongoTestCollection, bson.M{"_active": true, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": agentUserID}, []data.Datum{})
+								Expect(mongoSession.ActivateDatasetData(dataset)).To(Succeed())
+								ValidateDatasetData(mongoTestCollection, bson.M{"_active": true, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": agentUserID}, append(datasetData, dataset))
+							})
 						})
 					})
 

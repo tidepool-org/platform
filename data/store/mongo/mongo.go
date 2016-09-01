@@ -136,6 +136,11 @@ func (s *Session) CreateDataset(dataset *upload.Upload) error {
 
 	startTime := time.Now()
 
+	dataset.CreatedTime = newTimestamp()
+	dataset.CreatedUserID = s.agentUserID()
+
+	dataset.ByUser = dataset.CreatedUserID
+
 	// TODO: Consider upsert instead to prevent multiples being created?
 
 	selector := bson.M{
@@ -181,6 +186,9 @@ func (s *Session) UpdateDataset(dataset *upload.Upload) error {
 	}
 
 	startTime := time.Now()
+
+	dataset.ModifiedTime = newTimestamp()
+	dataset.ModifiedUserID = s.agentUserID()
 
 	selector := bson.M{
 		"_userId":  dataset.UserID,
@@ -245,15 +253,20 @@ func (s *Session) CreateDatasetData(dataset *upload.Upload, datasetData []data.D
 		return app.Error("mongo", "session closed")
 	}
 
+	startTime := time.Now()
+
+	createdTimestamp := newTimestamp()
+	createdUserID := s.agentUserID()
+
 	insertData := make([]interface{}, len(datasetData))
 	for index, datum := range datasetData {
 		datum.SetUserID(dataset.UserID)
 		datum.SetGroupID(dataset.GroupID)
 		datum.SetDatasetID(dataset.UploadID)
+		datum.SetCreatedTime(createdTimestamp)
+		datum.SetCreatedUserID(createdUserID)
 		insertData[index] = datum
 	}
-
-	startTime := time.Now()
 
 	bulk := s.C().Bulk()
 	bulk.Unordered()
@@ -290,19 +303,27 @@ func (s *Session) ActivateDatasetData(dataset *upload.Upload) error {
 
 	startTime := time.Now()
 
+	modifiedTimestamp := newTimestamp()
+	modifiedUserID := s.agentUserID()
+
 	selector := bson.M{
 		"_userId":  dataset.UserID,
 		"_groupId": dataset.GroupID,
 		"uploadId": dataset.UploadID,
 	}
-	update := bson.M{
-		"$set": bson.M{
-			"_active": true,
-		},
+	set := bson.M{
+		"_active":      true,
+		"modifiedTime": modifiedTimestamp,
 	}
-	changeInfo, err := s.C().UpdateAll(selector, update)
+	if modifiedUserID != "" {
+		set["modifiedUserId"] = modifiedUserID
+	}
+	update := bson.M{
+		"$set": set,
+	}
+	updateInfo, err := s.C().UpdateAll(selector, update)
 
-	loggerFields := log.Fields{"dataset": dataset, "change-info": changeInfo, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"dataset": dataset, "update-info": updateInfo, "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("ActivateDatasetData")
 
 	if err != nil {
@@ -310,6 +331,8 @@ func (s *Session) ActivateDatasetData(dataset *upload.Upload) error {
 	}
 
 	dataset.SetActive(true)
+	dataset.SetModifiedTime(modifiedTimestamp)
+	dataset.SetModifiedUserID(modifiedUserID)
 	return nil
 }
 
@@ -352,4 +375,15 @@ func (s *Session) DeleteOtherDatasetData(dataset *upload.Upload) error {
 		return app.ExtError(err, "mongo", "unable to remove other dataset data")
 	}
 	return nil
+}
+
+func (s *Session) agentUserID() string {
+	if s.agent == nil {
+		return ""
+	}
+	return s.agent.UserID()
+}
+
+func newTimestamp() string {
+	return time.Now().UTC().Format(time.RFC3339)
 }
