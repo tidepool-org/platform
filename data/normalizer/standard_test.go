@@ -22,6 +22,12 @@ func (t *TestDatum) SetUserID(userID string)                    {}
 func (t *TestDatum) SetGroupID(groupID string)                  {}
 func (t *TestDatum) SetDatasetID(datasetID string)              {}
 func (t *TestDatum) SetActive(active bool)                      {}
+func (t *TestDatum) SetCreatedTime(createdTime string)          {}
+func (t *TestDatum) SetCreatedUserID(createdUserID string)      {}
+func (t *TestDatum) SetModifiedTime(modifiedTime string)        {}
+func (t *TestDatum) SetModifiedUserID(modifiedUserID string)    {}
+func (t *TestDatum) SetDeletedTime(deletedTime string)          {}
+func (t *TestDatum) SetDeletedUserID(deletedUserID string)      {}
 
 var _ = Describe("Standard", func() {
 	It("NewStandard returns an error if context is nil", func() {

@@ -20,16 +20,21 @@ import (
 const SchemaVersionCurrent = 3
 
 type Base struct {
-	Active        bool   `json:"-" bson:"_active"`
-	CreatedTime   string `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
-	GroupID       string `json:"-" bson:"_groupId,omitempty"`
-	GUID          string `json:"guid,omitempty" bson:"guid,omitempty"`
-	ID            string `json:"id,omitempty" bson:"id,omitempty"`
-	SchemaVersion int    `json:"-" bson:"_schemaVersion,omitempty"`
-	Type          string `json:"type,omitempty" bson:"type,omitempty"`
-	UploadID      string `json:"uploadId,omitempty" bson:"uploadId,omitempty"`
-	UserID        string `json:"-" bson:"_userId,omitempty"`
-	Version       int    `json:"-" bson:"_version,omitempty"`
+	Active         bool   `json:"-" bson:"_active"`
+	CreatedTime    string `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
+	CreatedUserID  string `json:"createdUserId,omitempty" bson:"createdUserId,omitempty"`
+	DeletedTime    string `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
+	DeletedUserID  string `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
+	GroupID        string `json:"-" bson:"_groupId,omitempty"`
+	GUID           string `json:"guid,omitempty" bson:"guid,omitempty"`
+	ID             string `json:"id,omitempty" bson:"id,omitempty"`
+	ModifiedTime   string `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
+	ModifiedUserID string `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
+	SchemaVersion  int    `json:"-" bson:"_schemaVersion,omitempty"`
+	Type           string `json:"type,omitempty" bson:"type,omitempty"`
+	UploadID       string `json:"uploadId,omitempty" bson:"uploadId,omitempty"`
+	UserID         string `json:"-" bson:"_userId,omitempty"`
+	Version        int    `json:"-" bson:"_version,omitempty"`
 
 	Annotations      *[]interface{} `json:"annotations,omitempty" bson:"annotations,omitempty"`
 	ClockDriftOffset *int           `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty"`
@@ -48,9 +53,14 @@ type Meta struct {
 func (b *Base) Init() {
 	b.Active = false
 	b.CreatedTime = time.Now().UTC().Format(time.RFC3339)
+	b.CreatedUserID = ""
+	b.DeletedTime = ""
+	b.DeletedUserID = ""
 	b.GroupID = ""
 	b.GUID = app.NewUUID()
 	b.ID = app.NewID() // TODO: Move calculation to Normalize to follow Jellyfish algorithm
+	b.ModifiedTime = ""
+	b.ModifiedUserID = ""
 	b.SchemaVersion = SchemaVersionCurrent
 	b.Type = ""
 	b.UploadID = ""
@@ -119,4 +129,32 @@ func (b *Base) SetDatasetID(datasetID string) {
 
 func (b *Base) SetActive(active bool) {
 	b.Active = active
+}
+
+func (b *Base) SetCreatedTime(createdTime string) {
+	b.CreatedTime = createdTime
+}
+
+func (b *Base) SetCreatedUserID(createdUserID string) {
+	b.CreatedUserID = createdUserID
+}
+
+func (b *Base) SetModifiedTime(modifiedTime string) {
+	b.ModifiedTime = modifiedTime
+}
+
+func (b *Base) SetModifiedUserID(modifiedUserID string) {
+	b.ModifiedUserID = modifiedUserID
+}
+
+func (b *Base) SetDeletedTime(deletedTime string) {
+	b.DeletedTime = deletedTime
+}
+
+func (b *Base) SetDeletedUserID(deletedUserID string) {
+	b.DeletedUserID = deletedUserID
+}
+
+func NewTimestamp() string {
+	return time.Now().UTC().Format(time.RFC3339)
 }

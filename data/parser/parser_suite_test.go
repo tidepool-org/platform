@@ -129,6 +129,12 @@ func (t *TestDatum) SetUserID(userID string)                    {}
 func (t *TestDatum) SetGroupID(groupID string)                  {}
 func (t *TestDatum) SetDatasetID(datasetID string)              {}
 func (t *TestDatum) SetActive(active bool)                      {}
+func (t *TestDatum) SetCreatedTime(createdTime string)          {}
+func (t *TestDatum) SetCreatedUserID(createdUserID string)      {}
+func (t *TestDatum) SetModifiedTime(modifiedTime string)        {}
+func (t *TestDatum) SetModifiedUserID(modifiedUserID string)    {}
+func (t *TestDatum) SetDeletedTime(deletedTime string)          {}
+func (t *TestDatum) SetDeletedUserID(deletedUserID string)      {}
 
 func (t *TestDatum) Parse(parser data.ObjectParser) error {
 	t.ParseInputs = append(t.ParseInputs, parser)

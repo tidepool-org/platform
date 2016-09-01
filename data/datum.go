@@ -23,4 +23,10 @@ type Datum interface {
 	SetGroupID(groupID string)
 	SetDatasetID(datasetID string)
 	SetActive(active bool)
+	SetCreatedTime(createdTime string)
+	SetCreatedUserID(createdUserID string)
+	SetModifiedTime(modifiedTime string)
+	SetModifiedUserID(modifiedUserID string)
+	SetDeletedTime(deletedTime string)
+	SetDeletedUserID(deletedUserID string)
 }
