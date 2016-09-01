@@ -108,13 +108,13 @@ func (t *truncate) AddDataToDataset(datasetData []data.Datum) error {
 }
 
 func (t *truncate) FinalizeDataset() error {
-	// TODO: Technically, ActivateAllDatasetData could succeed, but DeleteAllOtherDatasetData fail. This would
+	// TODO: Technically, ActivateDatasetData could succeed, but DeleteOtherDatasetData fail. This would
 	// result in duplicate (and possible incorrect) data. Is there a way to resolve this? Would be nice to have transactions.
 
-	if err := t.dataStoreSession.ActivateAllDatasetData(t.dataset); err != nil {
+	if err := t.dataStoreSession.ActivateDatasetData(t.dataset); err != nil {
 		return app.ExtErrorf(err, "truncate", "unable to activate data in dataset with id %s", strconv.Quote(t.dataset.UploadID))
 	}
-	if err := t.dataStoreSession.DeleteAllOtherDatasetData(t.dataset); err != nil {
+	if err := t.dataStoreSession.DeleteOtherDatasetData(t.dataset); err != nil {
 		return app.ExtErrorf(err, "truncate", "unable to remove all other data except dataset with id %s", strconv.Quote(t.dataset.UploadID))
 	}
 

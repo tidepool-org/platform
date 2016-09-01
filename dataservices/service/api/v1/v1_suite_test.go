@@ -128,12 +128,12 @@ func (t *TestDataStoreSession) CreateDatasetData(dataset *upload.Upload, dataset
 	panic("Unexpected invocation of CreateDatasetData on TestDataStoreSession")
 }
 
-func (t *TestDataStoreSession) ActivateAllDatasetData(dataset *upload.Upload) error {
-	panic("Unexpected invocation of ActivateAllDatasetData on TestDataStoreSession")
+func (t *TestDataStoreSession) ActivateDatasetData(dataset *upload.Upload) error {
+	panic("Unexpected invocation of ActivateDatasetData on TestDataStoreSession")
 }
 
-func (t *TestDataStoreSession) DeleteAllOtherDatasetData(dataset *upload.Upload) error {
-	panic("Unexpected invocation of DeleteAllOtherDatasetData on TestDataStoreSession")
+func (t *TestDataStoreSession) DeleteOtherDatasetData(dataset *upload.Upload) error {
+	panic("Unexpected invocation of DeleteOtherDatasetData on TestDataStoreSession")
 }
 
 func (t *TestDataStoreSession) ValidateTest() bool {

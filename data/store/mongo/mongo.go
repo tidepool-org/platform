@@ -247,7 +247,7 @@ func (s *Session) CreateDatasetData(dataset *upload.Upload, datasetData []data.D
 	return nil
 }
 
-func (s *Session) ActivateAllDatasetData(dataset *upload.Upload) error {
+func (s *Session) ActivateDatasetData(dataset *upload.Upload) error {
 	if dataset == nil {
 		return app.Error("mongo", "dataset is missing")
 	}
@@ -272,17 +272,17 @@ func (s *Session) ActivateAllDatasetData(dataset *upload.Upload) error {
 	changeInfo, err := s.C().UpdateAll(selector, update)
 
 	loggerFields := log.Fields{"dataset": dataset, "change-info": changeInfo, "duration": time.Since(startTime) / time.Microsecond}
-	s.Logger().WithFields(loggerFields).WithError(err).Debug("ActivateAllDatasetData")
+	s.Logger().WithFields(loggerFields).WithError(err).Debug("ActivateDatasetData")
 
 	if err != nil {
-		return app.ExtError(err, "mongo", "unable to activate all dataset data")
+		return app.ExtError(err, "mongo", "unable to activate dataset data")
 	}
 
 	dataset.SetActive(true)
 	return nil
 }
 
-func (s *Session) DeleteAllOtherDatasetData(dataset *upload.Upload) error {
+func (s *Session) DeleteOtherDatasetData(dataset *upload.Upload) error {
 	if dataset == nil {
 		return app.Error("mongo", "dataset is missing")
 	}
@@ -309,10 +309,10 @@ func (s *Session) DeleteAllOtherDatasetData(dataset *upload.Upload) error {
 	changeInfo, err := s.C().RemoveAll(selector)
 
 	loggerFields := log.Fields{"dataset": dataset, "change-info": changeInfo, "duration": time.Since(startTime) / time.Microsecond}
-	s.Logger().WithFields(loggerFields).WithError(err).Debug("DeleteAllOtherDatasetData")
+	s.Logger().WithFields(loggerFields).WithError(err).Debug("DeleteOtherDatasetData")
 
 	if err != nil {
-		return app.ExtError(err, "mongo", "unable to remove all other dataset data")
+		return app.ExtError(err, "mongo", "unable to remove other dataset data")
 	}
 	return nil
 }
