@@ -154,7 +154,3 @@ func (b *Base) SetDeletedTime(deletedTime string) {
 func (b *Base) SetDeletedUserID(deletedUserID string) {
 	b.DeletedUserID = deletedUserID
 }
-
-func NewTimestamp() string {
-	return time.Now().UTC().Format(time.RFC3339)
-}
