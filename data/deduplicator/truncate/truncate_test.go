@@ -62,7 +62,7 @@ func (t *TestDataStoreSession) UpdateDataset(dataset *upload.Upload) error {
 	return output
 }
 
-func (t *TestDataStoreSession) DeleteDataset(datasetID string) error {
+func (t *TestDataStoreSession) DeleteDataset(dataset *upload.Upload) error {
 	panic("Unexpected invocation of DeleteDataset on TestDataStoreSession")
 }
 

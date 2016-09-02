@@ -36,7 +36,7 @@ type Session interface {
 	GetDataset(datasetID string) (*upload.Upload, error)
 	CreateDataset(dataset *upload.Upload) error
 	UpdateDataset(dataset *upload.Upload) error
-	DeleteDataset(datasetID string) error
+	DeleteDataset(dataset *upload.Upload) error
 	CreateDatasetData(dataset *upload.Upload, datasetData []data.Datum) error
 	ActivateDatasetData(dataset *upload.Upload) error
 	DeleteOtherDatasetData(dataset *upload.Upload) error

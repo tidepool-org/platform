@@ -421,32 +421,6 @@ var _ = Describe("Mongo", func() {
 					})
 				})
 
-				Context("DeleteDataset", func() {
-					BeforeEach(func() {
-						dataset = WithCreatedTime(dataset)
-						Expect(mongoTestCollection.Insert(dataset)).To(Succeed())
-					})
-
-					It("returns no error if it successfully deletes the dataset", func() {
-						Expect(mongoSession.DeleteDataset(dataset.UploadID)).To(Succeed())
-						ValidateDataset(mongoTestCollection, bson.M{}, datasetExistingOne, datasetExistingTwo)
-					})
-
-					It("returns no error if it successfully ignores an unknown dataset", func() {
-						Expect(mongoSession.DeleteDataset(app.NewID())).To(Succeed())
-						ValidateDataset(mongoTestCollection, bson.M{}, datasetExistingOne, datasetExistingTwo, dataset)
-					})
-
-					It("returns an error if the dataset id is missing", func() {
-						Expect(mongoSession.DeleteDataset("")).To(MatchError("mongo: dataset id is missing"))
-					})
-
-					It("returns an error if the session is closed", func() {
-						mongoSession.Close()
-						Expect(mongoSession.DeleteDataset(userID)).To(MatchError("mongo: session closed"))
-					})
-				})
-
 				Context("with data", func() {
 					var datasetExistingOneData []data.Datum
 					var datasetExistingTwoData []data.Datum
@@ -459,6 +433,85 @@ var _ = Describe("Mongo", func() {
 						datasetExistingTwoData = NewDatasetData()
 						Expect(mongoSession.CreateDatasetData(datasetExistingTwo, datasetExistingTwoData)).To(Succeed())
 						datasetData = NewDatasetData()
+					})
+
+					Context("DeleteDataset", func() {
+						BeforeEach(func() {
+							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
+						})
+
+						It("returns no error if it successfully deletes the dataset", func() {
+							Expect(mongoSession.DeleteDataset(dataset)).To(Succeed())
+						})
+
+						It("returns an error if the dataset is missing", func() {
+							Expect(mongoSession.DeleteDataset(nil)).To(MatchError("mongo: dataset is missing"))
+						})
+
+						It("returns an error if the user id is missing", func() {
+							dataset.UserID = ""
+							Expect(mongoSession.DeleteDataset(dataset)).To(MatchError("mongo: dataset user id is missing"))
+						})
+
+						It("returns an error if the group id is missing", func() {
+							dataset.GroupID = ""
+							Expect(mongoSession.DeleteDataset(dataset)).To(MatchError("mongo: dataset group id is missing"))
+						})
+
+						It("returns an error if the upload id is missing", func() {
+							dataset.UploadID = ""
+							Expect(mongoSession.DeleteDataset(dataset)).To(MatchError("mongo: dataset upload id is missing"))
+						})
+
+						It("returns an error if the session is closed", func() {
+							mongoSession.Close()
+							Expect(mongoSession.DeleteDataset(dataset)).To(MatchError("mongo: session closed"))
+						})
+
+						It("sets the deleted time on the dataset", func() {
+							Expect(mongoSession.DeleteDataset(dataset)).To(Succeed())
+							Expect(dataset.DeletedTime).ToNot(BeEmpty())
+							Expect(dataset.DeletedUserID).To(BeEmpty())
+						})
+
+						It("has the correct stored dataset", func() {
+							ValidateDataset(mongoTestCollection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": bson.M{"$exists": false}})
+							Expect(mongoSession.DeleteDataset(dataset)).To(Succeed())
+							ValidateDataset(mongoTestCollection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": bson.M{"$exists": false}}, dataset)
+						})
+
+						It("has the correct stored dataset data", func() {
+							ValidateDatasetData(mongoTestCollection, bson.M{"uploadId": dataset.UploadID}, append(datasetData, dataset))
+							Expect(mongoSession.DeleteDataset(dataset)).To(Succeed())
+							ValidateDatasetData(mongoTestCollection, bson.M{"uploadId": dataset.UploadID}, []data.Datum{dataset})
+						})
+
+						Context("with agent specified", func() {
+							var agentUserID string
+
+							BeforeEach(func() {
+								agentUserID = app.NewID()
+								mongoSession.SetAgent(&TestAgent{agentUserID})
+							})
+
+							It("sets the deleted time and deleted user id on the dataset", func() {
+								Expect(mongoSession.DeleteDataset(dataset)).To(Succeed())
+								Expect(dataset.DeletedTime).ToNot(BeEmpty())
+								Expect(dataset.DeletedUserID).To(Equal(agentUserID))
+							})
+
+							It("has the correct stored dataset", func() {
+								ValidateDataset(mongoTestCollection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": agentUserID})
+								Expect(mongoSession.DeleteDataset(dataset)).To(Succeed())
+								ValidateDataset(mongoTestCollection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": agentUserID}, dataset)
+							})
+
+							It("has the correct stored dataset data", func() {
+								ValidateDatasetData(mongoTestCollection, bson.M{"uploadId": dataset.UploadID}, append(datasetData, dataset))
+								Expect(mongoSession.DeleteDataset(dataset)).To(Succeed())
+								ValidateDatasetData(mongoTestCollection, bson.M{"uploadId": dataset.UploadID}, []data.Datum{dataset})
+							})
+						})
 					})
 
 					Context("CreateDatasetData", func() {

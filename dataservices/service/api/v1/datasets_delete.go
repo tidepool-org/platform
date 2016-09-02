@@ -58,7 +58,7 @@ func DatasetsDelete(serviceContext service.Context) {
 		}
 	}
 
-	if err = serviceContext.DataStoreSession().DeleteDataset(datasetID); err != nil {
+	if err = serviceContext.DataStoreSession().DeleteDataset(dataset); err != nil {
 		serviceContext.RespondWithInternalServerFailure("Unable to delete dataset", err)
 		return
 	}

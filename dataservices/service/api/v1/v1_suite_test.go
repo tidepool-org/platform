@@ -124,7 +124,7 @@ func (t *TestDataStoreSession) UpdateDataset(dataset *upload.Upload) error {
 	panic("Unexpected invocation of UpdateDataset on TestDataStoreSession")
 }
 
-func (t *TestDataStoreSession) DeleteDataset(datasetID string) error {
+func (t *TestDataStoreSession) DeleteDataset(dataset *upload.Upload) error {
 	panic("Unexpected invocation of DeleteDataset on TestDataStoreSession")
 }
 

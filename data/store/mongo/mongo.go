@@ -208,9 +208,18 @@ func (s *Session) UpdateDataset(dataset *upload.Upload) error {
 	return nil
 }
 
-func (s *Session) DeleteDataset(datasetID string) error {
-	if datasetID == "" {
-		return app.Error("mongo", "dataset id is missing")
+func (s *Session) DeleteDataset(dataset *upload.Upload) error {
+	if dataset == nil {
+		return app.Error("mongo", "dataset is missing")
+	}
+	if dataset.UserID == "" {
+		return app.Error("mongo", "dataset user id is missing")
+	}
+	if dataset.GroupID == "" {
+		return app.Error("mongo", "dataset group id is missing")
+	}
+	if dataset.UploadID == "" {
+		return app.Error("mongo", "dataset upload id is missing")
 	}
 
 	if s.IsClosed() {
@@ -219,17 +228,50 @@ func (s *Session) DeleteDataset(datasetID string) error {
 
 	startTime := time.Now()
 
-	selector := bson.M{
-		"uploadId": datasetID,
-	}
-	changeInfo, err := s.C().RemoveAll(selector)
+	deletedTimestamp := newTimestamp()
+	deletedUserID := s.agentUserID()
 
-	loggerFields := log.Fields{"datasetID": datasetID, "change-info": changeInfo, "duration": time.Since(startTime) / time.Microsecond}
+	var err error
+	var removeInfo *mgo.ChangeInfo
+	var updateInfo *mgo.ChangeInfo
+
+	selector := bson.M{
+		"_userId":  dataset.UserID,
+		"_groupId": dataset.GroupID,
+		"uploadId": dataset.UploadID,
+		"type":     bson.M{"$ne": "upload"},
+	}
+	removeInfo, err = s.C().RemoveAll(selector)
+	if err == nil {
+		selector = bson.M{
+			"_userId":       dataset.UserID,
+			"_groupId":      dataset.GroupID,
+			"uploadId":      dataset.UploadID,
+			"type":          "upload",
+			"deletedTime":   bson.M{"$exists": false},
+			"deletedUserId": bson.M{"$exists": false},
+		}
+		set := bson.M{
+			"deletedTime": deletedTimestamp,
+		}
+		if deletedUserID != "" {
+			set["deletedUserId"] = deletedUserID
+		}
+		update := bson.M{
+			"$set": set,
+		}
+		updateInfo, err = s.C().UpdateAll(selector, update)
+	}
+
+	loggerFields := log.Fields{"datasetID": dataset.UploadID, "remove-info": removeInfo, "update-info": updateInfo, "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("DeleteDataset")
 
 	if err != nil {
 		return app.ExtError(err, "mongo", "unable to delete dataset")
 	}
+
+	dataset.SetDeletedTime(deletedTimestamp)
+	dataset.SetDeletedUserID(deletedUserID)
 	return nil
 }
 
