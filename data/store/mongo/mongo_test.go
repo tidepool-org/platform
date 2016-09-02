@@ -692,8 +692,10 @@ var _ = Describe("Mongo", func() {
 
 						It("has the correct stored active dataset", func() {
 							ValidateDataset(mongoTestCollection, bson.M{}, dataset, datasetExistingOne, datasetExistingTwo)
+							ValidateDataset(mongoTestCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, dataset, datasetExistingOne, datasetExistingTwo)
 							Expect(mongoSession.DeleteOtherDatasetData(dataset)).To(Succeed())
-							ValidateDataset(mongoTestCollection, bson.M{}, dataset, datasetExistingOne, datasetExistingTwo)
+							Expect(mongoTestCollection.Find(bson.M{"type": "upload"}).Count()).To(Equal(3))
+							ValidateDataset(mongoTestCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, dataset)
 						})
 
 						It("has the correct stored active dataset data", func() {
@@ -702,6 +704,31 @@ var _ = Describe("Mongo", func() {
 							ValidateDatasetData(mongoTestCollection, bson.M{}, datasetBeforeRemoveData)
 							Expect(mongoSession.DeleteOtherDatasetData(dataset)).To(Succeed())
 							ValidateDatasetData(mongoTestCollection, bson.M{}, datasetAfterRemoveData)
+						})
+
+						Context("with agent specified", func() {
+							var agentUserID string
+
+							BeforeEach(func() {
+								agentUserID = app.NewID()
+								mongoSession.SetAgent(&TestAgent{agentUserID})
+							})
+
+							It("has the correct stored active dataset", func() {
+								ValidateDataset(mongoTestCollection, bson.M{}, dataset, datasetExistingOne, datasetExistingTwo)
+								ValidateDataset(mongoTestCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, dataset, datasetExistingOne, datasetExistingTwo)
+								Expect(mongoSession.DeleteOtherDatasetData(dataset)).To(Succeed())
+								Expect(mongoTestCollection.Find(bson.M{"type": "upload"}).Count()).To(Equal(3))
+								ValidateDataset(mongoTestCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, dataset)
+							})
+
+							It("has the correct stored active dataset data", func() {
+								datasetAfterRemoveData := append(datasetData, dataset, datasetExistingOne, datasetExistingTwo)
+								datasetBeforeRemoveData := append(append(datasetAfterRemoveData, datasetExistingOneData...), datasetExistingTwoData...)
+								ValidateDatasetData(mongoTestCollection, bson.M{}, datasetBeforeRemoveData)
+								Expect(mongoSession.DeleteOtherDatasetData(dataset)).To(Succeed())
+								ValidateDatasetData(mongoTestCollection, bson.M{}, datasetAfterRemoveData)
+							})
 						})
 					})
 				})

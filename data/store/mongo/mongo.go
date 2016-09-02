@@ -13,6 +13,7 @@ package mongo
 import (
 	"time"
 
+	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
 	"github.com/tidepool-org/platform/app"
@@ -359,6 +360,13 @@ func (s *Session) DeleteOtherDatasetData(dataset *upload.Upload) error {
 
 	startTime := time.Now()
 
+	deletedTimestamp := newTimestamp()
+	deletedUserID := s.agentUserID()
+
+	var err error
+	var removeInfo *mgo.ChangeInfo
+	var updateInfo *mgo.ChangeInfo
+
 	selector := bson.M{
 		"_userId":  dataset.UserID,
 		"_groupId": dataset.GroupID,
@@ -366,9 +374,30 @@ func (s *Session) DeleteOtherDatasetData(dataset *upload.Upload) error {
 		"uploadId": bson.M{"$ne": dataset.UploadID},
 		"type":     bson.M{"$ne": "upload"},
 	}
-	changeInfo, err := s.C().RemoveAll(selector)
+	removeInfo, err = s.C().RemoveAll(selector)
+	if err == nil {
+		selector = bson.M{
+			"_userId":       dataset.UserID,
+			"_groupId":      dataset.GroupID,
+			"deviceId":      *dataset.DeviceID,
+			"uploadId":      bson.M{"$ne": dataset.UploadID},
+			"type":          "upload",
+			"deletedTime":   bson.M{"$exists": false},
+			"deletedUserId": bson.M{"$exists": false},
+		}
+		set := bson.M{
+			"deletedTime": deletedTimestamp,
+		}
+		if deletedUserID != "" {
+			set["deletedUserId"] = deletedUserID
+		}
+		update := bson.M{
+			"$set": set,
+		}
+		updateInfo, err = s.C().UpdateAll(selector, update)
+	}
 
-	loggerFields := log.Fields{"dataset": dataset, "change-info": changeInfo, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"dataset": dataset, "remove-info": removeInfo, "update-info": updateInfo, "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("DeleteOtherDatasetData")
 
 	if err != nil {
