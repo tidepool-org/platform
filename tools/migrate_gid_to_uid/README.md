@@ -1,6 +1,8 @@
 ## migrate_gid_to_uid
 
-This tool will migrate all device data with a _groupId field and add a _userId field containing the associated user id. It should be executed immediately after upgrading to any version of the `platform` *after* `v0.1.0`.
+This tool will migrate all device data with a _groupId field and add a _userId field containing the associated user id.
+
+This tool *MUST* be executed immediately after upgrading `jellyfish` to version `v0.12.1`, `tide-whisperer` to version `v0.9.1`, or `platform` to version `v0.1.0`.
 
 To execute this tool against a local development setup:
 
