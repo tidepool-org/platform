@@ -52,7 +52,7 @@ func (s *StandardFloatAsBloodGlucoseValue) NotExists() data.BloodGlucoseValue {
 func (s *StandardFloatAsBloodGlucoseValue) InRange(lowerLimit float64, upperLimit float64) data.BloodGlucoseValue {
 	if s.floatValue != nil {
 		if *s.floatValue < lowerLimit || *s.floatValue > upperLimit {
-			s.context.AppendError(s.reference, service.ErrorValueFloatNotInRange(*s.floatValue, lowerLimit, upperLimit))
+			s.context.AppendError(s.reference, service.ErrorValueNotInRange(*s.floatValue, lowerLimit, upperLimit))
 		}
 	}
 	return s

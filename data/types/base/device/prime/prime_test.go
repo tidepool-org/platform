@@ -56,10 +56,10 @@ var _ = Describe("Prime", func() {
 	Context("cannula volume", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is less than 0", NewRawObjectWithCannula(), "volume", -0.1,
-				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(-0.1, 0.0, 3.0), "/volume", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 3.0), "/volume", NewMeta())},
 			),
 			Entry("is more than 3", NewRawObjectWithCannula(), "volume", 3.1,
-				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(3.1, 0.0, 3.0), "/volume", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(3.1, 0.0, 3.0), "/volume", NewMeta())},
 			),
 		)
 
@@ -73,10 +73,10 @@ var _ = Describe("Prime", func() {
 	Context("tubing volume", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is less than 0", NewRawObjectWithTubing(), "volume", -0.1,
-				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(-0.1, 0.0, 100.0), "/volume", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/volume", NewMeta())},
 			),
 			Entry("is more than 100", NewRawObjectWithTubing(), "volume", 100.1,
-				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(100.1, 0.0, 100.0), "/volume", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(100.1, 0.0, 100.0), "/volume", NewMeta())},
 			),
 		)
 

@@ -104,7 +104,7 @@ func (s *StandardFloat) GreaterThanOrEqualTo(limit float64) data.Float {
 func (s *StandardFloat) InRange(lowerLimit float64, upperLimit float64) data.Float {
 	if s.value != nil {
 		if *s.value < lowerLimit || *s.value > upperLimit {
-			s.context.AppendError(s.reference, service.ErrorValueFloatNotInRange(*s.value, lowerLimit, upperLimit))
+			s.context.AppendError(s.reference, service.ErrorValueNotInRange(*s.value, lowerLimit, upperLimit))
 		}
 	}
 	return s

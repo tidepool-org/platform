@@ -62,10 +62,10 @@ var _ = Describe("Calibration", func() {
 	Context("value", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is less than 0", NewRawObjectMgdL(), "value", -0.1,
-				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(-0.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/value", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-0.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/value", NewMeta())},
 			),
 			Entry("is greater than 1000", NewRawObjectMgdL(), "value", 1000.1,
-				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(1000.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/value", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(1000.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/value", NewMeta())},
 			),
 		)
 

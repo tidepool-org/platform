@@ -45,10 +45,10 @@ var _ = Describe("Extended", func() {
 				},
 			),
 			Entry("is less than lower limit", NewRawObject(), "extended", -0.1,
-				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(-0.1, 0.0, 100.0), "/extended", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/extended", NewMeta())},
 			),
 			Entry("is greater than upper limit", NewRawObject(), "extended", 100.1,
-				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(100.1, 0.0, 100.0), "/extended", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(100.1, 0.0, 100.0), "/extended", NewMeta())},
 			),
 			Entry("is zero without expectedExtended", NewRawObject(), "extended", 0.0,
 				[]*service.Error{testing.ComposeError(service.ErrorValueNotExists(), "/expectedExtended", NewMeta())},
@@ -72,10 +72,10 @@ var _ = Describe("Extended", func() {
 				},
 			),
 			Entry("is less than extended", NewExpectedRawObject(), "expectedExtended", 7.5,
-				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(7.5, 7.6, 100.0), "/expectedExtended", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(7.5, 7.6, 100.0), "/expectedExtended", NewMeta())},
 			),
 			Entry("is greater than upper limit", NewExpectedRawObject(), "expectedExtended", 100.1,
-				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(100.1, 7.6, 100.0), "/expectedExtended", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(100.1, 7.6, 100.0), "/expectedExtended", NewMeta())},
 			),
 		)
 
@@ -98,10 +98,10 @@ var _ = Describe("Extended", func() {
 				},
 			),
 			Entry("is less than lower limit", NewRawObject(), "duration", -1,
-				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(-1, 0, 86400000), "/duration", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-1, 0, 86400000), "/duration", NewMeta())},
 			),
 			Entry("is greater than upper limit", NewRawObject(), "duration", 86400001,
-				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(86400001, 0, 86400000), "/duration", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(86400001, 0, 86400000), "/duration", NewMeta())},
 			),
 		)
 
@@ -124,10 +124,10 @@ var _ = Describe("Extended", func() {
 				},
 			),
 			Entry("is less than duration", NewExpectedRawObject(), "expectedDuration", 12599999,
-				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(12599999, 12600000, 86400000), "/expectedDuration", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(12599999, 12600000, 86400000), "/expectedDuration", NewMeta())},
 			),
 			Entry("is greater than upper limit", NewExpectedRawObject(), "expectedDuration", 86400001,
-				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(86400001, 12600000, 86400000), "/expectedDuration", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(86400001, 12600000, 86400000), "/expectedDuration", NewMeta())},
 			),
 		)
 

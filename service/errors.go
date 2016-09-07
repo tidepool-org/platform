@@ -217,19 +217,11 @@ func ErrorValueNotGreaterThanOrEqualTo(value interface{}, limit interface{}) *Er
 	}
 }
 
-func ErrorValueIntegerNotInRange(value int, lowerLimit int, upperLimit int) *Error {
+func ErrorValueNotInRange(value interface{}, lowerLimit interface{}, upperLimit interface{}) *Error {
 	return &Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %d is not between %d and %d", value, lowerLimit, upperLimit),
-	}
-}
-
-func ErrorValueFloatNotInRange(value float64, lowerLimit float64, upperLimit float64) *Error {
-	return &Error{
-		Code:   "value-out-of-range",
-		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is not between %v and %v", value, lowerLimit, upperLimit),
+		Detail: fmt.Sprintf("Value %v is not between %v and %v", app.QuoteIfString(value), app.QuoteIfString(lowerLimit), app.QuoteIfString(upperLimit)),
 	}
 }
 
@@ -282,62 +274,6 @@ func ErrorValueFloatNotOneOf(value float64, allowedValues []float64) *Error {
 		Code:   "value-not-allowed",
 		Title:  "value is not one of the allowed values",
 		Detail: fmt.Sprintf("Value %v is not one of [%s]", value, allowedValuesString),
-	}
-}
-
-func ErrorLengthNotEqualTo(length int, limit int) *Error {
-	return &Error{
-		Code:   "length-out-of-range",
-		Title:  "length is out of range",
-		Detail: fmt.Sprintf("Length %d is not equal to %d", length, limit),
-	}
-}
-
-func ErrorLengthEqualTo(length int, limit int) *Error {
-	return &Error{
-		Code:   "length-out-of-range",
-		Title:  "length is out of range",
-		Detail: fmt.Sprintf("Length %d is equal to %d", length, limit),
-	}
-}
-
-func ErrorLengthNotLessThan(length int, limit int) *Error {
-	return &Error{
-		Code:   "length-out-of-range",
-		Title:  "length is out of range",
-		Detail: fmt.Sprintf("Length %d is not less than %d", length, limit),
-	}
-}
-
-func ErrorLengthNotLessThanOrEqualTo(length int, limit int) *Error {
-	return &Error{
-		Code:   "length-out-of-range",
-		Title:  "length is out of range",
-		Detail: fmt.Sprintf("Length %d is not less than or equal to %d", length, limit),
-	}
-}
-
-func ErrorLengthNotGreaterThan(length int, limit int) *Error {
-	return &Error{
-		Code:   "length-out-of-range",
-		Title:  "length is out of range",
-		Detail: fmt.Sprintf("Length %d is not greater than %d", length, limit),
-	}
-}
-
-func ErrorLengthNotGreaterThanOrEqualTo(length int, limit int) *Error {
-	return &Error{
-		Code:   "length-out-of-range",
-		Title:  "length is out of range",
-		Detail: fmt.Sprintf("Length %d is not greater than or equal to %d", length, limit),
-	}
-}
-
-func ErrorLengthNotInRange(length int, lowerLimit int, upperLimit int) *Error {
-	return &Error{
-		Code:   "length-out-of-range",
-		Title:  "length is out of range",
-		Detail: fmt.Sprintf("Length %d is not between %d and %d", length, lowerLimit, upperLimit),
 	}
 }
 
@@ -404,5 +340,61 @@ func ErrorValueTimeNotBeforeNow(value time.Time, timeLayout string) *Error {
 		Code:   "value-not-before",
 		Title:  "value is not before the specified time",
 		Detail: fmt.Sprintf("Value %s is not before now", strconv.Quote(value.Format(timeLayout))),
+	}
+}
+
+func ErrorLengthNotEqualTo(length int, limit int) *Error {
+	return &Error{
+		Code:   "length-out-of-range",
+		Title:  "length is out of range",
+		Detail: fmt.Sprintf("Length %d is not equal to %d", length, limit),
+	}
+}
+
+func ErrorLengthEqualTo(length int, limit int) *Error {
+	return &Error{
+		Code:   "length-out-of-range",
+		Title:  "length is out of range",
+		Detail: fmt.Sprintf("Length %d is equal to %d", length, limit),
+	}
+}
+
+func ErrorLengthNotLessThan(length int, limit int) *Error {
+	return &Error{
+		Code:   "length-out-of-range",
+		Title:  "length is out of range",
+		Detail: fmt.Sprintf("Length %d is not less than %d", length, limit),
+	}
+}
+
+func ErrorLengthNotLessThanOrEqualTo(length int, limit int) *Error {
+	return &Error{
+		Code:   "length-out-of-range",
+		Title:  "length is out of range",
+		Detail: fmt.Sprintf("Length %d is not less than or equal to %d", length, limit),
+	}
+}
+
+func ErrorLengthNotGreaterThan(length int, limit int) *Error {
+	return &Error{
+		Code:   "length-out-of-range",
+		Title:  "length is out of range",
+		Detail: fmt.Sprintf("Length %d is not greater than %d", length, limit),
+	}
+}
+
+func ErrorLengthNotGreaterThanOrEqualTo(length int, limit int) *Error {
+	return &Error{
+		Code:   "length-out-of-range",
+		Title:  "length is out of range",
+		Detail: fmt.Sprintf("Length %d is not greater than or equal to %d", length, limit),
+	}
+}
+
+func ErrorLengthNotInRange(length int, lowerLimit int, upperLimit int) *Error {
+	return &Error{
+		Code:   "length-out-of-range",
+		Title:  "length is out of range",
+		Detail: fmt.Sprintf("Length %d is not between %d and %d", length, lowerLimit, upperLimit),
 	}
 }

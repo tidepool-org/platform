@@ -104,7 +104,7 @@ func (s *StandardInteger) GreaterThanOrEqualTo(limit int) data.Integer {
 func (s *StandardInteger) InRange(lowerLimit int, upperLimit int) data.Integer {
 	if s.value != nil {
 		if *s.value < lowerLimit || *s.value > upperLimit {
-			s.context.AppendError(s.reference, service.ErrorValueIntegerNotInRange(*s.value, lowerLimit, upperLimit))
+			s.context.AppendError(s.reference, service.ErrorValueNotInRange(*s.value, lowerLimit, upperLimit))
 		}
 	}
 	return s
