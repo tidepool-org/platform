@@ -73,6 +73,14 @@ func ErrorTypeNotBoolean(value interface{}) *Error {
 	}
 }
 
+func ErrorTypeNotUnsignedInteger(value interface{}) *Error {
+	return &Error{
+		Code:   "type-not-unsigned-integer",
+		Title:  "type is not unsigned integer",
+		Detail: fmt.Sprintf("Type is not unsigned integer, but %T", value),
+	}
+}
+
 func ErrorTypeNotInteger(value interface{}) *Error {
 	return &Error{
 		Code:   "type-not-integer",
