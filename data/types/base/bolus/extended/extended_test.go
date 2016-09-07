@@ -4,10 +4,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 
-	"github.com/tidepool-org/platform/data/parser"
 	"github.com/tidepool-org/platform/data/types/base/bolus"
 	"github.com/tidepool-org/platform/data/types/base/testing"
-	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -38,22 +36,22 @@ var _ = Describe("Extended", func() {
 	Context("extended", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("does not exist", NewRawObject(), "extended", nil,
-				[]*service.Error{testing.ComposeError(validator.ErrorValueNotExists(), "/extended", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotExists(), "/extended", NewMeta())},
 			),
 			Entry("is not a number", NewRawObject(), "extended", "not-a-number",
 				[]*service.Error{
-					testing.ComposeError(parser.ErrorTypeNotFloat("not-a-number"), "/extended", NewMeta()),
-					testing.ComposeError(validator.ErrorValueNotExists(), "/extended", NewMeta()),
+					testing.ComposeError(service.ErrorTypeNotFloat("not-a-number"), "/extended", NewMeta()),
+					testing.ComposeError(service.ErrorValueNotExists(), "/extended", NewMeta()),
 				},
 			),
 			Entry("is less than lower limit", NewRawObject(), "extended", -0.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, 0.0, 100.0), "/extended", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(-0.1, 0.0, 100.0), "/extended", NewMeta())},
 			),
 			Entry("is greater than upper limit", NewRawObject(), "extended", 100.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(100.1, 0.0, 100.0), "/extended", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(100.1, 0.0, 100.0), "/extended", NewMeta())},
 			),
 			Entry("is zero without expectedExtended", NewRawObject(), "extended", 0.0,
-				[]*service.Error{testing.ComposeError(validator.ErrorValueNotExists(), "/expectedExtended", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotExists(), "/expectedExtended", NewMeta())},
 			),
 		)
 
@@ -69,15 +67,15 @@ var _ = Describe("Extended", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is not a number", NewExpectedRawObject(), "expectedExtended", "not-a-number",
 				[]*service.Error{
-					testing.ComposeError(parser.ErrorTypeNotFloat("not-a-number"), "/expectedExtended", NewMeta()),
-					testing.ComposeError(validator.ErrorValueExists(), "/expectedDuration", NewMeta()),
+					testing.ComposeError(service.ErrorTypeNotFloat("not-a-number"), "/expectedExtended", NewMeta()),
+					testing.ComposeError(service.ErrorValueExists(), "/expectedDuration", NewMeta()),
 				},
 			),
 			Entry("is less than extended", NewExpectedRawObject(), "expectedExtended", 7.5,
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(7.5, 7.6, 100.0), "/expectedExtended", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(7.5, 7.6, 100.0), "/expectedExtended", NewMeta())},
 			),
 			Entry("is greater than upper limit", NewExpectedRawObject(), "expectedExtended", 100.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(100.1, 7.6, 100.0), "/expectedExtended", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(100.1, 7.6, 100.0), "/expectedExtended", NewMeta())},
 			),
 		)
 
@@ -91,19 +89,19 @@ var _ = Describe("Extended", func() {
 	Context("duration", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("does not exist", NewRawObject(), "duration", nil,
-				[]*service.Error{testing.ComposeError(validator.ErrorValueNotExists(), "/duration", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotExists(), "/duration", NewMeta())},
 			),
 			Entry("is not a number", NewRawObject(), "duration", "not-a-number",
 				[]*service.Error{
-					testing.ComposeError(parser.ErrorTypeNotInteger("not-a-number"), "/duration", NewMeta()),
-					testing.ComposeError(validator.ErrorValueNotExists(), "/duration", NewMeta()),
+					testing.ComposeError(service.ErrorTypeNotInteger("not-a-number"), "/duration", NewMeta()),
+					testing.ComposeError(service.ErrorValueNotExists(), "/duration", NewMeta()),
 				},
 			),
 			Entry("is less than lower limit", NewRawObject(), "duration", -1,
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(-1, 0, 86400000), "/duration", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(-1, 0, 86400000), "/duration", NewMeta())},
 			),
 			Entry("is greater than upper limit", NewRawObject(), "duration", 86400001,
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(86400001, 0, 86400000), "/duration", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(86400001, 0, 86400000), "/duration", NewMeta())},
 			),
 		)
 
@@ -117,19 +115,19 @@ var _ = Describe("Extended", func() {
 	Context("expectedDuration", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("exists when expectedExtended does not exist", NewExpectedRawObject(), "expectedExtended", nil,
-				[]*service.Error{testing.ComposeError(validator.ErrorValueExists(), "/expectedDuration", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueExists(), "/expectedDuration", NewMeta())},
 			),
 			Entry("is not a number", NewExpectedRawObject(), "expectedDuration", "not-a-number",
 				[]*service.Error{
-					testing.ComposeError(parser.ErrorTypeNotInteger("not-a-number"), "/expectedDuration", NewMeta()),
-					testing.ComposeError(validator.ErrorValueNotExists(), "/expectedDuration", NewMeta()),
+					testing.ComposeError(service.ErrorTypeNotInteger("not-a-number"), "/expectedDuration", NewMeta()),
+					testing.ComposeError(service.ErrorValueNotExists(), "/expectedDuration", NewMeta()),
 				},
 			),
 			Entry("is less than duration", NewExpectedRawObject(), "expectedDuration", 12599999,
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(12599999, 12600000, 86400000), "/expectedDuration", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(12599999, 12600000, 86400000), "/expectedDuration", NewMeta())},
 			),
 			Entry("is greater than upper limit", NewExpectedRawObject(), "expectedDuration", 86400001,
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(86400001, 12600000, 86400000), "/expectedDuration", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(86400001, 12600000, 86400000), "/expectedDuration", NewMeta())},
 			),
 		)
 

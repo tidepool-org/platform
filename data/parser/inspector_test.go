@@ -6,7 +6,7 @@ import (
 
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data/parser"
-	"github.com/tidepool-org/platform/data/validator"
+	"github.com/tidepool-org/platform/service"
 )
 
 var _ = Describe("Inspector", func() {
@@ -58,14 +58,14 @@ var _ = Describe("Inspector", func() {
 			Context("NewMissingPropertyError", func() {
 				It("appends an error to the object parser", func() {
 					Expect(inspector.NewMissingPropertyError("test-key")).To(Succeed())
-					Expect(testObjectParser.AppendErrorInputs).To(ConsistOf(AppendErrorInput{"test-key", validator.ErrorValueNotExists()}))
+					Expect(testObjectParser.AppendErrorInputs).To(ConsistOf(AppendErrorInput{"test-key", service.ErrorValueNotExists()}))
 				})
 			})
 
 			Context("NewInvalidPropertyError", func() {
 				It("appends an error to the object parser", func() {
 					Expect(inspector.NewInvalidPropertyError("test-key", "test-value", []string{"test-value-1", "test-value-2"})).To(Succeed())
-					Expect(testObjectParser.AppendErrorInputs).To(ConsistOf(AppendErrorInput{"test-key", validator.ErrorStringNotOneOf("test-value", []string{"test-value-1", "test-value-2"})}))
+					Expect(testObjectParser.AppendErrorInputs).To(ConsistOf(AppendErrorInput{"test-key", service.ErrorValueStringNotOneOf("test-value", []string{"test-value-1", "test-value-2"})}))
 				})
 			})
 		})

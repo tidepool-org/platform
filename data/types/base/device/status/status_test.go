@@ -6,7 +6,6 @@ import (
 
 	"github.com/tidepool-org/platform/data/types/base/device"
 	"github.com/tidepool-org/platform/data/types/base/testing"
-	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -31,7 +30,7 @@ var _ = Describe("Status", func() {
 	Context("duration", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is less than 0", NewRawObject(), "duration", -1,
-				[]*service.Error{testing.ComposeError(validator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/duration", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/duration", NewMeta())},
 			),
 		)
 
@@ -44,10 +43,10 @@ var _ = Describe("Status", func() {
 	Context("status", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is empty", NewRawObject(), "status", "",
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("", []string{"resumed", "suspended"}), "/status", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("", []string{"resumed", "suspended"}), "/status", NewMeta())},
 			),
 			Entry("is not one of the predefined types", NewRawObject(), "status", "bad",
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("bad", []string{"resumed", "suspended"}), "/status", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("bad", []string{"resumed", "suspended"}), "/status", NewMeta())},
 			),
 		)
 

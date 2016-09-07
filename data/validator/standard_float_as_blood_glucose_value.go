@@ -13,6 +13,7 @@ package validator
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/bloodglucose"
+	"github.com/tidepool-org/platform/service"
 )
 
 type StandardFloatAsBloodGlucoseValue struct {
@@ -36,14 +37,14 @@ func NewStandardFloatAsBloodGlucoseValue(context data.Context, reference interfa
 
 func (s *StandardFloatAsBloodGlucoseValue) Exists() data.BloodGlucoseValue {
 	if s.floatValue == nil {
-		s.context.AppendError(s.reference, ErrorValueNotExists())
+		s.context.AppendError(s.reference, service.ErrorValueNotExists())
 	}
 	return s
 }
 
 func (s *StandardFloatAsBloodGlucoseValue) NotExists() data.BloodGlucoseValue {
 	if s.floatValue != nil {
-		s.context.AppendError(s.reference, ErrorValueExists())
+		s.context.AppendError(s.reference, service.ErrorValueExists())
 	}
 	return s
 }
@@ -51,7 +52,7 @@ func (s *StandardFloatAsBloodGlucoseValue) NotExists() data.BloodGlucoseValue {
 func (s *StandardFloatAsBloodGlucoseValue) InRange(lowerLimit float64, upperLimit float64) data.BloodGlucoseValue {
 	if s.floatValue != nil {
 		if *s.floatValue < lowerLimit || *s.floatValue > upperLimit {
-			s.context.AppendError(s.reference, ErrorFloatNotInRange(*s.floatValue, lowerLimit, upperLimit))
+			s.context.AppendError(s.reference, service.ErrorValueFloatNotInRange(*s.floatValue, lowerLimit, upperLimit))
 		}
 	}
 	return s

@@ -10,7 +10,10 @@ package validator
  * [x] Full test coverage
  */
 
-import "github.com/tidepool-org/platform/data"
+import (
+	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/service"
+)
 
 type StandardInterface struct {
 	context   data.Context
@@ -32,14 +35,14 @@ func NewStandardInterface(context data.Context, reference interface{}, value *in
 
 func (s *StandardInterface) Exists() data.Interface {
 	if s.value == nil {
-		s.context.AppendError(s.reference, ErrorValueNotExists())
+		s.context.AppendError(s.reference, service.ErrorValueNotExists())
 	}
 	return s
 }
 
 func (s *StandardInterface) NotExists() data.Interface {
 	if s.value != nil {
-		s.context.AppendError(s.reference, ErrorValueExists())
+		s.context.AppendError(s.reference, service.ErrorValueExists())
 	}
 	return s
 }

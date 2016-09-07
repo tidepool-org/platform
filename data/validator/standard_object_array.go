@@ -10,7 +10,10 @@ package validator
  * [x] Full test coverage
  */
 
-import "github.com/tidepool-org/platform/data"
+import (
+	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/service"
+)
 
 type StandardObjectArray struct {
 	context   data.Context
@@ -32,14 +35,14 @@ func NewStandardObjectArray(context data.Context, reference interface{}, value *
 
 func (s *StandardObjectArray) Exists() data.ObjectArray {
 	if s.value == nil {
-		s.context.AppendError(s.reference, ErrorValueNotExists())
+		s.context.AppendError(s.reference, service.ErrorValueNotExists())
 	}
 	return s
 }
 
 func (s *StandardObjectArray) NotExists() data.ObjectArray {
 	if s.value != nil {
-		s.context.AppendError(s.reference, ErrorValueExists())
+		s.context.AppendError(s.reference, service.ErrorValueExists())
 	}
 	return s
 }
@@ -47,7 +50,7 @@ func (s *StandardObjectArray) NotExists() data.ObjectArray {
 func (s *StandardObjectArray) Empty() data.ObjectArray {
 	if s.value != nil {
 		if len(*s.value) != 0 {
-			s.context.AppendError(s.reference, ErrorValueNotEmpty())
+			s.context.AppendError(s.reference, service.ErrorValueNotEmpty())
 		}
 	}
 	return s
@@ -56,7 +59,7 @@ func (s *StandardObjectArray) Empty() data.ObjectArray {
 func (s *StandardObjectArray) NotEmpty() data.ObjectArray {
 	if s.value != nil {
 		if len(*s.value) == 0 {
-			s.context.AppendError(s.reference, ErrorValueEmpty())
+			s.context.AppendError(s.reference, service.ErrorValueEmpty())
 		}
 	}
 	return s
@@ -65,7 +68,7 @@ func (s *StandardObjectArray) NotEmpty() data.ObjectArray {
 func (s *StandardObjectArray) LengthEqualTo(limit int) data.ObjectArray {
 	if s.value != nil {
 		if length := len(*s.value); length != limit {
-			s.context.AppendError(s.reference, ErrorLengthNotEqualTo(length, limit))
+			s.context.AppendError(s.reference, service.ErrorLengthNotEqualTo(length, limit))
 		}
 	}
 	return s
@@ -74,7 +77,7 @@ func (s *StandardObjectArray) LengthEqualTo(limit int) data.ObjectArray {
 func (s *StandardObjectArray) LengthNotEqualTo(limit int) data.ObjectArray {
 	if s.value != nil {
 		if length := len(*s.value); length == limit {
-			s.context.AppendError(s.reference, ErrorLengthEqualTo(length, limit))
+			s.context.AppendError(s.reference, service.ErrorLengthEqualTo(length, limit))
 		}
 	}
 	return s
@@ -83,7 +86,7 @@ func (s *StandardObjectArray) LengthNotEqualTo(limit int) data.ObjectArray {
 func (s *StandardObjectArray) LengthLessThan(limit int) data.ObjectArray {
 	if s.value != nil {
 		if length := len(*s.value); length >= limit {
-			s.context.AppendError(s.reference, ErrorLengthNotLessThan(length, limit))
+			s.context.AppendError(s.reference, service.ErrorLengthNotLessThan(length, limit))
 		}
 	}
 	return s
@@ -92,7 +95,7 @@ func (s *StandardObjectArray) LengthLessThan(limit int) data.ObjectArray {
 func (s *StandardObjectArray) LengthLessThanOrEqualTo(limit int) data.ObjectArray {
 	if s.value != nil {
 		if length := len(*s.value); length > limit {
-			s.context.AppendError(s.reference, ErrorLengthNotLessThanOrEqualTo(length, limit))
+			s.context.AppendError(s.reference, service.ErrorLengthNotLessThanOrEqualTo(length, limit))
 		}
 	}
 	return s
@@ -101,7 +104,7 @@ func (s *StandardObjectArray) LengthLessThanOrEqualTo(limit int) data.ObjectArra
 func (s *StandardObjectArray) LengthGreaterThan(limit int) data.ObjectArray {
 	if s.value != nil {
 		if length := len(*s.value); length <= limit {
-			s.context.AppendError(s.reference, ErrorLengthNotGreaterThan(length, limit))
+			s.context.AppendError(s.reference, service.ErrorLengthNotGreaterThan(length, limit))
 		}
 	}
 	return s
@@ -110,7 +113,7 @@ func (s *StandardObjectArray) LengthGreaterThan(limit int) data.ObjectArray {
 func (s *StandardObjectArray) LengthGreaterThanOrEqualTo(limit int) data.ObjectArray {
 	if s.value != nil {
 		if length := len(*s.value); length < limit {
-			s.context.AppendError(s.reference, ErrorLengthNotGreaterThanOrEqualTo(length, limit))
+			s.context.AppendError(s.reference, service.ErrorLengthNotGreaterThanOrEqualTo(length, limit))
 		}
 	}
 	return s
@@ -119,7 +122,7 @@ func (s *StandardObjectArray) LengthGreaterThanOrEqualTo(limit int) data.ObjectA
 func (s *StandardObjectArray) LengthInRange(lowerLimit int, upperLimit int) data.ObjectArray {
 	if s.value != nil {
 		if length := len(*s.value); length < lowerLimit || length > upperLimit {
-			s.context.AppendError(s.reference, ErrorLengthNotInRange(length, lowerLimit, upperLimit))
+			s.context.AppendError(s.reference, service.ErrorLengthNotInRange(length, lowerLimit, upperLimit))
 		}
 	}
 	return s

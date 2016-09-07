@@ -11,7 +11,6 @@ import (
 	"github.com/tidepool-org/platform/data/types/base"
 	"github.com/tidepool-org/platform/data/types/base/selfmonitored"
 	"github.com/tidepool-org/platform/data/types/base/testing"
-	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
 )
@@ -44,10 +43,10 @@ var _ = Describe("SelfMonitored", func() {
 	Context("units", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is empty", NewRawObjectMmolL(), "units", "",
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("", []string{"mmol/l", "mmol/L", "mg/dl", "mg/dL"}), "/units", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("", []string{"mmol/l", "mmol/L", "mg/dl", "mg/dL"}), "/units", NewMeta())},
 			),
 			Entry("is not one of the predefined values", NewRawObjectMmolL(), "units", "wrong",
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("wrong", []string{"mmol/l", "mmol/L", "mg/dl", "mg/dL"}), "/units", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("wrong", []string{"mmol/l", "mmol/L", "mg/dl", "mg/dL"}), "/units", NewMeta())},
 			),
 		)
 
@@ -62,7 +61,7 @@ var _ = Describe("SelfMonitored", func() {
 	Context("subType", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is not one of the predefined values", NewRawObjectMmolL(), "subType", "wrong",
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("wrong", []string{"manual", "linked"}), "/subType", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("wrong", []string{"manual", "linked"}), "/subType", NewMeta())},
 			),
 		)
 
@@ -75,10 +74,10 @@ var _ = Describe("SelfMonitored", func() {
 	Context("value", func() {
 		DescribeTable("value when", testing.ExpectFieldNotValid,
 			Entry("is less than 0", NewRawObjectMgdL(), "value", -0.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/value", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(-0.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/value", NewMeta())},
 			),
 			Entry("is greater than 1000", NewRawObjectMgdL(), "value", 1000.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(1000.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/value", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(1000.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/value", NewMeta())},
 			),
 		)
 

@@ -6,7 +6,6 @@ import (
 
 	"github.com/tidepool-org/platform/data/types/base/basal"
 	"github.com/tidepool-org/platform/data/types/base/testing"
-	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -31,10 +30,10 @@ var _ = Describe("Temporary", func() {
 	Context("duration", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is negative", NewRawObject(), "duration", -1,
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(-1, 0, 86400000), "/duration", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(-1, 0, 86400000), "/duration", NewMeta())},
 			),
 			Entry("is greater than 86400000", NewRawObject(), "duration", 86400001,
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(86400001, 0, 86400000), "/duration", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(86400001, 0, 86400000), "/duration", NewMeta())},
 			),
 		)
 
@@ -46,10 +45,10 @@ var _ = Describe("Temporary", func() {
 	Context("rate", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is negative", NewRawObject(), "rate", -0.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, 0.0, 20.0), "/rate", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(-0.1, 0.0, 20.0), "/rate", NewMeta())},
 			),
 			Entry("is greater than 20", NewRawObject(), "rate", 20.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(20.1, 0.0, 20.0), "/rate", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(20.1, 0.0, 20.0), "/rate", NewMeta())},
 			),
 		)
 
@@ -62,10 +61,10 @@ var _ = Describe("Temporary", func() {
 	Context("percent", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is negative", NewRawObject(), "percent", -0.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, 0.0, 10.0), "/percent", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(-0.1, 0.0, 10.0), "/percent", NewMeta())},
 			),
 			Entry("is greater than 10", NewRawObject(), "percent", 10.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(10.1, 0.0, 10.0), "/percent", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(10.1, 0.0, 10.0), "/percent", NewMeta())},
 			),
 		)
 

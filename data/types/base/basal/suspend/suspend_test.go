@@ -6,7 +6,6 @@ import (
 
 	"github.com/tidepool-org/platform/data/types/base/basal"
 	"github.com/tidepool-org/platform/data/types/base/testing"
-	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -28,10 +27,10 @@ var _ = Describe("Suspend", func() {
 	Context("duration", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is negative", NewRawObject(), "duration", -1,
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(-1, 0, 604800000), "/duration", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(-1, 0, 604800000), "/duration", NewMeta())},
 			),
 			Entry("is greater than 604800000", NewRawObject(), "duration", 604800001,
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(604800001, 0, 604800000), "/duration", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(604800001, 0, 604800000), "/duration", NewMeta())},
 			),
 		)
 

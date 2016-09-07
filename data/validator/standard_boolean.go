@@ -10,7 +10,10 @@ package validator
  * [x] Full test coverage
  */
 
-import "github.com/tidepool-org/platform/data"
+import (
+	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/service"
+)
 
 type StandardBoolean struct {
 	context   data.Context
@@ -32,14 +35,14 @@ func NewStandardBoolean(context data.Context, reference interface{}, value *bool
 
 func (s *StandardBoolean) Exists() data.Boolean {
 	if s.value == nil {
-		s.context.AppendError(s.reference, ErrorValueNotExists())
+		s.context.AppendError(s.reference, service.ErrorValueNotExists())
 	}
 	return s
 }
 
 func (s *StandardBoolean) NotExists() data.Boolean {
 	if s.value != nil {
-		s.context.AppendError(s.reference, ErrorValueExists())
+		s.context.AppendError(s.reference, service.ErrorValueExists())
 	}
 	return s
 }
@@ -47,7 +50,7 @@ func (s *StandardBoolean) NotExists() data.Boolean {
 func (s *StandardBoolean) True() data.Boolean {
 	if s.value != nil {
 		if !*s.value {
-			s.context.AppendError(s.reference, ErrorValueNotTrue())
+			s.context.AppendError(s.reference, service.ErrorValueNotTrue())
 		}
 	}
 	return s
@@ -56,7 +59,7 @@ func (s *StandardBoolean) True() data.Boolean {
 func (s *StandardBoolean) False() data.Boolean {
 	if s.value != nil {
 		if *s.value {
-			s.context.AppendError(s.reference, ErrorValueNotFalse())
+			s.context.AppendError(s.reference, service.ErrorValueNotFalse())
 		}
 	}
 	return s

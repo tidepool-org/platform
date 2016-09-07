@@ -80,7 +80,7 @@ func (s *StandardArray) ParseBoolean(index int) *bool {
 
 	booleanValue, ok := rawValue.(bool)
 	if !ok {
-		s.AppendError(index, ErrorTypeNotBoolean(rawValue))
+		s.AppendError(index, service.ErrorTypeNotBoolean(rawValue))
 		return nil
 	}
 
@@ -104,11 +104,11 @@ func (s *StandardArray) ParseInteger(index int) *int {
 	if !integerValueOk {
 		floatValue, floatValueOk := rawValue.(float64)
 		if !floatValueOk {
-			s.AppendError(index, ErrorTypeNotInteger(rawValue))
+			s.AppendError(index, service.ErrorTypeNotInteger(rawValue))
 			return nil
 		}
 		if math.Trunc(floatValue) != floatValue {
-			s.AppendError(index, ErrorTypeNotInteger(rawValue))
+			s.AppendError(index, service.ErrorTypeNotInteger(rawValue))
 			return nil
 		}
 		integerValue = int(floatValue)
@@ -134,7 +134,7 @@ func (s *StandardArray) ParseFloat(index int) *float64 {
 	if !floatValueOk {
 		integerValue, integerValueOk := rawValue.(int)
 		if !integerValueOk {
-			s.AppendError(index, ErrorTypeNotFloat(rawValue))
+			s.AppendError(index, service.ErrorTypeNotFloat(rawValue))
 			return nil
 		}
 		floatValue = float64(integerValue)
@@ -158,7 +158,7 @@ func (s *StandardArray) ParseString(index int) *string {
 
 	stringValue, ok := rawValue.(string)
 	if !ok {
-		s.AppendError(index, ErrorTypeNotString(rawValue))
+		s.AppendError(index, service.ErrorTypeNotString(rawValue))
 		return nil
 	}
 
@@ -182,7 +182,7 @@ func (s *StandardArray) ParseStringArray(index int) *[]string {
 	if !stringArrayValueOk {
 		arrayValue, arrayValueOk := rawValue.([]interface{})
 		if !arrayValueOk {
-			s.AppendError(index, ErrorTypeNotArray(rawValue))
+			s.AppendError(index, service.ErrorTypeNotArray(rawValue))
 			return nil
 		}
 
@@ -215,7 +215,7 @@ func (s *StandardArray) ParseObject(index int) *map[string]interface{} {
 
 	objectValue, ok := rawValue.(map[string]interface{})
 	if !ok {
-		s.AppendError(index, ErrorTypeNotObject(rawValue))
+		s.AppendError(index, service.ErrorTypeNotObject(rawValue))
 		return nil
 	}
 
@@ -239,7 +239,7 @@ func (s *StandardArray) ParseObjectArray(index int) *[]map[string]interface{} {
 	if !objectArrayValueOk {
 		arrayValue, arrayValueOk := rawValue.([]interface{})
 		if !arrayValueOk {
-			s.AppendError(index, ErrorTypeNotArray(rawValue))
+			s.AppendError(index, service.ErrorTypeNotArray(rawValue))
 			return nil
 		}
 
@@ -287,7 +287,7 @@ func (s *StandardArray) ParseInterfaceArray(index int) *[]interface{} {
 
 	arrayValue, ok := rawValue.([]interface{})
 	if !ok {
-		s.AppendError(index, ErrorTypeNotArray(rawValue))
+		s.AppendError(index, service.ErrorTypeNotArray(rawValue))
 		return nil
 	}
 
@@ -324,7 +324,7 @@ func (s *StandardArray) ParseDatumArray(index int) *[]data.Datum {
 
 	arrayValue, arrayValueOk := rawValue.([]interface{})
 	if !arrayValueOk {
-		s.AppendError(index, ErrorTypeNotArray(rawValue))
+		s.AppendError(index, service.ErrorTypeNotArray(rawValue))
 		return nil
 	}
 

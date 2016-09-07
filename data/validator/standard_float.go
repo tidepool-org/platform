@@ -10,7 +10,10 @@ package validator
  * [x] Full test coverage
  */
 
-import "github.com/tidepool-org/platform/data"
+import (
+	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/service"
+)
 
 type StandardFloat struct {
 	context   data.Context
@@ -32,14 +35,14 @@ func NewStandardFloat(context data.Context, reference interface{}, value *float6
 
 func (s *StandardFloat) Exists() data.Float {
 	if s.value == nil {
-		s.context.AppendError(s.reference, ErrorValueNotExists())
+		s.context.AppendError(s.reference, service.ErrorValueNotExists())
 	}
 	return s
 }
 
 func (s *StandardFloat) NotExists() data.Float {
 	if s.value != nil {
-		s.context.AppendError(s.reference, ErrorValueExists())
+		s.context.AppendError(s.reference, service.ErrorValueExists())
 	}
 	return s
 }
@@ -47,7 +50,7 @@ func (s *StandardFloat) NotExists() data.Float {
 func (s *StandardFloat) EqualTo(value float64) data.Float {
 	if s.value != nil {
 		if *s.value != value {
-			s.context.AppendError(s.reference, ErrorValueNotEqualTo(*s.value, value))
+			s.context.AppendError(s.reference, service.ErrorValueNotEqualTo(*s.value, value))
 		}
 	}
 	return s
@@ -56,7 +59,7 @@ func (s *StandardFloat) EqualTo(value float64) data.Float {
 func (s *StandardFloat) NotEqualTo(value float64) data.Float {
 	if s.value != nil {
 		if *s.value == value {
-			s.context.AppendError(s.reference, ErrorValueEqualTo(*s.value, value))
+			s.context.AppendError(s.reference, service.ErrorValueEqualTo(*s.value, value))
 		}
 	}
 	return s
@@ -65,7 +68,7 @@ func (s *StandardFloat) NotEqualTo(value float64) data.Float {
 func (s *StandardFloat) LessThan(limit float64) data.Float {
 	if s.value != nil {
 		if *s.value >= limit {
-			s.context.AppendError(s.reference, ErrorValueNotLessThan(*s.value, limit))
+			s.context.AppendError(s.reference, service.ErrorValueNotLessThan(*s.value, limit))
 		}
 	}
 	return s
@@ -74,7 +77,7 @@ func (s *StandardFloat) LessThan(limit float64) data.Float {
 func (s *StandardFloat) LessThanOrEqualTo(limit float64) data.Float {
 	if s.value != nil {
 		if *s.value > limit {
-			s.context.AppendError(s.reference, ErrorValueNotLessThanOrEqualTo(*s.value, limit))
+			s.context.AppendError(s.reference, service.ErrorValueNotLessThanOrEqualTo(*s.value, limit))
 		}
 	}
 	return s
@@ -83,7 +86,7 @@ func (s *StandardFloat) LessThanOrEqualTo(limit float64) data.Float {
 func (s *StandardFloat) GreaterThan(limit float64) data.Float {
 	if s.value != nil {
 		if *s.value <= limit {
-			s.context.AppendError(s.reference, ErrorValueNotGreaterThan(*s.value, limit))
+			s.context.AppendError(s.reference, service.ErrorValueNotGreaterThan(*s.value, limit))
 		}
 	}
 	return s
@@ -92,7 +95,7 @@ func (s *StandardFloat) GreaterThan(limit float64) data.Float {
 func (s *StandardFloat) GreaterThanOrEqualTo(limit float64) data.Float {
 	if s.value != nil {
 		if *s.value < limit {
-			s.context.AppendError(s.reference, ErrorValueNotGreaterThanOrEqualTo(*s.value, limit))
+			s.context.AppendError(s.reference, service.ErrorValueNotGreaterThanOrEqualTo(*s.value, limit))
 		}
 	}
 	return s
@@ -101,7 +104,7 @@ func (s *StandardFloat) GreaterThanOrEqualTo(limit float64) data.Float {
 func (s *StandardFloat) InRange(lowerLimit float64, upperLimit float64) data.Float {
 	if s.value != nil {
 		if *s.value < lowerLimit || *s.value > upperLimit {
-			s.context.AppendError(s.reference, ErrorFloatNotInRange(*s.value, lowerLimit, upperLimit))
+			s.context.AppendError(s.reference, service.ErrorValueFloatNotInRange(*s.value, lowerLimit, upperLimit))
 		}
 	}
 	return s
@@ -114,7 +117,7 @@ func (s *StandardFloat) OneOf(allowedValues []float64) data.Float {
 				return s
 			}
 		}
-		s.context.AppendError(s.reference, ErrorFloatNotOneOf(*s.value, allowedValues))
+		s.context.AppendError(s.reference, service.ErrorValueFloatNotOneOf(*s.value, allowedValues))
 	}
 	return s
 }
@@ -123,7 +126,7 @@ func (s *StandardFloat) NotOneOf(disallowedValues []float64) data.Float {
 	if s.value != nil {
 		for _, possibleValue := range disallowedValues {
 			if possibleValue == *s.value {
-				s.context.AppendError(s.reference, ErrorFloatOneOf(*s.value, disallowedValues))
+				s.context.AppendError(s.reference, service.ErrorValueFloatOneOf(*s.value, disallowedValues))
 				return s
 			}
 		}

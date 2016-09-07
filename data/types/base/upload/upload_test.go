@@ -6,7 +6,6 @@ import (
 
 	"github.com/tidepool-org/platform/data/types/base"
 	"github.com/tidepool-org/platform/data/types/base/testing"
-	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -34,10 +33,10 @@ var _ = Describe("Upload", func() {
 	Context("version", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is empty", NewRawObject(), "version", "",
-				[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThan(0, 5), "/version", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorLengthNotGreaterThan(0, 5), "/version", NewMeta())},
 			),
 			Entry("is less than 6 characters", NewRawObject(), "version", "aaaaa",
-				[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThan(5, 5), "/version", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorLengthNotGreaterThan(5, 5), "/version", NewMeta())},
 			),
 		)
 
@@ -50,13 +49,13 @@ var _ = Describe("Upload", func() {
 	Context("deviceTags", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is empty array", NewRawObject(), "deviceTags", []string{},
-				[]*service.Error{testing.ComposeError(validator.ErrorValueEmpty(), "/deviceTags", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueEmpty(), "/deviceTags", NewMeta())},
 			),
 			Entry("is not one of the allowed types", NewRawObject(), "deviceTags", []string{"not-valid"},
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("not-valid", []string{"insulin-pump", "cgm", "bgm"}), "/deviceTags/0", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("not-valid", []string{"insulin-pump", "cgm", "bgm"}), "/deviceTags/0", NewMeta())},
 			),
 			Entry("is not one of the allowed types", NewRawObject(), "deviceTags", []string{"bgm", "cgm", "not-valid"},
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("not-valid", []string{"insulin-pump", "cgm", "bgm"}), "/deviceTags/2", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("not-valid", []string{"insulin-pump", "cgm", "bgm"}), "/deviceTags/2", NewMeta())},
 			),
 		)
 
@@ -71,7 +70,7 @@ var _ = Describe("Upload", func() {
 	Context("deviceManufacturers", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is empty array", NewRawObject(), "deviceManufacturers", []string{},
-				[]*service.Error{testing.ComposeError(validator.ErrorValueEmpty(), "/deviceManufacturers", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueEmpty(), "/deviceManufacturers", NewMeta())},
 			),
 		)
 
@@ -84,13 +83,13 @@ var _ = Describe("Upload", func() {
 	Context("computerTime", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is empty", NewRawObject(), "computerTime", "",
-				[]*service.Error{testing.ComposeError(validator.ErrorTimeNotValid("", "2006-01-02T15:04:05"), "/computerTime", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueTimeNotValid("", "2006-01-02T15:04:05"), "/computerTime", NewMeta())},
 			),
 			Entry("is zulu time", NewRawObject(), "computerTime", "2013-05-04T03:58:44.584Z",
-				[]*service.Error{testing.ComposeError(validator.ErrorTimeNotValid("2013-05-04T03:58:44.584Z", "2006-01-02T15:04:05"), "/computerTime", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueTimeNotValid("2013-05-04T03:58:44.584Z", "2006-01-02T15:04:05"), "/computerTime", NewMeta())},
 			),
 			Entry("is offset time", NewRawObject(), "computerTime", "2013-05-04T03:58:44-08:00",
-				[]*service.Error{testing.ComposeError(validator.ErrorTimeNotValid("2013-05-04T03:58:44-08:00", "2006-01-02T15:04:05"), "/computerTime", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueTimeNotValid("2013-05-04T03:58:44-08:00", "2006-01-02T15:04:05"), "/computerTime", NewMeta())},
 			),
 		)
 
@@ -102,10 +101,10 @@ var _ = Describe("Upload", func() {
 	Context("deviceModel", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is empty", NewRawObject(), "deviceModel", "",
-				[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThan(0, 1), "/deviceModel", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorLengthNotGreaterThan(0, 1), "/deviceModel", NewMeta())},
 			),
 			Entry("is 1 character", NewRawObject(), "deviceModel", "x",
-				[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThan(1, 1), "/deviceModel", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorLengthNotGreaterThan(1, 1), "/deviceModel", NewMeta())},
 			),
 		)
 
@@ -118,10 +117,10 @@ var _ = Describe("Upload", func() {
 	Context("deviceSerialNumber", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is empty", NewRawObject(), "deviceSerialNumber", "",
-				[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThan(0, 1), "/deviceSerialNumber", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorLengthNotGreaterThan(0, 1), "/deviceSerialNumber", NewMeta())},
 			),
 			Entry("is 1 character", NewRawObject(), "deviceSerialNumber", "x",
-				[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThan(1, 1), "/deviceSerialNumber", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorLengthNotGreaterThan(1, 1), "/deviceSerialNumber", NewMeta())},
 			),
 		)
 
@@ -134,10 +133,10 @@ var _ = Describe("Upload", func() {
 	Context("timezone", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is empty", NewRawObject(), "timezone", "",
-				[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThan(0, 1), "/timezone", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorLengthNotGreaterThan(0, 1), "/timezone", NewMeta())},
 			),
 			Entry("is only one character", NewRawObject(), "timezone", "a",
-				[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThan(1, 1), "/timezone", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorLengthNotGreaterThan(1, 1), "/timezone", NewMeta())},
 			),
 		)
 
@@ -149,10 +148,10 @@ var _ = Describe("Upload", func() {
 	Context("timeProcessing", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is empty", NewRawObject(), "timeProcessing", "",
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("", []string{"across-the-board-timezone", "utc-bootstrapping", "none"}), "/timeProcessing", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("", []string{"across-the-board-timezone", "utc-bootstrapping", "none"}), "/timeProcessing", NewMeta())},
 			),
 			Entry("is not of predefined type", NewRawObject(), "timeProcessing", "invalid-time-processing",
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("invalid-time-processing", []string{"across-the-board-timezone", "utc-bootstrapping", "none"}), "/timeProcessing", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("invalid-time-processing", []string{"across-the-board-timezone", "utc-bootstrapping", "none"}), "/timeProcessing", NewMeta())},
 			),
 		)
 

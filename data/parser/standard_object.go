@@ -79,7 +79,7 @@ func (s *StandardObject) ParseBoolean(key string) *bool {
 
 	booleanValue, ok := rawValue.(bool)
 	if !ok {
-		s.AppendError(key, ErrorTypeNotBoolean(rawValue))
+		s.AppendError(key, service.ErrorTypeNotBoolean(rawValue))
 		return nil
 	}
 
@@ -102,11 +102,11 @@ func (s *StandardObject) ParseInteger(key string) *int {
 	if !integerValueOk {
 		floatValue, floatValueOk := rawValue.(float64)
 		if !floatValueOk {
-			s.AppendError(key, ErrorTypeNotInteger(rawValue))
+			s.AppendError(key, service.ErrorTypeNotInteger(rawValue))
 			return nil
 		}
 		if math.Trunc(floatValue) != floatValue {
-			s.AppendError(key, ErrorTypeNotInteger(rawValue))
+			s.AppendError(key, service.ErrorTypeNotInteger(rawValue))
 			return nil
 		}
 		integerValue = int(floatValue)
@@ -131,7 +131,7 @@ func (s *StandardObject) ParseFloat(key string) *float64 {
 	if !floatValueOk {
 		integerValue, integerValueOk := rawValue.(int)
 		if !integerValueOk {
-			s.AppendError(key, ErrorTypeNotFloat(rawValue))
+			s.AppendError(key, service.ErrorTypeNotFloat(rawValue))
 			return nil
 		}
 		floatValue = float64(integerValue)
@@ -154,7 +154,7 @@ func (s *StandardObject) ParseString(key string) *string {
 
 	stringValue, ok := rawValue.(string)
 	if !ok {
-		s.AppendError(key, ErrorTypeNotString(rawValue))
+		s.AppendError(key, service.ErrorTypeNotString(rawValue))
 		return nil
 	}
 
@@ -177,7 +177,7 @@ func (s *StandardObject) ParseStringArray(key string) *[]string {
 	if !stringArrayValueOk {
 		arrayValue, arrayValueOk := rawValue.([]interface{})
 		if !arrayValueOk {
-			s.AppendError(key, ErrorTypeNotArray(rawValue))
+			s.AppendError(key, service.ErrorTypeNotArray(rawValue))
 			return nil
 		}
 
@@ -209,7 +209,7 @@ func (s *StandardObject) ParseObject(key string) *map[string]interface{} {
 
 	objectValue, ok := rawValue.(map[string]interface{})
 	if !ok {
-		s.AppendError(key, ErrorTypeNotObject(rawValue))
+		s.AppendError(key, service.ErrorTypeNotObject(rawValue))
 		return nil
 	}
 
@@ -232,7 +232,7 @@ func (s *StandardObject) ParseObjectArray(key string) *[]map[string]interface{} 
 	if !objectArrayValueOk {
 		arrayValue, arrayValueOk := rawValue.([]interface{})
 		if !arrayValueOk {
-			s.AppendError(key, ErrorTypeNotArray(rawValue))
+			s.AppendError(key, service.ErrorTypeNotArray(rawValue))
 			return nil
 		}
 
@@ -278,7 +278,7 @@ func (s *StandardObject) ParseInterfaceArray(key string) *[]interface{} {
 
 	arrayValue, ok := rawValue.([]interface{})
 	if !ok {
-		s.AppendError(key, ErrorTypeNotArray(rawValue))
+		s.AppendError(key, service.ErrorTypeNotArray(rawValue))
 		return nil
 	}
 
@@ -314,7 +314,7 @@ func (s *StandardObject) ParseDatumArray(key string) *[]data.Datum {
 
 	arrayValue, arrayValueOk := rawValue.([]interface{})
 	if !arrayValueOk {
-		s.AppendError(key, ErrorTypeNotArray(rawValue))
+		s.AppendError(key, service.ErrorTypeNotArray(rawValue))
 		return nil
 	}
 

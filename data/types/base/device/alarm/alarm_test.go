@@ -4,10 +4,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 
-	"github.com/tidepool-org/platform/data/parser"
 	"github.com/tidepool-org/platform/data/types/base/device"
 	"github.com/tidepool-org/platform/data/types/base/testing"
-	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -47,10 +45,10 @@ var _ = Describe("Alarm", func() {
 	Context("alarmType", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is empty", NewRawObject(), "alarmType", "",
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("", []string{"low_insulin", "no_insulin", "low_power", "no_power", "occlusion", "no_delivery", "auto_off", "over_limit", "other"}), "/alarmType", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("", []string{"low_insulin", "no_insulin", "low_power", "no_power", "occlusion", "no_delivery", "auto_off", "over_limit", "other"}), "/alarmType", NewMeta())},
 			),
 			Entry("is not one of the predefined types", NewRawObject(), "alarmType", "bad-robot",
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("bad-robot", []string{"low_insulin", "no_insulin", "low_power", "no_power", "occlusion", "no_delivery", "auto_off", "over_limit", "other"}), "/alarmType", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("bad-robot", []string{"low_insulin", "no_insulin", "low_power", "no_power", "occlusion", "no_delivery", "auto_off", "over_limit", "other"}), "/alarmType", NewMeta())},
 			),
 		)
 
@@ -69,19 +67,19 @@ var _ = Describe("Alarm", func() {
 	Context("status", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("status is not an object", NewRawObject(), "status", "string",
-				[]*service.Error{testing.ComposeError(parser.ErrorTypeNotObject("string"), "/status", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorTypeNotObject("string"), "/status", NewMeta())},
 			),
 			Entry("type is missing", NewRawObject(), "status", NewEmbeddedStatus(nil, "status"),
-				[]*service.Error{testing.ComposeError(validator.ErrorValueNotExists(), "/status/type", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotExists(), "/status/type", NewMeta())},
 			),
 			Entry("type is not valid", NewRawObject(), "status", NewEmbeddedStatus("invalid", "status"),
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("invalid", []string{"deviceEvent"}), "/status/type", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("invalid", []string{"deviceEvent"}), "/status/type", NewMeta())},
 			),
 			Entry("subType is missing", NewRawObject(), "status", NewEmbeddedStatus("deviceEvent", nil),
-				[]*service.Error{testing.ComposeError(validator.ErrorValueNotExists(), "/status/subType", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotExists(), "/status/subType", NewMeta())},
 			),
 			Entry("subType is not valid", NewRawObject(), "status", NewEmbeddedStatus("deviceEvent", "invalid"),
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("invalid", []string{"status"}), "/status/subType", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("invalid", []string{"status"}), "/status/subType", NewMeta())},
 			),
 		)
 	})

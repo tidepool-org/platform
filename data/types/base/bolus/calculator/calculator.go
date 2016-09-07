@@ -17,7 +17,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/base/bolus/combination"
 	"github.com/tidepool-org/platform/data/types/base/bolus/extended"
 	"github.com/tidepool-org/platform/data/types/base/bolus/normal"
-	"github.com/tidepool-org/platform/data/validator"
+	"github.com/tidepool-org/platform/service"
 )
 
 type Calculator struct {
@@ -95,9 +95,9 @@ func (c *Calculator) Parse(parser data.ObjectParser) error {
 
 	if bolusParser := parser.NewChildObjectParser("bolus"); bolusParser.Object() != nil {
 		if bolusType := bolusParser.ParseString("type"); bolusType == nil {
-			bolusParser.AppendError("type", validator.ErrorValueNotExists())
+			bolusParser.AppendError("type", service.ErrorValueNotExists())
 		} else if *bolusType != bolus.Type() {
-			bolusParser.AppendError("type", validator.ErrorStringNotOneOf(*bolusType, []string{bolus.Type()}))
+			bolusParser.AppendError("type", service.ErrorValueStringNotOneOf(*bolusType, []string{bolus.Type()}))
 		} else {
 			c.bolus = parser.ParseDatum("bolus")
 		}

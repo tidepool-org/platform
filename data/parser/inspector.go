@@ -13,7 +13,7 @@ package parser
 import (
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/validator"
+	"github.com/tidepool-org/platform/service"
 )
 
 type ObjectParserInspector struct {
@@ -35,11 +35,11 @@ func (o *ObjectParserInspector) GetProperty(key string) *string {
 }
 
 func (o *ObjectParserInspector) NewMissingPropertyError(key string) error {
-	o.parser.AppendError(key, validator.ErrorValueNotExists())
+	o.parser.AppendError(key, service.ErrorValueNotExists())
 	return nil
 }
 
 func (o *ObjectParserInspector) NewInvalidPropertyError(key string, value string, allowedValues []string) error {
-	o.parser.AppendError(key, validator.ErrorStringNotOneOf(value, allowedValues))
+	o.parser.AppendError(key, service.ErrorValueStringNotOneOf(value, allowedValues))
 	return nil
 }

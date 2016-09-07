@@ -14,7 +14,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/base/device"
 	"github.com/tidepool-org/platform/data/types/base/device/status"
-	"github.com/tidepool-org/platform/data/validator"
+	"github.com/tidepool-org/platform/service"
 )
 
 type Alarm struct {
@@ -66,13 +66,13 @@ func (a *Alarm) Parse(parser data.ObjectParser) error {
 
 	if statusParser := parser.NewChildObjectParser("status"); statusParser.Object() != nil {
 		if statusType := statusParser.ParseString("type"); statusType == nil {
-			statusParser.AppendError("type", validator.ErrorValueNotExists())
+			statusParser.AppendError("type", service.ErrorValueNotExists())
 		} else if *statusType != device.Type() {
-			statusParser.AppendError("type", validator.ErrorStringNotOneOf(*statusType, []string{device.Type()}))
+			statusParser.AppendError("type", service.ErrorValueStringNotOneOf(*statusType, []string{device.Type()}))
 		} else if statusSubType := statusParser.ParseString("subType"); statusSubType == nil {
-			statusParser.AppendError("subType", validator.ErrorValueNotExists())
+			statusParser.AppendError("subType", service.ErrorValueNotExists())
 		} else if *statusSubType != status.SubType() {
-			statusParser.AppendError("subType", validator.ErrorStringNotOneOf(*statusSubType, []string{status.SubType()}))
+			statusParser.AppendError("subType", service.ErrorValueStringNotOneOf(*statusSubType, []string{status.SubType()}))
 		} else {
 			a.status = parser.ParseDatum("status")
 		}

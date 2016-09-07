@@ -13,6 +13,7 @@ package validator
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/bloodglucose"
+	"github.com/tidepool-org/platform/service"
 )
 
 type StandardStringAsBloodGlucoseUnits struct {
@@ -37,14 +38,14 @@ func NewStandardStringAsBloodGlucoseUnits(context data.Context, reference interf
 
 func (s *StandardStringAsBloodGlucoseUnits) Exists() data.BloodGlucoseUnits {
 	if s.stringValue == nil {
-		s.context.AppendError(s.reference, ErrorValueNotExists())
+		s.context.AppendError(s.reference, service.ErrorValueNotExists())
 	}
 	return s
 }
 
 func (s *StandardStringAsBloodGlucoseUnits) NotExists() data.BloodGlucoseUnits {
 	if s.stringValue != nil {
-		s.context.AppendError(s.reference, ErrorValueExists())
+		s.context.AppendError(s.reference, service.ErrorValueExists())
 	}
 	return s
 }
@@ -54,7 +55,7 @@ func (s *StandardStringAsBloodGlucoseUnits) parse() {
 		switch *s.stringValue {
 		case bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL:
 		default:
-			s.context.AppendError(s.reference, ErrorStringNotOneOf(*s.stringValue, []string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL}))
+			s.context.AppendError(s.reference, service.ErrorValueStringNotOneOf(*s.stringValue, []string{bloodglucose.Mmoll, bloodglucose.MmolL, bloodglucose.Mgdl, bloodglucose.MgdL}))
 		}
 	}
 }

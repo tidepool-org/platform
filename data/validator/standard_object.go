@@ -10,7 +10,10 @@ package validator
  * [x] Full test coverage
  */
 
-import "github.com/tidepool-org/platform/data"
+import (
+	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/service"
+)
 
 type StandardObject struct {
 	context   data.Context
@@ -32,14 +35,14 @@ func NewStandardObject(context data.Context, reference interface{}, value *map[s
 
 func (s *StandardObject) Exists() data.Object {
 	if s.value == nil {
-		s.context.AppendError(s.reference, ErrorValueNotExists())
+		s.context.AppendError(s.reference, service.ErrorValueNotExists())
 	}
 	return s
 }
 
 func (s *StandardObject) NotExists() data.Object {
 	if s.value != nil {
-		s.context.AppendError(s.reference, ErrorValueExists())
+		s.context.AppendError(s.reference, service.ErrorValueExists())
 	}
 	return s
 }
@@ -47,7 +50,7 @@ func (s *StandardObject) NotExists() data.Object {
 func (s *StandardObject) Empty() data.Object {
 	if s.value != nil {
 		if len(*s.value) != 0 {
-			s.context.AppendError(s.reference, ErrorValueNotEmpty())
+			s.context.AppendError(s.reference, service.ErrorValueNotEmpty())
 		}
 	}
 	return s
@@ -56,7 +59,7 @@ func (s *StandardObject) Empty() data.Object {
 func (s *StandardObject) NotEmpty() data.Object {
 	if s.value != nil {
 		if len(*s.value) == 0 {
-			s.context.AppendError(s.reference, ErrorValueEmpty())
+			s.context.AppendError(s.reference, service.ErrorValueEmpty())
 		}
 	}
 	return s

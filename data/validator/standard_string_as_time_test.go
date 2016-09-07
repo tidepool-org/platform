@@ -160,7 +160,7 @@ var _ = Describe("StandardStringAsTime", func() {
 				It("adds the expected error", func() {
 					Expect(standardContext.Errors()).To(HaveLen(1))
 					Expect(standardContext.Errors()[0]).ToNot(BeNil())
-					Expect(standardContext.Errors()[0].Code).To(Equal("time-not-valid"))
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-not-valid"))
 					Expect(standardContext.Errors()[0].Title).To(Equal("value is not a valid time"))
 					Expect(standardContext.Errors()[0].Detail).To(Equal(`Value "invalid" is not a valid time of format "2006-01-02T15:04:05Z07:00"`))
 					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
@@ -180,7 +180,7 @@ var _ = Describe("StandardStringAsTime", func() {
 				It("adds the expected error", func() {
 					Expect(standardContext.Errors()).To(HaveLen(2))
 					Expect(standardContext.Errors()[0]).ToNot(BeNil())
-					Expect(standardContext.Errors()[0].Code).To(Equal("time-not-valid"))
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-not-valid"))
 					Expect(standardContext.Errors()[0].Title).To(Equal("value is not a valid time"))
 					Expect(standardContext.Errors()[0].Detail).To(Equal(`Value "invalid" is not a valid time of format "2006-01-02T15:04:05Z07:00"`))
 					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
@@ -206,7 +206,7 @@ var _ = Describe("StandardStringAsTime", func() {
 				It("adds the expected error", func() {
 					Expect(standardContext.Errors()).To(HaveLen(1))
 					Expect(standardContext.Errors()[0]).ToNot(BeNil())
-					Expect(standardContext.Errors()[0].Code).To(Equal("time-not-valid"))
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-not-valid"))
 					Expect(standardContext.Errors()[0].Title).To(Equal("value is not a valid time"))
 					Expect(standardContext.Errors()[0].Detail).To(Equal(`Value "invalid" is not a valid time of format "2006-01-02T15:04:05Z07:00"`))
 					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
@@ -226,7 +226,7 @@ var _ = Describe("StandardStringAsTime", func() {
 				It("adds the expected error", func() {
 					Expect(standardContext.Errors()).To(HaveLen(1))
 					Expect(standardContext.Errors()[0]).ToNot(BeNil())
-					Expect(standardContext.Errors()[0].Code).To(Equal("time-not-valid"))
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-not-valid"))
 					Expect(standardContext.Errors()[0].Title).To(Equal("value is not a valid time"))
 					Expect(standardContext.Errors()[0].Detail).To(Equal(`Value "invalid" is not a valid time of format "2006-01-02T15:04:05Z07:00"`))
 					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
@@ -246,7 +246,7 @@ var _ = Describe("StandardStringAsTime", func() {
 				It("adds the expected error", func() {
 					Expect(standardContext.Errors()).To(HaveLen(1))
 					Expect(standardContext.Errors()[0]).ToNot(BeNil())
-					Expect(standardContext.Errors()[0].Code).To(Equal("time-not-valid"))
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-not-valid"))
 					Expect(standardContext.Errors()[0].Title).To(Equal("value is not a valid time"))
 					Expect(standardContext.Errors()[0].Detail).To(Equal(`Value "invalid" is not a valid time of format "2006-01-02T15:04:05Z07:00"`))
 					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
@@ -266,7 +266,7 @@ var _ = Describe("StandardStringAsTime", func() {
 				It("adds the expected error", func() {
 					Expect(standardContext.Errors()).To(HaveLen(1))
 					Expect(standardContext.Errors()[0]).ToNot(BeNil())
-					Expect(standardContext.Errors()[0].Code).To(Equal("time-not-valid"))
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-not-valid"))
 					Expect(standardContext.Errors()[0].Title).To(Equal("value is not a valid time"))
 					Expect(standardContext.Errors()[0].Detail).To(Equal(`Value "invalid" is not a valid time of format "2006-01-02T15:04:05Z07:00"`))
 					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
@@ -334,7 +334,7 @@ var _ = Describe("StandardStringAsTime", func() {
 				It("adds the expected error", func() {
 					Expect(standardContext.Errors()).To(HaveLen(1))
 					Expect(standardContext.Errors()[0]).ToNot(BeNil())
-					Expect(standardContext.Errors()[0].Code).To(Equal("time-not-after"))
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-not-after"))
 					Expect(standardContext.Errors()[0].Title).To(Equal("value is not after the specified time"))
 					Expect(standardContext.Errors()[0].Detail).To(Equal(`Value "1990-01-01T14:15:16Z" is not after "2015-12-31T13:14:15Z"`))
 					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
@@ -354,7 +354,7 @@ var _ = Describe("StandardStringAsTime", func() {
 				It("adds the expected error", func() {
 					Expect(standardContext.Errors()).To(HaveLen(1))
 					Expect(standardContext.Errors()[0]).ToNot(BeNil())
-					Expect(standardContext.Errors()[0].Code).To(Equal("time-not-after"))
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-not-after"))
 					Expect(standardContext.Errors()[0].Title).To(Equal("value is not after the specified time"))
 					Expect(standardContext.Errors()[0].Detail).To(Equal(`Value "1990-01-01T14:15:16Z" is not after now`))
 					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
@@ -478,7 +478,7 @@ var _ = Describe("StandardStringAsTime", func() {
 				It("adds the expected error", func() {
 					Expect(standardContext.Errors()).To(HaveLen(1))
 					Expect(standardContext.Errors()[0]).ToNot(BeNil())
-					Expect(standardContext.Errors()[0].Code).To(Equal("time-not-before"))
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-not-before"))
 					Expect(standardContext.Errors()[0].Title).To(Equal("value is not before the specified time"))
 					Expect(standardContext.Errors()[0].Detail).To(Equal(`Value "2090-01-01T14:15:16Z" is not before "2015-12-31T13:14:15Z"`))
 					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
@@ -498,7 +498,7 @@ var _ = Describe("StandardStringAsTime", func() {
 				It("adds the expected error", func() {
 					Expect(standardContext.Errors()).To(HaveLen(1))
 					Expect(standardContext.Errors()[0]).ToNot(BeNil())
-					Expect(standardContext.Errors()[0].Code).To(Equal("time-not-before"))
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-not-before"))
 					Expect(standardContext.Errors()[0].Title).To(Equal("value is not before the specified time"))
 					Expect(standardContext.Errors()[0].Detail).To(Equal(`Value "2090-01-01T14:15:16Z" is not before now`))
 					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())

@@ -6,7 +6,6 @@ import (
 
 	"github.com/tidepool-org/platform/data/types/base/basal"
 	"github.com/tidepool-org/platform/data/types/base/testing"
-	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -31,10 +30,10 @@ var _ = Describe("Scheduled", func() {
 	Context("duration", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is negative", NewRawObject(), "duration", -1,
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(-1, 0, 432000000), "/duration", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(-1, 0, 432000000), "/duration", NewMeta())},
 			),
 			Entry("is greater than 432000000", NewRawObject(), "duration", 432000001,
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(432000001, 0, 432000000), "/duration", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(432000001, 0, 432000000), "/duration", NewMeta())},
 			),
 		)
 
@@ -46,10 +45,10 @@ var _ = Describe("Scheduled", func() {
 	Context("rate", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is negative", NewRawObject(), "rate", -0.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, 0.0, 20.0), "/rate", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(-0.1, 0.0, 20.0), "/rate", NewMeta())},
 			),
 			Entry("is greater than 20", NewRawObject(), "rate", 20.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(20.1, 0.0, 20.0), "/rate", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(20.1, 0.0, 20.0), "/rate", NewMeta())},
 			),
 		)
 
@@ -62,7 +61,7 @@ var _ = Describe("Scheduled", func() {
 	Context("scheduleName", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is one character", NewRawObject(), "scheduleName", "a",
-				[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThan(1, 1), "/scheduleName", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorLengthNotGreaterThan(1, 1), "/scheduleName", NewMeta())},
 			),
 		)
 

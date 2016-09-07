@@ -6,7 +6,6 @@ import (
 
 	"github.com/tidepool-org/platform/data/types/base/device"
 	"github.com/tidepool-org/platform/data/types/base/testing"
-	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -30,7 +29,7 @@ var _ = Describe("Reservoirchange", func() {
 	Context("status", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is empty", NewRawObject(), "status", "",
-				[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThan(0, 1), "/status", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorLengthNotGreaterThan(0, 1), "/status", NewMeta())},
 			),
 		)
 

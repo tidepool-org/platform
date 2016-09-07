@@ -51,10 +51,10 @@ var _ = PDescribe("Base", func() {
 	// Context("_userId", func() {
 	// 	DescribeTable("invalid when", testing.ExpectFieldNotValid,
 	// 		Entry("is empty", NewRawObject(), "_userId", "",
-	// 			[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThanOrEqualTo(0, 10), "/userId", NewMeta())},
+	// 			[]*service.Error{testing.ComposeError(service.ErrorLengthNotGreaterThanOrEqualTo(0, 10), "/userId", NewMeta())},
 	// 		),
 	// 		Entry("is less than 10 characters", NewRawObject(), "_userId", "123456789",
-	// 			[]*service.Error{testing.ComposeError(validator.ErrorLengthNotGreaterThanOrEqualTo(9, 10), "/userId", NewMeta())},
+	// 			[]*service.Error{testing.ComposeError(service.ErrorLengthNotGreaterThanOrEqualTo(9, 10), "/userId", NewMeta())},
 	// 		),
 	// 	)
 
@@ -67,7 +67,7 @@ var _ = PDescribe("Base", func() {
 	// Context("uploadId", func() {
 	// 	DescribeTable("invalid when", testing.ExpectFieldNotValid,
 	// 		Entry("is empty", NewRawObject(), "uploadId", "",
-	// 			[]*service.Error{testing.ComposeError(validator.ErrorValueEmpty(), "/uploadId", NewMeta())},
+	// 			[]*service.Error{testing.ComposeError(service.ErrorValueEmpty(), "/uploadId", NewMeta())},
 	// 		),
 	// 	)
 
@@ -80,7 +80,7 @@ var _ = PDescribe("Base", func() {
 	// Context("deviceId", func() {
 	// 	DescribeTable("invalid when", testing.ExpectFieldNotValid,
 	// 		Entry("is empty", NewRawObject(), "deviceId", "",
-	// 			[]*service.Error{testing.ComposeError(validator.ErrorValueEmpty(), "/deviceId", NewMeta())},
+	// 			[]*service.Error{testing.ComposeError(service.ErrorValueEmpty(), "/deviceId", NewMeta())},
 	// 		),
 	// 	)
 
@@ -101,7 +101,7 @@ var _ = PDescribe("Base", func() {
 	// Context("conversionOffset", func() {
 	// 	DescribeTable("invalid when", testing.ExpectFieldNotValid,
 	// 		Entry("is negative", NewRawObject(), "conversionOffset", -1,
-	// 			[]*service.Error{testing.ComposeError(validator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/conversionOffset", NewMeta())},
+	// 			[]*service.Error{testing.ComposeError(service.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/conversionOffset", NewMeta())},
 	// 		),
 	// 	)
 
@@ -114,7 +114,7 @@ var _ = PDescribe("Base", func() {
 	// Context("clockDriftOffset", func() {
 	// 	DescribeTable("invalid when", testing.ExpectFieldNotValid,
 	// 		Entry("is negative", NewRawObject(), "clockDriftOffset", -1,
-	// 			[]*service.Error{testing.ComposeError(validator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/clockDriftOffset", NewMeta())},
+	// 			[]*service.Error{testing.ComposeError(service.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/clockDriftOffset", NewMeta())},
 	// 		),
 	// 	)
 
@@ -131,7 +131,7 @@ var _ = PDescribe("Base", func() {
 
 	// 	DescribeTable("invalid when", testing.ExpectFieldNotValid,
 	// 		Entry("is non zulu time", NewRawObject(), "time", "2013-05-04T03:58:44.584",
-	// 			[]*service.Error{testing.ComposeError(validator.ErrorTimeNotValid("2013-05-04T03:58:44.584", "2006-01-02T15:04:05Z"), "/time", NewMeta())},
+	// 			[]*service.Error{testing.ComposeError(service.ErrorValueTimeNotValid("2013-05-04T03:58:44.584", "2006-01-02T15:04:05Z"), "/time", NewMeta())},
 	// 		),
 	// 	)
 	// })

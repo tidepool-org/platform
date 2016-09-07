@@ -6,7 +6,6 @@ import (
 
 	"github.com/tidepool-org/platform/data/types/base/device"
 	"github.com/tidepool-org/platform/data/types/base/testing"
-	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -41,10 +40,10 @@ var _ = Describe("Prime", func() {
 	Context("primeTarget", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is empty", NewRawObject(), "primeTarget", "",
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("", []string{"cannula", "tubing"}), "/primeTarget", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("", []string{"cannula", "tubing"}), "/primeTarget", NewMeta())},
 			),
 			Entry("is not one of the predefined types", NewRawObject(), "primeTarget", "bad",
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("bad", []string{"cannula", "tubing"}), "/primeTarget", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("bad", []string{"cannula", "tubing"}), "/primeTarget", NewMeta())},
 			),
 		)
 
@@ -57,10 +56,10 @@ var _ = Describe("Prime", func() {
 	Context("cannula volume", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is less than 0", NewRawObjectWithCannula(), "volume", -0.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, 0.0, 3.0), "/volume", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(-0.1, 0.0, 3.0), "/volume", NewMeta())},
 			),
 			Entry("is more than 3", NewRawObjectWithCannula(), "volume", 3.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(3.1, 0.0, 3.0), "/volume", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(3.1, 0.0, 3.0), "/volume", NewMeta())},
 			),
 		)
 
@@ -74,10 +73,10 @@ var _ = Describe("Prime", func() {
 	Context("tubing volume", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is less than 0", NewRawObjectWithTubing(), "volume", -0.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, 0.0, 100.0), "/volume", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(-0.1, 0.0, 100.0), "/volume", NewMeta())},
 			),
 			Entry("is more than 100", NewRawObjectWithTubing(), "volume", 100.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(100.1, 0.0, 100.0), "/volume", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(100.1, 0.0, 100.0), "/volume", NewMeta())},
 			),
 		)
 

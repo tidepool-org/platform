@@ -11,7 +11,6 @@ import (
 	"github.com/tidepool-org/platform/data/types/base"
 	"github.com/tidepool-org/platform/data/types/base/bolus/calculator"
 	"github.com/tidepool-org/platform/data/types/base/testing"
-	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
 )
@@ -96,10 +95,10 @@ var _ = Describe("Calculator", func() {
 	Context("insulinOnBoard", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is negative", NewRawObjectWithMgdl(), "insulinOnBoard", -1,
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(-1, 0, 250), "/insulinOnBoard", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(-1, 0, 250), "/insulinOnBoard", NewMeta())},
 			),
 			Entry("is greater than 250", NewRawObjectWithMgdl(), "insulinOnBoard", 251,
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(251, 0, 250), "/insulinOnBoard", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(251, 0, 250), "/insulinOnBoard", NewMeta())},
 			),
 		)
 
@@ -111,10 +110,10 @@ var _ = Describe("Calculator", func() {
 	Context("insulinCarbRatio", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is negative", NewRawObjectWithMgdl(), "insulinCarbRatio", -1,
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(-1, 0, 250), "/insulinCarbRatio", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(-1, 0, 250), "/insulinCarbRatio", NewMeta())},
 			),
 			Entry("is greater than 250", NewRawObjectWithMgdl(), "insulinCarbRatio", 251,
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(251, 0, 250), "/insulinCarbRatio", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(251, 0, 250), "/insulinCarbRatio", NewMeta())},
 			),
 		)
 
@@ -126,10 +125,10 @@ var _ = Describe("Calculator", func() {
 	Context("units", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is empty", NewRawObjectWithMgdl(), "units", "",
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("", []string{"mmol/l", "mmol/L", "mg/dl", "mg/dL"}), "/units", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("", []string{"mmol/l", "mmol/L", "mg/dl", "mg/dL"}), "/units", NewMeta())},
 			),
 			Entry("is not one of the predefined values", NewRawObjectWithMgdl(), "units", "wrong",
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("wrong", []string{"mmol/l", "mmol/L", "mg/dl", "mg/dL"}), "/units", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("wrong", []string{"mmol/l", "mmol/L", "mg/dl", "mg/dL"}), "/units", NewMeta())},
 			),
 		)
 
@@ -144,10 +143,10 @@ var _ = Describe("Calculator", func() {
 	Context("bgInput", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is less than 0", NewRawObjectWithMgdl(), "bgInput", -0.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/bgInput", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(-0.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/bgInput", NewMeta())},
 			),
 			Entry("is greater than 1000", NewRawObjectWithMgdl(), "bgInput", 1000.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(1000.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/bgInput", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(1000.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/bgInput", NewMeta())},
 			),
 		)
 
@@ -162,10 +161,10 @@ var _ = Describe("Calculator", func() {
 	Context("insulinSensitivity", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is less than 0", NewRawObjectWithMgdL(), "insulinSensitivity", -0.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/insulinSensitivity", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(-0.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/insulinSensitivity", NewMeta())},
 			),
 			Entry("is greater than 1000", NewRawObjectWithMgdL(), "insulinSensitivity", 1000.1,
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(1000.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/insulinSensitivity", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(1000.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/insulinSensitivity", NewMeta())},
 			),
 		)
 
@@ -180,10 +179,10 @@ var _ = Describe("Calculator", func() {
 	Context("carbInput", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("is less than 0", NewRawObjectWithMgdl(), "carbInput", -1,
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(-1, 0, 1000), "/carbInput", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(-1, 0, 1000), "/carbInput", NewMeta())},
 			),
 			Entry("is greater than 1000", NewRawObjectWithMgdl(), "carbInput", 1001,
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(1001, 0, 1000), "/carbInput", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(1001, 0, 1000), "/carbInput", NewMeta())},
 			),
 		)
 
@@ -197,16 +196,16 @@ var _ = Describe("Calculator", func() {
 	Context("bgTarget", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("has range less than 0", NewRawObjectWithMgdL(), "bgTarget", map[string]interface{}{"target": 100, "range": -1},
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(-1, 0, 50), "/bgTarget/range", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(-1, 0, 50), "/bgTarget/range", NewMeta())},
 			),
 			Entry("has range greater than 50", NewRawObjectWithMgdL(), "bgTarget", map[string]interface{}{"target": 100, "range": 51},
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(51, 0, 50), "/bgTarget/range", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(51, 0, 50), "/bgTarget/range", NewMeta())},
 			),
 			Entry("has target less than 0", NewRawObjectWithMgdL(), "bgTarget", map[string]interface{}{"target": -0.1, "range": 10},
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(-0.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/bgTarget/target", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(-0.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/bgTarget/target", NewMeta())},
 			),
 			Entry("has target greater than 1000", NewRawObjectWithMgdL(), "bgTarget", map[string]interface{}{"target": 1000.1, "range": 10},
-				[]*service.Error{testing.ComposeError(validator.ErrorFloatNotInRange(1000.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/bgTarget/target", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueFloatNotInRange(1000.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/bgTarget/target", NewMeta())},
 			),
 		)
 
@@ -221,22 +220,22 @@ var _ = Describe("Calculator", func() {
 	Context("recommended", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("has net less than -100", NewRawObjectWithMgdl(), "recommended", map[string]interface{}{"net": -101, "correction": -50, "carb": 50},
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(-101, -100, 100), "/recommended/net", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(-101, -100, 100), "/recommended/net", NewMeta())},
 			),
 			Entry("has net greater than 100", NewRawObjectWithMgdl(), "recommended", map[string]interface{}{"net": 101, "correction": -50, "carb": 50},
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(101, -100, 100), "/recommended/net", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(101, -100, 100), "/recommended/net", NewMeta())},
 			),
 			Entry("has correction less than -100", NewRawObjectWithMgdl(), "recommended", map[string]interface{}{"net": 50, "correction": -101, "carb": 50},
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(-101, -100, 100), "/recommended/correction", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(-101, -100, 100), "/recommended/correction", NewMeta())},
 			),
 			Entry("has correction greater than 100", NewRawObjectWithMgdl(), "recommended", map[string]interface{}{"net": 50, "correction": 101, "carb": 50},
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(101, -100, 100), "/recommended/correction", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(101, -100, 100), "/recommended/correction", NewMeta())},
 			),
 			Entry("has carb less than 0", NewRawObjectWithMgdl(), "recommended", map[string]interface{}{"net": 50, "correction": -50, "carb": -1},
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(-1, 0, 100), "/recommended/carb", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(-1, 0, 100), "/recommended/carb", NewMeta())},
 			),
 			Entry("has carb greater than 100", NewRawObjectWithMgdl(), "recommended", map[string]interface{}{"net": 50, "correction": -50, "carb": 101},
-				[]*service.Error{testing.ComposeError(validator.ErrorIntegerNotInRange(101, 0, 100), "/recommended/carb", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueIntegerNotInRange(101, 0, 100), "/recommended/carb", NewMeta())},
 			),
 		)
 
@@ -253,19 +252,19 @@ var _ = Describe("Calculator", func() {
 	Context("bolus", func() {
 		DescribeTable("invalid when type", testing.ExpectFieldNotValid,
 			Entry("is missing", NewRawObjectWithMgdl(), "bolus", NewEmbeddedBolus(nil, "normal", 52.1, 0.0, 0),
-				[]*service.Error{testing.ComposeError(validator.ErrorValueNotExists(), "/bolus/type", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotExists(), "/bolus/type", NewMeta())},
 			),
 			Entry("is not valid", NewRawObjectWithMgdl(), "bolus", NewEmbeddedBolus("invalid", "normal", 52.1, 0.0, 0),
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("invalid", []string{"bolus"}), "/bolus/type", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("invalid", []string{"bolus"}), "/bolus/type", NewMeta())},
 			),
 		)
 
 		DescribeTable("invalid when subType", testing.ExpectFieldNotValid,
 			Entry("is missing", NewRawObjectWithMgdl(), "bolus", NewEmbeddedBolus("bolus", nil, 0.0, 52.1, 0),
-				[]*service.Error{testing.ComposeError(validator.ErrorValueNotExists(), "/bolus/subType", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotExists(), "/bolus/subType", NewMeta())},
 			),
 			Entry("is not valid", NewRawObjectWithMgdl(), "bolus", NewEmbeddedBolus("bolus", "invalid", 0.0, 52.1, 0),
-				[]*service.Error{testing.ComposeError(validator.ErrorStringNotOneOf("invalid", []string{"dual/square", "normal", "square"}), "/bolus/subType", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("invalid", []string{"dual/square", "normal", "square"}), "/bolus/subType", NewMeta())},
 			),
 		)
 	})

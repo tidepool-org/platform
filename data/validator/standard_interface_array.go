@@ -10,7 +10,10 @@ package validator
  * [x] Full test coverage
  */
 
-import "github.com/tidepool-org/platform/data"
+import (
+	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/service"
+)
 
 type StandardInterfaceArray struct {
 	context   data.Context
@@ -32,14 +35,14 @@ func NewStandardInterfaceArray(context data.Context, reference interface{}, valu
 
 func (s *StandardInterfaceArray) Exists() data.InterfaceArray {
 	if s.value == nil {
-		s.context.AppendError(s.reference, ErrorValueNotExists())
+		s.context.AppendError(s.reference, service.ErrorValueNotExists())
 	}
 	return s
 }
 
 func (s *StandardInterfaceArray) NotExists() data.InterfaceArray {
 	if s.value != nil {
-		s.context.AppendError(s.reference, ErrorValueExists())
+		s.context.AppendError(s.reference, service.ErrorValueExists())
 	}
 	return s
 }
@@ -47,7 +50,7 @@ func (s *StandardInterfaceArray) NotExists() data.InterfaceArray {
 func (s *StandardInterfaceArray) Empty() data.InterfaceArray {
 	if s.value != nil {
 		if len(*s.value) != 0 {
-			s.context.AppendError(s.reference, ErrorValueNotEmpty())
+			s.context.AppendError(s.reference, service.ErrorValueNotEmpty())
 		}
 	}
 	return s
@@ -56,7 +59,7 @@ func (s *StandardInterfaceArray) Empty() data.InterfaceArray {
 func (s *StandardInterfaceArray) NotEmpty() data.InterfaceArray {
 	if s.value != nil {
 		if len(*s.value) == 0 {
-			s.context.AppendError(s.reference, ErrorValueEmpty())
+			s.context.AppendError(s.reference, service.ErrorValueEmpty())
 		}
 	}
 	return s
@@ -65,7 +68,7 @@ func (s *StandardInterfaceArray) NotEmpty() data.InterfaceArray {
 func (s *StandardInterfaceArray) LengthEqualTo(limit int) data.InterfaceArray {
 	if s.value != nil {
 		if length := len(*s.value); length != limit {
-			s.context.AppendError(s.reference, ErrorLengthNotEqualTo(length, limit))
+			s.context.AppendError(s.reference, service.ErrorLengthNotEqualTo(length, limit))
 		}
 	}
 	return s
@@ -74,7 +77,7 @@ func (s *StandardInterfaceArray) LengthEqualTo(limit int) data.InterfaceArray {
 func (s *StandardInterfaceArray) LengthNotEqualTo(limit int) data.InterfaceArray {
 	if s.value != nil {
 		if length := len(*s.value); length == limit {
-			s.context.AppendError(s.reference, ErrorLengthEqualTo(length, limit))
+			s.context.AppendError(s.reference, service.ErrorLengthEqualTo(length, limit))
 		}
 	}
 	return s
@@ -83,7 +86,7 @@ func (s *StandardInterfaceArray) LengthNotEqualTo(limit int) data.InterfaceArray
 func (s *StandardInterfaceArray) LengthLessThan(limit int) data.InterfaceArray {
 	if s.value != nil {
 		if length := len(*s.value); length >= limit {
-			s.context.AppendError(s.reference, ErrorLengthNotLessThan(length, limit))
+			s.context.AppendError(s.reference, service.ErrorLengthNotLessThan(length, limit))
 		}
 	}
 	return s
@@ -92,7 +95,7 @@ func (s *StandardInterfaceArray) LengthLessThan(limit int) data.InterfaceArray {
 func (s *StandardInterfaceArray) LengthLessThanOrEqualTo(limit int) data.InterfaceArray {
 	if s.value != nil {
 		if length := len(*s.value); length > limit {
-			s.context.AppendError(s.reference, ErrorLengthNotLessThanOrEqualTo(length, limit))
+			s.context.AppendError(s.reference, service.ErrorLengthNotLessThanOrEqualTo(length, limit))
 		}
 	}
 	return s
@@ -101,7 +104,7 @@ func (s *StandardInterfaceArray) LengthLessThanOrEqualTo(limit int) data.Interfa
 func (s *StandardInterfaceArray) LengthGreaterThan(limit int) data.InterfaceArray {
 	if s.value != nil {
 		if length := len(*s.value); length <= limit {
-			s.context.AppendError(s.reference, ErrorLengthNotGreaterThan(length, limit))
+			s.context.AppendError(s.reference, service.ErrorLengthNotGreaterThan(length, limit))
 		}
 	}
 	return s
@@ -110,7 +113,7 @@ func (s *StandardInterfaceArray) LengthGreaterThan(limit int) data.InterfaceArra
 func (s *StandardInterfaceArray) LengthGreaterThanOrEqualTo(limit int) data.InterfaceArray {
 	if s.value != nil {
 		if length := len(*s.value); length < limit {
-			s.context.AppendError(s.reference, ErrorLengthNotGreaterThanOrEqualTo(length, limit))
+			s.context.AppendError(s.reference, service.ErrorLengthNotGreaterThanOrEqualTo(length, limit))
 		}
 	}
 	return s
@@ -119,7 +122,7 @@ func (s *StandardInterfaceArray) LengthGreaterThanOrEqualTo(limit int) data.Inte
 func (s *StandardInterfaceArray) LengthInRange(lowerLimit int, upperLimit int) data.InterfaceArray {
 	if s.value != nil {
 		if length := len(*s.value); length < lowerLimit || length > upperLimit {
-			s.context.AppendError(s.reference, ErrorLengthNotInRange(length, lowerLimit, upperLimit))
+			s.context.AppendError(s.reference, service.ErrorLengthNotInRange(length, lowerLimit, upperLimit))
 		}
 	}
 	return s
