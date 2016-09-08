@@ -4,6 +4,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/ant0ine/go-json-rest/rest"
@@ -78,9 +80,20 @@ type RespondWithInternalServerFailureInput struct {
 	failure []interface{}
 }
 
+type RespondWithStatusAndErrorsInput struct {
+	statusCode int
+	errors     []*service.Error
+}
+
 type RespondWithStatusAndDataInput struct {
 	statusCode int
 	data       interface{}
+}
+
+type GetDatasetsForUserInput struct {
+	userID     string
+	filter     *store.Filter
+	pagination *store.Pagination
 }
 
 type GetDatasetsForUserOutput struct {
@@ -89,7 +102,7 @@ type GetDatasetsForUserOutput struct {
 }
 
 type TestDataStoreSession struct {
-	GetDatasetsForUserInputs  []string
+	GetDatasetsForUserInputs  []GetDatasetsForUserInput
 	GetDatasetsForUserOutputs []GetDatasetsForUserOutput
 }
 
@@ -105,8 +118,8 @@ func (t *TestDataStoreSession) SetAgent(agent store.Agent) {
 	panic("Unexpected invocation of SetAgent on TestDataStoreSession")
 }
 
-func (t *TestDataStoreSession) GetDatasetsForUser(userID string) ([]*upload.Upload, error) {
-	t.GetDatasetsForUserInputs = append(t.GetDatasetsForUserInputs, userID)
+func (t *TestDataStoreSession) GetDatasetsForUser(userID string, filter *store.Filter, pagination *store.Pagination) ([]*upload.Upload, error) {
+	t.GetDatasetsForUserInputs = append(t.GetDatasetsForUserInputs, GetDatasetsForUserInput{userID, filter, pagination})
 	output := t.GetDatasetsForUserOutputs[0]
 	t.GetDatasetsForUserOutputs = t.GetDatasetsForUserOutputs[1:]
 	return output.datasets, output.err
@@ -174,6 +187,7 @@ type TestContext struct {
 	RequestImpl                            *rest.Request
 	RespondWithErrorInputs                 []*service.Error
 	RespondWithInternalServerFailureInputs []RespondWithInternalServerFailureInput
+	RespondWithStatusAndErrorsInputs       []RespondWithStatusAndErrorsInput
 	RespondWithStatusAndDataInputs         []RespondWithStatusAndDataInput
 	MetricServicesClientImpl               *TestMetricServicesClient
 	UserServicesClientImpl                 *TestUserServicesClient
@@ -184,6 +198,9 @@ type TestContext struct {
 func NewTestContext() *TestContext {
 	return &TestContext{
 		RequestImpl: &rest.Request{
+			Request: &http.Request{
+				URL: &url.URL{},
+			},
 			PathParams: map[string]string{},
 		},
 		MetricServicesClientImpl:  &TestMetricServicesClient{},
@@ -214,7 +231,7 @@ func (t *TestContext) RespondWithInternalServerFailure(message string, failure .
 }
 
 func (t *TestContext) RespondWithStatusAndErrors(statusCode int, errors []*service.Error) {
-	panic("Unexpected invocation of RespondWithStatusAndErrors on TestContext")
+	t.RespondWithStatusAndErrorsInputs = append(t.RespondWithStatusAndErrorsInputs, RespondWithStatusAndErrorsInput{statusCode, errors})
 }
 
 func (t *TestContext) RespondWithStatusAndData(statusCode int, data interface{}) {

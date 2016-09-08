@@ -59,9 +59,19 @@ func (s *Session) SetAgent(agent store.Agent) {
 	s.agent = agent
 }
 
-func (s *Session) GetDatasetsForUser(userID string) ([]*upload.Upload, error) {
+func (s *Session) GetDatasetsForUser(userID string, filter *store.Filter, pagination *store.Pagination) ([]*upload.Upload, error) {
 	if userID == "" {
 		return nil, app.Error("mongo", "user id is missing")
+	}
+	if filter == nil {
+		filter = store.NewFilter()
+	} else if err := filter.Validate(); err != nil {
+		return nil, app.ExtError(err, "mongo", "filter is invalid")
+	}
+	if pagination == nil {
+		pagination = store.NewPagination()
+	} else if err := pagination.Validate(); err != nil {
+		return nil, app.ExtError(err, "mongo", "pagination is invalid")
 	}
 
 	if s.IsClosed() {
@@ -75,7 +85,10 @@ func (s *Session) GetDatasetsForUser(userID string) ([]*upload.Upload, error) {
 		"_userId": userID,
 		"type":    "upload",
 	}
-	err := s.C().Find(selector).All(&datasets)
+	if !filter.Deleted {
+		selector["deletedTime"] = bson.M{"$exists": false}
+	}
+	err := s.C().Find(selector).Sort("-createdTime").Skip(pagination.Page * pagination.Size).Limit(pagination.Size).All(&datasets)
 
 	loggerFields := log.Fields{"userID": userID, "datasets-count": len(datasets), "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("GetDatasetsForUser")

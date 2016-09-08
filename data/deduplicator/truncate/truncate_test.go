@@ -43,7 +43,7 @@ func (t *TestDataStoreSession) SetAgent(agent store.Agent) {
 	panic("Unexpected invocation of SetAgent on TestDataStoreSession")
 }
 
-func (t *TestDataStoreSession) GetDatasetsForUser(userID string) ([]*upload.Upload, error) {
+func (t *TestDataStoreSession) GetDatasetsForUser(userID string, filter *store.Filter, pagination *store.Pagination) ([]*upload.Upload, error) {
 	panic("Unexpected invocation of GetDatasetsForUser on TestDataStoreSession")
 }
 

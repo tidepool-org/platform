@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/base/upload"
 	"github.com/tidepool-org/platform/dataservices/service/api/v1"
 	"github.com/tidepool-org/platform/service"
@@ -20,6 +21,8 @@ var _ = Describe("UsersDatasetsGet", func() {
 		var targetUserID string
 		var uploads []*upload.Upload
 		var context *TestContext
+		var filter *store.Filter
+		var pagination *store.Pagination
 
 		BeforeEach(func() {
 			authenticatedUserID = app.NewID()
@@ -33,10 +36,13 @@ var _ = Describe("UsersDatasetsGet", func() {
 			context.DataStoreSessionImpl.GetDatasetsForUserOutputs = []GetDatasetsForUserOutput{{uploads, nil}}
 			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{false}
 			context.AuthenticationDetailsImpl.UserIDOutputs = []string{authenticatedUserID}
+			filter = store.NewFilter()
+			pagination = store.NewPagination()
 		})
 
 		It("succeeds if authenticated as user, not server", func() {
 			v1.UsersDatasetsGet(context)
+			Expect(context.DataStoreSessionImpl.GetDatasetsForUserInputs).To(Equal([]GetDatasetsForUserInput{{targetUserID, filter, pagination}}))
 			Expect(context.RespondWithStatusAndDataInputs).To(Equal([]RespondWithStatusAndDataInput{{http.StatusOK, uploads}}))
 			Expect(context.ValidateTest()).To(BeTrue())
 		})
@@ -46,6 +52,45 @@ var _ = Describe("UsersDatasetsGet", func() {
 			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{true}
 			context.AuthenticationDetailsImpl.UserIDOutputs = []string{}
 			v1.UsersDatasetsGet(context)
+			Expect(context.DataStoreSessionImpl.GetDatasetsForUserInputs).To(Equal([]GetDatasetsForUserInput{{targetUserID, filter, pagination}}))
+			Expect(context.RespondWithStatusAndDataInputs).To(Equal([]RespondWithStatusAndDataInput{{http.StatusOK, uploads}}))
+			Expect(context.ValidateTest()).To(BeTrue())
+		})
+
+		It("succeeds if deleted query parameter specified", func() {
+			filter.Deleted = true
+			context.RequestImpl.Request.URL.RawQuery = "deleted=true"
+			v1.UsersDatasetsGet(context)
+			Expect(context.DataStoreSessionImpl.GetDatasetsForUserInputs).To(Equal([]GetDatasetsForUserInput{{targetUserID, filter, pagination}}))
+			Expect(context.RespondWithStatusAndDataInputs).To(Equal([]RespondWithStatusAndDataInput{{http.StatusOK, uploads}}))
+			Expect(context.ValidateTest()).To(BeTrue())
+		})
+
+		It("succeeds if page query parameter specified", func() {
+			pagination.Page = 1
+			context.RequestImpl.Request.URL.RawQuery = "page=1"
+			v1.UsersDatasetsGet(context)
+			Expect(context.DataStoreSessionImpl.GetDatasetsForUserInputs).To(Equal([]GetDatasetsForUserInput{{targetUserID, filter, pagination}}))
+			Expect(context.RespondWithStatusAndDataInputs).To(Equal([]RespondWithStatusAndDataInput{{http.StatusOK, uploads}}))
+			Expect(context.ValidateTest()).To(BeTrue())
+		})
+
+		It("succeeds if size query parameter specified", func() {
+			pagination.Size = 10
+			context.RequestImpl.Request.URL.RawQuery = "size=10"
+			v1.UsersDatasetsGet(context)
+			Expect(context.DataStoreSessionImpl.GetDatasetsForUserInputs).To(Equal([]GetDatasetsForUserInput{{targetUserID, filter, pagination}}))
+			Expect(context.RespondWithStatusAndDataInputs).To(Equal([]RespondWithStatusAndDataInput{{http.StatusOK, uploads}}))
+			Expect(context.ValidateTest()).To(BeTrue())
+		})
+
+		It("succeeds if all query parameters specified", func() {
+			filter.Deleted = true
+			pagination.Page = 3
+			pagination.Size = 20
+			context.RequestImpl.Request.URL.RawQuery = "size=20&deleted=true&page=3"
+			v1.UsersDatasetsGet(context)
+			Expect(context.DataStoreSessionImpl.GetDatasetsForUserInputs).To(Equal([]GetDatasetsForUserInput{{targetUserID, filter, pagination}}))
 			Expect(context.RespondWithStatusAndDataInputs).To(Equal([]RespondWithStatusAndDataInput{{http.StatusOK, uploads}}))
 			Expect(context.ValidateTest()).To(BeTrue())
 		})
@@ -69,7 +114,7 @@ var _ = Describe("UsersDatasetsGet", func() {
 			Expect(context.ValidateTest()).To(BeTrue())
 		})
 
-		It("responds with error if not provided as a parameter", func() {
+		It("responds with error if user id not provided as a parameter", func() {
 			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
 			context.DataStoreSessionImpl.GetDatasetsForUserOutputs = []GetDatasetsForUserOutput{}
 			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{}
@@ -125,6 +170,54 @@ var _ = Describe("UsersDatasetsGet", func() {
 			Expect(context.ValidateTest()).To(BeTrue())
 		})
 
+		It("responds with error if deleted query parameter not a boolean", func() {
+			context.DataStoreSessionImpl.GetDatasetsForUserOutputs = []GetDatasetsForUserOutput{}
+			context.RequestImpl.Request.URL.RawQuery = "deleted=abc"
+			v1.UsersDatasetsGet(context)
+			Expect(context.RespondWithStatusAndErrorsInputs).To(Equal([]RespondWithStatusAndErrorsInput{{http.StatusBadRequest, []*service.Error{service.ErrorTypeNotBoolean("").WithSourceParameter("deleted")}}}))
+			Expect(context.ValidateTest()).To(BeTrue())
+		})
+
+		It("responds with error if page query parameter not an integer", func() {
+			context.DataStoreSessionImpl.GetDatasetsForUserOutputs = []GetDatasetsForUserOutput{}
+			context.RequestImpl.Request.URL.RawQuery = "page=abc"
+			v1.UsersDatasetsGet(context)
+			Expect(context.RespondWithStatusAndErrorsInputs).To(Equal([]RespondWithStatusAndErrorsInput{{http.StatusBadRequest, []*service.Error{service.ErrorTypeNotInteger("").WithSourceParameter("page")}}}))
+			Expect(context.ValidateTest()).To(BeTrue())
+		})
+
+		It("responds with error if page query parameter is less than minimum", func() {
+			context.DataStoreSessionImpl.GetDatasetsForUserOutputs = []GetDatasetsForUserOutput{}
+			context.RequestImpl.Request.URL.RawQuery = "page=-1"
+			v1.UsersDatasetsGet(context)
+			Expect(context.RespondWithStatusAndErrorsInputs).To(Equal([]RespondWithStatusAndErrorsInput{{http.StatusBadRequest, []*service.Error{service.ErrorValueNotGreaterThanOrEqualTo(-1, 0).WithSourceParameter("page")}}}))
+			Expect(context.ValidateTest()).To(BeTrue())
+		})
+
+		It("responds with error if size query parameter not an integer", func() {
+			context.DataStoreSessionImpl.GetDatasetsForUserOutputs = []GetDatasetsForUserOutput{}
+			context.RequestImpl.Request.URL.RawQuery = "size=abc"
+			v1.UsersDatasetsGet(context)
+			Expect(context.RespondWithStatusAndErrorsInputs).To(Equal([]RespondWithStatusAndErrorsInput{{http.StatusBadRequest, []*service.Error{service.ErrorTypeNotInteger("").WithSourceParameter("size")}}}))
+			Expect(context.ValidateTest()).To(BeTrue())
+		})
+
+		It("responds with error if size query parameter is less than minimum", func() {
+			context.DataStoreSessionImpl.GetDatasetsForUserOutputs = []GetDatasetsForUserOutput{}
+			context.RequestImpl.Request.URL.RawQuery = "size=0"
+			v1.UsersDatasetsGet(context)
+			Expect(context.RespondWithStatusAndErrorsInputs).To(Equal([]RespondWithStatusAndErrorsInput{{http.StatusBadRequest, []*service.Error{service.ErrorValueNotInRange(0, 1, 100).WithSourceParameter("size")}}}))
+			Expect(context.ValidateTest()).To(BeTrue())
+		})
+
+		It("responds with error if size query parameter is greater than maximum", func() {
+			context.DataStoreSessionImpl.GetDatasetsForUserOutputs = []GetDatasetsForUserOutput{}
+			context.RequestImpl.Request.URL.RawQuery = "size=101"
+			v1.UsersDatasetsGet(context)
+			Expect(context.RespondWithStatusAndErrorsInputs).To(Equal([]RespondWithStatusAndErrorsInput{{http.StatusBadRequest, []*service.Error{service.ErrorValueNotInRange(101, 1, 100).WithSourceParameter("size")}}}))
+			Expect(context.ValidateTest()).To(BeTrue())
+		})
+
 		It("panics if data store session is missing", func() {
 			context.DataStoreSessionImpl = nil
 			Expect(func() { v1.UsersDatasetsGet(context) }).To(Panic())
@@ -137,7 +230,7 @@ var _ = Describe("UsersDatasetsGet", func() {
 			context.DataStoreSessionImpl.GetDatasetsForUserOutputs = []GetDatasetsForUserOutput{{nil, err}}
 			v1.UsersDatasetsGet(context)
 			Expect(context.UserServicesClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authenticatedUserID, targetUserID}}))
-			Expect(context.DataStoreSessionImpl.GetDatasetsForUserInputs).To(Equal([]string{targetUserID}))
+			Expect(context.DataStoreSessionImpl.GetDatasetsForUserInputs).To(Equal([]GetDatasetsForUserInput{{targetUserID, filter, pagination}}))
 			Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to get datasets for user", []interface{}{err}}}))
 			Expect(context.ValidateTest()).To(BeTrue())
 		})
