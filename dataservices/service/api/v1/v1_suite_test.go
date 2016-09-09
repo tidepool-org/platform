@@ -25,11 +25,26 @@ func TestSuite(t *testing.T) {
 	RunSpecs(t, "dataservices/service/api/v1")
 }
 
+type RecordMetricInput struct {
+	context metricservicesClient.Context
+	metric  string
+	data    []map[string]string
+}
+
 type TestMetricServicesClient struct {
+	RecordMetricInputs  []RecordMetricInput
+	RecordMetricOutputs []error
 }
 
 func (t *TestMetricServicesClient) RecordMetric(context metricservicesClient.Context, metric string, data ...map[string]string) error {
-	panic("Unexpected invocation of RecordMetric on TestMetricServicesClient")
+	t.RecordMetricInputs = append(t.RecordMetricInputs, RecordMetricInput{context, metric, data})
+	output := t.RecordMetricOutputs[0]
+	t.RecordMetricOutputs = t.RecordMetricOutputs[1:]
+	return output
+}
+
+func (t *TestMetricServicesClient) ValidateTest() bool {
+	return len(t.RecordMetricOutputs) == 0
 }
 
 type GetUserPermissionsInput struct {
@@ -101,9 +116,18 @@ type GetDatasetsForUserOutput struct {
 	err      error
 }
 
+type GetDatasetOutput struct {
+	dataset *upload.Upload
+	err     error
+}
+
 type TestDataStoreSession struct {
 	GetDatasetsForUserInputs  []GetDatasetsForUserInput
 	GetDatasetsForUserOutputs []GetDatasetsForUserOutput
+	GetDatasetInputs          []string
+	GetDatasetOutputs         []GetDatasetOutput
+	DeleteDatasetInputs       []*upload.Upload
+	DeleteDatasetOutputs      []error
 }
 
 func (t *TestDataStoreSession) IsClosed() bool {
@@ -126,7 +150,10 @@ func (t *TestDataStoreSession) GetDatasetsForUser(userID string, filter *store.F
 }
 
 func (t *TestDataStoreSession) GetDataset(datasetID string) (*upload.Upload, error) {
-	panic("Unexpected invocation of GetDataset on TestDataStoreSession")
+	t.GetDatasetInputs = append(t.GetDatasetInputs, datasetID)
+	output := t.GetDatasetOutputs[0]
+	t.GetDatasetOutputs = t.GetDatasetOutputs[1:]
+	return output.dataset, output.err
 }
 
 func (t *TestDataStoreSession) CreateDataset(dataset *upload.Upload) error {
@@ -138,7 +165,10 @@ func (t *TestDataStoreSession) UpdateDataset(dataset *upload.Upload) error {
 }
 
 func (t *TestDataStoreSession) DeleteDataset(dataset *upload.Upload) error {
-	panic("Unexpected invocation of DeleteDataset on TestDataStoreSession")
+	t.DeleteDatasetInputs = append(t.DeleteDatasetInputs, dataset)
+	output := t.DeleteDatasetOutputs[0]
+	t.DeleteDatasetOutputs = t.DeleteDatasetOutputs[1:]
+	return output
 }
 
 func (t *TestDataStoreSession) CreateDatasetData(dataset *upload.Upload, datasetData []data.Datum) error {
@@ -154,7 +184,9 @@ func (t *TestDataStoreSession) DeleteOtherDatasetData(dataset *upload.Upload) er
 }
 
 func (t *TestDataStoreSession) ValidateTest() bool {
-	return len(t.GetDatasetsForUserOutputs) == 0
+	return len(t.GetDatasetsForUserOutputs) == 0 &&
+		len(t.GetDatasetOutputs) == 0 &&
+		len(t.DeleteDatasetOutputs) == 0
 }
 
 type TestAuthenticationDetails struct {
@@ -184,6 +216,7 @@ func (t *TestAuthenticationDetails) ValidateTest() bool {
 }
 
 type TestContext struct {
+	LoggerImpl                             log.Logger
 	RequestImpl                            *rest.Request
 	RespondWithErrorInputs                 []*service.Error
 	RespondWithInternalServerFailureInputs []RespondWithInternalServerFailureInput
@@ -197,6 +230,7 @@ type TestContext struct {
 
 func NewTestContext() *TestContext {
 	return &TestContext{
+		LoggerImpl: log.NewNull(),
 		RequestImpl: &rest.Request{
 			Request: &http.Request{
 				URL: &url.URL{},
@@ -211,7 +245,7 @@ func NewTestContext() *TestContext {
 }
 
 func (t *TestContext) Logger() log.Logger {
-	panic("Unexpected invocation of Logger on TestContext")
+	return t.LoggerImpl
 }
 
 func (t *TestContext) Request() *rest.Request {
@@ -267,7 +301,8 @@ func (t *TestContext) SetAuthenticationDetails(authenticationDetails userservice
 }
 
 func (t *TestContext) ValidateTest() bool {
-	return (t.UserServicesClientImpl == nil || t.UserServicesClientImpl.ValidateTest()) &&
+	return (t.MetricServicesClientImpl == nil || t.MetricServicesClientImpl.ValidateTest()) &&
+		(t.UserServicesClientImpl == nil || t.UserServicesClientImpl.ValidateTest()) &&
 		(t.DataStoreSessionImpl == nil || t.DataStoreSessionImpl.ValidateTest()) &&
 		(t.AuthenticationDetailsImpl == nil || t.AuthenticationDetailsImpl.ValidateTest())
 }

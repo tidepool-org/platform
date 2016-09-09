@@ -28,7 +28,7 @@ var _ = Describe("UsersDatasetsGet", func() {
 			authenticatedUserID = app.NewID()
 			targetUserID = app.NewID()
 			for i := 0; i < 3; i++ {
-				uploads = append(uploads, upload.New())
+				uploads = append(uploads, upload.Init())
 			}
 			context = NewTestContext()
 			context.RequestImpl.PathParams["userid"] = targetUserID
