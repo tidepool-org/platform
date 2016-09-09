@@ -128,6 +128,8 @@ type TestDataStoreSession struct {
 	GetDatasetOutputs         []GetDatasetOutput
 	DeleteDatasetInputs       []*upload.Upload
 	DeleteDatasetOutputs      []error
+	DeleteDataForUserInputs   []string
+	DeleteDataForUserOutputs  []error
 }
 
 func (t *TestDataStoreSession) IsClosed() bool {
@@ -181,6 +183,13 @@ func (t *TestDataStoreSession) ActivateDatasetData(dataset *upload.Upload) error
 
 func (t *TestDataStoreSession) DeleteOtherDatasetData(dataset *upload.Upload) error {
 	panic("Unexpected invocation of DeleteOtherDatasetData on TestDataStoreSession")
+}
+
+func (t *TestDataStoreSession) DeleteDataForUser(userID string) error {
+	t.DeleteDataForUserInputs = append(t.DeleteDataForUserInputs, userID)
+	output := t.DeleteDataForUserOutputs[0]
+	t.DeleteDataForUserOutputs = t.DeleteDataForUserOutputs[1:]
+	return output
 }
 
 func (t *TestDataStoreSession) ValidateTest() bool {

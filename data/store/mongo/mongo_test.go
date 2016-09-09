@@ -395,7 +395,8 @@ var _ = Describe("Mongo", func() {
 
 				Context("UpdateDataset", func() {
 					BeforeEach(func() {
-						Expect(mongoSession.CreateDataset(dataset)).To(Succeed())
+						dataset.CreatedTime = "2016-09-01T11:00:00Z"
+						Expect(mongoTestCollection.Insert(dataset)).To(Succeed())
 					})
 
 					Context("with data state closed", func() {
@@ -485,7 +486,8 @@ var _ = Describe("Mongo", func() {
 					var datasetData []data.Datum
 
 					BeforeEach(func() {
-						Expect(mongoSession.CreateDataset(dataset)).To(Succeed())
+						dataset.CreatedTime = "2016-09-01T11:00:00Z"
+						Expect(mongoTestCollection.Insert(dataset)).To(Succeed())
 						datasetExistingOneData = NewDatasetData()
 						Expect(mongoSession.CreateDatasetData(datasetExistingOne, datasetExistingOneData)).To(Succeed())
 						datasetExistingTwoData = NewDatasetData()
@@ -840,6 +842,51 @@ var _ = Describe("Mongo", func() {
 								Expect(mongoSession.DeleteOtherDatasetData(dataset)).To(Succeed())
 								ValidateDatasetData(mongoTestCollection, bson.M{}, datasetAfterRemoveData)
 							})
+						})
+					})
+
+					Context("DeleteDataForUser", func() {
+						var deleteUserID string
+						var deleteGroupID string
+						var deleteDataset *upload.Upload
+						var deleteDatasetData []data.Datum
+
+						BeforeEach(func() {
+							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
+							deleteUserID = app.NewID()
+							deleteGroupID = app.NewID()
+							deleteDataset = NewDataset(deleteUserID, deleteGroupID)
+							deleteDataset.CreatedTime = "2016-09-01T11:00:00Z"
+							Expect(mongoTestCollection.Insert(deleteDataset)).To(Succeed())
+							deleteDatasetData = NewDatasetData()
+							Expect(mongoSession.CreateDatasetData(deleteDataset, deleteDatasetData)).To(Succeed())
+						})
+
+						It("succeeds if it successfully removes all other dataset data", func() {
+							Expect(mongoSession.DeleteDataForUser(deleteUserID)).To(Succeed())
+						})
+
+						It("returns an error if the user id is missing", func() {
+							Expect(mongoSession.DeleteDataForUser("")).To(MatchError("mongo: user id is missing"))
+						})
+
+						It("returns an error if the session is closed", func() {
+							mongoSession.Close()
+							Expect(mongoSession.DeleteDataForUser(deleteUserID)).To(MatchError("mongo: session closed"))
+						})
+
+						It("has the correct stored dataset", func() {
+							ValidateDataset(mongoTestCollection, bson.M{}, dataset, datasetExistingOne, datasetExistingTwo, deleteDataset)
+							Expect(mongoSession.DeleteDataForUser(deleteUserID)).To(Succeed())
+							ValidateDataset(mongoTestCollection, bson.M{}, dataset, datasetExistingOne, datasetExistingTwo)
+						})
+
+						It("has the correct stored dataset data", func() {
+							datasetAfterRemoveData := append(append(append(datasetData, dataset, datasetExistingOne, datasetExistingTwo), datasetExistingOneData...), datasetExistingTwoData...)
+							datasetBeforeRemoveData := append(append(datasetAfterRemoveData, deleteDataset), deleteDatasetData...)
+							ValidateDatasetData(mongoTestCollection, bson.M{}, datasetBeforeRemoveData)
+							Expect(mongoSession.DeleteDataForUser(deleteUserID)).To(Succeed())
+							ValidateDatasetData(mongoTestCollection, bson.M{}, datasetAfterRemoveData)
 						})
 					})
 				})

@@ -37,6 +37,7 @@ type Session interface {
 	CreateDatasetData(dataset *upload.Upload, datasetData []data.Datum) error
 	ActivateDatasetData(dataset *upload.Upload) error
 	DeleteOtherDatasetData(dataset *upload.Upload) error
+	DeleteDataForUser(userID string) error
 }
 
 type Agent interface {

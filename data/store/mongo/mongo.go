@@ -461,6 +461,32 @@ func (s *Session) DeleteOtherDatasetData(dataset *upload.Upload) error {
 	return nil
 }
 
+func (s *Session) DeleteDataForUser(userID string) error {
+	if userID == "" {
+		return app.Error("mongo", "user id is missing")
+	}
+
+	if s.IsClosed() {
+		return app.Error("mongo", "session closed")
+	}
+
+	startTime := time.Now()
+
+	selector := bson.M{
+		"_userId": userID,
+	}
+	removeInfo, err := s.C().RemoveAll(selector)
+
+	loggerFields := log.Fields{"userID": userID, "remove-info": removeInfo, "duration": time.Since(startTime) / time.Microsecond}
+	s.Logger().WithFields(loggerFields).WithError(err).Debug("DeleteDataForUser")
+
+	if err != nil {
+		return app.ExtError(err, "mongo", "unable to delete data for user")
+	}
+
+	return nil
+}
+
 func (s *Session) agentUserID() string {
 	if s.agent == nil {
 		return ""
