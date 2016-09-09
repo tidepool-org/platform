@@ -87,6 +87,10 @@ func (t *TestDataStoreSession) DeleteOtherDatasetData(dataset *upload.Upload) er
 	return output
 }
 
+func (t *TestDataStoreSession) DeleteDataForUser(userID string) error {
+	panic("Unexpected invocation of DeleteDataForUser on TestDataStoreSession")
+}
+
 var _ = Describe("Truncate", func() {
 	Context("NewFactory", func() {
 		It("returns a new factory", func() {
