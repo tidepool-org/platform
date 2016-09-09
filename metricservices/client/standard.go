@@ -25,7 +25,6 @@ import (
 
 type Standard struct {
 	versionReporter version.Reporter
-	logger          log.Logger
 	name            string
 	config          *Config
 	httpClient      *http.Client
@@ -33,12 +32,9 @@ type Standard struct {
 
 const TidepoolAuthenticationTokenHeaderName = "X-Tidepool-Session-Token"
 
-func NewStandard(versionReporter version.Reporter, logger log.Logger, name string, config *Config) (*Standard, error) {
+func NewStandard(versionReporter version.Reporter, name string, config *Config) (*Standard, error) {
 	if versionReporter == nil {
 		return nil, app.Error("client", "version reporter is missing")
-	}
-	if logger == nil {
-		return nil, app.Error("client", "logger is missing")
 	}
 	if name == "" {
 		return nil, app.Error("client", "name is missing")
@@ -58,7 +54,6 @@ func NewStandard(versionReporter version.Reporter, logger log.Logger, name strin
 
 	return &Standard{
 		versionReporter: versionReporter,
-		logger:          logger,
 		name:            name,
 		config:          config,
 		httpClient:      httpClient,

@@ -64,7 +64,6 @@ func (t *TestContext) ValidateTest() bool {
 
 var _ = Describe("Standard", func() {
 	var versionReporter version.Reporter
-	var logger log.Logger
 	var context *TestContext
 
 	BeforeEach(func() {
@@ -72,9 +71,8 @@ var _ = Describe("Standard", func() {
 		versionReporter, err = version.NewReporter("1.2.3", "4567890", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmn")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(versionReporter).ToNot(BeNil())
-		logger = log.NewNull()
 		context = &TestContext{
-			TestLogger:                logger,
+			TestLogger:                log.NewNull(),
 			TestRequest:               &rest.Request{},
 			TestAuthenticationDetails: &TestAuthenticationDetails{},
 		}
@@ -91,45 +89,39 @@ var _ = Describe("Standard", func() {
 		})
 
 		It("returns an error if version reporter is missing", func() {
-			standard, err := client.NewStandard(nil, logger, "testservices", config)
+			standard, err := client.NewStandard(nil, "testservices", config)
 			Expect(err).To(MatchError("client: version reporter is missing"))
 			Expect(standard).To(BeNil())
 		})
 
-		It("returns an error if logger is missing", func() {
-			standard, err := client.NewStandard(versionReporter, nil, "testservices", config)
-			Expect(err).To(MatchError("client: logger is missing"))
-			Expect(standard).To(BeNil())
-		})
-
 		It("returns an error if name is missing", func() {
-			standard, err := client.NewStandard(versionReporter, logger, "", config)
+			standard, err := client.NewStandard(versionReporter, "", config)
 			Expect(err).To(MatchError("client: name is missing"))
 			Expect(standard).To(BeNil())
 		})
 
 		It("returns an error if config is missing", func() {
-			standard, err := client.NewStandard(versionReporter, logger, "testservices", nil)
+			standard, err := client.NewStandard(versionReporter, "testservices", nil)
 			Expect(err).To(MatchError("client: config is missing"))
 			Expect(standard).To(BeNil())
 		})
 
 		It("returns an error if config address is invalid", func() {
 			config.Address = ""
-			standard, err := client.NewStandard(versionReporter, logger, "testservices", config)
+			standard, err := client.NewStandard(versionReporter, "testservices", config)
 			Expect(err).To(MatchError("client: config is invalid; client: address is missing"))
 			Expect(standard).To(BeNil())
 		})
 
 		It("returns an error if config request timeout is invalid", func() {
 			config.RequestTimeout = -1
-			standard, err := client.NewStandard(versionReporter, logger, "testservices", config)
+			standard, err := client.NewStandard(versionReporter, "testservices", config)
 			Expect(err).To(MatchError("client: config is invalid; client: request timeout is invalid"))
 			Expect(standard).To(BeNil())
 		})
 
 		It("returns success", func() {
-			standard, err := client.NewStandard(versionReporter, logger, "testservices", config)
+			standard, err := client.NewStandard(versionReporter, "testservices", config)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(standard).ToNot(BeNil())
 		})
@@ -155,7 +147,7 @@ var _ = Describe("Standard", func() {
 
 		JustBeforeEach(func() {
 			var err error
-			standard, err = client.NewStandard(versionReporter, logger, "testservices", config)
+			standard, err = client.NewStandard(versionReporter, "testservices", config)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(standard).ToNot(BeNil())
 		})

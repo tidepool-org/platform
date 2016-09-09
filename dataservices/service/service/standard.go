@@ -114,7 +114,7 @@ func (s *Standard) initializeMetricServicesClient() error {
 
 	s.Logger().Debug("Creating metric services client")
 
-	metricServicesClient, err := metricservicesClient.NewStandard(s.VersionReporter(), s.Logger(), s.Name(), metricServicesClientConfig)
+	metricServicesClient, err := metricservicesClient.NewStandard(s.VersionReporter(), s.Name(), metricServicesClientConfig)
 	if err != nil {
 		return app.ExtError(err, "service", "unable to create metric services client")
 	}
