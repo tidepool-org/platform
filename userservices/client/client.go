@@ -25,12 +25,11 @@ type AuthenticationDetails interface {
 }
 
 type Client interface {
-	Start() error
-	Close()
-
 	ValidateAuthenticationToken(context service.Context, authenticationToken string) (AuthenticationDetails, error)
 	GetUserPermissions(context service.Context, requestUserID string, targetUserID string) (Permissions, error)
 	GetUserGroupID(context service.Context, userID string) (string, error)
+
+	ServerToken() (string, error)
 }
 
 type Permission map[string]interface{}

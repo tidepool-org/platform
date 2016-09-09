@@ -86,6 +86,10 @@ func (t *TestUserServicesClient) GetUserGroupID(context service.Context, userID 
 	panic("Unexpected invocation of GetUserGroupID on TestUserServicesClient")
 }
 
+func (t *TestUserServicesClient) ServerToken() (string, error) {
+	panic("Unexpected invocation of ServerToken on TestUserServicesClient")
+}
+
 func (t *TestUserServicesClient) ValidateTest() bool {
 	return len(t.GetUserPermissionsOutputs) == 0
 }

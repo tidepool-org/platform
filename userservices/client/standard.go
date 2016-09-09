@@ -214,6 +214,19 @@ func (s *Standard) GetUserGroupID(context service.Context, userID string) (strin
 	return groupID, nil
 }
 
+func (s *Standard) ServerToken() (string, error) {
+	if s.closingChannel == nil {
+		return "", app.Error("client", "client is closed")
+	}
+
+	serverToken := s.serverToken()
+	if serverToken == "" {
+		return "", app.Error("client", "unable to obtain server token")
+	}
+
+	return serverToken, nil
+}
+
 // TODO: Current user related APIs return http.StatusUnauthorized for BOTH bad server token
 // AND bad session token. Since a bad server token is unlikely (though possible) we MUST assume
 // that it means bad session token.
