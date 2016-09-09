@@ -125,7 +125,7 @@ var _ = Describe("DatasetsDelete", func() {
 			context.AuthenticationDetailsImpl.UserIDOutputs = []string{}
 			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
 			context.MetricServicesClientImpl.RecordMetricOutputs = []error{}
-			Expect(func() { v1.DatasetsDelete(nil) }).To(Panic())
+			Expect(func() { v1.DatasetsDelete(context) }).To(Panic())
 			Expect(context.ValidateTest()).To(BeTrue())
 		})
 
@@ -231,7 +231,7 @@ var _ = Describe("DatasetsDelete", func() {
 			Expect(context.ValidateTest()).To(BeTrue())
 		})
 
-		It("panics if user services client is missing", func() {
+		It("panics if metric services client is missing", func() {
 			context.MetricServicesClientImpl = nil
 			Expect(func() { v1.DatasetsDelete(context) }).To(Panic())
 			Expect(context.DataStoreSessionImpl.GetDatasetInputs).To(Equal([]string{targetUpload.UploadID}))
