@@ -813,6 +813,21 @@ var _ = Describe("Standard", func() {
 					})
 				})
 			})
+
+			Context("ServerToken", func() {
+				It("returns a server token", func() {
+					serverToken, err := standard.ServerToken()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(serverToken).ToNot(BeEmpty())
+				})
+
+				It("returns error if client is closed", func() {
+					standard.Close()
+					serverToken, err := standard.ServerToken()
+					Expect(err).To(MatchError("client: client is closed"))
+					Expect(serverToken).To(BeEmpty())
+				})
+			})
 		})
 
 		Context("with client started and did NOT obtain a server token", func() {
@@ -858,6 +873,14 @@ var _ = Describe("Standard", func() {
 					Expect(groupID).To(Equal(""))
 					Expect(err.Error()).To(HavePrefix("client: unable to obtain server token for GET "))
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("ServerToken", func() {
+				It("returns an error", func() {
+					serverToken, err := standard.ServerToken()
+					Expect(err).To(MatchError("client: unable to obtain server token"))
+					Expect(serverToken).To(BeEmpty())
 				})
 			})
 		})
