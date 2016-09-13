@@ -14,10 +14,10 @@ import "github.com/tidepool-org/platform/dataservices/service"
 
 func Routes() []service.Route {
 	return []service.Route{
-		service.MakeRoute("GET", "/api/v1/users/:userid/datasets", Authenticate(UsersDatasetsGet)),
-		service.MakeRoute("POST", "/api/v1/users/:userid/datasets", Authenticate(UsersDatasetsCreate)),
-		service.MakeRoute("PUT", "/api/v1/datasets/:datasetid", Authenticate(DatasetsUpdate)),
-		service.MakeRoute("DELETE", "/api/v1/datasets/:datasetid", Authenticate(DatasetsDelete)),
-		service.MakeRoute("POST", "/api/v1/datasets/:datasetid/data", Authenticate(DatasetsDataCreate)),
+		service.MakeRoute("POST", "/v1/datasets/:datasetid/data", Authenticate(DatasetsDataCreate)),
+		service.MakeRoute("DELETE", "/v1/datasets/:datasetid", Authenticate(DatasetsDelete)),
+		service.MakeRoute("PUT", "/v1/datasets/:datasetid", Authenticate(DatasetsUpdate)),
+		service.MakeRoute("POST", "/v1/users/:userid/datasets", Authenticate(UsersDatasetsCreate)),
+		service.MakeRoute("GET", "/v1/users/:userid/datasets", Authenticate(UsersDatasetsGet)),
 	}
 }
