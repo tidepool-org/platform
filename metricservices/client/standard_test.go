@@ -247,7 +247,7 @@ var _ = Describe("Standard", func() {
 						)
 					})
 
-					It("returns the user id", func() {
+					It("returns success", func() {
 						err := standard.RecordMetric(context, "test-metric", data)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(server.ReceivedRequests()).To(HaveLen(1))
@@ -266,7 +266,7 @@ var _ = Describe("Standard", func() {
 						)
 					})
 
-					It("returns the user id", func() {
+					It("returns success", func() {
 						err := standard.RecordMetric(context, "test-metric")
 						Expect(err).ToNot(HaveOccurred())
 						Expect(server.ReceivedRequests()).To(HaveLen(1))
@@ -331,7 +331,7 @@ var _ = Describe("Standard", func() {
 						)
 					})
 
-					It("returns the user id", func() {
+					It("returns success", func() {
 						err := standard.RecordMetric(context, "test-metric", data)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(server.ReceivedRequests()).To(HaveLen(1))
@@ -350,7 +350,7 @@ var _ = Describe("Standard", func() {
 						)
 					})
 
-					It("returns the user id", func() {
+					It("returns success", func() {
 						err := standard.RecordMetric(context, "test-metric")
 						Expect(err).ToNot(HaveOccurred())
 						Expect(server.ReceivedRequests()).To(HaveLen(1))
