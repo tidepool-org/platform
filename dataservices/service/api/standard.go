@@ -16,13 +16,14 @@ import (
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
-	"github.com/tidepool-org/platform/data/store"
+	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/dataservices/service"
 	"github.com/tidepool-org/platform/dataservices/service/context"
 	"github.com/tidepool-org/platform/environment"
 	"github.com/tidepool-org/platform/log"
 	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
 	"github.com/tidepool-org/platform/service/api"
+	taskStore "github.com/tidepool-org/platform/task/store"
 	userservicesClient "github.com/tidepool-org/platform/userservices/client"
 	"github.com/tidepool-org/platform/version"
 )
@@ -32,11 +33,15 @@ type Standard struct {
 	metricServicesClient    metricservicesClient.Client
 	userServicesClient      userservicesClient.Client
 	dataFactory             data.Factory
-	dataStore               store.Store
 	dataDeduplicatorFactory deduplicator.Factory
+	dataStore               dataStore.Store
+	taskStore               taskStore.Store
 }
 
-func NewStandard(versionReporter version.Reporter, environmentReporter environment.Reporter, logger log.Logger, metricServicesClient metricservicesClient.Client, userServicesClient userservicesClient.Client, dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory) (*Standard, error) {
+func NewStandard(versionReporter version.Reporter, environmentReporter environment.Reporter, logger log.Logger,
+	metricServicesClient metricservicesClient.Client, userServicesClient userservicesClient.Client,
+	dataFactory data.Factory, dataDeduplicatorFactory deduplicator.Factory,
+	dataStore dataStore.Store, taskStore taskStore.Store) (*Standard, error) {
 	if versionReporter == nil {
 		return nil, app.Error("api", "version reporter is missing")
 	}
@@ -55,11 +60,14 @@ func NewStandard(versionReporter version.Reporter, environmentReporter environme
 	if dataFactory == nil {
 		return nil, app.Error("api", "data factory is missing")
 	}
+	if dataDeduplicatorFactory == nil {
+		return nil, app.Error("api", "data deduplicator factory is missing")
+	}
 	if dataStore == nil {
 		return nil, app.Error("api", "data store is missing")
 	}
-	if dataDeduplicatorFactory == nil {
-		return nil, app.Error("api", "data deduplicator factory is missing")
+	if taskStore == nil {
+		return nil, app.Error("api", "task store is missing")
 	}
 
 	standard, err := api.NewStandard(versionReporter, environmentReporter, logger)
@@ -72,8 +80,9 @@ func NewStandard(versionReporter version.Reporter, environmentReporter environme
 		metricServicesClient:    metricServicesClient,
 		userServicesClient:      userServicesClient,
 		dataFactory:             dataFactory,
-		dataStore:               dataStore,
 		dataDeduplicatorFactory: dataDeduplicatorFactory,
+		dataStore:               dataStore,
+		taskStore:               taskStore,
 	}, nil
 }
 
@@ -105,5 +114,7 @@ func (s *Standard) InitializeRouter(routes []service.Route) error {
 }
 
 func (s *Standard) withContext(handler service.HandlerFunc) rest.HandlerFunc {
-	return context.WithContext(s.metricServicesClient, s.userServicesClient, s.dataFactory, s.dataStore, s.dataDeduplicatorFactory, handler)
+	return context.WithContext(s.metricServicesClient, s.userServicesClient,
+		s.dataFactory, s.dataDeduplicatorFactory,
+		s.dataStore, s.taskStore, handler)
 }

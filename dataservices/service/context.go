@@ -13,9 +13,10 @@ package service
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
-	"github.com/tidepool-org/platform/data/store"
+	dataStore "github.com/tidepool-org/platform/data/store"
 	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
 	"github.com/tidepool-org/platform/service"
+	taskStore "github.com/tidepool-org/platform/task/store"
 	userservicesClient "github.com/tidepool-org/platform/userservices/client"
 )
 
@@ -26,8 +27,10 @@ type Context interface {
 	UserServicesClient() userservicesClient.Client
 
 	DataFactory() data.Factory
-	DataStoreSession() store.Session
 	DataDeduplicatorFactory() deduplicator.Factory
+
+	DataStoreSession() dataStore.Session
+	TaskStoreSession() taskStore.Session
 
 	AuthenticationDetails() userservicesClient.AuthenticationDetails
 	SetAuthenticationDetails(authenticationDetails userservicesClient.AuthenticationDetails)

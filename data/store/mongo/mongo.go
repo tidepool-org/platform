@@ -21,37 +21,37 @@ import (
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/base/upload"
 	"github.com/tidepool-org/platform/log"
-	commonMongo "github.com/tidepool-org/platform/store/mongo"
+	"github.com/tidepool-org/platform/store/mongo"
 )
 
-func New(logger log.Logger, config *commonMongo.Config) (*Store, error) {
-	mongoStore, err := commonMongo.New(logger, config)
+func New(logger log.Logger, config *mongo.Config) (*Store, error) {
+	baseStore, err := mongo.New(logger, config)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Store{
-		Store: mongoStore,
+		Store: baseStore,
 	}, nil
 }
 
 type Store struct {
-	*commonMongo.Store
+	*mongo.Store
 }
 
 func (s *Store) NewSession(logger log.Logger) (store.Session, error) {
-	mongoSession, err := s.Store.NewSession(logger)
+	baseSession, err := s.Store.NewSession(logger)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Session{
-		Session: mongoSession,
+		Session: baseSession,
 	}, nil
 }
 
 type Session struct {
-	*commonMongo.Session
+	*mongo.Session
 	agent store.Agent
 }
 

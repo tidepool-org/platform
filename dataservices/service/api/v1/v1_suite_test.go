@@ -12,11 +12,12 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
-	"github.com/tidepool-org/platform/data/store"
+	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/base/upload"
 	"github.com/tidepool-org/platform/log"
 	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
 	"github.com/tidepool-org/platform/service"
+	taskStore "github.com/tidepool-org/platform/task/store"
 	userservicesClient "github.com/tidepool-org/platform/userservices/client"
 )
 
@@ -111,8 +112,8 @@ type RespondWithStatusAndDataInput struct {
 
 type GetDatasetsForUserInput struct {
 	userID     string
-	filter     *store.Filter
-	pagination *store.Pagination
+	filter     *dataStore.Filter
+	pagination *dataStore.Pagination
 }
 
 type GetDatasetsForUserOutput struct {
@@ -144,11 +145,11 @@ func (t *TestDataStoreSession) Close() {
 	panic("Unexpected invocation of Close on TestDataStoreSession")
 }
 
-func (t *TestDataStoreSession) SetAgent(agent store.Agent) {
+func (t *TestDataStoreSession) SetAgent(agent dataStore.Agent) {
 	panic("Unexpected invocation of SetAgent on TestDataStoreSession")
 }
 
-func (t *TestDataStoreSession) GetDatasetsForUser(userID string, filter *store.Filter, pagination *store.Pagination) ([]*upload.Upload, error) {
+func (t *TestDataStoreSession) GetDatasetsForUser(userID string, filter *dataStore.Filter, pagination *dataStore.Pagination) ([]*upload.Upload, error) {
 	t.GetDatasetsForUserInputs = append(t.GetDatasetsForUserInputs, GetDatasetsForUserInput{userID, filter, pagination})
 	output := t.GetDatasetsForUserOutputs[0]
 	t.GetDatasetsForUserOutputs = t.GetDatasetsForUserOutputs[1:]
@@ -202,6 +203,21 @@ func (t *TestDataStoreSession) ValidateTest() bool {
 		len(t.DeleteDatasetOutputs) == 0
 }
 
+type TestTaskStoreSession struct {
+}
+
+func (t *TestTaskStoreSession) IsClosed() bool {
+	panic("Unexpected invocation of IsClosed on TestTaskStoreSession")
+}
+
+func (t *TestTaskStoreSession) Close() {
+	panic("Unexpected invocation of Close on TestTaskStoreSession")
+}
+
+func (t *TestTaskStoreSession) ValidateTest() bool {
+	return true
+}
+
 type TestAuthenticationDetails struct {
 	IsServerOutputs []bool
 	UserIDOutputs   []string
@@ -238,6 +254,7 @@ type TestContext struct {
 	MetricServicesClientImpl               *TestMetricServicesClient
 	UserServicesClientImpl                 *TestUserServicesClient
 	DataStoreSessionImpl                   *TestDataStoreSession
+	TaskStoreSessionImpl                   *TestTaskStoreSession
 	AuthenticationDetailsImpl              *TestAuthenticationDetails
 }
 
@@ -253,6 +270,7 @@ func NewTestContext() *TestContext {
 		MetricServicesClientImpl:  &TestMetricServicesClient{},
 		UserServicesClientImpl:    &TestUserServicesClient{},
 		DataStoreSessionImpl:      &TestDataStoreSession{},
+		TaskStoreSessionImpl:      &TestTaskStoreSession{},
 		AuthenticationDetailsImpl: &TestAuthenticationDetails{},
 	}
 }
@@ -297,12 +315,16 @@ func (t *TestContext) DataFactory() data.Factory {
 	panic("Unexpected invocation of DataFactory on TestContext")
 }
 
-func (t *TestContext) DataStoreSession() store.Session {
+func (t *TestContext) DataDeduplicatorFactory() deduplicator.Factory {
+	panic("Unexpected invocation of DataDeduplicatorFactory on TestContext")
+}
+
+func (t *TestContext) DataStoreSession() dataStore.Session {
 	return t.DataStoreSessionImpl
 }
 
-func (t *TestContext) DataDeduplicatorFactory() deduplicator.Factory {
-	panic("Unexpected invocation of DataDeduplicatorFactory on TestContext")
+func (t *TestContext) TaskStoreSession() taskStore.Session {
+	return t.TaskStoreSessionImpl
 }
 
 func (t *TestContext) AuthenticationDetails() userservicesClient.AuthenticationDetails {
@@ -317,5 +339,6 @@ func (t *TestContext) ValidateTest() bool {
 	return (t.MetricServicesClientImpl == nil || t.MetricServicesClientImpl.ValidateTest()) &&
 		(t.UserServicesClientImpl == nil || t.UserServicesClientImpl.ValidateTest()) &&
 		(t.DataStoreSessionImpl == nil || t.DataStoreSessionImpl.ValidateTest()) &&
+		(t.TaskStoreSessionImpl == nil || t.TaskStoreSessionImpl.ValidateTest()) &&
 		(t.AuthenticationDetailsImpl == nil || t.AuthenticationDetailsImpl.ValidateTest())
 }

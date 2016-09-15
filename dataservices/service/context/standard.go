@@ -15,11 +15,12 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
-	"github.com/tidepool-org/platform/data/store"
+	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/dataservices/service"
 	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
 	commonService "github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/service/context"
+	taskStore "github.com/tidepool-org/platform/task/store"
 	userservicesClient "github.com/tidepool-org/platform/userservices/client"
 )
 
@@ -28,12 +29,15 @@ type Standard struct {
 	metricServicesClient    metricservicesClient.Client
 	userServicesClient      userservicesClient.Client
 	dataFactory             data.Factory
-	dataStoreSession        store.Session
 	dataDeduplicatorFactory deduplicator.Factory
 	authenticationDetails   userservicesClient.AuthenticationDetails
+	dataStoreSession        dataStore.Session
+	taskStoreSession        taskStore.Session
 }
 
-func WithContext(metricServicesClient metricservicesClient.Client, userServicesClient userservicesClient.Client, dataFactory data.Factory, dataStore store.Store, dataDeduplicatorFactory deduplicator.Factory, handler service.HandlerFunc) rest.HandlerFunc {
+func WithContext(metricServicesClient metricservicesClient.Client, userServicesClient userservicesClient.Client,
+	dataFactory data.Factory, dataDeduplicatorFactory deduplicator.Factory,
+	dataStore dataStore.Store, taskStore taskStore.Store, handler service.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
 		context, err := context.NewStandard(response, request)
 		if err != nil {
@@ -48,13 +52,21 @@ func WithContext(metricServicesClient metricservicesClient.Client, userServicesC
 		}
 		defer dataStoreSession.Close()
 
+		taskStoreSession, err := taskStore.NewSession(context.Logger())
+		if err != nil {
+			context.RespondWithInternalServerFailure("Unable to create new task store session for request", err)
+			return
+		}
+		defer taskStoreSession.Close()
+
 		handler(&Standard{
 			Context:                 context,
 			metricServicesClient:    metricServicesClient,
 			userServicesClient:      userServicesClient,
 			dataFactory:             dataFactory,
-			dataStoreSession:        dataStoreSession,
 			dataDeduplicatorFactory: dataDeduplicatorFactory,
+			dataStoreSession:        dataStoreSession,
+			taskStoreSession:        taskStoreSession,
 		})
 	}
 }
@@ -71,12 +83,16 @@ func (s *Standard) DataFactory() data.Factory {
 	return s.dataFactory
 }
 
-func (s *Standard) DataStoreSession() store.Session {
+func (s *Standard) DataDeduplicatorFactory() deduplicator.Factory {
+	return s.dataDeduplicatorFactory
+}
+
+func (s *Standard) DataStoreSession() dataStore.Session {
 	return s.dataStoreSession
 }
 
-func (s *Standard) DataDeduplicatorFactory() deduplicator.Factory {
-	return s.dataDeduplicatorFactory
+func (s *Standard) TaskStoreSession() taskStore.Session {
+	return s.taskStoreSession
 }
 
 func (s *Standard) AuthenticationDetails() userservicesClient.AuthenticationDetails {

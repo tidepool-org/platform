@@ -16,13 +16,14 @@ import (
 	"github.com/tidepool-org/platform/data/deduplicator/delegate"
 	"github.com/tidepool-org/platform/data/deduplicator/truncate"
 	"github.com/tidepool-org/platform/data/factory"
-	"github.com/tidepool-org/platform/data/store/mongo"
+	dataMongo "github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/dataservices/service/api"
 	"github.com/tidepool-org/platform/dataservices/service/api/v1"
 	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
 	"github.com/tidepool-org/platform/service/server"
 	"github.com/tidepool-org/platform/service/service"
-	commonMongo "github.com/tidepool-org/platform/store/mongo"
+	baseMongo "github.com/tidepool-org/platform/store/mongo"
+	taskMongo "github.com/tidepool-org/platform/task/store/mongo"
 	userservicesClient "github.com/tidepool-org/platform/userservices/client"
 )
 
@@ -31,8 +32,9 @@ type Standard struct {
 	metricServicesClient    *metricservicesClient.Standard
 	userServicesClient      *userservicesClient.Standard
 	dataFactory             *factory.Standard
-	dataStore               *mongo.Store
 	dataDeduplicatorFactory deduplicator.Factory
+	dataStore               *dataMongo.Store
+	taskStore               *taskMongo.Store
 	dataServicesAPI         *api.Standard
 	dataServicesServer      *server.Standard
 }
@@ -62,10 +64,13 @@ func (s *Standard) Initialize() error {
 	if err := s.initializeDataFactory(); err != nil {
 		return err
 	}
+	if err := s.initializeDataDeduplicatorFactory(); err != nil {
+		return err
+	}
 	if err := s.initializeDataStore(); err != nil {
 		return err
 	}
-	if err := s.initializeDataDeduplicatorFactory(); err != nil {
+	if err := s.initializeTaskStore(); err != nil {
 		return err
 	}
 	if err := s.initializeDataServicesAPI(); err != nil {
@@ -81,11 +86,15 @@ func (s *Standard) Initialize() error {
 func (s *Standard) Terminate() {
 	s.dataServicesServer = nil
 	s.dataServicesAPI = nil
-	s.dataDeduplicatorFactory = nil
+	if s.taskStore != nil {
+		s.taskStore.Close()
+		s.taskStore = nil
+	}
 	if s.dataStore != nil {
 		s.dataStore.Close()
 		s.dataStore = nil
 	}
+	s.dataDeduplicatorFactory = nil
 	s.dataFactory = nil
 	if s.userServicesClient != nil {
 		s.userServicesClient.Close()
@@ -159,26 +168,6 @@ func (s *Standard) initializeDataFactory() error {
 	return nil
 }
 
-func (s *Standard) initializeDataStore() error {
-	s.Logger().Debug("Loading data store config")
-
-	dataStoreConfig := &commonMongo.Config{}
-	if err := s.ConfigLoader().Load("data_store", dataStoreConfig); err != nil {
-		return app.ExtError(err, "service", "unable to load data store config")
-	}
-	dataStoreConfig.Collection = "deviceData"
-
-	s.Logger().Debug("Creating data store")
-
-	dataStore, err := mongo.New(s.Logger(), dataStoreConfig)
-	if err != nil {
-		return app.ExtError(err, "service", "unable to create data store")
-	}
-	s.dataStore = dataStore
-
-	return nil
-}
-
 func (s *Standard) initializeDataDeduplicatorFactory() error {
 	s.Logger().Debug("Creating truncate data deduplicator factory")
 
@@ -202,10 +191,53 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 	return nil
 }
 
+func (s *Standard) initializeDataStore() error {
+	s.Logger().Debug("Loading data store config")
+
+	dataStoreConfig := &baseMongo.Config{}
+	if err := s.ConfigLoader().Load("data_store", dataStoreConfig); err != nil {
+		return app.ExtError(err, "service", "unable to load data store config")
+	}
+	dataStoreConfig.Collection = "deviceData"
+
+	s.Logger().Debug("Creating data store")
+
+	dataStore, err := dataMongo.New(s.Logger(), dataStoreConfig)
+	if err != nil {
+		return app.ExtError(err, "service", "unable to create data store")
+	}
+	s.dataStore = dataStore
+
+	return nil
+}
+
+func (s *Standard) initializeTaskStore() error {
+	s.Logger().Debug("Loading task store config")
+
+	taskStoreConfig := &baseMongo.Config{}
+	if err := s.ConfigLoader().Load("task_store", taskStoreConfig); err != nil {
+		return app.ExtError(err, "service", "unable to load task store config")
+	}
+	taskStoreConfig.Collection = "deviceData"
+
+	s.Logger().Debug("Creating task store")
+
+	taskStore, err := taskMongo.New(s.Logger(), taskStoreConfig)
+	if err != nil {
+		return app.ExtError(err, "service", "unable to create task store")
+	}
+	s.taskStore = taskStore
+
+	return nil
+}
+
 func (s *Standard) initializeDataServicesAPI() error {
 	s.Logger().Debug("Creating data services api")
 
-	dataServicesAPI, err := api.NewStandard(s.VersionReporter(), s.EnvironmentReporter(), s.Logger(), s.metricServicesClient, s.userServicesClient, s.dataFactory, s.dataStore, s.dataDeduplicatorFactory)
+	dataServicesAPI, err := api.NewStandard(s.VersionReporter(), s.EnvironmentReporter(), s.Logger(),
+		s.metricServicesClient, s.userServicesClient,
+		s.dataFactory, s.dataDeduplicatorFactory,
+		s.dataStore, s.taskStore)
 	if err != nil {
 		return app.ExtError(err, "service", "unable to create data services api")
 	}
