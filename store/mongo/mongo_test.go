@@ -11,6 +11,7 @@ import (
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/store/mongo"
+	testMongo "github.com/tidepool-org/platform/test/mongo"
 )
 
 var _ = Describe("Mongo", func() {
@@ -22,9 +23,9 @@ var _ = Describe("Mongo", func() {
 	BeforeEach(func() {
 		logger = log.NewNull()
 		mongoConfig = &mongo.Config{
-			Addresses:  MongoTestAddress(),
-			Database:   MongoTestDatabase(),
-			Collection: NewTestSuiteID(),
+			Addresses:  testMongo.Address(),
+			Database:   testMongo.Database(),
+			Collection: testMongo.NewCollectionName(),
 			Timeout:    app.DurationAsPointer(5 * time.Second),
 		}
 	})

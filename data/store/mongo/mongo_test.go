@@ -17,6 +17,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/base/upload"
 	"github.com/tidepool-org/platform/log"
 	commonMongo "github.com/tidepool-org/platform/store/mongo"
+	testMongo "github.com/tidepool-org/platform/test/mongo"
 )
 
 type TestAgent struct {
@@ -97,9 +98,9 @@ var _ = Describe("Mongo", func() {
 	BeforeEach(func() {
 		logger = log.NewNull()
 		mongoConfig = &commonMongo.Config{
-			Addresses:  MongoTestAddress(),
-			Database:   MongoTestDatabase(),
-			Collection: NewTestSuiteID(),
+			Addresses:  testMongo.Address(),
+			Database:   testMongo.Database(),
+			Collection: testMongo.NewCollectionName(),
 			Timeout:    app.DurationAsPointer(5 * time.Second),
 		}
 	})
@@ -181,7 +182,7 @@ var _ = Describe("Mongo", func() {
 				var dataset *upload.Upload
 
 				BeforeEach(func() {
-					mongoTestSession = MongoTestSession().Copy()
+					mongoTestSession = testMongo.Session().Copy()
 					mongoTestCollection = mongoTestSession.DB(mongoConfig.Database).C(mongoConfig.Collection)
 					userID = app.NewID()
 					groupID = app.NewID()
