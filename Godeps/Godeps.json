@@ -37,6 +37,10 @@
 			"Rev": "fb7a3183cd987802d006408fe3a4a9e1f6002ece"
 		},
 		{
+			"ImportPath": "github.com/mitchellh/go-homedir",
+			"Rev": "756f7b183b7ab78acdbbee5c7f392838ed459dda"
+		},
+		{
 			"ImportPath": "github.com/onsi/ginkgo",
 			"Comment": "v1.2.0-70-g43e2af1",
 			"Rev": "43e2af1f01ace55adbb6d7d0f30416476db1baae"
@@ -225,6 +229,10 @@
 			"ImportPath": "github.com/urfave/cli",
 			"Comment": "v1.18.0-49-g207bb61",
 			"Rev": "207bb6185291cfced4895a7768cad642e08a68d8"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/ssh/terminal",
+			"Rev": "6ab629be5e31660579425a738ba8870beb5b7404"
 		},
 		{
 			"ImportPath": "golang.org/x/sys/unix",
