@@ -52,11 +52,6 @@ func (s *Store) NewSession(logger log.Logger) (store.Session, error) {
 
 type Session struct {
 	*mongo.Session
-	agent store.Agent
-}
-
-func (s *Session) SetAgent(agent store.Agent) {
-	s.agent = agent
 }
 
 func (s *Session) GetDatasetsForUser(userID string, filter *store.Filter, pagination *store.Pagination) ([]*upload.Upload, error) {
@@ -150,8 +145,8 @@ func (s *Session) CreateDataset(dataset *upload.Upload) error {
 
 	startTime := time.Now()
 
-	dataset.CreatedTime = newTimestamp()
-	dataset.CreatedUserID = s.agentUserID()
+	dataset.CreatedTime = s.Timestamp()
+	dataset.CreatedUserID = s.AgentUserID()
 
 	dataset.ByUser = dataset.CreatedUserID
 
@@ -201,8 +196,8 @@ func (s *Session) UpdateDataset(dataset *upload.Upload) error {
 
 	startTime := time.Now()
 
-	dataset.ModifiedTime = newTimestamp()
-	dataset.ModifiedUserID = s.agentUserID()
+	dataset.ModifiedTime = s.Timestamp()
+	dataset.ModifiedUserID = s.AgentUserID()
 
 	selector := bson.M{
 		"_userId":  dataset.UserID,
@@ -241,8 +236,8 @@ func (s *Session) DeleteDataset(dataset *upload.Upload) error {
 
 	startTime := time.Now()
 
-	deletedTimestamp := newTimestamp()
-	deletedUserID := s.agentUserID()
+	deletedTimestamp := s.Timestamp()
+	deletedUserID := s.AgentUserID()
 
 	var err error
 	var removeInfo *mgo.ChangeInfo
@@ -311,8 +306,8 @@ func (s *Session) CreateDatasetData(dataset *upload.Upload, datasetData []data.D
 
 	startTime := time.Now()
 
-	createdTimestamp := newTimestamp()
-	createdUserID := s.agentUserID()
+	createdTimestamp := s.Timestamp()
+	createdUserID := s.AgentUserID()
 
 	insertData := make([]interface{}, len(datasetData))
 	for index, datum := range datasetData {
@@ -359,8 +354,8 @@ func (s *Session) ActivateDatasetData(dataset *upload.Upload) error {
 
 	startTime := time.Now()
 
-	modifiedTimestamp := newTimestamp()
-	modifiedUserID := s.agentUserID()
+	modifiedTimestamp := s.Timestamp()
+	modifiedUserID := s.AgentUserID()
 
 	selector := bson.M{
 		"_userId":  dataset.UserID,
@@ -415,8 +410,8 @@ func (s *Session) DeleteOtherDatasetData(dataset *upload.Upload) error {
 
 	startTime := time.Now()
 
-	deletedTimestamp := newTimestamp()
-	deletedUserID := s.agentUserID()
+	deletedTimestamp := s.Timestamp()
+	deletedUserID := s.AgentUserID()
 
 	var err error
 	var removeInfo *mgo.ChangeInfo
@@ -485,15 +480,4 @@ func (s *Session) DeleteDataForUser(userID string) error {
 	}
 
 	return nil
-}
-
-func (s *Session) agentUserID() string {
-	if s.agent == nil {
-		return ""
-	}
-	return s.agent.UserID()
-}
-
-func newTimestamp() string {
-	return time.Now().UTC().Format(time.RFC3339)
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/base/upload"
 	"github.com/tidepool-org/platform/log"
+	commonStore "github.com/tidepool-org/platform/store"
 )
 
 type CreateDatasetDataInput struct {
@@ -39,7 +40,7 @@ func (t *TestDataStoreSession) Close() {
 	panic("Unexpected invocation of Close on TestDataStoreSession")
 }
 
-func (t *TestDataStoreSession) SetAgent(agent store.Agent) {
+func (t *TestDataStoreSession) SetAgent(agent commonStore.Agent) {
 	panic("Unexpected invocation of SetAgent on TestDataStoreSession")
 }
 

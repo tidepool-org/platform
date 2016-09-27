@@ -103,4 +103,5 @@ func (s *Standard) SetAuthenticationDetails(authenticationDetails userservicesCl
 	s.authenticationDetails = authenticationDetails
 
 	s.dataStoreSession.SetAgent(authenticationDetails)
+	s.taskStoreSession.SetAgent(authenticationDetails)
 }

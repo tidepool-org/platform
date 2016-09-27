@@ -14,11 +14,13 @@ import (
 	"crypto/tls"
 	"net"
 	"strconv"
+	"time"
 
 	mgo "gopkg.in/mgo.v2"
 
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/store"
 )
 
 // TODO: Consider SetStats, GetStats
@@ -167,6 +169,7 @@ type Session struct {
 	config        *Config
 	sourceSession *mgo.Session
 	targetSession *mgo.Session
+	agent         store.Agent
 }
 
 func (s *Session) IsClosed() bool {
@@ -185,6 +188,10 @@ func (s *Session) Logger() log.Logger {
 	return s.logger
 }
 
+func (s *Session) SetAgent(agent store.Agent) {
+	s.agent = agent
+}
+
 func (s *Session) C() *mgo.Collection {
 	if s.IsClosed() {
 		return nil
@@ -195,4 +202,15 @@ func (s *Session) C() *mgo.Collection {
 	}
 
 	return s.targetSession.DB(s.config.Database).C(s.config.Collection)
+}
+
+func (s *Session) AgentUserID() string {
+	if s.agent == nil {
+		return ""
+	}
+	return s.agent.UserID()
+}
+
+func (s *Session) Timestamp() string {
+	return time.Now().UTC().Format(time.RFC3339)
 }

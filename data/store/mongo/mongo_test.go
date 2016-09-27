@@ -160,16 +160,6 @@ var _ = Describe("Mongo", func() {
 				Expect(mongoSession).ToNot(BeNil())
 			})
 
-			Context("SetAgent", func() {
-				It("successfully sets the agent", func() {
-					mongoSession.SetAgent(&TestAgent{app.NewID()})
-				})
-
-				It("successfully sets the agent if nil", func() {
-					mongoSession.SetAgent(nil)
-				})
-			})
-
 			Context("with persisted data", func() {
 				var testMongoSession *mgo.Session
 				var testMongoCollection *mgo.Collection

@@ -17,6 +17,7 @@ import (
 	"github.com/tidepool-org/platform/log"
 	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
 	"github.com/tidepool-org/platform/service"
+	commonStore "github.com/tidepool-org/platform/store"
 	taskStore "github.com/tidepool-org/platform/task/store"
 	userservicesClient "github.com/tidepool-org/platform/userservices/client"
 )
@@ -145,7 +146,7 @@ func (t *TestDataStoreSession) Close() {
 	panic("Unexpected invocation of Close on TestDataStoreSession")
 }
 
-func (t *TestDataStoreSession) SetAgent(agent dataStore.Agent) {
+func (t *TestDataStoreSession) SetAgent(agent commonStore.Agent) {
 	panic("Unexpected invocation of SetAgent on TestDataStoreSession")
 }
 
@@ -212,6 +213,10 @@ func (t *TestTaskStoreSession) IsClosed() bool {
 
 func (t *TestTaskStoreSession) Close() {
 	panic("Unexpected invocation of Close on TestTaskStoreSession")
+}
+
+func (t *TestTaskStoreSession) SetAgent(agent commonStore.Agent) {
+	panic("Unexpected invocation of SetAgent on TestTaskStoreSession")
 }
 
 func (t *TestTaskStoreSession) ValidateTest() bool {

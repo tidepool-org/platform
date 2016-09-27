@@ -150,4 +150,11 @@ func (s *Standard) AuthenticationDetails() userservicesClient.AuthenticationDeta
 
 func (s *Standard) SetAuthenticationDetails(authenticationDetails userservicesClient.AuthenticationDetails) {
 	s.authenticationDetails = authenticationDetails
+
+	s.messageStoreSession.SetAgent(authenticationDetails)
+	s.notificationStoreSession.SetAgent(authenticationDetails)
+	s.permissionStoreSession.SetAgent(authenticationDetails)
+	s.profileStoreSession.SetAgent(authenticationDetails)
+	s.sessionStoreSession.SetAgent(authenticationDetails)
+	s.userStoreSession.SetAgent(authenticationDetails)
 }

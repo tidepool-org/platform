@@ -14,6 +14,14 @@ import (
 	testMongo "github.com/tidepool-org/platform/test/mongo"
 )
 
+type TestAgent struct {
+	TestUserID string
+}
+
+func (t *TestAgent) UserID() string {
+	return t.TestUserID
+}
+
 var _ = Describe("Mongo", func() {
 	var logger log.Logger
 	var mongoConfig *mongo.Config
@@ -184,6 +192,16 @@ var _ = Describe("Mongo", func() {
 				})
 			})
 
+			Context("SetAgent", func() {
+				It("successfully sets the agent", func() {
+					mongoSession.SetAgent(&TestAgent{app.NewID()})
+				})
+
+				It("successfully sets the agent if nil", func() {
+					mongoSession.SetAgent(nil)
+				})
+			})
+
 			Context("Logger", func() {
 				It("returns successfully", func() {
 					Expect(mongoSession.Logger()).ToNot(BeNil())
@@ -198,6 +216,31 @@ var _ = Describe("Mongo", func() {
 				It("returns nil if the session is closed", func() {
 					mongoSession.Close()
 					Expect(mongoSession.C()).To(BeNil())
+				})
+			})
+
+			Context("AgentUserID", func() {
+				It("returns an empty string if the agent is not set", func() {
+					Expect(mongoSession.AgentUserID()).To(BeEmpty())
+				})
+
+				It("returns an empty string if the agent is nil", func() {
+					mongoSession.SetAgent(nil)
+					Expect(mongoSession.AgentUserID()).To(BeEmpty())
+				})
+
+				It("returns the agent user id if the agent is set", func() {
+					agentUserID := app.NewID()
+					mongoSession.SetAgent(&TestAgent{agentUserID})
+					Expect(mongoSession.AgentUserID()).To(Equal(agentUserID))
+				})
+			})
+
+			Context("Timestamp", func() {
+				It("returns a new timestamp in RFC3339 format", func() {
+					parsedTimestamp, err := time.Parse(time.RFC3339, mongoSession.Timestamp())
+					Expect(err).ToNot(HaveOccurred())
+					Expect(parsedTimestamp).ToNot(BeNil())
 				})
 			})
 		})

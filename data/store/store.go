@@ -27,8 +27,6 @@ type Store interface {
 type Session interface {
 	store.Session
 
-	SetAgent(agent Agent)
-
 	GetDatasetsForUser(userID string, filter *Filter, pagination *Pagination) ([]*upload.Upload, error)
 	GetDataset(datasetID string) (*upload.Upload, error)
 	CreateDataset(dataset *upload.Upload) error
@@ -38,10 +36,6 @@ type Session interface {
 	ActivateDatasetData(dataset *upload.Upload) error
 	DeleteOtherDatasetData(dataset *upload.Upload) error
 	DeleteDataForUser(userID string) error
-}
-
-type Agent interface {
-	UserID() string
 }
 
 type Filter struct {

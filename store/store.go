@@ -20,4 +20,10 @@ type Store interface {
 type Session interface {
 	IsClosed() bool
 	Close()
+
+	SetAgent(agent Agent)
+}
+
+type Agent interface {
+	UserID() string
 }
