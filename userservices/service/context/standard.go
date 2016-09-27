@@ -13,6 +13,7 @@ package context
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
+	dataservicesClient "github.com/tidepool-org/platform/dataservices/client"
 	messageStore "github.com/tidepool-org/platform/message/store"
 	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
 	notificationStore "github.com/tidepool-org/platform/notification/store"
@@ -30,6 +31,7 @@ type Standard struct {
 	commonService.Context
 	metricServicesClient     metricservicesClient.Client
 	userServicesClient       userservicesClient.Client
+	dataServicesClient       dataservicesClient.Client
 	authenticationDetails    userservicesClient.AuthenticationDetails
 	messageStoreSession      messageStore.Session
 	notificationStoreSession notificationStore.Session
@@ -39,7 +41,7 @@ type Standard struct {
 	userStoreSession         userStore.Session
 }
 
-func WithContext(metricServicesClient metricservicesClient.Client, userServicesClient userservicesClient.Client,
+func WithContext(metricServicesClient metricservicesClient.Client, userServicesClient userservicesClient.Client, dataServicesClient dataservicesClient.Client,
 	messageStore messageStore.Store, notificationStore notificationStore.Store, permissionStore permissionStore.Store, profileStore profileStore.Store,
 	sessionStore sessionStore.Store, userStore userStore.Store, handler service.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
@@ -95,12 +97,13 @@ func WithContext(metricServicesClient metricservicesClient.Client, userServicesC
 			Context:                  context,
 			metricServicesClient:     metricServicesClient,
 			userServicesClient:       userServicesClient,
+			dataServicesClient:       dataServicesClient,
 			messageStoreSession:      messageStoreSession,
 			notificationStoreSession: notificationStoreSession,
 			permissionStoreSession:   permissionStoreSession,
 			profileStoreSession:      profileStoreSession,
 			sessionStoreSession:      sessionStoreSession,
-			userStoreSession:         userStore,
+			userStoreSession:         userStoreSession,
 		})
 	}
 }
@@ -111,6 +114,10 @@ func (s *Standard) MetricServicesClient() metricservicesClient.Client {
 
 func (s *Standard) UserServicesClient() userservicesClient.Client {
 	return s.userServicesClient
+}
+
+func (s *Standard) DataServicesClient() dataservicesClient.Client {
+	return s.dataServicesClient
 }
 
 func (s *Standard) MessageStoreSession() messageStore.Session {

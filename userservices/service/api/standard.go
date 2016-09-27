@@ -14,6 +14,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/app"
+	dataservicesClient "github.com/tidepool-org/platform/dataservices/client"
 	"github.com/tidepool-org/platform/environment"
 	"github.com/tidepool-org/platform/log"
 	messageStore "github.com/tidepool-org/platform/message/store"
@@ -34,6 +35,7 @@ type Standard struct {
 	*api.Standard
 	metricServicesClient metricservicesClient.Client
 	userServicesClient   userservicesClient.Client
+	dataServicesClient   dataservicesClient.Client
 	messageStore         messageStore.Store
 	notificationStore    notificationStore.Store
 	permissionStore      permissionStore.Store
@@ -43,8 +45,9 @@ type Standard struct {
 }
 
 func NewStandard(versionReporter version.Reporter, environmentReporter environment.Reporter, logger log.Logger,
-	metricServicesClient metricservicesClient.Client, userServicesClient userservicesClient.Client, messageStore messageStore.Store, notificationStore notificationStore.Store,
-	permissionStore permissionStore.Store, profileStore profileStore.Store, sessionStore sessionStore.Store, userStore userStore.Store) (*Standard, error) {
+	metricServicesClient metricservicesClient.Client, userServicesClient userservicesClient.Client, dataServicesClient dataservicesClient.Client,
+	messageStore messageStore.Store, notificationStore notificationStore.Store, permissionStore permissionStore.Store,
+	profileStore profileStore.Store, sessionStore sessionStore.Store, userStore userStore.Store) (*Standard, error) {
 	if versionReporter == nil {
 		return nil, app.Error("api", "version reporter is missing")
 	}
@@ -59,6 +62,9 @@ func NewStandard(versionReporter version.Reporter, environmentReporter environme
 	}
 	if userServicesClient == nil {
 		return nil, app.Error("api", "user services client is missing")
+	}
+	if dataServicesClient == nil {
+		return nil, app.Error("api", "data services client is missing")
 	}
 	if messageStore == nil {
 		return nil, app.Error("api", "message store is missing")
@@ -88,6 +94,7 @@ func NewStandard(versionReporter version.Reporter, environmentReporter environme
 		Standard:             standard,
 		metricServicesClient: metricServicesClient,
 		userServicesClient:   userServicesClient,
+		dataServicesClient:   dataServicesClient,
 		messageStore:         messageStore,
 		notificationStore:    notificationStore,
 		permissionStore:      permissionStore,
@@ -125,7 +132,7 @@ func (s *Standard) InitializeRouter(routes []service.Route) error {
 }
 
 func (s *Standard) withContext(handler service.HandlerFunc) rest.HandlerFunc {
-	return context.WithContext(s.metricServicesClient, s.userServicesClient,
+	return context.WithContext(s.metricServicesClient, s.userServicesClient, s.dataServicesClient,
 		s.messageStore, s.notificationStore, s.permissionStore, s.profileStore,
 		s.sessionStore, s.userStore, handler)
 }

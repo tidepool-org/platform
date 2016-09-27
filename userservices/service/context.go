@@ -11,6 +11,7 @@ package service
  */
 
 import (
+	dataservicesClient "github.com/tidepool-org/platform/dataservices/client"
 	messageStore "github.com/tidepool-org/platform/message/store"
 	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
 	notificationStore "github.com/tidepool-org/platform/notification/store"
@@ -27,6 +28,7 @@ type Context interface {
 
 	MetricServicesClient() metricservicesClient.Client
 	UserServicesClient() userservicesClient.Client
+	DataServicesClient() dataservicesClient.Client
 
 	MessageStoreSession() messageStore.Session
 	NotificationStoreSession() notificationStore.Session

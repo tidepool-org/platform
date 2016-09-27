@@ -12,6 +12,7 @@ package service
 
 import (
 	"github.com/tidepool-org/platform/app"
+	dataservicesClient "github.com/tidepool-org/platform/dataservices/client"
 	messageMongo "github.com/tidepool-org/platform/message/store/mongo"
 	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
 	notificationMongo "github.com/tidepool-org/platform/notification/store/mongo"
@@ -31,6 +32,7 @@ type Standard struct {
 	*service.Standard
 	metricServicesClient *metricservicesClient.Standard
 	userServicesClient   *userservicesClient.Standard
+	dataServicesClient   *dataservicesClient.Standard
 	messageStore         *messageMongo.Store
 	notificationStore    *notificationMongo.Store
 	permissionStore      *permissionMongo.Store
@@ -61,6 +63,9 @@ func (s *Standard) Initialize() error {
 		return err
 	}
 	if err := s.initializeUserServicesClient(); err != nil {
+		return err
+	}
+	if err := s.initializeDataServicesClient(); err != nil {
 		return err
 	}
 	if err := s.initializeMessageStore(); err != nil {
@@ -118,6 +123,7 @@ func (s *Standard) Terminate() {
 		s.messageStore.Close()
 		s.messageStore = nil
 	}
+	s.dataServicesClient = nil
 	if s.userServicesClient != nil {
 		s.userServicesClient.Close()
 		s.userServicesClient = nil
@@ -171,9 +177,29 @@ func (s *Standard) initializeUserServicesClient() error {
 	s.userServicesClient = userServicesClient
 
 	s.Logger().Debug("Starting user services client")
+
 	if err = s.userServicesClient.Start(); err != nil {
 		return app.ExtError(err, "service", "unable to start user services client")
 	}
+
+	return nil
+}
+
+func (s *Standard) initializeDataServicesClient() error {
+	s.Logger().Debug("Loading data services client config")
+
+	dataServicesClientConfig := &dataservicesClient.Config{}
+	if err := s.ConfigLoader().Load("dataservices_client", dataServicesClientConfig); err != nil {
+		return app.ExtError(err, "service", "unable to load data services client config")
+	}
+
+	s.Logger().Debug("Creating data services client")
+
+	dataServicesClient, err := dataservicesClient.NewStandard(dataServicesClientConfig)
+	if err != nil {
+		return app.ExtError(err, "service", "unable to create data services client")
+	}
+	s.dataServicesClient = dataServicesClient
 
 	return nil
 }
@@ -302,8 +328,8 @@ func (s *Standard) initializeUserServicesAPI() error {
 	s.Logger().Debug("Creating user services api")
 
 	userServicesAPI, err := api.NewStandard(s.VersionReporter(), s.EnvironmentReporter(), s.Logger(),
-		s.metricServicesClient, s.userServicesClient, s.messageStore, s.notificationStore,
-		s.permissionStore, s.profileStore, s.sessionStore, s.userStore)
+		s.metricServicesClient, s.userServicesClient, s.dataServicesClient,
+		s.messageStore, s.notificationStore, s.permissionStore, s.profileStore, s.sessionStore, s.userStore)
 	if err != nil {
 		return app.ExtError(err, "service", "unable to create user services api")
 	}
