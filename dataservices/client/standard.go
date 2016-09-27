@@ -47,7 +47,7 @@ func NewStandard(config *Config) (*Standard, error) {
 	}, nil
 }
 
-func (s *Standard) DeleteDataForUser(context Context, userID string) error {
+func (s *Standard) DestroyDataForUserByID(context Context, userID string) error {
 	if context == nil {
 		return app.Error("client", "context is missing")
 	}

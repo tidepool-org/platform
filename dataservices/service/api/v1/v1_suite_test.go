@@ -111,31 +111,31 @@ type RespondWithStatusAndDataInput struct {
 	data       interface{}
 }
 
-type GetDatasetsForUserInput struct {
+type GetDatasetsForUserByIDInput struct {
 	userID     string
 	filter     *dataStore.Filter
 	pagination *dataStore.Pagination
 }
 
-type GetDatasetsForUserOutput struct {
+type GetDatasetsForUserByIDOutput struct {
 	datasets []*upload.Upload
 	err      error
 }
 
-type GetDatasetOutput struct {
+type GetDatasetByIDOutput struct {
 	dataset *upload.Upload
 	err     error
 }
 
 type TestDataStoreSession struct {
-	GetDatasetsForUserInputs  []GetDatasetsForUserInput
-	GetDatasetsForUserOutputs []GetDatasetsForUserOutput
-	GetDatasetInputs          []string
-	GetDatasetOutputs         []GetDatasetOutput
-	DeleteDatasetInputs       []*upload.Upload
-	DeleteDatasetOutputs      []error
-	DeleteDataForUserInputs   []string
-	DeleteDataForUserOutputs  []error
+	GetDatasetsForUserByIDInputs  []GetDatasetsForUserByIDInput
+	GetDatasetsForUserByIDOutputs []GetDatasetsForUserByIDOutput
+	GetDatasetByIDInputs          []string
+	GetDatasetByIDOutputs         []GetDatasetByIDOutput
+	DeleteDatasetInputs           []*upload.Upload
+	DeleteDatasetOutputs          []error
+	DestroyDataForUserByIDInputs  []string
+	DestroyDataForUserByIDOutputs []error
 }
 
 func (t *TestDataStoreSession) IsClosed() bool {
@@ -150,17 +150,17 @@ func (t *TestDataStoreSession) SetAgent(agent commonStore.Agent) {
 	panic("Unexpected invocation of SetAgent on TestDataStoreSession")
 }
 
-func (t *TestDataStoreSession) GetDatasetsForUser(userID string, filter *dataStore.Filter, pagination *dataStore.Pagination) ([]*upload.Upload, error) {
-	t.GetDatasetsForUserInputs = append(t.GetDatasetsForUserInputs, GetDatasetsForUserInput{userID, filter, pagination})
-	output := t.GetDatasetsForUserOutputs[0]
-	t.GetDatasetsForUserOutputs = t.GetDatasetsForUserOutputs[1:]
+func (t *TestDataStoreSession) GetDatasetsForUserByID(userID string, filter *dataStore.Filter, pagination *dataStore.Pagination) ([]*upload.Upload, error) {
+	t.GetDatasetsForUserByIDInputs = append(t.GetDatasetsForUserByIDInputs, GetDatasetsForUserByIDInput{userID, filter, pagination})
+	output := t.GetDatasetsForUserByIDOutputs[0]
+	t.GetDatasetsForUserByIDOutputs = t.GetDatasetsForUserByIDOutputs[1:]
 	return output.datasets, output.err
 }
 
-func (t *TestDataStoreSession) GetDataset(datasetID string) (*upload.Upload, error) {
-	t.GetDatasetInputs = append(t.GetDatasetInputs, datasetID)
-	output := t.GetDatasetOutputs[0]
-	t.GetDatasetOutputs = t.GetDatasetOutputs[1:]
+func (t *TestDataStoreSession) GetDatasetByID(datasetID string) (*upload.Upload, error) {
+	t.GetDatasetByIDInputs = append(t.GetDatasetByIDInputs, datasetID)
+	output := t.GetDatasetByIDOutputs[0]
+	t.GetDatasetByIDOutputs = t.GetDatasetByIDOutputs[1:]
 	return output.dataset, output.err
 }
 
@@ -191,20 +191,22 @@ func (t *TestDataStoreSession) DeleteOtherDatasetData(dataset *upload.Upload) er
 	panic("Unexpected invocation of DeleteOtherDatasetData on TestDataStoreSession")
 }
 
-func (t *TestDataStoreSession) DeleteDataForUser(userID string) error {
-	t.DeleteDataForUserInputs = append(t.DeleteDataForUserInputs, userID)
-	output := t.DeleteDataForUserOutputs[0]
-	t.DeleteDataForUserOutputs = t.DeleteDataForUserOutputs[1:]
+func (t *TestDataStoreSession) DestroyDataForUserByID(userID string) error {
+	t.DestroyDataForUserByIDInputs = append(t.DestroyDataForUserByIDInputs, userID)
+	output := t.DestroyDataForUserByIDOutputs[0]
+	t.DestroyDataForUserByIDOutputs = t.DestroyDataForUserByIDOutputs[1:]
 	return output
 }
 
 func (t *TestDataStoreSession) ValidateTest() bool {
-	return len(t.GetDatasetsForUserOutputs) == 0 &&
-		len(t.GetDatasetOutputs) == 0 &&
+	return len(t.GetDatasetsForUserByIDOutputs) == 0 &&
+		len(t.GetDatasetByIDOutputs) == 0 &&
 		len(t.DeleteDatasetOutputs) == 0
 }
 
 type TestTaskStoreSession struct {
+	DestroyTasksForUserByIDInputs  []string
+	DestroyTasksForUserByIDOutputs []error
 }
 
 func (t *TestTaskStoreSession) IsClosed() bool {
@@ -219,8 +221,15 @@ func (t *TestTaskStoreSession) SetAgent(agent commonStore.Agent) {
 	panic("Unexpected invocation of SetAgent on TestTaskStoreSession")
 }
 
+func (t *TestTaskStoreSession) DestroyTasksForUserByID(userID string) error {
+	t.DestroyTasksForUserByIDInputs = append(t.DestroyTasksForUserByIDInputs, userID)
+	output := t.DestroyTasksForUserByIDOutputs[0]
+	t.DestroyTasksForUserByIDOutputs = t.DestroyTasksForUserByIDOutputs[1:]
+	return output
+}
+
 func (t *TestTaskStoreSession) ValidateTest() bool {
-	return true
+	return len(t.DestroyTasksForUserByIDOutputs) == 0
 }
 
 type TestAuthenticationDetails struct {

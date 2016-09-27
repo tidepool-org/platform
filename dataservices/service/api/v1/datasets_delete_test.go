@@ -30,7 +30,7 @@ var _ = Describe("DatasetsDelete", func() {
 			targetUpload.ByUser = app.NewID()
 			context = NewTestContext()
 			context.RequestImpl.PathParams["datasetid"] = targetUpload.UploadID
-			context.DataStoreSessionImpl.GetDatasetOutputs = []GetDatasetOutput{{targetUpload, nil}}
+			context.DataStoreSessionImpl.GetDatasetByIDOutputs = []GetDatasetByIDOutput{{targetUpload, nil}}
 			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{false}
 			context.AuthenticationDetailsImpl.UserIDOutputs = []string{authenticatedUserID}
 			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{client.Permissions{"root": client.Permission{}}, nil}}
@@ -40,7 +40,7 @@ var _ = Describe("DatasetsDelete", func() {
 
 		It("succeeds if authenticated as owner", func() {
 			v1.DatasetsDelete(context)
-			Expect(context.DataStoreSessionImpl.GetDatasetInputs).To(Equal([]string{targetUpload.UploadID}))
+			Expect(context.DataStoreSessionImpl.GetDatasetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
 			Expect(context.UserServicesClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authenticatedUserID, targetUserID}}))
 			Expect(context.DataStoreSessionImpl.DeleteDatasetInputs).To(Equal([]*upload.Upload{targetUpload}))
 			Expect(context.MetricServicesClientImpl.RecordMetricInputs).To(Equal([]RecordMetricInput{{context, "datasets_delete", nil}}))
@@ -51,7 +51,7 @@ var _ = Describe("DatasetsDelete", func() {
 		It("succeeds if authenticated as custodian", func() {
 			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{client.Permissions{"custodian": client.Permission{}}, nil}}
 			v1.DatasetsDelete(context)
-			Expect(context.DataStoreSessionImpl.GetDatasetInputs).To(Equal([]string{targetUpload.UploadID}))
+			Expect(context.DataStoreSessionImpl.GetDatasetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
 			Expect(context.UserServicesClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authenticatedUserID, targetUserID}}))
 			Expect(context.DataStoreSessionImpl.DeleteDatasetInputs).To(Equal([]*upload.Upload{targetUpload}))
 			Expect(context.MetricServicesClientImpl.RecordMetricInputs).To(Equal([]RecordMetricInput{{context, "datasets_delete", nil}}))
@@ -63,7 +63,7 @@ var _ = Describe("DatasetsDelete", func() {
 			targetUpload.ByUser = authenticatedUserID
 			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{client.Permissions{"upload": client.Permission{}}, nil}}
 			v1.DatasetsDelete(context)
-			Expect(context.DataStoreSessionImpl.GetDatasetInputs).To(Equal([]string{targetUpload.UploadID}))
+			Expect(context.DataStoreSessionImpl.GetDatasetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
 			Expect(context.UserServicesClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authenticatedUserID, targetUserID}}))
 			Expect(context.DataStoreSessionImpl.DeleteDatasetInputs).To(Equal([]*upload.Upload{targetUpload}))
 			Expect(context.MetricServicesClientImpl.RecordMetricInputs).To(Equal([]RecordMetricInput{{context, "datasets_delete", nil}}))
@@ -76,7 +76,7 @@ var _ = Describe("DatasetsDelete", func() {
 			context.AuthenticationDetailsImpl.UserIDOutputs = []string{}
 			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
 			v1.DatasetsDelete(context)
-			Expect(context.DataStoreSessionImpl.GetDatasetInputs).To(Equal([]string{targetUpload.UploadID}))
+			Expect(context.DataStoreSessionImpl.GetDatasetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
 			Expect(context.DataStoreSessionImpl.DeleteDatasetInputs).To(Equal([]*upload.Upload{targetUpload}))
 			Expect(context.MetricServicesClientImpl.RecordMetricInputs).To(Equal([]RecordMetricInput{{context, "datasets_delete", nil}}))
 			Expect(context.RespondWithStatusAndDataInputs).To(Equal([]RespondWithStatusAndDataInput{{http.StatusOK, struct{}{}}}))
@@ -84,7 +84,7 @@ var _ = Describe("DatasetsDelete", func() {
 		})
 
 		It("panics if context is missing", func() {
-			context.DataStoreSessionImpl.GetDatasetOutputs = []GetDatasetOutput{}
+			context.DataStoreSessionImpl.GetDatasetByIDOutputs = []GetDatasetByIDOutput{}
 			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{}
 			context.AuthenticationDetailsImpl.UserIDOutputs = []string{}
 			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
@@ -96,7 +96,7 @@ var _ = Describe("DatasetsDelete", func() {
 
 		It("panics if request is missing", func() {
 			context.RequestImpl = nil
-			context.DataStoreSessionImpl.GetDatasetOutputs = []GetDatasetOutput{}
+			context.DataStoreSessionImpl.GetDatasetByIDOutputs = []GetDatasetByIDOutput{}
 			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{}
 			context.AuthenticationDetailsImpl.UserIDOutputs = []string{}
 			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
@@ -108,7 +108,7 @@ var _ = Describe("DatasetsDelete", func() {
 
 		It("responds with error if dataset id not provided as a parameter", func() {
 			delete(context.RequestImpl.PathParams, "datasetid")
-			context.DataStoreSessionImpl.GetDatasetOutputs = []GetDatasetOutput{}
+			context.DataStoreSessionImpl.GetDatasetByIDOutputs = []GetDatasetByIDOutput{}
 			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{}
 			context.AuthenticationDetailsImpl.UserIDOutputs = []string{}
 			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
@@ -130,14 +130,14 @@ var _ = Describe("DatasetsDelete", func() {
 		})
 
 		It("responds with error if data store session get dataset returns error", func() {
-			context.DataStoreSessionImpl.GetDatasetOutputs = []GetDatasetOutput{{nil, errors.New("other")}}
+			context.DataStoreSessionImpl.GetDatasetByIDOutputs = []GetDatasetByIDOutput{{nil, errors.New("other")}}
 			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{}
 			context.AuthenticationDetailsImpl.UserIDOutputs = []string{}
 			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
 			context.DataStoreSessionImpl.DeleteDatasetOutputs = []error{}
 			context.MetricServicesClientImpl.RecordMetricOutputs = []error{}
 			v1.DatasetsDelete(context)
-			Expect(context.DataStoreSessionImpl.GetDatasetInputs).To(Equal([]string{targetUpload.UploadID}))
+			Expect(context.DataStoreSessionImpl.GetDatasetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
 			Expect(context.RespondWithErrorInputs).To(Equal([]*service.Error{v1.ErrorDatasetIDNotFound(targetUpload.UploadID)}))
 			Expect(context.ValidateTest()).To(BeTrue())
 		})
@@ -150,7 +150,7 @@ var _ = Describe("DatasetsDelete", func() {
 			context.DataStoreSessionImpl.DeleteDatasetOutputs = []error{}
 			context.MetricServicesClientImpl.RecordMetricOutputs = []error{}
 			v1.DatasetsDelete(context)
-			Expect(context.DataStoreSessionImpl.GetDatasetInputs).To(Equal([]string{targetUpload.UploadID}))
+			Expect(context.DataStoreSessionImpl.GetDatasetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
 			Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to get user id from dataset", nil}}))
 			Expect(context.ValidateTest()).To(BeTrue())
 		})
@@ -161,7 +161,7 @@ var _ = Describe("DatasetsDelete", func() {
 			context.DataStoreSessionImpl.DeleteDatasetOutputs = []error{}
 			context.MetricServicesClientImpl.RecordMetricOutputs = []error{}
 			Expect(func() { v1.DatasetsDelete(context) }).To(Panic())
-			Expect(context.DataStoreSessionImpl.GetDatasetInputs).To(Equal([]string{targetUpload.UploadID}))
+			Expect(context.DataStoreSessionImpl.GetDatasetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
 			Expect(context.ValidateTest()).To(BeTrue())
 		})
 
@@ -170,7 +170,7 @@ var _ = Describe("DatasetsDelete", func() {
 			context.DataStoreSessionImpl.DeleteDatasetOutputs = []error{}
 			context.MetricServicesClientImpl.RecordMetricOutputs = []error{}
 			Expect(func() { v1.DatasetsDelete(context) }).To(Panic())
-			Expect(context.DataStoreSessionImpl.GetDatasetInputs).To(Equal([]string{targetUpload.UploadID}))
+			Expect(context.DataStoreSessionImpl.GetDatasetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
 			Expect(context.ValidateTest()).To(BeTrue())
 		})
 
@@ -179,7 +179,7 @@ var _ = Describe("DatasetsDelete", func() {
 			context.DataStoreSessionImpl.DeleteDatasetOutputs = []error{}
 			context.MetricServicesClientImpl.RecordMetricOutputs = []error{}
 			v1.DatasetsDelete(context)
-			Expect(context.DataStoreSessionImpl.GetDatasetInputs).To(Equal([]string{targetUpload.UploadID}))
+			Expect(context.DataStoreSessionImpl.GetDatasetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
 			Expect(context.UserServicesClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authenticatedUserID, targetUserID}}))
 			Expect(context.RespondWithErrorInputs).To(Equal([]*service.Error{service.ErrorUnauthorized()}))
 			Expect(context.ValidateTest()).To(BeTrue())
@@ -191,7 +191,7 @@ var _ = Describe("DatasetsDelete", func() {
 			context.DataStoreSessionImpl.DeleteDatasetOutputs = []error{}
 			context.MetricServicesClientImpl.RecordMetricOutputs = []error{}
 			v1.DatasetsDelete(context)
-			Expect(context.DataStoreSessionImpl.GetDatasetInputs).To(Equal([]string{targetUpload.UploadID}))
+			Expect(context.DataStoreSessionImpl.GetDatasetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
 			Expect(context.UserServicesClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authenticatedUserID, targetUserID}}))
 			Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to get user permissions", []interface{}{err}}}))
 			Expect(context.ValidateTest()).To(BeTrue())
@@ -202,7 +202,7 @@ var _ = Describe("DatasetsDelete", func() {
 			context.DataStoreSessionImpl.DeleteDatasetOutputs = []error{}
 			context.MetricServicesClientImpl.RecordMetricOutputs = []error{}
 			v1.DatasetsDelete(context)
-			Expect(context.DataStoreSessionImpl.GetDatasetInputs).To(Equal([]string{targetUpload.UploadID}))
+			Expect(context.DataStoreSessionImpl.GetDatasetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
 			Expect(context.UserServicesClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authenticatedUserID, targetUserID}}))
 			Expect(context.RespondWithErrorInputs).To(Equal([]*service.Error{service.ErrorUnauthorized()}))
 			Expect(context.ValidateTest()).To(BeTrue())
@@ -213,7 +213,7 @@ var _ = Describe("DatasetsDelete", func() {
 			context.DataStoreSessionImpl.DeleteDatasetOutputs = []error{}
 			context.MetricServicesClientImpl.RecordMetricOutputs = []error{}
 			v1.DatasetsDelete(context)
-			Expect(context.DataStoreSessionImpl.GetDatasetInputs).To(Equal([]string{targetUpload.UploadID}))
+			Expect(context.DataStoreSessionImpl.GetDatasetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
 			Expect(context.UserServicesClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authenticatedUserID, targetUserID}}))
 			Expect(context.RespondWithErrorInputs).To(Equal([]*service.Error{service.ErrorUnauthorized()}))
 			Expect(context.ValidateTest()).To(BeTrue())
@@ -224,7 +224,7 @@ var _ = Describe("DatasetsDelete", func() {
 			context.DataStoreSessionImpl.DeleteDatasetOutputs = []error{err}
 			context.MetricServicesClientImpl.RecordMetricOutputs = []error{}
 			v1.DatasetsDelete(context)
-			Expect(context.DataStoreSessionImpl.GetDatasetInputs).To(Equal([]string{targetUpload.UploadID}))
+			Expect(context.DataStoreSessionImpl.GetDatasetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
 			Expect(context.UserServicesClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authenticatedUserID, targetUserID}}))
 			Expect(context.DataStoreSessionImpl.DeleteDatasetInputs).To(Equal([]*upload.Upload{targetUpload}))
 			Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to delete dataset", []interface{}{err}}}))
@@ -234,7 +234,7 @@ var _ = Describe("DatasetsDelete", func() {
 		It("panics if metric services client is missing", func() {
 			context.MetricServicesClientImpl = nil
 			Expect(func() { v1.DatasetsDelete(context) }).To(Panic())
-			Expect(context.DataStoreSessionImpl.GetDatasetInputs).To(Equal([]string{targetUpload.UploadID}))
+			Expect(context.DataStoreSessionImpl.GetDatasetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
 			Expect(context.UserServicesClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authenticatedUserID, targetUserID}}))
 			Expect(context.DataStoreSessionImpl.DeleteDatasetInputs).To(Equal([]*upload.Upload{targetUpload}))
 			Expect(context.ValidateTest()).To(BeTrue())
@@ -243,7 +243,7 @@ var _ = Describe("DatasetsDelete", func() {
 		It("logs and ignores if metric services record metric returns an error", func() {
 			context.MetricServicesClientImpl.RecordMetricOutputs = []error{errors.New("other")}
 			v1.DatasetsDelete(context)
-			Expect(context.DataStoreSessionImpl.GetDatasetInputs).To(Equal([]string{targetUpload.UploadID}))
+			Expect(context.DataStoreSessionImpl.GetDatasetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
 			Expect(context.DataStoreSessionImpl.DeleteDatasetInputs).To(Equal([]*upload.Upload{targetUpload}))
 			Expect(context.MetricServicesClientImpl.RecordMetricInputs).To(Equal([]RecordMetricInput{{context, "datasets_delete", nil}}))
 			Expect(context.RespondWithStatusAndDataInputs).To(Equal([]RespondWithStatusAndDataInput{{http.StatusOK, struct{}{}}}))

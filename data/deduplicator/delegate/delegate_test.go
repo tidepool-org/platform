@@ -80,12 +80,12 @@ func (t *TestDataStoreSession) SetAgent(agent commonStore.Agent) {
 	panic("Unexpected invocation of SetAgent on TestDataStoreSession")
 }
 
-func (t *TestDataStoreSession) GetDatasetsForUser(userID string, filter *store.Filter, pagination *store.Pagination) ([]*upload.Upload, error) {
-	panic("Unexpected invocation of GetDatasetsForUser on TestDataStoreSession")
+func (t *TestDataStoreSession) GetDatasetsForUserByID(userID string, filter *store.Filter, pagination *store.Pagination) ([]*upload.Upload, error) {
+	panic("Unexpected invocation of GetDatasetsForUserByID on TestDataStoreSession")
 }
 
-func (t *TestDataStoreSession) GetDataset(datasetID string) (*upload.Upload, error) {
-	panic("Unexpected invocation of GetDataset on TestDataStoreSession")
+func (t *TestDataStoreSession) GetDatasetByID(datasetID string) (*upload.Upload, error) {
+	panic("Unexpected invocation of GetDatasetByID on TestDataStoreSession")
 }
 
 func (t *TestDataStoreSession) CreateDataset(dataset *upload.Upload) error {
@@ -112,8 +112,8 @@ func (t *TestDataStoreSession) DeleteOtherDatasetData(dataset *upload.Upload) er
 	panic("Unexpected invocation of DeleteOtherDatasetData on TestDataStoreSession")
 }
 
-func (t *TestDataStoreSession) DeleteDataForUser(userID string) error {
-	panic("Unexpected invocation of DeleteDataForUser on TestDataStoreSession")
+func (t *TestDataStoreSession) DestroyDataForUserByID(userID string) error {
+	panic("Unexpected invocation of DestroyDataForUserByID on TestDataStoreSession")
 }
 
 var _ = Describe("Delegate", func() {

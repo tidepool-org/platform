@@ -27,15 +27,15 @@ type Store interface {
 type Session interface {
 	store.Session
 
-	GetDatasetsForUser(userID string, filter *Filter, pagination *Pagination) ([]*upload.Upload, error)
-	GetDataset(datasetID string) (*upload.Upload, error)
+	GetDatasetsForUserByID(userID string, filter *Filter, pagination *Pagination) ([]*upload.Upload, error)
+	GetDatasetByID(datasetID string) (*upload.Upload, error)
 	CreateDataset(dataset *upload.Upload) error
 	UpdateDataset(dataset *upload.Upload) error
 	DeleteDataset(dataset *upload.Upload) error
 	CreateDatasetData(dataset *upload.Upload, datasetData []data.Datum) error
 	ActivateDatasetData(dataset *upload.Upload) error
 	DeleteOtherDatasetData(dataset *upload.Upload) error
-	DeleteDataForUser(userID string) error
+	DestroyDataForUserByID(userID string) error
 }
 
 type Filter struct {

@@ -189,7 +189,7 @@ var _ = Describe("Mongo", func() {
 					}
 				})
 
-				Context("GetDatasetsForUser", func() {
+				Context("GetDatasetsForUserByID", func() {
 					var filter *store.Filter
 					var pagination *store.Pagination
 
@@ -201,65 +201,65 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("succeeds if it successfully finds the user datasets", func() {
-						Expect(mongoSession.GetDatasetsForUser(userID, filter, pagination)).To(Equal([]*upload.Upload{datasetExistingOne, dataset, datasetExistingTwo}))
+						Expect(mongoSession.GetDatasetsForUserByID(userID, filter, pagination)).To(Equal([]*upload.Upload{datasetExistingOne, dataset, datasetExistingTwo}))
 					})
 
 					It("succeeds if the filter is not specified", func() {
-						Expect(mongoSession.GetDatasetsForUser(userID, nil, pagination)).To(Equal([]*upload.Upload{datasetExistingOne, dataset, datasetExistingTwo}))
+						Expect(mongoSession.GetDatasetsForUserByID(userID, nil, pagination)).To(Equal([]*upload.Upload{datasetExistingOne, dataset, datasetExistingTwo}))
 					})
 
 					It("succeeds if the pagination is not specified", func() {
-						Expect(mongoSession.GetDatasetsForUser(userID, filter, nil)).To(Equal([]*upload.Upload{datasetExistingOne, dataset, datasetExistingTwo}))
+						Expect(mongoSession.GetDatasetsForUserByID(userID, filter, nil)).To(Equal([]*upload.Upload{datasetExistingOne, dataset, datasetExistingTwo}))
 					})
 
 					It("succeeds if the pagination size is not default", func() {
 						pagination.Size = 2
-						Expect(mongoSession.GetDatasetsForUser(userID, filter, pagination)).To(Equal([]*upload.Upload{datasetExistingOne, dataset}))
+						Expect(mongoSession.GetDatasetsForUserByID(userID, filter, pagination)).To(Equal([]*upload.Upload{datasetExistingOne, dataset}))
 					})
 
 					It("succeeds if the pagination page and size is not default", func() {
 						pagination.Page = 1
 						pagination.Size = 2
-						Expect(mongoSession.GetDatasetsForUser(userID, filter, pagination)).To(Equal([]*upload.Upload{datasetExistingTwo}))
+						Expect(mongoSession.GetDatasetsForUserByID(userID, filter, pagination)).To(Equal([]*upload.Upload{datasetExistingTwo}))
 					})
 
 					It("succeeds if it successfully does not find another user datasets", func() {
-						resultDatasets, err := mongoSession.GetDatasetsForUser(app.NewID(), filter, pagination)
+						resultDatasets, err := mongoSession.GetDatasetsForUserByID(app.NewID(), filter, pagination)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(resultDatasets).ToNot(BeNil())
 						Expect(resultDatasets).To(BeEmpty())
 					})
 
 					It("returns an error if the user id is missing", func() {
-						resultDatasets, err := mongoSession.GetDatasetsForUser("", filter, pagination)
+						resultDatasets, err := mongoSession.GetDatasetsForUserByID("", filter, pagination)
 						Expect(err).To(MatchError("mongo: user id is missing"))
 						Expect(resultDatasets).To(BeNil())
 					})
 
 					It("returns an error if the pagination page is less than minimum", func() {
 						pagination.Page = -1
-						resultDatasets, err := mongoSession.GetDatasetsForUser(userID, filter, pagination)
+						resultDatasets, err := mongoSession.GetDatasetsForUserByID(userID, filter, pagination)
 						Expect(err).To(MatchError("mongo: pagination is invalid; store: page is invalid"))
 						Expect(resultDatasets).To(BeNil())
 					})
 
 					It("returns an error if the pagination size is less than minimum", func() {
 						pagination.Size = 0
-						resultDatasets, err := mongoSession.GetDatasetsForUser(userID, filter, pagination)
+						resultDatasets, err := mongoSession.GetDatasetsForUserByID(userID, filter, pagination)
 						Expect(err).To(MatchError("mongo: pagination is invalid; store: size is invalid"))
 						Expect(resultDatasets).To(BeNil())
 					})
 
 					It("returns an error if the pagination size is greater than maximum", func() {
 						pagination.Size = 101
-						resultDatasets, err := mongoSession.GetDatasetsForUser(userID, filter, pagination)
+						resultDatasets, err := mongoSession.GetDatasetsForUserByID(userID, filter, pagination)
 						Expect(err).To(MatchError("mongo: pagination is invalid; store: size is invalid"))
 						Expect(resultDatasets).To(BeNil())
 					})
 
 					It("returns an error if the session is closed", func() {
 						mongoSession.Close()
-						resultDatasets, err := mongoSession.GetDatasetsForUser(userID, filter, pagination)
+						resultDatasets, err := mongoSession.GetDatasetsForUserByID(userID, filter, pagination)
 						Expect(err).To(MatchError("mongo: session closed"))
 						Expect(resultDatasets).To(BeNil())
 					})
@@ -271,42 +271,42 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("succeeds if it successfully finds the non-deleted user datasets", func() {
-							Expect(mongoSession.GetDatasetsForUser(userID, filter, pagination)).To(ConsistOf([]*upload.Upload{datasetExistingOne, datasetExistingTwo}))
+							Expect(mongoSession.GetDatasetsForUserByID(userID, filter, pagination)).To(ConsistOf([]*upload.Upload{datasetExistingOne, datasetExistingTwo}))
 						})
 
 						It("succeeds if it successfully finds all the user datasets", func() {
 							filter.Deleted = true
-							Expect(mongoSession.GetDatasetsForUser(userID, filter, pagination)).To(ConsistOf([]*upload.Upload{datasetExistingOne, dataset, datasetExistingTwo}))
+							Expect(mongoSession.GetDatasetsForUserByID(userID, filter, pagination)).To(ConsistOf([]*upload.Upload{datasetExistingOne, dataset, datasetExistingTwo}))
 						})
 					})
 				})
 
-				Context("GetDataset", func() {
+				Context("GetDatasetByID", func() {
 					BeforeEach(func() {
 						dataset.CreatedTime = "2016-09-01T11:00:00Z"
 						Expect(testMongoCollection.Insert(dataset)).To(Succeed())
 					})
 
 					It("succeeds if it successfully finds the dataset", func() {
-						Expect(mongoSession.GetDataset(dataset.UploadID)).To(Equal(dataset))
+						Expect(mongoSession.GetDatasetByID(dataset.UploadID)).To(Equal(dataset))
 					})
 
 					It("returns an error if the dataset id is missing", func() {
-						resultDataset, err := mongoSession.GetDataset("")
+						resultDataset, err := mongoSession.GetDatasetByID("")
 						Expect(err).To(MatchError("mongo: dataset id is missing"))
 						Expect(resultDataset).To(BeNil())
 					})
 
 					It("returns an error if the session is closed", func() {
 						mongoSession.Close()
-						resultDataset, err := mongoSession.GetDataset(dataset.UploadID)
+						resultDataset, err := mongoSession.GetDatasetByID(dataset.UploadID)
 						Expect(err).To(MatchError("mongo: session closed"))
 						Expect(resultDataset).To(BeNil())
 					})
 
 					It("returns an error if the dataset cannot be found", func() {
-						resultDataset, err := mongoSession.GetDataset("not-found")
-						Expect(err).To(MatchError("mongo: unable to get dataset; not found"))
+						resultDataset, err := mongoSession.GetDatasetByID("not-found")
+						Expect(err).To(MatchError("mongo: unable to get dataset by id; not found"))
 						Expect(resultDataset).To(BeNil())
 					})
 				})
@@ -834,7 +834,7 @@ var _ = Describe("Mongo", func() {
 						})
 					})
 
-					Context("DeleteDataForUser", func() {
+					Context("DestroyDataForUserByID", func() {
 						var deleteUserID string
 						var deleteGroupID string
 						var deleteDataset *upload.Upload
@@ -852,21 +852,21 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("succeeds if it successfully removes all other dataset data", func() {
-							Expect(mongoSession.DeleteDataForUser(deleteUserID)).To(Succeed())
+							Expect(mongoSession.DestroyDataForUserByID(deleteUserID)).To(Succeed())
 						})
 
 						It("returns an error if the user id is missing", func() {
-							Expect(mongoSession.DeleteDataForUser("")).To(MatchError("mongo: user id is missing"))
+							Expect(mongoSession.DestroyDataForUserByID("")).To(MatchError("mongo: user id is missing"))
 						})
 
 						It("returns an error if the session is closed", func() {
 							mongoSession.Close()
-							Expect(mongoSession.DeleteDataForUser(deleteUserID)).To(MatchError("mongo: session closed"))
+							Expect(mongoSession.DestroyDataForUserByID(deleteUserID)).To(MatchError("mongo: session closed"))
 						})
 
 						It("has the correct stored dataset", func() {
 							ValidateDataset(testMongoCollection, bson.M{}, dataset, datasetExistingOne, datasetExistingTwo, deleteDataset)
-							Expect(mongoSession.DeleteDataForUser(deleteUserID)).To(Succeed())
+							Expect(mongoSession.DestroyDataForUserByID(deleteUserID)).To(Succeed())
 							ValidateDataset(testMongoCollection, bson.M{}, dataset, datasetExistingOne, datasetExistingTwo)
 						})
 
@@ -874,7 +874,7 @@ var _ = Describe("Mongo", func() {
 							datasetAfterRemoveData := append(append(append(datasetData, dataset, datasetExistingOne, datasetExistingTwo), datasetExistingOneData...), datasetExistingTwoData...)
 							datasetBeforeRemoveData := append(append(datasetAfterRemoveData, deleteDataset), deleteDatasetData...)
 							ValidateDatasetData(testMongoCollection, bson.M{}, datasetBeforeRemoveData)
-							Expect(mongoSession.DeleteDataForUser(deleteUserID)).To(Succeed())
+							Expect(mongoSession.DestroyDataForUserByID(deleteUserID)).To(Succeed())
 							ValidateDatasetData(testMongoCollection, bson.M{}, datasetAfterRemoveData)
 						})
 					})

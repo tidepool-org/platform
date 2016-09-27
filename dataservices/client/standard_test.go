@@ -141,17 +141,17 @@ var _ = Describe("Standard", func() {
 			}
 		})
 
-		Context("DeleteDataForUser", func() {
+		Context("DestroyDataForUserByID", func() {
 			It("returns error if context is missing", func() {
 				context.TestUserServicesClient.ServerTokenOutputs = nil
-				Expect(standard.DeleteDataForUser(nil, "test-user-id")).To(MatchError("client: context is missing"))
+				Expect(standard.DestroyDataForUserByID(nil, "test-user-id")).To(MatchError("client: context is missing"))
 				Expect(server.ReceivedRequests()).To(BeEmpty())
 				Expect(context.ValidateTest()).To(BeTrue())
 			})
 
 			It("returns error if user id is missing", func() {
 				context.TestUserServicesClient.ServerTokenOutputs = nil
-				Expect(standard.DeleteDataForUser(context, "")).To(MatchError("client: user id is missing"))
+				Expect(standard.DestroyDataForUserByID(context, "")).To(MatchError("client: user id is missing"))
 				Expect(server.ReceivedRequests()).To(BeEmpty())
 				Expect(context.ValidateTest()).To(BeTrue())
 			})
@@ -159,7 +159,7 @@ var _ = Describe("Standard", func() {
 			It("returns error if the context request is missing", func() {
 				context.TestRequest = nil
 				context.TestUserServicesClient.ServerTokenOutputs = nil
-				Expect(standard.DeleteDataForUser(context, "test-user-id")).To(MatchError("client: unable to copy request trace; service: source request is missing"))
+				Expect(standard.DestroyDataForUserByID(context, "test-user-id")).To(MatchError("client: unable to copy request trace; service: source request is missing"))
 				Expect(server.ReceivedRequests()).To(BeEmpty())
 				Expect(context.ValidateTest()).To(BeTrue())
 			})
@@ -167,7 +167,7 @@ var _ = Describe("Standard", func() {
 			It("returns error if the user services client server token returns an error", func() {
 				err := errors.New("test-error")
 				context.TestUserServicesClient.ServerTokenOutputs = []ServerTokenOutput{{"", err}}
-				Expect(standard.DeleteDataForUser(context, "test-user-id")).To(Equal(err))
+				Expect(standard.DestroyDataForUserByID(context, "test-user-id")).To(Equal(err))
 				Expect(server.ReceivedRequests()).To(BeEmpty())
 				Expect(context.ValidateTest()).To(BeTrue())
 			})
@@ -175,7 +175,7 @@ var _ = Describe("Standard", func() {
 			It("returns error if the server is not reachable", func() {
 				server.Close()
 				server = nil
-				err := standard.DeleteDataForUser(context, "test-user-id")
+				err := standard.DestroyDataForUserByID(context, "test-user-id")
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(HavePrefix("client: unable to perform request DELETE "))
 				Expect(context.ValidateTest()).To(BeTrue())
@@ -193,7 +193,7 @@ var _ = Describe("Standard", func() {
 				})
 
 				It("returns an error", func() {
-					err := standard.DeleteDataForUser(context, "test-user-id")
+					err := standard.DestroyDataForUserByID(context, "test-user-id")
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(HavePrefix("client: unexpected response status code 400 from DELETE "))
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
@@ -213,7 +213,7 @@ var _ = Describe("Standard", func() {
 				})
 
 				It("returns an error", func() {
-					err := standard.DeleteDataForUser(context, "test-user-id")
+					err := standard.DestroyDataForUserByID(context, "test-user-id")
 					Expect(err).To(MatchError("client: unauthorized"))
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 					Expect(context.ValidateTest()).To(BeTrue())
@@ -232,7 +232,7 @@ var _ = Describe("Standard", func() {
 				})
 
 				It("returns success", func() {
-					Expect(standard.DeleteDataForUser(context, "test-user-id")).To(Succeed())
+					Expect(standard.DestroyDataForUserByID(context, "test-user-id")).To(Succeed())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 					Expect(context.ValidateTest()).To(BeTrue())
 				})

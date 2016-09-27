@@ -25,7 +25,7 @@ func DatasetsDelete(serviceContext service.Context) {
 		return
 	}
 
-	dataset, err := serviceContext.DataStoreSession().GetDataset(datasetID)
+	dataset, err := serviceContext.DataStoreSession().GetDatasetByID(datasetID)
 	if err != nil {
 		serviceContext.RespondWithError(ErrorDatasetIDNotFound(datasetID))
 		return

@@ -54,7 +54,7 @@ type Session struct {
 	*mongo.Session
 }
 
-func (s *Session) GetDatasetsForUser(userID string, filter *store.Filter, pagination *store.Pagination) ([]*upload.Upload, error) {
+func (s *Session) GetDatasetsForUserByID(userID string, filter *store.Filter, pagination *store.Pagination) ([]*upload.Upload, error) {
 	if userID == "" {
 		return nil, app.Error("mongo", "user id is missing")
 	}
@@ -86,10 +86,10 @@ func (s *Session) GetDatasetsForUser(userID string, filter *store.Filter, pagina
 	err := s.C().Find(selector).Sort("-createdTime").Skip(pagination.Page * pagination.Size).Limit(pagination.Size).All(&datasets)
 
 	loggerFields := log.Fields{"userID": userID, "datasets-count": len(datasets), "duration": time.Since(startTime) / time.Microsecond}
-	s.Logger().WithFields(loggerFields).WithError(err).Debug("GetDatasetsForUser")
+	s.Logger().WithFields(loggerFields).WithError(err).Debug("GetDatasetsForUserByID")
 
 	if err != nil {
-		return nil, app.ExtError(err, "mongo", "unable to get datasets for user")
+		return nil, app.ExtError(err, "mongo", "unable to get datasets for user by id")
 	}
 
 	if datasets == nil {
@@ -98,7 +98,7 @@ func (s *Session) GetDatasetsForUser(userID string, filter *store.Filter, pagina
 	return datasets, nil
 }
 
-func (s *Session) GetDataset(datasetID string) (*upload.Upload, error) {
+func (s *Session) GetDatasetByID(datasetID string) (*upload.Upload, error) {
 	if datasetID == "" {
 		return nil, app.Error("mongo", "dataset id is missing")
 	}
@@ -117,10 +117,10 @@ func (s *Session) GetDataset(datasetID string) (*upload.Upload, error) {
 	err := s.C().Find(selector).One(&dataset)
 
 	loggerFields := log.Fields{"datasetID": datasetID, "dataset": dataset, "duration": time.Since(startTime) / time.Microsecond}
-	s.Logger().WithFields(loggerFields).WithError(err).Debug("GetDataset")
+	s.Logger().WithFields(loggerFields).WithError(err).Debug("GetDatasetByID")
 
 	if err != nil {
-		return nil, app.ExtError(err, "mongo", "unable to get dataset")
+		return nil, app.ExtError(err, "mongo", "unable to get dataset by id")
 	}
 	return &dataset, nil
 }
@@ -456,7 +456,7 @@ func (s *Session) DeleteOtherDatasetData(dataset *upload.Upload) error {
 	return nil
 }
 
-func (s *Session) DeleteDataForUser(userID string) error {
+func (s *Session) DestroyDataForUserByID(userID string) error {
 	if userID == "" {
 		return app.Error("mongo", "user id is missing")
 	}
@@ -473,10 +473,10 @@ func (s *Session) DeleteDataForUser(userID string) error {
 	removeInfo, err := s.C().RemoveAll(selector)
 
 	loggerFields := log.Fields{"userID": userID, "remove-info": removeInfo, "duration": time.Since(startTime) / time.Microsecond}
-	s.Logger().WithFields(loggerFields).WithError(err).Debug("DeleteDataForUser")
+	s.Logger().WithFields(loggerFields).WithError(err).Debug("DestroyDataForUserByID")
 
 	if err != nil {
-		return app.ExtError(err, "mongo", "unable to delete data for user")
+		return app.ExtError(err, "mongo", "unable to destroy data for user by id")
 	}
 
 	return nil

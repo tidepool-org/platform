@@ -218,7 +218,7 @@ func (s *Standard) initializeTaskStore() error {
 	if err := s.ConfigLoader().Load("task_store", taskStoreConfig); err != nil {
 		return app.ExtError(err, "service", "unable to load task store config")
 	}
-	taskStoreConfig.Collection = "deviceData"
+	taskStoreConfig.Collection = "syncTasks"
 
 	s.Logger().Debug("Creating task store")
 

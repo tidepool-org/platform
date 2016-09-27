@@ -24,5 +24,5 @@ type Context interface {
 }
 
 type Client interface {
-	DeleteDataForUser(context Context, userID string) error
+	DestroyDataForUserByID(context Context, userID string) error
 }
