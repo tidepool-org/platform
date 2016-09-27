@@ -57,7 +57,7 @@ func (s *Standard) DeleteDataForUser(context Context, userID string) error {
 
 	context.Logger().WithField("user-id", userID).Debug("Deleting data for user")
 
-	return s.sendRequest(context, "DELETE", s.buildURL("v1", "users", userID, "data"))
+	return s.sendRequest(context, "DELETE", s.buildURL("dataservices", "v1", "users", userID, "data"))
 }
 
 func (s *Standard) sendRequest(context Context, requestMethod string, requestURL string) error {

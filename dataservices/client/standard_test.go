@@ -185,7 +185,7 @@ var _ = Describe("Standard", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("DELETE", "/v1/users/test-user-id/data"),
+							ghttp.VerifyRequest("DELETE", "/dataservices/v1/users/test-user-id/data"),
 							ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-server-token"),
 							ghttp.VerifyBody([]byte{}),
 							ghttp.RespondWith(http.StatusBadRequest, nil, nil)),
@@ -205,7 +205,7 @@ var _ = Describe("Standard", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("DELETE", "/v1/users/test-user-id/data"),
+							ghttp.VerifyRequest("DELETE", "/dataservices/v1/users/test-user-id/data"),
 							ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-server-token"),
 							ghttp.VerifyBody([]byte{}),
 							ghttp.RespondWith(http.StatusUnauthorized, nil, nil)),
@@ -224,7 +224,7 @@ var _ = Describe("Standard", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("DELETE", "/v1/users/test-user-id/data"),
+							ghttp.VerifyRequest("DELETE", "/dataservices/v1/users/test-user-id/data"),
 							ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", "test-server-token"),
 							ghttp.VerifyBody([]byte{}),
 							ghttp.RespondWith(http.StatusOK, nil, nil)),
