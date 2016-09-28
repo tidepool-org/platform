@@ -79,9 +79,9 @@ func wrapCommands(commands cli.Commands) cli.Commands {
 func wrapCommand(command cli.Command) cli.Command {
 	command.Before = wrapCommandFunc(command.Before)
 	command.After = wrapCommandFunc(command.After)
-	if actionFunc, actionOK := command.Action.(cli.ActionFunc); actionOK {
+	if actionFunc, actionOk := command.Action.(cli.ActionFunc); actionOk {
 		command.Action = wrapCommandFunc(actionFunc)
-	} else if commandFunc, commandOK := command.Action.(func(*cli.Context) error); commandOK {
+	} else if commandFunc, commandOk := command.Action.(func(*cli.Context) error); commandOk {
 		command.Action = wrapCommandFunc(commandFunc)
 	}
 	command.Subcommands = wrapCommands(command.Subcommands)

@@ -27,6 +27,10 @@ func DatasetsUpdate(serviceContext service.Context) {
 
 	dataset, err := serviceContext.DataStoreSession().GetDatasetByID(datasetID)
 	if err != nil {
+		serviceContext.RespondWithInternalServerFailure("Unable to get dataset by id", err)
+		return
+	}
+	if dataset == nil {
 		serviceContext.RespondWithError(ErrorDatasetIDNotFound(datasetID))
 		return
 	}

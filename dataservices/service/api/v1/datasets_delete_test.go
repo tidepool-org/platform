@@ -130,7 +130,21 @@ var _ = Describe("DatasetsDelete", func() {
 		})
 
 		It("responds with error if data store session get dataset returns error", func() {
-			context.DataStoreSessionImpl.GetDatasetByIDOutputs = []GetDatasetByIDOutput{{nil, errors.New("other")}}
+			err := errors.New("other")
+			context.DataStoreSessionImpl.GetDatasetByIDOutputs = []GetDatasetByIDOutput{{nil, err}}
+			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{}
+			context.AuthenticationDetailsImpl.UserIDOutputs = []string{}
+			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
+			context.DataStoreSessionImpl.DeleteDatasetOutputs = []error{}
+			context.MetricServicesClientImpl.RecordMetricOutputs = []error{}
+			v1.DatasetsDelete(context)
+			Expect(context.DataStoreSessionImpl.GetDatasetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
+			Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to get dataset by id", []interface{}{err}}}))
+			Expect(context.ValidateTest()).To(BeTrue())
+		})
+
+		It("responds with error if data store session get dataset returns no dataset", func() {
+			context.DataStoreSessionImpl.GetDatasetByIDOutputs = []GetDatasetByIDOutput{{nil, nil}}
 			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{}
 			context.AuthenticationDetailsImpl.UserIDOutputs = []string{}
 			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}

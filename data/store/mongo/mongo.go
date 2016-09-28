@@ -109,20 +109,27 @@ func (s *Session) GetDatasetByID(datasetID string) (*upload.Upload, error) {
 
 	startTime := time.Now()
 
-	var dataset upload.Upload
+	datasets := []*upload.Upload{}
 	selector := bson.M{
 		"uploadId": datasetID,
 		"type":     "upload",
 	}
-	err := s.C().Find(selector).One(&dataset)
+	err := s.C().Find(selector).Limit(2).All(&datasets)
 
-	loggerFields := log.Fields{"datasetID": datasetID, "dataset": dataset, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"datasetID": datasetID, "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("GetDatasetByID")
 
 	if err != nil {
 		return nil, app.ExtError(err, "mongo", "unable to get dataset by id")
 	}
-	return &dataset, nil
+
+	if datasetsCount := len(datasets); datasetsCount == 0 {
+		return nil, nil
+	} else if datasetsCount > 1 {
+		s.Logger().WithField("datasetID", datasetID).Warn("Multiple datasets found for dataset id")
+	}
+
+	return datasets[0], nil
 }
 
 func (s *Session) CreateDataset(dataset *upload.Upload) error {

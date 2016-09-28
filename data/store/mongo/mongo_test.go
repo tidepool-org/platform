@@ -304,9 +304,9 @@ var _ = Describe("Mongo", func() {
 						Expect(resultDataset).To(BeNil())
 					})
 
-					It("returns an error if the dataset cannot be found", func() {
+					It("returns no dataset successfully if the dataset cannot be found", func() {
 						resultDataset, err := mongoSession.GetDatasetByID("not-found")
-						Expect(err).To(MatchError("mongo: unable to get dataset by id; not found"))
+						Expect(err).ToNot(HaveOccurred())
 						Expect(resultDataset).To(BeNil())
 					})
 				})
@@ -851,7 +851,7 @@ var _ = Describe("Mongo", func() {
 							Expect(mongoSession.CreateDatasetData(deleteDataset, deleteDatasetData)).To(Succeed())
 						})
 
-						It("succeeds if it successfully removes all other dataset data", func() {
+						It("succeeds if it successfully removes all data", func() {
 							Expect(mongoSession.DestroyDataForUserByID(deleteUserID)).To(Succeed())
 						})
 
