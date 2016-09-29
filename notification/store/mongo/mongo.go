@@ -11,6 +11,11 @@ package mongo
  */
 
 import (
+	"time"
+
+	"gopkg.in/mgo.v2/bson"
+
+	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/notification/store"
 	"github.com/tidepool-org/platform/store/mongo"
@@ -44,4 +49,32 @@ func (s *Store) NewSession(logger log.Logger) (store.Session, error) {
 
 type Session struct {
 	*mongo.Session
+}
+
+func (s *Session) DestroyNotificationsForUserByID(userID string) error {
+	if userID == "" {
+		return app.Error("mongo", "user id is missing")
+	}
+
+	if s.IsClosed() {
+		return app.Error("mongo", "session closed")
+	}
+
+	startTime := time.Now()
+
+	selector := bson.M{
+		"$or": []bson.M{
+			{"userId": userID},
+			{"creatorId": userID},
+		},
+	}
+	removeInfo, err := s.C().RemoveAll(selector)
+
+	loggerFields := log.Fields{"userID": userID, "remove-info": removeInfo, "duration": time.Since(startTime) / time.Microsecond}
+	s.Logger().WithFields(loggerFields).WithError(err).Debug("DestroyNotificationsForUserByID")
+
+	if err != nil {
+		return app.ExtError(err, "mongo", "unable to destroy notifications for user by id")
+	}
+	return nil
 }

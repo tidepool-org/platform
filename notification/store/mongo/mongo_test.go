@@ -7,6 +7,7 @@ import (
 	"time"
 
 	mgo "gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/log"
@@ -15,6 +16,40 @@ import (
 	baseMongo "github.com/tidepool-org/platform/store/mongo"
 	testMongo "github.com/tidepool-org/platform/test/mongo"
 )
+
+func NewNotification(userID string, notificationType string) bson.M {
+	return bson.M{
+		"created":   time.Now().UTC().Format(time.RFC3339),
+		"creator":   bson.M{},
+		"creatorId": "",
+		"email":     app.NewID(),
+		"modified":  time.Now().UTC().Format(time.RFC3339),
+		"status":    "completed",
+		"type":      notificationType,
+		"userId":    userID,
+	}
+}
+
+func NewNotifications(userID string, otherID string) []interface{} {
+	notifications := []interface{}{}
+	for count := 0; count < 3; count++ {
+		notifications = append(notifications, NewNotification(userID, "signup_confirmation"))
+		notifications = append(notifications, NewNotification(userID, "password_reset"))
+		notification := NewNotification(userID, "careteam_invitation")
+		notification["creatorId"] = otherID
+		notifications = append(notifications, notification)
+		notification = NewNotification(otherID, "careteam_invitation")
+		notification["creatorId"] = userID
+		notifications = append(notifications, notification)
+	}
+	return notifications
+}
+
+func ValidateNotifications(testMongoCollection *mgo.Collection, selector bson.M, expectedNotifications []interface{}) {
+	var actualNotifications []interface{}
+	Expect(testMongoCollection.Find(selector).Select(bson.M{"_id": 0}).All(&actualNotifications)).To(Succeed())
+	Expect(actualNotifications).To(ConsistOf(expectedNotifications))
+}
 
 var _ = Describe("Mongo", func() {
 	var mongoConfig *baseMongo.Config
@@ -90,16 +125,57 @@ var _ = Describe("Mongo", func() {
 			Context("with persisted data", func() {
 				var testMongoSession *mgo.Session
 				var testMongoCollection *mgo.Collection
+				var notifications []interface{}
 
 				BeforeEach(func() {
 					testMongoSession = testMongo.Session().Copy()
 					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.Collection)
+					notifications = NewNotifications(app.NewID(), app.NewID())
+				})
+
+				JustBeforeEach(func() {
+					Expect(testMongoCollection.Insert(notifications...)).To(Succeed())
 				})
 
 				AfterEach(func() {
 					if testMongoSession != nil {
 						testMongoSession.Close()
 					}
+				})
+
+				Context("DestroyNotificationsForUserByID", func() {
+					var destroyUserID string
+					var destroyOtherID string
+					var destroyNotifications []interface{}
+
+					BeforeEach(func() {
+						destroyUserID = app.NewID()
+						destroyOtherID = app.NewID()
+						destroyNotifications = NewNotifications(destroyUserID, destroyOtherID)
+					})
+
+					JustBeforeEach(func() {
+						Expect(testMongoCollection.Insert(destroyNotifications...)).To(Succeed())
+					})
+
+					It("succeeds if it successfully removes notifications", func() {
+						Expect(mongoSession.DestroyNotificationsForUserByID(destroyUserID)).To(Succeed())
+					})
+
+					It("returns an error if the user id is missing", func() {
+						Expect(mongoSession.DestroyNotificationsForUserByID("")).To(MatchError("mongo: user id is missing"))
+					})
+
+					It("returns an error if the session is closed", func() {
+						mongoSession.Close()
+						Expect(mongoSession.DestroyNotificationsForUserByID(destroyUserID)).To(MatchError("mongo: session closed"))
+					})
+
+					It("has the correct stored notifications", func() {
+						ValidateNotifications(testMongoCollection, bson.M{}, append(notifications, destroyNotifications...))
+						Expect(mongoSession.DestroyNotificationsForUserByID(destroyUserID)).To(Succeed())
+						ValidateNotifications(testMongoCollection, bson.M{}, notifications)
+					})
 				})
 			})
 		})
