@@ -23,4 +23,6 @@ type Store interface {
 
 type Session interface {
 	store.Session
+
+	DestroySessionsForUserByID(userID string) error
 }
