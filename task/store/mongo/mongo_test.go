@@ -17,31 +17,34 @@ import (
 	testMongo "github.com/tidepool-org/platform/test/mongo"
 )
 
-func NewTasksForUserByID(userID string) []interface{} {
+func NewTask(userID string) bson.M {
+	return bson.M{
+		"_createdTime":  time.Now().UTC().Format(time.RFC3339),
+		"_modifiedTime": time.Now().UTC().Format(time.RFC3339),
+		"_storage": bson.M{
+			"bucket":     "shovel",
+			"encryption": "none",
+			"key":        "1234567890",
+			"region":     "world",
+			"type":       "aws/s3",
+		},
+		"_userId": userID,
+		"status":  "success",
+	}
+}
+
+func NewTasks(userID string) []interface{} {
 	tasks := []interface{}{}
 	for count := 0; count < 3; count++ {
-		task := map[string]interface{}{
-			"_createdTime":  time.Now().UTC().Format(time.RFC3339),
-			"_modifiedTime": time.Now().UTC().Format(time.RFC3339),
-			"_storage": map[string]interface{}{
-				"bucket":     "shovel",
-				"encryption": "none",
-				"key":        "1234567890",
-				"region":     "world",
-				"type":       "aws/s3",
-			},
-			"_userId": userID,
-			"status":  "success",
-		}
-		tasks = append(tasks, task)
+		tasks = append(tasks, NewTask(userID))
 	}
 	return tasks
 }
 
 func ValidateTasks(testMongoCollection *mgo.Collection, selector bson.M, expectedTasks []interface{}) {
 	var actualTasks []interface{}
-	Expect(testMongoCollection.Find(selector).All(&actualTasks)).To(Succeed())
-	Expect(actualTasks).To(HaveLen(len(expectedTasks)))
+	Expect(testMongoCollection.Find(selector).Select(bson.M{"_id": 0}).All(&actualTasks)).To(Succeed())
+	Expect(actualTasks).To(ConsistOf(expectedTasks))
 }
 
 var _ = Describe("Mongo", func() {
@@ -118,10 +121,16 @@ var _ = Describe("Mongo", func() {
 			Context("with persisted data", func() {
 				var testMongoSession *mgo.Session
 				var testMongoCollection *mgo.Collection
+				var tasks []interface{}
 
 				BeforeEach(func() {
 					testMongoSession = testMongo.Session().Copy()
 					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.Collection)
+					tasks = NewTasks(app.NewID())
+				})
+
+				JustBeforeEach(func() {
+					Expect(testMongoCollection.Insert(tasks...)).To(Succeed())
 				})
 
 				AfterEach(func() {
@@ -131,20 +140,20 @@ var _ = Describe("Mongo", func() {
 				})
 
 				Context("DestroyTasksForUserByID", func() {
-					var deleteUserID string
-					var deleteTasks []interface{}
-					var otherTasks []interface{}
+					var destroyUserID string
+					var destroyTasks []interface{}
 
 					BeforeEach(func() {
-						deleteUserID = app.NewID()
-						deleteTasks = NewTasksForUserByID(deleteUserID)
-						Expect(testMongoCollection.Insert(deleteTasks...)).To(Succeed())
-						otherTasks = NewTasksForUserByID(app.NewID())
-						Expect(testMongoCollection.Insert(otherTasks...)).To(Succeed())
+						destroyUserID = app.NewID()
+						destroyTasks = NewTasks(destroyUserID)
+					})
+
+					JustBeforeEach(func() {
+						Expect(testMongoCollection.Insert(destroyTasks...)).To(Succeed())
 					})
 
 					It("succeeds if it successfully removes tasks", func() {
-						Expect(mongoSession.DestroyTasksForUserByID(deleteUserID)).To(Succeed())
+						Expect(mongoSession.DestroyTasksForUserByID(destroyUserID)).To(Succeed())
 					})
 
 					It("returns an error if the user id is missing", func() {
@@ -153,13 +162,13 @@ var _ = Describe("Mongo", func() {
 
 					It("returns an error if the session is closed", func() {
 						mongoSession.Close()
-						Expect(mongoSession.DestroyTasksForUserByID(deleteUserID)).To(MatchError("mongo: session closed"))
+						Expect(mongoSession.DestroyTasksForUserByID(destroyUserID)).To(MatchError("mongo: session closed"))
 					})
 
 					It("has the correct stored tasks", func() {
-						ValidateTasks(testMongoCollection, bson.M{}, append(otherTasks, deleteTasks...))
-						Expect(mongoSession.DestroyTasksForUserByID(deleteUserID)).To(Succeed())
-						ValidateTasks(testMongoCollection, bson.M{}, otherTasks)
+						ValidateTasks(testMongoCollection, bson.M{}, append(tasks, destroyTasks...))
+						Expect(mongoSession.DestroyTasksForUserByID(destroyUserID)).To(Succeed())
+						ValidateTasks(testMongoCollection, bson.M{}, tasks)
 					})
 				})
 			})
