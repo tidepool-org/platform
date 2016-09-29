@@ -247,7 +247,7 @@ func (s *Standard) initializeNotificationStore() error {
 func (s *Standard) initializePermissionStore() error {
 	s.Logger().Debug("Loading permission store config")
 
-	permissionStoreConfig := &baseMongo.Config{}
+	permissionStoreConfig := &permissionMongo.Config{}
 	if err := s.ConfigLoader().Load("permission_store", permissionStoreConfig); err != nil {
 		return app.ExtError(err, "service", "unable to load permission store config")
 	}
