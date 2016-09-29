@@ -23,4 +23,14 @@ type Store interface {
 
 type Session interface {
 	store.Session
+
+	DeleteMessagesFromUser(user *User) error
+	DestroyMessagesForUserByID(userID string) error
+}
+
+// TODO: Temporary until User is restructured
+
+type User struct {
+	ID       string
+	FullName string
 }
