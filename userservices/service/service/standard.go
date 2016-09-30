@@ -307,7 +307,7 @@ func (s *Standard) initializeSessionStore() error {
 func (s *Standard) initializeUserStore() error {
 	s.Logger().Debug("Loading user store config")
 
-	userStoreConfig := &baseMongo.Config{}
+	userStoreConfig := &userMongo.Config{}
 	if err := s.ConfigLoader().Load("user_store", userStoreConfig); err != nil {
 		return app.ExtError(err, "service", "unable to load user store config")
 	}
