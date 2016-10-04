@@ -32,13 +32,13 @@ type Standard struct {
 	metricServicesClient     metricservicesClient.Client
 	userServicesClient       userservicesClient.Client
 	dataServicesClient       dataservicesClient.Client
-	authenticationDetails    userservicesClient.AuthenticationDetails
 	messageStoreSession      messageStore.Session
 	notificationStoreSession notificationStore.Session
 	permissionStoreSession   permissionStore.Session
 	profileStoreSession      profileStore.Session
 	sessionStoreSession      sessionStore.Session
 	userStoreSession         userStore.Session
+	authenticationDetails    userservicesClient.AuthenticationDetails
 }
 
 func WithContext(metricServicesClient metricservicesClient.Client, userServicesClient userservicesClient.Client, dataServicesClient dataservicesClient.Client,
