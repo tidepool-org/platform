@@ -23,7 +23,7 @@ const (
 	_LogTraceRequest = "trace-request"
 	_LogTraceSession = "trace-session"
 
-	_TraceSessionMaximumLength = 64
+	_TraceMaximumLength = 64
 )
 
 func NewTrace() (*Trace, error) {
@@ -45,25 +45,33 @@ func (l *Trace) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
 
 			newLogger := oldLogger
 
-			newTraceRequest := app.NewID()
+			newTraceRequest := request.Header.Get(service.HTTPHeaderTraceRequest)
+			if newTraceRequest != "" {
+				if len(newTraceRequest) > _TraceMaximumLength {
+					newTraceRequest = newTraceRequest[:_TraceMaximumLength]
+				}
+			} else {
+				newTraceRequest = app.NewID()
+			}
 			service.SetRequestTraceRequest(request, newTraceRequest)
 			if newLogger != nil {
 				newLogger = newLogger.WithField(_LogTraceRequest, newTraceRequest)
 			}
+			response.Header().Add(service.HTTPHeaderTraceRequest, newTraceRequest)
 
-			if newTraceSession := request.Header.Get(service.HTTPHeaderTraceSession); newTraceSession != "" {
-				if len(newTraceSession) > _TraceSessionMaximumLength {
-					newTraceSession = newTraceSession[:_TraceSessionMaximumLength]
+			newTraceSession := request.Header.Get(service.HTTPHeaderTraceSession)
+			if newTraceSession != "" {
+				if len(newTraceSession) > _TraceMaximumLength {
+					newTraceSession = newTraceSession[:_TraceMaximumLength]
 				}
 				service.SetRequestTraceSession(request, newTraceSession)
 				if newLogger != nil {
 					newLogger = newLogger.WithField(_LogTraceSession, newTraceSession)
 				}
+				response.Header().Add(service.HTTPHeaderTraceSession, newTraceSession)
 			}
 
 			service.SetRequestLogger(request, newLogger)
-
-			response.Header().Add(service.HTTPHeaderTraceRequest, newTraceRequest)
 
 			handler(response, request)
 		}
