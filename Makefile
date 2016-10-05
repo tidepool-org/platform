@@ -125,10 +125,10 @@ ci-build: pre-build build
 
 start: start-dataservices start-userservices
 
-start-dataservices: stop-dataservices build log
+start-dataservices: stop-dataservices log
 	@cd $(ROOT_DIRECTORY) && _bin/dataservices/dataservices >> _log/service.log 2>&1 &
 
-start-userservices: stop-userservices build log
+start-userservices: stop-userservices log
 	@cd $(ROOT_DIRECTORY) && _bin/userservices/userservices >> _log/service.log 2>&1 &
 
 stop: stop-dataservices stop-userservices
