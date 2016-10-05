@@ -208,6 +208,9 @@ func (s *Session) AgentUserID() string {
 	if s.agent == nil {
 		return ""
 	}
+	if s.agent.IsServer() {
+		return ""
+	}
 	return s.agent.UserID()
 }
 

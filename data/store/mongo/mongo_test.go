@@ -21,7 +21,12 @@ import (
 )
 
 type TestAgent struct {
-	TestUserID string
+	TestIsServer bool
+	TestUserID   string
+}
+
+func (t *TestAgent) IsServer() bool {
+	return t.TestIsServer
 }
 
 func (t *TestAgent) UserID() string {
@@ -363,7 +368,7 @@ var _ = Describe("Mongo", func() {
 
 						BeforeEach(func() {
 							agentUserID = app.NewID()
-							mongoSession.SetAgent(&TestAgent{agentUserID})
+							mongoSession.SetAgent(&TestAgent{false, agentUserID})
 						})
 
 						It("sets the created time and created user id", func() {
@@ -448,7 +453,7 @@ var _ = Describe("Mongo", func() {
 
 						BeforeEach(func() {
 							agentUserID = app.NewID()
-							mongoSession.SetAgent(&TestAgent{agentUserID})
+							mongoSession.SetAgent(&TestAgent{false, agentUserID})
 						})
 
 						It("sets the modified time and modified user id", func() {
@@ -540,7 +545,7 @@ var _ = Describe("Mongo", func() {
 
 							BeforeEach(func() {
 								agentUserID = app.NewID()
-								mongoSession.SetAgent(&TestAgent{agentUserID})
+								mongoSession.SetAgent(&TestAgent{false, agentUserID})
 							})
 
 							It("sets the deleted time and deleted user id on the dataset", func() {
@@ -641,7 +646,7 @@ var _ = Describe("Mongo", func() {
 
 							BeforeEach(func() {
 								agentUserID = app.NewID()
-								mongoSession.SetAgent(&TestAgent{agentUserID})
+								mongoSession.SetAgent(&TestAgent{false, agentUserID})
 							})
 
 							It("sets the created time and created user id on the dataset data", func() {
@@ -726,7 +731,7 @@ var _ = Describe("Mongo", func() {
 
 							BeforeEach(func() {
 								agentUserID = app.NewID()
-								mongoSession.SetAgent(&TestAgent{agentUserID})
+								mongoSession.SetAgent(&TestAgent{false, agentUserID})
 							})
 
 							It("sets the modified time and modified user id on the dataset", func() {
@@ -813,7 +818,7 @@ var _ = Describe("Mongo", func() {
 
 							BeforeEach(func() {
 								agentUserID = app.NewID()
-								mongoSession.SetAgent(&TestAgent{agentUserID})
+								mongoSession.SetAgent(&TestAgent{false, agentUserID})
 							})
 
 							It("has the correct stored active dataset", func() {

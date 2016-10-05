@@ -25,5 +25,6 @@ type Session interface {
 }
 
 type Agent interface {
+	IsServer() bool
 	UserID() string
 }

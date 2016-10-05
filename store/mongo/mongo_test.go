@@ -15,7 +15,12 @@ import (
 )
 
 type TestAgent struct {
-	TestUserID string
+	TestIsServer bool
+	TestUserID   string
+}
+
+func (t *TestAgent) IsServer() bool {
+	return t.TestIsServer
 }
 
 func (t *TestAgent) UserID() string {
@@ -194,7 +199,7 @@ var _ = Describe("Mongo", func() {
 
 			Context("SetAgent", func() {
 				It("successfully sets the agent", func() {
-					mongoSession.SetAgent(&TestAgent{app.NewID()})
+					mongoSession.SetAgent(&TestAgent{false, app.NewID()})
 				})
 
 				It("successfully sets the agent if nil", func() {
@@ -229,9 +234,14 @@ var _ = Describe("Mongo", func() {
 					Expect(mongoSession.AgentUserID()).To(BeEmpty())
 				})
 
+				It("returns an empty string if the agent is server", func() {
+					mongoSession.SetAgent(&TestAgent{true, app.NewID()})
+					Expect(mongoSession.AgentUserID()).To(BeEmpty())
+				})
+
 				It("returns the agent user id if the agent is set", func() {
 					agentUserID := app.NewID()
-					mongoSession.SetAgent(&TestAgent{agentUserID})
+					mongoSession.SetAgent(&TestAgent{false, agentUserID})
 					Expect(mongoSession.AgentUserID()).To(Equal(agentUserID))
 				})
 			})

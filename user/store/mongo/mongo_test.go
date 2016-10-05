@@ -21,7 +21,12 @@ import (
 )
 
 type TestAgent struct {
-	TestUserID string
+	TestIsServer bool
+	TestUserID   string
+}
+
+func (t *TestAgent) IsServer() bool {
+	return t.TestIsServer
 }
 
 func (t *TestAgent) UserID() string {
@@ -318,7 +323,7 @@ var _ = Describe("Mongo", func() {
 
 						BeforeEach(func() {
 							agentUserID = app.NewID()
-							mongoSession.SetAgent(&TestAgent{agentUserID})
+							mongoSession.SetAgent(&TestAgent{false, agentUserID})
 						})
 
 						It("succeeds if it successfully removes users", func() {
