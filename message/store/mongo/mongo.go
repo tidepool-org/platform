@@ -80,7 +80,7 @@ func (s *Session) DeleteMessagesFromUser(user *store.User) error {
 	}
 	changeInfo, err := s.C().UpdateAll(selector, update)
 
-	loggerFields := log.Fields{"user": user, "change-info": changeInfo, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"userID": user.ID, "change-info": changeInfo, "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("DeleteMessagesFromUser")
 
 	if err != nil {

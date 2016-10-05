@@ -128,7 +128,7 @@ func (s *Session) DeleteUser(user *user.User) error {
 	}
 	err := s.C().Update(selector, user)
 
-	loggerFields := log.Fields{"user": user, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"userID": user.ID, "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("DeleteUser")
 
 	if err != nil {
