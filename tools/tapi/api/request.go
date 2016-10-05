@@ -24,9 +24,9 @@ import (
 )
 
 const (
-	TidepoolServerName   = "x-tidepool-server-name"
-	TidepoolServerSecret = "x-tidepool-server-secret"
-	TidepoolSessionToken = "x-tidepool-session-token"
+	TidepoolServerName   = "X-Tidepool-Server-Name"
+	TidepoolServerSecret = "X-Tidepool-Server-Secret"
+	TidepoolSessionToken = "X-Tidepool-Session-Token"
 )
 
 type (

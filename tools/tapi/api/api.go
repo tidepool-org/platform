@@ -73,6 +73,19 @@ func (a *API) info(infos ...interface{}) {
 	}
 }
 
+func (a *API) IsSessionUserID(userID string) bool {
+	if userID == "" {
+		return true
+	}
+
+	sessionUserID, err := a.fetchSessionUserID()
+	if err != nil {
+		return false
+	}
+
+	return userID == sessionUserID
+}
+
 func (a *API) fetchSessionUserID() (string, error) {
 	session, err := a.fetchSession()
 	if err != nil {

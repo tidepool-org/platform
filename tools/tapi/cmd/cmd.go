@@ -45,6 +45,7 @@ func InitializeApplication() (*cli.App, error) {
 	application.HideVersion = true
 	application.Commands = wrapCommands(mergeCommands(
 		AuthCommands(),
+		UserCommands(),
 		DatasetCommands(),
 		VersionCommands(versionReporter),
 	))
