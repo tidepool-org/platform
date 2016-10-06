@@ -17,8 +17,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/jinzhu/configor"
-
+	"github.com/tidepool-org/configor"
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/environment"
 )
