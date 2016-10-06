@@ -1,0 +1,4 @@
+app/error_test.go:21: no formatting directive in Errorf call
+store/mongo/mongo.go:93: no formatting directive in Errorf call
+userservices/client/standard.go:238: no formatting directive in Errorf call
+userservices/client/standard.go:312: no formatting directive in Errorf call

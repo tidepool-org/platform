@@ -92,9 +92,9 @@ imports: goimports
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 vet: check-environment tmp
-	@echo "go tool vet -test -shadowstrict -printfuncs=Errorf:1"
+	@echo "go tool vet -all -shadow -shadowstrict"
 	@cd $(ROOT_DIRECTORY) && \
-		find . -mindepth 1 -maxdepth 1 -not -path "./.*" -not -path "./_*" -not -path "./vendor" -type d -exec go tool vet -test -shadowstrict -printfuncs=Errorf:1 {} \; &> _tmp/govet.out && \
+		find . -mindepth 1 -maxdepth 1 -not -path "./.*" -not -path "./_*" -not -path "./vendor" -type d -exec go tool vet -all -shadow -shadowstrict {} \; 2> _tmp/govet.out > _tmp/govet.out && \
 		O=`diff .govetignore _tmp/govet.out` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
@@ -104,7 +104,7 @@ vet-ignore:
 lint: golint tmp
 	@echo "golint"
 	@cd $(ROOT_DIRECTORY) && \
-		find . -not -path './vendor/*' -name '*.go' -type f -exec golint {} \; | grep -v 'exported.*should have comment.*or be unexported' &> _tmp/golint.out && \
+		find . -not -path './vendor/*' -name '*.go' -type f -exec golint {} \; | grep -v 'exported.*should have comment.*or be unexported' 2> _tmp/golint.out > _tmp/golint.out && \
 		diff .golintignore _tmp/golint.out || \
 		exit 0
 
