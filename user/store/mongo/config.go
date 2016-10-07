@@ -16,8 +16,8 @@ import (
 )
 
 type Config struct {
-	*mongo.Config
-	PasswordSalt string `json:"passwordSalt"`
+	*mongo.Config `anonymous:"true"`
+	PasswordSalt  string `json:"passwordSalt"`
 }
 
 func (c *Config) Validate() error {

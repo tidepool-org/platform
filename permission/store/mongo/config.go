@@ -16,8 +16,8 @@ import (
 )
 
 type Config struct {
-	*mongo.Config
-	Secret string `json:"secret"`
+	*mongo.Config `anonymous:"true"`
+	Secret        string `json:"secret"`
 }
 
 func (c *Config) Validate() error {
