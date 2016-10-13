@@ -36,6 +36,13 @@ var _ = Describe("Pointer", func() {
 		})
 	})
 
+	Context("FloatAsPointer", func() {
+		It("returns a pointer to the specified source", func() {
+			source := 123.45
+			Expect(*app.FloatAsPointer(source)).To(Equal(source))
+		})
+	})
+
 	Context("DurationAsPointer", func() {
 		It("returns a pointer to the specified source", func() {
 			source := time.Hour
