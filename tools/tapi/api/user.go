@@ -102,7 +102,7 @@ func (a *API) UpdateUserByID(userID string, userUpdates *UserUpdates) (*user.Use
 		}
 	}
 
-	userUpdate := map[string]UserUpdates{"update": *userUpdates}
+	userUpdate := map[string]UserUpdates{"updates": *userUpdates}
 	return a.asUser(a.request("PUT", a.joinPaths("auth", "user", userID),
 		requestFuncs{a.addSessionToken(), a.addObjectBody(userUpdate)},
 		responseFuncs{a.expectStatusCode(http.StatusOK)}))
