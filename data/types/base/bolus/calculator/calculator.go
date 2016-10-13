@@ -12,6 +12,7 @@ package calculator
 
 import (
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/bloodglucose"
 	"github.com/tidepool-org/platform/data/types/base"
 	"github.com/tidepool-org/platform/data/types/base/bolus"
 	"github.com/tidepool-org/platform/data/types/base/bolus/combination"
@@ -23,8 +24,8 @@ import (
 type Calculator struct {
 	base.Base `bson:",inline"`
 
-	*Recommended        `json:"recommended,omitempty" bson:"recommended,omitempty"`
-	*BloodGlucoseTarget `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`
+	Recommended        *Recommended         `json:"recommended,omitempty" bson:"recommended,omitempty"`
+	BloodGlucoseTarget *bloodglucose.Target `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`
 
 	BolusID                  *string  `json:"bolus,omitempty" bson:"bolus,omitempty"`
 	CarbohydrateInput        *int     `json:"carbInput,omitempty" bson:"carbInput,omitempty"`
@@ -89,7 +90,7 @@ func (c *Calculator) Parse(parser data.ObjectParser) error {
 	c.Units = parser.ParseString("units")
 
 	c.Recommended = ParseRecommended(parser.NewChildObjectParser("recommended"))
-	c.BloodGlucoseTarget = ParseBloodGlucoseTarget(parser.NewChildObjectParser("bgTarget"))
+	c.BloodGlucoseTarget = bloodglucose.ParseTarget(parser.NewChildObjectParser("bgTarget"))
 
 	// TODO: This is a bit hacky to ensure we only parse true bolus data. Is there a better way?
 

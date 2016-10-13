@@ -274,11 +274,11 @@ var _ = Describe("Settings", func() {
 				),
 				Entry("has range negative", NewRawObjectMgdL(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": 99.0, "range": -1}},
-					[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-1, 0, 50), "/bgTarget/0/range", NewMeta())},
+					[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-1, 0, 99), "/bgTarget/0/range", NewMeta())},
 				),
-				Entry("has range greater than 51", NewRawObjectMgdL(), "bgTarget",
-					[]interface{}{map[string]interface{}{"start": 21600000, "target": 199.0, "range": 51}},
-					[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(51, 0, 50), "/bgTarget/0/range", NewMeta())},
+				Entry("has range greater than target", NewRawObjectMgdL(), "bgTarget",
+					[]interface{}{map[string]interface{}{"start": 21600000, "target": 199.0, "range": 200}},
+					[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(200, 0, 199), "/bgTarget/0/range", NewMeta())},
 				),
 			)
 
@@ -306,14 +306,11 @@ var _ = Describe("Settings", func() {
 				),
 				Entry("has target greater than 1000.0", NewRawObjectMgdL(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": 1000.1, "high": 180.0}},
-					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotInRange(1000.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/bgTarget/0/target", NewMeta()),
-						testing.ComposeError(service.ErrorValueNotGreaterThanOrEqualTo(180, 1000.1), "/bgTarget/0/high", NewMeta()),
-					},
+					[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(1000.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/bgTarget/0/target", NewMeta())},
 				),
 				Entry("has high less than target", NewRawObjectMgdL(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": 90.0, "high": 80.0}},
-					[]*service.Error{testing.ComposeError(service.ErrorValueNotGreaterThanOrEqualTo(80.0, 90.0), "/bgTarget/0/high", NewMeta())},
+					[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(80.0, 90.0, 1000.0), "/bgTarget/0/high", NewMeta())},
 				),
 				Entry("has high greater than 1000.0", NewRawObjectMgdL(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": 0.0, "high": 1000.1}},
@@ -342,8 +339,8 @@ var _ = Describe("Settings", func() {
 			target := val + 2.0
 
 			pumpSettings.BloodGlucoseTargets = &[]*pump.BloodGlucoseTarget{
-				{High: &high, Low: &val, Target: &target},
-				{High: &high, Low: &val, Target: &target},
+				{bloodglucose.Target{High: &high, Low: &val, Target: &target}, nil},
+				{bloodglucose.Target{High: &high, Low: &val, Target: &target}, nil},
 			}
 
 			testContext, err := context.NewStandard(log.NewNull())
@@ -373,8 +370,8 @@ var _ = Describe("Settings", func() {
 			target := val - 2.0
 
 			pumpSettings.BloodGlucoseTargets = &[]*pump.BloodGlucoseTarget{
-				{High: &val, Low: &low, Target: &target},
-				{High: &val, Low: &low, Target: &target},
+				{bloodglucose.Target{High: &val, Low: &low, Target: &target}, nil},
+				{bloodglucose.Target{High: &val, Low: &low, Target: &target}, nil},
 			}
 
 			testContext, err := context.NewStandard(log.NewNull())
@@ -404,8 +401,8 @@ var _ = Describe("Settings", func() {
 			high := val + 5.0
 
 			pumpSettings.BloodGlucoseTargets = &[]*pump.BloodGlucoseTarget{
-				{High: &high, Low: &low, Target: &val},
-				{High: &high, Low: &low, Target: &val},
+				{bloodglucose.Target{High: &high, Low: &low, Target: &val}, nil},
+				{bloodglucose.Target{High: &high, Low: &low, Target: &val}, nil},
 			}
 
 			testContext, err := context.NewStandard(log.NewNull())
@@ -418,7 +415,7 @@ var _ = Describe("Settings", func() {
 			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(bloodglucose.MmolL))
 
 			for _, bgTarget := range *pumpSettings.BloodGlucoseTargets {
-				Expect(*bgTarget.Target).To(Equal(expected))
+				Expect(*bgTarget.Target.Target).To(Equal(expected))
 			}
 		},
 			Entry("is very low", 8.1, 8.1),
@@ -435,8 +432,8 @@ var _ = Describe("Settings", func() {
 			target := val + 2.0
 
 			pumpSettings.BloodGlucoseTargets = &[]*pump.BloodGlucoseTarget{
-				{High: &high, Low: &val, Target: &target},
-				{High: &high, Low: &val, Target: &target},
+				{bloodglucose.Target{High: &high, Low: &val, Target: &target}, nil},
+				{bloodglucose.Target{High: &high, Low: &val, Target: &target}, nil},
 			}
 
 			testContext, err := context.NewStandard(log.NewNull())
@@ -466,8 +463,8 @@ var _ = Describe("Settings", func() {
 			target := val - 2.0
 
 			pumpSettings.BloodGlucoseTargets = &[]*pump.BloodGlucoseTarget{
-				{High: &val, Low: &low, Target: &target},
-				{High: &val, Low: &low, Target: &target},
+				{bloodglucose.Target{High: &val, Low: &low, Target: &target}, nil},
+				{bloodglucose.Target{High: &val, Low: &low, Target: &target}, nil},
 			}
 
 			testContext, err := context.NewStandard(log.NewNull())
@@ -497,8 +494,8 @@ var _ = Describe("Settings", func() {
 			high := val + 5.0
 
 			pumpSettings.BloodGlucoseTargets = &[]*pump.BloodGlucoseTarget{
-				{High: &high, Low: &low, Target: &val},
-				{High: &high, Low: &low, Target: &val},
+				{bloodglucose.Target{High: &high, Low: &low, Target: &val}, nil},
+				{bloodglucose.Target{High: &high, Low: &low, Target: &val}, nil},
 			}
 
 			testContext, err := context.NewStandard(log.NewNull())
@@ -511,7 +508,7 @@ var _ = Describe("Settings", func() {
 			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(bloodglucose.MmolL))
 
 			for _, bgTarget := range *pumpSettings.BloodGlucoseTargets {
-				Expect(*bgTarget.Target).To(Equal(expected))
+				Expect(*bgTarget.Target.Target).To(Equal(expected))
 			}
 		},
 			Entry("is very low", 70.1, 3.8910743417229186),

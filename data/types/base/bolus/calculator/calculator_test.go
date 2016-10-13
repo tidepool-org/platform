@@ -196,10 +196,10 @@ var _ = Describe("Calculator", func() {
 	Context("bgTarget", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("has range less than 0", NewRawObjectWithMgdL(), "bgTarget", map[string]interface{}{"target": 100, "range": -1},
-				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-1, 0, 50), "/bgTarget/range", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-1, 0, 100), "/bgTarget/range", NewMeta())},
 			),
-			Entry("has range greater than 50", NewRawObjectWithMgdL(), "bgTarget", map[string]interface{}{"target": 100, "range": 51},
-				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(51, 0, 50), "/bgTarget/range", NewMeta())},
+			Entry("has range greater than target", NewRawObjectWithMgdL(), "bgTarget", map[string]interface{}{"target": 100, "range": 101},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(101, 0, 100), "/bgTarget/range", NewMeta())},
 			),
 			Entry("has target less than 0", NewRawObjectWithMgdL(), "bgTarget", map[string]interface{}{"target": -0.1, "range": 10},
 				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-0.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/bgTarget/target", NewMeta())},
@@ -211,9 +211,9 @@ var _ = Describe("Calculator", func() {
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
 			Entry("has range 0", NewRawObjectWithMgdL(), "bgTarget", map[string]interface{}{"target": 100, "range": 0}),
-			Entry("has target 0", NewRawObjectWithMgdL(), "bgTarget", map[string]interface{}{"target": 0.0, "range": 10}),
-			Entry("has range less or equal to 50", NewRawObjectWithMgdL(), "bgTarget", map[string]interface{}{"target": 100, "range": 50}),
-			Entry("has target less or equal to max mgdl", NewRawObjectWithMgdL(), "bgTarget", map[string]interface{}{"target": bloodglucose.MgdLUpperLimit, "range": 10}),
+			Entry("has target 0", NewRawObjectWithMgdL(), "bgTarget", map[string]interface{}{"target": 0.0, "range": 0}),
+			Entry("has range less or equal to target", NewRawObjectWithMgdL(), "bgTarget", map[string]interface{}{"target": 100, "range": 100}),
+			Entry("has target less or equal to max mgdl", NewRawObjectWithMgdL(), "bgTarget", map[string]interface{}{"target": bloodglucose.MgdLUpperLimit, "range": 0}),
 		)
 	})
 
@@ -277,7 +277,7 @@ var _ = Describe("Calculator", func() {
 				bolusCalculator.Units = &units
 				bolusCalculator.BloodGlucoseInput = &val
 				bolusCalculator.InsulinSensitivity = &val
-				bolusCalculator.BloodGlucoseTarget = &calculator.BloodGlucoseTarget{Target: &val}
+				bolusCalculator.BloodGlucoseTarget = &bloodglucose.Target{Target: &val}
 
 				testContext, err := context.NewStandard(log.NewNull())
 				Expect(err).ToNot(HaveOccurred())
@@ -302,7 +302,7 @@ var _ = Describe("Calculator", func() {
 				bolusCalculator.Units = &units
 				bolusCalculator.BloodGlucoseInput = &val
 				bolusCalculator.InsulinSensitivity = &val
-				bolusCalculator.BloodGlucoseTarget = &calculator.BloodGlucoseTarget{Target: &val}
+				bolusCalculator.BloodGlucoseTarget = &bloodglucose.Target{Target: &val}
 
 				testContext, err := context.NewStandard(log.NewNull())
 				Expect(err).ToNot(HaveOccurred())
