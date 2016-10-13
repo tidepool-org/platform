@@ -95,6 +95,8 @@ func (b *Base) Parse(parser data.ObjectParser) error {
 }
 
 func (b *Base) Validate(validator data.Validator) error {
+	validator.ValidateString("type", &b.Type).Exists().NotEmpty()
+
 	// validator.ValidateInterfaceArray("annotations", b.Annotations)    // TODO: Any validations? Optional? Size?
 	// validator.ValidateInteger("clockDriftOffset", b.ClockDriftOffset) // TODO: Any validations? Optional? Range?
 	// validator.ValidateInteger("conversionOffset", b.ConversionOffset) // TODO: Any validations? Optional? Range?
