@@ -11,23 +11,25 @@ package bloodglucose
  */
 
 const (
-	Mmoll = "mmol/l"
 	MmolL = "mmol/L"
-	Mgdl  = "mg/dl"
-	MgdL  = "mg/dL"
+	Mmoll = "mmol/l"
 
-	MmolLToMgdLConversionFactor float64 = 18.01559
+	MgdL = "mg/dL"
+	Mgdl = "mg/dl"
 
 	MmolLLowerLimit float64 = 0.0
 	MmolLUpperLimit float64 = 55.0
-	MgdLLowerLimit  float64 = 0.0
-	MgdLUpperLimit  float64 = 1000.0
+
+	MgdLLowerLimit float64 = 0.0
+	MgdLUpperLimit float64 = 1000.0
+
+	MmolLToMgdLConversionFactor float64 = 18.01559
 )
 
 func ConvertValue(value float64, fromUnits string, toUnits string) float64 {
-	if (fromUnits == Mmoll || fromUnits == MmolL) && (toUnits == Mgdl || toUnits == MgdL) {
+	if (fromUnits == MmolL || fromUnits == Mmoll) && (toUnits == MgdL || toUnits == Mgdl) {
 		return value * MmolLToMgdLConversionFactor
-	} else if (fromUnits == Mgdl || fromUnits == MgdL) && (toUnits == Mmoll || toUnits == MmolL) {
+	} else if (fromUnits == MgdL || fromUnits == Mgdl) && (toUnits == MmolL || toUnits == Mmoll) {
 		return value / MmolLToMgdLConversionFactor
 	}
 	return value
