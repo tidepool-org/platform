@@ -18,9 +18,10 @@ import (
 type Temporary struct {
 	basal.Basal `bson:",inline"`
 
-	Duration *int     `json:"duration,omitempty" bson:"duration,omitempty"`
-	Rate     *float64 `json:"rate,omitempty" bson:"rate,omitempty"`
-	Percent  *float64 `json:"percent,omitempty" bson:"percent,omitempty"`
+	Duration         *int     `json:"duration,omitempty" bson:"duration,omitempty"`
+	ExpectedDuration *int     `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
+	Rate             *float64 `json:"rate,omitempty" bson:"rate,omitempty"`
+	Percent          *float64 `json:"percent,omitempty" bson:"percent,omitempty"`
 }
 
 func DeliveryType() string {
@@ -46,6 +47,7 @@ func (t *Temporary) Init() {
 	t.Basal.DeliveryType = DeliveryType()
 
 	t.Duration = nil
+	t.ExpectedDuration = nil
 	t.Rate = nil
 	t.Percent = nil
 }
@@ -56,6 +58,7 @@ func (t *Temporary) Parse(parser data.ObjectParser) error {
 	}
 
 	t.Duration = parser.ParseInteger("duration")
+	t.ExpectedDuration = parser.ParseInteger("expectedDuration")
 	t.Rate = parser.ParseFloat("rate")
 	t.Percent = parser.ParseFloat("percent")
 
@@ -68,6 +71,14 @@ func (t *Temporary) Validate(validator data.Validator) error {
 	}
 
 	validator.ValidateInteger("duration", t.Duration).Exists().InRange(0, 86400000)
+
+	expectedDurationValidator := validator.ValidateInteger("expectedDuration", t.ExpectedDuration)
+	if t.Duration != nil {
+		expectedDurationValidator.InRange(*t.Duration, 86400000)
+	} else {
+		expectedDurationValidator.InRange(0, 86400000)
+	}
+
 	validator.ValidateFloat("rate", t.Rate).Exists().InRange(0.0, 20.0)
 	validator.ValidateFloat("percent", t.Percent).InRange(0.0, 10.0)
 
