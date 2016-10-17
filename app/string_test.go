@@ -65,4 +65,18 @@ var _ = Describe("String", func() {
 			Entry("is a map", map[string]string{"a": "b"}, map[string]string{"a": "b"}),
 		)
 	})
+
+	DescribeTable("StringArrayContains",
+		func(sourceStrings []string, searchString string, expectedResult bool) {
+			Expect(app.StringArrayContains(sourceStrings, searchString)).To(Equal(expectedResult))
+		},
+		Entry("is an empty source array with empty search string", []string{}, "", false),
+		Entry("is an empty source array with valid search string", []string{}, "one", false),
+		Entry("is an single source array with empty search string", []string{"two"}, "", false),
+		Entry("is an single source array with non-matching search string", []string{"two"}, "one", false),
+		Entry("is an single source array with matching search string", []string{"two"}, "two", true),
+		Entry("is an multiple source array with empty search string", []string{"zero", "two", "four"}, "", false),
+		Entry("is an multiple source array with non-matching search string", []string{"zero", "two", "four"}, "one", false),
+		Entry("is an multiple source array with matching search string", []string{"zero", "two", "four"}, "two", true),
+	)
 })

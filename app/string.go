@@ -41,3 +41,12 @@ func QuoteIfString(interfaceValue interface{}) interface{} {
 	}
 	return interfaceValue
 }
+
+func StringArrayContains(sourceStrings []string, searchString string) bool {
+	for _, sourceString := range sourceStrings {
+		if sourceString == searchString {
+			return true
+		}
+	}
+	return false
+}
