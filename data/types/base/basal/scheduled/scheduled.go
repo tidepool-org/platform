@@ -18,9 +18,9 @@ import (
 type Scheduled struct {
 	basal.Basal `bson:",inline"`
 
-	Duration *int     `json:"duration,omitempty" bson:"duration,omitempty"`
-	Name     *string  `json:"scheduleName,omitempty" bson:"scheduleName,omitempty"` // TODO: Data model name UPDATE
-	Rate     *float64 `json:"rate,omitempty" bson:"rate,omitempty"`
+	Duration     *int     `json:"duration,omitempty" bson:"duration,omitempty"`
+	Rate         *float64 `json:"rate,omitempty" bson:"rate,omitempty"`
+	ScheduleName *string  `json:"scheduleName,omitempty" bson:"scheduleName,omitempty"`
 }
 
 func DeliveryType() string {
@@ -46,8 +46,8 @@ func (s *Scheduled) Init() {
 	s.Basal.DeliveryType = DeliveryType()
 
 	s.Duration = nil
-	s.Name = nil
 	s.Rate = nil
+	s.ScheduleName = nil
 }
 
 func (s *Scheduled) Parse(parser data.ObjectParser) error {
@@ -56,8 +56,8 @@ func (s *Scheduled) Parse(parser data.ObjectParser) error {
 	}
 
 	s.Duration = parser.ParseInteger("duration")
-	s.Name = parser.ParseString("scheduleName")
 	s.Rate = parser.ParseFloat("rate")
+	s.ScheduleName = parser.ParseString("scheduleName")
 
 	return nil
 }
@@ -69,7 +69,7 @@ func (s *Scheduled) Validate(validator data.Validator) error {
 
 	validator.ValidateInteger("duration", s.Duration).Exists().InRange(0, 432000000)
 	validator.ValidateFloat("rate", s.Rate).Exists().InRange(0.0, 20.0)
-	validator.ValidateString("scheduleName", s.Name).LengthGreaterThan(1)
+	validator.ValidateString("scheduleName", s.ScheduleName).LengthGreaterThan(1)
 
 	return nil
 }
