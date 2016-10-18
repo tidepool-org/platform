@@ -1,13 +1,13 @@
 package temporary
 
 /* CHECKLIST
- * [ ] Uses interfaces as appropriate
- * [ ] Private package variables use underscore prefix
- * [ ] All parameters validated
- * [ ] All errors handled
- * [ ] Reviewed for concurrency safety
- * [ ] Code complete
- * [ ] Full test coverage
+ * [x] Uses interfaces as appropriate
+ * [x] Private package variables use underscore prefix
+ * [x] All parameters validated
+ * [x] All errors handled
+ * [x] Reviewed for concurrency safety
+ * [x] Code complete
+ * [x] Full test coverage
  */
 
 import (
@@ -22,6 +22,8 @@ type Temporary struct {
 	ExpectedDuration *int     `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
 	Rate             *float64 `json:"rate,omitempty" bson:"rate,omitempty"`
 	Percent          *float64 `json:"percent,omitempty" bson:"percent,omitempty"`
+
+	Suppressed *basal.Suppressed `json:"suppressed,omitempty" bson:"suppressed,omitempty"`
 }
 
 func DeliveryType() string {
@@ -50,6 +52,8 @@ func (t *Temporary) Init() {
 	t.ExpectedDuration = nil
 	t.Rate = nil
 	t.Percent = nil
+
+	t.Suppressed = nil
 }
 
 func (t *Temporary) Parse(parser data.ObjectParser) error {
@@ -61,6 +65,8 @@ func (t *Temporary) Parse(parser data.ObjectParser) error {
 	t.ExpectedDuration = parser.ParseInteger("expectedDuration")
 	t.Rate = parser.ParseFloat("rate")
 	t.Percent = parser.ParseFloat("percent")
+
+	t.Suppressed = basal.ParseSuppressed(parser.NewChildObjectParser("suppressed"))
 
 	return nil
 }
@@ -81,6 +87,10 @@ func (t *Temporary) Validate(validator data.Validator) error {
 
 	validator.ValidateFloat("rate", t.Rate).Exists().InRange(0.0, 20.0)
 	validator.ValidateFloat("percent", t.Percent).InRange(0.0, 10.0)
+
+	if t.Suppressed != nil {
+		t.Suppressed.Validate(validator.NewChildValidator("suppressed"), []string{"scheduled"})
+	}
 
 	return nil
 }

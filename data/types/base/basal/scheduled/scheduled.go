@@ -18,9 +18,10 @@ import (
 type Scheduled struct {
 	basal.Basal `bson:",inline"`
 
-	Duration     *int     `json:"duration,omitempty" bson:"duration,omitempty"`
-	Rate         *float64 `json:"rate,omitempty" bson:"rate,omitempty"`
-	ScheduleName *string  `json:"scheduleName,omitempty" bson:"scheduleName,omitempty"`
+	Duration         *int     `json:"duration,omitempty" bson:"duration,omitempty"`
+	ExpectedDuration *int     `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
+	Rate             *float64 `json:"rate,omitempty" bson:"rate,omitempty"`
+	ScheduleName     *string  `json:"scheduleName,omitempty" bson:"scheduleName,omitempty"`
 }
 
 func DeliveryType() string {
@@ -46,6 +47,7 @@ func (s *Scheduled) Init() {
 	s.Basal.DeliveryType = DeliveryType()
 
 	s.Duration = nil
+	s.ExpectedDuration = nil
 	s.Rate = nil
 	s.ScheduleName = nil
 }
@@ -56,6 +58,7 @@ func (s *Scheduled) Parse(parser data.ObjectParser) error {
 	}
 
 	s.Duration = parser.ParseInteger("duration")
+	s.ExpectedDuration = parser.ParseInteger("expectedDuration")
 	s.Rate = parser.ParseFloat("rate")
 	s.ScheduleName = parser.ParseString("scheduleName")
 
@@ -67,9 +70,18 @@ func (s *Scheduled) Validate(validator data.Validator) error {
 		return err
 	}
 
-	validator.ValidateInteger("duration", s.Duration).Exists().InRange(0, 432000000)
+	validator.ValidateInteger("duration", s.Duration).Exists().InRange(0, 604800000)
+
+	expectedDurationValidator := validator.ValidateInteger("expectedDuration", s.ExpectedDuration)
+	if s.Duration != nil {
+		expectedDurationValidator.InRange(*s.Duration, 604800000)
+	} else {
+		expectedDurationValidator.InRange(0, 604800000)
+	}
+
 	validator.ValidateFloat("rate", s.Rate).Exists().InRange(0.0, 20.0)
-	validator.ValidateString("scheduleName", s.ScheduleName).LengthGreaterThan(1)
+
+	validator.ValidateString("scheduleName", s.ScheduleName).NotEmpty()
 
 	return nil
 }

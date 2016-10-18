@@ -1,13 +1,13 @@
 package basal
 
 /* CHECKLIST
- * [ ] Uses interfaces as appropriate
- * [ ] Private package variables use underscore prefix
- * [ ] All parameters validated
- * [ ] All errors handled
- * [ ] Reviewed for concurrency safety
- * [ ] Code complete
- * [ ] Full test coverage
+ * [x] Uses interfaces as appropriate
+ * [x] Private package variables use underscore prefix
+ * [x] All parameters validated
+ * [x] All errors handled
+ * [x] Reviewed for concurrency safety
+ * [x] Code complete
+ * [x] Full test coverage
  */
 
 import (
@@ -53,7 +53,13 @@ func (b *Basal) Parse(parser data.ObjectParser) error {
 func (b *Basal) Validate(validator data.Validator) error {
 	validator.SetMeta(b.Meta())
 
-	return b.Base.Validate(validator)
+	if err := b.Base.Validate(validator); err != nil {
+		return err
+	}
+
+	validator.ValidateString("deliveryType", &b.DeliveryType).Exists().NotEmpty()
+
+	return nil
 }
 
 func (b *Basal) Normalize(normalizer data.Normalizer) error {
