@@ -6,14 +6,22 @@ import (
 
 	"github.com/tidepool-org/platform/data/types/base/device"
 	"github.com/tidepool-org/platform/data/types/base/testing"
-	"github.com/tidepool-org/platform/service"
 )
+
+func NewRawStatusObject() map[string]interface{} {
+	rawStatusObject := testing.RawBaseObject()
+	rawStatusObject["type"] = "deviceEvent"
+	rawStatusObject["subType"] = "status"
+	rawStatusObject["status"] = "suspended"
+	rawStatusObject["reason"] = map[string]interface{}{}
+	return rawStatusObject
+}
 
 func NewRawObject() map[string]interface{} {
 	rawObject := testing.RawBaseObject()
 	rawObject["type"] = "deviceEvent"
 	rawObject["subType"] = "reservoirChange"
-	rawObject["status"] = "some-id"
+	rawObject["status"] = NewRawStatusObject()
 	return rawObject
 }
 
@@ -27,14 +35,8 @@ func NewMeta() interface{} {
 
 var _ = Describe("Reservoirchange", func() {
 	Context("status", func() {
-		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("is empty", NewRawObject(), "status", "",
-				[]*service.Error{testing.ComposeError(service.ErrorLengthNotGreaterThan(0, 1), "/status", NewMeta())},
-			),
-		)
-
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("is longer than one character", NewRawObject(), "status", "the-linked-status-id"),
+			Entry("is longer than one character", NewRawObject(), "status", NewRawStatusObject()),
 		)
 	})
 })
