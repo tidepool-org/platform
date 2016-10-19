@@ -77,7 +77,7 @@ To use the tool on a Tidepool server instance, authenticate with the server logi
 $ tapi server-login
 ```
 
-Note: The `SERVER_SECRET` environment variable must be set as appropriate.
+Note: The `TIDEPOOL_USERSERVICES_CLIENT_SERVERTOKENSECRET` environment variable must be set as appropriate.
 
 ### Additional
 
