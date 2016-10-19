@@ -16,6 +16,7 @@ import (
 	"github.com/urfave/cli"
 
 	"github.com/tidepool-org/platform/tools/tapi/api"
+	"github.com/tidepool-org/platform/user"
 )
 
 const (
@@ -113,7 +114,7 @@ func UserCommands() cli.Commands {
 }
 
 func userGet(c *cli.Context) error {
-	var user *api.User
+	var user *user.User
 	var err error
 
 	email := c.String(EmailFlag)
@@ -165,12 +166,12 @@ func userAddRoles(c *cli.Context) error {
 		return err
 	}
 
-	user, err := API(c).ApplyUpdatersToUserByID(c.String(UserIDFlag), []api.UserUpdater{updater})
+	updateUser, err := API(c).ApplyUpdatersToUserByID(c.String(UserIDFlag), []api.UserUpdater{updater})
 	if err != nil {
 		return err
 	}
 
-	return reportMessageWithJSON(c, user)
+	return reportMessageWithJSON(c, updateUser)
 }
 
 func userRemoveRoles(c *cli.Context) error {
@@ -179,12 +180,12 @@ func userRemoveRoles(c *cli.Context) error {
 		return err
 	}
 
-	user, err := API(c).ApplyUpdatersToUserByID(c.String(UserIDFlag), []api.UserUpdater{updater})
+	updateUser, err := API(c).ApplyUpdatersToUserByID(c.String(UserIDFlag), []api.UserUpdater{updater})
 	if err != nil {
 		return err
 	}
 
-	return reportMessageWithJSON(c, user)
+	return reportMessageWithJSON(c, updateUser)
 }
 
 func userDelete(c *cli.Context) error {

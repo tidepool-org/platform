@@ -16,6 +16,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/tidepool-org/platform/user"
 )
 
 type (
@@ -31,7 +33,7 @@ func (a *API) ServerLogin() error {
 		responseFuncs{a.expectStatusCode(http.StatusOK), a.storeTidepoolSession(true)}))
 }
 
-func (a *API) Login(email string, password string) (*User, error) {
+func (a *API) Login(email string, password string) (*user.User, error) {
 	if email == "" {
 		return nil, errors.New("Email is missing")
 	}

@@ -16,20 +16,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/tidepool-org/platform/user"
 )
 
 type (
-	User struct {
-		ID             string   `json:"userid,omitempty"`
-		Username       string   `json:"username,omitempty"`
-		Emails         []string `json:"emails,omitempty"`
-		Roles          []string `json:"roles,omitempty"`
-		TermsAccepted  string   `json:"termsAccepted,omitempty"`
-		EmailVerified  bool     `json:"emailVerified,omitempty"`
-		PasswordExists bool     `json:"passwordExists,omitempty"`
-	}
-	Users []*User
-
 	UsersQuery struct {
 		Role *string `json:"role,omitempty"`
 	}
@@ -44,7 +35,7 @@ type (
 	}
 
 	UserUpdater interface {
-		Update(user *User, userUpdates *UserUpdates) error
+		Update(updateUser *user.User, userUpdates *UserUpdates) error
 	}
 
 	AddRolesUserUpdater struct {
@@ -60,7 +51,7 @@ type (
 	}
 )
 
-func (a *API) GetUserByID(userID string) (*User, error) {
+func (a *API) GetUserByID(userID string) (*user.User, error) {
 	if userID == "" {
 		var err error
 		userID, err = a.fetchSessionUserID()
@@ -74,7 +65,7 @@ func (a *API) GetUserByID(userID string) (*User, error) {
 		responseFuncs{a.expectStatusCode(http.StatusOK)}))
 }
 
-func (a *API) GetUserByEmail(email string) (*User, error) {
+func (a *API) GetUserByEmail(email string) (*user.User, error) {
 	if email == "" {
 		return nil, errors.New("Email is missing")
 	}
@@ -84,7 +75,7 @@ func (a *API) GetUserByEmail(email string) (*User, error) {
 		responseFuncs{a.expectStatusCode(http.StatusOK)}))
 }
 
-func (a *API) FindUsers(query *UsersQuery) (Users, error) {
+func (a *API) FindUsers(query *UsersQuery) ([]*user.User, error) {
 	if query == nil {
 		return nil, errors.New("Query is missing")
 	}
@@ -98,7 +89,7 @@ func (a *API) FindUsers(query *UsersQuery) (Users, error) {
 		responseFuncs{a.expectStatusCode(http.StatusOK)}))
 }
 
-func (a *API) UpdateUserByID(userID string, userUpdates *UserUpdates) (*User, error) {
+func (a *API) UpdateUserByID(userID string, userUpdates *UserUpdates) (*user.User, error) {
 	if userUpdates == nil {
 		return nil, errors.New("Updates is missing")
 	}
@@ -117,18 +108,18 @@ func (a *API) UpdateUserByID(userID string, userUpdates *UserUpdates) (*User, er
 		responseFuncs{a.expectStatusCode(http.StatusOK)}))
 }
 
-func (a *API) UpdateUserByObject(user *User, userUpdates *UserUpdates) (*User, error) {
-	if user == nil {
+func (a *API) UpdateUserByObject(updateUser *user.User, userUpdates *UserUpdates) (*user.User, error) {
+	if updateUser == nil {
 		return nil, errors.New("User is missing")
 	}
-	if user.ID == "" {
+	if updateUser.ID == "" {
 		return nil, errors.New("User id is missing")
 	}
 
-	return a.UpdateUserByID(user.ID, userUpdates)
+	return a.UpdateUserByID(updateUser.ID, userUpdates)
 }
 
-func (a *API) ApplyUpdatersToUserByID(userID string, updaters []UserUpdater) (*User, error) {
+func (a *API) ApplyUpdatersToUserByID(userID string, updaters []UserUpdater) (*user.User, error) {
 	if userID == "" {
 		var err error
 		userID, err = a.fetchSessionUserID()
@@ -137,16 +128,16 @@ func (a *API) ApplyUpdatersToUserByID(userID string, updaters []UserUpdater) (*U
 		}
 	}
 
-	user, err := a.GetUserByID(userID)
+	updateUser, err := a.GetUserByID(userID)
 	if err != nil {
 		return nil, err
 	}
 
-	return a.ApplyUpdatersToUserByObject(user, updaters)
+	return a.ApplyUpdatersToUserByObject(updateUser, updaters)
 }
 
-func (a *API) ApplyUpdatersToUserByObject(user *User, updaters []UserUpdater) (*User, error) {
-	if user == nil {
+func (a *API) ApplyUpdatersToUserByObject(updateUser *user.User, updaters []UserUpdater) (*user.User, error) {
+	if updateUser == nil {
 		return nil, errors.New("User is missing")
 	}
 	if len(updaters) == 0 {
@@ -155,16 +146,16 @@ func (a *API) ApplyUpdatersToUserByObject(user *User, updaters []UserUpdater) (*
 
 	userUpdates := &UserUpdates{}
 	for _, updater := range updaters {
-		if err := updater.Update(user, userUpdates); err != nil {
+		if err := updater.Update(updateUser, userUpdates); err != nil {
 			return nil, fmt.Errorf("Failure applying updater to user: %s", err.Error())
 		}
 	}
 
 	if !userUpdates.HasUpdates() {
-		return user, nil
+		return updateUser, nil
 	}
 
-	return a.UpdateUserByID(user.ID, userUpdates)
+	return a.UpdateUserByID(updateUser.ID, userUpdates)
 }
 
 func (a *API) DeleteUserByID(userID string, password string) error {
@@ -186,15 +177,15 @@ func (a *API) DeleteUserByID(userID string, password string) error {
 		responseFuncs{a.expectStatusCode(http.StatusOK)}))
 }
 
-func (a *API) asUser(responseBody io.Reader, err error) (*User, error) {
+func (a *API) asUser(responseBody io.Reader, err error) (*user.User, error) {
 	responseString, err := a.asString(responseBody, err)
 	if err != nil {
 		return nil, err
 	}
 
-	var responseUser *User
+	var responseUser *user.User
 	if len(responseString) > 0 {
-		responseUser = &User{}
+		responseUser = &user.User{}
 		if err = json.Unmarshal([]byte(responseString), responseUser); err != nil {
 			return nil, fmt.Errorf("Error decoding JSON User from response body: %s", err.Error())
 		}
@@ -203,15 +194,15 @@ func (a *API) asUser(responseBody io.Reader, err error) (*User, error) {
 	return responseUser, nil
 }
 
-func (a *API) asUsers(responseBody io.Reader, err error) (Users, error) {
+func (a *API) asUsers(responseBody io.Reader, err error) ([]*user.User, error) {
 	responseString, err := a.asString(responseBody, err)
 	if err != nil {
 		return nil, err
 	}
 
-	var responseUsers Users
+	var responseUsers []*user.User
 	if len(responseString) > 0 {
-		responseUsers = Users{}
+		responseUsers = []*user.User{}
 		if err = json.Unmarshal([]byte(responseString), &responseUsers); err != nil {
 			return nil, fmt.Errorf("Error decoding JSON Users from response body: %s", err.Error())
 		}
@@ -232,12 +223,12 @@ func NewAddRolesUserUpdater(roles []string) (*AddRolesUserUpdater, error) {
 	return &AddRolesUserUpdater{Roles: roles}, nil
 }
 
-func (u *AddRolesUserUpdater) Update(user *User, userUpdates *UserUpdates) error {
+func (u *AddRolesUserUpdater) Update(updateUser *user.User, userUpdates *UserUpdates) error {
 	var originalRoles *[]string
 	if userUpdates.Roles != nil {
 		originalRoles = userUpdates.Roles
-	} else if user.Roles != nil {
-		originalRoles = &user.Roles
+	} else if updateUser.Roles != nil {
+		originalRoles = &updateUser.Roles
 	} else {
 		originalRoles = &[]string{}
 	}
@@ -260,12 +251,12 @@ func NewRemoveRolesUserUpdater(roles []string) (*RemoveRolesUserUpdater, error) 
 	return &RemoveRolesUserUpdater{Roles: roles}, nil
 }
 
-func (u *RemoveRolesUserUpdater) Update(user *User, userUpdates *UserUpdates) error {
+func (u *RemoveRolesUserUpdater) Update(updateUser *user.User, userUpdates *UserUpdates) error {
 	var originalRoles *[]string
 	if userUpdates.Roles != nil {
 		originalRoles = userUpdates.Roles
-	} else if user.Roles != nil {
-		originalRoles = &user.Roles
+	} else if updateUser.Roles != nil {
+		originalRoles = &updateUser.Roles
 	} else {
 		return nil
 	}
