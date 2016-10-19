@@ -3,8 +3,8 @@ package pump
 import "github.com/tidepool-org/platform/data"
 
 type CarbohydrateRatio struct {
-	Amount *int `json:"amount,omitempty" bson:"amount,omitempty"`
-	Start  *int `json:"start,omitempty" bson:"start,omitempty"`
+	Amount *float64 `json:"amount,omitempty" bson:"amount,omitempty"`
+	Start  *int     `json:"start,omitempty" bson:"start,omitempty"`
 }
 
 func NewCarbohydrateRatio() *CarbohydrateRatio {
@@ -12,12 +12,12 @@ func NewCarbohydrateRatio() *CarbohydrateRatio {
 }
 
 func (c *CarbohydrateRatio) Parse(parser data.ObjectParser) {
-	c.Amount = parser.ParseInteger("amount")
+	c.Amount = parser.ParseFloat("amount")
 	c.Start = parser.ParseInteger("start")
 }
 
 func (c *CarbohydrateRatio) Validate(validator data.Validator) {
-	validator.ValidateInteger("amount", c.Amount).Exists().InRange(0, 250)
+	validator.ValidateFloat("amount", c.Amount).Exists().InRange(0.0, 250.0)
 	validator.ValidateInteger("start", c.Start).Exists().InRange(0, 86400000)
 }
 

@@ -24,8 +24,8 @@ func NewRawObjectMmolL() map[string]interface{} {
 		"bg":   bloodglucose.MmolL,
 	}
 	rawObject["carbRatio"] = []interface{}{
-		map[string]interface{}{"amount": 12, "start": 0},
-		map[string]interface{}{"amount": 10, "start": 21600000},
+		map[string]interface{}{"amount": 12.0, "start": 0},
+		map[string]interface{}{"amount": 10.0, "start": 21600000},
 	}
 	rawObject["bgTarget"] = []interface{}{
 		map[string]interface{}{"low": 5.5, "high": 6.7, "start": 0},
@@ -56,8 +56,8 @@ func NewRawObjectMgdL() map[string]interface{} {
 		"bg":   bloodglucose.MgdL,
 	}
 	rawObject["carbRatio"] = []interface{}{
-		map[string]interface{}{"amount": 12, "start": 0},
-		map[string]interface{}{"amount": 10, "start": 21600000},
+		map[string]interface{}{"amount": 12.0, "start": 0},
+		map[string]interface{}{"amount": 10.0, "start": 21600000},
 	}
 	rawObject["bgTarget"] = []interface{}{
 		map[string]interface{}{"low": 5.5, "high": 6.7, "start": 0},
@@ -121,20 +121,20 @@ var _ = Describe("Settings", func() {
 	Context("carbRatio", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("has start negative", NewRawObjectMmolL(), "carbRatio",
-				[]interface{}{map[string]interface{}{"amount": 12, "start": -1}},
+				[]interface{}{map[string]interface{}{"amount": 12.0, "start": -1}},
 				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-1, 0, 86400000), "/carbRatio/0/start", NewMeta())},
 			),
 			Entry("has start greater than 86400000", NewRawObjectMmolL(), "carbRatio",
-				[]interface{}{map[string]interface{}{"amount": 12, "start": 86400001}},
+				[]interface{}{map[string]interface{}{"amount": 12.0, "start": 86400001}},
 				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(86400001, 0, 86400000), "/carbRatio/0/start", NewMeta())},
 			),
 			Entry("has amount negative", NewRawObjectMmolL(), "carbRatio",
-				[]interface{}{map[string]interface{}{"amount": -1, "start": 21600000}},
-				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-1, 0, 250), "/carbRatio/0/amount", NewMeta())},
+				[]interface{}{map[string]interface{}{"amount": -1.0, "start": 21600000}},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-1.0, 0.0, 250.0), "/carbRatio/0/amount", NewMeta())},
 			),
 			Entry("has amount greater than 250", NewRawObjectMmolL(), "carbRatio",
-				[]interface{}{map[string]interface{}{"amount": 251, "start": 21600000}},
-				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(251, 0, 250), "/carbRatio/0/amount", NewMeta())},
+				[]interface{}{map[string]interface{}{"amount": 251.0, "start": 21600000}},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(251.0, 0.0, 250.0), "/carbRatio/0/amount", NewMeta())},
 			),
 		)
 
@@ -229,11 +229,11 @@ var _ = Describe("Settings", func() {
 	Context("insulinSensitivity", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("has start negative", NewRawObjectMmolL(), "insulinSensitivity",
-				[]interface{}{map[string]interface{}{"amount": 12, "start": -1}},
+				[]interface{}{map[string]interface{}{"amount": 12.0, "start": -1}},
 				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-1, 0, 86400000), "/insulinSensitivity/0/start", NewMeta())},
 			),
 			Entry("has start greater than 86400000", NewRawObjectMmolL(), "insulinSensitivity",
-				[]interface{}{map[string]interface{}{"amount": 12, "start": 86400001}},
+				[]interface{}{map[string]interface{}{"amount": 12.0, "start": 86400001}},
 				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(86400001, 0, 86400000), "/insulinSensitivity/0/start", NewMeta())},
 			),
 			Entry("has amount negative", NewRawObjectMgdL(), "insulinSensitivity",
@@ -248,7 +248,7 @@ var _ = Describe("Settings", func() {
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
 			Entry("has start and amount within bounds", NewRawObjectMmolL(), "insulinSensitivity",
-				[]interface{}{map[string]interface{}{"amount": 12, "start": 0}},
+				[]interface{}{map[string]interface{}{"amount": 12.0, "start": 0}},
 			),
 		)
 	})

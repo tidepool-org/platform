@@ -28,10 +28,10 @@ type Calculator struct {
 	BloodGlucoseTarget *bloodglucose.Target `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`
 
 	BolusID                  *string  `json:"bolus,omitempty" bson:"bolus,omitempty"`
-	CarbohydrateInput        *int     `json:"carbInput,omitempty" bson:"carbInput,omitempty"`
+	CarbohydrateInput        *float64 `json:"carbInput,omitempty" bson:"carbInput,omitempty"`
 	InsulinOnBoard           *float64 `json:"insulinOnBoard,omitempty" bson:"insulinOnBoard,omitempty"`
 	InsulinSensitivity       *float64 `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`
-	InsulinCarbohydrateRatio *int     `json:"insulinCarbRatio,omitempty" bson:"insulinCarbRatio,omitempty"`
+	InsulinCarbohydrateRatio *float64 `json:"insulinCarbRatio,omitempty" bson:"insulinCarbRatio,omitempty"`
 	BloodGlucoseInput        *float64 `json:"bgInput,omitempty" bson:"bgInput,omitempty"`
 	Units                    *string  `json:"units,omitempty" bson:"units,omitempty"`
 
@@ -82,10 +82,10 @@ func (c *Calculator) Parse(parser data.ObjectParser) error {
 		return err
 	}
 
-	c.CarbohydrateInput = parser.ParseInteger("carbInput")
+	c.CarbohydrateInput = parser.ParseFloat("carbInput")
 	c.InsulinOnBoard = parser.ParseFloat("insulinOnBoard")
 	c.InsulinSensitivity = parser.ParseFloat("insulinSensitivity")
-	c.InsulinCarbohydrateRatio = parser.ParseInteger("insulinCarbRatio")
+	c.InsulinCarbohydrateRatio = parser.ParseFloat("insulinCarbRatio")
 	c.BloodGlucoseInput = parser.ParseFloat("bgInput")
 	c.Units = parser.ParseString("units")
 
@@ -114,9 +114,9 @@ func (c *Calculator) Validate(validator data.Validator) error {
 		return err
 	}
 
-	validator.ValidateInteger("carbInput", c.CarbohydrateInput).InRange(0, 1000)
+	validator.ValidateFloat("carbInput", c.CarbohydrateInput).InRange(0.0, 1000.0)
 	validator.ValidateFloat("insulinOnBoard", c.InsulinOnBoard).InRange(0.0, 250.0)
-	validator.ValidateInteger("insulinCarbRatio", c.InsulinCarbohydrateRatio).InRange(0, 250)
+	validator.ValidateFloat("insulinCarbRatio", c.InsulinCarbohydrateRatio).InRange(0.0, 250.0)
 
 	validator.ValidateStringAsBloodGlucoseUnits("units", c.Units).Exists()
 	validator.ValidateFloatAsBloodGlucoseValue("bgInput", c.BloodGlucoseInput).InRangeForUnits(c.Units)

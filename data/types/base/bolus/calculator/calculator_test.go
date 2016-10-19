@@ -19,9 +19,9 @@ func NewRawObjectWithMmolL() map[string]interface{} {
 	rawObject := testing.RawBaseObject()
 	rawObject["type"] = "wizard"
 	rawObject["bgInput"] = 12.0
-	rawObject["carbInput"] = 120
+	rawObject["carbInput"] = 120.0
 	rawObject["insulinSensitivity"] = 7.0
-	rawObject["insulinCarbRatio"] = 50
+	rawObject["insulinCarbRatio"] = 50.0
 	rawObject["insulinOnBoard"] = 70
 
 	rawObject["recommended"] = map[string]interface{}{"net": 50, "correction": -50, "carb": 50}
@@ -43,9 +43,9 @@ func NewRawObjectWithMgdL() map[string]interface{} {
 	rawObject := testing.RawBaseObject()
 	rawObject["type"] = "wizard"
 	rawObject["bgInput"] = 100
-	rawObject["carbInput"] = 120
+	rawObject["carbInput"] = 120.0
 	rawObject["insulinSensitivity"] = 90
-	rawObject["insulinCarbRatio"] = 50
+	rawObject["insulinCarbRatio"] = 50.0
 	rawObject["insulinOnBoard"] = 70
 
 	rawObject["recommended"] = map[string]interface{}{"net": 50, "correction": -50, "carb": 50}
@@ -109,16 +109,16 @@ var _ = Describe("Calculator", func() {
 
 	Context("insulinCarbRatio", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("is negative", NewRawObjectWithMgdl(), "insulinCarbRatio", -1,
-				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-1, 0, 250), "/insulinCarbRatio", NewMeta())},
+			Entry("is negative", NewRawObjectWithMgdl(), "insulinCarbRatio", -1.0,
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-1.0, 0.0, 250.0), "/insulinCarbRatio", NewMeta())},
 			),
-			Entry("is greater than 250", NewRawObjectWithMgdl(), "insulinCarbRatio", 251,
-				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(251, 0, 250), "/insulinCarbRatio", NewMeta())},
+			Entry("is greater than 250.0", NewRawObjectWithMgdl(), "insulinCarbRatio", 251.0,
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(251.0, 0.0, 250.0), "/insulinCarbRatio", NewMeta())},
 			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("is within bounds", NewRawObjectWithMgdl(), "insulinCarbRatio", 99),
+			Entry("is within bounds", NewRawObjectWithMgdl(), "insulinCarbRatio", 99.0),
 		)
 	})
 
@@ -178,18 +178,18 @@ var _ = Describe("Calculator", func() {
 
 	Context("carbInput", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("is less than 0", NewRawObjectWithMgdl(), "carbInput", -1,
-				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-1, 0, 1000), "/carbInput", NewMeta())},
+			Entry("is less than 0", NewRawObjectWithMgdl(), "carbInput", -1.0,
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-1.0, 0.0, 1000.0), "/carbInput", NewMeta())},
 			),
-			Entry("is greater than 1000", NewRawObjectWithMgdl(), "carbInput", 1001,
-				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(1001, 0, 1000), "/carbInput", NewMeta())},
+			Entry("is greater than 1000", NewRawObjectWithMgdl(), "carbInput", 1001.0,
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(1001.0, 0.0, 1000.0), "/carbInput", NewMeta())},
 			),
 		)
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("is 0", NewRawObjectWithMgdl(), "carbInput", 0),
-			Entry("is in range", NewRawObjectWithMgdl(), "carbInput", 250),
-			Entry("is below 1000", NewRawObjectWithMgdl(), "carbInput", 999),
+			Entry("is 0", NewRawObjectWithMgdl(), "carbInput", 0.0),
+			Entry("is in range", NewRawObjectWithMgdl(), "carbInput", 250.0),
+			Entry("is below 1000", NewRawObjectWithMgdl(), "carbInput", 999.0),
 		)
 	})
 
