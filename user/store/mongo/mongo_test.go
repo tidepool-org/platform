@@ -39,7 +39,7 @@ func NewUser(userID string) *user.User {
 		ID:                userID,
 		Email:             email,
 		Emails:            []string{email},
-		Roles:             []string{"clinic"},
+		Roles:             []string{user.ClinicRole},
 		TermsAcceptedTime: time.Now().UTC().Format(time.RFC3339),
 		EmailVerified:     true,
 		PasswordHash:      "1234567890",

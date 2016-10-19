@@ -361,6 +361,24 @@ var _ = Describe("UsersDelete", func() {
 			}
 		}
 
+		WithoutClinicRole := func(flags *TestFlags) func() {
+			return func() {
+				Context("without clinic role", func() {
+					if flags.IsSet("with-password") {
+						WithMatchingPassword(flags)()
+					} else {
+						WithGetProfile(flags)()
+					}
+				})
+
+				It("responds with failure if user has clinic role", func() {
+					targetUser.Roles = []string{user.ClinicRole}
+					v1.UsersDelete(context)
+					Expect(context.RespondWithErrorInputs).To(Equal([]*service.Error{service.ErrorUnauthorized()}))
+				})
+			}
+		}
+
 		WithUserID := func(flags *TestFlags) func() {
 			return func() {
 				AfterEach(func() {
@@ -372,11 +390,7 @@ var _ = Describe("UsersDelete", func() {
 						context.UserStoreSessionImpl.GetUserByIDOutputs = []GetUserByIDOutput{{targetUser, nil}}
 					})
 
-					if flags.IsSet("with-password") {
-						WithMatchingPassword(flags)()
-					} else {
-						WithGetProfile(flags)()
-					}
+					WithoutClinicRole(flags)()
 				})
 
 				It("responds with failure if it returns no user", func() {

@@ -16,6 +16,7 @@ import (
 	messageStore "github.com/tidepool-org/platform/message/store"
 	"github.com/tidepool-org/platform/profile"
 	commonService "github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/user"
 	"github.com/tidepool-org/platform/userservices/client"
 	"github.com/tidepool-org/platform/userservices/service"
 )
@@ -65,6 +66,11 @@ func UsersDelete(serviceContext service.Context) {
 	}
 	if targetUser == nil {
 		serviceContext.RespondWithError(ErrorUserIDNotFound(targetUserID))
+		return
+	}
+
+	if targetUser.HasRole(user.ClinicRole) {
+		serviceContext.RespondWithError(commonService.ErrorUnauthorized())
 		return
 	}
 

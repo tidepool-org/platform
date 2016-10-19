@@ -10,6 +10,8 @@ package user
  * [ ] Full test coverage
  */
 
+import "github.com/tidepool-org/platform/app"
+
 type User struct {
 	ID                string             `json:"userid,omitempty" bson:"userid,omitempty"`
 	Email             string             `json:"username,omitempty" bson:"username,omitempty"`
@@ -33,4 +35,8 @@ type User struct {
 type IDHash struct {
 	ID   string `json:"id"`
 	Hash string `json:"hash"`
+}
+
+func (u *User) HasRole(userRole string) bool {
+	return app.StringArrayContains(u.Roles, userRole)
 }
