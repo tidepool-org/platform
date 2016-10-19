@@ -40,6 +40,7 @@ type Base struct {
 	DeviceID         *string        `json:"deviceId,omitempty" bson:"deviceId,omitempty"`
 	DeviceTime       *string        `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
 	Payload          *interface{}   `json:"payload,omitempty" bson:"payload,omitempty"`
+	Source           *string        `json:"source,omitempty" bson:"source,omitempty"`
 	Time             *string        `json:"time,omitempty" bson:"time,omitempty"`
 	TimezoneOffset   *int           `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty"`
 }
@@ -71,6 +72,7 @@ func (b *Base) Init() {
 	b.DeviceID = nil
 	b.DeviceTime = nil
 	b.Payload = nil
+	b.Source = nil
 	b.Time = nil
 	b.TimezoneOffset = nil
 }
@@ -88,6 +90,7 @@ func (b *Base) Parse(parser data.ObjectParser) error {
 	b.DeviceID = parser.ParseString("deviceId")
 	b.DeviceTime = parser.ParseString("deviceTime")
 	b.Payload = parser.ParseInterface("payload")
+	b.Source = parser.ParseString("source")
 	b.Time = parser.ParseString("time")
 	b.TimezoneOffset = parser.ParseInteger("timezoneOffset")
 
@@ -103,6 +106,7 @@ func (b *Base) Validate(validator data.Validator) error {
 	validator.ValidateString("deviceId", b.DeviceID).Exists().NotEmpty()
 	validator.ValidateStringAsTime("deviceTime", b.DeviceTime, "2006-01-02T15:04:05") // TODO: Not in upload!  -> .Exists()
 	// validator.ValidateInterface("payload", b.Payload) // TODO: Any validations? Optional? Size?
+	validator.ValidateString("source", b.Source).NotEmpty()
 	validator.ValidateStringAsTime("time", b.Time, "2006-01-02T15:04:05Z07:00").Exists()
 	// validator.ValidateInteger("timezoneOffset", b.TimezoneOffset) // TODO: Any validations? Optional? Range?
 
