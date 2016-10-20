@@ -79,7 +79,7 @@ func (s *Scheduled) Validate(validator data.Validator) error {
 		expectedDurationValidator.InRange(0, 604800000)
 	}
 
-	validator.ValidateFloat("rate", s.Rate).Exists().InRange(0.0, 20.0)
+	validator.ValidateFloat("rate", s.Rate).Exists().InRange(0.0, 100.0)
 
 	validator.ValidateString("scheduleName", s.ScheduleName).NotEmpty()
 

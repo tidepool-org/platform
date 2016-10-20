@@ -50,7 +50,7 @@ func (s *Suppressed) Parse(parser data.ObjectParser) {
 func (s *Suppressed) Validate(validator data.Validator, allowedDeliveryTypes []string) {
 	validator.ValidateString("type", s.Type).Exists().EqualTo("basal")
 	validator.ValidateString("deliveryType", s.DeliveryType).Exists().OneOf(allowedDeliveryTypes)
-	validator.ValidateFloat("rate", s.Rate).Exists().InRange(0.0, 20.0)
+	validator.ValidateFloat("rate", s.Rate).Exists().InRange(0.0, 100.0)
 
 	if s.DeliveryType != nil && app.StringArrayContains(allowedDeliveryTypes, *s.DeliveryType) {
 		scheduleNameValidator := validator.ValidateString("scheduleName", s.ScheduleName)

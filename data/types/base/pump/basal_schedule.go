@@ -17,7 +17,7 @@ func (b *BasalSchedule) Parse(parser data.ObjectParser) {
 }
 
 func (b *BasalSchedule) Validate(validator data.Validator) {
-	validator.ValidateFloat("rate", b.Rate).Exists().InRange(0.0, 20.0)
+	validator.ValidateFloat("rate", b.Rate).Exists().InRange(0.0, 100.0)
 	validator.ValidateInteger("start", b.Start).Exists().InRange(0, 86400000)
 }
 

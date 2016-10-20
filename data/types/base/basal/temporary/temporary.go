@@ -85,7 +85,7 @@ func (t *Temporary) Validate(validator data.Validator) error {
 		expectedDurationValidator.InRange(0, 86400000)
 	}
 
-	validator.ValidateFloat("rate", t.Rate).Exists().InRange(0.0, 20.0)
+	validator.ValidateFloat("rate", t.Rate).Exists().InRange(0.0, 100.0)
 	validator.ValidateFloat("percent", t.Percent).InRange(0.0, 10.0)
 
 	if t.Suppressed != nil {

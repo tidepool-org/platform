@@ -198,22 +198,22 @@ var _ = Describe("Settings", func() {
 					"standard": []interface{}{
 						map[string]interface{}{"rate": -0.1, "start": 10800000},
 					}},
-				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 20.0), "/basalSchedules/standard/0/rate", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/basalSchedules/standard/0/rate", NewMeta())},
 			),
 			Entry("has start to large", NewRawObjectMgdL(), "basalSchedules",
 				map[string]interface{}{
 					"standard": []interface{}{
-						map[string]interface{}{"rate": 20.1, "start": 10800000},
+						map[string]interface{}{"rate": 100.1, "start": 10800000},
 					}},
-				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(20.1, 0.0, 20.0), "/basalSchedules/standard/0/rate", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(100.1, 0.0, 100.0), "/basalSchedules/standard/0/rate", NewMeta())},
 			),
 			Entry("has nested rate to large", NewRawObjectMgdL(), "basalSchedules",
 				map[string]interface{}{
 					"standard": []interface{}{
 						map[string]interface{}{"rate": 0.6, "start": 0},
-						map[string]interface{}{"rate": 25.1, "start": 10800000},
+						map[string]interface{}{"rate": 125.1, "start": 10800000},
 					}},
-				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(25.1, 0.0, 20.0), "/basalSchedules/standard/1/rate", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(125.1, 0.0, 100.0), "/basalSchedules/standard/1/rate", NewMeta())},
 			),
 			Entry("has no defined name", NewRawObjectMgdL(), "basalSchedules",
 				map[string]interface{}{
