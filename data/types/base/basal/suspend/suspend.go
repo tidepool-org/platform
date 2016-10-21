@@ -70,13 +70,13 @@ func (s *Suspend) Validate(validator data.Validator) error {
 		return err
 	}
 
-	validator.ValidateInteger("duration", s.Duration).Exists().InRange(0, 86400000)
+	validator.ValidateInteger("duration", s.Duration).Exists().InRange(0, 604800000)
 
 	expectedDurationValidator := validator.ValidateInteger("expectedDuration", s.ExpectedDuration)
 	if s.Duration != nil {
-		expectedDurationValidator.InRange(*s.Duration, 86400000)
+		expectedDurationValidator.InRange(*s.Duration, 604800000)
 	} else {
-		expectedDurationValidator.InRange(0, 86400000)
+		expectedDurationValidator.InRange(0, 604800000)
 	}
 
 	if s.Suppressed != nil {

@@ -76,13 +76,13 @@ func (t *Temporary) Validate(validator data.Validator) error {
 		return err
 	}
 
-	validator.ValidateInteger("duration", t.Duration).Exists().InRange(0, 86400000)
+	validator.ValidateInteger("duration", t.Duration).Exists().InRange(0, 604800000)
 
 	expectedDurationValidator := validator.ValidateInteger("expectedDuration", t.ExpectedDuration)
 	if t.Duration != nil {
-		expectedDurationValidator.InRange(*t.Duration, 86400000)
+		expectedDurationValidator.InRange(*t.Duration, 604800000)
 	} else {
-		expectedDurationValidator.InRange(0, 86400000)
+		expectedDurationValidator.InRange(0, 604800000)
 	}
 
 	validator.ValidateFloat("rate", t.Rate).Exists().InRange(0.0, 100.0)
