@@ -66,17 +66,46 @@ var _ = Describe("String", func() {
 		)
 	})
 
-	DescribeTable("StringArrayContains",
+	DescribeTable("StringsContainsString",
 		func(sourceStrings []string, searchString string, expectedResult bool) {
-			Expect(app.StringArrayContains(sourceStrings, searchString)).To(Equal(expectedResult))
+			Expect(app.StringsContainsString(sourceStrings, searchString)).To(Equal(expectedResult))
 		},
-		Entry("is an empty source array with empty search string", []string{}, "", false),
-		Entry("is an empty source array with valid search string", []string{}, "one", false),
-		Entry("is an single source array with empty search string", []string{"two"}, "", false),
-		Entry("is an single source array with non-matching search string", []string{"two"}, "one", false),
-		Entry("is an single source array with matching search string", []string{"two"}, "two", true),
-		Entry("is an multiple source array with empty search string", []string{"zero", "two", "four"}, "", false),
-		Entry("is an multiple source array with non-matching search string", []string{"zero", "two", "four"}, "one", false),
-		Entry("is an multiple source array with matching search string", []string{"zero", "two", "four"}, "two", true),
+		Entry("is nil source strings with empty search string", nil, "", false),
+		Entry("is nil source strings with valid search string", nil, "one", false),
+		Entry("is empty source strings with empty search string", []string{}, "", false),
+		Entry("is empty source strings with valid search string", []string{}, "one", false),
+		Entry("is single source strings with empty search string", []string{"two"}, "", false),
+		Entry("is single source strings with non-matching search string", []string{"two"}, "one", false),
+		Entry("is single source strings with matching search string", []string{"two"}, "two", true),
+		Entry("is multiple source strings with empty search string", []string{"zero", "two", "four"}, "", false),
+		Entry("is multiple source strings with non-matching search string", []string{"zero", "two", "four"}, "one", false),
+		Entry("is multiple source strings with matching search string", []string{"zero", "two", "four"}, "two", true),
+	)
+
+	DescribeTable("StringsContainsAnyStrings",
+		func(sourceStrings []string, searchStrings []string, expectedResult bool) {
+			Expect(app.StringsContainsAnyStrings(sourceStrings, searchStrings)).To(Equal(expectedResult))
+		},
+		Entry("is nil source strings with nil search strings", nil, nil, false),
+		Entry("is nil source strings with empty search strings", nil, []string{}, false),
+		Entry("is nil source strings with single invalid search strings", nil, []string{"one"}, false),
+		Entry("is nil source strings with multiple invalid search strings", nil, []string{"one", "three"}, false),
+		Entry("is empty source strings with nil search strings", []string{}, nil, false),
+		Entry("is empty source strings with empty search strings", []string{}, []string{}, false),
+		Entry("is empty source strings with single invalid search strings", []string{}, []string{"one"}, false),
+		Entry("is empty source strings with multiple invalid search strings", []string{}, []string{"one", "three"}, false),
+		Entry("is single source strings with nil search strings", []string{"two"}, nil, false),
+		Entry("is single source strings with single search strings", []string{"two"}, []string{}, false),
+		Entry("is single source strings with single invalid search strings", []string{"two"}, []string{"one"}, false),
+		Entry("is single source strings with single valid search strings", []string{"two"}, []string{"two"}, true),
+		Entry("is single source strings with multiple invalid search strings", []string{"two"}, []string{"one", "three"}, false),
+		Entry("is single source strings with multiple invalid and valid search strings", []string{"two"}, []string{"one", "two", "three", "four"}, true),
+		Entry("is multiple source strings with nil search strings", []string{"two", "four"}, nil, false),
+		Entry("is multiple source strings with single search strings", []string{"two", "four"}, []string{}, false),
+		Entry("is multiple source strings with single invalid search strings", []string{"two", "four"}, []string{"one"}, false),
+		Entry("is multiple source strings with single valid search strings", []string{"two", "four"}, []string{"two"}, true),
+		Entry("is multiple source strings with multiple invalid search strings", []string{"two", "four"}, []string{"one", "three"}, false),
+		Entry("is multiple source strings with multiple valid search strings", []string{"two", "four"}, []string{"two", "four"}, true),
+		Entry("is multiple source strings with multiple invalid and valid search strings", []string{"two", "four"}, []string{"one", "two", "three", "four"}, true),
 	)
 })

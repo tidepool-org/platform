@@ -38,5 +38,5 @@ type IDHash struct {
 }
 
 func (u *User) HasRole(userRole string) bool {
-	return app.StringArrayContains(u.Roles, userRole)
+	return app.StringsContainsString(u.Roles, userRole)
 }

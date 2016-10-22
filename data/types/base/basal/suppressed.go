@@ -52,7 +52,7 @@ func (s *Suppressed) Validate(validator data.Validator, allowedDeliveryTypes []s
 	validator.ValidateString("deliveryType", s.DeliveryType).Exists().OneOf(allowedDeliveryTypes)
 	validator.ValidateFloat("rate", s.Rate).Exists().InRange(0.0, 100.0)
 
-	if s.DeliveryType != nil && app.StringArrayContains(allowedDeliveryTypes, *s.DeliveryType) {
+	if s.DeliveryType != nil && app.StringsContainsString(allowedDeliveryTypes, *s.DeliveryType) {
 		scheduleNameValidator := validator.ValidateString("scheduleName", s.ScheduleName)
 		suppressedValidator := validator.ValidateInterface("suppressed", suppressedAsInterface(s.Suppressed))
 		if *s.DeliveryType == "scheduled" {
