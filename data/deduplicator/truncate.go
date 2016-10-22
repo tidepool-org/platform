@@ -31,6 +31,8 @@ type TruncateDeduplicator struct {
 
 const TruncateDeduplicatorName = "truncate"
 
+var ExpectedDeviceManufacturers = []string{"Animas"}
+
 func NewTruncateFactory() (*TruncateFactory, error) {
 	return &TruncateFactory{}, nil
 }
@@ -40,15 +42,18 @@ func (t *TruncateFactory) CanDeduplicateDataset(dataset *upload.Upload) (bool, e
 		return false, app.Error("deduplicator", "dataset is missing")
 	}
 
+	if dataset.Deduplicator != nil {
+		return dataset.Deduplicator.Name == TruncateDeduplicatorName, nil
+	}
+
 	if dataset.UploadID == "" || dataset.UserID == "" || dataset.GroupID == "" {
 		return false, nil
 	}
 	if dataset.DeviceID == nil || *dataset.DeviceID == "" {
 		return false, nil
 	}
-
-	if dataset.Deduplicator != nil {
-		return dataset.Deduplicator.Name == TruncateDeduplicatorName, nil
+	if dataset.DeviceManufacturers == nil || !app.StringsContainsAnyStrings(*dataset.DeviceManufacturers, ExpectedDeviceManufacturers) {
+		return false, nil
 	}
 
 	return true, nil
@@ -73,8 +78,17 @@ func (t *TruncateFactory) NewDeduplicator(logger log.Logger, dataStoreSession st
 	if dataset.GroupID == "" {
 		return nil, app.Error("deduplicator", "dataset group id is missing")
 	}
-	if dataset.DeviceID == nil || *dataset.DeviceID == "" {
+	if dataset.DeviceID == nil {
 		return nil, app.Error("deduplicator", "dataset device id is missing")
+	}
+	if *dataset.DeviceID == "" {
+		return nil, app.Error("deduplicator", "dataset device id is empty")
+	}
+	if dataset.DeviceManufacturers == nil {
+		return nil, app.Error("deduplicator", "dataset device manufacturers is missing")
+	}
+	if !app.StringsContainsAnyStrings(*dataset.DeviceManufacturers, ExpectedDeviceManufacturers) {
+		return nil, app.Error("deduplicator", "dataset device manufacturers does not contain expected device manufacturer")
 	}
 
 	return &TruncateDeduplicator{

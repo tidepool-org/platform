@@ -35,6 +35,7 @@ var _ = Describe("Truncate", func() {
 			testDataset.UserID = "user-id"
 			testDataset.GroupID = "group-id"
 			testDataset.DeviceID = app.StringAsPointer("device-id")
+			testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Animas"})
 		})
 
 		Context("CanDeduplicateDataset", func() {
@@ -42,6 +43,26 @@ var _ = Describe("Truncate", func() {
 				can, err := testFactory.CanDeduplicateDataset(nil)
 				Expect(err).To(MatchError("deduplicator: dataset is missing"))
 				Expect(can).To(Equal(false))
+			})
+
+			Context("with deduplicator", func() {
+				BeforeEach(func() {
+					testDataset.Deduplicator = &upload.Deduplicator{}
+				})
+
+				It("returns false if the deduplicator name is missing", func() {
+					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(false))
+				})
+
+				It("returns true if the deduplicator name is not truncate", func() {
+					testDataset.Deduplicator.Name = "not-truncate"
+					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(false))
+				})
+
+				It("returns true if the deduplicator name is truncate", func() {
+					testDataset.Deduplicator.Name = "truncate"
+					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(true))
+				})
 			})
 
 			It("returns false if the dataset id is missing", func() {
@@ -69,28 +90,28 @@ var _ = Describe("Truncate", func() {
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(false))
 			})
 
-			It("returns true if the device id is specified", func() {
+			It("returns false if the device manufacturers is missing", func() {
+				testDataset.DeviceManufacturers = nil
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(false))
+			})
+
+			It("returns false if the device manufacturers is empty", func() {
+				testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{})
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(false))
+			})
+
+			It("returns false if the device manufacturers does not contain expected device manufacturer", func() {
+				testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Ant", "Zebra", "Cobra"})
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(false))
+			})
+
+			It("returns true if the device id and expected device manufacturer is specified", func() {
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(true))
 			})
 
-			Context("with deduplicator", func() {
-				BeforeEach(func() {
-					testDataset.Deduplicator = &upload.Deduplicator{}
-				})
-
-				It("returns false if the deduplicator name is missing", func() {
-					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(false))
-				})
-
-				It("returns true if the deduplicator name is not truncate", func() {
-					testDataset.Deduplicator.Name = "not-truncate"
-					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(false))
-				})
-
-				It("returns true if the deduplicator name is truncate", func() {
-					testDataset.Deduplicator.Name = "truncate"
-					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(true))
-				})
+			It("returns true if the device id and expected device manufacturer is specified with multiple device manufacturers", func() {
+				testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Ant", "Zebra", "Animas", "Cobra"})
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(true))
 			})
 		})
 
@@ -144,11 +165,37 @@ var _ = Describe("Truncate", func() {
 			It("returns an error if the dataset device id is empty", func() {
 				testDataset.DeviceID = app.StringAsPointer("")
 				testTruncateDeduplicator, err := testFactory.NewDeduplicator(log.NewNull(), &testDataStore.Session{}, testDataset)
-				Expect(err).To(MatchError("deduplicator: dataset device id is missing"))
+				Expect(err).To(MatchError("deduplicator: dataset device id is empty"))
+				Expect(testTruncateDeduplicator).To(BeNil())
+			})
+
+			It("returns an error if the dataset device manufacturers is missing", func() {
+				testDataset.DeviceManufacturers = nil
+				testTruncateDeduplicator, err := testFactory.NewDeduplicator(log.NewNull(), &testDataStore.Session{}, testDataset)
+				Expect(err).To(MatchError("deduplicator: dataset device manufacturers is missing"))
+				Expect(testTruncateDeduplicator).To(BeNil())
+			})
+
+			It("returns false if the device manufacturers is empty", func() {
+				testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{})
+				testTruncateDeduplicator, err := testFactory.NewDeduplicator(log.NewNull(), &testDataStore.Session{}, testDataset)
+				Expect(err).To(MatchError("deduplicator: dataset device manufacturers does not contain expected device manufacturer"))
+				Expect(testTruncateDeduplicator).To(BeNil())
+			})
+
+			It("returns false if the device manufacturers does not contain expected device manufacturer", func() {
+				testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Ant", "Zebra", "Cobra"})
+				testTruncateDeduplicator, err := testFactory.NewDeduplicator(log.NewNull(), &testDataStore.Session{}, testDataset)
+				Expect(err).To(MatchError("deduplicator: dataset device manufacturers does not contain expected device manufacturer"))
 				Expect(testTruncateDeduplicator).To(BeNil())
 			})
 
 			It("returns a new deduplicator upon success", func() {
+				Expect(testFactory.NewDeduplicator(log.NewNull(), &testDataStore.Session{}, testDataset)).ToNot(BeNil())
+			})
+
+			It("returns a new deduplicator upon success with multiple device manufacturers", func() {
+				testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Ant", "Zebra", "Animas", "Cobra"})
 				Expect(testFactory.NewDeduplicator(log.NewNull(), &testDataStore.Session{}, testDataset)).ToNot(BeNil())
 			})
 		})
