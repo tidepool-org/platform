@@ -13,8 +13,6 @@ package service
 import (
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data/deduplicator"
-	"github.com/tidepool-org/platform/data/deduplicator/delegate"
-	"github.com/tidepool-org/platform/data/deduplicator/truncate"
 	"github.com/tidepool-org/platform/data/factory"
 	dataMongo "github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/dataservices/service/api"
@@ -171,7 +169,7 @@ func (s *Standard) initializeDataFactory() error {
 func (s *Standard) initializeDataDeduplicatorFactory() error {
 	s.Logger().Debug("Creating truncate data deduplicator factory")
 
-	truncateDeduplicatorFactory, err := truncate.NewFactory()
+	truncateDeduplicatorFactory, err := deduplicator.NewTruncateFactory()
 	if err != nil {
 		return app.ExtError(err, "service", "unable to create truncate data deduplicator factory")
 	}
@@ -182,7 +180,7 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 		truncateDeduplicatorFactory,
 	}
 
-	dataDeduplicatorFactory, err := delegate.NewFactory(factories)
+	dataDeduplicatorFactory, err := deduplicator.NewDelegateFactory(factories)
 	if err != nil {
 		return app.ExtError(err, "service", "unable to create data deduplicator factory")
 	}

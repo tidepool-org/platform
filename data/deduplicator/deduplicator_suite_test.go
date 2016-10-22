@@ -1,4 +1,4 @@
-package delegate_test
+package deduplicator_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -9,5 +9,5 @@ import (
 
 func TestSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "data/deduplicator/delegate")
+	RunSpecs(t, "data/deduplicator")
 }
