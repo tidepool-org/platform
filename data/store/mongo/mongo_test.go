@@ -393,9 +393,9 @@ var _ = Describe("Mongo", func() {
 						Expect(testMongoCollection.Insert(dataset)).To(Succeed())
 					})
 
-					Context("with data state closed", func() {
+					Context("with state closed", func() {
 						BeforeEach(func() {
-							dataset.DataState = "closed"
+							dataset.State = "closed"
 						})
 
 						It("succeeds if it successfully updates the dataset", func() {
@@ -433,7 +433,7 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("sets the modified time", func() {
-						dataset.DataState = "closed"
+						dataset.State = "closed"
 						Expect(mongoSession.UpdateDataset(dataset)).To(Succeed())
 						Expect(dataset.ModifiedTime).ToNot(BeEmpty())
 						Expect(dataset.ModifiedUserID).To(BeEmpty())
@@ -442,7 +442,7 @@ var _ = Describe("Mongo", func() {
 					It("has the correct stored datasets", func() {
 						ValidateDataset(testMongoCollection, bson.M{}, datasetExistingOne, datasetExistingTwo, dataset)
 						ValidateDataset(testMongoCollection, bson.M{"modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}})
-						dataset.DataState = "closed"
+						dataset.State = "closed"
 						Expect(mongoSession.UpdateDataset(dataset)).To(Succeed())
 						ValidateDataset(testMongoCollection, bson.M{}, datasetExistingOne, datasetExistingTwo, dataset)
 						ValidateDataset(testMongoCollection, bson.M{"modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}}, dataset)
@@ -457,7 +457,7 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("sets the modified time and modified user id", func() {
-							dataset.DataState = "closed"
+							dataset.State = "closed"
 							Expect(mongoSession.UpdateDataset(dataset)).To(Succeed())
 							Expect(dataset.ModifiedTime).ToNot(BeEmpty())
 							Expect(dataset.ModifiedUserID).To(Equal(agentUserID))
@@ -466,7 +466,7 @@ var _ = Describe("Mongo", func() {
 						It("has the correct stored datasets", func() {
 							ValidateDataset(testMongoCollection, bson.M{}, datasetExistingOne, datasetExistingTwo, dataset)
 							ValidateDataset(testMongoCollection, bson.M{"modifiedTime": bson.M{"$exists": true}, "modifiedUserId": agentUserID})
-							dataset.DataState = "closed"
+							dataset.State = "closed"
 							Expect(mongoSession.UpdateDataset(dataset)).To(Succeed())
 							ValidateDataset(testMongoCollection, bson.M{}, datasetExistingOne, datasetExistingTwo, dataset)
 							ValidateDataset(testMongoCollection, bson.M{"modifiedTime": bson.M{"$exists": true}, "modifiedUserId": agentUserID}, dataset)

@@ -58,7 +58,7 @@ func DatasetsDataCreate(serviceContext service.Context) {
 		}
 	}
 
-	if dataset.DataState != "open" {
+	if dataset.State == "closed" || dataset.DataState == "closed" { // TODO: Deprecated DataState (after data migration)
 		serviceContext.RespondWithError(ErrorDatasetClosed(datasetID))
 		return
 	}

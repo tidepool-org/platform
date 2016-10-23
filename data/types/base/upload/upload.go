@@ -14,7 +14,8 @@ type Deduplicator struct {
 type Upload struct {
 	base.Base `bson:",inline"`
 
-	DataState    string        `json:"-" bson:"_dataState,omitempty"`
+	State        string        `json:"-" bson:"_state,omitempty"`
+	DataState    string        `json:"-" bson:"_dataState,omitempty"` // TODO: Deprecated DataState (after data migration)
 	Deduplicator *Deduplicator `json:"-" bson:"_deduplicator,omitempty"`
 	ByUser       string        `json:"byUser,omitempty" bson:"byUser,omitempty"`
 
@@ -51,7 +52,8 @@ func (u *Upload) Init() {
 	u.Base.Type = Type()
 	u.Base.UploadID = app.NewID()
 
-	u.DataState = "open"
+	u.State = "open"
+	u.DataState = "open" // TODO: Deprecated DataState (after data migration)
 	u.Deduplicator = nil
 	u.ByUser = ""
 

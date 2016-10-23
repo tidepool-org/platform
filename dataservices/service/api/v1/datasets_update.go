@@ -52,12 +52,12 @@ func DatasetsUpdate(serviceContext service.Context) {
 		}
 	}
 
-	if dataset.DataState != "open" {
+	if dataset.State == "closed" || dataset.DataState == "closed" { // TODO: Deprecated DataState (after data migration)
 		serviceContext.RespondWithError(ErrorDatasetClosed(datasetID))
 		return
 	}
 
-	dataset.DataState = "closed"
+	dataset.State = "closed"
 
 	if err = serviceContext.DataStoreSession().UpdateDataset(dataset); err != nil {
 		serviceContext.RespondWithInternalServerFailure("Unable to update dataset", err)
