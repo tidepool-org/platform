@@ -8,7 +8,7 @@ import (
 )
 
 type CanDeduplicateDatasetOutput struct {
-	Bool  bool
+	Can   bool
 	Error error
 }
 
@@ -43,7 +43,7 @@ func (f *Factory) CanDeduplicateDataset(dataset *upload.Upload) (bool, error) {
 
 	output := f.CanDeduplicateDatasetOutputs[0]
 	f.CanDeduplicateDatasetOutputs = f.CanDeduplicateDatasetOutputs[1:]
-	return output.Bool, output.Error
+	return output.Can, output.Error
 }
 
 func (f *Factory) NewDeduplicator(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (deduplicator.Deduplicator, error) {

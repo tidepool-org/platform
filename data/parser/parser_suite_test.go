@@ -115,30 +115,3 @@ func (t *TestFactory) Init(inspector data.Inspector) (data.Datum, error) {
 	t.InitOutputs = t.InitOutputs[1:]
 	return output.Datum, output.Error
 }
-
-type TestDatum struct {
-	ParseInputs  []data.ObjectParser
-	ParseOutputs []error
-}
-
-func (t *TestDatum) Init()                                      {}
-func (t *TestDatum) Meta() interface{}                          { return nil }
-func (t *TestDatum) Validate(validator data.Validator) error    { return nil }
-func (t *TestDatum) Normalize(normalizer data.Normalizer) error { return nil }
-func (t *TestDatum) SetUserID(userID string)                    {}
-func (t *TestDatum) SetGroupID(groupID string)                  {}
-func (t *TestDatum) SetDatasetID(datasetID string)              {}
-func (t *TestDatum) SetActive(active bool)                      {}
-func (t *TestDatum) SetCreatedTime(createdTime string)          {}
-func (t *TestDatum) SetCreatedUserID(createdUserID string)      {}
-func (t *TestDatum) SetModifiedTime(modifiedTime string)        {}
-func (t *TestDatum) SetModifiedUserID(modifiedUserID string)    {}
-func (t *TestDatum) SetDeletedTime(deletedTime string)          {}
-func (t *TestDatum) SetDeletedUserID(deletedUserID string)      {}
-
-func (t *TestDatum) Parse(parser data.ObjectParser) error {
-	t.ParseInputs = append(t.ParseInputs, parser)
-	output := t.ParseOutputs[0]
-	t.ParseOutputs = t.ParseOutputs[1:]
-	return output
-}

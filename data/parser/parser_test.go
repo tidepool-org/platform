@@ -8,16 +8,17 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/parser"
+	testData "github.com/tidepool-org/platform/data/test"
 )
 
 var _ = Describe("Parser", func() {
 	Context("ParseDatum", func() {
-		var testDatum *TestDatum
+		var testDatum *testData.Datum
 		var testObjectParser *TestObjectParser
 		var testFactory *TestFactory
 
 		BeforeEach(func() {
-			testDatum = &TestDatum{}
+			testDatum = &testData.Datum{}
 			testDatum.ParseOutputs = []error{nil}
 			testObjectParser = &TestObjectParser{}
 			testObjectParser.ObjectOutputs = []*map[string]interface{}{{}}
@@ -81,8 +82,8 @@ var _ = Describe("Parser", func() {
 		var testArrayParser *TestArrayParser
 
 		BeforeEach(func() {
-			testDatum1 = &TestDatum{}
-			testDatum2 = &TestDatum{}
+			testDatum1 = &testData.Datum{}
+			testDatum2 = &testData.Datum{}
 			testArrayParser = &TestArrayParser{}
 			testArrayParser.ArrayOutputs = []*[]interface{}{{testDatum1, testDatum2}}
 			testArrayParser.ParseDatumOutputs = []*data.Datum{&testDatum1, &testDatum2}

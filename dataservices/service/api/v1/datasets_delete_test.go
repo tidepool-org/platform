@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/tidepool-org/platform/app"
+	testDataStore "github.com/tidepool-org/platform/data/store/test"
 	"github.com/tidepool-org/platform/data/types/base/upload"
 	"github.com/tidepool-org/platform/dataservices/service/api/v1"
 	"github.com/tidepool-org/platform/service"
@@ -30,7 +31,7 @@ var _ = Describe("DatasetsDelete", func() {
 			targetUpload.ByUser = app.NewID()
 			context = NewTestContext()
 			context.RequestImpl.PathParams["datasetid"] = targetUpload.UploadID
-			context.DataStoreSessionImpl.GetDatasetByIDOutputs = []GetDatasetByIDOutput{{targetUpload, nil}}
+			context.DataStoreSessionImpl.GetDatasetByIDOutputs = []testDataStore.GetDatasetByIDOutput{{Dataset: targetUpload, Error: nil}}
 			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{false}
 			context.AuthenticationDetailsImpl.UserIDOutputs = []string{authenticatedUserID}
 			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{client.Permissions{"root": client.Permission{}}, nil}}
@@ -84,7 +85,7 @@ var _ = Describe("DatasetsDelete", func() {
 		})
 
 		It("panics if context is missing", func() {
-			context.DataStoreSessionImpl.GetDatasetByIDOutputs = []GetDatasetByIDOutput{}
+			context.DataStoreSessionImpl.GetDatasetByIDOutputs = []testDataStore.GetDatasetByIDOutput{}
 			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{}
 			context.AuthenticationDetailsImpl.UserIDOutputs = []string{}
 			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
@@ -96,7 +97,7 @@ var _ = Describe("DatasetsDelete", func() {
 
 		It("panics if request is missing", func() {
 			context.RequestImpl = nil
-			context.DataStoreSessionImpl.GetDatasetByIDOutputs = []GetDatasetByIDOutput{}
+			context.DataStoreSessionImpl.GetDatasetByIDOutputs = []testDataStore.GetDatasetByIDOutput{}
 			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{}
 			context.AuthenticationDetailsImpl.UserIDOutputs = []string{}
 			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
@@ -108,7 +109,7 @@ var _ = Describe("DatasetsDelete", func() {
 
 		It("responds with error if dataset id not provided as a parameter", func() {
 			delete(context.RequestImpl.PathParams, "datasetid")
-			context.DataStoreSessionImpl.GetDatasetByIDOutputs = []GetDatasetByIDOutput{}
+			context.DataStoreSessionImpl.GetDatasetByIDOutputs = []testDataStore.GetDatasetByIDOutput{}
 			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{}
 			context.AuthenticationDetailsImpl.UserIDOutputs = []string{}
 			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
@@ -131,7 +132,7 @@ var _ = Describe("DatasetsDelete", func() {
 
 		It("responds with error if data store session get dataset returns error", func() {
 			err := errors.New("other")
-			context.DataStoreSessionImpl.GetDatasetByIDOutputs = []GetDatasetByIDOutput{{nil, err}}
+			context.DataStoreSessionImpl.GetDatasetByIDOutputs = []testDataStore.GetDatasetByIDOutput{{Dataset: nil, Error: err}}
 			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{}
 			context.AuthenticationDetailsImpl.UserIDOutputs = []string{}
 			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
@@ -144,7 +145,7 @@ var _ = Describe("DatasetsDelete", func() {
 		})
 
 		It("responds with error if data store session get dataset returns no dataset", func() {
-			context.DataStoreSessionImpl.GetDatasetByIDOutputs = []GetDatasetByIDOutput{{nil, nil}}
+			context.DataStoreSessionImpl.GetDatasetByIDOutputs = []testDataStore.GetDatasetByIDOutput{{Dataset: nil, Error: nil}}
 			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{}
 			context.AuthenticationDetailsImpl.UserIDOutputs = []string{}
 			context.UserServicesClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}

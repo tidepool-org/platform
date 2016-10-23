@@ -8,6 +8,7 @@ import (
 
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/parser"
+	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
 )
@@ -544,10 +545,10 @@ var _ = Describe("StandardArray", func() {
 		})
 
 		Context("ParseDatum", func() {
-			var testDatum *TestDatum
+			var testDatum *testData.Datum
 
 			BeforeEach(func() {
-				testDatum = &TestDatum{}
+				testDatum = &testData.Datum{}
 				testDatum.ParseOutputs = []error{nil}
 				testFactory.InitOutputs = []InitOutput{{testDatum, nil}}
 				standardArray, _ = parser.NewStandardArray(standardContext, testFactory, &[]interface{}{
@@ -609,13 +610,13 @@ var _ = Describe("StandardArray", func() {
 		})
 
 		Context("ParseDatumArray", func() {
-			var testDatum1 *TestDatum
-			var testDatum2 *TestDatum
+			var testDatum1 *testData.Datum
+			var testDatum2 *testData.Datum
 
 			BeforeEach(func() {
-				testDatum1 = &TestDatum{}
+				testDatum1 = &testData.Datum{}
 				testDatum1.ParseOutputs = []error{nil}
-				testDatum2 = &TestDatum{}
+				testDatum2 = &testData.Datum{}
 				testDatum2.ParseOutputs = []error{nil}
 				testFactory.InitOutputs = []InitOutput{{testDatum1, nil}, {testDatum2, nil}}
 				standardArray, _ = parser.NewStandardArray(standardContext, testFactory, &[]interface{}{

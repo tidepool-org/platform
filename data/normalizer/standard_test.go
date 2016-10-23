@@ -7,27 +7,10 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/normalizer"
+	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
 )
-
-type TestDatum struct{}
-
-func (t *TestDatum) Init()                                      {}
-func (t *TestDatum) Meta() interface{}                          { return nil }
-func (t *TestDatum) Parse(parser data.ObjectParser) error       { return nil }
-func (t *TestDatum) Validate(validator data.Validator) error    { return nil }
-func (t *TestDatum) Normalize(normalizer data.Normalizer) error { return nil }
-func (t *TestDatum) SetUserID(userID string)                    {}
-func (t *TestDatum) SetGroupID(groupID string)                  {}
-func (t *TestDatum) SetDatasetID(datasetID string)              {}
-func (t *TestDatum) SetActive(active bool)                      {}
-func (t *TestDatum) SetCreatedTime(createdTime string)          {}
-func (t *TestDatum) SetCreatedUserID(createdUserID string)      {}
-func (t *TestDatum) SetModifiedTime(modifiedTime string)        {}
-func (t *TestDatum) SetModifiedUserID(modifiedUserID string)    {}
-func (t *TestDatum) SetDeletedTime(deletedTime string)          {}
-func (t *TestDatum) SetDeletedUserID(deletedUserID string)      {}
 
 var _ = Describe("Standard", func() {
 	It("NewStandard returns an error if context is nil", func() {
@@ -82,10 +65,10 @@ var _ = Describe("Standard", func() {
 		})
 
 		Context("AppendDatum with a first datum", func() {
-			var firstDatum *TestDatum
+			var firstDatum *testData.Datum
 
 			BeforeEach(func() {
-				firstDatum = &TestDatum{}
+				firstDatum = &testData.Datum{}
 				standard.AppendDatum(firstDatum)
 			})
 
@@ -98,10 +81,10 @@ var _ = Describe("Standard", func() {
 			})
 
 			Context("and AppendDatum with a second data", func() {
-				var secondDatum *TestDatum
+				var secondDatum *testData.Datum
 
 				BeforeEach(func() {
-					secondDatum = &TestDatum{}
+					secondDatum = &testData.Datum{}
 					standard.AppendDatum(secondDatum)
 				})
 
@@ -144,10 +127,10 @@ var _ = Describe("Standard", func() {
 			})
 
 			Context("AppendDatum with a first error", func() {
-				var firstDatum *TestDatum
+				var firstDatum *testData.Datum
 
 				BeforeEach(func() {
-					firstDatum = &TestDatum{}
+					firstDatum = &testData.Datum{}
 					child.AppendDatum(firstDatum)
 				})
 
@@ -160,10 +143,10 @@ var _ = Describe("Standard", func() {
 				})
 
 				Context("and AppendDatum with a second error to the parent context", func() {
-					var secondDatum *TestDatum
+					var secondDatum *testData.Datum
 
 					BeforeEach(func() {
-						secondDatum = &TestDatum{}
+						secondDatum = &testData.Datum{}
 						standard.AppendDatum(secondDatum)
 					})
 

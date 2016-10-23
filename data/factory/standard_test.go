@@ -11,6 +11,7 @@ import (
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/factory"
+	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/base/basal/scheduled"
 	"github.com/tidepool-org/platform/data/types/base/basal/suspend"
 	"github.com/tidepool-org/platform/data/types/base/basal/temporary"
@@ -30,24 +31,6 @@ import (
 	"github.com/tidepool-org/platform/data/types/base/selfmonitored"
 	"github.com/tidepool-org/platform/data/types/base/upload"
 )
-
-type TestDatum struct{}
-
-func (t *TestDatum) Init()                                      {}
-func (t *TestDatum) Meta() interface{}                          { return nil }
-func (t *TestDatum) Parse(parser data.ObjectParser) error       { return nil }
-func (t *TestDatum) Validate(validator data.Validator) error    { return nil }
-func (t *TestDatum) Normalize(normalizer data.Normalizer) error { return nil }
-func (t *TestDatum) SetUserID(userID string)                    {}
-func (t *TestDatum) SetGroupID(groupID string)                  {}
-func (t *TestDatum) SetDatasetID(datasetID string)              {}
-func (t *TestDatum) SetActive(active bool)                      {}
-func (t *TestDatum) SetCreatedTime(createdTime string)          {}
-func (t *TestDatum) SetCreatedUserID(createdUserID string)      {}
-func (t *TestDatum) SetModifiedTime(modifiedTime string)        {}
-func (t *TestDatum) SetModifiedUserID(modifiedUserID string)    {}
-func (t *TestDatum) SetDeletedTime(deletedTime string)          {}
-func (t *TestDatum) SetDeletedUserID(deletedUserID string)      {}
 
 type NewInvalidPropertyErrorInput struct {
 	key           string
@@ -137,7 +120,7 @@ var _ = Describe("Standard", func() {
 			})
 
 			It("returns a NewFunc that returns the datum that the datumFunc returns", func() {
-				testDatum := &TestDatum{}
+				testDatum := &testData.Datum{}
 				newFunc := factory.NewNewFuncWithFunc(func() data.Datum { return testDatum })
 				Expect(newFunc).ToNot(BeNil())
 				Expect(newFunc(testInspector)).To(Equal(testDatum))
@@ -152,7 +135,7 @@ var _ = Describe("Standard", func() {
 		var testInspector *TestInspector
 
 		BeforeEach(func() {
-			testDatum = &TestDatum{}
+			testDatum = &testData.Datum{}
 			testNewFuncMap = factory.NewFuncMap{
 				"value-datum-func-returns-datum": func(_ data.Inspector) (data.Datum, error) { return testDatum, nil },
 				"value-datum-func-returns-error": func(_ data.Inspector) (data.Datum, error) { return nil, errors.New("test: datum func returns error") },

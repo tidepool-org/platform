@@ -13,7 +13,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataStore "github.com/tidepool-org/platform/data/store"
-	"github.com/tidepool-org/platform/data/types/base/upload"
+	testDataStore "github.com/tidepool-org/platform/data/store/test"
 	"github.com/tidepool-org/platform/log"
 	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
 	"github.com/tidepool-org/platform/service"
@@ -111,99 +111,6 @@ type RespondWithStatusAndDataInput struct {
 	data       interface{}
 }
 
-type GetDatasetsForUserByIDInput struct {
-	userID     string
-	filter     *dataStore.Filter
-	pagination *dataStore.Pagination
-}
-
-type GetDatasetsForUserByIDOutput struct {
-	datasets []*upload.Upload
-	err      error
-}
-
-type GetDatasetByIDOutput struct {
-	dataset *upload.Upload
-	err     error
-}
-
-type TestDataStoreSession struct {
-	GetDatasetsForUserByIDInputs  []GetDatasetsForUserByIDInput
-	GetDatasetsForUserByIDOutputs []GetDatasetsForUserByIDOutput
-	GetDatasetByIDInputs          []string
-	GetDatasetByIDOutputs         []GetDatasetByIDOutput
-	DeleteDatasetInputs           []*upload.Upload
-	DeleteDatasetOutputs          []error
-	DestroyDataForUserByIDInputs  []string
-	DestroyDataForUserByIDOutputs []error
-}
-
-func (t *TestDataStoreSession) IsClosed() bool {
-	panic("Unexpected invocation of IsClosed on TestDataStoreSession")
-}
-
-func (t *TestDataStoreSession) Close() {
-	panic("Unexpected invocation of Close on TestDataStoreSession")
-}
-
-func (t *TestDataStoreSession) SetAgent(agent commonStore.Agent) {
-	panic("Unexpected invocation of SetAgent on TestDataStoreSession")
-}
-
-func (t *TestDataStoreSession) GetDatasetsForUserByID(userID string, filter *dataStore.Filter, pagination *dataStore.Pagination) ([]*upload.Upload, error) {
-	t.GetDatasetsForUserByIDInputs = append(t.GetDatasetsForUserByIDInputs, GetDatasetsForUserByIDInput{userID, filter, pagination})
-	output := t.GetDatasetsForUserByIDOutputs[0]
-	t.GetDatasetsForUserByIDOutputs = t.GetDatasetsForUserByIDOutputs[1:]
-	return output.datasets, output.err
-}
-
-func (t *TestDataStoreSession) GetDatasetByID(datasetID string) (*upload.Upload, error) {
-	t.GetDatasetByIDInputs = append(t.GetDatasetByIDInputs, datasetID)
-	output := t.GetDatasetByIDOutputs[0]
-	t.GetDatasetByIDOutputs = t.GetDatasetByIDOutputs[1:]
-	return output.dataset, output.err
-}
-
-func (t *TestDataStoreSession) CreateDataset(dataset *upload.Upload) error {
-	panic("Unexpected invocation of CreateDataset on TestDataStoreSession")
-}
-
-func (t *TestDataStoreSession) UpdateDataset(dataset *upload.Upload) error {
-	panic("Unexpected invocation of UpdateDataset on TestDataStoreSession")
-}
-
-func (t *TestDataStoreSession) DeleteDataset(dataset *upload.Upload) error {
-	t.DeleteDatasetInputs = append(t.DeleteDatasetInputs, dataset)
-	output := t.DeleteDatasetOutputs[0]
-	t.DeleteDatasetOutputs = t.DeleteDatasetOutputs[1:]
-	return output
-}
-
-func (t *TestDataStoreSession) CreateDatasetData(dataset *upload.Upload, datasetData []data.Datum) error {
-	panic("Unexpected invocation of CreateDatasetData on TestDataStoreSession")
-}
-
-func (t *TestDataStoreSession) ActivateDatasetData(dataset *upload.Upload) error {
-	panic("Unexpected invocation of ActivateDatasetData on TestDataStoreSession")
-}
-
-func (t *TestDataStoreSession) DeleteOtherDatasetData(dataset *upload.Upload) error {
-	panic("Unexpected invocation of DeleteOtherDatasetData on TestDataStoreSession")
-}
-
-func (t *TestDataStoreSession) DestroyDataForUserByID(userID string) error {
-	t.DestroyDataForUserByIDInputs = append(t.DestroyDataForUserByIDInputs, userID)
-	output := t.DestroyDataForUserByIDOutputs[0]
-	t.DestroyDataForUserByIDOutputs = t.DestroyDataForUserByIDOutputs[1:]
-	return output
-}
-
-func (t *TestDataStoreSession) ValidateTest() bool {
-	return len(t.GetDatasetsForUserByIDOutputs) == 0 &&
-		len(t.GetDatasetByIDOutputs) == 0 &&
-		len(t.DeleteDatasetOutputs) == 0
-}
-
 type TestTaskStoreSession struct {
 	DestroyTasksForUserByIDInputs  []string
 	DestroyTasksForUserByIDOutputs []error
@@ -267,7 +174,7 @@ type TestContext struct {
 	RespondWithStatusAndDataInputs         []RespondWithStatusAndDataInput
 	MetricServicesClientImpl               *TestMetricServicesClient
 	UserServicesClientImpl                 *TestUserServicesClient
-	DataStoreSessionImpl                   *TestDataStoreSession
+	DataStoreSessionImpl                   *testDataStore.Session
 	TaskStoreSessionImpl                   *TestTaskStoreSession
 	AuthenticationDetailsImpl              *TestAuthenticationDetails
 }
@@ -283,7 +190,7 @@ func NewTestContext() *TestContext {
 		},
 		MetricServicesClientImpl:  &TestMetricServicesClient{},
 		UserServicesClientImpl:    &TestUserServicesClient{},
-		DataStoreSessionImpl:      &TestDataStoreSession{},
+		DataStoreSessionImpl:      &testDataStore.Session{},
 		TaskStoreSessionImpl:      &TestTaskStoreSession{},
 		AuthenticationDetailsImpl: &TestAuthenticationDetails{},
 	}
@@ -352,7 +259,7 @@ func (t *TestContext) SetAuthenticationDetails(authenticationDetails userservice
 func (t *TestContext) ValidateTest() bool {
 	return (t.MetricServicesClientImpl == nil || t.MetricServicesClientImpl.ValidateTest()) &&
 		(t.UserServicesClientImpl == nil || t.UserServicesClientImpl.ValidateTest()) &&
-		(t.DataStoreSessionImpl == nil || t.DataStoreSessionImpl.ValidateTest()) &&
+		(t.DataStoreSessionImpl == nil || t.DataStoreSessionImpl.UnusedOutputsCount() == 0) &&
 		(t.TaskStoreSessionImpl == nil || t.TaskStoreSessionImpl.ValidateTest()) &&
 		(t.AuthenticationDetailsImpl == nil || t.AuthenticationDetailsImpl.ValidateTest())
 }

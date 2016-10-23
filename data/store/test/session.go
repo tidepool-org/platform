@@ -14,13 +14,13 @@ type GetDatasetsForUserByIDInput struct {
 }
 
 type GetDatasetsForUserByIDOutput struct {
-	Upload []*upload.Upload
-	Error  error
+	Datasets []*upload.Upload
+	Error    error
 }
 
 type GetDatasetByIDOutput struct {
-	Upload *upload.Upload
-	Error  error
+	Dataset *upload.Upload
+	Error   error
 }
 
 type CreateDatasetDataInput struct {
@@ -96,7 +96,7 @@ func (s *Session) GetDatasetsForUserByID(userID string, filter *store.Filter, pa
 
 	output := s.GetDatasetsForUserByIDOutputs[0]
 	s.GetDatasetsForUserByIDOutputs = s.GetDatasetsForUserByIDOutputs[1:]
-	return output.Upload, output.Error
+	return output.Datasets, output.Error
 }
 
 func (s *Session) GetDatasetByID(datasetID string) (*upload.Upload, error) {
@@ -110,7 +110,7 @@ func (s *Session) GetDatasetByID(datasetID string) (*upload.Upload, error) {
 
 	output := s.GetDatasetByIDOutputs[0]
 	s.GetDatasetByIDOutputs = s.GetDatasetByIDOutputs[1:]
-	return output.Upload, output.Error
+	return output.Dataset, output.Error
 }
 
 func (s *Session) CreateDataset(dataset *upload.Upload) error {
