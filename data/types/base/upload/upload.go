@@ -6,18 +6,12 @@ import (
 	"github.com/tidepool-org/platform/data/types/base"
 )
 
-type Deduplicator struct {
-	Name string                 `bson:"name,omitempty"`
-	Data map[string]interface{} `bson:"data,omitempty"`
-}
-
 type Upload struct {
 	base.Base `bson:",inline"`
 
-	State        string        `json:"-" bson:"_state,omitempty"`
-	DataState    string        `json:"-" bson:"_dataState,omitempty"` // TODO: Deprecated DataState (after data migration)
-	Deduplicator *Deduplicator `json:"-" bson:"_deduplicator,omitempty"`
-	ByUser       string        `json:"byUser,omitempty" bson:"byUser,omitempty"`
+	State     string `json:"-" bson:"_state,omitempty"`
+	DataState string `json:"-" bson:"_dataState,omitempty"` // TODO: Deprecated DataState (after data migration)
+	ByUser    string `json:"byUser,omitempty" bson:"byUser,omitempty"`
 
 	ComputerTime        *string   `json:"computerTime,omitempty" bson:"computerTime,omitempty"`
 	DeviceManufacturers *[]string `json:"deviceManufacturers,omitempty" bson:"deviceManufacturers,omitempty"`

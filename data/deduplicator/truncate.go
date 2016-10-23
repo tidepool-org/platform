@@ -20,8 +20,7 @@ import (
 	"github.com/tidepool-org/platform/log"
 )
 
-type TruncateFactory struct {
-}
+type TruncateFactory struct{}
 
 type TruncateDeduplicator struct {
 	logger           log.Logger
@@ -59,7 +58,7 @@ func (t *TruncateFactory) CanDeduplicateDataset(dataset *upload.Upload) (bool, e
 	return true, nil
 }
 
-func (t *TruncateFactory) NewDeduplicator(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (Deduplicator, error) {
+func (t *TruncateFactory) NewDeduplicator(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (data.Deduplicator, error) {
 	if logger == nil {
 		return nil, app.Error("deduplicator", "logger is missing")
 	}
@@ -99,7 +98,7 @@ func (t *TruncateFactory) NewDeduplicator(logger log.Logger, dataStoreSession st
 }
 
 func (t *TruncateDeduplicator) InitializeDataset() error {
-	t.dataset.Deduplicator = &upload.Deduplicator{Name: TruncateDeduplicatorName}
+	t.dataset.SetDeduplicatorDescriptor(&data.DeduplicatorDescriptor{Name: TruncateDeduplicatorName})
 
 	if err := t.dataStoreSession.UpdateDataset(t.dataset); err != nil {
 		return app.ExtError(err, "deduplicator", "unable to initialize dataset")

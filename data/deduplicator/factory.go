@@ -17,13 +17,7 @@ import (
 	"github.com/tidepool-org/platform/log"
 )
 
-type Deduplicator interface {
-	InitializeDataset() error
-	AddDataToDataset(datasetData []data.Datum) error
-	FinalizeDataset() error
-}
-
 type Factory interface {
 	CanDeduplicateDataset(dataset *upload.Upload) (bool, error)
-	NewDeduplicator(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (Deduplicator, error)
+	NewDeduplicator(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (data.Deduplicator, error)
 }

@@ -47,7 +47,7 @@ var _ = Describe("Truncate", func() {
 
 			Context("with deduplicator", func() {
 				BeforeEach(func() {
-					testDataset.Deduplicator = &upload.Deduplicator{}
+					testDataset.Deduplicator = &data.DeduplicatorDescriptor{}
 				})
 
 				It("returns false if the deduplicator name is missing", func() {
@@ -202,7 +202,7 @@ var _ = Describe("Truncate", func() {
 
 		Context("with a new deduplicator", func() {
 			var testDataStoreSession *testDataStore.Session
-			var testTruncateDeduplicator deduplicator.Deduplicator
+			var testTruncateDeduplicator data.Deduplicator
 
 			BeforeEach(func() {
 				var err error
@@ -233,7 +233,7 @@ var _ = Describe("Truncate", func() {
 				It("sets the dataset deduplicator if there is no error", func() {
 					testDataStoreSession.UpdateDatasetOutputs = []error{nil}
 					Expect(testTruncateDeduplicator.InitializeDataset()).To(Succeed())
-					Expect(testDataset.Deduplicator).To(Equal(&upload.Deduplicator{Name: "truncate"}))
+					Expect(testDataset.DeduplicatorDescriptor()).To(Equal(&data.DeduplicatorDescriptor{Name: "truncate"}))
 					Expect(testDataStoreSession.UpdateDatasetInputs).To(ConsistOf(testDataset))
 				})
 			})

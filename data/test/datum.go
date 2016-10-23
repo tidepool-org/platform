@@ -8,38 +8,42 @@ type IdentityFieldsOutput struct {
 }
 
 type Datum struct {
-	InitInvocations              int
-	MetaInvocations              int
-	MetaOutputs                  []interface{}
-	ParseInvocations             int
-	ParseInputs                  []data.ObjectParser
-	ParseOutputs                 []error
-	ValidateInvocations          int
-	ValidateInputs               []data.Validator
-	ValidateOutputs              []error
-	NormalizeInvocations         int
-	NormalizeInputs              []data.Normalizer
-	NormalizeOutputs             []error
-	SetUserIDInvocations         int
-	SetUserIDInputs              []string
-	SetGroupIDInvocations        int
-	SetGroupIDInputs             []string
-	SetDatasetIDInvocations      int
-	SetDatasetIDInputs           []string
-	SetActiveInvocations         int
-	SetActiveInputs              []bool
-	SetCreatedTimeInvocations    int
-	SetCreatedTimeInputs         []string
-	SetCreatedUserIDInvocations  int
-	SetCreatedUserIDInputs       []string
-	SetModifiedTimeInvocations   int
-	SetModifiedTimeInputs        []string
-	SetModifiedUserIDInvocations int
-	SetModifiedUserIDInputs      []string
-	SetDeletedTimeInvocations    int
-	SetDeletedTimeInputs         []string
-	SetDeletedUserIDInvocations  int
-	SetDeletedUserIDInputs       []string
+	InitInvocations                      int
+	MetaInvocations                      int
+	MetaOutputs                          []interface{}
+	ParseInvocations                     int
+	ParseInputs                          []data.ObjectParser
+	ParseOutputs                         []error
+	ValidateInvocations                  int
+	ValidateInputs                       []data.Validator
+	ValidateOutputs                      []error
+	NormalizeInvocations                 int
+	NormalizeInputs                      []data.Normalizer
+	NormalizeOutputs                     []error
+	SetUserIDInvocations                 int
+	SetUserIDInputs                      []string
+	SetGroupIDInvocations                int
+	SetGroupIDInputs                     []string
+	SetDatasetIDInvocations              int
+	SetDatasetIDInputs                   []string
+	SetActiveInvocations                 int
+	SetActiveInputs                      []bool
+	SetCreatedTimeInvocations            int
+	SetCreatedTimeInputs                 []string
+	SetCreatedUserIDInvocations          int
+	SetCreatedUserIDInputs               []string
+	SetModifiedTimeInvocations           int
+	SetModifiedTimeInputs                []string
+	SetModifiedUserIDInvocations         int
+	SetModifiedUserIDInputs              []string
+	SetDeletedTimeInvocations            int
+	SetDeletedTimeInputs                 []string
+	SetDeletedUserIDInvocations          int
+	SetDeletedUserIDInputs               []string
+	DeduplicatorDescriptorInvocations    int
+	DeduplicatorDescriptorOutputs        []*data.DeduplicatorDescriptor
+	SetDeduplicatorDescriptorInvocations int
+	SetDeduplicatorDescriptorInputs      []*data.DeduplicatorDescriptor
 }
 
 func (d *Datum) Init() {
@@ -160,9 +164,28 @@ func (d *Datum) SetDeletedUserID(deletedUserID string) {
 	d.SetDeletedUserIDInputs = append(d.SetDeletedUserIDInputs, deletedUserID)
 }
 
+func (d *Datum) DeduplicatorDescriptor() *data.DeduplicatorDescriptor {
+	d.DeduplicatorDescriptorInvocations++
+
+	if len(d.DeduplicatorDescriptorOutputs) == 0 {
+		panic("Unexpected invocation of DeduplicatorDescriptor on Session")
+	}
+
+	output := d.DeduplicatorDescriptorOutputs[0]
+	d.DeduplicatorDescriptorOutputs = d.DeduplicatorDescriptorOutputs[1:]
+	return output
+}
+
+func (d *Datum) SetDeduplicatorDescriptor(deduplicatorDescriptor *data.DeduplicatorDescriptor) {
+	d.SetDeduplicatorDescriptorInvocations++
+
+	d.SetDeduplicatorDescriptorInputs = append(d.SetDeduplicatorDescriptorInputs, deduplicatorDescriptor)
+}
+
 func (d *Datum) UnusedOutputsCount() int {
 	return len(d.MetaOutputs) +
 		len(d.ParseOutputs) +
 		len(d.ValidateOutputs) +
-		len(d.NormalizeOutputs)
+		len(d.NormalizeOutputs) +
+		len(d.DeduplicatorDescriptorOutputs)
 }

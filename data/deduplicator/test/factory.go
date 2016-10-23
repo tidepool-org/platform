@@ -1,7 +1,7 @@
 package test
 
 import (
-	"github.com/tidepool-org/platform/data/deduplicator"
+	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/base/upload"
 	"github.com/tidepool-org/platform/log"
@@ -19,7 +19,7 @@ type NewDeduplicatorInput struct {
 }
 
 type NewDeduplicatorOutput struct {
-	Deduplicator deduplicator.Deduplicator
+	Deduplicator data.Deduplicator
 	Error        error
 }
 
@@ -46,7 +46,7 @@ func (f *Factory) CanDeduplicateDataset(dataset *upload.Upload) (bool, error) {
 	return output.Can, output.Error
 }
 
-func (f *Factory) NewDeduplicator(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (deduplicator.Deduplicator, error) {
+func (f *Factory) NewDeduplicator(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (data.Deduplicator, error) {
 	f.NewDeduplicatoInvocations++
 
 	f.NewDeduplicatorInputs = append(f.NewDeduplicatorInputs, NewDeduplicatorInput{logger, dataStoreSession, dataset})

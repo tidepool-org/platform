@@ -12,6 +12,7 @@ package deduplicator
 
 import (
 	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/base/upload"
 	"github.com/tidepool-org/platform/log"
@@ -46,7 +47,7 @@ func (d *DelegateFactory) CanDeduplicateDataset(dataset *upload.Upload) (bool, e
 	return false, nil
 }
 
-func (d *DelegateFactory) NewDeduplicator(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (Deduplicator, error) {
+func (d *DelegateFactory) NewDeduplicator(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (data.Deduplicator, error) {
 	if logger == nil {
 		return nil, app.Error("deduplicator", "logger is missing")
 	}
