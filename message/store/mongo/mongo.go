@@ -80,7 +80,7 @@ func (s *Session) DeleteMessagesFromUser(user *store.User) error {
 	}
 	changeInfo, err := s.C().UpdateAll(selector, update)
 
-	loggerFields := log.Fields{"userID": user.ID, "change-info": changeInfo, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"userId": user.ID, "changeInfo": changeInfo, "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("DeleteMessagesFromUser")
 
 	if err != nil {
@@ -106,7 +106,7 @@ func (s *Session) DestroyMessagesForUserByID(userID string) error {
 	}
 	removeInfo, err := s.C().RemoveAll(selector)
 
-	loggerFields := log.Fields{"userID": userID, "remove-info": removeInfo, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"userId": userID, "removeInfo": removeInfo, "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("DestroyMessagesForUserByID")
 
 	if err != nil {

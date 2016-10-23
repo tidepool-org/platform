@@ -85,7 +85,7 @@ func (s *Session) GetDatasetsForUserByID(userID string, filter *store.Filter, pa
 	}
 	err := s.C().Find(selector).Sort("-createdTime").Skip(pagination.Page * pagination.Size).Limit(pagination.Size).All(&datasets)
 
-	loggerFields := log.Fields{"userID": userID, "datasets-count": len(datasets), "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"userId": userID, "count": len(datasets), "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("GetDatasetsForUserByID")
 
 	if err != nil {
@@ -116,7 +116,7 @@ func (s *Session) GetDatasetByID(datasetID string) (*upload.Upload, error) {
 	}
 	err := s.C().Find(selector).Limit(2).All(&datasets)
 
-	loggerFields := log.Fields{"datasetID": datasetID, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"datasetId": datasetID, "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("GetDatasetByID")
 
 	if err != nil {
@@ -126,7 +126,7 @@ func (s *Session) GetDatasetByID(datasetID string) (*upload.Upload, error) {
 	if datasetsCount := len(datasets); datasetsCount == 0 {
 		return nil, nil
 	} else if datasetsCount > 1 {
-		s.Logger().WithField("datasetID", datasetID).Warn("Multiple datasets found for dataset id")
+		s.Logger().WithField("datasetId", datasetID).Warn("Multiple datasets found for dataset id")
 	}
 
 	return datasets[0], nil
@@ -174,7 +174,7 @@ func (s *Session) CreateDataset(dataset *upload.Upload) error {
 		}
 	}
 
-	loggerFields := log.Fields{"dataset": dataset, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"userId": dataset.UserID, "datasetId": dataset.UploadID, "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("CreateDataset")
 
 	if err != nil {
@@ -214,7 +214,7 @@ func (s *Session) UpdateDataset(dataset *upload.Upload) error {
 	}
 	err := s.C().Update(selector, dataset)
 
-	loggerFields := log.Fields{"dataset": dataset, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"datasetId": dataset.UploadID, "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("UpdateDataset")
 
 	if err != nil {
@@ -278,7 +278,7 @@ func (s *Session) DeleteDataset(dataset *upload.Upload) error {
 		updateInfo, err = s.C().UpdateAll(selector, update)
 	}
 
-	loggerFields := log.Fields{"datasetID": dataset.UploadID, "remove-info": removeInfo, "update-info": updateInfo, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"datasetId": dataset.UploadID, "removeInfo": removeInfo, "updateInfo": updateInfo, "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("DeleteDataset")
 
 	if err != nil {
@@ -332,7 +332,7 @@ func (s *Session) CreateDatasetData(dataset *upload.Upload, datasetData []data.D
 
 	_, err := bulk.Run()
 
-	loggerFields := log.Fields{"dataset": dataset, "dataset-data-length": len(datasetData), "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"datasetId": dataset.UploadID, "count": len(datasetData), "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("CreateDatasetData")
 
 	if err != nil {
@@ -381,7 +381,7 @@ func (s *Session) ActivateDatasetData(dataset *upload.Upload) error {
 	}
 	updateInfo, err := s.C().UpdateAll(selector, update)
 
-	loggerFields := log.Fields{"dataset": dataset, "update-info": updateInfo, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"datasetId": dataset.UploadID, "updateInfo": updateInfo, "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("ActivateDatasetData")
 
 	if err != nil {
@@ -454,7 +454,7 @@ func (s *Session) DeleteOtherDatasetData(dataset *upload.Upload) error {
 		updateInfo, err = s.C().UpdateAll(selector, update)
 	}
 
-	loggerFields := log.Fields{"dataset": dataset, "remove-info": removeInfo, "update-info": updateInfo, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"datasetId": dataset.UploadID, "removeInfo": removeInfo, "updateInfo": updateInfo, "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("DeleteOtherDatasetData")
 
 	if err != nil {
@@ -479,7 +479,7 @@ func (s *Session) DestroyDataForUserByID(userID string) error {
 	}
 	removeInfo, err := s.C().RemoveAll(selector)
 
-	loggerFields := log.Fields{"userID": userID, "remove-info": removeInfo, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"userId": userID, "removeInfo": removeInfo, "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("DestroyDataForUserByID")
 
 	if err != nil {

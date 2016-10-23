@@ -55,7 +55,7 @@ func (s *Standard) DestroyDataForUserByID(context Context, userID string) error 
 		return app.Error("client", "user id is missing")
 	}
 
-	context.Logger().WithField("user-id", userID).Debug("Deleting data for user")
+	context.Logger().WithField("userId", userID).Debug("Deleting data for user")
 
 	return s.sendRequest(context, "DELETE", s.buildURL("dataservices", "v1", "users", userID, "data"))
 }

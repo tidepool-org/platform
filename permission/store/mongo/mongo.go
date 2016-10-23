@@ -89,7 +89,7 @@ func (s *Session) DestroyPermissionsForUserByID(userID string) error {
 	}
 	removeInfo, err := s.C().RemoveAll(selector)
 
-	loggerFields := log.Fields{"userID": userID, "remove-info": removeInfo, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"userId": userID, "removeInfo": removeInfo, "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("DestroyPermissionsForUserByID")
 
 	if err != nil {

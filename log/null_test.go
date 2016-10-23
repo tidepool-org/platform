@@ -49,19 +49,19 @@ var _ = Describe("Null", func() {
 
 			Context("WithError", func() {
 				It("returns a logger", func() {
-					Expect(logger.WithError(errors.New("test-error"))).ToNot(BeNil())
+					Expect(logger.WithError(errors.New("test error"))).ToNot(BeNil())
 				})
 			})
 
 			Context("WithField", func() {
 				It("returns a logger", func() {
-					Expect(logger.WithField("test-key", "test-value")).ToNot(BeNil())
+					Expect(logger.WithField("testKey", "test value")).ToNot(BeNil())
 				})
 			})
 
 			Context("WithFields", func() {
 				It("returns a logger", func() {
-					Expect(logger.WithFields(log.Fields{"test-key": "test-value"})).ToNot(BeNil())
+					Expect(logger.WithFields(log.Fields{"testKey": "test value"})).ToNot(BeNil())
 				})
 			})
 		})

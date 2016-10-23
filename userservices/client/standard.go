@@ -121,7 +121,7 @@ func (s *Standard) ValidateAuthenticationToken(context service.Context, authenti
 		return nil, app.Error("client", "client is closed")
 	}
 
-	context.Logger().WithField("authentication-token", authenticationToken).Debug("Validating authentication token")
+	context.Logger().WithField("authenticationToken", authenticationToken).Debug("Validating authentication token")
 
 	var authentication struct {
 		IsServer bool
@@ -158,7 +158,7 @@ func (s *Standard) GetUserPermissions(context service.Context, requestUserID str
 		return nil, app.Error("client", "client is closed")
 	}
 
-	context.Logger().WithFields(log.Fields{"request-user-id": requestUserID, "target-user-id": targetUserID}).Debug("Get user permissions")
+	context.Logger().WithFields(log.Fields{"requestUserId": requestUserID, "targetUserId": targetUserID}).Debug("Get user permissions")
 
 	permissions := Permissions{}
 	if err := s.sendRequest(context, "GET", s.buildURL("access", targetUserID, requestUserID), &permissions); err != nil {
@@ -195,7 +195,7 @@ func (s *Standard) GetUserGroupID(context service.Context, userID string) (strin
 		return "", app.Error("client", "client is closed")
 	}
 
-	context.Logger().WithField("user-id", userID).Debug("Getting user group id")
+	context.Logger().WithField("userId", userID).Debug("Getting user group id")
 
 	var uploadsPair struct {
 		ID    string

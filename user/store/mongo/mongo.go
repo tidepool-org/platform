@@ -84,7 +84,7 @@ func (s *Session) GetUserByID(userID string) (*user.User, error) {
 	}
 	err := s.C().Find(selector).Limit(2).All(&users)
 
-	loggerFields := log.Fields{"userID": userID, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"userId": userID, "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("GetUserByID")
 
 	if err != nil {
@@ -94,7 +94,7 @@ func (s *Session) GetUserByID(userID string) (*user.User, error) {
 	if usersCount := len(users); usersCount == 0 {
 		return nil, nil
 	} else if usersCount > 1 {
-		s.Logger().WithField("userID", userID).Warn("Multiple users found for user id")
+		s.Logger().WithField("userId", userID).Warn("Multiple users found for user id")
 	}
 
 	user := users[0]
@@ -128,7 +128,7 @@ func (s *Session) DeleteUser(user *user.User) error {
 	}
 	err := s.C().Update(selector, user)
 
-	loggerFields := log.Fields{"userID": user.ID, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"userId": user.ID, "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("DeleteUser")
 
 	if err != nil {
@@ -153,7 +153,7 @@ func (s *Session) DestroyUserByID(userID string) error {
 	}
 	err := s.C().Remove(selector)
 
-	loggerFields := log.Fields{"userID": userID, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"userId": userID, "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("DestroyUserByID")
 
 	if err != nil {

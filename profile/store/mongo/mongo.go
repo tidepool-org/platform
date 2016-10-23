@@ -70,7 +70,7 @@ func (s *Session) GetProfileByID(profileID string) (*profile.Profile, error) {
 	}
 	err := s.C().Find(selector).Limit(2).All(&profiles)
 
-	loggerFields := log.Fields{"profileID": profileID, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"profileId": profileID, "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("GetProfileByID")
 
 	if err != nil {
@@ -80,7 +80,7 @@ func (s *Session) GetProfileByID(profileID string) (*profile.Profile, error) {
 	if profilesCount := len(profiles); profilesCount == 0 {
 		return nil, nil
 	} else if profilesCount > 1 {
-		s.Logger().WithField("profileID", profileID).Warn("Multiple profiles found for profile id")
+		s.Logger().WithField("profileId", profileID).Warn("Multiple profiles found for profile id")
 	}
 
 	profile := profiles[0]
@@ -89,7 +89,7 @@ func (s *Session) GetProfileByID(profileID string) (*profile.Profile, error) {
 	if profile.Value != "" {
 		var value map[string]interface{}
 		if err = json.Unmarshal([]byte(profile.Value), &value); err != nil {
-			s.Logger().WithField("profileID", profileID).WithError(err).Warn("Unable to unmarshal profile value")
+			s.Logger().WithField("profileId", profileID).WithError(err).Warn("Unable to unmarshal profile value")
 		} else {
 			if profileMap, profileMapOk := value["profile"].(map[string]interface{}); profileMapOk {
 				if fullName, fullNameOk := profileMap["fullName"].(string); fullNameOk {
@@ -118,7 +118,7 @@ func (s *Session) DestroyProfileByID(profileID string) error {
 	}
 	removeInfo, err := s.C().RemoveAll(selector)
 
-	loggerFields := log.Fields{"profileID": profileID, "remove-info": removeInfo, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"profileId": profileID, "removeInfo": removeInfo, "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("DestroyProfileByID")
 
 	if err != nil {
