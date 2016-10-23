@@ -76,14 +76,14 @@ func (s *Session) GetDatasetsForUserByID(userID string, filter *store.Filter, pa
 	startTime := time.Now()
 
 	var datasets []*upload.Upload
-	selector := bson.M{
+	query := bson.M{
 		"_userId": userID,
 		"type":    "upload",
 	}
 	if !filter.Deleted {
-		selector["deletedTime"] = bson.M{"$exists": false}
+		query["deletedTime"] = bson.M{"$exists": false}
 	}
-	err := s.C().Find(selector).Sort("-createdTime").Skip(pagination.Page * pagination.Size).Limit(pagination.Size).All(&datasets)
+	err := s.C().Find(query).Sort("-createdTime").Skip(pagination.Page * pagination.Size).Limit(pagination.Size).All(&datasets)
 
 	loggerFields := log.Fields{"userId": userID, "count": len(datasets), "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("GetDatasetsForUserByID")
@@ -110,11 +110,11 @@ func (s *Session) GetDatasetByID(datasetID string) (*upload.Upload, error) {
 	startTime := time.Now()
 
 	datasets := []*upload.Upload{}
-	selector := bson.M{
+	query := bson.M{
 		"uploadId": datasetID,
 		"type":     "upload",
 	}
-	err := s.C().Find(selector).Limit(2).All(&datasets)
+	err := s.C().Find(query).Limit(2).All(&datasets)
 
 	loggerFields := log.Fields{"datasetId": datasetID, "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("GetDatasetByID")
@@ -159,13 +159,13 @@ func (s *Session) CreateDataset(dataset *upload.Upload) error {
 
 	// TODO: Consider upsert instead to prevent multiples being created?
 
-	selector := bson.M{
+	query := bson.M{
 		"_userId":  dataset.UserID,
 		"_groupId": dataset.GroupID,
 		"uploadId": dataset.UploadID,
 		"type":     dataset.Type,
 	}
-	count, err := s.C().Find(selector).Count()
+	count, err := s.C().Find(query).Count()
 	if err == nil {
 		if count > 0 {
 			err = app.Error("mongo", "dataset already exists")
