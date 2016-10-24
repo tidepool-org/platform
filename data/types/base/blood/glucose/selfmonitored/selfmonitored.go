@@ -5,7 +5,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/base"
 )
 
-type BloodGlucose struct {
+type SelfMonitored struct {
 	base.Base `bson:",inline"`
 
 	Value   *float64 `json:"value,omitempty" bson:"value,omitempty"`
@@ -21,61 +21,61 @@ func NewDatum() data.Datum {
 	return New()
 }
 
-func New() *BloodGlucose {
-	return &BloodGlucose{}
+func New() *SelfMonitored {
+	return &SelfMonitored{}
 }
 
-func Init() *BloodGlucose {
-	bloodGlucose := New()
-	bloodGlucose.Init()
-	return bloodGlucose
+func Init() *SelfMonitored {
+	selfMonitored := New()
+	selfMonitored.Init()
+	return selfMonitored
 }
 
-func (b *BloodGlucose) Init() {
-	b.Base.Init()
-	b.Base.Type = Type()
+func (s *SelfMonitored) Init() {
+	s.Base.Init()
+	s.Base.Type = Type()
 
-	b.Value = nil
-	b.Units = nil
-	b.SubType = nil
+	s.Value = nil
+	s.Units = nil
+	s.SubType = nil
 }
 
-func (b *BloodGlucose) Parse(parser data.ObjectParser) error {
-	parser.SetMeta(b.Meta())
+func (s *SelfMonitored) Parse(parser data.ObjectParser) error {
+	parser.SetMeta(s.Meta())
 
-	if err := b.Base.Parse(parser); err != nil {
+	if err := s.Base.Parse(parser); err != nil {
 		return err
 	}
 
-	b.Value = parser.ParseFloat("value")
-	b.Units = parser.ParseString("units")
-	b.SubType = parser.ParseString("subType")
+	s.Value = parser.ParseFloat("value")
+	s.Units = parser.ParseString("units")
+	s.SubType = parser.ParseString("subType")
 
 	return nil
 }
 
-func (b *BloodGlucose) Validate(validator data.Validator) error {
-	validator.SetMeta(b.Meta())
+func (s *SelfMonitored) Validate(validator data.Validator) error {
+	validator.SetMeta(s.Meta())
 
-	if err := b.Base.Validate(validator); err != nil {
+	if err := s.Base.Validate(validator); err != nil {
 		return err
 	}
 
-	validator.ValidateStringAsBloodGlucoseUnits("units", b.Units).Exists()
-	validator.ValidateFloatAsBloodGlucoseValue("value", b.Value).Exists().InRangeForUnits(b.Units)
-	validator.ValidateString("subType", b.SubType).OneOf([]string{"manual", "linked"})
+	validator.ValidateStringAsBloodGlucoseUnits("units", s.Units).Exists()
+	validator.ValidateFloatAsBloodGlucoseValue("value", s.Value).Exists().InRangeForUnits(s.Units)
+	validator.ValidateString("subType", s.SubType).OneOf([]string{"manual", "linked"})
 
 	return nil
 }
 
-func (b *BloodGlucose) Normalize(normalizer data.Normalizer) error {
-	normalizer.SetMeta(b.Meta())
+func (s *SelfMonitored) Normalize(normalizer data.Normalizer) error {
+	normalizer.SetMeta(s.Meta())
 
-	if err := b.Base.Normalize(normalizer); err != nil {
+	if err := s.Base.Normalize(normalizer); err != nil {
 		return err
 	}
 
-	b.Units, b.Value = normalizer.NormalizeBloodGlucose(b.Units).UnitsAndValue(b.Value)
+	s.Units, s.Value = normalizer.NormalizeBloodGlucose(s.Units).UnitsAndValue(s.Value)
 
 	return nil
 }

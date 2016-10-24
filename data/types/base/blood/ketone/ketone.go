@@ -5,7 +5,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/base"
 )
 
-type Blood struct {
+type Ketone struct {
 	base.Base `bson:",inline"`
 
 	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
@@ -20,58 +20,58 @@ func NewDatum() data.Datum {
 	return New()
 }
 
-func New() *Blood {
-	return &Blood{}
+func New() *Ketone {
+	return &Ketone{}
 }
 
-func Init() *Blood {
-	blood := New()
-	blood.Init()
-	return blood
+func Init() *Ketone {
+	ketone := New()
+	ketone.Init()
+	return ketone
 }
 
-func (b *Blood) Init() {
-	b.Base.Init()
-	b.Base.Type = Type()
+func (k *Ketone) Init() {
+	k.Base.Init()
+	k.Base.Type = Type()
 
-	b.Value = nil
-	b.Units = nil
+	k.Value = nil
+	k.Units = nil
 }
 
-func (b *Blood) Parse(parser data.ObjectParser) error {
-	parser.SetMeta(b.Meta())
+func (k *Ketone) Parse(parser data.ObjectParser) error {
+	parser.SetMeta(k.Meta())
 
-	if err := b.Base.Parse(parser); err != nil {
+	if err := k.Base.Parse(parser); err != nil {
 		return err
 	}
 
-	b.Value = parser.ParseFloat("value")
-	b.Units = parser.ParseString("units")
+	k.Value = parser.ParseFloat("value")
+	k.Units = parser.ParseString("units")
 
 	return nil
 }
 
-func (b *Blood) Validate(validator data.Validator) error {
-	validator.SetMeta(b.Meta())
+func (k *Ketone) Validate(validator data.Validator) error {
+	validator.SetMeta(k.Meta())
 
-	if err := b.Base.Validate(validator); err != nil {
+	if err := k.Base.Validate(validator); err != nil {
 		return err
 	}
 
-	validator.ValidateStringAsBloodGlucoseUnits("units", b.Units).Exists()
-	validator.ValidateFloatAsBloodGlucoseValue("value", b.Value).Exists().InRangeForUnits(b.Units)
+	validator.ValidateStringAsBloodGlucoseUnits("units", k.Units).Exists()
+	validator.ValidateFloatAsBloodGlucoseValue("value", k.Value).Exists().InRangeForUnits(k.Units)
 
 	return nil
 }
 
-func (b *Blood) Normalize(normalizer data.Normalizer) error {
-	normalizer.SetMeta(b.Meta())
+func (k *Ketone) Normalize(normalizer data.Normalizer) error {
+	normalizer.SetMeta(k.Meta())
 
-	if err := b.Base.Normalize(normalizer); err != nil {
+	if err := k.Base.Normalize(normalizer); err != nil {
 		return err
 	}
 
-	b.Units, b.Value = normalizer.NormalizeBloodGlucose(b.Units).UnitsAndValue(b.Value)
+	k.Units, k.Value = normalizer.NormalizeBloodGlucose(k.Units).UnitsAndValue(k.Value)
 
 	return nil
 }

@@ -5,7 +5,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/base"
 )
 
-type BloodGlucose struct {
+type Continuous struct {
 	base.Base `bson:",inline"`
 
 	Units *string  `json:"units,omitempty" bson:"units,omitempty"`
@@ -20,58 +20,58 @@ func NewDatum() data.Datum {
 	return New()
 }
 
-func New() *BloodGlucose {
-	return &BloodGlucose{}
+func New() *Continuous {
+	return &Continuous{}
 }
 
-func Init() *BloodGlucose {
-	bloodGlucose := New()
-	bloodGlucose.Init()
-	return bloodGlucose
+func Init() *Continuous {
+	continuous := New()
+	continuous.Init()
+	return continuous
 }
 
-func (b *BloodGlucose) Init() {
-	b.Base.Init()
-	b.Base.Type = Type()
+func (c *Continuous) Init() {
+	c.Base.Init()
+	c.Base.Type = Type()
 
-	b.Units = nil
-	b.Value = nil
+	c.Units = nil
+	c.Value = nil
 }
 
-func (b *BloodGlucose) Parse(parser data.ObjectParser) error {
-	parser.SetMeta(b.Meta())
+func (c *Continuous) Parse(parser data.ObjectParser) error {
+	parser.SetMeta(c.Meta())
 
-	if err := b.Base.Parse(parser); err != nil {
+	if err := c.Base.Parse(parser); err != nil {
 		return err
 	}
 
-	b.Units = parser.ParseString("units")
-	b.Value = parser.ParseFloat("value")
+	c.Units = parser.ParseString("units")
+	c.Value = parser.ParseFloat("value")
 
 	return nil
 }
 
-func (b *BloodGlucose) Validate(validator data.Validator) error {
-	validator.SetMeta(b.Meta())
+func (c *Continuous) Validate(validator data.Validator) error {
+	validator.SetMeta(c.Meta())
 
-	if err := b.Base.Validate(validator); err != nil {
+	if err := c.Base.Validate(validator); err != nil {
 		return err
 	}
 
-	validator.ValidateStringAsBloodGlucoseUnits("units", b.Units).Exists()
-	validator.ValidateFloatAsBloodGlucoseValue("value", b.Value).Exists().InRangeForUnits(b.Units)
+	validator.ValidateStringAsBloodGlucoseUnits("units", c.Units).Exists()
+	validator.ValidateFloatAsBloodGlucoseValue("value", c.Value).Exists().InRangeForUnits(c.Units)
 
 	return nil
 }
 
-func (b *BloodGlucose) Normalize(normalizer data.Normalizer) error {
-	normalizer.SetMeta(b.Meta())
+func (c *Continuous) Normalize(normalizer data.Normalizer) error {
+	normalizer.SetMeta(c.Meta())
 
-	if err := b.Base.Normalize(normalizer); err != nil {
+	if err := c.Base.Normalize(normalizer); err != nil {
 		return err
 	}
 
-	b.Units, b.Value = normalizer.NormalizeBloodGlucose(b.Units).UnitsAndValue(b.Value)
+	c.Units, c.Value = normalizer.NormalizeBloodGlucose(c.Units).UnitsAndValue(c.Value)
 
 	return nil
 }
