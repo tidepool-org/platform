@@ -9,7 +9,7 @@ import (
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/parser"
-	"github.com/tidepool-org/platform/data/types/base/pump"
+	"github.com/tidepool-org/platform/data/types/base/settings/pump"
 	"github.com/tidepool-org/platform/data/types/base/testing"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/log"

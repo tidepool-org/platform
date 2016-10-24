@@ -1,4 +1,4 @@
-package selfmonitored_test
+package continuous_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -9,7 +9,7 @@ import (
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/base"
-	"github.com/tidepool-org/platform/data/types/base/selfmonitored"
+	"github.com/tidepool-org/platform/data/types/base/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/base/testing"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
@@ -17,31 +17,29 @@ import (
 
 func NewRawObjectMmolL() map[string]interface{} {
 	rawObject := testing.RawBaseObject()
-	rawObject["type"] = "smbg"
+	rawObject["type"] = "cbg"
 	rawObject["units"] = bloodglucose.MmolL
-	rawObject["subType"] = "manual"
 	rawObject["value"] = 5
 	return rawObject
 }
 
 func NewRawObjectMgdL() map[string]interface{} {
 	rawObject := testing.RawBaseObject()
-	rawObject["type"] = "smbg"
+	rawObject["type"] = "cbg"
 	rawObject["units"] = bloodglucose.MgdL
-	rawObject["subType"] = "manual"
-	rawObject["value"] = 120
+	rawObject["value"] = 99
 	return rawObject
 }
 
 func NewMeta() interface{} {
 	return &base.Meta{
-		Type: "smbg",
+		Type: "cbg",
 	}
 }
 
-var _ = Describe("SelfMonitored", func() {
+var _ = Describe("Continuous", func() {
 	Context("units", func() {
-		DescribeTable("invalid when", testing.ExpectFieldNotValid,
+		DescribeTable("units when", testing.ExpectFieldNotValid,
 			Entry("is empty", NewRawObjectMmolL(), "units", "",
 				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("", []string{"mmol/l", "mmol/L", "mg/dl", "mg/dL"}), "/units", NewMeta())},
 			),
@@ -58,19 +56,6 @@ var _ = Describe("SelfMonitored", func() {
 		)
 	})
 
-	Context("subType", func() {
-		DescribeTable("invalid when", testing.ExpectFieldNotValid,
-			Entry("is not one of the predefined values", NewRawObjectMmolL(), "subType", "wrong",
-				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("wrong", []string{"manual", "linked"}), "/subType", NewMeta())},
-			),
-		)
-
-		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("is manual", NewRawObjectMmolL(), "subType", "manual"),
-			Entry("is linked", NewRawObjectMgdL(), "subType", "linked"),
-		)
-	})
-
 	Context("value", func() {
 		DescribeTable("value when", testing.ExpectFieldNotValid,
 			Entry("is less than 0", NewRawObjectMgdL(), "value", -0.1,
@@ -83,17 +68,17 @@ var _ = Describe("SelfMonitored", func() {
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
 			Entry("is above 0", NewRawObjectMgdL(), "value", 0.1),
-			Entry("is below 1000", NewRawObjectMgdL(), "value", bloodglucose.MgdLUpperLimit),
-			Entry("is an integer", NewRawObjectMgdL(), "value", 12),
+			Entry("is below max", NewRawObjectMgdL(), "value", bloodglucose.MgdLUpperLimit),
+			Entry("is an integer", NewRawObjectMgdL(), "value", 380),
 		)
 	})
 
 	Context("normalized when mmol/L", func() {
 		DescribeTable("normalization", func(val, expected float64) {
-			selfMonitoredBg := selfmonitored.Init()
+			continuousBg := continuous.Init()
 			units := bloodglucose.MmolL
-			selfMonitoredBg.Units = &units
-			selfMonitoredBg.Value = &val
+			continuousBg.Units = &units
+			continuousBg.Value = &val
 
 			testContext, err := context.NewStandard(log.NewNull())
 			Expect(err).ToNot(HaveOccurred())
@@ -101,9 +86,9 @@ var _ = Describe("SelfMonitored", func() {
 			standardNormalizer, err := normalizer.NewStandard(testContext)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(standardNormalizer).ToNot(BeNil())
-			selfMonitoredBg.Normalize(standardNormalizer)
-			Expect(*selfMonitoredBg.Units).To(Equal(bloodglucose.MmolL))
-			Expect(*selfMonitoredBg.Value).To(Equal(expected))
+			continuousBg.Normalize(standardNormalizer)
+			Expect(*continuousBg.Units).To(Equal(bloodglucose.MmolL))
+			Expect(*continuousBg.Value).To(Equal(expected))
 		},
 			Entry("is expected lower bg value", 3.7, 3.7),
 			Entry("is below max", 54.99, 54.99),
@@ -113,10 +98,10 @@ var _ = Describe("SelfMonitored", func() {
 
 	Context("normalized when mg/dL", func() {
 		DescribeTable("normalization", func(val, expected float64) {
-			selfMonitoredBg := selfmonitored.Init()
+			continuousBg := continuous.Init()
 			units := bloodglucose.MgdL
-			selfMonitoredBg.Units = &units
-			selfMonitoredBg.Value = &val
+			continuousBg.Units = &units
+			continuousBg.Value = &val
 
 			testContext, err := context.NewStandard(log.NewNull())
 			Expect(err).ToNot(HaveOccurred())
@@ -124,9 +109,9 @@ var _ = Describe("SelfMonitored", func() {
 			standardNormalizer, err := normalizer.NewStandard(testContext)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(standardNormalizer).ToNot(BeNil())
-			selfMonitoredBg.Normalize(standardNormalizer)
-			Expect(*selfMonitoredBg.Units).To(Equal(bloodglucose.MmolL))
-			Expect(*selfMonitoredBg.Value).To(Equal(expected))
+			continuousBg.Normalize(standardNormalizer)
+			Expect(*continuousBg.Units).To(Equal(bloodglucose.MmolL))
+			Expect(*continuousBg.Value).To(Equal(expected))
 		},
 			Entry("is expected lower bg value", 60.0, 3.33044879462732),
 			Entry("is below max", bloodglucose.MgdLUpperLimit, 55.50747991045534),
