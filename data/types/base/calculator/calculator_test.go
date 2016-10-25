@@ -9,7 +9,7 @@ import (
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/base"
-	"github.com/tidepool-org/platform/data/types/base/bolus/calculator"
+	"github.com/tidepool-org/platform/data/types/base/calculator"
 	"github.com/tidepool-org/platform/data/types/base/testing"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
