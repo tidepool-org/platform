@@ -20,6 +20,8 @@ type Datum struct {
 	NormalizeInvocations                 int
 	NormalizeInputs                      []data.Normalizer
 	NormalizeOutputs                     []error
+	IdentityFieldsInvocations            int
+	IdentityFieldsOutputs                []IdentityFieldsOutput
 	SetUserIDInvocations                 int
 	SetUserIDInputs                      []string
 	SetGroupIDInvocations                int
@@ -102,6 +104,18 @@ func (d *Datum) Normalize(normalizer data.Normalizer) error {
 	output := d.NormalizeOutputs[0]
 	d.NormalizeOutputs = d.NormalizeOutputs[1:]
 	return output
+}
+
+func (d *Datum) IdentityFields() ([]string, error) {
+	d.IdentityFieldsInvocations++
+
+	if len(d.IdentityFieldsOutputs) == 0 {
+		panic("Unexpected invocation of IdentityFields on Session")
+	}
+
+	output := d.IdentityFieldsOutputs[0]
+	d.IdentityFieldsOutputs = d.IdentityFieldsOutputs[1:]
+	return output.IdentityFields, output.Error
 }
 
 func (d *Datum) SetUserID(userID string) {
@@ -187,5 +201,6 @@ func (d *Datum) UnusedOutputsCount() int {
 		len(d.ParseOutputs) +
 		len(d.ValidateOutputs) +
 		len(d.NormalizeOutputs) +
+		len(d.IdentityFieldsOutputs) +
 		len(d.DeduplicatorDescriptorOutputs)
 }

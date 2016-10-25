@@ -120,6 +120,29 @@ func (b *Base) Normalize(normalizer data.Normalizer) error {
 	return nil
 }
 
+func (b *Base) IdentityFields() ([]string, error) {
+	if b.UserID == "" {
+		return nil, app.Error("base", "user id is empty")
+	}
+	if b.DeviceID == nil {
+		return nil, app.Error("base", "device id is missing")
+	}
+	if *b.DeviceID == "" {
+		return nil, app.Error("base", "device id is empty")
+	}
+	if b.Time == nil {
+		return nil, app.Error("base", "time is missing")
+	}
+	if *b.Time == "" {
+		return nil, app.Error("base", "time is empty")
+	}
+	if b.Type == "" {
+		return nil, app.Error("base", "type is empty")
+	}
+
+	return []string{b.UserID, *b.DeviceID, *b.Time, b.Type}, nil
+}
+
 func (b *Base) SetUserID(userID string) {
 	b.UserID = userID
 }

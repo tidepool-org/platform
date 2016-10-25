@@ -19,6 +19,8 @@ type Datum interface {
 	Validate(validator Validator) error
 	Normalize(normalizer Normalizer) error
 
+	IdentityFields() ([]string, error)
+
 	SetUserID(userID string)
 	SetGroupID(groupID string)
 	SetDatasetID(datasetID string)

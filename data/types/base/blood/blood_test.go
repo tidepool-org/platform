@@ -181,6 +181,48 @@ var _ = Describe("Blood", func() {
 					Expect(testBlood.Normalize(testNormalizer)).To(Succeed())
 				})
 			})
+
+			Context("IdentityFields", func() {
+				var userID string
+				var deviceID string
+
+				BeforeEach(func() {
+					userID = app.NewID()
+					deviceID = app.NewID()
+					testBlood.UserID = userID
+					testBlood.DeviceID = &deviceID
+					testBlood.Time = app.StringAsPointer("2016-09-06T13:45:58-07:00")
+					testBlood.Units = app.StringAsPointer("mmol/L")
+					testBlood.Value = app.FloatAsPointer(1)
+				})
+
+				It("returns error if user id is empty", func() {
+					testBlood.UserID = ""
+					identityFields, err := testBlood.IdentityFields()
+					Expect(err).To(MatchError("base: user id is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if units is missing", func() {
+					testBlood.Units = nil
+					identityFields, err := testBlood.IdentityFields()
+					Expect(err).To(MatchError("blood: units is missing"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if value is missing", func() {
+					testBlood.Value = nil
+					identityFields, err := testBlood.IdentityFields()
+					Expect(err).To(MatchError("blood: value is missing"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns the expected identity fields", func() {
+					identityFields, err := testBlood.IdentityFields()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(identityFields).To(Equal([]string{userID, deviceID, "2016-09-06T13:45:58-07:00", "testBlood", "mmol/L", "1"}))
+				})
+			})
 		})
 	})
 })

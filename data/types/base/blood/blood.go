@@ -11,6 +11,9 @@ package blood
  */
 
 import (
+	"strconv"
+
+	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/base"
 )
@@ -59,4 +62,20 @@ func (b *Blood) Normalize(normalizer data.Normalizer) error {
 	normalizer.SetMeta(b.Meta())
 
 	return b.Base.Normalize(normalizer)
+}
+
+func (b *Blood) IdentityFields() ([]string, error) {
+	identityFields, err := b.Base.IdentityFields()
+	if err != nil {
+		return nil, err
+	}
+
+	if b.Units == nil {
+		return nil, app.Error("blood", "units is missing")
+	}
+	if b.Value == nil {
+		return nil, app.Error("blood", "value is missing")
+	}
+
+	return append(identityFields, *b.Units, strconv.FormatFloat(*b.Value, 'f', -1, 64)), nil
 }

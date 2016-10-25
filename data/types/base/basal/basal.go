@@ -11,6 +11,7 @@ package basal
  */
 
 import (
+	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/base"
 )
@@ -68,4 +69,17 @@ func (b *Basal) Normalize(normalizer data.Normalizer) error {
 	normalizer.SetMeta(b.Meta())
 
 	return b.Base.Normalize(normalizer)
+}
+
+func (b *Basal) IdentityFields() ([]string, error) {
+	identityFields, err := b.Base.IdentityFields()
+	if err != nil {
+		return nil, err
+	}
+
+	if b.DeliveryType == "" {
+		return nil, app.Error("basal", "delivery type is empty")
+	}
+
+	return append(identityFields, b.DeliveryType), nil
 }
