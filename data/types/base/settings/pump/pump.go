@@ -5,7 +5,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/base"
 )
 
-type Settings struct {
+type Pump struct {
 	base.Base `bson:",inline"`
 
 	*Units `json:"units,omitempty" bson:"units,omitempty"`
@@ -27,17 +27,17 @@ func NewDatum() data.Datum {
 	return New()
 }
 
-func New() *Settings {
-	return &Settings{}
+func New() *Pump {
+	return &Pump{}
 }
 
-func Init() *Settings {
-	settings := New()
-	settings.Init()
-	return settings
+func Init() *Pump {
+	pump := New()
+	pump.Init()
+	return pump
 }
 
-func (s *Settings) Init() {
+func (s *Pump) Init() {
 	s.Base.Init()
 	s.Type = Type()
 
@@ -52,7 +52,7 @@ func (s *Settings) Init() {
 	s.ActiveSchedule = nil
 }
 
-func (s *Settings) Parse(parser data.ObjectParser) error {
+func (s *Pump) Parse(parser data.ObjectParser) error {
 	parser.SetMeta(s.Meta())
 
 	if err := s.Base.Parse(parser); err != nil {
@@ -71,7 +71,7 @@ func (s *Settings) Parse(parser data.ObjectParser) error {
 	return nil
 }
 
-func (s *Settings) Validate(validator data.Validator) error {
+func (s *Pump) Validate(validator data.Validator) error {
 	validator.SetMeta(s.Meta())
 
 	if err := s.Base.Validate(validator); err != nil {
@@ -127,7 +127,7 @@ func (s *Settings) Validate(validator data.Validator) error {
 	return nil
 }
 
-func (s *Settings) Normalize(normalizer data.Normalizer) error {
+func (s *Pump) Normalize(normalizer data.Normalizer) error {
 	normalizer.SetMeta(s.Meta())
 
 	if err := s.Base.Normalize(normalizer); err != nil {

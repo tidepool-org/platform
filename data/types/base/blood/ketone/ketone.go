@@ -1,16 +1,23 @@
 package ketone
 
+/* CHECKLIST
+ * [x] Uses interfaces as appropriate
+ * [x] Private package variables use underscore prefix
+ * [x] All parameters validated
+ * [x] All errors handled
+ * [x] Reviewed for concurrency safety
+ * [x] Code complete
+ * [x] Full test coverage
+ */
+
 import (
 	"github.com/tidepool-org/platform/data"
 	commonKetone "github.com/tidepool-org/platform/data/blood/ketone"
-	"github.com/tidepool-org/platform/data/types/base"
+	"github.com/tidepool-org/platform/data/types/base/blood"
 )
 
 type Ketone struct {
-	base.Base `bson:",inline"`
-
-	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
-	Units *string  `json:"units,omitempty" bson:"units,omitempty"`
+	blood.Blood `bson:",inline"`
 }
 
 func Type() string {
@@ -32,43 +39,23 @@ func Init() *Ketone {
 }
 
 func (k *Ketone) Init() {
-	k.Base.Init()
-	k.Base.Type = Type()
-
-	k.Value = nil
-	k.Units = nil
-}
-
-func (k *Ketone) Parse(parser data.ObjectParser) error {
-	parser.SetMeta(k.Meta())
-
-	if err := k.Base.Parse(parser); err != nil {
-		return err
-	}
-
-	k.Value = parser.ParseFloat("value")
-	k.Units = parser.ParseString("units")
-
-	return nil
+	k.Blood.Init()
+	k.Type = Type()
 }
 
 func (k *Ketone) Validate(validator data.Validator) error {
-	validator.SetMeta(k.Meta())
-
-	if err := k.Base.Validate(validator); err != nil {
+	if err := k.Blood.Validate(validator); err != nil {
 		return err
 	}
 
-	validator.ValidateString("units", k.Units).Exists().OneOf(commonKetone.Units())
-	validator.ValidateFloat("value", k.Value).Exists().InRange(commonKetone.ValueRangeForUnits(k.Units))
+	validator.ValidateString("units", k.Units).OneOf(commonKetone.Units())
+	validator.ValidateFloat("value", k.Value).InRange(commonKetone.ValueRangeForUnits(k.Units))
 
 	return nil
 }
 
 func (k *Ketone) Normalize(normalizer data.Normalizer) error {
-	normalizer.SetMeta(k.Meta())
-
-	if err := k.Base.Normalize(normalizer); err != nil {
+	if err := k.Blood.Normalize(normalizer); err != nil {
 		return err
 	}
 

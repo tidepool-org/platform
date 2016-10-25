@@ -5,23 +5,18 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	commonKetone "github.com/tidepool-org/platform/data/blood/ketone"
+	"math"
+
+	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/base"
 	"github.com/tidepool-org/platform/data/types/base/blood/ketone"
 	"github.com/tidepool-org/platform/data/types/base/testing"
+	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
 )
-
-func NewRawObjectMmolL() map[string]interface{} {
-	rawObject := testing.RawBaseObject()
-	rawObject["type"] = "bloodKetone"
-	rawObject["units"] = commonKetone.MmolL
-	rawObject["value"] = 5
-	return rawObject
-}
 
 func NewMeta() interface{} {
 	return &base.Meta{
@@ -29,60 +24,224 @@ func NewMeta() interface{} {
 	}
 }
 
-var _ = Describe("BloodKetone", func() {
-	Context("units", func() {
-		DescribeTable("units when", testing.ExpectFieldNotValid,
-			Entry("is empty", NewRawObjectMmolL(), "units", "",
-				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("", []string{"mmol/L", "mmol/l"}), "/units", NewMeta())},
-			),
-			Entry("is not one of the predefined values", NewRawObjectMmolL(), "units", "wrong",
-				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("wrong", []string{"mmol/L", "mmol/l"}), "/units", NewMeta())},
-			),
-		)
+func NewTestKetone(sourceTime interface{}, sourceUnits interface{}, sourceValue interface{}) *ketone.Ketone {
+	testKetone := ketone.Init()
+	testKetone.DeviceID = app.StringAsPointer(app.NewID())
+	if value, ok := sourceTime.(string); ok {
+		testKetone.Time = app.StringAsPointer(value)
+	}
+	if value, ok := sourceUnits.(string); ok {
+		testKetone.Units = app.StringAsPointer(value)
+	}
+	if value, ok := sourceValue.(float64); ok {
+		testKetone.Value = app.FloatAsPointer(value)
+	}
+	return testKetone
+}
 
-		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("is mmol/l", NewRawObjectMmolL(), "units", "mmol/l"),
-			Entry("is mmol/L", NewRawObjectMmolL(), "units", "mmol/L"),
-		)
+var _ = Describe("Ketone", func() {
+	Context("Type", func() {
+		It("returns the expected type", func() {
+			Expect(ketone.Type()).To(Equal("bloodKetone"))
+		})
 	})
 
-	Context("value", func() {
-		DescribeTable("value when", testing.ExpectFieldNotValid,
-			Entry("is less than 0.0", NewRawObjectMmolL(), "value", -0.1,
-				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-0.1, commonKetone.MmolLLowerLimit, commonKetone.MmolLUpperLimit), "/value", NewMeta())},
-			),
-			Entry("is greater than 10.0", NewRawObjectMmolL(), "value", 10.1,
-				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(10.1, commonKetone.MmolLLowerLimit, commonKetone.MmolLUpperLimit), "/value", NewMeta())},
-			),
-		)
-
-		DescribeTable("valid when", testing.ExpectFieldIsValid,
-			Entry("is above 0.0", NewRawObjectMmolL(), "value", 0.0),
-			Entry("is below 10.0", NewRawObjectMmolL(), "value", commonKetone.MmolLUpperLimit),
-			Entry("is an integer", NewRawObjectMmolL(), "value", 4),
-		)
+	Context("NewDatum", func() {
+		It("returns the expected datum", func() {
+			Expect(ketone.NewDatum()).To(Equal(&ketone.Ketone{}))
+		})
 	})
 
-	Context("normalized when mmol/L", func() {
-		DescribeTable("normalization", func(val, expected float64) {
-			bloodKetone := ketone.Init()
-			units := commonKetone.MmolL
-			bloodKetone.Units = &units
-			bloodKetone.Value = &val
+	Context("New", func() {
+		It("returns the expected ketone", func() {
+			Expect(ketone.New()).To(Equal(&ketone.Ketone{}))
+		})
+	})
 
-			testContext, err := context.NewStandard(log.NewNull())
-			Expect(err).ToNot(HaveOccurred())
-			Expect(testContext).ToNot(BeNil())
-			standardNormalizer, err := normalizer.NewStandard(testContext)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(standardNormalizer).ToNot(BeNil())
-			bloodKetone.Normalize(standardNormalizer)
-			Expect(*bloodKetone.Units).To(Equal(commonKetone.MmolL))
-			Expect(*bloodKetone.Value).To(Equal(expected))
-		},
-			Entry("is expected lower bg value", 3.7, 3.7),
-			Entry("is below max", 9.99, 9.99),
-			Entry("is expected upper bg value", 7.0, 7.0),
-		)
+	Context("Init", func() {
+		It("returns the expected ketone", func() {
+			testKetone := ketone.Init()
+			Expect(testKetone).ToNot(BeNil())
+			Expect(testKetone.Type).To(Equal("bloodKetone"))
+		})
+	})
+
+	Context("with new ketone", func() {
+		var testKetone *ketone.Ketone
+
+		BeforeEach(func() {
+			testKetone = ketone.New()
+			Expect(testKetone).ToNot(BeNil())
+		})
+
+		Context("Init", func() {
+			It("initializes the ketone", func() {
+				testKetone.Init()
+				Expect(testKetone.Type).To(Equal("bloodKetone"))
+			})
+		})
+
+		Context("with initialized", func() {
+			BeforeEach(func() {
+				testKetone.Init()
+			})
+
+			DescribeTable("Validate",
+				func(sourceKetone *ketone.Ketone, expectedErrors []*service.Error) {
+					testContext, err := context.NewStandard(log.NewNull())
+					Expect(err).ToNot(HaveOccurred())
+					Expect(testContext).ToNot(BeNil())
+					testValidator, err := validator.NewStandard(testContext)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(testValidator).ToNot(BeNil())
+					Expect(sourceKetone.Validate(testValidator)).To(Succeed())
+					Expect(testContext.Errors()).To(ConsistOf(expectedErrors))
+				},
+				Entry("all valid",
+					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/L", 1.0),
+					[]*service.Error{}),
+				Entry("missing time",
+					NewTestKetone(nil, "mmol/L", 1.0),
+					[]*service.Error{
+						testing.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta()),
+					}),
+				Entry("missing units",
+					NewTestKetone("2016-09-06T13:45:58-07:00", nil, 1.0),
+					[]*service.Error{
+						testing.ComposeError(service.ErrorValueNotExists(), "/units", NewMeta()),
+					}),
+				Entry("unknown units",
+					NewTestKetone("2016-09-06T13:45:58-07:00", "unknown", 1.0),
+					[]*service.Error{
+						testing.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+					}),
+				Entry("mmol/L units",
+					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/L", 1.0),
+					[]*service.Error{}),
+				Entry("mmol/l units",
+					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/l", 1.0),
+					[]*service.Error{}),
+				Entry("mg/dL units",
+					NewTestKetone("2016-09-06T13:45:58-07:00", "mg/dL", 1.0),
+					[]*service.Error{
+						testing.ComposeError(service.ErrorValueStringNotOneOf("mg/dL", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+					}),
+				Entry("mg/dl units",
+					NewTestKetone("2016-09-06T13:45:58-07:00", "mg/dl", 1.0),
+					[]*service.Error{
+						testing.ComposeError(service.ErrorValueStringNotOneOf("mg/dl", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+					}),
+				Entry("missing value",
+					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/L", nil),
+					[]*service.Error{
+						testing.ComposeError(service.ErrorValueNotExists(), "/value", NewMeta()),
+					}),
+				Entry("unknown units; value in range (lower)",
+					NewTestKetone("2016-09-06T13:45:58-07:00", "unknown", -math.MaxFloat64),
+					[]*service.Error{
+						testing.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+					}),
+				Entry("unknown units; value in range (upper)",
+					NewTestKetone("2016-09-06T13:45:58-07:00", "unknown", math.MaxFloat64),
+					[]*service.Error{
+						testing.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+					}),
+				Entry("mmol/L units; value out of range (lower)",
+					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/L", -0.1),
+					[]*service.Error{
+						testing.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 10.0), "/value", NewMeta()),
+					}),
+				Entry("mmol/L units; value in range (lower)",
+					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/L", 0.0),
+					[]*service.Error{}),
+				Entry("mmol/L units; value in range (upper)",
+					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/L", 10.0),
+					[]*service.Error{}),
+				Entry("mmol/L units; value out of range (upper)",
+					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/L", 10.1),
+					[]*service.Error{
+						testing.ComposeError(service.ErrorValueNotInRange(10.1, 0.0, 10.0), "/value", NewMeta()),
+					}),
+				Entry("mmol/l units; value out of range (lower)",
+					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/l", -0.1),
+					[]*service.Error{
+						testing.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 10.0), "/value", NewMeta()),
+					}),
+				Entry("mmol/l units; value in range (lower)",
+					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/l", 0.0),
+					[]*service.Error{}),
+				Entry("mmol/l units; value in range (upper)",
+					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/l", 10.0),
+					[]*service.Error{}),
+				Entry("mmol/l units; value out of range (upper)",
+					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/l", 10.1),
+					[]*service.Error{
+						testing.ComposeError(service.ErrorValueNotInRange(10.1, 0.0, 10.0), "/value", NewMeta()),
+					}),
+				Entry("mg/dL units; value in range (lower)",
+					NewTestKetone("2016-09-06T13:45:58-07:00", "mg/dL", -math.MaxFloat64),
+					[]*service.Error{
+						testing.ComposeError(service.ErrorValueStringNotOneOf("mg/dL", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+					}),
+				Entry("mg/dL units; value in range (upper)",
+					NewTestKetone("2016-09-06T13:45:58-07:00", "mg/dL", math.MaxFloat64),
+					[]*service.Error{
+						testing.ComposeError(service.ErrorValueStringNotOneOf("mg/dL", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+					}),
+				Entry("mg/dl units; value in range (lower)",
+					NewTestKetone("2016-09-06T13:45:58-07:00", "mg/dl", -math.MaxFloat64),
+					[]*service.Error{
+						testing.ComposeError(service.ErrorValueStringNotOneOf("mg/dl", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+					}),
+				Entry("mg/dl units; value in range (upper)",
+					NewTestKetone("2016-09-06T13:45:58-07:00", "mg/dl", math.MaxFloat64),
+					[]*service.Error{
+						testing.ComposeError(service.ErrorValueStringNotOneOf("mg/dl", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+					}),
+				Entry("multiple",
+					NewTestKetone(nil, "unknown", nil),
+					[]*service.Error{
+						testing.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta()),
+						testing.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+						testing.ComposeError(service.ErrorValueNotExists(), "/value", NewMeta()),
+					}),
+			)
+
+			DescribeTable("Normalize",
+				func(sourceKetone *ketone.Ketone, expectedKetone *ketone.Ketone) {
+					sourceKetone.GUID = expectedKetone.GUID
+					sourceKetone.ID = expectedKetone.ID
+					sourceKetone.DeviceID = expectedKetone.DeviceID
+					testContext, err := context.NewStandard(log.NewNull())
+					Expect(err).ToNot(HaveOccurred())
+					Expect(testContext).ToNot(BeNil())
+					testNormalizer, err := normalizer.NewStandard(testContext)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(testNormalizer).ToNot(BeNil())
+					Expect(sourceKetone.Normalize(testNormalizer)).To(Succeed())
+					Expect(sourceKetone).To(Equal(expectedKetone))
+				},
+				Entry("unknown units",
+					NewTestKetone("2016-09-06T13:45:58-07:00", "unknown", 1.0),
+					NewTestKetone("2016-09-06T13:45:58-07:00", "unknown", 1.0),
+				),
+				Entry("mmol/L units",
+					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/L", 1.0),
+					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/L", 1.0),
+				),
+				Entry("mmol/l units",
+					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/l", 1.0),
+					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/L", 1.0),
+				),
+				Entry("mg/dL units",
+					NewTestKetone("2016-09-06T13:45:58-07:00", "mg/dL", 180.0),
+					NewTestKetone("2016-09-06T13:45:58-07:00", "mg/dL", 180.0),
+				),
+				Entry("mg/dl units",
+					NewTestKetone("2016-09-06T13:45:58-07:00", "mg/dl", 180.0),
+					NewTestKetone("2016-09-06T13:45:58-07:00", "mg/dl", 180.0),
+				),
+			)
+		})
 	})
 })

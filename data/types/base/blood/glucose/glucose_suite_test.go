@@ -1,4 +1,4 @@
-package selfmonitored_test
+package glucose_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -9,5 +9,5 @@ import (
 
 func TestSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "data/types/base/blood/glucose/selfmonitored")
+	RunSpecs(t, "data/types/base/blood/glucose")
 }
