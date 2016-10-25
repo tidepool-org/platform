@@ -70,6 +70,8 @@ func (e *Extended) Validate(validator data.Validator) error {
 		return err
 	}
 
+	validator.ValidateString("subType", &e.SubType).EqualTo(SubType())
+
 	validator.ValidateFloat("extended", e.Extended).Exists().InRange(0.0, 100.0)
 
 	expectedExtendedValidator := validator.ValidateFloat("expectedExtended", e.ExpectedExtended)

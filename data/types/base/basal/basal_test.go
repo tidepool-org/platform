@@ -52,8 +52,9 @@ var _ = Describe("Basal", func() {
 		Context("Init", func() {
 			It("initializes the basal", func() {
 				testBasal.Init()
+				Expect(testBasal.ID).ToNot(BeEmpty())
 				Expect(testBasal.Type).To(Equal("basal"))
-				Expect(testBasal.DeliveryType).To(Equal(""))
+				Expect(testBasal.DeliveryType).To(BeEmpty())
 			})
 		})
 

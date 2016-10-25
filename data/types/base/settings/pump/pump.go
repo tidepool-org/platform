@@ -78,6 +78,8 @@ func (p *Pump) Validate(validator data.Validator) error {
 		return err
 	}
 
+	validator.ValidateString("type", &p.Type).EqualTo(Type())
+
 	validator.ValidateString("activeSchedule", p.ActiveSchedule).Exists().NotEmpty()
 
 	if p.Units != nil {

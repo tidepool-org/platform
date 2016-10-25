@@ -61,6 +61,8 @@ func (t *TimeChange) Validate(validator data.Validator) error {
 		return err
 	}
 
+	validator.ValidateString("subType", &t.SubType).EqualTo(SubType())
+
 	if t.Change != nil {
 		t.Change.Validate(validator.NewChildValidator("change"))
 	}

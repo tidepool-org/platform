@@ -87,6 +87,8 @@ func (u *Upload) Validate(validator data.Validator) error {
 		return err
 	}
 
+	validator.ValidateString("type", &u.Type).EqualTo(Type())
+
 	validator.ValidateStringAsTime("computerTime", u.ComputerTime, "2006-01-02T15:04:05").Exists()
 	validator.ValidateStringArray("deviceManufacturers", u.DeviceManufacturers).Exists().NotEmpty()
 	validator.ValidateString("deviceModel", u.DeviceModel).Exists().LengthGreaterThan(1)

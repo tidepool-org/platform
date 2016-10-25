@@ -61,6 +61,8 @@ func (s *SelfMonitored) Validate(validator data.Validator) error {
 		return err
 	}
 
+	validator.ValidateString("type", &s.Type).EqualTo(Type())
+
 	validator.ValidateString("subType", s.SubType).OneOf([]string{"linked", "manual"})
 
 	return nil

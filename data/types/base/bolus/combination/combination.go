@@ -76,6 +76,8 @@ func (c *Combination) Validate(validator data.Validator) error {
 		return err
 	}
 
+	validator.ValidateString("subType", &c.SubType).EqualTo(SubType())
+
 	validator.ValidateFloat("normal", c.Normal).Exists().InRange(0.0, 100.0)
 
 	expectedNormalValidator := validator.ValidateFloat("expectedNormal", c.ExpectedNormal)

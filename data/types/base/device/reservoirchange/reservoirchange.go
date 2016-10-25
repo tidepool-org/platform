@@ -82,6 +82,8 @@ func (r *ReservoirChange) Validate(validator data.Validator) error {
 		return err
 	}
 
+	validator.ValidateString("subType", &r.SubType).EqualTo(SubType())
+
 	if r.status != nil {
 		(*r.status).Validate(validator.NewChildValidator("status"))
 	}

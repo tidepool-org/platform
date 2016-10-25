@@ -64,6 +64,8 @@ func (p *Prime) Validate(validator data.Validator) error {
 		return err
 	}
 
+	validator.ValidateString("subType", &p.SubType).EqualTo(SubType())
+
 	validator.ValidateString("primeTarget", p.Target).Exists().OneOf([]string{"cannula", "tubing"})
 
 	if p.Target != nil {

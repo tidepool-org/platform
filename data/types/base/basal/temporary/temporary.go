@@ -76,6 +76,8 @@ func (t *Temporary) Validate(validator data.Validator) error {
 		return err
 	}
 
+	validator.ValidateString("deliveryType", &t.DeliveryType).EqualTo(DeliveryType())
+
 	validator.ValidateInteger("duration", t.Duration).Exists().InRange(0, 604800000)
 
 	expectedDurationValidator := validator.ValidateInteger("expectedDuration", t.ExpectedDuration)

@@ -64,6 +64,8 @@ func (n *Normal) Validate(validator data.Validator) error {
 		return err
 	}
 
+	validator.ValidateString("subType", &n.SubType).EqualTo(SubType())
+
 	validator.ValidateFloat("normal", n.Normal).Exists().InRange(0.0, 100.0)
 
 	expectedNormalValidator := validator.ValidateFloat("expectedNormal", n.ExpectedNormal)

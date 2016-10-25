@@ -69,6 +69,7 @@ var _ = Describe("Temporary", func() {
 		It("returns the expected scheduled with all values initialized", func() {
 			testScheduled := scheduled.Init()
 			Expect(testScheduled).ToNot(BeNil())
+			Expect(testScheduled.ID).ToNot(BeEmpty())
 			Expect(testScheduled.Type).To(Equal("basal"))
 			Expect(testScheduled.DeliveryType).To(Equal("scheduled"))
 			Expect(testScheduled.Duration).To(BeNil())
@@ -89,6 +90,7 @@ var _ = Describe("Temporary", func() {
 		Context("Init", func() {
 			It("initializes the scheduled", func() {
 				testScheduled.Init()
+				Expect(testScheduled.ID).ToNot(BeEmpty())
 				Expect(testScheduled.Type).To(Equal("basal"))
 				Expect(testScheduled.DeliveryType).To(Equal("scheduled"))
 				Expect(testScheduled.Duration).To(BeNil())

@@ -86,6 +86,8 @@ func (a *Alarm) Validate(validator data.Validator) error {
 		return err
 	}
 
+	validator.ValidateString("subType", &a.SubType).EqualTo(SubType())
+
 	validator.ValidateString("alarmType", a.AlarmType).Exists().OneOf(
 		[]string{
 			"low_insulin",

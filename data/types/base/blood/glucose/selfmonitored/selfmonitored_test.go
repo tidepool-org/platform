@@ -66,6 +66,7 @@ var _ = Describe("SelfMonitored", func() {
 		It("returns the expected self monitored", func() {
 			testSelfMonitored := selfmonitored.Init()
 			Expect(testSelfMonitored).ToNot(BeNil())
+			Expect(testSelfMonitored.ID).ToNot(BeEmpty())
 			Expect(testSelfMonitored.Type).To(Equal("smbg"))
 		})
 	})
@@ -81,6 +82,7 @@ var _ = Describe("SelfMonitored", func() {
 		Context("Init", func() {
 			It("initializes the self monitored", func() {
 				testSelfMonitored.Init()
+				Expect(testSelfMonitored.ID).ToNot(BeEmpty())
 				Expect(testSelfMonitored.Type).To(Equal("smbg"))
 			})
 		})

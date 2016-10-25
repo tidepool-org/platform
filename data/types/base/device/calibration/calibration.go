@@ -65,6 +65,8 @@ func (c *Calibration) Validate(validator data.Validator) error {
 		return err
 	}
 
+	validator.ValidateString("subType", &c.SubType).EqualTo(SubType())
+
 	validator.ValidateString("units", c.Units).Exists().OneOf(glucose.Units())
 	validator.ValidateFloat("value", c.Value).Exists().InRange(glucose.ValueRangeForUnits(c.Units))
 

@@ -41,3 +41,13 @@ func (c *Continuous) Init() {
 	c.Glucose.Init()
 	c.Type = Type()
 }
+
+func (c *Continuous) Validate(validator data.Validator) error {
+	if err := c.Glucose.Validate(validator); err != nil {
+		return err
+	}
+
+	validator.ValidateString("type", &c.Type).EqualTo(Type())
+
+	return nil
+}

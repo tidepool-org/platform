@@ -82,6 +82,7 @@ var _ = Describe("Suspend", func() {
 		It("returns the expected suspend with all values initialized", func() {
 			testSuspend := suspend.Init()
 			Expect(testSuspend).ToNot(BeNil())
+			Expect(testSuspend.ID).ToNot(BeEmpty())
 			Expect(testSuspend.Type).To(Equal("basal"))
 			Expect(testSuspend.DeliveryType).To(Equal("suspend"))
 			Expect(testSuspend.Duration).To(BeNil())
@@ -101,6 +102,7 @@ var _ = Describe("Suspend", func() {
 		Context("Init", func() {
 			It("initializes the suspend", func() {
 				testSuspend.Init()
+				Expect(testSuspend.ID).ToNot(BeEmpty())
 				Expect(testSuspend.Type).To(Equal("basal"))
 				Expect(testSuspend.DeliveryType).To(Equal("suspend"))
 				Expect(testSuspend.Duration).To(BeNil())

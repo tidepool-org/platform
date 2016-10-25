@@ -62,6 +62,7 @@ var _ = Describe("Ketone", func() {
 		It("returns the expected ketone", func() {
 			testKetone := ketone.Init()
 			Expect(testKetone).ToNot(BeNil())
+			Expect(testKetone.ID).ToNot(BeEmpty())
 			Expect(testKetone.Type).To(Equal("bloodKetone"))
 		})
 	})
@@ -77,6 +78,7 @@ var _ = Describe("Ketone", func() {
 		Context("Init", func() {
 			It("initializes the ketone", func() {
 				testKetone.Init()
+				Expect(testKetone.ID).ToNot(BeEmpty())
 				Expect(testKetone.Type).To(Equal("bloodKetone"))
 			})
 		})

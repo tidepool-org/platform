@@ -48,6 +48,8 @@ func (k *Ketone) Validate(validator data.Validator) error {
 		return err
 	}
 
+	validator.ValidateString("type", &k.Type).EqualTo(Type())
+
 	validator.ValidateString("units", k.Units).OneOf(commonKetone.Units())
 	validator.ValidateFloat("value", k.Value).InRange(commonKetone.ValueRangeForUnits(k.Units))
 

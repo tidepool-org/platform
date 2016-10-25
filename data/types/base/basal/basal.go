@@ -57,7 +57,9 @@ func (b *Basal) Validate(validator data.Validator) error {
 		return err
 	}
 
-	validator.ValidateString("deliveryType", &b.DeliveryType).Exists().NotEmpty()
+	validator.ValidateString("type", &b.Type).EqualTo(Type())
+
+	validator.ValidateString("deliveryType", &b.DeliveryType).NotEmpty()
 
 	return nil
 }

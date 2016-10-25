@@ -70,6 +70,8 @@ func (s *Suspend) Validate(validator data.Validator) error {
 		return err
 	}
 
+	validator.ValidateString("deliveryType", &s.DeliveryType).EqualTo(DeliveryType())
+
 	validator.ValidateInteger("duration", s.Duration).Exists().InRange(0, 604800000)
 
 	expectedDurationValidator := validator.ValidateInteger("expectedDuration", s.ExpectedDuration)

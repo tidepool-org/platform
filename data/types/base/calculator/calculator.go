@@ -114,6 +114,8 @@ func (c *Calculator) Validate(validator data.Validator) error {
 		return err
 	}
 
+	validator.ValidateString("type", &c.Type).EqualTo(Type())
+
 	validator.ValidateFloat("carbInput", c.CarbohydrateInput).InRange(0.0, 1000.0)
 	validator.ValidateFloat("insulinOnBoard", c.InsulinOnBoard).InRange(0.0, 250.0)
 	validator.ValidateFloat("insulinCarbRatio", c.InsulinCarbohydrateRatio).InRange(0.0, 250.0)

@@ -88,6 +88,7 @@ var _ = Describe("Temporary", func() {
 		It("returns the expected temporary with all values initialized", func() {
 			testTemporary := temporary.Init()
 			Expect(testTemporary).ToNot(BeNil())
+			Expect(testTemporary.ID).ToNot(BeEmpty())
 			Expect(testTemporary.Type).To(Equal("basal"))
 			Expect(testTemporary.DeliveryType).To(Equal("temp"))
 			Expect(testTemporary.Duration).To(BeNil())
@@ -109,6 +110,7 @@ var _ = Describe("Temporary", func() {
 		Context("Init", func() {
 			It("initializes the temporary", func() {
 				testTemporary.Init()
+				Expect(testTemporary.ID).ToNot(BeEmpty())
 				Expect(testTemporary.Type).To(Equal("basal"))
 				Expect(testTemporary.DeliveryType).To(Equal("temp"))
 				Expect(testTemporary.Duration).To(BeNil())

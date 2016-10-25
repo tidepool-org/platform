@@ -53,7 +53,15 @@ func (d *Device) Parse(parser data.ObjectParser) error {
 func (d *Device) Validate(validator data.Validator) error {
 	validator.SetMeta(d.Meta())
 
-	return d.Base.Validate(validator)
+	if err := d.Base.Validate(validator); err != nil {
+		return err
+	}
+
+	validator.ValidateString("type", &d.Type).EqualTo(Type())
+
+	validator.ValidateString("subType", &d.SubType).NotEmpty()
+
+	return nil
 }
 
 func (d *Device) Normalize(normalizer data.Normalizer) error {

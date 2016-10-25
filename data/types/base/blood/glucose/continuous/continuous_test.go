@@ -30,6 +30,7 @@ var _ = Describe("Continuous", func() {
 		It("returns the expected continuous", func() {
 			testContinuous := continuous.Init()
 			Expect(testContinuous).ToNot(BeNil())
+			Expect(testContinuous.ID).ToNot(BeEmpty())
 			Expect(testContinuous.Type).To(Equal("cbg"))
 		})
 	})
@@ -45,6 +46,7 @@ var _ = Describe("Continuous", func() {
 		Context("Init", func() {
 			It("initializes the continuous", func() {
 				testContinuous.Init()
+				Expect(testContinuous.ID).ToNot(BeEmpty())
 				Expect(testContinuous.Type).To(Equal("cbg"))
 			})
 		})
