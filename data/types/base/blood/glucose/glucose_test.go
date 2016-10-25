@@ -211,11 +211,11 @@ var _ = Describe("Glucose", func() {
 				),
 				Entry("mg/dL units",
 					NewTestGlucose("2016-09-06T13:45:58-07:00", "mg/dL", 180.0),
-					NewTestGlucose("2016-09-06T13:45:58-07:00", "mmol/L", 9.991346383881961),
+					NewTestGlucose("2016-09-06T13:45:58-07:00", "mmol/L", 9.99135),
 				),
 				Entry("mg/dl units",
 					NewTestGlucose("2016-09-06T13:45:58-07:00", "mg/dl", 180.0),
-					NewTestGlucose("2016-09-06T13:45:58-07:00", "mmol/L", 9.991346383881961),
+					NewTestGlucose("2016-09-06T13:45:58-07:00", "mmol/L", 9.99135),
 				),
 			)
 		})

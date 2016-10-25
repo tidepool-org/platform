@@ -281,7 +281,7 @@ var _ = Describe("Target", func() {
 			Entry("normalizes a target with units of unknown and values are nil", NewTestTarget(nil, nil, nil, nil), "unknown", NewTestTarget(nil, nil, nil, nil)),
 			Entry("normalizes a target with units of mmol/L", NewTestTarget(6.6, 1.0, 5.6, 7.6), "mmol/L", NewTestTarget(6.6, 1.0, 5.6, 7.6)),
 			Entry("normalizes a target with units of mmol/L and values are nil", NewTestTarget(nil, nil, nil, nil), "mmol/L", NewTestTarget(nil, nil, nil, nil)),
-			Entry("normalizes a target with units of mg/dL", NewTestTarget(120.0, 10.0, 110.0, 130.0), "mg/dL", NewTestTarget(6.66089758925464, 0.5550747991045534, 6.1058227901500866, 7.2159723883591935)),
+			Entry("normalizes a target with units of mg/dL", NewTestTarget(120.0, 10.0, 110.0, 130.0), "mg/dL", NewTestTarget(6.66090, 0.55507, 6.10582, 7.21597)),
 			Entry("normalizes a target with units of mg/dL and values are nil", NewTestTarget(nil, nil, nil, nil), "mg/dL", NewTestTarget(nil, nil, nil, nil)),
 		)
 	})

@@ -449,9 +449,9 @@ var _ = Describe("Settings", func() {
 				Expect(*bgTarget.Low).To(Equal(expected))
 			}
 		},
-			Entry("is very low", 60.1, 3.3359995426183655),
-			Entry("is very high", 800.0, 44.405983928364265),
-			Entry("is normal", 160.0, 8.881196785672854),
+			Entry("is very low", 60.1, 3.33600),
+			Entry("is very high", 800.0, 44.40598),
+			Entry("is normal", 160.0, 8.88120),
 		)
 
 		DescribeTable("normalization when high mg/dL", func(val, expected float64) {
@@ -480,9 +480,9 @@ var _ = Describe("Settings", func() {
 				Expect(*bgTarget.High).To(Equal(expected))
 			}
 		},
-			Entry("is very low", 100.0, 5.550747991045533),
-			Entry("is very high", 950.0, 52.73210591493257),
-			Entry("is normal", 200.0, 11.101495982091066),
+			Entry("is very low", 100.0, 5.55075),
+			Entry("is very high", 950.0, 52.73211),
+			Entry("is normal", 200.0, 11.10150),
 		)
 
 		DescribeTable("normalization when target mg/dL", func(val, expected float64) {
@@ -511,9 +511,9 @@ var _ = Describe("Settings", func() {
 				Expect(*bgTarget.Target.Target).To(Equal(expected))
 			}
 		},
-			Entry("is very low", 70.1, 3.8910743417229186),
-			Entry("is very high", 500.0, 27.75373995522767),
-			Entry("is normal", 180.1, 9.996897131873006),
+			Entry("is very low", 70.1, 3.89107),
+			Entry("is very high", 500.0, 27.75374),
+			Entry("is normal", 180.1, 9.99690),
 		)
 	})
 
@@ -573,9 +573,9 @@ var _ = Describe("Settings", func() {
 				Expect(*insulinSensitivity.Amount).To(Equal(expected))
 			}
 		},
-			Entry("is very low", 60.0, 3.33044879462732),
-			Entry("is very high", glucose.MgdLUpperLimit, 55.50747991045534),
-			Entry("is normal", 160.0, 8.881196785672854),
+			Entry("is very low", 60.0, 3.33045),
+			Entry("is very high", glucose.MgdLUpperLimit, 55.50748),
+			Entry("is normal", 160.0, 8.88120),
 		)
 	})
 })

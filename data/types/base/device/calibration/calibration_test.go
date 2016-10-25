@@ -117,9 +117,9 @@ var _ = Describe("Calibration", func() {
 			Expect(*calibrationEvent.Units).To(Equal(glucose.MmolL))
 			Expect(*calibrationEvent.Value).To(Equal(expected))
 		},
-			Entry("is expected lower bg value", 60.0, 3.33044879462732),
-			Entry("is below max", glucose.MgdLUpperLimit, 55.50747991045534),
-			Entry("is expected upper bg value", 400.0, 22.202991964182132),
+			Entry("is expected lower bg value", 60.0, 3.33045),
+			Entry("is below max", glucose.MgdLUpperLimit, 55.50748),
+			Entry("is expected upper bg value", 400.0, 22.20299),
 		)
 	})
 })

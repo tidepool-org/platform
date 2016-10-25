@@ -101,7 +101,17 @@ var _ = Describe("Glucose", func() {
 		Entry("returns unchanged value for unknown units", app.FloatAsPointer(10.0), app.StringAsPointer("unknown"), app.FloatAsPointer(10.0)),
 		Entry("returns unchanged value for mmol/L units", app.FloatAsPointer(10.0), app.StringAsPointer("mmol/L"), app.FloatAsPointer(10.0)),
 		Entry("returns unchanged value for mmol/l units", app.FloatAsPointer(10.0), app.StringAsPointer("mmol/l"), app.FloatAsPointer(10.0)),
-		Entry("returns converted value for mg/dL units", app.FloatAsPointer(180.0), app.StringAsPointer("mg/dL"), app.FloatAsPointer(9.991346383881961)),
-		Entry("returns converted value for mg/dl units", app.FloatAsPointer(180.0), app.StringAsPointer("mg/dl"), app.FloatAsPointer(9.991346383881961)),
+		Entry("returns converted value for mg/dL units", app.FloatAsPointer(180.0), app.StringAsPointer("mg/dL"), app.FloatAsPointer(9.99135)),
+		Entry("returns converted value for mg/dl units", app.FloatAsPointer(180.0), app.StringAsPointer("mg/dl"), app.FloatAsPointer(9.99135)),
 	)
+
+	Context("NormalizeValueForUnits", func() {
+		It("properly normalizes all known mg/dL values", func() {
+			for value := int(glucose.MgdLLowerLimit); value <= int(glucose.MgdLUpperLimit); value++ {
+				normalizedValue := glucose.NormalizeValueForUnits(app.FloatAsPointer(float64(value)), app.StringAsPointer("mg/dL"))
+				Expect(normalizedValue).ToNot(BeNil())
+				Expect(int(*normalizedValue*18.01559 + 0.5)).To(Equal(value))
+			}
+		})
+	})
 })
