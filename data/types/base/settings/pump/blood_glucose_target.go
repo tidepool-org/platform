@@ -12,11 +12,11 @@ package pump
 
 import (
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/bloodglucose"
+	"github.com/tidepool-org/platform/data/blood/glucose"
 )
 
 type BloodGlucoseTarget struct {
-	bloodglucose.Target `bson:",inline"`
+	glucose.Target `bson:",inline"`
 
 	Start *int `json:"start,omitempty" bson:"start,omitempty"`
 }

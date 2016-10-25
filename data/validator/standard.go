@@ -83,14 +83,6 @@ func (s *Standard) ValidateStringAsTime(reference interface{}, stringValue *stri
 	return NewStandardStringAsTime(s.context, reference, stringValue, timeLayout)
 }
 
-func (s *Standard) ValidateStringAsBloodGlucoseUnits(reference interface{}, stringValue *string) data.BloodGlucoseUnits {
-	return NewStandardStringAsBloodGlucoseUnits(s.context, reference, stringValue)
-}
-
-func (s *Standard) ValidateFloatAsBloodGlucoseValue(reference interface{}, floatValue *float64) data.BloodGlucoseValue {
-	return NewStandardFloatAsBloodGlucoseValue(s.context, reference, floatValue)
-}
-
 func (s *Standard) NewChildValidator(reference interface{}) data.Validator {
 	standard, _ := NewStandard(s.context.NewChildContext(reference))
 	return standard

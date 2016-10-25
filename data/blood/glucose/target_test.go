@@ -1,4 +1,4 @@
-package bloodglucose_test
+package glucose_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -8,7 +8,7 @@ import (
 	"math"
 
 	"github.com/tidepool-org/platform/app"
-	"github.com/tidepool-org/platform/data/bloodglucose"
+	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/normalizer"
@@ -26,8 +26,8 @@ func AsStringPointer(source interface{}) *string {
 	return nil
 }
 
-func NewTestTarget(sourceTarget interface{}, sourceRange interface{}, sourceLow interface{}, sourceHigh interface{}) *bloodglucose.Target {
-	testTarget := &bloodglucose.Target{}
+func NewTestTarget(sourceTarget interface{}, sourceRange interface{}, sourceLow interface{}, sourceHigh interface{}) *glucose.Target {
+	testTarget := &glucose.Target{}
 	if value, ok := sourceTarget.(float64); ok {
 		testTarget.Target = app.FloatAsPointer(value)
 	}
@@ -45,7 +45,7 @@ func NewTestTarget(sourceTarget interface{}, sourceRange interface{}, sourceLow 
 
 var _ = Describe("Target", func() {
 	DescribeTable("ParseTarget",
-		func(sourceObject *map[string]interface{}, expectedTarget *bloodglucose.Target, expectedErrors []*service.Error) {
+		func(sourceObject *map[string]interface{}, expectedTarget *glucose.Target, expectedErrors []*service.Error) {
 			testContext, err := context.NewStandard(log.NewNull())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
@@ -55,7 +55,7 @@ var _ = Describe("Target", func() {
 			testParser, err := parser.NewStandardObject(testContext, testFactory, sourceObject, parser.AppendErrorNotParsed)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testParser).ToNot(BeNil())
-			Expect(bloodglucose.ParseTarget(testParser)).To(Equal(expectedTarget))
+			Expect(glucose.ParseTarget(testParser)).To(Equal(expectedTarget))
 			Expect(testContext.Errors()).To(ConsistOf(expectedErrors))
 		},
 		Entry("parses object that is nil", nil, nil, []*service.Error{}),
@@ -77,13 +77,13 @@ var _ = Describe("Target", func() {
 
 	Context("NewTarget", func() {
 		It("is successful", func() {
-			Expect(bloodglucose.NewTarget()).To(Equal(&bloodglucose.Target{}))
+			Expect(glucose.NewTarget()).To(Equal(&glucose.Target{}))
 		})
 	})
 
 	Context("with new target", func() {
 		DescribeTable("Parse",
-			func(sourceObject *map[string]interface{}, expectedTarget *bloodglucose.Target, expectedErrors []*service.Error) {
+			func(sourceObject *map[string]interface{}, expectedTarget *glucose.Target, expectedErrors []*service.Error) {
 				testContext, err := context.NewStandard(log.NewNull())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(testContext).ToNot(BeNil())
@@ -93,7 +93,7 @@ var _ = Describe("Target", func() {
 				testParser, err := parser.NewStandardObject(testContext, testFactory, sourceObject, parser.AppendErrorNotParsed)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(testParser).ToNot(BeNil())
-				sourceTarget := &bloodglucose.Target{}
+				sourceTarget := &glucose.Target{}
 				sourceTarget.Parse(testParser)
 				Expect(sourceTarget).To(Equal(expectedTarget))
 				Expect(testContext.Errors()).To(ConsistOf(expectedErrors))
@@ -128,7 +128,7 @@ var _ = Describe("Target", func() {
 		)
 
 		DescribeTable("Validate",
-			func(sourceTarget *bloodglucose.Target, sourceUnits interface{}, expectedErrors []*service.Error) {
+			func(sourceTarget *glucose.Target, sourceUnits interface{}, expectedErrors []*service.Error) {
 				testContext, err := context.NewStandard(log.NewNull())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(testContext).ToNot(BeNil())
@@ -265,7 +265,7 @@ var _ = Describe("Target", func() {
 		)
 
 		DescribeTable("Normalize",
-			func(sourceTarget *bloodglucose.Target, sourceUnits interface{}, expectedTarget *bloodglucose.Target) {
+			func(sourceTarget *glucose.Target, sourceUnits interface{}, expectedTarget *glucose.Target) {
 				testContext, err := context.NewStandard(log.NewNull())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(testContext).ToNot(BeNil())
@@ -286,9 +286,23 @@ var _ = Describe("Target", func() {
 		)
 	})
 
+	DescribeTable("TargetRangeForUnits",
+		func(units *string, expectedLower float64, expectedUpper float64) {
+			actualLower, actualUpper := glucose.TargetRangeForUnits(units)
+			Expect(actualLower).To(Equal(expectedLower))
+			Expect(actualUpper).To(Equal(expectedUpper))
+		},
+		Entry("returns no range for nil", nil, -math.MaxFloat64, math.MaxFloat64),
+		Entry("returns no range for unknown units", app.StringAsPointer("unknown"), -math.MaxFloat64, math.MaxFloat64),
+		Entry("returns expected range for mmol/L units", app.StringAsPointer("mmol/L"), 0.0, 55.0),
+		Entry("returns expected range for mmol/l units", app.StringAsPointer("mmol/l"), 0.0, 55.0),
+		Entry("returns expected range for mg/dL units", app.StringAsPointer("mg/dL"), 0.0, 1000.0),
+		Entry("returns expected range for mg/dl units", app.StringAsPointer("mg/dl"), 0.0, 1000.0),
+	)
+
 	DescribeTable("RangeRangeForUnits",
 		func(sourceTarget float64, sourceUnits interface{}, expectedLower float64, expectedUpper float64) {
-			actualLower, actualUpper := bloodglucose.RangeRangeForUnits(sourceTarget, AsStringPointer(sourceUnits))
+			actualLower, actualUpper := glucose.RangeRangeForUnits(sourceTarget, AsStringPointer(sourceUnits))
 			Expect(actualLower).To(BeNumerically("~", expectedLower))
 			Expect(actualUpper).To(BeNumerically("~", expectedUpper))
 		},
@@ -324,9 +338,23 @@ var _ = Describe("Target", func() {
 		Entry("returns range where units are mg/dl and target > upper limit", 1001.0, "mg/dl", -math.MaxFloat64, math.MaxFloat64),
 	)
 
+	DescribeTable("LowRangeForUnits",
+		func(units *string, expectedLower float64, expectedUpper float64) {
+			actualLower, actualUpper := glucose.LowRangeForUnits(units)
+			Expect(actualLower).To(Equal(expectedLower))
+			Expect(actualUpper).To(Equal(expectedUpper))
+		},
+		Entry("returns no range for nil", nil, -math.MaxFloat64, math.MaxFloat64),
+		Entry("returns no range for unknown units", app.StringAsPointer("unknown"), -math.MaxFloat64, math.MaxFloat64),
+		Entry("returns expected range for mmol/L units", app.StringAsPointer("mmol/L"), 0.0, 55.0),
+		Entry("returns expected range for mmol/l units", app.StringAsPointer("mmol/l"), 0.0, 55.0),
+		Entry("returns expected range for mg/dL units", app.StringAsPointer("mg/dL"), 0.0, 1000.0),
+		Entry("returns expected range for mg/dl units", app.StringAsPointer("mg/dl"), 0.0, 1000.0),
+	)
+
 	DescribeTable("HighRangeForUnits",
 		func(sourceLow float64, sourceUnits interface{}, expectedLower float64, expectedUpper float64) {
-			actualLower, actualUpper := bloodglucose.HighRangeForUnits(sourceLow, AsStringPointer(sourceUnits))
+			actualLower, actualUpper := glucose.HighRangeForUnits(sourceLow, AsStringPointer(sourceUnits))
 			Expect(actualLower).To(BeNumerically("~", expectedLower))
 			Expect(actualUpper).To(BeNumerically("~", expectedUpper))
 		},

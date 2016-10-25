@@ -36,9 +36,6 @@ type Validator interface {
 
 	ValidateStringAsTime(reference interface{}, stringValue *string, timeLayout string) Time
 
-	ValidateStringAsBloodGlucoseUnits(reference interface{}, stringValue *string) BloodGlucoseUnits
-	ValidateFloatAsBloodGlucoseValue(reference interface{}, floatValue *float64) BloodGlucoseValue
-
 	NewChildValidator(reference interface{}) Validator
 }
 
@@ -182,17 +179,4 @@ type Time interface {
 	AfterNow() Time
 	Before(limit time.Time) Time
 	BeforeNow() Time
-}
-
-type BloodGlucoseUnits interface {
-	Exists() BloodGlucoseUnits
-	NotExists() BloodGlucoseUnits
-}
-
-type BloodGlucoseValue interface {
-	Exists() BloodGlucoseValue
-	NotExists() BloodGlucoseValue
-
-	InRange(lowerLimit float64, upperLimit float64) BloodGlucoseValue
-	InRangeForUnits(units *string) BloodGlucoseValue
 }

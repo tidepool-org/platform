@@ -2,6 +2,7 @@ package ketone
 
 import (
 	"github.com/tidepool-org/platform/data"
+	commonKetone "github.com/tidepool-org/platform/data/blood/ketone"
 	"github.com/tidepool-org/platform/data/types/base"
 )
 
@@ -58,8 +59,8 @@ func (k *Ketone) Validate(validator data.Validator) error {
 		return err
 	}
 
-	validator.ValidateStringAsBloodGlucoseUnits("units", k.Units).Exists()
-	validator.ValidateFloatAsBloodGlucoseValue("value", k.Value).Exists().InRangeForUnits(k.Units)
+	validator.ValidateString("units", k.Units).Exists().OneOf(commonKetone.Units())
+	validator.ValidateFloat("value", k.Value).Exists().InRange(commonKetone.ValueRangeForUnits(k.Units))
 
 	return nil
 }
@@ -71,7 +72,8 @@ func (k *Ketone) Normalize(normalizer data.Normalizer) error {
 		return err
 	}
 
-	k.Units, k.Value = normalizer.NormalizeBloodGlucose(k.Units).UnitsAndValue(k.Value)
+	k.Value = commonKetone.NormalizeValueForUnits(k.Value, k.Units)
+	k.Units = commonKetone.NormalizeUnits(k.Units)
 
 	return nil
 }

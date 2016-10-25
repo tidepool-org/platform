@@ -1,4 +1,4 @@
-package bloodglucose_test
+package ketone_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -9,5 +9,5 @@ import (
 
 func TestSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "data/bloodglucose")
+	RunSpecs(t, "data/blood/ketone")
 }

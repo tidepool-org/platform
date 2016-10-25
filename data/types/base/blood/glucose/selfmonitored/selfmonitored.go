@@ -2,6 +2,7 @@ package selfmonitored
 
 import (
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/base"
 )
 
@@ -61,8 +62,8 @@ func (s *SelfMonitored) Validate(validator data.Validator) error {
 		return err
 	}
 
-	validator.ValidateStringAsBloodGlucoseUnits("units", s.Units).Exists()
-	validator.ValidateFloatAsBloodGlucoseValue("value", s.Value).Exists().InRangeForUnits(s.Units)
+	validator.ValidateString("units", s.Units).Exists().OneOf(glucose.Units())
+	validator.ValidateFloat("value", s.Value).Exists().InRange(glucose.ValueRangeForUnits(s.Units))
 	validator.ValidateString("subType", s.SubType).OneOf([]string{"manual", "linked"})
 
 	return nil
@@ -75,7 +76,8 @@ func (s *SelfMonitored) Normalize(normalizer data.Normalizer) error {
 		return err
 	}
 
-	s.Units, s.Value = normalizer.NormalizeBloodGlucose(s.Units).UnitsAndValue(s.Value)
+	s.Value = glucose.NormalizeValueForUnits(s.Value, s.Units)
+	s.Units = glucose.NormalizeUnits(s.Units)
 
 	return nil
 }

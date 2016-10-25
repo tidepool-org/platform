@@ -5,7 +5,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/data/bloodglucose"
+	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/base"
@@ -21,7 +21,7 @@ func NewRawObjectMmolL() map[string]interface{} {
 	rawObject["activeSchedule"] = "standard"
 	rawObject["units"] = map[string]interface{}{
 		"carb": "grams",
-		"bg":   bloodglucose.MmolL,
+		"bg":   glucose.MmolL,
 	}
 	rawObject["carbRatio"] = []interface{}{
 		map[string]interface{}{"amount": 12.0, "start": 0},
@@ -53,7 +53,7 @@ func NewRawObjectMgdL() map[string]interface{} {
 	rawObject["activeSchedule"] = "standard"
 	rawObject["units"] = map[string]interface{}{
 		"carb": "grams",
-		"bg":   bloodglucose.MgdL,
+		"bg":   glucose.MgdL,
 	}
 	rawObject["carbRatio"] = []interface{}{
 		map[string]interface{}{"amount": 12.0, "start": 0},
@@ -102,10 +102,10 @@ var _ = Describe("Settings", func() {
 	Context("units", func() {
 		DescribeTable("invalid when", testing.ExpectFieldNotValid,
 			Entry("has bg empty", NewRawObjectMgdL(), "units", map[string]interface{}{"carb": "grams", "bg": ""},
-				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("", []string{"mmol/l", "mmol/L", "mg/dl", "mg/dL"}), "/units/bg", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units/bg", NewMeta())},
 			),
 			Entry("has bg not predefined type", NewRawObjectMmolL(), "units", map[string]interface{}{"carb": "grams", "bg": "na"},
-				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("na", []string{"mmol/l", "mmol/L", "mg/dl", "mg/dL"}), "/units/bg", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("na", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units/bg", NewMeta())},
 			),
 			Entry("has carb empty", NewRawObjectMmolL(), "units", map[string]interface{}{"carb": "", "bg": "mmol/L"},
 				[]*service.Error{testing.ComposeError(service.ErrorValueEmpty(), "/units/carb", NewMeta())},
@@ -114,7 +114,7 @@ var _ = Describe("Settings", func() {
 
 		DescribeTable("valid when", testing.ExpectFieldIsValid,
 			Entry("has carbs set and bg set as mmol/L", NewRawObjectMmolL(), "units", map[string]interface{}{"carb": "grams", "bg": "mmol/L"}),
-			Entry("has carbs set and bg set as mg/dl", NewRawObjectMgdL(), "units", map[string]interface{}{"carb": "grams", "bg": "mg/dl"}),
+			Entry("has carbs set and bg set as mg/dL", NewRawObjectMgdL(), "units", map[string]interface{}{"carb": "grams", "bg": "mg/dL"}),
 		)
 	})
 
@@ -238,11 +238,11 @@ var _ = Describe("Settings", func() {
 			),
 			Entry("has amount negative", NewRawObjectMgdL(), "insulinSensitivity",
 				[]interface{}{map[string]interface{}{"amount": -0.1, "start": 21600000}},
-				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-0.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/insulinSensitivity/0/amount", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-0.1, glucose.MgdLLowerLimit, glucose.MgdLUpperLimit), "/insulinSensitivity/0/amount", NewMeta())},
 			),
 			Entry("has amount greater than 1000.0", NewRawObjectMgdL(), "insulinSensitivity",
 				[]interface{}{map[string]interface{}{"amount": 1000.1, "start": 21600000}},
-				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(1000.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/insulinSensitivity/0/amount", NewMeta())},
+				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(1000.1, glucose.MgdLLowerLimit, glucose.MgdLUpperLimit), "/insulinSensitivity/0/amount", NewMeta())},
 			),
 		)
 
@@ -266,11 +266,11 @@ var _ = Describe("Settings", func() {
 				),
 				Entry("has target negative", NewRawObjectMgdL(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": -0.1, "range": 15}},
-					[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-0.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/bgTarget/0/target", NewMeta())},
+					[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-0.1, glucose.MgdLLowerLimit, glucose.MgdLUpperLimit), "/bgTarget/0/target", NewMeta())},
 				),
 				Entry("has target greater than 1000.0", NewRawObjectMgdL(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": 1000.1, "range": 15}},
-					[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(1000.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/bgTarget/0/target", NewMeta())},
+					[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(1000.1, glucose.MgdLLowerLimit, glucose.MgdLUpperLimit), "/bgTarget/0/target", NewMeta())},
 				),
 				Entry("has range negative", NewRawObjectMgdL(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": 99.0, "range": -1}},
@@ -302,11 +302,11 @@ var _ = Describe("Settings", func() {
 				),
 				Entry("has target negative", NewRawObjectMgdL(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": -0.1, "high": 180.0}},
-					[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-0.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/bgTarget/0/target", NewMeta())},
+					[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-0.1, glucose.MgdLLowerLimit, glucose.MgdLUpperLimit), "/bgTarget/0/target", NewMeta())},
 				),
 				Entry("has target greater than 1000.0", NewRawObjectMgdL(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": 1000.1, "high": 180.0}},
-					[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(1000.1, bloodglucose.MgdLLowerLimit, bloodglucose.MgdLUpperLimit), "/bgTarget/0/target", NewMeta())},
+					[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(1000.1, glucose.MgdLLowerLimit, glucose.MgdLUpperLimit), "/bgTarget/0/target", NewMeta())},
 				),
 				Entry("has high less than target", NewRawObjectMgdL(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": 90.0, "high": 80.0}},
@@ -314,7 +314,7 @@ var _ = Describe("Settings", func() {
 				),
 				Entry("has high greater than 1000.0", NewRawObjectMgdL(), "bgTarget",
 					[]interface{}{map[string]interface{}{"start": 21600000, "target": 0.0, "high": 1000.1}},
-					[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(1000.1, 0.0, bloodglucose.MgdLUpperLimit), "/bgTarget/0/high", NewMeta())},
+					[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(1000.1, 0.0, glucose.MgdLUpperLimit), "/bgTarget/0/high", NewMeta())},
 				),
 			)
 
@@ -332,15 +332,15 @@ var _ = Describe("Settings", func() {
 	Context("bgTarget normalized", func() {
 		DescribeTable("normalization when low mmol/L", func(val, expected float64) {
 			pumpSettings := pump.Init()
-			units := bloodglucose.MmolL
+			units := glucose.MmolL
 			pumpSettings.Units = &pump.Units{BloodGlucose: &units}
 
 			high := val + 5.0
 			target := val + 2.0
 
 			pumpSettings.BloodGlucoseTargets = &[]*pump.BloodGlucoseTarget{
-				{bloodglucose.Target{High: &high, Low: &val, Target: &target}, nil},
-				{bloodglucose.Target{High: &high, Low: &val, Target: &target}, nil},
+				{glucose.Target{High: &high, Low: &val, Target: &target}, nil},
+				{glucose.Target{High: &high, Low: &val, Target: &target}, nil},
 			}
 
 			testContext, err := context.NewStandard(log.NewNull())
@@ -350,7 +350,7 @@ var _ = Describe("Settings", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(standardNormalizer).ToNot(BeNil())
 			pumpSettings.Normalize(standardNormalizer)
-			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(bloodglucose.MmolL))
+			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(glucose.MmolL))
 
 			for _, bgTarget := range *pumpSettings.BloodGlucoseTargets {
 				Expect(*bgTarget.Low).To(Equal(expected))
@@ -363,15 +363,15 @@ var _ = Describe("Settings", func() {
 
 		DescribeTable("normalization when high mmol/L", func(val, expected float64) {
 			pumpSettings := pump.Init()
-			units := bloodglucose.MmolL
+			units := glucose.MmolL
 			pumpSettings.Units = &pump.Units{BloodGlucose: &units}
 
 			low := val - 5.0
 			target := val - 2.0
 
 			pumpSettings.BloodGlucoseTargets = &[]*pump.BloodGlucoseTarget{
-				{bloodglucose.Target{High: &val, Low: &low, Target: &target}, nil},
-				{bloodglucose.Target{High: &val, Low: &low, Target: &target}, nil},
+				{glucose.Target{High: &val, Low: &low, Target: &target}, nil},
+				{glucose.Target{High: &val, Low: &low, Target: &target}, nil},
 			}
 
 			testContext, err := context.NewStandard(log.NewNull())
@@ -381,7 +381,7 @@ var _ = Describe("Settings", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(standardNormalizer).ToNot(BeNil())
 			pumpSettings.Normalize(standardNormalizer)
-			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(bloodglucose.MmolL))
+			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(glucose.MmolL))
 
 			for _, bgTarget := range *pumpSettings.BloodGlucoseTargets {
 				Expect(*bgTarget.High).To(Equal(expected))
@@ -394,15 +394,15 @@ var _ = Describe("Settings", func() {
 
 		DescribeTable("normalization when target mmol/L", func(val, expected float64) {
 			pumpSettings := pump.Init()
-			units := bloodglucose.MmolL
+			units := glucose.MmolL
 			pumpSettings.Units = &pump.Units{BloodGlucose: &units}
 
 			low := val - 5.0
 			high := val + 5.0
 
 			pumpSettings.BloodGlucoseTargets = &[]*pump.BloodGlucoseTarget{
-				{bloodglucose.Target{High: &high, Low: &low, Target: &val}, nil},
-				{bloodglucose.Target{High: &high, Low: &low, Target: &val}, nil},
+				{glucose.Target{High: &high, Low: &low, Target: &val}, nil},
+				{glucose.Target{High: &high, Low: &low, Target: &val}, nil},
 			}
 
 			testContext, err := context.NewStandard(log.NewNull())
@@ -412,7 +412,7 @@ var _ = Describe("Settings", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(standardNormalizer).ToNot(BeNil())
 			pumpSettings.Normalize(standardNormalizer)
-			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(bloodglucose.MmolL))
+			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(glucose.MmolL))
 
 			for _, bgTarget := range *pumpSettings.BloodGlucoseTargets {
 				Expect(*bgTarget.Target.Target).To(Equal(expected))
@@ -425,15 +425,15 @@ var _ = Describe("Settings", func() {
 
 		DescribeTable("normalization when low mg/dL", func(val, expected float64) {
 			pumpSettings := pump.Init()
-			units := bloodglucose.MgdL
+			units := glucose.MgdL
 			pumpSettings.Units = &pump.Units{BloodGlucose: &units}
 
 			high := val + 5.0
 			target := val + 2.0
 
 			pumpSettings.BloodGlucoseTargets = &[]*pump.BloodGlucoseTarget{
-				{bloodglucose.Target{High: &high, Low: &val, Target: &target}, nil},
-				{bloodglucose.Target{High: &high, Low: &val, Target: &target}, nil},
+				{glucose.Target{High: &high, Low: &val, Target: &target}, nil},
+				{glucose.Target{High: &high, Low: &val, Target: &target}, nil},
 			}
 
 			testContext, err := context.NewStandard(log.NewNull())
@@ -443,7 +443,7 @@ var _ = Describe("Settings", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(standardNormalizer).ToNot(BeNil())
 			pumpSettings.Normalize(standardNormalizer)
-			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(bloodglucose.MmolL))
+			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(glucose.MmolL))
 
 			for _, bgTarget := range *pumpSettings.BloodGlucoseTargets {
 				Expect(*bgTarget.Low).To(Equal(expected))
@@ -456,15 +456,15 @@ var _ = Describe("Settings", func() {
 
 		DescribeTable("normalization when high mg/dL", func(val, expected float64) {
 			pumpSettings := pump.Init()
-			units := bloodglucose.MgdL
+			units := glucose.MgdL
 			pumpSettings.Units = &pump.Units{BloodGlucose: &units}
 
 			low := val - 5.0
 			target := val - 2.0
 
 			pumpSettings.BloodGlucoseTargets = &[]*pump.BloodGlucoseTarget{
-				{bloodglucose.Target{High: &val, Low: &low, Target: &target}, nil},
-				{bloodglucose.Target{High: &val, Low: &low, Target: &target}, nil},
+				{glucose.Target{High: &val, Low: &low, Target: &target}, nil},
+				{glucose.Target{High: &val, Low: &low, Target: &target}, nil},
 			}
 
 			testContext, err := context.NewStandard(log.NewNull())
@@ -474,7 +474,7 @@ var _ = Describe("Settings", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(standardNormalizer).ToNot(BeNil())
 			pumpSettings.Normalize(standardNormalizer)
-			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(bloodglucose.MmolL))
+			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(glucose.MmolL))
 
 			for _, bgTarget := range *pumpSettings.BloodGlucoseTargets {
 				Expect(*bgTarget.High).To(Equal(expected))
@@ -487,15 +487,15 @@ var _ = Describe("Settings", func() {
 
 		DescribeTable("normalization when target mg/dL", func(val, expected float64) {
 			pumpSettings := pump.Init()
-			units := bloodglucose.MgdL
+			units := glucose.MgdL
 			pumpSettings.Units = &pump.Units{BloodGlucose: &units}
 
 			low := val - 5.0
 			high := val + 5.0
 
 			pumpSettings.BloodGlucoseTargets = &[]*pump.BloodGlucoseTarget{
-				{bloodglucose.Target{High: &high, Low: &low, Target: &val}, nil},
-				{bloodglucose.Target{High: &high, Low: &low, Target: &val}, nil},
+				{glucose.Target{High: &high, Low: &low, Target: &val}, nil},
+				{glucose.Target{High: &high, Low: &low, Target: &val}, nil},
 			}
 
 			testContext, err := context.NewStandard(log.NewNull())
@@ -505,7 +505,7 @@ var _ = Describe("Settings", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(standardNormalizer).ToNot(BeNil())
 			pumpSettings.Normalize(standardNormalizer)
-			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(bloodglucose.MmolL))
+			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(glucose.MmolL))
 
 			for _, bgTarget := range *pumpSettings.BloodGlucoseTargets {
 				Expect(*bgTarget.Target.Target).To(Equal(expected))
@@ -520,7 +520,7 @@ var _ = Describe("Settings", func() {
 	Context("insulinSensitivity normalized", func() {
 		DescribeTable("when mmol/L", func(val, expected float64) {
 			pumpSettings := pump.Init()
-			units := bloodglucose.MmolL
+			units := glucose.MmolL
 			pumpSettings.Units = &pump.Units{BloodGlucose: &units}
 
 			start := 21600000
@@ -537,7 +537,7 @@ var _ = Describe("Settings", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(standardNormalizer).ToNot(BeNil())
 			pumpSettings.Normalize(standardNormalizer)
-			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(bloodglucose.MmolL))
+			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(glucose.MmolL))
 
 			for _, insulinSensitivity := range *pumpSettings.InsulinSensitivities {
 				Expect(*insulinSensitivity.Amount).To(Equal(expected))
@@ -550,7 +550,7 @@ var _ = Describe("Settings", func() {
 
 		DescribeTable("when mg/dL", func(val, expected float64) {
 			pumpSettings := pump.Init()
-			units := bloodglucose.MgdL
+			units := glucose.MgdL
 			pumpSettings.Units = &pump.Units{BloodGlucose: &units}
 
 			start := 21600000
@@ -567,14 +567,14 @@ var _ = Describe("Settings", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(standardNormalizer).ToNot(BeNil())
 			pumpSettings.Normalize(standardNormalizer)
-			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(bloodglucose.MmolL))
+			Expect(*pumpSettings.Units.BloodGlucose).To(Equal(glucose.MmolL))
 
 			for _, insulinSensitivity := range *pumpSettings.InsulinSensitivities {
 				Expect(*insulinSensitivity.Amount).To(Equal(expected))
 			}
 		},
 			Entry("is very low", 60.0, 3.33044879462732),
-			Entry("is very high", bloodglucose.MgdLUpperLimit, 55.50747991045534),
+			Entry("is very high", glucose.MgdLUpperLimit, 55.50747991045534),
 			Entry("is normal", 160.0, 8.881196785672854),
 		)
 	})

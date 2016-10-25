@@ -98,19 +98,6 @@ var _ = Describe("Standard", func() {
 			})
 		})
 
-		Context("NormalizeBloodGlucose", func() {
-			var bloodGlucoseNormalizer data.BloodGlucoseNormalizer
-
-			BeforeEach(func() {
-				units := "mg/dl"
-				bloodGlucoseNormalizer = standard.NormalizeBloodGlucose(&units)
-			})
-
-			It("exists", func() {
-				Expect(bloodGlucoseNormalizer).ToNot(BeNil())
-			})
-		})
-
 		Context("NewChildNormalizer", func() {
 			var child data.Normalizer
 

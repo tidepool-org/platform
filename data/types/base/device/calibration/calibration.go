@@ -12,6 +12,7 @@ package calibration
 
 import (
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/base/device"
 )
 
@@ -64,8 +65,8 @@ func (c *Calibration) Validate(validator data.Validator) error {
 		return err
 	}
 
-	validator.ValidateStringAsBloodGlucoseUnits("units", c.Units).Exists()
-	validator.ValidateFloatAsBloodGlucoseValue("value", c.Value).Exists().InRangeForUnits(c.Units)
+	validator.ValidateString("units", c.Units).Exists().OneOf(glucose.Units())
+	validator.ValidateFloat("value", c.Value).Exists().InRange(glucose.ValueRangeForUnits(c.Units))
 
 	return nil
 }
@@ -75,7 +76,8 @@ func (c *Calibration) Normalize(normalizer data.Normalizer) error {
 		return err
 	}
 
-	c.Units, c.Value = normalizer.NormalizeBloodGlucose(c.Units).UnitsAndValue(c.Value)
+	c.Value = glucose.NormalizeValueForUnits(c.Value, c.Units)
+	c.Units = glucose.NormalizeUnits(c.Units)
 
 	return nil
 }

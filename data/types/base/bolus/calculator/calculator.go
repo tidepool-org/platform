@@ -12,7 +12,7 @@ package calculator
 
 import (
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/bloodglucose"
+	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/base"
 	"github.com/tidepool-org/platform/data/types/base/bolus"
 	"github.com/tidepool-org/platform/data/types/base/bolus/combination"
@@ -24,8 +24,8 @@ import (
 type Calculator struct {
 	base.Base `bson:",inline"`
 
-	Recommended        *Recommended         `json:"recommended,omitempty" bson:"recommended,omitempty"`
-	BloodGlucoseTarget *bloodglucose.Target `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`
+	Recommended        *Recommended    `json:"recommended,omitempty" bson:"recommended,omitempty"`
+	BloodGlucoseTarget *glucose.Target `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`
 
 	BolusID                  *string  `json:"bolus,omitempty" bson:"bolus,omitempty"`
 	CarbohydrateInput        *float64 `json:"carbInput,omitempty" bson:"carbInput,omitempty"`
@@ -90,7 +90,7 @@ func (c *Calculator) Parse(parser data.ObjectParser) error {
 	c.Units = parser.ParseString("units")
 
 	c.Recommended = ParseRecommended(parser.NewChildObjectParser("recommended"))
-	c.BloodGlucoseTarget = bloodglucose.ParseTarget(parser.NewChildObjectParser("bgTarget"))
+	c.BloodGlucoseTarget = glucose.ParseTarget(parser.NewChildObjectParser("bgTarget"))
 
 	// TODO: This is a bit hacky to ensure we only parse true bolus data. Is there a better way?
 
@@ -118,9 +118,9 @@ func (c *Calculator) Validate(validator data.Validator) error {
 	validator.ValidateFloat("insulinOnBoard", c.InsulinOnBoard).InRange(0.0, 250.0)
 	validator.ValidateFloat("insulinCarbRatio", c.InsulinCarbohydrateRatio).InRange(0.0, 250.0)
 
-	validator.ValidateStringAsBloodGlucoseUnits("units", c.Units).Exists()
-	validator.ValidateFloatAsBloodGlucoseValue("bgInput", c.BloodGlucoseInput).InRangeForUnits(c.Units)
-	validator.ValidateFloatAsBloodGlucoseValue("insulinSensitivity", c.InsulinSensitivity).InRangeForUnits(c.Units)
+	validator.ValidateString("units", c.Units).Exists().OneOf(glucose.Units())
+	validator.ValidateFloat("insulinSensitivity", c.InsulinSensitivity).InRange(glucose.ValueRangeForUnits(c.Units))
+	validator.ValidateFloat("bgInput", c.BloodGlucoseInput).InRange(glucose.ValueRangeForUnits(c.Units))
 
 	if c.Recommended != nil {
 		c.Recommended.Validate(validator.NewChildValidator("recommended"))
@@ -146,10 +146,9 @@ func (c *Calculator) Normalize(normalizer data.Normalizer) error {
 
 	units := c.Units
 
-	bloodGlucoseNormalizer := normalizer.NormalizeBloodGlucose(c.Units)
-	c.Units = bloodGlucoseNormalizer.Units()
-	c.InsulinSensitivity = bloodGlucoseNormalizer.Value(c.InsulinSensitivity)
-	c.BloodGlucoseInput = bloodGlucoseNormalizer.Value(c.BloodGlucoseInput)
+	c.InsulinSensitivity = glucose.NormalizeValueForUnits(c.InsulinSensitivity, c.Units)
+	c.BloodGlucoseInput = glucose.NormalizeValueForUnits(c.BloodGlucoseInput, c.Units)
+	c.Units = glucose.NormalizeUnits(c.Units)
 
 	if c.Recommended != nil {
 		c.Recommended.Normalize(normalizer.NewChildNormalizer("recommended"))

@@ -55,10 +55,6 @@ func (s *Standard) AppendDatum(datum data.Datum) {
 	}
 }
 
-func (s *Standard) NormalizeBloodGlucose(units *string) data.BloodGlucoseNormalizer {
-	return NewStandardBloodGlucose(units)
-}
-
 func (s *Standard) NewChildNormalizer(reference interface{}) data.Normalizer {
 	return &Standard{
 		context: s.context.NewChildContext(reference),

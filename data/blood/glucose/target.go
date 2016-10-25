@@ -1,4 +1,4 @@
-package bloodglucose
+package glucose
 
 /* CHECKLIST
  * [x] Uses interfaces as appropriate
@@ -46,38 +46,41 @@ func (b *Target) Parse(parser data.ObjectParser) {
 
 func (b *Target) Validate(validator data.Validator, units *string) {
 	if b.Target != nil && b.Range != nil {
-		validator.ValidateFloatAsBloodGlucoseValue("target", b.Target).Exists().InRangeForUnits(units)
-		validator.ValidateFloatAsBloodGlucoseValue("range", b.Range).Exists().InRange(RangeRangeForUnits(*b.Target, units))
-		validator.ValidateFloatAsBloodGlucoseValue("low", b.Low).NotExists()
-		validator.ValidateFloatAsBloodGlucoseValue("high", b.High).NotExists()
+		validator.ValidateFloat("target", b.Target).Exists().InRange(TargetRangeForUnits(units))
+		validator.ValidateFloat("range", b.Range).Exists().InRange(RangeRangeForUnits(*b.Target, units))
+		validator.ValidateFloat("low", b.Low).NotExists()
+		validator.ValidateFloat("high", b.High).NotExists()
 	} else if b.Target != nil && b.High != nil {
-		validator.ValidateFloatAsBloodGlucoseValue("target", b.Target).Exists().InRangeForUnits(units)
-		validator.ValidateFloatAsBloodGlucoseValue("range", b.Range).NotExists()
-		validator.ValidateFloatAsBloodGlucoseValue("low", b.Low).NotExists()
-		validator.ValidateFloatAsBloodGlucoseValue("high", b.High).Exists().InRange(HighRangeForUnits(*b.Target, units))
+		validator.ValidateFloat("target", b.Target).Exists().InRange(TargetRangeForUnits(units))
+		validator.ValidateFloat("range", b.Range).NotExists()
+		validator.ValidateFloat("low", b.Low).NotExists()
+		validator.ValidateFloat("high", b.High).Exists().InRange(HighRangeForUnits(*b.Target, units))
 	} else if b.Target != nil {
-		validator.ValidateFloatAsBloodGlucoseValue("target", b.Target).Exists().InRangeForUnits(units)
-		validator.ValidateFloatAsBloodGlucoseValue("range", b.Range).NotExists()
-		validator.ValidateFloatAsBloodGlucoseValue("low", b.Low).NotExists()
-		validator.ValidateFloatAsBloodGlucoseValue("high", b.High).NotExists()
+		validator.ValidateFloat("target", b.Target).Exists().InRange(TargetRangeForUnits(units))
+		validator.ValidateFloat("range", b.Range).NotExists()
+		validator.ValidateFloat("low", b.Low).NotExists()
+		validator.ValidateFloat("high", b.High).NotExists()
 	} else if b.Low != nil && b.High != nil {
-		validator.ValidateFloatAsBloodGlucoseValue("target", b.Target).NotExists()
-		validator.ValidateFloatAsBloodGlucoseValue("range", b.Range).NotExists()
-		validator.ValidateFloatAsBloodGlucoseValue("low", b.Low).Exists().InRangeForUnits(units)
-		validator.ValidateFloatAsBloodGlucoseValue("high", b.High).Exists().InRange(HighRangeForUnits(*b.Low, units))
+		validator.ValidateFloat("target", b.Target).NotExists()
+		validator.ValidateFloat("range", b.Range).NotExists()
+		validator.ValidateFloat("low", b.Low).Exists().InRange(LowRangeForUnits(units))
+		validator.ValidateFloat("high", b.High).Exists().InRange(HighRangeForUnits(*b.Low, units))
 	} else if b.Low != nil {
-		validator.ValidateFloatAsBloodGlucoseValue("high", b.High).Exists()
+		validator.ValidateFloat("high", b.High).Exists()
 	} else {
-		validator.ValidateFloatAsBloodGlucoseValue("target", b.Target).Exists()
+		validator.ValidateFloat("target", b.Target).Exists()
 	}
 }
 
 func (b *Target) Normalize(normalizer data.Normalizer, units *string) {
-	bloodGlucoseNormalizer := normalizer.NormalizeBloodGlucose(units)
-	b.Target = bloodGlucoseNormalizer.Value(b.Target)
-	b.Range = bloodGlucoseNormalizer.Value(b.Range)
-	b.Low = bloodGlucoseNormalizer.Value(b.Low)
-	b.High = bloodGlucoseNormalizer.Value(b.High)
+	b.Target = NormalizeValueForUnits(b.Target, units)
+	b.Range = NormalizeValueForUnits(b.Range, units)
+	b.Low = NormalizeValueForUnits(b.Low, units)
+	b.High = NormalizeValueForUnits(b.High, units)
+}
+
+func TargetRangeForUnits(units *string) (float64, float64) {
+	return ValueRangeForUnits(units)
 }
 
 func RangeRangeForUnits(target float64, units *string) (float64, float64) {
@@ -94,6 +97,10 @@ func RangeRangeForUnits(target float64, units *string) (float64, float64) {
 		}
 	}
 	return -math.MaxFloat64, math.MaxFloat64
+}
+
+func LowRangeForUnits(units *string) (float64, float64) {
+	return ValueRangeForUnits(units)
 }
 
 func HighRangeForUnits(low float64, units *string) (float64, float64) {

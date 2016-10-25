@@ -1,6 +1,9 @@
 package pump
 
-import "github.com/tidepool-org/platform/data"
+import (
+	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/blood/glucose"
+)
 
 type Units struct {
 	Carbohydrate *string `json:"carb,omitempty" bson:"carb,omitempty"`
@@ -18,11 +21,11 @@ func (u *Units) Parse(parser data.ObjectParser) {
 
 func (u *Units) Validate(validator data.Validator) {
 	validator.ValidateString("carb", u.Carbohydrate).Exists().NotEmpty()
-	validator.ValidateStringAsBloodGlucoseUnits("bg", u.BloodGlucose).Exists()
+	validator.ValidateString("bg", u.BloodGlucose).Exists().OneOf(glucose.Units())
 }
 
 func (u *Units) Normalize(normalizer data.Normalizer) {
-	u.BloodGlucose = normalizer.NormalizeBloodGlucose(u.BloodGlucose).Units()
+	u.BloodGlucose = glucose.NormalizeUnits(u.BloodGlucose)
 }
 
 func ParseUnits(parser data.ObjectParser) *Units {
