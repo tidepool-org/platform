@@ -43,7 +43,7 @@ func Init() *Calibration {
 
 func (c *Calibration) Init() {
 	c.Device.Init()
-	c.Device.SubType = SubType()
+	c.SubType = SubType()
 
 	c.Value = nil
 	c.Units = nil

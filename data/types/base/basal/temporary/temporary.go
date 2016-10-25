@@ -46,7 +46,7 @@ func Init() *Temporary {
 
 func (t *Temporary) Init() {
 	t.Basal.Init()
-	t.Basal.DeliveryType = DeliveryType()
+	t.DeliveryType = DeliveryType()
 
 	t.Duration = nil
 	t.ExpectedDuration = nil

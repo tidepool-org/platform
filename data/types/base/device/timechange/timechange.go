@@ -41,7 +41,7 @@ func Init() *TimeChange {
 
 func (t *TimeChange) Init() {
 	t.Device.Init()
-	t.Device.SubType = SubType()
+	t.SubType = SubType()
 
 	t.Change = nil
 }

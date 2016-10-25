@@ -43,7 +43,7 @@ func Init() *Status {
 
 func (s *Status) Init() {
 	s.Device.Init()
-	s.Device.SubType = SubType()
+	s.SubType = SubType()
 
 	s.Name = nil
 	s.Duration = nil

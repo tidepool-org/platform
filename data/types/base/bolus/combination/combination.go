@@ -46,7 +46,7 @@ func Init() *Combination {
 
 func (c *Combination) Init() {
 	c.Bolus.Init()
-	c.Bolus.SubType = SubType()
+	c.SubType = SubType()
 
 	c.Normal = nil
 	c.ExpectedNormal = nil

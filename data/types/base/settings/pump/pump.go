@@ -39,7 +39,7 @@ func Init() *Settings {
 
 func (s *Settings) Init() {
 	s.Base.Init()
-	s.Base.Type = Type()
+	s.Type = Type()
 
 	s.Units = nil
 

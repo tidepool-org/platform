@@ -42,7 +42,7 @@ func Init() *Normal {
 
 func (n *Normal) Init() {
 	n.Bolus.Init()
-	n.Bolus.SubType = SubType()
+	n.SubType = SubType()
 
 	n.Normal = nil
 	n.ExpectedNormal = nil

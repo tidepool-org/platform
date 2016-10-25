@@ -42,7 +42,7 @@ func Init() *Prime {
 
 func (p *Prime) Init() {
 	p.Device.Init()
-	p.Device.SubType = SubType()
+	p.SubType = SubType()
 
 	p.Target = nil
 	p.Volume = nil

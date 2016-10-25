@@ -32,7 +32,7 @@ func Type() string {
 
 func (b *Basal) Init() {
 	b.Base.Init()
-	b.Base.Type = Type()
+	b.Type = Type()
 
 	b.DeliveryType = ""
 }

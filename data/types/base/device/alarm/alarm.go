@@ -47,7 +47,7 @@ func Init() *Alarm {
 
 func (a *Alarm) Init() {
 	a.Device.Init()
-	a.Device.SubType = SubType()
+	a.SubType = SubType()
 
 	a.AlarmType = nil
 	a.StatusID = nil

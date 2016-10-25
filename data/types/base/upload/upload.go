@@ -43,8 +43,8 @@ func Init() *Upload {
 
 func (u *Upload) Init() {
 	u.Base.Init()
-	u.Base.Type = Type()
-	u.Base.UploadID = app.NewID()
+	u.Type = Type()
+	u.UploadID = app.NewID()
 
 	u.State = "open"
 	u.DataState = "open" // TODO: Deprecated DataState (after data migration)

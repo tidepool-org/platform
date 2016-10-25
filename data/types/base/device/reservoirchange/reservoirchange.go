@@ -46,7 +46,7 @@ func Init() *ReservoirChange {
 
 func (r *ReservoirChange) Init() {
 	r.Device.Init()
-	r.Device.SubType = SubType()
+	r.SubType = SubType()
 
 	r.StatusID = nil
 

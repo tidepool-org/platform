@@ -32,7 +32,7 @@ func Type() string {
 
 func (d *Device) Init() {
 	d.Base.Init()
-	d.Base.Type = Type()
+	d.Type = Type()
 
 	d.SubType = ""
 }

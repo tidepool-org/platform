@@ -34,7 +34,7 @@ func Init() *SelfMonitored {
 
 func (s *SelfMonitored) Init() {
 	s.Base.Init()
-	s.Base.Type = Type()
+	s.Type = Type()
 
 	s.Value = nil
 	s.Units = nil

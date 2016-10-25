@@ -59,7 +59,7 @@ func Init() *Calculator {
 
 func (c *Calculator) Init() {
 	c.Base.Init()
-	c.Base.Type = Type()
+	c.Type = Type()
 
 	c.Recommended = nil
 	c.BloodGlucoseTarget = nil

@@ -32,7 +32,7 @@ func Type() string {
 
 func (b *Bolus) Init() {
 	b.Base.Init()
-	b.Base.Type = Type()
+	b.Type = Type()
 
 	b.SubType = ""
 }

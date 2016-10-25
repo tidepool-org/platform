@@ -44,7 +44,7 @@ func Init() *Extended {
 
 func (e *Extended) Init() {
 	e.Bolus.Init()
-	e.Bolus.SubType = SubType()
+	e.SubType = SubType()
 
 	e.Extended = nil
 	e.ExpectedExtended = nil

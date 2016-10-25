@@ -44,7 +44,7 @@ func Init() *Suspend {
 
 func (s *Suspend) Init() {
 	s.Basal.Init()
-	s.Basal.DeliveryType = DeliveryType()
+	s.DeliveryType = DeliveryType()
 
 	s.Duration = nil
 	s.ExpectedDuration = nil
