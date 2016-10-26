@@ -28,6 +28,7 @@ var _ = Describe("UsersDatasetsGet", func() {
 		BeforeEach(func() {
 			authenticatedUserID = app.NewID()
 			targetUserID = app.NewID()
+			uploads = []*upload.Upload{}
 			for i := 0; i < 3; i++ {
 				uploads = append(uploads, upload.Init())
 			}

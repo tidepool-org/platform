@@ -32,6 +32,7 @@ type Session interface {
 	CreateDataset(dataset *upload.Upload) error
 	UpdateDataset(dataset *upload.Upload) error
 	DeleteDataset(dataset *upload.Upload) error
+	FindDatasetDataDeduplicatorHashes(userID string, queryHashes []string) ([]string, error)
 	CreateDatasetData(dataset *upload.Upload, datasetData []data.Datum) error
 	ActivateDatasetData(dataset *upload.Upload) error
 	DeleteOtherDatasetData(dataset *upload.Upload) error

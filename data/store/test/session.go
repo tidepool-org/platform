@@ -24,45 +24,58 @@ type GetDatasetByIDOutput struct {
 	Error   error
 }
 
+type FindDatasetDataDeduplicatorHashesInput struct {
+	UserID string
+	Hashes []string
+}
+
+type FindDatasetDataDeduplicatorHashesOutput struct {
+	Hashes []string
+	Error  error
+}
+
 type CreateDatasetDataInput struct {
 	Dataset     *upload.Upload
 	DatasetData []data.Datum
 }
 
 type Session struct {
-	ID                                string
-	IsClosedInvocations               int
-	IsClosedOutputs                   []bool
-	CloseInvocations                  int
-	SetAgentInvocations               int
-	SetAgentInputs                    []commonStore.Agent
-	GetDatasetsForUserByIDInvocations int
-	GetDatasetsForUserByIDInputs      []GetDatasetsForUserByIDInput
-	GetDatasetsForUserByIDOutputs     []GetDatasetsForUserByIDOutput
-	GetDatasetByIDInvocations         int
-	GetDatasetByIDInputs              []string
-	GetDatasetByIDOutputs             []GetDatasetByIDOutput
-	CreateDatasetInvocations          int
-	CreateDatasetInputs               []*upload.Upload
-	CreateDatasetOutputs              []error
-	UpdateDatasetInvocations          int
-	UpdateDatasetInputs               []*upload.Upload
-	UpdateDatasetOutputs              []error
-	DeleteDatasetInvocations          int
-	DeleteDatasetInputs               []*upload.Upload
-	DeleteDatasetOutputs              []error
-	CreateDatasetDataInvocations      int
-	CreateDatasetDataInputs           []CreateDatasetDataInput
-	CreateDatasetDataOutputs          []error
-	ActivateDatasetDataInvocations    int
-	ActivateDatasetDataInputs         []*upload.Upload
-	ActivateDatasetDataOutputs        []error
-	DeleteOtherDatasetDataInvocations int
-	DeleteOtherDatasetDataInputs      []*upload.Upload
-	DeleteOtherDatasetDataOutputs     []error
-	DestroyDataForUserByIDInvocations int
-	DestroyDataForUserByIDInputs      []string
-	DestroyDataForUserByIDOutputs     []error
+	ID                                           string
+	IsClosedInvocations                          int
+	IsClosedOutputs                              []bool
+	CloseInvocations                             int
+	SetAgentInvocations                          int
+	SetAgentInputs                               []commonStore.Agent
+	GetDatasetsForUserByIDInvocations            int
+	GetDatasetsForUserByIDInputs                 []GetDatasetsForUserByIDInput
+	GetDatasetsForUserByIDOutputs                []GetDatasetsForUserByIDOutput
+	GetDatasetByIDInvocations                    int
+	GetDatasetByIDInputs                         []string
+	GetDatasetByIDOutputs                        []GetDatasetByIDOutput
+	CreateDatasetInvocations                     int
+	CreateDatasetInputs                          []*upload.Upload
+	CreateDatasetOutputs                         []error
+	UpdateDatasetInvocations                     int
+	UpdateDatasetInputs                          []*upload.Upload
+	UpdateDatasetOutputs                         []error
+	DeleteDatasetInvocations                     int
+	DeleteDatasetInputs                          []*upload.Upload
+	DeleteDatasetOutputs                         []error
+	FindDatasetDataDeduplicatorHashesInvocations int
+	FindDatasetDataDeduplicatorHashesInputs      []FindDatasetDataDeduplicatorHashesInput
+	FindDatasetDataDeduplicatorHashesOutputs     []FindDatasetDataDeduplicatorHashesOutput
+	CreateDatasetDataInvocations                 int
+	CreateDatasetDataInputs                      []CreateDatasetDataInput
+	CreateDatasetDataOutputs                     []error
+	ActivateDatasetDataInvocations               int
+	ActivateDatasetDataInputs                    []*upload.Upload
+	ActivateDatasetDataOutputs                   []error
+	DeleteOtherDatasetDataInvocations            int
+	DeleteOtherDatasetDataInputs                 []*upload.Upload
+	DeleteOtherDatasetDataOutputs                []error
+	DestroyDataForUserByIDInvocations            int
+	DestroyDataForUserByIDInputs                 []string
+	DestroyDataForUserByIDOutputs                []error
 }
 
 func NewSession() *Session {
@@ -161,6 +174,20 @@ func (s *Session) DeleteDataset(dataset *upload.Upload) error {
 	output := s.DeleteDatasetOutputs[0]
 	s.DeleteDatasetOutputs = s.DeleteDatasetOutputs[1:]
 	return output
+}
+
+func (s *Session) FindDatasetDataDeduplicatorHashes(userID string, queryHashes []string) ([]string, error) {
+	s.FindDatasetDataDeduplicatorHashesInvocations++
+
+	s.FindDatasetDataDeduplicatorHashesInputs = append(s.FindDatasetDataDeduplicatorHashesInputs, FindDatasetDataDeduplicatorHashesInput{userID, queryHashes})
+
+	if len(s.FindDatasetDataDeduplicatorHashesOutputs) == 0 {
+		panic("Unexpected invocation of FindDatasetDataDeduplicatorHashes on Session")
+	}
+
+	output := s.FindDatasetDataDeduplicatorHashesOutputs[0]
+	s.FindDatasetDataDeduplicatorHashesOutputs = s.FindDatasetDataDeduplicatorHashesOutputs[1:]
+	return output.Hashes, output.Error
 }
 
 func (s *Session) CreateDatasetData(dataset *upload.Upload, datasetData []data.Datum) error {

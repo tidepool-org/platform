@@ -69,6 +69,7 @@ func NewDatasetData() []data.Datum {
 
 		baseDatum.ClockDriftOffset = app.IntegerAsPointer(0)
 		baseDatum.ConversionOffset = app.IntegerAsPointer(0)
+		baseDatum.Deduplicator = &data.DeduplicatorDescriptor{Hash: app.NewID()}
 		baseDatum.DeviceID = app.StringAsPointer("tesla-aps-4242424242")
 		baseDatum.DeviceTime = app.StringAsPointer("2015-05-06T14:08:09")
 		baseDatum.Time = app.StringAsPointer("2015-05-06T07:08:09-07:00")
@@ -572,6 +573,47 @@ var _ = Describe("Mongo", func() {
 								Expect(mongoSession.DeleteDataset(dataset)).To(Succeed())
 								ValidateDatasetData(testMongoCollection, bson.M{"uploadId": dataset.UploadID}, []data.Datum{dataset})
 							})
+						})
+					})
+
+					Context("FindDatasetDataDeduplicatorHashes", func() {
+						var dataHashes []string
+						var queryHashes []string
+
+						BeforeEach(func() {
+							dataHashes = []string{}
+							queryHashes = []string{}
+							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
+							for _, dataDatum := range datasetData {
+								dataHashes = append(queryHashes, dataDatum.DeduplicatorDescriptor().Hash)
+							}
+							queryHashes = append(dataHashes, dataHashes...)
+							queryHashes = append(queryHashes, app.NewID(), app.NewID())
+						})
+
+						It("succeeds if it successfully finds the data hashes with the specified query hashes", func() {
+							foundHashes, err := mongoSession.FindDatasetDataDeduplicatorHashes(userID, queryHashes)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(foundHashes).To(ConsistOf(dataHashes))
+						})
+
+						It("returns an error if the user id is missing", func() {
+							foundHashes, err := mongoSession.FindDatasetDataDeduplicatorHashes("", queryHashes)
+							Expect(err).To(MatchError("mongo: user id is missing"))
+							Expect(foundHashes).To(BeEmpty())
+						})
+
+						It("returns an error if the session is closed", func() {
+							mongoSession.Close()
+							foundHashes, err := mongoSession.FindDatasetDataDeduplicatorHashes(userID, queryHashes)
+							Expect(err).To(MatchError("mongo: session closed"))
+							Expect(foundHashes).To(BeEmpty())
+						})
+
+						It("returns no data hashes if the query hashes is empty", func() {
+							foundHashes, err := mongoSession.FindDatasetDataDeduplicatorHashes(userID, []string{})
+							Expect(err).ToNot(HaveOccurred())
+							Expect(foundHashes).To(BeEmpty())
 						})
 					})
 

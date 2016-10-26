@@ -174,10 +174,18 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 		return app.ExtError(err, "service", "unable to create truncate data deduplicator factory")
 	}
 
+	s.Logger().Debug("Creating hash data deduplicator factory")
+
+	hashDeduplicatorFactory, err := deduplicator.NewHashFactory()
+	if err != nil {
+		return app.ExtError(err, "service", "unable to create hash data deduplicator factory")
+	}
+
 	s.Logger().Debug("Creating data deduplicator factory")
 
 	factories := []deduplicator.Factory{
 		truncateDeduplicatorFactory,
+		hashDeduplicatorFactory,
 	}
 
 	dataDeduplicatorFactory, err := deduplicator.NewDelegateFactory(factories)

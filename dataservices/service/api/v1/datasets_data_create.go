@@ -120,6 +120,12 @@ func DatasetsDataCreate(serviceContext service.Context) {
 
 	datumArray = append(datumArray, datumNormalizer.Data()...)
 
+	for _, datum := range datumArray {
+		datum.SetUserID(dataset.UserID)
+		datum.SetGroupID(dataset.GroupID)
+		datum.SetDatasetID(dataset.UploadID)
+	}
+
 	if err = deduplicator.AddDataToDataset(datumArray); err != nil {
 		serviceContext.RespondWithInternalServerFailure("Unable to add data to dataset", err)
 		return

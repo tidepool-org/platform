@@ -290,6 +290,40 @@ func (s *Session) DeleteDataset(dataset *upload.Upload) error {
 	return nil
 }
 
+func (s *Session) FindDatasetDataDeduplicatorHashes(userID string, queryHashes []string) ([]string, error) {
+	if userID == "" {
+		return nil, app.Error("mongo", "user id is missing")
+	}
+
+	if s.IsClosed() {
+		return nil, app.Error("mongo", "session closed")
+	}
+
+	if len(queryHashes) == 0 {
+		return queryHashes, nil
+	}
+
+	startTime := time.Now()
+
+	var foundHashes []string
+	query := bson.M{
+		"_userId": userID,
+		"_deduplicator.hash": bson.M{
+			"$in": queryHashes,
+		},
+	}
+	err := s.C().Find(query).Distinct("_deduplicator.hash", &foundHashes)
+
+	loggerFields := log.Fields{"userId": userID, "queryHashes": queryHashes, "foundHashes": foundHashes, "duration": time.Since(startTime) / time.Microsecond}
+	s.Logger().WithFields(loggerFields).WithError(err).Debug("FindDatasetDataDeduplicatorHashes")
+
+	if err != nil {
+		return nil, app.ExtError(err, "mongo", "unable to find dataset data deduplicator hashes")
+	}
+
+	return foundHashes, nil
+}
+
 func (s *Session) CreateDatasetData(dataset *upload.Upload, datasetData []data.Datum) error {
 	if dataset == nil {
 		return app.Error("mongo", "dataset is missing")
