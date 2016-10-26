@@ -170,6 +170,7 @@ var _ = Describe("Mongo", func() {
 				var testMongoCollection *mgo.Collection
 				var userID string
 				var groupID string
+				var datasetExistingOther *upload.Upload
 				var datasetExistingOne *upload.Upload
 				var datasetExistingTwo *upload.Upload
 				var dataset *upload.Upload
@@ -179,6 +180,9 @@ var _ = Describe("Mongo", func() {
 					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.Collection)
 					userID = app.NewID()
 					groupID = app.NewID()
+					datasetExistingOther = NewDataset(app.NewID(), app.NewID())
+					datasetExistingOther.CreatedTime = "2016-09-01T12:00:00Z"
+					Expect(testMongoCollection.Insert(datasetExistingOther)).To(Succeed())
 					datasetExistingOne = NewDataset(userID, groupID)
 					datasetExistingOne.CreatedTime = "2016-09-01T12:00:00Z"
 					Expect(testMongoCollection.Insert(datasetExistingOne)).To(Succeed())
@@ -206,26 +210,26 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("succeeds if it successfully finds the user datasets", func() {
-						Expect(mongoSession.GetDatasetsForUserByID(userID, filter, pagination)).To(Equal([]*upload.Upload{datasetExistingOne, dataset, datasetExistingTwo}))
+						Expect(mongoSession.GetDatasetsForUserByID(userID, filter, pagination)).To(ConsistOf([]*upload.Upload{datasetExistingOne, dataset, datasetExistingTwo}))
 					})
 
 					It("succeeds if the filter is not specified", func() {
-						Expect(mongoSession.GetDatasetsForUserByID(userID, nil, pagination)).To(Equal([]*upload.Upload{datasetExistingOne, dataset, datasetExistingTwo}))
+						Expect(mongoSession.GetDatasetsForUserByID(userID, nil, pagination)).To(ConsistOf([]*upload.Upload{datasetExistingOne, dataset, datasetExistingTwo}))
 					})
 
 					It("succeeds if the pagination is not specified", func() {
-						Expect(mongoSession.GetDatasetsForUserByID(userID, filter, nil)).To(Equal([]*upload.Upload{datasetExistingOne, dataset, datasetExistingTwo}))
+						Expect(mongoSession.GetDatasetsForUserByID(userID, filter, nil)).To(ConsistOf([]*upload.Upload{datasetExistingOne, dataset, datasetExistingTwo}))
 					})
 
 					It("succeeds if the pagination size is not default", func() {
 						pagination.Size = 2
-						Expect(mongoSession.GetDatasetsForUserByID(userID, filter, pagination)).To(Equal([]*upload.Upload{datasetExistingOne, dataset}))
+						Expect(mongoSession.GetDatasetsForUserByID(userID, filter, pagination)).To(ConsistOf([]*upload.Upload{datasetExistingOne, dataset}))
 					})
 
 					It("succeeds if the pagination page and size is not default", func() {
 						pagination.Page = 1
 						pagination.Size = 2
-						Expect(mongoSession.GetDatasetsForUserByID(userID, filter, pagination)).To(Equal([]*upload.Upload{datasetExistingTwo}))
+						Expect(mongoSession.GetDatasetsForUserByID(userID, filter, pagination)).To(ConsistOf([]*upload.Upload{datasetExistingTwo}))
 					})
 
 					It("succeeds if it successfully does not find another user datasets", func() {
@@ -358,9 +362,9 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("has the correct stored datasets", func() {
-						ValidateDataset(testMongoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, datasetExistingOne, datasetExistingTwo)
+						ValidateDataset(testMongoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, datasetExistingOther, datasetExistingOne, datasetExistingTwo)
 						Expect(mongoSession.CreateDataset(dataset)).To(Succeed())
-						ValidateDataset(testMongoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, datasetExistingOne, datasetExistingTwo, dataset)
+						ValidateDataset(testMongoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, datasetExistingOther, datasetExistingOne, datasetExistingTwo, dataset)
 					})
 
 					Context("with agent specified", func() {
@@ -379,9 +383,9 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("has the correct stored datasets", func() {
-							ValidateDataset(testMongoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, datasetExistingOne, datasetExistingTwo)
+							ValidateDataset(testMongoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, datasetExistingOther, datasetExistingOne, datasetExistingTwo)
 							Expect(mongoSession.CreateDataset(dataset)).To(Succeed())
-							ValidateDataset(testMongoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, datasetExistingOne, datasetExistingTwo)
+							ValidateDataset(testMongoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, datasetExistingOther, datasetExistingOne, datasetExistingTwo)
 							ValidateDataset(testMongoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": agentUserID}, dataset)
 						})
 					})
@@ -440,11 +444,11 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("has the correct stored datasets", func() {
-						ValidateDataset(testMongoCollection, bson.M{}, datasetExistingOne, datasetExistingTwo, dataset)
+						ValidateDataset(testMongoCollection, bson.M{}, datasetExistingOther, datasetExistingOne, datasetExistingTwo, dataset)
 						ValidateDataset(testMongoCollection, bson.M{"modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}})
 						dataset.State = "closed"
 						Expect(mongoSession.UpdateDataset(dataset)).To(Succeed())
-						ValidateDataset(testMongoCollection, bson.M{}, datasetExistingOne, datasetExistingTwo, dataset)
+						ValidateDataset(testMongoCollection, bson.M{}, datasetExistingOther, datasetExistingOne, datasetExistingTwo, dataset)
 						ValidateDataset(testMongoCollection, bson.M{"modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}}, dataset)
 					})
 
@@ -464,17 +468,18 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("has the correct stored datasets", func() {
-							ValidateDataset(testMongoCollection, bson.M{}, datasetExistingOne, datasetExistingTwo, dataset)
+							ValidateDataset(testMongoCollection, bson.M{}, datasetExistingOther, datasetExistingOne, datasetExistingTwo, dataset)
 							ValidateDataset(testMongoCollection, bson.M{"modifiedTime": bson.M{"$exists": true}, "modifiedUserId": agentUserID})
 							dataset.State = "closed"
 							Expect(mongoSession.UpdateDataset(dataset)).To(Succeed())
-							ValidateDataset(testMongoCollection, bson.M{}, datasetExistingOne, datasetExistingTwo, dataset)
+							ValidateDataset(testMongoCollection, bson.M{}, datasetExistingOther, datasetExistingOne, datasetExistingTwo, dataset)
 							ValidateDataset(testMongoCollection, bson.M{"modifiedTime": bson.M{"$exists": true}, "modifiedUserId": agentUserID}, dataset)
 						})
 					})
 				})
 
 				Context("with data", func() {
+					var datasetExistingOtherData []data.Datum
 					var datasetExistingOneData []data.Datum
 					var datasetExistingTwoData []data.Datum
 					var datasetData []data.Datum
@@ -482,6 +487,8 @@ var _ = Describe("Mongo", func() {
 					BeforeEach(func() {
 						dataset.CreatedTime = "2016-09-01T11:00:00Z"
 						Expect(testMongoCollection.Insert(dataset)).To(Succeed())
+						datasetExistingOtherData = NewDatasetData()
+						Expect(mongoSession.CreateDatasetData(datasetExistingOther, datasetExistingOtherData)).To(Succeed())
 						datasetExistingOneData = NewDatasetData()
 						Expect(mongoSession.CreateDatasetData(datasetExistingOne, datasetExistingOneData)).To(Succeed())
 						datasetExistingTwoData = NewDatasetData()
@@ -635,7 +642,7 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("has the correct stored dataset data", func() {
-							datasetBeforeCreateData := append(datasetExistingOneData, datasetExistingTwoData...)
+							datasetBeforeCreateData := append(append(datasetExistingOtherData, datasetExistingOneData...), datasetExistingTwoData...)
 							ValidateDatasetData(testMongoCollection, bson.M{"type": bson.M{"$ne": "upload"}, "createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, datasetBeforeCreateData)
 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
 							ValidateDatasetData(testMongoCollection, bson.M{"type": bson.M{"$ne": "upload"}, "createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, append(datasetBeforeCreateData, datasetData...))
@@ -661,7 +668,7 @@ var _ = Describe("Mongo", func() {
 							})
 
 							It("has the correct stored dataset data", func() {
-								datasetBeforeCreateData := append(datasetExistingOneData, datasetExistingTwoData...)
+								datasetBeforeCreateData := append(append(datasetExistingOtherData, datasetExistingOneData...), datasetExistingTwoData...)
 								ValidateDatasetData(testMongoCollection, bson.M{"type": bson.M{"$ne": "upload"}, "createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, datasetBeforeCreateData)
 								Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
 								ValidateDatasetData(testMongoCollection, bson.M{"type": bson.M{"$ne": "upload"}, "createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, datasetBeforeCreateData)
@@ -798,15 +805,15 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("has the correct stored active dataset", func() {
-							ValidateDataset(testMongoCollection, bson.M{}, dataset, datasetExistingOne, datasetExistingTwo)
-							ValidateDataset(testMongoCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, dataset, datasetExistingOne, datasetExistingTwo)
+							ValidateDataset(testMongoCollection, bson.M{}, dataset, datasetExistingOther, datasetExistingOne, datasetExistingTwo)
+							ValidateDataset(testMongoCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, dataset, datasetExistingOther, datasetExistingOne, datasetExistingTwo)
 							Expect(mongoSession.DeleteOtherDatasetData(dataset)).To(Succeed())
-							Expect(testMongoCollection.Find(bson.M{"type": "upload"}).Count()).To(Equal(3))
-							ValidateDataset(testMongoCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, dataset)
+							Expect(testMongoCollection.Find(bson.M{"type": "upload"}).Count()).To(Equal(4))
+							ValidateDataset(testMongoCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, dataset, datasetExistingOther)
 						})
 
 						It("has the correct stored active dataset data", func() {
-							datasetAfterRemoveData := append(datasetData, dataset, datasetExistingOne, datasetExistingTwo)
+							datasetAfterRemoveData := append(append(datasetData, dataset, datasetExistingOther, datasetExistingOne, datasetExistingTwo), datasetExistingOtherData...)
 							datasetBeforeRemoveData := append(append(datasetAfterRemoveData, datasetExistingOneData...), datasetExistingTwoData...)
 							ValidateDatasetData(testMongoCollection, bson.M{}, datasetBeforeRemoveData)
 							Expect(mongoSession.DeleteOtherDatasetData(dataset)).To(Succeed())
@@ -822,15 +829,15 @@ var _ = Describe("Mongo", func() {
 							})
 
 							It("has the correct stored active dataset", func() {
-								ValidateDataset(testMongoCollection, bson.M{}, dataset, datasetExistingOne, datasetExistingTwo)
-								ValidateDataset(testMongoCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, dataset, datasetExistingOne, datasetExistingTwo)
+								ValidateDataset(testMongoCollection, bson.M{}, dataset, datasetExistingOther, datasetExistingOne, datasetExistingTwo)
+								ValidateDataset(testMongoCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, dataset, datasetExistingOther, datasetExistingOne, datasetExistingTwo)
 								Expect(mongoSession.DeleteOtherDatasetData(dataset)).To(Succeed())
-								Expect(testMongoCollection.Find(bson.M{"type": "upload"}).Count()).To(Equal(3))
-								ValidateDataset(testMongoCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, dataset)
+								Expect(testMongoCollection.Find(bson.M{"type": "upload"}).Count()).To(Equal(4))
+								ValidateDataset(testMongoCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, dataset, datasetExistingOther)
 							})
 
 							It("has the correct stored active dataset data", func() {
-								datasetAfterRemoveData := append(datasetData, dataset, datasetExistingOne, datasetExistingTwo)
+								datasetAfterRemoveData := append(append(datasetData, dataset, datasetExistingOther, datasetExistingOne, datasetExistingTwo), datasetExistingOtherData...)
 								datasetBeforeRemoveData := append(append(datasetAfterRemoveData, datasetExistingOneData...), datasetExistingTwoData...)
 								ValidateDatasetData(testMongoCollection, bson.M{}, datasetBeforeRemoveData)
 								Expect(mongoSession.DeleteOtherDatasetData(dataset)).To(Succeed())
@@ -870,13 +877,13 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("has the correct stored dataset", func() {
-							ValidateDataset(testMongoCollection, bson.M{}, dataset, datasetExistingOne, datasetExistingTwo, deleteDataset)
+							ValidateDataset(testMongoCollection, bson.M{}, dataset, datasetExistingOther, datasetExistingOne, datasetExistingTwo, deleteDataset)
 							Expect(mongoSession.DestroyDataForUserByID(deleteUserID)).To(Succeed())
-							ValidateDataset(testMongoCollection, bson.M{}, dataset, datasetExistingOne, datasetExistingTwo)
+							ValidateDataset(testMongoCollection, bson.M{}, dataset, datasetExistingOther, datasetExistingOne, datasetExistingTwo)
 						})
 
 						It("has the correct stored dataset data", func() {
-							datasetAfterRemoveData := append(append(append(datasetData, dataset, datasetExistingOne, datasetExistingTwo), datasetExistingOneData...), datasetExistingTwoData...)
+							datasetAfterRemoveData := append(append(append(append(datasetData, dataset, datasetExistingOther, datasetExistingOne, datasetExistingTwo), datasetExistingOtherData...), datasetExistingOneData...), datasetExistingTwoData...)
 							datasetBeforeRemoveData := append(append(datasetAfterRemoveData, deleteDataset), deleteDatasetData...)
 							ValidateDatasetData(testMongoCollection, bson.M{}, datasetBeforeRemoveData)
 							Expect(mongoSession.DestroyDataForUserByID(deleteUserID)).To(Succeed())
