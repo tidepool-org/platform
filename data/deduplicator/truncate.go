@@ -112,6 +112,10 @@ func (t *TruncateDeduplicator) AddDataToDataset(datasetData []data.Datum) error 
 		return app.Error("deduplicator", "dataset data is missing")
 	}
 
+	if len(datasetData) == 0 {
+		return nil
+	}
+
 	if err := t.dataStoreSession.CreateDatasetData(t.dataset, datasetData); err != nil {
 		return app.ExtError(err, "deduplicator", "unable to add data to dataset")
 	}
