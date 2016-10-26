@@ -46,7 +46,7 @@ var _ = Describe("Hash", func() {
 			It("returns an error if the dataset is missing", func() {
 				can, err := testFactory.CanDeduplicateDataset(nil)
 				Expect(err).To(MatchError("deduplicator: dataset is missing"))
-				Expect(can).To(Equal(false))
+				Expect(can).To(BeFalse())
 			})
 
 			Context("with deduplicator", func() {
@@ -56,36 +56,36 @@ var _ = Describe("Hash", func() {
 
 				It("returns false if the deduplicator name is empty", func() {
 					testDataset.Deduplicator.Name = ""
-					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(false))
+					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 				})
 
-				It("returns true if the deduplicator name does not match", func() {
+				It("returns false if the deduplicator name does not match", func() {
 					testDataset.Deduplicator.Name = "not-hash"
-					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(false))
+					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 				})
 
 				It("returns true if the deduplicator name does match", func() {
-					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(true))
+					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeTrue())
 				})
 			})
 
 			It("returns false if the dataset id is missing", func() {
 				testDataset.UploadID = ""
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(false))
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
 			It("returns false if the user id is missing", func() {
 				testDataset.UserID = ""
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(false))
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
 			It("returns false if the group id is missing", func() {
 				testDataset.GroupID = ""
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(false))
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
 			It("returns true if dataset id, user id, and group id are specified", func() {
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(true))
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeTrue())
 			})
 		})
 

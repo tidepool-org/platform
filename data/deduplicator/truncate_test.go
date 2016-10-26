@@ -43,7 +43,7 @@ var _ = Describe("Truncate", func() {
 			It("returns an error if the dataset is missing", func() {
 				can, err := testFactory.CanDeduplicateDataset(nil)
 				Expect(err).To(MatchError("deduplicator: dataset is missing"))
-				Expect(can).To(Equal(false))
+				Expect(can).To(BeFalse())
 			})
 
 			Context("with deduplicator", func() {
@@ -53,66 +53,66 @@ var _ = Describe("Truncate", func() {
 
 				It("returns false if the deduplicator name is empty", func() {
 					testDataset.Deduplicator.Name = ""
-					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(false))
+					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 				})
 
-				It("returns true if the deduplicator name does not match", func() {
+				It("returns false if the deduplicator name does not match", func() {
 					testDataset.Deduplicator.Name = "not-truncate"
-					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(false))
+					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 				})
 
 				It("returns true if the deduplicator name does match", func() {
-					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(true))
+					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeTrue())
 				})
 			})
 
 			It("returns false if the dataset id is missing", func() {
 				testDataset.UploadID = ""
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(false))
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
 			It("returns false if the user id is missing", func() {
 				testDataset.UserID = ""
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(false))
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
 			It("returns false if the group id is missing", func() {
 				testDataset.GroupID = ""
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(false))
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
 			It("returns false if the device id is missing", func() {
 				testDataset.DeviceID = nil
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(false))
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
 			It("returns false if the device id is empty", func() {
 				testDataset.DeviceID = app.StringAsPointer("")
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(false))
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
 			It("returns false if the device manufacturers is missing", func() {
 				testDataset.DeviceManufacturers = nil
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(false))
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
 			It("returns false if the device manufacturers is empty", func() {
 				testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{})
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(false))
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
 			It("returns false if the device manufacturers does not contain expected device manufacturer", func() {
 				testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Ant", "Zebra", "Cobra"})
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(false))
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
 			It("returns true if the device id and expected device manufacturer are specified", func() {
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(true))
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeTrue())
 			})
 
 			It("returns true if the device id and expected device manufacturer are specified with multiple device manufacturers", func() {
 				testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Ant", "Zebra", "Animas", "Cobra"})
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(Equal(true))
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeTrue())
 			})
 		})
 
