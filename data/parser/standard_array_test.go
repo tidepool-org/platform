@@ -548,7 +548,7 @@ var _ = Describe("StandardArray", func() {
 			var testDatum *testData.Datum
 
 			BeforeEach(func() {
-				testDatum = &testData.Datum{}
+				testDatum = testData.NewDatum()
 				testDatum.ParseOutputs = []error{nil}
 				testFactory.InitOutputs = []InitOutput{{testDatum, nil}}
 				standardArray, _ = parser.NewStandardArray(standardContext, testFactory, &[]interface{}{
@@ -614,9 +614,9 @@ var _ = Describe("StandardArray", func() {
 			var testDatum2 *testData.Datum
 
 			BeforeEach(func() {
-				testDatum1 = &testData.Datum{}
+				testDatum1 = testData.NewDatum()
 				testDatum1.ParseOutputs = []error{nil}
-				testDatum2 = &testData.Datum{}
+				testDatum2 = testData.NewDatum()
 				testDatum2.ParseOutputs = []error{nil}
 				testFactory.InitOutputs = []InitOutput{{testDatum1, nil}, {testDatum2, nil}}
 				standardArray, _ = parser.NewStandardArray(standardContext, testFactory, &[]interface{}{

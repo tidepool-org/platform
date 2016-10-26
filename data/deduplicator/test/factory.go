@@ -1,6 +1,7 @@
 package test
 
 import (
+	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/base/upload"
@@ -24,12 +25,19 @@ type NewDeduplicatorOutput struct {
 }
 
 type Factory struct {
+	ID                               string
 	CanDeduplicateDatasetInvocations int
 	CanDeduplicateDatasetInputs      []*upload.Upload
 	CanDeduplicateDatasetOutputs     []CanDeduplicateDatasetOutput
 	NewDeduplicatoInvocations        int
 	NewDeduplicatorInputs            []NewDeduplicatorInput
 	NewDeduplicatorOutputs           []NewDeduplicatorOutput
+}
+
+func NewFactory() *Factory {
+	return &Factory{
+		ID: app.NewID(),
+	}
 }
 
 func (f *Factory) CanDeduplicateDataset(dataset *upload.Upload) (bool, error) {

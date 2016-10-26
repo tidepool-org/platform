@@ -18,7 +18,7 @@ var _ = Describe("Parser", func() {
 		var testFactory *TestFactory
 
 		BeforeEach(func() {
-			testDatum = &testData.Datum{}
+			testDatum = testData.NewDatum()
 			testDatum.ParseOutputs = []error{nil}
 			testObjectParser = &TestObjectParser{}
 			testObjectParser.ObjectOutputs = []*map[string]interface{}{{}}
@@ -82,8 +82,8 @@ var _ = Describe("Parser", func() {
 		var testArrayParser *TestArrayParser
 
 		BeforeEach(func() {
-			testDatum1 = &testData.Datum{}
-			testDatum2 = &testData.Datum{}
+			testDatum1 = testData.NewDatum()
+			testDatum2 = testData.NewDatum()
 			testArrayParser = &TestArrayParser{}
 			testArrayParser.ArrayOutputs = []*[]interface{}{{testDatum1, testDatum2}}
 			testArrayParser.ParseDatumOutputs = []*data.Datum{&testDatum1, &testDatum2}

@@ -120,7 +120,7 @@ var _ = Describe("Standard", func() {
 			})
 
 			It("returns a NewFunc that returns the datum that the datumFunc returns", func() {
-				testDatum := &testData.Datum{}
+				testDatum := testData.NewDatum()
 				newFunc := factory.NewNewFuncWithFunc(func() data.Datum { return testDatum })
 				Expect(newFunc).ToNot(BeNil())
 				Expect(newFunc(testInspector)).To(Equal(testDatum))
@@ -135,7 +135,7 @@ var _ = Describe("Standard", func() {
 		var testInspector *TestInspector
 
 		BeforeEach(func() {
-			testDatum = &testData.Datum{}
+			testDatum = testData.NewDatum()
 			testNewFuncMap = factory.NewFuncMap{
 				"value-datum-func-returns-datum": func(_ data.Inspector) (data.Datum, error) { return testDatum, nil },
 				"value-datum-func-returns-error": func(_ data.Inspector) (data.Datum, error) { return nil, errors.New("test: datum func returns error") },

@@ -117,7 +117,7 @@ var _ = Describe("Truncate", func() {
 
 		Context("NewDeduplicator", func() {
 			It("returns an error if the logger is missing", func() {
-				testTruncateDeduplicator, err := testFactory.NewDeduplicator(nil, &testDataStore.Session{}, testDataset)
+				testTruncateDeduplicator, err := testFactory.NewDeduplicator(nil, testDataStore.NewSession(), testDataset)
 				Expect(err).To(MatchError("deduplicator: logger is missing"))
 				Expect(testTruncateDeduplicator).To(BeNil())
 			})
@@ -129,74 +129,74 @@ var _ = Describe("Truncate", func() {
 			})
 
 			It("returns an error if the dataset is missing", func() {
-				testTruncateDeduplicator, err := testFactory.NewDeduplicator(log.NewNull(), &testDataStore.Session{}, nil)
+				testTruncateDeduplicator, err := testFactory.NewDeduplicator(log.NewNull(), testDataStore.NewSession(), nil)
 				Expect(err).To(MatchError("deduplicator: dataset is missing"))
 				Expect(testTruncateDeduplicator).To(BeNil())
 			})
 
 			It("returns an error if the dataset id is missing", func() {
 				testDataset.UploadID = ""
-				testTruncateDeduplicator, err := testFactory.NewDeduplicator(log.NewNull(), &testDataStore.Session{}, testDataset)
+				testTruncateDeduplicator, err := testFactory.NewDeduplicator(log.NewNull(), testDataStore.NewSession(), testDataset)
 				Expect(err).To(MatchError("deduplicator: dataset id is missing"))
 				Expect(testTruncateDeduplicator).To(BeNil())
 			})
 
 			It("returns an error if the dataset user id is missing", func() {
 				testDataset.UserID = ""
-				testTruncateDeduplicator, err := testFactory.NewDeduplicator(log.NewNull(), &testDataStore.Session{}, testDataset)
+				testTruncateDeduplicator, err := testFactory.NewDeduplicator(log.NewNull(), testDataStore.NewSession(), testDataset)
 				Expect(err).To(MatchError("deduplicator: dataset user id is missing"))
 				Expect(testTruncateDeduplicator).To(BeNil())
 			})
 
 			It("returns an error if the dataset group id is missing", func() {
 				testDataset.GroupID = ""
-				testTruncateDeduplicator, err := testFactory.NewDeduplicator(log.NewNull(), &testDataStore.Session{}, testDataset)
+				testTruncateDeduplicator, err := testFactory.NewDeduplicator(log.NewNull(), testDataStore.NewSession(), testDataset)
 				Expect(err).To(MatchError("deduplicator: dataset group id is missing"))
 				Expect(testTruncateDeduplicator).To(BeNil())
 			})
 
 			It("returns an error if the dataset device id is missing", func() {
 				testDataset.DeviceID = nil
-				testTruncateDeduplicator, err := testFactory.NewDeduplicator(log.NewNull(), &testDataStore.Session{}, testDataset)
+				testTruncateDeduplicator, err := testFactory.NewDeduplicator(log.NewNull(), testDataStore.NewSession(), testDataset)
 				Expect(err).To(MatchError("deduplicator: dataset device id is missing"))
 				Expect(testTruncateDeduplicator).To(BeNil())
 			})
 
 			It("returns an error if the dataset device id is empty", func() {
 				testDataset.DeviceID = app.StringAsPointer("")
-				testTruncateDeduplicator, err := testFactory.NewDeduplicator(log.NewNull(), &testDataStore.Session{}, testDataset)
+				testTruncateDeduplicator, err := testFactory.NewDeduplicator(log.NewNull(), testDataStore.NewSession(), testDataset)
 				Expect(err).To(MatchError("deduplicator: dataset device id is empty"))
 				Expect(testTruncateDeduplicator).To(BeNil())
 			})
 
 			It("returns an error if the dataset device manufacturers is missing", func() {
 				testDataset.DeviceManufacturers = nil
-				testTruncateDeduplicator, err := testFactory.NewDeduplicator(log.NewNull(), &testDataStore.Session{}, testDataset)
+				testTruncateDeduplicator, err := testFactory.NewDeduplicator(log.NewNull(), testDataStore.NewSession(), testDataset)
 				Expect(err).To(MatchError("deduplicator: dataset device manufacturers is missing"))
 				Expect(testTruncateDeduplicator).To(BeNil())
 			})
 
 			It("returns false if the device manufacturers is empty", func() {
 				testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{})
-				testTruncateDeduplicator, err := testFactory.NewDeduplicator(log.NewNull(), &testDataStore.Session{}, testDataset)
+				testTruncateDeduplicator, err := testFactory.NewDeduplicator(log.NewNull(), testDataStore.NewSession(), testDataset)
 				Expect(err).To(MatchError("deduplicator: dataset device manufacturers does not contain expected device manufacturer"))
 				Expect(testTruncateDeduplicator).To(BeNil())
 			})
 
 			It("returns false if the device manufacturers does not contain expected device manufacturer", func() {
 				testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Ant", "Zebra", "Cobra"})
-				testTruncateDeduplicator, err := testFactory.NewDeduplicator(log.NewNull(), &testDataStore.Session{}, testDataset)
+				testTruncateDeduplicator, err := testFactory.NewDeduplicator(log.NewNull(), testDataStore.NewSession(), testDataset)
 				Expect(err).To(MatchError("deduplicator: dataset device manufacturers does not contain expected device manufacturer"))
 				Expect(testTruncateDeduplicator).To(BeNil())
 			})
 
 			It("returns a new deduplicator upon success", func() {
-				Expect(testFactory.NewDeduplicator(log.NewNull(), &testDataStore.Session{}, testDataset)).ToNot(BeNil())
+				Expect(testFactory.NewDeduplicator(log.NewNull(), testDataStore.NewSession(), testDataset)).ToNot(BeNil())
 			})
 
 			It("returns a new deduplicator upon success with multiple device manufacturers", func() {
 				testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Ant", "Zebra", "Animas", "Cobra"})
-				Expect(testFactory.NewDeduplicator(log.NewNull(), &testDataStore.Session{}, testDataset)).ToNot(BeNil())
+				Expect(testFactory.NewDeduplicator(log.NewNull(), testDataStore.NewSession(), testDataset)).ToNot(BeNil())
 			})
 		})
 
@@ -206,7 +206,7 @@ var _ = Describe("Truncate", func() {
 
 			BeforeEach(func() {
 				var err error
-				testDataStoreSession = &testDataStore.Session{}
+				testDataStoreSession = testDataStore.NewSession()
 				testTruncateDeduplicator, err = testFactory.NewDeduplicator(log.NewNull(), testDataStoreSession, testDataset)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(testTruncateDeduplicator).ToNot(BeNil())

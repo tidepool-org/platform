@@ -1,6 +1,9 @@
 package test
 
-import "github.com/tidepool-org/platform/data"
+import (
+	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/data"
+)
 
 type IdentityFieldsOutput struct {
 	IdentityFields []string
@@ -8,6 +11,7 @@ type IdentityFieldsOutput struct {
 }
 
 type Datum struct {
+	ID                                   string
 	InitInvocations                      int
 	MetaInvocations                      int
 	MetaOutputs                          []interface{}
@@ -46,6 +50,12 @@ type Datum struct {
 	DeduplicatorDescriptorOutputs        []*data.DeduplicatorDescriptor
 	SetDeduplicatorDescriptorInvocations int
 	SetDeduplicatorDescriptorInputs      []*data.DeduplicatorDescriptor
+}
+
+func NewDatum() *Datum {
+	return &Datum{
+		ID: app.NewID(),
+	}
 }
 
 func (d *Datum) Init() {

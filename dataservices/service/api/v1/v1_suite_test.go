@@ -190,7 +190,7 @@ func NewTestContext() *TestContext {
 		},
 		MetricServicesClientImpl:  &TestMetricServicesClient{},
 		UserServicesClientImpl:    &TestUserServicesClient{},
-		DataStoreSessionImpl:      &testDataStore.Session{},
+		DataStoreSessionImpl:      testDataStore.NewSession(),
 		TaskStoreSessionImpl:      &TestTaskStoreSession{},
 		AuthenticationDetailsImpl: &TestAuthenticationDetails{},
 	}

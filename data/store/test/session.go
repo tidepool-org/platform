@@ -1,6 +1,7 @@
 package test
 
 import (
+	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/base/upload"
@@ -29,6 +30,7 @@ type CreateDatasetDataInput struct {
 }
 
 type Session struct {
+	ID                                string
 	IsClosedInvocations               int
 	IsClosedOutputs                   []bool
 	CloseInvocations                  int
@@ -61,6 +63,12 @@ type Session struct {
 	DestroyDataForUserByIDInvocations int
 	DestroyDataForUserByIDInputs      []string
 	DestroyDataForUserByIDOutputs     []error
+}
+
+func NewSession() *Session {
+	return &Session{
+		ID: app.NewID(),
+	}
 }
 
 func (s *Session) IsClosed() bool {

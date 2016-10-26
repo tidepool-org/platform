@@ -68,7 +68,7 @@ var _ = Describe("Standard", func() {
 			var firstDatum *testData.Datum
 
 			BeforeEach(func() {
-				firstDatum = &testData.Datum{}
+				firstDatum = testData.NewDatum()
 				standard.AppendDatum(firstDatum)
 			})
 
@@ -84,7 +84,7 @@ var _ = Describe("Standard", func() {
 				var secondDatum *testData.Datum
 
 				BeforeEach(func() {
-					secondDatum = &testData.Datum{}
+					secondDatum = testData.NewDatum()
 					standard.AppendDatum(secondDatum)
 				})
 
@@ -117,7 +117,7 @@ var _ = Describe("Standard", func() {
 				var firstDatum *testData.Datum
 
 				BeforeEach(func() {
-					firstDatum = &testData.Datum{}
+					firstDatum = testData.NewDatum()
 					child.AppendDatum(firstDatum)
 				})
 
@@ -133,7 +133,7 @@ var _ = Describe("Standard", func() {
 					var secondDatum *testData.Datum
 
 					BeforeEach(func() {
-						secondDatum = &testData.Datum{}
+						secondDatum = testData.NewDatum()
 						standard.AppendDatum(secondDatum)
 					})
 

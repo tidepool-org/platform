@@ -1,8 +1,12 @@
 package test
 
-import "github.com/tidepool-org/platform/data"
+import (
+	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/data"
+)
 
 type Deduplicator struct {
+	ID                           string
 	InitializeDatasetInvocations int
 	InitializeDatasetOutputs     []error
 	AddDataToDatasetInvocations  int
@@ -10,6 +14,12 @@ type Deduplicator struct {
 	AddDataToDatasetOutputs      []error
 	FinalizeDatasetInvocations   int
 	FinalizeDatasetOutputs       []error
+}
+
+func NewDeduplicator() *Deduplicator {
+	return &Deduplicator{
+		ID: app.NewID(),
+	}
 }
 
 func (d *Deduplicator) InitializeDataset() error {
