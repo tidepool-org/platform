@@ -9,8 +9,8 @@ import (
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/parser"
+	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
-	"github.com/tidepool-org/platform/data/types/testing"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
@@ -64,15 +64,15 @@ var _ = Describe("BloodGlucoseTarget", func() {
 			NewTestBloodGlucoseTarget(120.0, 10.0, 110.0, 130.0, 3600), []*service.Error{}),
 		Entry("parses object that has multiple invalid fields", &map[string]interface{}{"target": "invalid", "range": "invalid", "low": "invalid", "high": "invalid", "start": "invalid"},
 			NewTestBloodGlucoseTarget(nil, nil, nil, nil, nil), []*service.Error{
-				testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/target", nil),
-				testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/range", nil),
-				testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/low", nil),
-				testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/high", nil),
-				testing.ComposeError(service.ErrorTypeNotInteger("invalid"), "/start", nil),
+				testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/target", nil),
+				testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/range", nil),
+				testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/low", nil),
+				testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/high", nil),
+				testData.ComposeError(service.ErrorTypeNotInteger("invalid"), "/start", nil),
 			}),
 		Entry("parses object that has additional fields", &map[string]interface{}{"target": 120.0, "range": 10.0, "low": 110.0, "high": 130.0, "start": 3600, "additional": 0.0},
 			NewTestBloodGlucoseTarget(120.0, 10.0, 110.0, 130.0, 3600), []*service.Error{
-				testing.ComposeError(parser.ErrorNotParsed(), "/additional", nil),
+				testData.ComposeError(parser.ErrorNotParsed(), "/additional", nil),
 			}),
 	)
 
@@ -117,11 +117,11 @@ var _ = Describe("BloodGlucoseTarget", func() {
 				NewTestBloodGlucoseTarget(nil, nil, nil, nil, nil),
 				NewTestBloodGlucoseTarget(120.0, 10.0, 110.0, 130.0, 3600),
 			}, []*service.Error{
-				testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/0/target", nil),
-				testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/0/range", nil),
-				testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/0/low", nil),
-				testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/0/high", nil),
-				testing.ComposeError(service.ErrorTypeNotInteger("invalid"), "/0/start", nil),
+				testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/0/target", nil),
+				testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/0/range", nil),
+				testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/0/low", nil),
+				testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/0/high", nil),
+				testData.ComposeError(service.ErrorTypeNotInteger("invalid"), "/0/start", nil),
 			}),
 		Entry("parses array that has more than one invalid",
 			&[]interface{}{
@@ -132,16 +132,16 @@ var _ = Describe("BloodGlucoseTarget", func() {
 				NewTestBloodGlucoseTarget(nil, nil, nil, nil, nil),
 				NewTestBloodGlucoseTarget(nil, nil, nil, nil, nil),
 			}, []*service.Error{
-				testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/0/target", nil),
-				testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/0/range", nil),
-				testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/0/low", nil),
-				testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/0/high", nil),
-				testing.ComposeError(service.ErrorTypeNotInteger("invalid"), "/0/start", nil),
-				testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/1/target", nil),
-				testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/1/range", nil),
-				testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/1/low", nil),
-				testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/1/high", nil),
-				testing.ComposeError(service.ErrorTypeNotInteger("invalid"), "/1/start", nil),
+				testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/0/target", nil),
+				testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/0/range", nil),
+				testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/0/low", nil),
+				testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/0/high", nil),
+				testData.ComposeError(service.ErrorTypeNotInteger("invalid"), "/0/start", nil),
+				testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/1/target", nil),
+				testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/1/range", nil),
+				testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/1/low", nil),
+				testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/1/high", nil),
+				testData.ComposeError(service.ErrorTypeNotInteger("invalid"), "/1/start", nil),
 			}),
 		Entry("parses array that has more than one valid with additional field",
 			&[]interface{}{
@@ -152,7 +152,7 @@ var _ = Describe("BloodGlucoseTarget", func() {
 				NewTestBloodGlucoseTarget(120.0, 10.0, 110.0, 130.0, 3600),
 				NewTestBloodGlucoseTarget(121.0, 11.0, 111.0, 131.0, 3601),
 			}, []*service.Error{
-				testing.ComposeError(parser.ErrorNotParsed(), "/1/additional", nil),
+				testData.ComposeError(parser.ErrorNotParsed(), "/1/additional", nil),
 			}),
 	)
 
@@ -183,17 +183,17 @@ var _ = Describe("BloodGlucoseTarget", func() {
 			Entry("parses object that is empty", &map[string]interface{}{}, NewTestBloodGlucoseTarget(nil, nil, nil, nil, nil), []*service.Error{}),
 			Entry("parses object that has valid start", &map[string]interface{}{"start": 3600}, NewTestBloodGlucoseTarget(nil, nil, nil, nil, 3600), []*service.Error{}),
 			Entry("parses object that has invalid start", &map[string]interface{}{"start": "invalid"}, NewTestBloodGlucoseTarget(nil, nil, nil, nil, nil), []*service.Error{
-				testing.ComposeError(service.ErrorTypeNotInteger("invalid"), "/start", nil),
+				testData.ComposeError(service.ErrorTypeNotInteger("invalid"), "/start", nil),
 			}),
 			Entry("parses object that has multiple valid fields", &map[string]interface{}{"target": 120.0, "range": 10.0, "low": 110.0, "high": 130.0, "start": 3600},
 				NewTestBloodGlucoseTarget(120.0, 10.0, 110.0, 130.0, 3600), []*service.Error{}),
 			Entry("parses object that has multiple invalid fields", &map[string]interface{}{"target": "invalid", "range": "invalid", "low": "invalid", "high": "invalid", "start": "invalid"},
 				NewTestBloodGlucoseTarget(nil, nil, nil, nil, nil), []*service.Error{
-					testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/target", nil),
-					testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/range", nil),
-					testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/low", nil),
-					testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/high", nil),
-					testing.ComposeError(service.ErrorTypeNotInteger("invalid"), "/start", nil),
+					testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/target", nil),
+					testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/range", nil),
+					testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/low", nil),
+					testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/high", nil),
+					testData.ComposeError(service.ErrorTypeNotInteger("invalid"), "/start", nil),
 				}),
 		)
 
@@ -210,24 +210,24 @@ var _ = Describe("BloodGlucoseTarget", func() {
 			},
 			Entry("validates a target with units of mmol/L; target/range; all valid", NewTestBloodGlucoseTarget(6.6, 1.0, nil, nil, 3600), "mmol/L", []*service.Error{}),
 			Entry("validates a target with units of mmol/L; target/range; start missing", NewTestBloodGlucoseTarget(6.6, 1.0, nil, nil, nil), "mmol/L", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotExists(), "/start", nil),
+				testData.ComposeError(service.ErrorValueNotExists(), "/start", nil),
 			}),
 			Entry("validates a target with units of mmol/L; target/range; start at lower", NewTestBloodGlucoseTarget(6.6, 1.0, nil, nil, 0), "mmol/L", []*service.Error{}),
 			Entry("validates a target with units of mmol/L; target/range; start at upper", NewTestBloodGlucoseTarget(6.6, 1.0, nil, nil, 8640000), "mmol/L", []*service.Error{}),
 			Entry("validates a target with units of mmol/L; target/range; start out of range (lower)", NewTestBloodGlucoseTarget(6.6, 1.0, nil, nil, -1), "mmol/L", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotInRange(-1, 0, 86400000), "/start", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(-1, 0, 86400000), "/start", nil),
 			}),
 			Entry("validates a target with units of mmol/L; target/range; start out of range (upper)", NewTestBloodGlucoseTarget(6.6, 1.0, nil, nil, 86400001), "mmol/L", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotInRange(86400001, 0, 86400000), "/start", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(86400001, 0, 86400000), "/start", nil),
 			}),
 			Entry("validates a target with units of mg/dL; target/range; all valid", NewTestBloodGlucoseTarget(120.0, 10.0, nil, nil, 3600), "mg/dL", []*service.Error{}),
 			Entry("validates a target with units of mg/dL; target/range; start at lower", NewTestBloodGlucoseTarget(120.0, 10.0, nil, nil, 0), "mg/dL", []*service.Error{}),
 			Entry("validates a target with units of mg/dL; target/range; start at upper", NewTestBloodGlucoseTarget(120.0, 10.0, nil, nil, 86400000), "mg/dL", []*service.Error{}),
 			Entry("validates a target with units of mg/dL; target/range; start out of range (lower)", NewTestBloodGlucoseTarget(120.0, 10.0, nil, nil, -1), "mg/dL", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotInRange(-1, 0, 86400000), "/start", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(-1, 0, 86400000), "/start", nil),
 			}),
 			Entry("validates a target with units of mg/dL; target/range; start out of range (upper)", NewTestBloodGlucoseTarget(120.0, 10.0, nil, nil, 86400001), "mg/dL", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotInRange(86400001, 0, 86400000), "/start", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(86400001, 0, 86400000), "/start", nil),
 			}),
 		)
 	})

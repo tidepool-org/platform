@@ -4,12 +4,12 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 
+	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/device"
-	"github.com/tidepool-org/platform/data/types/testing"
 )
 
 func NewRawStatusObject() map[string]interface{} {
-	rawStatusObject := testing.RawBaseObject()
+	rawStatusObject := testData.RawBaseObject()
 	rawStatusObject["type"] = "deviceEvent"
 	rawStatusObject["subType"] = "status"
 	rawStatusObject["status"] = "suspended"
@@ -18,7 +18,7 @@ func NewRawStatusObject() map[string]interface{} {
 }
 
 func NewRawObject() map[string]interface{} {
-	rawObject := testing.RawBaseObject()
+	rawObject := testData.RawBaseObject()
 	rawObject["type"] = "deviceEvent"
 	rawObject["subType"] = "reservoirChange"
 	rawObject["status"] = NewRawStatusObject()
@@ -35,7 +35,7 @@ func NewMeta() interface{} {
 
 var _ = Describe("Reservoirchange", func() {
 	Context("status", func() {
-		DescribeTable("valid when", testing.ExpectFieldIsValid,
+		DescribeTable("valid when", testData.ExpectFieldIsValid,
 			Entry("is longer than one character", NewRawObject(), "status", NewRawStatusObject()),
 		)
 	})

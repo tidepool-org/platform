@@ -10,8 +10,8 @@ import (
 	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
+	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/bolus"
-	"github.com/tidepool-org/platform/data/types/testing"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
@@ -110,7 +110,7 @@ var _ = Describe("Bolus", func() {
 					&map[string]interface{}{"time": 0},
 					NewTestBolus(nil, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta("")),
+						testData.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta("")),
 					}),
 				Entry("does not parse sub type",
 					&map[string]interface{}{"subType": "dual/square"},
@@ -124,7 +124,7 @@ var _ = Describe("Bolus", func() {
 					&map[string]interface{}{"time": 0, "subType": 0},
 					NewTestBolus(nil, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta("")),
+						testData.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta("")),
 					}),
 			)
 
@@ -145,12 +145,12 @@ var _ = Describe("Bolus", func() {
 				Entry("missing time",
 					NewTestBolus(nil, "dual/square"),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta("dual/square")),
+						testData.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta("dual/square")),
 					}),
 				Entry("missing sub type",
 					NewTestBolus("2016-09-06T13:45:58-07:00", nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueEmpty(), "/subType", NewMeta("")),
+						testData.ComposeError(service.ErrorValueEmpty(), "/subType", NewMeta("")),
 					}),
 				Entry("specified sub type",
 					NewTestBolus("2016-09-06T13:45:58-07:00", "specified"),
@@ -158,8 +158,8 @@ var _ = Describe("Bolus", func() {
 				Entry("multiple",
 					NewTestBolus(nil, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta("")),
-						testing.ComposeError(service.ErrorValueEmpty(), "/subType", NewMeta("")),
+						testData.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta("")),
+						testData.ComposeError(service.ErrorValueEmpty(), "/subType", NewMeta("")),
 					}),
 			)
 

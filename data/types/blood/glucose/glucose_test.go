@@ -10,9 +10,9 @@ import (
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/normalizer"
+	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
-	"github.com/tidepool-org/platform/data/types/testing"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
@@ -71,17 +71,17 @@ var _ = Describe("Glucose", func() {
 				Entry("missing time",
 					NewTestGlucose(nil, "mmol/L", 10.0),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta()),
 					}),
 				Entry("missing units",
 					NewTestGlucose("2016-09-06T13:45:58-07:00", nil, 10.0),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotExists(), "/units", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/units", NewMeta()),
 					}),
 				Entry("unknown units",
 					NewTestGlucose("2016-09-06T13:45:58-07:00", "unknown", 10.0),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
+						testData.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
 					}),
 				Entry("mmol/L units",
 					NewTestGlucose("2016-09-06T13:45:58-07:00", "mmol/L", 10.0),
@@ -98,22 +98,22 @@ var _ = Describe("Glucose", func() {
 				Entry("missing value",
 					NewTestGlucose("2016-09-06T13:45:58-07:00", "mmol/L", nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotExists(), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/value", NewMeta()),
 					}),
 				Entry("unknown units; value in range (lower)",
 					NewTestGlucose("2016-09-06T13:45:58-07:00", "unknown", -math.MaxFloat64),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
+						testData.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
 					}),
 				Entry("unknown units; value in range (upper)",
 					NewTestGlucose("2016-09-06T13:45:58-07:00", "unknown", math.MaxFloat64),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
+						testData.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
 					}),
 				Entry("mmol/L units; value out of range (lower)",
 					NewTestGlucose("2016-09-06T13:45:58-07:00", "mmol/L", -0.1),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 55.0), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 55.0), "/value", NewMeta()),
 					}),
 				Entry("mmol/L units; value in range (lower)",
 					NewTestGlucose("2016-09-06T13:45:58-07:00", "mmol/L", 0.0),
@@ -124,12 +124,12 @@ var _ = Describe("Glucose", func() {
 				Entry("mmol/L units; value out of range (upper)",
 					NewTestGlucose("2016-09-06T13:45:58-07:00", "mmol/L", 55.1),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotInRange(55.1, 0.0, 55.0), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(55.1, 0.0, 55.0), "/value", NewMeta()),
 					}),
 				Entry("mmol/l units; value out of range (lower)",
 					NewTestGlucose("2016-09-06T13:45:58-07:00", "mmol/l", -0.1),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 55.0), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 55.0), "/value", NewMeta()),
 					}),
 				Entry("mmol/l units; value in range (lower)",
 					NewTestGlucose("2016-09-06T13:45:58-07:00", "mmol/l", 0.0),
@@ -140,12 +140,12 @@ var _ = Describe("Glucose", func() {
 				Entry("mmol/l units; value out of range (upper)",
 					NewTestGlucose("2016-09-06T13:45:58-07:00", "mmol/l", 55.1),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotInRange(55.1, 0.0, 55.0), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(55.1, 0.0, 55.0), "/value", NewMeta()),
 					}),
 				Entry("mg/dL units; value out of range (lower)",
 					NewTestGlucose("2016-09-06T13:45:58-07:00", "mg/dL", -0.1),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/value", NewMeta()),
 					}),
 				Entry("mg/dL units; value in range (lower)",
 					NewTestGlucose("2016-09-06T13:45:58-07:00", "mg/dL", 0.0),
@@ -156,12 +156,12 @@ var _ = Describe("Glucose", func() {
 				Entry("mg/dL units; value out of range (upper)",
 					NewTestGlucose("2016-09-06T13:45:58-07:00", "mg/dL", 1000.1),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/value", NewMeta()),
 					}),
 				Entry("mg/dl units; value out of range (lower)",
 					NewTestGlucose("2016-09-06T13:45:58-07:00", "mg/dl", -0.1),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/value", NewMeta()),
 					}),
 				Entry("mg/dl units; value in range (lower)",
 					NewTestGlucose("2016-09-06T13:45:58-07:00", "mg/dl", 0.0),
@@ -172,14 +172,14 @@ var _ = Describe("Glucose", func() {
 				Entry("mg/dl units; value out of range (upper)",
 					NewTestGlucose("2016-09-06T13:45:58-07:00", "mg/dl", 1000.1),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/value", NewMeta()),
 					}),
 				Entry("multiple",
 					NewTestGlucose(nil, "unknown", nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta()),
-						testing.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
-						testing.ComposeError(service.ErrorValueNotExists(), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta()),
+						testData.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/value", NewMeta()),
 					}),
 			)
 

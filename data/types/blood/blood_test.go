@@ -10,9 +10,9 @@ import (
 	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
+	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood"
-	"github.com/tidepool-org/platform/data/types/testing"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
@@ -96,7 +96,7 @@ var _ = Describe("Blood", func() {
 					&map[string]interface{}{"time": 0},
 					NewTestBlood(nil, nil, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
+						testData.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
 					}),
 				Entry("parses object that has valid units",
 					&map[string]interface{}{"units": "mmol/L"},
@@ -106,7 +106,7 @@ var _ = Describe("Blood", func() {
 					&map[string]interface{}{"units": 0},
 					NewTestBlood(nil, nil, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorTypeNotString(0), "/units", NewMeta()),
+						testData.ComposeError(service.ErrorTypeNotString(0), "/units", NewMeta()),
 					}),
 				Entry("parses object that has valid value",
 					&map[string]interface{}{"value": 1.0},
@@ -116,7 +116,7 @@ var _ = Describe("Blood", func() {
 					&map[string]interface{}{"value": "invalid"},
 					NewTestBlood(nil, nil, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/value", NewMeta()),
 					}),
 				Entry("parses object that has multiple valid fields",
 					&map[string]interface{}{"time": "2016-09-06T13:45:58-07:00", "units": "mmol/L", "value": 1.0},
@@ -126,9 +126,9 @@ var _ = Describe("Blood", func() {
 					&map[string]interface{}{"time": 0, "units": 0, "value": "invalid"},
 					NewTestBlood(nil, nil, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
-						testing.ComposeError(service.ErrorTypeNotString(0), "/units", NewMeta()),
-						testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
+						testData.ComposeError(service.ErrorTypeNotString(0), "/units", NewMeta()),
+						testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/value", NewMeta()),
 					}),
 			)
 
@@ -149,24 +149,24 @@ var _ = Describe("Blood", func() {
 				Entry("missing time",
 					NewTestBlood(nil, "mmol/L", 1.0),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta()),
 					}),
 				Entry("missing units",
 					NewTestBlood("2016-09-06T13:45:58-07:00", nil, 1.0),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotExists(), "/units", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/units", NewMeta()),
 					}),
 				Entry("missing value",
 					NewTestBlood("2016-09-06T13:45:58-07:00", "mmol/L", nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotExists(), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/value", NewMeta()),
 					}),
 				Entry("multiple",
 					NewTestBlood(nil, nil, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta()),
-						testing.ComposeError(service.ErrorValueNotExists(), "/units", NewMeta()),
-						testing.ComposeError(service.ErrorValueNotExists(), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/units", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/value", NewMeta()),
 					}),
 			)
 

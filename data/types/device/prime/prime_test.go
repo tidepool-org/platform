@@ -4,13 +4,13 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 
+	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/device"
-	"github.com/tidepool-org/platform/data/types/testing"
 	"github.com/tidepool-org/platform/service"
 )
 
 func NewRawObject() map[string]interface{} {
-	rawObject := testing.RawBaseObject()
+	rawObject := testData.RawBaseObject()
 	rawObject["type"] = "deviceEvent"
 	rawObject["subType"] = "prime"
 	rawObject["volume"] = 0.0
@@ -38,32 +38,32 @@ func NewMeta() interface{} {
 
 var _ = Describe("Prime", func() {
 	Context("primeTarget", func() {
-		DescribeTable("invalid when", testing.ExpectFieldNotValid,
+		DescribeTable("invalid when", testData.ExpectFieldNotValid,
 			Entry("is empty", NewRawObject(), "primeTarget", "",
-				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("", []string{"cannula", "tubing"}), "/primeTarget", NewMeta())},
+				[]*service.Error{testData.ComposeError(service.ErrorValueStringNotOneOf("", []string{"cannula", "tubing"}), "/primeTarget", NewMeta())},
 			),
 			Entry("is not one of the predefined types", NewRawObject(), "primeTarget", "bad",
-				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("bad", []string{"cannula", "tubing"}), "/primeTarget", NewMeta())},
+				[]*service.Error{testData.ComposeError(service.ErrorValueStringNotOneOf("bad", []string{"cannula", "tubing"}), "/primeTarget", NewMeta())},
 			),
 		)
 
-		DescribeTable("valid when", testing.ExpectFieldIsValid,
+		DescribeTable("valid when", testData.ExpectFieldIsValid,
 			Entry("is cannula type", NewRawObject(), "primeTarget", "cannula"),
 			Entry("is tubing type", NewRawObject(), "primeTarget", "tubing"),
 		)
 	})
 
 	Context("cannula volume", func() {
-		DescribeTable("invalid when", testing.ExpectFieldNotValid,
+		DescribeTable("invalid when", testData.ExpectFieldNotValid,
 			Entry("is less than 0", NewRawObjectWithCannula(), "volume", -0.1,
-				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 3.0), "/volume", NewMeta())},
+				[]*service.Error{testData.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 3.0), "/volume", NewMeta())},
 			),
 			Entry("is more than 3", NewRawObjectWithCannula(), "volume", 3.1,
-				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(3.1, 0.0, 3.0), "/volume", NewMeta())},
+				[]*service.Error{testData.ComposeError(service.ErrorValueNotInRange(3.1, 0.0, 3.0), "/volume", NewMeta())},
 			),
 		)
 
-		DescribeTable("valid when", testing.ExpectFieldIsValid,
+		DescribeTable("valid when", testData.ExpectFieldIsValid,
 			Entry("is 0", NewRawObjectWithCannula(), "volume", 0.0),
 			Entry("is 3.0", NewRawObjectWithCannula(), "volume", 3.0),
 			Entry("is no decimal", NewRawObjectWithCannula(), "volume", 2),
@@ -71,16 +71,16 @@ var _ = Describe("Prime", func() {
 	})
 
 	Context("tubing volume", func() {
-		DescribeTable("invalid when", testing.ExpectFieldNotValid,
+		DescribeTable("invalid when", testData.ExpectFieldNotValid,
 			Entry("is less than 0", NewRawObjectWithTubing(), "volume", -0.1,
-				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/volume", NewMeta())},
+				[]*service.Error{testData.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/volume", NewMeta())},
 			),
 			Entry("is more than 100", NewRawObjectWithTubing(), "volume", 100.1,
-				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(100.1, 0.0, 100.0), "/volume", NewMeta())},
+				[]*service.Error{testData.ComposeError(service.ErrorValueNotInRange(100.1, 0.0, 100.0), "/volume", NewMeta())},
 			),
 		)
 
-		DescribeTable("valid when", testing.ExpectFieldIsValid,
+		DescribeTable("valid when", testData.ExpectFieldIsValid,
 			Entry("is 0", NewRawObjectWithTubing(), "volume", 0.0),
 			Entry("is 100.0", NewRawObjectWithTubing(), "volume", 100.0),
 			Entry("is no decimal", NewRawObjectWithTubing(), "volume", 55),

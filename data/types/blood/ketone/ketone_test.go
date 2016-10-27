@@ -10,9 +10,9 @@ import (
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/normalizer"
+	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood/ketone"
-	"github.com/tidepool-org/platform/data/types/testing"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
@@ -105,17 +105,17 @@ var _ = Describe("Ketone", func() {
 				Entry("missing time",
 					NewTestKetone(nil, "mmol/L", 1.0),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta()),
 					}),
 				Entry("missing units",
 					NewTestKetone("2016-09-06T13:45:58-07:00", nil, 1.0),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotExists(), "/units", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/units", NewMeta()),
 					}),
 				Entry("unknown units",
 					NewTestKetone("2016-09-06T13:45:58-07:00", "unknown", 1.0),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+						testData.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
 					}),
 				Entry("mmol/L units",
 					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/L", 1.0),
@@ -126,32 +126,32 @@ var _ = Describe("Ketone", func() {
 				Entry("mg/dL units",
 					NewTestKetone("2016-09-06T13:45:58-07:00", "mg/dL", 1.0),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueStringNotOneOf("mg/dL", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+						testData.ComposeError(service.ErrorValueStringNotOneOf("mg/dL", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
 					}),
 				Entry("mg/dl units",
 					NewTestKetone("2016-09-06T13:45:58-07:00", "mg/dl", 1.0),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueStringNotOneOf("mg/dl", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+						testData.ComposeError(service.ErrorValueStringNotOneOf("mg/dl", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
 					}),
 				Entry("missing value",
 					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/L", nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotExists(), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/value", NewMeta()),
 					}),
 				Entry("unknown units; value in range (lower)",
 					NewTestKetone("2016-09-06T13:45:58-07:00", "unknown", -math.MaxFloat64),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+						testData.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
 					}),
 				Entry("unknown units; value in range (upper)",
 					NewTestKetone("2016-09-06T13:45:58-07:00", "unknown", math.MaxFloat64),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+						testData.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
 					}),
 				Entry("mmol/L units; value out of range (lower)",
 					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/L", -0.1),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 10.0), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 10.0), "/value", NewMeta()),
 					}),
 				Entry("mmol/L units; value in range (lower)",
 					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/L", 0.0),
@@ -162,12 +162,12 @@ var _ = Describe("Ketone", func() {
 				Entry("mmol/L units; value out of range (upper)",
 					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/L", 10.1),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotInRange(10.1, 0.0, 10.0), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(10.1, 0.0, 10.0), "/value", NewMeta()),
 					}),
 				Entry("mmol/l units; value out of range (lower)",
 					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/l", -0.1),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 10.0), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 10.0), "/value", NewMeta()),
 					}),
 				Entry("mmol/l units; value in range (lower)",
 					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/l", 0.0),
@@ -178,34 +178,34 @@ var _ = Describe("Ketone", func() {
 				Entry("mmol/l units; value out of range (upper)",
 					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/l", 10.1),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotInRange(10.1, 0.0, 10.0), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(10.1, 0.0, 10.0), "/value", NewMeta()),
 					}),
 				Entry("mg/dL units; value in range (lower)",
 					NewTestKetone("2016-09-06T13:45:58-07:00", "mg/dL", -math.MaxFloat64),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueStringNotOneOf("mg/dL", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+						testData.ComposeError(service.ErrorValueStringNotOneOf("mg/dL", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
 					}),
 				Entry("mg/dL units; value in range (upper)",
 					NewTestKetone("2016-09-06T13:45:58-07:00", "mg/dL", math.MaxFloat64),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueStringNotOneOf("mg/dL", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+						testData.ComposeError(service.ErrorValueStringNotOneOf("mg/dL", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
 					}),
 				Entry("mg/dl units; value in range (lower)",
 					NewTestKetone("2016-09-06T13:45:58-07:00", "mg/dl", -math.MaxFloat64),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueStringNotOneOf("mg/dl", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+						testData.ComposeError(service.ErrorValueStringNotOneOf("mg/dl", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
 					}),
 				Entry("mg/dl units; value in range (upper)",
 					NewTestKetone("2016-09-06T13:45:58-07:00", "mg/dl", math.MaxFloat64),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueStringNotOneOf("mg/dl", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+						testData.ComposeError(service.ErrorValueStringNotOneOf("mg/dl", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
 					}),
 				Entry("multiple",
 					NewTestKetone(nil, "unknown", nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta()),
-						testing.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
-						testing.ComposeError(service.ErrorValueNotExists(), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta()),
+						testData.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/value", NewMeta()),
 					}),
 			)
 

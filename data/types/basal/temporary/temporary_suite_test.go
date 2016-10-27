@@ -9,5 +9,5 @@ import (
 
 func TestSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "data/types/base/basal/temporary")
+	RunSpecs(t, "data/types/basal/temporary")
 }

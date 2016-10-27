@@ -13,7 +13,7 @@ import (
 	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
-	"github.com/tidepool-org/platform/data/types/testing"
+	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
@@ -64,14 +64,14 @@ var _ = Describe("Target", func() {
 			NewTestTarget(120.0, 10.0, 110.0, 130.0), []*service.Error{}),
 		Entry("parses object that has multiple invalid fields", &map[string]interface{}{"target": "invalid", "range": "invalid", "low": "invalid", "high": "invalid"},
 			NewTestTarget(nil, nil, nil, nil), []*service.Error{
-				testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/target", nil),
-				testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/range", nil),
-				testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/low", nil),
-				testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/high", nil),
+				testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/target", nil),
+				testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/range", nil),
+				testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/low", nil),
+				testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/high", nil),
 			}),
 		Entry("parses object that has additional fields", &map[string]interface{}{"target": 120.0, "range": 10.0, "low": 110.0, "high": 130.0, "additional": 0.0},
 			NewTestTarget(120.0, 10.0, 110.0, 130.0), []*service.Error{
-				testing.ComposeError(parser.ErrorNotParsed(), "/additional", nil),
+				testData.ComposeError(parser.ErrorNotParsed(), "/additional", nil),
 			}),
 	)
 
@@ -102,28 +102,28 @@ var _ = Describe("Target", func() {
 			Entry("parses object that is empty", &map[string]interface{}{}, NewTestTarget(nil, nil, nil, nil), []*service.Error{}),
 			Entry("parses object that has valid target", &map[string]interface{}{"target": 120.0}, NewTestTarget(120.0, nil, nil, nil), []*service.Error{}),
 			Entry("parses object that has invalid target", &map[string]interface{}{"target": "invalid"}, NewTestTarget(nil, nil, nil, nil), []*service.Error{
-				testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/target", nil),
+				testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/target", nil),
 			}),
 			Entry("parses object that has valid range", &map[string]interface{}{"range": 10.0}, NewTestTarget(nil, 10.0, nil, nil), []*service.Error{}),
 			Entry("parses object that has invalid range", &map[string]interface{}{"range": "invalid"}, NewTestTarget(nil, nil, nil, nil), []*service.Error{
-				testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/range", nil),
+				testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/range", nil),
 			}),
 			Entry("parses object that has valid low", &map[string]interface{}{"low": 110.0}, NewTestTarget(nil, nil, 110.0, nil), []*service.Error{}),
 			Entry("parses object that has invalid low", &map[string]interface{}{"low": "invalid"}, NewTestTarget(nil, nil, nil, nil), []*service.Error{
-				testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/low", nil),
+				testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/low", nil),
 			}),
 			Entry("parses object that has valid high", &map[string]interface{}{"high": 130.0}, NewTestTarget(nil, nil, nil, 130.0), []*service.Error{}),
 			Entry("parses object that has invalid high", &map[string]interface{}{"high": "invalid"}, NewTestTarget(nil, nil, nil, nil), []*service.Error{
-				testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/high", nil),
+				testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/high", nil),
 			}),
 			Entry("parses object that has multiple valid fields", &map[string]interface{}{"target": 120.0, "range": 10.0, "low": 110.0, "high": 130.0},
 				NewTestTarget(120.0, 10.0, 110.0, 130.0), []*service.Error{}),
 			Entry("parses object that has multiple invalid fields", &map[string]interface{}{"target": "invalid", "range": "invalid", "low": "invalid", "high": "invalid"},
 				NewTestTarget(nil, nil, nil, nil), []*service.Error{
-					testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/target", nil),
-					testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/range", nil),
-					testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/low", nil),
-					testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/high", nil),
+					testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/target", nil),
+					testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/range", nil),
+					testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/low", nil),
+					testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/high", nil),
 				}),
 		)
 
@@ -140,127 +140,127 @@ var _ = Describe("Target", func() {
 			},
 			Entry("validates a target with units of mmol/L; target/range; all valid", NewTestTarget(6.6, 1.0, nil, nil), "mmol/L", []*service.Error{}),
 			Entry("validates a target with units of mmol/L; target/range; target out of range", NewTestTarget(55.1, 1.0, nil, nil), "mmol/L", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotInRange(55.1, 0, 55), "/target", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(55.1, 0, 55), "/target", nil),
 			}),
 			Entry("validates a target with units of mmol/L; target/range; range out of range", NewTestTarget(6.6, 6.7, nil, nil), "mmol/L", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotInRange(6.7, 0, 6.6), "/range", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(6.7, 0, 6.6), "/range", nil),
 			}),
 			Entry("validates a target with units of mmol/L; target/range; low exists", NewTestTarget(6.6, 1.0, 5.6, nil), "mmol/L", []*service.Error{
-				testing.ComposeError(service.ErrorValueExists(), "/low", nil),
+				testData.ComposeError(service.ErrorValueExists(), "/low", nil),
 			}),
 			Entry("validates a target with units of mmol/L; target/range; high exists", NewTestTarget(6.6, 1.0, nil, 7.6), "mmol/L", []*service.Error{
-				testing.ComposeError(service.ErrorValueExists(), "/high", nil),
+				testData.ComposeError(service.ErrorValueExists(), "/high", nil),
 			}),
 			Entry("validates a target with units of mmol/L; target/range; multiple", NewTestTarget(6.6, 6.7, 5.6, 7.6), "mmol/L", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotInRange(6.7, 0, 6.6), "/range", nil),
-				testing.ComposeError(service.ErrorValueExists(), "/low", nil),
-				testing.ComposeError(service.ErrorValueExists(), "/high", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(6.7, 0, 6.6), "/range", nil),
+				testData.ComposeError(service.ErrorValueExists(), "/low", nil),
+				testData.ComposeError(service.ErrorValueExists(), "/high", nil),
 			}),
 			Entry("validates a target with units of mmol/L; target/high; all valid", NewTestTarget(6.6, nil, nil, 7.6), "mmol/L", []*service.Error{}),
 			Entry("validates a target with units of mmol/L; target/high; target out of range", NewTestTarget(55.1, nil, nil, 7.6), "mmol/L", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotInRange(55.1, 0, 55), "/target", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(55.1, 0, 55), "/target", nil),
 			}),
 			Entry("validates a target with units of mmol/L; target/high; low exists", NewTestTarget(6.6, nil, 5.6, 7.6), "mmol/L", []*service.Error{
-				testing.ComposeError(service.ErrorValueExists(), "/low", nil),
+				testData.ComposeError(service.ErrorValueExists(), "/low", nil),
 			}),
 			Entry("validates a target with units of mmol/L; target/high; high out of range (lower)", NewTestTarget(6.6, nil, nil, 6.5), "mmol/L", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotInRange(6.5, 6.6, 55), "/high", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(6.5, 6.6, 55), "/high", nil),
 			}),
 			Entry("validates a target with units of mmol/L; target/high; high out of range (upper)", NewTestTarget(6.6, nil, nil, 55.1), "mmol/L", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotInRange(55.1, 6.6, 55), "/high", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(55.1, 6.6, 55), "/high", nil),
 			}),
 			Entry("validates a target with units of mmol/L; target/high; multiple", NewTestTarget(6.6, nil, 5.6, 55.1), "mmol/L", []*service.Error{
-				testing.ComposeError(service.ErrorValueExists(), "/low", nil),
-				testing.ComposeError(service.ErrorValueNotInRange(55.1, 6.6, 55), "/high", nil),
+				testData.ComposeError(service.ErrorValueExists(), "/low", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(55.1, 6.6, 55), "/high", nil),
 			}),
 			Entry("validates a target with units of mmol/L; target; all valid", NewTestTarget(6.6, nil, nil, nil), "mmol/L", []*service.Error{}),
 			Entry("validates a target with units of mmol/L; target; target out of range", NewTestTarget(55.1, nil, nil, nil), "mmol/L", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotInRange(55.1, 0, 55), "/target", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(55.1, 0, 55), "/target", nil),
 			}),
 			Entry("validates a target with units of mmol/L; target; low exists", NewTestTarget(6.6, nil, 5.6, nil), "mmol/L", []*service.Error{
-				testing.ComposeError(service.ErrorValueExists(), "/low", nil),
+				testData.ComposeError(service.ErrorValueExists(), "/low", nil),
 			}),
 			Entry("validates a target with units of mmol/L; target; multiple", NewTestTarget(55.1, nil, 5.6, nil), "mmol/L", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotInRange(55.1, 0, 55), "/target", nil),
-				testing.ComposeError(service.ErrorValueExists(), "/low", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(55.1, 0, 55), "/target", nil),
+				testData.ComposeError(service.ErrorValueExists(), "/low", nil),
 			}),
 			Entry("validates a target with units of mmol/L; low/high; all valid", NewTestTarget(nil, nil, 5.6, 7.6), "mmol/L", []*service.Error{}),
 			Entry("validates a target with units of mmol/L; low/high; low out of range", NewTestTarget(nil, nil, -0.1, 7.6), "mmol/L", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotInRange(-0.1, 0, 55), "/low", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(-0.1, 0, 55), "/low", nil),
 			}),
 			Entry("validates a target with units of mmol/L; low/high; high out of range (lower)", NewTestTarget(nil, nil, 5.6, 5.5), "mmol/L", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotInRange(5.5, 5.6, 55), "/high", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(5.5, 5.6, 55), "/high", nil),
 			}),
 			Entry("validates a target with units of mmol/L; low/high; high out of range (upper)", NewTestTarget(nil, nil, 5.6, 55.1), "mmol/L", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotInRange(55.1, 5.6, 55), "/high", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(55.1, 5.6, 55), "/high", nil),
 			}),
 			Entry("validates a target with units of mmol/L; low", NewTestTarget(nil, nil, 5.6, nil), "mmol/L", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotExists(), "/high", nil),
+				testData.ComposeError(service.ErrorValueNotExists(), "/high", nil),
 			}),
 			Entry("validates a target with units of mmol/L; none", NewTestTarget(nil, nil, nil, nil), nil, []*service.Error{
-				testing.ComposeError(service.ErrorValueNotExists(), "/target", nil),
+				testData.ComposeError(service.ErrorValueNotExists(), "/target", nil),
 			}),
 			Entry("validates a target with units of mg/dL; target/range; all valid", NewTestTarget(120.0, 10.0, nil, nil), "mg/dL", []*service.Error{}),
 			Entry("validates a target with units of mg/dL; target/range; target out of range", NewTestTarget(1001.0, 10.0, nil, nil), "mg/dL", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotInRange(1001, 0, 1000), "/target", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(1001, 0, 1000), "/target", nil),
 			}),
 			Entry("validates a target with units of mg/dL; target/range; range out of range", NewTestTarget(120.0, 130.0, nil, nil), "mg/dL", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotInRange(130, 0, 120), "/range", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(130, 0, 120), "/range", nil),
 			}),
 			Entry("validates a target with units of mg/dL; target/range; low exists", NewTestTarget(120.0, 10.0, 110.0, nil), "mg/dL", []*service.Error{
-				testing.ComposeError(service.ErrorValueExists(), "/low", nil),
+				testData.ComposeError(service.ErrorValueExists(), "/low", nil),
 			}),
 			Entry("validates a target with units of mg/dL; target/range; high exists", NewTestTarget(120.0, 10.0, nil, 130.0), "mg/dL", []*service.Error{
-				testing.ComposeError(service.ErrorValueExists(), "/high", nil),
+				testData.ComposeError(service.ErrorValueExists(), "/high", nil),
 			}),
 			Entry("validates a target with units of mg/dL; target/range; multiple", NewTestTarget(120.0, 130.0, 110.0, 130.0), "mg/dL", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotInRange(130, 0, 120), "/range", nil),
-				testing.ComposeError(service.ErrorValueExists(), "/low", nil),
-				testing.ComposeError(service.ErrorValueExists(), "/high", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(130, 0, 120), "/range", nil),
+				testData.ComposeError(service.ErrorValueExists(), "/low", nil),
+				testData.ComposeError(service.ErrorValueExists(), "/high", nil),
 			}),
 			Entry("validates a target with units of mg/dL; target/high; all valid", NewTestTarget(120.0, nil, nil, 130.0), "mg/dL", []*service.Error{}),
 			Entry("validates a target with units of mg/dL; target/high; target out of range", NewTestTarget(1001.0, nil, nil, 130.0), "mg/dL", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotInRange(1001, 0, 1000), "/target", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(1001, 0, 1000), "/target", nil),
 			}),
 			Entry("validates a target with units of mg/dL; target/high; low exists", NewTestTarget(120.0, nil, 110.0, 130.0), "mg/dL", []*service.Error{
-				testing.ComposeError(service.ErrorValueExists(), "/low", nil),
+				testData.ComposeError(service.ErrorValueExists(), "/low", nil),
 			}),
 			Entry("validates a target with units of mg/dL; target/high; high out of range (lower)", NewTestTarget(120.0, nil, nil, 119.0), "mg/dL", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotInRange(119, 120, 1000), "/high", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(119, 120, 1000), "/high", nil),
 			}),
 			Entry("validates a target with units of mg/dL; target/high; high out of range (upper)", NewTestTarget(120.0, nil, nil, 1001.0), "mg/dL", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotInRange(1001, 120, 1000), "/high", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(1001, 120, 1000), "/high", nil),
 			}),
 			Entry("validates a target with units of mg/dL; target/high; multiple", NewTestTarget(120.0, nil, 110.0, 1001.0), "mg/dL", []*service.Error{
-				testing.ComposeError(service.ErrorValueExists(), "/low", nil),
-				testing.ComposeError(service.ErrorValueNotInRange(1001, 120, 1000), "/high", nil),
+				testData.ComposeError(service.ErrorValueExists(), "/low", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(1001, 120, 1000), "/high", nil),
 			}),
 			Entry("validates a target with units of mg/dL; target; all valid", NewTestTarget(120.0, nil, nil, nil), "mg/dL", []*service.Error{}),
 			Entry("validates a target with units of mg/dL; target; target out of range", NewTestTarget(1001.0, nil, nil, nil), "mg/dL", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotInRange(1001, 0, 1000), "/target", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(1001, 0, 1000), "/target", nil),
 			}),
 			Entry("validates a target with units of mg/dL; target; low exists", NewTestTarget(120.0, nil, 110.0, nil), "mg/dL", []*service.Error{
-				testing.ComposeError(service.ErrorValueExists(), "/low", nil),
+				testData.ComposeError(service.ErrorValueExists(), "/low", nil),
 			}),
 			Entry("validates a target with units of mg/dL; target; multiple", NewTestTarget(1001.0, nil, 110.0, nil), "mg/dL", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotInRange(1001, 0, 1000), "/target", nil),
-				testing.ComposeError(service.ErrorValueExists(), "/low", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(1001, 0, 1000), "/target", nil),
+				testData.ComposeError(service.ErrorValueExists(), "/low", nil),
 			}),
 			Entry("validates a target with units of mg/dL; low/high; all valid", NewTestTarget(nil, nil, 110.0, 130.0), "mg/dL", []*service.Error{}),
 			Entry("validates a target with units of mg/dL; low/high; low out of range", NewTestTarget(nil, nil, -1.0, 130.0), "mg/dL", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotInRange(-1, 0, 1000), "/low", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(-1, 0, 1000), "/low", nil),
 			}),
 			Entry("validates a target with units of mg/dL; low/high; high out of range (lower)", NewTestTarget(nil, nil, 110.0, 109.0), "mg/dL", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotInRange(109, 110, 1000), "/high", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(109, 110, 1000), "/high", nil),
 			}),
 			Entry("validates a target with units of mg/dL; low/high; high out of range (upper)", NewTestTarget(nil, nil, 110.0, 1001.0), "mg/dL", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotInRange(1001, 110, 1000), "/high", nil),
+				testData.ComposeError(service.ErrorValueNotInRange(1001, 110, 1000), "/high", nil),
 			}),
 			Entry("validates a target with units of mg/dL; low", NewTestTarget(nil, nil, 110.0, nil), "mg/dL", []*service.Error{
-				testing.ComposeError(service.ErrorValueNotExists(), "/high", nil),
+				testData.ComposeError(service.ErrorValueNotExists(), "/high", nil),
 			}),
 			Entry("validates a target with units of mg/dL; none", NewTestTarget(nil, nil, nil, nil), nil, []*service.Error{
-				testing.ComposeError(service.ErrorValueNotExists(), "/target", nil),
+				testData.ComposeError(service.ErrorValueNotExists(), "/target", nil),
 			}),
 		)
 

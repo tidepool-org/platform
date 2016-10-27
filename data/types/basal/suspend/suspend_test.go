@@ -10,9 +10,9 @@ import (
 	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
+	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/basal"
 	"github.com/tidepool-org/platform/data/types/basal/suspend"
-	"github.com/tidepool-org/platform/data/types/testing"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
@@ -150,7 +150,7 @@ var _ = Describe("Suspend", func() {
 					&map[string]interface{}{"time": 0},
 					NewTestSuspend(nil, nil, nil, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
+						testData.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
 					}),
 				Entry("parses object that has valid duration",
 					&map[string]interface{}{"duration": 3600000},
@@ -160,7 +160,7 @@ var _ = Describe("Suspend", func() {
 					&map[string]interface{}{"duration": "invalid"},
 					NewTestSuspend(nil, nil, nil, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorTypeNotInteger("invalid"), "/duration", NewMeta()),
+						testData.ComposeError(service.ErrorTypeNotInteger("invalid"), "/duration", NewMeta()),
 					}),
 				Entry("parses object that has valid expected duration",
 					&map[string]interface{}{"expectedDuration": 7200000},
@@ -170,7 +170,7 @@ var _ = Describe("Suspend", func() {
 					&map[string]interface{}{"expectedDuration": "invalid"},
 					NewTestSuspend(nil, nil, nil, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorTypeNotInteger("invalid"), "/expectedDuration", NewMeta()),
+						testData.ComposeError(service.ErrorTypeNotInteger("invalid"), "/expectedDuration", NewMeta()),
 					}),
 				Entry("parses object that has valid suppressed",
 					&map[string]interface{}{"suppressed": map[string]interface{}{"type": "basal", "deliveryType": "scheduled", "rate": 1.0, "scheduleName": "Weekday"}},
@@ -180,7 +180,7 @@ var _ = Describe("Suspend", func() {
 					&map[string]interface{}{"suppressed": "invalid"},
 					NewTestSuspend(nil, nil, nil, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorTypeNotObject("invalid"), "/suppressed", NewMeta()),
+						testData.ComposeError(service.ErrorTypeNotObject("invalid"), "/suppressed", NewMeta()),
 					}),
 				Entry("parses object that has multiple valid fields",
 					&map[string]interface{}{"time": "2016-09-06T13:45:58-07:00", "duration": 3600000, "expectedDuration": 7200000},
@@ -190,10 +190,10 @@ var _ = Describe("Suspend", func() {
 					&map[string]interface{}{"time": 0, "duration": "invalid", "expectedDuration": "invalid", "suppressed": "invalid"},
 					NewTestSuspend(nil, nil, nil, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
-						testing.ComposeError(service.ErrorTypeNotInteger("invalid"), "/duration", NewMeta()),
-						testing.ComposeError(service.ErrorTypeNotInteger("invalid"), "/expectedDuration", NewMeta()),
-						testing.ComposeError(service.ErrorTypeNotObject("invalid"), "/suppressed", NewMeta()),
+						testData.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
+						testData.ComposeError(service.ErrorTypeNotInteger("invalid"), "/duration", NewMeta()),
+						testData.ComposeError(service.ErrorTypeNotInteger("invalid"), "/expectedDuration", NewMeta()),
+						testData.ComposeError(service.ErrorTypeNotObject("invalid"), "/suppressed", NewMeta()),
 					}),
 			)
 
@@ -214,17 +214,17 @@ var _ = Describe("Suspend", func() {
 				Entry("missing time",
 					NewTestSuspend(nil, 3600000, 7200000, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta()),
 					}),
 				Entry("missing duration",
 					NewTestSuspend("2016-09-06T13:45:58-07:00", nil, 7200000, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotExists(), "/duration", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/duration", NewMeta()),
 					}),
 				Entry("duration out of range (lower)",
 					NewTestSuspend("2016-09-06T13:45:58-07:00", -1, 7200000, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotInRange(-1, 0, 604800000), "/duration", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(-1, 0, 604800000), "/duration", NewMeta()),
 					}),
 				Entry("duration in range (lower)",
 					NewTestSuspend("2016-09-06T13:45:58-07:00", 0, 7200000, nil),
@@ -235,12 +235,12 @@ var _ = Describe("Suspend", func() {
 				Entry("duration out of range (upper)",
 					NewTestSuspend("2016-09-06T13:45:58-07:00", 604800001, nil, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotInRange(604800001, 0, 604800000), "/duration", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(604800001, 0, 604800000), "/duration", NewMeta()),
 					}),
 				Entry("expected duration out of range (lower)",
 					NewTestSuspend("2016-09-06T13:45:58-07:00", 3600000, 3599999, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotInRange(3599999, 3600000, 604800000), "/expectedDuration", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(3599999, 3600000, 604800000), "/expectedDuration", NewMeta()),
 					}),
 				Entry("expected duration in range (lower)",
 					NewTestSuspend("2016-09-06T13:45:58-07:00", 3600000, 3600000, nil),
@@ -251,36 +251,36 @@ var _ = Describe("Suspend", func() {
 				Entry("expected duration out of range (upper)",
 					NewTestSuspend("2016-09-06T13:45:58-07:00", 3600000, 604800001, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotInRange(604800001, 3600000, 604800000), "/expectedDuration", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(604800001, 3600000, 604800000), "/expectedDuration", NewMeta()),
 					}),
 				Entry("missing duration; expected duration out of range (lower)",
 					NewTestSuspend("2016-09-06T13:45:58-07:00", nil, -1, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotExists(), "/duration", NewMeta()),
-						testing.ComposeError(service.ErrorValueNotInRange(-1, 0, 604800000), "/expectedDuration", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/duration", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(-1, 0, 604800000), "/expectedDuration", NewMeta()),
 					}),
 				Entry("missing duration; expected duration in range (lower)",
 					NewTestSuspend("2016-09-06T13:45:58-07:00", nil, 0, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotExists(), "/duration", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/duration", NewMeta()),
 					}),
 				Entry("missing duration; expected duration in range (upper)",
 					NewTestSuspend("2016-09-06T13:45:58-07:00", nil, 604800000, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotExists(), "/duration", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/duration", NewMeta()),
 					}),
 				Entry("missing duration; expected duration out of range (upper)",
 					NewTestSuspend("2016-09-06T13:45:58-07:00", nil, 604800001, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotExists(), "/duration", NewMeta()),
-						testing.ComposeError(service.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/duration", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", NewMeta()),
 					}),
 				Entry("multiple",
 					NewTestSuspend(nil, nil, 604800001, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta()),
-						testing.ComposeError(service.ErrorValueNotExists(), "/duration", NewMeta()),
-						testing.ComposeError(service.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/duration", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", NewMeta()),
 					}),
 				Entry("suppressed scheduled",
 					NewTestSuspend("2016-09-06T13:45:58-07:00", 3600000, 7200000, NewTestSuppressed("basal", "scheduled", 1.0, "Weekday", nil)),
@@ -288,10 +288,10 @@ var _ = Describe("Suspend", func() {
 				Entry("suppressed scheduled multiple",
 					NewTestSuspend("2016-09-06T13:45:58-07:00", 3600000, 7200000, NewTestSuppressed("invalid", "scheduled", 100.1, "", NewTestSuppressed(nil, nil, nil, nil, nil))),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotEqualTo("invalid", "basal"), "/suppressed/type", NewMeta()),
-						testing.ComposeError(service.ErrorValueNotInRange(100.1, 0.0, 100.0), "/suppressed/rate", NewMeta()),
-						testing.ComposeError(service.ErrorValueEmpty(), "/suppressed/scheduleName", NewMeta()),
-						testing.ComposeError(service.ErrorValueExists(), "/suppressed/suppressed", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotEqualTo("invalid", "basal"), "/suppressed/type", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(100.1, 0.0, 100.0), "/suppressed/rate", NewMeta()),
+						testData.ComposeError(service.ErrorValueEmpty(), "/suppressed/scheduleName", NewMeta()),
+						testData.ComposeError(service.ErrorValueExists(), "/suppressed/suppressed", NewMeta()),
 					}),
 				Entry("suppressed temp with suppressed scheduled",
 					NewTestSuspend("2016-09-06T13:45:58-07:00", 3600000, 7200000, NewTestSuppressed("basal", "temp", 2.0, nil, NewTestSuppressed("basal", "scheduled", 1.0, "Weekday", nil))),
@@ -299,10 +299,10 @@ var _ = Describe("Suspend", func() {
 				Entry("suppressed temp with suppressed multiple",
 					NewTestSuspend("2016-09-06T13:45:58-07:00", 3600000, 7200000, NewTestSuppressed("basal", "temp", 2.0, nil, NewTestSuppressed("invalid", "scheduled", 100.1, "", NewTestSuppressed(nil, nil, nil, nil, nil)))),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotEqualTo("invalid", "basal"), "/suppressed/suppressed/type", NewMeta()),
-						testing.ComposeError(service.ErrorValueNotInRange(100.1, 0.0, 100.0), "/suppressed/suppressed/rate", NewMeta()),
-						testing.ComposeError(service.ErrorValueEmpty(), "/suppressed/suppressed/scheduleName", NewMeta()),
-						testing.ComposeError(service.ErrorValueExists(), "/suppressed/suppressed/suppressed", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotEqualTo("invalid", "basal"), "/suppressed/suppressed/type", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(100.1, 0.0, 100.0), "/suppressed/suppressed/rate", NewMeta()),
+						testData.ComposeError(service.ErrorValueEmpty(), "/suppressed/suppressed/scheduleName", NewMeta()),
+						testData.ComposeError(service.ErrorValueExists(), "/suppressed/suppressed/suppressed", NewMeta()),
 					}),
 			)
 

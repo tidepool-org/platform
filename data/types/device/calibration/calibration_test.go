@@ -8,15 +8,15 @@ import (
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/normalizer"
+	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/types/device/calibration"
-	"github.com/tidepool-org/platform/data/types/testing"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
 )
 
 func NewRawObjectMmolL() map[string]interface{} {
-	rawObject := testing.RawBaseObject()
+	rawObject := testData.RawBaseObject()
 	rawObject["type"] = "deviceEvent"
 	rawObject["subType"] = "calibration"
 	rawObject["units"] = glucose.MmolL
@@ -25,7 +25,7 @@ func NewRawObjectMmolL() map[string]interface{} {
 }
 
 func NewRawObjectMgdL() map[string]interface{} {
-	rawObject := testing.RawBaseObject()
+	rawObject := testData.RawBaseObject()
 	rawObject["type"] = "deviceEvent"
 	rawObject["subType"] = "calibration"
 	rawObject["units"] = glucose.MgdL
@@ -42,16 +42,16 @@ func NewMeta() interface{} {
 
 var _ = Describe("Calibration", func() {
 	Context("units", func() {
-		DescribeTable("invalid when", testing.ExpectFieldNotValid,
+		DescribeTable("invalid when", testData.ExpectFieldNotValid,
 			Entry("is empty", NewRawObjectMmolL(), "units", "",
-				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta())},
+				[]*service.Error{testData.ComposeError(service.ErrorValueStringNotOneOf("", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta())},
 			),
 			Entry("is not one of the predefined values", NewRawObjectMmolL(), "units", "wrong",
-				[]*service.Error{testing.ComposeError(service.ErrorValueStringNotOneOf("wrong", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta())},
+				[]*service.Error{testData.ComposeError(service.ErrorValueStringNotOneOf("wrong", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta())},
 			),
 		)
 
-		DescribeTable("valid when", testing.ExpectFieldIsValid,
+		DescribeTable("valid when", testData.ExpectFieldIsValid,
 			Entry("is mmol/l", NewRawObjectMmolL(), "units", "mmol/l"),
 			Entry("is mmol/L", NewRawObjectMmolL(), "units", "mmol/L"),
 			Entry("is mg/dl", NewRawObjectMgdL(), "units", "mg/dl"),
@@ -60,16 +60,16 @@ var _ = Describe("Calibration", func() {
 	})
 
 	Context("value", func() {
-		DescribeTable("invalid when", testing.ExpectFieldNotValid,
+		DescribeTable("invalid when", testData.ExpectFieldNotValid,
 			Entry("is less than 0", NewRawObjectMgdL(), "value", -0.1,
-				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(-0.1, glucose.MgdLLowerLimit, glucose.MgdLUpperLimit), "/value", NewMeta())},
+				[]*service.Error{testData.ComposeError(service.ErrorValueNotInRange(-0.1, glucose.MgdLLowerLimit, glucose.MgdLUpperLimit), "/value", NewMeta())},
 			),
 			Entry("is greater than 1000", NewRawObjectMgdL(), "value", 1000.1,
-				[]*service.Error{testing.ComposeError(service.ErrorValueNotInRange(1000.1, glucose.MgdLLowerLimit, glucose.MgdLUpperLimit), "/value", NewMeta())},
+				[]*service.Error{testData.ComposeError(service.ErrorValueNotInRange(1000.1, glucose.MgdLLowerLimit, glucose.MgdLUpperLimit), "/value", NewMeta())},
 			),
 		)
 
-		DescribeTable("valid when", testing.ExpectFieldIsValid,
+		DescribeTable("valid when", testData.ExpectFieldIsValid,
 			Entry("is 0", NewRawObjectMgdL(), "value", 0.0),
 			Entry("is above 0", NewRawObjectMgdL(), "value", 0.1),
 			Entry("is below max", NewRawObjectMgdL(), "value", glucose.MgdLUpperLimit),

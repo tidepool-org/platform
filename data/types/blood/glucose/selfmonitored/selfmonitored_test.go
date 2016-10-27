@@ -11,9 +11,9 @@ import (
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/parser"
+	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
-	"github.com/tidepool-org/platform/data/types/testing"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
@@ -126,7 +126,7 @@ var _ = Describe("SelfMonitored", func() {
 					&map[string]interface{}{"time": 0},
 					NewTestSelfMonitored(nil, nil, nil, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
+						testData.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
 					}),
 				Entry("parses object that has valid units",
 					&map[string]interface{}{"units": "mmol/L"},
@@ -136,7 +136,7 @@ var _ = Describe("SelfMonitored", func() {
 					&map[string]interface{}{"units": 0},
 					NewTestSelfMonitored(nil, nil, nil, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorTypeNotString(0), "/units", NewMeta()),
+						testData.ComposeError(service.ErrorTypeNotString(0), "/units", NewMeta()),
 					}),
 				Entry("parses object that has valid value",
 					&map[string]interface{}{"value": 10.0},
@@ -146,7 +146,7 @@ var _ = Describe("SelfMonitored", func() {
 					&map[string]interface{}{"value": "invalid"},
 					NewTestSelfMonitored(nil, nil, nil, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/value", NewMeta()),
 					}),
 				Entry("parses object that has valid sub type",
 					&map[string]interface{}{"subType": "linked"},
@@ -156,7 +156,7 @@ var _ = Describe("SelfMonitored", func() {
 					&map[string]interface{}{"subType": 0},
 					NewTestSelfMonitored(nil, nil, nil, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorTypeNotString(0), "/subType", NewMeta()),
+						testData.ComposeError(service.ErrorTypeNotString(0), "/subType", NewMeta()),
 					}),
 				Entry("parses object that has multiple valid fields",
 					&map[string]interface{}{"time": "2016-09-06T13:45:58-07:00", "units": "mmol/L", "value": 10.0, "subType": "linked"},
@@ -166,10 +166,10 @@ var _ = Describe("SelfMonitored", func() {
 					&map[string]interface{}{"time": 0, "units": 0, "value": "invalid", "subType": 0},
 					NewTestSelfMonitored(nil, nil, nil, nil),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
-						testing.ComposeError(service.ErrorTypeNotString(0), "/units", NewMeta()),
-						testing.ComposeError(service.ErrorTypeNotFloat("invalid"), "/value", NewMeta()),
-						testing.ComposeError(service.ErrorTypeNotString(0), "/subType", NewMeta()),
+						testData.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
+						testData.ComposeError(service.ErrorTypeNotString(0), "/units", NewMeta()),
+						testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorTypeNotString(0), "/subType", NewMeta()),
 					}),
 			)
 
@@ -190,17 +190,17 @@ var _ = Describe("SelfMonitored", func() {
 				Entry("missing time",
 					NewTestSelfMonitored(nil, "mmol/L", 10.0, "linked"),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta()),
 					}),
 				Entry("missing units",
 					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", nil, 10.0, "linked"),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotExists(), "/units", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/units", NewMeta()),
 					}),
 				Entry("unknown units",
 					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "unknown", 10.0, "linked"),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
+						testData.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
 					}),
 				Entry("mmol/L units",
 					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mmol/L", 10.0, "linked"),
@@ -217,22 +217,22 @@ var _ = Describe("SelfMonitored", func() {
 				Entry("missing value",
 					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mmol/L", nil, "linked"),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotExists(), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/value", NewMeta()),
 					}),
 				Entry("unknown units; value in range (lower)",
 					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "unknown", -math.MaxFloat64, "linked"),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
+						testData.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
 					}),
 				Entry("unknown units; value in range (upper)",
 					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "unknown", math.MaxFloat64, "linked"),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
+						testData.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
 					}),
 				Entry("mmol/L units; value out of range (lower)",
 					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mmol/L", -0.1, "linked"),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 55.0), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 55.0), "/value", NewMeta()),
 					}),
 				Entry("mmol/L units; value in range (lower)",
 					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mmol/L", 0.0, "linked"),
@@ -243,12 +243,12 @@ var _ = Describe("SelfMonitored", func() {
 				Entry("mmol/L units; value out of range (upper)",
 					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mmol/L", 55.1, "linked"),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotInRange(55.1, 0.0, 55.0), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(55.1, 0.0, 55.0), "/value", NewMeta()),
 					}),
 				Entry("mmol/l units; value out of range (lower)",
 					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mmol/l", -0.1, "linked"),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 55.0), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 55.0), "/value", NewMeta()),
 					}),
 				Entry("mmol/l units; value in range (lower)",
 					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mmol/l", 0.0, "linked"),
@@ -259,12 +259,12 @@ var _ = Describe("SelfMonitored", func() {
 				Entry("mmol/l units; value out of range (upper)",
 					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mmol/l", 55.1, "linked"),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotInRange(55.1, 0.0, 55.0), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(55.1, 0.0, 55.0), "/value", NewMeta()),
 					}),
 				Entry("mg/dL units; value out of range (lower)",
 					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mg/dL", -0.1, "linked"),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/value", NewMeta()),
 					}),
 				Entry("mg/dL units; value in range (lower)",
 					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mg/dL", 0.0, "linked"),
@@ -275,12 +275,12 @@ var _ = Describe("SelfMonitored", func() {
 				Entry("mg/dL units; value out of range (upper)",
 					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mg/dL", 1000.1, "linked"),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/value", NewMeta()),
 					}),
 				Entry("mg/dl units; value out of range (lower)",
 					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mg/dl", -0.1, "linked"),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/value", NewMeta()),
 					}),
 				Entry("mg/dl units; value in range (lower)",
 					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mg/dl", 0.0, "linked"),
@@ -291,12 +291,12 @@ var _ = Describe("SelfMonitored", func() {
 				Entry("mg/dl units; value out of range (upper)",
 					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mg/dl", 1000.1, "linked"),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/value", NewMeta()),
 					}),
 				Entry("unknown sub type",
 					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mmol/L", 10.0, "unknown"),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"linked", "manual"}), "/subType", NewMeta()),
+						testData.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"linked", "manual"}), "/subType", NewMeta()),
 					}),
 				Entry("linked sub type",
 					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mmol/L", 10.0, "linked"),
@@ -307,10 +307,10 @@ var _ = Describe("SelfMonitored", func() {
 				Entry("multiple",
 					NewTestSelfMonitored(nil, "unknown", nil, "unknown"),
 					[]*service.Error{
-						testing.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta()),
-						testing.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
-						testing.ComposeError(service.ErrorValueNotExists(), "/value", NewMeta()),
-						testing.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"linked", "manual"}), "/subType", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta()),
+						testData.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
+						testData.ComposeError(service.ErrorValueNotExists(), "/value", NewMeta()),
+						testData.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"linked", "manual"}), "/subType", NewMeta()),
 					}),
 			)
 		})

@@ -1,12 +1,13 @@
 package mongo
 
 import (
+	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
+
 	"fmt"
 	"math/rand"
 	"time"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
 	mgo "gopkg.in/mgo.v2"
 )
 
