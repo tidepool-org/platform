@@ -5,7 +5,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"net/http"
-	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/onsi/gomega/ghttp"
@@ -149,9 +148,10 @@ var _ = Describe("Standard", func() {
 				})
 
 				It("returns nil and only invokes server login once", func() {
-					Expect(standard.Start()).To(BeNil())
-					time.Sleep(2 * time.Second)
-					Expect(server.ReceivedRequests()).To(HaveLen(1))
+					Expect(standard.Start()).To(Succeed())
+					Eventually(func() []*http.Request {
+						return server.ReceivedRequests()
+					}, 10, 1).Should(HaveLen(1))
 				})
 			})
 
@@ -174,9 +174,11 @@ var _ = Describe("Standard", func() {
 				})
 
 				It("returns nil and only invokes server login twice", func() {
-					Expect(standard.Start()).To(BeNil())
-					time.Sleep(4 * time.Second)
-					Expect(server.ReceivedRequests()).To(HaveLen(2))
+					Expect(standard.Start()).To(Succeed())
+					Eventually(func() []*http.Request {
+						return server.ReceivedRequests()
+					}, 10, 1).Should(HaveLen(2))
+
 				})
 			})
 
@@ -205,9 +207,10 @@ var _ = Describe("Standard", func() {
 				})
 
 				It("returns nil and only invokes server login thrice", func() {
-					Expect(standard.Start()).To(BeNil())
-					time.Sleep(8 * time.Second)
-					Expect(server.ReceivedRequests()).To(HaveLen(3))
+					Expect(standard.Start()).To(Succeed())
+					Eventually(func() []*http.Request {
+						return server.ReceivedRequests()
+					}, 10, 1).Should(HaveLen(3))
 				})
 			})
 
@@ -230,9 +233,10 @@ var _ = Describe("Standard", func() {
 				})
 
 				It("returns nil and only invokes server login twice", func() {
-					Expect(standard.Start()).To(BeNil())
-					time.Sleep(4 * time.Second)
-					Expect(server.ReceivedRequests()).To(HaveLen(2))
+					Expect(standard.Start()).To(Succeed())
+					Eventually(func() []*http.Request {
+						return server.ReceivedRequests()
+					}, 10, 1).Should(HaveLen(2))
 				})
 			})
 
@@ -258,20 +262,27 @@ var _ = Describe("Standard", func() {
 							ghttp.VerifyHeaderKV("X-Tidepool-Server-Secret", "I Have A Good Secret!"),
 							ghttp.VerifyBody([]byte{}),
 							ghttp.RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{"test-authentication-token"}})),
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("POST", "/auth/serverlogin"),
+							ghttp.VerifyHeaderKV("X-Tidepool-Server-Name", "testservices"),
+							ghttp.VerifyHeaderKV("X-Tidepool-Server-Secret", "I Have A Good Secret!"),
+							ghttp.VerifyBody([]byte{}),
+							ghttp.RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{"test-authentication-token"}})),
 					)
 				})
 
 				It("returns nil and only invokes server login thrice", func() {
-					Expect(standard.Start()).To(BeNil())
-					time.Sleep(2500 * time.Millisecond)
-					Expect(server.ReceivedRequests()).To(HaveLen(3))
+					Expect(standard.Start()).To(Succeed())
+					Eventually(func() []*http.Request {
+						return server.ReceivedRequests()
+					}, 10, 1).Should(HaveLen(3))
 				})
 			})
 
 			It("returns nil and even if server is unreachable", func() {
 				server.Close()
 				server = nil
-				Expect(standard.Start()).To(BeNil())
+				Expect(standard.Start()).To(Succeed())
 			})
 		})
 
@@ -288,7 +299,7 @@ var _ = Describe("Standard", func() {
 			})
 
 			JustBeforeEach(func() {
-				Expect(standard.Start()).To(BeNil())
+				Expect(standard.Start()).To(Succeed())
 			})
 
 			Context("ValidateAuthenticationToken", func() {
@@ -843,7 +854,7 @@ var _ = Describe("Standard", func() {
 			})
 
 			JustBeforeEach(func() {
-				Expect(standard.Start()).To(BeNil())
+				Expect(standard.Start()).To(Succeed())
 			})
 
 			Context("ValidateAuthenticationToken", func() {
