@@ -10,7 +10,7 @@ import (
 	"github.com/tidepool-org/platform/data/deduplicator/test"
 	testDataStore "github.com/tidepool-org/platform/data/store/test"
 	testData "github.com/tidepool-org/platform/data/test"
-	"github.com/tidepool-org/platform/data/types/base/upload"
+	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/log"
 )
 

@@ -13,8 +13,8 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/store/mongo"
-	"github.com/tidepool-org/platform/data/types/base"
-	"github.com/tidepool-org/platform/data/types/base/upload"
+	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/log"
 	baseMongo "github.com/tidepool-org/platform/store/mongo"
 	testMongo "github.com/tidepool-org/platform/test/mongo"
@@ -62,7 +62,7 @@ func NewDataset(userID string, groupID string) *upload.Upload {
 func NewDatasetData() []data.Datum {
 	datasetData := []data.Datum{}
 	for count := 0; count < 3; count++ {
-		baseDatum := &base.Base{}
+		baseDatum := &types.Base{}
 		baseDatum.Init()
 
 		baseDatum.Type = "test"
@@ -653,7 +653,7 @@ var _ = Describe("Mongo", func() {
 						It("sets the user id, group id, and upload id on the dataset data to match the dataset", func() {
 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
 							for _, datasetDatum := range datasetData {
-								baseDatum, ok := datasetDatum.(*base.Base)
+								baseDatum, ok := datasetDatum.(*types.Base)
 								Expect(ok).To(BeTrue())
 								Expect(baseDatum).ToNot(BeNil())
 								Expect(baseDatum.UserID).To(Equal(dataset.UserID))
@@ -665,7 +665,7 @@ var _ = Describe("Mongo", func() {
 						It("leaves the dataset data not active", func() {
 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
 							for _, datasetDatum := range datasetData {
-								baseDatum, ok := datasetDatum.(*base.Base)
+								baseDatum, ok := datasetDatum.(*types.Base)
 								Expect(ok).To(BeTrue())
 								Expect(baseDatum).ToNot(BeNil())
 								Expect(baseDatum.Active).To(BeFalse())
@@ -675,7 +675,7 @@ var _ = Describe("Mongo", func() {
 						It("sets the created time on the dataset data", func() {
 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
 							for _, datasetDatum := range datasetData {
-								baseDatum, ok := datasetDatum.(*base.Base)
+								baseDatum, ok := datasetDatum.(*types.Base)
 								Expect(ok).To(BeTrue())
 								Expect(baseDatum).ToNot(BeNil())
 								Expect(baseDatum.CreatedTime).ToNot(BeEmpty())
@@ -701,7 +701,7 @@ var _ = Describe("Mongo", func() {
 							It("sets the created time and created user id on the dataset data", func() {
 								Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
 								for _, datasetDatum := range datasetData {
-									baseDatum, ok := datasetDatum.(*base.Base)
+									baseDatum, ok := datasetDatum.(*types.Base)
 									Expect(ok).To(BeTrue())
 									Expect(baseDatum).ToNot(BeNil())
 									Expect(baseDatum.CreatedTime).ToNot(BeEmpty())

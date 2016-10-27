@@ -16,7 +16,7 @@ import (
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
-	"github.com/tidepool-org/platform/data/types/base/upload"
+	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/dataservices/service"
 	commonService "github.com/tidepool-org/platform/service"

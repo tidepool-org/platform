@@ -13,7 +13,7 @@ package store
 import (
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/types/base/upload"
+	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/store"
 )

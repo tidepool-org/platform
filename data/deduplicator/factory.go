@@ -13,7 +13,7 @@ package deduplicator
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
-	"github.com/tidepool-org/platform/data/types/base/upload"
+	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/log"
 )
 

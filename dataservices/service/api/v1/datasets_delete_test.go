@@ -10,7 +10,7 @@ import (
 
 	"github.com/tidepool-org/platform/app"
 	testDataStore "github.com/tidepool-org/platform/data/store/test"
-	"github.com/tidepool-org/platform/data/types/base/upload"
+	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/dataservices/service/api/v1"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/userservices/client"
