@@ -63,11 +63,6 @@ ifeq ($(shell which godef),)
 	go get -u github.com/rogpeppe/godef
 endif
 
-oracle: check-environment
-ifeq ($(shell which oracle),)
-	go get -u golang.org/x/tools/cmd/oracle
-endif
-
 ginkgo: check-environment
 ifeq ($(shell which ginkgo),)
 	mkdir -p $(GOPATH_REPOSITORY)/src/github.com/onsi/
@@ -77,7 +72,7 @@ endif
 
 buildable: goimports golint ginkgo
 
-editable: buildable gocode godef oracle
+editable: buildable gocode godef
 
 format: check-environment
 	@echo "gofmt -d -e -s"
@@ -95,8 +90,7 @@ vet: check-environment tmp
 	@echo "go tool vet -all -shadow -shadowstrict"
 	@cd $(ROOT_DIRECTORY) && \
 		find . -mindepth 1 -maxdepth 1 -not -path "./.*" -not -path "./_*" -not -path "./vendor" -type d -exec go tool vet -all -shadow -shadowstrict {} \; 2> _tmp/govet.out > _tmp/govet.out && \
-		O=`diff .govetignore _tmp/govet.out` && \
-		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
+		O=`diff .govetignore _tmp/govet.out` || (echo "$${O}" && exit 1)
 
 vet-ignore:
 	@cd $(ROOT_DIRECTORY) && cp _tmp/govet.out .govetignore
