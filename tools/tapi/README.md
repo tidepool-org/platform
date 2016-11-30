@@ -2,6 +2,11 @@
 
 This tool will allow easy command-line access to many features of the Tidepool API. It currently has limited features, but additional features will be added over time.
 
+**NB:** If you would like to use this tool on the Tidepool platform running on your machine (i.e., localhost), please note the following additional instructions:
+
+- make sure you're running the dataservices (for instructions see the repo [README](../../README.md), and don't forget to `source .env`)
+- from the root of your platform repo directory, use the full path wherever you see `tapi` in the shell commands below (e.g., `$ _bin/tools/tapi/tapi login`)
+
 ## Which Server?
 
 This tool must be configured with the appropriate HTTP endpoint in order to communicate with the Tidepool API. You can specify either the endpoint directly, or the Tidepool environment name and the endpoint will be determine automatically. It is recommended that you use specify the Tidepool environment name rather than the endpoint.
