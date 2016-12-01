@@ -162,6 +162,8 @@ $ tapi dataset delete --dataset-id ff2346e5623914b1234565661f093459
 Dataset deleted.
 ```
 
+**NB:** Older upload IDs (from ingestion through the legacy "jellyfish" ingestion service) begin with `upid_` and contain only 12 characters in the hash.
+
 ## Help
 
 For general help with the tool:
