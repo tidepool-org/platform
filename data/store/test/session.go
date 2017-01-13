@@ -39,43 +39,59 @@ type CreateDatasetDataInput struct {
 	DatasetData []data.Datum
 }
 
+type FindEarliestDatasetDataTimeOutput struct {
+	Time  string
+	Error error
+}
+
+type DeactivateOtherDatasetDataAfterTimeInput struct {
+	Dataset *upload.Upload
+	Time    string
+}
+
 type Session struct {
-	ID                                           string
-	IsClosedInvocations                          int
-	IsClosedOutputs                              []bool
-	CloseInvocations                             int
-	SetAgentInvocations                          int
-	SetAgentInputs                               []commonStore.Agent
-	GetDatasetsForUserByIDInvocations            int
-	GetDatasetsForUserByIDInputs                 []GetDatasetsForUserByIDInput
-	GetDatasetsForUserByIDOutputs                []GetDatasetsForUserByIDOutput
-	GetDatasetByIDInvocations                    int
-	GetDatasetByIDInputs                         []string
-	GetDatasetByIDOutputs                        []GetDatasetByIDOutput
-	CreateDatasetInvocations                     int
-	CreateDatasetInputs                          []*upload.Upload
-	CreateDatasetOutputs                         []error
-	UpdateDatasetInvocations                     int
-	UpdateDatasetInputs                          []*upload.Upload
-	UpdateDatasetOutputs                         []error
-	DeleteDatasetInvocations                     int
-	DeleteDatasetInputs                          []*upload.Upload
-	DeleteDatasetOutputs                         []error
-	FindDatasetDataDeduplicatorHashesInvocations int
-	FindDatasetDataDeduplicatorHashesInputs      []FindDatasetDataDeduplicatorHashesInput
-	FindDatasetDataDeduplicatorHashesOutputs     []FindDatasetDataDeduplicatorHashesOutput
-	CreateDatasetDataInvocations                 int
-	CreateDatasetDataInputs                      []CreateDatasetDataInput
-	CreateDatasetDataOutputs                     []error
-	ActivateDatasetDataInvocations               int
-	ActivateDatasetDataInputs                    []*upload.Upload
-	ActivateDatasetDataOutputs                   []error
-	DeleteOtherDatasetDataInvocations            int
-	DeleteOtherDatasetDataInputs                 []*upload.Upload
-	DeleteOtherDatasetDataOutputs                []error
-	DestroyDataForUserByIDInvocations            int
-	DestroyDataForUserByIDInputs                 []string
-	DestroyDataForUserByIDOutputs                []error
+	ID                                             string
+	IsClosedInvocations                            int
+	IsClosedOutputs                                []bool
+	CloseInvocations                               int
+	SetAgentInvocations                            int
+	SetAgentInputs                                 []commonStore.Agent
+	GetDatasetsForUserByIDInvocations              int
+	GetDatasetsForUserByIDInputs                   []GetDatasetsForUserByIDInput
+	GetDatasetsForUserByIDOutputs                  []GetDatasetsForUserByIDOutput
+	GetDatasetByIDInvocations                      int
+	GetDatasetByIDInputs                           []string
+	GetDatasetByIDOutputs                          []GetDatasetByIDOutput
+	CreateDatasetInvocations                       int
+	CreateDatasetInputs                            []*upload.Upload
+	CreateDatasetOutputs                           []error
+	UpdateDatasetInvocations                       int
+	UpdateDatasetInputs                            []*upload.Upload
+	UpdateDatasetOutputs                           []error
+	DeleteDatasetInvocations                       int
+	DeleteDatasetInputs                            []*upload.Upload
+	DeleteDatasetOutputs                           []error
+	FindDatasetDataDeduplicatorHashesInvocations   int
+	FindDatasetDataDeduplicatorHashesInputs        []FindDatasetDataDeduplicatorHashesInput
+	FindDatasetDataDeduplicatorHashesOutputs       []FindDatasetDataDeduplicatorHashesOutput
+	CreateDatasetDataInvocations                   int
+	CreateDatasetDataInputs                        []CreateDatasetDataInput
+	CreateDatasetDataOutputs                       []error
+	FindEarliestDatasetDataTimeInvocations         int
+	FindEarliestDatasetDataTimeInputs              []*upload.Upload
+	FindEarliestDatasetDataTimeOutputs             []FindEarliestDatasetDataTimeOutput
+	ActivateDatasetDataInvocations                 int
+	ActivateDatasetDataInputs                      []*upload.Upload
+	ActivateDatasetDataOutputs                     []error
+	DeactivateOtherDatasetDataAfterTimeInvocations int
+	DeactivateOtherDatasetDataAfterTimeInputs      []DeactivateOtherDatasetDataAfterTimeInput
+	DeactivateOtherDatasetDataAfterTimeOutputs     []error
+	DeleteOtherDatasetDataInvocations              int
+	DeleteOtherDatasetDataInputs                   []*upload.Upload
+	DeleteOtherDatasetDataOutputs                  []error
+	DestroyDataForUserByIDInvocations              int
+	DestroyDataForUserByIDInputs                   []string
+	DestroyDataForUserByIDOutputs                  []error
 }
 
 func NewSession() *Session {
@@ -204,6 +220,20 @@ func (s *Session) CreateDatasetData(dataset *upload.Upload, datasetData []data.D
 	return output
 }
 
+func (s *Session) FindEarliestDatasetDataTime(dataset *upload.Upload) (string, error) {
+	s.FindEarliestDatasetDataTimeInvocations++
+
+	s.FindEarliestDatasetDataTimeInputs = append(s.FindEarliestDatasetDataTimeInputs, dataset)
+
+	if len(s.FindEarliestDatasetDataTimeOutputs) == 0 {
+		panic("Unexpected invocation of FindEarliestDatasetDataTime on Session")
+	}
+
+	output := s.FindEarliestDatasetDataTimeOutputs[0]
+	s.FindEarliestDatasetDataTimeOutputs = s.FindEarliestDatasetDataTimeOutputs[1:]
+	return output.Time, output.Error
+}
+
 func (s *Session) ActivateDatasetData(dataset *upload.Upload) error {
 	s.ActivateDatasetDataInvocations++
 
@@ -215,6 +245,20 @@ func (s *Session) ActivateDatasetData(dataset *upload.Upload) error {
 
 	output := s.ActivateDatasetDataOutputs[0]
 	s.ActivateDatasetDataOutputs = s.ActivateDatasetDataOutputs[1:]
+	return output
+}
+
+func (s *Session) DeactivateOtherDatasetDataAfterTime(dataset *upload.Upload, time string) error {
+	s.DeactivateOtherDatasetDataAfterTimeInvocations++
+
+	s.DeactivateOtherDatasetDataAfterTimeInputs = append(s.DeactivateOtherDatasetDataAfterTimeInputs, DeactivateOtherDatasetDataAfterTimeInput{dataset, time})
+
+	if len(s.DeactivateOtherDatasetDataAfterTimeOutputs) == 0 {
+		panic("Unexpected invocation of DeactivateOtherDatasetDataAfterTime on Session")
+	}
+
+	output := s.DeactivateOtherDatasetDataAfterTimeOutputs[0]
+	s.DeactivateOtherDatasetDataAfterTimeOutputs = s.DeactivateOtherDatasetDataAfterTimeOutputs[1:]
 	return output
 }
 

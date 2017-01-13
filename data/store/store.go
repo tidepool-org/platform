@@ -34,7 +34,9 @@ type Session interface {
 	DeleteDataset(dataset *upload.Upload) error
 	FindDatasetDataDeduplicatorHashes(userID string, queryHashes []string) ([]string, error)
 	CreateDatasetData(dataset *upload.Upload, datasetData []data.Datum) error
+	FindEarliestDatasetDataTime(dataset *upload.Upload) (string, error)
 	ActivateDatasetData(dataset *upload.Upload) error
+	DeactivateOtherDatasetDataAfterTime(dataset *upload.Upload, time string) error
 	DeleteOtherDatasetData(dataset *upload.Upload) error
 	DestroyDataForUserByID(userID string) error
 }

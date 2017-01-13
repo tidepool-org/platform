@@ -39,7 +39,7 @@ var _ = Describe("Hash", func() {
 			testDataset.UserID = userID
 			testDataset.GroupID = app.NewID()
 			testDataset.DeviceID = app.StringAsPointer(app.NewID())
-			testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Medtronic"})
+			testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Acme"})
 		})
 
 		Context("CanDeduplicateDataset", func() {
