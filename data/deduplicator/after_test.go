@@ -281,14 +281,14 @@ var _ = Describe("After", func() {
 					})
 
 					It("returns an error if there is an error with FindEarliestDatasetDataTime", func() {
-						testDataStoreSession.FindEarliestDatasetDataTimeOutputs = []testDataStore.FindEarliestDatasetDataTimeOutput{{"", errors.New("test error")}}
+						testDataStoreSession.FindEarliestDatasetDataTimeOutputs = []testDataStore.FindEarliestDatasetDataTimeOutput{{Time: "", Error: errors.New("test error")}}
 						err := testDeduplicator.FinalizeDataset()
 						Expect(err).To(MatchError(fmt.Sprintf(`deduplicator: unable to get earliest data in dataset with id "%s"; test error`, testDataset.UploadID)))
 					})
 
 					Context("with activating dataset data", func() {
 						BeforeEach(func() {
-							testDataStoreSession.FindEarliestDatasetDataTimeOutputs = []testDataStore.FindEarliestDatasetDataTimeOutput{{"test-after-time", nil}}
+							testDataStoreSession.FindEarliestDatasetDataTimeOutputs = []testDataStore.FindEarliestDatasetDataTimeOutput{{Time: "test-after-time", Error: nil}}
 						})
 
 						AfterEach(func() {
@@ -307,7 +307,7 @@ var _ = Describe("After", func() {
 							})
 
 							AfterEach(func() {
-								Expect(testDataStoreSession.DeactivateOtherDatasetDataAfterTimeInputs).To(ConsistOf([]testDataStore.DeactivateOtherDatasetDataAfterTimeInput{{testDataset, "test-after-time"}}))
+								Expect(testDataStoreSession.DeactivateOtherDatasetDataAfterTimeInputs).To(ConsistOf([]testDataStore.DeactivateOtherDatasetDataAfterTimeInput{{Dataset: testDataset, Time: "test-after-time"}}))
 							})
 
 							It("returns an error if there is an error with DeactivateOtherDatasetDataAfterTime", func() {
@@ -324,7 +324,7 @@ var _ = Describe("After", func() {
 
 						Context("without deactivating other dataset data after time", func() {
 							BeforeEach(func() {
-								testDataStoreSession.FindEarliestDatasetDataTimeOutputs = []testDataStore.FindEarliestDatasetDataTimeOutput{{"", nil}}
+								testDataStoreSession.FindEarliestDatasetDataTimeOutputs = []testDataStore.FindEarliestDatasetDataTimeOutput{{Time: "", Error: nil}}
 								testDataStoreSession.ActivateDatasetDataOutputs = []error{nil}
 							})
 

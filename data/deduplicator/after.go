@@ -31,6 +31,7 @@ type AfterDeduplicator struct {
 const AfterDeduplicatorName = "after"
 
 // TODO: Consider using Device Model NOT Device Manufacturer to be more accurate
+
 var AfterExpectedDeviceManufacturers = []string{"Medtronic"}
 
 func NewAfterFactory() (*AfterFactory, error) {
@@ -133,11 +134,11 @@ func (a *AfterDeduplicator) FinalizeDataset() error {
 	// TODO: Technically, ActivateDatasetData could succeed, but DeactivateOtherDatasetDataAfterTimestamp fail. This would
 	// result in duplicate (and possible incorrect) data. Is there a way to resolve this? Would be nice to have transactions.
 
-	if err := a.dataStoreSession.ActivateDatasetData(a.dataset); err != nil {
+	if err = a.dataStoreSession.ActivateDatasetData(a.dataset); err != nil {
 		return app.ExtErrorf(err, "deduplicator", "unable to activate data in dataset with id %s", strconv.Quote(a.dataset.UploadID))
 	}
 	if afterTime != "" {
-		if err := a.dataStoreSession.DeactivateOtherDatasetDataAfterTime(a.dataset, afterTime); err != nil {
+		if err = a.dataStoreSession.DeactivateOtherDatasetDataAfterTime(a.dataset, afterTime); err != nil {
 			return app.ExtErrorf(err, "deduplicator", "unable to remove all other data except dataset with id %s", strconv.Quote(a.dataset.UploadID))
 		}
 	}

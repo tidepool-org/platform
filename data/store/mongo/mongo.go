@@ -518,7 +518,7 @@ func (s *Session) DeactivateOtherDatasetDataAfterTime(dataset *upload.Upload, af
 		"time":     bson.M{"$gte": afterTime},
 	}
 	update := map[string]bson.M{
-		"$set": bson.M{
+		"$set": {
 			"_active":      false,
 			"modifiedTime": modifiedTimestamp,
 		},
