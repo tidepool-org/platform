@@ -117,14 +117,14 @@ func UsersDatasetsCreate(serviceContext service.Context) {
 		return
 	}
 
-	deduplicator, err := serviceContext.DataDeduplicatorFactory().NewDeduplicator(serviceContext.Logger(), serviceContext.DataStoreSession(), dataset)
+	deduplicator, err := serviceContext.DataDeduplicatorFactory().NewDeduplicatorForDataset(serviceContext.Logger(), serviceContext.DataStoreSession(), dataset)
 	if err != nil {
-		serviceContext.RespondWithInternalServerFailure("No duplicator found matching dataset", err)
+		serviceContext.RespondWithInternalServerFailure("Unable to create deduplicator for dataset", err)
 		return
 	}
 
-	if err = deduplicator.InitializeDataset(); err != nil {
-		serviceContext.RespondWithInternalServerFailure("Unable to initialize dataset", err)
+	if err = deduplicator.RegisterDataset(); err != nil {
+		serviceContext.RespondWithInternalServerFailure("Unable to register dataset with deduplicator", err)
 		return
 	}
 

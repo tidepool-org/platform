@@ -64,14 +64,14 @@ func DatasetsUpdate(serviceContext service.Context) {
 		return
 	}
 
-	deduplicator, err := serviceContext.DataDeduplicatorFactory().NewDeduplicator(serviceContext.Logger(), serviceContext.DataStoreSession(), dataset)
+	deduplicator, err := serviceContext.DataDeduplicatorFactory().NewRegisteredDeduplicatorForDataset(serviceContext.Logger(), serviceContext.DataStoreSession(), dataset)
 	if err != nil {
-		serviceContext.RespondWithInternalServerFailure("No duplicator found matching dataset", err)
+		serviceContext.RespondWithInternalServerFailure("Unable to create registered deduplicator for dataset", err)
 		return
 	}
 
-	if err = deduplicator.FinalizeDataset(); err != nil {
-		serviceContext.RespondWithInternalServerFailure("Unable to finalize dataset", err)
+	if err = deduplicator.DeduplicateDataset(); err != nil {
+		serviceContext.RespondWithInternalServerFailure("Unable to deduplicate dataset", err)
 		return
 	}
 

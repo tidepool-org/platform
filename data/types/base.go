@@ -54,6 +54,7 @@ func (b *Base) Init() {
 	b.Active = false
 	b.CreatedTime = ""
 	b.CreatedUserID = ""
+	b.Deduplicator = nil
 	b.DeletedTime = ""
 	b.DeletedUserID = ""
 	b.GroupID = ""

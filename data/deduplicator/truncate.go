@@ -20,63 +20,59 @@ import (
 	"github.com/tidepool-org/platform/log"
 )
 
-type TruncateFactory struct{}
-
-type TruncateDeduplicator struct {
-	logger           log.Logger
-	dataStoreSession store.Session
-	dataset          *upload.Upload
+type truncateFactory struct {
+	*BaseFactory
 }
 
-const TruncateDeduplicatorName = "truncate"
-
-var ExpectedDeviceManufacturers = []string{"Animas"}
-
-func NewTruncateFactory() (*TruncateFactory, error) {
-	return &TruncateFactory{}, nil
+type truncateDeduplicator struct {
+	*BaseDeduplicator
 }
 
-func (t *TruncateFactory) CanDeduplicateDataset(dataset *upload.Upload) (bool, error) {
-	if dataset == nil {
-		return false, app.Error("deduplicator", "dataset is missing")
+const _TruncateDeduplicatorName = "truncate"
+
+var _TruncateExpectedDeviceManufacturers = []string{"Animas"}
+
+func NewTruncateFactory() (Factory, error) {
+	baseFactory, err := NewBaseFactory(_TruncateDeduplicatorName)
+	if err != nil {
+		return nil, err
 	}
 
-	if dataset.Deduplicator != nil {
-		return dataset.Deduplicator.Name == TruncateDeduplicatorName, nil
+	factory := &truncateFactory{
+		BaseFactory: baseFactory,
+	}
+	factory.Factory = factory
+
+	return factory, nil
+}
+
+func (t *truncateFactory) CanDeduplicateDataset(dataset *upload.Upload) (bool, error) {
+	if can, err := t.BaseFactory.CanDeduplicateDataset(dataset); err != nil || !can {
+		return can, err
 	}
 
-	if dataset.UploadID == "" || dataset.UserID == "" || dataset.GroupID == "" {
+	if dataset.DeviceID == nil {
 		return false, nil
 	}
-	if dataset.DeviceID == nil || *dataset.DeviceID == "" {
+	if *dataset.DeviceID == "" {
 		return false, nil
 	}
-	if dataset.DeviceManufacturers == nil || !app.StringsContainsAnyStrings(*dataset.DeviceManufacturers, ExpectedDeviceManufacturers) {
+	if dataset.DeviceManufacturers == nil {
+		return false, nil
+	}
+	if !app.StringsContainsAnyStrings(*dataset.DeviceManufacturers, _TruncateExpectedDeviceManufacturers) {
 		return false, nil
 	}
 
 	return true, nil
 }
 
-func (t *TruncateFactory) NewDeduplicator(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (data.Deduplicator, error) {
-	if logger == nil {
-		return nil, app.Error("deduplicator", "logger is missing")
+func (t *truncateFactory) NewDeduplicatorForDataset(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (data.Deduplicator, error) {
+	baseDeduplicator, err := NewBaseDeduplicator(t.name, logger, dataStoreSession, dataset)
+	if err != nil {
+		return nil, err
 	}
-	if dataStoreSession == nil {
-		return nil, app.Error("deduplicator", "data store session is missing")
-	}
-	if dataset == nil {
-		return nil, app.Error("deduplicator", "dataset is missing")
-	}
-	if dataset.UploadID == "" {
-		return nil, app.Error("deduplicator", "dataset id is missing")
-	}
-	if dataset.UserID == "" {
-		return nil, app.Error("deduplicator", "dataset user id is missing")
-	}
-	if dataset.GroupID == "" {
-		return nil, app.Error("deduplicator", "dataset group id is missing")
-	}
+
 	if dataset.DeviceID == nil {
 		return nil, app.Error("deduplicator", "dataset device id is missing")
 	}
@@ -86,50 +82,23 @@ func (t *TruncateFactory) NewDeduplicator(logger log.Logger, dataStoreSession st
 	if dataset.DeviceManufacturers == nil {
 		return nil, app.Error("deduplicator", "dataset device manufacturers is missing")
 	}
-	if !app.StringsContainsAnyStrings(*dataset.DeviceManufacturers, ExpectedDeviceManufacturers) {
-		return nil, app.Error("deduplicator", "dataset device manufacturers does not contain expected device manufacturer")
+	if !app.StringsContainsAnyStrings(*dataset.DeviceManufacturers, _TruncateExpectedDeviceManufacturers) {
+		return nil, app.Error("deduplicator", "dataset device manufacturers does not contain expected device manufacturers")
 	}
 
-	return &TruncateDeduplicator{
-		logger:           logger,
-		dataStoreSession: dataStoreSession,
-		dataset:          dataset,
+	return &truncateDeduplicator{
+		BaseDeduplicator: baseDeduplicator,
 	}, nil
 }
 
-func (t *TruncateDeduplicator) InitializeDataset() error {
-	t.dataset.SetDeduplicatorDescriptor(&data.DeduplicatorDescriptor{Name: TruncateDeduplicatorName})
-
-	if err := t.dataStoreSession.UpdateDataset(t.dataset); err != nil {
-		return app.ExtError(err, "deduplicator", "unable to initialize dataset")
-	}
-
-	return nil
-}
-
-func (t *TruncateDeduplicator) AddDataToDataset(datasetData []data.Datum) error {
-	if datasetData == nil {
-		return app.Error("deduplicator", "dataset data is missing")
-	}
-
-	if len(datasetData) == 0 {
-		return nil
-	}
-
-	if err := t.dataStoreSession.CreateDatasetData(t.dataset, datasetData); err != nil {
-		return app.ExtError(err, "deduplicator", "unable to add data to dataset")
-	}
-
-	return nil
-}
-
-func (t *TruncateDeduplicator) FinalizeDataset() error {
+func (t *truncateDeduplicator) DeduplicateDataset() error {
 	// TODO: Technically, ActivateDatasetData could succeed, but DeleteOtherDatasetData fail. This would
 	// result in duplicate (and possible incorrect) data. Is there a way to resolve this? Would be nice to have transactions.
 
-	if err := t.dataStoreSession.ActivateDatasetData(t.dataset); err != nil {
-		return app.ExtErrorf(err, "deduplicator", "unable to activate data in dataset with id %s", strconv.Quote(t.dataset.UploadID))
+	if err := t.BaseDeduplicator.DeduplicateDataset(); err != nil {
+		return err
 	}
+
 	if err := t.dataStoreSession.DeleteOtherDatasetData(t.dataset); err != nil {
 		return app.ExtErrorf(err, "deduplicator", "unable to remove all other data except dataset with id %s", strconv.Quote(t.dataset.UploadID))
 	}

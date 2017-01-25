@@ -46,10 +46,9 @@ type Datum struct {
 	SetDeletedTimeInputs                 []string
 	SetDeletedUserIDInvocations          int
 	SetDeletedUserIDInputs               []string
+	DeduplicatorDescriptorValue          *data.DeduplicatorDescriptor
 	DeduplicatorDescriptorInvocations    int
-	DeduplicatorDescriptorOutputs        []*data.DeduplicatorDescriptor
 	SetDeduplicatorDescriptorInvocations int
-	SetDeduplicatorDescriptorInputs      []*data.DeduplicatorDescriptor
 }
 
 func NewDatum() *Datum {
@@ -66,7 +65,7 @@ func (d *Datum) Meta() interface{} {
 	d.MetaInvocations++
 
 	if len(d.MetaOutputs) == 0 {
-		panic("Unexpected invocation of Meta on Session")
+		panic("Unexpected invocation of Meta on Datum")
 	}
 
 	output := d.MetaOutputs[0]
@@ -80,7 +79,7 @@ func (d *Datum) Parse(parser data.ObjectParser) error {
 	d.ParseInputs = append(d.ParseInputs, parser)
 
 	if len(d.ParseOutputs) == 0 {
-		panic("Unexpected invocation of Parse on Session")
+		panic("Unexpected invocation of Parse on Datum")
 	}
 
 	output := d.ParseOutputs[0]
@@ -94,7 +93,7 @@ func (d *Datum) Validate(validator data.Validator) error {
 	d.ValidateInputs = append(d.ValidateInputs, validator)
 
 	if len(d.ValidateOutputs) == 0 {
-		panic("Unexpected invocation of Validate on Session")
+		panic("Unexpected invocation of Validate on Datum")
 	}
 
 	output := d.ValidateOutputs[0]
@@ -108,7 +107,7 @@ func (d *Datum) Normalize(normalizer data.Normalizer) error {
 	d.NormalizeInputs = append(d.NormalizeInputs, normalizer)
 
 	if len(d.NormalizeOutputs) == 0 {
-		panic("Unexpected invocation of Normalize on Session")
+		panic("Unexpected invocation of Normalize on Datum")
 	}
 
 	output := d.NormalizeOutputs[0]
@@ -120,7 +119,7 @@ func (d *Datum) IdentityFields() ([]string, error) {
 	d.IdentityFieldsInvocations++
 
 	if len(d.IdentityFieldsOutputs) == 0 {
-		panic("Unexpected invocation of IdentityFields on Session")
+		panic("Unexpected invocation of IdentityFields on Datum")
 	}
 
 	output := d.IdentityFieldsOutputs[0]
@@ -191,19 +190,13 @@ func (d *Datum) SetDeletedUserID(deletedUserID string) {
 func (d *Datum) DeduplicatorDescriptor() *data.DeduplicatorDescriptor {
 	d.DeduplicatorDescriptorInvocations++
 
-	if len(d.DeduplicatorDescriptorOutputs) == 0 {
-		panic("Unexpected invocation of DeduplicatorDescriptor on Session")
-	}
-
-	output := d.DeduplicatorDescriptorOutputs[0]
-	d.DeduplicatorDescriptorOutputs = d.DeduplicatorDescriptorOutputs[1:]
-	return output
+	return d.DeduplicatorDescriptorValue
 }
 
 func (d *Datum) SetDeduplicatorDescriptor(deduplicatorDescriptor *data.DeduplicatorDescriptor) {
 	d.SetDeduplicatorDescriptorInvocations++
 
-	d.SetDeduplicatorDescriptorInputs = append(d.SetDeduplicatorDescriptorInputs, deduplicatorDescriptor)
+	d.DeduplicatorDescriptorValue = deduplicatorDescriptor
 }
 
 func (d *Datum) UnusedOutputsCount() int {
@@ -211,6 +204,5 @@ func (d *Datum) UnusedOutputsCount() int {
 		len(d.ParseOutputs) +
 		len(d.ValidateOutputs) +
 		len(d.NormalizeOutputs) +
-		len(d.IdentityFieldsOutputs) +
-		len(d.DeduplicatorDescriptorOutputs)
+		len(d.IdentityFieldsOutputs)
 }

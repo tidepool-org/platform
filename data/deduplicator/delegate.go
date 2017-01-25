@@ -47,7 +47,7 @@ func (d *DelegateFactory) CanDeduplicateDataset(dataset *upload.Upload) (bool, e
 	return false, nil
 }
 
-func (d *DelegateFactory) NewDeduplicator(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (data.Deduplicator, error) {
+func (d *DelegateFactory) NewDeduplicatorForDataset(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (data.Deduplicator, error) {
 	if logger == nil {
 		return nil, app.Error("deduplicator", "logger is missing")
 	}
@@ -62,7 +62,48 @@ func (d *DelegateFactory) NewDeduplicator(logger log.Logger, dataStoreSession st
 		if can, err := factory.CanDeduplicateDataset(dataset); err != nil {
 			return nil, err
 		} else if can {
-			return factory.NewDeduplicator(logger, dataStoreSession, dataset)
+			return factory.NewDeduplicatorForDataset(logger, dataStoreSession, dataset)
+		}
+	}
+	return nil, app.Error("deduplicator", "deduplicator not found")
+}
+
+func (d *DelegateFactory) IsRegisteredWithDataset(dataset *upload.Upload) (bool, error) {
+	if dataset == nil {
+		return false, app.Error("deduplicator", "dataset is missing")
+	}
+
+	for _, factory := range d.factories {
+		if is, err := factory.IsRegisteredWithDataset(dataset); err != nil {
+			return false, err
+		} else if is {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (d *DelegateFactory) NewRegisteredDeduplicatorForDataset(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (data.Deduplicator, error) {
+	if logger == nil {
+		return nil, app.Error("deduplicator", "logger is missing")
+	}
+	if dataStoreSession == nil {
+		return nil, app.Error("deduplicator", "data store session is missing")
+	}
+	if dataset == nil {
+		return nil, app.Error("deduplicator", "dataset is missing")
+	}
+
+	deduplicatorDescriptor := dataset.DeduplicatorDescriptor()
+	if deduplicatorDescriptor == nil || !deduplicatorDescriptor.IsRegisteredWithAnyDeduplicator() {
+		return nil, app.Errorf("deduplicator", "dataset not registered with deduplicator")
+	}
+
+	for _, factory := range d.factories {
+		if is, err := factory.IsRegisteredWithDataset(dataset); err != nil {
+			return nil, err
+		} else if is {
+			return factory.NewRegisteredDeduplicatorForDataset(logger, dataStoreSession, dataset)
 		}
 	}
 	return nil, app.Error("deduplicator", "deduplicator not found")

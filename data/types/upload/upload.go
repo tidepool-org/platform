@@ -48,7 +48,6 @@ func (u *Upload) Init() {
 
 	u.State = "open"
 	u.DataState = "open" // TODO: Deprecated DataState (after data migration)
-	u.Deduplicator = nil
 	u.ByUser = ""
 
 	u.ComputerTime = nil

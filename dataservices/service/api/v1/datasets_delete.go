@@ -64,7 +64,24 @@ func DatasetsDelete(serviceContext service.Context) {
 		}
 	}
 
-	if err = serviceContext.DataStoreSession().DeleteDataset(dataset); err != nil {
+	registered, err := serviceContext.DataDeduplicatorFactory().IsRegisteredWithDataset(dataset)
+	if err != nil {
+		serviceContext.RespondWithInternalServerFailure("Unable to check if registered with dataset", err)
+		return
+	}
+
+	if registered {
+		deduplicator, newErr := serviceContext.DataDeduplicatorFactory().NewRegisteredDeduplicatorForDataset(serviceContext.Logger(), serviceContext.DataStoreSession(), dataset)
+		if newErr != nil {
+			serviceContext.RespondWithInternalServerFailure("Unable to create registered deduplicator for dataset", newErr)
+			return
+		}
+		err = deduplicator.DeleteDataset()
+	} else {
+		err = serviceContext.DataStoreSession().DeleteDataset(dataset)
+	}
+
+	if err != nil {
 		serviceContext.RespondWithInternalServerFailure("Unable to delete dataset", err)
 		return
 	}

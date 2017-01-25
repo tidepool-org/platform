@@ -1,4 +1,4 @@
-package types_test
+package data_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -9,5 +9,5 @@ import (
 
 func TestSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "data/types")
+	RunSpecs(t, "data")
 }

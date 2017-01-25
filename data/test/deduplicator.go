@@ -6,14 +6,18 @@ import (
 )
 
 type Deduplicator struct {
-	ID                           string
-	InitializeDatasetInvocations int
-	InitializeDatasetOutputs     []error
-	AddDataToDatasetInvocations  int
-	AddDataToDatasetInputs       [][]data.Datum
-	AddDataToDatasetOutputs      []error
-	FinalizeDatasetInvocations   int
-	FinalizeDatasetOutputs       []error
+	ID                            string
+	NameInvocations               int
+	NameOutputs                   []string
+	RegisterDatasetInvocations    int
+	RegisterDatasetOutputs        []error
+	AddDatasetDataInvocations     int
+	AddDatasetDataInputs          [][]data.Datum
+	AddDatasetDataOutputs         []error
+	DeduplicateDatasetInvocations int
+	DeduplicateDatasetOutputs     []error
+	DeleteDatasetInvocations      int
+	DeleteDatasetOutputs          []error
 }
 
 func NewDeduplicator() *Deduplicator {
@@ -22,46 +26,72 @@ func NewDeduplicator() *Deduplicator {
 	}
 }
 
-func (d *Deduplicator) InitializeDataset() error {
-	d.InitializeDatasetInvocations++
+func (d *Deduplicator) Name() string {
+	d.NameInvocations++
 
-	if len(d.InitializeDatasetOutputs) == 0 {
-		panic("Unexpected invocation of InitializeDataset on Deduplicator")
+	if len(d.NameOutputs) == 0 {
+		panic("Unexpected invocation of Name on Deduplicator")
 	}
 
-	output := d.InitializeDatasetOutputs[0]
-	d.InitializeDatasetOutputs = d.InitializeDatasetOutputs[1:]
+	output := d.NameOutputs[0]
+	d.NameOutputs = d.NameOutputs[1:]
 	return output
 }
 
-func (d *Deduplicator) AddDataToDataset(datasetData []data.Datum) error {
-	d.AddDataToDatasetInvocations++
+func (d *Deduplicator) RegisterDataset() error {
+	d.RegisterDatasetInvocations++
 
-	d.AddDataToDatasetInputs = append(d.AddDataToDatasetInputs, datasetData)
-
-	if len(d.AddDataToDatasetOutputs) == 0 {
-		panic("Unexpected invocation of AddDataToDataset on Deduplicator")
+	if len(d.RegisterDatasetOutputs) == 0 {
+		panic("Unexpected invocation of RegisterDataset on Deduplicator")
 	}
 
-	output := d.AddDataToDatasetOutputs[0]
-	d.AddDataToDatasetOutputs = d.AddDataToDatasetOutputs[1:]
+	output := d.RegisterDatasetOutputs[0]
+	d.RegisterDatasetOutputs = d.RegisterDatasetOutputs[1:]
 	return output
 }
 
-func (d *Deduplicator) FinalizeDataset() error {
-	d.FinalizeDatasetInvocations++
+func (d *Deduplicator) AddDatasetData(datasetData []data.Datum) error {
+	d.AddDatasetDataInvocations++
 
-	if len(d.FinalizeDatasetOutputs) == 0 {
-		panic("Unexpected invocation of FinalizeDataset on Deduplicator")
+	d.AddDatasetDataInputs = append(d.AddDatasetDataInputs, datasetData)
+
+	if len(d.AddDatasetDataOutputs) == 0 {
+		panic("Unexpected invocation of AddDatasetData on Deduplicator")
 	}
 
-	output := d.FinalizeDatasetOutputs[0]
-	d.FinalizeDatasetOutputs = d.FinalizeDatasetOutputs[1:]
+	output := d.AddDatasetDataOutputs[0]
+	d.AddDatasetDataOutputs = d.AddDatasetDataOutputs[1:]
+	return output
+}
+
+func (d *Deduplicator) DeduplicateDataset() error {
+	d.DeduplicateDatasetInvocations++
+
+	if len(d.DeduplicateDatasetOutputs) == 0 {
+		panic("Unexpected invocation of DeduplicateDataset on Deduplicator")
+	}
+
+	output := d.DeduplicateDatasetOutputs[0]
+	d.DeduplicateDatasetOutputs = d.DeduplicateDatasetOutputs[1:]
+	return output
+}
+
+func (d *Deduplicator) DeleteDataset() error {
+	d.DeleteDatasetInvocations++
+
+	if len(d.DeleteDatasetOutputs) == 0 {
+		panic("Unexpected invocation of DeleteDataset on Deduplicator")
+	}
+
+	output := d.DeleteDatasetOutputs[0]
+	d.DeleteDatasetOutputs = d.DeleteDatasetOutputs[1:]
 	return output
 }
 
 func (d *Deduplicator) UnusedOutputsCount() int {
-	return len(d.InitializeDatasetOutputs) +
-		len(d.AddDataToDatasetOutputs) +
-		len(d.FinalizeDatasetOutputs)
+	return len(d.NameOutputs) +
+		len(d.RegisterDatasetOutputs) +
+		len(d.AddDatasetDataOutputs) +
+		len(d.DeduplicateDatasetOutputs) +
+		len(d.DeleteDatasetOutputs)
 }

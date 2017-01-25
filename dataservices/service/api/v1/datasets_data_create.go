@@ -63,9 +63,9 @@ func DatasetsDataCreate(serviceContext service.Context) {
 		return
 	}
 
-	deduplicator, err := serviceContext.DataDeduplicatorFactory().NewDeduplicator(serviceContext.Logger(), serviceContext.DataStoreSession(), dataset)
+	deduplicator, err := serviceContext.DataDeduplicatorFactory().NewRegisteredDeduplicatorForDataset(serviceContext.Logger(), serviceContext.DataStoreSession(), dataset)
 	if err != nil {
-		serviceContext.RespondWithInternalServerFailure("No duplicator found matching dataset", err)
+		serviceContext.RespondWithInternalServerFailure("Unable to create registered deduplicator for dataset", err)
 		return
 	}
 
@@ -126,8 +126,8 @@ func DatasetsDataCreate(serviceContext service.Context) {
 		datum.SetDatasetID(dataset.UploadID)
 	}
 
-	if err = deduplicator.AddDataToDataset(datumArray); err != nil {
-		serviceContext.RespondWithInternalServerFailure("Unable to add data to dataset", err)
+	if err = deduplicator.AddDatasetData(datumArray); err != nil {
+		serviceContext.RespondWithInternalServerFailure("Unable to add dataset data", err)
 		return
 	}
 

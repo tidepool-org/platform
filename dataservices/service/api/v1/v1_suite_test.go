@@ -12,6 +12,7 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
+	testDataDeduplicator "github.com/tidepool-org/platform/data/deduplicator/test"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	testDataStore "github.com/tidepool-org/platform/data/store/test"
 	"github.com/tidepool-org/platform/log"
@@ -174,6 +175,7 @@ type TestContext struct {
 	RespondWithStatusAndDataInputs         []RespondWithStatusAndDataInput
 	MetricServicesClientImpl               *TestMetricServicesClient
 	UserServicesClientImpl                 *TestUserServicesClient
+	DataDeduplicatorFactoryImpl            *testDataDeduplicator.Factory
 	DataStoreSessionImpl                   *testDataStore.Session
 	TaskStoreSessionImpl                   *TestTaskStoreSession
 	AuthenticationDetailsImpl              *TestAuthenticationDetails
@@ -188,11 +190,12 @@ func NewTestContext() *TestContext {
 			},
 			PathParams: map[string]string{},
 		},
-		MetricServicesClientImpl:  &TestMetricServicesClient{},
-		UserServicesClientImpl:    &TestUserServicesClient{},
-		DataStoreSessionImpl:      testDataStore.NewSession(),
-		TaskStoreSessionImpl:      &TestTaskStoreSession{},
-		AuthenticationDetailsImpl: &TestAuthenticationDetails{},
+		MetricServicesClientImpl:    &TestMetricServicesClient{},
+		UserServicesClientImpl:      &TestUserServicesClient{},
+		DataDeduplicatorFactoryImpl: testDataDeduplicator.NewFactory(),
+		DataStoreSessionImpl:        testDataStore.NewSession(),
+		TaskStoreSessionImpl:        &TestTaskStoreSession{},
+		AuthenticationDetailsImpl:   &TestAuthenticationDetails{},
 	}
 }
 
@@ -237,7 +240,7 @@ func (t *TestContext) DataFactory() data.Factory {
 }
 
 func (t *TestContext) DataDeduplicatorFactory() deduplicator.Factory {
-	panic("Unexpected invocation of DataDeduplicatorFactory on TestContext")
+	return t.DataDeduplicatorFactoryImpl
 }
 
 func (t *TestContext) DataStoreSession() dataStore.Session {
@@ -259,6 +262,7 @@ func (t *TestContext) SetAuthenticationDetails(authenticationDetails userservice
 func (t *TestContext) ValidateTest() bool {
 	return (t.MetricServicesClientImpl == nil || t.MetricServicesClientImpl.ValidateTest()) &&
 		(t.UserServicesClientImpl == nil || t.UserServicesClientImpl.ValidateTest()) &&
+		(t.DataDeduplicatorFactoryImpl == nil || t.DataDeduplicatorFactoryImpl.UnusedOutputsCount() == 0) &&
 		(t.DataStoreSessionImpl == nil || t.DataStoreSessionImpl.UnusedOutputsCount() == 0) &&
 		(t.TaskStoreSessionImpl == nil || t.TaskStoreSessionImpl.ValidateTest()) &&
 		(t.AuthenticationDetailsImpl == nil || t.AuthenticationDetailsImpl.ValidateTest())

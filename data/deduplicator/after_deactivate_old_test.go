@@ -15,10 +15,10 @@ import (
 	"github.com/tidepool-org/platform/log"
 )
 
-var _ = Describe("Truncate", func() {
-	Context("NewTruncateFactory", func() {
+var _ = Describe("AfterDeactivateOld", func() {
+	Context("NewAfterDeactivateOldFactory", func() {
 		It("returns a new factory", func() {
-			Expect(deduplicator.NewTruncateFactory()).ToNot(BeNil())
+			Expect(deduplicator.NewAfterDeactivateOldFactory()).ToNot(BeNil())
 		})
 	})
 
@@ -28,7 +28,7 @@ var _ = Describe("Truncate", func() {
 
 		BeforeEach(func() {
 			var err error
-			testFactory, err = deduplicator.NewTruncateFactory()
+			testFactory, err = deduplicator.NewAfterDeactivateOldFactory()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testFactory).ToNot(BeNil())
 			testDataset = upload.Init()
@@ -36,7 +36,7 @@ var _ = Describe("Truncate", func() {
 			testDataset.UserID = app.NewID()
 			testDataset.GroupID = app.NewID()
 			testDataset.DeviceID = app.StringAsPointer(app.NewID())
-			testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Animas"})
+			testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"UNUSED"})
 		})
 
 		Context("CanDeduplicateDataset", func() {
@@ -91,7 +91,7 @@ var _ = Describe("Truncate", func() {
 			})
 
 			It("returns true if the device id and expected device manufacturer are specified with multiple device manufacturers", func() {
-				testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Ant", "Zebra", "Animas", "Cobra"})
+				testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Ant", "Zebra", "UNUSED", "Cobra"})
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeTrue())
 			})
 		})
@@ -191,7 +191,7 @@ var _ = Describe("Truncate", func() {
 				})
 
 				It("returns a new deduplicator upon success if the device id and expected device manufacturer are specified with multiple device manufacturers", func() {
-					testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Ant", "Zebra", "Animas", "Cobra"})
+					testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Ant", "Zebra", "UNUSED", "Cobra"})
 					Expect(testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)).ToNot(BeNil())
 				})
 			})
@@ -207,38 +207,64 @@ var _ = Describe("Truncate", func() {
 				})
 
 				Context("DeduplicateDataset", func() {
-					Context("with activating dataset data", func() {
+					Context("with finding earliest dataset data time", func() {
 						BeforeEach(func() {
-							testDataStoreSession.ActivateDatasetDataOutputs = []error{nil}
+							testDataStoreSession.FindEarliestDatasetDataTimeOutputs = []testDataStore.FindEarliestDatasetDataTimeOutput{{Time: "test-after-time", Error: nil}}
 						})
 
 						AfterEach(func() {
-							Expect(testDataStoreSession.ActivateDatasetDataInputs).To(ConsistOf(testDataset))
+							Expect(testDataStoreSession.FindEarliestDatasetDataTimeInputs).To(ConsistOf(testDataset))
 						})
 
-						It("returns an error if there is an error with ActivateDatasetData", func() {
-							testDataStoreSession.ActivateDatasetDataOutputs = []error{errors.New("test error")}
+						It("returns an error if there is an error with FindEarliestDatasetDataTime", func() {
+							testDataStoreSession.FindEarliestDatasetDataTimeOutputs = []testDataStore.FindEarliestDatasetDataTimeOutput{{Time: "", Error: errors.New("test error")}}
 							err := testDeduplicator.DeduplicateDataset()
-							Expect(err).To(MatchError(fmt.Sprintf(`deduplicator: unable to activate dataset data with id "%s"; test error`, testDataset.UploadID)))
+							Expect(err).To(MatchError(fmt.Sprintf(`deduplicator: unable to get earliest data in dataset with id "%s"; test error`, testDataset.UploadID)))
 						})
 
-						Context("with deleting other dataset data", func() {
+						Context("with activating dataset data", func() {
 							BeforeEach(func() {
-								testDataStoreSession.DeleteOtherDatasetDataOutputs = []error{nil}
+								testDataStoreSession.ActivateDatasetDataOutputs = []error{nil}
 							})
 
 							AfterEach(func() {
-								Expect(testDataStoreSession.DeleteOtherDatasetDataInputs).To(ConsistOf(testDataset))
+								Expect(testDataStoreSession.ActivateDatasetDataInputs).To(ConsistOf(testDataset))
 							})
 
-							It("returns an error if there is an error with DeleteOtherDatasetData", func() {
-								testDataStoreSession.DeleteOtherDatasetDataOutputs = []error{errors.New("test error")}
+							It("returns an error if there is an error with ActivateDatasetData", func() {
+								testDataStoreSession.ActivateDatasetDataOutputs = []error{errors.New("test error")}
 								err := testDeduplicator.DeduplicateDataset()
-								Expect(err).To(MatchError(fmt.Sprintf(`deduplicator: unable to remove all other data except dataset with id "%s"; test error`, testDataset.UploadID)))
+								Expect(err).To(MatchError(fmt.Sprintf(`deduplicator: unable to activate dataset data with id "%s"; test error`, testDataset.UploadID)))
 							})
 
-							It("returns successfully if there is no error", func() {
-								Expect(testDeduplicator.DeduplicateDataset()).To(Succeed())
+							Context("with deactivating other dataset data after time", func() {
+								BeforeEach(func() {
+									testDataStoreSession.DeactivateOtherDatasetDataAfterTimeOutputs = []error{nil}
+								})
+
+								AfterEach(func() {
+									Expect(testDataStoreSession.DeactivateOtherDatasetDataAfterTimeInputs).To(ConsistOf([]testDataStore.DeactivateOtherDatasetDataAfterTimeInput{{Dataset: testDataset, Time: "test-after-time"}}))
+								})
+
+								It("returns an error if there is an error with DeactivateOtherDatasetDataAfterTime", func() {
+									testDataStoreSession.DeactivateOtherDatasetDataAfterTimeOutputs = []error{errors.New("test error")}
+									err := testDeduplicator.DeduplicateDataset()
+									Expect(err).To(MatchError(fmt.Sprintf(`deduplicator: unable to remove all other data except dataset with id "%s"; test error`, testDataset.UploadID)))
+								})
+
+								It("returns successfully if there is no error", func() {
+									Expect(testDeduplicator.DeduplicateDataset()).To(Succeed())
+								})
+							})
+
+							Context("without deactivating other dataset data after time", func() {
+								BeforeEach(func() {
+									testDataStoreSession.FindEarliestDatasetDataTimeOutputs = []testDataStore.FindEarliestDatasetDataTimeOutput{{Time: "", Error: nil}}
+								})
+
+								It("returns successfully if there is no error", func() {
+									Expect(testDeduplicator.DeduplicateDataset()).To(Succeed())
+								})
 							})
 						})
 					})
