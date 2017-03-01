@@ -1,15 +1,5 @@
 package main
 
-/* CHECKLIST
- * [ ] Uses interfaces as appropriate
- * [ ] Private package variables use underscore prefix
- * [ ] All parameters validated
- * [ ] All errors handled
- * [ ] Reviewed for concurrency safety
- * [ ] Code complete
- * [ ] Full test coverage
- */
-
 import (
 	"fmt"
 	"os"
@@ -300,23 +290,35 @@ func migrateMetaIDToUserIDForMetadata(logger log.Logger, config *Config, metaIDT
 	for metaID, userID := range metaIDToUserIDMap {
 		metadataLogger := logger.WithFields(log.Fields{"metaID": metaID, "userId": userID})
 
-		metadataLogger.Debug("Finding metadata for meta id with incorrect existing user id")
+		metadataLogger.Debug("Finding metadata for meta id")
 
-		query := bson.M{
-			"$and": []bson.M{
-				{"_id": metaID},
-				{"userId": bson.M{"$exists": true}},
-				{"userId": bson.M{"$ne": userID}},
-			},
+		var results []struct {
+			ID     string  `bson:"_id"`
+			UserID *string `bson:"userId"`
+			Value  *string `bson:"value"`
 		}
-		count, err = metadataSession.C().Find(query).Count()
+		err = metadataSession.C().Find(bson.M{"_id": metaID}).All(&results)
 		if err != nil {
-			metadataLogger.WithError(err).Error("Unable to query for incorrect metadata")
+			metadataLogger.WithError(err).Error("Unable to query for metadata")
 			continue
 		}
 
-		if count != 0 {
-			metadataLogger.WithField("count", count).Error("Found metadata for meta id with incorrect existing user id")
+		resultsCount := len(results)
+		switch resultsCount {
+		case 0:
+			metadataLogger.Error("No metadata found for meta id")
+			continue
+		case 1:
+			break
+		default:
+			metadataLogger.WithField("count", resultsCount).Error("More than one metadata found for meta id")
+			continue
+		}
+
+		if result := results[0]; result.UserID != nil {
+			if existingUserID := *result.UserID; existingUserID != userID {
+				metadataLogger.WithField("existingUserID", existingUserID).Error("Found metadata for meta id with incorrect existing user id")
+			}
 			continue
 		}
 
