@@ -19,6 +19,7 @@ type Config struct {
 	Log    *log.Config
 	Mongo  *mongo.Config
 	DryRun bool
+	Index  bool
 }
 
 const (
@@ -26,6 +27,7 @@ const (
 	VersionFlag   = "version"
 	VerboseFlag   = "verbose"
 	DryRunFlag    = "dry-run"
+	IndexFlag     = "index"
 	AddressesFlag = "addresses"
 	SSLFlag       = "ssl"
 )
@@ -72,6 +74,10 @@ func initializeApplication() (*cli.App, error) {
 		cli.BoolFlag{
 			Name:  fmt.Sprintf("%s,%s", DryRunFlag, "n"),
 			Usage: "dry run only, do not update database",
+		},
+		cli.BoolFlag{
+			Name:  fmt.Sprintf("%s,%s", IndexFlag, "i"),
+			Usage: "add unique index after migration",
 		},
 		cli.StringFlag{
 			Name:  fmt.Sprintf("%s,%s", AddressesFlag, "a"),
@@ -155,6 +161,13 @@ func buildConfigFromContext(context *cli.Context) (*Config, error) {
 	if context.Bool(DryRunFlag) {
 		config.DryRun = true
 	}
+	if context.Bool(IndexFlag) {
+		config.Index = true
+	}
+
+	if config.DryRun && config.Index {
+		return nil, app.Error("migrate_pmid_to_uid", "cannot specify --index with --dry-run")
+	}
 
 	return config, nil
 }
@@ -217,21 +230,21 @@ func buildMetaIDToUserIDMap(logger log.Logger, config *Config) (map[string]strin
 		userLogger = userLogger.WithField("userId", userID)
 
 		if _, ok := userIDMap[userID]; ok {
-			userLogger.Error("Found multiple users with same user id")
+			userLogger.Error("Multiple users found with same user id")
 			continue
 		}
 		userIDMap[userID] = true
 
 		metaID := result.Private.Meta.ID
 		if metaID == "" {
-			userLogger.Warn("Missing private meta id in result from users query for user id")
+			userLogger.Warn("User found without meta id")
 			continue
 		}
 
 		userLogger = userLogger.WithField("metaId", metaID)
 
 		if _, ok := metaIDToUserIDMap[metaID]; ok {
-			userLogger.Error("Found multiple users with same meta id")
+			userLogger.Error("Multiple users found with same meta id")
 			continue
 		}
 		metaIDToUserIDMap[metaID] = userID
@@ -270,25 +283,11 @@ func migrateMetaIDToUserIDForMetadata(logger log.Logger, config *Config, metaIDT
 	}
 	defer metadataSession.Close()
 
-	if !config.DryRun {
-		logger.Info("Creating unique index on user id")
-
-		index := mgo.Index{
-			Key:        []string{"userId"},
-			Unique:     true,
-			Background: true,
-		}
-		err = metadataSession.C().EnsureIndex(index)
-		if err != nil {
-			return app.ExtError(err, "migrate_pmid_to_uid", "unable to create metadata index on user id")
-		}
-	}
-
 	logger.Debug("Walking meta id to user id map")
 
 	var count int
 	for metaID, userID := range metaIDToUserIDMap {
-		metadataLogger := logger.WithFields(log.Fields{"metaID": metaID, "userId": userID})
+		metadataLogger := logger.WithFields(log.Fields{"metaId": metaID, "userId": userID})
 
 		metadataLogger.Debug("Finding metadata for meta id")
 
@@ -306,7 +305,7 @@ func migrateMetaIDToUserIDForMetadata(logger log.Logger, config *Config, metaIDT
 		resultsCount := len(results)
 		switch resultsCount {
 		case 0:
-			metadataLogger.Error("No metadata found for meta id")
+			metadataLogger.Error("Metadata not found for meta id")
 			continue
 		case 1:
 			break
@@ -317,7 +316,7 @@ func migrateMetaIDToUserIDForMetadata(logger log.Logger, config *Config, metaIDT
 
 		if result := results[0]; result.UserID != nil {
 			if existingUserID := *result.UserID; existingUserID != userID {
-				metadataLogger.WithField("existingUserID", existingUserID).Error("Found metadata for meta id with incorrect existing user id")
+				metadataLogger.WithField("existingUserId", existingUserID).Error("Metadata found for meta id with incorrect existing user id")
 			}
 			continue
 		}
@@ -356,13 +355,31 @@ func migrateMetaIDToUserIDForMetadata(logger log.Logger, config *Config, metaIDT
 	}
 
 	if !config.DryRun {
-		if count, err = metadataSession.C().Find(bson.M{"userId": bson.M{"$exists": false}}).Count(); err != nil {
-			logger.WithError(err).Error("Unable to query for metadata without user id")
-		} else if count != 0 {
-			logger.WithField("count", count).Error("Found metadata without user id")
+		iter := metadataSession.C().Find(bson.M{"userId": bson.M{"$exists": false}}).Iter()
+		var result map[string]interface{}
+		for iter.Next(&result) {
+			logger.WithField("metaId", result["_id"]).Error("Metadata found without user id")
+		}
+		if err = iter.Close(); err != nil {
+			return app.ExtError(err, "migrate_pmid_to_uid", "unable to iterate metadata without user id")
 		}
 	}
 
 	logger.Info(fmt.Sprintf("Migrated %d metadata for %d meta", migrateMetadataCount, migrateMetaCount))
+
+	if config.Index {
+		logger.Info("Creating unique index on user id")
+
+		index := mgo.Index{
+			Key:        []string{"userId"},
+			Unique:     true,
+			Background: false,
+		}
+		err = metadataSession.C().EnsureIndex(index)
+		if err != nil {
+			return app.ExtError(err, "migrate_pmid_to_uid", "unable to create metadata index on user id")
+		}
+	}
+
 	return nil
 }
