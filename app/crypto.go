@@ -28,6 +28,18 @@ func EncryptWithAES256UsingPassphrase(bytes []byte, passphrase []byte) ([]byte, 
 	return encryptWithAES256(bytes, key, iv)
 }
 
+func DecryptWithAES256UsingPassphrase(bytes []byte, passphrase []byte) ([]byte, error) {
+	if len(bytes) == 0 {
+		return nil, Error("app", "bytes is missing")
+	}
+	if len(passphrase) == 0 {
+		return nil, Error("app", "passphrase is missing")
+	}
+
+	key, iv := passphraseToKey32AndIV16(passphrase)
+	return decryptWithAES256(bytes, key, iv)
+}
+
 func encryptWithAES256(bytes []byte, key []byte, iv []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -38,6 +50,17 @@ func encryptWithAES256(bytes []byte, key []byte, iv []byte) ([]byte, error) {
 	encryptedBytes := make([]byte, len(paddedBytes))
 	cipher.NewCBCEncrypter(block, iv).CryptBlocks(encryptedBytes, paddedBytes)
 	return encryptedBytes, nil
+}
+
+func decryptWithAES256(bytes []byte, key []byte, iv []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	decryptedBytes := make([]byte, len(bytes))
+	cipher.NewCBCDecrypter(block, iv).CryptBlocks(decryptedBytes, bytes)
+	return unpadBytesWithPKCS7(decryptedBytes), nil
 }
 
 func hash(hashed []byte, password []byte) []byte {
@@ -66,6 +89,15 @@ func padBytesWithPKCS7(bytes []byte) []byte {
 		paddedBytes[len(bytes)+i] = byte(paddingLength)
 	}
 	return paddedBytes
+}
+
+func unpadBytesWithPKCS7(bytes []byte) []byte {
+	overflowLength := int(bytes[len(bytes)-1])
+	if overflowLength >= aes.BlockSize {
+		return bytes
+	}
+
+	return bytes[:len(bytes)-overflowLength]
 }
 
 func passphraseToKey32AndIV16(passphrase []byte) ([]byte, []byte) {
