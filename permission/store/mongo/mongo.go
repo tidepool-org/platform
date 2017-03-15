@@ -11,13 +11,13 @@ package mongo
  */
 
 import (
-	"encoding/base64"
 	"time"
 
 	"gopkg.in/mgo.v2/bson"
 
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/permission/store"
 	"github.com/tidepool-org/platform/store/mongo"
 )
@@ -76,7 +76,7 @@ func (s *Session) DestroyPermissionsForUserByID(userID string) error {
 
 	startTime := time.Now()
 
-	groupID, err := s.GroupIDFromUserID(userID)
+	groupID, err := permission.GroupIDFromUserID(userID, s.config.Secret)
 	if err != nil {
 		return app.ExtError(err, "mongo", "unable to determine group id from user id")
 	}
@@ -96,18 +96,4 @@ func (s *Session) DestroyPermissionsForUserByID(userID string) error {
 		return app.ExtError(err, "mongo", "unable to destroy permissions for user by id")
 	}
 	return nil
-}
-
-func (s *Session) GroupIDFromUserID(userID string) (string, error) {
-	if userID == "" {
-		return "", app.Error("mongo", "user id is missing")
-	}
-
-	groupIDBytes, err := app.EncryptWithAES256UsingPassphrase([]byte(userID), []byte(s.config.Secret))
-	if err != nil {
-		return "", app.ExtError(err, "mongo", "unable to encrypt with AES-256 using passphrase")
-	}
-
-	groupID := base64.StdEncoding.EncodeToString(groupIDBytes)
-	return groupID, nil
 }
