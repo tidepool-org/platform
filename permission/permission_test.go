@@ -50,4 +50,58 @@ var _ = Describe("permission", func() {
 			Entry("is example #20", "970d79a164", "3CyaEVxSX0HgvBCwEHiSBg=="),
 		)
 	})
+
+	Context("UserIDFromGroupID", func() {
+		It("returns an error if the group id is missing", func() {
+			groupID, err := permission.UserIDFromGroupID("", "secret")
+			Expect(err).To(MatchError("permission: group id is missing"))
+			Expect(groupID).To(BeEmpty())
+		})
+
+		It("returns an error if the secret is missing", func() {
+			groupID, err := permission.UserIDFromGroupID("1uO1mX4bFJ3hAC8g20l8fw==", "")
+			Expect(err).To(MatchError("permission: secret is missing"))
+			Expect(groupID).To(BeEmpty())
+		})
+
+		It("returns an error if the group id is not properly encoded", func() {
+			groupID, err := permission.UserIDFromGroupID("1uO1mX4bFJ3hAC8g20l8fw", "secret")
+			Expect(err).To(MatchError("permission: unable to decode with Base64"))
+			Expect(groupID).To(BeEmpty())
+		})
+
+		It("returns an error if the group id is not properly encrypted", func() {
+			groupID, err := permission.UserIDFromGroupID("abcd", "secret")
+			Expect(err).To(MatchError("permission: unable to decrypt with AES-256 using passphrase"))
+			Expect(groupID).To(BeEmpty())
+		})
+
+		DescribeTable("is successful for",
+			func(groupID string, expectedUserID string) {
+				userID, err := permission.UserIDFromGroupID(groupID, "secret")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(userID).To(Equal(expectedUserID))
+			},
+			Entry("is example #1", "NEHqFs6tA/2NRZ9oTPAHMA==", "0cd1a5d68b"),
+			Entry("is example #2", "rsWDsFcmDE2BgNfkNoiCnQ==", "b52201f96b"),
+			Entry("is example #3", "cDuye1AVYPyAKvPy18+RqQ==", "46267a83eb"),
+			Entry("is example #4", "1uO1mX4bFJ3hAC8g20l8fw==", "982f600045"),
+			Entry("is example #5", "pMsbWdlanJldEYjkTokydA==", "a06176bed7"),
+			Entry("is example #6", "K35VY5wP6LVTpBTMUXv5OA==", "d23b0a8786"),
+			Entry("is example #7", "I/RdKRn3wMcaKtC/TRUIhg==", "a011c16df7"),
+			Entry("is example #8", "AMFipBBZSHW0pP+985buzg==", "8ea2d078f6"),
+			Entry("is example #9", "X7DU5wxZYR9UDh780y+J9w==", "6128ef12fc"),
+			Entry("is example #10", "MgBbUF8XsHkj5ndZsJ0PmQ==", "806d315a0b"),
+			Entry("is example #11", "iaR6v0jAWWXbDt4qS4s9HA==", "aa16056cee"),
+			Entry("is example #12", "ARD9NlydxJZj7sJfz1UjOA==", "b4ba07dab4"),
+			Entry("is example #13", "YZGtYTIrvgSH8e7r9klFCw==", "b4cae0bcbd"),
+			Entry("is example #14", "CPzI+gdipBRYrl4ABZav4Q==", "7a1f209635"),
+			Entry("is example #15", "k7kXyy3XBtoPKw9TwjLyew==", "68e70b285e"),
+			Entry("is example #16", "HhLoSXNns8xVJh4YChWVEA==", "bf33f09e3b"),
+			Entry("is example #17", "4X10Q6lWGPnz2vmH7oc/6w==", "bb98bafa52"),
+			Entry("is example #18", "ABGQBmS1eq08lnNzhMrVyg==", "593f506db1"),
+			Entry("is example #19", "j21FL0lWNS1DU2A2dEwgMg==", "480e0d76cb"),
+			Entry("is example #20", "3CyaEVxSX0HgvBCwEHiSBg==", "970d79a164"),
+		)
+	})
 })
