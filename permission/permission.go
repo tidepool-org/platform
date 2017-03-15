@@ -16,7 +16,7 @@ func GroupIDFromUserID(userID string, secret string) (string, error) {
 
 	groupIDBytes, err := app.EncryptWithAES256UsingPassphrase([]byte(userID), []byte(secret))
 	if err != nil {
-		return "", app.ExtError(err, "permission", "unable to encrypt with AES-256 using passphrase")
+		return "", app.Error("permission", "unable to encrypt with AES-256 using passphrase")
 	}
 
 	groupID := base64.StdEncoding.EncodeToString(groupIDBytes)
@@ -33,12 +33,12 @@ func UserIDFromGroupID(groupID string, secret string) (string, error) {
 
 	groupIDBytes, err := base64.StdEncoding.DecodeString(groupID)
 	if err != nil {
-		return "", app.ExtError(err, "permission", "unable to decode with Base64")
+		return "", app.Error("permission", "unable to decode with Base64")
 	}
 
 	userIDBytes, err := app.DecryptWithAES256UsingPassphrase(groupIDBytes, []byte(secret))
 	if err != nil {
-		return "", app.ExtError(err, "permission", "unable to decrypt with AES-256 using passphrase")
+		return "", app.Error("permission", "unable to decrypt with AES-256 using passphrase")
 	}
 
 	return string(userIDBytes), nil
