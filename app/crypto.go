@@ -16,7 +16,13 @@ import (
 	"crypto/md5"
 )
 
-func EncryptWithAES256UsingPassphrase(bytes []byte, passphrase []byte) ([]byte, error) {
+func EncryptWithAES256UsingPassphrase(bytes []byte, passphrase []byte) (_ []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = Error("app", "unrecoverable encryption failure")
+		}
+	}()
+
 	if len(bytes) == 0 {
 		return nil, Error("app", "bytes is missing")
 	}
@@ -28,7 +34,13 @@ func EncryptWithAES256UsingPassphrase(bytes []byte, passphrase []byte) ([]byte, 
 	return encryptWithAES256(bytes, key, iv)
 }
 
-func DecryptWithAES256UsingPassphrase(bytes []byte, passphrase []byte) ([]byte, error) {
+func DecryptWithAES256UsingPassphrase(bytes []byte, passphrase []byte) (_ []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = Error("app", "unrecoverable decryption failure")
+		}
+	}()
+
 	if len(bytes) == 0 {
 		return nil, Error("app", "bytes is missing")
 	}
