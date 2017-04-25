@@ -3,20 +3,20 @@ sudo: false
 language: go
 
 go:
-  - 1.7.1
+  - 1.8.3
 
 addons:
   apt:
     sources:
-    - mongodb-3.0-precise
+      - mongodb-3.2-precise
     packages:
-    - mongodb-org-server
+      - mongodb-org-server
   artifacts:
-    s3_region: "us-west-2"
+    s3_region: us-west-2
     paths:
-    - $(git ls-files -o deploy/*/*-*.tar.gz | tr "\n" ":")
+      - $(git ls-files -o deploy/*/*-*.tar.gz | tr "\n" ":")
     target_paths:
-    - /
+      - /
   code_climate:
     repo_token: 91ded9b66924acbe830541ab3593daf535f05f7c6db91b5cbd2d26dcf37da0b8
 
