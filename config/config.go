@@ -8,8 +8,8 @@ import (
 	"sync"
 
 	"github.com/tidepool-org/configor"
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/environment"
+	"github.com/tidepool-org/platform/errors"
 )
 
 type Loader interface {
@@ -18,19 +18,19 @@ type Loader interface {
 
 func NewLoader(environmentReporter environment.Reporter, directory string) (Loader, error) {
 	if environmentReporter == nil {
-		return nil, app.Error("config", "environment reporter is missing")
+		return nil, errors.New("config", "environment reporter is missing")
 	}
 	if directory == "" {
-		return nil, app.Error("config", "directory is missing")
+		return nil, errors.New("config", "directory is missing")
 	}
 
 	if fileInfo, err := os.Stat(directory); err != nil {
 		if !os.IsNotExist(err) {
-			return nil, app.ExtError(err, "config", "unable to stat directory")
+			return nil, errors.Wrap(err, "config", "unable to stat directory")
 		}
-		return nil, app.Error("config", "directory does not exist")
+		return nil, errors.New("config", "directory does not exist")
 	} else if !fileInfo.IsDir() {
-		return nil, app.Error("config", "directory is not a directory")
+		return nil, errors.New("config", "directory is not a directory")
 	}
 
 	return &loader{
@@ -50,10 +50,10 @@ var (
 
 func (l *loader) Load(name string, config interface{}) error {
 	if name == "" {
-		return app.Error("config", "name is missing")
+		return errors.New("config", "name is missing")
 	}
 	if config == nil {
-		return app.Error("config", "config is missing")
+		return errors.New("config", "config is missing")
 	}
 
 	paths := []string{}
@@ -61,10 +61,10 @@ func (l *loader) Load(name string, config interface{}) error {
 	path := filepath.Join(l.directory, fmt.Sprintf("%s.json", name))
 	if fileInfo, err := os.Stat(path); err != nil {
 		if !os.IsNotExist(err) {
-			return app.ExtError(err, "config", "unable to stat file")
+			return errors.Wrap(err, "config", "unable to stat file")
 		}
 	} else if fileInfo.IsDir() {
-		return app.Error("config", "file is a directory")
+		return errors.New("config", "file is a directory")
 	} else {
 		paths = append(paths, path)
 	}
@@ -73,15 +73,15 @@ func (l *loader) Load(name string, config interface{}) error {
 	defer _mutex.Unlock()
 
 	if err := os.Setenv("CONFIGOR_ENV", l.environmentReporter.Name()); err != nil {
-		return app.ExtError(err, "config", "unable to set CONFIGOR_ENV")
+		return errors.Wrap(err, "config", "unable to set CONFIGOR_ENV")
 	}
 
 	if err := os.Setenv("CONFIGOR_ENV_PREFIX", l.environmentReporter.GetKey(strings.ToUpper(name))); err != nil {
-		return app.ExtError(err, "config", "unable to set CONFIGOR_ENV_PREFIX")
+		return errors.Wrap(err, "config", "unable to set CONFIGOR_ENV_PREFIX")
 	}
 
 	if err := configor.Load(config, paths...); err != nil {
-		return app.ExtError(err, "config", "unable to load config")
+		return errors.Wrap(err, "config", "unable to load config")
 	}
 
 	return nil

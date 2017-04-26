@@ -3,7 +3,7 @@ package client
 import (
 	"net/url"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/errors"
 )
 
 type Config struct {
@@ -13,12 +13,12 @@ type Config struct {
 
 func (c *Config) Validate() error {
 	if c.Address == "" {
-		return app.Error("client", "address is missing")
+		return errors.New("client", "address is missing")
 	} else if _, err := url.Parse(c.Address); err != nil {
-		return app.Error("client", "address is invalid")
+		return errors.New("client", "address is invalid")
 	}
 	if c.RequestTimeout < 0 {
-		return app.Error("client", "request timeout is invalid")
+		return errors.New("client", "request timeout is invalid")
 	}
 
 	if c.RequestTimeout == 0 {

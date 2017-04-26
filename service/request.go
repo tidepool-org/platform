@@ -5,7 +5,7 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 )
 
@@ -99,10 +99,10 @@ func SetRequestTraceSession(request *rest.Request, traceSession string) {
 
 func CopyRequestTrace(sourceRequest *rest.Request, destinationRequest *http.Request) error {
 	if sourceRequest == nil {
-		return app.Error("service", "source request is missing")
+		return errors.New("service", "source request is missing")
 	}
 	if destinationRequest == nil {
-		return app.Error("service", "destination request is missing")
+		return errors.New("service", "destination request is missing")
 	}
 
 	if traceRequest := GetRequestTraceRequest(sourceRequest); traceRequest != "" {

@@ -10,6 +10,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 
 	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/session"
 	"github.com/tidepool-org/platform/store/mongo"
@@ -40,7 +41,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := application.Run(os.Args); err != nil {
+	if err = application.Run(os.Args); err != nil {
 		fmt.Println("ERROR: Unable to run application:", err)
 		os.Exit(1)
 	}
@@ -55,7 +56,7 @@ func initializeApplication() (*cli.App, error) {
 	application := cli.NewApp()
 	application.Usage = "Migrate all sessions in database to expanded form"
 	application.Version = versionReporter.Long()
-	application.Authors = []cli.Author{{"Darin Krauss", "darin@tidepool.org"}}
+	application.Authors = []cli.Author{{Name: "Darin Krauss", Email: "darin@tidepool.org"}}
 	application.Copyright = "Copyright \u00A9 2016, Tidepool Project"
 	application.HideHelp = true
 	application.HideVersion = true
@@ -101,7 +102,7 @@ func initializeApplication() (*cli.App, error) {
 func initializeVersionReporter() (version.Reporter, error) {
 	versionReporter, err := version.NewDefaultReporter()
 	if err != nil {
-		return nil, app.ExtError(err, "migrate_sessions_expand", "unable to create version reporter")
+		return nil, errors.Wrap(err, "migrate_sessions_expand", "unable to create version reporter")
 	}
 
 	return versionReporter, nil
@@ -159,7 +160,7 @@ func buildConfigFromContext(context *cli.Context) (*Config, error) {
 	}
 	config.Secret = context.String(SecretFlag)
 	if config.Secret == "" {
-		return nil, app.Error("migrate_sessions_expand", "secret is missing")
+		return nil, errors.New("migrate_sessions_expand", "secret is missing")
 	}
 
 	return config, nil
@@ -168,7 +169,7 @@ func buildConfigFromContext(context *cli.Context) (*Config, error) {
 func initializeLogger(versionReporter version.Reporter, config *Config) (log.Logger, error) {
 	logger, err := log.NewStandard(versionReporter, config.Log)
 	if err != nil {
-		return nil, app.ExtError(err, "migrate_sessions_expand", "unable to create logger")
+		return nil, errors.Wrap(err, "migrate_sessions_expand", "unable to create logger")
 	}
 
 	return logger, nil
@@ -184,7 +185,7 @@ func migrateSessionsToExpandedForm(logger log.Logger, config *Config) error {
 	mongoConfig.Collection = "tokens"
 	sessionsStore, err := mongo.New(logger, mongoConfig)
 	if err != nil {
-		return app.ExtError(err, "migrate_sessions_expand", "unable to create sessions store")
+		return errors.Wrap(err, "migrate_sessions_expand", "unable to create sessions store")
 	}
 	defer sessionsStore.Close()
 
@@ -192,13 +193,13 @@ func migrateSessionsToExpandedForm(logger log.Logger, config *Config) error {
 
 	iterateSessionsSession, err := sessionsStore.NewSession(logger)
 	if err != nil {
-		return app.ExtError(err, "migrate_sessions_expand", "unable to create iterate sessions session")
+		return errors.Wrap(err, "migrate_sessions_expand", "unable to create iterate sessions session")
 	}
 	defer iterateSessionsSession.Close()
 
 	updateSessionsSession, err := sessionsStore.NewSession(logger)
 	if err != nil {
-		return app.ExtError(err, "migrate_sessions_expand", "unable to create update sessions session")
+		return errors.Wrap(err, "migrate_sessions_expand", "unable to create update sessions session")
 	}
 	defer updateSessionsSession.Close()
 
@@ -254,7 +255,7 @@ func migrateSessionsToExpandedForm(logger log.Logger, config *Config) error {
 		}
 	}
 	if err = iter.Close(); err != nil {
-		return app.ExtError(err, "migrate_sessions_expand", "unable to iterate sessions")
+		return errors.Wrap(err, "migrate_sessions_expand", "unable to iterate sessions")
 	}
 
 	if !config.DryRun {
@@ -308,10 +309,10 @@ func ExpandSession(session *session.Session, secret string) error {
 	if err != nil {
 		validationError, ok := err.(*jwt.ValidationError)
 		if !ok {
-			return app.ExtError(err, "migrate_sessions_expand", "unexpected error")
+			return errors.Wrap(err, "migrate_sessions_expand", "unexpected error")
 		}
 		if validationError.Errors != jwt.ValidationErrorExpired {
-			return app.ExtError(validationError, "migrate_sessions_expand", "unexpected validation error")
+			return errors.Wrap(validationError, "migrate_sessions_expand", "unexpected validation error")
 		}
 	}
 

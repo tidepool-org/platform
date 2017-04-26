@@ -5,7 +5,7 @@ import (
 
 	"gopkg.in/mgo.v2/bson"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/message/store"
 	"github.com/tidepool-org/platform/store/mongo"
@@ -43,14 +43,14 @@ type Session struct {
 
 func (s *Session) DeleteMessagesFromUser(user *store.User) error {
 	if user == nil {
-		return app.Error("mongo", "user is missing")
+		return errors.New("mongo", "user is missing")
 	}
 	if user.ID == "" {
-		return app.Error("mongo", "user id is missing")
+		return errors.New("mongo", "user id is missing")
 	}
 
 	if s.IsClosed() {
-		return app.Error("mongo", "session closed")
+		return errors.New("mongo", "session closed")
 	}
 
 	startTime := time.Now()
@@ -74,7 +74,7 @@ func (s *Session) DeleteMessagesFromUser(user *store.User) error {
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("DeleteMessagesFromUser")
 
 	if err != nil {
-		return app.ExtError(err, "mongo", "unable to delete messages from user")
+		return errors.Wrap(err, "mongo", "unable to delete messages from user")
 	}
 
 	return nil
@@ -82,11 +82,11 @@ func (s *Session) DeleteMessagesFromUser(user *store.User) error {
 
 func (s *Session) DestroyMessagesForUserByID(userID string) error {
 	if userID == "" {
-		return app.Error("mongo", "user id is missing")
+		return errors.New("mongo", "user id is missing")
 	}
 
 	if s.IsClosed() {
-		return app.Error("mongo", "session closed")
+		return errors.New("mongo", "session closed")
 	}
 
 	startTime := time.Now()
@@ -100,7 +100,7 @@ func (s *Session) DestroyMessagesForUserByID(userID string) error {
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("DestroyMessagesForUserByID")
 
 	if err != nil {
-		return app.ExtError(err, "mongo", "unable to destroy messages for user by id")
+		return errors.Wrap(err, "mongo", "unable to destroy messages for user by id")
 	}
 
 	return nil

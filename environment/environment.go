@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/errors"
 )
 
 type Reporter interface {
@@ -20,7 +20,7 @@ type Reporter interface {
 
 func NewReporter(name string, prefix string) (Reporter, error) {
 	if name == "" {
-		return nil, app.Error("environment", "name is missing")
+		return nil, errors.New("environment", "name is missing")
 	}
 
 	return &reporter{

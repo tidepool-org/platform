@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
 )
@@ -34,18 +34,18 @@ const (
 
 func NewStandard(logger log.Logger, name string, config *Config) (*Standard, error) {
 	if logger == nil {
-		return nil, app.Error("client", "logger is missing")
+		return nil, errors.New("client", "logger is missing")
 	}
 	if name == "" {
-		return nil, app.Error("client", "name is missing")
+		return nil, errors.New("client", "name is missing")
 	}
 	if config == nil {
-		return nil, app.Error("client", "config is missing")
+		return nil, errors.New("client", "config is missing")
 	}
 
 	config = config.Clone()
 	if err := config.Validate(); err != nil {
-		return nil, app.ExtError(err, "client", "config is invalid")
+		return nil, errors.Wrap(err, "client", "config is invalid")
 	}
 
 	httpClient := &http.Client{
@@ -101,14 +101,14 @@ func (s *Standard) Close() {
 
 func (s *Standard) ValidateAuthenticationToken(context service.Context, authenticationToken string) (AuthenticationDetails, error) {
 	if context == nil {
-		return nil, app.Error("client", "context is missing")
+		return nil, errors.New("client", "context is missing")
 	}
 	if authenticationToken == "" {
-		return nil, app.Error("client", "authentication token is missing")
+		return nil, errors.New("client", "authentication token is missing")
 	}
 
 	if s.closingChannel == nil {
-		return nil, app.Error("client", "client is closed")
+		return nil, errors.New("client", "client is closed")
 	}
 
 	context.Logger().WithField("authenticationToken", authenticationToken).Debug("Validating authentication token")
@@ -123,7 +123,7 @@ func (s *Standard) ValidateAuthenticationToken(context service.Context, authenti
 	}
 
 	if !authentication.IsServer && authentication.UserID == "" {
-		return nil, app.Error("client", "user id is missing")
+		return nil, errors.New("client", "user id is missing")
 	}
 
 	return &authenticationDetails{
@@ -135,17 +135,17 @@ func (s *Standard) ValidateAuthenticationToken(context service.Context, authenti
 
 func (s *Standard) GetUserPermissions(context service.Context, requestUserID string, targetUserID string) (Permissions, error) {
 	if context == nil {
-		return nil, app.Error("client", "context is missing")
+		return nil, errors.New("client", "context is missing")
 	}
 	if requestUserID == "" {
-		return nil, app.Error("client", "request user id is missing")
+		return nil, errors.New("client", "request user id is missing")
 	}
 	if targetUserID == "" {
-		return nil, app.Error("client", "target user id is missing")
+		return nil, errors.New("client", "target user id is missing")
 	}
 
 	if s.closingChannel == nil {
-		return nil, app.Error("client", "client is closed")
+		return nil, errors.New("client", "client is closed")
 	}
 
 	context.Logger().WithFields(log.Fields{"requestUserId": requestUserID, "targetUserId": targetUserID}).Debug("Get user permissions")
@@ -175,14 +175,14 @@ func (s *Standard) GetUserPermissions(context service.Context, requestUserID str
 
 func (s *Standard) GetUserGroupID(context service.Context, userID string) (string, error) {
 	if context == nil {
-		return "", app.Error("client", "context is missing")
+		return "", errors.New("client", "context is missing")
 	}
 	if userID == "" {
-		return "", app.Error("client", "user id is missing")
+		return "", errors.New("client", "user id is missing")
 	}
 
 	if s.closingChannel == nil {
-		return "", app.Error("client", "client is closed")
+		return "", errors.New("client", "client is closed")
 	}
 
 	context.Logger().WithField("userId", userID).Debug("Getting user group id")
@@ -198,7 +198,7 @@ func (s *Standard) GetUserGroupID(context service.Context, userID string) (strin
 
 	groupID := uploadsPair.ID
 	if groupID == "" {
-		return "", app.Error("client", "group id is missing")
+		return "", errors.New("client", "group id is missing")
 	}
 
 	return groupID, nil
@@ -206,12 +206,12 @@ func (s *Standard) GetUserGroupID(context service.Context, userID string) (strin
 
 func (s *Standard) ServerToken() (string, error) {
 	if s.closingChannel == nil {
-		return "", app.Error("client", "client is closed")
+		return "", errors.New("client", "client is closed")
 	}
 
 	serverToken := s.serverToken()
 	if serverToken == "" {
-		return "", app.Error("client", "unable to obtain server token")
+		return "", errors.New("client", "unable to obtain server token")
 	}
 
 	return serverToken, nil
@@ -225,23 +225,23 @@ func (s *Standard) sendRequest(context service.Context, requestMethod string, re
 
 	serverToken := s.serverToken()
 	if serverToken == "" {
-		return app.Errorf("client", "unable to obtain server token for %s %s", requestMethod, requestURL)
+		return errors.Newf("client", "unable to obtain server token for %s %s", requestMethod, requestURL)
 	}
 
 	request, err := http.NewRequest(requestMethod, requestURL, nil)
 	if err != nil {
-		return app.ExtErrorf(err, "client", "unable to create new request for %s %s", requestMethod, requestURL)
+		return errors.Wrapf(err, "client", "unable to create new request for %s %s", requestMethod, requestURL)
 	}
 
 	if err = service.CopyRequestTrace(context.Request(), request); err != nil {
-		return app.ExtErrorf(err, "client", "unable to copy request trace")
+		return errors.Wrapf(err, "client", "unable to copy request trace")
 	}
 
 	request.Header.Add(TidepoolAuthenticationTokenHeaderName, serverToken)
 
 	response, err := s.httpClient.Do(request)
 	if err != nil {
-		return app.ExtErrorf(err, "client", "unable to perform request %s %s", requestMethod, requestURL)
+		return errors.Wrapf(err, "client", "unable to perform request %s %s", requestMethod, requestURL)
 	}
 	defer response.Body.Close()
 
@@ -249,7 +249,7 @@ func (s *Standard) sendRequest(context service.Context, requestMethod string, re
 	case http.StatusOK:
 		if responseObject != nil {
 			if err = json.NewDecoder(response.Body).Decode(responseObject); err != nil {
-				return app.ExtErrorf(err, "client", "error decoding JSON response from %s %s", request.Method, request.URL.String())
+				return errors.Wrapf(err, "client", "error decoding JSON response from %s %s", request.Method, request.URL.String())
 			}
 		}
 		return nil
@@ -286,7 +286,7 @@ func (s *Standard) refreshServerToken() error {
 	requestURL := s.buildURL("auth", "serverlogin")
 	request, err := http.NewRequest(requestMethod, requestURL, nil)
 	if err != nil {
-		return app.ExtErrorf(err, "client", "unable to create new request for %s %s", requestMethod, requestURL)
+		return errors.Wrapf(err, "client", "unable to create new request for %s %s", requestMethod, requestURL)
 	}
 
 	request.Header.Add(TidepoolServerNameHeaderName, s.name)
@@ -294,17 +294,17 @@ func (s *Standard) refreshServerToken() error {
 
 	response, err := s.httpClient.Do(request)
 	if err != nil {
-		return app.ExtError(err, "client", "failure requesting new server token")
+		return errors.Wrap(err, "client", "failure requesting new server token")
 	}
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		return app.Errorf("client", "unexpected response status code %d while requesting new server token", response.StatusCode)
+		return errors.Newf("client", "unexpected response status code %d while requesting new server token", response.StatusCode)
 	}
 
 	serverTokenHeader := response.Header.Get(TidepoolAuthenticationTokenHeaderName)
 	if serverTokenHeader == "" {
-		return app.Error("client", "server token is missing")
+		return errors.New("client", "server token is missing")
 	}
 
 	s.setServerToken(serverTokenHeader)

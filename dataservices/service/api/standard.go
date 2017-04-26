@@ -3,13 +3,13 @@ package api
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/dataservices/service"
 	"github.com/tidepool-org/platform/dataservices/service/context"
 	"github.com/tidepool-org/platform/environment"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
 	"github.com/tidepool-org/platform/service/api"
@@ -33,31 +33,31 @@ func NewStandard(versionReporter version.Reporter, environmentReporter environme
 	dataFactory data.Factory, dataDeduplicatorFactory deduplicator.Factory,
 	dataStore dataStore.Store, taskStore taskStore.Store) (*Standard, error) {
 	if versionReporter == nil {
-		return nil, app.Error("api", "version reporter is missing")
+		return nil, errors.New("api", "version reporter is missing")
 	}
 	if environmentReporter == nil {
-		return nil, app.Error("api", "environment reporter is missing")
+		return nil, errors.New("api", "environment reporter is missing")
 	}
 	if logger == nil {
-		return nil, app.Error("api", "logger is missing")
+		return nil, errors.New("api", "logger is missing")
 	}
 	if metricServicesClient == nil {
-		return nil, app.Error("api", "metric services client is missing")
+		return nil, errors.New("api", "metric services client is missing")
 	}
 	if userServicesClient == nil {
-		return nil, app.Error("api", "user services client is missing")
+		return nil, errors.New("api", "user services client is missing")
 	}
 	if dataFactory == nil {
-		return nil, app.Error("api", "data factory is missing")
+		return nil, errors.New("api", "data factory is missing")
 	}
 	if dataDeduplicatorFactory == nil {
-		return nil, app.Error("api", "data deduplicator factory is missing")
+		return nil, errors.New("api", "data deduplicator factory is missing")
 	}
 	if dataStore == nil {
-		return nil, app.Error("api", "data store is missing")
+		return nil, errors.New("api", "data store is missing")
 	}
 	if taskStore == nil {
-		return nil, app.Error("api", "task store is missing")
+		return nil, errors.New("api", "task store is missing")
 	}
 
 	standard, err := api.NewStandard(versionReporter, environmentReporter, logger)
@@ -95,7 +95,7 @@ func (s *Standard) InitializeRouter(routes []service.Route) error {
 
 	router, err := rest.MakeRouter(contextRoutes...)
 	if err != nil {
-		return app.ExtError(err, "api", "unable to create router")
+		return errors.Wrap(err, "api", "unable to create router")
 	}
 
 	s.API().SetApp(router)

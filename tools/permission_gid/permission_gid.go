@@ -9,7 +9,7 @@ import (
 
 	"github.com/urfave/cli"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/version"
 )
@@ -34,7 +34,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := application.Run(os.Args); err != nil {
+	if err = application.Run(os.Args); err != nil {
 		fmt.Println("ERROR: Unable to run application:", err)
 		os.Exit(1)
 	}
@@ -49,7 +49,7 @@ func initializeApplication() (*cli.App, error) {
 	application := cli.NewApp()
 	application.Usage = "Encode or decode permission group ids"
 	application.Version = versionReporter.Long()
-	application.Authors = []cli.Author{{"Darin Krauss", "darin@tidepool.org"}}
+	application.Authors = []cli.Author{{Name: "Darin Krauss", Email: "darin@tidepool.org"}}
 	application.Copyright = "Copyright \u00A9 2017, Tidepool Project"
 	application.HideHelp = true
 	application.HideVersion = true
@@ -87,7 +87,7 @@ func initializeApplication() (*cli.App, error) {
 func initializeVersionReporter() (version.Reporter, error) {
 	versionReporter, err := version.NewDefaultReporter()
 	if err != nil {
-		return nil, app.ExtError(err, "permission_gid", "unable to create version reporter")
+		return nil, errors.Wrap(err, "permission_gid", "unable to create version reporter")
 	}
 
 	return versionReporter, nil
@@ -128,12 +128,12 @@ func buildConfigFromContext(context *cli.Context) (*Config, error) {
 
 	config.Secret = context.String(SecretFlag)
 	if config.Secret == "" {
-		return nil, app.Error("permission_gid", "secret is missing")
+		return nil, errors.New("permission_gid", "secret is missing")
 	}
 
 	config.Encode = context.Bool(EncodeFlag)
 	if config.Encode == context.Bool(DecodeFlag) {
-		return nil, app.Error("permission_gid", "must specify either encode or decode")
+		return nil, errors.New("permission_gid", "must specify either encode or decode")
 	}
 
 	return config, nil
@@ -151,12 +151,12 @@ func permissionGroupIDs(config *Config, reader io.Reader) error {
 	for scanner.Scan() {
 		result, err := coder(scanner.Text(), config.Secret)
 		if err != nil {
-			return app.ExtError(err, "permission_gid", "unable to process input")
+			return errors.Wrap(err, "permission_gid", "unable to process input")
 		}
 		fmt.Println(result)
 	}
 	if err := scanner.Err(); err != nil {
-		return app.ExtError(err, "permission_gid", "unable to read input")
+		return errors.Wrap(err, "permission_gid", "unable to read input")
 	}
 
 	return nil

@@ -5,8 +5,8 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/environment"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service/middleware"
 	"github.com/tidepool-org/platform/version"
@@ -22,13 +22,13 @@ type Standard struct {
 
 func NewStandard(versionReporter version.Reporter, environmentReporter environment.Reporter, logger log.Logger) (*Standard, error) {
 	if versionReporter == nil {
-		return nil, app.Error("api", "version reporter is missing")
+		return nil, errors.New("api", "version reporter is missing")
 	}
 	if environmentReporter == nil {
-		return nil, app.Error("api", "environment reporter is missing")
+		return nil, errors.New("api", "environment reporter is missing")
 	}
 	if logger == nil {
-		return nil, app.Error("api", "logger is missing")
+		return nil, errors.New("api", "logger is missing")
 	}
 
 	return &Standard{

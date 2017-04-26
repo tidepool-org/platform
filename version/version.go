@@ -3,7 +3,7 @@ package version
 import (
 	"fmt"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/errors"
 )
 
 type Reporter interface {
@@ -16,13 +16,13 @@ type Reporter interface {
 
 func NewReporter(base string, shortCommit string, fullCommit string) (Reporter, error) {
 	if base == "" {
-		return nil, app.Error("version", "base is missing")
+		return nil, errors.New("version", "base is missing")
 	}
 	if shortCommit == "" {
-		return nil, app.Error("version", "shortCommit is missing")
+		return nil, errors.New("version", "shortCommit is missing")
 	}
 	if fullCommit == "" {
-		return nil, app.Error("version", "fullCommit is missing")
+		return nil, errors.New("version", "fullCommit is missing")
 	}
 
 	return &reporter{

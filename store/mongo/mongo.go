@@ -9,6 +9,7 @@ import (
 	mgo "gopkg.in/mgo.v2"
 
 	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/store"
 )
@@ -28,15 +29,15 @@ type Status struct {
 
 func New(logger log.Logger, config *Config) (*Store, error) {
 	if logger == nil {
-		return nil, app.Error("mongo", "logger is missing")
+		return nil, errors.New("mongo", "logger is missing")
 	}
 	if config == nil {
-		return nil, app.Error("mongo", "config is missing")
+		return nil, errors.New("mongo", "config is missing")
 	}
 
 	config = config.Clone()
 	if err := config.Validate(); err != nil {
-		return nil, app.ExtError(err, "mongo", "config is invalid")
+		return nil, errors.Wrap(err, "mongo", "config is invalid")
 	}
 
 	loggerFields := map[string]interface{}{
@@ -67,7 +68,7 @@ func New(logger log.Logger, config *Config) (*Store, error) {
 
 	session, err := mgo.DialWithInfo(&dialInfo)
 	if err != nil {
-		return nil, app.ExtError(err, "mongo", "unable to dial database")
+		return nil, errors.Wrap(err, "mongo", "unable to dial database")
 	}
 
 	logger.Debug("Verifying Mongo build version is supported")
@@ -75,12 +76,12 @@ func New(logger log.Logger, config *Config) (*Store, error) {
 	buildInfo, err := session.BuildInfo()
 	if err != nil {
 		session.Close()
-		return nil, app.ExtError(err, "mongo", "unable to determine build info")
+		return nil, errors.Wrap(err, "mongo", "unable to determine build info")
 	}
 
 	if !buildInfo.VersionAtLeast(3) {
 		session.Close()
-		return nil, app.Errorf("mongo", "unsupported mongo build version %s", strconv.Quote(buildInfo.Version))
+		return nil, errors.Newf("mongo", "unsupported mongo build version %s", strconv.Quote(buildInfo.Version))
 	}
 
 	logger.Debug("Setting Mongo consistency mode to Strong")
@@ -135,11 +136,11 @@ func (s *Store) GetStatus() interface{} {
 
 func (s *Store) NewSession(logger log.Logger) (*Session, error) {
 	if logger == nil {
-		return nil, app.Error("mongo", "logger is missing")
+		return nil, errors.New("mongo", "logger is missing")
 	}
 
 	if s.IsClosed() {
-		return nil, app.Error("mongo", "store closed")
+		return nil, errors.New("mongo", "store closed")
 	}
 
 	loggerFields := map[string]interface{}{

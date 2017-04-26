@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/environment"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/version"
 )
@@ -22,7 +22,7 @@ type Standard struct {
 
 func NewStandard(name string, prefix string) (*Standard, error) {
 	if name == "" {
-		return nil, app.Error("service", "name is missing")
+		return nil, errors.New("service", "name is missing")
 	}
 
 	return &Standard{
@@ -82,7 +82,7 @@ func (s *Standard) Logger() log.Logger {
 func (s *Standard) initializeVersionReporter() error {
 	versionReporter, err := version.NewDefaultReporter()
 	if err != nil {
-		return app.ExtError(err, "service", "unable to create version reporter")
+		return errors.Wrap(err, "service", "unable to create version reporter")
 	}
 	s.versionReporter = versionReporter
 
@@ -92,7 +92,7 @@ func (s *Standard) initializeVersionReporter() error {
 func (s *Standard) initializeEnvironmentReporter() error {
 	environmentReporter, err := environment.NewDefaultReporter(s.prefix)
 	if err != nil {
-		return app.ExtError(err, "service", "unable to create environment reporter")
+		return errors.Wrap(err, "service", "unable to create environment reporter")
 	}
 	s.environmentReporter = environmentReporter
 
@@ -102,7 +102,7 @@ func (s *Standard) initializeEnvironmentReporter() error {
 func (s *Standard) initializeConfigLoader() error {
 	configLoader, err := config.NewLoader(s.environmentReporter, filepath.Join(s.environmentReporter.GetValue("CONFIG_DIRECTORY"), s.name))
 	if err != nil {
-		return app.ExtError(err, "service", "unable to create config loader")
+		return errors.Wrap(err, "service", "unable to create config loader")
 	}
 	s.configLoader = configLoader
 
@@ -112,12 +112,12 @@ func (s *Standard) initializeConfigLoader() error {
 func (s *Standard) initializeLogger() error {
 	loggerConfig := &log.Config{}
 	if err := s.configLoader.Load("logger", loggerConfig); err != nil {
-		return app.ExtError(err, "service", "unable to load logger config")
+		return errors.Wrap(err, "service", "unable to load logger config")
 	}
 
 	logger, err := log.NewStandard(s.versionReporter, loggerConfig)
 	if err != nil {
-		return app.ExtError(err, "service", "unable to create logger")
+		return errors.Wrap(err, "service", "unable to create logger")
 	}
 	s.logger = logger
 

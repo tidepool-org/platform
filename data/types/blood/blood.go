@@ -3,9 +3,9 @@ package blood
 import (
 	"strconv"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/errors"
 )
 
 type Blood struct {
@@ -61,10 +61,10 @@ func (b *Blood) IdentityFields() ([]string, error) {
 	}
 
 	if b.Units == nil {
-		return nil, app.Error("blood", "units is missing")
+		return nil, errors.New("blood", "units is missing")
 	}
 	if b.Value == nil {
-		return nil, app.Error("blood", "value is missing")
+		return nil, errors.New("blood", "value is missing")
 	}
 
 	return append(identityFields, *b.Units, strconv.FormatFloat(*b.Value, 'f', -1, 64)), nil

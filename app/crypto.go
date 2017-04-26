@@ -4,20 +4,22 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/md5"
+
+	"github.com/tidepool-org/platform/errors"
 )
 
 func EncryptWithAES256UsingPassphrase(bytes []byte, passphrase []byte) (_ []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = Error("app", "unrecoverable encryption failure")
+			err = errors.New("app", "unrecoverable encryption failure")
 		}
 	}()
 
 	if len(bytes) == 0 {
-		return nil, Error("app", "bytes is missing")
+		return nil, errors.New("app", "bytes is missing")
 	}
 	if len(passphrase) == 0 {
-		return nil, Error("app", "passphrase is missing")
+		return nil, errors.New("app", "passphrase is missing")
 	}
 
 	key, iv := passphraseToKey32AndIV16(passphrase)
@@ -27,15 +29,15 @@ func EncryptWithAES256UsingPassphrase(bytes []byte, passphrase []byte) (_ []byte
 func DecryptWithAES256UsingPassphrase(bytes []byte, passphrase []byte) (_ []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = Error("app", "unrecoverable decryption failure")
+			err = errors.New("app", "unrecoverable decryption failure")
 		}
 	}()
 
 	if len(bytes) == 0 {
-		return nil, Error("app", "bytes is missing")
+		return nil, errors.New("app", "bytes is missing")
 	}
 	if len(passphrase) == 0 {
-		return nil, Error("app", "passphrase is missing")
+		return nil, errors.New("app", "passphrase is missing")
 	}
 
 	key, iv := passphraseToKey32AndIV16(passphrase)

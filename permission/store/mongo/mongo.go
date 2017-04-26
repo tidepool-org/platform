@@ -5,7 +5,7 @@ import (
 
 	"gopkg.in/mgo.v2/bson"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/permission/store"
@@ -14,7 +14,7 @@ import (
 
 func New(logger log.Logger, config *Config) (*Store, error) {
 	if config == nil {
-		return nil, app.Error("mongo", "config is missing")
+		return nil, errors.New("mongo", "config is missing")
 	}
 
 	baseStore, err := mongo.New(logger, config.Config)
@@ -24,7 +24,7 @@ func New(logger log.Logger, config *Config) (*Store, error) {
 
 	config = config.Clone()
 	if err = config.Validate(); err != nil {
-		return nil, app.ExtError(err, "mongo", "config is invalid")
+		return nil, errors.Wrap(err, "mongo", "config is invalid")
 	}
 
 	return &Store{
@@ -57,18 +57,18 @@ type Session struct {
 
 func (s *Session) DestroyPermissionsForUserByID(userID string) error {
 	if userID == "" {
-		return app.Error("mongo", "user id is missing")
+		return errors.New("mongo", "user id is missing")
 	}
 
 	if s.IsClosed() {
-		return app.Error("mongo", "session closed")
+		return errors.New("mongo", "session closed")
 	}
 
 	startTime := time.Now()
 
 	groupID, err := permission.GroupIDFromUserID(userID, s.config.Secret)
 	if err != nil {
-		return app.ExtError(err, "mongo", "unable to determine group id from user id")
+		return errors.Wrap(err, "mongo", "unable to determine group id from user id")
 	}
 
 	selector := bson.M{
@@ -83,7 +83,7 @@ func (s *Session) DestroyPermissionsForUserByID(userID string) error {
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("DestroyPermissionsForUserByID")
 
 	if err != nil {
-		return app.ExtError(err, "mongo", "unable to destroy permissions for user by id")
+		return errors.Wrap(err, "mongo", "unable to destroy permissions for user by id")
 	}
 	return nil
 }

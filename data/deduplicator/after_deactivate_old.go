@@ -7,6 +7,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/upload"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 )
 
@@ -64,16 +65,16 @@ func (a *afterDeactivateOldFactory) NewDeduplicatorForDataset(logger log.Logger,
 	}
 
 	if dataset.DeviceID == nil {
-		return nil, app.Error("deduplicator", "dataset device id is missing")
+		return nil, errors.New("deduplicator", "dataset device id is missing")
 	}
 	if *dataset.DeviceID == "" {
-		return nil, app.Error("deduplicator", "dataset device id is empty")
+		return nil, errors.New("deduplicator", "dataset device id is empty")
 	}
 	if dataset.DeviceManufacturers == nil {
-		return nil, app.Error("deduplicator", "dataset device manufacturers is missing")
+		return nil, errors.New("deduplicator", "dataset device manufacturers is missing")
 	}
 	if !app.StringsContainsAnyStrings(*dataset.DeviceManufacturers, _AfterDeactivateOldExpectedDeviceManufacturers) {
-		return nil, app.Error("deduplicator", "dataset device manufacturers does not contain expected device manufacturers")
+		return nil, errors.New("deduplicator", "dataset device manufacturers does not contain expected device manufacturers")
 	}
 
 	return &afterDeactivateOldDeduplicator{
@@ -84,7 +85,7 @@ func (a *afterDeactivateOldFactory) NewDeduplicatorForDataset(logger log.Logger,
 func (a *afterDeactivateOldDeduplicator) DeduplicateDataset() error {
 	afterTime, err := a.dataStoreSession.FindEarliestDatasetDataTime(a.dataset)
 	if err != nil {
-		return app.ExtErrorf(err, "deduplicator", "unable to get earliest data in dataset with id %s", strconv.Quote(a.dataset.UploadID))
+		return errors.Wrapf(err, "deduplicator", "unable to get earliest data in dataset with id %s", strconv.Quote(a.dataset.UploadID))
 	}
 
 	// TODO: Technically, ActivateDatasetData could succeed, but DeactivateOtherDatasetDataAfterTime fail. This would
@@ -96,7 +97,7 @@ func (a *afterDeactivateOldDeduplicator) DeduplicateDataset() error {
 
 	if afterTime != "" {
 		if err = a.dataStoreSession.DeactivateOtherDatasetDataAfterTime(a.dataset, afterTime); err != nil {
-			return app.ExtErrorf(err, "deduplicator", "unable to remove all other data except dataset with id %s", strconv.Quote(a.dataset.UploadID))
+			return errors.Wrapf(err, "deduplicator", "unable to remove all other data except dataset with id %s", strconv.Quote(a.dataset.UploadID))
 		}
 	}
 

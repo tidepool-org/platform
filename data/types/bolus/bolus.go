@@ -1,9 +1,9 @@
 package bolus
 
 import (
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/errors"
 )
 
 type Bolus struct {
@@ -68,7 +68,7 @@ func (b *Bolus) IdentityFields() ([]string, error) {
 	}
 
 	if b.SubType == "" {
-		return nil, app.Error("bolus", "sub type is empty")
+		return nil, errors.New("bolus", "sub type is empty")
 	}
 
 	return append(identityFields, b.SubType), nil

@@ -1,8 +1,8 @@
 package service
 
 import (
-	"github.com/tidepool-org/platform/app"
 	dataservicesClient "github.com/tidepool-org/platform/dataservices/client"
+	"github.com/tidepool-org/platform/errors"
 	messageMongo "github.com/tidepool-org/platform/message/store/mongo"
 	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
 	notificationMongo "github.com/tidepool-org/platform/notification/store/mongo"
@@ -125,7 +125,7 @@ func (s *Standard) Terminate() {
 
 func (s *Standard) Run() error {
 	if s.userServicesServer == nil {
-		return app.Error("service", "service not initialized")
+		return errors.New("service", "service not initialized")
 	}
 
 	return s.userServicesServer.Serve()
@@ -136,14 +136,14 @@ func (s *Standard) initializeMetricServicesClient() error {
 
 	metricServicesClientConfig := &metricservicesClient.Config{}
 	if err := s.ConfigLoader().Load("metricservices_client", metricServicesClientConfig); err != nil {
-		return app.ExtError(err, "service", "unable to load metric services client config")
+		return errors.Wrap(err, "service", "unable to load metric services client config")
 	}
 
 	s.Logger().Debug("Creating metric services client")
 
 	metricServicesClient, err := metricservicesClient.NewStandard(s.VersionReporter(), s.Name(), metricServicesClientConfig)
 	if err != nil {
-		return app.ExtError(err, "service", "unable to create metric services client")
+		return errors.Wrap(err, "service", "unable to create metric services client")
 	}
 	s.metricServicesClient = metricServicesClient
 
@@ -155,21 +155,21 @@ func (s *Standard) initializeUserServicesClient() error {
 
 	userServicesClientConfig := &userservicesClient.Config{}
 	if err := s.ConfigLoader().Load("userservices_client", userServicesClientConfig); err != nil {
-		return app.ExtError(err, "service", "unable to load user services client config")
+		return errors.Wrap(err, "service", "unable to load user services client config")
 	}
 
 	s.Logger().Debug("Creating user services client")
 
 	userServicesClient, err := userservicesClient.NewStandard(s.Logger(), s.Name(), userServicesClientConfig)
 	if err != nil {
-		return app.ExtError(err, "service", "unable to create user services client")
+		return errors.Wrap(err, "service", "unable to create user services client")
 	}
 	s.userServicesClient = userServicesClient
 
 	s.Logger().Debug("Starting user services client")
 
 	if err = s.userServicesClient.Start(); err != nil {
-		return app.ExtError(err, "service", "unable to start user services client")
+		return errors.Wrap(err, "service", "unable to start user services client")
 	}
 
 	return nil
@@ -180,14 +180,14 @@ func (s *Standard) initializeDataServicesClient() error {
 
 	dataServicesClientConfig := &dataservicesClient.Config{}
 	if err := s.ConfigLoader().Load("dataservices_client", dataServicesClientConfig); err != nil {
-		return app.ExtError(err, "service", "unable to load data services client config")
+		return errors.Wrap(err, "service", "unable to load data services client config")
 	}
 
 	s.Logger().Debug("Creating data services client")
 
 	dataServicesClient, err := dataservicesClient.NewStandard(dataServicesClientConfig)
 	if err != nil {
-		return app.ExtError(err, "service", "unable to create data services client")
+		return errors.Wrap(err, "service", "unable to create data services client")
 	}
 	s.dataServicesClient = dataServicesClient
 
@@ -199,7 +199,7 @@ func (s *Standard) initializeMessageStore() error {
 
 	messageStoreConfig := &baseMongo.Config{}
 	if err := s.ConfigLoader().Load("message_store", messageStoreConfig); err != nil {
-		return app.ExtError(err, "service", "unable to load message store config")
+		return errors.Wrap(err, "service", "unable to load message store config")
 	}
 	messageStoreConfig.Collection = "messages"
 
@@ -207,7 +207,7 @@ func (s *Standard) initializeMessageStore() error {
 
 	messageStore, err := messageMongo.New(s.Logger(), messageStoreConfig)
 	if err != nil {
-		return app.ExtError(err, "service", "unable to create message store")
+		return errors.Wrap(err, "service", "unable to create message store")
 	}
 	s.messageStore = messageStore
 
@@ -219,7 +219,7 @@ func (s *Standard) initializeNotificationStore() error {
 
 	notificationStoreConfig := &baseMongo.Config{}
 	if err := s.ConfigLoader().Load("notification_store", notificationStoreConfig); err != nil {
-		return app.ExtError(err, "service", "unable to load notification store config")
+		return errors.Wrap(err, "service", "unable to load notification store config")
 	}
 	notificationStoreConfig.Collection = "confirmations"
 
@@ -227,7 +227,7 @@ func (s *Standard) initializeNotificationStore() error {
 
 	notificationStore, err := notificationMongo.New(s.Logger(), notificationStoreConfig)
 	if err != nil {
-		return app.ExtError(err, "service", "unable to create notification store")
+		return errors.Wrap(err, "service", "unable to create notification store")
 	}
 	s.notificationStore = notificationStore
 
@@ -239,7 +239,7 @@ func (s *Standard) initializePermissionStore() error {
 
 	permissionStoreConfig := &permissionMongo.Config{}
 	if err := s.ConfigLoader().Load("permission_store", permissionStoreConfig); err != nil {
-		return app.ExtError(err, "service", "unable to load permission store config")
+		return errors.Wrap(err, "service", "unable to load permission store config")
 	}
 	permissionStoreConfig.Collection = "perms"
 
@@ -247,7 +247,7 @@ func (s *Standard) initializePermissionStore() error {
 
 	permissionStore, err := permissionMongo.New(s.Logger(), permissionStoreConfig)
 	if err != nil {
-		return app.ExtError(err, "service", "unable to create permission store")
+		return errors.Wrap(err, "service", "unable to create permission store")
 	}
 	s.permissionStore = permissionStore
 
@@ -259,7 +259,7 @@ func (s *Standard) initializeProfileStore() error {
 
 	profileStoreConfig := &baseMongo.Config{}
 	if err := s.ConfigLoader().Load("profile_store", profileStoreConfig); err != nil {
-		return app.ExtError(err, "service", "unable to load profile store config")
+		return errors.Wrap(err, "service", "unable to load profile store config")
 	}
 	profileStoreConfig.Collection = "seagull"
 
@@ -267,7 +267,7 @@ func (s *Standard) initializeProfileStore() error {
 
 	profileStore, err := profileMongo.New(s.Logger(), profileStoreConfig)
 	if err != nil {
-		return app.ExtError(err, "service", "unable to create profile store")
+		return errors.Wrap(err, "service", "unable to create profile store")
 	}
 	s.profileStore = profileStore
 
@@ -279,7 +279,7 @@ func (s *Standard) initializeSessionStore() error {
 
 	sessionStoreConfig := &baseMongo.Config{}
 	if err := s.ConfigLoader().Load("session_store", sessionStoreConfig); err != nil {
-		return app.ExtError(err, "service", "unable to load session store config")
+		return errors.Wrap(err, "service", "unable to load session store config")
 	}
 	sessionStoreConfig.Collection = "tokens"
 
@@ -287,7 +287,7 @@ func (s *Standard) initializeSessionStore() error {
 
 	sessionStore, err := sessionMongo.New(s.Logger(), sessionStoreConfig)
 	if err != nil {
-		return app.ExtError(err, "service", "unable to create session store")
+		return errors.Wrap(err, "service", "unable to create session store")
 	}
 	s.sessionStore = sessionStore
 
@@ -299,7 +299,7 @@ func (s *Standard) initializeUserStore() error {
 
 	userStoreConfig := &userMongo.Config{}
 	if err := s.ConfigLoader().Load("user_store", userStoreConfig); err != nil {
-		return app.ExtError(err, "service", "unable to load user store config")
+		return errors.Wrap(err, "service", "unable to load user store config")
 	}
 	userStoreConfig.Collection = "users"
 
@@ -307,7 +307,7 @@ func (s *Standard) initializeUserStore() error {
 
 	userStore, err := userMongo.New(s.Logger(), userStoreConfig)
 	if err != nil {
-		return app.ExtError(err, "service", "unable to create user store")
+		return errors.Wrap(err, "service", "unable to create user store")
 	}
 	s.userStore = userStore
 
@@ -321,20 +321,20 @@ func (s *Standard) initializeUserServicesAPI() error {
 		s.metricServicesClient, s.userServicesClient, s.dataServicesClient,
 		s.messageStore, s.notificationStore, s.permissionStore, s.profileStore, s.sessionStore, s.userStore)
 	if err != nil {
-		return app.ExtError(err, "service", "unable to create user services api")
+		return errors.Wrap(err, "service", "unable to create user services api")
 	}
 	s.userServicesAPI = userServicesAPI
 
 	s.Logger().Debug("Initializing user services api middleware")
 
 	if err = s.userServicesAPI.InitializeMiddleware(); err != nil {
-		return app.ExtError(err, "service", "unable to initialize user services api middleware")
+		return errors.Wrap(err, "service", "unable to initialize user services api middleware")
 	}
 
 	s.Logger().Debug("Initializing user services api router")
 
 	if err = s.userServicesAPI.InitializeRouter(v1.Routes()); err != nil {
-		return app.ExtError(err, "service", "unable to initialize user services api router")
+		return errors.Wrap(err, "service", "unable to initialize user services api router")
 	}
 
 	return nil
@@ -345,14 +345,14 @@ func (s *Standard) initializeUserServicesServer() error {
 
 	userServicesServerConfig := &server.Config{}
 	if err := s.ConfigLoader().Load("userservices_server", userServicesServerConfig); err != nil {
-		return app.ExtError(err, "service", "unable to load user services server config")
+		return errors.Wrap(err, "service", "unable to load user services server config")
 	}
 
 	s.Logger().Debug("Creating user services server")
 
 	userServicesServer, err := server.NewStandard(s.Logger(), s.userServicesAPI, userServicesServerConfig)
 	if err != nil {
-		return app.ExtError(err, "service", "unable to create user services server")
+		return errors.Wrap(err, "service", "unable to create user services server")
 	}
 	s.userServicesServer = userServicesServer
 

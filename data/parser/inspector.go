@@ -1,8 +1,8 @@
 package parser
 
 import (
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -12,7 +12,7 @@ type ObjectParserInspector struct {
 
 func NewObjectParserInspector(parser data.ObjectParser) (*ObjectParserInspector, error) {
 	if parser == nil {
-		return nil, app.Error("parser", "parser is missing")
+		return nil, errors.New("parser", "parser is missing")
 	}
 
 	return &ObjectParserInspector{

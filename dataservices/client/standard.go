@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -19,12 +19,12 @@ const TidepoolAuthenticationTokenHeaderName = "X-Tidepool-Session-Token"
 
 func NewStandard(config *Config) (*Standard, error) {
 	if config == nil {
-		return nil, app.Error("client", "config is missing")
+		return nil, errors.New("client", "config is missing")
 	}
 
 	config = config.Clone()
 	if err := config.Validate(); err != nil {
-		return nil, app.ExtError(err, "client", "config is invalid")
+		return nil, errors.Wrap(err, "client", "config is invalid")
 	}
 
 	httpClient := &http.Client{
@@ -39,10 +39,10 @@ func NewStandard(config *Config) (*Standard, error) {
 
 func (s *Standard) DestroyDataForUserByID(context Context, userID string) error {
 	if context == nil {
-		return app.Error("client", "context is missing")
+		return errors.New("client", "context is missing")
 	}
 	if userID == "" {
-		return app.Error("client", "user id is missing")
+		return errors.New("client", "user id is missing")
 	}
 
 	context.Logger().WithField("userId", userID).Debug("Deleting data for user")
@@ -53,11 +53,11 @@ func (s *Standard) DestroyDataForUserByID(context Context, userID string) error 
 func (s *Standard) sendRequest(context Context, requestMethod string, requestURL string) error {
 	request, err := http.NewRequest(requestMethod, requestURL, nil)
 	if err != nil {
-		return app.ExtErrorf(err, "client", "unable to create new request for %s %s", requestMethod, requestURL)
+		return errors.Wrapf(err, "client", "unable to create new request for %s %s", requestMethod, requestURL)
 	}
 
 	if err = service.CopyRequestTrace(context.Request(), request); err != nil {
-		return app.ExtErrorf(err, "client", "unable to copy request trace")
+		return errors.Wrapf(err, "client", "unable to copy request trace")
 	}
 
 	serverToken, err := context.UserServicesClient().ServerToken()
@@ -69,7 +69,7 @@ func (s *Standard) sendRequest(context Context, requestMethod string, requestURL
 
 	response, err := s.httpClient.Do(request)
 	if err != nil {
-		return app.ExtErrorf(err, "client", "unable to perform request %s %s", requestMethod, requestURL)
+		return errors.Wrapf(err, "client", "unable to perform request %s %s", requestMethod, requestURL)
 	}
 	defer response.Body.Close()
 
@@ -77,9 +77,9 @@ func (s *Standard) sendRequest(context Context, requestMethod string, requestURL
 	case http.StatusOK:
 		return nil
 	case http.StatusUnauthorized:
-		return app.Error("client", "unauthorized")
+		return errors.New("client", "unauthorized")
 	default:
-		return app.Error("client", fmt.Sprintf("unexpected response status code %d from %s %s", response.StatusCode, requestMethod, requestURL))
+		return errors.New("client", fmt.Sprintf("unexpected response status code %d from %s %s", response.StatusCode, requestMethod, requestURL))
 	}
 }
 

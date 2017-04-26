@@ -5,6 +5,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/upload"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 )
 
@@ -62,16 +63,16 @@ func (h *hashDropNewFactory) NewDeduplicatorForDataset(logger log.Logger, dataSt
 	}
 
 	if dataset.DeviceID == nil {
-		return nil, app.Error("deduplicator", "dataset device id is missing")
+		return nil, errors.New("deduplicator", "dataset device id is missing")
 	}
 	if *dataset.DeviceID == "" {
-		return nil, app.Error("deduplicator", "dataset device id is empty")
+		return nil, errors.New("deduplicator", "dataset device id is empty")
 	}
 	if dataset.DeviceManufacturers == nil {
-		return nil, app.Error("deduplicator", "dataset device manufacturers is missing")
+		return nil, errors.New("deduplicator", "dataset device manufacturers is missing")
 	}
 	if !app.StringsContainsAnyStrings(*dataset.DeviceManufacturers, _HashDropNewExpectedDeviceManufacturers) {
-		return nil, app.Error("deduplicator", "dataset device manufacturers does not contain expected device manufacturers")
+		return nil, errors.New("deduplicator", "dataset device manufacturers does not contain expected device manufacturers")
 	}
 
 	return &hashDropNewDeduplicator{
@@ -89,7 +90,7 @@ func (h *hashDropNewDeduplicator) AddDatasetData(datasetData []data.Datum) error
 
 	hashes, err = h.dataStoreSession.FindAllDatasetDataDeduplicatorHashesForDevice(h.dataset.UserID, *h.dataset.DeviceID, hashes)
 	if err != nil {
-		return app.ExtError(err, "deduplicator", "unable to find all dataset data deduplicator hashes for device")
+		return errors.Wrap(err, "deduplicator", "unable to find all dataset data deduplicator hashes for device")
 	}
 
 	uniqueDatasetData := []data.Datum{}

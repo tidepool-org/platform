@@ -3,7 +3,7 @@ package log
 import (
 	"github.com/Sirupsen/logrus"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/errors"
 )
 
 type Config struct {
@@ -12,9 +12,9 @@ type Config struct {
 
 func (c *Config) Validate() error {
 	if level, err := logrus.ParseLevel(c.Level); err != nil {
-		return app.ExtError(err, "log", "level is invalid")
+		return errors.Wrap(err, "log", "level is invalid")
 	} else if level == logrus.PanicLevel {
-		return app.Error("log", "level is invalid")
+		return errors.New("log", "level is invalid")
 	}
 	return nil
 }

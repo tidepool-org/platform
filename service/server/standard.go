@@ -6,7 +6,7 @@ import (
 
 	graceful "gopkg.in/tylerb/graceful.v1"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
 )
@@ -19,18 +19,18 @@ type Standard struct {
 
 func NewStandard(logger log.Logger, api service.API, config *Config) (*Standard, error) {
 	if logger == nil {
-		return nil, app.Error("server", "logger is missing")
+		return nil, errors.New("server", "logger is missing")
 	}
 	if api == nil {
-		return nil, app.Error("server", "api is missing")
+		return nil, errors.New("server", "api is missing")
 	}
 	if config == nil {
-		return nil, app.Error("server", "config is missing")
+		return nil, errors.New("server", "config is missing")
 	}
 
 	config = config.Clone()
 	if err := config.Validate(); err != nil {
-		return nil, app.ExtError(err, "server", "config is invalid")
+		return nil, errors.Wrap(err, "server", "config is invalid")
 	}
 
 	return &Standard{

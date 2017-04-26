@@ -5,7 +5,7 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
 )
@@ -33,10 +33,10 @@ type Standard struct {
 
 func NewStandard(response rest.ResponseWriter, request *rest.Request) (*Standard, error) {
 	if response == nil {
-		return nil, app.Error("context", "response is missing")
+		return nil, errors.New("context", "response is missing")
 	}
 	if request == nil {
-		return nil, app.Error("context", "request is missing")
+		return nil, errors.New("context", "request is missing")
 	}
 
 	logger := service.GetRequestLogger(request)

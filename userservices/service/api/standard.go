@@ -3,9 +3,9 @@ package api
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
-	"github.com/tidepool-org/platform/app"
 	dataservicesClient "github.com/tidepool-org/platform/dataservices/client"
 	"github.com/tidepool-org/platform/environment"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	messageStore "github.com/tidepool-org/platform/message/store"
 	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
@@ -39,40 +39,40 @@ func NewStandard(versionReporter version.Reporter, environmentReporter environme
 	messageStore messageStore.Store, notificationStore notificationStore.Store, permissionStore permissionStore.Store,
 	profileStore profileStore.Store, sessionStore sessionStore.Store, userStore userStore.Store) (*Standard, error) {
 	if versionReporter == nil {
-		return nil, app.Error("api", "version reporter is missing")
+		return nil, errors.New("api", "version reporter is missing")
 	}
 	if environmentReporter == nil {
-		return nil, app.Error("api", "environment reporter is missing")
+		return nil, errors.New("api", "environment reporter is missing")
 	}
 	if logger == nil {
-		return nil, app.Error("api", "logger is missing")
+		return nil, errors.New("api", "logger is missing")
 	}
 	if metricServicesClient == nil {
-		return nil, app.Error("api", "metric services client is missing")
+		return nil, errors.New("api", "metric services client is missing")
 	}
 	if userServicesClient == nil {
-		return nil, app.Error("api", "user services client is missing")
+		return nil, errors.New("api", "user services client is missing")
 	}
 	if dataServicesClient == nil {
-		return nil, app.Error("api", "data services client is missing")
+		return nil, errors.New("api", "data services client is missing")
 	}
 	if messageStore == nil {
-		return nil, app.Error("api", "message store is missing")
+		return nil, errors.New("api", "message store is missing")
 	}
 	if notificationStore == nil {
-		return nil, app.Error("api", "notification store is missing")
+		return nil, errors.New("api", "notification store is missing")
 	}
 	if permissionStore == nil {
-		return nil, app.Error("api", "permission store is missing")
+		return nil, errors.New("api", "permission store is missing")
 	}
 	if profileStore == nil {
-		return nil, app.Error("api", "profile store is missing")
+		return nil, errors.New("api", "profile store is missing")
 	}
 	if sessionStore == nil {
-		return nil, app.Error("api", "session store is missing")
+		return nil, errors.New("api", "session store is missing")
 	}
 	if userStore == nil {
-		return nil, app.Error("api", "user store is missing")
+		return nil, errors.New("api", "user store is missing")
 	}
 
 	standard, err := api.NewStandard(versionReporter, environmentReporter, logger)
@@ -113,7 +113,7 @@ func (s *Standard) InitializeRouter(routes []service.Route) error {
 
 	router, err := rest.MakeRouter(contextRoutes...)
 	if err != nil {
-		return app.ExtError(err, "api", "unable to create router")
+		return errors.Wrap(err, "api", "unable to create router")
 	}
 
 	s.API().SetApp(router)

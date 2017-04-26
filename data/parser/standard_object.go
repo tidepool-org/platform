@@ -3,8 +3,8 @@ package parser
 import (
 	"math"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
 )
@@ -19,10 +19,10 @@ type StandardObject struct {
 
 func NewStandardObject(context data.Context, factory data.Factory, object *map[string]interface{}, notParsedPolicy NotParsedPolicy) (*StandardObject, error) {
 	if context == nil {
-		return nil, app.Error("parser", "context is missing")
+		return nil, errors.New("parser", "context is missing")
 	}
 	if factory == nil {
-		return nil, app.Error("parser", "factory is missing")
+		return nil, errors.New("parser", "factory is missing")
 	}
 
 	var parsed map[string]bool

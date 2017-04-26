@@ -11,6 +11,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 
 	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/store/mongo"
 	"github.com/tidepool-org/platform/version"
@@ -38,7 +39,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := application.Run(os.Args); err != nil {
+	if err = application.Run(os.Args); err != nil {
 		fmt.Println("ERROR: Unable to run application:", err)
 		os.Exit(1)
 	}
@@ -53,7 +54,7 @@ func initializeApplication() (*cli.App, error) {
 	application := cli.NewApp()
 	application.Usage = "Migrate all device data to include user id derived from group id"
 	application.Version = versionReporter.Long()
-	application.Authors = []cli.Author{{"Darin Krauss", "darin@tidepool.org"}}
+	application.Authors = []cli.Author{{Name: "Darin Krauss", Email: "darin@tidepool.org"}}
 	application.Copyright = "Copyright \u00A9 2016, Tidepool Project"
 	application.HideHelp = true
 	application.HideVersion = true
@@ -94,7 +95,7 @@ func initializeApplication() (*cli.App, error) {
 func initializeVersionReporter() (version.Reporter, error) {
 	versionReporter, err := version.NewDefaultReporter()
 	if err != nil {
-		return nil, app.ExtError(err, "migrate_gid_to_uid", "unable to create version reporter")
+		return nil, errors.Wrap(err, "migrate_gid_to_uid", "unable to create version reporter")
 	}
 
 	return versionReporter, nil
@@ -169,7 +170,7 @@ func buildConfigFromContext(context *cli.Context) (*Config, error) {
 func initializeLogger(versionReporter version.Reporter, config *Config) (log.Logger, error) {
 	logger, err := log.NewStandard(versionReporter, config.Log)
 	if err != nil {
-		return nil, app.ExtError(err, "migrate_gid_to_uid", "unable to create logger")
+		return nil, errors.Wrap(err, "migrate_gid_to_uid", "unable to create logger")
 	}
 
 	return logger, nil
@@ -188,7 +189,7 @@ func buildMetaIDToUserIDMap(logger log.Logger, config *Config) (map[string]strin
 	mongoConfig.Collection = "users"
 	usersStore, err := mongo.New(logger, mongoConfig)
 	if err != nil {
-		return nil, app.ExtError(err, "migrate_gid_to_uid", "unable to create users store")
+		return nil, errors.Wrap(err, "migrate_gid_to_uid", "unable to create users store")
 	}
 	defer usersStore.Close()
 
@@ -196,7 +197,7 @@ func buildMetaIDToUserIDMap(logger log.Logger, config *Config) (map[string]strin
 
 	usersSession, err := usersStore.NewSession(logger)
 	if err != nil {
-		return nil, app.ExtError(err, "migrate_gid_to_uid", "unable to create users session")
+		return nil, errors.Wrap(err, "migrate_gid_to_uid", "unable to create users session")
 	}
 	defer usersSession.Close()
 
@@ -244,7 +245,7 @@ func buildMetaIDToUserIDMap(logger log.Logger, config *Config) (map[string]strin
 		metaIDToUserIDMap[metaID] = userID
 	}
 	if err = iter.Close(); err != nil {
-		return nil, app.ExtError(err, "migrate_gid_to_uid", "unable to iterate users")
+		return nil, errors.Wrap(err, "migrate_gid_to_uid", "unable to iterate users")
 	}
 
 	logger.Debug(fmt.Sprintf("Found %d users with meta", len(metaIDToUserIDMap)))
@@ -265,7 +266,7 @@ func buildGroupIDToUserIDMap(logger log.Logger, config *Config, metaIDToUserIDMa
 	mongoConfig.Collection = "seagull"
 	metaStore, err := mongo.New(logger, mongoConfig)
 	if err != nil {
-		return nil, app.ExtError(err, "migrate_gid_to_uid", "unable to create meta store")
+		return nil, errors.Wrap(err, "migrate_gid_to_uid", "unable to create meta store")
 	}
 	defer metaStore.Close()
 
@@ -273,7 +274,7 @@ func buildGroupIDToUserIDMap(logger log.Logger, config *Config, metaIDToUserIDMa
 
 	metaSession, err := metaStore.NewSession(logger)
 	if err != nil {
-		return nil, app.ExtError(err, "migrate_gid_to_uid", "unable to create meta session")
+		return nil, errors.Wrap(err, "migrate_gid_to_uid", "unable to create meta session")
 	}
 	defer metaSession.Close()
 
@@ -342,7 +343,7 @@ func buildGroupIDToUserIDMap(logger log.Logger, config *Config, metaIDToUserIDMa
 		groupIDToUserIDMap[groupID] = userID
 	}
 	if err = iter.Close(); err != nil {
-		return nil, app.ExtError(err, "migrate_gid_to_uid", "unable to iterate meta")
+		return nil, errors.Wrap(err, "migrate_gid_to_uid", "unable to iterate meta")
 	}
 
 	logger.Debug(fmt.Sprintf("Found %d groups with user", len(groupIDToUserIDMap)))
@@ -363,7 +364,7 @@ func migrateGroupIDToUserIDForDeviceData(logger log.Logger, config *Config, grou
 	mongoConfig.Collection = "deviceData"
 	deviceDataStore, err := mongo.New(logger, mongoConfig)
 	if err != nil {
-		return app.ExtError(err, "migrate_gid_to_uid", "unable to create device data store")
+		return errors.Wrap(err, "migrate_gid_to_uid", "unable to create device data store")
 	}
 	defer deviceDataStore.Close()
 
@@ -371,7 +372,7 @@ func migrateGroupIDToUserIDForDeviceData(logger log.Logger, config *Config, grou
 
 	deviceDataSession, err := deviceDataStore.NewSession(logger)
 	if err != nil {
-		return app.ExtError(err, "migrate_gid_to_uid", "unable to create device data session")
+		return errors.Wrap(err, "migrate_gid_to_uid", "unable to create device data session")
 	}
 	defer deviceDataSession.Close()
 

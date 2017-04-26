@@ -7,6 +7,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/upload"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 )
 
@@ -64,16 +65,16 @@ func (h *hashDeactivateOldFactory) NewDeduplicatorForDataset(logger log.Logger, 
 	}
 
 	if dataset.DeviceID == nil {
-		return nil, app.Error("deduplicator", "dataset device id is missing")
+		return nil, errors.New("deduplicator", "dataset device id is missing")
 	}
 	if *dataset.DeviceID == "" {
-		return nil, app.Error("deduplicator", "dataset device id is empty")
+		return nil, errors.New("deduplicator", "dataset device id is empty")
 	}
 	if dataset.DeviceManufacturers == nil {
-		return nil, app.Error("deduplicator", "dataset device manufacturers is missing")
+		return nil, errors.New("deduplicator", "dataset device manufacturers is missing")
 	}
 	if !app.StringsContainsAnyStrings(*dataset.DeviceManufacturers, _HashDeactivateOldExpectedDeviceManufacturers) {
-		return nil, app.Error("deduplicator", "dataset device manufacturers does not contain expected device manufacturers")
+		return nil, errors.New("deduplicator", "dataset device manufacturers does not contain expected device manufacturers")
 	}
 
 	return &hashDeactivateOldDeduplicator{
@@ -111,7 +112,7 @@ func (h *hashDeactivateOldDeduplicator) DeleteDataset() error {
 func (h *hashDeactivateOldDeduplicator) setPreviousDatasetDataActiveUsingHashes(active bool) error {
 	previousDataset, err := h.dataStoreSession.FindPreviousActiveDatasetForDevice(h.dataset)
 	if err != nil {
-		return app.ExtErrorf(err, "deduplicator", "unable to find previous dataset from dataset with id %s", strconv.Quote(h.dataset.UploadID))
+		return errors.Wrapf(err, "deduplicator", "unable to find previous dataset from dataset with id %s", strconv.Quote(h.dataset.UploadID))
 	} else if previousDataset == nil {
 		return nil
 	}
@@ -119,12 +120,12 @@ func (h *hashDeactivateOldDeduplicator) setPreviousDatasetDataActiveUsingHashes(
 	var hashes []string
 	hashes, err = h.dataStoreSession.GetDatasetDataDeduplicatorHashes(h.dataset, active)
 	if err != nil {
-		return app.ExtErrorf(err, "deduplicator", "unable to get dataset data deduplicator hashes from dataset with id %s", strconv.Quote(h.dataset.UploadID))
+		return errors.Wrapf(err, "deduplicator", "unable to get dataset data deduplicator hashes from dataset with id %s", strconv.Quote(h.dataset.UploadID))
 	}
 
 	if len(hashes) > 0 {
 		if err = h.dataStoreSession.SetDatasetDataActiveUsingHashes(previousDataset, hashes, active); err != nil {
-			return app.ExtErrorf(err, "deduplicator", "unable to set dataset data active using hashes from dataset with id %s", strconv.Quote(previousDataset.UploadID))
+			return errors.Wrapf(err, "deduplicator", "unable to set dataset data active using hashes from dataset with id %s", strconv.Quote(previousDataset.UploadID))
 		}
 	}
 

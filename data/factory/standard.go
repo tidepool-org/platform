@@ -3,7 +3,6 @@ package factory
 import (
 	"sort"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/basal"
 	"github.com/tidepool-org/platform/data/types/basal/scheduled"
@@ -26,6 +25,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/device/timechange"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	"github.com/tidepool-org/platform/data/types/upload"
+	"github.com/tidepool-org/platform/errors"
 )
 
 type Standard struct {
@@ -42,7 +42,7 @@ func NewNewFuncWithFunc(datumFunc func() data.Datum) NewFunc {
 
 	return func(inspector data.Inspector) (data.Datum, error) {
 		if inspector == nil {
-			return nil, app.Error("factory", "inspector is missing")
+			return nil, errors.New("factory", "inspector is missing")
 		}
 
 		return datumFunc(), nil
@@ -58,7 +58,7 @@ func NewNewFuncWithKeyAndMap(key string, newFuncMap NewFuncMap) NewFunc {
 
 	return func(inspector data.Inspector) (data.Datum, error) {
 		if inspector == nil {
-			return nil, app.Error("factory", "inspector is missing")
+			return nil, errors.New("factory", "inspector is missing")
 		}
 
 		value := inspector.GetProperty(key)

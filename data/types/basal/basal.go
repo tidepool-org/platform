@@ -1,9 +1,9 @@
 package basal
 
 import (
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/errors"
 )
 
 type Basal struct {
@@ -68,7 +68,7 @@ func (b *Basal) IdentityFields() ([]string, error) {
 	}
 
 	if b.DeliveryType == "" {
-		return nil, app.Error("basal", "delivery type is empty")
+		return nil, errors.New("basal", "delivery type is empty")
 	}
 
 	return append(identityFields, b.DeliveryType), nil

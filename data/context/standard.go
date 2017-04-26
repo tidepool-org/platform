@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
 )
@@ -19,7 +19,7 @@ type Standard struct {
 
 func NewStandard(logger log.Logger) (*Standard, error) {
 	if logger == nil {
-		return nil, app.Error("context", "logger is missing")
+		return nil, errors.New("context", "logger is missing")
 	}
 
 	return &Standard{

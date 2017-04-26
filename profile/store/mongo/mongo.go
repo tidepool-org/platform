@@ -6,7 +6,7 @@ import (
 
 	"gopkg.in/mgo.v2/bson"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/profile"
 	"github.com/tidepool-org/platform/profile/store"
@@ -45,11 +45,11 @@ type Session struct {
 
 func (s *Session) GetProfileByID(profileID string) (*profile.Profile, error) {
 	if profileID == "" {
-		return nil, app.Error("mongo", "profile id is missing")
+		return nil, errors.New("mongo", "profile id is missing")
 	}
 
 	if s.IsClosed() {
-		return nil, app.Error("mongo", "session closed")
+		return nil, errors.New("mongo", "session closed")
 	}
 
 	startTime := time.Now()
@@ -64,7 +64,7 @@ func (s *Session) GetProfileByID(profileID string) (*profile.Profile, error) {
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("GetProfileByID")
 
 	if err != nil {
-		return nil, app.ExtError(err, "mongo", "unable to get profile by id")
+		return nil, errors.Wrap(err, "mongo", "unable to get profile by id")
 	}
 
 	if profilesCount := len(profiles); profilesCount == 0 {
@@ -94,11 +94,11 @@ func (s *Session) GetProfileByID(profileID string) (*profile.Profile, error) {
 
 func (s *Session) DestroyProfileByID(profileID string) error {
 	if profileID == "" {
-		return app.Error("mongo", "profile id is missing")
+		return errors.New("mongo", "profile id is missing")
 	}
 
 	if s.IsClosed() {
-		return app.Error("mongo", "session closed")
+		return errors.New("mongo", "session closed")
 	}
 
 	startTime := time.Now()
@@ -112,7 +112,7 @@ func (s *Session) DestroyProfileByID(profileID string) error {
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("DestroyProfileByID")
 
 	if err != nil {
-		return app.ExtError(err, "mongo", "unable to destroy profile by id")
+		return errors.Wrap(err, "mongo", "unable to destroy profile by id")
 	}
 	return nil
 }

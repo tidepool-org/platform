@@ -5,7 +5,7 @@ import (
 
 	"gopkg.in/mgo.v2/bson"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/store/mongo"
 	"github.com/tidepool-org/platform/task/store"
@@ -43,11 +43,11 @@ type Session struct {
 
 func (s *Session) DestroyTasksForUserByID(userID string) error {
 	if userID == "" {
-		return app.Error("mongo", "user id is missing")
+		return errors.New("mongo", "user id is missing")
 	}
 
 	if s.IsClosed() {
-		return app.Error("mongo", "session closed")
+		return errors.New("mongo", "session closed")
 	}
 
 	startTime := time.Now()
@@ -61,7 +61,7 @@ func (s *Session) DestroyTasksForUserByID(userID string) error {
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("DestroyTasksForUserByID")
 
 	if err != nil {
-		return app.ExtError(err, "mongo", "unable to destroy tasks for user by id")
+		return errors.Wrap(err, "mongo", "unable to destroy tasks for user by id")
 	}
 
 	return nil

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/errors"
 )
 
 type Config struct {
@@ -19,22 +20,22 @@ type Config struct {
 func (c *Config) Validate() error {
 	addresses := app.SplitStringAndRemoveWhitespace(c.Addresses, ",")
 	if len(addresses) < 1 {
-		return app.Error("mongo", "addresses is missing")
+		return errors.New("mongo", "addresses is missing")
 	}
 	if c.Database == "" {
-		return app.Error("mongo", "database is missing")
+		return errors.New("mongo", "database is missing")
 	}
 	if c.Collection == "" {
-		return app.Error("mongo", "collection is missing")
+		return errors.New("mongo", "collection is missing")
 	}
 	if c.Username != nil && *c.Username == "" {
-		return app.Error("mongo", "username is empty")
+		return errors.New("mongo", "username is empty")
 	}
 	if c.Password != nil && *c.Password == "" {
-		return app.Error("mongo", "password is empty")
+		return errors.New("mongo", "password is empty")
 	}
 	if c.Timeout != nil && *c.Timeout < 0 {
-		return app.Error("mongo", "timeout is invalid")
+		return errors.New("mongo", "timeout is invalid")
 	}
 	return nil
 }

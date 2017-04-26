@@ -1,9 +1,9 @@
 package device
 
 import (
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/errors"
 )
 
 type Device struct {
@@ -68,7 +68,7 @@ func (d *Device) IdentityFields() ([]string, error) {
 	}
 
 	if d.SubType == "" {
-		return nil, app.Error("device", "sub type is empty")
+		return nil, errors.New("device", "sub type is empty")
 	}
 
 	return append(identityFields, d.SubType), nil

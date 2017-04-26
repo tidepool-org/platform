@@ -1,8 +1,8 @@
 package normalizer
 
 import (
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
 )
@@ -14,7 +14,7 @@ type Standard struct {
 
 func NewStandard(context data.Context) (*Standard, error) {
 	if context == nil {
-		return nil, app.Error("normalizer", "context is missing")
+		return nil, errors.New("normalizer", "context is missing")
 	}
 
 	return &Standard{

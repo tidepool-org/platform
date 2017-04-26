@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/version"
@@ -24,18 +24,18 @@ const TidepoolAuthenticationTokenHeaderName = "X-Tidepool-Session-Token"
 
 func NewStandard(versionReporter version.Reporter, name string, config *Config) (*Standard, error) {
 	if versionReporter == nil {
-		return nil, app.Error("client", "version reporter is missing")
+		return nil, errors.New("client", "version reporter is missing")
 	}
 	if name == "" {
-		return nil, app.Error("client", "name is missing")
+		return nil, errors.New("client", "name is missing")
 	}
 	if config == nil {
-		return nil, app.Error("client", "config is missing")
+		return nil, errors.New("client", "config is missing")
 	}
 
 	config = config.Clone()
 	if err := config.Validate(); err != nil {
-		return nil, app.ExtError(err, "client", "config is invalid")
+		return nil, errors.Wrap(err, "client", "config is invalid")
 	}
 
 	httpClient := &http.Client{
@@ -52,10 +52,10 @@ func NewStandard(versionReporter version.Reporter, name string, config *Config) 
 
 func (s *Standard) RecordMetric(context Context, metric string, data ...map[string]string) error {
 	if context == nil {
-		return app.Error("client", "context is missing")
+		return errors.New("client", "context is missing")
 	}
 	if metric == "" {
-		return app.Error("client", "metric is missing")
+		return errors.New("client", "metric is missing")
 	}
 
 	data = append(data, map[string]string{"sourceVersion": s.versionReporter.Base()})
@@ -84,18 +84,18 @@ func (s *Standard) RecordMetric(context Context, metric string, data ...map[stri
 func (s *Standard) sendRequest(context Context, requestMethod string, requestURL string) error {
 	request, err := http.NewRequest(requestMethod, requestURL, nil)
 	if err != nil {
-		return app.ExtErrorf(err, "client", "unable to create new request for %s %s", requestMethod, requestURL)
+		return errors.Wrapf(err, "client", "unable to create new request for %s %s", requestMethod, requestURL)
 	}
 
 	if err = service.CopyRequestTrace(context.Request(), request); err != nil {
-		return app.ExtErrorf(err, "client", "unable to copy request trace")
+		return errors.Wrapf(err, "client", "unable to copy request trace")
 	}
 
 	request.Header.Add(TidepoolAuthenticationTokenHeaderName, context.AuthenticationDetails().Token())
 
 	response, err := s.httpClient.Do(request)
 	if err != nil {
-		return app.ExtErrorf(err, "client", "unable to perform request %s %s", requestMethod, requestURL)
+		return errors.Wrapf(err, "client", "unable to perform request %s %s", requestMethod, requestURL)
 	}
 	defer response.Body.Close()
 
@@ -103,9 +103,9 @@ func (s *Standard) sendRequest(context Context, requestMethod string, requestURL
 	case http.StatusOK:
 		return nil
 	case http.StatusUnauthorized:
-		return app.Error("client", "unauthorized")
+		return errors.New("client", "unauthorized")
 	default:
-		return app.Error("client", fmt.Sprintf("unexpected response status code %d from %s %s", response.StatusCode, requestMethod, requestURL))
+		return errors.New("client", fmt.Sprintf("unexpected response status code %d from %s %s", response.StatusCode, requestMethod, requestURL))
 	}
 }
 

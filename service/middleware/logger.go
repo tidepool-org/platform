@@ -3,7 +3,7 @@ package middleware
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
 )
@@ -14,7 +14,7 @@ type Logger struct {
 
 func NewLogger(logger log.Logger) (*Logger, error) {
 	if logger == nil {
-		return nil, app.Error("middleware", "logger is missing")
+		return nil, errors.New("middleware", "logger is missing")
 	}
 
 	return &Logger{

@@ -3,6 +3,7 @@ package types
 import (
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/errors"
 )
 
 const SchemaVersionCurrent = 3
@@ -113,22 +114,22 @@ func (b *Base) Normalize(normalizer data.Normalizer) error {
 
 func (b *Base) IdentityFields() ([]string, error) {
 	if b.UserID == "" {
-		return nil, app.Error("base", "user id is empty")
+		return nil, errors.New("base", "user id is empty")
 	}
 	if b.DeviceID == nil {
-		return nil, app.Error("base", "device id is missing")
+		return nil, errors.New("base", "device id is missing")
 	}
 	if *b.DeviceID == "" {
-		return nil, app.Error("base", "device id is empty")
+		return nil, errors.New("base", "device id is empty")
 	}
 	if b.Time == nil {
-		return nil, app.Error("base", "time is missing")
+		return nil, errors.New("base", "time is missing")
 	}
 	if *b.Time == "" {
-		return nil, app.Error("base", "time is empty")
+		return nil, errors.New("base", "time is empty")
 	}
 	if b.Type == "" {
-		return nil, app.Error("base", "type is empty")
+		return nil, errors.New("base", "type is empty")
 	}
 
 	return []string{b.UserID, *b.DeviceID, *b.Time, b.Type}, nil

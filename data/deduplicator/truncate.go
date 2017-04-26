@@ -7,6 +7,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/upload"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 )
 
@@ -64,16 +65,16 @@ func (t *truncateFactory) NewDeduplicatorForDataset(logger log.Logger, dataStore
 	}
 
 	if dataset.DeviceID == nil {
-		return nil, app.Error("deduplicator", "dataset device id is missing")
+		return nil, errors.New("deduplicator", "dataset device id is missing")
 	}
 	if *dataset.DeviceID == "" {
-		return nil, app.Error("deduplicator", "dataset device id is empty")
+		return nil, errors.New("deduplicator", "dataset device id is empty")
 	}
 	if dataset.DeviceManufacturers == nil {
-		return nil, app.Error("deduplicator", "dataset device manufacturers is missing")
+		return nil, errors.New("deduplicator", "dataset device manufacturers is missing")
 	}
 	if !app.StringsContainsAnyStrings(*dataset.DeviceManufacturers, _TruncateExpectedDeviceManufacturers) {
-		return nil, app.Error("deduplicator", "dataset device manufacturers does not contain expected device manufacturers")
+		return nil, errors.New("deduplicator", "dataset device manufacturers does not contain expected device manufacturers")
 	}
 
 	return &truncateDeduplicator{
@@ -90,7 +91,7 @@ func (t *truncateDeduplicator) DeduplicateDataset() error {
 	}
 
 	if err := t.dataStoreSession.DeleteOtherDatasetData(t.dataset); err != nil {
-		return app.ExtErrorf(err, "deduplicator", "unable to remove all other data except dataset with id %s", strconv.Quote(t.dataset.UploadID))
+		return errors.Wrapf(err, "deduplicator", "unable to remove all other data except dataset with id %s", strconv.Quote(t.dataset.UploadID))
 	}
 
 	return nil

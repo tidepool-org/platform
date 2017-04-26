@@ -8,7 +8,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/version"
 )
 
@@ -20,19 +20,19 @@ type Standard struct {
 
 func NewStandard(versionReporter version.Reporter, config *Config) (*Standard, error) {
 	if versionReporter == nil {
-		return nil, app.Error("log", "version reporter is missing")
+		return nil, errors.New("log", "version reporter is missing")
 	}
 	if config == nil {
-		return nil, app.Error("log", "config is missing")
+		return nil, errors.New("log", "config is missing")
 	}
 
 	if err := config.Validate(); err != nil {
-		return nil, app.Error("log", "config is invalid")
+		return nil, errors.New("log", "config is invalid")
 	}
 
 	level, err := logrus.ParseLevel(config.Level)
 	if err != nil {
-		return nil, app.Error("log", "unable to parse level")
+		return nil, errors.New("log", "unable to parse level")
 	}
 
 	ignoredFileSegments := 1

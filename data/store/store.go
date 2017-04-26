@@ -1,9 +1,9 @@
 package store
 
 import (
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/upload"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/store"
 )
@@ -65,10 +65,10 @@ func NewPagination() *Pagination {
 
 func (p *Pagination) Validate() error {
 	if p.Page < PaginationPageMinimum {
-		return app.Error("store", "page is invalid")
+		return errors.New("store", "page is invalid")
 	}
 	if p.Size < PaginationSizeMinimum || p.Size > PaginationSizeMaximum {
-		return app.Error("store", "size is invalid")
+		return errors.New("store", "size is invalid")
 	}
 	return nil
 }

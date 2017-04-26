@@ -3,7 +3,7 @@ package data
 import (
 	"strconv"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/errors"
 )
 
 type Deduplicator interface {
@@ -36,7 +36,7 @@ func (d *DeduplicatorDescriptor) IsRegisteredWithNamedDeduplicator(name string) 
 
 func (d *DeduplicatorDescriptor) RegisterWithNamedDeduplicator(name string) error {
 	if d.Name != "" {
-		return app.Errorf("data", "deduplicator descriptor already registered with %s", strconv.Quote(d.Name))
+		return errors.Newf("data", "deduplicator descriptor already registered with %s", strconv.Quote(d.Name))
 	}
 
 	d.Name = name

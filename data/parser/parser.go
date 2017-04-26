@@ -1,16 +1,16 @@
 package parser
 
 import (
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/errors"
 )
 
 func ParseDatum(parser data.ObjectParser, factory data.Factory) (*data.Datum, error) {
 	if parser == nil {
-		return nil, app.Error("parser", "parser is missing")
+		return nil, errors.New("parser", "parser is missing")
 	}
 	if factory == nil {
-		return nil, app.Error("parser", "factory is missing")
+		return nil, errors.New("parser", "factory is missing")
 	}
 
 	if parser.Object() == nil {
@@ -39,7 +39,7 @@ func ParseDatum(parser data.ObjectParser, factory data.Factory) (*data.Datum, er
 
 func ParseDatumArray(parser data.ArrayParser) (*[]data.Datum, error) {
 	if parser == nil {
-		return nil, app.Error("parser", "parser is missing")
+		return nil, errors.New("parser", "parser is missing")
 	}
 
 	array := parser.Array()

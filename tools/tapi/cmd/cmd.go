@@ -30,7 +30,7 @@ func InitializeApplication() (*cli.App, error) {
 	application := cli.NewApp()
 	application.Usage = "Command-line interface to interact with the Tidepool API"
 	application.Version = versionReporter.Long()
-	application.Authors = []cli.Author{{"Darin Krauss", "darin@tidepool.org"}}
+	application.Authors = []cli.Author{{Name: "Darin Krauss", Email: "darin@tidepool.org"}}
 	application.Copyright = "Copyright \u00A9 2016, Tidepool Project"
 	application.HideVersion = true
 	application.Commands = wrapCommands(mergeCommands(

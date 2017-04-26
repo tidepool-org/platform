@@ -1,7 +1,7 @@
 package mongo
 
 import (
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/store/mongo"
 )
 
@@ -12,13 +12,13 @@ type Config struct {
 
 func (c *Config) Validate() error {
 	if c.Config == nil {
-		return app.Error("mongo", "config is missing")
+		return errors.New("mongo", "config is missing")
 	}
 	if err := c.Config.Validate(); err != nil {
 		return err
 	}
 	if c.Secret == "" {
-		return app.Error("mongo", "secret is missing")
+		return errors.New("mongo", "secret is missing")
 	}
 	return nil
 }

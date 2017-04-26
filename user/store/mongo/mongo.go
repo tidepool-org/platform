@@ -7,7 +7,7 @@ import (
 
 	"gopkg.in/mgo.v2/bson"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/store/mongo"
 	"github.com/tidepool-org/platform/user"
@@ -16,7 +16,7 @@ import (
 
 func New(logger log.Logger, config *Config) (*Store, error) {
 	if config == nil {
-		return nil, app.Error("mongo", "config is missing")
+		return nil, errors.New("mongo", "config is missing")
 	}
 
 	baseStore, err := mongo.New(logger, config.Config)
@@ -26,7 +26,7 @@ func New(logger log.Logger, config *Config) (*Store, error) {
 
 	config = config.Clone()
 	if err = config.Validate(); err != nil {
-		return nil, app.ExtError(err, "mongo", "config is invalid")
+		return nil, errors.Wrap(err, "mongo", "config is invalid")
 	}
 
 	return &Store{
@@ -59,11 +59,11 @@ type Session struct {
 
 func (s *Session) GetUserByID(userID string) (*user.User, error) {
 	if userID == "" {
-		return nil, app.Error("mongo", "user id is missing")
+		return nil, errors.New("mongo", "user id is missing")
 	}
 
 	if s.IsClosed() {
-		return nil, app.Error("mongo", "session closed")
+		return nil, errors.New("mongo", "session closed")
 	}
 
 	startTime := time.Now()
@@ -78,7 +78,7 @@ func (s *Session) GetUserByID(userID string) (*user.User, error) {
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("GetUserByID")
 
 	if err != nil {
-		return nil, app.ExtError(err, "mongo", "unable to get user by id")
+		return nil, errors.Wrap(err, "mongo", "unable to get user by id")
 	}
 
 	if usersCount := len(users); usersCount == 0 {
@@ -98,14 +98,14 @@ func (s *Session) GetUserByID(userID string) (*user.User, error) {
 
 func (s *Session) DeleteUser(user *user.User) error {
 	if user == nil {
-		return app.Error("mongo", "user is missing")
+		return errors.New("mongo", "user is missing")
 	}
 	if user.ID == "" {
-		return app.Error("mongo", "user id is missing")
+		return errors.New("mongo", "user id is missing")
 	}
 
 	if s.IsClosed() {
-		return app.Error("mongo", "session closed")
+		return errors.New("mongo", "session closed")
 	}
 
 	startTime := time.Now()
@@ -122,18 +122,18 @@ func (s *Session) DeleteUser(user *user.User) error {
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("DeleteUser")
 
 	if err != nil {
-		return app.ExtError(err, "mongo", "unable to delete user")
+		return errors.Wrap(err, "mongo", "unable to delete user")
 	}
 	return nil
 }
 
 func (s *Session) DestroyUserByID(userID string) error {
 	if userID == "" {
-		return app.Error("mongo", "user id is missing")
+		return errors.New("mongo", "user id is missing")
 	}
 
 	if s.IsClosed() {
-		return app.Error("mongo", "session closed")
+		return errors.New("mongo", "session closed")
 	}
 
 	startTime := time.Now()
@@ -147,7 +147,7 @@ func (s *Session) DestroyUserByID(userID string) error {
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("DestroyUserByID")
 
 	if err != nil {
-		return app.ExtError(err, "mongo", "unable to destroy user by id")
+		return errors.Wrap(err, "mongo", "unable to destroy user by id")
 	}
 	return nil
 }
