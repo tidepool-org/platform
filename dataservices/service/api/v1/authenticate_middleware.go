@@ -1,15 +1,5 @@
 package v1
 
-/* CHECKLIST
- * [ ] Uses interfaces as appropriate
- * [ ] Private package variables use underscore prefix
- * [ ] All parameters validated
- * [ ] All errors handled
- * [ ] Reviewed for concurrency safety
- * [ ] Code complete
- * [ ] Full test coverage
- */
-
 import (
 	"github.com/tidepool-org/platform/dataservices/service"
 	commonService "github.com/tidepool-org/platform/service"

@@ -1,7 +1,7 @@
 app/error_test.go:21: no formatting directive in Errorf call
-data/deduplicator.go:49: no formatting directive in Errorf call
-data/deduplicator/base.go:151: no formatting directive in Errorf call
-data/deduplicator/delegate.go:99: no formatting directive in Errorf call
-store/mongo/mongo.go:93: no formatting directive in Errorf call
-userservices/client/standard.go:238: no formatting directive in Errorf call
-userservices/client/standard.go:312: no formatting directive in Errorf call
+data/deduplicator.go:39: no formatting directive in Errorf call
+data/deduplicator/base.go:141: no formatting directive in Errorf call
+data/deduplicator/delegate.go:89: no formatting directive in Errorf call
+store/mongo/mongo.go:83: no formatting directive in Errorf call
+userservices/client/standard.go:228: no formatting directive in Errorf call
+userservices/client/standard.go:302: no formatting directive in Errorf call
