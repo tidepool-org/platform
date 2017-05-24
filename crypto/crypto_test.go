@@ -1,4 +1,4 @@
-package app_test
+package crypto_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,38 +7,38 @@ import (
 
 	"encoding/base64"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/crypto"
 )
 
 var _ = Describe("Crypto", func() {
 	Context("EncryptWithAES256UsingPassphrase", func() {
 		It("returns an error if the bytes is missing", func() {
-			encrypted, err := app.EncryptWithAES256UsingPassphrase(nil, []byte("secret"))
-			Expect(err).To(MatchError("app: bytes is missing"))
+			encrypted, err := crypto.EncryptWithAES256UsingPassphrase(nil, []byte("secret"))
+			Expect(err).To(MatchError("crypto: bytes is missing"))
 			Expect(encrypted).To(BeNil())
 		})
 
 		It("returns an error if the bytes is empty", func() {
-			encrypted, err := app.EncryptWithAES256UsingPassphrase([]byte{}, []byte("secret"))
-			Expect(err).To(MatchError("app: bytes is missing"))
+			encrypted, err := crypto.EncryptWithAES256UsingPassphrase([]byte{}, []byte("secret"))
+			Expect(err).To(MatchError("crypto: bytes is missing"))
 			Expect(encrypted).To(BeNil())
 		})
 
 		It("returns an error if the passphrase is missing", func() {
-			encrypted, err := app.EncryptWithAES256UsingPassphrase([]byte("psZ5wJPUnU7Fqpuinhdz2m"), nil)
-			Expect(err).To(MatchError("app: passphrase is missing"))
+			encrypted, err := crypto.EncryptWithAES256UsingPassphrase([]byte("psZ5wJPUnU7Fqpuinhdz2m"), nil)
+			Expect(err).To(MatchError("crypto: passphrase is missing"))
 			Expect(encrypted).To(BeNil())
 		})
 
 		It("returns an error if the passphrase is empty", func() {
-			encrypted, err := app.EncryptWithAES256UsingPassphrase([]byte("psZ5wJPUnU7Fqpuinhdz2m"), []byte{})
-			Expect(err).To(MatchError("app: passphrase is missing"))
+			encrypted, err := crypto.EncryptWithAES256UsingPassphrase([]byte("psZ5wJPUnU7Fqpuinhdz2m"), []byte{})
+			Expect(err).To(MatchError("crypto: passphrase is missing"))
 			Expect(encrypted).To(BeNil())
 		})
 
 		DescribeTable("is successful for",
 			func(source string, passphrase string, expectedEncrypted string) {
-				encrypted, err := app.EncryptWithAES256UsingPassphrase([]byte(source), []byte(passphrase))
+				encrypted, err := crypto.EncryptWithAES256UsingPassphrase([]byte(source), []byte(passphrase))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(base64.StdEncoding.EncodeToString(encrypted)).To(Equal(expectedEncrypted))
 			},
@@ -67,26 +67,26 @@ var _ = Describe("Crypto", func() {
 
 	Context("DecryptWithAES256UsingPassphrase", func() {
 		It("returns an error if the bytes is missing", func() {
-			decrypted, err := app.DecryptWithAES256UsingPassphrase(nil, []byte("secret"))
-			Expect(err).To(MatchError("app: bytes is missing"))
+			decrypted, err := crypto.DecryptWithAES256UsingPassphrase(nil, []byte("secret"))
+			Expect(err).To(MatchError("crypto: bytes is missing"))
 			Expect(decrypted).To(BeNil())
 		})
 
 		It("returns an error if the bytes is empty", func() {
-			decrypted, err := app.DecryptWithAES256UsingPassphrase([]byte{}, []byte("secret"))
-			Expect(err).To(MatchError("app: bytes is missing"))
+			decrypted, err := crypto.DecryptWithAES256UsingPassphrase([]byte{}, []byte("secret"))
+			Expect(err).To(MatchError("crypto: bytes is missing"))
 			Expect(decrypted).To(BeNil())
 		})
 
 		It("returns an error if the passphrase is missing", func() {
-			decrypted, err := app.DecryptWithAES256UsingPassphrase([]byte("psZ5wJPUnU7Fqpuinhdz2m"), nil)
-			Expect(err).To(MatchError("app: passphrase is missing"))
+			decrypted, err := crypto.DecryptWithAES256UsingPassphrase([]byte("psZ5wJPUnU7Fqpuinhdz2m"), nil)
+			Expect(err).To(MatchError("crypto: passphrase is missing"))
 			Expect(decrypted).To(BeNil())
 		})
 
 		It("returns an error if the passphrase is empty", func() {
-			decrypted, err := app.DecryptWithAES256UsingPassphrase([]byte("psZ5wJPUnU7Fqpuinhdz2m"), []byte{})
-			Expect(err).To(MatchError("app: passphrase is missing"))
+			decrypted, err := crypto.DecryptWithAES256UsingPassphrase([]byte("psZ5wJPUnU7Fqpuinhdz2m"), []byte{})
+			Expect(err).To(MatchError("crypto: passphrase is missing"))
 			Expect(decrypted).To(BeNil())
 		})
 
@@ -94,7 +94,7 @@ var _ = Describe("Crypto", func() {
 			func(source string, passphrase string, expectedDecrypted string) {
 				sourceBytes, err := base64.StdEncoding.DecodeString(source)
 				Expect(err).ToNot(HaveOccurred())
-				decrypted, err := app.DecryptWithAES256UsingPassphrase(sourceBytes, []byte(passphrase))
+				decrypted, err := crypto.DecryptWithAES256UsingPassphrase(sourceBytes, []byte(passphrase))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(string(decrypted)).To(Equal(expectedDecrypted))
 			},

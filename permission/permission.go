@@ -3,7 +3,7 @@ package permission
 import (
 	"encoding/base64"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/errors"
 )
 
@@ -15,7 +15,7 @@ func GroupIDFromUserID(userID string, secret string) (string, error) {
 		return "", errors.New("permission", "secret is missing")
 	}
 
-	groupIDBytes, err := app.EncryptWithAES256UsingPassphrase([]byte(userID), []byte(secret))
+	groupIDBytes, err := crypto.EncryptWithAES256UsingPassphrase([]byte(userID), []byte(secret))
 	if err != nil {
 		return "", errors.New("permission", "unable to encrypt with AES-256 using passphrase")
 	}
@@ -37,7 +37,7 @@ func UserIDFromGroupID(groupID string, secret string) (string, error) {
 		return "", errors.New("permission", "unable to decode with Base64")
 	}
 
-	userIDBytes, err := app.DecryptWithAES256UsingPassphrase(groupIDBytes, []byte(secret))
+	userIDBytes, err := crypto.DecryptWithAES256UsingPassphrase(groupIDBytes, []byte(secret))
 	if err != nil {
 		return "", errors.New("permission", "unable to decrypt with AES-256 using passphrase")
 	}

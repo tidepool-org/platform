@@ -1,4 +1,4 @@
-package app
+package crypto
 
 import (
 	"crypto/aes"
@@ -11,15 +11,15 @@ import (
 func EncryptWithAES256UsingPassphrase(bytes []byte, passphrase []byte) (_ []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = errors.New("app", "unrecoverable encryption failure")
+			err = errors.New("crypto", "unrecoverable encryption failure")
 		}
 	}()
 
 	if len(bytes) == 0 {
-		return nil, errors.New("app", "bytes is missing")
+		return nil, errors.New("crypto", "bytes is missing")
 	}
 	if len(passphrase) == 0 {
-		return nil, errors.New("app", "passphrase is missing")
+		return nil, errors.New("crypto", "passphrase is missing")
 	}
 
 	key, iv := passphraseToKey32AndIV16(passphrase)
@@ -29,15 +29,15 @@ func EncryptWithAES256UsingPassphrase(bytes []byte, passphrase []byte) (_ []byte
 func DecryptWithAES256UsingPassphrase(bytes []byte, passphrase []byte) (_ []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = errors.New("app", "unrecoverable decryption failure")
+			err = errors.New("crypto", "unrecoverable decryption failure")
 		}
 	}()
 
 	if len(bytes) == 0 {
-		return nil, errors.New("app", "bytes is missing")
+		return nil, errors.New("crypto", "bytes is missing")
 	}
 	if len(passphrase) == 0 {
-		return nil, errors.New("app", "passphrase is missing")
+		return nil, errors.New("crypto", "passphrase is missing")
 	}
 
 	key, iv := passphraseToKey32AndIV16(passphrase)

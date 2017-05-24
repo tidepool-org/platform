@@ -11,6 +11,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 
 	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission/store"
 	"github.com/tidepool-org/platform/permission/store/mongo"
@@ -19,7 +20,7 @@ import (
 )
 
 func NewPermission(groupID string, userID string) bson.M {
-	encryptedGroupID, err := app.EncryptWithAES256UsingPassphrase([]byte(groupID), []byte("secret"))
+	encryptedGroupID, err := crypto.EncryptWithAES256UsingPassphrase([]byte(groupID), []byte("secret"))
 	Expect(err).ToNot(HaveOccurred())
 
 	return bson.M{
