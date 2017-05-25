@@ -1,0 +1,34 @@
+FROM golang:1.7.1-alpine
+
+# Common ENV
+ENV API_SECRET="This is a local API secret for everyone. BsscSHqSHiwrBMJsEGqbvXiuIUPAjQXU" \
+    SERVER_SECRET="This needs to be the same secret everywhere. YaHut75NsK1f9UKUXuWqxNN0RUwHFBCy" \
+    LONGTERM_KEY="abcdefghijklmnopqrstuvwxyz" \
+    DISCOVERY_HOST=hakken:8000 \
+    PUBLISH_HOST=hakken \
+    METRICS_SERVICE="{ \"type\": \"static\", \"hosts\": [{ \"protocol\": \"http\", \"host\": \"highwater:9191\" }] }" \
+    USER_API_SERVICE="{ \"type\": \"static\", \"hosts\": [{ \"protocol\": \"http\", \"host\": \"shoreline:9107\" }] }" \
+    SEAGULL_SERVICE="{ \"type\": \"static\", \"hosts\": [{ \"protocol\": \"http\", \"host\": \"seagull:9120\" }] }" \
+    GATEKEEPER_SERVICE="{ \"type\": \"static\", \"hosts\": [{ \"protocol\": \"http\", \"host\": \"gatekeeper:9123\" }] }" \
+# Container specific ENV
+    TIDEPOOL_ENV="local" \
+    TIDEPOOL_CONFIG_DIRECTORY="$GOPATH/src/github.com/tidepool-org/platform/_config" \
+    TIDEPOOL_USERSERVICES_CLIENT_SERVERTOKENSECRET="This needs to be the same secret everywhere. YaHut75NsK1f9UKUXuWqxNN0RUwHFBCy"
+
+
+# $GOPATH=/go FROM the golang container
+WORKDIR /go
+
+COPY . ${GOPATH}/src/github.com/tidepool-org/platform
+RUN apk --no-cache add git make \
+ && cd ${GOPATH}/src/github.com/tidepool-org/platform \
+ && sed -i -e 's/localhost/mongo/' _config/dataservices/data_store.local.json \
+ && sed -i -e 's/localhost/mongo/' _config/dataservices/task_store.local.json \
+ && sed -i -e 's/localhost/styx/' _config/dataservices/metricservices_client.local.json \
+ && sed -i -e 's/localhost/styx/' _config/dataservices/userservices_client.local.json \
+ && rm -rf src _bin \
+ && BUILD=dataservices make build
+
+# Prod builds should exclude or remove .git files
+
+CMD ["/go/src/github.com/tidepool-org/platform/_bin/dataservices/dataservices"]
