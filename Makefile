@@ -112,8 +112,8 @@ build-list:
 
 build: check-environment
 	@echo "go build"
-	@cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD) | $(TRANSFORM_MKDIR_CMD) | xargs -L1 $(MKDIR_CMD)
-	@cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD) | $(TRANSFORM_GO_BUILD_CMD) | xargs -L1 $(GO_BUILD_CMD)
+	@cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD) | $(TRANSFORM_MKDIR_CMD) | while read LINE; do $(MKDIR_CMD) $${LINE}; done
+	@cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD) | $(TRANSFORM_GO_BUILD_CMD) | while read LINE; do $(GO_BUILD_CMD) $${LINE}; done
 
 ci-build: pre-build build
 
