@@ -75,7 +75,7 @@ func (s *Session) GetDatasetsForUserByID(userID string, filter *store.Filter, pa
 	}
 	err := s.C().Find(query).Sort("-createdTime").Skip(pagination.Page * pagination.Size).Limit(pagination.Size).All(&datasets)
 
-	loggerFields := log.Fields{"userId": userID, "count": len(datasets), "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"userId": userID, "datasetsCount": len(datasets), "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("GetDatasetsForUserByID")
 
 	if err != nil {
@@ -167,7 +167,10 @@ func (s *Session) FindPreviousActiveDatasetForDevice(dataset *upload.Upload) (*u
 		previousDataset = nil
 	}
 
-	loggerFields := log.Fields{"datasetId": dataset.UploadID, "previousDataset": previousDataset, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"datasetId": dataset.UploadID, "duration": time.Since(startTime) / time.Microsecond}
+	if previousDataset != nil {
+		loggerFields["previousDatasetID"] = previousDataset.UploadID
+	}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("FindPreviousActiveDatasetForDevice")
 
 	if err != nil {
@@ -365,7 +368,7 @@ func (s *Session) GetDatasetDataDeduplicatorHashes(dataset *upload.Upload, activ
 	}
 	err := s.C().Find(query).Distinct("_deduplicator.hash", &foundHashes)
 
-	loggerFields := log.Fields{"datasetId": dataset.UploadID, "foundHashes": foundHashes, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"datasetId": dataset.UploadID, "foundHashesCount": len(foundHashes), "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("GetDatasetDataDeduplicatorHashes")
 
 	if err != nil {
@@ -407,7 +410,7 @@ func (s *Session) FindAllDatasetDataDeduplicatorHashesForDevice(userID string, d
 	}
 	err := s.C().Find(query).Distinct("_deduplicator.hash", &foundHashes)
 
-	loggerFields := log.Fields{"userId": userID, "queryHashes": queryHashes, "foundHashes": foundHashes, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"userId": userID, "queryHashesCount": len(queryHashes), "foundHashesCount": len(foundHashes), "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("FindAllDatasetDataDeduplicatorHashesForDevice")
 
 	if err != nil {
@@ -459,7 +462,7 @@ func (s *Session) CreateDatasetData(dataset *upload.Upload, datasetData []data.D
 
 	_, err := bulk.Run()
 
-	loggerFields := log.Fields{"datasetId": dataset.UploadID, "count": len(datasetData), "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"datasetId": dataset.UploadID, "dataCount": len(datasetData), "duration": time.Since(startTime) / time.Microsecond}
 	s.Logger().WithFields(loggerFields).WithError(err).Debug("CreateDatasetData")
 
 	if err != nil {
@@ -627,6 +630,68 @@ func (s *Session) SetDatasetDataActiveUsingHashes(dataset *upload.Upload, queryH
 
 	if err != nil {
 		return errors.Wrap(err, "mongo", "unable to set dataset data active using hashes")
+	}
+	return nil
+}
+
+func (s *Session) SetDeviceDataActiveUsingHashes(dataset *upload.Upload, queryHashes []string, active bool) error {
+	if dataset == nil {
+		return errors.New("mongo", "dataset is missing")
+	}
+	if dataset.UserID == "" {
+		return errors.New("mongo", "dataset user id is missing")
+	}
+	if dataset.GroupID == "" {
+		return errors.New("mongo", "dataset group id is missing")
+	}
+	if dataset.DeviceID == nil || *dataset.DeviceID == "" {
+		return errors.New("mongo", "dataset device id is missing")
+	}
+
+	if s.IsClosed() {
+		return errors.New("mongo", "session closed")
+	}
+
+	if len(queryHashes) == 0 {
+		return nil
+	}
+
+	startTime := time.Now()
+
+	modifiedTimestamp := s.Timestamp()
+	modifiedUserID := s.AgentUserID()
+
+	var err error
+	var updateInfo *mgo.ChangeInfo
+
+	selector := bson.M{
+		"_userId":  dataset.UserID,
+		"_groupId": dataset.GroupID,
+		"deviceId": *dataset.DeviceID,
+		"type":     bson.M{"$ne": "upload"},
+		"_active":  !active,
+		"_deduplicator.hash": bson.M{
+			"$in": queryHashes,
+		},
+	}
+	update := map[string]bson.M{
+		"$set": {
+			"_active":      active,
+			"modifiedTime": modifiedTimestamp,
+		},
+	}
+	if modifiedUserID != "" {
+		update["$set"]["modifiedUserId"] = modifiedUserID
+	} else {
+		update["$unset"] = bson.M{"modifiedUserId": ""}
+	}
+	updateInfo, err = s.C().UpdateAll(selector, update)
+
+	loggerFields := log.Fields{"deviceID": *dataset.DeviceID, "updateInfo": updateInfo, "duration": time.Since(startTime) / time.Microsecond}
+	s.Logger().WithFields(loggerFields).WithError(err).Debug("SetDeviceDataActiveUsingHashes")
+
+	if err != nil {
+		return errors.Wrap(err, "mongo", "unable to set device data active using hashes")
 	}
 	return nil
 }

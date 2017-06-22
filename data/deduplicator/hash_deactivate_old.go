@@ -94,40 +94,39 @@ func (h *hashDeactivateOldDeduplicator) AddDatasetData(datasetData []data.Datum)
 }
 
 func (h *hashDeactivateOldDeduplicator) DeduplicateDataset() error {
-	if err := h.setPreviousDatasetDataActiveUsingHashes(false); err != nil {
-		return err
+	hashes, err := h.dataStoreSession.GetDatasetDataDeduplicatorHashes(h.dataset, false)
+	if err != nil {
+		return errors.Wrapf(err, "deduplicator", "unable to get dataset data deduplicator hashes from dataset with id %s", strconv.Quote(h.dataset.UploadID))
+	}
+
+	if len(hashes) > 0 {
+		if err = h.dataStoreSession.SetDeviceDataActiveUsingHashes(h.dataset, hashes, false); err != nil {
+			return errors.Wrapf(err, "deduplicator", "unable to set device data active using hashes for device with id %s", strconv.Quote(*h.dataset.DeviceID))
+		}
 	}
 
 	return h.BaseDeduplicator.DeduplicateDataset()
 }
 
 func (h *hashDeactivateOldDeduplicator) DeleteDataset() error {
-	if err := h.setPreviousDatasetDataActiveUsingHashes(true); err != nil {
-		return err
-	}
-
-	return h.BaseDeduplicator.DeleteDataset()
-}
-
-func (h *hashDeactivateOldDeduplicator) setPreviousDatasetDataActiveUsingHashes(active bool) error {
 	previousDataset, err := h.dataStoreSession.FindPreviousActiveDatasetForDevice(h.dataset)
 	if err != nil {
 		return errors.Wrapf(err, "deduplicator", "unable to find previous dataset from dataset with id %s", strconv.Quote(h.dataset.UploadID))
-	} else if previousDataset == nil {
-		return nil
 	}
 
-	var hashes []string
-	hashes, err = h.dataStoreSession.GetDatasetDataDeduplicatorHashes(h.dataset, active)
-	if err != nil {
-		return errors.Wrapf(err, "deduplicator", "unable to get dataset data deduplicator hashes from dataset with id %s", strconv.Quote(h.dataset.UploadID))
-	}
+	if previousDataset != nil {
+		var hashes []string
+		hashes, err = h.dataStoreSession.GetDatasetDataDeduplicatorHashes(h.dataset, true)
+		if err != nil {
+			return errors.Wrapf(err, "deduplicator", "unable to get dataset data deduplicator hashes from dataset with id %s", strconv.Quote(h.dataset.UploadID))
+		}
 
-	if len(hashes) > 0 {
-		if err = h.dataStoreSession.SetDatasetDataActiveUsingHashes(previousDataset, hashes, active); err != nil {
-			return errors.Wrapf(err, "deduplicator", "unable to set dataset data active using hashes from dataset with id %s", strconv.Quote(previousDataset.UploadID))
+		if len(hashes) > 0 {
+			if err = h.dataStoreSession.SetDatasetDataActiveUsingHashes(previousDataset, hashes, true); err != nil {
+				return errors.Wrapf(err, "deduplicator", "unable to set dataset data active using hashes from dataset with id %s", strconv.Quote(previousDataset.UploadID))
+			}
 		}
 	}
 
-	return nil
+	return h.BaseDeduplicator.DeleteDataset()
 }

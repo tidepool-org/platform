@@ -303,8 +303,8 @@ var _ = Describe("HashDeactivateOld", func() {
 				})
 
 				Context("DeduplicateDataset", func() {
-					AssertWithCreatingDatasetData := func() {
-						Context("with creating dataset data", func() {
+					AssertWithActivateDatasetData := func() {
+						Context("with activating dataset data", func() {
 							BeforeEach(func() {
 								testDataStoreSession.ActivateDatasetDataOutputs = []error{nil}
 							})
@@ -313,7 +313,7 @@ var _ = Describe("HashDeactivateOld", func() {
 								Expect(testDataStoreSession.ActivateDatasetDataInputs).To(ConsistOf(testDataset))
 							})
 
-							It("returns an error if there is an error with CreateDatasetData", func() {
+							It("returns an error if there is an error with ActivateDatasetData", func() {
 								testDataStoreSession.ActivateDatasetDataOutputs = []error{errors.New("test error")}
 								err := testDeduplicator.DeduplicateDataset()
 								Expect(err).To(MatchError(fmt.Sprintf(`deduplicator: unable to activate dataset data with id "%s"; test error`, testUploadID)))
@@ -325,76 +325,48 @@ var _ = Describe("HashDeactivateOld", func() {
 						})
 					}
 
-					Context("with finding previous active dataset for device", func() {
-						var testPreviousDataset *upload.Upload
+					Context("with getting dataset data deduplicator hashes", func() {
+						var testHashes []string
 
 						BeforeEach(func() {
-							testPreviousDataset = upload.Init()
-							Expect(testPreviousDataset).ToNot(BeNil())
-							testDataStoreSession.FindPreviousActiveDatasetForDeviceOutputs = []testDataStore.FindPreviousActiveDatasetForDeviceOutput{{Dataset: testPreviousDataset, Error: nil}}
+							testHashes = []string{app.NewID(), app.NewID(), app.NewID()}
+							testDataStoreSession.GetDatasetDataDeduplicatorHashesOutputs = []testDataStore.GetDatasetDataDeduplicatorHashesOutput{{Hashes: testHashes, Error: nil}}
 						})
 
 						AfterEach(func() {
-							Expect(testDataStoreSession.FindPreviousActiveDatasetForDeviceInputs).To(Equal([]*upload.Upload{testDataset}))
+							Expect(testDataStoreSession.GetDatasetDataDeduplicatorHashesInputs).To(Equal([]testDataStore.GetDatasetDataDeduplicatorHashesInput{{Dataset: testDataset, Active: false}}))
 						})
 
-						It("returns an error if there is an error with FindPreviousActiveDatasetForDevice", func() {
-							testDataStoreSession.FindPreviousActiveDatasetForDeviceOutputs = []testDataStore.FindPreviousActiveDatasetForDeviceOutput{{Dataset: nil, Error: errors.New("test error")}}
+						It("returns an error if there is an error with GetDatasetDataDeduplicatorHashes", func() {
+							testDataStoreSession.GetDatasetDataDeduplicatorHashesOutputs = []testDataStore.GetDatasetDataDeduplicatorHashesOutput{{Hashes: nil, Error: errors.New("test error")}}
 							err := testDeduplicator.DeduplicateDataset()
-							Expect(err).To(MatchError(`deduplicator: unable to find previous dataset from dataset with id "` + testUploadID + `"; test error`))
+							Expect(err).To(MatchError(fmt.Sprintf(`deduplicator: unable to get dataset data deduplicator hashes from dataset with id "%s"; test error`, testUploadID)))
 						})
 
-						Context("without previous dataset", func() {
+						Context("without dataset data deduplicator hashes", func() {
 							BeforeEach(func() {
-								testDataStoreSession.FindPreviousActiveDatasetForDeviceOutputs = []testDataStore.FindPreviousActiveDatasetForDeviceOutput{{Dataset: nil, Error: nil}}
+								testDataStoreSession.GetDatasetDataDeduplicatorHashesOutputs = []testDataStore.GetDatasetDataDeduplicatorHashesOutput{{Hashes: nil, Error: nil}}
 							})
 
-							AssertWithCreatingDatasetData()
+							AssertWithActivateDatasetData()
 						})
 
-						Context("with getting dataset data deduplicator hashes", func() {
-							var testHashes []string
-
+						Context("with set device data active using hashes", func() {
 							BeforeEach(func() {
-								testHashes = []string{app.NewID(), app.NewID(), app.NewID()}
-								testDataStoreSession.GetDatasetDataDeduplicatorHashesOutputs = []testDataStore.GetDatasetDataDeduplicatorHashesOutput{{Hashes: testHashes, Error: nil}}
+								testDataStoreSession.SetDeviceDataActiveUsingHashesOutputs = []error{nil}
 							})
 
 							AfterEach(func() {
-								Expect(testDataStoreSession.GetDatasetDataDeduplicatorHashesInputs).To(Equal([]testDataStore.GetDatasetDataDeduplicatorHashesInput{{Dataset: testDataset, Active: false}}))
+								Expect(testDataStoreSession.SetDeviceDataActiveUsingHashesInputs).To(Equal([]testDataStore.SetDeviceDataActiveUsingHashesInput{{Dataset: testDataset, Hashes: testHashes, Active: false}}))
 							})
 
-							It("returns an error if there is an error with GetDatasetDataDeduplicatorHashes", func() {
-								testDataStoreSession.GetDatasetDataDeduplicatorHashesOutputs = []testDataStore.GetDatasetDataDeduplicatorHashesOutput{{Hashes: nil, Error: errors.New("test error")}}
+							It("returns an error if there is an error with SetDeviceDataActiveUsingHashes", func() {
+								testDataStoreSession.SetDeviceDataActiveUsingHashesOutputs = []error{errors.New("test error")}
 								err := testDeduplicator.DeduplicateDataset()
-								Expect(err).To(MatchError(fmt.Sprintf(`deduplicator: unable to get dataset data deduplicator hashes from dataset with id "%s"; test error`, testUploadID)))
+								Expect(err).To(MatchError(fmt.Sprintf(`deduplicator: unable to set device data active using hashes for device with id "%s"; test error`, *testDataset.DeviceID)))
 							})
 
-							Context("without dataset data deduplicator hashes", func() {
-								BeforeEach(func() {
-									testDataStoreSession.GetDatasetDataDeduplicatorHashesOutputs = []testDataStore.GetDatasetDataDeduplicatorHashesOutput{{Hashes: nil, Error: nil}}
-								})
-
-								AssertWithCreatingDatasetData()
-							})
-
-							Context("with set dataset data active using hashes", func() {
-								BeforeEach(func() {
-									testDataStoreSession.SetDatasetDataActiveUsingHashesOutputs = []error{nil}
-								})
-
-								AfterEach(func() {
-									Expect(testDataStoreSession.SetDatasetDataActiveUsingHashesInputs).To(Equal([]testDataStore.SetDatasetDataActiveUsingHashesInput{{Dataset: testPreviousDataset, Hashes: testHashes, Active: false}}))
-								})
-
-								It("returns an error if there is an error with SetDatasetDataActiveUsingHashes", func() {
-									testDataStoreSession.SetDatasetDataActiveUsingHashesOutputs = []error{errors.New("test error")}
-									err := testDeduplicator.DeduplicateDataset()
-									Expect(err).To(MatchError(fmt.Sprintf(`deduplicator: unable to set dataset data active using hashes from dataset with id "%s"; test error`, testPreviousDataset.UploadID)))
-								})
-
-								AssertWithCreatingDatasetData()
-							})
+							AssertWithActivateDatasetData()
 						})
 					})
 				})

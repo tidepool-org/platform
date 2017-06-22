@@ -29,6 +29,7 @@ type Session interface {
 	FindEarliestDatasetDataTime(dataset *upload.Upload) (string, error)
 	ActivateDatasetData(dataset *upload.Upload) error
 	SetDatasetDataActiveUsingHashes(dataset *upload.Upload, queryHashes []string, active bool) error
+	SetDeviceDataActiveUsingHashes(dataset *upload.Upload, queryHashes []string, active bool) error
 	DeactivateOtherDatasetDataAfterTime(dataset *upload.Upload, time string) error
 	DeleteOtherDatasetData(dataset *upload.Upload) error
 	DestroyDataForUserByID(userID string) error

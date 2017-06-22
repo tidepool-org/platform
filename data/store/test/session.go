@@ -66,6 +66,12 @@ type SetDatasetDataActiveUsingHashesInput struct {
 	Active  bool
 }
 
+type SetDeviceDataActiveUsingHashesInput struct {
+	Dataset *upload.Upload
+	Hashes  []string
+	Active  bool
+}
+
 type DeactivateOtherDatasetDataAfterTimeInput struct {
 	Dataset *upload.Upload
 	Time    string
@@ -114,6 +120,9 @@ type Session struct {
 	SetDatasetDataActiveUsingHashesInvocations               int
 	SetDatasetDataActiveUsingHashesInputs                    []SetDatasetDataActiveUsingHashesInput
 	SetDatasetDataActiveUsingHashesOutputs                   []error
+	SetDeviceDataActiveUsingHashesInvocations                int
+	SetDeviceDataActiveUsingHashesInputs                     []SetDeviceDataActiveUsingHashesInput
+	SetDeviceDataActiveUsingHashesOutputs                    []error
 	DeactivateOtherDatasetDataAfterTimeInvocations           int
 	DeactivateOtherDatasetDataAfterTimeInputs                []DeactivateOtherDatasetDataAfterTimeInput
 	DeactivateOtherDatasetDataAfterTimeOutputs               []error
@@ -318,6 +327,20 @@ func (s *Session) SetDatasetDataActiveUsingHashes(dataset *upload.Upload, queryH
 
 	output := s.SetDatasetDataActiveUsingHashesOutputs[0]
 	s.SetDatasetDataActiveUsingHashesOutputs = s.SetDatasetDataActiveUsingHashesOutputs[1:]
+	return output
+}
+
+func (s *Session) SetDeviceDataActiveUsingHashes(dataset *upload.Upload, queryHashes []string, active bool) error {
+	s.SetDeviceDataActiveUsingHashesInvocations++
+
+	s.SetDeviceDataActiveUsingHashesInputs = append(s.SetDeviceDataActiveUsingHashesInputs, SetDeviceDataActiveUsingHashesInput{dataset, queryHashes, active})
+
+	if len(s.SetDeviceDataActiveUsingHashesOutputs) == 0 {
+		panic("Unexpected invocation of SetDeviceDataActiveUsingHashes on Session")
+	}
+
+	output := s.SetDeviceDataActiveUsingHashesOutputs[0]
+	s.SetDeviceDataActiveUsingHashesOutputs = s.SetDeviceDataActiveUsingHashesOutputs[1:]
 	return output
 }
 

@@ -1099,6 +1099,7 @@ var _ = Describe("Mongo", func() {
 					Context("SetDatasetDataActiveUsingHashes", func() {
 						var targetData []data.Datum
 						var queryHashes []string
+						var uploadID string
 
 						BeforeEach(func() {
 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
@@ -1108,6 +1109,7 @@ var _ = Describe("Mongo", func() {
 							for _, targetDatum := range targetData {
 								queryHashes = append(queryHashes, targetDatum.DeduplicatorDescriptor().Hash)
 							}
+							uploadID = dataset.UploadID
 						})
 
 						It("succeeds if it successfully sets dataset data active using hashes", func() {
@@ -1178,7 +1180,7 @@ var _ = Describe("Mongo", func() {
 
 							Context("validating data is unchanged after", func() {
 								AfterEach(func() {
-									ValidateDatasetData(testMongoCollection, bson.M{"uploadId": dataset.UploadID, "_active": false}, nil)
+									ValidateDatasetData(testMongoCollection, bson.M{"uploadId": uploadID, "_active": false}, nil)
 								})
 
 								It("does not deactivate any data if hashes is missing", func() {
@@ -1206,6 +1208,128 @@ var _ = Describe("Mongo", func() {
 
 								It("does not deactivate any data if active", func() {
 									Expect(mongoSession.SetDatasetDataActiveUsingHashes(dataset, queryHashes, true)).To(Succeed())
+								})
+							})
+						})
+					})
+
+					Context("SetDeviceDataActiveUsingHashes", func() {
+						var targetData []data.Datum
+						var queryHashes []string
+						var deactiveData []data.Datum
+
+						BeforeEach(func() {
+							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
+							Expect(mongoSession.ActivateDatasetData(dataset)).To(Succeed())
+							targetData = []data.Datum{datasetData[0], datasetData[2]}
+							queryHashes = []string{}
+							for _, targetDatum := range targetData {
+								queryHashes = append(queryHashes, targetDatum.DeduplicatorDescriptor().Hash)
+							}
+							deactiveData = append(append(datasetExistingOneData, datasetExistingOne, datasetExistingTwo), datasetExistingTwoData...)
+						})
+
+						It("succeeds if it successfully sets dataset data active using hashes", func() {
+							Expect(mongoSession.SetDeviceDataActiveUsingHashes(dataset, queryHashes, false)).To(Succeed())
+						})
+
+						It("returns an error if the dataset is missing", func() {
+							Expect(mongoSession.SetDeviceDataActiveUsingHashes(nil, queryHashes, false)).To(MatchError("mongo: dataset is missing"))
+						})
+
+						It("returns an error if the dataset user id is missing", func() {
+							dataset.UserID = ""
+							Expect(mongoSession.SetDeviceDataActiveUsingHashes(dataset, queryHashes, false)).To(MatchError("mongo: dataset user id is missing"))
+						})
+
+						It("returns an error if the dataset group id is missing", func() {
+							dataset.GroupID = ""
+							Expect(mongoSession.SetDeviceDataActiveUsingHashes(dataset, queryHashes, false)).To(MatchError("mongo: dataset group id is missing"))
+						})
+
+						It("returns an error if the dataset device id is missing", func() {
+							dataset.DeviceID = nil
+							Expect(mongoSession.SetDeviceDataActiveUsingHashes(dataset, queryHashes, false)).To(MatchError("mongo: dataset device id is missing"))
+						})
+
+						It("returns an error if the dataset device id is empty", func() {
+							dataset.DeviceID = app.StringAsPointer("")
+							Expect(mongoSession.SetDeviceDataActiveUsingHashes(dataset, queryHashes, false)).To(MatchError("mongo: dataset device id is missing"))
+						})
+
+						It("returns an error if the session is closed", func() {
+							mongoSession.Close()
+							Expect(mongoSession.SetDeviceDataActiveUsingHashes(dataset, queryHashes, false)).To(MatchError("mongo: session closed"))
+						})
+
+						It("succeeds if hashes is missing", func() {
+							Expect(mongoSession.SetDeviceDataActiveUsingHashes(dataset, nil, false)).To(Succeed())
+						})
+
+						It("succeeds if hashes is empty", func() {
+							Expect(mongoSession.SetDeviceDataActiveUsingHashes(dataset, []string{}, false)).To(Succeed())
+						})
+
+						Context("validating all data is active before", func() {
+							BeforeEach(func() {
+								ValidateDatasetData(testMongoCollection, bson.M{"deviceId": *dataset.DeviceID, "_active": false}, deactiveData)
+							})
+
+							Context("validating data is deactivated after", func() {
+								AfterEach(func() {
+									ValidateDatasetData(testMongoCollection, bson.M{"deviceId": *dataset.DeviceID, "_active": false}, append(deactiveData, targetData...))
+								})
+
+								It("succeeds if it successfully deactivates dataset data using hashes", func() {
+									Expect(mongoSession.SetDeviceDataActiveUsingHashes(dataset, queryHashes, false)).To(Succeed())
+									ValidateDatasetData(testMongoCollection, bson.M{"deviceId": *dataset.DeviceID, "_active": false, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}}, targetData)
+								})
+
+								Context("with agent specified", func() {
+									var agentUserID string
+
+									BeforeEach(func() {
+										agentUserID = app.NewID()
+										mongoSession.SetAgent(&TestAgent{false, agentUserID})
+									})
+
+									It("succeeds if it successfully deactivates dataset data using hashes", func() {
+										Expect(mongoSession.SetDeviceDataActiveUsingHashes(dataset, queryHashes, false)).To(Succeed())
+										ValidateDatasetData(testMongoCollection, bson.M{"deviceId": *dataset.DeviceID, "_active": false, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": agentUserID}, targetData)
+									})
+								})
+							})
+
+							Context("validating data is unchanged after", func() {
+								AfterEach(func() {
+									ValidateDatasetData(testMongoCollection, bson.M{"deviceId": deviceID, "_active": false}, deactiveData)
+								})
+
+								It("does not deactivate any data if hashes is missing", func() {
+									Expect(mongoSession.SetDeviceDataActiveUsingHashes(dataset, nil, false)).To(Succeed())
+								})
+
+								It("does not deactivate any data if hashes is empty", func() {
+									Expect(mongoSession.SetDeviceDataActiveUsingHashes(dataset, []string{}, false)).To(Succeed())
+								})
+
+								It("does not deactivate any data if different user id", func() {
+									dataset.UserID = app.NewID()
+									Expect(mongoSession.SetDeviceDataActiveUsingHashes(dataset, queryHashes, false)).To(Succeed())
+								})
+
+								It("does not deactivate any data if different group id", func() {
+									dataset.GroupID = app.NewID()
+									Expect(mongoSession.SetDeviceDataActiveUsingHashes(dataset, queryHashes, false)).To(Succeed())
+								})
+
+								It("does not deactivate any data if different device id", func() {
+									dataset.DeviceID = app.StringAsPointer(app.NewID())
+									Expect(mongoSession.SetDeviceDataActiveUsingHashes(dataset, queryHashes, false)).To(Succeed())
+								})
+
+								It("does not deactivate any data if active", func() {
+									Expect(mongoSession.SetDeviceDataActiveUsingHashes(dataset, queryHashes, true)).To(Succeed())
 								})
 							})
 						})
