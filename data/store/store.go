@@ -24,13 +24,10 @@ type Session interface {
 	UpdateDataset(dataset *upload.Upload) error
 	DeleteDataset(dataset *upload.Upload) error
 	GetDatasetDataDeduplicatorHashes(dataset *upload.Upload, active bool) ([]string, error)
-	FindAllDatasetDataDeduplicatorHashesForDevice(userID string, deviceID string, queryHashes []string) ([]string, error)
 	CreateDatasetData(dataset *upload.Upload, datasetData []data.Datum) error
-	FindEarliestDatasetDataTime(dataset *upload.Upload) (string, error)
 	ActivateDatasetData(dataset *upload.Upload) error
 	SetDatasetDataActiveUsingHashes(dataset *upload.Upload, queryHashes []string, active bool) error
 	SetDeviceDataActiveUsingHashes(dataset *upload.Upload, queryHashes []string, active bool) error
-	DeactivateOtherDatasetDataAfterTime(dataset *upload.Upload, time string) error
 	DeleteOtherDatasetData(dataset *upload.Upload) error
 	DestroyDataForUserByID(userID string) error
 }

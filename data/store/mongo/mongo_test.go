@@ -811,46 +811,6 @@ var _ = Describe("Mongo", func() {
 								Expect(foundHashes).To(BeNil())
 							})
 						})
-
-						Context("FindAllDatasetDataDeduplicatorHashesForDevice", func() {
-							var queryHashes []string
-
-							BeforeEach(func() {
-								queryHashes = append(dataHashes, dataHashes...)
-								queryHashes = append(queryHashes, app.NewID(), app.NewID())
-							})
-
-							It("succeeds if it successfully finds the data hashes with the specified query hashes", func() {
-								foundHashes, err := mongoSession.FindAllDatasetDataDeduplicatorHashesForDevice(userID, deviceID, queryHashes)
-								Expect(err).ToNot(HaveOccurred())
-								Expect(foundHashes).To(ConsistOf(dataHashes))
-							})
-
-							It("returns an error if the user id is missing", func() {
-								foundHashes, err := mongoSession.FindAllDatasetDataDeduplicatorHashesForDevice("", deviceID, queryHashes)
-								Expect(err).To(MatchError("mongo: user id is missing"))
-								Expect(foundHashes).To(BeEmpty())
-							})
-
-							It("returns an error if the device id is missing", func() {
-								foundHashes, err := mongoSession.FindAllDatasetDataDeduplicatorHashesForDevice(userID, "", queryHashes)
-								Expect(err).To(MatchError("mongo: device id is missing"))
-								Expect(foundHashes).To(BeEmpty())
-							})
-
-							It("returns an error if the session is closed", func() {
-								mongoSession.Close()
-								foundHashes, err := mongoSession.FindAllDatasetDataDeduplicatorHashesForDevice(userID, deviceID, queryHashes)
-								Expect(err).To(MatchError("mongo: session closed"))
-								Expect(foundHashes).To(BeEmpty())
-							})
-
-							It("returns no data hashes if the query hashes is empty", func() {
-								foundHashes, err := mongoSession.FindAllDatasetDataDeduplicatorHashesForDevice(userID, deviceID, []string{})
-								Expect(err).ToNot(HaveOccurred())
-								Expect(foundHashes).To(BeEmpty())
-							})
-						})
 					})
 
 					Context("CreateDatasetData", func() {
@@ -951,63 +911,6 @@ var _ = Describe("Mongo", func() {
 								Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
 								ValidateDatasetData(testMongoCollection, bson.M{"type": bson.M{"$ne": "upload"}, "createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, datasetBeforeCreateData)
 								ValidateDatasetData(testMongoCollection, bson.M{"type": bson.M{"$ne": "upload"}, "createdTime": bson.M{"$exists": true}, "createdUserId": agentUserID}, datasetData)
-							})
-						})
-					})
-
-					Context("FindEarliestDatasetDataTime", func() {
-						It("succeeds with no earliest time if it finds there is no data time", func() {
-							earliestTime, err := mongoSession.FindEarliestDatasetDataTime(dataset)
-							Expect(err).ToNot(HaveOccurred())
-							Expect(earliestTime).To(Equal(""))
-						})
-
-						Context("with dataset data", func() {
-							var expectedEarliestTime string
-
-							BeforeEach(func() {
-								Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
-								expectedEarliestTime = *datasetData[0].(*types.Base).Time
-							})
-
-							It("succeeds if it finds the earliest dataset data time", func() {
-								earliestTime, err := mongoSession.FindEarliestDatasetDataTime(dataset)
-								Expect(err).ToNot(HaveOccurred())
-								Expect(earliestTime).To(Equal(expectedEarliestTime))
-							})
-
-							It("returns an error if the dataset is missing", func() {
-								earliestTime, err := mongoSession.FindEarliestDatasetDataTime(nil)
-								Expect(err).To(MatchError("mongo: dataset is missing"))
-								Expect(earliestTime).To(Equal(""))
-							})
-
-							It("returns an error if the user id is missing", func() {
-								dataset.UserID = ""
-								earliestTime, err := mongoSession.FindEarliestDatasetDataTime(dataset)
-								Expect(err).To(MatchError("mongo: dataset user id is missing"))
-								Expect(earliestTime).To(Equal(""))
-							})
-
-							It("returns an error if the group id is missing", func() {
-								dataset.GroupID = ""
-								earliestTime, err := mongoSession.FindEarliestDatasetDataTime(dataset)
-								Expect(err).To(MatchError("mongo: dataset group id is missing"))
-								Expect(earliestTime).To(Equal(""))
-							})
-
-							It("returns an error if the upload id is missing", func() {
-								dataset.UploadID = ""
-								earliestTime, err := mongoSession.FindEarliestDatasetDataTime(dataset)
-								Expect(err).To(MatchError("mongo: dataset upload id is missing"))
-								Expect(earliestTime).To(Equal(""))
-							})
-
-							It("returns an error if the session is closed", func() {
-								mongoSession.Close()
-								earliestTime, err := mongoSession.FindEarliestDatasetDataTime(dataset)
-								Expect(err).To(MatchError("mongo: session closed"))
-								Expect(earliestTime).To(Equal(""))
 							})
 						})
 					})
@@ -1331,97 +1234,6 @@ var _ = Describe("Mongo", func() {
 								It("does not deactivate any data if active", func() {
 									Expect(mongoSession.SetDeviceDataActiveUsingHashes(dataset, queryHashes, true)).To(Succeed())
 								})
-							})
-						})
-					})
-
-					Context("DeactivateOtherDatasetDataAfterTime", func() {
-						var afterTime string
-
-						BeforeEach(func() {
-							Expect(mongoSession.ActivateDatasetData(datasetExistingOther)).To(Succeed())
-							Expect(mongoSession.ActivateDatasetData(datasetExistingOne)).To(Succeed())
-							Expect(mongoSession.ActivateDatasetData(datasetExistingTwo)).To(Succeed())
-							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
-							afterTime = *datasetExistingTwoData[0].(*types.Base).Time
-						})
-
-						It("succeeds if it successfully deactivates other dataset data after time", func() {
-							Expect(mongoSession.DeactivateOtherDatasetDataAfterTime(dataset, afterTime)).To(Succeed())
-						})
-
-						It("returns an error if the dataset is missing", func() {
-							Expect(mongoSession.DeactivateOtherDatasetDataAfterTime(nil, afterTime)).To(MatchError("mongo: dataset is missing"))
-						})
-
-						It("returns an error if the user id is missing", func() {
-							dataset.UserID = ""
-							Expect(mongoSession.DeactivateOtherDatasetDataAfterTime(dataset, afterTime)).To(MatchError("mongo: dataset user id is missing"))
-						})
-
-						It("returns an error if the group id is missing", func() {
-							dataset.GroupID = ""
-							Expect(mongoSession.DeactivateOtherDatasetDataAfterTime(dataset, afterTime)).To(MatchError("mongo: dataset group id is missing"))
-						})
-
-						It("returns an error if the upload id is missing", func() {
-							dataset.UploadID = ""
-							Expect(mongoSession.DeactivateOtherDatasetDataAfterTime(dataset, afterTime)).To(MatchError("mongo: dataset upload id is missing"))
-						})
-
-						It("returns an error if the device id is missing (nil)", func() {
-							dataset.DeviceID = nil
-							Expect(mongoSession.DeactivateOtherDatasetDataAfterTime(dataset, afterTime)).To(MatchError("mongo: dataset device id is missing"))
-						})
-
-						It("returns an error if the device id is missing (empty)", func() {
-							dataset.DeviceID = app.StringAsPointer("")
-							Expect(mongoSession.DeactivateOtherDatasetDataAfterTime(dataset, afterTime)).To(MatchError("mongo: dataset device id is missing"))
-						})
-
-						It("returns an error if the after time is missing", func() {
-							Expect(mongoSession.DeactivateOtherDatasetDataAfterTime(dataset, "")).To(MatchError("mongo: after time is missing"))
-						})
-
-						It("returns an error if the session is closed", func() {
-							mongoSession.Close()
-							Expect(mongoSession.DeactivateOtherDatasetDataAfterTime(dataset, afterTime)).To(MatchError("mongo: session closed"))
-						})
-
-						It("has the correct stored inactive dataset", func() {
-							ValidateDataset(testMongoCollection, bson.M{"_active": false}, dataset)
-							Expect(mongoSession.DeactivateOtherDatasetDataAfterTime(dataset, afterTime)).To(Succeed())
-							ValidateDataset(testMongoCollection, bson.M{"_active": false}, dataset)
-							ValidateDataset(testMongoCollection, bson.M{"_active": false, "modifiedTime": bson.M{"$exists": false}, "modifiedUserId": bson.M{"$exists": false}}, dataset)
-						})
-
-						It("has the correct stored active dataset data", func() {
-							ValidateDatasetData(testMongoCollection, bson.M{"_active": false}, append(datasetData, dataset))
-							Expect(mongoSession.DeactivateOtherDatasetDataAfterTime(dataset, afterTime)).To(Succeed())
-							ValidateDatasetData(testMongoCollection, bson.M{"_active": false}, append(append(datasetData, dataset), datasetExistingTwoData...))
-							ValidateDatasetData(testMongoCollection, bson.M{"_active": false, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}}, datasetExistingTwoData)
-						})
-
-						Context("with agent specified", func() {
-							var agentUserID string
-
-							BeforeEach(func() {
-								agentUserID = app.NewID()
-								mongoSession.SetAgent(&TestAgent{false, agentUserID})
-							})
-
-							It("has the correct stored inactive dataset", func() {
-								ValidateDataset(testMongoCollection, bson.M{"_active": false}, dataset)
-								Expect(mongoSession.DeactivateOtherDatasetDataAfterTime(dataset, afterTime)).To(Succeed())
-								ValidateDataset(testMongoCollection, bson.M{"_active": false}, dataset)
-								ValidateDataset(testMongoCollection, bson.M{"_active": false, "modifiedTime": bson.M{"$exists": false}, "modifiedUserId": bson.M{"$exists": false}}, dataset)
-							})
-
-							It("has the correct stored active dataset data", func() {
-								ValidateDatasetData(testMongoCollection, bson.M{"_active": false}, append(datasetData, dataset))
-								Expect(mongoSession.DeactivateOtherDatasetDataAfterTime(dataset, afterTime)).To(Succeed())
-								ValidateDatasetData(testMongoCollection, bson.M{"_active": false}, append(append(datasetData, dataset), datasetExistingTwoData...))
-								ValidateDatasetData(testMongoCollection, bson.M{"_active": false, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": agentUserID}, datasetExistingTwoData)
 							})
 						})
 					})

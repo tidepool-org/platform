@@ -382,44 +382,6 @@ func (s *Session) GetDatasetDataDeduplicatorHashes(dataset *upload.Upload, activ
 	return foundHashes, nil
 }
 
-func (s *Session) FindAllDatasetDataDeduplicatorHashesForDevice(userID string, deviceID string, queryHashes []string) ([]string, error) {
-	if userID == "" {
-		return nil, errors.New("mongo", "user id is missing")
-	}
-	if deviceID == "" {
-		return nil, errors.New("mongo", "device id is missing")
-	}
-
-	if s.IsClosed() {
-		return nil, errors.New("mongo", "session closed")
-	}
-
-	if len(queryHashes) == 0 {
-		return []string{}, nil
-	}
-
-	startTime := time.Now()
-
-	var foundHashes []string
-	query := bson.M{
-		"_userId":  userID,
-		"deviceId": deviceID,
-		"_deduplicator.hash": bson.M{
-			"$in": queryHashes,
-		},
-	}
-	err := s.C().Find(query).Distinct("_deduplicator.hash", &foundHashes)
-
-	loggerFields := log.Fields{"userId": userID, "queryHashesCount": len(queryHashes), "foundHashesCount": len(foundHashes), "duration": time.Since(startTime) / time.Microsecond}
-	s.Logger().WithFields(loggerFields).WithError(err).Debug("FindAllDatasetDataDeduplicatorHashesForDevice")
-
-	if err != nil {
-		return nil, errors.Wrap(err, "mongo", "unable to find dataset data deduplicator hashes")
-	}
-
-	return foundHashes, nil
-}
-
 func (s *Session) CreateDatasetData(dataset *upload.Upload, datasetData []data.Datum) error {
 	if dataset == nil {
 		return errors.New("mongo", "dataset is missing")
@@ -469,54 +431,6 @@ func (s *Session) CreateDatasetData(dataset *upload.Upload, datasetData []data.D
 		return errors.Wrap(err, "mongo", "unable to create dataset data")
 	}
 	return nil
-}
-
-func (s *Session) FindEarliestDatasetDataTime(dataset *upload.Upload) (string, error) {
-	if dataset == nil {
-		return "", errors.New("mongo", "dataset is missing")
-	}
-	if dataset.UserID == "" {
-		return "", errors.New("mongo", "dataset user id is missing")
-	}
-	if dataset.GroupID == "" {
-		return "", errors.New("mongo", "dataset group id is missing")
-	}
-	if dataset.UploadID == "" {
-		return "", errors.New("mongo", "dataset upload id is missing")
-	}
-
-	if s.IsClosed() {
-		return "", errors.New("mongo", "session closed")
-	}
-
-	startTime := time.Now()
-
-	var earliest struct {
-		Time string
-	}
-	query := bson.M{
-		"_userId":  dataset.UserID,
-		"_groupId": dataset.GroupID,
-		"uploadId": dataset.UploadID,
-		"type":     bson.M{"$ne": "upload"},
-		"time": bson.M{
-			"$exists": true,
-			"$ne":     "",
-		},
-	}
-	err := s.C().Find(query).Sort("time").One(&earliest)
-	if err == mgo.ErrNotFound {
-		err = nil
-	}
-
-	loggerFields := log.Fields{"datasetId": dataset.UploadID, "earliestTime": earliest.Time, "duration": time.Since(startTime) / time.Microsecond}
-	s.Logger().WithFields(loggerFields).WithError(err).Debug("FindEarliestDatasetDataTime")
-
-	if err != nil {
-		return "", errors.Wrap(err, "mongo", "unable to find earliest dataset data time")
-	}
-
-	return earliest.Time, nil
 }
 
 func (s *Session) ActivateDatasetData(dataset *upload.Upload) error {
@@ -692,69 +606,6 @@ func (s *Session) SetDeviceDataActiveUsingHashes(dataset *upload.Upload, queryHa
 
 	if err != nil {
 		return errors.Wrap(err, "mongo", "unable to set device data active using hashes")
-	}
-	return nil
-}
-
-func (s *Session) DeactivateOtherDatasetDataAfterTime(dataset *upload.Upload, afterTime string) error {
-	if dataset == nil {
-		return errors.New("mongo", "dataset is missing")
-	}
-	if dataset.UserID == "" {
-		return errors.New("mongo", "dataset user id is missing")
-	}
-	if dataset.GroupID == "" {
-		return errors.New("mongo", "dataset group id is missing")
-	}
-	if dataset.UploadID == "" {
-		return errors.New("mongo", "dataset upload id is missing")
-	}
-	if dataset.DeviceID == nil || *dataset.DeviceID == "" {
-		return errors.New("mongo", "dataset device id is missing")
-	}
-	if afterTime == "" {
-		return errors.New("mongo", "after time is missing")
-	}
-
-	if s.IsClosed() {
-		return errors.New("mongo", "session closed")
-	}
-
-	startTime := time.Now()
-
-	modifiedTimestamp := s.Timestamp()
-	modifiedUserID := s.AgentUserID()
-
-	var err error
-	var updateInfo *mgo.ChangeInfo
-
-	selector := bson.M{
-		"_userId":  dataset.UserID,
-		"_groupId": dataset.GroupID,
-		"deviceId": *dataset.DeviceID,
-		"_active":  true,
-		"uploadId": bson.M{"$ne": dataset.UploadID},
-		"type":     bson.M{"$ne": "upload"},
-		"time":     bson.M{"$gte": afterTime},
-	}
-	update := map[string]bson.M{
-		"$set": {
-			"_active":      false,
-			"modifiedTime": modifiedTimestamp,
-		},
-	}
-	if modifiedUserID != "" {
-		update["$set"]["modifiedUserId"] = modifiedUserID
-	} else {
-		update["$unset"] = bson.M{"modifiedUserId": ""}
-	}
-	updateInfo, err = s.C().UpdateAll(selector, update)
-
-	loggerFields := log.Fields{"datasetId": dataset.UploadID, "updateInfo": updateInfo, "duration": time.Since(startTime) / time.Microsecond}
-	s.Logger().WithFields(loggerFields).WithError(err).Debug("DeactivateOtherDatasetDataAfterTime")
-
-	if err != nil {
-		return errors.Wrap(err, "mongo", "unable to deactivate other dataset data after time")
 	}
 	return nil
 }
