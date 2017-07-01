@@ -111,7 +111,7 @@ func (s *Standard) ValidateAuthenticationToken(context service.Context, authenti
 		return nil, errors.New("client", "client is closed")
 	}
 
-	context.Logger().WithField("authenticationToken", authenticationToken).Debug("Validating authentication token")
+	context.Logger().Debug("Validating authentication token")
 
 	var authentication struct {
 		IsServer bool

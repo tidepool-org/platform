@@ -17,6 +17,7 @@ type Standard struct {
 	environmentReporter environment.Reporter
 	logger              log.Logger
 	api                 *rest.Api
+	headerMiddleware    *middleware.Header
 	statusMiddleware    *rest.StatusMiddleware
 }
 
@@ -55,6 +56,10 @@ func (s *Standard) API() *rest.Api {
 	return s.api
 }
 
+func (s *Standard) HeaderMiddleware() *middleware.Header {
+	return s.headerMiddleware
+}
+
 func (s *Standard) StatusMiddleware() *rest.StatusMiddleware {
 	return s.statusMiddleware
 }
@@ -69,6 +74,10 @@ func (s *Standard) InitializeMiddleware() error {
 		return err
 	}
 	traceMiddleware, err := middleware.NewTrace()
+	if err != nil {
+		return err
+	}
+	headerMiddleware, err := middleware.NewHeader()
 	if err != nil {
 		return err
 	}
@@ -89,6 +98,7 @@ func (s *Standard) InitializeMiddleware() error {
 	middlewareStack := []rest.Middleware{
 		loggerMiddleware,
 		traceMiddleware,
+		headerMiddleware,
 		accessLogMiddleware,
 		statusMiddleware,
 		timerMiddleware,
@@ -99,6 +109,7 @@ func (s *Standard) InitializeMiddleware() error {
 
 	s.api.Use(middlewareStack...)
 
+	s.headerMiddleware = headerMiddleware
 	s.statusMiddleware = statusMiddleware
 
 	return nil
