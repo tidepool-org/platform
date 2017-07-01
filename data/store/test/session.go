@@ -5,6 +5,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/upload"
+	"github.com/tidepool-org/platform/log"
 	commonStore "github.com/tidepool-org/platform/store"
 )
 
@@ -61,6 +62,8 @@ type Session struct {
 	IsClosedInvocations                           int
 	IsClosedOutputs                               []bool
 	CloseInvocations                              int
+	LoggerInvocations                             int
+	LoggerImpl                                    log.Logger
 	SetAgentInvocations                           int
 	SetAgentInputs                                []commonStore.Agent
 	GetDatasetsForUserByIDInvocations             int
@@ -106,7 +109,8 @@ type Session struct {
 
 func NewSession() *Session {
 	return &Session{
-		ID: app.NewID(),
+		ID:         app.NewID(),
+		LoggerImpl: log.NewNull(),
 	}
 }
 
@@ -124,6 +128,12 @@ func (s *Session) IsClosed() bool {
 
 func (s *Session) Close() {
 	s.CloseInvocations++
+}
+
+func (s *Session) Logger() log.Logger {
+	s.LoggerInvocations++
+
+	return s.LoggerImpl
 }
 
 func (s *Session) SetAgent(agent commonStore.Agent) {

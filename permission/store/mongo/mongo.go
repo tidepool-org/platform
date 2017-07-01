@@ -38,16 +38,11 @@ type Store struct {
 	config *Config
 }
 
-func (s *Store) NewSession(logger log.Logger) (store.Session, error) {
-	baseSession, err := s.Store.NewSession(logger)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *Store) NewSession(logger log.Logger) store.Session {
 	return &Session{
-		Session: baseSession,
+		Session: s.Store.NewSession(logger),
 		config:  s.config,
-	}, nil
+	}
 }
 
 type Session struct {

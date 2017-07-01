@@ -195,10 +195,7 @@ func buildMetaIDToUserIDMap(logger log.Logger, config *Config) (map[string]strin
 
 	logger.Debug("Creating users session")
 
-	usersSession, err := usersStore.NewSession(logger)
-	if err != nil {
-		return nil, errors.Wrap(err, "migrate_gid_to_uid", "unable to create users session")
-	}
+	usersSession := usersStore.NewSession(logger)
 	defer usersSession.Close()
 
 	logger.Debug("Iterating users")
@@ -272,10 +269,7 @@ func buildGroupIDToUserIDMap(logger log.Logger, config *Config, metaIDToUserIDMa
 
 	logger.Debug("Creating meta session")
 
-	metaSession, err := metaStore.NewSession(logger)
-	if err != nil {
-		return nil, errors.Wrap(err, "migrate_gid_to_uid", "unable to create meta session")
-	}
+	metaSession := metaStore.NewSession(logger)
 	defer metaSession.Close()
 
 	logger.Debug("Iterating meta")
@@ -370,10 +364,7 @@ func migrateGroupIDToUserIDForDeviceData(logger log.Logger, config *Config, grou
 
 	logger.Debug("Creating device data session")
 
-	deviceDataSession, err := deviceDataStore.NewSession(logger)
-	if err != nil {
-		return errors.Wrap(err, "migrate_gid_to_uid", "unable to create device data session")
-	}
+	deviceDataSession := deviceDataStore.NewSession(logger)
 	defer deviceDataSession.Close()
 
 	logger.Debug("Walking group id to user id map")

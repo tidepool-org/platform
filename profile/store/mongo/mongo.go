@@ -28,15 +28,10 @@ type Store struct {
 	*mongo.Store
 }
 
-func (s *Store) NewSession(logger log.Logger) (store.Session, error) {
-	baseSession, err := s.Store.NewSession(logger)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *Store) NewSession(logger log.Logger) store.Session {
 	return &Session{
-		Session: baseSession,
-	}, nil
+		Session: s.Store.NewSession(logger),
+	}
 }
 
 type Session struct {

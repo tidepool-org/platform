@@ -84,26 +84,23 @@ var _ = Describe("Mongo", func() {
 		})
 
 		Context("NewSession", func() {
-			It("returns an error if unsuccessful", func() {
-				var err error
-				mongoSession, err = mongoStore.NewSession(nil)
-				Expect(err).To(HaveOccurred())
-				Expect(mongoSession).To(BeNil())
+			It("returns a new session if no logger specified", func() {
+				mongoSession = mongoStore.NewSession(nil)
+				Expect(mongoSession).ToNot(BeNil())
+				Expect(mongoSession.Logger()).ToNot(BeNil())
 			})
 
-			It("returns a new session and no error if successful", func() {
-				var err error
-				mongoSession, err = mongoStore.NewSession(log.NewNull())
-				Expect(err).ToNot(HaveOccurred())
+			It("returns a new session if logger specified", func() {
+				logger := log.NewNull()
+				mongoSession = mongoStore.NewSession(logger)
 				Expect(mongoSession).ToNot(BeNil())
+				Expect(mongoSession.Logger()).To(Equal(logger))
 			})
 		})
 
 		Context("with a new session", func() {
 			BeforeEach(func() {
-				var err error
-				mongoSession, err = mongoStore.NewSession(log.NewNull())
-				Expect(err).ToNot(HaveOccurred())
+				mongoSession = mongoStore.NewSession(log.NewNull())
 				Expect(mongoSession).ToNot(BeNil())
 			})
 
