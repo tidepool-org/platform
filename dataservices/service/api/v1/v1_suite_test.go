@@ -125,6 +125,10 @@ func (t *TestTaskStoreSession) Close() {
 	panic("Unexpected invocation of Close on TestTaskStoreSession")
 }
 
+func (t *TestTaskStoreSession) Logger() log.Logger {
+	panic("Unexpected invocation of Logger on TestTaskStoreSession")
+}
+
 func (t *TestTaskStoreSession) SetAgent(agent commonStore.Agent) {
 	panic("Unexpected invocation of SetAgent on TestTaskStoreSession")
 }

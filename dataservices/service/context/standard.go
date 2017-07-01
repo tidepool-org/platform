@@ -21,7 +21,9 @@ type Standard struct {
 	dataFactory             data.Factory
 	dataDeduplicatorFactory deduplicator.Factory
 	authenticationDetails   userservicesClient.AuthenticationDetails
+	dataStore               dataStore.Store
 	dataStoreSession        dataStore.Session
+	taskStore               taskStore.Store
 	taskStoreSession        taskStore.Session
 }
 
@@ -35,29 +37,26 @@ func WithContext(metricServicesClient metricservicesClient.Client, userServicesC
 			return
 		}
 
-		dataStoreSession, err := dataStore.NewSession(context.Logger())
-		if err != nil {
-			context.RespondWithInternalServerFailure("Unable to create new data store session for request", err)
-			return
-		}
-		defer dataStoreSession.Close()
-
-		taskStoreSession, err := taskStore.NewSession(context.Logger())
-		if err != nil {
-			context.RespondWithInternalServerFailure("Unable to create new task store session for request", err)
-			return
-		}
-		defer taskStoreSession.Close()
-
-		handler(&Standard{
+		standard := &Standard{
 			Context:                 context,
 			metricServicesClient:    metricServicesClient,
 			userServicesClient:      userServicesClient,
 			dataFactory:             dataFactory,
 			dataDeduplicatorFactory: dataDeduplicatorFactory,
-			dataStoreSession:        dataStoreSession,
-			taskStoreSession:        taskStoreSession,
-		})
+			dataStore:               dataStore,
+			taskStore:               taskStore,
+		}
+
+		defer func() {
+			if standard.taskStoreSession != nil {
+				standard.taskStoreSession.Close()
+			}
+			if standard.dataStoreSession != nil {
+				standard.dataStoreSession.Close()
+			}
+		}()
+
+		handler(standard)
 	}
 }
 
@@ -78,10 +77,18 @@ func (s *Standard) DataDeduplicatorFactory() deduplicator.Factory {
 }
 
 func (s *Standard) DataStoreSession() dataStore.Session {
+	if s.dataStoreSession == nil {
+		s.dataStoreSession = s.dataStore.NewSession(s.Context.Logger())
+		s.dataStoreSession.SetAgent(s.authenticationDetails)
+	}
 	return s.dataStoreSession
 }
 
 func (s *Standard) TaskStoreSession() taskStore.Session {
+	if s.taskStoreSession == nil {
+		s.taskStoreSession = s.taskStore.NewSession(s.Context.Logger())
+		s.taskStoreSession.SetAgent(s.authenticationDetails)
+	}
 	return s.taskStoreSession
 }
 
@@ -92,6 +99,10 @@ func (s *Standard) AuthenticationDetails() userservicesClient.AuthenticationDeta
 func (s *Standard) SetAuthenticationDetails(authenticationDetails userservicesClient.AuthenticationDetails) {
 	s.authenticationDetails = authenticationDetails
 
-	s.dataStoreSession.SetAgent(authenticationDetails)
-	s.taskStoreSession.SetAgent(authenticationDetails)
+	if s.dataStoreSession != nil {
+		s.dataStoreSession.SetAgent(authenticationDetails)
+	}
+	if s.taskStoreSession != nil {
+		s.taskStoreSession.SetAgent(authenticationDetails)
+	}
 }
