@@ -134,13 +134,9 @@ func (s *Store) GetStatus() interface{} {
 	return status
 }
 
-func (s *Store) NewSession(logger log.Logger) (*Session, error) {
+func (s *Store) NewSession(logger log.Logger) *Session {
 	if logger == nil {
-		return nil, errors.New("mongo", "logger is missing")
-	}
-
-	if s.IsClosed() {
-		return nil, errors.New("mongo", "store closed")
+		logger = log.NewNull()
 	}
 
 	loggerFields := map[string]interface{}{
@@ -152,7 +148,7 @@ func (s *Store) NewSession(logger log.Logger) (*Session, error) {
 		logger:        logger.WithFields(loggerFields),
 		config:        s.Config,
 		sourceSession: s.Session,
-	}, nil
+	}
 }
 
 type Session struct {

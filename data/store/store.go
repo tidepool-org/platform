@@ -11,7 +11,7 @@ import (
 type Store interface {
 	store.Store
 
-	NewSession(logger log.Logger) (Session, error)
+	NewSession(logger log.Logger) Session
 }
 
 type Session interface {

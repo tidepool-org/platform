@@ -1,3 +1,7 @@
+## HEAD
+
+- Defer access to context store sessions and log until actually needed
+
 ## 1.8.0 (2017-08-09)
 
 - Add CHANGELOG.md

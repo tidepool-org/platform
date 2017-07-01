@@ -39,19 +39,21 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request) (*Standard
 		return nil, errors.New("context", "request is missing")
 	}
 
-	logger := service.GetRequestLogger(request)
-	if logger == nil {
-		logger = log.NewNull()
-	}
-
 	return &Standard{
 		response: response,
 		request:  request,
-		logger:   logger,
 	}, nil
 }
 
 func (s *Standard) Logger() log.Logger {
+	if s.logger == nil {
+		logger := service.GetRequestLogger(s.request)
+		if logger == nil {
+			logger = log.NewNull()
+		}
+		s.logger = logger
+	}
+
 	return s.logger
 }
 
@@ -74,7 +76,7 @@ func (s *Standard) RespondWithError(err *service.Error) {
 }
 
 func (s *Standard) RespondWithInternalServerFailure(message string, failure ...interface{}) {
-	logger := s.logger
+	logger := s.Logger()
 	if len(failure) > 0 {
 		for index := range failure {
 			if err, errOk := failure[index].(error); errOk {

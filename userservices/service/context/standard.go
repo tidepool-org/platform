@@ -22,11 +22,17 @@ type Standard struct {
 	metricServicesClient     metricservicesClient.Client
 	userServicesClient       userservicesClient.Client
 	dataServicesClient       dataservicesClient.Client
+	messageStore             messageStore.Store
 	messageStoreSession      messageStore.Session
+	notificationStore        notificationStore.Store
 	notificationStoreSession notificationStore.Session
+	permissionStore          permissionStore.Store
 	permissionStoreSession   permissionStore.Session
+	profileStore             profileStore.Store
 	profileStoreSession      profileStore.Session
+	sessionStore             sessionStore.Store
 	sessionStoreSession      sessionStore.Session
+	userStore                userStore.Store
 	userStoreSession         userStore.Session
 	authenticationDetails    userservicesClient.AuthenticationDetails
 }
@@ -41,60 +47,41 @@ func WithContext(metricServicesClient metricservicesClient.Client, userServicesC
 			return
 		}
 
-		messageStoreSession, err := messageStore.NewSession(context.Logger())
-		if err != nil {
-			context.RespondWithInternalServerFailure("Unable to create new message store session for request", err)
-			return
+		standard := &Standard{
+			Context:              context,
+			metricServicesClient: metricServicesClient,
+			userServicesClient:   userServicesClient,
+			dataServicesClient:   dataServicesClient,
+			messageStore:         messageStore,
+			notificationStore:    notificationStore,
+			permissionStore:      permissionStore,
+			profileStore:         profileStore,
+			sessionStore:         sessionStore,
+			userStore:            userStore,
 		}
-		defer messageStoreSession.Close()
 
-		notificationStoreSession, err := notificationStore.NewSession(context.Logger())
-		if err != nil {
-			context.RespondWithInternalServerFailure("Unable to create new notification store session for request", err)
-			return
-		}
-		defer notificationStoreSession.Close()
+		defer func() {
+			if standard.userStoreSession != nil {
+				standard.userStoreSession.Close()
+			}
+			if standard.sessionStoreSession != nil {
+				standard.sessionStoreSession.Close()
+			}
+			if standard.profileStoreSession != nil {
+				standard.profileStoreSession.Close()
+			}
+			if standard.permissionStoreSession != nil {
+				standard.permissionStoreSession.Close()
+			}
+			if standard.notificationStoreSession != nil {
+				standard.notificationStoreSession.Close()
+			}
+			if standard.messageStoreSession != nil {
+				standard.messageStoreSession.Close()
+			}
+		}()
 
-		permissionStoreSession, err := permissionStore.NewSession(context.Logger())
-		if err != nil {
-			context.RespondWithInternalServerFailure("Unable to create new permission store session for request", err)
-			return
-		}
-		defer permissionStoreSession.Close()
-
-		profileStoreSession, err := profileStore.NewSession(context.Logger())
-		if err != nil {
-			context.RespondWithInternalServerFailure("Unable to create new profile store session for request", err)
-			return
-		}
-		defer profileStoreSession.Close()
-
-		sessionStoreSession, err := sessionStore.NewSession(context.Logger())
-		if err != nil {
-			context.RespondWithInternalServerFailure("Unable to create new session store session for request", err)
-			return
-		}
-		defer sessionStoreSession.Close()
-
-		userStoreSession, err := userStore.NewSession(context.Logger())
-		if err != nil {
-			context.RespondWithInternalServerFailure("Unable to create new user store session for request", err)
-			return
-		}
-		defer userStoreSession.Close()
-
-		handler(&Standard{
-			Context:                  context,
-			metricServicesClient:     metricServicesClient,
-			userServicesClient:       userServicesClient,
-			dataServicesClient:       dataServicesClient,
-			messageStoreSession:      messageStoreSession,
-			notificationStoreSession: notificationStoreSession,
-			permissionStoreSession:   permissionStoreSession,
-			profileStoreSession:      profileStoreSession,
-			sessionStoreSession:      sessionStoreSession,
-			userStoreSession:         userStoreSession,
-		})
+		handler(standard)
 	}
 }
 
@@ -111,26 +98,50 @@ func (s *Standard) DataServicesClient() dataservicesClient.Client {
 }
 
 func (s *Standard) MessageStoreSession() messageStore.Session {
+	if s.messageStoreSession == nil {
+		s.messageStoreSession = s.messageStore.NewSession(s.Context.Logger())
+		s.messageStoreSession.SetAgent(s.authenticationDetails)
+	}
 	return s.messageStoreSession
 }
 
 func (s *Standard) NotificationStoreSession() notificationStore.Session {
+	if s.notificationStoreSession == nil {
+		s.notificationStoreSession = s.notificationStore.NewSession(s.Context.Logger())
+		s.notificationStoreSession.SetAgent(s.authenticationDetails)
+	}
 	return s.notificationStoreSession
 }
 
 func (s *Standard) PermissionStoreSession() permissionStore.Session {
+	if s.permissionStoreSession == nil {
+		s.permissionStoreSession = s.permissionStore.NewSession(s.Context.Logger())
+		s.permissionStoreSession.SetAgent(s.authenticationDetails)
+	}
 	return s.permissionStoreSession
 }
 
 func (s *Standard) ProfileStoreSession() profileStore.Session {
+	if s.profileStoreSession == nil {
+		s.profileStoreSession = s.profileStore.NewSession(s.Context.Logger())
+		s.profileStoreSession.SetAgent(s.authenticationDetails)
+	}
 	return s.profileStoreSession
 }
 
 func (s *Standard) SessionStoreSession() sessionStore.Session {
+	if s.sessionStoreSession == nil {
+		s.sessionStoreSession = s.sessionStore.NewSession(s.Context.Logger())
+		s.sessionStoreSession.SetAgent(s.authenticationDetails)
+	}
 	return s.sessionStoreSession
 }
 
 func (s *Standard) UserStoreSession() userStore.Session {
+	if s.userStoreSession == nil {
+		s.userStoreSession = s.userStore.NewSession(s.Context.Logger())
+		s.userStoreSession.SetAgent(s.authenticationDetails)
+	}
 	return s.userStoreSession
 }
 
@@ -141,10 +152,22 @@ func (s *Standard) AuthenticationDetails() userservicesClient.AuthenticationDeta
 func (s *Standard) SetAuthenticationDetails(authenticationDetails userservicesClient.AuthenticationDetails) {
 	s.authenticationDetails = authenticationDetails
 
-	s.messageStoreSession.SetAgent(authenticationDetails)
-	s.notificationStoreSession.SetAgent(authenticationDetails)
-	s.permissionStoreSession.SetAgent(authenticationDetails)
-	s.profileStoreSession.SetAgent(authenticationDetails)
-	s.sessionStoreSession.SetAgent(authenticationDetails)
-	s.userStoreSession.SetAgent(authenticationDetails)
+	if s.messageStoreSession != nil {
+		s.messageStoreSession.SetAgent(authenticationDetails)
+	}
+	if s.notificationStoreSession != nil {
+		s.notificationStoreSession.SetAgent(authenticationDetails)
+	}
+	if s.permissionStoreSession != nil {
+		s.permissionStoreSession.SetAgent(authenticationDetails)
+	}
+	if s.profileStoreSession != nil {
+		s.profileStoreSession.SetAgent(authenticationDetails)
+	}
+	if s.sessionStoreSession != nil {
+		s.sessionStoreSession.SetAgent(authenticationDetails)
+	}
+	if s.userStoreSession != nil {
+		s.userStoreSession.SetAgent(authenticationDetails)
+	}
 }

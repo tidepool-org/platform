@@ -201,10 +201,7 @@ func buildMetaIDToUserIDMap(logger log.Logger, config *Config) (map[string]strin
 
 	logger.Debug("Creating users session")
 
-	usersSession, err := usersStore.NewSession(logger)
-	if err != nil {
-		return nil, errors.Wrap(err, "migrate_pmid_to_uid", "unable to create users session")
-	}
+	usersSession := usersStore.NewSession(logger)
 	defer usersSession.Close()
 
 	logger.Debug("Iterating users")
@@ -278,10 +275,7 @@ func migrateMetaIDToUserIDForMetadata(logger log.Logger, config *Config, metaIDT
 
 	logger.Debug("Creating metadata session")
 
-	metadataSession, err := metadataStore.NewSession(logger)
-	if err != nil {
-		return errors.Wrap(err, "migrate_pmid_to_uid", "unable to create metadata session")
-	}
+	metadataSession := metadataStore.NewSession(logger)
 	defer metadataSession.Close()
 
 	logger.Debug("Walking meta id to user id map")

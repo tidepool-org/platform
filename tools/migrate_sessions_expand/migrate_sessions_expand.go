@@ -191,16 +191,10 @@ func migrateSessionsToExpandedForm(logger log.Logger, config *Config) error {
 
 	logger.Debug("Creating sessions sessions")
 
-	iterateSessionsSession, err := sessionsStore.NewSession(logger)
-	if err != nil {
-		return errors.Wrap(err, "migrate_sessions_expand", "unable to create iterate sessions session")
-	}
+	iterateSessionsSession := sessionsStore.NewSession(logger)
 	defer iterateSessionsSession.Close()
 
-	updateSessionsSession, err := sessionsStore.NewSession(logger)
-	if err != nil {
-		return errors.Wrap(err, "migrate_sessions_expand", "unable to create update sessions session")
-	}
+	updateSessionsSession := sessionsStore.NewSession(logger)
 	defer updateSessionsSession.Close()
 
 	logger.Debug("Iterating sessions")

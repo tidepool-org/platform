@@ -180,10 +180,7 @@ func migrateDataDeduplicatorDescriptors(logger log.Logger, config *Config) error
 
 	logger.Debug("Creating data session")
 
-	dataStoreSession, err := dataStore.NewSession(logger)
-	if err != nil {
-		return errors.Wrap(err, "main", "unable to create data session")
-	}
+	dataStoreSession := dataStore.NewSession(logger)
 	defer dataStoreSession.Close()
 
 	var count int

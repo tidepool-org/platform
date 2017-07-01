@@ -181,6 +181,10 @@ func (t *TestMessageStoreSession) Close() {
 	panic("Unexpected invocation of Close on TestMessageStoreSession")
 }
 
+func (t *TestMessageStoreSession) Logger() log.Logger {
+	panic("Unexpected invocation of Logger on TestMessageStoreSession")
+}
+
 func (t *TestMessageStoreSession) SetAgent(agent commonStore.Agent) {
 	panic("Unexpected invocation of SetAgent on TestMessageStoreSession")
 }
@@ -217,6 +221,10 @@ func (t *TestNotificationStoreSession) Close() {
 	panic("Unexpected invocation of Close on TestNotificationStoreSession")
 }
 
+func (t *TestNotificationStoreSession) Logger() log.Logger {
+	panic("Unexpected invocation of Logger on TestNotificationStoreSession")
+}
+
 func (t *TestNotificationStoreSession) SetAgent(agent commonStore.Agent) {
 	panic("Unexpected invocation of SetAgent on TestNotificationStoreSession")
 }
@@ -243,6 +251,10 @@ func (t *TestPermissionStoreSession) IsClosed() bool {
 
 func (t *TestPermissionStoreSession) Close() {
 	panic("Unexpected invocation of Close on TestPermissionStoreSession")
+}
+
+func (t *TestPermissionStoreSession) Logger() log.Logger {
+	panic("Unexpected invocation of Logger on TestPermissionStoreSession")
 }
 
 func (t *TestPermissionStoreSession) SetAgent(agent commonStore.Agent) {
@@ -280,6 +292,10 @@ func (t *TestProfileStoreSession) Close() {
 	panic("Unexpected invocation of Close on TestProfileStoreSession")
 }
 
+func (t *TestProfileStoreSession) Logger() log.Logger {
+	panic("Unexpected invocation of Logger on TestProfileStoreSession")
+}
+
 func (t *TestProfileStoreSession) SetAgent(agent commonStore.Agent) {
 	panic("Unexpected invocation of SetAgent on TestProfileStoreSession")
 }
@@ -314,6 +330,10 @@ func (t *TestSessionStoreSession) IsClosed() bool {
 
 func (t *TestSessionStoreSession) Close() {
 	panic("Unexpected invocation of Close on TestSessionStoreSession")
+}
+
+func (t *TestSessionStoreSession) Logger() log.Logger {
+	panic("Unexpected invocation of Logger on TestSessionStoreSession")
 }
 
 func (t *TestSessionStoreSession) SetAgent(agent commonStore.Agent) {
@@ -358,6 +378,10 @@ func (t *TestUserStoreSession) IsClosed() bool {
 
 func (t *TestUserStoreSession) Close() {
 	panic("Unexpected invocation of Close on TestUserStoreSession")
+}
+
+func (t *TestUserStoreSession) Logger() log.Logger {
+	panic("Unexpected invocation of Logger on TestUserStoreSession")
 }
 
 func (t *TestUserStoreSession) SetAgent(agent commonStore.Agent) {
