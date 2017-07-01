@@ -19,12 +19,13 @@ type truncateDeduplicator struct {
 	*BaseDeduplicator
 }
 
-const _TruncateDeduplicatorName = "truncate"
+const _TruncateDeduplicatorName = "org.tidepool.truncate"
+const _TruncateDeduplicatorVersion = "1.0.0"
 
 var _TruncateExpectedDeviceManufacturers = []string{"Animas"}
 
 func NewTruncateFactory() (Factory, error) {
-	baseFactory, err := NewBaseFactory(_TruncateDeduplicatorName)
+	baseFactory, err := NewBaseFactory(_TruncateDeduplicatorName, _TruncateDeduplicatorVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +60,7 @@ func (t *truncateFactory) CanDeduplicateDataset(dataset *upload.Upload) (bool, e
 }
 
 func (t *truncateFactory) NewDeduplicatorForDataset(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (data.Deduplicator, error) {
-	baseDeduplicator, err := NewBaseDeduplicator(t.name, logger, dataStoreSession, dataset)
+	baseDeduplicator, err := NewBaseDeduplicator(t.name, t.version, logger, dataStoreSession, dataset)
 	if err != nil {
 		return nil, err
 	}

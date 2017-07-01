@@ -9,6 +9,8 @@ type Deduplicator struct {
 	ID                            string
 	NameInvocations               int
 	NameOutputs                   []string
+	VersionInvocations            int
+	VersionOutputs                []string
 	RegisterDatasetInvocations    int
 	RegisterDatasetOutputs        []error
 	AddDatasetDataInvocations     int
@@ -35,6 +37,18 @@ func (d *Deduplicator) Name() string {
 
 	output := d.NameOutputs[0]
 	d.NameOutputs = d.NameOutputs[1:]
+	return output
+}
+
+func (d *Deduplicator) Version() string {
+	d.VersionInvocations++
+
+	if len(d.VersionOutputs) == 0 {
+		panic("Unexpected invocation of Version on Deduplicator")
+	}
+
+	output := d.VersionOutputs[0]
+	d.VersionOutputs = d.VersionOutputs[1:]
 	return output
 }
 
@@ -90,6 +104,7 @@ func (d *Deduplicator) DeleteDataset() error {
 
 func (d *Deduplicator) UnusedOutputsCount() int {
 	return len(d.NameOutputs) +
+		len(d.VersionOutputs) +
 		len(d.RegisterDatasetOutputs) +
 		len(d.AddDatasetDataOutputs) +
 		len(d.DeduplicateDatasetOutputs) +

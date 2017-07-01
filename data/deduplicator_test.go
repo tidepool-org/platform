@@ -8,6 +8,7 @@ import (
 
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/test"
 )
 
 var _ = Describe("Delegate", func() {
@@ -21,12 +22,15 @@ var _ = Describe("Delegate", func() {
 		Context("with a new deduplicator descriptor", func() {
 			var testDeduplicatorDescriptor *data.DeduplicatorDescriptor
 			var testName string
+			var testVersion string
 
 			BeforeEach(func() {
 				testDeduplicatorDescriptor = data.NewDeduplicatorDescriptor()
 				Expect(testDeduplicatorDescriptor).ToNot(BeNil())
 				testName = app.NewID()
+				testVersion = "1.2.3"
 				testDeduplicatorDescriptor.Name = testName
+				testDeduplicatorDescriptor.Version = testVersion
 			})
 
 			Context("IsRegisteredWithAnyDeduplicator", func() {
@@ -55,17 +59,31 @@ var _ = Describe("Delegate", func() {
 				})
 			})
 
-			Context("RegisterWithNamedDeduplicator", func() {
+			Context("RegisterWithDeduplicator", func() {
+				var testDeduplicator *test.Deduplicator
+
+				BeforeEach(func() {
+					testDeduplicator = test.NewDeduplicator()
+				})
+
+				AfterEach(func() {
+					Expect(testDeduplicator.UnusedOutputsCount()).To(Equal(0))
+				})
+
 				It("returns error if the deduplicator descriptor already has a name", func() {
-					err := testDeduplicatorDescriptor.RegisterWithNamedDeduplicator(app.NewID())
+					err := testDeduplicatorDescriptor.RegisterWithDeduplicator(testDeduplicator)
 					Expect(err).To(MatchError(fmt.Sprintf(`data: deduplicator descriptor already registered with "%s"`, testName)))
 				})
 
 				It("returns successfully if the deduplicator descriptor does not already have a name", func() {
 					testDeduplicatorDescriptor.Name = ""
-					err := testDeduplicatorDescriptor.RegisterWithNamedDeduplicator(testName)
+					testDeduplicatorDescriptor.Version = ""
+					testDeduplicator.NameOutputs = []string{testName}
+					testDeduplicator.VersionOutputs = []string{testVersion}
+					err := testDeduplicatorDescriptor.RegisterWithDeduplicator(testDeduplicator)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testDeduplicatorDescriptor.Name).To(Equal(testName))
+					Expect(testDeduplicatorDescriptor.Version).To(Equal(testVersion))
 				})
 			})
 		})
