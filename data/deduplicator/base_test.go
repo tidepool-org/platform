@@ -18,21 +18,35 @@ import (
 
 var _ = Describe("Base", func() {
 	var testName string
+	var testVersion string
 
 	BeforeEach(func() {
 		testName = app.NewID()
+		testVersion = "1.2.3"
 	})
 
 	Context("BaseFactory", func() {
 		Context("NewBaseFactory", func() {
 			It("returns an error if the name is missing", func() {
-				testFactory, err := deduplicator.NewBaseFactory("")
+				testFactory, err := deduplicator.NewBaseFactory("", testVersion)
 				Expect(err).To(MatchError("deduplicator: name is missing"))
 				Expect(testFactory).To(BeNil())
 			})
 
+			It("returns an error if the version is missing", func() {
+				testFactory, err := deduplicator.NewBaseFactory(testName, "")
+				Expect(err).To(MatchError("deduplicator: version is missing"))
+				Expect(testFactory).To(BeNil())
+			})
+
+			It("returns an error if the version is invalid", func() {
+				testFactory, err := deduplicator.NewBaseFactory(testName, "x.y.z")
+				Expect(err).To(MatchError("deduplicator: version is invalid"))
+				Expect(testFactory).To(BeNil())
+			})
+
 			It("returns a new factory", func() {
-				testFactory, err := deduplicator.NewBaseFactory(testName)
+				testFactory, err := deduplicator.NewBaseFactory(testName, testVersion)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(testFactory).ToNot(BeNil())
 				Expect(testFactory.Factory).ToNot(BeNil())
@@ -45,7 +59,7 @@ var _ = Describe("Base", func() {
 
 			BeforeEach(func() {
 				var err error
-				testFactory, err = deduplicator.NewBaseFactory(testName)
+				testFactory, err = deduplicator.NewBaseFactory(testName, testVersion)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(testFactory).ToNot(BeNil())
 				testDataset = upload.Init()
@@ -144,8 +158,7 @@ var _ = Describe("Base", func() {
 
 			Context("with registered dataset", func() {
 				BeforeEach(func() {
-					testDataset.Deduplicator = data.NewDeduplicatorDescriptor()
-					testDataset.Deduplicator.RegisterWithNamedDeduplicator(testName)
+					testDataset.Deduplicator = &data.DeduplicatorDescriptor{Name: testName, Version: testVersion}
 				})
 
 				Context("IsRegisteredWithDataset", func() {
@@ -297,52 +310,64 @@ var _ = Describe("Base", func() {
 
 		Context("NewBaseDeduplicator", func() {
 			It("returns an error if the name is missing", func() {
-				testDeduplicator, err := deduplicator.NewBaseDeduplicator("", testLogger, testDataStoreSession, testDataset)
+				testDeduplicator, err := deduplicator.NewBaseDeduplicator("", testVersion, testLogger, testDataStoreSession, testDataset)
 				Expect(err).To(MatchError("deduplicator: name is missing"))
 				Expect(testDeduplicator).To(BeNil())
 			})
 
+			It("returns an error if the version is missing", func() {
+				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, "", testLogger, testDataStoreSession, testDataset)
+				Expect(err).To(MatchError("deduplicator: version is missing"))
+				Expect(testDeduplicator).To(BeNil())
+			})
+
+			It("returns an error if the version is invalid", func() {
+				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, "x.y.z", testLogger, testDataStoreSession, testDataset)
+				Expect(err).To(MatchError("deduplicator: version is invalid"))
+				Expect(testDeduplicator).To(BeNil())
+			})
+
 			It("returns an error if the logger is missing", func() {
-				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, nil, testDataStoreSession, testDataset)
+				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, testVersion, nil, testDataStoreSession, testDataset)
 				Expect(err).To(MatchError("deduplicator: logger is missing"))
 				Expect(testDeduplicator).To(BeNil())
 			})
 
 			It("returns an error if the data store session is missing", func() {
-				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, testLogger, nil, testDataset)
+				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, testVersion, testLogger, nil, testDataset)
 				Expect(err).To(MatchError("deduplicator: data store session is missing"))
 				Expect(testDeduplicator).To(BeNil())
 			})
 
 			It("returns an error if the dataset is missing", func() {
-				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, testLogger, testDataStoreSession, nil)
+				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, testVersion, testLogger, testDataStoreSession, nil)
 				Expect(err).To(MatchError("deduplicator: dataset is missing"))
 				Expect(testDeduplicator).To(BeNil())
 			})
 
 			It("returns an error if the dataset id is missing", func() {
 				testDataset.UploadID = ""
-				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, testLogger, testDataStoreSession, testDataset)
+				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, testVersion, testLogger, testDataStoreSession, testDataset)
 				Expect(err).To(MatchError("deduplicator: dataset id is missing"))
 				Expect(testDeduplicator).To(BeNil())
 			})
 
 			It("returns an error if the dataset user id is missing", func() {
 				testDataset.UserID = ""
-				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, testLogger, testDataStoreSession, testDataset)
+				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, testVersion, testLogger, testDataStoreSession, testDataset)
 				Expect(err).To(MatchError("deduplicator: dataset user id is missing"))
 				Expect(testDeduplicator).To(BeNil())
 			})
 
 			It("returns an error if the dataset group id is missing", func() {
 				testDataset.GroupID = ""
-				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, testLogger, testDataStoreSession, testDataset)
+				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, testVersion, testLogger, testDataStoreSession, testDataset)
 				Expect(err).To(MatchError("deduplicator: dataset group id is missing"))
 				Expect(testDeduplicator).To(BeNil())
 			})
 
 			It("successfully returns a new deduplicator", func() {
-				Expect(deduplicator.NewBaseDeduplicator(testName, testLogger, testDataStoreSession, testDataset)).ToNot(BeNil())
+				Expect(deduplicator.NewBaseDeduplicator(testName, testVersion, testLogger, testDataStoreSession, testDataset)).ToNot(BeNil())
 			})
 		})
 
@@ -351,7 +376,7 @@ var _ = Describe("Base", func() {
 
 			BeforeEach(func() {
 				var err error
-				testDeduplicator, err = deduplicator.NewBaseDeduplicator(testName, testLogger, testDataStoreSession, testDataset)
+				testDeduplicator, err = deduplicator.NewBaseDeduplicator(testName, testVersion, testLogger, testDataStoreSession, testDataset)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(testDeduplicator).ToNot(BeNil())
 			})
@@ -362,9 +387,15 @@ var _ = Describe("Base", func() {
 				})
 			})
 
+			Context("Version", func() {
+				It("returns the version", func() {
+					Expect(testDeduplicator.Version()).To(Equal(testVersion))
+				})
+			})
+
 			Context("RegisterDataset", func() {
 				It("returns an error if a deduplicator already registered dataset", func() {
-					testDataset.SetDeduplicatorDescriptor(&data.DeduplicatorDescriptor{Name: "test"})
+					testDataset.SetDeduplicatorDescriptor(&data.DeduplicatorDescriptor{Name: "test", Version: "0.0.0"})
 					err := testDeduplicator.RegisterDataset()
 					Expect(err).To(MatchError(fmt.Sprintf(`deduplicator: already registered dataset with id "%s"`, testDataset.UploadID)))
 				})
@@ -386,13 +417,13 @@ var _ = Describe("Base", func() {
 
 					It("returns successfully if there is no error", func() {
 						Expect(testDeduplicator.RegisterDataset()).To(Succeed())
-						Expect(testDataset.DeduplicatorDescriptor()).To(Equal(&data.DeduplicatorDescriptor{Name: testName}))
+						Expect(testDataset.DeduplicatorDescriptor()).To(Equal(&data.DeduplicatorDescriptor{Name: testName, Version: testVersion}))
 					})
 
 					It("returns successfully even if there is a deduplicator description just without a name", func() {
 						testDataset.SetDeduplicatorDescriptor(&data.DeduplicatorDescriptor{Hash: "test"})
 						Expect(testDeduplicator.RegisterDataset()).To(Succeed())
-						Expect(testDataset.DeduplicatorDescriptor()).To(Equal(&data.DeduplicatorDescriptor{Name: testName, Hash: "test"}))
+						Expect(testDataset.DeduplicatorDescriptor()).To(Equal(&data.DeduplicatorDescriptor{Name: testName, Version: testVersion, Hash: "test"}))
 					})
 				})
 			})

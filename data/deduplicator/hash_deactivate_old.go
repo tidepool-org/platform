@@ -19,12 +19,13 @@ type hashDeactivateOldDeduplicator struct {
 	*BaseDeduplicator
 }
 
-const _HashDeactivateOldDeduplicatorName = "hash-deactivate-old"
+const _HashDeactivateOldDeduplicatorName = "org.tidepool.hash-deactivate-old"
+const _HashDeactivateOldDeduplicatorVersion = "1.0.0"
 
 var _HashDeactivateOldExpectedDeviceManufacturers = []string{"Medtronic"}
 
 func NewHashDeactivateOldFactory() (Factory, error) {
-	baseFactory, err := NewBaseFactory(_HashDeactivateOldDeduplicatorName)
+	baseFactory, err := NewBaseFactory(_HashDeactivateOldDeduplicatorName, _HashDeactivateOldDeduplicatorVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +60,7 @@ func (h *hashDeactivateOldFactory) CanDeduplicateDataset(dataset *upload.Upload)
 }
 
 func (h *hashDeactivateOldFactory) NewDeduplicatorForDataset(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (data.Deduplicator, error) {
-	baseDeduplicator, err := NewBaseDeduplicator(h.name, logger, dataStoreSession, dataset)
+	baseDeduplicator, err := NewBaseDeduplicator(h.name, h.version, logger, dataStoreSession, dataset)
 	if err != nil {
 		return nil, err
 	}

@@ -134,16 +134,16 @@ stop-userservices: check-environment
 	@killall -v userservices &> /dev/null || exit 0
 
 test: ginkgo
-	@echo "ginkgo --slowSpecThreshold=10 -r $(TEST)"
-	@cd $(ROOT_DIRECTORY) && TIDEPOOL_ENV=test ginkgo --slowSpecThreshold=10 -r $(TEST)
+	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r $(TEST)"
+	@cd $(ROOT_DIRECTORY) && TIDEPOOL_ENV=test ginkgo -requireSuite -slowSpecThreshold=10 -r $(TEST)
 
 ci-test: ginkgo
-	@echo "ginkgo --slowSpecThreshold=10 -r --randomizeSuites --randomizeAllSpecs -succinct --failOnPending --cover --trace --race --progress -keepGoing $(TEST)"
-	@cd $(ROOT_DIRECTORY) && TIDEPOOL_ENV=test ginkgo --slowSpecThreshold=10 -r --randomizeSuites --randomizeAllSpecs -succinct --failOnPending --cover --trace --race --progress -keepGoing $(TEST)
+	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing $(TEST)"
+	@cd $(ROOT_DIRECTORY) && TIDEPOOL_ENV=test ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing $(TEST)
 
 watch: ginkgo
-	@echo "ginkgo watch --slowSpecThreshold=10 -r -notify $(WATCH)"
-	@cd $(ROOT_DIRECTORY) && TIDEPOOL_ENV=test ginkgo watch --slowSpecThreshold=10 -r -notify $(WATCH)
+	@echo "ginkgo watch -requireSuite -slowSpecThreshold=10 -r -notify $(WATCH)"
+	@cd $(ROOT_DIRECTORY) && TIDEPOOL_ENV=test ginkgo watch -requireSuite -slowSpecThreshold=10 -r -notify $(WATCH)
 
 deploy: clean-deploy deploy-dataservices deploy-userservices deploy-tools
 
