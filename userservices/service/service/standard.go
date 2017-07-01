@@ -8,6 +8,7 @@ import (
 	notificationMongo "github.com/tidepool-org/platform/notification/store/mongo"
 	permissionMongo "github.com/tidepool-org/platform/permission/store/mongo"
 	profileMongo "github.com/tidepool-org/platform/profile/store/mongo"
+	"github.com/tidepool-org/platform/service/middleware"
 	"github.com/tidepool-org/platform/service/server"
 	"github.com/tidepool-org/platform/service/service"
 	sessionMongo "github.com/tidepool-org/platform/session/store/mongo"
@@ -330,6 +331,11 @@ func (s *Standard) initializeUserServicesAPI() error {
 	if err = s.userServicesAPI.InitializeMiddleware(); err != nil {
 		return errors.Wrap(err, "service", "unable to initialize user services api middleware")
 	}
+
+	s.Logger().Debug("Configuring user services api middleware headers")
+
+	s.userServicesAPI.HeaderMiddleware().AddHeaderFieldFunc(
+		userservicesClient.TidepoolAuthenticationTokenHeaderName, middleware.NewMD5FieldFunc("authenticationTokenMD5"))
 
 	s.Logger().Debug("Initializing user services api router")
 

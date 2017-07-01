@@ -4,9 +4,15 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/md5"
+	"encoding/hex"
 
 	"github.com/tidepool-org/platform/errors"
 )
+
+func HashWithMD5(sourceString string) string {
+	md5Sum := md5.Sum([]byte(sourceString))
+	return hex.EncodeToString(md5Sum[:])
+}
 
 func EncryptWithAES256UsingPassphrase(bytes []byte, passphrase []byte) (_ []byte, err error) {
 	defer func() {

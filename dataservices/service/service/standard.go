@@ -4,10 +4,12 @@ import (
 	"github.com/tidepool-org/platform/data/deduplicator"
 	"github.com/tidepool-org/platform/data/factory"
 	dataMongo "github.com/tidepool-org/platform/data/store/mongo"
+	dataservicesClient "github.com/tidepool-org/platform/dataservices/client"
 	"github.com/tidepool-org/platform/dataservices/service/api"
 	"github.com/tidepool-org/platform/dataservices/service/api/v1"
 	"github.com/tidepool-org/platform/errors"
 	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
+	"github.com/tidepool-org/platform/service/middleware"
 	"github.com/tidepool-org/platform/service/server"
 	"github.com/tidepool-org/platform/service/service"
 	baseMongo "github.com/tidepool-org/platform/store/mongo"
@@ -244,6 +246,11 @@ func (s *Standard) initializeDataServicesAPI() error {
 	if err = s.dataServicesAPI.InitializeMiddleware(); err != nil {
 		return errors.Wrap(err, "service", "unable to initialize data services api middleware")
 	}
+
+	s.Logger().Debug("Configuring data services api middleware headers")
+
+	s.dataServicesAPI.HeaderMiddleware().AddHeaderFieldFunc(
+		dataservicesClient.TidepoolAuthenticationTokenHeaderName, middleware.NewMD5FieldFunc("authenticationTokenMD5"))
 
 	s.Logger().Debug("Initializing data services api router")
 
