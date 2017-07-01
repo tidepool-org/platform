@@ -3,6 +3,8 @@ package deduplicator
 import (
 	"strconv"
 
+	"github.com/blang/semver"
+
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/upload"
@@ -12,23 +14,37 @@ import (
 
 type BaseFactory struct {
 	Factory
-	name string
+	name    string
+	version string
 }
 
 type BaseDeduplicator struct {
 	name             string
+	version          string
 	logger           log.Logger
 	dataStoreSession store.Session
 	dataset          *upload.Upload
 }
 
-func NewBaseFactory(name string) (*BaseFactory, error) {
+func IsVersionValid(version string) bool {
+	_, err := semver.Parse(version)
+	return err == nil
+}
+
+func NewBaseFactory(name string, version string) (*BaseFactory, error) {
 	if name == "" {
 		return nil, errors.New("deduplicator", "name is missing")
 	}
+	if version == "" {
+		return nil, errors.New("deduplicator", "version is missing")
+	}
+	if !IsVersionValid(version) {
+		return nil, errors.New("deduplicator", "version is invalid")
+	}
 
 	factory := &BaseFactory{
-		name: name,
+		name:    name,
+		version: version,
 	}
 	factory.Factory = factory
 
@@ -54,7 +70,7 @@ func (b *BaseFactory) CanDeduplicateDataset(dataset *upload.Upload) (bool, error
 }
 
 func (b *BaseFactory) NewDeduplicatorForDataset(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (data.Deduplicator, error) {
-	return NewBaseDeduplicator(b.name, logger, dataStoreSession, dataset)
+	return NewBaseDeduplicator(b.name, b.version, logger, dataStoreSession, dataset)
 }
 
 func (b *BaseFactory) IsRegisteredWithDataset(dataset *upload.Upload) (bool, error) {
@@ -90,9 +106,15 @@ func (b *BaseFactory) NewRegisteredDeduplicatorForDataset(logger log.Logger, dat
 	return deduplicator, nil
 }
 
-func NewBaseDeduplicator(name string, logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (*BaseDeduplicator, error) {
+func NewBaseDeduplicator(name string, version string, logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (*BaseDeduplicator, error) {
 	if name == "" {
 		return nil, errors.New("deduplicator", "name is missing")
+	}
+	if version == "" {
+		return nil, errors.New("deduplicator", "version is missing")
+	}
+	if !IsVersionValid(version) {
+		return nil, errors.New("deduplicator", "version is invalid")
 	}
 	if logger == nil {
 		return nil, errors.New("deduplicator", "logger is missing")
@@ -114,12 +136,14 @@ func NewBaseDeduplicator(name string, logger log.Logger, dataStoreSession store.
 	}
 
 	logger = logger.WithFields(log.Fields{
-		"deduplicatorName": name,
-		"datasetId":        dataset.UploadID,
+		"deduplicatorName":    name,
+		"deduplicatorVersion": version,
+		"datasetId":           dataset.UploadID,
 	})
 
 	return &BaseDeduplicator{
 		name:             name,
+		version:          version,
 		logger:           logger,
 		dataStoreSession: dataStoreSession,
 		dataset:          dataset,
@@ -128,6 +152,10 @@ func NewBaseDeduplicator(name string, logger log.Logger, dataStoreSession store.
 
 func (b *BaseDeduplicator) Name() string {
 	return b.name
+}
+
+func (b *BaseDeduplicator) Version() string {
+	return b.version
 }
 
 func (b *BaseDeduplicator) RegisterDataset() error {
@@ -140,7 +168,7 @@ func (b *BaseDeduplicator) RegisterDataset() error {
 	} else if deduplicatorDescriptor.IsRegisteredWithAnyDeduplicator() {
 		return errors.Newf("deduplicator", "already registered dataset with id %s", strconv.Quote(b.dataset.UploadID))
 	}
-	deduplicatorDescriptor.RegisterWithNamedDeduplicator(b.name)
+	deduplicatorDescriptor.RegisterWithDeduplicator(b)
 
 	b.dataset.SetDeduplicatorDescriptor(deduplicatorDescriptor)
 
