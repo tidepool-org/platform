@@ -1,5 +1,7 @@
 ## HEAD
 
+- Add MD5 hash of authentication token to request logger
+- Add service middleware to extract select request headers and add as request logger fields
 - Defer access to context store sessions and log until actually needed
 
 ## 1.8.0 (2017-08-09)

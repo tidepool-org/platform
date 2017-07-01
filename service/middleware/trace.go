@@ -4,6 +4,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -33,7 +34,7 @@ func (l *Trace) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
 				service.SetRequestLogger(request, oldLogger)
 			}()
 
-			newLogger := oldLogger
+			newFields := log.Fields{}
 
 			newTraceRequest := request.Header.Get(service.HTTPHeaderTraceRequest)
 			if newTraceRequest != "" {
@@ -44,10 +45,8 @@ func (l *Trace) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
 				newTraceRequest = app.NewID()
 			}
 			service.SetRequestTraceRequest(request, newTraceRequest)
-			if newLogger != nil {
-				newLogger = newLogger.WithField(_LogTraceRequest, newTraceRequest)
-			}
 			response.Header().Add(service.HTTPHeaderTraceRequest, newTraceRequest)
+			newFields[_LogTraceRequest] = newTraceRequest
 
 			newTraceSession := request.Header.Get(service.HTTPHeaderTraceSession)
 			if newTraceSession != "" {
@@ -55,13 +54,13 @@ func (l *Trace) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
 					newTraceSession = newTraceSession[:_TraceMaximumLength]
 				}
 				service.SetRequestTraceSession(request, newTraceSession)
-				if newLogger != nil {
-					newLogger = newLogger.WithField(_LogTraceSession, newTraceSession)
-				}
 				response.Header().Add(service.HTTPHeaderTraceSession, newTraceSession)
+				newFields[_LogTraceSession] = newTraceSession
 			}
 
-			service.SetRequestLogger(request, newLogger)
+			if oldLogger != nil {
+				service.SetRequestLogger(request, oldLogger.WithFields(newFields))
+			}
 
 			handler(response, request)
 		}
