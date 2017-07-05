@@ -20,7 +20,7 @@ type hashDeactivateOldDeduplicator struct {
 }
 
 const _HashDeactivateOldDeduplicatorName = "org.tidepool.hash-deactivate-old"
-const _HashDeactivateOldDeduplicatorVersion = "1.0.0"
+const _HashDeactivateOldDeduplicatorVersion = "1.1.0"
 
 var _HashDeactivateOldExpectedDeviceManufacturers = []string{"Medtronic"}
 
@@ -95,38 +95,16 @@ func (h *hashDeactivateOldDeduplicator) AddDatasetData(datasetData []data.Datum)
 }
 
 func (h *hashDeactivateOldDeduplicator) DeduplicateDataset() error {
-	hashes, err := h.dataStoreSession.GetDatasetDataDeduplicatorHashes(h.dataset, false)
-	if err != nil {
-		return errors.Wrapf(err, "deduplicator", "unable to get dataset data deduplicator hashes from dataset with id %s", strconv.Quote(h.dataset.UploadID))
-	}
-
-	if len(hashes) > 0 {
-		if err = h.dataStoreSession.SetDeviceDataActiveUsingHashes(h.dataset, hashes, false); err != nil {
-			return errors.Wrapf(err, "deduplicator", "unable to set device data active using hashes for device with id %s", strconv.Quote(*h.dataset.DeviceID))
-		}
+	if err := h.dataStoreSession.ArchiveDeviceDataUsingHashesFromDataset(h.dataset); err != nil {
+		return errors.Wrapf(err, "deduplicator", "unable to archive device data using hashes from dataset with id %s", strconv.Quote(h.dataset.UploadID))
 	}
 
 	return h.BaseDeduplicator.DeduplicateDataset()
 }
 
 func (h *hashDeactivateOldDeduplicator) DeleteDataset() error {
-	previousDataset, err := h.dataStoreSession.FindPreviousActiveDatasetForDevice(h.dataset)
-	if err != nil {
-		return errors.Wrapf(err, "deduplicator", "unable to find previous dataset from dataset with id %s", strconv.Quote(h.dataset.UploadID))
-	}
-
-	if previousDataset != nil {
-		var hashes []string
-		hashes, err = h.dataStoreSession.GetDatasetDataDeduplicatorHashes(h.dataset, true)
-		if err != nil {
-			return errors.Wrapf(err, "deduplicator", "unable to get dataset data deduplicator hashes from dataset with id %s", strconv.Quote(h.dataset.UploadID))
-		}
-
-		if len(hashes) > 0 {
-			if err = h.dataStoreSession.SetDatasetDataActiveUsingHashes(previousDataset, hashes, true); err != nil {
-				return errors.Wrapf(err, "deduplicator", "unable to set dataset data active using hashes from dataset with id %s", strconv.Quote(previousDataset.UploadID))
-			}
-		}
+	if err := h.dataStoreSession.UnarchiveDeviceDataUsingHashesFromDataset(h.dataset); err != nil {
+		return errors.Wrapf(err, "deduplicator", "unable to unarchive device data using hashes from dataset with id %s", strconv.Quote(h.dataset.UploadID))
 	}
 
 	return h.BaseDeduplicator.DeleteDataset()

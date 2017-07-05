@@ -19,15 +19,13 @@ type Session interface {
 
 	GetDatasetsForUserByID(userID string, filter *Filter, pagination *Pagination) ([]*upload.Upload, error)
 	GetDatasetByID(datasetID string) (*upload.Upload, error)
-	FindPreviousActiveDatasetForDevice(dataset *upload.Upload) (*upload.Upload, error)
 	CreateDataset(dataset *upload.Upload) error
 	UpdateDataset(dataset *upload.Upload) error
 	DeleteDataset(dataset *upload.Upload) error
-	GetDatasetDataDeduplicatorHashes(dataset *upload.Upload, active bool) ([]string, error)
 	CreateDatasetData(dataset *upload.Upload, datasetData []data.Datum) error
 	ActivateDatasetData(dataset *upload.Upload) error
-	SetDatasetDataActiveUsingHashes(dataset *upload.Upload, queryHashes []string, active bool) error
-	SetDeviceDataActiveUsingHashes(dataset *upload.Upload, queryHashes []string, active bool) error
+	ArchiveDeviceDataUsingHashesFromDataset(dataset *upload.Upload) error
+	UnarchiveDeviceDataUsingHashesFromDataset(dataset *upload.Upload) error
 	DeleteOtherDatasetData(dataset *upload.Upload) error
 	DestroyDataForUserByID(userID string) error
 }

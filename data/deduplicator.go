@@ -2,7 +2,6 @@ package data
 
 import (
 	"strconv"
-	"strings"
 
 	"github.com/tidepool-org/platform/errors"
 )
@@ -34,8 +33,7 @@ func (d *DeduplicatorDescriptor) IsRegisteredWithAnyDeduplicator() bool {
 }
 
 func (d *DeduplicatorDescriptor) IsRegisteredWithNamedDeduplicator(name string) bool {
-	// TODO: Backwards compatible until after data migration to update deduplicator name scheme
-	return d.Name == name || d.Name == strings.TrimPrefix(name, "org.tidepool.")
+	return d.Name == name
 }
 
 func (d *DeduplicatorDescriptor) RegisterWithDeduplicator(deduplicator Deduplicator) error {
