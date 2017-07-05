@@ -9,22 +9,24 @@ import (
 const SchemaVersionCurrent = 3
 
 type Base struct {
-	Active         bool                         `json:"-" bson:"_active"`
-	CreatedTime    string                       `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
-	CreatedUserID  string                       `json:"createdUserId,omitempty" bson:"createdUserId,omitempty"`
-	Deduplicator   *data.DeduplicatorDescriptor `json:"-" bson:"_deduplicator,omitempty"`
-	DeletedTime    string                       `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
-	DeletedUserID  string                       `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
-	GroupID        string                       `json:"-" bson:"_groupId,omitempty"`
-	GUID           string                       `json:"guid,omitempty" bson:"guid,omitempty"`
-	ID             string                       `json:"id,omitempty" bson:"id,omitempty"`
-	ModifiedTime   string                       `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
-	ModifiedUserID string                       `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
-	SchemaVersion  int                          `json:"-" bson:"_schemaVersion,omitempty"`
-	Type           string                       `json:"type,omitempty" bson:"type,omitempty"`
-	UploadID       string                       `json:"uploadId,omitempty" bson:"uploadId,omitempty"`
-	UserID         string                       `json:"-" bson:"_userId,omitempty"`
-	Version        int                          `json:"-" bson:"_version,omitempty"`
+	Active            bool                         `json:"-" bson:"_active"`
+	ArchivedDatasetID string                       `json:"-" bson:"archivedDatasetId,omitempty"`
+	ArchivedTime      string                       `json:"-" bson:"archivedTime,omitempty"`
+	CreatedTime       string                       `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
+	CreatedUserID     string                       `json:"createdUserId,omitempty" bson:"createdUserId,omitempty"`
+	Deduplicator      *data.DeduplicatorDescriptor `json:"-" bson:"_deduplicator,omitempty"`
+	DeletedTime       string                       `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
+	DeletedUserID     string                       `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
+	GroupID           string                       `json:"-" bson:"_groupId,omitempty"`
+	GUID              string                       `json:"guid,omitempty" bson:"guid,omitempty"`
+	ID                string                       `json:"id,omitempty" bson:"id,omitempty"`
+	ModifiedTime      string                       `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
+	ModifiedUserID    string                       `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
+	SchemaVersion     int                          `json:"-" bson:"_schemaVersion,omitempty"`
+	Type              string                       `json:"type,omitempty" bson:"type,omitempty"`
+	UploadID          string                       `json:"uploadId,omitempty" bson:"uploadId,omitempty"`
+	UserID            string                       `json:"-" bson:"_userId,omitempty"`
+	Version           int                          `json:"-" bson:"_version,omitempty"`
 
 	Annotations      *[]interface{} `json:"annotations,omitempty" bson:"annotations,omitempty"`
 	ClockDriftOffset *int           `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty"`
@@ -43,6 +45,8 @@ type Meta struct {
 
 func (b *Base) Init() {
 	b.Active = false
+	b.ArchivedDatasetID = ""
+	b.ArchivedTime = ""
 	b.CreatedTime = ""
 	b.CreatedUserID = ""
 	b.Deduplicator = nil

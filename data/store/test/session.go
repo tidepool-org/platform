@@ -25,86 +25,53 @@ type GetDatasetByIDOutput struct {
 	Error   error
 }
 
-type FindPreviousActiveDatasetForDeviceOutput struct {
-	Dataset *upload.Upload
-	Error   error
-}
-
-type GetDatasetDataDeduplicatorHashesInput struct {
-	Dataset *upload.Upload
-	Active  bool
-}
-
-type GetDatasetDataDeduplicatorHashesOutput struct {
-	Hashes []string
-	Error  error
-}
-
 type CreateDatasetDataInput struct {
 	Dataset     *upload.Upload
 	DatasetData []data.Datum
 }
 
-type SetDatasetDataActiveUsingHashesInput struct {
-	Dataset *upload.Upload
-	Hashes  []string
-	Active  bool
-}
-
-type SetDeviceDataActiveUsingHashesInput struct {
-	Dataset *upload.Upload
-	Hashes  []string
-	Active  bool
-}
-
 type Session struct {
-	ID                                            string
-	IsClosedInvocations                           int
-	IsClosedOutputs                               []bool
-	CloseInvocations                              int
-	LoggerInvocations                             int
-	LoggerImpl                                    log.Logger
-	SetAgentInvocations                           int
-	SetAgentInputs                                []commonStore.Agent
-	GetDatasetsForUserByIDInvocations             int
-	GetDatasetsForUserByIDInputs                  []GetDatasetsForUserByIDInput
-	GetDatasetsForUserByIDOutputs                 []GetDatasetsForUserByIDOutput
-	GetDatasetByIDInvocations                     int
-	GetDatasetByIDInputs                          []string
-	GetDatasetByIDOutputs                         []GetDatasetByIDOutput
-	FindPreviousActiveDatasetForDeviceInvocations int
-	FindPreviousActiveDatasetForDeviceInputs      []*upload.Upload
-	FindPreviousActiveDatasetForDeviceOutputs     []FindPreviousActiveDatasetForDeviceOutput
-	CreateDatasetInvocations                      int
-	CreateDatasetInputs                           []*upload.Upload
-	CreateDatasetOutputs                          []error
-	UpdateDatasetInvocations                      int
-	UpdateDatasetInputs                           []*upload.Upload
-	UpdateDatasetOutputs                          []error
-	DeleteDatasetInvocations                      int
-	DeleteDatasetInputs                           []*upload.Upload
-	DeleteDatasetOutputs                          []error
-	GetDatasetDataDeduplicatorHashesInvocations   int
-	GetDatasetDataDeduplicatorHashesInputs        []GetDatasetDataDeduplicatorHashesInput
-	GetDatasetDataDeduplicatorHashesOutputs       []GetDatasetDataDeduplicatorHashesOutput
-	CreateDatasetDataInvocations                  int
-	CreateDatasetDataInputs                       []CreateDatasetDataInput
-	CreateDatasetDataOutputs                      []error
-	ActivateDatasetDataInvocations                int
-	ActivateDatasetDataInputs                     []*upload.Upload
-	ActivateDatasetDataOutputs                    []error
-	SetDatasetDataActiveUsingHashesInvocations    int
-	SetDatasetDataActiveUsingHashesInputs         []SetDatasetDataActiveUsingHashesInput
-	SetDatasetDataActiveUsingHashesOutputs        []error
-	SetDeviceDataActiveUsingHashesInvocations     int
-	SetDeviceDataActiveUsingHashesInputs          []SetDeviceDataActiveUsingHashesInput
-	SetDeviceDataActiveUsingHashesOutputs         []error
-	DeleteOtherDatasetDataInvocations             int
-	DeleteOtherDatasetDataInputs                  []*upload.Upload
-	DeleteOtherDatasetDataOutputs                 []error
-	DestroyDataForUserByIDInvocations             int
-	DestroyDataForUserByIDInputs                  []string
-	DestroyDataForUserByIDOutputs                 []error
+	ID                                                   string
+	IsClosedInvocations                                  int
+	IsClosedOutputs                                      []bool
+	CloseInvocations                                     int
+	LoggerInvocations                                    int
+	LoggerImpl                                           log.Logger
+	SetAgentInvocations                                  int
+	SetAgentInputs                                       []commonStore.Agent
+	GetDatasetsForUserByIDInvocations                    int
+	GetDatasetsForUserByIDInputs                         []GetDatasetsForUserByIDInput
+	GetDatasetsForUserByIDOutputs                        []GetDatasetsForUserByIDOutput
+	GetDatasetByIDInvocations                            int
+	GetDatasetByIDInputs                                 []string
+	GetDatasetByIDOutputs                                []GetDatasetByIDOutput
+	CreateDatasetInvocations                             int
+	CreateDatasetInputs                                  []*upload.Upload
+	CreateDatasetOutputs                                 []error
+	UpdateDatasetInvocations                             int
+	UpdateDatasetInputs                                  []*upload.Upload
+	UpdateDatasetOutputs                                 []error
+	DeleteDatasetInvocations                             int
+	DeleteDatasetInputs                                  []*upload.Upload
+	DeleteDatasetOutputs                                 []error
+	CreateDatasetDataInvocations                         int
+	CreateDatasetDataInputs                              []CreateDatasetDataInput
+	CreateDatasetDataOutputs                             []error
+	ActivateDatasetDataInvocations                       int
+	ActivateDatasetDataInputs                            []*upload.Upload
+	ActivateDatasetDataOutputs                           []error
+	ArchiveDeviceDataUsingHashesFromDatasetInvocations   int
+	ArchiveDeviceDataUsingHashesFromDatasetInputs        []*upload.Upload
+	ArchiveDeviceDataUsingHashesFromDatasetOutputs       []error
+	UnarchiveDeviceDataUsingHashesFromDatasetInvocations int
+	UnarchiveDeviceDataUsingHashesFromDatasetInputs      []*upload.Upload
+	UnarchiveDeviceDataUsingHashesFromDatasetOutputs     []error
+	DeleteOtherDatasetDataInvocations                    int
+	DeleteOtherDatasetDataInputs                         []*upload.Upload
+	DeleteOtherDatasetDataOutputs                        []error
+	DestroyDataForUserByIDInvocations                    int
+	DestroyDataForUserByIDInputs                         []string
+	DestroyDataForUserByIDOutputs                        []error
 }
 
 func NewSession() *Session {
@@ -170,20 +137,6 @@ func (s *Session) GetDatasetByID(datasetID string) (*upload.Upload, error) {
 	return output.Dataset, output.Error
 }
 
-func (s *Session) FindPreviousActiveDatasetForDevice(dataset *upload.Upload) (*upload.Upload, error) {
-	s.FindPreviousActiveDatasetForDeviceInvocations++
-
-	s.FindPreviousActiveDatasetForDeviceInputs = append(s.FindPreviousActiveDatasetForDeviceInputs, dataset)
-
-	if len(s.FindPreviousActiveDatasetForDeviceOutputs) == 0 {
-		panic("Unexpected invocation of FindPreviousActiveDatasetForDevice on Session")
-	}
-
-	output := s.FindPreviousActiveDatasetForDeviceOutputs[0]
-	s.FindPreviousActiveDatasetForDeviceOutputs = s.FindPreviousActiveDatasetForDeviceOutputs[1:]
-	return output.Dataset, output.Error
-}
-
 func (s *Session) CreateDataset(dataset *upload.Upload) error {
 	s.CreateDatasetInvocations++
 
@@ -226,20 +179,6 @@ func (s *Session) DeleteDataset(dataset *upload.Upload) error {
 	return output
 }
 
-func (s *Session) GetDatasetDataDeduplicatorHashes(dataset *upload.Upload, active bool) ([]string, error) {
-	s.GetDatasetDataDeduplicatorHashesInvocations++
-
-	s.GetDatasetDataDeduplicatorHashesInputs = append(s.GetDatasetDataDeduplicatorHashesInputs, GetDatasetDataDeduplicatorHashesInput{dataset, active})
-
-	if len(s.GetDatasetDataDeduplicatorHashesOutputs) == 0 {
-		panic("Unexpected invocation of GetDatasetDataDeduplicatorHashes on Session")
-	}
-
-	output := s.GetDatasetDataDeduplicatorHashesOutputs[0]
-	s.GetDatasetDataDeduplicatorHashesOutputs = s.GetDatasetDataDeduplicatorHashesOutputs[1:]
-	return output.Hashes, output.Error
-}
-
 func (s *Session) CreateDatasetData(dataset *upload.Upload, datasetData []data.Datum) error {
 	s.CreateDatasetDataInvocations++
 
@@ -268,31 +207,31 @@ func (s *Session) ActivateDatasetData(dataset *upload.Upload) error {
 	return output
 }
 
-func (s *Session) SetDatasetDataActiveUsingHashes(dataset *upload.Upload, queryHashes []string, active bool) error {
-	s.SetDatasetDataActiveUsingHashesInvocations++
+func (s *Session) ArchiveDeviceDataUsingHashesFromDataset(dataset *upload.Upload) error {
+	s.ArchiveDeviceDataUsingHashesFromDatasetInvocations++
 
-	s.SetDatasetDataActiveUsingHashesInputs = append(s.SetDatasetDataActiveUsingHashesInputs, SetDatasetDataActiveUsingHashesInput{dataset, queryHashes, active})
+	s.ArchiveDeviceDataUsingHashesFromDatasetInputs = append(s.ArchiveDeviceDataUsingHashesFromDatasetInputs, dataset)
 
-	if len(s.SetDatasetDataActiveUsingHashesOutputs) == 0 {
-		panic("Unexpected invocation of SetDatasetDataActiveUsingHashes on Session")
+	if len(s.ArchiveDeviceDataUsingHashesFromDatasetOutputs) == 0 {
+		panic("Unexpected invocation of ArchiveDeviceDataUsingHashesFromDataset on Session")
 	}
 
-	output := s.SetDatasetDataActiveUsingHashesOutputs[0]
-	s.SetDatasetDataActiveUsingHashesOutputs = s.SetDatasetDataActiveUsingHashesOutputs[1:]
+	output := s.ArchiveDeviceDataUsingHashesFromDatasetOutputs[0]
+	s.ArchiveDeviceDataUsingHashesFromDatasetOutputs = s.ArchiveDeviceDataUsingHashesFromDatasetOutputs[1:]
 	return output
 }
 
-func (s *Session) SetDeviceDataActiveUsingHashes(dataset *upload.Upload, queryHashes []string, active bool) error {
-	s.SetDeviceDataActiveUsingHashesInvocations++
+func (s *Session) UnarchiveDeviceDataUsingHashesFromDataset(dataset *upload.Upload) error {
+	s.UnarchiveDeviceDataUsingHashesFromDatasetInvocations++
 
-	s.SetDeviceDataActiveUsingHashesInputs = append(s.SetDeviceDataActiveUsingHashesInputs, SetDeviceDataActiveUsingHashesInput{dataset, queryHashes, active})
+	s.UnarchiveDeviceDataUsingHashesFromDatasetInputs = append(s.UnarchiveDeviceDataUsingHashesFromDatasetInputs, dataset)
 
-	if len(s.SetDeviceDataActiveUsingHashesOutputs) == 0 {
-		panic("Unexpected invocation of SetDeviceDataActiveUsingHashes on Session")
+	if len(s.UnarchiveDeviceDataUsingHashesFromDatasetOutputs) == 0 {
+		panic("Unexpected invocation of UnarchiveDeviceDataUsingHashesFromDataset on Session")
 	}
 
-	output := s.SetDeviceDataActiveUsingHashesOutputs[0]
-	s.SetDeviceDataActiveUsingHashesOutputs = s.SetDeviceDataActiveUsingHashesOutputs[1:]
+	output := s.UnarchiveDeviceDataUsingHashesFromDatasetOutputs[0]
+	s.UnarchiveDeviceDataUsingHashesFromDatasetOutputs = s.UnarchiveDeviceDataUsingHashesFromDatasetOutputs[1:]
 	return output
 }
 
@@ -328,14 +267,13 @@ func (s *Session) UnusedOutputsCount() int {
 	return len(s.IsClosedOutputs) +
 		len(s.GetDatasetsForUserByIDOutputs) +
 		len(s.GetDatasetByIDOutputs) +
-		len(s.FindPreviousActiveDatasetForDeviceOutputs) +
 		len(s.CreateDatasetOutputs) +
 		len(s.UpdateDatasetOutputs) +
 		len(s.DeleteDatasetOutputs) +
-		len(s.GetDatasetDataDeduplicatorHashesOutputs) +
 		len(s.CreateDatasetDataOutputs) +
 		len(s.ActivateDatasetDataOutputs) +
-		len(s.SetDatasetDataActiveUsingHashesOutputs) +
+		len(s.ArchiveDeviceDataUsingHashesFromDatasetOutputs) +
+		len(s.UnarchiveDeviceDataUsingHashesFromDatasetOutputs) +
 		len(s.DeleteOtherDatasetDataOutputs) +
 		len(s.DestroyDataForUserByIDOutputs)
 }
