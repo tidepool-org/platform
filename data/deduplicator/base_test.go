@@ -65,7 +65,6 @@ var _ = Describe("Base", func() {
 				testDataset = upload.Init()
 				Expect(testDataset).ToNot(BeNil())
 				testDataset.UserID = app.NewID()
-				testDataset.GroupID = app.NewID()
 			})
 
 			Context("CanDeduplicateDataset", func() {
@@ -82,11 +81,6 @@ var _ = Describe("Base", func() {
 
 				It("returns false if the dataset user id is missing", func() {
 					testDataset.UserID = ""
-					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
-				})
-
-				It("returns false if the dataset group id is missing", func() {
-					testDataset.GroupID = ""
 					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 				})
 
@@ -143,13 +137,6 @@ var _ = Describe("Base", func() {
 						Expect(testDeduplicator).To(BeNil())
 					})
 
-					It("returns an error if the dataset group id is missing", func() {
-						testDataset.GroupID = ""
-						testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)
-						Expect(err).To(MatchError("deduplicator: dataset group id is missing"))
-						Expect(testDeduplicator).To(BeNil())
-					})
-
 					It("returns a new deduplicator upon success", func() {
 						Expect(testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)).ToNot(BeNil())
 					})
@@ -175,11 +162,6 @@ var _ = Describe("Base", func() {
 
 					It("returns false if the dataset user id is missing", func() {
 						testDataset.UserID = ""
-						Expect(testFactory.IsRegisteredWithDataset(testDataset)).To(BeFalse())
-					})
-
-					It("returns false if the dataset group id is missing", func() {
-						testDataset.GroupID = ""
 						Expect(testFactory.IsRegisteredWithDataset(testDataset)).To(BeFalse())
 					})
 
@@ -251,13 +233,6 @@ var _ = Describe("Base", func() {
 							Expect(testDeduplicator).To(BeNil())
 						})
 
-						It("returns an error if the dataset group id is missing", func() {
-							testDataset.GroupID = ""
-							testDeduplicator, err := testFactory.NewRegisteredDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)
-							Expect(err).To(MatchError("deduplicator: dataset group id is missing"))
-							Expect(testDeduplicator).To(BeNil())
-						})
-
 						It("returns an error if there is no deduplicator descriptor", func() {
 							testDataset.Deduplicator = nil
 							testDeduplicator, err := testFactory.NewRegisteredDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)
@@ -301,7 +276,6 @@ var _ = Describe("Base", func() {
 			testDataset = upload.Init()
 			Expect(testDataset).ToNot(BeNil())
 			testDataset.UserID = app.NewID()
-			testDataset.GroupID = app.NewID()
 		})
 
 		AfterEach(func() {
@@ -356,13 +330,6 @@ var _ = Describe("Base", func() {
 				testDataset.UserID = ""
 				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, testVersion, testLogger, testDataStoreSession, testDataset)
 				Expect(err).To(MatchError("deduplicator: dataset user id is missing"))
-				Expect(testDeduplicator).To(BeNil())
-			})
-
-			It("returns an error if the dataset group id is missing", func() {
-				testDataset.GroupID = ""
-				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, testVersion, testLogger, testDataStoreSession, testDataset)
-				Expect(err).To(MatchError("deduplicator: dataset group id is missing"))
 				Expect(testDeduplicator).To(BeNil())
 			})
 

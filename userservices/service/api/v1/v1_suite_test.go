@@ -133,10 +133,6 @@ func (t *TestUserServicesClient) GetUserPermissions(context service.Context, req
 	return output.permissions, output.err
 }
 
-func (t *TestUserServicesClient) GetUserGroupID(context service.Context, userID string) (string, error) {
-	panic("Unexpected invocation of GetUserGroupID on TestUserServicesClient")
-}
-
 func (t *TestUserServicesClient) ServerToken() (string, error) {
 	panic("Unexpected invocation of ServerToken on TestUserServicesClient")
 }

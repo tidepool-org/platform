@@ -28,8 +28,6 @@ type Datum struct {
 	IdentityFieldsOutputs                []IdentityFieldsOutput
 	SetUserIDInvocations                 int
 	SetUserIDInputs                      []string
-	SetGroupIDInvocations                int
-	SetGroupIDInputs                     []string
 	SetDatasetIDInvocations              int
 	SetDatasetIDInputs                   []string
 	SetActiveInvocations                 int
@@ -131,12 +129,6 @@ func (d *Datum) SetUserID(userID string) {
 	d.SetUserIDInvocations++
 
 	d.SetUserIDInputs = append(d.SetUserIDInputs, userID)
-}
-
-func (d *Datum) SetGroupID(groupID string) {
-	d.SetGroupIDInvocations++
-
-	d.SetGroupIDInputs = append(d.SetGroupIDInputs, groupID)
 }
 
 func (d *Datum) SetDatasetID(datasetID string) {

@@ -12,7 +12,6 @@ type Datum interface {
 	IdentityFields() ([]string, error)
 
 	SetUserID(userID string)
-	SetGroupID(groupID string)
 	SetDatasetID(datasetID string)
 	SetActive(active bool)
 	SetCreatedTime(createdTime string)
