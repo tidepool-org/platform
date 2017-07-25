@@ -17,7 +17,6 @@ type Base struct {
 	Deduplicator      *data.DeduplicatorDescriptor `json:"-" bson:"_deduplicator,omitempty"`
 	DeletedTime       string                       `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
 	DeletedUserID     string                       `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
-	GroupID           string                       `json:"-" bson:"_groupId,omitempty"`
 	GUID              string                       `json:"guid,omitempty" bson:"guid,omitempty"`
 	ID                string                       `json:"id,omitempty" bson:"id,omitempty"`
 	ModifiedTime      string                       `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
@@ -52,7 +51,6 @@ func (b *Base) Init() {
 	b.Deduplicator = nil
 	b.DeletedTime = ""
 	b.DeletedUserID = ""
-	b.GroupID = ""
 	b.GUID = app.NewUUID()
 	b.ID = app.NewID() // TODO: Move calculation to Normalize to follow Jellyfish algorithm
 	b.ModifiedTime = ""
@@ -141,10 +139,6 @@ func (b *Base) IdentityFields() ([]string, error) {
 
 func (b *Base) SetUserID(userID string) {
 	b.UserID = userID
-}
-
-func (b *Base) SetGroupID(groupID string) {
-	b.GroupID = groupID
 }
 
 func (b *Base) SetDatasetID(datasetID string) {

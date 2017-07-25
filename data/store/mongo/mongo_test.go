@@ -50,12 +50,11 @@ func (t *TestAgent) UserID() string {
 	return t.TestUserID
 }
 
-func NewDataset(userID string, groupID string, deviceID string) *upload.Upload {
+func NewDataset(userID string, deviceID string) *upload.Upload {
 	dataset := upload.Init()
 	Expect(dataset).ToNot(BeNil())
 
 	dataset.Deduplicator = &data.DeduplicatorDescriptor{Name: "test-deduplicator"}
-	dataset.GroupID = groupID
 	dataset.UserID = userID
 
 	dataset.ClockDriftOffset = app.IntegerAsPointer(0)
@@ -111,7 +110,6 @@ func CloneDatasetData(datasetData []data.Datum) []data.Datum {
 			clonedBaseDatum.Deduplicator = baseDatum.Deduplicator
 			clonedBaseDatum.DeletedTime = baseDatum.DeletedTime
 			clonedBaseDatum.DeletedUserID = baseDatum.DeletedUserID
-			clonedBaseDatum.GroupID = baseDatum.GroupID
 			clonedBaseDatum.GUID = baseDatum.GUID
 			clonedBaseDatum.ID = baseDatum.ID
 			clonedBaseDatum.ModifiedTime = baseDatum.ModifiedTime
@@ -250,7 +248,6 @@ var _ = Describe("Mongo", func() {
 				var testMongoSession *mgo.Session
 				var testMongoCollection *mgo.Collection
 				var userID string
-				var groupID string
 				var deviceID string
 				var datasetExistingOther *upload.Upload
 				var datasetExistingOne *upload.Upload
@@ -261,18 +258,17 @@ var _ = Describe("Mongo", func() {
 					testMongoSession = testMongo.Session().Copy()
 					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.Collection)
 					userID = app.NewID()
-					groupID = app.NewID()
 					deviceID = app.NewID()
-					datasetExistingOther = NewDataset(app.NewID(), app.NewID(), app.NewID())
+					datasetExistingOther = NewDataset(app.NewID(), app.NewID())
 					datasetExistingOther.CreatedTime = "2016-09-01T12:00:00Z"
 					Expect(testMongoCollection.Insert(datasetExistingOther)).To(Succeed())
-					datasetExistingOne = NewDataset(userID, groupID, deviceID)
+					datasetExistingOne = NewDataset(userID, deviceID)
 					datasetExistingOne.CreatedTime = "2016-09-01T12:30:00Z"
 					Expect(testMongoCollection.Insert(datasetExistingOne)).To(Succeed())
-					datasetExistingTwo = NewDataset(userID, groupID, deviceID)
+					datasetExistingTwo = NewDataset(userID, deviceID)
 					datasetExistingTwo.CreatedTime = "2016-09-01T10:00:00Z"
 					Expect(testMongoCollection.Insert(datasetExistingTwo)).To(Succeed())
-					dataset = NewDataset(userID, groupID, deviceID)
+					dataset = NewDataset(userID, deviceID)
 				})
 
 				AfterEach(func() {
@@ -417,11 +413,6 @@ var _ = Describe("Mongo", func() {
 						Expect(mongoSession.CreateDataset(dataset)).To(MatchError("mongo: dataset user id is missing"))
 					})
 
-					It("returns an error if the group id is missing", func() {
-						dataset.GroupID = ""
-						Expect(mongoSession.CreateDataset(dataset)).To(MatchError("mongo: dataset group id is missing"))
-					})
-
 					It("returns an error if the upload id is missing", func() {
 						dataset.UploadID = ""
 						Expect(mongoSession.CreateDataset(dataset)).To(MatchError("mongo: dataset upload id is missing"))
@@ -508,11 +499,6 @@ var _ = Describe("Mongo", func() {
 							Expect(mongoSession.UpdateDataset(dataset)).To(MatchError("mongo: dataset user id is missing"))
 						})
 
-						It("returns an error if the group id is missing", func() {
-							dataset.GroupID = ""
-							Expect(mongoSession.UpdateDataset(dataset)).To(MatchError("mongo: dataset group id is missing"))
-						})
-
 						It("returns an error if the upload id is missing", func() {
 							dataset.UploadID = ""
 							Expect(mongoSession.UpdateDataset(dataset)).To(MatchError("mongo: dataset upload id is missing"))
@@ -533,7 +519,7 @@ var _ = Describe("Mongo", func() {
 							Expect(mongoSession.UpdateDataset(dataset)).To(MatchError("mongo: session closed"))
 						})
 
-						It("returns an error if the dataset with the same user id, group id, and upload id does not yet exist", func() {
+						It("returns an error if the dataset with the same user id and upload id does not yet exist", func() {
 							dataset.UploadID = app.NewID()
 							Expect(mongoSession.UpdateDataset(dataset)).To(MatchError("mongo: unable to update dataset; not found"))
 						})
@@ -615,11 +601,6 @@ var _ = Describe("Mongo", func() {
 						It("returns an error if the user id is missing", func() {
 							dataset.UserID = ""
 							Expect(mongoSession.DeleteDataset(dataset)).To(MatchError("mongo: dataset user id is missing"))
-						})
-
-						It("returns an error if the group id is missing", func() {
-							dataset.GroupID = ""
-							Expect(mongoSession.DeleteDataset(dataset)).To(MatchError("mongo: dataset group id is missing"))
 						})
 
 						It("returns an error if the upload id is missing", func() {
@@ -706,11 +687,6 @@ var _ = Describe("Mongo", func() {
 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(MatchError("mongo: dataset user id is missing"))
 						})
 
-						It("returns an error if the group id is missing", func() {
-							dataset.GroupID = ""
-							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(MatchError("mongo: dataset group id is missing"))
-						})
-
 						It("returns an error if the upload id is missing", func() {
 							dataset.UploadID = ""
 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(MatchError("mongo: dataset upload id is missing"))
@@ -731,14 +707,13 @@ var _ = Describe("Mongo", func() {
 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(MatchError("mongo: session closed"))
 						})
 
-						It("sets the user id, group id, and upload id on the dataset data to match the dataset", func() {
+						It("sets the user id and upload id on the dataset data to match the dataset", func() {
 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
 							for _, datasetDatum := range datasetData {
 								baseDatum, ok := datasetDatum.(*types.Base)
 								Expect(ok).To(BeTrue())
 								Expect(baseDatum).ToNot(BeNil())
 								Expect(baseDatum.UserID).To(Equal(dataset.UserID))
-								Expect(baseDatum.GroupID).To(Equal(dataset.GroupID))
 								Expect(baseDatum.UploadID).To(Equal(dataset.UploadID))
 							}
 						})
@@ -816,11 +791,6 @@ var _ = Describe("Mongo", func() {
 						It("returns an error if the user id is missing", func() {
 							dataset.UserID = ""
 							Expect(mongoSession.ActivateDatasetData(dataset)).To(MatchError("mongo: dataset user id is missing"))
-						})
-
-						It("returns an error if the group id is missing", func() {
-							dataset.GroupID = ""
-							Expect(mongoSession.ActivateDatasetData(dataset)).To(MatchError("mongo: dataset group id is missing"))
 						})
 
 						It("returns an error if the upload id is missing", func() {
@@ -925,11 +895,6 @@ var _ = Describe("Mongo", func() {
 						It("returns an error if the user id is missing", func() {
 							dataset.UserID = ""
 							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataset(dataset)).To(MatchError("mongo: dataset user id is missing"))
-						})
-
-						It("returns an error if the group id is missing", func() {
-							dataset.GroupID = ""
-							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataset(dataset)).To(MatchError("mongo: dataset group id is missing"))
 						})
 
 						It("returns an error if the upload id is missing", func() {
@@ -1044,11 +1009,6 @@ var _ = Describe("Mongo", func() {
 						It("returns an error if the user id is missing", func() {
 							dataset.UserID = ""
 							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataset(dataset)).To(MatchError("mongo: dataset user id is missing"))
-						})
-
-						It("returns an error if the group id is missing", func() {
-							dataset.GroupID = ""
-							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataset(dataset)).To(MatchError("mongo: dataset group id is missing"))
 						})
 
 						It("returns an error if the upload id is missing", func() {
@@ -1222,11 +1182,6 @@ var _ = Describe("Mongo", func() {
 							Expect(mongoSession.DeleteOtherDatasetData(dataset)).To(MatchError("mongo: dataset user id is missing"))
 						})
 
-						It("returns an error if the group id is missing", func() {
-							dataset.GroupID = ""
-							Expect(mongoSession.DeleteOtherDatasetData(dataset)).To(MatchError("mongo: dataset group id is missing"))
-						})
-
 						It("returns an error if the upload id is missing", func() {
 							dataset.UploadID = ""
 							Expect(mongoSession.DeleteOtherDatasetData(dataset)).To(MatchError("mongo: dataset upload id is missing"))
@@ -1295,7 +1250,6 @@ var _ = Describe("Mongo", func() {
 
 					Context("DestroyDataForUserByID", func() {
 						var deleteUserID string
-						var deleteGroupID string
 						var deleteDeviceID string
 						var deleteDataset *upload.Upload
 						var deleteDatasetData []data.Datum
@@ -1303,9 +1257,8 @@ var _ = Describe("Mongo", func() {
 						BeforeEach(func() {
 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
 							deleteUserID = app.NewID()
-							deleteGroupID = app.NewID()
 							deleteDeviceID = app.NewID()
-							deleteDataset = NewDataset(deleteUserID, deleteGroupID, deleteDeviceID)
+							deleteDataset = NewDataset(deleteUserID, deleteDeviceID)
 							deleteDataset.CreatedTime = "2016-09-01T11:00:00Z"
 							Expect(testMongoCollection.Insert(deleteDataset)).To(Succeed())
 							deleteDatasetData = NewDatasetData(deleteDeviceID)

@@ -40,7 +40,6 @@ var _ = Describe("HashDeactivateOld", func() {
 			Expect(testDataset).ToNot(BeNil())
 			testDataset.UploadID = testUploadID
 			testDataset.UserID = testUserID
-			testDataset.GroupID = app.NewID()
 			testDataset.DeviceID = app.StringAsPointer(app.NewID())
 			testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Medtronic"})
 		})
@@ -59,11 +58,6 @@ var _ = Describe("HashDeactivateOld", func() {
 
 			It("returns false if the dataset user id is missing", func() {
 				testDataset.UserID = ""
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
-			})
-
-			It("returns false if the dataset group id is missing", func() {
-				testDataset.GroupID = ""
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
@@ -147,13 +141,6 @@ var _ = Describe("HashDeactivateOld", func() {
 					testDataset.UserID = ""
 					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)
 					Expect(err).To(MatchError("deduplicator: dataset user id is missing"))
-					Expect(testDeduplicator).To(BeNil())
-				})
-
-				It("returns an error if the dataset group id is missing", func() {
-					testDataset.GroupID = ""
-					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)
-					Expect(err).To(MatchError("deduplicator: dataset group id is missing"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 

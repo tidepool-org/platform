@@ -17,7 +17,6 @@ type AuthenticationDetails interface {
 type Client interface {
 	ValidateAuthenticationToken(context service.Context, authenticationToken string) (AuthenticationDetails, error)
 	GetUserPermissions(context service.Context, requestUserID string, targetUserID string) (Permissions, error)
-	GetUserGroupID(context service.Context, userID string) (string, error)
 
 	ServerToken() (string, error)
 }

@@ -62,9 +62,6 @@ func (b *BaseFactory) CanDeduplicateDataset(dataset *upload.Upload) (bool, error
 	if dataset.UserID == "" {
 		return false, nil
 	}
-	if dataset.GroupID == "" {
-		return false, nil
-	}
 
 	return true, nil
 }
@@ -130,9 +127,6 @@ func NewBaseDeduplicator(name string, version string, logger log.Logger, dataSto
 	}
 	if dataset.UserID == "" {
 		return nil, errors.New("deduplicator", "dataset user id is missing")
-	}
-	if dataset.GroupID == "" {
-		return nil, errors.New("deduplicator", "dataset group id is missing")
 	}
 
 	logger = logger.WithFields(log.Fields{
