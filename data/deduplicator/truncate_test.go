@@ -34,7 +34,6 @@ var _ = Describe("Truncate", func() {
 			testDataset = upload.Init()
 			Expect(testDataset).ToNot(BeNil())
 			testDataset.UserID = app.NewID()
-			testDataset.GroupID = app.NewID()
 			testDataset.DeviceID = app.StringAsPointer(app.NewID())
 			testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Animas"})
 		})
@@ -53,11 +52,6 @@ var _ = Describe("Truncate", func() {
 
 			It("returns false if the dataset user id is missing", func() {
 				testDataset.UserID = ""
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
-			})
-
-			It("returns false if the dataset group id is missing", func() {
-				testDataset.GroupID = ""
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
@@ -141,13 +135,6 @@ var _ = Describe("Truncate", func() {
 					testDataset.UserID = ""
 					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)
 					Expect(err).To(MatchError("deduplicator: dataset user id is missing"))
-					Expect(testDeduplicator).To(BeNil())
-				})
-
-				It("returns an error if the dataset group id is missing", func() {
-					testDataset.GroupID = ""
-					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)
-					Expect(err).To(MatchError("deduplicator: dataset group id is missing"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 

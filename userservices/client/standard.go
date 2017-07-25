@@ -173,37 +173,6 @@ func (s *Standard) GetUserPermissions(context service.Context, requestUserID str
 	return permissions, nil
 }
 
-func (s *Standard) GetUserGroupID(context service.Context, userID string) (string, error) {
-	if context == nil {
-		return "", errors.New("client", "context is missing")
-	}
-	if userID == "" {
-		return "", errors.New("client", "user id is missing")
-	}
-
-	if s.closingChannel == nil {
-		return "", errors.New("client", "client is closed")
-	}
-
-	context.Logger().WithField("userId", userID).Debug("Getting user group id")
-
-	var uploadsPair struct {
-		ID    string
-		Value string
-	}
-
-	if err := s.sendRequest(context, "GET", s.buildURL("metadata", userID, "private", "uploads"), &uploadsPair); err != nil {
-		return "", err
-	}
-
-	groupID := uploadsPair.ID
-	if groupID == "" {
-		return "", errors.New("client", "group id is missing")
-	}
-
-	return groupID, nil
-}
-
 func (s *Standard) ServerToken() (string, error) {
 	if s.closingChannel == nil {
 		return "", errors.New("client", "client is closed")

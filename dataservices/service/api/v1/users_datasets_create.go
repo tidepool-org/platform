@@ -36,18 +36,8 @@ func UsersDatasetsCreate(serviceContext service.Context) {
 		}
 	}
 
-	targetUserGroupID, err := serviceContext.UserServicesClient().GetUserGroupID(serviceContext, targetUserID)
-	if err != nil {
-		if client.IsUnauthorizedError(err) {
-			serviceContext.RespondWithError(commonService.ErrorUnauthorized())
-		} else {
-			serviceContext.RespondWithInternalServerFailure("Unable to get group id for target user", err)
-		}
-		return
-	}
-
 	var rawDatum map[string]interface{}
-	if err = serviceContext.Request().DecodeJsonPayload(&rawDatum); err != nil {
+	if err := serviceContext.Request().DecodeJsonPayload(&rawDatum); err != nil {
 		serviceContext.RespondWithError(commonService.ErrorJSONMalformed())
 		return
 	}
@@ -93,7 +83,6 @@ func UsersDatasetsCreate(serviceContext service.Context) {
 	}
 
 	(*datasetDatum).SetUserID(targetUserID)
-	(*datasetDatum).SetGroupID(targetUserGroupID)
 	(*datasetDatum).Normalize(datumNormalizer)
 
 	dataset, ok := (*datasetDatum).(*upload.Upload)

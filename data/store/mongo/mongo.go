@@ -137,7 +137,6 @@ func (s *Session) CreateDataset(dataset *upload.Upload) error {
 
 	query := bson.M{
 		"_userId":  dataset.UserID,
-		"_groupId": dataset.GroupID,
 		"uploadId": dataset.UploadID,
 		"type":     dataset.Type,
 	}
@@ -175,7 +174,6 @@ func (s *Session) UpdateDataset(dataset *upload.Upload) error {
 
 	selector := bson.M{
 		"_userId":  dataset.UserID,
-		"_groupId": dataset.GroupID,
 		"uploadId": dataset.UploadID,
 		"type":     dataset.Type,
 	}
@@ -210,7 +208,6 @@ func (s *Session) DeleteDataset(dataset *upload.Upload) error {
 
 	selector := bson.M{
 		"_userId":  dataset.UserID,
-		"_groupId": dataset.GroupID,
 		"uploadId": dataset.UploadID,
 		"type":     bson.M{"$ne": "upload"},
 	}
@@ -218,7 +215,6 @@ func (s *Session) DeleteDataset(dataset *upload.Upload) error {
 	if err == nil {
 		selector = bson.M{
 			"_userId":       dataset.UserID,
-			"_groupId":      dataset.GroupID,
 			"uploadId":      dataset.UploadID,
 			"type":          "upload",
 			"deletedTime":   bson.M{"$exists": false},
@@ -268,7 +264,6 @@ func (s *Session) CreateDatasetData(dataset *upload.Upload, datasetData []data.D
 	insertData := make([]interface{}, len(datasetData))
 	for index, datum := range datasetData {
 		datum.SetUserID(dataset.UserID)
-		datum.SetGroupID(dataset.GroupID)
 		datum.SetDatasetID(dataset.UploadID)
 		datum.SetCreatedTime(timestamp)
 		datum.SetCreatedUserID(agentUserID)
@@ -306,7 +301,6 @@ func (s *Session) ActivateDatasetData(dataset *upload.Upload) error {
 
 	selector := bson.M{
 		"_userId":  dataset.UserID,
-		"_groupId": dataset.GroupID,
 		"uploadId": dataset.UploadID,
 	}
 	set := bson.M{
@@ -362,7 +356,6 @@ func (s *Session) ArchiveDeviceDataUsingHashesFromDataset(dataset *upload.Upload
 	if err == nil && len(hashes) > 0 {
 		selector := bson.M{
 			"_userId":            dataset.UserID,
-			"_groupId":           dataset.GroupID,
 			"deviceId":           *dataset.DeviceID,
 			"type":               bson.M{"$ne": "upload"},
 			"_active":            true,
@@ -513,7 +506,6 @@ func (s *Session) DeleteOtherDatasetData(dataset *upload.Upload) error {
 
 	selector := bson.M{
 		"_userId":  dataset.UserID,
-		"_groupId": dataset.GroupID,
 		"deviceId": *dataset.DeviceID,
 		"uploadId": bson.M{"$ne": dataset.UploadID},
 		"type":     bson.M{"$ne": "upload"},
@@ -522,7 +514,6 @@ func (s *Session) DeleteOtherDatasetData(dataset *upload.Upload) error {
 	if err == nil {
 		selector = bson.M{
 			"_userId":       dataset.UserID,
-			"_groupId":      dataset.GroupID,
 			"deviceId":      *dataset.DeviceID,
 			"uploadId":      bson.M{"$ne": dataset.UploadID},
 			"type":          "upload",
@@ -582,9 +573,6 @@ func (s *Session) validateDataset(dataset *upload.Upload) error {
 	}
 	if dataset.UserID == "" {
 		return errors.New("mongo", "dataset user id is missing")
-	}
-	if dataset.GroupID == "" {
-		return errors.New("mongo", "dataset group id is missing")
 	}
 	if dataset.UploadID == "" {
 		return errors.New("mongo", "dataset upload id is missing")

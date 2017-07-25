@@ -1,5 +1,8 @@
 ## HEAD
 
+- Remove legacy group id from data replaced by user id
+- Remove user services Client.GetUserGroupID as necessary
+
 ## v1.9.0 (2017-08-10)
 
 - Bump `hash_deactivate_old` data deduplicator to version 1.1.0

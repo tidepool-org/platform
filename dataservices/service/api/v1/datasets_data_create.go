@@ -112,7 +112,6 @@ func DatasetsDataCreate(serviceContext service.Context) {
 
 	for _, datum := range datumArray {
 		datum.SetUserID(dataset.UserID)
-		datum.SetGroupID(dataset.GroupID)
 		datum.SetDatasetID(dataset.UploadID)
 	}
 

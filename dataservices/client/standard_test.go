@@ -37,10 +37,6 @@ func (t *TestUserServicesClient) GetUserPermissions(context service.Context, req
 	panic("Unexpected invocation of GetUserPermissions on TestUserServicesClient")
 }
 
-func (t *TestUserServicesClient) GetUserGroupID(context service.Context, userID string) (string, error) {
-	panic("Unexpected invocation of GetUserGroupID on TestUserServicesClient")
-}
-
 func (t *TestUserServicesClient) ServerToken() (string, error) {
 	output := t.ServerTokenOutputs[0]
 	t.ServerTokenOutputs = t.ServerTokenOutputs[1:]
