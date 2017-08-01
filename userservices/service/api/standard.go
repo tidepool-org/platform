@@ -4,7 +4,6 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 
 	dataservicesClient "github.com/tidepool-org/platform/dataservices/client"
-	"github.com/tidepool-org/platform/environment"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	messageStore "github.com/tidepool-org/platform/message/store"
@@ -34,15 +33,12 @@ type Standard struct {
 	userStore            userStore.Store
 }
 
-func NewStandard(versionReporter version.Reporter, environmentReporter environment.Reporter, logger log.Logger,
+func NewStandard(versionReporter version.Reporter, logger log.Logger,
 	metricServicesClient metricservicesClient.Client, userServicesClient userservicesClient.Client, dataServicesClient dataservicesClient.Client,
 	messageStore messageStore.Store, notificationStore notificationStore.Store, permissionStore permissionStore.Store,
 	profileStore profileStore.Store, sessionStore sessionStore.Store, userStore userStore.Store) (*Standard, error) {
 	if versionReporter == nil {
 		return nil, errors.New("api", "version reporter is missing")
-	}
-	if environmentReporter == nil {
-		return nil, errors.New("api", "environment reporter is missing")
 	}
 	if logger == nil {
 		return nil, errors.New("api", "logger is missing")
@@ -75,7 +71,7 @@ func NewStandard(versionReporter version.Reporter, environmentReporter environme
 		return nil, errors.New("api", "user store is missing")
 	}
 
-	standard, err := api.NewStandard(versionReporter, environmentReporter, logger)
+	standard, err := api.NewStandard(versionReporter, logger)
 	if err != nil {
 		return nil, err
 	}

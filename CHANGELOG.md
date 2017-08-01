@@ -1,5 +1,6 @@
 ## HEAD
 
+- Remove deprecated environment package
 - Introduce new scoped config mechanism using only environment variables and not external files
 - Update all config struct usage to reflect new scoped config mechanism
 - Delete deprecated config files
