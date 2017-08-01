@@ -7,12 +7,12 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/tidepool-org/platform/app"
 	testDataDeduplicator "github.com/tidepool-org/platform/data/deduplicator/test"
 	testDataStore "github.com/tidepool-org/platform/data/store/test"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/dataservices/service/api/v1"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/userservices/client"
 )
@@ -25,11 +25,11 @@ var _ = Describe("DatasetsDelete", func() {
 		var context *TestContext
 
 		BeforeEach(func() {
-			authenticatedUserID = app.NewID()
-			targetUserID = app.NewID()
+			authenticatedUserID = id.New()
+			targetUserID = id.New()
 			targetUpload = upload.Init()
 			targetUpload.UserID = targetUserID
-			targetUpload.ByUser = app.NewID()
+			targetUpload.ByUser = id.New()
 			context = NewTestContext()
 			context.RequestImpl.PathParams["datasetid"] = targetUpload.UploadID
 			context.DataStoreSessionImpl.GetDatasetByIDOutputs = []testDataStore.GetDatasetByIDOutput{{Dataset: targetUpload, Error: nil}}

@@ -7,13 +7,13 @@ import (
 
 	"math"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/normalizer"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood/ketone"
 	"github.com/tidepool-org/platform/data/validator"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
@@ -27,7 +27,7 @@ func NewMeta() interface{} {
 
 func NewTestKetone(sourceTime interface{}, sourceUnits interface{}, sourceValue interface{}) *ketone.Ketone {
 	testKetone := ketone.Init()
-	testKetone.DeviceID = pointer.String(app.NewID())
+	testKetone.DeviceID = pointer.String(id.New())
 	if value, ok := sourceTime.(string); ok {
 		testKetone.Time = pointer.String(value)
 	}

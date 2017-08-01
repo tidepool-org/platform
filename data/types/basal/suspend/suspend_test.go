@@ -5,7 +5,6 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/normalizer"
@@ -14,6 +13,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/basal"
 	"github.com/tidepool-org/platform/data/types/basal/suspend"
 	"github.com/tidepool-org/platform/data/validator"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
@@ -28,7 +28,7 @@ func NewMeta() interface{} {
 
 func NewTestSuspend(sourceTime interface{}, sourceDuration interface{}, sourceExpectedDuration interface{}, sourceSuppressed *basal.Suppressed) *suspend.Suspend {
 	testSuspend := suspend.Init()
-	testSuspend.DeviceID = pointer.String(app.NewID())
+	testSuspend.DeviceID = pointer.String(id.New())
 	if value, ok := sourceTime.(string); ok {
 		testSuspend.Time = pointer.String(value)
 	}

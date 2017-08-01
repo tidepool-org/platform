@@ -8,7 +8,7 @@ import (
 
 	mgo "gopkg.in/mgo.v2"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/store/mongo"
@@ -187,7 +187,7 @@ var _ = Describe("Mongo", func() {
 
 			Context("SetAgent", func() {
 				It("successfully sets the agent", func() {
-					mongoSession.SetAgent(&TestAgent{false, app.NewID()})
+					mongoSession.SetAgent(&TestAgent{false, id.New()})
 				})
 
 				It("successfully sets the agent if nil", func() {
@@ -223,12 +223,12 @@ var _ = Describe("Mongo", func() {
 				})
 
 				It("returns an empty string if the agent is server", func() {
-					mongoSession.SetAgent(&TestAgent{true, app.NewID()})
+					mongoSession.SetAgent(&TestAgent{true, id.New()})
 					Expect(mongoSession.AgentUserID()).To(BeEmpty())
 				})
 
 				It("returns the agent user id if the agent is set", func() {
-					agentUserID := app.NewID()
+					agentUserID := id.New()
 					mongoSession.SetAgent(&TestAgent{false, agentUserID})
 					Expect(mongoSession.AgentUserID()).To(Equal(agentUserID))
 				})

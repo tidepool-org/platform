@@ -10,7 +10,7 @@ import (
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/message/store"
 	"github.com/tidepool-org/platform/message/store/mongo"
@@ -22,7 +22,7 @@ func NewMessage(groupID string, userID string) bson.M {
 	return bson.M{
 		"groupid":      groupID,
 		"userid":       userID,
-		"guid":         app.NewID(),
+		"guid":         id.New(),
 		"timestamp":    time.Now().UTC().Format(time.RFC3339),
 		"createdtime":  time.Now().UTC().Format(time.RFC3339),
 		"modifiedtime": time.Now().UTC().Format(time.RFC3339),
@@ -141,7 +141,7 @@ var _ = Describe("Mongo", func() {
 				BeforeEach(func() {
 					testMongoSession = testMongo.Session().Copy()
 					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.Collection)
-					messages = append(NewMessages(app.NewID(), app.NewID()), NewMessages(app.NewID(), app.NewID())...)
+					messages = append(NewMessages(id.New(), id.New()), NewMessages(id.New(), id.New())...)
 				})
 
 				JustBeforeEach(func() {
@@ -161,8 +161,8 @@ var _ = Describe("Mongo", func() {
 					var deleteMessages []interface{}
 
 					BeforeEach(func() {
-						deleteGroupID = app.NewID()
-						deleteUserID = app.NewID()
+						deleteGroupID = id.New()
+						deleteUserID = id.New()
 						deleteUser = &store.User{
 							ID:       deleteUserID,
 							FullName: fmt.Sprintf("deleted user (%s)", deleteUserID),
@@ -207,8 +207,8 @@ var _ = Describe("Mongo", func() {
 					var destroyMessages []interface{}
 
 					BeforeEach(func() {
-						destroyGroupID = app.NewID()
-						destroyUserID = app.NewID()
+						destroyGroupID = id.New()
+						destroyUserID = id.New()
 						destroyMessages = NewMessages(destroyGroupID, destroyUserID)
 						messages = append(messages, NewMessages(destroyUserID, destroyGroupID)...)
 					})

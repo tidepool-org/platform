@@ -4,9 +4,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/pointer"
 )
 
@@ -26,8 +26,8 @@ var _ = Describe("Base", func() {
 			var deviceID string
 
 			BeforeEach(func() {
-				userID = app.NewID()
-				deviceID = app.NewID()
+				userID = id.New()
+				deviceID = id.New()
 				testBase.UserID = userID
 				testBase.DeviceID = &deviceID
 				testBase.Time = pointer.String("2016-09-06T13:45:58-07:00")
@@ -87,7 +87,7 @@ var _ = Describe("Base", func() {
 			var testDeduplicatorDescriptor *data.DeduplicatorDescriptor
 
 			BeforeEach(func() {
-				testDeduplicatorDescriptor = &data.DeduplicatorDescriptor{Name: app.NewID(), Hash: app.NewID()}
+				testDeduplicatorDescriptor = &data.DeduplicatorDescriptor{Name: id.New(), Hash: id.New()}
 			})
 
 			Context("DeduplicatorDescriptor", func() {

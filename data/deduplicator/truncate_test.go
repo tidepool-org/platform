@@ -7,11 +7,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	testDataStore "github.com/tidepool-org/platform/data/store/test"
 	"github.com/tidepool-org/platform/data/types/upload"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/pointer"
 )
@@ -34,8 +34,8 @@ var _ = Describe("Truncate", func() {
 			Expect(testFactory).ToNot(BeNil())
 			testDataset = upload.Init()
 			Expect(testDataset).ToNot(BeNil())
-			testDataset.UserID = app.NewID()
-			testDataset.DeviceID = pointer.String(app.NewID())
+			testDataset.UserID = id.New()
+			testDataset.DeviceID = pointer.String(id.New())
 			testDataset.DeviceManufacturers = pointer.StringArray([]string{"Animas"})
 		})
 

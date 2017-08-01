@@ -9,7 +9,7 @@ import (
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/profile/store"
 	"github.com/tidepool-org/platform/profile/store/mongo"
@@ -26,7 +26,7 @@ func NewProfile(profileID string, fullName string) bson.M {
 
 func NewProfiles() []interface{} {
 	profiles := []interface{}{}
-	profiles = append(profiles, NewProfile(app.NewID(), app.NewID()), NewProfile(app.NewID(), app.NewID()), NewProfile(app.NewID(), app.NewID()))
+	profiles = append(profiles, NewProfile(id.New(), id.New()), NewProfile(id.New(), id.New()), NewProfile(id.New(), id.New()))
 	return profiles
 }
 
@@ -131,8 +131,8 @@ var _ = Describe("Mongo", func() {
 					var getProfile interface{}
 
 					BeforeEach(func() {
-						getProfileID = app.NewID()
-						getProfileFullName = app.NewID()
+						getProfileID = id.New()
+						getProfileFullName = id.New()
 						getProfile = NewProfile(getProfileID, getProfileFullName)
 					})
 
@@ -149,7 +149,7 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("returns no error and no profile if the profile id is not found", func() {
-						profile, err := mongoSession.GetProfileByID(app.NewID())
+						profile, err := mongoSession.GetProfileByID(id.New())
 						Expect(err).ToNot(HaveOccurred())
 						Expect(profile).To(BeNil())
 					})
@@ -238,8 +238,8 @@ var _ = Describe("Mongo", func() {
 					var destroyProfile interface{}
 
 					BeforeEach(func() {
-						destroyProfileID = app.NewID()
-						destroyProfile = NewProfile(destroyProfileID, app.NewID())
+						destroyProfileID = id.New()
+						destroyProfile = NewProfile(destroyProfileID, id.New())
 					})
 
 					JustBeforeEach(func() {

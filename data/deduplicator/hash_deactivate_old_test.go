@@ -7,12 +7,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	testDataStore "github.com/tidepool-org/platform/data/store/test"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/upload"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/pointer"
 )
@@ -35,13 +35,13 @@ var _ = Describe("HashDeactivateOld", func() {
 			testFactory, err = deduplicator.NewHashDeactivateOldFactory()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testFactory).ToNot(BeNil())
-			testUploadID = app.NewID()
-			testUserID = app.NewID()
+			testUploadID = id.New()
+			testUserID = id.New()
 			testDataset = upload.Init()
 			Expect(testDataset).ToNot(BeNil())
 			testDataset.UploadID = testUploadID
 			testDataset.UserID = testUserID
-			testDataset.DeviceID = pointer.String(app.NewID())
+			testDataset.DeviceID = pointer.String(id.New())
 			testDataset.DeviceManufacturers = pointer.StringArray([]string{"Medtronic"})
 		})
 
@@ -225,29 +225,29 @@ var _ = Describe("HashDeactivateOld", func() {
 					})
 
 					It("returns an error if any datum returns an error getting identity fields", func() {
-						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{app.NewID(), app.NewID()}, Error: nil}}
+						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{id.New(), id.New()}, Error: nil}}
 						testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: nil, Error: errors.New("test error")}}
 						err := testDeduplicator.AddDatasetData(testDatasetData)
 						Expect(err).To(MatchError("deduplicator: unable to gather identity fields for datum; test error"))
 					})
 
 					It("returns an error if any datum returns no identity fields", func() {
-						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{app.NewID(), app.NewID()}, Error: nil}}
+						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{id.New(), id.New()}, Error: nil}}
 						testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: nil, Error: nil}}
 						err := testDeduplicator.AddDatasetData(testDatasetData)
 						Expect(err).To(MatchError("deduplicator: unable to generate identity hash for datum; deduplicator: identity fields are missing"))
 					})
 
 					It("returns an error if any datum returns empty identity fields", func() {
-						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{app.NewID(), app.NewID()}, Error: nil}}
+						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{id.New(), id.New()}, Error: nil}}
 						testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{}, Error: nil}}
 						err := testDeduplicator.AddDatasetData(testDatasetData)
 						Expect(err).To(MatchError("deduplicator: unable to generate identity hash for datum; deduplicator: identity fields are missing"))
 					})
 
 					It("returns an error if any datum returns any empty identity fields", func() {
-						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{app.NewID(), app.NewID()}, Error: nil}}
-						testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{app.NewID(), ""}, Error: nil}}
+						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{id.New(), id.New()}, Error: nil}}
+						testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{id.New(), ""}, Error: nil}}
 						err := testDeduplicator.AddDatasetData(testDatasetData)
 						Expect(err).To(MatchError("deduplicator: unable to generate identity hash for datum; deduplicator: identity field is empty"))
 					})

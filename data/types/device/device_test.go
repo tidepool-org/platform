@@ -5,7 +5,6 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/normalizer"
@@ -13,6 +12,7 @@ import (
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/validator"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
@@ -28,7 +28,7 @@ func NewMeta(subType string) interface{} {
 func NewTestDevice(sourceTime interface{}, sourceSubType interface{}) *device.Device {
 	testDevice := &device.Device{}
 	testDevice.Init()
-	testDevice.DeviceID = pointer.String(app.NewID())
+	testDevice.DeviceID = pointer.String(id.New())
 	if value, ok := sourceTime.(string); ok {
 		testDevice.Time = pointer.String(value)
 	}
@@ -181,8 +181,8 @@ var _ = Describe("Device", func() {
 				var deviceID string
 
 				BeforeEach(func() {
-					userID = app.NewID()
-					deviceID = app.NewID()
+					userID = id.New()
+					deviceID = id.New()
 					testDevice.UserID = userID
 					testDevice.DeviceID = &deviceID
 					testDevice.Time = pointer.String("2016-09-06T13:45:58-07:00")

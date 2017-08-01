@@ -1,8 +1,8 @@
 package test
 
 import (
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/id"
 )
 
 type IdentityFieldsOutput struct {
@@ -51,7 +51,7 @@ type Datum struct {
 
 func NewDatum() *Datum {
 	return &Datum{
-		ID: app.NewID(),
+		ID: id.New(),
 	}
 }
 
