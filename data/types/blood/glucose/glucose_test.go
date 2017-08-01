@@ -15,6 +15,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -28,15 +29,15 @@ func NewTestGlucose(sourceTime interface{}, sourceUnits interface{}, sourceValue
 	testGlucose := &glucose.Glucose{}
 	testGlucose.Init()
 	testGlucose.Type = "testGlucose"
-	testGlucose.DeviceID = app.StringAsPointer(app.NewID())
+	testGlucose.DeviceID = pointer.String(app.NewID())
 	if value, ok := sourceTime.(string); ok {
-		testGlucose.Time = app.StringAsPointer(value)
+		testGlucose.Time = pointer.String(value)
 	}
 	if value, ok := sourceUnits.(string); ok {
-		testGlucose.Units = app.StringAsPointer(value)
+		testGlucose.Units = pointer.String(value)
 	}
 	if value, ok := sourceValue.(float64); ok {
-		testGlucose.Value = app.FloatAsPointer(value)
+		testGlucose.Value = pointer.Float(value)
 	}
 	return testGlucose
 }

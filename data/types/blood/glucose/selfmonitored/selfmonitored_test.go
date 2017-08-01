@@ -16,6 +16,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -27,18 +28,18 @@ func NewMeta() interface{} {
 
 func NewTestSelfMonitored(sourceTime interface{}, sourceUnits interface{}, sourceValue interface{}, sourceSubType interface{}) *selfmonitored.SelfMonitored {
 	testSelfMonitored := selfmonitored.Init()
-	testSelfMonitored.DeviceID = app.StringAsPointer(app.NewID())
+	testSelfMonitored.DeviceID = pointer.String(app.NewID())
 	if value, ok := sourceTime.(string); ok {
-		testSelfMonitored.Time = app.StringAsPointer(value)
+		testSelfMonitored.Time = pointer.String(value)
 	}
 	if value, ok := sourceUnits.(string); ok {
-		testSelfMonitored.Units = app.StringAsPointer(value)
+		testSelfMonitored.Units = pointer.String(value)
 	}
 	if value, ok := sourceValue.(float64); ok {
-		testSelfMonitored.Value = app.FloatAsPointer(value)
+		testSelfMonitored.Value = pointer.Float(value)
 	}
 	if value, ok := sourceSubType.(string); ok {
-		testSelfMonitored.SubType = app.StringAsPointer(value)
+		testSelfMonitored.SubType = pointer.String(value)
 	}
 	return testSelfMonitored
 }

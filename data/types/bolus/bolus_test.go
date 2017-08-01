@@ -14,6 +14,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/bolus"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -27,9 +28,9 @@ func NewMeta(subType string) interface{} {
 func NewTestBolus(sourceTime interface{}, sourceSubType interface{}) *bolus.Bolus {
 	testBolus := &bolus.Bolus{}
 	testBolus.Init()
-	testBolus.DeviceID = app.StringAsPointer(app.NewID())
+	testBolus.DeviceID = pointer.String(app.NewID())
 	if value, ok := sourceTime.(string); ok {
-		testBolus.Time = app.StringAsPointer(value)
+		testBolus.Time = pointer.String(value)
 	}
 	if value, ok := sourceSubType.(string); ok {
 		testBolus.SubType = value
@@ -184,7 +185,7 @@ var _ = Describe("Bolus", func() {
 					deviceID = app.NewID()
 					testBolus.UserID = userID
 					testBolus.DeviceID = &deviceID
-					testBolus.Time = app.StringAsPointer("2016-09-06T13:45:58-07:00")
+					testBolus.Time = pointer.String("2016-09-06T13:45:58-07:00")
 					testBolus.SubType = "dual/square"
 				})
 

@@ -1,5 +1,6 @@
 ## HEAD
 
+- Pull pointer functions out of app package into their own pointer package
 - Remove deprecated environment package
 - Introduce new scoped config mechanism using only environment variables and not external files
 - Update all config struct usage to reflect new scoped config mechanism

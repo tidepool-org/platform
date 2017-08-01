@@ -14,6 +14,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -27,9 +28,9 @@ func NewMeta(subType string) interface{} {
 func NewTestDevice(sourceTime interface{}, sourceSubType interface{}) *device.Device {
 	testDevice := &device.Device{}
 	testDevice.Init()
-	testDevice.DeviceID = app.StringAsPointer(app.NewID())
+	testDevice.DeviceID = pointer.String(app.NewID())
 	if value, ok := sourceTime.(string); ok {
-		testDevice.Time = app.StringAsPointer(value)
+		testDevice.Time = pointer.String(value)
 	}
 	if value, ok := sourceSubType.(string); ok {
 		testDevice.SubType = value
@@ -184,7 +185,7 @@ var _ = Describe("Device", func() {
 					deviceID = app.NewID()
 					testDevice.UserID = userID
 					testDevice.DeviceID = &deviceID
-					testDevice.Time = app.StringAsPointer("2016-09-06T13:45:58-07:00")
+					testDevice.Time = pointer.String("2016-09-06T13:45:58-07:00")
 					testDevice.SubType = "alarm"
 				})
 

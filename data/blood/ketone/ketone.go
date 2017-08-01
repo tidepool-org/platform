@@ -3,7 +3,7 @@ package ketone
 import (
 	"math"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/pointer"
 )
 
 const (
@@ -32,7 +32,7 @@ func NormalizeUnits(units *string) *string {
 	if units != nil {
 		switch *units {
 		case MmolL, Mmoll:
-			return app.StringAsPointer(MmolL)
+			return pointer.String(MmolL)
 		}
 	}
 	return units

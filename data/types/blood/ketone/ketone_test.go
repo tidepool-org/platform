@@ -15,6 +15,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood/ketone"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -26,15 +27,15 @@ func NewMeta() interface{} {
 
 func NewTestKetone(sourceTime interface{}, sourceUnits interface{}, sourceValue interface{}) *ketone.Ketone {
 	testKetone := ketone.Init()
-	testKetone.DeviceID = app.StringAsPointer(app.NewID())
+	testKetone.DeviceID = pointer.String(app.NewID())
 	if value, ok := sourceTime.(string); ok {
-		testKetone.Time = app.StringAsPointer(value)
+		testKetone.Time = pointer.String(value)
 	}
 	if value, ok := sourceUnits.(string); ok {
-		testKetone.Units = app.StringAsPointer(value)
+		testKetone.Units = pointer.String(value)
 	}
 	if value, ok := sourceValue.(float64); ok {
-		testKetone.Value = app.FloatAsPointer(value)
+		testKetone.Value = pointer.Float(value)
 	}
 	return testKetone
 }
