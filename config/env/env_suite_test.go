@@ -1,4 +1,4 @@
-package main_test
+package env_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -9,5 +9,5 @@ import (
 
 func TestSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "tools/check_mongo")
+	RunSpecs(t, "config/env")
 }

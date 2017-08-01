@@ -9,7 +9,7 @@ To execute this tool against a local development setup:
 1. Prepare the environment and build the executables. For more information, please see the main README.md.
 
   ```
-  source .env
+  . ./env.local.sh
   make build
   ```
 

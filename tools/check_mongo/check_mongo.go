@@ -13,13 +13,13 @@ import (
 
 func main() {
 	if len(os.Args) != 4 {
-		fmt.Println("ERROR: Specify Mongo server address(es), database, and SSL(true|false)")
+		fmt.Println("ERROR: Specify Mongo server address(es), database, and TLS(true|false)")
 		os.Exit(1)
 	}
 
 	addresses := strings.Split(os.Args[1], ",")
 	database := os.Args[2]
-	ssl := os.Args[3]
+	enableTLS := os.Args[3]
 
 	dialInfo := &mgo.DialInfo{
 		Addrs:    addresses,
@@ -27,7 +27,7 @@ func main() {
 		Database: database,
 	}
 
-	if ssl == "true" {
+	if enableTLS == "true" {
 		dialInfo.DialServer = func(serverAddr *mgo.ServerAddr) (net.Conn, error) {
 			return tls.Dial("tcp", serverAddr.String(), &tls.Config{InsecureSkipVerify: true})
 		}

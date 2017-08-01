@@ -2,9 +2,26 @@ FROM golang:1.7.1-alpine
 
 # Container specific ENV
 ENV TIDEPOOL_ENV="local" \
-    TIDEPOOL_CONFIG_DIRECTORY="$GOPATH/src/github.com/tidepool-org/platform/_config" \
-    TIDEPOOL_USERSERVICES_CLIENT_SERVERTOKENSECRET="This needs to be the same secret everywhere. YaHut75NsK1f9UKUXuWqxNN0RUwHFBCy"
-
+    TIDEPOOL_LOGGER_LEVEL="debug" \
+    TIDEPOOL_CLIENT_SERVER_TOKEN_SECRET="This needs to be the same secret everywhere. YaHut75NsK1f9UKUXuWqxNN0RUwHFBCy" \
+    TIDEPOOL_STORE_ADDRESSES="mongo" \
+    TIDEPOOL_STORE_TLS="false" \
+    TIDEPOOL_SERVER_TLS="false" \
+    TIDEPOOL_DATASERVICES_CLIENT_ADDRESS="http://styx:8009" \
+    TIDEPOOL_DATASERVICES_DATA_STORE_DATABASE="data" \
+    TIDEPOOL_DATASERVICES_TASK_STORE_DATABASE="data" \
+    TIDEPOOL_DATASERVICES_SERVER_ADDRESS=":8077" \
+    TIDEPOOL_METRICSERVICES_CLIENT_ADDRESS="http://styx:8009" \
+    TIDEPOOL_USERSERVICES_CLIENT_ADDRESS="http://styx:8009" \
+    TIDEPOOL_USERSERVICES_MESSAGE_STORE_DATABASE="messages" \
+    TIDEPOOL_USERSERVICES_NOTIFICATION_STORE_DATABASE="confirm" \
+    TIDEPOOL_USERSERVICES_PERMISSION_STORE_DATABASE="gatekeeper" \
+    TIDEPOOL_USERSERVICES_PERMISSION_STORE_SECRET="This secret is used to encrypt the groupId stored in the DB for gatekeeper" \
+    TIDEPOOL_USERSERVICES_PROFILE_STORE_DATABASE="seagull" \
+    TIDEPOOL_USERSERVICES_SESSION_STORE_DATABASE="user" \
+    TIDEPOOL_USERSERVICES_USER_STORE_DATABASE="user" \
+    TIDEPOOL_USERSERVICES_USER_STORE_PASSWORD_SALT="ADihSEI7tOQQP9xfXMO9HfRpXKu1NpIJ" \
+    TIDEPOOL_USERSERVICES_SERVER_ADDRESS=":8078"
 
 # $GOPATH=/go FROM the golang container
 WORKDIR /go
@@ -12,15 +29,6 @@ WORKDIR /go
 COPY . ${GOPATH}/src/github.com/tidepool-org/platform
 RUN apk --no-cache add git make \
  && cd ${GOPATH}/src/github.com/tidepool-org/platform \
- && sed -i -e 's/localhost/mongo/' _config/userservices/message_store.local.json \
- && sed -i -e 's/localhost/mongo/' _config/userservices/notification_store.local.json \
- && sed -i -e 's/localhost/mongo/' _config/userservices/permission_store.local.json \
- && sed -i -e 's/localhost/mongo/' _config/userservices/profile_store.local.json \
- && sed -i -e 's/localhost/mongo/' _config/userservices/session_store.local.json \
- && sed -i -e 's/localhost/mongo/' _config/userservices/user_store.local.json \
- && sed -i -e 's/localhost/styx/' _config/userservices/metricservices_client.local.json \
- && sed -i -e 's/localhost/styx/' _config/userservices/dataservices_client.local.json \
- && sed -i -e 's/localhost/styx/' _config/userservices/userservices_client.local.json \
  && rm -rf src _bin \
  && BUILD=userservices make build
 

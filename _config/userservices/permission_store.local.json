@@ -1,5 +1,0 @@
-{
-  "addresses": "localhost",
-  "ssl": false,
-  "secret": "This secret is used to encrypt the groupId stored in the DB for gatekeeper"
-}

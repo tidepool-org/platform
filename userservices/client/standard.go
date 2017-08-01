@@ -28,7 +28,7 @@ const (
 	TidepoolServerSecretHeaderName        = "X-Tidepool-Server-Secret"
 	TidepoolAuthenticationTokenHeaderName = "X-Tidepool-Session-Token"
 
-	ServerTokenTimeoutOnFailureFirst = time.Second
+	ServerTokenTimeoutOnFailureFirst = 1 * time.Second
 	ServerTokenTimeoutOnFailureLast  = 60 * time.Second
 )
 
@@ -43,15 +43,14 @@ func NewStandard(logger log.Logger, name string, config *Config) (*Standard, err
 		return nil, errors.New("client", "config is missing")
 	}
 
-	config = config.Clone()
 	if err := config.Validate(); err != nil {
 		return nil, errors.Wrap(err, "client", "config is invalid")
 	}
 
 	httpClient := &http.Client{
-		Timeout: time.Duration(config.RequestTimeout) * time.Second,
+		Timeout: config.Timeout,
 	}
-	serverTokenTimeout := time.Duration(config.ServerTokenTimeout) * time.Second
+	serverTokenTimeout := config.ServerTokenTimeout
 
 	return &Standard{
 		logger:             logger,

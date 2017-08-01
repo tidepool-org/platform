@@ -3,6 +3,7 @@ package client_test
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -75,8 +76,8 @@ var _ = Describe("Standard", func() {
 
 		BeforeEach(func() {
 			config = &client.Config{
-				Address:        "http://localhost:1234",
-				RequestTimeout: 30,
+				Address: "http://localhost:1234",
+				Timeout: 30 * time.Second,
 			}
 		})
 
@@ -86,17 +87,17 @@ var _ = Describe("Standard", func() {
 			Expect(standard).To(BeNil())
 		})
 
-		It("returns an error if config address is invalid", func() {
+		It("returns an error if config address is missing", func() {
 			config.Address = ""
 			standard, err := client.NewStandard(config)
 			Expect(err).To(MatchError("client: config is invalid; client: address is missing"))
 			Expect(standard).To(BeNil())
 		})
 
-		It("returns an error if config request timeout is invalid", func() {
-			config.RequestTimeout = -1
+		It("returns an error if config timeout is invalid", func() {
+			config.Timeout = 0
 			standard, err := client.NewStandard(config)
-			Expect(err).To(MatchError("client: config is invalid; client: request timeout is invalid"))
+			Expect(err).To(MatchError("client: config is invalid; client: timeout is invalid"))
 			Expect(standard).To(BeNil())
 		})
 
@@ -116,8 +117,8 @@ var _ = Describe("Standard", func() {
 		BeforeEach(func() {
 			server = ghttp.NewServer()
 			config = &client.Config{
-				Address:        server.URL(),
-				RequestTimeout: 30,
+				Address: server.URL(),
+				Timeout: 30 * time.Second,
 			}
 			var err error
 			standard, err = client.NewStandard(config)

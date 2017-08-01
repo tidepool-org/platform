@@ -32,7 +32,7 @@ var _ = Describe("AccessLog", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(accessLogMiddleware).ToNot(BeNil())
 			handler = func(response rest.ResponseWriter, request *rest.Request) {}
-			elapsedTime := time.Second
+			elapsedTime := 1 * time.Second
 			startTime := time.Now()
 			request = NewTestRequest()
 			request.Env["BYTE_WRITTEN"] = int64(128000)

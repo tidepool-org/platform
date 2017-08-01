@@ -183,10 +183,10 @@ var _ = Describe("Mongo", func() {
 
 	BeforeEach(func() {
 		mongoConfig = &baseMongo.Config{
-			Addresses:  testMongo.Address(),
+			Addresses:  []string{testMongo.Address()},
 			Database:   testMongo.Database(),
 			Collection: testMongo.NewCollectionName(),
-			Timeout:    app.DurationAsPointer(5 * time.Second),
+			Timeout:    5 * time.Second,
 		}
 	})
 

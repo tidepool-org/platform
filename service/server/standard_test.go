@@ -49,9 +49,9 @@ var _ = Describe("Standard", func() {
 		api = &TestAPI{
 			HandlerOutputs: []http.Handler{handler},
 		}
-		config = &server.Config{
-			Address: ":8077",
-		}
+		config = server.NewConfig()
+		config.Address = ":8077"
+		config.TLS = false
 	})
 
 	Context("NewStandard", func() {
