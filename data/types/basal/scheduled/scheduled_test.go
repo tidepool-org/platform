@@ -15,6 +15,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/basal/scheduled"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -27,21 +28,21 @@ func NewMeta() interface{} {
 
 func NewTestScheduled(sourceTime interface{}, sourceDuration interface{}, sourceExpectedDuration interface{}, sourceRate interface{}, scheduleName interface{}) *scheduled.Scheduled {
 	testScheduled := scheduled.Init()
-	testScheduled.DeviceID = app.StringAsPointer(app.NewID())
+	testScheduled.DeviceID = pointer.String(app.NewID())
 	if value, ok := sourceTime.(string); ok {
-		testScheduled.Time = app.StringAsPointer(value)
+		testScheduled.Time = pointer.String(value)
 	}
 	if value, ok := sourceDuration.(int); ok {
-		testScheduled.Duration = app.IntegerAsPointer(value)
+		testScheduled.Duration = pointer.Integer(value)
 	}
 	if value, ok := sourceExpectedDuration.(int); ok {
-		testScheduled.ExpectedDuration = app.IntegerAsPointer(value)
+		testScheduled.ExpectedDuration = pointer.Integer(value)
 	}
 	if value, ok := sourceRate.(float64); ok {
-		testScheduled.Rate = app.FloatAsPointer(value)
+		testScheduled.Rate = pointer.Float(value)
 	}
 	if value, ok := scheduleName.(string); ok {
-		testScheduled.ScheduleName = app.StringAsPointer(value)
+		testScheduled.ScheduleName = pointer.String(value)
 	}
 	return testScheduled
 }

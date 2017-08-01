@@ -14,6 +14,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/basal"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -27,9 +28,9 @@ func NewMeta(deliveryType string) interface{} {
 func NewTestBasal(sourceTime interface{}, sourceDeliveryType interface{}) *basal.Basal {
 	testBasal := &basal.Basal{}
 	testBasal.Init()
-	testBasal.DeviceID = app.StringAsPointer(app.NewID())
+	testBasal.DeviceID = pointer.String(app.NewID())
 	if value, ok := sourceTime.(string); ok {
-		testBasal.Time = app.StringAsPointer(value)
+		testBasal.Time = pointer.String(value)
 	}
 	if value, ok := sourceDeliveryType.(string); ok {
 		testBasal.DeliveryType = value
@@ -184,7 +185,7 @@ var _ = Describe("Basal", func() {
 					deviceID = app.NewID()
 					testBasal.UserID = userID
 					testBasal.DeviceID = &deviceID
-					testBasal.Time = app.StringAsPointer("2016-09-06T13:45:58-07:00")
+					testBasal.Time = pointer.String("2016-09-06T13:45:58-07:00")
 					testBasal.DeliveryType = "scheduled"
 				})
 

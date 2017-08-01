@@ -6,9 +6,9 @@ import (
 
 	"time"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/config/test"
 	"github.com/tidepool-org/platform/permission/store/mongo"
+	"github.com/tidepool-org/platform/pointer"
 	baseConfig "github.com/tidepool-org/platform/store/mongo"
 )
 
@@ -70,8 +70,8 @@ var _ = Describe("Config", func() {
 				config.Config.TLS = false
 				config.Config.Database = "database"
 				config.Config.Collection = "collection"
-				config.Config.Username = app.StringAsPointer("username")
-				config.Config.Password = app.StringAsPointer("password")
+				config.Config.Username = pointer.String("username")
+				config.Config.Password = pointer.String("password")
 				config.Config.Timeout = 5 * time.Second
 				config.Secret = "super"
 			})

@@ -5,7 +5,6 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/parser"
@@ -13,22 +12,23 @@ import (
 	"github.com/tidepool-org/platform/data/types/basal"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
 
 func NewTestSuppressed(sourceType interface{}, sourceDeliveryType interface{}, sourceRate interface{}, sourceScheduleName interface{}, sourceSuppressed *basal.Suppressed) *basal.Suppressed {
 	testSuppressed := &basal.Suppressed{}
 	if value, ok := sourceType.(string); ok {
-		testSuppressed.Type = app.StringAsPointer(value)
+		testSuppressed.Type = pointer.String(value)
 	}
 	if value, ok := sourceDeliveryType.(string); ok {
-		testSuppressed.DeliveryType = app.StringAsPointer(value)
+		testSuppressed.DeliveryType = pointer.String(value)
 	}
 	if value, ok := sourceRate.(float64); ok {
-		testSuppressed.Rate = app.FloatAsPointer(value)
+		testSuppressed.Rate = pointer.Float(value)
 	}
 	if value, ok := sourceScheduleName.(string); ok {
-		testSuppressed.ScheduleName = app.StringAsPointer(value)
+		testSuppressed.ScheduleName = pointer.String(value)
 	}
 	testSuppressed.Suppressed = sourceSuppressed
 	return testSuppressed

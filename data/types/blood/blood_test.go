@@ -15,6 +15,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -28,15 +29,15 @@ func NewTestBlood(sourceTime interface{}, sourceUnits interface{}, sourceValue i
 	testBlood := &blood.Blood{}
 	testBlood.Init()
 	testBlood.Type = "testBlood"
-	testBlood.DeviceID = app.StringAsPointer(app.NewID())
+	testBlood.DeviceID = pointer.String(app.NewID())
 	if value, ok := sourceTime.(string); ok {
-		testBlood.Time = app.StringAsPointer(value)
+		testBlood.Time = pointer.String(value)
 	}
 	if value, ok := sourceUnits.(string); ok {
-		testBlood.Units = app.StringAsPointer(value)
+		testBlood.Units = pointer.String(value)
 	}
 	if value, ok := sourceValue.(float64); ok {
-		testBlood.Value = app.FloatAsPointer(value)
+		testBlood.Value = pointer.Float(value)
 	}
 	return testBlood
 }
@@ -191,9 +192,9 @@ var _ = Describe("Blood", func() {
 					deviceID = app.NewID()
 					testBlood.UserID = userID
 					testBlood.DeviceID = &deviceID
-					testBlood.Time = app.StringAsPointer("2016-09-06T13:45:58-07:00")
-					testBlood.Units = app.StringAsPointer("mmol/L")
-					testBlood.Value = app.FloatAsPointer(1)
+					testBlood.Time = pointer.String("2016-09-06T13:45:58-07:00")
+					testBlood.Units = pointer.String("mmol/L")
+					testBlood.Value = pointer.Float(1)
 				})
 
 				It("returns error if user id is empty", func() {

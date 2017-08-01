@@ -10,6 +10,7 @@ import (
 
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/store/mongo"
 	testMongo "github.com/tidepool-org/platform/test/mongo"
 )
@@ -92,8 +93,8 @@ var _ = Describe("Mongo", func() {
 		})
 
 		It("returns an error if the username or password is invalid", func() {
-			mongoConfig.Username = app.StringAsPointer("username")
-			mongoConfig.Password = app.StringAsPointer("password")
+			mongoConfig.Username = pointer.String("username")
+			mongoConfig.Password = pointer.String("password")
 			var err error
 			mongoStore, err = mongo.New(logger, mongoConfig)
 			Expect(err).To(HaveOccurred())

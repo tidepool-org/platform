@@ -15,6 +15,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/basal/temporary"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -27,21 +28,21 @@ func NewMeta() interface{} {
 
 func NewTestTemporary(sourceTime interface{}, sourceDuration interface{}, sourceExpectedDuration interface{}, sourceRate interface{}, sourcePercent interface{}, sourceSuppressed *basal.Suppressed) *temporary.Temporary {
 	testTemporary := temporary.Init()
-	testTemporary.DeviceID = app.StringAsPointer(app.NewID())
+	testTemporary.DeviceID = pointer.String(app.NewID())
 	if value, ok := sourceTime.(string); ok {
-		testTemporary.Time = app.StringAsPointer(value)
+		testTemporary.Time = pointer.String(value)
 	}
 	if value, ok := sourceDuration.(int); ok {
-		testTemporary.Duration = app.IntegerAsPointer(value)
+		testTemporary.Duration = pointer.Integer(value)
 	}
 	if value, ok := sourceExpectedDuration.(int); ok {
-		testTemporary.ExpectedDuration = app.IntegerAsPointer(value)
+		testTemporary.ExpectedDuration = pointer.Integer(value)
 	}
 	if value, ok := sourceRate.(float64); ok {
-		testTemporary.Rate = app.FloatAsPointer(value)
+		testTemporary.Rate = pointer.Float(value)
 	}
 	if value, ok := sourcePercent.(float64); ok {
-		testTemporary.Percent = app.FloatAsPointer(value)
+		testTemporary.Percent = pointer.Float(value)
 	}
 	testTemporary.Suppressed = sourceSuppressed
 	return testTemporary
@@ -50,16 +51,16 @@ func NewTestTemporary(sourceTime interface{}, sourceDuration interface{}, source
 func NewTestSuppressed(sourceType interface{}, sourceDeliveryType interface{}, sourceRate interface{}, sourceScheduleName interface{}, sourceSuppressed *basal.Suppressed) *basal.Suppressed {
 	testSuppressed := &basal.Suppressed{}
 	if value, ok := sourceType.(string); ok {
-		testSuppressed.Type = app.StringAsPointer(value)
+		testSuppressed.Type = pointer.String(value)
 	}
 	if value, ok := sourceDeliveryType.(string); ok {
-		testSuppressed.DeliveryType = app.StringAsPointer(value)
+		testSuppressed.DeliveryType = pointer.String(value)
 	}
 	if value, ok := sourceRate.(float64); ok {
-		testSuppressed.Rate = app.FloatAsPointer(value)
+		testSuppressed.Rate = pointer.Float(value)
 	}
 	if value, ok := sourceScheduleName.(string); ok {
-		testSuppressed.ScheduleName = app.StringAsPointer(value)
+		testSuppressed.ScheduleName = pointer.String(value)
 	}
 	testSuppressed.Suppressed = sourceSuppressed
 	return testSuppressed
