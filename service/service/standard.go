@@ -5,19 +5,17 @@ import (
 
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/config/env"
-	"github.com/tidepool-org/platform/environment"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/version"
 )
 
 type Standard struct {
-	name                string
-	prefix              string
-	versionReporter     version.Reporter
-	environmentReporter environment.Reporter
-	configReporter      config.Reporter
-	logger              log.Logger
+	name            string
+	prefix          string
+	versionReporter version.Reporter
+	configReporter  config.Reporter
+	logger          log.Logger
 }
 
 func NewStandard(name string, prefix string) (*Standard, error) {
@@ -35,9 +33,6 @@ func (s *Standard) Initialize() error {
 	if err := s.initializeVersionReporter(); err != nil {
 		return err
 	}
-	if err := s.initializeEnvironmentReporter(); err != nil {
-		return err
-	}
 	if err := s.initializeConfigReporter(); err != nil {
 		return err
 	}
@@ -51,7 +46,6 @@ func (s *Standard) Initialize() error {
 func (s *Standard) Terminate() {
 	s.logger = nil
 	s.configReporter = nil
-	s.environmentReporter = nil
 	s.versionReporter = nil
 }
 
@@ -65,10 +59,6 @@ func (s *Standard) Prefix() string {
 
 func (s *Standard) VersionReporter() version.Reporter {
 	return s.versionReporter
-}
-
-func (s *Standard) EnvironmentReporter() environment.Reporter {
-	return s.environmentReporter
 }
 
 func (s *Standard) ConfigReporter() config.Reporter {
@@ -85,16 +75,6 @@ func (s *Standard) initializeVersionReporter() error {
 		return errors.Wrap(err, "service", "unable to create version reporter")
 	}
 	s.versionReporter = versionReporter
-
-	return nil
-}
-
-func (s *Standard) initializeEnvironmentReporter() error {
-	environmentReporter, err := environment.NewDefaultReporter(s.prefix)
-	if err != nil {
-		return errors.Wrap(err, "service", "unable to create environment reporter")
-	}
-	s.environmentReporter = environmentReporter
 
 	return nil
 }

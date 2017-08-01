@@ -10,9 +10,8 @@ type Status struct {
 
 func (s *Standard) GetStatus(serviceContext service.Context) {
 	status := &Status{
-		Version:     s.VersionReporter().Long(),
-		Environment: s.EnvironmentReporter().Name(),
-		Server:      s.StatusMiddleware().GetStatus(),
+		Version: s.VersionReporter().Long(),
+		Server:  s.StatusMiddleware().GetStatus(),
 	}
 	serviceContext.Response().WriteJson(status)
 }

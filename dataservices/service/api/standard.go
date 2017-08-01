@@ -8,7 +8,6 @@ import (
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/dataservices/service"
 	"github.com/tidepool-org/platform/dataservices/service/context"
-	"github.com/tidepool-org/platform/environment"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
@@ -28,15 +27,12 @@ type Standard struct {
 	taskStore               taskStore.Store
 }
 
-func NewStandard(versionReporter version.Reporter, environmentReporter environment.Reporter, logger log.Logger,
+func NewStandard(versionReporter version.Reporter, logger log.Logger,
 	metricServicesClient metricservicesClient.Client, userServicesClient userservicesClient.Client,
 	dataFactory data.Factory, dataDeduplicatorFactory deduplicator.Factory,
 	dataStore dataStore.Store, taskStore taskStore.Store) (*Standard, error) {
 	if versionReporter == nil {
 		return nil, errors.New("api", "version reporter is missing")
-	}
-	if environmentReporter == nil {
-		return nil, errors.New("api", "environment reporter is missing")
 	}
 	if logger == nil {
 		return nil, errors.New("api", "logger is missing")
@@ -60,7 +56,7 @@ func NewStandard(versionReporter version.Reporter, environmentReporter environme
 		return nil, errors.New("api", "task store is missing")
 	}
 
-	standard, err := api.NewStandard(versionReporter, environmentReporter, logger)
+	standard, err := api.NewStandard(versionReporter, logger)
 	if err != nil {
 		return nil, err
 	}

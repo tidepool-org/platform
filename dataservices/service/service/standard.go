@@ -232,7 +232,7 @@ func (s *Standard) initializeTaskStore() error {
 func (s *Standard) initializeDataServicesAPI() error {
 	s.Logger().Debug("Creating data services api")
 
-	dataServicesAPI, err := api.NewStandard(s.VersionReporter(), s.EnvironmentReporter(), s.Logger(),
+	dataServicesAPI, err := api.NewStandard(s.VersionReporter(), s.Logger(),
 		s.metricServicesClient, s.userServicesClient,
 		s.dataFactory, s.dataDeduplicatorFactory,
 		s.dataStore, s.taskStore)

@@ -318,7 +318,7 @@ func (s *Standard) initializeUserStore() error {
 func (s *Standard) initializeUserServicesAPI() error {
 	s.Logger().Debug("Creating user services api")
 
-	userServicesAPI, err := api.NewStandard(s.VersionReporter(), s.EnvironmentReporter(), s.Logger(),
+	userServicesAPI, err := api.NewStandard(s.VersionReporter(), s.Logger(),
 		s.metricServicesClient, s.userServicesClient, s.dataServicesClient,
 		s.messageStore, s.notificationStore, s.permissionStore, s.profileStore, s.sessionStore, s.userStore)
 	if err != nil {
