@@ -9,7 +9,7 @@ import (
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/notification/store"
 	"github.com/tidepool-org/platform/notification/store/mongo"
@@ -22,7 +22,7 @@ func NewNotification(userID string, notificationType string) bson.M {
 		"created":   time.Now().UTC().Format(time.RFC3339),
 		"creator":   bson.M{},
 		"creatorId": "",
-		"email":     app.NewID(),
+		"email":     id.New(),
 		"modified":  time.Now().UTC().Format(time.RFC3339),
 		"status":    "completed",
 		"type":      notificationType,
@@ -127,7 +127,7 @@ var _ = Describe("Mongo", func() {
 				BeforeEach(func() {
 					testMongoSession = testMongo.Session().Copy()
 					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.Collection)
-					notifications = NewNotifications(app.NewID(), app.NewID())
+					notifications = NewNotifications(id.New(), id.New())
 				})
 
 				JustBeforeEach(func() {
@@ -146,8 +146,8 @@ var _ = Describe("Mongo", func() {
 					var destroyNotifications []interface{}
 
 					BeforeEach(func() {
-						destroyUserID = app.NewID()
-						destroyOtherID = app.NewID()
+						destroyUserID = id.New()
+						destroyOtherID = id.New()
 						destroyNotifications = NewNotifications(destroyUserID, destroyOtherID)
 					})
 

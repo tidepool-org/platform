@@ -10,8 +10,8 @@ import (
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/crypto"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission/store"
 	"github.com/tidepool-org/platform/permission/store/mongo"
@@ -35,7 +35,7 @@ func NewPermission(groupID string, userID string) bson.M {
 
 func NewPermissions(userID string) []interface{} {
 	permissions := []interface{}{}
-	permissions = append(permissions, NewPermission(app.NewID(), userID), NewPermission(userID, app.NewID()))
+	permissions = append(permissions, NewPermission(id.New(), userID), NewPermission(userID, id.New()))
 	return permissions
 }
 
@@ -155,7 +155,7 @@ var _ = Describe("Mongo", func() {
 				BeforeEach(func() {
 					testMongoSession = testMongo.Session().Copy()
 					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.Collection)
-					permissions = NewPermissions(app.NewID())
+					permissions = NewPermissions(id.New())
 				})
 
 				JustBeforeEach(func() {
@@ -173,7 +173,7 @@ var _ = Describe("Mongo", func() {
 					var destroyPermissions []interface{}
 
 					BeforeEach(func() {
-						destroyUserID = app.NewID()
+						destroyUserID = id.New()
 						destroyPermissions = NewPermissions(destroyUserID)
 					})
 

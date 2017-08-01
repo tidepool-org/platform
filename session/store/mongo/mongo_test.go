@@ -9,7 +9,7 @@ import (
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/session/store"
 	"github.com/tidepool-org/platform/session/store/mongo"
@@ -20,7 +20,7 @@ import (
 func NewBaseSession() bson.M {
 	now := time.Now()
 	return bson.M{
-		"_id":       app.NewID(),
+		"_id":       id.New(),
 		"duration":  86400,
 		"expiresAt": now.Add(86400 * time.Second).Unix(),
 		"createdAt": now.Unix(),
@@ -31,7 +31,7 @@ func NewBaseSession() bson.M {
 func NewServerSession() bson.M {
 	session := NewBaseSession()
 	session["isServer"] = true
-	session["serverId"] = app.NewID()
+	session["serverId"] = id.New()
 	return session
 }
 
@@ -136,7 +136,7 @@ var _ = Describe("Mongo", func() {
 				BeforeEach(func() {
 					testMongoSession = testMongo.Session().Copy()
 					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.Collection)
-					sessions = append(NewServerSessions(), NewUserSessions(app.NewID())...)
+					sessions = append(NewServerSessions(), NewUserSessions(id.New())...)
 				})
 
 				JustBeforeEach(func() {
@@ -154,7 +154,7 @@ var _ = Describe("Mongo", func() {
 					var destroySessions []interface{}
 
 					BeforeEach(func() {
-						destroyUserID = app.NewID()
+						destroyUserID = id.New()
 						destroySessions = NewUserSessions(destroyUserID)
 					})
 

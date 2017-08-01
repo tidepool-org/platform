@@ -10,12 +10,12 @@ import (
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/upload"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/pointer"
 	baseMongo "github.com/tidepool-org/platform/store/mongo"
@@ -83,7 +83,7 @@ func NewDatasetData(deviceID string) []data.Datum {
 		baseDatum := &types.Base{}
 		baseDatum.Init()
 
-		baseDatum.Deduplicator = &data.DeduplicatorDescriptor{Hash: app.NewID()}
+		baseDatum.Deduplicator = &data.DeduplicatorDescriptor{Hash: id.New()}
 		baseDatum.Type = "test"
 
 		baseDatum.ClockDriftOffset = pointer.Integer(0)
@@ -258,9 +258,9 @@ var _ = Describe("Mongo", func() {
 				BeforeEach(func() {
 					testMongoSession = testMongo.Session().Copy()
 					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.Collection)
-					userID = app.NewID()
-					deviceID = app.NewID()
-					datasetExistingOther = NewDataset(app.NewID(), app.NewID())
+					userID = id.New()
+					deviceID = id.New()
+					datasetExistingOther = NewDataset(id.New(), id.New())
 					datasetExistingOther.CreatedTime = "2016-09-01T12:00:00Z"
 					Expect(testMongoCollection.Insert(datasetExistingOther)).To(Succeed())
 					datasetExistingOne = NewDataset(userID, deviceID)
@@ -313,7 +313,7 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("succeeds if it successfully does not find another user datasets", func() {
-						resultDatasets, err := mongoSession.GetDatasetsForUserByID(app.NewID(), filter, pagination)
+						resultDatasets, err := mongoSession.GetDatasetsForUserByID(id.New(), filter, pagination)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(resultDatasets).ToNot(BeNil())
 						Expect(resultDatasets).To(BeEmpty())
@@ -456,7 +456,7 @@ var _ = Describe("Mongo", func() {
 						var agentUserID string
 
 						BeforeEach(func() {
-							agentUserID = app.NewID()
+							agentUserID = id.New()
 							mongoSession.SetAgent(&TestAgent{false, agentUserID})
 						})
 
@@ -521,7 +521,7 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns an error if the dataset with the same user id and upload id does not yet exist", func() {
-							dataset.UploadID = app.NewID()
+							dataset.UploadID = id.New()
 							Expect(mongoSession.UpdateDataset(dataset)).To(MatchError("mongo: unable to update dataset; not found"))
 						})
 					})
@@ -546,7 +546,7 @@ var _ = Describe("Mongo", func() {
 						var agentUserID string
 
 						BeforeEach(func() {
-							agentUserID = app.NewID()
+							agentUserID = id.New()
 							mongoSession.SetAgent(&TestAgent{false, agentUserID})
 						})
 
@@ -577,7 +577,7 @@ var _ = Describe("Mongo", func() {
 					BeforeEach(func() {
 						dataset.CreatedTime = "2016-09-01T11:00:00Z"
 						Expect(testMongoCollection.Insert(dataset)).To(Succeed())
-						datasetExistingOtherData = NewDatasetData(app.NewID())
+						datasetExistingOtherData = NewDatasetData(id.New())
 						Expect(mongoSession.CreateDatasetData(datasetExistingOther, datasetExistingOtherData)).To(Succeed())
 						datasetExistingOneData = NewDatasetData(deviceID)
 						Expect(mongoSession.CreateDatasetData(datasetExistingOne, datasetExistingOneData)).To(Succeed())
@@ -646,7 +646,7 @@ var _ = Describe("Mongo", func() {
 							var agentUserID string
 
 							BeforeEach(func() {
-								agentUserID = app.NewID()
+								agentUserID = id.New()
 								mongoSession.SetAgent(&TestAgent{false, agentUserID})
 							})
 
@@ -751,7 +751,7 @@ var _ = Describe("Mongo", func() {
 							var agentUserID string
 
 							BeforeEach(func() {
-								agentUserID = app.NewID()
+								agentUserID = id.New()
 								mongoSession.SetAgent(&TestAgent{false, agentUserID})
 							})
 
@@ -844,7 +844,7 @@ var _ = Describe("Mongo", func() {
 							var agentUserID string
 
 							BeforeEach(func() {
-								agentUserID = app.NewID()
+								agentUserID = id.New()
 								mongoSession.SetAgent(&TestAgent{false, agentUserID})
 							})
 
@@ -949,7 +949,7 @@ var _ = Describe("Mongo", func() {
 							var agentUserID string
 
 							BeforeEach(func() {
-								agentUserID = app.NewID()
+								agentUserID = id.New()
 								mongoSession.SetAgent(&TestAgent{false, agentUserID})
 							})
 
@@ -1095,7 +1095,7 @@ var _ = Describe("Mongo", func() {
 							var agentUserID string
 
 							BeforeEach(func() {
-								agentUserID = app.NewID()
+								agentUserID = id.New()
 								mongoSession.SetAgent(&TestAgent{false, agentUserID})
 							})
 
@@ -1224,7 +1224,7 @@ var _ = Describe("Mongo", func() {
 							var agentUserID string
 
 							BeforeEach(func() {
-								agentUserID = app.NewID()
+								agentUserID = id.New()
 								mongoSession.SetAgent(&TestAgent{false, agentUserID})
 							})
 
@@ -1257,8 +1257,8 @@ var _ = Describe("Mongo", func() {
 
 						BeforeEach(func() {
 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
-							deleteUserID = app.NewID()
-							deleteDeviceID = app.NewID()
+							deleteUserID = id.New()
+							deleteDeviceID = id.New()
 							deleteDataset = NewDataset(deleteUserID, deleteDeviceID)
 							deleteDataset.CreatedTime = "2016-09-01T11:00:00Z"
 							Expect(testMongoCollection.Insert(deleteDataset)).To(Succeed())

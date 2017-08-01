@@ -1,10 +1,10 @@
 package test
 
 import (
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/upload"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	commonStore "github.com/tidepool-org/platform/store"
 )
@@ -76,7 +76,7 @@ type Session struct {
 
 func NewSession() *Session {
 	return &Session{
-		ID:         app.NewID(),
+		ID:         id.New(),
 		LoggerImpl: log.NewNull(),
 	}
 }

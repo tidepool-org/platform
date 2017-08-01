@@ -11,7 +11,7 @@ import (
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	baseMongo "github.com/tidepool-org/platform/store/mongo"
 	testMongo "github.com/tidepool-org/platform/test/mongo"
@@ -43,7 +43,7 @@ func NewUser(userID string) *user.User {
 		TermsAcceptedTime: time.Now().UTC().Format(time.RFC3339),
 		EmailVerified:     true,
 		PasswordHash:      "1234567890",
-		Hash:              app.NewID(),
+		Hash:              id.New(),
 		Private:           map[string]*user.IDHash{"meta": {ID: "meta-id", Hash: "meta-hash"}},
 		CreatedTime:       time.Now().UTC().Format(time.RFC3339),
 	}
@@ -51,7 +51,7 @@ func NewUser(userID string) *user.User {
 
 func NewUsers() []interface{} {
 	users := []interface{}{}
-	users = append(users, NewUser(app.NewID()), NewUser(app.NewID()), NewUser(app.NewID()))
+	users = append(users, NewUser(id.New()), NewUser(id.New()), NewUser(id.New()))
 	return users
 }
 
@@ -190,7 +190,7 @@ var _ = Describe("Mongo", func() {
 					var getUserEmail string
 
 					BeforeEach(func() {
-						getUserID = app.NewID()
+						getUserID = id.New()
 						getUser = NewUser(getUserID)
 						getUserEmail = fmt.Sprintf("%s@test.org", getUserID)
 					})
@@ -218,7 +218,7 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("returns no error and no user if the user id is not found", func() {
-						user, err := mongoSession.GetUserByID(app.NewID())
+						user, err := mongoSession.GetUserByID(id.New())
 						Expect(err).ToNot(HaveOccurred())
 						Expect(user).To(BeNil())
 					})
@@ -281,7 +281,7 @@ var _ = Describe("Mongo", func() {
 					var deleteUser *user.User
 
 					BeforeEach(func() {
-						deleteUserID = app.NewID()
+						deleteUserID = id.New()
 						deleteUser = NewUser(deleteUserID)
 					})
 
@@ -319,7 +319,7 @@ var _ = Describe("Mongo", func() {
 						var agentUserID string
 
 						BeforeEach(func() {
-							agentUserID = app.NewID()
+							agentUserID = id.New()
 							mongoSession.SetAgent(&TestAgent{false, agentUserID})
 						})
 
@@ -336,7 +336,7 @@ var _ = Describe("Mongo", func() {
 					var destroyUser *user.User
 
 					BeforeEach(func() {
-						destroyUserID = app.NewID()
+						destroyUserID = id.New()
 						destroyUser = NewUser(destroyUserID)
 					})
 

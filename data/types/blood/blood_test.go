@@ -5,7 +5,6 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/normalizer"
@@ -14,6 +13,7 @@ import (
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood"
 	"github.com/tidepool-org/platform/data/validator"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
@@ -29,7 +29,7 @@ func NewTestBlood(sourceTime interface{}, sourceUnits interface{}, sourceValue i
 	testBlood := &blood.Blood{}
 	testBlood.Init()
 	testBlood.Type = "testBlood"
-	testBlood.DeviceID = pointer.String(app.NewID())
+	testBlood.DeviceID = pointer.String(id.New())
 	if value, ok := sourceTime.(string); ok {
 		testBlood.Time = pointer.String(value)
 	}
@@ -188,8 +188,8 @@ var _ = Describe("Blood", func() {
 				var deviceID string
 
 				BeforeEach(func() {
-					userID = app.NewID()
-					deviceID = app.NewID()
+					userID = id.New()
+					deviceID = id.New()
 					testBlood.UserID = userID
 					testBlood.DeviceID = &deviceID
 					testBlood.Time = pointer.String("2016-09-06T13:45:58-07:00")

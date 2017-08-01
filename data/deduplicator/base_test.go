@@ -7,12 +7,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	testDataStore "github.com/tidepool-org/platform/data/store/test"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/upload"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 )
 
@@ -21,7 +21,7 @@ var _ = Describe("Base", func() {
 	var testVersion string
 
 	BeforeEach(func() {
-		testName = app.NewID()
+		testName = id.New()
 		testVersion = "1.2.3"
 	})
 
@@ -64,7 +64,7 @@ var _ = Describe("Base", func() {
 				Expect(testFactory).ToNot(BeNil())
 				testDataset = upload.Init()
 				Expect(testDataset).ToNot(BeNil())
-				testDataset.UserID = app.NewID()
+				testDataset.UserID = id.New()
 			})
 
 			Context("CanDeduplicateDataset", func() {
@@ -176,7 +176,7 @@ var _ = Describe("Base", func() {
 					})
 
 					It("returns false if the deduplicator descriptor name does not match", func() {
-						testDataset.Deduplicator.Name = app.NewID()
+						testDataset.Deduplicator.Name = id.New()
 						Expect(testFactory.IsRegisteredWithDataset(testDataset)).To(BeFalse())
 					})
 
@@ -248,7 +248,7 @@ var _ = Describe("Base", func() {
 						})
 
 						It("returns an error if the deduplicator descriptor name does not match", func() {
-							testDataset.Deduplicator.Name = app.NewID()
+							testDataset.Deduplicator.Name = id.New()
 							testDeduplicator, err := testFactory.NewRegisteredDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)
 							Expect(err).To(MatchError("deduplicator: dataset deduplicator descriptor is not registered with expected deduplicator"))
 							Expect(testDeduplicator).To(BeNil())
@@ -275,7 +275,7 @@ var _ = Describe("Base", func() {
 			Expect(testDataStoreSession).ToNot(BeNil())
 			testDataset = upload.Init()
 			Expect(testDataset).ToNot(BeNil())
-			testDataset.UserID = app.NewID()
+			testDataset.UserID = id.New()
 		})
 
 		AfterEach(func() {

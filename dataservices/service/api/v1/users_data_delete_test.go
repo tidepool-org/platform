@@ -8,8 +8,8 @@ import (
 
 	"net/http"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/dataservices/service/api/v1"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -19,7 +19,7 @@ var _ = Describe("UsersDataDelete", func() {
 		var context *TestContext
 
 		BeforeEach(func() {
-			targetUserID = app.NewID()
+			targetUserID = id.New()
 			context = NewTestContext()
 			context.RequestImpl.PathParams["userid"] = targetUserID
 			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{true}

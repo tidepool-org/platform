@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/id"
 	messageStore "github.com/tidepool-org/platform/message/store"
 	"github.com/tidepool-org/platform/profile"
 	"github.com/tidepool-org/platform/service"
@@ -31,11 +31,11 @@ var _ = Describe("UsersDelete", func() {
 		var context *TestContext
 
 		BeforeEach(func() {
-			authenticatedUserID = app.NewID()
-			targetUserID = app.NewID()
-			targetProfileID = app.NewID()
-			targetPassword = app.NewID()
-			targetFullName = app.NewID()
+			authenticatedUserID = id.New()
+			targetUserID = id.New()
+			targetProfileID = id.New()
+			targetPassword = id.New()
+			targetFullName = id.New()
 			targetUser = &user.User{
 				ProfileID: &targetProfileID,
 			}
