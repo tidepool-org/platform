@@ -5,7 +5,6 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 
-	"github.com/tidepool-org/platform/environment"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service/middleware"
@@ -13,39 +12,30 @@ import (
 )
 
 type Standard struct {
-	versionReporter     version.Reporter
-	environmentReporter environment.Reporter
-	logger              log.Logger
-	api                 *rest.Api
-	headerMiddleware    *middleware.Header
-	statusMiddleware    *rest.StatusMiddleware
+	versionReporter  version.Reporter
+	logger           log.Logger
+	api              *rest.Api
+	headerMiddleware *middleware.Header
+	statusMiddleware *rest.StatusMiddleware
 }
 
-func NewStandard(versionReporter version.Reporter, environmentReporter environment.Reporter, logger log.Logger) (*Standard, error) {
+func NewStandard(versionReporter version.Reporter, logger log.Logger) (*Standard, error) {
 	if versionReporter == nil {
 		return nil, errors.New("api", "version reporter is missing")
-	}
-	if environmentReporter == nil {
-		return nil, errors.New("api", "environment reporter is missing")
 	}
 	if logger == nil {
 		return nil, errors.New("api", "logger is missing")
 	}
 
 	return &Standard{
-		versionReporter:     versionReporter,
-		environmentReporter: environmentReporter,
-		logger:              logger,
-		api:                 rest.NewApi(),
+		versionReporter: versionReporter,
+		logger:          logger,
+		api:             rest.NewApi(),
 	}, nil
 }
 
 func (s *Standard) VersionReporter() version.Reporter {
 	return s.versionReporter
-}
-
-func (s *Standard) EnvironmentReporter() environment.Reporter {
-	return s.environmentReporter
 }
 
 func (s *Standard) Logger() log.Logger {

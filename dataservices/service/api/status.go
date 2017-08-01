@@ -11,10 +11,9 @@ type Status struct {
 
 func (s *Standard) GetStatus(serviceContext service.Context) {
 	status := &Status{
-		Version:     s.VersionReporter().Long(),
-		Environment: s.EnvironmentReporter().Name(),
-		DataStore:   s.dataStore.GetStatus(),
-		Server:      s.StatusMiddleware().GetStatus(),
+		Version:   s.VersionReporter().Long(),
+		DataStore: s.dataStore.GetStatus(),
+		Server:    s.StatusMiddleware().GetStatus(),
 	}
 	serviceContext.Response().WriteJson(status)
 }
