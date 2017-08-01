@@ -17,6 +17,7 @@ import (
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/pointer"
 	baseMongo "github.com/tidepool-org/platform/store/mongo"
 	testMongo "github.com/tidepool-org/platform/test/mongo"
 )
@@ -57,21 +58,21 @@ func NewDataset(userID string, deviceID string) *upload.Upload {
 	dataset.Deduplicator = &data.DeduplicatorDescriptor{Name: "test-deduplicator"}
 	dataset.UserID = userID
 
-	dataset.ClockDriftOffset = app.IntegerAsPointer(0)
-	dataset.ConversionOffset = app.IntegerAsPointer(0)
-	dataset.DeviceID = app.StringAsPointer(deviceID)
-	dataset.DeviceTime = app.StringAsPointer(SampleTime().Format("2006-01-02T15:04:05"))
-	dataset.Time = app.StringAsPointer(SampleTime().UTC().Format("2006-01-02T15:04:05Z07:00"))
-	dataset.TimezoneOffset = app.IntegerAsPointer(-420)
+	dataset.ClockDriftOffset = pointer.Integer(0)
+	dataset.ConversionOffset = pointer.Integer(0)
+	dataset.DeviceID = pointer.String(deviceID)
+	dataset.DeviceTime = pointer.String(SampleTime().Format("2006-01-02T15:04:05"))
+	dataset.Time = pointer.String(SampleTime().UTC().Format("2006-01-02T15:04:05Z07:00"))
+	dataset.TimezoneOffset = pointer.Integer(-420)
 
-	dataset.ComputerTime = app.StringAsPointer(SampleTime().Format("2006-01-02T15:04:05"))
-	dataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Tesla"})
-	dataset.DeviceModel = app.StringAsPointer("1234")
-	dataset.DeviceSerialNumber = app.StringAsPointer("567890")
-	dataset.DeviceTags = app.StringArrayAsPointer([]string{"insulin-pump"})
-	dataset.TimeProcessing = app.StringAsPointer("utc-bootstrapping")
-	dataset.TimeZone = app.StringAsPointer("US/Pacific")
-	dataset.Version = app.StringAsPointer("0.260.1")
+	dataset.ComputerTime = pointer.String(SampleTime().Format("2006-01-02T15:04:05"))
+	dataset.DeviceManufacturers = pointer.StringArray([]string{"Tesla"})
+	dataset.DeviceModel = pointer.String("1234")
+	dataset.DeviceSerialNumber = pointer.String("567890")
+	dataset.DeviceTags = pointer.StringArray([]string{"insulin-pump"})
+	dataset.TimeProcessing = pointer.String("utc-bootstrapping")
+	dataset.TimeZone = pointer.String("US/Pacific")
+	dataset.Version = pointer.String("0.260.1")
 
 	return dataset
 }
@@ -85,12 +86,12 @@ func NewDatasetData(deviceID string) []data.Datum {
 		baseDatum.Deduplicator = &data.DeduplicatorDescriptor{Hash: app.NewID()}
 		baseDatum.Type = "test"
 
-		baseDatum.ClockDriftOffset = app.IntegerAsPointer(0)
-		baseDatum.ConversionOffset = app.IntegerAsPointer(0)
-		baseDatum.DeviceID = app.StringAsPointer(deviceID)
-		baseDatum.DeviceTime = app.StringAsPointer(SampleTime().Format("2006-01-02T15:04:05"))
-		baseDatum.Time = app.StringAsPointer(SampleTime().UTC().Format("2006-01-02T15:04:05Z07:00"))
-		baseDatum.TimezoneOffset = app.IntegerAsPointer(-420)
+		baseDatum.ClockDriftOffset = pointer.Integer(0)
+		baseDatum.ConversionOffset = pointer.Integer(0)
+		baseDatum.DeviceID = pointer.String(deviceID)
+		baseDatum.DeviceTime = pointer.String(SampleTime().Format("2006-01-02T15:04:05"))
+		baseDatum.Time = pointer.String(SampleTime().UTC().Format("2006-01-02T15:04:05Z07:00"))
+		baseDatum.TimezoneOffset = pointer.Integer(-420)
 
 		datasetData = append(datasetData, baseDatum)
 	}
@@ -424,7 +425,7 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("returns an error if the device id is missing (empty)", func() {
-						dataset.DeviceID = app.StringAsPointer("")
+						dataset.DeviceID = pointer.String("")
 						Expect(mongoSession.CreateDataset(dataset)).To(MatchError("mongo: dataset device id is missing"))
 					})
 
@@ -510,7 +511,7 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns an error if the device id is missing (empty)", func() {
-							dataset.DeviceID = app.StringAsPointer("")
+							dataset.DeviceID = pointer.String("")
 							Expect(mongoSession.UpdateDataset(dataset)).To(MatchError("mongo: dataset device id is missing"))
 						})
 
@@ -614,7 +615,7 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns an error if the device id is missing (empty)", func() {
-							dataset.DeviceID = app.StringAsPointer("")
+							dataset.DeviceID = pointer.String("")
 							Expect(mongoSession.DeleteDataset(dataset)).To(MatchError("mongo: dataset device id is missing"))
 						})
 
@@ -698,7 +699,7 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns an error if the device id is missing (empty)", func() {
-							dataset.DeviceID = app.StringAsPointer("")
+							dataset.DeviceID = pointer.String("")
 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(MatchError("mongo: dataset device id is missing"))
 						})
 
@@ -804,7 +805,7 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns an error if the device id is missing (empty)", func() {
-							dataset.DeviceID = app.StringAsPointer("")
+							dataset.DeviceID = pointer.String("")
 							Expect(mongoSession.ActivateDatasetData(dataset)).To(MatchError("mongo: dataset device id is missing"))
 						})
 
@@ -908,7 +909,7 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns an error if the device id is missing (empty)", func() {
-							dataset.DeviceID = app.StringAsPointer("")
+							dataset.DeviceID = pointer.String("")
 							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataset(dataset)).To(MatchError("mongo: dataset device id is missing"))
 						})
 
@@ -1022,7 +1023,7 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns an error if the device id is missing (empty)", func() {
-							dataset.DeviceID = app.StringAsPointer("")
+							dataset.DeviceID = pointer.String("")
 							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataset(dataset)).To(MatchError("mongo: dataset device id is missing"))
 						})
 
@@ -1193,7 +1194,7 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns an error if the device id is missing (empty)", func() {
-							dataset.DeviceID = app.StringAsPointer("")
+							dataset.DeviceID = pointer.String("")
 							Expect(mongoSession.DeleteOtherDatasetData(dataset)).To(MatchError("mongo: dataset device id is missing"))
 						})
 

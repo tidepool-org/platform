@@ -8,6 +8,7 @@ import (
 	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/pointer"
 )
 
 type Config struct {
@@ -43,10 +44,10 @@ func (c *Config) Load(configReporter config.Reporter) error {
 	c.Database = configReporter.StringOrDefault("database", "")
 	c.Collection = configReporter.StringOrDefault("collection", "")
 	if username, found := configReporter.String("username"); found {
-		c.Username = app.StringAsPointer(username)
+		c.Username = pointer.String(username)
 	}
 	if password, found := configReporter.String("password"); found {
-		c.Password = app.StringAsPointer(password)
+		c.Password = pointer.String(password)
 	}
 	if timeoutString, found := configReporter.String("timeout"); found {
 		timeout, err := strconv.ParseInt(timeoutString, 10, 0)
@@ -95,10 +96,10 @@ func (c *Config) Clone() *Config {
 		clone.Addresses = append([]string{}, c.Addresses...)
 	}
 	if c.Username != nil {
-		clone.Username = app.StringAsPointer(*c.Username)
+		clone.Username = pointer.String(*c.Username)
 	}
 	if c.Password != nil {
-		clone.Password = app.StringAsPointer(*c.Password)
+		clone.Password = pointer.String(*c.Password)
 	}
 
 	return clone

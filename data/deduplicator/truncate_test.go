@@ -13,6 +13,7 @@ import (
 	testDataStore "github.com/tidepool-org/platform/data/store/test"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/pointer"
 )
 
 var _ = Describe("Truncate", func() {
@@ -34,8 +35,8 @@ var _ = Describe("Truncate", func() {
 			testDataset = upload.Init()
 			Expect(testDataset).ToNot(BeNil())
 			testDataset.UserID = app.NewID()
-			testDataset.DeviceID = app.StringAsPointer(app.NewID())
-			testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Animas"})
+			testDataset.DeviceID = pointer.String(app.NewID())
+			testDataset.DeviceManufacturers = pointer.StringArray([]string{"Animas"})
 		})
 
 		Context("CanDeduplicateDataset", func() {
@@ -61,7 +62,7 @@ var _ = Describe("Truncate", func() {
 			})
 
 			It("returns false if the device id is empty", func() {
-				testDataset.DeviceID = app.StringAsPointer("")
+				testDataset.DeviceID = pointer.String("")
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
@@ -71,12 +72,12 @@ var _ = Describe("Truncate", func() {
 			})
 
 			It("returns false if the device manufacturers is empty", func() {
-				testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{})
+				testDataset.DeviceManufacturers = pointer.StringArray([]string{})
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
 			It("returns false if the device manufacturers does not contain expected device manufacturer", func() {
-				testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Ant", "Zebra", "Cobra"})
+				testDataset.DeviceManufacturers = pointer.StringArray([]string{"Ant", "Zebra", "Cobra"})
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
@@ -85,7 +86,7 @@ var _ = Describe("Truncate", func() {
 			})
 
 			It("returns true if the device id and expected device manufacturer are specified with multiple device manufacturers", func() {
-				testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Ant", "Zebra", "Animas", "Cobra"})
+				testDataset.DeviceManufacturers = pointer.StringArray([]string{"Ant", "Zebra", "Animas", "Cobra"})
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeTrue())
 			})
 		})
@@ -146,7 +147,7 @@ var _ = Describe("Truncate", func() {
 				})
 
 				It("returns an error if the dataset device id is empty", func() {
-					testDataset.DeviceID = app.StringAsPointer("")
+					testDataset.DeviceID = pointer.String("")
 					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)
 					Expect(err).To(MatchError("deduplicator: dataset device id is empty"))
 					Expect(testDeduplicator).To(BeNil())
@@ -160,14 +161,14 @@ var _ = Describe("Truncate", func() {
 				})
 
 				It("returns an error if the device manufacturers is empty", func() {
-					testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{})
+					testDataset.DeviceManufacturers = pointer.StringArray([]string{})
 					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)
 					Expect(err).To(MatchError("deduplicator: dataset device manufacturers does not contain expected device manufacturers"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
 				It("returns an error if the device manufacturers does not contain expected device manufacturer", func() {
-					testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Ant", "Zebra", "Cobra"})
+					testDataset.DeviceManufacturers = pointer.StringArray([]string{"Ant", "Zebra", "Cobra"})
 					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)
 					Expect(err).To(MatchError("deduplicator: dataset device manufacturers does not contain expected device manufacturers"))
 					Expect(testDeduplicator).To(BeNil())
@@ -178,7 +179,7 @@ var _ = Describe("Truncate", func() {
 				})
 
 				It("returns a new deduplicator upon success if the device id and expected device manufacturer are specified with multiple device manufacturers", func() {
-					testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Ant", "Zebra", "Animas", "Cobra"})
+					testDataset.DeviceManufacturers = pointer.StringArray([]string{"Ant", "Zebra", "Animas", "Cobra"})
 					Expect(testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)).ToNot(BeNil())
 				})
 			})

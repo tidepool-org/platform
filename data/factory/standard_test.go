@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/factory"
 	testData "github.com/tidepool-org/platform/data/test"
@@ -30,6 +29,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/device/timechange"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	"github.com/tidepool-org/platform/data/types/upload"
+	"github.com/tidepool-org/platform/pointer"
 )
 
 type NewInvalidPropertyErrorInput struct {
@@ -146,7 +146,7 @@ var _ = Describe("Standard", func() {
 		})
 
 		It("returns a NewFunc that returns the datum that the datumFunc returns", func() {
-			testInspector.GetPropertyOutputs = []*string{app.StringAsPointer("value-datum-func-returns-datum")}
+			testInspector.GetPropertyOutputs = []*string{pointer.String("value-datum-func-returns-datum")}
 			newFunc := factory.NewNewFuncWithKeyAndMap("key-datum-func-returns-datum", testNewFuncMap)
 			Expect(newFunc).ToNot(BeNil())
 			Expect(newFunc(testInspector)).To(Equal(testDatum))
@@ -154,7 +154,7 @@ var _ = Describe("Standard", func() {
 		})
 
 		It("returns a NewFunc that returns the error that the datumFunc returns", func() {
-			testInspector.GetPropertyOutputs = []*string{app.StringAsPointer("value-datum-func-returns-error")}
+			testInspector.GetPropertyOutputs = []*string{pointer.String("value-datum-func-returns-error")}
 			newFunc := factory.NewNewFuncWithKeyAndMap("key-datum-func-returns-error", testNewFuncMap)
 			Expect(newFunc).ToNot(BeNil())
 			datum, err := newFunc(testInspector)
@@ -185,7 +185,7 @@ var _ = Describe("Standard", func() {
 		})
 
 		It("returns a NewFunc that returns an error if the value returned by the inspector is not found in the new func map", func() {
-			testInspector.GetPropertyOutputs = []*string{app.StringAsPointer("value-new-func-not-found")}
+			testInspector.GetPropertyOutputs = []*string{pointer.String("value-new-func-not-found")}
 			testInspector.NewInvalidPropertyErrorOutputs = []error{errors.New("test: value new func not found")}
 			newFunc := factory.NewNewFuncWithKeyAndMap("key-new-func-not-found", testNewFuncMap)
 			Expect(newFunc).ToNot(BeNil())
@@ -197,7 +197,7 @@ var _ = Describe("Standard", func() {
 		})
 
 		It("returns a NewFunc that returns an error if the value returned by the inspector is nil in the new func map", func() {
-			testInspector.GetPropertyOutputs = []*string{app.StringAsPointer("value-new-func-nil")}
+			testInspector.GetPropertyOutputs = []*string{pointer.String("value-new-func-nil")}
 			testInspector.NewMissingPropertyErrorOutputs = []error{errors.New("test: value new func nil")}
 			newFunc := factory.NewNewFuncWithKeyAndMap("key-new-func-nil", testNewFuncMap)
 			Expect(newFunc).ToNot(BeNil())

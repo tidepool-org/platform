@@ -15,6 +15,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/basal/suspend"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -27,15 +28,15 @@ func NewMeta() interface{} {
 
 func NewTestSuspend(sourceTime interface{}, sourceDuration interface{}, sourceExpectedDuration interface{}, sourceSuppressed *basal.Suppressed) *suspend.Suspend {
 	testSuspend := suspend.Init()
-	testSuspend.DeviceID = app.StringAsPointer(app.NewID())
+	testSuspend.DeviceID = pointer.String(app.NewID())
 	if value, ok := sourceTime.(string); ok {
-		testSuspend.Time = app.StringAsPointer(value)
+		testSuspend.Time = pointer.String(value)
 	}
 	if value, ok := sourceDuration.(int); ok {
-		testSuspend.Duration = app.IntegerAsPointer(value)
+		testSuspend.Duration = pointer.Integer(value)
 	}
 	if value, ok := sourceExpectedDuration.(int); ok {
-		testSuspend.ExpectedDuration = app.IntegerAsPointer(value)
+		testSuspend.ExpectedDuration = pointer.Integer(value)
 	}
 	testSuspend.Suppressed = sourceSuppressed
 	return testSuspend
@@ -44,16 +45,16 @@ func NewTestSuspend(sourceTime interface{}, sourceDuration interface{}, sourceEx
 func NewTestSuppressed(sourceType interface{}, sourceDeliveryType interface{}, sourceRate interface{}, sourceScheduleName interface{}, sourceSuppressed *basal.Suppressed) *basal.Suppressed {
 	testSuppressed := &basal.Suppressed{}
 	if value, ok := sourceType.(string); ok {
-		testSuppressed.Type = app.StringAsPointer(value)
+		testSuppressed.Type = pointer.String(value)
 	}
 	if value, ok := sourceDeliveryType.(string); ok {
-		testSuppressed.DeliveryType = app.StringAsPointer(value)
+		testSuppressed.DeliveryType = pointer.String(value)
 	}
 	if value, ok := sourceRate.(float64); ok {
-		testSuppressed.Rate = app.FloatAsPointer(value)
+		testSuppressed.Rate = pointer.Float(value)
 	}
 	if value, ok := sourceScheduleName.(string); ok {
-		testSuppressed.ScheduleName = app.StringAsPointer(value)
+		testSuppressed.ScheduleName = pointer.String(value)
 	}
 	testSuppressed.Suppressed = sourceSuppressed
 	return testSuppressed

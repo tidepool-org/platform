@@ -5,7 +5,6 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/parser"
@@ -13,12 +12,13 @@ import (
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
 
 func AsStringPointer(source interface{}) *string {
 	if sourceString, ok := source.(string); ok {
-		return app.StringAsPointer(sourceString)
+		return pointer.String(sourceString)
 	}
 	return nil
 }
@@ -26,19 +26,19 @@ func AsStringPointer(source interface{}) *string {
 func NewTestBloodGlucoseTarget(sourceTarget interface{}, sourceRange interface{}, sourceLow interface{}, sourceHigh interface{}, sourceStart interface{}) *pump.BloodGlucoseTarget {
 	testTarget := &pump.BloodGlucoseTarget{}
 	if value, ok := sourceTarget.(float64); ok {
-		testTarget.Target.Target = app.FloatAsPointer(value)
+		testTarget.Target.Target = pointer.Float(value)
 	}
 	if value, ok := sourceRange.(float64); ok {
-		testTarget.Range = app.FloatAsPointer(value)
+		testTarget.Range = pointer.Float(value)
 	}
 	if value, ok := sourceLow.(float64); ok {
-		testTarget.Low = app.FloatAsPointer(value)
+		testTarget.Low = pointer.Float(value)
 	}
 	if value, ok := sourceHigh.(float64); ok {
-		testTarget.High = app.FloatAsPointer(value)
+		testTarget.High = pointer.Float(value)
 	}
 	if value, ok := sourceStart.(int); ok {
-		testTarget.Start = app.IntegerAsPointer(value)
+		testTarget.Start = pointer.Integer(value)
 	}
 	return testTarget
 }
