@@ -36,10 +36,10 @@ var _ = Describe("Mongo", func() {
 	BeforeEach(func() {
 		logger = log.NewNull()
 		mongoConfig = &mongo.Config{
-			Addresses:  testMongo.Address(),
+			Addresses:  []string{testMongo.Address()},
 			Database:   testMongo.Database(),
 			Collection: testMongo.NewCollectionName(),
-			Timeout:    app.DurationAsPointer(5 * time.Second),
+			Timeout:    5 * time.Second,
 		}
 	})
 
@@ -75,7 +75,7 @@ var _ = Describe("Mongo", func() {
 		})
 
 		It("returns an error if the config is invalid", func() {
-			mongoConfig.Addresses = ""
+			mongoConfig.Addresses = nil
 			var err error
 			mongoStore, err = mongo.New(logger, mongoConfig)
 			Expect(err).To(MatchError("mongo: config is invalid; mongo: addresses is missing"))
@@ -83,7 +83,7 @@ var _ = Describe("Mongo", func() {
 		})
 
 		It("returns an error if the addresses are not reachable", func() {
-			mongoConfig.Addresses = "127.0.0.0, 127.0.0.0"
+			mongoConfig.Addresses = []string{"127.0.0.0", "127.0.0.0"}
 			var err error
 			mongoStore, err = mongo.New(logger, mongoConfig)
 			Expect(err).To(HaveOccurred())

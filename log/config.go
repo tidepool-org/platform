@@ -3,11 +3,28 @@ package log
 import (
 	"github.com/sirupsen/logrus"
 
+	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/errors"
 )
 
 type Config struct {
-	Level string `json:"level" default:"warn"`
+	Level string
+}
+
+func NewConfig() *Config {
+	return &Config{
+		Level: "warn",
+	}
+}
+
+func (c *Config) Load(configReporter config.Reporter) error {
+	if configReporter == nil {
+		return errors.New("log", "config reporter is missing")
+	}
+
+	c.Level = configReporter.StringOrDefault("level", "warn")
+
+	return nil
 }
 
 func (c *Config) Validate() error {
@@ -16,6 +33,7 @@ func (c *Config) Validate() error {
 	} else if level == logrus.PanicLevel {
 		return errors.New("log", "level is invalid")
 	}
+
 	return nil
 }
 

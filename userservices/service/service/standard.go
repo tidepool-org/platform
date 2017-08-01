@@ -135,8 +135,8 @@ func (s *Standard) Run() error {
 func (s *Standard) initializeMetricServicesClient() error {
 	s.Logger().Debug("Loading metric services client config")
 
-	metricServicesClientConfig := &metricservicesClient.Config{}
-	if err := s.ConfigLoader().Load("metricservices_client", metricServicesClientConfig); err != nil {
+	metricServicesClientConfig := metricservicesClient.NewConfig()
+	if err := metricServicesClientConfig.Load(s.ConfigReporter().WithScopes("metricservices", "client")); err != nil {
 		return errors.Wrap(err, "service", "unable to load metric services client config")
 	}
 
@@ -154,8 +154,8 @@ func (s *Standard) initializeMetricServicesClient() error {
 func (s *Standard) initializeUserServicesClient() error {
 	s.Logger().Debug("Loading user services client config")
 
-	userServicesClientConfig := &userservicesClient.Config{}
-	if err := s.ConfigLoader().Load("userservices_client", userServicesClientConfig); err != nil {
+	userServicesClientConfig := userservicesClient.NewConfig()
+	if err := userServicesClientConfig.Load(s.ConfigReporter().WithScopes("userservices", "client")); err != nil {
 		return errors.Wrap(err, "service", "unable to load user services client config")
 	}
 
@@ -179,8 +179,8 @@ func (s *Standard) initializeUserServicesClient() error {
 func (s *Standard) initializeDataServicesClient() error {
 	s.Logger().Debug("Loading data services client config")
 
-	dataServicesClientConfig := &dataservicesClient.Config{}
-	if err := s.ConfigLoader().Load("dataservices_client", dataServicesClientConfig); err != nil {
+	dataServicesClientConfig := dataservicesClient.NewConfig()
+	if err := dataServicesClientConfig.Load(s.ConfigReporter().WithScopes("dataservices", "client")); err != nil {
 		return errors.Wrap(err, "service", "unable to load data services client config")
 	}
 
@@ -198,8 +198,8 @@ func (s *Standard) initializeDataServicesClient() error {
 func (s *Standard) initializeMessageStore() error {
 	s.Logger().Debug("Loading message store config")
 
-	messageStoreConfig := &baseMongo.Config{}
-	if err := s.ConfigLoader().Load("message_store", messageStoreConfig); err != nil {
+	messageStoreConfig := baseMongo.NewConfig()
+	if err := messageStoreConfig.Load(s.ConfigReporter().WithScopes("message", "store")); err != nil {
 		return errors.Wrap(err, "service", "unable to load message store config")
 	}
 	messageStoreConfig.Collection = "messages"
@@ -218,8 +218,8 @@ func (s *Standard) initializeMessageStore() error {
 func (s *Standard) initializeNotificationStore() error {
 	s.Logger().Debug("Loading notification store config")
 
-	notificationStoreConfig := &baseMongo.Config{}
-	if err := s.ConfigLoader().Load("notification_store", notificationStoreConfig); err != nil {
+	notificationStoreConfig := baseMongo.NewConfig()
+	if err := notificationStoreConfig.Load(s.ConfigReporter().WithScopes("notification", "store")); err != nil {
 		return errors.Wrap(err, "service", "unable to load notification store config")
 	}
 	notificationStoreConfig.Collection = "confirmations"
@@ -238,8 +238,8 @@ func (s *Standard) initializeNotificationStore() error {
 func (s *Standard) initializePermissionStore() error {
 	s.Logger().Debug("Loading permission store config")
 
-	permissionStoreConfig := &permissionMongo.Config{}
-	if err := s.ConfigLoader().Load("permission_store", permissionStoreConfig); err != nil {
+	permissionStoreConfig := permissionMongo.NewConfig()
+	if err := permissionStoreConfig.Load(s.ConfigReporter().WithScopes("permission", "store")); err != nil {
 		return errors.Wrap(err, "service", "unable to load permission store config")
 	}
 	permissionStoreConfig.Collection = "perms"
@@ -258,8 +258,8 @@ func (s *Standard) initializePermissionStore() error {
 func (s *Standard) initializeProfileStore() error {
 	s.Logger().Debug("Loading profile store config")
 
-	profileStoreConfig := &baseMongo.Config{}
-	if err := s.ConfigLoader().Load("profile_store", profileStoreConfig); err != nil {
+	profileStoreConfig := baseMongo.NewConfig()
+	if err := profileStoreConfig.Load(s.ConfigReporter().WithScopes("profile", "store")); err != nil {
 		return errors.Wrap(err, "service", "unable to load profile store config")
 	}
 	profileStoreConfig.Collection = "seagull"
@@ -278,8 +278,8 @@ func (s *Standard) initializeProfileStore() error {
 func (s *Standard) initializeSessionStore() error {
 	s.Logger().Debug("Loading session store config")
 
-	sessionStoreConfig := &baseMongo.Config{}
-	if err := s.ConfigLoader().Load("session_store", sessionStoreConfig); err != nil {
+	sessionStoreConfig := baseMongo.NewConfig()
+	if err := sessionStoreConfig.Load(s.ConfigReporter().WithScopes("session", "store")); err != nil {
 		return errors.Wrap(err, "service", "unable to load session store config")
 	}
 	sessionStoreConfig.Collection = "tokens"
@@ -298,8 +298,8 @@ func (s *Standard) initializeSessionStore() error {
 func (s *Standard) initializeUserStore() error {
 	s.Logger().Debug("Loading user store config")
 
-	userStoreConfig := &userMongo.Config{}
-	if err := s.ConfigLoader().Load("user_store", userStoreConfig); err != nil {
+	userStoreConfig := userMongo.NewConfig()
+	if err := userStoreConfig.Load(s.ConfigReporter().WithScopes("user", "store")); err != nil {
 		return errors.Wrap(err, "service", "unable to load user store config")
 	}
 	userStoreConfig.Collection = "users"
@@ -349,8 +349,8 @@ func (s *Standard) initializeUserServicesAPI() error {
 func (s *Standard) initializeUserServicesServer() error {
 	s.Logger().Debug("Loading user services server config")
 
-	userServicesServerConfig := &server.Config{}
-	if err := s.ConfigLoader().Load("userservices_server", userServicesServerConfig); err != nil {
+	userServicesServerConfig := server.NewConfig()
+	if err := userServicesServerConfig.Load(s.ConfigReporter().WithScopes("userservices", "server")); err != nil {
 		return errors.Wrap(err, "service", "unable to load user services server config")
 	}
 

@@ -7,139 +7,239 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/config/test"
 	"github.com/tidepool-org/platform/store/mongo"
 )
 
 var _ = Describe("Config", func() {
-	var config *mongo.Config
-
-	BeforeEach(func() {
-		config = &mongo.Config{
-			Addresses:  "1.2.3.4, 5.6.7.8",
-			Database:   "database",
-			Collection: "collection",
-			Username:   app.StringAsPointer("username"),
-			Password:   app.StringAsPointer("password"),
-			Timeout:    app.DurationAsPointer(5 * time.Second),
-			SSL:        true,
-		}
-	})
-
-	Context("Validate", func() {
-		It("return success if all are valid", func() {
-			Expect(config.Validate()).To(Succeed())
-		})
-
-		It("returns an error if the addresses is missing", func() {
-			config.Addresses = ""
-			Expect(config.Validate()).To(MatchError("mongo: addresses is missing"))
-		})
-
-		It("returns an error if the addresses has no non-whitespace entries", func() {
-			config.Addresses = "  ,   ,  "
-			Expect(config.Validate()).To(MatchError("mongo: addresses is missing"))
-		})
-
-		It("returns an error if the database is missing", func() {
-			config.Database = ""
-			Expect(config.Validate()).To(MatchError("mongo: database is missing"))
-		})
-
-		It("returns an error if the collection is missing", func() {
-			config.Collection = ""
-			Expect(config.Validate()).To(MatchError("mongo: collection is missing"))
-		})
-
-		It("returns success if the username is not specified", func() {
-			config.Username = nil
-			Expect(config.Validate()).To(Succeed())
-		})
-
-		It("returns an error if the username is empty", func() {
-			config.Username = app.StringAsPointer("")
-			Expect(config.Validate()).To(MatchError("mongo: username is empty"))
-		})
-
-		It("returns success if the password is not specified", func() {
-			config.Password = nil
-			Expect(config.Validate()).To(Succeed())
-		})
-
-		It("returns an error if the password is empty", func() {
-			config.Password = app.StringAsPointer("")
-			Expect(config.Validate()).To(MatchError("mongo: password is empty"))
-		})
-
-		It("returns success if the timeout is not specified", func() {
-			config.Timeout = nil
-			Expect(config.Validate()).To(Succeed())
-		})
-
-		It("returns an error if the timeout is invalid", func() {
-			config.Timeout = app.DurationAsPointer(-1)
-			Expect(config.Validate()).To(MatchError("mongo: timeout is invalid"))
+	Context("NewConfig", func() {
+		It("returns a new config with default values", func() {
+			config := mongo.NewConfig()
+			Expect(config).ToNot(BeNil())
+			Expect(config.Addresses).To(BeNil())
+			Expect(config.TLS).To(BeTrue())
+			Expect(config.Database).To(Equal(""))
+			Expect(config.Collection).To(Equal(""))
+			Expect(config.Username).To(BeNil())
+			Expect(config.Password).To(BeNil())
+			Expect(config.Timeout).To(Equal(60 * time.Second))
 		})
 	})
 
-	Context("Clone", func() {
-		It("returns successfully", func() {
-			clone := config.Clone()
-			Expect(clone).ToNot(BeIdenticalTo(config))
-			Expect(clone.Addresses).To(Equal(config.Addresses))
-			Expect(clone.Database).To(Equal(config.Database))
-			Expect(clone.Collection).To(Equal(config.Collection))
-			Expect(clone.Username).ToNot(BeIdenticalTo(config.Username))
-			Expect(*clone.Username).To(Equal(*config.Username))
-			Expect(clone.Password).ToNot(BeIdenticalTo(config.Password))
-			Expect(*clone.Password).To(Equal(*config.Password))
-			Expect(clone.Timeout).ToNot(BeIdenticalTo(config.Timeout))
-			Expect(*clone.Timeout).To(Equal(*config.Timeout))
-			Expect(clone.SSL).To(Equal(config.SSL))
+	Context("with new config", func() {
+		var config *mongo.Config
+
+		BeforeEach(func() {
+			config = mongo.NewConfig()
+			Expect(config).ToNot(BeNil())
 		})
 
-		It("returns successfully if username is nil", func() {
-			config.Username = nil
-			clone := config.Clone()
-			Expect(clone).ToNot(BeIdenticalTo(config))
-			Expect(clone.Addresses).To(Equal(config.Addresses))
-			Expect(clone.Database).To(Equal(config.Database))
-			Expect(clone.Collection).To(Equal(config.Collection))
-			Expect(clone.Username).To(BeNil())
-			Expect(clone.Password).ToNot(BeIdenticalTo(config.Password))
-			Expect(*clone.Password).To(Equal(*config.Password))
-			Expect(clone.Timeout).ToNot(BeIdenticalTo(config.Timeout))
-			Expect(*clone.Timeout).To(Equal(*config.Timeout))
-			Expect(clone.SSL).To(Equal(config.SSL))
+		Context("Load", func() {
+			var configReporter *test.Reporter
+
+			BeforeEach(func() {
+				configReporter = test.NewReporter()
+				configReporter.Config["addresses"] = "https://1.2.3.4:5678, http://a.b.c.d:9999"
+				configReporter.Config["tls"] = "false"
+				configReporter.Config["database"] = "database"
+				configReporter.Config["collection"] = "collection"
+				configReporter.Config["username"] = "username"
+				configReporter.Config["password"] = "password"
+				configReporter.Config["timeout"] = "120"
+			})
+
+			It("returns an error if config reporter is missing", func() {
+				Expect(config.Load(nil)).To(MatchError("mongo: config reporter is missing"))
+			})
+
+			It("uses default addresses if not set", func() {
+				delete(configReporter.Config, "addresses")
+				Expect(config.Load(configReporter)).To(Succeed())
+				Expect(config.Addresses).To(BeEmpty())
+			})
+
+			It("uses default tls if not set", func() {
+				delete(configReporter.Config, "tls")
+				Expect(config.Load(configReporter)).To(Succeed())
+				Expect(config.TLS).To(BeTrue())
+			})
+
+			It("returns an error if the tls cannot be parsed to a boolean", func() {
+				configReporter.Config["tls"] = "abc"
+				Expect(config.Load(configReporter)).To(MatchError("mongo: tls is invalid"))
+				Expect(config.TLS).To(BeTrue())
+			})
+
+			It("uses default database if not set", func() {
+				delete(configReporter.Config, "database")
+				Expect(config.Load(configReporter)).To(Succeed())
+				Expect(config.Database).To(Equal(""))
+			})
+
+			It("uses default collection if not set", func() {
+				delete(configReporter.Config, "collection")
+				Expect(config.Load(configReporter)).To(Succeed())
+				Expect(config.Collection).To(Equal(""))
+			})
+
+			It("uses default username if not set", func() {
+				delete(configReporter.Config, "username")
+				Expect(config.Load(configReporter)).To(Succeed())
+				Expect(config.Username).To(BeNil())
+			})
+
+			It("uses default password if not set", func() {
+				delete(configReporter.Config, "password")
+				Expect(config.Load(configReporter)).To(Succeed())
+				Expect(config.Password).To(BeNil())
+			})
+
+			It("uses default timeout if not set", func() {
+				delete(configReporter.Config, "timeout")
+				Expect(config.Load(configReporter)).To(Succeed())
+				Expect(config.Timeout).To(Equal(60 * time.Second))
+			})
+
+			It("returns an error if the timeout cannot be parsed to an integer", func() {
+				configReporter.Config["timeout"] = "abc"
+				Expect(config.Load(configReporter)).To(MatchError("mongo: timeout is invalid"))
+				Expect(config.Timeout).To(Equal(60 * time.Second))
+			})
+
+			It("returns successfully and uses values from config reporter", func() {
+				Expect(config.Load(configReporter)).To(Succeed())
+				Expect(config.Addresses).To(Equal([]string{"https://1.2.3.4:5678", "http://a.b.c.d:9999"}))
+				Expect(config.TLS).To(BeFalse())
+				Expect(config.Database).To(Equal("database"))
+				Expect(config.Collection).To(Equal("collection"))
+				Expect(config.Username).ToNot(BeNil())
+				Expect(*config.Username).To(Equal("username"))
+				Expect(config.Password).ToNot(BeNil())
+				Expect(*config.Password).To(Equal("password"))
+				Expect(config.Timeout).To(Equal(120 * time.Second))
+			})
 		})
 
-		It("returns successfully if password is nil", func() {
-			config.Password = nil
-			clone := config.Clone()
-			Expect(clone).ToNot(BeIdenticalTo(config))
-			Expect(clone.Addresses).To(Equal(config.Addresses))
-			Expect(clone.Database).To(Equal(config.Database))
-			Expect(clone.Collection).To(Equal(config.Collection))
-			Expect(clone.Username).ToNot(BeIdenticalTo(config.Username))
-			Expect(*clone.Username).To(Equal(*config.Username))
-			Expect(clone.Password).To(BeNil())
-			Expect(clone.Timeout).ToNot(BeIdenticalTo(config.Timeout))
-			Expect(*clone.Timeout).To(Equal(*config.Timeout))
-			Expect(clone.SSL).To(Equal(config.SSL))
-		})
+		Context("with valid values", func() {
+			BeforeEach(func() {
+				config.Addresses = []string{"1.2.3.4", "5.6.7.8"}
+				config.TLS = false
+				config.Database = "database"
+				config.Collection = "collection"
+				config.Username = app.StringAsPointer("username")
+				config.Password = app.StringAsPointer("password")
+				config.Timeout = 5 * time.Second
+			})
 
-		It("returns successfully if timeout is nil", func() {
-			config.Timeout = nil
-			clone := config.Clone()
-			Expect(clone).ToNot(BeIdenticalTo(config))
-			Expect(clone.Addresses).To(Equal(config.Addresses))
-			Expect(clone.Database).To(Equal(config.Database))
-			Expect(clone.Collection).To(Equal(config.Collection))
-			Expect(clone.Username).ToNot(BeIdenticalTo(config.Username))
-			Expect(*clone.Username).To(Equal(*config.Username))
-			Expect(clone.Password).ToNot(BeIdenticalTo(config.Password))
-			Expect(*clone.Password).To(Equal(*config.Password))
-			Expect(clone.Timeout).To(BeNil())
-			Expect(clone.SSL).To(Equal(config.SSL))
+			Context("Validate", func() {
+				It("return success if all are valid", func() {
+					Expect(config.Validate()).To(Succeed())
+				})
+
+				It("returns an error if the addresses is nil", func() {
+					config.Addresses = nil
+					Expect(config.Validate()).To(MatchError("mongo: addresses is missing"))
+				})
+
+				It("returns an error if the addresses is empty", func() {
+					config.Addresses = []string{}
+					Expect(config.Validate()).To(MatchError("mongo: addresses is missing"))
+				})
+
+				It("returns an error if one of the addresses is missing", func() {
+					config.Addresses = []string{""}
+					Expect(config.Validate()).To(MatchError("mongo: address is missing"))
+				})
+
+				It("returns an error if one of the addresses is not a parseable URL", func() {
+					config.Addresses = []string{"Not%Parseable"}
+					Expect(config.Validate()).To(MatchError("mongo: address is invalid"))
+				})
+
+				It("returns an error if the database is missing", func() {
+					config.Database = ""
+					Expect(config.Validate()).To(MatchError("mongo: database is missing"))
+				})
+
+				It("returns an error if the collection is missing", func() {
+					config.Collection = ""
+					Expect(config.Validate()).To(MatchError("mongo: collection is missing"))
+				})
+
+				It("returns success if the username is not specified", func() {
+					config.Username = nil
+					Expect(config.Validate()).To(Succeed())
+				})
+
+				It("returns success if the password is not specified", func() {
+					config.Password = nil
+					Expect(config.Validate()).To(Succeed())
+				})
+
+				It("returns an error if the timeout is invalid", func() {
+					config.Timeout = 0
+					Expect(config.Validate()).To(MatchError("mongo: timeout is invalid"))
+				})
+			})
+
+			Context("Clone", func() {
+				It("returns successfully", func() {
+					clone := config.Clone()
+					Expect(clone).ToNot(BeIdenticalTo(config))
+					Expect(clone.Addresses).To(Equal(config.Addresses))
+					Expect(clone.TLS).To(Equal(config.TLS))
+					Expect(clone.Database).To(Equal(config.Database))
+					Expect(clone.Collection).To(Equal(config.Collection))
+					Expect(clone.Username).ToNot(BeIdenticalTo(config.Username))
+					Expect(*clone.Username).To(Equal(*config.Username))
+					Expect(clone.Password).ToNot(BeIdenticalTo(config.Password))
+					Expect(*clone.Password).To(Equal(*config.Password))
+					Expect(clone.Timeout).To(Equal(config.Timeout))
+				})
+
+				It("returns successfully if addresses is nil", func() {
+					config.Addresses = nil
+					clone := config.Clone()
+					Expect(clone).ToNot(BeIdenticalTo(config))
+					Expect(clone.Addresses).To(BeNil())
+					Expect(clone.TLS).To(Equal(config.TLS))
+					Expect(clone.Database).To(Equal(config.Database))
+					Expect(clone.Collection).To(Equal(config.Collection))
+					Expect(clone.Username).ToNot(BeIdenticalTo(config.Username))
+					Expect(*clone.Username).To(Equal(*config.Username))
+					Expect(clone.Password).ToNot(BeIdenticalTo(config.Password))
+					Expect(*clone.Password).To(Equal(*config.Password))
+					Expect(clone.Timeout).To(Equal(config.Timeout))
+				})
+
+				It("returns successfully if username is nil", func() {
+					config.Username = nil
+					clone := config.Clone()
+					Expect(clone).ToNot(BeIdenticalTo(config))
+					Expect(clone.Addresses).To(Equal(config.Addresses))
+					Expect(clone.TLS).To(Equal(config.TLS))
+					Expect(clone.Database).To(Equal(config.Database))
+					Expect(clone.Collection).To(Equal(config.Collection))
+					Expect(clone.Username).To(BeNil())
+					Expect(clone.Password).ToNot(BeIdenticalTo(config.Password))
+					Expect(*clone.Password).To(Equal(*config.Password))
+					Expect(clone.Timeout).To(Equal(config.Timeout))
+				})
+
+				It("returns successfully if password is nil", func() {
+					config.Password = nil
+					clone := config.Clone()
+					Expect(clone).ToNot(BeIdenticalTo(config))
+					Expect(clone.Addresses).To(Equal(config.Addresses))
+					Expect(clone.TLS).To(Equal(config.TLS))
+					Expect(clone.Database).To(Equal(config.Database))
+					Expect(clone.Collection).To(Equal(config.Collection))
+					Expect(clone.Username).ToNot(BeIdenticalTo(config.Username))
+					Expect(*clone.Username).To(Equal(*config.Username))
+					Expect(clone.Password).To(BeNil())
+					Expect(clone.Timeout).To(Equal(config.Timeout))
+				})
+			})
 		})
 	})
 })

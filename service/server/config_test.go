@@ -4,97 +4,167 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"time"
+
+	"github.com/tidepool-org/platform/config/test"
 	"github.com/tidepool-org/platform/service/server"
 )
 
 var _ = Describe("Config", func() {
-	var config *server.Config
-
-	BeforeEach(func() {
-		config = &server.Config{
-			Address: "127.0.0.1",
-			TLS: &server.TLS{
-				CertificateFile: "config_test.go",
-				KeyFile:         "config_test.go",
-			},
-			Timeout: 120,
-		}
-	})
-
-	Context("Validate", func() {
-		It("returns success if all are valid", func() {
-			Expect(config.Validate()).To(Succeed())
-		})
-
-		It("returns an error if the address is missing", func() {
-			config.Address = ""
-			Expect(config.Validate()).To(MatchError("server: address is missing"))
-		})
-
-		It("returns success if TLS is not specified", func() {
-			config.TLS = nil
-			Expect(config.Validate()).To(Succeed())
-		})
-
-		It("returns an error if TLS is specified, but the certificate file is missing", func() {
-			config.TLS.CertificateFile = ""
-			Expect(config.Validate()).To(MatchError("server: tls certificate file is missing"))
-		})
-
-		It("returns an error if TLS is specified, but the certificate file does not exist", func() {
-			config.TLS.CertificateFile = "does_not_exist"
-			Expect(config.Validate()).To(MatchError("server: tls certificate file does not exist"))
-		})
-
-		It("returns an error if TLS is specified, but the certificate file is a directory", func() {
-			config.TLS.CertificateFile = "."
-			Expect(config.Validate()).To(MatchError("server: tls certificate file is a directory"))
-		})
-
-		It("returns an error if TLS is specified, but the key file is missing", func() {
-			config.TLS.KeyFile = ""
-			Expect(config.Validate()).To(MatchError("server: tls key file is missing"))
-		})
-
-		It("returns an error if TLS is specified, but the key file does not exist", func() {
-			config.TLS.KeyFile = "does_not_exist"
-			Expect(config.Validate()).To(MatchError("server: tls key file does not exist"))
-		})
-
-		It("returns an error if TLS is specified, but the key file is a directory", func() {
-			config.TLS.KeyFile = "."
-			Expect(config.Validate()).To(MatchError("server: tls key file is a directory"))
-		})
-
-		It("returns success if the timeout is zero", func() {
-			config.Timeout = 0
-			Expect(config.Validate()).To(Succeed())
-		})
-
-		It("returns an error if the timeout is less than zero", func() {
-			config.Timeout = -1
-			Expect(config.Validate()).To(MatchError("server: timeout is invalid"))
+	Context("NewConfig", func() {
+		It("returns a new config with default values", func() {
+			config := server.NewConfig()
+			Expect(config).ToNot(BeNil())
+			Expect(config.Address).To(Equal(""))
+			Expect(config.TLS).To(BeTrue())
+			Expect(config.TLSCertificateFile).To(Equal(""))
+			Expect(config.TLSKeyFile).To(Equal(""))
+			Expect(config.Timeout).To(Equal(60 * time.Second))
 		})
 	})
 
-	Context("Clone", func() {
-		It("returns successfully", func() {
-			clone := config.Clone()
-			Expect(clone).ToNot(BeIdenticalTo(config))
-			Expect(clone.Address).To(Equal(config.Address))
-			Expect(clone.TLS).ToNot(BeIdenticalTo(config.TLS))
-			Expect(clone.TLS.CertificateFile).To(Equal(config.TLS.CertificateFile))
-			Expect(clone.TLS.KeyFile).To(Equal(config.TLS.KeyFile))
-			Expect(clone.Timeout).To(Equal(config.Timeout))
+	Context("with new config", func() {
+		var config *server.Config
+
+		BeforeEach(func() {
+			config = server.NewConfig()
+			Expect(config).ToNot(BeNil())
 		})
 
-		It("returns successfully if TLS is nil", func() {
-			config.TLS = nil
-			clone := config.Clone()
-			Expect(clone).ToNot(BeIdenticalTo(config))
-			Expect(clone.Address).To(Equal(config.Address))
-			Expect(clone.TLS).To(BeNil())
-			Expect(clone.Timeout).To(Equal(config.Timeout))
+		Context("Load", func() {
+			var configReporter *test.Reporter
+
+			BeforeEach(func() {
+				configReporter = test.NewReporter()
+				configReporter.Config["address"] = "https://1.2.3.4:5678"
+				configReporter.Config["tls"] = "false"
+				configReporter.Config["tls_certificate_file"] = "my-certificate-file"
+				configReporter.Config["tls_key_file"] = "my-key-file"
+				configReporter.Config["timeout"] = "120"
+			})
+
+			It("returns an error if config reporter is missing", func() {
+				Expect(config.Load(nil)).To(MatchError("server: config reporter is missing"))
+			})
+
+			It("uses default address if not set", func() {
+				delete(configReporter.Config, "address")
+				Expect(config.Load(configReporter)).To(Succeed())
+				Expect(config.Address).To(Equal(""))
+			})
+
+			It("uses default tls if not set", func() {
+				delete(configReporter.Config, "tls")
+				Expect(config.Load(configReporter)).To(Succeed())
+				Expect(config.TLS).To(BeTrue())
+			})
+
+			It("returns an error if the tls cannot be parsed to a boolean", func() {
+				configReporter.Config["tls"] = "abc"
+				Expect(config.Load(configReporter)).To(MatchError("server: tls is invalid"))
+				Expect(config.TLS).To(BeTrue())
+			})
+
+			It("uses default tls certificate file if not set", func() {
+				delete(configReporter.Config, "tls_certificate_file")
+				Expect(config.Load(configReporter)).To(Succeed())
+				Expect(config.TLSCertificateFile).To(Equal(""))
+			})
+
+			It("uses default tls key file if not set", func() {
+				delete(configReporter.Config, "tls_key_file")
+				Expect(config.Load(configReporter)).To(Succeed())
+				Expect(config.TLSKeyFile).To(Equal(""))
+			})
+
+			It("uses default timeout if not set", func() {
+				delete(configReporter.Config, "timeout")
+				Expect(config.Load(configReporter)).To(Succeed())
+				Expect(config.Timeout).To(Equal(60 * time.Second))
+			})
+
+			It("returns an error if the timeout cannot be parsed to an integer", func() {
+				configReporter.Config["timeout"] = "abc"
+				Expect(config.Load(configReporter)).To(MatchError("server: timeout is invalid"))
+				Expect(config.Timeout).To(Equal(60 * time.Second))
+			})
+
+			It("returns successfully and uses values from config reporter", func() {
+				Expect(config.Load(configReporter)).To(Succeed())
+				Expect(config.Address).To(Equal("https://1.2.3.4:5678"))
+				Expect(config.TLS).To(BeFalse())
+				Expect(config.TLSCertificateFile).To(Equal("my-certificate-file"))
+				Expect(config.TLSKeyFile).To(Equal("my-key-file"))
+				Expect(config.Timeout).To(Equal(120 * time.Second))
+			})
+		})
+
+		Context("with valid values", func() {
+			BeforeEach(func() {
+				config.Address = "127.0.0.1"
+				config.TLS = true
+				config.TLSCertificateFile = "config_test.go"
+				config.TLSKeyFile = "config_test.go"
+				config.Timeout = 120 * time.Second
+			})
+
+			Context("Validate", func() {
+				It("returns success if all are valid", func() {
+					Expect(config.Validate()).To(Succeed())
+				})
+
+				It("returns an error if the address is missing", func() {
+					config.Address = ""
+					Expect(config.Validate()).To(MatchError("server: address is missing"))
+				})
+
+				It("returns an error if TLS is specified, but the certificate file is missing", func() {
+					config.TLSCertificateFile = ""
+					Expect(config.Validate()).To(MatchError("server: tls certificate file is missing"))
+				})
+
+				It("returns an error if TLS is specified, but the certificate file does not exist", func() {
+					config.TLSCertificateFile = "does_not_exist"
+					Expect(config.Validate()).To(MatchError("server: tls certificate file does not exist"))
+				})
+
+				It("returns an error if TLS is specified, but the certificate file is a directory", func() {
+					config.TLSCertificateFile = "."
+					Expect(config.Validate()).To(MatchError("server: tls certificate file is a directory"))
+				})
+
+				It("returns an error if TLS is specified, but the key file is missing", func() {
+					config.TLSKeyFile = ""
+					Expect(config.Validate()).To(MatchError("server: tls key file is missing"))
+				})
+
+				It("returns an error if TLS is specified, but the key file does not exist", func() {
+					config.TLSKeyFile = "does_not_exist"
+					Expect(config.Validate()).To(MatchError("server: tls key file does not exist"))
+				})
+
+				It("returns an error if TLS is specified, but the key file is a directory", func() {
+					config.TLSKeyFile = "."
+					Expect(config.Validate()).To(MatchError("server: tls key file is a directory"))
+				})
+
+				It("returns an error if the timeout is invalid", func() {
+					config.Timeout = 0
+					Expect(config.Validate()).To(MatchError("server: timeout is invalid"))
+				})
+			})
+
+			Context("Clone", func() {
+				It("returns successfully", func() {
+					clone := config.Clone()
+					Expect(clone).ToNot(BeIdenticalTo(config))
+					Expect(clone.Address).To(Equal(config.Address))
+					Expect(clone.TLS).To(Equal(config.TLS))
+					Expect(clone.TLSCertificateFile).To(Equal(config.TLSCertificateFile))
+					Expect(clone.TLSKeyFile).To(Equal(config.TLSKeyFile))
+					Expect(clone.Timeout).To(Equal(config.Timeout))
+				})
+			})
 		})
 	})
 })

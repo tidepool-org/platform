@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/service"
@@ -22,13 +21,12 @@ func NewStandard(config *Config) (*Standard, error) {
 		return nil, errors.New("client", "config is missing")
 	}
 
-	config = config.Clone()
 	if err := config.Validate(); err != nil {
 		return nil, errors.Wrap(err, "client", "config is invalid")
 	}
 
 	httpClient := &http.Client{
-		Timeout: time.Duration(config.RequestTimeout) * time.Second,
+		Timeout: config.Timeout,
 	}
 
 	return &Standard{

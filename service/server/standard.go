@@ -2,7 +2,6 @@ package server
 
 import (
 	"net/http"
-	"time"
 
 	graceful "gopkg.in/tylerb/graceful.v1"
 
@@ -28,7 +27,6 @@ func NewStandard(logger log.Logger, api service.API, config *Config) (*Standard,
 		return nil, errors.New("server", "config is missing")
 	}
 
-	config = config.Clone()
 	if err := config.Validate(); err != nil {
 		return nil, errors.Wrap(err, "server", "config is invalid")
 	}
@@ -42,7 +40,7 @@ func NewStandard(logger log.Logger, api service.API, config *Config) (*Standard,
 
 func (s *Standard) Serve() error {
 	server := &graceful.Server{
-		Timeout: time.Duration(s.config.Timeout) * time.Second,
+		Timeout: s.config.Timeout,
 		Server: &http.Server{
 			Addr:    s.config.Address,
 			Handler: s.api.Handler(),
@@ -50,8 +48,8 @@ func (s *Standard) Serve() error {
 	}
 
 	var err error
-	if s.config.TLS != nil {
-		err = server.ListenAndServeTLS(s.config.TLS.CertificateFile, s.config.TLS.KeyFile)
+	if s.config.TLS {
+		err = server.ListenAndServeTLS(s.config.TLSCertificateFile, s.config.TLSKeyFile)
 	} else {
 		err = server.ListenAndServe()
 	}
