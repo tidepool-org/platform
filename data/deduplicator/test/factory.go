@@ -1,10 +1,10 @@
 package test
 
 import (
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/upload"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 )
 
@@ -58,7 +58,7 @@ type Factory struct {
 
 func NewFactory() *Factory {
 	return &Factory{
-		ID: app.NewID(),
+		ID: id.New(),
 	}
 }
 

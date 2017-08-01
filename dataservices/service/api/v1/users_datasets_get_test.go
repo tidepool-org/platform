@@ -7,11 +7,11 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data/store"
 	testDataStore "github.com/tidepool-org/platform/data/store/test"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/dataservices/service/api/v1"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/userservices/client"
 )
@@ -26,8 +26,8 @@ var _ = Describe("UsersDatasetsGet", func() {
 		var pagination *store.Pagination
 
 		BeforeEach(func() {
-			authenticatedUserID = app.NewID()
-			targetUserID = app.NewID()
+			authenticatedUserID = id.New()
+			targetUserID = id.New()
 			uploads = []*upload.Upload{}
 			for i := 0; i < 3; i++ {
 				uploads = append(uploads, upload.Init())

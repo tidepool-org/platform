@@ -1,8 +1,8 @@
 package test
 
 import (
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/id"
 )
 
 type Deduplicator struct {
@@ -24,7 +24,7 @@ type Deduplicator struct {
 
 func NewDeduplicator() *Deduplicator {
 	return &Deduplicator{
-		ID: app.NewID(),
+		ID: id.New(),
 	}
 }
 

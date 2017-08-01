@@ -3,7 +3,7 @@ package middleware
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
 )
@@ -42,7 +42,7 @@ func (l *Trace) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
 					newTraceRequest = newTraceRequest[:_TraceMaximumLength]
 				}
 			} else {
-				newTraceRequest = app.NewID()
+				newTraceRequest = id.New()
 			}
 			service.SetRequestTraceRequest(request, newTraceRequest)
 			response.Header().Add(service.HTTPHeaderTraceRequest, newTraceRequest)

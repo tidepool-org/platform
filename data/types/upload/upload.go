@@ -1,9 +1,9 @@
 package upload
 
 import (
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/id"
 )
 
 type Upload struct {
@@ -44,7 +44,7 @@ func Init() *Upload {
 func (u *Upload) Init() {
 	u.Base.Init()
 	u.Type = Type()
-	u.UploadID = app.NewID()
+	u.UploadID = id.New()
 
 	u.State = "open"
 	u.DataState = "open" // TODO: Deprecated DataState (after data migration)

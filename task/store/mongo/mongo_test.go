@@ -9,7 +9,7 @@ import (
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	baseMongo "github.com/tidepool-org/platform/store/mongo"
 	"github.com/tidepool-org/platform/task/store"
@@ -123,7 +123,7 @@ var _ = Describe("Mongo", func() {
 				BeforeEach(func() {
 					testMongoSession = testMongo.Session().Copy()
 					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.Collection)
-					tasks = NewTasks(app.NewID())
+					tasks = NewTasks(id.New())
 				})
 
 				JustBeforeEach(func() {
@@ -141,7 +141,7 @@ var _ = Describe("Mongo", func() {
 					var destroyTasks []interface{}
 
 					BeforeEach(func() {
-						destroyUserID = app.NewID()
+						destroyUserID = id.New()
 						destroyTasks = NewTasks(destroyUserID)
 					})
 

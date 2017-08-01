@@ -1,9 +1,9 @@
 package types
 
 import (
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/id"
 )
 
 const SchemaVersionCurrent = 3
@@ -51,8 +51,8 @@ func (b *Base) Init() {
 	b.Deduplicator = nil
 	b.DeletedTime = ""
 	b.DeletedUserID = ""
-	b.GUID = app.NewUUID()
-	b.ID = app.NewID() // TODO: Move calculation to Normalize to follow Jellyfish algorithm
+	b.GUID = id.New()
+	b.ID = id.New() // TODO: Move calculation to Normalize to follow Jellyfish algorithm
 	b.ModifiedTime = ""
 	b.ModifiedUserID = ""
 	b.SchemaVersion = SchemaVersionCurrent

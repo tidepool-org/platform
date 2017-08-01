@@ -7,7 +7,6 @@ import (
 
 	"math"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/parser"
@@ -15,6 +14,7 @@ import (
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	"github.com/tidepool-org/platform/data/validator"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
@@ -28,7 +28,7 @@ func NewMeta() interface{} {
 
 func NewTestSelfMonitored(sourceTime interface{}, sourceUnits interface{}, sourceValue interface{}, sourceSubType interface{}) *selfmonitored.SelfMonitored {
 	testSelfMonitored := selfmonitored.Init()
-	testSelfMonitored.DeviceID = pointer.String(app.NewID())
+	testSelfMonitored.DeviceID = pointer.String(id.New())
 	if value, ok := sourceTime.(string); ok {
 		testSelfMonitored.Time = pointer.String(value)
 	}

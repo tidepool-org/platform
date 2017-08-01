@@ -1,5 +1,6 @@
 ## HEAD
 
+- Pull id functions out of app package into their own id package
 - Pull pointer functions out of app package into their own pointer package
 - Remove deprecated environment package
 - Introduce new scoped config mechanism using only environment variables and not external files
