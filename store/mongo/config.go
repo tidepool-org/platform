@@ -1,26 +1,75 @@
 package mongo
 
 import (
+	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/errors"
 )
 
 type Config struct {
-	Addresses  string         `json:"addresses"` // TODO: This should be an array, but configor does not support that. Bleech! Fix?
-	Database   string         `json:"database"`
-	Collection string         `json:"collection"`
-	Username   *string        `json:"username"`
-	Password   *string        `json:"password"`
-	Timeout    *time.Duration `json:"timeout"`
-	SSL        bool           `json:"ssl"`
+	Addresses  []string
+	TLS        bool
+	Database   string
+	Collection string
+	Username   *string
+	Password   *string
+	Timeout    time.Duration
+}
+
+func NewConfig() *Config {
+	return &Config{
+		TLS:     true,
+		Timeout: 60 * time.Second,
+	}
+}
+
+func (c *Config) Load(configReporter config.Reporter) error {
+	if configReporter == nil {
+		return errors.New("mongo", "config reporter is missing")
+	}
+
+	c.Addresses = app.SplitStringAndRemoveWhitespace(configReporter.StringOrDefault("addresses", ""), ",")
+	if tlsString, found := configReporter.String("tls"); found {
+		tls, err := strconv.ParseBool(tlsString)
+		if err != nil {
+			return errors.New("mongo", "tls is invalid")
+		}
+		c.TLS = tls
+	}
+	c.Database = configReporter.StringOrDefault("database", "")
+	c.Collection = configReporter.StringOrDefault("collection", "")
+	if username, found := configReporter.String("username"); found {
+		c.Username = app.StringAsPointer(username)
+	}
+	if password, found := configReporter.String("password"); found {
+		c.Password = app.StringAsPointer(password)
+	}
+	if timeoutString, found := configReporter.String("timeout"); found {
+		timeout, err := strconv.ParseInt(timeoutString, 10, 0)
+		if err != nil {
+			return errors.New("mongo", "timeout is invalid")
+		}
+		c.Timeout = time.Duration(timeout) * time.Second
+	}
+
+	return nil
 }
 
 func (c *Config) Validate() error {
-	addresses := app.SplitStringAndRemoveWhitespace(c.Addresses, ",")
-	if len(addresses) < 1 {
+	if len(c.Addresses) < 1 {
 		return errors.New("mongo", "addresses is missing")
+	}
+	for _, address := range c.Addresses {
+		if address == "" {
+			return errors.New("mongo", "address is missing")
+		}
+		if _, err := url.Parse(address); err != nil {
+			return errors.New("mongo", "address is invalid")
+		}
 	}
 	if c.Database == "" {
 		return errors.New("mongo", "database is missing")
@@ -28,24 +77,22 @@ func (c *Config) Validate() error {
 	if c.Collection == "" {
 		return errors.New("mongo", "collection is missing")
 	}
-	if c.Username != nil && *c.Username == "" {
-		return errors.New("mongo", "username is empty")
-	}
-	if c.Password != nil && *c.Password == "" {
-		return errors.New("mongo", "password is empty")
-	}
-	if c.Timeout != nil && *c.Timeout < 0 {
+	if c.Timeout <= 0 {
 		return errors.New("mongo", "timeout is invalid")
 	}
+
 	return nil
 }
 
 func (c *Config) Clone() *Config {
 	clone := &Config{
-		Addresses:  c.Addresses,
+		TLS:        c.TLS,
 		Database:   c.Database,
 		Collection: c.Collection,
-		SSL:        c.SSL,
+		Timeout:    c.Timeout,
+	}
+	if c.Addresses != nil {
+		clone.Addresses = append([]string{}, c.Addresses...)
 	}
 	if c.Username != nil {
 		clone.Username = app.StringAsPointer(*c.Username)
@@ -53,8 +100,6 @@ func (c *Config) Clone() *Config {
 	if c.Password != nil {
 		clone.Password = app.StringAsPointer(*c.Password)
 	}
-	if c.Timeout != nil {
-		clone.Timeout = app.DurationAsPointer(*c.Timeout)
-	}
+
 	return clone
 }

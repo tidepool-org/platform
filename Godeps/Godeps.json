@@ -247,10 +247,6 @@
 			"Rev": "7dd06bf38e1e13df288d471a57d5adbac106be9e"
 		},
 		{
-			"ImportPath": "github.com/tidepool-org/configor",
-			"Rev": "a7da4221a0ed68a014fca29942e901464b6dd1d0"
-		},
-		{
 			"ImportPath": "github.com/urfave/cli",
 			"Comment": "v1.19.1-52-gb892ba3",
 			"Rev": "b892ba3809cd07fcf2b064e166b0c2e16e0147bd"

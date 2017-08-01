@@ -2,9 +2,9 @@ package service
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/tidepool-org/platform/config"
+	"github.com/tidepool-org/platform/config/env"
 	"github.com/tidepool-org/platform/environment"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -16,7 +16,7 @@ type Standard struct {
 	prefix              string
 	versionReporter     version.Reporter
 	environmentReporter environment.Reporter
-	configLoader        config.Loader
+	configReporter      config.Reporter
 	logger              log.Logger
 }
 
@@ -38,7 +38,7 @@ func (s *Standard) Initialize() error {
 	if err := s.initializeEnvironmentReporter(); err != nil {
 		return err
 	}
-	if err := s.initializeConfigLoader(); err != nil {
+	if err := s.initializeConfigReporter(); err != nil {
 		return err
 	}
 	if err := s.initializeLogger(); err != nil {
@@ -50,7 +50,7 @@ func (s *Standard) Initialize() error {
 
 func (s *Standard) Terminate() {
 	s.logger = nil
-	s.configLoader = nil
+	s.configReporter = nil
 	s.environmentReporter = nil
 	s.versionReporter = nil
 }
@@ -71,8 +71,8 @@ func (s *Standard) EnvironmentReporter() environment.Reporter {
 	return s.environmentReporter
 }
 
-func (s *Standard) ConfigLoader() config.Loader {
-	return s.configLoader
+func (s *Standard) ConfigReporter() config.Reporter {
+	return s.configReporter
 }
 
 func (s *Standard) Logger() log.Logger {
@@ -99,19 +99,20 @@ func (s *Standard) initializeEnvironmentReporter() error {
 	return nil
 }
 
-func (s *Standard) initializeConfigLoader() error {
-	configLoader, err := config.NewLoader(s.environmentReporter, filepath.Join(s.environmentReporter.GetValue("CONFIG_DIRECTORY"), s.name))
+func (s *Standard) initializeConfigReporter() error {
+	configReporter, err := env.NewReporter(s.Prefix())
 	if err != nil {
-		return errors.Wrap(err, "service", "unable to create config loader")
+		return errors.Wrap(err, "service", "unable to create config reporter")
 	}
-	s.configLoader = configLoader
+
+	s.configReporter = configReporter.WithScopes(s.Name())
 
 	return nil
 }
 
 func (s *Standard) initializeLogger() error {
-	loggerConfig := &log.Config{}
-	if err := s.configLoader.Load("logger", loggerConfig); err != nil {
+	loggerConfig := log.NewConfig()
+	if err := loggerConfig.Load(s.ConfigReporter().WithScopes("logger")); err != nil {
 		return errors.Wrap(err, "service", "unable to load logger config")
 	}
 

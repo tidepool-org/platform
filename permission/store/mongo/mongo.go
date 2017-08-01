@@ -22,7 +22,6 @@ func New(logger log.Logger, config *Config) (*Store, error) {
 		return nil, err
 	}
 
-	config = config.Clone()
 	if err = config.Validate(); err != nil {
 		return nil, errors.Wrap(err, "mongo", "config is invalid")
 	}

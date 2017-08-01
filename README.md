@@ -8,13 +8,13 @@ The Tidepool Platform API.
 
 # Setup
 
-1. Install Go version 1.6 or later.
+1. Install Go version 1.8 or later.
 1. Create a brand new Go directory.
 1. Set the `GOPATH` environment variable to the newly created Go directory.
 1. Add `$GOPATH/bin` to the `PATH` environment variable.
 1. Execute `go get github.com/tidepool-org/platform` to pull down the project. You may ignore a "no buildable Go source files" warning.
 1. Change directory to `$GOPATH/src/github.com/tidepool-org/platform`.
-1. Source the `.env` file.
+1. Source the `env.local.sh` file.
 1. Execute `make editable` to install the various Go tools needed for building and editing the project.
 
 For example:
@@ -26,7 +26,7 @@ export GOPATH=~/go
 export PATH=$GOPATH/bin:$PATH
 go get github.com/tidepool-org/platform
 cd $GOPATH/src/github.com/tidepool-org/platform
-source .env
+. ./env.local.sh
 make editable
 ```
 
@@ -51,7 +51,6 @@ _bin/dataservices/dataservices
 ```
 
 Use `Ctrl-C` to stop the executable. It may take up to 60 seconds to stop.
-
 
 # Makefile
 

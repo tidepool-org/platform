@@ -8,7 +8,6 @@ import (
 
 	mgo "gopkg.in/mgo.v2"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/store"
@@ -35,7 +34,6 @@ func New(logger log.Logger, config *Config) (*Store, error) {
 		return nil, errors.New("mongo", "config is missing")
 	}
 
-	config = config.Clone()
 	if err := config.Validate(); err != nil {
 		return nil, errors.Wrap(err, "mongo", "config is invalid")
 	}
@@ -47,7 +45,12 @@ func New(logger log.Logger, config *Config) (*Store, error) {
 	logger = logger.WithFields(loggerFields)
 
 	dialInfo := mgo.DialInfo{}
-	dialInfo.Addrs = app.SplitStringAndRemoveWhitespace(config.Addresses, ",")
+	dialInfo.Addrs = config.Addresses
+	if config.TLS {
+		dialInfo.DialServer = func(serverAddr *mgo.ServerAddr) (net.Conn, error) {
+			return tls.Dial("tcp", serverAddr.String(), &tls.Config{InsecureSkipVerify: true}) // TODO: Secure this connection
+		}
+	}
 	dialInfo.Database = config.Database
 	if config.Username != nil {
 		dialInfo.Username = *config.Username
@@ -55,14 +58,7 @@ func New(logger log.Logger, config *Config) (*Store, error) {
 	if config.Password != nil {
 		dialInfo.Password = *config.Password
 	}
-	if config.Timeout != nil {
-		dialInfo.Timeout = *config.Timeout
-	}
-	if config.SSL {
-		dialInfo.DialServer = func(serverAddr *mgo.ServerAddr) (net.Conn, error) {
-			return tls.Dial("tcp", serverAddr.String(), &tls.Config{InsecureSkipVerify: true}) // TODO: Secure this connection
-		}
-	}
+	dialInfo.Timeout = config.Timeout
 
 	logger.Debug("Dialing Mongo database")
 

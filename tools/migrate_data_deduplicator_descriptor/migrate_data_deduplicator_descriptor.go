@@ -28,7 +28,7 @@ const (
 	VerboseFlag   = "verbose"
 	DryRunFlag    = "dry-run"
 	AddressesFlag = "addresses"
-	SSLFlag       = "ssl"
+	TLSFlag       = "tls"
 )
 
 func main() {
@@ -79,8 +79,8 @@ func initializeApplication() (*cli.App, error) {
 			Usage: "comma-delimited list of address(es) to mongo database (host:port)",
 		},
 		cli.BoolFlag{
-			Name:  fmt.Sprintf("%s,%s", SSLFlag, "s"),
-			Usage: "use SSL to connect to mongo database",
+			Name:  fmt.Sprintf("%s,%s", TLSFlag, "t"),
+			Usage: "use TLS to connect to mongo database",
 		},
 	}
 	application.Action = func(context *cli.Context) error {
@@ -132,24 +132,18 @@ func executeApplication(versionReporter version.Reporter, context *cli.Context) 
 
 func buildConfigFromContext(context *cli.Context) (*Config, error) {
 	config := &Config{
-		Log: &log.Config{
-			Level: "info",
-		},
-		Mongo: &mongo.Config{
-			Timeout: app.DurationAsPointer(60 * time.Second),
-		},
+		Log:   log.NewConfig(),
+		Mongo: mongo.NewConfig(),
 	}
 
 	if context.Bool(VerboseFlag) {
 		config.Log.Level = "debug"
+	} else {
+		config.Log.Level = "info"
 	}
-	config.Mongo.Addresses = context.String(AddressesFlag)
-	if context.Bool(SSLFlag) {
-		config.Mongo.SSL = true
-	}
-	if context.Bool(DryRunFlag) {
-		config.DryRun = true
-	}
+	config.Mongo.Addresses = app.SplitStringAndRemoveWhitespace(context.String(AddressesFlag), ",")
+	config.Mongo.TLS = context.Bool(TLSFlag)
+	config.DryRun = context.Bool(DryRunFlag)
 
 	return config, nil
 }
@@ -171,7 +165,7 @@ func migrateDataDeduplicatorDescriptors(logger log.Logger, config *Config) error
 	mongoConfig := config.Mongo.Clone()
 	mongoConfig.Database = "data"
 	mongoConfig.Collection = "deviceData"
-	mongoConfig.Timeout = app.DurationAsPointer(60 * time.Minute)
+	mongoConfig.Timeout = 60 * time.Minute
 	dataStore, err := mongo.New(logger, mongoConfig)
 	if err != nil {
 		return errors.Wrap(err, "main", "unable to create data store")

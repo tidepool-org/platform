@@ -1,7 +1,11 @@
 ## HEAD
 
+- Introduce new scoped config mechanism using only environment variables and not external files
+- Update all config struct usage to reflect new scoped config mechanism
+- Delete deprecated config files
+- Remove github.com/tidepool-org/configor dependency
 - Remove legacy group id from data replaced by user id
-- Remove user services Client.GetUserGroupID as necessary
+- Remove deprecated user services Client.GetUserGroupID
 
 ## v1.9.0 (2017-08-10)
 

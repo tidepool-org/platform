@@ -5,6 +5,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"net/http"
+	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/onsi/gomega/ghttp"
@@ -45,9 +46,9 @@ var _ = Describe("Standard", func() {
 		BeforeEach(func() {
 			config = &client.Config{
 				Address:            "http://localhost:1234",
-				RequestTimeout:     30,
+				Timeout:            30 * time.Second,
 				ServerTokenSecret:  "I Have A Good Secret!",
-				ServerTokenTimeout: 1800,
+				ServerTokenTimeout: 1800 * time.Second,
 			}
 		})
 
@@ -69,17 +70,17 @@ var _ = Describe("Standard", func() {
 			Expect(standard).To(BeNil())
 		})
 
-		It("returns an error if config address is invalid", func() {
+		It("returns an error if config address is missing", func() {
 			config.Address = ""
 			standard, err := client.NewStandard(logger, "testservices", config)
 			Expect(err).To(MatchError("client: config is invalid; client: address is missing"))
 			Expect(standard).To(BeNil())
 		})
 
-		It("returns an error if config request timeout is invalid", func() {
-			config.RequestTimeout = -1
+		It("returns an error if config timeout is invalid", func() {
+			config.Timeout = 0
 			standard, err := client.NewStandard(logger, "testservices", config)
-			Expect(err).To(MatchError("client: config is invalid; client: request timeout is invalid"))
+			Expect(err).To(MatchError("client: config is invalid; client: timeout is invalid"))
 			Expect(standard).To(BeNil())
 		})
 
@@ -91,7 +92,7 @@ var _ = Describe("Standard", func() {
 		})
 
 		It("returns an error if config server token timeout is invalid", func() {
-			config.ServerTokenTimeout = -1
+			config.ServerTokenTimeout = 0
 			standard, err := client.NewStandard(logger, "testservices", config)
 			Expect(err).To(MatchError("client: config is invalid; client: server token timeout is invalid"))
 			Expect(standard).To(BeNil())
@@ -114,9 +115,9 @@ var _ = Describe("Standard", func() {
 			server = ghttp.NewServer()
 			config = &client.Config{
 				Address:            server.URL(),
-				RequestTimeout:     30,
+				Timeout:            30 * time.Second,
 				ServerTokenSecret:  " I Have A Good Secret! ",
-				ServerTokenTimeout: 1800,
+				ServerTokenTimeout: 1800 * time.Second,
 			}
 		})
 
@@ -242,7 +243,7 @@ var _ = Describe("Standard", func() {
 
 			Context("with 1 second token timeout", func() {
 				BeforeEach(func() {
-					config.ServerTokenTimeout = 1
+					config.ServerTokenTimeout = 1 * time.Second
 					server.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("POST", "/auth/serverlogin"),

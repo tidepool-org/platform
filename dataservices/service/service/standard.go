@@ -106,8 +106,8 @@ func (s *Standard) Run() error {
 func (s *Standard) initializeMetricServicesClient() error {
 	s.Logger().Debug("Loading metric services client config")
 
-	metricServicesClientConfig := &metricservicesClient.Config{}
-	if err := s.ConfigLoader().Load("metricservices_client", metricServicesClientConfig); err != nil {
+	metricServicesClientConfig := metricservicesClient.NewConfig()
+	if err := metricServicesClientConfig.Load(s.ConfigReporter().WithScopes("metricservices", "client")); err != nil {
 		return errors.Wrap(err, "service", "unable to load metric services client config")
 	}
 
@@ -125,8 +125,8 @@ func (s *Standard) initializeMetricServicesClient() error {
 func (s *Standard) initializeUserServicesClient() error {
 	s.Logger().Debug("Loading user services client config")
 
-	userServicesClientConfig := &userservicesClient.Config{}
-	if err := s.ConfigLoader().Load("userservices_client", userServicesClientConfig); err != nil {
+	userServicesClientConfig := userservicesClient.NewConfig()
+	if err := userServicesClientConfig.Load(s.ConfigReporter().WithScopes("userservices", "client")); err != nil {
 		return errors.Wrap(err, "service", "unable to load user services client config")
 	}
 
@@ -192,8 +192,8 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 func (s *Standard) initializeDataStore() error {
 	s.Logger().Debug("Loading data store config")
 
-	dataStoreConfig := &baseMongo.Config{}
-	if err := s.ConfigLoader().Load("data_store", dataStoreConfig); err != nil {
+	dataStoreConfig := baseMongo.NewConfig()
+	if err := dataStoreConfig.Load(s.ConfigReporter().WithScopes("data", "store")); err != nil {
 		return errors.Wrap(err, "service", "unable to load data store config")
 	}
 	dataStoreConfig.Collection = "deviceData"
@@ -212,8 +212,8 @@ func (s *Standard) initializeDataStore() error {
 func (s *Standard) initializeTaskStore() error {
 	s.Logger().Debug("Loading task store config")
 
-	taskStoreConfig := &baseMongo.Config{}
-	if err := s.ConfigLoader().Load("task_store", taskStoreConfig); err != nil {
+	taskStoreConfig := baseMongo.NewConfig()
+	if err := taskStoreConfig.Load(s.ConfigReporter().WithScopes("task", "store")); err != nil {
 		return errors.Wrap(err, "service", "unable to load task store config")
 	}
 	taskStoreConfig.Collection = "syncTasks"
@@ -264,8 +264,8 @@ func (s *Standard) initializeDataServicesAPI() error {
 func (s *Standard) initializeDataServicesServer() error {
 	s.Logger().Debug("Loading data services server config")
 
-	dataServicesServerConfig := &server.Config{}
-	if err := s.ConfigLoader().Load("dataservices_server", dataServicesServerConfig); err != nil {
+	dataServicesServerConfig := server.NewConfig()
+	if err := dataServicesServerConfig.Load(s.ConfigReporter().WithScopes("dataservices", "server")); err != nil {
 		return errors.Wrap(err, "service", "unable to load data services server config")
 	}
 
