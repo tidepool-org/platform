@@ -31,7 +31,7 @@ type reporter struct {
 	scopes []string
 }
 
-func (r *reporter) String(key string) (string, bool) {
+func (r *reporter) Get(key string) (string, bool) {
 	limit := len(r.scopes) - 1
 	if limit < 0 {
 		limit = 0
@@ -49,8 +49,8 @@ func (r *reporter) String(key string) (string, bool) {
 	return "", false
 }
 
-func (r *reporter) StringOrDefault(key string, defaultValue string) string {
-	if value, found := r.String(key); found {
+func (r *reporter) GetWithDefault(key string, defaultValue string) string {
+	if value, found := r.Get(key); found {
 		return value
 	}
 

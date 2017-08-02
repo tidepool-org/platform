@@ -64,7 +64,7 @@ var _ = Describe("Reporter", func() {
 			DescribeTable("returns expected values given environment variables",
 				func(environmentKey string, environmentValue string, key string, expectedValue string, expectedFound bool) {
 					Expect(syscall.Setenv(environmentKey, environmentValue)).To(Succeed())
-					actualValue, actualFound := reporter.String(key)
+					actualValue, actualFound := reporter.Get(key)
 					Expect(syscall.Unsetenv(environmentKey)).To(Succeed())
 					Expect(actualFound).To(Equal(expectedFound))
 					Expect(actualValue).To(Equal(expectedValue))
@@ -78,21 +78,21 @@ var _ = Describe("Reporter", func() {
 			)
 		})
 
-		Context("StringOrDefault", func() {
+		Context("GetWithDefault", func() {
 			It("returns the value if found", func() {
 				Expect(syscall.Setenv("TIDEPOOL_TEST_GOLF", "bag")).To(Succeed())
-				Expect(reporter.StringOrDefault("GOLF", "tee")).To(Equal("bag"))
+				Expect(reporter.GetWithDefault("GOLF", "tee")).To(Equal("bag"))
 				Expect(syscall.Unsetenv("TIDEPOOL_TEST_GOLF")).To(Succeed())
 			})
 
 			It("returns the value if found, even if empty", func() {
 				Expect(syscall.Setenv("TIDEPOOL_TEST_HOTEL", "")).To(Succeed())
-				Expect(reporter.StringOrDefault("HOTEL", "room")).To(Equal(""))
+				Expect(reporter.GetWithDefault("HOTEL", "room")).To(Equal(""))
 				Expect(syscall.Unsetenv("TIDEPOOL_TEST_HOTEL")).To(Succeed())
 			})
 
 			It("returns the default valuye if not found", func() {
-				Expect(reporter.StringOrDefault("INDIA", "ink")).To(Equal("ink"))
+				Expect(reporter.GetWithDefault("INDIA", "ink")).To(Equal("ink"))
 			})
 		})
 
@@ -100,7 +100,7 @@ var _ = Describe("Reporter", func() {
 			DescribeTable("returns expected values given environment variables and scopes",
 				func(environmentKey string, environmentValue string, scopes []string, key string, expectedValue string, expectedFound bool) {
 					Expect(syscall.Setenv(environmentKey, environmentValue)).To(Succeed())
-					actualValue, actualFound := reporter.WithScopes(scopes...).String(key)
+					actualValue, actualFound := reporter.WithScopes(scopes...).Get(key)
 					Expect(syscall.Unsetenv(environmentKey)).To(Succeed())
 					Expect(actualFound).To(Equal(expectedFound))
 					Expect(actualValue).To(Equal(expectedValue))

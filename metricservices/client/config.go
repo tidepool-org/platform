@@ -25,8 +25,8 @@ func (c *Config) Load(configReporter config.Reporter) error {
 		return errors.New("client", "config reporter is missing")
 	}
 
-	c.Address = configReporter.StringOrDefault("address", "")
-	if timeoutString, found := configReporter.String("timeout"); found {
+	c.Address = configReporter.GetWithDefault("address", "")
+	if timeoutString, found := configReporter.Get("timeout"); found {
 		timeout, err := strconv.ParseInt(timeoutString, 10, 0)
 		if err != nil {
 			return errors.New("client", "timeout is invalid")
