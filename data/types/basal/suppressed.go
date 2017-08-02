@@ -1,7 +1,6 @@
 package basal
 
 import (
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 )
 
@@ -42,7 +41,7 @@ func (s *Suppressed) Validate(validator data.Validator, allowedDeliveryTypes []s
 	validator.ValidateString("deliveryType", s.DeliveryType).Exists().OneOf(allowedDeliveryTypes)
 	validator.ValidateFloat("rate", s.Rate).Exists().InRange(0.0, 100.0)
 
-	if s.DeliveryType != nil && app.StringsContainsString(allowedDeliveryTypes, *s.DeliveryType) {
+	if s.HasDeliveryTypeOneOf(allowedDeliveryTypes) {
 		scheduleNameValidator := validator.ValidateString("scheduleName", s.ScheduleName)
 		suppressedValidator := validator.ValidateInterface("suppressed", suppressedAsInterface(s.Suppressed))
 		if *s.DeliveryType == "scheduled" {
@@ -56,6 +55,20 @@ func (s *Suppressed) Validate(validator data.Validator, allowedDeliveryTypes []s
 			}
 		}
 	}
+}
+
+func (s *Suppressed) HasDeliveryTypeOneOf(deliveryTypes []string) bool {
+	if s.DeliveryType == nil {
+		return false
+	}
+
+	for _, deliveryType := range deliveryTypes {
+		if deliveryType == *s.DeliveryType {
+			return true
+		}
+	}
+
+	return false
 }
 
 func suppressedAsInterface(suppressed *Suppressed) *interface{} {

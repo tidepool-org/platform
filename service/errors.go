@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/tidepool-org/platform/app"
 )
 
 func ErrorInternalServerFailure() *Error {
@@ -163,7 +161,7 @@ func ErrorValueNotEqualTo(value interface{}, limit interface{}) *Error {
 	return &Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is not equal to %v", app.QuoteIfString(value), app.QuoteIfString(limit)),
+		Detail: fmt.Sprintf("Value %v is not equal to %v", QuoteIfString(value), QuoteIfString(limit)),
 	}
 }
 
@@ -171,7 +169,7 @@ func ErrorValueEqualTo(value interface{}, limit interface{}) *Error {
 	return &Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is equal to %v", app.QuoteIfString(value), app.QuoteIfString(limit)),
+		Detail: fmt.Sprintf("Value %v is equal to %v", QuoteIfString(value), QuoteIfString(limit)),
 	}
 }
 
@@ -179,7 +177,7 @@ func ErrorValueNotLessThan(value interface{}, limit interface{}) *Error {
 	return &Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is not less than %v", app.QuoteIfString(value), app.QuoteIfString(limit)),
+		Detail: fmt.Sprintf("Value %v is not less than %v", QuoteIfString(value), QuoteIfString(limit)),
 	}
 }
 
@@ -187,7 +185,7 @@ func ErrorValueNotLessThanOrEqualTo(value interface{}, limit interface{}) *Error
 	return &Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is not less than or equal to %v", app.QuoteIfString(value), app.QuoteIfString(limit)),
+		Detail: fmt.Sprintf("Value %v is not less than or equal to %v", QuoteIfString(value), QuoteIfString(limit)),
 	}
 }
 
@@ -195,7 +193,7 @@ func ErrorValueNotGreaterThan(value interface{}, limit interface{}) *Error {
 	return &Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is not greater than %v", app.QuoteIfString(value), app.QuoteIfString(limit)),
+		Detail: fmt.Sprintf("Value %v is not greater than %v", QuoteIfString(value), QuoteIfString(limit)),
 	}
 }
 
@@ -203,7 +201,7 @@ func ErrorValueNotGreaterThanOrEqualTo(value interface{}, limit interface{}) *Er
 	return &Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is not greater than or equal to %v", app.QuoteIfString(value), app.QuoteIfString(limit)),
+		Detail: fmt.Sprintf("Value %v is not greater than or equal to %v", QuoteIfString(value), QuoteIfString(limit)),
 	}
 }
 
@@ -211,7 +209,7 @@ func ErrorValueNotInRange(value interface{}, lowerLimit interface{}, upperLimit 
 	return &Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is not between %v and %v", app.QuoteIfString(value), app.QuoteIfString(lowerLimit), app.QuoteIfString(upperLimit)),
+		Detail: fmt.Sprintf("Value %v is not between %v and %v", QuoteIfString(value), QuoteIfString(lowerLimit), QuoteIfString(upperLimit)),
 	}
 }
 
@@ -387,4 +385,11 @@ func ErrorLengthNotInRange(length int, lowerLimit int, upperLimit int) *Error {
 		Title:  "length is out of range",
 		Detail: fmt.Sprintf("Length %d is not between %d and %d", length, lowerLimit, upperLimit),
 	}
+}
+
+func QuoteIfString(interfaceValue interface{}) interface{} {
+	if stringValue, ok := interfaceValue.(string); ok {
+		return strconv.Quote(stringValue)
+	}
+	return interfaceValue
 }

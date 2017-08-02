@@ -9,7 +9,6 @@ import (
 	"github.com/urfave/cli"
 	"gopkg.in/mgo.v2/bson"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/session"
@@ -149,7 +148,7 @@ func buildConfigFromContext(context *cli.Context) (*Config, error) {
 	} else {
 		config.Log.Level = "info"
 	}
-	config.Mongo.Addresses = app.SplitStringAndRemoveWhitespace(context.String(AddressesFlag), ",")
+	config.Mongo.Addresses = mongo.SplitAddresses(context.String(AddressesFlag))
 	config.Mongo.TLS = context.Bool(TLSFlag)
 	config.DryRun = context.Bool(DryRunFlag)
 	config.Secret = context.String(SecretFlag)
