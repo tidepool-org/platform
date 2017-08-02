@@ -28,16 +28,16 @@ func (c *Config) Load(configReporter config.Reporter) error {
 		return errors.New("client", "config reporter is missing")
 	}
 
-	c.Address = configReporter.StringOrDefault("address", "")
-	if timeoutString, found := configReporter.String("timeout"); found {
+	c.Address = configReporter.GetWithDefault("address", "")
+	if timeoutString, found := configReporter.Get("timeout"); found {
 		timeout, err := strconv.ParseInt(timeoutString, 10, 0)
 		if err != nil {
 			return errors.New("client", "timeout is invalid")
 		}
 		c.Timeout = time.Duration(timeout) * time.Second
 	}
-	c.ServerTokenSecret = configReporter.StringOrDefault("server_token_secret", "")
-	if serverTokenTimeoutString, found := configReporter.String("server_token_timeout"); found {
+	c.ServerTokenSecret = configReporter.GetWithDefault("server_token_secret", "")
+	if serverTokenTimeoutString, found := configReporter.Get("server_token_timeout"); found {
 		serverTokenTimeout, err := strconv.ParseInt(serverTokenTimeoutString, 10, 0)
 		if err != nil {
 			return errors.New("client", "server token timeout is invalid")

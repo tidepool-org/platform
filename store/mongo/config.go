@@ -33,23 +33,23 @@ func (c *Config) Load(configReporter config.Reporter) error {
 		return errors.New("mongo", "config reporter is missing")
 	}
 
-	c.Addresses = SplitAddresses(configReporter.StringOrDefault("addresses", ""))
-	if tlsString, found := configReporter.String("tls"); found {
+	c.Addresses = SplitAddresses(configReporter.GetWithDefault("addresses", ""))
+	if tlsString, found := configReporter.Get("tls"); found {
 		tls, err := strconv.ParseBool(tlsString)
 		if err != nil {
 			return errors.New("mongo", "tls is invalid")
 		}
 		c.TLS = tls
 	}
-	c.Database = configReporter.StringOrDefault("database", "")
-	c.Collection = configReporter.StringOrDefault("collection", "")
-	if username, found := configReporter.String("username"); found {
+	c.Database = configReporter.GetWithDefault("database", "")
+	c.Collection = configReporter.GetWithDefault("collection", "")
+	if username, found := configReporter.Get("username"); found {
 		c.Username = pointer.String(username)
 	}
-	if password, found := configReporter.String("password"); found {
+	if password, found := configReporter.Get("password"); found {
 		c.Password = pointer.String(password)
 	}
-	if timeoutString, found := configReporter.String("timeout"); found {
+	if timeoutString, found := configReporter.Get("timeout"); found {
 		timeout, err := strconv.ParseInt(timeoutString, 10, 0)
 		if err != nil {
 			return errors.New("mongo", "timeout is invalid")

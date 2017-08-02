@@ -25,7 +25,7 @@ func (c *Config) Load(configReporter config.Reporter) error {
 		return err
 	}
 
-	c.Secret = configReporter.StringOrDefault("secret", "")
+	c.Secret = configReporter.GetWithDefault("secret", "")
 
 	return nil
 }
