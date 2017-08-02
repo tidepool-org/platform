@@ -1,6 +1,7 @@
 ## HEAD
 
-- Rename config Reporter functions String to Get and StringOrDefault to GetWithDefault
+- Add config Reporter functions `Set` and `Delete`
+- Rename config Reporter functions `String` to `Get` and `StringOrDefault` to `GetWithDefault`
 - Pull string functions out of app package into specific functions appropriate to including package
 - Pull id functions out of app package into their own id package
 - Pull pointer functions out of app package into their own pointer package
@@ -8,9 +9,9 @@
 - Introduce new scoped config mechanism using only environment variables and not external files
 - Update all config struct usage to reflect new scoped config mechanism
 - Delete deprecated config files
-- Remove github.com/tidepool-org/configor dependency
+- Remove `github.com/tidepool-org/configor` dependency
 - Remove legacy group id from data replaced by user id
-- Remove deprecated user services Client.GetUserGroupID
+- Remove deprecated user services `Client.GetUserGroupID`
 
 ## v1.9.0 (2017-08-10)
 
@@ -33,7 +34,7 @@
 - Force `precise` Ubuntu distribution for Travis (update to `trusty` later)
 - Add deduplicator version
 - Update deduplicator name scheme
-- Add github.com/blang/semver package dependency
+- Add `github.com/blang/semver package` dependency
 - Fix dependency import capitalization
 - Update dependencies
 - Remove unused data store functionality
