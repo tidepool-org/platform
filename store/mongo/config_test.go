@@ -2,6 +2,7 @@ package mongo_test
 
 import (
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
 	"time"
@@ -241,5 +242,21 @@ var _ = Describe("Config", func() {
 				})
 			})
 		})
+	})
+
+	Context("SplitAddresses", func() {
+		DescribeTable("returns expected addresses when",
+			func(addressesString string, expectedAddresses []string) {
+				Expect(mongo.SplitAddresses(addressesString)).To(Equal(expectedAddresses))
+			},
+			Entry("has empty addresses string with no separator", "", []string{}),
+			Entry("has whitespace-only addresses string with no separator", "   ", []string{}),
+			Entry("has addresses string with only separators", ",,,", []string{}),
+			Entry("has whitespace-only addresses string with separators", "  ,,   ,, ", []string{}),
+			Entry("has non-whitespace addresses string with no separator", "alpha", []string{"alpha"}),
+			Entry("has addresses string with whitespace no separator", "  alpha  ", []string{"alpha"}),
+			Entry("has addresses string with separators", "alpha,beta,charlie", []string{"alpha", "beta", "charlie"}),
+			Entry("has addresses string with whitespace and separators", "  alpha   ,  beta, charlie    ", []string{"alpha", "beta", "charlie"}),
+		)
 	})
 })

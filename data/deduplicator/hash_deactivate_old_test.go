@@ -162,7 +162,7 @@ var _ = Describe("HashDeactivateOld", func() {
 				It("returns an error if the device manufacturers is missing", func() {
 					testDataset.DeviceManufacturers = nil
 					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)
-					Expect(err).To(MatchError("deduplicator: dataset device manufacturers is missing"))
+					Expect(err).To(MatchError("deduplicator: dataset device manufacturers does not contain expected device manufacturers"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 

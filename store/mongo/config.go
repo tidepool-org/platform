@@ -3,9 +3,9 @@ package mongo
 import (
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
@@ -33,7 +33,7 @@ func (c *Config) Load(configReporter config.Reporter) error {
 		return errors.New("mongo", "config reporter is missing")
 	}
 
-	c.Addresses = app.SplitStringAndRemoveWhitespace(configReporter.StringOrDefault("addresses", ""), ",")
+	c.Addresses = SplitAddresses(configReporter.StringOrDefault("addresses", ""))
 	if tlsString, found := configReporter.String("tls"); found {
 		tls, err := strconv.ParseBool(tlsString)
 		if err != nil {
@@ -103,4 +103,15 @@ func (c *Config) Clone() *Config {
 	}
 
 	return clone
+}
+
+func SplitAddresses(addressesString string) []string {
+	addressses := []string{}
+	for _, address := range strings.Split(addressesString, ",") {
+		address = strings.TrimSpace(address)
+		if address != "" {
+			addressses = append(addressses, address)
+		}
+	}
+	return addressses
 }

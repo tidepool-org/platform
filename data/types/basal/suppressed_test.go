@@ -373,4 +373,29 @@ var _ = Describe("Target", func() {
 				}),
 		)
 	})
+
+	Context("HasDeliveryTypeOneOf", func() {
+		var suppressed *basal.Suppressed
+
+		BeforeEach(func() {
+			suppressed = basal.NewSuppressed()
+		})
+
+		It("returns false if suppressed delivery type is nil", func() {
+			Expect(suppressed.HasDeliveryTypeOneOf([]string{"one", "two", "three"})).To(BeFalse())
+		})
+
+		DescribeTable("returns expected result when",
+			func(suppressedDeliveryType string, deliveryTypes []string, expectedResult bool) {
+				suppressed.DeliveryType = pointer.String(suppressedDeliveryType)
+				Expect(suppressed.HasDeliveryTypeOneOf(deliveryTypes)).To(Equal(expectedResult))
+			},
+			Entry("is nil delivery type string array", "two", nil, false),
+			Entry("is single delivery type string array", "two", []string{}, false),
+			Entry("is single invalid delivery type string array", "two", []string{"one"}, false),
+			Entry("is single valid delivery type string array", "two", []string{"two"}, true),
+			Entry("is multiple invalid delivery type string array", "two", []string{"one", "three"}, false),
+			Entry("is multiple invalid and valid delivery type string array", "two", []string{"one", "two", "three", "four"}, true),
+		)
+	})
 })
