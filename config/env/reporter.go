@@ -55,11 +55,11 @@ func (r *reporter) GetWithDefault(key string, defaultValue string) string {
 }
 
 func (r *reporter) Set(key string, value string) {
-	syscall.Setenv(r.getEnvKey(r.scopes, key), value) // Safely ignore error; will not fail
+	syscall.Setenv(r.getEnvKey(r.scopes, key), value) // Safely ignore error; cannot fail
 }
 
 func (r *reporter) Delete(key string) {
-	syscall.Unsetenv(r.getEnvKey(r.scopes, key)) // Safely ignore error; will not fail
+	syscall.Unsetenv(r.getEnvKey(r.scopes, key)) // Safely ignore error; cannot fail
 }
 
 func (r *reporter) WithScopes(scopes ...string) config.Reporter {

@@ -11,6 +11,7 @@ import (
 	"github.com/onsi/gomega/ghttp"
 
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/metricservices/client"
 	userservicesClient "github.com/tidepool-org/platform/userservices/client"
 	"github.com/tidepool-org/platform/version"
@@ -73,7 +74,7 @@ var _ = Describe("Standard", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(versionReporter).ToNot(BeNil())
 		context = &TestContext{
-			TestLogger:                log.NewNull(),
+			TestLogger:                null.NewLogger(),
 			TestRequest:               &rest.Request{},
 			TestAuthenticationDetails: &TestAuthenticationDetails{},
 		}

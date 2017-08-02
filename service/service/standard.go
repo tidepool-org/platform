@@ -1,12 +1,14 @@
 package service
 
 import (
-	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/config/env"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/json"
 	"github.com/tidepool-org/platform/version"
 )
 
@@ -91,18 +93,22 @@ func (s *Standard) initializeConfigReporter() error {
 }
 
 func (s *Standard) initializeLogger() error {
-	loggerConfig := log.NewConfig()
-	if err := loggerConfig.Load(s.ConfigReporter().WithScopes("logger")); err != nil {
-		return errors.Wrap(err, "service", "unable to load logger config")
-	}
+	level := s.ConfigReporter().WithScopes("logger").GetWithDefault("level", "warn")
 
-	logger, err := log.NewStandard(s.versionReporter, loggerConfig)
+	logger, err := json.NewLogger(os.Stdout, log.DefaultLevels(), log.Level(level))
 	if err != nil {
 		return errors.Wrap(err, "service", "unable to create logger")
 	}
+
+	logger = logger.WithFields(log.Fields{
+		"process": filepath.Base(os.Args[0]),
+		"pid":     os.Getpid(),
+		"version": s.VersionReporter().Short(),
+	})
+
 	s.logger = logger
 
-	s.logger.Warn(fmt.Sprintf("Logger level is %s", loggerConfig.Level))
+	s.Logger().Warnf("Logger level is %s", s.Logger().Level())
 
 	return nil
 }

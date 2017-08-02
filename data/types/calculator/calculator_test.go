@@ -11,7 +11,7 @@ import (
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/calculator"
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -279,7 +279,7 @@ var _ = Describe("Calculator", func() {
 				bolusCalculator.InsulinSensitivity = &val
 				bolusCalculator.BloodGlucoseTarget = &glucose.Target{Target: &val}
 
-				testContext, err := context.NewStandard(log.NewNull())
+				testContext, err := context.NewStandard(null.NewLogger())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(testContext).ToNot(BeNil())
 				standardNormalizer, err := normalizer.NewStandard(testContext)
@@ -304,7 +304,7 @@ var _ = Describe("Calculator", func() {
 				bolusCalculator.InsulinSensitivity = &val
 				bolusCalculator.BloodGlucoseTarget = &glucose.Target{Target: &val}
 
-				testContext, err := context.NewStandard(log.NewNull())
+				testContext, err := context.NewStandard(null.NewLogger())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(testContext).ToNot(BeNil())
 				standardNormalizer, err := normalizer.NewStandard(testContext)

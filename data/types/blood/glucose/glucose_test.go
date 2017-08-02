@@ -14,7 +14,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/id"
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
@@ -57,7 +57,7 @@ var _ = Describe("Glucose", func() {
 
 			DescribeTable("Validate",
 				func(sourceGlucose *glucose.Glucose, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(log.NewNull())
+					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
 					testValidator, err := validator.NewStandard(testContext)
@@ -189,7 +189,7 @@ var _ = Describe("Glucose", func() {
 					sourceGlucose.GUID = expectedKetone.GUID
 					sourceGlucose.ID = expectedKetone.ID
 					sourceGlucose.DeviceID = expectedKetone.DeviceID
-					testContext, err := context.NewStandard(log.NewNull())
+					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
 					testNormalizer, err := normalizer.NewStandard(testContext)

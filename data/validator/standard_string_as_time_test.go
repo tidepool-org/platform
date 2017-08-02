@@ -9,7 +9,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/validator"
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 )
 
 var _ = Describe("StandardStringAsTime", func() {
@@ -20,7 +20,7 @@ var _ = Describe("StandardStringAsTime", func() {
 
 	It("NewStandardStringAsTime returns nil if time layout is empty string", func() {
 		value := "2015-12-31T13:14:16-08:00"
-		standardContext, err := context.NewStandard(log.NewNull())
+		standardContext, err := context.NewStandard(null.NewLogger())
 		Expect(err).ToNot(HaveOccurred())
 		Expect(standardContext).ToNot(BeNil())
 		Expect(validator.NewStandardStringAsTime(standardContext, "ghost", &value, "")).To(BeNil())
@@ -31,7 +31,7 @@ var _ = Describe("StandardStringAsTime", func() {
 
 		BeforeEach(func() {
 			var err error
-			standardContext, err = context.NewStandard(log.NewNull())
+			standardContext, err = context.NewStandard(null.NewLogger())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(standardContext).ToNot(BeNil())
 		})

@@ -7,6 +7,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/service/middleware"
 )
 
@@ -90,7 +91,7 @@ var _ = Describe("Trace", func() {
 			var logger log.Logger
 
 			BeforeEach(func() {
-				logger = log.NewNull()
+				logger = null.NewLogger()
 				handler = func(response rest.ResponseWriter, request *rest.Request) {
 					Expect(request.Env["LOGGER"]).ToNot(BeNil())
 					Expect(request.Env["TRACE-REQUEST"]).ToNot(BeEmpty())

@@ -7,6 +7,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/service/middleware"
 )
 
@@ -15,7 +16,7 @@ var _ = Describe("Logger", func() {
 		var logger log.Logger
 
 		BeforeEach(func() {
-			logger = log.NewNull()
+			logger = null.NewLogger()
 		})
 
 		Context("NewLogger", func() {

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -11,16 +12,17 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/json"
 	"github.com/tidepool-org/platform/session"
 	"github.com/tidepool-org/platform/store/mongo"
 	"github.com/tidepool-org/platform/version"
 )
 
 type Config struct {
-	Log    *log.Config
-	Mongo  *mongo.Config
-	Secret string
-	DryRun bool
+	LogLevel log.Level
+	Mongo    *mongo.Config
+	Secret   string
+	DryRun   bool
 }
 
 const (
@@ -139,14 +141,12 @@ func executeApplication(versionReporter version.Reporter, context *cli.Context) 
 
 func buildConfigFromContext(context *cli.Context) (*Config, error) {
 	config := &Config{
-		Log:   log.NewConfig(),
-		Mongo: mongo.NewConfig(),
+		LogLevel: log.InfoLevel,
+		Mongo:    mongo.NewConfig(),
 	}
 
 	if context.Bool(VerboseFlag) {
-		config.Log.Level = "debug"
-	} else {
-		config.Log.Level = "info"
+		config.LogLevel = log.DebugLevel
 	}
 	config.Mongo.Addresses = mongo.SplitAddresses(context.String(AddressesFlag))
 	config.Mongo.TLS = context.Bool(TLSFlag)
@@ -160,10 +160,16 @@ func buildConfigFromContext(context *cli.Context) (*Config, error) {
 }
 
 func initializeLogger(versionReporter version.Reporter, config *Config) (log.Logger, error) {
-	logger, err := log.NewStandard(versionReporter, config.Log)
+	logger, err := json.NewLogger(os.Stdout, log.DefaultLevels(), config.LogLevel)
 	if err != nil {
 		return nil, errors.Wrap(err, "migrate_sessions_expand", "unable to create logger")
 	}
+
+	logger = logger.WithFields(log.Fields{
+		"process": filepath.Base(os.Args[0]),
+		"pid":     os.Getpid(),
+		"version": versionReporter.Short(),
+	})
 
 	return logger, nil
 }
@@ -227,7 +233,7 @@ func migrateSessionsToExpandedForm(logger log.Logger, config *Config) error {
 
 			expiredSessionCount++
 
-			sessionLogger.Debug(fmt.Sprintf("Expired session (expired %d seconds ago)", expiredTime-session.ExpiresAt))
+			sessionLogger.Debugf("Expired session (expired %d seconds ago)", expiredTime-session.ExpiresAt)
 		} else {
 			if !config.DryRun {
 				if err = updateSessionsSession.C().UpdateId(sessionID, session); err != nil {
@@ -238,7 +244,7 @@ func migrateSessionsToExpandedForm(logger log.Logger, config *Config) error {
 
 			migratedSessionCount++
 
-			sessionLogger.Debug(fmt.Sprintf("Migrated session (expires %d second from now)", session.ExpiresAt-expiredTime))
+			sessionLogger.Debugf("Migrated session (expires %d second from now)", session.ExpiresAt-expiredTime)
 		}
 	}
 	if err = iter.Close(); err != nil {
@@ -272,7 +278,7 @@ func migrateSessionsToExpandedForm(logger log.Logger, config *Config) error {
 		}
 	}
 
-	logger.Info(fmt.Sprintf("Deleted %d expired sessions and migrated %d sessions to expanded form", expiredSessionCount, migratedSessionCount))
+	logger.Infof("Deleted %d expired sessions and migrated %d sessions to expanded form", expiredSessionCount, migratedSessionCount)
 
 	return nil
 }

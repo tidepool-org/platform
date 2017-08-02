@@ -242,11 +242,6 @@
 			"Rev": "5bf94b69c6b68ee1b541973bb8e1144db23a194b"
 		},
 		{
-			"ImportPath": "github.com/sirupsen/logrus",
-			"Comment": "v1.0.0-3-g7dd06bf",
-			"Rev": "7dd06bf38e1e13df288d471a57d5adbac106be9e"
-		},
-		{
 			"ImportPath": "github.com/urfave/cli",
 			"Comment": "v1.19.1-52-gb892ba3",
 			"Rev": "b892ba3809cd07fcf2b064e166b0c2e16e0147bd"
