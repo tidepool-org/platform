@@ -96,6 +96,27 @@ var _ = Describe("Reporter", func() {
 			})
 		})
 
+		Context("Set", func() {
+			It("sets the key with the value", func() {
+				Expect(syscall.Unsetenv("TIDEPOOL_TEST_JULIETTE")).To(Succeed())
+				reporter.Set("JULIETTE", "romeo")
+				value, found := syscall.Getenv("TIDEPOOL_TEST_JULIETTE")
+				Expect(found).To(BeTrue())
+				Expect(value).To(Equal("romeo"))
+				Expect(syscall.Unsetenv("TIDEPOOL_TEST_JULIETTE")).To(Succeed())
+			})
+		})
+
+		Context("Delete", func() {
+			It("deletes the key", func() {
+				Expect(syscall.Setenv("TIDEPOOL_TEST_KILO", "meter")).To(Succeed())
+				reporter.Delete("KILO")
+				value, found := syscall.Getenv("TIDEPOOL_TEST_KILO")
+				Expect(found).To(BeFalse())
+				Expect(value).ToNot(Equal("meter"))
+			})
+		})
+
 		Context("WithScopes", func() {
 			DescribeTable("returns expected values given environment variables and scopes",
 				func(environmentKey string, environmentValue string, scopes []string, key string, expectedValue string, expectedFound bool) {
