@@ -37,11 +37,8 @@ func (r *reporter) Get(key string) (string, bool) {
 		limit = 0
 	}
 
-	envPrefix := []string{r.prefix}
 	for i := 0; i <= limit; i++ {
-		envParts := append(append(envPrefix, r.scopes[i:]...), key)
-		envKey := replaceInvalidCharacters(strings.ToUpper(strings.Join(envParts, "_")), "_")
-		if value, found := syscall.Getenv(envKey); found {
+		if value, found := syscall.Getenv(r.getEnvKey(r.scopes[i:], key)); found {
 			return value, true
 		}
 	}
@@ -57,9 +54,22 @@ func (r *reporter) GetWithDefault(key string, defaultValue string) string {
 	return defaultValue
 }
 
+func (r *reporter) Set(key string, value string) {
+	syscall.Setenv(r.getEnvKey(r.scopes, key), value) // Safely ignore error; will not fail
+}
+
+func (r *reporter) Delete(key string) {
+	syscall.Unsetenv(r.getEnvKey(r.scopes, key)) // Safely ignore error; will not fail
+}
+
 func (r *reporter) WithScopes(scopes ...string) config.Reporter {
 	return &reporter{
 		prefix: r.prefix,
 		scopes: append(r.scopes, scopes...),
 	}
+}
+
+func (r *reporter) getEnvKey(scopes []string, key string) string {
+	parts := append(append([]string{r.prefix}, scopes...), key)
+	return replaceInvalidCharacters(strings.ToUpper(strings.Join(parts, "_")), "_")
 }

@@ -25,6 +25,14 @@ func (r *Reporter) GetWithDefault(key string, defaultValue string) string {
 	return defaultValue
 }
 
+func (r *Reporter) Set(key string, value string) {
+	r.Config[key] = value
+}
+
+func (r *Reporter) Delete(key string) {
+	delete(r.Config, key)
+}
+
 func (r *Reporter) WithScopes(scopes ...string) config.Reporter {
 	panic("Unexpected invocation of WithScopes on Reporter")
 }
