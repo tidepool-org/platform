@@ -1,5 +1,6 @@
 ## HEAD
 
+- Rename config Reporter functions String to Get and StringOrDefault to GetWithDefault
 - Pull string functions out of app package into specific functions appropriate to including package
 - Pull id functions out of app package into their own id package
 - Pull pointer functions out of app package into their own pointer package

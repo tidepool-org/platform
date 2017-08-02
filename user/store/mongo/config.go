@@ -25,7 +25,7 @@ func (c *Config) Load(configReporter config.Reporter) error {
 		return err
 	}
 
-	c.PasswordSalt = configReporter.StringOrDefault("password_salt", "")
+	c.PasswordSalt = configReporter.GetWithDefault("password_salt", "")
 
 	return nil
 }

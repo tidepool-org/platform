@@ -29,17 +29,17 @@ func (c *Config) Load(configReporter config.Reporter) error {
 		return errors.New("server", "config reporter is missing")
 	}
 
-	c.Address = configReporter.StringOrDefault("address", "")
-	if tlsString, found := configReporter.String("tls"); found {
+	c.Address = configReporter.GetWithDefault("address", "")
+	if tlsString, found := configReporter.Get("tls"); found {
 		tls, err := strconv.ParseBool(tlsString)
 		if err != nil {
 			return errors.New("server", "tls is invalid")
 		}
 		c.TLS = tls
 	}
-	c.TLSCertificateFile = configReporter.StringOrDefault("tls_certificate_file", "")
-	c.TLSKeyFile = configReporter.StringOrDefault("tls_key_file", "")
-	if timeoutString, found := configReporter.String("timeout"); found {
+	c.TLSCertificateFile = configReporter.GetWithDefault("tls_certificate_file", "")
+	c.TLSKeyFile = configReporter.GetWithDefault("tls_key_file", "")
+	if timeoutString, found := configReporter.Get("timeout"); found {
 		timeout, err := strconv.ParseInt(timeoutString, 10, 0)
 		if err != nil {
 			return errors.New("server", "timeout is invalid")

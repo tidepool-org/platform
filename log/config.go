@@ -22,7 +22,7 @@ func (c *Config) Load(configReporter config.Reporter) error {
 		return errors.New("log", "config reporter is missing")
 	}
 
-	c.Level = configReporter.StringOrDefault("level", "warn")
+	c.Level = configReporter.GetWithDefault("level", "warn")
 
 	return nil
 }

@@ -12,13 +12,13 @@ func NewReporter() *Reporter {
 	}
 }
 
-func (r *Reporter) String(key string) (string, bool) {
+func (r *Reporter) Get(key string) (string, bool) {
 	value, found := r.Config[key]
 	return value, found
 }
 
-func (r *Reporter) StringOrDefault(key string, defaultValue string) string {
-	if value, found := r.String(key); found {
+func (r *Reporter) GetWithDefault(key string, defaultValue string) string {
+	if value, found := r.Get(key); found {
 		return value
 	}
 
