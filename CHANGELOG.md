@@ -1,5 +1,9 @@
 ## HEAD
 
+- Introduce new log mechanism with dynamically configured levels and custom serializers
+- Update null logger to reflect new log mechanism
+- Remove log config as unnecessary for only one field
+- Remove `github.com/sirupsen/logrus` dependency
 - Add config Reporter functions `Set` and `Delete`
 - Rename config Reporter functions `String` to `Get` and `StringOrDefault` to `GetWithDefault`
 - Pull string functions out of app package into specific functions appropriate to including package

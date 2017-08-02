@@ -1,5 +1,5 @@
 export TIDEPOOL_ENV="test"
-export TIDEPOOL_LOGGER_LEVEL="fatal"
+export TIDEPOOL_LOGGER_LEVEL="error"
 export TIDEPOOL_STORE_ADDRESSES="localhost"
 export TIDEPOOL_STORE_TLS="false"
 export TIDEPOOL_SERVER_TLS="false"

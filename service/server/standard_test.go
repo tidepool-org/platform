@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/service/server"
 )
 
@@ -44,7 +45,7 @@ var _ = Describe("Standard", func() {
 	var config *server.Config
 
 	BeforeEach(func() {
-		logger = log.NewNull()
+		logger = null.NewLogger()
 		handler = &TestHandler{}
 		api = &TestAPI{
 			HandlerOutputs: []http.Handler{handler},

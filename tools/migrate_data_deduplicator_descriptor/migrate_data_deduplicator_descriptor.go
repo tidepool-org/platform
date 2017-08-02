@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/urfave/cli"
@@ -11,14 +12,15 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
+	jsonLog "github.com/tidepool-org/platform/log/json"
 	"github.com/tidepool-org/platform/store/mongo"
 	"github.com/tidepool-org/platform/version"
 )
 
 type Config struct {
-	Log    *log.Config
-	Mongo  *mongo.Config
-	DryRun bool
+	LogLevel log.Level
+	Mongo    *mongo.Config
+	DryRun   bool
 }
 
 const (
@@ -131,14 +133,12 @@ func executeApplication(versionReporter version.Reporter, context *cli.Context) 
 
 func buildConfigFromContext(context *cli.Context) (*Config, error) {
 	config := &Config{
-		Log:   log.NewConfig(),
-		Mongo: mongo.NewConfig(),
+		LogLevel: log.InfoLevel,
+		Mongo:    mongo.NewConfig(),
 	}
 
 	if context.Bool(VerboseFlag) {
-		config.Log.Level = "debug"
-	} else {
-		config.Log.Level = "info"
+		config.LogLevel = log.DebugLevel
 	}
 	config.Mongo.Addresses = mongo.SplitAddresses(context.String(AddressesFlag))
 	config.Mongo.TLS = context.Bool(TLSFlag)
@@ -148,10 +148,16 @@ func buildConfigFromContext(context *cli.Context) (*Config, error) {
 }
 
 func initializeLogger(versionReporter version.Reporter, config *Config) (log.Logger, error) {
-	logger, err := log.NewStandard(versionReporter, config.Log)
+	logger, err := jsonLog.NewLogger(os.Stdout, log.DefaultLevels(), config.LogLevel)
 	if err != nil {
 		return nil, errors.Wrap(err, "main", "unable to create logger")
 	}
+
+	logger = logger.WithFields(log.Fields{
+		"process": filepath.Base(os.Args[0]),
+		"pid":     os.Getpid(),
+		"version": versionReporter.Short(),
+	})
 
 	return logger, nil
 }
@@ -182,7 +188,7 @@ func migrateDataDeduplicatorDescriptors(logger log.Logger, config *Config) error
 	count += migrateUploadDataDeduplicatorDescriptor(logger, config, dataStoreSession, "hash", "org.tidepool.hash-drop-new")
 	count += migrateNonUploadDataDeduplicatorDescriptor(logger, config, dataStoreSession)
 
-	logger.Info(fmt.Sprintf("Migrated %d data duplicator descriptors", count))
+	logger.Infof("Migrated %d data duplicator descriptors", count)
 
 	return nil
 }
@@ -221,7 +227,7 @@ func migrateUploadDataDeduplicatorDescriptor(logger log.Logger, config *Config, 
 		logger.WithError(err).Error("Unable to migrate upload data deduplicator descriptors")
 	}
 
-	logger.Debug(fmt.Sprintf("Migrated %d upload data deduplicator descriptors", count))
+	logger.Debugf("Migrated %d upload data deduplicator descriptors", count)
 
 	return count
 }
@@ -261,7 +267,7 @@ func migrateNonUploadDataDeduplicatorDescriptor(logger log.Logger, config *Confi
 		logger.WithError(err).Error("Unable to migrate non-upload data deduplicator descriptors")
 	}
 
-	logger.Debug(fmt.Sprintf("Migrated %d non-upload data deduplicator descriptors", count))
+	logger.Debugf("Migrated %d non-upload data deduplicator descriptors", count)
 
 	return count
 }

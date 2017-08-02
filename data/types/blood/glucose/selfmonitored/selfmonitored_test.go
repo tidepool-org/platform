@@ -15,7 +15,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/id"
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
@@ -95,7 +95,7 @@ var _ = Describe("SelfMonitored", func() {
 
 			DescribeTable("Parse",
 				func(sourceObject *map[string]interface{}, expectedSelfMonitored *selfmonitored.SelfMonitored, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(log.NewNull())
+					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
 					testFactory, err := factory.NewStandard()
@@ -176,7 +176,7 @@ var _ = Describe("SelfMonitored", func() {
 
 			DescribeTable("Validate",
 				func(sourceSelfMonitored *selfmonitored.SelfMonitored, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(log.NewNull())
+					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
 					testValidator, err := validator.NewStandard(testContext)

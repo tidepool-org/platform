@@ -11,6 +11,7 @@ import (
 	"github.com/onsi/gomega/ghttp"
 
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/userservices/client"
 )
@@ -33,7 +34,7 @@ var _ = Describe("Standard", func() {
 	var context *TestContext
 
 	BeforeEach(func() {
-		logger = log.NewNull()
+		logger = null.NewLogger()
 		context = &TestContext{
 			TestLogger:  logger,
 			TestRequest: &rest.Request{},

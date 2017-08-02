@@ -14,6 +14,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 )
 
 var _ = Describe("Base", func() {
@@ -94,7 +95,7 @@ var _ = Describe("Base", func() {
 				var testDataStoreSession *testDataStore.Session
 
 				BeforeEach(func() {
-					testLogger = log.NewNull()
+					testLogger = null.NewLogger()
 					Expect(testLogger).ToNot(BeNil())
 					testDataStoreSession = testDataStore.NewSession()
 					Expect(testDataStoreSession).ToNot(BeNil())
@@ -190,7 +191,7 @@ var _ = Describe("Base", func() {
 					var testDataStoreSession *testDataStore.Session
 
 					BeforeEach(func() {
-						testLogger = log.NewNull()
+						testLogger = null.NewLogger()
 						Expect(testLogger).ToNot(BeNil())
 						testDataStoreSession = testDataStore.NewSession()
 						Expect(testDataStoreSession).ToNot(BeNil())
@@ -269,7 +270,7 @@ var _ = Describe("Base", func() {
 		var testDataset *upload.Upload
 
 		BeforeEach(func() {
-			testLogger = log.NewNull()
+			testLogger = null.NewLogger()
 			Expect(testLogger).ToNot(BeNil())
 			testDataStoreSession = testDataStore.NewSession()
 			Expect(testDataStoreSession).ToNot(BeNil())

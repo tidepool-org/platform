@@ -10,6 +10,7 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/store"
 )
 
@@ -132,7 +133,7 @@ func (s *Store) GetStatus() interface{} {
 
 func (s *Store) NewSession(logger log.Logger) *Session {
 	if logger == nil {
-		logger = log.NewNull()
+		logger = null.NewLogger()
 	}
 
 	loggerFields := map[string]interface{}{

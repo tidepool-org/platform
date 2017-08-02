@@ -8,7 +8,7 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/service/middleware"
 )
@@ -45,7 +45,7 @@ var _ = Describe("AccessLog", func() {
 					Detail: "test-error-detail",
 				},
 			}
-			request.Env["LOGGER"] = log.NewNull()
+			request.Env["LOGGER"] = null.NewLogger()
 			request.Env["REMOTE_USER"] = "gollum"
 			request.Env["START_TIME"] = &startTime
 			request.Env["STATUS_CODE"] = 400

@@ -11,7 +11,7 @@ import (
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	"github.com/tidepool-org/platform/data/validator"
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
@@ -46,7 +46,7 @@ func NewTestBloodGlucoseTarget(sourceTarget interface{}, sourceRange interface{}
 var _ = Describe("BloodGlucoseTarget", func() {
 	DescribeTable("ParseBloodGlucoseTarget",
 		func(sourceObject *map[string]interface{}, expectedTarget *pump.BloodGlucoseTarget, expectedErrors []*service.Error) {
-			testContext, err := context.NewStandard(log.NewNull())
+			testContext, err := context.NewStandard(null.NewLogger())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
 			testFactory, err := factory.NewStandard()
@@ -78,7 +78,7 @@ var _ = Describe("BloodGlucoseTarget", func() {
 
 	DescribeTable("ParseBloodGlucoseTargetArray",
 		func(sourceArray *[]interface{}, expectedArray *[]*pump.BloodGlucoseTarget, expectedErrors []*service.Error) {
-			testContext, err := context.NewStandard(log.NewNull())
+			testContext, err := context.NewStandard(null.NewLogger())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
 			testFactory, err := factory.NewStandard()
@@ -165,7 +165,7 @@ var _ = Describe("BloodGlucoseTarget", func() {
 	Context("with new blood glucose target", func() {
 		DescribeTable("Parse",
 			func(sourceObject *map[string]interface{}, expectedTarget *pump.BloodGlucoseTarget, expectedErrors []*service.Error) {
-				testContext, err := context.NewStandard(log.NewNull())
+				testContext, err := context.NewStandard(null.NewLogger())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(testContext).ToNot(BeNil())
 				testFactory, err := factory.NewStandard()
@@ -199,7 +199,7 @@ var _ = Describe("BloodGlucoseTarget", func() {
 
 		DescribeTable("Validate",
 			func(sourceTarget *pump.BloodGlucoseTarget, sourceUnits interface{}, expectedErrors []*service.Error) {
-				testContext, err := context.NewStandard(log.NewNull())
+				testContext, err := context.NewStandard(null.NewLogger())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(testContext).ToNot(BeNil())
 				testValidator, err := validator.NewStandard(testContext)

@@ -13,6 +13,7 @@ import (
 
 	"github.com/tidepool-org/platform/dataservices/client"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/service"
 	userservicesClient "github.com/tidepool-org/platform/userservices/client"
 )
@@ -125,7 +126,7 @@ var _ = Describe("Standard", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(standard).ToNot(BeNil())
 			context = &TestContext{
-				TestLogger:             log.NewNull(),
+				TestLogger:             null.NewLogger(),
 				TestRequest:            &rest.Request{},
 				TestUserServicesClient: &TestUserServicesClient{},
 			}

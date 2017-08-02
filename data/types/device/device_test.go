@@ -13,7 +13,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/id"
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
@@ -81,7 +81,7 @@ var _ = Describe("Device", func() {
 
 			DescribeTable("Parse",
 				func(sourceObject *map[string]interface{}, expectedDevice *device.Device, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(log.NewNull())
+					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
 					testFactory, err := factory.NewStandard()
@@ -131,7 +131,7 @@ var _ = Describe("Device", func() {
 
 			DescribeTable("Validate",
 				func(sourceDevice *device.Device, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(log.NewNull())
+					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
 					testValidator, err := validator.NewStandard(testContext)
@@ -166,7 +166,7 @@ var _ = Describe("Device", func() {
 
 			Context("Normalize", func() {
 				It("succeeds", func() {
-					testContext, err := context.NewStandard(log.NewNull())
+					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
 					testNormalizer, err := normalizer.NewStandard(testContext)

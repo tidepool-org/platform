@@ -10,6 +10,7 @@ import (
 
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/store/mongo"
 	testMongo "github.com/tidepool-org/platform/test/mongo"
@@ -35,7 +36,7 @@ var _ = Describe("Mongo", func() {
 	var mongoSession *mongo.Session
 
 	BeforeEach(func() {
-		logger = log.NewNull()
+		logger = null.NewLogger()
 		mongoConfig = &mongo.Config{
 			Addresses:  []string{testMongo.Address()},
 			Database:   testMongo.Database(),
@@ -164,13 +165,13 @@ var _ = Describe("Mongo", func() {
 			It("returns a new session if logger specified", func() {
 				mongoSession = mongoStore.NewSession(logger)
 				Expect(mongoSession).ToNot(BeNil())
-				Expect(mongoSession.Logger()).To(Equal(logger))
+				Expect(mongoSession.Logger()).ToNot(BeNil())
 			})
 		})
 
 		Context("with a new session", func() {
 			BeforeEach(func() {
-				mongoSession = mongoStore.NewSession(log.NewNull())
+				mongoSession = mongoStore.NewSession(null.NewLogger())
 				Expect(mongoSession).ToNot(BeNil())
 			})
 

@@ -12,7 +12,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 
 	"github.com/tidepool-org/platform/id"
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	baseMongo "github.com/tidepool-org/platform/store/mongo"
 	testMongo "github.com/tidepool-org/platform/test/mongo"
 	"github.com/tidepool-org/platform/user"
@@ -98,7 +98,7 @@ var _ = Describe("Mongo", func() {
 		It("returns an error if base config is missing", func() {
 			var err error
 			mongoConfig.Config = nil
-			mongoStore, err = mongo.New(log.NewNull(), mongoConfig)
+			mongoStore, err = mongo.New(null.NewLogger(), mongoConfig)
 			Expect(err).To(MatchError("mongo: config is missing"))
 			Expect(mongoStore).To(BeNil())
 		})
@@ -106,14 +106,14 @@ var _ = Describe("Mongo", func() {
 		It("returns an error if base config is invalid", func() {
 			var err error
 			mongoConfig.Config.Addresses = nil
-			mongoStore, err = mongo.New(log.NewNull(), mongoConfig)
+			mongoStore, err = mongo.New(null.NewLogger(), mongoConfig)
 			Expect(err).To(MatchError("mongo: config is invalid; mongo: addresses is missing"))
 			Expect(mongoStore).To(BeNil())
 		})
 
 		It("returns an error if config is missing", func() {
 			var err error
-			mongoStore, err = mongo.New(log.NewNull(), nil)
+			mongoStore, err = mongo.New(null.NewLogger(), nil)
 			Expect(err).To(MatchError("mongo: config is missing"))
 			Expect(mongoStore).To(BeNil())
 		})
@@ -121,14 +121,14 @@ var _ = Describe("Mongo", func() {
 		It("returns an error if config is invalid", func() {
 			var err error
 			mongoConfig.PasswordSalt = ""
-			mongoStore, err = mongo.New(log.NewNull(), mongoConfig)
+			mongoStore, err = mongo.New(null.NewLogger(), mongoConfig)
 			Expect(err).To(MatchError("mongo: config is invalid; mongo: password salt is missing"))
 			Expect(mongoStore).To(BeNil())
 		})
 
 		It("returns a new store and no error if successful", func() {
 			var err error
-			mongoStore, err = mongo.New(log.NewNull(), mongoConfig)
+			mongoStore, err = mongo.New(null.NewLogger(), mongoConfig)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mongoStore).ToNot(BeNil())
 		})
@@ -137,7 +137,7 @@ var _ = Describe("Mongo", func() {
 	Context("with a new store", func() {
 		BeforeEach(func() {
 			var err error
-			mongoStore, err = mongo.New(log.NewNull(), mongoConfig)
+			mongoStore, err = mongo.New(null.NewLogger(), mongoConfig)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mongoStore).ToNot(BeNil())
 		})
@@ -150,16 +150,16 @@ var _ = Describe("Mongo", func() {
 			})
 
 			It("returns a new session if logger specified", func() {
-				logger := log.NewNull()
+				logger := null.NewLogger()
 				mongoSession = mongoStore.NewSession(logger)
 				Expect(mongoSession).ToNot(BeNil())
-				Expect(mongoSession.Logger()).To(Equal(logger))
+				Expect(mongoSession.Logger()).ToNot(BeNil())
 			})
 		})
 
 		Context("with a new session", func() {
 			BeforeEach(func() {
-				mongoSession = mongoStore.NewSession(log.NewNull())
+				mongoSession = mongoStore.NewSession(null.NewLogger())
 				Expect(mongoSession).ToNot(BeNil())
 			})
 
