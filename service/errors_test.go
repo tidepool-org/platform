@@ -5,6 +5,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
+	"errors"
 	"time"
 
 	"github.com/tidepool-org/platform/service"
@@ -119,4 +120,23 @@ var _ = Describe("Errors", func() {
 		Entry("is ErrorLengthNotGreaterThanOrEqualTo with int", service.ErrorLengthNotGreaterThanOrEqualTo(1, 2), "length-out-of-range", "length is out of range", "Length 1 is not greater than or equal to 2", 0),
 		Entry("is ErrorLengthNotInRange", service.ErrorLengthNotInRange(1, 2, 3), "length-out-of-range", "length is out of range", "Length 1 is not between 2 and 3", 0),
 	)
+
+	Context("QuoteIfString", func() {
+		It("returns nil when the interface value is nil", func() {
+			Expect(service.QuoteIfString(nil)).To(BeNil())
+		})
+
+		DescribeTable("returns expected value when",
+			func(interfaceValue interface{}, expectedValue interface{}) {
+				Expect(service.QuoteIfString(interfaceValue)).To(Equal(expectedValue))
+			},
+			Entry("is a string", "a string", `"a string"`),
+			Entry("is an empty string", "", `""`),
+			Entry("is an error", errors.New("error"), errors.New("error")),
+			Entry("is an integer", 1, 1),
+			Entry("is a float", 1.23, 1.23),
+			Entry("is an array", []string{"a"}, []string{"a"}),
+			Entry("is a map", map[string]string{"a": "b"}, map[string]string{"a": "b"}),
+		)
+	})
 })

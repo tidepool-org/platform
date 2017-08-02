@@ -1,7 +1,5 @@
 package user
 
-import "github.com/tidepool-org/platform/app"
-
 type User struct {
 	ID                string             `json:"userid,omitempty" bson:"userid,omitempty"`
 	Email             string             `json:"username,omitempty" bson:"username,omitempty"`
@@ -27,6 +25,11 @@ type IDHash struct {
 	Hash string `json:"hash"`
 }
 
-func (u *User) HasRole(userRole string) bool {
-	return app.StringsContainsString(u.Roles, userRole)
+func (u *User) HasRole(role string) bool {
+	for _, userRole := range u.Roles {
+		if userRole == role {
+			return true
+		}
+	}
+	return false
 }

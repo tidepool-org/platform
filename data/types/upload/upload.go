@@ -105,3 +105,19 @@ func (u *Upload) Normalize(normalizer data.Normalizer) error {
 
 	return u.Base.Normalize(normalizer)
 }
+
+func (u *Upload) HasDeviceManufacturerOneOf(deviceManufacturers []string) bool {
+	if u.DeviceManufacturers == nil {
+		return false
+	}
+
+	for _, uploadDeviceManufacturer := range *u.DeviceManufacturers {
+		for _, deviceManufacturer := range deviceManufacturers {
+			if deviceManufacturer == uploadDeviceManufacturer {
+				return true
+			}
+		}
+	}
+
+	return false
+}

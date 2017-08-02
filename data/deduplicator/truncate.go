@@ -3,7 +3,6 @@ package deduplicator
 import (
 	"strconv"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/upload"
@@ -49,10 +48,7 @@ func (t *truncateFactory) CanDeduplicateDataset(dataset *upload.Upload) (bool, e
 	if *dataset.DeviceID == "" {
 		return false, nil
 	}
-	if dataset.DeviceManufacturers == nil {
-		return false, nil
-	}
-	if !app.StringsContainsAnyStrings(*dataset.DeviceManufacturers, _TruncateExpectedDeviceManufacturers) {
+	if !dataset.HasDeviceManufacturerOneOf(_TruncateExpectedDeviceManufacturers) {
 		return false, nil
 	}
 
@@ -71,10 +67,7 @@ func (t *truncateFactory) NewDeduplicatorForDataset(logger log.Logger, dataStore
 	if *dataset.DeviceID == "" {
 		return nil, errors.New("deduplicator", "dataset device id is empty")
 	}
-	if dataset.DeviceManufacturers == nil {
-		return nil, errors.New("deduplicator", "dataset device manufacturers is missing")
-	}
-	if !app.StringsContainsAnyStrings(*dataset.DeviceManufacturers, _TruncateExpectedDeviceManufacturers) {
+	if !dataset.HasDeviceManufacturerOneOf(_TruncateExpectedDeviceManufacturers) {
 		return nil, errors.New("deduplicator", "dataset device manufacturers does not contain expected device manufacturers")
 	}
 
