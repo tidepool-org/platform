@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/urfave/cli"
 	mgo "gopkg.in/mgo.v2"
@@ -11,14 +12,15 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
+	jsonLog "github.com/tidepool-org/platform/log/json"
 	"github.com/tidepool-org/platform/store/mongo"
 	"github.com/tidepool-org/platform/version"
 )
 
 type Config struct {
-	Log    *log.Config
-	Mongo  *mongo.Config
-	DryRun bool
+	LogLevel log.Level
+	Mongo    *mongo.Config
+	DryRun   bool
 }
 
 const (
@@ -143,14 +145,12 @@ func executeApplication(versionReporter version.Reporter, context *cli.Context) 
 
 func buildConfigFromContext(context *cli.Context) (*Config, error) {
 	config := &Config{
-		Log:   log.NewConfig(),
-		Mongo: mongo.NewConfig(),
+		LogLevel: log.InfoLevel,
+		Mongo:    mongo.NewConfig(),
 	}
 
 	if context.Bool(VerboseFlag) {
-		config.Log.Level = "debug"
-	} else {
-		config.Log.Level = "info"
+		config.LogLevel = log.DebugLevel
 	}
 	config.Mongo.Addresses = mongo.SplitAddresses(context.String(AddressesFlag))
 	config.Mongo.TLS = context.Bool(TLSFlag)
@@ -160,10 +160,16 @@ func buildConfigFromContext(context *cli.Context) (*Config, error) {
 }
 
 func initializeLogger(versionReporter version.Reporter, config *Config) (log.Logger, error) {
-	logger, err := log.NewStandard(versionReporter, config.Log)
+	logger, err := jsonLog.NewLogger(os.Stdout, log.DefaultLevels(), config.LogLevel)
 	if err != nil {
 		return nil, errors.Wrap(err, "migrate_gid_to_uid", "unable to create logger")
 	}
+
+	logger = logger.WithFields(log.Fields{
+		"process": filepath.Base(os.Args[0]),
+		"pid":     os.Getpid(),
+		"version": versionReporter.Short(),
+	})
 
 	return logger, nil
 }
@@ -237,7 +243,7 @@ func buildMetaIDToUserIDMap(logger log.Logger, config *Config) (map[string]strin
 		return nil, errors.Wrap(err, "migrate_gid_to_uid", "unable to iterate users")
 	}
 
-	logger.Debug(fmt.Sprintf("Found %d users with meta", len(metaIDToUserIDMap)))
+	logger.Debugf("Found %d users with meta", len(metaIDToUserIDMap))
 
 	return metaIDToUserIDMap, nil
 }
@@ -332,7 +338,7 @@ func buildGroupIDToUserIDMap(logger log.Logger, config *Config, metaIDToUserIDMa
 		return nil, errors.Wrap(err, "migrate_gid_to_uid", "unable to iterate meta")
 	}
 
-	logger.Debug(fmt.Sprintf("Found %d groups with user", len(groupIDToUserIDMap)))
+	logger.Debugf("Found %d groups with user", len(groupIDToUserIDMap))
 
 	return groupIDToUserIDMap, nil
 }
@@ -412,7 +418,7 @@ func migrateGroupIDToUserIDForDeviceData(logger log.Logger, config *Config, grou
 		}
 
 		if count > 0 {
-			dataLogger.Info(fmt.Sprintf("Migrated %d device data", count))
+			dataLogger.Infof("Migrated %d device data", count)
 			migrateGroupCount++
 			migrateDeviceDataCount += count
 		}
@@ -426,6 +432,6 @@ func migrateGroupIDToUserIDForDeviceData(logger log.Logger, config *Config, grou
 		}
 	}
 
-	logger.Info(fmt.Sprintf("Migrated %d device data for %d groups", migrateDeviceDataCount, migrateGroupCount))
+	logger.Infof("Migrated %d device data for %d groups", migrateDeviceDataCount, migrateGroupCount)
 	return nil
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -38,7 +39,7 @@ var _ = Describe("Request", func() {
 					Detail: "test-error-detail",
 				},
 			}
-			logger = log.NewNull()
+			logger = null.NewLogger()
 			request = NewTestRequest()
 			request.Env["ERRORS"] = errors
 			request.Env["LOGGER"] = logger
@@ -120,7 +121,7 @@ var _ = Describe("Request", func() {
 			var newLogger log.Logger
 
 			BeforeEach(func() {
-				newLogger = log.NewNull()
+				newLogger = null.NewLogger()
 			})
 
 			It("successfully sets the logger", func() {

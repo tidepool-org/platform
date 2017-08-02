@@ -16,6 +16,7 @@ import (
 	dataStore "github.com/tidepool-org/platform/data/store"
 	testDataStore "github.com/tidepool-org/platform/data/store/test"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
 	"github.com/tidepool-org/platform/service"
 	commonStore "github.com/tidepool-org/platform/store"
@@ -183,7 +184,7 @@ type TestContext struct {
 
 func NewTestContext() *TestContext {
 	return &TestContext{
-		LoggerImpl: log.NewNull(),
+		LoggerImpl: null.NewLogger(),
 		RequestImpl: &rest.Request{
 			Request: &http.Request{
 				URL: &url.URL{},

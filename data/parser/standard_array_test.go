@@ -9,7 +9,7 @@ import (
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/parser"
 	testData "github.com/tidepool-org/platform/data/test"
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -19,7 +19,7 @@ var _ = Describe("StandardArray", func() {
 
 	BeforeEach(func() {
 		var err error
-		standardContext, err = context.NewStandard(log.NewNull())
+		standardContext, err = context.NewStandard(null.NewLogger())
 		Expect(err).ToNot(HaveOccurred())
 		Expect(standardContext).ToNot(BeNil())
 		testFactory = &TestFactory{}

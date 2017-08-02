@@ -7,6 +7,7 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -49,7 +50,7 @@ func (s *Standard) Logger() log.Logger {
 	if s.logger == nil {
 		logger := service.GetRequestLogger(s.request)
 		if logger == nil {
-			logger = log.NewNull()
+			logger = null.NewLogger()
 		}
 		s.logger = logger
 	}

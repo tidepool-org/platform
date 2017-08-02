@@ -6,6 +6,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	commonStore "github.com/tidepool-org/platform/store"
 )
 
@@ -77,7 +78,7 @@ type Session struct {
 func NewSession() *Session {
 	return &Session{
 		ID:         id.New(),
-		LoggerImpl: log.NewNull(),
+		LoggerImpl: null.NewLogger(),
 	}
 }
 

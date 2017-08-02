@@ -14,6 +14,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
 )
 
@@ -102,7 +103,7 @@ var _ = Describe("HashDeactivateOld", func() {
 			var testDataStoreSession *testDataStore.Session
 
 			BeforeEach(func() {
-				testLogger = log.NewNull()
+				testLogger = null.NewLogger()
 				Expect(testLogger).ToNot(BeNil())
 				testDataStoreSession = testDataStore.NewSession()
 				Expect(testDataStoreSession).ToNot(BeNil())

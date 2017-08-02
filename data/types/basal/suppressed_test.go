@@ -11,7 +11,7 @@ import (
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/basal"
 	"github.com/tidepool-org/platform/data/validator"
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
@@ -37,7 +37,7 @@ func NewTestSuppressed(sourceType interface{}, sourceDeliveryType interface{}, s
 var _ = Describe("Target", func() {
 	DescribeTable("ParseSuppressed",
 		func(sourceObject *map[string]interface{}, expectedSuppressed *basal.Suppressed, expectedErrors []*service.Error) {
-			testContext, err := context.NewStandard(log.NewNull())
+			testContext, err := context.NewStandard(null.NewLogger())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
 			testFactory, err := factory.NewStandard()
@@ -85,7 +85,7 @@ var _ = Describe("Target", func() {
 	Context("with new suppressed", func() {
 		DescribeTable("Parse",
 			func(sourceObject *map[string]interface{}, expectedSuppressed *basal.Suppressed, expectedErrors []*service.Error) {
-				testContext, err := context.NewStandard(log.NewNull())
+				testContext, err := context.NewStandard(null.NewLogger())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(testContext).ToNot(BeNil())
 				testFactory, err := factory.NewStandard()
@@ -179,7 +179,7 @@ var _ = Describe("Target", func() {
 
 		DescribeTable("Validate",
 			func(sourceSuppressed *basal.Suppressed, allowedDeliveryTypes []string, expectedErrors []*service.Error) {
-				testContext, err := context.NewStandard(log.NewNull())
+				testContext, err := context.NewStandard(null.NewLogger())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(testContext).ToNot(BeNil())
 				testValidator, err := validator.NewStandard(testContext)

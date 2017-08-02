@@ -12,6 +12,7 @@ import (
 
 	dataservicesClient "github.com/tidepool-org/platform/dataservices/client"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	messageStore "github.com/tidepool-org/platform/message/store"
 	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
 	notificationStore "github.com/tidepool-org/platform/notification/store"
@@ -466,7 +467,7 @@ type TestContext struct {
 
 func NewTestContext() *TestContext {
 	return &TestContext{
-		LoggerImpl: log.NewNull(),
+		LoggerImpl: null.NewLogger(),
 		RequestImpl: &rest.Request{
 			Request: &http.Request{
 				URL: &url.URL{},

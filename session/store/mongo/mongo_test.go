@@ -10,7 +10,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 
 	"github.com/tidepool-org/platform/id"
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/session/store"
 	"github.com/tidepool-org/platform/session/store/mongo"
 	baseMongo "github.com/tidepool-org/platform/store/mongo"
@@ -93,7 +93,7 @@ var _ = Describe("Mongo", func() {
 
 		It("returns a new store and no error if successful", func() {
 			var err error
-			mongoStore, err = mongo.New(log.NewNull(), mongoConfig)
+			mongoStore, err = mongo.New(null.NewLogger(), mongoConfig)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mongoStore).ToNot(BeNil())
 		})
@@ -102,7 +102,7 @@ var _ = Describe("Mongo", func() {
 	Context("with a new store", func() {
 		BeforeEach(func() {
 			var err error
-			mongoStore, err = mongo.New(log.NewNull(), mongoConfig)
+			mongoStore, err = mongo.New(null.NewLogger(), mongoConfig)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mongoStore).ToNot(BeNil())
 		})
@@ -115,16 +115,16 @@ var _ = Describe("Mongo", func() {
 			})
 
 			It("returns a new session if logger specified", func() {
-				logger := log.NewNull()
+				logger := null.NewLogger()
 				mongoSession = mongoStore.NewSession(logger)
 				Expect(mongoSession).ToNot(BeNil())
-				Expect(mongoSession.Logger()).To(Equal(logger))
+				Expect(mongoSession.Logger()).ToNot(BeNil())
 			})
 		})
 
 		Context("with a new session", func() {
 			BeforeEach(func() {
-				mongoSession = mongoStore.NewSession(log.NewNull())
+				mongoSession = mongoStore.NewSession(null.NewLogger())
 				Expect(mongoSession).ToNot(BeNil())
 			})
 

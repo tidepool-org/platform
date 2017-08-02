@@ -6,7 +6,7 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/context"
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -22,7 +22,7 @@ var _ = Describe("Standard", func() {
 		var err error
 
 		BeforeEach(func() {
-			standard, err = context.NewStandard(log.NewNull())
+			standard, err = context.NewStandard(null.NewLogger())
 			Expect(err).ToNot(HaveOccurred())
 		})
 
