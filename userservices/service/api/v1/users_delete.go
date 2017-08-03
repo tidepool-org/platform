@@ -106,8 +106,8 @@ func UsersDelete(serviceContext service.Context) {
 		return
 	}
 
-	if err = serviceContext.NotificationStoreSession().DestroyNotificationsForUserByID(targetUserID); err != nil {
-		serviceContext.RespondWithInternalServerFailure("Unable to destroy notifications for user by id", err)
+	if err = serviceContext.ConfirmationStoreSession().DestroyConfirmationsForUserByID(targetUserID); err != nil {
+		serviceContext.RespondWithInternalServerFailure("Unable to destroy confirmations for user by id", err)
 		return
 	}
 

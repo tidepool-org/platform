@@ -173,25 +173,25 @@ var _ = Describe("UsersDelete", func() {
 			}
 		}
 
-		WithDestroyingNotifications := func(flags *TestFlags) func() {
+		WithDestroyingConfirmations := func(flags *TestFlags) func() {
 			return func() {
 				AfterEach(func() {
-					Expect(context.NotificationStoreSessionImpl.DestroyNotificationsForUserByIDInputs).To(Equal([]string{targetUserID}))
+					Expect(context.ConfirmationStoreSessionImpl.DestroyConfirmationsForUserByIDInputs).To(Equal([]string{targetUserID}))
 				})
 
-				Context("with destroying notifications", func() {
+				Context("with destroying confirmations", func() {
 					BeforeEach(func() {
-						context.NotificationStoreSessionImpl.DestroyNotificationsForUserByIDOutputs = []error{nil}
+						context.ConfirmationStoreSessionImpl.DestroyConfirmationsForUserByIDOutputs = []error{nil}
 					})
 
 					WithDestroyingData(flags)()
 				})
 
 				It("responds with failure if it returns error", func() {
-					err := errors.New("test-error-destroying-notifications")
-					context.NotificationStoreSessionImpl.DestroyNotificationsForUserByIDOutputs = []error{err}
+					err := errors.New("test-error-destroying-confirmations")
+					context.ConfirmationStoreSessionImpl.DestroyConfirmationsForUserByIDOutputs = []error{err}
 					v1.UsersDelete(context)
-					Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to destroy notifications for user by id", []interface{}{err}}}))
+					Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to destroy confirmations for user by id", []interface{}{err}}}))
 				})
 			}
 		}
@@ -207,7 +207,7 @@ var _ = Describe("UsersDelete", func() {
 						context.PermissionStoreSessionImpl.DestroyPermissionsForUserByIDOutputs = []error{nil}
 					})
 
-					WithDestroyingNotifications(flags)()
+					WithDestroyingConfirmations(flags)()
 				})
 
 				It("responds with failure if it returns error", func() {

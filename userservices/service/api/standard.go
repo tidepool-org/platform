@@ -3,12 +3,12 @@ package api
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
+	confirmationStore "github.com/tidepool-org/platform/confirmation/store"
 	dataservicesClient "github.com/tidepool-org/platform/dataservices/client"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	messageStore "github.com/tidepool-org/platform/message/store"
 	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
-	notificationStore "github.com/tidepool-org/platform/notification/store"
 	permissionStore "github.com/tidepool-org/platform/permission/store"
 	profileStore "github.com/tidepool-org/platform/profile/store"
 	"github.com/tidepool-org/platform/service/api"
@@ -25,8 +25,8 @@ type Standard struct {
 	metricServicesClient metricservicesClient.Client
 	userServicesClient   userservicesClient.Client
 	dataServicesClient   dataservicesClient.Client
+	confirmationStore    confirmationStore.Store
 	messageStore         messageStore.Store
-	notificationStore    notificationStore.Store
 	permissionStore      permissionStore.Store
 	profileStore         profileStore.Store
 	sessionStore         sessionStore.Store
@@ -35,7 +35,7 @@ type Standard struct {
 
 func NewStandard(versionReporter version.Reporter, logger log.Logger,
 	metricServicesClient metricservicesClient.Client, userServicesClient userservicesClient.Client, dataServicesClient dataservicesClient.Client,
-	messageStore messageStore.Store, notificationStore notificationStore.Store, permissionStore permissionStore.Store,
+	confirmationStore confirmationStore.Store, messageStore messageStore.Store, permissionStore permissionStore.Store,
 	profileStore profileStore.Store, sessionStore sessionStore.Store, userStore userStore.Store) (*Standard, error) {
 	if versionReporter == nil {
 		return nil, errors.New("api", "version reporter is missing")
@@ -52,11 +52,11 @@ func NewStandard(versionReporter version.Reporter, logger log.Logger,
 	if dataServicesClient == nil {
 		return nil, errors.New("api", "data services client is missing")
 	}
+	if confirmationStore == nil {
+		return nil, errors.New("api", "confirmation store is missing")
+	}
 	if messageStore == nil {
 		return nil, errors.New("api", "message store is missing")
-	}
-	if notificationStore == nil {
-		return nil, errors.New("api", "notification store is missing")
 	}
 	if permissionStore == nil {
 		return nil, errors.New("api", "permission store is missing")
@@ -81,8 +81,8 @@ func NewStandard(versionReporter version.Reporter, logger log.Logger,
 		metricServicesClient: metricServicesClient,
 		userServicesClient:   userServicesClient,
 		dataServicesClient:   dataServicesClient,
+		confirmationStore:    confirmationStore,
 		messageStore:         messageStore,
-		notificationStore:    notificationStore,
 		permissionStore:      permissionStore,
 		profileStore:         profileStore,
 		sessionStore:         sessionStore,
@@ -119,6 +119,6 @@ func (s *Standard) InitializeRouter(routes []service.Route) error {
 
 func (s *Standard) withContext(handler service.HandlerFunc) rest.HandlerFunc {
 	return context.WithContext(s.metricServicesClient, s.userServicesClient, s.dataServicesClient,
-		s.messageStore, s.notificationStore, s.permissionStore, s.profileStore,
+		s.confirmationStore, s.messageStore, s.permissionStore, s.profileStore,
 		s.sessionStore, s.userStore, handler)
 }

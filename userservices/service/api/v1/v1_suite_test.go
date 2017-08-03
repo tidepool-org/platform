@@ -10,12 +10,12 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 
+	confirmationStore "github.com/tidepool-org/platform/confirmation/store"
 	dataservicesClient "github.com/tidepool-org/platform/dataservices/client"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/log/null"
 	messageStore "github.com/tidepool-org/platform/message/store"
 	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
-	notificationStore "github.com/tidepool-org/platform/notification/store"
 	permissionStore "github.com/tidepool-org/platform/permission/store"
 	"github.com/tidepool-org/platform/profile"
 	profileStore "github.com/tidepool-org/platform/profile/store"
@@ -163,6 +163,38 @@ func (t *TestDataServicesClient) ValidateTest() bool {
 	return len(t.DestroyDataForUserByIDOutputs) == 0
 }
 
+type TestConfirmationStoreSession struct {
+	DestroyConfirmationsForUserByIDInputs  []string
+	DestroyConfirmationsForUserByIDOutputs []error
+}
+
+func (t *TestConfirmationStoreSession) IsClosed() bool {
+	panic("Unexpected invocation of IsClosed on TestConfirmationStoreSession")
+}
+
+func (t *TestConfirmationStoreSession) Close() {
+	panic("Unexpected invocation of Close on TestConfirmationStoreSession")
+}
+
+func (t *TestConfirmationStoreSession) Logger() log.Logger {
+	panic("Unexpected invocation of Logger on TestConfirmationStoreSession")
+}
+
+func (t *TestConfirmationStoreSession) SetAgent(agent commonStore.Agent) {
+	panic("Unexpected invocation of SetAgent on TestConfirmationStoreSession")
+}
+
+func (t *TestConfirmationStoreSession) DestroyConfirmationsForUserByID(userID string) error {
+	t.DestroyConfirmationsForUserByIDInputs = append(t.DestroyConfirmationsForUserByIDInputs, userID)
+	output := t.DestroyConfirmationsForUserByIDOutputs[0]
+	t.DestroyConfirmationsForUserByIDOutputs = t.DestroyConfirmationsForUserByIDOutputs[1:]
+	return output
+}
+
+func (t *TestConfirmationStoreSession) ValidateTest() bool {
+	return len(t.DestroyConfirmationsForUserByIDOutputs) == 0
+}
+
 type TestMessageStoreSession struct {
 	DeleteMessagesFromUserInputs      []*messageStore.User
 	DeleteMessagesFromUserOutputs     []error
@@ -203,38 +235,6 @@ func (t *TestMessageStoreSession) DestroyMessagesForUserByID(userID string) erro
 func (t *TestMessageStoreSession) ValidateTest() bool {
 	return len(t.DeleteMessagesFromUserOutputs) == 0 &&
 		len(t.DestroyMessagesForUserByIDOutputs) == 0
-}
-
-type TestNotificationStoreSession struct {
-	DestroyNotificationsForUserByIDInputs  []string
-	DestroyNotificationsForUserByIDOutputs []error
-}
-
-func (t *TestNotificationStoreSession) IsClosed() bool {
-	panic("Unexpected invocation of IsClosed on TestNotificationStoreSession")
-}
-
-func (t *TestNotificationStoreSession) Close() {
-	panic("Unexpected invocation of Close on TestNotificationStoreSession")
-}
-
-func (t *TestNotificationStoreSession) Logger() log.Logger {
-	panic("Unexpected invocation of Logger on TestNotificationStoreSession")
-}
-
-func (t *TestNotificationStoreSession) SetAgent(agent commonStore.Agent) {
-	panic("Unexpected invocation of SetAgent on TestNotificationStoreSession")
-}
-
-func (t *TestNotificationStoreSession) DestroyNotificationsForUserByID(userID string) error {
-	t.DestroyNotificationsForUserByIDInputs = append(t.DestroyNotificationsForUserByIDInputs, userID)
-	output := t.DestroyNotificationsForUserByIDOutputs[0]
-	t.DestroyNotificationsForUserByIDOutputs = t.DestroyNotificationsForUserByIDOutputs[1:]
-	return output
-}
-
-func (t *TestNotificationStoreSession) ValidateTest() bool {
-	return len(t.DestroyNotificationsForUserByIDOutputs) == 0
 }
 
 type TestPermissionStoreSession struct {
@@ -456,8 +456,8 @@ type TestContext struct {
 	MetricServicesClientImpl               *TestMetricServicesClient
 	UserServicesClientImpl                 *TestUserServicesClient
 	DataServicesClientImpl                 *TestDataServicesClient
+	ConfirmationStoreSessionImpl           *TestConfirmationStoreSession
 	MessageStoreSessionImpl                *TestMessageStoreSession
-	NotificationStoreSessionImpl           *TestNotificationStoreSession
 	PermissionStoreSessionImpl             *TestPermissionStoreSession
 	ProfileStoreSessionImpl                *TestProfileStoreSession
 	SessionStoreSessionImpl                *TestSessionStoreSession
@@ -477,8 +477,8 @@ func NewTestContext() *TestContext {
 		MetricServicesClientImpl:     &TestMetricServicesClient{},
 		UserServicesClientImpl:       &TestUserServicesClient{},
 		DataServicesClientImpl:       &TestDataServicesClient{},
+		ConfirmationStoreSessionImpl: &TestConfirmationStoreSession{},
 		MessageStoreSessionImpl:      &TestMessageStoreSession{},
-		NotificationStoreSessionImpl: &TestNotificationStoreSession{},
 		PermissionStoreSessionImpl:   &TestPermissionStoreSession{},
 		ProfileStoreSessionImpl:      &TestProfileStoreSession{},
 		SessionStoreSessionImpl:      &TestSessionStoreSession{},
@@ -527,12 +527,12 @@ func (t *TestContext) DataServicesClient() dataservicesClient.Client {
 	return t.DataServicesClientImpl
 }
 
-func (t *TestContext) MessageStoreSession() messageStore.Session {
-	return t.MessageStoreSessionImpl
+func (t *TestContext) ConfirmationStoreSession() confirmationStore.Session {
+	return t.ConfirmationStoreSessionImpl
 }
 
-func (t *TestContext) NotificationStoreSession() notificationStore.Session {
-	return t.NotificationStoreSessionImpl
+func (t *TestContext) MessageStoreSession() messageStore.Session {
+	return t.MessageStoreSessionImpl
 }
 
 func (t *TestContext) PermissionStoreSession() permissionStore.Session {
@@ -563,8 +563,8 @@ func (t *TestContext) ValidateTest() bool {
 	return (t.MetricServicesClientImpl == nil || t.MetricServicesClientImpl.ValidateTest()) &&
 		(t.UserServicesClientImpl == nil || t.UserServicesClientImpl.ValidateTest()) &&
 		(t.DataServicesClientImpl == nil || t.DataServicesClientImpl.ValidateTest()) &&
+		(t.ConfirmationStoreSessionImpl == nil || t.ConfirmationStoreSessionImpl.ValidateTest()) &&
 		(t.MessageStoreSessionImpl == nil || t.MessageStoreSessionImpl.ValidateTest()) &&
-		(t.NotificationStoreSessionImpl == nil || t.NotificationStoreSessionImpl.ValidateTest()) &&
 		(t.PermissionStoreSessionImpl == nil || t.PermissionStoreSessionImpl.ValidateTest()) &&
 		(t.ProfileStoreSessionImpl == nil || t.ProfileStoreSessionImpl.ValidateTest()) &&
 		(t.SessionStoreSessionImpl == nil || t.SessionStoreSessionImpl.ValidateTest()) &&

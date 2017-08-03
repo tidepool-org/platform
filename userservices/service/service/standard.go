@@ -1,11 +1,11 @@
 package service
 
 import (
+	confirmationMongo "github.com/tidepool-org/platform/confirmation/store/mongo"
 	dataservicesClient "github.com/tidepool-org/platform/dataservices/client"
 	"github.com/tidepool-org/platform/errors"
 	messageMongo "github.com/tidepool-org/platform/message/store/mongo"
 	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
-	notificationMongo "github.com/tidepool-org/platform/notification/store/mongo"
 	permissionMongo "github.com/tidepool-org/platform/permission/store/mongo"
 	profileMongo "github.com/tidepool-org/platform/profile/store/mongo"
 	"github.com/tidepool-org/platform/service"
@@ -24,8 +24,8 @@ type Standard struct {
 	metricServicesClient *metricservicesClient.Standard
 	userServicesClient   *userservicesClient.Standard
 	dataServicesClient   *dataservicesClient.Standard
+	confirmationStore    *confirmationMongo.Store
 	messageStore         *messageMongo.Store
-	notificationStore    *notificationMongo.Store
 	permissionStore      *permissionMongo.Store
 	profileStore         *profileMongo.Store
 	sessionStore         *sessionMongo.Store
@@ -59,10 +59,10 @@ func (s *Standard) Initialize() error {
 	if err := s.initializeDataServicesClient(); err != nil {
 		return err
 	}
-	if err := s.initializeMessageStore(); err != nil {
+	if err := s.initializeConfirmationStore(); err != nil {
 		return err
 	}
-	if err := s.initializeNotificationStore(); err != nil {
+	if err := s.initializeMessageStore(); err != nil {
 		return err
 	}
 	if err := s.initializePermissionStore(); err != nil {
@@ -106,13 +106,13 @@ func (s *Standard) Terminate() {
 		s.permissionStore.Close()
 		s.permissionStore = nil
 	}
-	if s.notificationStore != nil {
-		s.notificationStore.Close()
-		s.notificationStore = nil
-	}
 	if s.messageStore != nil {
 		s.messageStore.Close()
 		s.messageStore = nil
+	}
+	if s.confirmationStore != nil {
+		s.confirmationStore.Close()
+		s.confirmationStore = nil
 	}
 	s.dataServicesClient = nil
 	if s.userServicesClient != nil {
@@ -195,6 +195,26 @@ func (s *Standard) initializeDataServicesClient() error {
 	return nil
 }
 
+func (s *Standard) initializeConfirmationStore() error {
+	s.Logger().Debug("Loading confirmation store config")
+
+	confirmationStoreConfig := baseMongo.NewConfig()
+	if err := confirmationStoreConfig.Load(s.ConfigReporter().WithScopes("confirmation", "store")); err != nil {
+		return errors.Wrap(err, "service", "unable to load confirmation store config")
+	}
+	confirmationStoreConfig.Collection = "confirmations"
+
+	s.Logger().Debug("Creating confirmation store")
+
+	confirmationStore, err := confirmationMongo.New(s.Logger(), confirmationStoreConfig)
+	if err != nil {
+		return errors.Wrap(err, "service", "unable to create confirmation store")
+	}
+	s.confirmationStore = confirmationStore
+
+	return nil
+}
+
 func (s *Standard) initializeMessageStore() error {
 	s.Logger().Debug("Loading message store config")
 
@@ -211,26 +231,6 @@ func (s *Standard) initializeMessageStore() error {
 		return errors.Wrap(err, "service", "unable to create message store")
 	}
 	s.messageStore = messageStore
-
-	return nil
-}
-
-func (s *Standard) initializeNotificationStore() error {
-	s.Logger().Debug("Loading notification store config")
-
-	notificationStoreConfig := baseMongo.NewConfig()
-	if err := notificationStoreConfig.Load(s.ConfigReporter().WithScopes("notification", "store")); err != nil {
-		return errors.Wrap(err, "service", "unable to load notification store config")
-	}
-	notificationStoreConfig.Collection = "confirmations"
-
-	s.Logger().Debug("Creating notification store")
-
-	notificationStore, err := notificationMongo.New(s.Logger(), notificationStoreConfig)
-	if err != nil {
-		return errors.Wrap(err, "service", "unable to create notification store")
-	}
-	s.notificationStore = notificationStore
 
 	return nil
 }
@@ -320,7 +320,7 @@ func (s *Standard) initializeUserServicesAPI() error {
 
 	userServicesAPI, err := api.NewStandard(s.VersionReporter(), s.Logger(),
 		s.metricServicesClient, s.userServicesClient, s.dataServicesClient,
-		s.messageStore, s.notificationStore, s.permissionStore, s.profileStore, s.sessionStore, s.userStore)
+		s.confirmationStore, s.messageStore, s.permissionStore, s.profileStore, s.sessionStore, s.userStore)
 	if err != nil {
 		return errors.Wrap(err, "service", "unable to create user services api")
 	}
