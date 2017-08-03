@@ -8,9 +8,9 @@ import (
 	notificationMongo "github.com/tidepool-org/platform/notification/store/mongo"
 	permissionMongo "github.com/tidepool-org/platform/permission/store/mongo"
 	profileMongo "github.com/tidepool-org/platform/profile/store/mongo"
+	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/service/middleware"
 	"github.com/tidepool-org/platform/service/server"
-	"github.com/tidepool-org/platform/service/service"
 	sessionMongo "github.com/tidepool-org/platform/session/store/mongo"
 	baseMongo "github.com/tidepool-org/platform/store/mongo"
 	userMongo "github.com/tidepool-org/platform/user/store/mongo"
@@ -20,7 +20,7 @@ import (
 )
 
 type Standard struct {
-	*service.Standard
+	*service.Service
 	metricServicesClient *metricservicesClient.Standard
 	userServicesClient   *userservicesClient.Standard
 	dataServicesClient   *dataservicesClient.Standard
@@ -35,18 +35,18 @@ type Standard struct {
 }
 
 func NewStandard() (*Standard, error) {
-	standard, err := service.NewStandard("userservices", "TIDEPOOL")
+	svc, err := service.New("userservices", "TIDEPOOL")
 	if err != nil {
 		return nil, err
 	}
 
 	return &Standard{
-		Standard: standard,
+		Service: svc,
 	}, nil
 }
 
 func (s *Standard) Initialize() error {
-	if err := s.Standard.Initialize(); err != nil {
+	if err := s.Service.Initialize(); err != nil {
 		return err
 	}
 
@@ -121,7 +121,7 @@ func (s *Standard) Terminate() {
 	}
 	s.metricServicesClient = nil
 
-	s.Standard.Terminate()
+	s.Service.Terminate()
 }
 
 func (s *Standard) Run() error {
@@ -350,7 +350,7 @@ func (s *Standard) initializeUserServicesServer() error {
 	s.Logger().Debug("Loading user services server config")
 
 	userServicesServerConfig := server.NewConfig()
-	if err := userServicesServerConfig.Load(s.ConfigReporter().WithScopes("userservices", "server")); err != nil {
+	if err := userServicesServerConfig.Load(s.ConfigReporter().WithScopes(s.Name(), "server")); err != nil {
 		return errors.Wrap(err, "service", "unable to load user services server config")
 	}
 

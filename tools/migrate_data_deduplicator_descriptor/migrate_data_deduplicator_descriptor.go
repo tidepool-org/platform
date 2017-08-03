@@ -2,199 +2,115 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/urfave/cli"
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
+	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
-	jsonLog "github.com/tidepool-org/platform/log/json"
 	"github.com/tidepool-org/platform/store/mongo"
-	"github.com/tidepool-org/platform/version"
+	mongoTool "github.com/tidepool-org/platform/tool/mongo"
 )
 
-type Config struct {
-	LogLevel log.Level
-	Mongo    *mongo.Config
-	DryRun   bool
-}
-
 const (
-	HelpFlag      = "help"
-	VersionFlag   = "version"
-	VerboseFlag   = "verbose"
-	DryRunFlag    = "dry-run"
-	AddressesFlag = "addresses"
-	TLSFlag       = "tls"
+	DryRunFlag = "dry-run"
 )
 
 func main() {
-	application, err := initializeApplication()
-	if err != nil {
-		fmt.Println("ERROR: Unable to initialize application:", err)
-		os.Exit(1)
-	}
-
-	if err = application.Run(os.Args); err != nil {
-		fmt.Println("ERROR: Unable to run application:", err)
-		os.Exit(1)
-	}
+	application.Run(NewTool())
 }
 
-func initializeApplication() (*cli.App, error) {
-	versionReporter, err := initializeVersionReporter()
+type Tool struct {
+	*mongoTool.Tool
+	dryRun bool
+}
+
+func NewTool() (*Tool, error) {
+	tuel, err := mongoTool.NewTool("migrate_data_deduplicator_descriptor", "TIDEPOOL")
 	if err != nil {
 		return nil, err
 	}
 
-	application := cli.NewApp()
-	application.Usage = "Migrate all data deduplicators to latest format"
-	application.Version = versionReporter.Long()
-	application.Authors = []cli.Author{{Name: "Darin Krauss", Email: "darin@tidepool.org"}}
-	application.Copyright = "Copyright \u00A9 2017, Tidepool Project"
-	application.HideHelp = true
-	application.HideVersion = true
-	application.Flags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  fmt.Sprintf("%s,%s,%s", HelpFlag, "h", "?"),
-			Usage: "print this page and exit",
+	return &Tool{
+		Tool: tuel,
+	}, nil
+}
+
+func (t *Tool) Initialize() error {
+	if err := t.Tool.Initialize(); err != nil {
+		return err
+	}
+
+	t.CLI().Usage = "Migrate all data deduplicators to latest format"
+	t.CLI().Authors = []cli.Author{
+		{
+			Name:  "Darin Krauss",
+			Email: "darin@tidepool.org",
 		},
-		cli.BoolFlag{
-			Name:  VersionFlag,
-			Usage: "print version and exit",
-		},
-		cli.BoolFlag{
-			Name:  fmt.Sprintf("%s,%s", VerboseFlag, "v"),
-			Usage: "increased verbosity",
-		},
+	}
+	t.CLI().Flags = append(t.CLI().Flags,
 		cli.BoolFlag{
 			Name:  fmt.Sprintf("%s,%s", DryRunFlag, "n"),
 			Usage: "dry run only, do not update database",
 		},
-		cli.StringFlag{
-			Name:  fmt.Sprintf("%s,%s", AddressesFlag, "a"),
-			Usage: "comma-delimited list of address(es) to mongo database (host:port)",
-		},
-		cli.BoolFlag{
-			Name:  fmt.Sprintf("%s,%s", TLSFlag, "t"),
-			Usage: "use TLS to connect to mongo database",
-		},
-	}
-	application.Action = func(context *cli.Context) error {
-		executeApplication(versionReporter, context)
-		return nil
+	)
+
+	t.CLI().Action = func(context *cli.Context) error {
+		if !t.ParseContext(context) {
+			return nil
+		}
+		return t.execute()
 	}
 
-	return application, nil
+	return nil
 }
 
-func initializeVersionReporter() (version.Reporter, error) {
-	versionReporter, err := version.NewDefaultReporter()
-	if err != nil {
-		return nil, errors.Wrap(err, "main", "unable to create version reporter")
+func (t *Tool) ParseContext(context *cli.Context) bool {
+	if parsed := t.Tool.ParseContext(context); !parsed {
+		return parsed
 	}
 
-	return versionReporter, nil
+	t.dryRun = context.Bool(DryRunFlag)
+
+	return true
 }
 
-func executeApplication(versionReporter version.Reporter, context *cli.Context) {
-	if context.Bool(HelpFlag) {
-		cli.ShowAppHelp(context)
-		return
-	}
+func (t *Tool) execute() error {
+	t.Logger().Debug("Migrating data deduplicator descriptors")
 
-	if context.Bool(VersionFlag) {
-		fmt.Println(versionReporter.Long())
-		return
-	}
+	t.Logger().Debug("Creating data store")
 
-	config, err := buildConfigFromContext(context)
-	if err != nil {
-		fmt.Println("ERROR: Unable to build config from context:", err)
-		os.Exit(1)
-	}
-
-	logger, err := initializeLogger(versionReporter, config)
-	if err != nil {
-		fmt.Println("ERROR: Unable to initialize logger:", err)
-		os.Exit(1)
-	}
-
-	err = migrateDataDeduplicatorDescriptors(logger, config)
-	if err != nil {
-		logger.WithError(err).Error("Unable to migrate group id to user id for data")
-		os.Exit(1)
-	}
-}
-
-func buildConfigFromContext(context *cli.Context) (*Config, error) {
-	config := &Config{
-		LogLevel: log.InfoLevel,
-		Mongo:    mongo.NewConfig(),
-	}
-
-	if context.Bool(VerboseFlag) {
-		config.LogLevel = log.DebugLevel
-	}
-	config.Mongo.Addresses = mongo.SplitAddresses(context.String(AddressesFlag))
-	config.Mongo.TLS = context.Bool(TLSFlag)
-	config.DryRun = context.Bool(DryRunFlag)
-
-	return config, nil
-}
-
-func initializeLogger(versionReporter version.Reporter, config *Config) (log.Logger, error) {
-	logger, err := jsonLog.NewLogger(os.Stdout, log.DefaultLevels(), config.LogLevel)
-	if err != nil {
-		return nil, errors.Wrap(err, "main", "unable to create logger")
-	}
-
-	logger = logger.WithFields(log.Fields{
-		"process": filepath.Base(os.Args[0]),
-		"pid":     os.Getpid(),
-		"version": versionReporter.Short(),
-	})
-
-	return logger, nil
-}
-
-func migrateDataDeduplicatorDescriptors(logger log.Logger, config *Config) error {
-	logger.Debug("Migrating data deduplicator descriptors")
-
-	logger.Debug("Creating data store")
-
-	mongoConfig := config.Mongo.Clone()
+	mongoConfig := t.MongoConfig().Clone()
 	mongoConfig.Database = "data"
 	mongoConfig.Collection = "deviceData"
 	mongoConfig.Timeout = 60 * time.Minute
-	dataStore, err := mongo.New(logger, mongoConfig)
+	dataStore, err := mongo.New(t.Logger(), mongoConfig)
 	if err != nil {
 		return errors.Wrap(err, "main", "unable to create data store")
 	}
 	defer dataStore.Close()
 
-	logger.Debug("Creating data session")
+	t.Logger().Debug("Creating data session")
 
-	dataStoreSession := dataStore.NewSession(logger)
+	dataStoreSession := dataStore.NewSession(t.Logger())
 	defer dataStoreSession.Close()
 
 	var count int
-	count += migrateUploadDataDeduplicatorDescriptor(logger, config, dataStoreSession, "truncate", "org.tidepool.truncate")
-	count += migrateUploadDataDeduplicatorDescriptor(logger, config, dataStoreSession, "hash-deactivate-old", "org.tidepool.hash-deactivate-old")
-	count += migrateUploadDataDeduplicatorDescriptor(logger, config, dataStoreSession, "hash", "org.tidepool.hash-drop-new")
-	count += migrateNonUploadDataDeduplicatorDescriptor(logger, config, dataStoreSession)
+	count += t.migrateUploadDataDeduplicatorDescriptor(dataStoreSession, "truncate", "org.tidepool.truncate")
+	count += t.migrateUploadDataDeduplicatorDescriptor(dataStoreSession, "hash-deactivate-old", "org.tidepool.hash-deactivate-old")
+	count += t.migrateUploadDataDeduplicatorDescriptor(dataStoreSession, "hash", "org.tidepool.hash-drop-new")
+	count += t.migrateNonUploadDataDeduplicatorDescriptor(dataStoreSession)
 
-	logger.Infof("Migrated %d data duplicator descriptors", count)
+	t.Logger().Infof("Migrated %d data duplicator descriptors", count)
 
 	return nil
 }
 
-func migrateUploadDataDeduplicatorDescriptor(logger log.Logger, config *Config, dataStoreSession *mongo.Session, fromName string, toName string) int {
-	logger = logger.WithFields(log.Fields{"fromName": fromName, "toName": toName})
+func (t *Tool) migrateUploadDataDeduplicatorDescriptor(dataStoreSession *mongo.Session, fromName string, toName string) int {
+	logger := t.Logger().WithFields(log.Fields{"fromName": fromName, "toName": toName})
 
 	logger.Debug("Migrating upload data deduplicator descriptors")
 
@@ -206,7 +122,7 @@ func migrateUploadDataDeduplicatorDescriptor(logger log.Logger, config *Config, 
 		"_deduplicator.name": fromName,
 	}
 
-	if config.DryRun {
+	if t.dryRun {
 		count, err = dataStoreSession.C().Find(selector).Count()
 	} else {
 		update := bson.M{
@@ -232,8 +148,8 @@ func migrateUploadDataDeduplicatorDescriptor(logger log.Logger, config *Config, 
 	return count
 }
 
-func migrateNonUploadDataDeduplicatorDescriptor(logger log.Logger, config *Config, dataStoreSession *mongo.Session) int {
-	logger.Debug("Migrating non-upload data deduplicator descriptors")
+func (t *Tool) migrateNonUploadDataDeduplicatorDescriptor(dataStoreSession *mongo.Session) int {
+	t.Logger().Debug("Migrating non-upload data deduplicator descriptors")
 
 	var count int
 	var err error
@@ -247,7 +163,7 @@ func migrateNonUploadDataDeduplicatorDescriptor(logger log.Logger, config *Confi
 		},
 	}
 
-	if config.DryRun {
+	if t.dryRun {
 		count, err = dataStoreSession.C().Find(selector).Count()
 	} else {
 		update := bson.M{
@@ -264,10 +180,10 @@ func migrateNonUploadDataDeduplicatorDescriptor(logger log.Logger, config *Confi
 	}
 
 	if err != nil {
-		logger.WithError(err).Error("Unable to migrate non-upload data deduplicator descriptors")
+		t.Logger().WithError(err).Error("Unable to migrate non-upload data deduplicator descriptors")
 	}
 
-	logger.Debugf("Migrated %d non-upload data deduplicator descriptors", count)
+	t.Logger().Debugf("Migrated %d non-upload data deduplicator descriptors", count)
 
 	return count
 }

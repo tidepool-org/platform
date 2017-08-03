@@ -9,16 +9,16 @@ import (
 	"github.com/tidepool-org/platform/dataservices/service/api/v1"
 	"github.com/tidepool-org/platform/errors"
 	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
+	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/service/middleware"
 	"github.com/tidepool-org/platform/service/server"
-	"github.com/tidepool-org/platform/service/service"
 	baseMongo "github.com/tidepool-org/platform/store/mongo"
 	taskMongo "github.com/tidepool-org/platform/task/store/mongo"
 	userservicesClient "github.com/tidepool-org/platform/userservices/client"
 )
 
 type Standard struct {
-	*service.Standard
+	*service.Service
 	metricServicesClient    *metricservicesClient.Standard
 	userServicesClient      *userservicesClient.Standard
 	dataFactory             *factory.Standard
@@ -30,18 +30,18 @@ type Standard struct {
 }
 
 func NewStandard() (*Standard, error) {
-	standard, err := service.NewStandard("dataservices", "TIDEPOOL")
+	svc, err := service.New("dataservices", "TIDEPOOL")
 	if err != nil {
 		return nil, err
 	}
 
 	return &Standard{
-		Standard: standard,
+		Service: svc,
 	}, nil
 }
 
 func (s *Standard) Initialize() error {
-	if err := s.Standard.Initialize(); err != nil {
+	if err := s.Service.Initialize(); err != nil {
 		return err
 	}
 
@@ -92,7 +92,7 @@ func (s *Standard) Terminate() {
 	}
 	s.metricServicesClient = nil
 
-	s.Standard.Terminate()
+	s.Service.Terminate()
 }
 
 func (s *Standard) Run() error {
@@ -265,7 +265,7 @@ func (s *Standard) initializeDataServicesServer() error {
 	s.Logger().Debug("Loading data services server config")
 
 	dataServicesServerConfig := server.NewConfig()
-	if err := dataServicesServerConfig.Load(s.ConfigReporter().WithScopes("dataservices", "server")); err != nil {
+	if err := dataServicesServerConfig.Load(s.ConfigReporter().WithScopes(s.Name(), "server")); err != nil {
 		return errors.Wrap(err, "service", "unable to load data services server config")
 	}
 

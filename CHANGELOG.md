@@ -1,5 +1,12 @@
 ## HEAD
 
+- Refactor common functionality in service package into application package
+- Update service package to reflect new application package
+- Refactor common functionality in tools into tool package
+- Update tools to reflect new tool package
+- Update environment config to reflect common functionality in application package
+- Introduce new runner mechanism to simplify main package for application package derived functionality
+- Add package for version tests
 - Introduce new log mechanism with dynamically configured levels and custom serializers
 - Update null logger to reflect new log mechanism
 - Remove log config as unnecessary for only one field
