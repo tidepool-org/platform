@@ -2,205 +2,129 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"github.com/urfave/cli"
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
+	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/log/json"
 	"github.com/tidepool-org/platform/store/mongo"
-	"github.com/tidepool-org/platform/version"
+	mongoTool "github.com/tidepool-org/platform/tool/mongo"
 )
 
-type Config struct {
-	LogLevel log.Level
-	Mongo    *mongo.Config
-	DryRun   bool
-	Index    bool
-}
-
 const (
-	HelpFlag      = "help"
-	VersionFlag   = "version"
-	VerboseFlag   = "verbose"
-	DryRunFlag    = "dry-run"
-	IndexFlag     = "index"
-	AddressesFlag = "addresses"
-	TLSFlag       = "tls"
+	IndexFlag  = "index"
+	DryRunFlag = "dry-run"
 )
 
 func main() {
-	application, err := initializeApplication()
-	if err != nil {
-		fmt.Println("ERROR: Unable to initialize application:", err)
-		os.Exit(1)
-	}
-
-	if err = application.Run(os.Args); err != nil {
-		fmt.Println("ERROR: Unable to run application:", err)
-		os.Exit(1)
-	}
+	application.Run(NewTool())
 }
 
-func initializeApplication() (*cli.App, error) {
-	versionReporter, err := initializeVersionReporter()
+type Tool struct {
+	*mongoTool.Tool
+	index  bool
+	dryRun bool
+}
+
+func NewTool() (*Tool, error) {
+	tuel, err := mongoTool.NewTool("migrate_pmid_to_uid", "TIDEPOOL")
 	if err != nil {
 		return nil, err
 	}
 
-	application := cli.NewApp()
-	application.Usage = "Migrate all metadata to include user id derived from _id"
-	application.Version = versionReporter.Long()
-	application.Authors = []cli.Author{{Name: "Darin Krauss", Email: "darin@tidepool.org"}}
-	application.Copyright = "Copyright \u00A9 2017, Tidepool Project"
-	application.HideHelp = true
-	application.HideVersion = true
-	application.Flags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  fmt.Sprintf("%s,%s,%s", HelpFlag, "h", "?"),
-			Usage: "print this page and exit",
+	return &Tool{
+		Tool: tuel,
+	}, nil
+}
+
+func (t *Tool) Initialize() error {
+	if err := t.Tool.Initialize(); err != nil {
+		return err
+	}
+
+	t.CLI().Usage = "Migrate all metadata to include user id derived from _id"
+	t.CLI().Authors = []cli.Author{
+		{
+			Name:  "Darin Krauss",
+			Email: "darin@tidepool.org",
 		},
+	}
+	t.CLI().Flags = append(t.CLI().Flags,
 		cli.BoolFlag{
-			Name:  VersionFlag,
-			Usage: "print version and exit",
-		},
-		cli.BoolFlag{
-			Name:  fmt.Sprintf("%s,%s", VerboseFlag, "v"),
-			Usage: "increased verbosity",
+			Name:  fmt.Sprintf("%s,%s", IndexFlag, "i"),
+			Usage: "add unique index after migration",
 		},
 		cli.BoolFlag{
 			Name:  fmt.Sprintf("%s,%s", DryRunFlag, "n"),
 			Usage: "dry run only, do not update database",
 		},
-		cli.BoolFlag{
-			Name:  fmt.Sprintf("%s,%s", IndexFlag, "i"),
-			Usage: "add unique index after migration",
-		},
-		cli.StringFlag{
-			Name:  fmt.Sprintf("%s,%s", AddressesFlag, "a"),
-			Usage: "comma-delimited list of address(es) to mongo database (host:port)",
-		},
-		cli.BoolFlag{
-			Name:  fmt.Sprintf("%s,%s", TLSFlag, "t"),
-			Usage: "use TLS to connect to mongo database",
-		},
-	}
-	application.Action = func(context *cli.Context) error {
-		executeApplication(versionReporter, context)
-		return nil
+	)
+
+	t.CLI().Action = func(context *cli.Context) error {
+		if !t.ParseContext(context) {
+			return nil
+		}
+		return t.execute()
 	}
 
-	return application, nil
+	return nil
 }
 
-func initializeVersionReporter() (version.Reporter, error) {
-	versionReporter, err := version.NewDefaultReporter()
-	if err != nil {
-		return nil, errors.Wrap(err, "migrate_pmid_to_uid", "unable to create version reporter")
+func (t *Tool) ParseContext(context *cli.Context) bool {
+	if parsed := t.Tool.ParseContext(context); !parsed {
+		return parsed
 	}
 
-	return versionReporter, nil
+	t.index = context.Bool(IndexFlag)
+	t.dryRun = context.Bool(DryRunFlag)
+
+	return true
 }
 
-func executeApplication(versionReporter version.Reporter, context *cli.Context) {
-	if context.Bool(HelpFlag) {
-		cli.ShowAppHelp(context)
-		return
+func (t *Tool) execute() error {
+	if t.index && t.dryRun {
+		return errors.New(t.Name(), "cannot specify --index with --dry-run")
 	}
 
-	if context.Bool(VersionFlag) {
-		fmt.Println(versionReporter.Long())
-		return
-	}
-
-	config, err := buildConfigFromContext(context)
+	metaIDToUserIDMap, err := t.buildMetaIDToUserIDMap()
 	if err != nil {
-		fmt.Println("ERROR: Unable to build config from context:", err)
-		os.Exit(1)
+		return errors.Wrap(err, t.Name(), "unable to build meta id to user id map")
 	}
 
-	logger, err := initializeLogger(versionReporter, config)
+	err = t.migrateMetaIDToUserIDForMetadata(metaIDToUserIDMap)
 	if err != nil {
-		fmt.Println("ERROR: Unable to initialize logger:", err)
-		os.Exit(1)
+		return errors.Wrap(err, t.Name(), "unable to migrate meta id to user id for metadata")
 	}
 
-	metaIDToUserIDMap, err := buildMetaIDToUserIDMap(logger, config)
-	if err != nil {
-		logger.WithError(err).Error("Unable to build meta id to user id map")
-		os.Exit(1)
-	}
-
-	err = migrateMetaIDToUserIDForMetadata(logger, config, metaIDToUserIDMap)
-	if err != nil {
-		logger.WithError(err).Error("Unable to migrate meta id to user id for metadata")
-		os.Exit(1)
-	}
+	return nil
 }
 
-func buildConfigFromContext(context *cli.Context) (*Config, error) {
-	config := &Config{
-		LogLevel: log.InfoLevel,
-		Mongo:    mongo.NewConfig(),
-	}
-
-	if context.Bool(VerboseFlag) {
-		config.LogLevel = log.DebugLevel
-	}
-	config.Mongo.Addresses = mongo.SplitAddresses(context.String(AddressesFlag))
-	config.Mongo.TLS = context.Bool(TLSFlag)
-	config.DryRun = context.Bool(DryRunFlag)
-	config.Index = context.Bool(IndexFlag)
-
-	if config.DryRun && config.Index {
-		return nil, errors.New("migrate_pmid_to_uid", "cannot specify --index with --dry-run")
-	}
-
-	return config, nil
-}
-
-func initializeLogger(versionReporter version.Reporter, config *Config) (log.Logger, error) {
-	logger, err := json.NewLogger(os.Stdout, log.DefaultLevels(), config.LogLevel)
-	if err != nil {
-		return nil, errors.Wrap(err, "migrate_pmid_to_uid", "unable to create logger")
-	}
-
-	logger = logger.WithFields(log.Fields{
-		"process": filepath.Base(os.Args[0]),
-		"pid":     os.Getpid(),
-		"version": versionReporter.Short(),
-	})
-
-	return logger, nil
-}
-
-func buildMetaIDToUserIDMap(logger log.Logger, config *Config) (map[string]string, error) {
-	logger.Debug("Building meta id to user id map")
+func (t *Tool) buildMetaIDToUserIDMap() (map[string]string, error) {
+	t.Logger().Debug("Building meta id to user id map")
 
 	userIDMap := map[string]bool{}
 	metaIDToUserIDMap := map[string]string{}
 
-	logger.Debug("Creating users store")
+	t.Logger().Debug("Creating users store")
 
-	mongoConfig := config.Mongo.Clone()
+	mongoConfig := t.MongoConfig().Clone()
 	mongoConfig.Database = "user"
 	mongoConfig.Collection = "users"
-	usersStore, err := mongo.New(logger, mongoConfig)
+	usersStore, err := mongo.New(t.Logger(), mongoConfig)
 	if err != nil {
-		return nil, errors.Wrap(err, "migrate_pmid_to_uid", "unable to create users store")
+		return nil, errors.Wrap(err, t.Name(), "unable to create users store")
 	}
 	defer usersStore.Close()
 
-	logger.Debug("Creating users session")
+	t.Logger().Debug("Creating users session")
 
-	usersSession := usersStore.NewSession(logger)
+	usersSession := usersStore.NewSession(t.Logger())
 	defer usersSession.Close()
 
-	logger.Debug("Iterating users")
+	t.Logger().Debug("Iterating users")
 
 	iter := usersSession.C().Find(bson.M{}).Select(bson.M{"_id": 0, "userid": 1, "private.meta.id": 1}).Iter()
 
@@ -213,7 +137,7 @@ func buildMetaIDToUserIDMap(logger log.Logger, config *Config) (map[string]strin
 		} `bson:"private"`
 	}
 	for iter.Next(&result) {
-		userLogger := logger
+		userLogger := t.Logger()
 
 		userID := result.UserID
 		if userID == "" {
@@ -244,41 +168,41 @@ func buildMetaIDToUserIDMap(logger log.Logger, config *Config) (map[string]strin
 		metaIDToUserIDMap[metaID] = userID
 	}
 	if err = iter.Close(); err != nil {
-		return nil, errors.Wrap(err, "migrate_pmid_to_uid", "unable to iterate users")
+		return nil, errors.Wrap(err, t.Name(), "unable to iterate users")
 	}
 
-	logger.Debugf("Found %d users with meta", len(metaIDToUserIDMap))
+	t.Logger().Debugf("Found %d users with meta", len(metaIDToUserIDMap))
 
 	return metaIDToUserIDMap, nil
 }
 
-func migrateMetaIDToUserIDForMetadata(logger log.Logger, config *Config, metaIDToUserIDMap map[string]string) error {
-	logger.Debug("Migrating meta id to user id for metadata")
+func (t *Tool) migrateMetaIDToUserIDForMetadata(metaIDToUserIDMap map[string]string) error {
+	t.Logger().Debug("Migrating meta id to user id for metadata")
 
 	var migrateMetaCount int
 	var migrateMetadataCount int
 
-	logger.Debug("Creating metadata data store")
+	t.Logger().Debug("Creating metadata data store")
 
-	mongoConfig := config.Mongo.Clone()
+	mongoConfig := t.MongoConfig().Clone()
 	mongoConfig.Database = "seagull"
 	mongoConfig.Collection = "seagull"
-	metadataStore, err := mongo.New(logger, mongoConfig)
+	metadataStore, err := mongo.New(t.Logger(), mongoConfig)
 	if err != nil {
-		return errors.Wrap(err, "migrate_pmid_to_uid", "unable to create metadata store")
+		return errors.Wrap(err, t.Name(), "unable to create metadata store")
 	}
 	defer metadataStore.Close()
 
-	logger.Debug("Creating metadata session")
+	t.Logger().Debug("Creating metadata session")
 
-	metadataSession := metadataStore.NewSession(logger)
+	metadataSession := metadataStore.NewSession(t.Logger())
 	defer metadataSession.Close()
 
-	logger.Debug("Walking meta id to user id map")
+	t.Logger().Debug("Walking meta id to user id map")
 
 	var count int
 	for metaID, userID := range metaIDToUserIDMap {
-		metadataLogger := logger.WithFields(log.Fields{"metaId": metaID, "userId": userID})
+		metadataLogger := t.Logger().WithFields(log.Fields{"metaId": metaID, "userId": userID})
 
 		metadataLogger.Debug("Finding metadata for meta id")
 
@@ -319,7 +243,7 @@ func migrateMetaIDToUserIDForMetadata(logger log.Logger, config *Config, metaIDT
 			"userId": bson.M{"$exists": false},
 		}
 
-		if config.DryRun {
+		if t.dryRun {
 			count, err = metadataSession.C().Find(selector).Count()
 		} else {
 			update := bson.M{
@@ -345,21 +269,21 @@ func migrateMetaIDToUserIDForMetadata(logger log.Logger, config *Config, metaIDT
 		}
 	}
 
-	if !config.DryRun {
+	if !t.dryRun {
 		iter := metadataSession.C().Find(bson.M{"userId": bson.M{"$exists": false}}).Iter()
 		var result map[string]interface{}
 		for iter.Next(&result) {
-			logger.WithField("metaId", result["_id"]).Error("Metadata found without user id")
+			t.Logger().WithField("metaId", result["_id"]).Error("Metadata found without user id")
 		}
 		if err = iter.Close(); err != nil {
-			return errors.Wrap(err, "migrate_pmid_to_uid", "unable to iterate metadata without user id")
+			return errors.Wrap(err, t.Name(), "unable to iterate metadata without user id")
 		}
 	}
 
-	logger.Infof("Migrated %d metadata for %d meta", migrateMetadataCount, migrateMetaCount)
+	t.Logger().Infof("Migrated %d metadata for %d meta", migrateMetadataCount, migrateMetaCount)
 
-	if config.Index {
-		logger.Info("Creating unique index on user id")
+	if t.index {
+		t.Logger().Info("Creating unique index on user id")
 
 		index := mgo.Index{
 			Key:        []string{"userId"},
@@ -368,7 +292,7 @@ func migrateMetaIDToUserIDForMetadata(logger log.Logger, config *Config, metaIDT
 		}
 		err = metadataSession.C().EnsureIndex(index)
 		if err != nil {
-			return errors.Wrap(err, "migrate_pmid_to_uid", "unable to create metadata index on user id")
+			return errors.Wrap(err, t.Name(), "unable to create metadata index on user id")
 		}
 	}
 

@@ -1,4 +1,4 @@
-package service_test
+package mongo_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -9,5 +9,5 @@ import (
 
 func TestSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "service/service")
+	RunSpecs(t, "tool/mongo")
 }
