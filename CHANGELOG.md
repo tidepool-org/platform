@@ -1,5 +1,6 @@
 ## HEAD
 
+- Refactor version package to align with new application package
 - Refactor common functionality in service package into application package
 - Update service package to reflect new application package
 - Refactor common functionality in tools into tool package
