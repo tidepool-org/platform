@@ -3,10 +3,10 @@ package context
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
+	confirmationStore "github.com/tidepool-org/platform/confirmation/store"
 	dataservicesClient "github.com/tidepool-org/platform/dataservices/client"
 	messageStore "github.com/tidepool-org/platform/message/store"
 	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
-	notificationStore "github.com/tidepool-org/platform/notification/store"
 	permissionStore "github.com/tidepool-org/platform/permission/store"
 	profileStore "github.com/tidepool-org/platform/profile/store"
 	commonService "github.com/tidepool-org/platform/service"
@@ -22,10 +22,10 @@ type Standard struct {
 	metricServicesClient     metricservicesClient.Client
 	userServicesClient       userservicesClient.Client
 	dataServicesClient       dataservicesClient.Client
+	confirmationStore        confirmationStore.Store
+	confirmationStoreSession confirmationStore.Session
 	messageStore             messageStore.Store
 	messageStoreSession      messageStore.Session
-	notificationStore        notificationStore.Store
-	notificationStoreSession notificationStore.Session
 	permissionStore          permissionStore.Store
 	permissionStoreSession   permissionStore.Session
 	profileStore             profileStore.Store
@@ -38,7 +38,7 @@ type Standard struct {
 }
 
 func WithContext(metricServicesClient metricservicesClient.Client, userServicesClient userservicesClient.Client, dataServicesClient dataservicesClient.Client,
-	messageStore messageStore.Store, notificationStore notificationStore.Store, permissionStore permissionStore.Store, profileStore profileStore.Store,
+	confirmationStore confirmationStore.Store, messageStore messageStore.Store, permissionStore permissionStore.Store, profileStore profileStore.Store,
 	sessionStore sessionStore.Store, userStore userStore.Store, handler service.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
 		context, err := context.NewStandard(response, request)
@@ -52,8 +52,8 @@ func WithContext(metricServicesClient metricservicesClient.Client, userServicesC
 			metricServicesClient: metricServicesClient,
 			userServicesClient:   userServicesClient,
 			dataServicesClient:   dataServicesClient,
+			confirmationStore:    confirmationStore,
 			messageStore:         messageStore,
-			notificationStore:    notificationStore,
 			permissionStore:      permissionStore,
 			profileStore:         profileStore,
 			sessionStore:         sessionStore,
@@ -73,11 +73,11 @@ func WithContext(metricServicesClient metricservicesClient.Client, userServicesC
 			if standard.permissionStoreSession != nil {
 				standard.permissionStoreSession.Close()
 			}
-			if standard.notificationStoreSession != nil {
-				standard.notificationStoreSession.Close()
-			}
 			if standard.messageStoreSession != nil {
 				standard.messageStoreSession.Close()
+			}
+			if standard.confirmationStoreSession != nil {
+				standard.confirmationStoreSession.Close()
 			}
 		}()
 
@@ -97,20 +97,20 @@ func (s *Standard) DataServicesClient() dataservicesClient.Client {
 	return s.dataServicesClient
 }
 
+func (s *Standard) ConfirmationStoreSession() confirmationStore.Session {
+	if s.confirmationStoreSession == nil {
+		s.confirmationStoreSession = s.confirmationStore.NewSession(s.Context.Logger())
+		s.confirmationStoreSession.SetAgent(s.authenticationDetails)
+	}
+	return s.confirmationStoreSession
+}
+
 func (s *Standard) MessageStoreSession() messageStore.Session {
 	if s.messageStoreSession == nil {
 		s.messageStoreSession = s.messageStore.NewSession(s.Context.Logger())
 		s.messageStoreSession.SetAgent(s.authenticationDetails)
 	}
 	return s.messageStoreSession
-}
-
-func (s *Standard) NotificationStoreSession() notificationStore.Session {
-	if s.notificationStoreSession == nil {
-		s.notificationStoreSession = s.notificationStore.NewSession(s.Context.Logger())
-		s.notificationStoreSession.SetAgent(s.authenticationDetails)
-	}
-	return s.notificationStoreSession
 }
 
 func (s *Standard) PermissionStoreSession() permissionStore.Session {
@@ -152,11 +152,11 @@ func (s *Standard) AuthenticationDetails() userservicesClient.AuthenticationDeta
 func (s *Standard) SetAuthenticationDetails(authenticationDetails userservicesClient.AuthenticationDetails) {
 	s.authenticationDetails = authenticationDetails
 
+	if s.confirmationStoreSession != nil {
+		s.confirmationStoreSession.SetAgent(authenticationDetails)
+	}
 	if s.messageStoreSession != nil {
 		s.messageStoreSession.SetAgent(authenticationDetails)
-	}
-	if s.notificationStoreSession != nil {
-		s.notificationStoreSession.SetAgent(authenticationDetails)
 	}
 	if s.permissionStoreSession != nil {
 		s.permissionStoreSession.SetAgent(authenticationDetails)
