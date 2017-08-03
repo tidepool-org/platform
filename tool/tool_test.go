@@ -4,9 +4,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/application/version"
+	_ "github.com/tidepool-org/platform/application/version/test"
 	"github.com/tidepool-org/platform/tool"
-	"github.com/tidepool-org/platform/version"
-	_ "github.com/tidepool-org/platform/version/test"
 )
 
 var _ = Describe("Tool", func() {

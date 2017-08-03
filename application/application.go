@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
+	applicationVersion "github.com/tidepool-org/platform/application/version"
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/config/env"
 	"github.com/tidepool-org/platform/errors"
@@ -75,7 +76,7 @@ func (a *Application) Logger() log.Logger {
 }
 
 func (a *Application) initializeVersionReporter() error {
-	versionReporter, err := version.NewDefaultReporter()
+	versionReporter, err := applicationVersion.NewReporter()
 	if err != nil {
 		return errors.Wrap(err, "application", "unable to create version reporter")
 	}
