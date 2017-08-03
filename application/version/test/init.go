@@ -3,7 +3,7 @@ package test
 import (
 	"os"
 
-	"github.com/tidepool-org/platform/version"
+	"github.com/tidepool-org/platform/application/version"
 )
 
 func init() {

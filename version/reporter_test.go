@@ -7,7 +7,7 @@ import (
 	"github.com/tidepool-org/platform/version"
 )
 
-var _ = Describe("Version", func() {
+var _ = Describe("Reporter", func() {
 	Context("NewReporter", func() {
 		It("returns an error if base is missing", func() {
 			reporter, err := version.NewReporter("", "4567890", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmn")
@@ -15,15 +15,15 @@ var _ = Describe("Version", func() {
 			Expect(reporter).To(BeNil())
 		})
 
-		It("returns an error if shortCommit is missing", func() {
+		It("returns an error if short commit is missing", func() {
 			reporter, err := version.NewReporter("1.2.3", "", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmn")
-			Expect(err).To(MatchError("version: shortCommit is missing"))
+			Expect(err).To(MatchError("version: short commit is missing"))
 			Expect(reporter).To(BeNil())
 		})
 
-		It("returns an error if fullCommit is missing", func() {
+		It("returns an error if full commit is missing", func() {
 			reporter, err := version.NewReporter("1.2.3", "4567890", "")
-			Expect(err).To(MatchError("version: fullCommit is missing"))
+			Expect(err).To(MatchError("version: full commit is missing"))
 			Expect(reporter).To(BeNil())
 		})
 
@@ -54,11 +54,11 @@ var _ = Describe("Version", func() {
 			Expect(reporter.FullCommit()).To(Equal("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmn"))
 		})
 
-		It("returns the expected short form", func() {
+		It("returns the expected short", func() {
 			Expect(reporter.Short()).To(Equal("1.2.3+4567890"))
 		})
 
-		It("returns the expected long form", func() {
+		It("returns the expected long", func() {
 			Expect(reporter.Long()).To(Equal("1.2.3+ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmn"))
 		})
 	})

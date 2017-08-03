@@ -9,7 +9,7 @@ endif
 VERSION_BASE:=$(VERSION_BASE:v%=%)
 VERSION_SHORT_COMMIT:=$(shell git rev-parse --short HEAD)
 VERSION_FULL_COMMIT:=$(shell git rev-parse HEAD)
-VERSION_PACKAGE:=$(REPOSITORY)/version
+VERSION_PACKAGE:=$(REPOSITORY)/application/version
 
 GO_LD_FLAGS:=-ldflags "-X $(VERSION_PACKAGE).Base=$(VERSION_BASE) -X $(VERSION_PACKAGE).ShortCommit=$(VERSION_SHORT_COMMIT) -X $(VERSION_PACKAGE).FullCommit=$(VERSION_FULL_COMMIT)"
 
