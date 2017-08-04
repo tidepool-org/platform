@@ -4,8 +4,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	_ "github.com/tidepool-org/platform/application/version/test"
 	"github.com/tidepool-org/platform/service"
-	_ "github.com/tidepool-org/platform/version/test"
 )
 
 var _ = Describe("Service", func() {
