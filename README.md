@@ -14,7 +14,7 @@ The Tidepool Platform API.
 1. Add `$GOPATH/bin` to the `PATH` environment variable.
 1. Execute `go get github.com/tidepool-org/platform` to pull down the project. You may ignore a "no buildable Go source files" warning.
 1. Change directory to `$GOPATH/src/github.com/tidepool-org/platform`.
-1. Source the `env.local.sh` file.
+1. Source the `env.sh` file.
 1. Execute `make editable` to install the various Go tools needed for building and editing the project.
 
 For example:
@@ -26,7 +26,7 @@ export GOPATH=~/go
 export PATH=$GOPATH/bin:$PATH
 go get github.com/tidepool-org/platform
 cd $GOPATH/src/github.com/tidepool-org/platform
-. ./env.local.sh
+. ./env.sh
 make editable
 ```
 
@@ -47,7 +47,7 @@ In addition to the setup above, for example:
 
 ```
 make build
-_bin/dataservices/dataservices
+_bin/services/dataservices/dataservices
 ```
 
 Use `Ctrl-C` to stop the executable. It may take up to 60 seconds to stop.
@@ -68,10 +68,10 @@ make build
 
 All executables are built to the `_bin` directory in a hierarchy that matches the locations of executable source files.
 
-The environment variable `BUILD` indicates which executables to build. If not specified, then all executables are built. For example, to build just the executables found in the `dataservices` directory:
+The environment variable `BUILD` indicates which executables to build. If not specified, then all executables are built. For example, to build just the executables found in the `services` directory:
 
 ```
-BUILD=dataservices make build
+BUILD=services make build
 ```
 
 * To run all of the tests manually:

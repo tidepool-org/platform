@@ -51,7 +51,7 @@ var _ = Describe("Standard", func() {
 			HandlerOutputs: []http.Handler{handler},
 		}
 		config = server.NewConfig()
-		config.Address = ":8077"
+		config.Address = ":9001"
 		config.TLS = false
 	})
 

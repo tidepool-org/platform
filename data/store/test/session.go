@@ -2,18 +2,18 @@ package test
 
 import (
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/store"
+	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/log/null"
-	commonStore "github.com/tidepool-org/platform/store"
+	"github.com/tidepool-org/platform/store"
 )
 
 type GetDatasetsForUserByIDInput struct {
 	UserID     string
-	Filter     *store.Filter
-	Pagination *store.Pagination
+	Filter     *dataStore.Filter
+	Pagination *dataStore.Pagination
 }
 
 type GetDatasetsForUserByIDOutput struct {
@@ -39,7 +39,7 @@ type Session struct {
 	LoggerInvocations                                    int
 	LoggerImpl                                           log.Logger
 	SetAgentInvocations                                  int
-	SetAgentInputs                                       []commonStore.Agent
+	SetAgentInputs                                       []store.Agent
 	GetDatasetsForUserByIDInvocations                    int
 	GetDatasetsForUserByIDInputs                         []GetDatasetsForUserByIDInput
 	GetDatasetsForUserByIDOutputs                        []GetDatasetsForUserByIDOutput
@@ -104,13 +104,13 @@ func (s *Session) Logger() log.Logger {
 	return s.LoggerImpl
 }
 
-func (s *Session) SetAgent(agent commonStore.Agent) {
+func (s *Session) SetAgent(agent store.Agent) {
 	s.SetAgentInvocations++
 
 	s.SetAgentInputs = append(s.SetAgentInputs, agent)
 }
 
-func (s *Session) GetDatasetsForUserByID(userID string, filter *store.Filter, pagination *store.Pagination) ([]*upload.Upload, error) {
+func (s *Session) GetDatasetsForUserByID(userID string, filter *dataStore.Filter, pagination *dataStore.Pagination) ([]*upload.Upload, error) {
 	s.GetDatasetsForUserByIDInvocations++
 
 	s.GetDatasetsForUserByIDInputs = append(s.GetDatasetsForUserByIDInputs, GetDatasetsForUserByIDInput{userID, filter, pagination})

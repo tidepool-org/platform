@@ -1,5 +1,10 @@
 ## HEAD
 
+- Move dataservices functionality into data package
+- Move metricservices functionality into metric package
+- Move userservices functionality into user package
+- Move service executables into services folder
+- Update Makefile to reflect service changes
 - Move current task functionality to synctask package
 - Move current notification functionality to confirmation package
 - Refactor version package to align with new application package

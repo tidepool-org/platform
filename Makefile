@@ -120,10 +120,10 @@ ci-build: pre-build build
 start: start-dataservices start-userservices
 
 start-dataservices: stop-dataservices log
-	@cd $(ROOT_DIRECTORY) && _bin/dataservices/dataservices >> _log/service.log 2>&1 &
+	@cd $(ROOT_DIRECTORY) && _bin/services/dataservices/dataservices >> _log/service.log 2>&1 &
 
 start-userservices: stop-userservices log
-	@cd $(ROOT_DIRECTORY) && _bin/userservices/userservices >> _log/service.log 2>&1 &
+	@cd $(ROOT_DIRECTORY) && _bin/services/userservices/userservices >> _log/service.log 2>&1 &
 
 stop: stop-dataservices stop-userservices
 
@@ -148,13 +148,13 @@ watch: ginkgo
 deploy: clean-deploy deploy-dataservices deploy-userservices deploy-tools
 
 deploy-dataservices:
-	@$(MAKE) bundle-deploy DEPLOY=dataservices
+	@$(MAKE) bundle-deploy DEPLOY=dataservices SOURCE=services/dataservices
 
 deploy-userservices:
-	@$(MAKE) bundle-deploy DEPLOY=userservices
+	@$(MAKE) bundle-deploy DEPLOY=userservices SOURCE=services/userservices
 
 deploy-tools:
-	@$(MAKE) bundle-deploy DEPLOY=tools
+	@$(MAKE) bundle-deploy DEPLOY=tools SOURCE=tools
 
 ci-deploy: ci-build ci-test deploy
 
@@ -164,9 +164,10 @@ ifdef TRAVIS_TAG
 	@cd $(ROOT_DIRECTORY) && \
 		DEPLOY_TAG=$(DEPLOY)-$(TRAVIS_TAG) && \
 		DEPLOY_DIR=deploy/$(DEPLOY)/$${DEPLOY_TAG} && \
-		mkdir -p $${DEPLOY_DIR}/ && \
-		cp -r _deploy/$(DEPLOY)/* $${DEPLOY_DIR}/ && \
-		for DIR in _bin _config; do if [ -d "$${DIR}/$(DEPLOY)" ]; then mkdir -p $${DEPLOY_DIR}/$${DIR}; cp -r $${DIR}/$(DEPLOY)/ $${DEPLOY_DIR}/$${DIR}/$(DEPLOY)/; fi; done && \
+		mkdir -p $${DEPLOY_DIR}/_bin/$(SOURCE) && \
+		cp -R _bin/$(SOURCE)/ $${DEPLOY_DIR}/_bin/$(SOURCE)/ && \
+		find $(SOURCE) -type f -name 'README.md' -exec cp {} $${DEPLOY_DIR}/_bin/{} \; && \
+		cp $(SOURCE)/start.sh $${DEPLOY_DIR}/ && \
 		tar -c -z -f $${DEPLOY_DIR}.tar.gz -C deploy/$(DEPLOY)/ $${DEPLOY_TAG}
 endif
 endif
