@@ -1,5 +1,6 @@
 ## HEAD
 
+- Move current task functionality to synctask package
 - Move current notification functionality to confirmation package
 - Refactor version package to align with new application package
 - Refactor common functionality in service package into application package

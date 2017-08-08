@@ -13,7 +13,7 @@ import (
 	"github.com/tidepool-org/platform/service/middleware"
 	"github.com/tidepool-org/platform/service/server"
 	baseMongo "github.com/tidepool-org/platform/store/mongo"
-	taskMongo "github.com/tidepool-org/platform/task/store/mongo"
+	syncTaskMongo "github.com/tidepool-org/platform/synctask/store/mongo"
 	userservicesClient "github.com/tidepool-org/platform/userservices/client"
 )
 
@@ -24,7 +24,7 @@ type Standard struct {
 	dataFactory             *factory.Standard
 	dataDeduplicatorFactory deduplicator.Factory
 	dataStore               *dataMongo.Store
-	taskStore               *taskMongo.Store
+	syncTaskStore           *syncTaskMongo.Store
 	dataServicesAPI         *api.Standard
 	dataServicesServer      *server.Standard
 }
@@ -60,7 +60,7 @@ func (s *Standard) Initialize() error {
 	if err := s.initializeDataStore(); err != nil {
 		return err
 	}
-	if err := s.initializeTaskStore(); err != nil {
+	if err := s.initializeSyncTaskStore(); err != nil {
 		return err
 	}
 	if err := s.initializeDataServicesAPI(); err != nil {
@@ -76,9 +76,9 @@ func (s *Standard) Initialize() error {
 func (s *Standard) Terminate() {
 	s.dataServicesServer = nil
 	s.dataServicesAPI = nil
-	if s.taskStore != nil {
-		s.taskStore.Close()
-		s.taskStore = nil
+	if s.syncTaskStore != nil {
+		s.syncTaskStore.Close()
+		s.syncTaskStore = nil
 	}
 	if s.dataStore != nil {
 		s.dataStore.Close()
@@ -209,22 +209,22 @@ func (s *Standard) initializeDataStore() error {
 	return nil
 }
 
-func (s *Standard) initializeTaskStore() error {
-	s.Logger().Debug("Loading task store config")
+func (s *Standard) initializeSyncTaskStore() error {
+	s.Logger().Debug("Loading sync task store config")
 
-	taskStoreConfig := baseMongo.NewConfig()
-	if err := taskStoreConfig.Load(s.ConfigReporter().WithScopes("task", "store")); err != nil {
-		return errors.Wrap(err, "service", "unable to load task store config")
+	syncTaskStoreConfig := baseMongo.NewConfig()
+	if err := syncTaskStoreConfig.Load(s.ConfigReporter().WithScopes("sync_task", "store")); err != nil {
+		return errors.Wrap(err, "service", "unable to load sync task store config")
 	}
-	taskStoreConfig.Collection = "syncTasks"
+	syncTaskStoreConfig.Collection = "syncTasks"
 
-	s.Logger().Debug("Creating task store")
+	s.Logger().Debug("Creating sync task store")
 
-	taskStore, err := taskMongo.New(s.Logger(), taskStoreConfig)
+	syncTaskStore, err := syncTaskMongo.New(s.Logger(), syncTaskStoreConfig)
 	if err != nil {
-		return errors.Wrap(err, "service", "unable to create task store")
+		return errors.Wrap(err, "service", "unable to create sync task store")
 	}
-	s.taskStore = taskStore
+	s.syncTaskStore = syncTaskStore
 
 	return nil
 }
@@ -235,7 +235,7 @@ func (s *Standard) initializeDataServicesAPI() error {
 	dataServicesAPI, err := api.NewStandard(s.VersionReporter(), s.Logger(),
 		s.metricServicesClient, s.userServicesClient,
 		s.dataFactory, s.dataDeduplicatorFactory,
-		s.dataStore, s.taskStore)
+		s.dataStore, s.syncTaskStore)
 	if err != nil {
 		return errors.Wrap(err, "service", "unable to create data services api")
 	}
