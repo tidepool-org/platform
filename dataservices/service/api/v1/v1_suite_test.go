@@ -20,7 +20,7 @@ import (
 	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
 	"github.com/tidepool-org/platform/service"
 	commonStore "github.com/tidepool-org/platform/store"
-	taskStore "github.com/tidepool-org/platform/task/store"
+	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
 	userservicesClient "github.com/tidepool-org/platform/userservices/client"
 )
 
@@ -109,36 +109,36 @@ type RespondWithStatusAndDataInput struct {
 	data       interface{}
 }
 
-type TestTaskStoreSession struct {
-	DestroyTasksForUserByIDInputs  []string
-	DestroyTasksForUserByIDOutputs []error
+type TestSyncTaskStoreSession struct {
+	DestroySyncTasksForUserByIDInputs  []string
+	DestroySyncTasksForUserByIDOutputs []error
 }
 
-func (t *TestTaskStoreSession) IsClosed() bool {
-	panic("Unexpected invocation of IsClosed on TestTaskStoreSession")
+func (t *TestSyncTaskStoreSession) IsClosed() bool {
+	panic("Unexpected invocation of IsClosed on TestSyncTaskStoreSession")
 }
 
-func (t *TestTaskStoreSession) Close() {
-	panic("Unexpected invocation of Close on TestTaskStoreSession")
+func (t *TestSyncTaskStoreSession) Close() {
+	panic("Unexpected invocation of Close on TestSyncTaskStoreSession")
 }
 
-func (t *TestTaskStoreSession) Logger() log.Logger {
-	panic("Unexpected invocation of Logger on TestTaskStoreSession")
+func (t *TestSyncTaskStoreSession) Logger() log.Logger {
+	panic("Unexpected invocation of Logger on TestSyncTaskStoreSession")
 }
 
-func (t *TestTaskStoreSession) SetAgent(agent commonStore.Agent) {
-	panic("Unexpected invocation of SetAgent on TestTaskStoreSession")
+func (t *TestSyncTaskStoreSession) SetAgent(agent commonStore.Agent) {
+	panic("Unexpected invocation of SetAgent on TestSyncTaskStoreSession")
 }
 
-func (t *TestTaskStoreSession) DestroyTasksForUserByID(userID string) error {
-	t.DestroyTasksForUserByIDInputs = append(t.DestroyTasksForUserByIDInputs, userID)
-	output := t.DestroyTasksForUserByIDOutputs[0]
-	t.DestroyTasksForUserByIDOutputs = t.DestroyTasksForUserByIDOutputs[1:]
+func (t *TestSyncTaskStoreSession) DestroySyncTasksForUserByID(userID string) error {
+	t.DestroySyncTasksForUserByIDInputs = append(t.DestroySyncTasksForUserByIDInputs, userID)
+	output := t.DestroySyncTasksForUserByIDOutputs[0]
+	t.DestroySyncTasksForUserByIDOutputs = t.DestroySyncTasksForUserByIDOutputs[1:]
 	return output
 }
 
-func (t *TestTaskStoreSession) ValidateTest() bool {
-	return len(t.DestroyTasksForUserByIDOutputs) == 0
+func (t *TestSyncTaskStoreSession) ValidateTest() bool {
+	return len(t.DestroySyncTasksForUserByIDOutputs) == 0
 }
 
 type TestAuthenticationDetails struct {
@@ -178,7 +178,7 @@ type TestContext struct {
 	UserServicesClientImpl                 *TestUserServicesClient
 	DataDeduplicatorFactoryImpl            *testDataDeduplicator.Factory
 	DataStoreSessionImpl                   *testDataStore.Session
-	TaskStoreSessionImpl                   *TestTaskStoreSession
+	SyncTaskStoreSessionImpl               *TestSyncTaskStoreSession
 	AuthenticationDetailsImpl              *TestAuthenticationDetails
 }
 
@@ -195,7 +195,7 @@ func NewTestContext() *TestContext {
 		UserServicesClientImpl:      &TestUserServicesClient{},
 		DataDeduplicatorFactoryImpl: testDataDeduplicator.NewFactory(),
 		DataStoreSessionImpl:        testDataStore.NewSession(),
-		TaskStoreSessionImpl:        &TestTaskStoreSession{},
+		SyncTaskStoreSessionImpl:    &TestSyncTaskStoreSession{},
 		AuthenticationDetailsImpl:   &TestAuthenticationDetails{},
 	}
 }
@@ -248,8 +248,8 @@ func (t *TestContext) DataStoreSession() dataStore.Session {
 	return t.DataStoreSessionImpl
 }
 
-func (t *TestContext) TaskStoreSession() taskStore.Session {
-	return t.TaskStoreSessionImpl
+func (t *TestContext) SyncTaskStoreSession() syncTaskStore.Session {
+	return t.SyncTaskStoreSessionImpl
 }
 
 func (t *TestContext) AuthenticationDetails() userservicesClient.AuthenticationDetails {
@@ -265,6 +265,6 @@ func (t *TestContext) ValidateTest() bool {
 		(t.UserServicesClientImpl == nil || t.UserServicesClientImpl.ValidateTest()) &&
 		(t.DataDeduplicatorFactoryImpl == nil || t.DataDeduplicatorFactoryImpl.UnusedOutputsCount() == 0) &&
 		(t.DataStoreSessionImpl == nil || t.DataStoreSessionImpl.UnusedOutputsCount() == 0) &&
-		(t.TaskStoreSessionImpl == nil || t.TaskStoreSessionImpl.ValidateTest()) &&
+		(t.SyncTaskStoreSessionImpl == nil || t.SyncTaskStoreSessionImpl.ValidateTest()) &&
 		(t.AuthenticationDetailsImpl == nil || t.AuthenticationDetailsImpl.ValidateTest())
 }

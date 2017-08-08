@@ -9,7 +9,6 @@ import (
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log/null"
 	baseMongo "github.com/tidepool-org/platform/store/mongo"
 	"github.com/tidepool-org/platform/task/store"
@@ -106,68 +105,6 @@ var _ = Describe("Mongo", func() {
 				mongoSession = mongoStore.NewSession(logger)
 				Expect(mongoSession).ToNot(BeNil())
 				Expect(mongoSession.Logger()).ToNot(BeNil())
-			})
-		})
-
-		Context("with a new session", func() {
-			BeforeEach(func() {
-				mongoSession = mongoStore.NewSession(null.NewLogger())
-				Expect(mongoSession).ToNot(BeNil())
-			})
-
-			Context("with persisted data", func() {
-				var testMongoSession *mgo.Session
-				var testMongoCollection *mgo.Collection
-				var tasks []interface{}
-
-				BeforeEach(func() {
-					testMongoSession = testMongo.Session().Copy()
-					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.Collection)
-					tasks = NewTasks(id.New())
-				})
-
-				JustBeforeEach(func() {
-					Expect(testMongoCollection.Insert(tasks...)).To(Succeed())
-				})
-
-				AfterEach(func() {
-					if testMongoSession != nil {
-						testMongoSession.Close()
-					}
-				})
-
-				Context("DestroyTasksForUserByID", func() {
-					var destroyUserID string
-					var destroyTasks []interface{}
-
-					BeforeEach(func() {
-						destroyUserID = id.New()
-						destroyTasks = NewTasks(destroyUserID)
-					})
-
-					JustBeforeEach(func() {
-						Expect(testMongoCollection.Insert(destroyTasks...)).To(Succeed())
-					})
-
-					It("succeeds if it successfully removes tasks", func() {
-						Expect(mongoSession.DestroyTasksForUserByID(destroyUserID)).To(Succeed())
-					})
-
-					It("returns an error if the user id is missing", func() {
-						Expect(mongoSession.DestroyTasksForUserByID("")).To(MatchError("mongo: user id is missing"))
-					})
-
-					It("returns an error if the session is closed", func() {
-						mongoSession.Close()
-						Expect(mongoSession.DestroyTasksForUserByID(destroyUserID)).To(MatchError("mongo: session closed"))
-					})
-
-					It("has the correct stored tasks", func() {
-						ValidateTasks(testMongoCollection, bson.M{}, append(tasks, destroyTasks...))
-						Expect(mongoSession.DestroyTasksForUserByID(destroyUserID)).To(Succeed())
-						ValidateTasks(testMongoCollection, bson.M{}, tasks)
-					})
-				})
 			})
 		})
 	})

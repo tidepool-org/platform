@@ -24,14 +24,14 @@ var _ = Describe("UsersDataDelete", func() {
 			context.RequestImpl.PathParams["userid"] = targetUserID
 			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{true}
 			context.DataStoreSessionImpl.DestroyDataForUserByIDOutputs = []error{nil}
-			context.TaskStoreSessionImpl.DestroyTasksForUserByIDOutputs = []error{nil}
+			context.SyncTaskStoreSessionImpl.DestroySyncTasksForUserByIDOutputs = []error{nil}
 			context.MetricServicesClientImpl.RecordMetricOutputs = []error{nil}
 		})
 
 		It("succeeds if authenticated as server", func() {
 			v1.UsersDataDelete(context)
 			Expect(context.DataStoreSessionImpl.DestroyDataForUserByIDInputs).To(Equal([]string{targetUserID}))
-			Expect(context.TaskStoreSessionImpl.DestroyTasksForUserByIDInputs).To(Equal([]string{targetUserID}))
+			Expect(context.SyncTaskStoreSessionImpl.DestroySyncTasksForUserByIDInputs).To(Equal([]string{targetUserID}))
 			Expect(context.MetricServicesClientImpl.RecordMetricInputs).To(Equal([]RecordMetricInput{{context, "users_data_delete", nil}}))
 			Expect(context.RespondWithStatusAndDataInputs).To(Equal([]RespondWithStatusAndDataInput{{http.StatusOK, []struct{}{}}}))
 			Expect(context.ValidateTest()).To(BeTrue())
@@ -40,7 +40,7 @@ var _ = Describe("UsersDataDelete", func() {
 		It("panics if context is missing", func() {
 			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{}
 			context.DataStoreSessionImpl.DestroyDataForUserByIDOutputs = []error{}
-			context.TaskStoreSessionImpl.DestroyTasksForUserByIDOutputs = []error{}
+			context.SyncTaskStoreSessionImpl.DestroySyncTasksForUserByIDOutputs = []error{}
 			context.MetricServicesClientImpl.RecordMetricOutputs = []error{}
 			Expect(func() { v1.UsersDataDelete(nil) }).To(Panic())
 			Expect(context.ValidateTest()).To(BeTrue())
@@ -50,7 +50,7 @@ var _ = Describe("UsersDataDelete", func() {
 			context.RequestImpl = nil
 			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{}
 			context.DataStoreSessionImpl.DestroyDataForUserByIDOutputs = []error{}
-			context.TaskStoreSessionImpl.DestroyTasksForUserByIDOutputs = []error{}
+			context.SyncTaskStoreSessionImpl.DestroySyncTasksForUserByIDOutputs = []error{}
 			context.MetricServicesClientImpl.RecordMetricOutputs = []error{}
 			Expect(func() { v1.UsersDataDelete(nil) }).To(Panic())
 			Expect(context.ValidateTest()).To(BeTrue())
@@ -60,7 +60,7 @@ var _ = Describe("UsersDataDelete", func() {
 			delete(context.RequestImpl.PathParams, "userid")
 			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{}
 			context.DataStoreSessionImpl.DestroyDataForUserByIDOutputs = []error{}
-			context.TaskStoreSessionImpl.DestroyTasksForUserByIDOutputs = []error{}
+			context.SyncTaskStoreSessionImpl.DestroySyncTasksForUserByIDOutputs = []error{}
 			context.MetricServicesClientImpl.RecordMetricOutputs = []error{}
 			v1.UsersDataDelete(context)
 			Expect(context.RespondWithErrorInputs).To(Equal([]*service.Error{v1.ErrorUserIDMissing()}))
@@ -70,7 +70,7 @@ var _ = Describe("UsersDataDelete", func() {
 		It("panics if authentication details is missing", func() {
 			context.AuthenticationDetailsImpl = nil
 			context.DataStoreSessionImpl.DestroyDataForUserByIDOutputs = []error{}
-			context.TaskStoreSessionImpl.DestroyTasksForUserByIDOutputs = []error{}
+			context.SyncTaskStoreSessionImpl.DestroySyncTasksForUserByIDOutputs = []error{}
 			context.MetricServicesClientImpl.RecordMetricOutputs = []error{}
 			Expect(func() { v1.UsersDataDelete(context) }).To(Panic())
 			Expect(context.ValidateTest()).To(BeTrue())
@@ -79,7 +79,7 @@ var _ = Describe("UsersDataDelete", func() {
 		It("responds with error if not server", func() {
 			context.AuthenticationDetailsImpl.IsServerOutputs = []bool{false}
 			context.DataStoreSessionImpl.DestroyDataForUserByIDOutputs = []error{}
-			context.TaskStoreSessionImpl.DestroyTasksForUserByIDOutputs = []error{}
+			context.SyncTaskStoreSessionImpl.DestroySyncTasksForUserByIDOutputs = []error{}
 			context.MetricServicesClientImpl.RecordMetricOutputs = []error{}
 			v1.UsersDataDelete(context)
 			Expect(context.RespondWithErrorInputs).To(Equal([]*service.Error{service.ErrorUnauthorized()}))
@@ -88,7 +88,7 @@ var _ = Describe("UsersDataDelete", func() {
 
 		It("panics if data store session is missing", func() {
 			context.DataStoreSessionImpl = nil
-			context.TaskStoreSessionImpl.DestroyTasksForUserByIDOutputs = []error{}
+			context.SyncTaskStoreSessionImpl.DestroySyncTasksForUserByIDOutputs = []error{}
 			context.MetricServicesClientImpl.RecordMetricOutputs = []error{}
 			Expect(func() { v1.UsersDataDelete(context) }).To(Panic())
 			Expect(context.ValidateTest()).To(BeTrue())
@@ -97,26 +97,26 @@ var _ = Describe("UsersDataDelete", func() {
 		It("responds with error if data store session delete data for user by id returns error", func() {
 			err := errors.New("other")
 			context.DataStoreSessionImpl.DestroyDataForUserByIDOutputs = []error{err}
-			context.TaskStoreSessionImpl.DestroyTasksForUserByIDOutputs = []error{}
+			context.SyncTaskStoreSessionImpl.DestroySyncTasksForUserByIDOutputs = []error{}
 			context.MetricServicesClientImpl.RecordMetricOutputs = []error{}
 			v1.UsersDataDelete(context)
 			Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to delete data for user by id", []interface{}{err}}}))
 			Expect(context.ValidateTest()).To(BeTrue())
 		})
 
-		It("panics if tasks store session is missing", func() {
-			context.TaskStoreSessionImpl = nil
+		It("panics if sync tasks store session is missing", func() {
+			context.SyncTaskStoreSessionImpl = nil
 			context.MetricServicesClientImpl.RecordMetricOutputs = []error{}
 			Expect(func() { v1.UsersDataDelete(context) }).To(Panic())
 			Expect(context.ValidateTest()).To(BeTrue())
 		})
 
-		It("responds with error if task store session delete tasks for user by id returns error", func() {
+		It("responds with error if sync task store session delete sync tasks for user by id returns error", func() {
 			err := errors.New("other")
-			context.TaskStoreSessionImpl.DestroyTasksForUserByIDOutputs = []error{err}
+			context.SyncTaskStoreSessionImpl.DestroySyncTasksForUserByIDOutputs = []error{err}
 			context.MetricServicesClientImpl.RecordMetricOutputs = []error{}
 			v1.UsersDataDelete(context)
-			Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to delete tasks for user by id", []interface{}{err}}}))
+			Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to delete sync tasks for user by id", []interface{}{err}}}))
 			Expect(context.ValidateTest()).To(BeTrue())
 		})
 

@@ -10,7 +10,7 @@ import (
 	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
 	commonService "github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/service/context"
-	taskStore "github.com/tidepool-org/platform/task/store"
+	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
 	userservicesClient "github.com/tidepool-org/platform/userservices/client"
 )
 
@@ -23,13 +23,13 @@ type Standard struct {
 	authenticationDetails   userservicesClient.AuthenticationDetails
 	dataStore               dataStore.Store
 	dataStoreSession        dataStore.Session
-	taskStore               taskStore.Store
-	taskStoreSession        taskStore.Session
+	syncTaskStore           syncTaskStore.Store
+	syncTaskStoreSession    syncTaskStore.Session
 }
 
 func WithContext(metricServicesClient metricservicesClient.Client, userServicesClient userservicesClient.Client,
 	dataFactory data.Factory, dataDeduplicatorFactory deduplicator.Factory,
-	dataStore dataStore.Store, taskStore taskStore.Store, handler service.HandlerFunc) rest.HandlerFunc {
+	dataStore dataStore.Store, syncTaskStore syncTaskStore.Store, handler service.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
 		context, err := context.NewStandard(response, request)
 		if err != nil {
@@ -44,12 +44,12 @@ func WithContext(metricServicesClient metricservicesClient.Client, userServicesC
 			dataFactory:             dataFactory,
 			dataDeduplicatorFactory: dataDeduplicatorFactory,
 			dataStore:               dataStore,
-			taskStore:               taskStore,
+			syncTaskStore:           syncTaskStore,
 		}
 
 		defer func() {
-			if standard.taskStoreSession != nil {
-				standard.taskStoreSession.Close()
+			if standard.syncTaskStoreSession != nil {
+				standard.syncTaskStoreSession.Close()
 			}
 			if standard.dataStoreSession != nil {
 				standard.dataStoreSession.Close()
@@ -84,12 +84,12 @@ func (s *Standard) DataStoreSession() dataStore.Session {
 	return s.dataStoreSession
 }
 
-func (s *Standard) TaskStoreSession() taskStore.Session {
-	if s.taskStoreSession == nil {
-		s.taskStoreSession = s.taskStore.NewSession(s.Context.Logger())
-		s.taskStoreSession.SetAgent(s.authenticationDetails)
+func (s *Standard) SyncTaskStoreSession() syncTaskStore.Session {
+	if s.syncTaskStoreSession == nil {
+		s.syncTaskStoreSession = s.syncTaskStore.NewSession(s.Context.Logger())
+		s.syncTaskStoreSession.SetAgent(s.authenticationDetails)
 	}
-	return s.taskStoreSession
+	return s.syncTaskStoreSession
 }
 
 func (s *Standard) AuthenticationDetails() userservicesClient.AuthenticationDetails {
@@ -102,7 +102,7 @@ func (s *Standard) SetAuthenticationDetails(authenticationDetails userservicesCl
 	if s.dataStoreSession != nil {
 		s.dataStoreSession.SetAgent(authenticationDetails)
 	}
-	if s.taskStoreSession != nil {
-		s.taskStoreSession.SetAgent(authenticationDetails)
+	if s.syncTaskStoreSession != nil {
+		s.syncTaskStoreSession.SetAgent(authenticationDetails)
 	}
 }

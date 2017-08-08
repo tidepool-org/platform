@@ -6,7 +6,7 @@ import (
 	dataStore "github.com/tidepool-org/platform/data/store"
 	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
 	"github.com/tidepool-org/platform/service"
-	taskStore "github.com/tidepool-org/platform/task/store"
+	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
 	userservicesClient "github.com/tidepool-org/platform/userservices/client"
 )
 
@@ -20,7 +20,7 @@ type Context interface {
 	DataDeduplicatorFactory() deduplicator.Factory
 
 	DataStoreSession() dataStore.Session
-	TaskStoreSession() taskStore.Session
+	SyncTaskStoreSession() syncTaskStore.Session
 
 	AuthenticationDetails() userservicesClient.AuthenticationDetails
 	SetAuthenticationDetails(authenticationDetails userservicesClient.AuthenticationDetails)

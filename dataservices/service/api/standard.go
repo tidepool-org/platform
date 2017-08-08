@@ -12,7 +12,7 @@ import (
 	"github.com/tidepool-org/platform/log"
 	metricservicesClient "github.com/tidepool-org/platform/metricservices/client"
 	"github.com/tidepool-org/platform/service/api"
-	taskStore "github.com/tidepool-org/platform/task/store"
+	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
 	userservicesClient "github.com/tidepool-org/platform/userservices/client"
 	"github.com/tidepool-org/platform/version"
 )
@@ -24,13 +24,13 @@ type Standard struct {
 	dataFactory             data.Factory
 	dataDeduplicatorFactory deduplicator.Factory
 	dataStore               dataStore.Store
-	taskStore               taskStore.Store
+	syncTaskStore           syncTaskStore.Store
 }
 
 func NewStandard(versionReporter version.Reporter, logger log.Logger,
 	metricServicesClient metricservicesClient.Client, userServicesClient userservicesClient.Client,
 	dataFactory data.Factory, dataDeduplicatorFactory deduplicator.Factory,
-	dataStore dataStore.Store, taskStore taskStore.Store) (*Standard, error) {
+	dataStore dataStore.Store, syncTaskStore syncTaskStore.Store) (*Standard, error) {
 	if versionReporter == nil {
 		return nil, errors.New("api", "version reporter is missing")
 	}
@@ -52,8 +52,8 @@ func NewStandard(versionReporter version.Reporter, logger log.Logger,
 	if dataStore == nil {
 		return nil, errors.New("api", "data store is missing")
 	}
-	if taskStore == nil {
-		return nil, errors.New("api", "task store is missing")
+	if syncTaskStore == nil {
+		return nil, errors.New("api", "sync task store is missing")
 	}
 
 	standard, err := api.NewStandard(versionReporter, logger)
@@ -68,7 +68,7 @@ func NewStandard(versionReporter version.Reporter, logger log.Logger,
 		dataFactory:             dataFactory,
 		dataDeduplicatorFactory: dataDeduplicatorFactory,
 		dataStore:               dataStore,
-		taskStore:               taskStore,
+		syncTaskStore:           syncTaskStore,
 	}, nil
 }
 
@@ -102,5 +102,5 @@ func (s *Standard) InitializeRouter(routes []service.Route) error {
 func (s *Standard) withContext(handler service.HandlerFunc) rest.HandlerFunc {
 	return context.WithContext(s.metricServicesClient, s.userServicesClient,
 		s.dataFactory, s.dataDeduplicatorFactory,
-		s.dataStore, s.taskStore, handler)
+		s.dataStore, s.syncTaskStore, handler)
 }

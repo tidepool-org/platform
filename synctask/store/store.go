@@ -13,4 +13,6 @@ type Store interface {
 
 type Session interface {
 	store.Session
+
+	DestroySyncTasksForUserByID(userID string) error
 }
