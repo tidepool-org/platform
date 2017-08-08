@@ -78,7 +78,7 @@ func NewNewFuncWithKeyAndMap(key string, newFuncMap NewFuncMap) NewFunc {
 	}
 }
 
-// TODO: Consider injecting the entire map from dataservices
+// TODO: Consider injecting the entire map from the data service
 
 func NewStandard() (*Standard, error) {
 	var basalNewFuncMap = NewFuncMap{

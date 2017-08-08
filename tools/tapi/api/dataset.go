@@ -41,7 +41,7 @@ func (a *API) ListDatasets(userID string, filter *Filter, pagination *Pagination
 		}
 	}
 
-	return a.asResponseArray(a.request("GET", a.addQuery(a.joinPaths("dataservices", "v1", "users", userID, "datasets"), queryMap),
+	return a.asResponseArray(a.request("GET", a.addQuery(a.joinPaths("dataservice", "v1", "users", userID, "datasets"), queryMap),
 		requestFuncs{a.addSessionToken()},
 		responseFuncs{a.expectStatusCode(http.StatusOK)}))
 }
@@ -51,7 +51,7 @@ func (a *API) DeleteDataset(datasetID string) error {
 		return errors.New("Dataset id is missing")
 	}
 
-	return a.asEmpty(a.request("DELETE", a.joinPaths("dataservices", "v1", "datasets", datasetID),
+	return a.asEmpty(a.request("DELETE", a.joinPaths("dataservice", "v1", "datasets", datasetID),
 		requestFuncs{a.addSessionToken()},
 		responseFuncs{a.expectStatusCode(http.StatusOK)}))
 }

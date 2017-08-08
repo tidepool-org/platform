@@ -117,21 +117,21 @@ build: check-environment
 
 ci-build: pre-build build
 
-start: start-dataservices start-userservices
+start: start-dataservice start-userservice
 
-start-dataservices: stop-dataservices log
-	@cd $(ROOT_DIRECTORY) && _bin/dataservices/dataservices >> _log/service.log 2>&1 &
+start-dataservice: stop-dataservice log
+	@cd $(ROOT_DIRECTORY) && _bin/services/dataservice/dataservice >> _log/service.log 2>&1 &
 
-start-userservices: stop-userservices log
-	@cd $(ROOT_DIRECTORY) && _bin/userservices/userservices >> _log/service.log 2>&1 &
+start-userservice: stop-userservice log
+	@cd $(ROOT_DIRECTORY) && _bin/services/userservice/userservice >> _log/service.log 2>&1 &
 
-stop: stop-dataservices stop-userservices
+stop: stop-dataservice stop-userservice
 
-stop-dataservices: check-environment
-	@killall -v dataservices &> /dev/null || exit 0
+stop-dataservice: check-environment
+	@killall -v dataservice &> /dev/null || exit 0
 
-stop-userservices: check-environment
-	@killall -v userservices &> /dev/null || exit 0
+stop-userservice: check-environment
+	@killall -v userservice &> /dev/null || exit 0
 
 test: ginkgo
 	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r $(TEST)"
@@ -145,16 +145,16 @@ watch: ginkgo
 	@echo "ginkgo watch -requireSuite -slowSpecThreshold=10 -r -notify $(WATCH)"
 	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch -requireSuite -slowSpecThreshold=10 -r -notify $(WATCH)
 
-deploy: clean-deploy deploy-dataservices deploy-userservices deploy-tools
+deploy: clean-deploy deploy-dataservice deploy-userservice deploy-tools
 
-deploy-dataservices:
-	@$(MAKE) bundle-deploy DEPLOY=dataservices
+deploy-dataservice:
+	@$(MAKE) bundle-deploy DEPLOY=dataservice SOURCE=services/dataservice
 
-deploy-userservices:
-	@$(MAKE) bundle-deploy DEPLOY=userservices
+deploy-userservice:
+	@$(MAKE) bundle-deploy DEPLOY=userservice SOURCE=services/userservice
 
 deploy-tools:
-	@$(MAKE) bundle-deploy DEPLOY=tools
+	@$(MAKE) bundle-deploy DEPLOY=tools SOURCE=tools
 
 ci-deploy: ci-build ci-test deploy
 
@@ -164,9 +164,10 @@ ifdef TRAVIS_TAG
 	@cd $(ROOT_DIRECTORY) && \
 		DEPLOY_TAG=$(DEPLOY)-$(TRAVIS_TAG) && \
 		DEPLOY_DIR=deploy/$(DEPLOY)/$${DEPLOY_TAG} && \
-		mkdir -p $${DEPLOY_DIR}/ && \
-		cp -r _deploy/$(DEPLOY)/* $${DEPLOY_DIR}/ && \
-		for DIR in _bin _config; do if [ -d "$${DIR}/$(DEPLOY)" ]; then mkdir -p $${DEPLOY_DIR}/$${DIR}; cp -r $${DIR}/$(DEPLOY)/ $${DEPLOY_DIR}/$${DIR}/$(DEPLOY)/; fi; done && \
+		mkdir -p $${DEPLOY_DIR}/_bin/$(SOURCE) && \
+		cp -R _bin/$(SOURCE)/ $${DEPLOY_DIR}/_bin/$(SOURCE)/ && \
+		find $(SOURCE) -type f -name 'README.md' -exec cp {} $${DEPLOY_DIR}/_bin/{} \; && \
+		cp $(SOURCE)/start.sh $${DEPLOY_DIR}/ && \
 		tar -c -z -f $${DEPLOY_DIR}.tar.gz -C deploy/$(DEPLOY)/ $${DEPLOY_TAG}
 endif
 endif

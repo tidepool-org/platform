@@ -90,9 +90,9 @@ func (a *API) request(method string, path string, requestCallbacks requestFuncs,
 
 func (a *API) addServerSecret() requestFunc {
 	return func(request *http.Request) error {
-		serverSecret := os.Getenv("TIDEPOOL_USERSERVICES_CLIENT_SERVERTOKENSECRET")
+		serverSecret := os.Getenv("TIDEPOOL_USER_CLIENT_SERVERTOKENSECRET")
 		if serverSecret == "" {
-			return errors.New("Environment variable TIDEPOOL_USERSERVICES_CLIENT_SERVERTOKENSECRET not exported")
+			return errors.New("Environment variable TIDEPOOL_USER_CLIENT_SERVERTOKENSECRET not exported")
 		}
 
 		a.info("Server secret found.")
