@@ -1,5 +1,6 @@
 ## HEAD
 
+- Update dependencies
 - Move dataservices functionality into data package
 - Move metricservices functionality into metric package
 - Move userservices functionality into user package
