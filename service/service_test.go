@@ -11,9 +11,9 @@ import (
 var _ = Describe("Service", func() {
 	Context("New", func() {
 		It("returns an error if the prefix is missing", func() {
-			app, err := service.New("")
+			svc, err := service.New("")
 			Expect(err).To(MatchError("application: prefix is missing"))
-			Expect(app).To(BeNil())
+			Expect(svc).To(BeNil())
 		})
 
 		It("returns successfully", func() {

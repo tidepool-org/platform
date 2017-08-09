@@ -145,13 +145,16 @@ watch: ginkgo
 	@echo "ginkgo watch -requireSuite -slowSpecThreshold=10 -r -notify $(WATCH)"
 	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch -requireSuite -slowSpecThreshold=10 -r -notify $(WATCH)
 
-deploy: clean-deploy deploy-dataservices deploy-userservices deploy-tools
+deploy: clean-deploy deploy-dataservices deploy-userservices deploy-migrations deploy-tools
 
 deploy-dataservices:
 	@$(MAKE) bundle-deploy DEPLOY=dataservices SOURCE=services/dataservices
 
 deploy-userservices:
 	@$(MAKE) bundle-deploy DEPLOY=userservices SOURCE=services/userservices
+
+deploy-migrations:
+	@$(MAKE) bundle-deploy DEPLOY=migrations SOURCE=migrations
 
 deploy-tools:
 	@$(MAKE) bundle-deploy DEPLOY=tools SOURCE=tools

@@ -10,91 +10,92 @@ import (
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
+	mongoMigration "github.com/tidepool-org/platform/migration/mongo"
 	"github.com/tidepool-org/platform/store/mongo"
-	mongoTool "github.com/tidepool-org/platform/tool/mongo"
 )
 
 const (
-	IndexFlag  = "index"
-	DryRunFlag = "dry-run"
+	IndexFlag = "index"
 )
 
 func main() {
-	application.Run(NewTool())
+	application.Run(NewMigration())
 }
 
-type Tool struct {
-	*mongoTool.Tool
-	index  bool
-	dryRun bool
+type Migration struct {
+	*mongoMigration.Migration
+	index bool
 }
 
-func NewTool() (*Tool, error) {
-	tuel, err := mongoTool.NewTool("TIDEPOOL")
+func NewMigration() (*Migration, error) {
+	migration, err := mongoMigration.NewMigration("TIDEPOOL")
 	if err != nil {
 		return nil, err
 	}
 
-	return &Tool{
-		Tool: tuel,
+	return &Migration{
+		Migration: migration,
 	}, nil
 }
 
-func (t *Tool) Initialize() error {
-	if err := t.Tool.Initialize(); err != nil {
+func (m *Migration) Initialize() error {
+	if err := m.Migration.Initialize(); err != nil {
 		return err
 	}
 
-	t.CLI().Usage = "Migrate all metadata to include user id derived from _id"
-	t.CLI().Authors = []cli.Author{
+	m.CLI().Usage = "Migrate all metadata to add user id derived from _id"
+	m.CLI().Description = "Migrate all metadata to add the 'userId' field derived from the '_id' field. The Seagull '_id' field matches the Shoreline 'private.meta.id' field." +
+		"\n\n   One or more warnings will be reported if partially created accounts or invalid data are found." +
+		"\n\n   This migration is idempotent." +
+		"\n\n   NOTE: This migration MUST be executed immediately BEFORE and immediately AFTER Seagull is updated to v0.3.1."
+	m.CLI().Authors = []cli.Author{
 		{
 			Name:  "Darin Krauss",
 			Email: "darin@tidepool.org",
 		},
 	}
-	t.CLI().Flags = append(t.CLI().Flags,
+	m.CLI().Flags = append(m.CLI().Flags,
 		cli.BoolFlag{
 			Name:  fmt.Sprintf("%s,%s", IndexFlag, "i"),
 			Usage: "add unique index after migration",
 		},
-		cli.BoolFlag{
-			Name:  fmt.Sprintf("%s,%s", DryRunFlag, "n"),
-			Usage: "dry run only, do not update database",
-		},
 	)
 
-	t.CLI().Action = func(context *cli.Context) error {
-		if !t.ParseContext(context) {
+	m.CLI().Action = func(context *cli.Context) error {
+		if !m.ParseContext(context) {
 			return nil
 		}
-		return t.execute()
+		return m.execute()
 	}
 
 	return nil
 }
 
-func (t *Tool) ParseContext(context *cli.Context) bool {
-	if parsed := t.Tool.ParseContext(context); !parsed {
+func (m *Migration) ParseContext(context *cli.Context) bool {
+	if parsed := m.Migration.ParseContext(context); !parsed {
 		return parsed
 	}
 
-	t.index = context.Bool(IndexFlag)
-	t.dryRun = context.Bool(DryRunFlag)
+	m.index = context.Bool(IndexFlag)
 
 	return true
 }
 
-func (t *Tool) execute() error {
-	if t.index && t.dryRun {
+func (m *Migration) Index() bool {
+	return m.index
+}
+
+func (m *Migration) execute() error {
+	if m.Index() && m.DryRun() {
 		return errors.New("main", "cannot specify --index with --dry-run")
 	}
 
-	metaIDToUserIDMap, err := t.buildMetaIDToUserIDMap()
+	metaIDToUserIDMap, err := m.buildMetaIDToUserIDMap()
 	if err != nil {
 		return errors.Wrap(err, "main", "unable to build meta id to user id map")
 	}
 
-	err = t.migrateMetaIDToUserIDForMetadata(metaIDToUserIDMap)
+	err = m.migrateMetaIDToUserIDForMetadata(metaIDToUserIDMap)
 	if err != nil {
 		return errors.Wrap(err, "main", "unable to migrate meta id to user id for metadata")
 	}
@@ -102,29 +103,29 @@ func (t *Tool) execute() error {
 	return nil
 }
 
-func (t *Tool) buildMetaIDToUserIDMap() (map[string]string, error) {
-	t.Logger().Debug("Building meta id to user id map")
+func (m *Migration) buildMetaIDToUserIDMap() (map[string]string, error) {
+	m.Logger().Debug("Building meta id to user id map")
 
 	userIDMap := map[string]bool{}
 	metaIDToUserIDMap := map[string]string{}
 
-	t.Logger().Debug("Creating users store")
+	m.Logger().Debug("Creating users store")
 
-	mongoConfig := t.MongoConfig().Clone()
+	mongoConfig := m.MongoConfig().Clone()
 	mongoConfig.Database = "user"
 	mongoConfig.Collection = "users"
-	usersStore, err := mongo.New(t.Logger(), mongoConfig)
+	usersStore, err := mongo.New(m.Logger(), mongoConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "main", "unable to create users store")
 	}
 	defer usersStore.Close()
 
-	t.Logger().Debug("Creating users session")
+	m.Logger().Debug("Creating users session")
 
-	usersSession := usersStore.NewSession(t.Logger())
+	usersSession := usersStore.NewSession(m.Logger())
 	defer usersSession.Close()
 
-	t.Logger().Debug("Iterating users")
+	m.Logger().Debug("Iterating users")
 
 	iter := usersSession.C().Find(bson.M{}).Select(bson.M{"_id": 0, "userid": 1, "private.meta.id": 1}).Iter()
 
@@ -137,7 +138,7 @@ func (t *Tool) buildMetaIDToUserIDMap() (map[string]string, error) {
 		} `bson:"private"`
 	}
 	for iter.Next(&result) {
-		userLogger := t.Logger()
+		userLogger := m.Logger()
 
 		userID := result.UserID
 		if userID == "" {
@@ -171,38 +172,38 @@ func (t *Tool) buildMetaIDToUserIDMap() (map[string]string, error) {
 		return nil, errors.Wrap(err, "main", "unable to iterate users")
 	}
 
-	t.Logger().Debugf("Found %d users with meta", len(metaIDToUserIDMap))
+	m.Logger().Debugf("Found %d users with meta", len(metaIDToUserIDMap))
 
 	return metaIDToUserIDMap, nil
 }
 
-func (t *Tool) migrateMetaIDToUserIDForMetadata(metaIDToUserIDMap map[string]string) error {
-	t.Logger().Debug("Migrating meta id to user id for metadata")
+func (m *Migration) migrateMetaIDToUserIDForMetadata(metaIDToUserIDMap map[string]string) error {
+	m.Logger().Debug("Migrating meta id to user id for metadata")
 
 	var migrateMetaCount int
 	var migrateMetadataCount int
 
-	t.Logger().Debug("Creating metadata data store")
+	m.Logger().Debug("Creating metadata data store")
 
-	mongoConfig := t.MongoConfig().Clone()
+	mongoConfig := m.MongoConfig().Clone()
 	mongoConfig.Database = "seagull"
 	mongoConfig.Collection = "seagull"
-	metadataStore, err := mongo.New(t.Logger(), mongoConfig)
+	metadataStore, err := mongo.New(m.Logger(), mongoConfig)
 	if err != nil {
 		return errors.Wrap(err, "main", "unable to create metadata store")
 	}
 	defer metadataStore.Close()
 
-	t.Logger().Debug("Creating metadata session")
+	m.Logger().Debug("Creating metadata session")
 
-	metadataSession := metadataStore.NewSession(t.Logger())
+	metadataSession := metadataStore.NewSession(m.Logger())
 	defer metadataSession.Close()
 
-	t.Logger().Debug("Walking meta id to user id map")
+	m.Logger().Debug("Walking meta id to user id map")
 
 	var count int
 	for metaID, userID := range metaIDToUserIDMap {
-		metadataLogger := t.Logger().WithFields(log.Fields{"metaId": metaID, "userId": userID})
+		metadataLogger := m.Logger().WithFields(log.Fields{"metaId": metaID, "userId": userID})
 
 		metadataLogger.Debug("Finding metadata for meta id")
 
@@ -243,7 +244,7 @@ func (t *Tool) migrateMetaIDToUserIDForMetadata(metaIDToUserIDMap map[string]str
 			"userId": bson.M{"$exists": false},
 		}
 
-		if t.dryRun {
+		if m.DryRun() {
 			count, err = metadataSession.C().Find(selector).Count()
 		} else {
 			update := bson.M{
@@ -269,21 +270,21 @@ func (t *Tool) migrateMetaIDToUserIDForMetadata(metaIDToUserIDMap map[string]str
 		}
 	}
 
-	if !t.dryRun {
+	if !m.DryRun() {
 		iter := metadataSession.C().Find(bson.M{"userId": bson.M{"$exists": false}}).Iter()
 		var result map[string]interface{}
 		for iter.Next(&result) {
-			t.Logger().WithField("metaId", result["_id"]).Error("Metadata found without user id")
+			m.Logger().WithField("metaId", result["_id"]).Error("Metadata found without user id")
 		}
 		if err = iter.Close(); err != nil {
 			return errors.Wrap(err, "main", "unable to iterate metadata without user id")
 		}
 	}
 
-	t.Logger().Infof("Migrated %d metadata for %d meta", migrateMetadataCount, migrateMetaCount)
+	m.Logger().Infof("Migrated %d metadata for %d meta", migrateMetadataCount, migrateMetaCount)
 
-	if t.index {
-		t.Logger().Info("Creating unique index on user id")
+	if m.Index() {
+		m.Logger().Info("Creating unique index on user id")
 
 		index := mgo.Index{
 			Key:        []string{"userId"},

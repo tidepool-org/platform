@@ -14,9 +14,9 @@ import (
 var _ = Describe("Tool", func() {
 	Context("New", func() {
 		It("returns an error if the prefix is missing", func() {
-			app, err := mongo.NewTool("")
+			tuel, err := mongo.NewTool("")
 			Expect(err).To(MatchError("application: prefix is missing"))
-			Expect(app).To(BeNil())
+			Expect(tuel).To(BeNil())
 		})
 
 		It("returns successfully", func() {

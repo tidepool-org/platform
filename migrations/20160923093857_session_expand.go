@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -10,110 +9,110 @@ import (
 
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/errors"
+	mongoMigration "github.com/tidepool-org/platform/migration/mongo"
 	"github.com/tidepool-org/platform/session"
 	"github.com/tidepool-org/platform/store/mongo"
-	mongoTool "github.com/tidepool-org/platform/tool/mongo"
 )
 
 const (
 	SecretFlag = "secret"
-	DryRunFlag = "dry-run"
 )
 
 func main() {
-	application.Run(NewTool())
+	application.Run(NewMigration())
 }
 
-type Tool struct {
-	*mongoTool.Tool
+type Migration struct {
+	*mongoMigration.Migration
 	secret string
-	dryRun bool
 }
 
-func NewTool() (*Tool, error) {
-	tuel, err := mongoTool.NewTool("TIDEPOOL")
+func NewMigration() (*Migration, error) {
+	migration, err := mongoMigration.NewMigration("TIDEPOOL")
 	if err != nil {
 		return nil, err
 	}
 
-	return &Tool{
-		Tool: tuel,
+	return &Migration{
+		Migration: migration,
 	}, nil
 }
 
-func (t *Tool) Initialize() error {
-	if err := t.Tool.Initialize(); err != nil {
+func (m *Migration) Initialize() error {
+	if err := m.Migration.Initialize(); err != nil {
 		return err
 	}
 
-	t.CLI().Usage = "Migrate all sessions in database to expanded form"
-	t.CLI().Authors = []cli.Author{
+	m.CLI().Usage = "Migrate all sessions to expanded form"
+	m.CLI().Description = "Migrate all sessions to expanded form, including additional fields such as 'isServer', 'serverId', 'userId', 'duration', 'createdAt', and 'expiresAt'." +
+		"\n\n   This migration is idempotent." +
+		"\n\n   NOTE: This migration MUST be executed immediately AFTER upgrading Shoreline to v0.9.1."
+	m.CLI().Authors = []cli.Author{
 		{
 			Name:  "Darin Krauss",
 			Email: "darin@tidepool.org",
 		},
 	}
-	t.CLI().Flags = append(t.CLI().Flags,
+	m.CLI().Flags = append(m.CLI().Flags,
 		cli.StringFlag{
 			Name:  SecretFlag,
 			Usage: "session store secret",
 		},
-		cli.BoolFlag{
-			Name:  fmt.Sprintf("%s,%s", DryRunFlag, "n"),
-			Usage: "dry run only, do not update database",
-		},
 	)
 
-	t.CLI().Action = func(context *cli.Context) error {
-		if !t.ParseContext(context) {
+	m.CLI().Action = func(context *cli.Context) error {
+		if !m.ParseContext(context) {
 			return nil
 		}
-		return t.execute()
+		return m.execute()
 	}
 
 	return nil
 }
 
-func (t *Tool) ParseContext(context *cli.Context) bool {
-	if parsed := t.Tool.ParseContext(context); !parsed {
+func (m *Migration) ParseContext(context *cli.Context) bool {
+	if parsed := m.Migration.ParseContext(context); !parsed {
 		return parsed
 	}
 
-	t.secret = t.ConfigReporter().WithScopes("session", "store").GetWithDefault("secret", "")
+	m.secret = m.ConfigReporter().WithScopes("session", "store").GetWithDefault("secret", "")
 
-	t.secret = context.String(SecretFlag)
-	t.dryRun = context.Bool(DryRunFlag)
+	m.secret = context.String(SecretFlag)
 
 	return true
 }
 
-func (t *Tool) execute() error {
-	if t.secret == "" {
+func (m *Migration) Secret() string {
+	return m.secret
+}
+
+func (m *Migration) execute() error {
+	if m.Secret() == "" {
 		return errors.New("main", "secret is missing")
 	}
 
-	t.Logger().Debug("Migrating sessions to expanded form")
+	m.Logger().Debug("Migrating sessions to expanded form")
 
-	t.Logger().Debug("Creating sessions store")
+	m.Logger().Debug("Creating sessions store")
 
-	mongoConfig := t.MongoConfig().Clone()
+	mongoConfig := m.MongoConfig().Clone()
 	mongoConfig.Database = "user"
 	mongoConfig.Collection = "tokens"
-	sessionsStore, err := mongo.New(t.Logger(), mongoConfig)
+	sessionsStore, err := mongo.New(m.Logger(), mongoConfig)
 	if err != nil {
 		return errors.Wrap(err, "main", "unable to create sessions store")
 	}
 	defer sessionsStore.Close()
 
-	t.Logger().Debug("Creating sessions sessions")
+	m.Logger().Debug("Creating sessions sessions")
 
-	iterateSessionsSession := sessionsStore.NewSession(t.Logger())
+	iterateSessionsSession := sessionsStore.NewSession(m.Logger())
 	defer iterateSessionsSession.Close()
 
-	updateSessionsSession := sessionsStore.NewSession(t.Logger())
+	updateSessionsSession := sessionsStore.NewSession(m.Logger())
 	defer updateSessionsSession.Close()
 
-	t.Logger().Debug("Iterating sessions")
+	m.Logger().Debug("Iterating sessions")
 
 	iter := iterateSessionsSession.C().Find(bson.M{}).Iter()
 
@@ -123,11 +122,11 @@ func (t *Tool) execute() error {
 	session := &session.Session{}
 	for iter.Next(session) {
 
-		if t.isSessionExpanded(session) {
+		if m.isSessionExpanded(session) {
 			continue
 		}
 
-		sessionLogger := t.Logger().WithField("session", session)
+		sessionLogger := m.Logger().WithField("session", session)
 
 		sessionID := session.ID
 		if sessionID == "" {
@@ -135,13 +134,13 @@ func (t *Tool) execute() error {
 			continue
 		}
 
-		if err = t.expandSession(session, t.secret); err != nil {
+		if err = m.expandSession(session, m.Secret()); err != nil {
 			sessionLogger.WithError(err).Error("Unable to expand session")
 			continue
 		}
 
 		if session.ExpiresAt < expiredTime {
-			if !t.dryRun {
+			if !m.DryRun() {
 				if err = updateSessionsSession.C().RemoveId(sessionID); err != nil {
 					sessionLogger.WithError(err).Error("Unable to remove session")
 					continue
@@ -152,7 +151,7 @@ func (t *Tool) execute() error {
 
 			sessionLogger.Debugf("Expired session (expired %d seconds ago)", expiredTime-session.ExpiresAt)
 		} else {
-			if !t.dryRun {
+			if !m.DryRun() {
 				if err = updateSessionsSession.C().UpdateId(sessionID, session); err != nil {
 					sessionLogger.WithError(err).Error("Unable to update session")
 					continue
@@ -168,7 +167,7 @@ func (t *Tool) execute() error {
 		return errors.Wrap(err, "main", "unable to iterate sessions")
 	}
 
-	if !t.dryRun {
+	if !m.DryRun() {
 		selector := bson.M{
 			"$or": []bson.M{
 				{"_id": bson.M{"$exists": false}},
@@ -189,22 +188,22 @@ func (t *Tool) execute() error {
 		}
 		var count int
 		if count, err = iterateSessionsSession.C().Find(selector).Count(); err != nil {
-			t.Logger().WithError(err).Error("Unable to query for unexpanded sessions")
+			m.Logger().WithError(err).Error("Unable to query for unexpanded sessions")
 		} else if count != 0 {
-			t.Logger().WithField("count", count).Error("Found unexpanded sessions")
+			m.Logger().WithField("count", count).Error("Found unexpanded sessions")
 		}
 	}
 
-	t.Logger().Infof("Deleted %d expired sessions and migrated %d sessions to expanded form", expiredSessionCount, migratedSessionCount)
+	m.Logger().Infof("Deleted %d expired sessions and migrated %d sessions to expanded form", expiredSessionCount, migratedSessionCount)
 
 	return nil
 }
 
-func (t *Tool) isSessionExpanded(session *session.Session) bool {
+func (m *Migration) isSessionExpanded(session *session.Session) bool {
 	return session.Duration != 0
 }
 
-func (t *Tool) expandSession(session *session.Session, secret string) error {
+func (m *Migration) expandSession(session *session.Session, secret string) error {
 	parsedClaims := struct {
 		jwt.StandardClaims
 		IsServer string  `json:"svr"`

@@ -1,5 +1,9 @@
 ## HEAD
 
+- Refactor common functionality in migrations into migration package
+- Update migrations to reflect new migration package
+- Move migration executables into migrations folder
+- Add new migration deploy artifact in Makefile
 - Infer application name from executable name
 - Update dependencies
 - Move dataservices functionality into data package

@@ -1,4 +1,4 @@
-package tool_test
+package mongo_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -6,30 +6,30 @@ import (
 
 	"github.com/tidepool-org/platform/application/version"
 	_ "github.com/tidepool-org/platform/application/version/test"
-	"github.com/tidepool-org/platform/tool"
+	"github.com/tidepool-org/platform/migration/mongo"
 )
 
-var _ = Describe("Tool", func() {
+var _ = Describe("Migration", func() {
 	Context("New", func() {
 		It("returns an error if the prefix is missing", func() {
-			tuel, err := tool.New("")
+			migration, err := mongo.NewMigration("")
 			Expect(err).To(MatchError("application: prefix is missing"))
-			Expect(tuel).To(BeNil())
+			Expect(migration).To(BeNil())
 		})
 
 		It("returns successfully", func() {
-			Expect(tool.New("TIDEPOOL")).ToNot(BeNil())
+			Expect(mongo.NewMigration("TIDEPOOL")).ToNot(BeNil())
 		})
 	})
 
-	Context("with new tool", func() {
-		var tuel *tool.Tool
+	Context("with new migration", func() {
+		var migration *mongo.Migration
 
 		BeforeEach(func() {
 			var err error
-			tuel, err = tool.New("TIDEPOOL")
+			migration, err = mongo.NewMigration("TIDEPOOL")
 			Expect(err).ToNot(HaveOccurred())
-			Expect(tuel).ToNot(BeNil())
+			Expect(migration).ToNot(BeNil())
 		})
 
 		Context("Initialize", func() {
@@ -46,39 +46,33 @@ var _ = Describe("Tool", func() {
 				})
 
 				It("returns an error if the version is not specified correctly", func() {
-					Expect(tuel.Initialize()).To(MatchError("application: unable to create version reporter; version: base is missing"))
+					Expect(migration.Initialize()).To(MatchError("application: unable to create version reporter; version: base is missing"))
 				})
 			})
 
 			It("returns successfully", func() {
-				Expect(tuel.Initialize()).To(Succeed())
+				Expect(migration.Initialize()).To(Succeed())
 			})
 		})
 
 		Context("Terminate", func() {
 			It("returns without panic", func() {
-				tuel.Terminate()
+				migration.Terminate()
 			})
 		})
 
 		Context("initialized", func() {
 			BeforeEach(func() {
-				Expect(tuel.Initialize()).To(Succeed())
+				Expect(migration.Initialize()).To(Succeed())
 			})
 
 			AfterEach(func() {
-				tuel.Terminate()
+				migration.Terminate()
 			})
 
-			Context("CLI", func() {
-				It("returns not nil", func() {
-					Expect(tuel.CLI()).ToNot(BeNil())
-				})
-			})
-
-			Context("Args", func() {
-				It("returns nil", func() {
-					Expect(tuel.Args()).To(BeNil())
+			Context("DryRun", func() {
+				It("returns false", func() {
+					Expect(migration.DryRun()).To(BeFalse())
 				})
 			})
 		})
