@@ -6,5 +6,5 @@ import (
 )
 
 func main() {
-	application.Run(service.NewStandard("userservice", "TIDEPOOL"))
+	application.Run(service.NewStandard("TIDEPOOL"))
 }

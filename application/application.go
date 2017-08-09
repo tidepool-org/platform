@@ -21,16 +21,13 @@ type Application struct {
 	logger          log.Logger
 }
 
-func New(name string, prefix string) (*Application, error) {
-	if name == "" {
-		return nil, errors.New("application", "name is missing")
-	}
+func New(prefix string) (*Application, error) {
 	if prefix == "" {
 		return nil, errors.New("application", "prefix is missing")
 	}
 
 	return &Application{
-		name:   name,
+		name:   filepath.Base(os.Args[0]),
 		prefix: prefix,
 	}, nil
 }
@@ -106,7 +103,7 @@ func (a *Application) initializeLogger() error {
 	}
 
 	logger = logger.WithFields(log.Fields{
-		"process": filepath.Base(os.Args[0]),
+		"process": a.Name(),
 		"pid":     os.Getpid(),
 		"version": a.VersionReporter().Short(),
 	})

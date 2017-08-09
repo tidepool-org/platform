@@ -13,20 +13,14 @@ import (
 
 var _ = Describe("Application", func() {
 	Context("New", func() {
-		It("returns an error if the name is missing", func() {
-			app, err := application.New("", "TIDEPOOL")
-			Expect(err).To(MatchError("application: name is missing"))
-			Expect(app).To(BeNil())
-		})
-
 		It("returns an error if the prefix is missing", func() {
-			app, err := application.New("test", "")
+			app, err := application.New("")
 			Expect(err).To(MatchError("application: prefix is missing"))
 			Expect(app).To(BeNil())
 		})
 
 		It("returns successfully", func() {
-			Expect(application.New("test", "TIDEPOOL")).ToNot(BeNil())
+			Expect(application.New("TIDEPOOL")).ToNot(BeNil())
 		})
 	})
 
@@ -35,7 +29,7 @@ var _ = Describe("Application", func() {
 
 		BeforeEach(func() {
 			var err error
-			app, err = application.New("test", "TIDEPOOL")
+			app, err = application.New("TIDEPOOL")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(app).ToNot(BeNil())
 		})
@@ -67,7 +61,7 @@ var _ = Describe("Application", func() {
 					configReporter, err = env.NewReporter("TIDEPOOL")
 					Expect(err).ToNot(HaveOccurred())
 					Expect(configReporter).ToNot(BeNil())
-					configReporter = configReporter.WithScopes("test", "logger")
+					configReporter = configReporter.WithScopes("application.test", "logger")
 					level = configReporter.GetWithDefault("level", "warn")
 					configReporter.Set("level", "invalid")
 				})
@@ -94,7 +88,7 @@ var _ = Describe("Application", func() {
 
 		Context("Name", func() {
 			It("returns the name", func() {
-				Expect(app.Name()).To(Equal("test"))
+				Expect(app.Name()).To(Equal("application.test"))
 			})
 		})
 

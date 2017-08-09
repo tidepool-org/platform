@@ -30,7 +30,7 @@ type Tool struct {
 }
 
 func NewTool() (*Tool, error) {
-	tuel, err := mongoTool.NewTool("migrate_pmid_to_uid", "TIDEPOOL")
+	tuel, err := mongoTool.NewTool("TIDEPOOL")
 	if err != nil {
 		return nil, err
 	}
@@ -86,17 +86,17 @@ func (t *Tool) ParseContext(context *cli.Context) bool {
 
 func (t *Tool) execute() error {
 	if t.index && t.dryRun {
-		return errors.New(t.Name(), "cannot specify --index with --dry-run")
+		return errors.New("main", "cannot specify --index with --dry-run")
 	}
 
 	metaIDToUserIDMap, err := t.buildMetaIDToUserIDMap()
 	if err != nil {
-		return errors.Wrap(err, t.Name(), "unable to build meta id to user id map")
+		return errors.Wrap(err, "main", "unable to build meta id to user id map")
 	}
 
 	err = t.migrateMetaIDToUserIDForMetadata(metaIDToUserIDMap)
 	if err != nil {
-		return errors.Wrap(err, t.Name(), "unable to migrate meta id to user id for metadata")
+		return errors.Wrap(err, "main", "unable to migrate meta id to user id for metadata")
 	}
 
 	return nil
@@ -115,7 +115,7 @@ func (t *Tool) buildMetaIDToUserIDMap() (map[string]string, error) {
 	mongoConfig.Collection = "users"
 	usersStore, err := mongo.New(t.Logger(), mongoConfig)
 	if err != nil {
-		return nil, errors.Wrap(err, t.Name(), "unable to create users store")
+		return nil, errors.Wrap(err, "main", "unable to create users store")
 	}
 	defer usersStore.Close()
 
@@ -168,7 +168,7 @@ func (t *Tool) buildMetaIDToUserIDMap() (map[string]string, error) {
 		metaIDToUserIDMap[metaID] = userID
 	}
 	if err = iter.Close(); err != nil {
-		return nil, errors.Wrap(err, t.Name(), "unable to iterate users")
+		return nil, errors.Wrap(err, "main", "unable to iterate users")
 	}
 
 	t.Logger().Debugf("Found %d users with meta", len(metaIDToUserIDMap))
@@ -189,7 +189,7 @@ func (t *Tool) migrateMetaIDToUserIDForMetadata(metaIDToUserIDMap map[string]str
 	mongoConfig.Collection = "seagull"
 	metadataStore, err := mongo.New(t.Logger(), mongoConfig)
 	if err != nil {
-		return errors.Wrap(err, t.Name(), "unable to create metadata store")
+		return errors.Wrap(err, "main", "unable to create metadata store")
 	}
 	defer metadataStore.Close()
 
@@ -276,7 +276,7 @@ func (t *Tool) migrateMetaIDToUserIDForMetadata(metaIDToUserIDMap map[string]str
 			t.Logger().WithField("metaId", result["_id"]).Error("Metadata found without user id")
 		}
 		if err = iter.Close(); err != nil {
-			return errors.Wrap(err, t.Name(), "unable to iterate metadata without user id")
+			return errors.Wrap(err, "main", "unable to iterate metadata without user id")
 		}
 	}
 
@@ -292,7 +292,7 @@ func (t *Tool) migrateMetaIDToUserIDForMetadata(metaIDToUserIDMap map[string]str
 		}
 		err = metadataSession.C().EnsureIndex(index)
 		if err != nil {
-			return errors.Wrap(err, t.Name(), "unable to create metadata index on user id")
+			return errors.Wrap(err, "main", "unable to create metadata index on user id")
 		}
 	}
 

@@ -13,20 +13,14 @@ import (
 
 var _ = Describe("Tool", func() {
 	Context("New", func() {
-		It("returns an error if the name is missing", func() {
-			app, err := mongo.NewTool("", "TIDEPOOL")
-			Expect(err).To(MatchError("application: name is missing"))
-			Expect(app).To(BeNil())
-		})
-
 		It("returns an error if the prefix is missing", func() {
-			app, err := mongo.NewTool("test", "")
+			app, err := mongo.NewTool("")
 			Expect(err).To(MatchError("application: prefix is missing"))
 			Expect(app).To(BeNil())
 		})
 
 		It("returns successfully", func() {
-			Expect(mongo.NewTool("test", "TIDEPOOL")).ToNot(BeNil())
+			Expect(mongo.NewTool("TIDEPOOL")).ToNot(BeNil())
 		})
 	})
 
@@ -35,7 +29,7 @@ var _ = Describe("Tool", func() {
 
 		BeforeEach(func() {
 			var err error
-			tuel, err = mongo.NewTool("test", "TIDEPOOL")
+			tuel, err = mongo.NewTool("TIDEPOOL")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(tuel).ToNot(BeNil())
 		})
@@ -67,7 +61,7 @@ var _ = Describe("Tool", func() {
 					configReporter, err = env.NewReporter("TIDEPOOL")
 					Expect(err).ToNot(HaveOccurred())
 					Expect(configReporter).ToNot(BeNil())
-					configReporter = configReporter.WithScopes("test", "store")
+					configReporter = configReporter.WithScopes("mongo.test", "store")
 					tls = configReporter.GetWithDefault("tls", "false")
 					configReporter.Set("tls", "invalid")
 				})
@@ -77,7 +71,7 @@ var _ = Describe("Tool", func() {
 				})
 
 				It("returns an error if the store tls is invalid", func() {
-					Expect(tuel.Initialize()).To(MatchError("test: unable to load store config; mongo: tls is invalid"))
+					Expect(tuel.Initialize()).To(MatchError("mongo: unable to load store config; mongo: tls is invalid"))
 				})
 			})
 

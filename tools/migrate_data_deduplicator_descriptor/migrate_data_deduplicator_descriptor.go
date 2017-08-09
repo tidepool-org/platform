@@ -29,7 +29,7 @@ type Tool struct {
 }
 
 func NewTool() (*Tool, error) {
-	tuel, err := mongoTool.NewTool("migrate_data_deduplicator_descriptor", "TIDEPOOL")
+	tuel, err := mongoTool.NewTool("TIDEPOOL")
 	if err != nil {
 		return nil, err
 	}

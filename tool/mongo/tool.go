@@ -20,8 +20,8 @@ type Tool struct {
 	mongoConfig *mongo.Config
 }
 
-func NewTool(name string, prefix string) (*Tool, error) {
-	tuel, err := tool.New(name, prefix)
+func NewTool(prefix string) (*Tool, error) {
+	tuel, err := tool.New(prefix)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +38,7 @@ func (t *Tool) Initialize() error {
 	}
 
 	if err := t.MongoConfig().Load(t.ConfigReporter().WithScopes("store")); err != nil {
-		return errors.Wrap(err, t.Name(), "unable to load store config")
+		return errors.Wrap(err, "mongo", "unable to load store config")
 	}
 
 	t.CLI().Flags = append(t.CLI().Flags,

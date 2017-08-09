@@ -34,8 +34,8 @@ type Standard struct {
 	server            *server.Standard
 }
 
-func NewStandard(name string, prefix string) (*Standard, error) {
-	svc, err := service.New(name, prefix)
+func NewStandard(prefix string) (*Standard, error) {
+	svc, err := service.New(prefix)
 	if err != nil {
 		return nil, err
 	}

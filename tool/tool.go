@@ -23,8 +23,8 @@ type Tool struct {
 	args []string
 }
 
-func New(name string, prefix string) (*Tool, error) {
-	app, err := application.New(name, prefix)
+func New(prefix string) (*Tool, error) {
+	app, err := application.New(prefix)
 	if err != nil {
 		return nil, err
 	}

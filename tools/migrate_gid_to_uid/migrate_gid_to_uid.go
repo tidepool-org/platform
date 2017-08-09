@@ -29,7 +29,7 @@ type Tool struct {
 }
 
 func NewTool() (*Tool, error) {
-	tuel, err := mongoTool.NewTool("migrate_gid_to_uid", "TIDEPOOL")
+	tuel, err := mongoTool.NewTool("TIDEPOOL")
 	if err != nil {
 		return nil, err
 	}
@@ -81,17 +81,17 @@ func (t *Tool) ParseContext(context *cli.Context) bool {
 func (t *Tool) execute() error {
 	metaIDToUserIDMap, err := t.buildMetaIDToUserIDMap()
 	if err != nil {
-		return errors.Wrap(err, t.Name(), "unable to build meta id to user id map")
+		return errors.Wrap(err, "main", "unable to build meta id to user id map")
 	}
 
 	groupIDToUserIDMap, err := t.buildGroupIDToUserIDMap(metaIDToUserIDMap)
 	if err != nil {
-		return errors.Wrap(err, t.Name(), "unable to build group id to user id map")
+		return errors.Wrap(err, "main", "unable to build group id to user id map")
 	}
 
 	err = t.migrateGroupIDToUserIDForDeviceData(groupIDToUserIDMap)
 	if err != nil {
-		return errors.Wrap(err, t.Name(), "unable to migrate group id to user id for device data")
+		return errors.Wrap(err, "main", "unable to migrate group id to user id for device data")
 	}
 
 	return nil
@@ -110,7 +110,7 @@ func (t *Tool) buildMetaIDToUserIDMap() (map[string]string, error) {
 	mongoConfig.Collection = "users"
 	usersStore, err := mongo.New(t.Logger(), mongoConfig)
 	if err != nil {
-		return nil, errors.Wrap(err, t.Name(), "unable to create users store")
+		return nil, errors.Wrap(err, "main", "unable to create users store")
 	}
 	defer usersStore.Close()
 
@@ -163,7 +163,7 @@ func (t *Tool) buildMetaIDToUserIDMap() (map[string]string, error) {
 		metaIDToUserIDMap[metaID] = userID
 	}
 	if err = iter.Close(); err != nil {
-		return nil, errors.Wrap(err, t.Name(), "unable to iterate users")
+		return nil, errors.Wrap(err, "main", "unable to iterate users")
 	}
 
 	t.Logger().Debugf("Found %d users with meta", len(metaIDToUserIDMap))
@@ -184,7 +184,7 @@ func (t *Tool) buildGroupIDToUserIDMap(metaIDToUserIDMap map[string]string) (map
 	mongoConfig.Collection = "seagull"
 	metaStore, err := mongo.New(t.Logger(), mongoConfig)
 	if err != nil {
-		return nil, errors.Wrap(err, t.Name(), "unable to create meta store")
+		return nil, errors.Wrap(err, "main", "unable to create meta store")
 	}
 	defer metaStore.Close()
 
@@ -258,7 +258,7 @@ func (t *Tool) buildGroupIDToUserIDMap(metaIDToUserIDMap map[string]string) (map
 		groupIDToUserIDMap[groupID] = userID
 	}
 	if err = iter.Close(); err != nil {
-		return nil, errors.Wrap(err, t.Name(), "unable to iterate meta")
+		return nil, errors.Wrap(err, "main", "unable to iterate meta")
 	}
 
 	t.Logger().Debugf("Found %d groups with user", len(groupIDToUserIDMap))
@@ -279,7 +279,7 @@ func (t *Tool) migrateGroupIDToUserIDForDeviceData(groupIDToUserIDMap map[string
 	mongoConfig.Collection = "deviceData"
 	deviceDataStore, err := mongo.New(t.Logger(), mongoConfig)
 	if err != nil {
-		return errors.Wrap(err, t.Name(), "unable to create device data store")
+		return errors.Wrap(err, "main", "unable to create device data store")
 	}
 	defer deviceDataStore.Close()
 
