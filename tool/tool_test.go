@@ -11,20 +11,14 @@ import (
 
 var _ = Describe("Tool", func() {
 	Context("New", func() {
-		It("returns an error if the name is missing", func() {
-			app, err := tool.New("", "TIDEPOOL")
-			Expect(err).To(MatchError("application: name is missing"))
-			Expect(app).To(BeNil())
-		})
-
 		It("returns an error if the prefix is missing", func() {
-			app, err := tool.New("test", "")
+			app, err := tool.New("")
 			Expect(err).To(MatchError("application: prefix is missing"))
 			Expect(app).To(BeNil())
 		})
 
 		It("returns successfully", func() {
-			Expect(tool.New("test", "TIDEPOOL")).ToNot(BeNil())
+			Expect(tool.New("TIDEPOOL")).ToNot(BeNil())
 		})
 	})
 
@@ -33,7 +27,7 @@ var _ = Describe("Tool", func() {
 
 		BeforeEach(func() {
 			var err error
-			tuel, err = tool.New("test", "TIDEPOOL")
+			tuel, err = tool.New("TIDEPOOL")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(tuel).ToNot(BeNil())
 		})

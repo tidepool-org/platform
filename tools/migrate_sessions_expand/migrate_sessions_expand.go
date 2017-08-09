@@ -31,7 +31,7 @@ type Tool struct {
 }
 
 func NewTool() (*Tool, error) {
-	tuel, err := mongoTool.NewTool("migrate_sessions_expand", "TIDEPOOL")
+	tuel, err := mongoTool.NewTool("TIDEPOOL")
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func (t *Tool) ParseContext(context *cli.Context) bool {
 
 func (t *Tool) execute() error {
 	if t.secret == "" {
-		return errors.New(t.Name(), "secret is missing")
+		return errors.New("main", "secret is missing")
 	}
 
 	t.Logger().Debug("Migrating sessions to expanded form")
@@ -101,7 +101,7 @@ func (t *Tool) execute() error {
 	mongoConfig.Collection = "tokens"
 	sessionsStore, err := mongo.New(t.Logger(), mongoConfig)
 	if err != nil {
-		return errors.Wrap(err, t.Name(), "unable to create sessions store")
+		return errors.Wrap(err, "main", "unable to create sessions store")
 	}
 	defer sessionsStore.Close()
 
@@ -165,7 +165,7 @@ func (t *Tool) execute() error {
 		}
 	}
 	if err = iter.Close(); err != nil {
-		return errors.Wrap(err, t.Name(), "unable to iterate sessions")
+		return errors.Wrap(err, "main", "unable to iterate sessions")
 	}
 
 	if !t.dryRun {
@@ -219,10 +219,10 @@ func (t *Tool) expandSession(session *session.Session, secret string) error {
 	if err != nil {
 		validationError, ok := err.(*jwt.ValidationError)
 		if !ok {
-			return errors.Wrap(err, t.Name(), "unexpected error")
+			return errors.Wrap(err, "main", "unexpected error")
 		}
 		if validationError.Errors != jwt.ValidationErrorExpired {
-			return errors.Wrap(validationError, t.Name(), "unexpected validation error")
+			return errors.Wrap(validationError, "main", "unexpected validation error")
 		}
 	}
 

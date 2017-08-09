@@ -1,5 +1,6 @@
 ## HEAD
 
+- Infer application name from executable name
 - Update dependencies
 - Move dataservices functionality into data package
 - Move metricservices functionality into metric package
