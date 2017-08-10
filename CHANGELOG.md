@@ -1,5 +1,7 @@
 ## HEAD
 
+## v1.9.0 (2017-08-10)
+
 - Bump `hash_deactivate_old` data deduplicator to version 1.1.0
 - Update `hash_deactivate_old` data deduplicator to use archived dataset id and time fields to accurately:
   - Deactivate deduplicate data on dataset addition
