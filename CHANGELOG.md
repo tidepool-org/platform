@@ -1,5 +1,7 @@
 ## HEAD
 
+- Remove deprecated git-hooks Makefile target
+- Update Makefile .PHONY targets
 - Refactor common functionality in migrations into migration package
 - Update migrations to reflect new migration package
 - Move migration executables into migrations folder

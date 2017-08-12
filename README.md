@@ -110,12 +110,6 @@ make pre-commit
 make clean
 ```
 
-* To add the required git hooks:
-
-```
-make git-hooks
-```
-
 # Sublime Text
 
 If you use the Sublime Text editor with the GoSublime plugin, open the `platform.sublime-project` project to ensure the `GOPATH` and `PATH` environment variables are set correctly within Sublime Text. In addition, the recommended user settings are:

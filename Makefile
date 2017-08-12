@@ -189,10 +189,6 @@ clean-deploy:
 
 clean-all: clean
 
-git-hooks:
-	@echo "Installing git hooks..."
-	@cd $(ROOT_DIRECTORY) && cp _tools/git/hooks/* .git/hooks/
-
 pre-commit: format imports vet lint
 
 # DO NOT USE THE FOLLOWING TARGETS UNDER NORMAL CIRCUMSTANCES!!!
@@ -226,6 +222,10 @@ bootstrap:
 	@$(MAKE) gopath-implode
 
 .PHONY: default log tmp check-gopath check-environment \
-	godep goimports golint gocode godef oracle ginkgo buildable editable \
-	format imports vet vet-ignore lint lint-ignore pre-build build-list build ci-build ci-deploy start stop test ci-test watch clean clean-cover clean-all git-hooks pre-commit \
+	godep goimports golint gocode godef ginkgo buildable editable \
+	format imports vet vet-ignore lint lint-ignore pre-build build-list build ci-build \
+	start start-dataservices start-userservices stop stop-dataservices stop-userservices \
+	test ci-test watch \
+	deploy deploy-dataservices deploy-userservices deploy-migrations deploy-tools ci-deploy bundle-deploy \
+	clean clean-bin clean-cover clean-deploy clean-all pre-commit \
 	gopath-implode dependencies-implode bootstrap-implode bootstrap-dependencies bootstrap-save bootstrap
