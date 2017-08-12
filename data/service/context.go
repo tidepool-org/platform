@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataStore "github.com/tidepool-org/platform/data/store"
@@ -13,6 +14,7 @@ import (
 type Context interface {
 	service.Context
 
+	AuthClient() auth.Client
 	MetricClient() metricClient.Client
 	UserClient() userClient.Client
 
@@ -21,9 +23,6 @@ type Context interface {
 
 	DataStoreSession() dataStore.Session
 	SyncTaskStoreSession() syncTaskStore.Session
-
-	AuthenticationDetails() userClient.AuthenticationDetails
-	SetAuthenticationDetails(authenticationDetails userClient.AuthenticationDetails)
 }
 
 type HandlerFunc func(context Context)

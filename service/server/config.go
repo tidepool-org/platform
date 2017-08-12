@@ -82,13 +82,3 @@ func (c *Config) Validate() error {
 
 	return nil
 }
-
-func (c *Config) Clone() *Config {
-	return &Config{
-		Address:            c.Address,
-		TLS:                c.TLS,
-		TLSCertificateFile: c.TLSCertificateFile,
-		TLSKeyFile:         c.TLSKeyFile,
-		Timeout:            c.Timeout,
-	}
-}

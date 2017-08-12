@@ -14,7 +14,7 @@ func UsersDataDelete(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if !dataServiceContext.AuthenticationDetails().IsServer() {
+	if !dataServiceContext.AuthDetails().IsServer() {
 		dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 		return
 	}

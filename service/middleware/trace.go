@@ -21,7 +21,7 @@ func NewTrace() (*Trace, error) {
 	return &Trace{}, nil
 }
 
-func (l *Trace) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
+func (t *Trace) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
 		if handler != nil && response != nil && request != nil {
 			oldLogger := service.GetRequestLogger(request)

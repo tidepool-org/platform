@@ -5,6 +5,7 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 
+	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service/middleware"
@@ -14,22 +15,27 @@ import (
 type Standard struct {
 	versionReporter  version.Reporter
 	logger           log.Logger
+	authClient       auth.Client
 	api              *rest.Api
 	headerMiddleware *middleware.Header
 	statusMiddleware *rest.StatusMiddleware
 }
 
-func NewStandard(versionReporter version.Reporter, logger log.Logger) (*Standard, error) {
+func NewStandard(versionReporter version.Reporter, logger log.Logger, authClient auth.Client) (*Standard, error) {
 	if versionReporter == nil {
 		return nil, errors.New("api", "version reporter is missing")
 	}
 	if logger == nil {
 		return nil, errors.New("api", "logger is missing")
 	}
+	if authClient == nil {
+		return nil, errors.New("api", "auth client is missing")
+	}
 
 	return &Standard{
 		versionReporter: versionReporter,
 		logger:          logger,
+		authClient:      authClient,
 		api:             rest.NewApi(),
 	}, nil
 }
@@ -40,6 +46,10 @@ func (s *Standard) VersionReporter() version.Reporter {
 
 func (s *Standard) Logger() log.Logger {
 	return s.logger
+}
+
+func (s *Standard) AuthClient() auth.Client {
+	return s.authClient
 }
 
 func (s *Standard) API() *rest.Api {
@@ -79,6 +89,10 @@ func (s *Standard) InitializeMiddleware() error {
 	if err != nil {
 		return err
 	}
+	authMiddleware, err := middleware.NewAuth(s.AuthClient())
+	if err != nil {
+		return err
+	}
 
 	statusMiddleware := &rest.StatusMiddleware{}
 	timerMiddleware := &rest.TimerMiddleware{}
@@ -94,6 +108,7 @@ func (s *Standard) InitializeMiddleware() error {
 		timerMiddleware,
 		recorderMiddleware,
 		recoverMiddleware,
+		authMiddleware,
 		gzipMiddleware,
 	}
 

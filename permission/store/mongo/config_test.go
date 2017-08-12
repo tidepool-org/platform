@@ -96,16 +96,6 @@ var _ = Describe("Config", func() {
 					Expect(config.Validate()).To(MatchError("mongo: secret is missing"))
 				})
 			})
-
-			Context("Clone", func() {
-				It("returns successfully", func() {
-					clone := config.Clone()
-					Expect(clone).ToNot(BeIdenticalTo(config))
-					Expect(clone.Config).ToNot(BeIdenticalTo(config.Config))
-					Expect(clone.Config).To(Equal(config.Config))
-					Expect(clone.Secret).To(Equal(config.Secret))
-				})
-			})
 		})
 	})
 })

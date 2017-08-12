@@ -1,6 +1,10 @@
 package api
 
-import dataService "github.com/tidepool-org/platform/data/service"
+import (
+	"net/http"
+
+	dataService "github.com/tidepool-org/platform/data/service"
+)
 
 type Status struct {
 	Version     string
@@ -15,5 +19,5 @@ func (s *Standard) GetStatus(dataServiceContext dataService.Context) {
 		DataStore: s.dataStore.GetStatus(),
 		Server:    s.StatusMiddleware().GetStatus(),
 	}
-	dataServiceContext.Response().WriteJson(status)
+	dataServiceContext.RespondWithStatusAndData(http.StatusOK, status)
 }

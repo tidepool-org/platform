@@ -85,26 +85,6 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-func (c *Config) Clone() *Config {
-	clone := &Config{
-		TLS:        c.TLS,
-		Database:   c.Database,
-		Collection: c.Collection,
-		Timeout:    c.Timeout,
-	}
-	if c.Addresses != nil {
-		clone.Addresses = append([]string{}, c.Addresses...)
-	}
-	if c.Username != nil {
-		clone.Username = pointer.String(*c.Username)
-	}
-	if c.Password != nil {
-		clone.Password = pointer.String(*c.Password)
-	}
-
-	return clone
-}
-
 func SplitAddresses(addressesString string) []string {
 	addressses := []string{}
 	for _, address := range strings.Split(addressesString, ",") {

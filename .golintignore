@@ -1,4 +1,11 @@
-./service/context/context_suite_test.go:47:30: method WriteJson should be WriteJSON
-./service/context/context_suite_test.go:54:30: method EncodeJson should be EncodeJSON
 ./service/middleware/middleware_suite_test.go:47:30: method WriteJson should be WriteJSON
 ./service/middleware/middleware_suite_test.go:54:30: method EncodeJson should be EncodeJSON
+./test/rest/response_writer.go:9:6: type EncodeJsonOutput should be EncodeJSONOutput
+./test/rest/response_writer.go:17:2: struct field WriteJsonInvocations should be WriteJSONInvocations
+./test/rest/response_writer.go:18:2: struct field WriteJsonInputs should be WriteJSONInputs
+./test/rest/response_writer.go:19:2: struct field WriteJsonOutputs should be WriteJSONOutputs
+./test/rest/response_writer.go:20:2: struct field EncodeJsonInvocations should be EncodeJSONInvocations
+./test/rest/response_writer.go:21:2: struct field EncodeJsonInputs should be EncodeJSONInputs
+./test/rest/response_writer.go:22:2: struct field EncodeJsonOutputs should be EncodeJSONOutputs
+./test/rest/response_writer.go:38:26: method WriteJson should be WriteJSON
+./test/rest/response_writer.go:52:26: method EncodeJson should be EncodeJSON

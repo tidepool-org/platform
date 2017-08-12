@@ -8,6 +8,7 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 
+	testAuth "github.com/tidepool-org/platform/auth/test"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/service"
@@ -28,6 +29,7 @@ var _ = Describe("Request", func() {
 	Context("with request", func() {
 		var errors []*service.Error
 		var logger log.Logger
+		var authDetails *testAuth.Details
 		var request *rest.Request
 
 		BeforeEach(func() {
@@ -40,9 +42,11 @@ var _ = Describe("Request", func() {
 				},
 			}
 			logger = null.NewLogger()
+			authDetails = testAuth.NewDetails()
 			request = NewTestRequest()
 			request.Env["ERRORS"] = errors
 			request.Env["LOGGER"] = logger
+			request.Env["AUTH-DETAILS"] = authDetails
 			request.Env["TRACE-REQUEST"] = "request-raven"
 			request.Env["TRACE-SESSION"] = "session-starling"
 		})
@@ -137,6 +141,49 @@ var _ = Describe("Request", func() {
 			It("deletes the logger if the logger is missing", func() {
 				service.SetRequestLogger(request, nil)
 				Expect(request.Env["LOGGER"]).To(BeNil())
+			})
+		})
+
+		Context("GetRequestAuthDetails", func() {
+			It("returns successfully", func() {
+				Expect(service.GetRequestAuthDetails(request)).To(Equal(authDetails))
+			})
+
+			It("returns nil if the request is missing", func() {
+				Expect(service.GetRequestAuthDetails(nil)).To(BeNil())
+			})
+
+			It("returns nil if the auth details is not of the correct type", func() {
+				request.Env["AUTH-DETAILS"] = 0
+				Expect(service.GetRequestAuthDetails(request)).To(BeNil())
+			})
+
+			It("returns nil if the auth details is missing", func() {
+				request.Env["AUTH-DETAILS"] = nil
+				Expect(service.GetRequestAuthDetails(request)).To(BeNil())
+			})
+		})
+
+		Context("SetRequestAuthDetails", func() {
+			var newAuthDetails *testAuth.Details
+
+			BeforeEach(func() {
+				newAuthDetails = testAuth.NewDetails()
+			})
+
+			It("successfully sets the auth details", func() {
+				service.SetRequestAuthDetails(request, newAuthDetails)
+				Expect(request.Env["AUTH-DETAILS"]).To(Equal(newAuthDetails))
+			})
+
+			It("does nothing if the request is missing", func() {
+				service.SetRequestAuthDetails(nil, newAuthDetails)
+				Expect(request.Env["AUTH-DETAILS"]).To(Equal(authDetails))
+			})
+
+			It("deletes the auth details if the auth details is missing", func() {
+				service.SetRequestAuthDetails(request, nil)
+				Expect(request.Env["AUTH-DETAILS"]).To(BeNil())
 			})
 		})
 

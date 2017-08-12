@@ -3,6 +3,7 @@ package v1
 import (
 	"net/http"
 
+	"github.com/tidepool-org/platform/client"
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/service"
 	userClient "github.com/tidepool-org/platform/user/client"
@@ -25,11 +26,11 @@ func DatasetsUpdate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if !dataServiceContext.AuthenticationDetails().IsServer() {
+	if !dataServiceContext.AuthDetails().IsServer() {
 		var permissions userClient.Permissions
-		permissions, err = dataServiceContext.UserClient().GetUserPermissions(dataServiceContext, dataServiceContext.AuthenticationDetails().UserID(), dataset.UserID)
+		permissions, err = dataServiceContext.UserClient().GetUserPermissions(dataServiceContext, dataServiceContext.AuthDetails().UserID(), dataset.UserID)
 		if err != nil {
-			if userClient.IsUnauthorizedError(err) {
+			if client.IsUnauthorizedError(err) {
 				dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 			} else {
 				dataServiceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)

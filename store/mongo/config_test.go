@@ -182,65 +182,6 @@ var _ = Describe("Config", func() {
 					Expect(config.Validate()).To(MatchError("mongo: timeout is invalid"))
 				})
 			})
-
-			Context("Clone", func() {
-				It("returns successfully", func() {
-					clone := config.Clone()
-					Expect(clone).ToNot(BeIdenticalTo(config))
-					Expect(clone.Addresses).To(Equal(config.Addresses))
-					Expect(clone.TLS).To(Equal(config.TLS))
-					Expect(clone.Database).To(Equal(config.Database))
-					Expect(clone.Collection).To(Equal(config.Collection))
-					Expect(clone.Username).ToNot(BeIdenticalTo(config.Username))
-					Expect(*clone.Username).To(Equal(*config.Username))
-					Expect(clone.Password).ToNot(BeIdenticalTo(config.Password))
-					Expect(*clone.Password).To(Equal(*config.Password))
-					Expect(clone.Timeout).To(Equal(config.Timeout))
-				})
-
-				It("returns successfully if addresses is nil", func() {
-					config.Addresses = nil
-					clone := config.Clone()
-					Expect(clone).ToNot(BeIdenticalTo(config))
-					Expect(clone.Addresses).To(BeNil())
-					Expect(clone.TLS).To(Equal(config.TLS))
-					Expect(clone.Database).To(Equal(config.Database))
-					Expect(clone.Collection).To(Equal(config.Collection))
-					Expect(clone.Username).ToNot(BeIdenticalTo(config.Username))
-					Expect(*clone.Username).To(Equal(*config.Username))
-					Expect(clone.Password).ToNot(BeIdenticalTo(config.Password))
-					Expect(*clone.Password).To(Equal(*config.Password))
-					Expect(clone.Timeout).To(Equal(config.Timeout))
-				})
-
-				It("returns successfully if username is nil", func() {
-					config.Username = nil
-					clone := config.Clone()
-					Expect(clone).ToNot(BeIdenticalTo(config))
-					Expect(clone.Addresses).To(Equal(config.Addresses))
-					Expect(clone.TLS).To(Equal(config.TLS))
-					Expect(clone.Database).To(Equal(config.Database))
-					Expect(clone.Collection).To(Equal(config.Collection))
-					Expect(clone.Username).To(BeNil())
-					Expect(clone.Password).ToNot(BeIdenticalTo(config.Password))
-					Expect(*clone.Password).To(Equal(*config.Password))
-					Expect(clone.Timeout).To(Equal(config.Timeout))
-				})
-
-				It("returns successfully if password is nil", func() {
-					config.Password = nil
-					clone := config.Clone()
-					Expect(clone).ToNot(BeIdenticalTo(config))
-					Expect(clone.Addresses).To(Equal(config.Addresses))
-					Expect(clone.TLS).To(Equal(config.TLS))
-					Expect(clone.Database).To(Equal(config.Database))
-					Expect(clone.Collection).To(Equal(config.Collection))
-					Expect(clone.Username).ToNot(BeIdenticalTo(config.Username))
-					Expect(*clone.Username).To(Equal(*config.Username))
-					Expect(clone.Password).To(BeNil())
-					Expect(clone.Timeout).To(Equal(config.Timeout))
-				})
-			})
 		})
 	})
 

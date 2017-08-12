@@ -95,7 +95,7 @@ func (m *Migration) execute() error {
 
 	m.Logger().Debug("Creating sessions store")
 
-	mongoConfig := m.MongoConfig().Clone()
+	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "user"
 	mongoConfig.Collection = "tokens"
 	sessionsStore, err := mongo.New(m.Logger(), mongoConfig)

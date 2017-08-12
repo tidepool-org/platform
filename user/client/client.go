@@ -1,70 +1,65 @@
 package client
 
 import (
-	"fmt"
 	"net/http"
 
-	"github.com/ant0ine/go-json-rest/rest"
-
+	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/client"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 )
 
-type Context interface {
-	Logger() log.Logger
-	Request() *rest.Request
-}
-
-type AuthenticationDetails interface {
-	Token() string
-
-	IsServer() bool
-	UserID() string
-}
-
 type Client interface {
-	ValidateAuthenticationToken(context Context, authenticationToken string) (AuthenticationDetails, error)
-	GetUserPermissions(context Context, requestUserID string, targetUserID string) (Permissions, error)
-
-	ServerToken() (string, error)
+	GetUserPermissions(context auth.Context, requestUserID string, targetUserID string) (Permissions, error)
 }
 
-type Permission map[string]interface{}
-type Permissions map[string]Permission
-
-const OwnerPermission = "root"
-const CustodianPermission = "custodian"
-const UploadPermission = "upload"
-const ViewPermission = "view"
-
-type UnauthorizedError struct{}
-
-func NewUnauthorizedError() *UnauthorizedError {
-	return &UnauthorizedError{}
+type clientImpl struct {
+	client *client.Client
 }
 
-func (u *UnauthorizedError) Error() string {
-	return "client: unauthorized"
-}
-
-func IsUnauthorizedError(err error) bool {
-	_, ok := err.(*UnauthorizedError)
-	return ok
-}
-
-type UnexpectedResponseError struct {
-	Method     string
-	URL        string
-	StatusCode int
-}
-
-func NewUnexpectedResponseError(response *http.Response, request *http.Request) *UnexpectedResponseError {
-	return &UnexpectedResponseError{
-		Method:     request.Method,
-		URL:        request.URL.String(),
-		StatusCode: response.StatusCode,
+func NewClient(config *client.Config) (Client, error) {
+	clnt, err := client.NewClient(config)
+	if err != nil {
+		return nil, err
 	}
+
+	return &clientImpl{
+		client: clnt,
+	}, nil
 }
 
-func (u *UnexpectedResponseError) Error() string {
-	return fmt.Sprintf("client: unexpected response status code %d from %s %s", u.StatusCode, u.Method, u.URL)
+func (c *clientImpl) GetUserPermissions(context auth.Context, requestUserID string, targetUserID string) (Permissions, error) {
+	if context == nil {
+		return nil, errors.New("client", "context is missing")
+	}
+	if requestUserID == "" {
+		return nil, errors.New("client", "request user id is missing")
+	}
+	if targetUserID == "" {
+		return nil, errors.New("client", "target user id is missing")
+	}
+
+	context.Logger().WithFields(log.Fields{"requestUserId": requestUserID, "targetUserId": targetUserID}).Debug("Get user permissions")
+
+	permissions := Permissions{}
+	if err := c.client.SendRequestWithServerToken(context, "GET", c.client.BuildURL("access", targetUserID, requestUserID), nil, &permissions); err != nil {
+		if unexpectedResponseError, ok := err.(*client.UnexpectedResponseError); ok {
+			if unexpectedResponseError.StatusCode == http.StatusNotFound {
+				return nil, client.NewUnauthorizedError()
+			}
+		}
+		return nil, err
+	}
+
+	// Fix missing view and upload permissions for an owner
+	if permission, ok := permissions[OwnerPermission]; ok {
+		if _, ok = permissions[UploadPermission]; !ok {
+			permissions[UploadPermission] = permission
+		}
+		if _, ok = permissions[ViewPermission]; !ok {
+			permissions[ViewPermission] = permission
+		}
+	}
+
+	return permissions, nil
 }

@@ -1,11 +1,12 @@
 package middleware
 
 import (
+	"net/http"
 	"runtime/debug"
 
 	"github.com/ant0ine/go-json-rest/rest"
 
-	"github.com/tidepool-org/platform/service/context"
+	serviceContext "github.com/tidepool-org/platform/service/context"
 )
 
 type Recover struct{}
@@ -19,9 +20,10 @@ func (r *Recover) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
 		if handler != nil && response != nil && request != nil {
 			defer func() {
 				if r := recover(); r != nil {
-					standardContext, _ := context.NewStandard(response, request)
-					if standardContext != nil {
-						standardContext.RespondWithInternalServerFailure("Recovered from unhandled panic", string(debug.Stack()))
+					if responder, responderErr := serviceContext.NewResponder(response, request); responderErr != nil {
+						response.WriteHeader(http.StatusInternalServerError)
+					} else {
+						responder.RespondWithInternalServerFailure("Recovered from unhandled panic", string(debug.Stack()))
 					}
 				}
 			}()

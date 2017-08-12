@@ -1,5 +1,12 @@
 ## HEAD
 
+- Refactor auth middleware to make it the default on all routes
+- Add auth client to handle user and server authentication and authorization for clients
+- Refactor all client packages into common client package
+- Update status and version APIs to use standard response functions
+- Remove Clone function from all Config structs as unnecessary
+- Refactor service Context into separate Responder struct
+- Add various test mocks
 - Remove deprecated git-hooks Makefile target
 - Update Makefile .PHONY targets
 - Refactor common functionality in migrations into migration package

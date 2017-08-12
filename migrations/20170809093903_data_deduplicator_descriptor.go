@@ -67,7 +67,7 @@ func (m *Migration) execute() error {
 
 	m.Logger().Debug("Creating data store")
 
-	mongoConfig := m.MongoConfig().Clone()
+	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "data"
 	mongoConfig.Collection = "deviceData"
 	mongoConfig.Timeout = 60 * time.Minute

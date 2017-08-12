@@ -153,18 +153,6 @@ var _ = Describe("Config", func() {
 					Expect(config.Validate()).To(MatchError("server: timeout is invalid"))
 				})
 			})
-
-			Context("Clone", func() {
-				It("returns successfully", func() {
-					clone := config.Clone()
-					Expect(clone).ToNot(BeIdenticalTo(config))
-					Expect(clone.Address).To(Equal(config.Address))
-					Expect(clone.TLS).To(Equal(config.TLS))
-					Expect(clone.TLSCertificateFile).To(Equal(config.TLSCertificateFile))
-					Expect(clone.TLSKeyFile).To(Equal(config.TLSKeyFile))
-					Expect(clone.Timeout).To(Equal(config.Timeout))
-				})
-			})
 		})
 	})
 })

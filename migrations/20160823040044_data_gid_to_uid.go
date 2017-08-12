@@ -87,7 +87,7 @@ func (m *Migration) buildMetaIDToUserIDMap() (map[string]string, error) {
 
 	m.Logger().Debug("Creating users store")
 
-	mongoConfig := m.MongoConfig().Clone()
+	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "user"
 	mongoConfig.Collection = "users"
 	usersStore, err := mongo.New(m.Logger(), mongoConfig)
@@ -161,7 +161,7 @@ func (m *Migration) buildGroupIDToUserIDMap(metaIDToUserIDMap map[string]string)
 
 	m.Logger().Debug("Creating meta store")
 
-	mongoConfig := m.MongoConfig().Clone()
+	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "seagull"
 	mongoConfig.Collection = "seagull"
 	metaStore, err := mongo.New(m.Logger(), mongoConfig)
@@ -256,7 +256,7 @@ func (m *Migration) migrateGroupIDToUserIDForDeviceData(groupIDToUserIDMap map[s
 
 	m.Logger().Debug("Creating device data store")
 
-	mongoConfig := m.MongoConfig().Clone()
+	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "data"
 	mongoConfig.Collection = "deviceData"
 	deviceDataStore, err := mongo.New(m.Logger(), mongoConfig)

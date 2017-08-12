@@ -3,6 +3,7 @@ package v1
 import (
 	"net/http"
 
+	"github.com/tidepool-org/platform/client"
 	messageStore "github.com/tidepool-org/platform/message/store"
 	"github.com/tidepool-org/platform/profile"
 	"github.com/tidepool-org/platform/service"
@@ -23,13 +24,13 @@ func UsersDelete(userServiceContext userService.Context) {
 	}
 
 	var password *string
-	if !userServiceContext.AuthenticationDetails().IsServer() {
-		authenticatedUserID := userServiceContext.AuthenticationDetails().UserID()
+	if !userServiceContext.AuthDetails().IsServer() {
+		authUserID := userServiceContext.AuthDetails().UserID()
 
 		var permissions userClient.Permissions
-		permissions, err := userServiceContext.UserClient().GetUserPermissions(userServiceContext, authenticatedUserID, targetUserID)
+		permissions, err := userServiceContext.UserClient().GetUserPermissions(userServiceContext, authUserID, targetUserID)
 		if err != nil {
-			if userClient.IsUnauthorizedError(err) {
+			if client.IsUnauthorizedError(err) {
 				userServiceContext.RespondWithError(service.ErrorUnauthorized())
 			} else {
 				userServiceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)

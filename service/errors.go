@@ -17,21 +17,12 @@ func ErrorInternalServerFailure() *Error {
 	}
 }
 
-func ErrorAuthenticationTokenMissing() *Error {
-	return &Error{
-		Code:   "authentication-token-missing",
-		Status: http.StatusUnauthorized,
-		Title:  "authentication token missing",
-		Detail: "Authentication token missing",
-	}
-}
-
 func ErrorUnauthenticated() *Error {
 	return &Error{
 		Code:   "unauthenticated",
 		Status: http.StatusUnauthorized,
-		Title:  "authentication token is invalid",
-		Detail: "Authentication token is invalid",
+		Title:  "auth token is invalid",
+		Detail: "Auth token is invalid",
 	}
 }
 
@@ -39,8 +30,8 @@ func ErrorUnauthorized() *Error {
 	return &Error{
 		Code:   "unauthorized",
 		Status: http.StatusForbidden,
-		Title:  "authentication token is not authorized for requested action",
-		Detail: "Authentication token is not authorized for requested action",
+		Title:  "auth token is not authorized for requested action",
+		Detail: "Auth token is not authorized for requested action",
 	}
 }
 

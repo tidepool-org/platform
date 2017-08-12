@@ -111,7 +111,7 @@ func (m *Migration) buildMetaIDToUserIDMap() (map[string]string, error) {
 
 	m.Logger().Debug("Creating users store")
 
-	mongoConfig := m.MongoConfig().Clone()
+	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "user"
 	mongoConfig.Collection = "users"
 	usersStore, err := mongo.New(m.Logger(), mongoConfig)
@@ -185,7 +185,7 @@ func (m *Migration) migrateMetaIDToUserIDForMetadata(metaIDToUserIDMap map[strin
 
 	m.Logger().Debug("Creating metadata data store")
 
-	mongoConfig := m.MongoConfig().Clone()
+	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "seagull"
 	mongoConfig.Collection = "seagull"
 	metadataStore, err := mongo.New(m.Logger(), mongoConfig)

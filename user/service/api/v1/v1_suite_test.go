@@ -1,19 +1,17 @@
 package v1_test
 
 import (
+	"github.com/ant0ine/go-json-rest/rest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"net/http"
-	"net/url"
 	"testing"
 
-	"github.com/ant0ine/go-json-rest/rest"
-
+	"github.com/tidepool-org/platform/auth"
+	testAuth "github.com/tidepool-org/platform/auth/test"
 	confirmationStore "github.com/tidepool-org/platform/confirmation/store"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/log/null"
 	messageStore "github.com/tidepool-org/platform/message/store"
 	metricClient "github.com/tidepool-org/platform/metric/client"
 	permissionStore "github.com/tidepool-org/platform/permission/store"
@@ -78,7 +76,7 @@ type RespondWithStatusAndDataInput struct {
 }
 
 type RecordMetricInput struct {
-	context metricClient.Context
+	context auth.Context
 	metric  string
 	data    []map[string]string
 }
@@ -88,7 +86,7 @@ type TestMetricClient struct {
 	RecordMetricOutputs []error
 }
 
-func (t *TestMetricClient) RecordMetric(context metricClient.Context, metric string, data ...map[string]string) error {
+func (t *TestMetricClient) RecordMetric(context auth.Context, metric string, data ...map[string]string) error {
 	t.RecordMetricInputs = append(t.RecordMetricInputs, RecordMetricInput{context, metric, data})
 	output := t.RecordMetricOutputs[0]
 	t.RecordMetricOutputs = t.RecordMetricOutputs[1:]
@@ -100,7 +98,7 @@ func (t *TestMetricClient) ValidateTest() bool {
 }
 
 type GetUserPermissionsInput struct {
-	context       userClient.Context
+	context       auth.Context
 	requestUserID string
 	targetUserID  string
 }
@@ -115,27 +113,11 @@ type TestUserClient struct {
 	GetUserPermissionsOutputs []GetUserPermissionsOutput
 }
 
-func (t *TestUserClient) Start() error {
-	panic("Unexpected invocation of Start on TestUserClient")
-}
-
-func (t *TestUserClient) Close() {
-	panic("Unexpected invocation of Close on TestUserClient")
-}
-
-func (t *TestUserClient) ValidateAuthenticationToken(context userClient.Context, authenticationToken string) (userClient.AuthenticationDetails, error) {
-	panic("Unexpected invocation of ValidateAuthenticationToken on TestUserClient")
-}
-
-func (t *TestUserClient) GetUserPermissions(context userClient.Context, requestUserID string, targetUserID string) (userClient.Permissions, error) {
+func (t *TestUserClient) GetUserPermissions(context auth.Context, requestUserID string, targetUserID string) (userClient.Permissions, error) {
 	t.GetUserPermissionsInputs = append(t.GetUserPermissionsInputs, GetUserPermissionsInput{context, requestUserID, targetUserID})
 	output := t.GetUserPermissionsOutputs[0]
 	t.GetUserPermissionsOutputs = t.GetUserPermissionsOutputs[1:]
 	return output.permissions, output.err
-}
-
-func (t *TestUserClient) ServerToken() (string, error) {
-	panic("Unexpected invocation of ServerToken on TestUserClient")
 }
 
 func (t *TestUserClient) ValidateTest() bool {
@@ -143,7 +125,7 @@ func (t *TestUserClient) ValidateTest() bool {
 }
 
 type DestroyDataForUserByIDInput struct {
-	context dataClient.Context
+	context auth.Context
 	userID  string
 }
 
@@ -152,7 +134,7 @@ type TestDataClient struct {
 	DestroyDataForUserByIDOutputs []error
 }
 
-func (t *TestDataClient) DestroyDataForUserByID(context dataClient.Context, userID string) error {
+func (t *TestDataClient) DestroyDataForUserByID(context auth.Context, userID string) error {
 	t.DestroyDataForUserByIDInputs = append(t.DestroyDataForUserByIDInputs, DestroyDataForUserByIDInput{context, userID})
 	output := t.DestroyDataForUserByIDOutputs[0]
 	t.DestroyDataForUserByIDOutputs = t.DestroyDataForUserByIDOutputs[1:]
@@ -420,35 +402,8 @@ func (t *TestUserStoreSession) ValidateTest() bool {
 		len(t.PasswordMatchesOutputs) == 0
 }
 
-type TestAuthenticationDetails struct {
-	IsServerOutputs []bool
-	UserIDOutputs   []string
-}
-
-func (t *TestAuthenticationDetails) Token() string {
-	panic("Unexpected invocation of Token on TestAuthenticationDetails")
-}
-
-func (t *TestAuthenticationDetails) IsServer() bool {
-	output := t.IsServerOutputs[0]
-	t.IsServerOutputs = t.IsServerOutputs[1:]
-	return output
-}
-
-func (t *TestAuthenticationDetails) UserID() string {
-	output := t.UserIDOutputs[0]
-	t.UserIDOutputs = t.UserIDOutputs[1:]
-	return output
-}
-
-func (t *TestAuthenticationDetails) ValidateTest() bool {
-	return len(t.IsServerOutputs) == 0 &&
-		len(t.UserIDOutputs) == 0
-}
-
 type TestContext struct {
-	LoggerImpl                             log.Logger
-	RequestImpl                            *rest.Request
+	*testAuth.Context
 	RespondWithErrorInputs                 []*service.Error
 	RespondWithInternalServerFailureInputs []RespondWithInternalServerFailureInput
 	RespondWithStatusAndErrorsInputs       []RespondWithStatusAndErrorsInput
@@ -462,18 +417,11 @@ type TestContext struct {
 	ProfileStoreSessionImpl                *TestProfileStoreSession
 	SessionStoreSessionImpl                *TestSessionStoreSession
 	UserStoreSessionImpl                   *TestUserStoreSession
-	AuthenticationDetailsImpl              *TestAuthenticationDetails
 }
 
 func NewTestContext() *TestContext {
 	return &TestContext{
-		LoggerImpl: null.NewLogger(),
-		RequestImpl: &rest.Request{
-			Request: &http.Request{
-				URL: &url.URL{},
-			},
-			PathParams: map[string]string{},
-		},
+		Context:                      testAuth.NewContext(),
 		MetricClientImpl:             &TestMetricClient{},
 		UserClientImpl:               &TestUserClient{},
 		DataClientImpl:               &TestDataClient{},
@@ -483,16 +431,7 @@ func NewTestContext() *TestContext {
 		ProfileStoreSessionImpl:      &TestProfileStoreSession{},
 		SessionStoreSessionImpl:      &TestSessionStoreSession{},
 		UserStoreSessionImpl:         &TestUserStoreSession{},
-		AuthenticationDetailsImpl:    &TestAuthenticationDetails{},
 	}
-}
-
-func (t *TestContext) Logger() log.Logger {
-	return t.LoggerImpl
-}
-
-func (t *TestContext) Request() *rest.Request {
-	return t.RequestImpl
 }
 
 func (t *TestContext) Response() rest.ResponseWriter {
@@ -551,16 +490,9 @@ func (t *TestContext) UserStoreSession() userStore.Session {
 	return t.UserStoreSessionImpl
 }
 
-func (t *TestContext) AuthenticationDetails() userClient.AuthenticationDetails {
-	return t.AuthenticationDetailsImpl
-}
-
-func (t *TestContext) SetAuthenticationDetails(authenticationDetails userClient.AuthenticationDetails) {
-	panic("Unexpected invocation of SetAuthenticationDetails on TestContext")
-}
-
 func (t *TestContext) ValidateTest() bool {
-	return (t.MetricClientImpl == nil || t.MetricClientImpl.ValidateTest()) &&
+	return (t.Context == nil) || (t.Context.UnusedOutputsCount() == 0) &&
+		(t.MetricClientImpl == nil || t.MetricClientImpl.ValidateTest()) &&
 		(t.UserClientImpl == nil || t.UserClientImpl.ValidateTest()) &&
 		(t.DataClientImpl == nil || t.DataClientImpl.ValidateTest()) &&
 		(t.ConfirmationStoreSessionImpl == nil || t.ConfirmationStoreSessionImpl.ValidateTest()) &&
@@ -568,6 +500,5 @@ func (t *TestContext) ValidateTest() bool {
 		(t.PermissionStoreSessionImpl == nil || t.PermissionStoreSessionImpl.ValidateTest()) &&
 		(t.ProfileStoreSessionImpl == nil || t.ProfileStoreSessionImpl.ValidateTest()) &&
 		(t.SessionStoreSessionImpl == nil || t.SessionStoreSessionImpl.ValidateTest()) &&
-		(t.UserStoreSessionImpl == nil || t.UserStoreSessionImpl.ValidateTest()) &&
-		(t.AuthenticationDetailsImpl == nil || t.AuthenticationDetailsImpl.ValidateTest())
+		(t.UserStoreSessionImpl == nil || t.UserStoreSessionImpl.ValidateTest())
 }

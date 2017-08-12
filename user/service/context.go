@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/tidepool-org/platform/auth"
 	confirmationStore "github.com/tidepool-org/platform/confirmation/store"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	messageStore "github.com/tidepool-org/platform/message/store"
@@ -16,6 +17,7 @@ import (
 type Context interface {
 	service.Context
 
+	AuthClient() auth.Client
 	MetricClient() metricClient.Client
 	UserClient() userClient.Client
 	DataClient() dataClient.Client
@@ -26,9 +28,6 @@ type Context interface {
 	ProfileStoreSession() profileStore.Session
 	SessionStoreSession() sessionStore.Session
 	UserStoreSession() userStore.Session
-
-	AuthenticationDetails() userClient.AuthenticationDetails
-	SetAuthenticationDetails(authenticationDetails userClient.AuthenticationDetails)
 }
 
 type HandlerFunc func(context Context)

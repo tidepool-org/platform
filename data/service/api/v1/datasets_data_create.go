@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/normalizer"
@@ -31,11 +32,11 @@ func DatasetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if !dataServiceContext.AuthenticationDetails().IsServer() {
+	if !dataServiceContext.AuthDetails().IsServer() {
 		var permissions userClient.Permissions
-		permissions, err = dataServiceContext.UserClient().GetUserPermissions(dataServiceContext, dataServiceContext.AuthenticationDetails().UserID(), dataset.UserID)
+		permissions, err = dataServiceContext.UserClient().GetUserPermissions(dataServiceContext, dataServiceContext.AuthDetails().UserID(), dataset.UserID)
 		if err != nil {
-			if userClient.IsUnauthorizedError(err) {
+			if client.IsUnauthorizedError(err) {
 				dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 			} else {
 				dataServiceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)

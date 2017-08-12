@@ -1,16 +1,20 @@
 package context
 
 import (
+	"net/http"
+
 	"github.com/ant0ine/go-json-rest/rest"
 
+	"github.com/tidepool-org/platform/auth"
+	authContext "github.com/tidepool-org/platform/auth/context"
 	confirmationStore "github.com/tidepool-org/platform/confirmation/store"
 	dataClient "github.com/tidepool-org/platform/data/client"
+	"github.com/tidepool-org/platform/errors"
 	messageStore "github.com/tidepool-org/platform/message/store"
 	metricClient "github.com/tidepool-org/platform/metric/client"
 	permissionStore "github.com/tidepool-org/platform/permission/store"
 	profileStore "github.com/tidepool-org/platform/profile/store"
-	"github.com/tidepool-org/platform/service"
-	"github.com/tidepool-org/platform/service/context"
+	serviceContext "github.com/tidepool-org/platform/service/context"
 	sessionStore "github.com/tidepool-org/platform/session/store"
 	userClient "github.com/tidepool-org/platform/user/client"
 	userService "github.com/tidepool-org/platform/user/service"
@@ -18,10 +22,11 @@ import (
 )
 
 type Standard struct {
-	service.Context
+	*authContext.Context
+	authClient               auth.Client
+	dataClient               dataClient.Client
 	metricClient             metricClient.Client
 	userClient               userClient.Client
-	dataClient               dataClient.Client
 	confirmationStore        confirmationStore.Store
 	confirmationStoreSession confirmationStore.Session
 	messageStore             messageStore.Store
@@ -34,55 +39,108 @@ type Standard struct {
 	sessionStoreSession      sessionStore.Session
 	userStore                userStore.Store
 	userStoreSession         userStore.Session
-	authenticationDetails    userClient.AuthenticationDetails
+	authDetails              auth.Details
 }
 
-func WithContext(metricClient metricClient.Client, userClient userClient.Client, dataClient dataClient.Client,
+func WithContext(authClient auth.Client, dataClient dataClient.Client, metricClient metricClient.Client, userClient userClient.Client,
 	confirmationStore confirmationStore.Store, messageStore messageStore.Store, permissionStore permissionStore.Store, profileStore profileStore.Store,
 	sessionStore sessionStore.Store, userStore userStore.Store, handler userService.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
-		context, err := context.NewStandard(response, request)
-		if err != nil {
-			context.RespondWithInternalServerFailure("Unable to create new context for request", err)
+		standard, standardErr := NewStandard(response, request, authClient, dataClient, metricClient, userClient,
+			confirmationStore, messageStore, permissionStore, profileStore, sessionStore, userStore)
+		if standardErr != nil {
+			if responder, responderErr := serviceContext.NewResponder(response, request); responderErr != nil {
+				response.WriteHeader(http.StatusInternalServerError)
+			} else {
+				responder.RespondWithInternalServerFailure("Unable to create new context for request", standardErr)
+			}
 			return
 		}
-
-		standard := &Standard{
-			Context:           context,
-			metricClient:      metricClient,
-			userClient:        userClient,
-			dataClient:        dataClient,
-			confirmationStore: confirmationStore,
-			messageStore:      messageStore,
-			permissionStore:   permissionStore,
-			profileStore:      profileStore,
-			sessionStore:      sessionStore,
-			userStore:         userStore,
-		}
-
-		defer func() {
-			if standard.userStoreSession != nil {
-				standard.userStoreSession.Close()
-			}
-			if standard.sessionStoreSession != nil {
-				standard.sessionStoreSession.Close()
-			}
-			if standard.profileStoreSession != nil {
-				standard.profileStoreSession.Close()
-			}
-			if standard.permissionStoreSession != nil {
-				standard.permissionStoreSession.Close()
-			}
-			if standard.messageStoreSession != nil {
-				standard.messageStoreSession.Close()
-			}
-			if standard.confirmationStoreSession != nil {
-				standard.confirmationStoreSession.Close()
-			}
-		}()
+		defer standard.Close()
 
 		handler(standard)
 	}
+}
+
+func NewStandard(response rest.ResponseWriter, request *rest.Request, authClient auth.Client, dataClient dataClient.Client, metricClient metricClient.Client, userClient userClient.Client,
+	confirmationStore confirmationStore.Store, messageStore messageStore.Store, permissionStore permissionStore.Store, profileStore profileStore.Store,
+	sessionStore sessionStore.Store, userStore userStore.Store) (*Standard, error) {
+	if dataClient == nil {
+		return nil, errors.New("context", "data client is missing")
+	}
+	if metricClient == nil {
+		return nil, errors.New("context", "metric client is missing")
+	}
+	if userClient == nil {
+		return nil, errors.New("context", "user client is missing")
+	}
+	if confirmationStore == nil {
+		return nil, errors.New("context", "confirmation store is missing")
+	}
+	if messageStore == nil {
+		return nil, errors.New("context", "message store is missing")
+	}
+	if permissionStore == nil {
+		return nil, errors.New("context", "permission store is missing")
+	}
+	if profileStore == nil {
+		return nil, errors.New("context", "profile store is missing")
+	}
+	if sessionStore == nil {
+		return nil, errors.New("context", "session store is missing")
+	}
+	if userStore == nil {
+		return nil, errors.New("context", "user store is missing")
+	}
+
+	context, err := authContext.New(response, request, authClient)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Standard{
+		Context:           context,
+		dataClient:        dataClient,
+		metricClient:      metricClient,
+		userClient:        userClient,
+		confirmationStore: confirmationStore,
+		messageStore:      messageStore,
+		permissionStore:   permissionStore,
+		profileStore:      profileStore,
+		sessionStore:      sessionStore,
+		userStore:         userStore,
+	}, nil
+}
+
+func (s *Standard) Close() {
+	if s.userStoreSession != nil {
+		s.userStoreSession.Close()
+		s.userStoreSession = nil
+	}
+	if s.sessionStoreSession != nil {
+		s.sessionStoreSession.Close()
+		s.sessionStoreSession = nil
+	}
+	if s.profileStoreSession != nil {
+		s.profileStoreSession.Close()
+		s.profileStoreSession = nil
+	}
+	if s.permissionStoreSession != nil {
+		s.permissionStoreSession.Close()
+		s.permissionStoreSession = nil
+	}
+	if s.messageStoreSession != nil {
+		s.messageStoreSession.Close()
+		s.messageStoreSession = nil
+	}
+	if s.confirmationStoreSession != nil {
+		s.confirmationStoreSession.Close()
+		s.confirmationStoreSession = nil
+	}
+}
+
+func (s *Standard) DataClient() dataClient.Client {
+	return s.dataClient
 }
 
 func (s *Standard) MetricClient() metricClient.Client {
@@ -93,14 +151,10 @@ func (s *Standard) UserClient() userClient.Client {
 	return s.userClient
 }
 
-func (s *Standard) DataClient() dataClient.Client {
-	return s.dataClient
-}
-
 func (s *Standard) ConfirmationStoreSession() confirmationStore.Session {
 	if s.confirmationStoreSession == nil {
 		s.confirmationStoreSession = s.confirmationStore.NewSession(s.Context.Logger())
-		s.confirmationStoreSession.SetAgent(s.authenticationDetails)
+		s.confirmationStoreSession.SetAgent(s.AuthDetails())
 	}
 	return s.confirmationStoreSession
 }
@@ -108,7 +162,7 @@ func (s *Standard) ConfirmationStoreSession() confirmationStore.Session {
 func (s *Standard) MessageStoreSession() messageStore.Session {
 	if s.messageStoreSession == nil {
 		s.messageStoreSession = s.messageStore.NewSession(s.Context.Logger())
-		s.messageStoreSession.SetAgent(s.authenticationDetails)
+		s.messageStoreSession.SetAgent(s.AuthDetails())
 	}
 	return s.messageStoreSession
 }
@@ -116,7 +170,7 @@ func (s *Standard) MessageStoreSession() messageStore.Session {
 func (s *Standard) PermissionStoreSession() permissionStore.Session {
 	if s.permissionStoreSession == nil {
 		s.permissionStoreSession = s.permissionStore.NewSession(s.Context.Logger())
-		s.permissionStoreSession.SetAgent(s.authenticationDetails)
+		s.permissionStoreSession.SetAgent(s.AuthDetails())
 	}
 	return s.permissionStoreSession
 }
@@ -124,7 +178,7 @@ func (s *Standard) PermissionStoreSession() permissionStore.Session {
 func (s *Standard) ProfileStoreSession() profileStore.Session {
 	if s.profileStoreSession == nil {
 		s.profileStoreSession = s.profileStore.NewSession(s.Context.Logger())
-		s.profileStoreSession.SetAgent(s.authenticationDetails)
+		s.profileStoreSession.SetAgent(s.AuthDetails())
 	}
 	return s.profileStoreSession
 }
@@ -132,7 +186,7 @@ func (s *Standard) ProfileStoreSession() profileStore.Session {
 func (s *Standard) SessionStoreSession() sessionStore.Session {
 	if s.sessionStoreSession == nil {
 		s.sessionStoreSession = s.sessionStore.NewSession(s.Context.Logger())
-		s.sessionStoreSession.SetAgent(s.authenticationDetails)
+		s.sessionStoreSession.SetAgent(s.AuthDetails())
 	}
 	return s.sessionStoreSession
 }
@@ -140,34 +194,7 @@ func (s *Standard) SessionStoreSession() sessionStore.Session {
 func (s *Standard) UserStoreSession() userStore.Session {
 	if s.userStoreSession == nil {
 		s.userStoreSession = s.userStore.NewSession(s.Context.Logger())
-		s.userStoreSession.SetAgent(s.authenticationDetails)
+		s.userStoreSession.SetAgent(s.AuthDetails())
 	}
 	return s.userStoreSession
-}
-
-func (s *Standard) AuthenticationDetails() userClient.AuthenticationDetails {
-	return s.authenticationDetails
-}
-
-func (s *Standard) SetAuthenticationDetails(authenticationDetails userClient.AuthenticationDetails) {
-	s.authenticationDetails = authenticationDetails
-
-	if s.confirmationStoreSession != nil {
-		s.confirmationStoreSession.SetAgent(authenticationDetails)
-	}
-	if s.messageStoreSession != nil {
-		s.messageStoreSession.SetAgent(authenticationDetails)
-	}
-	if s.permissionStoreSession != nil {
-		s.permissionStoreSession.SetAgent(authenticationDetails)
-	}
-	if s.profileStoreSession != nil {
-		s.profileStoreSession.SetAgent(authenticationDetails)
-	}
-	if s.sessionStoreSession != nil {
-		s.sessionStoreSession.SetAgent(authenticationDetails)
-	}
-	if s.userStoreSession != nil {
-		s.userStoreSession.SetAgent(authenticationDetails)
-	}
 }

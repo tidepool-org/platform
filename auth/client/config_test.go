@@ -6,28 +6,30 @@ import (
 
 	"time"
 
+	authClient "github.com/tidepool-org/platform/auth/client"
 	"github.com/tidepool-org/platform/config/test"
-	"github.com/tidepool-org/platform/user/client"
 )
 
 var _ = Describe("Config", func() {
 	Context("NewConfig", func() {
 		It("returns a new config with default values", func() {
-			config := client.NewConfig()
+			config := authClient.NewConfig()
 			Expect(config).ToNot(BeNil())
-			Expect(config.Address).To(Equal(""))
-			Expect(config.Timeout).To(Equal(60 * time.Second))
+			Expect(config.Config).ToNot(BeNil())
+			Expect(config.Config.Address).To(Equal(""))
+			Expect(config.Config.Timeout).To(Equal(60 * time.Second))
 			Expect(config.ServerTokenSecret).To(Equal(""))
 			Expect(config.ServerTokenTimeout).To(Equal(3600 * time.Second))
 		})
 	})
 
 	Context("with new config", func() {
-		var config *client.Config
+		var config *authClient.Config
 
 		BeforeEach(func() {
-			config = client.NewConfig()
+			config = authClient.NewConfig()
 			Expect(config).ToNot(BeNil())
+			Expect(config.Config).ToNot(BeNil())
 		})
 
 		Context("Load", func() {
@@ -48,19 +50,22 @@ var _ = Describe("Config", func() {
 			It("uses default address if not set", func() {
 				delete(configReporter.Config, "address")
 				Expect(config.Load(configReporter)).To(Succeed())
-				Expect(config.Address).To(Equal(""))
+				Expect(config.Config).ToNot(BeNil())
+				Expect(config.Config.Address).To(Equal(""))
 			})
 
 			It("uses default timeout if not set", func() {
 				delete(configReporter.Config, "timeout")
 				Expect(config.Load(configReporter)).To(Succeed())
-				Expect(config.Timeout).To(Equal(60 * time.Second))
+				Expect(config.Config).ToNot(BeNil())
+				Expect(config.Config.Timeout).To(Equal(60 * time.Second))
 			})
 
 			It("returns an error if the timeout cannot be parsed to an integer", func() {
 				configReporter.Config["timeout"] = "abc"
 				Expect(config.Load(configReporter)).To(MatchError("client: timeout is invalid"))
-				Expect(config.Timeout).To(Equal(60 * time.Second))
+				Expect(config.Config).ToNot(BeNil())
+				Expect(config.Config.Timeout).To(Equal(60 * time.Second))
 			})
 
 			It("uses default server token secret if not set", func() {
@@ -83,8 +88,9 @@ var _ = Describe("Config", func() {
 
 			It("returns successfully and uses values from config reporter", func() {
 				Expect(config.Load(configReporter)).To(Succeed())
-				Expect(config.Address).To(Equal("https://1.2.3.4:5678"))
-				Expect(config.Timeout).To(Equal(120 * time.Second))
+				Expect(config.Config).ToNot(BeNil())
+				Expect(config.Config.Address).To(Equal("https://1.2.3.4:5678"))
+				Expect(config.Config.Timeout).To(Equal(120 * time.Second))
 				Expect(config.ServerTokenSecret).To(Equal(" I Have A Better Secret! "))
 				Expect(config.ServerTokenTimeout).To(Equal(7200 * time.Second))
 			})
@@ -92,25 +98,25 @@ var _ = Describe("Config", func() {
 
 		Context("with valid values", func() {
 			BeforeEach(func() {
-				config.Address = "http://localhost:1234"
-				config.Timeout = 30 * time.Second
+				config.Config.Address = "http://localhost:1234"
+				config.Config.Timeout = 30 * time.Second
 				config.ServerTokenSecret = "I Have The Bestest Secret!"
 				config.ServerTokenTimeout = 1800 * time.Second
 			})
 
 			Context("Validate", func() {
 				It("returns an error if the address is missing", func() {
-					config.Address = ""
+					config.Config.Address = ""
 					Expect(config.Validate()).To(MatchError("client: address is missing"))
 				})
 
 				It("returns an error if the address is not a parseable URL", func() {
-					config.Address = "Not%Parseable"
+					config.Config.Address = "Not%Parseable"
 					Expect(config.Validate()).To(MatchError("client: address is invalid"))
 				})
 
 				It("returns an error if the timeout is invalid", func() {
-					config.Timeout = 0
+					config.Config.Timeout = 0
 					Expect(config.Validate()).To(MatchError("client: timeout is invalid"))
 				})
 
@@ -126,21 +132,11 @@ var _ = Describe("Config", func() {
 
 				It("returns success", func() {
 					Expect(config.Validate()).To(Succeed())
-					Expect(config.Address).To(Equal("http://localhost:1234"))
-					Expect(config.Timeout).To(Equal(30 * time.Second))
+					Expect(config.Config).ToNot(BeNil())
+					Expect(config.Config.Address).To(Equal("http://localhost:1234"))
+					Expect(config.Config.Timeout).To(Equal(30 * time.Second))
 					Expect(config.ServerTokenSecret).To(Equal("I Have The Bestest Secret!"))
 					Expect(config.ServerTokenTimeout).To(Equal(1800 * time.Second))
-				})
-			})
-
-			Context("Clone", func() {
-				It("returns successfully", func() {
-					clone := config.Clone()
-					Expect(clone).ToNot(BeIdenticalTo(config))
-					Expect(clone.Address).To(Equal(config.Address))
-					Expect(clone.Timeout).To(Equal(config.Timeout))
-					Expect(clone.ServerTokenSecret).To(Equal(config.ServerTokenSecret))
-					Expect(clone.ServerTokenTimeout).To(Equal(config.ServerTokenTimeout))
 				})
 			})
 		})

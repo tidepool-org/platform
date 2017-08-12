@@ -1,6 +1,8 @@
 package service
 
 import (
+	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/client"
 	confirmationMongo "github.com/tidepool-org/platform/confirmation/store/mongo"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/errors"
@@ -8,9 +10,9 @@ import (
 	metricClient "github.com/tidepool-org/platform/metric/client"
 	permissionMongo "github.com/tidepool-org/platform/permission/store/mongo"
 	profileMongo "github.com/tidepool-org/platform/profile/store/mongo"
-	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/service/middleware"
 	"github.com/tidepool-org/platform/service/server"
+	"github.com/tidepool-org/platform/service/service"
 	sessionMongo "github.com/tidepool-org/platform/session/store/mongo"
 	baseMongo "github.com/tidepool-org/platform/store/mongo"
 	userClient "github.com/tidepool-org/platform/user/client"
@@ -21,9 +23,9 @@ import (
 
 type Standard struct {
 	*service.Service
-	metricClient      *metricClient.Standard
-	userClient        *userClient.Standard
-	dataClient        *dataClient.Standard
+	dataClient        dataClient.Client
+	metricClient      metricClient.Client
+	userClient        userClient.Client
 	confirmationStore *confirmationMongo.Store
 	messageStore      *messageMongo.Store
 	permissionStore   *permissionMongo.Store
@@ -50,13 +52,13 @@ func (s *Standard) Initialize() error {
 		return err
 	}
 
+	if err := s.initializeDataClient(); err != nil {
+		return err
+	}
 	if err := s.initializeMetricClient(); err != nil {
 		return err
 	}
 	if err := s.initializeUserClient(); err != nil {
-		return err
-	}
-	if err := s.initializeDataClient(); err != nil {
 		return err
 	}
 	if err := s.initializeConfirmationStore(); err != nil {
@@ -114,12 +116,9 @@ func (s *Standard) Terminate() {
 		s.confirmationStore.Close()
 		s.confirmationStore = nil
 	}
-	s.dataClient = nil
-	if s.userClient != nil {
-		s.userClient.Close()
-		s.userClient = nil
-	}
+	s.userClient = nil
 	s.metricClient = nil
+	s.dataClient = nil
 
 	s.Service.Terminate()
 }
@@ -132,17 +131,36 @@ func (s *Standard) Run() error {
 	return s.server.Serve()
 }
 
+func (s *Standard) initializeDataClient() error {
+	s.Logger().Debug("Loading data client config")
+
+	dataClientConfig := client.NewConfig()
+	if err := dataClientConfig.Load(s.ConfigReporter().WithScopes("data", "client")); err != nil {
+		return errors.Wrap(err, "service", "unable to load data client config")
+	}
+
+	s.Logger().Debug("Creating data client")
+
+	dataClient, err := dataClient.NewClient(dataClientConfig)
+	if err != nil {
+		return errors.Wrap(err, "service", "unable to create data client")
+	}
+	s.dataClient = dataClient
+
+	return nil
+}
+
 func (s *Standard) initializeMetricClient() error {
 	s.Logger().Debug("Loading metric client config")
 
-	metricClientConfig := metricClient.NewConfig()
+	metricClientConfig := client.NewConfig()
 	if err := metricClientConfig.Load(s.ConfigReporter().WithScopes("metric", "client")); err != nil {
 		return errors.Wrap(err, "service", "unable to load metric client config")
 	}
 
 	s.Logger().Debug("Creating metric client")
 
-	metricClient, err := metricClient.NewStandard(s.VersionReporter(), s.Name(), metricClientConfig)
+	metricClient, err := metricClient.NewClient(metricClientConfig, s.Name(), s.VersionReporter())
 	if err != nil {
 		return errors.Wrap(err, "service", "unable to create metric client")
 	}
@@ -154,43 +172,18 @@ func (s *Standard) initializeMetricClient() error {
 func (s *Standard) initializeUserClient() error {
 	s.Logger().Debug("Loading user client config")
 
-	userClientConfig := userClient.NewConfig()
+	userClientConfig := client.NewConfig()
 	if err := userClientConfig.Load(s.ConfigReporter().WithScopes("user", "client")); err != nil {
 		return errors.Wrap(err, "service", "unable to load user client config")
 	}
 
 	s.Logger().Debug("Creating user client")
 
-	userClient, err := userClient.NewStandard(s.Logger(), s.Name(), userClientConfig)
+	userClient, err := userClient.NewClient(userClientConfig)
 	if err != nil {
 		return errors.Wrap(err, "service", "unable to create user client")
 	}
 	s.userClient = userClient
-
-	s.Logger().Debug("Starting user client")
-
-	if err = s.userClient.Start(); err != nil {
-		return errors.Wrap(err, "service", "unable to start user client")
-	}
-
-	return nil
-}
-
-func (s *Standard) initializeDataClient() error {
-	s.Logger().Debug("Loading data client config")
-
-	dataClientConfig := dataClient.NewConfig()
-	if err := dataClientConfig.Load(s.ConfigReporter().WithScopes("data", "client")); err != nil {
-		return errors.Wrap(err, "service", "unable to load data client config")
-	}
-
-	s.Logger().Debug("Creating data client")
-
-	dataClient, err := dataClient.NewStandard(dataClientConfig)
-	if err != nil {
-		return errors.Wrap(err, "service", "unable to create data client")
-	}
-	s.dataClient = dataClient
 
 	return nil
 }
@@ -318,7 +311,8 @@ func (s *Standard) initializeUserStore() error {
 func (s *Standard) initializeAPI() error {
 	s.Logger().Debug("Creating api")
 
-	newAPI, err := api.NewStandard(s.VersionReporter(), s.Logger(), s.metricClient, s.userClient, s.dataClient,
+	newAPI, err := api.NewStandard(s.VersionReporter(), s.Logger(),
+		s.AuthClient(), s.dataClient, s.metricClient, s.userClient,
 		s.confirmationStore, s.messageStore, s.permissionStore, s.profileStore, s.sessionStore, s.userStore)
 	if err != nil {
 		return errors.Wrap(err, "service", "unable to create api")
@@ -334,7 +328,7 @@ func (s *Standard) initializeAPI() error {
 	s.Logger().Debug("Configuring api middleware headers")
 
 	s.api.HeaderMiddleware().AddHeaderFieldFunc(
-		userClient.TidepoolAuthenticationTokenHeaderName, middleware.NewMD5FieldFunc("authenticationTokenMD5"))
+		auth.TidepoolAuthTokenHeaderName, middleware.NewMD5FieldFunc("authTokenHash"))
 
 	s.Logger().Debug("Initializing api router")
 

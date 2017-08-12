@@ -5,6 +5,7 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 
+	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 )
@@ -17,6 +18,7 @@ const (
 const (
 	_RequestEnvErrors       = "ERRORS"
 	_RequestEnvLogger       = "LOGGER"
+	_RequestEnvAuthDetails  = "AUTH-DETAILS"
 	_RequestEnvTraceRequest = "TRACE-REQUEST"
 	_RequestEnvTraceSession = "TRACE-SESSION"
 )
@@ -55,6 +57,25 @@ func SetRequestLogger(request *rest.Request, logger log.Logger) {
 			request.Env[_RequestEnvLogger] = logger
 		} else {
 			delete(request.Env, _RequestEnvLogger)
+		}
+	}
+}
+
+func GetRequestAuthDetails(request *rest.Request) auth.Details {
+	if request != nil {
+		if details, ok := request.Env[_RequestEnvAuthDetails].(auth.Details); ok {
+			return details
+		}
+	}
+	return nil
+}
+
+func SetRequestAuthDetails(request *rest.Request, details auth.Details) {
+	if request != nil {
+		if details != nil {
+			request.Env[_RequestEnvAuthDetails] = details
+		} else {
+			delete(request.Env, _RequestEnvAuthDetails)
 		}
 	}
 }

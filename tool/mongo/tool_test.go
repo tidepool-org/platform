@@ -95,9 +95,13 @@ var _ = Describe("Tool", func() {
 				tuel.Terminate()
 			})
 
-			Context("MongoConfig", func() {
+			Context("NewMongoConfig", func() {
 				It("returns not nil", func() {
-					Expect(tuel.MongoConfig()).ToNot(BeNil())
+					Expect(tuel.NewMongoConfig()).ToNot(BeNil())
+				})
+
+				It("returns a new config each time", func() {
+					Expect(tuel.NewMongoConfig()).ToNot(BeIdenticalTo(tuel.NewMongoConfig()))
 				})
 			})
 		})

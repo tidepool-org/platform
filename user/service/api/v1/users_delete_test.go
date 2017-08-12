@@ -10,18 +10,19 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/id"
 	messageStore "github.com/tidepool-org/platform/message/store"
 	"github.com/tidepool-org/platform/profile"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/user"
-	"github.com/tidepool-org/platform/user/client"
+	userClient "github.com/tidepool-org/platform/user/client"
 	"github.com/tidepool-org/platform/user/service/api/v1"
 )
 
 var _ = Describe("UsersDelete", func() {
 	Context("Unit Tests", func() {
-		var authenticatedUserID string
+		var authUserID string
 		var targetUserID string
 		var targetProfileID string
 		var targetPassword string
@@ -31,7 +32,7 @@ var _ = Describe("UsersDelete", func() {
 		var context *TestContext
 
 		BeforeEach(func() {
-			authenticatedUserID = id.New()
+			authUserID = id.New()
 			targetUserID = id.New()
 			targetProfileID = id.New()
 			targetPassword = id.New()
@@ -429,16 +430,16 @@ var _ = Describe("UsersDelete", func() {
 		WithUserPermissions := func(flags *TestFlags) func() {
 			return func() {
 				BeforeEach(func() {
-					context.AuthenticationDetailsImpl.UserIDOutputs = []string{authenticatedUserID}
+					context.AuthDetailsImpl.UserIDOutputs = []string{authUserID}
 				})
 
 				AfterEach(func() {
-					Expect(context.UserClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authenticatedUserID, targetUserID}}))
+					Expect(context.UserClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
 				})
 
 				Context("with owner permissions", func() {
 					BeforeEach(func() {
-						context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{client.Permissions{"root": client.Permission{}}, nil}}
+						context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{userClient.Permissions{"root": userClient.Permission{}}, nil}}
 					})
 
 					WithPassword(flags)()
@@ -446,20 +447,20 @@ var _ = Describe("UsersDelete", func() {
 
 				Context("with custodian permissions", func() {
 					BeforeEach(func() {
-						context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{client.Permissions{"custodian": client.Permission{}}, nil}}
+						context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{userClient.Permissions{"custodian": userClient.Permission{}}, nil}}
 					})
 
 					WithUserID(flags)()
 				})
 
 				It("responds with failure if it returns other permissions", func() {
-					context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{client.Permissions{"other": client.Permission{}}, nil}}
+					context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{userClient.Permissions{"other": userClient.Permission{}}, nil}}
 					v1.UsersDelete(context)
 					Expect(context.RespondWithErrorInputs).To(Equal([]*service.Error{service.ErrorUnauthorized()}))
 				})
 
 				It("responds with failure if it returns empty permissions", func() {
-					context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{client.Permissions{}, nil}}
+					context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{userClient.Permissions{}, nil}}
 					v1.UsersDelete(context)
 					Expect(context.RespondWithErrorInputs).To(Equal([]*service.Error{service.ErrorUnauthorized()}))
 				})
@@ -489,7 +490,7 @@ var _ = Describe("UsersDelete", func() {
 			return func() {
 				Context("as server", func() {
 					BeforeEach(func() {
-						context.AuthenticationDetailsImpl.IsServerOutputs = []bool{true}
+						context.AuthDetailsImpl.IsServerOutputs = []bool{true}
 					})
 
 					WithUserID(flags)()
@@ -501,7 +502,7 @@ var _ = Describe("UsersDelete", func() {
 			return func() {
 				Context("as user", func() {
 					BeforeEach(func() {
-						context.AuthenticationDetailsImpl.IsServerOutputs = []bool{false}
+						context.AuthDetailsImpl.IsServerOutputs = []bool{false}
 					})
 
 					WithUserPermissions(flags)()

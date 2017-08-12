@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
+	"github.com/tidepool-org/platform/auth"
 	confirmationStore "github.com/tidepool-org/platform/confirmation/store"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/errors"
@@ -22,9 +23,9 @@ import (
 
 type Standard struct {
 	*api.Standard
+	dataClient        dataClient.Client
 	metricClient      metricClient.Client
 	userClient        userClient.Client
-	dataClient        dataClient.Client
 	confirmationStore confirmationStore.Store
 	messageStore      messageStore.Store
 	permissionStore   permissionStore.Store
@@ -34,23 +35,17 @@ type Standard struct {
 }
 
 func NewStandard(versionReporter version.Reporter, logger log.Logger,
-	metricClient metricClient.Client, userClient userClient.Client, dataClient dataClient.Client,
+	authClient auth.Client, dataClient dataClient.Client, metricClient metricClient.Client, userClient userClient.Client,
 	confirmationStore confirmationStore.Store, messageStore messageStore.Store, permissionStore permissionStore.Store,
 	profileStore profileStore.Store, sessionStore sessionStore.Store, userStore userStore.Store) (*Standard, error) {
-	if versionReporter == nil {
-		return nil, errors.New("api", "version reporter is missing")
-	}
-	if logger == nil {
-		return nil, errors.New("api", "logger is missing")
+	if dataClient == nil {
+		return nil, errors.New("api", "data client is missing")
 	}
 	if metricClient == nil {
 		return nil, errors.New("api", "metric client is missing")
 	}
 	if userClient == nil {
 		return nil, errors.New("api", "user client is missing")
-	}
-	if dataClient == nil {
-		return nil, errors.New("api", "data client is missing")
 	}
 	if confirmationStore == nil {
 		return nil, errors.New("api", "confirmation store is missing")
@@ -71,16 +66,16 @@ func NewStandard(versionReporter version.Reporter, logger log.Logger,
 		return nil, errors.New("api", "user store is missing")
 	}
 
-	standard, err := api.NewStandard(versionReporter, logger)
+	standard, err := api.NewStandard(versionReporter, logger, authClient)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Standard{
 		Standard:          standard,
+		dataClient:        dataClient,
 		metricClient:      metricClient,
 		userClient:        userClient,
-		dataClient:        dataClient,
 		confirmationStore: confirmationStore,
 		messageStore:      messageStore,
 		permissionStore:   permissionStore,
@@ -118,7 +113,7 @@ func (s *Standard) InitializeRouter(routes []service.Route) error {
 }
 
 func (s *Standard) withContext(handler service.HandlerFunc) rest.HandlerFunc {
-	return context.WithContext(s.metricClient, s.userClient, s.dataClient,
+	return context.WithContext(s.AuthClient(), s.dataClient, s.metricClient, s.userClient,
 		s.confirmationStore, s.messageStore, s.permissionStore, s.profileStore,
 		s.sessionStore, s.userStore, handler)
 }

@@ -11,12 +11,13 @@ import (
 	"net/url"
 	"os"
 	"strings"
+
+	"github.com/tidepool-org/platform/auth"
 )
 
 const (
 	TidepoolServerName   = "X-Tidepool-Server-Name"
 	TidepoolServerSecret = "X-Tidepool-Server-Secret"
-	TidepoolSessionToken = "X-Tidepool-Session-Token"
 )
 
 type (
@@ -119,7 +120,7 @@ func (a *API) addSessionToken() requestFunc {
 
 		a.info("Session token found:", session.Token)
 
-		request.Header.Add(TidepoolSessionToken, session.Token)
+		request.Header.Add(auth.TidepoolAuthTokenHeaderName, session.Token)
 		return nil
 	}
 }
@@ -222,7 +223,7 @@ func (a *API) expectStatusCode(statusCode int) responseFunc {
 
 func (a *API) storeTidepoolSession(isServer bool) responseFunc {
 	return func(response *http.Response) error {
-		token := response.Header.Get(TidepoolSessionToken)
+		token := response.Header.Get(auth.TidepoolAuthTokenHeaderName)
 		if token == "" {
 			return errors.New("No session token included in response")
 		}
@@ -257,7 +258,7 @@ func (a *API) storeTidepoolSession(isServer bool) responseFunc {
 
 func (a *API) updateTidepoolSession() responseFunc {
 	return func(response *http.Response) error {
-		token := response.Header.Get(TidepoolSessionToken)
+		token := response.Header.Get(auth.TidepoolAuthTokenHeaderName)
 		if token == "" {
 			return errors.New("No session token included in response")
 		}

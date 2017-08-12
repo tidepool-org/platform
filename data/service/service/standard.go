@@ -1,7 +1,8 @@
 package service
 
 import (
-	dataClient "github.com/tidepool-org/platform/data/client"
+	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/service/api"
@@ -9,9 +10,9 @@ import (
 	dataMongo "github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/errors"
 	metricClient "github.com/tidepool-org/platform/metric/client"
-	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/service/middleware"
 	"github.com/tidepool-org/platform/service/server"
+	"github.com/tidepool-org/platform/service/service"
 	baseMongo "github.com/tidepool-org/platform/store/mongo"
 	syncTaskMongo "github.com/tidepool-org/platform/synctask/store/mongo"
 	userClient "github.com/tidepool-org/platform/user/client"
@@ -19,8 +20,8 @@ import (
 
 type Standard struct {
 	*service.Service
-	metricClient            *metricClient.Standard
-	userClient              *userClient.Standard
+	metricClient            metricClient.Client
+	userClient              userClient.Client
 	dataFactory             *factory.Standard
 	dataDeduplicatorFactory deduplicator.Factory
 	dataStore               *dataMongo.Store
@@ -86,10 +87,7 @@ func (s *Standard) Terminate() {
 	}
 	s.dataDeduplicatorFactory = nil
 	s.dataFactory = nil
-	if s.userClient != nil {
-		s.userClient.Close()
-		s.userClient = nil
-	}
+	s.userClient = nil
 	s.metricClient = nil
 
 	s.Service.Terminate()
@@ -106,14 +104,14 @@ func (s *Standard) Run() error {
 func (s *Standard) initializeMetricClient() error {
 	s.Logger().Debug("Loading metric client config")
 
-	metricClientConfig := metricClient.NewConfig()
+	metricClientConfig := client.NewConfig()
 	if err := metricClientConfig.Load(s.ConfigReporter().WithScopes("metric", "client")); err != nil {
 		return errors.Wrap(err, "service", "unable to load metric client config")
 	}
 
 	s.Logger().Debug("Creating metric client")
 
-	metricClient, err := metricClient.NewStandard(s.VersionReporter(), s.Name(), metricClientConfig)
+	metricClient, err := metricClient.NewClient(metricClientConfig, s.Name(), s.VersionReporter())
 	if err != nil {
 		return errors.Wrap(err, "service", "unable to create metric client")
 	}
@@ -125,23 +123,18 @@ func (s *Standard) initializeMetricClient() error {
 func (s *Standard) initializeUserClient() error {
 	s.Logger().Debug("Loading user client config")
 
-	userClientConfig := userClient.NewConfig()
+	userClientConfig := client.NewConfig()
 	if err := userClientConfig.Load(s.ConfigReporter().WithScopes("user", "client")); err != nil {
 		return errors.Wrap(err, "service", "unable to load user client config")
 	}
 
 	s.Logger().Debug("Creating user client")
 
-	userClient, err := userClient.NewStandard(s.Logger(), s.Name(), userClientConfig)
+	userClient, err := userClient.NewClient(userClientConfig)
 	if err != nil {
 		return errors.Wrap(err, "service", "unable to create user client")
 	}
 	s.userClient = userClient
-
-	s.Logger().Debug("Starting user client")
-	if err = s.userClient.Start(); err != nil {
-		return errors.Wrap(err, "service", "unable to start user client")
-	}
 
 	return nil
 }
@@ -233,7 +226,7 @@ func (s *Standard) initializeAPI() error {
 	s.Logger().Debug("Creating api")
 
 	newAPI, err := api.NewStandard(s.VersionReporter(), s.Logger(),
-		s.metricClient, s.userClient,
+		s.AuthClient(), s.metricClient, s.userClient,
 		s.dataFactory, s.dataDeduplicatorFactory,
 		s.dataStore, s.syncTaskStore)
 	if err != nil {
@@ -250,7 +243,7 @@ func (s *Standard) initializeAPI() error {
 	s.Logger().Debug("Configuring api middleware headers")
 
 	s.api.HeaderMiddleware().AddHeaderFieldFunc(
-		dataClient.TidepoolAuthenticationTokenHeaderName, middleware.NewMD5FieldFunc("authenticationTokenMD5"))
+		auth.TidepoolAuthTokenHeaderName, middleware.NewMD5FieldFunc("authTokenHash"))
 
 	s.Logger().Debug("Initializing api router")
 

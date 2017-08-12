@@ -6,8 +6,8 @@ import (
 
 	"time"
 
-	"github.com/tidepool-org/platform/config/test"
-	"github.com/tidepool-org/platform/data/client"
+	"github.com/tidepool-org/platform/client"
+	testConfig "github.com/tidepool-org/platform/config/test"
 )
 
 var _ = Describe("Config", func() {
@@ -29,10 +29,10 @@ var _ = Describe("Config", func() {
 		})
 
 		Context("Load", func() {
-			var configReporter *test.Reporter
+			var configReporter *testConfig.Reporter
 
 			BeforeEach(func() {
-				configReporter = test.NewReporter()
+				configReporter = testConfig.NewReporter()
 				configReporter.Config["address"] = "https://1.2.3.4:5678"
 				configReporter.Config["timeout"] = "120"
 			})
@@ -92,15 +92,6 @@ var _ = Describe("Config", func() {
 					Expect(config.Validate()).To(Succeed())
 					Expect(config.Address).To(Equal("http://localhost:1234"))
 					Expect(config.Timeout).To(Equal(30 * time.Second))
-				})
-			})
-
-			Context("Clone", func() {
-				It("returns successfully", func() {
-					clone := config.Clone()
-					Expect(clone).ToNot(BeIdenticalTo(config))
-					Expect(clone.Address).To(Equal(config.Address))
-					Expect(clone.Timeout).To(Equal(config.Timeout))
 				})
 			})
 		})

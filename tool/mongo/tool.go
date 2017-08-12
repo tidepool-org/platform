@@ -6,6 +6,7 @@ import (
 	"github.com/urfave/cli"
 
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/store/mongo"
 	"github.com/tidepool-org/platform/tool"
 )
@@ -37,7 +38,7 @@ func (t *Tool) Initialize() error {
 		return err
 	}
 
-	if err := t.MongoConfig().Load(t.ConfigReporter().WithScopes("store")); err != nil {
+	if err := t.mongoConfig.Load(t.ConfigReporter().WithScopes("store")); err != nil {
 		return errors.Wrap(err, "mongo", "unable to load store config")
 	}
 
@@ -67,15 +68,28 @@ func (t *Tool) ParseContext(context *cli.Context) bool {
 	}
 
 	if context.IsSet(AddressesFlag) {
-		t.MongoConfig().Addresses = mongo.SplitAddresses(context.String(AddressesFlag))
+		t.mongoConfig.Addresses = mongo.SplitAddresses(context.String(AddressesFlag))
 	}
 	if context.IsSet(TLSFlag) {
-		t.MongoConfig().TLS = context.Bool(TLSFlag)
+		t.mongoConfig.TLS = context.Bool(TLSFlag)
 	}
 
 	return true
 }
 
-func (t *Tool) MongoConfig() *mongo.Config {
-	return t.mongoConfig
+func (t *Tool) NewMongoConfig() *mongo.Config {
+	mongoConfig := mongo.NewConfig()
+	if t.mongoConfig.Addresses != nil {
+		mongoConfig.Addresses = append([]string{}, t.mongoConfig.Addresses...)
+	}
+	mongoConfig.TLS = t.mongoConfig.TLS
+	mongoConfig.Database = t.mongoConfig.Database
+	mongoConfig.Collection = t.mongoConfig.Collection
+	if t.mongoConfig.Username != nil {
+		mongoConfig.Username = pointer.String(*t.mongoConfig.Username)
+	}
+	if t.mongoConfig.Password != nil {
+		mongoConfig.Password = pointer.String(*t.mongoConfig.Password)
+	}
+	return mongoConfig
 }

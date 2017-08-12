@@ -23,9 +23,8 @@ var _ = Describe("Errors", func() {
 			Expect(err.Meta).To(BeNil())
 		},
 		Entry("is ErrorInternalServerFailure", service.ErrorInternalServerFailure(), "internal-server-failure", "internal server failure", "Internal server failure", 500),
-		Entry("is ErrorAuthenticationTokenMissing", service.ErrorAuthenticationTokenMissing(), "authentication-token-missing", "authentication token missing", "Authentication token missing", 401),
-		Entry("is ErrorUnauthenticated", service.ErrorUnauthenticated(), "unauthenticated", "authentication token is invalid", "Authentication token is invalid", 401),
-		Entry("is ErrorUnauthorized", service.ErrorUnauthorized(), "unauthorized", "authentication token is not authorized for requested action", "Authentication token is not authorized for requested action", 403),
+		Entry("is ErrorUnauthenticated", service.ErrorUnauthenticated(), "unauthenticated", "auth token is invalid", "Auth token is invalid", 401),
+		Entry("is ErrorUnauthorized", service.ErrorUnauthorized(), "unauthorized", "auth token is not authorized for requested action", "Auth token is not authorized for requested action", 403),
 		Entry("is ErrorJSONMalformed", service.ErrorJSONMalformed(), "json-malformed", "json is malformed", "JSON is malformed", 400),
 		Entry("is ErrorTypeNotBoolean with nil parameter", service.ErrorTypeNotBoolean(nil), "type-not-boolean", "type is not boolean", "Type is not boolean, but <nil>", 0),
 		Entry("is ErrorTypeNotBoolean with int parameter", service.ErrorTypeNotBoolean(-1), "type-not-boolean", "type is not boolean", "Type is not boolean, but int", 0),

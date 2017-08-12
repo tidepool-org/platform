@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
+	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	"github.com/tidepool-org/platform/data/service"
@@ -28,15 +29,9 @@ type Standard struct {
 }
 
 func NewStandard(versionReporter version.Reporter, logger log.Logger,
-	metricClient metricClient.Client, userClient usersClient.Client,
+	authClient auth.Client, metricClient metricClient.Client, userClient usersClient.Client,
 	dataFactory data.Factory, dataDeduplicatorFactory deduplicator.Factory,
 	dataStore dataStore.Store, syncTaskStore syncTaskStore.Store) (*Standard, error) {
-	if versionReporter == nil {
-		return nil, errors.New("api", "version reporter is missing")
-	}
-	if logger == nil {
-		return nil, errors.New("api", "logger is missing")
-	}
 	if metricClient == nil {
 		return nil, errors.New("api", "metric client is missing")
 	}
@@ -56,7 +51,7 @@ func NewStandard(versionReporter version.Reporter, logger log.Logger,
 		return nil, errors.New("api", "sync task store is missing")
 	}
 
-	standard, err := api.NewStandard(versionReporter, logger)
+	standard, err := api.NewStandard(versionReporter, logger, authClient)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +95,7 @@ func (s *Standard) InitializeRouter(routes []service.Route) error {
 }
 
 func (s *Standard) withContext(handler service.HandlerFunc) rest.HandlerFunc {
-	return context.WithContext(s.metricClient, s.userClient,
+	return context.WithContext(s.AuthClient(), s.metricClient, s.userClient,
 		s.dataFactory, s.dataDeduplicatorFactory,
 		s.dataStore, s.syncTaskStore, handler)
 }

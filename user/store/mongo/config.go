@@ -44,10 +44,3 @@ func (c *Config) Validate() error {
 
 	return nil
 }
-
-func (c *Config) Clone() *Config {
-	return &Config{
-		Config:       c.Config.Clone(),
-		PasswordSalt: c.PasswordSalt,
-	}
-}
