@@ -113,7 +113,6 @@ func (m *Migration) buildMetaIDToUserIDMap() (map[string]string, error) {
 
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "user"
-	mongoConfig.Collection = "users"
 	usersStore, err := mongo.New(m.Logger(), mongoConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "main", "unable to create users store")
@@ -122,7 +121,7 @@ func (m *Migration) buildMetaIDToUserIDMap() (map[string]string, error) {
 
 	m.Logger().Debug("Creating users session")
 
-	usersSession := usersStore.NewSession(m.Logger())
+	usersSession := usersStore.NewSession(m.Logger(), "users")
 	defer usersSession.Close()
 
 	m.Logger().Debug("Iterating users")
@@ -187,7 +186,6 @@ func (m *Migration) migrateMetaIDToUserIDForMetadata(metaIDToUserIDMap map[strin
 
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "seagull"
-	mongoConfig.Collection = "seagull"
 	metadataStore, err := mongo.New(m.Logger(), mongoConfig)
 	if err != nil {
 		return errors.Wrap(err, "main", "unable to create metadata store")
@@ -196,7 +194,7 @@ func (m *Migration) migrateMetaIDToUserIDForMetadata(metaIDToUserIDMap map[strin
 
 	m.Logger().Debug("Creating metadata session")
 
-	metadataSession := metadataStore.NewSession(m.Logger())
+	metadataSession := metadataStore.NewSession(m.Logger(), "seagull")
 	defer metadataSession.Close()
 
 	m.Logger().Debug("Walking meta id to user id map")

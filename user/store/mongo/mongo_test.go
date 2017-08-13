@@ -64,15 +64,15 @@ func ValidateUsers(testMongoCollection *mgo.Collection, selector bson.M, expecte
 var _ = Describe("Mongo", func() {
 	var mongoConfig *mongo.Config
 	var mongoStore *mongo.Store
-	var mongoSession store.Session
+	var mongoSession store.UsersSession
 
 	BeforeEach(func() {
 		mongoConfig = &mongo.Config{
 			Config: &baseMongo.Config{
-				Addresses:  []string{testMongo.Address()},
-				Database:   testMongo.Database(),
-				Collection: testMongo.NewCollectionName(),
-				Timeout:    5 * time.Second,
+				Addresses:        []string{testMongo.Address()},
+				Database:         testMongo.Database(),
+				CollectionPrefix: testMongo.NewCollectionPrefix(),
+				Timeout:          5 * time.Second,
 			},
 			PasswordSalt: "password-salt",
 		}
@@ -142,16 +142,16 @@ var _ = Describe("Mongo", func() {
 			Expect(mongoStore).ToNot(BeNil())
 		})
 
-		Context("NewSession", func() {
+		Context("NewUsersSession", func() {
 			It("returns a new session if no logger specified", func() {
-				mongoSession = mongoStore.NewSession(nil)
+				mongoSession = mongoStore.NewUsersSession(nil)
 				Expect(mongoSession).ToNot(BeNil())
 				Expect(mongoSession.Logger()).ToNot(BeNil())
 			})
 
 			It("returns a new session if logger specified", func() {
 				logger := null.NewLogger()
-				mongoSession = mongoStore.NewSession(logger)
+				mongoSession = mongoStore.NewUsersSession(logger)
 				Expect(mongoSession).ToNot(BeNil())
 				Expect(mongoSession.Logger()).ToNot(BeNil())
 			})
@@ -159,7 +159,7 @@ var _ = Describe("Mongo", func() {
 
 		Context("with a new session", func() {
 			BeforeEach(func() {
-				mongoSession = mongoStore.NewSession(null.NewLogger())
+				mongoSession = mongoStore.NewUsersSession(null.NewLogger())
 				Expect(mongoSession).ToNot(BeNil())
 			})
 
@@ -170,7 +170,7 @@ var _ = Describe("Mongo", func() {
 
 				BeforeEach(func() {
 					testMongoSession = testMongo.Session().Copy()
-					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.Collection)
+					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.CollectionPrefix + "users")
 					users = NewUsers()
 				})
 
@@ -386,7 +386,7 @@ var _ = Describe("Mongo", func() {
 			Context("HashPassword", func() {
 				DescribeTable("return correct password for",
 					func(userID string, password string, expectedPasswordHash string) {
-						Expect(mongoSession.(*mongo.Session).HashPassword(userID, password)).To(Equal(expectedPasswordHash))
+						Expect(mongoSession.(*mongo.UsersSession).HashPassword(userID, password)).To(Equal(expectedPasswordHash))
 					},
 					Entry("is example #1", "0cd1a5d68b", "asdflknj237u9fsnkl", "f4bbfc883178b79c184732c8aaa4e1e72a851ad1"),
 					Entry("is example #2", "b52201f96b", "asdflknj237u9fsnkl", "eeeb9f6f8092012db6effb1b57fac0f41ea08156"),

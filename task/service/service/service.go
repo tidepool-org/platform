@@ -60,7 +60,7 @@ func (s *Service) TaskStore() store.Store {
 func (s *Service) Status() *task.Status {
 	return &task.Status{
 		Version:   s.VersionReporter().Long(),
-		TaskStore: s.TaskStore().GetStatus(),
+		TaskStore: s.TaskStore().Status(),
 		Server:    s.API().Status(),
 	}
 }
@@ -100,7 +100,6 @@ func (s *Service) initializeTaskStore() error {
 	if err := cfg.Load(s.ConfigReporter().WithScopes("task", "store")); err != nil {
 		return errors.Wrap(err, "service", "unable to load task store config")
 	}
-	cfg.Collection = "tasks"
 
 	s.Logger().Debug("Creating task store")
 

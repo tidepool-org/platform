@@ -37,30 +37,30 @@ type Store struct {
 	config *Config
 }
 
-func (s *Store) NewSession(logger log.Logger) store.Session {
-	return &Session{
-		Session: s.Store.NewSession(logger),
+func (s *Store) NewPermissionsSession(logger log.Logger) store.PermissionsSession {
+	return &PermissionsSession{
+		Session: s.Store.NewSession(logger, "perms"),
 		config:  s.config,
 	}
 }
 
-type Session struct {
+type PermissionsSession struct {
 	*mongo.Session
 	config *Config
 }
 
-func (s *Session) DestroyPermissionsForUserByID(userID string) error {
+func (p *PermissionsSession) DestroyPermissionsForUserByID(userID string) error {
 	if userID == "" {
 		return errors.New("mongo", "user id is missing")
 	}
 
-	if s.IsClosed() {
+	if p.IsClosed() {
 		return errors.New("mongo", "session closed")
 	}
 
 	startTime := time.Now()
 
-	groupID, err := permission.GroupIDFromUserID(userID, s.config.Secret)
+	groupID, err := permission.GroupIDFromUserID(userID, p.config.Secret)
 	if err != nil {
 		return errors.Wrap(err, "mongo", "unable to determine group id from user id")
 	}
@@ -71,10 +71,10 @@ func (s *Session) DestroyPermissionsForUserByID(userID string) error {
 			{"userId": userID},
 		},
 	}
-	removeInfo, err := s.C().RemoveAll(selector)
+	removeInfo, err := p.C().RemoveAll(selector)
 
 	loggerFields := log.Fields{"userId": userID, "removeInfo": removeInfo, "duration": time.Since(startTime) / time.Microsecond}
-	s.Logger().WithFields(loggerFields).WithError(err).Debug("DestroyPermissionsForUserByID")
+	p.Logger().WithFields(loggerFields).WithError(err).Debug("DestroyPermissionsForUserByID")
 
 	if err != nil {
 		return errors.Wrap(err, "mongo", "unable to destroy permissions for user by id")

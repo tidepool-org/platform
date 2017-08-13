@@ -26,17 +26,17 @@ type Store struct {
 	*mongo.Store
 }
 
-func (s *Store) NewSession(logger log.Logger) store.Session {
-	return &Session{
-		Session: s.Store.NewSession(logger),
+func (s *Store) NewMessagesSession(logger log.Logger) store.MessagesSession {
+	return &MessagesSession{
+		Session: s.Store.NewSession(logger, "messages"),
 	}
 }
 
-type Session struct {
+type MessagesSession struct {
 	*mongo.Session
 }
 
-func (s *Session) DeleteMessagesFromUser(user *store.User) error {
+func (m *MessagesSession) DeleteMessagesFromUser(user *store.User) error {
 	if user == nil {
 		return errors.New("mongo", "user is missing")
 	}
@@ -44,7 +44,7 @@ func (s *Session) DeleteMessagesFromUser(user *store.User) error {
 		return errors.New("mongo", "user id is missing")
 	}
 
-	if s.IsClosed() {
+	if m.IsClosed() {
 		return errors.New("mongo", "session closed")
 	}
 
@@ -63,10 +63,10 @@ func (s *Session) DeleteMessagesFromUser(user *store.User) error {
 			},
 		},
 	}
-	changeInfo, err := s.C().UpdateAll(selector, update)
+	changeInfo, err := m.C().UpdateAll(selector, update)
 
 	loggerFields := log.Fields{"userId": user.ID, "changeInfo": changeInfo, "duration": time.Since(startTime) / time.Microsecond}
-	s.Logger().WithFields(loggerFields).WithError(err).Debug("DeleteMessagesFromUser")
+	m.Logger().WithFields(loggerFields).WithError(err).Debug("DeleteMessagesFromUser")
 
 	if err != nil {
 		return errors.Wrap(err, "mongo", "unable to delete messages from user")
@@ -75,12 +75,12 @@ func (s *Session) DeleteMessagesFromUser(user *store.User) error {
 	return nil
 }
 
-func (s *Session) DestroyMessagesForUserByID(userID string) error {
+func (m *MessagesSession) DestroyMessagesForUserByID(userID string) error {
 	if userID == "" {
 		return errors.New("mongo", "user id is missing")
 	}
 
-	if s.IsClosed() {
+	if m.IsClosed() {
 		return errors.New("mongo", "session closed")
 	}
 
@@ -89,10 +89,10 @@ func (s *Session) DestroyMessagesForUserByID(userID string) error {
 	selector := bson.M{
 		"groupid": userID,
 	}
-	removeInfo, err := s.C().RemoveAll(selector)
+	removeInfo, err := m.C().RemoveAll(selector)
 
 	loggerFields := log.Fields{"userId": userID, "removeInfo": removeInfo, "duration": time.Since(startTime) / time.Microsecond}
-	s.Logger().WithFields(loggerFields).WithError(err).Debug("DestroyMessagesForUserByID")
+	m.Logger().WithFields(loggerFields).WithError(err).Debug("DestroyMessagesForUserByID")
 
 	if err != nil {
 		return errors.Wrap(err, "mongo", "unable to destroy messages for user by id")

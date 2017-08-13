@@ -79,7 +79,7 @@ func UsersDatasetsGet(dataServiceContext dataService.Context) {
 		return
 	}
 
-	datasets, err := dataServiceContext.DataStoreSession().GetDatasetsForUserByID(targetUserID, filter, pagination)
+	datasets, err := dataServiceContext.DataSession().GetDatasetsForUserByID(targetUserID, filter, pagination)
 	if err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to get datasets for user", err)
 		return

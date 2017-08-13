@@ -92,12 +92,12 @@ func UsersDatasetsCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if err = dataServiceContext.DataStoreSession().CreateDataset(dataset); err != nil {
+	if err = dataServiceContext.DataSession().CreateDataset(dataset); err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to insert dataset", err)
 		return
 	}
 
-	deduplicator, err := dataServiceContext.DataDeduplicatorFactory().NewDeduplicatorForDataset(dataServiceContext.Logger(), dataServiceContext.DataStoreSession(), dataset)
+	deduplicator, err := dataServiceContext.DataDeduplicatorFactory().NewDeduplicatorForDataset(dataServiceContext.Logger(), dataServiceContext.DataSession(), dataset)
 	if err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to create deduplicator for dataset", err)
 		return

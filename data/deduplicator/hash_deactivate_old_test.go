@@ -100,22 +100,22 @@ var _ = Describe("HashDeactivateOld", func() {
 
 		Context("with logger and data store session", func() {
 			var testLogger log.Logger
-			var testDataStoreSession *testDataStore.Session
+			var testDataSession *testDataStore.DataSession
 
 			BeforeEach(func() {
 				testLogger = null.NewLogger()
 				Expect(testLogger).ToNot(BeNil())
-				testDataStoreSession = testDataStore.NewSession()
-				Expect(testDataStoreSession).ToNot(BeNil())
+				testDataSession = testDataStore.NewDataSession()
+				Expect(testDataSession).ToNot(BeNil())
 			})
 
 			AfterEach(func() {
-				Expect(testDataStoreSession.UnusedOutputsCount()).To(Equal(0))
+				Expect(testDataSession.UnusedOutputsCount()).To(Equal(0))
 			})
 
 			Context("NewDeduplicatorForDataset", func() {
 				It("returns an error if the logger is missing", func() {
-					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(nil, testDataStoreSession, testDataset)
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(nil, testDataSession, testDataset)
 					Expect(err).To(MatchError("deduplicator: logger is missing"))
 					Expect(testDeduplicator).To(BeNil())
 				})
@@ -127,67 +127,67 @@ var _ = Describe("HashDeactivateOld", func() {
 				})
 
 				It("returns an error if the dataset is missing", func() {
-					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, nil)
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, nil)
 					Expect(err).To(MatchError("deduplicator: dataset is missing"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
 				It("returns an error if the dataset id is missing", func() {
 					testDataset.UploadID = ""
-					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
 					Expect(err).To(MatchError("deduplicator: dataset id is missing"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
 				It("returns an error if the dataset user id is missing", func() {
 					testDataset.UserID = ""
-					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
 					Expect(err).To(MatchError("deduplicator: dataset user id is missing"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
 				It("returns an error if the dataset device id is missing", func() {
 					testDataset.DeviceID = nil
-					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
 					Expect(err).To(MatchError("deduplicator: dataset device id is missing"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
 				It("returns an error if the dataset device id is empty", func() {
 					testDataset.DeviceID = pointer.String("")
-					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
 					Expect(err).To(MatchError("deduplicator: dataset device id is empty"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
 				It("returns an error if the device manufacturers is missing", func() {
 					testDataset.DeviceManufacturers = nil
-					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
 					Expect(err).To(MatchError("deduplicator: dataset device manufacturers does not contain expected device manufacturers"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
 				It("returns an error if the device manufacturers is empty", func() {
 					testDataset.DeviceManufacturers = pointer.StringArray([]string{})
-					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
 					Expect(err).To(MatchError("deduplicator: dataset device manufacturers does not contain expected device manufacturers"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
 				It("returns an error if the device manufacturers does not contain expected device manufacturer", func() {
 					testDataset.DeviceManufacturers = pointer.StringArray([]string{"Ant", "Zebra", "Cobra"})
-					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
 					Expect(err).To(MatchError("deduplicator: dataset device manufacturers does not contain expected device manufacturers"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
 				It("returns a new deduplicator upon success", func() {
-					Expect(testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)).ToNot(BeNil())
+					Expect(testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)).ToNot(BeNil())
 				})
 
 				It("returns a new deduplicator upon success if the device id and expected device manufacturer are specified with multiple device manufacturers", func() {
 					testDataset.DeviceManufacturers = pointer.StringArray([]string{"Ant", "Zebra", "Medtronic", "Cobra"})
-					Expect(testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)).ToNot(BeNil())
+					Expect(testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)).ToNot(BeNil())
 				})
 			})
 
@@ -198,7 +198,7 @@ var _ = Describe("HashDeactivateOld", func() {
 
 				BeforeEach(func() {
 					var err error
-					testDeduplicator, err = testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)
+					testDeduplicator, err = testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testDeduplicator).ToNot(BeNil())
 					testDataData = []*testData.Datum{}
@@ -268,18 +268,18 @@ var _ = Describe("HashDeactivateOld", func() {
 
 						Context("with creating dataset data", func() {
 							BeforeEach(func() {
-								testDataStoreSession.CreateDatasetDataOutputs = []error{nil}
+								testDataSession.CreateDatasetDataOutputs = []error{nil}
 							})
 
 							AfterEach(func() {
-								Expect(testDataStoreSession.CreateDatasetDataInputs).To(ConsistOf(testDataStore.CreateDatasetDataInput{
+								Expect(testDataSession.CreateDatasetDataInputs).To(ConsistOf(testDataStore.CreateDatasetDataInput{
 									Dataset:     testDataset,
 									DatasetData: testDatasetData,
 								}))
 							})
 
 							It("returns an error if there is an error with CreateDatasetDataInput", func() {
-								testDataStoreSession.CreateDatasetDataOutputs = []error{errors.New("test error")}
+								testDataSession.CreateDatasetDataOutputs = []error{errors.New("test error")}
 								err := testDeduplicator.AddDatasetData(testDatasetData)
 								Expect(err).To(MatchError(fmt.Sprintf(`deduplicator: unable to create dataset data with id "%s"; test error`, testDataset.UploadID)))
 							})
@@ -294,30 +294,30 @@ var _ = Describe("HashDeactivateOld", func() {
 				Context("DeduplicateDataset", func() {
 					Context("with archive device data using hashes from dataset", func() {
 						BeforeEach(func() {
-							testDataStoreSession.ArchiveDeviceDataUsingHashesFromDatasetOutputs = []error{nil}
+							testDataSession.ArchiveDeviceDataUsingHashesFromDatasetOutputs = []error{nil}
 						})
 
 						AfterEach(func() {
-							Expect(testDataStoreSession.ArchiveDeviceDataUsingHashesFromDatasetInputs).To(Equal([]*upload.Upload{testDataset}))
+							Expect(testDataSession.ArchiveDeviceDataUsingHashesFromDatasetInputs).To(Equal([]*upload.Upload{testDataset}))
 						})
 
 						It("returns an error if there is an error with ArchiveDeviceDataUsingHashesFromDataset", func() {
-							testDataStoreSession.ArchiveDeviceDataUsingHashesFromDatasetOutputs = []error{errors.New("test error")}
+							testDataSession.ArchiveDeviceDataUsingHashesFromDatasetOutputs = []error{errors.New("test error")}
 							err := testDeduplicator.DeduplicateDataset()
 							Expect(err).To(MatchError(fmt.Sprintf(`deduplicator: unable to archive device data using hashes from dataset with id "%s"; test error`, testUploadID)))
 						})
 
 						Context("with activating dataset data", func() {
 							BeforeEach(func() {
-								testDataStoreSession.ActivateDatasetDataOutputs = []error{nil}
+								testDataSession.ActivateDatasetDataOutputs = []error{nil}
 							})
 
 							AfterEach(func() {
-								Expect(testDataStoreSession.ActivateDatasetDataInputs).To(ConsistOf(testDataset))
+								Expect(testDataSession.ActivateDatasetDataInputs).To(ConsistOf(testDataset))
 							})
 
 							It("returns an error if there is an error with ActivateDatasetData", func() {
-								testDataStoreSession.ActivateDatasetDataOutputs = []error{errors.New("test error")}
+								testDataSession.ActivateDatasetDataOutputs = []error{errors.New("test error")}
 								err := testDeduplicator.DeduplicateDataset()
 								Expect(err).To(MatchError(fmt.Sprintf(`deduplicator: unable to activate dataset data with id "%s"; test error`, testUploadID)))
 							})
@@ -332,30 +332,30 @@ var _ = Describe("HashDeactivateOld", func() {
 				Context("DeleteDataset", func() {
 					Context("with unarchive device data using hashes from dataset", func() {
 						BeforeEach(func() {
-							testDataStoreSession.UnarchiveDeviceDataUsingHashesFromDatasetOutputs = []error{nil}
+							testDataSession.UnarchiveDeviceDataUsingHashesFromDatasetOutputs = []error{nil}
 						})
 
 						AfterEach(func() {
-							Expect(testDataStoreSession.UnarchiveDeviceDataUsingHashesFromDatasetInputs).To(Equal([]*upload.Upload{testDataset}))
+							Expect(testDataSession.UnarchiveDeviceDataUsingHashesFromDatasetInputs).To(Equal([]*upload.Upload{testDataset}))
 						})
 
 						It("returns an error if there is an error with UnarchiveDeviceDataUsingHashesFromDataset", func() {
-							testDataStoreSession.UnarchiveDeviceDataUsingHashesFromDatasetOutputs = []error{errors.New("test error")}
+							testDataSession.UnarchiveDeviceDataUsingHashesFromDatasetOutputs = []error{errors.New("test error")}
 							err := testDeduplicator.DeleteDataset()
 							Expect(err).To(MatchError(fmt.Sprintf(`deduplicator: unable to unarchive device data using hashes from dataset with id "%s"; test error`, testUploadID)))
 						})
 
 						Context("with deleting dataset", func() {
 							BeforeEach(func() {
-								testDataStoreSession.DeleteDatasetOutputs = []error{nil}
+								testDataSession.DeleteDatasetOutputs = []error{nil}
 							})
 
 							AfterEach(func() {
-								Expect(testDataStoreSession.DeleteDatasetInputs).To(ConsistOf(testDataset))
+								Expect(testDataSession.DeleteDatasetInputs).To(ConsistOf(testDataset))
 							})
 
 							It("returns an error if there is an error with DeleteDataset", func() {
-								testDataStoreSession.DeleteDatasetOutputs = []error{errors.New("test error")}
+								testDataSession.DeleteDatasetOutputs = []error{errors.New("test error")}
 								err := testDeduplicator.DeleteDataset()
 								Expect(err).To(MatchError(fmt.Sprintf(`deduplicator: unable to delete dataset with id "%s"; test error`, testUploadID)))
 							})

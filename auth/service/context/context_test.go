@@ -91,29 +91,29 @@ var _ = Describe("Context", func() {
 		})
 
 		Context("with store session", func() {
-			var ss *testStore.StoreSession
+			var ssn *testStore.AuthsSession
 
 			BeforeEach(func() {
-				ss = testStore.NewStoreSession()
-				svc.AuthStoreImpl.NewSessionOutputs = []store.StoreSession{ss}
+				ssn = testStore.NewAuthsSession()
+				svc.AuthStoreImpl.NewAuthsSessionOutputs = []store.AuthsSession{ssn}
 			})
 
 			AfterEach(func() {
-				Expect(ss.UnusedOutputsCount()).To(Equal(0))
+				Expect(ssn.UnusedOutputsCount()).To(Equal(0))
 			})
 
 			Context("Close", func() {
 				It("returns successfully", func() {
-					Expect(ctx.AuthStoreSession()).To(Equal(ss))
+					Expect(ctx.AuthsSession()).To(Equal(ssn))
 					ctx.Close()
-					Expect(ss.CloseInvocations).To(Equal(1))
+					Expect(ssn.CloseInvocations).To(Equal(1))
 				})
 			})
 
-			Context("AuthStoreSession", func() {
+			Context("AuthsSession", func() {
 				It("returns successfully", func() {
-					Expect(ctx.AuthStoreSession()).To(Equal(ss))
-					Expect(ss.SetAgentInvocations).To(Equal(1))
+					Expect(ctx.AuthsSession()).To(Equal(ssn))
+					Expect(ssn.SetAgentInvocations).To(Equal(1))
 				})
 			})
 		})

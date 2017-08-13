@@ -91,29 +91,29 @@ var _ = Describe("Context", func() {
 		})
 
 		Context("with store session", func() {
-			var ss *testStore.StoreSession
+			var ssn *testStore.TasksSession
 
 			BeforeEach(func() {
-				ss = testStore.NewStoreSession()
-				svc.TaskStoreImpl.NewSessionOutputs = []store.StoreSession{ss}
+				ssn = testStore.NewTasksSession()
+				svc.TaskStoreImpl.NewTasksSessionOutputs = []store.TasksSession{ssn}
 			})
 
 			AfterEach(func() {
-				Expect(ss.UnusedOutputsCount()).To(Equal(0))
+				Expect(ssn.UnusedOutputsCount()).To(Equal(0))
 			})
 
 			Context("Close", func() {
 				It("returns successfully", func() {
-					Expect(ctx.TaskStoreSession()).To(Equal(ss))
+					Expect(ctx.TasksSession()).To(Equal(ssn))
 					ctx.Close()
-					Expect(ss.CloseInvocations).To(Equal(1))
+					Expect(ssn.CloseInvocations).To(Equal(1))
 				})
 			})
 
-			Context("TaskStoreSession", func() {
+			Context("TasksSession", func() {
 				It("returns successfully", func() {
-					Expect(ctx.TaskStoreSession()).To(Equal(ss))
-					Expect(ss.SetAgentInvocations).To(Equal(1))
+					Expect(ctx.TasksSession()).To(Equal(ssn))
+					Expect(ssn.SetAgentInvocations).To(Equal(1))
 				})
 			})
 		})

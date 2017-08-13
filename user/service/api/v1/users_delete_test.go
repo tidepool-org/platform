@@ -49,12 +49,12 @@ var _ = Describe("UsersDelete", func() {
 		WithDestroyingUser := func(flags *TestFlags) func() {
 			return func() {
 				AfterEach(func() {
-					Expect(context.UserStoreSessionImpl.DestroyUserByIDInputs).To(Equal([]string{targetUserID}))
+					Expect(context.UsersSessionImpl.DestroyUserByIDInputs).To(Equal([]string{targetUserID}))
 				})
 
 				Context("with destroying user", func() {
 					BeforeEach(func() {
-						context.UserStoreSessionImpl.DestroyUserByIDOutputs = []error{nil}
+						context.UsersSessionImpl.DestroyUserByIDOutputs = []error{nil}
 					})
 
 					It("is successful", func() {
@@ -65,7 +65,7 @@ var _ = Describe("UsersDelete", func() {
 
 				It("responds with failure if it returns error", func() {
 					err := errors.New("test-error-destroying-user")
-					context.UserStoreSessionImpl.DestroyUserByIDOutputs = []error{err}
+					context.UsersSessionImpl.DestroyUserByIDOutputs = []error{err}
 					v1.UsersDelete(context)
 					Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to destroy user by id", []interface{}{err}}}))
 				})
@@ -75,12 +75,12 @@ var _ = Describe("UsersDelete", func() {
 		WithDestroyingProfile := func(flags *TestFlags) func() {
 			return func() {
 				AfterEach(func() {
-					Expect(context.ProfileStoreSessionImpl.DestroyProfileByIDInputs).To(Equal([]string{targetProfileID}))
+					Expect(context.ProfilesSessionImpl.DestroyProfileByIDInputs).To(Equal([]string{targetProfileID}))
 				})
 
 				Context("with destroying profile", func() {
 					BeforeEach(func() {
-						context.ProfileStoreSessionImpl.DestroyProfileByIDOutputs = []error{nil}
+						context.ProfilesSessionImpl.DestroyProfileByIDOutputs = []error{nil}
 					})
 
 					WithDestroyingUser(flags)()
@@ -88,7 +88,7 @@ var _ = Describe("UsersDelete", func() {
 
 				It("responds with failure if it returns error", func() {
 					err := errors.New("test-error-destroying-profile")
-					context.ProfileStoreSessionImpl.DestroyProfileByIDOutputs = []error{err}
+					context.ProfilesSessionImpl.DestroyProfileByIDOutputs = []error{err}
 					v1.UsersDelete(context)
 					Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to destroy profile by id", []interface{}{err}}}))
 				})
@@ -104,12 +104,12 @@ var _ = Describe("UsersDelete", func() {
 					if flags.IsSet("with-full-name") {
 						messageUser.FullName = targetFullName
 					}
-					Expect(context.MessageStoreSessionImpl.DeleteMessagesFromUserInputs).To(Equal([]*messageStore.User{messageUser}))
+					Expect(context.MessagesSessionImpl.DeleteMessagesFromUserInputs).To(Equal([]*messageStore.User{messageUser}))
 				})
 
 				Context("with deleting messages from user", func() {
 					BeforeEach(func() {
-						context.MessageStoreSessionImpl.DeleteMessagesFromUserOutputs = []error{nil}
+						context.MessagesSessionImpl.DeleteMessagesFromUserOutputs = []error{nil}
 					})
 
 					if flags.IsSet("with-profile-id") {
@@ -121,7 +121,7 @@ var _ = Describe("UsersDelete", func() {
 
 				It("responds with failure if it returns error", func() {
 					err := errors.New("test-error-deleting-messages-from-user")
-					context.MessageStoreSessionImpl.DeleteMessagesFromUserOutputs = []error{err}
+					context.MessagesSessionImpl.DeleteMessagesFromUserOutputs = []error{err}
 					v1.UsersDelete(context)
 					Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to delete messages from user", []interface{}{err}}}))
 				})
@@ -131,12 +131,12 @@ var _ = Describe("UsersDelete", func() {
 		WithDestroyingMessages := func(flags *TestFlags) func() {
 			return func() {
 				AfterEach(func() {
-					Expect(context.MessageStoreSessionImpl.DestroyMessagesForUserByIDInputs).To(Equal([]string{targetUserID}))
+					Expect(context.MessagesSessionImpl.DestroyMessagesForUserByIDInputs).To(Equal([]string{targetUserID}))
 				})
 
 				Context("with destroying messages", func() {
 					BeforeEach(func() {
-						context.MessageStoreSessionImpl.DestroyMessagesForUserByIDOutputs = []error{nil}
+						context.MessagesSessionImpl.DestroyMessagesForUserByIDOutputs = []error{nil}
 					})
 
 					WithDeletingMessagesFromUser(flags)()
@@ -144,7 +144,7 @@ var _ = Describe("UsersDelete", func() {
 
 				It("responds with failure if it returns error", func() {
 					err := errors.New("test-error-destroying-messages")
-					context.MessageStoreSessionImpl.DestroyMessagesForUserByIDOutputs = []error{err}
+					context.MessagesSessionImpl.DestroyMessagesForUserByIDOutputs = []error{err}
 					v1.UsersDelete(context)
 					Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to destroy messages for user by id", []interface{}{err}}}))
 				})
@@ -177,12 +177,12 @@ var _ = Describe("UsersDelete", func() {
 		WithDestroyingConfirmations := func(flags *TestFlags) func() {
 			return func() {
 				AfterEach(func() {
-					Expect(context.ConfirmationStoreSessionImpl.DestroyConfirmationsForUserByIDInputs).To(Equal([]string{targetUserID}))
+					Expect(context.ConfirmationsSessionImpl.DestroyConfirmationsForUserByIDInputs).To(Equal([]string{targetUserID}))
 				})
 
 				Context("with destroying confirmations", func() {
 					BeforeEach(func() {
-						context.ConfirmationStoreSessionImpl.DestroyConfirmationsForUserByIDOutputs = []error{nil}
+						context.ConfirmationsSessionImpl.DestroyConfirmationsForUserByIDOutputs = []error{nil}
 					})
 
 					WithDestroyingData(flags)()
@@ -190,7 +190,7 @@ var _ = Describe("UsersDelete", func() {
 
 				It("responds with failure if it returns error", func() {
 					err := errors.New("test-error-destroying-confirmations")
-					context.ConfirmationStoreSessionImpl.DestroyConfirmationsForUserByIDOutputs = []error{err}
+					context.ConfirmationsSessionImpl.DestroyConfirmationsForUserByIDOutputs = []error{err}
 					v1.UsersDelete(context)
 					Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to destroy confirmations for user by id", []interface{}{err}}}))
 				})
@@ -200,12 +200,12 @@ var _ = Describe("UsersDelete", func() {
 		WithDestroyingPermissions := func(flags *TestFlags) func() {
 			return func() {
 				AfterEach(func() {
-					Expect(context.PermissionStoreSessionImpl.DestroyPermissionsForUserByIDInputs).To(Equal([]string{targetUserID}))
+					Expect(context.PermissionsSessionImpl.DestroyPermissionsForUserByIDInputs).To(Equal([]string{targetUserID}))
 				})
 
 				Context("with destroying permissions", func() {
 					BeforeEach(func() {
-						context.PermissionStoreSessionImpl.DestroyPermissionsForUserByIDOutputs = []error{nil}
+						context.PermissionsSessionImpl.DestroyPermissionsForUserByIDOutputs = []error{nil}
 					})
 
 					WithDestroyingConfirmations(flags)()
@@ -213,7 +213,7 @@ var _ = Describe("UsersDelete", func() {
 
 				It("responds with failure if it returns error", func() {
 					err := errors.New("test-error-destroying-permissions")
-					context.PermissionStoreSessionImpl.DestroyPermissionsForUserByIDOutputs = []error{err}
+					context.PermissionsSessionImpl.DestroyPermissionsForUserByIDOutputs = []error{err}
 					v1.UsersDelete(context)
 					Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to destroy permissions for user by id", []interface{}{err}}}))
 				})
@@ -223,12 +223,12 @@ var _ = Describe("UsersDelete", func() {
 		WithDestroyingSessions := func(flags *TestFlags) func() {
 			return func() {
 				AfterEach(func() {
-					Expect(context.SessionStoreSessionImpl.DestroySessionsForUserByIDInputs).To(Equal([]string{targetUserID}))
+					Expect(context.SessionsSessionImpl.DestroySessionsForUserByIDInputs).To(Equal([]string{targetUserID}))
 				})
 
 				Context("with destroying sessions", func() {
 					BeforeEach(func() {
-						context.SessionStoreSessionImpl.DestroySessionsForUserByIDOutputs = []error{nil}
+						context.SessionsSessionImpl.DestroySessionsForUserByIDOutputs = []error{nil}
 					})
 
 					WithDestroyingPermissions(flags)()
@@ -236,7 +236,7 @@ var _ = Describe("UsersDelete", func() {
 
 				It("responds with failure if it returns error", func() {
 					err := errors.New("test-error-destroying-sessions")
-					context.SessionStoreSessionImpl.DestroySessionsForUserByIDOutputs = []error{err}
+					context.SessionsSessionImpl.DestroySessionsForUserByIDOutputs = []error{err}
 					v1.UsersDelete(context)
 					Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to destroy sessions for user by id", []interface{}{err}}}))
 				})
@@ -246,12 +246,12 @@ var _ = Describe("UsersDelete", func() {
 		WithDeletingUser := func(flags *TestFlags) func() {
 			return func() {
 				AfterEach(func() {
-					Expect(context.UserStoreSessionImpl.DeleteUserInputs).To(Equal([]*user.User{targetUser}))
+					Expect(context.UsersSessionImpl.DeleteUserInputs).To(Equal([]*user.User{targetUser}))
 				})
 
 				Context("with deleting user", func() {
 					BeforeEach(func() {
-						context.UserStoreSessionImpl.DeleteUserOutputs = []error{nil}
+						context.UsersSessionImpl.DeleteUserOutputs = []error{nil}
 					})
 
 					WithDestroyingSessions(flags)()
@@ -259,7 +259,7 @@ var _ = Describe("UsersDelete", func() {
 
 				It("responds with failure if it returns error", func() {
 					err := errors.New("test-error-deleting-user")
-					context.UserStoreSessionImpl.DeleteUserOutputs = []error{err}
+					context.UsersSessionImpl.DeleteUserOutputs = []error{err}
 					v1.UsersDelete(context)
 					Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to delete user", []interface{}{err}}}))
 				})
@@ -294,12 +294,12 @@ var _ = Describe("UsersDelete", func() {
 			return func() {
 				Context("with profile id", func() {
 					AfterEach(func() {
-						Expect(context.ProfileStoreSessionImpl.GetProfileByIDInputs).To(Equal([]string{targetProfileID}))
+						Expect(context.ProfilesSessionImpl.GetProfileByIDInputs).To(Equal([]string{targetProfileID}))
 					})
 
 					Context("with existing profile", func() {
 						BeforeEach(func() {
-							context.ProfileStoreSessionImpl.GetProfileByIDOutputs = []GetProfileByIDOutput{{targetProfile, nil}}
+							context.ProfilesSessionImpl.GetProfileByIDOutputs = []GetProfileByIDOutput{{targetProfile, nil}}
 						})
 
 						WithRecordingMetric(flags.Set("with-profile-id", "with-full-name"))()
@@ -308,7 +308,7 @@ var _ = Describe("UsersDelete", func() {
 					Context("with existing profile without full name", func() {
 						BeforeEach(func() {
 							targetProfile.FullName = nil
-							context.ProfileStoreSessionImpl.GetProfileByIDOutputs = []GetProfileByIDOutput{{targetProfile, nil}}
+							context.ProfilesSessionImpl.GetProfileByIDOutputs = []GetProfileByIDOutput{{targetProfile, nil}}
 						})
 
 						WithRecordingMetric(flags.Set("with-profile-id"))()
@@ -316,7 +316,7 @@ var _ = Describe("UsersDelete", func() {
 
 					Context("with no existing profile", func() {
 						BeforeEach(func() {
-							context.ProfileStoreSessionImpl.GetProfileByIDOutputs = []GetProfileByIDOutput{{nil, nil}}
+							context.ProfilesSessionImpl.GetProfileByIDOutputs = []GetProfileByIDOutput{{nil, nil}}
 						})
 
 						WithRecordingMetric(flags.Set("with-profile-id"))()
@@ -324,7 +324,7 @@ var _ = Describe("UsersDelete", func() {
 
 					It("responds with failure if it returns error", func() {
 						err := errors.New("test-error-getting-profile")
-						context.ProfileStoreSessionImpl.GetProfileByIDOutputs = []GetProfileByIDOutput{{nil, err}}
+						context.ProfilesSessionImpl.GetProfileByIDOutputs = []GetProfileByIDOutput{{nil, err}}
 						v1.UsersDelete(context)
 						Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to get profile by id", []interface{}{err}}}))
 					})
@@ -343,19 +343,19 @@ var _ = Describe("UsersDelete", func() {
 		WithMatchingPassword := func(flags *TestFlags) func() {
 			return func() {
 				AfterEach(func() {
-					Expect(context.UserStoreSessionImpl.PasswordMatchesInputs).To(Equal([]PasswordMatchesInput{{targetUser, targetPassword}}))
+					Expect(context.UsersSessionImpl.PasswordMatchesInputs).To(Equal([]PasswordMatchesInput{{targetUser, targetPassword}}))
 				})
 
 				Context("with matching password", func() {
 					BeforeEach(func() {
-						context.UserStoreSessionImpl.PasswordMatchesOutputs = []bool{true}
+						context.UsersSessionImpl.PasswordMatchesOutputs = []bool{true}
 					})
 
 					WithGetProfile(flags)()
 				})
 
 				It("responds with failure if it returns false", func() {
-					context.UserStoreSessionImpl.PasswordMatchesOutputs = []bool{false}
+					context.UsersSessionImpl.PasswordMatchesOutputs = []bool{false}
 					v1.UsersDelete(context)
 					Expect(context.RespondWithErrorInputs).To(Equal([]*service.Error{service.ErrorUnauthorized()}))
 				})
@@ -383,26 +383,26 @@ var _ = Describe("UsersDelete", func() {
 		WithUserID := func(flags *TestFlags) func() {
 			return func() {
 				AfterEach(func() {
-					Expect(context.UserStoreSessionImpl.GetUserByIDInputs).To(Equal([]string{targetUserID}))
+					Expect(context.UsersSessionImpl.GetUserByIDInputs).To(Equal([]string{targetUserID}))
 				})
 
 				Context("with existing user", func() {
 					BeforeEach(func() {
-						context.UserStoreSessionImpl.GetUserByIDOutputs = []GetUserByIDOutput{{targetUser, nil}}
+						context.UsersSessionImpl.GetUserByIDOutputs = []GetUserByIDOutput{{targetUser, nil}}
 					})
 
 					WithoutClinicRole(flags)()
 				})
 
 				It("responds with failure if it returns no user", func() {
-					context.UserStoreSessionImpl.GetUserByIDOutputs = []GetUserByIDOutput{{nil, nil}}
+					context.UsersSessionImpl.GetUserByIDOutputs = []GetUserByIDOutput{{nil, nil}}
 					v1.UsersDelete(context)
 					Expect(context.RespondWithErrorInputs).To(Equal([]*service.Error{v1.ErrorUserIDNotFound(targetUserID)}))
 				})
 
 				It("responds with failure if it returns error", func() {
 					err := errors.New("test-error-getting-user")
-					context.UserStoreSessionImpl.GetUserByIDOutputs = []GetUserByIDOutput{{nil, err}}
+					context.UsersSessionImpl.GetUserByIDOutputs = []GetUserByIDOutput{{nil, err}}
 					v1.UsersDelete(context)
 					Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to get user by id", []interface{}{err}}}))
 				})

@@ -11,10 +11,10 @@ import (
 type Store interface {
 	store.Store
 
-	NewSession(logger log.Logger) Session
+	NewDataSession(logger log.Logger) DataSession
 }
 
-type Session interface {
+type DataSession interface {
 	store.Session
 
 	GetDatasetsForUserByID(userID string, filter *Filter, pagination *Pagination) ([]*upload.Upload, error)

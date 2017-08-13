@@ -84,7 +84,7 @@ func (t *Tool) NewMongoConfig() *mongo.Config {
 	}
 	mongoConfig.TLS = t.mongoConfig.TLS
 	mongoConfig.Database = t.mongoConfig.Database
-	mongoConfig.Collection = t.mongoConfig.Collection
+	mongoConfig.CollectionPrefix = t.mongoConfig.CollectionPrefix
 	if t.mongoConfig.Username != nil {
 		mongoConfig.Username = pointer.String(*t.mongoConfig.Username)
 	}

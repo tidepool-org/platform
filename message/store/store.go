@@ -8,10 +8,10 @@ import (
 type Store interface {
 	store.Store
 
-	NewSession(logger log.Logger) Session
+	NewMessagesSession(logger log.Logger) MessagesSession
 }
 
-type Session interface {
+type MessagesSession interface {
 	store.Session
 
 	DeleteMessagesFromUser(user *User) error

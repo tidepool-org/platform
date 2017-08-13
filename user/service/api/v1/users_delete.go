@@ -50,7 +50,7 @@ func UsersDelete(userServiceContext userService.Context) {
 		}
 	}
 
-	targetUser, err := userServiceContext.UserStoreSession().GetUserByID(targetUserID)
+	targetUser, err := userServiceContext.UsersSession().GetUserByID(targetUserID)
 	if err != nil {
 		userServiceContext.RespondWithInternalServerFailure("Unable to get user by id", err)
 		return
@@ -66,7 +66,7 @@ func UsersDelete(userServiceContext userService.Context) {
 	}
 
 	if password != nil {
-		if !userServiceContext.UserStoreSession().PasswordMatches(targetUser, *password) {
+		if !userServiceContext.UsersSession().PasswordMatches(targetUser, *password) {
 			userServiceContext.RespondWithError(service.ErrorUnauthorized())
 			return
 		}
@@ -78,7 +78,7 @@ func UsersDelete(userServiceContext userService.Context) {
 
 	if targetUser.ProfileID != nil {
 		var profile *profile.Profile
-		profile, err = userServiceContext.ProfileStoreSession().GetProfileByID(*targetUser.ProfileID)
+		profile, err = userServiceContext.ProfilesSession().GetProfileByID(*targetUser.ProfileID)
 		if err != nil {
 			userServiceContext.RespondWithInternalServerFailure("Unable to get profile by id", err)
 			return
@@ -92,22 +92,22 @@ func UsersDelete(userServiceContext userService.Context) {
 		userServiceContext.Logger().WithError(err).Error("Unable to record metric")
 	}
 
-	if err = userServiceContext.UserStoreSession().DeleteUser(targetUser); err != nil {
+	if err = userServiceContext.UsersSession().DeleteUser(targetUser); err != nil {
 		userServiceContext.RespondWithInternalServerFailure("Unable to delete user", err)
 		return
 	}
 
-	if err = userServiceContext.SessionStoreSession().DestroySessionsForUserByID(targetUserID); err != nil {
+	if err = userServiceContext.SessionsSession().DestroySessionsForUserByID(targetUserID); err != nil {
 		userServiceContext.RespondWithInternalServerFailure("Unable to destroy sessions for user by id", err)
 		return
 	}
 
-	if err = userServiceContext.PermissionStoreSession().DestroyPermissionsForUserByID(targetUserID); err != nil {
+	if err = userServiceContext.PermissionsSession().DestroyPermissionsForUserByID(targetUserID); err != nil {
 		userServiceContext.RespondWithInternalServerFailure("Unable to destroy permissions for user by id", err)
 		return
 	}
 
-	if err = userServiceContext.ConfirmationStoreSession().DestroyConfirmationsForUserByID(targetUserID); err != nil {
+	if err = userServiceContext.ConfirmationsSession().DestroyConfirmationsForUserByID(targetUserID); err != nil {
 		userServiceContext.RespondWithInternalServerFailure("Unable to destroy confirmations for user by id", err)
 		return
 	}
@@ -117,24 +117,24 @@ func UsersDelete(userServiceContext userService.Context) {
 		return
 	}
 
-	if err = userServiceContext.MessageStoreSession().DestroyMessagesForUserByID(targetUserID); err != nil {
+	if err = userServiceContext.MessagesSession().DestroyMessagesForUserByID(targetUserID); err != nil {
 		userServiceContext.RespondWithInternalServerFailure("Unable to destroy messages for user by id", err)
 		return
 	}
 
-	if err = userServiceContext.MessageStoreSession().DeleteMessagesFromUser(messageUser); err != nil {
+	if err = userServiceContext.MessagesSession().DeleteMessagesFromUser(messageUser); err != nil {
 		userServiceContext.RespondWithInternalServerFailure("Unable to delete messages from user", err)
 		return
 	}
 
 	if targetUser.ProfileID != nil {
-		if err = userServiceContext.ProfileStoreSession().DestroyProfileByID(*targetUser.ProfileID); err != nil {
+		if err = userServiceContext.ProfilesSession().DestroyProfileByID(*targetUser.ProfileID); err != nil {
 			userServiceContext.RespondWithInternalServerFailure("Unable to destroy profile by id", err)
 			return
 		}
 	}
 
-	if err = userServiceContext.UserStoreSession().DestroyUserByID(targetUserID); err != nil {
+	if err = userServiceContext.UsersSession().DestroyUserByID(targetUserID); err != nil {
 		userServiceContext.RespondWithInternalServerFailure("Unable to destroy user by id", err)
 		return
 	}

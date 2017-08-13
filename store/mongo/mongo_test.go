@@ -38,10 +38,10 @@ var _ = Describe("Mongo", func() {
 	BeforeEach(func() {
 		logger = null.NewLogger()
 		mongoConfig = &mongo.Config{
-			Addresses:  []string{testMongo.Address()},
-			Database:   testMongo.Database(),
-			Collection: testMongo.NewCollectionName(),
-			Timeout:    5 * time.Second,
+			Addresses:        []string{testMongo.Address()},
+			Database:         testMongo.Database(),
+			CollectionPrefix: testMongo.NewCollectionPrefix(),
+			Timeout:          5 * time.Second,
 		}
 	})
 
@@ -123,9 +123,9 @@ var _ = Describe("Mongo", func() {
 			})
 		})
 
-		Context("GetStatus", func() {
+		Context("Status", func() {
 			It("returns the appropriate status when not closed", func() {
-				status := mongoStore.GetStatus()
+				status := mongoStore.Status()
 				Expect(status).ToNot(BeNil())
 				mongoStatus, ok := status.(*mongo.Status)
 				Expect(ok).To(BeTrue())
@@ -141,7 +141,7 @@ var _ = Describe("Mongo", func() {
 			It("returns the appropriate status when closed", func() {
 				mongoStore.Close()
 				Expect(mongoStore.IsClosed()).To(BeTrue())
-				status := mongoStore.GetStatus()
+				status := mongoStore.Status()
 				Expect(status).ToNot(BeNil())
 				mongoStatus, ok := status.(*mongo.Status)
 				Expect(ok).To(BeTrue())
@@ -157,13 +157,19 @@ var _ = Describe("Mongo", func() {
 
 		Context("NewSession", func() {
 			It("returns a new session if no logger specified", func() {
-				mongoSession = mongoStore.NewSession(nil)
+				mongoSession = mongoStore.NewSession(nil, "test")
 				Expect(mongoSession).ToNot(BeNil())
 				Expect(mongoSession.Logger()).ToNot(BeNil())
 			})
 
-			It("returns a new session if logger specified", func() {
-				mongoSession = mongoStore.NewSession(logger)
+			It("returns a new session if no collection specified", func() {
+				mongoSession = mongoStore.NewSession(logger, "")
+				Expect(mongoSession).ToNot(BeNil())
+				Expect(mongoSession.Logger()).ToNot(BeNil())
+			})
+
+			It("returns successfully", func() {
+				mongoSession = mongoStore.NewSession(logger, "test")
 				Expect(mongoSession).ToNot(BeNil())
 				Expect(mongoSession.Logger()).ToNot(BeNil())
 			})
@@ -171,7 +177,7 @@ var _ = Describe("Mongo", func() {
 
 		Context("with a new session", func() {
 			BeforeEach(func() {
-				mongoSession = mongoStore.NewSession(null.NewLogger())
+				mongoSession = mongoStore.NewSession(null.NewLogger(), "test")
 				Expect(mongoSession).ToNot(BeNil())
 			})
 
@@ -186,6 +192,12 @@ var _ = Describe("Mongo", func() {
 				})
 			})
 
+			Context("Logger", func() {
+				It("returns successfully", func() {
+					Expect(mongoSession.Logger()).ToNot(BeNil())
+				})
+			})
+
 			Context("SetAgent", func() {
 				It("successfully sets the agent", func() {
 					mongoSession.SetAgent(&TestAgent{false, id.New()})
@@ -193,23 +205,6 @@ var _ = Describe("Mongo", func() {
 
 				It("successfully sets the agent if nil", func() {
 					mongoSession.SetAgent(nil)
-				})
-			})
-
-			Context("Logger", func() {
-				It("returns successfully", func() {
-					Expect(mongoSession.Logger()).ToNot(BeNil())
-				})
-			})
-
-			Context("C", func() {
-				It("returns successfully", func() {
-					Expect(mongoSession.C()).ToNot(BeNil())
-				})
-
-				It("returns nil if the session is closed", func() {
-					mongoSession.Close()
-					Expect(mongoSession.C()).To(BeNil())
 				})
 			})
 
@@ -235,6 +230,16 @@ var _ = Describe("Mongo", func() {
 				})
 			})
 
+			Context("C", func() {
+				It("returns successfully", func() {
+					Expect(mongoSession.C()).ToNot(BeNil())
+				})
+
+				It("returns nil if the session is closed", func() {
+					mongoSession.Close()
+					Expect(mongoSession.C()).To(BeNil())
+				})
+			})
 			Context("Timestamp", func() {
 				It("returns a new timestamp in RFC3339 format", func() {
 					parsedTimestamp, err := time.Parse(time.RFC3339, mongoSession.Timestamp())

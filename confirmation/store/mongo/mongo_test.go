@@ -54,14 +54,14 @@ func ValidateConfirmations(testMongoCollection *mgo.Collection, selector bson.M,
 var _ = Describe("Mongo", func() {
 	var mongoConfig *baseMongo.Config
 	var mongoStore *mongo.Store
-	var mongoSession store.Session
+	var mongoSession store.ConfirmationsSession
 
 	BeforeEach(func() {
 		mongoConfig = &baseMongo.Config{
-			Addresses:  []string{testMongo.Address()},
-			Database:   testMongo.Database(),
-			Collection: testMongo.NewCollectionName(),
-			Timeout:    5 * time.Second,
+			Addresses:        []string{testMongo.Address()},
+			Database:         testMongo.Database(),
+			CollectionPrefix: testMongo.NewCollectionPrefix(),
+			Timeout:          5 * time.Second,
 		}
 	})
 
@@ -98,16 +98,16 @@ var _ = Describe("Mongo", func() {
 			Expect(mongoStore).ToNot(BeNil())
 		})
 
-		Context("NewSession", func() {
+		Context("NewConfirmationsSession", func() {
 			It("returns a new session if no logger specified", func() {
-				mongoSession = mongoStore.NewSession(nil)
+				mongoSession = mongoStore.NewConfirmationsSession(nil)
 				Expect(mongoSession).ToNot(BeNil())
 				Expect(mongoSession.Logger()).ToNot(BeNil())
 			})
 
 			It("returns a new session if logger specified", func() {
 				logger := null.NewLogger()
-				mongoSession = mongoStore.NewSession(logger)
+				mongoSession = mongoStore.NewConfirmationsSession(logger)
 				Expect(mongoSession).ToNot(BeNil())
 				Expect(mongoSession.Logger()).ToNot(BeNil())
 			})
@@ -115,7 +115,7 @@ var _ = Describe("Mongo", func() {
 
 		Context("with a new session", func() {
 			BeforeEach(func() {
-				mongoSession = mongoStore.NewSession(null.NewLogger())
+				mongoSession = mongoStore.NewConfirmationsSession(null.NewLogger())
 				Expect(mongoSession).ToNot(BeNil())
 			})
 
@@ -126,7 +126,7 @@ var _ = Describe("Mongo", func() {
 
 				BeforeEach(func() {
 					testMongoSession = testMongo.Session().Copy()
-					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.Collection)
+					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.CollectionPrefix + "confirmations")
 					confirmations = NewConfirmations(id.New(), id.New())
 				})
 

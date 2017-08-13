@@ -60,7 +60,7 @@ func (s *Service) NotificationStore() store.Store {
 func (s *Service) Status() *notification.Status {
 	return &notification.Status{
 		Version:           s.VersionReporter().Long(),
-		NotificationStore: s.NotificationStore().GetStatus(),
+		NotificationStore: s.NotificationStore().Status(),
 		Server:            s.API().Status(),
 	}
 }
@@ -100,7 +100,6 @@ func (s *Service) initializeNotificationStore() error {
 	if err := cfg.Load(s.ConfigReporter().WithScopes("notification", "store")); err != nil {
 		return errors.Wrap(err, "service", "unable to load notification store config")
 	}
-	cfg.Collection = "notifications"
 
 	s.Logger().Debug("Creating notification store")
 

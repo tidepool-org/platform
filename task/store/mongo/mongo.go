@@ -21,12 +21,12 @@ func New(lgr log.Logger, cfg *mongo.Config) (*Store, error) {
 	}, nil
 }
 
-func (s *Store) NewSession(lgr log.Logger) store.StoreSession {
-	return &Session{
-		Session: s.Store.NewSession(lgr),
+func (s *Store) NewTasksSession(lgr log.Logger) store.TasksSession {
+	return &TasksSession{
+		Session: s.Store.NewSession(lgr, "tasks"),
 	}
 }
 
-type Session struct {
+type TasksSession struct {
 	*mongo.Session
 }

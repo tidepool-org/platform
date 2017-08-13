@@ -8,10 +8,10 @@ import (
 type Store interface {
 	store.Store
 
-	NewSession(logger log.Logger) Session
+	NewSyncTasksSession(logger log.Logger) SyncTasksSession
 }
 
-type Session interface {
+type SyncTasksSession interface {
 	store.Session
 
 	DestroySyncTasksForUserByID(userID string) error

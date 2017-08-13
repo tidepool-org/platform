@@ -8,10 +8,10 @@ import (
 type Store interface {
 	store.Store
 
-	NewSession(logger log.Logger) Session
+	NewPermissionsSession(logger log.Logger) PermissionsSession
 }
 
-type Session interface {
+type PermissionsSession interface {
 	store.Session
 
 	DestroyPermissionsForUserByID(userID string) error

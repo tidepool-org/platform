@@ -40,8 +40,8 @@ func New(logger log.Logger, config *Config) (*Store, error) {
 	}
 
 	loggerFields := map[string]interface{}{
-		"database":   config.Database,
-		"collection": config.Collection,
+		"database":         config.Database,
+		"collectionPrefix": config.CollectionPrefix,
 	}
 	logger = logger.WithFields(loggerFields)
 
@@ -109,7 +109,7 @@ func (s *Store) Close() {
 	}
 }
 
-func (s *Store) GetStatus() interface{} {
+func (s *Store) Status() interface{} {
 	status := &Status{
 		State: "CLOSED",
 		Ping:  "FAILED",
@@ -131,29 +131,33 @@ func (s *Store) GetStatus() interface{} {
 	return status
 }
 
-func (s *Store) NewSession(logger log.Logger) *Session {
+func (s *Store) NewSession(logger log.Logger, collection string) *Session {
 	if logger == nil {
 		logger = null.NewLogger()
 	}
 
+	collection = s.Config.CollectionPrefix + collection
+
 	loggerFields := map[string]interface{}{
 		"database":   s.Config.Database,
-		"collection": s.Config.Collection,
+		"collection": collection,
 	}
 
 	return &Session{
 		logger:        logger.WithFields(loggerFields),
-		config:        s.Config,
 		sourceSession: s.Session,
+		database:      s.Config.Database,
+		collection:    collection,
 	}
 }
 
 type Session struct {
 	logger        log.Logger
-	config        *Config
 	sourceSession *mgo.Session
 	targetSession *mgo.Session
 	agent         store.Agent
+	database      string
+	collection    string
 }
 
 func (s *Session) IsClosed() bool {
@@ -176,6 +180,17 @@ func (s *Session) SetAgent(agent store.Agent) {
 	s.agent = agent
 }
 
+func (s *Session) AgentUserID() string {
+	if s.agent == nil {
+		return ""
+	}
+	if s.agent.IsServer() {
+		return ""
+	}
+
+	return s.agent.UserID()
+}
+
 func (s *Session) C() *mgo.Collection {
 	if s.IsClosed() {
 		return nil
@@ -185,17 +200,7 @@ func (s *Session) C() *mgo.Collection {
 		s.targetSession = s.sourceSession.Copy()
 	}
 
-	return s.targetSession.DB(s.config.Database).C(s.config.Collection)
-}
-
-func (s *Session) AgentUserID() string {
-	if s.agent == nil {
-		return ""
-	}
-	if s.agent.IsServer() {
-		return ""
-	}
-	return s.agent.UserID()
+	return s.targetSession.DB(s.database).C(s.collection)
 }
 
 func (s *Session) Timestamp() string {

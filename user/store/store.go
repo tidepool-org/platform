@@ -9,10 +9,10 @@ import (
 type Store interface {
 	store.Store
 
-	NewSession(logger log.Logger) Session
+	NewUsersSession(logger log.Logger) UsersSession
 }
 
-type Session interface {
+type UsersSession interface {
 	store.Session
 
 	GetUserByID(userID string) (*user.User, error)

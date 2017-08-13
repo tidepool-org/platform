@@ -22,7 +22,7 @@ func DatasetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	dataset, err := dataServiceContext.DataStoreSession().GetDatasetByID(datasetID)
+	dataset, err := dataServiceContext.DataSession().GetDatasetByID(datasetID)
 	if err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to get dataset by id", err)
 		return
@@ -54,7 +54,7 @@ func DatasetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	deduplicator, err := dataServiceContext.DataDeduplicatorFactory().NewRegisteredDeduplicatorForDataset(dataServiceContext.Logger(), dataServiceContext.DataStoreSession(), dataset)
+	deduplicator, err := dataServiceContext.DataDeduplicatorFactory().NewRegisteredDeduplicatorForDataset(dataServiceContext.Logger(), dataServiceContext.DataSession(), dataset)
 	if err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to create registered deduplicator for dataset", err)
 		return

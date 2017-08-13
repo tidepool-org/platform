@@ -91,29 +91,29 @@ var _ = Describe("Context", func() {
 		})
 
 		Context("with store session", func() {
-			var ss *testStore.StoreSession
+			var ssn *testStore.NotificationsSession
 
 			BeforeEach(func() {
-				ss = testStore.NewStoreSession()
-				svc.NotificationStoreImpl.NewSessionOutputs = []store.StoreSession{ss}
+				ssn = testStore.NewNotificationsSession()
+				svc.NotificationStoreImpl.NewNotificationsSessionOutputs = []store.NotificationsSession{ssn}
 			})
 
 			AfterEach(func() {
-				Expect(ss.UnusedOutputsCount()).To(Equal(0))
+				Expect(ssn.UnusedOutputsCount()).To(Equal(0))
 			})
 
 			Context("Close", func() {
 				It("returns successfully", func() {
-					Expect(ctx.NotificationStoreSession()).To(Equal(ss))
+					Expect(ctx.NotificationsSession()).To(Equal(ssn))
 					ctx.Close()
-					Expect(ss.CloseInvocations).To(Equal(1))
+					Expect(ssn.CloseInvocations).To(Equal(1))
 				})
 			})
 
-			Context("NotificationStoreSession", func() {
+			Context("NotificationsSession", func() {
 				It("returns successfully", func() {
-					Expect(ctx.NotificationStoreSession()).To(Equal(ss))
-					Expect(ss.SetAgentInvocations).To(Equal(1))
+					Expect(ctx.NotificationsSession()).To(Equal(ssn))
+					Expect(ssn.SetAgentInvocations).To(Equal(1))
 				})
 			})
 		})

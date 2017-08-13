@@ -16,14 +16,14 @@ import (
 var _ = Describe("Mongo", func() {
 	var cfg *storeMongo.Config
 	var str *mongo.Store
-	var ssn store.StoreSession
+	var ssn store.AuthsSession
 
 	BeforeEach(func() {
 		cfg = &storeMongo.Config{
-			Addresses:  []string{testMongo.Address()},
-			Database:   testMongo.Database(),
-			Collection: testMongo.NewCollectionName(),
-			Timeout:    5 * time.Second,
+			Addresses:        []string{testMongo.Address()},
+			Database:         testMongo.Database(),
+			CollectionPrefix: testMongo.NewCollectionPrefix(),
+			Timeout:          5 * time.Second,
 		}
 	})
 
@@ -60,15 +60,15 @@ var _ = Describe("Mongo", func() {
 			Expect(str).ToNot(BeNil())
 		})
 
-		Context("NewSession", func() {
+		Context("NewAuthsSession", func() {
 			It("returns a new session if no logger specified", func() {
-				ssn = str.NewSession(nil)
+				ssn = str.NewAuthsSession(nil)
 				Expect(ssn).ToNot(BeNil())
 				Expect(ssn.Logger()).ToNot(BeNil())
 			})
 
 			It("returns a new session if logger specified", func() {
-				ssn = str.NewSession(nullLog.NewLogger())
+				ssn = str.NewAuthsSession(nullLog.NewLogger())
 				Expect(ssn).ToNot(BeNil())
 				Expect(ssn.Logger()).ToNot(BeNil())
 			})

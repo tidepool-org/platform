@@ -16,7 +16,7 @@ func DatasetsUpdate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	dataset, err := dataServiceContext.DataStoreSession().GetDatasetByID(datasetID)
+	dataset, err := dataServiceContext.DataSession().GetDatasetByID(datasetID)
 	if err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to get dataset by id", err)
 		return
@@ -50,12 +50,12 @@ func DatasetsUpdate(dataServiceContext dataService.Context) {
 
 	dataset.State = "closed"
 
-	if err = dataServiceContext.DataStoreSession().UpdateDataset(dataset); err != nil {
+	if err = dataServiceContext.DataSession().UpdateDataset(dataset); err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to update dataset", err)
 		return
 	}
 
-	deduplicator, err := dataServiceContext.DataDeduplicatorFactory().NewRegisteredDeduplicatorForDataset(dataServiceContext.Logger(), dataServiceContext.DataStoreSession(), dataset)
+	deduplicator, err := dataServiceContext.DataDeduplicatorFactory().NewRegisteredDeduplicatorForDataset(dataServiceContext.Logger(), dataServiceContext.DataSession(), dataset)
 	if err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to create registered deduplicator for dataset", err)
 		return

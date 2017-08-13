@@ -21,8 +21,8 @@ type Context interface {
 	DataFactory() data.Factory
 	DataDeduplicatorFactory() deduplicator.Factory
 
-	DataStoreSession() dataStore.Session
-	SyncTaskStoreSession() syncTaskStore.Session
+	DataSession() dataStore.DataSession
+	SyncTasksSession() syncTaskStore.SyncTasksSession
 }
 
 type HandlerFunc func(context Context)

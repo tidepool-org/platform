@@ -55,8 +55,8 @@ func (t *truncateFactory) CanDeduplicateDataset(dataset *upload.Upload) (bool, e
 	return true, nil
 }
 
-func (t *truncateFactory) NewDeduplicatorForDataset(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (data.Deduplicator, error) {
-	baseDeduplicator, err := NewBaseDeduplicator(t.name, t.version, logger, dataStoreSession, dataset)
+func (t *truncateFactory) NewDeduplicatorForDataset(logger log.Logger, dataSession store.DataSession, dataset *upload.Upload) (data.Deduplicator, error) {
+	baseDeduplicator, err := NewBaseDeduplicator(t.name, t.version, logger, dataSession, dataset)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func (t *truncateDeduplicator) DeduplicateDataset() error {
 		return err
 	}
 
-	if err := t.dataStoreSession.DeleteOtherDatasetData(t.dataset); err != nil {
+	if err := t.dataSession.DeleteOtherDatasetData(t.dataset); err != nil {
 		return errors.Wrapf(err, "deduplicator", "unable to remove all other data except dataset with id %s", strconv.Quote(t.dataset.UploadID))
 	}
 

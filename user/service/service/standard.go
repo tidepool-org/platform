@@ -193,7 +193,6 @@ func (s *Standard) initializeConfirmationStore() error {
 	if err := confirmationStoreConfig.Load(s.ConfigReporter().WithScopes("confirmation", "store")); err != nil {
 		return errors.Wrap(err, "service", "unable to load confirmation store config")
 	}
-	confirmationStoreConfig.Collection = "confirmations"
 
 	s.Logger().Debug("Creating confirmation store")
 
@@ -213,7 +212,6 @@ func (s *Standard) initializeMessageStore() error {
 	if err := messageStoreConfig.Load(s.ConfigReporter().WithScopes("message", "store")); err != nil {
 		return errors.Wrap(err, "service", "unable to load message store config")
 	}
-	messageStoreConfig.Collection = "messages"
 
 	s.Logger().Debug("Creating message store")
 
@@ -233,7 +231,6 @@ func (s *Standard) initializePermissionStore() error {
 	if err := permissionStoreConfig.Load(s.ConfigReporter().WithScopes("permission", "store")); err != nil {
 		return errors.Wrap(err, "service", "unable to load permission store config")
 	}
-	permissionStoreConfig.Collection = "perms"
 
 	s.Logger().Debug("Creating permission store")
 
@@ -253,7 +250,6 @@ func (s *Standard) initializeProfileStore() error {
 	if err := profileStoreConfig.Load(s.ConfigReporter().WithScopes("profile", "store")); err != nil {
 		return errors.Wrap(err, "service", "unable to load profile store config")
 	}
-	profileStoreConfig.Collection = "seagull"
 
 	s.Logger().Debug("Creating profile store")
 
@@ -273,7 +269,6 @@ func (s *Standard) initializeSessionStore() error {
 	if err := sessionStoreConfig.Load(s.ConfigReporter().WithScopes("session", "store")); err != nil {
 		return errors.Wrap(err, "service", "unable to load session store config")
 	}
-	sessionStoreConfig.Collection = "tokens"
 
 	s.Logger().Debug("Creating session store")
 
@@ -293,7 +288,6 @@ func (s *Standard) initializeUserStore() error {
 	if err := userStoreConfig.Load(s.ConfigReporter().WithScopes("user", "store")); err != nil {
 		return errors.Wrap(err, "service", "unable to load user store config")
 	}
-	userStoreConfig.Collection = "users"
 
 	s.Logger().Debug("Creating user store")
 

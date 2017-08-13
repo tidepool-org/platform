@@ -99,35 +99,35 @@ type RespondWithStatusAndDataInput struct {
 	data       interface{}
 }
 
-type TestSyncTaskStoreSession struct {
+type TestSyncTasksSession struct {
 	DestroySyncTasksForUserByIDInputs  []string
 	DestroySyncTasksForUserByIDOutputs []error
 }
 
-func (t *TestSyncTaskStoreSession) IsClosed() bool {
-	panic("Unexpected invocation of IsClosed on TestSyncTaskStoreSession")
+func (t *TestSyncTasksSession) IsClosed() bool {
+	panic("Unexpected invocation of IsClosed on TestSyncTasksSession")
 }
 
-func (t *TestSyncTaskStoreSession) Close() {
-	panic("Unexpected invocation of Close on TestSyncTaskStoreSession")
+func (t *TestSyncTasksSession) Close() {
+	panic("Unexpected invocation of Close on TestSyncTasksSession")
 }
 
-func (t *TestSyncTaskStoreSession) Logger() log.Logger {
-	panic("Unexpected invocation of Logger on TestSyncTaskStoreSession")
+func (t *TestSyncTasksSession) Logger() log.Logger {
+	panic("Unexpected invocation of Logger on TestSyncTasksSession")
 }
 
-func (t *TestSyncTaskStoreSession) SetAgent(agent store.Agent) {
-	panic("Unexpected invocation of SetAgent on TestSyncTaskStoreSession")
+func (t *TestSyncTasksSession) SetAgent(agent store.Agent) {
+	panic("Unexpected invocation of SetAgent on TestSyncTasksSession")
 }
 
-func (t *TestSyncTaskStoreSession) DestroySyncTasksForUserByID(userID string) error {
+func (t *TestSyncTasksSession) DestroySyncTasksForUserByID(userID string) error {
 	t.DestroySyncTasksForUserByIDInputs = append(t.DestroySyncTasksForUserByIDInputs, userID)
 	output := t.DestroySyncTasksForUserByIDOutputs[0]
 	t.DestroySyncTasksForUserByIDOutputs = t.DestroySyncTasksForUserByIDOutputs[1:]
 	return output
 }
 
-func (t *TestSyncTaskStoreSession) ValidateTest() bool {
+func (t *TestSyncTasksSession) ValidateTest() bool {
 	return len(t.DestroySyncTasksForUserByIDOutputs) == 0
 }
 
@@ -140,8 +140,8 @@ type TestContext struct {
 	MetricClientImpl                       *TestMetricClient
 	UserClientImpl                         *TestUserClient
 	DataDeduplicatorFactoryImpl            *testDataDeduplicator.Factory
-	DataStoreSessionImpl                   *testDataStore.Session
-	SyncTaskStoreSessionImpl               *TestSyncTaskStoreSession
+	DataSessionImpl                        *testDataStore.DataSession
+	SyncTasksSessionImpl                   *TestSyncTasksSession
 }
 
 func NewTestContext() *TestContext {
@@ -150,8 +150,8 @@ func NewTestContext() *TestContext {
 		MetricClientImpl:            &TestMetricClient{},
 		UserClientImpl:              &TestUserClient{},
 		DataDeduplicatorFactoryImpl: testDataDeduplicator.NewFactory(),
-		DataStoreSessionImpl:        testDataStore.NewSession(),
-		SyncTaskStoreSessionImpl:    &TestSyncTaskStoreSession{},
+		DataSessionImpl:             testDataStore.NewDataSession(),
+		SyncTasksSessionImpl:        &TestSyncTasksSession{},
 	}
 }
 
@@ -191,12 +191,12 @@ func (t *TestContext) DataDeduplicatorFactory() deduplicator.Factory {
 	return t.DataDeduplicatorFactoryImpl
 }
 
-func (t *TestContext) DataStoreSession() dataStore.Session {
-	return t.DataStoreSessionImpl
+func (t *TestContext) DataSession() dataStore.DataSession {
+	return t.DataSessionImpl
 }
 
-func (t *TestContext) SyncTaskStoreSession() syncTaskStore.Session {
-	return t.SyncTaskStoreSessionImpl
+func (t *TestContext) SyncTasksSession() syncTaskStore.SyncTasksSession {
+	return t.SyncTasksSessionImpl
 }
 
 func (t *TestContext) ValidateTest() bool {
@@ -204,6 +204,6 @@ func (t *TestContext) ValidateTest() bool {
 		(t.MetricClientImpl == nil || t.MetricClientImpl.ValidateTest()) &&
 		(t.UserClientImpl == nil || t.UserClientImpl.ValidateTest()) &&
 		(t.DataDeduplicatorFactoryImpl == nil || t.DataDeduplicatorFactoryImpl.UnusedOutputsCount() == 0) &&
-		(t.DataStoreSessionImpl == nil || t.DataStoreSessionImpl.UnusedOutputsCount() == 0) &&
-		(t.SyncTaskStoreSessionImpl == nil || t.SyncTaskStoreSessionImpl.ValidateTest())
+		(t.DataSessionImpl == nil || t.DataSessionImpl.UnusedOutputsCount() == 0) &&
+		(t.SyncTasksSessionImpl == nil || t.SyncTasksSessionImpl.ValidateTest())
 }

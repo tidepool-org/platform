@@ -8,9 +8,9 @@ import (
 type Store interface {
 	store.Store
 
-	NewSession(lgr log.Logger) StoreSession
+	NewTasksSession(lgr log.Logger) TasksSession
 }
 
-type StoreSession interface {
+type TasksSession interface {
 	store.Session
 }

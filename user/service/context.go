@@ -22,12 +22,12 @@ type Context interface {
 	UserClient() userClient.Client
 	DataClient() dataClient.Client
 
-	ConfirmationStoreSession() confirmationStore.Session
-	MessageStoreSession() messageStore.Session
-	PermissionStoreSession() permissionStore.Session
-	ProfileStoreSession() profileStore.Session
-	SessionStoreSession() sessionStore.Session
-	UserStoreSession() userStore.Session
+	ConfirmationsSession() confirmationStore.ConfirmationsSession
+	MessagesSession() messageStore.MessagesSession
+	PermissionsSession() permissionStore.PermissionsSession
+	ProfilesSession() profileStore.ProfilesSession
+	SessionsSession() sessionStore.SessionsSession
+	UsersSession() userStore.UsersSession
 }
 
 type HandlerFunc func(context Context)

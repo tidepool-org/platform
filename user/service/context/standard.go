@@ -23,23 +23,23 @@ import (
 
 type Standard struct {
 	*authContext.Context
-	authClient               auth.Client
-	dataClient               dataClient.Client
-	metricClient             metricClient.Client
-	userClient               userClient.Client
-	confirmationStore        confirmationStore.Store
-	confirmationStoreSession confirmationStore.Session
-	messageStore             messageStore.Store
-	messageStoreSession      messageStore.Session
-	permissionStore          permissionStore.Store
-	permissionStoreSession   permissionStore.Session
-	profileStore             profileStore.Store
-	profileStoreSession      profileStore.Session
-	sessionStore             sessionStore.Store
-	sessionStoreSession      sessionStore.Session
-	userStore                userStore.Store
-	userStoreSession         userStore.Session
-	authDetails              auth.Details
+	authClient           auth.Client
+	dataClient           dataClient.Client
+	metricClient         metricClient.Client
+	userClient           userClient.Client
+	confirmationStore    confirmationStore.Store
+	confirmationsSession confirmationStore.ConfirmationsSession
+	messageStore         messageStore.Store
+	messagesSession      messageStore.MessagesSession
+	permissionStore      permissionStore.Store
+	permissionsSession   permissionStore.PermissionsSession
+	profileStore         profileStore.Store
+	profilesSession      profileStore.ProfilesSession
+	sessionStore         sessionStore.Store
+	sessionsSession      sessionStore.SessionsSession
+	userStore            userStore.Store
+	usersSession         userStore.UsersSession
+	authDetails          auth.Details
 }
 
 func WithContext(authClient auth.Client, dataClient dataClient.Client, metricClient metricClient.Client, userClient userClient.Client,
@@ -113,29 +113,29 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request, authClient
 }
 
 func (s *Standard) Close() {
-	if s.userStoreSession != nil {
-		s.userStoreSession.Close()
-		s.userStoreSession = nil
+	if s.usersSession != nil {
+		s.usersSession.Close()
+		s.usersSession = nil
 	}
-	if s.sessionStoreSession != nil {
-		s.sessionStoreSession.Close()
-		s.sessionStoreSession = nil
+	if s.sessionsSession != nil {
+		s.sessionsSession.Close()
+		s.sessionsSession = nil
 	}
-	if s.profileStoreSession != nil {
-		s.profileStoreSession.Close()
-		s.profileStoreSession = nil
+	if s.profilesSession != nil {
+		s.profilesSession.Close()
+		s.profilesSession = nil
 	}
-	if s.permissionStoreSession != nil {
-		s.permissionStoreSession.Close()
-		s.permissionStoreSession = nil
+	if s.permissionsSession != nil {
+		s.permissionsSession.Close()
+		s.permissionsSession = nil
 	}
-	if s.messageStoreSession != nil {
-		s.messageStoreSession.Close()
-		s.messageStoreSession = nil
+	if s.messagesSession != nil {
+		s.messagesSession.Close()
+		s.messagesSession = nil
 	}
-	if s.confirmationStoreSession != nil {
-		s.confirmationStoreSession.Close()
-		s.confirmationStoreSession = nil
+	if s.confirmationsSession != nil {
+		s.confirmationsSession.Close()
+		s.confirmationsSession = nil
 	}
 }
 
@@ -151,50 +151,50 @@ func (s *Standard) UserClient() userClient.Client {
 	return s.userClient
 }
 
-func (s *Standard) ConfirmationStoreSession() confirmationStore.Session {
-	if s.confirmationStoreSession == nil {
-		s.confirmationStoreSession = s.confirmationStore.NewSession(s.Context.Logger())
-		s.confirmationStoreSession.SetAgent(s.AuthDetails())
+func (s *Standard) ConfirmationsSession() confirmationStore.ConfirmationsSession {
+	if s.confirmationsSession == nil {
+		s.confirmationsSession = s.confirmationStore.NewConfirmationsSession(s.Context.Logger())
+		s.confirmationsSession.SetAgent(s.AuthDetails())
 	}
-	return s.confirmationStoreSession
+	return s.confirmationsSession
 }
 
-func (s *Standard) MessageStoreSession() messageStore.Session {
-	if s.messageStoreSession == nil {
-		s.messageStoreSession = s.messageStore.NewSession(s.Context.Logger())
-		s.messageStoreSession.SetAgent(s.AuthDetails())
+func (s *Standard) MessagesSession() messageStore.MessagesSession {
+	if s.messagesSession == nil {
+		s.messagesSession = s.messageStore.NewMessagesSession(s.Context.Logger())
+		s.messagesSession.SetAgent(s.AuthDetails())
 	}
-	return s.messageStoreSession
+	return s.messagesSession
 }
 
-func (s *Standard) PermissionStoreSession() permissionStore.Session {
-	if s.permissionStoreSession == nil {
-		s.permissionStoreSession = s.permissionStore.NewSession(s.Context.Logger())
-		s.permissionStoreSession.SetAgent(s.AuthDetails())
+func (s *Standard) PermissionsSession() permissionStore.PermissionsSession {
+	if s.permissionsSession == nil {
+		s.permissionsSession = s.permissionStore.NewPermissionsSession(s.Context.Logger())
+		s.permissionsSession.SetAgent(s.AuthDetails())
 	}
-	return s.permissionStoreSession
+	return s.permissionsSession
 }
 
-func (s *Standard) ProfileStoreSession() profileStore.Session {
-	if s.profileStoreSession == nil {
-		s.profileStoreSession = s.profileStore.NewSession(s.Context.Logger())
-		s.profileStoreSession.SetAgent(s.AuthDetails())
+func (s *Standard) ProfilesSession() profileStore.ProfilesSession {
+	if s.profilesSession == nil {
+		s.profilesSession = s.profileStore.NewProfilesSession(s.Context.Logger())
+		s.profilesSession.SetAgent(s.AuthDetails())
 	}
-	return s.profileStoreSession
+	return s.profilesSession
 }
 
-func (s *Standard) SessionStoreSession() sessionStore.Session {
-	if s.sessionStoreSession == nil {
-		s.sessionStoreSession = s.sessionStore.NewSession(s.Context.Logger())
-		s.sessionStoreSession.SetAgent(s.AuthDetails())
+func (s *Standard) SessionsSession() sessionStore.SessionsSession {
+	if s.sessionsSession == nil {
+		s.sessionsSession = s.sessionStore.NewSessionsSession(s.Context.Logger())
+		s.sessionsSession.SetAgent(s.AuthDetails())
 	}
-	return s.sessionStoreSession
+	return s.sessionsSession
 }
 
-func (s *Standard) UserStoreSession() userStore.Session {
-	if s.userStoreSession == nil {
-		s.userStoreSession = s.userStore.NewSession(s.Context.Logger())
-		s.userStoreSession.SetAgent(s.AuthDetails())
+func (s *Standard) UsersSession() userStore.UsersSession {
+	if s.usersSession == nil {
+		s.usersSession = s.userStore.NewUsersSession(s.Context.Logger())
+		s.usersSession.SetAgent(s.AuthDetails())
 	}
-	return s.userStoreSession
+	return s.usersSession
 }

@@ -12,13 +12,13 @@ import (
 )
 
 type Config struct {
-	Addresses  []string
-	TLS        bool
-	Database   string
-	Collection string
-	Username   *string
-	Password   *string
-	Timeout    time.Duration
+	Addresses        []string
+	TLS              bool
+	Database         string
+	CollectionPrefix string
+	Username         *string
+	Password         *string
+	Timeout          time.Duration
 }
 
 func NewConfig() *Config {
@@ -42,7 +42,7 @@ func (c *Config) Load(configReporter config.Reporter) error {
 		c.TLS = tls
 	}
 	c.Database = configReporter.GetWithDefault("database", "")
-	c.Collection = configReporter.GetWithDefault("collection", "")
+	c.CollectionPrefix = configReporter.GetWithDefault("collection_prefix", "")
 	if username, found := configReporter.Get("username"); found {
 		c.Username = pointer.String(username)
 	}
@@ -74,9 +74,6 @@ func (c *Config) Validate() error {
 	}
 	if c.Database == "" {
 		return errors.New("mongo", "database is missing")
-	}
-	if c.Collection == "" {
-		return errors.New("mongo", "collection is missing")
 	}
 	if c.Timeout <= 0 {
 		return errors.New("mongo", "timeout is invalid")

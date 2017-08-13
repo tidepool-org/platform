@@ -6,7 +6,7 @@ type Store interface {
 	IsClosed() bool
 	Close()
 
-	GetStatus() interface{}
+	Status() interface{}
 }
 
 type Session interface {

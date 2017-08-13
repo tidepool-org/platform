@@ -48,15 +48,15 @@ func ValidatePermissions(testMongoCollection *mgo.Collection, selector bson.M, e
 var _ = Describe("Mongo", func() {
 	var mongoConfig *mongo.Config
 	var mongoStore *mongo.Store
-	var mongoSession store.Session
+	var mongoSession store.PermissionsSession
 
 	BeforeEach(func() {
 		mongoConfig = &mongo.Config{
 			Config: &baseMongo.Config{
-				Addresses:  []string{testMongo.Address()},
-				Database:   testMongo.Database(),
-				Collection: testMongo.NewCollectionName(),
-				Timeout:    5 * time.Second,
+				Addresses:        []string{testMongo.Address()},
+				Database:         testMongo.Database(),
+				CollectionPrefix: testMongo.NewCollectionPrefix(),
+				Timeout:          5 * time.Second,
 			},
 			Secret: "secret",
 		}
@@ -126,16 +126,16 @@ var _ = Describe("Mongo", func() {
 			Expect(mongoStore).ToNot(BeNil())
 		})
 
-		Context("NewSession", func() {
+		Context("NewPermissionsSession", func() {
 			It("returns a new session if no logger specified", func() {
-				mongoSession = mongoStore.NewSession(nil)
+				mongoSession = mongoStore.NewPermissionsSession(nil)
 				Expect(mongoSession).ToNot(BeNil())
 				Expect(mongoSession.Logger()).ToNot(BeNil())
 			})
 
 			It("returns a new session if logger specified", func() {
 				logger := null.NewLogger()
-				mongoSession = mongoStore.NewSession(logger)
+				mongoSession = mongoStore.NewPermissionsSession(logger)
 				Expect(mongoSession).ToNot(BeNil())
 				Expect(mongoSession.Logger()).ToNot(BeNil())
 			})
@@ -143,7 +143,7 @@ var _ = Describe("Mongo", func() {
 
 		Context("with a new session", func() {
 			BeforeEach(func() {
-				mongoSession = mongoStore.NewSession(null.NewLogger())
+				mongoSession = mongoStore.NewPermissionsSession(null.NewLogger())
 				Expect(mongoSession).ToNot(BeNil())
 			})
 
@@ -154,7 +154,7 @@ var _ = Describe("Mongo", func() {
 
 				BeforeEach(func() {
 					testMongoSession = testMongo.Session().Copy()
-					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.Collection)
+					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.CollectionPrefix + "perms")
 					permissions = NewPermissions(id.New())
 				})
 

@@ -12,7 +12,7 @@ import (
 type Context struct {
 	service.Service
 	*serviceContext.Context
-	notificationStoreSession store.StoreSession
+	notificationsSession store.NotificationsSession
 }
 
 func MustNew(svc service.Service, response rest.ResponseWriter, request *rest.Request) *Context {
@@ -41,16 +41,16 @@ func New(svc service.Service, response rest.ResponseWriter, request *rest.Reques
 }
 
 func (c *Context) Close() {
-	if c.notificationStoreSession != nil {
-		c.notificationStoreSession.Close()
-		c.notificationStoreSession = nil
+	if c.notificationsSession != nil {
+		c.notificationsSession.Close()
+		c.notificationsSession = nil
 	}
 }
 
-func (c *Context) NotificationStoreSession() store.StoreSession {
-	if c.notificationStoreSession == nil {
-		c.notificationStoreSession = c.NotificationStore().NewSession(c.Logger())
-		c.notificationStoreSession.SetAgent(c.AuthDetails())
+func (c *Context) NotificationsSession() store.NotificationsSession {
+	if c.notificationsSession == nil {
+		c.notificationsSession = c.NotificationStore().NewNotificationsSession(c.Logger())
+		c.notificationsSession.SetAgent(c.AuthDetails())
 	}
-	return c.notificationStoreSession
+	return c.notificationsSession
 }

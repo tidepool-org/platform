@@ -187,7 +187,6 @@ func (s *Standard) initializeDataStore() error {
 	if err := dataStoreConfig.Load(s.ConfigReporter().WithScopes("data", "store")); err != nil {
 		return errors.Wrap(err, "service", "unable to load data store config")
 	}
-	dataStoreConfig.Collection = "deviceData"
 
 	s.Logger().Debug("Creating data store")
 
@@ -207,7 +206,6 @@ func (s *Standard) initializeSyncTaskStore() error {
 	if err := syncTaskStoreConfig.Load(s.ConfigReporter().WithScopes("sync_task", "store")); err != nil {
 		return errors.Wrap(err, "service", "unable to load sync task store config")
 	}
-	syncTaskStoreConfig.Collection = "syncTasks"
 
 	s.Logger().Debug("Creating sync task store")
 

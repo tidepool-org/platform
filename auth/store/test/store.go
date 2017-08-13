@@ -8,9 +8,9 @@ import (
 
 type Store struct {
 	*testStore.Store
-	NewSessionInvocations int
-	NewSessionInputs      []log.Logger
-	NewSessionOutputs     []store.StoreSession
+	NewAuthsSessionInvocations int
+	NewAuthsSessionInputs      []log.Logger
+	NewAuthsSessionOutputs     []store.AuthsSession
 }
 
 func NewStore() *Store {
@@ -19,20 +19,20 @@ func NewStore() *Store {
 	}
 }
 
-func (s *Store) NewSession(lgr log.Logger) store.StoreSession {
-	s.NewSessionInvocations++
+func (s *Store) NewAuthsSession(lgr log.Logger) store.AuthsSession {
+	s.NewAuthsSessionInvocations++
 
-	s.NewSessionInputs = append(s.NewSessionInputs, lgr)
+	s.NewAuthsSessionInputs = append(s.NewAuthsSessionInputs, lgr)
 
-	if len(s.NewSessionOutputs) == 0 {
-		panic("Unexpected invocation of NewSession on Store")
+	if len(s.NewAuthsSessionOutputs) == 0 {
+		panic("Unexpected invocation of NewAuthsSession on Store")
 	}
 
-	output := s.NewSessionOutputs[0]
-	s.NewSessionOutputs = s.NewSessionOutputs[1:]
+	output := s.NewAuthsSessionOutputs[0]
+	s.NewAuthsSessionOutputs = s.NewAuthsSessionOutputs[1:]
 	return output
 }
 
 func (s *Store) UnusedOutputsCount() int {
-	return len(s.NewSessionOutputs)
+	return len(s.NewAuthsSessionOutputs)
 }

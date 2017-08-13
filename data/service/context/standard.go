@@ -25,9 +25,9 @@ type Standard struct {
 	dataFactory             data.Factory
 	dataDeduplicatorFactory deduplicator.Factory
 	dataStore               dataStore.Store
-	dataStoreSession        dataStore.Session
+	dataSession             dataStore.DataSession
 	syncTaskStore           syncTaskStore.Store
-	syncTaskStoreSession    syncTaskStore.Session
+	syncTasksSession        syncTaskStore.SyncTasksSession
 }
 
 func WithContext(authClient auth.Client, metricClient metricClient.Client, userClient userClient.Client,
@@ -90,13 +90,13 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 }
 
 func (s *Standard) Close() {
-	if s.syncTaskStoreSession != nil {
-		s.syncTaskStoreSession.Close()
-		s.syncTaskStoreSession = nil
+	if s.syncTasksSession != nil {
+		s.syncTasksSession.Close()
+		s.syncTasksSession = nil
 	}
-	if s.dataStoreSession != nil {
-		s.dataStoreSession.Close()
-		s.dataStoreSession = nil
+	if s.dataSession != nil {
+		s.dataSession.Close()
+		s.dataSession = nil
 	}
 }
 
@@ -116,18 +116,18 @@ func (s *Standard) DataDeduplicatorFactory() deduplicator.Factory {
 	return s.dataDeduplicatorFactory
 }
 
-func (s *Standard) DataStoreSession() dataStore.Session {
-	if s.dataStoreSession == nil {
-		s.dataStoreSession = s.dataStore.NewSession(s.Logger())
-		s.dataStoreSession.SetAgent(s.AuthDetails())
+func (s *Standard) DataSession() dataStore.DataSession {
+	if s.dataSession == nil {
+		s.dataSession = s.dataStore.NewDataSession(s.Logger())
+		s.dataSession.SetAgent(s.AuthDetails())
 	}
-	return s.dataStoreSession
+	return s.dataSession
 }
 
-func (s *Standard) SyncTaskStoreSession() syncTaskStore.Session {
-	if s.syncTaskStoreSession == nil {
-		s.syncTaskStoreSession = s.syncTaskStore.NewSession(s.Logger())
-		s.syncTaskStoreSession.SetAgent(s.AuthDetails())
+func (s *Standard) SyncTasksSession() syncTaskStore.SyncTasksSession {
+	if s.syncTasksSession == nil {
+		s.syncTasksSession = s.syncTaskStore.NewSyncTasksSession(s.Logger())
+		s.syncTasksSession.SetAgent(s.AuthDetails())
 	}
-	return s.syncTaskStoreSession
+	return s.syncTasksSession
 }

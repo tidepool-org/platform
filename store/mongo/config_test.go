@@ -20,7 +20,7 @@ var _ = Describe("Config", func() {
 			Expect(config.Addresses).To(BeNil())
 			Expect(config.TLS).To(BeTrue())
 			Expect(config.Database).To(Equal(""))
-			Expect(config.Collection).To(Equal(""))
+			Expect(config.CollectionPrefix).To(Equal(""))
 			Expect(config.Username).To(BeNil())
 			Expect(config.Password).To(BeNil())
 			Expect(config.Timeout).To(Equal(60 * time.Second))
@@ -43,7 +43,7 @@ var _ = Describe("Config", func() {
 				configReporter.Config["addresses"] = "https://1.2.3.4:5678, http://a.b.c.d:9999"
 				configReporter.Config["tls"] = "false"
 				configReporter.Config["database"] = "database"
-				configReporter.Config["collection"] = "collection"
+				configReporter.Config["collection_prefix"] = "collection_prefix"
 				configReporter.Config["username"] = "username"
 				configReporter.Config["password"] = "password"
 				configReporter.Config["timeout"] = "120"
@@ -77,10 +77,10 @@ var _ = Describe("Config", func() {
 				Expect(config.Database).To(Equal(""))
 			})
 
-			It("uses default collection if not set", func() {
-				delete(configReporter.Config, "collection")
+			It("uses default collection prefix if not set", func() {
+				delete(configReporter.Config, "collection_prefix")
 				Expect(config.Load(configReporter)).To(Succeed())
-				Expect(config.Collection).To(Equal(""))
+				Expect(config.CollectionPrefix).To(Equal(""))
 			})
 
 			It("uses default username if not set", func() {
@@ -112,7 +112,7 @@ var _ = Describe("Config", func() {
 				Expect(config.Addresses).To(Equal([]string{"https://1.2.3.4:5678", "http://a.b.c.d:9999"}))
 				Expect(config.TLS).To(BeFalse())
 				Expect(config.Database).To(Equal("database"))
-				Expect(config.Collection).To(Equal("collection"))
+				Expect(config.CollectionPrefix).To(Equal("collection_prefix"))
 				Expect(config.Username).ToNot(BeNil())
 				Expect(*config.Username).To(Equal("username"))
 				Expect(config.Password).ToNot(BeNil())
@@ -126,7 +126,7 @@ var _ = Describe("Config", func() {
 				config.Addresses = []string{"1.2.3.4", "5.6.7.8"}
 				config.TLS = false
 				config.Database = "database"
-				config.Collection = "collection"
+				config.CollectionPrefix = "collection_prefix"
 				config.Username = pointer.String("username")
 				config.Password = pointer.String("password")
 				config.Timeout = 5 * time.Second
@@ -160,11 +160,6 @@ var _ = Describe("Config", func() {
 				It("returns an error if the database is missing", func() {
 					config.Database = ""
 					Expect(config.Validate()).To(MatchError("mongo: database is missing"))
-				})
-
-				It("returns an error if the collection is missing", func() {
-					config.Collection = ""
-					Expect(config.Validate()).To(MatchError("mongo: collection is missing"))
 				})
 
 				It("returns success if the username is not specified", func() {

@@ -26,17 +26,17 @@ type Store struct {
 	*mongo.Store
 }
 
-func (s *Store) NewSession(logger log.Logger) store.Session {
-	return &Session{
-		Session: s.Store.NewSession(logger),
+func (s *Store) NewSessionsSession(logger log.Logger) store.SessionsSession {
+	return &SessionsSession{
+		Session: s.Store.NewSession(logger, "tokens"),
 	}
 }
 
-type Session struct {
+type SessionsSession struct {
 	*mongo.Session
 }
 
-func (s *Session) DestroySessionsForUserByID(userID string) error {
+func (s *SessionsSession) DestroySessionsForUserByID(userID string) error {
 	if userID == "" {
 		return errors.New("mongo", "user id is missing")
 	}

@@ -39,24 +39,24 @@ type Store struct {
 	config *Config
 }
 
-func (s *Store) NewSession(logger log.Logger) store.Session {
-	return &Session{
-		Session: s.Store.NewSession(logger),
+func (s *Store) NewUsersSession(logger log.Logger) store.UsersSession {
+	return &UsersSession{
+		Session: s.Store.NewSession(logger, "users"),
 		config:  s.config,
 	}
 }
 
-type Session struct {
+type UsersSession struct {
 	*mongo.Session
 	config *Config
 }
 
-func (s *Session) GetUserByID(userID string) (*user.User, error) {
+func (u *UsersSession) GetUserByID(userID string) (*user.User, error) {
 	if userID == "" {
 		return nil, errors.New("mongo", "user id is missing")
 	}
 
-	if s.IsClosed() {
+	if u.IsClosed() {
 		return nil, errors.New("mongo", "session closed")
 	}
 
@@ -66,10 +66,10 @@ func (s *Session) GetUserByID(userID string) (*user.User, error) {
 	selector := bson.M{
 		"userid": userID,
 	}
-	err := s.C().Find(selector).Limit(2).All(&users)
+	err := u.C().Find(selector).Limit(2).All(&users)
 
 	loggerFields := log.Fields{"userId": userID, "duration": time.Since(startTime) / time.Microsecond}
-	s.Logger().WithFields(loggerFields).WithError(err).Debug("GetUserByID")
+	u.Logger().WithFields(loggerFields).WithError(err).Debug("GetUserByID")
 
 	if err != nil {
 		return nil, errors.Wrap(err, "mongo", "unable to get user by id")
@@ -78,7 +78,7 @@ func (s *Session) GetUserByID(userID string) (*user.User, error) {
 	if usersCount := len(users); usersCount == 0 {
 		return nil, nil
 	} else if usersCount > 1 {
-		s.Logger().WithField("userId", userID).Warn("Multiple users found for user id")
+		u.Logger().WithField("userId", userID).Warn("Multiple users found for user id")
 	}
 
 	user := users[0]
@@ -90,7 +90,7 @@ func (s *Session) GetUserByID(userID string) (*user.User, error) {
 	return user, nil
 }
 
-func (s *Session) DeleteUser(user *user.User) error {
+func (u *UsersSession) DeleteUser(user *user.User) error {
 	if user == nil {
 		return errors.New("mongo", "user is missing")
 	}
@@ -98,22 +98,22 @@ func (s *Session) DeleteUser(user *user.User) error {
 		return errors.New("mongo", "user id is missing")
 	}
 
-	if s.IsClosed() {
+	if u.IsClosed() {
 		return errors.New("mongo", "session closed")
 	}
 
 	startTime := time.Now()
 
-	user.DeletedTime = s.Timestamp()
-	user.DeletedUserID = s.AgentUserID()
+	user.DeletedTime = u.Timestamp()
+	user.DeletedUserID = u.AgentUserID()
 
 	selector := bson.M{
 		"userid": user.ID,
 	}
-	err := s.C().Update(selector, user)
+	err := u.C().Update(selector, user)
 
 	loggerFields := log.Fields{"userId": user.ID, "duration": time.Since(startTime) / time.Microsecond}
-	s.Logger().WithFields(loggerFields).WithError(err).Debug("DeleteUser")
+	u.Logger().WithFields(loggerFields).WithError(err).Debug("DeleteUser")
 
 	if err != nil {
 		return errors.Wrap(err, "mongo", "unable to delete user")
@@ -121,12 +121,12 @@ func (s *Session) DeleteUser(user *user.User) error {
 	return nil
 }
 
-func (s *Session) DestroyUserByID(userID string) error {
+func (u *UsersSession) DestroyUserByID(userID string) error {
 	if userID == "" {
 		return errors.New("mongo", "user id is missing")
 	}
 
-	if s.IsClosed() {
+	if u.IsClosed() {
 		return errors.New("mongo", "session closed")
 	}
 
@@ -135,10 +135,10 @@ func (s *Session) DestroyUserByID(userID string) error {
 	selector := bson.M{
 		"userid": userID,
 	}
-	err := s.C().Remove(selector)
+	err := u.C().Remove(selector)
 
 	loggerFields := log.Fields{"userId": userID, "duration": time.Since(startTime) / time.Microsecond}
-	s.Logger().WithFields(loggerFields).WithError(err).Debug("DestroyUserByID")
+	u.Logger().WithFields(loggerFields).WithError(err).Debug("DestroyUserByID")
 
 	if err != nil {
 		return errors.Wrap(err, "mongo", "unable to destroy user by id")
@@ -151,16 +151,16 @@ func (s *Session) DestroyUserByID(userID string) error {
 
 // TODO: We should use a constant-time password matching algorithm
 
-func (s *Session) PasswordMatches(user *user.User, password string) bool {
-	return user.PasswordHash == s.HashPassword(user.ID, password)
+func (u *UsersSession) PasswordMatches(user *user.User, password string) bool {
+	return user.PasswordHash == u.HashPassword(user.ID, password)
 }
 
 // TODO: Do away with external salt and use hash algorithm with internal salt (eg. bcrypt/scrypt)
 
-func (s *Session) HashPassword(userID string, password string) string {
+func (u *UsersSession) HashPassword(userID string, password string) string {
 	hash := sha1.New()
 	hash.Write([]byte(password))
-	hash.Write([]byte(s.config.PasswordSalt))
+	hash.Write([]byte(u.config.PasswordSalt))
 	hash.Write([]byte(userID))
 	return hex.EncodeToString(hash.Sum(nil))
 }

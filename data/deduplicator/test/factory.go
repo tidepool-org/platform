@@ -14,9 +14,9 @@ type CanDeduplicateDatasetOutput struct {
 }
 
 type NewDeduplicatorForDatasetInput struct {
-	Logger           log.Logger
-	DataStoreSession store.Session
-	Dataset          *upload.Upload
+	Logger      log.Logger
+	DataSession store.DataSession
+	Dataset     *upload.Upload
 }
 
 type NewDeduplicatorForDatasetOutput struct {
@@ -30,9 +30,9 @@ type IsRegisteredWithDatasetOutput struct {
 }
 
 type NewRegisteredDeduplicatorForDatasetInput struct {
-	Logger           log.Logger
-	DataStoreSession store.Session
-	Dataset          *upload.Upload
+	Logger      log.Logger
+	DataSession store.DataSession
+	Dataset     *upload.Upload
 }
 
 type NewRegisteredDeduplicatorForDatasetOutput struct {
@@ -76,10 +76,10 @@ func (f *Factory) CanDeduplicateDataset(dataset *upload.Upload) (bool, error) {
 	return output.Can, output.Error
 }
 
-func (f *Factory) NewDeduplicatorForDataset(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (data.Deduplicator, error) {
+func (f *Factory) NewDeduplicatorForDataset(logger log.Logger, dataSession store.DataSession, dataset *upload.Upload) (data.Deduplicator, error) {
 	f.NewDeduplicatorForDatasetInvocations++
 
-	f.NewDeduplicatorForDatasetInputs = append(f.NewDeduplicatorForDatasetInputs, NewDeduplicatorForDatasetInput{logger, dataStoreSession, dataset})
+	f.NewDeduplicatorForDatasetInputs = append(f.NewDeduplicatorForDatasetInputs, NewDeduplicatorForDatasetInput{logger, dataSession, dataset})
 
 	if len(f.NewDeduplicatorForDatasetOutputs) == 0 {
 		panic("Unexpected invocation of NewDeduplicatorForDataset on Factory")
@@ -104,10 +104,10 @@ func (f *Factory) IsRegisteredWithDataset(dataset *upload.Upload) (bool, error) 
 	return output.Is, output.Error
 }
 
-func (f *Factory) NewRegisteredDeduplicatorForDataset(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (data.Deduplicator, error) {
+func (f *Factory) NewRegisteredDeduplicatorForDataset(logger log.Logger, dataSession store.DataSession, dataset *upload.Upload) (data.Deduplicator, error) {
 	f.NewRegisteredDeduplicatorForDatasetInvocations++
 
-	f.NewRegisteredDeduplicatorForDatasetInputs = append(f.NewRegisteredDeduplicatorForDatasetInputs, NewRegisteredDeduplicatorForDatasetInput{logger, dataStoreSession, dataset})
+	f.NewRegisteredDeduplicatorForDatasetInputs = append(f.NewRegisteredDeduplicatorForDatasetInputs, NewRegisteredDeduplicatorForDatasetInput{logger, dataSession, dataset})
 
 	if len(f.NewRegisteredDeduplicatorForDatasetOutputs) == 0 {
 		panic("Unexpected invocation of NewRegisteredDeduplicatorForDataset on Factory")

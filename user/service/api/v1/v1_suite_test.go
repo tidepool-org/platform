@@ -145,109 +145,109 @@ func (t *TestDataClient) ValidateTest() bool {
 	return len(t.DestroyDataForUserByIDOutputs) == 0
 }
 
-type TestConfirmationStoreSession struct {
+type TestConfirmationsSession struct {
 	DestroyConfirmationsForUserByIDInputs  []string
 	DestroyConfirmationsForUserByIDOutputs []error
 }
 
-func (t *TestConfirmationStoreSession) IsClosed() bool {
-	panic("Unexpected invocation of IsClosed on TestConfirmationStoreSession")
+func (t *TestConfirmationsSession) IsClosed() bool {
+	panic("Unexpected invocation of IsClosed on TestConfirmationsSession")
 }
 
-func (t *TestConfirmationStoreSession) Close() {
-	panic("Unexpected invocation of Close on TestConfirmationStoreSession")
+func (t *TestConfirmationsSession) Close() {
+	panic("Unexpected invocation of Close on TestConfirmationsSession")
 }
 
-func (t *TestConfirmationStoreSession) Logger() log.Logger {
-	panic("Unexpected invocation of Logger on TestConfirmationStoreSession")
+func (t *TestConfirmationsSession) Logger() log.Logger {
+	panic("Unexpected invocation of Logger on TestConfirmationsSession")
 }
 
-func (t *TestConfirmationStoreSession) SetAgent(agent store.Agent) {
-	panic("Unexpected invocation of SetAgent on TestConfirmationStoreSession")
+func (t *TestConfirmationsSession) SetAgent(agent store.Agent) {
+	panic("Unexpected invocation of SetAgent on TestConfirmationsSession")
 }
 
-func (t *TestConfirmationStoreSession) DestroyConfirmationsForUserByID(userID string) error {
+func (t *TestConfirmationsSession) DestroyConfirmationsForUserByID(userID string) error {
 	t.DestroyConfirmationsForUserByIDInputs = append(t.DestroyConfirmationsForUserByIDInputs, userID)
 	output := t.DestroyConfirmationsForUserByIDOutputs[0]
 	t.DestroyConfirmationsForUserByIDOutputs = t.DestroyConfirmationsForUserByIDOutputs[1:]
 	return output
 }
 
-func (t *TestConfirmationStoreSession) ValidateTest() bool {
+func (t *TestConfirmationsSession) ValidateTest() bool {
 	return len(t.DestroyConfirmationsForUserByIDOutputs) == 0
 }
 
-type TestMessageStoreSession struct {
+type TestMessagesSession struct {
 	DeleteMessagesFromUserInputs      []*messageStore.User
 	DeleteMessagesFromUserOutputs     []error
 	DestroyMessagesForUserByIDInputs  []string
 	DestroyMessagesForUserByIDOutputs []error
 }
 
-func (t *TestMessageStoreSession) IsClosed() bool {
-	panic("Unexpected invocation of IsClosed on TestMessageStoreSession")
+func (t *TestMessagesSession) IsClosed() bool {
+	panic("Unexpected invocation of IsClosed on TestMessagesSession")
 }
 
-func (t *TestMessageStoreSession) Close() {
-	panic("Unexpected invocation of Close on TestMessageStoreSession")
+func (t *TestMessagesSession) Close() {
+	panic("Unexpected invocation of Close on TestMessagesSession")
 }
 
-func (t *TestMessageStoreSession) Logger() log.Logger {
-	panic("Unexpected invocation of Logger on TestMessageStoreSession")
+func (t *TestMessagesSession) Logger() log.Logger {
+	panic("Unexpected invocation of Logger on TestMessagesSession")
 }
 
-func (t *TestMessageStoreSession) SetAgent(agent store.Agent) {
-	panic("Unexpected invocation of SetAgent on TestMessageStoreSession")
+func (t *TestMessagesSession) SetAgent(agent store.Agent) {
+	panic("Unexpected invocation of SetAgent on TestMessagesSession")
 }
 
-func (t *TestMessageStoreSession) DeleteMessagesFromUser(deleteUser *messageStore.User) error {
+func (t *TestMessagesSession) DeleteMessagesFromUser(deleteUser *messageStore.User) error {
 	t.DeleteMessagesFromUserInputs = append(t.DeleteMessagesFromUserInputs, deleteUser)
 	output := t.DeleteMessagesFromUserOutputs[0]
 	t.DeleteMessagesFromUserOutputs = t.DeleteMessagesFromUserOutputs[1:]
 	return output
 }
 
-func (t *TestMessageStoreSession) DestroyMessagesForUserByID(userID string) error {
+func (t *TestMessagesSession) DestroyMessagesForUserByID(userID string) error {
 	t.DestroyMessagesForUserByIDInputs = append(t.DestroyMessagesForUserByIDInputs, userID)
 	output := t.DestroyMessagesForUserByIDOutputs[0]
 	t.DestroyMessagesForUserByIDOutputs = t.DestroyMessagesForUserByIDOutputs[1:]
 	return output
 }
 
-func (t *TestMessageStoreSession) ValidateTest() bool {
+func (t *TestMessagesSession) ValidateTest() bool {
 	return len(t.DeleteMessagesFromUserOutputs) == 0 &&
 		len(t.DestroyMessagesForUserByIDOutputs) == 0
 }
 
-type TestPermissionStoreSession struct {
+type TestPermissionsSession struct {
 	DestroyPermissionsForUserByIDInputs  []string
 	DestroyPermissionsForUserByIDOutputs []error
 }
 
-func (t *TestPermissionStoreSession) IsClosed() bool {
-	panic("Unexpected invocation of IsClosed on TestPermissionStoreSession")
+func (t *TestPermissionsSession) IsClosed() bool {
+	panic("Unexpected invocation of IsClosed on TestPermissionsSession")
 }
 
-func (t *TestPermissionStoreSession) Close() {
-	panic("Unexpected invocation of Close on TestPermissionStoreSession")
+func (t *TestPermissionsSession) Close() {
+	panic("Unexpected invocation of Close on TestPermissionsSession")
 }
 
-func (t *TestPermissionStoreSession) Logger() log.Logger {
-	panic("Unexpected invocation of Logger on TestPermissionStoreSession")
+func (t *TestPermissionsSession) Logger() log.Logger {
+	panic("Unexpected invocation of Logger on TestPermissionsSession")
 }
 
-func (t *TestPermissionStoreSession) SetAgent(agent store.Agent) {
-	panic("Unexpected invocation of SetAgent on TestPermissionStoreSession")
+func (t *TestPermissionsSession) SetAgent(agent store.Agent) {
+	panic("Unexpected invocation of SetAgent on TestPermissionsSession")
 }
 
-func (t *TestPermissionStoreSession) DestroyPermissionsForUserByID(userID string) error {
+func (t *TestPermissionsSession) DestroyPermissionsForUserByID(userID string) error {
 	t.DestroyPermissionsForUserByIDInputs = append(t.DestroyPermissionsForUserByIDInputs, userID)
 	output := t.DestroyPermissionsForUserByIDOutputs[0]
 	t.DestroyPermissionsForUserByIDOutputs = t.DestroyPermissionsForUserByIDOutputs[1:]
 	return output
 }
 
-func (t *TestPermissionStoreSession) ValidateTest() bool {
+func (t *TestPermissionsSession) ValidateTest() bool {
 	return len(t.DestroyPermissionsForUserByIDOutputs) == 0
 }
 
@@ -256,77 +256,77 @@ type GetProfileByIDOutput struct {
 	err error
 }
 
-type TestProfileStoreSession struct {
+type TestProfilesSession struct {
 	GetProfileByIDInputs      []string
 	GetProfileByIDOutputs     []GetProfileByIDOutput
 	DestroyProfileByIDInputs  []string
 	DestroyProfileByIDOutputs []error
 }
 
-func (t *TestProfileStoreSession) IsClosed() bool {
-	panic("Unexpected invocation of IsClosed on TestProfileStoreSession")
+func (t *TestProfilesSession) IsClosed() bool {
+	panic("Unexpected invocation of IsClosed on TestProfilesSession")
 }
 
-func (t *TestProfileStoreSession) Close() {
-	panic("Unexpected invocation of Close on TestProfileStoreSession")
+func (t *TestProfilesSession) Close() {
+	panic("Unexpected invocation of Close on TestProfilesSession")
 }
 
-func (t *TestProfileStoreSession) Logger() log.Logger {
-	panic("Unexpected invocation of Logger on TestProfileStoreSession")
+func (t *TestProfilesSession) Logger() log.Logger {
+	panic("Unexpected invocation of Logger on TestProfilesSession")
 }
 
-func (t *TestProfileStoreSession) SetAgent(agent store.Agent) {
-	panic("Unexpected invocation of SetAgent on TestProfileStoreSession")
+func (t *TestProfilesSession) SetAgent(agent store.Agent) {
+	panic("Unexpected invocation of SetAgent on TestProfilesSession")
 }
 
-func (t *TestProfileStoreSession) GetProfileByID(profileID string) (*profile.Profile, error) {
+func (t *TestProfilesSession) GetProfileByID(profileID string) (*profile.Profile, error) {
 	t.GetProfileByIDInputs = append(t.GetProfileByIDInputs, profileID)
 	output := t.GetProfileByIDOutputs[0]
 	t.GetProfileByIDOutputs = t.GetProfileByIDOutputs[1:]
 	return output.Profile, output.err
 }
 
-func (t *TestProfileStoreSession) DestroyProfileByID(profileID string) error {
+func (t *TestProfilesSession) DestroyProfileByID(profileID string) error {
 	t.DestroyProfileByIDInputs = append(t.DestroyProfileByIDInputs, profileID)
 	output := t.DestroyProfileByIDOutputs[0]
 	t.DestroyProfileByIDOutputs = t.DestroyProfileByIDOutputs[1:]
 	return output
 }
 
-func (t *TestProfileStoreSession) ValidateTest() bool {
+func (t *TestProfilesSession) ValidateTest() bool {
 	return len(t.GetProfileByIDOutputs) == 0 &&
 		len(t.DestroyProfileByIDOutputs) == 0
 }
 
-type TestSessionStoreSession struct {
+type TestSessionsSession struct {
 	DestroySessionsForUserByIDInputs  []string
 	DestroySessionsForUserByIDOutputs []error
 }
 
-func (t *TestSessionStoreSession) IsClosed() bool {
-	panic("Unexpected invocation of IsClosed on TestSessionStoreSession")
+func (t *TestSessionsSession) IsClosed() bool {
+	panic("Unexpected invocation of IsClosed on TestSessionsSession")
 }
 
-func (t *TestSessionStoreSession) Close() {
-	panic("Unexpected invocation of Close on TestSessionStoreSession")
+func (t *TestSessionsSession) Close() {
+	panic("Unexpected invocation of Close on TestSessionsSession")
 }
 
-func (t *TestSessionStoreSession) Logger() log.Logger {
-	panic("Unexpected invocation of Logger on TestSessionStoreSession")
+func (t *TestSessionsSession) Logger() log.Logger {
+	panic("Unexpected invocation of Logger on TestSessionsSession")
 }
 
-func (t *TestSessionStoreSession) SetAgent(agent store.Agent) {
-	panic("Unexpected invocation of SetAgent on TestSessionStoreSession")
+func (t *TestSessionsSession) SetAgent(agent store.Agent) {
+	panic("Unexpected invocation of SetAgent on TestSessionsSession")
 }
 
-func (t *TestSessionStoreSession) DestroySessionsForUserByID(userID string) error {
+func (t *TestSessionsSession) DestroySessionsForUserByID(userID string) error {
 	t.DestroySessionsForUserByIDInputs = append(t.DestroySessionsForUserByIDInputs, userID)
 	output := t.DestroySessionsForUserByIDOutputs[0]
 	t.DestroySessionsForUserByIDOutputs = t.DestroySessionsForUserByIDOutputs[1:]
 	return output
 }
 
-func (t *TestSessionStoreSession) ValidateTest() bool {
+func (t *TestSessionsSession) ValidateTest() bool {
 	return len(t.DestroySessionsForUserByIDOutputs) == 0
 }
 
@@ -340,7 +340,7 @@ type PasswordMatchesInput struct {
 	password string
 }
 
-type TestUserStoreSession struct {
+type TestUsersSession struct {
 	GetUserByIDInputs      []string
 	GetUserByIDOutputs     []GetUserByIDOutput
 	DeleteUserInputs       []*user.User
@@ -351,51 +351,51 @@ type TestUserStoreSession struct {
 	PasswordMatchesOutputs []bool
 }
 
-func (t *TestUserStoreSession) IsClosed() bool {
-	panic("Unexpected invocation of IsClosed on TestUserStoreSession")
+func (t *TestUsersSession) IsClosed() bool {
+	panic("Unexpected invocation of IsClosed on TestUsersSession")
 }
 
-func (t *TestUserStoreSession) Close() {
-	panic("Unexpected invocation of Close on TestUserStoreSession")
+func (t *TestUsersSession) Close() {
+	panic("Unexpected invocation of Close on TestUsersSession")
 }
 
-func (t *TestUserStoreSession) Logger() log.Logger {
-	panic("Unexpected invocation of Logger on TestUserStoreSession")
+func (t *TestUsersSession) Logger() log.Logger {
+	panic("Unexpected invocation of Logger on TestUsersSession")
 }
 
-func (t *TestUserStoreSession) SetAgent(agent store.Agent) {
-	panic("Unexpected invocation of SetAgent on TestUserStoreSession")
+func (t *TestUsersSession) SetAgent(agent store.Agent) {
+	panic("Unexpected invocation of SetAgent on TestUsersSession")
 }
 
-func (t *TestUserStoreSession) GetUserByID(profileID string) (*user.User, error) {
+func (t *TestUsersSession) GetUserByID(profileID string) (*user.User, error) {
 	t.GetUserByIDInputs = append(t.GetUserByIDInputs, profileID)
 	output := t.GetUserByIDOutputs[0]
 	t.GetUserByIDOutputs = t.GetUserByIDOutputs[1:]
 	return output.User, output.err
 }
 
-func (t *TestUserStoreSession) DeleteUser(deleteUser *user.User) error {
+func (t *TestUsersSession) DeleteUser(deleteUser *user.User) error {
 	t.DeleteUserInputs = append(t.DeleteUserInputs, deleteUser)
 	output := t.DeleteUserOutputs[0]
 	t.DeleteUserOutputs = t.DeleteUserOutputs[1:]
 	return output
 }
 
-func (t *TestUserStoreSession) DestroyUserByID(userID string) error {
+func (t *TestUsersSession) DestroyUserByID(userID string) error {
 	t.DestroyUserByIDInputs = append(t.DestroyUserByIDInputs, userID)
 	output := t.DestroyUserByIDOutputs[0]
 	t.DestroyUserByIDOutputs = t.DestroyUserByIDOutputs[1:]
 	return output
 }
 
-func (t *TestUserStoreSession) PasswordMatches(matchUser *user.User, password string) bool {
+func (t *TestUsersSession) PasswordMatches(matchUser *user.User, password string) bool {
 	t.PasswordMatchesInputs = append(t.PasswordMatchesInputs, PasswordMatchesInput{matchUser, password})
 	output := t.PasswordMatchesOutputs[0]
 	t.PasswordMatchesOutputs = t.PasswordMatchesOutputs[1:]
 	return output
 }
 
-func (t *TestUserStoreSession) ValidateTest() bool {
+func (t *TestUsersSession) ValidateTest() bool {
 	return len(t.GetUserByIDOutputs) == 0 &&
 		len(t.DeleteUserOutputs) == 0 &&
 		len(t.DestroyUserByIDOutputs) == 0 &&
@@ -411,26 +411,26 @@ type TestContext struct {
 	MetricClientImpl                       *TestMetricClient
 	UserClientImpl                         *TestUserClient
 	DataClientImpl                         *TestDataClient
-	ConfirmationStoreSessionImpl           *TestConfirmationStoreSession
-	MessageStoreSessionImpl                *TestMessageStoreSession
-	PermissionStoreSessionImpl             *TestPermissionStoreSession
-	ProfileStoreSessionImpl                *TestProfileStoreSession
-	SessionStoreSessionImpl                *TestSessionStoreSession
-	UserStoreSessionImpl                   *TestUserStoreSession
+	ConfirmationsSessionImpl               *TestConfirmationsSession
+	MessagesSessionImpl                    *TestMessagesSession
+	PermissionsSessionImpl                 *TestPermissionsSession
+	ProfilesSessionImpl                    *TestProfilesSession
+	SessionsSessionImpl                    *TestSessionsSession
+	UsersSessionImpl                       *TestUsersSession
 }
 
 func NewTestContext() *TestContext {
 	return &TestContext{
-		Context:                      testAuth.NewContext(),
-		MetricClientImpl:             &TestMetricClient{},
-		UserClientImpl:               &TestUserClient{},
-		DataClientImpl:               &TestDataClient{},
-		ConfirmationStoreSessionImpl: &TestConfirmationStoreSession{},
-		MessageStoreSessionImpl:      &TestMessageStoreSession{},
-		PermissionStoreSessionImpl:   &TestPermissionStoreSession{},
-		ProfileStoreSessionImpl:      &TestProfileStoreSession{},
-		SessionStoreSessionImpl:      &TestSessionStoreSession{},
-		UserStoreSessionImpl:         &TestUserStoreSession{},
+		Context:                  testAuth.NewContext(),
+		MetricClientImpl:         &TestMetricClient{},
+		UserClientImpl:           &TestUserClient{},
+		DataClientImpl:           &TestDataClient{},
+		ConfirmationsSessionImpl: &TestConfirmationsSession{},
+		MessagesSessionImpl:      &TestMessagesSession{},
+		PermissionsSessionImpl:   &TestPermissionsSession{},
+		ProfilesSessionImpl:      &TestProfilesSession{},
+		SessionsSessionImpl:      &TestSessionsSession{},
+		UsersSessionImpl:         &TestUsersSession{},
 	}
 }
 
@@ -466,28 +466,28 @@ func (t *TestContext) DataClient() dataClient.Client {
 	return t.DataClientImpl
 }
 
-func (t *TestContext) ConfirmationStoreSession() confirmationStore.Session {
-	return t.ConfirmationStoreSessionImpl
+func (t *TestContext) ConfirmationsSession() confirmationStore.ConfirmationsSession {
+	return t.ConfirmationsSessionImpl
 }
 
-func (t *TestContext) MessageStoreSession() messageStore.Session {
-	return t.MessageStoreSessionImpl
+func (t *TestContext) MessagesSession() messageStore.MessagesSession {
+	return t.MessagesSessionImpl
 }
 
-func (t *TestContext) PermissionStoreSession() permissionStore.Session {
-	return t.PermissionStoreSessionImpl
+func (t *TestContext) PermissionsSession() permissionStore.PermissionsSession {
+	return t.PermissionsSessionImpl
 }
 
-func (t *TestContext) ProfileStoreSession() profileStore.Session {
-	return t.ProfileStoreSessionImpl
+func (t *TestContext) ProfilesSession() profileStore.ProfilesSession {
+	return t.ProfilesSessionImpl
 }
 
-func (t *TestContext) SessionStoreSession() sessionStore.Session {
-	return t.SessionStoreSessionImpl
+func (t *TestContext) SessionsSession() sessionStore.SessionsSession {
+	return t.SessionsSessionImpl
 }
 
-func (t *TestContext) UserStoreSession() userStore.Session {
-	return t.UserStoreSessionImpl
+func (t *TestContext) UsersSession() userStore.UsersSession {
+	return t.UsersSessionImpl
 }
 
 func (t *TestContext) ValidateTest() bool {
@@ -495,10 +495,10 @@ func (t *TestContext) ValidateTest() bool {
 		(t.MetricClientImpl == nil || t.MetricClientImpl.ValidateTest()) &&
 		(t.UserClientImpl == nil || t.UserClientImpl.ValidateTest()) &&
 		(t.DataClientImpl == nil || t.DataClientImpl.ValidateTest()) &&
-		(t.ConfirmationStoreSessionImpl == nil || t.ConfirmationStoreSessionImpl.ValidateTest()) &&
-		(t.MessageStoreSessionImpl == nil || t.MessageStoreSessionImpl.ValidateTest()) &&
-		(t.PermissionStoreSessionImpl == nil || t.PermissionStoreSessionImpl.ValidateTest()) &&
-		(t.ProfileStoreSessionImpl == nil || t.ProfileStoreSessionImpl.ValidateTest()) &&
-		(t.SessionStoreSessionImpl == nil || t.SessionStoreSessionImpl.ValidateTest()) &&
-		(t.UserStoreSessionImpl == nil || t.UserStoreSessionImpl.ValidateTest())
+		(t.ConfirmationsSessionImpl == nil || t.ConfirmationsSessionImpl.ValidateTest()) &&
+		(t.MessagesSessionImpl == nil || t.MessagesSessionImpl.ValidateTest()) &&
+		(t.PermissionsSessionImpl == nil || t.PermissionsSessionImpl.ValidateTest()) &&
+		(t.ProfilesSessionImpl == nil || t.ProfilesSessionImpl.ValidateTest()) &&
+		(t.SessionsSessionImpl == nil || t.SessionsSessionImpl.ValidateTest()) &&
+		(t.UsersSessionImpl == nil || t.UsersSessionImpl.ValidateTest())
 }

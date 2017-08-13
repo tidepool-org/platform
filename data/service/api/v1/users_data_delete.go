@@ -19,14 +19,14 @@ func UsersDataDelete(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if err := dataServiceContext.DataStoreSession().DestroyDataForUserByID(targetUserID); err != nil {
+	if err := dataServiceContext.DataSession().DestroyDataForUserByID(targetUserID); err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to delete data for user by id", err)
 		return
 	}
 
 	// TODO: This should probably be in its own API, but then again, these are very specific sync tasks and
 	// the whole sync task thing needs to be reworked, so we'll leave it be for the time being.
-	if err := dataServiceContext.SyncTaskStoreSession().DestroySyncTasksForUserByID(targetUserID); err != nil {
+	if err := dataServiceContext.SyncTasksSession().DestroySyncTasksForUserByID(targetUserID); err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to delete sync tasks for user by id", err)
 		return
 	}

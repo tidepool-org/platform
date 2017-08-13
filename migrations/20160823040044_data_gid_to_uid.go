@@ -89,7 +89,6 @@ func (m *Migration) buildMetaIDToUserIDMap() (map[string]string, error) {
 
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "user"
-	mongoConfig.Collection = "users"
 	usersStore, err := mongo.New(m.Logger(), mongoConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "main", "unable to create users store")
@@ -98,7 +97,7 @@ func (m *Migration) buildMetaIDToUserIDMap() (map[string]string, error) {
 
 	m.Logger().Debug("Creating users session")
 
-	usersSession := usersStore.NewSession(m.Logger())
+	usersSession := usersStore.NewSession(m.Logger(), "users")
 	defer usersSession.Close()
 
 	m.Logger().Debug("Iterating users")
@@ -163,7 +162,6 @@ func (m *Migration) buildGroupIDToUserIDMap(metaIDToUserIDMap map[string]string)
 
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "seagull"
-	mongoConfig.Collection = "seagull"
 	metaStore, err := mongo.New(m.Logger(), mongoConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "main", "unable to create meta store")
@@ -172,7 +170,7 @@ func (m *Migration) buildGroupIDToUserIDMap(metaIDToUserIDMap map[string]string)
 
 	m.Logger().Debug("Creating meta session")
 
-	metaSession := metaStore.NewSession(m.Logger())
+	metaSession := metaStore.NewSession(m.Logger(), "seagull")
 	defer metaSession.Close()
 
 	m.Logger().Debug("Iterating meta")
@@ -258,7 +256,6 @@ func (m *Migration) migrateGroupIDToUserIDForDeviceData(groupIDToUserIDMap map[s
 
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "data"
-	mongoConfig.Collection = "deviceData"
 	deviceDataStore, err := mongo.New(m.Logger(), mongoConfig)
 	if err != nil {
 		return errors.Wrap(err, "main", "unable to create device data store")
@@ -267,7 +264,7 @@ func (m *Migration) migrateGroupIDToUserIDForDeviceData(groupIDToUserIDMap map[s
 
 	m.Logger().Debug("Creating device data session")
 
-	deviceDataSession := deviceDataStore.NewSession(m.Logger())
+	deviceDataSession := deviceDataStore.NewSession(m.Logger(), "deviceData")
 	defer deviceDataSession.Close()
 
 	m.Logger().Debug("Walking group id to user id map")

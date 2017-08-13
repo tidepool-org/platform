@@ -69,7 +69,6 @@ func (m *Migration) execute() error {
 
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "data"
-	mongoConfig.Collection = "deviceData"
 	mongoConfig.Timeout = 60 * time.Minute
 	dataStore, err := mongo.New(m.Logger(), mongoConfig)
 	if err != nil {
@@ -79,21 +78,21 @@ func (m *Migration) execute() error {
 
 	m.Logger().Debug("Creating data session")
 
-	dataStoreSession := dataStore.NewSession(m.Logger())
-	defer dataStoreSession.Close()
+	dataSession := dataStore.NewSession(m.Logger(), "deviceData")
+	defer dataSession.Close()
 
 	var count int
-	count += m.migrateUploadDataDeduplicatorDescriptor(dataStoreSession, "truncate", "org.tidepool.truncate")
-	count += m.migrateUploadDataDeduplicatorDescriptor(dataStoreSession, "hash-deactivate-old", "org.tidepool.hash-deactivate-old")
-	count += m.migrateUploadDataDeduplicatorDescriptor(dataStoreSession, "hash", "org.tidepool.hash-drop-new")
-	count += m.migrateNonUploadDataDeduplicatorDescriptor(dataStoreSession)
+	count += m.migrateUploadDataDeduplicatorDescriptor(dataSession, "truncate", "org.tidepool.truncate")
+	count += m.migrateUploadDataDeduplicatorDescriptor(dataSession, "hash-deactivate-old", "org.tidepool.hash-deactivate-old")
+	count += m.migrateUploadDataDeduplicatorDescriptor(dataSession, "hash", "org.tidepool.hash-drop-new")
+	count += m.migrateNonUploadDataDeduplicatorDescriptor(dataSession)
 
 	m.Logger().Infof("Migrated %d data duplicator descriptors", count)
 
 	return nil
 }
 
-func (m *Migration) migrateUploadDataDeduplicatorDescriptor(dataStoreSession *mongo.Session, fromName string, toName string) int {
+func (m *Migration) migrateUploadDataDeduplicatorDescriptor(dataSession *mongo.Session, fromName string, toName string) int {
 	logger := m.Logger().WithFields(log.Fields{"fromName": fromName, "toName": toName})
 
 	logger.Debug("Migrating upload data deduplicator descriptors")
@@ -107,7 +106,7 @@ func (m *Migration) migrateUploadDataDeduplicatorDescriptor(dataStoreSession *mo
 	}
 
 	if m.DryRun() {
-		count, err = dataStoreSession.C().Find(selector).Count()
+		count, err = dataSession.C().Find(selector).Count()
 	} else {
 		update := bson.M{
 			"$set": bson.M{
@@ -117,7 +116,7 @@ func (m *Migration) migrateUploadDataDeduplicatorDescriptor(dataStoreSession *mo
 		}
 
 		var changeInfo *mgo.ChangeInfo
-		changeInfo, err = dataStoreSession.C().UpdateAll(selector, update)
+		changeInfo, err = dataSession.C().UpdateAll(selector, update)
 		if changeInfo != nil {
 			count = changeInfo.Updated
 		}
@@ -132,7 +131,7 @@ func (m *Migration) migrateUploadDataDeduplicatorDescriptor(dataStoreSession *mo
 	return count
 }
 
-func (m *Migration) migrateNonUploadDataDeduplicatorDescriptor(dataStoreSession *mongo.Session) int {
+func (m *Migration) migrateNonUploadDataDeduplicatorDescriptor(dataSession *mongo.Session) int {
 	m.Logger().Debug("Migrating non-upload data deduplicator descriptors")
 
 	var count int
@@ -148,7 +147,7 @@ func (m *Migration) migrateNonUploadDataDeduplicatorDescriptor(dataStoreSession 
 	}
 
 	if m.DryRun() {
-		count, err = dataStoreSession.C().Find(selector).Count()
+		count, err = dataSession.C().Find(selector).Count()
 	} else {
 		update := bson.M{
 			"$unset": bson.M{
@@ -157,7 +156,7 @@ func (m *Migration) migrateNonUploadDataDeduplicatorDescriptor(dataStoreSession 
 		}
 
 		var changeInfo *mgo.ChangeInfo
-		changeInfo, err = dataStoreSession.C().UpdateAll(selector, update)
+		changeInfo, err = dataSession.C().UpdateAll(selector, update)
 		if changeInfo != nil {
 			count = changeInfo.Updated
 		}

@@ -97,7 +97,6 @@ func (m *Migration) execute() error {
 
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "user"
-	mongoConfig.Collection = "tokens"
 	sessionsStore, err := mongo.New(m.Logger(), mongoConfig)
 	if err != nil {
 		return errors.Wrap(err, "main", "unable to create sessions store")
@@ -106,10 +105,10 @@ func (m *Migration) execute() error {
 
 	m.Logger().Debug("Creating sessions sessions")
 
-	iterateSessionsSession := sessionsStore.NewSession(m.Logger())
+	iterateSessionsSession := sessionsStore.NewSession(m.Logger(), "tokens")
 	defer iterateSessionsSession.Close()
 
-	updateSessionsSession := sessionsStore.NewSession(m.Logger())
+	updateSessionsSession := sessionsStore.NewSession(m.Logger(), "tokens")
 	defer updateSessionsSession.Close()
 
 	m.Logger().Debug("Iterating sessions")

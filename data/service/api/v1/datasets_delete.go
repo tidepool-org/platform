@@ -16,7 +16,7 @@ func DatasetsDelete(dataServiceContext dataService.Context) {
 		return
 	}
 
-	dataset, err := dataServiceContext.DataStoreSession().GetDatasetByID(datasetID)
+	dataset, err := dataServiceContext.DataSession().GetDatasetByID(datasetID)
 	if err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to get dataset by id", err)
 		return
@@ -62,14 +62,14 @@ func DatasetsDelete(dataServiceContext dataService.Context) {
 	}
 
 	if registered {
-		deduplicator, newErr := dataServiceContext.DataDeduplicatorFactory().NewRegisteredDeduplicatorForDataset(dataServiceContext.Logger(), dataServiceContext.DataStoreSession(), dataset)
+		deduplicator, newErr := dataServiceContext.DataDeduplicatorFactory().NewRegisteredDeduplicatorForDataset(dataServiceContext.Logger(), dataServiceContext.DataSession(), dataset)
 		if newErr != nil {
 			dataServiceContext.RespondWithInternalServerFailure("Unable to create registered deduplicator for dataset", newErr)
 			return
 		}
 		err = deduplicator.DeleteDataset()
 	} else {
-		err = dataServiceContext.DataStoreSession().DeleteDataset(dataset)
+		err = dataServiceContext.DataSession().DeleteDataset(dataset)
 	}
 
 	if err != nil {

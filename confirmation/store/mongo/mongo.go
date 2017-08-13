@@ -26,22 +26,22 @@ type Store struct {
 	*mongo.Store
 }
 
-func (s *Store) NewSession(logger log.Logger) store.Session {
-	return &Session{
-		Session: s.Store.NewSession(logger),
+func (s *Store) NewConfirmationsSession(logger log.Logger) store.ConfirmationsSession {
+	return &ConfirmationsSession{
+		Session: s.Store.NewSession(logger, "confirmations"),
 	}
 }
 
-type Session struct {
+type ConfirmationsSession struct {
 	*mongo.Session
 }
 
-func (s *Session) DestroyConfirmationsForUserByID(userID string) error {
+func (c *ConfirmationsSession) DestroyConfirmationsForUserByID(userID string) error {
 	if userID == "" {
 		return errors.New("mongo", "user id is missing")
 	}
 
-	if s.IsClosed() {
+	if c.IsClosed() {
 		return errors.New("mongo", "session closed")
 	}
 
@@ -53,10 +53,10 @@ func (s *Session) DestroyConfirmationsForUserByID(userID string) error {
 			{"creatorId": userID},
 		},
 	}
-	removeInfo, err := s.C().RemoveAll(selector)
+	removeInfo, err := c.C().RemoveAll(selector)
 
 	loggerFields := log.Fields{"userId": userID, "removeInfo": removeInfo, "duration": time.Since(startTime) / time.Microsecond}
-	s.Logger().WithFields(loggerFields).WithError(err).Debug("DestroyConfirmationsForUserByID")
+	c.Logger().WithFields(loggerFields).WithError(err).Debug("DestroyConfirmationsForUserByID")
 
 	if err != nil {
 		return errors.Wrap(err, "mongo", "unable to destroy confirmations for user by id")

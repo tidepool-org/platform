@@ -19,11 +19,11 @@ type BaseFactory struct {
 }
 
 type BaseDeduplicator struct {
-	name             string
-	version          string
-	logger           log.Logger
-	dataStoreSession store.Session
-	dataset          *upload.Upload
+	name        string
+	version     string
+	logger      log.Logger
+	dataSession store.DataSession
+	dataset     *upload.Upload
 }
 
 func IsVersionValid(version string) bool {
@@ -66,8 +66,8 @@ func (b *BaseFactory) CanDeduplicateDataset(dataset *upload.Upload) (bool, error
 	return true, nil
 }
 
-func (b *BaseFactory) NewDeduplicatorForDataset(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (data.Deduplicator, error) {
-	return NewBaseDeduplicator(b.name, b.version, logger, dataStoreSession, dataset)
+func (b *BaseFactory) NewDeduplicatorForDataset(logger log.Logger, dataSession store.DataSession, dataset *upload.Upload) (data.Deduplicator, error) {
+	return NewBaseDeduplicator(b.name, b.version, logger, dataSession, dataset)
 }
 
 func (b *BaseFactory) IsRegisteredWithDataset(dataset *upload.Upload) (bool, error) {
@@ -86,8 +86,8 @@ func (b *BaseFactory) IsRegisteredWithDataset(dataset *upload.Upload) (bool, err
 	return true, nil
 }
 
-func (b *BaseFactory) NewRegisteredDeduplicatorForDataset(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (data.Deduplicator, error) {
-	deduplicator, err := b.Factory.NewDeduplicatorForDataset(logger, dataStoreSession, dataset)
+func (b *BaseFactory) NewRegisteredDeduplicatorForDataset(logger log.Logger, dataSession store.DataSession, dataset *upload.Upload) (data.Deduplicator, error) {
+	deduplicator, err := b.Factory.NewDeduplicatorForDataset(logger, dataSession, dataset)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func (b *BaseFactory) NewRegisteredDeduplicatorForDataset(logger log.Logger, dat
 	return deduplicator, nil
 }
 
-func NewBaseDeduplicator(name string, version string, logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (*BaseDeduplicator, error) {
+func NewBaseDeduplicator(name string, version string, logger log.Logger, dataSession store.DataSession, dataset *upload.Upload) (*BaseDeduplicator, error) {
 	if name == "" {
 		return nil, errors.New("deduplicator", "name is missing")
 	}
@@ -116,7 +116,7 @@ func NewBaseDeduplicator(name string, version string, logger log.Logger, dataSto
 	if logger == nil {
 		return nil, errors.New("deduplicator", "logger is missing")
 	}
-	if dataStoreSession == nil {
+	if dataSession == nil {
 		return nil, errors.New("deduplicator", "data store session is missing")
 	}
 	if dataset == nil {
@@ -136,11 +136,11 @@ func NewBaseDeduplicator(name string, version string, logger log.Logger, dataSto
 	})
 
 	return &BaseDeduplicator{
-		name:             name,
-		version:          version,
-		logger:           logger,
-		dataStoreSession: dataStoreSession,
-		dataset:          dataset,
+		name:        name,
+		version:     version,
+		logger:      logger,
+		dataSession: dataSession,
+		dataset:     dataset,
 	}, nil
 }
 
@@ -166,7 +166,7 @@ func (b *BaseDeduplicator) RegisterDataset() error {
 
 	b.dataset.SetDeduplicatorDescriptor(deduplicatorDescriptor)
 
-	if err := b.dataStoreSession.UpdateDataset(b.dataset); err != nil {
+	if err := b.dataSession.UpdateDataset(b.dataset); err != nil {
 		return errors.Wrapf(err, "deduplicator", "unable to update dataset with id %s", strconv.Quote(b.dataset.UploadID))
 	}
 
@@ -180,7 +180,7 @@ func (b *BaseDeduplicator) AddDatasetData(datasetData []data.Datum) error {
 		return nil
 	}
 
-	if err := b.dataStoreSession.CreateDatasetData(b.dataset, datasetData); err != nil {
+	if err := b.dataSession.CreateDatasetData(b.dataset, datasetData); err != nil {
 		return errors.Wrapf(err, "deduplicator", "unable to create dataset data with id %s", strconv.Quote(b.dataset.UploadID))
 	}
 
@@ -190,7 +190,7 @@ func (b *BaseDeduplicator) AddDatasetData(datasetData []data.Datum) error {
 func (b *BaseDeduplicator) DeduplicateDataset() error {
 	b.logger.Debug("DeduplicateDataset")
 
-	if err := b.dataStoreSession.ActivateDatasetData(b.dataset); err != nil {
+	if err := b.dataSession.ActivateDatasetData(b.dataset); err != nil {
 		return errors.Wrapf(err, "deduplicator", "unable to activate dataset data with id %s", strconv.Quote(b.dataset.UploadID))
 	}
 
@@ -200,7 +200,7 @@ func (b *BaseDeduplicator) DeduplicateDataset() error {
 func (b *BaseDeduplicator) DeleteDataset() error {
 	b.logger.Debug("DeleteDataset")
 
-	if err := b.dataStoreSession.DeleteDataset(b.dataset); err != nil {
+	if err := b.dataSession.DeleteDataset(b.dataset); err != nil {
 		return errors.Wrapf(err, "deduplicator", "unable to delete dataset with id %s", strconv.Quote(b.dataset.UploadID))
 	}
 

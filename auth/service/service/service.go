@@ -60,7 +60,7 @@ func (s *Service) AuthStore() store.Store {
 func (s *Service) Status() *auth.Status {
 	return &auth.Status{
 		Version:   s.VersionReporter().Long(),
-		AuthStore: s.AuthStore().GetStatus(),
+		AuthStore: s.AuthStore().Status(),
 		Server:    s.API().Status(),
 	}
 }
@@ -100,7 +100,6 @@ func (s *Service) initializeAuthStore() error {
 	if err := cfg.Load(s.ConfigReporter().WithScopes("auth", "store")); err != nil {
 		return errors.Wrap(err, "service", "unable to load auth store config")
 	}
-	cfg.Collection = "auths"
 
 	s.Logger().Debug("Creating auth store")
 

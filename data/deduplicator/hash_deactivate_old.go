@@ -55,8 +55,8 @@ func (h *hashDeactivateOldFactory) CanDeduplicateDataset(dataset *upload.Upload)
 	return true, nil
 }
 
-func (h *hashDeactivateOldFactory) NewDeduplicatorForDataset(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (data.Deduplicator, error) {
-	baseDeduplicator, err := NewBaseDeduplicator(h.name, h.version, logger, dataStoreSession, dataset)
+func (h *hashDeactivateOldFactory) NewDeduplicatorForDataset(logger log.Logger, dataSession store.DataSession, dataset *upload.Upload) (data.Deduplicator, error) {
+	baseDeduplicator, err := NewBaseDeduplicator(h.name, h.version, logger, dataSession, dataset)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (h *hashDeactivateOldDeduplicator) AddDatasetData(datasetData []data.Datum)
 }
 
 func (h *hashDeactivateOldDeduplicator) DeduplicateDataset() error {
-	if err := h.dataStoreSession.ArchiveDeviceDataUsingHashesFromDataset(h.dataset); err != nil {
+	if err := h.dataSession.ArchiveDeviceDataUsingHashesFromDataset(h.dataset); err != nil {
 		return errors.Wrapf(err, "deduplicator", "unable to archive device data using hashes from dataset with id %s", strconv.Quote(h.dataset.UploadID))
 	}
 
@@ -96,7 +96,7 @@ func (h *hashDeactivateOldDeduplicator) DeduplicateDataset() error {
 }
 
 func (h *hashDeactivateOldDeduplicator) DeleteDataset() error {
-	if err := h.dataStoreSession.UnarchiveDeviceDataUsingHashesFromDataset(h.dataset); err != nil {
+	if err := h.dataSession.UnarchiveDeviceDataUsingHashesFromDataset(h.dataset); err != nil {
 		return errors.Wrapf(err, "deduplicator", "unable to unarchive device data using hashes from dataset with id %s", strconv.Quote(h.dataset.UploadID))
 	}
 

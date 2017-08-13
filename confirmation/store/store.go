@@ -8,10 +8,10 @@ import (
 type Store interface {
 	store.Store
 
-	NewSession(logger log.Logger) Session
+	NewConfirmationsSession(logger log.Logger) ConfirmationsSession
 }
 
-type Session interface {
+type ConfirmationsSession interface {
 	store.Session
 
 	DestroyConfirmationsForUserByID(userID string) error

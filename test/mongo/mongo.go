@@ -56,10 +56,10 @@ func Database() string {
 	return _database
 }
 
-func NewCollectionName() string {
-	return generateUniqueName("collection")
+func NewCollectionPrefix() string {
+	return generateUniqueName("collection_")
 }
 
 func generateUniqueName(base string) string {
-	return fmt.Sprintf("test-%s-%s-%08x%08x", base, time.Now().UTC().Format("20060102150405"), rand.Uint32(), rand.Uint32())
+	return fmt.Sprintf("test_%s_%08x%08x_%s", time.Now().UTC().Format("20060102150405"), rand.Uint32(), rand.Uint32(), base)
 }

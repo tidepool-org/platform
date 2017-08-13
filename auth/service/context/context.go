@@ -12,7 +12,7 @@ import (
 type Context struct {
 	service.Service
 	*serviceContext.Context
-	authStoreSession store.StoreSession
+	authsSession store.AuthsSession
 }
 
 func MustNew(svc service.Service, response rest.ResponseWriter, request *rest.Request) *Context {
@@ -41,16 +41,16 @@ func New(svc service.Service, response rest.ResponseWriter, request *rest.Reques
 }
 
 func (c *Context) Close() {
-	if c.authStoreSession != nil {
-		c.authStoreSession.Close()
-		c.authStoreSession = nil
+	if c.authsSession != nil {
+		c.authsSession.Close()
+		c.authsSession = nil
 	}
 }
 
-func (c *Context) AuthStoreSession() store.StoreSession {
-	if c.authStoreSession == nil {
-		c.authStoreSession = c.AuthStore().NewSession(c.Logger())
-		c.authStoreSession.SetAgent(c.AuthDetails())
+func (c *Context) AuthsSession() store.AuthsSession {
+	if c.authsSession == nil {
+		c.authsSession = c.AuthStore().NewAuthsSession(c.Logger())
+		c.authsSession.SetAgent(c.AuthDetails())
 	}
-	return c.authStoreSession
+	return c.authsSession
 }

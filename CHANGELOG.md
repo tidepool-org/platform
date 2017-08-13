@@ -1,5 +1,7 @@
 ## HEAD
 
+- Refactor store sessions to allow multiple collections per store
+- Add mongo config collection prefix to all collection name customization (particularly for tests)
 - Add auth, notification, and task services
 - Refactor and improve service package to streamline creation of new services
 - Move authentication token logging to authenticate middleware
