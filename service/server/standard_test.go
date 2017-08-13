@@ -7,8 +7,9 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/log/null"
+	nullLog "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/service/server"
+	testService "github.com/tidepool-org/platform/service/test"
 )
 
 type ServeHTTPInput struct {
@@ -24,32 +25,17 @@ func (t *TestHandler) ServeHTTP(response http.ResponseWriter, request *http.Requ
 	t.ServeHTTPInputs = append(t.ServeHTTPInputs, ServeHTTPInput{response, request})
 }
 
-type TestAPI struct {
-	HandlerOutputs []http.Handler
-}
-
-func (t *TestAPI) Close() {
-	panic("Unexpected invocation of Close on TestAPI")
-}
-
-func (t *TestAPI) Handler() http.Handler {
-	output := t.HandlerOutputs[0]
-	t.HandlerOutputs = t.HandlerOutputs[1:]
-	return output
-}
-
 var _ = Describe("Standard", func() {
 	var logger log.Logger
 	var handler *TestHandler
-	var api *TestAPI
+	var api *testService.API
 	var config *server.Config
 
 	BeforeEach(func() {
-		logger = null.NewLogger()
+		logger = nullLog.NewLogger()
 		handler = &TestHandler{}
-		api = &TestAPI{
-			HandlerOutputs: []http.Handler{handler},
-		}
+		api = testService.NewAPI()
+		api.HandlerOutputs = []http.Handler{handler}
 		config = server.NewConfig()
 		config.Address = ":9001"
 		config.TLS = false

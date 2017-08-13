@@ -3,11 +3,10 @@ package client_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/ghttp"
 
 	"net/http"
 	"time"
-
-	"github.com/onsi/gomega/ghttp"
 
 	testAuth "github.com/tidepool-org/platform/auth/test"
 	"github.com/tidepool-org/platform/client"
@@ -47,12 +46,12 @@ var _ = Describe("Client", func() {
 	})
 
 	Context("with started server and new client", func() {
-		var server *ghttp.Server
+		var server *Server
 		var clnt userClient.Client
 		var context *testAuth.Context
 
 		BeforeEach(func() {
-			server = ghttp.NewServer()
+			server = NewServer()
 			config := client.NewConfig()
 			Expect(config).ToNot(BeNil())
 			config.Address = server.URL()
@@ -113,11 +112,11 @@ var _ = Describe("Client", func() {
 				Context("with an unauthorized response", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", "/access/"+targetUserID+"/"+requestUserID),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								ghttp.VerifyBody([]byte{}),
-								ghttp.RespondWith(http.StatusUnauthorized, nil, nil)),
+							CombineHandlers(
+								VerifyRequest("GET", "/access/"+targetUserID+"/"+requestUserID),
+								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyBody([]byte{}),
+								RespondWith(http.StatusUnauthorized, nil, nil)),
 						)
 					})
 
@@ -132,11 +131,11 @@ var _ = Describe("Client", func() {
 				Context("with a not found response, which is the same as unauthorized", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", "/access/"+targetUserID+"/"+requestUserID),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								ghttp.VerifyBody([]byte{}),
-								ghttp.RespondWith(http.StatusNotFound, nil, nil)),
+							CombineHandlers(
+								VerifyRequest("GET", "/access/"+targetUserID+"/"+requestUserID),
+								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyBody([]byte{}),
+								RespondWith(http.StatusNotFound, nil, nil)),
 						)
 					})
 
@@ -151,11 +150,11 @@ var _ = Describe("Client", func() {
 				Context("with a successful response, but with no permissions", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", "/access/"+targetUserID+"/"+requestUserID),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								ghttp.VerifyBody([]byte{}),
-								ghttp.RespondWith(http.StatusOK, "{}", nil)),
+							CombineHandlers(
+								VerifyRequest("GET", "/access/"+targetUserID+"/"+requestUserID),
+								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyBody([]byte{}),
+								RespondWith(http.StatusOK, "{}", nil)),
 						)
 					})
 
@@ -168,11 +167,11 @@ var _ = Describe("Client", func() {
 				Context("with a successful response with upload and view permissions", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", "/access/"+targetUserID+"/"+requestUserID),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								ghttp.VerifyBody([]byte{}),
-								ghttp.RespondWith(http.StatusOK, `{"upload": {}, "view": {}}`, nil)),
+							CombineHandlers(
+								VerifyRequest("GET", "/access/"+targetUserID+"/"+requestUserID),
+								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyBody([]byte{}),
+								RespondWith(http.StatusOK, `{"upload": {}, "view": {}}`, nil)),
 						)
 					})
 
@@ -188,11 +187,11 @@ var _ = Describe("Client", func() {
 				Context("with a successful response with owner permissions that already includes upload permissions", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", "/access/"+targetUserID+"/"+requestUserID),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								ghttp.VerifyBody([]byte{}),
-								ghttp.RespondWith(http.StatusOK, `{"root": {"root-inner": "unused"}, "upload": {}}`, nil)),
+							CombineHandlers(
+								VerifyRequest("GET", "/access/"+targetUserID+"/"+requestUserID),
+								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyBody([]byte{}),
+								RespondWith(http.StatusOK, `{"root": {"root-inner": "unused"}, "upload": {}}`, nil)),
 						)
 					})
 
@@ -209,11 +208,11 @@ var _ = Describe("Client", func() {
 				Context("with a successful response with owner permissions that already includes view permissions", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", "/access/"+targetUserID+"/"+requestUserID),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								ghttp.VerifyBody([]byte{}),
-								ghttp.RespondWith(http.StatusOK, `{"root": {"root-inner": "unused"}, "view": {}}`, nil)),
+							CombineHandlers(
+								VerifyRequest("GET", "/access/"+targetUserID+"/"+requestUserID),
+								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyBody([]byte{}),
+								RespondWith(http.StatusOK, `{"root": {"root-inner": "unused"}, "view": {}}`, nil)),
 						)
 					})
 
@@ -230,11 +229,11 @@ var _ = Describe("Client", func() {
 				Context("with a successful response with owner permissions that already includes upload and view permissions", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", "/access/"+targetUserID+"/"+requestUserID),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								ghttp.VerifyBody([]byte{}),
-								ghttp.RespondWith(http.StatusOK, `{"root": {"root-inner": "unused"}, "upload": {}, "view": {}}`, nil)),
+							CombineHandlers(
+								VerifyRequest("GET", "/access/"+targetUserID+"/"+requestUserID),
+								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyBody([]byte{}),
+								RespondWith(http.StatusOK, `{"root": {"root-inner": "unused"}, "upload": {}, "view": {}}`, nil)),
 						)
 					})
 

@@ -9,7 +9,9 @@ import (
 type Client interface {
 	ServerToken() (string, error)
 
-	ValidateToken(context Context, token string) (Details, error)
+	ValidateToken(ctx Context, token string) (Details, error)
+
+	GetStatus(ctx Context) (*Status, error)
 }
 
 type Context interface {
@@ -25,6 +27,12 @@ type Details interface {
 
 	IsServer() bool
 	UserID() string
+}
+
+type Status struct {
+	Version   string
+	Server    interface{}
+	AuthStore interface{}
 }
 
 const TidepoolAuthTokenHeaderName = "X-Tidepool-Session-Token"

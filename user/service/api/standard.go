@@ -85,7 +85,7 @@ func NewStandard(versionReporter version.Reporter, logger log.Logger,
 	}, nil
 }
 
-func (s *Standard) InitializeRouter(routes []service.Route) error {
+func (s *Standard) DEPRECATEDInitializeRouter(routes []service.Route) error {
 	baseRoutes := []service.Route{
 		service.MakeRoute("GET", "/status", s.GetStatus),
 		service.MakeRoute("GET", "/version", s.GetVersion),

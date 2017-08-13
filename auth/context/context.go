@@ -5,12 +5,11 @@ import (
 
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/service"
 	serviceContext "github.com/tidepool-org/platform/service/context"
 )
 
 type Context struct {
-	service.Context
+	*serviceContext.Context
 	authClient auth.Client
 }
 
@@ -19,13 +18,13 @@ func New(response rest.ResponseWriter, request *rest.Request, authClient auth.Cl
 		return nil, errors.New("context", "auth client is missing")
 	}
 
-	context, err := serviceContext.NewStandard(response, request)
+	ctx, err := serviceContext.New(response, request)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Context{
-		Context:    context,
+		Context:    ctx,
 		authClient: authClient,
 	}, nil
 }

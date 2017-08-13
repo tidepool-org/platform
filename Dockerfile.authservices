@@ -1,0 +1,42 @@
+FROM golang:1.7.1-alpine
+
+# Container specific ENV
+ENV TIDEPOOL_ENV="local" \
+    TIDEPOOL_LOGGER_LEVEL="debug" \
+    TIDEPOOL_CLIENT_SERVER_TOKEN_SECRET="This needs to be the same secret everywhere. YaHut75NsK1f9UKUXuWqxNN0RUwHFBCy" \
+    TIDEPOOL_STORE_ADDRESSES="mongo" \
+    TIDEPOOL_STORE_DATABASE="tidepool" \
+    TIDEPOOL_STORE_TLS="false" \
+    TIDEPOOL_SERVER_TLS="false" \
+    TIDEPOOL_CONFIRMATION_STORE_DATABASE="confirm" \
+    TIDEPOOL_DATA_STORE_DATABASE="data" \
+    TIDEPOOL_MESSAGE_STORE_DATABASE="messages" \
+    TIDEPOOL_PERMISSION_STORE_DATABASE="gatekeeper" \
+    TIDEPOOL_PERMISSION_STORE_SECRET="This secret is used to encrypt the groupId stored in the DB for gatekeeper" \
+    TIDEPOOL_PROFILE_STORE_DATABASE="seagull" \
+    TIDEPOOL_SESSION_STORE_DATABASE="user" \
+    TIDEPOOL_SYNC_TASK_STORE_DATABASE="data" \
+    TIDEPOOL_USER_STORE_DATABASE="user" \
+    TIDEPOOL_USER_STORE_PASSWORD_SALT="ADihSEI7tOQQP9xfXMO9HfRpXKu1NpIJ" \
+    TIDEPOOL_AUTH_CLIENT_ADDRESS="http://styx:8009" \
+    TIDEPOOL_DATA_CLIENT_ADDRESS="http://styx:8009" \
+    TIDEPOOL_METRIC_CLIENT_ADDRESS="http://styx:8009" \
+    TIDEPOOL_USER_CLIENT_ADDRESS="http://styx:8009" \
+    TIDEPOOL_AUTHSERVICES_SERVER_ADDRESS=":9222" \
+    TIDEPOOL_DATASERVICES_SERVER_ADDRESS=":9220" \
+    TIDEPOOL_NOTIFICATIONSERVICES_SERVER_ADDRESS=":9223" \
+    TIDEPOOL_TASKSERVICES_SERVER_ADDRESS=":9224" \
+    TIDEPOOL_USERSERVICES_SERVER_ADDRESS=":9221"
+
+# $GOPATH=/go FROM the golang container
+WORKDIR /go
+
+COPY . ${GOPATH}/src/github.com/tidepool-org/platform
+RUN apk --no-cache add git make \
+ && cd ${GOPATH}/src/github.com/tidepool-org/platform \
+ && rm -rf src _bin \
+ && BUILD=services/authservices make build
+
+# Prod builds should exclude or remove .git files
+
+CMD ["/go/src/github.com/tidepool-org/platform/_bin/services/authservices/authservices"]

@@ -3,11 +3,10 @@ package client_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/ghttp"
 
 	"net/http"
 	"time"
-
-	"github.com/onsi/gomega/ghttp"
 
 	testAuth "github.com/tidepool-org/platform/auth/test"
 	"github.com/tidepool-org/platform/client"
@@ -71,12 +70,12 @@ var _ = Describe("Client", func() {
 	})
 
 	Context("with started server and new client", func() {
-		var server *ghttp.Server
+		var server *Server
 		var clnt metricClient.Client
 		var context *testAuth.Context
 
 		BeforeEach(func() {
-			server = ghttp.NewServer()
+			server = NewServer()
 			config := client.NewConfig()
 			Expect(config).ToNot(BeNil())
 			config.Address = server.URL()
@@ -134,11 +133,11 @@ var _ = Describe("Client", func() {
 					Context("with an unauthorized response", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
-								ghttp.CombineHandlers(
-									ghttp.VerifyRequest("GET", "/metrics/thisuser/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
-									ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-									ghttp.VerifyBody([]byte{}),
-									ghttp.RespondWith(http.StatusUnauthorized, nil, nil)),
+								CombineHandlers(
+									VerifyRequest("GET", "/metrics/thisuser/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
+									VerifyHeaderKV("X-Tidepool-Session-Token", token),
+									VerifyBody([]byte{}),
+									RespondWith(http.StatusUnauthorized, nil, nil)),
 							)
 						})
 
@@ -152,11 +151,11 @@ var _ = Describe("Client", func() {
 					Context("with a successful response", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
-								ghttp.CombineHandlers(
-									ghttp.VerifyRequest("GET", "/metrics/thisuser/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
-									ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-									ghttp.VerifyBody([]byte{}),
-									ghttp.RespondWith(http.StatusOK, nil, nil)),
+								CombineHandlers(
+									VerifyRequest("GET", "/metrics/thisuser/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
+									VerifyHeaderKV("X-Tidepool-Session-Token", token),
+									VerifyBody([]byte{}),
+									RespondWith(http.StatusOK, nil, nil)),
 							)
 						})
 
@@ -170,11 +169,11 @@ var _ = Describe("Client", func() {
 					Context("with a successful response without data", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
-								ghttp.CombineHandlers(
-									ghttp.VerifyRequest("GET", "/metrics/thisuser/"+metric, "sourceVersion=1.2.3"),
-									ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-									ghttp.VerifyBody([]byte{}),
-									ghttp.RespondWith(http.StatusOK, nil, nil)),
+								CombineHandlers(
+									VerifyRequest("GET", "/metrics/thisuser/"+metric, "sourceVersion=1.2.3"),
+									VerifyHeaderKV("X-Tidepool-Session-Token", token),
+									VerifyBody([]byte{}),
+									RespondWith(http.StatusOK, nil, nil)),
 							)
 						})
 
@@ -194,11 +193,11 @@ var _ = Describe("Client", func() {
 					Context("with an unauthorized response", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
-								ghttp.CombineHandlers(
-									ghttp.VerifyRequest("GET", "/metrics/server/"+name+"/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
-									ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-									ghttp.VerifyBody([]byte{}),
-									ghttp.RespondWith(http.StatusUnauthorized, nil, nil)),
+								CombineHandlers(
+									VerifyRequest("GET", "/metrics/server/"+name+"/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
+									VerifyHeaderKV("X-Tidepool-Session-Token", token),
+									VerifyBody([]byte{}),
+									RespondWith(http.StatusUnauthorized, nil, nil)),
 							)
 						})
 
@@ -212,11 +211,11 @@ var _ = Describe("Client", func() {
 					Context("with a successful response", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
-								ghttp.CombineHandlers(
-									ghttp.VerifyRequest("GET", "/metrics/server/"+name+"/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
-									ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-									ghttp.VerifyBody([]byte{}),
-									ghttp.RespondWith(http.StatusOK, nil, nil)),
+								CombineHandlers(
+									VerifyRequest("GET", "/metrics/server/"+name+"/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
+									VerifyHeaderKV("X-Tidepool-Session-Token", token),
+									VerifyBody([]byte{}),
+									RespondWith(http.StatusOK, nil, nil)),
 							)
 						})
 
@@ -230,11 +229,11 @@ var _ = Describe("Client", func() {
 					Context("with a successful response without data", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
-								ghttp.CombineHandlers(
-									ghttp.VerifyRequest("GET", "/metrics/server/"+name+"/"+metric, "sourceVersion=1.2.3"),
-									ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-									ghttp.VerifyBody([]byte{}),
-									ghttp.RespondWith(http.StatusOK, nil, nil)),
+								CombineHandlers(
+									VerifyRequest("GET", "/metrics/server/"+name+"/"+metric, "sourceVersion=1.2.3"),
+									VerifyHeaderKV("X-Tidepool-Session-Token", token),
+									VerifyBody([]byte{}),
+									RespondWith(http.StatusOK, nil, nil)),
 							)
 						})
 

@@ -66,7 +66,7 @@ var _ = Describe("Request", func() {
 			})
 
 			It("returns nil if the errors is missing", func() {
-				request.Env["ERRORS"] = nil
+				delete(request.Env, "ERRORS")
 				Expect(service.GetRequestErrors(request)).To(BeNil())
 			})
 		})
@@ -116,7 +116,7 @@ var _ = Describe("Request", func() {
 			})
 
 			It("returns nil if the logger is missing", func() {
-				request.Env["LOGGER"] = nil
+				delete(request.Env, "LOGGER")
 				Expect(service.GetRequestLogger(request)).To(BeNil())
 			})
 		})
@@ -159,7 +159,7 @@ var _ = Describe("Request", func() {
 			})
 
 			It("returns nil if the auth details is missing", func() {
-				request.Env["AUTH-DETAILS"] = nil
+				delete(request.Env, "AUTH-DETAILS")
 				Expect(service.GetRequestAuthDetails(request)).To(BeNil())
 			})
 		})

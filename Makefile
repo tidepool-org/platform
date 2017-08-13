@@ -80,6 +80,12 @@ format: check-environment
 		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec gofmt -d -e -s {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
+format-write: check-environment
+	@echo "gofmt -e -s -w"
+	@cd $(ROOT_DIRECTORY) && \
+		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec gofmt -e -s -w {} \; 2>&1` && \
+		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
+
 imports: goimports
 	@echo "goimports -d -e"
 	@cd $(ROOT_DIRECTORY) && \
@@ -117,22 +123,6 @@ build: check-environment
 
 ci-build: pre-build build
 
-start: start-dataservices start-userservices
-
-start-dataservices: stop-dataservices log
-	@cd $(ROOT_DIRECTORY) && _bin/services/dataservices/dataservices >> _log/service.log 2>&1 &
-
-start-userservices: stop-userservices log
-	@cd $(ROOT_DIRECTORY) && _bin/services/userservices/userservices >> _log/service.log 2>&1 &
-
-stop: stop-dataservices stop-userservices
-
-stop-dataservices: check-environment
-	@killall -v dataservices &> /dev/null || exit 0
-
-stop-userservices: check-environment
-	@killall -v userservices &> /dev/null || exit 0
-
 test: ginkgo
 	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r $(TEST)"
 	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 -r $(TEST)
@@ -142,16 +132,13 @@ ci-test: ginkgo
 	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing $(TEST)
 
 watch: ginkgo
-	@echo "ginkgo watch -requireSuite -slowSpecThreshold=10 -r -notify $(WATCH)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch -requireSuite -slowSpecThreshold=10 -r -notify $(WATCH)
+	@echo "ginkgo watch -requireSuite -slowSpecThreshold=10 -r $(WATCH)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch -requireSuite -slowSpecThreshold=10 -r $(WATCH)
 
-deploy: clean-deploy deploy-dataservices deploy-userservices deploy-migrations deploy-tools
+deploy: clean-deploy deploy-services deploy-migrations deploy-tools
 
-deploy-dataservices:
-	@$(MAKE) bundle-deploy DEPLOY=dataservices SOURCE=services/dataservices
-
-deploy-userservices:
-	@$(MAKE) bundle-deploy DEPLOY=userservices SOURCE=services/userservices
+deploy-services:
+	@for SERVICES in $(shell ls -1 $(ROOT_DIRECTORY)/_bin/services); do $(MAKE) bundle-deploy DEPLOY=$${SERVICES} SOURCE=services/$${SERVICES}; done
 
 deploy-migrations:
 	@$(MAKE) bundle-deploy DEPLOY=migrations SOURCE=migrations
@@ -178,7 +165,7 @@ endif
 clean: clean-bin clean-cover clean-deploy
 	@cd $(ROOT_DIRECTORY) && rm -rf _log _tmp
 
-clean-bin: stop
+clean-bin:
 	@cd $(ROOT_DIRECTORY) && rm -rf _bin
 
 clean-cover:
@@ -223,9 +210,8 @@ bootstrap:
 
 .PHONY: default log tmp check-gopath check-environment \
 	godep goimports golint gocode godef ginkgo buildable editable \
-	format imports vet vet-ignore lint lint-ignore pre-build build-list build ci-build \
-	start start-dataservices start-userservices stop stop-dataservices stop-userservices \
+	format format-write imports vet vet-ignore lint lint-ignore pre-build build-list build ci-build \
 	test ci-test watch \
-	deploy deploy-dataservices deploy-userservices deploy-migrations deploy-tools ci-deploy bundle-deploy \
+	deploy deploy-services deploy-migrations deploy-tools ci-deploy bundle-deploy \
 	clean clean-bin clean-cover clean-deploy clean-all pre-commit \
 	gopath-implode dependencies-implode bootstrap-implode bootstrap-dependencies bootstrap-save bootstrap

@@ -6,20 +6,20 @@ import (
 
 	"time"
 
-	"github.com/tidepool-org/platform/log/null"
+	nullLog "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/notification/store"
 	"github.com/tidepool-org/platform/notification/store/mongo"
-	baseMongo "github.com/tidepool-org/platform/store/mongo"
+	storeMongo "github.com/tidepool-org/platform/store/mongo"
 	testMongo "github.com/tidepool-org/platform/test/mongo"
 )
 
 var _ = Describe("Mongo", func() {
-	var mongoConfig *baseMongo.Config
-	var mongoStore *mongo.Store
-	var mongoSession store.Session
+	var cfg *storeMongo.Config
+	var str *mongo.Store
+	var ssn store.StoreSession
 
 	BeforeEach(func() {
-		mongoConfig = &baseMongo.Config{
+		cfg = &storeMongo.Config{
 			Addresses:  []string{testMongo.Address()},
 			Database:   testMongo.Database(),
 			Collection: testMongo.NewCollectionName(),
@@ -28,50 +28,49 @@ var _ = Describe("Mongo", func() {
 	})
 
 	AfterEach(func() {
-		if mongoSession != nil {
-			mongoSession.Close()
+		if ssn != nil {
+			ssn.Close()
 		}
-		if mongoStore != nil {
-			mongoStore.Close()
+		if str != nil {
+			str.Close()
 		}
 	})
 
 	Context("New", func() {
 		It("returns an error if unsuccessful", func() {
 			var err error
-			mongoStore, err = mongo.New(nil, nil)
+			str, err = mongo.New(nil, nil)
 			Expect(err).To(HaveOccurred())
-			Expect(mongoStore).To(BeNil())
+			Expect(str).To(BeNil())
 		})
 
 		It("returns a new store and no error if successful", func() {
 			var err error
-			mongoStore, err = mongo.New(null.NewLogger(), mongoConfig)
+			str, err = mongo.New(nullLog.NewLogger(), cfg)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(mongoStore).ToNot(BeNil())
+			Expect(str).ToNot(BeNil())
 		})
 	})
 
 	Context("with a new store", func() {
 		BeforeEach(func() {
 			var err error
-			mongoStore, err = mongo.New(null.NewLogger(), mongoConfig)
+			str, err = mongo.New(nullLog.NewLogger(), cfg)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(mongoStore).ToNot(BeNil())
+			Expect(str).ToNot(BeNil())
 		})
 
 		Context("NewSession", func() {
 			It("returns a new session if no logger specified", func() {
-				mongoSession = mongoStore.NewSession(nil)
-				Expect(mongoSession).ToNot(BeNil())
-				Expect(mongoSession.Logger()).ToNot(BeNil())
+				ssn = str.NewSession(nil)
+				Expect(ssn).ToNot(BeNil())
+				Expect(ssn.Logger()).ToNot(BeNil())
 			})
 
 			It("returns a new session if logger specified", func() {
-				logger := null.NewLogger()
-				mongoSession = mongoStore.NewSession(logger)
-				Expect(mongoSession).ToNot(BeNil())
-				Expect(mongoSession.Logger()).ToNot(BeNil())
+				ssn = str.NewSession(nullLog.NewLogger())
+				Expect(ssn).ToNot(BeNil())
+				Expect(ssn.Logger()).ToNot(BeNil())
 			})
 		})
 	})

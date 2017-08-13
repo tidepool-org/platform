@@ -109,8 +109,8 @@ func (c *Client) ServerToken() (string, error) {
 	return serverToken, nil
 }
 
-func (c *Client) ValidateToken(context auth.Context, token string) (auth.Details, error) {
-	if context == nil {
+func (c *Client) ValidateToken(ctx auth.Context, token string) (auth.Details, error) {
+	if ctx == nil {
 		return nil, errors.New("client", "context is missing")
 	}
 	if token == "" {
@@ -121,13 +121,13 @@ func (c *Client) ValidateToken(context auth.Context, token string) (auth.Details
 		return nil, errors.New("client", "client is closed")
 	}
 
-	context.Logger().Debug("Validating token")
+	ctx.Logger().Debug("Validating token")
 
 	var result struct {
 		IsServer bool
 		UserID   string
 	}
-	if err := c.client.SendRequestWithServerToken(context, "GET", c.client.BuildURL("auth", "token", token), nil, &result); err != nil {
+	if err := c.client.SendRequestWithServerToken(ctx, "GET", c.client.BuildURL("auth", "token", token), nil, &result); err != nil {
 		return nil, err
 	}
 
@@ -140,6 +140,15 @@ func (c *Client) ValidateToken(context auth.Context, token string) (auth.Details
 		isServer: result.IsServer,
 		userID:   result.UserID,
 	}, nil
+}
+
+func (c *Client) GetStatus(ctx auth.Context) (*auth.Status, error) {
+	sts := &auth.Status{}
+	if err := c.client.SendRequestWithServerToken(ctx, "GET", c.client.BuildURL("status"), nil, sts); err != nil {
+		return nil, err
+	}
+
+	return sts, nil
 }
 
 func (c *Client) timeoutServerToken(serverTokenTimeout time.Duration) time.Duration {

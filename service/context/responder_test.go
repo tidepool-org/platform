@@ -306,7 +306,7 @@ var _ = Describe("Responder", func() {
 					})
 
 					It("does not add trace request if not present", func() {
-						request.Env["TRACE-REQUEST"] = nil
+						delete(request.Env, "TRACE-REQUEST")
 						responder.RespondWithStatusAndErrors(402, testErrors)
 						Expect(request.Env["ERRORS"]).To(Equal(testErrors))
 						Expect(response.WriteHeaderInputs).To(ConsistOf(402))
@@ -321,7 +321,7 @@ var _ = Describe("Responder", func() {
 					})
 
 					It("does not add trace session if not present", func() {
-						request.Env["TRACE-SESSION"] = nil
+						delete(request.Env, "TRACE-SESSION")
 						responder.RespondWithStatusAndErrors(403, testErrors)
 						Expect(request.Env["ERRORS"]).To(Equal(testErrors))
 						Expect(response.WriteHeaderInputs).To(ConsistOf(403))
@@ -370,7 +370,7 @@ var _ = Describe("Responder", func() {
 					})
 
 					It("does not add trace request if not present", func() {
-						request.Env["TRACE-REQUEST"] = nil
+						delete(request.Env, "TRACE-REQUEST")
 						responder.RespondWithStatusAndData(201, testData)
 						Expect(response.WriteHeaderInputs).To(ConsistOf(201))
 						Expect(response.WriteJsonInputs).To(ConsistOf(&context.JSONResponse{
@@ -384,7 +384,7 @@ var _ = Describe("Responder", func() {
 					})
 
 					It("does not add trace session if not present", func() {
-						request.Env["TRACE-SESSION"] = nil
+						delete(request.Env, "TRACE-SESSION")
 						responder.RespondWithStatusAndData(202, testData)
 						Expect(response.WriteHeaderInputs).To(ConsistOf(202))
 						Expect(response.WriteJsonInputs).To(ConsistOf(&context.JSONResponse{

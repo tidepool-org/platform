@@ -18,7 +18,7 @@ import (
 	testRest "github.com/tidepool-org/platform/test/rest"
 )
 
-var _ = Describe("Authenticate", func() {
+var _ = Describe("Auth", func() {
 	var authClient *testAuth.Client
 
 	BeforeEach(func() {

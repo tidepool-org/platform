@@ -3,12 +3,11 @@ package client_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/ghttp"
 
 	"errors"
 	"net/http"
 	"time"
-
-	"github.com/onsi/gomega/ghttp"
 
 	testAuth "github.com/tidepool-org/platform/auth/test"
 	"github.com/tidepool-org/platform/client"
@@ -90,7 +89,7 @@ var _ = Describe("Client", func() {
 	})
 
 	Context("with started server and new client", func() {
-		var server *ghttp.Server
+		var server *Server
 		var clnt *client.Client
 		var context *testAuth.Context
 		var path string
@@ -99,7 +98,7 @@ var _ = Describe("Client", func() {
 		var responseObject *ResponseObject
 
 		BeforeEach(func() {
-			server = ghttp.NewServer()
+			server = NewServer()
 			config := client.NewConfig()
 			Expect(config).ToNot(BeNil())
 			config.Address = server.URL()
@@ -176,11 +175,11 @@ var _ = Describe("Client", func() {
 				Context("with an unexpected response 400", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", path),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								ghttp.VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
-								ghttp.RespondWith(http.StatusBadRequest, nil, nil)),
+							CombineHandlers(
+								VerifyRequest("GET", path),
+								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
+								RespondWith(http.StatusBadRequest, nil, nil)),
 						)
 					})
 
@@ -195,11 +194,11 @@ var _ = Describe("Client", func() {
 				Context("with an unauthorized response 401", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", path),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								ghttp.VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
-								ghttp.RespondWith(http.StatusUnauthorized, nil, nil)),
+							CombineHandlers(
+								VerifyRequest("GET", path),
+								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
+								RespondWith(http.StatusUnauthorized, nil, nil)),
 						)
 					})
 
@@ -213,11 +212,11 @@ var _ = Describe("Client", func() {
 				Context("with an unparseable response", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", path),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								ghttp.VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
-								ghttp.RespondWith(http.StatusOK, []byte("{\"response\":"), nil)),
+							CombineHandlers(
+								VerifyRequest("GET", path),
+								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
+								RespondWith(http.StatusOK, []byte("{\"response\":"), nil)),
 						)
 					})
 
@@ -231,11 +230,11 @@ var _ = Describe("Client", func() {
 				Context("with a successful response 200", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", path),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								ghttp.VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
-								ghttp.RespondWith(http.StatusOK, []byte("{\"response\":\"beta\"}"), nil)),
+							CombineHandlers(
+								VerifyRequest("GET", path),
+								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
+								RespondWith(http.StatusOK, []byte("{\"response\":\"beta\"}"), nil)),
 						)
 					})
 
@@ -250,11 +249,11 @@ var _ = Describe("Client", func() {
 				Context("with a successful response 201", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", path),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								ghttp.VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
-								ghttp.RespondWith(http.StatusCreated, []byte("{\"response\":\"beta\"}"), nil)),
+							CombineHandlers(
+								VerifyRequest("GET", path),
+								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
+								RespondWith(http.StatusCreated, []byte("{\"response\":\"beta\"}"), nil)),
 						)
 					})
 
@@ -269,11 +268,11 @@ var _ = Describe("Client", func() {
 				Context("with a successful response, but no request object", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", path),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								ghttp.VerifyBody([]byte{}),
-								ghttp.RespondWith(http.StatusOK, []byte("{\"response\":\"beta\"}"), nil)),
+							CombineHandlers(
+								VerifyRequest("GET", path),
+								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyBody([]byte{}),
+								RespondWith(http.StatusOK, []byte("{\"response\":\"beta\"}"), nil)),
 						)
 					})
 
@@ -288,11 +287,11 @@ var _ = Describe("Client", func() {
 				Context("with a successful response, but no response object", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", path),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								ghttp.VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
-								ghttp.RespondWith(http.StatusOK, []byte("{\"response\":\"beta\"}"), nil)),
+							CombineHandlers(
+								VerifyRequest("GET", path),
+								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
+								RespondWith(http.StatusOK, []byte("{\"response\":\"beta\"}"), nil)),
 						)
 					})
 
@@ -363,11 +362,11 @@ var _ = Describe("Client", func() {
 				Context("with an unexpected response 400", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", path),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								ghttp.VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
-								ghttp.RespondWith(http.StatusBadRequest, nil, nil)),
+							CombineHandlers(
+								VerifyRequest("GET", path),
+								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
+								RespondWith(http.StatusBadRequest, nil, nil)),
 						)
 					})
 
@@ -382,11 +381,11 @@ var _ = Describe("Client", func() {
 				Context("with an unauthorized response 401", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", path),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								ghttp.VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
-								ghttp.RespondWith(http.StatusUnauthorized, nil, nil)),
+							CombineHandlers(
+								VerifyRequest("GET", path),
+								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
+								RespondWith(http.StatusUnauthorized, nil, nil)),
 						)
 					})
 
@@ -400,11 +399,11 @@ var _ = Describe("Client", func() {
 				Context("with an unparseable response", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", path),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								ghttp.VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
-								ghttp.RespondWith(http.StatusOK, []byte("{\"response\":"), nil)),
+							CombineHandlers(
+								VerifyRequest("GET", path),
+								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
+								RespondWith(http.StatusOK, []byte("{\"response\":"), nil)),
 						)
 					})
 
@@ -418,11 +417,11 @@ var _ = Describe("Client", func() {
 				Context("with a successful response 200", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", path),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								ghttp.VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
-								ghttp.RespondWith(http.StatusOK, []byte("{\"response\":\"beta\"}"), nil)),
+							CombineHandlers(
+								VerifyRequest("GET", path),
+								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
+								RespondWith(http.StatusOK, []byte("{\"response\":\"beta\"}"), nil)),
 						)
 					})
 
@@ -437,11 +436,11 @@ var _ = Describe("Client", func() {
 				Context("with a successful response 201", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", path),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								ghttp.VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
-								ghttp.RespondWith(http.StatusCreated, []byte("{\"response\":\"beta\"}"), nil)),
+							CombineHandlers(
+								VerifyRequest("GET", path),
+								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
+								RespondWith(http.StatusCreated, []byte("{\"response\":\"beta\"}"), nil)),
 						)
 					})
 
@@ -456,11 +455,11 @@ var _ = Describe("Client", func() {
 				Context("with a successful response, but no request object", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", path),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								ghttp.VerifyBody([]byte{}),
-								ghttp.RespondWith(http.StatusOK, []byte("{\"response\":\"beta\"}"), nil)),
+							CombineHandlers(
+								VerifyRequest("GET", path),
+								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyBody([]byte{}),
+								RespondWith(http.StatusOK, []byte("{\"response\":\"beta\"}"), nil)),
 						)
 					})
 
@@ -475,11 +474,11 @@ var _ = Describe("Client", func() {
 				Context("with a successful response, but no response object", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", path),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								ghttp.VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
-								ghttp.RespondWith(http.StatusOK, []byte("{\"response\":\"beta\"}"), nil)),
+							CombineHandlers(
+								VerifyRequest("GET", path),
+								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
+								RespondWith(http.StatusOK, []byte("{\"response\":\"beta\"}"), nil)),
 						)
 					})
 

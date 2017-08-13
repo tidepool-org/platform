@@ -20,6 +20,11 @@ type ValidateTokenOutput struct {
 	Error   error
 }
 
+type GetStatusOutput struct {
+	Status *auth.Status
+	Error  error
+}
+
 type Client struct {
 	*test.Mock
 	ServerTokenInvocations   int
@@ -27,6 +32,9 @@ type Client struct {
 	ValidateTokenInvocations int
 	ValidateTokenInputs      []ValidateTokenInput
 	ValidateTokenOutputs     []ValidateTokenOutput
+	GetStatusInvocations     int
+	GetStatusInputs          []auth.Context
+	GetStatusOutputs         []GetStatusOutput
 }
 
 func NewClient() *Client {
@@ -47,10 +55,10 @@ func (c *Client) ServerToken() (string, error) {
 	return output.Token, output.Error
 }
 
-func (c *Client) ValidateToken(context auth.Context, token string) (auth.Details, error) {
+func (c *Client) ValidateToken(ctx auth.Context, token string) (auth.Details, error) {
 	c.ValidateTokenInvocations++
 
-	c.ValidateTokenInputs = append(c.ValidateTokenInputs, ValidateTokenInput{Context: context, Token: token})
+	c.ValidateTokenInputs = append(c.ValidateTokenInputs, ValidateTokenInput{Context: ctx, Token: token})
 
 	if len(c.ValidateTokenOutputs) == 0 {
 		panic("Unexpected invocation of ValidateToken on Client")
@@ -61,7 +69,22 @@ func (c *Client) ValidateToken(context auth.Context, token string) (auth.Details
 	return output.Details, output.Error
 }
 
+func (c *Client) GetStatus(ctx auth.Context) (*auth.Status, error) {
+	c.GetStatusInvocations++
+
+	c.GetStatusInputs = append(c.GetStatusInputs, ctx)
+
+	if len(c.GetStatusOutputs) == 0 {
+		panic("Unexpected invocation of GetStatus on Client")
+	}
+
+	output := c.GetStatusOutputs[0]
+	c.GetStatusOutputs = c.GetStatusOutputs[1:]
+	return output.Status, output.Error
+}
+
 func (c *Client) UnusedOutputsCount() int {
 	return len(c.ServerTokenOutputs) +
-		len(c.ValidateTokenOutputs)
+		len(c.ValidateTokenOutputs) +
+		len(c.GetStatusOutputs)
 }

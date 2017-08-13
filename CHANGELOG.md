@@ -1,5 +1,12 @@
 ## HEAD
 
+- Add auth, notification, and task services
+- Refactor and improve service package to streamline creation of new services
+- Move authentication token logging to authenticate middleware
+- Update service ports to align with deployed configurations
+- Update Makefile to build service artifacts using common mechanism
+- Remove broken `-notify` flag on Makefile watch target
+- Add `format-write` Makefile target to write formatted code to source file
 - Fix test package init check
 - Add common Mock struct for test mocks
 - Refactor auth middleware to make it the default on all routes

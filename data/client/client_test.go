@@ -3,12 +3,11 @@ package client_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/ghttp"
 
 	"fmt"
 	"net/http"
 	"time"
-
-	"github.com/onsi/gomega/ghttp"
 
 	testAuth "github.com/tidepool-org/platform/auth/test"
 	"github.com/tidepool-org/platform/client"
@@ -48,12 +47,12 @@ var _ = Describe("Client", func() {
 	})
 
 	Context("with started server and new client", func() {
-		var server *ghttp.Server
+		var server *Server
 		var clnt dataClient.Client
 		var context *testAuth.Context
 
 		BeforeEach(func() {
-			server = ghttp.NewServer()
+			server = NewServer()
 			config := client.NewConfig()
 			Expect(config).ToNot(BeNil())
 			config.Address = server.URL()
@@ -101,11 +100,11 @@ var _ = Describe("Client", func() {
 				Context("with an unauthorized response", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("DELETE", fmt.Sprintf("/dataservices/v1/users/%s/data", userID)),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								ghttp.VerifyBody([]byte{}),
-								ghttp.RespondWith(http.StatusUnauthorized, nil, nil)),
+							CombineHandlers(
+								VerifyRequest("DELETE", fmt.Sprintf("/dataservices/v1/users/%s/data", userID)),
+								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyBody([]byte{}),
+								RespondWith(http.StatusUnauthorized, nil, nil)),
 						)
 					})
 
@@ -119,11 +118,11 @@ var _ = Describe("Client", func() {
 				Context("with a successful response", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("DELETE", fmt.Sprintf("/dataservices/v1/users/%s/data", userID)),
-								ghttp.VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								ghttp.VerifyBody([]byte{}),
-								ghttp.RespondWith(http.StatusOK, nil, nil)),
+							CombineHandlers(
+								VerifyRequest("DELETE", fmt.Sprintf("/dataservices/v1/users/%s/data", userID)),
+								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyBody([]byte{}),
+								RespondWith(http.StatusOK, nil, nil)),
 						)
 					})
 

@@ -17,7 +17,6 @@ type Standard struct {
 	logger           log.Logger
 	authClient       auth.Client
 	api              *rest.Api
-	headerMiddleware *middleware.Header
 	statusMiddleware *rest.StatusMiddleware
 }
 
@@ -52,16 +51,12 @@ func (s *Standard) AuthClient() auth.Client {
 	return s.authClient
 }
 
+func (s *Standard) Status() *rest.Status {
+	return s.statusMiddleware.GetStatus()
+}
+
 func (s *Standard) API() *rest.Api {
 	return s.api
-}
-
-func (s *Standard) HeaderMiddleware() *middleware.Header {
-	return s.headerMiddleware
-}
-
-func (s *Standard) StatusMiddleware() *rest.StatusMiddleware {
-	return s.statusMiddleware
 }
 
 func (s *Standard) Handler() http.Handler {
@@ -74,10 +69,6 @@ func (s *Standard) InitializeMiddleware() error {
 		return err
 	}
 	traceMiddleware, err := middleware.NewTrace()
-	if err != nil {
-		return err
-	}
-	headerMiddleware, err := middleware.NewHeader()
 	if err != nil {
 		return err
 	}
@@ -102,7 +93,6 @@ func (s *Standard) InitializeMiddleware() error {
 	middlewareStack := []rest.Middleware{
 		loggerMiddleware,
 		traceMiddleware,
-		headerMiddleware,
 		accessLogMiddleware,
 		statusMiddleware,
 		timerMiddleware,
@@ -114,8 +104,18 @@ func (s *Standard) InitializeMiddleware() error {
 
 	s.api.Use(middlewareStack...)
 
-	s.headerMiddleware = headerMiddleware
 	s.statusMiddleware = statusMiddleware
+
+	return nil
+}
+
+func (s *Standard) InitializeRouter(routes ...*rest.Route) error {
+	router, err := rest.MakeRouter(routes...)
+	if err != nil {
+		return errors.Wrap(err, "api", "unable to initializer router")
+	}
+
+	s.api.SetApp(router)
 
 	return nil
 }

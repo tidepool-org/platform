@@ -1,7 +1,6 @@
 package service
 
 import (
-	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/client"
 	confirmationMongo "github.com/tidepool-org/platform/confirmation/store/mongo"
 	dataClient "github.com/tidepool-org/platform/data/client"
@@ -10,7 +9,6 @@ import (
 	metricClient "github.com/tidepool-org/platform/metric/client"
 	permissionMongo "github.com/tidepool-org/platform/permission/store/mongo"
 	profileMongo "github.com/tidepool-org/platform/profile/store/mongo"
-	"github.com/tidepool-org/platform/service/middleware"
 	"github.com/tidepool-org/platform/service/server"
 	"github.com/tidepool-org/platform/service/service"
 	sessionMongo "github.com/tidepool-org/platform/session/store/mongo"
@@ -22,7 +20,7 @@ import (
 )
 
 type Standard struct {
-	*service.Service
+	*service.DEPRECATEDService
 	dataClient        dataClient.Client
 	metricClient      metricClient.Client
 	userClient        userClient.Client
@@ -37,18 +35,18 @@ type Standard struct {
 }
 
 func NewStandard(prefix string) (*Standard, error) {
-	svc, err := service.New(prefix)
+	svc, err := service.NewDEPRECATEDService(prefix)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Standard{
-		Service: svc,
+		DEPRECATEDService: svc,
 	}, nil
 }
 
 func (s *Standard) Initialize() error {
-	if err := s.Service.Initialize(); err != nil {
+	if err := s.DEPRECATEDService.Initialize(); err != nil {
 		return err
 	}
 
@@ -120,7 +118,7 @@ func (s *Standard) Terminate() {
 	s.metricClient = nil
 	s.dataClient = nil
 
-	s.Service.Terminate()
+	s.DEPRECATEDService.Terminate()
 }
 
 func (s *Standard) Run() error {
@@ -325,14 +323,9 @@ func (s *Standard) initializeAPI() error {
 		return errors.Wrap(err, "service", "unable to initialize api middleware")
 	}
 
-	s.Logger().Debug("Configuring api middleware headers")
-
-	s.api.HeaderMiddleware().AddHeaderFieldFunc(
-		auth.TidepoolAuthTokenHeaderName, middleware.NewMD5FieldFunc("authTokenHash"))
-
 	s.Logger().Debug("Initializing api router")
 
-	if err = s.api.InitializeRouter(v1.Routes()); err != nil {
+	if err = s.api.DEPRECATEDInitializeRouter(v1.Routes()); err != nil {
 		return errors.Wrap(err, "service", "unable to initialize api router")
 	}
 

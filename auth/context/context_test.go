@@ -71,7 +71,7 @@ var _ = Describe("Context", func() {
 			})
 
 			It("returns nil if none set", func() {
-				request.Env["AUTH-DETAILS"] = nil
+				delete(request.Env, "AUTH-DETAILS")
 				Expect(ctx.AuthDetails()).To(BeNil())
 			})
 		})

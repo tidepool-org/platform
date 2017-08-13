@@ -6,24 +6,24 @@ import (
 	"github.com/tidepool-org/platform/store/mongo"
 )
 
-func New(logger log.Logger, config *mongo.Config) (*Store, error) {
-	baseStore, err := mongo.New(logger, config)
+type Store struct {
+	*mongo.Store
+}
+
+func New(lgr log.Logger, cfg *mongo.Config) (*Store, error) {
+	str, err := mongo.New(lgr, cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Store{
-		Store: baseStore,
+		Store: str,
 	}, nil
 }
 
-type Store struct {
-	*mongo.Store
-}
-
-func (s *Store) NewSession(logger log.Logger) store.Session {
+func (s *Store) NewSession(lgr log.Logger) store.StoreSession {
 	return &Session{
-		Session: s.Store.NewSession(logger),
+		Session: s.Store.NewSession(lgr),
 	}
 }
 
