@@ -4,10 +4,10 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/upload"
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/store"
+	"github.com/tidepool-org/platform/test"
 )
 
 type GetDatasetsForUserByIDInput struct {
@@ -32,7 +32,7 @@ type CreateDatasetDataInput struct {
 }
 
 type Session struct {
-	ID                                                   string
+	*test.Mock
 	IsClosedInvocations                                  int
 	IsClosedOutputs                                      []bool
 	CloseInvocations                                     int
@@ -77,7 +77,7 @@ type Session struct {
 
 func NewSession() *Session {
 	return &Session{
-		ID:         id.New(),
+		Mock:       test.NewMock(),
 		LoggerImpl: null.NewLogger(),
 	}
 }

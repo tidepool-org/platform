@@ -200,40 +200,40 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("succeeds if it successfully gets the user", func() {
-						user, err := mongoSession.GetUserByID(getUserID)
+						usr, err := mongoSession.GetUserByID(getUserID)
 						Expect(err).ToNot(HaveOccurred())
-						Expect(user).ToNot(BeNil())
-						Expect(user.ID).To(Equal(getUserID))
-						Expect(user.Email).To(Equal(getUserEmail))
-						Expect(user.ProfileID).ToNot(BeNil())
-						Expect(*user.ProfileID).To(Equal("meta-id"))
+						Expect(usr).ToNot(BeNil())
+						Expect(usr.ID).To(Equal(getUserID))
+						Expect(usr.Email).To(Equal(getUserEmail))
+						Expect(usr.ProfileID).ToNot(BeNil())
+						Expect(*usr.ProfileID).To(Equal("meta-id"))
 					})
 
 					It("succeeds even if two users exist with the same user id", func() {
 						Expect(testMongoCollection.Insert(getUser)).To(Succeed())
-						user, err := mongoSession.GetUserByID(getUserID)
+						usr, err := mongoSession.GetUserByID(getUserID)
 						Expect(err).ToNot(HaveOccurred())
-						Expect(user).ToNot(BeNil())
-						Expect(user.ID).To(Equal(getUserID))
+						Expect(usr).ToNot(BeNil())
+						Expect(usr.ID).To(Equal(getUserID))
 					})
 
 					It("returns no error and no user if the user id is not found", func() {
-						user, err := mongoSession.GetUserByID(id.New())
+						usr, err := mongoSession.GetUserByID(id.New())
 						Expect(err).ToNot(HaveOccurred())
-						Expect(user).To(BeNil())
+						Expect(usr).To(BeNil())
 					})
 
 					It("returns an error if the user id is missing", func() {
-						user, err := mongoSession.GetUserByID("")
+						usr, err := mongoSession.GetUserByID("")
 						Expect(err).To(MatchError("mongo: user id is missing"))
-						Expect(user).To(BeNil())
+						Expect(usr).To(BeNil())
 					})
 
 					It("returns an error if the session is closed", func() {
 						mongoSession.Close()
-						user, err := mongoSession.GetUserByID(getUserID)
+						usr, err := mongoSession.GetUserByID(getUserID)
 						Expect(err).To(MatchError("mongo: session closed"))
-						Expect(user).To(BeNil())
+						Expect(usr).To(BeNil())
 					})
 
 					Context("with no private", func() {
@@ -242,10 +242,10 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("succeeds, but does not fill in the profile id", func() {
-							user, err := mongoSession.GetUserByID(getUserID)
+							usr, err := mongoSession.GetUserByID(getUserID)
 							Expect(err).ToNot(HaveOccurred())
-							Expect(user).ToNot(BeNil())
-							Expect(user.ProfileID).To(BeNil())
+							Expect(usr).ToNot(BeNil())
+							Expect(usr.ProfileID).To(BeNil())
 						})
 					})
 
@@ -255,10 +255,10 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("succeeds, but does not fill in the profile id", func() {
-							user, err := mongoSession.GetUserByID(getUserID)
+							usr, err := mongoSession.GetUserByID(getUserID)
 							Expect(err).ToNot(HaveOccurred())
-							Expect(user).ToNot(BeNil())
-							Expect(user.ProfileID).To(BeNil())
+							Expect(usr).ToNot(BeNil())
+							Expect(usr.ProfileID).To(BeNil())
 						})
 					})
 
@@ -268,10 +268,10 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("succeeds, but does not fill in the profile id", func() {
-							user, err := mongoSession.GetUserByID(getUserID)
+							usr, err := mongoSession.GetUserByID(getUserID)
 							Expect(err).ToNot(HaveOccurred())
-							Expect(user).ToNot(BeNil())
-							Expect(user.ProfileID).To(BeNil())
+							Expect(usr).ToNot(BeNil())
+							Expect(usr.ProfileID).To(BeNil())
 						})
 					})
 				})
@@ -367,19 +367,19 @@ var _ = Describe("Mongo", func() {
 
 			Context("PasswordMatches", func() {
 				It("returns true if the passwords match", func() {
-					user := &user.User{
+					usr := &user.User{
 						ID:           "0cd1a5d68b",
 						PasswordHash: "f4bbfc883178b79c184732c8aaa4e1e72a851ad1",
 					}
-					Expect(mongoSession.PasswordMatches(user, "asdflknj237u9fsnkl")).To(BeTrue())
+					Expect(mongoSession.PasswordMatches(usr, "asdflknj237u9fsnkl")).To(BeTrue())
 				})
 
 				It("returns false if the passwords do not match", func() {
-					user := &user.User{
+					usr := &user.User{
 						ID:           "d23b0a8786",
 						PasswordHash: "e8353f1aa1045a73ddeebd71febafee7d85768d8",
 					}
-					Expect(mongoSession.PasswordMatches(user, "invalid-password")).To(BeFalse())
+					Expect(mongoSession.PasswordMatches(usr, "invalid-password")).To(BeFalse())
 				})
 			})
 

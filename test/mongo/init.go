@@ -1,9 +1,7 @@
 package mongo
 
-import "os"
+import "github.com/tidepool-org/platform/test"
 
 func init() {
-	if os.Getenv("TIDEPOOL_ENV") != "test" {
-		panic(`Test packages only supported while running in test environment (TIDEPOOL_ENV="test")`)
-	}
+	test.Init()
 }

@@ -3,7 +3,7 @@ package rest
 import (
 	"net/http"
 
-	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/test"
 )
 
 type EncodeJsonOutput struct {
@@ -12,7 +12,7 @@ type EncodeJsonOutput struct {
 }
 
 type ResponseWriter struct {
-	ID                     string
+	*test.Mock
 	HeaderImpl             http.Header
 	WriteJsonInvocations   int
 	WriteJsonInputs        []interface{}
@@ -26,7 +26,7 @@ type ResponseWriter struct {
 
 func NewResponseWriter() *ResponseWriter {
 	return &ResponseWriter{
-		ID:         id.New(),
+		Mock:       test.NewMock(),
 		HeaderImpl: http.Header{},
 	}
 }

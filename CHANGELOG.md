@@ -1,5 +1,7 @@
 ## HEAD
 
+- Fix test package init check
+- Add common Mock struct for test mocks
 - Refactor auth middleware to make it the default on all routes
 - Add auth client to handle user and server authentication and authorization for clients
 - Refactor all client packages into common client package

@@ -1,15 +1,12 @@
 package test
 
 import (
-	"os"
-
 	"github.com/tidepool-org/platform/application/version"
+	"github.com/tidepool-org/platform/test"
 )
 
 func init() {
-	if os.Getenv("TIDEPOOL_ENV") != "test" {
-		panic(`Test packages only supported while running in test environment (TIDEPOOL_ENV="test")`)
-	}
+	test.Init()
 
 	version.Base = "0.0.0"
 	version.ShortCommit = "0000000"

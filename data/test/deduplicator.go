@@ -2,11 +2,11 @@ package test
 
 import (
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/test"
 )
 
 type Deduplicator struct {
-	ID                            string
+	*test.Mock
 	NameInvocations               int
 	NameOutputs                   []string
 	VersionInvocations            int
@@ -24,7 +24,7 @@ type Deduplicator struct {
 
 func NewDeduplicator() *Deduplicator {
 	return &Deduplicator{
-		ID: id.New(),
+		Mock: test.NewMock(),
 	}
 }
 

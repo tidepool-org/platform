@@ -11,12 +11,12 @@ import (
 	"errors"
 	"time"
 
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/test"
 )
 
 type Serializer struct {
-	ID                   string
+	*test.Mock
 	SerializeInvocations int
 	SerializeInputs      []log.Fields
 	SerializeOutputs     []error
@@ -24,7 +24,7 @@ type Serializer struct {
 
 func NewSerializer() *Serializer {
 	return &Serializer{
-		ID: id.New(),
+		Mock: test.NewMock(),
 	}
 }
 

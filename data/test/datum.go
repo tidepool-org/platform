@@ -2,7 +2,7 @@ package test
 
 import (
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/test"
 )
 
 type IdentityFieldsOutput struct {
@@ -11,7 +11,7 @@ type IdentityFieldsOutput struct {
 }
 
 type Datum struct {
-	ID                                   string
+	*test.Mock
 	InitInvocations                      int
 	MetaInvocations                      int
 	MetaOutputs                          []interface{}
@@ -51,7 +51,7 @@ type Datum struct {
 
 func NewDatum() *Datum {
 	return &Datum{
-		ID: id.New(),
+		Mock: test.NewMock(),
 	}
 }
 

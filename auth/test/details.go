@@ -1,9 +1,9 @@
 package test
 
-import "github.com/tidepool-org/platform/id"
+import "github.com/tidepool-org/platform/test"
 
 type Details struct {
-	ID                  string
+	*test.Mock
 	TokenInvocations    int
 	TokenOutputs        []string
 	IsServerInvocations int
@@ -14,7 +14,7 @@ type Details struct {
 
 func NewDetails() *Details {
 	return &Details{
-		ID: id.New(),
+		Mock: test.NewMock(),
 	}
 }
 

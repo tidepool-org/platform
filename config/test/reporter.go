@@ -1,13 +1,18 @@
 package test
 
-import "github.com/tidepool-org/platform/config"
+import (
+	"github.com/tidepool-org/platform/config"
+	"github.com/tidepool-org/platform/test"
+)
 
 type Reporter struct {
+	*test.Mock
 	Config map[string]string
 }
 
 func NewReporter() *Reporter {
 	return &Reporter{
+		Mock:   test.NewMock(),
 		Config: map[string]string{},
 	}
 }

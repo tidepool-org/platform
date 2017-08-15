@@ -2,7 +2,7 @@ package test
 
 import (
 	"github.com/tidepool-org/platform/auth"
-	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/test"
 )
 
 type ServerTokenOutput struct {
@@ -21,7 +21,7 @@ type ValidateTokenOutput struct {
 }
 
 type Client struct {
-	ID                       string
+	*test.Mock
 	ServerTokenInvocations   int
 	ServerTokenOutputs       []ServerTokenOutput
 	ValidateTokenInvocations int
@@ -31,7 +31,7 @@ type Client struct {
 
 func NewClient() *Client {
 	return &Client{
-		ID: id.New(),
+		Mock: test.NewMock(),
 	}
 }
 

@@ -6,9 +6,9 @@ import (
 
 	"errors"
 
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/log/json"
+	"github.com/tidepool-org/platform/test"
 )
 
 type WriteOutput struct {
@@ -17,7 +17,7 @@ type WriteOutput struct {
 }
 
 type Writer struct {
-	ID               string
+	*test.Mock
 	WriteInvocations int
 	WriteInputs      [][]byte
 	WriteOutputs     []WriteOutput
@@ -25,7 +25,7 @@ type Writer struct {
 
 func NewWriter() *Writer {
 	return &Writer{
-		ID: id.New(),
+		Mock: test.NewMock(),
 	}
 }
 

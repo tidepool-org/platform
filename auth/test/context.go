@@ -9,10 +9,11 @@ import (
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/log"
 	nullLog "github.com/tidepool-org/platform/log/null"
+	"github.com/tidepool-org/platform/test"
 )
 
 type Context struct {
-	ID              string
+	*test.Mock
 	LoggerImpl      log.Logger
 	RequestImpl     *rest.Request
 	AuthClientMock  auth.Client
@@ -23,6 +24,7 @@ type Context struct {
 
 func NewContext() *Context {
 	return &Context{
+		Mock:       test.NewMock(),
 		LoggerImpl: nullLog.NewLogger(),
 		RequestImpl: &rest.Request{
 			Request: &http.Request{
