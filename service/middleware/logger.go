@@ -26,11 +26,7 @@ func (l *Logger) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
 		if handler != nil && response != nil && request != nil {
 			oldLogger := service.GetRequestLogger(request)
-
-			defer func() {
-				service.SetRequestLogger(request, oldLogger)
-			}()
-
+			defer service.SetRequestLogger(request, oldLogger)
 			service.SetRequestLogger(request, l.logger)
 
 			handler(response, request)

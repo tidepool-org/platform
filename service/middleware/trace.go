@@ -24,17 +24,10 @@ func NewTrace() (*Trace, error) {
 func (t *Trace) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
 		if handler != nil && response != nil && request != nil {
-			oldLogger := service.GetRequestLogger(request)
-			oldTraceRequest := service.GetRequestTraceRequest(request)
-			oldTraceSession := service.GetRequestTraceSession(request)
-
-			defer func() {
-				service.SetRequestTraceSession(request, oldTraceSession)
-				service.SetRequestTraceRequest(request, oldTraceRequest)
-				service.SetRequestLogger(request, oldLogger)
-			}()
-
 			newFields := log.Fields{}
+
+			oldTraceRequest := service.GetRequestTraceRequest(request)
+			defer service.SetRequestTraceRequest(request, oldTraceRequest)
 
 			newTraceRequest := request.Header.Get(service.HTTPHeaderTraceRequest)
 			if newTraceRequest != "" {
@@ -50,6 +43,9 @@ func (t *Trace) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
 
 			newTraceSession := request.Header.Get(service.HTTPHeaderTraceSession)
 			if newTraceSession != "" {
+				oldTraceSession := service.GetRequestTraceSession(request)
+				defer service.SetRequestTraceSession(request, oldTraceSession)
+
 				if len(newTraceSession) > _TraceMaximumLength {
 					newTraceSession = newTraceSession[:_TraceMaximumLength]
 				}
@@ -58,7 +54,8 @@ func (t *Trace) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
 				newFields[_LogTraceSession] = newTraceSession
 			}
 
-			if oldLogger != nil {
+			if oldLogger := service.GetRequestLogger(request); oldLogger != nil {
+				defer service.SetRequestLogger(request, oldLogger)
 				service.SetRequestLogger(request, oldLogger.WithFields(newFields))
 			}
 

@@ -80,7 +80,9 @@ func (c *Client) sendRequest(context auth.Context, method string, url string, to
 	if err != nil {
 		return errors.Wrapf(err, "client", "unable to perform request %s %s", method, url)
 	}
-	defer response.Body.Close()
+	if response.Body != nil {
+		defer response.Body.Close()
+	}
 
 	switch response.StatusCode {
 	case http.StatusOK, http.StatusCreated:
@@ -144,6 +146,9 @@ func (c *Client) encodeRequestObject(requestObject interface{}) (io.Reader, erro
 func (c *Client) decodeResponseObject(responseBody io.Reader, responseObject interface{}) error {
 	if responseObject == nil {
 		return nil
+	}
+	if responseBody == nil {
+		return errors.New("client", "response body is empty")
 	}
 
 	return json.NewDecoder(responseBody).Decode(responseObject)

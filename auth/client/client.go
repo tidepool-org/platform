@@ -186,7 +186,9 @@ func (c *Client) refreshServerToken() error {
 	if err != nil {
 		return errors.Wrap(err, "client", "failure requesting new server token")
 	}
-	defer response.Body.Close()
+	if response.Body != nil {
+		defer response.Body.Close()
+	}
 
 	if response.StatusCode != http.StatusOK {
 		return errors.Newf("client", "unexpected response status code %d while requesting new server token", response.StatusCode)

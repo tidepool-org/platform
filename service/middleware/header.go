@@ -54,13 +54,7 @@ func (h *Header) AddHeaderFieldFunc(header string, fieldFunc FieldFunc) {
 func (h *Header) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
 		if handler != nil && response != nil && request != nil {
-			oldLogger := service.GetRequestLogger(request)
-
-			defer func() {
-				service.SetRequestLogger(request, oldLogger)
-			}()
-
-			if oldLogger != nil {
+			if oldLogger := service.GetRequestLogger(request); oldLogger != nil {
 				newFields := log.Fields{}
 
 				for header, fieldFunc := range h.HeaderFieldFuncs {
@@ -70,6 +64,7 @@ func (h *Header) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
 				}
 
 				if len(newFields) > 0 {
+					defer service.SetRequestLogger(request, oldLogger)
 					service.SetRequestLogger(request, oldLogger.WithFields(newFields))
 				}
 			}
