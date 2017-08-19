@@ -18,7 +18,7 @@ type Service struct {
 }
 
 func New(prefix string) (*Service, error) {
-	app, err := application.New(prefix)
+	app, err := application.New(prefix, "service")
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func (s *Service) initializeServer() error {
 	s.Logger().Debug("Loading server config")
 
 	cfg := server.NewConfig()
-	if err := cfg.Load(s.ConfigReporter().WithScopes(s.Name(), "server")); err != nil {
+	if err := cfg.Load(s.ConfigReporter().WithScopes("server")); err != nil {
 		return errors.Wrap(err, "service", "unable to load server config")
 	}
 

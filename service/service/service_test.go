@@ -52,7 +52,7 @@ var _ = Describe("Service", func() {
 			configReporter, err := env.NewReporter("TIDEPOOL")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(configReporter).ToNot(BeNil())
-			configReporter = configReporter.WithScopes("service.test")
+			configReporter = configReporter.WithScopes("service.test", "service")
 
 			clientConfigReporter = configReporter.WithScopes("auth", "client")
 			clientConfigReporter.Set("address", server.URL())

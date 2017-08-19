@@ -16,12 +16,13 @@ import (
 type Application struct {
 	name            string
 	prefix          string
+	scopes          []string
 	versionReporter version.Reporter
 	configReporter  config.Reporter
 	logger          log.Logger
 }
 
-func New(prefix string) (*Application, error) {
+func New(prefix string, scopes ...string) (*Application, error) {
 	if prefix == "" {
 		return nil, errors.New("application", "prefix is missing")
 	}
@@ -29,6 +30,7 @@ func New(prefix string) (*Application, error) {
 	return &Application{
 		name:   filepath.Base(os.Args[0]),
 		prefix: prefix,
+		scopes: scopes,
 	}, nil
 }
 
@@ -89,7 +91,7 @@ func (a *Application) initializeConfigReporter() error {
 		return errors.Wrap(err, "application", "unable to create config reporter")
 	}
 
-	a.configReporter = configReporter.WithScopes(a.Name())
+	a.configReporter = configReporter.WithScopes(a.Name()).WithScopes(a.scopes...)
 
 	return nil
 }

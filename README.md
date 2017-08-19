@@ -41,13 +41,13 @@ export PATH=$GOPATH/bin:$PATH
 
 1. Setup the environment, as above.
 1. Build the project.
-1. Execute the `dataservices` and/or `userservices` executable.
+1. Execute a service.
 
 In addition to the setup above, for example:
 
 ```
 make build
-_bin/services/dataservices/dataservices
+_bin/services/data/data
 ```
 
 Use `Ctrl-C` to stop the executable. It may take up to 60 seconds to stop.

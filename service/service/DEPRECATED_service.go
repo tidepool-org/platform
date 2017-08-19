@@ -13,7 +13,7 @@ type DEPRECATEDService struct {
 }
 
 func NewDEPRECATEDService(prefix string) (*DEPRECATEDService, error) {
-	app, err := application.New(prefix)
+	app, err := application.New(prefix, "service")
 	if err != nil {
 		return nil, err
 	}

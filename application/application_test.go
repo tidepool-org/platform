@@ -19,8 +19,16 @@ var _ = Describe("Application", func() {
 			Expect(app).To(BeNil())
 		})
 
-		It("returns successfully", func() {
+		It("returns successfully with no scopes", func() {
 			Expect(application.New("TIDEPOOL")).ToNot(BeNil())
+		})
+
+		It("returns successfully with one scope", func() {
+			Expect(application.New("TIDEPOOL", "alpha")).ToNot(BeNil())
+		})
+
+		It("returns successfully with multiple scopes", func() {
+			Expect(application.New("TIDEPOOL", "alpha", "bravo")).ToNot(BeNil())
 		})
 	})
 
@@ -29,7 +37,7 @@ var _ = Describe("Application", func() {
 
 		BeforeEach(func() {
 			var err error
-			app, err = application.New("TIDEPOOL")
+			app, err = application.New("TIDEPOOL", "alpha", "bravo")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(app).ToNot(BeNil())
 		})
@@ -61,7 +69,7 @@ var _ = Describe("Application", func() {
 					configReporter, err = env.NewReporter("TIDEPOOL")
 					Expect(err).ToNot(HaveOccurred())
 					Expect(configReporter).ToNot(BeNil())
-					configReporter = configReporter.WithScopes("application.test", "logger")
+					configReporter = configReporter.WithScopes("application.test", "alpha", "bravo", "logger")
 					level = configReporter.GetWithDefault("level", "warn")
 					configReporter.Set("level", "invalid")
 				})

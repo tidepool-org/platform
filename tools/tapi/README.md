@@ -4,7 +4,7 @@ This tool will allow easy command-line access to many features of the Tidepool A
 
 **NB:** If you would like to use this tool on the Tidepool platform running on your machine (i.e., localhost), please note the following additional instructions:
 
-- make sure you're running the dataservices (for instructions see the repo [README](../../README.md), and don't forget to `. ./env.sh`)
+- make sure you're running the data services (for instructions see the repo [README](../../README.md), and don't forget to `. ./env.sh`)
 - from the root of your platform repo directory, use the full path wherever you see `tapi` in the shell commands below (e.g., `$ _bin/tools/tapi/tapi login`)
 
 ## Which Server?

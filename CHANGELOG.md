@@ -1,5 +1,7 @@
 ## HEAD
 
+- Resolve general config reporter scopes issue with services
+- Remove the 'services' suffix from all services
 - Remove deprecated dataservices and userservices url path prefix
 - Update url params to use underscores
 - Refactor store sessions to allow multiple collections per store

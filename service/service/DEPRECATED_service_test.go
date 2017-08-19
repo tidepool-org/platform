@@ -51,7 +51,7 @@ var _ = Describe("DEPRECATEDService", func() {
 			configReporter, err = env.NewReporter("TIDEPOOL")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(configReporter).ToNot(BeNil())
-			configReporter = configReporter.WithScopes("service.test", "auth", "client")
+			configReporter = configReporter.WithScopes("service.test", "service", "auth", "client")
 			configReporter.Set("address", server.URL())
 			configReporter.Set("timeout", "60")
 			configReporter.Set("server_token_secret", serverTokenSecret)

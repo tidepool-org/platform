@@ -330,7 +330,7 @@ func (s *Standard) initializeServer() error {
 	s.Logger().Debug("Loading server config")
 
 	serverConfig := server.NewConfig()
-	if err := serverConfig.Load(s.ConfigReporter().WithScopes(s.Name(), "server")); err != nil {
+	if err := serverConfig.Load(s.ConfigReporter().WithScopes("server")); err != nil {
 		return errors.Wrap(err, "service", "unable to load server config")
 	}
 
