@@ -23,6 +23,6 @@ func NewRouter(svc service.Service) (*Router, error) {
 
 func (r *Router) Routes() []*rest.Route {
 	return []*rest.Route{
-		rest.Get("/status", r.GetStatus),
+		rest.Get("/status", r.StatusGet),
 	}
 }

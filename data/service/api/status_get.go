@@ -13,7 +13,7 @@ type Status struct {
 	Server      interface{}
 }
 
-func (s *Standard) GetStatus(dataServiceContext dataService.Context) {
+func (s *Standard) StatusGet(dataServiceContext dataService.Context) {
 	status := &Status{
 		Version:   s.VersionReporter().Long(),
 		DataStore: s.dataStore.Status(),

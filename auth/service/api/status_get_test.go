@@ -13,7 +13,7 @@ import (
 	testRest "github.com/tidepool-org/platform/test/rest"
 )
 
-var _ = Describe("Status", func() {
+var _ = Describe("StatusGet", func() {
 	var response *testRest.ResponseWriter
 	var request *rest.Request
 	var svc *testService.Service
@@ -34,13 +34,13 @@ var _ = Describe("Status", func() {
 		Expect(response.UnusedOutputsCount()).To(Equal(0))
 	})
 
-	Context("GetStatus", func() {
+	Context("StatusGet", func() {
 		It("panics if response is missing", func() {
-			Expect(func() { rtr.GetStatus(nil, request) }).To(Panic())
+			Expect(func() { rtr.StatusGet(nil, request) }).To(Panic())
 		})
 
 		It("panics if request is missing", func() {
-			Expect(func() { rtr.GetStatus(response, nil) }).To(Panic())
+			Expect(func() { rtr.StatusGet(response, nil) }).To(Panic())
 		})
 
 		Context("with service status", func() {
@@ -53,7 +53,7 @@ var _ = Describe("Status", func() {
 			})
 
 			It("returns successfully", func() {
-				rtr.GetStatus(response, request)
+				rtr.StatusGet(response, request)
 				Expect(response.WriteJsonInputs).To(HaveLen(1))
 				Expect(response.WriteJsonInputs[0].(*serviceContext.JSONResponse).Data).To(Equal(sts))
 			})

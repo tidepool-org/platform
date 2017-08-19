@@ -10,6 +10,6 @@ type Version struct {
 	Version string `json:"version"`
 }
 
-func (s *Standard) GetVersion(dataServiceContext dataService.Context) {
+func (s *Standard) VersionGet(dataServiceContext dataService.Context) {
 	dataServiceContext.RespondWithStatusAndData(http.StatusOK, Version{s.VersionReporter().Long()})
 }

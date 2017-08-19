@@ -11,7 +11,7 @@ type Status struct {
 	Server  interface{}
 }
 
-func (s *Standard) GetStatus(userServiceContext userService.Context) {
+func (s *Standard) StatusGet(userServiceContext userService.Context) {
 	status := &Status{
 		Version: s.VersionReporter().Long(),
 		Server:  s.Status(),

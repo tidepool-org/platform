@@ -1,5 +1,6 @@
 ## HEAD
 
+- Use consistent route function naming
 - Fix minor issues with use of defer
 - Resolve general config reporter scopes issue with services
 - Remove the 'services' suffix from all services
