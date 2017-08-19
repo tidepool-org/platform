@@ -15,7 +15,7 @@ import (
 )
 
 func UsersDatasetsCreate(dataServiceContext dataService.Context) {
-	targetUserID := dataServiceContext.Request().PathParam("userid")
+	targetUserID := dataServiceContext.Request().PathParam("user_id")
 	if targetUserID == "" {
 		dataServiceContext.RespondWithError(ErrorUserIDMissing())
 		return

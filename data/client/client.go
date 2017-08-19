@@ -35,5 +35,5 @@ func (c *clientImpl) DestroyDataForUserByID(context auth.Context, userID string)
 
 	context.Logger().WithField("userId", userID).Debug("Deleting data for user")
 
-	return c.client.SendRequestWithServerToken(context, "DELETE", c.client.BuildURL("dataservices", "v1", "users", userID, "data"), nil, nil)
+	return c.client.SendRequestWithServerToken(context, "DELETE", c.client.BuildURL("v1", "users", userID, "data"), nil, nil)
 }

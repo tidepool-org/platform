@@ -32,7 +32,7 @@ var _ = Describe("DatasetsDelete", func() {
 			targetUpload.UserID = targetUserID
 			targetUpload.ByUser = id.New()
 			context = NewTestContext()
-			context.Context.RequestImpl.PathParams["datasetid"] = targetUpload.UploadID
+			context.Context.RequestImpl.PathParams["dataset_id"] = targetUpload.UploadID
 			context.DataSessionImpl.GetDatasetByIDOutputs = []testDataStore.GetDatasetByIDOutput{{Dataset: targetUpload, Error: nil}}
 			context.Context.AuthDetailsImpl.IsServerOutputs = []bool{false}
 			context.Context.AuthDetailsImpl.UserIDOutputs = []string{authUserID}
@@ -117,7 +117,7 @@ var _ = Describe("DatasetsDelete", func() {
 		})
 
 		It("responds with error if dataset id not provided as a parameter", func() {
-			delete(context.Context.RequestImpl.PathParams, "datasetid")
+			delete(context.Context.RequestImpl.PathParams, "dataset_id")
 			context.DataSessionImpl.GetDatasetByIDOutputs = []testDataStore.GetDatasetByIDOutput{}
 			context.Context.AuthDetailsImpl.IsServerOutputs = []bool{}
 			context.Context.AuthDetailsImpl.UserIDOutputs = []string{}

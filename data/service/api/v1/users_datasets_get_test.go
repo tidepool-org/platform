@@ -34,7 +34,7 @@ var _ = Describe("UsersDatasetsGet", func() {
 				uploads = append(uploads, upload.Init())
 			}
 			context = NewTestContext()
-			context.RequestImpl.PathParams["userid"] = targetUserID
+			context.RequestImpl.PathParams["user_id"] = targetUserID
 			context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{userClient.Permissions{userClient.ViewPermission: userClient.Permission{}}, nil}}
 			context.DataSessionImpl.GetDatasetsForUserByIDOutputs = []testDataStore.GetDatasetsForUserByIDOutput{{Datasets: uploads, Error: nil}}
 			context.AuthDetailsImpl.IsServerOutputs = []bool{false}
@@ -122,7 +122,7 @@ var _ = Describe("UsersDatasetsGet", func() {
 			context.DataSessionImpl.GetDatasetsForUserByIDOutputs = []testDataStore.GetDatasetsForUserByIDOutput{}
 			context.AuthDetailsImpl.IsServerOutputs = []bool{}
 			context.AuthDetailsImpl.UserIDOutputs = []string{}
-			delete(context.RequestImpl.PathParams, "userid")
+			delete(context.RequestImpl.PathParams, "user_id")
 			v1.UsersDatasetsGet(context)
 			Expect(context.RespondWithErrorInputs).To(Equal([]*service.Error{v1.ErrorUserIDMissing()}))
 			Expect(context.ValidateTest()).To(BeTrue())

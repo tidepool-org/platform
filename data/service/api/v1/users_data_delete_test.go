@@ -21,7 +21,7 @@ var _ = Describe("UsersDataDelete", func() {
 		BeforeEach(func() {
 			targetUserID = id.New()
 			context = NewTestContext()
-			context.RequestImpl.PathParams["userid"] = targetUserID
+			context.RequestImpl.PathParams["user_id"] = targetUserID
 			context.AuthDetailsImpl.IsServerOutputs = []bool{true}
 			context.DataSessionImpl.DestroyDataForUserByIDOutputs = []error{nil}
 			context.SyncTasksSessionImpl.DestroySyncTasksForUserByIDOutputs = []error{nil}
@@ -57,7 +57,7 @@ var _ = Describe("UsersDataDelete", func() {
 		})
 
 		It("responds with error if user id not provided as a parameter", func() {
-			delete(context.RequestImpl.PathParams, "userid")
+			delete(context.RequestImpl.PathParams, "user_id")
 			context.AuthDetailsImpl.IsServerOutputs = []bool{}
 			context.DataSessionImpl.DestroyDataForUserByIDOutputs = []error{}
 			context.SyncTasksSessionImpl.DestroySyncTasksForUserByIDOutputs = []error{}

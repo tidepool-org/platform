@@ -16,7 +16,7 @@ import (
 )
 
 func DatasetsDataCreate(dataServiceContext dataService.Context) {
-	datasetID := dataServiceContext.Request().PathParam("datasetid")
+	datasetID := dataServiceContext.Request().PathParam("dataset_id")
 	if datasetID == "" {
 		dataServiceContext.RespondWithError(ErrorDatasetIDMissing())
 		return

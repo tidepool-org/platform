@@ -162,7 +162,7 @@ func (a *API) DeleteUserByID(userID string, password string) error {
 		userDelete.Password = &password
 	}
 
-	return a.asEmpty(a.request("DELETE", a.joinPaths("userservices", "v1", "users", userID),
+	return a.asEmpty(a.request("DELETE", a.joinPaths("v1", "users", userID),
 		requestFuncs{a.addSessionToken(), a.addObjectBody(userDelete)},
 		responseFuncs{a.expectStatusCode(http.StatusOK)}))
 }

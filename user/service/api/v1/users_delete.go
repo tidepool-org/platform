@@ -17,7 +17,7 @@ type UsersDeleteParameters struct {
 }
 
 func UsersDelete(userServiceContext userService.Context) {
-	targetUserID := userServiceContext.Request().PathParam("userid")
+	targetUserID := userServiceContext.Request().PathParam("user_id")
 	if targetUserID == "" {
 		userServiceContext.RespondWithError(ErrorUserIDMissing())
 		return

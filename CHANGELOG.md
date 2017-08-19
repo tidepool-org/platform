@@ -1,5 +1,7 @@
 ## HEAD
 
+- Remove deprecated dataservices and userservices url path prefix
+- Update url params to use underscores
 - Refactor store sessions to allow multiple collections per store
 - Add mongo config collection prefix to all collection name customization (particularly for tests)
 - Add auth, notification, and task services

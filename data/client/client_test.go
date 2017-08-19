@@ -101,7 +101,7 @@ var _ = Describe("Client", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							CombineHandlers(
-								VerifyRequest("DELETE", fmt.Sprintf("/dataservices/v1/users/%s/data", userID)),
+								VerifyRequest("DELETE", fmt.Sprintf("/v1/users/%s/data", userID)),
 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
 								VerifyBody([]byte{}),
 								RespondWith(http.StatusUnauthorized, nil, nil)),
@@ -119,7 +119,7 @@ var _ = Describe("Client", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							CombineHandlers(
-								VerifyRequest("DELETE", fmt.Sprintf("/dataservices/v1/users/%s/data", userID)),
+								VerifyRequest("DELETE", fmt.Sprintf("/v1/users/%s/data", userID)),
 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
 								VerifyBody([]byte{}),
 								RespondWith(http.StatusOK, nil, nil)),

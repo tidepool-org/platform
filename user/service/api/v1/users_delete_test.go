@@ -514,7 +514,7 @@ var _ = Describe("UsersDelete", func() {
 			return func() {
 				Context("with request parameter", func() {
 					BeforeEach(func() {
-						context.RequestImpl.PathParams["userid"] = targetUserID
+						context.RequestImpl.PathParams["user_id"] = targetUserID
 					})
 
 					AsServer(flags)()
