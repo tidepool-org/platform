@@ -13,7 +13,7 @@ import (
 type Service struct {
 	*application.Application
 	authClient *authClient.Client
-	api        *api.Standard
+	api        *api.API
 	server     *server.Standard
 }
 
@@ -101,11 +101,11 @@ func (s *Service) initializeAuthClient() error {
 func (s *Service) initializeAPI() error {
 	s.Logger().Debug("Creating api")
 
-	apy, err := api.NewStandard(s.VersionReporter(), s.Logger(), s.AuthClient())
+	a, err := api.New(s)
 	if err != nil {
 		return errors.Wrap(err, "service", "unable to create api")
 	}
-	s.api = apy
+	s.api = a
 
 	s.Logger().Debug("Initializing middleware")
 

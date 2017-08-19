@@ -58,10 +58,6 @@ func (a *Application) Name() string {
 	return a.name
 }
 
-func (a *Application) Prefix() string {
-	return a.prefix
-}
-
 func (a *Application) VersionReporter() version.Reporter {
 	return a.versionReporter
 }
@@ -86,7 +82,7 @@ func (a *Application) initializeVersionReporter() error {
 }
 
 func (a *Application) initializeConfigReporter() error {
-	configReporter, err := env.NewReporter(a.Prefix())
+	configReporter, err := env.NewReporter(a.prefix)
 	if err != nil {
 		return errors.Wrap(err, "application", "unable to create config reporter")
 	}

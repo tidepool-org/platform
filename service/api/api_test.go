@@ -5,5 +5,5 @@ import (
 	// . "github.com/onsi/gomega"
 )
 
-var _ = PDescribe("Standard", func() {
+var _ = PDescribe("API", func() {
 })

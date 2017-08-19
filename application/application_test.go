@@ -100,12 +100,6 @@ var _ = Describe("Application", func() {
 			})
 		})
 
-		Context("Prefix", func() {
-			It("returns the prefix", func() {
-				Expect(app.Prefix()).To(Equal("TIDEPOOL"))
-			})
-		})
-
 		Context("initialized", func() {
 			BeforeEach(func() {
 				Expect(app.Initialize()).To(Succeed())

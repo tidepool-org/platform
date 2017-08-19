@@ -3,23 +3,21 @@ package api
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
-	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
-	"github.com/tidepool-org/platform/data/service"
-	"github.com/tidepool-org/platform/data/service/context"
+	dataService "github.com/tidepool-org/platform/data/service"
+	dataContext "github.com/tidepool-org/platform/data/service/context"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/log"
 	metricClient "github.com/tidepool-org/platform/metric/client"
+	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/service/api"
 	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
 	usersClient "github.com/tidepool-org/platform/user/client"
-	"github.com/tidepool-org/platform/version"
 )
 
 type Standard struct {
-	*api.Standard
+	*api.API
 	metricClient            metricClient.Client
 	userClient              usersClient.Client
 	dataFactory             data.Factory
@@ -28,8 +26,7 @@ type Standard struct {
 	syncTaskStore           syncTaskStore.Store
 }
 
-func NewStandard(versionReporter version.Reporter, logger log.Logger,
-	authClient auth.Client, metricClient metricClient.Client, userClient usersClient.Client,
+func NewStandard(svc service.Service, metricClient metricClient.Client, userClient usersClient.Client,
 	dataFactory data.Factory, dataDeduplicatorFactory deduplicator.Factory,
 	dataStore dataStore.Store, syncTaskStore syncTaskStore.Store) (*Standard, error) {
 	if metricClient == nil {
@@ -51,13 +48,13 @@ func NewStandard(versionReporter version.Reporter, logger log.Logger,
 		return nil, errors.New("api", "sync task store is missing")
 	}
 
-	standard, err := api.NewStandard(versionReporter, logger, authClient)
+	a, err := api.New(svc)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Standard{
-		Standard:                standard,
+		API:                     a,
 		metricClient:            metricClient,
 		userClient:              userClient,
 		dataFactory:             dataFactory,
@@ -67,10 +64,10 @@ func NewStandard(versionReporter version.Reporter, logger log.Logger,
 	}, nil
 }
 
-func (s *Standard) DEPRECATEDInitializeRouter(routes []service.Route) error {
-	baseRoutes := []service.Route{
-		service.MakeRoute("GET", "/status", s.StatusGet),
-		service.MakeRoute("GET", "/version", s.VersionGet),
+func (s *Standard) DEPRECATEDInitializeRouter(routes []dataService.Route) error {
+	baseRoutes := []dataService.Route{
+		dataService.MakeRoute("GET", "/status", s.StatusGet),
+		dataService.MakeRoute("GET", "/version", s.VersionGet),
 	}
 
 	routes = append(baseRoutes, routes...)
@@ -89,13 +86,13 @@ func (s *Standard) DEPRECATEDInitializeRouter(routes []service.Route) error {
 		return errors.Wrap(err, "api", "unable to create router")
 	}
 
-	s.API().SetApp(router)
+	s.DEPRECATEDAPI().SetApp(router)
 
 	return nil
 }
 
-func (s *Standard) withContext(handler service.HandlerFunc) rest.HandlerFunc {
-	return context.WithContext(s.AuthClient(), s.metricClient, s.userClient,
+func (s *Standard) withContext(handler dataService.HandlerFunc) rest.HandlerFunc {
+	return dataContext.WithContext(s.AuthClient(), s.metricClient, s.userClient,
 		s.dataFactory, s.dataDeduplicatorFactory,
 		s.dataStore, s.syncTaskStore, handler)
 }

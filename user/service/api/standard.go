@@ -3,26 +3,24 @@ package api
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
-	"github.com/tidepool-org/platform/auth"
 	confirmationStore "github.com/tidepool-org/platform/confirmation/store"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/log"
 	messageStore "github.com/tidepool-org/platform/message/store"
 	metricClient "github.com/tidepool-org/platform/metric/client"
 	permissionStore "github.com/tidepool-org/platform/permission/store"
 	profileStore "github.com/tidepool-org/platform/profile/store"
+	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/service/api"
 	sessionStore "github.com/tidepool-org/platform/session/store"
 	userClient "github.com/tidepool-org/platform/user/client"
-	"github.com/tidepool-org/platform/user/service"
-	"github.com/tidepool-org/platform/user/service/context"
+	userService "github.com/tidepool-org/platform/user/service"
+	userContext "github.com/tidepool-org/platform/user/service/context"
 	userStore "github.com/tidepool-org/platform/user/store"
-	"github.com/tidepool-org/platform/version"
 )
 
 type Standard struct {
-	*api.Standard
+	*api.API
 	dataClient        dataClient.Client
 	metricClient      metricClient.Client
 	userClient        userClient.Client
@@ -34,8 +32,7 @@ type Standard struct {
 	userStore         userStore.Store
 }
 
-func NewStandard(versionReporter version.Reporter, logger log.Logger,
-	authClient auth.Client, dataClient dataClient.Client, metricClient metricClient.Client, userClient userClient.Client,
+func NewStandard(svc service.Service, dataClient dataClient.Client, metricClient metricClient.Client, userClient userClient.Client,
 	confirmationStore confirmationStore.Store, messageStore messageStore.Store, permissionStore permissionStore.Store,
 	profileStore profileStore.Store, sessionStore sessionStore.Store, userStore userStore.Store) (*Standard, error) {
 	if dataClient == nil {
@@ -66,13 +63,13 @@ func NewStandard(versionReporter version.Reporter, logger log.Logger,
 		return nil, errors.New("api", "user store is missing")
 	}
 
-	standard, err := api.NewStandard(versionReporter, logger, authClient)
+	a, err := api.New(svc)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Standard{
-		Standard:          standard,
+		API:               a,
 		dataClient:        dataClient,
 		metricClient:      metricClient,
 		userClient:        userClient,
@@ -85,10 +82,10 @@ func NewStandard(versionReporter version.Reporter, logger log.Logger,
 	}, nil
 }
 
-func (s *Standard) DEPRECATEDInitializeRouter(routes []service.Route) error {
-	baseRoutes := []service.Route{
-		service.MakeRoute("GET", "/status", s.StatusGet),
-		service.MakeRoute("GET", "/version", s.VersionGet),
+func (s *Standard) DEPRECATEDInitializeRouter(routes []userService.Route) error {
+	baseRoutes := []userService.Route{
+		userService.MakeRoute("GET", "/status", s.StatusGet),
+		userService.MakeRoute("GET", "/version", s.VersionGet),
 	}
 
 	routes = append(baseRoutes, routes...)
@@ -107,13 +104,13 @@ func (s *Standard) DEPRECATEDInitializeRouter(routes []service.Route) error {
 		return errors.Wrap(err, "api", "unable to create router")
 	}
 
-	s.API().SetApp(router)
+	s.DEPRECATEDAPI().SetApp(router)
 
 	return nil
 }
 
-func (s *Standard) withContext(handler service.HandlerFunc) rest.HandlerFunc {
-	return context.WithContext(s.AuthClient(), s.dataClient, s.metricClient, s.userClient,
+func (s *Standard) withContext(handler userService.HandlerFunc) rest.HandlerFunc {
+	return userContext.WithContext(s.AuthClient(), s.dataClient, s.metricClient, s.userClient,
 		s.confirmationStore, s.messageStore, s.permissionStore, s.profileStore,
 		s.sessionStore, s.userStore, handler)
 }

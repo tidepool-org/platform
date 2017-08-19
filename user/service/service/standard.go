@@ -303,8 +303,7 @@ func (s *Standard) initializeUserStore() error {
 func (s *Standard) initializeAPI() error {
 	s.Logger().Debug("Creating api")
 
-	newAPI, err := api.NewStandard(s.VersionReporter(), s.Logger(),
-		s.AuthClient(), s.dataClient, s.metricClient, s.userClient,
+	newAPI, err := api.NewStandard(s, s.dataClient, s.metricClient, s.userClient,
 		s.confirmationStore, s.messageStore, s.permissionStore, s.profileStore, s.sessionStore, s.userStore)
 	if err != nil {
 		return errors.Wrap(err, "service", "unable to create api")

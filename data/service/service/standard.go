@@ -221,8 +221,7 @@ func (s *Standard) initializeSyncTaskStore() error {
 func (s *Standard) initializeAPI() error {
 	s.Logger().Debug("Creating api")
 
-	newAPI, err := api.NewStandard(s.VersionReporter(), s.Logger(),
-		s.AuthClient(), s.metricClient, s.userClient,
+	newAPI, err := api.NewStandard(s, s.metricClient, s.userClient,
 		s.dataFactory, s.dataDeduplicatorFactory,
 		s.dataStore, s.syncTaskStore)
 	if err != nil {
