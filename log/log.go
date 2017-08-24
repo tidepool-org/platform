@@ -1,10 +1,10 @@
 package log
 
 type (
-	Fields map[string]interface{}
-	Level  string
-	Rank   int
-	Levels map[Level]Rank
+	Fields     map[string]interface{}
+	Level      string
+	Rank       int
+	LevelRanks map[Level]Rank
 )
 
 type Serializer interface {
@@ -29,9 +29,10 @@ type Logger interface {
 	WithField(key string, value interface{}) Logger
 	WithFields(fields Fields) Logger
 
-	WithLevel(level Level, rank Rank) Logger
-	WithLevels(levels Levels) Logger
+	WithLevelRank(level Level, rank Rank) Logger
+	WithLevelRanks(levelRanks LevelRanks) Logger
+
+	WithLevel(level Level) Logger
 
 	Level() Level
-	SetLevel(level Level) error
 }

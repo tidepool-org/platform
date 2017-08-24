@@ -60,25 +60,25 @@ var _ = Describe("Logger", func() {
 
 	Context("NewLogger", func() {
 		It("returns an error if the serializer is missing", func() {
-			logger, err := log.NewLogger(nil, log.DefaultLevels(), log.DefaultLevel())
+			logger, err := log.NewLogger(nil, log.DefaultLevelRanks(), log.DefaultLevel())
 			Expect(err).To(MatchError("log: serializer is missing"))
 			Expect(logger).To(BeNil())
 		})
 
-		It("returns an error if the levels is missing", func() {
+		It("returns an error if the level ranks is missing", func() {
 			logger, err := log.NewLogger(serializer, nil, log.DefaultLevel())
-			Expect(err).To(MatchError("log: levels is missing"))
+			Expect(err).To(MatchError("log: level ranks is missing"))
 			Expect(logger).To(BeNil())
 		})
 
 		It("returns an error if the level is not found", func() {
-			logger, err := log.NewLogger(serializer, log.DefaultLevels(), log.Level("unknown"))
+			logger, err := log.NewLogger(serializer, log.DefaultLevelRanks(), log.Level("unknown"))
 			Expect(err).To(MatchError("log: level not found"))
 			Expect(logger).To(BeNil())
 		})
 
 		It("returns successfully", func() {
-			Expect(log.NewLogger(serializer, log.DefaultLevels(), log.DefaultLevel())).ToNot(BeNil())
+			Expect(log.NewLogger(serializer, log.DefaultLevelRanks(), log.DefaultLevel())).ToNot(BeNil())
 		})
 	})
 
@@ -87,7 +87,7 @@ var _ = Describe("Logger", func() {
 
 		BeforeEach(func() {
 			var err error
-			logger, err = log.NewLogger(serializer, log.DefaultLevels(), log.DefaultLevel())
+			logger, err = log.NewLogger(serializer, log.DefaultLevelRanks(), log.DefaultLevel())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(logger).ToNot(BeNil())
 		})
@@ -159,7 +159,8 @@ var _ = Describe("Logger", func() {
 		Context("with successful serialize and debug level", func() {
 			BeforeEach(func() {
 				serializer.SerializeOutputs = []error{nil}
-				logger.SetLevel(log.DebugLevel)
+				logger = logger.WithLevel(log.DebugLevel)
+				Expect(logger).ToNot(BeNil())
 			})
 
 			Context("Debug", func() {
@@ -278,31 +279,41 @@ var _ = Describe("Logger", func() {
 				})
 			})
 
-			Context("WithLevel", func() {
-				It("adds the specified level", func() {
+			Context("WithLevelRank", func() {
+				It("adds the specified level and rank", func() {
 					level := log.Level("new")
-					Expect(logger.SetLevel(level)).To(MatchError("log: level not found"))
-					logger = logger.WithLevel(level, 90)
-					Expect(logger.SetLevel(level)).To(Succeed())
+					logger = logger.WithLevelRank(level, 90).WithLevel(level)
+					Expect(logger).ToNot(BeNil())
 					logger.Debug("Should Not Serialize")
-					logger.Log(level, "WithLevel Message")
+					logger.Log(level, "WithLevelRank Message")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", level))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "WithLevel Message"))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "WithLevelRank Message"))
 				})
 			})
 
-			Context("WithLevels", func() {
-				It("adds the specified level", func() {
+			Context("WithLevelRanks", func() {
+				It("adds the specified level ranks", func() {
 					level := log.Level("new")
-					Expect(logger.SetLevel(level)).To(MatchError("log: level not found"))
-					logger = logger.WithLevels(log.Levels{level: 30, log.Level("other"): 0})
-					Expect(logger.SetLevel(level)).To(Succeed())
+					logger = logger.WithLevelRanks(log.LevelRanks{level: 30, log.Level("other"): 0}).WithLevel(level)
+					Expect(logger).ToNot(BeNil())
 					logger.Debug("Should Not Serialize")
-					logger.Log(level, "WithLevels Message")
+					logger.Log(level, "WithLevelRanks Message")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", level))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "WithLevels Message"))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "WithLevelRanks Message"))
+				})
+			})
+
+			Context("WithLevel", func() {
+				It("adds the specified level", func() {
+					logger = logger.WithLevel(log.InfoLevel)
+					Expect(logger).ToNot(BeNil())
+					logger.Debug("Should Not Serialize")
+					logger.Warn("WithLevel Message")
+					Expect(serializer.SerializeInputs).To(HaveLen(1))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", log.WarnLevel))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "WithLevel Message"))
 				})
 			})
 		})
@@ -313,32 +324,15 @@ var _ = Describe("Logger", func() {
 			})
 
 			It("returns the level after being set", func() {
-				Expect(logger.SetLevel(log.DebugLevel)).To(Succeed())
+				logger = logger.WithLevel(log.DebugLevel)
+				Expect(logger).ToNot(BeNil())
 				Expect(logger.Level()).To(Equal(log.DebugLevel))
 			})
 
 			It("returns the level after a new level is added and set", func() {
 				level := log.Level("new")
-				logger = logger.WithLevel(level, 55)
-				Expect(logger.SetLevel(level)).To(Succeed())
-				Expect(logger.Level()).To(Equal(level))
-			})
-		})
-
-		Context("SetLevel", func() {
-			It("returns an error if the level is not found", func() {
-				Expect(logger.SetLevel(log.Level("not found"))).To(MatchError("log: level not found"))
-			})
-
-			It("sets a new level", func() {
-				Expect(logger.SetLevel(log.InfoLevel)).To(Succeed())
-				Expect(logger.Level()).To(Equal(log.InfoLevel))
-			})
-
-			It("sets a new level that was just added", func() {
-				level := log.Level("new")
-				logger = logger.WithLevel(level, 77)
-				Expect(logger.SetLevel(level)).To(Succeed())
+				logger = logger.WithLevelRank(level, 55).WithLevel(level)
+				Expect(logger).ToNot(BeNil())
 				Expect(logger.Level()).To(Equal(level))
 			})
 		})

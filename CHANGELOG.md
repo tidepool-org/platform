@@ -1,5 +1,8 @@
 ## HEAD
 
+- Make log package concurrency safe
+- Replace Logger.SetLevel with Logger.WithLevel
+- Rename log.Levels to log.LevelRanks
 - Encapsulate service within api
 - Use consistent route function naming
 - Fix minor issues with use of defer

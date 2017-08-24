@@ -32,9 +32,9 @@ var _ = Describe("Default", func() {
 		})
 	})
 
-	Context("DefaultLevels", func() {
+	Context("DefaultLevelRanks", func() {
 		It("returns the expected map", func() {
-			Expect(log.DefaultLevels()).To(Equal(log.Levels{log.DebugLevel: 10, log.InfoLevel: 20, log.WarnLevel: 40, log.ErrorLevel: 80}))
+			Expect(log.DefaultLevelRanks()).To(Equal(log.LevelRanks{log.DebugLevel: 10, log.InfoLevel: 20, log.WarnLevel: 40, log.ErrorLevel: 80}))
 		})
 	})
 

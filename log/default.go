@@ -7,8 +7,8 @@ const (
 	ErrorLevel Level = "error"
 )
 
-func DefaultLevels() Levels {
-	return Levels{
+func DefaultLevelRanks() LevelRanks {
+	return LevelRanks{
 		DebugLevel: 10,
 		InfoLevel:  20,
 		WarnLevel:  40,

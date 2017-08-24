@@ -10,17 +10,19 @@ import (
 	"github.com/tidepool-org/platform/errors"
 )
 
-func NewLogger(serializer Serializer, levels Levels, level Level) (Logger, error) {
+// CONCURRENCY: SAFE IFF serializer is safe
+
+func NewLogger(serializer Serializer, levelRanks LevelRanks, level Level) (Logger, error) {
 	if serializer == nil {
 		return nil, errors.New("log", "serializer is missing")
 	}
-	if levels == nil {
-		return nil, errors.New("log", "levels is missing")
+	if levelRanks == nil {
+		return nil, errors.New("log", "level ranks is missing")
 	}
 
 	fields := Fields{}
 
-	rank, found := levels[level]
+	rank, found := levelRanks[level]
 	if !found {
 		return nil, errors.New("log", "level not found")
 	}
@@ -33,7 +35,7 @@ func NewLogger(serializer Serializer, levels Levels, level Level) (Logger, error
 	return &logger{
 		serializer:          serializer,
 		fields:              fields,
-		levels:              joinLevels(levels),
+		levelRanks:          joinLevelRanks(levelRanks),
 		level:               level,
 		rank:                rank,
 		ignoredFileSegments: ignoredFileSegments,
@@ -43,7 +45,7 @@ func NewLogger(serializer Serializer, levels Levels, level Level) (Logger, error
 type logger struct {
 	serializer          Serializer
 	fields              Fields
-	levels              Levels
+	levelRanks          LevelRanks
 	level               Level
 	rank                Rank
 	ignoredFileSegments int
@@ -103,44 +105,51 @@ func (l *logger) WithFields(fields Fields) Logger {
 	return &logger{
 		serializer:          l.serializer,
 		fields:              joinFields(l.fields, fields),
-		levels:              l.levels,
+		levelRanks:          l.levelRanks,
 		level:               l.level,
 		rank:                l.rank,
 		ignoredFileSegments: l.ignoredFileSegments,
 	}
 }
 
-func (l *logger) WithLevel(level Level, rank Rank) Logger {
-	return l.WithLevels(Levels{level: rank})
+func (l *logger) WithLevelRank(level Level, rank Rank) Logger {
+	return l.WithLevelRanks(LevelRanks{level: rank})
 }
 
-func (l *logger) WithLevels(levels Levels) Logger {
+func (l *logger) WithLevelRanks(levelRanks LevelRanks) Logger {
 	return &logger{
 		serializer:          l.serializer,
 		fields:              l.fields,
-		levels:              joinLevels(l.levels, levels),
+		levelRanks:          joinLevelRanks(l.levelRanks, levelRanks),
 		level:               l.level,
 		rank:                l.rank,
 		ignoredFileSegments: l.ignoredFileSegments,
 	}
 }
+
+func (l *logger) WithLevel(level Level) Logger {
+	rank, ok := l.levelRanks[level]
+	if !ok {
+		level = l.level
+		rank = l.rank
+	}
+
+	return &logger{
+		serializer:          l.serializer,
+		fields:              l.fields,
+		levelRanks:          l.levelRanks,
+		level:               level,
+		rank:                rank,
+		ignoredFileSegments: l.ignoredFileSegments,
+	}
+}
+
 func (l *logger) Level() Level {
 	return l.level
 }
 
-func (l *logger) SetLevel(level Level) error {
-	rank, ok := l.levels[level]
-	if !ok {
-		return errors.New("log", "level not found")
-	}
-
-	l.level = level
-	l.rank = rank
-	return nil
-}
-
 func (l *logger) log(level Level, message string) {
-	rank, found := l.levels[level]
+	rank, found := l.levelRanks[level]
 	if !found {
 		return
 	}
@@ -169,9 +178,9 @@ func (l *logger) log(level Level, message string) {
 	}
 }
 
-func joinLevels(levels ...Levels) Levels {
-	joined := Levels{}
-	for _, inner := range levels {
+func joinLevelRanks(levelRanks ...LevelRanks) LevelRanks {
+	joined := LevelRanks{}
+	for _, inner := range levelRanks {
 		for level, rank := range inner {
 			joined[level] = rank
 		}

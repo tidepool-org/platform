@@ -94,9 +94,7 @@ func (t *Tool) ParseContext(context *cli.Context) bool {
 	}
 
 	if context.Bool(VerboseFlag) {
-		t.Logger().SetLevel(log.DebugLevel)
-	} else {
-		t.Logger().SetLevel(log.InfoLevel)
+		t.SetLogger(t.Logger().WithLevel(log.DebugLevel))
 	}
 
 	t.args = context.Args()

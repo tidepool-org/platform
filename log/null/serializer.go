@@ -5,6 +5,8 @@ import (
 	"github.com/tidepool-org/platform/log"
 )
 
+// CONCURRENCY: SAFE
+
 func NewSerializer() log.Serializer {
 	return &serializer{}
 }

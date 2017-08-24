@@ -8,6 +8,8 @@ import (
 	"github.com/tidepool-org/platform/log"
 )
 
+// CONCURRENCY: SAFE IFF writer is safe
+
 func NewSerializer(writer io.Writer) (log.Serializer, error) {
 	if writer == nil {
 		return nil, errors.New("json", "writer is missing")

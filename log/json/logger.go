@@ -6,11 +6,13 @@ import (
 	"github.com/tidepool-org/platform/log"
 )
 
-func NewLogger(writer io.Writer, levels log.Levels, level log.Level) (log.Logger, error) {
+// CONCURRENCY: SAFE IFF writer is safe
+
+func NewLogger(writer io.Writer, levelRanks log.LevelRanks, level log.Level) (log.Logger, error) {
 	serializer, err := NewSerializer(writer)
 	if err != nil {
 		return nil, err
 	}
 
-	return log.NewLogger(serializer, levels, level)
+	return log.NewLogger(serializer, levelRanks, level)
 }

@@ -10,6 +10,8 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/log/json"
+	"github.com/tidepool-org/platform/log/null"
+	"github.com/tidepool-org/platform/sync"
 	"github.com/tidepool-org/platform/version"
 )
 
@@ -70,6 +72,14 @@ func (a *Application) Logger() log.Logger {
 	return a.logger
 }
 
+func (a *Application) SetLogger(logger log.Logger) {
+	if logger == nil {
+		logger = null.NewLogger()
+	}
+
+	a.logger = logger
+}
+
 func (a *Application) initializeVersionReporter() error {
 	versionReporter, err := applicationVersion.NewReporter()
 	if err != nil {
@@ -93,9 +103,14 @@ func (a *Application) initializeConfigReporter() error {
 }
 
 func (a *Application) initializeLogger() error {
+	writer, err := sync.NewWriter(os.Stdout)
+	if err != nil {
+		return errors.Wrap(err, "application", "unable to create writer")
+	}
+
 	level := a.ConfigReporter().WithScopes("logger").GetWithDefault("level", "warn")
 
-	logger, err := json.NewLogger(os.Stdout, log.DefaultLevels(), log.Level(level))
+	logger, err := json.NewLogger(writer, log.DefaultLevelRanks(), log.Level(level))
 	if err != nil {
 		return errors.Wrap(err, "application", "unable to create logger")
 	}
