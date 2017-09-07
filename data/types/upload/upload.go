@@ -95,7 +95,7 @@ func (u *Upload) Validate(validator data.Validator) error {
 	validator.ValidateStringArray("deviceTags", u.DeviceTags).Exists().NotEmpty().EachOneOf([]string{"insulin-pump", "cgm", "bgm"})
 	validator.ValidateString("timeProcessing", u.TimeProcessing).Exists().OneOf([]string{"across-the-board-timezone", "utc-bootstrapping", "none"})
 	validator.ValidateString("timezone", u.TimeZone).Exists().LengthGreaterThan(1)
-	validator.ValidateString("version", u.Version).Exists().LengthGreaterThan(5)
+	validator.ValidateString("version", u.Version).Exists().LengthGreaterThanOrEqualTo(5)
 
 	return nil
 }

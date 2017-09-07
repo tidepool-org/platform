@@ -33,16 +33,16 @@ var _ = Describe("Upload", func() {
 	Context("version", func() {
 		DescribeTable("invalid when", testData.ExpectFieldNotValid,
 			Entry("is empty", NewRawObject(), "version", "",
-				[]*service.Error{testData.ComposeError(service.ErrorLengthNotGreaterThan(0, 5), "/version", NewMeta())},
+				[]*service.Error{testData.ComposeError(service.ErrorLengthNotGreaterThanOrEqualTo(0, 5), "/version", NewMeta())},
 			),
-			Entry("is less than 6 characters", NewRawObject(), "version", "aaaaa",
-				[]*service.Error{testData.ComposeError(service.ErrorLengthNotGreaterThan(5, 5), "/version", NewMeta())},
+			Entry("is less than 5 characters", NewRawObject(), "version", "aaaa",
+				[]*service.Error{testData.ComposeError(service.ErrorLengthNotGreaterThanOrEqualTo(4, 5), "/version", NewMeta())},
 			),
 		)
 
 		DescribeTable("valid when", testData.ExpectFieldIsValid,
-			Entry("is 6 characters", NewRawObject(), "version", "aaaaaa"),
-			Entry("is more than 6 characters", NewRawObject(), "version", "aaaaaabb"),
+			Entry("is 5 characters", NewRawObject(), "version", "aaaaa"),
+			Entry("is more than 5 characters", NewRawObject(), "version", "aaaaabb"),
 		)
 	})
 
