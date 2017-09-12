@@ -22,7 +22,11 @@ type hashDeactivateOldDeduplicator struct {
 const _HashDeactivateOldDeduplicatorName = "org.tidepool.hash-deactivate-old"
 const _HashDeactivateOldDeduplicatorVersion = "1.1.0"
 
-var _HashDeactivateOldExpectedDeviceManufacturers = []string{"Medtronic"}
+var _HashDeactivateOldExpectedDeviceManufacturerModels = map[string][]string{
+	"Medtronic": {"523", "723", "551", "751", "554", "754"},
+	"LifeScan":  {"OneTouch Ultra 2", "OneTouch UltraMini"},
+	"Abbott":    {"FreeStyle Libre"},
+}
 
 func NewHashDeactivateOldFactory() (Factory, error) {
 	baseFactory, err := NewBaseFactory(_HashDeactivateOldDeduplicatorName, _HashDeactivateOldDeduplicatorVersion)
@@ -52,11 +56,11 @@ func (h *hashDeactivateOldFactory) CanDeduplicateDataset(dataset *upload.Upload)
 	if dataset.DeviceManufacturers == nil {
 		return false, nil
 	}
-	if !app.StringsContainsAnyStrings(*dataset.DeviceManufacturers, _HashDeactivateOldExpectedDeviceManufacturers) {
+	if dataset.DeviceModel == nil {
 		return false, nil
 	}
 
-	return true, nil
+	return allowDeviceManufacturerModel(_HashDeactivateOldExpectedDeviceManufacturerModels, *dataset.DeviceManufacturers, *dataset.DeviceModel), nil
 }
 
 func (h *hashDeactivateOldFactory) NewDeduplicatorForDataset(logger log.Logger, dataStoreSession store.Session, dataset *upload.Upload) (data.Deduplicator, error) {
@@ -74,8 +78,12 @@ func (h *hashDeactivateOldFactory) NewDeduplicatorForDataset(logger log.Logger, 
 	if dataset.DeviceManufacturers == nil {
 		return nil, errors.New("deduplicator", "dataset device manufacturers is missing")
 	}
-	if !app.StringsContainsAnyStrings(*dataset.DeviceManufacturers, _HashDeactivateOldExpectedDeviceManufacturers) {
-		return nil, errors.New("deduplicator", "dataset device manufacturers does not contain expected device manufacturers")
+	if dataset.DeviceModel == nil {
+		return nil, errors.New("deduplicator", "dataset device model is missing")
+	}
+
+	if !allowDeviceManufacturerModel(_HashDeactivateOldExpectedDeviceManufacturerModels, *dataset.DeviceManufacturers, *dataset.DeviceModel) {
+		return nil, errors.New("deduplicator", "dataset device manufacturer and model does not contain expected device manufacturers and models")
 	}
 
 	return &hashDeactivateOldDeduplicator{
@@ -108,4 +116,16 @@ func (h *hashDeactivateOldDeduplicator) DeleteDataset() error {
 	}
 
 	return h.BaseDeduplicator.DeleteDataset()
+}
+
+func allowDeviceManufacturerModel(allowedDeviceManufacturerModels map[string][]string, deviceManufacturers []string, deviceModel string) bool {
+	for _, deviceManufacturer := range deviceManufacturers {
+		if deviceModels, found := allowedDeviceManufacturerModels[deviceManufacturer]; found {
+			if app.StringsContainsString(deviceModels, deviceModel) {
+				return true
+			}
+		}
+	}
+
+	return false
 }

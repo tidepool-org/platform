@@ -2,6 +2,7 @@ package deduplicator_test
 
 import (
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
 	"errors"
@@ -43,6 +44,7 @@ var _ = Describe("HashDeactivateOld", func() {
 			testDataset.GroupID = app.NewID()
 			testDataset.DeviceID = app.StringAsPointer(app.NewID())
 			testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Medtronic"})
+			testDataset.DeviceModel = app.StringAsPointer("523")
 		})
 
 		Context("CanDeduplicateDataset", func() {
@@ -87,8 +89,23 @@ var _ = Describe("HashDeactivateOld", func() {
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
+			It("returns false if the device model is missing", func() {
+				testDataset.DeviceModel = nil
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
+			})
+
+			It("returns false if the device model is empty", func() {
+				testDataset.DeviceModel = app.StringAsPointer("")
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
+			})
+
 			It("returns false if the device manufacturers does not contain expected device manufacturer", func() {
 				testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Ant", "Zebra", "Cobra"})
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
+			})
+
+			It("returns false if the device model does not contain expected device model", func() {
+				testDataset.DeviceModel = app.StringAsPointer("123")
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
@@ -100,6 +117,23 @@ var _ = Describe("HashDeactivateOld", func() {
 				testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Ant", "Zebra", "Medtronic", "Cobra"})
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeTrue())
 			})
+
+			DescribeTable("returns true when",
+				func(deviceManufacturer string, deviceModel string) {
+					testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{deviceManufacturer})
+					testDataset.DeviceModel = app.StringAsPointer(deviceModel)
+					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeTrue())
+				},
+				Entry("is Medtronic 523", "Medtronic", "523"),
+				Entry("is Medtronic 723", "Medtronic", "723"),
+				Entry("is Medtronic 551", "Medtronic", "551"),
+				Entry("is Medtronic 751", "Medtronic", "751"),
+				Entry("is Medtronic 554", "Medtronic", "554"),
+				Entry("is Medtronic 754", "Medtronic", "754"),
+				Entry("is LifeScan OneTouch Ultra 2", "LifeScan", "OneTouch Ultra 2"),
+				Entry("is LifeScan OneTouch UltraMini", "LifeScan", "OneTouch UltraMini"),
+				Entry("is Abbott FreeStyle Libre", "Abbott", "FreeStyle Libre"),
+			)
 		})
 
 		Context("with logger and data store session", func() {
@@ -181,14 +215,35 @@ var _ = Describe("HashDeactivateOld", func() {
 				It("returns an error if the device manufacturers is empty", func() {
 					testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{})
 					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)
-					Expect(err).To(MatchError("deduplicator: dataset device manufacturers does not contain expected device manufacturers"))
+					Expect(err).To(MatchError("deduplicator: dataset device manufacturer and model does not contain expected device manufacturers and models"))
+					Expect(testDeduplicator).To(BeNil())
+				})
+
+				It("returns an error if the device model is missing", func() {
+					testDataset.DeviceModel = nil
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)
+					Expect(err).To(MatchError("deduplicator: dataset device model is missing"))
+					Expect(testDeduplicator).To(BeNil())
+				})
+
+				It("returns an error if the device model is empty", func() {
+					testDataset.DeviceModel = app.StringAsPointer("")
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)
+					Expect(err).To(MatchError("deduplicator: dataset device manufacturer and model does not contain expected device manufacturers and models"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
 				It("returns an error if the device manufacturers does not contain expected device manufacturer", func() {
 					testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Ant", "Zebra", "Cobra"})
 					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)
-					Expect(err).To(MatchError("deduplicator: dataset device manufacturers does not contain expected device manufacturers"))
+					Expect(err).To(MatchError("deduplicator: dataset device manufacturer and model does not contain expected device manufacturers and models"))
+					Expect(testDeduplicator).To(BeNil())
+				})
+
+				It("returns an error if the device model does not contain expected device model", func() {
+					testDataset.DeviceModel = app.StringAsPointer("123")
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)
+					Expect(err).To(MatchError("deduplicator: dataset device manufacturer and model does not contain expected device manufacturers and models"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
@@ -200,6 +255,23 @@ var _ = Describe("HashDeactivateOld", func() {
 					testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{"Ant", "Zebra", "Medtronic", "Cobra"})
 					Expect(testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)).ToNot(BeNil())
 				})
+
+				DescribeTable("returns a new deduplicator when",
+					func(deviceManufacturer string, deviceModel string) {
+						testDataset.DeviceManufacturers = app.StringArrayAsPointer([]string{deviceManufacturer})
+						testDataset.DeviceModel = app.StringAsPointer(deviceModel)
+						Expect(testFactory.NewDeduplicatorForDataset(testLogger, testDataStoreSession, testDataset)).ToNot(BeNil())
+					},
+					Entry("is Medtronic 523", "Medtronic", "523"),
+					Entry("is Medtronic 723", "Medtronic", "723"),
+					Entry("is Medtronic 551", "Medtronic", "551"),
+					Entry("is Medtronic 751", "Medtronic", "751"),
+					Entry("is Medtronic 554", "Medtronic", "554"),
+					Entry("is Medtronic 754", "Medtronic", "754"),
+					Entry("is LifeScan OneTouch Ultra 2", "LifeScan", "OneTouch Ultra 2"),
+					Entry("is LifeScan OneTouch UltraMini", "LifeScan", "OneTouch UltraMini"),
+					Entry("is Abbott FreeStyle Libre", "Abbott", "FreeStyle Libre"),
+				)
 			})
 
 			Context("with a new deduplicator", func() {
