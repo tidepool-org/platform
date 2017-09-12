@@ -6,10 +6,11 @@ import (
 )
 
 type Suppressed struct {
-	Type         *string  `json:"type,omitempty" bson:"type,omitempty"`
-	DeliveryType *string  `json:"deliveryType,omitempty" bson:"deliveryType,omitempty"`
-	Rate         *float64 `json:"rate,omitempty" bson:"rate,omitempty"`
-	ScheduleName *string  `json:"scheduleName,omitempty" bson:"scheduleName,omitempty"`
+	Type         *string        `json:"type,omitempty" bson:"type,omitempty"`
+	DeliveryType *string        `json:"deliveryType,omitempty" bson:"deliveryType,omitempty"`
+	Rate         *float64       `json:"rate,omitempty" bson:"rate,omitempty"`
+	ScheduleName *string        `json:"scheduleName,omitempty" bson:"scheduleName,omitempty"`
+	Annotations  *[]interface{} `json:"annotations,omitempty" bson:"annotations,omitempty"`
 
 	Suppressed *Suppressed `json:"suppressed,omitempty" bson:"suppressed,omitempty"`
 }
@@ -33,6 +34,7 @@ func (s *Suppressed) Parse(parser data.ObjectParser) {
 	s.DeliveryType = parser.ParseString("deliveryType")
 	s.Rate = parser.ParseFloat("rate")
 	s.ScheduleName = parser.ParseString("scheduleName")
+	s.Annotations = parser.ParseInterfaceArray("annotations")
 
 	s.Suppressed = ParseSuppressed(parser.NewChildObjectParser("suppressed"))
 }
@@ -56,6 +58,8 @@ func (s *Suppressed) Validate(validator data.Validator, allowedDeliveryTypes []s
 			}
 		}
 	}
+
+	// validator.ValidateInterfaceArray("annotations", s.Annotations)    // TODO: Any validations? Optional? Size?
 }
 
 func suppressedAsInterface(suppressed *Suppressed) *interface{} {
