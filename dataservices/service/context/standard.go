@@ -31,14 +31,14 @@ func WithContext(metricServicesClient metricservicesClient.Client, userServicesC
 	dataFactory data.Factory, dataDeduplicatorFactory deduplicator.Factory,
 	dataStore dataStore.Store, taskStore taskStore.Store, handler service.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
-		context, err := context.NewStandard(response, request)
+		ctx, err := context.NewStandard(response, request)
 		if err != nil {
-			context.RespondWithInternalServerFailure("Unable to create new context for request", err)
+			ctx.RespondWithInternalServerFailure("Unable to create new context for request", err)
 			return
 		}
 
 		standard := &Standard{
-			Context:                 context,
+			Context:                 ctx,
 			metricServicesClient:    metricServicesClient,
 			userServicesClient:      userServicesClient,
 			dataFactory:             dataFactory,

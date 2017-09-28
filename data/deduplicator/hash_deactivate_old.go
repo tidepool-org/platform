@@ -23,7 +23,7 @@ const _HashDeactivateOldDeduplicatorName = "org.tidepool.hash-deactivate-old"
 const _HashDeactivateOldDeduplicatorVersion = "1.1.0"
 
 var _HashDeactivateOldExpectedDeviceManufacturerModels = map[string][]string{
-	"Medtronic": {"523", "723", "551", "751", "554", "754"},
+	"Medtronic": {"523", "723", "551", "751", "554", "754", "1510", "1511", "1512", "1710", "1711", "1712", "1715", "1780"},
 	"LifeScan":  {"OneTouch Ultra 2", "OneTouch UltraMini"},
 	"Abbott":    {"FreeStyle Libre"},
 }
