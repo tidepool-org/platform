@@ -56,16 +56,16 @@ var _ = Describe("Prime", func() {
 	Context("cannula volume", func() {
 		DescribeTable("invalid when", testData.ExpectFieldNotValid,
 			Entry("is less than 0", NewRawObjectWithCannula(), "volume", -0.1,
-				[]*service.Error{testData.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 3.0), "/volume", NewMeta())},
+				[]*service.Error{testData.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 10.0), "/volume", NewMeta())},
 			),
-			Entry("is more than 3", NewRawObjectWithCannula(), "volume", 3.1,
-				[]*service.Error{testData.ComposeError(service.ErrorValueNotInRange(3.1, 0.0, 3.0), "/volume", NewMeta())},
+			Entry("is more than 10", NewRawObjectWithCannula(), "volume", 10.1,
+				[]*service.Error{testData.ComposeError(service.ErrorValueNotInRange(10.1, 0.0, 10.0), "/volume", NewMeta())},
 			),
 		)
 
 		DescribeTable("valid when", testData.ExpectFieldIsValid,
 			Entry("is 0", NewRawObjectWithCannula(), "volume", 0.0),
-			Entry("is 3.0", NewRawObjectWithCannula(), "volume", 3.0),
+			Entry("is 10.0", NewRawObjectWithCannula(), "volume", 10.0),
 			Entry("is no decimal", NewRawObjectWithCannula(), "volume", 2),
 		)
 	})
