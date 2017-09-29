@@ -34,10 +34,10 @@ type Responder struct {
 
 func NewResponder(response rest.ResponseWriter, request *rest.Request) (*Responder, error) {
 	if response == nil {
-		return nil, errors.New("context", "response is missing")
+		return nil, errors.New("response is missing")
 	}
 	if request == nil {
-		return nil, errors.New("context", "request is missing")
+		return nil, errors.New("request is missing")
 	}
 
 	return &Responder{

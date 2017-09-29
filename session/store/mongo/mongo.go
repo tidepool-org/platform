@@ -1,6 +1,7 @@
 package mongo
 
 import (
+	"context"
 	"time"
 
 	"gopkg.in/mgo.v2/bson"
@@ -11,8 +12,8 @@ import (
 	"github.com/tidepool-org/platform/store/mongo"
 )
 
-func New(logger log.Logger, config *mongo.Config) (*Store, error) {
-	baseStore, err := mongo.New(logger, config)
+func New(cfg *mongo.Config, lgr log.Logger) (*Store, error) {
+	baseStore, err := mongo.New(cfg, lgr)
 	if err != nil {
 		return nil, err
 	}
@@ -26,9 +27,9 @@ type Store struct {
 	*mongo.Store
 }
 
-func (s *Store) NewSessionsSession(logger log.Logger) store.SessionsSession {
+func (s *Store) NewSessionsSession() store.SessionsSession {
 	return &SessionsSession{
-		Session: s.Store.NewSession(logger, "tokens"),
+		Session: s.Store.NewSession("tokens"),
 	}
 }
 
@@ -36,13 +37,16 @@ type SessionsSession struct {
 	*mongo.Session
 }
 
-func (s *SessionsSession) DestroySessionsForUserByID(userID string) error {
+func (s *SessionsSession) DestroySessionsForUserByID(ctx context.Context, userID string) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
 	if userID == "" {
-		return errors.New("mongo", "user id is missing")
+		return errors.New("user id is missing")
 	}
 
 	if s.IsClosed() {
-		return errors.New("mongo", "session closed")
+		return errors.New("session closed")
 	}
 
 	startTime := time.Now()
@@ -53,10 +57,10 @@ func (s *SessionsSession) DestroySessionsForUserByID(userID string) error {
 	removeInfo, err := s.C().RemoveAll(selector)
 
 	loggerFields := log.Fields{"userId": userID, "removeInfo": removeInfo, "duration": time.Since(startTime) / time.Microsecond}
-	s.Logger().WithFields(loggerFields).WithError(err).Debug("DestroySessionsForUserByID")
+	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DestroySessionsForUserByID")
 
 	if err != nil {
-		return errors.Wrap(err, "mongo", "unable to destroy sessions for user by id")
+		return errors.Wrap(err, "unable to destroy sessions for user by id")
 	}
 	return nil
 }

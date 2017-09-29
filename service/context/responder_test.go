@@ -123,13 +123,13 @@ var _ = Describe("Responder", func() {
 		Context("NewResponder", func() {
 			It("returns an error if the response is missing", func() {
 				responder, err := context.NewResponder(nil, request)
-				Expect(err).To(MatchError("context: response is missing"))
+				Expect(err).To(MatchError("response is missing"))
 				Expect(responder).To(BeNil())
 			})
 
 			It("returns an error if the request is missing", func() {
 				responder, err := context.NewResponder(response, nil)
-				Expect(err).To(MatchError("context: request is missing"))
+				Expect(err).To(MatchError("request is missing"))
 				Expect(responder).To(BeNil())
 			})
 

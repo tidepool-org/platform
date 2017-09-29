@@ -11,7 +11,7 @@ import (
 
 type Context struct {
 	service.Service
-	*serviceContext.Context
+	*serviceContext.Responder
 	notificationsSession store.NotificationsSession
 }
 
@@ -26,17 +26,17 @@ func MustNew(svc service.Service, response rest.ResponseWriter, request *rest.Re
 
 func New(svc service.Service, response rest.ResponseWriter, request *rest.Request) (*Context, error) {
 	if svc == nil {
-		return nil, errors.New("context", "service is missing")
+		return nil, errors.New("service is missing")
 	}
 
-	ctx, err := serviceContext.New(response, request)
+	rspdr, err := serviceContext.NewResponder(response, request)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Context{
-		Service: svc,
-		Context: ctx,
+		Service:   svc,
+		Responder: rspdr,
 	}, nil
 }
 
@@ -49,8 +49,7 @@ func (c *Context) Close() {
 
 func (c *Context) NotificationsSession() store.NotificationsSession {
 	if c.notificationsSession == nil {
-		c.notificationsSession = c.NotificationStore().NewNotificationsSession(c.Logger())
-		c.notificationsSession.SetAgent(c.AuthDetails())
+		c.notificationsSession = c.NotificationStore().NewNotificationsSession()
 	}
 	return c.notificationsSession
 }

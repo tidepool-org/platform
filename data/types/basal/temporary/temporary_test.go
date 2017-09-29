@@ -33,16 +33,16 @@ func NewTestTemporary(sourceTime interface{}, sourceDuration interface{}, source
 		testTemporary.Time = pointer.String(value)
 	}
 	if value, ok := sourceDuration.(int); ok {
-		testTemporary.Duration = pointer.Integer(value)
+		testTemporary.Duration = pointer.Int(value)
 	}
 	if value, ok := sourceExpectedDuration.(int); ok {
-		testTemporary.ExpectedDuration = pointer.Integer(value)
+		testTemporary.ExpectedDuration = pointer.Int(value)
 	}
 	if value, ok := sourceRate.(float64); ok {
-		testTemporary.Rate = pointer.Float(value)
+		testTemporary.Rate = pointer.Float64(value)
 	}
 	if value, ok := sourcePercent.(float64); ok {
-		testTemporary.Percent = pointer.Float(value)
+		testTemporary.Percent = pointer.Float64(value)
 	}
 	testTemporary.Suppressed = sourceSuppressed
 	return testTemporary
@@ -57,7 +57,7 @@ func NewTestSuppressed(sourceType interface{}, sourceDeliveryType interface{}, s
 		testSuppressed.DeliveryType = pointer.String(value)
 	}
 	if value, ok := sourceRate.(float64); ok {
-		testSuppressed.Rate = pointer.Float(value)
+		testSuppressed.Rate = pointer.Float64(value)
 	}
 	if value, ok := sourceScheduleName.(string); ok {
 		testSuppressed.ScheduleName = pointer.String(value)

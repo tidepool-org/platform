@@ -46,7 +46,7 @@ var _ = Describe("Mongo", func() {
 
 		It("returns a new store and no error if successful", func() {
 			var err error
-			str, err = mongo.New(nullLog.NewLogger(), cfg)
+			str, err = mongo.New(cfg, nullLog.NewLogger())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(str).ToNot(BeNil())
 		})
@@ -55,22 +55,15 @@ var _ = Describe("Mongo", func() {
 	Context("with a new store", func() {
 		BeforeEach(func() {
 			var err error
-			str, err = mongo.New(nullLog.NewLogger(), cfg)
+			str, err = mongo.New(cfg, nullLog.NewLogger())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(str).ToNot(BeNil())
 		})
 
 		Context("NewNotificationsSession", func() {
-			It("returns a new session if no logger specified", func() {
-				ssn = str.NewNotificationsSession(nil)
+			It("returns a new session", func() {
+				ssn = str.NewNotificationsSession()
 				Expect(ssn).ToNot(BeNil())
-				Expect(ssn.Logger()).ToNot(BeNil())
-			})
-
-			It("returns a new session if logger specified", func() {
-				ssn = str.NewNotificationsSession(nullLog.NewLogger())
-				Expect(ssn).ToNot(BeNil())
-				Expect(ssn.Logger()).ToNot(BeNil())
 			})
 		})
 	})

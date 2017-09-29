@@ -29,22 +29,22 @@ func NewWriter() *Writer {
 	}
 }
 
-func (t *Writer) Write(bytes []byte) (int, error) {
-	t.WriteInvocations++
+func (w *Writer) Write(bytes []byte) (int, error) {
+	w.WriteInvocations++
 
-	t.WriteInputs = append(t.WriteInputs, bytes)
+	w.WriteInputs = append(w.WriteInputs, bytes)
 
-	if len(t.WriteOutputs) == 0 {
+	if len(w.WriteOutputs) == 0 {
 		panic("Unexpected invocation of Write on Writer")
 	}
 
-	output := t.WriteOutputs[0]
-	t.WriteOutputs = t.WriteOutputs[1:]
+	output := w.WriteOutputs[0]
+	w.WriteOutputs = w.WriteOutputs[1:]
 	return output.Count, output.Error
 }
 
-func (t *Writer) UnusedOutputsCount() int {
-	return len(t.WriteOutputs)
+func (w *Writer) UnusedOutputsCount() int {
+	return len(w.WriteOutputs)
 }
 
 var _ = Describe("JSON", func() {
@@ -61,7 +61,7 @@ var _ = Describe("JSON", func() {
 	Context("NewSerializer", func() {
 		It("returns an error if writer is missing", func() {
 			serializer, err := json.NewSerializer(nil)
-			Expect(err).To(MatchError("json: writer is missing"))
+			Expect(err).To(MatchError("writer is missing"))
 			Expect(serializer).To(BeNil())
 		})
 
@@ -82,16 +82,16 @@ var _ = Describe("JSON", func() {
 
 		Context("Serialize", func() {
 			It("returns an error if fields are missing", func() {
-				Expect(serializer.Serialize(nil)).To(MatchError("json: fields are missing"))
+				Expect(serializer.Serialize(nil)).To(MatchError("fields are missing"))
 			})
 
 			It("returns an error if unable to serialize fields", func() {
-				Expect(serializer.Serialize(log.Fields{"a": func() {}})).To(MatchError("json: unable to serialize fields; json: unsupported type: func()"))
+				Expect(serializer.Serialize(log.Fields{"a": func() {}})).To(MatchError("unable to serialize fields; json: unsupported type: func()"))
 			})
 
 			It("returns an error if an error is returned when writing bytes to writer", func() {
 				writer.WriteOutputs = []WriteOutput{{Count: 0, Error: errors.New("test error")}}
-				Expect(serializer.Serialize(log.Fields{})).To(MatchError("json: unable to write serialized field; test error"))
+				Expect(serializer.Serialize(log.Fields{})).To(MatchError("unable to write serialized field; test error"))
 			})
 
 			It("returns successfully after writing buffer with empty fields", func() {

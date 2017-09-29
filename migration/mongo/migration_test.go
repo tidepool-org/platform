@@ -5,15 +5,16 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/application/version"
-	_ "github.com/tidepool-org/platform/application/version/test"
 	"github.com/tidepool-org/platform/migration/mongo"
+
+	_ "github.com/tidepool-org/platform/application/version/test"
 )
 
 var _ = Describe("Migration", func() {
 	Context("New", func() {
 		It("returns an error if the prefix is missing", func() {
 			migration, err := mongo.NewMigration("")
-			Expect(err).To(MatchError("application: prefix is missing"))
+			Expect(err).To(MatchError("prefix is missing"))
 			Expect(migration).To(BeNil())
 		})
 
@@ -46,7 +47,7 @@ var _ = Describe("Migration", func() {
 				})
 
 				It("returns an error if the version is not specified correctly", func() {
-					Expect(migration.Initialize()).To(MatchError("application: unable to create version reporter; version: base is missing"))
+					Expect(migration.Initialize()).To(MatchError("unable to create version reporter; base is missing"))
 				})
 			})
 

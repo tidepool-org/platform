@@ -13,7 +13,7 @@ type Router struct {
 
 func NewRouter(svc service.Service) (*Router, error) {
 	if svc == nil {
-		return nil, errors.New("v1", "service is missing")
+		return nil, errors.New("service is missing")
 	}
 
 	return &Router{
@@ -24,3 +24,22 @@ func NewRouter(svc service.Service) (*Router, error) {
 func (r *Router) Routes() []*rest.Route {
 	return []*rest.Route{}
 }
+
+/*
+POST /v1/users/:userId/notifications
+	request includes info about type of notification
+	web:
+		message:
+		template?:
+	email?:
+	sms?:
+	push?:
+
+GET /v1/users/:userId/notifications
+
+DELETE /v1/notifications/:notificationid
+
+How to mark as dismissed?
+Do we want to retain after dismissed for tracking purposes?
+Or add to audit log?
+*/

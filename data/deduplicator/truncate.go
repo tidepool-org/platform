@@ -1,10 +1,10 @@
 package deduplicator
 
 import (
-	"strconv"
+	"context"
 
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/store"
+	"github.com/tidepool-org/platform/data/storeDEPRECATED"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -55,20 +55,20 @@ func (t *truncateFactory) CanDeduplicateDataset(dataset *upload.Upload) (bool, e
 	return true, nil
 }
 
-func (t *truncateFactory) NewDeduplicatorForDataset(logger log.Logger, dataSession store.DataSession, dataset *upload.Upload) (data.Deduplicator, error) {
+func (t *truncateFactory) NewDeduplicatorForDataset(logger log.Logger, dataSession storeDEPRECATED.DataSession, dataset *upload.Upload) (data.Deduplicator, error) {
 	baseDeduplicator, err := NewBaseDeduplicator(t.name, t.version, logger, dataSession, dataset)
 	if err != nil {
 		return nil, err
 	}
 
 	if dataset.DeviceID == nil {
-		return nil, errors.New("deduplicator", "dataset device id is missing")
+		return nil, errors.New("dataset device id is missing")
 	}
 	if *dataset.DeviceID == "" {
-		return nil, errors.New("deduplicator", "dataset device id is empty")
+		return nil, errors.New("dataset device id is empty")
 	}
 	if !dataset.HasDeviceManufacturerOneOf(_TruncateExpectedDeviceManufacturers) {
-		return nil, errors.New("deduplicator", "dataset device manufacturers does not contain expected device manufacturers")
+		return nil, errors.New("dataset device manufacturers does not contain expected device manufacturers")
 	}
 
 	return &truncateDeduplicator{
@@ -76,16 +76,16 @@ func (t *truncateFactory) NewDeduplicatorForDataset(logger log.Logger, dataSessi
 	}, nil
 }
 
-func (t *truncateDeduplicator) DeduplicateDataset() error {
+func (t *truncateDeduplicator) DeduplicateDataset(ctx context.Context) error {
 	// TODO: Technically, ActivateDatasetData could succeed, but DeleteOtherDatasetData fail. This would
 	// result in duplicate (and possible incorrect) data. Is there a way to resolve this? Would be nice to have transactions.
 
-	if err := t.BaseDeduplicator.DeduplicateDataset(); err != nil {
+	if err := t.BaseDeduplicator.DeduplicateDataset(ctx); err != nil {
 		return err
 	}
 
-	if err := t.dataSession.DeleteOtherDatasetData(t.dataset); err != nil {
-		return errors.Wrapf(err, "deduplicator", "unable to remove all other data except dataset with id %s", strconv.Quote(t.dataset.UploadID))
+	if err := t.dataSession.DeleteOtherDatasetData(ctx, t.dataset); err != nil {
+		return errors.Wrapf(err, "unable to remove all other data except dataset with id %q", t.dataset.UploadID)
 	}
 
 	return nil

@@ -7,133 +7,230 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 
 	testAuth "github.com/tidepool-org/platform/auth/test"
-	"github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/log"
+	logNull "github.com/tidepool-org/platform/log/null"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service/api"
-	"github.com/tidepool-org/platform/service/context"
 	testRest "github.com/tidepool-org/platform/test/rest"
 )
 
 var _ = Describe("Auth", func() {
-	var authDetails *testAuth.Details
-	var response *testRest.ResponseWriter
-	var request *rest.Request
+	var res *testRest.ResponseWriter
+	var req *rest.Request
 	var handlerFunc rest.HandlerFunc
+	var details request.Details
 
 	BeforeEach(func() {
-		authDetails = testAuth.NewDetails()
-		response = testRest.NewResponseWriter()
-		request = testRest.NewRequest()
-		request.Env["AUTH-DETAILS"] = authDetails
-		handlerFunc = func(response rest.ResponseWriter, request *rest.Request) {
-			Expect(response).ToNot(BeNil())
-			Expect(request).ToNot(BeNil())
-			response.WriteHeader(0)
+		res = testRest.NewResponseWriter()
+		req = testRest.NewRequest()
+		req.Request = req.WithContext(log.NewContextWithLogger(req.Context(), logNull.NewLogger()))
+		handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
+			Expect(res).ToNot(BeNil())
+			Expect(req).ToNot(BeNil())
+			res.WriteHeader(0)
 		}
+		details = nil
+	})
+
+	JustBeforeEach(func() {
+		req.Request = req.WithContext(request.NewContextWithDetails(req.Context(), details))
 	})
 
 	AfterEach(func() {
-		Expect(response.UnusedOutputsCount()).To(Equal(0))
-		Expect(authDetails.UnusedOutputsCount()).To(Equal(0))
+		res.Expectations()
 	})
 
-	Context("AuthServer", func() {
-		It("returns successfully", func() {
-			Expect(api.AuthServer(handlerFunc)).ToNot(BeNil())
-		})
-
+	Context("Require", func() {
 		It("does nothing if handlerFunc is nil", func() {
-			authHandlerFunc := api.AuthServer(nil)
-			Expect(authHandlerFunc).ToNot(BeNil())
-			authHandlerFunc(response, request)
-			Expect(response.WriteHeaderInputs).To(BeEmpty())
+			requireFunc := api.Require(nil)
+			Expect(requireFunc).ToNot(BeNil())
+			requireFunc(res, req)
+			Expect(res.WriteHeaderInputs).To(BeEmpty())
+			Expect(res.WriteJsonInputs).To(BeEmpty())
 		})
 
-		Context("with new auth handler func", func() {
-			var authHandlerFunc rest.HandlerFunc
+		Context("with handlerFunc func", func() {
+			var requireFunc rest.HandlerFunc
 
 			BeforeEach(func() {
-				authHandlerFunc = api.AuthServer(handlerFunc)
-				Expect(authHandlerFunc).ToNot(BeNil())
+				requireFunc = api.Require(handlerFunc)
+				Expect(requireFunc).ToNot(BeNil())
 			})
 
 			It("does nothing if response is nil", func() {
-				authHandlerFunc(nil, request)
-				Expect(response.WriteHeaderInputs).To(BeEmpty())
+				requireFunc(nil, req)
+				Expect(res.WriteHeaderInputs).To(BeEmpty())
+				Expect(res.WriteJsonInputs).To(BeEmpty())
 			})
 
 			It("does nothing if request is nil", func() {
-				authHandlerFunc(response, nil)
-				Expect(response.WriteHeaderInputs).To(BeEmpty())
+				requireFunc(res, nil)
+				Expect(res.WriteHeaderInputs).To(BeEmpty())
+				Expect(res.WriteJsonInputs).To(BeEmpty())
 			})
 
-			It("responds with unauthenticated error if auth details is missing", func() {
-				response.WriteJsonOutputs = []error{nil}
-				delete(request.Env, "AUTH-DETAILS")
-				authHandlerFunc(response, request)
-				Expect(response.WriteHeaderInputs).To(Equal([]int{401}))
-				Expect(response.WriteJsonInputs).To(HaveLen(1))
-				Expect(response.WriteJsonInputs[0].(*context.JSONResponse).Errors).To(Equal([]*service.Error{service.ErrorUnauthenticated()}))
+			It("responds with unauthenticated error if details are missing", func() {
+				res.WriteJsonOutputs = []error{nil}
+				requireFunc(res, req)
+				Expect(res.WriteHeaderInputs).To(Equal([]int{401}))
+				Expect(res.WriteJsonInputs).To(HaveLen(1))
+				Expect(res.WriteJsonInputs[0]).To(Equal(errors.Sanitize(request.ErrorUnauthenticated())))
 			})
 
-			It("responds with unauthenticated error if auth details is not server", func() {
-				response.WriteJsonOutputs = []error{nil}
-				authDetails.IsServerOutputs = []bool{false}
-				authHandlerFunc(response, request)
-				Expect(response.WriteHeaderInputs).To(Equal([]int{401}))
-				Expect(response.WriteJsonInputs).To(HaveLen(1))
-				Expect(response.WriteJsonInputs[0].(*context.JSONResponse).Errors).To(Equal([]*service.Error{service.ErrorUnauthenticated()}))
+			Context("with server details", func() {
+				BeforeEach(func() {
+					details = request.NewDetails(request.MethodSessionToken, "", testAuth.NewSessionToken())
+				})
+
+				It("responds successfully", func() {
+					requireFunc(res, req)
+					Expect(res.WriteHeaderInputs).To(Equal([]int{0}))
+					Expect(res.WriteJsonInputs).To(BeEmpty())
+				})
 			})
 
-			It("responds successfully if auth details is server", func() {
-				authDetails.IsServerOutputs = []bool{true}
-				authHandlerFunc(response, request)
-				Expect(response.WriteHeaderInputs).To(Equal([]int{0}))
+			Context("with user details", func() {
+				BeforeEach(func() {
+					details = request.NewDetails(request.MethodSessionToken, id.New(), testAuth.NewSessionToken())
+				})
+
+				It("responds successfully", func() {
+					requireFunc(res, req)
+					Expect(res.WriteHeaderInputs).To(Equal([]int{0}))
+					Expect(res.WriteJsonInputs).To(BeEmpty())
+				})
 			})
 		})
 	})
 
-	Context("AuthUser", func() {
-		It("returns successfully", func() {
-			Expect(api.AuthUser(handlerFunc)).ToNot(BeNil())
-		})
-
+	Context("RequireServer", func() {
 		It("does nothing if handlerFunc is nil", func() {
-			authHandlerFunc := api.AuthUser(nil)
-			Expect(authHandlerFunc).ToNot(BeNil())
-			authHandlerFunc(response, request)
-			Expect(response.WriteHeaderInputs).To(BeEmpty())
+			requireFunc := api.RequireServer(nil)
+			Expect(requireFunc).ToNot(BeNil())
+			requireFunc(res, req)
+			Expect(res.WriteHeaderInputs).To(BeEmpty())
+			Expect(res.WriteJsonInputs).To(BeEmpty())
 		})
 
-		Context("with new auth handler func", func() {
-			var authHandlerFunc rest.HandlerFunc
+		Context("with handlerFunc func", func() {
+			var requireFunc rest.HandlerFunc
 
 			BeforeEach(func() {
-				authHandlerFunc = api.AuthUser(handlerFunc)
-				Expect(authHandlerFunc).ToNot(BeNil())
+				requireFunc = api.RequireServer(handlerFunc)
+				Expect(requireFunc).ToNot(BeNil())
 			})
 
 			It("does nothing if response is nil", func() {
-				authHandlerFunc(nil, request)
-				Expect(response.WriteHeaderInputs).To(BeEmpty())
+				requireFunc(nil, req)
+				Expect(res.WriteHeaderInputs).To(BeEmpty())
+				Expect(res.WriteJsonInputs).To(BeEmpty())
 			})
 
 			It("does nothing if request is nil", func() {
-				authHandlerFunc(response, nil)
-				Expect(response.WriteHeaderInputs).To(BeEmpty())
+				requireFunc(res, nil)
+				Expect(res.WriteHeaderInputs).To(BeEmpty())
+				Expect(res.WriteJsonInputs).To(BeEmpty())
 			})
 
-			It("responds with unauthenticated error if auth details is missing", func() {
-				response.WriteJsonOutputs = []error{nil}
-				delete(request.Env, "AUTH-DETAILS")
-				authHandlerFunc(response, request)
-				Expect(response.WriteHeaderInputs).To(Equal([]int{401}))
-				Expect(response.WriteJsonInputs).To(HaveLen(1))
-				Expect(response.WriteJsonInputs[0].(*context.JSONResponse).Errors).To(Equal([]*service.Error{service.ErrorUnauthenticated()}))
+			It("responds with unauthenticated error if details are missing", func() {
+				res.WriteJsonOutputs = []error{nil}
+				requireFunc(res, req)
+				Expect(res.WriteHeaderInputs).To(Equal([]int{401}))
+				Expect(res.WriteJsonInputs).To(HaveLen(1))
+				Expect(res.WriteJsonInputs[0]).To(Equal(errors.Sanitize(request.ErrorUnauthenticated())))
 			})
 
-			It("responds successfully if auth details", func() {
-				authHandlerFunc(response, request)
-				Expect(response.WriteHeaderInputs).To(Equal([]int{0}))
+			Context("with server details", func() {
+				BeforeEach(func() {
+					details = request.NewDetails(request.MethodSessionToken, "", testAuth.NewSessionToken())
+				})
+
+				It("responds successfully", func() {
+					requireFunc(res, req)
+					Expect(res.WriteHeaderInputs).To(Equal([]int{0}))
+					Expect(res.WriteJsonInputs).To(BeEmpty())
+				})
+			})
+
+			Context("with user details", func() {
+				BeforeEach(func() {
+					details = request.NewDetails(request.MethodSessionToken, id.New(), testAuth.NewSessionToken())
+				})
+
+				It("responds with unauthorized error", func() {
+					res.WriteJsonOutputs = []error{nil}
+					requireFunc(res, req)
+					Expect(res.WriteHeaderInputs).To(Equal([]int{403}))
+					Expect(res.WriteJsonInputs).To(HaveLen(1))
+					Expect(res.WriteJsonInputs[0]).To(Equal(errors.Sanitize(request.ErrorUnauthorized())))
+				})
+			})
+		})
+	})
+
+	Context("RequireUser", func() {
+		It("does nothing if handlerFunc is nil", func() {
+			requireFunc := api.RequireUser(nil)
+			Expect(requireFunc).ToNot(BeNil())
+			requireFunc(res, req)
+			Expect(res.WriteHeaderInputs).To(BeEmpty())
+			Expect(res.WriteJsonInputs).To(BeEmpty())
+		})
+
+		Context("with handlerFunc func", func() {
+			var requireFunc rest.HandlerFunc
+
+			BeforeEach(func() {
+				requireFunc = api.RequireUser(handlerFunc)
+				Expect(requireFunc).ToNot(BeNil())
+			})
+
+			It("does nothing if response is nil", func() {
+				requireFunc(nil, req)
+				Expect(res.WriteHeaderInputs).To(BeEmpty())
+				Expect(res.WriteJsonInputs).To(BeEmpty())
+			})
+
+			It("does nothing if request is nil", func() {
+				requireFunc(res, nil)
+				Expect(res.WriteHeaderInputs).To(BeEmpty())
+				Expect(res.WriteJsonInputs).To(BeEmpty())
+			})
+
+			It("responds with unauthenticated error if details are missing", func() {
+				res.WriteJsonOutputs = []error{nil}
+				requireFunc(res, req)
+				Expect(res.WriteHeaderInputs).To(Equal([]int{401}))
+				Expect(res.WriteJsonInputs).To(HaveLen(1))
+				Expect(res.WriteJsonInputs[0]).To(Equal(errors.Sanitize(request.ErrorUnauthenticated())))
+			})
+
+			Context("with server details", func() {
+				BeforeEach(func() {
+					details = request.NewDetails(request.MethodSessionToken, "", testAuth.NewSessionToken())
+				})
+
+				It("responds with unauthorized error", func() {
+					res.WriteJsonOutputs = []error{nil}
+					requireFunc(res, req)
+					Expect(res.WriteHeaderInputs).To(Equal([]int{403}))
+					Expect(res.WriteJsonInputs).To(HaveLen(1))
+					Expect(res.WriteJsonInputs[0]).To(Equal(errors.Sanitize(request.ErrorUnauthorized())))
+				})
+			})
+
+			Context("with user details", func() {
+				BeforeEach(func() {
+					details = request.NewDetails(request.MethodSessionToken, id.New(), testAuth.NewSessionToken())
+				})
+
+				It("responds successfully", func() {
+					requireFunc(res, req)
+					Expect(res.WriteHeaderInputs).To(Equal([]int{0}))
+					Expect(res.WriteJsonInputs).To(BeEmpty())
+				})
 			})
 		})
 	})

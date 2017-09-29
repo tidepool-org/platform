@@ -13,7 +13,7 @@ import (
 var _ = Describe("Standard", func() {
 	It("NewStandard returns an error if logger is nil", func() {
 		standard, err := context.NewStandard(nil)
-		Expect(err).To(MatchError("context: logger is missing"))
+		Expect(err).To(MatchError("logger is missing"))
 		Expect(standard).To(BeNil())
 	})
 

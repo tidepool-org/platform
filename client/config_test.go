@@ -4,26 +4,31 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"time"
-
 	"github.com/tidepool-org/platform/client"
 	testConfig "github.com/tidepool-org/platform/config/test"
+	testHTTP "github.com/tidepool-org/platform/test/http"
 )
 
 var _ = Describe("Config", func() {
 	Context("NewConfig", func() {
-		It("returns a new config with default values", func() {
+		It("returns successfully", func() {
+			config := client.NewConfig()
+			Expect(config).ToNot(BeNil())
+		})
+
+		It("returns default values", func() {
 			config := client.NewConfig()
 			Expect(config).ToNot(BeNil())
 			Expect(config.Address).To(Equal(""))
-			Expect(config.Timeout).To(Equal(60 * time.Second))
 		})
 	})
 
 	Context("with new config", func() {
+		var address string
 		var config *client.Config
 
 		BeforeEach(func() {
+			address = testHTTP.NewAddress()
 			config = client.NewConfig()
 			Expect(config).ToNot(BeNil())
 		})
@@ -33,12 +38,11 @@ var _ = Describe("Config", func() {
 
 			BeforeEach(func() {
 				configReporter = testConfig.NewReporter()
-				configReporter.Config["address"] = "https://1.2.3.4:5678"
-				configReporter.Config["timeout"] = "120"
+				configReporter.Config["address"] = address
 			})
 
 			It("returns an error if config reporter is missing", func() {
-				Expect(config.Load(nil)).To(MatchError("client: config reporter is missing"))
+				Expect(config.Load(nil)).To(MatchError("config reporter is missing"))
 			})
 
 			It("uses default address if not set", func() {
@@ -47,51 +51,31 @@ var _ = Describe("Config", func() {
 				Expect(config.Address).To(Equal(""))
 			})
 
-			It("uses default timeout if not set", func() {
-				delete(configReporter.Config, "timeout")
-				Expect(config.Load(configReporter)).To(Succeed())
-				Expect(config.Timeout).To(Equal(60 * time.Second))
-			})
-
-			It("returns an error if the timeout cannot be parsed to an integer", func() {
-				configReporter.Config["timeout"] = "abc"
-				Expect(config.Load(configReporter)).To(MatchError("client: timeout is invalid"))
-				Expect(config.Timeout).To(Equal(60 * time.Second))
-			})
-
 			It("returns successfully and uses values from config reporter", func() {
 				Expect(config.Load(configReporter)).To(Succeed())
-				Expect(config.Address).To(Equal("https://1.2.3.4:5678"))
-				Expect(config.Timeout).To(Equal(120 * time.Second))
+				Expect(config.Address).To(Equal(address))
 			})
 		})
 
 		Context("with valid values", func() {
 			BeforeEach(func() {
-				config.Address = "http://localhost:1234"
-				config.Timeout = 30 * time.Second
+				config.Address = address
 			})
 
 			Context("Validate", func() {
 				It("returns an error if the address is missing", func() {
 					config.Address = ""
-					Expect(config.Validate()).To(MatchError("client: address is missing"))
+					Expect(config.Validate()).To(MatchError("address is missing"))
 				})
 
 				It("returns an error if the address is not a parseable URL", func() {
 					config.Address = "Not%Parseable"
-					Expect(config.Validate()).To(MatchError("client: address is invalid"))
-				})
-
-				It("returns an error if the timeout is invalid", func() {
-					config.Timeout = 0
-					Expect(config.Validate()).To(MatchError("client: timeout is invalid"))
+					Expect(config.Validate()).To(MatchError("address is invalid"))
 				})
 
 				It("returns success", func() {
 					Expect(config.Validate()).To(Succeed())
-					Expect(config.Address).To(Equal("http://localhost:1234"))
-					Expect(config.Timeout).To(Equal(30 * time.Second))
+					Expect(config.Address).To(Equal(address))
 				})
 			})
 		})

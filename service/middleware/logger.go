@@ -14,7 +14,7 @@ type Logger struct {
 
 func NewLogger(logger log.Logger) (*Logger, error) {
 	if logger == nil {
-		return nil, errors.New("middleware", "logger is missing")
+		return nil, errors.New("logger is missing")
 	}
 
 	return &Logger{
@@ -23,13 +23,21 @@ func NewLogger(logger log.Logger) (*Logger, error) {
 }
 
 func (l *Logger) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
-	return func(response rest.ResponseWriter, request *rest.Request) {
-		if handler != nil && response != nil && request != nil {
-			oldLogger := service.GetRequestLogger(request)
-			defer service.SetRequestLogger(request, oldLogger)
-			service.SetRequestLogger(request, l.logger)
+	return func(res rest.ResponseWriter, req *rest.Request) {
+		if handler != nil && res != nil && req != nil {
+			oldRequest := req.Request
+			defer func() {
+				req.Request = oldRequest
+			}()
 
-			handler(response, request)
+			// DEPRECATED
+			oldLogger := service.GetRequestLogger(req)
+			defer service.SetRequestLogger(req, oldLogger)
+			service.SetRequestLogger(req, l.logger)
+
+			req.Request = req.WithContext(log.NewContextWithLogger(req.Context(), l.logger))
+
+			handler(res, req)
 		}
 	}
 }

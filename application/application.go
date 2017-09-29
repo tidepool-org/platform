@@ -3,6 +3,8 @@ package application
 import (
 	"os"
 	"path/filepath"
+	"strings"
+	"syscall"
 
 	applicationVersion "github.com/tidepool-org/platform/application/version"
 	"github.com/tidepool-org/platform/config"
@@ -26,11 +28,19 @@ type Application struct {
 
 func New(prefix string, scopes ...string) (*Application, error) {
 	if prefix == "" {
-		return nil, errors.New("application", "prefix is missing")
+		return nil, errors.New("prefix is missing")
+	}
+
+	name := filepath.Base(os.Args[0])
+
+	if strings.EqualFold(name, "debug") {
+		if debugName, found := syscall.Getenv(env.GetKey(prefix, []string{name}, "name")); found {
+			name = debugName
+		}
 	}
 
 	return &Application{
-		name:   filepath.Base(os.Args[0]),
+		name:   name,
 		prefix: prefix,
 		scopes: scopes,
 	}, nil
@@ -43,17 +53,13 @@ func (a *Application) Initialize() error {
 	if err := a.initializeConfigReporter(); err != nil {
 		return err
 	}
-	if err := a.initializeLogger(); err != nil {
-		return err
-	}
-
-	return nil
+	return a.initializeLogger()
 }
 
 func (a *Application) Terminate() {
-	a.logger = nil
-	a.configReporter = nil
-	a.versionReporter = nil
+	a.terminateLogger()
+	a.terminateConfigReporter()
+	a.terminateVersionReporter()
 }
 
 func (a *Application) Name() string {
@@ -83,7 +89,7 @@ func (a *Application) SetLogger(logger log.Logger) {
 func (a *Application) initializeVersionReporter() error {
 	versionReporter, err := applicationVersion.NewReporter()
 	if err != nil {
-		return errors.Wrap(err, "application", "unable to create version reporter")
+		return errors.Wrap(err, "unable to create version reporter")
 	}
 
 	a.versionReporter = versionReporter
@@ -91,10 +97,14 @@ func (a *Application) initializeVersionReporter() error {
 	return nil
 }
 
+func (a *Application) terminateVersionReporter() {
+	a.versionReporter = nil
+}
+
 func (a *Application) initializeConfigReporter() error {
 	configReporter, err := env.NewReporter(a.prefix)
 	if err != nil {
-		return errors.Wrap(err, "application", "unable to create config reporter")
+		return errors.Wrap(err, "unable to create config reporter")
 	}
 
 	a.configReporter = configReporter.WithScopes(a.Name()).WithScopes(a.scopes...)
@@ -102,28 +112,41 @@ func (a *Application) initializeConfigReporter() error {
 	return nil
 }
 
+func (a *Application) terminateConfigReporter() {
+	a.configReporter = nil
+}
+
 func (a *Application) initializeLogger() error {
 	writer, err := sync.NewWriter(os.Stdout)
 	if err != nil {
-		return errors.Wrap(err, "application", "unable to create writer")
+		return errors.Wrap(err, "unable to create writer")
 	}
 
 	level := a.ConfigReporter().WithScopes("logger").GetWithDefault("level", "warn")
 
 	logger, err := json.NewLogger(writer, log.DefaultLevelRanks(), log.Level(level))
 	if err != nil {
-		return errors.Wrap(err, "application", "unable to create logger")
+		return errors.Wrap(err, "unable to create logger")
 	}
 
-	logger = logger.WithFields(log.Fields{
-		"process": a.Name(),
-		"pid":     os.Getpid(),
+	logger = logger.WithField("process", map[string]interface{}{
+		"name":    a.Name(),
+		"id":      os.Getpid(),
 		"version": a.VersionReporter().Short(),
 	})
 
 	a.logger = logger
 
-	a.Logger().Infof("Logger level is %s", a.Logger().Level())
+	a.logger.Infof("Logger level is %s", a.logger.Level())
 
 	return nil
+}
+
+func (a *Application) terminateLogger() {
+	if a.logger != nil {
+		a.logger.Info("Destroying logger")
+		a.logger = nil
+
+		os.Stdout.Sync()
+	}
 }

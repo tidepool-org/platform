@@ -3,22 +3,23 @@ package service_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/ghttp"
 
-	"net/http"
+	"strconv"
 
-	_ "github.com/tidepool-org/platform/application/version/test"
+	testAuth "github.com/tidepool-org/platform/auth/test"
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/config/env"
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/service/service"
+	testHTTP "github.com/tidepool-org/platform/test/http"
+
+	_ "github.com/tidepool-org/platform/application/version/test"
 )
 
 var _ = Describe("Service", func() {
 	Context("New", func() {
 		It("returns an error if unsuccessful", func() {
 			svc, err := service.New("")
-			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError("prefix is missing"))
 			Expect(svc).To(BeNil())
 		})
 
@@ -28,65 +29,45 @@ var _ = Describe("Service", func() {
 	})
 
 	Context("with started server, config reporter, and new service", func() {
-		var serverTokenSecret string
-		var serverToken string
-		var server *Server
-		var clientConfigReporter config.Reporter
-		var serverConfigReporter config.Reporter
 		var svc *service.Service
+		var serviceSecret string
+		var serviceConfigReporter config.Reporter
+		var serverConfigReporter config.Reporter
 
 		BeforeEach(func() {
-			serverTokenSecret = id.New()
-			serverToken = id.New()
-			server = NewServer()
-			Expect(server).ToNot(BeNil())
-			server.AppendHandlers(
-				CombineHandlers(
-					VerifyRequest("POST", "/auth/serverlogin"),
-					VerifyHeaderKV("X-Tidepool-Server-Name", "service.test"),
-					VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
-					VerifyBody([]byte{}),
-					RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
-			)
+			var err error
+			svc, err = service.New("TIDEPOOL")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(svc).ToNot(BeNil())
+
+			serviceSecret = testAuth.NewServiceSecret()
 
 			configReporter, err := env.NewReporter("TIDEPOOL")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(configReporter).ToNot(BeNil())
-			configReporter = configReporter.WithScopes("service.test", "service")
 
-			clientConfigReporter = configReporter.WithScopes("auth", "client")
-			clientConfigReporter.Set("address", server.URL())
-			clientConfigReporter.Set("timeout", "60")
-			clientConfigReporter.Set("server_token_secret", serverTokenSecret)
+			serviceConfigReporter = configReporter.WithScopes("service.test", "service")
+			serviceConfigReporter.Set("secret", serviceSecret)
 
 			serverConfigReporter = configReporter.WithScopes("server")
-			serverConfigReporter.Set("address", "http://localhost:5678")
-
-			svc, err = service.New("TIDEPOOL")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(svc).ToNot(BeNil())
-		})
-
-		AfterEach(func() {
-			if server != nil {
-				server.Close()
-			}
+			serverConfigReporter.Set("address", testHTTP.NewAddress())
+			serverConfigReporter.Set("timeout", strconv.Itoa(testHTTP.NewTimeout()))
 		})
 
 		Context("Initialize", func() {
+			It("returns an error if the secret is missing", func() {
+				serviceConfigReporter.Delete("secret")
+				Expect(svc.Initialize()).To(MatchError("secret is missing"))
+			})
+
 			It("returns an error if the timeout is invalid during Load", func() {
-				clientConfigReporter.Set("timeout", "abc")
-				Expect(svc.Initialize()).To(MatchError("service: unable to load auth client config; client: timeout is invalid"))
+				serverConfigReporter.Set("timeout", "invalid")
+				Expect(svc.Initialize()).To(MatchError("unable to load server config; timeout is invalid"))
 			})
 
 			It("returns an error if the timeout is invalid during Validate", func() {
-				clientConfigReporter.Set("timeout", "0")
-				Expect(svc.Initialize()).To(MatchError("service: unable to create auth client; client: config is invalid; client: timeout is invalid"))
-			})
-
-			It("returns an error if the address is invalid during Validate", func() {
-				serverConfigReporter.Delete("address")
-				Expect(svc.Initialize()).To(MatchError("service: unable to create server; server: config is invalid; server: address is missing"))
+				serverConfigReporter.Set("timeout", "0")
+				Expect(svc.Initialize()).To(MatchError("unable to create server; config is invalid; timeout is invalid"))
 			})
 
 			It("returns successfully", func() {
@@ -102,8 +83,8 @@ var _ = Describe("Service", func() {
 		})
 
 		Context("Run", func() {
-			It("returns an error since it is not initialized", func() {
-				Expect(svc.Run()).To(MatchError("service: service not initialized"))
+			It("returns an error if it is not initialized", func() {
+				Expect(svc.Run()).To(MatchError("service not initialized"))
 			})
 		})
 
@@ -126,11 +107,27 @@ var _ = Describe("Service", func() {
 				// Cannot invoke Run since it starts a server that requires user intervention
 			})
 
+			Context("Secret", func() {
+				It("returns the secret", func() {
+					Expect(svc.Secret()).To(Equal(serviceSecret))
+				})
+			})
+
 			Context("AuthClient", func() {
-				It("returns successfully with server token", func() {
-					authClient := svc.AuthClient()
-					Expect(authClient).ToNot(BeNil())
-					Eventually(authClient.ServerToken).Should(Equal(serverToken))
+				It("returns nil if not set", func() {
+					Expect(svc.AuthClient()).To(BeNil())
+				})
+
+				It("returns successfully if set", func() {
+					authClient := testAuth.NewClient()
+					svc.SetAuthClient(authClient)
+					Expect(svc.AuthClient()).To(Equal(authClient))
+				})
+			})
+
+			Context("SetAuthClient", func() {
+				It("returns successfully", func() {
+					svc.SetAuthClient(testAuth.NewClient())
 				})
 			})
 

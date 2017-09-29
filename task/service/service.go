@@ -10,6 +10,13 @@ type Service interface {
 	service.Service
 
 	TaskStore() store.Store
+	TaskClient() task.Client
 
-	Status() *task.Status
+	Status() *Status
+}
+
+type Status struct {
+	Version   string
+	Server    interface{}
+	TaskStore interface{}
 }

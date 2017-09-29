@@ -1,14 +1,15 @@
 package service
 
 import (
-	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/service/api"
 	"github.com/tidepool-org/platform/data/service/api/v1"
-	dataMongo "github.com/tidepool-org/platform/data/store/mongo"
+	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
+	dataStoreDEPRECATEDMongo "github.com/tidepool-org/platform/data/storeDEPRECATED/mongo"
 	"github.com/tidepool-org/platform/errors"
 	metricClient "github.com/tidepool-org/platform/metric/client"
+	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/service/server"
 	"github.com/tidepool-org/platform/service/service"
 	baseMongo "github.com/tidepool-org/platform/store/mongo"
@@ -18,12 +19,14 @@ import (
 
 type Standard struct {
 	*service.DEPRECATEDService
-	metricClient            metricClient.Client
-	userClient              userClient.Client
+	metricClient            *metricClient.Client
+	userClient              *userClient.Client
 	dataFactory             *factory.Standard
 	dataDeduplicatorFactory deduplicator.Factory
-	dataStore               *dataMongo.Store
+	dataStoreDEPRECATED     *dataStoreDEPRECATEDMongo.Store
+	dataStore               *dataStoreMongo.Store
 	syncTaskStore           *syncTaskMongo.Store
+	dataClient              *Client
 	api                     *api.Standard
 	server                  *server.Standard
 }
@@ -56,25 +59,28 @@ func (s *Standard) Initialize() error {
 	if err := s.initializeDataDeduplicatorFactory(); err != nil {
 		return err
 	}
+	if err := s.initializeDataStoreDEPRECATED(); err != nil {
+		return err
+	}
 	if err := s.initializeDataStore(); err != nil {
 		return err
 	}
 	if err := s.initializeSyncTaskStore(); err != nil {
 		return err
 	}
+	if err := s.initializeDataClient(); err != nil {
+		return err
+	}
 	if err := s.initializeAPI(); err != nil {
 		return err
 	}
-	if err := s.initializeServer(); err != nil {
-		return err
-	}
-
-	return nil
+	return s.initializeServer()
 }
 
 func (s *Standard) Terminate() {
 	s.server = nil
 	s.api = nil
+	s.dataClient = nil
 	if s.syncTaskStore != nil {
 		s.syncTaskStore.Close()
 		s.syncTaskStore = nil
@@ -82,6 +88,10 @@ func (s *Standard) Terminate() {
 	if s.dataStore != nil {
 		s.dataStore.Close()
 		s.dataStore = nil
+	}
+	if s.dataStoreDEPRECATED != nil {
+		s.dataStoreDEPRECATED.Close()
+		s.dataStoreDEPRECATED = nil
 	}
 	s.dataDeduplicatorFactory = nil
 	s.dataFactory = nil
@@ -93,7 +103,7 @@ func (s *Standard) Terminate() {
 
 func (s *Standard) Run() error {
 	if s.server == nil {
-		return errors.New("service", "service not initialized")
+		return errors.New("service not initialized")
 	}
 
 	return s.server.Serve()
@@ -102,18 +112,18 @@ func (s *Standard) Run() error {
 func (s *Standard) initializeMetricClient() error {
 	s.Logger().Debug("Loading metric client config")
 
-	metricClientConfig := client.NewConfig()
-	if err := metricClientConfig.Load(s.ConfigReporter().WithScopes("metric", "client")); err != nil {
-		return errors.Wrap(err, "service", "unable to load metric client config")
+	cfg := platform.NewConfig()
+	if err := cfg.Load(s.ConfigReporter().WithScopes("metric", "client")); err != nil {
+		return errors.Wrap(err, "unable to load metric client config")
 	}
 
 	s.Logger().Debug("Creating metric client")
 
-	metricClient, err := metricClient.NewClient(metricClientConfig, s.Name(), s.VersionReporter())
+	clnt, err := metricClient.New(cfg, s.Name(), s.VersionReporter())
 	if err != nil {
-		return errors.Wrap(err, "service", "unable to create metric client")
+		return errors.Wrap(err, "unable to create metric client")
 	}
-	s.metricClient = metricClient
+	s.metricClient = clnt
 
 	return nil
 }
@@ -121,18 +131,18 @@ func (s *Standard) initializeMetricClient() error {
 func (s *Standard) initializeUserClient() error {
 	s.Logger().Debug("Loading user client config")
 
-	userClientConfig := client.NewConfig()
-	if err := userClientConfig.Load(s.ConfigReporter().WithScopes("user", "client")); err != nil {
-		return errors.Wrap(err, "service", "unable to load user client config")
+	cfg := platform.NewConfig()
+	if err := cfg.Load(s.ConfigReporter().WithScopes("user", "client")); err != nil {
+		return errors.Wrap(err, "unable to load user client config")
 	}
 
 	s.Logger().Debug("Creating user client")
 
-	userClient, err := userClient.NewClient(userClientConfig)
+	clnt, err := userClient.New(cfg)
 	if err != nil {
-		return errors.Wrap(err, "service", "unable to create user client")
+		return errors.Wrap(err, "unable to create user client")
 	}
-	s.userClient = userClient
+	s.userClient = clnt
 
 	return nil
 }
@@ -142,7 +152,7 @@ func (s *Standard) initializeDataFactory() error {
 
 	dataFactory, err := factory.NewStandard()
 	if err != nil {
-		return errors.Wrap(err, "service", "unable to create data factory")
+		return errors.Wrap(err, "unable to create data factory")
 	}
 	s.dataFactory = dataFactory
 
@@ -154,14 +164,21 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 
 	truncateDeduplicatorFactory, err := deduplicator.NewTruncateFactory()
 	if err != nil {
-		return errors.Wrap(err, "service", "unable to create truncate data deduplicator factory")
+		return errors.Wrap(err, "unable to create truncate data deduplicator factory")
 	}
 
 	s.Logger().Debug("Creating hash-deactivate-old data deduplicator factory")
 
 	hashDeactivateOldDeduplicatorFactory, err := deduplicator.NewHashDeactivateOldFactory()
 	if err != nil {
-		return errors.Wrap(err, "service", "unable to create hash-deactivate-old data deduplicator factory")
+		return errors.Wrap(err, "unable to create hash-deactivate-old data deduplicator factory")
+	}
+
+	s.Logger().Debug("Creating continuous data deduplicator factory")
+
+	continuousDeduplicatorFactory, err := deduplicator.NewContinuousFactory()
+	if err != nil {
+		return errors.Wrap(err, "unable to create continuous data deduplicator factory")
 	}
 
 	s.Logger().Debug("Creating data deduplicator factory")
@@ -169,13 +186,33 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 	factories := []deduplicator.Factory{
 		truncateDeduplicatorFactory,
 		hashDeactivateOldDeduplicatorFactory,
+		continuousDeduplicatorFactory,
 	}
 
 	dataDeduplicatorFactory, err := deduplicator.NewDelegateFactory(factories)
 	if err != nil {
-		return errors.Wrap(err, "service", "unable to create data deduplicator factory")
+		return errors.Wrap(err, "unable to create data deduplicator factory")
 	}
 	s.dataDeduplicatorFactory = dataDeduplicatorFactory
+
+	return nil
+}
+
+func (s *Standard) initializeDataStoreDEPRECATED() error {
+	s.Logger().Debug("Loading data store DEPRECATED config")
+
+	cfg := baseMongo.NewConfig()
+	if err := cfg.Load(s.ConfigReporter().WithScopes("DEPRECATED", "data", "store")); err != nil {
+		return errors.Wrap(err, "unable to load data store DEPRECATED config")
+	}
+
+	s.Logger().Debug("Creating data store")
+
+	str, err := dataStoreDEPRECATEDMongo.New(cfg, s.Logger())
+	if err != nil {
+		return errors.Wrap(err, "unable to create data store DEPRECATED")
+	}
+	s.dataStoreDEPRECATED = str
 
 	return nil
 }
@@ -183,18 +220,18 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 func (s *Standard) initializeDataStore() error {
 	s.Logger().Debug("Loading data store config")
 
-	dataStoreConfig := baseMongo.NewConfig()
-	if err := dataStoreConfig.Load(s.ConfigReporter().WithScopes("data", "store")); err != nil {
-		return errors.Wrap(err, "service", "unable to load data store config")
+	cfg := baseMongo.NewConfig()
+	if err := cfg.Load(s.ConfigReporter().WithScopes("data", "store")); err != nil {
+		return errors.Wrap(err, "unable to load data store config")
 	}
 
 	s.Logger().Debug("Creating data store")
 
-	dataStore, err := dataMongo.New(s.Logger(), dataStoreConfig)
+	str, err := dataStoreMongo.NewStore(cfg, s.Logger())
 	if err != nil {
-		return errors.Wrap(err, "service", "unable to create data store")
+		return errors.Wrap(err, "unable to create data store")
 	}
-	s.dataStore = dataStore
+	s.dataStore = str
 
 	return nil
 }
@@ -202,18 +239,30 @@ func (s *Standard) initializeDataStore() error {
 func (s *Standard) initializeSyncTaskStore() error {
 	s.Logger().Debug("Loading sync task store config")
 
-	syncTaskStoreConfig := baseMongo.NewConfig()
-	if err := syncTaskStoreConfig.Load(s.ConfigReporter().WithScopes("sync_task", "store")); err != nil {
-		return errors.Wrap(err, "service", "unable to load sync task store config")
+	cfg := baseMongo.NewConfig()
+	if err := cfg.Load(s.ConfigReporter().WithScopes("sync_task", "store")); err != nil {
+		return errors.Wrap(err, "unable to load sync task store config")
 	}
 
 	s.Logger().Debug("Creating sync task store")
 
-	syncTaskStore, err := syncTaskMongo.New(s.Logger(), syncTaskStoreConfig)
+	str, err := syncTaskMongo.New(cfg, s.Logger())
 	if err != nil {
-		return errors.Wrap(err, "service", "unable to create sync task store")
+		return errors.Wrap(err, "unable to create sync task store")
 	}
-	s.syncTaskStore = syncTaskStore
+	s.syncTaskStore = str
+
+	return nil
+}
+
+func (s *Standard) initializeDataClient() error {
+	s.Logger().Debug("Creating data client")
+
+	clnt, err := NewClient(s.dataStore, s.dataStoreDEPRECATED)
+	if err != nil {
+		return errors.Wrap(err, "unable to create data client")
+	}
+	s.dataClient = clnt
 
 	return nil
 }
@@ -222,23 +271,23 @@ func (s *Standard) initializeAPI() error {
 	s.Logger().Debug("Creating api")
 
 	newAPI, err := api.NewStandard(s, s.metricClient, s.userClient,
-		s.dataFactory, s.dataDeduplicatorFactory,
-		s.dataStore, s.syncTaskStore)
+		s.dataFactory, s.dataDeduplicatorFactory, s.dataStore,
+		s.dataStoreDEPRECATED, s.syncTaskStore, s.dataClient)
 	if err != nil {
-		return errors.Wrap(err, "service", "unable to create api")
+		return errors.Wrap(err, "unable to create api")
 	}
 	s.api = newAPI
 
 	s.Logger().Debug("Initializing api middleware")
 
 	if err = s.api.InitializeMiddleware(); err != nil {
-		return errors.Wrap(err, "service", "unable to initialize api middleware")
+		return errors.Wrap(err, "unable to initialize api middleware")
 	}
 
 	s.Logger().Debug("Initializing api router")
 
 	if err = s.api.DEPRECATEDInitializeRouter(v1.Routes()); err != nil {
-		return errors.Wrap(err, "service", "unable to initialize api router")
+		return errors.Wrap(err, "unable to initialize api router")
 	}
 
 	return nil
@@ -249,14 +298,14 @@ func (s *Standard) initializeServer() error {
 
 	serverConfig := server.NewConfig()
 	if err := serverConfig.Load(s.ConfigReporter().WithScopes("server")); err != nil {
-		return errors.Wrap(err, "service", "unable to load server config")
+		return errors.Wrap(err, "unable to load server config")
 	}
 
 	s.Logger().Debug("Creating server")
 
-	newServer, err := server.NewStandard(s.Logger(), s.api, serverConfig)
+	newServer, err := server.NewStandard(serverConfig, s.Logger(), s.api)
 	if err != nil {
-		return errors.Wrap(err, "service", "unable to create server")
+		return errors.Wrap(err, "unable to create server")
 	}
 	s.server = newServer
 

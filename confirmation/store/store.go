@@ -1,18 +1,19 @@
 package store
 
 import (
-	"github.com/tidepool-org/platform/log"
+	"context"
+
 	"github.com/tidepool-org/platform/store"
 )
 
 type Store interface {
 	store.Store
 
-	NewConfirmationsSession(logger log.Logger) ConfirmationsSession
+	NewConfirmationsSession() ConfirmationsSession
 }
 
 type ConfirmationsSession interface {
 	store.Session
 
-	DestroyConfirmationsForUserByID(userID string) error
+	DestroyConfirmationsForUserByID(ctx context.Context, userID string) error
 }

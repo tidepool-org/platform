@@ -3,15 +3,12 @@ package mongo
 import (
 	"crypto/tls"
 	"net"
-	"strconv"
-	"time"
 
 	mgo "gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/log/null"
-	"github.com/tidepool-org/platform/store"
 )
 
 // TODO: Consider SetStats, GetStats
@@ -27,68 +24,68 @@ type Status struct {
 	Ping        string
 }
 
-func New(logger log.Logger, config *Config) (*Store, error) {
-	if logger == nil {
-		return nil, errors.New("mongo", "logger is missing")
+func New(cfg *Config, lgr log.Logger) (*Store, error) {
+	if cfg == nil {
+		return nil, errors.New("config is missing")
 	}
-	if config == nil {
-		return nil, errors.New("mongo", "config is missing")
+	if lgr == nil {
+		return nil, errors.New("logger is missing")
 	}
 
-	if err := config.Validate(); err != nil {
-		return nil, errors.Wrap(err, "mongo", "config is invalid")
+	if err := cfg.Validate(); err != nil {
+		return nil, errors.Wrap(err, "config is invalid")
 	}
 
 	loggerFields := map[string]interface{}{
-		"database":         config.Database,
-		"collectionPrefix": config.CollectionPrefix,
+		"database":         cfg.Database,
+		"collectionPrefix": cfg.CollectionPrefix,
 	}
-	logger = logger.WithFields(loggerFields)
+	lgr = lgr.WithFields(loggerFields)
 
 	dialInfo := mgo.DialInfo{}
-	dialInfo.Addrs = config.Addresses
-	if config.TLS {
+	dialInfo.Addrs = cfg.Addresses
+	if cfg.TLS {
 		dialInfo.DialServer = func(serverAddr *mgo.ServerAddr) (net.Conn, error) {
 			return tls.Dial("tcp", serverAddr.String(), &tls.Config{InsecureSkipVerify: true}) // TODO: Secure this connection
 		}
 	}
-	dialInfo.Database = config.Database
-	if config.Username != nil {
-		dialInfo.Username = *config.Username
+	dialInfo.Database = cfg.Database
+	if cfg.Username != nil {
+		dialInfo.Username = *cfg.Username
 	}
-	if config.Password != nil {
-		dialInfo.Password = *config.Password
+	if cfg.Password != nil {
+		dialInfo.Password = *cfg.Password
 	}
-	dialInfo.Timeout = config.Timeout
+	dialInfo.Timeout = cfg.Timeout
 
-	logger.Debug("Dialing Mongo database")
+	lgr.Debug("Dialing Mongo database")
 
 	session, err := mgo.DialWithInfo(&dialInfo)
 	if err != nil {
-		return nil, errors.Wrap(err, "mongo", "unable to dial database")
+		return nil, errors.Wrap(err, "unable to dial database")
 	}
 
-	logger.Debug("Verifying Mongo build version is supported")
+	lgr.Debug("Verifying Mongo build version is supported")
 
 	buildInfo, err := session.BuildInfo()
 	if err != nil {
 		session.Close()
-		return nil, errors.Wrap(err, "mongo", "unable to determine build info")
+		return nil, errors.Wrap(err, "unable to determine build info")
 	}
 
 	if !buildInfo.VersionAtLeast(3) {
 		session.Close()
-		return nil, errors.Newf("mongo", "unsupported mongo build version %s", strconv.Quote(buildInfo.Version))
+		return nil, errors.Newf("unsupported mongo build version %q", buildInfo.Version)
 	}
 
-	logger.Debug("Setting Mongo consistency mode to Strong")
+	lgr.Debug("Setting Mongo consistency mode to Strong")
 
 	session.SetMode(mgo.Strong, true)
 
 	// TODO: Do we need to set Safe so we get write > 1?
 
 	return &Store{
-		Config:  config,
+		Config:  cfg,
 		Session: session,
 	}, nil
 }
@@ -131,31 +128,17 @@ func (s *Store) Status() interface{} {
 	return status
 }
 
-func (s *Store) NewSession(logger log.Logger, collection string) *Session {
-	if logger == nil {
-		logger = null.NewLogger()
-	}
-
-	collection = s.Config.CollectionPrefix + collection
-
-	loggerFields := map[string]interface{}{
-		"database":   s.Config.Database,
-		"collection": collection,
-	}
-
+func (s *Store) NewSession(collection string) *Session {
 	return &Session{
-		logger:        logger.WithFields(loggerFields),
 		sourceSession: s.Session,
 		database:      s.Config.Database,
-		collection:    collection,
+		collection:    s.Config.CollectionPrefix + collection,
 	}
 }
 
 type Session struct {
-	logger        log.Logger
 	sourceSession *mgo.Session
 	targetSession *mgo.Session
-	agent         store.Agent
 	database      string
 	collection    string
 }
@@ -172,23 +155,17 @@ func (s *Session) Close() {
 	s.sourceSession = nil
 }
 
-func (s *Session) Logger() log.Logger {
-	return s.logger
+func (s *Session) EnsureIndexes() error {
+	return nil
 }
 
-func (s *Session) SetAgent(agent store.Agent) {
-	s.agent = agent
-}
-
-func (s *Session) AgentUserID() string {
-	if s.agent == nil {
-		return ""
+func (s *Session) EnsureAllIndexes(indexes []mgo.Index) error {
+	for _, index := range indexes {
+		if err := s.C().EnsureIndex(index); err != nil {
+			return errors.Wrapf(err, "unable to ensure index with key %v", index.Key)
+		}
 	}
-	if s.agent.IsServer() {
-		return ""
-	}
-
-	return s.agent.UserID()
+	return nil
 }
 
 func (s *Session) C() *mgo.Collection {
@@ -203,6 +180,16 @@ func (s *Session) C() *mgo.Collection {
 	return s.targetSession.DB(s.database).C(s.collection)
 }
 
-func (s *Session) Timestamp() string {
-	return time.Now().UTC().Format(time.RFC3339)
+func (s *Session) ConstructUpdate(set bson.M, unset bson.M) bson.M {
+	update := bson.M{}
+	if len(set) != 0 {
+		update["$set"] = set
+	}
+	if len(unset) != 0 {
+		update["$unset"] = unset
+	}
+	if len(update) != 0 {
+		return update
+	}
+	return nil
 }

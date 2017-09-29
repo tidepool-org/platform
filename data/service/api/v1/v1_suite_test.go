@@ -1,87 +1,31 @@
 package v1_test
 
 import (
-	"github.com/ant0ine/go-json-rest/rest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"testing"
 
-	"github.com/tidepool-org/platform/auth"
-	testAuth "github.com/tidepool-org/platform/auth/test"
+	"github.com/ant0ine/go-json-rest/rest"
+
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	testDataDeduplicator "github.com/tidepool-org/platform/data/deduplicator/test"
-	dataStore "github.com/tidepool-org/platform/data/store"
-	testDataStore "github.com/tidepool-org/platform/data/store/test"
-	"github.com/tidepool-org/platform/log"
-	metricClient "github.com/tidepool-org/platform/metric/client"
+	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
+	testDataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED/test"
+	"github.com/tidepool-org/platform/metric"
+	testMetric "github.com/tidepool-org/platform/metric/test"
 	"github.com/tidepool-org/platform/service"
-	"github.com/tidepool-org/platform/store"
 	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
-	userClient "github.com/tidepool-org/platform/user/client"
+	testSyncTaskStore "github.com/tidepool-org/platform/synctask/store/test"
+	"github.com/tidepool-org/platform/test"
+	"github.com/tidepool-org/platform/user"
+	testUser "github.com/tidepool-org/platform/user/test"
 )
 
 func TestSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "data/service/api/v1")
-}
-
-type RecordMetricInput struct {
-	context auth.Context
-	metric  string
-	data    []map[string]string
-}
-
-type TestMetricClient struct {
-	RecordMetricInputs  []RecordMetricInput
-	RecordMetricOutputs []error
-}
-
-func (t *TestMetricClient) RecordMetric(context auth.Context, metric string, data ...map[string]string) error {
-	t.RecordMetricInputs = append(t.RecordMetricInputs, RecordMetricInput{context, metric, data})
-	output := t.RecordMetricOutputs[0]
-	t.RecordMetricOutputs = t.RecordMetricOutputs[1:]
-	return output
-}
-
-func (t *TestMetricClient) ValidateTest() bool {
-	return len(t.RecordMetricOutputs) == 0
-}
-
-type GetUserPermissionsInput struct {
-	context       auth.Context
-	requestUserID string
-	targetUserID  string
-}
-
-type GetUserPermissionsOutput struct {
-	permissions userClient.Permissions
-	err         error
-}
-
-type TestUserClient struct {
-	GetUserPermissionsInputs  []GetUserPermissionsInput
-	GetUserPermissionsOutputs []GetUserPermissionsOutput
-}
-
-func (t *TestUserClient) Start() error {
-	panic("Unexpected invocation of Start on TestUserClient")
-}
-
-func (t *TestUserClient) Close() {
-	panic("Unexpected invocation of Close on TestUserClient")
-}
-
-func (t *TestUserClient) GetUserPermissions(context auth.Context, requestUserID string, targetUserID string) (userClient.Permissions, error) {
-	t.GetUserPermissionsInputs = append(t.GetUserPermissionsInputs, GetUserPermissionsInput{context, requestUserID, targetUserID})
-	output := t.GetUserPermissionsOutputs[0]
-	t.GetUserPermissionsOutputs = t.GetUserPermissionsOutputs[1:]
-	return output.permissions, output.err
-}
-
-func (t *TestUserClient) ValidateTest() bool {
-	return len(t.GetUserPermissionsOutputs) == 0
 }
 
 type RespondWithInternalServerFailureInput struct {
@@ -99,59 +43,26 @@ type RespondWithStatusAndDataInput struct {
 	data       interface{}
 }
 
-type TestSyncTasksSession struct {
-	DestroySyncTasksForUserByIDInputs  []string
-	DestroySyncTasksForUserByIDOutputs []error
-}
-
-func (t *TestSyncTasksSession) IsClosed() bool {
-	panic("Unexpected invocation of IsClosed on TestSyncTasksSession")
-}
-
-func (t *TestSyncTasksSession) Close() {
-	panic("Unexpected invocation of Close on TestSyncTasksSession")
-}
-
-func (t *TestSyncTasksSession) Logger() log.Logger {
-	panic("Unexpected invocation of Logger on TestSyncTasksSession")
-}
-
-func (t *TestSyncTasksSession) SetAgent(agent store.Agent) {
-	panic("Unexpected invocation of SetAgent on TestSyncTasksSession")
-}
-
-func (t *TestSyncTasksSession) DestroySyncTasksForUserByID(userID string) error {
-	t.DestroySyncTasksForUserByIDInputs = append(t.DestroySyncTasksForUserByIDInputs, userID)
-	output := t.DestroySyncTasksForUserByIDOutputs[0]
-	t.DestroySyncTasksForUserByIDOutputs = t.DestroySyncTasksForUserByIDOutputs[1:]
-	return output
-}
-
-func (t *TestSyncTasksSession) ValidateTest() bool {
-	return len(t.DestroySyncTasksForUserByIDOutputs) == 0
-}
-
 type TestContext struct {
-	*testAuth.Context
+	*test.Mock
 	RespondWithErrorInputs                 []*service.Error
 	RespondWithInternalServerFailureInputs []RespondWithInternalServerFailureInput
 	RespondWithStatusAndErrorsInputs       []RespondWithStatusAndErrorsInput
 	RespondWithStatusAndDataInputs         []RespondWithStatusAndDataInput
-	MetricClientImpl                       *TestMetricClient
-	UserClientImpl                         *TestUserClient
+	MetricClientImpl                       *testMetric.Client
+	UserClientImpl                         *testUser.Client
 	DataDeduplicatorFactoryImpl            *testDataDeduplicator.Factory
-	DataSessionImpl                        *testDataStore.DataSession
-	SyncTasksSessionImpl                   *TestSyncTasksSession
+	DataSessionImpl                        *testDataStoreDEPRECATED.DataSession
+	SyncTaskSessionImpl                    *testSyncTaskStore.SyncTaskSession
 }
 
 func NewTestContext() *TestContext {
 	return &TestContext{
-		Context:                     testAuth.NewContext(),
-		MetricClientImpl:            &TestMetricClient{},
-		UserClientImpl:              &TestUserClient{},
+		MetricClientImpl:            testMetric.NewClient(),
+		UserClientImpl:              testUser.NewClient(),
 		DataDeduplicatorFactoryImpl: testDataDeduplicator.NewFactory(),
-		DataSessionImpl:             testDataStore.NewDataSession(),
-		SyncTasksSessionImpl:        &TestSyncTasksSession{},
+		DataSessionImpl:             testDataStoreDEPRECATED.NewDataSession(),
+		SyncTaskSessionImpl:         testSyncTaskStore.NewSyncTaskSession(),
 	}
 }
 
@@ -175,11 +86,11 @@ func (t *TestContext) RespondWithStatusAndData(statusCode int, data interface{})
 	t.RespondWithStatusAndDataInputs = append(t.RespondWithStatusAndDataInputs, RespondWithStatusAndDataInput{statusCode, data})
 }
 
-func (t *TestContext) MetricClient() metricClient.Client {
+func (t *TestContext) MetricClient() metric.Client {
 	return t.MetricClientImpl
 }
 
-func (t *TestContext) UserClient() userClient.Client {
+func (t *TestContext) UserClient() user.Client {
 	return t.UserClientImpl
 }
 
@@ -191,19 +102,19 @@ func (t *TestContext) DataDeduplicatorFactory() deduplicator.Factory {
 	return t.DataDeduplicatorFactoryImpl
 }
 
-func (t *TestContext) DataSession() dataStore.DataSession {
+func (t *TestContext) DataSession() dataStoreDEPRECATED.DataSession {
 	return t.DataSessionImpl
 }
 
-func (t *TestContext) SyncTasksSession() syncTaskStore.SyncTasksSession {
-	return t.SyncTasksSessionImpl
+func (t *TestContext) SyncTaskSession() syncTaskStore.SyncTaskSession {
+	return t.SyncTaskSessionImpl
 }
 
-func (t *TestContext) ValidateTest() bool {
-	return (t.Context == nil || t.Context.UnusedOutputsCount() == 0) &&
-		(t.MetricClientImpl == nil || t.MetricClientImpl.ValidateTest()) &&
-		(t.UserClientImpl == nil || t.UserClientImpl.ValidateTest()) &&
-		(t.DataDeduplicatorFactoryImpl == nil || t.DataDeduplicatorFactoryImpl.UnusedOutputsCount() == 0) &&
-		(t.DataSessionImpl == nil || t.DataSessionImpl.UnusedOutputsCount() == 0) &&
-		(t.SyncTasksSessionImpl == nil || t.SyncTasksSessionImpl.ValidateTest())
+func (t *TestContext) Expectations() {
+	t.Mock.Expectations()
+	t.MetricClientImpl.Expectations()
+	t.UserClientImpl.Expectations()
+	t.DataDeduplicatorFactoryImpl.Expectations()
+	t.DataSessionImpl.Expectations()
+	t.SyncTaskSessionImpl.Expectations()
 }

@@ -6,10 +6,9 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 
-	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/auth/service"
 	"github.com/tidepool-org/platform/auth/service/api"
 	testService "github.com/tidepool-org/platform/auth/service/test"
-	serviceContext "github.com/tidepool-org/platform/service/context"
 	testRest "github.com/tidepool-org/platform/test/rest"
 )
 
@@ -30,8 +29,8 @@ var _ = Describe("StatusGet", func() {
 	})
 
 	AfterEach(func() {
-		Expect(svc.UnusedOutputsCount()).To(Equal(0))
-		Expect(response.UnusedOutputsCount()).To(Equal(0))
+		svc.Expectations()
+		response.Expectations()
 	})
 
 	Context("StatusGet", func() {
@@ -44,18 +43,18 @@ var _ = Describe("StatusGet", func() {
 		})
 
 		Context("with service status", func() {
-			var sts *auth.Status
+			var sts *service.Status
 
 			BeforeEach(func() {
-				sts = &auth.Status{}
-				svc.StatusOutputs = []*auth.Status{sts}
+				sts = &service.Status{}
+				svc.StatusOutputs = []*service.Status{sts}
 				response.WriteJsonOutputs = []error{nil}
 			})
 
 			It("returns successfully", func() {
 				rtr.StatusGet(response, request)
 				Expect(response.WriteJsonInputs).To(HaveLen(1))
-				Expect(response.WriteJsonInputs[0].(*serviceContext.JSONResponse).Data).To(Equal(sts))
+				Expect(response.WriteJsonInputs[0]).To(Equal(sts))
 			})
 		})
 	})

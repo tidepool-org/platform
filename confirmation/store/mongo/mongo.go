@@ -1,6 +1,7 @@
 package mongo
 
 import (
+	"context"
 	"time"
 
 	"gopkg.in/mgo.v2/bson"
@@ -11,8 +12,8 @@ import (
 	"github.com/tidepool-org/platform/store/mongo"
 )
 
-func New(logger log.Logger, config *mongo.Config) (*Store, error) {
-	baseStore, err := mongo.New(logger, config)
+func New(cfg *mongo.Config, lgr log.Logger) (*Store, error) {
+	baseStore, err := mongo.New(cfg, lgr)
 	if err != nil {
 		return nil, err
 	}
@@ -26,9 +27,9 @@ type Store struct {
 	*mongo.Store
 }
 
-func (s *Store) NewConfirmationsSession(logger log.Logger) store.ConfirmationsSession {
+func (s *Store) NewConfirmationsSession() store.ConfirmationsSession {
 	return &ConfirmationsSession{
-		Session: s.Store.NewSession(logger, "confirmations"),
+		Session: s.Store.NewSession("confirmations"),
 	}
 }
 
@@ -36,13 +37,16 @@ type ConfirmationsSession struct {
 	*mongo.Session
 }
 
-func (c *ConfirmationsSession) DestroyConfirmationsForUserByID(userID string) error {
+func (c *ConfirmationsSession) DestroyConfirmationsForUserByID(ctx context.Context, userID string) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
 	if userID == "" {
-		return errors.New("mongo", "user id is missing")
+		return errors.New("user id is missing")
 	}
 
 	if c.IsClosed() {
-		return errors.New("mongo", "session closed")
+		return errors.New("session closed")
 	}
 
 	startTime := time.Now()
@@ -56,10 +60,10 @@ func (c *ConfirmationsSession) DestroyConfirmationsForUserByID(userID string) er
 	removeInfo, err := c.C().RemoveAll(selector)
 
 	loggerFields := log.Fields{"userId": userID, "removeInfo": removeInfo, "duration": time.Since(startTime) / time.Microsecond}
-	c.Logger().WithFields(loggerFields).WithError(err).Debug("DestroyConfirmationsForUserByID")
+	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DestroyConfirmationsForUserByID")
 
 	if err != nil {
-		return errors.Wrap(err, "mongo", "unable to destroy confirmations for user by id")
+		return errors.Wrap(err, "unable to destroy confirmations for user by id")
 	}
 	return nil
 }

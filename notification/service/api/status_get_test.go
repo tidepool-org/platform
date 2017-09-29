@@ -6,7 +6,7 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 
-	"github.com/tidepool-org/platform/notification"
+	"github.com/tidepool-org/platform/notification/service"
 	"github.com/tidepool-org/platform/notification/service/api"
 	testService "github.com/tidepool-org/platform/notification/service/test"
 	serviceContext "github.com/tidepool-org/platform/service/context"
@@ -31,7 +31,7 @@ var _ = Describe("StatusGet", func() {
 
 	AfterEach(func() {
 		Expect(svc.UnusedOutputsCount()).To(Equal(0))
-		Expect(response.UnusedOutputsCount()).To(Equal(0))
+		response.Expectations()
 	})
 
 	Context("StatusGet", func() {
@@ -44,11 +44,11 @@ var _ = Describe("StatusGet", func() {
 		})
 
 		Context("with service status", func() {
-			var sts *notification.Status
+			var sts *service.Status
 
 			BeforeEach(func() {
-				sts = &notification.Status{}
-				svc.StatusOutputs = []*notification.Status{sts}
+				sts = &service.Status{}
+				svc.StatusOutputs = []*service.Status{sts}
 				response.WriteJsonOutputs = []error{nil}
 			})
 

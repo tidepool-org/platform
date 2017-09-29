@@ -18,7 +18,7 @@ var _ = Describe("Router", func() {
 	Context("NewRouter", func() {
 		It("returns an error if context is missing", func() {
 			rtr, err := v1.NewRouter(nil)
-			Expect(err).To(MatchError("v1: service is missing"))
+			Expect(err).To(MatchError("service is missing"))
 			Expect(rtr).To(BeNil())
 		})
 
@@ -41,7 +41,7 @@ var _ = Describe("Router", func() {
 
 		Context("Routes", func() {
 			It("returns the expected routes", func() {
-				Expect(rtr.Routes()).To(BeEmpty())
+				Expect(rtr.Routes()).ToNot(BeEmpty())
 			})
 		})
 	})

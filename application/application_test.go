@@ -6,16 +6,17 @@ import (
 
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/application/version"
-	_ "github.com/tidepool-org/platform/application/version/test"
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/config/env"
+
+	_ "github.com/tidepool-org/platform/application/version/test"
 )
 
 var _ = Describe("Application", func() {
 	Context("New", func() {
 		It("returns an error if the prefix is missing", func() {
 			app, err := application.New("")
-			Expect(err).To(MatchError("application: prefix is missing"))
+			Expect(err).To(MatchError("prefix is missing"))
 			Expect(app).To(BeNil())
 		})
 
@@ -56,7 +57,7 @@ var _ = Describe("Application", func() {
 				})
 
 				It("returns an error if the version is not specified correctly", func() {
-					Expect(app.Initialize()).To(MatchError("application: unable to create version reporter; version: base is missing"))
+					Expect(app.Initialize()).To(MatchError("unable to create version reporter; base is missing"))
 				})
 			})
 
@@ -79,7 +80,7 @@ var _ = Describe("Application", func() {
 				})
 
 				It("returns an error if the logger level is invalid", func() {
-					Expect(app.Initialize()).To(MatchError("application: unable to create logger; log: level not found"))
+					Expect(app.Initialize()).To(MatchError("unable to create logger; level not found"))
 				})
 			})
 

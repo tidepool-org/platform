@@ -37,7 +37,7 @@ func NewTestGlucose(sourceTime interface{}, sourceUnits interface{}, sourceValue
 		testGlucose.Units = pointer.String(value)
 	}
 	if value, ok := sourceValue.(float64); ok {
-		testGlucose.Value = pointer.Float(value)
+		testGlucose.Value = pointer.Float64(value)
 	}
 	return testGlucose
 }

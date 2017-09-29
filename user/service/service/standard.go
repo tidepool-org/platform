@@ -1,18 +1,20 @@
 package service
 
 import (
-	"github.com/tidepool-org/platform/client"
 	confirmationMongo "github.com/tidepool-org/platform/confirmation/store/mongo"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/errors"
 	messageMongo "github.com/tidepool-org/platform/message/store/mongo"
+	"github.com/tidepool-org/platform/metric"
 	metricClient "github.com/tidepool-org/platform/metric/client"
 	permissionMongo "github.com/tidepool-org/platform/permission/store/mongo"
+	"github.com/tidepool-org/platform/platform"
 	profileMongo "github.com/tidepool-org/platform/profile/store/mongo"
 	"github.com/tidepool-org/platform/service/server"
 	"github.com/tidepool-org/platform/service/service"
 	sessionMongo "github.com/tidepool-org/platform/session/store/mongo"
 	baseMongo "github.com/tidepool-org/platform/store/mongo"
+	"github.com/tidepool-org/platform/user"
 	userClient "github.com/tidepool-org/platform/user/client"
 	"github.com/tidepool-org/platform/user/service/api"
 	"github.com/tidepool-org/platform/user/service/api/v1"
@@ -22,8 +24,8 @@ import (
 type Standard struct {
 	*service.DEPRECATEDService
 	dataClient        dataClient.Client
-	metricClient      metricClient.Client
-	userClient        userClient.Client
+	metricClient      metric.Client
+	userClient        user.Client
 	confirmationStore *confirmationMongo.Store
 	messageStore      *messageMongo.Store
 	permissionStore   *permissionMongo.Store
@@ -80,11 +82,7 @@ func (s *Standard) Initialize() error {
 	if err := s.initializeAPI(); err != nil {
 		return err
 	}
-	if err := s.initializeServer(); err != nil {
-		return err
-	}
-
-	return nil
+	return s.initializeServer()
 }
 
 func (s *Standard) Terminate() {
@@ -123,7 +121,7 @@ func (s *Standard) Terminate() {
 
 func (s *Standard) Run() error {
 	if s.server == nil {
-		return errors.New("service", "service not initialized")
+		return errors.New("service not initialized")
 	}
 
 	return s.server.Serve()
@@ -132,18 +130,18 @@ func (s *Standard) Run() error {
 func (s *Standard) initializeDataClient() error {
 	s.Logger().Debug("Loading data client config")
 
-	dataClientConfig := client.NewConfig()
-	if err := dataClientConfig.Load(s.ConfigReporter().WithScopes("data", "client")); err != nil {
-		return errors.Wrap(err, "service", "unable to load data client config")
+	cfg := platform.NewConfig()
+	if err := cfg.Load(s.ConfigReporter().WithScopes("data", "client")); err != nil {
+		return errors.Wrap(err, "unable to load data client config")
 	}
 
 	s.Logger().Debug("Creating data client")
 
-	dataClient, err := dataClient.NewClient(dataClientConfig)
+	clnt, err := dataClient.New(cfg)
 	if err != nil {
-		return errors.Wrap(err, "service", "unable to create data client")
+		return errors.Wrap(err, "unable to create data client")
 	}
-	s.dataClient = dataClient
+	s.dataClient = clnt
 
 	return nil
 }
@@ -151,18 +149,18 @@ func (s *Standard) initializeDataClient() error {
 func (s *Standard) initializeMetricClient() error {
 	s.Logger().Debug("Loading metric client config")
 
-	metricClientConfig := client.NewConfig()
-	if err := metricClientConfig.Load(s.ConfigReporter().WithScopes("metric", "client")); err != nil {
-		return errors.Wrap(err, "service", "unable to load metric client config")
+	cfg := platform.NewConfig()
+	if err := cfg.Load(s.ConfigReporter().WithScopes("metric", "client")); err != nil {
+		return errors.Wrap(err, "unable to load metric client config")
 	}
 
 	s.Logger().Debug("Creating metric client")
 
-	metricClient, err := metricClient.NewClient(metricClientConfig, s.Name(), s.VersionReporter())
+	clnt, err := metricClient.New(cfg, s.Name(), s.VersionReporter())
 	if err != nil {
-		return errors.Wrap(err, "service", "unable to create metric client")
+		return errors.Wrap(err, "unable to create metric client")
 	}
-	s.metricClient = metricClient
+	s.metricClient = clnt
 
 	return nil
 }
@@ -170,18 +168,18 @@ func (s *Standard) initializeMetricClient() error {
 func (s *Standard) initializeUserClient() error {
 	s.Logger().Debug("Loading user client config")
 
-	userClientConfig := client.NewConfig()
-	if err := userClientConfig.Load(s.ConfigReporter().WithScopes("user", "client")); err != nil {
-		return errors.Wrap(err, "service", "unable to load user client config")
+	cfg := platform.NewConfig()
+	if err := cfg.Load(s.ConfigReporter().WithScopes("user", "client")); err != nil {
+		return errors.Wrap(err, "unable to load user client config")
 	}
 
 	s.Logger().Debug("Creating user client")
 
-	userClient, err := userClient.NewClient(userClientConfig)
+	clnt, err := userClient.New(cfg)
 	if err != nil {
-		return errors.Wrap(err, "service", "unable to create user client")
+		return errors.Wrap(err, "unable to create user client")
 	}
-	s.userClient = userClient
+	s.userClient = clnt
 
 	return nil
 }
@@ -191,14 +189,14 @@ func (s *Standard) initializeConfirmationStore() error {
 
 	confirmationStoreConfig := baseMongo.NewConfig()
 	if err := confirmationStoreConfig.Load(s.ConfigReporter().WithScopes("confirmation", "store")); err != nil {
-		return errors.Wrap(err, "service", "unable to load confirmation store config")
+		return errors.Wrap(err, "unable to load confirmation store config")
 	}
 
 	s.Logger().Debug("Creating confirmation store")
 
-	confirmationStore, err := confirmationMongo.New(s.Logger(), confirmationStoreConfig)
+	confirmationStore, err := confirmationMongo.New(confirmationStoreConfig, s.Logger())
 	if err != nil {
-		return errors.Wrap(err, "service", "unable to create confirmation store")
+		return errors.Wrap(err, "unable to create confirmation store")
 	}
 	s.confirmationStore = confirmationStore
 
@@ -210,14 +208,14 @@ func (s *Standard) initializeMessageStore() error {
 
 	messageStoreConfig := baseMongo.NewConfig()
 	if err := messageStoreConfig.Load(s.ConfigReporter().WithScopes("message", "store")); err != nil {
-		return errors.Wrap(err, "service", "unable to load message store config")
+		return errors.Wrap(err, "unable to load message store config")
 	}
 
 	s.Logger().Debug("Creating message store")
 
-	messageStore, err := messageMongo.New(s.Logger(), messageStoreConfig)
+	messageStore, err := messageMongo.New(messageStoreConfig, s.Logger())
 	if err != nil {
-		return errors.Wrap(err, "service", "unable to create message store")
+		return errors.Wrap(err, "unable to create message store")
 	}
 	s.messageStore = messageStore
 
@@ -229,14 +227,14 @@ func (s *Standard) initializePermissionStore() error {
 
 	permissionStoreConfig := permissionMongo.NewConfig()
 	if err := permissionStoreConfig.Load(s.ConfigReporter().WithScopes("permission", "store")); err != nil {
-		return errors.Wrap(err, "service", "unable to load permission store config")
+		return errors.Wrap(err, "unable to load permission store config")
 	}
 
 	s.Logger().Debug("Creating permission store")
 
-	permissionStore, err := permissionMongo.New(s.Logger(), permissionStoreConfig)
+	permissionStore, err := permissionMongo.New(permissionStoreConfig, s.Logger())
 	if err != nil {
-		return errors.Wrap(err, "service", "unable to create permission store")
+		return errors.Wrap(err, "unable to create permission store")
 	}
 	s.permissionStore = permissionStore
 
@@ -248,14 +246,14 @@ func (s *Standard) initializeProfileStore() error {
 
 	profileStoreConfig := baseMongo.NewConfig()
 	if err := profileStoreConfig.Load(s.ConfigReporter().WithScopes("profile", "store")); err != nil {
-		return errors.Wrap(err, "service", "unable to load profile store config")
+		return errors.Wrap(err, "unable to load profile store config")
 	}
 
 	s.Logger().Debug("Creating profile store")
 
-	profileStore, err := profileMongo.New(s.Logger(), profileStoreConfig)
+	profileStore, err := profileMongo.New(profileStoreConfig, s.Logger())
 	if err != nil {
-		return errors.Wrap(err, "service", "unable to create profile store")
+		return errors.Wrap(err, "unable to create profile store")
 	}
 	s.profileStore = profileStore
 
@@ -267,14 +265,14 @@ func (s *Standard) initializeSessionStore() error {
 
 	sessionStoreConfig := baseMongo.NewConfig()
 	if err := sessionStoreConfig.Load(s.ConfigReporter().WithScopes("session", "store")); err != nil {
-		return errors.Wrap(err, "service", "unable to load session store config")
+		return errors.Wrap(err, "unable to load session store config")
 	}
 
 	s.Logger().Debug("Creating session store")
 
-	sessionStore, err := sessionMongo.New(s.Logger(), sessionStoreConfig)
+	sessionStore, err := sessionMongo.New(sessionStoreConfig, s.Logger())
 	if err != nil {
-		return errors.Wrap(err, "service", "unable to create session store")
+		return errors.Wrap(err, "unable to create session store")
 	}
 	s.sessionStore = sessionStore
 
@@ -286,14 +284,14 @@ func (s *Standard) initializeUserStore() error {
 
 	userStoreConfig := userMongo.NewConfig()
 	if err := userStoreConfig.Load(s.ConfigReporter().WithScopes("user", "store")); err != nil {
-		return errors.Wrap(err, "service", "unable to load user store config")
+		return errors.Wrap(err, "unable to load user store config")
 	}
 
 	s.Logger().Debug("Creating user store")
 
-	userStore, err := userMongo.New(s.Logger(), userStoreConfig)
+	userStore, err := userMongo.New(userStoreConfig, s.Logger())
 	if err != nil {
-		return errors.Wrap(err, "service", "unable to create user store")
+		return errors.Wrap(err, "unable to create user store")
 	}
 	s.userStore = userStore
 
@@ -306,20 +304,20 @@ func (s *Standard) initializeAPI() error {
 	newAPI, err := api.NewStandard(s, s.dataClient, s.metricClient, s.userClient,
 		s.confirmationStore, s.messageStore, s.permissionStore, s.profileStore, s.sessionStore, s.userStore)
 	if err != nil {
-		return errors.Wrap(err, "service", "unable to create api")
+		return errors.Wrap(err, "unable to create api")
 	}
 	s.api = newAPI
 
 	s.Logger().Debug("Initializing api middleware")
 
 	if err = s.api.InitializeMiddleware(); err != nil {
-		return errors.Wrap(err, "service", "unable to initialize api middleware")
+		return errors.Wrap(err, "unable to initialize api middleware")
 	}
 
 	s.Logger().Debug("Initializing api router")
 
 	if err = s.api.DEPRECATEDInitializeRouter(v1.Routes()); err != nil {
-		return errors.Wrap(err, "service", "unable to initialize api router")
+		return errors.Wrap(err, "unable to initialize api router")
 	}
 
 	return nil
@@ -330,14 +328,14 @@ func (s *Standard) initializeServer() error {
 
 	serverConfig := server.NewConfig()
 	if err := serverConfig.Load(s.ConfigReporter().WithScopes("server")); err != nil {
-		return errors.Wrap(err, "service", "unable to load server config")
+		return errors.Wrap(err, "unable to load server config")
 	}
 
 	s.Logger().Debug("Creating server")
 
-	newServer, err := server.NewStandard(s.Logger(), s.api, serverConfig)
+	newServer, err := server.NewStandard(serverConfig, s.Logger(), s.api)
 	if err != nil {
-		return errors.Wrap(err, "service", "unable to create server")
+		return errors.Wrap(err, "unable to create server")
 	}
 	s.server = newServer
 

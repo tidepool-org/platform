@@ -1,237 +1,290 @@
 package client
 
 import (
+	"context"
 	"net/http"
-	"sync"
-	"time"
 
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/client"
+	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/page"
+	"github.com/tidepool-org/platform/platform"
+	"github.com/tidepool-org/platform/request"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-type Client struct {
-	client             *client.Client
-	name               string
-	logger             log.Logger
-	serverTokenSecret  string
-	serverTokenTimeout time.Duration
-	serverTokenMutex   sync.Mutex
-	serverTokenSafe    string
-	closingChannel     chan chan bool
+type Config struct {
+	*platform.Config
+	*ExternalConfig
 }
 
-const (
-	TidepoolServerNameHeaderName   = "X-Tidepool-Server-Name"
-	TidepoolServerSecretHeaderName = "X-Tidepool-Server-Secret"
+func NewConfig() *Config {
+	return &Config{
+		Config:         platform.NewConfig(),
+		ExternalConfig: NewExternalConfig(),
+	}
+}
 
-	ServerTokenTimeoutOnFailureFirst = 1 * time.Second
-	ServerTokenTimeoutOnFailureLast  = 60 * time.Second
-)
+func (c *Config) Load(configReporter config.Reporter) error {
+	if err := c.Config.Load(configReporter); err != nil {
+		return err
+	}
+	return c.ExternalConfig.Load(configReporter.WithScopes("external"))
+}
 
-func NewClient(config *Config, name string, logger log.Logger) (*Client, error) {
-	if config == nil {
-		return nil, errors.New("client", "config is missing")
+func (c *Config) Validate() error {
+	if err := c.Config.Validate(); err != nil {
+		return err
+	}
+	return c.ExternalConfig.Validate()
+}
+
+type Client struct {
+	client *platform.Client
+	*External
+}
+
+func NewClient(cfg *Config, name string, lgr log.Logger) (*Client, error) {
+	if cfg == nil {
+		return nil, errors.New("config is missing")
 	}
 	if name == "" {
-		return nil, errors.New("client", "name is missing")
+		return nil, errors.New("name is missing")
 	}
-	if logger == nil {
-		return nil, errors.New("client", "logger is missing")
-	}
-
-	if err := config.Validate(); err != nil {
-		return nil, errors.Wrap(err, "client", "config is invalid")
+	if lgr == nil {
+		return nil, errors.New("logger is missing")
 	}
 
-	clnt, err := client.NewClient(config.Config)
+	if err := cfg.Validate(); err != nil {
+		return nil, errors.Wrap(err, "config is invalid")
+	}
+
+	clnt, err := platform.NewClient(cfg.Config)
+	if err != nil {
+		return nil, err
+	}
+
+	extrnl, err := NewExternal(cfg.ExternalConfig, name, lgr)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Client{
-		client:             clnt,
-		logger:             logger,
-		name:               name,
-		serverTokenSecret:  config.ServerTokenSecret,
-		serverTokenTimeout: config.ServerTokenTimeout,
+		client:   clnt,
+		External: extrnl,
 	}, nil
 }
 
-func (c *Client) Start() error {
-	if c.closingChannel == nil {
-		closingChannel := make(chan chan bool)
-		c.closingChannel = closingChannel
-
-		serverTokenTimeout := c.timeoutServerToken(0)
-
-		go func() {
-			for {
-				timer := time.After(serverTokenTimeout)
-				select {
-				case closedChannel := <-closingChannel:
-					closedChannel <- true
-					close(closedChannel)
-					return
-				case <-timer:
-					serverTokenTimeout = c.timeoutServerToken(serverTokenTimeout)
-				}
-			}
-		}()
-	}
-
-	return nil
-}
-
-func (c *Client) Close() {
-	if c.closingChannel != nil {
-		closingChannel := c.closingChannel
-		c.closingChannel = nil
-
-		closedChannel := make(chan bool)
-		closingChannel <- closedChannel
-		close(closingChannel)
-		<-closedChannel
-	}
-}
-
-func (c *Client) ServerToken() (string, error) {
-	if c.closingChannel == nil {
-		return "", errors.New("client", "client is closed")
-	}
-
-	serverToken := c.serverToken()
-	if serverToken == "" {
-		return "", errors.New("client", "unable to obtain server token")
-	}
-
-	return serverToken, nil
-}
-
-func (c *Client) ValidateToken(ctx auth.Context, token string) (auth.Details, error) {
+func (c *Client) ListUserProviderSessions(ctx context.Context, userID string, filter *auth.ProviderSessionFilter, pagination *page.Pagination) (auth.ProviderSessions, error) {
 	if ctx == nil {
-		return nil, errors.New("client", "context is missing")
+		return nil, errors.New("context is missing")
 	}
-	if token == "" {
-		return nil, errors.New("client", "token is missing")
+	if userID == "" {
+		return nil, errors.New("user id is missing")
+	}
+	if filter == nil {
+		filter = auth.NewProviderSessionFilter()
+	} else if err := structureValidator.New().Validate(filter); err != nil {
+		return nil, errors.Wrap(err, "filter is invalid")
+	}
+	if pagination == nil {
+		pagination = page.NewPagination()
+	} else if err := structureValidator.New().Validate(pagination); err != nil {
+		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
-	if c.closingChannel == nil {
-		return nil, errors.New("client", "client is closed")
-	}
-
-	ctx.Logger().Debug("Validating token")
-
-	var result struct {
-		IsServer bool
-		UserID   string
-	}
-	if err := c.client.SendRequestWithServerToken(ctx, "GET", c.client.BuildURL("auth", "token", token), nil, &result); err != nil {
+	url := c.client.ConstructURL("v1", "users", userID, "provider_sessions")
+	providerSessions := auth.ProviderSessions{}
+	if err := c.client.SendRequestAsServer(ctx, http.MethodGet, url, []client.Mutator{filter, pagination}, nil, &providerSessions); err != nil {
 		return nil, err
 	}
 
-	if !result.IsServer && result.UserID == "" {
-		return nil, errors.New("client", "user id is missing")
-	}
-
-	return &authDetails{
-		token:    token,
-		isServer: result.IsServer,
-		userID:   result.UserID,
-	}, nil
+	return providerSessions, nil
 }
 
-func (c *Client) GetStatus(ctx auth.Context) (*auth.Status, error) {
-	sts := &auth.Status{}
-	if err := c.client.SendRequestWithServerToken(ctx, "GET", c.client.BuildURL("status"), nil, sts); err != nil {
+func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, create *auth.ProviderSessionCreate) (*auth.ProviderSession, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if userID == "" {
+		return nil, errors.New("user id is missing")
+	}
+	if create == nil {
+		return nil, errors.New("create is missing")
+	} else if err := structureValidator.New().Validate(create); err != nil {
+		return nil, errors.Wrap(err, "create is invalid")
+	}
+
+	url := c.client.ConstructURL("v1", "users", userID, "provider_sessions")
+	providerSession := &auth.ProviderSession{}
+	if err := c.client.SendRequestAsServer(ctx, http.MethodPost, url, nil, create, providerSession); err != nil {
 		return nil, err
 	}
 
-	return sts, nil
+	return providerSession, nil
 }
 
-func (c *Client) timeoutServerToken(serverTokenTimeout time.Duration) time.Duration {
-	if err := c.refreshServerToken(); err != nil {
-		if serverTokenTimeout == 0 || serverTokenTimeout == c.serverTokenTimeout {
-			serverTokenTimeout = ServerTokenTimeoutOnFailureFirst
-		} else {
-			serverTokenTimeout *= 2
-			if serverTokenTimeout > ServerTokenTimeoutOnFailureLast {
-				serverTokenTimeout = ServerTokenTimeoutOnFailureLast
-			}
+func (c *Client) GetProviderSession(ctx context.Context, id string) (*auth.ProviderSession, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if id == "" {
+		return nil, errors.New("id is missing")
+	}
+
+	url := c.client.ConstructURL("v1", "provider_sessions", id)
+	providerSession := &auth.ProviderSession{}
+	if err := c.client.SendRequestAsServer(ctx, http.MethodGet, url, nil, nil, providerSession); err != nil {
+		if errors.Code(err) == request.ErrorCodeResourceNotFound {
+			return nil, nil
 		}
-		c.logger.WithError(err).WithField("retry", serverTokenTimeout.String()).Error("Unable to refresh server token; retrying")
-	} else {
-		serverTokenTimeout = c.serverTokenTimeout
+		return nil, err
 	}
 
-	return serverTokenTimeout
+	return providerSession, nil
 }
 
-func (c *Client) refreshServerToken() error {
-	c.logger.Debug("Refreshing server token")
-
-	requestMethod := "POST"
-	requestURL := c.client.BuildURL("auth", "serverlogin")
-	request, err := http.NewRequest(requestMethod, requestURL, nil)
-	if err != nil {
-		return errors.Wrapf(err, "client", "unable to create new request for %s %s", requestMethod, requestURL)
+func (c *Client) UpdateProviderSession(ctx context.Context, id string, update *auth.ProviderSessionUpdate) (*auth.ProviderSession, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if id == "" {
+		return nil, errors.New("id is missing")
+	}
+	if update == nil {
+		return nil, errors.New("update is missing")
+	} else if err := structureValidator.New().Validate(update); err != nil {
+		return nil, errors.Wrap(err, "update is invalid")
 	}
 
-	request.Header.Add(TidepoolServerNameHeaderName, c.name)
-	request.Header.Add(TidepoolServerSecretHeaderName, c.serverTokenSecret)
-
-	response, err := c.client.HTTPClient().Do(request)
-	if err != nil {
-		return errors.Wrap(err, "client", "failure requesting new server token")
-	}
-	if response.Body != nil {
-		defer response.Body.Close()
+	url := c.client.ConstructURL("v1", "provider_sessions", id)
+	providerSession := &auth.ProviderSession{}
+	if err := c.client.SendRequestAsServer(ctx, http.MethodPut, url, nil, update, providerSession); err != nil {
+		if errors.Code(err) == request.ErrorCodeResourceNotFound {
+			return nil, nil
+		}
+		return nil, err
 	}
 
-	if response.StatusCode != http.StatusOK {
-		return errors.Newf("client", "unexpected response status code %d while requesting new server token", response.StatusCode)
+	return providerSession, nil
+}
+
+func (c *Client) DeleteProviderSession(ctx context.Context, id string) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if id == "" {
+		return errors.New("id is missing")
 	}
 
-	serverTokenHeader := response.Header.Get(auth.TidepoolAuthTokenHeaderName)
-	if serverTokenHeader == "" {
-		return errors.New("client", "server token is missing")
+	url := c.client.ConstructURL("v1", "provider_sessions", id)
+	return c.client.SendRequestAsServer(ctx, http.MethodDelete, url, nil, nil, nil)
+}
+
+func (c *Client) ListUserRestrictedTokens(ctx context.Context, userID string, filter *auth.RestrictedTokenFilter, pagination *page.Pagination) (auth.RestrictedTokens, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if userID == "" {
+		return nil, errors.New("user id is missing")
+	}
+	if filter == nil {
+		filter = auth.NewRestrictedTokenFilter()
+	} else if err := structureValidator.New().Validate(filter); err != nil {
+		return nil, errors.Wrap(err, "filter is invalid")
+	}
+	if pagination == nil {
+		pagination = page.NewPagination()
+	} else if err := structureValidator.New().Validate(pagination); err != nil {
+		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
-	c.setServerToken(serverTokenHeader)
+	url := c.client.ConstructURL("v1", "users", userID, "restricted_tokens")
+	restrictedTokens := auth.RestrictedTokens{}
+	if err := c.client.SendRequestAsServer(ctx, http.MethodGet, url, []client.Mutator{filter, pagination}, nil, &restrictedTokens); err != nil {
+		return nil, err
+	}
 
-	return nil
+	return restrictedTokens, nil
 }
 
-func (c *Client) setServerToken(serverToken string) {
-	c.serverTokenMutex.Lock()
-	defer c.serverTokenMutex.Unlock()
+func (c *Client) CreateUserRestrictedToken(ctx context.Context, userID string, create *auth.RestrictedTokenCreate) (*auth.RestrictedToken, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if userID == "" {
+		return nil, errors.New("user id is missing")
+	}
+	if create == nil {
+		return nil, errors.New("create is missing")
+	} else if err := structureValidator.New().Validate(create); err != nil {
+		return nil, errors.Wrap(err, "create is invalid")
+	}
 
-	c.serverTokenSafe = serverToken
+	url := c.client.ConstructURL("v1", "users", userID, "restricted_tokens")
+	restrictedToken := &auth.RestrictedToken{}
+	if err := c.client.SendRequestAsServer(ctx, http.MethodPost, url, nil, create, restrictedToken); err != nil {
+		return nil, err
+	}
+
+	return restrictedToken, nil
 }
 
-func (c *Client) serverToken() string {
-	c.serverTokenMutex.Lock()
-	defer c.serverTokenMutex.Unlock()
+func (c *Client) GetRestrictedToken(ctx context.Context, id string) (*auth.RestrictedToken, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if id == "" {
+		return nil, errors.New("id is missing")
+	}
 
-	return c.serverTokenSafe
+	url := c.client.ConstructURL("v1", "restricted_tokens", id)
+	restrictedToken := &auth.RestrictedToken{}
+	if err := c.client.SendRequestAsServer(ctx, http.MethodGet, url, nil, nil, restrictedToken); err != nil {
+		if errors.Code(err) == request.ErrorCodeResourceNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return restrictedToken, nil
 }
 
-type authDetails struct {
-	token    string
-	isServer bool
-	userID   string
+func (c *Client) UpdateRestrictedToken(ctx context.Context, id string, update *auth.RestrictedTokenUpdate) (*auth.RestrictedToken, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if id == "" {
+		return nil, errors.New("id is missing")
+	}
+	if update == nil {
+		return nil, errors.New("update is missing")
+	} else if err := structureValidator.New().Validate(update); err != nil {
+		return nil, errors.Wrap(err, "update is invalid")
+	}
+
+	url := c.client.ConstructURL("v1", "restricted_tokens", id)
+	restrictedToken := &auth.RestrictedToken{}
+	if err := c.client.SendRequestAsServer(ctx, http.MethodPut, url, nil, update, restrictedToken); err != nil {
+		if errors.Code(err) == request.ErrorCodeResourceNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return restrictedToken, nil
 }
 
-func (a *authDetails) Token() string {
-	return a.token
-}
+func (c *Client) DeleteRestrictedToken(ctx context.Context, id string) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if id == "" {
+		return errors.New("id is missing")
+	}
 
-func (a *authDetails) IsServer() bool {
-	return a.isServer
-}
-
-func (a *authDetails) UserID() string {
-	return a.userID
+	url := c.client.ConstructURL("v1", "restricted_tokens", id)
+	return c.client.SendRequestAsServer(ctx, http.MethodDelete, url, nil, nil, nil)
 }

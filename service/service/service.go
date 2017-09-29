@@ -3,7 +3,6 @@ package service
 import (
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/auth"
-	authClient "github.com/tidepool-org/platform/auth/client"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/service/api"
@@ -12,9 +11,10 @@ import (
 
 type Service struct {
 	*application.Application
-	authClient *authClient.Client
-	api        *api.API
-	server     *server.Standard
+	secret         string
+	authClientImpl auth.Client
+	api            *api.API
+	server         *server.Standard
 }
 
 func New(prefix string) (*Service, error) {
@@ -33,69 +33,70 @@ func (s *Service) Initialize() error {
 		return err
 	}
 
-	if err := s.initializeAuthClient(); err != nil {
+	if err := s.initializeSecret(); err != nil {
 		return err
 	}
 	if err := s.initializeAPI(); err != nil {
 		return err
 	}
-	if err := s.initializeServer(); err != nil {
-		return err
-	}
-
-	return nil
+	return s.initializeServer()
 }
 
 func (s *Service) Terminate() {
-	s.server = nil
-	s.api = nil
-	if s.authClient != nil {
-		s.authClient.Close()
-		s.authClient = nil
-	}
+	s.terminateServer()
+	s.terminateAPI()
+	s.terminateSecret()
 
 	s.Application.Terminate()
 }
 
 func (s *Service) Run() error {
 	if s.server == nil {
-		return errors.New("service", "service not initialized")
+		return errors.New("service not initialized")
+	}
+
+	s.Logger().Debug("Finalizing middleware")
+
+	if err := s.api.InitializeMiddleware(); err != nil {
+		return errors.Wrap(err, "unable to initialize middleware")
 	}
 
 	return s.server.Serve()
 }
 
+func (s *Service) Secret() string {
+	return s.secret
+}
+
 func (s *Service) AuthClient() auth.Client {
-	return s.authClient
+	return s.authClientImpl
+}
+
+func (s *Service) SetAuthClient(authClientImpl auth.Client) {
+	s.authClientImpl = authClientImpl
 }
 
 func (s *Service) API() service.API {
 	return s.api
 }
 
-func (s *Service) initializeAuthClient() error {
-	s.Logger().Debug("Loading auth client config")
+func (s *Service) initializeSecret() error {
+	s.Logger().Debug("Initializing secret")
 
-	cfg := authClient.NewConfig()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("auth", "client")); err != nil {
-		return errors.Wrap(err, "service", "unable to load auth client config")
+	secret := s.ConfigReporter().GetWithDefault("secret", "")
+	if secret == "" {
+		return errors.New("secret is missing")
 	}
-
-	s.Logger().Debug("Creating auth client")
-
-	clnt, err := authClient.NewClient(cfg, s.Name(), s.Logger())
-	if err != nil {
-		return errors.Wrap(err, "service", "unable to create auth client")
-	}
-	s.authClient = clnt
-
-	s.Logger().Debug("Starting auth client")
-
-	if err = s.authClient.Start(); err != nil {
-		return errors.Wrap(err, "service", "unable to start auth client")
-	}
+	s.secret = secret
 
 	return nil
+}
+
+func (s *Service) terminateSecret() {
+	if s.secret != "" {
+		s.Logger().Debug("Terminating secret")
+		s.secret = ""
+	}
 }
 
 func (s *Service) initializeAPI() error {
@@ -103,17 +104,18 @@ func (s *Service) initializeAPI() error {
 
 	a, err := api.New(s)
 	if err != nil {
-		return errors.Wrap(err, "service", "unable to create api")
+		return errors.Wrap(err, "unable to create api")
 	}
 	s.api = a
 
-	s.Logger().Debug("Initializing middleware")
-
-	if err = s.api.InitializeMiddleware(); err != nil {
-		return errors.Wrap(err, "service", "unable to initialize middleware")
-	}
-
 	return nil
+}
+
+func (s *Service) terminateAPI() {
+	if s.api != nil {
+		s.Logger().Debug("Destroying api")
+		s.api = nil
+	}
 }
 
 func (s *Service) initializeServer() error {
@@ -121,16 +123,23 @@ func (s *Service) initializeServer() error {
 
 	cfg := server.NewConfig()
 	if err := cfg.Load(s.ConfigReporter().WithScopes("server")); err != nil {
-		return errors.Wrap(err, "service", "unable to load server config")
+		return errors.Wrap(err, "unable to load server config")
 	}
 
 	s.Logger().Debug("Creating server")
 
-	svr, err := server.NewStandard(s.Logger(), s.API(), cfg)
+	svr, err := server.NewStandard(cfg, s.Logger(), s.API())
 	if err != nil {
-		return errors.Wrap(err, "service", "unable to create server")
+		return errors.Wrap(err, "unable to create server")
 	}
 	s.server = svr
 
 	return nil
+}
+
+func (s *Service) terminateServer() {
+	if s.server != nil {
+		s.Logger().Debug("Destroying server")
+		s.server = nil
+	}
 }

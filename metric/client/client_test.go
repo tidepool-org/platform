@@ -1,6 +1,8 @@
 package client_test
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
@@ -8,10 +10,13 @@ import (
 	"net/http"
 	"time"
 
-	testAuth "github.com/tidepool-org/platform/auth/test"
-	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/log"
+	logNull "github.com/tidepool-org/platform/log/null"
+	"github.com/tidepool-org/platform/metric"
 	metricClient "github.com/tidepool-org/platform/metric/client"
+	"github.com/tidepool-org/platform/platform"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/version"
 )
 
@@ -27,43 +32,43 @@ var _ = Describe("Client", func() {
 		Expect(versionReporter).ToNot(BeNil())
 	})
 
-	Context("NewClient", func() {
-		var config *client.Config
+	Context("New", func() {
+		var config *platform.Config
 
 		BeforeEach(func() {
-			config = client.NewConfig()
+			config = platform.NewConfig()
 			Expect(config).ToNot(BeNil())
 			config.Address = "http://localhost:1234"
 			config.Timeout = 30 * time.Second
 		})
 
 		It("returns an error if config is missing", func() {
-			clnt, err := metricClient.NewClient(nil, name, versionReporter)
-			Expect(err).To(MatchError("client: config is missing"))
+			clnt, err := metricClient.New(nil, name, versionReporter)
+			Expect(err).To(MatchError("config is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
 		It("returns an error if name is missing", func() {
-			clnt, err := metricClient.NewClient(config, "", versionReporter)
-			Expect(err).To(MatchError("client: name is missing"))
+			clnt, err := metricClient.New(config, "", versionReporter)
+			Expect(err).To(MatchError("name is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
 		It("returns an error if version reporter is missing", func() {
-			clnt, err := metricClient.NewClient(config, name, nil)
-			Expect(err).To(MatchError("client: version reporter is missing"))
+			clnt, err := metricClient.New(config, name, nil)
+			Expect(err).To(MatchError("version reporter is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
 		It("returns an error if config address is missing", func() {
 			config.Address = ""
-			clnt, err := metricClient.NewClient(config, name, versionReporter)
-			Expect(err).To(MatchError("client: config is invalid; client: address is missing"))
+			clnt, err := metricClient.New(config, name, versionReporter)
+			Expect(err).To(MatchError("config is invalid; address is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
 		It("returns success", func() {
-			clnt, err := metricClient.NewClient(config, name, versionReporter)
+			clnt, err := metricClient.New(config, name, versionReporter)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clnt).ToNot(BeNil())
 		})
@@ -71,28 +76,26 @@ var _ = Describe("Client", func() {
 
 	Context("with started server and new client", func() {
 		var server *Server
-		var clnt metricClient.Client
-		var context *testAuth.Context
+		var clnt metric.Client
+		var ctx context.Context
 
 		BeforeEach(func() {
 			server = NewServer()
-			config := client.NewConfig()
+			config := platform.NewConfig()
 			Expect(config).ToNot(BeNil())
 			config.Address = server.URL()
 			config.Timeout = 30 * time.Second
 			var err error
-			clnt, err = metricClient.NewClient(config, name, versionReporter)
+			clnt, err = metricClient.New(config, name, versionReporter)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clnt).ToNot(BeNil())
-			context = testAuth.NewContext()
-			Expect(context).ToNot(BeNil())
+			ctx = context.Background()
 		})
 
 		AfterEach(func() {
 			if server != nil {
 				server.Close()
 			}
-			Expect(context.UnusedOutputsCount()).To(Equal(0))
 		})
 
 		Context("RecordMetric", func() {
@@ -108,28 +111,25 @@ var _ = Describe("Client", func() {
 			})
 
 			It("returns error if context is missing", func() {
-				Expect(clnt.RecordMetric(nil, metric, data)).To(MatchError("client: context is missing"))
+				Expect(clnt.RecordMetric(nil, metric, data)).To(MatchError("context is missing"))
 				Expect(server.ReceivedRequests()).To(BeEmpty())
 			})
 
 			It("returns error if metric is missing", func() {
-				Expect(clnt.RecordMetric(context, "", data)).To(MatchError("client: metric is missing"))
+				Expect(clnt.RecordMetric(ctx, "", data)).To(MatchError("metric is missing"))
 				Expect(server.ReceivedRequests()).To(BeEmpty())
 			})
 
-			Context("with auth token", func() {
+			Context("as user", func() {
 				var token string
 
 				BeforeEach(func() {
 					token = id.New()
-					context.AuthDetailsImpl.TokenOutputs = []string{token}
+					ctx = log.NewContextWithLogger(ctx, logNull.NewLogger())
+					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, id.New(), token))
 				})
 
 				Context("as user", func() {
-					BeforeEach(func() {
-						context.AuthDetailsImpl.IsServerOutputs = []bool{false}
-					})
-
 					Context("with an unauthorized response", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
@@ -142,8 +142,26 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns an error", func() {
-							err := clnt.RecordMetric(context, metric, data)
-							Expect(err).To(MatchError("client: unauthorized"))
+							err := clnt.RecordMetric(ctx, metric, data)
+							Expect(err).To(MatchError("authentication token is invalid"))
+							Expect(server.ReceivedRequests()).To(HaveLen(1))
+						})
+					})
+
+					Context("with a forbidden response", func() {
+						BeforeEach(func() {
+							server.AppendHandlers(
+								CombineHandlers(
+									VerifyRequest("GET", "/metrics/thisuser/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
+									VerifyHeaderKV("X-Tidepool-Session-Token", token),
+									VerifyBody([]byte{}),
+									RespondWith(http.StatusForbidden, nil, nil)),
+							)
+						})
+
+						It("returns an error", func() {
+							err := clnt.RecordMetric(ctx, metric, data)
+							Expect(err).To(MatchError("authentication token is not authorized for requested action"))
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
 					})
@@ -160,7 +178,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns success", func() {
-							err := clnt.RecordMetric(context, metric, data)
+							err := clnt.RecordMetric(ctx, metric, data)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
@@ -178,70 +196,92 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns success", func() {
-							err := clnt.RecordMetric(context, metric)
+							err := clnt.RecordMetric(ctx, metric)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
 					})
 				})
+			})
 
-				Context("as server", func() {
+			Context("as server", func() {
+				var token string
+
+				BeforeEach(func() {
+					token = id.New()
+					ctx = log.NewContextWithLogger(ctx, logNull.NewLogger())
+					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, "", token))
+				})
+
+				Context("with an unauthorized response", func() {
 					BeforeEach(func() {
-						context.AuthDetailsImpl.IsServerOutputs = []bool{true}
+						server.AppendHandlers(
+							CombineHandlers(
+								VerifyRequest("GET", "/metrics/server/"+name+"/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
+								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyBody([]byte{}),
+								RespondWith(http.StatusUnauthorized, nil, nil)),
+						)
 					})
 
-					Context("with an unauthorized response", func() {
-						BeforeEach(func() {
-							server.AppendHandlers(
-								CombineHandlers(
-									VerifyRequest("GET", "/metrics/server/"+name+"/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
-									VerifyHeaderKV("X-Tidepool-Session-Token", token),
-									VerifyBody([]byte{}),
-									RespondWith(http.StatusUnauthorized, nil, nil)),
-							)
-						})
+					It("returns an error", func() {
+						err := clnt.RecordMetric(ctx, metric, data)
+						Expect(err).To(MatchError("authentication token is invalid"))
+						Expect(server.ReceivedRequests()).To(HaveLen(1))
+					})
+				})
 
-						It("returns an error", func() {
-							err := clnt.RecordMetric(context, metric, data)
-							Expect(err).To(MatchError("client: unauthorized"))
-							Expect(server.ReceivedRequests()).To(HaveLen(1))
-						})
+				Context("with a forbidden response", func() {
+					BeforeEach(func() {
+						server.AppendHandlers(
+							CombineHandlers(
+								VerifyRequest("GET", "/metrics/server/"+name+"/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
+								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyBody([]byte{}),
+								RespondWith(http.StatusForbidden, nil, nil)),
+						)
 					})
 
-					Context("with a successful response", func() {
-						BeforeEach(func() {
-							server.AppendHandlers(
-								CombineHandlers(
-									VerifyRequest("GET", "/metrics/server/"+name+"/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
-									VerifyHeaderKV("X-Tidepool-Session-Token", token),
-									VerifyBody([]byte{}),
-									RespondWith(http.StatusOK, nil, nil)),
-							)
-						})
+					It("returns an error", func() {
+						err := clnt.RecordMetric(ctx, metric, data)
+						Expect(err).To(MatchError("authentication token is not authorized for requested action"))
+						Expect(server.ReceivedRequests()).To(HaveLen(1))
+					})
+				})
 
-						It("returns success", func() {
-							err := clnt.RecordMetric(context, metric, data)
-							Expect(err).ToNot(HaveOccurred())
-							Expect(server.ReceivedRequests()).To(HaveLen(1))
-						})
+				Context("with a successful response", func() {
+					BeforeEach(func() {
+						server.AppendHandlers(
+							CombineHandlers(
+								VerifyRequest("GET", "/metrics/server/"+name+"/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
+								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyBody([]byte{}),
+								RespondWith(http.StatusOK, nil, nil)),
+						)
 					})
 
-					Context("with a successful response without data", func() {
-						BeforeEach(func() {
-							server.AppendHandlers(
-								CombineHandlers(
-									VerifyRequest("GET", "/metrics/server/"+name+"/"+metric, "sourceVersion=1.2.3"),
-									VerifyHeaderKV("X-Tidepool-Session-Token", token),
-									VerifyBody([]byte{}),
-									RespondWith(http.StatusOK, nil, nil)),
-							)
-						})
+					It("returns success", func() {
+						err := clnt.RecordMetric(ctx, metric, data)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(server.ReceivedRequests()).To(HaveLen(1))
+					})
+				})
 
-						It("returns success", func() {
-							err := clnt.RecordMetric(context, metric)
-							Expect(err).ToNot(HaveOccurred())
-							Expect(server.ReceivedRequests()).To(HaveLen(1))
-						})
+				Context("with a successful response without data", func() {
+					BeforeEach(func() {
+						server.AppendHandlers(
+							CombineHandlers(
+								VerifyRequest("GET", "/metrics/server/"+name+"/"+metric, "sourceVersion=1.2.3"),
+								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyBody([]byte{}),
+								RespondWith(http.StatusOK, nil, nil)),
+						)
+					})
+
+					It("returns success", func() {
+						err := clnt.RecordMetric(ctx, metric)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(server.ReceivedRequests()).To(HaveLen(1))
 					})
 				})
 			})

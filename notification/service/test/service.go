@@ -1,7 +1,7 @@
 package test
 
 import (
-	"github.com/tidepool-org/platform/notification"
+	"github.com/tidepool-org/platform/notification/service"
 	"github.com/tidepool-org/platform/notification/store"
 	testStore "github.com/tidepool-org/platform/notification/store/test"
 	testService "github.com/tidepool-org/platform/service/test"
@@ -12,7 +12,7 @@ type Service struct {
 	NotificationStoreInvocations int
 	NotificationStoreImpl        *testStore.Store
 	StatusInvocations            int
-	StatusOutputs                []*notification.Status
+	StatusOutputs                []*service.Status
 }
 
 func NewService() *Service {
@@ -28,7 +28,7 @@ func (s *Service) NotificationStore() store.Store {
 	return s.NotificationStoreImpl
 }
 
-func (s *Service) Status() *notification.Status {
+func (s *Service) Status() *service.Status {
 	s.StatusInvocations++
 
 	if len(s.StatusOutputs) == 0 {

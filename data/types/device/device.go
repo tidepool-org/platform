@@ -68,7 +68,7 @@ func (d *Device) IdentityFields() ([]string, error) {
 	}
 
 	if d.SubType == "" {
-		return nil, errors.New("device", "sub type is empty")
+		return nil, errors.New("sub type is empty")
 	}
 
 	return append(identityFields, d.SubType), nil

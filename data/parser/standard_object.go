@@ -19,10 +19,10 @@ type StandardObject struct {
 
 func NewStandardObject(context data.Context, factory data.Factory, object *map[string]interface{}, notParsedPolicy NotParsedPolicy) (*StandardObject, error) {
 	if context == nil {
-		return nil, errors.New("parser", "context is missing")
+		return nil, errors.New("context is missing")
 	}
 	if factory == nil {
-		return nil, errors.New("parser", "factory is missing")
+		return nil, errors.New("factory is missing")
 	}
 
 	var parsed map[string]bool

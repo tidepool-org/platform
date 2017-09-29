@@ -120,7 +120,7 @@ func (a *API) addSessionToken() requestFunc {
 
 		a.info("Session token found:", session.Token)
 
-		request.Header.Add(auth.TidepoolAuthTokenHeaderName, session.Token)
+		request.Header.Add(auth.TidepoolSessionTokenHeaderKey, session.Token)
 		return nil
 	}
 }
@@ -223,7 +223,7 @@ func (a *API) expectStatusCode(statusCode int) responseFunc {
 
 func (a *API) storeTidepoolSession(isServer bool) responseFunc {
 	return func(response *http.Response) error {
-		token := response.Header.Get(auth.TidepoolAuthTokenHeaderName)
+		token := response.Header.Get(auth.TidepoolSessionTokenHeaderKey)
 		if token == "" {
 			return errors.New("No session token included in response")
 		}
@@ -258,7 +258,7 @@ func (a *API) storeTidepoolSession(isServer bool) responseFunc {
 
 func (a *API) updateTidepoolSession() responseFunc {
 	return func(response *http.Response) error {
-		token := response.Header.Get(auth.TidepoolAuthTokenHeaderName)
+		token := response.Header.Get(auth.TidepoolSessionTokenHeaderKey)
 		if token == "" {
 			return errors.New("No session token included in response")
 		}

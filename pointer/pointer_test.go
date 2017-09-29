@@ -10,10 +10,10 @@ import (
 )
 
 var _ = Describe("Pointer", func() {
-	Context("Boolean", func() {
+	Context("Bool", func() {
 		It("returns a pointer to the specified source", func() {
 			source := true
-			Expect(*pointer.Boolean(source)).To(Equal(source))
+			Expect(*pointer.Bool(source)).To(Equal(source))
 		})
 	})
 
@@ -24,17 +24,17 @@ var _ = Describe("Pointer", func() {
 		})
 	})
 
-	Context("Float", func() {
+	Context("Float64", func() {
 		It("returns a pointer to the specified source", func() {
 			source := 123.45
-			Expect(*pointer.Float(source)).To(Equal(source))
+			Expect(*pointer.Float64(source)).To(Equal(source))
 		})
 	})
 
-	Context("Integer", func() {
+	Context("Int", func() {
 		It("returns a pointer to the specified source", func() {
 			source := 123
-			Expect(*pointer.Integer(source)).To(Equal(source))
+			Expect(*pointer.Int(source)).To(Equal(source))
 		})
 	})
 
@@ -59,6 +59,13 @@ var _ = Describe("Pointer", func() {
 		It("returns a pointer to the specified non-nil, non-empty source", func() {
 			source := []string{"abc", "def"}
 			Expect(*pointer.StringArray(source)).To(Equal(source))
+		})
+	})
+
+	Context("Time", func() {
+		It("returns a pointer to the specified source", func() {
+			source := time.Now()
+			Expect(*pointer.Time(source)).To(Equal(source))
 		})
 	})
 })

@@ -1,6 +1,7 @@
 package mongo
 
 import (
+	"context"
 	"time"
 
 	"gopkg.in/mgo.v2/bson"
@@ -11,8 +12,8 @@ import (
 	"github.com/tidepool-org/platform/store/mongo"
 )
 
-func New(logger log.Logger, config *mongo.Config) (*Store, error) {
-	baseStore, err := mongo.New(logger, config)
+func New(cfg *mongo.Config, lgr log.Logger) (*Store, error) {
+	baseStore, err := mongo.New(cfg, lgr)
 	if err != nil {
 		return nil, err
 	}
@@ -26,9 +27,9 @@ type Store struct {
 	*mongo.Store
 }
 
-func (s *Store) NewMessagesSession(logger log.Logger) store.MessagesSession {
+func (s *Store) NewMessagesSession() store.MessagesSession {
 	return &MessagesSession{
-		Session: s.Store.NewSession(logger, "messages"),
+		Session: s.Store.NewSession("messages"),
 	}
 }
 
@@ -36,16 +37,19 @@ type MessagesSession struct {
 	*mongo.Session
 }
 
-func (m *MessagesSession) DeleteMessagesFromUser(user *store.User) error {
+func (m *MessagesSession) DeleteMessagesFromUser(ctx context.Context, user *store.User) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
 	if user == nil {
-		return errors.New("mongo", "user is missing")
+		return errors.New("user is missing")
 	}
 	if user.ID == "" {
-		return errors.New("mongo", "user id is missing")
+		return errors.New("user id is missing")
 	}
 
 	if m.IsClosed() {
-		return errors.New("mongo", "session closed")
+		return errors.New("session closed")
 	}
 
 	startTime := time.Now()
@@ -66,22 +70,25 @@ func (m *MessagesSession) DeleteMessagesFromUser(user *store.User) error {
 	changeInfo, err := m.C().UpdateAll(selector, update)
 
 	loggerFields := log.Fields{"userId": user.ID, "changeInfo": changeInfo, "duration": time.Since(startTime) / time.Microsecond}
-	m.Logger().WithFields(loggerFields).WithError(err).Debug("DeleteMessagesFromUser")
+	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DeleteMessagesFromUser")
 
 	if err != nil {
-		return errors.Wrap(err, "mongo", "unable to delete messages from user")
+		return errors.Wrap(err, "unable to delete messages from user")
 	}
 
 	return nil
 }
 
-func (m *MessagesSession) DestroyMessagesForUserByID(userID string) error {
+func (m *MessagesSession) DestroyMessagesForUserByID(ctx context.Context, userID string) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
 	if userID == "" {
-		return errors.New("mongo", "user id is missing")
+		return errors.New("user id is missing")
 	}
 
 	if m.IsClosed() {
-		return errors.New("mongo", "session closed")
+		return errors.New("session closed")
 	}
 
 	startTime := time.Now()
@@ -92,10 +99,10 @@ func (m *MessagesSession) DestroyMessagesForUserByID(userID string) error {
 	removeInfo, err := m.C().RemoveAll(selector)
 
 	loggerFields := log.Fields{"userId": userID, "removeInfo": removeInfo, "duration": time.Since(startTime) / time.Microsecond}
-	m.Logger().WithFields(loggerFields).WithError(err).Debug("DestroyMessagesForUserByID")
+	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DestroyMessagesForUserByID")
 
 	if err != nil {
-		return errors.Wrap(err, "mongo", "unable to destroy messages for user by id")
+		return errors.Wrap(err, "unable to destroy messages for user by id")
 	}
 
 	return nil

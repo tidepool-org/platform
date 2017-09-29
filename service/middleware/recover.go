@@ -16,19 +16,19 @@ func NewRecover() (*Recover, error) {
 }
 
 func (r *Recover) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
-	return func(response rest.ResponseWriter, request *rest.Request) {
-		if handler != nil && response != nil && request != nil {
+	return func(res rest.ResponseWriter, req *rest.Request) {
+		if handler != nil && res != nil && req != nil {
 			defer func() {
 				if r := recover(); r != nil {
-					if responder, responderErr := serviceContext.NewResponder(response, request); responderErr != nil {
-						response.WriteHeader(http.StatusInternalServerError)
+					if responder, responderErr := serviceContext.NewResponder(res, req); responderErr != nil {
+						res.WriteHeader(http.StatusInternalServerError)
 					} else {
 						responder.RespondWithInternalServerFailure("Recovered from unhandled panic", string(debug.Stack()))
 					}
 				}
 			}()
 
-			handler(response, request)
+			handler(res, req)
 		}
 	}
 }

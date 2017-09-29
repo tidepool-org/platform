@@ -1,10 +1,10 @@
 package server_test
 
 import (
-	"net/http"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"net/http"
 
 	"github.com/tidepool-org/platform/log"
 	nullLog "github.com/tidepool-org/platform/log/null"
@@ -26,48 +26,48 @@ func (t *TestHandler) ServeHTTP(response http.ResponseWriter, request *http.Requ
 }
 
 var _ = Describe("Standard", func() {
-	var logger log.Logger
-	var handler *TestHandler
+	var lgr log.Logger
+	var hndlr *TestHandler
 	var api *testService.API
-	var config *server.Config
+	var cfg *server.Config
 
 	BeforeEach(func() {
-		logger = nullLog.NewLogger()
-		handler = &TestHandler{}
+		lgr = nullLog.NewLogger()
+		hndlr = &TestHandler{}
 		api = testService.NewAPI()
-		api.HandlerOutputs = []http.Handler{handler}
-		config = server.NewConfig()
-		config.Address = ":9001"
-		config.TLS = false
+		api.HandlerOutputs = []http.Handler{hndlr}
+		cfg = server.NewConfig()
+		cfg.Address = ":9001"
+		cfg.TLS = false
 	})
 
 	Context("NewStandard", func() {
 		It("returns success", func() {
-			Expect(server.NewStandard(logger, api, config)).ToNot(BeNil())
+			Expect(server.NewStandard(cfg, lgr, api)).ToNot(BeNil())
 		})
 
 		It("returns an error if logger is missing", func() {
-			standard, err := server.NewStandard(nil, api, config)
-			Expect(err).To(MatchError("server: logger is missing"))
+			standard, err := server.NewStandard(cfg, nil, api)
+			Expect(err).To(MatchError("logger is missing"))
 			Expect(standard).To(BeNil())
 		})
 
 		It("returns an error if api is missing", func() {
-			standard, err := server.NewStandard(logger, nil, config)
-			Expect(err).To(MatchError("server: api is missing"))
+			standard, err := server.NewStandard(cfg, lgr, nil)
+			Expect(err).To(MatchError("api is missing"))
 			Expect(standard).To(BeNil())
 		})
 
 		It("returns an error if config is missing", func() {
-			standard, err := server.NewStandard(logger, api, nil)
-			Expect(err).To(MatchError("server: config is missing"))
+			standard, err := server.NewStandard(nil, lgr, api)
+			Expect(err).To(MatchError("config is missing"))
 			Expect(standard).To(BeNil())
 		})
 
 		It("returns an error if config is not valid", func() {
-			config.Address = ""
-			standard, err := server.NewStandard(logger, api, config)
-			Expect(err).To(MatchError("server: config is invalid; server: address is missing"))
+			cfg.Address = ""
+			standard, err := server.NewStandard(cfg, lgr, api)
+			Expect(err).To(MatchError("config is invalid; address is missing"))
 			Expect(standard).To(BeNil())
 		})
 	})

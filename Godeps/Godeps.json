@@ -246,6 +246,14 @@
 			"Rev": "b176d7def5d71bdd214203491f89843ed217f420"
 		},
 		{
+			"ImportPath": "golang.org/x/net/context",
+			"Rev": "1c05540f6879653db88113bc4a2b70aec4bd491f"
+		},
+		{
+			"ImportPath": "golang.org/x/net/context/ctxhttp",
+			"Rev": "1c05540f6879653db88113bc4a2b70aec4bd491f"
+		},
+		{
 			"ImportPath": "golang.org/x/net/html",
 			"Rev": "1c05540f6879653db88113bc4a2b70aec4bd491f"
 		},
@@ -256,6 +264,14 @@
 		{
 			"ImportPath": "golang.org/x/net/html/charset",
 			"Rev": "1c05540f6879653db88113bc4a2b70aec4bd491f"
+		},
+		{
+			"ImportPath": "golang.org/x/oauth2",
+			"Rev": "9a379c6b3e95a790ffc43293c2a78dee0d7b6e20"
+		},
+		{
+			"ImportPath": "golang.org/x/oauth2/internal",
+			"Rev": "9a379c6b3e95a790ffc43293c2a78dee0d7b6e20"
 		},
 		{
 			"ImportPath": "golang.org/x/sys/unix",

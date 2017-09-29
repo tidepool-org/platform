@@ -192,14 +192,14 @@ var _ = Describe("Basal", func() {
 				It("returns error if user id is empty", func() {
 					testBasal.UserID = ""
 					identityFields, err := testBasal.IdentityFields()
-					Expect(err).To(MatchError("base: user id is empty"))
+					Expect(err).To(MatchError("user id is empty"))
 					Expect(identityFields).To(BeEmpty())
 				})
 
 				It("returns error if delivery type is empty", func() {
 					testBasal.DeliveryType = ""
 					identityFields, err := testBasal.IdentityFields()
-					Expect(err).To(MatchError("basal: delivery type is empty"))
+					Expect(err).To(MatchError("delivery type is empty"))
 					Expect(identityFields).To(BeEmpty())
 				})
 

@@ -98,10 +98,10 @@ func (t *Tool) ParseContext(context *cli.Context) bool {
 
 func (t *Tool) execute() error {
 	if t.secret == "" {
-		return errors.New("main", "secret is missing")
+		return errors.New("secret is missing")
 	}
 	if t.encode == t.decode {
-		return errors.New("main", "must specify only one of --encode or --decode")
+		return errors.New("must specify only one of --encode or --decode")
 	}
 
 	var reader io.Reader
@@ -122,12 +122,12 @@ func (t *Tool) execute() error {
 	for scanner.Scan() {
 		result, err := coder(scanner.Text(), t.secret)
 		if err != nil {
-			return errors.Wrap(err, "main", "unable to process input")
+			return errors.Wrap(err, "unable to process input")
 		}
 		fmt.Println(result)
 	}
 	if err := scanner.Err(); err != nil {
-		return errors.Wrap(err, "main", "unable to read input")
+		return errors.Wrap(err, "unable to read input")
 	}
 
 	return nil

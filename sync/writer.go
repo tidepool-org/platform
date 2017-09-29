@@ -11,7 +11,7 @@ import (
 
 func NewWriter(writer io.Writer) (*Writer, error) {
 	if writer == nil {
-		return nil, errors.New("sync", "writer is missing")
+		return nil, errors.New("writer is missing")
 	}
 
 	return &Writer{

@@ -67,12 +67,12 @@ var _ = Describe("Delegate", func() {
 				})
 
 				AfterEach(func() {
-					Expect(testDeduplicator.UnusedOutputsCount()).To(Equal(0))
+					testDeduplicator.Expectations()
 				})
 
 				It("returns error if the deduplicator descriptor already has a name", func() {
 					err := testDeduplicatorDescriptor.RegisterWithDeduplicator(testDeduplicator)
-					Expect(err).To(MatchError(fmt.Sprintf(`data: deduplicator descriptor already registered with "%s"`, testName)))
+					Expect(err).To(MatchError(fmt.Sprintf("deduplicator descriptor already registered with %q", testName)))
 				})
 
 				It("returns successfully if the deduplicator descriptor does not already have a name", func() {

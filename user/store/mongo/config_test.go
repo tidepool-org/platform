@@ -38,17 +38,17 @@ var _ = Describe("Config", func() {
 			})
 
 			It("returns an error if config reporter is missing", func() {
-				Expect(config.Load(nil)).To(MatchError("mongo: config reporter is missing"))
+				Expect(config.Load(nil)).To(MatchError("config reporter is missing"))
 			})
 
 			It("returns an error if base config is missing", func() {
 				config.Config = nil
-				Expect(config.Load(configReporter)).To(MatchError("mongo: config is missing"))
+				Expect(config.Load(configReporter)).To(MatchError("config is missing"))
 			})
 
 			It("returns an error if base config returns an error", func() {
 				configReporter.Config["tls"] = "abc"
-				Expect(config.Load(configReporter)).To(MatchError("mongo: tls is invalid"))
+				Expect(config.Load(configReporter)).To(MatchError("tls is invalid"))
 			})
 
 			It("uses default password salt if not set", func() {
@@ -83,17 +83,17 @@ var _ = Describe("Config", func() {
 
 				It("returns an error if the base config is missing", func() {
 					config.Config = nil
-					Expect(config.Validate()).To(MatchError("mongo: config is missing"))
+					Expect(config.Validate()).To(MatchError("config is missing"))
 				})
 
 				It("returns an error if the base config is not valid", func() {
 					config.Config.Addresses = nil
-					Expect(config.Validate()).To(MatchError("mongo: addresses is missing"))
+					Expect(config.Validate()).To(MatchError("addresses is missing"))
 				})
 
 				It("returns an error if the password salt is missing", func() {
 					config.PasswordSalt = ""
-					Expect(config.Validate()).To(MatchError("mongo: password salt is missing"))
+					Expect(config.Validate()).To(MatchError("password salt is missing"))
 				})
 			})
 		})

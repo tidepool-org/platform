@@ -56,9 +56,9 @@ func (s *StandardStringAsTime) After(limit time.Time) data.Time {
 	return s
 }
 
-func (s *StandardStringAsTime) AfterNow() data.Time {
+func (s *StandardStringAsTime) AfterNow(threshold time.Duration) data.Time {
 	if s.timeValue != nil {
-		if !s.timeValue.After(time.Now()) {
+		if !s.timeValue.After(time.Now().Add(threshold)) {
 			s.context.AppendError(s.reference, service.ErrorValueTimeNotAfterNow(*s.timeValue, s.timeLayout))
 		}
 	}
@@ -74,9 +74,9 @@ func (s *StandardStringAsTime) Before(limit time.Time) data.Time {
 	return s
 }
 
-func (s *StandardStringAsTime) BeforeNow() data.Time {
+func (s *StandardStringAsTime) BeforeNow(threshold time.Duration) data.Time {
 	if s.timeValue != nil {
-		if !s.timeValue.Before(time.Now()) {
+		if !s.timeValue.Before(time.Now().Add(-threshold)) {
 			s.context.AppendError(s.reference, service.ErrorValueTimeNotBeforeNow(*s.timeValue, s.timeLayout))
 		}
 	}

@@ -138,8 +138,8 @@ func (s *StandardString) LengthInRange(lowerLimit int, upperLimit int) data.Stri
 
 func (s *StandardString) OneOf(allowedValues []string) data.String {
 	if s.value != nil {
-		for _, possibleValue := range allowedValues {
-			if possibleValue == *s.value {
+		for _, allowedValue := range allowedValues {
+			if allowedValue == *s.value {
 				return s
 			}
 		}
@@ -150,8 +150,8 @@ func (s *StandardString) OneOf(allowedValues []string) data.String {
 
 func (s *StandardString) NotOneOf(disallowedValues []string) data.String {
 	if s.value != nil {
-		for _, possibleValue := range disallowedValues {
-			if possibleValue == *s.value {
+		for _, disallowedValue := range disallowedValues {
+			if disallowedValue == *s.value {
 				s.context.AppendError(s.reference, service.ErrorValueStringOneOf(*s.value, disallowedValues))
 				return s
 			}

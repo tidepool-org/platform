@@ -1,7 +1,7 @@
 package data
 
 import (
-	"strconv"
+	"context"
 
 	"github.com/tidepool-org/platform/errors"
 )
@@ -10,12 +10,12 @@ type Deduplicator interface {
 	Name() string
 	Version() string
 
-	RegisterDataset() error
+	RegisterDataset(ctx context.Context) error
 
-	AddDatasetData(datasetData []Datum) error
-	DeduplicateDataset() error
+	AddDatasetData(ctx context.Context, datasetData []Datum) error
+	DeduplicateDataset(ctx context.Context) error
 
-	DeleteDataset() error
+	DeleteDataset(ctx context.Context) error
 }
 
 type DeduplicatorDescriptor struct {
@@ -38,10 +38,10 @@ func (d *DeduplicatorDescriptor) IsRegisteredWithNamedDeduplicator(name string) 
 
 func (d *DeduplicatorDescriptor) RegisterWithDeduplicator(deduplicator Deduplicator) error {
 	if d.Name != "" {
-		return errors.Newf("data", "deduplicator descriptor already registered with %s", strconv.Quote(d.Name))
+		return errors.Newf("deduplicator descriptor already registered with %q", d.Name)
 	}
 	if d.Version != "" {
-		return errors.New("data", "deduplicator descriptor already registered with unknown deduplicator")
+		return errors.New("deduplicator descriptor already registered with unknown deduplicator")
 	}
 
 	d.Name = deduplicator.Name()

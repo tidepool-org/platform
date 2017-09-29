@@ -26,14 +26,14 @@ func NewConfig() *Config {
 
 func (c *Config) Load(configReporter config.Reporter) error {
 	if configReporter == nil {
-		return errors.New("server", "config reporter is missing")
+		return errors.New("config reporter is missing")
 	}
 
 	c.Address = configReporter.GetWithDefault("address", "")
 	if tlsString, found := configReporter.Get("tls"); found {
 		tls, err := strconv.ParseBool(tlsString)
 		if err != nil {
-			return errors.New("server", "tls is invalid")
+			return errors.New("tls is invalid")
 		}
 		c.TLS = tls
 	}
@@ -42,7 +42,7 @@ func (c *Config) Load(configReporter config.Reporter) error {
 	if timeoutString, found := configReporter.Get("timeout"); found {
 		timeout, err := strconv.ParseInt(timeoutString, 10, 0)
 		if err != nil {
-			return errors.New("server", "timeout is invalid")
+			return errors.New("timeout is invalid")
 		}
 		c.Timeout = time.Duration(timeout) * time.Second
 	}
@@ -52,32 +52,32 @@ func (c *Config) Load(configReporter config.Reporter) error {
 
 func (c *Config) Validate() error {
 	if c.Address == "" {
-		return errors.New("server", "address is missing")
+		return errors.New("address is missing")
 	}
 	if c.TLS {
 		if c.TLSCertificateFile == "" {
-			return errors.New("server", "tls certificate file is missing")
+			return errors.New("tls certificate file is missing")
 		} else if fileInfo, err := os.Stat(c.TLSCertificateFile); err != nil {
 			if !os.IsNotExist(err) {
-				return errors.Wrap(err, "server", "unable to stat tls certificate file")
+				return errors.Wrap(err, "unable to stat tls certificate file")
 			}
-			return errors.New("server", "tls certificate file does not exist")
+			return errors.New("tls certificate file does not exist")
 		} else if fileInfo.IsDir() {
-			return errors.New("server", "tls certificate file is a directory")
+			return errors.New("tls certificate file is a directory")
 		}
 		if c.TLSKeyFile == "" {
-			return errors.New("server", "tls key file is missing")
+			return errors.New("tls key file is missing")
 		} else if fileInfo, err := os.Stat(c.TLSKeyFile); err != nil {
 			if !os.IsNotExist(err) {
-				return errors.Wrap(err, "server", "unable to stat tls key file")
+				return errors.Wrap(err, "unable to stat tls key file")
 			}
-			return errors.New("server", "tls key file does not exist")
+			return errors.New("tls key file does not exist")
 		} else if fileInfo.IsDir() {
-			return errors.New("server", "tls key file is a directory")
+			return errors.New("tls key file is a directory")
 		}
 	}
 	if c.Timeout <= 0 {
-		return errors.New("server", "timeout is invalid")
+		return errors.New("timeout is invalid")
 	}
 
 	return nil

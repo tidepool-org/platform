@@ -12,7 +12,7 @@ import (
 
 func NewSerializer(writer io.Writer) (log.Serializer, error) {
 	if writer == nil {
-		return nil, errors.New("json", "writer is missing")
+		return nil, errors.New("writer is missing")
 	}
 
 	return &serializer{
@@ -26,19 +26,19 @@ type serializer struct {
 
 func (s *serializer) Serialize(fields log.Fields) error {
 	if fields == nil {
-		return errors.New("json", "fields are missing")
+		return errors.New("fields are missing")
 	}
 
 	bytes, err := json.Marshal(fields)
 	if err != nil {
-		return errors.Wrapf(err, "json", "unable to serialize fields")
+		return errors.Wrapf(err, "unable to serialize fields")
 	}
 
 	bytes = append(bytes, []byte("\n")...)
 
 	_, err = s.writer.Write(bytes)
 	if err != nil {
-		return errors.Wrapf(err, "json", "unable to write serialized field")
+		return errors.Wrapf(err, "unable to write serialized field")
 	}
 
 	return nil

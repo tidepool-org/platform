@@ -3,8 +3,6 @@ package log
 import (
 	"fmt"
 	"os"
-	"runtime"
-	"strings"
 	"time"
 
 	"github.com/tidepool-org/platform/errors"
@@ -14,41 +12,34 @@ import (
 
 func NewLogger(serializer Serializer, levelRanks LevelRanks, level Level) (Logger, error) {
 	if serializer == nil {
-		return nil, errors.New("log", "serializer is missing")
+		return nil, errors.New("serializer is missing")
 	}
 	if levelRanks == nil {
-		return nil, errors.New("log", "level ranks is missing")
+		return nil, errors.New("level ranks is missing")
 	}
 
 	fields := Fields{}
 
 	rank, found := levelRanks[level]
 	if !found {
-		return nil, errors.New("log", "level not found")
-	}
-
-	ignoredFileSegments := 1
-	if _, file, _, ok := runtime.Caller(0); ok {
-		ignoredFileSegments = len(strings.Split(file, "/")) - 1
+		return nil, errors.New("level not found")
 	}
 
 	return &logger{
-		serializer:          serializer,
-		fields:              fields,
-		levelRanks:          joinLevelRanks(levelRanks),
-		level:               level,
-		rank:                rank,
-		ignoredFileSegments: ignoredFileSegments,
+		serializer: serializer,
+		fields:     fields,
+		levelRanks: joinLevelRanks(levelRanks),
+		level:      level,
+		rank:       rank,
 	}, nil
 }
 
 type logger struct {
-	serializer          Serializer
-	fields              Fields
-	levelRanks          LevelRanks
-	level               Level
-	rank                Rank
-	ignoredFileSegments int
+	serializer Serializer
+	fields     Fields
+	levelRanks LevelRanks
+	level      Level
+	rank       Rank
 }
 
 func (l *logger) Log(level Level, message string) {
@@ -91,7 +82,7 @@ func (l *logger) WithError(err error) Logger {
 	fields := Fields{}
 
 	if err != nil {
-		fields["error"] = err.Error()
+		fields["error"] = &errors.Serializable{Error: err}
 	}
 
 	return l.WithFields(fields)
@@ -103,12 +94,11 @@ func (l *logger) WithField(key string, value interface{}) Logger {
 
 func (l *logger) WithFields(fields Fields) Logger {
 	return &logger{
-		serializer:          l.serializer,
-		fields:              joinFields(l.fields, fields),
-		levelRanks:          l.levelRanks,
-		level:               l.level,
-		rank:                l.rank,
-		ignoredFileSegments: l.ignoredFileSegments,
+		serializer: l.serializer,
+		fields:     joinFields(l.fields, fields),
+		levelRanks: l.levelRanks,
+		level:      l.level,
+		rank:       l.rank,
 	}
 }
 
@@ -118,12 +108,11 @@ func (l *logger) WithLevelRank(level Level, rank Rank) Logger {
 
 func (l *logger) WithLevelRanks(levelRanks LevelRanks) Logger {
 	return &logger{
-		serializer:          l.serializer,
-		fields:              l.fields,
-		levelRanks:          joinLevelRanks(l.levelRanks, levelRanks),
-		level:               l.level,
-		rank:                l.rank,
-		ignoredFileSegments: l.ignoredFileSegments,
+		serializer: l.serializer,
+		fields:     l.fields,
+		levelRanks: joinLevelRanks(l.levelRanks, levelRanks),
+		level:      l.level,
+		rank:       l.rank,
 	}
 }
 
@@ -135,12 +124,11 @@ func (l *logger) WithLevel(level Level) Logger {
 	}
 
 	return &logger{
-		serializer:          l.serializer,
-		fields:              l.fields,
-		levelRanks:          l.levelRanks,
-		level:               level,
-		rank:                rank,
-		ignoredFileSegments: l.ignoredFileSegments,
+		serializer: l.serializer,
+		fields:     l.fields,
+		levelRanks: l.levelRanks,
+		level:      level,
+		rank:       rank,
 	}
 }
 
@@ -159,18 +147,13 @@ func (l *logger) log(level Level, message string) {
 	}
 
 	fields := Fields{
-		"level": level,
-		"time":  time.Now().UTC().Format("2006-01-02T15:04:05.999Z07:00"),
+		"caller": errors.GetCaller(2),
+		"level":  level,
+		"time":   time.Now().Format("2006-01-02T15:04:05.999Z07:00"),
 	}
 
 	if message != "" {
 		fields["message"] = message
-	}
-
-	if _, file, line, ok := runtime.Caller(2); ok {
-		fileSegments := strings.SplitN(file, "/", l.ignoredFileSegments)
-		fields["file"] = fileSegments[len(fileSegments)-1]
-		fields["line"] = line
 	}
 
 	if err := l.serializer.Serialize(joinFields(l.fields, fields)); err != nil {

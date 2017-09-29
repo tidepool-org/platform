@@ -1,7 +1,6 @@
 package service
 
 import (
-	"github.com/tidepool-org/platform/notification"
 	"github.com/tidepool-org/platform/notification/store"
 	"github.com/tidepool-org/platform/service"
 )
@@ -11,5 +10,11 @@ type Service interface {
 
 	NotificationStore() store.Store
 
-	Status() *notification.Status
+	Status() *Status
+}
+
+type Status struct {
+	Version           string
+	Server            interface{}
+	NotificationStore interface{}
 }

@@ -13,7 +13,7 @@ type Router struct {
 
 func NewRouter(svc service.Service) (*Router, error) {
 	if svc == nil {
-		return nil, errors.New("v1", "service is missing")
+		return nil, errors.New("service is missing")
 	}
 
 	return &Router{
@@ -22,5 +22,5 @@ func NewRouter(svc service.Service) (*Router, error) {
 }
 
 func (r *Router) Routes() []*rest.Route {
-	return []*rest.Route{}
+	return append(append(r.OAuthRoutes(), r.ProviderSessionsRoutes()...), r.RestrictedTokensRoutes()...)
 }

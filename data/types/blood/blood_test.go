@@ -37,7 +37,7 @@ func NewTestBlood(sourceTime interface{}, sourceUnits interface{}, sourceValue i
 		testBlood.Units = pointer.String(value)
 	}
 	if value, ok := sourceValue.(float64); ok {
-		testBlood.Value = pointer.Float(value)
+		testBlood.Value = pointer.Float64(value)
 	}
 	return testBlood
 }
@@ -194,27 +194,27 @@ var _ = Describe("Blood", func() {
 					testBlood.DeviceID = &deviceID
 					testBlood.Time = pointer.String("2016-09-06T13:45:58-07:00")
 					testBlood.Units = pointer.String("mmol/L")
-					testBlood.Value = pointer.Float(1)
+					testBlood.Value = pointer.Float64(1)
 				})
 
 				It("returns error if user id is empty", func() {
 					testBlood.UserID = ""
 					identityFields, err := testBlood.IdentityFields()
-					Expect(err).To(MatchError("base: user id is empty"))
+					Expect(err).To(MatchError("user id is empty"))
 					Expect(identityFields).To(BeEmpty())
 				})
 
 				It("returns error if units is missing", func() {
 					testBlood.Units = nil
 					identityFields, err := testBlood.IdentityFields()
-					Expect(err).To(MatchError("blood: units is missing"))
+					Expect(err).To(MatchError("units is missing"))
 					Expect(identityFields).To(BeEmpty())
 				})
 
 				It("returns error if value is missing", func() {
 					testBlood.Value = nil
 					identityFields, err := testBlood.IdentityFields()
-					Expect(err).To(MatchError("blood: value is missing"))
+					Expect(err).To(MatchError("value is missing"))
 					Expect(identityFields).To(BeEmpty())
 				})
 

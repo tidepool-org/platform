@@ -166,7 +166,7 @@ type Time interface {
 	NotExists() Time
 
 	After(limit time.Time) Time
-	AfterNow() Time
+	AfterNow(threshold time.Duration) Time
 	Before(limit time.Time) Time
-	BeforeNow() Time
+	BeforeNow(threshold time.Duration) Time
 }

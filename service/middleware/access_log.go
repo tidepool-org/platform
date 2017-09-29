@@ -37,53 +37,54 @@ func NewAccessLog() (*AccessLog, error) {
 	return &AccessLog{}, nil
 }
 
-func (l *AccessLog) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
-	return func(response rest.ResponseWriter, request *rest.Request) {
-		if handler != nil && response != nil && request != nil {
-			handler(response, request)
+func (a *AccessLog) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
+	return func(res rest.ResponseWriter, req *rest.Request) {
+		if handler != nil && res != nil && req != nil {
+			handler(res, req)
 
-			if logger := service.GetRequestLogger(request); logger != nil {
+			// DEPRECATED: Needs to be replaced with context version
+			if logger := service.GetRequestLogger(req); logger != nil {
 				loggerFields := map[string]interface{}{}
-				if method := request.Method; method != "" {
+				if method := req.Method; method != "" {
 					loggerFields[_LogMethod] = method
 				}
-				if uri := request.URL.RequestURI(); uri != "" {
+				if uri := req.URL.RequestURI(); uri != "" {
 					loggerFields[_LogRequestURI] = uri
 				}
-				if proto := request.Proto; proto != "" {
+				if proto := req.Proto; proto != "" {
 					loggerFields[_LogProto] = proto
 				}
-				if agent := request.UserAgent(); agent != "" {
+				if agent := req.UserAgent(); agent != "" {
 					loggerFields[_LogUserAgent] = agent
 				}
-				if referer := request.Referer(); referer != "" {
+				if referer := req.Referer(); referer != "" {
 					loggerFields[_LogRefererer] = referer
 				}
-				if remoteAddress := request.RemoteAddr; remoteAddress != "" {
+				if remoteAddress := req.RemoteAddr; remoteAddress != "" {
 					if ip, _, err := net.SplitHostPort(remoteAddress); err == nil && ip != "" {
 						loggerFields[_LogRemoteAddress] = ip
 					}
 				}
-				if remoteUser, ok := request.Env[_RequestEnvRemoteUser].(string); ok && remoteUser != "" {
+				if remoteUser, ok := req.Env[_RequestEnvRemoteUser].(string); ok && remoteUser != "" {
 					loggerFields[_LogRemoteUser] = remoteUser
 				}
-				if startTime, ok := request.Env[_RequestEnvStartTime].(*time.Time); ok {
+				if startTime, ok := req.Env[_RequestEnvStartTime].(*time.Time); ok {
 					loggerFields[_LogStartTime] = startTime.Format(time.RFC3339)
 				}
-				if statusCode, ok := request.Env[_RequestEnvStatusCode].(int); ok {
+				if statusCode, ok := req.Env[_RequestEnvStatusCode].(int); ok {
 					loggerFields[_LogStatusCode] = statusCode
 				}
-				if responseTime, ok := request.Env[_RequestEnvElapsedTime].(*time.Duration); ok {
+				if responseTime, ok := req.Env[_RequestEnvElapsedTime].(*time.Duration); ok {
 					loggerFields[_LogResponseDuration] = *responseTime / time.Microsecond
 				}
-				if bytesWritten, ok := request.Env[_RequestEnvBytesWritten].(int64); ok {
+				if bytesWritten, ok := req.Env[_RequestEnvBytesWritten].(int64); ok {
 					loggerFields[_LogResponseBytes] = bytesWritten
 				}
-				if errors := service.GetRequestErrors(request); errors != nil {
+				if errors := service.GetRequestErrors(req); errors != nil {
 					loggerFields[_LogErrors] = errors // TODO: Limit to a maximum size?
 				}
 
-				message := fmt.Sprintf("%s %s", request.Method, request.URL.RequestURI())
+				message := fmt.Sprintf("%s %s", req.Method, req.URL.RequestURI())
 
 				// TODO: Log this to a special logger level "access".
 				// Will need to revamp log package, though.

@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/onsi/gomega"
+
 	"github.com/tidepool-org/platform/test"
 )
 
@@ -29,9 +31,7 @@ func NewAPI() *API {
 func (a *API) InitializeMiddleware() error {
 	a.InitializeMiddlewareInvocations++
 
-	if len(a.InitializeMiddlewareOutputs) == 0 {
-		panic("Unexpected invocation of InitializeMiddleware on API")
-	}
+	gomega.Expect(a.InitializeMiddlewareOutputs).ToNot(gomega.BeEmpty())
 
 	output := a.InitializeMiddlewareOutputs[0]
 	a.InitializeMiddlewareOutputs = a.InitializeMiddlewareOutputs[1:]
@@ -43,9 +43,7 @@ func (a *API) InitializeRouter(routes ...*rest.Route) error {
 
 	a.InitializeRouterInputs = append(a.InitializeRouterInputs, routes)
 
-	if len(a.InitializeRouterOutputs) == 0 {
-		panic("Unexpected invocation of InitializeRouter on API")
-	}
+	gomega.Expect(a.InitializeRouterOutputs).ToNot(gomega.BeEmpty())
 
 	output := a.InitializeRouterOutputs[0]
 	a.InitializeRouterOutputs = a.InitializeRouterOutputs[1:]
@@ -55,9 +53,7 @@ func (a *API) InitializeRouter(routes ...*rest.Route) error {
 func (a *API) Status() *rest.Status {
 	a.StatusInvocations++
 
-	if len(a.StatusOutputs) == 0 {
-		panic("Unexpected invocation of Status on API")
-	}
+	gomega.Expect(a.StatusOutputs).ToNot(gomega.BeEmpty())
 
 	output := a.StatusOutputs[0]
 	a.StatusOutputs = a.StatusOutputs[1:]
@@ -67,18 +63,17 @@ func (a *API) Status() *rest.Status {
 func (a *API) Handler() http.Handler {
 	a.HandlerInvocations++
 
-	if len(a.HandlerOutputs) == 0 {
-		panic("Unexpected invocation of Handler on API")
-	}
+	gomega.Expect(a.HandlerOutputs).ToNot(gomega.BeEmpty())
 
 	output := a.HandlerOutputs[0]
 	a.HandlerOutputs = a.HandlerOutputs[1:]
 	return output
 }
 
-func (a *API) UnusedOutputsCount() int {
-	return len(a.InitializeMiddlewareOutputs) +
-		len(a.InitializeRouterOutputs) +
-		len(a.StatusOutputs) +
-		len(a.HandlerOutputs)
+func (a *API) Expectations() {
+	a.Mock.Expectations()
+	gomega.Expect(a.InitializeMiddlewareOutputs).To(gomega.BeEmpty())
+	gomega.Expect(a.InitializeRouterOutputs).To(gomega.BeEmpty())
+	gomega.Expect(a.StatusOutputs).To(gomega.BeEmpty())
+	gomega.Expect(a.HandlerOutputs).To(gomega.BeEmpty())
 }

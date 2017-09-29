@@ -5,11 +5,9 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 
-	"github.com/tidepool-org/platform/auth/service/context"
+	"github.com/tidepool-org/platform/request"
 )
 
-func (r *Router) StatusGet(response rest.ResponseWriter, request *rest.Request) {
-	ctx := context.MustNew(r, response, request)
-
-	ctx.RespondWithStatusAndData(http.StatusOK, ctx.Status())
+func (r *Router) StatusGet(res rest.ResponseWriter, req *rest.Request) {
+	request.MustNewResponder(res, req).Data(http.StatusOK, r.Status())
 }

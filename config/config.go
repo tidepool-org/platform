@@ -1,5 +1,7 @@
 package config
 
+import "strings"
+
 type Reporter interface {
 	Get(key string) (string, bool)
 	GetWithDefault(key string, defaultValue string) string
@@ -9,4 +11,14 @@ type Reporter interface {
 	Delete(key string)
 
 	WithScopes(scopes ...string) Reporter
+}
+
+func SplitTrimCompact(str string) []string {
+	strs := []string{}
+	for _, str = range strings.Split(str, ",") {
+		if str = strings.TrimSpace(str); str != "" {
+			strs = append(strs, str)
+		}
+	}
+	return strs
 }

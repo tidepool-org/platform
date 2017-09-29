@@ -1,36 +1,29 @@
 package test
 
 import (
-	"github.com/tidepool-org/platform/log"
-	nullLog "github.com/tidepool-org/platform/log/null"
-	"github.com/tidepool-org/platform/store"
+	"github.com/onsi/gomega"
 	"github.com/tidepool-org/platform/test"
 )
 
 type Session struct {
 	*test.Mock
-	IsClosedInvocations int
-	IsClosedOutputs     []bool
-	CloseInvocations    int
-	LoggerInvocations   int
-	LoggerImpl          log.Logger
-	SetAgentInvocations int
-	SetAgentInputs      []store.Agent
+	IsClosedInvocations      int
+	IsClosedOutputs          []bool
+	CloseInvocations         int
+	EnsureIndexesInvocations int
+	EnsureIndexesOutputs     []error
 }
 
 func NewSession() *Session {
 	return &Session{
-		Mock:       test.NewMock(),
-		LoggerImpl: nullLog.NewLogger(),
+		Mock: test.NewMock(),
 	}
 }
 
 func (s *Session) IsClosed() bool {
 	s.IsClosedInvocations++
 
-	if len(s.IsClosedOutputs) == 0 {
-		panic("Unexpected invocation of IsClosed on Session")
-	}
+	gomega.Expect(s.IsClosedOutputs).ToNot(gomega.BeEmpty())
 
 	output := s.IsClosedOutputs[0]
 	s.IsClosedOutputs = s.IsClosedOutputs[1:]
@@ -41,18 +34,23 @@ func (s *Session) Close() {
 	s.CloseInvocations++
 }
 
-func (s *Session) Logger() log.Logger {
-	s.LoggerInvocations++
+func (s *Session) EnsureIndexes() error {
+	s.EnsureIndexesInvocations++
 
-	return s.LoggerImpl
-}
+	gomega.Expect(s.EnsureIndexesOutputs).ToNot(gomega.BeEmpty())
 
-func (s *Session) SetAgent(agent store.Agent) {
-	s.SetAgentInvocations++
-
-	s.SetAgentInputs = append(s.SetAgentInputs, agent)
+	output := s.EnsureIndexesOutputs[0]
+	s.EnsureIndexesOutputs = s.EnsureIndexesOutputs[1:]
+	return output
 }
 
 func (s *Session) UnusedOutputsCount() int {
-	return len(s.IsClosedOutputs)
+	return len(s.IsClosedOutputs) +
+		len(s.EnsureIndexesOutputs)
+}
+
+func (s *Session) Expectations() {
+	s.Mock.Expectations()
+	gomega.Expect(s.IsClosedOutputs).To(gomega.BeEmpty())
+	gomega.Expect(s.EnsureIndexesOutputs).To(gomega.BeEmpty())
 }

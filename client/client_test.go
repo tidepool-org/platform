@@ -1,89 +1,136 @@
 package client_test
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
 
-	"errors"
+	"fmt"
 	"net/http"
-	"time"
+	"net/url"
 
-	testAuth "github.com/tidepool-org/platform/auth/test"
 	"github.com/tidepool-org/platform/client"
-	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/test"
+	testHTTP "github.com/tidepool-org/platform/test/http"
 )
 
-type RequestObject struct {
+type RequestBody struct {
 	Request string `json:"request"`
 }
 
-type ResponseObject struct {
+type ResponseBody struct {
 	Response string `json:"response"`
 }
 
 var _ = Describe("Client", func() {
-	Context("NewClient", func() {
+	Context("New", func() {
 		var config *client.Config
 
 		BeforeEach(func() {
 			config = client.NewConfig()
 			Expect(config).ToNot(BeNil())
-			config.Address = "http://localhost:1234"
-			config.Timeout = 30 * time.Second
+			config.Address = testHTTP.NewAddress()
 		})
 
 		It("returns an error if config is missing", func() {
-			clnt, err := client.NewClient(nil)
-			Expect(err).To(MatchError("client: config is missing"))
+			clnt, err := client.New(nil)
+			Expect(err).To(MatchError("config is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
 		It("returns an error if config address is missing", func() {
 			config.Address = ""
-			clnt, err := client.NewClient(config)
-			Expect(err).To(MatchError("client: config is invalid; client: address is missing"))
+			clnt, err := client.New(config)
+			Expect(err).To(MatchError("config is invalid; address is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
 		It("returns success", func() {
-			clnt, err := client.NewClient(config)
+			clnt, err := client.New(config)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clnt).ToNot(BeNil())
 		})
 	})
 
 	Context("with new client", func() {
+		var address string
 		var clnt *client.Client
 
 		BeforeEach(func() {
+			address = testHTTP.NewAddress()
 			config := client.NewConfig()
 			Expect(config).ToNot(BeNil())
-			config.Address = "http://localhost:1234"
-			config.Timeout = 30 * time.Second
+			config.Address = address
 			var err error
-			clnt, err = client.NewClient(config)
+			clnt, err = client.New(config)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clnt).ToNot(BeNil())
 		})
 
-		Context("HTTPClient", func() {
-			It("returns not nil", func() {
-				Expect(clnt.HTTPClient()).ToNot(BeNil())
+		Context("ConstructURL", func() {
+			It("returns a valid URL with no paths", func() {
+				Expect(clnt.ConstructURL()).To(Equal(address))
 			})
-		})
 
-		Context("BuildURL", func() {
 			It("returns a valid URL with one path", func() {
-				Expect(clnt.BuildURL("one")).To(Equal("http://localhost:1234/one"))
+				path := test.NewVariableString(1, 8, test.CharsetAlphaNumeric)
+				Expect(clnt.ConstructURL(path)).To(Equal(fmt.Sprintf("%s/%s", address, path)))
 			})
 
 			It("returns a valid URL with multiple paths", func() {
-				Expect(clnt.BuildURL("one", "two", "three")).To(Equal("http://localhost:1234/one/two/three"))
+				path1 := test.NewVariableString(1, 8, test.CharsetAlphaNumeric)
+				path2 := test.NewVariableString(1, 8, test.CharsetAlphaNumeric)
+				path3 := test.NewVariableString(1, 8, test.CharsetAlphaNumeric)
+				Expect(clnt.ConstructURL(path1, path2, path3)).To(Equal(fmt.Sprintf("%s/%s/%s/%s", address, path1, path2, path3)))
 			})
 
 			It("returns a valid URL with multiple paths that need to be escaped", func() {
-				Expect(clnt.BuildURL("o n e", "t/w/o")).To(Equal("http://localhost:1234/o%20n%20e/t%2Fw%2Fo"))
+				path1 := test.NewVariableString(1, 4, test.CharsetAlphaNumeric) + test.NewVariableString(1, 4, " /;,?") + test.NewVariableString(1, 4, test.CharsetAlphaNumeric)
+				path2 := test.NewVariableString(1, 4, test.CharsetAlphaNumeric) + test.NewVariableString(1, 4, " /;,?") + test.NewVariableString(1, 4, test.CharsetAlphaNumeric)
+				Expect(clnt.ConstructURL(path1, path2)).To(Equal(fmt.Sprintf("%s/%s/%s", address, url.PathEscape(path1), url.PathEscape(path2))))
+			})
+		})
+
+		Context("AppendURLQuery", func() {
+			var urlString string
+
+			BeforeEach(func() {
+				urlString = clnt.ConstructURL(test.NewVariableString(1, 8, test.CharsetAlphaNumeric), test.NewVariableString(1, 8, test.CharsetAlphaNumeric))
+			})
+
+			It("returns a URL without change if the query is nil", func() {
+				Expect(clnt.AppendURLQuery(urlString, nil)).To(Equal(urlString))
+			})
+
+			It("returns a URL without change if the query is empty", func() {
+				Expect(clnt.AppendURLQuery(urlString, map[string]string{})).To(Equal(urlString))
+			})
+
+			It("returns a URL with associated query", func() {
+				key1 := testHTTP.NewParameterKey()
+				value1 := testHTTP.NewParameterValue()
+				key2 := key1 + testHTTP.NewParameterKey()
+				value2 := testHTTP.NewParameterValue()
+				query := map[string]string{
+					key1: value1,
+					key2: value2,
+				}
+				Expect(clnt.AppendURLQuery(urlString, query)).To(Equal(fmt.Sprintf("%s?%s=%s&%s=%s", urlString, key1, value1, key2, value2)))
+			})
+
+			It("returns a URL with associated query ven if it already has a query string", func() {
+				urlString += "?" + testHTTP.NewParameterKey() + "=" + testHTTP.NewParameterValue()
+				key1 := testHTTP.NewParameterKey()
+				value1 := testHTTP.NewParameterValue()
+				key2 := key1 + testHTTP.NewParameterKey()
+				value2 := testHTTP.NewParameterValue()
+				query := map[string]string{
+					key1: value1,
+					key2: value2,
+				}
+				Expect(clnt.AppendURLQuery(urlString, query)).To(Equal(fmt.Sprintf("%s&%s=%s&%s=%s", urlString, key1, value1, key2, value2)))
 			})
 		})
 	})
@@ -91,401 +138,221 @@ var _ = Describe("Client", func() {
 	Context("with started server and new client", func() {
 		var server *Server
 		var clnt *client.Client
-		var context *testAuth.Context
+		var ctx context.Context
+		var method string
 		var path string
 		var url string
-		var requestObject *RequestObject
-		var responseObject *ResponseObject
+		var headerMutator *client.HeaderMutator
+		var parameterMutator *client.ParameterMutator
+		var mutators []client.Mutator
+		var requestBodyString string
+		var requestBody *RequestBody
+		var responseBodyString string
+		var responseBody *ResponseBody
+		var httpClient *http.Client
 
 		BeforeEach(func() {
 			server = NewServer()
 			config := client.NewConfig()
 			Expect(config).ToNot(BeNil())
 			config.Address = server.URL()
-			config.Timeout = 30 * time.Second
 			var err error
-			clnt, err = client.NewClient(config)
+			clnt, err = client.New(config)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clnt).ToNot(BeNil())
-			context = testAuth.NewContext()
-			Expect(context).ToNot(BeNil())
-			path = "/a/bb/ccc"
+			ctx = context.Background()
+			method = testHTTP.NewMethod()
+			path = testHTTP.NewPath()
 			url = server.URL() + path
-			requestObject = &RequestObject{"alpha"}
-			responseObject = &ResponseObject{}
+			headerMutator = client.NewHeaderMutator(testHTTP.NewHeaderKey(), testHTTP.NewHeaderValue())
+			parameterMutator = client.NewParameterMutator(testHTTP.NewParameterKey(), testHTTP.NewParameterValue())
+			mutators = []client.Mutator{headerMutator, parameterMutator}
+			requestBodyString = test.NewVariableString(0, 32, test.CharsetAlphaNumeric)
+			requestBody = &RequestBody{requestBodyString}
+			responseBodyString = test.NewVariableString(0, 32, test.CharsetAlphaNumeric)
+			responseBody = &ResponseBody{}
+			httpClient = http.DefaultClient
 		})
 
 		AfterEach(func() {
 			if server != nil {
 				server.Close()
 			}
-			Expect(context.UnusedOutputsCount()).To(Equal(0))
 		})
 
-		Context("SendRequestWithAuthToken", func() {
+		Context("SendRequest", func() {
 			It("returns error if context is missing", func() {
-				Expect(clnt.SendRequestWithAuthToken(nil, "GET", url, requestObject, responseObject)).To(MatchError("client: context is missing"))
+				Expect(clnt.SendRequest(nil, method, url, mutators, requestBody, responseBody, httpClient)).To(MatchError("context is missing"))
 				Expect(server.ReceivedRequests()).To(BeEmpty())
 			})
 
-			Context("with auth token", func() {
-				var token string
-
-				BeforeEach(func() {
-					token = id.New()
-					context.AuthDetailsImpl.TokenOutputs = []string{token}
-				})
-
-				It("returns error if method is missing", func() {
-					Expect(clnt.SendRequestWithAuthToken(context, "", url, requestObject, responseObject)).To(MatchError("client: method is missing"))
-					Expect(server.ReceivedRequests()).To(BeEmpty())
-				})
-
-				It("returns error if url is missing", func() {
-					Expect(clnt.SendRequestWithAuthToken(context, "GET", "", requestObject, responseObject)).To(MatchError("client: url is missing"))
-					Expect(server.ReceivedRequests()).To(BeEmpty())
-				})
-
-				It("returns error if token is missing", func() {
-					context.AuthDetailsImpl.TokenOutputs = []string{""}
-					Expect(clnt.SendRequestWithAuthToken(context, "GET", url, requestObject, responseObject)).To(MatchError("client: token is missing"))
-					Expect(server.ReceivedRequests()).To(BeEmpty())
-				})
-
-				It("returns error if the request object cannot be encoded", func() {
-					invalidRequestObject := struct{ Func interface{} }{func() {}}
-					Expect(clnt.SendRequestWithAuthToken(context, "GET", url, invalidRequestObject, responseObject).Error()).To(HavePrefix("client: error encoding JSON request to"))
-					Expect(server.ReceivedRequests()).To(BeEmpty())
-				})
-
-				It("returns an error if unable to copy request trace", func() {
-					context.RequestImpl = nil
-					Expect(clnt.SendRequestWithAuthToken(context, "GET", url, requestObject, responseObject)).To(MatchError("client: unable to copy request trace; service: source request is missing"))
-					Expect(server.ReceivedRequests()).To(BeEmpty())
-				})
-
-				It("returns error if the server is not reachable", func() {
-					server.Close()
-					server = nil
-					err := clnt.SendRequestWithAuthToken(context, "GET", url, requestObject, responseObject)
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(HavePrefix("client: unable to perform request GET "))
-				})
-
-				Context("with an unexpected response 400", func() {
-					BeforeEach(func() {
-						server.AppendHandlers(
-							CombineHandlers(
-								VerifyRequest("GET", path),
-								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
-								RespondWith(http.StatusBadRequest, nil, nil)),
-						)
-					})
-
-					It("returns an error", func() {
-						err := clnt.SendRequestWithAuthToken(context, "GET", url, requestObject, responseObject)
-						Expect(err).To(HaveOccurred())
-						Expect(err.Error()).To(HavePrefix("client: unexpected response status code 400 from GET "))
-						Expect(server.ReceivedRequests()).To(HaveLen(1))
-					})
-				})
-
-				Context("with an unauthorized response 401", func() {
-					BeforeEach(func() {
-						server.AppendHandlers(
-							CombineHandlers(
-								VerifyRequest("GET", path),
-								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
-								RespondWith(http.StatusUnauthorized, nil, nil)),
-						)
-					})
-
-					It("returns an error", func() {
-						err := clnt.SendRequestWithAuthToken(context, "GET", url, requestObject, responseObject)
-						Expect(err).To(MatchError("client: unauthorized"))
-						Expect(server.ReceivedRequests()).To(HaveLen(1))
-					})
-				})
-
-				Context("with an unparseable response", func() {
-					BeforeEach(func() {
-						server.AppendHandlers(
-							CombineHandlers(
-								VerifyRequest("GET", path),
-								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
-								RespondWith(http.StatusOK, []byte("{\"response\":"), nil)),
-						)
-					})
-
-					It("returns an error", func() {
-						err := clnt.SendRequestWithAuthToken(context, "GET", url, requestObject, responseObject)
-						Expect(err.Error()).To(HavePrefix("client: error decoding JSON response from GET "))
-						Expect(server.ReceivedRequests()).To(HaveLen(1))
-					})
-				})
-
-				Context("with a successful response 200", func() {
-					BeforeEach(func() {
-						server.AppendHandlers(
-							CombineHandlers(
-								VerifyRequest("GET", path),
-								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
-								RespondWith(http.StatusOK, []byte("{\"response\":\"beta\"}"), nil)),
-						)
-					})
-
-					It("returns success", func() {
-						Expect(clnt.SendRequestWithAuthToken(context, "GET", url, requestObject, responseObject)).To(Succeed())
-						Expect(server.ReceivedRequests()).To(HaveLen(1))
-						Expect(responseObject).ToNot(BeNil())
-						Expect(responseObject.Response).To(Equal("beta"))
-					})
-				})
-
-				Context("with a successful response 201", func() {
-					BeforeEach(func() {
-						server.AppendHandlers(
-							CombineHandlers(
-								VerifyRequest("GET", path),
-								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
-								RespondWith(http.StatusCreated, []byte("{\"response\":\"beta\"}"), nil)),
-						)
-					})
-
-					It("returns success", func() {
-						Expect(clnt.SendRequestWithAuthToken(context, "GET", url, requestObject, responseObject)).To(Succeed())
-						Expect(server.ReceivedRequests()).To(HaveLen(1))
-						Expect(responseObject).ToNot(BeNil())
-						Expect(responseObject.Response).To(Equal("beta"))
-					})
-				})
-
-				Context("with a successful response, but no request object", func() {
-					BeforeEach(func() {
-						server.AppendHandlers(
-							CombineHandlers(
-								VerifyRequest("GET", path),
-								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte{}),
-								RespondWith(http.StatusOK, []byte("{\"response\":\"beta\"}"), nil)),
-						)
-					})
-
-					It("returns success", func() {
-						Expect(clnt.SendRequestWithAuthToken(context, "GET", url, nil, responseObject)).To(Succeed())
-						Expect(server.ReceivedRequests()).To(HaveLen(1))
-						Expect(responseObject).ToNot(BeNil())
-						Expect(responseObject.Response).To(Equal("beta"))
-					})
-				})
-
-				Context("with a successful response, but no response object", func() {
-					BeforeEach(func() {
-						server.AppendHandlers(
-							CombineHandlers(
-								VerifyRequest("GET", path),
-								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
-								RespondWith(http.StatusOK, []byte("{\"response\":\"beta\"}"), nil)),
-						)
-					})
-
-					It("returns success without parsing response body", func() {
-						Expect(clnt.SendRequestWithAuthToken(context, "GET", url, requestObject, nil)).To(Succeed())
-						Expect(server.ReceivedRequests()).To(HaveLen(1))
-					})
-				})
-			})
-		})
-
-		Context("SendRequestWithServerToken", func() {
-			It("returns error if context is missing", func() {
-				Expect(clnt.SendRequestWithServerToken(nil, "GET", url, requestObject, responseObject)).To(MatchError("client: context is missing"))
+			It("returns error if method is missing", func() {
+				Expect(clnt.SendRequest(ctx, "", url, mutators, requestBody, responseBody, httpClient)).To(MatchError("method is missing"))
 				Expect(server.ReceivedRequests()).To(BeEmpty())
 			})
 
-			Context("with server token", func() {
-				var token string
+			It("returns error if url is missing", func() {
+				Expect(clnt.SendRequest(ctx, method, "", mutators, requestBody, responseBody, httpClient)).To(MatchError("url is missing"))
+				Expect(server.ReceivedRequests()).To(BeEmpty())
+			})
 
+			It("returns error if the request object cannot be encoded", func() {
+				invalidRequestBody := struct{ Func interface{} }{func() {}}
+				Expect(clnt.SendRequest(ctx, method, url, mutators, invalidRequestBody, responseBody, httpClient).Error()).To(HavePrefix("error encoding JSON request to"))
+				Expect(server.ReceivedRequests()).To(BeEmpty())
+			})
+
+			It("returns error if mutator is missing", func() {
+				invalidMutators := []client.Mutator{headerMutator, nil, parameterMutator}
+				Expect(clnt.SendRequest(ctx, method, url, invalidMutators, requestBody, responseBody, httpClient)).To(MatchError("mutator is missing"))
+				Expect(server.ReceivedRequests()).To(BeEmpty())
+			})
+
+			It("returns error if mutator returns an error", func() {
+				errorMutator := client.NewHeaderMutator("", "")
+				invalidMutators := []client.Mutator{headerMutator, errorMutator, parameterMutator}
+				Expect(clnt.SendRequest(ctx, method, url, invalidMutators, requestBody, responseBody, httpClient)).To(MatchError("unable to mutate request; key is missing"))
+				Expect(server.ReceivedRequests()).To(BeEmpty())
+			})
+
+			It("returns error if http client is missing", func() {
+				Expect(clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, nil)).To(MatchError("http client is missing"))
+				Expect(server.ReceivedRequests()).To(BeEmpty())
+			})
+
+			It("returns error if the server is not reachable", func() {
+				server.Close()
+				server = nil
+				err := clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(HavePrefix(fmt.Sprintf("unable to perform request %s %s", method, url)))
+			})
+
+			Context("with an unexpected response 400", func() {
 				BeforeEach(func() {
-					token = id.New()
-					context.AuthClientImpl.ServerTokenOutputs = []testAuth.ServerTokenOutput{{Token: token, Error: nil}}
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
+							RespondWith(http.StatusBadRequest, nil, nil)),
+					)
 				})
 
-				It("returns error if server token returns error", func() {
-					context.AuthClientImpl.ServerTokenOutputs = []testAuth.ServerTokenOutput{{Token: "", Error: errors.New("test")}}
-					Expect(clnt.SendRequestWithServerToken(context, "", url, requestObject, responseObject)).To(MatchError("test"))
-					Expect(server.ReceivedRequests()).To(BeEmpty())
+				It("returns an error", func() {
+					err := clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)
+					Expect(err).To(MatchError(fmt.Sprintf(`unexpected response status code 400 from %s "%s?%s=%s"`, method, url, parameterMutator.Key, parameterMutator.Value)))
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with an unauthorized response 401", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
+							RespondWith(http.StatusUnauthorized, nil, nil)),
+					)
 				})
 
-				It("returns error if method is missing", func() {
-					Expect(clnt.SendRequestWithServerToken(context, "", url, requestObject, responseObject)).To(MatchError("client: method is missing"))
-					Expect(server.ReceivedRequests()).To(BeEmpty())
+				It("returns an error", func() {
+					err := clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)
+					Expect(err).To(MatchError("authentication token is invalid"))
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with an unparseable response", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
+							RespondWith(http.StatusOK, []byte("{\"response\":"), nil)),
+					)
 				})
 
-				It("returns error if url is missing", func() {
-					Expect(clnt.SendRequestWithServerToken(context, "GET", "", requestObject, responseObject)).To(MatchError("client: url is missing"))
-					Expect(server.ReceivedRequests()).To(BeEmpty())
+				It("returns an error", func() {
+					err := clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)
+					Expect(err).To(MatchError("json is malformed; unexpected EOF"))
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with a successful response 200", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
+							RespondWith(http.StatusOK, []byte("{\"response\":\""+responseBodyString+"\"}"), nil)),
+					)
 				})
 
-				It("returns error if token is missing", func() {
-					context.AuthClientImpl.ServerTokenOutputs = []testAuth.ServerTokenOutput{{Token: "", Error: nil}}
-					Expect(clnt.SendRequestWithServerToken(context, "GET", url, requestObject, responseObject)).To(MatchError("client: token is missing"))
-					Expect(server.ReceivedRequests()).To(BeEmpty())
+				It("returns success", func() {
+					Expect(clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)).To(Succeed())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+					Expect(responseBody).ToNot(BeNil())
+					Expect(responseBody.Response).To(Equal(responseBodyString))
+				})
+			})
+
+			Context("with a successful response 201", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
+							RespondWith(http.StatusCreated, []byte("{\"response\":\""+responseBodyString+"\"}"), nil)),
+					)
 				})
 
-				It("returns error if the request object cannot be encoded", func() {
-					invalidRequestObject := struct{ Cycle interface{} }{func() {}}
-					Expect(clnt.SendRequestWithServerToken(context, "GET", url, invalidRequestObject, responseObject).Error()).To(HavePrefix("client: error encoding JSON request to"))
-					Expect(server.ReceivedRequests()).To(BeEmpty())
+				It("returns success", func() {
+					Expect(clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)).To(Succeed())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+					Expect(responseBody).ToNot(BeNil())
+					Expect(responseBody.Response).To(Equal(responseBodyString))
+				})
+			})
+
+			Context("with a successful response, but no request object", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody([]byte{}),
+							RespondWith(http.StatusOK, []byte("{\"response\":\""+responseBodyString+"\"}"), nil)),
+					)
 				})
 
-				It("returns an error if unable to copy request trace", func() {
-					context.RequestImpl = nil
-					Expect(clnt.SendRequestWithServerToken(context, "GET", url, requestObject, responseObject)).To(MatchError("client: unable to copy request trace; service: source request is missing"))
-					Expect(server.ReceivedRequests()).To(BeEmpty())
+				It("returns success", func() {
+					Expect(clnt.SendRequest(ctx, method, url, mutators, nil, responseBody, httpClient)).To(Succeed())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+					Expect(responseBody).ToNot(BeNil())
+					Expect(responseBody.Response).To(Equal(responseBodyString))
+				})
+			})
+
+			Context("with a successful response, but no response object", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
+							RespondWith(http.StatusOK, []byte("{\"response\":\""+responseBodyString+"\"}"), nil)),
+					)
 				})
 
-				It("returns error if the server is not reachable", func() {
-					server.Close()
-					server = nil
-					err := clnt.SendRequestWithServerToken(context, "GET", url, requestObject, responseObject)
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(HavePrefix("client: unable to perform request GET "))
-				})
-
-				Context("with an unexpected response 400", func() {
-					BeforeEach(func() {
-						server.AppendHandlers(
-							CombineHandlers(
-								VerifyRequest("GET", path),
-								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
-								RespondWith(http.StatusBadRequest, nil, nil)),
-						)
-					})
-
-					It("returns an error", func() {
-						err := clnt.SendRequestWithServerToken(context, "GET", url, requestObject, responseObject)
-						Expect(err).To(HaveOccurred())
-						Expect(err.Error()).To(HavePrefix("client: unexpected response status code 400 from GET "))
-						Expect(server.ReceivedRequests()).To(HaveLen(1))
-					})
-				})
-
-				Context("with an unauthorized response 401", func() {
-					BeforeEach(func() {
-						server.AppendHandlers(
-							CombineHandlers(
-								VerifyRequest("GET", path),
-								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
-								RespondWith(http.StatusUnauthorized, nil, nil)),
-						)
-					})
-
-					It("returns an error", func() {
-						err := clnt.SendRequestWithServerToken(context, "GET", url, requestObject, responseObject)
-						Expect(err).To(MatchError("client: unauthorized"))
-						Expect(server.ReceivedRequests()).To(HaveLen(1))
-					})
-				})
-
-				Context("with an unparseable response", func() {
-					BeforeEach(func() {
-						server.AppendHandlers(
-							CombineHandlers(
-								VerifyRequest("GET", path),
-								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
-								RespondWith(http.StatusOK, []byte("{\"response\":"), nil)),
-						)
-					})
-
-					It("returns an error", func() {
-						err := clnt.SendRequestWithServerToken(context, "GET", url, requestObject, responseObject)
-						Expect(err.Error()).To(HavePrefix("client: error decoding JSON response from GET "))
-						Expect(server.ReceivedRequests()).To(HaveLen(1))
-					})
-				})
-
-				Context("with a successful response 200", func() {
-					BeforeEach(func() {
-						server.AppendHandlers(
-							CombineHandlers(
-								VerifyRequest("GET", path),
-								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
-								RespondWith(http.StatusOK, []byte("{\"response\":\"beta\"}"), nil)),
-						)
-					})
-
-					It("returns success", func() {
-						Expect(clnt.SendRequestWithServerToken(context, "GET", url, requestObject, responseObject)).To(Succeed())
-						Expect(server.ReceivedRequests()).To(HaveLen(1))
-						Expect(responseObject).ToNot(BeNil())
-						Expect(responseObject.Response).To(Equal("beta"))
-					})
-				})
-
-				Context("with a successful response 201", func() {
-					BeforeEach(func() {
-						server.AppendHandlers(
-							CombineHandlers(
-								VerifyRequest("GET", path),
-								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
-								RespondWith(http.StatusCreated, []byte("{\"response\":\"beta\"}"), nil)),
-						)
-					})
-
-					It("returns success", func() {
-						Expect(clnt.SendRequestWithServerToken(context, "GET", url, requestObject, responseObject)).To(Succeed())
-						Expect(server.ReceivedRequests()).To(HaveLen(1))
-						Expect(responseObject).ToNot(BeNil())
-						Expect(responseObject.Response).To(Equal("beta"))
-					})
-				})
-
-				Context("with a successful response, but no request object", func() {
-					BeforeEach(func() {
-						server.AppendHandlers(
-							CombineHandlers(
-								VerifyRequest("GET", path),
-								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte{}),
-								RespondWith(http.StatusOK, []byte("{\"response\":\"beta\"}"), nil)),
-						)
-					})
-
-					It("returns success", func() {
-						Expect(clnt.SendRequestWithServerToken(context, "GET", url, nil, responseObject)).To(Succeed())
-						Expect(server.ReceivedRequests()).To(HaveLen(1))
-						Expect(responseObject).ToNot(BeNil())
-						Expect(responseObject.Response).To(Equal("beta"))
-					})
-				})
-
-				Context("with a successful response, but no response object", func() {
-					BeforeEach(func() {
-						server.AppendHandlers(
-							CombineHandlers(
-								VerifyRequest("GET", path),
-								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte("{\"request\":\"alpha\"}\n")),
-								RespondWith(http.StatusOK, []byte("{\"response\":\"beta\"}"), nil)),
-						)
-					})
-
-					It("returns success without parsing response body", func() {
-						Expect(clnt.SendRequestWithServerToken(context, "GET", url, requestObject, nil)).To(Succeed())
-						Expect(server.ReceivedRequests()).To(HaveLen(1))
-					})
+				It("returns success without parsing response body", func() {
+					Expect(clnt.SendRequest(ctx, method, url, mutators, requestBody, nil, httpClient)).To(Succeed())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 			})
 		})

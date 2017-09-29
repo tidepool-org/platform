@@ -13,7 +13,7 @@ type Router struct {
 
 func NewRouter(svc service.Service) (*Router, error) {
 	if svc == nil {
-		return nil, errors.New("api", "service is missing")
+		return nil, errors.New("service is missing")
 	}
 
 	return &Router{

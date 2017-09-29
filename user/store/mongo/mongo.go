@@ -1,6 +1,7 @@
 package mongo
 
 import (
+	"context"
 	"crypto/sha1"
 	"encoding/hex"
 	"time"
@@ -14,23 +15,23 @@ import (
 	"github.com/tidepool-org/platform/user/store"
 )
 
-func New(logger log.Logger, config *Config) (*Store, error) {
-	if config == nil {
-		return nil, errors.New("mongo", "config is missing")
+func New(cfg *Config, lgr log.Logger) (*Store, error) {
+	if cfg == nil {
+		return nil, errors.New("config is missing")
 	}
 
-	baseStore, err := mongo.New(logger, config.Config)
+	baseStore, err := mongo.New(cfg.Config, lgr)
 	if err != nil {
 		return nil, err
 	}
 
-	if err = config.Validate(); err != nil {
-		return nil, errors.Wrap(err, "mongo", "config is invalid")
+	if err = cfg.Validate(); err != nil {
+		return nil, errors.Wrap(err, "config is invalid")
 	}
 
 	return &Store{
 		Store:  baseStore,
-		config: config,
+		config: cfg,
 	}, nil
 }
 
@@ -39,9 +40,9 @@ type Store struct {
 	config *Config
 }
 
-func (s *Store) NewUsersSession(logger log.Logger) store.UsersSession {
+func (s *Store) NewUsersSession() store.UsersSession {
 	return &UsersSession{
-		Session: s.Store.NewSession(logger, "users"),
+		Session: s.Store.NewSession("users"),
 		config:  s.config,
 	}
 }
@@ -51,13 +52,16 @@ type UsersSession struct {
 	config *Config
 }
 
-func (u *UsersSession) GetUserByID(userID string) (*user.User, error) {
+func (u *UsersSession) GetUserByID(ctx context.Context, userID string) (*user.User, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
 	if userID == "" {
-		return nil, errors.New("mongo", "user id is missing")
+		return nil, errors.New("user id is missing")
 	}
 
 	if u.IsClosed() {
-		return nil, errors.New("mongo", "session closed")
+		return nil, errors.New("session closed")
 	}
 
 	startTime := time.Now()
@@ -69,16 +73,16 @@ func (u *UsersSession) GetUserByID(userID string) (*user.User, error) {
 	err := u.C().Find(selector).Limit(2).All(&users)
 
 	loggerFields := log.Fields{"userId": userID, "duration": time.Since(startTime) / time.Microsecond}
-	u.Logger().WithFields(loggerFields).WithError(err).Debug("GetUserByID")
+	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("GetUserByID")
 
 	if err != nil {
-		return nil, errors.Wrap(err, "mongo", "unable to get user by id")
+		return nil, errors.Wrap(err, "unable to get user by id")
 	}
 
 	if usersCount := len(users); usersCount == 0 {
 		return nil, nil
 	} else if usersCount > 1 {
-		u.Logger().WithField("userId", userID).Warn("Multiple users found for user id")
+		log.LoggerFromContext(ctx).WithField("userId", userID).Warn("Multiple users found for user id")
 	}
 
 	user := users[0]
@@ -90,22 +94,24 @@ func (u *UsersSession) GetUserByID(userID string) (*user.User, error) {
 	return user, nil
 }
 
-func (u *UsersSession) DeleteUser(user *user.User) error {
+func (u *UsersSession) DeleteUser(ctx context.Context, user *user.User) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
 	if user == nil {
-		return errors.New("mongo", "user is missing")
+		return errors.New("user is missing")
 	}
 	if user.ID == "" {
-		return errors.New("mongo", "user id is missing")
+		return errors.New("user id is missing")
 	}
 
 	if u.IsClosed() {
-		return errors.New("mongo", "session closed")
+		return errors.New("session closed")
 	}
 
 	startTime := time.Now()
 
-	user.DeletedTime = u.Timestamp()
-	user.DeletedUserID = u.AgentUserID()
+	user.DeletedTime = time.Now().Format(time.RFC3339)
 
 	selector := bson.M{
 		"userid": user.ID,
@@ -113,21 +119,24 @@ func (u *UsersSession) DeleteUser(user *user.User) error {
 	err := u.C().Update(selector, user)
 
 	loggerFields := log.Fields{"userId": user.ID, "duration": time.Since(startTime) / time.Microsecond}
-	u.Logger().WithFields(loggerFields).WithError(err).Debug("DeleteUser")
+	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DeleteUser")
 
 	if err != nil {
-		return errors.Wrap(err, "mongo", "unable to delete user")
+		return errors.Wrap(err, "unable to delete user")
 	}
 	return nil
 }
 
-func (u *UsersSession) DestroyUserByID(userID string) error {
+func (u *UsersSession) DestroyUserByID(ctx context.Context, userID string) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
 	if userID == "" {
-		return errors.New("mongo", "user id is missing")
+		return errors.New("user id is missing")
 	}
 
 	if u.IsClosed() {
-		return errors.New("mongo", "session closed")
+		return errors.New("session closed")
 	}
 
 	startTime := time.Now()
@@ -138,10 +147,10 @@ func (u *UsersSession) DestroyUserByID(userID string) error {
 	err := u.C().Remove(selector)
 
 	loggerFields := log.Fields{"userId": userID, "duration": time.Since(startTime) / time.Microsecond}
-	u.Logger().WithFields(loggerFields).WithError(err).Debug("DestroyUserByID")
+	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DestroyUserByID")
 
 	if err != nil {
-		return errors.Wrap(err, "mongo", "unable to destroy user by id")
+		return errors.Wrap(err, "unable to destroy user by id")
 	}
 	return nil
 }
