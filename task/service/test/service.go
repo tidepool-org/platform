@@ -2,7 +2,7 @@ package test
 
 import (
 	testService "github.com/tidepool-org/platform/service/test"
-	"github.com/tidepool-org/platform/task"
+	"github.com/tidepool-org/platform/task/service"
 	"github.com/tidepool-org/platform/task/store"
 	testStore "github.com/tidepool-org/platform/task/store/test"
 )
@@ -12,7 +12,7 @@ type Service struct {
 	TaskStoreInvocations int
 	TaskStoreImpl        *testStore.Store
 	StatusInvocations    int
-	StatusOutputs        []*task.Status
+	StatusOutputs        []*service.Status
 }
 
 func NewService() *Service {
@@ -28,7 +28,7 @@ func (s *Service) TaskStore() store.Store {
 	return s.TaskStoreImpl
 }
 
-func (s *Service) Status() *task.Status {
+func (s *Service) Status() *service.Status {
 	s.StatusInvocations++
 
 	if len(s.StatusOutputs) == 0 {

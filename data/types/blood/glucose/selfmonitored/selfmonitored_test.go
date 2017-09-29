@@ -36,7 +36,7 @@ func NewTestSelfMonitored(sourceTime interface{}, sourceUnits interface{}, sourc
 		testSelfMonitored.Units = pointer.String(value)
 	}
 	if value, ok := sourceValue.(float64); ok {
-		testSelfMonitored.Value = pointer.Float(value)
+		testSelfMonitored.Value = pointer.Float64(value)
 	}
 	if value, ok := sourceSubType.(string); ok {
 		testSelfMonitored.SubType = pointer.String(value)

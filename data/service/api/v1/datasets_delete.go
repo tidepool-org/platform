@@ -3,20 +3,25 @@ package v1
 import (
 	"net/http"
 
-	"github.com/tidepool-org/platform/client"
 	dataService "github.com/tidepool-org/platform/data/service"
+	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
-	userClient "github.com/tidepool-org/platform/user/client"
+	"github.com/tidepool-org/platform/user"
 )
 
 func DatasetsDelete(dataServiceContext dataService.Context) {
-	datasetID := dataServiceContext.Request().PathParam("dataset_id")
+	ctx := dataServiceContext.Request().Context()
+	lgr := log.LoggerFromContext(ctx)
+
+	datasetID := dataServiceContext.Request().PathParam("dataSetId")
 	if datasetID == "" {
 		dataServiceContext.RespondWithError(ErrorDatasetIDMissing())
 		return
 	}
 
-	dataset, err := dataServiceContext.DataSession().GetDatasetByID(datasetID)
+	dataset, err := dataServiceContext.DataSession().GetDatasetByID(ctx, datasetID)
 	if err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to get dataset by id", err)
 		return
@@ -32,22 +37,22 @@ func DatasetsDelete(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if !dataServiceContext.AuthDetails().IsServer() {
-		authUserID := dataServiceContext.AuthDetails().UserID()
+	if details := request.DetailsFromContext(ctx); !details.IsService() {
+		authUserID := details.UserID()
 
-		var permissions userClient.Permissions
-		permissions, err = dataServiceContext.UserClient().GetUserPermissions(dataServiceContext, authUserID, targetUserID)
+		var permissions user.Permissions
+		permissions, err = dataServiceContext.UserClient().GetUserPermissions(ctx, authUserID, targetUserID)
 		if err != nil {
-			if client.IsUnauthorizedError(err) {
+			if errors.Code(err) == request.ErrorCodeUnauthorized {
 				dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 			} else {
 				dataServiceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
 			}
 			return
 		}
-		if _, ok := permissions[userClient.OwnerPermission]; !ok {
-			if _, ok = permissions[userClient.CustodianPermission]; !ok {
-				if _, ok = permissions[userClient.UploadPermission]; !ok || authUserID != dataset.ByUser {
+		if _, ok := permissions[user.OwnerPermission]; !ok {
+			if _, ok = permissions[user.CustodianPermission]; !ok {
+				if _, ok = permissions[user.UploadPermission]; !ok || authUserID != dataset.ByUser {
 					dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 					return
 				}
@@ -62,14 +67,14 @@ func DatasetsDelete(dataServiceContext dataService.Context) {
 	}
 
 	if registered {
-		deduplicator, newErr := dataServiceContext.DataDeduplicatorFactory().NewRegisteredDeduplicatorForDataset(dataServiceContext.Logger(), dataServiceContext.DataSession(), dataset)
+		deduplicator, newErr := dataServiceContext.DataDeduplicatorFactory().NewRegisteredDeduplicatorForDataset(lgr, dataServiceContext.DataSession(), dataset)
 		if newErr != nil {
 			dataServiceContext.RespondWithInternalServerFailure("Unable to create registered deduplicator for dataset", newErr)
 			return
 		}
-		err = deduplicator.DeleteDataset()
+		err = deduplicator.DeleteDataset(ctx)
 	} else {
-		err = dataServiceContext.DataSession().DeleteDataset(dataset)
+		err = dataServiceContext.DataSession().DeleteDataset(ctx, dataset)
 	}
 
 	if err != nil {
@@ -77,8 +82,8 @@ func DatasetsDelete(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if err = dataServiceContext.MetricClient().RecordMetric(dataServiceContext, "datasets_delete"); err != nil {
-		dataServiceContext.Logger().WithError(err).Error("Unable to record metric")
+	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "datasets_delete"); err != nil {
+		lgr.WithError(err).Error("Unable to record metric")
 	}
 
 	dataServiceContext.RespondWithStatusAndData(http.StatusOK, struct{}{})

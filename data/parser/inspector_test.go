@@ -13,7 +13,7 @@ var _ = Describe("Inspector", func() {
 	Context("NewObjectParserInspector", func() {
 		It("returns an error when the parser is missing", func() {
 			inspector, err := parser.NewObjectParserInspector(nil)
-			Expect(err).To(MatchError("parser: parser is missing"))
+			Expect(err).To(MatchError("parser is missing"))
 			Expect(inspector).To(BeNil())
 		})
 	})

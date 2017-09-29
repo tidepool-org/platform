@@ -15,7 +15,7 @@ type serializer struct{}
 
 func (s *serializer) Serialize(fields log.Fields) error {
 	if fields == nil {
-		return errors.New("null", "fields are missing")
+		return errors.New("fields are missing")
 	}
 
 	return nil

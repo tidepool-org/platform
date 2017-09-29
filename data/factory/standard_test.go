@@ -81,11 +81,11 @@ func (t *TestPropertyMapInspector) GetProperty(key string) *string {
 }
 
 func (t *TestPropertyMapInspector) NewMissingPropertyError(key string) error {
-	return fmt.Errorf("test: %s is missing", key)
+	return fmt.Errorf("%s is missing", key)
 }
 
 func (t *TestPropertyMapInspector) NewInvalidPropertyError(key string, value string, allowedValues []string) error {
-	return fmt.Errorf("test: %s is invalid", key)
+	return fmt.Errorf("%s is invalid", key)
 }
 
 var _ = Describe("Standard", func() {
@@ -102,7 +102,7 @@ var _ = Describe("Standard", func() {
 			newFunc := factory.NewNewFuncWithFunc(func() data.Datum { return nil })
 			Expect(newFunc).ToNot(BeNil())
 			datum, err := newFunc(nil)
-			Expect(err).To(MatchError("factory: inspector is missing"))
+			Expect(err).To(MatchError("inspector is missing"))
 			Expect(datum).To(BeNil())
 		})
 
@@ -138,7 +138,7 @@ var _ = Describe("Standard", func() {
 			testDatum = testData.NewDatum()
 			testNewFuncMap = factory.NewFuncMap{
 				"value-datum-func-returns-datum": func(_ data.Inspector) (data.Datum, error) { return testDatum, nil },
-				"value-datum-func-returns-error": func(_ data.Inspector) (data.Datum, error) { return nil, errors.New("test: datum func returns error") },
+				"value-datum-func-returns-error": func(_ data.Inspector) (data.Datum, error) { return nil, errors.New("datum func returns error") },
 				"value-new-func-nil":             nil,
 			}
 			testNewFuncAllowedValues = []string{"value-datum-func-returns-datum", "value-datum-func-returns-error", "value-new-func-nil"}
@@ -158,7 +158,7 @@ var _ = Describe("Standard", func() {
 			newFunc := factory.NewNewFuncWithKeyAndMap("key-datum-func-returns-error", testNewFuncMap)
 			Expect(newFunc).ToNot(BeNil())
 			datum, err := newFunc(testInspector)
-			Expect(err).To(MatchError("test: datum func returns error"))
+			Expect(err).To(MatchError("datum func returns error"))
 			Expect(datum).To(BeNil())
 			Expect(testInspector.GetPropertyInputs).To(ConsistOf("key-datum-func-returns-error"))
 		})
@@ -167,18 +167,18 @@ var _ = Describe("Standard", func() {
 			newFunc := factory.NewNewFuncWithKeyAndMap("key-datum-func-returns-datum", testNewFuncMap)
 			Expect(newFunc).ToNot(BeNil())
 			datum, err := newFunc(nil)
-			Expect(err).To(MatchError("factory: inspector is missing"))
+			Expect(err).To(MatchError("inspector is missing"))
 			Expect(datum).To(BeNil())
 			Expect(testInspector.GetPropertyInputs).To(BeEmpty())
 		})
 
 		It("returns a NewFunc that returns an error if the key is not found by the inspector", func() {
 			testInspector.GetPropertyOutputs = []*string{nil}
-			testInspector.NewMissingPropertyErrorOutputs = []error{errors.New("test: key not found by inspector")}
+			testInspector.NewMissingPropertyErrorOutputs = []error{errors.New("key not found by inspector")}
 			newFunc := factory.NewNewFuncWithKeyAndMap("key-not-found-by-inspector", testNewFuncMap)
 			Expect(newFunc).ToNot(BeNil())
 			datum, err := newFunc(testInspector)
-			Expect(err).To(MatchError("test: key not found by inspector"))
+			Expect(err).To(MatchError("key not found by inspector"))
 			Expect(datum).To(BeNil())
 			Expect(testInspector.GetPropertyInputs).To(ConsistOf("key-not-found-by-inspector"))
 			Expect(testInspector.NewMissingPropertyErrorInputs).To(ConsistOf("key-not-found-by-inspector"))
@@ -186,11 +186,11 @@ var _ = Describe("Standard", func() {
 
 		It("returns a NewFunc that returns an error if the value returned by the inspector is not found in the new func map", func() {
 			testInspector.GetPropertyOutputs = []*string{pointer.String("value-new-func-not-found")}
-			testInspector.NewInvalidPropertyErrorOutputs = []error{errors.New("test: value new func not found")}
+			testInspector.NewInvalidPropertyErrorOutputs = []error{errors.New("value new func not found")}
 			newFunc := factory.NewNewFuncWithKeyAndMap("key-new-func-not-found", testNewFuncMap)
 			Expect(newFunc).ToNot(BeNil())
 			datum, err := newFunc(testInspector)
-			Expect(err).To(MatchError("test: value new func not found"))
+			Expect(err).To(MatchError("value new func not found"))
 			Expect(datum).To(BeNil())
 			Expect(testInspector.GetPropertyInputs).To(ConsistOf("key-new-func-not-found"))
 			Expect(testInspector.NewInvalidPropertyErrorInputs).To(ConsistOf(NewInvalidPropertyErrorInput{"key-new-func-not-found", "value-new-func-not-found", testNewFuncAllowedValues}))
@@ -198,11 +198,11 @@ var _ = Describe("Standard", func() {
 
 		It("returns a NewFunc that returns an error if the value returned by the inspector is nil in the new func map", func() {
 			testInspector.GetPropertyOutputs = []*string{pointer.String("value-new-func-nil")}
-			testInspector.NewMissingPropertyErrorOutputs = []error{errors.New("test: value new func nil")}
+			testInspector.NewMissingPropertyErrorOutputs = []error{errors.New("value new func nil")}
 			newFunc := factory.NewNewFuncWithKeyAndMap("key-new-func-nil", testNewFuncMap)
 			Expect(newFunc).ToNot(BeNil())
 			datum, err := newFunc(testInspector)
-			Expect(err).To(MatchError("test: value new func nil"))
+			Expect(err).To(MatchError("value new func nil"))
 			Expect(datum).To(BeNil())
 			Expect(testInspector.GetPropertyInputs).To(ConsistOf("key-new-func-nil"))
 			Expect(testInspector.NewMissingPropertyErrorInputs).To(ConsistOf("value-new-func-nil"))
@@ -246,10 +246,10 @@ var _ = Describe("Standard", func() {
 			}
 
 			InvalidStandardFactoryEntries := []TableEntry{
-				Entry("is basal unknown", map[string]string{"type": "basal", "deliveryType": "unknown"}, "test: deliveryType is invalid"),
-				Entry("is bolus unknown", map[string]string{"type": "bolus", "subType": "unknown"}, "test: subType is invalid"),
-				Entry("is deviceEvent unknown", map[string]string{"type": "deviceEvent", "subType": "unknown"}, "test: subType is invalid"),
-				Entry("is unknown", map[string]string{"type": "unknown"}, "test: type is invalid"),
+				Entry("is basal unknown", map[string]string{"type": "basal", "deliveryType": "unknown"}, "deliveryType is invalid"),
+				Entry("is bolus unknown", map[string]string{"type": "bolus", "subType": "unknown"}, "subType is invalid"),
+				Entry("is deviceEvent unknown", map[string]string{"type": "deviceEvent", "subType": "unknown"}, "subType is invalid"),
+				Entry("is unknown", map[string]string{"type": "unknown"}, "type is invalid"),
 			}
 
 			Context("New", func() {

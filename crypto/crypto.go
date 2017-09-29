@@ -17,15 +17,15 @@ func HashWithMD5(sourceString string) string {
 func EncryptWithAES256UsingPassphrase(bytes []byte, passphrase []byte) (_ []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = errors.New("crypto", "unrecoverable encryption failure")
+			err = errors.New("unrecoverable encryption failure")
 		}
 	}()
 
 	if len(bytes) == 0 {
-		return nil, errors.New("crypto", "bytes is missing")
+		return nil, errors.New("bytes is missing")
 	}
 	if len(passphrase) == 0 {
-		return nil, errors.New("crypto", "passphrase is missing")
+		return nil, errors.New("passphrase is missing")
 	}
 
 	key, iv := passphraseToKey32AndIV16(passphrase)
@@ -35,15 +35,15 @@ func EncryptWithAES256UsingPassphrase(bytes []byte, passphrase []byte) (_ []byte
 func DecryptWithAES256UsingPassphrase(bytes []byte, passphrase []byte) (_ []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = errors.New("crypto", "unrecoverable decryption failure")
+			err = errors.New("unrecoverable decryption failure")
 		}
 	}()
 
 	if len(bytes) == 0 {
-		return nil, errors.New("crypto", "bytes is missing")
+		return nil, errors.New("bytes is missing")
 	}
 	if len(passphrase) == 0 {
-		return nil, errors.New("crypto", "passphrase is missing")
+		return nil, errors.New("passphrase is missing")
 	}
 
 	key, iv := passphraseToKey32AndIV16(passphrase)

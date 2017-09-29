@@ -4,6 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"context"
 	"time"
 
 	mgo "gopkg.in/mgo.v2"
@@ -12,7 +13,8 @@ import (
 	"github.com/tidepool-org/platform/confirmation/store"
 	"github.com/tidepool-org/platform/confirmation/store/mongo"
 	"github.com/tidepool-org/platform/id"
-	"github.com/tidepool-org/platform/log/null"
+	"github.com/tidepool-org/platform/log"
+	logNull "github.com/tidepool-org/platform/log/null"
 	baseMongo "github.com/tidepool-org/platform/store/mongo"
 	testMongo "github.com/tidepool-org/platform/test/mongo"
 )
@@ -52,11 +54,13 @@ func ValidateConfirmations(testMongoCollection *mgo.Collection, selector bson.M,
 }
 
 var _ = Describe("Mongo", func() {
+	var ctx context.Context
 	var mongoConfig *baseMongo.Config
 	var mongoStore *mongo.Store
 	var mongoSession store.ConfirmationsSession
 
 	BeforeEach(func() {
+		ctx = log.NewContextWithLogger(context.Background(), logNull.NewLogger())
 		mongoConfig = &baseMongo.Config{
 			Addresses:        []string{testMongo.Address()},
 			Database:         testMongo.Database(),
@@ -84,7 +88,7 @@ var _ = Describe("Mongo", func() {
 
 		It("returns a new store and no error if successful", func() {
 			var err error
-			mongoStore, err = mongo.New(null.NewLogger(), mongoConfig)
+			mongoStore, err = mongo.New(mongoConfig, logNull.NewLogger())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mongoStore).ToNot(BeNil())
 		})
@@ -93,29 +97,21 @@ var _ = Describe("Mongo", func() {
 	Context("with a new store", func() {
 		BeforeEach(func() {
 			var err error
-			mongoStore, err = mongo.New(null.NewLogger(), mongoConfig)
+			mongoStore, err = mongo.New(mongoConfig, logNull.NewLogger())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mongoStore).ToNot(BeNil())
 		})
 
 		Context("NewConfirmationsSession", func() {
-			It("returns a new session if no logger specified", func() {
-				mongoSession = mongoStore.NewConfirmationsSession(nil)
+			It("returns a new session", func() {
+				mongoSession = mongoStore.NewConfirmationsSession()
 				Expect(mongoSession).ToNot(BeNil())
-				Expect(mongoSession.Logger()).ToNot(BeNil())
-			})
-
-			It("returns a new session if logger specified", func() {
-				logger := null.NewLogger()
-				mongoSession = mongoStore.NewConfirmationsSession(logger)
-				Expect(mongoSession).ToNot(BeNil())
-				Expect(mongoSession.Logger()).ToNot(BeNil())
 			})
 		})
 
 		Context("with a new session", func() {
 			BeforeEach(func() {
-				mongoSession = mongoStore.NewConfirmationsSession(null.NewLogger())
+				mongoSession = mongoStore.NewConfirmationsSession()
 				Expect(mongoSession).ToNot(BeNil())
 			})
 
@@ -156,21 +152,21 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("succeeds if it successfully removes confirmations", func() {
-						Expect(mongoSession.DestroyConfirmationsForUserByID(destroyUserID)).To(Succeed())
+						Expect(mongoSession.DestroyConfirmationsForUserByID(ctx, destroyUserID)).To(Succeed())
 					})
 
 					It("returns an error if the user id is missing", func() {
-						Expect(mongoSession.DestroyConfirmationsForUserByID("")).To(MatchError("mongo: user id is missing"))
+						Expect(mongoSession.DestroyConfirmationsForUserByID(ctx, "")).To(MatchError("user id is missing"))
 					})
 
 					It("returns an error if the session is closed", func() {
 						mongoSession.Close()
-						Expect(mongoSession.DestroyConfirmationsForUserByID(destroyUserID)).To(MatchError("mongo: session closed"))
+						Expect(mongoSession.DestroyConfirmationsForUserByID(ctx, destroyUserID)).To(MatchError("session closed"))
 					})
 
 					It("has the correct stored confirmations", func() {
 						ValidateConfirmations(testMongoCollection, bson.M{}, append(confirmations, destroyConfirmations...))
-						Expect(mongoSession.DestroyConfirmationsForUserByID(destroyUserID)).To(Succeed())
+						Expect(mongoSession.DestroyConfirmationsForUserByID(ctx, destroyUserID)).To(Succeed())
 						ValidateConfirmations(testMongoCollection, bson.M{}, confirmations)
 					})
 				})

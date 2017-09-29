@@ -4,48 +4,58 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/data"
+	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataContext "github.com/tidepool-org/platform/data/service/context"
 	dataStore "github.com/tidepool-org/platform/data/store"
+	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
 	"github.com/tidepool-org/platform/errors"
-	metricClient "github.com/tidepool-org/platform/metric/client"
+	"github.com/tidepool-org/platform/metric"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/service/api"
 	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
-	usersClient "github.com/tidepool-org/platform/user/client"
+	"github.com/tidepool-org/platform/user"
 )
 
 type Standard struct {
 	*api.API
-	metricClient            metricClient.Client
-	userClient              usersClient.Client
+	metricClient            metric.Client
+	userClient              user.Client
 	dataFactory             data.Factory
 	dataDeduplicatorFactory deduplicator.Factory
 	dataStore               dataStore.Store
+	dataStoreDEPRECATED     dataStoreDEPRECATED.Store
 	syncTaskStore           syncTaskStore.Store
+	dataClient              dataClient.Client
 }
 
-func NewStandard(svc service.Service, metricClient metricClient.Client, userClient usersClient.Client,
-	dataFactory data.Factory, dataDeduplicatorFactory deduplicator.Factory,
-	dataStore dataStore.Store, syncTaskStore syncTaskStore.Store) (*Standard, error) {
+func NewStandard(svc service.Service, metricClient metric.Client, userClient user.Client,
+	dataFactory data.Factory, dataDeduplicatorFactory deduplicator.Factory, dataStore dataStore.Store,
+	dataStoreDEPRECATED dataStoreDEPRECATED.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client) (*Standard, error) {
 	if metricClient == nil {
-		return nil, errors.New("api", "metric client is missing")
+		return nil, errors.New("metric client is missing")
 	}
 	if userClient == nil {
-		return nil, errors.New("api", "user client is missing")
+		return nil, errors.New("user client is missing")
 	}
 	if dataFactory == nil {
-		return nil, errors.New("api", "data factory is missing")
+		return nil, errors.New("data factory is missing")
 	}
 	if dataDeduplicatorFactory == nil {
-		return nil, errors.New("api", "data deduplicator factory is missing")
+		return nil, errors.New("data deduplicator factory is missing")
 	}
 	if dataStore == nil {
-		return nil, errors.New("api", "data store is missing")
+		return nil, errors.New("data store is missing")
+	}
+	if dataStoreDEPRECATED == nil {
+		return nil, errors.New("data store DEPRECATED is missing")
 	}
 	if syncTaskStore == nil {
-		return nil, errors.New("api", "sync task store is missing")
+		return nil, errors.New("sync task store is missing")
+	}
+	if dataClient == nil {
+		return nil, errors.New("data client is missing")
 	}
 
 	a, err := api.New(svc)
@@ -60,7 +70,9 @@ func NewStandard(svc service.Service, metricClient metricClient.Client, userClie
 		dataFactory:             dataFactory,
 		dataDeduplicatorFactory: dataDeduplicatorFactory,
 		dataStore:               dataStore,
+		dataStoreDEPRECATED:     dataStoreDEPRECATED,
 		syncTaskStore:           syncTaskStore,
+		dataClient:              dataClient,
 	}, nil
 }
 
@@ -83,7 +95,7 @@ func (s *Standard) DEPRECATEDInitializeRouter(routes []dataService.Route) error 
 
 	router, err := rest.MakeRouter(contextRoutes...)
 	if err != nil {
-		return errors.Wrap(err, "api", "unable to create router")
+		return errors.Wrap(err, "unable to create router")
 	}
 
 	s.DEPRECATEDAPI().SetApp(router)
@@ -93,6 +105,6 @@ func (s *Standard) DEPRECATEDInitializeRouter(routes []dataService.Route) error 
 
 func (s *Standard) withContext(handler dataService.HandlerFunc) rest.HandlerFunc {
 	return dataContext.WithContext(s.AuthClient(), s.metricClient, s.userClient,
-		s.dataFactory, s.dataDeduplicatorFactory,
-		s.dataStore, s.syncTaskStore, handler)
+		s.dataFactory, s.dataDeduplicatorFactory, s.dataStore,
+		s.dataStoreDEPRECATED, s.syncTaskStore, s.dataClient, handler)
 }

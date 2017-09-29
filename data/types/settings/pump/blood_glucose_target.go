@@ -37,14 +37,14 @@ func NewBloodGlucoseTarget() *BloodGlucoseTarget {
 	return &BloodGlucoseTarget{}
 }
 
-func (t *BloodGlucoseTarget) Parse(parser data.ObjectParser) {
-	t.Target.Parse(parser)
+func (b *BloodGlucoseTarget) Parse(parser data.ObjectParser) {
+	b.Target.Parse(parser)
 
-	t.Start = parser.ParseInteger("start")
+	b.Start = parser.ParseInteger("start")
 }
 
-func (t *BloodGlucoseTarget) Validate(validator data.Validator, units *string) {
-	t.Target.Validate(validator, units)
+func (b *BloodGlucoseTarget) Validate(validator data.Validator, units *string) {
+	b.Target.Validate(validator, units)
 
-	validator.ValidateInteger("start", t.Start).Exists().InRange(0, 86400000)
+	validator.ValidateInteger("start", b.Start).Exists().InRange(0, 86400000)
 }

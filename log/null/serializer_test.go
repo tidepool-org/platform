@@ -25,7 +25,7 @@ var _ = Describe("Serializer", func() {
 
 		Context("Serialize", func() {
 			It("returns an error if fields are missing", func() {
-				Expect(serializer.Serialize(nil)).To(MatchError("null: fields are missing"))
+				Expect(serializer.Serialize(nil)).To(MatchError("fields are missing"))
 			})
 
 			It("returns successfully after writing buffer with empty fields", func() {

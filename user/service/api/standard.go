@@ -7,13 +7,13 @@ import (
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/errors"
 	messageStore "github.com/tidepool-org/platform/message/store"
-	metricClient "github.com/tidepool-org/platform/metric/client"
+	"github.com/tidepool-org/platform/metric"
 	permissionStore "github.com/tidepool-org/platform/permission/store"
 	profileStore "github.com/tidepool-org/platform/profile/store"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/service/api"
 	sessionStore "github.com/tidepool-org/platform/session/store"
-	userClient "github.com/tidepool-org/platform/user/client"
+	"github.com/tidepool-org/platform/user"
 	userService "github.com/tidepool-org/platform/user/service"
 	userContext "github.com/tidepool-org/platform/user/service/context"
 	userStore "github.com/tidepool-org/platform/user/store"
@@ -22,8 +22,8 @@ import (
 type Standard struct {
 	*api.API
 	dataClient        dataClient.Client
-	metricClient      metricClient.Client
-	userClient        userClient.Client
+	metricClient      metric.Client
+	userClient        user.Client
 	confirmationStore confirmationStore.Store
 	messageStore      messageStore.Store
 	permissionStore   permissionStore.Store
@@ -32,35 +32,35 @@ type Standard struct {
 	userStore         userStore.Store
 }
 
-func NewStandard(svc service.Service, dataClient dataClient.Client, metricClient metricClient.Client, userClient userClient.Client,
+func NewStandard(svc service.Service, dataClient dataClient.Client, metricClient metric.Client, userClient user.Client,
 	confirmationStore confirmationStore.Store, messageStore messageStore.Store, permissionStore permissionStore.Store,
 	profileStore profileStore.Store, sessionStore sessionStore.Store, userStore userStore.Store) (*Standard, error) {
 	if dataClient == nil {
-		return nil, errors.New("api", "data client is missing")
+		return nil, errors.New("data client is missing")
 	}
 	if metricClient == nil {
-		return nil, errors.New("api", "metric client is missing")
+		return nil, errors.New("metric client is missing")
 	}
 	if userClient == nil {
-		return nil, errors.New("api", "user client is missing")
+		return nil, errors.New("user client is missing")
 	}
 	if confirmationStore == nil {
-		return nil, errors.New("api", "confirmation store is missing")
+		return nil, errors.New("confirmation store is missing")
 	}
 	if messageStore == nil {
-		return nil, errors.New("api", "message store is missing")
+		return nil, errors.New("message store is missing")
 	}
 	if permissionStore == nil {
-		return nil, errors.New("api", "permission store is missing")
+		return nil, errors.New("permission store is missing")
 	}
 	if profileStore == nil {
-		return nil, errors.New("api", "profile store is missing")
+		return nil, errors.New("profile store is missing")
 	}
 	if sessionStore == nil {
-		return nil, errors.New("api", "session store is missing")
+		return nil, errors.New("session store is missing")
 	}
 	if userStore == nil {
-		return nil, errors.New("api", "user store is missing")
+		return nil, errors.New("user store is missing")
 	}
 
 	a, err := api.New(svc)
@@ -101,7 +101,7 @@ func (s *Standard) DEPRECATEDInitializeRouter(routes []userService.Route) error 
 
 	router, err := rest.MakeRouter(contextRoutes...)
 	if err != nil {
-		return errors.Wrap(err, "api", "unable to create router")
+		return errors.Wrap(err, "unable to create router")
 	}
 
 	s.DEPRECATEDAPI().SetApp(router)

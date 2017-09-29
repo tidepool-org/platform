@@ -88,7 +88,7 @@ func (m *Migration) Secret() string {
 
 func (m *Migration) execute() error {
 	if m.Secret() == "" {
-		return errors.New("main", "secret is missing")
+		return errors.New("secret is missing")
 	}
 
 	m.Logger().Debug("Migrating sessions to expanded form")
@@ -97,18 +97,18 @@ func (m *Migration) execute() error {
 
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "user"
-	sessionsStore, err := mongo.New(m.Logger(), mongoConfig)
+	sessionsStore, err := mongo.New(mongoConfig, m.Logger())
 	if err != nil {
-		return errors.Wrap(err, "main", "unable to create sessions store")
+		return errors.Wrap(err, "unable to create sessions store")
 	}
 	defer sessionsStore.Close()
 
 	m.Logger().Debug("Creating sessions sessions")
 
-	iterateSessionsSession := sessionsStore.NewSession(m.Logger(), "tokens")
+	iterateSessionsSession := sessionsStore.NewSession("tokens")
 	defer iterateSessionsSession.Close()
 
-	updateSessionsSession := sessionsStore.NewSession(m.Logger(), "tokens")
+	updateSessionsSession := sessionsStore.NewSession("tokens")
 	defer updateSessionsSession.Close()
 
 	m.Logger().Debug("Iterating sessions")
@@ -163,7 +163,7 @@ func (m *Migration) execute() error {
 		}
 	}
 	if err = iter.Close(); err != nil {
-		return errors.Wrap(err, "main", "unable to iterate sessions")
+		return errors.Wrap(err, "unable to iterate sessions")
 	}
 
 	if !m.DryRun() {
@@ -217,10 +217,10 @@ func (m *Migration) expandSession(session *session.Session, secret string) error
 	if err != nil {
 		validationError, ok := err.(*jwt.ValidationError)
 		if !ok {
-			return errors.Wrap(err, "main", "unexpected error")
+			return errors.Wrap(err, "unexpected error")
 		}
 		if validationError.Errors != jwt.ValidationErrorExpired {
-			return errors.Wrap(validationError, "main", "unexpected validation error")
+			return errors.Wrap(validationError, "unexpected validation error")
 		}
 	}
 

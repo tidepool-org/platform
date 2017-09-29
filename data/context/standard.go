@@ -19,7 +19,7 @@ type Standard struct {
 
 func NewStandard(logger log.Logger) (*Standard, error) {
 	if logger == nil {
-		return nil, errors.New("context", "logger is missing")
+		return nil, errors.New("logger is missing")
 	}
 
 	return &Standard{

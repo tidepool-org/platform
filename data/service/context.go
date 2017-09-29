@@ -3,26 +3,29 @@ package service
 import (
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/data"
+	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
-	dataStore "github.com/tidepool-org/platform/data/store"
-	metricClient "github.com/tidepool-org/platform/metric/client"
+	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
+	"github.com/tidepool-org/platform/metric"
 	"github.com/tidepool-org/platform/service"
 	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
-	userClient "github.com/tidepool-org/platform/user/client"
+	"github.com/tidepool-org/platform/user"
 )
 
 type Context interface {
 	service.Context
 
 	AuthClient() auth.Client
-	MetricClient() metricClient.Client
-	UserClient() userClient.Client
+	MetricClient() metric.Client
+	UserClient() user.Client
 
 	DataFactory() data.Factory
 	DataDeduplicatorFactory() deduplicator.Factory
 
-	DataSession() dataStore.DataSession
-	SyncTasksSession() syncTaskStore.SyncTasksSession
+	DataSession() dataStoreDEPRECATED.DataSession
+	SyncTaskSession() syncTaskStore.SyncTaskSession
+
+	DataClient() dataClient.Client
 }
 
 type HandlerFunc func(context Context)

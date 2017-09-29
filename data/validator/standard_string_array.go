@@ -123,8 +123,8 @@ func (s *StandardStringArray) EachOneOf(allowedValues []string) data.StringArray
 		context := s.context.NewChildContext(s.reference)
 	outer:
 		for index, value := range *s.value {
-			for _, possibleValue := range allowedValues {
-				if possibleValue == value {
+			for _, allowedValue := range allowedValues {
+				if allowedValue == value {
 					continue outer
 				}
 			}
@@ -139,8 +139,8 @@ func (s *StandardStringArray) EachNotOneOf(disallowedValues []string) data.Strin
 		context := s.context.NewChildContext(s.reference)
 	outer:
 		for index, value := range *s.value {
-			for _, possibleValue := range disallowedValues {
-				if possibleValue == value {
+			for _, disallowedValue := range disallowedValues {
+				if disallowedValue == value {
 					context.AppendError(index, service.ErrorValueStringOneOf(value, disallowedValues))
 					continue outer
 				}

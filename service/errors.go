@@ -35,6 +35,33 @@ func ErrorUnauthorized() *Error {
 	}
 }
 
+func ErrorResourceNotFound() *Error {
+	return &Error{
+		Code:   "resource-not-found",
+		Status: http.StatusNotFound,
+		Title:  "resource not found",
+		Detail: "Resource not found",
+	}
+}
+
+func ErrorResourceNotFoundWithID(id string) *Error {
+	return &Error{
+		Code:   "resource-not-found",
+		Status: http.StatusNotFound,
+		Title:  "resource not found",
+		Detail: fmt.Sprintf("Resource with id %q not found", id),
+	}
+}
+
+func ErrorParameterMissing(parameter string) *Error {
+	return &Error{
+		Code:   "parameter-missing",
+		Status: http.StatusForbidden,
+		Title:  "parameter is missing",
+		Detail: fmt.Sprintf("parameter %q is missing", parameter),
+	}
+}
+
 func ErrorJSONMalformed() *Error {
 	return &Error{
 		Code:   "json-malformed",
@@ -265,7 +292,7 @@ func ErrorValueStringOneOf(value string, disallowedValues []string) *Error {
 	return &Error{
 		Code:   "value-disallowed",
 		Title:  "value is one of the disallowed values",
-		Detail: fmt.Sprintf("Value %s is one of [%v]", strconv.Quote(value), disallowedValuesString),
+		Detail: fmt.Sprintf("Value %q is one of [%v]", value, disallowedValuesString),
 	}
 }
 
@@ -278,7 +305,7 @@ func ErrorValueStringNotOneOf(value string, allowedValues []string) *Error {
 	return &Error{
 		Code:   "value-not-allowed",
 		Title:  "value is not one of the allowed values",
-		Detail: fmt.Sprintf("Value %s is not one of [%v]", strconv.Quote(value), allowedValuesString),
+		Detail: fmt.Sprintf("Value %q is not one of [%v]", value, allowedValuesString),
 	}
 }
 
@@ -286,7 +313,7 @@ func ErrorValueTimeNotValid(value string, timeLayout string) *Error {
 	return &Error{
 		Code:   "value-not-valid",
 		Title:  "value is not a valid time",
-		Detail: fmt.Sprintf("Value %s is not a valid time of format %s", strconv.Quote(value), strconv.Quote(timeLayout)),
+		Detail: fmt.Sprintf("Value %q is not a valid time of format %q", value, timeLayout),
 	}
 }
 
@@ -294,7 +321,7 @@ func ErrorValueTimeNotAfter(value time.Time, limit time.Time, timeLayout string)
 	return &Error{
 		Code:   "value-not-after",
 		Title:  "value is not after the specified time",
-		Detail: fmt.Sprintf("Value %s is not after %s", strconv.Quote(value.Format(timeLayout)), strconv.Quote(limit.Format(timeLayout))),
+		Detail: fmt.Sprintf("Value %q is not after %q", value.Format(timeLayout), limit.Format(timeLayout)),
 	}
 }
 
@@ -302,7 +329,7 @@ func ErrorValueTimeNotAfterNow(value time.Time, timeLayout string) *Error {
 	return &Error{
 		Code:   "value-not-after",
 		Title:  "value is not after the specified time",
-		Detail: fmt.Sprintf("Value %s is not after now", strconv.Quote(value.Format(timeLayout))),
+		Detail: fmt.Sprintf("Value %q is not after now", value.Format(timeLayout)),
 	}
 }
 
@@ -310,7 +337,7 @@ func ErrorValueTimeNotBefore(value time.Time, limit time.Time, timeLayout string
 	return &Error{
 		Code:   "value-not-before",
 		Title:  "value is not before the specified time",
-		Detail: fmt.Sprintf("Value %s is not before %s", strconv.Quote(value.Format(timeLayout)), strconv.Quote(limit.Format(timeLayout))),
+		Detail: fmt.Sprintf("Value %q is not before %q", value.Format(timeLayout), limit.Format(timeLayout)),
 	}
 }
 
@@ -318,7 +345,7 @@ func ErrorValueTimeNotBeforeNow(value time.Time, timeLayout string) *Error {
 	return &Error{
 		Code:   "value-not-before",
 		Title:  "value is not before the specified time",
-		Detail: fmt.Sprintf("Value %s is not before now", strconv.Quote(value.Format(timeLayout))),
+		Detail: fmt.Sprintf("Value %q is not before now", value.Format(timeLayout)),
 	}
 }
 

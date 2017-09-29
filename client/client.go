@@ -2,154 +2,149 @@ package client
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
-	"net/url"
+	netURL "net/url"
 	"strings"
 
-	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/request"
 )
 
 type Client struct {
-	httpClient *http.Client
-	address    string
+	address string
 }
 
-func NewClient(config *Config) (*Client, error) {
-	if config == nil {
-		return nil, errors.New("client", "config is missing")
+func New(cfg *Config) (*Client, error) {
+	if cfg == nil {
+		return nil, errors.New("config is missing")
 	}
 
-	if err := config.Validate(); err != nil {
-		return nil, errors.Wrap(err, "client", "config is invalid")
-	}
-
-	httpClient := &http.Client{
-		Timeout: config.Timeout,
+	if err := cfg.Validate(); err != nil {
+		return nil, errors.Wrap(err, "config is invalid")
 	}
 
 	return &Client{
-		httpClient: httpClient,
-		address:    config.Address,
+		address: cfg.Address,
 	}, nil
 }
 
-func (c *Client) HTTPClient() *http.Client {
-	return c.httpClient
-}
-
-func (c *Client) BuildURL(paths ...string) string {
-	parts := []string{c.address}
+func (c *Client) ConstructURL(paths ...string) string {
+	segments := []string{c.address}
 	for _, path := range paths {
-		parts = append(parts, url.PathEscape(path))
+		segments = append(segments, netURL.PathEscape(strings.Trim(path, "/")))
 	}
-	return strings.Join(parts, "/")
+	return strings.Join(segments, "/")
 }
 
-func (c *Client) SendRequestWithAuthToken(context auth.Context, method string, url string, requestObject interface{}, responseObject interface{}) error {
-	if context == nil {
-		return errors.New("client", "context is missing")
+func (c *Client) AppendURLQuery(urlString string, query map[string]string) string {
+	values := netURL.Values{}
+	for k, v := range query {
+		values.Add(k, v)
 	}
 
-	return c.sendRequest(context, method, url, context.AuthDetails().Token(), requestObject, responseObject)
-}
-
-func (c *Client) SendRequestWithServerToken(context auth.Context, method string, url string, requestObject interface{}, responseObject interface{}) error {
-	if context == nil {
-		return errors.New("client", "context is missing")
-	}
-
-	token, err := context.AuthClient().ServerToken()
-	if err != nil {
-		return err
-	}
-
-	return c.sendRequest(context, method, url, token, requestObject, responseObject)
-}
-
-func (c *Client) sendRequest(context auth.Context, method string, url string, token string, requestObject interface{}, responseObject interface{}) error {
-	request, err := c.buildRequest(context, method, url, token, requestObject, responseObject)
-	if err != nil {
-		return err
-	}
-
-	response, err := c.httpClient.Do(request)
-	if err != nil {
-		return errors.Wrapf(err, "client", "unable to perform request %s %s", method, url)
-	}
-	if response.Body != nil {
-		defer response.Body.Close()
-	}
-
-	switch response.StatusCode {
-	case http.StatusOK, http.StatusCreated:
-		if err = c.decodeResponseObject(response.Body, responseObject); err != nil {
-			return errors.Wrapf(err, "client", "error decoding JSON response from %s %s", method, url)
+	queryString := values.Encode()
+	if queryString != "" {
+		if strings.Contains(urlString, "?") {
+			urlString += "&"
+		} else {
+			urlString += "?"
 		}
-		return nil
-	case http.StatusUnauthorized:
-		return NewUnauthorizedError()
+		urlString += queryString
 	}
 
-	return NewUnexpectedResponseError(response, request)
+	return urlString
 }
 
-func (c *Client) buildRequest(context auth.Context, method string, url string, token string, requestObject interface{}, responseObject interface{}) (*http.Request, error) {
-	if context == nil {
-		return nil, errors.New("client", "context is missing")
+func (c *Client) SendRequest(ctx context.Context, method string, url string, mutators []Mutator, requestBody interface{}, responseBody interface{}, httpClient *http.Client) error {
+	if httpClient == nil {
+		return errors.New("http client is missing")
+	}
+
+	req, err := c.buildRequest(ctx, method, url, mutators, requestBody, responseBody)
+	if err != nil {
+		return err
+	}
+
+	// TODO: Prevents random EOF errors (I think due to the server closing Keep Alive connections automatically)
+	// TODO: Would be better to retry the request with exponential fallback
+	req.Close = true
+
+	res, err := httpClient.Do(req)
+	if err != nil {
+		return errors.Wrapf(err, "unable to perform request %s %s", method, url)
+	}
+
+	switch res.StatusCode {
+	case http.StatusOK, http.StatusCreated:
+		return c.decodeResponseBody(res, responseBody)
+	case http.StatusUnauthorized:
+		return request.ErrorUnauthenticated()
+	case http.StatusForbidden:
+		return request.ErrorUnauthorized()
+	case http.StatusNotFound:
+		return request.ErrorResourceNotFound()
+	}
+
+	return request.ErrorUnexpectedResponse(res, req)
+}
+
+func (c *Client) buildRequest(ctx context.Context, method string, url string, mutators []Mutator, requestBody interface{}, responseBody interface{}) (*http.Request, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
 	}
 	if method == "" {
-		return nil, errors.New("client", "method is missing")
+		return nil, errors.New("method is missing")
 	}
 	if url == "" {
-		return nil, errors.New("client", "url is missing")
-	}
-	if token == "" {
-		return nil, errors.New("client", "token is missing")
+		return nil, errors.New("url is missing")
 	}
 
-	requestBody, err := c.encodeRequestObject(requestObject)
+	body, err := c.encodeRequestBody(requestBody)
 	if err != nil {
-		return nil, errors.Wrapf(err, "client", "error encoding JSON request to %s %s", method, url)
+		return nil, errors.Wrapf(err, "error encoding JSON request to %s %s", method, url)
 	}
 
-	request, err := http.NewRequest(method, url, requestBody)
+	req, err := http.NewRequest(method, url, body)
 	if err != nil {
-		return nil, errors.Wrapf(err, "client", "unable to create new request for %s %s", method, url)
+		return nil, errors.Wrapf(err, "unable to create new request for %s %s", method, url)
 	}
 
-	if err = service.CopyRequestTrace(context.Request(), request); err != nil {
-		return nil, errors.Wrapf(err, "client", "unable to copy request trace")
+	req = req.WithContext(ctx)
+
+	for _, mutator := range mutators {
+		if mutator == nil {
+			return nil, errors.New("mutator is missing")
+		}
+		if err = mutator.Mutate(req); err != nil {
+			return nil, errors.Wrapf(err, "unable to mutate request")
+		}
 	}
 
-	request.Header.Add(auth.TidepoolAuthTokenHeaderName, token)
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 
-	return request, nil
+	return req, nil
 }
 
-func (c *Client) encodeRequestObject(requestObject interface{}) (io.Reader, error) {
-	if requestObject == nil {
+func (c *Client) encodeRequestBody(object interface{}) (io.Reader, error) {
+	if object == nil {
 		return nil, nil
 	}
 
 	buffer := &bytes.Buffer{}
-	if err := json.NewEncoder(buffer).Encode(requestObject); err != nil {
+	if err := json.NewEncoder(buffer).Encode(object); err != nil {
 		return nil, err
 	}
 
 	return buffer, nil
 }
 
-func (c *Client) decodeResponseObject(responseBody io.Reader, responseObject interface{}) error {
-	if responseObject == nil {
+func (c *Client) decodeResponseBody(res *http.Response, object interface{}) error {
+	if object == nil {
 		return nil
 	}
-	if responseBody == nil {
-		return errors.New("client", "response body is empty")
-	}
 
-	return json.NewDecoder(responseBody).Decode(responseObject)
+	return request.DecodeResponseBody(res, object)
 }

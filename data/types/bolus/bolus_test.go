@@ -192,14 +192,14 @@ var _ = Describe("Bolus", func() {
 				It("returns error if user id is empty", func() {
 					testBolus.UserID = ""
 					identityFields, err := testBolus.IdentityFields()
-					Expect(err).To(MatchError("base: user id is empty"))
+					Expect(err).To(MatchError("user id is empty"))
 					Expect(identityFields).To(BeEmpty())
 				})
 
 				It("returns error if sub type is empty", func() {
 					testBolus.SubType = ""
 					identityFields, err := testBolus.IdentityFields()
-					Expect(err).To(MatchError("bolus: sub type is empty"))
+					Expect(err).To(MatchError("sub type is empty"))
 					Expect(identityFields).To(BeEmpty())
 				})
 

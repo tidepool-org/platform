@@ -87,17 +87,17 @@ func (m *Migration) Index() bool {
 
 func (m *Migration) execute() error {
 	if m.Index() && m.DryRun() {
-		return errors.New("main", "cannot specify --index with --dry-run")
+		return errors.New("cannot specify --index with --dry-run")
 	}
 
 	metaIDToUserIDMap, err := m.buildMetaIDToUserIDMap()
 	if err != nil {
-		return errors.Wrap(err, "main", "unable to build meta id to user id map")
+		return errors.Wrap(err, "unable to build meta id to user id map")
 	}
 
 	err = m.migrateMetaIDToUserIDForMetadata(metaIDToUserIDMap)
 	if err != nil {
-		return errors.Wrap(err, "main", "unable to migrate meta id to user id for metadata")
+		return errors.Wrap(err, "unable to migrate meta id to user id for metadata")
 	}
 
 	return nil
@@ -113,15 +113,15 @@ func (m *Migration) buildMetaIDToUserIDMap() (map[string]string, error) {
 
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "user"
-	usersStore, err := mongo.New(m.Logger(), mongoConfig)
+	usersStore, err := mongo.New(mongoConfig, m.Logger())
 	if err != nil {
-		return nil, errors.Wrap(err, "main", "unable to create users store")
+		return nil, errors.Wrap(err, "unable to create users store")
 	}
 	defer usersStore.Close()
 
 	m.Logger().Debug("Creating users session")
 
-	usersSession := usersStore.NewSession(m.Logger(), "users")
+	usersSession := usersStore.NewSession("users")
 	defer usersSession.Close()
 
 	m.Logger().Debug("Iterating users")
@@ -168,7 +168,7 @@ func (m *Migration) buildMetaIDToUserIDMap() (map[string]string, error) {
 		metaIDToUserIDMap[metaID] = userID
 	}
 	if err = iter.Close(); err != nil {
-		return nil, errors.Wrap(err, "main", "unable to iterate users")
+		return nil, errors.Wrap(err, "unable to iterate users")
 	}
 
 	m.Logger().Debugf("Found %d users with meta", len(metaIDToUserIDMap))
@@ -186,15 +186,15 @@ func (m *Migration) migrateMetaIDToUserIDForMetadata(metaIDToUserIDMap map[strin
 
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "seagull"
-	metadataStore, err := mongo.New(m.Logger(), mongoConfig)
+	metadataStore, err := mongo.New(mongoConfig, m.Logger())
 	if err != nil {
-		return errors.Wrap(err, "main", "unable to create metadata store")
+		return errors.Wrap(err, "unable to create metadata store")
 	}
 	defer metadataStore.Close()
 
 	m.Logger().Debug("Creating metadata session")
 
-	metadataSession := metadataStore.NewSession(m.Logger(), "seagull")
+	metadataSession := metadataStore.NewSession("seagull")
 	defer metadataSession.Close()
 
 	m.Logger().Debug("Walking meta id to user id map")
@@ -275,7 +275,7 @@ func (m *Migration) migrateMetaIDToUserIDForMetadata(metaIDToUserIDMap map[strin
 			m.Logger().WithField("metaId", result["_id"]).Error("Metadata found without user id")
 		}
 		if err = iter.Close(); err != nil {
-			return errors.Wrap(err, "main", "unable to iterate metadata without user id")
+			return errors.Wrap(err, "unable to iterate metadata without user id")
 		}
 	}
 
@@ -291,7 +291,7 @@ func (m *Migration) migrateMetaIDToUserIDForMetadata(metaIDToUserIDMap map[strin
 		}
 		err = metadataSession.C().EnsureIndex(index)
 		if err != nil {
-			return errors.Wrap(err, "main", "unable to create metadata index on user id")
+			return errors.Wrap(err, "unable to create metadata index on user id")
 		}
 	}
 

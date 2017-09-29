@@ -26,19 +26,19 @@ func AsStringPointer(source interface{}) *string {
 func NewTestBloodGlucoseTarget(sourceTarget interface{}, sourceRange interface{}, sourceLow interface{}, sourceHigh interface{}, sourceStart interface{}) *pump.BloodGlucoseTarget {
 	testTarget := &pump.BloodGlucoseTarget{}
 	if value, ok := sourceTarget.(float64); ok {
-		testTarget.Target.Target = pointer.Float(value)
+		testTarget.Target.Target = pointer.Float64(value)
 	}
 	if value, ok := sourceRange.(float64); ok {
-		testTarget.Range = pointer.Float(value)
+		testTarget.Range = pointer.Float64(value)
 	}
 	if value, ok := sourceLow.(float64); ok {
-		testTarget.Low = pointer.Float(value)
+		testTarget.Low = pointer.Float64(value)
 	}
 	if value, ok := sourceHigh.(float64); ok {
-		testTarget.High = pointer.Float(value)
+		testTarget.High = pointer.Float64(value)
 	}
 	if value, ok := sourceStart.(int); ok {
-		testTarget.Start = pointer.Integer(value)
+		testTarget.Start = pointer.Int(value)
 	}
 	return testTarget
 }

@@ -4,11 +4,13 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/tidepool-org/platform/client"
 	dataService "github.com/tidepool-org/platform/data/service"
-	dataStore "github.com/tidepool-org/platform/data/store"
+	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
+	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/page"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
-	userClient "github.com/tidepool-org/platform/user/client"
+	"github.com/tidepool-org/platform/user"
 )
 
 const (
@@ -18,30 +20,32 @@ const (
 )
 
 func UsersDatasetsGet(dataServiceContext dataService.Context) {
-	targetUserID := dataServiceContext.Request().PathParam("user_id")
+	ctx := dataServiceContext.Request().Context()
+
+	targetUserID := dataServiceContext.Request().PathParam("userId")
 	if targetUserID == "" {
 		dataServiceContext.RespondWithError(ErrorUserIDMissing())
 		return
 	}
 
-	if !dataServiceContext.AuthDetails().IsServer() {
-		permissions, err := dataServiceContext.UserClient().GetUserPermissions(dataServiceContext, dataServiceContext.AuthDetails().UserID(), targetUserID)
+	if details := request.DetailsFromContext(ctx); !details.IsService() {
+		permissions, err := dataServiceContext.UserClient().GetUserPermissions(ctx, details.UserID(), targetUserID)
 		if err != nil {
-			if client.IsUnauthorizedError(err) {
+			if errors.Code(err) == request.ErrorCodeUnauthorized {
 				dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 			} else {
 				dataServiceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
 			}
 			return
 		}
-		if _, ok := permissions[userClient.ViewPermission]; !ok {
+		if _, ok := permissions[user.ViewPermission]; !ok {
 			dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 			return
 		}
 	}
 
-	filter := dataStore.NewFilter()
-	pagination := dataStore.NewPagination()
+	filter := dataStoreDEPRECATED.NewFilter()
+	pagination := page.NewPagination()
 
 	// TODO: Consider refactoring query string parsing into separate function/interface/package
 
@@ -58,16 +62,16 @@ func UsersDatasetsGet(dataServiceContext dataService.Context) {
 			case ParameterPaginationPage:
 				if parsedValue, err := strconv.Atoi(value); err != nil {
 					errors = append(errors, service.ErrorTypeNotInteger(value).WithSourceParameter(ParameterPaginationPage))
-				} else if parsedValue < dataStore.PaginationPageMinimum {
-					errors = append(errors, service.ErrorValueNotGreaterThanOrEqualTo(parsedValue, dataStore.PaginationPageMinimum).WithSourceParameter(ParameterPaginationPage))
+				} else if parsedValue < page.PaginationPageMinimum {
+					errors = append(errors, service.ErrorValueNotGreaterThanOrEqualTo(parsedValue, page.PaginationPageMinimum).WithSourceParameter(ParameterPaginationPage))
 				} else {
 					pagination.Page = parsedValue
 				}
 			case ParameterPaginationSize:
 				if parsedValue, err := strconv.Atoi(value); err != nil {
 					errors = append(errors, service.ErrorTypeNotInteger(value).WithSourceParameter(ParameterPaginationSize))
-				} else if parsedValue < dataStore.PaginationSizeMinimum || parsedValue > dataStore.PaginationSizeMaximum {
-					errors = append(errors, service.ErrorValueNotInRange(parsedValue, dataStore.PaginationSizeMinimum, dataStore.PaginationSizeMaximum).WithSourceParameter(ParameterPaginationSize))
+				} else if parsedValue < page.PaginationSizeMinimum || parsedValue > page.PaginationSizeMaximum {
+					errors = append(errors, service.ErrorValueNotInRange(parsedValue, page.PaginationSizeMinimum, page.PaginationSizeMaximum).WithSourceParameter(ParameterPaginationSize))
 				} else {
 					pagination.Size = parsedValue
 				}
@@ -79,7 +83,7 @@ func UsersDatasetsGet(dataServiceContext dataService.Context) {
 		return
 	}
 
-	datasets, err := dataServiceContext.DataSession().GetDatasetsForUserByID(targetUserID, filter, pagination)
+	datasets, err := dataServiceContext.DataSession().GetDatasetsForUserByID(ctx, targetUserID, filter, pagination)
 	if err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to get datasets for user", err)
 		return

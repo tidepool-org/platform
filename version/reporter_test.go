@@ -11,19 +11,19 @@ var _ = Describe("Reporter", func() {
 	Context("NewReporter", func() {
 		It("returns an error if base is missing", func() {
 			reporter, err := version.NewReporter("", "4567890", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmn")
-			Expect(err).To(MatchError("version: base is missing"))
+			Expect(err).To(MatchError("base is missing"))
 			Expect(reporter).To(BeNil())
 		})
 
 		It("returns an error if short commit is missing", func() {
 			reporter, err := version.NewReporter("1.2.3", "", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmn")
-			Expect(err).To(MatchError("version: short commit is missing"))
+			Expect(err).To(MatchError("short commit is missing"))
 			Expect(reporter).To(BeNil())
 		})
 
 		It("returns an error if full commit is missing", func() {
 			reporter, err := version.NewReporter("1.2.3", "4567890", "")
-			Expect(err).To(MatchError("version: full commit is missing"))
+			Expect(err).To(MatchError("full commit is missing"))
 			Expect(reporter).To(BeNil())
 		})
 

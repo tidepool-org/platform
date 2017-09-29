@@ -5,15 +5,16 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/application/version"
-	_ "github.com/tidepool-org/platform/application/version/test"
 	"github.com/tidepool-org/platform/tool"
+
+	_ "github.com/tidepool-org/platform/application/version/test"
 )
 
 var _ = Describe("Tool", func() {
 	Context("New", func() {
 		It("returns an error if the prefix is missing", func() {
 			tuel, err := tool.New("")
-			Expect(err).To(MatchError("application: prefix is missing"))
+			Expect(err).To(MatchError("prefix is missing"))
 			Expect(tuel).To(BeNil())
 		})
 
@@ -46,7 +47,7 @@ var _ = Describe("Tool", func() {
 				})
 
 				It("returns an error if the version is not specified correctly", func() {
-					Expect(tuel.Initialize()).To(MatchError("application: unable to create version reporter; version: base is missing"))
+					Expect(tuel.Initialize()).To(MatchError("unable to create version reporter; base is missing"))
 				})
 			})
 

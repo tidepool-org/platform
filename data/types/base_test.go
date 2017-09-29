@@ -37,42 +37,42 @@ var _ = Describe("Base", func() {
 			It("returns error if user id is empty", func() {
 				testBase.UserID = ""
 				identityFields, err := testBase.IdentityFields()
-				Expect(err).To(MatchError("base: user id is empty"))
+				Expect(err).To(MatchError("user id is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if device id is missing", func() {
 				testBase.DeviceID = nil
 				identityFields, err := testBase.IdentityFields()
-				Expect(err).To(MatchError("base: device id is missing"))
+				Expect(err).To(MatchError("device id is missing"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if device id is empty", func() {
 				testBase.DeviceID = pointer.String("")
 				identityFields, err := testBase.IdentityFields()
-				Expect(err).To(MatchError("base: device id is empty"))
+				Expect(err).To(MatchError("device id is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if time is missing", func() {
 				testBase.Time = nil
 				identityFields, err := testBase.IdentityFields()
-				Expect(err).To(MatchError("base: time is missing"))
+				Expect(err).To(MatchError("time is missing"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if time is empty", func() {
 				testBase.Time = pointer.String("")
 				identityFields, err := testBase.IdentityFields()
-				Expect(err).To(MatchError("base: time is empty"))
+				Expect(err).To(MatchError("time is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if type is empty", func() {
 				testBase.Type = ""
 				identityFields, err := testBase.IdentityFields()
-				Expect(err).To(MatchError("base: type is empty"))
+				Expect(err).To(MatchError("type is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 

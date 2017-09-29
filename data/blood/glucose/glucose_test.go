@@ -97,18 +97,18 @@ var _ = Describe("Glucose", func() {
 			}
 		},
 		Entry("returns nil for nil value", nil, pointer.String("mmol/L"), nil),
-		Entry("returns unchanged value for nil units", pointer.Float(10.0), nil, pointer.Float(10.0)),
-		Entry("returns unchanged value for unknown units", pointer.Float(10.0), pointer.String("unknown"), pointer.Float(10.0)),
-		Entry("returns unchanged value for mmol/L units", pointer.Float(10.0), pointer.String("mmol/L"), pointer.Float(10.0)),
-		Entry("returns unchanged value for mmol/l units", pointer.Float(10.0), pointer.String("mmol/l"), pointer.Float(10.0)),
-		Entry("returns converted value for mg/dL units", pointer.Float(180.0), pointer.String("mg/dL"), pointer.Float(9.99135)),
-		Entry("returns converted value for mg/dl units", pointer.Float(180.0), pointer.String("mg/dl"), pointer.Float(9.99135)),
+		Entry("returns unchanged value for nil units", pointer.Float64(10.0), nil, pointer.Float64(10.0)),
+		Entry("returns unchanged value for unknown units", pointer.Float64(10.0), pointer.String("unknown"), pointer.Float64(10.0)),
+		Entry("returns unchanged value for mmol/L units", pointer.Float64(10.0), pointer.String("mmol/L"), pointer.Float64(10.0)),
+		Entry("returns unchanged value for mmol/l units", pointer.Float64(10.0), pointer.String("mmol/l"), pointer.Float64(10.0)),
+		Entry("returns converted value for mg/dL units", pointer.Float64(180.0), pointer.String("mg/dL"), pointer.Float64(9.99135)),
+		Entry("returns converted value for mg/dl units", pointer.Float64(180.0), pointer.String("mg/dl"), pointer.Float64(9.99135)),
 	)
 
 	Context("NormalizeValueForUnits", func() {
 		It("properly normalizes all known mg/dL values", func() {
 			for value := int(glucose.MgdLLowerLimit); value <= int(glucose.MgdLUpperLimit); value++ {
-				normalizedValue := glucose.NormalizeValueForUnits(pointer.Float(float64(value)), pointer.String("mg/dL"))
+				normalizedValue := glucose.NormalizeValueForUnits(pointer.Float64(float64(value)), pointer.String("mg/dL"))
 				Expect(normalizedValue).ToNot(BeNil())
 				Expect(int(*normalizedValue*18.01559 + 0.5)).To(Equal(value))
 			}

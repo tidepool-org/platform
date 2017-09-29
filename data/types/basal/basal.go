@@ -68,7 +68,7 @@ func (b *Basal) IdentityFields() ([]string, error) {
 	}
 
 	if b.DeliveryType == "" {
-		return nil, errors.New("basal", "delivery type is empty")
+		return nil, errors.New("delivery type is empty")
 	}
 
 	return append(identityFields, b.DeliveryType), nil

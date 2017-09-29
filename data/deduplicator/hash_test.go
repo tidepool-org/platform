@@ -29,7 +29,7 @@ var _ = Describe("Hash", func() {
 
 		AfterEach(func() {
 			for _, testDataDatum := range testDataData {
-				Expect(testDataDatum.UnusedOutputsCount()).To(Equal(0))
+				testDataDatum.Expectations()
 			}
 		})
 
@@ -45,7 +45,7 @@ var _ = Describe("Hash", func() {
 			testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{id.New(), id.New()}, Error: nil}}
 			testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: nil, Error: errors.New("test error")}}
 			hashes, err := deduplicator.AssignDatasetDataIdentityHashes(testDatasetData)
-			Expect(err).To(MatchError("deduplicator: unable to gather identity fields for datum; test error"))
+			Expect(err).To(MatchError("unable to gather identity fields for datum; test error"))
 			Expect(hashes).To(BeNil())
 		})
 
@@ -53,7 +53,7 @@ var _ = Describe("Hash", func() {
 			testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{id.New(), id.New()}, Error: nil}}
 			testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: nil, Error: nil}}
 			hashes, err := deduplicator.AssignDatasetDataIdentityHashes(testDatasetData)
-			Expect(err).To(MatchError("deduplicator: unable to generate identity hash for datum; deduplicator: identity fields are missing"))
+			Expect(err).To(MatchError("unable to generate identity hash for datum; identity fields are missing"))
 			Expect(hashes).To(BeNil())
 		})
 
@@ -61,7 +61,7 @@ var _ = Describe("Hash", func() {
 			testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{id.New(), id.New()}, Error: nil}}
 			testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{}, Error: nil}}
 			hashes, err := deduplicator.AssignDatasetDataIdentityHashes(testDatasetData)
-			Expect(err).To(MatchError("deduplicator: unable to generate identity hash for datum; deduplicator: identity fields are missing"))
+			Expect(err).To(MatchError("unable to generate identity hash for datum; identity fields are missing"))
 			Expect(hashes).To(BeNil())
 		})
 
@@ -69,7 +69,7 @@ var _ = Describe("Hash", func() {
 			testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{id.New(), id.New()}, Error: nil}}
 			testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{id.New(), ""}, Error: nil}}
 			hashes, err := deduplicator.AssignDatasetDataIdentityHashes(testDatasetData)
-			Expect(err).To(MatchError("deduplicator: unable to generate identity hash for datum; deduplicator: identity field is empty"))
+			Expect(err).To(MatchError("unable to generate identity hash for datum; identity field is empty"))
 			Expect(hashes).To(BeNil())
 		})
 
@@ -101,19 +101,19 @@ var _ = Describe("Hash", func() {
 	Context("GenerateIdentityHash", func() {
 		It("returns an error if identity fields is missing", func() {
 			hash, err := deduplicator.GenerateIdentityHash(nil)
-			Expect(err).To(MatchError("deduplicator: identity fields are missing"))
+			Expect(err).To(MatchError("identity fields are missing"))
 			Expect(hash).To(Equal(""))
 		})
 
 		It("returns an error if identity fields is empty", func() {
 			hash, err := deduplicator.GenerateIdentityHash([]string{})
-			Expect(err).To(MatchError("deduplicator: identity fields are missing"))
+			Expect(err).To(MatchError("identity fields are missing"))
 			Expect(hash).To(Equal(""))
 		})
 
 		It("returns an error if an identity fields empty", func() {
 			hash, err := deduplicator.GenerateIdentityHash([]string{"alpha", "", "charlie"})
-			Expect(err).To(MatchError("deduplicator: identity field is empty"))
+			Expect(err).To(MatchError("identity field is empty"))
 			Expect(hash).To(Equal(""))
 		})
 

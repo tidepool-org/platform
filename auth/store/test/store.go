@@ -2,37 +2,37 @@ package test
 
 import (
 	"github.com/tidepool-org/platform/auth/store"
-	"github.com/tidepool-org/platform/log"
 	testStore "github.com/tidepool-org/platform/store/test"
 )
 
 type Store struct {
 	*testStore.Store
-	NewAuthsSessionInvocations int
-	NewAuthsSessionInputs      []log.Logger
-	NewAuthsSessionOutputs     []store.AuthsSession
+	NewProviderSessionSessionInvocations int
+	NewProviderSessionSessionImpl        *ProviderSessionSession
+	NewRestrictedTokenSessionInvocations int
+	NewRestrictedTokenSessionImpl        *RestrictedTokenSession
 }
 
 func NewStore() *Store {
 	return &Store{
 		Store: testStore.NewStore(),
+		NewProviderSessionSessionImpl: NewProviderSessionSession(),
+		NewRestrictedTokenSessionImpl: NewRestrictedTokenSession(),
 	}
 }
 
-func (s *Store) NewAuthsSession(lgr log.Logger) store.AuthsSession {
-	s.NewAuthsSessionInvocations++
-
-	s.NewAuthsSessionInputs = append(s.NewAuthsSessionInputs, lgr)
-
-	if len(s.NewAuthsSessionOutputs) == 0 {
-		panic("Unexpected invocation of NewAuthsSession on Store")
-	}
-
-	output := s.NewAuthsSessionOutputs[0]
-	s.NewAuthsSessionOutputs = s.NewAuthsSessionOutputs[1:]
-	return output
+func (s *Store) NewProviderSessionSession() store.ProviderSessionSession {
+	s.NewProviderSessionSessionInvocations++
+	return s.NewProviderSessionSessionImpl
 }
 
-func (s *Store) UnusedOutputsCount() int {
-	return len(s.NewAuthsSessionOutputs)
+func (s *Store) NewRestrictedTokenSession() store.RestrictedTokenSession {
+	s.NewRestrictedTokenSessionInvocations++
+	return s.NewRestrictedTokenSessionImpl
+}
+
+func (s *Store) Expectations() {
+	s.Store.Expectations()
+	s.NewProviderSessionSessionImpl.Expectations()
+	s.NewRestrictedTokenSessionImpl.Expectations()
 }

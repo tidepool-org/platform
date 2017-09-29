@@ -70,15 +70,15 @@ func (m *Migration) execute() error {
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "data"
 	mongoConfig.Timeout = 60 * time.Minute
-	dataStore, err := mongo.New(m.Logger(), mongoConfig)
+	dataStore, err := mongo.New(mongoConfig, m.Logger())
 	if err != nil {
-		return errors.Wrap(err, "main", "unable to create data store")
+		return errors.Wrap(err, "unable to create data store")
 	}
 	defer dataStore.Close()
 
 	m.Logger().Debug("Creating data session")
 
-	dataSession := dataStore.NewSession(m.Logger(), "deviceData")
+	dataSession := dataStore.NewSession("deviceData")
 	defer dataSession.Close()
 
 	var count int

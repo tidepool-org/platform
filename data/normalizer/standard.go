@@ -14,7 +14,7 @@ type Standard struct {
 
 func NewStandard(context data.Context) (*Standard, error) {
 	if context == nil {
-		return nil, errors.New("normalizer", "context is missing")
+		return nil, errors.New("context is missing")
 	}
 
 	return &Standard{

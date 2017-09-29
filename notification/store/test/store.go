@@ -1,7 +1,6 @@
 package test
 
 import (
-	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/notification/store"
 	testStore "github.com/tidepool-org/platform/store/test"
 )
@@ -9,7 +8,6 @@ import (
 type Store struct {
 	*testStore.Store
 	NewNotificationsSessionInvocations int
-	NewNotificationsSessionInputs      []log.Logger
 	NewNotificationsSessionOutputs     []store.NotificationsSession
 }
 
@@ -19,10 +17,8 @@ func NewStore() *Store {
 	}
 }
 
-func (s *Store) NewNotificationsSession(lgr log.Logger) store.NotificationsSession {
+func (s *Store) NewNotificationsSession() store.NotificationsSession {
 	s.NewNotificationsSessionInvocations++
-
-	s.NewNotificationsSessionInputs = append(s.NewNotificationsSessionInputs, lgr)
 
 	if len(s.NewNotificationsSessionOutputs) == 0 {
 		panic("Unexpected invocation of NewNotificationsSession on Store")

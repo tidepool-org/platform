@@ -1,0 +1,273 @@
+package parser
+
+import (
+	"math"
+	"time"
+
+	"github.com/tidepool-org/platform/structure"
+	structureBase "github.com/tidepool-org/platform/structure/base"
+)
+
+type Object struct {
+	structure.Base
+	object *map[string]interface{}
+	parsed map[string]bool
+}
+
+func NewObject(object *map[string]interface{}) *Object {
+	return NewObjectParser(structureBase.New(), object)
+}
+
+func NewObjectParser(base structure.Base, object *map[string]interface{}) *Object {
+	var parsed map[string]bool
+	if object != nil {
+		parsed = make(map[string]bool, len(*object))
+	}
+
+	return &Object{
+		Base:   base,
+		object: object,
+		parsed: parsed,
+	}
+}
+
+func (o *Object) Exists() bool {
+	return o.object != nil
+}
+
+func (o *Object) Parse(objectParsable structure.ObjectParsable) error {
+	objectParsable.Parse(o)
+	return o.Error()
+}
+
+func (o *Object) References() []string {
+	if o.object == nil {
+		return nil
+	}
+
+	references := []string{}
+	for reference := range *o.object {
+		references = append(references, reference)
+	}
+
+	return references
+}
+
+func (o *Object) ReferenceExists(reference string) bool {
+	if o.object == nil {
+		return false
+	}
+
+	_, ok := (*o.object)[reference]
+	return ok
+}
+
+func (o *Object) Bool(reference string) *bool {
+	rawValue, ok := o.raw(reference)
+	if !ok {
+		return nil
+	}
+
+	boolValue, ok := rawValue.(bool)
+	if !ok {
+		o.Base.WithReference(reference).ReportError(ErrorTypeNotBool(rawValue))
+		return nil
+	}
+
+	return &boolValue
+}
+
+func (o *Object) Float64(reference string) *float64 {
+	rawValue, ok := o.raw(reference)
+	if !ok {
+		return nil
+	}
+
+	float64Value, float64ValueOk := rawValue.(float64)
+	if !float64ValueOk {
+		intValue, intValueOk := rawValue.(int)
+		if !intValueOk {
+			o.Base.WithReference(reference).ReportError(ErrorTypeNotFloat64(rawValue))
+			return nil
+		}
+		float64Value = float64(intValue)
+	}
+
+	return &float64Value
+}
+
+func (o *Object) Int(reference string) *int {
+	rawValue, ok := o.raw(reference)
+	if !ok {
+		return nil
+	}
+
+	intValue, intValueOk := rawValue.(int)
+	if !intValueOk {
+		float64Value, float64ValueOk := rawValue.(float64)
+		if !float64ValueOk {
+			o.Base.WithReference(reference).ReportError(ErrorTypeNotInt(rawValue))
+			return nil
+		}
+		if math.Trunc(float64Value) != float64Value {
+			o.Base.WithReference(reference).ReportError(ErrorTypeNotInt(rawValue))
+			return nil
+		}
+		intValue = int(float64Value)
+	}
+
+	return &intValue
+}
+
+func (o *Object) String(reference string) *string {
+	rawValue, ok := o.raw(reference)
+	if !ok {
+		return nil
+	}
+
+	stringValue, ok := rawValue.(string)
+	if !ok {
+		o.Base.WithReference(reference).ReportError(ErrorTypeNotString(rawValue))
+		return nil
+	}
+
+	return &stringValue
+}
+
+func (o *Object) StringArray(reference string) *[]string {
+	rawValue, ok := o.raw(reference)
+	if !ok {
+		return nil
+	}
+
+	stringArrayValue, stringArrayValueOk := rawValue.([]string)
+	if !stringArrayValueOk {
+		arrayValue, arrayValueOk := rawValue.([]interface{})
+		if !arrayValueOk {
+			o.Base.WithReference(reference).ReportError(ErrorTypeNotArray(rawValue))
+			return nil
+		}
+
+		stringArrayValue = []string{}
+		parser := NewArrayParser(o.Base.WithReference(reference), &arrayValue)
+		for arrayIndex := range arrayValue {
+			var stringElement string
+			if stringParsed := parser.String(arrayIndex); stringParsed != nil {
+				stringElement = *stringParsed
+			}
+			stringArrayValue = append(stringArrayValue, stringElement)
+		}
+	}
+
+	return &stringArrayValue
+}
+
+func (o *Object) Time(reference string, layout string) *time.Time {
+	rawValue, ok := o.raw(reference)
+	if !ok {
+		return nil
+	}
+
+	stringValue, ok := rawValue.(string)
+	if !ok {
+		o.Base.WithReference(reference).ReportError(ErrorTypeNotTime(rawValue))
+		return nil
+	}
+
+	timeValue, err := time.Parse(layout, stringValue)
+	if err != nil {
+		o.Base.WithReference(reference).ReportError(ErrorTimeNotParsable(stringValue, layout))
+		return nil
+	}
+
+	return &timeValue
+}
+
+func (o *Object) Object(reference string) *map[string]interface{} {
+	rawValue, ok := o.raw(reference)
+	if !ok {
+		return nil
+	}
+
+	objectValue, ok := rawValue.(map[string]interface{})
+	if !ok {
+		o.Base.WithReference(reference).ReportError(ErrorTypeNotObject(rawValue))
+		return nil
+	}
+
+	return &objectValue
+}
+
+func (o *Object) Array(reference string) *[]interface{} {
+	rawValue, ok := o.raw(reference)
+	if !ok {
+		return nil
+	}
+
+	arrayValue, ok := rawValue.([]interface{})
+	if !ok {
+		o.Base.WithReference(reference).ReportError(ErrorTypeNotArray(rawValue))
+		return nil
+	}
+
+	return &arrayValue
+}
+
+func (o *Object) Interface(reference string) *interface{} {
+	rawValue, ok := o.raw(reference)
+	if !ok {
+		return nil
+	}
+
+	return &rawValue
+}
+
+func (o *Object) NotParsed() error {
+	if o.object == nil {
+		return o.Error()
+	}
+
+	for reference := range *o.object {
+		if !o.parsed[reference] {
+			o.Base.WithReference(reference).ReportError(ErrorNotParsed())
+		}
+	}
+
+	return o.Error()
+}
+
+func (o *Object) WithSource(source structure.Source) *Object {
+	return &Object{
+		Base:   o.Base.WithSource(source),
+		object: o.object,
+		parsed: o.parsed,
+	}
+}
+
+func (o *Object) WithMeta(meta interface{}) structure.ObjectParser {
+	return &Object{
+		Base:   o.Base.WithMeta(meta),
+		object: o.object,
+		parsed: o.parsed,
+	}
+}
+
+func (o *Object) WithReferenceObjectParser(reference string) structure.ObjectParser {
+	return NewObjectParser(o.Base.WithReference(reference), o.Object(reference))
+}
+
+func (o *Object) WithReferenceArrayParser(reference string) structure.ArrayParser {
+	return NewArrayParser(o.Base.WithReference(reference), o.Array(reference))
+}
+
+func (o *Object) raw(reference string) (interface{}, bool) {
+	if o.object == nil {
+		return nil, false
+	}
+
+	o.parsed[reference] = true
+
+	rawValue, ok := (*o.object)[reference]
+
+	return rawValue, ok
+}

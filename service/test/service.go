@@ -1,6 +1,8 @@
 package test
 
 import (
+	"github.com/onsi/gomega"
+
 	"github.com/tidepool-org/platform/auth"
 	testAuth "github.com/tidepool-org/platform/auth/test"
 	"github.com/tidepool-org/platform/config"
@@ -20,6 +22,8 @@ type Service struct {
 	ConfigReporterImpl         *testConfig.Reporter
 	LoggerInvocations          int
 	LoggerImpl                 log.Logger
+	SecretInvocations          int
+	SecretOutputs              []string
 	AuthClientInvocations      int
 	AuthClientImpl             *testAuth.Client
 }
@@ -53,12 +57,25 @@ func (s *Service) Logger() log.Logger {
 	return s.LoggerImpl
 }
 
+func (s *Service) Secret() string {
+	s.SecretInvocations++
+
+	gomega.Expect(s.SecretOutputs).ToNot(gomega.BeEmpty())
+
+	output := s.SecretOutputs[0]
+	s.SecretOutputs = s.SecretOutputs[1:]
+	return output
+}
+
 func (s *Service) AuthClient() auth.Client {
 	s.AuthClientInvocations++
 
 	return s.AuthClientImpl
 }
 
-func (s *Service) UnusedOutputsCount() int {
-	return s.AuthClientImpl.UnusedOutputsCount()
+func (s *Service) Expectations() {
+	s.Mock.Expectations()
+	s.ConfigReporterImpl.Expectations()
+	gomega.Expect(s.SecretOutputs).To(gomega.BeEmpty())
+	s.AuthClientImpl.Expectations()
 }

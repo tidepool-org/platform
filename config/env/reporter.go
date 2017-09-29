@@ -14,10 +14,10 @@ var replaceInvalidCharacters = regexp.MustCompile("[^A-Z0-9_]").ReplaceAllString
 
 func NewReporter(prefix string) (config.Reporter, error) {
 	if prefix == "" {
-		return nil, errors.New("env", "prefix is missing")
+		return nil, errors.New("prefix is missing")
 	}
 	if !isValidPrefix(prefix) {
-		return nil, errors.New("env", "prefix is invalid")
+		return nil, errors.New("prefix is invalid")
 	}
 
 	return &reporter{
@@ -37,12 +37,16 @@ func (r *reporter) Get(key string) (string, bool) {
 		limit = 0
 	}
 
+	// fmt.Fprintf(os.Stderr, "\nCONFIG: %s\n", key)
 	for i := 0; i <= limit; i++ {
-		if value, found := syscall.Getenv(r.getEnvKey(r.scopes[i:], key)); found {
+		// fmt.Fprintf(os.Stderr, "        --- %s\n", r.getKey(r.scopes[i:], key))
+		if value, found := syscall.Getenv(r.getKey(r.scopes[i:], key)); found {
+			// fmt.Fprintf(os.Stderr, "        ==> %s\n", value)
 			return value, true
 		}
 	}
 
+	// fmt.Fprintf(os.Stderr, "        Not Found!!!\n\n")
 	return "", false
 }
 
@@ -55,11 +59,11 @@ func (r *reporter) GetWithDefault(key string, defaultValue string) string {
 }
 
 func (r *reporter) Set(key string, value string) {
-	syscall.Setenv(r.getEnvKey(r.scopes, key), value) // Safely ignore error; cannot fail
+	syscall.Setenv(r.getKey(r.scopes, key), value) // Safely ignore error; cannot fail
 }
 
 func (r *reporter) Delete(key string) {
-	syscall.Unsetenv(r.getEnvKey(r.scopes, key)) // Safely ignore error; cannot fail
+	syscall.Unsetenv(r.getKey(r.scopes, key)) // Safely ignore error; cannot fail
 }
 
 func (r *reporter) WithScopes(scopes ...string) config.Reporter {
@@ -69,7 +73,11 @@ func (r *reporter) WithScopes(scopes ...string) config.Reporter {
 	}
 }
 
-func (r *reporter) getEnvKey(scopes []string, key string) string {
-	parts := append(append([]string{r.prefix}, scopes...), key)
+func (r *reporter) getKey(scopes []string, key string) string {
+	return GetKey(r.prefix, scopes, key)
+}
+
+func GetKey(prefix string, scopes []string, key string) string {
+	parts := append(append([]string{prefix}, scopes...), key)
 	return replaceInvalidCharacters(strings.ToUpper(strings.Join(parts, "_")), "_")
 }

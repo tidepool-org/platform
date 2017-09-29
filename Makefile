@@ -138,7 +138,7 @@ watch: ginkgo
 deploy: clean-deploy deploy-services deploy-migrations deploy-tools
 
 deploy-services:
-	@for SERVICES in $(shell ls -1 $(ROOT_DIRECTORY)/_bin/services); do $(MAKE) bundle-deploy DEPLOY=$${SERVICES} SOURCE=services/$${SERVICES}; done
+	@for SERVICE in $(shell ls -1 $(ROOT_DIRECTORY)/_bin/services); do $(MAKE) bundle-deploy DEPLOY=$${SERVICE} SOURCE=services/$${SERVICE}; done
 
 deploy-migrations:
 	@$(MAKE) bundle-deploy DEPLOY=migrations SOURCE=migrations
@@ -155,7 +155,7 @@ ifdef TRAVIS_TAG
 		DEPLOY_TAG=$(DEPLOY)-$(TRAVIS_TAG) && \
 		DEPLOY_DIR=deploy/$(DEPLOY)/$${DEPLOY_TAG} && \
 		mkdir -p $${DEPLOY_DIR}/_bin/$(SOURCE) && \
-		cp -R _bin/$(SOURCE)/ $${DEPLOY_DIR}/_bin/$(SOURCE)/ && \
+		cp -R _bin/$(SOURCE)/* $${DEPLOY_DIR}/_bin/$(SOURCE)/ && \
 		find $(SOURCE) -type f -name 'README.md' -exec cp {} $${DEPLOY_DIR}/_bin/{} \; && \
 		cp $(SOURCE)/start.sh $${DEPLOY_DIR}/ && \
 		tar -c -z -f $${DEPLOY_DIR}.tar.gz -C deploy/$(DEPLOY)/ $${DEPLOY_TAG}
@@ -170,6 +170,9 @@ clean-bin:
 
 clean-cover:
 	@cd $(ROOT_DIRECTORY) && find . -type f -name "*.coverprofile" -delete
+
+clean-debug:
+	@cd $(ROOT_DIRECTORY) && find . -type f -name "debug" -delete
 
 clean-deploy:
 	@cd $(ROOT_DIRECTORY) && rm -rf deploy

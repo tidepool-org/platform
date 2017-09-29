@@ -192,14 +192,14 @@ var _ = Describe("Device", func() {
 				It("returns error if user id is empty", func() {
 					testDevice.UserID = ""
 					identityFields, err := testDevice.IdentityFields()
-					Expect(err).To(MatchError("base: user id is empty"))
+					Expect(err).To(MatchError("user id is empty"))
 					Expect(identityFields).To(BeEmpty())
 				})
 
 				It("returns error if sub type is empty", func() {
 					testDevice.SubType = ""
 					identityFields, err := testDevice.IdentityFields()
-					Expect(err).To(MatchError("device: sub type is empty"))
+					Expect(err).To(MatchError("sub type is empty"))
 					Expect(identityFields).To(BeEmpty())
 				})
 

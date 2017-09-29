@@ -9,7 +9,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	testDataDeduplicator "github.com/tidepool-org/platform/data/deduplicator/test"
-	testDataStore "github.com/tidepool-org/platform/data/store/test"
+	testDataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED/test"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/log"
@@ -20,13 +20,13 @@ var _ = Describe("Delegate", func() {
 	Context("NewDelegateFactory", func() {
 		It("returns an error if factories is nil", func() {
 			testFactory, err := deduplicator.NewDelegateFactory(nil)
-			Expect(err).To(MatchError("deduplicator: factories is missing"))
+			Expect(err).To(MatchError("factories is missing"))
 			Expect(testFactory).To(BeNil())
 		})
 
 		It("returns an error if there are no factories", func() {
 			testFactory, err := deduplicator.NewDelegateFactory([]deduplicator.Factory{})
-			Expect(err).To(MatchError("deduplicator: factories is missing"))
+			Expect(err).To(MatchError("factories is missing"))
 			Expect(testFactory).To(BeNil())
 		})
 
@@ -72,7 +72,7 @@ var _ = Describe("Delegate", func() {
 					testFirstFactory.CanDeduplicateDatasetOutputs = []testDataDeduplicator.CanDeduplicateDatasetOutput{}
 					testSecondFactory.CanDeduplicateDatasetOutputs = []testDataDeduplicator.CanDeduplicateDatasetOutput{}
 					can, err := testDelegateFactory.CanDeduplicateDataset(nil)
-					Expect(err).To(MatchError("deduplicator: dataset is missing"))
+					Expect(err).To(MatchError("dataset is missing"))
 					Expect(can).To(BeFalse())
 				})
 
@@ -109,24 +109,24 @@ var _ = Describe("Delegate", func() {
 
 			Context("NewDeduplicatorForDataset", func() {
 				var testLogger log.Logger
-				var testDataSession *testDataStore.DataSession
+				var testDataSession *testDataStoreDEPRECATED.DataSession
 
 				BeforeEach(func() {
 					testLogger = null.NewLogger()
 					Expect(testLogger).ToNot(BeNil())
-					testDataSession = testDataStore.NewDataSession()
+					testDataSession = testDataStoreDEPRECATED.NewDataSession()
 					Expect(testDataSession).ToNot(BeNil())
 				})
 
 				AfterEach(func() {
-					Expect(testDataSession.UnusedOutputsCount()).To(Equal(0))
+					testDataSession.Expectations()
 				})
 
 				It("returns an error if the logger is missing", func() {
 					testFirstFactory.CanDeduplicateDatasetOutputs = []testDataDeduplicator.CanDeduplicateDatasetOutput{}
 					testSecondFactory.CanDeduplicateDatasetOutputs = []testDataDeduplicator.CanDeduplicateDatasetOutput{}
 					testDeduplicator, err := testDelegateFactory.NewDeduplicatorForDataset(nil, testDataSession, testDataset)
-					Expect(err).To(MatchError("deduplicator: logger is missing"))
+					Expect(err).To(MatchError("logger is missing"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
@@ -134,7 +134,7 @@ var _ = Describe("Delegate", func() {
 					testFirstFactory.CanDeduplicateDatasetOutputs = []testDataDeduplicator.CanDeduplicateDatasetOutput{}
 					testSecondFactory.CanDeduplicateDatasetOutputs = []testDataDeduplicator.CanDeduplicateDatasetOutput{}
 					testDeduplicator, err := testDelegateFactory.NewDeduplicatorForDataset(testLogger, nil, testDataset)
-					Expect(err).To(MatchError("deduplicator: data store session is missing"))
+					Expect(err).To(MatchError("data store session is missing"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
@@ -142,7 +142,7 @@ var _ = Describe("Delegate", func() {
 					testFirstFactory.CanDeduplicateDatasetOutputs = []testDataDeduplicator.CanDeduplicateDatasetOutput{}
 					testSecondFactory.CanDeduplicateDatasetOutputs = []testDataDeduplicator.CanDeduplicateDatasetOutput{}
 					testDeduplicator, err := testDelegateFactory.NewDeduplicatorForDataset(testLogger, testDataSession, nil)
-					Expect(err).To(MatchError("deduplicator: dataset is missing"))
+					Expect(err).To(MatchError("dataset is missing"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
@@ -157,7 +157,7 @@ var _ = Describe("Delegate", func() {
 
 				It("returns an error if no factory can deduplicate the dataset", func() {
 					testDeduplicator, err := testDelegateFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
-					Expect(err).To(MatchError("deduplicator: deduplicator not found"))
+					Expect(err).To(MatchError("deduplicator not found"))
 					Expect(testDeduplicator).To(BeNil())
 					Expect(testFirstFactory.CanDeduplicateDatasetInputs).To(ConsistOf(testDataset))
 					Expect(testSecondFactory.CanDeduplicateDatasetInputs).To(ConsistOf(testDataset))
@@ -207,7 +207,7 @@ var _ = Describe("Delegate", func() {
 					testFirstFactory.IsRegisteredWithDatasetOutputs = []testDataDeduplicator.IsRegisteredWithDatasetOutput{}
 					testSecondFactory.IsRegisteredWithDatasetOutputs = []testDataDeduplicator.IsRegisteredWithDatasetOutput{}
 					can, err := testDelegateFactory.IsRegisteredWithDataset(nil)
-					Expect(err).To(MatchError("deduplicator: dataset is missing"))
+					Expect(err).To(MatchError("dataset is missing"))
 					Expect(can).To(BeFalse())
 				})
 
@@ -244,23 +244,23 @@ var _ = Describe("Delegate", func() {
 
 			Context("NewRegisteredDeduplicatorForDataset", func() {
 				var testLogger log.Logger
-				var testDataSession *testDataStore.DataSession
+				var testDataSession *testDataStoreDEPRECATED.DataSession
 
 				BeforeEach(func() {
 					testLogger = null.NewLogger()
-					testDataSession = testDataStore.NewDataSession()
+					testDataSession = testDataStoreDEPRECATED.NewDataSession()
 					Expect(testDataSession).ToNot(BeNil())
 				})
 
 				AfterEach(func() {
-					Expect(testDataSession.UnusedOutputsCount()).To(Equal(0))
+					testDataSession.Expectations()
 				})
 
 				It("returns an error if the logger is missing", func() {
 					testFirstFactory.IsRegisteredWithDatasetOutputs = []testDataDeduplicator.IsRegisteredWithDatasetOutput{}
 					testSecondFactory.IsRegisteredWithDatasetOutputs = []testDataDeduplicator.IsRegisteredWithDatasetOutput{}
 					testDeduplicator, err := testDelegateFactory.NewRegisteredDeduplicatorForDataset(nil, testDataSession, testDataset)
-					Expect(err).To(MatchError("deduplicator: logger is missing"))
+					Expect(err).To(MatchError("logger is missing"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
@@ -268,7 +268,7 @@ var _ = Describe("Delegate", func() {
 					testFirstFactory.IsRegisteredWithDatasetOutputs = []testDataDeduplicator.IsRegisteredWithDatasetOutput{}
 					testSecondFactory.IsRegisteredWithDatasetOutputs = []testDataDeduplicator.IsRegisteredWithDatasetOutput{}
 					testDeduplicator, err := testDelegateFactory.NewRegisteredDeduplicatorForDataset(testLogger, nil, testDataset)
-					Expect(err).To(MatchError("deduplicator: data store session is missing"))
+					Expect(err).To(MatchError("data store session is missing"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
@@ -276,7 +276,7 @@ var _ = Describe("Delegate", func() {
 					testFirstFactory.IsRegisteredWithDatasetOutputs = []testDataDeduplicator.IsRegisteredWithDatasetOutput{}
 					testSecondFactory.IsRegisteredWithDatasetOutputs = []testDataDeduplicator.IsRegisteredWithDatasetOutput{}
 					testDeduplicator, err := testDelegateFactory.NewRegisteredDeduplicatorForDataset(testLogger, testDataSession, nil)
-					Expect(err).To(MatchError("deduplicator: dataset is missing"))
+					Expect(err).To(MatchError("dataset is missing"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
@@ -285,7 +285,7 @@ var _ = Describe("Delegate", func() {
 					testSecondFactory.IsRegisteredWithDatasetOutputs = []testDataDeduplicator.IsRegisteredWithDatasetOutput{}
 					testDataset.SetDeduplicatorDescriptor(nil)
 					testDeduplicator, err := testDelegateFactory.NewRegisteredDeduplicatorForDataset(testLogger, testDataSession, testDataset)
-					Expect(err).To(MatchError("deduplicator: dataset not registered with deduplicator"))
+					Expect(err).To(MatchError("dataset not registered with deduplicator"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
@@ -294,7 +294,7 @@ var _ = Describe("Delegate", func() {
 					testSecondFactory.IsRegisteredWithDatasetOutputs = []testDataDeduplicator.IsRegisteredWithDatasetOutput{}
 					testDataset.SetDeduplicatorDescriptor(&data.DeduplicatorDescriptor{})
 					testDeduplicator, err := testDelegateFactory.NewRegisteredDeduplicatorForDataset(testLogger, testDataSession, testDataset)
-					Expect(err).To(MatchError("deduplicator: dataset not registered with deduplicator"))
+					Expect(err).To(MatchError("dataset not registered with deduplicator"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
@@ -309,7 +309,7 @@ var _ = Describe("Delegate", func() {
 
 				It("returns an error if no factory is registered with the dataset", func() {
 					testDeduplicator, err := testDelegateFactory.NewRegisteredDeduplicatorForDataset(testLogger, testDataSession, testDataset)
-					Expect(err).To(MatchError("deduplicator: deduplicator not found"))
+					Expect(err).To(MatchError("deduplicator not found"))
 					Expect(testDeduplicator).To(BeNil())
 					Expect(testFirstFactory.IsRegisteredWithDatasetInputs).To(ConsistOf(testDataset))
 					Expect(testSecondFactory.IsRegisteredWithDatasetInputs).To(ConsistOf(testDataset))

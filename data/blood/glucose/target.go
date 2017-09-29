@@ -27,46 +27,46 @@ func NewTarget() *Target {
 	return &Target{}
 }
 
-func (b *Target) Parse(parser data.ObjectParser) {
-	b.Target = parser.ParseFloat("target")
-	b.Range = parser.ParseFloat("range")
-	b.Low = parser.ParseFloat("low")
-	b.High = parser.ParseFloat("high")
+func (t *Target) Parse(parser data.ObjectParser) {
+	t.Target = parser.ParseFloat("target")
+	t.Range = parser.ParseFloat("range")
+	t.Low = parser.ParseFloat("low")
+	t.High = parser.ParseFloat("high")
 }
 
-func (b *Target) Validate(validator data.Validator, units *string) {
-	if b.Target != nil && b.Range != nil {
-		validator.ValidateFloat("target", b.Target).Exists().InRange(TargetRangeForUnits(units))
-		validator.ValidateFloat("range", b.Range).Exists().InRange(RangeRangeForUnits(*b.Target, units))
-		validator.ValidateFloat("low", b.Low).NotExists()
-		validator.ValidateFloat("high", b.High).NotExists()
-	} else if b.Target != nil && b.High != nil {
-		validator.ValidateFloat("target", b.Target).Exists().InRange(TargetRangeForUnits(units))
-		validator.ValidateFloat("range", b.Range).NotExists()
-		validator.ValidateFloat("low", b.Low).NotExists()
-		validator.ValidateFloat("high", b.High).Exists().InRange(HighRangeForUnits(*b.Target, units))
-	} else if b.Target != nil {
-		validator.ValidateFloat("target", b.Target).Exists().InRange(TargetRangeForUnits(units))
-		validator.ValidateFloat("range", b.Range).NotExists()
-		validator.ValidateFloat("low", b.Low).NotExists()
-		validator.ValidateFloat("high", b.High).NotExists()
-	} else if b.Low != nil && b.High != nil {
-		validator.ValidateFloat("target", b.Target).NotExists()
-		validator.ValidateFloat("range", b.Range).NotExists()
-		validator.ValidateFloat("low", b.Low).Exists().InRange(LowRangeForUnits(units))
-		validator.ValidateFloat("high", b.High).Exists().InRange(HighRangeForUnits(*b.Low, units))
-	} else if b.Low != nil {
-		validator.ValidateFloat("high", b.High).Exists()
+func (t *Target) Validate(validator data.Validator, units *string) {
+	if t.Target != nil && t.Range != nil {
+		validator.ValidateFloat("target", t.Target).Exists().InRange(TargetRangeForUnits(units))
+		validator.ValidateFloat("range", t.Range).Exists().InRange(RangeRangeForUnits(*t.Target, units))
+		validator.ValidateFloat("low", t.Low).NotExists()
+		validator.ValidateFloat("high", t.High).NotExists()
+	} else if t.Target != nil && t.High != nil {
+		validator.ValidateFloat("target", t.Target).Exists().InRange(TargetRangeForUnits(units))
+		validator.ValidateFloat("range", t.Range).NotExists()
+		validator.ValidateFloat("low", t.Low).NotExists()
+		validator.ValidateFloat("high", t.High).Exists().InRange(HighRangeForUnits(*t.Target, units))
+	} else if t.Target != nil {
+		validator.ValidateFloat("target", t.Target).Exists().InRange(TargetRangeForUnits(units))
+		validator.ValidateFloat("range", t.Range).NotExists()
+		validator.ValidateFloat("low", t.Low).NotExists()
+		validator.ValidateFloat("high", t.High).NotExists()
+	} else if t.Low != nil && t.High != nil {
+		validator.ValidateFloat("target", t.Target).NotExists()
+		validator.ValidateFloat("range", t.Range).NotExists()
+		validator.ValidateFloat("low", t.Low).Exists().InRange(LowRangeForUnits(units))
+		validator.ValidateFloat("high", t.High).Exists().InRange(HighRangeForUnits(*t.Low, units))
+	} else if t.Low != nil {
+		validator.ValidateFloat("high", t.High).Exists()
 	} else {
-		validator.ValidateFloat("target", b.Target).Exists()
+		validator.ValidateFloat("target", t.Target).Exists()
 	}
 }
 
-func (b *Target) Normalize(normalizer data.Normalizer, units *string) {
-	b.Target = NormalizeValueForUnits(b.Target, units)
-	b.Range = NormalizeValueForUnits(b.Range, units)
-	b.Low = NormalizeValueForUnits(b.Low, units)
-	b.High = NormalizeValueForUnits(b.High, units)
+func (t *Target) Normalize(normalizer data.Normalizer, units *string) {
+	t.Target = NormalizeValueForUnits(t.Target, units)
+	t.Range = NormalizeValueForUnits(t.Range, units)
+	t.Low = NormalizeValueForUnits(t.Low, units)
+	t.High = NormalizeValueForUnits(t.High, units)
 }
 
 func TargetRangeForUnits(units *string) (float64, float64) {

@@ -1,16 +1,14 @@
 package test
 
 import (
-	"github.com/tidepool-org/platform/log"
 	testStore "github.com/tidepool-org/platform/store/test"
 	"github.com/tidepool-org/platform/task/store"
 )
 
 type Store struct {
 	*testStore.Store
-	NewTasksSessionInvocations int
-	NewTasksSessionInputs      []log.Logger
-	NewTasksSessionOutputs     []store.TasksSession
+	NewTaskSessionInvocations int
+	NewTaskSessionOutputs     []store.TaskSession
 }
 
 func NewStore() *Store {
@@ -19,20 +17,18 @@ func NewStore() *Store {
 	}
 }
 
-func (s *Store) NewTasksSession(lgr log.Logger) store.TasksSession {
-	s.NewTasksSessionInvocations++
+func (s *Store) NewTaskSession() store.TaskSession {
+	s.NewTaskSessionInvocations++
 
-	s.NewTasksSessionInputs = append(s.NewTasksSessionInputs, lgr)
-
-	if len(s.NewTasksSessionOutputs) == 0 {
-		panic("Unexpected invocation of NewTasksSession on Store")
+	if len(s.NewTaskSessionOutputs) == 0 {
+		panic("Unexpected invocation of NewTaskSession on Store")
 	}
 
-	output := s.NewTasksSessionOutputs[0]
-	s.NewTasksSessionOutputs = s.NewTasksSessionOutputs[1:]
+	output := s.NewTaskSessionOutputs[0]
+	s.NewTaskSessionOutputs = s.NewTaskSessionOutputs[1:]
 	return output
 }
 
 func (s *Store) UnusedOutputsCount() int {
-	return len(s.NewTasksSessionOutputs)
+	return len(s.NewTaskSessionOutputs)
 }

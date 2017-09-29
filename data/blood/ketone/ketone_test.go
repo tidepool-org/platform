@@ -77,11 +77,11 @@ var _ = Describe("Glucose", func() {
 			}
 		},
 		Entry("returns nil for nil value", nil, pointer.String("mmol/L"), nil),
-		Entry("returns unchanged value for nil units", pointer.Float(10.0), nil, pointer.Float(10.0)),
-		Entry("returns unchanged value for unknown units", pointer.Float(10.0), pointer.String("unknown"), pointer.Float(10.0)),
-		Entry("returns unchanged value for mmol/L units", pointer.Float(10.0), pointer.String("mmol/L"), pointer.Float(10.0)),
-		Entry("returns unchanged value for mmol/l units", pointer.Float(10.0), pointer.String("mmol/l"), pointer.Float(10.0)),
-		Entry("returns unchanged value for mg/dL units", pointer.Float(180.0), pointer.String("mg/dL"), pointer.Float(180.0)),
-		Entry("returns unchanged value for mg/dl units", pointer.Float(180.0), pointer.String("mg/dl"), pointer.Float(180.0)),
+		Entry("returns unchanged value for nil units", pointer.Float64(10.0), nil, pointer.Float64(10.0)),
+		Entry("returns unchanged value for unknown units", pointer.Float64(10.0), pointer.String("unknown"), pointer.Float64(10.0)),
+		Entry("returns unchanged value for mmol/L units", pointer.Float64(10.0), pointer.String("mmol/L"), pointer.Float64(10.0)),
+		Entry("returns unchanged value for mmol/l units", pointer.Float64(10.0), pointer.String("mmol/l"), pointer.Float64(10.0)),
+		Entry("returns unchanged value for mg/dL units", pointer.Float64(180.0), pointer.String("mg/dL"), pointer.Float64(180.0)),
+		Entry("returns unchanged value for mg/dl units", pointer.Float64(180.0), pointer.String("mg/dl"), pointer.Float64(180.0)),
 	)
 })

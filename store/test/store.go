@@ -1,6 +1,10 @@
 package test
 
-import "github.com/tidepool-org/platform/test"
+import (
+	"github.com/onsi/gomega"
+
+	"github.com/tidepool-org/platform/test"
+)
 
 type Store struct {
 	*test.Mock
@@ -20,9 +24,7 @@ func NewStore() *Store {
 func (s *Store) IsClosed() bool {
 	s.IsClosedInvocations++
 
-	if len(s.IsClosedOutputs) == 0 {
-		panic("Unexpected invocation of IsClosed on Store")
-	}
+	gomega.Expect(s.IsClosedOutputs).ToNot(gomega.BeEmpty())
 
 	output := s.IsClosedOutputs[0]
 	s.IsClosedOutputs = s.IsClosedOutputs[1:]
@@ -36,9 +38,7 @@ func (s *Store) Close() {
 func (s *Store) Status() interface{} {
 	s.StatusInvocations++
 
-	if len(s.StatusOutputs) == 0 {
-		panic("Unexpected invocation of Status on Store")
-	}
+	gomega.Expect(s.StatusOutputs).ToNot(gomega.BeEmpty())
 
 	output := s.StatusOutputs[0]
 	s.StatusOutputs = s.StatusOutputs[1:]
@@ -48,4 +48,10 @@ func (s *Store) Status() interface{} {
 func (s *Store) UnusedOutputsCount() int {
 	return len(s.IsClosedOutputs) +
 		len(s.StatusOutputs)
+}
+
+func (s *Store) Expectations() {
+	s.Mock.Expectations()
+	gomega.Expect(s.IsClosedOutputs).To(gomega.BeEmpty())
+	gomega.Expect(s.StatusOutputs).To(gomega.BeEmpty())
 }

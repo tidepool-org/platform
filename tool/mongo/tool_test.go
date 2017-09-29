@@ -5,17 +5,18 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/application/version"
-	_ "github.com/tidepool-org/platform/application/version/test"
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/config/env"
 	"github.com/tidepool-org/platform/tool/mongo"
+
+	_ "github.com/tidepool-org/platform/application/version/test"
 )
 
 var _ = Describe("Tool", func() {
 	Context("New", func() {
 		It("returns an error if the prefix is missing", func() {
 			tuel, err := mongo.NewTool("")
-			Expect(err).To(MatchError("application: prefix is missing"))
+			Expect(err).To(MatchError("prefix is missing"))
 			Expect(tuel).To(BeNil())
 		})
 
@@ -48,7 +49,7 @@ var _ = Describe("Tool", func() {
 				})
 
 				It("returns an error if the version is not specified correctly", func() {
-					Expect(tuel.Initialize()).To(MatchError("application: unable to create version reporter; version: base is missing"))
+					Expect(tuel.Initialize()).To(MatchError("unable to create version reporter; base is missing"))
 				})
 			})
 
@@ -71,7 +72,7 @@ var _ = Describe("Tool", func() {
 				})
 
 				It("returns an error if the store tls is invalid", func() {
-					Expect(tuel.Initialize()).To(MatchError("mongo: unable to load store config; mongo: tls is invalid"))
+					Expect(tuel.Initialize()).To(MatchError("unable to load store config; tls is invalid"))
 				})
 			})
 

@@ -10,8 +10,8 @@ type Store struct {
 	*mongo.Store
 }
 
-func New(lgr log.Logger, cfg *mongo.Config) (*Store, error) {
-	str, err := mongo.New(lgr, cfg)
+func New(cfg *mongo.Config, lgr log.Logger) (*Store, error) {
+	str, err := mongo.New(cfg, lgr)
 	if err != nil {
 		return nil, err
 	}
@@ -21,9 +21,9 @@ func New(lgr log.Logger, cfg *mongo.Config) (*Store, error) {
 	}, nil
 }
 
-func (s *Store) NewNotificationsSession(lgr log.Logger) store.NotificationsSession {
+func (s *Store) NewNotificationsSession() store.NotificationsSession {
 	return &NotificationsSession{
-		Session: s.Store.NewSession(lgr, "notifications"),
+		Session: s.Store.NewSession("notifications"),
 	}
 }
 

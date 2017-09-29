@@ -33,10 +33,10 @@ func NewTestSuspend(sourceTime interface{}, sourceDuration interface{}, sourceEx
 		testSuspend.Time = pointer.String(value)
 	}
 	if value, ok := sourceDuration.(int); ok {
-		testSuspend.Duration = pointer.Integer(value)
+		testSuspend.Duration = pointer.Int(value)
 	}
 	if value, ok := sourceExpectedDuration.(int); ok {
-		testSuspend.ExpectedDuration = pointer.Integer(value)
+		testSuspend.ExpectedDuration = pointer.Int(value)
 	}
 	testSuspend.Suppressed = sourceSuppressed
 	return testSuspend
@@ -51,7 +51,7 @@ func NewTestSuppressed(sourceType interface{}, sourceDeliveryType interface{}, s
 		testSuppressed.DeliveryType = pointer.String(value)
 	}
 	if value, ok := sourceRate.(float64); ok {
-		testSuppressed.Rate = pointer.Float(value)
+		testSuppressed.Rate = pointer.Float64(value)
 	}
 	if value, ok := sourceScheduleName.(string); ok {
 		testSuppressed.ScheduleName = pointer.String(value)

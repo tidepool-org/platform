@@ -18,7 +18,7 @@ type API struct {
 
 func New(svc service.Service) (*API, error) {
 	if svc == nil {
-		return nil, errors.New("api", "service is missing")
+		return nil, errors.New("service is missing")
 	}
 
 	return &API{
@@ -28,6 +28,9 @@ func New(svc service.Service) (*API, error) {
 }
 
 func (a *API) Status() *rest.Status {
+	if a.statusMiddleware == nil {
+		return nil
+	}
 	return a.statusMiddleware.GetStatus()
 }
 
@@ -56,7 +59,7 @@ func (a *API) InitializeMiddleware() error {
 	if err != nil {
 		return err
 	}
-	authMiddleware, err := middleware.NewAuth(a.AuthClient())
+	authMiddleware, err := middleware.NewAuth(a.Secret(), a.AuthClient())
 	if err != nil {
 		return err
 	}
@@ -73,10 +76,12 @@ func (a *API) InitializeMiddleware() error {
 		statusMiddleware,
 		timerMiddleware,
 		recorderMiddleware,
-		recoverMiddleware,
+		// recoverMiddleware,
 		authMiddleware,
 		gzipMiddleware,
 	}
+
+	_ = recoverMiddleware
 
 	a.api.Use(middlewareStack...)
 
@@ -88,7 +93,7 @@ func (a *API) InitializeMiddleware() error {
 func (a *API) InitializeRouter(routes ...*rest.Route) error {
 	router, err := rest.MakeRouter(routes...)
 	if err != nil {
-		return errors.Wrap(err, "api", "unable to initializer router")
+		return errors.Wrap(err, "unable to initializer router")
 	}
 
 	a.api.SetApp(router)

@@ -35,7 +35,7 @@ func NewTestKetone(sourceTime interface{}, sourceUnits interface{}, sourceValue 
 		testKetone.Units = pointer.String(value)
 	}
 	if value, ok := sourceValue.(float64); ok {
-		testKetone.Value = pointer.Float(value)
+		testKetone.Value = pointer.Float64(value)
 	}
 	return testKetone
 }

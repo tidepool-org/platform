@@ -63,17 +63,17 @@ func (m *Migration) Initialize() error {
 func (m *Migration) execute() error {
 	metaIDToUserIDMap, err := m.buildMetaIDToUserIDMap()
 	if err != nil {
-		return errors.Wrap(err, "main", "unable to build meta id to user id map")
+		return errors.Wrap(err, "unable to build meta id to user id map")
 	}
 
 	groupIDToUserIDMap, err := m.buildGroupIDToUserIDMap(metaIDToUserIDMap)
 	if err != nil {
-		return errors.Wrap(err, "main", "unable to build group id to user id map")
+		return errors.Wrap(err, "unable to build group id to user id map")
 	}
 
 	err = m.migrateGroupIDToUserIDForDeviceData(groupIDToUserIDMap)
 	if err != nil {
-		return errors.Wrap(err, "main", "unable to migrate group id to user id for device data")
+		return errors.Wrap(err, "unable to migrate group id to user id for device data")
 	}
 
 	return nil
@@ -89,15 +89,15 @@ func (m *Migration) buildMetaIDToUserIDMap() (map[string]string, error) {
 
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "user"
-	usersStore, err := mongo.New(m.Logger(), mongoConfig)
+	usersStore, err := mongo.New(mongoConfig, m.Logger())
 	if err != nil {
-		return nil, errors.Wrap(err, "main", "unable to create users store")
+		return nil, errors.Wrap(err, "unable to create users store")
 	}
 	defer usersStore.Close()
 
 	m.Logger().Debug("Creating users session")
 
-	usersSession := usersStore.NewSession(m.Logger(), "users")
+	usersSession := usersStore.NewSession("users")
 	defer usersSession.Close()
 
 	m.Logger().Debug("Iterating users")
@@ -144,7 +144,7 @@ func (m *Migration) buildMetaIDToUserIDMap() (map[string]string, error) {
 		metaIDToUserIDMap[metaID] = userID
 	}
 	if err = iter.Close(); err != nil {
-		return nil, errors.Wrap(err, "main", "unable to iterate users")
+		return nil, errors.Wrap(err, "unable to iterate users")
 	}
 
 	m.Logger().Debugf("Found %d users with meta", len(metaIDToUserIDMap))
@@ -162,15 +162,15 @@ func (m *Migration) buildGroupIDToUserIDMap(metaIDToUserIDMap map[string]string)
 
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "seagull"
-	metaStore, err := mongo.New(m.Logger(), mongoConfig)
+	metaStore, err := mongo.New(mongoConfig, m.Logger())
 	if err != nil {
-		return nil, errors.Wrap(err, "main", "unable to create meta store")
+		return nil, errors.Wrap(err, "unable to create meta store")
 	}
 	defer metaStore.Close()
 
 	m.Logger().Debug("Creating meta session")
 
-	metaSession := metaStore.NewSession(m.Logger(), "seagull")
+	metaSession := metaStore.NewSession("seagull")
 	defer metaSession.Close()
 
 	m.Logger().Debug("Iterating meta")
@@ -238,7 +238,7 @@ func (m *Migration) buildGroupIDToUserIDMap(metaIDToUserIDMap map[string]string)
 		groupIDToUserIDMap[groupID] = userID
 	}
 	if err = iter.Close(); err != nil {
-		return nil, errors.Wrap(err, "main", "unable to iterate meta")
+		return nil, errors.Wrap(err, "unable to iterate meta")
 	}
 
 	m.Logger().Debugf("Found %d groups with user", len(groupIDToUserIDMap))
@@ -256,15 +256,15 @@ func (m *Migration) migrateGroupIDToUserIDForDeviceData(groupIDToUserIDMap map[s
 
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "data"
-	deviceDataStore, err := mongo.New(m.Logger(), mongoConfig)
+	deviceDataStore, err := mongo.New(mongoConfig, m.Logger())
 	if err != nil {
-		return errors.Wrap(err, "main", "unable to create device data store")
+		return errors.Wrap(err, "unable to create device data store")
 	}
 	defer deviceDataStore.Close()
 
 	m.Logger().Debug("Creating device data session")
 
-	deviceDataSession := deviceDataStore.NewSession(m.Logger(), "deviceData")
+	deviceDataSession := deviceDataStore.NewSession("deviceData")
 	defer deviceDataSession.Close()
 
 	m.Logger().Debug("Walking group id to user id map")
@@ -275,16 +275,16 @@ func (m *Migration) migrateGroupIDToUserIDForDeviceData(groupIDToUserIDMap map[s
 
 		dataLogger.Debug("Finding device data for group id with incorrect existing user id")
 
-		query := bson.M{
+		selector := bson.M{
 			"$and": []bson.M{
 				{"_groupId": groupID},
 				{"_userId": bson.M{"$exists": true}},
 				{"_userId": bson.M{"$ne": userID}},
 			},
 		}
-		count, err = deviceDataSession.C().Find(query).Count()
+		count, err = deviceDataSession.C().Find(selector).Count()
 		if err != nil {
-			dataLogger.WithError(err).Error("Unable to query for incorrect device data")
+			dataLogger.WithError(err).Error("Unable to find incorrect device data")
 			continue
 		}
 
@@ -295,7 +295,7 @@ func (m *Migration) migrateGroupIDToUserIDForDeviceData(groupIDToUserIDMap map[s
 
 		dataLogger.Debug("Updating device data for group id with user id")
 
-		selector := bson.M{
+		selector = bson.M{
 			"_groupId": groupID,
 			"_userId":  bson.M{"$exists": false},
 		}

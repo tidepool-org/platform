@@ -19,7 +19,7 @@ func NewConfig() *Config {
 
 func (c *Config) Load(configReporter config.Reporter) error {
 	if c.Config == nil {
-		return errors.New("mongo", "config is missing")
+		return errors.New("config is missing")
 	}
 	if err := c.Config.Load(configReporter); err != nil {
 		return err
@@ -32,14 +32,14 @@ func (c *Config) Load(configReporter config.Reporter) error {
 
 func (c *Config) Validate() error {
 	if c.Config == nil {
-		return errors.New("mongo", "config is missing")
+		return errors.New("config is missing")
 	}
 	if err := c.Config.Validate(); err != nil {
 		return err
 	}
 
 	if c.Secret == "" {
-		return errors.New("mongo", "secret is missing")
+		return errors.New("secret is missing")
 	}
 
 	return nil

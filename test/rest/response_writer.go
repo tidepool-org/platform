@@ -3,6 +3,8 @@ package rest
 import (
 	"net/http"
 
+	"github.com/onsi/gomega"
+
 	"github.com/tidepool-org/platform/test"
 )
 
@@ -40,9 +42,7 @@ func (r *ResponseWriter) WriteJson(object interface{}) error {
 
 	r.WriteJsonInputs = append(r.WriteJsonInputs, object)
 
-	if len(r.WriteJsonOutputs) == 0 {
-		panic("Unexpected invocation of WriteJson on ResponseWriter")
-	}
+	gomega.Expect(r.WriteJsonOutputs).ToNot(gomega.BeEmpty())
 
 	output := r.WriteJsonOutputs[0]
 	r.WriteJsonOutputs = r.WriteJsonOutputs[1:]
@@ -54,9 +54,7 @@ func (r *ResponseWriter) EncodeJson(object interface{}) ([]byte, error) {
 
 	r.EncodeJsonInputs = append(r.EncodeJsonInputs, object)
 
-	if len(r.EncodeJsonOutputs) == 0 {
-		panic("Unexpected invocation of EncodeJson on ResponseWriter")
-	}
+	gomega.Expect(r.EncodeJsonOutputs).ToNot(gomega.BeEmpty())
 
 	output := r.EncodeJsonOutputs[0]
 	r.EncodeJsonOutputs = r.EncodeJsonOutputs[1:]
@@ -69,7 +67,8 @@ func (r *ResponseWriter) WriteHeader(code int) {
 	r.WriteHeaderInputs = append(r.WriteHeaderInputs, code)
 }
 
-func (r *ResponseWriter) UnusedOutputsCount() int {
-	return len(r.WriteJsonOutputs) +
-		len(r.EncodeJsonOutputs)
+func (r *ResponseWriter) Expectations() {
+	r.Mock.Expectations()
+	gomega.Expect(r.WriteJsonOutputs).To(gomega.BeEmpty())
+	gomega.Expect(r.EncodeJsonOutputs).To(gomega.BeEmpty())
 }

@@ -9,6 +9,7 @@ import (
 
 type DEPRECATEDService struct {
 	*application.Application
+	secret     string
 	authClient *authClient.Client
 }
 
@@ -23,51 +24,67 @@ func NewDEPRECATEDService(prefix string) (*DEPRECATEDService, error) {
 	}, nil
 }
 
-func (s *DEPRECATEDService) Initialize() error {
-	if err := s.Application.Initialize(); err != nil {
+func (d *DEPRECATEDService) Initialize() error {
+	if err := d.Application.Initialize(); err != nil {
 		return err
 	}
 
-	if err := s.initializeAuthClient(); err != nil {
+	if err := d.initializeSecret(); err != nil {
 		return err
 	}
+	return d.initializeAuthClient()
+}
+
+func (d *DEPRECATEDService) Terminate() {
+	if d.authClient != nil {
+		d.authClient.Close()
+		d.authClient = nil
+	}
+	d.secret = ""
+
+	d.Application.Terminate()
+}
+
+func (d *DEPRECATEDService) Secret() string {
+	return d.secret
+}
+
+func (d *DEPRECATEDService) AuthClient() auth.Client {
+	return d.authClient
+}
+
+func (d *DEPRECATEDService) initializeSecret() error {
+	d.Logger().Debug("Initializing secret")
+
+	secret := d.ConfigReporter().GetWithDefault("secret", "")
+	if secret == "" {
+		return errors.New("secret is missing")
+	}
+	d.secret = secret
 
 	return nil
 }
 
-func (s *DEPRECATEDService) Terminate() {
-	if s.authClient != nil {
-		s.authClient.Close()
-		s.authClient = nil
-	}
-
-	s.Application.Terminate()
-}
-
-func (s *DEPRECATEDService) AuthClient() auth.Client {
-	return s.authClient
-}
-
-func (s *DEPRECATEDService) initializeAuthClient() error {
-	s.Logger().Debug("Loading auth client config")
+func (d *DEPRECATEDService) initializeAuthClient() error {
+	d.Logger().Debug("Loading auth client config")
 
 	cfg := authClient.NewConfig()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("auth", "client")); err != nil {
-		return errors.Wrap(err, "service", "unable to load auth client config")
+	if err := cfg.Load(d.ConfigReporter().WithScopes("auth", "client")); err != nil {
+		return errors.Wrap(err, "unable to load auth client config")
 	}
 
-	s.Logger().Debug("Creating auth client")
+	d.Logger().Debug("Creating auth client")
 
-	clnt, err := authClient.NewClient(cfg, s.Name(), s.Logger())
+	clnt, err := authClient.NewClient(cfg, d.Name(), d.Logger())
 	if err != nil {
-		return errors.Wrap(err, "service", "unable to create auth client")
+		return errors.Wrap(err, "unable to create auth client")
 	}
-	s.authClient = clnt
+	d.authClient = clnt
 
-	s.Logger().Debug("Starting auth client")
+	d.Logger().Debug("Starting auth client")
 
-	if err = s.authClient.Start(); err != nil {
-		return errors.Wrap(err, "service", "unable to start auth client")
+	if err = d.authClient.Start(); err != nil {
+		return errors.Wrap(err, "unable to start auth client")
 	}
 
 	return nil

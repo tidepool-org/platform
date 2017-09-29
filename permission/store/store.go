@@ -1,18 +1,19 @@
 package store
 
 import (
-	"github.com/tidepool-org/platform/log"
+	"context"
+
 	"github.com/tidepool-org/platform/store"
 )
 
 type Store interface {
 	store.Store
 
-	NewPermissionsSession(logger log.Logger) PermissionsSession
+	NewPermissionsSession() PermissionsSession
 }
 
 type PermissionsSession interface {
 	store.Session
 
-	DestroyPermissionsForUserByID(userID string) error
+	DestroyPermissionsForUserByID(ctx context.Context, userID string) error
 }

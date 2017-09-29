@@ -19,10 +19,10 @@ type StandardArray struct {
 
 func NewStandardArray(context data.Context, factory data.Factory, array *[]interface{}, notParsedPolicy NotParsedPolicy) (*StandardArray, error) {
 	if context == nil {
-		return nil, errors.New("parser", "context is missing")
+		return nil, errors.New("context is missing")
 	}
 	if factory == nil {
-		return nil, errors.New("parser", "factory is missing")
+		return nil, errors.New("factory is missing")
 	}
 
 	var parsed []bool

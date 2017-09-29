@@ -12,5 +12,6 @@ type Service interface {
 	ConfigReporter() config.Reporter
 	Logger() log.Logger
 
+	Secret() string
 	AuthClient() auth.Client
 }

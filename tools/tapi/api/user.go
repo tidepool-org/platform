@@ -213,7 +213,7 @@ func NewAddRolesUserUpdater(roles []string) (*AddRolesUserUpdater, error) {
 	return &AddRolesUserUpdater{Roles: roles}, nil
 }
 
-func (u *AddRolesUserUpdater) Update(updateUser *user.User, userUpdates *UserUpdates) error {
+func (a *AddRolesUserUpdater) Update(updateUser *user.User, userUpdates *UserUpdates) error {
 	var originalRoles *[]string
 	if userUpdates.Roles != nil {
 		originalRoles = userUpdates.Roles
@@ -223,7 +223,7 @@ func (u *AddRolesUserUpdater) Update(updateUser *user.User, userUpdates *UserUpd
 		originalRoles = &[]string{}
 	}
 
-	addRoles := subtractStringArray(u.Roles, *originalRoles)
+	addRoles := subtractStringArray(a.Roles, *originalRoles)
 	if len(addRoles) == 0 {
 		return nil
 	}
@@ -241,7 +241,7 @@ func NewRemoveRolesUserUpdater(roles []string) (*RemoveRolesUserUpdater, error) 
 	return &RemoveRolesUserUpdater{Roles: roles}, nil
 }
 
-func (u *RemoveRolesUserUpdater) Update(updateUser *user.User, userUpdates *UserUpdates) error {
+func (r *RemoveRolesUserUpdater) Update(updateUser *user.User, userUpdates *UserUpdates) error {
 	var originalRoles *[]string
 	if userUpdates.Roles != nil {
 		originalRoles = userUpdates.Roles
@@ -251,7 +251,7 @@ func (u *RemoveRolesUserUpdater) Update(updateUser *user.User, userUpdates *User
 		return nil
 	}
 
-	updatedRoles := subtractStringArray(*originalRoles, u.Roles)
+	updatedRoles := subtractStringArray(*originalRoles, r.Roles)
 	if len(updatedRoles) == len(*originalRoles) {
 		return nil
 	}

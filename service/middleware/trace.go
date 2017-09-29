@@ -5,14 +5,16 @@ import (
 
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
 )
 
 type Trace struct{}
 
 const (
-	_LogTraceRequest = "trace-request"
-	_LogTraceSession = "trace-session"
+	_LogTrace   = "trace"
+	_LogRequest = "request"
+	_LogSession = "session"
 
 	_TraceMaximumLength = 64
 )
@@ -22,44 +24,58 @@ func NewTrace() (*Trace, error) {
 }
 
 func (t *Trace) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
-	return func(response rest.ResponseWriter, request *rest.Request) {
-		if handler != nil && response != nil && request != nil {
-			newFields := log.Fields{}
+	return func(res rest.ResponseWriter, req *rest.Request) {
+		if handler != nil && res != nil && req != nil {
+			oldRequest := req.Request
+			defer func() {
+				req.Request = oldRequest
+			}()
 
-			oldTraceRequest := service.GetRequestTraceRequest(request)
-			defer service.SetRequestTraceRequest(request, oldTraceRequest)
+			trace := map[string]interface{}{}
 
-			newTraceRequest := request.Header.Get(service.HTTPHeaderTraceRequest)
-			if newTraceRequest != "" {
-				if len(newTraceRequest) > _TraceMaximumLength {
-					newTraceRequest = newTraceRequest[:_TraceMaximumLength]
+			// DEPRECATED
+			oldTraceRequest := service.GetRequestTraceRequest(req)
+			defer service.SetRequestTraceRequest(req, oldTraceRequest)
+
+			traceRequest := req.Header.Get(request.HTTPHeaderTraceRequest)
+			if traceRequest != "" {
+				if len(traceRequest) > _TraceMaximumLength {
+					traceRequest = traceRequest[:_TraceMaximumLength]
 				}
 			} else {
-				newTraceRequest = id.New()
+				traceRequest = id.New()
 			}
-			service.SetRequestTraceRequest(request, newTraceRequest)
-			response.Header().Add(service.HTTPHeaderTraceRequest, newTraceRequest)
-			newFields[_LogTraceRequest] = newTraceRequest
+			req.Request = req.WithContext(request.NewContextWithTraceRequest(req.Context(), traceRequest))
+			service.SetRequestTraceRequest(req, traceRequest) // DEPRECATED
+			res.Header().Add(request.HTTPHeaderTraceRequest, traceRequest)
+			trace[_LogRequest] = traceRequest
 
-			newTraceSession := request.Header.Get(service.HTTPHeaderTraceSession)
-			if newTraceSession != "" {
-				oldTraceSession := service.GetRequestTraceSession(request)
-				defer service.SetRequestTraceSession(request, oldTraceSession)
+			traceSession := req.Header.Get(request.HTTPHeaderTraceSession)
+			if traceSession != "" {
+				// DEPRECATED
+				oldTraceSession := service.GetRequestTraceSession(req)
+				defer service.SetRequestTraceSession(req, oldTraceSession)
 
-				if len(newTraceSession) > _TraceMaximumLength {
-					newTraceSession = newTraceSession[:_TraceMaximumLength]
+				if len(traceSession) > _TraceMaximumLength {
+					traceSession = traceSession[:_TraceMaximumLength]
 				}
-				service.SetRequestTraceSession(request, newTraceSession)
-				response.Header().Add(service.HTTPHeaderTraceSession, newTraceSession)
-				newFields[_LogTraceSession] = newTraceSession
+				req.Request = req.WithContext(request.NewContextWithTraceSession(req.Context(), traceSession))
+				service.SetRequestTraceSession(req, traceSession) // DEPRECATED
+				res.Header().Add(request.HTTPHeaderTraceSession, traceSession)
+				trace[_LogSession] = traceSession
 			}
 
-			if oldLogger := service.GetRequestLogger(request); oldLogger != nil {
-				defer service.SetRequestLogger(request, oldLogger)
-				service.SetRequestLogger(request, oldLogger.WithFields(newFields))
+			// DEPRECATED
+			if oldLogger := service.GetRequestLogger(req); oldLogger != nil {
+				defer service.SetRequestLogger(req, oldLogger)
+				service.SetRequestLogger(req, oldLogger.WithField(_LogTrace, trace))
 			}
 
-			handler(response, request)
+			if logger := log.LoggerFromContext(req.Context()); logger != nil {
+				req.Request = req.WithContext(log.NewContextWithLogger(req.Context(), logger.WithField(_LogTrace, trace)))
+			}
+
+			handler(res, req)
 		}
 	}
 }

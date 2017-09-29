@@ -15,14 +15,14 @@ var _ = Describe("Reporter", func() {
 	Context("NewConfig", func() {
 		It("returns an error if prefix is missing", func() {
 			reporter, err := env.NewReporter("")
-			Expect(err).To(MatchError("env: prefix is missing"))
+			Expect(err).To(MatchError("prefix is missing"))
 			Expect(reporter).To(BeNil())
 		})
 
 		DescribeTable("returns an error if prefix is invalid",
 			func(prefix string) {
 				reporter, err := env.NewReporter(prefix)
-				Expect(err).To(MatchError("env: prefix is invalid"))
+				Expect(err).To(MatchError("prefix is invalid"))
 				Expect(reporter).To(BeNil())
 			},
 			Entry("is underscore", "_"),
@@ -133,5 +133,21 @@ var _ = Describe("Reporter", func() {
 				Entry("allows no scopes", "TIDEPOOL_TEST_EFF", "FFF", []string{}, "EFF", "FFF", true),
 			)
 		})
+	})
+
+	Context("GetKey", func() {
+		DescribeTable("returns expected values given prefix, scopes, and key",
+			func(prefix string, scopes []string, key string, expectedValue string) {
+				Expect(env.GetKey(prefix, scopes, key)).To(Equal(expectedValue))
+			},
+			Entry("is as expected", "PREFIX", []string{"ONE", "TWO", "THREE"}, "KEY", "PREFIX_ONE_TWO_THREE_KEY"),
+			Entry("is lowercase", "PREFIX", []string{"one", "two", "three"}, "key", "PREFIX_ONE_TWO_THREE_KEY"),
+			Entry("has no prefix", "", []string{"one", "two", "three"}, "key", "_ONE_TWO_THREE_KEY"),
+			Entry("has no scopes", "prefix", nil, "key", "PREFIX_KEY"),
+			Entry("has empty scopes", "prefix", []string{}, "key", "PREFIX_KEY"),
+			Entry("has an empty scope", "prefix", []string{""}, "key", "PREFIX__KEY"),
+			Entry("has no key", "prefix", []string{"one", "two", "three"}, "", "PREFIX_ONE_TWO_THREE_"),
+			Entry("has invalid characters", "pr!!ix", []string{"o$e", "t^o", "th*ee"}, "k~y", "PR__IX_O_E_T_O_TH_EE_K_Y"),
+		)
 	})
 })

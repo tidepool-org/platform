@@ -50,7 +50,7 @@ var _ = Describe("Config", func() {
 			})
 
 			It("returns an error if config reporter is missing", func() {
-				Expect(config.Load(nil)).To(MatchError("mongo: config reporter is missing"))
+				Expect(config.Load(nil)).To(MatchError("config reporter is missing"))
 			})
 
 			It("uses default addresses if not set", func() {
@@ -67,7 +67,7 @@ var _ = Describe("Config", func() {
 
 			It("returns an error if the tls cannot be parsed to a boolean", func() {
 				configReporter.Config["tls"] = "abc"
-				Expect(config.Load(configReporter)).To(MatchError("mongo: tls is invalid"))
+				Expect(config.Load(configReporter)).To(MatchError("tls is invalid"))
 				Expect(config.TLS).To(BeTrue())
 			})
 
@@ -103,7 +103,7 @@ var _ = Describe("Config", func() {
 
 			It("returns an error if the timeout cannot be parsed to an integer", func() {
 				configReporter.Config["timeout"] = "abc"
-				Expect(config.Load(configReporter)).To(MatchError("mongo: timeout is invalid"))
+				Expect(config.Load(configReporter)).To(MatchError("timeout is invalid"))
 				Expect(config.Timeout).To(Equal(60 * time.Second))
 			})
 
@@ -139,27 +139,27 @@ var _ = Describe("Config", func() {
 
 				It("returns an error if the addresses is nil", func() {
 					config.Addresses = nil
-					Expect(config.Validate()).To(MatchError("mongo: addresses is missing"))
+					Expect(config.Validate()).To(MatchError("addresses is missing"))
 				})
 
 				It("returns an error if the addresses is empty", func() {
 					config.Addresses = []string{}
-					Expect(config.Validate()).To(MatchError("mongo: addresses is missing"))
+					Expect(config.Validate()).To(MatchError("addresses is missing"))
 				})
 
 				It("returns an error if one of the addresses is missing", func() {
 					config.Addresses = []string{""}
-					Expect(config.Validate()).To(MatchError("mongo: address is missing"))
+					Expect(config.Validate()).To(MatchError("address is missing"))
 				})
 
 				It("returns an error if one of the addresses is not a parseable URL", func() {
 					config.Addresses = []string{"Not%Parseable"}
-					Expect(config.Validate()).To(MatchError("mongo: address is invalid"))
+					Expect(config.Validate()).To(MatchError("address is invalid"))
 				})
 
 				It("returns an error if the database is missing", func() {
 					config.Database = ""
-					Expect(config.Validate()).To(MatchError("mongo: database is missing"))
+					Expect(config.Validate()).To(MatchError("database is missing"))
 				})
 
 				It("returns success if the username is not specified", func() {
@@ -174,7 +174,7 @@ var _ = Describe("Config", func() {
 
 				It("returns an error if the timeout is invalid", func() {
 					config.Timeout = 0
-					Expect(config.Validate()).To(MatchError("mongo: timeout is invalid"))
+					Expect(config.Validate()).To(MatchError("timeout is invalid"))
 				})
 			})
 		})

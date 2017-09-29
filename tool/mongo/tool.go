@@ -39,7 +39,7 @@ func (t *Tool) Initialize() error {
 	}
 
 	if err := t.mongoConfig.Load(t.ConfigReporter().WithScopes("store")); err != nil {
-		return errors.Wrap(err, "mongo", "unable to load store config")
+		return errors.Wrap(err, "unable to load store config")
 	}
 
 	t.CLI().Flags = append(t.CLI().Flags,

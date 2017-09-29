@@ -42,7 +42,7 @@ func NewNewFuncWithFunc(datumFunc func() data.Datum) NewFunc {
 
 	return func(inspector data.Inspector) (data.Datum, error) {
 		if inspector == nil {
-			return nil, errors.New("factory", "inspector is missing")
+			return nil, errors.New("inspector is missing")
 		}
 
 		return datumFunc(), nil
@@ -58,7 +58,7 @@ func NewNewFuncWithKeyAndMap(key string, newFuncMap NewFuncMap) NewFunc {
 
 	return func(inspector data.Inspector) (data.Datum, error) {
 		if inspector == nil {
-			return nil, errors.New("factory", "inspector is missing")
+			return nil, errors.New("inspector is missing")
 		}
 
 		value := inspector.GetProperty(key)

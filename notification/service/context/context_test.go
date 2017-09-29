@@ -26,7 +26,7 @@ var _ = Describe("Context", func() {
 
 	AfterEach(func() {
 		Expect(svc.UnusedOutputsCount()).To(Equal(0))
-		Expect(response.UnusedOutputsCount()).To(Equal(0))
+		response.Expectations()
 	})
 
 	Context("MustNew", func() {
@@ -51,19 +51,19 @@ var _ = Describe("Context", func() {
 	Context("New", func() {
 		It("returns an error if service is missing", func() {
 			ctx, err := context.New(nil, response, request)
-			Expect(err).To(MatchError("context: service is missing"))
+			Expect(err).To(MatchError("service is missing"))
 			Expect(ctx).To(BeNil())
 		})
 
 		It("returns an error if response is missing", func() {
 			ctx, err := context.New(svc, nil, request)
-			Expect(err).To(MatchError("context: response is missing"))
+			Expect(err).To(MatchError("response is missing"))
 			Expect(ctx).To(BeNil())
 		})
 
 		It("returns an error if request is missing", func() {
 			ctx, err := context.New(svc, response, nil)
-			Expect(err).To(MatchError("context: request is missing"))
+			Expect(err).To(MatchError("request is missing"))
 			Expect(ctx).To(BeNil())
 		})
 
@@ -113,7 +113,6 @@ var _ = Describe("Context", func() {
 			Context("NotificationsSession", func() {
 				It("returns successfully", func() {
 					Expect(ctx.NotificationsSession()).To(Equal(ssn))
-					Expect(ssn.SetAgentInvocations).To(Equal(1))
 				})
 			})
 		})

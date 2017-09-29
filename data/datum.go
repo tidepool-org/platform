@@ -11,6 +11,8 @@ type Datum interface {
 
 	IdentityFields() ([]string, error)
 
+	GetPayload() *map[string]interface{}
+
 	SetUserID(userID string)
 	SetDatasetID(datasetID string)
 	SetActive(active bool)

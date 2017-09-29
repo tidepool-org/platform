@@ -5,20 +5,16 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
 
-	"net/http"
-
-	testAuth "github.com/tidepool-org/platform/auth/test"
-	"github.com/tidepool-org/platform/client"
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/notification"
 	notificationClient "github.com/tidepool-org/platform/notification/client"
+	"github.com/tidepool-org/platform/platform"
 )
 
 var _ = Describe("Client", func() {
-	var cfg *client.Config
+	var cfg *platform.Config
 
 	BeforeEach(func() {
-		cfg = client.NewConfig()
+		cfg = platform.NewConfig()
 		Expect(cfg).ToNot(BeNil())
 	})
 
@@ -43,7 +39,6 @@ var _ = Describe("Client", func() {
 	Context("with server and new client", func() {
 		var svr *Server
 		var clnt notification.Client
-		var ctx *testAuth.Context
 
 		BeforeEach(func() {
 			svr = NewServer()
@@ -53,92 +48,12 @@ var _ = Describe("Client", func() {
 			clnt, err = notificationClient.New(cfg)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clnt).ToNot(BeNil())
-			ctx = testAuth.NewContext()
-			Expect(ctx).ToNot(BeNil())
 		})
 
 		AfterEach(func() {
 			if svr != nil {
 				svr.Close()
 			}
-			Expect(ctx.UnusedOutputsCount()).To(Equal(0))
-		})
-
-		Context("GetStatus", func() {
-			It("returns an error if unsuccessful", func() {
-				sts, err := clnt.GetStatus(nil)
-				Expect(err).To(HaveOccurred())
-				Expect(sts).To(BeNil())
-				Expect(svr.ReceivedRequests()).To(BeEmpty())
-			})
-
-			Context("with server token", func() {
-				var serverToken string
-
-				BeforeEach(func() {
-					serverToken = id.New()
-					ctx.AuthClientImpl.ServerTokenOutputs = []testAuth.ServerTokenOutput{{Token: serverToken, Error: nil}}
-				})
-
-				Context("with an empty body", func() {
-					BeforeEach(func() {
-						svr.AppendHandlers(
-							CombineHandlers(
-								VerifyRequest("GET", "/status"),
-								VerifyHeaderKV("X-Tidepool-Session-Token", serverToken),
-								VerifyBody([]byte{}),
-								RespondWith(http.StatusOK, nil, nil)),
-						)
-					})
-
-					It("returns an error", func() {
-						sts, err := clnt.GetStatus(ctx)
-						Expect(err.Error()).To(HavePrefix("client: error decoding JSON response from GET "))
-						Expect(sts).To(BeNil())
-						Expect(svr.ReceivedRequests()).To(HaveLen(1))
-					})
-				})
-
-				Context("with a successful, but empty response", func() {
-					BeforeEach(func() {
-						svr.AppendHandlers(
-							CombineHandlers(
-								VerifyRequest("GET", "/status"),
-								VerifyHeaderKV("X-Tidepool-Session-Token", serverToken),
-								VerifyBody([]byte{}),
-								RespondWith(http.StatusOK, `{}`, nil)),
-						)
-					})
-
-					It("returns successfully", func() {
-						sts, err := clnt.GetStatus(ctx)
-						Expect(err).ToNot(HaveOccurred())
-						Expect(sts).ToNot(BeNil())
-						Expect(sts.Version).To(BeEmpty())
-						Expect(svr.ReceivedRequests()).To(HaveLen(1))
-					})
-				})
-
-				Context("with a successful response", func() {
-					BeforeEach(func() {
-						svr.AppendHandlers(
-							CombineHandlers(
-								VerifyRequest("GET", "/status"),
-								VerifyHeaderKV("X-Tidepool-Session-Token", serverToken),
-								VerifyBody([]byte{}),
-								RespondWith(http.StatusOK, `{"version": "1.2.3"}`, nil)),
-						)
-					})
-
-					It("returns successfully", func() {
-						sts, err := clnt.GetStatus(ctx)
-						Expect(err).ToNot(HaveOccurred())
-						Expect(sts).ToNot(BeNil())
-						Expect(sts.Version).To(Equal("1.2.3"))
-						Expect(svr.ReceivedRequests()).To(HaveLen(1))
-					})
-				})
-			})
 		})
 	})
 })

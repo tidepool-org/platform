@@ -27,13 +27,13 @@ var _ = Describe("StandardObject", func() {
 
 	It("NewStandardObject returns an error if context is nil", func() {
 		standard, err := parser.NewStandardObject(nil, testFactory, &map[string]interface{}{}, parser.IgnoreNotParsed)
-		Expect(err).To(MatchError("parser: context is missing"))
+		Expect(err).To(MatchError("context is missing"))
 		Expect(standard).To(BeNil())
 	})
 
 	It("NewStandardObject returns an error if factory is nil", func() {
 		standard, err := parser.NewStandardObject(standardContext, nil, &map[string]interface{}{}, parser.IgnoreNotParsed)
-		Expect(err).To(MatchError("parser: factory is missing"))
+		Expect(err).To(MatchError("factory is missing"))
 		Expect(standard).To(BeNil())
 	})
 

@@ -33,13 +33,13 @@ func NewTestScheduled(sourceTime interface{}, sourceDuration interface{}, source
 		testScheduled.Time = pointer.String(value)
 	}
 	if value, ok := sourceDuration.(int); ok {
-		testScheduled.Duration = pointer.Integer(value)
+		testScheduled.Duration = pointer.Int(value)
 	}
 	if value, ok := sourceExpectedDuration.(int); ok {
-		testScheduled.ExpectedDuration = pointer.Integer(value)
+		testScheduled.ExpectedDuration = pointer.Int(value)
 	}
 	if value, ok := sourceRate.(float64); ok {
-		testScheduled.Rate = pointer.Float(value)
+		testScheduled.Rate = pointer.Float64(value)
 	}
 	if value, ok := scheduleName.(string); ok {
 		testScheduled.ScheduleName = pointer.String(value)

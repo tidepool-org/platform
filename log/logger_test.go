@@ -1,16 +1,17 @@
 package log_test
 
 import (
-	"io/ioutil"
-	"os"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"errors"
+	"fmt"
+	"io/ioutil"
+	"os"
 	"time"
 
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/test"
 )
@@ -61,19 +62,19 @@ var _ = Describe("Logger", func() {
 	Context("NewLogger", func() {
 		It("returns an error if the serializer is missing", func() {
 			logger, err := log.NewLogger(nil, log.DefaultLevelRanks(), log.DefaultLevel())
-			Expect(err).To(MatchError("log: serializer is missing"))
+			Expect(err).To(MatchError("serializer is missing"))
 			Expect(logger).To(BeNil())
 		})
 
 		It("returns an error if the level ranks is missing", func() {
 			logger, err := log.NewLogger(serializer, nil, log.DefaultLevel())
-			Expect(err).To(MatchError("log: level ranks is missing"))
+			Expect(err).To(MatchError("level ranks is missing"))
 			Expect(logger).To(BeNil())
 		})
 
 		It("returns an error if the level is not found", func() {
 			logger, err := log.NewLogger(serializer, log.DefaultLevelRanks(), log.Level("unknown"))
-			Expect(err).To(MatchError("log: level not found"))
+			Expect(err).To(MatchError("level not found"))
 			Expect(logger).To(BeNil())
 		})
 
@@ -120,7 +121,7 @@ var _ = Describe("Logger", func() {
 				})
 
 				It("fails silently if the serializer returns an error", func() {
-					serializer.SerializeOutputs = []error{errors.New("test error")}
+					serializer.SerializeOutputs = []error{fmt.Errorf("test error")}
 					logger.Log(log.WarnLevel, "Serializer Error Message")
 					Expect(serializer.SerializeInputs).ToNot(BeEmpty())
 				})
@@ -131,21 +132,19 @@ var _ = Describe("Logger", func() {
 				logger.Log(log.WarnLevel, "Expected Message")
 				Expect(serializer.SerializeInputs).To(HaveLen(1))
 				serializeInput := serializer.SerializeInputs[0]
-				Expect(serializeInput).To(HaveKey("time"))
-				Expect(serializeInput).To(HaveKey("line"))
-				Expect(serializeInput).To(HaveKey("file"))
+				Expect(serializeInput).To(HaveKey("caller"))
 				Expect(serializeInput).To(HaveKeyWithValue("level", log.WarnLevel))
+				Expect(serializeInput).To(HaveKey("time"))
 				Expect(serializeInput).To(HaveKeyWithValue("message", "Expected Message"))
 				serializedTime, ok := serializeInput["time"].(string)
 				Expect(ok).To(BeTrue())
 				parsedTime, err := time.Parse("2006-01-02T15:04:05.999Z07:00", serializedTime)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(parsedTime).To(BeTemporally("~", time.Now(), time.Second))
-				serializedLine := serializeInput["line"]
-				Expect(serializedLine).To(BeNumerically(">", 0))
-				serializedFile, ok := serializeInput["file"].(string)
+				serializedCaller, ok := serializeInput["caller"].(*errors.Caller)
 				Expect(ok).To(BeTrue())
-				Expect(strings.HasSuffix(serializedFile, "log/logger_test.go")).To(BeTrue())
+				Expect(serializedCaller.Line).To(BeNumerically(">", 0))
+				Expect(strings.HasSuffix(serializedCaller.File, "log/logger_test.go")).To(BeTrue())
 			})
 
 			It("does not include the message is it is an empty string", func() {
@@ -243,9 +242,9 @@ var _ = Describe("Logger", func() {
 				})
 
 				It("does include the error field if the error is not nil", func() {
-					logger.WithError(errors.New("euro error")).Warn("European")
+					logger.WithError(fmt.Errorf("euro error")).Warn("European")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("error", "euro error"))
+					Expect(serializer.SerializeInputs[0]).To(HaveKey("error"))
 				})
 			})
 

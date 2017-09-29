@@ -8,13 +8,13 @@ import (
 
 func NewReporter(base string, shortCommit string, fullCommit string) (Reporter, error) {
 	if base == "" {
-		return nil, errors.New("version", "base is missing")
+		return nil, errors.New("base is missing")
 	}
 	if shortCommit == "" {
-		return nil, errors.New("version", "short commit is missing")
+		return nil, errors.New("short commit is missing")
 	}
 	if fullCommit == "" {
-		return nil, errors.New("version", "full commit is missing")
+		return nil, errors.New("full commit is missing")
 	}
 
 	return &reporter{
