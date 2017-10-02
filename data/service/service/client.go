@@ -5,21 +5,27 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
+	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
 )
 
 type Client struct {
-	dataStore dataStore.Store
+	dataStore           dataStore.Store
+	dataStoreDEPRECATED dataStoreDEPRECATED.Store
 }
 
-func NewClient(str dataStore.Store) (*Client, error) {
+func NewClient(str dataStore.Store, strDEPRECATED dataStoreDEPRECATED.Store) (*Client, error) {
 	if str == nil {
 		return nil, errors.New("data store is missing")
 	}
+	if strDEPRECATED == nil {
+		return nil, errors.New("data store deprecated is missing")
+	}
 
 	return &Client{
-		dataStore: str,
+		dataStore:           str,
+		dataStoreDEPRECATED: strDEPRECATED,
 	}, nil
 }
 
@@ -63,7 +69,10 @@ func (c *Client) CreateUserDataSet(ctx context.Context, userID string, create *d
 }
 
 func (c *Client) GetDataSet(ctx context.Context, id string) (*data.DataSet, error) {
-	panic("Not Implemented!")
+	ssn := c.dataStoreDEPRECATED.NewDataSession()
+	defer ssn.Close()
+
+	return ssn.GetDataSet(ctx, id)
 }
 
 func (c *Client) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error) {

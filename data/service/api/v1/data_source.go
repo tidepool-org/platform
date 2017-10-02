@@ -37,7 +37,8 @@ func ListUserDataSources(dataServiceContext dataService.Context) {
 	req := dataServiceContext.Request()
 	dataClient := dataServiceContext.DataClient()
 
-	if details := request.DetailsFromContext(req.Context()); details == nil {
+	details := request.DetailsFromContext(req.Context())
+	if details == nil {
 		request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
 		return
 	}
@@ -48,6 +49,11 @@ func ListUserDataSources(dataServiceContext dataService.Context) {
 	userID := req.PathParam("userId")
 	if userID == "" {
 		responder.Error(http.StatusBadRequest, request.ErrorParameterMissing("userId"))
+		return
+	}
+
+	if !details.IsService() && details.UserID() != userID {
+		request.MustNewResponder(res, req).Error(http.StatusForbidden, request.ErrorUnauthorized())
 		return
 	}
 
@@ -75,7 +81,8 @@ func CreateUserDataSource(dataServiceContext dataService.Context) {
 	req := dataServiceContext.Request()
 	dataClient := dataServiceContext.DataClient()
 
-	if details := request.DetailsFromContext(req.Context()); details == nil {
+	details := request.DetailsFromContext(req.Context())
+	if details == nil {
 		request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
 		return
 	} else if !details.IsService() {
@@ -115,7 +122,8 @@ func GetDataSource(dataServiceContext dataService.Context) {
 	req := dataServiceContext.Request()
 	dataClient := dataServiceContext.DataClient()
 
-	if details := request.DetailsFromContext(req.Context()); details == nil {
+	details := request.DetailsFromContext(req.Context())
+	if details == nil {
 		request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
 		return
 	}
@@ -138,6 +146,11 @@ func GetDataSource(dataServiceContext dataService.Context) {
 		return
 	}
 
+	if !details.IsService() && details.UserID() != dataSource.UserID {
+		request.MustNewResponder(res, req).Error(http.StatusForbidden, request.ErrorUnauthorized())
+		return
+	}
+
 	responder.Data(http.StatusOK, dataSource)
 }
 
@@ -149,7 +162,8 @@ func UpdateDataSource(dataServiceContext dataService.Context) {
 	req := dataServiceContext.Request()
 	dataClient := dataServiceContext.DataClient()
 
-	if details := request.DetailsFromContext(req.Context()); details == nil {
+	details := request.DetailsFromContext(req.Context())
+	if details == nil {
 		request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
 		return
 	} else if !details.IsService() {
@@ -192,7 +206,8 @@ func DeleteDataSource(dataServiceContext dataService.Context) {
 	req := dataServiceContext.Request()
 	dataClient := dataServiceContext.DataClient()
 
-	if details := request.DetailsFromContext(req.Context()); details == nil {
+	details := request.DetailsFromContext(req.Context())
+	if details == nil {
 		request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
 		return
 	} else if !details.IsService() {

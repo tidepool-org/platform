@@ -587,6 +587,43 @@ func (d *DataSession) DestroyDataForUserByID(ctx context.Context, userID string)
 	return nil
 }
 
+func (d *DataSession) GetDataSet(ctx context.Context, id string) (*data.DataSet, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if id == "" {
+		return nil, errors.New("id is missing")
+	}
+
+	if d.IsClosed() {
+		return nil, errors.New("session closed")
+	}
+
+	now := time.Now()
+	logger := log.LoggerFromContext(ctx).WithField("id", id)
+
+	dataSets := data.DataSets{}
+	selector := bson.M{
+		"uploadId": id,
+		"type":     "upload",
+	}
+	err := d.C().Find(selector).Limit(2).All(&dataSets)
+	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("GetDataSet")
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to get data set")
+	}
+
+	switch count := len(dataSets); count {
+	case 0:
+		return nil, nil
+	case 1:
+		return dataSets[0], nil
+	default:
+		logger.WithField("count", count).Warnf("Multiple data sets found for id %q", id)
+		return dataSets[0], nil
+	}
+}
+
 func (d *DataSession) validateDataset(dataset *upload.Upload) error {
 	if dataset == nil {
 		return errors.New("dataset is missing")

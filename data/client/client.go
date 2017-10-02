@@ -182,19 +182,15 @@ func (c *ClientImpl) GetDataSet(ctx context.Context, id string) (*data.DataSet, 
 	}
 
 	url := c.client.ConstructURL("v1", "data_sets", id)
-	response := struct {
-		Data   *data.DataSet    `json:"data,omitempty"`
-		Errors []*service.Error `json:"errors,omitempty"`
-		Meta   *interface{}     `json:"meta,omitempty"`
-	}{} // TODO: Remove response wrapper once service is updated
-	if err := c.client.SendRequestAsServer(ctx, http.MethodGet, url, nil, nil, &response); err != nil {
+	dataSet := &data.DataSet{}
+	if err := c.client.SendRequestAsServer(ctx, http.MethodGet, url, nil, nil, dataSet); err != nil {
 		if errors.Code(err) == request.ErrorCodeResourceNotFound {
 			return nil, nil
 		}
 		return nil, err
 	}
 
-	return response.Data, nil
+	return dataSet, nil
 }
 
 func (c *ClientImpl) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error) {

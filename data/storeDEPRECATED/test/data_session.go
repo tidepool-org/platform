@@ -86,6 +86,16 @@ type DestroyDataForUserByIDInput struct {
 	UserID  string
 }
 
+type GetDataSetInput struct {
+	Context context.Context
+	ID      string
+}
+
+type GetDataSetOutput struct {
+	DataSet *data.DataSet
+	Error   error
+}
+
 type DataSession struct {
 	*test.Mock
 	IsClosedInvocations                                  int
@@ -126,6 +136,9 @@ type DataSession struct {
 	DestroyDataForUserByIDInvocations                    int
 	DestroyDataForUserByIDInputs                         []DestroyDataForUserByIDInput
 	DestroyDataForUserByIDOutputs                        []error
+	GetDataSetInvocations                                int
+	GetDataSetInputs                                     []GetDataSetInput
+	GetDataSetOutputs                                    []GetDataSetOutput
 }
 
 func NewDataSession() *DataSession {
@@ -290,6 +303,18 @@ func (d *DataSession) DestroyDataForUserByID(ctx context.Context, userID string)
 	return output
 }
 
+func (d *DataSession) GetDataSet(ctx context.Context, id string) (*data.DataSet, error) {
+	d.GetDataSetInvocations++
+
+	d.GetDataSetInputs = append(d.GetDataSetInputs, GetDataSetInput{Context: ctx, ID: id})
+
+	gomega.Expect(d.GetDataSetOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.GetDataSetOutputs[0]
+	d.GetDataSetOutputs = d.GetDataSetOutputs[1:]
+	return output.DataSet, output.Error
+}
+
 func (d *DataSession) Expectations() {
 	d.Mock.Expectations()
 	gomega.Expect(d.IsClosedOutputs).To(gomega.BeEmpty())
@@ -305,4 +330,5 @@ func (d *DataSession) Expectations() {
 	gomega.Expect(d.UnarchiveDeviceDataUsingHashesFromDatasetOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.DeleteOtherDatasetDataOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.DestroyDataForUserByIDOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.GetDataSetOutputs).To(gomega.BeEmpty())
 }

@@ -258,7 +258,7 @@ func (s *Standard) initializeSyncTaskStore() error {
 func (s *Standard) initializeDataClient() error {
 	s.Logger().Debug("Creating data client")
 
-	clnt, err := NewClient(s.dataStore)
+	clnt, err := NewClient(s.dataStore, s.dataStoreDEPRECATED)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data client")
 	}

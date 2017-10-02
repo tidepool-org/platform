@@ -29,6 +29,8 @@ type DataSession interface {
 	UnarchiveDeviceDataUsingHashesFromDataset(ctx context.Context, dataset *upload.Upload) error
 	DeleteOtherDatasetData(ctx context.Context, dataset *upload.Upload) error
 	DestroyDataForUserByID(ctx context.Context, userID string) error
+
+	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)
 }
 
 type Filter struct {
