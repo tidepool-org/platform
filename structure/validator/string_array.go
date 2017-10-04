@@ -5,14 +5,15 @@ import (
 	"strconv"
 
 	"github.com/tidepool-org/platform/structure"
+	structureBase "github.com/tidepool-org/platform/structure/base"
 )
 
 type StringArray struct {
-	base  structure.Base
+	base  *structureBase.Base
 	value *[]string
 }
 
-func NewStringArray(base structure.Base, value *[]string) *StringArray {
+func NewStringArray(base *structureBase.Base, value *[]string) *StringArray {
 	return &StringArray{
 		base:  base,
 		value: value,

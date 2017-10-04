@@ -1,13 +1,16 @@
 package validator
 
-import "github.com/tidepool-org/platform/structure"
+import (
+	"github.com/tidepool-org/platform/structure"
+	structureBase "github.com/tidepool-org/platform/structure/base"
+)
 
 type Int struct {
-	base  structure.Base
+	base  *structureBase.Base
 	value *int
 }
 
-func NewInt(base structure.Base, value *int) *Int {
+func NewInt(base *structureBase.Base, value *int) *Int {
 	return &Int{
 		base:  base,
 		value: value,

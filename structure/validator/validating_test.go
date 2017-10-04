@@ -4,23 +4,24 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
+	structureBase "github.com/tidepool-org/platform/structure/base"
 	testStructure "github.com/tidepool-org/platform/structure/test"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 var _ = Describe("Validating", func() {
-	var base *testStructure.Base
+	var base *structureBase.Base
 	var validatable *testStructure.Validatable
 
 	BeforeEach(func() {
-		base = testStructure.NewBase()
+		base = structureBase.New()
 		validatable = testStructure.NewValidatable()
 	})
 
 	AfterEach(func() {
 		validatable.Expectations()
-		base.Expectations()
 	})
 
 	Context("NewValidating", func() {
@@ -44,8 +45,8 @@ var _ = Describe("Validating", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.ReportErrorInputs).To(HaveLen(1))
-				Expect(base.ReportErrorInputs[0]).To(MatchError("value does not exist"))
+				Expect(base.Error()).ToNot(BeNil())
+				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotExists())))
 			})
 
 			It("returns self", func() {
@@ -59,7 +60,7 @@ var _ = Describe("Validating", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.ReportErrorInputs).To(BeEmpty())
+				Expect(base.Error()).To(BeNil())
 			})
 
 			It("returns self", func() {
@@ -73,7 +74,7 @@ var _ = Describe("Validating", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.ReportErrorInputs).To(BeEmpty())
+				Expect(base.Error()).To(BeNil())
 			})
 
 			It("returns self", func() {
@@ -97,7 +98,7 @@ var _ = Describe("Validating", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.ReportErrorInputs).To(BeEmpty())
+				Expect(base.Error()).To(BeNil())
 			})
 
 			It("returns self", func() {
@@ -111,8 +112,8 @@ var _ = Describe("Validating", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.ReportErrorInputs).To(HaveLen(1))
-				Expect(base.ReportErrorInputs[0]).To(MatchError("value exists"))
+				Expect(base.Error()).ToNot(BeNil())
+				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueExists())))
 			})
 
 			It("returns self", func() {
@@ -126,7 +127,7 @@ var _ = Describe("Validating", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.ReportErrorInputs).To(BeEmpty())
+				Expect(base.Error()).To(BeNil())
 				Expect(validatable.ValidateInvocations).To(Equal(1))
 			})
 

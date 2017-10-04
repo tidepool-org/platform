@@ -4,14 +4,15 @@ import (
 	"regexp"
 
 	"github.com/tidepool-org/platform/structure"
+	structureBase "github.com/tidepool-org/platform/structure/base"
 )
 
 type String struct {
-	base  structure.Base
+	base  *structureBase.Base
 	value *string
 }
 
-func NewString(base structure.Base, value *string) *String {
+func NewString(base *structureBase.Base, value *string) *String {
 	return &String{
 		base:  base,
 		value: value,

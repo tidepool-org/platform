@@ -1,553 +1,563 @@
 package validator_test
 
-// import (
-// 	. "github.com/onsi/ginkgo"
-// 	. "github.com/onsi/gomega"
-
-// 	"github.com/tidepool-org/platform/structure"
-// 	testStructure "github.com/tidepool-org/platform/structure/test"
-// 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-// )
-
-// var _ = Describe("Float64", func() {
-// 	var base *testStructure.Base
-
-// 	BeforeEach(func() {
-// 		base = testStructure.NewBase()
-// 	})
-
-// 	AfterEach(func() {
-// 		base.Expectations()
-// 	})
-
-// 	Context("NewFloat64", func() {
-// 		It("returns successfully", func() {
-// 			value := 1.23
-// 			Expect(structureValidator.NewFloat64(base, &value)).ToNot(BeNil())
-// 		})
-// 	})
-
-// 	Context("with new validator with nil value", func() {
-// 		var validator *structureValidator.Float64
-// 		var result structure.Float64
-
-// 		BeforeEach(func() {
-// 			validator = structureValidator.NewFloat64(base, nil)
-// 			Expect(validator).ToNot(BeNil())
-// 		})
-
-// 		Context("Exists", func() {
-// 			BeforeEach(func() {
-// 				result = validator.Exists()
-// 			})
-
-// 			It("reports the expected error", func() {
-// 				Expect(base.ReportErrorInputs).To(Equal([]error{structureValidator.ErrorValueNotExists()}))
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("NotExists", func() {
-// 			BeforeEach(func() {
-// 				result = validator.NotExists()
-// 			})
-
-// 			It("does not report an error", func() {
-// 				Expect(base.ReportErrorInputs).To(BeEmpty())
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("EqualTo", func() {
-// 			BeforeEach(func() {
-// 				result = validator.EqualTo(1.2)
-// 			})
-
-// 			It("does not report an error", func() {
-// 				Expect(base.ReportErrorInputs).To(BeEmpty())
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("NotEqualTo", func() {
-// 			BeforeEach(func() {
-// 				result = validator.NotEqualTo(4.5)
-// 			})
-
-// 			It("does not report an error", func() {
-// 				Expect(base.ReportErrorInputs).To(BeEmpty())
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("LessThan", func() {
-// 			BeforeEach(func() {
-// 				result = validator.LessThan(3)
-// 			})
-
-// 			It("does not report an error", func() {
-// 				Expect(base.ReportErrorInputs).To(BeEmpty())
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("LessThanOrEqualTo", func() {
-// 			BeforeEach(func() {
-// 				result = validator.LessThan(1.2)
-// 			})
-
-// 			It("does not report an error", func() {
-// 				Expect(base.ReportErrorInputs).To(BeEmpty())
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("GreaterThan", func() {
-// 			BeforeEach(func() {
-// 				result = validator.GreaterThan(3)
-// 			})
-
-// 			It("does not report an error", func() {
-// 				Expect(base.ReportErrorInputs).To(BeEmpty())
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("GreaterThanOrEqualTo", func() {
-// 			BeforeEach(func() {
-// 				result = validator.GreaterThanOrEqualTo(4.5)
-// 			})
-
-// 			It("does not report an error", func() {
-// 				Expect(base.ReportErrorInputs).To(BeEmpty())
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("InRange", func() {
-// 			BeforeEach(func() {
-// 				result = validator.InRange(0, 1.2)
-// 			})
-
-// 			It("does not report an error", func() {
-// 				Expect(base.ReportErrorInputs).To(BeEmpty())
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("OneOf", func() {
-// 			BeforeEach(func() {
-// 				result = validator.OneOf(1.2, 7.8)
-// 			})
-
-// 			It("does not report an error", func() {
-// 				Expect(base.ReportErrorInputs).To(BeEmpty())
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("NotOneOf", func() {
-// 			BeforeEach(func() {
-// 				result = validator.NotOneOf(7.8, 4.5)
-// 			})
-
-// 			It("does not report an error", func() {
-// 				Expect(base.ReportErrorInputs).To(BeEmpty())
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-// 	})
-
-// 	Context("with new validator with value of 1.2", func() {
-// 		var validator *structureValidator.Float64
-// 		var result structure.Float64
-// 		var value float64
-
-// 		BeforeEach(func() {
-// 			value = 1.2
-// 			validator = structureValidator.NewFloat64(base, &value)
-// 			Expect(validator).ToNot(BeNil())
-// 		})
-
-// 		Context("Exists", func() {
-// 			BeforeEach(func() {
-// 				result = validator.Exists()
-// 			})
-
-// 			It("does not report an error", func() {
-// 				Expect(base.ReportErrorInputs).To(BeEmpty())
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("NotExists", func() {
-// 			BeforeEach(func() {
-// 				result = validator.NotExists()
-// 			})
-
-// 			It("reports the expected error", func() {
-// 				Expect(base.ReportErrorInputs).To(Equal([]error{structureValidator.ErrorValueExists()}))
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("EqualTo", func() {
-// 			BeforeEach(func() {
-// 				result = validator.EqualTo(1.2)
-// 			})
-
-// 			It("does not report an error", func() {
-// 				Expect(base.ReportErrorInputs).To(BeEmpty())
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("NotEqualTo", func() {
-// 			BeforeEach(func() {
-// 				result = validator.NotEqualTo(4.5)
-// 			})
-
-// 			It("does not report an error", func() {
-// 				Expect(base.ReportErrorInputs).To(BeEmpty())
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("LessThan", func() {
-// 			BeforeEach(func() {
-// 				result = validator.LessThan(3)
-// 			})
-
-// 			It("does not report an error", func() {
-// 				Expect(base.ReportErrorInputs).To(BeEmpty())
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("LessThanOrEqualTo", func() {
-// 			BeforeEach(func() {
-// 				result = validator.LessThanOrEqualTo(1.2)
-// 			})
-
-// 			It("does not report an error", func() {
-// 				Expect(base.ReportErrorInputs).To(BeEmpty())
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("GreaterThan", func() {
-// 			BeforeEach(func() {
-// 				result = validator.GreaterThan(3)
-// 			})
-
-// 			It("reports the expected error", func() {
-// 				Expect(base.ReportErrorInputs).To(Equal([]error{structureValidator.ErrorValueNotGreaterThan(1.2, 3)}))
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("GreaterThanOrEqualTo", func() {
-// 			BeforeEach(func() {
-// 				result = validator.GreaterThanOrEqualTo(4.5)
-// 			})
-
-// 			It("reports the expected error", func() {
-// 				Expect(base.ReportErrorInputs).To(Equal([]error{structureValidator.ErrorValueNotGreaterThanOrEqualTo(1.2, 4.5)}))
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("InRange", func() {
-// 			BeforeEach(func() {
-// 				result = validator.InRange(0, 3)
-// 			})
-
-// 			It("does not report an error", func() {
-// 				Expect(base.ReportErrorInputs).To(BeEmpty())
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("OneOf", func() {
-// 			BeforeEach(func() {
-// 				result = validator.OneOf(1.2, 7.8)
-// 			})
-
-// 			It("does not report an error", func() {
-// 				Expect(base.ReportErrorInputs).To(BeEmpty())
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("NotOneOf", func() {
-// 			BeforeEach(func() {
-// 				result = validator.NotOneOf(7.8, 4.5)
-// 			})
-
-// 			It("does not report an error", func() {
-// 				Expect(base.ReportErrorInputs).To(BeEmpty())
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-// 	})
-
-// 	Context("with new validator with value of 4.5", func() {
-// 		var validator *structureValidator.Float64
-// 		var result structure.Float64
-// 		var value float64
-
-// 		BeforeEach(func() {
-// 			value = 4.5
-// 			validator = structureValidator.NewFloat64(base, &value)
-// 			Expect(validator).ToNot(BeNil())
-// 		})
-
-// 		Context("Exists", func() {
-// 			BeforeEach(func() {
-// 				result = validator.Exists()
-// 			})
-
-// 			It("does not report an error", func() {
-// 				Expect(base.ReportErrorInputs).To(BeEmpty())
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("NotExists", func() {
-// 			BeforeEach(func() {
-// 				result = validator.NotExists()
-// 			})
-
-// 			It("reports the expected error", func() {
-// 				Expect(base.ReportErrorInputs).To(Equal([]error{structureValidator.ErrorValueExists()}))
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("EqualTo", func() {
-// 			BeforeEach(func() {
-// 				result = validator.EqualTo(1.2)
-// 			})
-
-// 			It("reports the expected error", func() {
-// 				Expect(base.ReportErrorInputs).To(Equal([]error{structureValidator.ErrorValueNotEqualTo(4.5, 1.2)}))
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("NotEqualTo", func() {
-// 			BeforeEach(func() {
-// 				result = validator.NotEqualTo(4.5)
-// 			})
-
-// 			It("reports the expected error", func() {
-// 				Expect(base.ReportErrorInputs).To(Equal([]error{structureValidator.ErrorValueEqualTo(4.5, 4.5)}))
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("LessThan", func() {
-// 			BeforeEach(func() {
-// 				result = validator.LessThan(3)
-// 			})
-
-// 			It("reports the expected error", func() {
-// 				Expect(base.ReportErrorInputs).To(Equal([]error{structureValidator.ErrorValueNotLessThan(4.5, 3)}))
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("LessThanOrEqualTo", func() {
-// 			BeforeEach(func() {
-// 				result = validator.LessThanOrEqualTo(1.2)
-// 			})
-
-// 			It("reports the expected error", func() {
-// 				Expect(base.ReportErrorInputs).To(Equal([]error{structureValidator.ErrorValueNotLessThanOrEqualTo(4.5, 1.2)}))
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("GreaterThan", func() {
-// 			BeforeEach(func() {
-// 				result = validator.GreaterThan(3)
-// 			})
-
-// 			It("does not report an error", func() {
-// 				Expect(base.ReportErrorInputs).To(BeEmpty())
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("GreaterThanOrEqualTo", func() {
-// 			BeforeEach(func() {
-// 				result = validator.GreaterThanOrEqualTo(4.5)
-// 			})
-
-// 			It("does not report an error", func() {
-// 				Expect(base.ReportErrorInputs).To(BeEmpty())
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("InRange", func() {
-// 			BeforeEach(func() {
-// 				result = validator.InRange(0, 3)
-// 			})
-
-// 			It("reports the expected error", func() {
-// 				Expect(base.ReportErrorInputs).To(Equal([]error{structureValidator.ErrorValueNotInRange(4.5, 0, 3)}))
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("OneOf", func() {
-// 			BeforeEach(func() {
-// 				result = validator.OneOf(1.2, 7.8)
-// 			})
-
-// 			It("reports the expected error", func() {
-// 				Expect(base.ReportErrorInputs).To(Equal([]error{structureValidator.ErrorValueFloat64NotOneOf(4.5, []float64{1.2, 7.8})}))
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("NotOneOf", func() {
-// 			BeforeEach(func() {
-// 				result = validator.NotOneOf(7.8, 4.5)
-// 			})
-
-// 			It("reports the expected error", func() {
-// 				Expect(base.ReportErrorInputs).To(Equal([]error{structureValidator.ErrorValueFloat64OneOf(4.5, []float64{7.8, 4.5})}))
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("OneOf with no allowed values", func() {
-// 			BeforeEach(func() {
-// 				result = validator.OneOf()
-// 			})
-
-// 			It("reports the expected error", func() {
-// 				Expect(base.ReportErrorInputs).To(Equal([]error{structureValidator.ErrorValueFloat64NotOneOf(4.5, []float64{})}))
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-
-// 		Context("NotOneOf with no disallowed values", func() {
-// 			BeforeEach(func() {
-// 				result = validator.NotOneOf()
-// 			})
-
-// 			It("does not report an error", func() {
-// 				Expect(base.ReportErrorInputs).To(BeEmpty())
-// 			})
-
-// 			It("returns self", func() {
-// 				Expect(result).To(BeIdenticalTo(validator))
-// 			})
-// 		})
-// 	})
-// })
+import (
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
+	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/structure"
+	structureBase "github.com/tidepool-org/platform/structure/base"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
+)
+
+var _ = Describe("Float64", func() {
+	var base *structureBase.Base
+
+	BeforeEach(func() {
+		base = structureBase.New()
+	})
+
+	Context("NewFloat64", func() {
+		It("returns successfully", func() {
+			value := 1.23
+			Expect(structureValidator.NewFloat64(base, &value)).ToNot(BeNil())
+		})
+	})
+
+	Context("with new validator with nil value", func() {
+		var validator *structureValidator.Float64
+		var result structure.Float64
+
+		BeforeEach(func() {
+			validator = structureValidator.NewFloat64(base, nil)
+			Expect(validator).ToNot(BeNil())
+		})
+
+		Context("Exists", func() {
+			BeforeEach(func() {
+				result = validator.Exists()
+			})
+
+			It("reports the expected error", func() {
+				Expect(base.Error()).ToNot(BeNil())
+				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotExists())))
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("NotExists", func() {
+			BeforeEach(func() {
+				result = validator.NotExists()
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).To(BeNil())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("EqualTo", func() {
+			BeforeEach(func() {
+				result = validator.EqualTo(1.2)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).To(BeNil())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("NotEqualTo", func() {
+			BeforeEach(func() {
+				result = validator.NotEqualTo(4.5)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).To(BeNil())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("LessThan", func() {
+			BeforeEach(func() {
+				result = validator.LessThan(3)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).To(BeNil())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("LessThanOrEqualTo", func() {
+			BeforeEach(func() {
+				result = validator.LessThan(1.2)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).To(BeNil())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("GreaterThan", func() {
+			BeforeEach(func() {
+				result = validator.GreaterThan(3)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).To(BeNil())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("GreaterThanOrEqualTo", func() {
+			BeforeEach(func() {
+				result = validator.GreaterThanOrEqualTo(4.5)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).To(BeNil())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("InRange", func() {
+			BeforeEach(func() {
+				result = validator.InRange(0, 1.2)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).To(BeNil())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("OneOf", func() {
+			BeforeEach(func() {
+				result = validator.OneOf(1.2, 7.8)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).To(BeNil())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("NotOneOf", func() {
+			BeforeEach(func() {
+				result = validator.NotOneOf(7.8, 4.5)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).To(BeNil())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+	})
+
+	Context("with new validator with value of 1.2", func() {
+		var validator *structureValidator.Float64
+		var result structure.Float64
+		var value float64
+
+		BeforeEach(func() {
+			value = 1.2
+			validator = structureValidator.NewFloat64(base, &value)
+			Expect(validator).ToNot(BeNil())
+		})
+
+		Context("Exists", func() {
+			BeforeEach(func() {
+				result = validator.Exists()
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).To(BeNil())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("NotExists", func() {
+			BeforeEach(func() {
+				result = validator.NotExists()
+			})
+
+			It("reports the expected error", func() {
+				Expect(base.Error()).ToNot(BeNil())
+				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueExists())))
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("EqualTo", func() {
+			BeforeEach(func() {
+				result = validator.EqualTo(1.2)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).To(BeNil())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("NotEqualTo", func() {
+			BeforeEach(func() {
+				result = validator.NotEqualTo(4.5)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).To(BeNil())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("LessThan", func() {
+			BeforeEach(func() {
+				result = validator.LessThan(3)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).To(BeNil())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("LessThanOrEqualTo", func() {
+			BeforeEach(func() {
+				result = validator.LessThanOrEqualTo(1.2)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).To(BeNil())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("GreaterThan", func() {
+			BeforeEach(func() {
+				result = validator.GreaterThan(3)
+			})
+
+			It("reports the expected error", func() {
+				Expect(base.Error()).ToNot(BeNil())
+				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotGreaterThan(1.2, 3))))
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("GreaterThanOrEqualTo", func() {
+			BeforeEach(func() {
+				result = validator.GreaterThanOrEqualTo(4.5)
+			})
+
+			It("reports the expected error", func() {
+				Expect(base.Error()).ToNot(BeNil())
+				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotGreaterThanOrEqualTo(1.2, 4.5))))
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("InRange", func() {
+			BeforeEach(func() {
+				result = validator.InRange(0, 3)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).To(BeNil())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("OneOf", func() {
+			BeforeEach(func() {
+				result = validator.OneOf(1.2, 7.8)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).To(BeNil())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("NotOneOf", func() {
+			BeforeEach(func() {
+				result = validator.NotOneOf(7.8, 4.5)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).To(BeNil())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+	})
+
+	Context("with new validator with value of 4.5", func() {
+		var validator *structureValidator.Float64
+		var result structure.Float64
+		var value float64
+
+		BeforeEach(func() {
+			value = 4.5
+			validator = structureValidator.NewFloat64(base, &value)
+			Expect(validator).ToNot(BeNil())
+		})
+
+		Context("Exists", func() {
+			BeforeEach(func() {
+				result = validator.Exists()
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).To(BeNil())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("NotExists", func() {
+			BeforeEach(func() {
+				result = validator.NotExists()
+			})
+
+			It("reports the expected error", func() {
+				Expect(base.Error()).ToNot(BeNil())
+				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueExists())))
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("EqualTo", func() {
+			BeforeEach(func() {
+				result = validator.EqualTo(1.2)
+			})
+
+			It("reports the expected error", func() {
+				Expect(base.Error()).ToNot(BeNil())
+				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotEqualTo(4.5, 1.2))))
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("NotEqualTo", func() {
+			BeforeEach(func() {
+				result = validator.NotEqualTo(4.5)
+			})
+
+			It("reports the expected error", func() {
+				Expect(base.Error()).ToNot(BeNil())
+				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueEqualTo(4.5, 4.5))))
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("LessThan", func() {
+			BeforeEach(func() {
+				result = validator.LessThan(3)
+			})
+
+			It("reports the expected error", func() {
+				Expect(base.Error()).ToNot(BeNil())
+				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotLessThan(4.5, 3))))
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("LessThanOrEqualTo", func() {
+			BeforeEach(func() {
+				result = validator.LessThanOrEqualTo(1.2)
+			})
+
+			It("reports the expected error", func() {
+				Expect(base.Error()).ToNot(BeNil())
+				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotLessThanOrEqualTo(4.5, 1.2))))
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("GreaterThan", func() {
+			BeforeEach(func() {
+				result = validator.GreaterThan(3)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).To(BeNil())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("GreaterThanOrEqualTo", func() {
+			BeforeEach(func() {
+				result = validator.GreaterThanOrEqualTo(4.5)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).To(BeNil())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("InRange", func() {
+			BeforeEach(func() {
+				result = validator.InRange(0, 3)
+			})
+
+			It("reports the expected error", func() {
+				Expect(base.Error()).ToNot(BeNil())
+				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotInRange(4.5, 0, 3))))
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("OneOf", func() {
+			BeforeEach(func() {
+				result = validator.OneOf(1.2, 7.8)
+			})
+
+			It("reports the expected error", func() {
+				Expect(base.Error()).ToNot(BeNil())
+				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueFloat64NotOneOf(4.5, []float64{1.2, 7.8}))))
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("NotOneOf", func() {
+			BeforeEach(func() {
+				result = validator.NotOneOf(7.8, 4.5)
+			})
+
+			It("reports the expected error", func() {
+				Expect(base.Error()).ToNot(BeNil())
+				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueFloat64OneOf(4.5, []float64{7.8, 4.5}))))
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("OneOf with no allowed values", func() {
+			BeforeEach(func() {
+				result = validator.OneOf()
+			})
+
+			It("reports the expected error", func() {
+				Expect(base.Error()).ToNot(BeNil())
+				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueFloat64NotOneOf(4.5, []float64{}))))
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("NotOneOf with no disallowed values", func() {
+			BeforeEach(func() {
+				result = validator.NotOneOf()
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).To(BeNil())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+	})
+})

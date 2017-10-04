@@ -10,7 +10,7 @@ type Validatable interface {
 }
 
 type Validator interface {
-	Structure
+	Error() error
 
 	Validate(validatable Validatable) error
 
@@ -23,6 +23,7 @@ type Validator interface {
 	StringArray(reference string, value *[]string) StringArray
 	Time(reference string, value *time.Time) Time
 
+	WithSource(source Source) Validator
 	WithMeta(meta interface{}) Validator
 	WithReference(reference string) Validator
 }

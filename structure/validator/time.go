@@ -4,14 +4,15 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/structure"
+	structureBase "github.com/tidepool-org/platform/structure/base"
 )
 
 type Time struct {
-	base  structure.Base
+	base  *structureBase.Base
 	value *time.Time
 }
 
-func NewTime(base structure.Base, value *time.Time) *Time {
+func NewTime(base *structureBase.Base, value *time.Time) *Time {
 	return &Time{
 		base:  base,
 		value: value,

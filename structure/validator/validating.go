@@ -1,13 +1,16 @@
 package validator
 
-import "github.com/tidepool-org/platform/structure"
+import (
+	"github.com/tidepool-org/platform/structure"
+	structureBase "github.com/tidepool-org/platform/structure/base"
+)
 
 type Validating struct {
-	base  structure.Base
+	base  *structureBase.Base
 	value structure.Validatable
 }
 
-func NewValidating(base structure.Base, value structure.Validatable) *Validating {
+func NewValidating(base *structureBase.Base, value structure.Validatable) *Validating {
 	return &Validating{
 		base:  base,
 		value: value,

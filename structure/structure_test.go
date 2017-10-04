@@ -1,125 +1,264 @@
 package structure_test
 
-// import (
-// 	. "github.com/onsi/ginkgo"
-// 	. "github.com/onsi/gomega"
+import (
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
-// 	"github.com/tidepool-org/platform/structure"
-// 	testStructure "github.com/tidepool-org/platform/structure/test"
-// )
+	"fmt"
 
-// var _ = Describe("Structure", func() {
-// 	Context("NewParameterSource", func() {
-// 		It("returns successfully", func() {
-// 			Expect(structure.NewParameterSource()).ToNot(BeNil())
-// 		})
-// 	})
+	"github.com/tidepool-org/platform/structure"
+	testStructure "github.com/tidepool-org/platform/structure/test"
+)
 
-// 	Context("with new parameter source", func() {
-// 		var parameterSource *structure.ParameterSource
+var _ = Describe("Structure", func() {
+	Context("NewParameterSource", func() {
+		It("returns successfully", func() {
+			Expect(structure.NewParameterSource()).ToNot(BeNil())
+		})
+	})
 
-// 		BeforeEach(func() {
-// 			parameterSource = structure.NewParameterSource()
-// 			Expect(parameterSource).ToNot(BeNil())
-// 		})
+	Context("with new parameter source", func() {
+		var src structure.Source
 
-// 		Context("Source", func() {
-// 			It("returns nil if no parameter", func() {
-// 				Expect(parameterSource.Source()).To(BeNil())
-// 			})
+		BeforeEach(func() {
+			src = structure.NewParameterSource()
+			Expect(src).ToNot(BeNil())
+		})
 
-// 			It("returns successfully with parameter", func() {
-// 				reference := testStructure.NewReference()
-// 				source := parameterSource.WithReference(reference).Source()
-// 				Expect(source).ToNot(BeNil())
-// 				Expect(source.Parameter).To(Equal(reference))
-// 				Expect(source.Pointer).To(BeEmpty())
-// 			})
-// 		})
+		Context("with no references", func() {
+			Context("Parameter", func() {
+				It("returns empty string", func() {
+					Expect(src.Parameter()).To(BeEmpty())
+				})
+			})
 
-// 		Context("WithReference", func() {
-// 			It("returns successfully with parameter", func() {
-// 				reference := testStructure.NewReference()
-// 				Expect(parameterSource.WithReference(reference)).ToNot(BeNil())
-// 			})
+			Context("Pointer", func() {
+				It("returns empty string", func() {
+					Expect(src.Pointer()).To(BeEmpty())
+				})
+			})
 
-// 			It("returns nil if already parameter", func() {
-// 				reference1 := testStructure.NewReference()
-// 				reference2 := testStructure.NewReference()
-// 				Expect(parameterSource.WithReference(reference1).WithReference(reference2)).To(BeNil())
-// 			})
-// 		})
-// 	})
+			Context("WithReference", func() {
+				It("returns a source", func() {
+					Expect(src.WithReference(testStructure.NewReference())).ToNot(BeNil())
+				})
+			})
+		})
 
-// 	Context("NewPointerSource", func() {
-// 		It("returns successfully", func() {
-// 			Expect(structure.NewPointerSource()).ToNot(BeNil())
-// 		})
-// 	})
+		Context("with one reference", func() {
+			var reference string
 
-// 	Context("with new pointer source", func() {
-// 		var pointerSource *structure.PointerSource
+			BeforeEach(func() {
+				reference = testStructure.NewReference()
+				src = src.WithReference(reference)
+			})
 
-// 		BeforeEach(func() {
-// 			pointerSource = structure.NewPointerSource()
-// 			Expect(pointerSource).ToNot(BeNil())
-// 		})
+			Context("Parameter", func() {
+				It("returns reference", func() {
+					Expect(src.Parameter()).To(Equal(reference))
+				})
+			})
 
-// 		Context("Source", func() {
-// 			It("returns empty if no pointer", func() {
-// 				source := pointerSource.Source()
-// 				Expect(source).ToNot(BeNil())
-// 				Expect(source.Parameter).To(BeEmpty())
-// 				Expect(source.Pointer).To(BeEmpty())
-// 			})
+			Context("Pointer", func() {
+				It("returns empty string", func() {
+					Expect(src.Pointer()).To(BeEmpty())
+				})
+			})
 
-// 			It("returns successfully with pointer", func() {
-// 				reference := testStructure.NewReference()
-// 				source := pointerSource.WithReference(reference).Source()
-// 				Expect(source).ToNot(BeNil())
-// 				Expect(source.Parameter).To(BeEmpty())
-// 				Expect(source.Pointer).To(Equal("/" + reference))
-// 			})
+			Context("WithReference", func() {
+				It("returns nil", func() {
+					Expect(src.WithReference(testStructure.NewReference())).To(BeNil())
+				})
+			})
+		})
 
-// 			It("returns successfully with multiple pointers", func() {
-// 				reference1 := testStructure.NewReference()
-// 				reference2 := testStructure.NewReference()
-// 				source := pointerSource.WithReference(reference1).WithReference(reference2).Source()
-// 				Expect(source).ToNot(BeNil())
-// 				Expect(source.Parameter).To(BeEmpty())
-// 				Expect(source.Pointer).To(Equal("/" + reference1 + "/" + reference2))
-// 			})
+		Context("with one reference containing slash", func() {
+			var referenceLeft string
+			var referenceRight string
+			var reference string
 
-// 			It("returns successfully with multiple pointers that require encoding", func() {
-// 				source := pointerSource.WithReference("ab~cd~ef").WithReference("12/34/56").Source()
-// 				Expect(source).ToNot(BeNil())
-// 				Expect(source.Parameter).To(BeEmpty())
-// 				Expect(source.Pointer).To(Equal("/ab~0cd~0ef/12~134~156"))
-// 			})
-// 		})
+			BeforeEach(func() {
+				referenceLeft = testStructure.NewReference()
+				referenceRight = testStructure.NewReference()
+				reference = fmt.Sprintf("%s/%s", referenceLeft, referenceRight)
+				src = src.WithReference(reference)
+			})
 
-// 		Context("WithReference", func() {
-// 			It("returns successfully with pointer", func() {
-// 				reference := testStructure.NewReference()
-// 				Expect(pointerSource.WithReference(reference)).ToNot(BeNil())
-// 			})
+			Context("Parameter", func() {
+				It("returns reference", func() {
+					Expect(src.Parameter()).To(Equal(reference))
+				})
+			})
 
-// 			It("returns successfully with multiple pointers", func() {
-// 				reference1 := testStructure.NewReference()
-// 				reference2 := testStructure.NewReference()
-// 				Expect(pointerSource.WithReference(reference1).WithReference(reference2)).ToNot(BeNil())
-// 			})
-// 		})
-// 	})
+			Context("Pointer", func() {
+				It("returns empty string", func() {
+					Expect(src.Pointer()).To(BeEmpty())
+				})
+			})
 
-// 	Context("EncodePointerReference", func() {
-// 		It("returns same string that does not require encoding", func() {
-// 			reference := testStructure.NewReference()
-// 			Expect(structure.EncodePointerReference(reference)).To(Equal(reference))
-// 		})
+			Context("WithReference", func() {
+				It("returns nil", func() {
+					Expect(src.WithReference(testStructure.NewReference())).To(BeNil())
+				})
+			})
+		})
+	})
 
-// 		It("returns encoded string that does require encoding", func() {
-// 			Expect(structure.EncodePointerReference("ab~cd/ef")).To(Equal("ab~0cd~1ef"))
-// 		})
-// 	})
-// })
+	Context("NewPointerSource", func() {
+		It("returns successfully", func() {
+			Expect(structure.NewPointerSource()).ToNot(BeNil())
+		})
+	})
+
+	Context("with new pointer source", func() {
+		var src structure.Source
+
+		BeforeEach(func() {
+			src = structure.NewPointerSource()
+			Expect(src).ToNot(BeNil())
+		})
+
+		Context("with no references", func() {
+			Context("Parameter", func() {
+				It("returns empty string", func() {
+					Expect(src.Parameter()).To(BeEmpty())
+				})
+			})
+
+			Context("Pointer", func() {
+				It("returns empty string", func() {
+					Expect(src.Pointer()).To(BeEmpty())
+				})
+			})
+
+			Context("WithReference", func() {
+				It("returns a source", func() {
+					Expect(src.WithReference(testStructure.NewReference())).ToNot(BeNil())
+				})
+			})
+		})
+
+		Context("with one reference", func() {
+			var reference1 string
+
+			BeforeEach(func() {
+				reference1 = testStructure.NewReference()
+				src = src.WithReference(reference1)
+			})
+
+			Context("Parameter", func() {
+				It("returns empty string", func() {
+					Expect(src.Parameter()).To(BeEmpty())
+				})
+			})
+
+			Context("Pointer", func() {
+				It("returns path reference", func() {
+					Expect(src.Pointer()).To(Equal(fmt.Sprintf("/%s", reference1)))
+				})
+			})
+
+			Context("WithReference", func() {
+				It("returns a source", func() {
+					Expect(src.WithReference(testStructure.NewReference())).ToNot(BeNil())
+				})
+			})
+
+			Context("with a second references", func() {
+				var reference2 string
+
+				BeforeEach(func() {
+					reference2 = testStructure.NewReference()
+					src = src.WithReference(reference2)
+				})
+
+				Context("Parameter", func() {
+					It("returns empty string", func() {
+						Expect(src.Parameter()).To(BeEmpty())
+					})
+				})
+
+				Context("Pointer", func() {
+					It("returns path reference", func() {
+						Expect(src.Pointer()).To(Equal(fmt.Sprintf("/%s/%s", reference1, reference2)))
+					})
+				})
+
+				Context("WithReference", func() {
+					It("returns a source", func() {
+						Expect(src.WithReference(testStructure.NewReference())).ToNot(BeNil())
+					})
+				})
+
+				Context("with a third references", func() {
+					var reference3 string
+
+					BeforeEach(func() {
+						reference3 = testStructure.NewReference()
+						src = src.WithReference(reference3)
+					})
+
+					Context("Parameter", func() {
+						It("returns empty string", func() {
+							Expect(src.Parameter()).To(BeEmpty())
+						})
+					})
+
+					Context("Pointer", func() {
+						It("returns path reference", func() {
+							Expect(src.Pointer()).To(Equal(fmt.Sprintf("/%s/%s/%s", reference1, reference2, reference3)))
+						})
+					})
+
+					Context("WithReference", func() {
+						It("returns a source", func() {
+							Expect(src.WithReference(testStructure.NewReference())).ToNot(BeNil())
+						})
+					})
+				})
+			})
+		})
+
+		Context("with one reference containing slash", func() {
+			var referenceLeft string
+			var referenceRight string
+			var reference string
+
+			BeforeEach(func() {
+				referenceLeft = testStructure.NewReference()
+				referenceRight = testStructure.NewReference()
+				reference = fmt.Sprintf("%s/%s", referenceLeft, referenceRight)
+				src = src.WithReference(reference)
+			})
+
+			Context("Parameter", func() {
+				It("returns empty string", func() {
+					Expect(src.Parameter()).To(BeEmpty())
+				})
+			})
+
+			Context("Pointer", func() {
+				It("returns encoded reference", func() {
+					Expect(src.Pointer()).To(Equal(fmt.Sprintf("/%s~1%s", referenceLeft, referenceRight)))
+				})
+			})
+
+			Context("WithReference", func() {
+				It("returns a source", func() {
+					Expect(src.WithReference(testStructure.NewReference())).ToNot(BeNil())
+				})
+			})
+		})
+	})
+
+	Context("EncodePointerReference", func() {
+		It("returns same string that does not require encoding", func() {
+			reference := testStructure.NewReference()
+			Expect(structure.EncodePointerReference(reference)).To(Equal(reference))
+		})
+
+		It("returns encoded string that does require encoding", func() {
+			Expect(structure.EncodePointerReference("ab~/cd/~ef")).To(Equal("ab~0~1cd~1~0ef"))
+		})
+	})
+})

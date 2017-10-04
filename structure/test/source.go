@@ -3,17 +3,21 @@ package test
 import (
 	"github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/test"
 )
 
 type Source struct {
 	*test.Mock
-	SourceInvocations        int
-	SourceOutputs            []*errors.Source
+	ParameterInvocations     int
+	ParameterOutput          *string
+	ParameterOutputs         []string
+	PointerInvocations       int
+	PointerOutput            *string
+	PointerOutputs           []string
 	WithReferenceInvocations int
 	WithReferenceInputs      []string
+	WithReferenceOutput      *structure.Source
 	WithReferenceOutputs     []structure.Source
 }
 
@@ -23,18 +27,40 @@ func NewSource() *Source {
 	}
 }
 
-func (s *Source) Source() *errors.Source {
-	s.SourceInvocations++
+func (s *Source) Parameter() string {
+	s.ParameterInvocations++
 
-	gomega.Expect(s.SourceOutputs).ToNot(gomega.BeEmpty())
+	if s.ParameterOutput != nil {
+		return *s.ParameterOutput
+	}
 
-	output := s.SourceOutputs[0]
-	s.SourceOutputs = s.SourceOutputs[1:]
+	gomega.Expect(s.ParameterOutputs).ToNot(gomega.BeEmpty())
+
+	output := s.ParameterOutputs[0]
+	s.ParameterOutputs = s.ParameterOutputs[1:]
+	return output
+}
+
+func (s *Source) Pointer() string {
+	s.PointerInvocations++
+
+	if s.PointerOutput != nil {
+		return *s.PointerOutput
+	}
+
+	gomega.Expect(s.PointerOutputs).ToNot(gomega.BeEmpty())
+
+	output := s.PointerOutputs[0]
+	s.PointerOutputs = s.PointerOutputs[1:]
 	return output
 }
 
 func (s *Source) WithReference(reference string) structure.Source {
 	s.WithReferenceInvocations++
+
+	if s.WithReferenceOutput != nil {
+		return *s.WithReferenceOutput
+	}
 
 	s.WithReferenceInputs = append(s.WithReferenceInputs, reference)
 
@@ -47,6 +73,7 @@ func (s *Source) WithReference(reference string) structure.Source {
 
 func (s *Source) Expectations() {
 	s.Mock.Expectations()
-	gomega.Expect(s.SourceOutputs).To(gomega.BeEmpty())
+	gomega.Expect(s.ParameterOutputs).To(gomega.BeEmpty())
+	gomega.Expect(s.PointerOutputs).To(gomega.BeEmpty())
 	gomega.Expect(s.WithReferenceOutputs).To(gomega.BeEmpty())
 }

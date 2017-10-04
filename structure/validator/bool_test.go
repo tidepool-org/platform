@@ -4,20 +4,17 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
-	testStructure "github.com/tidepool-org/platform/structure/test"
+	structureBase "github.com/tidepool-org/platform/structure/base"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 var _ = Describe("Bool", func() {
-	var base *testStructure.Base
+	var base *structureBase.Base
 
 	BeforeEach(func() {
-		base = testStructure.NewBase()
-	})
-
-	AfterEach(func() {
-		base.Expectations()
+		base = structureBase.New()
 	})
 
 	Context("NewBool", func() {
@@ -42,8 +39,8 @@ var _ = Describe("Bool", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.ReportErrorInputs).To(HaveLen(1))
-				Expect(base.ReportErrorInputs[0]).To(MatchError("value does not exist"))
+				Expect(base.Error()).ToNot(BeNil())
+				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotExists())))
 			})
 
 			It("returns self", func() {
@@ -57,7 +54,7 @@ var _ = Describe("Bool", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.ReportErrorInputs).To(BeEmpty())
+				Expect(base.Error()).To(BeNil())
 			})
 
 			It("returns self", func() {
@@ -71,7 +68,7 @@ var _ = Describe("Bool", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.ReportErrorInputs).To(BeEmpty())
+				Expect(base.Error()).To(BeNil())
 			})
 
 			It("returns self", func() {
@@ -85,7 +82,7 @@ var _ = Describe("Bool", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.ReportErrorInputs).To(BeEmpty())
+				Expect(base.Error()).To(BeNil())
 			})
 
 			It("returns self", func() {
@@ -111,7 +108,7 @@ var _ = Describe("Bool", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.ReportErrorInputs).To(BeEmpty())
+				Expect(base.Error()).To(BeNil())
 			})
 
 			It("returns self", func() {
@@ -125,8 +122,8 @@ var _ = Describe("Bool", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.ReportErrorInputs).To(HaveLen(1))
-				Expect(base.ReportErrorInputs[0]).To(MatchError("value exists"))
+				Expect(base.Error()).ToNot(BeNil())
+				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueExists())))
 			})
 
 			It("returns self", func() {
@@ -140,7 +137,7 @@ var _ = Describe("Bool", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.ReportErrorInputs).To(BeEmpty())
+				Expect(base.Error()).To(BeNil())
 			})
 
 			It("returns self", func() {
@@ -154,8 +151,8 @@ var _ = Describe("Bool", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.ReportErrorInputs).To(HaveLen(1))
-				Expect(base.ReportErrorInputs[0]).To(MatchError("value is not false"))
+				Expect(base.Error()).ToNot(BeNil())
+				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotFalse())))
 			})
 
 			It("returns self", func() {
@@ -181,7 +178,7 @@ var _ = Describe("Bool", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.ReportErrorInputs).To(BeEmpty())
+				Expect(base.Error()).To(BeNil())
 			})
 
 			It("returns self", func() {
@@ -195,8 +192,8 @@ var _ = Describe("Bool", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.ReportErrorInputs).To(HaveLen(1))
-				Expect(base.ReportErrorInputs[0]).To(MatchError("value exists"))
+				Expect(base.Error()).ToNot(BeNil())
+				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueExists())))
 			})
 
 			It("returns self", func() {
@@ -210,8 +207,8 @@ var _ = Describe("Bool", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.ReportErrorInputs).To(HaveLen(1))
-				Expect(base.ReportErrorInputs[0]).To(MatchError("value is not true"))
+				Expect(base.Error()).ToNot(BeNil())
+				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotTrue())))
 			})
 
 			It("returns self", func() {
@@ -225,7 +222,7 @@ var _ = Describe("Bool", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.ReportErrorInputs).To(BeEmpty())
+				Expect(base.Error()).To(BeNil())
 			})
 
 			It("returns self", func() {

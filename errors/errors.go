@@ -196,9 +196,22 @@ func appendErrors(errors []error, err error) []error {
 	} else if objectErr, objectOK := err.(*object); objectOK {
 		return append(errors, objectErr)
 	} else if err != nil {
-		return append(errors, normalize(err))
+		return append(errors, Normalize(err))
 	}
 	return errors
+}
+
+func Normalize(err error) error {
+	if _, arrayOK := err.(*array); arrayOK {
+		return err
+	} else if _, objectOK := err.(*object); objectOK {
+		return err
+	} else if err != nil {
+		return &object{
+			Detail: err.Error(),
+		}
+	}
+	return nil
 }
 
 type Sanitizable interface {
@@ -523,19 +536,6 @@ func (o *object) Sanitize() error {
 		Source: o.Source,
 		Meta:   o.Meta,
 	}
-}
-
-func normalize(err error) error {
-	if _, arrayOK := err.(*array); arrayOK {
-		return err
-	} else if _, objectOK := err.(*object); objectOK {
-		return err
-	} else if err != nil {
-		return &object{
-			Detail: err.Error(),
-		}
-	}
-	return nil
 }
 
 type contextKey string

@@ -6,17 +6,21 @@ import (
 )
 
 type Normalizer struct {
-	structure.Base
+	base *structureBase.Base
 }
 
 func New() *Normalizer {
 	return NewNormalizer(structureBase.New())
 }
 
-func NewNormalizer(base structure.Base) *Normalizer {
+func NewNormalizer(base *structureBase.Base) *Normalizer {
 	return &Normalizer{
-		Base: base,
+		base: base,
 	}
+}
+
+func (n *Normalizer) Error() error {
+	return n.base.Error()
 }
 
 func (n *Normalizer) Normalize(normalizable structure.Normalizable) error {
@@ -24,20 +28,20 @@ func (n *Normalizer) Normalize(normalizable structure.Normalizable) error {
 	return n.Error()
 }
 
-func (n *Normalizer) WithSource(source structure.Source) *Normalizer {
+func (n *Normalizer) WithSource(source structure.Source) structure.Normalizer {
 	return &Normalizer{
-		Base: n.Base.WithSource(source),
+		base: n.base.WithSource(source),
 	}
 }
 
 func (n *Normalizer) WithMeta(meta interface{}) structure.Normalizer {
 	return &Normalizer{
-		Base: n.Base.WithMeta(meta),
+		base: n.base.WithMeta(meta),
 	}
 }
 
 func (n *Normalizer) WithReference(reference string) structure.Normalizer {
 	return &Normalizer{
-		Base: n.Base.WithReference(reference),
+		base: n.base.WithReference(reference),
 	}
 }

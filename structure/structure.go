@@ -2,11 +2,6 @@ package structure
 
 import "strings"
 
-type Structure interface {
-	Source() Source
-	Meta() interface{}
-}
-
 type Source interface {
 	Parameter() string
 	Pointer() string

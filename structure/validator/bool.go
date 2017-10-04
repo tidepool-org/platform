@@ -1,13 +1,16 @@
 package validator
 
-import "github.com/tidepool-org/platform/structure"
+import (
+	"github.com/tidepool-org/platform/structure"
+	structureBase "github.com/tidepool-org/platform/structure/base"
+)
 
 type Bool struct {
-	base  structure.Base
+	base  *structureBase.Base
 	value *bool
 }
 
-func NewBool(base structure.Base, value *bool) *Bool {
+func NewBool(base *structureBase.Base, value *bool) *Bool {
 	return &Bool{
 		base:  base,
 		value: value,

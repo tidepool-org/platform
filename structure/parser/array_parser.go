@@ -10,7 +10,7 @@ import (
 )
 
 type Array struct {
-	structure.Base
+	base   *structureBase.Base
 	array  *[]interface{}
 	parsed []bool
 }
@@ -19,17 +19,21 @@ func NewArray(array *[]interface{}) *Array {
 	return NewArrayParser(structureBase.New(), array)
 }
 
-func NewArrayParser(base structure.Base, array *[]interface{}) *Array {
+func NewArrayParser(base *structureBase.Base, array *[]interface{}) *Array {
 	var parsed []bool
 	if array != nil {
 		parsed = make([]bool, len(*array))
 	}
 
 	return &Array{
-		Base:   base,
+		base:   base,
 		array:  array,
 		parsed: parsed,
 	}
+}
+
+func (a *Array) Error() error {
+	return a.base.Error()
 }
 
 func (a *Array) Exists() bool {
@@ -70,7 +74,7 @@ func (a *Array) Bool(reference int) *bool {
 
 	boolValue, ok := rawValue.(bool)
 	if !ok {
-		a.Base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTypeNotBool(rawValue))
+		a.base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTypeNotBool(rawValue))
 		return nil
 	}
 
@@ -87,7 +91,7 @@ func (a *Array) Float64(reference int) *float64 {
 	if !float64ValueOk {
 		intValue, intValueOk := rawValue.(int)
 		if !intValueOk {
-			a.Base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTypeNotFloat64(rawValue))
+			a.base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTypeNotFloat64(rawValue))
 			return nil
 		}
 		float64Value = float64(intValue)
@@ -106,11 +110,11 @@ func (a *Array) Int(reference int) *int {
 	if !intValueOk {
 		float64Value, float64ValueOk := rawValue.(float64)
 		if !float64ValueOk {
-			a.Base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTypeNotInt(rawValue))
+			a.base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTypeNotInt(rawValue))
 			return nil
 		}
 		if math.Trunc(float64Value) != float64Value {
-			a.Base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTypeNotInt(rawValue))
+			a.base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTypeNotInt(rawValue))
 			return nil
 		}
 		intValue = int(float64Value)
@@ -127,7 +131,7 @@ func (a *Array) String(reference int) *string {
 
 	stringValue, ok := rawValue.(string)
 	if !ok {
-		a.Base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTypeNotString(rawValue))
+		a.base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTypeNotString(rawValue))
 		return nil
 	}
 
@@ -144,12 +148,12 @@ func (a *Array) StringArray(reference int) *[]string {
 	if !stringArrayValueOk {
 		arrayValue, arrayValueOk := rawValue.([]interface{})
 		if !arrayValueOk {
-			a.Base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTypeNotArray(rawValue))
+			a.base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTypeNotArray(rawValue))
 			return nil
 		}
 
 		stringArrayValue = []string{}
-		parser := NewArrayParser(a.Base.WithReference(strconv.Itoa(reference)), &arrayValue)
+		parser := NewArrayParser(a.base.WithReference(strconv.Itoa(reference)), &arrayValue)
 		for arrayIndex := range arrayValue {
 			var stringElement string
 			if stringParsed := parser.String(arrayIndex); stringParsed != nil {
@@ -170,13 +174,13 @@ func (a *Array) Time(reference int, layout string) *time.Time {
 
 	stringValue, ok := rawValue.(string)
 	if !ok {
-		a.Base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTypeNotTime(rawValue))
+		a.base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTypeNotTime(rawValue))
 		return nil
 	}
 
 	timeValue, err := time.Parse(layout, stringValue)
 	if err != nil {
-		a.Base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTimeNotParsable(stringValue, layout))
+		a.base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTimeNotParsable(stringValue, layout))
 		return nil
 	}
 
@@ -191,7 +195,7 @@ func (a *Array) Object(reference int) *map[string]interface{} {
 
 	objectValue, ok := rawValue.(map[string]interface{})
 	if !ok {
-		a.Base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTypeNotObject(rawValue))
+		a.base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTypeNotObject(rawValue))
 		return nil
 	}
 
@@ -206,7 +210,7 @@ func (a *Array) Array(reference int) *[]interface{} {
 
 	arrayValue, ok := rawValue.([]interface{})
 	if !ok {
-		a.Base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTypeNotArray(rawValue))
+		a.base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTypeNotArray(rawValue))
 		return nil
 	}
 
@@ -229,16 +233,16 @@ func (a *Array) NotParsed() error {
 
 	for reference := range *a.array {
 		if !a.parsed[reference] {
-			a.Base.WithReference(strconv.Itoa(reference)).ReportError(ErrorNotParsed())
+			a.base.WithReference(strconv.Itoa(reference)).ReportError(ErrorNotParsed())
 		}
 	}
 
 	return a.Error()
 }
 
-func (a *Array) WithSource(source structure.Source) *Array {
+func (a *Array) WithSource(source structure.Source) structure.ArrayParser {
 	return &Array{
-		Base:   a.Base.WithSource(source),
+		base:   a.base.WithSource(source),
 		array:  a.array,
 		parsed: a.parsed,
 	}
@@ -246,18 +250,18 @@ func (a *Array) WithSource(source structure.Source) *Array {
 
 func (a *Array) WithMeta(meta interface{}) structure.ArrayParser {
 	return &Array{
-		Base:   a.Base.WithMeta(meta),
+		base:   a.base.WithMeta(meta),
 		array:  a.array,
 		parsed: a.parsed,
 	}
 }
 
 func (a *Array) WithReferenceObjectParser(reference int) structure.ObjectParser {
-	return NewObjectParser(a.Base.WithReference(strconv.Itoa(reference)), a.Object(reference))
+	return NewObjectParser(a.base.WithReference(strconv.Itoa(reference)), a.Object(reference))
 }
 
 func (a *Array) WithReferenceArrayParser(reference int) structure.ArrayParser {
-	return NewArrayParser(a.Base.WithReference(strconv.Itoa(reference)), a.Array(reference))
+	return NewArrayParser(a.base.WithReference(strconv.Itoa(reference)), a.Array(reference))
 }
 
 func (a *Array) raw(reference int) (interface{}, bool) {

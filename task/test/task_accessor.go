@@ -82,70 +82,70 @@ func NewTaskAccessor() *TaskAccessor {
 	}
 }
 
-func (r *TaskAccessor) ListTasks(ctx context.Context, filter *task.TaskFilter, pagination *page.Pagination) (task.Tasks, error) {
-	r.ListTasksInvocations++
+func (t *TaskAccessor) ListTasks(ctx context.Context, filter *task.TaskFilter, pagination *page.Pagination) (task.Tasks, error) {
+	t.ListTasksInvocations++
 
-	r.ListTasksInputs = append(r.ListTasksInputs, ListTasksInput{Context: ctx, Filter: filter, Pagination: pagination})
+	t.ListTasksInputs = append(t.ListTasksInputs, ListTasksInput{Context: ctx, Filter: filter, Pagination: pagination})
 
-	gomega.Expect(r.ListTasksOutputs).ToNot(gomega.BeEmpty())
+	gomega.Expect(t.ListTasksOutputs).ToNot(gomega.BeEmpty())
 
-	output := r.ListTasksOutputs[0]
-	r.ListTasksOutputs = r.ListTasksOutputs[1:]
+	output := t.ListTasksOutputs[0]
+	t.ListTasksOutputs = t.ListTasksOutputs[1:]
 	return output.Tasks, output.Error
 }
 
-func (r *TaskAccessor) CreateTask(ctx context.Context, create *task.TaskCreate) (*task.Task, error) {
-	r.CreateTaskInvocations++
+func (t *TaskAccessor) CreateTask(ctx context.Context, create *task.TaskCreate) (*task.Task, error) {
+	t.CreateTaskInvocations++
 
-	r.CreateTaskInputs = append(r.CreateTaskInputs, CreateTaskInput{Context: ctx, Create: create})
+	t.CreateTaskInputs = append(t.CreateTaskInputs, CreateTaskInput{Context: ctx, Create: create})
 
-	gomega.Expect(r.CreateTaskOutputs).ToNot(gomega.BeEmpty())
+	gomega.Expect(t.CreateTaskOutputs).ToNot(gomega.BeEmpty())
 
-	output := r.CreateTaskOutputs[0]
-	r.CreateTaskOutputs = r.CreateTaskOutputs[1:]
+	output := t.CreateTaskOutputs[0]
+	t.CreateTaskOutputs = t.CreateTaskOutputs[1:]
 	return output.Task, output.Error
 }
 
-func (r *TaskAccessor) GetTask(ctx context.Context, id string) (*task.Task, error) {
-	r.GetTaskInvocations++
+func (t *TaskAccessor) GetTask(ctx context.Context, id string) (*task.Task, error) {
+	t.GetTaskInvocations++
 
-	r.GetTaskInputs = append(r.GetTaskInputs, GetTaskInput{Context: ctx, ID: id})
+	t.GetTaskInputs = append(t.GetTaskInputs, GetTaskInput{Context: ctx, ID: id})
 
-	gomega.Expect(r.GetTaskOutputs).ToNot(gomega.BeEmpty())
+	gomega.Expect(t.GetTaskOutputs).ToNot(gomega.BeEmpty())
 
-	output := r.GetTaskOutputs[0]
-	r.GetTaskOutputs = r.GetTaskOutputs[1:]
+	output := t.GetTaskOutputs[0]
+	t.GetTaskOutputs = t.GetTaskOutputs[1:]
 	return output.Task, output.Error
 }
 
-func (r *TaskAccessor) UpdateTask(ctx context.Context, id string, update *task.TaskUpdate) (*task.Task, error) {
-	r.UpdateTaskInvocations++
+func (t *TaskAccessor) UpdateTask(ctx context.Context, id string, update *task.TaskUpdate) (*task.Task, error) {
+	t.UpdateTaskInvocations++
 
-	r.UpdateTaskInputs = append(r.UpdateTaskInputs, UpdateTaskInput{Context: ctx, ID: id, Update: update})
+	t.UpdateTaskInputs = append(t.UpdateTaskInputs, UpdateTaskInput{Context: ctx, ID: id, Update: update})
 
-	gomega.Expect(r.UpdateTaskOutputs).ToNot(gomega.BeEmpty())
+	gomega.Expect(t.UpdateTaskOutputs).ToNot(gomega.BeEmpty())
 
-	output := r.UpdateTaskOutputs[0]
-	r.UpdateTaskOutputs = r.UpdateTaskOutputs[1:]
+	output := t.UpdateTaskOutputs[0]
+	t.UpdateTaskOutputs = t.UpdateTaskOutputs[1:]
 	return output.Task, output.Error
 }
 
-func (r *TaskAccessor) DeleteTask(ctx context.Context, id string) error {
-	r.DeleteTaskInvocations++
+func (t *TaskAccessor) DeleteTask(ctx context.Context, id string) error {
+	t.DeleteTaskInvocations++
 
-	r.DeleteTaskInputs = append(r.DeleteTaskInputs, DeleteTaskInput{Context: ctx, ID: id})
+	t.DeleteTaskInputs = append(t.DeleteTaskInputs, DeleteTaskInput{Context: ctx, ID: id})
 
-	gomega.Expect(r.DeleteTaskOutputs).ToNot(gomega.BeEmpty())
+	gomega.Expect(t.DeleteTaskOutputs).ToNot(gomega.BeEmpty())
 
-	output := r.DeleteTaskOutputs[0]
-	r.DeleteTaskOutputs = r.DeleteTaskOutputs[1:]
+	output := t.DeleteTaskOutputs[0]
+	t.DeleteTaskOutputs = t.DeleteTaskOutputs[1:]
 	return output
 }
 
-func (r *TaskAccessor) Expectations() {
-	r.Mock.Expectations()
-	gomega.Expect(r.ListTasksOutputs).To(gomega.BeEmpty())
-	gomega.Expect(r.CreateTaskOutputs).To(gomega.BeEmpty())
-	gomega.Expect(r.GetTaskOutputs).To(gomega.BeEmpty())
-	gomega.Expect(r.UpdateTaskOutputs).To(gomega.BeEmpty())
+func (t *TaskAccessor) Expectations() {
+	t.Mock.Expectations()
+	gomega.Expect(t.ListTasksOutputs).To(gomega.BeEmpty())
+	gomega.Expect(t.CreateTaskOutputs).To(gomega.BeEmpty())
+	gomega.Expect(t.GetTaskOutputs).To(gomega.BeEmpty())
+	gomega.Expect(t.UpdateTaskOutputs).To(gomega.BeEmpty())
 }

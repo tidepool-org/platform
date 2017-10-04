@@ -7,7 +7,7 @@ type ObjectParsable interface {
 }
 
 type ObjectParser interface {
-	Structure
+	Error() error
 
 	Exists() bool
 
@@ -30,6 +30,7 @@ type ObjectParser interface {
 
 	NotParsed() error
 
+	WithSource(source Source) ObjectParser
 	WithMeta(meta interface{}) ObjectParser
 	WithReferenceObjectParser(reference string) ObjectParser
 	WithReferenceArrayParser(reference string) ArrayParser
@@ -40,7 +41,7 @@ type ArrayParsable interface {
 }
 
 type ArrayParser interface {
-	Structure
+	Error() error
 
 	Exists() bool
 
@@ -63,6 +64,7 @@ type ArrayParser interface {
 
 	NotParsed() error
 
+	WithSource(source Source) ArrayParser
 	WithMeta(meta interface{}) ArrayParser
 	WithReferenceObjectParser(reference int) ObjectParser
 	WithReferenceArrayParser(reference int) ArrayParser

@@ -1,13 +1,16 @@
 package validator
 
-import "github.com/tidepool-org/platform/structure"
+import (
+	"github.com/tidepool-org/platform/structure"
+	structureBase "github.com/tidepool-org/platform/structure/base"
+)
 
 type Float64 struct {
-	base  structure.Base
+	base  *structureBase.Base
 	value *float64
 }
 
-func NewFloat64(base structure.Base, value *float64) *Float64 {
+func NewFloat64(base *structureBase.Base, value *float64) *Float64 {
 	return &Float64{
 		base:  base,
 		value: value,

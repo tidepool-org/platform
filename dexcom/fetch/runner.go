@@ -111,7 +111,7 @@ type TaskRunner struct {
 	*Runner
 	task            *task.Task
 	context         context.Context
-	validator       *structureValidator.Validator
+	validator       structure.Validator
 	providerSession *auth.ProviderSession
 	dataSource      *data.DataSource
 	tokenSource     oauth.TokenSource
