@@ -275,5 +275,10 @@ func (a *Array) raw(reference int) (interface{}, bool) {
 
 	a.parsed[reference] = true
 
-	return (*a.array)[reference], true
+	rawValue := (*a.array)[reference]
+	if rawValue == nil {
+		return nil, false
+	}
+
+	return rawValue, true
 }

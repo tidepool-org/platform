@@ -272,6 +272,9 @@ func (o *Object) raw(reference string) (interface{}, bool) {
 	o.parsed[reference] = true
 
 	rawValue, ok := (*o.object)[reference]
+	if !ok || rawValue == nil {
+		return nil, false
+	}
 
-	return rawValue, ok
+	return rawValue, true
 }
