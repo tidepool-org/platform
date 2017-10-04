@@ -3,14 +3,12 @@ package mongo
 import (
 	"crypto/tls"
 	"net"
-	"time"
 
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/pointer"
 )
 
 // TODO: Consider SetStats, GetStats
@@ -27,11 +25,11 @@ type Status struct {
 }
 
 func New(cfg *Config, lgr log.Logger) (*Store, error) {
-	if lgr == nil {
-		return nil, errors.New("logger is missing")
-	}
 	if cfg == nil {
 		return nil, errors.New("config is missing")
+	}
+	if lgr == nil {
+		return nil, errors.New("logger is missing")
 	}
 
 	if err := cfg.Validate(); err != nil {
@@ -182,21 +180,16 @@ func (s *Session) C() *mgo.Collection {
 	return s.targetSession.DB(s.database).C(s.collection)
 }
 
-func (s *Session) Time() *time.Time {
-	return pointer.Time(time.Now())
-}
-
-func (s *Session) Timestamp() string {
-	return time.Now().Format(time.RFC3339)
-}
-
 func (s *Session) ConstructUpdate(set bson.M, unset bson.M) bson.M {
 	update := bson.M{}
-	if len(set) > 0 {
+	if len(set) != 0 {
 		update["$set"] = set
 	}
-	if len(unset) > 0 {
+	if len(unset) != 0 {
 		update["$unset"] = unset
 	}
-	return update
+	if len(update) != 0 {
+		return update
+	}
+	return nil
 }

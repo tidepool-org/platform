@@ -111,7 +111,7 @@ func (u *UsersSession) DeleteUser(ctx context.Context, user *user.User) error {
 
 	startTime := time.Now()
 
-	user.DeletedTime = u.Timestamp()
+	user.DeletedTime = time.Now().Format(time.RFC3339)
 
 	selector := bson.M{
 		"userid": user.ID,

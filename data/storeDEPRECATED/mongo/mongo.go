@@ -140,7 +140,7 @@ func (d *DataSession) CreateDataset(ctx context.Context, dataset *upload.Upload)
 
 	startTime := time.Now()
 
-	dataset.CreatedTime = d.Timestamp()
+	dataset.CreatedTime = time.Now().Format(time.RFC3339)
 
 	dataset.ByUser = dataset.CreatedUserID
 
@@ -234,7 +234,7 @@ func (d *DataSession) DeleteDataset(ctx context.Context, dataset *upload.Upload)
 
 	startTime := time.Now()
 
-	timestamp := d.Timestamp()
+	timestamp := time.Now().Format(time.RFC3339)
 
 	var err error
 	var removeInfo *mgo.ChangeInfo
@@ -289,7 +289,7 @@ func (d *DataSession) CreateDatasetData(ctx context.Context, dataset *upload.Upl
 
 	startTime := time.Now()
 
-	timestamp := d.Timestamp()
+	timestamp := time.Now().Format(time.RFC3339)
 
 	insertData := make([]interface{}, len(datasetData))
 	for index, datum := range datasetData {
@@ -328,7 +328,7 @@ func (d *DataSession) ActivateDatasetData(ctx context.Context, dataset *upload.U
 
 	startTime := time.Now()
 
-	timestamp := d.Timestamp()
+	timestamp := time.Now().Format(time.RFC3339)
 
 	selector := bson.M{
 		"_userId":  dataset.UserID,
@@ -370,7 +370,7 @@ func (d *DataSession) ArchiveDeviceDataUsingHashesFromDataset(ctx context.Contex
 
 	startTime := time.Now()
 
-	timestamp := d.Timestamp()
+	timestamp := time.Now().Format(time.RFC3339)
 
 	var updateInfo *mgo.ChangeInfo
 
@@ -421,7 +421,7 @@ func (d *DataSession) UnarchiveDeviceDataUsingHashesFromDataset(ctx context.Cont
 
 	startTime := time.Now()
 
-	timestamp := d.Timestamp()
+	timestamp := time.Now().Format(time.RFC3339)
 
 	pipeline := []bson.M{
 		{
@@ -520,7 +520,7 @@ func (d *DataSession) DeleteOtherDatasetData(ctx context.Context, dataset *uploa
 
 	startTime := time.Now()
 
-	timestamp := d.Timestamp()
+	timestamp := time.Now().Format(time.RFC3339)
 
 	var err error
 	var removeInfo *mgo.ChangeInfo
