@@ -503,7 +503,7 @@ var _ = Describe("Object", func() {
 		It("with key with string type returns value", func() {
 			value := parser.Time("two", time.RFC3339)
 			Expect(value).ToNot(BeNil())
-			Expect(*value).To(Equal(now))
+			Expect(*value).To(BeTemporally("==", now))
 			Expect(base.Error()).To(BeNil())
 		})
 	})

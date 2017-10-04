@@ -530,7 +530,7 @@ var _ = Describe("Array", func() {
 		It("with index parameter with string type returns value", func() {
 			value := parser.Time(2, time.RFC3339)
 			Expect(value).ToNot(BeNil())
-			Expect(*value).To(Equal(now))
+			Expect(*value).To(BeTemporally("==", now))
 			Expect(base.Error()).To(BeNil())
 		})
 	})
@@ -623,6 +623,7 @@ var _ = Describe("Array", func() {
 					"1",
 					false,
 				},
+				nil,
 			})
 			Expect(parser).ToNot(BeNil())
 		})
@@ -655,6 +656,11 @@ var _ = Describe("Array", func() {
 			value := parser.Interface(2)
 			Expect(value).ToNot(BeNil())
 			Expect(*value).To(Equal([]interface{}{"1", false}))
+			Expect(base.Error()).To(BeNil())
+		})
+
+		It("with index parameter with nil return type", func() {
+			Expect(parser.Interface(3)).To(BeNil())
 			Expect(base.Error()).To(BeNil())
 		})
 	})
