@@ -41,7 +41,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotExists())))
 			})
 
@@ -56,7 +56,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -70,7 +70,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -84,7 +84,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -98,7 +98,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -112,7 +112,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -126,7 +126,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -140,7 +140,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -154,7 +154,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -168,7 +168,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -182,7 +182,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -196,7 +196,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -210,7 +210,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -227,7 +227,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -244,7 +244,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -270,7 +270,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -284,7 +284,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueExists())))
 			})
 
@@ -299,7 +299,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -313,7 +313,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueEmpty())))
 			})
 
@@ -340,7 +340,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -354,7 +354,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueExists())))
 			})
 
@@ -369,7 +369,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotEmpty())))
 			})
 
@@ -384,7 +384,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -398,7 +398,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -412,7 +412,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -426,7 +426,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -440,7 +440,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -454,7 +454,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorLengthNotGreaterThan(1, 3))))
 			})
 
@@ -469,7 +469,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorLengthNotGreaterThanOrEqualTo(1, 4))))
 			})
 
@@ -484,7 +484,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -498,7 +498,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -512,7 +512,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -529,7 +529,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -546,7 +546,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -572,7 +572,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -586,7 +586,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueExists())))
 			})
 
@@ -601,7 +601,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotEmpty())))
 			})
 
@@ -616,7 +616,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -630,7 +630,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorLengthNotEqualTo(4, 1))))
 			})
 
@@ -645,7 +645,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorLengthEqualTo(4, 4))))
 			})
 
@@ -660,7 +660,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorLengthNotLessThan(4, 3))))
 			})
 
@@ -675,7 +675,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorLengthNotLessThanOrEqualTo(4, 1))))
 			})
 
@@ -690,7 +690,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -704,7 +704,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -718,7 +718,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorLengthNotInRange(4, 0, 3))))
 			})
 
@@ -733,7 +733,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(errors.Append(
 					structureValidator.ErrorValueStringNotOneOf("two", []string{"1", "seven"}),
 					structureValidator.ErrorValueStringNotOneOf("three", []string{"1", "seven"}),
@@ -752,7 +752,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueStringOneOf("four", []string{"seven", "four"}))))
 			})
 
@@ -767,7 +767,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(errors.Append(
 					structureValidator.ErrorValueStringNotOneOf("1", []string{}),
 					structureValidator.ErrorValueStringNotOneOf("two", []string{}),
@@ -787,7 +787,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -804,7 +804,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(errors.Append(
 					structureValidator.ErrorValueStringNotMatches("two", expression),
 					structureValidator.ErrorValueStringNotMatches("three", expression),
@@ -826,7 +826,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueStringMatches("four", expression))))
 			})
 
@@ -841,7 +841,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(errors.Append(
 					structureValidator.ErrorValueStringNotMatches("1", nil),
 					structureValidator.ErrorValueStringNotMatches("two", nil),
@@ -861,7 +861,7 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(errors.Append(
 					structureValidator.ErrorValueStringMatches("1", nil),
 					structureValidator.ErrorValueStringMatches("two", nil),

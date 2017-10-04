@@ -39,7 +39,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotExists())))
 			})
 
@@ -54,7 +54,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -68,7 +68,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -82,7 +82,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -96,7 +96,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -110,7 +110,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -124,7 +124,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -138,7 +138,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -152,7 +152,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -166,7 +166,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -180,7 +180,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -206,7 +206,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -220,7 +220,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueExists())))
 			})
 
@@ -235,7 +235,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -249,7 +249,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -263,7 +263,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -277,7 +277,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -291,7 +291,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotGreaterThan(1, 3))))
 			})
 
@@ -306,7 +306,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotGreaterThanOrEqualTo(1, 4))))
 			})
 
@@ -321,7 +321,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -335,7 +335,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -349,7 +349,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -375,7 +375,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -389,7 +389,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueExists())))
 			})
 
@@ -404,7 +404,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotEqualTo(4, 1))))
 			})
 
@@ -419,7 +419,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueEqualTo(4, 4))))
 			})
 
@@ -434,7 +434,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotLessThan(4, 3))))
 			})
 
@@ -449,7 +449,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotLessThanOrEqualTo(4, 1))))
 			})
 
@@ -464,7 +464,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -478,7 +478,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -492,7 +492,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotInRange(4, 0, 3))))
 			})
 
@@ -507,7 +507,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueIntNotOneOf(4, []int{1, 7}))))
 			})
 
@@ -522,7 +522,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueIntOneOf(4, []int{7, 4}))))
 			})
 
@@ -537,7 +537,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueIntNotOneOf(4, []int{}))))
 			})
 
@@ -552,7 +552,7 @@ var _ = Describe("Int", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {

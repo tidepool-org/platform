@@ -41,7 +41,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotExists())))
 			})
 
@@ -56,7 +56,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -70,7 +70,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -84,7 +84,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -98,7 +98,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -112,7 +112,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -126,7 +126,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -140,7 +140,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -169,7 +169,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -183,7 +183,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueExists())))
 			})
 
@@ -198,7 +198,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueTimeNotZero(value))))
 			})
 
@@ -213,7 +213,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -227,7 +227,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueTimeNotAfter(value, time.Unix(1451567655, 0).UTC()))))
 			})
 
@@ -242,7 +242,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueTimeNotAfterNow(value))))
 			})
 
@@ -257,7 +257,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -271,7 +271,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -300,7 +300,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -314,7 +314,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueExists())))
 			})
 
@@ -329,7 +329,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueTimeNotZero(value))))
 			})
 
@@ -344,7 +344,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -358,7 +358,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -372,7 +372,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -386,7 +386,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueTimeNotBefore(value, time.Unix(1451567655, 0).UTC()))))
 			})
 
@@ -401,7 +401,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueTimeNotBeforeNow(value))))
 			})
 
@@ -427,7 +427,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -441,7 +441,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueTimeZero(value))))
 			})
 
@@ -468,7 +468,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -482,7 +482,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueTimeNotAfterNow(value))))
 			})
 
@@ -497,7 +497,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("does not report an error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -511,7 +511,7 @@ var _ = Describe("Time", func() {
 			})
 
 			It("reports the expected error", func() {
-				Expect(base.Error()).ToNot(BeNil())
+				Expect(base.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueTimeNotBeforeNow(value))))
 			})
 

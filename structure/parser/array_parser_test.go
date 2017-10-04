@@ -272,17 +272,17 @@ var _ = Describe("Array", func() {
 
 		It("with index parameter less that the first index in the array returns nil", func() {
 			Expect(parser.Bool(-1)).To(BeNil())
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter greater than the last index in the array returns nil", func() {
 			Expect(parser.Bool(len(parser.References()))).To(BeNil())
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter with different type returns nil and reports an ErrorTypeNotBool", func() {
 			Expect(parser.Bool(0)).To(BeNil())
-			Expect(base.Error()).ToNot(BeNil())
+			Expect(base.Error()).To(HaveOccurred())
 			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotBool("not a boolean"))))
 		})
 
@@ -290,7 +290,7 @@ var _ = Describe("Array", func() {
 			value := parser.Bool(1)
 			Expect(value).ToNot(BeNil())
 			Expect(*value).To(BeTrue())
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 	})
 
@@ -309,17 +309,17 @@ var _ = Describe("Array", func() {
 
 		It("with index parameter less that the first index in the array returns nil", func() {
 			Expect(parser.Float64(-1)).To(BeNil())
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter greater than the last index in the array returns nil", func() {
 			Expect(parser.Float64(len(parser.References()))).To(BeNil())
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter with different type returns nil and reports an ErrorTypeNotFloat64", func() {
 			Expect(parser.Float64(0)).To(BeNil())
-			Expect(base.Error()).ToNot(BeNil())
+			Expect(base.Error()).To(HaveOccurred())
 			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotFloat64(false))))
 		})
 
@@ -327,21 +327,21 @@ var _ = Describe("Array", func() {
 			value := parser.Float64(1)
 			Expect(value).ToNot(BeNil())
 			Expect(*value).To(BeNumerically("==", 3.))
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter with float type and whole number returns value", func() {
 			value := parser.Float64(2)
 			Expect(value).ToNot(BeNil())
 			Expect(*value).To(BeNumerically("==", 4.0))
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter with float type and not whole number returns value", func() {
 			value := parser.Float64(3)
 			Expect(value).ToNot(BeNil())
 			Expect(*value).To(BeNumerically("==", 5.67))
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 	})
 
@@ -360,17 +360,17 @@ var _ = Describe("Array", func() {
 
 		It("with index parameter less that the first index in the array returns nil", func() {
 			Expect(parser.Int(-1)).To(BeNil())
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter greater than the last index in the array returns nil", func() {
 			Expect(parser.Int(len(parser.References()))).To(BeNil())
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter with different type returns nil and reports an ErrorTypeNotInt", func() {
 			Expect(parser.Int(0)).To(BeNil())
-			Expect(base.Error()).ToNot(BeNil())
+			Expect(base.Error()).To(HaveOccurred())
 			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotInt(false))))
 		})
 
@@ -378,19 +378,19 @@ var _ = Describe("Array", func() {
 			value := parser.Int(1)
 			Expect(value).ToNot(BeNil())
 			Expect(*value).To(BeNumerically("==", 3))
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter with float type and whole number returns value", func() {
 			value := parser.Int(2)
 			Expect(value).ToNot(BeNil())
 			Expect(*value).To(BeNumerically("==", 4))
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter with float type and not whole number returns nil and reports an ErrorTypeNotInt", func() {
 			Expect(parser.Int(3)).To(BeNil())
-			Expect(base.Error()).ToNot(BeNil())
+			Expect(base.Error()).To(HaveOccurred())
 			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotInt(5.67))))
 		})
 	})
@@ -408,17 +408,17 @@ var _ = Describe("Array", func() {
 
 		It("with index parameter less that the first index in the array returns nil", func() {
 			Expect(parser.String(-1)).To(BeNil())
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter greater than the last index in the array returns nil", func() {
 			Expect(parser.String(len(parser.References()))).To(BeNil())
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter with different type returns nil and reports an ErrorTypeNotString", func() {
 			Expect(parser.String(0)).To(BeNil())
-			Expect(base.Error()).ToNot(BeNil())
+			Expect(base.Error()).To(HaveOccurred())
 			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotString(false))))
 		})
 
@@ -426,7 +426,7 @@ var _ = Describe("Array", func() {
 			value := parser.String(1)
 			Expect(value).ToNot(BeNil())
 			Expect(*value).To(Equal("this is a string"))
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 	})
 
@@ -454,17 +454,17 @@ var _ = Describe("Array", func() {
 
 		It("with index parameter less that the first index in the array returns nil", func() {
 			Expect(parser.StringArray(-1)).To(BeNil())
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter greater than the last index in the array returns nil", func() {
 			Expect(parser.StringArray(len(parser.References()))).To(BeNil())
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter with different type returns nil and reports an ErrorTypeNotArray", func() {
 			Expect(parser.StringArray(0)).To(BeNil())
-			Expect(base.Error()).ToNot(BeNil())
+			Expect(base.Error()).To(HaveOccurred())
 			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotArray(false))))
 		})
 
@@ -472,21 +472,21 @@ var _ = Describe("Array", func() {
 			value := parser.StringArray(1)
 			Expect(value).ToNot(BeNil())
 			Expect(*value).To(Equal([]string{"one", "two"}))
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter with interface array and contains all string type returns value", func() {
 			value := parser.StringArray(2)
 			Expect(value).ToNot(BeNil())
 			Expect(*value).To(Equal([]string{"three", "four"}))
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter with interface array and does not contains all string type returns partial value and ErrorTypeNotString", func() {
 			value := parser.StringArray(3)
 			Expect(value).ToNot(BeNil())
 			Expect(*value).To(Equal([]string{"five", ""}))
-			Expect(base.Error()).ToNot(BeNil())
+			Expect(base.Error()).To(HaveOccurred())
 			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotString(6))))
 		})
 	})
@@ -507,23 +507,23 @@ var _ = Describe("Array", func() {
 
 		It("with index parameter less that the first index in the array returns nil", func() {
 			Expect(parser.Time(-1, time.RFC3339)).To(BeNil())
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter greater than the last index in the array returns nil", func() {
 			Expect(parser.Time(len(parser.References()), time.RFC3339)).To(BeNil())
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter with different type returns nil and reports an ErrorTypeNotTime", func() {
 			Expect(parser.Time(0, time.RFC3339)).To(BeNil())
-			Expect(base.Error()).ToNot(BeNil())
+			Expect(base.Error()).To(HaveOccurred())
 			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotTime(false))))
 		})
 
 		It("with index parameter with different type returns nil and reports an ErrorTimeNotParsable", func() {
 			Expect(parser.Time(1, time.RFC3339)).To(BeNil())
-			Expect(base.Error()).ToNot(BeNil())
+			Expect(base.Error()).To(HaveOccurred())
 			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTimeNotParsable("abc", time.RFC3339))))
 		})
 
@@ -531,7 +531,7 @@ var _ = Describe("Array", func() {
 			value := parser.Time(2, time.RFC3339)
 			Expect(value).ToNot(BeNil())
 			Expect(*value).To(BeTemporally("==", now))
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 	})
 
@@ -550,17 +550,17 @@ var _ = Describe("Array", func() {
 
 		It("with index parameter less that the first index in the array returns nil", func() {
 			Expect(parser.Object(-1)).To(BeNil())
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter greater than the last index in the array returns nil", func() {
 			Expect(parser.Object(len(parser.References()))).To(BeNil())
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter with different type returns nil and reports an ErrorTypeNotObject", func() {
 			Expect(parser.Object(0)).To(BeNil())
-			Expect(base.Error()).ToNot(BeNil())
+			Expect(base.Error()).To(HaveOccurred())
 			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotObject(false))))
 		})
 
@@ -568,7 +568,7 @@ var _ = Describe("Array", func() {
 			value := parser.Object(1)
 			Expect(value).ToNot(BeNil())
 			Expect(*value).To(Equal(map[string]interface{}{"1": "2"}))
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 	})
 
@@ -588,17 +588,17 @@ var _ = Describe("Array", func() {
 
 		It("with index parameter less that the first index in the array returns nil", func() {
 			Expect(parser.Array(-1)).To(BeNil())
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter greater than the last index in the array returns nil", func() {
 			Expect(parser.Array(len(parser.References()))).To(BeNil())
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter with different type returns nil and reports an ErrorTypeNotArray", func() {
 			Expect(parser.Array(0)).To(BeNil())
-			Expect(base.Error()).ToNot(BeNil())
+			Expect(base.Error()).To(HaveOccurred())
 			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotArray(false))))
 		})
 
@@ -606,7 +606,7 @@ var _ = Describe("Array", func() {
 			value := parser.Array(1)
 			Expect(value).ToNot(BeNil())
 			Expect(*value).To(Equal([]interface{}{"1", false}))
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 	})
 
@@ -630,38 +630,38 @@ var _ = Describe("Array", func() {
 
 		It("with index parameter less that the first index in the array returns nil", func() {
 			Expect(parser.Interface(-1)).To(BeNil())
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter greater than the last index in the array returns nil", func() {
 			Expect(parser.Interface(len(parser.References()))).To(BeNil())
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter with primitive type returns value", func() {
 			value := parser.Interface(0)
 			Expect(value).ToNot(BeNil())
 			Expect(*value).To(BeFalse())
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter with object type returns value", func() {
 			value := parser.Interface(1)
 			Expect(value).ToNot(BeNil())
 			Expect(*value).To(Equal(map[string]interface{}{"1": "2"}))
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter with array type returns value", func() {
 			value := parser.Interface(2)
 			Expect(value).ToNot(BeNil())
 			Expect(*value).To(Equal([]interface{}{"1", false}))
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter with nil return type", func() {
 			Expect(parser.Interface(3)).To(BeNil())
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 	})
 
@@ -679,7 +679,7 @@ var _ = Describe("Array", func() {
 
 		It("without anything parsed reports all unparsed as errors", func() {
 			parser.NotParsed()
-			Expect(base.Error()).ToNot(BeNil())
+			Expect(base.Error()).To(HaveOccurred())
 			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(errors.Append(
 				structureParser.ErrorNotParsed(),
 				structureParser.ErrorNotParsed(),
@@ -690,7 +690,7 @@ var _ = Describe("Array", func() {
 		It("with some items parsed reports all unparsed as errors", func() {
 			parser.String(1)
 			parser.NotParsed()
-			Expect(base.Error()).ToNot(BeNil())
+			Expect(base.Error()).To(HaveOccurred())
 			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(errors.Append(
 				structureParser.ErrorNotParsed(),
 				structureParser.ErrorNotParsed(),
@@ -702,7 +702,7 @@ var _ = Describe("Array", func() {
 			parser.String(1)
 			parser.Int(2)
 			parser.NotParsed()
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 	})
 
@@ -755,21 +755,21 @@ var _ = Describe("Array", func() {
 			objectParser := parser.WithReferenceObjectParser(-1)
 			Expect(objectParser).ToNot(BeNil())
 			Expect(objectParser.Exists()).To(BeFalse())
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter greater than the last index in the array returns nil", func() {
 			objectParser := parser.WithReferenceObjectParser(len(parser.References()))
 			Expect(objectParser).ToNot(BeNil())
 			Expect(objectParser.Exists()).To(BeFalse())
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter with different type returns nil and reports an ErrorTypeNotObject", func() {
 			objectParser := parser.WithReferenceObjectParser(0)
 			Expect(objectParser).ToNot(BeNil())
 			Expect(objectParser.Exists()).To(BeFalse())
-			Expect(base.Error()).ToNot(BeNil())
+			Expect(base.Error()).To(HaveOccurred())
 			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotObject(false))))
 		})
 
@@ -778,7 +778,7 @@ var _ = Describe("Array", func() {
 			Expect(objectParser).ToNot(BeNil())
 			Expect(objectParser.Exists()).To(BeTrue())
 			Expect(objectParser.References()).To(Equal([]string{"1"}))
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 	})
 
@@ -800,21 +800,21 @@ var _ = Describe("Array", func() {
 			arrayParser := parser.WithReferenceArrayParser(-1)
 			Expect(arrayParser).ToNot(BeNil())
 			Expect(arrayParser.Exists()).To(BeFalse())
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter greater than the last index in the array returns nil", func() {
 			arrayParser := parser.WithReferenceArrayParser(len(parser.References()))
 			Expect(arrayParser).ToNot(BeNil())
 			Expect(arrayParser.Exists()).To(BeFalse())
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter with different type returns nil and reports an ErrorTypeNotArray", func() {
 			arrayParser := parser.WithReferenceArrayParser(0)
 			Expect(arrayParser).ToNot(BeNil())
 			Expect(arrayParser.Exists()).To(BeFalse())
-			Expect(base.Error()).ToNot(BeNil())
+			Expect(base.Error()).To(HaveOccurred())
 			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotArray(false))))
 		})
 
@@ -823,7 +823,7 @@ var _ = Describe("Array", func() {
 			Expect(arrayParser).ToNot(BeNil())
 			Expect(arrayParser.Exists()).To(BeTrue())
 			Expect(arrayParser.References()).To(Equal([]int{0, 1}))
-			Expect(base.Error()).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 	})
 })

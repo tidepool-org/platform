@@ -39,7 +39,7 @@ var _ = Describe("Base", func() {
 
 		Context("Error", func() {
 			It("returns nil if no error", func() {
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns errors if any errors", func() {
@@ -56,7 +56,7 @@ var _ = Describe("Base", func() {
 		Context("ReportError", func() {
 			It("does not add error if nil", func() {
 				base.ReportError(nil)
-				Expect(base.Error()).To(BeNil())
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("reports the error", func() {
@@ -97,7 +97,7 @@ var _ = Describe("Base", func() {
 				result := base.WithSource(src)
 				Expect(result).ToNot(BeNil())
 				Expect(result).ToNot(BeIdenticalTo(base))
-				Expect(result.Error()).To(BeNil())
+				Expect(result.Error()).ToNot(HaveOccurred())
 			})
 		})
 
@@ -106,7 +106,7 @@ var _ = Describe("Base", func() {
 				result := base.WithMeta(meta)
 				Expect(result).ToNot(BeNil())
 				Expect(result).ToNot(BeIdenticalTo(base))
-				Expect(result.Error()).To(BeNil())
+				Expect(result.Error()).ToNot(HaveOccurred())
 			})
 		})
 
@@ -117,7 +117,7 @@ var _ = Describe("Base", func() {
 				Expect(result).ToNot(BeNil())
 				Expect(result).To(Equal(base))
 				Expect(result).ToNot(BeIdenticalTo(base))
-				Expect(result.Error()).To(BeNil())
+				Expect(result.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns a new base with new source if source", func() {
@@ -126,7 +126,7 @@ var _ = Describe("Base", func() {
 				result := base.WithSource(src).WithReference(reference)
 				Expect(result).ToNot(BeNil())
 				Expect(result).ToNot(Equal(base))
-				Expect(result.Error()).To(BeNil())
+				Expect(result.Error()).ToNot(HaveOccurred())
 				Expect(src.WithReferenceInputs).To(Equal([]string{reference}))
 			})
 		})
