@@ -130,11 +130,13 @@ func translateEventCarbsToDatum(e *dexcom.Event) data.Datum {
 	datum.GUID = ""
 
 	datum.DeviceID = pointer.String("multiple") // TODO: Is this acceptable?
-	datum.Nutrition = &food.Nutrition{
-		Carbohydrates: &food.Carbohydrates{
-			Net:   pointer.Int(int(*e.Value)),
-			Units: pointer.String(*e.Unit),
-		},
+	if e.Value != nil && e.Unit != nil {
+		datum.Nutrition = &food.Nutrition{
+			Carbohydrates: &food.Carbohydrates{
+				Net:   pointer.Int(int(*e.Value)),
+				Units: pointer.String(*e.Unit),
+			},
+		}
 	}
 
 	translateTime(e.SystemTime, e.DisplayTime, &datum.Base)
@@ -157,9 +159,11 @@ func translateEventExerciseToDatum(e *dexcom.Event) data.Datum {
 	case dexcom.ExerciseHeavy:
 		datum.ReportedIntensity = pointer.String(physical.ReportedIntensityHigh)
 	}
-	datum.Duration = &physical.Duration{
-		Value: pointer.Float64(*e.Value),
-		Units: pointer.String(*e.Unit),
+	if e.Value != nil && e.Unit != nil {
+		datum.Duration = &physical.Duration{
+			Value: pointer.Float64(*e.Value),
+			Units: pointer.String(*e.Unit),
+		}
 	}
 
 	translateTime(e.SystemTime, e.DisplayTime, &datum.Base)
@@ -201,9 +205,11 @@ func translateEventInsulinToDatum(e *dexcom.Event) data.Datum {
 	datum.GUID = ""
 
 	datum.DeviceID = pointer.String("multiple") // TODO: Is this reasonable?
-	datum.Dose = &insulin.Dose{
-		Total: pointer.Float64(*e.Value),
-		Units: pointer.String(*e.Unit),
+	if e.Value != nil && e.Unit != nil {
+		datum.Dose = &insulin.Dose{
+			Total: pointer.Float64(*e.Value),
+			Units: pointer.String(*e.Unit),
+		}
 	}
 
 	translateTime(e.SystemTime, e.DisplayTime, &datum.Base)

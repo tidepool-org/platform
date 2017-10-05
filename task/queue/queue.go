@@ -3,6 +3,7 @@ package queue
 import (
 	"context"
 	"math/rand"
+	"runtime/debug"
 	"strconv"
 	"sync"
 	"time"
@@ -168,7 +169,7 @@ func (q *Queue) runTask(ctx context.Context, tsk *task.Task) {
 
 	defer func() {
 		if err := recover(); err != nil {
-			logger.WithField("error", err).Error("Unhandled panic")
+			logger.WithFields(log.Fields{"error": err, "stack": string(debug.Stack())}).Error("Unhandled panic")
 			tsk.AppendError(errors.New("unhandled panic"))
 		}
 	}()
