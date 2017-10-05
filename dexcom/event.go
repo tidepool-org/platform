@@ -89,14 +89,18 @@ func (e *Event) validateCarbs(validator structure.Validator) {
 	}
 
 	validator.String("eventSubType", e.EventSubType).NotExists()
-	validator.String("unit", e.Unit).Exists().EqualTo(UnitGrams)
-	validator.Float64("value", e.Value).Exists().InRange(0, 250)
+	if e.Unit != nil || e.Value != nil {
+		validator.String("unit", e.Unit).Exists().EqualTo(UnitGrams)
+		validator.Float64("value", e.Value).Exists().InRange(0, 250)
+	}
 }
 
 func (e *Event) validateExercise(validator structure.Validator) {
 	validator.String("eventSubType", e.EventSubType).Exists().OneOf(ExerciseLight, ExerciseMedium, ExerciseHeavy)
-	validator.String("unit", e.Unit).Exists().EqualTo(UnitMinutes)
-	validator.Float64("value", e.Value).Exists().InRange(0, 360)
+	if e.Unit != nil || e.Value != nil {
+		validator.String("unit", e.Unit).Exists().EqualTo(UnitMinutes)
+		validator.Float64("value", e.Value).Exists().InRange(0, 360)
+	}
 }
 
 func (e *Event) validateHealth(validator structure.Validator) {
@@ -120,6 +124,8 @@ func (e *Event) validateInsulin(validator structure.Validator) {
 	}
 
 	validator.String("eventSubType", e.EventSubType).NotExists()
-	validator.String("unit", e.Unit).Exists().EqualTo(UnitUnits)
-	validator.Float64("value", e.Value).Exists().InRange(0, 250)
+	if e.Unit != nil || e.Value != nil {
+		validator.String("unit", e.Unit).Exists().EqualTo(UnitUnits)
+		validator.Float64("value", e.Value).Exists().InRange(0, 250)
+	}
 }
