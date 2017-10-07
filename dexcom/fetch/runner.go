@@ -163,8 +163,7 @@ func (t *TaskRunner) Run(ctx context.Context) error {
 		}
 		return err
 	}
-
-	return nil
+	return t.updateDataSourceWithLastImportTime()
 }
 
 func (t *TaskRunner) getProviderSession() error {
@@ -239,8 +238,14 @@ func (t *TaskRunner) updateDataSourceWithLatestDataTime(latestDataTime time.Time
 	}
 
 	dataSourceUpdate := data.NewDataSourceUpdate()
-	dataSourceUpdate.LastImportTime = pointer.Time(time.Now())
+	dataSourceUpdate.LastImportTime = pointer.Time(time.Now().Truncate(time.Second))
 	dataSourceUpdate.LatestDataTime = pointer.Time(latestDataTime)
+	return t.updateDataSource(dataSourceUpdate)
+}
+
+func (t *TaskRunner) updateDataSourceWithLastImportTime() error {
+	dataSourceUpdate := data.NewDataSourceUpdate()
+	dataSourceUpdate.LastImportTime = pointer.Time(time.Now().Truncate(time.Second))
 	return t.updateDataSource(dataSourceUpdate)
 }
 
@@ -293,7 +298,7 @@ func (t *TaskRunner) fetchSinceLatestDataTime() error {
 		startTime = *t.dataSource.LatestDataTime
 	}
 
-	now := time.Now()
+	now := time.Now().Truncate(time.Second)
 	for startTime.Before(now) {
 		endTime := startTime.AddDate(0, 0, 90)
 		if endTime.After(now) {
@@ -305,7 +310,7 @@ func (t *TaskRunner) fetchSinceLatestDataTime() error {
 		}
 
 		startTime = startTime.AddDate(0, 0, 90)
-		now = time.Now()
+		now = time.Now().Truncate(time.Second)
 	}
 	return nil
 }
@@ -338,6 +343,10 @@ func (t *TaskRunner) fetch(startTime time.Time, endTime time.Time) error {
 	}
 	datumArray = append(datumArray, fetchDatumArray...)
 
+	if len(datumArray) == 0 {
+		return nil
+	}
+
 	if t.dataSetID == "" {
 		for index := len(t.dataSource.DataSetIDs) - 1; index >= 0; index-- {
 			dataSetID := t.dataSource.DataSetIDs[index]
@@ -369,7 +378,7 @@ func (t *TaskRunner) fetch(startTime time.Time, endTime time.Time) error {
 			dataSetCreate.DeviceModel = "multiple"
 			dataSetCreate.DeviceSerialNumber = "multiple"
 			dataSetCreate.DeviceTags = []string{data.DeviceTagCGM}
-			dataSetCreate.Time = time.Now()
+			dataSetCreate.Time = time.Now().Truncate(time.Second)
 			dataSetCreate.TimeProcessing = upload.TimeProcessingNone
 
 			dataSet, dataSetErr := t.DataClient().CreateUserDataSet(t.context, t.providerSession.UserID, dataSetCreate)
