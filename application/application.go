@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
-	"time"
 
 	applicationVersion "github.com/tidepool-org/platform/application/version"
 	"github.com/tidepool-org/platform/config"
@@ -39,8 +38,6 @@ func New(prefix string, scopes ...string) (*Application, error) {
 			name = debugName
 		}
 	}
-
-	time.Local = time.UTC
 
 	return &Application{
 		name:   name,

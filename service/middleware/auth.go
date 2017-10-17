@@ -13,8 +13,6 @@ import (
 	"github.com/tidepool-org/platform/service"
 )
 
-// TODO: Move all logic into auth package?
-
 type Auth struct {
 	serviceSecret string
 	authClient    auth.Client
@@ -67,7 +65,9 @@ func (a *Auth) MiddlewareFunc(handlerFunc rest.HandlerFunc) rest.HandlerFunc {
 				}
 
 				req.Request = req.WithContext(request.NewContextWithDetails(req.Context(), details))
-				req.Request = req.WithContext(log.NewContextWithLogger(req.Context(), lgr.WithField("tokenHash", crypto.HashWithMD5(details.Token()))))
+				if details.HasToken() {
+					req.Request = req.WithContext(log.NewContextWithLogger(req.Context(), lgr.WithField("tokenHash", crypto.HashWithMD5(details.Token()))))
+				}
 			}
 
 			handlerFunc(res, req)

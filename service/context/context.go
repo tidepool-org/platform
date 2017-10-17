@@ -8,8 +8,8 @@ type Context struct {
 	*Responder
 }
 
-func New(response rest.ResponseWriter, request *rest.Request) (*Context, error) {
-	rspdr, err := NewResponder(response, request)
+func New(res rest.ResponseWriter, req *rest.Request) (*Context, error) {
+	rspdr, err := NewResponder(res, req)
 	if err != nil {
 		return nil, err
 	}

@@ -33,10 +33,10 @@ func CopyTrace(ctx context.Context, req *http.Request) error {
 type Method string
 
 const (
-	MethodServiceSecret   = "service secret"
-	MethodAccessToken     = "access token"
-	MethodSessionToken    = "session token"
-	MethodRestrictedToken = "restricted token"
+	MethodServiceSecret   Method = "service secret"
+	MethodAccessToken     Method = "access token"
+	MethodSessionToken    Method = "session token"
+	MethodRestrictedToken Method = "restricted token"
 )
 
 type Details interface {
