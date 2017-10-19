@@ -211,13 +211,17 @@ func (v *Values) NotParsed() error {
 
 func (v *Values) WithSource(source structure.Source) structure.ObjectParser {
 	return &Values{
-		base: v.base.WithSource(source),
+		base:   v.base.WithSource(source),
+		values: v.values,
+		parsed: v.parsed,
 	}
 }
 
 func (v *Values) WithMeta(meta interface{}) structure.ObjectParser {
 	return &Values{
-		base: v.base.WithMeta(meta),
+		base:   v.base.WithMeta(meta),
+		values: v.values,
+		parsed: v.parsed,
 	}
 }
 

@@ -23,6 +23,7 @@ func (p *ProviderSessionSession) EnsureIndexes() error {
 	return p.EnsureAllIndexes([]mgo.Index{
 		{Key: []string{"id"}, Unique: true, Background: true},
 		{Key: []string{"userId"}, Background: true},
+		{Key: []string{"userId", "type", "name"}, Unique: true, Background: true},
 	})
 }
 

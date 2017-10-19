@@ -84,7 +84,7 @@ func (t *TaskSession) ListTasks(ctx context.Context, filter *task.TaskFilter, pa
 	tsks := task.Tasks{}
 	selector := bson.M{}
 	if filter.Name != nil {
-		selector["Name"] = *filter.Name
+		selector["name"] = *filter.Name
 	}
 	if filter.Type != nil {
 		selector["type"] = *filter.Type

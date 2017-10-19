@@ -221,8 +221,8 @@ func (t *TaskRunner) getDataSource() error {
 		t.task.SetFailed()
 		return errors.Wrap(err, "data source is missing")
 	}
-
 	t.dataSource = dataSource
+
 	return nil
 }
 
@@ -232,14 +232,14 @@ func (t *TaskRunner) updateDataSourceWithDataSetID(dataSetID string) error {
 	return t.updateDataSource(dataSourceUpdate)
 }
 
-func (t *TaskRunner) updateDataSourceWithLatestDataTime(latestDataTime time.Time) error {
-	if t.dataSource.LatestDataTime != nil && latestDataTime.Before(*t.dataSource.LatestDataTime) {
+func (t *TaskRunner) updateDataSourceWithLatestDataTime(dataTime time.Time) error {
+	if !t.afterLatestDataTime(dataTime) {
 		return nil
 	}
 
 	dataSourceUpdate := data.NewDataSourceUpdate()
 	dataSourceUpdate.LastImportTime = pointer.Time(time.Now().Truncate(time.Second))
-	dataSourceUpdate.LatestDataTime = pointer.Time(latestDataTime)
+	dataSourceUpdate.LatestDataTime = pointer.Time(dataTime)
 	return t.updateDataSource(dataSourceUpdate)
 }
 
@@ -353,17 +353,13 @@ func (t *TaskRunner) fetch(startTime time.Time, endTime time.Time) error {
 			dataSet, dataSetErr := t.DataClient().GetDataSet(t.context, dataSetID)
 			if dataSetErr != nil {
 				return errors.Wrap(dataSetErr, "unable to get data set")
-			}
-			if dataSet.DataSetType == nil || *dataSet.DataSetType != data.DataSetTypeContinuous {
-				continue
-			}
-			if dataSet.State != data.DataSetStateOpen {
+			} else if dataSet == nil {
 				continue
 			}
 
 			// TODO: Is this data set okay for us?
-
 			t.dataSetID = dataSetID
+			break
 		}
 
 		if t.dataSetID == "" {
@@ -436,7 +432,9 @@ func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) (
 
 	datumArray := []data.Datum{}
 	for _, c := range response.Calibrations {
-		datumArray = append(datumArray, translateCalibrationToDatum(c))
+		if t.afterLatestDataTime(c.SystemTime) {
+			datumArray = append(datumArray, translateCalibrationToDatum(c))
+		}
 	}
 
 	return datumArray, nil
@@ -459,7 +457,9 @@ func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) ([]data.D
 
 	datumArray := []data.Datum{}
 	for _, e := range response.EGVs {
-		datumArray = append(datumArray, translateEGVToDatum(e, response.Unit, response.RateUnit))
+		if t.afterLatestDataTime(e.SystemTime) {
+			datumArray = append(datumArray, translateEGVToDatum(e, response.Unit, response.RateUnit))
+		}
 	}
 
 	return datumArray, nil
@@ -482,15 +482,17 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) ([]data
 
 	datumArray := []data.Datum{}
 	for _, e := range response.Events {
-		switch e.EventType {
-		case dexcom.EventCarbs:
-			datumArray = append(datumArray, translateEventCarbsToDatum(e))
-		case dexcom.EventExercise:
-			datumArray = append(datumArray, translateEventExerciseToDatum(e))
-		case dexcom.EventHealth:
-			datumArray = append(datumArray, translateEventHealthToDatum(e))
-		case dexcom.EventInsulin:
-			datumArray = append(datumArray, translateEventInsulinToDatum(e))
+		if t.afterLatestDataTime(e.SystemTime) {
+			switch e.EventType {
+			case dexcom.EventCarbs:
+				datumArray = append(datumArray, translateEventCarbsToDatum(e))
+			case dexcom.EventExercise:
+				datumArray = append(datumArray, translateEventExerciseToDatum(e))
+			case dexcom.EventHealth:
+				datumArray = append(datumArray, translateEventHealthToDatum(e))
+			case dexcom.EventInsulin:
+				datumArray = append(datumArray, translateEventInsulinToDatum(e))
+			}
 		}
 	}
 
@@ -517,6 +519,10 @@ func (t *TaskRunner) storeDatumArray(datumArray []data.Datum) error {
 	}
 
 	return nil
+}
+
+func (t *TaskRunner) afterLatestDataTime(dataTime time.Time) bool {
+	return t.dataSource.LatestDataTime == nil || dataTime.After(*t.dataSource.LatestDataTime)
 }
 
 func payloadSystemTime(datum data.Datum) time.Time {

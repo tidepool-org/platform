@@ -78,6 +78,10 @@ func (r *Router) OAuthProviderAuthorizeDelete(res rest.ResponseWriter, req *rest
 		return
 	}
 
+	if len(providerSessions) > 1 {
+		r.Logger().WithFields(log.Fields{"userId": details.UserID(), "filter": providerSessionFilter, "providerSessions": providerSessions}).Warn("Deleting multiple provider sessions")
+	}
+
 	for _, providerSession := range providerSessions {
 		if err = r.AuthClient().DeleteProviderSession(ctx, providerSession.ID); err != nil {
 			responder.Error(http.StatusInternalServerError, err)

@@ -37,16 +37,12 @@ func (r *reporter) Get(key string) (string, bool) {
 		limit = 0
 	}
 
-	// fmt.Fprintf(os.Stderr, "\nCONFIG: %s\n", key)
 	for i := 0; i <= limit; i++ {
-		// fmt.Fprintf(os.Stderr, "        --- %s\n", r.getKey(r.scopes[i:], key))
 		if value, found := syscall.Getenv(r.getKey(r.scopes[i:], key)); found {
-			// fmt.Fprintf(os.Stderr, "        ==> %s\n", value)
 			return value, true
 		}
 	}
 
-	// fmt.Fprintf(os.Stderr, "        Not Found!!!\n\n")
 	return "", false
 }
 

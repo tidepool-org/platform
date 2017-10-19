@@ -271,9 +271,9 @@ func (a *AlertSetting) validateOutOfRange(validator structure.Validator) {
 }
 
 var lowValues = generateFloatRange(60, 100, 5)
-var lowSnoozes = generateIntegerRange(0, 300, 15)
+var lowSnoozes = append(append([]int{0}, generateIntegerRange(15, 240, 5)...), generateIntegerRange(255, 300, 15)...)
 var highValues = generateFloatRange(120, 400, 10)
-var highSnoozes = generateIntegerRange(0, 300, 15)
+var highSnoozes = append(append([]int{0}, generateIntegerRange(15, 240, 5)...), generateIntegerRange(255, 300, 15)...)
 var outOfRangeValues = generateFloatRange(20, 240, 5)
 
 func generateFloatRange(min float64, max float64, step float64) []float64 {
