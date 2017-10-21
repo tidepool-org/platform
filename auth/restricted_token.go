@@ -122,7 +122,7 @@ func NewRestrictedToken(userID string, create *RestrictedTokenCreate) (*Restrict
 		CreatedTime: time.Now().Truncate(time.Second),
 	}
 	if create.ExpirationTime != nil {
-		restrictedToken.ExpirationTime = *create.ExpirationTime
+		restrictedToken.ExpirationTime = (*create.ExpirationTime).Truncate(time.Second)
 	} else {
 		restrictedToken.ExpirationTime = time.Now().Add(MaximumExpirationDuration).Truncate(time.Second)
 	}

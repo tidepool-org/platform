@@ -159,17 +159,23 @@ func NewTask(create *TaskCreate) (*Task, error) {
 		return nil, errors.Wrap(err, "create is invalid")
 	}
 
-	return &Task{
-		ID:             id.New(),
-		Name:           create.Name,
-		Type:           create.Type,
-		Priority:       create.Priority,
-		Data:           create.Data,
-		AvailableTime:  create.AvailableTime,
-		ExpirationTime: create.ExpirationTime,
-		State:          TaskStatePending,
-		CreatedTime:    time.Now().Truncate(time.Second),
-	}, nil
+	tsk := &Task{
+		ID:          id.New(),
+		Name:        create.Name,
+		Type:        create.Type,
+		Priority:    create.Priority,
+		Data:        create.Data,
+		State:       TaskStatePending,
+		CreatedTime: time.Now().Truncate(time.Second),
+	}
+	if create.AvailableTime != nil {
+		tsk.AvailableTime = pointer.Time((*create.AvailableTime).Truncate(time.Second))
+	}
+	if create.ExpirationTime != nil {
+		tsk.ExpirationTime = pointer.Time((*create.ExpirationTime).Truncate(time.Second))
+	}
+
+	return tsk, nil
 }
 
 func (t *Task) Parse(parser structure.ObjectParser) {

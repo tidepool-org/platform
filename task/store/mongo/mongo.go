@@ -196,10 +196,10 @@ func (t *TaskSession) UpdateTask(ctx context.Context, id string, update *task.Ta
 		set["data"] = *update.Data
 	}
 	if update.AvailableTime != nil {
-		set["availableTime"] = *update.AvailableTime
+		set["availableTime"] = (*update.AvailableTime).Truncate(time.Second)
 	}
 	if update.ExpirationTime != nil {
-		set["expirationTime"] = *update.ExpirationTime
+		set["expirationTime"] = (*update.ExpirationTime).Truncate(time.Second)
 	}
 	changeInfo, err := t.C().UpdateAll(bson.M{"id": id}, t.ConstructUpdate(set, bson.M{}))
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("UpdateTask")
@@ -234,6 +234,8 @@ func (t *TaskSession) DeleteTask(ctx context.Context, id string) error {
 	return nil
 }
 
+// TODO: Consider using an "update only specific fields" approach, as above
+
 func (t *TaskSession) UpdateFromState(ctx context.Context, tsk *task.Task, state string) (*task.Task, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
@@ -249,7 +251,18 @@ func (t *TaskSession) UpdateFromState(ctx context.Context, tsk *task.Task, state
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": tsk.ID, "state": state})
 
-	tsk.ModifiedTime = pointer.Time(now)
+	tsk.ModifiedTime = pointer.Time(now.Truncate(time.Second))
+
+	if tsk.AvailableTime != nil {
+		tsk.AvailableTime = pointer.Time((*tsk.AvailableTime).Truncate(time.Second))
+	}
+	if tsk.ExpirationTime != nil {
+		tsk.ExpirationTime = pointer.Time((*tsk.ExpirationTime).Truncate(time.Second))
+	}
+	if tsk.RunTime != nil {
+		tsk.RunTime = pointer.Time((*tsk.RunTime).Truncate(time.Second))
+	}
+	tsk.CreatedTime = tsk.CreatedTime.Truncate(time.Second)
 
 	selector := bson.M{
 		"id":    tsk.ID,

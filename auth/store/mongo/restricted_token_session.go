@@ -157,7 +157,7 @@ func (r *RestrictedTokenSession) UpdateRestrictedToken(ctx context.Context, id s
 		set["path"] = *update.Paths
 	}
 	if update.ExpirationTime != nil {
-		set["expirationTime"] = *update.ExpirationTime
+		set["expirationTime"] = (*update.ExpirationTime).Truncate(time.Second)
 	}
 	changeInfo, err := r.C().UpdateAll(bson.M{"id": id}, r.ConstructUpdate(set, unset))
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("UpdateRestrictedToken")
