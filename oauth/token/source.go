@@ -78,7 +78,7 @@ func (s *Source) RefreshedToken() (*oauth.Token, error) {
 	}
 
 	// HACK: Dexcom - expires_in=600000 (should be 600)
-	tknSrcTkn.Expiry = time.Now().Add(10 * time.Minute)
+	tknSrcTkn.Expiry = time.Now().Add(10 * time.Minute).Truncate(time.Second)
 
 	tkn, err := oauth.NewTokenFromRawToken(tknSrcTkn)
 	if err != nil {
