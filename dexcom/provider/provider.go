@@ -53,15 +53,45 @@ func (p *Provider) OnCreate(ctx context.Context, userID string, providerSessionI
 		return errors.New("provider session id is missing")
 	}
 
-	dataSourceCreate := data.NewDataSourceCreate()
-	dataSourceCreate.ProviderType = p.Type()
-	dataSourceCreate.ProviderName = p.Name()
-	dataSourceCreate.ProviderSessionID = providerSessionID
-	dataSourceCreate.State = data.DataSourceStateConnected
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "type": p.Type(), "name": p.Name()})
 
-	dataSource, err := p.dataClient.CreateUserDataSource(ctx, userID, dataSourceCreate)
+	filter := data.NewDataSourceFilter()
+	filter.ProviderType = pointer.String(p.Type())
+	filter.ProviderName = pointer.String(p.Name())
+	dataSources, err := p.dataClient.ListUserDataSources(ctx, userID, filter, nil)
 	if err != nil {
-		return errors.Wrap(err, "unable to create data source")
+		return errors.Wrap(err, "unable to fetch data sources")
+	}
+
+	var dataSource *data.DataSource
+	if dataSourcesCount := len(dataSources); dataSourcesCount > 0 {
+		if dataSourcesCount > 1 {
+			logger.WithField("dataSourcesCount", dataSourcesCount).Warn("unexpected number of data sources found")
+		}
+
+		dataSource = dataSources[0]
+		if dataSource.State != data.DataSourceStateDisconnected {
+			logger.WithFields(log.Fields{"dataSourceId": dataSource.ID, "dataSourceState": dataSource.State}).Warn("data source in unexpected state")
+		}
+
+		dataSourceUpdate := data.NewDataSourceUpdate()
+		dataSourceUpdate.State = pointer.String(data.DataSourceStateConnected)
+
+		dataSource, err = p.dataClient.UpdateDataSource(ctx, dataSource.ID, dataSourceUpdate)
+		if err != nil {
+			return errors.Wrap(err, "unable to update data source")
+		}
+	} else {
+		dataSourceCreate := data.NewDataSourceCreate()
+		dataSourceCreate.ProviderType = p.Type()
+		dataSourceCreate.ProviderName = p.Name()
+		dataSourceCreate.ProviderSessionID = providerSessionID
+		dataSourceCreate.State = data.DataSourceStateConnected
+
+		dataSource, err = p.dataClient.CreateUserDataSource(ctx, userID, dataSourceCreate)
+		if err != nil {
+			return errors.Wrap(err, "unable to create data source")
+		}
 	}
 
 	taskCreate, err := fetch.NewTaskCreate(providerSessionID, dataSource.ID)

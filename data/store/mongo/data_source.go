@@ -167,9 +167,16 @@ func (d *DataSourceSession) UpdateDataSource(ctx context.Context, id string, upd
 	unset := bson.M{}
 	if update.State != nil {
 		set["state"] = *update.State
-		if *update.State == data.DataSourceStateDisconnected {
+		switch *update.State {
+		case data.DataSourceStateDisconnected:
 			unset["providerSessionId"] = true
+			unset["error"] = true
+		case data.DataSourceStateConnected:
+			unset["error"] = true
 		}
+	}
+	if update.Error != nil {
+		set["error"] = *update.Error
 	}
 	if update.DataSetIDs != nil {
 		set["dataSetIds"] = *update.DataSetIDs

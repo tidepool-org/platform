@@ -119,7 +119,19 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 		r.htmlOnRedirect(res, req)
 		return
 	} else if errorCode != "" {
-		r.htmlOnError(res, req, errors.Newf("v1", "oauth provider return unexpected error %q", errorCode))
+		r.htmlOnError(res, req, errors.Newf("oauth provider return unexpected error %q", errorCode))
+		return
+	}
+
+	filter := auth.NewProviderSessionFilter()
+	filter.Type = pointer.String(prvdr.Type())
+	filter.Name = pointer.String(prvdr.Name())
+	providerSessions, err := r.AuthClient().ListUserProviderSessions(ctx, restrictedToken.UserID, filter, nil)
+	if err != nil {
+		r.htmlOnError(res, req, err)
+		return
+	} else if len(providerSessions) > 0 {
+		r.htmlOnError(res, req, errors.Newf("provider session already exists for user, type, and name"))
 		return
 	}
 
