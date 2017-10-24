@@ -232,14 +232,21 @@ func (t *TaskRunner) updateDataSourceWithDataSetID(dataSetID string) error {
 	return t.updateDataSource(dataSourceUpdate)
 }
 
-func (t *TaskRunner) updateDataSourceWithLatestDataTime(dataTime time.Time) error {
-	if !t.afterLatestDataTime(dataTime) {
+func (t *TaskRunner) updateDataSourceWithDataTime(earliestDataTime time.Time, latestDataTime time.Time) error {
+	dataSourceUpdate := data.NewDataSourceUpdate()
+
+	if t.beforeEarliestDataTime(earliestDataTime) {
+		dataSourceUpdate.EarliestDataTime = pointer.Time(earliestDataTime.Truncate(time.Second))
+	}
+	if t.afterLatestDataTime(latestDataTime) {
+		dataSourceUpdate.LatestDataTime = pointer.Time(latestDataTime.Truncate(time.Second))
+	}
+
+	if dataSourceUpdate.EarliestDataTime == nil && dataSourceUpdate.LatestDataTime == nil {
 		return nil
 	}
 
-	dataSourceUpdate := data.NewDataSourceUpdate()
 	dataSourceUpdate.LastImportTime = pointer.Time(time.Now().Truncate(time.Second))
-	dataSourceUpdate.LatestDataTime = pointer.Time(dataTime)
 	return t.updateDataSource(dataSourceUpdate)
 }
 
@@ -511,9 +518,9 @@ func (t *TaskRunner) storeDatumArray(datumArray []data.Datum) error {
 			return errors.Wrap(err, "unable to create data set data")
 		}
 
-		lastDatum := datumArray[endIndex-1]
-
-		if err := t.updateDataSourceWithLatestDataTime(payloadSystemTime(lastDatum)); err != nil {
+		earliestDataTime := payloadSystemTime(datumArray[0])
+		latestDataTime := payloadSystemTime(datumArray[endIndex-1])
+		if err := t.updateDataSourceWithDataTime(earliestDataTime, latestDataTime); err != nil {
 			return err
 		}
 	}
@@ -521,8 +528,12 @@ func (t *TaskRunner) storeDatumArray(datumArray []data.Datum) error {
 	return nil
 }
 
-func (t *TaskRunner) afterLatestDataTime(dataTime time.Time) bool {
-	return t.dataSource.LatestDataTime == nil || dataTime.After(*t.dataSource.LatestDataTime)
+func (t *TaskRunner) beforeEarliestDataTime(earliestDataTime time.Time) bool {
+	return t.dataSource.EarliestDataTime == nil || earliestDataTime.Before(*t.dataSource.EarliestDataTime)
+}
+
+func (t *TaskRunner) afterLatestDataTime(latestDataTime time.Time) bool {
+	return t.dataSource.LatestDataTime == nil || latestDataTime.After(*t.dataSource.LatestDataTime)
 }
 
 func payloadSystemTime(datum data.Datum) time.Time {

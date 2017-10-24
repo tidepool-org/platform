@@ -109,11 +109,12 @@ func (d *DataSourceCreate) Validate(validator structure.Validator) {
 }
 
 type DataSourceUpdate struct {
-	State          *string              `json:"state,omitempty" bson:"state,omitempty"`
-	Error          *errors.Serializable `json:"error,omitempty" bson:"error,omitempty"`
-	DataSetIDs     *[]string            `json:"dataSetIds,omitempty" bson:"dataSetIds,omitempty"`
-	LastImportTime *time.Time           `json:"lastImportTime,omitempty" bson:"lastImportTime,omitempty"`
-	LatestDataTime *time.Time           `json:"latestDataTime,omitempty" bson:"latestDataTime,omitempty"`
+	State            *string              `json:"state,omitempty" bson:"state,omitempty"`
+	Error            *errors.Serializable `json:"error,omitempty" bson:"error,omitempty"`
+	DataSetIDs       *[]string            `json:"dataSetIds,omitempty" bson:"dataSetIds,omitempty"`
+	EarliestDataTime *time.Time           `json:"earliestDataTime,omitempty" bson:"earliestDataTime,omitempty"`
+	LatestDataTime   *time.Time           `json:"latestDataTime,omitempty" bson:"latestDataTime,omitempty"`
+	LastImportTime   *time.Time           `json:"lastImportTime,omitempty" bson:"lastImportTime,omitempty"`
 }
 
 func NewDataSourceUpdate() *DataSourceUpdate {
@@ -127,8 +128,9 @@ func (d *DataSourceUpdate) Parse(parser structure.ObjectParser) {
 		d.Error.Parse("error", parser)
 	}
 	d.DataSetIDs = parser.StringArray("dataSetIds")
-	d.LastImportTime = parser.Time("lastImportTime", time.RFC3339)
+	d.EarliestDataTime = parser.Time("earliestDataTime", time.RFC3339)
 	d.LatestDataTime = parser.Time("latestDataTime", time.RFC3339)
+	d.LastImportTime = parser.Time("lastImportTime", time.RFC3339)
 }
 
 func (d *DataSourceUpdate) Validate(validator structure.Validator) {
@@ -137,19 +139,27 @@ func (d *DataSourceUpdate) Validate(validator structure.Validator) {
 		d.Error.Validate(validator.WithReference("error"))
 	}
 	validator.StringArray("dataSetIds", d.DataSetIDs).NotEmpty()
+	validator.Time("earliestDataTime", d.EarliestDataTime).NotZero().BeforeNow(time.Second)
+	if d.EarliestDataTime != nil {
+		validator.Time("latestDataTime", d.LatestDataTime).After(*d.EarliestDataTime).BeforeNow(time.Second)
+	} else {
+		validator.Time("latestDataTime", d.LatestDataTime).NotZero().BeforeNow(time.Second)
+	}
 	validator.Time("lastImportTime", d.LastImportTime).NotZero().BeforeNow(time.Second)
-	validator.Time("latestDataTime", d.LatestDataTime).NotZero().BeforeNow(time.Second)
 }
 
 func (d *DataSourceUpdate) Normalize(normalizer structure.Normalizer) {
 	if d.Error != nil {
 		d.Error.Normalize(normalizer.WithReference("error"))
 	}
-	if d.LastImportTime != nil {
-		d.LastImportTime = pointer.Time((*d.LastImportTime).UTC().Truncate(time.Second))
+	if d.EarliestDataTime != nil {
+		d.EarliestDataTime = pointer.Time((*d.EarliestDataTime).UTC().Truncate(time.Second))
 	}
 	if d.LatestDataTime != nil {
 		d.LatestDataTime = pointer.Time((*d.LatestDataTime).UTC().Truncate(time.Second))
+	}
+	if d.LastImportTime != nil {
+		d.LastImportTime = pointer.Time((*d.LastImportTime).UTC().Truncate(time.Second))
 	}
 }
 
@@ -162,8 +172,9 @@ type DataSource struct {
 	State             string               `json:"state,omitempty" bson:"state,omitempty"`
 	Error             *errors.Serializable `json:"error,omitempty" bson:"error,omitempty"`
 	DataSetIDs        []string             `json:"dataSetIds,omitempty" bson:"dataSetIds,omitempty"`
-	LastImportTime    *time.Time           `json:"lastImportTime,omitempty" bson:"lastImportTime,omitempty"`
+	EarliestDataTime  *time.Time           `json:"earliestDataTime,omitempty" bson:"earliestDataTime,omitempty"`
 	LatestDataTime    *time.Time           `json:"latestDataTime,omitempty" bson:"latestDataTime,omitempty"`
+	LastImportTime    *time.Time           `json:"lastImportTime,omitempty" bson:"lastImportTime,omitempty"`
 	CreatedTime       time.Time            `json:"createdTime" bson:"createdTime"`
 	ModifiedTime      *time.Time           `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
 }
@@ -213,8 +224,9 @@ func (d *DataSource) Parse(parser structure.ObjectParser) {
 	if ptr := parser.StringArray("dataSetIds"); ptr != nil {
 		d.DataSetIDs = *ptr
 	}
-	d.LastImportTime = parser.Time("lastImportTime", time.RFC3339)
+	d.EarliestDataTime = parser.Time("earliestDataTime", time.RFC3339)
 	d.LatestDataTime = parser.Time("latestDataTime", time.RFC3339)
+	d.LastImportTime = parser.Time("lastImportTime", time.RFC3339)
 	if ptr := parser.Time("createdTime", time.RFC3339); ptr != nil {
 		d.CreatedTime = *ptr
 	}
@@ -232,8 +244,13 @@ func (d *DataSource) Validate(validator structure.Validator) {
 		d.Error.Validate(validator.WithReference("error"))
 	}
 	validator.StringArray("dataSetIds", &d.DataSetIDs)
+	validator.Time("earliestDataTime", d.EarliestDataTime).NotZero().BeforeNow(time.Second)
+	if d.EarliestDataTime != nil {
+		validator.Time("latestDataTime", d.LatestDataTime).After(*d.EarliestDataTime).BeforeNow(time.Second)
+	} else {
+		validator.Time("latestDataTime", d.LatestDataTime).NotZero().BeforeNow(time.Second)
+	}
 	validator.Time("lastImportTime", d.LastImportTime).NotZero().BeforeNow(time.Second)
-	validator.Time("latestDataTime", d.LatestDataTime).NotZero().BeforeNow(time.Second)
 	validator.Time("createdTime", &d.CreatedTime).NotZero().BeforeNow(time.Second)
 	validator.Time("modifiedTime", d.ModifiedTime).After(d.CreatedTime).BeforeNow(time.Second)
 }

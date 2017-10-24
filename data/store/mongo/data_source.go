@@ -181,11 +181,14 @@ func (d *DataSourceSession) UpdateDataSource(ctx context.Context, id string, upd
 	if update.DataSetIDs != nil {
 		set["dataSetIds"] = *update.DataSetIDs
 	}
-	if update.LastImportTime != nil {
-		set["lastImportTime"] = (*update.LastImportTime).Truncate(time.Second)
+	if update.EarliestDataTime != nil {
+		set["earliestDataTime"] = (*update.EarliestDataTime).Truncate(time.Second)
 	}
 	if update.LatestDataTime != nil {
 		set["latestDataTime"] = (*update.LatestDataTime).Truncate(time.Second)
+	}
+	if update.LastImportTime != nil {
+		set["lastImportTime"] = (*update.LastImportTime).Truncate(time.Second)
 	}
 	changeInfo, err := d.C().UpdateAll(bson.M{"id": id}, d.ConstructUpdate(set, unset))
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("UpdateDataSource")
