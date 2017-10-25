@@ -4,6 +4,7 @@ import (
 	"context"
 
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
 	"errors"
@@ -46,6 +47,7 @@ var _ = Describe("HashDeactivateOld", func() {
 			testDataset.UserID = testUserID
 			testDataset.DeviceID = pointer.String(id.New())
 			testDataset.DeviceManufacturers = pointer.StringArray([]string{"Medtronic"})
+			testDataset.DeviceModel = pointer.String("523")
 		})
 
 		Context("CanDeduplicateDataset", func() {
@@ -85,8 +87,23 @@ var _ = Describe("HashDeactivateOld", func() {
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
+			It("returns false if the device model is missing", func() {
+				testDataset.DeviceModel = nil
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
+			})
+
+			It("returns false if the device model is empty", func() {
+				testDataset.DeviceModel = pointer.String("")
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
+			})
+
 			It("returns false if the device manufacturers does not contain expected device manufacturer", func() {
 				testDataset.DeviceManufacturers = pointer.StringArray([]string{"Ant", "Zebra", "Cobra"})
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
+			})
+
+			It("returns false if the device model does not contain expected device model", func() {
+				testDataset.DeviceModel = pointer.String("123")
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
@@ -98,6 +115,23 @@ var _ = Describe("HashDeactivateOld", func() {
 				testDataset.DeviceManufacturers = pointer.StringArray([]string{"Ant", "Zebra", "Medtronic", "Cobra"})
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeTrue())
 			})
+
+			DescribeTable("returns true when",
+				func(deviceManufacturer string, deviceModel string) {
+					testDataset.DeviceManufacturers = pointer.StringArray([]string{deviceManufacturer})
+					testDataset.DeviceModel = pointer.String(deviceModel)
+					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeTrue())
+				},
+				Entry("is Medtronic 523", "Medtronic", "523"),
+				Entry("is Medtronic 723", "Medtronic", "723"),
+				Entry("is Medtronic 551", "Medtronic", "551"),
+				Entry("is Medtronic 751", "Medtronic", "751"),
+				Entry("is Medtronic 554", "Medtronic", "554"),
+				Entry("is Medtronic 754", "Medtronic", "754"),
+				Entry("is LifeScan OneTouch Ultra 2", "LifeScan", "OneTouch Ultra 2"),
+				Entry("is LifeScan OneTouch UltraMini", "LifeScan", "OneTouch UltraMini"),
+				Entry("is Abbott FreeStyle Libre", "Abbott", "FreeStyle Libre"),
+			)
 		})
 
 		Context("with logger and data store session", func() {
@@ -165,21 +199,42 @@ var _ = Describe("HashDeactivateOld", func() {
 				It("returns an error if the device manufacturers is missing", func() {
 					testDataset.DeviceManufacturers = nil
 					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
-					Expect(err).To(MatchError("dataset device manufacturers does not contain expected device manufacturers"))
+					Expect(err).To(MatchError("dataset device manufacturers is missing"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
 				It("returns an error if the device manufacturers is empty", func() {
 					testDataset.DeviceManufacturers = pointer.StringArray([]string{})
 					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
-					Expect(err).To(MatchError("dataset device manufacturers does not contain expected device manufacturers"))
+					Expect(err).To(MatchError("dataset device manufacturer and model does not contain expected device manufacturers and models"))
+					Expect(testDeduplicator).To(BeNil())
+				})
+
+				It("returns an error if the device model is missing", func() {
+					testDataset.DeviceModel = nil
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
+					Expect(err).To(MatchError("dataset device model is missing"))
+					Expect(testDeduplicator).To(BeNil())
+				})
+
+				It("returns an error if the device model is empty", func() {
+					testDataset.DeviceModel = pointer.String("")
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
+					Expect(err).To(MatchError("dataset device manufacturer and model does not contain expected device manufacturers and models"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
 				It("returns an error if the device manufacturers does not contain expected device manufacturer", func() {
 					testDataset.DeviceManufacturers = pointer.StringArray([]string{"Ant", "Zebra", "Cobra"})
 					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
-					Expect(err).To(MatchError("dataset device manufacturers does not contain expected device manufacturers"))
+					Expect(err).To(MatchError("dataset device manufacturer and model does not contain expected device manufacturers and models"))
+					Expect(testDeduplicator).To(BeNil())
+				})
+
+				It("returns an error if the device model does not contain expected device model", func() {
+					testDataset.DeviceModel = pointer.String("123")
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
+					Expect(err).To(MatchError("dataset device manufacturer and model does not contain expected device manufacturers and models"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
@@ -191,6 +246,23 @@ var _ = Describe("HashDeactivateOld", func() {
 					testDataset.DeviceManufacturers = pointer.StringArray([]string{"Ant", "Zebra", "Medtronic", "Cobra"})
 					Expect(testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)).ToNot(BeNil())
 				})
+
+				DescribeTable("returns a new deduplicator when",
+					func(deviceManufacturer string, deviceModel string) {
+						testDataset.DeviceManufacturers = pointer.StringArray([]string{deviceManufacturer})
+						testDataset.DeviceModel = pointer.String(deviceModel)
+						Expect(testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)).ToNot(BeNil())
+					},
+					Entry("is Medtronic 523", "Medtronic", "523"),
+					Entry("is Medtronic 723", "Medtronic", "723"),
+					Entry("is Medtronic 551", "Medtronic", "551"),
+					Entry("is Medtronic 751", "Medtronic", "751"),
+					Entry("is Medtronic 554", "Medtronic", "554"),
+					Entry("is Medtronic 754", "Medtronic", "754"),
+					Entry("is LifeScan OneTouch Ultra 2", "LifeScan", "OneTouch Ultra 2"),
+					Entry("is LifeScan OneTouch UltraMini", "LifeScan", "OneTouch UltraMini"),
+					Entry("is Abbott FreeStyle Libre", "Abbott", "FreeStyle Libre"),
+				)
 			})
 
 			Context("with a context and new deduplicator", func() {

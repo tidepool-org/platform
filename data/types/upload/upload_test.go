@@ -44,8 +44,8 @@ var _ = Describe("Upload", func() {
 		)
 
 		DescribeTable("valid when", testData.ExpectFieldIsValid,
-			Entry("is 6 characters", NewRawObject(), "version", "aaaaaa"),
-			Entry("is more than 6 characters", NewRawObject(), "version", "aaaaaabb"),
+			Entry("is 5 characters", NewRawObject(), "version", "aaaaa"),
+			Entry("is more than 5 characters", NewRawObject(), "version", "aaaaabb"),
 		)
 	})
 

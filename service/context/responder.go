@@ -105,8 +105,7 @@ func (r *Responder) RespondWithStatusAndErrors(statusCode int, errors []*service
 		},
 	}
 
-	r.Response().WriteHeader(statusCode)
-	r.Response().WriteJson(response)
+	r.respondWithStatusAndResponse(statusCode, response)
 }
 
 func (r *Responder) RespondWithStatusAndData(statusCode int, data interface{}) {
@@ -119,6 +118,12 @@ func (r *Responder) RespondWithStatusAndData(statusCode int, data interface{}) {
 			},
 		},
 	}
+
+	r.respondWithStatusAndResponse(statusCode, response)
+}
+
+func (r *Responder) respondWithStatusAndResponse(statusCode int, response *JSONResponse) {
+	service.AddDateHeader(r.Response())
 
 	r.Response().WriteHeader(statusCode)
 	r.Response().WriteJson(response)

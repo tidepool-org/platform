@@ -14,6 +14,7 @@ func Routes() []service.Route {
 		service.MakeRoute("POST", "/v1/data_sets/:dataSetId/data", Authenticate(DatasetsDataCreate)),
 		service.MakeRoute("DELETE", "/v1/data_sets/:dataSetId", Authenticate(DatasetsDelete)),
 		service.MakeRoute("PUT", "/v1/data_sets/:dataSetId", Authenticate(DatasetsUpdate)),
+		service.MakeRoute("GET", "/v1/time", TimeGet),
 		service.MakeRoute("POST", "/v1/users/:userId/data_sets", Authenticate(UsersDatasetsCreate)),
 		service.MakeRoute("GET", "/v1/users/:userId/data_sets", Authenticate(UsersDatasetsGet)),
 	}

@@ -11,6 +11,8 @@
 ./data/data_source.go:111:6: type name will be used as data.DataSourceUpdate by other packages, and that stutters; consider calling this SourceUpdate
 ./data/data_source.go:166:6: type name will be used as data.DataSource by other packages, and that stutters; consider calling this Source
 ./data/data_source.go:279:6: type name will be used as data.DataSources by other packages, and that stutters; consider calling this Sources
+./service/response_test.go:27:30: method WriteJson should be WriteJSON
+./service/response_test.go:31:30: method EncodeJson should be EncodeJSON
 ./task/task.go:22:6: type name will be used as task.TaskAccessor by other packages, and that stutters; consider calling this Accessor
 ./task/task.go:39:6: type name will be used as task.TaskFilter by other packages, and that stutters; consider calling this Filter
 ./task/task.go:75:6: type name will be used as task.TaskCreate by other packages, and that stutters; consider calling this Create
