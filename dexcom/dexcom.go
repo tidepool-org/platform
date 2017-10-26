@@ -60,6 +60,9 @@ const (
 	UnitMgdLMin  = "mg/dL/min"
 	UnitMmolLMin = "mmol/L/min"
 
+	EGVValueMinMgdL = 40
+	EGVValueMaxMgdL = 400
+
 	DateTimeFormat = "2006-01-02T15:04:05"
 	NowThreshold   = 24 * time.Hour
 

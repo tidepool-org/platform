@@ -84,10 +84,6 @@ func (e *EGV) Parse(parser structure.ObjectParser) {
 }
 
 func (e *EGV) Validate(validator structure.Validator) {
-	// HACK: Dexcom - use 39 rather than incorrect values below 39
-	if e.Value < 39 {
-		e.Value = 39
-	}
 	// HACK: Dexcom - use id stripped of incorrect trailing decimals
 	if e.TransmitterID != nil {
 		transmitterID := hackTransmitterIDExpression.FindString(*e.TransmitterID)
@@ -99,7 +95,12 @@ func (e *EGV) Validate(validator structure.Validator) {
 	validator.String("unit", &e.Unit).OneOf(UnitMgdL) // TODO: Add UnitMmolL
 	switch e.Unit {
 	case UnitMgdL:
-		validator.Float64("value", &e.Value).InRange(39, 401)
+		if e.Value < EGVValueMinMgdL {
+			e.Value = EGVValueMinMgdL - 1
+		} else if e.Value > EGVValueMaxMgdL {
+			e.Value = EGVValueMaxMgdL + 1
+		}
+		validator.Float64("value", &e.Value).InRange(EGVValueMinMgdL-1, EGVValueMaxMgdL+1)
 	case UnitMmolL:
 		// TODO: Add value validation
 	}
