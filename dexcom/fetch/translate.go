@@ -55,20 +55,20 @@ func translateTime(systemTime time.Time, displayTime time.Time, datum *types.Bas
 		timezoneOffsetDuration = offsetCount * OffsetDuration
 	}
 
-	datum.Time = pointer.String(displayTime.Add(-timezoneOffsetDuration).Format(types.TimeFormat))
+	datum.Time = pointer.String(systemTime.Format(types.TimeFormat))
 	datum.DeviceTime = pointer.String(displayTime.Format(types.DeviceTimeFormat))
 	datum.TimezoneOffset = pointer.Int(int(timezoneOffsetDuration / time.Minute))
+	if clockDriftOffsetDuration != 0 {
+		datum.ClockDriftOffset = pointer.Int(int(clockDriftOffsetDuration / time.Millisecond))
+	}
+	if conversionOffsetDuration != 0 {
+		datum.ConversionOffset = pointer.Int(int(conversionOffsetDuration / time.Millisecond))
+	}
 
 	if datum.Payload == nil {
 		datum.Payload = &map[string]interface{}{}
 	}
 	(*datum.Payload)["systemTime"] = systemTime
-	if clockDriftOffsetDuration != 0 {
-		(*datum.Payload)["clockDriftOffset"] = int(clockDriftOffsetDuration / time.Millisecond)
-	}
-	if conversionOffsetDuration != 0 {
-		(*datum.Payload)["conversionOffset"] = int(conversionOffsetDuration / time.Millisecond)
-	}
 }
 
 func translateCalibrationToDatum(c *dexcom.Calibration) data.Datum {
