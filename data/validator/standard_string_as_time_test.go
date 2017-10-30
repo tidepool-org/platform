@@ -1,6 +1,8 @@
 package validator_test
 
 import (
+	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -9,7 +11,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/validator"
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 )
 
 var _ = Describe("StandardStringAsTime", func() {
@@ -20,7 +22,7 @@ var _ = Describe("StandardStringAsTime", func() {
 
 	It("NewStandardStringAsTime returns nil if time layout is empty string", func() {
 		value := "2015-12-31T13:14:16-08:00"
-		standardContext, err := context.NewStandard(log.NewNull())
+		standardContext, err := context.NewStandard(null.NewLogger())
 		Expect(err).ToNot(HaveOccurred())
 		Expect(standardContext).ToNot(BeNil())
 		Expect(validator.NewStandardStringAsTime(standardContext, "ghost", &value, "")).To(BeNil())
@@ -31,7 +33,7 @@ var _ = Describe("StandardStringAsTime", func() {
 
 		BeforeEach(func() {
 			var err error
-			standardContext, err = context.NewStandard(log.NewNull())
+			standardContext, err = context.NewStandard(null.NewLogger())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(standardContext).ToNot(BeNil())
 		})
@@ -98,7 +100,7 @@ var _ = Describe("StandardStringAsTime", func() {
 
 			Context("AfterNow", func() {
 				BeforeEach(func() {
-					result = standardStringAsTime.AfterNow()
+					result = standardStringAsTime.AfterNow(0)
 				})
 
 				It("does not add an error", func() {
@@ -126,7 +128,7 @@ var _ = Describe("StandardStringAsTime", func() {
 
 			Context("BeforeNow", func() {
 				BeforeEach(func() {
-					result = standardStringAsTime.BeforeNow()
+					result = standardStringAsTime.BeforeNow(0)
 				})
 
 				It("does not add an error", func() {
@@ -220,7 +222,7 @@ var _ = Describe("StandardStringAsTime", func() {
 
 			Context("AfterNow", func() {
 				BeforeEach(func() {
-					result = standardStringAsTime.AfterNow()
+					result = standardStringAsTime.AfterNow(0)
 				})
 
 				It("adds the expected error", func() {
@@ -260,7 +262,7 @@ var _ = Describe("StandardStringAsTime", func() {
 
 			Context("BeforeNow", func() {
 				BeforeEach(func() {
-					result = standardStringAsTime.BeforeNow()
+					result = standardStringAsTime.BeforeNow(0)
 				})
 
 				It("adds the expected error", func() {
@@ -348,7 +350,7 @@ var _ = Describe("StandardStringAsTime", func() {
 
 			Context("AfterNow", func() {
 				BeforeEach(func() {
-					result = standardStringAsTime.AfterNow()
+					result = standardStringAsTime.AfterNow(0)
 				})
 
 				It("adds the expected error", func() {
@@ -382,7 +384,90 @@ var _ = Describe("StandardStringAsTime", func() {
 
 			Context("BeforeNow", func() {
 				BeforeEach(func() {
-					result = standardStringAsTime.BeforeNow()
+					result = standardStringAsTime.BeforeNow(0)
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
+				})
+			})
+		})
+
+		Context("new validator with valid reference and value right now", func() {
+			var value string
+			var standardStringAsTime *validator.StandardStringAsTime
+			var result data.Time
+
+			BeforeEach(func() {
+				value = time.Now().UTC().Format(time.RFC3339)
+				standardStringAsTime = validator.NewStandardStringAsTime(standardContext, "legion", &value, "2006-01-02T15:04:05Z07:00")
+			})
+
+			It("exists", func() {
+				Expect(standardStringAsTime).ToNot(BeNil())
+			})
+
+			Context("AfterNow with positive threshold", func() {
+				BeforeEach(func() {
+					result = standardStringAsTime.AfterNow(time.Minute)
+				})
+
+				It("adds the expected error", func() {
+					Expect(standardContext.Errors()).To(HaveLen(1))
+					Expect(standardContext.Errors()[0]).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-not-after"))
+					Expect(standardContext.Errors()[0].Title).To(Equal("value is not after the specified time"))
+					Expect(standardContext.Errors()[0].Detail).To(Equal(fmt.Sprintf(`Value "%s" is not after now`, value)))
+					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/legion"))
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
+				})
+			})
+
+			Context("AfterNow with negative threshold", func() {
+				BeforeEach(func() {
+					result = standardStringAsTime.AfterNow(-time.Minute)
+				})
+
+				It("does not add an error", func() {
+					Expect(standardContext.Errors()).To(BeEmpty())
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
+				})
+			})
+
+			Context("BeforeNow with positive threshold", func() {
+				BeforeEach(func() {
+					result = standardStringAsTime.BeforeNow(time.Minute)
+				})
+
+				It("adds the expected error", func() {
+					Expect(standardContext.Errors()).To(HaveLen(1))
+					Expect(standardContext.Errors()[0]).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Code).To(Equal("value-not-before"))
+					Expect(standardContext.Errors()[0].Title).To(Equal("value is not before the specified time"))
+					Expect(standardContext.Errors()[0].Detail).To(Equal(fmt.Sprintf(`Value "%s" is not before now`, value)))
+					Expect(standardContext.Errors()[0].Source).ToNot(BeNil())
+					Expect(standardContext.Errors()[0].Source.Pointer).To(Equal("/legion"))
+				})
+
+				It("returns self", func() {
+					Expect(result).To(BeIdenticalTo(standardStringAsTime))
+				})
+			})
+
+			Context("BeforeNow with negative threshold", func() {
+				BeforeEach(func() {
+					result = standardStringAsTime.BeforeNow(-time.Minute)
 				})
 
 				It("does not add an error", func() {
@@ -458,7 +543,7 @@ var _ = Describe("StandardStringAsTime", func() {
 
 			Context("AfterNow", func() {
 				BeforeEach(func() {
-					result = standardStringAsTime.AfterNow()
+					result = standardStringAsTime.AfterNow(0)
 				})
 
 				It("does not add an error", func() {
@@ -492,7 +577,7 @@ var _ = Describe("StandardStringAsTime", func() {
 
 			Context("BeforeNow", func() {
 				BeforeEach(func() {
-					result = standardStringAsTime.BeforeNow()
+					result = standardStringAsTime.BeforeNow(0)
 				})
 
 				It("adds the expected error", func() {

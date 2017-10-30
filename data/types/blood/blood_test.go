@@ -5,7 +5,6 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/normalizer"
@@ -14,7 +13,9 @@ import (
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood"
 	"github.com/tidepool-org/platform/data/validator"
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/log/null"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -28,15 +29,15 @@ func NewTestBlood(sourceTime interface{}, sourceUnits interface{}, sourceValue i
 	testBlood := &blood.Blood{}
 	testBlood.Init()
 	testBlood.Type = "testBlood"
-	testBlood.DeviceID = app.StringAsPointer(app.NewID())
+	testBlood.DeviceID = pointer.String(id.New())
 	if value, ok := sourceTime.(string); ok {
-		testBlood.Time = app.StringAsPointer(value)
+		testBlood.Time = pointer.String(value)
 	}
 	if value, ok := sourceUnits.(string); ok {
-		testBlood.Units = app.StringAsPointer(value)
+		testBlood.Units = pointer.String(value)
 	}
 	if value, ok := sourceValue.(float64); ok {
-		testBlood.Value = app.FloatAsPointer(value)
+		testBlood.Value = pointer.Float64(value)
 	}
 	return testBlood
 }
@@ -65,7 +66,7 @@ var _ = Describe("Blood", func() {
 
 			DescribeTable("Parse",
 				func(sourceObject *map[string]interface{}, expectedBlood *blood.Blood, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(log.NewNull())
+					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
 					testFactory, err := factory.NewStandard()
@@ -134,7 +135,7 @@ var _ = Describe("Blood", func() {
 
 			DescribeTable("Validate",
 				func(sourceBlood *blood.Blood, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(log.NewNull())
+					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
 					testValidator, err := validator.NewStandard(testContext)
@@ -172,7 +173,7 @@ var _ = Describe("Blood", func() {
 
 			Context("Normalize", func() {
 				It("succeeds", func() {
-					testContext, err := context.NewStandard(log.NewNull())
+					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
 					testNormalizer, err := normalizer.NewStandard(testContext)
@@ -187,33 +188,33 @@ var _ = Describe("Blood", func() {
 				var deviceID string
 
 				BeforeEach(func() {
-					userID = app.NewID()
-					deviceID = app.NewID()
+					userID = id.New()
+					deviceID = id.New()
 					testBlood.UserID = userID
 					testBlood.DeviceID = &deviceID
-					testBlood.Time = app.StringAsPointer("2016-09-06T13:45:58-07:00")
-					testBlood.Units = app.StringAsPointer("mmol/L")
-					testBlood.Value = app.FloatAsPointer(1)
+					testBlood.Time = pointer.String("2016-09-06T13:45:58-07:00")
+					testBlood.Units = pointer.String("mmol/L")
+					testBlood.Value = pointer.Float64(1)
 				})
 
 				It("returns error if user id is empty", func() {
 					testBlood.UserID = ""
 					identityFields, err := testBlood.IdentityFields()
-					Expect(err).To(MatchError("base: user id is empty"))
+					Expect(err).To(MatchError("user id is empty"))
 					Expect(identityFields).To(BeEmpty())
 				})
 
 				It("returns error if units is missing", func() {
 					testBlood.Units = nil
 					identityFields, err := testBlood.IdentityFields()
-					Expect(err).To(MatchError("blood: units is missing"))
+					Expect(err).To(MatchError("units is missing"))
 					Expect(identityFields).To(BeEmpty())
 				})
 
 				It("returns error if value is missing", func() {
 					testBlood.Value = nil
 					identityFields, err := testBlood.IdentityFields()
-					Expect(err).To(MatchError("blood: value is missing"))
+					Expect(err).To(MatchError("value is missing"))
 					Expect(identityFields).To(BeEmpty())
 				})
 

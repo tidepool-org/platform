@@ -5,7 +5,6 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/normalizer"
@@ -14,7 +13,9 @@ import (
 	"github.com/tidepool-org/platform/data/types/basal"
 	"github.com/tidepool-org/platform/data/types/basal/scheduled"
 	"github.com/tidepool-org/platform/data/validator"
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/log/null"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -27,21 +28,21 @@ func NewMeta() interface{} {
 
 func NewTestScheduled(sourceTime interface{}, sourceDuration interface{}, sourceExpectedDuration interface{}, sourceRate interface{}, scheduleName interface{}) *scheduled.Scheduled {
 	testScheduled := scheduled.Init()
-	testScheduled.DeviceID = app.StringAsPointer(app.NewID())
+	testScheduled.DeviceID = pointer.String(id.New())
 	if value, ok := sourceTime.(string); ok {
-		testScheduled.Time = app.StringAsPointer(value)
+		testScheduled.Time = pointer.String(value)
 	}
 	if value, ok := sourceDuration.(int); ok {
-		testScheduled.Duration = app.IntegerAsPointer(value)
+		testScheduled.Duration = pointer.Int(value)
 	}
 	if value, ok := sourceExpectedDuration.(int); ok {
-		testScheduled.ExpectedDuration = app.IntegerAsPointer(value)
+		testScheduled.ExpectedDuration = pointer.Int(value)
 	}
 	if value, ok := sourceRate.(float64); ok {
-		testScheduled.Rate = app.FloatAsPointer(value)
+		testScheduled.Rate = pointer.Float64(value)
 	}
 	if value, ok := scheduleName.(string); ok {
-		testScheduled.ScheduleName = app.StringAsPointer(value)
+		testScheduled.ScheduleName = pointer.String(value)
 	}
 	return testScheduled
 }
@@ -107,7 +108,7 @@ var _ = Describe("Temporary", func() {
 
 			DescribeTable("Parse",
 				func(sourceObject *map[string]interface{}, expectedScheduled *scheduled.Scheduled, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(log.NewNull())
+					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
 					testFactory, err := factory.NewStandard()
@@ -200,7 +201,7 @@ var _ = Describe("Temporary", func() {
 
 			DescribeTable("Validate",
 				func(sourceScheduled *scheduled.Scheduled, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(log.NewNull())
+					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
 					testValidator, err := validator.NewStandard(testContext)
@@ -315,7 +316,7 @@ var _ = Describe("Temporary", func() {
 
 			Context("Normalize", func() {
 				It("succeeds", func() {
-					testContext, err := context.NewStandard(log.NewNull())
+					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
 					testNormalizer, err := normalizer.NewStandard(testContext)

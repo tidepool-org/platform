@@ -2,7 +2,7 @@ package ketone
 
 import (
 	"github.com/tidepool-org/platform/data"
-	commonKetone "github.com/tidepool-org/platform/data/blood/ketone"
+	"github.com/tidepool-org/platform/data/blood/ketone"
 	"github.com/tidepool-org/platform/data/types/blood"
 )
 
@@ -40,8 +40,8 @@ func (k *Ketone) Validate(validator data.Validator) error {
 
 	validator.ValidateString("type", &k.Type).EqualTo(Type())
 
-	validator.ValidateString("units", k.Units).OneOf(commonKetone.Units())
-	validator.ValidateFloat("value", k.Value).InRange(commonKetone.ValueRangeForUnits(k.Units))
+	validator.ValidateString("units", k.Units).OneOf(ketone.Units())
+	validator.ValidateFloat("value", k.Value).InRange(ketone.ValueRangeForUnits(k.Units))
 
 	return nil
 }
@@ -51,8 +51,8 @@ func (k *Ketone) Normalize(normalizer data.Normalizer) error {
 		return err
 	}
 
-	k.Value = commonKetone.NormalizeValueForUnits(k.Value, k.Units)
-	k.Units = commonKetone.NormalizeUnits(k.Units)
+	k.Value = ketone.NormalizeValueForUnits(k.Value, k.Units)
+	k.Units = ketone.NormalizeUnits(k.Units)
 
 	return nil
 }

@@ -5,7 +5,6 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/normalizer"
@@ -14,7 +13,9 @@ import (
 	"github.com/tidepool-org/platform/data/types/basal"
 	"github.com/tidepool-org/platform/data/types/basal/temporary"
 	"github.com/tidepool-org/platform/data/validator"
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/log/null"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -27,21 +28,21 @@ func NewMeta() interface{} {
 
 func NewTestTemporary(sourceTime interface{}, sourceDuration interface{}, sourceExpectedDuration interface{}, sourceRate interface{}, sourcePercent interface{}, sourceSuppressed *basal.Suppressed) *temporary.Temporary {
 	testTemporary := temporary.Init()
-	testTemporary.DeviceID = app.StringAsPointer(app.NewID())
+	testTemporary.DeviceID = pointer.String(id.New())
 	if value, ok := sourceTime.(string); ok {
-		testTemporary.Time = app.StringAsPointer(value)
+		testTemporary.Time = pointer.String(value)
 	}
 	if value, ok := sourceDuration.(int); ok {
-		testTemporary.Duration = app.IntegerAsPointer(value)
+		testTemporary.Duration = pointer.Int(value)
 	}
 	if value, ok := sourceExpectedDuration.(int); ok {
-		testTemporary.ExpectedDuration = app.IntegerAsPointer(value)
+		testTemporary.ExpectedDuration = pointer.Int(value)
 	}
 	if value, ok := sourceRate.(float64); ok {
-		testTemporary.Rate = app.FloatAsPointer(value)
+		testTemporary.Rate = pointer.Float64(value)
 	}
 	if value, ok := sourcePercent.(float64); ok {
-		testTemporary.Percent = app.FloatAsPointer(value)
+		testTemporary.Percent = pointer.Float64(value)
 	}
 	testTemporary.Suppressed = sourceSuppressed
 	return testTemporary
@@ -50,16 +51,16 @@ func NewTestTemporary(sourceTime interface{}, sourceDuration interface{}, source
 func NewTestSuppressed(sourceType interface{}, sourceDeliveryType interface{}, sourceRate interface{}, sourceScheduleName interface{}, sourceSuppressed *basal.Suppressed) *basal.Suppressed {
 	testSuppressed := &basal.Suppressed{}
 	if value, ok := sourceType.(string); ok {
-		testSuppressed.Type = app.StringAsPointer(value)
+		testSuppressed.Type = pointer.String(value)
 	}
 	if value, ok := sourceDeliveryType.(string); ok {
-		testSuppressed.DeliveryType = app.StringAsPointer(value)
+		testSuppressed.DeliveryType = pointer.String(value)
 	}
 	if value, ok := sourceRate.(float64); ok {
-		testSuppressed.Rate = app.FloatAsPointer(value)
+		testSuppressed.Rate = pointer.Float64(value)
 	}
 	if value, ok := sourceScheduleName.(string); ok {
-		testSuppressed.ScheduleName = app.StringAsPointer(value)
+		testSuppressed.ScheduleName = pointer.String(value)
 	}
 	testSuppressed.Suppressed = sourceSuppressed
 	return testSuppressed
@@ -128,7 +129,7 @@ var _ = Describe("Temporary", func() {
 
 			DescribeTable("Parse",
 				func(sourceObject *map[string]interface{}, expectedTemporary *temporary.Temporary, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(log.NewNull())
+					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
 					testFactory, err := factory.NewStandard()
@@ -233,7 +234,7 @@ var _ = Describe("Temporary", func() {
 
 			DescribeTable("Validate",
 				func(sourceTemporary *temporary.Temporary, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(log.NewNull())
+					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
 					testValidator, err := validator.NewStandard(testContext)
@@ -372,7 +373,7 @@ var _ = Describe("Temporary", func() {
 
 			Context("Normalize", func() {
 				It("succeeds", func() {
-					testContext, err := context.NewStandard(log.NewNull())
+					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
 					testNormalizer, err := normalizer.NewStandard(testContext)

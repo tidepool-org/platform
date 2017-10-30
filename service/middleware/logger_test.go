@@ -7,65 +7,69 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/log"
+	logNull "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/service/middleware"
+	testRest "github.com/tidepool-org/platform/test/rest"
 )
 
 var _ = Describe("Logger", func() {
 	Context("with logger", func() {
-		var logger log.Logger
+		var lgr log.Logger
 
 		BeforeEach(func() {
-			logger = log.NewNull()
+			lgr = logNull.NewLogger()
 		})
 
 		Context("NewLogger", func() {
-			It("returns successfully", func() {
-				Expect(middleware.NewLogger(logger)).ToNot(BeNil())
-			})
-
 			It("returns an error if the logger is missing", func() {
 				loggerMiddleware, err := middleware.NewLogger(nil)
-				Expect(err).To(MatchError("middleware: logger is missing"))
+				Expect(err).To(MatchError("logger is missing"))
 				Expect(loggerMiddleware).To(BeNil())
+			})
+
+			It("returns successfully", func() {
+				Expect(middleware.NewLogger(lgr)).ToNot(BeNil())
 			})
 		})
 
 		Context("with logger middleware, handler, request, and response", func() {
 			var loggerMiddleware *middleware.Logger
-			var handler rest.HandlerFunc
-			var request *rest.Request
-			var response *TestResponseWriter
+			var req *rest.Request
+			var res *testRest.ResponseWriter
+			var hndlr rest.HandlerFunc
 
 			BeforeEach(func() {
 				var err error
-				loggerMiddleware, err = middleware.NewLogger(logger)
+				loggerMiddleware, err = middleware.NewLogger(lgr)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(loggerMiddleware).ToNot(BeNil())
-				handler = func(response rest.ResponseWriter, request *rest.Request) {
-					Expect(request.Env["LOGGER"]).To(Equal(logger))
+				req = testRest.NewRequest()
+				res = testRest.NewResponseWriter()
+				hndlr = func(res rest.ResponseWriter, req *rest.Request) {
+					Expect(req.Env["LOGGER"]).To(Equal(lgr))
+					Expect(log.LoggerFromContext(req.Context())).To(Equal(lgr))
 				}
-				request = NewTestRequest()
-				response = NewTestResponseWriter()
+			})
+
+			AfterEach(func() {
+				Expect(req.Env["LOGGER"]).To(BeNil())
+				Expect(log.LoggerFromContext(req.Context())).To(BeNil())
 			})
 
 			It("is successful", func() {
-				loggerMiddleware.MiddlewareFunc(handler)(response, request)
-				Expect(request.Env["LOGGER"]).To(BeNil())
+				loggerMiddleware.MiddlewareFunc(hndlr)(res, req)
 			})
 
 			It("does nothing if the handler is nil", func() {
-				loggerMiddleware.MiddlewareFunc(nil)(response, request)
-				Expect(request.Env["LOGGER"]).To(BeNil())
+				loggerMiddleware.MiddlewareFunc(nil)(res, req)
 			})
 
 			It("does nothing if the response is nil", func() {
-				loggerMiddleware.MiddlewareFunc(handler)(nil, request)
-				Expect(request.Env["LOGGER"]).To(BeNil())
+				loggerMiddleware.MiddlewareFunc(hndlr)(nil, req)
 			})
 
 			It("does nothing if the request is nil", func() {
-				loggerMiddleware.MiddlewareFunc(nil)(response, nil)
-				Expect(request.Env["LOGGER"]).To(BeNil())
+				loggerMiddleware.MiddlewareFunc(hndlr)(res, nil)
 			})
 		})
 	})

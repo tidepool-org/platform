@@ -12,13 +12,13 @@ var _ = Describe("permission", func() {
 	Context("GroupIDFromUserID", func() {
 		It("returns an error if the user id is missing", func() {
 			groupID, err := permission.GroupIDFromUserID("", "secret")
-			Expect(err).To(MatchError("permission: user id is missing"))
+			Expect(err).To(MatchError("user id is missing"))
 			Expect(groupID).To(BeEmpty())
 		})
 
 		It("returns an error if the secret is missing", func() {
 			groupID, err := permission.GroupIDFromUserID("0cd1a5d68b", "")
-			Expect(err).To(MatchError("permission: secret is missing"))
+			Expect(err).To(MatchError("secret is missing"))
 			Expect(groupID).To(BeEmpty())
 		})
 
@@ -54,25 +54,25 @@ var _ = Describe("permission", func() {
 	Context("UserIDFromGroupID", func() {
 		It("returns an error if the group id is missing", func() {
 			groupID, err := permission.UserIDFromGroupID("", "secret")
-			Expect(err).To(MatchError("permission: group id is missing"))
+			Expect(err).To(MatchError("group id is missing"))
 			Expect(groupID).To(BeEmpty())
 		})
 
 		It("returns an error if the secret is missing", func() {
 			groupID, err := permission.UserIDFromGroupID("1uO1mX4bFJ3hAC8g20l8fw==", "")
-			Expect(err).To(MatchError("permission: secret is missing"))
+			Expect(err).To(MatchError("secret is missing"))
 			Expect(groupID).To(BeEmpty())
 		})
 
 		It("returns an error if the group id is not properly encoded", func() {
 			groupID, err := permission.UserIDFromGroupID("1uO1mX4bFJ3hAC8g20l8fw", "secret")
-			Expect(err).To(MatchError("permission: unable to decode with Base64"))
+			Expect(err).To(MatchError("unable to decode with Base64"))
 			Expect(groupID).To(BeEmpty())
 		})
 
 		It("returns an error if the group id is not properly encrypted", func() {
 			groupID, err := permission.UserIDFromGroupID("abcd", "secret")
-			Expect(err).To(MatchError("permission: unable to decrypt with AES-256 using passphrase"))
+			Expect(err).To(MatchError("unable to decrypt with AES-256 using passphrase"))
 			Expect(groupID).To(BeEmpty())
 		})
 

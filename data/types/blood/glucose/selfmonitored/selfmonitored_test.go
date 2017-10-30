@@ -7,7 +7,6 @@ import (
 
 	"math"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/parser"
@@ -15,7 +14,9 @@ import (
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	"github.com/tidepool-org/platform/data/validator"
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/log/null"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -27,18 +28,18 @@ func NewMeta() interface{} {
 
 func NewTestSelfMonitored(sourceTime interface{}, sourceUnits interface{}, sourceValue interface{}, sourceSubType interface{}) *selfmonitored.SelfMonitored {
 	testSelfMonitored := selfmonitored.Init()
-	testSelfMonitored.DeviceID = app.StringAsPointer(app.NewID())
+	testSelfMonitored.DeviceID = pointer.String(id.New())
 	if value, ok := sourceTime.(string); ok {
-		testSelfMonitored.Time = app.StringAsPointer(value)
+		testSelfMonitored.Time = pointer.String(value)
 	}
 	if value, ok := sourceUnits.(string); ok {
-		testSelfMonitored.Units = app.StringAsPointer(value)
+		testSelfMonitored.Units = pointer.String(value)
 	}
 	if value, ok := sourceValue.(float64); ok {
-		testSelfMonitored.Value = app.FloatAsPointer(value)
+		testSelfMonitored.Value = pointer.Float64(value)
 	}
 	if value, ok := sourceSubType.(string); ok {
-		testSelfMonitored.SubType = app.StringAsPointer(value)
+		testSelfMonitored.SubType = pointer.String(value)
 	}
 	return testSelfMonitored
 }
@@ -94,7 +95,7 @@ var _ = Describe("SelfMonitored", func() {
 
 			DescribeTable("Parse",
 				func(sourceObject *map[string]interface{}, expectedSelfMonitored *selfmonitored.SelfMonitored, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(log.NewNull())
+					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
 					testFactory, err := factory.NewStandard()
@@ -175,7 +176,7 @@ var _ = Describe("SelfMonitored", func() {
 
 			DescribeTable("Validate",
 				func(sourceSelfMonitored *selfmonitored.SelfMonitored, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(log.NewNull())
+					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
 					testValidator, err := validator.NewStandard(testContext)

@@ -1,6 +1,7 @@
 package mongo
 
 import (
+	"context"
 	"encoding/json"
 	"time"
 
@@ -13,8 +14,8 @@ import (
 	"github.com/tidepool-org/platform/store/mongo"
 )
 
-func New(logger log.Logger, config *mongo.Config) (*Store, error) {
-	baseStore, err := mongo.New(logger, config)
+func New(cfg *mongo.Config, lgr log.Logger) (*Store, error) {
+	baseStore, err := mongo.New(cfg, lgr)
 	if err != nil {
 		return nil, err
 	}
@@ -28,23 +29,26 @@ type Store struct {
 	*mongo.Store
 }
 
-func (s *Store) NewSession(logger log.Logger) store.Session {
-	return &Session{
-		Session: s.Store.NewSession(logger),
+func (s *Store) NewProfilesSession() store.ProfilesSession {
+	return &ProfilesSession{
+		Session: s.Store.NewSession("seagull"),
 	}
 }
 
-type Session struct {
+type ProfilesSession struct {
 	*mongo.Session
 }
 
-func (s *Session) GetProfileByID(profileID string) (*profile.Profile, error) {
+func (p *ProfilesSession) GetProfileByID(ctx context.Context, profileID string) (*profile.Profile, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
 	if profileID == "" {
-		return nil, errors.New("mongo", "profile id is missing")
+		return nil, errors.New("profile id is missing")
 	}
 
-	if s.IsClosed() {
-		return nil, errors.New("mongo", "session closed")
+	if p.IsClosed() {
+		return nil, errors.New("session closed")
 	}
 
 	startTime := time.Now()
@@ -53,19 +57,19 @@ func (s *Session) GetProfileByID(profileID string) (*profile.Profile, error) {
 	selector := bson.M{
 		"_id": profileID,
 	}
-	err := s.C().Find(selector).Limit(2).All(&profiles)
+	err := p.C().Find(selector).Limit(2).All(&profiles)
 
 	loggerFields := log.Fields{"profileId": profileID, "duration": time.Since(startTime) / time.Microsecond}
-	s.Logger().WithFields(loggerFields).WithError(err).Debug("GetProfileByID")
+	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("GetProfileByID")
 
 	if err != nil {
-		return nil, errors.Wrap(err, "mongo", "unable to get profile by id")
+		return nil, errors.Wrap(err, "unable to get profile by id")
 	}
 
 	if profilesCount := len(profiles); profilesCount == 0 {
 		return nil, nil
 	} else if profilesCount > 1 {
-		s.Logger().WithField("profileId", profileID).Warn("Multiple profiles found for profile id")
+		log.LoggerFromContext(ctx).WithField("profileId", profileID).Warn("Multiple profiles found for profile id")
 	}
 
 	profile := profiles[0]
@@ -74,7 +78,7 @@ func (s *Session) GetProfileByID(profileID string) (*profile.Profile, error) {
 	if profile.Value != "" {
 		var value map[string]interface{}
 		if err = json.Unmarshal([]byte(profile.Value), &value); err != nil {
-			s.Logger().WithField("profileId", profileID).WithError(err).Warn("Unable to unmarshal profile value")
+			log.LoggerFromContext(ctx).WithField("profileId", profileID).WithError(err).Warn("Unable to unmarshal profile value")
 		} else {
 			if profileMap, profileMapOk := value["profile"].(map[string]interface{}); profileMapOk {
 				if fullName, fullNameOk := profileMap["fullName"].(string); fullNameOk {
@@ -87,13 +91,16 @@ func (s *Session) GetProfileByID(profileID string) (*profile.Profile, error) {
 	return profile, nil
 }
 
-func (s *Session) DestroyProfileByID(profileID string) error {
+func (p *ProfilesSession) DestroyProfileByID(ctx context.Context, profileID string) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
 	if profileID == "" {
-		return errors.New("mongo", "profile id is missing")
+		return errors.New("profile id is missing")
 	}
 
-	if s.IsClosed() {
-		return errors.New("mongo", "session closed")
+	if p.IsClosed() {
+		return errors.New("session closed")
 	}
 
 	startTime := time.Now()
@@ -101,13 +108,13 @@ func (s *Session) DestroyProfileByID(profileID string) error {
 	selector := bson.M{
 		"_id": profileID,
 	}
-	removeInfo, err := s.C().RemoveAll(selector)
+	removeInfo, err := p.C().RemoveAll(selector)
 
 	loggerFields := log.Fields{"profileId": profileID, "removeInfo": removeInfo, "duration": time.Since(startTime) / time.Microsecond}
-	s.Logger().WithFields(loggerFields).WithError(err).Debug("DestroyProfileByID")
+	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DestroyProfileByID")
 
 	if err != nil {
-		return errors.Wrap(err, "mongo", "unable to destroy profile by id")
+		return errors.Wrap(err, "unable to destroy profile by id")
 	}
 	return nil
 }

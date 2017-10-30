@@ -4,8 +4,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data/parser"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -13,7 +13,7 @@ var _ = Describe("Inspector", func() {
 	Context("NewObjectParserInspector", func() {
 		It("returns an error when the parser is missing", func() {
 			inspector, err := parser.NewObjectParserInspector(nil)
-			Expect(err).To(MatchError("parser: parser is missing"))
+			Expect(err).To(MatchError("parser is missing"))
 			Expect(inspector).To(BeNil())
 		})
 	})
@@ -47,7 +47,7 @@ var _ = Describe("Inspector", func() {
 				})
 
 				It("returns the value the object parser returns", func() {
-					testObjectParser.ParseStringOutputs = []*string{app.StringAsPointer("test-value")}
+					testObjectParser.ParseStringOutputs = []*string{pointer.String("test-value")}
 					value := inspector.GetProperty("test-key")
 					Expect(value).ToNot(BeNil())
 					Expect(*value).To(Equal("test-value"))

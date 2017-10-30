@@ -61,10 +61,10 @@ func (b *Blood) IdentityFields() ([]string, error) {
 	}
 
 	if b.Units == nil {
-		return nil, errors.New("blood", "units is missing")
+		return nil, errors.New("units is missing")
 	}
 	if b.Value == nil {
-		return nil, errors.New("blood", "value is missing")
+		return nil, errors.New("value is missing")
 	}
 
 	return append(identityFields, *b.Units, strconv.FormatFloat(*b.Value, 'f', -1, 64)), nil

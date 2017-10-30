@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/tidepool-org/platform/app"
 )
 
 func ErrorInternalServerFailure() *Error {
@@ -19,21 +17,12 @@ func ErrorInternalServerFailure() *Error {
 	}
 }
 
-func ErrorAuthenticationTokenMissing() *Error {
-	return &Error{
-		Code:   "authentication-token-missing",
-		Status: http.StatusUnauthorized,
-		Title:  "authentication token missing",
-		Detail: "Authentication token missing",
-	}
-}
-
 func ErrorUnauthenticated() *Error {
 	return &Error{
 		Code:   "unauthenticated",
 		Status: http.StatusUnauthorized,
-		Title:  "authentication token is invalid",
-		Detail: "Authentication token is invalid",
+		Title:  "auth token is invalid",
+		Detail: "Auth token is invalid",
 	}
 }
 
@@ -41,8 +30,35 @@ func ErrorUnauthorized() *Error {
 	return &Error{
 		Code:   "unauthorized",
 		Status: http.StatusForbidden,
-		Title:  "authentication token is not authorized for requested action",
-		Detail: "Authentication token is not authorized for requested action",
+		Title:  "auth token is not authorized for requested action",
+		Detail: "Auth token is not authorized for requested action",
+	}
+}
+
+func ErrorResourceNotFound() *Error {
+	return &Error{
+		Code:   "resource-not-found",
+		Status: http.StatusNotFound,
+		Title:  "resource not found",
+		Detail: "Resource not found",
+	}
+}
+
+func ErrorResourceNotFoundWithID(id string) *Error {
+	return &Error{
+		Code:   "resource-not-found",
+		Status: http.StatusNotFound,
+		Title:  "resource not found",
+		Detail: fmt.Sprintf("Resource with id %q not found", id),
+	}
+}
+
+func ErrorParameterMissing(parameter string) *Error {
+	return &Error{
+		Code:   "parameter-missing",
+		Status: http.StatusForbidden,
+		Title:  "parameter is missing",
+		Detail: fmt.Sprintf("parameter %q is missing", parameter),
 	}
 }
 
@@ -163,7 +179,7 @@ func ErrorValueNotEqualTo(value interface{}, limit interface{}) *Error {
 	return &Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is not equal to %v", app.QuoteIfString(value), app.QuoteIfString(limit)),
+		Detail: fmt.Sprintf("Value %v is not equal to %v", QuoteIfString(value), QuoteIfString(limit)),
 	}
 }
 
@@ -171,7 +187,7 @@ func ErrorValueEqualTo(value interface{}, limit interface{}) *Error {
 	return &Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is equal to %v", app.QuoteIfString(value), app.QuoteIfString(limit)),
+		Detail: fmt.Sprintf("Value %v is equal to %v", QuoteIfString(value), QuoteIfString(limit)),
 	}
 }
 
@@ -179,7 +195,7 @@ func ErrorValueNotLessThan(value interface{}, limit interface{}) *Error {
 	return &Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is not less than %v", app.QuoteIfString(value), app.QuoteIfString(limit)),
+		Detail: fmt.Sprintf("Value %v is not less than %v", QuoteIfString(value), QuoteIfString(limit)),
 	}
 }
 
@@ -187,7 +203,7 @@ func ErrorValueNotLessThanOrEqualTo(value interface{}, limit interface{}) *Error
 	return &Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is not less than or equal to %v", app.QuoteIfString(value), app.QuoteIfString(limit)),
+		Detail: fmt.Sprintf("Value %v is not less than or equal to %v", QuoteIfString(value), QuoteIfString(limit)),
 	}
 }
 
@@ -195,7 +211,7 @@ func ErrorValueNotGreaterThan(value interface{}, limit interface{}) *Error {
 	return &Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is not greater than %v", app.QuoteIfString(value), app.QuoteIfString(limit)),
+		Detail: fmt.Sprintf("Value %v is not greater than %v", QuoteIfString(value), QuoteIfString(limit)),
 	}
 }
 
@@ -203,7 +219,7 @@ func ErrorValueNotGreaterThanOrEqualTo(value interface{}, limit interface{}) *Er
 	return &Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is not greater than or equal to %v", app.QuoteIfString(value), app.QuoteIfString(limit)),
+		Detail: fmt.Sprintf("Value %v is not greater than or equal to %v", QuoteIfString(value), QuoteIfString(limit)),
 	}
 }
 
@@ -211,7 +227,7 @@ func ErrorValueNotInRange(value interface{}, lowerLimit interface{}, upperLimit 
 	return &Error{
 		Code:   "value-out-of-range",
 		Title:  "value is out of range",
-		Detail: fmt.Sprintf("Value %v is not between %v and %v", app.QuoteIfString(value), app.QuoteIfString(lowerLimit), app.QuoteIfString(upperLimit)),
+		Detail: fmt.Sprintf("Value %v is not between %v and %v", QuoteIfString(value), QuoteIfString(lowerLimit), QuoteIfString(upperLimit)),
 	}
 }
 
@@ -276,7 +292,7 @@ func ErrorValueStringOneOf(value string, disallowedValues []string) *Error {
 	return &Error{
 		Code:   "value-disallowed",
 		Title:  "value is one of the disallowed values",
-		Detail: fmt.Sprintf("Value %s is one of [%v]", strconv.Quote(value), disallowedValuesString),
+		Detail: fmt.Sprintf("Value %q is one of [%v]", value, disallowedValuesString),
 	}
 }
 
@@ -289,7 +305,7 @@ func ErrorValueStringNotOneOf(value string, allowedValues []string) *Error {
 	return &Error{
 		Code:   "value-not-allowed",
 		Title:  "value is not one of the allowed values",
-		Detail: fmt.Sprintf("Value %s is not one of [%v]", strconv.Quote(value), allowedValuesString),
+		Detail: fmt.Sprintf("Value %q is not one of [%v]", value, allowedValuesString),
 	}
 }
 
@@ -297,7 +313,7 @@ func ErrorValueTimeNotValid(value string, timeLayout string) *Error {
 	return &Error{
 		Code:   "value-not-valid",
 		Title:  "value is not a valid time",
-		Detail: fmt.Sprintf("Value %s is not a valid time of format %s", strconv.Quote(value), strconv.Quote(timeLayout)),
+		Detail: fmt.Sprintf("Value %q is not a valid time of format %q", value, timeLayout),
 	}
 }
 
@@ -305,7 +321,7 @@ func ErrorValueTimeNotAfter(value time.Time, limit time.Time, timeLayout string)
 	return &Error{
 		Code:   "value-not-after",
 		Title:  "value is not after the specified time",
-		Detail: fmt.Sprintf("Value %s is not after %s", strconv.Quote(value.Format(timeLayout)), strconv.Quote(limit.Format(timeLayout))),
+		Detail: fmt.Sprintf("Value %q is not after %q", value.Format(timeLayout), limit.Format(timeLayout)),
 	}
 }
 
@@ -313,7 +329,7 @@ func ErrorValueTimeNotAfterNow(value time.Time, timeLayout string) *Error {
 	return &Error{
 		Code:   "value-not-after",
 		Title:  "value is not after the specified time",
-		Detail: fmt.Sprintf("Value %s is not after now", strconv.Quote(value.Format(timeLayout))),
+		Detail: fmt.Sprintf("Value %q is not after now", value.Format(timeLayout)),
 	}
 }
 
@@ -321,7 +337,7 @@ func ErrorValueTimeNotBefore(value time.Time, limit time.Time, timeLayout string
 	return &Error{
 		Code:   "value-not-before",
 		Title:  "value is not before the specified time",
-		Detail: fmt.Sprintf("Value %s is not before %s", strconv.Quote(value.Format(timeLayout)), strconv.Quote(limit.Format(timeLayout))),
+		Detail: fmt.Sprintf("Value %q is not before %q", value.Format(timeLayout), limit.Format(timeLayout)),
 	}
 }
 
@@ -329,7 +345,7 @@ func ErrorValueTimeNotBeforeNow(value time.Time, timeLayout string) *Error {
 	return &Error{
 		Code:   "value-not-before",
 		Title:  "value is not before the specified time",
-		Detail: fmt.Sprintf("Value %s is not before now", strconv.Quote(value.Format(timeLayout))),
+		Detail: fmt.Sprintf("Value %q is not before now", value.Format(timeLayout)),
 	}
 }
 
@@ -387,4 +403,11 @@ func ErrorLengthNotInRange(length int, lowerLimit int, upperLimit int) *Error {
 		Title:  "length is out of range",
 		Detail: fmt.Sprintf("Length %d is not between %d and %d", length, lowerLimit, upperLimit),
 	}
+}
+
+func QuoteIfString(interfaceValue interface{}) interface{} {
+	if stringValue, ok := interfaceValue.(string); ok {
+		return strconv.Quote(stringValue)
+	}
+	return interfaceValue
 }

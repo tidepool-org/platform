@@ -1,7 +1,8 @@
 package store
 
 import (
-	"github.com/tidepool-org/platform/log"
+	"context"
+
 	"github.com/tidepool-org/platform/store"
 	"github.com/tidepool-org/platform/user"
 )
@@ -9,15 +10,15 @@ import (
 type Store interface {
 	store.Store
 
-	NewSession(logger log.Logger) Session
+	NewUsersSession() UsersSession
 }
 
-type Session interface {
+type UsersSession interface {
 	store.Session
 
-	GetUserByID(userID string) (*user.User, error)
-	DeleteUser(user *user.User) error
-	DestroyUserByID(userID string) error
+	GetUserByID(ctx context.Context, userID string) (*user.User, error)
+	DeleteUser(ctx context.Context, user *user.User) error
+	DestroyUserByID(ctx context.Context, userID string) error
 
 	PasswordMatches(user *user.User, password string) bool
 }

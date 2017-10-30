@@ -1,60 +1,86 @@
 package mongo
 
 import (
+	"net/url"
+	"strconv"
 	"time"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/pointer"
 )
 
 type Config struct {
-	Addresses  string         `json:"addresses"` // TODO: This should be an array, but configor does not support that. Bleech! Fix?
-	Database   string         `json:"database"`
-	Collection string         `json:"collection"`
-	Username   *string        `json:"username"`
-	Password   *string        `json:"password"`
-	Timeout    *time.Duration `json:"timeout"`
-	SSL        bool           `json:"ssl"`
+	Addresses        []string
+	TLS              bool
+	Database         string
+	CollectionPrefix string
+	Username         *string
+	Password         *string
+	Timeout          time.Duration
 }
 
-func (c *Config) Validate() error {
-	addresses := app.SplitStringAndRemoveWhitespace(c.Addresses, ",")
-	if len(addresses) < 1 {
-		return errors.New("mongo", "addresses is missing")
+func NewConfig() *Config {
+	return &Config{
+		TLS:     true,
+		Timeout: 60 * time.Second,
 	}
-	if c.Database == "" {
-		return errors.New("mongo", "database is missing")
+}
+
+func (c *Config) Load(configReporter config.Reporter) error {
+	if configReporter == nil {
+		return errors.New("config reporter is missing")
 	}
-	if c.Collection == "" {
-		return errors.New("mongo", "collection is missing")
+
+	c.Addresses = SplitAddresses(configReporter.GetWithDefault("addresses", ""))
+	if tlsString, found := configReporter.Get("tls"); found {
+		tls, err := strconv.ParseBool(tlsString)
+		if err != nil {
+			return errors.New("tls is invalid")
+		}
+		c.TLS = tls
 	}
-	if c.Username != nil && *c.Username == "" {
-		return errors.New("mongo", "username is empty")
+	c.Database = configReporter.GetWithDefault("database", "")
+	c.CollectionPrefix = configReporter.GetWithDefault("collection_prefix", "")
+	if username, found := configReporter.Get("username"); found {
+		c.Username = pointer.String(username)
 	}
-	if c.Password != nil && *c.Password == "" {
-		return errors.New("mongo", "password is empty")
+	if password, found := configReporter.Get("password"); found {
+		c.Password = pointer.String(password)
 	}
-	if c.Timeout != nil && *c.Timeout < 0 {
-		return errors.New("mongo", "timeout is invalid")
+	if timeoutString, found := configReporter.Get("timeout"); found {
+		timeout, err := strconv.ParseInt(timeoutString, 10, 0)
+		if err != nil {
+			return errors.New("timeout is invalid")
+		}
+		c.Timeout = time.Duration(timeout) * time.Second
 	}
+
 	return nil
 }
 
-func (c *Config) Clone() *Config {
-	clone := &Config{
-		Addresses:  c.Addresses,
-		Database:   c.Database,
-		Collection: c.Collection,
-		SSL:        c.SSL,
+func (c *Config) Validate() error {
+	if len(c.Addresses) == 0 {
+		return errors.New("addresses is missing")
 	}
-	if c.Username != nil {
-		clone.Username = app.StringAsPointer(*c.Username)
+	for _, address := range c.Addresses {
+		if address == "" {
+			return errors.New("address is missing")
+		}
+		if _, err := url.Parse(address); err != nil {
+			return errors.New("address is invalid")
+		}
 	}
-	if c.Password != nil {
-		clone.Password = app.StringAsPointer(*c.Password)
+	if c.Database == "" {
+		return errors.New("database is missing")
 	}
-	if c.Timeout != nil {
-		clone.Timeout = app.DurationAsPointer(*c.Timeout)
+	if c.Timeout <= 0 {
+		return errors.New("timeout is invalid")
 	}
-	return clone
+
+	return nil
+}
+
+func SplitAddresses(addresses string) []string {
+	return config.SplitTrimCompact(addresses)
 }

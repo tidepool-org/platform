@@ -37,13 +37,13 @@ var _ = Describe("Parser", func() {
 
 		It("returns an error if the parser is missing", func() {
 			datum, err := parser.ParseDatum(nil, testFactory)
-			Expect(err).To(MatchError("parser: parser is missing"))
+			Expect(err).To(MatchError("parser is missing"))
 			Expect(datum).To(BeNil())
 		})
 
 		It("returns an error if the factory is missing", func() {
 			datum, err := parser.ParseDatum(testObjectParser, nil)
-			Expect(err).To(MatchError("parser: factory is missing"))
+			Expect(err).To(MatchError("factory is missing"))
 			Expect(datum).To(BeNil())
 		})
 
@@ -53,9 +53,9 @@ var _ = Describe("Parser", func() {
 		})
 
 		It("returns an error if the factory init returns an error", func() {
-			testFactory.InitOutputs = []InitOutput{{nil, errors.New("test: init returns error")}}
+			testFactory.InitOutputs = []InitOutput{{nil, errors.New("init returns error")}}
 			datum, err := parser.ParseDatum(testObjectParser, testFactory)
-			Expect(err).To(MatchError("test: init returns error"))
+			Expect(err).To(MatchError("init returns error"))
 			Expect(datum).To(BeNil())
 			Expect(testFactory.InitInputs).To(HaveLen(1))
 		})
@@ -67,9 +67,9 @@ var _ = Describe("Parser", func() {
 		})
 
 		It("returns an error if datum parse returns an error", func() {
-			testDatum.ParseOutputs = []error{errors.New("test: parse returns error")}
+			testDatum.ParseOutputs = []error{errors.New("parse returns error")}
 			datum, err := parser.ParseDatum(testObjectParser, testFactory)
-			Expect(err).To(MatchError("test: parse returns error"))
+			Expect(err).To(MatchError("parse returns error"))
 			Expect(datum).To(BeNil())
 			Expect(testFactory.InitInputs).To(HaveLen(1))
 			Expect(testDatum.ParseInputs).To(ConsistOf(testObjectParser))
@@ -99,7 +99,7 @@ var _ = Describe("Parser", func() {
 
 		It("returns an error if the parser is missing", func() {
 			datumArray, err := parser.ParseDatumArray(nil)
-			Expect(err).To(MatchError("parser: parser is missing"))
+			Expect(err).To(MatchError("parser is missing"))
 			Expect(datumArray).To(BeNil())
 		})
 

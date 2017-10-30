@@ -5,7 +5,6 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/normalizer"
@@ -13,7 +12,9 @@ import (
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/basal"
 	"github.com/tidepool-org/platform/data/validator"
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/log/null"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -27,9 +28,9 @@ func NewMeta(deliveryType string) interface{} {
 func NewTestBasal(sourceTime interface{}, sourceDeliveryType interface{}) *basal.Basal {
 	testBasal := &basal.Basal{}
 	testBasal.Init()
-	testBasal.DeviceID = app.StringAsPointer(app.NewID())
+	testBasal.DeviceID = pointer.String(id.New())
 	if value, ok := sourceTime.(string); ok {
-		testBasal.Time = app.StringAsPointer(value)
+		testBasal.Time = pointer.String(value)
 	}
 	if value, ok := sourceDeliveryType.(string); ok {
 		testBasal.DeliveryType = value
@@ -80,7 +81,7 @@ var _ = Describe("Basal", func() {
 
 			DescribeTable("Parse",
 				func(sourceObject *map[string]interface{}, expectedBasal *basal.Basal, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(log.NewNull())
+					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
 					testFactory, err := factory.NewStandard()
@@ -130,7 +131,7 @@ var _ = Describe("Basal", func() {
 
 			DescribeTable("Validate",
 				func(sourceBasal *basal.Basal, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(log.NewNull())
+					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
 					testValidator, err := validator.NewStandard(testContext)
@@ -165,7 +166,7 @@ var _ = Describe("Basal", func() {
 
 			Context("Normalize", func() {
 				It("succeeds", func() {
-					testContext, err := context.NewStandard(log.NewNull())
+					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
 					testNormalizer, err := normalizer.NewStandard(testContext)
@@ -180,25 +181,25 @@ var _ = Describe("Basal", func() {
 				var deviceID string
 
 				BeforeEach(func() {
-					userID = app.NewID()
-					deviceID = app.NewID()
+					userID = id.New()
+					deviceID = id.New()
 					testBasal.UserID = userID
 					testBasal.DeviceID = &deviceID
-					testBasal.Time = app.StringAsPointer("2016-09-06T13:45:58-07:00")
+					testBasal.Time = pointer.String("2016-09-06T13:45:58-07:00")
 					testBasal.DeliveryType = "scheduled"
 				})
 
 				It("returns error if user id is empty", func() {
 					testBasal.UserID = ""
 					identityFields, err := testBasal.IdentityFields()
-					Expect(err).To(MatchError("base: user id is empty"))
+					Expect(err).To(MatchError("user id is empty"))
 					Expect(identityFields).To(BeEmpty())
 				})
 
 				It("returns error if delivery type is empty", func() {
 					testBasal.DeliveryType = ""
 					identityFields, err := testBasal.IdentityFields()
-					Expect(err).To(MatchError("basal: delivery type is empty"))
+					Expect(err).To(MatchError("delivery type is empty"))
 					Expect(identityFields).To(BeEmpty())
 				})
 

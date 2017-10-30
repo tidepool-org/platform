@@ -68,7 +68,7 @@ func (b *Bolus) IdentityFields() ([]string, error) {
 	}
 
 	if b.SubType == "" {
-		return nil, errors.New("bolus", "sub type is empty")
+		return nil, errors.New("sub type is empty")
 	}
 
 	return append(identityFields, b.SubType), nil

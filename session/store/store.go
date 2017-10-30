@@ -1,18 +1,19 @@
 package store
 
 import (
-	"github.com/tidepool-org/platform/log"
+	"context"
+
 	"github.com/tidepool-org/platform/store"
 )
 
 type Store interface {
 	store.Store
 
-	NewSession(logger log.Logger) Session
+	NewSessionsSession() SessionsSession
 }
 
-type Session interface {
+type SessionsSession interface {
 	store.Session
 
-	DestroySessionsForUserByID(userID string) error
+	DestroySessionsForUserByID(ctx context.Context, userID string) error
 }

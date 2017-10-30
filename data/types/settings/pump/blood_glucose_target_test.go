@@ -5,20 +5,20 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/parser"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	"github.com/tidepool-org/platform/data/validator"
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
 
 func AsStringPointer(source interface{}) *string {
 	if sourceString, ok := source.(string); ok {
-		return app.StringAsPointer(sourceString)
+		return pointer.String(sourceString)
 	}
 	return nil
 }
@@ -26,19 +26,19 @@ func AsStringPointer(source interface{}) *string {
 func NewTestBloodGlucoseTarget(sourceTarget interface{}, sourceRange interface{}, sourceLow interface{}, sourceHigh interface{}, sourceStart interface{}) *pump.BloodGlucoseTarget {
 	testTarget := &pump.BloodGlucoseTarget{}
 	if value, ok := sourceTarget.(float64); ok {
-		testTarget.Target.Target = app.FloatAsPointer(value)
+		testTarget.Target.Target = pointer.Float64(value)
 	}
 	if value, ok := sourceRange.(float64); ok {
-		testTarget.Range = app.FloatAsPointer(value)
+		testTarget.Range = pointer.Float64(value)
 	}
 	if value, ok := sourceLow.(float64); ok {
-		testTarget.Low = app.FloatAsPointer(value)
+		testTarget.Low = pointer.Float64(value)
 	}
 	if value, ok := sourceHigh.(float64); ok {
-		testTarget.High = app.FloatAsPointer(value)
+		testTarget.High = pointer.Float64(value)
 	}
 	if value, ok := sourceStart.(int); ok {
-		testTarget.Start = app.IntegerAsPointer(value)
+		testTarget.Start = pointer.Int(value)
 	}
 	return testTarget
 }
@@ -46,7 +46,7 @@ func NewTestBloodGlucoseTarget(sourceTarget interface{}, sourceRange interface{}
 var _ = Describe("BloodGlucoseTarget", func() {
 	DescribeTable("ParseBloodGlucoseTarget",
 		func(sourceObject *map[string]interface{}, expectedTarget *pump.BloodGlucoseTarget, expectedErrors []*service.Error) {
-			testContext, err := context.NewStandard(log.NewNull())
+			testContext, err := context.NewStandard(null.NewLogger())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
 			testFactory, err := factory.NewStandard()
@@ -78,7 +78,7 @@ var _ = Describe("BloodGlucoseTarget", func() {
 
 	DescribeTable("ParseBloodGlucoseTargetArray",
 		func(sourceArray *[]interface{}, expectedArray *[]*pump.BloodGlucoseTarget, expectedErrors []*service.Error) {
-			testContext, err := context.NewStandard(log.NewNull())
+			testContext, err := context.NewStandard(null.NewLogger())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
 			testFactory, err := factory.NewStandard()
@@ -165,7 +165,7 @@ var _ = Describe("BloodGlucoseTarget", func() {
 	Context("with new blood glucose target", func() {
 		DescribeTable("Parse",
 			func(sourceObject *map[string]interface{}, expectedTarget *pump.BloodGlucoseTarget, expectedErrors []*service.Error) {
-				testContext, err := context.NewStandard(log.NewNull())
+				testContext, err := context.NewStandard(null.NewLogger())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(testContext).ToNot(BeNil())
 				testFactory, err := factory.NewStandard()
@@ -199,7 +199,7 @@ var _ = Describe("BloodGlucoseTarget", func() {
 
 		DescribeTable("Validate",
 			func(sourceTarget *pump.BloodGlucoseTarget, sourceUnits interface{}, expectedErrors []*service.Error) {
-				testContext, err := context.NewStandard(log.NewNull())
+				testContext, err := context.NewStandard(null.NewLogger())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(testContext).ToNot(BeNil())
 				testValidator, err := validator.NewStandard(testContext)

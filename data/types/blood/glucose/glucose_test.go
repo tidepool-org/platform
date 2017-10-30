@@ -7,14 +7,15 @@ import (
 
 	"math"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/normalizer"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/data/validator"
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/log/null"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -28,15 +29,15 @@ func NewTestGlucose(sourceTime interface{}, sourceUnits interface{}, sourceValue
 	testGlucose := &glucose.Glucose{}
 	testGlucose.Init()
 	testGlucose.Type = "testGlucose"
-	testGlucose.DeviceID = app.StringAsPointer(app.NewID())
+	testGlucose.DeviceID = pointer.String(id.New())
 	if value, ok := sourceTime.(string); ok {
-		testGlucose.Time = app.StringAsPointer(value)
+		testGlucose.Time = pointer.String(value)
 	}
 	if value, ok := sourceUnits.(string); ok {
-		testGlucose.Units = app.StringAsPointer(value)
+		testGlucose.Units = pointer.String(value)
 	}
 	if value, ok := sourceValue.(float64); ok {
-		testGlucose.Value = app.FloatAsPointer(value)
+		testGlucose.Value = pointer.Float64(value)
 	}
 	return testGlucose
 }
@@ -56,7 +57,7 @@ var _ = Describe("Glucose", func() {
 
 			DescribeTable("Validate",
 				func(sourceGlucose *glucose.Glucose, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(log.NewNull())
+					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
 					testValidator, err := validator.NewStandard(testContext)
@@ -188,7 +189,7 @@ var _ = Describe("Glucose", func() {
 					sourceGlucose.GUID = expectedKetone.GUID
 					sourceGlucose.ID = expectedKetone.ID
 					sourceGlucose.DeviceID = expectedKetone.DeviceID
-					testContext, err := context.NewStandard(log.NewNull())
+					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
 					testNormalizer, err := normalizer.NewStandard(testContext)

@@ -7,7 +7,6 @@ import (
 
 	"math"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/factory"
@@ -15,13 +14,14 @@ import (
 	"github.com/tidepool-org/platform/data/parser"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/validator"
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
 
 func AsStringPointer(source interface{}) *string {
 	if sourceString, ok := source.(string); ok {
-		return app.StringAsPointer(sourceString)
+		return pointer.String(sourceString)
 	}
 	return nil
 }
@@ -29,16 +29,16 @@ func AsStringPointer(source interface{}) *string {
 func NewTestTarget(sourceTarget interface{}, sourceRange interface{}, sourceLow interface{}, sourceHigh interface{}) *glucose.Target {
 	testTarget := &glucose.Target{}
 	if value, ok := sourceTarget.(float64); ok {
-		testTarget.Target = app.FloatAsPointer(value)
+		testTarget.Target = pointer.Float64(value)
 	}
 	if value, ok := sourceRange.(float64); ok {
-		testTarget.Range = app.FloatAsPointer(value)
+		testTarget.Range = pointer.Float64(value)
 	}
 	if value, ok := sourceLow.(float64); ok {
-		testTarget.Low = app.FloatAsPointer(value)
+		testTarget.Low = pointer.Float64(value)
 	}
 	if value, ok := sourceHigh.(float64); ok {
-		testTarget.High = app.FloatAsPointer(value)
+		testTarget.High = pointer.Float64(value)
 	}
 	return testTarget
 }
@@ -46,7 +46,7 @@ func NewTestTarget(sourceTarget interface{}, sourceRange interface{}, sourceLow 
 var _ = Describe("Target", func() {
 	DescribeTable("ParseTarget",
 		func(sourceObject *map[string]interface{}, expectedTarget *glucose.Target, expectedErrors []*service.Error) {
-			testContext, err := context.NewStandard(log.NewNull())
+			testContext, err := context.NewStandard(null.NewLogger())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
 			testFactory, err := factory.NewStandard()
@@ -84,7 +84,7 @@ var _ = Describe("Target", func() {
 	Context("with new target", func() {
 		DescribeTable("Parse",
 			func(sourceObject *map[string]interface{}, expectedTarget *glucose.Target, expectedErrors []*service.Error) {
-				testContext, err := context.NewStandard(log.NewNull())
+				testContext, err := context.NewStandard(null.NewLogger())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(testContext).ToNot(BeNil())
 				testFactory, err := factory.NewStandard()
@@ -129,7 +129,7 @@ var _ = Describe("Target", func() {
 
 		DescribeTable("Validate",
 			func(sourceTarget *glucose.Target, sourceUnits interface{}, expectedErrors []*service.Error) {
-				testContext, err := context.NewStandard(log.NewNull())
+				testContext, err := context.NewStandard(null.NewLogger())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(testContext).ToNot(BeNil())
 				testValidator, err := validator.NewStandard(testContext)
@@ -266,7 +266,7 @@ var _ = Describe("Target", func() {
 
 		DescribeTable("Normalize",
 			func(sourceTarget *glucose.Target, sourceUnits interface{}, expectedTarget *glucose.Target) {
-				testContext, err := context.NewStandard(log.NewNull())
+				testContext, err := context.NewStandard(null.NewLogger())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(testContext).ToNot(BeNil())
 				testNormalizer, err := normalizer.NewStandard(testContext)
@@ -293,11 +293,11 @@ var _ = Describe("Target", func() {
 			Expect(actualUpper).To(Equal(expectedUpper))
 		},
 		Entry("returns no range for nil", nil, -math.MaxFloat64, math.MaxFloat64),
-		Entry("returns no range for unknown units", app.StringAsPointer("unknown"), -math.MaxFloat64, math.MaxFloat64),
-		Entry("returns expected range for mmol/L units", app.StringAsPointer("mmol/L"), 0.0, 55.0),
-		Entry("returns expected range for mmol/l units", app.StringAsPointer("mmol/l"), 0.0, 55.0),
-		Entry("returns expected range for mg/dL units", app.StringAsPointer("mg/dL"), 0.0, 1000.0),
-		Entry("returns expected range for mg/dl units", app.StringAsPointer("mg/dl"), 0.0, 1000.0),
+		Entry("returns no range for unknown units", pointer.String("unknown"), -math.MaxFloat64, math.MaxFloat64),
+		Entry("returns expected range for mmol/L units", pointer.String("mmol/L"), 0.0, 55.0),
+		Entry("returns expected range for mmol/l units", pointer.String("mmol/l"), 0.0, 55.0),
+		Entry("returns expected range for mg/dL units", pointer.String("mg/dL"), 0.0, 1000.0),
+		Entry("returns expected range for mg/dl units", pointer.String("mg/dl"), 0.0, 1000.0),
 	)
 
 	DescribeTable("RangeRangeForUnits",
@@ -345,11 +345,11 @@ var _ = Describe("Target", func() {
 			Expect(actualUpper).To(Equal(expectedUpper))
 		},
 		Entry("returns no range for nil", nil, -math.MaxFloat64, math.MaxFloat64),
-		Entry("returns no range for unknown units", app.StringAsPointer("unknown"), -math.MaxFloat64, math.MaxFloat64),
-		Entry("returns expected range for mmol/L units", app.StringAsPointer("mmol/L"), 0.0, 55.0),
-		Entry("returns expected range for mmol/l units", app.StringAsPointer("mmol/l"), 0.0, 55.0),
-		Entry("returns expected range for mg/dL units", app.StringAsPointer("mg/dL"), 0.0, 1000.0),
-		Entry("returns expected range for mg/dl units", app.StringAsPointer("mg/dl"), 0.0, 1000.0),
+		Entry("returns no range for unknown units", pointer.String("unknown"), -math.MaxFloat64, math.MaxFloat64),
+		Entry("returns expected range for mmol/L units", pointer.String("mmol/L"), 0.0, 55.0),
+		Entry("returns expected range for mmol/l units", pointer.String("mmol/l"), 0.0, 55.0),
+		Entry("returns expected range for mg/dL units", pointer.String("mg/dL"), 0.0, 1000.0),
+		Entry("returns expected range for mg/dl units", pointer.String("mg/dl"), 0.0, 1000.0),
 	)
 
 	DescribeTable("HighRangeForUnits",

@@ -12,7 +12,7 @@ type ObjectParserInspector struct {
 
 func NewObjectParserInspector(parser data.ObjectParser) (*ObjectParserInspector, error) {
 	if parser == nil {
-		return nil, errors.New("parser", "parser is missing")
+		return nil, errors.New("parser is missing")
 	}
 
 	return &ObjectParserInspector{

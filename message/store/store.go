@@ -1,21 +1,22 @@
 package store
 
 import (
-	"github.com/tidepool-org/platform/log"
+	"context"
+
 	"github.com/tidepool-org/platform/store"
 )
 
 type Store interface {
 	store.Store
 
-	NewSession(logger log.Logger) Session
+	NewMessagesSession() MessagesSession
 }
 
-type Session interface {
+type MessagesSession interface {
 	store.Session
 
-	DeleteMessagesFromUser(user *User) error
-	DestroyMessagesForUserByID(userID string) error
+	DeleteMessagesFromUser(ctx context.Context, user *User) error
+	DestroyMessagesForUserByID(ctx context.Context, userID string) error
 }
 
 // TODO: Temporary until User is restructured

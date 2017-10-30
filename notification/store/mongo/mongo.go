@@ -1,65 +1,32 @@
 package mongo
 
 import (
-	"time"
-
-	"gopkg.in/mgo.v2/bson"
-
-	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/notification/store"
 	"github.com/tidepool-org/platform/store/mongo"
 )
 
-func New(logger log.Logger, config *mongo.Config) (*Store, error) {
-	baseStore, err := mongo.New(logger, config)
+type Store struct {
+	*mongo.Store
+}
+
+func New(cfg *mongo.Config, lgr log.Logger) (*Store, error) {
+	str, err := mongo.New(cfg, lgr)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Store{
-		Store: baseStore,
+		Store: str,
 	}, nil
 }
 
-type Store struct {
-	*mongo.Store
-}
-
-func (s *Store) NewSession(logger log.Logger) store.Session {
-	return &Session{
-		Session: s.Store.NewSession(logger),
+func (s *Store) NewNotificationsSession() store.NotificationsSession {
+	return &NotificationsSession{
+		Session: s.Store.NewSession("notifications"),
 	}
 }
 
-type Session struct {
+type NotificationsSession struct {
 	*mongo.Session
-}
-
-func (s *Session) DestroyNotificationsForUserByID(userID string) error {
-	if userID == "" {
-		return errors.New("mongo", "user id is missing")
-	}
-
-	if s.IsClosed() {
-		return errors.New("mongo", "session closed")
-	}
-
-	startTime := time.Now()
-
-	selector := bson.M{
-		"$or": []bson.M{
-			{"userId": userID},
-			{"creatorId": userID},
-		},
-	}
-	removeInfo, err := s.C().RemoveAll(selector)
-
-	loggerFields := log.Fields{"userId": userID, "removeInfo": removeInfo, "duration": time.Since(startTime) / time.Microsecond}
-	s.Logger().WithFields(loggerFields).WithError(err).Debug("DestroyNotificationsForUserByID")
-
-	if err != nil {
-		return errors.Wrap(err, "mongo", "unable to destroy notifications for user by id")
-	}
-	return nil
 }

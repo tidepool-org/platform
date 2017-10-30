@@ -6,9 +6,9 @@ import (
 
 	"fmt"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/test"
+	"github.com/tidepool-org/platform/id"
 )
 
 var _ = Describe("Delegate", func() {
@@ -27,7 +27,7 @@ var _ = Describe("Delegate", func() {
 			BeforeEach(func() {
 				testDeduplicatorDescriptor = data.NewDeduplicatorDescriptor()
 				Expect(testDeduplicatorDescriptor).ToNot(BeNil())
-				testName = app.NewID()
+				testName = id.New()
 				testVersion = "1.2.3"
 				testDeduplicatorDescriptor.Name = testName
 				testDeduplicatorDescriptor.Version = testVersion
@@ -51,7 +51,7 @@ var _ = Describe("Delegate", func() {
 				})
 
 				It("returns true if the deduplicator descriptor name is present, but does not match", func() {
-					Expect(testDeduplicatorDescriptor.IsRegisteredWithNamedDeduplicator(app.NewID())).To(BeFalse())
+					Expect(testDeduplicatorDescriptor.IsRegisteredWithNamedDeduplicator(id.New())).To(BeFalse())
 				})
 
 				It("returns true if the deduplicator descriptor name is present and matches", func() {
@@ -67,12 +67,12 @@ var _ = Describe("Delegate", func() {
 				})
 
 				AfterEach(func() {
-					Expect(testDeduplicator.UnusedOutputsCount()).To(Equal(0))
+					testDeduplicator.Expectations()
 				})
 
 				It("returns error if the deduplicator descriptor already has a name", func() {
 					err := testDeduplicatorDescriptor.RegisterWithDeduplicator(testDeduplicator)
-					Expect(err).To(MatchError(fmt.Sprintf(`data: deduplicator descriptor already registered with "%s"`, testName)))
+					Expect(err).To(MatchError(fmt.Sprintf("deduplicator descriptor already registered with %q", testName)))
 				})
 
 				It("returns successfully if the deduplicator descriptor does not already have a name", func() {

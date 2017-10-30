@@ -4,9 +4,10 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/pointer"
 )
 
 // TODO: Finish tests
@@ -25,53 +26,53 @@ var _ = Describe("Base", func() {
 			var deviceID string
 
 			BeforeEach(func() {
-				userID = app.NewID()
-				deviceID = app.NewID()
+				userID = id.New()
+				deviceID = id.New()
 				testBase.UserID = userID
 				testBase.DeviceID = &deviceID
-				testBase.Time = app.StringAsPointer("2016-09-06T13:45:58-07:00")
+				testBase.Time = pointer.String("2016-09-06T13:45:58-07:00")
 				testBase.Type = "testBase"
 			})
 
 			It("returns error if user id is empty", func() {
 				testBase.UserID = ""
 				identityFields, err := testBase.IdentityFields()
-				Expect(err).To(MatchError("base: user id is empty"))
+				Expect(err).To(MatchError("user id is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if device id is missing", func() {
 				testBase.DeviceID = nil
 				identityFields, err := testBase.IdentityFields()
-				Expect(err).To(MatchError("base: device id is missing"))
+				Expect(err).To(MatchError("device id is missing"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if device id is empty", func() {
-				testBase.DeviceID = app.StringAsPointer("")
+				testBase.DeviceID = pointer.String("")
 				identityFields, err := testBase.IdentityFields()
-				Expect(err).To(MatchError("base: device id is empty"))
+				Expect(err).To(MatchError("device id is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if time is missing", func() {
 				testBase.Time = nil
 				identityFields, err := testBase.IdentityFields()
-				Expect(err).To(MatchError("base: time is missing"))
+				Expect(err).To(MatchError("time is missing"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if time is empty", func() {
-				testBase.Time = app.StringAsPointer("")
+				testBase.Time = pointer.String("")
 				identityFields, err := testBase.IdentityFields()
-				Expect(err).To(MatchError("base: time is empty"))
+				Expect(err).To(MatchError("time is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if type is empty", func() {
 				testBase.Type = ""
 				identityFields, err := testBase.IdentityFields()
-				Expect(err).To(MatchError("base: type is empty"))
+				Expect(err).To(MatchError("type is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
@@ -86,7 +87,7 @@ var _ = Describe("Base", func() {
 			var testDeduplicatorDescriptor *data.DeduplicatorDescriptor
 
 			BeforeEach(func() {
-				testDeduplicatorDescriptor = &data.DeduplicatorDescriptor{Name: app.NewID(), Hash: app.NewID()}
+				testDeduplicatorDescriptor = &data.DeduplicatorDescriptor{Name: id.New(), Hash: id.New()}
 			})
 
 			Context("DeduplicatorDescriptor", func() {

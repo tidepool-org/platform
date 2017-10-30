@@ -7,10 +7,10 @@ import (
 
 func ParseDatum(parser data.ObjectParser, factory data.Factory) (*data.Datum, error) {
 	if parser == nil {
-		return nil, errors.New("parser", "parser is missing")
+		return nil, errors.New("parser is missing")
 	}
 	if factory == nil {
-		return nil, errors.New("parser", "factory is missing")
+		return nil, errors.New("factory is missing")
 	}
 
 	if parser.Object() == nil {
@@ -39,7 +39,7 @@ func ParseDatum(parser data.ObjectParser, factory data.Factory) (*data.Datum, er
 
 func ParseDatumArray(parser data.ArrayParser) (*[]data.Datum, error) {
 	if parser == nil {
-		return nil, errors.New("parser", "parser is missing")
+		return nil, errors.New("parser is missing")
 	}
 
 	array := parser.Array()

@@ -7,8 +7,8 @@ import (
 
 	"github.com/urfave/cli"
 
+	"github.com/tidepool-org/platform/application/version"
 	"github.com/tidepool-org/platform/tools/tapi/api"
-	"github.com/tidepool-org/platform/version"
 )
 
 var EnvironmentEndpointMap = map[string]string{
@@ -22,7 +22,7 @@ var EnvironmentEndpointMap = map[string]string{
 var _API *api.API
 
 func InitializeApplication() (*cli.App, error) {
-	versionReporter, err := version.NewDefaultReporter()
+	versionReporter, err := version.NewReporter()
 	if err != nil {
 		return nil, err
 	}

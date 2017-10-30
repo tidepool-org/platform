@@ -1,8 +1,9 @@
 package test
 
 import (
-	"github.com/tidepool-org/platform/app"
+	"github.com/onsi/gomega"
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/test"
 )
 
 type IdentityFieldsOutput struct {
@@ -11,7 +12,7 @@ type IdentityFieldsOutput struct {
 }
 
 type Datum struct {
-	ID                                   string
+	*test.Mock
 	InitInvocations                      int
 	MetaInvocations                      int
 	MetaOutputs                          []interface{}
@@ -26,10 +27,10 @@ type Datum struct {
 	NormalizeOutputs                     []error
 	IdentityFieldsInvocations            int
 	IdentityFieldsOutputs                []IdentityFieldsOutput
+	PayloadInvocations                   int
+	PayloadOutputs                       []*map[string]interface{}
 	SetUserIDInvocations                 int
 	SetUserIDInputs                      []string
-	SetGroupIDInvocations                int
-	SetGroupIDInputs                     []string
 	SetDatasetIDInvocations              int
 	SetDatasetIDInputs                   []string
 	SetActiveInvocations                 int
@@ -53,7 +54,7 @@ type Datum struct {
 
 func NewDatum() *Datum {
 	return &Datum{
-		ID: app.NewID(),
+		Mock: test.NewMock(),
 	}
 }
 
@@ -64,9 +65,7 @@ func (d *Datum) Init() {
 func (d *Datum) Meta() interface{} {
 	d.MetaInvocations++
 
-	if len(d.MetaOutputs) == 0 {
-		panic("Unexpected invocation of Meta on Datum")
-	}
+	gomega.Expect(d.MetaOutputs).ToNot(gomega.BeEmpty())
 
 	output := d.MetaOutputs[0]
 	d.MetaOutputs = d.MetaOutputs[1:]
@@ -78,9 +77,7 @@ func (d *Datum) Parse(parser data.ObjectParser) error {
 
 	d.ParseInputs = append(d.ParseInputs, parser)
 
-	if len(d.ParseOutputs) == 0 {
-		panic("Unexpected invocation of Parse on Datum")
-	}
+	gomega.Expect(d.ParseOutputs).ToNot(gomega.BeEmpty())
 
 	output := d.ParseOutputs[0]
 	d.ParseOutputs = d.ParseOutputs[1:]
@@ -92,9 +89,7 @@ func (d *Datum) Validate(validator data.Validator) error {
 
 	d.ValidateInputs = append(d.ValidateInputs, validator)
 
-	if len(d.ValidateOutputs) == 0 {
-		panic("Unexpected invocation of Validate on Datum")
-	}
+	gomega.Expect(d.ValidateOutputs).ToNot(gomega.BeEmpty())
 
 	output := d.ValidateOutputs[0]
 	d.ValidateOutputs = d.ValidateOutputs[1:]
@@ -106,9 +101,7 @@ func (d *Datum) Normalize(normalizer data.Normalizer) error {
 
 	d.NormalizeInputs = append(d.NormalizeInputs, normalizer)
 
-	if len(d.NormalizeOutputs) == 0 {
-		panic("Unexpected invocation of Normalize on Datum")
-	}
+	gomega.Expect(d.NormalizeOutputs).ToNot(gomega.BeEmpty())
 
 	output := d.NormalizeOutputs[0]
 	d.NormalizeOutputs = d.NormalizeOutputs[1:]
@@ -118,25 +111,27 @@ func (d *Datum) Normalize(normalizer data.Normalizer) error {
 func (d *Datum) IdentityFields() ([]string, error) {
 	d.IdentityFieldsInvocations++
 
-	if len(d.IdentityFieldsOutputs) == 0 {
-		panic("Unexpected invocation of IdentityFields on Datum")
-	}
+	gomega.Expect(d.IdentityFieldsOutputs).ToNot(gomega.BeEmpty())
 
 	output := d.IdentityFieldsOutputs[0]
 	d.IdentityFieldsOutputs = d.IdentityFieldsOutputs[1:]
 	return output.IdentityFields, output.Error
 }
 
+func (d *Datum) GetPayload() *map[string]interface{} {
+	d.PayloadInvocations++
+
+	gomega.Expect(d.PayloadOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.PayloadOutputs[0]
+	d.PayloadOutputs = d.PayloadOutputs[1:]
+	return output
+}
+
 func (d *Datum) SetUserID(userID string) {
 	d.SetUserIDInvocations++
 
 	d.SetUserIDInputs = append(d.SetUserIDInputs, userID)
-}
-
-func (d *Datum) SetGroupID(groupID string) {
-	d.SetGroupIDInvocations++
-
-	d.SetGroupIDInputs = append(d.SetGroupIDInputs, groupID)
 }
 
 func (d *Datum) SetDatasetID(datasetID string) {
@@ -199,10 +194,11 @@ func (d *Datum) SetDeduplicatorDescriptor(deduplicatorDescriptor *data.Deduplica
 	d.DeduplicatorDescriptorValue = deduplicatorDescriptor
 }
 
-func (d *Datum) UnusedOutputsCount() int {
-	return len(d.MetaOutputs) +
-		len(d.ParseOutputs) +
-		len(d.ValidateOutputs) +
-		len(d.NormalizeOutputs) +
-		len(d.IdentityFieldsOutputs)
+func (d *Datum) Expectations() {
+	d.Mock.Expectations()
+	gomega.Expect(d.MetaOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.ParseOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.ValidateOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.NormalizeOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.IdentityFieldsOutputs).To(gomega.BeEmpty())
 }

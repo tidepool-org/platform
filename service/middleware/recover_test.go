@@ -7,6 +7,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/service/middleware"
+	testRest "github.com/tidepool-org/platform/test/rest"
 )
 
 var _ = Describe("Recover", func() {
@@ -18,50 +19,50 @@ var _ = Describe("Recover", func() {
 
 	Context("with recover middleware, handler, request, and response", func() {
 		var recoverMiddleware *middleware.Recover
-		var handler rest.HandlerFunc
-		var request *rest.Request
-		var response *TestResponseWriter
+		var req *rest.Request
+		var res *testRest.ResponseWriter
+		var hndlr rest.HandlerFunc
 
 		BeforeEach(func() {
 			var err error
 			recoverMiddleware, err = middleware.NewRecover()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(recoverMiddleware).ToNot(BeNil())
-			handler = func(response rest.ResponseWriter, request *rest.Request) { panic("test-panic") }
-			request = NewTestRequest()
-			response = NewTestResponseWriter()
+			req = testRest.NewRequest()
+			res = testRest.NewResponseWriter()
+			hndlr = func(res rest.ResponseWriter, req *rest.Request) { panic("test-panic") }
 		})
 
 		It("is successful", func() {
-			response.WriteJSONOutputs = []error{nil}
-			recoverMiddleware.MiddlewareFunc(handler)(response, request)
-			Expect(response.WriteHeaderInputs).To(HaveLen(1))
-			Expect(response.WriteJSONInputs).To(HaveLen(1))
+			res.WriteJsonOutputs = []error{nil}
+			recoverMiddleware.MiddlewareFunc(hndlr)(res, req)
+			Expect(res.WriteHeaderInputs).To(Equal([]int{500}))
+			Expect(res.WriteJsonInputs).To(HaveLen(1))
 		})
 
 		It("does nothing if the handler is nil", func() {
-			recoverMiddleware.MiddlewareFunc(nil)(response, request)
-			Expect(response.WriteHeaderInputs).To(BeEmpty())
-			Expect(response.WriteJSONInputs).To(BeEmpty())
+			recoverMiddleware.MiddlewareFunc(nil)(res, req)
+			Expect(res.WriteHeaderInputs).To(BeEmpty())
+			Expect(res.WriteJsonInputs).To(BeEmpty())
 		})
 
 		It("does nothing if the response is nil", func() {
-			recoverMiddleware.MiddlewareFunc(handler)(nil, request)
-			Expect(response.WriteHeaderInputs).To(BeEmpty())
-			Expect(response.WriteJSONInputs).To(BeEmpty())
+			recoverMiddleware.MiddlewareFunc(hndlr)(nil, req)
+			Expect(res.WriteHeaderInputs).To(BeEmpty())
+			Expect(res.WriteJsonInputs).To(BeEmpty())
 		})
 
 		It("does nothing if the request is nil", func() {
-			recoverMiddleware.MiddlewareFunc(nil)(response, nil)
-			Expect(response.WriteHeaderInputs).To(BeEmpty())
-			Expect(response.WriteJSONInputs).To(BeEmpty())
+			recoverMiddleware.MiddlewareFunc(hndlr)(res, nil)
+			Expect(res.WriteHeaderInputs).To(BeEmpty())
+			Expect(res.WriteJsonInputs).To(BeEmpty())
 		})
 
 		It("does nothing if there is no panic", func() {
-			handler = func(response rest.ResponseWriter, request *rest.Request) {}
-			recoverMiddleware.MiddlewareFunc(handler)(response, request)
-			Expect(response.WriteHeaderInputs).To(BeEmpty())
-			Expect(response.WriteJSONInputs).To(BeEmpty())
+			hndlr = func(res rest.ResponseWriter, req *rest.Request) {}
+			recoverMiddleware.MiddlewareFunc(hndlr)(res, req)
+			Expect(res.WriteHeaderInputs).To(BeEmpty())
+			Expect(res.WriteJsonInputs).To(BeEmpty())
 		})
 	})
 })

@@ -1,18 +1,28 @@
 package store
 
 import (
-	"github.com/tidepool-org/platform/log"
+	"context"
+
 	"github.com/tidepool-org/platform/store"
+	"github.com/tidepool-org/platform/task"
 )
 
 type Store interface {
 	store.Store
 
-	NewSession(logger log.Logger) Session
+	NewTaskSession() TaskSession
 }
 
-type Session interface {
+type TaskSession interface {
 	store.Session
+	task.TaskAccessor
 
-	DestroyTasksForUserByID(userID string) error
+	UpdateFromState(ctx context.Context, tsk *task.Task, state string) (*task.Task, error)
+	IteratePending(ctx context.Context) TaskIterator
+}
+
+type TaskIterator interface {
+	Next(tsk *task.Task) bool
+	Close() error
+	Error() error
 }

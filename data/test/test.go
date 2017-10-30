@@ -9,7 +9,7 @@ import (
 	"github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
 	"github.com/tidepool-org/platform/data/validator"
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -49,7 +49,7 @@ func checkErrorsFromParseValidateNormalize(object map[string]interface{}, field 
 		delete(object, field)
 	}
 
-	standardContext, err := context.NewStandard(log.NewNull())
+	standardContext, err := context.NewStandard(null.NewLogger())
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	gomega.Expect(standardContext).ToNot(gomega.BeNil())
 

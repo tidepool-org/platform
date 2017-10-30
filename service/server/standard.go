@@ -2,7 +2,6 @@ package server
 
 import (
 	"net/http"
-	"time"
 
 	graceful "gopkg.in/tylerb/graceful.v1"
 
@@ -17,42 +16,43 @@ type Standard struct {
 	config *Config
 }
 
-func NewStandard(logger log.Logger, api service.API, config *Config) (*Standard, error) {
-	if logger == nil {
-		return nil, errors.New("server", "logger is missing")
+func NewStandard(cfg *Config, lgr log.Logger, api service.API) (*Standard, error) {
+	if lgr == nil {
+		return nil, errors.New("logger is missing")
 	}
 	if api == nil {
-		return nil, errors.New("server", "api is missing")
+		return nil, errors.New("api is missing")
 	}
-	if config == nil {
-		return nil, errors.New("server", "config is missing")
+	if cfg == nil {
+		return nil, errors.New("config is missing")
 	}
 
-	config = config.Clone()
-	if err := config.Validate(); err != nil {
-		return nil, errors.Wrap(err, "server", "config is invalid")
+	if err := cfg.Validate(); err != nil {
+		return nil, errors.Wrap(err, "config is invalid")
 	}
 
 	return &Standard{
-		logger: logger,
+		logger: lgr,
 		api:    api,
-		config: config,
+		config: cfg,
 	}, nil
 }
 
 func (s *Standard) Serve() error {
 	server := &graceful.Server{
-		Timeout: time.Duration(s.config.Timeout) * time.Second,
 		Server: &http.Server{
 			Addr:    s.config.Address,
 			Handler: s.api.Handler(),
 		},
+		Timeout: s.config.Timeout,
 	}
 
 	var err error
-	if s.config.TLS != nil {
-		err = server.ListenAndServeTLS(s.config.TLS.CertificateFile, s.config.TLS.KeyFile)
+	if s.config.TLS {
+		s.logger.Infof("Serving HTTPS at %s", s.config.Address)
+		err = server.ListenAndServeTLS(s.config.TLSCertificateFile, s.config.TLSKeyFile)
 	} else {
+		s.logger.Infof("Serving HTTP at %s", s.config.Address)
 		err = server.ListenAndServe()
 	}
 	return err

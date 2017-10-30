@@ -6,14 +6,14 @@ import (
 
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/validator"
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/service"
 )
 
 var _ = Describe("Standard", func() {
 	It("NewStandard returns an error if context is nil", func() {
 		standard, err := validator.NewStandard(nil)
-		Expect(err).To(MatchError("validator: context is missing"))
+		Expect(err).To(MatchError("context is missing"))
 		Expect(standard).To(BeNil())
 	})
 
@@ -23,7 +23,7 @@ var _ = Describe("Standard", func() {
 
 		BeforeEach(func() {
 			var err error
-			standardContext, err = context.NewStandard(log.NewNull())
+			standardContext, err = context.NewStandard(null.NewLogger())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(standardContext).ToNot(BeNil())
 			standard, err = validator.NewStandard(standardContext)

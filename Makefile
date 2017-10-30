@@ -9,7 +9,7 @@ endif
 VERSION_BASE:=$(VERSION_BASE:v%=%)
 VERSION_SHORT_COMMIT:=$(shell git rev-parse --short HEAD)
 VERSION_FULL_COMMIT:=$(shell git rev-parse HEAD)
-VERSION_PACKAGE:=$(REPOSITORY)/version
+VERSION_PACKAGE:=$(REPOSITORY)/application/version
 
 GO_LD_FLAGS:=-ldflags "-X $(VERSION_PACKAGE).Base=$(VERSION_BASE) -X $(VERSION_PACKAGE).ShortCommit=$(VERSION_SHORT_COMMIT) -X $(VERSION_PACKAGE).FullCommit=$(VERSION_FULL_COMMIT)"
 
@@ -80,6 +80,12 @@ format: check-environment
 		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec gofmt -d -e -s {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
+format-write: check-environment
+	@echo "gofmt -e -s -w"
+	@cd $(ROOT_DIRECTORY) && \
+		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec gofmt -e -s -w {} \; 2>&1` && \
+		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
+
 imports: goimports
 	@echo "goimports -d -e"
 	@cd $(ROOT_DIRECTORY) && \
@@ -117,44 +123,28 @@ build: check-environment
 
 ci-build: pre-build build
 
-start: start-dataservices start-userservices
-
-start-dataservices: stop-dataservices log
-	@cd $(ROOT_DIRECTORY) && _bin/dataservices/dataservices >> _log/service.log 2>&1 &
-
-start-userservices: stop-userservices log
-	@cd $(ROOT_DIRECTORY) && _bin/userservices/userservices >> _log/service.log 2>&1 &
-
-stop: stop-dataservices stop-userservices
-
-stop-dataservices: check-environment
-	@killall -v dataservices &> /dev/null || exit 0
-
-stop-userservices: check-environment
-	@killall -v userservices &> /dev/null || exit 0
-
 test: ginkgo
 	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r $(TEST)"
-	@cd $(ROOT_DIRECTORY) && TIDEPOOL_ENV=test ginkgo -requireSuite -slowSpecThreshold=10 -r $(TEST)
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 -r $(TEST)
 
 ci-test: ginkgo
 	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing $(TEST)"
-	@cd $(ROOT_DIRECTORY) && TIDEPOOL_ENV=test ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing $(TEST)
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing $(TEST)
 
 watch: ginkgo
-	@echo "ginkgo watch -requireSuite -slowSpecThreshold=10 -r -notify $(WATCH)"
-	@cd $(ROOT_DIRECTORY) && TIDEPOOL_ENV=test ginkgo watch -requireSuite -slowSpecThreshold=10 -r -notify $(WATCH)
+	@echo "ginkgo watch -requireSuite -slowSpecThreshold=10 -r $(WATCH)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch -requireSuite -slowSpecThreshold=10 -r $(WATCH)
 
-deploy: clean-deploy deploy-dataservices deploy-userservices deploy-tools
+deploy: clean-deploy deploy-services deploy-migrations deploy-tools
 
-deploy-dataservices:
-	@$(MAKE) bundle-deploy DEPLOY=dataservices
+deploy-services:
+	@for SERVICE in $(shell ls -1 $(ROOT_DIRECTORY)/_bin/services); do $(MAKE) bundle-deploy DEPLOY=$${SERVICE} SOURCE=services/$${SERVICE}; done
 
-deploy-userservices:
-	@$(MAKE) bundle-deploy DEPLOY=userservices
+deploy-migrations:
+	@$(MAKE) bundle-deploy DEPLOY=migrations SOURCE=migrations
 
 deploy-tools:
-	@$(MAKE) bundle-deploy DEPLOY=tools
+	@$(MAKE) bundle-deploy DEPLOY=tools SOURCE=tools
 
 ci-deploy: ci-build ci-test deploy
 
@@ -164,9 +154,10 @@ ifdef TRAVIS_TAG
 	@cd $(ROOT_DIRECTORY) && \
 		DEPLOY_TAG=$(DEPLOY)-$(TRAVIS_TAG) && \
 		DEPLOY_DIR=deploy/$(DEPLOY)/$${DEPLOY_TAG} && \
-		mkdir -p $${DEPLOY_DIR}/ && \
-		cp -r _deploy/$(DEPLOY)/* $${DEPLOY_DIR}/ && \
-		for DIR in _bin _config; do if [ -d "$${DIR}/$(DEPLOY)" ]; then mkdir -p $${DEPLOY_DIR}/$${DIR}; cp -r $${DIR}/$(DEPLOY)/ $${DEPLOY_DIR}/$${DIR}/$(DEPLOY)/; fi; done && \
+		mkdir -p $${DEPLOY_DIR}/_bin/$(SOURCE) && \
+		cp -R _bin/$(SOURCE)/* $${DEPLOY_DIR}/_bin/$(SOURCE)/ && \
+		find $(SOURCE) -type f -name 'README.md' -exec cp {} $${DEPLOY_DIR}/_bin/{} \; && \
+		cp $(SOURCE)/start.sh $${DEPLOY_DIR}/ && \
 		tar -c -z -f $${DEPLOY_DIR}.tar.gz -C deploy/$(DEPLOY)/ $${DEPLOY_TAG}
 endif
 endif
@@ -174,20 +165,19 @@ endif
 clean: clean-bin clean-cover clean-deploy
 	@cd $(ROOT_DIRECTORY) && rm -rf _log _tmp
 
-clean-bin: stop
+clean-bin:
 	@cd $(ROOT_DIRECTORY) && rm -rf _bin
 
 clean-cover:
 	@cd $(ROOT_DIRECTORY) && find . -type f -name "*.coverprofile" -delete
 
+clean-debug:
+	@cd $(ROOT_DIRECTORY) && find . -type f -name "debug" -delete
+
 clean-deploy:
 	@cd $(ROOT_DIRECTORY) && rm -rf deploy
 
 clean-all: clean
-
-git-hooks:
-	@echo "Installing git hooks..."
-	@cd $(ROOT_DIRECTORY) && cp _tools/git/hooks/* .git/hooks/
 
 pre-commit: format imports vet lint
 
@@ -222,6 +212,9 @@ bootstrap:
 	@$(MAKE) gopath-implode
 
 .PHONY: default log tmp check-gopath check-environment \
-	godep goimports golint gocode godef oracle ginkgo buildable editable \
-	format imports vet vet-ignore lint lint-ignore pre-build build-list build ci-build ci-deploy start stop test ci-test watch clean clean-cover clean-all git-hooks pre-commit \
+	godep goimports golint gocode godef ginkgo buildable editable \
+	format format-write imports vet vet-ignore lint lint-ignore pre-build build-list build ci-build \
+	test ci-test watch \
+	deploy deploy-services deploy-migrations deploy-tools ci-deploy bundle-deploy \
+	clean clean-bin clean-cover clean-deploy clean-all pre-commit \
 	gopath-implode dependencies-implode bootstrap-implode bootstrap-dependencies bootstrap-save bootstrap

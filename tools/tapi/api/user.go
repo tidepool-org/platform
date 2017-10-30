@@ -162,7 +162,7 @@ func (a *API) DeleteUserByID(userID string, password string) error {
 		userDelete.Password = &password
 	}
 
-	return a.asEmpty(a.request("DELETE", a.joinPaths("userservices", "v1", "users", userID),
+	return a.asEmpty(a.request("DELETE", a.joinPaths("v1", "users", userID),
 		requestFuncs{a.addSessionToken(), a.addObjectBody(userDelete)},
 		responseFuncs{a.expectStatusCode(http.StatusOK)}))
 }
@@ -213,7 +213,7 @@ func NewAddRolesUserUpdater(roles []string) (*AddRolesUserUpdater, error) {
 	return &AddRolesUserUpdater{Roles: roles}, nil
 }
 
-func (u *AddRolesUserUpdater) Update(updateUser *user.User, userUpdates *UserUpdates) error {
+func (a *AddRolesUserUpdater) Update(updateUser *user.User, userUpdates *UserUpdates) error {
 	var originalRoles *[]string
 	if userUpdates.Roles != nil {
 		originalRoles = userUpdates.Roles
@@ -223,7 +223,7 @@ func (u *AddRolesUserUpdater) Update(updateUser *user.User, userUpdates *UserUpd
 		originalRoles = &[]string{}
 	}
 
-	addRoles := subtractStringArray(u.Roles, *originalRoles)
+	addRoles := subtractStringArray(a.Roles, *originalRoles)
 	if len(addRoles) == 0 {
 		return nil
 	}
@@ -241,7 +241,7 @@ func NewRemoveRolesUserUpdater(roles []string) (*RemoveRolesUserUpdater, error) 
 	return &RemoveRolesUserUpdater{Roles: roles}, nil
 }
 
-func (u *RemoveRolesUserUpdater) Update(updateUser *user.User, userUpdates *UserUpdates) error {
+func (r *RemoveRolesUserUpdater) Update(updateUser *user.User, userUpdates *UserUpdates) error {
 	var originalRoles *[]string
 	if userUpdates.Roles != nil {
 		originalRoles = userUpdates.Roles
@@ -251,7 +251,7 @@ func (u *RemoveRolesUserUpdater) Update(updateUser *user.User, userUpdates *User
 		return nil
 	}
 
-	updatedRoles := subtractStringArray(*originalRoles, u.Roles)
+	updatedRoles := subtractStringArray(*originalRoles, r.Roles)
 	if len(updatedRoles) == len(*originalRoles) {
 		return nil
 	}

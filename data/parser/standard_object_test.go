@@ -9,7 +9,7 @@ import (
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/parser"
 	testData "github.com/tidepool-org/platform/data/test"
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -19,7 +19,7 @@ var _ = Describe("StandardObject", func() {
 
 	BeforeEach(func() {
 		var err error
-		standardContext, err = context.NewStandard(log.NewNull())
+		standardContext, err = context.NewStandard(null.NewLogger())
 		Expect(err).ToNot(HaveOccurred())
 		Expect(standardContext).ToNot(BeNil())
 		testFactory = &TestFactory{}
@@ -27,13 +27,13 @@ var _ = Describe("StandardObject", func() {
 
 	It("NewStandardObject returns an error if context is nil", func() {
 		standard, err := parser.NewStandardObject(nil, testFactory, &map[string]interface{}{}, parser.IgnoreNotParsed)
-		Expect(err).To(MatchError("parser: context is missing"))
+		Expect(err).To(MatchError("context is missing"))
 		Expect(standard).To(BeNil())
 	})
 
 	It("NewStandardObject returns an error if factory is nil", func() {
 		standard, err := parser.NewStandardObject(standardContext, nil, &map[string]interface{}{}, parser.IgnoreNotParsed)
-		Expect(err).To(MatchError("parser: factory is missing"))
+		Expect(err).To(MatchError("factory is missing"))
 		Expect(standard).To(BeNil())
 	})
 

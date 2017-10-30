@@ -5,30 +5,30 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/parser"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/basal"
 	"github.com/tidepool-org/platform/data/validator"
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/null"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
 
 func NewTestSuppressed(sourceType interface{}, sourceDeliveryType interface{}, sourceRate interface{}, sourceScheduleName interface{}, sourceAnnotations *[]interface{}, sourceSuppressed *basal.Suppressed) *basal.Suppressed {
 	testSuppressed := &basal.Suppressed{}
 	if value, ok := sourceType.(string); ok {
-		testSuppressed.Type = app.StringAsPointer(value)
+		testSuppressed.Type = pointer.String(value)
 	}
 	if value, ok := sourceDeliveryType.(string); ok {
-		testSuppressed.DeliveryType = app.StringAsPointer(value)
+		testSuppressed.DeliveryType = pointer.String(value)
 	}
 	if value, ok := sourceRate.(float64); ok {
-		testSuppressed.Rate = app.FloatAsPointer(value)
+		testSuppressed.Rate = pointer.Float64(value)
 	}
 	if value, ok := sourceScheduleName.(string); ok {
-		testSuppressed.ScheduleName = app.StringAsPointer(value)
+		testSuppressed.ScheduleName = pointer.String(value)
 	}
 	testSuppressed.Annotations = sourceAnnotations
 	testSuppressed.Suppressed = sourceSuppressed
@@ -38,7 +38,7 @@ func NewTestSuppressed(sourceType interface{}, sourceDeliveryType interface{}, s
 var _ = Describe("Target", func() {
 	DescribeTable("ParseSuppressed",
 		func(sourceObject *map[string]interface{}, expectedSuppressed *basal.Suppressed, expectedErrors []*service.Error) {
-			testContext, err := context.NewStandard(log.NewNull())
+			testContext, err := context.NewStandard(null.NewLogger())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testContext).ToNot(BeNil())
 			testFactory, err := factory.NewStandard()
@@ -86,7 +86,7 @@ var _ = Describe("Target", func() {
 	Context("with new suppressed", func() {
 		DescribeTable("Parse",
 			func(sourceObject *map[string]interface{}, expectedSuppressed *basal.Suppressed, expectedErrors []*service.Error) {
-				testContext, err := context.NewStandard(log.NewNull())
+				testContext, err := context.NewStandard(null.NewLogger())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(testContext).ToNot(BeNil())
 				testFactory, err := factory.NewStandard()
@@ -184,7 +184,7 @@ var _ = Describe("Target", func() {
 
 		DescribeTable("Validate",
 			func(sourceSuppressed *basal.Suppressed, allowedDeliveryTypes []string, expectedErrors []*service.Error) {
-				testContext, err := context.NewStandard(log.NewNull())
+				testContext, err := context.NewStandard(null.NewLogger())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(testContext).ToNot(BeNil())
 				testValidator, err := validator.NewStandard(testContext)
@@ -376,6 +376,31 @@ var _ = Describe("Target", func() {
 					testData.ComposeError(service.ErrorValueEmpty(), "/suppressed/scheduleName", nil),
 					testData.ComposeError(service.ErrorValueExists(), "/suppressed/suppressed", nil),
 				}),
+		)
+	})
+
+	Context("HasDeliveryTypeOneOf", func() {
+		var suppressed *basal.Suppressed
+
+		BeforeEach(func() {
+			suppressed = basal.NewSuppressed()
+		})
+
+		It("returns false if suppressed delivery type is nil", func() {
+			Expect(suppressed.HasDeliveryTypeOneOf([]string{"one", "two", "three"})).To(BeFalse())
+		})
+
+		DescribeTable("returns expected result when",
+			func(suppressedDeliveryType string, deliveryTypes []string, expectedResult bool) {
+				suppressed.DeliveryType = pointer.String(suppressedDeliveryType)
+				Expect(suppressed.HasDeliveryTypeOneOf(deliveryTypes)).To(Equal(expectedResult))
+			},
+			Entry("is nil delivery type string array", "two", nil, false),
+			Entry("is single delivery type string array", "two", []string{}, false),
+			Entry("is single invalid delivery type string array", "two", []string{"one"}, false),
+			Entry("is single valid delivery type string array", "two", []string{"two"}, true),
+			Entry("is multiple invalid delivery type string array", "two", []string{"one", "three"}, false),
+			Entry("is multiple invalid and valid delivery type string array", "two", []string{"one", "two", "three", "four"}, true),
 		)
 	})
 })

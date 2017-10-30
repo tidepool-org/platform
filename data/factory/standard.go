@@ -4,6 +4,7 @@ import (
 	"sort"
 
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/types/activity/physical"
 	"github.com/tidepool-org/platform/data/types/basal"
 	"github.com/tidepool-org/platform/data/types/basal/scheduled"
 	"github.com/tidepool-org/platform/data/types/basal/suspend"
@@ -23,7 +24,10 @@ import (
 	"github.com/tidepool-org/platform/data/types/device/reservoirchange"
 	"github.com/tidepool-org/platform/data/types/device/status"
 	"github.com/tidepool-org/platform/data/types/device/timechange"
+	"github.com/tidepool-org/platform/data/types/food"
+	"github.com/tidepool-org/platform/data/types/insulin"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
+	"github.com/tidepool-org/platform/data/types/state/reported"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 )
@@ -42,7 +46,7 @@ func NewNewFuncWithFunc(datumFunc func() data.Datum) NewFunc {
 
 	return func(inspector data.Inspector) (data.Datum, error) {
 		if inspector == nil {
-			return nil, errors.New("factory", "inspector is missing")
+			return nil, errors.New("inspector is missing")
 		}
 
 		return datumFunc(), nil
@@ -58,7 +62,7 @@ func NewNewFuncWithKeyAndMap(key string, newFuncMap NewFuncMap) NewFunc {
 
 	return func(inspector data.Inspector) (data.Datum, error) {
 		if inspector == nil {
-			return nil, errors.New("factory", "inspector is missing")
+			return nil, errors.New("inspector is missing")
 		}
 
 		value := inspector.GetProperty(key)
@@ -78,7 +82,7 @@ func NewNewFuncWithKeyAndMap(key string, newFuncMap NewFuncMap) NewFunc {
 	}
 }
 
-// TODO: Consider injecting the entire map from dataservices
+// TODO: Consider injecting the entire map from the data service
 
 func NewStandard() (*Standard, error) {
 	var basalNewFuncMap = NewFuncMap{
@@ -108,8 +112,12 @@ func NewStandard() (*Standard, error) {
 		calculator.Type():    NewNewFuncWithFunc(calculator.NewDatum),
 		continuous.Type():    NewNewFuncWithFunc(continuous.NewDatum),
 		device.Type():        NewNewFuncWithKeyAndMap("subType", deviceNewFuncMap),
+		food.Type():          NewNewFuncWithFunc(food.NewDatum),
+		insulin.Type():       NewNewFuncWithFunc(insulin.NewDatum),
 		ketone.Type():        NewNewFuncWithFunc(ketone.NewDatum),
+		physical.Type():      NewNewFuncWithFunc(physical.NewDatum),
 		pump.Type():          NewNewFuncWithFunc(pump.NewDatum),
+		reported.Type():      NewNewFuncWithFunc(reported.NewDatum),
 		selfmonitored.Type(): NewNewFuncWithFunc(selfmonitored.NewDatum),
 		upload.Type():        NewNewFuncWithFunc(upload.NewDatum),
 	}

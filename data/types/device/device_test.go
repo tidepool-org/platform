@@ -5,7 +5,6 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/app"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/normalizer"
@@ -13,7 +12,9 @@ import (
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/validator"
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/log/null"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -27,9 +28,9 @@ func NewMeta(subType string) interface{} {
 func NewTestDevice(sourceTime interface{}, sourceSubType interface{}) *device.Device {
 	testDevice := &device.Device{}
 	testDevice.Init()
-	testDevice.DeviceID = app.StringAsPointer(app.NewID())
+	testDevice.DeviceID = pointer.String(id.New())
 	if value, ok := sourceTime.(string); ok {
-		testDevice.Time = app.StringAsPointer(value)
+		testDevice.Time = pointer.String(value)
 	}
 	if value, ok := sourceSubType.(string); ok {
 		testDevice.SubType = value
@@ -80,7 +81,7 @@ var _ = Describe("Device", func() {
 
 			DescribeTable("Parse",
 				func(sourceObject *map[string]interface{}, expectedDevice *device.Device, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(log.NewNull())
+					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
 					testFactory, err := factory.NewStandard()
@@ -130,7 +131,7 @@ var _ = Describe("Device", func() {
 
 			DescribeTable("Validate",
 				func(sourceDevice *device.Device, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(log.NewNull())
+					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
 					testValidator, err := validator.NewStandard(testContext)
@@ -165,7 +166,7 @@ var _ = Describe("Device", func() {
 
 			Context("Normalize", func() {
 				It("succeeds", func() {
-					testContext, err := context.NewStandard(log.NewNull())
+					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
 					testNormalizer, err := normalizer.NewStandard(testContext)
@@ -180,25 +181,25 @@ var _ = Describe("Device", func() {
 				var deviceID string
 
 				BeforeEach(func() {
-					userID = app.NewID()
-					deviceID = app.NewID()
+					userID = id.New()
+					deviceID = id.New()
 					testDevice.UserID = userID
 					testDevice.DeviceID = &deviceID
-					testDevice.Time = app.StringAsPointer("2016-09-06T13:45:58-07:00")
+					testDevice.Time = pointer.String("2016-09-06T13:45:58-07:00")
 					testDevice.SubType = "alarm"
 				})
 
 				It("returns error if user id is empty", func() {
 					testDevice.UserID = ""
 					identityFields, err := testDevice.IdentityFields()
-					Expect(err).To(MatchError("base: user id is empty"))
+					Expect(err).To(MatchError("user id is empty"))
 					Expect(identityFields).To(BeEmpty())
 				})
 
 				It("returns error if sub type is empty", func() {
 					testDevice.SubType = ""
 					identityFields, err := testDevice.IdentityFields()
-					Expect(err).To(MatchError("device: sub type is empty"))
+					Expect(err).To(MatchError("sub type is empty"))
 					Expect(identityFields).To(BeEmpty())
 				})
 

@@ -102,8 +102,8 @@ func (s *StandardFloat) InRange(lowerLimit float64, upperLimit float64) data.Flo
 
 func (s *StandardFloat) OneOf(allowedValues []float64) data.Float {
 	if s.value != nil {
-		for _, possibleValue := range allowedValues {
-			if possibleValue == *s.value {
+		for _, allowedValue := range allowedValues {
+			if allowedValue == *s.value {
 				return s
 			}
 		}
@@ -114,8 +114,8 @@ func (s *StandardFloat) OneOf(allowedValues []float64) data.Float {
 
 func (s *StandardFloat) NotOneOf(disallowedValues []float64) data.Float {
 	if s.value != nil {
-		for _, possibleValue := range disallowedValues {
-			if possibleValue == *s.value {
+		for _, disallowedValue := range disallowedValues {
+			if disallowedValue == *s.value {
 				s.context.AppendError(s.reference, service.ErrorValueFloatOneOf(*s.value, disallowedValues))
 				return s
 			}

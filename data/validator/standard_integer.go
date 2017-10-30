@@ -102,8 +102,8 @@ func (s *StandardInteger) InRange(lowerLimit int, upperLimit int) data.Integer {
 
 func (s *StandardInteger) OneOf(allowedValues []int) data.Integer {
 	if s.value != nil {
-		for _, possibleValue := range allowedValues {
-			if possibleValue == *s.value {
+		for _, allowedValue := range allowedValues {
+			if allowedValue == *s.value {
 				return s
 			}
 		}
@@ -114,8 +114,8 @@ func (s *StandardInteger) OneOf(allowedValues []int) data.Integer {
 
 func (s *StandardInteger) NotOneOf(disallowedValues []int) data.Integer {
 	if s.value != nil {
-		for _, possibleValue := range disallowedValues {
-			if possibleValue == *s.value {
+		for _, disallowedValue := range disallowedValues {
+			if disallowedValue == *s.value {
 				s.context.AppendError(s.reference, service.ErrorValueIntegerOneOf(*s.value, disallowedValues))
 				return s
 			}

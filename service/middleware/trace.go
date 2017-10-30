@@ -3,16 +3,18 @@ package middleware
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
-	"github.com/tidepool-org/platform/app"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
 )
 
 type Trace struct{}
 
 const (
-	_LogTraceRequest = "trace-request"
-	_LogTraceSession = "trace-session"
+	_LogTrace   = "trace"
+	_LogRequest = "request"
+	_LogSession = "session"
 
 	_TraceMaximumLength = 64
 )
@@ -21,48 +23,59 @@ func NewTrace() (*Trace, error) {
 	return &Trace{}, nil
 }
 
-func (l *Trace) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
-	return func(response rest.ResponseWriter, request *rest.Request) {
-		if handler != nil && response != nil && request != nil {
-			oldLogger := service.GetRequestLogger(request)
-			oldTraceRequest := service.GetRequestTraceRequest(request)
-			oldTraceSession := service.GetRequestTraceSession(request)
-
+func (t *Trace) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
+	return func(res rest.ResponseWriter, req *rest.Request) {
+		if handler != nil && res != nil && req != nil {
+			oldRequest := req.Request
 			defer func() {
-				service.SetRequestTraceSession(request, oldTraceSession)
-				service.SetRequestTraceRequest(request, oldTraceRequest)
-				service.SetRequestLogger(request, oldLogger)
+				req.Request = oldRequest
 			}()
 
-			newFields := log.Fields{}
+			trace := map[string]interface{}{}
 
-			newTraceRequest := request.Header.Get(service.HTTPHeaderTraceRequest)
-			if newTraceRequest != "" {
-				if len(newTraceRequest) > _TraceMaximumLength {
-					newTraceRequest = newTraceRequest[:_TraceMaximumLength]
+			// DEPRECATED
+			oldTraceRequest := service.GetRequestTraceRequest(req)
+			defer service.SetRequestTraceRequest(req, oldTraceRequest)
+
+			traceRequest := req.Header.Get(request.HTTPHeaderTraceRequest)
+			if traceRequest != "" {
+				if len(traceRequest) > _TraceMaximumLength {
+					traceRequest = traceRequest[:_TraceMaximumLength]
 				}
 			} else {
-				newTraceRequest = app.NewID()
+				traceRequest = id.New()
 			}
-			service.SetRequestTraceRequest(request, newTraceRequest)
-			response.Header().Add(service.HTTPHeaderTraceRequest, newTraceRequest)
-			newFields[_LogTraceRequest] = newTraceRequest
+			req.Request = req.WithContext(request.NewContextWithTraceRequest(req.Context(), traceRequest))
+			service.SetRequestTraceRequest(req, traceRequest) // DEPRECATED
+			res.Header().Add(request.HTTPHeaderTraceRequest, traceRequest)
+			trace[_LogRequest] = traceRequest
 
-			newTraceSession := request.Header.Get(service.HTTPHeaderTraceSession)
-			if newTraceSession != "" {
-				if len(newTraceSession) > _TraceMaximumLength {
-					newTraceSession = newTraceSession[:_TraceMaximumLength]
+			traceSession := req.Header.Get(request.HTTPHeaderTraceSession)
+			if traceSession != "" {
+				// DEPRECATED
+				oldTraceSession := service.GetRequestTraceSession(req)
+				defer service.SetRequestTraceSession(req, oldTraceSession)
+
+				if len(traceSession) > _TraceMaximumLength {
+					traceSession = traceSession[:_TraceMaximumLength]
 				}
-				service.SetRequestTraceSession(request, newTraceSession)
-				response.Header().Add(service.HTTPHeaderTraceSession, newTraceSession)
-				newFields[_LogTraceSession] = newTraceSession
+				req.Request = req.WithContext(request.NewContextWithTraceSession(req.Context(), traceSession))
+				service.SetRequestTraceSession(req, traceSession) // DEPRECATED
+				res.Header().Add(request.HTTPHeaderTraceSession, traceSession)
+				trace[_LogSession] = traceSession
 			}
 
-			if oldLogger != nil {
-				service.SetRequestLogger(request, oldLogger.WithFields(newFields))
+			// DEPRECATED
+			if oldLogger := service.GetRequestLogger(req); oldLogger != nil {
+				defer service.SetRequestLogger(req, oldLogger)
+				service.SetRequestLogger(req, oldLogger.WithField(_LogTrace, trace))
 			}
 
-			handler(response, request)
+			if logger := log.LoggerFromContext(req.Context()); logger != nil {
+				req.Request = req.WithContext(log.NewContextWithLogger(req.Context(), logger.WithField(_LogTrace, trace)))
+			}
+
+			handler(res, req)
 		}
 	}
 }
