@@ -166,13 +166,15 @@ func translateEventExerciseToDatum(e *dexcom.Event) data.Datum {
 	datum.ID = ""
 	datum.GUID = ""
 
-	switch *e.EventSubType {
-	case dexcom.ExerciseLight:
-		datum.ReportedIntensity = pointer.String(physical.ReportedIntensityLow)
-	case dexcom.ExerciseMedium:
-		datum.ReportedIntensity = pointer.String(physical.ReportedIntensityMedium)
-	case dexcom.ExerciseHeavy:
-		datum.ReportedIntensity = pointer.String(physical.ReportedIntensityHigh)
+	if e.EventSubType != nil {
+		switch *e.EventSubType {
+		case dexcom.ExerciseLight:
+			datum.ReportedIntensity = pointer.String(physical.ReportedIntensityLow)
+		case dexcom.ExerciseMedium:
+			datum.ReportedIntensity = pointer.String(physical.ReportedIntensityMedium)
+		case dexcom.ExerciseHeavy:
+			datum.ReportedIntensity = pointer.String(physical.ReportedIntensityHigh)
+		}
 	}
 	if e.Value != nil && e.Unit != nil {
 		datum.Duration = &physical.Duration{
@@ -192,19 +194,21 @@ func translateEventHealthToDatum(e *dexcom.Event) data.Datum {
 	datum.ID = ""
 	datum.GUID = ""
 
-	switch *e.EventSubType {
-	case dexcom.HealthIllness:
-		datum.States = &[]*reported.State{{State: pointer.String(reported.StateIllness)}}
-	case dexcom.HealthStress:
-		datum.States = &[]*reported.State{{State: pointer.String(reported.StateStress)}}
-	case dexcom.HealthHighSymptoms:
-		datum.States = &[]*reported.State{{State: pointer.String(reported.StateHyperglycemiaSymptoms)}}
-	case dexcom.HealthLowSymptoms:
-		datum.States = &[]*reported.State{{State: pointer.String(reported.StateHypoglycemiaSymptoms)}}
-	case dexcom.HealthCycle:
-		datum.States = &[]*reported.State{{State: pointer.String(reported.StateCycle)}}
-	case dexcom.HealthAlcohol:
-		datum.States = &[]*reported.State{{State: pointer.String(reported.StateAlcohol)}}
+	if e.EventSubType != nil {
+		switch *e.EventSubType {
+		case dexcom.HealthIllness:
+			datum.States = &[]*reported.State{{State: pointer.String(reported.StateIllness)}}
+		case dexcom.HealthStress:
+			datum.States = &[]*reported.State{{State: pointer.String(reported.StateStress)}}
+		case dexcom.HealthHighSymptoms:
+			datum.States = &[]*reported.State{{State: pointer.String(reported.StateHyperglycemiaSymptoms)}}
+		case dexcom.HealthLowSymptoms:
+			datum.States = &[]*reported.State{{State: pointer.String(reported.StateHypoglycemiaSymptoms)}}
+		case dexcom.HealthCycle:
+			datum.States = &[]*reported.State{{State: pointer.String(reported.StateCycle)}}
+		case dexcom.HealthAlcohol:
+			datum.States = &[]*reported.State{{State: pointer.String(reported.StateAlcohol)}}
+		}
 	}
 
 	translateTime(e.SystemTime, e.DisplayTime, &datum.Base)
