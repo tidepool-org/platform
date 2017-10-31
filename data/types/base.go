@@ -155,6 +155,10 @@ func (b *Base) SetActive(active bool) {
 	b.Active = active
 }
 
+func (b *Base) SetDeviceID(deviceID *string) {
+	b.DeviceID = deviceID
+}
+
 func (b *Base) SetCreatedTime(createdTime string) {
 	b.CreatedTime = createdTime
 }

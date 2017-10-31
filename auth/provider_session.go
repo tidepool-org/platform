@@ -98,6 +98,10 @@ func NewProviderSessionUpdate() *ProviderSessionUpdate {
 	return &ProviderSessionUpdate{}
 }
 
+func (p *ProviderSessionUpdate) HasUpdates() bool {
+	return p.OAuthToken != nil
+}
+
 func (p *ProviderSessionUpdate) Parse(parser structure.ObjectParser) {
 	if oauthTokenParser := parser.WithReferenceObjectParser("oauthToken"); oauthTokenParser.Exists() {
 		p.OAuthToken = oauth.NewToken()

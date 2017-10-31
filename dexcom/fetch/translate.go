@@ -78,7 +78,6 @@ func translateCalibrationToDatum(c *dexcom.Calibration) data.Datum {
 	datum.ID = ""
 	datum.GUID = ""
 
-	datum.DeviceID = pointer.String("multiple") // TODO: Is this reasonable?
 	datum.Units = pointer.String(c.Unit)
 	datum.Value = pointer.Float64(c.Value)
 	datum.Payload = &map[string]interface{}{}
@@ -97,7 +96,6 @@ func translateEGVToDatum(e *dexcom.EGV, unit string, rateUnit string) data.Datum
 	datum.ID = ""
 	datum.GUID = ""
 
-	datum.DeviceID = pointer.String("multiple") // TODO: Is this reasonable?
 	datum.Value = pointer.Float64(e.Value)
 	datum.Units = pointer.String(unit)
 	datum.Payload = &map[string]interface{}{}
@@ -148,7 +146,6 @@ func translateEventCarbsToDatum(e *dexcom.Event) data.Datum {
 	datum.ID = ""
 	datum.GUID = ""
 
-	datum.DeviceID = pointer.String("multiple") // TODO: Is this acceptable?
 	if e.Value != nil && e.Unit != nil {
 		datum.Nutrition = &food.Nutrition{
 			Carbohydrates: &food.Carbohydrates{
@@ -169,7 +166,6 @@ func translateEventExerciseToDatum(e *dexcom.Event) data.Datum {
 	datum.ID = ""
 	datum.GUID = ""
 
-	datum.DeviceID = pointer.String("multiple") // TODO: Is this reasonable?
 	switch *e.EventSubType {
 	case dexcom.ExerciseLight:
 		datum.ReportedIntensity = pointer.String(physical.ReportedIntensityLow)
@@ -196,7 +192,6 @@ func translateEventHealthToDatum(e *dexcom.Event) data.Datum {
 	datum.ID = ""
 	datum.GUID = ""
 
-	datum.DeviceID = pointer.String("multiple") // TODO: Is this reasonable?
 	switch *e.EventSubType {
 	case dexcom.HealthIllness:
 		datum.States = &[]*reported.State{{State: pointer.String(reported.StateIllness)}}
@@ -223,7 +218,6 @@ func translateEventInsulinToDatum(e *dexcom.Event) data.Datum {
 	datum.ID = ""
 	datum.GUID = ""
 
-	datum.DeviceID = pointer.String("multiple") // TODO: Is this reasonable?
 	if e.Value != nil && e.Unit != nil {
 		datum.Dose = &insulin.Dose{
 			Total: pointer.Float64(*e.Value),

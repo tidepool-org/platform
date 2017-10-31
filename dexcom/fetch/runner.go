@@ -115,7 +115,7 @@ type TaskRunner struct {
 	providerSession *auth.ProviderSession
 	dataSource      *data.DataSource
 	tokenSource     oauth.TokenSource
-	dataSetID       string
+	dataSet         *data.DataSet
 }
 
 func NewTaskRunner(rnnr *Runner, tsk *task.Task) (*TaskRunner, error) {
@@ -226,9 +226,9 @@ func (t *TaskRunner) getDataSource() error {
 	return nil
 }
 
-func (t *TaskRunner) updateDataSourceWithDataSetID(dataSetID string) error {
+func (t *TaskRunner) updateDataSourceWithDataSet(dataSet *data.DataSet) error {
 	dataSourceUpdate := data.NewDataSourceUpdate()
-	dataSourceUpdate.DataSetIDs = pointer.StringArray(append(t.dataSource.DataSetIDs, dataSetID))
+	dataSourceUpdate.DataSetIDs = pointer.StringArray(append(t.dataSource.DataSetIDs, dataSet.UploadID))
 	return t.updateDataSource(dataSourceUpdate)
 }
 
@@ -264,6 +264,10 @@ func (t *TaskRunner) updateDataSourceWithError(err error) error {
 }
 
 func (t *TaskRunner) updateDataSource(dataSourceUpdate *data.DataSourceUpdate) error {
+	if !dataSourceUpdate.HasUpdates() {
+		return nil
+	}
+
 	dataSource, err := t.DataClient().UpdateDataSource(t.context, t.dataSource.ID, dataSourceUpdate)
 	if err != nil {
 		return errors.Wrap(err, "unable to update data source")
@@ -271,8 +275,8 @@ func (t *TaskRunner) updateDataSource(dataSourceUpdate *data.DataSourceUpdate) e
 		t.task.SetFailed()
 		return errors.Wrap(err, "data source is missing")
 	}
-	t.dataSource = dataSource
 
+	t.dataSource = dataSource
 	return nil
 }
 
@@ -287,8 +291,35 @@ func (t *TaskRunner) createTokenSource() error {
 	return nil
 }
 
+func (t *TaskRunner) updateDataSetWithDeviceInfo(deviceInfo *DeviceInfo) error {
+	dataSetDeviceInfo, err := NewDeviceInfoFromDataSet(t.dataSet)
+	if err != nil {
+		return err
+	}
+	dataSetDeviceInfo, err = dataSetDeviceInfo.Merge(deviceInfo)
+	if err != nil {
+		return err
+	}
+
+	dataSetUpdate := data.NewDataSetUpdate()
+	if t.dataSet.DeviceID == nil || *t.dataSet.DeviceID != dataSetDeviceInfo.DeviceID {
+		dataSetUpdate.DeviceID = pointer.String(dataSetDeviceInfo.DeviceID)
+	}
+	if t.dataSet.DeviceModel == nil || *t.dataSet.DeviceModel != dataSetDeviceInfo.DeviceModel {
+		dataSetUpdate.DeviceModel = pointer.String(dataSetDeviceInfo.DeviceModel)
+	}
+	if t.dataSet.DeviceSerialNumber == nil || *t.dataSet.DeviceSerialNumber != dataSetDeviceInfo.DeviceSerialNumber {
+		dataSetUpdate.DeviceSerialNumber = pointer.String(dataSetDeviceInfo.DeviceSerialNumber)
+	}
+	return t.updateDataSet(dataSetUpdate)
+}
+
 func (t *TaskRunner) updateDataSet(dataSetUpdate *data.DataSetUpdate) error {
-	dataSet, err := t.DataClient().UpdateDataSet(t.context, t.dataSetID, dataSetUpdate)
+	if !dataSetUpdate.HasUpdates() {
+		return nil
+	}
+
+	dataSet, err := t.DataClient().UpdateDataSet(t.context, t.dataSet.UploadID, dataSetUpdate)
 	if err != nil {
 		return errors.Wrap(err, "unable to update data set")
 	} else if dataSet == nil {
@@ -296,6 +327,7 @@ func (t *TaskRunner) updateDataSet(dataSetUpdate *data.DataSetUpdate) error {
 		return errors.Wrap(err, "data set is missing")
 	}
 
+	t.dataSet = dataSet
 	return nil
 }
 
@@ -330,6 +362,11 @@ func (t *TaskRunner) fetch(startTime time.Time, endTime time.Time) error {
 		return nil
 	}
 
+	deviceInfo, err := t.calculateDeviceInfo(devices)
+	if err != nil {
+		return err
+	}
+
 	datumArray := []data.Datum{}
 
 	fetchDatumArray, err := t.fetchCalibrations(startTime, endTime)
@@ -354,52 +391,13 @@ func (t *TaskRunner) fetch(startTime time.Time, endTime time.Time) error {
 		return nil
 	}
 
-	if t.dataSetID == "" {
-		for index := len(t.dataSource.DataSetIDs) - 1; index >= 0; index-- {
-			dataSetID := t.dataSource.DataSetIDs[index]
-			dataSet, dataSetErr := t.DataClient().GetDataSet(t.context, dataSetID)
-			if dataSetErr != nil {
-				return errors.Wrap(dataSetErr, "unable to get data set")
-			} else if dataSet == nil {
-				continue
-			}
-
-			// TODO: Is this data set okay for us?
-			t.dataSetID = dataSetID
-			break
-		}
-
-		if t.dataSetID == "" {
-			dataSetCreate := data.NewDataSetCreate()
-			dataSetCreate.Client = &data.DataSetClient{
-				Name:    DatasetClientName,
-				Version: DatasetClientVersion,
-			}
-			dataSetCreate.DataSetType = data.DataSetTypeContinuous
-			dataSetCreate.DeviceID = "multiple"
-			dataSetCreate.DeviceManufacturers = []string{"Dexcom"}
-			dataSetCreate.DeviceModel = "multiple"
-			dataSetCreate.DeviceSerialNumber = "multiple"
-			dataSetCreate.DeviceTags = []string{data.DeviceTagCGM}
-			dataSetCreate.Time = time.Now().Truncate(time.Second)
-			dataSetCreate.TimeProcessing = upload.TimeProcessingNone
-
-			dataSet, dataSetErr := t.DataClient().CreateUserDataSet(t.context, t.providerSession.UserID, dataSetCreate)
-			if dataSetErr != nil {
-				return errors.Wrap(dataSetErr, "unable to create data set")
-			}
-			if err = t.updateDataSourceWithDataSetID(dataSet.UploadID); err != nil {
-				return err
-			}
-
-			t.dataSetID = dataSet.UploadID
-		}
+	if err = t.prepareDatumArray(datumArray, deviceInfo); err != nil {
+		return err
 	}
 
-	// TODO: Run allDatum through Validate and Normalize once all Datum use structure/validator
-	// TODO: identity fields for new data types (or perhaps not if we declare our own hash)
-
-	sort.Sort(BySystemTime(datumArray))
+	if err = t.prepareDataSet(deviceInfo); err != nil {
+		return err
+	}
 
 	return t.storeDatumArray(datumArray)
 }
@@ -420,6 +418,18 @@ func (t *TaskRunner) fetchDevices(startTime time.Time, endTime time.Time) ([]*de
 	}
 
 	return response.Devices, nil
+}
+
+func (t *TaskRunner) calculateDeviceInfo(devices []*dexcom.Device) (*DeviceInfo, error) {
+	deviceInfo := NewDeviceInfo()
+	for _, device := range devices {
+		if deviceDeviceInfo, err := NewDeviceInfoFromDevice(device); err != nil {
+			return nil, err
+		} else if deviceInfo, err = deviceInfo.Merge(deviceDeviceInfo); err != nil {
+			return nil, err
+		}
+	}
+	return deviceInfo, nil
 }
 
 func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) ([]data.Datum, error) {
@@ -506,6 +516,77 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) ([]data
 	return datumArray, nil
 }
 
+func (t *TaskRunner) prepareDatumArray(datumArray []data.Datum, deviceInfo *DeviceInfo) error {
+	var datumDeviceID *string
+	if deviceInfo.DeviceID != dexcom.DeviceIDMultiple {
+		datumDeviceID = pointer.String(deviceInfo.DeviceID)
+	} else {
+		datumDeviceID = pointer.String(dexcom.DeviceIDUnknown)
+	}
+
+	for _, datum := range datumArray {
+		datum.SetDeviceID(datumDeviceID)
+	}
+
+	sort.Sort(BySystemTime(datumArray))
+
+	return nil
+}
+
+func (t *TaskRunner) prepareDataSet(deviceInfo *DeviceInfo) error {
+	if t.dataSet == nil {
+		dataSet, err := t.findDataSet()
+		if err != nil {
+			return err
+		} else if dataSet == nil {
+			dataSet, err = t.createDataSet(deviceInfo)
+			if err != nil {
+				return err
+			}
+		}
+		t.dataSet = dataSet
+	}
+
+	return t.updateDataSetWithDeviceInfo(deviceInfo)
+}
+
+func (t *TaskRunner) findDataSet() (*data.DataSet, error) {
+	for index := len(t.dataSource.DataSetIDs) - 1; index >= 0; index-- {
+		if dataSet, err := t.DataClient().GetDataSet(t.context, t.dataSource.DataSetIDs[index]); err != nil {
+			return nil, errors.Wrap(err, "unable to get data set")
+		} else if dataSet != nil {
+			return dataSet, nil
+		}
+	}
+	return nil, nil
+}
+
+func (t *TaskRunner) createDataSet(deviceInfo *DeviceInfo) (*data.DataSet, error) {
+	dataSetCreate := data.NewDataSetCreate()
+	dataSetCreate.Client = &data.DataSetClient{
+		Name:    DatasetClientName,
+		Version: DatasetClientVersion,
+	}
+	dataSetCreate.DataSetType = data.DataSetTypeContinuous
+	dataSetCreate.DeviceID = deviceInfo.DeviceID
+	dataSetCreate.DeviceManufacturers = []string{"Dexcom"}
+	dataSetCreate.DeviceModel = deviceInfo.DeviceModel
+	dataSetCreate.DeviceSerialNumber = deviceInfo.DeviceSerialNumber
+	dataSetCreate.DeviceTags = []string{data.DeviceTagCGM}
+	dataSetCreate.Time = time.Now().Truncate(time.Second)
+	dataSetCreate.TimeProcessing = upload.TimeProcessingNone
+
+	dataSet, err := t.DataClient().CreateUserDataSet(t.context, t.providerSession.UserID, dataSetCreate)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create data set")
+	}
+	if err = t.updateDataSourceWithDataSet(dataSet); err != nil {
+		return nil, err
+	}
+
+	return dataSet, nil
+}
+
 func (t *TaskRunner) storeDatumArray(datumArray []data.Datum) error {
 	length := len(datumArray)
 	for startIndex := 0; startIndex < length; startIndex += DataSetSize {
@@ -514,7 +595,7 @@ func (t *TaskRunner) storeDatumArray(datumArray []data.Datum) error {
 			endIndex = length
 		}
 
-		if err := t.DataClient().CreateDataSetsData(t.context, t.dataSetID, datumArray[startIndex:endIndex]); err != nil {
+		if err := t.DataClient().CreateDataSetsData(t.context, t.dataSet.UploadID, datumArray[startIndex:endIndex]); err != nil {
 			return errors.Wrap(err, "unable to create data set data")
 		}
 
@@ -564,4 +645,105 @@ func (b BySystemTime) Swap(left int, right int) {
 
 func (b BySystemTime) Less(left int, right int) bool {
 	return payloadSystemTime(b[left]).Before(payloadSystemTime(b[right]))
+}
+
+type DeviceInfo struct {
+	DeviceID           string
+	DeviceModel        string
+	DeviceSerialNumber string
+}
+
+func NewDeviceInfo() *DeviceInfo {
+	return &DeviceInfo{}
+}
+
+func NewDeviceInfoFromDataSet(dataSet *data.DataSet) (*DeviceInfo, error) {
+	if dataSet == nil {
+		return nil, errors.New("data set is missing")
+	}
+
+	deviceInfo := &DeviceInfo{}
+	if dataSet.DeviceID != nil {
+		deviceInfo.DeviceID = *dataSet.DeviceID
+	}
+	if dataSet.DeviceModel != nil {
+		deviceInfo.DeviceModel = *dataSet.DeviceModel
+	}
+	if dataSet.DeviceSerialNumber != nil {
+		deviceInfo.DeviceSerialNumber = *dataSet.DeviceSerialNumber
+	}
+	return deviceInfo, nil
+}
+
+func NewDeviceInfoFromDevice(device *dexcom.Device) (*DeviceInfo, error) {
+	if device == nil {
+		return nil, errors.New("device is missing")
+	}
+
+	var deviceID string
+	var deviceIDPrefix string
+	var deviceModel string
+	var deviceSerialNumber string
+
+	switch device.Model {
+	case dexcom.ModelG5MobileApp:
+		deviceModel = "G5Mobile"
+		deviceIDPrefix = "DexG5Mob_"
+	case dexcom.ModelG5Receiver:
+		deviceModel = "G5MobileReceiver"
+		deviceIDPrefix = "DexG5MobRec_"
+	case dexcom.ModelG4WithShareReceiver:
+		deviceModel = "G4ShareReceiver"
+		deviceIDPrefix = "DexG4RecwitSha_"
+	case dexcom.ModelG4Receiver:
+		deviceModel = "G4Receiver"
+		deviceIDPrefix = "DexG4Rec_"
+	default:
+		return nil, errors.New("unknown device model")
+	}
+
+	if device.SerialNumber != nil {
+		deviceSerialNumber = *device.SerialNumber
+		deviceID = deviceIDPrefix + deviceSerialNumber
+	}
+
+	return &DeviceInfo{
+		DeviceID:           deviceID,
+		DeviceModel:        deviceModel,
+		DeviceSerialNumber: deviceSerialNumber,
+	}, nil
+}
+
+func (d *DeviceInfo) IsEmpty() bool {
+	return d.DeviceID == "" && d.DeviceModel == "" && d.DeviceSerialNumber == ""
+}
+
+func (d *DeviceInfo) Merge(deviceInfo *DeviceInfo) (*DeviceInfo, error) {
+	if deviceInfo == nil {
+		return nil, errors.New("device info is missing")
+	} else if deviceInfo.IsEmpty() {
+		return d, nil
+	}
+
+	if d.IsEmpty() {
+		return deviceInfo, nil
+	}
+
+	mergedDeviceInfo := &DeviceInfo{
+		DeviceID:           d.DeviceID,
+		DeviceModel:        d.DeviceModel,
+		DeviceSerialNumber: d.DeviceSerialNumber,
+	}
+
+	if d.DeviceID != deviceInfo.DeviceID {
+		mergedDeviceInfo.DeviceID = dexcom.DeviceIDMultiple
+	}
+	if d.DeviceModel != deviceInfo.DeviceModel {
+		mergedDeviceInfo.DeviceModel = dexcom.DeviceModelMultiple
+	}
+	if d.DeviceSerialNumber != deviceInfo.DeviceSerialNumber {
+		mergedDeviceInfo.DeviceSerialNumber = dexcom.DeviceSerialNumberMultiple
+	}
+
+	return mergedDeviceInfo, nil
 }

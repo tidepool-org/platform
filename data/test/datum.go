@@ -35,6 +35,8 @@ type Datum struct {
 	SetDatasetIDInputs                   []string
 	SetActiveInvocations                 int
 	SetActiveInputs                      []bool
+	SetDeviceIDInvocations               int
+	SetDeviceIDInputs                    []*string
 	SetCreatedTimeInvocations            int
 	SetCreatedTimeInputs                 []string
 	SetCreatedUserIDInvocations          int
@@ -144,6 +146,12 @@ func (d *Datum) SetActive(active bool) {
 	d.SetActiveInvocations++
 
 	d.SetActiveInputs = append(d.SetActiveInputs, active)
+}
+
+func (d *Datum) SetDeviceID(deviceID *string) {
+	d.SetDeviceIDInvocations++
+
+	d.SetDeviceIDInputs = append(d.SetDeviceIDInputs, deviceID)
 }
 
 func (d *Datum) SetCreatedTime(createdTime string) {

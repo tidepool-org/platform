@@ -63,6 +63,11 @@ const (
 	EGVValueMinMgdL = 40
 	EGVValueMaxMgdL = 400
 
+	DeviceIDMultiple           = "multiple"
+	DeviceIDUnknown            = "unknown"
+	DeviceModelMultiple        = "multiple"
+	DeviceSerialNumberMultiple = "multiple"
+
 	DateTimeFormat = "2006-01-02T15:04:05"
 	NowThreshold   = 24 * time.Hour
 

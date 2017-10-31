@@ -72,6 +72,5 @@ func (c *Client) sendDexcomRequest(ctx context.Context, startTime time.Time, end
 		"startDate": startTime.Format(dexcom.DateTimeFormat),
 		"endDate":   endTime.Format(dexcom.DateTimeFormat),
 	}
-	// TODO: Check for actual dexcom errors here!!!
 	return c.client.SendOAuthRequest(ctx, method, c.client.AppendURLQuery(url, query), nil, nil, responseBody, tokenSource)
 }

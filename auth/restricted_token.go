@@ -80,6 +80,10 @@ func NewRestrictedTokenUpdate() *RestrictedTokenUpdate {
 	return &RestrictedTokenUpdate{}
 }
 
+func (r *RestrictedTokenUpdate) HasUpdates() bool {
+	return r.Paths != nil || r.ExpirationTime != nil
+}
+
 func (r *RestrictedTokenUpdate) Parse(parser structure.ObjectParser) {
 	r.Paths = parser.StringArray("paths")
 	r.ExpirationTime = parser.Time("expirationTime", time.RFC3339)

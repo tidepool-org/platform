@@ -196,6 +196,15 @@ func (d *DataSession) UpdateDataSet(ctx context.Context, id string, update *data
 	if update.Active != nil {
 		set["_active"] = *update.Active
 	}
+	if update.DeviceID != nil {
+		set["deviceId"] = *update.DeviceID
+	}
+	if update.DeviceModel != nil {
+		set["deviceModel"] = *update.DeviceModel
+	}
+	if update.DeviceSerialNumber != nil {
+		set["deviceSerialNumber"] = *update.DeviceSerialNumber
+	}
 	if update.Deduplicator != nil {
 		set["_deduplicator"] = update.Deduplicator
 	}

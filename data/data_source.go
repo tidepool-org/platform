@@ -121,6 +121,10 @@ func NewDataSourceUpdate() *DataSourceUpdate {
 	return &DataSourceUpdate{}
 }
 
+func (d *DataSourceUpdate) HasUpdates() bool {
+	return d.State != nil || d.Error != nil || d.DataSetIDs != nil || d.EarliestDataTime != nil || d.LatestDataTime != nil || d.LastImportTime != nil
+}
+
 func (d *DataSourceUpdate) Parse(parser structure.ObjectParser) {
 	d.State = parser.String("state")
 	if parser.ReferenceExists("error") {

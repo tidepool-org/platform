@@ -151,19 +151,30 @@ func (d *DataSetCreate) Normalize(normalizer structure.Normalizer) {
 }
 
 type DataSetUpdate struct {
-	Active         *bool                   `json:"-"`
-	Deduplicator   *DeduplicatorDescriptor `json:"-"`
-	State          *string                 `json:"state,omitempty"`
-	Time           *time.Time              `json:"time,omitempty"`
-	Timezone       *string                 `json:"timezone,omitempty"`
-	TimezoneOffset *int                    `json:"timezoneOffset,omitempty"`
+	Active             *bool                   `json:"-"`
+	DeviceID           *string                 `json:"deviceId,omitempty"`
+	DeviceModel        *string                 `json:"deviceModel,omitempty"`
+	DeviceSerialNumber *string                 `json:"deviceSerialNumber,omitempty"`
+	Deduplicator       *DeduplicatorDescriptor `json:"-"`
+	State              *string                 `json:"state,omitempty"`
+	Time               *time.Time              `json:"time,omitempty"`
+	Timezone           *string                 `json:"timezone,omitempty"`
+	TimezoneOffset     *int                    `json:"timezoneOffset,omitempty"`
 }
 
 func NewDataSetUpdate() *DataSetUpdate {
 	return &DataSetUpdate{}
 }
 
+func (d *DataSetUpdate) HasUpdates() bool {
+	return d.Active != nil || d.DeviceID != nil || d.DeviceModel != nil || d.DeviceSerialNumber != nil ||
+		d.Deduplicator != nil || d.State != nil || d.Time != nil || d.Timezone != nil || d.TimezoneOffset != nil
+}
+
 func (d *DataSetUpdate) Parse(parser structure.ObjectParser) {
+	d.DeviceID = parser.String("deviceId")
+	d.DeviceModel = parser.String("deviceModel")
+	d.DeviceSerialNumber = parser.String("deviceSerialNumber")
 	d.State = parser.String("state")
 	d.Time = parser.Time("time", TimeFormat)
 	d.Timezone = parser.String("timezone")
@@ -171,6 +182,9 @@ func (d *DataSetUpdate) Parse(parser structure.ObjectParser) {
 }
 
 func (d *DataSetUpdate) Validate(validator structure.Validator) {
+	validator.String("deviceId", d.DeviceID).NotEmpty()
+	validator.String("deviceModel", d.DeviceModel).LengthGreaterThan(1)
+	validator.String("deviceSerialNumber", d.DeviceSerialNumber).LengthGreaterThan(1)
 	validator.String("state", d.State).OneOf(DataSetStates...)
 	validator.Time("time", d.Time).NotZero()
 	validator.String("timezone", d.Timezone) // TODO: Timezone
