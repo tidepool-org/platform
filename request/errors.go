@@ -8,6 +8,7 @@ import (
 
 const (
 	ErrorCodeUnexpectedResponse = "unexpected-response"
+	ErrorCodeBadRequest         = "bad-request"
 	ErrorCodeUnauthenticated    = "unauthenticated"
 	ErrorCodeUnauthorized       = "unauthorized"
 	ErrorCodeResourceNotFound   = "resource-not-found"
@@ -17,6 +18,10 @@ const (
 
 func ErrorUnexpectedResponse(res *http.Response, req *http.Request) error {
 	return errors.Preparedf(ErrorCodeUnexpectedResponse, "unexpected response", "unexpected response status code %d from %s %q", res.StatusCode, req.Method, req.URL.String())
+}
+
+func ErrorBadRequest() error {
+	return errors.Prepared(ErrorCodeBadRequest, "bad request", "bad request")
 }
 
 func ErrorUnauthenticated() error {
@@ -46,6 +51,8 @@ func ErrorJSONMalformed() error {
 func StatusCodeForError(err error) int {
 	if err != nil {
 		switch errors.Code(err) {
+		case ErrorCodeBadRequest:
+			return http.StatusBadRequest
 		case ErrorCodeUnauthenticated:
 			return http.StatusUnauthorized
 		case ErrorCodeUnauthorized:

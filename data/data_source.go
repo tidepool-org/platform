@@ -2,7 +2,6 @@ package data
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -266,18 +265,21 @@ func (d *DataSource) Normalize(normalizer structure.Normalizer) {
 }
 
 func (d *DataSource) Sanitize(details request.Details) error {
-	if details != nil {
-		if details.IsUser() {
-			d.ProviderSessionID = nil
-			if d.Error != nil && d.Error.Error != nil {
-				if errors.Code(errors.Cause(d.Error.Error)) == request.ErrorCodeUnauthorized {
-					d.Error = &errors.Serializable{Error: fmt.Errorf("unauthorized")}
-				}
-			}
-		}
-		return nil
+	if details == nil {
+		return errors.New("unable to sanitize")
 	}
-	return errors.New("unable to sanitize")
+
+	if details.IsUser() {
+		d.ProviderSessionID = nil
+		if d.Error != nil && d.Error.Error != nil {
+			if cause := errors.Cause(d.Error.Error); errors.Code(cause) == request.ErrorCodeUnauthenticated {
+				d.Error.Error = cause
+			}
+			d.Error.Error = errors.Sanitize(d.Error.Error)
+		}
+	}
+
+	return nil
 }
 
 type DataSources []*DataSource

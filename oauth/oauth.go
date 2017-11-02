@@ -3,6 +3,7 @@ package oauth
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -87,6 +88,10 @@ func (t *Token) MatchesRawToken(rawToken *oauth2.Token) bool {
 		rawToken.TokenType == t.TokenType &&
 		rawToken.RefreshToken == t.RefreshToken &&
 		rawToken.Expiry == t.ExpirationTime
+}
+
+func IsAuthorizationError(err error) bool {
+	return strings.Contains(errors.Cause(err).Error(), "oauth2: cannot fetch token: 400 Bad Request")
 }
 
 const ErrorAccessDenied = "access_denied"

@@ -29,7 +29,7 @@ func NewClient(cfg *client.ExternalConfig, name string, logger log.Logger, authS
 		return nil, errors.New("logger is missing")
 	}
 	if authStore == nil {
-		return nil, errors.New("task store is missing")
+		return nil, errors.New("auth store is missing")
 	}
 	if providerFactory == nil {
 		return nil, errors.New("provider factory is missing")

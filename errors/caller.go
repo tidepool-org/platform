@@ -17,21 +17,17 @@ type Caller struct {
 
 func GetCaller(frame int) *Caller {
 	if pc, file, line, ok := runtime.Caller(frame + 1); ok {
-		var pkg string
-		var fnctn string
-
-		parts := strings.SplitN(file, "/", ignoredFileSegments)
-		length := len(parts)
-		file = parts[length-1]
-
-		parts = strings.Split(runtime.FuncForPC(pc).Name(), "/")
-		length = len(parts)
-		pkg = strings.Join(append(parts[:length-1], strings.Split(parts[length-1], ".")[0]), "/")
+		fileParts := strings.SplitN(file, "/", ignoredFileSegments)
+		fileLength := len(fileParts)
+		pkgParts := strings.Split(runtime.FuncForPC(pc).Name(), "/")
+		pkgLength := len(pkgParts)
+		fnctnParts := strings.Split(pkgParts[pkgLength-1], ".")
+		fnctnLength := len(fnctnParts)
 
 		return &Caller{
-			Package:  pkg,
-			Function: fnctn,
-			File:     file,
+			Package:  strings.Join(append(pkgParts[:pkgLength-1], fnctnParts[0]), "/"),
+			Function: fnctnParts[fnctnLength-1],
+			File:     fileParts[fileLength-1],
 			Line:     line,
 		}
 	}

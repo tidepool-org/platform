@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/request"
 )
 
@@ -76,10 +77,15 @@ func (c *Client) SendRequest(ctx context.Context, method string, url string, mut
 	if err != nil {
 		return errors.Wrapf(err, "unable to perform request %s %s", method, url)
 	}
+	if res.Body != nil {
+		defer res.Body.Close()
+	}
 
 	switch res.StatusCode {
 	case http.StatusOK, http.StatusCreated:
 		return c.decodeResponseBody(res, responseBody)
+	case http.StatusBadRequest:
+		return c.handleBadRequest(res, req)
 	case http.StatusUnauthorized:
 		return request.ErrorUnauthenticated()
 	case http.StatusForbidden:
@@ -147,4 +153,17 @@ func (c *Client) decodeResponseBody(res *http.Response, object interface{}) erro
 	}
 
 	return request.DecodeResponseBody(res, object)
+}
+
+func (c *Client) handleBadRequest(res *http.Response, req *http.Request) error {
+	if logger := log.LoggerFromContext(req.Context()); logger != nil {
+		if res.Body != nil {
+			buffer := bytes.Buffer{}
+			if _, err := buffer.ReadFrom(io.LimitReader(res.Body, 1<<16)); err == nil {
+				logger = logger.WithField("responseBody", buffer.String())
+			}
+		}
+		logger.WithFields(log.Fields{"method": req.Method, "url": req.URL.String()}).Warn("bad request")
+	}
+	return request.ErrorBadRequest()
 }

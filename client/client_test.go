@@ -228,20 +228,20 @@ var _ = Describe("Client", func() {
 				Expect(err.Error()).To(HavePrefix(fmt.Sprintf("unable to perform request %s %s", method, url)))
 			})
 
-			Context("with an unexpected response 400", func() {
+			Context("with an unexpected response 500", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
 						CombineHandlers(
 							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
-							RespondWith(http.StatusBadRequest, nil, nil)),
+							RespondWith(http.StatusInternalServerError, nil, nil)),
 					)
 				})
 
 				It("returns an error", func() {
 					err := clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)
-					Expect(err).To(MatchError(fmt.Sprintf(`unexpected response status code 400 from %s "%s?%s=%s"`, method, url, parameterMutator.Key, parameterMutator.Value)))
+					Expect(err).To(MatchError(fmt.Sprintf(`unexpected response status code 500 from %s "%s?%s=%s"`, method, url, parameterMutator.Key, parameterMutator.Value)))
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 			})
