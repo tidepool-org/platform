@@ -18,7 +18,7 @@ type Values struct {
 }
 
 func NewValues(values *url.Values) *Values {
-	return NewValuesParser(structureBase.New(), values)
+	return NewValuesParser(structureBase.New().WithSource(structure.NewParameterSource()), values)
 }
 
 func NewValuesParser(base *structureBase.Base, values *url.Values) *Values {

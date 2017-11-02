@@ -161,7 +161,7 @@ func DecodeValues(values url.Values, objectParsables ...structure.ObjectParsable
 }
 
 func ParseValuesObjects(values url.Values, objectParsables ...structure.ObjectParsable) error {
-	parser := NewValues(&values).WithSource(structure.NewParameterSource())
+	parser := NewValues(&values)
 	for _, objectParsable := range objectParsables {
 		objectParsable.Parse(parser)
 	}

@@ -10,7 +10,7 @@ type Normalizer struct {
 }
 
 func New() *Normalizer {
-	return NewNormalizer(structureBase.New())
+	return NewNormalizer(structureBase.New().WithSource(structure.NewPointerSource()))
 }
 
 func NewNormalizer(base *structureBase.Base) *Normalizer {

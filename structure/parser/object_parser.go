@@ -15,7 +15,7 @@ type Object struct {
 }
 
 func NewObject(object *map[string]interface{}) *Object {
-	return NewObjectParser(structureBase.New(), object)
+	return NewObjectParser(structureBase.New().WithSource(structure.NewPointerSource()), object)
 }
 
 func NewObjectParser(base *structureBase.Base, object *map[string]interface{}) *Object {

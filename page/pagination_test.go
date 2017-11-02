@@ -8,6 +8,7 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
+	"github.com/tidepool-org/platform/structure"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	testHTTP "github.com/tidepool-org/platform/test/http"
@@ -70,7 +71,9 @@ var _ = Describe("Pagination", func() {
 				Expect(pagination.Page).To(Equal(0))
 				Expect(pagination.Size).To(Equal(10))
 				Expect(parser.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(parser.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotInt(false))))
+				Expect(errors.Sanitize(parser.Error())).To(Equal(errors.Sanitize(
+					errors.WithSource(structureParser.ErrorTypeNotInt(false), structure.NewPointerSource().WithReference("page")),
+				)))
 			})
 
 			It("reports an error if size is not an int", func() {
@@ -80,7 +83,9 @@ var _ = Describe("Pagination", func() {
 				Expect(pagination.Page).To(Equal(2))
 				Expect(pagination.Size).To(Equal(100))
 				Expect(parser.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(parser.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotInt(false))))
+				Expect(errors.Sanitize(parser.Error())).To(Equal(errors.Sanitize(
+					errors.WithSource(structureParser.ErrorTypeNotInt(false), structure.NewPointerSource().WithReference("size")),
+				)))
 			})
 
 			It("reports an error if page and size are not ints", func() {
@@ -91,8 +96,8 @@ var _ = Describe("Pagination", func() {
 				Expect(pagination.Size).To(Equal(100))
 				Expect(parser.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(parser.Error())).To(Equal(errors.Sanitize(errors.Append(
-					structureParser.ErrorTypeNotInt(false),
-					structureParser.ErrorTypeNotInt(false),
+					errors.WithSource(structureParser.ErrorTypeNotInt(false), structure.NewPointerSource().WithReference("page")),
+					errors.WithSource(structureParser.ErrorTypeNotInt(false), structure.NewPointerSource().WithReference("size")),
 				))))
 			})
 		})
@@ -113,21 +118,27 @@ var _ = Describe("Pagination", func() {
 				pagination.Page = -1
 				pagination.Validate(validator)
 				Expect(validator.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(validator.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0))))
+				Expect(errors.Sanitize(validator.Error())).To(Equal(errors.Sanitize(
+					errors.WithSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), structure.NewPointerSource().WithReference("page")),
+				)))
 			})
 
 			It("reports an error if the size is less than 1", func() {
 				pagination.Size = 0
 				pagination.Validate(validator)
 				Expect(validator.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(validator.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotInRange(0, 1, 100))))
+				Expect(errors.Sanitize(validator.Error())).To(Equal(errors.Sanitize(
+					errors.WithSource(structureValidator.ErrorValueNotInRange(0, 1, 100), structure.NewPointerSource().WithReference("size")),
+				)))
 			})
 
 			It("reports an error if the size is greater than 100", func() {
 				pagination.Size = 101
 				pagination.Validate(validator)
 				Expect(validator.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(validator.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotInRange(101, 1, 100))))
+				Expect(errors.Sanitize(validator.Error())).To(Equal(errors.Sanitize(
+					errors.WithSource(structureValidator.ErrorValueNotInRange(101, 1, 100), structure.NewPointerSource().WithReference("size")),
+				)))
 			})
 
 			It("reports an error if the page and size are less than minimum", func() {
@@ -136,8 +147,8 @@ var _ = Describe("Pagination", func() {
 				pagination.Validate(validator)
 				Expect(validator.Error()).To(HaveOccurred())
 				Expect(errors.Sanitize(validator.Error())).To(Equal(errors.Sanitize(errors.Append(
-					structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0),
-					structureValidator.ErrorValueNotInRange(0, 1, 100),
+					errors.WithSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), structure.NewPointerSource().WithReference("page")),
+					errors.WithSource(structureValidator.ErrorValueNotInRange(0, 1, 100), structure.NewPointerSource().WithReference("size")),
 				))))
 			})
 		})

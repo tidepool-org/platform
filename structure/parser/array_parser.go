@@ -16,7 +16,7 @@ type Array struct {
 }
 
 func NewArray(array *[]interface{}) *Array {
-	return NewArrayParser(structureBase.New(), array)
+	return NewArrayParser(structureBase.New().WithSource(structure.NewPointerSource()), array)
 }
 
 func NewArrayParser(base *structureBase.Base, array *[]interface{}) *Array {

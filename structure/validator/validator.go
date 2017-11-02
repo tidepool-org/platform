@@ -12,7 +12,7 @@ type Validator struct {
 }
 
 func New() *Validator {
-	return NewValidator(structureBase.New())
+	return NewValidator(structureBase.New().WithSource(structure.NewPointerSource()))
 }
 
 func NewValidator(base *structureBase.Base) *Validator {

@@ -143,7 +143,7 @@ func (t *TaskRunner) Run(ctx context.Context) error {
 	}
 
 	t.context = ctx
-	t.validator = structureValidator.New().WithSource(structure.NewPointerSource())
+	t.validator = structureValidator.New()
 
 	if err := t.getProviderSession(); err != nil {
 		return err
