@@ -2,6 +2,7 @@ package fetch
 
 import (
 	"context"
+	"math/rand"
 	"sort"
 	"time"
 
@@ -22,7 +23,8 @@ import (
 	"github.com/tidepool-org/platform/version"
 )
 
-const AvailableAfterDuration = time.Hour
+const AvailableAfterDurationMinimum = 45 * time.Minute
+const AvailableAfterDurationMaximum = 75 * time.Minute
 const DataSetSize = 2000
 
 var InitialDataTime = time.Unix(1420070400, 0) // 2015-01-01T00:00:00Z
@@ -103,7 +105,7 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
 	}
 
 	if !tsk.IsFailed() {
-		tsk.RepeatAvailableAfter(AvailableAfterDuration)
+		tsk.RepeatAvailableAfter(AvailableAfterDurationMinimum + time.Duration(rand.Int63n(int64(AvailableAfterDurationMaximum-AvailableAfterDurationMinimum+1))))
 	}
 }
 
