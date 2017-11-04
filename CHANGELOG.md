@@ -1,5 +1,65 @@
 ## HEAD
 
+- Use Go v1.9.1
+- Update dependencies
+- Add golang.org/x/oauth2 dependency
+- Allow debugging from within VS Code
+- Store request specific data in context
+- Separate local authentication functionality from external (Shoreline) authentication
+- Add provider sessions to support external service provider authentication
+- Add external service provider OAuth require endpoints
+- Add restricted tokens to support short-lived, restricted access authentication
+- Implement uniform client functionality whether intra-service or inter-service
+- Use responder uniformly across new services
+- Refactor errors package
+  - Remove package prefix string
+	- Capture caller file, line, package, and function
+	- Allow errors to be serialized/deserialized to/from JSON and BSON
+	- Error can be one or multiple
+	- Add pretty printing of all error info and multiple errors
+- Add create/delete hooks for provider session create/delete to allow custom actions for specific providers
+- Use gomega expectations rather than panics in test mocks
+- Ensure mongo indexes for new services upon initialization
+- Consistently use filter and pagination parameters for new service endpoints
+- Refactor parsing, validation, normalization into common structure functionality for global use
+- Improve test mocks and utility functions throughout
+- Add HTTP test helpers
+- Refactor generic client with custom client specific to each type of service provider (platform, OAuth, etc.)
+- Add ability to mutate generic client request (to add request parameters, headers, etc.)
+- Remove logger parameter from all new store session functions
+- Add context as required parameter to all store functions (and functions that invoke store functions)
+- Add data set as actual type (rather than just another data.Datum; code migration in progress)
+- Add data source to represent a source of data, meta object that may represent multipe data sets
+- Add variable threshold when validating time against now
+- Add continuous data deduplicator; no deduplication actually performed
+- Add activity/physical data type
+- Add food data type
+- Add insulin data type
+- Add state/reported data type
+- Update router path params to camelcase for consistency (not snakecase)
+- Update data.Datum Annotations and Payload to be map[string]interface{} (was interface{})
+- Add Dexcom API data types, including parsing, validation, and normalization
+- Add Dexcom client as OAuth client
+- Add Dexcom fetch task and runner
+- Translate Dexcom API data types to Tidepool Data Model
+- Periodically pull user data from Dexcom API, translate, and import into data store
+- Allow id validation
+- Logger uses refactor errors internally
+- Add general OAuth provider implementation to support any external OAuth service
+- Add global pagination mechanism
+- Add service secrets to allow inter-service communication without authentication token
+- Refactor common request functionality into separate package
+	- Predefined errors
+	- Parse, validate, and normalize requset parameters and response JSON body
+	- Authentication details
+	- Trace request/session
+	- Responder
+- Add authentication handler funcs to support service, user, and any authenticated session
+- Revamp authentication middleware to support all known methods and record details into context details
+- Common construct update functionality for mongo store
+- Remove mongo agent as unnecessary
+- Add task service that enables background task queue
+- Allow structures/errors to be sanitized before returning in API (remove internal or private info)
 - Make log package concurrency safe
 - Replace Logger.SetLevel with Logger.WithLevel
 - Rename log.Levels to log.LevelRanks
