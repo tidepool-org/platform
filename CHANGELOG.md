@@ -49,11 +49,11 @@
 - Add global pagination mechanism
 - Add service secrets to allow inter-service communication without authentication token
 - Refactor common request functionality into separate package
-	- Predefined errors
-	- Parse, validate, and normalize requset parameters and response JSON body
-	- Authentication details
-	- Trace request/session
-	- Responder
+  - Predefined errors
+  - Parse, validate, and normalize requset parameters and response JSON body
+  - Authentication details
+  - Trace request/session
+  - Responder
 - Add authentication handler funcs to support service, user, and any authenticated session
 - Revamp authentication middleware to support all known methods and record details into context details
 - Common construct update functionality for mongo store
