@@ -1,15 +1,15 @@
-FROM golang:1.7.1-alpine
+FROM golang:1.9.1-alpine
 
-# Container specific ENV
 ENV TIDEPOOL_ENV="local" \
     TIDEPOOL_LOGGER_LEVEL="debug" \
-    TIDEPOOL_CLIENT_SERVER_TOKEN_SECRET="This needs to be the same secret everywhere. YaHut75NsK1f9UKUXuWqxNN0RUwHFBCy" \
     TIDEPOOL_STORE_ADDRESSES="mongo" \
     TIDEPOOL_STORE_DATABASE="tidepool" \
     TIDEPOOL_STORE_TLS="false" \
     TIDEPOOL_SERVER_TLS="false" \
     TIDEPOOL_CONFIRMATION_STORE_DATABASE="confirm" \
-    TIDEPOOL_DATA_STORE_DATABASE="data" \
+    TIDEPOOL_TASK_QUEUE_WORKERS="5" \
+    TIDEPOOL_TASK_QUEUE_DELAY="5" \
+    TIDEPOOL_DEPRECATED_DATA_STORE_DATABASE="data" \
     TIDEPOOL_MESSAGE_STORE_DATABASE="messages" \
     TIDEPOOL_PERMISSION_STORE_DATABASE="gatekeeper" \
     TIDEPOOL_PERMISSION_STORE_SECRET="This secret is used to encrypt the groupId stored in the DB for gatekeeper" \
@@ -21,12 +21,21 @@ ENV TIDEPOOL_ENV="local" \
     TIDEPOOL_AUTH_CLIENT_ADDRESS="http://styx:8009" \
     TIDEPOOL_DATA_CLIENT_ADDRESS="http://styx:8009" \
     TIDEPOOL_METRIC_CLIENT_ADDRESS="http://styx:8009" \
+    TIDEPOOL_TASK_CLIENT_ADDRESS="http://styx:8009" \
     TIDEPOOL_USER_CLIENT_ADDRESS="http://styx:8009" \
+    TIDEPOOL_AUTH_CLIENT_EXTERNAL_ADDRESS="http://styx:8009" \
+    TIDEPOOL_AUTH_CLIENT_EXTERNAL_SERVER_SESSION_TOKEN_SECRET="This needs to be the same secret everywhere. YaHut75NsK1f9UKUXuWqxNN0RUwHFBCy" \
     TIDEPOOL_AUTH_SERVICE_SERVER_ADDRESS=":9222" \
     TIDEPOOL_DATA_SERVICE_SERVER_ADDRESS=":9220" \
     TIDEPOOL_NOTIFICATION_SERVICE_SERVER_ADDRESS=":9223" \
     TIDEPOOL_TASK_SERVICE_SERVER_ADDRESS=":9224" \
-    TIDEPOOL_USER_SERVICE_SERVER_ADDRESS=":9221"
+    TIDEPOOL_USER_SERVICE_SERVER_ADDRESS=":9221" \
+    TIDEPOOL_AUTH_SERVICE_DOMAIN="localhost" \
+    TIDEPOOL_AUTH_SERVICE_SECRET="Service secret used for interservice requests with the auth service" \
+    TIDEPOOL_DATA_SERVICE_SECRET="Service secret used for interservice requests with the data service" \
+    TIDEPOOL_NOTIFICATION_SERVICE_SECRET="Service secret used for interservice requests with the notification service" \
+    TIDEPOOL_TASK_SERVICE_SECRET="Service secret used for interservice requests with the task service" \
+    TIDEPOOL_USER_SERVICE_SECRET="Service secret used for interservice requests with the user service"
 
 # $GOPATH=/go FROM the golang container
 WORKDIR /go
