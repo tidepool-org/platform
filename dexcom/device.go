@@ -171,11 +171,6 @@ func (a *AlertSetting) Validate(validator structure.Validator, existingAlertName
 }
 
 func (a *AlertSetting) validateFixedLow(validator structure.Validator) {
-	// HACK: Dexcom - use 0 rather than incorrect 30
-	if a.Snooze == 30 {
-		a.Snooze = 0
-	}
-
 	validator.String("unit", &a.Unit).OneOf(UnitMgdL) // TODO: Add UnitMmolL
 	switch a.Unit {
 	case UnitMgdL:
@@ -184,7 +179,7 @@ func (a *AlertSetting) validateFixedLow(validator structure.Validator) {
 		// TODO: Add value validation
 	}
 	validator.Int("delay", &a.Delay).EqualTo(0)
-	validator.Int("snooze", &a.Snooze).EqualTo(0)
+	validator.Int("snooze", &a.Snooze).OneOf(fixedLowSnoozes...)
 	validator.Bool("enabled", &a.Enabled).True()
 }
 
@@ -217,10 +212,6 @@ func (a *AlertSetting) validateRise(validator structure.Validator) {
 	if a.Unit == UnitMinutes {
 		a.Unit = UnitMgdLMin
 	}
-	// HACK: Dexcom - use 0 rather than incorrect 30
-	if a.Snooze == 30 {
-		a.Snooze = 0
-	}
 
 	validator.String("unit", &a.Unit).OneOf(UnitMgdLMin) // TODO: Add UnitMmolLMin
 	switch a.Unit {
@@ -230,7 +221,7 @@ func (a *AlertSetting) validateRise(validator structure.Validator) {
 		// TODO: Add value validation
 	}
 	validator.Int("delay", &a.Delay).EqualTo(0)
-	validator.Int("snooze", &a.Snooze).EqualTo(0)
+	validator.Int("snooze", &a.Snooze).OneOf(riseSnoozes...)
 }
 
 func (a *AlertSetting) validateFall(validator structure.Validator) {
@@ -242,10 +233,6 @@ func (a *AlertSetting) validateFall(validator structure.Validator) {
 	if a.Value < 0 {
 		a.Value = -a.Value
 	}
-	// HACK: Dexcom - use 0 rather than incorrect 30
-	if a.Snooze == 30 {
-		a.Snooze = 0
-	}
 
 	validator.String("unit", &a.Unit).OneOf(UnitMgdLMin) // TODO: UnitMmolLMin
 	switch a.Unit {
@@ -255,26 +242,26 @@ func (a *AlertSetting) validateFall(validator structure.Validator) {
 		// TODO: Add value validation
 	}
 	validator.Int("delay", &a.Delay).EqualTo(0)
-	validator.Int("snooze", &a.Snooze).EqualTo(0)
+	validator.Int("snooze", &a.Snooze).OneOf(fallSnoozes...)
 }
 
 func (a *AlertSetting) validateOutOfRange(validator structure.Validator) {
-	// HACK: Dexcom - use 0 rather than incorrect 30
-	if a.Snooze == 30 {
-		a.Snooze = 0
-	}
 
 	validator.String("unit", &a.Unit).EqualTo(UnitMinutes)
 	validator.Float64("value", &a.Value).OneOf(outOfRangeValues...)
 	validator.Int("delay", &a.Delay).EqualTo(0)
-	validator.Int("snooze", &a.Snooze).EqualTo(0)
+	validator.Int("snooze", &a.Snooze).OneOf(outOfRangeSnoozes...)
 }
 
+var fixedLowSnoozes = []int{0, 30}
 var lowValues = generateFloatRange(60, 100, 5)
 var lowSnoozes = append(append([]int{0}, generateIntegerRange(15, 240, 5)...), generateIntegerRange(255, 300, 15)...)
 var highValues = generateFloatRange(120, 400, 10)
 var highSnoozes = append(append([]int{0}, generateIntegerRange(15, 240, 5)...), generateIntegerRange(255, 300, 15)...)
+var riseSnoozes = []int{0, 30}
+var fallSnoozes = []int{0, 30}
 var outOfRangeValues = generateFloatRange(20, 240, 5)
+var outOfRangeSnoozes = []int{0, 20, 30}
 
 func generateFloatRange(min float64, max float64, step float64) []float64 {
 	r := []float64{}
