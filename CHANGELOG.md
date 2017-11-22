@@ -1,5 +1,14 @@
 ## HEAD
 
+- Add fix to handle Dexcom API not correctly reporting daily G5 Mobile devices
+
+## v1.20.1 (2017-11-21)
+
+- Fix alert settings snooze validation for Dexcom API
+- Update Dockerfile to Go 1.9.1
+
+## v1.20.0 (2017-11-03)
+
 - Use Go v1.9.1
 - Update dependencies
 - Add golang.org/x/oauth2 dependency
