@@ -23,9 +23,6 @@ GOPATH_REPOSITORY:=$(word 1, $(subst :, ,$(GOPATH)))
 
 default: test
 
-log:
-	@mkdir -p $(ROOT_DIRECTORY)/_log
-
 tmp:
 	@mkdir -p $(ROOT_DIRECTORY)/_tmp
 
@@ -61,6 +58,11 @@ endif
 godef: check-environment
 ifeq ($(shell which godef),)
 	go get -u github.com/rogpeppe/godef
+endif
+
+CompileDaemon: check-environment
+ifeq ($(shell which CompileDaemon),)
+	go get -u github.com/githubnemo/CompileDaemon
 endif
 
 ginkgo: check-environment
@@ -117,23 +119,41 @@ build-list:
 	@cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD)
 
 build: check-environment
-	@echo "go build"
+	@echo "go build $(BUILD)"
 	@cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD) | $(TRANSFORM_MKDIR_CMD) | while read LINE; do $(MKDIR_CMD) $${LINE}; done
 	@cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD) | $(TRANSFORM_GO_BUILD_CMD) | while read LINE; do $(GO_BUILD_CMD) $${LINE}; done
 
 ci-build: pre-build build
 
+service-build:
+ifdef SERVICE
+	@$(MAKE) build BUILD=services/$${SERVICE}
+endif
+
+service-start: CompileDaemon tmp
+ifdef SERVICE
+	@cd $(ROOT_DIRECTORY) && BUILD='services/$(SERVICE)' CompileDaemon -build-dir='.' -build='make build' -command='_bin/services/$(SERVICE)/$(SERVICE)' -directory='_tmp' -pattern='^$$' -include='service-$(SERVICE).restart' -recursive=false -log-prefix=false -graceful-kill=true
+endif
+
+service-restart: tmp
+ifdef SERVICE
+	@cd $(ROOT_DIRECTORY) && date +'%Y-%m-%dT%H:%M:%S%z' > _tmp/service-$(SERVICE).restart
+endif
+
+service-restart-all:
+	@cd $(ROOT_DIRECTORY) && for SERVICE in $(shell ls -1 services); do $(MAKE) service-restart SERVICE=$${SERVICE}; done
+
 test: ginkgo
 	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r $(TEST)"
 	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 -r $(TEST)
 
+test-watch: ginkgo
+	@echo "ginkgo watch -requireSuite -slowSpecThreshold=10 -r $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch -requireSuite -slowSpecThreshold=10 -r $(TEST)
+
 ci-test: ginkgo
 	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing $(TEST)"
 	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing $(TEST)
-
-watch: ginkgo
-	@echo "ginkgo watch -requireSuite -slowSpecThreshold=10 -r $(WATCH)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch -requireSuite -slowSpecThreshold=10 -r $(WATCH)
 
 deploy: clean-deploy deploy-services deploy-migrations deploy-tools
 
@@ -162,8 +182,8 @@ ifdef TRAVIS_TAG
 endif
 endif
 
-clean: clean-bin clean-cover clean-deploy
-	@cd $(ROOT_DIRECTORY) && rm -rf _log _tmp
+clean: clean-bin clean-cover clean-debug clean-deploy
+	@cd $(ROOT_DIRECTORY) && rm -rf _tmp
 
 clean-bin:
 	@cd $(ROOT_DIRECTORY) && rm -rf _bin
@@ -211,10 +231,10 @@ bootstrap:
 	@$(MAKE) bootstrap-save
 	@$(MAKE) gopath-implode
 
-.PHONY: default log tmp check-gopath check-environment \
-	godep goimports golint gocode godef ginkgo buildable editable \
+.PHONY: default tmp check-gopath check-environment \
+	godep goimports golint gocode godef CompileDaemon ginkgo buildable editable \
 	format format-write imports vet vet-ignore lint lint-ignore pre-build build-list build ci-build \
-	test ci-test watch \
+	service-build service-start service-restart service-restart-all test test-watch ci-test \
 	deploy deploy-services deploy-migrations deploy-tools ci-deploy bundle-deploy \
-	clean clean-bin clean-cover clean-deploy clean-all pre-commit \
+	clean clean-bin clean-cover clean-debug clean-deploy clean-all pre-commit \
 	gopath-implode dependencies-implode bootstrap-implode bootstrap-dependencies bootstrap-save bootstrap

@@ -1,5 +1,9 @@
 ## HEAD
 
+- Use Go v1.9.2
+- Update Copyright
+- Minor Makefile updates
+- Tool to compute metric hash from user id
 - Add support for delta uploads
 - Support private client data in upload
 - Use environment variable for test database address

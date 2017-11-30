@@ -4,6 +4,7 @@ export TIDEPOOL_STORE_ADDRESSES="localhost"
 export TIDEPOOL_STORE_TLS="false"
 export TIDEPOOL_STORE_DATABASE="tidepool_test"
 export TIDEPOOL_SERVER_TLS="false"
+
 export TIDEPOOL_CONFIRMATION_STORE_DATABASE="confirm_test"
 export TIDEPOOL_DATA_STORE_DATABASE="data_test"
 export TIDEPOOL_MESSAGE_STORE_DATABASE="messages_test"
