@@ -1,10 +1,11 @@
 ./data/client/client.go:29:6: type name will be used as client.ClientImpl by other packages, and that stutters; consider calling this Impl
-./data/data_set.go:14:6: type name will be used as data.DataSetAccessor by other packages, and that stutters; consider calling this SetAccessor
-./data/data_set.go:50:6: type name will be used as data.DataSetClient by other packages, and that stutters; consider calling this SetClient
-./data/data_set.go:73:6: type name will be used as data.DataSetCreate by other packages, and that stutters; consider calling this SetCreate
-./data/data_set.go:153:6: type name will be used as data.DataSetUpdate by other packages, and that stutters; consider calling this SetUpdate
-./data/data_set.go:194:6: type name will be used as data.DataSet by other packages, and that stutters; consider calling this Set
-./data/data_set.go:236:6: type name will be used as data.DataSets by other packages, and that stutters; consider calling this Sets
+./data/data_set.go:18:6: type name will be used as data.DataSetAccessor by other packages, and that stutters; consider calling this SetAccessor
+./data/data_set.go:55:6: type name will be used as data.DataSetClient by other packages, and that stutters; consider calling this SetClient
+./data/data_set.go:82:6: type name will be used as data.DataSetFilter by other packages, and that stutters; consider calling this SetFilter
+./data/data_set.go:111:6: type name will be used as data.DataSetCreate by other packages, and that stutters; consider calling this SetCreate
+./data/data_set.go:191:6: type name will be used as data.DataSetUpdate by other packages, and that stutters; consider calling this SetUpdate
+./data/data_set.go:232:6: type name will be used as data.DataSet by other packages, and that stutters; consider calling this Set
+./data/data_set.go:274:6: type name will be used as data.DataSets by other packages, and that stutters; consider calling this Sets
 ./data/data_source.go:19:6: type name will be used as data.DataSourceAccessor by other packages, and that stutters; consider calling this SourceAccessor
 ./data/data_source.go:35:6: type name will be used as data.DataSourceFilter by other packages, and that stutters; consider calling this SourceFilter
 ./data/data_source.go:77:6: type name will be used as data.DataSourceCreate by other packages, and that stutters; consider calling this SourceCreate

@@ -1,5 +1,8 @@
 ## HEAD
 
+- Add support for delta uploads
+- Support private client data in upload
+- Use environment variable for test database address
 - Add fix to handle Dexcom API not correctly reporting daily G5 Mobile devices
 
 ## v1.20.1 (2017-11-21)

@@ -602,8 +602,8 @@ func (t *TaskRunner) findDataSet() (*data.DataSet, error) {
 func (t *TaskRunner) createDataSet(deviceInfo *DeviceInfo) (*data.DataSet, error) {
 	dataSetCreate := data.NewDataSetCreate()
 	dataSetCreate.Client = &data.DataSetClient{
-		Name:    DatasetClientName,
-		Version: DatasetClientVersion,
+		Name:    pointer.String(DatasetClientName),
+		Version: pointer.String(DatasetClientVersion),
 	}
 	dataSetCreate.DataSetType = data.DataSetTypeContinuous
 	dataSetCreate.DeviceID = deviceInfo.DeviceID

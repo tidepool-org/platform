@@ -596,6 +596,55 @@ func (d *DataSession) DestroyDataForUserByID(ctx context.Context, userID string)
 	return nil
 }
 
+func (d *DataSession) ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if userID == "" {
+		return nil, errors.New("user id is missing")
+	}
+	if filter == nil {
+		filter = data.NewDataSetFilter()
+	} else if err := structureValidator.New().Validate(filter); err != nil {
+		return nil, errors.Wrap(err, "filter is invalid")
+	}
+	if pagination == nil {
+		pagination = page.NewPagination()
+	} else if err := structureValidator.New().Validate(pagination); err != nil {
+		return nil, errors.Wrap(err, "pagination is invalid")
+	}
+
+	if d.IsClosed() {
+		return nil, errors.New("session closed")
+	}
+
+	now := time.Now()
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "filter": filter, "pagination": pagination})
+
+	dataSets := data.DataSets{}
+	selector := bson.M{
+		"_userId": userID,
+		"type":    "upload",
+	}
+	if filter.Deleted == nil || !*filter.Deleted {
+		selector["deletedTime"] = bson.M{"$exists": false}
+	}
+	if filter.DeviceID != nil {
+		selector["deviceId"] = *filter.DeviceID
+	}
+	err := d.C().Find(selector).Sort("-createdTime").Skip(pagination.Page * pagination.Size).Limit(pagination.Size).All(&dataSets)
+	logger.WithFields(log.Fields{"count": len(dataSets), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListUserDataSets")
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to list user data sets")
+	}
+
+	if dataSets == nil {
+		dataSets = data.DataSets{}
+	}
+
+	return dataSets, nil
+}
+
 func (d *DataSession) GetDataSet(ctx context.Context, id string) (*data.DataSet, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
