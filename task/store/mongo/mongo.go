@@ -287,7 +287,6 @@ func (t *TaskSession) IteratePending(ctx context.Context) store.TaskIterator {
 	}
 
 	now := time.Now()
-	logger := log.LoggerFromContext(ctx)
 
 	selector := bson.M{
 		"state": task.TaskStatePending,
@@ -325,8 +324,6 @@ func (t *TaskSession) IteratePending(ctx context.Context) store.TaskIterator {
 
 	iterator := t.C().Find(selector).Sort("-priority").Iter()
 	err := iterator.Err()
-
-	logger.WithError(err).WithField("duration", time.Since(now)/time.Microsecond).Debug("IteratePending")
 
 	return &TaskIterator{
 		iterator: iterator,

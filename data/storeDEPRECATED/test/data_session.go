@@ -96,6 +96,18 @@ type GetDataSetOutput struct {
 	Error   error
 }
 
+type ListUserDataSetsInput struct {
+	Context    context.Context
+	UserID     string
+	Filter     *data.DataSetFilter
+	Pagination *page.Pagination
+}
+
+type ListUserDataSetsOutput struct {
+	DataSets data.DataSets
+	Error    error
+}
+
 type DataSession struct {
 	*test.Mock
 	IsClosedInvocations                                  int
@@ -136,6 +148,9 @@ type DataSession struct {
 	DestroyDataForUserByIDInvocations                    int
 	DestroyDataForUserByIDInputs                         []DestroyDataForUserByIDInput
 	DestroyDataForUserByIDOutputs                        []error
+	ListUserDataSetsInvocations                          int
+	ListUserDataSetsInputs                               []ListUserDataSetsInput
+	ListUserDataSetsOutputs                              []ListUserDataSetsOutput
 	GetDataSetInvocations                                int
 	GetDataSetInputs                                     []GetDataSetInput
 	GetDataSetOutputs                                    []GetDataSetOutput
@@ -303,6 +318,18 @@ func (d *DataSession) DestroyDataForUserByID(ctx context.Context, userID string)
 	return output
 }
 
+func (d *DataSession) ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error) {
+	d.ListUserDataSetsInvocations++
+
+	d.ListUserDataSetsInputs = append(d.ListUserDataSetsInputs, ListUserDataSetsInput{Context: ctx, UserID: userID, Filter: filter, Pagination: pagination})
+
+	gomega.Expect(d.ListUserDataSetsOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.ListUserDataSetsOutputs[0]
+	d.ListUserDataSetsOutputs = d.ListUserDataSetsOutputs[1:]
+	return output.DataSets, output.Error
+}
+
 func (d *DataSession) GetDataSet(ctx context.Context, id string) (*data.DataSet, error) {
 	d.GetDataSetInvocations++
 
@@ -330,5 +357,6 @@ func (d *DataSession) Expectations() {
 	gomega.Expect(d.UnarchiveDeviceDataUsingHashesFromDatasetOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.DeleteOtherDatasetDataOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.DestroyDataForUserByIDOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.ListUserDataSetsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetDataSetOutputs).To(gomega.BeEmpty())
 }

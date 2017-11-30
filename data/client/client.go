@@ -147,6 +147,33 @@ func (c *ClientImpl) DeleteDataSource(ctx context.Context, id string) error {
 	return c.client.SendRequestAsServer(ctx, http.MethodDelete, url, nil, nil, nil)
 }
 
+func (c *ClientImpl) ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if userID == "" {
+		return nil, errors.New("user id is missing")
+	}
+	if filter == nil {
+		filter = data.NewDataSetFilter()
+	} else if err := structureValidator.New().Validate(filter); err != nil {
+		return nil, errors.Wrap(err, "filter is invalid")
+	}
+	if pagination == nil {
+		pagination = page.NewPagination()
+	} else if err := structureValidator.New().Validate(pagination); err != nil {
+		return nil, errors.Wrap(err, "pagination is invalid")
+	}
+
+	url := c.client.ConstructURL("v1", "users", userID, "data_sets")
+	dataSets := data.DataSets{}
+	if err := c.client.SendRequestAsServer(ctx, http.MethodGet, url, []client.Mutator{filter, pagination}, nil, &dataSets); err != nil {
+		return nil, err
+	}
+
+	return dataSets, nil
+}
+
 func (c *ClientImpl) CreateUserDataSet(ctx context.Context, userID string, create *data.DataSetCreate) (*data.DataSet, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")

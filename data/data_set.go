@@ -2,9 +2,13 @@ package data
 
 import (
 	"context"
+	"net/http"
 	"sort"
+	"strconv"
 	"time"
 
+	"github.com/tidepool-org/platform/client"
+	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -12,6 +16,7 @@ import (
 // have been duplicated.
 
 type DataSetAccessor interface {
+	ListUserDataSets(ctx context.Context, userID string, filter *DataSetFilter, pagination *page.Pagination) (DataSets, error)
 	CreateUserDataSet(ctx context.Context, userID string, create *DataSetCreate) (*DataSet, error)
 	GetDataSet(ctx context.Context, id string) (*DataSet, error)
 	UpdateDataSet(ctx context.Context, id string, update *DataSetUpdate) (*DataSet, error)
@@ -48,8 +53,9 @@ var TimeProcessings = []string{TimeProcessingAcrossTheBoardTimezone, TimeProcess
 // TODO: Pull from OAuth rather than be dependent upon client to complete
 
 type DataSetClient struct {
-	Name    string `json:"name,omitempty" bson:"name,omitempty"`
-	Version string `json:"version,omitempty" bson:"version,omitempty"`
+	Name    *string                 `json:"name,omitempty" bson:"name,omitempty"`
+	Version *string                 `json:"version,omitempty" bson:"version,omitempty"`
+	Private *map[string]interface{} `json:"private,omitempty" bson:"private,omitempty"`
 }
 
 func NewDataSetClient() *DataSetClient {
@@ -58,16 +64,48 @@ func NewDataSetClient() *DataSetClient {
 
 func (d *DataSetClient) Parse(parser structure.ObjectParser) {
 	if ptr := parser.String("name"); ptr != nil {
-		d.Name = *ptr
+		d.Name = ptr
 	}
 	if ptr := parser.String("version"); ptr != nil {
-		d.Version = *ptr
+		d.Version = ptr
+	}
+	if ptr := parser.Object("private"); ptr != nil {
+		d.Private = ptr
 	}
 }
 
 func (d *DataSetClient) Validate(validator structure.Validator) {
-	validator.String("name", &d.Name).NotEmpty()
-	validator.String("version", &d.Version).NotEmpty() // TODO: Semver validation
+	validator.String("name", d.Name).NotEmpty()
+	validator.String("version", d.Version).NotEmpty() // TODO: Semver validation
+}
+
+type DataSetFilter struct {
+	Deleted  *bool   `json:"deleted,omitempty" bson:"deleted,omitempty"`
+	DeviceID *string `json:"deviceId,omitempty" bson:"deviceId,omitempty"`
+}
+
+func NewDataSetFilter() *DataSetFilter {
+	return &DataSetFilter{}
+}
+
+func (d *DataSetFilter) Parse(parser structure.ObjectParser) {
+	d.Deleted = parser.Bool("deleted")
+	d.DeviceID = parser.String("deviceId")
+}
+
+func (d *DataSetFilter) Validate(validator structure.Validator) {
+	validator.String("deviceId", d.DeviceID).NotEmpty()
+}
+
+func (d *DataSetFilter) Mutate(req *http.Request) error {
+	parameters := map[string]string{}
+	if d.Deleted != nil {
+		parameters["deleted"] = strconv.FormatBool(*d.Deleted)
+	}
+	if d.DeviceID != nil {
+		parameters["deviceId"] = *d.DeviceID
+	}
+	return client.NewParametersMutator(parameters).Mutate(req)
 }
 
 type DataSetCreate struct {

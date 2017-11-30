@@ -68,6 +68,13 @@ func (c *Client) CreateUserDataSet(ctx context.Context, userID string, create *d
 	panic("Not Implemented!")
 }
 
+func (c *Client) ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error) {
+	ssn := c.dataStoreDEPRECATED.NewDataSession()
+	defer ssn.Close()
+
+	return ssn.ListUserDataSets(ctx, userID, filter, pagination)
+}
+
 func (c *Client) GetDataSet(ctx context.Context, id string) (*data.DataSet, error) {
 	ssn := c.dataStoreDEPRECATED.NewDataSession()
 	defer ssn.Close()

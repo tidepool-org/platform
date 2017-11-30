@@ -111,13 +111,14 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
 
 type TaskRunner struct {
 	*Runner
-	task            *task.Task
-	context         context.Context
-	validator       structure.Validator
-	providerSession *auth.ProviderSession
-	dataSource      *data.DataSource
-	tokenSource     oauth.TokenSource
-	dataSet         *data.DataSet
+	task             *task.Task
+	context          context.Context
+	validator        structure.Validator
+	providerSession  *auth.ProviderSession
+	dataSource       *data.DataSource
+	tokenSource      oauth.TokenSource
+	dataSet          *data.DataSet
+	dataSetPreloaded bool
 }
 
 func NewTaskRunner(rnnr *Runner, tsk *task.Task) (*TaskRunner, error) {
@@ -360,36 +361,32 @@ func (t *TaskRunner) fetch(startTime time.Time, endTime time.Time) error {
 	devices, err := t.fetchDevices(startTime, endTime)
 	if err != nil {
 		return err
-	} else if len(devices) == 0 {
-		return nil
 	}
 
-	deviceInfo, err := t.calculateDeviceInfo(devices)
+	// HACK: Dexcom API does not guarantee to return a device for G5 Mobile if time range < 24 hours
+	var deviceInfo *DeviceInfo
+	if endTime.Sub(startTime) > 24*time.Hour {
+		if len(devices) == 0 {
+			return nil
+		} else if deviceInfo, err = t.calculateDeviceInfo(devices); err != nil {
+			return err
+		}
+	} else {
+		if err = t.preloadDataSet(); err != nil {
+			return err
+		} else if t.dataSet == nil {
+			return nil
+		} else if deviceInfo, err = NewDeviceInfoFromDataSet(t.dataSet); err != nil {
+			return err
+		} else if !deviceInfo.IsG5Mobile() {
+			deviceInfo = NewDeviceInfoFromMultiple()
+		}
+	}
+
+	datumArray, err := t.fetchData(startTime, endTime)
 	if err != nil {
 		return err
-	}
-
-	datumArray := []data.Datum{}
-
-	fetchDatumArray, err := t.fetchCalibrations(startTime, endTime)
-	if err != nil {
-		return err
-	}
-	datumArray = append(datumArray, fetchDatumArray...)
-
-	fetchDatumArray, err = t.fetchEGVs(startTime, endTime)
-	if err != nil {
-		return err
-	}
-	datumArray = append(datumArray, fetchDatumArray...)
-
-	fetchDatumArray, err = t.fetchEvents(startTime, endTime)
-	if err != nil {
-		return err
-	}
-	datumArray = append(datumArray, fetchDatumArray...)
-
-	if len(datumArray) == 0 {
+	} else if len(datumArray) == 0 {
 		return nil
 	}
 
@@ -422,6 +419,21 @@ func (t *TaskRunner) fetchDevices(startTime time.Time, endTime time.Time) ([]*de
 	return response.Devices, nil
 }
 
+func (t *TaskRunner) preloadDataSet() error {
+	if t.dataSet != nil || t.dataSetPreloaded {
+		return nil
+	}
+
+	dataSet, err := t.findDataSet()
+	if err != nil {
+		return err
+	}
+
+	t.dataSet = dataSet
+	t.dataSetPreloaded = true
+	return nil
+}
+
 func (t *TaskRunner) calculateDeviceInfo(devices []*dexcom.Device) (*DeviceInfo, error) {
 	deviceInfo := NewDeviceInfo()
 	for _, device := range devices {
@@ -432,6 +444,30 @@ func (t *TaskRunner) calculateDeviceInfo(devices []*dexcom.Device) (*DeviceInfo,
 		}
 	}
 	return deviceInfo, nil
+}
+
+func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) ([]data.Datum, error) {
+	datumArray := []data.Datum{}
+
+	fetchDatumArray, err := t.fetchCalibrations(startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+	datumArray = append(datumArray, fetchDatumArray...)
+
+	fetchDatumArray, err = t.fetchEGVs(startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+	datumArray = append(datumArray, fetchDatumArray...)
+
+	fetchDatumArray, err = t.fetchEvents(startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+	datumArray = append(datumArray, fetchDatumArray...)
+
+	return datumArray, nil
 }
 
 func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) ([]data.Datum, error) {
@@ -536,20 +572,20 @@ func (t *TaskRunner) prepareDatumArray(datumArray []data.Datum, deviceInfo *Devi
 }
 
 func (t *TaskRunner) prepareDataSet(deviceInfo *DeviceInfo) error {
-	if t.dataSet == nil {
-		dataSet, err := t.findDataSet()
-		if err != nil {
-			return err
-		} else if dataSet == nil {
-			dataSet, err = t.createDataSet(deviceInfo)
-			if err != nil {
-				return err
-			}
-		}
-		t.dataSet = dataSet
+	if err := t.preloadDataSet(); err != nil {
+		return err
 	}
 
-	return t.updateDataSetWithDeviceInfo(deviceInfo)
+	if t.dataSet != nil {
+		return t.updateDataSetWithDeviceInfo(deviceInfo)
+	}
+
+	dataSet, err := t.createDataSet(deviceInfo)
+	if err != nil {
+		return err
+	}
+	t.dataSet = dataSet
+	return nil
 }
 
 func (t *TaskRunner) findDataSet() (*data.DataSet, error) {
@@ -566,8 +602,8 @@ func (t *TaskRunner) findDataSet() (*data.DataSet, error) {
 func (t *TaskRunner) createDataSet(deviceInfo *DeviceInfo) (*data.DataSet, error) {
 	dataSetCreate := data.NewDataSetCreate()
 	dataSetCreate.Client = &data.DataSetClient{
-		Name:    DatasetClientName,
-		Version: DatasetClientVersion,
+		Name:    pointer.String(DatasetClientName),
+		Version: pointer.String(DatasetClientVersion),
 	}
 	dataSetCreate.DataSetType = data.DataSetTypeContinuous
 	dataSetCreate.DeviceID = deviceInfo.DeviceID
@@ -659,6 +695,14 @@ func NewDeviceInfo() *DeviceInfo {
 	return &DeviceInfo{}
 }
 
+func NewDeviceInfoFromMultiple() *DeviceInfo {
+	return &DeviceInfo{
+		DeviceID:           dexcom.DeviceIDMultiple,
+		DeviceModel:        dexcom.DeviceModelMultiple,
+		DeviceSerialNumber: dexcom.DeviceSerialNumberMultiple,
+	}
+}
+
 func NewDeviceInfoFromDataSet(dataSet *data.DataSet) (*DeviceInfo, error) {
 	if dataSet == nil {
 		return nil, errors.New("data set is missing")
@@ -718,6 +762,10 @@ func NewDeviceInfoFromDevice(device *dexcom.Device) (*DeviceInfo, error) {
 
 func (d *DeviceInfo) IsEmpty() bool {
 	return d.DeviceID == "" && d.DeviceModel == "" && d.DeviceSerialNumber == ""
+}
+
+func (d *DeviceInfo) IsG5Mobile() bool {
+	return d.DeviceModel == "G5Mobile"
 }
 
 func (d *DeviceInfo) Merge(deviceInfo *DeviceInfo) (*DeviceInfo, error) {

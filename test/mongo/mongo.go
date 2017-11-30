@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/onsi/ginkgo"
@@ -46,7 +47,7 @@ var _ = ginkgo.SynchronizedAfterSuite(func() {
 })
 
 func Address() string {
-	return "127.0.0.1"
+	return os.Getenv("TIDEPOOL_STORE_ADDRESSES")
 }
 
 func Session() *mgo.Session {
