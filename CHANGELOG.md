@@ -1,5 +1,8 @@
 ## HEAD
 
+## v1.21.0
+
+- Dependency updates
 - Use Go v1.9.2
 - Update Copyright
 - Minor Makefile updates
@@ -7,14 +10,17 @@
 - Add support for delta uploads
 - Support private client data in upload
 - Use environment variable for test database address
+
+## v1.20.2
+
 - Add fix to handle Dexcom API not correctly reporting daily G5 Mobile devices
 
-## v1.20.1 (2017-11-21)
+## v1.20.1
 
 - Fix alert settings snooze validation for Dexcom API
 - Update Dockerfile to Go 1.9.1
 
-## v1.20.0 (2017-11-03)
+## v1.20.0
 
 - Use Go v1.9.1
 - Update dependencies
@@ -144,7 +150,7 @@
 - Remove legacy group id from data replaced by user id
 - Remove deprecated user services `Client.GetUserGroupID`
 
-## v1.9.0 (2017-08-10)
+## v1.9.0
 
 - Bump `hash_deactivate_old` data deduplicator to version 1.1.0
 - Update `hash_deactivate_old` data deduplicator to use archived dataset id and time fields to accurately:
@@ -158,7 +164,7 @@
 - Add service middleware to extract select request headers and add as request logger fields
 - Defer access to context store sessions and log until actually needed
 
-## v1.8.0 (2017-08-09)
+## v1.8.0
 
 - Add CHANGELOG.md
 - **REQUIRED MIGRATION**: `migrate_data_deduplicator_descriptor` - data deduplicator descriptor name and version
@@ -171,6 +177,6 @@
 - Remove unused data store functionality
 - Remove unused data deduplicators
 
-## v1.7.0 (2017-06-22)
+## v1.7.0
 
 - See commit history for details on this and all previous releases
