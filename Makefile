@@ -284,7 +284,10 @@ bootstrap-dependencies: godep
 	go get github.com/onsi/ginkgo/extensions/table
 	go get github.com/onsi/ginkgo/ginkgo
 	go get github.com/onsi/gomega
+	go get github.com/onsi/gomega/gbytes
+	go get github.com/onsi/gomega/gexec
 	go get github.com/onsi/gomega/ghttp
+	go get github.com/onsi/gomega/gstruct
 	go get golang.org/x/sys/unix
 	go get ./...
 
@@ -292,7 +295,10 @@ bootstrap-save: bootstrap-dependencies
 	cd $(ROOT_DIRECTORY) && godep save ./... \
 		github.com/onsi/ginkgo/extensions/table \
 		github.com/onsi/ginkgo/ginkgo \
-		github.com/onsi/gomega/ghttp
+		github.com/onsi/gomega/gbytes \
+		github.com/onsi/gomega/gexec \
+		github.com/onsi/gomega/ghttp \
+		github.com/onsi/gomega/gstruct
 
 # Bootstrap with initial dependencies
 bootstrap:

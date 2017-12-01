@@ -12,6 +12,7 @@ const (
 	CharsetNumeric      = "1234567890"
 	CharsetWhitespace   = " "
 	CharsetSymbols      = "!\"#$%&'()*+,-./:;<=>@\\]^_`{|}~"
+	CharsetAlpha        = CharsetUppercase + CharsetLowercase
 	CharsetAlphaNumeric = CharsetUppercase + CharsetLowercase + CharsetNumeric
 	CharsetText         = CharsetAlphaNumeric + CharsetWhitespace + CharsetSymbols
 )
