@@ -127,32 +127,32 @@ func TestSuite(t *testing.T) {
 // 	return len(t.DestroyDataForUserByIDOutputs) == 0
 // }
 
-// type TestConfirmationsSession struct {
-// 	DestroyConfirmationsForUserByIDInputs  []string
-// 	DestroyConfirmationsForUserByIDOutputs []error
+// type TestConfirmationSession struct {
+// 	DeleteUserConfirmationsInputs  []string
+// 	DeleteUserConfirmationsOutputs []error
 // }
 
-// func (t *TestConfirmationsSession) IsClosed() bool {
-// 	panic("Unexpected invocation of IsClosed on TestConfirmationsSession")
+// func (t *TestConfirmationSession) IsClosed() bool {
+// 	panic("Unexpected invocation of IsClosed on TestConfirmationSession")
 // }
 
-// func (t *TestConfirmationsSession) Close() {
-// 	panic("Unexpected invocation of Close on TestConfirmationsSession")
+// func (t *TestConfirmationSession) Close() {
+// 	panic("Unexpected invocation of Close on TestConfirmationSession")
 // }
 
-// func (t *TestConfirmationsSession) Logger() log.Logger {
-// 	panic("Unexpected invocation of Logger on TestConfirmationsSession")
+// func (t *TestConfirmationSession) Logger() log.Logger {
+// 	panic("Unexpected invocation of Logger on TestConfirmationSession")
 // }
 
-// func (t *TestConfirmationsSession) DestroyConfirmationsForUserByID(userID string) error {
-// 	t.DestroyConfirmationsForUserByIDInputs = append(t.DestroyConfirmationsForUserByIDInputs, userID)
-// 	output := t.DestroyConfirmationsForUserByIDOutputs[0]
-// 	t.DestroyConfirmationsForUserByIDOutputs = t.DestroyConfirmationsForUserByIDOutputs[1:]
+// func (t *TestConfirmationSession) DeleteUserConfirmations(userID string) error {
+// 	t.DeleteUserConfirmationsInputs = append(t.DeleteUserConfirmationsInputs, userID)
+// 	output := t.DeleteUserConfirmationsOutputs[0]
+// 	t.DeleteUserConfirmationsOutputs = t.DeleteUserConfirmationsOutputs[1:]
 // 	return output
 // }
 
-// func (t *TestConfirmationsSession) ValidateTest() bool {
-// 	return len(t.DestroyConfirmationsForUserByIDOutputs) == 0
+// func (t *TestConfirmationSession) ValidateTest() bool {
+// 	return len(t.DeleteUserConfirmationsOutputs) == 0
 // }
 
 // type TestMessagesSession struct {
@@ -368,7 +368,7 @@ func TestSuite(t *testing.T) {
 // 	MetricClientImpl                       *TestMetricClient
 // 	UserClientImpl                         *TestUserClient
 // 	DataClientImpl                         *TestDataClient
-// 	ConfirmationsSessionImpl               *TestConfirmationsSession
+// 	ConfirmationSessionImpl               *TestConfirmationSession
 // 	MessagesSessionImpl                    *TestMessagesSession
 // 	PermissionsSessionImpl                 *TestPermissionsSession
 // 	ProfilesSessionImpl                    *TestProfilesSession
@@ -381,7 +381,7 @@ func TestSuite(t *testing.T) {
 // 		MetricClientImpl:         &TestMetricClient{},
 // 		UserClientImpl:           &TestUserClient{},
 // 		DataClientImpl:           &TestDataClient{},
-// 		ConfirmationsSessionImpl: &TestConfirmationsSession{},
+// 		ConfirmationSessionImpl: &TestConfirmationSession{},
 // 		MessagesSessionImpl:      &TestMessagesSession{},
 // 		PermissionsSessionImpl:   &TestPermissionsSession{},
 // 		ProfilesSessionImpl:      &TestProfilesSession{},
@@ -422,8 +422,8 @@ func TestSuite(t *testing.T) {
 // 	return t.DataClientImpl
 // }
 
-// func (t *TestContext) ConfirmationsSession() confirmationStore.ConfirmationsSession {
-// 	return t.ConfirmationsSessionImpl
+// func (t *TestContext) ConfirmationSession() confirmationStore.ConfirmationSession {
+// 	return t.ConfirmationSessionImpl
 // }
 
 // func (t *TestContext) MessagesSession() messageStore.MessagesSession {
@@ -450,7 +450,7 @@ func TestSuite(t *testing.T) {
 // 	return (t.MetricClientImpl == nil || t.MetricClientImpl.ValidateTest()) &&
 // 		(t.UserClientImpl == nil || t.UserClientImpl.ValidateTest()) &&
 // 		(t.DataClientImpl == nil || t.DataClientImpl.ValidateTest()) &&
-// 		(t.ConfirmationsSessionImpl == nil || t.ConfirmationsSessionImpl.ValidateTest()) &&
+// 		(t.ConfirmationSessionImpl == nil || t.ConfirmationSessionImpl.ValidateTest()) &&
 // 		(t.MessagesSessionImpl == nil || t.MessagesSessionImpl.ValidateTest()) &&
 // 		(t.PermissionsSessionImpl == nil || t.PermissionsSessionImpl.ValidateTest()) &&
 // 		(t.ProfilesSessionImpl == nil || t.ProfilesSessionImpl.ValidateTest()) &&

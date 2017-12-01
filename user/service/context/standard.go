@@ -27,7 +27,7 @@ type Standard struct {
 	metricClient         metric.Client
 	userClient           user.Client
 	confirmationStore    confirmationStore.Store
-	confirmationsSession confirmationStore.ConfirmationsSession
+	confirmationsSession confirmationStore.ConfirmationSession
 	messageStore         messageStore.Store
 	messagesSession      messageStore.MessagesSession
 	permissionStore      permissionStore.Store
@@ -157,9 +157,9 @@ func (s *Standard) UserClient() user.Client {
 	return s.userClient
 }
 
-func (s *Standard) ConfirmationsSession() confirmationStore.ConfirmationsSession {
+func (s *Standard) ConfirmationSession() confirmationStore.ConfirmationSession {
 	if s.confirmationsSession == nil {
-		s.confirmationsSession = s.confirmationStore.NewConfirmationsSession()
+		s.confirmationsSession = s.confirmationStore.NewConfirmationSession()
 	}
 	return s.confirmationsSession
 }

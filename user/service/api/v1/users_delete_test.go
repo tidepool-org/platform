@@ -177,12 +177,12 @@ package v1_test
 // 		WithDestroyingConfirmations := func(flags *TestFlags) func() {
 // 			return func() {
 // 				AfterEach(func() {
-// 					Expect(context.ConfirmationsSessionImpl.DestroyConfirmationsForUserByIDInputs).To(Equal([]string{targetUserID}))
+// 					Expect(context.ConfirmationSessionImpl.DeleteUserConfirmationsInputs).To(Equal([]string{targetUserID}))
 // 				})
 
 // 				Context("with destroying confirmations", func() {
 // 					BeforeEach(func() {
-// 						context.ConfirmationsSessionImpl.DestroyConfirmationsForUserByIDOutputs = []error{nil}
+// 						context.ConfirmationSessionImpl.DeleteUserConfirmationsOutputs = []error{nil}
 // 					})
 
 // 					WithDestroyingData(flags)()
@@ -190,7 +190,7 @@ package v1_test
 
 // 				It("responds with failure if it returns error", func() {
 // 					err := errors.New("test-error-destroying-confirmations")
-// 					context.ConfirmationsSessionImpl.DestroyConfirmationsForUserByIDOutputs = []error{err}
+// 					context.ConfirmationSessionImpl.DeleteUserConfirmationsOutputs = []error{err}
 // 					v1.UsersDelete(context)
 // 					Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to destroy confirmations for user by id", []interface{}{err}}}))
 // 				})

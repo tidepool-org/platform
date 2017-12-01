@@ -22,7 +22,7 @@ type Context interface {
 	UserClient() user.Client
 	DataClient() dataClient.Client
 
-	ConfirmationsSession() confirmationStore.ConfirmationsSession
+	ConfirmationSession() confirmationStore.ConfirmationSession
 	MessagesSession() messageStore.MessagesSession
 	PermissionsSession() permissionStore.PermissionsSession
 	ProfilesSession() profileStore.ProfilesSession

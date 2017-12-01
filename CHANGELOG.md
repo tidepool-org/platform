@@ -1,5 +1,6 @@
 ## HEAD
 
+* Update confirmation package to use latest code and test style
 * Additional test helpers
 * Add OAuth client credentials provider
 * Add golang.org/x/oauth2/clientcredentials dependency
