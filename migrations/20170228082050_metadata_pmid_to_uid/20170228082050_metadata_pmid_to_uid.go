@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/urfave/cli"
 	mgo "gopkg.in/mgo.v2"
@@ -19,7 +20,7 @@ const (
 )
 
 func main() {
-	application.Run(NewMigration())
+	os.Exit(application.Run(NewMigration()))
 }
 
 type Migration struct {

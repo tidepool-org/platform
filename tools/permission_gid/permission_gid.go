@@ -22,7 +22,7 @@ const (
 )
 
 func main() {
-	application.Run(NewTool())
+	os.Exit(application.Run(NewTool()))
 }
 
 type Tool struct {

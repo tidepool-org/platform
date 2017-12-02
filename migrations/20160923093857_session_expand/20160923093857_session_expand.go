@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -19,7 +20,7 @@ const (
 )
 
 func main() {
-	application.Run(NewMigration())
+	os.Exit(application.Run(NewMigration()))
 }
 
 type Migration struct {

@@ -1,5 +1,7 @@
 ## HEAD
 
+* Update application package and tests
+* Remove unnecessary verbose flag from tools; use environment variable instead
 * Update confirmation package to use latest code and test style
 * Additional test helpers
 * Add OAuth client credentials provider

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"time"
 
 	"github.com/urfave/cli"
@@ -15,7 +16,7 @@ import (
 )
 
 func main() {
-	application.Run(NewMigration())
+	os.Exit(application.Run(NewMigration()))
 }
 
 type Migration struct {

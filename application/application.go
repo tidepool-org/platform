@@ -13,8 +13,7 @@ import (
 	"github.com/tidepool-org/platform/config/env"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/log/json"
-	"github.com/tidepool-org/platform/log/null"
+	logJSON "github.com/tidepool-org/platform/log/json"
 	"github.com/tidepool-org/platform/sync"
 	"github.com/tidepool-org/platform/version"
 )
@@ -35,7 +34,6 @@ func New(prefix string, scopes ...string) (*Application, error) {
 	}
 
 	name := filepath.Base(os.Args[0])
-
 	if strings.EqualFold(name, "debug") {
 		if debugName, found := syscall.Getenv(env.GetKey(prefix, []string{name}, "name")); found {
 			name = debugName
@@ -92,14 +90,6 @@ func (a *Application) Logger() log.Logger {
 	return a.logger
 }
 
-func (a *Application) SetLogger(logger log.Logger) {
-	if logger == nil {
-		logger = null.NewLogger()
-	}
-
-	a.logger = logger
-}
-
 func (a *Application) initializeVersionReporter() error {
 	versionReporter, err := applicationVersion.NewReporter()
 	if err != nil {
@@ -140,7 +130,7 @@ func (a *Application) initializeLogger() error {
 
 	level := a.ConfigReporter().WithScopes("logger").GetWithDefault("level", "warn")
 
-	logger, err := json.NewLogger(writer, log.DefaultLevelRanks(), log.Level(level))
+	logger, err := logJSON.NewLogger(writer, log.DefaultLevelRanks(), log.Level(level))
 	if err != nil {
 		return errors.Wrap(err, "unable to create logger")
 	}
