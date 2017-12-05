@@ -77,3 +77,13 @@ func (s *Suspend) Validate(validator data.Validator) error {
 
 	return nil
 }
+
+func (s *Suspend) Normalize(normalizer data.Normalizer) {
+	normalizer = normalizer.WithMeta(s.Meta())
+
+	s.Basal.Normalize(normalizer)
+
+	if s.Suppressed != nil {
+		s.Suppressed.Normalize(normalizer.WithReference("suppressed"))
+	}
+}

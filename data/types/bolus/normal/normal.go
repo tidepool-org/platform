@@ -70,3 +70,9 @@ func (n *Normal) Validate(validator data.Validator) error {
 
 	return nil
 }
+
+func (n *Normal) Normalize(normalizer data.Normalizer) {
+	normalizer = normalizer.WithMeta(n.Meta())
+
+	n.Bolus.Normalize(normalizer)
+}

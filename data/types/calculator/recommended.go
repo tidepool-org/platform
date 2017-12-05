@@ -24,8 +24,7 @@ func (r *Recommended) Validate(validator data.Validator) {
 	validator.ValidateFloat("net", r.Net).InRange(-100.0, 100.0)
 }
 
-func (r *Recommended) Normalize(normalizer data.Normalizer) {
-}
+func (r *Recommended) Normalize(normalizer data.Normalizer) {}
 
 func ParseRecommended(parser data.ObjectParser) *Recommended {
 	var recommended *Recommended

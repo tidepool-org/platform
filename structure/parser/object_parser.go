@@ -35,6 +35,10 @@ func (o *Object) Error() error {
 	return o.base.Error()
 }
 
+func (o *Object) ReportError(err error) {
+	o.base.ReportError(err)
+}
+
 func (o *Object) Exists() bool {
 	return o.object != nil
 }

@@ -99,21 +99,17 @@ func (a *Alarm) Validate(validator data.Validator) error {
 	return nil
 }
 
-func (a *Alarm) Normalize(normalizer data.Normalizer) error {
-	if err := a.Device.Normalize(normalizer); err != nil {
-		return err
-	}
+func (a *Alarm) Normalize(normalizer data.Normalizer) {
+	normalizer = normalizer.WithMeta(a.Meta())
+
+	a.Device.Normalize(normalizer)
 
 	if a.status != nil {
-		if err := (*a.status).Normalize(normalizer.NewChildNormalizer("status")); err != nil {
-			return err
-		}
+		(*a.status).Normalize(normalizer.WithReference("status"))
 
 		a.StatusID = &(*a.status).(*status.Status).ID
 
-		normalizer.AppendDatum(*a.status)
+		normalizer.AddData(*a.status)
 		a.status = nil
 	}
-
-	return nil
 }

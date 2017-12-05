@@ -6,7 +6,7 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/context"
-	"github.com/tidepool-org/platform/data/normalizer"
+	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/data/validator"
@@ -89,16 +89,14 @@ func DatasetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	datumNormalizer, err := normalizer.NewStandard(datumArrayContext)
-	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to create datum normalizer", err)
-		return
-	}
+	normalizer := dataNormalizer.New()
 
 	datumArray := []data.Datum{}
 	for index := range *datumArrayParser.Array() {
+		reference := strconv.Itoa(index)
 		if datum := datumArrayParser.ParseDatum(index); datum != nil && *datum != nil {
 			(*datum).Validate(datumValidator.NewChildValidator(index))
+			normalizer.WithReference(reference).Normalize(*datum)
 			datumArray = append(datumArray, *datum)
 		}
 	}
@@ -110,11 +108,11 @@ func DatasetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	for _, datum := range datumArray {
-		datum.Normalize(datumNormalizer)
+	if err = normalizer.Error(); err != nil {
+		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
 	}
 
-	datumArray = append(datumArray, datumNormalizer.Data()...)
+	datumArray = append(datumArray, normalizer.Data()...)
 
 	for _, datum := range datumArray {
 		datum.SetUserID(dataset.UserID)

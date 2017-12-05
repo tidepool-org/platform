@@ -55,10 +55,8 @@ func (b *Basal) Validate(validator data.Validator) error {
 	return nil
 }
 
-func (b *Basal) Normalize(normalizer data.Normalizer) error {
-	normalizer.SetMeta(b.Meta())
-
-	return b.Base.Normalize(normalizer)
+func (b *Basal) Normalize(normalizer data.Normalizer) {
+	b.Base.Normalize(normalizer)
 }
 
 func (b *Basal) IdentityFields() ([]string, error) {

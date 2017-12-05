@@ -21,13 +21,9 @@ func (g *Glucose) Validate(validator data.Validator) error {
 	return nil
 }
 
-func (g *Glucose) Normalize(normalizer data.Normalizer) error {
-	if err := g.Blood.Normalize(normalizer); err != nil {
-		return err
-	}
+func (g *Glucose) Normalize(normalizer data.Normalizer) {
+	g.Blood.Normalize(normalizer)
 
 	g.Value = glucose.NormalizeValueForUnits(g.Value, g.Units)
 	g.Units = glucose.NormalizeUnits(g.Units)
-
-	return nil
 }

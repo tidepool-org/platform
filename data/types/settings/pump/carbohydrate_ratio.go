@@ -21,8 +21,7 @@ func (c *CarbohydrateRatio) Validate(validator data.Validator) {
 	validator.ValidateInteger("start", c.Start).Exists().InRange(0, 86400000)
 }
 
-func (c *CarbohydrateRatio) Normalize(normalizer data.Normalizer) {
-}
+func (c *CarbohydrateRatio) Normalize(normalizer data.Normalizer) {}
 
 func ParseCarbohydrateRatio(parser data.ObjectParser) *CarbohydrateRatio {
 	var carbohydrateRatio *CarbohydrateRatio

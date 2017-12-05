@@ -8,6 +8,7 @@ type ObjectParsable interface {
 
 type ObjectParser interface {
 	Error() error
+	ReportError(err error)
 
 	Exists() bool
 
@@ -42,6 +43,7 @@ type ArrayParsable interface {
 
 type ArrayParser interface {
 	Error() error
+	ReportError(err error)
 
 	Exists() bool
 

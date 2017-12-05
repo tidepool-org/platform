@@ -61,6 +61,12 @@ func (s *Suppressed) Validate(validator data.Validator, allowedDeliveryTypes []s
 	// validator.ValidateInterfaceArray("annotations", s.Annotations)    // TODO: Any validations? Optional? Size?
 }
 
+func (s *Suppressed) Normalize(normalizer data.Normalizer) {
+	if s.Suppressed != nil {
+		s.Suppressed.Normalize(normalizer.WithReference("suppressed"))
+	}
+}
+
 func (s *Suppressed) HasDeliveryTypeOneOf(deliveryTypes []string) bool {
 	if s.DeliveryType == nil {
 		return false

@@ -48,10 +48,8 @@ func (b *Blood) Validate(validator data.Validator) error {
 	return nil
 }
 
-func (b *Blood) Normalize(normalizer data.Normalizer) error {
-	normalizer.SetMeta(b.Meta())
-
-	return b.Base.Normalize(normalizer)
+func (b *Blood) Normalize(normalizer data.Normalizer) {
+	b.Base.Normalize(normalizer)
 }
 
 func (b *Blood) IdentityFields() ([]string, error) {

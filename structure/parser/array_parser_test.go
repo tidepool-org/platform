@@ -49,6 +49,14 @@ var _ = Describe("Array", func() {
 			})
 		})
 
+		Context("ReportError", func() {
+			It("reports the error to the base", func() {
+				err := testErrors.NewError()
+				parser.ReportError(err)
+				Expect(base.Error()).To(Equal(errors.Normalize(err)))
+			})
+		})
+
 		Context("Exists", func() {
 			It("returns false", func() {
 				Expect(parser.Exists()).To(BeFalse())
@@ -139,8 +147,7 @@ var _ = Describe("Array", func() {
 
 		Context("WithMeta", func() {
 			It("returns new parser", func() {
-				meta := testErrors.NewMeta()
-				result := parser.WithMeta(meta)
+				result := parser.WithMeta(testErrors.NewMeta())
 				Expect(result).ToNot(BeNil())
 				Expect(result).ToNot(Equal(parser))
 			})
@@ -731,8 +738,7 @@ var _ = Describe("Array", func() {
 		})
 
 		It("returns new parser", func() {
-			meta := testErrors.NewMeta()
-			result := parser.WithMeta(meta)
+			result := parser.WithMeta(testErrors.NewMeta())
 			Expect(result).ToNot(BeNil())
 			Expect(result).ToNot(Equal(parser))
 		})

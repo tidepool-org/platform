@@ -55,10 +55,8 @@ func (d *Device) Validate(validator data.Validator) error {
 	return nil
 }
 
-func (d *Device) Normalize(normalizer data.Normalizer) error {
-	normalizer.SetMeta(d.Meta())
-
-	return d.Base.Normalize(normalizer)
+func (d *Device) Normalize(normalizer data.Normalizer) {
+	d.Base.Normalize(normalizer)
 }
 
 func (d *Device) IdentityFields() ([]string, error) {

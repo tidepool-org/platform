@@ -48,3 +48,7 @@ func (b *BloodGlucoseTarget) Validate(validator data.Validator, units *string) {
 
 	validator.ValidateInteger("start", b.Start).Exists().InRange(0, 86400000)
 }
+
+func (b *BloodGlucoseTarget) Normalize(normalizer data.Normalizer, units *string) {
+	b.Target.Normalize(normalizer, units)
+}

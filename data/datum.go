@@ -7,7 +7,7 @@ type Datum interface {
 
 	Parse(parser ObjectParser) error
 	Validate(validator Validator) error
-	Normalize(normalizer Normalizer) error
+	Normalize(normalizer Normalizer)
 
 	IdentityFields() ([]string, error)
 

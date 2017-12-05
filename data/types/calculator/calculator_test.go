@@ -6,12 +6,10 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data/blood/glucose"
-	"github.com/tidepool-org/platform/data/context"
-	"github.com/tidepool-org/platform/data/normalizer"
+	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/calculator"
-	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -279,13 +277,10 @@ var _ = Describe("Calculator", func() {
 				bolusCalculator.InsulinSensitivity = &val
 				bolusCalculator.BloodGlucoseTarget = &glucose.Target{Target: &val}
 
-				testContext, err := context.NewStandard(null.NewLogger())
-				Expect(err).ToNot(HaveOccurred())
-				Expect(testContext).ToNot(BeNil())
-				standardNormalizer, err := normalizer.NewStandard(testContext)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(standardNormalizer).ToNot(BeNil())
-				bolusCalculator.Normalize(standardNormalizer)
+				testNormalizer := dataNormalizer.New()
+				Expect(testNormalizer).ToNot(BeNil())
+				bolusCalculator.Normalize(testNormalizer)
+				Expect(testNormalizer.Error()).ToNot(HaveOccurred())
 				Expect(*bolusCalculator.Units).To(Equal(glucose.MmolL))
 				Expect(*bolusCalculator.BloodGlucoseInput).To(Equal(expected))
 				Expect(*bolusCalculator.InsulinSensitivity).To(Equal(expected))
@@ -304,13 +299,10 @@ var _ = Describe("Calculator", func() {
 				bolusCalculator.InsulinSensitivity = &val
 				bolusCalculator.BloodGlucoseTarget = &glucose.Target{Target: &val}
 
-				testContext, err := context.NewStandard(null.NewLogger())
-				Expect(err).ToNot(HaveOccurred())
-				Expect(testContext).ToNot(BeNil())
-				standardNormalizer, err := normalizer.NewStandard(testContext)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(standardNormalizer).ToNot(BeNil())
-				bolusCalculator.Normalize(standardNormalizer)
+				testNormalizer := dataNormalizer.New()
+				Expect(testNormalizer).ToNot(BeNil())
+				bolusCalculator.Normalize(testNormalizer)
+				Expect(testNormalizer.Error()).ToNot(HaveOccurred())
 				Expect(*bolusCalculator.Units).To(Equal(glucose.MmolL))
 				Expect(*bolusCalculator.BloodGlucoseInput).To(Equal(expected))
 				Expect(*bolusCalculator.InsulinSensitivity).To(Equal(expected))

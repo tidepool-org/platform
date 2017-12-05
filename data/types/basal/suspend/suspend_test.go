@@ -7,7 +7,7 @@ import (
 
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/factory"
-	"github.com/tidepool-org/platform/data/normalizer"
+	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/basal"
@@ -309,13 +309,10 @@ var _ = Describe("Suspend", func() {
 
 			Context("Normalize", func() {
 				It("succeeds", func() {
-					testContext, err := context.NewStandard(null.NewLogger())
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testContext).ToNot(BeNil())
-					testNormalizer, err := normalizer.NewStandard(testContext)
-					Expect(err).ToNot(HaveOccurred())
+					testNormalizer := dataNormalizer.New()
 					Expect(testNormalizer).ToNot(BeNil())
-					Expect(testSuspend.Normalize(testNormalizer)).To(Succeed())
+					testSuspend.Normalize(testNormalizer)
+					Expect(testNormalizer.Error()).ToNot(HaveOccurred())
 				})
 			})
 		})

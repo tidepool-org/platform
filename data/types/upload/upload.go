@@ -126,22 +126,18 @@ func (u *Upload) Validate(validator data.Validator) error {
 	return nil
 }
 
-func (u *Upload) Normalize(normalizer data.Normalizer) error {
-	normalizer.SetMeta(u.Meta())
+func (u *Upload) Normalize(normalizer data.Normalizer) {
+	normalizer = normalizer.WithMeta(u.Meta())
 
-	if err := u.Base.Normalize(normalizer); err != nil {
-		return err
-	}
-
-	if u.Client != nil {
-		u.Client.Normalize(normalizer.NewChildNormalizer("client"))
-	}
+	u.Base.Normalize(normalizer)
 
 	if u.DataSetType == nil {
 		u.DataSetType = pointer.String(DataSetTypeNormal)
 	}
 
-	return nil
+	if u.Client != nil {
+		u.Client.Normalize(normalizer.WithReference("client"))
+	}
 }
 
 func (u *Upload) HasDeviceManufacturerOneOf(deviceManufacturers []string) bool {

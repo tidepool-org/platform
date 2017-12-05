@@ -129,12 +129,10 @@ func (c *Calculator) Validate(validator data.Validator) error {
 	return nil
 }
 
-func (c *Calculator) Normalize(normalizer data.Normalizer) error {
-	normalizer.SetMeta(c.Meta())
+func (c *Calculator) Normalize(normalizer data.Normalizer) {
+	normalizer = normalizer.WithMeta(c.Meta())
 
-	if err := c.Base.Normalize(normalizer); err != nil {
-		return err
-	}
+	c.Base.Normalize(normalizer)
 
 	units := c.Units
 
@@ -143,17 +141,15 @@ func (c *Calculator) Normalize(normalizer data.Normalizer) error {
 	c.Units = glucose.NormalizeUnits(c.Units)
 
 	if c.Recommended != nil {
-		c.Recommended.Normalize(normalizer.NewChildNormalizer("recommended"))
+		c.Recommended.Normalize(normalizer.WithReference("recommended"))
 	}
 
 	if c.BloodGlucoseTarget != nil {
-		c.BloodGlucoseTarget.Normalize(normalizer.NewChildNormalizer("bgTarget"), units)
+		c.BloodGlucoseTarget.Normalize(normalizer.WithReference("bgTarget"), units)
 	}
 
 	if c.bolus != nil {
-		if err := (*c.bolus).Normalize(normalizer.NewChildNormalizer("bolus")); err != nil {
-			return err
-		}
+		(*c.bolus).Normalize(normalizer.WithReference("bolus"))
 
 		switch (*c.bolus).(type) {
 		case *extended.Extended:
@@ -164,9 +160,7 @@ func (c *Calculator) Normalize(normalizer data.Normalizer) error {
 			c.BolusID = &(*c.bolus).(*combination.Combination).ID
 		}
 
-		normalizer.AppendDatum(*c.bolus)
+		normalizer.AddData(*c.bolus)
 		c.bolus = nil
 	}
-
-	return nil
 }

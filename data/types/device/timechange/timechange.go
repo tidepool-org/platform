@@ -59,3 +59,13 @@ func (t *TimeChange) Validate(validator data.Validator) error {
 
 	return nil
 }
+
+func (t *TimeChange) Normalize(normalizer data.Normalizer) {
+	normalizer = normalizer.WithMeta(t.Meta())
+
+	t.Device.Normalize(normalizer)
+
+	if t.Change != nil {
+		t.Change.Normalize(normalizer.WithReference("change"))
+	}
+}

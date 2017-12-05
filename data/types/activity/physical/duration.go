@@ -2,7 +2,6 @@ package physical
 
 import (
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/pointer"
 )
 
 const (
@@ -50,16 +49,7 @@ func (d *Duration) Validate(validator data.Validator) {
 	validator.ValidateString("units", d.Units).Exists().OneOf([]string{UnitsHours, UnitsMinutes, UnitsSeconds})
 }
 
-func (d *Duration) Normalize(normalizer data.Normalizer) {
-	switch *d.Units {
-	case UnitsHours:
-		d.Value = pointer.Float64(*d.Value * MinutesPerHour * SecondsPerMinute)
-		d.Units = pointer.String(UnitsSeconds)
-	case UnitsMinutes:
-		d.Value = pointer.Float64(*d.Value * SecondsPerMinute)
-		d.Units = pointer.String(UnitsSeconds)
-	}
-}
+func (d *Duration) Normalize(normalizer data.Normalizer) {}
 
 func ParseDuration(parser data.ObjectParser) *Duration {
 	if parser.Object() == nil {

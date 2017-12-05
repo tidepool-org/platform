@@ -1,6 +1,8 @@
 package pump
 
 import (
+	"strconv"
+
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
 )
@@ -129,37 +131,56 @@ func (p *Pump) Validate(validator data.Validator) error {
 	return nil
 }
 
-func (p *Pump) Normalize(normalizer data.Normalizer) error {
-	normalizer.SetMeta(p.Meta())
+func (p *Pump) Normalize(normalizer data.Normalizer) {
+	normalizer = normalizer.WithMeta(p.Meta())
 
-	if err := p.Base.Normalize(normalizer); err != nil {
-		return err
-	}
+	p.Base.Normalize(normalizer)
 
 	var originalUnits *string
 
 	if p.Units != nil {
 		originalUnits = p.Units.BloodGlucose
-		p.Units.Normalize(normalizer.NewChildNormalizer("units"))
+		p.Units.Normalize(normalizer.WithReference("units"))
 	}
 
-	if p.BloodGlucoseTargets != nil {
-		bloodGlucoseTargetsNormalizer := normalizer.NewChildNormalizer("bgTarget")
-		for index, bgTarget := range *p.BloodGlucoseTargets {
-			if bgTarget != nil {
-				bgTarget.Normalize(bloodGlucoseTargetsNormalizer.NewChildNormalizer(index), originalUnits)
+	if p.BasalSchedules != nil {
+		basalSchedulesNormalizer := normalizer.WithReference("basalSchedules")
+		for basalScheduleName, basalSchedule := range *p.BasalSchedules {
+			if basalSchedule != nil {
+				basalScheduleNormalizer := basalSchedulesNormalizer.WithReference(basalScheduleName)
+				for index, scheduleItem := range *basalSchedule {
+					if scheduleItem != nil {
+						scheduleItem.Normalize(basalScheduleNormalizer.WithReference(strconv.Itoa(index)))
+					}
+				}
+			}
+		}
+	}
+
+	if p.CarbohydrateRatios != nil {
+		carbohydrateRatiosNormalizer := normalizer.WithReference("carbRatio")
+		for index, carbohydrateRatio := range *p.CarbohydrateRatios {
+			if carbohydrateRatio != nil {
+				carbohydrateRatio.Normalize(carbohydrateRatiosNormalizer.WithReference(strconv.Itoa(index)))
 			}
 		}
 	}
 
 	if p.InsulinSensitivities != nil {
-		insulinSensitivitiesNormalizer := normalizer.NewChildNormalizer("insulinSensitivity")
+		insulinSensitivitiesNormalizer := normalizer.WithReference("insulinSensitivity")
 		for index, insulinSensitivity := range *p.InsulinSensitivities {
 			if insulinSensitivity != nil {
-				insulinSensitivity.Normalize(insulinSensitivitiesNormalizer.NewChildNormalizer(index), originalUnits)
+				insulinSensitivity.Normalize(insulinSensitivitiesNormalizer.WithReference(strconv.Itoa(index)), originalUnits)
 			}
 		}
 	}
 
-	return nil
+	if p.BloodGlucoseTargets != nil {
+		bloodGlucoseTargetsNormalizer := normalizer.WithReference("bgTarget")
+		for index, bgTarget := range *p.BloodGlucoseTargets {
+			if bgTarget != nil {
+				bgTarget.Normalize(bloodGlucoseTargetsNormalizer.WithReference(strconv.Itoa(index)), originalUnits)
+			}
+		}
+	}
 }

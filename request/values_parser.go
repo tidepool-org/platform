@@ -38,6 +38,10 @@ func (v *Values) Error() error {
 	return v.base.Error()
 }
 
+func (v *Values) ReportError(err error) {
+	v.base.ReportError(err)
+}
+
 func (v *Values) Exists() bool {
 	return v.values != nil
 }

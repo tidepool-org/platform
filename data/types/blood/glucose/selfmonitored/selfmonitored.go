@@ -57,3 +57,9 @@ func (s *SelfMonitored) Validate(validator data.Validator) error {
 
 	return nil
 }
+
+func (s *SelfMonitored) Normalize(normalizer data.Normalizer) {
+	normalizer = normalizer.WithMeta(s.Meta())
+
+	s.Glucose.Normalize(normalizer)
+}

@@ -1,6 +1,8 @@
 package reported
 
 import (
+	"strconv"
+
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
 )
@@ -68,21 +70,17 @@ func (r *Reported) Validate(validator data.Validator) error {
 	return nil
 }
 
-func (r *Reported) Normalize(normalizer data.Normalizer) error {
-	normalizer.SetMeta(r.Meta())
+func (r *Reported) Normalize(normalizer data.Normalizer) {
+	normalizer = normalizer.WithMeta(r.Meta())
 
-	if err := r.Base.Normalize(normalizer); err != nil {
-		return err
-	}
+	r.Base.Normalize(normalizer)
 
 	if r.States != nil {
-		statesNormalizer := normalizer.NewChildNormalizer("states")
+		statesNormalizer := normalizer.WithReference("states")
 		for index, state := range *r.States {
 			if state != nil {
-				state.Normalize(statesNormalizer.NewChildNormalizer(index))
+				state.Normalize(statesNormalizer.WithReference(strconv.Itoa(index)))
 			}
 		}
 	}
-
-	return nil
 }

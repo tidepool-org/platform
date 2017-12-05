@@ -49,6 +49,14 @@ var _ = Describe("Validator", func() {
 			})
 		})
 
+		Context("ReportError", func() {
+			It("reports the error to the base", func() {
+				err := testErrors.NewError()
+				validator.ReportError(err)
+				Expect(base.Error()).To(Equal(errors.Normalize(err)))
+			})
+		})
+
 		Context("Validate", func() {
 			var validatable *testStructure.Validatable
 
@@ -156,8 +164,7 @@ var _ = Describe("Validator", func() {
 
 		Context("WithMeta", func() {
 			It("returns new validator", func() {
-				meta := testErrors.NewMeta()
-				result := validator.WithMeta(meta)
+				result := validator.WithMeta(testErrors.NewMeta())
 				Expect(result).ToNot(BeNil())
 				Expect(result).ToNot(Equal(validator))
 			})

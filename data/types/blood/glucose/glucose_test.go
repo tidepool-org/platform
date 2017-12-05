@@ -8,7 +8,7 @@ import (
 	"math"
 
 	"github.com/tidepool-org/platform/data/context"
-	"github.com/tidepool-org/platform/data/normalizer"
+	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
@@ -189,13 +189,10 @@ var _ = Describe("Glucose", func() {
 					sourceGlucose.GUID = expectedKetone.GUID
 					sourceGlucose.ID = expectedKetone.ID
 					sourceGlucose.DeviceID = expectedKetone.DeviceID
-					testContext, err := context.NewStandard(null.NewLogger())
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testContext).ToNot(BeNil())
-					testNormalizer, err := normalizer.NewStandard(testContext)
-					Expect(err).ToNot(HaveOccurred())
+					testNormalizer := dataNormalizer.New()
 					Expect(testNormalizer).ToNot(BeNil())
-					Expect(sourceGlucose.Normalize(testNormalizer)).To(Succeed())
+					sourceGlucose.Normalize(testNormalizer)
+					Expect(testNormalizer.Error()).ToNot(HaveOccurred())
 					Expect(sourceGlucose).To(Equal(expectedKetone))
 				},
 				Entry("unknown units",

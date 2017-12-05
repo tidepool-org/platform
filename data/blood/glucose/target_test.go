@@ -10,7 +10,7 @@ import (
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/factory"
-	"github.com/tidepool-org/platform/data/normalizer"
+	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/validator"
@@ -269,10 +269,10 @@ var _ = Describe("Target", func() {
 				testContext, err := context.NewStandard(null.NewLogger())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(testContext).ToNot(BeNil())
-				testNormalizer, err := normalizer.NewStandard(testContext)
-				Expect(err).ToNot(HaveOccurred())
+				testNormalizer := dataNormalizer.New()
 				Expect(testNormalizer).ToNot(BeNil())
 				sourceTarget.Normalize(testNormalizer, AsStringPointer(sourceUnits))
+				Expect(testNormalizer.Error()).ToNot(HaveOccurred())
 				Expect(sourceTarget).To(Equal(expectedTarget))
 			},
 			Entry("normalizes a target with units of nil", NewTestTarget(120.0, 10.0, 110.0, 130.0), nil, NewTestTarget(120.0, 10.0, 110.0, 130.0)),

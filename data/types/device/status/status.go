@@ -65,3 +65,9 @@ func (s *Status) Validate(validator data.Validator) error {
 
 	return nil
 }
+
+func (s *Status) Normalize(normalizer data.Normalizer) {
+	normalizer = normalizer.WithMeta(s.Meta())
+
+	s.Device.Normalize(normalizer)
+}

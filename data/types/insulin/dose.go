@@ -28,8 +28,7 @@ func (d *Dose) Validate(validator data.Validator) {
 	validator.ValidateString("units", d.Units).Exists().OneOf([]string{UnitsUnits})
 }
 
-func (d *Dose) Normalize(normalizer data.Normalizer) {
-}
+func (d *Dose) Normalize(normalizer data.Normalizer) {}
 
 func ParseDose(parser data.ObjectParser) *Dose {
 	if parser.Object() == nil {

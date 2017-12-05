@@ -112,9 +112,7 @@ func (b *Base) Validate(validator data.Validator) error {
 	return nil
 }
 
-func (b *Base) Normalize(normalizer data.Normalizer) error {
-	return nil
-}
+func (b *Base) Normalize(normalizer data.Normalizer) {}
 
 func (b *Base) IdentityFields() ([]string, error) {
 	if b.UserID == "" {

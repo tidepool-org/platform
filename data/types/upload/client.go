@@ -24,8 +24,7 @@ func (c *Client) Validate(validator data.Validator) {
 	validator.ValidateObject("private", c.Private)          // TODO: Additional validation
 }
 
-func (c *Client) Normalize(normalizer data.Normalizer) {
-}
+func (c *Client) Normalize(normalizer data.Normalizer) {}
 
 func ParseClient(parser data.ObjectParser) *Client {
 	if parser.Object() == nil {

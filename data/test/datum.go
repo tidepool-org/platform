@@ -24,7 +24,6 @@ type Datum struct {
 	ValidateOutputs                      []error
 	NormalizeInvocations                 int
 	NormalizeInputs                      []data.Normalizer
-	NormalizeOutputs                     []error
 	IdentityFieldsInvocations            int
 	IdentityFieldsOutputs                []IdentityFieldsOutput
 	PayloadInvocations                   int
@@ -98,16 +97,10 @@ func (d *Datum) Validate(validator data.Validator) error {
 	return output
 }
 
-func (d *Datum) Normalize(normalizer data.Normalizer) error {
+func (d *Datum) Normalize(normalizer data.Normalizer) {
 	d.NormalizeInvocations++
 
 	d.NormalizeInputs = append(d.NormalizeInputs, normalizer)
-
-	gomega.Expect(d.NormalizeOutputs).ToNot(gomega.BeEmpty())
-
-	output := d.NormalizeOutputs[0]
-	d.NormalizeOutputs = d.NormalizeOutputs[1:]
-	return output
 }
 
 func (d *Datum) IdentityFields() ([]string, error) {
@@ -207,6 +200,5 @@ func (d *Datum) Expectations() {
 	gomega.Expect(d.MetaOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.ParseOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.ValidateOutputs).To(gomega.BeEmpty())
-	gomega.Expect(d.NormalizeOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.IdentityFieldsOutputs).To(gomega.BeEmpty())
 }

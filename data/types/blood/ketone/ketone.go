@@ -46,13 +46,11 @@ func (k *Ketone) Validate(validator data.Validator) error {
 	return nil
 }
 
-func (k *Ketone) Normalize(normalizer data.Normalizer) error {
-	if err := k.Blood.Normalize(normalizer); err != nil {
-		return err
-	}
+func (k *Ketone) Normalize(normalizer data.Normalizer) {
+	normalizer = normalizer.WithMeta(k.Meta())
+
+	k.Blood.Normalize(normalizer)
 
 	k.Value = ketone.NormalizeValueForUnits(k.Value, k.Units)
 	k.Units = ketone.NormalizeUnits(k.Units)
-
-	return nil
 }

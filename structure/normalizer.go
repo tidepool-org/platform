@@ -6,6 +6,7 @@ type Normalizable interface {
 
 type Normalizer interface {
 	Error() error
+	ReportError(err error)
 
 	Normalize(normalizable Normalizable) error
 

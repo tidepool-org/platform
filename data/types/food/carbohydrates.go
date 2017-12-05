@@ -28,8 +28,7 @@ func (c *Carbohydrates) Validate(validator data.Validator) {
 	validator.ValidateString("units", c.Units).Exists().EqualTo(UnitsGrams)
 }
 
-func (c *Carbohydrates) Normalize(normalizer data.Normalizer) {
-}
+func (c *Carbohydrates) Normalize(normalizer data.Normalizer) {}
 
 func ParseCarbohydrates(parser data.ObjectParser) *Carbohydrates {
 	if parser.Object() == nil {

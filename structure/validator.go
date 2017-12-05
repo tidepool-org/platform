@@ -11,6 +11,7 @@ type Validatable interface {
 
 type Validator interface {
 	Error() error
+	ReportError(err error)
 
 	Validate(validatable Validatable) error
 

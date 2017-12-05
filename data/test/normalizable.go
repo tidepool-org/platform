@@ -1,15 +1,15 @@
 package test
 
 import (
-	"github.com/tidepool-org/platform/structure"
+	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/test"
 )
 
 type Normalizable struct {
 	*test.Mock
 	NormalizeInvocations int
-	NormalizeInputs      []structure.Normalizer
-	NormalizeStub        func(normalizer structure.Normalizer)
+	NormalizeInputs      []data.Normalizer
+	NormalizeStub        func(normalizer data.Normalizer)
 }
 
 func NewNormalizable() *Normalizable {
@@ -18,7 +18,7 @@ func NewNormalizable() *Normalizable {
 	}
 }
 
-func (n *Normalizable) Normalize(normalizer structure.Normalizer) {
+func (n *Normalizable) Normalize(normalizer data.Normalizer) {
 	n.NormalizeInvocations++
 
 	n.NormalizeInputs = append(n.NormalizeInputs, normalizer)

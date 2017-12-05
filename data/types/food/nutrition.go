@@ -22,7 +22,7 @@ func (n *Nutrition) Validate(validator data.Validator) {
 
 func (n *Nutrition) Normalize(normalizer data.Normalizer) {
 	if n.Carbohydrates != nil {
-		n.Carbohydrates.Normalize(normalizer.NewChildNormalizer("carbohydrates"))
+		n.Carbohydrates.Normalize(normalizer.WithReference("carbohydrates"))
 	}
 }
 

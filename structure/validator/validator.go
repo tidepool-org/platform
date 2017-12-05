@@ -25,6 +25,10 @@ func (v *Validator) Error() error {
 	return v.base.Error()
 }
 
+func (v *Validator) ReportError(err error) {
+	v.base.ReportError(err)
+}
+
 func (v *Validator) Validate(validatable structure.Validatable) error {
 	validatable.Validate(v)
 	return v.Error()

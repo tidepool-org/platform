@@ -68,3 +68,9 @@ func (p *Prime) Validate(validator data.Validator) error {
 
 	return nil
 }
+
+func (p *Prime) Normalize(normalizer data.Normalizer) {
+	normalizer = normalizer.WithMeta(p.Meta())
+
+	p.Device.Normalize(normalizer)
+}

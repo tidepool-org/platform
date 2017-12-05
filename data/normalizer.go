@@ -1,18 +1,20 @@
 package data
 
-import (
-	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/service"
-)
+import "github.com/tidepool-org/platform/structure"
+
+type Normalizable interface {
+	Normalize(normalizer Normalizer)
+}
 
 type Normalizer interface {
-	Logger() log.Logger
+	Error() error
+	ReportError(err error)
 
-	SetMeta(meta interface{})
+	Normalize(normalizable Normalizable) error
 
-	AppendError(reference interface{}, err *service.Error)
+	AddData(data ...Datum)
 
-	AppendDatum(datum Datum)
-
-	NewChildNormalizer(reference interface{}) Normalizer
+	WithSource(source structure.Source) Normalizer
+	WithMeta(meta interface{}) Normalizer
+	WithReference(reference string) Normalizer
 }

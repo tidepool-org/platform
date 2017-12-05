@@ -41,3 +41,9 @@ func (c *Continuous) Validate(validator data.Validator) error {
 
 	return nil
 }
+
+func (c *Continuous) Normalize(normalizer data.Normalizer) {
+	normalizer = normalizer.WithMeta(c.Meta())
+
+	c.Glucose.Normalize(normalizer)
+}

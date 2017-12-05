@@ -6,33 +6,27 @@ import (
 
 	"fmt"
 
+	"github.com/tidepool-org/platform/data"
+	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
+	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/errors"
 	testErrors "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/structure"
-	structureBase "github.com/tidepool-org/platform/structure/base"
-	structureNormalizer "github.com/tidepool-org/platform/structure/normalizer"
 	testStructure "github.com/tidepool-org/platform/structure/test"
 )
 
 var _ = Describe("Normalizer", func() {
 	Context("New", func() {
 		It("returns successfully", func() {
-			Expect(structureNormalizer.New()).ToNot(BeNil())
-		})
-	})
-
-	Context("NewNormalizer", func() {
-		It("returns successfully", func() {
-			Expect(structureNormalizer.NewNormalizer(structureBase.New())).ToNot(BeNil())
+			Expect(dataNormalizer.New()).ToNot(BeNil())
 		})
 	})
 
 	Context("with new normalizer", func() {
-		var normalizer *structureNormalizer.Normalizer
+		var normalizer *dataNormalizer.Normalizer
 
 		BeforeEach(func() {
-			normalizer = structureNormalizer.New()
+			normalizer = dataNormalizer.New()
 			Expect(normalizer).ToNot(BeNil())
 		})
 
@@ -62,10 +56,10 @@ var _ = Describe("Normalizer", func() {
 		})
 
 		Context("Normalize", func() {
-			var normalizable *testStructure.Normalizable
+			var normalizable *testData.Normalizable
 
 			BeforeEach(func() {
-				normalizable = testStructure.NewNormalizable()
+				normalizable = testData.NewNormalizable()
 			})
 
 			AfterEach(func() {
@@ -74,19 +68,46 @@ var _ = Describe("Normalizer", func() {
 
 			It("invokes normalize", func() {
 				Expect(normalizer.Normalize(normalizable)).To(Succeed())
-				Expect(normalizable.NormalizeInputs).To(Equal([]structure.Normalizer{normalizer}))
+				Expect(normalizable.NormalizeInputs).To(Equal([]data.Normalizer{normalizer}))
 			})
 
 			It("returns any error", func() {
 				err := testErrors.NewError()
-				normalizable.NormalizeStub = func(normalizer structure.Normalizer) { normalizer.ReportError(err) }
+				normalizable.NormalizeStub = func(normalizer data.Normalizer) { normalizer.ReportError(err) }
 				Expect(normalizer.Normalize(normalizable)).To(Equal(errors.Normalize(err)))
+			})
+		})
+
+		Context("Data", func() {
+			It("returns no data", func() {
+				Expect(normalizer.Data()).To(BeEmpty())
+			})
+
+			It("returns data", func() {
+				datum1 := testData.NewDatum()
+				datum2 := testData.NewDatum()
+				normalizer.AddData(datum1, datum2)
+				Expect(normalizer.Data()).To(Equal([]data.Datum{datum1, datum2}))
+			})
+		})
+
+		Context("AddData", func() {
+			It("does nothing if data is nil", func() {
+				normalizer.AddData(nil, nil)
+				Expect(normalizer.Data()).To(BeEmpty())
+			})
+
+			It("adds data", func() {
+				datum1 := testData.NewDatum()
+				datum2 := testData.NewDatum()
+				normalizer.AddData(datum1, datum2)
+				Expect(normalizer.Data()).To(Equal([]data.Datum{datum1, datum2}))
 			})
 		})
 
 		Context("WithSource", func() {
 			var source *testStructure.Source
-			var normalizerWithSource structure.Normalizer
+			var normalizerWithSource data.Normalizer
 
 			BeforeEach(func() {
 				source = testStructure.NewSource()
@@ -113,7 +134,7 @@ var _ = Describe("Normalizer", func() {
 
 		Context("WithMeta", func() {
 			var meta interface{}
-			var normalizerWithMeta structure.Normalizer
+			var normalizerWithMeta data.Normalizer
 
 			BeforeEach(func() {
 				meta = testErrors.NewMeta()
@@ -134,7 +155,7 @@ var _ = Describe("Normalizer", func() {
 
 		Context("WithReference", func() {
 			var reference string
-			var normalizerWithReference structure.Normalizer
+			var normalizerWithReference data.Normalizer
 
 			BeforeEach(func() {
 				reference = testStructure.NewReference()

@@ -86,3 +86,13 @@ func (t *Temporary) Validate(validator data.Validator) error {
 
 	return nil
 }
+
+func (t *Temporary) Normalize(normalizer data.Normalizer) {
+	normalizer = normalizer.WithMeta(t.Meta())
+
+	t.Basal.Normalize(normalizer)
+
+	if t.Suppressed != nil {
+		t.Suppressed.Normalize(normalizer.WithReference("suppressed"))
+	}
+}

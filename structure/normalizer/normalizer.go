@@ -23,6 +23,10 @@ func (n *Normalizer) Error() error {
 	return n.base.Error()
 }
 
+func (n *Normalizer) ReportError(err error) {
+	n.base.ReportError(err)
+}
+
 func (n *Normalizer) Normalize(normalizable structure.Normalizable) error {
 	normalizable.Normalize(n)
 	return n.Error()

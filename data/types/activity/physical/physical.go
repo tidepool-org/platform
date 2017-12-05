@@ -73,16 +73,12 @@ func (p *Physical) Validate(validator data.Validator) error {
 	return nil
 }
 
-func (p *Physical) Normalize(normalizer data.Normalizer) error {
-	normalizer.SetMeta(p.Meta())
+func (p *Physical) Normalize(normalizer data.Normalizer) {
+	normalizer = normalizer.WithMeta(p.Meta())
 
-	if err := p.Base.Normalize(normalizer); err != nil {
-		return err
-	}
+	p.Base.Normalize(normalizer)
 
 	if p.Duration != nil {
-		p.Duration.Normalize(normalizer.NewChildNormalizer("duration"))
+		p.Duration.Normalize(normalizer.WithReference("duration"))
 	}
-
-	return nil
 }

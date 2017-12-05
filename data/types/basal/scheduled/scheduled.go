@@ -77,3 +77,9 @@ func (s *Scheduled) Validate(validator data.Validator) error {
 
 	return nil
 }
+
+func (s *Scheduled) Normalize(normalizer data.Normalizer) {
+	normalizer = normalizer.WithMeta(s.Meta())
+
+	s.Basal.Normalize(normalizer)
+}

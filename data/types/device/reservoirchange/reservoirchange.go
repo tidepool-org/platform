@@ -81,21 +81,17 @@ func (r *ReservoirChange) Validate(validator data.Validator) error {
 	return nil
 }
 
-func (r *ReservoirChange) Normalize(normalizer data.Normalizer) error {
-	if err := r.Device.Normalize(normalizer); err != nil {
-		return err
-	}
+func (r *ReservoirChange) Normalize(normalizer data.Normalizer) {
+	normalizer = normalizer.WithMeta(r.Meta())
+
+	r.Device.Normalize(normalizer)
 
 	if r.status != nil {
-		if err := (*r.status).Normalize(normalizer.NewChildNormalizer("status")); err != nil {
-			return err
-		}
+		(*r.status).Normalize(normalizer.WithReference("status"))
 
 		r.StatusID = &(*r.status).(*status.Status).ID
 
-		normalizer.AppendDatum(*r.status)
+		normalizer.AddData(*r.status)
 		r.status = nil
 	}
-
-	return nil
 }

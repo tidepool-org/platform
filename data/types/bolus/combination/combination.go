@@ -115,3 +115,9 @@ func (c *Combination) Validate(validator data.Validator) error {
 
 	return nil
 }
+
+func (c *Combination) Normalize(normalizer data.Normalizer) {
+	normalizer = normalizer.WithMeta(c.Meta())
+
+	c.Bolus.Normalize(normalizer)
+}

@@ -6,7 +6,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/factory"
-	"github.com/tidepool-org/platform/data/normalizer"
+	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
 	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/log/null"
@@ -65,9 +65,8 @@ func checkErrorsFromParseValidateNormalize(object map[string]interface{}, field 
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	gomega.Expect(standardObjectParser).ToNot(gomega.BeNil())
 
-	standardNormalizer, err := normalizer.NewStandard(standardContext)
-	gomega.Expect(err).ToNot(gomega.HaveOccurred())
-	gomega.Expect(standardNormalizer).ToNot(gomega.BeNil())
+	normalizer := dataNormalizer.New()
+	gomega.Expect(normalizer).ToNot(gomega.BeNil())
 
 	parsedObject, err := parser.ParseDatum(standardObjectParser, standardFactory)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
@@ -75,9 +74,10 @@ func checkErrorsFromParseValidateNormalize(object map[string]interface{}, field 
 	gomega.Expect(*parsedObject).ToNot(gomega.BeNil())
 	standardObjectParser.ProcessNotParsed()
 	(*parsedObject).Validate(standardValidator)
-	(*parsedObject).Normalize(standardNormalizer)
+	(*parsedObject).Normalize(normalizer)
 
 	gomega.Expect(standardContext.Errors()).To(gomega.ConsistOf(errors))
+	gomega.Expect(normalizer.Error()).ToNot(gomega.HaveOccurred())
 
 	return (*parsedObject)
 }

@@ -24,8 +24,7 @@ func (c *Change) Validate(validator data.Validator) {
 	validator.ValidateString("agent", c.Agent).Exists().OneOf([]string{"manual", "automatic"})
 }
 
-func (c *Change) Normalize(normalizer data.Normalizer) {
-}
+func (c *Change) Normalize(normalizer data.Normalizer) {}
 
 func ParseChange(parser data.ObjectParser) *Change {
 	var change *Change

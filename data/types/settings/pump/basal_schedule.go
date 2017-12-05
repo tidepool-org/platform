@@ -21,8 +21,7 @@ func (b *BasalSchedule) Validate(validator data.Validator) {
 	validator.ValidateInteger("start", b.Start).Exists().InRange(0, 86400000)
 }
 
-func (b *BasalSchedule) Normalize(normalizer data.Normalizer) {
-}
+func (b *BasalSchedule) Normalize(normalizer data.Normalizer) {}
 
 func parseBasalSchedule(parser data.ObjectParser) *BasalSchedule {
 	var basalSchedule *BasalSchedule

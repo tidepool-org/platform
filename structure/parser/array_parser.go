@@ -36,6 +36,10 @@ func (a *Array) Error() error {
 	return a.base.Error()
 }
 
+func (a *Array) ReportError(err error) {
+	a.base.ReportError(err)
+}
+
 func (a *Array) Exists() bool {
 	return a.array != nil
 }

@@ -90,3 +90,9 @@ func (e *Extended) Validate(validator data.Validator) error {
 
 	return nil
 }
+
+func (e *Extended) Normalize(normalizer data.Normalizer) {
+	normalizer = normalizer.WithMeta(e.Meta())
+
+	e.Bolus.Normalize(normalizer)
+}

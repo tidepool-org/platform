@@ -63,13 +63,11 @@ func (c *Calibration) Validate(validator data.Validator) error {
 	return nil
 }
 
-func (c *Calibration) Normalize(normalizer data.Normalizer) error {
-	if err := c.Device.Normalize(normalizer); err != nil {
-		return err
-	}
+func (c *Calibration) Normalize(normalizer data.Normalizer) {
+	normalizer = normalizer.WithMeta(c.Meta())
+
+	c.Device.Normalize(normalizer)
 
 	c.Value = glucose.NormalizeValueForUnits(c.Value, c.Units)
 	c.Units = glucose.NormalizeUnits(c.Units)
-
-	return nil
 }

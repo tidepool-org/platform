@@ -27,8 +27,7 @@ func (s *State) Validate(validator data.Validator) {
 	validator.ValidateString("state", s.State).Exists().OneOf([]string{StateAlcohol, StateCycle, StateHyperglycemiaSymptoms, StateHypoglycemiaSymptoms, StateIllness, StateStress})
 }
 
-func (s *State) Normalize(normalizer data.Normalizer) {
-}
+func (s *State) Normalize(normalizer data.Normalizer) {}
 
 func ParseState(parser data.ObjectParser) *State {
 	if parser.Object() == nil {

@@ -1,5 +1,8 @@
 ## HEAD
 
+* Refactor data normalizer to use common structure normalizer
+* Remove normalization from physical activity duration as necessary
+* Expose ReportError function in structure parser, normalizer, and validator
 * Update application package and tests
 * Remove unnecessary verbose flag from tools; use environment variable instead
 * Update confirmation package to use latest code and test style

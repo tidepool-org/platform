@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/tidepool-org/platform/data/context"
-	"github.com/tidepool-org/platform/data/normalizer"
+	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/data/types/upload"
@@ -66,11 +66,7 @@ func UsersDatasetsCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	datumNormalizer, err := normalizer.NewStandard(datumContext)
-	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to create datum normalizer", err)
-		return
-	}
+	normalizer := dataNormalizer.New()
 
 	datasetDatum, err := parser.ParseDatum(datumParser, dataServiceContext.DataFactory())
 	if err != nil {
@@ -89,7 +85,12 @@ func UsersDatasetsCreate(dataServiceContext dataService.Context) {
 	}
 
 	(*datasetDatum).SetUserID(targetUserID)
-	(*datasetDatum).Normalize(datumNormalizer)
+
+	normalizer.Normalize(*datasetDatum)
+
+	if err = normalizer.Error(); err != nil {
+		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
+	}
 
 	dataset, ok := (*datasetDatum).(*upload.Upload)
 	if !ok {

@@ -63,16 +63,12 @@ func (f *Food) Validate(validator data.Validator) error {
 	return nil
 }
 
-func (f *Food) Normalize(normalizer data.Normalizer) error {
-	normalizer.SetMeta(f.Meta())
+func (f *Food) Normalize(normalizer data.Normalizer) {
+	normalizer = normalizer.WithMeta(f.Meta())
 
-	if err := f.Base.Normalize(normalizer); err != nil {
-		return err
-	}
+	f.Base.Normalize(normalizer)
 
 	if f.Nutrition != nil {
-		f.Nutrition.Normalize(normalizer.NewChildNormalizer("nutrition"))
+		f.Nutrition.Normalize(normalizer.WithReference("nutrition"))
 	}
-
-	return nil
 }

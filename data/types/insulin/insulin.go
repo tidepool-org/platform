@@ -63,16 +63,12 @@ func (i *Insulin) Validate(validator data.Validator) error {
 	return nil
 }
 
-func (i *Insulin) Normalize(normalizer data.Normalizer) error {
-	normalizer.SetMeta(i.Meta())
+func (i *Insulin) Normalize(normalizer data.Normalizer) {
+	normalizer = normalizer.WithMeta(i.Meta())
 
-	if err := i.Base.Normalize(normalizer); err != nil {
-		return err
-	}
+	i.Base.Normalize(normalizer)
 
 	if i.Dose != nil {
-		i.Dose.Normalize(normalizer.NewChildNormalizer("dose"))
+		i.Dose.Normalize(normalizer.WithReference("dose"))
 	}
-
-	return nil
 }
