@@ -34,10 +34,6 @@ func (v *Validator) Validate(validatable structure.Validatable) error {
 	return v.Error()
 }
 
-func (v *Validator) Validating(reference string, value structure.Validatable) structure.Validating {
-	return NewValidating(v.base.WithReference(reference), value)
-}
-
 func (v *Validator) Bool(reference string, value *bool) structure.Bool {
 	return NewBool(v.base.WithReference(reference), value)
 }

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 type EGVsResponse struct {
@@ -43,7 +44,11 @@ func (e *EGVsResponse) Validate(validator structure.Validator) {
 
 	validator = validator.WithReference("egvs")
 	for index, egv := range e.EGVs {
-		validator.Validating(strconv.Itoa(index), egv).Exists().Validate()
+		if egvValidator := validator.WithReference(strconv.Itoa(index)); egv != nil {
+			egv.Validate(egvValidator)
+		} else {
+			egvValidator.ReportError(structureValidator.ErrorValueNotExists())
+		}
 	}
 }
 

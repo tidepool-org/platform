@@ -86,7 +86,11 @@ func (p *ProviderSessionCreate) Validate(validator structure.Validator) {
 	validator.String("name", &p.Name).NotEmpty()
 	switch p.Type {
 	case ProviderTypeOAuth:
-		validator.Validating("oauthToken", p.OAuthToken).Exists().Validate()
+		if oauthTokenValidator := validator.WithReference("oauthToken"); p.OAuthToken != nil {
+			p.OAuthToken.Validate(oauthTokenValidator)
+		} else {
+			oauthTokenValidator.ReportError(structureValidator.ErrorValueNotExists())
+		}
 	}
 }
 
@@ -111,7 +115,9 @@ func (p *ProviderSessionUpdate) Parse(parser structure.ObjectParser) {
 }
 
 func (p *ProviderSessionUpdate) Validate(validator structure.Validator) {
-	validator.Validating("oauthToken", p.OAuthToken).Validate()
+	if p.OAuthToken != nil {
+		p.OAuthToken.Validate(validator.WithReference("oauthToken"))
+	}
 }
 
 type ProviderSession struct {
@@ -175,7 +181,11 @@ func (p *ProviderSession) Validate(validator structure.Validator) {
 	validator.String("name", &p.Name).NotEmpty()
 	switch p.Type {
 	case ProviderTypeOAuth:
-		validator.Validating("oauthToken", p.OAuthToken).Exists().Validate()
+		if oauthTokenValidator := validator.WithReference("oauthToken"); p.OAuthToken != nil {
+			p.OAuthToken.Validate(oauthTokenValidator)
+		} else {
+			oauthTokenValidator.ReportError(structureValidator.ErrorValueNotExists())
+		}
 	}
 	validator.Time("createdTime", &p.CreatedTime).NotZero().BeforeNow(time.Second)
 	validator.Time("modifiedTime", p.ModifiedTime).After(p.CreatedTime).BeforeNow(time.Second)

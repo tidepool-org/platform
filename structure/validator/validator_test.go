@@ -76,17 +76,6 @@ var _ = Describe("Validator", func() {
 			})
 		})
 
-		Context("Validating", func() {
-			It("returns a validator when called with nil value", func() {
-				Expect(validator.Validating("reference", nil)).ToNot(BeNil())
-			})
-
-			It("returns a validator when called with non-nil value", func() {
-				value := testStructure.NewValidatable()
-				Expect(validator.Validating("reference", value)).ToNot(BeNil())
-			})
-		})
-
 		Context("Bool", func() {
 			It("returns a validator when called with nil value", func() {
 				Expect(validator.Bool("reference", nil)).ToNot(BeNil())

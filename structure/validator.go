@@ -15,8 +15,6 @@ type Validator interface {
 
 	Validate(validatable Validatable) error
 
-	Validating(reference string, validatable Validatable) Validating
-
 	Bool(reference string, value *bool) Bool
 	Float64(reference string, value *float64) Float64
 	Int(reference string, value *int) Int
@@ -27,13 +25,6 @@ type Validator interface {
 	WithSource(source Source) Validator
 	WithMeta(meta interface{}) Validator
 	WithReference(reference string) Validator
-}
-
-type Validating interface {
-	Exists() Validating
-	NotExists() Validating
-
-	Validate() Validating
 }
 
 type Bool interface {

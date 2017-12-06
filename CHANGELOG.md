@@ -1,5 +1,6 @@
 ## HEAD
 
+* Remove structure.Validating; does not work as expected
 * Refactor data normalizer to use common structure normalizer
 * Remove normalization from physical activity duration as necessary
 * Expose ReportError function in structure parser, normalizer, and validator
