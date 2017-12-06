@@ -22,6 +22,9 @@ type Validator interface {
 	StringArray(reference string, value *[]string) StringArray
 	Time(reference string, value *time.Time) Time
 
+	Object(reference string, value *map[string]interface{}) Object
+	Array(reference string, value *[]interface{}) Array
+
 	WithSource(source Source) Validator
 	WithMeta(meta interface{}) Validator
 	WithReference(reference string) Validator
@@ -127,4 +130,20 @@ type Time interface {
 	AfterNow(threshold time.Duration) Time
 	Before(limit time.Time) Time
 	BeforeNow(threshold time.Duration) Time
+}
+
+type Object interface {
+	Exists() Object
+	NotExists() Object
+
+	Empty() Object
+	NotEmpty() Object
+}
+
+type Array interface {
+	Exists() Array
+	NotExists() Array
+
+	Empty() Array
+	NotEmpty() Array
 }

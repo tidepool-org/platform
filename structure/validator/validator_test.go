@@ -142,6 +142,28 @@ var _ = Describe("Validator", func() {
 			})
 		})
 
+		Context("Object", func() {
+			It("returns a validator when called with nil value", func() {
+				Expect(validator.Object("reference", nil)).ToNot(BeNil())
+			})
+
+			It("returns a validator when called with non-nil value", func() {
+				value := map[string]interface{}{"a": 1, "b": 2}
+				Expect(validator.Object("reference", &value)).ToNot(BeNil())
+			})
+		})
+
+		Context("Array", func() {
+			It("returns a validator when called with nil value", func() {
+				Expect(validator.Array("reference", nil)).ToNot(BeNil())
+			})
+
+			It("returns a validator when called with non-nil value", func() {
+				value := []interface{}{"a", "b"}
+				Expect(validator.Array("reference", &value)).ToNot(BeNil())
+			})
+		})
+
 		Context("WithSource", func() {
 			It("returns new validator", func() {
 				src := testStructure.NewSource()
