@@ -165,38 +165,6 @@ var _ = Describe("Standard", func() {
 			})
 		})
 
-		Context("ValidateInterface", func() {
-			var value interface{} = "zero"
-
-			It("returns a validator when called with nil reference", func() {
-				Expect(standard.ValidateInterface(nil, &value)).ToNot(BeNil())
-			})
-
-			It("returns a validator when called with nil value", func() {
-				Expect(standard.ValidateInterface("reference", nil)).ToNot(BeNil())
-			})
-
-			It("returns a validator when called with non-nil reference and value", func() {
-				Expect(standard.ValidateInterface("reference", &value)).ToNot(BeNil())
-			})
-		})
-
-		Context("ValidateInterfaceArray", func() {
-			value := []interface{}{"zero", "one"}
-
-			It("returns a validator when called with nil reference", func() {
-				Expect(standard.ValidateInterfaceArray(nil, &value)).ToNot(BeNil())
-			})
-
-			It("returns a validator when called with nil value", func() {
-				Expect(standard.ValidateInterfaceArray("reference", nil)).ToNot(BeNil())
-			})
-
-			It("returns a validator when called with non-nil reference and value", func() {
-				Expect(standard.ValidateInterfaceArray("reference", &value)).ToNot(BeNil())
-			})
-		})
-
 		Context("ValidateStringAsTime", func() {
 			value := "time"
 

@@ -2,6 +2,7 @@ package basal
 
 import (
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/service"
 )
 
 type Suppressed struct {
@@ -45,20 +46,22 @@ func (s *Suppressed) Validate(validator data.Validator, allowedDeliveryTypes []s
 
 	if s.HasDeliveryTypeOneOf(allowedDeliveryTypes) {
 		scheduleNameValidator := validator.ValidateString("scheduleName", s.ScheduleName)
-		suppressedValidator := validator.ValidateInterface("suppressed", suppressedAsInterface(s.Suppressed))
 		if *s.DeliveryType == "scheduled" {
 			scheduleNameValidator.NotEmpty()
-			suppressedValidator.NotExists()
+			if s.Suppressed != nil {
+				validator.AppendError("suppressed", service.ErrorValueExists())
+			}
 		} else {
 			scheduleNameValidator.NotExists()
-			suppressedValidator.Exists()
 			if s.Suppressed != nil {
 				s.Suppressed.Validate(validator.NewChildValidator("suppressed"), []string{"scheduled"})
+			} else {
+				validator.AppendError("suppressed", service.ErrorValueNotExists())
 			}
 		}
 	}
 
-	// validator.ValidateInterfaceArray("annotations", s.Annotations)    // TODO: Any validations? Optional? Size?
+	// ("annotations", s.Annotations)    // TODO: Any validations? Optional? Size?
 }
 
 func (s *Suppressed) Normalize(normalizer data.Normalizer) {
@@ -79,12 +82,4 @@ func (s *Suppressed) HasDeliveryTypeOneOf(deliveryTypes []string) bool {
 	}
 
 	return false
-}
-
-func suppressedAsInterface(suppressed *Suppressed) *interface{} {
-	if suppressed == nil {
-		return nil
-	}
-	var value interface{} = *suppressed
-	return &value
 }

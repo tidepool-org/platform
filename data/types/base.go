@@ -97,12 +97,12 @@ func (b *Base) Parse(parser data.ObjectParser) error {
 func (b *Base) Validate(validator data.Validator) error {
 	validator.ValidateString("type", &b.Type).NotEmpty()
 
-	// validator.ValidateInterfaceArray("annotations", b.Annotations)    // TODO: Any validations? Optional? Size?
+	// ("annotations", b.Annotations)    // TODO: Any validations? Optional? Size?
 	// validator.ValidateInteger("clockDriftOffset", b.ClockDriftOffset) // TODO: Any validations? Optional? Range?
 	// validator.ValidateInteger("conversionOffset", b.ConversionOffset) // TODO: Any validations? Optional? Range?
 	validator.ValidateString("deviceId", b.DeviceID).Exists().NotEmpty()
 	validator.ValidateStringAsTime("deviceTime", b.DeviceTime, DeviceTimeFormat) // TODO: Not in upload!  -> .Exists()
-	// validator.ValidateInterface("payload", b.Payload) // TODO: Any validations? Optional? Size?
+	// ("payload", b.Payload) // TODO: Any validations? Optional? Size?
 	validator.ValidateString("source", b.Source).NotEmpty()
 	validator.ValidateStringAsTime("time", b.Time, TimeFormat).Exists()
 	// validator.ValidateInteger("timezoneOffset", b.TimezoneOffset) // TODO: Any validations? Optional? Range?

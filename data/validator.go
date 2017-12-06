@@ -21,8 +21,6 @@ type Validator interface {
 	ValidateStringArray(reference interface{}, value *[]string) StringArray
 	ValidateObject(reference interface{}, value *map[string]interface{}) Object
 	ValidateObjectArray(reference interface{}, value *[]map[string]interface{}) ObjectArray
-	ValidateInterface(reference interface{}, value *interface{}) Interface
-	ValidateInterfaceArray(reference interface{}, value *[]interface{}) InterfaceArray
 
 	ValidateStringAsTime(reference interface{}, stringValue *string, timeLayout string) Time
 
@@ -136,29 +134,6 @@ type ObjectArray interface {
 	LengthInRange(lowerLimit int, upperLimit int) ObjectArray
 
 	// TODO: SizeLessThanOrEqualTo(limit int) ObjectArray
-}
-
-type Interface interface {
-	Exists() Interface
-	NotExists() Interface
-}
-
-type InterfaceArray interface {
-	Exists() InterfaceArray
-	NotExists() InterfaceArray
-
-	Empty() InterfaceArray
-	NotEmpty() InterfaceArray
-
-	LengthEqualTo(limit int) InterfaceArray
-	LengthNotEqualTo(limit int) InterfaceArray
-	LengthLessThan(limit int) InterfaceArray
-	LengthLessThanOrEqualTo(limit int) InterfaceArray
-	LengthGreaterThan(limit int) InterfaceArray
-	LengthGreaterThanOrEqualTo(limit int) InterfaceArray
-	LengthInRange(lowerLimit int, upperLimit int) InterfaceArray
-
-	// TODO: SizeLessThanOrEqualTo(limit int) InterfaceArray
 }
 
 type Time interface {
