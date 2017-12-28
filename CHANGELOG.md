@@ -1,5 +1,7 @@
 ## HEAD
 
+- Add custom User-Agent header to client requests
+
 ## v1.21.0
 
 - Dependency updates

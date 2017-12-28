@@ -144,6 +144,7 @@ func (s *Service) initializeDataClient() error {
 	s.Logger().Debug("Loading data client config")
 
 	cfg := platform.NewConfig()
+	cfg.UserAgent = s.UserAgent()
 	if err := cfg.Load(s.ConfigReporter().WithScopes("data", "client")); err != nil {
 		return errors.Wrap(err, "unable to load data client config")
 	}
@@ -176,6 +177,7 @@ func (s *Service) initializeDexcomClient() error {
 		s.Logger().Debug("Loading dexcom client config")
 
 		cfg := client.NewConfig()
+		cfg.UserAgent = s.UserAgent()
 		if err = cfg.Load(s.ConfigReporter().WithScopes("dexcom", "client")); err != nil {
 			return errors.Wrap(err, "unable to load dexcom client config")
 		}

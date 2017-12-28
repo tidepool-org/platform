@@ -26,6 +26,7 @@ var _ = Describe("Client", func() {
 			Expect(config).ToNot(BeNil())
 			Expect(config.Config).ToNot(BeNil())
 			config.Config.Address = testHTTP.NewAddress()
+			config.Config.UserAgent = testHTTP.NewUserAgent()
 			config.Timeout = time.Duration(testHTTP.NewTimeout()) * time.Second
 		})
 
@@ -52,6 +53,7 @@ var _ = Describe("Client", func() {
 			Expect(config).ToNot(BeNil())
 			Expect(config.Config).ToNot(BeNil())
 			config.Config.Address = testHTTP.NewAddress()
+			config.Config.UserAgent = testHTTP.NewUserAgent()
 			config.Timeout = timeout
 			var err error
 			clnt, err = platform.NewClient(config)
@@ -74,6 +76,7 @@ var _ = Describe("Client", func() {
 
 	Context("with started server and new client", func() {
 		var server *Server
+		var userAgent string
 		var clnt *platform.Client
 		var ctx context.Context
 		var method string
@@ -82,9 +85,11 @@ var _ = Describe("Client", func() {
 
 		BeforeEach(func() {
 			server = NewServer()
+			userAgent = testHTTP.NewUserAgent()
 			config := platform.NewConfig()
 			Expect(config).ToNot(BeNil())
 			config.Address = server.URL()
+			config.UserAgent = userAgent
 			var err error
 			clnt, err = platform.NewClient(config)
 			Expect(err).ToNot(HaveOccurred())
@@ -128,6 +133,7 @@ var _ = Describe("Client", func() {
 						server.AppendHandlers(
 							CombineHandlers(
 								VerifyRequest(method, path),
+								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyHeaderKV(auth.TidepoolSessionTokenHeaderKey, sessionToken),
 								VerifyBody([]byte{}),
 								RespondWith(http.StatusOK, nil)),
@@ -167,6 +173,7 @@ var _ = Describe("Client", func() {
 						server.AppendHandlers(
 							CombineHandlers(
 								VerifyRequest(method, path),
+								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyHeaderKV(auth.TidepoolSessionTokenHeaderKey, serverSessionToken),
 								VerifyBody([]byte{}),
 								RespondWith(http.StatusOK, nil)),

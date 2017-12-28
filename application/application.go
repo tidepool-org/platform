@@ -1,8 +1,10 @@
 package application
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"syscall"
 
@@ -18,8 +20,9 @@ import (
 )
 
 type Application struct {
-	name            string
 	prefix          string
+	name            string
+	userAgent       string
 	scopes          []string
 	versionReporter version.Reporter
 	configReporter  config.Reporter
@@ -39,10 +42,13 @@ func New(prefix string, scopes ...string) (*Application, error) {
 		}
 	}
 
+	userAgent := fmt.Sprintf("%s-%s", userAgentTitle(prefix), userAgentTitle(name))
+
 	return &Application{
-		name:   name,
-		prefix: prefix,
-		scopes: scopes,
+		prefix:    prefix,
+		name:      name,
+		userAgent: userAgent,
+		scopes:    scopes,
 	}, nil
 }
 
@@ -62,8 +68,16 @@ func (a *Application) Terminate() {
 	a.terminateVersionReporter()
 }
 
+func (a *Application) Prefix() string {
+	return a.prefix
+}
+
 func (a *Application) Name() string {
 	return a.name
+}
+
+func (a *Application) UserAgent() string {
+	return a.userAgent
 }
 
 func (a *Application) VersionReporter() version.Reporter {
@@ -94,6 +108,8 @@ func (a *Application) initializeVersionReporter() error {
 
 	a.versionReporter = versionReporter
 
+	a.userAgent = fmt.Sprintf("%s/%s", a.userAgent, a.versionReporter.Base())
+
 	return nil
 }
 
@@ -102,7 +118,7 @@ func (a *Application) terminateVersionReporter() {
 }
 
 func (a *Application) initializeConfigReporter() error {
-	configReporter, err := env.NewReporter(a.prefix)
+	configReporter, err := env.NewReporter(a.Prefix())
 	if err != nil {
 		return errors.Wrap(err, "unable to create config reporter")
 	}
@@ -149,4 +165,10 @@ func (a *Application) terminateLogger() {
 
 		os.Stdout.Sync()
 	}
+}
+
+var userAgentTitleExpression = regexp.MustCompile("[^a-zA-Z0-9]+")
+
+func userAgentTitle(s string) string {
+	return strings.Replace(strings.Title(strings.ToLower(userAgentTitleExpression.ReplaceAllString(s, " "))), " ", "", -1)
 }

@@ -17,6 +17,7 @@ import (
 	metricClient "github.com/tidepool-org/platform/metric/client"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/request"
+	testHTTP "github.com/tidepool-org/platform/test/http"
 	"github.com/tidepool-org/platform/version"
 )
 
@@ -38,7 +39,8 @@ var _ = Describe("Client", func() {
 		BeforeEach(func() {
 			config = platform.NewConfig()
 			Expect(config).ToNot(BeNil())
-			config.Address = "http://localhost:1234"
+			config.Address = testHTTP.NewAddress()
+			config.UserAgent = testHTTP.NewUserAgent()
 			config.Timeout = 30 * time.Second
 		})
 
@@ -67,6 +69,13 @@ var _ = Describe("Client", func() {
 			Expect(clnt).To(BeNil())
 		})
 
+		It("returns an error if config user agent is missing", func() {
+			config.UserAgent = ""
+			clnt, err := metricClient.New(config, name, versionReporter)
+			Expect(err).To(MatchError("config is invalid; user agent is missing"))
+			Expect(clnt).To(BeNil())
+		})
+
 		It("returns success", func() {
 			clnt, err := metricClient.New(config, name, versionReporter)
 			Expect(err).ToNot(HaveOccurred())
@@ -76,14 +85,17 @@ var _ = Describe("Client", func() {
 
 	Context("with started server and new client", func() {
 		var server *Server
+		var userAgent string
 		var clnt metric.Client
 		var ctx context.Context
 
 		BeforeEach(func() {
 			server = NewServer()
+			userAgent = testHTTP.NewUserAgent()
 			config := platform.NewConfig()
 			Expect(config).ToNot(BeNil())
 			config.Address = server.URL()
+			config.UserAgent = userAgent
 			config.Timeout = 30 * time.Second
 			var err error
 			clnt, err = metricClient.New(config, name, versionReporter)
@@ -135,6 +147,7 @@ var _ = Describe("Client", func() {
 							server.AppendHandlers(
 								CombineHandlers(
 									VerifyRequest("GET", "/metrics/thisuser/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
+									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyHeaderKV("X-Tidepool-Session-Token", token),
 									VerifyBody([]byte{}),
 									RespondWith(http.StatusUnauthorized, nil, nil)),
@@ -153,6 +166,7 @@ var _ = Describe("Client", func() {
 							server.AppendHandlers(
 								CombineHandlers(
 									VerifyRequest("GET", "/metrics/thisuser/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
+									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyHeaderKV("X-Tidepool-Session-Token", token),
 									VerifyBody([]byte{}),
 									RespondWith(http.StatusForbidden, nil, nil)),
@@ -171,6 +185,7 @@ var _ = Describe("Client", func() {
 							server.AppendHandlers(
 								CombineHandlers(
 									VerifyRequest("GET", "/metrics/thisuser/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
+									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyHeaderKV("X-Tidepool-Session-Token", token),
 									VerifyBody([]byte{}),
 									RespondWith(http.StatusOK, nil, nil)),
@@ -189,6 +204,7 @@ var _ = Describe("Client", func() {
 							server.AppendHandlers(
 								CombineHandlers(
 									VerifyRequest("GET", "/metrics/thisuser/"+metric, "sourceVersion=1.2.3"),
+									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyHeaderKV("X-Tidepool-Session-Token", token),
 									VerifyBody([]byte{}),
 									RespondWith(http.StatusOK, nil, nil)),
@@ -218,6 +234,7 @@ var _ = Describe("Client", func() {
 						server.AppendHandlers(
 							CombineHandlers(
 								VerifyRequest("GET", "/metrics/server/"+name+"/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
+								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
 								VerifyBody([]byte{}),
 								RespondWith(http.StatusUnauthorized, nil, nil)),
@@ -236,6 +253,7 @@ var _ = Describe("Client", func() {
 						server.AppendHandlers(
 							CombineHandlers(
 								VerifyRequest("GET", "/metrics/server/"+name+"/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
+								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
 								VerifyBody([]byte{}),
 								RespondWith(http.StatusForbidden, nil, nil)),
@@ -254,6 +272,7 @@ var _ = Describe("Client", func() {
 						server.AppendHandlers(
 							CombineHandlers(
 								VerifyRequest("GET", "/metrics/server/"+name+"/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
+								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
 								VerifyBody([]byte{}),
 								RespondWith(http.StatusOK, nil, nil)),
@@ -272,6 +291,7 @@ var _ = Describe("Client", func() {
 						server.AppendHandlers(
 							CombineHandlers(
 								VerifyRequest("GET", "/metrics/server/"+name+"/"+metric, "sourceVersion=1.2.3"),
+								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
 								VerifyBody([]byte{}),
 								RespondWith(http.StatusOK, nil, nil)),

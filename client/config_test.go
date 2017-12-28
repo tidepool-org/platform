@@ -20,15 +20,18 @@ var _ = Describe("Config", func() {
 			config := client.NewConfig()
 			Expect(config).ToNot(BeNil())
 			Expect(config.Address).To(Equal(""))
+			Expect(config.UserAgent).To(Equal(""))
 		})
 	})
 
 	Context("with new config", func() {
 		var address string
+		var userAgent string
 		var config *client.Config
 
 		BeforeEach(func() {
 			address = testHTTP.NewAddress()
+			userAgent = testHTTP.NewUserAgent()
 			config = client.NewConfig()
 			Expect(config).ToNot(BeNil())
 		})
@@ -39,6 +42,7 @@ var _ = Describe("Config", func() {
 			BeforeEach(func() {
 				configReporter = testConfig.NewReporter()
 				configReporter.Config["address"] = address
+				configReporter.Config["user_agent"] = userAgent
 			})
 
 			It("returns an error if config reporter is missing", func() {
@@ -51,15 +55,25 @@ var _ = Describe("Config", func() {
 				Expect(config.Address).To(Equal(""))
 			})
 
+			It("uses existing user agent if not set", func() {
+				existingUserAgent := testHTTP.NewUserAgent()
+				config.UserAgent = existingUserAgent
+				delete(configReporter.Config, "user_agent")
+				Expect(config.Load(configReporter)).To(Succeed())
+				Expect(config.UserAgent).To(Equal(existingUserAgent))
+			})
+
 			It("returns successfully and uses values from config reporter", func() {
 				Expect(config.Load(configReporter)).To(Succeed())
 				Expect(config.Address).To(Equal(address))
+				Expect(config.UserAgent).To(Equal(userAgent))
 			})
 		})
 
 		Context("with valid values", func() {
 			BeforeEach(func() {
 				config.Address = address
+				config.UserAgent = userAgent
 			})
 
 			Context("Validate", func() {
@@ -73,9 +87,15 @@ var _ = Describe("Config", func() {
 					Expect(config.Validate()).To(MatchError("address is invalid"))
 				})
 
+				It("returns an error if the user agent is missing", func() {
+					config.UserAgent = ""
+					Expect(config.Validate()).To(MatchError("user agent is missing"))
+				})
+
 				It("returns success", func() {
 					Expect(config.Validate()).To(Succeed())
 					Expect(config.Address).To(Equal(address))
+					Expect(config.UserAgent).To(Equal(userAgent))
 				})
 			})
 		})

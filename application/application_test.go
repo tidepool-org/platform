@@ -95,9 +95,21 @@ var _ = Describe("Application", func() {
 			})
 		})
 
+		Context("Prefix", func() {
+			It("returns the prefix", func() {
+				Expect(app.Prefix()).To(Equal("TIDEPOOL"))
+			})
+		})
+
 		Context("Name", func() {
 			It("returns the name", func() {
 				Expect(app.Name()).To(Equal("application.test"))
+			})
+		})
+
+		Context("UserAgent", func() {
+			It("returns the user agent without version", func() {
+				Expect(app.UserAgent()).To(Equal("Tidepool-ApplicationTest"))
 			})
 		})
 
@@ -108,6 +120,12 @@ var _ = Describe("Application", func() {
 
 			AfterEach(func() {
 				app.Terminate()
+			})
+
+			Context("UserAgent", func() {
+				It("returns the user agent with version", func() {
+					Expect(app.UserAgent()).To(Equal("Tidepool-ApplicationTest/0.0.0"))
+				})
 			})
 
 			Context("VersionReporter", func() {

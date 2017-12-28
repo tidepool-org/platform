@@ -39,6 +39,8 @@ func (a *Authenticated) initializeAuthClient() error {
 	a.Logger().Debug("Loading auth client config")
 
 	cfg := authClient.NewConfig()
+	cfg.UserAgent = a.UserAgent()
+	cfg.ExternalConfig.UserAgent = a.UserAgent()
 	if err := cfg.Load(a.ConfigReporter().WithScopes("auth", "client")); err != nil {
 		return errors.Wrap(err, "unable to load auth client config")
 	}

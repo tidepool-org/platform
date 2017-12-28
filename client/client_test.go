@@ -1,12 +1,11 @@
 package client_test
 
 import (
-	"context"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
 
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -32,6 +31,7 @@ var _ = Describe("Client", func() {
 			config = client.NewConfig()
 			Expect(config).ToNot(BeNil())
 			config.Address = testHTTP.NewAddress()
+			config.UserAgent = testHTTP.NewUserAgent()
 		})
 
 		It("returns an error if config is missing", func() {
@@ -44,6 +44,13 @@ var _ = Describe("Client", func() {
 			config.Address = ""
 			clnt, err := client.New(config)
 			Expect(err).To(MatchError("config is invalid; address is missing"))
+			Expect(clnt).To(BeNil())
+		})
+
+		It("returns an error if config user agent is missing", func() {
+			config.UserAgent = ""
+			clnt, err := client.New(config)
+			Expect(err).To(MatchError("config is invalid; user agent is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
@@ -63,6 +70,7 @@ var _ = Describe("Client", func() {
 			config := client.NewConfig()
 			Expect(config).ToNot(BeNil())
 			config.Address = address
+			config.UserAgent = testHTTP.NewUserAgent()
 			var err error
 			clnt, err = client.New(config)
 			Expect(err).ToNot(HaveOccurred())
@@ -137,6 +145,7 @@ var _ = Describe("Client", func() {
 
 	Context("with started server and new client", func() {
 		var server *Server
+		var userAgent string
 		var clnt *client.Client
 		var ctx context.Context
 		var method string
@@ -153,9 +162,11 @@ var _ = Describe("Client", func() {
 
 		BeforeEach(func() {
 			server = NewServer()
+			userAgent = testHTTP.NewUserAgent()
 			config := client.NewConfig()
 			Expect(config).ToNot(BeNil())
 			config.Address = server.URL()
+			config.UserAgent = userAgent
 			var err error
 			clnt, err = client.New(config)
 			Expect(err).ToNot(HaveOccurred())
@@ -233,6 +244,7 @@ var _ = Describe("Client", func() {
 					server.AppendHandlers(
 						CombineHandlers(
 							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
 							RespondWith(http.StatusInternalServerError, nil, nil)),
@@ -251,6 +263,7 @@ var _ = Describe("Client", func() {
 					server.AppendHandlers(
 						CombineHandlers(
 							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
 							RespondWith(http.StatusUnauthorized, nil, nil)),
@@ -269,6 +282,7 @@ var _ = Describe("Client", func() {
 					server.AppendHandlers(
 						CombineHandlers(
 							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
 							RespondWith(http.StatusOK, []byte("{\"response\":"), nil)),
@@ -287,6 +301,7 @@ var _ = Describe("Client", func() {
 					server.AppendHandlers(
 						CombineHandlers(
 							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
 							RespondWith(http.StatusOK, []byte("{\"response\":\""+responseBodyString+"\"}"), nil)),
@@ -306,6 +321,7 @@ var _ = Describe("Client", func() {
 					server.AppendHandlers(
 						CombineHandlers(
 							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
 							RespondWith(http.StatusCreated, []byte("{\"response\":\""+responseBodyString+"\"}"), nil)),
@@ -325,6 +341,7 @@ var _ = Describe("Client", func() {
 					server.AppendHandlers(
 						CombineHandlers(
 							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody([]byte{}),
 							RespondWith(http.StatusOK, []byte("{\"response\":\""+responseBodyString+"\"}"), nil)),
@@ -344,6 +361,7 @@ var _ = Describe("Client", func() {
 					server.AppendHandlers(
 						CombineHandlers(
 							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
 							RespondWith(http.StatusOK, []byte("{\"response\":\""+responseBodyString+"\"}"), nil)),

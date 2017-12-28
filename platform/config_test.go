@@ -25,17 +25,20 @@ var _ = Describe("Config", func() {
 			Expect(config).ToNot(BeNil())
 			Expect(config.Config).ToNot(BeNil())
 			Expect(config.Config.Address).To(Equal(""))
+			Expect(config.Config.UserAgent).To(Equal(""))
 			Expect(config.Timeout).To(Equal(60 * time.Second))
 		})
 	})
 
 	Context("with new config", func() {
 		var address string
+		var userAgent string
 		var timeout int
 		var config *platform.Config
 
 		BeforeEach(func() {
 			address = testHTTP.NewAddress()
+			userAgent = testHTTP.NewUserAgent()
 			timeout = testHTTP.NewTimeout()
 			config = platform.NewConfig()
 			Expect(config).ToNot(BeNil())
@@ -48,6 +51,7 @@ var _ = Describe("Config", func() {
 			BeforeEach(func() {
 				configReporter = testConfig.NewReporter()
 				configReporter.Config["address"] = address
+				configReporter.Config["user_agent"] = userAgent
 				configReporter.Config["timeout"] = strconv.Itoa(timeout)
 			})
 
@@ -60,6 +64,15 @@ var _ = Describe("Config", func() {
 				Expect(config.Load(configReporter)).To(Succeed())
 				Expect(config.Config).ToNot(BeNil())
 				Expect(config.Config.Address).To(Equal(""))
+			})
+
+			It("uses existing user agent if not set", func() {
+				existingUserAgent := testHTTP.NewUserAgent()
+				config.UserAgent = existingUserAgent
+				delete(configReporter.Config, "user_agent")
+				Expect(config.Load(configReporter)).To(Succeed())
+				Expect(config.Config).ToNot(BeNil())
+				Expect(config.Config.UserAgent).To(Equal(existingUserAgent))
 			})
 
 			It("uses default timeout if not set", func() {
@@ -78,6 +91,7 @@ var _ = Describe("Config", func() {
 				Expect(config.Load(configReporter)).To(Succeed())
 				Expect(config.Config).ToNot(BeNil())
 				Expect(config.Config.Address).To(Equal(address))
+				Expect(config.Config.UserAgent).To(Equal(userAgent))
 				Expect(config.Timeout).To(Equal(time.Duration(timeout) * time.Second))
 			})
 		})
@@ -85,6 +99,7 @@ var _ = Describe("Config", func() {
 		Context("with valid values", func() {
 			BeforeEach(func() {
 				config.Config.Address = address
+				config.Config.UserAgent = userAgent
 				config.Timeout = time.Duration(timeout) * time.Second
 			})
 
@@ -99,6 +114,11 @@ var _ = Describe("Config", func() {
 					Expect(config.Validate()).To(MatchError("address is invalid"))
 				})
 
+				It("returns an error if the user agent is missing", func() {
+					config.Config.UserAgent = ""
+					Expect(config.Validate()).To(MatchError("user agent is missing"))
+				})
+
 				It("returns an error if the timeout is invalid", func() {
 					config.Timeout = 0
 					Expect(config.Validate()).To(MatchError("timeout is invalid"))
@@ -108,6 +128,7 @@ var _ = Describe("Config", func() {
 					Expect(config.Validate()).To(Succeed())
 					Expect(config.Config).ToNot(BeNil())
 					Expect(config.Config.Address).To(Equal(address))
+					Expect(config.Config.UserAgent).To(Equal(userAgent))
 					Expect(config.Timeout).To(Equal(time.Duration(timeout) * time.Second))
 				})
 			})

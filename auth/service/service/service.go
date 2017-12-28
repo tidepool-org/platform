@@ -198,6 +198,7 @@ func (s *Service) initializeDataClient() error {
 	s.Logger().Debug("Loading data client config")
 
 	cfg := platform.NewConfig()
+	cfg.UserAgent = s.UserAgent()
 	if err := cfg.Load(s.ConfigReporter().WithScopes("data", "client")); err != nil {
 		return errors.Wrap(err, "unable to load data client config")
 	}
@@ -224,6 +225,7 @@ func (s *Service) initializeTaskClient() error {
 	s.Logger().Debug("Loading task client config")
 
 	cfg := platform.NewConfig()
+	cfg.UserAgent = s.UserAgent()
 	if err := cfg.Load(s.ConfigReporter().WithScopes("task", "client")); err != nil {
 		return errors.Wrap(err, "unable to load task client config")
 	}
@@ -276,6 +278,7 @@ func (s *Service) initializeAuthClient() error {
 	s.Logger().Debug("Loading auth client config")
 
 	cfg := client.NewExternalConfig()
+	cfg.UserAgent = s.UserAgent()
 	if err := cfg.Load(s.ConfigReporter().WithScopes("auth", "client", "external")); err != nil {
 		return errors.Wrap(err, "unable to load auth client config")
 	}

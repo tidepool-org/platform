@@ -151,6 +151,10 @@ func NewParameterValue() string {
 	return test.NewVariableString(0, 15, CharsetValue)
 }
 
+func NewUserAgent() string {
+	return test.NewVariableString(1, 16, CharsetValue)
+}
+
 func NewTimeout() int {
 	return 10 + rand.Intn(10*60-10)
 }

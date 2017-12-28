@@ -113,6 +113,7 @@ func (s *Standard) initializeMetricClient() error {
 	s.Logger().Debug("Loading metric client config")
 
 	cfg := platform.NewConfig()
+	cfg.UserAgent = s.UserAgent()
 	if err := cfg.Load(s.ConfigReporter().WithScopes("metric", "client")); err != nil {
 		return errors.Wrap(err, "unable to load metric client config")
 	}
@@ -132,6 +133,7 @@ func (s *Standard) initializeUserClient() error {
 	s.Logger().Debug("Loading user client config")
 
 	cfg := platform.NewConfig()
+	cfg.UserAgent = s.UserAgent()
 	if err := cfg.Load(s.ConfigReporter().WithScopes("user", "client")); err != nil {
 		return errors.Wrap(err, "unable to load user client config")
 	}

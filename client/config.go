@@ -8,7 +8,8 @@ import (
 )
 
 type Config struct {
-	Address string
+	Address   string
+	UserAgent string
 }
 
 func NewConfig() *Config {
@@ -21,6 +22,9 @@ func (c *Config) Load(configReporter config.Reporter) error {
 	}
 
 	c.Address = configReporter.GetWithDefault("address", "")
+	if userAgent, found := configReporter.Get("user_agent"); found {
+		c.UserAgent = userAgent
+	}
 
 	return nil
 }
@@ -31,6 +35,9 @@ func (c *Config) Validate() error {
 	}
 	if _, err := url.Parse(c.Address); err != nil {
 		return errors.New("address is invalid")
+	}
+	if c.UserAgent == "" {
+		return errors.New("user agent is missing")
 	}
 
 	return nil

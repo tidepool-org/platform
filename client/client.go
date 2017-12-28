@@ -15,7 +15,8 @@ import (
 )
 
 type Client struct {
-	address string
+	address   string
+	userAgent string
 }
 
 func New(cfg *Config) (*Client, error) {
@@ -28,7 +29,8 @@ func New(cfg *Config) (*Client, error) {
 	}
 
 	return &Client{
-		address: cfg.Address,
+		address:   cfg.Address,
+		userAgent: cfg.UserAgent,
 	}, nil
 }
 
@@ -130,6 +132,7 @@ func (c *Client) buildRequest(ctx context.Context, method string, url string, mu
 	}
 
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	req.Header.Set("User-Agent", c.userAgent)
 
 	return req, nil
 }
