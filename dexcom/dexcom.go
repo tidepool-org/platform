@@ -75,5 +75,3 @@ const (
 )
 
 var TransmitterIDExpression = regexp.MustCompile(TransmitterIDExpressionString)
-
-var hackTransmitterIDExpression = regexp.MustCompile("^([0-9A-Z]{5,6})") // HACK: Dexcom - some transmitter ids have trailing decimal point

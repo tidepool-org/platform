@@ -142,9 +142,6 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 		return
 	}
 
-	// HACK: Dexcom - expires_in=600000 (should be 600) - force to immediate expiration
-	token.Expiry = time.Now()
-
 	oauthToken, err := oauth.NewTokenFromRawToken(token)
 	if err != nil {
 		r.htmlOnError(res, req, err)

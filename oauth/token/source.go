@@ -3,7 +3,6 @@ package context
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"golang.org/x/oauth2"
 
@@ -70,15 +69,9 @@ func (s *Source) RefreshedToken() (*oauth.Token, error) {
 		return nil, errors.Wrap(err, "unable to get token")
 	}
 
-	// HACK: Dexcom - expires_in=600000 (should be 600)
-	tknSrcTkn.Expiry = s.token.ExpirationTime
-
 	if s.token.MatchesRawToken(tknSrcTkn) {
 		return nil, nil
 	}
-
-	// HACK: Dexcom - expires_in=600000 (should be 600)
-	tknSrcTkn.Expiry = time.Now().Add(10 * time.Minute).Truncate(time.Second)
 
 	tkn, err := oauth.NewTokenFromRawToken(tknSrcTkn)
 	if err != nil {

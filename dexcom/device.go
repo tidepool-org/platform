@@ -208,11 +208,6 @@ func (a *AlertSetting) validateHigh(validator structure.Validator) {
 }
 
 func (a *AlertSetting) validateRise(validator structure.Validator) {
-	// HACK: Dexcom - use "mg/dL/min" rather than incorrect "minutes"
-	if a.Unit == UnitMinutes {
-		a.Unit = UnitMgdLMin
-	}
-
 	validator.String("unit", &a.Unit).OneOf(UnitMgdLMin) // TODO: Add UnitMmolLMin
 	switch a.Unit {
 	case UnitMgdLMin:
@@ -225,15 +220,6 @@ func (a *AlertSetting) validateRise(validator structure.Validator) {
 }
 
 func (a *AlertSetting) validateFall(validator structure.Validator) {
-	// HACK: Dexcom - use "mg/dL/min" rather than incorrect "minutes"
-	if a.Unit == UnitMinutes {
-		a.Unit = UnitMgdLMin
-	}
-	// HACK: Dexcom - use positive value rather than incorrect negative value
-	if a.Value < 0 {
-		a.Value = -a.Value
-	}
-
 	validator.String("unit", &a.Unit).OneOf(UnitMgdLMin) // TODO: UnitMmolLMin
 	switch a.Unit {
 	case UnitMgdLMin:

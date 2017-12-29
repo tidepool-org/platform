@@ -4,7 +4,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -83,11 +82,6 @@ func (e *Event) Validate(validator structure.Validator) {
 }
 
 func (e *Event) validateCarbs(validator structure.Validator) {
-	// HACK: Dexcom - use nil rather than incorrect "unknown" eventSubType
-	if e.EventSubType != nil && *e.EventSubType == "unknown" {
-		e.EventSubType = nil
-	}
-
 	validator.String("eventSubType", e.EventSubType).NotExists()
 	if e.Unit != nil || e.Value != nil {
 		validator.String("unit", e.Unit).Exists().EqualTo(UnitGrams)
@@ -110,19 +104,6 @@ func (e *Event) validateHealth(validator structure.Validator) {
 }
 
 func (e *Event) validateInsulin(validator structure.Validator) {
-	// HACK: Dexcom - use nil rather than incorrect "unknown" eventSubType
-	if e.EventSubType != nil && *e.EventSubType == "unknown" {
-		e.EventSubType = nil
-	}
-	// HACK: Dexcom - use "units" rather than incorrect "unknown" unit
-	if e.Unit != nil && *e.Unit == "unknown" {
-		e.Unit = pointer.String(UnitUnits)
-	}
-	// HACK: Dexcom - use zero rather than incorrect negative value
-	if e.Value != nil && *e.Value < 0 {
-		e.Value = pointer.Float64(0)
-	}
-
 	validator.String("eventSubType", e.EventSubType).NotExists()
 	if e.Unit != nil || e.Value != nil {
 		validator.String("unit", e.Unit).Exists().EqualTo(UnitUnits)

@@ -4,7 +4,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -84,12 +83,6 @@ func (e *EGV) Parse(parser structure.ObjectParser) {
 }
 
 func (e *EGV) Validate(validator structure.Validator) {
-	// HACK: Dexcom - use id stripped of incorrect trailing decimals
-	if e.TransmitterID != nil {
-		transmitterID := hackTransmitterIDExpression.FindString(*e.TransmitterID)
-		e.TransmitterID = pointer.String(transmitterID)
-	}
-
 	validator.Time("systemTime", &e.SystemTime).BeforeNow(NowThreshold)
 	validator.Time("displayTime", &e.DisplayTime).NotZero()
 	validator.String("unit", &e.Unit).OneOf(UnitMgdL) // TODO: Add UnitMmolL

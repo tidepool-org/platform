@@ -1,5 +1,6 @@
 ## HEAD
 
+- Remove legacy code to fixup unexpected data from Dexcom API
 - Properly handle expired access tokens from Dexcom API
 - Warn on excessive duration Dexcom API requests and overall task
 - Add custom User-Agent header to client requests
