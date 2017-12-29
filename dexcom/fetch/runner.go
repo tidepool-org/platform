@@ -23,11 +23,14 @@ import (
 	"github.com/tidepool-org/platform/version"
 )
 
-const AvailableAfterDurationMinimum = 45 * time.Minute
-const AvailableAfterDurationMaximum = 75 * time.Minute
-const DataSetSize = 2000
+const (
+	AvailableAfterDurationMaximum = 75 * time.Minute
+	AvailableAfterDurationMinimum = 45 * time.Minute
+	DataSetSize                   = 2000
+	TaskDurationMaximum           = 5 * time.Minute
+)
 
-var InitialDataTime = time.Unix(1420070400, 0) // 2015-01-01T00:00:00Z
+var InitialDataTime = time.Unix(1420070400, 0).UTC() // 2015-01-01T00:00:00Z
 
 type Runner struct {
 	logger          log.Logger
@@ -88,6 +91,8 @@ func (r *Runner) CanRunTask(tsk *task.Task) bool {
 }
 
 func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
+	taskStartTime := time.Now()
+
 	ctx = log.NewContextWithLogger(ctx, r.Logger())
 
 	tsk.ClearError()
@@ -106,6 +111,10 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
 
 	if !tsk.IsFailed() {
 		tsk.RepeatAvailableAfter(AvailableAfterDurationMinimum + time.Duration(rand.Int63n(int64(AvailableAfterDurationMaximum-AvailableAfterDurationMinimum+1))))
+	}
+
+	if taskDuration := time.Since(taskStartTime); taskDuration > TaskDurationMaximum {
+		r.Logger().WithField("taskDuration", taskDuration.Truncate(time.Millisecond).Seconds()).Warn("Task duration exceeds maximum")
 	}
 }
 
@@ -249,13 +258,13 @@ func (t *TaskRunner) updateDataSourceWithDataTime(earliestDataTime time.Time, la
 		return nil
 	}
 
-	dataSourceUpdate.LastImportTime = pointer.Time(time.Now().Truncate(time.Second))
+	dataSourceUpdate.LastImportTime = pointer.Time(time.Now().Truncate(time.Second).UTC())
 	return t.updateDataSource(dataSourceUpdate)
 }
 
 func (t *TaskRunner) updateDataSourceWithLastImportTime() error {
 	dataSourceUpdate := data.NewDataSourceUpdate()
-	dataSourceUpdate.LastImportTime = pointer.Time(time.Now().Truncate(time.Second))
+	dataSourceUpdate.LastImportTime = pointer.Time(time.Now().Truncate(time.Second).UTC())
 	return t.updateDataSource(dataSourceUpdate)
 }
 
@@ -340,7 +349,7 @@ func (t *TaskRunner) fetchSinceLatestDataTime() error {
 		startTime = *t.dataSource.LatestDataTime
 	}
 
-	now := time.Now().Truncate(time.Second)
+	now := time.Now().Truncate(time.Second).UTC()
 	for startTime.Before(now) {
 		endTime := startTime.AddDate(0, 0, 90)
 		if endTime.After(now) {
@@ -352,7 +361,7 @@ func (t *TaskRunner) fetchSinceLatestDataTime() error {
 		}
 
 		startTime = startTime.AddDate(0, 0, 90)
-		now = time.Now().Truncate(time.Second)
+		now = time.Now().Truncate(time.Second).UTC()
 	}
 	return nil
 }
@@ -611,7 +620,7 @@ func (t *TaskRunner) createDataSet(deviceInfo *DeviceInfo) (*data.DataSet, error
 	dataSetCreate.DeviceModel = deviceInfo.DeviceModel
 	dataSetCreate.DeviceSerialNumber = deviceInfo.DeviceSerialNumber
 	dataSetCreate.DeviceTags = []string{data.DeviceTagCGM}
-	dataSetCreate.Time = time.Now().Truncate(time.Second)
+	dataSetCreate.Time = time.Now().Truncate(time.Second).UTC()
 	dataSetCreate.TimeProcessing = upload.TimeProcessingNone
 
 	dataSet, err := t.DataClient().CreateUserDataSet(t.context, t.providerSession.UserID, dataSetCreate)

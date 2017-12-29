@@ -88,3 +88,11 @@ func (s *Source) RefreshedToken() (*oauth.Token, error) {
 	s.token = tkn
 	return s.token, nil
 }
+
+func (s *Source) ExpireToken() {
+	s.provider = nil
+	s.httpClient = nil
+	s.tokenSource = nil
+
+	s.token.Expire()
+}

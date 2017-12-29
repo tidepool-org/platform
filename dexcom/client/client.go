@@ -9,9 +9,13 @@ import (
 	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/dexcom"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/oauth"
 	oauthClient "github.com/tidepool-org/platform/oauth/client"
+	"github.com/tidepool-org/platform/request"
 )
+
+const RequestDurationMaximum = 10 * time.Second
 
 type Client struct {
 	client *oauthClient.Client
@@ -68,9 +72,25 @@ func (c *Client) GetEvents(ctx context.Context, startTime time.Time, endTime tim
 }
 
 func (c *Client) sendDexcomRequest(ctx context.Context, startTime time.Time, endTime time.Time, method string, url string, responseBody interface{}, tokenSource oauth.TokenSource) error {
-	query := map[string]string{
+	requestStartTime := time.Now()
+
+	url = c.client.AppendURLQuery(url, map[string]string{
 		"startDate": startTime.Format(dexcom.DateTimeFormat),
 		"endDate":   endTime.Format(dexcom.DateTimeFormat),
+	})
+
+	err := c.client.SendOAuthRequest(ctx, method, url, nil, nil, responseBody, tokenSource)
+	if oauth.IsAccessTokenError(err) {
+		tokenSource.ExpireToken()
+		err = c.client.SendOAuthRequest(ctx, method, url, nil, nil, responseBody, tokenSource)
 	}
-	return c.client.SendOAuthRequest(ctx, method, c.client.AppendURLQuery(url, query), nil, nil, responseBody, tokenSource)
+	if oauth.IsRefreshTokenError(err) {
+		err = errors.Wrap(request.ErrorUnauthenticated(), err.Error())
+	}
+
+	if requestDuration := time.Since(requestStartTime); requestDuration > RequestDurationMaximum {
+		log.LoggerFromContext(ctx).WithField("requestDuration", requestDuration.Truncate(time.Millisecond).Seconds()).Warn("Request duration exceeds maximum")
+	}
+
+	return err
 }

@@ -3,8 +3,6 @@ package client
 import (
 	"context"
 
-	"github.com/tidepool-org/platform/request"
-
 	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/oauth"
@@ -52,12 +50,5 @@ func (c *Client) SendOAuthRequest(ctx context.Context, method string, url string
 		return err
 	}
 
-	if err = c.client.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient); err != nil {
-		if oauth.IsAuthorizationError(err) {
-			return request.ErrorUnauthenticated()
-		}
-		return err
-	}
-
-	return nil
+	return c.client.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)
 }

@@ -256,7 +256,7 @@ func (q *Queue) completeTask(ctx context.Context, tsk *task.Task) {
 	defer ssn.Close()
 
 	if tsk.RunTime != nil {
-		tsk.Duration = pointer.Float64(float64(time.Now().Sub(*tsk.RunTime).Truncate(time.Millisecond)) / float64(time.Second))
+		tsk.Duration = pointer.Float64(time.Since(*tsk.RunTime).Truncate(time.Millisecond).Seconds())
 	}
 	q.computeState(tsk)
 

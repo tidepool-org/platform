@@ -10,6 +10,7 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/provider"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -24,6 +25,7 @@ type Provider interface {
 type TokenSource interface {
 	HTTPClient(ctx context.Context, prvdr Provider) (*http.Client, error)
 	RefreshedToken() (*Token, error)
+	ExpireToken()
 }
 
 type Token struct {
@@ -46,7 +48,7 @@ func NewTokenFromRawToken(rawToken *oauth2.Token) (*Token, error) {
 		AccessToken:    rawToken.AccessToken,
 		TokenType:      rawToken.TokenType,
 		RefreshToken:   rawToken.RefreshToken,
-		ExpirationTime: rawToken.Expiry,
+		ExpirationTime: rawToken.Expiry.UTC(),
 	}, nil
 }
 
@@ -73,6 +75,10 @@ func (t *Token) Normalize(normalizer structure.Normalizer) {
 	t.ExpirationTime = t.ExpirationTime.UTC()
 }
 
+func (t *Token) Expire() {
+	t.ExpirationTime = time.Now().Add(-time.Second).UTC()
+}
+
 func (t *Token) RawToken() *oauth2.Token {
 	return &oauth2.Token{
 		AccessToken:  t.AccessToken,
@@ -87,11 +93,15 @@ func (t *Token) MatchesRawToken(rawToken *oauth2.Token) bool {
 		rawToken.AccessToken == t.AccessToken &&
 		rawToken.TokenType == t.TokenType &&
 		rawToken.RefreshToken == t.RefreshToken &&
-		rawToken.Expiry == t.ExpirationTime
+		rawToken.Expiry.Equal(t.ExpirationTime)
 }
 
-func IsAuthorizationError(err error) bool {
-	return strings.Contains(errors.Cause(err).Error(), "oauth2: cannot fetch token: 400 Bad Request")
+func IsAccessTokenError(err error) bool {
+	return err != nil && errors.Code(errors.Cause(err)) == request.ErrorCodeUnauthenticated
+}
+
+func IsRefreshTokenError(err error) bool {
+	return err != nil && strings.Contains(errors.Cause(err).Error(), "oauth2: cannot fetch token: 400 Bad Request")
 }
 
 const ErrorAccessDenied = "access_denied"
