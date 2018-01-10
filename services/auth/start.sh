@@ -1,4 +1,4 @@
-#!/bin/bash -eu
+#!/bin/sh -eu
 
-source env.sh
+. env.sh
 exec _bin/services/auth/auth

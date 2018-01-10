@@ -1,3 +1,4 @@
-#!/bin/bash -eu
+#!/bin/sh -eu
 
-sleep 3650d
+. env.sh
+exec _bin/migrations/migrations
