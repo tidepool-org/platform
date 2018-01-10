@@ -1,0 +1,5 @@
+*.coverprofile
+_bin/
+_tmp/
+debug
+deploy/

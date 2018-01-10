@@ -21,6 +21,15 @@ GO_BUILD_CMD:=go build $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -o
 
 GOPATH_REPOSITORY:=$(word 1, $(subst :, ,$(GOPATH)))
 
+ifeq ($(TRAVIS_BRANCH),master)
+	DOCKER:=true
+else ifdef TRAVIS_TAG
+	DOCKER:=true
+endif
+ifdef DOCKER_FILE
+	DOCKER_REPO:="tidepool/$(patsubst .%,%,$(suffix $(DOCKER_FILE)))"
+endif
+
 default: test
 
 tmp:
@@ -62,7 +71,7 @@ endif
 
 CompileDaemon: check-environment
 ifeq ($(shell which CompileDaemon),)
-	go get -u github.com/githubnemo/CompileDaemon
+	go get -u github.com/tidepool-org/CompileDaemon
 endif
 
 ginkgo: check-environment
@@ -127,21 +136,22 @@ ci-build: pre-build build
 
 service-build:
 ifdef SERVICE
-	@$(MAKE) build BUILD=services/$${SERVICE}
+	@$(MAKE) build BUILD=$${SERVICE}
 endif
 
 service-start: CompileDaemon tmp
 ifdef SERVICE
-	@cd $(ROOT_DIRECTORY) && BUILD='services/$(SERVICE)' CompileDaemon -build-dir='.' -build='make build' -command='_bin/services/$(SERVICE)/$(SERVICE)' -directory='_tmp' -pattern='^$$' -include='service-$(SERVICE).restart' -recursive=false -log-prefix=false -graceful-kill=true
+	@cd $(ROOT_DIRECTORY) && BUILD=$(SERVICE) CompileDaemon -build-dir='.' -build='make build' -command='_bin/$(SERVICE)/$(notdir $(SERVICE))' -directory='_tmp' -pattern='^$$' -include='$(subst /,.,$(SERVICE)).restart' -recursive=false -log-prefix=false -graceful-kill=true -graceful-timeout=60
 endif
 
 service-restart: tmp
 ifdef SERVICE
-	@cd $(ROOT_DIRECTORY) && date +'%Y-%m-%dT%H:%M:%S%z' > _tmp/service-$(SERVICE).restart
+	@cd $(ROOT_DIRECTORY) && date +'%Y-%m-%dT%H:%M:%S%z' > _tmp/$(subst /,.,$(SERVICE)).restart
 endif
 
 service-restart-all:
-	@cd $(ROOT_DIRECTORY) && for SERVICE in $(shell ls -1 services); do $(MAKE) service-restart SERVICE=$${SERVICE}; done
+	@cd $(ROOT_DIRECTORY) && for SERVICE in $(shell ls -1 services) ; do $(MAKE) service-restart SERVICE="services/$${SERVICE}"; done
+	@cd $(ROOT_DIRECTORY) && for SERVICE in migrations tools; do $(MAKE) service-restart SERVICE="$${SERVICE}"; done
 
 test: ginkgo
 	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r $(TEST)"
@@ -155,10 +165,14 @@ ci-test: ginkgo
 	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing $(TEST)"
 	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing $(TEST)
 
+ci-test-watch: ginkgo
+	@echo "ginkgo watch -requireSuite -slowSpecThreshold=10 -r -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch -requireSuite -slowSpecThreshold=10 -r -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress $(TEST)
+
 deploy: clean-deploy deploy-services deploy-migrations deploy-tools
 
 deploy-services:
-	@for SERVICE in $(shell ls -1 $(ROOT_DIRECTORY)/_bin/services); do $(MAKE) bundle-deploy DEPLOY=$${SERVICE} SOURCE=services/$${SERVICE}; done
+	@cd $(ROOT_DIRECTORY) && for SERVICE in $(shell ls -1 _bin/services); do $(MAKE) bundle-deploy DEPLOY=$${SERVICE} SOURCE=services/$${SERVICE}; done
 
 deploy-migrations:
 	@$(MAKE) bundle-deploy DEPLOY=migrations SOURCE=migrations
@@ -166,7 +180,7 @@ deploy-migrations:
 deploy-tools:
 	@$(MAKE) bundle-deploy DEPLOY=tools SOURCE=tools
 
-ci-deploy: ci-build ci-test deploy
+ci-deploy: deploy
 
 bundle-deploy: check-environment
 ifdef DEPLOY
@@ -181,6 +195,39 @@ ifdef TRAVIS_TAG
 		tar -c -z -f $${DEPLOY_DIR}.tar.gz -C deploy/$(DEPLOY)/ $${DEPLOY_TAG}
 endif
 endif
+
+docker:
+ifdef DOCKER
+	@echo "$(DOCKER_PASSWORD)" | docker login --username "$(DOCKER_USERNAME)" --password-stdin
+	@cd $(ROOT_DIRECTORY) && for DOCKER_FILE in $(shell ls -1 Dockerfile.*); do $(MAKE) docker-build DOCKER_FILE="$${DOCKER_FILE}"; done
+	@cd $(ROOT_DIRECTORY) && for DOCKER_FILE in $(shell ls -1 Dockerfile.*); do $(MAKE) docker-push DOCKER_FILE="$${DOCKER_FILE}"; done
+endif
+
+docker-build:
+ifdef DOCKER
+ifdef DOCKER_FILE
+	@docker build --tag "$(DOCKER_REPO):development" --target=development --file "$(DOCKER_FILE)" .
+	@docker build --tag "$(DOCKER_REPO)" --file "$(DOCKER_FILE)" .
+ifdef TRAVIS_TAG
+	@docker tag "$(DOCKER_REPO)" "$(DOCKER_REPO):$(TRAVIS_TAG:v%=%)"
+endif
+endif
+endif
+
+docker-push:
+ifdef DOCKER
+ifdef DOCKER_REPO
+ifeq ($(TRAVIS_BRANCH),master)
+	@docker push "$(DOCKER_REPO):development"
+	@docker push "$(DOCKER_REPO)"
+endif
+ifdef TRAVIS_TAG
+	@docker push "$(DOCKER_REPO):$(TRAVIS_TAG:v%=%)"
+endif
+endif
+endif
+
+ci-docker: docker
 
 clean: clean-bin clean-cover clean-debug clean-deploy
 	@cd $(ROOT_DIRECTORY) && rm -rf _tmp
@@ -215,15 +262,24 @@ bootstrap-implode: gopath-implode dependencies-implode
 
 bootstrap-dependencies: godep
 	go get github.com/onsi/ginkgo
-	go get github.com/onsi/ginkgo/ginkgo
 	go get github.com/onsi/ginkgo/extensions/table
+	go get github.com/onsi/ginkgo/ginkgo
 	go get github.com/onsi/gomega
+	go get github.com/onsi/gomega/gbytes
+	go get github.com/onsi/gomega/gexec
 	go get github.com/onsi/gomega/ghttp
+	go get github.com/onsi/gomega/gstruct
 	go get golang.org/x/sys/unix
 	go get ./...
 
 bootstrap-save: bootstrap-dependencies
-	cd $(ROOT_DIRECTORY) && godep save ./... github.com/onsi/ginkgo/ginkgo github.com/onsi/ginkgo/extensions/table
+	cd $(ROOT_DIRECTORY) && godep save ./... \
+		github.com/onsi/ginkgo/extensions/table \
+		github.com/onsi/ginkgo/ginkgo \
+		github.com/onsi/gomega/gbytes \
+		github.com/onsi/gomega/gexec \
+		github.com/onsi/gomega/ghttp \
+		github.com/onsi/gomega/gstruct
 
 # Bootstrap REPOSITORY with initial dependencies
 bootstrap:
@@ -234,7 +290,8 @@ bootstrap:
 .PHONY: default tmp check-gopath check-environment \
 	godep goimports golint gocode godef CompileDaemon ginkgo buildable editable \
 	format format-write imports vet vet-ignore lint lint-ignore pre-build build-list build ci-build \
-	service-build service-start service-restart service-restart-all test test-watch ci-test \
+	service-build service-start service-restart service-restart-all test test-watch ci-test c-test-watch \
 	deploy deploy-services deploy-migrations deploy-tools ci-deploy bundle-deploy \
+	docker docker-build docker-push ci-docker \
 	clean clean-bin clean-cover clean-debug clean-deploy clean-all pre-commit \
 	gopath-implode dependencies-implode bootstrap-implode bootstrap-dependencies bootstrap-save bootstrap

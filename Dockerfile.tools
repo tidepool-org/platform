@@ -8,7 +8,7 @@ WORKDIR /go/src/github.com/tidepool-org/platform
 
 COPY . .
 
-ENV SERVICE=services/user
+ENV SERVICE=tools
 
 RUN ["make", "service-build"]
 
@@ -23,6 +23,6 @@ WORKDIR /home/platform
 
 USER platform
 
-COPY --from=development --chown=platform /go/src/github.com/tidepool-org/platform/_bin/services/user/user .
+COPY --from=development --chown=platform /go/src/github.com/tidepool-org/platform/_bin/tools/tools .
 
-CMD ["./user"]
+CMD ["./tools"]

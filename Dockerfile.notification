@@ -1,51 +1,28 @@
-FROM golang:1.9.1-alpine
+# Development
+FROM golang:1.9.2-alpine AS development
 
-ENV TIDEPOOL_ENV="local" \
-    TIDEPOOL_LOGGER_LEVEL="debug" \
-    TIDEPOOL_STORE_ADDRESSES="mongo" \
-    TIDEPOOL_STORE_DATABASE="tidepool" \
-    TIDEPOOL_STORE_TLS="false" \
-    TIDEPOOL_SERVER_TLS="false" \
-    TIDEPOOL_CONFIRMATION_STORE_DATABASE="confirm" \
-    TIDEPOOL_TASK_QUEUE_WORKERS="5" \
-    TIDEPOOL_TASK_QUEUE_DELAY="5" \
-    TIDEPOOL_DEPRECATED_DATA_STORE_DATABASE="data" \
-    TIDEPOOL_MESSAGE_STORE_DATABASE="messages" \
-    TIDEPOOL_PERMISSION_STORE_DATABASE="gatekeeper" \
-    TIDEPOOL_PERMISSION_STORE_SECRET="This secret is used to encrypt the groupId stored in the DB for gatekeeper" \
-    TIDEPOOL_PROFILE_STORE_DATABASE="seagull" \
-    TIDEPOOL_SESSION_STORE_DATABASE="user" \
-    TIDEPOOL_SYNC_TASK_STORE_DATABASE="data" \
-    TIDEPOOL_USER_STORE_DATABASE="user" \
-    TIDEPOOL_USER_STORE_PASSWORD_SALT="ADihSEI7tOQQP9xfXMO9HfRpXKu1NpIJ" \
-    TIDEPOOL_AUTH_CLIENT_ADDRESS="http://styx:8009" \
-    TIDEPOOL_DATA_CLIENT_ADDRESS="http://styx:8009" \
-    TIDEPOOL_METRIC_CLIENT_ADDRESS="http://styx:8009" \
-    TIDEPOOL_TASK_CLIENT_ADDRESS="http://styx:8009" \
-    TIDEPOOL_USER_CLIENT_ADDRESS="http://styx:8009" \
-    TIDEPOOL_AUTH_CLIENT_EXTERNAL_ADDRESS="http://styx:8009" \
-    TIDEPOOL_AUTH_CLIENT_EXTERNAL_SERVER_SESSION_TOKEN_SECRET="This needs to be the same secret everywhere. YaHut75NsK1f9UKUXuWqxNN0RUwHFBCy" \
-    TIDEPOOL_AUTH_SERVICE_SERVER_ADDRESS=":9222" \
-    TIDEPOOL_DATA_SERVICE_SERVER_ADDRESS=":9220" \
-    TIDEPOOL_NOTIFICATION_SERVICE_SERVER_ADDRESS=":9223" \
-    TIDEPOOL_TASK_SERVICE_SERVER_ADDRESS=":9224" \
-    TIDEPOOL_USER_SERVICE_SERVER_ADDRESS=":9221" \
-    TIDEPOOL_AUTH_SERVICE_DOMAIN="localhost" \
-    TIDEPOOL_AUTH_SERVICE_SECRET="Service secret used for interservice requests with the auth service" \
-    TIDEPOOL_DATA_SERVICE_SECRET="Service secret used for interservice requests with the data service" \
-    TIDEPOOL_NOTIFICATION_SERVICE_SECRET="Service secret used for interservice requests with the notification service" \
-    TIDEPOOL_TASK_SERVICE_SECRET="Service secret used for interservice requests with the task service" \
-    TIDEPOOL_USER_SERVICE_SECRET="Service secret used for interservice requests with the user service"
+RUN apk add --no-cache git make && \
+    go get github.com/tidepool-org/CompileDaemon
 
-# $GOPATH=/go FROM the golang container
-WORKDIR /go
+WORKDIR /go/src/github.com/tidepool-org/platform
 
-COPY . ${GOPATH}/src/github.com/tidepool-org/platform
-RUN apk --no-cache add git make \
- && cd ${GOPATH}/src/github.com/tidepool-org/platform \
- && rm -rf src _bin \
- && BUILD=services/notification make build
+COPY . .
 
-# Prod builds should exclude or remove .git files
+ENV SERVICE=services/notification
 
-CMD ["/go/src/github.com/tidepool-org/platform/_bin/services/notification/notification"]
+RUN ["make", "service-build"]
+
+CMD ["make", "service-start"]
+
+# Release
+FROM alpine:latest AS release
+
+RUN ["adduser", "-D", "platform"]
+
+WORKDIR /home/platform
+
+USER platform
+
+COPY --from=development --chown=platform /go/src/github.com/tidepool-org/platform/_bin/services/notification/notification .
+
+CMD ["./notification"]
