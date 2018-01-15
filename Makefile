@@ -22,7 +22,9 @@ GO_BUILD_CMD:=go build $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -o
 GOPATH_REPOSITORY:=$(word 1, $(subst :, ,$(GOPATH)))
 
 ifeq ($(TRAVIS_BRANCH),master)
+ifeq ($(TRAVIS_PULL_REQUEST_BRANCH),)
 	DOCKER:=true
+endif
 else ifdef TRAVIS_TAG
 	DOCKER:=true
 endif
@@ -116,8 +118,7 @@ lint: golint tmp
 	@echo "golint"
 	@cd $(ROOT_DIRECTORY) && \
 		find . -not -path './vendor/*' -name '*.go' -type f | sort | xargs -I {} golint {} | grep -v 'exported.*should have comment.*or be unexported' 2> _tmp/golint.out > _tmp/golint.out && \
-		diff .golintignore _tmp/golint.out || \
-		exit 0
+		diff .golintignore _tmp/golint.out
 
 lint-ignore:
 	@cd $(ROOT_DIRECTORY) && cp _tmp/golint.out .golintignore
@@ -218,8 +219,10 @@ docker-push:
 ifdef DOCKER
 ifdef DOCKER_REPO
 ifeq ($(TRAVIS_BRANCH),master)
+ifeq ($(TRAVIS_PULL_REQUEST_BRANCH),)
 	@docker push "$(DOCKER_REPO):development"
 	@docker push "$(DOCKER_REPO)"
+endif
 endif
 ifdef TRAVIS_TAG
 	@docker push "$(DOCKER_REPO):$(TRAVIS_TAG:v%=%)"
