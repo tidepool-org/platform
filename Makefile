@@ -173,13 +173,19 @@ ci-test-watch: ginkgo
 deploy: clean-deploy deploy-services deploy-migrations deploy-tools
 
 deploy-services:
+ifdef TRAVIS_TAG
 	@cd $(ROOT_DIRECTORY) && for SERVICE in $(shell ls -1 _bin/services); do $(MAKE) bundle-deploy DEPLOY=$${SERVICE} SOURCE=services/$${SERVICE}; done
+endif
 
 deploy-migrations:
+ifdef TRAVIS_TAG
 	@$(MAKE) bundle-deploy DEPLOY=migrations SOURCE=migrations
+endif
 
 deploy-tools:
+ifdef TRAVIS_TAG
 	@$(MAKE) bundle-deploy DEPLOY=tools SOURCE=tools
+endif
 
 ci-deploy: deploy
 
