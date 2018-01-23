@@ -17,6 +17,8 @@ CMD ["make", "service-start"]
 # Release
 FROM alpine:latest AS release
 
+RUN ["apk", "add", "--no-cache", "ca-certificates"]
+
 RUN ["adduser", "-D", "platform"]
 
 WORKDIR /home/platform
