@@ -19,12 +19,12 @@ FROM alpine:latest AS release
 
 RUN ["apk", "add", "--no-cache", "ca-certificates"]
 
-RUN ["adduser", "-D", "platform"]
+RUN ["adduser", "-D", "tidepool"]
 
-WORKDIR /home/platform
+WORKDIR /home/tidepool
 
-USER platform
+USER tidepool
 
-COPY --from=development --chown=platform /go/src/github.com/tidepool-org/platform/_bin/tools/tools .
+COPY --from=development --chown=tidepool /go/src/github.com/tidepool-org/platform/_bin/tools/ .
 
 CMD ["./tools"]
