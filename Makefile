@@ -1,15 +1,18 @@
 ROOT_DIRECTORY:=$(realpath $(dir $(realpath $(lastword $(MAKEFILE_LIST)))))
-REPOSITORY:=$(ROOT_DIRECTORY:$(realpath $(ROOT_DIRECTORY)/../../../)/%=%)
+
+REPOSITORY_GOPATH:=$(word 1, $(subst :, ,$(GOPATH)))
+REPOSITORY_PACKAGE:=$(ROOT_DIRECTORY:$(realpath $(ROOT_DIRECTORY)/../../../)/%=%)
+REPOSITORY_NAME:=$(notdir $(REPOSITORY_PACKAGE))
 
 ifdef TRAVIS_TAG
 	VERSION_BASE:=$(TRAVIS_TAG)
 else
-	VERSION_BASE:=$(shell git describe --abbrev=0 --tags)
+	VERSION_BASE:=$(shell git describe --abbrev=0 --tags 2> /dev/null || echo 'v0.0.0')
 endif
 VERSION_BASE:=$(VERSION_BASE:v%=%)
 VERSION_SHORT_COMMIT:=$(shell git rev-parse --short HEAD)
 VERSION_FULL_COMMIT:=$(shell git rev-parse HEAD)
-VERSION_PACKAGE:=$(REPOSITORY)/application/version
+VERSION_PACKAGE:=$(REPOSITORY_PACKAGE)/application/version
 
 GO_LD_FLAGS:=-ldflags "-X $(VERSION_PACKAGE).Base=$(VERSION_BASE) -X $(VERSION_PACKAGE).ShortCommit=$(VERSION_SHORT_COMMIT) -X $(VERSION_PACKAGE).FullCommit=$(VERSION_FULL_COMMIT)"
 
@@ -19,8 +22,6 @@ MKDIR_CMD:=mkdir -p
 TRANSFORM_GO_BUILD_CMD:=sed 's/\(\.\(\/.*\)\.go\)/_bin\2 \1/'
 GO_BUILD_CMD:=go build $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -o
 
-GOPATH_REPOSITORY:=$(word 1, $(subst :, ,$(GOPATH)))
-
 ifeq ($(TRAVIS_BRANCH),master)
 ifeq ($(TRAVIS_PULL_REQUEST_BRANCH),)
 	DOCKER:=true
@@ -29,7 +30,7 @@ else ifdef TRAVIS_TAG
 	DOCKER:=true
 endif
 ifdef DOCKER_FILE
-	DOCKER_REPO:="tidepool/$(patsubst .%,%,$(suffix $(DOCKER_FILE)))"
+	DOCKER_REPOSITORY:="tidepool/$(REPOSITORY_NAME)-$(patsubst .%,%,$(suffix $(DOCKER_FILE)))"
 endif
 
 default: test
@@ -78,8 +79,8 @@ endif
 
 ginkgo: check-environment
 ifeq ($(shell which ginkgo),)
-	mkdir -p $(GOPATH_REPOSITORY)/src/github.com/onsi/
-	cp -r vendor/github.com/onsi/ginkgo $(GOPATH_REPOSITORY)/src/github.com/onsi/
+	mkdir -p $(REPOSITORY_GOPATH)/src/github.com/onsi/
+	cp -r vendor/github.com/onsi/ginkgo $(REPOSITORY_GOPATH)/src/github.com/onsi/
 	go install github.com/onsi/ginkgo/ginkgo
 endif
 
@@ -117,7 +118,7 @@ vet-ignore:
 lint: golint tmp
 	@echo "golint"
 	@cd $(ROOT_DIRECTORY) && \
-		find . -not -path './vendor/*' -name '*.go' -type f | sort | xargs -I {} golint {} | grep -v 'exported.*should have comment.*or be unexported' 2> _tmp/golint.out > _tmp/golint.out && \
+		find . -not -path './vendor/*' -name '*.go' -type f | sort | xargs -I {} golint {} | grep -v 'exported.*should have comment.*or be unexported' 2> _tmp/golint.out > _tmp/golint.out || [ $${?} == 1 ] && \
 		diff .golintignore _tmp/golint.out
 
 lint-ignore:
@@ -213,25 +214,25 @@ endif
 docker-build:
 ifdef DOCKER
 ifdef DOCKER_FILE
-	@docker build --tag "$(DOCKER_REPO):development" --target=development --file "$(DOCKER_FILE)" .
-	@docker build --tag "$(DOCKER_REPO)" --file "$(DOCKER_FILE)" .
+	@docker build --tag "$(DOCKER_REPOSITORY):development" --target=development --file "$(DOCKER_FILE)" .
+	@docker build --tag "$(DOCKER_REPOSITORY)" --file "$(DOCKER_FILE)" .
 ifdef TRAVIS_TAG
-	@docker tag "$(DOCKER_REPO)" "$(DOCKER_REPO):$(TRAVIS_TAG:v%=%)"
+	@docker tag "$(DOCKER_REPOSITORY)" "$(DOCKER_REPOSITORY):$(TRAVIS_TAG:v%=%)"
 endif
 endif
 endif
 
 docker-push:
 ifdef DOCKER
-ifdef DOCKER_REPO
+ifdef DOCKER_REPOSITORY
 ifeq ($(TRAVIS_BRANCH),master)
 ifeq ($(TRAVIS_PULL_REQUEST_BRANCH),)
-	@docker push "$(DOCKER_REPO):development"
-	@docker push "$(DOCKER_REPO)"
+	@docker push "$(DOCKER_REPOSITORY):development"
+	@docker push "$(DOCKER_REPOSITORY)"
 endif
 endif
 ifdef TRAVIS_TAG
-	@docker push "$(DOCKER_REPO):$(TRAVIS_TAG:v%=%)"
+	@docker push "$(DOCKER_REPOSITORY):$(TRAVIS_TAG:v%=%)"
 endif
 endif
 endif
@@ -259,13 +260,13 @@ pre-commit: format imports vet lint
 
 # DO NOT USE THE FOLLOWING TARGETS UNDER NORMAL CIRCUMSTANCES!!!
 
-# Remove everything in GOPATH_REPOSITORY except REPOSITORY
+# Remove everything in $(REPOSITORY_GOPATH) except $(REPOSITORY_PACKAGE)
 gopath-implode: check-environment
-	cd $(GOPATH_REPOSITORY) && rm -rf {bin,pkg} && find src -not -path "src/$(REPOSITORY)/*" -type f -delete && find src -not -path "src/$(REPOSITORY)/*" -type d -empty -delete
+	cd $(REPOSITORY_GOPATH) && rm -rf bin pkg && find src -not -path "src/$(REPOSITORY_PACKAGE)/*" -type f -delete && find src -not -path "src/$(REPOSITORY_PACKAGE)/*" -type d -empty -delete
 
-# Remove saved dependencies in REPOSITORY
+# Remove saved dependencies
 dependencies-implode: check-environment
-	cd $(ROOT_DIRECTORY) && rm -rf {Godeps,vendor}
+	cd $(ROOT_DIRECTORY) && rm -rf Godeps vendor
 
 bootstrap-implode: gopath-implode dependencies-implode
 
@@ -274,10 +275,7 @@ bootstrap-dependencies: godep
 	go get github.com/onsi/ginkgo/extensions/table
 	go get github.com/onsi/ginkgo/ginkgo
 	go get github.com/onsi/gomega
-	go get github.com/onsi/gomega/gbytes
-	go get github.com/onsi/gomega/gexec
 	go get github.com/onsi/gomega/ghttp
-	go get github.com/onsi/gomega/gstruct
 	go get golang.org/x/sys/unix
 	go get ./...
 
@@ -285,12 +283,9 @@ bootstrap-save: bootstrap-dependencies
 	cd $(ROOT_DIRECTORY) && godep save ./... \
 		github.com/onsi/ginkgo/extensions/table \
 		github.com/onsi/ginkgo/ginkgo \
-		github.com/onsi/gomega/gbytes \
-		github.com/onsi/gomega/gexec \
-		github.com/onsi/gomega/ghttp \
-		github.com/onsi/gomega/gstruct
+		github.com/onsi/gomega/ghttp
 
-# Bootstrap REPOSITORY with initial dependencies
+# Bootstrap with initial dependencies
 bootstrap:
 	@$(MAKE) bootstrap-implode
 	@$(MAKE) bootstrap-save
