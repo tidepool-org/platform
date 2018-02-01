@@ -21,8 +21,8 @@ type Tool struct {
 	mongoConfig *mongo.Config
 }
 
-func NewTool(prefix string) (*Tool, error) {
-	tuel, err := tool.New(prefix)
+func NewTool(prefix string, scopes ...string) (*Tool, error) {
+	tuel, err := tool.New(prefix, scopes...)
 	if err != nil {
 		return nil, err
 	}

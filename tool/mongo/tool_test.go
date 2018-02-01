@@ -20,8 +20,16 @@ var _ = Describe("Tool", func() {
 			Expect(tuel).To(BeNil())
 		})
 
-		It("returns successfully", func() {
+		It("returns successfully with no scopes", func() {
 			Expect(mongo.NewTool("TIDEPOOL")).ToNot(BeNil())
+		})
+
+		It("returns successfully with one scope", func() {
+			Expect(mongo.NewTool("TIDEPOOL", "alpha")).ToNot(BeNil())
+		})
+
+		It("returns successfully with multiple scopes", func() {
+			Expect(mongo.NewTool("TIDEPOOL", "alpha", "bravo")).ToNot(BeNil())
 		})
 	})
 
