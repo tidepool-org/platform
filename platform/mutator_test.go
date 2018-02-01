@@ -1,11 +1,10 @@
 package platform_test
 
 import (
-	"context"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"context"
 	"net/http"
 
 	"github.com/tidepool-org/platform/auth"
