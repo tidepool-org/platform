@@ -95,17 +95,28 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
 
 	ctx = log.NewContextWithLogger(ctx, r.Logger())
 
-	tsk.ClearError()
-
-	if serverSessionToken, sErr := r.AuthClient().ServerSessionToken(); sErr != nil {
-		tsk.AppendError(errors.Wrap(sErr, "unable to get server session token"))
+	// HACK: Skip 2:45am - 3:45am PST to avoid intermittent refresh token failure due to Dexcom backups
+	var skipToAvoidDexcomBackup bool
+	if location, err := time.LoadLocation("America/Los_Angeles"); err != nil {
+		r.Logger().WithError(err).Warn("Unable to load location to detect Dexcom backup")
 	} else {
-		ctx = auth.NewContextWithServerSessionToken(ctx, serverSessionToken)
+		tm := time.Now().In(location).Format("15:04:05")
+		skipToAvoidDexcomBackup = (tm >= "02:45:00") && (tm < "03:45:00")
+	}
 
-		if taskRunner, tErr := NewTaskRunner(r, tsk); tErr != nil {
-			tsk.AppendError(errors.Wrap(tErr, "unable to create task runner"))
-		} else if tErr = taskRunner.Run(ctx); tErr != nil {
-			tsk.AppendError(errors.Wrap(tErr, "unable to run task runner"))
+	if !skipToAvoidDexcomBackup {
+		tsk.ClearError()
+
+		if serverSessionToken, sErr := r.AuthClient().ServerSessionToken(); sErr != nil {
+			tsk.AppendError(errors.Wrap(sErr, "unable to get server session token"))
+		} else {
+			ctx = auth.NewContextWithServerSessionToken(ctx, serverSessionToken)
+
+			if taskRunner, tErr := NewTaskRunner(r, tsk); tErr != nil {
+				tsk.AppendError(errors.Wrap(tErr, "unable to create task runner"))
+			} else if tErr = taskRunner.Run(ctx); tErr != nil {
+				tsk.AppendError(errors.Wrap(tErr, "unable to run task runner"))
+			}
 		}
 	}
 
