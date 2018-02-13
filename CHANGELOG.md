@@ -1,5 +1,6 @@
 ## HEAD
 
+* Add LifeScan Verio and LifeScan Verio Flex to supported devices
 * Accomodate out-of-sync server time between Tidepool and Dexcom
 * Add timezone data to release images
 * Use standard `tidepool` user in Dockerfiles
