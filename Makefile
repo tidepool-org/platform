@@ -227,7 +227,6 @@ ifdef DOCKER
 ifdef DOCKER_REPOSITORY
 ifeq ($(TRAVIS_BRANCH),master)
 ifeq ($(TRAVIS_PULL_REQUEST_BRANCH),)
-	@docker push "$(DOCKER_REPOSITORY):development"
 	@docker push "$(DOCKER_REPOSITORY)"
 endif
 endif
