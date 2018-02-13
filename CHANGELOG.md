@@ -1,5 +1,7 @@
 ## HEAD
 
+* Accomodate out-of-sync server time between Tidepool and Dexcom
+* Add timezone data to release images
 * Use standard `tidepool` user in Dockerfiles
 * Add CA certificates to release images for external SSL requests
 * Do not build Docker images without tag
