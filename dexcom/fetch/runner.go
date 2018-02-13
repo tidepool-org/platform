@@ -360,7 +360,7 @@ func (t *TaskRunner) fetchSinceLatestDataTime() error {
 		startTime = *t.dataSource.LatestDataTime
 	}
 
-	now := time.Now().Truncate(time.Second).UTC()
+	now := time.Now().Add(-time.Minute).Truncate(time.Second).UTC()
 	for startTime.Before(now) {
 		endTime := startTime.AddDate(0, 0, 90)
 		if endTime.After(now) {
@@ -372,7 +372,7 @@ func (t *TaskRunner) fetchSinceLatestDataTime() error {
 		}
 
 		startTime = startTime.AddDate(0, 0, 90)
-		now = time.Now().Truncate(time.Second).UTC()
+		now = time.Now().Add(-time.Minute).Truncate(time.Second).UTC()
 	}
 	return nil
 }
