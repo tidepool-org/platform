@@ -17,7 +17,7 @@ CMD ["make", "service-start"]
 # Release
 FROM alpine:latest AS release
 
-RUN ["apk", "add", "--no-cache", "ca-certificates"]
+RUN ["apk", "add", "--no-cache", "ca-certificates", "tzdata"]
 
 RUN ["adduser", "-D", "tidepool"]
 
