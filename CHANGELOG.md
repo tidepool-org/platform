@@ -1,5 +1,7 @@
 ## HEAD
 
+* Add OAuth client credentials provider
+* Add golang.org/x/oauth2/clientcredentials dependency
 * Refactor oauth package to allow alternate grant workflows
 * Add Makefile generate target for code generation
 * Update mechanism to find files with main()

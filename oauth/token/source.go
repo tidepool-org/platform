@@ -30,6 +30,7 @@ func NewSourceWithToken(tkn *oauth.Token) (*Source, error) {
 		token: tkn,
 	}, nil
 }
+
 func (s *Source) HTTPClient(ctx context.Context, tknSrcSrc oauth.TokenSourceSource) (*http.Client, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")

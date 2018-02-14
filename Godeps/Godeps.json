@@ -270,6 +270,10 @@
 			"Rev": "f95fa95eaa936d9d87489b15d1d18b97c1ba9c28"
 		},
 		{
+			"ImportPath": "golang.org/x/oauth2/clientcredentials",
+			"Rev": "f95fa95eaa936d9d87489b15d1d18b97c1ba9c28"
+		},
+		{
 			"ImportPath": "golang.org/x/oauth2/internal",
 			"Rev": "f95fa95eaa936d9d87489b15d1d18b97c1ba9c28"
 		},
