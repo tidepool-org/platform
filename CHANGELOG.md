@@ -1,5 +1,6 @@
 ## HEAD
 
+* Handle additional client response codes
 * Strip trailing slashes from client base address
 * Return error from config.Get rather than bool for compatibility
 * Allow additional scopes on tools

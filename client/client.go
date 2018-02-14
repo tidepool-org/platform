@@ -87,6 +87,8 @@ func (c *Client) SendRequest(ctx context.Context, method string, url string, mut
 	switch res.StatusCode {
 	case http.StatusOK, http.StatusCreated:
 		return c.decodeResponseBody(res, responseBody)
+	case http.StatusNoContent:
+		return nil
 	case http.StatusBadRequest:
 		return c.handleBadRequest(res, req)
 	case http.StatusUnauthorized:
@@ -95,6 +97,8 @@ func (c *Client) SendRequest(ctx context.Context, method string, url string, mut
 		return request.ErrorUnauthorized()
 	case http.StatusNotFound:
 		return request.ErrorResourceNotFound()
+	case http.StatusTooManyRequests:
+		return request.ErrorTooManyRequests()
 	}
 
 	return request.ErrorUnexpectedResponse(res, req)
