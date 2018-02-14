@@ -9,16 +9,16 @@ import (
 )
 
 type Client struct {
-	client   *client.Client
-	provider oauth.Provider
+	client            *client.Client
+	tokenSourceSource oauth.TokenSourceSource
 }
 
-func New(cfg *client.Config, prvdr oauth.Provider) (*Client, error) {
+func New(cfg *client.Config, tknSrcSrc oauth.TokenSourceSource) (*Client, error) {
 	if cfg == nil {
 		return nil, errors.New("config is missing")
 	}
-	if prvdr == nil {
-		return nil, errors.New("provider is missing")
+	if tknSrcSrc == nil {
+		return nil, errors.New("token source source is missing")
 	}
 
 	clnt, err := client.New(cfg)
@@ -27,8 +27,8 @@ func New(cfg *client.Config, prvdr oauth.Provider) (*Client, error) {
 	}
 
 	return &Client{
-		client:   clnt,
-		provider: prvdr,
+		client:            clnt,
+		tokenSourceSource: tknSrcSrc,
 	}, nil
 }
 
@@ -40,12 +40,12 @@ func (c *Client) AppendURLQuery(urlString string, query map[string]string) strin
 	return c.client.AppendURLQuery(urlString, query)
 }
 
-func (c *Client) SendOAuthRequest(ctx context.Context, method string, url string, mutators []client.Mutator, requestBody interface{}, responseBody interface{}, tokenSource oauth.TokenSource) error {
-	if tokenSource == nil {
-		return errors.New("token source is missing")
+func (c *Client) SendOAuthRequest(ctx context.Context, method string, url string, mutators []client.Mutator, requestBody interface{}, responseBody interface{}, httpClientSource oauth.HTTPClientSource) error {
+	if httpClientSource == nil {
+		return errors.New("http client source is missing")
 	}
 
-	httpClient, err := tokenSource.HTTPClient(ctx, c.provider)
+	httpClient, err := httpClientSource.HTTPClient(ctx, c.tokenSourceSource)
 	if err != nil {
 		return err
 	}

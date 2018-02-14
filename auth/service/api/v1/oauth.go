@@ -56,7 +56,7 @@ func (r *Router) OAuthProviderAuthorizeGet(res rest.ResponseWriter, req *rest.Re
 	}
 
 	responder.SetCookie(r.providerCookie(prvdr, details.Token(), int(maxAge)))
-	responder.Redirect(http.StatusTemporaryRedirect, prvdr.Config().AuthCodeURL(prvdr.State(details.Token())))
+	responder.Redirect(http.StatusTemporaryRedirect, prvdr.GetAuthorizationCodeURLWithState(prvdr.CalculateStateForRestrictedToken(details.Token())))
 }
 
 func (r *Router) OAuthProviderAuthorizeDelete(res rest.ResponseWriter, req *rest.Request) {
@@ -136,13 +136,7 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 		return
 	}
 
-	token, err := prvdr.Config().Exchange(ctx, query.Get("code"))
-	if err != nil {
-		r.htmlOnError(res, req, err)
-		return
-	}
-
-	oauthToken, err := oauth.NewTokenFromRawToken(token)
+	oauthToken, err := prvdr.ExchangeAuthorizationCodeForToken(ctx, query.Get("code"))
 	if err != nil {
 		r.htmlOnError(res, req, err)
 		return
@@ -186,7 +180,7 @@ func (r *Router) oauthProviderRestrictedToken(req *http.Request, prvdr oauth.Pro
 		if cookie.Name == cookieName {
 			if restrictedToken, err := r.AuthClient().GetRestrictedToken(req.Context(), cookie.Value); err != nil {
 				return nil, err
-			} else if restrictedToken != nil && restrictedToken.Authenticates(req) && state == prvdr.State(restrictedToken.ID) {
+			} else if restrictedToken != nil && restrictedToken.Authenticates(req) && state == prvdr.CalculateStateForRestrictedToken(restrictedToken.ID) {
 				return restrictedToken, nil
 			}
 		}

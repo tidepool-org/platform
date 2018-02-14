@@ -1,5 +1,6 @@
 ## HEAD
 
+* Refactor oauth package to allow alternate grant workflows
 * Add Makefile generate target for code generation
 * Update mechanism to find files with main()
 * Add file embedding tool to Makefile

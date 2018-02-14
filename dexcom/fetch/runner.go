@@ -304,7 +304,7 @@ func (t *TaskRunner) updateDataSource(dataSourceUpdate *data.DataSourceUpdate) e
 }
 
 func (t *TaskRunner) createTokenSource() error {
-	tokenSource, err := oauthToken.NewSource(t.providerSession.OAuthToken)
+	tokenSource, err := oauthToken.NewSourceWithToken(t.providerSession.OAuthToken)
 	if err != nil {
 		t.task.SetFailed()
 		return errors.Wrap(err, "unable to create token source")
