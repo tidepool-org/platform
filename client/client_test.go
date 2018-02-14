@@ -69,7 +69,7 @@ var _ = Describe("Client", func() {
 			address = testHTTP.NewAddress()
 			config := client.NewConfig()
 			Expect(config).ToNot(BeNil())
-			config.Address = address
+			config.Address = address + "///"
 			config.UserAgent = testHTTP.NewUserAgent()
 			var err error
 			clnt, err = client.New(config)
@@ -79,7 +79,7 @@ var _ = Describe("Client", func() {
 
 		Context("ConstructURL", func() {
 			It("returns a valid URL with no paths", func() {
-				Expect(clnt.ConstructURL()).To(Equal(address))
+				Expect(clnt.ConstructURL()).To(Equal(address + "/"))
 			})
 
 			It("returns a valid URL with one path", func() {

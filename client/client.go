@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	netURL "net/url"
@@ -35,11 +36,11 @@ func New(cfg *Config) (*Client, error) {
 }
 
 func (c *Client) ConstructURL(paths ...string) string {
-	segments := []string{c.address}
+	segments := []string{}
 	for _, path := range paths {
 		segments = append(segments, netURL.PathEscape(strings.Trim(path, "/")))
 	}
-	return strings.Join(segments, "/")
+	return fmt.Sprintf("%s/%s", strings.TrimRight(c.address, "/"), strings.Join(segments, "/"))
 }
 
 func (c *Client) AppendURLQuery(urlString string, query map[string]string) string {

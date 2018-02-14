@@ -1,5 +1,6 @@
 ## HEAD
 
+* Strip trailing slashes from client base address
 * Return error from config.Get rather than bool for compatibility
 * Allow additional scopes on tools
 * Fix start script source of environment file
