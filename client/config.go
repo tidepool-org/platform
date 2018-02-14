@@ -22,7 +22,7 @@ func (c *Config) Load(configReporter config.Reporter) error {
 	}
 
 	c.Address = configReporter.GetWithDefault("address", "")
-	if userAgent, found := configReporter.Get("user_agent"); found {
+	if userAgent, err := configReporter.Get("user_agent"); err == nil {
 		c.UserAgent = userAgent
 	}
 

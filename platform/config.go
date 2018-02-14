@@ -27,8 +27,9 @@ func (c *Config) Load(configReporter config.Reporter) error {
 		return err
 	}
 
-	if timeoutString, found := configReporter.Get("timeout"); found {
-		timeout, err := strconv.ParseInt(timeoutString, 10, 0)
+	if timeoutString, err := configReporter.Get("timeout"); err == nil {
+		var timeout int64
+		timeout, err = strconv.ParseInt(timeoutString, 10, 0)
 		if err != nil {
 			return errors.New("timeout is invalid")
 		}

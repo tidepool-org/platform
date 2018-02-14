@@ -17,17 +17,20 @@ func NewReporter() *Reporter {
 	}
 }
 
-func (r *Reporter) Get(key string) (string, bool) {
+func (r *Reporter) Get(key string) (string, error) {
 	value, found := r.Config[key]
-	return value, found
+	if !found {
+		return "", config.ErrorKeyNotFound(key)
+	}
+	return value, nil
 }
 
 func (r *Reporter) GetWithDefault(key string, defaultValue string) string {
-	if value, found := r.Get(key); found {
-		return value
+	value, err := r.Get(key)
+	if err != nil {
+		return defaultValue
 	}
-
-	return defaultValue
+	return value
 }
 
 func (r *Reporter) Set(key string, value string) {

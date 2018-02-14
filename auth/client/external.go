@@ -42,8 +42,9 @@ func (e *ExternalConfig) Load(configReporter config.Reporter) error {
 	}
 
 	e.ServerSessionTokenSecret = configReporter.GetWithDefault("server_session_token_secret", "")
-	if serverSessionTokenTimeoutString, found := configReporter.Get("server_session_token_timeout"); found {
-		serverSessionTokenTimeoutInteger, err := strconv.ParseInt(serverSessionTokenTimeoutString, 10, 0)
+	if serverSessionTokenTimeoutString, err := configReporter.Get("server_session_token_timeout"); err == nil {
+		var serverSessionTokenTimeoutInteger int64
+		serverSessionTokenTimeoutInteger, err = strconv.ParseInt(serverSessionTokenTimeoutString, 10, 0)
 		if err != nil {
 			return errors.New("server session token timeout is invalid")
 		}

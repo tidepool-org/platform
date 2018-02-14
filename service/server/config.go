@@ -30,8 +30,9 @@ func (c *Config) Load(configReporter config.Reporter) error {
 	}
 
 	c.Address = configReporter.GetWithDefault("address", "")
-	if tlsString, found := configReporter.Get("tls"); found {
-		tls, err := strconv.ParseBool(tlsString)
+	if tlsString, err := configReporter.Get("tls"); err == nil {
+		var tls bool
+		tls, err = strconv.ParseBool(tlsString)
 		if err != nil {
 			return errors.New("tls is invalid")
 		}
@@ -39,8 +40,9 @@ func (c *Config) Load(configReporter config.Reporter) error {
 	}
 	c.TLSCertificateFile = configReporter.GetWithDefault("tls_certificate_file", "")
 	c.TLSKeyFile = configReporter.GetWithDefault("tls_key_file", "")
-	if timeoutString, found := configReporter.Get("timeout"); found {
-		timeout, err := strconv.ParseInt(timeoutString, 10, 0)
+	if timeoutString, err := configReporter.Get("timeout"); err == nil {
+		var timeout int64
+		timeout, err = strconv.ParseInt(timeoutString, 10, 0)
 		if err != nil {
 			return errors.New("timeout is invalid")
 		}

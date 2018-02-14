@@ -33,15 +33,17 @@ func (c *Config) Load(configReporter config.Reporter) error {
 		return errors.New("config reporter is missing")
 	}
 
-	if workersString, found := configReporter.Get("workers"); found {
-		workers, err := strconv.ParseInt(workersString, 10, 0)
+	if workersString, err := configReporter.Get("workers"); err == nil {
+		var workers int64
+		workers, err = strconv.ParseInt(workersString, 10, 0)
 		if err != nil {
 			return errors.New("workers is invalid")
 		}
 		c.Workers = int(workers)
 	}
-	if delayString, found := configReporter.Get("delay"); found {
-		delay, err := strconv.ParseInt(delayString, 10, 0)
+	if delayString, err := configReporter.Get("delay"); err == nil {
+		var delay int64
+		delay, err = strconv.ParseInt(delayString, 10, 0)
 		if err != nil {
 			return errors.New("delay is invalid")
 		}

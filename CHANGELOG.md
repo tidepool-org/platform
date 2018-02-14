@@ -1,5 +1,7 @@
 ## HEAD
 
+* Return error from config.Get rather than bool for compatibility
+* Allow additional scopes on tools
 * Fix start script source of environment file
 * Add LifeScan Verio and LifeScan Verio Flex to supported devices
 * Accomodate out-of-sync server time between Tidepool and Dexcom

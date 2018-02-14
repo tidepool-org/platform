@@ -9,6 +9,7 @@ import (
 
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/config/env"
+	"github.com/tidepool-org/platform/errors"
 )
 
 var _ = Describe("Reporter", func() {
@@ -60,21 +61,26 @@ var _ = Describe("Reporter", func() {
 			Expect(reporter).ToNot(BeNil())
 		})
 
-		Context("String", func() {
+		Context("Get", func() {
+			It("returns an error if not found", func() {
+				value, err := reporter.Get("NOTFOXTROT")
+				Expect(errors.Sanitize(err)).To(Equal(errors.Sanitize(config.ErrorKeyNotFound("TIDEPOOL_TEST_NOTFOXTROT"))))
+				Expect(value).To(BeEmpty())
+			})
+
 			DescribeTable("returns expected values given environment variables",
-				func(environmentKey string, environmentValue string, key string, expectedValue string, expectedFound bool) {
+				func(environmentKey string, environmentValue string, key string, expectedValue string) {
 					Expect(syscall.Setenv(environmentKey, environmentValue)).To(Succeed())
-					actualValue, actualFound := reporter.Get(key)
+					value, err := reporter.Get(key)
 					Expect(syscall.Unsetenv(environmentKey)).To(Succeed())
-					Expect(actualFound).To(Equal(expectedFound))
-					Expect(actualValue).To(Equal(expectedValue))
+					Expect(err).ToNot(HaveOccurred())
+					Expect(value).To(Equal(expectedValue))
 				},
-				Entry("joins parts with underscore", "TIDEPOOL_TEST_ALPHA", "dog", "ALPHA", "dog", true),
-				Entry("converts to uppercase", "TIDEPOOL_TEST_BETA", "tester", "beta", "tester", true),
-				Entry("replaces invalid characters with underscores", "TIDEPOOL_TEST_C_H_A_R_L_I_E", "brown", "C*H&A'R.L\"I?E", "brown", true),
-				Entry("allows underscores", "TIDEPOOL_TEST_DEL_TA", "force", "DEL_TA", "force", true),
-				Entry("allows empty value", "TIDEPOOL_TEST_ECHO", "", "ECHO", "", true),
-				Entry("without match", "TIDEPOOL_TEST_FOXTROT", "dance", "NOTFOXTROT", "", false),
+				Entry("joins parts with underscore", "TIDEPOOL_TEST_ALPHA", "dog", "ALPHA", "dog"),
+				Entry("converts to uppercase", "TIDEPOOL_TEST_BETA", "tester", "beta", "tester"),
+				Entry("replaces invalid characters with underscores", "TIDEPOOL_TEST_C_H_A_R_L_I_E", "brown", "C*H&A'R.L\"I?E", "brown"),
+				Entry("allows underscores", "TIDEPOOL_TEST_DEL_TA", "force", "DEL_TA", "force"),
+				Entry("allows empty value", "TIDEPOOL_TEST_ECHO", "", "ECHO", ""),
 			)
 		})
 
@@ -91,7 +97,7 @@ var _ = Describe("Reporter", func() {
 				Expect(syscall.Unsetenv("TIDEPOOL_TEST_HOTEL")).To(Succeed())
 			})
 
-			It("returns the default valuye if not found", func() {
+			It("returns the default value if not found", func() {
 				Expect(reporter.GetWithDefault("INDIA", "ink")).To(Equal("ink"))
 			})
 		})
@@ -118,19 +124,26 @@ var _ = Describe("Reporter", func() {
 		})
 
 		Context("WithScopes", func() {
+			It("does not return last scope", func() {
+				Expect(syscall.Setenv("TIDEPOOL_TEST_DEE", "DDD")).To(Succeed())
+				value, err := reporter.WithScopes("ONE", "TWO", "THREE").Get("DEE")
+				Expect(syscall.Unsetenv("TIDEPOOL_TEST_DEE")).To(Succeed())
+				Expect(errors.Sanitize(err)).To(Equal(errors.Sanitize(config.ErrorKeyNotFound("TIDEPOOL_TEST_ONE_TWO_THREE_DEE"))))
+				Expect(value).To(BeEmpty())
+			})
+
 			DescribeTable("returns expected values given environment variables and scopes",
-				func(environmentKey string, environmentValue string, scopes []string, key string, expectedValue string, expectedFound bool) {
+				func(environmentKey string, environmentValue string, scopes []string, key string, expectedValue string) {
 					Expect(syscall.Setenv(environmentKey, environmentValue)).To(Succeed())
-					actualValue, actualFound := reporter.WithScopes(scopes...).Get(key)
+					value, err := reporter.WithScopes(scopes...).Get(key)
 					Expect(syscall.Unsetenv(environmentKey)).To(Succeed())
-					Expect(actualFound).To(Equal(expectedFound))
-					Expect(actualValue).To(Equal(expectedValue))
+					Expect(err).ToNot(HaveOccurred())
+					Expect(value).To(Equal(expectedValue))
 				},
-				Entry("joined exactly", "TIDEPOOL_TEST_ONE_TWO_THREE_EH", "AAA", []string{"ONE", "TWO", "THREE"}, "EH", "AAA", true),
-				Entry("removes one scope", "TIDEPOOL_TEST_TWO_THREE_BEE", "BBB", []string{"ONE", "TWO", "THREE"}, "BEE", "BBB", true),
-				Entry("removes two scopes", "TIDEPOOL_TEST_THREE_SEA", "CCC", []string{"ONE", "TWO", "THREE"}, "SEA", "CCC", true),
-				Entry("does not return last scope", "TIDEPOOL_TEST_DEE", "DDD", []string{"ONE", "TWO", "THREE"}, "DEE", "", false),
-				Entry("allows no scopes", "TIDEPOOL_TEST_EFF", "FFF", []string{}, "EFF", "FFF", true),
+				Entry("joined exactly", "TIDEPOOL_TEST_ONE_TWO_THREE_EH", "AAA", []string{"ONE", "TWO", "THREE"}, "EH", "AAA"),
+				Entry("removes one scope", "TIDEPOOL_TEST_TWO_THREE_BEE", "BBB", []string{"ONE", "TWO", "THREE"}, "BEE", "BBB"),
+				Entry("removes two scopes", "TIDEPOOL_TEST_THREE_SEA", "CCC", []string{"ONE", "TWO", "THREE"}, "SEA", "CCC"),
+				Entry("allows no scopes", "TIDEPOOL_TEST_EFF", "FFF", []string{}, "EFF", "FFF"),
 			)
 		})
 	})

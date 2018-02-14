@@ -31,7 +31,7 @@ type reporter struct {
 	scopes []string
 }
 
-func (r *reporter) Get(key string) (string, bool) {
+func (r *reporter) Get(key string) (string, error) {
 	limit := len(r.scopes) - 1
 	if limit < 0 {
 		limit = 0
@@ -39,19 +39,19 @@ func (r *reporter) Get(key string) (string, bool) {
 
 	for i := 0; i <= limit; i++ {
 		if value, found := syscall.Getenv(r.getKey(r.scopes[i:], key)); found {
-			return value, true
+			return value, nil
 		}
 	}
 
-	return "", false
+	return "", config.ErrorKeyNotFound(r.getKey(r.scopes, key))
 }
 
 func (r *reporter) GetWithDefault(key string, defaultValue string) string {
-	if value, found := r.Get(key); found {
-		return value
+	value, err := r.Get(key)
+	if err != nil {
+		return defaultValue
 	}
-
-	return defaultValue
+	return value
 }
 
 func (r *reporter) Set(key string, value string) {

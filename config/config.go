@@ -3,7 +3,7 @@ package config
 import "strings"
 
 type Reporter interface {
-	Get(key string) (string, bool)
+	Get(key string) (string, error)
 	GetWithDefault(key string, defaultValue string) string
 
 	Set(key string, value string)
