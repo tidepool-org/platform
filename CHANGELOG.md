@@ -1,5 +1,8 @@
 ## HEAD
 
+* Add Makefile generate target for code generation
+* Update mechanism to find files with main()
+* Add file embedding tool to Makefile
 * Handle additional client response codes
 * Strip trailing slashes from client base address
 * Return error from config.Get rather than bool for compatibility
