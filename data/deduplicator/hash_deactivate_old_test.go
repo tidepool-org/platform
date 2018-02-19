@@ -360,7 +360,7 @@ var _ = Describe("HashDeactivateOld", func() {
 							It("returns an error if there is an error with CreateDatasetDataInput", func() {
 								testDataSession.CreateDatasetDataOutputs = []error{errors.New("test error")}
 								err := testDeduplicator.AddDatasetData(ctx, testDatasetData)
-								Expect(err).To(MatchError(fmt.Sprintf(`unable to create dataset data with id "%s"; test error`, testDataset.UploadID)))
+								Expect(err).To(MatchError(fmt.Sprintf(`unable to create dataset data with id "%s"; test error`, testUploadID)))
 							})
 
 							It("returns successfully if there is no error", func() {

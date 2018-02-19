@@ -1,5 +1,6 @@
 ## HEAD
 
+* Additional test helpers
 * Add Object and Array structure validators
 * Remove data.ValidateInterface...; does not work as expected
 * Remove structure.Validating; does not work as expected

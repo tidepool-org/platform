@@ -28,6 +28,8 @@ var _ = Describe("Truncate", func() {
 
 	Context("with a new factory", func() {
 		var testFactory deduplicator.Factory
+		var testUploadID string
+		var testUserID string
 		var testDataset *upload.Upload
 
 		BeforeEach(func() {
@@ -35,9 +37,12 @@ var _ = Describe("Truncate", func() {
 			testFactory, err = deduplicator.NewTruncateFactory()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testFactory).ToNot(BeNil())
+			testUploadID = id.New()
+			testUserID = id.New()
 			testDataset = upload.Init()
 			Expect(testDataset).ToNot(BeNil())
-			testDataset.UserID = id.New()
+			testDataset.UploadID = testUploadID
+			testDataset.UserID = testUserID
 			testDataset.DeviceID = pointer.String(id.New())
 			testDataset.DeviceManufacturers = pointer.StringArray([]string{"Animas"})
 		})
@@ -212,7 +217,7 @@ var _ = Describe("Truncate", func() {
 						It("returns an error if there is an error with ActivateDatasetData", func() {
 							testDataSession.ActivateDatasetDataOutputs = []error{errors.New("test error")}
 							err := testDeduplicator.DeduplicateDataset(ctx)
-							Expect(err).To(MatchError(fmt.Sprintf(`unable to activate dataset data with id "%s"; test error`, testDataset.UploadID)))
+							Expect(err).To(MatchError(fmt.Sprintf(`unable to activate dataset data with id "%s"; test error`, testUploadID)))
 						})
 
 						Context("with deleting other dataset data", func() {
@@ -227,7 +232,7 @@ var _ = Describe("Truncate", func() {
 							It("returns an error if there is an error with DeleteOtherDatasetData", func() {
 								testDataSession.DeleteOtherDatasetDataOutputs = []error{errors.New("test error")}
 								err := testDeduplicator.DeduplicateDataset(ctx)
-								Expect(err).To(MatchError(fmt.Sprintf(`unable to remove all other data except dataset with id "%s"; test error`, testDataset.UploadID)))
+								Expect(err).To(MatchError(fmt.Sprintf(`unable to remove all other data except dataset with id "%s"; test error`, testUploadID)))
 							})
 
 							It("returns successfully if there is no error", func() {

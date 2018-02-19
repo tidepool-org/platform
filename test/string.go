@@ -1,10 +1,6 @@
 package test
 
-import (
-	"math/rand"
-
-	"github.com/onsi/gomega"
-)
+import "math/rand"
 
 const (
 	CharsetUppercase    = "ABCDEFGHIJKLMNOPQRSTUVWYXZ"
@@ -18,7 +14,6 @@ const (
 )
 
 func NewString(length int, charset string) string {
-	gomega.Expect(charset).ToNot(gomega.BeEmpty())
 	bytes := make([]byte, length)
 	for index := range bytes {
 		bytes[index] = charset[rand.Intn(len(charset))]
@@ -27,7 +22,6 @@ func NewString(length int, charset string) string {
 }
 
 func NewVariableString(minimumLength int, maximumLength int, charset string) string {
-	gomega.Expect(minimumLength).To(gomega.BeNumerically("<=", maximumLength))
 	return NewString(minimumLength+rand.Intn(maximumLength-minimumLength+1), charset)
 }
 
