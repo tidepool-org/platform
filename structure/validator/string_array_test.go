@@ -191,6 +191,20 @@ var _ = Describe("StringArray", func() {
 			})
 		})
 
+		Context("EachNotEmpty", func() {
+			BeforeEach(func() {
+				result = validator.EachNotEmpty()
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).ToNot(HaveOccurred())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
 		Context("EachOneOf", func() {
 			BeforeEach(func() {
 				result = validator.EachOneOf("1", "seven")
@@ -242,6 +256,22 @@ var _ = Describe("StringArray", func() {
 			BeforeEach(func() {
 				expression = regexp.MustCompile("^.ou.$")
 				result = validator.EachNotMatches(expression)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).ToNot(HaveOccurred())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("Using", func() {
+			BeforeEach(func() {
+				result = validator.Using(func(value []string, errorReporter structure.ErrorReporter) {
+					errorReporter.ReportError(structureValidator.ErrorValueExists())
+				})
 			})
 
 			It("does not report an error", func() {
@@ -316,6 +346,38 @@ var _ = Describe("StringArray", func() {
 			It("does not report an error", func() {
 				Expect(base.Error()).To(HaveOccurred())
 				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueEmpty())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("Using", func() {
+			BeforeEach(func() {
+				result = validator.Using(func(value []string, errorReporter structure.ErrorReporter) {
+					Expect(value).To(Equal(value))
+					errorReporter.ReportError(structureValidator.ErrorValueExists())
+				})
+			})
+
+			It("reports the expected error", func() {
+				Expect(base.Error()).To(HaveOccurred())
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("Using (without func)", func() {
+			BeforeEach(func() {
+				result = validator.Using(nil)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -493,6 +555,20 @@ var _ = Describe("StringArray", func() {
 			})
 		})
 
+		Context("EachNotEmpty", func() {
+			BeforeEach(func() {
+				result = validator.EachNotEmpty()
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).ToNot(HaveOccurred())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
 		Context("EachOneOf", func() {
 			BeforeEach(func() {
 				result = validator.EachOneOf("1", "seven")
@@ -554,6 +630,38 @@ var _ = Describe("StringArray", func() {
 				Expect(result).To(BeIdenticalTo(validator))
 			})
 		})
+
+		Context("Using", func() {
+			BeforeEach(func() {
+				result = validator.Using(func(value []string, errorReporter structure.ErrorReporter) {
+					Expect(value).To(Equal(value))
+					errorReporter.ReportError(structureValidator.ErrorValueExists())
+				})
+			})
+
+			It("reports the expected error", func() {
+				Expect(base.Error()).To(HaveOccurred())
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("Using (without func)", func() {
+			BeforeEach(func() {
+				result = validator.Using(nil)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).ToNot(HaveOccurred())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
 	})
 
 	Context("with new validator with value with length of 4", func() {
@@ -562,7 +670,7 @@ var _ = Describe("StringArray", func() {
 		var value []string
 
 		BeforeEach(func() {
-			value = []string{"1", "two", "three", "four"}
+			value = []string{"1", "two", "", "four"}
 			validator = structureValidator.NewStringArray(base, &value)
 			Expect(validator).ToNot(BeNil())
 		})
@@ -728,6 +836,21 @@ var _ = Describe("StringArray", func() {
 			})
 		})
 
+		Context("EachNotEmpty", func() {
+			BeforeEach(func() {
+				result = validator.EachNotEmpty()
+			})
+
+			It("reports the expected error", func() {
+				Expect(base.Error()).To(HaveOccurred())
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueEmpty())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
 		Context("EachOneOf", func() {
 			BeforeEach(func() {
 				result = validator.EachOneOf("1", "seven")
@@ -737,7 +860,7 @@ var _ = Describe("StringArray", func() {
 				Expect(base.Error()).To(HaveOccurred())
 				testErrors.ExpectEqual(base.Error(), errors.Append(
 					structureValidator.ErrorValueStringNotOneOf("two", []string{"1", "seven"}),
-					structureValidator.ErrorValueStringNotOneOf("three", []string{"1", "seven"}),
+					structureValidator.ErrorValueStringNotOneOf("", []string{"1", "seven"}),
 					structureValidator.ErrorValueStringNotOneOf("four", []string{"1", "seven"}),
 				))
 			})
@@ -772,7 +895,7 @@ var _ = Describe("StringArray", func() {
 				testErrors.ExpectEqual(base.Error(), errors.Append(
 					structureValidator.ErrorValueStringNotOneOf("1", []string{}),
 					structureValidator.ErrorValueStringNotOneOf("two", []string{}),
-					structureValidator.ErrorValueStringNotOneOf("three", []string{}),
+					structureValidator.ErrorValueStringNotOneOf("", []string{}),
 					structureValidator.ErrorValueStringNotOneOf("four", []string{}),
 				))
 			})
@@ -800,7 +923,7 @@ var _ = Describe("StringArray", func() {
 			var expression *regexp.Regexp
 
 			BeforeEach(func() {
-				expression = regexp.MustCompile("^[0-9]*$")
+				expression = regexp.MustCompile("^[0-9]+$")
 				result = validator.EachMatches(expression)
 			})
 
@@ -808,7 +931,7 @@ var _ = Describe("StringArray", func() {
 				Expect(base.Error()).To(HaveOccurred())
 				testErrors.ExpectEqual(base.Error(), errors.Append(
 					structureValidator.ErrorValueStringNotMatches("two", expression),
-					structureValidator.ErrorValueStringNotMatches("three", expression),
+					structureValidator.ErrorValueStringNotMatches("", expression),
 					structureValidator.ErrorValueStringNotMatches("four", expression),
 				))
 			})
@@ -846,7 +969,7 @@ var _ = Describe("StringArray", func() {
 				testErrors.ExpectEqual(base.Error(), errors.Append(
 					structureValidator.ErrorValueStringNotMatches("1", nil),
 					structureValidator.ErrorValueStringNotMatches("two", nil),
-					structureValidator.ErrorValueStringNotMatches("three", nil),
+					structureValidator.ErrorValueStringNotMatches("", nil),
 					structureValidator.ErrorValueStringNotMatches("four", nil),
 				))
 			})
@@ -866,9 +989,41 @@ var _ = Describe("StringArray", func() {
 				testErrors.ExpectEqual(base.Error(), errors.Append(
 					structureValidator.ErrorValueStringMatches("1", nil),
 					structureValidator.ErrorValueStringMatches("two", nil),
-					structureValidator.ErrorValueStringMatches("three", nil),
+					structureValidator.ErrorValueStringMatches("", nil),
 					structureValidator.ErrorValueStringMatches("four", nil),
 				))
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("Using", func() {
+			BeforeEach(func() {
+				result = validator.Using(func(value []string, errorReporter structure.ErrorReporter) {
+					Expect(value).To(Equal(value))
+					errorReporter.ReportError(structureValidator.ErrorValueExists())
+				})
+			})
+
+			It("reports the expected error", func() {
+				Expect(base.Error()).To(HaveOccurred())
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("Using (without func)", func() {
+			BeforeEach(func() {
+				result = validator.Using(nil)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {

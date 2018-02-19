@@ -7,8 +7,11 @@ type ObjectParsable interface {
 }
 
 type ObjectParser interface {
-	Error() error
-	ReportError(err error)
+	OriginReporter
+	SourceReporter
+	MetaReporter
+
+	ErrorReporter
 
 	Exists() bool
 
@@ -31,6 +34,7 @@ type ObjectParser interface {
 
 	NotParsed() error
 
+	WithOrigin(origin Origin) ObjectParser
 	WithSource(source Source) ObjectParser
 	WithMeta(meta interface{}) ObjectParser
 	WithReferenceObjectParser(reference string) ObjectParser
@@ -42,8 +46,11 @@ type ArrayParsable interface {
 }
 
 type ArrayParser interface {
-	Error() error
-	ReportError(err error)
+	OriginReporter
+	SourceReporter
+	MetaReporter
+
+	ErrorReporter
 
 	Exists() bool
 
@@ -66,6 +73,7 @@ type ArrayParser interface {
 
 	NotParsed() error
 
+	WithOrigin(origin Origin) ArrayParser
 	WithSource(source Source) ArrayParser
 	WithMeta(meta interface{}) ArrayParser
 	WithReferenceObjectParser(reference int) ObjectParser

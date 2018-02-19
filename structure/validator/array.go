@@ -48,3 +48,12 @@ func (a *Array) NotEmpty() structure.Array {
 	}
 	return a
 }
+
+func (a *Array) Using(using func(value []interface{}, errorReporter structure.ErrorReporter)) structure.Array {
+	if a.value != nil {
+		if using != nil {
+			using(*a.value, a.base)
+		}
+	}
+	return a
+}

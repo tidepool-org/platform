@@ -19,6 +19,30 @@ func NewNormalizer(base *structureBase.Base) *Normalizer {
 	}
 }
 
+func (n *Normalizer) Origin() structure.Origin {
+	return n.base.Origin()
+}
+
+func (n *Normalizer) HasSource() bool {
+	return n.base.HasSource()
+}
+
+func (n *Normalizer) Source() structure.Source {
+	return n.base.Source()
+}
+
+func (n *Normalizer) HasMeta() bool {
+	return n.base.HasMeta()
+}
+
+func (n *Normalizer) Meta() interface{} {
+	return n.base.Meta()
+}
+
+func (n *Normalizer) HasError() bool {
+	return n.base.HasError()
+}
+
 func (n *Normalizer) Error() error {
 	return n.base.Error()
 }
@@ -30,6 +54,12 @@ func (n *Normalizer) ReportError(err error) {
 func (n *Normalizer) Normalize(normalizable structure.Normalizable) error {
 	normalizable.Normalize(n)
 	return n.Error()
+}
+
+func (n *Normalizer) WithOrigin(origin structure.Origin) structure.Normalizer {
+	return &Normalizer{
+		base: n.base.WithOrigin(origin),
+	}
 }
 
 func (n *Normalizer) WithSource(source structure.Source) structure.Normalizer {

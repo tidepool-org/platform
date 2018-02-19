@@ -36,6 +36,69 @@ var _ = Describe("Normalizer", func() {
 			Expect(normalizer).ToNot(BeNil())
 		})
 
+		Context("Origin", func() {
+			It("returns OriginExternal if default", func() {
+				Expect(normalizer.Origin()).To(Equal(structure.OriginExternal))
+			})
+
+			It("returns set origin", func() {
+				Expect(normalizer.WithOrigin(structure.OriginInternal).Origin()).To(Equal(structure.OriginInternal))
+			})
+		})
+
+		Context("HasSource", func() {
+			It("returns false if no source set", func() {
+				Expect(normalizer.WithSource(nil).HasSource()).To(BeFalse())
+			})
+
+			It("returns true if source set", func() {
+				Expect(normalizer.WithSource(testStructure.NewSource()).HasSource()).To(BeTrue())
+			})
+		})
+
+		Context("Source", func() {
+			It("returns default source", func() {
+				Expect(normalizer.Source()).To(Equal(structure.NewPointerSource()))
+			})
+
+			It("returns set source", func() {
+				src := testStructure.NewSource()
+				Expect(normalizer.WithSource(src).Source()).To(Equal(src))
+			})
+		})
+
+		Context("HasMeta", func() {
+			It("returns false if no meta set", func() {
+				Expect(normalizer.WithMeta(nil).HasMeta()).To(BeFalse())
+			})
+
+			It("returns true if meta set", func() {
+				Expect(normalizer.WithMeta(testErrors.NewMeta()).HasMeta()).To(BeTrue())
+			})
+		})
+
+		Context("Meta", func() {
+			It("returns default meta", func() {
+				Expect(normalizer.Meta()).To(BeNil())
+			})
+
+			It("returns set meta", func() {
+				meta := testErrors.NewMeta()
+				Expect(normalizer.WithMeta(meta).Meta()).To(Equal(meta))
+			})
+		})
+
+		Context("HasError", func() {
+			It("returns false if no errors reporter", func() {
+				Expect(normalizer.HasError()).To(BeFalse())
+			})
+
+			It("returns true if any errors reported", func() {
+				normalizer.ReportError(testErrors.NewError())
+				Expect(normalizer.HasError()).To(BeTrue())
+			})
+		})
+
 		Context("Error", func() {
 			It("returns no error", func() {
 				Expect(normalizer.Error()).ToNot(HaveOccurred())
@@ -81,6 +144,17 @@ var _ = Describe("Normalizer", func() {
 				err := testErrors.NewError()
 				normalizable.NormalizeStub = func(normalizer structure.Normalizer) { normalizer.ReportError(err) }
 				Expect(normalizer.Normalize(normalizable)).To(Equal(errors.Normalize(err)))
+			})
+		})
+
+		Context("WithOrigin", func() {
+			It("returns a new normalizer with origin", func() {
+				result := normalizer.WithOrigin(structure.OriginInternal)
+				Expect(result).ToNot(BeNil())
+				Expect(result).ToNot(BeIdenticalTo(normalizer))
+				Expect(result.Error()).ToNot(HaveOccurred())
+				Expect(result.Origin()).To(Equal(structure.OriginInternal))
+				Expect(normalizer.Origin()).To(Equal(structure.OriginExternal))
 			})
 		})
 

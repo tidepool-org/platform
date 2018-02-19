@@ -21,6 +21,30 @@ func NewValidator(base *structureBase.Base) *Validator {
 	}
 }
 
+func (v *Validator) Origin() structure.Origin {
+	return v.base.Origin()
+}
+
+func (v *Validator) HasSource() bool {
+	return v.base.HasSource()
+}
+
+func (v *Validator) Source() structure.Source {
+	return v.base.Source()
+}
+
+func (v *Validator) HasMeta() bool {
+	return v.base.HasMeta()
+}
+
+func (v *Validator) Meta() interface{} {
+	return v.base.Meta()
+}
+
+func (v *Validator) HasError() bool {
+	return v.base.HasError()
+}
+
 func (v *Validator) Error() error {
 	return v.base.Error()
 }
@@ -64,6 +88,12 @@ func (v *Validator) Object(reference string, value *map[string]interface{}) stru
 
 func (v *Validator) Array(reference string, value *[]interface{}) structure.Array {
 	return NewArray(v.base.WithReference(reference), value)
+}
+
+func (v *Validator) WithOrigin(origin structure.Origin) structure.Validator {
+	return &Validator{
+		base: v.base.WithOrigin(origin),
+	}
 }
 
 func (v *Validator) WithSource(source structure.Source) structure.Validator {

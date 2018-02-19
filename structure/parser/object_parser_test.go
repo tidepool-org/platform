@@ -41,6 +41,69 @@ var _ = Describe("Object", func() {
 			Expect(parser).ToNot(BeNil())
 		})
 
+		Context("Origin", func() {
+			It("returns OriginExternal if default", func() {
+				Expect(parser.Origin()).To(Equal(structure.OriginExternal))
+			})
+
+			It("returns set origin", func() {
+				Expect(parser.WithOrigin(structure.OriginInternal).Origin()).To(Equal(structure.OriginInternal))
+			})
+		})
+
+		Context("HasSource", func() {
+			It("returns false if no source set", func() {
+				Expect(parser.WithSource(nil).HasSource()).To(BeFalse())
+			})
+
+			It("returns true if source set", func() {
+				Expect(parser.WithSource(testStructure.NewSource()).HasSource()).To(BeTrue())
+			})
+		})
+
+		Context("Source", func() {
+			It("returns default source", func() {
+				Expect(parser.Source()).To(BeNil())
+			})
+
+			It("returns set source", func() {
+				src := testStructure.NewSource()
+				Expect(parser.WithSource(src).Source()).To(Equal(src))
+			})
+		})
+
+		Context("HasMeta", func() {
+			It("returns false if no meta set", func() {
+				Expect(parser.WithMeta(nil).HasMeta()).To(BeFalse())
+			})
+
+			It("returns true if meta set", func() {
+				Expect(parser.WithMeta(testErrors.NewMeta()).HasMeta()).To(BeTrue())
+			})
+		})
+
+		Context("Meta", func() {
+			It("returns default meta", func() {
+				Expect(parser.Meta()).To(BeNil())
+			})
+
+			It("returns set meta", func() {
+				meta := testErrors.NewMeta()
+				Expect(parser.WithMeta(meta).Meta()).To(Equal(meta))
+			})
+		})
+
+		Context("HasError", func() {
+			It("returns false if no errors reported", func() {
+				Expect(parser.HasError()).To(BeFalse())
+			})
+
+			It("returns true if any errors reported", func() {
+				base.ReportError(testErrors.NewError())
+				Expect(parser.HasError()).To(BeTrue())
+			})
+		})
+
 		Context("Error", func() {
 			It("returns the error from the base", func() {
 				err := testErrors.NewError()
@@ -662,6 +725,24 @@ var _ = Describe("Object", func() {
 			parser.Int("two")
 			parser.NotParsed()
 			Expect(base.Error()).ToNot(HaveOccurred())
+		})
+	})
+
+	Context("WithOrigin", func() {
+		var parser *structureParser.Object
+
+		BeforeEach(func() {
+			parser = structureParser.NewObjectParser(base, nil)
+			Expect(parser).ToNot(BeNil())
+		})
+
+		It("returns a new parser with origin", func() {
+			result := parser.WithOrigin(structure.OriginInternal)
+			Expect(result).ToNot(BeNil())
+			Expect(result).ToNot(BeIdenticalTo(parser))
+			Expect(result.Error()).ToNot(HaveOccurred())
+			Expect(result.Origin()).To(Equal(structure.OriginInternal))
+			Expect(parser.Origin()).To(Equal(structure.OriginExternal))
 		})
 	})
 

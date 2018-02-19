@@ -37,6 +37,67 @@ var _ = Describe("Base", func() {
 			src.Expectations()
 		})
 
+		Context("Origin", func() {
+			It("returns OriginExternal if default", func() {
+				Expect(base.Origin()).To(Equal(structure.OriginExternal))
+			})
+
+			It("returns set origin", func() {
+				Expect(base.WithOrigin(structure.OriginInternal).Origin()).To(Equal(structure.OriginInternal))
+			})
+		})
+
+		Context("HasSource", func() {
+			It("returns false if no source set", func() {
+				Expect(base.WithSource(nil).HasSource()).To(BeFalse())
+			})
+
+			It("returns true if source set", func() {
+				Expect(base.WithSource(src).HasSource()).To(BeTrue())
+			})
+		})
+
+		Context("Source", func() {
+			It("returns default source", func() {
+				Expect(base.Source()).To(BeNil())
+			})
+
+			It("returns set source", func() {
+				Expect(base.WithSource(src).Source()).To(Equal(src))
+			})
+		})
+
+		Context("HasMeta", func() {
+			It("returns false if no meta set", func() {
+				Expect(base.WithMeta(nil).HasMeta()).To(BeFalse())
+			})
+
+			It("returns true if meta set", func() {
+				Expect(base.WithMeta(meta).HasMeta()).To(BeTrue())
+			})
+		})
+
+		Context("Meta", func() {
+			It("returns default meta", func() {
+				Expect(base.Meta()).To(BeNil())
+			})
+
+			It("returns set meta", func() {
+				Expect(base.WithMeta(meta).Meta()).To(Equal(meta))
+			})
+		})
+
+		Context("HasError", func() {
+			It("returns false if no errors reported", func() {
+				Expect(base.HasError()).To(BeFalse())
+			})
+
+			It("returns true if any errors reported", func() {
+				base.ReportError(testErrors.NewError())
+				Expect(base.HasError()).To(BeTrue())
+			})
+		})
+
 		Context("Error", func() {
 			It("returns nil if no error", func() {
 				Expect(base.Error()).ToNot(HaveOccurred())
@@ -89,6 +150,17 @@ var _ = Describe("Base", func() {
 				result.ReportError(err)
 				Expect(result.Error()).To(Equal(errors.WithMeta(err, meta)))
 				Expect(base.Error()).To(Equal(result.Error()))
+			})
+		})
+
+		Context("WithOrigin", func() {
+			It("returns a new base with origin", func() {
+				result := base.WithOrigin(structure.OriginInternal)
+				Expect(result).ToNot(BeNil())
+				Expect(result).ToNot(BeIdenticalTo(base))
+				Expect(result.Error()).ToNot(HaveOccurred())
+				Expect(result.Origin()).To(Equal(structure.OriginInternal))
+				Expect(base.Origin()).To(Equal(structure.OriginExternal))
 			})
 		})
 

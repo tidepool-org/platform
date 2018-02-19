@@ -89,6 +89,22 @@ var _ = Describe("Object", func() {
 				Expect(result).To(BeIdenticalTo(validator))
 			})
 		})
+
+		Context("Using", func() {
+			BeforeEach(func() {
+				result = validator.Using(func(value map[string]interface{}, errorReporter structure.ErrorReporter) {
+					errorReporter.ReportError(structureValidator.ErrorValueExists())
+				})
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).ToNot(HaveOccurred())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
 	})
 
 	Context("with new validator with empty value", func() {
@@ -159,6 +175,38 @@ var _ = Describe("Object", func() {
 				Expect(result).To(BeIdenticalTo(validator))
 			})
 		})
+
+		Context("Using", func() {
+			BeforeEach(func() {
+				result = validator.Using(func(value map[string]interface{}, errorReporter structure.ErrorReporter) {
+					Expect(value).To(Equal(value))
+					errorReporter.ReportError(structureValidator.ErrorValueExists())
+				})
+			})
+
+			It("reports the expected error", func() {
+				Expect(base.Error()).To(HaveOccurred())
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("Using (without func)", func() {
+			BeforeEach(func() {
+				result = validator.Using(nil)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).ToNot(HaveOccurred())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
 	})
 
 	Context("with new validator with non-empty value", func() {
@@ -219,6 +267,38 @@ var _ = Describe("Object", func() {
 		Context("NotEmpty", func() {
 			BeforeEach(func() {
 				result = validator.NotEmpty()
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).ToNot(HaveOccurred())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("Using", func() {
+			BeforeEach(func() {
+				result = validator.Using(func(value map[string]interface{}, errorReporter structure.ErrorReporter) {
+					Expect(value).To(Equal(value))
+					errorReporter.ReportError(structureValidator.ErrorValueExists())
+				})
+			})
+
+			It("reports the expected error", func() {
+				Expect(base.Error()).To(HaveOccurred())
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("Using (without func)", func() {
+			BeforeEach(func() {
+				result = validator.Using(nil)
 			})
 
 			It("does not report an error", func() {

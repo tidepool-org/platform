@@ -10,8 +10,11 @@ type Validatable interface {
 }
 
 type Validator interface {
-	Error() error
-	ReportError(err error)
+	OriginReporter
+	SourceReporter
+	MetaReporter
+
+	ErrorReporter
 
 	Validate(validatable Validatable) error
 
@@ -25,6 +28,7 @@ type Validator interface {
 	Object(reference string, value *map[string]interface{}) Object
 	Array(reference string, value *[]interface{}) Array
 
+	WithOrigin(origin Origin) Validator
 	WithSource(source Source) Validator
 	WithMeta(meta interface{}) Validator
 	WithReference(reference string) Validator
@@ -36,6 +40,8 @@ type Bool interface {
 
 	True() Bool
 	False() Bool
+
+	Using(using func(value bool, errorReporter ErrorReporter)) Bool
 }
 
 type Float64 interface {
@@ -53,6 +59,8 @@ type Float64 interface {
 
 	OneOf(allowedValues ...float64) Float64
 	NotOneOf(disallowedValues ...float64) Float64
+
+	Using(using func(value float64, errorReporter ErrorReporter)) Float64
 }
 
 type Int interface {
@@ -70,6 +78,8 @@ type Int interface {
 
 	OneOf(allowedValues ...int) Int
 	NotOneOf(disallowedValues ...int) Int
+
+	Using(using func(value int, errorReporter ErrorReporter)) Int
 }
 
 type String interface {
@@ -95,6 +105,10 @@ type String interface {
 
 	Matches(expression *regexp.Regexp) String
 	NotMatches(expression *regexp.Regexp) String
+
+	Using(using func(value string, errorReporter ErrorReporter)) String
+
+	AsTime(layout string) Time
 }
 
 type StringArray interface {
@@ -112,11 +126,15 @@ type StringArray interface {
 	LengthGreaterThanOrEqualTo(limit int) StringArray
 	LengthInRange(lowerLimit int, upperLimit int) StringArray
 
+	EachNotEmpty() StringArray
+
 	EachOneOf(allowedValues ...string) StringArray
 	EachNotOneOf(disallowedValues ...string) StringArray
 
 	EachMatches(expression *regexp.Regexp) StringArray
 	EachNotMatches(expression *regexp.Regexp) StringArray
+
+	Using(using func(value []string, errorReporter ErrorReporter)) StringArray
 }
 
 type Time interface {
@@ -130,6 +148,8 @@ type Time interface {
 	AfterNow(threshold time.Duration) Time
 	Before(limit time.Time) Time
 	BeforeNow(threshold time.Duration) Time
+
+	Using(using func(value time.Time, errorReporter ErrorReporter)) Time
 }
 
 type Object interface {
@@ -138,6 +158,8 @@ type Object interface {
 
 	Empty() Object
 	NotEmpty() Object
+
+	Using(using func(value map[string]interface{}, errorReporter ErrorReporter)) Object
 }
 
 type Array interface {
@@ -146,4 +168,6 @@ type Array interface {
 
 	Empty() Array
 	NotEmpty() Array
+
+	Using(using func(value []interface{}, errorReporter ErrorReporter)) Array
 }

@@ -5,11 +5,15 @@ type Normalizable interface {
 }
 
 type Normalizer interface {
-	Error() error
-	ReportError(err error)
+	OriginReporter
+	SourceReporter
+	MetaReporter
+
+	ErrorReporter
 
 	Normalize(normalizable Normalizable) error
 
+	WithOrigin(origin Origin) Normalizer
 	WithSource(source Source) Normalizer
 	WithMeta(meta interface{}) Normalizer
 	WithReference(reference string) Normalizer

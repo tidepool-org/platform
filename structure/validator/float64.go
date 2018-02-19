@@ -117,3 +117,12 @@ func (f *Float64) NotOneOf(disallowedValues ...float64) structure.Float64 {
 	}
 	return f
 }
+
+func (f *Float64) Using(using func(value float64, errorReporter structure.ErrorReporter)) structure.Float64 {
+	if f.value != nil {
+		if using != nil {
+			using(*f.value, f.base)
+		}
+	}
+	return f
+}

@@ -32,6 +32,30 @@ func NewArrayParser(base *structureBase.Base, array *[]interface{}) *Array {
 	}
 }
 
+func (a *Array) Origin() structure.Origin {
+	return a.base.Origin()
+}
+
+func (a *Array) HasSource() bool {
+	return a.base.HasSource()
+}
+
+func (a *Array) Source() structure.Source {
+	return a.base.Source()
+}
+
+func (a *Array) HasMeta() bool {
+	return a.base.HasMeta()
+}
+
+func (a *Array) Meta() interface{} {
+	return a.base.Meta()
+}
+
+func (a *Array) HasError() bool {
+	return a.base.HasError()
+}
+
 func (a *Array) Error() error {
 	return a.base.Error()
 }
@@ -242,6 +266,14 @@ func (a *Array) NotParsed() error {
 	}
 
 	return a.Error()
+}
+
+func (a *Array) WithOrigin(origin structure.Origin) structure.ArrayParser {
+	return &Array{
+		base:   a.base.WithOrigin(origin),
+		array:  a.array,
+		parsed: a.parsed,
+	}
 }
 
 func (a *Array) WithSource(source structure.Source) structure.ArrayParser {

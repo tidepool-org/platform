@@ -187,6 +187,22 @@ var _ = Describe("Int", func() {
 				Expect(result).To(BeIdenticalTo(validator))
 			})
 		})
+
+		Context("Using", func() {
+			BeforeEach(func() {
+				result = validator.Using(func(value int, errorReporter structure.ErrorReporter) {
+					errorReporter.ReportError(structureValidator.ErrorValueExists())
+				})
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).ToNot(HaveOccurred())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
 	})
 
 	Context("with new validator with valid reference and value of 1", func() {
@@ -346,6 +362,38 @@ var _ = Describe("Int", func() {
 		Context("NotOneOf", func() {
 			BeforeEach(func() {
 				result = validator.NotOneOf(7, 4)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).ToNot(HaveOccurred())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("Using", func() {
+			BeforeEach(func() {
+				result = validator.Using(func(value int, errorReporter structure.ErrorReporter) {
+					Expect(value).To(Equal(value))
+					errorReporter.ReportError(structureValidator.ErrorValueExists())
+				})
+			})
+
+			It("reports the expected error", func() {
+				Expect(base.Error()).To(HaveOccurred())
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("Using (without func)", func() {
+			BeforeEach(func() {
+				result = validator.Using(nil)
 			})
 
 			It("does not report an error", func() {
@@ -549,6 +597,38 @@ var _ = Describe("Int", func() {
 		Context("NotOneOf with no disallowed values", func() {
 			BeforeEach(func() {
 				result = validator.NotOneOf()
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).ToNot(HaveOccurred())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("Using", func() {
+			BeforeEach(func() {
+				result = validator.Using(func(value int, errorReporter structure.ErrorReporter) {
+					Expect(value).To(Equal(value))
+					errorReporter.ReportError(structureValidator.ErrorValueExists())
+				})
+			})
+
+			It("reports the expected error", func() {
+				Expect(base.Error()).To(HaveOccurred())
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("Using (without func)", func() {
+			BeforeEach(func() {
+				result = validator.Using(nil)
 			})
 
 			It("does not report an error", func() {
