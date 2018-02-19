@@ -4,7 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/errors"
+	testErrors "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/structure"
 	structureBase "github.com/tidepool-org/platform/structure/base"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -40,7 +40,7 @@ var _ = Describe("Object", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotExists())))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueNotExists())
 			})
 
 			It("returns self", func() {
@@ -123,7 +123,7 @@ var _ = Describe("Object", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueExists())))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
 			})
 
 			It("returns self", func() {
@@ -152,7 +152,7 @@ var _ = Describe("Object", func() {
 
 			It("does not report an error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueEmpty())))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueEmpty())
 			})
 
 			It("returns self", func() {
@@ -193,7 +193,7 @@ var _ = Describe("Object", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueExists())))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
 			})
 
 			It("returns self", func() {
@@ -208,7 +208,7 @@ var _ = Describe("Object", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotEmpty())))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueNotEmpty())
 			})
 
 			It("returns self", func() {

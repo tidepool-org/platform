@@ -1,5 +1,6 @@
 ## HEAD
 
+* Refactor error expectations using new test helpers
 * Additional test helpers
 * Add Object and Array structure validators
 * Remove data.ValidateInterface...; does not work as expected

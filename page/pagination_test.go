@@ -7,8 +7,8 @@ import (
 	"net/http"
 
 	"github.com/tidepool-org/platform/errors"
+	testErrors "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/page"
-	"github.com/tidepool-org/platform/structure"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	testHTTP "github.com/tidepool-org/platform/test/http"
@@ -71,9 +71,7 @@ var _ = Describe("Pagination", func() {
 				Expect(pagination.Page).To(Equal(0))
 				Expect(pagination.Size).To(Equal(10))
 				Expect(parser.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(parser.Error())).To(Equal(errors.Sanitize(
-					errors.WithSource(structureParser.ErrorTypeNotInt(false), structure.NewPointerSource().WithReference("page")),
-				)))
+				testErrors.ExpectEqual(parser.Error(), testErrors.WithPointerSource(structureParser.ErrorTypeNotInt(false), "/page"))
 			})
 
 			It("reports an error if size is not an int", func() {
@@ -83,9 +81,7 @@ var _ = Describe("Pagination", func() {
 				Expect(pagination.Page).To(Equal(2))
 				Expect(pagination.Size).To(Equal(100))
 				Expect(parser.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(parser.Error())).To(Equal(errors.Sanitize(
-					errors.WithSource(structureParser.ErrorTypeNotInt(false), structure.NewPointerSource().WithReference("size")),
-				)))
+				testErrors.ExpectEqual(parser.Error(), testErrors.WithPointerSource(structureParser.ErrorTypeNotInt(false), "/size"))
 			})
 
 			It("reports an error if page and size are not ints", func() {
@@ -95,10 +91,10 @@ var _ = Describe("Pagination", func() {
 				Expect(pagination.Page).To(Equal(0))
 				Expect(pagination.Size).To(Equal(100))
 				Expect(parser.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(parser.Error())).To(Equal(errors.Sanitize(errors.Append(
-					errors.WithSource(structureParser.ErrorTypeNotInt(false), structure.NewPointerSource().WithReference("page")),
-					errors.WithSource(structureParser.ErrorTypeNotInt(false), structure.NewPointerSource().WithReference("size")),
-				))))
+				testErrors.ExpectEqual(parser.Error(), errors.Append(
+					testErrors.WithPointerSource(structureParser.ErrorTypeNotInt(false), "/page"),
+					testErrors.WithPointerSource(structureParser.ErrorTypeNotInt(false), "/size"),
+				))
 			})
 		})
 
@@ -118,27 +114,21 @@ var _ = Describe("Pagination", func() {
 				pagination.Page = -1
 				pagination.Validate(validator)
 				Expect(validator.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(validator.Error())).To(Equal(errors.Sanitize(
-					errors.WithSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), structure.NewPointerSource().WithReference("page")),
-				)))
+				testErrors.ExpectEqual(validator.Error(), testErrors.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/page"))
 			})
 
 			It("reports an error if the size is less than 1", func() {
 				pagination.Size = 0
 				pagination.Validate(validator)
 				Expect(validator.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(validator.Error())).To(Equal(errors.Sanitize(
-					errors.WithSource(structureValidator.ErrorValueNotInRange(0, 1, 100), structure.NewPointerSource().WithReference("size")),
-				)))
+				testErrors.ExpectEqual(validator.Error(), testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(0, 1, 100), "/size"))
 			})
 
 			It("reports an error if the size is greater than 100", func() {
 				pagination.Size = 101
 				pagination.Validate(validator)
 				Expect(validator.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(validator.Error())).To(Equal(errors.Sanitize(
-					errors.WithSource(structureValidator.ErrorValueNotInRange(101, 1, 100), structure.NewPointerSource().WithReference("size")),
-				)))
+				testErrors.ExpectEqual(validator.Error(), testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(101, 1, 100), "/size"))
 			})
 
 			It("reports an error if the page and size are less than minimum", func() {
@@ -146,10 +136,10 @@ var _ = Describe("Pagination", func() {
 				pagination.Size = 0
 				pagination.Validate(validator)
 				Expect(validator.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(validator.Error())).To(Equal(errors.Sanitize(errors.Append(
-					errors.WithSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), structure.NewPointerSource().WithReference("page")),
-					errors.WithSource(structureValidator.ErrorValueNotInRange(0, 1, 100), structure.NewPointerSource().WithReference("size")),
-				))))
+				testErrors.ExpectEqual(validator.Error(), errors.Append(
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/page"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(0, 1, 100), "/size"),
+				))
 			})
 		})
 

@@ -290,7 +290,7 @@ var _ = Describe("Array", func() {
 		It("with index parameter with different type returns nil and reports an ErrorTypeNotBool", func() {
 			Expect(parser.Bool(0)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotBool("not a boolean"))))
+			testErrors.ExpectEqual(base.Error(), structureParser.ErrorTypeNotBool("not a boolean"))
 		})
 
 		It("with index parameter with boolean type returns value", func() {
@@ -327,7 +327,7 @@ var _ = Describe("Array", func() {
 		It("with index parameter with different type returns nil and reports an ErrorTypeNotFloat64", func() {
 			Expect(parser.Float64(0)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotFloat64(false))))
+			testErrors.ExpectEqual(base.Error(), structureParser.ErrorTypeNotFloat64(false))
 		})
 
 		It("with index parameter with integer type returns value", func() {
@@ -378,7 +378,7 @@ var _ = Describe("Array", func() {
 		It("with index parameter with different type returns nil and reports an ErrorTypeNotInt", func() {
 			Expect(parser.Int(0)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotInt(false))))
+			testErrors.ExpectEqual(base.Error(), structureParser.ErrorTypeNotInt(false))
 		})
 
 		It("with index parameter with integer type returns value", func() {
@@ -398,7 +398,7 @@ var _ = Describe("Array", func() {
 		It("with index parameter with float type and not whole number returns nil and reports an ErrorTypeNotInt", func() {
 			Expect(parser.Int(3)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotInt(5.67))))
+			testErrors.ExpectEqual(base.Error(), structureParser.ErrorTypeNotInt(5.67))
 		})
 	})
 
@@ -426,7 +426,7 @@ var _ = Describe("Array", func() {
 		It("with index parameter with different type returns nil and reports an ErrorTypeNotString", func() {
 			Expect(parser.String(0)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotString(false))))
+			testErrors.ExpectEqual(base.Error(), structureParser.ErrorTypeNotString(false))
 		})
 
 		It("with index parameter with string type returns value", func() {
@@ -472,7 +472,7 @@ var _ = Describe("Array", func() {
 		It("with index parameter with different type returns nil and reports an ErrorTypeNotArray", func() {
 			Expect(parser.StringArray(0)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotArray(false))))
+			testErrors.ExpectEqual(base.Error(), structureParser.ErrorTypeNotArray(false))
 		})
 
 		It("with index parameter with string array type returns value", func() {
@@ -494,7 +494,7 @@ var _ = Describe("Array", func() {
 			Expect(value).ToNot(BeNil())
 			Expect(*value).To(Equal([]string{"five", ""}))
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotString(6))))
+			testErrors.ExpectEqual(base.Error(), structureParser.ErrorTypeNotString(6))
 		})
 	})
 
@@ -525,13 +525,13 @@ var _ = Describe("Array", func() {
 		It("with index parameter with different type returns nil and reports an ErrorTypeNotTime", func() {
 			Expect(parser.Time(0, time.RFC3339)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotTime(false))))
+			testErrors.ExpectEqual(base.Error(), structureParser.ErrorTypeNotTime(false))
 		})
 
 		It("with index parameter with different type returns nil and reports an ErrorTimeNotParsable", func() {
 			Expect(parser.Time(1, time.RFC3339)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTimeNotParsable("abc", time.RFC3339))))
+			testErrors.ExpectEqual(base.Error(), structureParser.ErrorTimeNotParsable("abc", time.RFC3339))
 		})
 
 		It("with index parameter with string type returns value", func() {
@@ -568,7 +568,7 @@ var _ = Describe("Array", func() {
 		It("with index parameter with different type returns nil and reports an ErrorTypeNotObject", func() {
 			Expect(parser.Object(0)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotObject(false))))
+			testErrors.ExpectEqual(base.Error(), structureParser.ErrorTypeNotObject(false))
 		})
 
 		It("with index parameter with object type returns value", func() {
@@ -606,7 +606,7 @@ var _ = Describe("Array", func() {
 		It("with index parameter with different type returns nil and reports an ErrorTypeNotArray", func() {
 			Expect(parser.Array(0)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotArray(false))))
+			testErrors.ExpectEqual(base.Error(), structureParser.ErrorTypeNotArray(false))
 		})
 
 		It("with index parameter with object array type returns value", func() {
@@ -687,21 +687,21 @@ var _ = Describe("Array", func() {
 		It("without anything parsed reports all unparsed as errors", func() {
 			parser.NotParsed()
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(errors.Append(
+			testErrors.ExpectEqual(base.Error(), errors.Append(
 				structureParser.ErrorNotParsed(),
 				structureParser.ErrorNotParsed(),
 				structureParser.ErrorNotParsed(),
-			))))
+			))
 		})
 
 		It("with some items parsed reports all unparsed as errors", func() {
 			parser.String(1)
 			parser.NotParsed()
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(errors.Append(
+			testErrors.ExpectEqual(base.Error(), errors.Append(
 				structureParser.ErrorNotParsed(),
 				structureParser.ErrorNotParsed(),
-			))))
+			))
 		})
 
 		It("with all items parsed has no errors", func() {
@@ -776,7 +776,7 @@ var _ = Describe("Array", func() {
 			Expect(objectParser).ToNot(BeNil())
 			Expect(objectParser.Exists()).To(BeFalse())
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotObject(false))))
+			testErrors.ExpectEqual(base.Error(), structureParser.ErrorTypeNotObject(false))
 		})
 
 		It("with index parameter with object type returns value", func() {
@@ -821,7 +821,7 @@ var _ = Describe("Array", func() {
 			Expect(arrayParser).ToNot(BeNil())
 			Expect(arrayParser.Exists()).To(BeFalse())
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotArray(false))))
+			testErrors.ExpectEqual(base.Error(), structureParser.ErrorTypeNotArray(false))
 		})
 
 		It("with index parameter with object type returns value", func() {

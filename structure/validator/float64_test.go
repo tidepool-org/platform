@@ -4,7 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/errors"
+	testErrors "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/structure"
 	structureBase "github.com/tidepool-org/platform/structure/base"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -40,7 +40,7 @@ var _ = Describe("Float64", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotExists())))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueNotExists())
 			})
 
 			It("returns self", func() {
@@ -221,7 +221,7 @@ var _ = Describe("Float64", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueExists())))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
 			})
 
 			It("returns self", func() {
@@ -292,7 +292,7 @@ var _ = Describe("Float64", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotGreaterThan(1.2, 3))))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueNotGreaterThan(1.2, 3))
 			})
 
 			It("returns self", func() {
@@ -307,7 +307,7 @@ var _ = Describe("Float64", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotGreaterThanOrEqualTo(1.2, 4.5))))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueNotGreaterThanOrEqualTo(1.2, 4.5))
 			})
 
 			It("returns self", func() {
@@ -390,7 +390,7 @@ var _ = Describe("Float64", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueExists())))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
 			})
 
 			It("returns self", func() {
@@ -405,7 +405,7 @@ var _ = Describe("Float64", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotEqualTo(4.5, 1.2))))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueNotEqualTo(4.5, 1.2))
 			})
 
 			It("returns self", func() {
@@ -420,7 +420,7 @@ var _ = Describe("Float64", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueEqualTo(4.5, 4.5))))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueEqualTo(4.5, 4.5))
 			})
 
 			It("returns self", func() {
@@ -435,7 +435,7 @@ var _ = Describe("Float64", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotLessThan(4.5, 3))))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueNotLessThan(4.5, 3))
 			})
 
 			It("returns self", func() {
@@ -450,7 +450,7 @@ var _ = Describe("Float64", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotLessThanOrEqualTo(4.5, 1.2))))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueNotLessThanOrEqualTo(4.5, 1.2))
 			})
 
 			It("returns self", func() {
@@ -493,7 +493,7 @@ var _ = Describe("Float64", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotInRange(4.5, 0, 3))))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueNotInRange(4.5, 0, 3))
 			})
 
 			It("returns self", func() {
@@ -508,7 +508,7 @@ var _ = Describe("Float64", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueFloat64NotOneOf(4.5, []float64{1.2, 7.8}))))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueFloat64NotOneOf(4.5, []float64{1.2, 7.8}))
 			})
 
 			It("returns self", func() {
@@ -523,7 +523,7 @@ var _ = Describe("Float64", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueFloat64OneOf(4.5, []float64{7.8, 4.5}))))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueFloat64OneOf(4.5, []float64{7.8, 4.5}))
 			})
 
 			It("returns self", func() {
@@ -538,7 +538,7 @@ var _ = Describe("Float64", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueFloat64NotOneOf(4.5, []float64{}))))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueFloat64NotOneOf(4.5, []float64{}))
 			})
 
 			It("returns self", func() {
