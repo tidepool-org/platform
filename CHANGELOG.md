@@ -1,5 +1,6 @@
 ## HEAD
 
+* Log debug mongo connection configuration
 * Add structure origin
 * New structure validator validations
 * Refactor error expectations using new test helpers

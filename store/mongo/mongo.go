@@ -58,7 +58,7 @@ func New(cfg *Config, lgr log.Logger) (*Store, error) {
 	}
 	dialInfo.Timeout = cfg.Timeout
 
-	lgr.Debug("Dialing Mongo database")
+	lgr.WithField("config", cfg).Debug("Dialing Mongo database")
 
 	session, err := mgo.DialWithInfo(&dialInfo)
 	if err != nil {
