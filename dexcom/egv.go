@@ -104,6 +104,6 @@ func (e *EGV) Validate(validator structure.Validator) {
 	}
 	validator.String("status", e.Status).OneOf(StatusHigh, StatusLow, StatusOK, StatusOutOfCalibration, StatusSensorNoise)
 	validator.String("trend", e.Trend).OneOf(TrendDoubleUp, TrendSingleUp, TrendFortyFiveUp, TrendFlat, TrendFortyFiveDown, TrendSingleDown, TrendDoubleDown, TrendNone, TrendNotComputable, TrendRateOutOfRange)
-	validator.String("transmitterId", e.TransmitterID).Matches(TransmitterIDExpression)
+	validator.String("transmitterId", e.TransmitterID).Matches(transmitterIDExpression)
 	validator.Int("transmitterTicks", e.TransmitterTicks).GreaterThanOrEqualTo(0)
 }

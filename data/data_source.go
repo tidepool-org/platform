@@ -30,7 +30,13 @@ const (
 	DataSourceStateError        = "error"
 )
 
-var DataSourceStates = []string{DataSourceStateConnected, DataSourceStateDisconnected, DataSourceStateError}
+func DataSourceStates() []string {
+	return []string{
+		DataSourceStateConnected,
+		DataSourceStateDisconnected,
+		DataSourceStateError,
+	}
+}
 
 type DataSourceFilter struct {
 	ProviderType      *string `json:"providerType,omitempty" bson:"providerType,omitempty"`
@@ -51,10 +57,10 @@ func (d *DataSourceFilter) Parse(parser structure.ObjectParser) {
 }
 
 func (d *DataSourceFilter) Validate(validator structure.Validator) {
-	validator.String("providerType", d.ProviderType).OneOf(auth.ProviderTypes...)
+	validator.String("providerType", d.ProviderType).OneOf(auth.ProviderTypes()...)
 	validator.String("providerName", d.ProviderName).NotEmpty()
-	validator.String("providerSessionId", d.ProviderSessionID).Matches(id.Expression)
-	validator.String("state", d.State).OneOf(DataSourceStates...)
+	validator.String("providerSessionId", d.ProviderSessionID).Using(id.Validate)
+	validator.String("state", d.State).OneOf(DataSourceStates()...)
 }
 
 func (d *DataSourceFilter) Mutate(req *http.Request) error {
@@ -101,10 +107,10 @@ func (d *DataSourceCreate) Parse(parser structure.ObjectParser) {
 }
 
 func (d *DataSourceCreate) Validate(validator structure.Validator) {
-	validator.String("providerType", &d.ProviderType).OneOf(auth.ProviderTypes...)
+	validator.String("providerType", &d.ProviderType).OneOf(auth.ProviderTypes()...)
 	validator.String("providerName", &d.ProviderName).NotEmpty()
-	validator.String("providerSessionId", &d.ProviderSessionID).Matches(id.Expression)
-	validator.String("state", &d.State).OneOf(DataSourceStates...)
+	validator.String("providerSessionId", &d.ProviderSessionID).Using(id.Validate)
+	validator.String("state", &d.State).OneOf(DataSourceStates()...)
 }
 
 type DataSourceUpdate struct {
@@ -137,7 +143,7 @@ func (d *DataSourceUpdate) Parse(parser structure.ObjectParser) {
 }
 
 func (d *DataSourceUpdate) Validate(validator structure.Validator) {
-	validator.String("state", d.State).OneOf(DataSourceStates...)
+	validator.String("state", d.State).OneOf(DataSourceStates()...)
 	if d.Error != nil {
 		d.Error.Validate(validator.WithReference("error"))
 	}
@@ -237,12 +243,12 @@ func (d *DataSource) Parse(parser structure.ObjectParser) {
 }
 
 func (d *DataSource) Validate(validator structure.Validator) {
-	validator.String("id", &d.ID).Matches(id.Expression)
+	validator.String("id", &d.ID).Using(id.Validate)
 	validator.String("userId", &d.UserID).NotEmpty() // TODO: Further validation
-	validator.String("providerType", &d.ProviderType).OneOf(auth.ProviderTypes...)
+	validator.String("providerType", &d.ProviderType).OneOf(auth.ProviderTypes()...)
 	validator.String("providerName", &d.ProviderName).NotEmpty()
-	validator.String("providerSessionId", d.ProviderSessionID).Matches(id.Expression)
-	validator.String("state", &d.State).OneOf(DataSourceStates...)
+	validator.String("providerSessionId", d.ProviderSessionID).Using(id.Validate)
+	validator.String("state", &d.State).OneOf(DataSourceStates()...)
 	if d.Error != nil {
 		d.Error.Validate(validator.WithReference("error"))
 	}

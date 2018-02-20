@@ -11,7 +11,7 @@ import (
 	"github.com/tidepool-org/platform/tools/tapi/api"
 )
 
-var EnvironmentEndpointMap = map[string]string{
+var environmentEndpointMap = map[string]string{
 	"prd":   "https://api.tidepool.org",
 	"int":   "https://int-api.tidepool.org",
 	"stg":   "https://stg-api.tidepool.org",
@@ -52,7 +52,7 @@ func initializeAPI(c *cli.Context) (*api.API, error) {
 		}
 
 		var ok bool
-		if endpoint, ok = EnvironmentEndpointMap[strings.ToLower(environment)]; !ok {
+		if endpoint, ok = environmentEndpointMap[strings.ToLower(environment)]; !ok {
 			return nil, fmt.Errorf("Unknown environment: %s", environment)
 		}
 	}

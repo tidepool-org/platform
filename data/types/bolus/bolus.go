@@ -4,6 +4,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/structure"
 )
 
 type Bolus struct {
@@ -41,22 +42,14 @@ func (b *Bolus) Parse(parser data.ObjectParser) error {
 	return b.Base.Parse(parser)
 }
 
-func (b *Bolus) Validate(validator data.Validator) error {
-	validator.SetMeta(b.Meta())
+func (b *Bolus) Validate(validator structure.Validator) {
+	b.Base.Validate(validator)
 
-	if err := b.Base.Validate(validator); err != nil {
-		return err
+	if b.Type != "" {
+		validator.String("type", &b.Type).EqualTo(Type())
 	}
 
-	validator.ValidateString("type", &b.Type).EqualTo(Type())
-
-	validator.ValidateString("subType", &b.SubType).NotEmpty()
-
-	return nil
-}
-
-func (b *Bolus) Normalize(normalizer data.Normalizer) {
-	b.Base.Normalize(normalizer)
+	validator.String("subType", &b.SubType).Exists().NotEmpty()
 }
 
 func (b *Bolus) IdentityFields() ([]string, error) {

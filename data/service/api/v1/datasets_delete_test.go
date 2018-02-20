@@ -30,7 +30,7 @@ package v1_test
 // 			targetUserID = id.New()
 // 			targetUpload = upload.Init()
 // 			targetUpload.UserID = targetUserID
-// 			targetUpload.ByUser = id.New()
+// 			targetUpload.ByUser = pointer.String(id.New())
 // 			context = NewTestContext()
 // 			context.Context.RequestImpl.PathParams["dataset_id"] = targetUpload.UploadID
 // 			context.DataSessionImpl.GetDatasetByIDOutputs = []testDataStoreDEPRECATED.GetDatasetByIDOutput{{Dataset: targetUpload, Error: nil}}
@@ -66,7 +66,7 @@ package v1_test
 // 		})
 
 // 		It("succeeds if authenticated as uploader and was the uploading user", func() {
-// 			targetUpload.ByUser = authUserID
+// 			targetUpload.ByUser = pointer.String(authUserID)
 // 			context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{userClient.Permissions{"upload": userClient.Permission{}}, nil}}
 // 			v1.DatasetsDelete(context)
 // 			Expect(context.DataSessionImpl.GetDatasetByIDInputs).To(Equal([]string{targetUpload.UploadID}))

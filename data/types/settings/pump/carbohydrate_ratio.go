@@ -1,10 +1,33 @@
 package pump
 
-import "github.com/tidepool-org/platform/data"
+import (
+	"strconv"
+
+	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
+)
+
+const (
+	CarbohydrateRatioAmountMaximum = 250.0
+	CarbohydrateRatioAmountMinimum = 0.0
+	CarbohydrateRatioStartMaximum  = 86400000
+	CarbohydrateRatioStartMinimum  = 0
+)
 
 type CarbohydrateRatio struct {
 	Amount *float64 `json:"amount,omitempty" bson:"amount,omitempty"`
 	Start  *int     `json:"start,omitempty" bson:"start,omitempty"`
+}
+
+func ParseCarbohydrateRatio(parser data.ObjectParser) *CarbohydrateRatio {
+	if parser.Object() == nil {
+		return nil
+	}
+	carbohydrateRatio := NewCarbohydrateRatio()
+	carbohydrateRatio.Parse(parser)
+	parser.ProcessNotParsed()
+	return carbohydrateRatio
 }
 
 func NewCarbohydrateRatio() *CarbohydrateRatio {
@@ -16,31 +39,52 @@ func (c *CarbohydrateRatio) Parse(parser data.ObjectParser) {
 	c.Start = parser.ParseInteger("start")
 }
 
-func (c *CarbohydrateRatio) Validate(validator data.Validator) {
-	validator.ValidateFloat("amount", c.Amount).Exists().InRange(0.0, 250.0)
-	validator.ValidateInteger("start", c.Start).Exists().InRange(0, 86400000)
+func (c *CarbohydrateRatio) Validate(validator structure.Validator) {
+	validator.Float64("amount", c.Amount).Exists().InRange(CarbohydrateRatioAmountMinimum, CarbohydrateRatioAmountMaximum)
+	validator.Int("start", c.Start).Exists().InRange(CarbohydrateRatioStartMinimum, CarbohydrateRatioStartMaximum)
 }
 
 func (c *CarbohydrateRatio) Normalize(normalizer data.Normalizer) {}
 
-func ParseCarbohydrateRatio(parser data.ObjectParser) *CarbohydrateRatio {
-	var carbohydrateRatio *CarbohydrateRatio
-	if parser.Object() != nil {
-		carbohydrateRatio = NewCarbohydrateRatio()
-		carbohydrateRatio.Parse(parser)
-		parser.ProcessNotParsed()
+// TODO: Can/should we validate that each Start in the array is greater than the previous Start?
+
+type CarbohydrateRatioArray []*CarbohydrateRatio
+
+func ParseCarbohydrateRatioArray(parser data.ArrayParser) *CarbohydrateRatioArray {
+	if parser.Array() == nil {
+		return nil
 	}
-	return carbohydrateRatio
+	carbohydrateRatioArray := NewCarbohydrateRatioArray()
+	carbohydrateRatioArray.Parse(parser)
+	parser.ProcessNotParsed()
+	return carbohydrateRatioArray
 }
 
-func ParseCarbohydrateRatioArray(parser data.ArrayParser) *[]*CarbohydrateRatio {
-	var carbohydrateRatioArray *[]*CarbohydrateRatio
-	if parser.Array() != nil {
-		carbohydrateRatioArray = &[]*CarbohydrateRatio{}
-		for index := range *parser.Array() {
-			*carbohydrateRatioArray = append(*carbohydrateRatioArray, ParseCarbohydrateRatio(parser.NewChildObjectParser(index)))
-		}
-		parser.ProcessNotParsed()
+func NewCarbohydrateRatioArray() *CarbohydrateRatioArray {
+	return &CarbohydrateRatioArray{}
+}
+
+func (c *CarbohydrateRatioArray) Parse(parser data.ArrayParser) {
+	for index := range *parser.Array() {
+		*c = append(*c, ParseCarbohydrateRatio(parser.NewChildObjectParser(index)))
 	}
-	return carbohydrateRatioArray
+}
+
+func (c *CarbohydrateRatioArray) Validate(validator structure.Validator) {
+	for index, carbohydrateRatio := range *c {
+		carbohydrateRatioValidator := validator.WithReference(strconv.Itoa(index))
+		if carbohydrateRatio != nil {
+			carbohydrateRatio.Validate(carbohydrateRatioValidator)
+		} else {
+			carbohydrateRatioValidator.ReportError(structureValidator.ErrorValueNotExists())
+		}
+	}
+}
+
+func (c *CarbohydrateRatioArray) Normalize(normalizer data.Normalizer) {
+	for index, carbohydrateRatio := range *c {
+		if carbohydrateRatio != nil {
+			carbohydrateRatio.Normalize(normalizer.WithReference(strconv.Itoa(index)))
+		}
+	}
 }

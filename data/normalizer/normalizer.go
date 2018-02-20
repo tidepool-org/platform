@@ -18,6 +18,30 @@ func New() *Normalizer {
 	}
 }
 
+func (n *Normalizer) Origin() structure.Origin {
+	return n.normalizer.Origin()
+}
+
+func (n *Normalizer) HasSource() bool {
+	return n.normalizer.HasSource()
+}
+
+func (n *Normalizer) Source() structure.Source {
+	return n.normalizer.Source()
+}
+
+func (n *Normalizer) HasMeta() bool {
+	return n.normalizer.HasMeta()
+}
+
+func (n *Normalizer) Meta() interface{} {
+	return n.normalizer.Meta()
+}
+
+func (n *Normalizer) HasError() bool {
+	return n.normalizer.HasError()
+}
+
 func (n *Normalizer) Error() error {
 	return n.normalizer.Error()
 }
@@ -42,6 +66,13 @@ func (n *Normalizer) AddData(data ...data.Datum) {
 		}
 	}
 }
+func (n *Normalizer) WithOrigin(origin structure.Origin) data.Normalizer {
+	return &Normalizer{
+		normalizer: n.normalizer.WithOrigin(origin),
+		data:       n.data,
+	}
+}
+
 func (n *Normalizer) WithSource(source structure.Source) data.Normalizer {
 	return &Normalizer{
 		normalizer: n.normalizer.WithSource(source),

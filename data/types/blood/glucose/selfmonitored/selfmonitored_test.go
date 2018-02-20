@@ -5,19 +5,24 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"math"
-
+	testDataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose/test"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/factory"
+	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
-	"github.com/tidepool-org/platform/data/validator"
+	testDataTypesBloodGlucose "github.com/tidepool-org/platform/data/types/blood/glucose/test"
+	testDataTypes "github.com/tidepool-org/platform/data/types/test"
+	testErrors "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/test"
 )
 
 func NewMeta() interface{} {
@@ -26,25 +31,55 @@ func NewMeta() interface{} {
 	}
 }
 
+func NewSelfMonitored(units *string) *selfmonitored.SelfMonitored {
+	datum := selfmonitored.New()
+	datum.Glucose = *testDataTypesBloodGlucose.NewGlucose(units)
+	datum.Type = "smbg"
+	datum.SubType = pointer.String(test.RandomStringFromStringArray(selfmonitored.SubTypes()))
+	return datum
+}
+
+func CloneSelfMonitored(datum *selfmonitored.SelfMonitored) *selfmonitored.SelfMonitored {
+	if datum == nil {
+		return nil
+	}
+	clone := selfmonitored.New()
+	clone.Glucose = *testDataTypesBloodGlucose.CloneGlucose(&datum.Glucose)
+	clone.SubType = test.CloneString(datum.SubType)
+	return clone
+}
+
 func NewTestSelfMonitored(sourceTime interface{}, sourceUnits interface{}, sourceValue interface{}, sourceSubType interface{}) *selfmonitored.SelfMonitored {
-	testSelfMonitored := selfmonitored.Init()
-	testSelfMonitored.DeviceID = pointer.String(id.New())
-	if value, ok := sourceTime.(string); ok {
-		testSelfMonitored.Time = pointer.String(value)
+	datum := selfmonitored.Init()
+	datum.DeviceID = pointer.String(id.New())
+	if val, ok := sourceTime.(string); ok {
+		datum.Time = &val
 	}
-	if value, ok := sourceUnits.(string); ok {
-		testSelfMonitored.Units = pointer.String(value)
+	if val, ok := sourceUnits.(string); ok {
+		datum.Units = &val
 	}
-	if value, ok := sourceValue.(float64); ok {
-		testSelfMonitored.Value = pointer.Float64(value)
+	if val, ok := sourceValue.(float64); ok {
+		datum.Value = &val
 	}
-	if value, ok := sourceSubType.(string); ok {
-		testSelfMonitored.SubType = pointer.String(value)
+	if val, ok := sourceSubType.(string); ok {
+		datum.SubType = &val
 	}
-	return testSelfMonitored
+	return datum
 }
 
 var _ = Describe("SelfMonitored", func() {
+	It("SubTypeLinked is expected", func() {
+		Expect(selfmonitored.SubTypeLinked).To(Equal("linked"))
+	})
+
+	It("SubTypeManual is expected", func() {
+		Expect(selfmonitored.SubTypeManual).To(Equal("manual"))
+	})
+
+	It("SubTypes returns expected", func() {
+		Expect(selfmonitored.SubTypes()).To(Equal([]string{"linked", "manual"}))
+	})
+
 	Context("Type", func() {
 		It("returns the expected type", func() {
 			Expect(selfmonitored.Type()).To(Equal("smbg"))
@@ -58,43 +93,51 @@ var _ = Describe("SelfMonitored", func() {
 	})
 
 	Context("New", func() {
-		It("returns the expected self monitored", func() {
+		It("returns the expected datum", func() {
 			Expect(selfmonitored.New()).To(Equal(&selfmonitored.SelfMonitored{}))
 		})
 	})
 
 	Context("Init", func() {
-		It("returns the expected self monitored", func() {
-			testSelfMonitored := selfmonitored.Init()
-			Expect(testSelfMonitored).ToNot(BeNil())
-			Expect(testSelfMonitored.ID).ToNot(BeEmpty())
-			Expect(testSelfMonitored.Type).To(Equal("smbg"))
+		It("returns the expected datum", func() {
+			datum := selfmonitored.Init()
+			Expect(datum).ToNot(BeNil())
+			Expect(datum.Type).To(Equal("smbg"))
+			Expect(datum.Units).To(BeNil())
+			Expect(datum.Value).To(BeNil())
+			Expect(datum.SubType).To(BeNil())
 		})
 	})
 
-	Context("with new self monitored", func() {
-		var testSelfMonitored *selfmonitored.SelfMonitored
+	Context("with new datum", func() {
+		var datum *selfmonitored.SelfMonitored
 
 		BeforeEach(func() {
-			testSelfMonitored = selfmonitored.New()
-			Expect(testSelfMonitored).ToNot(BeNil())
+			datum = NewSelfMonitored(pointer.String("mmol/L"))
 		})
 
 		Context("Init", func() {
-			It("initializes the self monitored", func() {
-				testSelfMonitored.Init()
-				Expect(testSelfMonitored.ID).ToNot(BeEmpty())
-				Expect(testSelfMonitored.Type).To(Equal("smbg"))
+			It("initializes the datum", func() {
+				datum.Init()
+				Expect(datum.Type).To(Equal("smbg"))
+				Expect(datum.Units).To(BeNil())
+				Expect(datum.Value).To(BeNil())
+				Expect(datum.SubType).To(BeNil())
 			})
 		})
+	})
 
-		Context("with initialized", func() {
+	Context("SelfMonitored", func() {
+		Context("Parse", func() {
+			var datum *selfmonitored.SelfMonitored
+
 			BeforeEach(func() {
-				testSelfMonitored.Init()
+				datum = selfmonitored.Init()
+				Expect(datum).ToNot(BeNil())
 			})
 
-			DescribeTable("Parse",
-				func(sourceObject *map[string]interface{}, expectedSelfMonitored *selfmonitored.SelfMonitored, expectedErrors []*service.Error) {
+			DescribeTable("parses the datum",
+				func(sourceObject *map[string]interface{}, expectedDatum *selfmonitored.SelfMonitored, expectedErrors []*service.Error) {
 					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
@@ -104,11 +147,11 @@ var _ = Describe("SelfMonitored", func() {
 					testParser, err := parser.NewStandardObject(testContext, testFactory, sourceObject, parser.AppendErrorNotParsed)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testParser).ToNot(BeNil())
-					Expect(testSelfMonitored.Parse(testParser)).To(Succeed())
-					Expect(testSelfMonitored.Time).To(Equal(expectedSelfMonitored.Time))
-					Expect(testSelfMonitored.Units).To(Equal(expectedSelfMonitored.Units))
-					Expect(testSelfMonitored.Value).To(Equal(expectedSelfMonitored.Value))
-					Expect(testSelfMonitored.SubType).To(Equal(expectedSelfMonitored.SubType))
+					Expect(datum.Parse(testParser)).To(Succeed())
+					Expect(datum.Time).To(Equal(expectedDatum.Time))
+					Expect(datum.Units).To(Equal(expectedDatum.Units))
+					Expect(datum.Value).To(Equal(expectedDatum.Value))
+					Expect(datum.SubType).To(Equal(expectedDatum.SubType))
 					Expect(testContext.Errors()).To(ConsistOf(expectedErrors))
 				},
 				Entry("parses object that is nil",
@@ -173,146 +216,403 @@ var _ = Describe("SelfMonitored", func() {
 						testData.ComposeError(service.ErrorTypeNotString(0), "/subType", NewMeta()),
 					}),
 			)
+		})
 
-			DescribeTable("Validate",
-				func(sourceSelfMonitored *selfmonitored.SelfMonitored, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(null.NewLogger())
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testContext).ToNot(BeNil())
-					testValidator, err := validator.NewStandard(testContext)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testValidator).ToNot(BeNil())
-					Expect(sourceSelfMonitored.Validate(testValidator)).To(Succeed())
-					Expect(testContext.Errors()).To(ConsistOf(expectedErrors))
+		Context("Validate", func() {
+			DescribeTable("validates the datum",
+				func(units *string, mutator func(datum *selfmonitored.SelfMonitored, units *string), expectedErrors ...error) {
+					datum := NewSelfMonitored(units)
+					mutator(datum, units)
+					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
-				Entry("all valid",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mmol/L", 10.0, "linked"),
-					[]*service.Error{}),
-				Entry("missing time",
-					NewTestSelfMonitored(nil, "mmol/L", 10.0, "linked"),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta()),
-					}),
-				Entry("missing units",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", nil, 10.0, "linked"),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueNotExists(), "/units", NewMeta()),
-					}),
-				Entry("unknown units",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "unknown", 10.0, "linked"),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
-					}),
-				Entry("mmol/L units",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mmol/L", 10.0, "linked"),
-					[]*service.Error{}),
-				Entry("mmol/l units",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mmol/l", 10.0, "linked"),
-					[]*service.Error{}),
-				Entry("mg/dL units",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mg/dL", 180.0, "linked"),
-					[]*service.Error{}),
-				Entry("mg/dl units",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mg/dl", 180.0, "linked"),
-					[]*service.Error{}),
-				Entry("missing value",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mmol/L", nil, "linked"),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueNotExists(), "/value", NewMeta()),
-					}),
-				Entry("unknown units; value in range (lower)",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "unknown", -math.MaxFloat64, "linked"),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
-					}),
-				Entry("unknown units; value in range (upper)",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "unknown", math.MaxFloat64, "linked"),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
-					}),
-				Entry("mmol/L units; value out of range (lower)",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mmol/L", -0.1, "linked"),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 55.0), "/value", NewMeta()),
-					}),
-				Entry("mmol/L units; value in range (lower)",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mmol/L", 0.0, "linked"),
-					[]*service.Error{}),
-				Entry("mmol/L units; value in range (upper)",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mmol/L", 55.0, "linked"),
-					[]*service.Error{}),
-				Entry("mmol/L units; value out of range (upper)",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mmol/L", 55.1, "linked"),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueNotInRange(55.1, 0.0, 55.0), "/value", NewMeta()),
-					}),
-				Entry("mmol/l units; value out of range (lower)",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mmol/l", -0.1, "linked"),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 55.0), "/value", NewMeta()),
-					}),
-				Entry("mmol/l units; value in range (lower)",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mmol/l", 0.0, "linked"),
-					[]*service.Error{}),
-				Entry("mmol/l units; value in range (upper)",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mmol/l", 55.0, "linked"),
-					[]*service.Error{}),
-				Entry("mmol/l units; value out of range (upper)",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mmol/l", 55.1, "linked"),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueNotInRange(55.1, 0.0, 55.0), "/value", NewMeta()),
-					}),
-				Entry("mg/dL units; value out of range (lower)",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mg/dL", -0.1, "linked"),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/value", NewMeta()),
-					}),
-				Entry("mg/dL units; value in range (lower)",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mg/dL", 0.0, "linked"),
-					[]*service.Error{}),
-				Entry("mg/dL units; value in range (upper)",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mg/dL", 1000.0, "linked"),
-					[]*service.Error{}),
-				Entry("mg/dL units; value out of range (upper)",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mg/dL", 1000.1, "linked"),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/value", NewMeta()),
-					}),
-				Entry("mg/dl units; value out of range (lower)",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mg/dl", -0.1, "linked"),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/value", NewMeta()),
-					}),
-				Entry("mg/dl units; value in range (lower)",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mg/dl", 0.0, "linked"),
-					[]*service.Error{}),
-				Entry("mg/dl units; value in range (upper)",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mg/dl", 1000.0, "linked"),
-					[]*service.Error{}),
-				Entry("mg/dl units; value out of range (upper)",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mg/dl", 1000.1, "linked"),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/value", NewMeta()),
-					}),
-				Entry("unknown sub type",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mmol/L", 10.0, "unknown"),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"linked", "manual"}), "/subType", NewMeta()),
-					}),
-				Entry("linked sub type",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mmol/L", 10.0, "linked"),
-					[]*service.Error{}),
-				Entry("manual sub type",
-					NewTestSelfMonitored("2016-09-06T13:45:58-07:00", "mmol/L", 10.0, "manual"),
-					[]*service.Error{}),
-				Entry("multiple",
-					NewTestSelfMonitored(nil, "unknown", nil, "unknown"),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta()),
-						testData.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
-						testData.ComposeError(service.ErrorValueNotExists(), "/value", NewMeta()),
-						testData.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"linked", "manual"}), "/subType", NewMeta()),
-					}),
+				Entry("succeeds",
+					pointer.String("mmol/L"),
+					func(datum *selfmonitored.SelfMonitored, units *string) {},
+				),
+				Entry("type missing",
+					pointer.String("mmol/L"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Type = "" },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &types.Meta{}),
+				),
+				Entry("type invalid",
+					pointer.String("mmol/L"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Type = "invalidType" },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "smbg"), "/type", &types.Meta{Type: "invalidType"}),
+				),
+				Entry("type smbg",
+					pointer.String("mmol/L"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Type = "smbg" },
+				),
+				Entry("units missing; value missing",
+					nil,
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = nil },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", NewMeta()),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/value", NewMeta()),
+				),
+				Entry("units missing; value out of range (lower)",
+					nil,
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = pointer.Float64(-0.1) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", NewMeta()),
+				),
+				Entry("units missing; value in range (lower)",
+					nil,
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = pointer.Float64(0.0) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", NewMeta()),
+				),
+				Entry("units missing; value in range (upper)",
+					nil,
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = pointer.Float64(55.0) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", NewMeta()),
+				),
+				Entry("units missing; value out of range (upper)",
+					nil,
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = pointer.Float64(1000.1) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", NewMeta()),
+				),
+				Entry("units invalid; value missing",
+					pointer.String("invalid"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = nil },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/value", NewMeta()),
+				),
+				Entry("units invalid; value out of range (lower)",
+					pointer.String("invalid"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = pointer.Float64(-0.1) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
+				),
+				Entry("units invalid; value in range (lower)",
+					pointer.String("invalid"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = pointer.Float64(0.0) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
+				),
+				Entry("units invalid; value in range (upper)",
+					pointer.String("invalid"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = pointer.Float64(55.0) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
+				),
+				Entry("units invalid; value out of range (upper)",
+					pointer.String("invalid"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = pointer.Float64(1000.1) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
+				),
+				Entry("units mmol/L; value missing",
+					pointer.String("mmol/L"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = nil },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/value", NewMeta()),
+				),
+				Entry("units mmol/L; value out of range (lower)",
+					pointer.String("mmol/L"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = pointer.Float64(-0.1) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 55.0), "/value", NewMeta()),
+				),
+				Entry("units mmol/L; value in range (lower)",
+					pointer.String("mmol/L"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = pointer.Float64(0.0) },
+				),
+				Entry("units mmol/L; value in range (upper)",
+					pointer.String("mmol/L"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = pointer.Float64(55.0) },
+				),
+				Entry("units mmol/L; value out of range (upper)",
+					pointer.String("mmol/L"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = pointer.Float64(55.1) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(55.1, 0.0, 55.0), "/value", NewMeta()),
+				),
+				Entry("units mmol/l; value missing",
+					pointer.String("mmol/l"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = nil },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/value", NewMeta()),
+				),
+				Entry("units mmol/l; value out of range (lower)",
+					pointer.String("mmol/l"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = pointer.Float64(-0.1) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 55.0), "/value", NewMeta()),
+				),
+				Entry("units mmol/l; value in range (lower)",
+					pointer.String("mmol/l"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = pointer.Float64(0.0) },
+				),
+				Entry("units mmol/l; value in range (upper)",
+					pointer.String("mmol/l"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = pointer.Float64(55.0) },
+				),
+				Entry("units mmol/l; value out of range (upper)",
+					pointer.String("mmol/l"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = pointer.Float64(55.1) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(55.1, 0.0, 55.0), "/value", NewMeta()),
+				),
+				Entry("units mg/dL; value missing",
+					pointer.String("mg/dL"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = nil },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/value", NewMeta()),
+				),
+				Entry("units mg/dL; value out of range (lower)",
+					pointer.String("mg/dL"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = pointer.Float64(-0.1) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/value", NewMeta()),
+				),
+				Entry("units mg/dL; value in range (lower)",
+					pointer.String("mg/dL"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = pointer.Float64(0.0) },
+				),
+				Entry("units mg/dL; value in range (upper)",
+					pointer.String("mg/dL"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = pointer.Float64(1000.0) },
+				),
+				Entry("units mg/dL; value out of range (upper)",
+					pointer.String("mg/dL"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = pointer.Float64(1000.1) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/value", NewMeta()),
+				),
+				Entry("units mg/dl; value missing",
+					pointer.String("mg/dl"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = nil },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/value", NewMeta()),
+				),
+				Entry("units mg/dl; value out of range (lower)",
+					pointer.String("mg/dL"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = pointer.Float64(-0.1) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/value", NewMeta()),
+				),
+				Entry("units mg/dl; value in range (lower)",
+					pointer.String("mg/dL"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = pointer.Float64(0.0) },
+				),
+				Entry("units mg/dl; value in range (upper)",
+					pointer.String("mg/dL"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = pointer.Float64(1000.0) },
+				),
+				Entry("units mg/dl; value out of range (upper)",
+					pointer.String("mg/dL"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = pointer.Float64(1000.1) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/value", NewMeta()),
+				),
+				Entry("sub type missing",
+					pointer.String("mmol/L"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.SubType = nil },
+				),
+				Entry("sub type invalid",
+					pointer.String("mmol/L"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.SubType = pointer.String("invalid") },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"linked", "manual"}), "/subType", NewMeta()),
+				),
+				Entry("sub type linked",
+					pointer.String("mmol/L"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.SubType = pointer.String("linked") },
+				),
+				Entry("sub type manual",
+					pointer.String("mmol/L"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.SubType = pointer.String("manual") },
+				),
+				Entry("multiple errors",
+					nil,
+					func(datum *selfmonitored.SelfMonitored, units *string) {
+						datum.Type = ""
+						datum.Value = nil
+						datum.SubType = pointer.String("invalid")
+					},
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &types.Meta{}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", &types.Meta{}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/value", &types.Meta{}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"linked", "manual"}), "/subType", &types.Meta{}),
+				),
+			)
+		})
+
+		Context("Normalize", func() {
+			DescribeTable("normalizes the datum",
+				func(units *string, mutator func(datum *selfmonitored.SelfMonitored, units *string), expectator func(datum *selfmonitored.SelfMonitored, expectedDatum *selfmonitored.SelfMonitored, units *string)) {
+					for _, origin := range structure.Origins() {
+						datum := NewSelfMonitored(units)
+						mutator(datum, units)
+						expectedDatum := CloneSelfMonitored(datum)
+						normalizer := dataNormalizer.New()
+						Expect(normalizer).ToNot(BeNil())
+						datum.Normalize(normalizer.WithOrigin(origin))
+						Expect(normalizer.Error()).To(BeNil())
+						Expect(normalizer.Data()).To(BeEmpty())
+						if expectator != nil {
+							expectator(datum, expectedDatum, units)
+						}
+						Expect(datum).To(Equal(expectedDatum))
+					}
+				},
+				Entry("does not modify the datum; units missing",
+					nil,
+					func(datum *selfmonitored.SelfMonitored, units *string) {},
+					nil,
+				),
+				Entry("does not modify the datum; units missing; value missing",
+					nil,
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = nil },
+					nil,
+				),
+				Entry("does not modify the datum; units invalid",
+					pointer.String("invalid"),
+					func(datum *selfmonitored.SelfMonitored, units *string) {},
+					nil,
+				),
+				Entry("does not modify the datum; units invalid; value missing",
+					pointer.String("invalid"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = nil },
+					nil,
+				),
+				Entry("does not modify the datum; sub type missing",
+					pointer.String("mmol/L"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.SubType = nil },
+					nil,
+				),
+				Entry("does not modify the datum; sub type invalid",
+					pointer.String("mmol/L"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.SubType = pointer.String("invalid") },
+					nil,
+				),
+				Entry("does not modify the datum; sub type linked",
+					pointer.String("mmol/L"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.SubType = pointer.String("linked") },
+					nil,
+				),
+				Entry("does not modify the datum; sub type manual",
+					pointer.String("mmol/L"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.SubType = pointer.String("manual") },
+					nil,
+				),
+			)
+
+			DescribeTable("normalizes the datum with origin external",
+				func(units *string, mutator func(datum *selfmonitored.SelfMonitored, units *string), expectator func(datum *selfmonitored.SelfMonitored, expectedDatum *selfmonitored.SelfMonitored, units *string)) {
+					datum := NewSelfMonitored(units)
+					mutator(datum, units)
+					expectedDatum := CloneSelfMonitored(datum)
+					normalizer := dataNormalizer.New()
+					Expect(normalizer).ToNot(BeNil())
+					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
+					Expect(normalizer.Error()).To(BeNil())
+					Expect(normalizer.Data()).To(BeEmpty())
+					if expectator != nil {
+						expectator(datum, expectedDatum, units)
+					}
+					Expect(datum).To(Equal(expectedDatum))
+				},
+				Entry("does not modify the datum; units mmol/L",
+					pointer.String("mmol/L"),
+					func(datum *selfmonitored.SelfMonitored, units *string) {},
+					func(datum *selfmonitored.SelfMonitored, expectedDatum *selfmonitored.SelfMonitored, units *string) {
+						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+						testDataBloodGlucose.ExpectNormalizedValue(datum.Value, expectedDatum.Value, units)
+					},
+				),
+				Entry("does not modify the datum; units mmol/L; value missing",
+					pointer.String("mmol/L"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = nil },
+					func(datum *selfmonitored.SelfMonitored, expectedDatum *selfmonitored.SelfMonitored, units *string) {
+						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+					},
+				),
+				Entry("modifies the datum; units mmol/l",
+					pointer.String("mmol/l"),
+					func(datum *selfmonitored.SelfMonitored, units *string) {},
+					func(datum *selfmonitored.SelfMonitored, expectedDatum *selfmonitored.SelfMonitored, units *string) {
+						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+						testDataBloodGlucose.ExpectNormalizedValue(datum.Value, expectedDatum.Value, units)
+					},
+				),
+				Entry("modifies the datum; units mmol/l; value missing",
+					pointer.String("mmol/l"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = nil },
+					func(datum *selfmonitored.SelfMonitored, expectedDatum *selfmonitored.SelfMonitored, units *string) {
+						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+					},
+				),
+				Entry("modifies the datum; units mg/dL",
+					pointer.String("mg/dL"),
+					func(datum *selfmonitored.SelfMonitored, units *string) {},
+					func(datum *selfmonitored.SelfMonitored, expectedDatum *selfmonitored.SelfMonitored, units *string) {
+						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+						testDataBloodGlucose.ExpectNormalizedValue(datum.Value, expectedDatum.Value, units)
+					},
+				),
+				Entry("modifies the datum; units mg/dL; value missing",
+					pointer.String("mg/dL"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = nil },
+					func(datum *selfmonitored.SelfMonitored, expectedDatum *selfmonitored.SelfMonitored, units *string) {
+						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+					},
+				),
+				Entry("modifies the datum; units mg/dl",
+					pointer.String("mg/dl"),
+					func(datum *selfmonitored.SelfMonitored, units *string) {},
+					func(datum *selfmonitored.SelfMonitored, expectedDatum *selfmonitored.SelfMonitored, units *string) {
+						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+						testDataBloodGlucose.ExpectNormalizedValue(datum.Value, expectedDatum.Value, units)
+					},
+				),
+				Entry("modifies the datum; units mg/dl; value missing",
+					pointer.String("mg/dl"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = nil },
+					func(datum *selfmonitored.SelfMonitored, expectedDatum *selfmonitored.SelfMonitored, units *string) {
+						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+					},
+				),
+			)
+
+			DescribeTable("normalizes the datum with origin internal/store",
+				func(units *string, mutator func(datum *selfmonitored.SelfMonitored, units *string), expectator func(datum *selfmonitored.SelfMonitored, expectedDatum *selfmonitored.SelfMonitored, units *string)) {
+					for _, origin := range []structure.Origin{structure.OriginInternal, structure.OriginStore} {
+						datum := NewSelfMonitored(units)
+						mutator(datum, units)
+						expectedDatum := CloneSelfMonitored(datum)
+						normalizer := dataNormalizer.New()
+						Expect(normalizer).ToNot(BeNil())
+						datum.Normalize(normalizer.WithOrigin(origin))
+						Expect(normalizer.Error()).To(BeNil())
+						Expect(normalizer.Data()).To(BeEmpty())
+						if expectator != nil {
+							expectator(datum, expectedDatum, units)
+						}
+						Expect(datum).To(Equal(expectedDatum))
+					}
+				},
+				Entry("does not modify the datum; units mmol/L",
+					pointer.String("mmol/L"),
+					func(datum *selfmonitored.SelfMonitored, units *string) {},
+					nil,
+				),
+				Entry("does not modify the datum; units mmol/L; value missing",
+					pointer.String("mmol/L"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = nil },
+					nil,
+				),
+				Entry("does not modify the datum; units mmol/l",
+					pointer.String("mmol/l"),
+					func(datum *selfmonitored.SelfMonitored, units *string) {},
+					nil,
+				),
+				Entry("does not modify the datum; units mmol/l; value missing",
+					pointer.String("mmol/l"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = nil },
+					nil,
+				),
+				Entry("does not modify the datum; units mg/dL",
+					pointer.String("mg/dL"),
+					func(datum *selfmonitored.SelfMonitored, units *string) {},
+					nil,
+				),
+				Entry("does not modify the datum; units mg/dL; value missing",
+					pointer.String("mg/dL"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = nil },
+					nil,
+				),
+				Entry("does not modify the datum; units mg/dl",
+					pointer.String("mg/dl"),
+					func(datum *selfmonitored.SelfMonitored, units *string) {},
+					nil,
+				),
+				Entry("does not modify the datum; units mg/dl; value missing",
+					pointer.String("mg/dl"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = nil },
+					nil,
+				),
 			)
 		})
 	})

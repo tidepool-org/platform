@@ -4,21 +4,48 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/types/device/status"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
+
+const (
+	AlarmTypeAutoOff    = "auto_off"
+	AlarmTypeLowInsulin = "low_insulin"
+	AlarmTypeLowPower   = "low_power"
+	AlarmTypeNoDelivery = "no_delivery"
+	AlarmTypeNoInsulin  = "no_insulin"
+	AlarmTypeNoPower    = "no_power"
+	AlarmTypeOcclusion  = "occlusion"
+	AlarmTypeOther      = "other"
+	AlarmTypeOverLimit  = "over_limit"
+)
+
+func AlarmTypes() []string {
+	return []string{
+		AlarmTypeAutoOff,
+		AlarmTypeLowInsulin,
+		AlarmTypeLowPower,
+		AlarmTypeNoDelivery,
+		AlarmTypeNoInsulin,
+		AlarmTypeNoPower,
+		AlarmTypeOcclusion,
+		AlarmTypeOther,
+		AlarmTypeOverLimit,
+	}
+}
 
 type Alarm struct {
 	device.Device `bson:",inline"`
 
-	AlarmType *string `json:"alarmType,omitempty" bson:"alarmType,omitempty"`
-	StatusID  *string `json:"status,omitempty" bson:"status,omitempty"`
-
-	// Embedded status
-	status *data.Datum
+	AlarmType *string        `json:"alarmType,omitempty" bson:"alarmType,omitempty"`
+	Status    *status.Status `json:"-" bson:"-"`
+	StatusID  *string        `json:"status,omitempty" bson:"status,omitempty"`
 }
 
 func SubType() string {
-	return "alarm"
+	return "alarm" // TODO: Rename Type to "device/alarm"; remove SubType
 }
 
 func NewDatum() data.Datum {
@@ -40,9 +67,8 @@ func (a *Alarm) Init() {
 	a.SubType = SubType()
 
 	a.AlarmType = nil
+	a.Status = nil
 	a.StatusID = nil
-
-	a.status = nil
 }
 
 func (a *Alarm) Parse(parser data.ObjectParser) error {
@@ -63,53 +89,56 @@ func (a *Alarm) Parse(parser data.ObjectParser) error {
 			statusParser.AppendError("subType", service.ErrorValueNotExists())
 		} else if *statusSubType != status.SubType() {
 			statusParser.AppendError("subType", service.ErrorValueStringNotOneOf(*statusSubType, []string{status.SubType()}))
-		} else {
-			a.status = parser.ParseDatum("status")
+		} else if datum := parser.ParseDatum("status"); datum != nil {
+			a.Status = (*datum).(*status.Status)
 		}
 	}
 
 	return nil
 }
 
-func (a *Alarm) Validate(validator data.Validator) error {
-	if err := a.Device.Validate(validator); err != nil {
-		return err
+func (a *Alarm) Validate(validator structure.Validator) {
+	if !validator.HasMeta() {
+		validator = validator.WithMeta(a.Meta())
 	}
 
-	validator.ValidateString("subType", &a.SubType).EqualTo(SubType())
+	a.Device.Validate(validator)
 
-	validator.ValidateString("alarmType", a.AlarmType).Exists().OneOf(
-		[]string{
-			"low_insulin",
-			"no_insulin",
-			"low_power",
-			"no_power",
-			"occlusion",
-			"no_delivery",
-			"auto_off",
-			"over_limit",
-			"other",
-		},
-	)
-
-	if a.status != nil {
-		(*a.status).Validate(validator.NewChildValidator("status"))
+	if a.SubType != "" {
+		validator.String("subType", &a.SubType).EqualTo(SubType())
 	}
 
-	return nil
+	validator.String("alarmType", a.AlarmType).Exists().OneOf(AlarmTypes()...)
+
+	if validator.Origin() == structure.OriginExternal {
+		if a.Status != nil {
+			a.Status.Validate(validator.WithReference("status"))
+		}
+		validator.String("statusId", a.StatusID).NotExists()
+	} else {
+		if a.Status != nil {
+			validator.WithReference("status").ReportError(structureValidator.ErrorValueExists())
+		}
+		validator.String("statusId", a.StatusID).Using(id.Validate)
+	}
 }
 
 func (a *Alarm) Normalize(normalizer data.Normalizer) {
-	normalizer = normalizer.WithMeta(a.Meta())
+	if !normalizer.HasMeta() {
+		normalizer = normalizer.WithMeta(a.Meta())
+	}
 
 	a.Device.Normalize(normalizer)
 
-	if a.status != nil {
-		(*a.status).Normalize(normalizer.WithReference("status"))
+	if a.Status != nil {
+		a.Status.Normalize(normalizer.WithReference("status"))
+	}
 
-		a.StatusID = &(*a.status).(*status.Status).ID
-
-		normalizer.AddData(*a.status)
-		a.status = nil
+	if normalizer.Origin() == structure.OriginExternal {
+		if a.Status != nil {
+			normalizer.AddData(a.Status)
+			a.StatusID = a.Status.ID
+			a.Status = nil
+		}
 	}
 }

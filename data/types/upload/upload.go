@@ -1,44 +1,79 @@
 package upload
 
 import (
+	"sort"
+
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/structure"
 )
 
 const (
-	ComputerTimeFormat = "2006-01-02T15:04:05"
-
-	DataSetTypeNormal     = "normal"
-	DataSetTypeContinuous = "continuous"
-
-	DeviceTagInsulinPump = "insulin-pump"
-	DeviceTagCGM         = "cgm"
-	DeviceTagBGM         = "bgm"
-
+	ComputerTimeFormat                   = "2006-01-02T15:04:05"
+	DataSetTypeContinuous                = "continuous"
+	DataSetTypeNormal                    = "normal"
+	DeviceTagBGM                         = "bgm"
+	DeviceTagCGM                         = "cgm"
+	DeviceTagInsulinPump                 = "insulin-pump"
+	StateClosed                          = "closed"
+	StateOpen                            = "open"
 	TimeProcessingAcrossTheBoardTimezone = "across-the-board-timezone"
-	TimeProcessingUTCBootstrapping       = "utc-bootstrapping"
 	TimeProcessingNone                   = "none"
+	TimeProcessingUTCBootstrapping       = "utc-bootstrapping"
+	VersionLengthMinimum                 = 5
 )
+
+func DataSetTypes() []string {
+	return []string{
+		DataSetTypeContinuous,
+		DataSetTypeNormal,
+	}
+}
+
+func DeviceTags() []string {
+	return []string{
+		DeviceTagBGM,
+		DeviceTagCGM,
+		DeviceTagInsulinPump,
+	}
+}
+
+func States() []string {
+	return []string{
+		StateClosed,
+		StateOpen,
+	}
+}
+
+func TimeProcessings() []string {
+	return []string{
+		TimeProcessingAcrossTheBoardTimezone,
+		TimeProcessingNone,
+		TimeProcessingUTCBootstrapping,
+	}
+}
+
+// TODO: Upload does not use at least the following fields from Base: annotations, clockDriftOffset, deviceTime, payload, others?
+// TODO: Upload (DataSet) should be separate from Base and eliminate all unnecessary fields
 
 type Upload struct {
 	types.Base `bson:",inline"`
 
-	State     string `json:"-" bson:"_state,omitempty"`
-	DataState string `json:"-" bson:"_dataState,omitempty"` // TODO: Deprecated DataState (after data migration)
-	ByUser    string `json:"byUser,omitempty" bson:"byUser,omitempty"`
-
+	ByUser              *string   `json:"byUser,omitempty" bson:"byUser,omitempty"` // TODO: Deprecate in favor of CreatedUserID
 	Client              *Client   `json:"client,omitempty" bson:"client,omitempty"`
-	ComputerTime        *string   `json:"computerTime,omitempty" bson:"computerTime,omitempty"`
-	DataSetType         *string   `json:"dataSetType,omitempty" bson:"dataSetType,omitempty"`
+	ComputerTime        *string   `json:"computerTime,omitempty" bson:"computerTime,omitempty"` // TODO: Do we really need this? CreatedTime should suffice.
+	DataSetType         *string   `json:"dataSetType,omitempty" bson:"dataSetType,omitempty"`   // TODO: Migrate to "type" after migration to DataSet (not based on Base)
+	DataState           *string   `json:"-" bson:"_dataState,omitempty"`                        // TODO: Deprecated! (remove after data migration)
 	DeviceManufacturers *[]string `json:"deviceManufacturers,omitempty" bson:"deviceManufacturers,omitempty"`
 	DeviceModel         *string   `json:"deviceModel,omitempty" bson:"deviceModel,omitempty"`
 	DeviceSerialNumber  *string   `json:"deviceSerialNumber,omitempty" bson:"deviceSerialNumber,omitempty"`
 	DeviceTags          *[]string `json:"deviceTags,omitempty" bson:"deviceTags,omitempty"`
+	State               *string   `json:"-" bson:"_state,omitempty"` // TODO: Should this be returned in JSON? I think so.
 	TimeProcessing      *string   `json:"timeProcessing,omitempty" bson:"timeProcessing,omitempty"`
 	Timezone            *string   `json:"timezone,omitempty" bson:"timezone,omitempty"`
-	Version             *string   `json:"version,omitempty" bson:"version,omitempty"`
+	Version             *string   `json:"version,omitempty" bson:"version,omitempty"` // TODO: Deprecate in favor of Client.Version
 }
 
 func Type() string {
@@ -62,19 +97,17 @@ func Init() *Upload {
 func (u *Upload) Init() {
 	u.Base.Init()
 	u.Type = Type()
-	u.UploadID = id.New()
 
-	u.State = "open"
-	u.DataState = "open" // TODO: Deprecated DataState (after data migration)
-	u.ByUser = ""
-
+	u.ByUser = nil
 	u.Client = nil
 	u.ComputerTime = nil
 	u.DataSetType = nil
+	u.DataState = nil
 	u.DeviceManufacturers = nil
 	u.DeviceModel = nil
 	u.DeviceSerialNumber = nil
 	u.DeviceTags = nil
+	u.State = nil
 	u.TimeProcessing = nil
 	u.Timezone = nil
 	u.Version = nil
@@ -101,42 +134,65 @@ func (u *Upload) Parse(parser data.ObjectParser) error {
 	return nil
 }
 
-func (u *Upload) Validate(validator data.Validator) error {
-	validator.SetMeta(u.Meta())
-
-	if err := u.Base.Validate(validator); err != nil {
-		return err
+func (u *Upload) Validate(validator structure.Validator) {
+	if !validator.HasMeta() {
+		validator = validator.WithMeta(u.Meta())
 	}
 
-	validator.ValidateString("type", &u.Type).EqualTo(Type())
+	u.Base.Validate(validator)
+
+	if u.Type != "" {
+		validator.String("type", &u.Type).EqualTo(Type())
+	}
 
 	if u.Client != nil {
-		u.Client.Validate(validator.NewChildValidator("client"))
+		u.Client.Validate(validator.WithReference("client"))
 	}
-	validator.ValidateStringAsTime("computerTime", u.ComputerTime, ComputerTimeFormat)
-	validator.ValidateString("dataSetType", u.DataSetType).OneOf([]string{DataSetTypeNormal, DataSetTypeContinuous})
-	validator.ValidateStringArray("deviceManufacturers", u.DeviceManufacturers).Exists().NotEmpty()
-	validator.ValidateString("deviceModel", u.DeviceModel).Exists().LengthGreaterThan(1)
-	validator.ValidateString("deviceSerialNumber", u.DeviceSerialNumber).Exists().LengthGreaterThan(1)
-	validator.ValidateStringArray("deviceTags", u.DeviceTags).Exists().NotEmpty().EachOneOf([]string{DeviceTagInsulinPump, DeviceTagCGM, DeviceTagBGM})
-	validator.ValidateString("timeProcessing", u.TimeProcessing).Exists().OneOf([]string{TimeProcessingAcrossTheBoardTimezone, TimeProcessingUTCBootstrapping, TimeProcessingNone})
-	validator.ValidateString("timezone", u.Timezone).LengthGreaterThan(1)        // .Exists()
-	validator.ValidateString("version", u.Version).LengthGreaterThanOrEqualTo(5) // .Exists()
 
-	return nil
+	validator.String("computerTime", u.ComputerTime).AsTime(ComputerTimeFormat)
+	validator.String("dataSetType", u.DataSetType).OneOf(DataSetTypes()...) // TODO: New field; add .Exists(); requires fix & DB migration
+
+	if validator.Origin() <= structure.OriginInternal {
+		validator.String("dataState", u.DataState).OneOf(States()...)
+	}
+
+	validator.StringArray("deviceManufacturers", u.DeviceManufacturers).Exists().NotEmpty().EachNotEmpty()
+	validator.String("deviceModel", u.DeviceModel).Exists().NotEmpty()               // TODO: Some clients USED to send ""; requires DB migration
+	validator.String("deviceSerialNumber", u.DeviceSerialNumber).Exists().NotEmpty() // TODO: Some clients STILL send "" via Jellyfish; requires fix & DB migration
+	validator.StringArray("deviceTags", u.DeviceTags).Exists().NotEmpty().EachOneOf(DeviceTags()...)
+
+	if validator.Origin() <= structure.OriginInternal {
+		validator.String("state", u.State).OneOf(States()...)
+	}
+
+	validator.String("timeProcessing", u.TimeProcessing).Exists().OneOf(TimeProcessings()...) // TODO: Some clients USED to send ""; requires DB migration
+	validator.String("timezone", u.Timezone).NotEmpty()
+	validator.String("version", u.Version).LengthGreaterThanOrEqualTo(VersionLengthMinimum)
 }
 
 func (u *Upload) Normalize(normalizer data.Normalizer) {
-	normalizer = normalizer.WithMeta(u.Meta())
+	if !normalizer.HasMeta() {
+		normalizer = normalizer.WithMeta(u.Meta())
+	}
 
 	u.Base.Normalize(normalizer)
 
-	if u.DataSetType == nil {
-		u.DataSetType = pointer.String(DataSetTypeNormal)
+	if normalizer.Origin() == structure.OriginExternal {
+		if u.UploadID == nil {
+			u.UploadID = pointer.String(id.New())
+		}
 	}
 
 	if u.Client != nil {
 		u.Client.Normalize(normalizer.WithReference("client"))
+	}
+
+	if normalizer.Origin() == structure.OriginExternal {
+		if u.DataSetType == nil {
+			u.DataSetType = pointer.String(DataSetTypeNormal)
+		}
+		SortAndDeduplicateStringArray(u.DeviceManufacturers)
+		SortAndDeduplicateStringArray(u.DeviceTags)
 	}
 }
 
@@ -154,4 +210,21 @@ func (u *Upload) HasDeviceManufacturerOneOf(deviceManufacturers []string) bool {
 	}
 
 	return false
+}
+
+func SortAndDeduplicateStringArray(strs *[]string) {
+	if strs != nil {
+		if length := len(*strs); length > 1 {
+			sort.Strings(*strs)
+
+			var lastIndex int
+			for index := 1; index < length; index++ {
+				if (*strs)[lastIndex] != (*strs)[index] {
+					lastIndex++
+					(*strs)[lastIndex] = (*strs)[index]
+				}
+			}
+			*strs = (*strs)[:lastIndex+1]
+		}
+	}
 }

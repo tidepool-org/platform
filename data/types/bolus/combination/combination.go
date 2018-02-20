@@ -3,21 +3,31 @@ package combination
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/bolus"
+	"github.com/tidepool-org/platform/structure"
+)
+
+const (
+	DurationMaximum = 86400000
+	DurationMinimum = 0
+	ExtendedMaximum = 100.0
+	ExtendedMinimum = 0.0
+	NormalMaximum   = 100.0
+	NormalMinimum   = 0.0
 )
 
 type Combination struct {
 	bolus.Bolus `bson:",inline"`
 
-	Normal           *float64 `json:"normal,omitempty" bson:"normal,omitempty"`
-	ExpectedNormal   *float64 `json:"expectedNormal,omitempty" bson:"expectedNormal,omitempty"`
-	Extended         *float64 `json:"extended,omitempty" bson:"extended,omitempty"`
-	ExpectedExtended *float64 `json:"expectedExtended,omitempty" bson:"expectedExtended,omitempty"`
 	Duration         *int     `json:"duration,omitempty" bson:"duration,omitempty"`
-	ExpectedDuration *int     `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
+	DurationExpected *int     `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
+	Extended         *float64 `json:"extended,omitempty" bson:"extended,omitempty"`
+	ExtendedExpected *float64 `json:"expectedExtended,omitempty" bson:"expectedExtended,omitempty"`
+	Normal           *float64 `json:"normal,omitempty" bson:"normal,omitempty"`
+	NormalExpected   *float64 `json:"expectedNormal,omitempty" bson:"expectedNormal,omitempty"`
 }
 
 func SubType() string {
-	return "dual/square"
+	return "dual/square" // TODO: Rename Type to "bolus/combination"; remove SubType
 }
 
 func NewDatum() data.Datum {
@@ -38,12 +48,12 @@ func (c *Combination) Init() {
 	c.Bolus.Init()
 	c.SubType = SubType()
 
-	c.Normal = nil
-	c.ExpectedNormal = nil
-	c.Extended = nil
-	c.ExpectedExtended = nil
 	c.Duration = nil
-	c.ExpectedDuration = nil
+	c.DurationExpected = nil
+	c.Extended = nil
+	c.ExtendedExpected = nil
+	c.Normal = nil
+	c.NormalExpected = nil
 }
 
 func (c *Combination) Parse(parser data.ObjectParser) error {
@@ -51,73 +61,72 @@ func (c *Combination) Parse(parser data.ObjectParser) error {
 		return err
 	}
 
-	c.Normal = parser.ParseFloat("normal")
-	c.ExpectedNormal = parser.ParseFloat("expectedNormal")
-	c.Extended = parser.ParseFloat("extended")
-	c.ExpectedExtended = parser.ParseFloat("expectedExtended")
 	c.Duration = parser.ParseInteger("duration")
-	c.ExpectedDuration = parser.ParseInteger("expectedDuration")
+	c.DurationExpected = parser.ParseInteger("expectedDuration")
+	c.Extended = parser.ParseFloat("extended")
+	c.ExtendedExpected = parser.ParseFloat("expectedExtended")
+	c.Normal = parser.ParseFloat("normal")
+	c.NormalExpected = parser.ParseFloat("expectedNormal")
 
 	return nil
 }
 
-func (c *Combination) Validate(validator data.Validator) error {
-	if err := c.Bolus.Validate(validator); err != nil {
-		return err
+func (c *Combination) Validate(validator structure.Validator) {
+	if !validator.HasMeta() {
+		validator = validator.WithMeta(c.Meta())
 	}
 
-	validator.ValidateString("subType", &c.SubType).EqualTo(SubType())
+	c.Bolus.Validate(validator)
 
-	validator.ValidateFloat("normal", c.Normal).Exists().InRange(0.0, 100.0)
-
-	expectedNormalValidator := validator.ValidateFloat("expectedNormal", c.ExpectedNormal)
-	if c.Normal != nil {
-		if *c.Normal == 0.0 {
-			expectedNormalValidator.Exists()
-		}
-		expectedNormalValidator.InRange(*c.Normal, 100.0)
-	} else {
-		expectedNormalValidator.InRange(0.0, 100.0)
+	if c.SubType != "" {
+		validator.String("subType", &c.SubType).EqualTo(SubType())
 	}
 
-	if c.ExpectedNormal != nil {
-		validator.ValidateFloat("extended", c.Extended).Exists().EqualTo(0.0)
-		validator.ValidateFloat("expectedExtended", c.ExpectedExtended).Exists().InRange(0.0, 100.0)
-		validator.ValidateInteger("duration", c.Duration).Exists().EqualTo(0)
-		validator.ValidateInteger("expectedDuration", c.ExpectedDuration).Exists().InRange(0, 86400000)
+	if c.NormalExpected != nil {
+		validator.Int("duration", c.Duration).Exists().EqualTo(DurationMinimum)
+		validator.Int("expectedDuration", c.DurationExpected).Exists().InRange(DurationMinimum, DurationMaximum)
+		validator.Float64("extended", c.Extended).Exists().EqualTo(ExtendedMinimum)
+		validator.Float64("expectedExtended", c.ExtendedExpected).Exists().InRange(ExtendedMinimum, ExtendedMaximum)
 	} else {
-		validator.ValidateFloat("extended", c.Extended).Exists().InRange(0.0, 100.0)
-
-		expectedExtendedValidator := validator.ValidateFloat("expectedExtended", c.ExpectedExtended)
-		if c.Extended != nil {
-			if *c.Extended == 0.0 {
-				expectedExtendedValidator.Exists()
-			}
-			expectedExtendedValidator.InRange(*c.Extended, 100.0)
+		validator.Int("duration", c.Duration).Exists().InRange(DurationMinimum, DurationMaximum)
+		expectedDurationValidator := validator.Int("expectedDuration", c.DurationExpected)
+		if c.Duration != nil && *c.Duration >= DurationMinimum && *c.Duration <= DurationMaximum {
+			expectedDurationValidator.InRange(*c.Duration, DurationMaximum)
 		} else {
-			expectedExtendedValidator.InRange(0.0, 100.0)
+			expectedDurationValidator.InRange(DurationMinimum, DurationMaximum)
 		}
-
-		validator.ValidateInteger("duration", c.Duration).Exists().InRange(0, 86400000)
-
-		expectedDurationValidator := validator.ValidateInteger("expectedDuration", c.ExpectedDuration)
-		if c.Duration != nil {
-			expectedDurationValidator.InRange(*c.Duration, 86400000)
-		} else {
-			expectedDurationValidator.InRange(0, 86400000)
-		}
-		if c.ExpectedExtended != nil {
+		if c.ExtendedExpected != nil {
 			expectedDurationValidator.Exists()
 		} else {
 			expectedDurationValidator.NotExists()
 		}
+		validator.Float64("extended", c.Extended).Exists().InRange(ExtendedMinimum, ExtendedMaximum)
+		expectedExtendedValidator := validator.Float64("expectedExtended", c.ExtendedExpected)
+		if c.Extended != nil && *c.Extended >= ExtendedMinimum && *c.Extended <= ExtendedMaximum {
+			if *c.Extended == ExtendedMinimum {
+				expectedExtendedValidator.Exists()
+			}
+			expectedExtendedValidator.InRange(*c.Extended, ExtendedMaximum)
+		} else {
+			expectedExtendedValidator.InRange(ExtendedMinimum, ExtendedMaximum)
+		}
 	}
-
-	return nil
+	validator.Float64("normal", c.Normal).Exists().InRange(NormalMinimum, NormalMaximum)
+	expectedNormalValidator := validator.Float64("expectedNormal", c.NormalExpected)
+	if c.Normal != nil && *c.Normal >= NormalMinimum && *c.Normal <= NormalMaximum {
+		if *c.Normal == NormalMinimum {
+			expectedNormalValidator.Exists()
+		}
+		expectedNormalValidator.InRange(*c.Normal, NormalMaximum)
+	} else {
+		expectedNormalValidator.InRange(NormalMinimum, NormalMaximum)
+	}
 }
 
 func (c *Combination) Normalize(normalizer data.Normalizer) {
-	normalizer = normalizer.WithMeta(c.Meta())
+	if !normalizer.HasMeta() {
+		normalizer = normalizer.WithMeta(c.Meta())
+	}
 
 	c.Bolus.Normalize(normalizer)
 }

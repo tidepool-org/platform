@@ -1,11 +1,24 @@
 package upload
 
-import "github.com/tidepool-org/platform/data"
+import (
+	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/structure"
+)
 
 type Client struct {
-	Name    *string                 `json:"name,omitempty" bson:"name,omitempty"`
-	Version *string                 `json:"version,omitempty" bson:"version,omitempty"`
-	Private *map[string]interface{} `json:"private,omitempty" bson:"private,omitempty"`
+	Name    *string    `json:"name,omitempty" bson:"name,omitempty"`
+	Version *string    `json:"version,omitempty" bson:"version,omitempty"`
+	Private *data.Blob `json:"private,omitempty" bson:"private,omitempty"`
+}
+
+func ParseClient(parser data.ObjectParser) *Client {
+	if parser.Object() == nil {
+		return nil
+	}
+	client := NewClient()
+	client.Parse(parser)
+	parser.ProcessNotParsed()
+	return client
 }
 
 func NewClient() *Client {
@@ -15,25 +28,15 @@ func NewClient() *Client {
 func (c *Client) Parse(parser data.ObjectParser) {
 	c.Name = parser.ParseString("name")
 	c.Version = parser.ParseString("version")
-	c.Private = parser.ParseObject("private")
+	c.Private = data.ParseBlob(parser.NewChildObjectParser("private"))
 }
 
-func (c *Client) Validate(validator data.Validator) {
-	validator.ValidateString("name", c.Name).Exists()       // TODO: Additional validation
-	validator.ValidateString("version", c.Version).Exists() // TODO: Additional validation
-	validator.ValidateObject("private", c.Private)          // TODO: Additional validation
+func (c *Client) Validate(validator structure.Validator) {
+	validator.String("name", c.Name).Exists().Using(data.ValidateReverseDomain)
+	validator.String("version", c.Version).Exists().Using(data.ValidateSemanticVersion)
+	if c.Private != nil {
+		c.Private.Validate(validator.WithReference("private"))
+	}
 }
 
 func (c *Client) Normalize(normalizer data.Normalizer) {}
-
-func ParseClient(parser data.ObjectParser) *Client {
-	if parser.Object() == nil {
-		return nil
-	}
-
-	client := NewClient()
-	client.Parse(parser)
-	parser.ProcessNotParsed()
-
-	return client
-}

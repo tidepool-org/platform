@@ -107,7 +107,7 @@ func (d *Device) Validate(validator structure.Validator) {
 	}
 	validator.String("udi", d.UDI).NotEmpty()
 	validator.String("serialNumber", d.SerialNumber).NotEmpty()
-	validator.String("transmitterId", d.TransmitterID).Matches(TransmitterIDExpression)
+	validator.String("transmitterId", d.TransmitterID).Matches(transmitterIDExpression)
 	validator.String("softwareVersion", d.SoftwareVersion).NotEmpty()
 	validator.String("softwareNumber", d.SoftwareNumber).NotEmpty()
 	validator.String("language", d.Language).NotEmpty()

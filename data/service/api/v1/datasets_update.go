@@ -39,7 +39,7 @@ func DatasetsUpdate(dataServiceContext dataService.Context) {
 	details := request.DetailsFromContext(ctx)
 	if !details.IsService() {
 		var permissions user.Permissions
-		permissions, err = dataServiceContext.UserClient().GetUserPermissions(ctx, details.UserID(), dataset.UserID)
+		permissions, err = dataServiceContext.UserClient().GetUserPermissions(ctx, details.UserID(), *dataset.UserID)
 		if err != nil {
 			if errors.Code(err) == request.ErrorCodeUnauthorized {
 				dataServiceContext.RespondWithError(service.ErrorUnauthorized())
@@ -54,7 +54,7 @@ func DatasetsUpdate(dataServiceContext dataService.Context) {
 		}
 	}
 
-	if dataset.State == "closed" || dataset.DataState == "closed" { // TODO: Deprecated DataState (after data migration)
+	if (dataset.State != nil && *dataset.State == "closed") || (dataset.DataState != nil && *dataset.DataState == "closed") { // TODO: Deprecated DataState (after data migration)
 		dataServiceContext.RespondWithError(ErrorDatasetClosed(datasetID))
 		return
 	}

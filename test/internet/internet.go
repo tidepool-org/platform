@@ -10,7 +10,7 @@ import (
 
 const SubDomainsMaximum = 3
 
-var TLDs = []string{
+var tlds = []string{
 	"com",
 	"edu",
 	"gov",
@@ -20,7 +20,7 @@ var TLDs = []string{
 }
 
 func NewTLD() string {
-	return TLDs[rand.Intn(len(TLDs))]
+	return tlds[rand.Intn(len(tlds))]
 }
 
 func NewDomain() string {

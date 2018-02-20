@@ -13,11 +13,11 @@ const (
 	MgdL = "mg/dL"
 	Mgdl = "mg/dl"
 
-	MmolLLowerLimit float64 = 0.0
-	MmolLUpperLimit float64 = 55.0
+	MmolLMinimum float64 = 0.0
+	MmolLMaximum float64 = 55.0
 
-	MgdLLowerLimit float64 = 0.0
-	MgdLUpperLimit float64 = 1000.0
+	MgdLMinimum float64 = 0.0
+	MgdLMaximum float64 = 1000.0
 
 	MmolLToMgdLConversionFactor float64 = 18.01559
 	MmolLToMgdLPrecisionFactor  float64 = 100000.0
@@ -31,9 +31,9 @@ func ValueRangeForUnits(units *string) (float64, float64) {
 	if units != nil {
 		switch *units {
 		case MmolL, Mmoll:
-			return MmolLLowerLimit, MmolLUpperLimit
+			return MmolLMinimum, MmolLMaximum
 		case MgdL, Mgdl:
-			return MgdLLowerLimit, MgdLUpperLimit
+			return MgdLMinimum, MgdLMaximum
 		}
 	}
 	return -math.MaxFloat64, math.MaxFloat64

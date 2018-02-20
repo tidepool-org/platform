@@ -34,7 +34,14 @@ const (
 	TaskStateCompleted = "completed"
 )
 
-var TaskStates = []string{TaskStatePending, TaskStateRunning, TaskStateFailed, TaskStateCompleted}
+func TaskStates() []string {
+	return []string{
+		TaskStatePending,
+		TaskStateRunning,
+		TaskStateFailed,
+		TaskStateCompleted,
+	}
+}
 
 type TaskFilter struct {
 	Name  *string `json:"name,omitempty"`
@@ -55,7 +62,7 @@ func (t *TaskFilter) Parse(parser structure.ObjectParser) {
 func (t *TaskFilter) Validate(validator structure.Validator) {
 	validator.String("name", t.Name).NotEmpty()
 	validator.String("type", t.Type).NotEmpty()
-	validator.String("state", t.State).OneOf(TaskStates...)
+	validator.String("state", t.State).OneOf(TaskStates()...)
 }
 
 func (t *TaskFilter) Mutate(req *http.Request) error {
@@ -214,7 +221,7 @@ func (t *Task) Parse(parser structure.ObjectParser) {
 }
 
 func (t *Task) Validate(validator structure.Validator) {
-	validator.String("id", &t.ID).Matches(id.Expression)
+	validator.String("id", &t.ID).Using(id.Validate)
 	validator.String("name", t.Name).NotEmpty()
 	validator.String("type", &t.Type).NotEmpty()
 	expirationTimeValidator := validator.Time("expirationTime", t.ExpirationTime)
@@ -222,7 +229,7 @@ func (t *Task) Validate(validator structure.Validator) {
 	if t.AvailableTime != nil {
 		expirationTimeValidator.After(*t.AvailableTime)
 	}
-	validator.String("state", &t.State).OneOf(TaskStates...)
+	validator.String("state", &t.State).OneOf(TaskStates()...)
 	if t.Error != nil {
 		t.Error.Validate(validator.WithReference("error"))
 	}

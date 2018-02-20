@@ -1,20 +1,19 @@
 package reported
 
 import (
-	"strconv"
-
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/structure"
 )
 
 type Reported struct {
 	types.Base `bson:",inline"`
 
-	States *[]*State `json:"states,omitempty" bson:"states,omitempty"`
+	States *StateArray `json:"states,omitempty" bson:"states,omitempty"`
 }
 
 func Type() string {
-	return "reportedState"
+	return "reportedState" // TODO: Change to "state/reported"
 }
 
 func NewDatum() data.Datum {
@@ -45,42 +44,35 @@ func (r *Reported) Parse(parser data.ObjectParser) error {
 		return err
 	}
 
-	r.States = ParseStates(parser.NewChildArrayParser("states"))
+	r.States = ParseStateArray(parser.NewChildArrayParser("states"))
 
 	return nil
 }
 
-func (r *Reported) Validate(validator data.Validator) error {
-	validator.SetMeta(r.Meta())
-
-	if err := r.Base.Validate(validator); err != nil {
-		return err
+func (r *Reported) Validate(validator structure.Validator) {
+	if !validator.HasMeta() {
+		validator = validator.WithMeta(r.Meta())
 	}
 
-	validator.ValidateString("type", &r.Type).EqualTo(Type())
+	r.Base.Validate(validator)
+
+	if r.Type != "" {
+		validator.String("type", &r.Type).EqualTo(Type())
+	}
+
 	if r.States != nil {
-		statesValidator := validator.NewChildValidator("states")
-		for index, state := range *r.States {
-			if state != nil {
-				state.Validate(statesValidator.NewChildValidator(index))
-			}
-		}
+		r.States.Validate(validator.WithReference("states"))
 	}
-
-	return nil
 }
 
 func (r *Reported) Normalize(normalizer data.Normalizer) {
-	normalizer = normalizer.WithMeta(r.Meta())
+	if !normalizer.HasMeta() {
+		normalizer = normalizer.WithMeta(r.Meta())
+	}
 
 	r.Base.Normalize(normalizer)
 
 	if r.States != nil {
-		statesNormalizer := normalizer.WithReference("states")
-		for index, state := range *r.States {
-			if state != nil {
-				state.Normalize(statesNormalizer.WithReference(strconv.Itoa(index)))
-			}
-		}
+		r.States.Normalize(normalizer.WithReference("states"))
 	}
 }

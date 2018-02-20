@@ -7,9 +7,20 @@ import (
 )
 
 func NewDeduplicatorDescriptor() *data.DeduplicatorDescriptor {
-	return &data.DeduplicatorDescriptor{
-		Name:    testInternet.NewReverseDomain(),
-		Version: testInternet.NewSemanticVersion(),
-		Hash:    id.New(),
+	datum := data.NewDeduplicatorDescriptor()
+	datum.Name = testInternet.NewReverseDomain()
+	datum.Version = testInternet.NewSemanticVersion()
+	datum.Hash = id.New()
+	return datum
+}
+
+func CloneDeduplicatorDescriptor(datum *data.DeduplicatorDescriptor) *data.DeduplicatorDescriptor {
+	if datum == nil {
+		return nil
 	}
+	clone := data.NewDeduplicatorDescriptor()
+	clone.Name = datum.Name
+	clone.Version = datum.Version
+	clone.Hash = datum.Hash
+	return clone
 }

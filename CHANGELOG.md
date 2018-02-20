@@ -1,5 +1,18 @@
 ## HEAD
 
+* Use consistent paradigm for creation of contained data objects
+* Randomize most test input for data validate and normalize
+* Fix meta reporting for embedded data (Status within Alarm, Bolus within Calculator)
+* Distinguish between normalizing data from external origin versus internal or store origin
+* Add Blob and BlobArray to encapsulate object and object array parse, validate, and normalize
+* Update most all data object properties to use pointers
+* Through validation of all data properties
+* Improve all data validation and normalization tests to be complete and thorough
+* Refactor all data validations to be accurate
+* Use constants for all data validations
+* Additional test helpers
+* Add New and Clone functions for all test data objects
+* Refactor global variables to make private or use functions to enforce as constant
 * Log debug mongo connection configuration
 * Add structure origin
 * New structure validator validations
@@ -25,6 +38,9 @@
 * Strip trailing slashes from client base address
 * Return error from config.Get rather than bool for compatibility
 * Allow additional scopes on tools
+
+## v1.23.0
+
 * Fix start script source of environment file
 * Add LifeScan Verio and LifeScan Verio Flex to supported devices
 * Accomodate out-of-sync server time between Tidepool and Dexcom

@@ -1,40 +1,36 @@
 package test
 
 import (
-	"time"
-
 	"github.com/tidepool-org/platform/data/types/bolus/combination"
-	"github.com/tidepool-org/platform/id"
+	testDataTypesBolus "github.com/tidepool-org/platform/data/types/bolus/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
 )
 
-func NewCombination(typ string, subType string, duration interface{}, durationExpected interface{}, extended interface{}, extendedExpected interface{}, normal interface{}, normalExpected interface{}) *combination.Combination {
-	datum := combination.Init()
-	datum.CreatedTime = pointer.String(time.Now().Format(time.RFC3339))
-	datum.DeviceID = pointer.String(id.New())
-	datum.Time = pointer.String(test.NewTime().Format(time.RFC3339))
-	datum.UploadID = pointer.String(id.New())
-	datum.UserID = pointer.String(id.New())
-	datum.Type = typ
-	datum.SubType = subType
-	if val, ok := duration.(int); ok {
-		datum.Duration = &val
-	}
-	if val, ok := durationExpected.(int); ok {
-		datum.DurationExpected = &val
-	}
-	if val, ok := extended.(float64); ok {
-		datum.Extended = &val
-	}
-	if val, ok := extendedExpected.(float64); ok {
-		datum.ExtendedExpected = &val
-	}
-	if val, ok := normal.(float64); ok {
-		datum.Normal = &val
-	}
-	if val, ok := normalExpected.(float64); ok {
-		datum.NormalExpected = &val
-	}
+func NewCombination() *combination.Combination {
+	datum := combination.New()
+	datum.Bolus = *testDataTypesBolus.NewBolus()
+	datum.SubType = "dual/square"
+	datum.Duration = pointer.Int(test.RandomIntFromRange(combination.DurationMinimum, combination.DurationMaximum))
+	datum.Extended = pointer.Float64(test.RandomFloat64FromRange(combination.ExtendedMinimum, combination.ExtendedMaximum))
+	datum.DurationExpected = pointer.Int(test.RandomIntFromRange(*datum.Duration, combination.DurationMaximum))
+	datum.ExtendedExpected = pointer.Float64(test.RandomFloat64FromRange(*datum.Extended, combination.ExtendedMaximum))
+	datum.Normal = pointer.Float64(test.RandomFloat64FromRange(combination.NormalMinimum, combination.NormalMaximum))
+	datum.NormalExpected = nil
 	return datum
+}
+
+func CloneCombination(datum *combination.Combination) *combination.Combination {
+	if datum == nil {
+		return nil
+	}
+	clone := combination.New()
+	clone.Duration = test.CloneInt(datum.Duration)
+	clone.DurationExpected = test.CloneInt(datum.DurationExpected)
+	clone.Extended = test.CloneFloat64(datum.Extended)
+	clone.ExtendedExpected = test.CloneFloat64(datum.ExtendedExpected)
+	clone.Bolus = *testDataTypesBolus.CloneBolus(&datum.Bolus)
+	clone.Normal = test.CloneFloat64(datum.Normal)
+	clone.NormalExpected = test.CloneFloat64(datum.NormalExpected)
+	return clone
 }

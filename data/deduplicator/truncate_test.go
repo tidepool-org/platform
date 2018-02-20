@@ -41,8 +41,8 @@ var _ = Describe("Truncate", func() {
 			testUserID = id.New()
 			testDataset = upload.Init()
 			Expect(testDataset).ToNot(BeNil())
-			testDataset.UploadID = testUploadID
-			testDataset.UserID = testUserID
+			testDataset.UploadID = &testUploadID
+			testDataset.UserID = &testUserID
 			testDataset.DeviceID = pointer.String(id.New())
 			testDataset.DeviceManufacturers = pointer.StringArray([]string{"Animas"})
 		})
@@ -55,12 +55,22 @@ var _ = Describe("Truncate", func() {
 			})
 
 			It("returns false if the dataset id is missing", func() {
-				testDataset.UploadID = ""
+				testDataset.UploadID = nil
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
+			})
+
+			It("returns false if the dataset id is empty", func() {
+				testDataset.UploadID = pointer.String("")
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
 			It("returns false if the dataset user id is missing", func() {
-				testDataset.UserID = ""
+				testDataset.UserID = nil
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
+			})
+
+			It("returns false if the dataset user id is empty", func() {
+				testDataset.UserID = pointer.String("")
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
@@ -134,16 +144,30 @@ var _ = Describe("Truncate", func() {
 				})
 
 				It("returns an error if the dataset id is missing", func() {
-					testDataset.UploadID = ""
+					testDataset.UploadID = nil
 					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
 					Expect(err).To(MatchError("dataset id is missing"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
+				It("returns an error if the dataset id is empty", func() {
+					testDataset.UploadID = pointer.String("")
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
+					Expect(err).To(MatchError("dataset id is empty"))
+					Expect(testDeduplicator).To(BeNil())
+				})
+
 				It("returns an error if the dataset user id is missing", func() {
-					testDataset.UserID = ""
+					testDataset.UserID = nil
 					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
 					Expect(err).To(MatchError("dataset user id is missing"))
+					Expect(testDeduplicator).To(BeNil())
+				})
+
+				It("returns an error if the dataset user id is empty", func() {
+					testDataset.UserID = pointer.String("")
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
+					Expect(err).To(MatchError("dataset user id is empty"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
@@ -217,7 +241,7 @@ var _ = Describe("Truncate", func() {
 						It("returns an error if there is an error with ActivateDatasetData", func() {
 							testDataSession.ActivateDatasetDataOutputs = []error{errors.New("test error")}
 							err := testDeduplicator.DeduplicateDataset(ctx)
-							Expect(err).To(MatchError(fmt.Sprintf(`unable to activate dataset data with id "%s"; test error`, testUploadID)))
+							Expect(err).To(MatchError(fmt.Sprintf("unable to activate dataset data with id %q; test error", testUploadID)))
 						})
 
 						Context("with deleting other dataset data", func() {
@@ -232,7 +256,7 @@ var _ = Describe("Truncate", func() {
 							It("returns an error if there is an error with DeleteOtherDatasetData", func() {
 								testDataSession.DeleteOtherDatasetDataOutputs = []error{errors.New("test error")}
 								err := testDeduplicator.DeduplicateDataset(ctx)
-								Expect(err).To(MatchError(fmt.Sprintf(`unable to remove all other data except dataset with id "%s"; test error`, testUploadID)))
+								Expect(err).To(MatchError(fmt.Sprintf("unable to remove all other data except dataset with id %q; test error", testUploadID)))
 							})
 
 							It("returns successfully if there is no error", func() {

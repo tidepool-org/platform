@@ -7,35 +7,31 @@ import (
 
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/factory"
-	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/basal"
-	"github.com/tidepool-org/platform/data/validator"
+	testDataTypesBasal "github.com/tidepool-org/platform/data/types/basal/test"
+	testDataTypes "github.com/tidepool-org/platform/data/types/test"
+	testErrors "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-func NewMeta(deliveryType string) interface{} {
-	return &basal.Meta{
-		Type:         "basal",
-		DeliveryType: deliveryType,
-	}
-}
-
 func NewTestBasal(sourceTime interface{}, sourceDeliveryType interface{}) *basal.Basal {
-	testBasal := &basal.Basal{}
-	testBasal.Init()
-	testBasal.DeviceID = pointer.String(id.New())
-	if value, ok := sourceTime.(string); ok {
-		testBasal.Time = pointer.String(value)
+	datum := &basal.Basal{}
+	datum.Init()
+	datum.DeviceID = pointer.String(id.New())
+	if val, ok := sourceTime.(string); ok {
+		datum.Time = &val
 	}
-	if value, ok := sourceDeliveryType.(string); ok {
-		testBasal.DeliveryType = value
+	if val, ok := sourceDeliveryType.(string); ok {
+		datum.DeliveryType = val
 	}
-	return testBasal
+	return datum
 }
 
 var _ = Describe("Basal", func() {
@@ -45,42 +41,50 @@ var _ = Describe("Basal", func() {
 		})
 	})
 
-	Context("with new basal", func() {
-		var testBasal *basal.Basal
+	Context("with new datum", func() {
+		var datum *basal.Basal
 
 		BeforeEach(func() {
-			testBasal = &basal.Basal{}
+			datum = testDataTypesBasal.NewBasal()
 		})
 
 		Context("Init", func() {
-			It("initializes the basal", func() {
-				testBasal.Init()
-				Expect(testBasal.ID).ToNot(BeEmpty())
-				Expect(testBasal.Type).To(Equal("basal"))
-				Expect(testBasal.DeliveryType).To(BeEmpty())
+			It("initializes the datum", func() {
+				datum.Init()
+				Expect(datum.Type).To(Equal("basal"))
+				Expect(datum.DeliveryType).To(BeEmpty())
 			})
 		})
 
 		Context("with initialized", func() {
 			BeforeEach(func() {
-				testBasal.Init()
+				datum.Init()
 			})
 
 			Context("Meta", func() {
 				It("returns the meta with no delivery type", func() {
-					testBasal.Init()
-					Expect(testBasal.Meta()).To(Equal(NewMeta("")))
+					Expect(datum.Meta()).To(Equal(&basal.Meta{Type: "basal"}))
 				})
 
 				It("returns the meta with delivery type", func() {
-					testBasal.Init()
-					testBasal.DeliveryType = "scheduled"
-					Expect(testBasal.Meta()).To(Equal(NewMeta("scheduled")))
+					datum.DeliveryType = testDataTypes.NewType()
+					Expect(datum.Meta()).To(Equal(&basal.Meta{Type: "basal", DeliveryType: datum.DeliveryType}))
 				})
 			})
+		})
+	})
 
-			DescribeTable("Parse",
-				func(sourceObject *map[string]interface{}, expectedBasal *basal.Basal, expectedErrors []*service.Error) {
+	Context("Basal", func() {
+		Context("Parse", func() {
+			var datum *basal.Basal
+
+			BeforeEach(func() {
+				datum = &basal.Basal{}
+				datum.Init()
+			})
+
+			DescribeTable("parses the datum",
+				func(sourceObject *map[string]interface{}, expectedDatum *basal.Basal, expectedErrors []*service.Error) {
 					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
@@ -90,9 +94,9 @@ var _ = Describe("Basal", func() {
 					testParser, err := parser.NewStandardObject(testContext, testFactory, sourceObject, parser.AppendErrorNotParsed)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testParser).ToNot(BeNil())
-					Expect(testBasal.Parse(testParser)).To(Succeed())
-					Expect(testBasal.Time).To(Equal(expectedBasal.Time))
-					Expect(testBasal.DeliveryType).To(Equal(expectedBasal.DeliveryType))
+					Expect(datum.Parse(testParser)).To(Succeed())
+					Expect(datum.Time).To(Equal(expectedDatum.Time))
+					Expect(datum.DeliveryType).To(Equal(expectedDatum.DeliveryType))
 					Expect(testContext.Errors()).To(ConsistOf(expectedErrors))
 				},
 				Entry("parses object that is nil",
@@ -111,7 +115,7 @@ var _ = Describe("Basal", func() {
 					&map[string]interface{}{"time": 0},
 					NewTestBasal(nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta("")),
+						testData.ComposeError(service.ErrorTypeNotString(0), "/time", &basal.Meta{Type: "basal"}),
 					}),
 				Entry("does not parse delivery type",
 					&map[string]interface{}{"deliveryType": "scheduled"},
@@ -125,86 +129,82 @@ var _ = Describe("Basal", func() {
 					&map[string]interface{}{"time": 0, "deliveryType": 0},
 					NewTestBasal(nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta("")),
+						testData.ComposeError(service.ErrorTypeNotString(0), "/time", &basal.Meta{Type: "basal"}),
 					}),
 			)
+		})
 
-			DescribeTable("Validate",
-				func(sourceBasal *basal.Basal, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(null.NewLogger())
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testContext).ToNot(BeNil())
-					testValidator, err := validator.NewStandard(testContext)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testValidator).ToNot(BeNil())
-					Expect(sourceBasal.Validate(testValidator)).To(Succeed())
-					Expect(testContext.Errors()).To(ConsistOf(expectedErrors))
+		Context("Validate", func() {
+			DescribeTable("validates the datum",
+				func(mutator func(datum *basal.Basal), expectedErrors ...error) {
+					datum := testDataTypesBasal.NewBasal()
+					mutator(datum)
+					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
-				Entry("all valid",
-					NewTestBasal("2016-09-06T13:45:58-07:00", "scheduled"),
-					[]*service.Error{}),
-				Entry("missing time",
-					NewTestBasal(nil, "scheduled"),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta("scheduled")),
-					}),
-				Entry("missing delivery type",
-					NewTestBasal("2016-09-06T13:45:58-07:00", nil),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueEmpty(), "/deliveryType", NewMeta("")),
-					}),
-				Entry("specified delivery type",
-					NewTestBasal("2016-09-06T13:45:58-07:00", "specified"),
-					[]*service.Error{}),
-				Entry("multiple",
-					NewTestBasal(nil, nil),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta("")),
-						testData.ComposeError(service.ErrorValueEmpty(), "/deliveryType", NewMeta("")),
-					}),
+				Entry("succeeds",
+					func(datum *basal.Basal) {},
+				),
+				Entry("type missing",
+					func(datum *basal.Basal) { datum.Type = "" },
+					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/type"),
+				),
+				Entry("type invalid",
+					func(datum *basal.Basal) { datum.Type = "invalid" },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "basal"), "/type"),
+				),
+				Entry("type basal",
+					func(datum *basal.Basal) { datum.Type = "basal" },
+				),
+				Entry("delivery type missing",
+					func(datum *basal.Basal) { datum.DeliveryType = "" },
+					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/deliveryType"),
+				),
+				Entry("delivery type valid",
+					func(datum *basal.Basal) { datum.DeliveryType = testDataTypes.NewType() },
+				),
+				Entry("multiple errors",
+					func(datum *basal.Basal) {
+						datum.Type = "invalid"
+						datum.DeliveryType = ""
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "basal"), "/type"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/deliveryType"),
+				),
 			)
+		})
 
-			Context("Normalize", func() {
-				It("succeeds", func() {
-					testNormalizer := dataNormalizer.New()
-					Expect(testNormalizer).ToNot(BeNil())
-					testBasal.Normalize(testNormalizer)
-					Expect(testNormalizer.Error()).ToNot(HaveOccurred())
-				})
+		Context("IdentityFields", func() {
+			var datum *basal.Basal
+
+			BeforeEach(func() {
+				datum = testDataTypesBasal.NewBasal()
 			})
 
-			Context("IdentityFields", func() {
-				var userID string
-				var deviceID string
+			It("returns error if user id is missing", func() {
+				datum.UserID = nil
+				identityFields, err := datum.IdentityFields()
+				Expect(err).To(MatchError("user id is missing"))
+				Expect(identityFields).To(BeEmpty())
+			})
 
-				BeforeEach(func() {
-					userID = id.New()
-					deviceID = id.New()
-					testBasal.UserID = userID
-					testBasal.DeviceID = &deviceID
-					testBasal.Time = pointer.String("2016-09-06T13:45:58-07:00")
-					testBasal.DeliveryType = "scheduled"
-				})
+			It("returns error if user id is empty", func() {
+				datum.UserID = pointer.String("")
+				identityFields, err := datum.IdentityFields()
+				Expect(err).To(MatchError("user id is empty"))
+				Expect(identityFields).To(BeEmpty())
+			})
 
-				It("returns error if user id is empty", func() {
-					testBasal.UserID = ""
-					identityFields, err := testBasal.IdentityFields()
-					Expect(err).To(MatchError("user id is empty"))
-					Expect(identityFields).To(BeEmpty())
-				})
+			It("returns error if delivery type is empty", func() {
+				datum.DeliveryType = ""
+				identityFields, err := datum.IdentityFields()
+				Expect(err).To(MatchError("delivery type is empty"))
+				Expect(identityFields).To(BeEmpty())
+			})
 
-				It("returns error if delivery type is empty", func() {
-					testBasal.DeliveryType = ""
-					identityFields, err := testBasal.IdentityFields()
-					Expect(err).To(MatchError("delivery type is empty"))
-					Expect(identityFields).To(BeEmpty())
-				})
-
-				It("returns the expected identity fields", func() {
-					identityFields, err := testBasal.IdentityFields()
-					Expect(err).ToNot(HaveOccurred())
-					Expect(identityFields).To(Equal([]string{userID, deviceID, "2016-09-06T13:45:58-07:00", "basal", "scheduled"}))
-				})
+			It("returns the expected identity fields", func() {
+				identityFields, err := datum.IdentityFields()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, *datum.Time, datum.Type, datum.DeliveryType}))
 			})
 		})
 	})

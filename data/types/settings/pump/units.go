@@ -2,12 +2,35 @@ package pump
 
 import (
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/blood/glucose"
+	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
+	"github.com/tidepool-org/platform/structure"
 )
 
+const (
+	CarbohydrateExchanges = "exchanges"
+	CarbohydrateGrams     = "grams"
+)
+
+func Carbohydrates() []string {
+	return []string{
+		CarbohydrateExchanges,
+		CarbohydrateGrams,
+	}
+}
+
 type Units struct {
-	Carbohydrate *string `json:"carb,omitempty" bson:"carb,omitempty"`
-	BloodGlucose *string `json:"bg,omitempty" bson:"bg,omitempty"`
+	BloodGlucose *string `json:"bg,omitempty" bson:"bg,omitempty"`     // TODO: Rename "bloodGlucose"
+	Carbohydrate *string `json:"carb,omitempty" bson:"carb,omitempty"` // TODO: Rename "carbohydrate"
+}
+
+func ParseUnits(parser data.ObjectParser) *Units {
+	if parser.Object() == nil {
+		return nil
+	}
+	units := NewUnits()
+	units.Parse(parser)
+	parser.ProcessNotParsed()
+	return units
 }
 
 func NewUnits() *Units {
@@ -15,25 +38,17 @@ func NewUnits() *Units {
 }
 
 func (u *Units) Parse(parser data.ObjectParser) {
-	u.Carbohydrate = parser.ParseString("carb")
 	u.BloodGlucose = parser.ParseString("bg")
+	u.Carbohydrate = parser.ParseString("carb")
 }
 
-func (u *Units) Validate(validator data.Validator) {
-	validator.ValidateString("carb", u.Carbohydrate).Exists().NotEmpty()
-	validator.ValidateString("bg", u.BloodGlucose).Exists().OneOf(glucose.Units())
+func (u *Units) Validate(validator structure.Validator) {
+	validator.String("bg", u.BloodGlucose).Exists().OneOf(dataBloodGlucose.Units()...)
+	validator.String("carb", u.Carbohydrate).Exists().OneOf(Carbohydrates()...)
 }
 
 func (u *Units) Normalize(normalizer data.Normalizer) {
-	u.BloodGlucose = glucose.NormalizeUnits(u.BloodGlucose)
-}
-
-func ParseUnits(parser data.ObjectParser) *Units {
-	var units *Units
-	if parser.Object() != nil {
-		units = NewUnits()
-		units.Parse(parser)
-		parser.ProcessNotParsed()
+	if normalizer.Origin() == structure.OriginExternal {
+		u.BloodGlucose = dataBloodGlucose.NormalizeUnits(u.BloodGlucose)
 	}
-	return units
 }

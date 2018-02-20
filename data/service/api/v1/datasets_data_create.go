@@ -9,11 +9,11 @@ import (
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
 	dataService "github.com/tidepool-org/platform/data/service"
-	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/user"
 )
 
@@ -39,7 +39,7 @@ func DatasetsDataCreate(dataServiceContext dataService.Context) {
 
 	if details := request.DetailsFromContext(ctx); !details.IsService() {
 		var permissions user.Permissions
-		permissions, err = dataServiceContext.UserClient().GetUserPermissions(ctx, details.UserID(), dataset.UserID)
+		permissions, err = dataServiceContext.UserClient().GetUserPermissions(ctx, details.UserID(), *dataset.UserID)
 		if err != nil {
 			if errors.Code(err) == request.ErrorCodeUnauthorized {
 				dataServiceContext.RespondWithError(service.ErrorUnauthorized())
@@ -54,7 +54,7 @@ func DatasetsDataCreate(dataServiceContext dataService.Context) {
 		}
 	}
 
-	if dataset.State == "closed" || dataset.DataState == "closed" { // TODO: Deprecated DataState (after data migration)
+	if (dataset.State != nil && *dataset.State == "closed") || (dataset.DataState != nil && *dataset.DataState == "closed") { // TODO: Deprecated DataState (after data migration)
 		dataServiceContext.RespondWithError(ErrorDatasetClosed(datasetID))
 		return
 	}
@@ -83,20 +83,15 @@ func DatasetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	datumValidator, err := validator.NewStandard(datumArrayContext)
-	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to create datum validator", err)
-		return
-	}
-
+	validator := structureValidator.New()
 	normalizer := dataNormalizer.New()
 
 	datumArray := []data.Datum{}
 	for index := range *datumArrayParser.Array() {
 		reference := strconv.Itoa(index)
 		if datum := datumArrayParser.ParseDatum(index); datum != nil && *datum != nil {
-			(*datum).Validate(datumValidator.NewChildValidator(index))
-			normalizer.WithReference(reference).Normalize(*datum)
+			(*datum).Validate(validator.WithReference(reference))
+			(*datum).Normalize(normalizer.WithReference(reference))
 			datumArray = append(datumArray, *datum)
 		}
 	}
@@ -108,6 +103,9 @@ func DatasetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
+	if err = validator.Error(); err != nil {
+		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
+	}
 	if err = normalizer.Error(); err != nil {
 		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
 	}

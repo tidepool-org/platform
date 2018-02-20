@@ -103,7 +103,7 @@ func (h *hashDeactivateOldDeduplicator) AddDatasetData(ctx context.Context, data
 
 func (h *hashDeactivateOldDeduplicator) DeduplicateDataset(ctx context.Context) error {
 	if err := h.dataSession.ArchiveDeviceDataUsingHashesFromDataset(ctx, h.dataset); err != nil {
-		return errors.Wrapf(err, "unable to archive device data using hashes from dataset with id %q", h.dataset.UploadID)
+		return errors.Wrapf(err, "unable to archive device data using hashes from dataset with id %q", *h.dataset.UploadID)
 	}
 
 	return h.BaseDeduplicator.DeduplicateDataset(ctx)
@@ -111,7 +111,7 @@ func (h *hashDeactivateOldDeduplicator) DeduplicateDataset(ctx context.Context) 
 
 func (h *hashDeactivateOldDeduplicator) DeleteDataset(ctx context.Context) error {
 	if err := h.dataSession.UnarchiveDeviceDataUsingHashesFromDataset(ctx, h.dataset); err != nil {
-		return errors.Wrapf(err, "unable to unarchive device data using hashes from dataset with id %q", h.dataset.UploadID)
+		return errors.Wrapf(err, "unable to unarchive device data using hashes from dataset with id %q", *h.dataset.UploadID)
 	}
 
 	return h.BaseDeduplicator.DeleteDataset(ctx)

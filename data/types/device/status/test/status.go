@@ -1,34 +1,33 @@
 package test
 
 import (
-	"time"
+	"math"
 
+	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/device/status"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	"github.com/tidepool-org/platform/id"
+	testDataTypesDevice "github.com/tidepool-org/platform/data/types/device/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
 )
 
-func NewReason() *map[string]interface{} {
-	return testDataTypes.NewPropertyMap()
+func NewStatus() *status.Status {
+	datum := status.New()
+	datum.Device = *testDataTypesDevice.NewDevice()
+	datum.SubType = "status"
+	datum.Duration = pointer.Int(test.RandomIntFromRange(status.DurationMinimum, math.MaxInt32))
+	datum.Name = pointer.String(test.RandomStringFromStringArray(status.Names()))
+	datum.Reason = testData.NewBlob()
+	return datum
 }
 
-func NewStatus(typ string, subType string, duration interface{}, name interface{}, reason *map[string]interface{}) *status.Status {
-	datum := status.Init()
-	datum.CreatedTime = pointer.String(time.Now().Format(time.RFC3339))
-	datum.DeviceID = pointer.String(id.New())
-	datum.Time = pointer.String(test.NewTime().Format(time.RFC3339))
-	datum.UploadID = pointer.String(id.New())
-	datum.UserID = pointer.String(id.New())
-	datum.Type = typ
-	datum.SubType = subType
-	if val, ok := duration.(int); ok {
-		datum.Duration = &val
+func CloneStatus(datum *status.Status) *status.Status {
+	if datum == nil {
+		return nil
 	}
-	if val, ok := name.(string); ok {
-		datum.Name = &val
-	}
-	datum.Reason = reason
-	return datum
+	clone := status.New()
+	clone.Device = *testDataTypesDevice.CloneDevice(&datum.Device)
+	clone.Duration = test.CloneInt(datum.Duration)
+	clone.Name = test.CloneString(datum.Name)
+	clone.Reason = testData.CloneBlob(datum.Reason)
+	return clone
 }

@@ -85,7 +85,7 @@ func (t *truncateDeduplicator) DeduplicateDataset(ctx context.Context) error {
 	}
 
 	if err := t.dataSession.DeleteOtherDatasetData(ctx, t.dataset); err != nil {
-		return errors.Wrapf(err, "unable to remove all other data except dataset with id %q", t.dataset.UploadID)
+		return errors.Wrapf(err, "unable to remove all other data except dataset with id %q", *t.dataset.UploadID)
 	}
 
 	return nil

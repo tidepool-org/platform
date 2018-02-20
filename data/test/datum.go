@@ -3,6 +3,7 @@ package test
 import (
 	"github.com/onsi/gomega"
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/test"
 )
 
@@ -20,34 +21,33 @@ type Datum struct {
 	ParseInputs                          []data.ObjectParser
 	ParseOutputs                         []error
 	ValidateInvocations                  int
-	ValidateInputs                       []data.Validator
-	ValidateOutputs                      []error
+	ValidateInputs                       []structure.Validator
 	NormalizeInvocations                 int
 	NormalizeInputs                      []data.Normalizer
 	IdentityFieldsInvocations            int
 	IdentityFieldsOutputs                []IdentityFieldsOutput
-	PayloadInvocations                   int
-	PayloadOutputs                       []*map[string]interface{}
+	GetPayloadInvocations                int
+	GetPayloadOutputs                    []*data.Blob
 	SetUserIDInvocations                 int
-	SetUserIDInputs                      []string
+	SetUserIDInputs                      []*string
 	SetDatasetIDInvocations              int
-	SetDatasetIDInputs                   []string
+	SetDatasetIDInputs                   []*string
 	SetActiveInvocations                 int
 	SetActiveInputs                      []bool
 	SetDeviceIDInvocations               int
 	SetDeviceIDInputs                    []*string
 	SetCreatedTimeInvocations            int
-	SetCreatedTimeInputs                 []string
+	SetCreatedTimeInputs                 []*string
 	SetCreatedUserIDInvocations          int
-	SetCreatedUserIDInputs               []string
+	SetCreatedUserIDInputs               []*string
 	SetModifiedTimeInvocations           int
-	SetModifiedTimeInputs                []string
+	SetModifiedTimeInputs                []*string
 	SetModifiedUserIDInvocations         int
-	SetModifiedUserIDInputs              []string
+	SetModifiedUserIDInputs              []*string
 	SetDeletedTimeInvocations            int
-	SetDeletedTimeInputs                 []string
+	SetDeletedTimeInputs                 []*string
 	SetDeletedUserIDInvocations          int
-	SetDeletedUserIDInputs               []string
+	SetDeletedUserIDInputs               []*string
 	DeduplicatorDescriptorValue          *data.DeduplicatorDescriptor
 	DeduplicatorDescriptorInvocations    int
 	SetDeduplicatorDescriptorInvocations int
@@ -85,16 +85,10 @@ func (d *Datum) Parse(parser data.ObjectParser) error {
 	return output
 }
 
-func (d *Datum) Validate(validator data.Validator) error {
+func (d *Datum) Validate(validator structure.Validator) {
 	d.ValidateInvocations++
 
 	d.ValidateInputs = append(d.ValidateInputs, validator)
-
-	gomega.Expect(d.ValidateOutputs).ToNot(gomega.BeEmpty())
-
-	output := d.ValidateOutputs[0]
-	d.ValidateOutputs = d.ValidateOutputs[1:]
-	return output
 }
 
 func (d *Datum) Normalize(normalizer data.Normalizer) {
@@ -113,23 +107,23 @@ func (d *Datum) IdentityFields() ([]string, error) {
 	return output.IdentityFields, output.Error
 }
 
-func (d *Datum) GetPayload() *map[string]interface{} {
-	d.PayloadInvocations++
+func (d *Datum) GetPayload() *data.Blob {
+	d.GetPayloadInvocations++
 
-	gomega.Expect(d.PayloadOutputs).ToNot(gomega.BeEmpty())
+	gomega.Expect(d.GetPayloadOutputs).ToNot(gomega.BeEmpty())
 
-	output := d.PayloadOutputs[0]
-	d.PayloadOutputs = d.PayloadOutputs[1:]
+	output := d.GetPayloadOutputs[0]
+	d.GetPayloadOutputs = d.GetPayloadOutputs[1:]
 	return output
 }
 
-func (d *Datum) SetUserID(userID string) {
+func (d *Datum) SetUserID(userID *string) {
 	d.SetUserIDInvocations++
 
 	d.SetUserIDInputs = append(d.SetUserIDInputs, userID)
 }
 
-func (d *Datum) SetDatasetID(datasetID string) {
+func (d *Datum) SetDatasetID(datasetID *string) {
 	d.SetDatasetIDInvocations++
 
 	d.SetDatasetIDInputs = append(d.SetDatasetIDInputs, datasetID)
@@ -147,37 +141,37 @@ func (d *Datum) SetDeviceID(deviceID *string) {
 	d.SetDeviceIDInputs = append(d.SetDeviceIDInputs, deviceID)
 }
 
-func (d *Datum) SetCreatedTime(createdTime string) {
+func (d *Datum) SetCreatedTime(createdTime *string) {
 	d.SetCreatedTimeInvocations++
 
 	d.SetCreatedTimeInputs = append(d.SetCreatedTimeInputs, createdTime)
 }
 
-func (d *Datum) SetCreatedUserID(createdUserID string) {
+func (d *Datum) SetCreatedUserID(createdUserID *string) {
 	d.SetCreatedUserIDInvocations++
 
 	d.SetCreatedUserIDInputs = append(d.SetCreatedUserIDInputs, createdUserID)
 }
 
-func (d *Datum) SetModifiedTime(modifiedTime string) {
+func (d *Datum) SetModifiedTime(modifiedTime *string) {
 	d.SetModifiedTimeInvocations++
 
 	d.SetModifiedTimeInputs = append(d.SetModifiedTimeInputs, modifiedTime)
 }
 
-func (d *Datum) SetModifiedUserID(modifiedUserID string) {
+func (d *Datum) SetModifiedUserID(modifiedUserID *string) {
 	d.SetModifiedUserIDInvocations++
 
 	d.SetModifiedUserIDInputs = append(d.SetModifiedUserIDInputs, modifiedUserID)
 }
 
-func (d *Datum) SetDeletedTime(deletedTime string) {
+func (d *Datum) SetDeletedTime(deletedTime *string) {
 	d.SetDeletedTimeInvocations++
 
 	d.SetDeletedTimeInputs = append(d.SetDeletedTimeInputs, deletedTime)
 }
 
-func (d *Datum) SetDeletedUserID(deletedUserID string) {
+func (d *Datum) SetDeletedUserID(deletedUserID *string) {
 	d.SetDeletedUserIDInvocations++
 
 	d.SetDeletedUserIDInputs = append(d.SetDeletedUserIDInputs, deletedUserID)
@@ -199,6 +193,6 @@ func (d *Datum) Expectations() {
 	d.Mock.Expectations()
 	gomega.Expect(d.MetaOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.ParseOutputs).To(gomega.BeEmpty())
-	gomega.Expect(d.ValidateOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.IdentityFieldsOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.GetPayloadOutputs).To(gomega.BeEmpty())
 }

@@ -57,10 +57,10 @@ func (b *BaseFactory) CanDeduplicateDataset(dataset *upload.Upload) (bool, error
 		return false, errors.New("dataset is missing")
 	}
 
-	if dataset.UploadID == "" {
+	if dataset.UploadID == nil || *dataset.UploadID == "" {
 		return false, nil
 	}
-	if dataset.UserID == "" {
+	if dataset.UserID == nil || *dataset.UserID == "" {
 		return false, nil
 	}
 
@@ -123,11 +123,17 @@ func NewBaseDeduplicator(name string, version string, logger log.Logger, dataSes
 	if dataset == nil {
 		return nil, errors.New("dataset is missing")
 	}
-	if dataset.UploadID == "" {
+	if dataset.UploadID == nil {
 		return nil, errors.New("dataset id is missing")
 	}
-	if dataset.UserID == "" {
+	if *dataset.UploadID == "" {
+		return nil, errors.New("dataset id is empty")
+	}
+	if dataset.UserID == nil {
 		return nil, errors.New("dataset user id is missing")
+	}
+	if *dataset.UserID == "" {
+		return nil, errors.New("dataset user id is empty")
 	}
 
 	logger = logger.WithFields(log.Fields{
@@ -168,7 +174,7 @@ func (b *BaseDeduplicator) RegisterDataset(ctx context.Context) error {
 	update := data.NewDataSetUpdate()
 	update.Active = pointer.Bool(b.dataset.Active)
 	update.Deduplicator = deduplicatorDescriptor
-	dataset, err := b.dataSession.UpdateDataSet(ctx, b.dataset.UploadID, update)
+	dataset, err := b.dataSession.UpdateDataSet(ctx, *b.dataset.UploadID, update)
 	if err != nil {
 		return errors.Wrapf(err, "unable to update dataset with id %q", b.dataset.UploadID)
 	}
@@ -185,7 +191,7 @@ func (b *BaseDeduplicator) AddDatasetData(ctx context.Context, datasetData []dat
 	}
 
 	if err := b.dataSession.CreateDatasetData(ctx, b.dataset, datasetData); err != nil {
-		return errors.Wrapf(err, "unable to create dataset data with id %q", b.dataset.UploadID)
+		return errors.Wrapf(err, "unable to create dataset data with id %q", *b.dataset.UploadID)
 	}
 
 	return nil
@@ -195,7 +201,7 @@ func (b *BaseDeduplicator) DeduplicateDataset(ctx context.Context) error {
 	b.logger.Debug("DeduplicateDataset")
 
 	if err := b.dataSession.ActivateDatasetData(ctx, b.dataset); err != nil {
-		return errors.Wrapf(err, "unable to activate dataset data with id %q", b.dataset.UploadID)
+		return errors.Wrapf(err, "unable to activate dataset data with id %q", *b.dataset.UploadID)
 	}
 
 	return nil
@@ -205,7 +211,7 @@ func (b *BaseDeduplicator) DeleteDataset(ctx context.Context) error {
 	b.logger.Debug("DeleteDataset")
 
 	if err := b.dataSession.DeleteDataset(ctx, b.dataset); err != nil {
-		return errors.Wrapf(err, "unable to delete dataset with id %q", b.dataset.UploadID)
+		return errors.Wrapf(err, "unable to delete dataset with id %q", *b.dataset.UploadID)
 	}
 
 	return nil

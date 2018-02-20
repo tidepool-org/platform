@@ -3,6 +3,7 @@ package insulin
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/structure"
 )
 
 type Insulin struct {
@@ -48,23 +49,26 @@ func (i *Insulin) Parse(parser data.ObjectParser) error {
 	return nil
 }
 
-func (i *Insulin) Validate(validator data.Validator) error {
-	validator.SetMeta(i.Meta())
-
-	if err := i.Base.Validate(validator); err != nil {
-		return err
+func (i *Insulin) Validate(validator structure.Validator) {
+	if !validator.HasMeta() {
+		validator = validator.WithMeta(i.Meta())
 	}
 
-	validator.ValidateString("type", &i.Type).EqualTo(Type())
+	i.Base.Validate(validator)
+
+	if i.Type != "" {
+		validator.String("type", &i.Type).EqualTo(Type())
+	}
+
 	if i.Dose != nil {
-		i.Dose.Validate(validator.NewChildValidator("dose"))
+		i.Dose.Validate(validator.WithReference("dose"))
 	}
-
-	return nil
 }
 
 func (i *Insulin) Normalize(normalizer data.Normalizer) {
-	normalizer = normalizer.WithMeta(i.Meta())
+	if !normalizer.HasMeta() {
+		normalizer = normalizer.WithMeta(i.Meta())
+	}
 
 	i.Base.Normalize(normalizer)
 

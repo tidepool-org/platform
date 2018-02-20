@@ -5,37 +5,32 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/factory"
+	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/basal"
-	"github.com/tidepool-org/platform/data/validator"
+	testDataTypesBasal "github.com/tidepool-org/platform/data/types/basal/test"
+	testDataTypes "github.com/tidepool-org/platform/data/types/test"
+	testErrors "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-func NewTestSuppressed(sourceType interface{}, sourceDeliveryType interface{}, sourceRate interface{}, sourceScheduleName interface{}, sourceAnnotations *[]interface{}, sourceSuppressed *basal.Suppressed) *basal.Suppressed {
-	testSuppressed := &basal.Suppressed{}
-	if value, ok := sourceType.(string); ok {
-		testSuppressed.Type = pointer.String(value)
-	}
-	if value, ok := sourceDeliveryType.(string); ok {
-		testSuppressed.DeliveryType = pointer.String(value)
-	}
-	if value, ok := sourceRate.(float64); ok {
-		testSuppressed.Rate = pointer.Float64(value)
-	}
-	if value, ok := sourceScheduleName.(string); ok {
-		testSuppressed.ScheduleName = pointer.String(value)
-	}
-	testSuppressed.Annotations = sourceAnnotations
-	testSuppressed.Suppressed = sourceSuppressed
-	return testSuppressed
-}
+var _ = Describe("Suppressed", func() {
+	It("RateMaximum is expected", func() {
+		Expect(basal.RateMaximum).To(Equal(100.0))
+	})
 
-var _ = Describe("Target", func() {
+	It("RateMinimum is expected", func() {
+		Expect(basal.RateMinimum).To(Equal(0.0))
+	})
+
 	DescribeTable("ParseSuppressed",
 		func(sourceObject *map[string]interface{}, expectedSuppressed *basal.Suppressed, expectedErrors []*service.Error) {
 			testContext, err := context.NewStandard(null.NewLogger())
@@ -53,15 +48,15 @@ var _ = Describe("Target", func() {
 		Entry("parses object that is nil", nil, nil, []*service.Error{}),
 		Entry("parses object that is empty",
 			&map[string]interface{}{},
-			NewTestSuppressed(nil, nil, nil, nil, nil, nil),
+			testDataTypesBasal.NewTestSuppressed(nil, nil, nil, nil, nil, nil),
 			[]*service.Error{}),
 		Entry("parses object that has multiple valid fields",
-			&map[string]interface{}{"type": "basal", "deliveryType": "temp", "rate": 2.0, "suppressed": map[string]interface{}{"type": "basal", "deliveryType": "scheduled", "rate": 1.0, "scheduleName": "Weekday", "annotations": []interface{}{"one", "two", "three"}}},
-			NewTestSuppressed("basal", "temp", 2.0, nil, nil, NewTestSuppressed("basal", "scheduled", 1.0, "Weekday", &[]interface{}{"one", "two", "three"}, nil)),
+			&map[string]interface{}{"type": "basal", "deliveryType": "temp", "rate": 2.0, "suppressed": map[string]interface{}{"type": "basal", "deliveryType": "scheduled", "rate": 1.0, "scheduleName": "Weekday", "annotations": []interface{}{map[string]interface{}{"one": "two"}}}},
+			testDataTypesBasal.NewTestSuppressed("basal", "temp", nil, 2.0, nil, testDataTypesBasal.NewTestSuppressed("basal", "scheduled", &data.BlobArray{{"one": "two"}}, 1.0, "Weekday", nil)),
 			[]*service.Error{}),
 		Entry("parses object that has multiple invalid fields",
 			&map[string]interface{}{"type": 0, "deliveryType": 0, "rate": "invalid", "scheduleName": 0, "suppressed": 0},
-			NewTestSuppressed(nil, nil, nil, nil, nil, nil),
+			testDataTypesBasal.NewTestSuppressed(nil, nil, nil, nil, nil, nil),
 			[]*service.Error{
 				testData.ComposeError(service.ErrorTypeNotString(0), "/type", nil),
 				testData.ComposeError(service.ErrorTypeNotString(0), "/deliveryType", nil),
@@ -70,8 +65,8 @@ var _ = Describe("Target", func() {
 				testData.ComposeError(service.ErrorTypeNotObject(0), "/suppressed", nil),
 			}),
 		Entry("parses object that has additional fields",
-			&map[string]interface{}{"type": "basal", "deliveryType": "temp", "rate": 2.0, "suppressed": map[string]interface{}{"type": "basal", "deliveryType": "scheduled", "rate": 1.0, "scheduleName": "Weekday", "annotations": []interface{}{"one", "two", "three"}}, "additional": 0.0},
-			NewTestSuppressed("basal", "temp", 2.0, nil, nil, NewTestSuppressed("basal", "scheduled", 1.0, "Weekday", &[]interface{}{"one", "two", "three"}, nil)),
+			&map[string]interface{}{"type": "basal", "deliveryType": "temp", "rate": 2.0, "suppressed": map[string]interface{}{"type": "basal", "deliveryType": "scheduled", "rate": 1.0, "scheduleName": "Weekday", "annotations": []interface{}{map[string]interface{}{"one": "two"}}}, "additional": 0.0},
+			testDataTypesBasal.NewTestSuppressed("basal", "temp", nil, 2.0, nil, testDataTypesBasal.NewTestSuppressed("basal", "scheduled", &data.BlobArray{{"one": "two"}}, 1.0, "Weekday", nil)),
 			[]*service.Error{
 				testData.ComposeError(parser.ErrorNotParsed(), "/additional", nil),
 			}),
@@ -83,324 +78,317 @@ var _ = Describe("Target", func() {
 		})
 	})
 
-	Context("with new suppressed", func() {
-		DescribeTable("Parse",
-			func(sourceObject *map[string]interface{}, expectedSuppressed *basal.Suppressed, expectedErrors []*service.Error) {
-				testContext, err := context.NewStandard(null.NewLogger())
-				Expect(err).ToNot(HaveOccurred())
-				Expect(testContext).ToNot(BeNil())
-				testFactory, err := factory.NewStandard()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(testFactory).ToNot(BeNil())
-				testParser, err := parser.NewStandardObject(testContext, testFactory, sourceObject, parser.AppendErrorNotParsed)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(testParser).ToNot(BeNil())
-				sourceSuppressed := &basal.Suppressed{}
-				sourceSuppressed.Parse(testParser)
-				Expect(sourceSuppressed).To(Equal(expectedSuppressed))
-				Expect(testContext.Errors()).To(ConsistOf(expectedErrors))
-			},
-			Entry("parses object that is nil",
-				nil,
-				NewTestSuppressed(nil, nil, nil, nil, nil, nil),
-				[]*service.Error{}),
-			Entry("parses object that is empty",
-				&map[string]interface{}{},
-				NewTestSuppressed(nil, nil, nil, nil, nil, nil),
-				[]*service.Error{}),
-			Entry("parses object that has valid type",
-				&map[string]interface{}{"type": "basal"},
-				NewTestSuppressed("basal", nil, nil, nil, nil, nil),
-				[]*service.Error{}),
-			Entry("parses object that has invalid type",
-				&map[string]interface{}{"type": 0},
-				NewTestSuppressed(nil, nil, nil, nil, nil, nil),
-				[]*service.Error{
-					testData.ComposeError(service.ErrorTypeNotString(0), "/type", nil),
-				}),
-			Entry("parses object that has valid delivery type",
-				&map[string]interface{}{"deliveryType": "temp"},
-				NewTestSuppressed(nil, "temp", nil, nil, nil, nil),
-				[]*service.Error{}),
-			Entry("parses object that has invalid delivery type",
-				&map[string]interface{}{"deliveryType": 0},
-				NewTestSuppressed(nil, nil, nil, nil, nil, nil),
-				[]*service.Error{
-					testData.ComposeError(service.ErrorTypeNotString(0), "/deliveryType", nil),
-				}),
-			Entry("parses object that has valid rate",
-				&map[string]interface{}{"rate": 2.0},
-				NewTestSuppressed(nil, nil, 2.0, nil, nil, nil),
-				[]*service.Error{}),
-			Entry("parses object that has invalid rate",
-				&map[string]interface{}{"rate": "invalid"},
-				NewTestSuppressed(nil, nil, nil, nil, nil, nil),
-				[]*service.Error{
-					testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/rate", nil),
-				}),
-			Entry("parses object that has valid schedule name",
-				&map[string]interface{}{"scheduleName": "Weekday"},
-				NewTestSuppressed(nil, nil, nil, "Weekday", nil, nil),
-				[]*service.Error{}),
-			Entry("parses object that has invalid schedule name",
-				&map[string]interface{}{"scheduleName": 0},
-				NewTestSuppressed(nil, nil, nil, nil, nil, nil),
-				[]*service.Error{
-					testData.ComposeError(service.ErrorTypeNotString(0), "/scheduleName", nil),
-				}),
-			Entry("parses object that has valid annotations",
-				&map[string]interface{}{"annotations": []interface{}{"a", "b", "c"}},
-				NewTestSuppressed(nil, nil, nil, nil, &[]interface{}{"a", "b", "c"}, nil),
-				[]*service.Error{}),
-			Entry("parses object that has valid suppressed",
-				&map[string]interface{}{"suppressed": map[string]interface{}{}},
-				NewTestSuppressed(nil, nil, nil, nil, nil, NewTestSuppressed(nil, nil, nil, nil, nil, nil)),
-				[]*service.Error{}),
-			Entry("parses object that has valid suppressed that has multiple valid fields",
-				&map[string]interface{}{"suppressed": map[string]interface{}{"type": "basal", "deliveryType": "scheduled", "rate": 1.0, "scheduleName": "Weekday"}},
-				NewTestSuppressed(nil, nil, nil, nil, nil, NewTestSuppressed("basal", "scheduled", 1.0, "Weekday", nil, nil)),
-				[]*service.Error{}),
-			Entry("parses object that has invalid suppressed",
-				&map[string]interface{}{"suppressed": 0},
-				NewTestSuppressed(nil, nil, nil, nil, nil, nil),
-				[]*service.Error{
-					testData.ComposeError(service.ErrorTypeNotObject(0), "/suppressed", nil),
-				}),
-			Entry("parses object that has multiple valid fields",
-				&map[string]interface{}{"type": "basal", "deliveryType": "temp", "rate": 2.0, "annotations": []interface{}{"a", "b", "c"}, "suppressed": map[string]interface{}{"type": "basal", "deliveryType": "scheduled", "rate": 1.0, "scheduleName": "Weekday", "annotations": []interface{}{"d", "e", "f"}}},
-				NewTestSuppressed("basal", "temp", 2.0, nil, &[]interface{}{"a", "b", "c"}, NewTestSuppressed("basal", "scheduled", 1.0, "Weekday", &[]interface{}{"d", "e", "f"}, nil)),
-				[]*service.Error{}),
-			Entry("parses object that has multiple invalid fields",
-				&map[string]interface{}{"type": 0, "deliveryType": 0, "rate": "invalid", "scheduleName": 0, "suppressed": 0},
-				NewTestSuppressed(nil, nil, nil, nil, nil, nil),
-				[]*service.Error{
-					testData.ComposeError(service.ErrorTypeNotString(0), "/type", nil),
-					testData.ComposeError(service.ErrorTypeNotString(0), "/deliveryType", nil),
-					testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/rate", nil),
-					testData.ComposeError(service.ErrorTypeNotString(0), "/scheduleName", nil),
-					testData.ComposeError(service.ErrorTypeNotObject(0), "/suppressed", nil),
-				}),
-		)
+	Context("Suppressed", func() {
+		Context("Parse", func() {
+			DescribeTable("parses the datum",
+				func(sourceObject *map[string]interface{}, expectedSuppressed *basal.Suppressed, expectedErrors []*service.Error) {
+					testContext, err := context.NewStandard(null.NewLogger())
+					Expect(err).ToNot(HaveOccurred())
+					Expect(testContext).ToNot(BeNil())
+					testFactory, err := factory.NewStandard()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(testFactory).ToNot(BeNil())
+					testParser, err := parser.NewStandardObject(testContext, testFactory, sourceObject, parser.AppendErrorNotParsed)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(testParser).ToNot(BeNil())
+					datum := &basal.Suppressed{}
+					datum.Parse(testParser)
+					Expect(datum).To(Equal(expectedSuppressed))
+					Expect(testContext.Errors()).To(ConsistOf(expectedErrors))
+				},
+				Entry("parses object that is nil",
+					nil,
+					testDataTypesBasal.NewTestSuppressed(nil, nil, nil, nil, nil, nil),
+					[]*service.Error{}),
+				Entry("parses object that is empty",
+					&map[string]interface{}{},
+					testDataTypesBasal.NewTestSuppressed(nil, nil, nil, nil, nil, nil),
+					[]*service.Error{}),
+				Entry("parses object that has valid type",
+					&map[string]interface{}{"type": "basal"},
+					testDataTypesBasal.NewTestSuppressed("basal", nil, nil, nil, nil, nil),
+					[]*service.Error{}),
+				Entry("parses object that has invalid type",
+					&map[string]interface{}{"type": 0},
+					testDataTypesBasal.NewTestSuppressed(nil, nil, nil, nil, nil, nil),
+					[]*service.Error{
+						testData.ComposeError(service.ErrorTypeNotString(0), "/type", nil),
+					}),
+				Entry("parses object that has valid delivery type",
+					&map[string]interface{}{"deliveryType": "temp"},
+					testDataTypesBasal.NewTestSuppressed(nil, "temp", nil, nil, nil, nil),
+					[]*service.Error{}),
+				Entry("parses object that has invalid delivery type",
+					&map[string]interface{}{"deliveryType": 0},
+					testDataTypesBasal.NewTestSuppressed(nil, nil, nil, nil, nil, nil),
+					[]*service.Error{
+						testData.ComposeError(service.ErrorTypeNotString(0), "/deliveryType", nil),
+					}),
+				Entry("parses object that has valid rate",
+					&map[string]interface{}{"rate": 2.0},
+					testDataTypesBasal.NewTestSuppressed(nil, nil, nil, 2.0, nil, nil),
+					[]*service.Error{}),
+				Entry("parses object that has invalid rate",
+					&map[string]interface{}{"rate": "invalid"},
+					testDataTypesBasal.NewTestSuppressed(nil, nil, nil, nil, nil, nil),
+					[]*service.Error{
+						testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/rate", nil),
+					}),
+				Entry("parses object that has valid schedule name",
+					&map[string]interface{}{"scheduleName": "Weekday"},
+					testDataTypesBasal.NewTestSuppressed(nil, nil, nil, nil, "Weekday", nil),
+					[]*service.Error{}),
+				Entry("parses object that has invalid schedule name",
+					&map[string]interface{}{"scheduleName": 0},
+					testDataTypesBasal.NewTestSuppressed(nil, nil, nil, nil, nil, nil),
+					[]*service.Error{
+						testData.ComposeError(service.ErrorTypeNotString(0), "/scheduleName", nil),
+					}),
+				Entry("parses object that has valid annotations",
+					&map[string]interface{}{"annotations": []interface{}{map[string]interface{}{"a": "b"}}},
+					testDataTypesBasal.NewTestSuppressed(nil, nil, &data.BlobArray{{"a": "b"}}, nil, nil, nil),
+					[]*service.Error{}),
+				Entry("parses object that has valid suppressed",
+					&map[string]interface{}{"suppressed": map[string]interface{}{}},
+					testDataTypesBasal.NewTestSuppressed(nil, nil, nil, nil, nil, testDataTypesBasal.NewTestSuppressed(nil, nil, nil, nil, nil, nil)),
+					[]*service.Error{}),
+				Entry("parses object that has valid suppressed that has multiple valid fields",
+					&map[string]interface{}{"suppressed": map[string]interface{}{"type": "basal", "deliveryType": "scheduled", "rate": 1.0, "scheduleName": "Weekday"}},
+					testDataTypesBasal.NewTestSuppressed(nil, nil, nil, nil, nil, testDataTypesBasal.NewTestSuppressed("basal", "scheduled", nil, 1.0, "Weekday", nil)),
+					[]*service.Error{}),
+				Entry("parses object that has invalid suppressed",
+					&map[string]interface{}{"suppressed": 0},
+					testDataTypesBasal.NewTestSuppressed(nil, nil, nil, nil, nil, nil),
+					[]*service.Error{
+						testData.ComposeError(service.ErrorTypeNotObject(0), "/suppressed", nil),
+					}),
+				Entry("parses object that has multiple valid fields",
+					&map[string]interface{}{"type": "basal", "deliveryType": "temp", "rate": 2.0, "annotations": []interface{}{map[string]interface{}{"a": "b"}}, "suppressed": map[string]interface{}{"type": "basal", "deliveryType": "scheduled", "rate": 1.0, "scheduleName": "Weekday", "annotations": []interface{}{map[string]interface{}{"d": "e"}}}},
+					testDataTypesBasal.NewTestSuppressed("basal", "temp", &data.BlobArray{{"a": "b"}}, 2.0, nil, testDataTypesBasal.NewTestSuppressed("basal", "scheduled", &data.BlobArray{{"d": "e"}}, 1.0, "Weekday", nil)),
+					[]*service.Error{}),
+				Entry("parses object that has multiple invalid fields",
+					&map[string]interface{}{"type": 0, "deliveryType": 0, "rate": "invalid", "scheduleName": 0, "suppressed": 0},
+					testDataTypesBasal.NewTestSuppressed(nil, nil, nil, nil, nil, nil),
+					[]*service.Error{
+						testData.ComposeError(service.ErrorTypeNotString(0), "/type", nil),
+						testData.ComposeError(service.ErrorTypeNotString(0), "/deliveryType", nil),
+						testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/rate", nil),
+						testData.ComposeError(service.ErrorTypeNotString(0), "/scheduleName", nil),
+						testData.ComposeError(service.ErrorTypeNotObject(0), "/suppressed", nil),
+					}),
+			)
+		})
 
-		DescribeTable("Validate",
-			func(sourceSuppressed *basal.Suppressed, allowedDeliveryTypes []string, expectedErrors []*service.Error) {
-				testContext, err := context.NewStandard(null.NewLogger())
-				Expect(err).ToNot(HaveOccurred())
-				Expect(testContext).ToNot(BeNil())
-				testValidator, err := validator.NewStandard(testContext)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(testValidator).ToNot(BeNil())
-				sourceSuppressed.Validate(testValidator, allowedDeliveryTypes)
-				Expect(testContext.Errors()).To(ConsistOf(expectedErrors))
-			},
-			Entry("validates a suppressed with type scheduled; all valid",
-				NewTestSuppressed("basal", "scheduled", 1.0, "Weekday", nil, nil), []string{"scheduled"},
-				[]*service.Error{}),
-			Entry("validates a suppressed with type scheduled; type missing",
-				NewTestSuppressed(nil, "scheduled", 1.0, "Weekday", nil, nil), []string{"scheduled"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueNotExists(), "/type", nil),
-				}),
-			Entry("validates a suppressed with type scheduled; type not basal",
-				NewTestSuppressed("invalid", "scheduled", 1.0, "Weekday", nil, nil), []string{"scheduled"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueNotEqualTo("invalid", "basal"), "/type", nil),
-				}),
-			Entry("validates a suppressed with type scheduled; deliveryType missing",
-				NewTestSuppressed("basal", nil, 1.0, "Weekday", nil, nil), []string{"scheduled"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueNotExists(), "/deliveryType", nil),
-				}),
-			Entry("validates a suppressed with type scheduled; deliveryType not allowed",
-				NewTestSuppressed("basal", "invalid", 1.0, "Weekday", nil, nil), []string{"scheduled"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueStringNotOneOf("invalid", []string{"scheduled"}), "/deliveryType", nil),
-				}),
-			Entry("validates a suppressed with type scheduled; rate missing",
-				NewTestSuppressed("basal", "scheduled", nil, "Weekday", nil, nil), []string{"scheduled"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueNotExists(), "/rate", nil),
-				}),
-			Entry("validates a suppressed with type scheduled; rate out of range (lower)",
-				NewTestSuppressed("basal", "scheduled", -0.1, "Weekday", nil, nil), []string{"scheduled"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/rate", nil),
-				}),
-			Entry("validates a suppressed with type scheduled; rate at limit (lower)",
-				NewTestSuppressed("basal", "scheduled", 0.0, "Weekday", nil, nil), []string{"scheduled"},
-				[]*service.Error{}),
-			Entry("validates a suppressed with type scheduled; rate at limit (upper)",
-				NewTestSuppressed("basal", "scheduled", 100.0, "Weekday", nil, nil), []string{"scheduled"},
-				[]*service.Error{}),
-			Entry("validates a suppressed with type scheduled; rate out of range (upper)",
-				NewTestSuppressed("basal", "scheduled", 100.1, "Weekday", nil, nil), []string{"scheduled"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate", nil),
-				}),
-			Entry("validates a suppressed with type scheduled; schedule name empty",
-				NewTestSuppressed("basal", "scheduled", 1.0, "", nil, nil), []string{"scheduled"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueEmpty(), "/scheduleName", nil),
-				}),
-			Entry("validates a suppressed with type scheduled; suppressed exists",
-				NewTestSuppressed("basal", "scheduled", 1.0, "Weekday", nil, NewTestSuppressed(nil, nil, nil, nil, nil, nil)), []string{"scheduled"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueExists(), "/suppressed", nil),
-				}),
-			Entry("validates a suppressed with type scheduled; multiple",
-				NewTestSuppressed("invalid", "scheduled", 100.1, "", nil, NewTestSuppressed(nil, nil, nil, nil, nil, nil)), []string{"scheduled"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueNotEqualTo("invalid", "basal"), "/type", nil),
-					testData.ComposeError(service.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate", nil),
-					testData.ComposeError(service.ErrorValueEmpty(), "/scheduleName", nil),
-					testData.ComposeError(service.ErrorValueExists(), "/suppressed", nil),
-				}),
-			Entry("validates a suppressed with type temp; all valid",
-				NewTestSuppressed("basal", "temp", 2.0, nil, nil, NewTestSuppressed("basal", "scheduled", 1.0, "Weekday", nil, nil)), []string{"scheduled", "temp"},
-				[]*service.Error{}),
-			Entry("validates a suppressed with type temp; type missing",
-				NewTestSuppressed(nil, "temp", 2.0, nil, nil, NewTestSuppressed("basal", "scheduled", 1.0, "Weekday", nil, nil)), []string{"scheduled", "temp"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueNotExists(), "/type", nil),
-				}),
-			Entry("validates a suppressed with type temp; type not basal",
-				NewTestSuppressed("invalid", "temp", 2.0, nil, nil, NewTestSuppressed("basal", "scheduled", 1.0, "Weekday", nil, nil)), []string{"scheduled", "temp"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueNotEqualTo("invalid", "basal"), "/type", nil),
-				}),
-			Entry("validates a suppressed with type temp; deliveryType missing",
-				NewTestSuppressed("basal", nil, 2.0, nil, nil, NewTestSuppressed("basal", "scheduled", 1.0, "Weekday", nil, nil)), []string{"scheduled", "temp"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueNotExists(), "/deliveryType", nil),
-				}),
-			Entry("validates a suppressed with type temp; deliveryType not allowed",
-				NewTestSuppressed("basal", "invalid", 2.0, "Weekday", nil, NewTestSuppressed("basal", "scheduled", 1.0, "Weekday", nil, nil)), []string{"scheduled", "temp"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueStringNotOneOf("invalid", []string{"scheduled", "temp"}), "/deliveryType", nil),
-				}),
-			Entry("validates a suppressed with type temp; rate missing",
-				NewTestSuppressed("basal", "temp", nil, nil, nil, NewTestSuppressed("basal", "scheduled", 1.0, "Weekday", nil, nil)), []string{"scheduled", "temp"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueNotExists(), "/rate", nil),
-				}),
-			Entry("validates a suppressed with type temp; rate out of range (lower)",
-				NewTestSuppressed("basal", "temp", -0.1, nil, nil, NewTestSuppressed("basal", "scheduled", 1.0, "Weekday", nil, nil)), []string{"scheduled", "temp"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/rate", nil),
-				}),
-			Entry("validates a suppressed with type temp; rate at limit (lower)",
-				NewTestSuppressed("basal", "temp", 0.0, nil, nil, NewTestSuppressed("basal", "scheduled", 1.0, "Weekday", nil, nil)), []string{"scheduled", "temp"},
-				[]*service.Error{}),
-			Entry("validates a suppressed with type temp; rate at limit (upper)",
-				NewTestSuppressed("basal", "temp", 100.0, nil, nil, NewTestSuppressed("basal", "scheduled", 1.0, "Weekday", nil, nil)), []string{"scheduled", "temp"},
-				[]*service.Error{}),
-			Entry("validates a suppressed with type temp; rate out of range (upper)",
-				NewTestSuppressed("basal", "temp", 100.1, nil, nil, NewTestSuppressed("basal", "scheduled", 1.0, "Weekday", nil, nil)), []string{"scheduled", "temp"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate", nil),
-				}),
-			Entry("validates a suppressed with type temp; schedule name exists",
-				NewTestSuppressed("basal", "temp", 2.0, "Weekday", nil, NewTestSuppressed("basal", "scheduled", 1.0, "Weekday", nil, nil)), []string{"scheduled", "temp"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueExists(), "/scheduleName", nil),
-				}),
-			Entry("validates a suppressed with type temp; suppressed missing",
-				NewTestSuppressed("basal", "temp", 2.0, nil, nil, nil), []string{"scheduled", "temp"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueNotExists(), "/suppressed", nil),
-				}),
-			Entry("validates a suppressed with type temp; multiple",
-				NewTestSuppressed("invalid", "temp", 100.1, "Weekday", nil, nil), []string{"scheduled", "temp"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueNotEqualTo("invalid", "basal"), "/type", nil),
-					testData.ComposeError(service.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate", nil),
-					testData.ComposeError(service.ErrorValueExists(), "/scheduleName", nil),
-					testData.ComposeError(service.ErrorValueNotExists(), "/suppressed", nil),
-				}),
-			Entry("validates a suppressed with type temp; suppressed type missing",
-				NewTestSuppressed("basal", "temp", 2.0, nil, nil, NewTestSuppressed(nil, "scheduled", 1.0, "Weekday", nil, nil)), []string{"scheduled", "temp"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueNotExists(), "/suppressed/type", nil),
-				}),
-			Entry("validates a suppressed with type temp; suppressed type not basal",
-				NewTestSuppressed("basal", "temp", 2.0, nil, nil, NewTestSuppressed("invalid", "scheduled", 1.0, "Weekday", nil, nil)), []string{"scheduled", "temp"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueNotEqualTo("invalid", "basal"), "/suppressed/type", nil),
-				}),
-			Entry("validates a suppressed with type temp; suppressed deliveryType missing",
-				NewTestSuppressed("basal", "temp", 2.0, nil, nil, NewTestSuppressed("basal", nil, 1.0, "Weekday", nil, nil)), []string{"scheduled", "temp"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueNotExists(), "/suppressed/deliveryType", nil),
-				}),
-			Entry("validates a suppressed with type temp; suppressed deliveryType not allowed",
-				NewTestSuppressed("basal", "temp", 2.0, nil, nil, NewTestSuppressed("basal", "temp", 1.0, "Weekday", nil, nil)), []string{"scheduled", "temp"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueStringNotOneOf("temp", []string{"scheduled"}), "/suppressed/deliveryType", nil),
-				}),
-			Entry("validates a suppressed with type temp; suppressed rate missing",
-				NewTestSuppressed("basal", "temp", 2.0, nil, nil, NewTestSuppressed("basal", "scheduled", nil, "Weekday", nil, nil)), []string{"scheduled", "temp"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueNotExists(), "/suppressed/rate", nil),
-				}),
-			Entry("validates a suppressed with type temp; suppressed rate out of range (lower)",
-				NewTestSuppressed("basal", "temp", 2.0, nil, nil, NewTestSuppressed("basal", "scheduled", -0.1, "Weekday", nil, nil)), []string{"scheduled", "temp"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/suppressed/rate", nil),
-				}),
-			Entry("validates a suppressed with type temp; suppressed rate at limit (lower)",
-				NewTestSuppressed("basal", "temp", 2.0, nil, nil, NewTestSuppressed("basal", "scheduled", 0.0, "Weekday", nil, nil)), []string{"scheduled", "temp"},
-				[]*service.Error{}),
-			Entry("validates a suppressed with type temp; suppressed rate at limit (upper)",
-				NewTestSuppressed("basal", "temp", 2.0, nil, nil, NewTestSuppressed("basal", "scheduled", 100.0, "Weekday", nil, nil)), []string{"scheduled", "temp"},
-				[]*service.Error{}),
-			Entry("validates a suppressed with type temp; suppressed rate out of range (upper)",
-				NewTestSuppressed("basal", "temp", 2.0, nil, nil, NewTestSuppressed("basal", "scheduled", 100.1, "Weekday", nil, nil)), []string{"scheduled", "temp"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueNotInRange(100.1, 0.0, 100.0), "/suppressed/rate", nil),
-				}),
-			Entry("validates a suppressed with type temp; suppressed schedule name empty",
-				NewTestSuppressed("basal", "temp", 2.0, nil, nil, NewTestSuppressed("basal", "scheduled", 1.0, "", nil, nil)), []string{"scheduled", "temp"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueEmpty(), "/suppressed/scheduleName", nil),
-				}),
-			Entry("validates a suppressed with type temp; suppressed suppressed exists",
-				NewTestSuppressed("basal", "temp", 2.0, nil, nil, NewTestSuppressed("basal", "scheduled", 1.0, "Weekday", nil, NewTestSuppressed(nil, nil, nil, nil, nil, nil))), []string{"scheduled", "temp"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueExists(), "/suppressed/suppressed", nil),
-				}),
-			Entry("validates a suppressed with type temp; suppressed multiple",
-				NewTestSuppressed("basal", "temp", 2.0, nil, nil, NewTestSuppressed("invalid", "scheduled", 100.1, "", nil, NewTestSuppressed(nil, nil, nil, nil, nil, nil))), []string{"scheduled", "temp"},
-				[]*service.Error{
-					testData.ComposeError(service.ErrorValueNotEqualTo("invalid", "basal"), "/suppressed/type", nil),
-					testData.ComposeError(service.ErrorValueNotInRange(100.1, 0.0, 100.0), "/suppressed/rate", nil),
-					testData.ComposeError(service.ErrorValueEmpty(), "/suppressed/scheduleName", nil),
-					testData.ComposeError(service.ErrorValueExists(), "/suppressed/suppressed", nil),
-				}),
-		)
+		Context("Validate", func() {
+			DescribeTable("validates the datum; delivery type temporary",
+				func(mutator func(datum *basal.Suppressed), expectedErrors ...error) {
+					datum := testDataTypesBasal.NewSuppressedTemporary()
+					mutator(datum)
+					testDataTypes.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithStringArrayAdapter(datum, &[]string{"scheduled", "temp"}), structure.Origins(), expectedErrors...)
+				},
+				Entry("succeeds",
+					func(datum *basal.Suppressed) {},
+				),
+				Entry("delivery type missing",
+					func(datum *basal.Suppressed) { datum.DeliveryType = nil },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/deliveryType"),
+				),
+				Entry("delivery type invalid",
+					func(datum *basal.Suppressed) { datum.DeliveryType = pointer.String("invalid") },
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"scheduled", "temp"}), "/deliveryType"),
+				),
+				Entry("type missing",
+					func(datum *basal.Suppressed) { datum.Type = nil },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
+				),
+				Entry("type invalid",
+					func(datum *basal.Suppressed) { datum.Type = pointer.String("invalid") },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "basal"), "/type"),
+				),
+				Entry("type basal",
+					func(datum *basal.Suppressed) { datum.Type = pointer.String("basal") },
+				),
+				Entry("annotations missing",
+					func(datum *basal.Suppressed) { datum.Annotations = nil },
+				),
+				Entry("annotations valid",
+					func(datum *basal.Suppressed) { datum.Annotations = testData.NewBlobArray() },
+				),
+				Entry("rate missing",
+					func(datum *basal.Suppressed) { datum.Rate = nil },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
+				),
+				Entry("rate out of range (lower)",
+					func(datum *basal.Suppressed) { datum.Rate = pointer.Float64(-0.1) },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/rate"),
+				),
+				Entry("rate at limit (lower)",
+					func(datum *basal.Suppressed) { datum.Rate = pointer.Float64(0.0) },
+				),
+				Entry("rate at limit (upper)",
+					func(datum *basal.Suppressed) { datum.Rate = pointer.Float64(100.0) },
+				),
+				Entry("rate out of range (upper)",
+					func(datum *basal.Suppressed) { datum.Rate = pointer.Float64(100.1) },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate"),
+				),
+				Entry("schedule name missing",
+					func(datum *basal.Suppressed) { datum.ScheduleName = nil },
+				),
+				Entry("schedule name exists",
+					func(datum *basal.Suppressed) {
+						datum.ScheduleName = pointer.String(testDataTypesBasal.NewScheduleName())
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/scheduleName"),
+				),
+				Entry("suppressed missing",
+					func(datum *basal.Suppressed) { datum.Suppressed = nil },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/suppressed"),
+				),
+				Entry("suppressed invalid",
+					func(datum *basal.Suppressed) { datum.Suppressed.Type = nil },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/suppressed/type"),
+				),
+				Entry("suppressed valid",
+					func(datum *basal.Suppressed) { datum.Suppressed = testDataTypesBasal.NewSuppressedScheduled() },
+				),
+				Entry("multiple errors",
+					func(datum *basal.Suppressed) {
+						datum.Type = pointer.String("invalid")
+						datum.Rate = pointer.Float64(100.1)
+						datum.ScheduleName = pointer.String(testDataTypesBasal.NewScheduleName())
+						datum.Suppressed = nil
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "basal"), "/type"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/scheduleName"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/suppressed"),
+				),
+			)
+
+			DescribeTable("validates the datum; delivery type scheduled",
+				func(mutator func(datum *basal.Suppressed), expectedErrors ...error) {
+					datum := testDataTypesBasal.NewSuppressedScheduled()
+					mutator(datum)
+					testDataTypes.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithStringArrayAdapter(datum, &[]string{"scheduled"}), structure.Origins(), expectedErrors...)
+				},
+				Entry("succeeds",
+					func(datum *basal.Suppressed) {},
+				),
+				Entry("delivery type missing",
+					func(datum *basal.Suppressed) { datum.DeliveryType = nil },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/deliveryType"),
+				),
+				Entry("delivery type invalid",
+					func(datum *basal.Suppressed) { datum.DeliveryType = pointer.String("invalid") },
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"scheduled"}), "/deliveryType"),
+				),
+				Entry("type missing",
+					func(datum *basal.Suppressed) { datum.Type = nil },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
+				),
+				Entry("type invalid",
+					func(datum *basal.Suppressed) { datum.Type = pointer.String("invalid") },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "basal"), "/type"),
+				),
+				Entry("type basal",
+					func(datum *basal.Suppressed) { datum.Type = pointer.String("basal") },
+				),
+				Entry("rate missing",
+					func(datum *basal.Suppressed) { datum.Rate = nil },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
+				),
+				Entry("rate out of range (lower)",
+					func(datum *basal.Suppressed) { datum.Rate = pointer.Float64(-0.1) },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/rate"),
+				),
+				Entry("rate at limit (lower)",
+					func(datum *basal.Suppressed) { datum.Rate = pointer.Float64(0.0) },
+				),
+				Entry("rate at limit (upper)",
+					func(datum *basal.Suppressed) { datum.Rate = pointer.Float64(100.0) },
+				),
+				Entry("rate out of range (upper)",
+					func(datum *basal.Suppressed) { datum.Rate = pointer.Float64(100.1) },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate"),
+				),
+				Entry("schedule name missing",
+					func(datum *basal.Suppressed) { datum.ScheduleName = nil },
+				),
+				Entry("schedule name empty",
+					func(datum *basal.Suppressed) { datum.ScheduleName = pointer.String("") },
+					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/scheduleName"),
+				),
+				Entry("schedule name valid",
+					func(datum *basal.Suppressed) {
+						datum.ScheduleName = pointer.String(testDataTypesBasal.NewScheduleName())
+					},
+				),
+				Entry("suppressed missing",
+					func(datum *basal.Suppressed) { datum.Suppressed = nil },
+				),
+				Entry("suppressed exists",
+					func(datum *basal.Suppressed) { datum.Suppressed = testDataTypesBasal.NewSuppressedScheduled() },
+					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/suppressed"),
+				),
+				Entry("multiple errors",
+					func(datum *basal.Suppressed) {
+						datum.Type = pointer.String("invalid")
+						datum.Rate = pointer.Float64(100.1)
+						datum.ScheduleName = pointer.String("")
+						datum.Suppressed = testDataTypesBasal.NewSuppressedScheduled()
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "basal"), "/type"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/scheduleName"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/suppressed"),
+				),
+			)
+		})
+
+		Context("Normalize", func() {
+			DescribeTable("normalizes the datum",
+				func(mutator func(datum *basal.Suppressed)) {
+					for _, origin := range structure.Origins() {
+						datum := testDataTypesBasal.NewSuppressedTemporary()
+						mutator(datum)
+						expectedDatum := testDataTypesBasal.CloneSuppressed(datum)
+						normalizer := dataNormalizer.New()
+						Expect(normalizer).ToNot(BeNil())
+						datum.Normalize(normalizer.WithOrigin(origin))
+						Expect(normalizer.Error()).To(BeNil())
+						Expect(normalizer.Data()).To(BeEmpty())
+						Expect(datum).To(Equal(expectedDatum))
+					}
+				},
+				Entry("does not modify the datum",
+					func(datum *basal.Suppressed) {},
+				),
+				Entry("does not modify the datum; suppressed missing",
+					func(datum *basal.Suppressed) { datum.Suppressed = nil },
+				),
+			)
+		})
 	})
 
-	Context("HasDeliveryTypeOneOf", func() {
-		var suppressed *basal.Suppressed
-
-		BeforeEach(func() {
-			suppressed = basal.NewSuppressed()
-		})
-
-		It("returns false if suppressed delivery type is nil", func() {
-			Expect(suppressed.HasDeliveryTypeOneOf([]string{"one", "two", "three"})).To(BeFalse())
-		})
-
+	Context("FindAndRemoveDeliveryType", func() {
 		DescribeTable("returns expected result when",
-			func(suppressedDeliveryType string, deliveryTypes []string, expectedResult bool) {
-				suppressed.DeliveryType = pointer.String(suppressedDeliveryType)
-				Expect(suppressed.HasDeliveryTypeOneOf(deliveryTypes)).To(Equal(expectedResult))
+			func(allowedDeliveryTypes []string, deliveryType string, expectedResult []string, expectedBool bool) {
+				var originalAllowedDeliveryTypes []string
+				if allowedDeliveryTypes != nil {
+					originalAllowedDeliveryTypes = append([]string{}, allowedDeliveryTypes...)
+				}
+				actualResult, actualBool := basal.FindAndRemoveDeliveryType(allowedDeliveryTypes, deliveryType)
+				Expect(actualBool).To(Equal(expectedBool))
+				Expect(actualResult).To(Equal(expectedResult))
+				Expect(allowedDeliveryTypes).To(Equal(originalAllowedDeliveryTypes))
 			},
-			Entry("is nil delivery type string array", "two", nil, false),
-			Entry("is single delivery type string array", "two", []string{}, false),
-			Entry("is single invalid delivery type string array", "two", []string{"one"}, false),
-			Entry("is single valid delivery type string array", "two", []string{"two"}, true),
-			Entry("is multiple invalid delivery type string array", "two", []string{"one", "three"}, false),
-			Entry("is multiple invalid and valid delivery type string array", "two", []string{"one", "two", "three", "four"}, true),
+			Entry("is an nil array", nil, "zero", nil, false),
+			Entry("is an empty array ", []string{}, "zero", []string{}, false),
+			Entry("is not found", []string{"one", "two", "three"}, "zero", []string{"one", "two", "three"}, false),
+			Entry("is found at first position", []string{"one", "two", "three"}, "one", []string{"two", "three"}, true),
+			Entry("is found at middle position", []string{"one", "two", "three"}, "two", []string{"one", "three"}, true),
+			Entry("is found at last position", []string{"one", "two", "three"}, "three", []string{"one", "two"}, true),
 		)
 	})
 })

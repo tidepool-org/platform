@@ -74,4 +74,4 @@ const (
 	TransmitterIDExpressionString = "^[0-9A-Z]{5,6}$"
 )
 
-var TransmitterIDExpression = regexp.MustCompile(TransmitterIDExpressionString)
+var transmitterIDExpression = regexp.MustCompile(TransmitterIDExpressionString)

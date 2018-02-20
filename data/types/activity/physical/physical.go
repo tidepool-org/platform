@@ -3,23 +3,32 @@ package physical
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/structure"
 )
 
 const (
 	ReportedIntensityHigh   = "high"
-	ReportedIntensityMedium = "medium"
 	ReportedIntensityLow    = "low"
+	ReportedIntensityMedium = "medium"
 )
+
+func ReportedIntensities() []string {
+	return []string{
+		ReportedIntensityHigh,
+		ReportedIntensityLow,
+		ReportedIntensityMedium,
+	}
+}
 
 type Physical struct {
 	types.Base `bson:",inline"`
 
-	ReportedIntensity *string   `json:"reportedIntensity,omitempty" bson:"reportedIntensity,omitempty"`
 	Duration          *Duration `json:"duration,omitempty" bson:"duration,omitempty"`
+	ReportedIntensity *string   `json:"reportedIntensity,omitempty" bson:"reportedIntensity,omitempty"`
 }
 
 func Type() string {
-	return "physicalActivity"
+	return "physicalActivity" // TODO: Change to "activity/physical"
 }
 
 func NewDatum() data.Datum {
@@ -40,8 +49,8 @@ func (p *Physical) Init() {
 	p.Base.Init()
 	p.Type = Type()
 
-	p.ReportedIntensity = nil
 	p.Duration = nil
+	p.ReportedIntensity = nil
 }
 
 func (p *Physical) Parse(parser data.ObjectParser) error {
@@ -51,30 +60,33 @@ func (p *Physical) Parse(parser data.ObjectParser) error {
 		return err
 	}
 
-	p.ReportedIntensity = parser.ParseString("reportedIntensity")
 	p.Duration = ParseDuration(parser.NewChildObjectParser("duration"))
+	p.ReportedIntensity = parser.ParseString("reportedIntensity")
 
 	return nil
 }
 
-func (p *Physical) Validate(validator data.Validator) error {
-	validator.SetMeta(p.Meta())
-
-	if err := p.Base.Validate(validator); err != nil {
-		return err
+func (p *Physical) Validate(validator structure.Validator) {
+	if !validator.HasMeta() {
+		validator = validator.WithMeta(p.Meta())
 	}
 
-	validator.ValidateString("type", &p.Type).EqualTo(Type())
-	validator.ValidateString("reportedIntensity", p.ReportedIntensity).OneOf([]string{ReportedIntensityHigh, ReportedIntensityMedium, ReportedIntensityLow})
+	p.Base.Validate(validator)
+
+	if p.Type != "" {
+		validator.String("type", &p.Type).EqualTo(Type())
+	}
+
 	if p.Duration != nil {
-		p.Duration.Validate(validator.NewChildValidator("duration"))
+		p.Duration.Validate(validator.WithReference("duration"))
 	}
-
-	return nil
+	validator.String("reportedIntensity", p.ReportedIntensity).OneOf(ReportedIntensities()...)
 }
 
 func (p *Physical) Normalize(normalizer data.Normalizer) {
-	normalizer = normalizer.WithMeta(p.Meta())
+	if !normalizer.HasMeta() {
+		normalizer = normalizer.WithMeta(p.Meta())
+	}
 
 	p.Base.Normalize(normalizer)
 

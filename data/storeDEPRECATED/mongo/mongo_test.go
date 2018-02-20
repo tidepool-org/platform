@@ -50,7 +50,7 @@ package mongo_test
 // 	dataset.ConversionOffset = pointer.Int(0)
 // 	dataset.DeviceID = pointer.String(deviceID)
 // 	dataset.DeviceTime = pointer.String(SampleTime().Format("2006-01-02T15:04:05"))
-// 	dataset.Time = pointer.String(SampleTime().UTC().Format("2006-01-02T15:04:05Z07:00"))
+// 	dataset.Time = pointer.String(SampleTime().UTC().Format(time.RFC3339))
 // 	dataset.TimezoneOffset = pointer.Int(-420)
 
 // 	dataset.ComputerTime = pointer.String(SampleTime().Format("2006-01-02T15:04:05"))
@@ -78,7 +78,7 @@ package mongo_test
 // 		baseDatum.ConversionOffset = pointer.Int(0)
 // 		baseDatum.DeviceID = pointer.String(deviceID)
 // 		baseDatum.DeviceTime = pointer.String(SampleTime().Format("2006-01-02T15:04:05"))
-// 		baseDatum.Time = pointer.String(SampleTime().UTC().Format("2006-01-02T15:04:05Z07:00"))
+// 		baseDatum.Time = pointer.String(SampleTime().UTC().Format(time.RFC3339))
 // 		baseDatum.TimezoneOffset = pointer.Int(-420)
 
 // 		datasetData = append(datasetData, baseDatum)
@@ -423,7 +423,7 @@ package mongo_test
 // 						Expect(mongoSession.CreateDataset(dataset)).To(Succeed())
 // 						Expect(dataset.CreatedTime).ToNot(BeEmpty())
 // 						Expect(dataset.CreatedUserID).To(BeEmpty())
-// 						Expect(dataset.ByUser).To(BeEmpty())
+// 						Expect(dataset.ByUser).To(BeNil())
 // 					})
 
 // 					It("has the correct stored datasets", func() {

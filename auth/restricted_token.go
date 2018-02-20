@@ -18,7 +18,7 @@ import (
 
 const MaximumExpirationDuration = time.Hour
 
-var PathExpression = regexp.MustCompile("^/.*$")
+var pathExpression = regexp.MustCompile("^/.*$")
 
 type RestrictedTokenAccessor interface {
 	ListUserRestrictedTokens(ctx context.Context, userID string, filter *RestrictedTokenFilter, pagination *page.Pagination) (RestrictedTokens, error)
@@ -61,7 +61,7 @@ func (r *RestrictedTokenCreate) Parse(parser structure.ObjectParser) {
 }
 
 func (r *RestrictedTokenCreate) Validate(validator structure.Validator) {
-	validator.StringArray("paths", r.Paths).LengthInRange(1, 10).EachMatches(PathExpression)
+	validator.StringArray("paths", r.Paths).LengthInRange(1, 10).EachMatches(pathExpression)
 	validator.Time("expirationTime", r.ExpirationTime).Before(time.Now().Add(MaximumExpirationDuration))
 }
 
@@ -90,7 +90,7 @@ func (r *RestrictedTokenUpdate) Parse(parser structure.ObjectParser) {
 }
 
 func (r *RestrictedTokenUpdate) Validate(validator structure.Validator) {
-	validator.StringArray("paths", r.Paths).LengthInRange(1, 10).EachMatches(PathExpression)
+	validator.StringArray("paths", r.Paths).LengthInRange(1, 10).EachMatches(pathExpression)
 	validator.Time("expirationTime", r.ExpirationTime).Before(time.Now().Add(MaximumExpirationDuration))
 }
 
@@ -152,9 +152,9 @@ func (r *RestrictedToken) Parse(parser structure.ObjectParser) {
 }
 
 func (r *RestrictedToken) Validate(validator structure.Validator) {
-	validator.String("id", &r.ID).Matches(id.Expression)
+	validator.String("id", &r.ID).Using(id.Validate)
 	validator.String("userId", &r.UserID).NotEmpty() // TODO: Further validation
-	validator.StringArray("paths", r.Paths).LengthInRange(1, 10).EachMatches(PathExpression)
+	validator.StringArray("paths", r.Paths).LengthInRange(1, 10).EachMatches(pathExpression)
 	validator.Time("expirationTime", &r.ExpirationTime).Before(time.Now().Add(MaximumExpirationDuration))
 	validator.Time("createdTime", &r.CreatedTime).NotZero().BeforeNow(time.Second)
 	validator.Time("modifiedTime", r.ModifiedTime).After(r.CreatedTime).BeforeNow(time.Second)

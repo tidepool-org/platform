@@ -30,7 +30,7 @@ const (
 	TaskDurationMaximum           = 5 * time.Minute
 )
 
-var InitialDataTime = time.Unix(1420070400, 0).UTC() // 2015-01-01T00:00:00Z
+var initialDataTime = time.Unix(1420070400, 0).UTC() // 2015-01-01T00:00:00Z
 
 type Runner struct {
 	logger          log.Logger
@@ -355,7 +355,7 @@ func (t *TaskRunner) updateDataSet(dataSetUpdate *data.DataSetUpdate) error {
 }
 
 func (t *TaskRunner) fetchSinceLatestDataTime() error {
-	startTime := InitialDataTime
+	startTime := initialDataTime
 	if t.dataSource.LatestDataTime != nil && startTime.Before(*t.dataSource.LatestDataTime) {
 		startTime = *t.dataSource.LatestDataTime
 	}
@@ -680,11 +680,11 @@ func payloadSystemTime(datum data.Datum) time.Time {
 	if payload == nil {
 		return time.Time{}
 	}
-	systemTimeObject, ok := (*payload)["systemTime"]
-	if !ok {
+	value := payload.Get("systemTime")
+	if value == nil {
 		return time.Time{}
 	}
-	systemTime, ok := systemTimeObject.(time.Time)
+	systemTime, ok := value.(time.Time)
 	if !ok {
 		return time.Time{}
 	}

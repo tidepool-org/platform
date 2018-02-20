@@ -7,35 +7,31 @@ import (
 
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/factory"
-	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/device"
-	"github.com/tidepool-org/platform/data/validator"
+	testDataTypesDevice "github.com/tidepool-org/platform/data/types/device/test"
+	testDataTypes "github.com/tidepool-org/platform/data/types/test"
+	testErrors "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-func NewMeta(subType string) interface{} {
-	return &device.Meta{
-		Type:    "deviceEvent",
-		SubType: subType,
-	}
-}
-
 func NewTestDevice(sourceTime interface{}, sourceSubType interface{}) *device.Device {
-	testDevice := &device.Device{}
-	testDevice.Init()
-	testDevice.DeviceID = pointer.String(id.New())
-	if value, ok := sourceTime.(string); ok {
-		testDevice.Time = pointer.String(value)
+	datum := &device.Device{}
+	datum.Init()
+	datum.DeviceID = pointer.String(id.New())
+	if val, ok := sourceTime.(string); ok {
+		datum.Time = &val
 	}
-	if value, ok := sourceSubType.(string); ok {
-		testDevice.SubType = value
+	if val, ok := sourceSubType.(string); ok {
+		datum.SubType = val
 	}
-	return testDevice
+	return datum
 }
 
 var _ = Describe("Device", func() {
@@ -45,42 +41,50 @@ var _ = Describe("Device", func() {
 		})
 	})
 
-	Context("with new device", func() {
-		var testDevice *device.Device
+	Context("with new datum", func() {
+		var datum *device.Device
 
 		BeforeEach(func() {
-			testDevice = &device.Device{}
+			datum = testDataTypesDevice.NewDevice()
 		})
 
 		Context("Init", func() {
-			It("initializes the device", func() {
-				testDevice.Init()
-				Expect(testDevice.ID).ToNot(BeEmpty())
-				Expect(testDevice.Type).To(Equal("deviceEvent"))
-				Expect(testDevice.SubType).To(BeEmpty())
+			It("initializes the datum", func() {
+				datum.Init()
+				Expect(datum.Type).To(Equal("deviceEvent"))
+				Expect(datum.SubType).To(BeEmpty())
 			})
 		})
 
 		Context("with initialized", func() {
 			BeforeEach(func() {
-				testDevice.Init()
+				datum.Init()
 			})
 
 			Context("Meta", func() {
 				It("returns the meta with no sub type", func() {
-					testDevice.Init()
-					Expect(testDevice.Meta()).To(Equal(NewMeta("")))
+					Expect(datum.Meta()).To(Equal(&device.Meta{Type: "deviceEvent"}))
 				})
 
 				It("returns the meta with sub type", func() {
-					testDevice.Init()
-					testDevice.SubType = "alarm"
-					Expect(testDevice.Meta()).To(Equal(NewMeta("alarm")))
+					datum.SubType = testDataTypes.NewType()
+					Expect(datum.Meta()).To(Equal(&device.Meta{Type: "deviceEvent", SubType: datum.SubType}))
 				})
 			})
+		})
+	})
 
-			DescribeTable("Parse",
-				func(sourceObject *map[string]interface{}, expectedDevice *device.Device, expectedErrors []*service.Error) {
+	Context("Device", func() {
+		Context("Parse", func() {
+			var datum *device.Device
+
+			BeforeEach(func() {
+				datum = &device.Device{}
+				datum.Init()
+			})
+
+			DescribeTable("parses the datum",
+				func(sourceObject *map[string]interface{}, expectedDatum *device.Device, expectedErrors []*service.Error) {
 					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
@@ -90,9 +94,9 @@ var _ = Describe("Device", func() {
 					testParser, err := parser.NewStandardObject(testContext, testFactory, sourceObject, parser.AppendErrorNotParsed)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testParser).ToNot(BeNil())
-					Expect(testDevice.Parse(testParser)).To(Succeed())
-					Expect(testDevice.Time).To(Equal(expectedDevice.Time))
-					Expect(testDevice.SubType).To(Equal(expectedDevice.SubType))
+					Expect(datum.Parse(testParser)).To(Succeed())
+					Expect(datum.Time).To(Equal(expectedDatum.Time))
+					Expect(datum.SubType).To(Equal(expectedDatum.SubType))
 					Expect(testContext.Errors()).To(ConsistOf(expectedErrors))
 				},
 				Entry("parses object that is nil",
@@ -111,7 +115,7 @@ var _ = Describe("Device", func() {
 					&map[string]interface{}{"time": 0},
 					NewTestDevice(nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta("")),
+						testData.ComposeError(service.ErrorTypeNotString(0), "/time", &device.Meta{Type: "deviceEvent"}),
 					}),
 				Entry("does not parse sub type",
 					&map[string]interface{}{"subType": "alarm"},
@@ -125,86 +129,82 @@ var _ = Describe("Device", func() {
 					&map[string]interface{}{"time": 0, "subType": 0},
 					NewTestDevice(nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta("")),
+						testData.ComposeError(service.ErrorTypeNotString(0), "/time", &device.Meta{Type: "deviceEvent"}),
 					}),
 			)
+		})
 
-			DescribeTable("Validate",
-				func(sourceDevice *device.Device, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(null.NewLogger())
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testContext).ToNot(BeNil())
-					testValidator, err := validator.NewStandard(testContext)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testValidator).ToNot(BeNil())
-					Expect(sourceDevice.Validate(testValidator)).To(Succeed())
-					Expect(testContext.Errors()).To(ConsistOf(expectedErrors))
+		Context("Validate", func() {
+			DescribeTable("validates the datum",
+				func(mutator func(datum *device.Device), expectedErrors ...error) {
+					datum := testDataTypesDevice.NewDevice()
+					mutator(datum)
+					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
-				Entry("all valid",
-					NewTestDevice("2016-09-06T13:45:58-07:00", "alarm"),
-					[]*service.Error{}),
-				Entry("missing time",
-					NewTestDevice(nil, "alarm"),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta("alarm")),
-					}),
-				Entry("missing sub type",
-					NewTestDevice("2016-09-06T13:45:58-07:00", nil),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueEmpty(), "/subType", NewMeta("")),
-					}),
-				Entry("specified sub type",
-					NewTestDevice("2016-09-06T13:45:58-07:00", "specified"),
-					[]*service.Error{}),
-				Entry("multiple",
-					NewTestDevice(nil, nil),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta("")),
-						testData.ComposeError(service.ErrorValueEmpty(), "/subType", NewMeta("")),
-					}),
+				Entry("succeeds",
+					func(datum *device.Device) {},
+				),
+				Entry("type missing",
+					func(datum *device.Device) { datum.Type = "" },
+					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/type"),
+				),
+				Entry("type invalid",
+					func(datum *device.Device) { datum.Type = "invalid" },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "deviceEvent"), "/type"),
+				),
+				Entry("type deviceEvent",
+					func(datum *device.Device) { datum.Type = "deviceEvent" },
+				),
+				Entry("sub type missing",
+					func(datum *device.Device) { datum.SubType = "" },
+					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/subType"),
+				),
+				Entry("sub type valid",
+					func(datum *device.Device) { datum.SubType = testDataTypes.NewType() },
+				),
+				Entry("multiple errors",
+					func(datum *device.Device) {
+						datum.Type = "invalid"
+						datum.SubType = ""
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "deviceEvent"), "/type"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/subType"),
+				),
 			)
+		})
 
-			Context("Normalize", func() {
-				It("succeeds", func() {
-					testNormalizer := dataNormalizer.New()
-					Expect(testNormalizer).ToNot(BeNil())
-					testDevice.Normalize(testNormalizer)
-					Expect(testNormalizer.Error()).ToNot(HaveOccurred())
-				})
+		Context("IdentityFields", func() {
+			var datum *device.Device
+
+			BeforeEach(func() {
+				datum = testDataTypesDevice.NewDevice()
 			})
 
-			Context("IdentityFields", func() {
-				var userID string
-				var deviceID string
+			It("returns error if user id is missing", func() {
+				datum.UserID = nil
+				identityFields, err := datum.IdentityFields()
+				Expect(err).To(MatchError("user id is missing"))
+				Expect(identityFields).To(BeEmpty())
+			})
 
-				BeforeEach(func() {
-					userID = id.New()
-					deviceID = id.New()
-					testDevice.UserID = userID
-					testDevice.DeviceID = &deviceID
-					testDevice.Time = pointer.String("2016-09-06T13:45:58-07:00")
-					testDevice.SubType = "alarm"
-				})
+			It("returns error if user id is empty", func() {
+				datum.UserID = pointer.String("")
+				identityFields, err := datum.IdentityFields()
+				Expect(err).To(MatchError("user id is empty"))
+				Expect(identityFields).To(BeEmpty())
+			})
 
-				It("returns error if user id is empty", func() {
-					testDevice.UserID = ""
-					identityFields, err := testDevice.IdentityFields()
-					Expect(err).To(MatchError("user id is empty"))
-					Expect(identityFields).To(BeEmpty())
-				})
+			It("returns error if sub type is empty", func() {
+				datum.SubType = ""
+				identityFields, err := datum.IdentityFields()
+				Expect(err).To(MatchError("sub type is empty"))
+				Expect(identityFields).To(BeEmpty())
+			})
 
-				It("returns error if sub type is empty", func() {
-					testDevice.SubType = ""
-					identityFields, err := testDevice.IdentityFields()
-					Expect(err).To(MatchError("sub type is empty"))
-					Expect(identityFields).To(BeEmpty())
-				})
-
-				It("returns the expected identity fields", func() {
-					identityFields, err := testDevice.IdentityFields()
-					Expect(err).ToNot(HaveOccurred())
-					Expect(identityFields).To(Equal([]string{userID, deviceID, "2016-09-06T13:45:58-07:00", "deviceEvent", "alarm"}))
-				})
+			It("returns the expected identity fields", func() {
+				identityFields, err := datum.IdentityFields()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, *datum.Time, datum.Type, datum.SubType}))
 			})
 		})
 	})

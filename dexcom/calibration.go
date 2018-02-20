@@ -79,5 +79,5 @@ func (c *Calibration) Validate(validator structure.Validator) {
 	case UnitMmolL:
 		// TODO: Add value validation
 	}
-	validator.String("transmitterId", c.TransmitterID).Matches(TransmitterIDExpression)
+	validator.String("transmitterId", c.TransmitterID).Matches(transmitterIDExpression)
 }

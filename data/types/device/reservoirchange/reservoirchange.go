@@ -4,20 +4,21 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/types/device/status"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 type ReservoirChange struct {
 	device.Device `bson:",inline"`
 
-	StatusID *string `json:"status,omitempty" bson:"status,omitempty"`
-
-	// Embedded status
-	status *data.Datum
+	Status   *status.Status `json:"-" bson:"-"`
+	StatusID *string        `json:"status,omitempty" bson:"status,omitempty"`
 }
 
 func SubType() string {
-	return "reservoirChange"
+	return "reservoirChange" // TODO: Rename Type to "device/reservoirChange"; remove SubType
 }
 
 func NewDatum() data.Datum {
@@ -38,9 +39,8 @@ func (r *ReservoirChange) Init() {
 	r.Device.Init()
 	r.SubType = SubType()
 
+	r.Status = nil
 	r.StatusID = nil
-
-	r.status = nil
 }
 
 func (r *ReservoirChange) Parse(parser data.ObjectParser) error {
@@ -59,39 +59,54 @@ func (r *ReservoirChange) Parse(parser data.ObjectParser) error {
 			statusParser.AppendError("subType", service.ErrorValueNotExists())
 		} else if *statusSubType != status.SubType() {
 			statusParser.AppendError("subType", service.ErrorValueStringNotOneOf(*statusSubType, []string{status.SubType()}))
-		} else {
-			r.status = parser.ParseDatum("status")
+		} else if datum := parser.ParseDatum("status"); datum != nil {
+			r.Status = (*datum).(*status.Status)
 		}
 	}
 
 	return nil
 }
 
-func (r *ReservoirChange) Validate(validator data.Validator) error {
-	if err := r.Device.Validate(validator); err != nil {
-		return err
+func (r *ReservoirChange) Validate(validator structure.Validator) {
+	if !validator.HasMeta() {
+		validator = validator.WithMeta(r.Meta())
 	}
 
-	validator.ValidateString("subType", &r.SubType).EqualTo(SubType())
+	r.Device.Validate(validator)
 
-	if r.status != nil {
-		(*r.status).Validate(validator.NewChildValidator("status"))
+	if r.SubType != "" {
+		validator.String("subType", &r.SubType).EqualTo(SubType())
 	}
 
-	return nil
+	if validator.Origin() == structure.OriginExternal {
+		if r.Status != nil {
+			r.Status.Validate(validator.WithReference("status"))
+		}
+		validator.String("statusId", r.StatusID).NotExists()
+	} else {
+		if r.Status != nil {
+			validator.WithReference("status").ReportError(structureValidator.ErrorValueExists())
+		}
+		validator.String("statusId", r.StatusID).Using(id.Validate)
+	}
 }
 
 func (r *ReservoirChange) Normalize(normalizer data.Normalizer) {
-	normalizer = normalizer.WithMeta(r.Meta())
+	if !normalizer.HasMeta() {
+		normalizer = normalizer.WithMeta(r.Meta())
+	}
 
 	r.Device.Normalize(normalizer)
 
-	if r.status != nil {
-		(*r.status).Normalize(normalizer.WithReference("status"))
+	if r.Status != nil {
+		r.Status.Normalize(normalizer.WithReference("status"))
+	}
 
-		r.StatusID = &(*r.status).(*status.Status).ID
-
-		normalizer.AddData(*r.status)
-		r.status = nil
+	if normalizer.Origin() == structure.OriginExternal {
+		if r.Status != nil {
+			normalizer.AddData(r.Status)
+			r.StatusID = r.Status.ID
+			r.Status = nil
+		}
 	}
 }

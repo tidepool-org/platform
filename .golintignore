@@ -1,24 +1,32 @@
 ./confirmation/confirmation.go:5:6: type name will be used as confirmation.ConfirmationAccessor by other packages, and that stutters; consider calling this Accessor
 ./data/client/client.go:29:6: type name will be used as client.ClientImpl by other packages, and that stutters; consider calling this Impl
 ./data/data_set.go:18:6: type name will be used as data.DataSetAccessor by other packages, and that stutters; consider calling this SetAccessor
-./data/data_set.go:55:6: type name will be used as data.DataSetClient by other packages, and that stutters; consider calling this SetClient
-./data/data_set.go:82:6: type name will be used as data.DataSetFilter by other packages, and that stutters; consider calling this SetFilter
-./data/data_set.go:111:6: type name will be used as data.DataSetCreate by other packages, and that stutters; consider calling this SetCreate
-./data/data_set.go:191:6: type name will be used as data.DataSetUpdate by other packages, and that stutters; consider calling this SetUpdate
-./data/data_set.go:232:6: type name will be used as data.DataSet by other packages, and that stutters; consider calling this Set
-./data/data_set.go:274:6: type name will be used as data.DataSets by other packages, and that stutters; consider calling this Sets
+./data/data_set.go:47:6: func name will be used as data.DataSetTypes by other packages, and that stutters; consider calling this SetTypes
+./data/data_set.go:54:6: func name will be used as data.DataSetStates by other packages, and that stutters; consider calling this SetStates
+./data/data_set.go:80:6: type name will be used as data.DataSetClient by other packages, and that stutters; consider calling this SetClient
+./data/data_set.go:107:6: type name will be used as data.DataSetFilter by other packages, and that stutters; consider calling this SetFilter
+./data/data_set.go:136:6: type name will be used as data.DataSetCreate by other packages, and that stutters; consider calling this SetCreate
+./data/data_set.go:216:6: type name will be used as data.DataSetUpdate by other packages, and that stutters; consider calling this SetUpdate
+./data/data_set.go:257:6: type name will be used as data.DataSet by other packages, and that stutters; consider calling this Set
+./data/data_set.go:299:6: type name will be used as data.DataSets by other packages, and that stutters; consider calling this Sets
 ./data/data_source.go:19:6: type name will be used as data.DataSourceAccessor by other packages, and that stutters; consider calling this SourceAccessor
-./data/data_source.go:35:6: type name will be used as data.DataSourceFilter by other packages, and that stutters; consider calling this SourceFilter
-./data/data_source.go:77:6: type name will be used as data.DataSourceCreate by other packages, and that stutters; consider calling this SourceCreate
-./data/data_source.go:110:6: type name will be used as data.DataSourceUpdate by other packages, and that stutters; consider calling this SourceUpdate
-./data/data_source.go:169:6: type name will be used as data.DataSource by other packages, and that stutters; consider calling this Source
-./data/data_source.go:285:6: type name will be used as data.DataSources by other packages, and that stutters; consider calling this Sources
+./data/data_source.go:33:6: func name will be used as data.DataSourceStates by other packages, and that stutters; consider calling this SourceStates
+./data/data_source.go:41:6: type name will be used as data.DataSourceFilter by other packages, and that stutters; consider calling this SourceFilter
+./data/data_source.go:83:6: type name will be used as data.DataSourceCreate by other packages, and that stutters; consider calling this SourceCreate
+./data/data_source.go:116:6: type name will be used as data.DataSourceUpdate by other packages, and that stutters; consider calling this SourceUpdate
+./data/data_source.go:175:6: type name will be used as data.DataSource by other packages, and that stutters; consider calling this Source
+./data/data_source.go:291:6: type name will be used as data.DataSources by other packages, and that stutters; consider calling this Sources
+./data/storeDEPRECATED/store.go:1:1: don't use MixedCaps in package name; storeDEPRECATED should be storedeprecated
+./data/storeDEPRECATED/store_suite_test.go:1:1: don't use MixedCaps in package name; storeDEPRECATED_test should be storedeprecated_test
+./data/storeDEPRECATED/store_test.go:1:1: don't use MixedCaps in package name; storeDEPRECATED_test should be storedeprecated_test
+./data/types/device/alarm/alarm.go:25:6: func name will be used as alarm.AlarmTypes by other packages, and that stutters; consider calling this Types
 ./service/response_test.go:27:30: method WriteJson should be WriteJSON
 ./service/response_test.go:31:30: method EncodeJson should be EncodeJSON
 ./task/task.go:22:6: type name will be used as task.TaskAccessor by other packages, and that stutters; consider calling this Accessor
-./task/task.go:39:6: type name will be used as task.TaskFilter by other packages, and that stutters; consider calling this Filter
-./task/task.go:75:6: type name will be used as task.TaskCreate by other packages, and that stutters; consider calling this Create
-./task/task.go:113:6: type name will be used as task.TaskUpdate by other packages, and that stutters; consider calling this Update
+./task/task.go:37:6: func name will be used as task.TaskStates by other packages, and that stutters; consider calling this States
+./task/task.go:46:6: type name will be used as task.TaskFilter by other packages, and that stutters; consider calling this Filter
+./task/task.go:82:6: type name will be used as task.TaskCreate by other packages, and that stutters; consider calling this Create
+./task/task.go:120:6: type name will be used as task.TaskUpdate by other packages, and that stutters; consider calling this Update
 ./test/rest/response_writer.go:11:6: type EncodeJsonOutput should be EncodeJSONOutput
 ./test/rest/response_writer.go:19:2: struct field WriteJsonInvocations should be WriteJSONInvocations
 ./test/rest/response_writer.go:20:2: struct field WriteJsonInputs should be WriteJSONInputs

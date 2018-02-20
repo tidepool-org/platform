@@ -7,35 +7,31 @@ import (
 
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/factory"
-	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/bolus"
-	"github.com/tidepool-org/platform/data/validator"
+	testDataTypesBolus "github.com/tidepool-org/platform/data/types/bolus/test"
+	testDataTypes "github.com/tidepool-org/platform/data/types/test"
+	testErrors "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-func NewMeta(subType string) interface{} {
-	return &bolus.Meta{
-		Type:    "bolus",
-		SubType: subType,
-	}
-}
-
 func NewTestBolus(sourceTime interface{}, sourceSubType interface{}) *bolus.Bolus {
-	testBolus := &bolus.Bolus{}
-	testBolus.Init()
-	testBolus.DeviceID = pointer.String(id.New())
-	if value, ok := sourceTime.(string); ok {
-		testBolus.Time = pointer.String(value)
+	datum := &bolus.Bolus{}
+	datum.Init()
+	datum.DeviceID = pointer.String(id.New())
+	if val, ok := sourceTime.(string); ok {
+		datum.Time = &val
 	}
-	if value, ok := sourceSubType.(string); ok {
-		testBolus.SubType = value
+	if val, ok := sourceSubType.(string); ok {
+		datum.SubType = val
 	}
-	return testBolus
+	return datum
 }
 
 var _ = Describe("Bolus", func() {
@@ -45,42 +41,50 @@ var _ = Describe("Bolus", func() {
 		})
 	})
 
-	Context("with new bolus", func() {
-		var testBolus *bolus.Bolus
+	Context("with new datum", func() {
+		var datum *bolus.Bolus
 
 		BeforeEach(func() {
-			testBolus = &bolus.Bolus{}
+			datum = testDataTypesBolus.NewBolus()
 		})
 
 		Context("Init", func() {
-			It("initializes the bolus", func() {
-				testBolus.Init()
-				Expect(testBolus.ID).ToNot(BeEmpty())
-				Expect(testBolus.Type).To(Equal("bolus"))
-				Expect(testBolus.SubType).To(BeEmpty())
+			It("initializes the datum", func() {
+				datum.Init()
+				Expect(datum.Type).To(Equal("bolus"))
+				Expect(datum.SubType).To(BeEmpty())
 			})
 		})
 
 		Context("with initialized", func() {
 			BeforeEach(func() {
-				testBolus.Init()
+				datum.Init()
 			})
 
 			Context("Meta", func() {
 				It("returns the meta with no sub type", func() {
-					testBolus.Init()
-					Expect(testBolus.Meta()).To(Equal(NewMeta("")))
+					Expect(datum.Meta()).To(Equal(&bolus.Meta{Type: "bolus"}))
 				})
 
 				It("returns the meta with sub type", func() {
-					testBolus.Init()
-					testBolus.SubType = "dual/square"
-					Expect(testBolus.Meta()).To(Equal(NewMeta("dual/square")))
+					datum.SubType = testDataTypes.NewType()
+					Expect(datum.Meta()).To(Equal(&bolus.Meta{Type: "bolus", SubType: datum.SubType}))
 				})
 			})
+		})
+	})
 
-			DescribeTable("Parse",
-				func(sourceObject *map[string]interface{}, expectedBolus *bolus.Bolus, expectedErrors []*service.Error) {
+	Context("Bolus", func() {
+		Context("Parse", func() {
+			var datum *bolus.Bolus
+
+			BeforeEach(func() {
+				datum = &bolus.Bolus{}
+				datum.Init()
+			})
+
+			DescribeTable("parses the datum",
+				func(sourceObject *map[string]interface{}, expectedDatum *bolus.Bolus, expectedErrors []*service.Error) {
 					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
@@ -90,9 +94,9 @@ var _ = Describe("Bolus", func() {
 					testParser, err := parser.NewStandardObject(testContext, testFactory, sourceObject, parser.AppendErrorNotParsed)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testParser).ToNot(BeNil())
-					Expect(testBolus.Parse(testParser)).To(Succeed())
-					Expect(testBolus.Time).To(Equal(expectedBolus.Time))
-					Expect(testBolus.SubType).To(Equal(expectedBolus.SubType))
+					Expect(datum.Parse(testParser)).To(Succeed())
+					Expect(datum.Time).To(Equal(expectedDatum.Time))
+					Expect(datum.SubType).To(Equal(expectedDatum.SubType))
 					Expect(testContext.Errors()).To(ConsistOf(expectedErrors))
 				},
 				Entry("parses object that is nil",
@@ -111,100 +115,96 @@ var _ = Describe("Bolus", func() {
 					&map[string]interface{}{"time": 0},
 					NewTestBolus(nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta("")),
+						testData.ComposeError(service.ErrorTypeNotString(0), "/time", &bolus.Meta{Type: "bolus"}),
 					}),
 				Entry("does not parse sub type",
-					&map[string]interface{}{"subType": "dual/square"},
+					&map[string]interface{}{"subType": "normal"},
 					NewTestBolus(nil, nil),
 					[]*service.Error{}),
 				Entry("parses object that has multiple valid fields",
-					&map[string]interface{}{"time": "2016-09-06T13:45:58-07:00", "subType": "dual/square"},
+					&map[string]interface{}{"time": "2016-09-06T13:45:58-07:00", "subType": "normal"},
 					NewTestBolus("2016-09-06T13:45:58-07:00", nil),
 					[]*service.Error{}),
 				Entry("parses object that has multiple invalid fields",
 					&map[string]interface{}{"time": 0, "subType": 0},
 					NewTestBolus(nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta("")),
+						testData.ComposeError(service.ErrorTypeNotString(0), "/time", &bolus.Meta{Type: "bolus"}),
 					}),
 			)
+		})
 
-			DescribeTable("Validate",
-				func(sourceBolus *bolus.Bolus, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(null.NewLogger())
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testContext).ToNot(BeNil())
-					testValidator, err := validator.NewStandard(testContext)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testValidator).ToNot(BeNil())
-					Expect(sourceBolus.Validate(testValidator)).To(Succeed())
-					Expect(testContext.Errors()).To(ConsistOf(expectedErrors))
+		Context("Validate", func() {
+			DescribeTable("validates the datum",
+				func(mutator func(datum *bolus.Bolus), expectedErrors ...error) {
+					datum := testDataTypesBolus.NewBolus()
+					mutator(datum)
+					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
-				Entry("all valid",
-					NewTestBolus("2016-09-06T13:45:58-07:00", "dual/square"),
-					[]*service.Error{}),
-				Entry("missing time",
-					NewTestBolus(nil, "dual/square"),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta("dual/square")),
-					}),
-				Entry("missing sub type",
-					NewTestBolus("2016-09-06T13:45:58-07:00", nil),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueEmpty(), "/subType", NewMeta("")),
-					}),
-				Entry("specified sub type",
-					NewTestBolus("2016-09-06T13:45:58-07:00", "specified"),
-					[]*service.Error{}),
-				Entry("multiple",
-					NewTestBolus(nil, nil),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta("")),
-						testData.ComposeError(service.ErrorValueEmpty(), "/subType", NewMeta("")),
-					}),
+				Entry("succeeds",
+					func(datum *bolus.Bolus) {},
+				),
+				Entry("type missing",
+					func(datum *bolus.Bolus) { datum.Type = "" },
+					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/type"),
+				),
+				Entry("type invalid",
+					func(datum *bolus.Bolus) { datum.Type = "invalid" },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "bolus"), "/type"),
+				),
+				Entry("type bolus",
+					func(datum *bolus.Bolus) { datum.Type = "bolus" },
+				),
+				Entry("sub type missing",
+					func(datum *bolus.Bolus) { datum.SubType = "" },
+					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/subType"),
+				),
+				Entry("sub type valid",
+					func(datum *bolus.Bolus) { datum.SubType = testDataTypes.NewType() },
+				),
+				Entry("multiple errors",
+					func(datum *bolus.Bolus) {
+						datum.Type = "invalid"
+						datum.SubType = ""
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "bolus"), "/type"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/subType"),
+				),
 			)
+		})
 
-			Context("Normalize", func() {
-				It("succeeds", func() {
-					testNormalizer := dataNormalizer.New()
-					Expect(testNormalizer).ToNot(BeNil())
-					testBolus.Normalize(testNormalizer)
-					Expect(testNormalizer.Error()).ToNot(HaveOccurred())
-				})
+		Context("IdentityFields", func() {
+			var datum *bolus.Bolus
+
+			BeforeEach(func() {
+				datum = testDataTypesBolus.NewBolus()
 			})
 
-			Context("IdentityFields", func() {
-				var userID string
-				var deviceID string
+			It("returns error if user id is missing", func() {
+				datum.UserID = nil
+				identityFields, err := datum.IdentityFields()
+				Expect(err).To(MatchError("user id is missing"))
+				Expect(identityFields).To(BeEmpty())
+			})
 
-				BeforeEach(func() {
-					userID = id.New()
-					deviceID = id.New()
-					testBolus.UserID = userID
-					testBolus.DeviceID = &deviceID
-					testBolus.Time = pointer.String("2016-09-06T13:45:58-07:00")
-					testBolus.SubType = "dual/square"
-				})
+			It("returns error if user id is empty", func() {
+				datum.UserID = pointer.String("")
+				identityFields, err := datum.IdentityFields()
+				Expect(err).To(MatchError("user id is empty"))
+				Expect(identityFields).To(BeEmpty())
+			})
 
-				It("returns error if user id is empty", func() {
-					testBolus.UserID = ""
-					identityFields, err := testBolus.IdentityFields()
-					Expect(err).To(MatchError("user id is empty"))
-					Expect(identityFields).To(BeEmpty())
-				})
+			It("returns error if sub type is empty", func() {
+				datum.SubType = ""
+				identityFields, err := datum.IdentityFields()
+				Expect(err).To(MatchError("sub type is empty"))
+				Expect(identityFields).To(BeEmpty())
+			})
 
-				It("returns error if sub type is empty", func() {
-					testBolus.SubType = ""
-					identityFields, err := testBolus.IdentityFields()
-					Expect(err).To(MatchError("sub type is empty"))
-					Expect(identityFields).To(BeEmpty())
-				})
-
-				It("returns the expected identity fields", func() {
-					identityFields, err := testBolus.IdentityFields()
-					Expect(err).ToNot(HaveOccurred())
-					Expect(identityFields).To(Equal([]string{userID, deviceID, "2016-09-06T13:45:58-07:00", "bolus", "dual/square"}))
-				})
+			It("returns the expected identity fields", func() {
+				identityFields, err := datum.IdentityFields()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, *datum.Time, datum.Type, datum.SubType}))
 			})
 		})
 	})

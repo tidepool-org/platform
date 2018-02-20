@@ -35,23 +35,6 @@ func (b *Blood) Parse(parser data.ObjectParser) error {
 	return nil
 }
 
-func (b *Blood) Validate(validator data.Validator) error {
-	validator.SetMeta(b.Meta())
-
-	if err := b.Base.Validate(validator); err != nil {
-		return err
-	}
-
-	validator.ValidateString("units", b.Units).Exists()
-	validator.ValidateFloat("value", b.Value).Exists()
-
-	return nil
-}
-
-func (b *Blood) Normalize(normalizer data.Normalizer) {
-	b.Base.Normalize(normalizer)
-}
-
 func (b *Blood) IdentityFields() ([]string, error) {
 	identityFields, err := b.Base.IdentityFields()
 	if err != nil {
