@@ -1,5 +1,6 @@
 ## HEAD
 
+* Remove old unused data validator code and unused errors
 * Use consistent paradigm for creation of contained data objects
 * Randomize most test input for data validate and normalize
 * Fix meta reporting for embedded data (Status within Alarm, Bolus within Calculator)
