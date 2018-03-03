@@ -3,10 +3,11 @@ package suspend
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/basal"
-	"github.com/tidepool-org/platform/data/types/basal/scheduled"
-	"github.com/tidepool-org/platform/data/types/basal/temporary"
-	"github.com/tidepool-org/platform/pointer"
+	dataTypesBasalScheduled "github.com/tidepool-org/platform/data/types/basal/scheduled"
+	dataTypesBasalTemporary "github.com/tidepool-org/platform/data/types/basal/temporary"
+	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 const (
@@ -14,19 +15,18 @@ const (
 	DurationMinimum = 0
 )
 
-func SuppressedDeliveryTypes() []string {
-	return []string{
-		scheduled.DeliveryType(),
-		temporary.DeliveryType(),
-	}
+type Suppressed interface {
+	Parse(parser data.ObjectParser) error
+	Validate(validator structure.Validator)
+	Normalize(normalizer data.Normalizer)
 }
 
 type Suspend struct {
 	basal.Basal `bson:",inline"`
 
-	Duration         *int              `json:"duration,omitempty" bson:"duration,omitempty"`
-	DurationExpected *int              `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
-	Suppressed       *basal.Suppressed `json:"suppressed,omitempty" bson:"suppressed,omitempty"`
+	Duration         *int       `json:"duration,omitempty" bson:"duration,omitempty"`
+	DurationExpected *int       `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
+	Suppressed       Suppressed `json:"suppressed,omitempty" bson:"suppressed,omitempty"`
 }
 
 func DeliveryType() string {
@@ -63,7 +63,7 @@ func (s *Suspend) Parse(parser data.ObjectParser) error {
 
 	s.Duration = parser.ParseInteger("duration")
 	s.DurationExpected = parser.ParseInteger("expectedDuration")
-	s.Suppressed = basal.ParseSuppressed(parser.NewChildObjectParser("suppressed"))
+	s.Suppressed = parseSuppressed(parser.NewChildObjectParser("suppressed"))
 
 	return nil
 }
@@ -86,9 +86,7 @@ func (s *Suspend) Validate(validator structure.Validator) {
 	} else {
 		expectedDurationValidator.InRange(DurationMinimum, DurationMaximum)
 	}
-	if s.Suppressed != nil {
-		s.Suppressed.Validate(validator.WithReference("suppressed"), pointer.StringArray(SuppressedDeliveryTypes()))
-	}
+	validateSuppressed(validator.WithReference("suppressed"), s.Suppressed)
 }
 
 func (s *Suspend) Normalize(normalizer data.Normalizer) {
@@ -100,5 +98,37 @@ func (s *Suspend) Normalize(normalizer data.Normalizer) {
 
 	if s.Suppressed != nil {
 		s.Suppressed.Normalize(normalizer.WithReference("suppressed"))
+	}
+}
+
+var suppressedDeliveryTypes = []string{
+	dataTypesBasalScheduled.DeliveryType(),
+	dataTypesBasalTemporary.DeliveryType(),
+}
+
+func parseSuppressed(parser data.ObjectParser) Suppressed {
+	if deliveryType := basal.ParseDeliveryType(parser); deliveryType != nil {
+		switch *deliveryType {
+		case dataTypesBasalScheduled.DeliveryType():
+			return dataTypesBasalScheduled.ParseSuppressedScheduled(parser)
+		case dataTypesBasalTemporary.DeliveryType():
+			return dataTypesBasalTemporary.ParseSuppressedTemporary(parser)
+		default:
+			parser.AppendError("type", service.ErrorValueStringNotOneOf(*deliveryType, suppressedDeliveryTypes))
+		}
+	}
+	return nil
+}
+
+func validateSuppressed(validator structure.Validator, suppressed Suppressed) {
+	if suppressed != nil {
+		switch suppressed := suppressed.(type) {
+		case *dataTypesBasalScheduled.SuppressedScheduled:
+			suppressed.Validate(validator)
+		case *dataTypesBasalTemporary.SuppressedTemporary:
+			suppressed.Validate(validator)
+		default:
+			validator.ReportError(structureValidator.ErrorValueExists()) // TODO: Better error?
+		}
 	}
 }

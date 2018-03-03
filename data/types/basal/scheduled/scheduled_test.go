@@ -12,6 +12,7 @@ import (
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/basal"
 	"github.com/tidepool-org/platform/data/types/basal/scheduled"
+	testDataTypesBasalScheduled "github.com/tidepool-org/platform/data/types/basal/scheduled/test"
 	testDataTypesBasal "github.com/tidepool-org/platform/data/types/basal/test"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
@@ -535,6 +536,141 @@ var _ = Describe("Scheduled", func() {
 				),
 				Entry("does not modify the datum; schedule name missing",
 					func(datum *scheduled.Scheduled) { datum.ScheduleName = nil },
+				),
+			)
+		})
+	})
+
+	Context("ParseSuppressedScheduled", func() {
+		// TODO
+	})
+
+	Context("NewSuppressedScheduled", func() {
+		It("returns the expected datum", func() {
+			Expect(scheduled.NewSuppressedScheduled()).To(Equal(&scheduled.SuppressedScheduled{
+				Type:         pointer.String("basal"),
+				DeliveryType: pointer.String("scheduled"),
+			}))
+		})
+	})
+
+	Context("SuppressedScheduled", func() {
+		Context("Parse", func() {
+			// TODO
+		})
+
+		Context("Validate", func() {
+			DescribeTable("validates the datum",
+				func(mutator func(datum *scheduled.SuppressedScheduled), expectedErrors ...error) {
+					datum := testDataTypesBasalScheduled.NewSuppressedScheduled()
+					mutator(datum)
+					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+				},
+				Entry("succeeds",
+					func(datum *scheduled.SuppressedScheduled) {},
+				),
+				Entry("type missing",
+					func(datum *scheduled.SuppressedScheduled) { datum.Type = nil },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
+				),
+				Entry("type invalid",
+					func(datum *scheduled.SuppressedScheduled) { datum.Type = pointer.String("invalidType") },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalidType", "basal"), "/type"),
+				),
+				Entry("type basal",
+					func(datum *scheduled.SuppressedScheduled) { datum.Type = pointer.String("basal") },
+				),
+				Entry("delivery type missing",
+					func(datum *scheduled.SuppressedScheduled) { datum.DeliveryType = nil },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/deliveryType"),
+				),
+				Entry("delivery type invalid",
+					func(datum *scheduled.SuppressedScheduled) { datum.DeliveryType = pointer.String("invalidDeliveryType") },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalidDeliveryType", "scheduled"), "/deliveryType"),
+				),
+				Entry("delivery type scheduled",
+					func(datum *scheduled.SuppressedScheduled) { datum.DeliveryType = pointer.String("scheduled") },
+				),
+				Entry("annotations missing",
+					func(datum *scheduled.SuppressedScheduled) { datum.Annotations = nil },
+				),
+				Entry("annotations valid",
+					func(datum *scheduled.SuppressedScheduled) { datum.Annotations = testData.NewBlobArray() },
+				),
+				Entry("rate missing",
+					func(datum *scheduled.SuppressedScheduled) { datum.Rate = nil },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
+				),
+				Entry("rate out of range (lower)",
+					func(datum *scheduled.SuppressedScheduled) { datum.Rate = pointer.Float64(-0.1) },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/rate"),
+				),
+				Entry("rate in range (lower)",
+					func(datum *scheduled.SuppressedScheduled) { datum.Rate = pointer.Float64(0.0) },
+				),
+				Entry("rate in range (upper)",
+					func(datum *scheduled.SuppressedScheduled) { datum.Rate = pointer.Float64(100.0) },
+				),
+				Entry("rate out of range (upper)",
+					func(datum *scheduled.SuppressedScheduled) { datum.Rate = pointer.Float64(100.1) },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate"),
+				),
+				Entry("schedule name empty",
+					func(datum *scheduled.SuppressedScheduled) { datum.ScheduleName = pointer.String("") },
+					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/scheduleName"),
+				),
+				Entry("schedule name valid",
+					func(datum *scheduled.SuppressedScheduled) {
+						datum.ScheduleName = pointer.String(testDataTypesBasal.NewScheduleName())
+					},
+				),
+				Entry("multiple errors",
+					func(datum *scheduled.SuppressedScheduled) {
+						datum.Type = pointer.String("invalidType")
+						datum.DeliveryType = pointer.String("invalidDeliveryType")
+						datum.Rate = pointer.Float64(100.1)
+						datum.ScheduleName = pointer.String("")
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalidType", "basal"), "/type"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalidDeliveryType", "scheduled"), "/deliveryType"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/scheduleName"),
+				),
+			)
+		})
+
+		Context("Normalize", func() {
+			DescribeTable("normalizes the datum",
+				func(mutator func(datum *scheduled.SuppressedScheduled)) {
+					for _, origin := range structure.Origins() {
+						datum := testDataTypesBasalScheduled.NewSuppressedScheduled()
+						mutator(datum)
+						expectedDatum := testDataTypesBasalScheduled.CloneSuppressedScheduled(datum)
+						normalizer := dataNormalizer.New()
+						Expect(normalizer).ToNot(BeNil())
+						datum.Normalize(normalizer.WithOrigin(origin))
+						Expect(normalizer.Error()).To(BeNil())
+						Expect(normalizer.Data()).To(BeEmpty())
+						Expect(datum).To(Equal(expectedDatum))
+					}
+				},
+				Entry("does not modify the datum",
+					func(datum *scheduled.SuppressedScheduled) {},
+				),
+				Entry("does not modify the datum; type missing",
+					func(datum *scheduled.SuppressedScheduled) { datum.Type = nil },
+				),
+				Entry("does not modify the datum; delivery type missing",
+					func(datum *scheduled.SuppressedScheduled) { datum.DeliveryType = nil },
+				),
+				Entry("does not modify the datum; annotations missing",
+					func(datum *scheduled.SuppressedScheduled) { datum.Annotations = nil },
+				),
+				Entry("does not modify the datum; rate missing",
+					func(datum *scheduled.SuppressedScheduled) { datum.Rate = nil },
+				),
+				Entry("does not modify the datum; schedule name missing",
+					func(datum *scheduled.SuppressedScheduled) { datum.ScheduleName = nil },
 				),
 			)
 		})

@@ -4,6 +4,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -65,4 +66,28 @@ func (b *Basal) IdentityFields() ([]string, error) {
 	}
 
 	return append(identityFields, b.DeliveryType), nil
+}
+
+func ParseDeliveryType(parser data.ObjectParser) *string {
+	if parser.Object() == nil {
+		return nil
+	}
+
+	typ := parser.ParseString("type")
+	if typ == nil {
+		parser.AppendError("type", service.ErrorValueNotExists())
+		return nil
+	}
+	if *typ != Type() {
+		parser.AppendError("type", service.ErrorValueStringNotOneOf(*typ, []string{Type()}))
+		return nil
+	}
+
+	dlvryTyp := parser.ParseString("deliveryType")
+	if dlvryTyp == nil {
+		parser.AppendError("deliveryType", service.ErrorValueNotExists())
+		return nil
+	}
+
+	return dlvryTyp
 }

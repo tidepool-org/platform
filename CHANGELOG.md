@@ -1,5 +1,6 @@
 ## HEAD
 
+* Refactor suppressed basal to improve validations
 * Add build-watch and ci-build-watch targets to automatic build after file change
 * Remove old unused data validator code and unused errors
 * Use consistent paradigm for creation of contained data objects

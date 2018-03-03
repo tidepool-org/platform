@@ -208,4 +208,8 @@ var _ = Describe("Basal", func() {
 			})
 		})
 	})
+
+	Context("ParseDeliveryType", func() {
+		// TODO
+	})
 })

@@ -3,6 +3,7 @@ package scheduled
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/basal"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -91,4 +92,58 @@ func (s *Scheduled) Normalize(normalizer data.Normalizer) {
 	}
 
 	s.Basal.Normalize(normalizer)
+}
+
+type SuppressedScheduled struct {
+	Type         *string `json:"type,omitempty" bson:"type,omitempty"`
+	DeliveryType *string `json:"deliveryType,omitempty" bson:"deliveryType,omitempty"`
+
+	Annotations  *data.BlobArray `json:"annotations,omitempty" bson:"annotations,omitempty"`
+	Rate         *float64        `json:"rate,omitempty" bson:"rate,omitempty"`
+	ScheduleName *string         `json:"scheduleName,omitempty" bson:"scheduleName,omitempty"`
+}
+
+func ParseSuppressedScheduled(parser data.ObjectParser) *SuppressedScheduled {
+	if parser.Object() == nil {
+		return nil
+	}
+	suppressed := NewSuppressedScheduled()
+	suppressed.Parse(parser)
+	parser.ProcessNotParsed()
+	return suppressed
+}
+
+func NewSuppressedScheduled() *SuppressedScheduled {
+	return &SuppressedScheduled{
+		Type:         pointer.String(basal.Type()),
+		DeliveryType: pointer.String(DeliveryType()),
+	}
+}
+
+func (s *SuppressedScheduled) Parse(parser data.ObjectParser) error {
+	s.Type = parser.ParseString("type")
+	s.DeliveryType = parser.ParseString("deliveryType")
+
+	s.Annotations = data.ParseBlobArray(parser.NewChildArrayParser("annotations"))
+	s.Rate = parser.ParseFloat("rate")
+	s.ScheduleName = parser.ParseString("scheduleName")
+
+	return nil
+}
+
+func (s *SuppressedScheduled) Validate(validator structure.Validator) {
+	validator.String("type", s.Type).Exists().EqualTo(basal.Type())
+	validator.String("deliveryType", s.DeliveryType).Exists().EqualTo(DeliveryType())
+
+	if s.Annotations != nil {
+		s.Annotations.Validate(validator.WithReference("annotations"))
+	}
+	validator.Float64("rate", s.Rate).Exists().InRange(RateMinimum, RateMaximum)
+	validator.String("scheduleName", s.ScheduleName).NotEmpty()
+}
+
+func (s *SuppressedScheduled) Normalize(normalizer data.Normalizer) {
+	if s.Annotations != nil {
+		s.Annotations.Normalize(normalizer.WithReference("annotations"))
+	}
 }

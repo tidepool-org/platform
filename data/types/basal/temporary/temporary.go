@@ -3,9 +3,11 @@ package temporary
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/basal"
-	"github.com/tidepool-org/platform/data/types/basal/scheduled"
+	dataTypesBasalScheduled "github.com/tidepool-org/platform/data/types/basal/scheduled"
 	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 const (
@@ -17,20 +19,20 @@ const (
 	RateMinimum     = 0.0
 )
 
-func SuppressedDeliveryTypes() []string {
-	return []string{
-		scheduled.DeliveryType(),
-	}
+type Suppressed interface {
+	Parse(parser data.ObjectParser) error
+	Validate(validator structure.Validator)
+	Normalize(normalizer data.Normalizer)
 }
 
 type Temporary struct {
 	basal.Basal `bson:",inline"`
 
-	Duration         *int              `json:"duration,omitempty" bson:"duration,omitempty"`
-	DurationExpected *int              `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
-	Percent          *float64          `json:"percent,omitempty" bson:"percent,omitempty"`
-	Rate             *float64          `json:"rate,omitempty" bson:"rate,omitempty"`
-	Suppressed       *basal.Suppressed `json:"suppressed,omitempty" bson:"suppressed,omitempty"`
+	Duration         *int       `json:"duration,omitempty" bson:"duration,omitempty"`
+	DurationExpected *int       `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
+	Percent          *float64   `json:"percent,omitempty" bson:"percent,omitempty"`
+	Rate             *float64   `json:"rate,omitempty" bson:"rate,omitempty"`
+	Suppressed       Suppressed `json:"suppressed,omitempty" bson:"suppressed,omitempty"`
 }
 
 func DeliveryType() string {
@@ -71,7 +73,7 @@ func (t *Temporary) Parse(parser data.ObjectParser) error {
 	t.DurationExpected = parser.ParseInteger("expectedDuration")
 	t.Percent = parser.ParseFloat("percent")
 	t.Rate = parser.ParseFloat("rate")
-	t.Suppressed = basal.ParseSuppressed(parser.NewChildObjectParser("suppressed"))
+	t.Suppressed = parseSuppressed(parser.NewChildObjectParser("suppressed"))
 
 	return nil
 }
@@ -96,9 +98,7 @@ func (t *Temporary) Validate(validator structure.Validator) {
 	}
 	validator.Float64("percent", t.Percent).InRange(PercentMinimum, PercentMaximum)
 	validator.Float64("rate", t.Rate).Exists().InRange(RateMinimum, RateMaximum)
-	if t.Suppressed != nil {
-		t.Suppressed.Validate(validator.WithReference("suppressed"), pointer.StringArray(SuppressedDeliveryTypes()))
-	}
+	validateSuppressed(validator.WithReference("suppressed"), t.Suppressed)
 }
 
 func (t *Temporary) Normalize(normalizer data.Normalizer) {
@@ -110,5 +110,92 @@ func (t *Temporary) Normalize(normalizer data.Normalizer) {
 
 	if t.Suppressed != nil {
 		t.Suppressed.Normalize(normalizer.WithReference("suppressed"))
+	}
+}
+
+type SuppressedTemporary struct {
+	Type         *string `json:"type,omitempty" bson:"type,omitempty"`
+	DeliveryType *string `json:"deliveryType,omitempty" bson:"deliveryType,omitempty"`
+
+	Annotations *data.BlobArray `json:"annotations,omitempty" bson:"annotations,omitempty"`
+	Percent     *float64        `json:"percent,omitempty" bson:"percent,omitempty"`
+	Rate        *float64        `json:"rate,omitempty" bson:"rate,omitempty"`
+	Suppressed  Suppressed      `json:"suppressed,omitempty" bson:"suppressed,omitempty"`
+}
+
+func ParseSuppressedTemporary(parser data.ObjectParser) *SuppressedTemporary {
+	if parser.Object() == nil {
+		return nil
+	}
+	suppressed := NewSuppressedTemporary()
+	suppressed.Parse(parser)
+	parser.ProcessNotParsed()
+	return suppressed
+}
+
+func NewSuppressedTemporary() *SuppressedTemporary {
+	return &SuppressedTemporary{
+		Type:         pointer.String(basal.Type()),
+		DeliveryType: pointer.String(DeliveryType()),
+	}
+}
+
+func (s *SuppressedTemporary) Parse(parser data.ObjectParser) error {
+	s.Type = parser.ParseString("type")
+	s.DeliveryType = parser.ParseString("deliveryType")
+
+	s.Annotations = data.ParseBlobArray(parser.NewChildArrayParser("annotations"))
+	s.Percent = parser.ParseFloat("percent")
+	s.Rate = parser.ParseFloat("rate")
+	s.Suppressed = parseSuppressed(parser.NewChildObjectParser("suppressed"))
+
+	return nil
+}
+
+func (s *SuppressedTemporary) Validate(validator structure.Validator) {
+	validator.String("type", s.Type).Exists().EqualTo(basal.Type())
+	validator.String("deliveryType", s.DeliveryType).Exists().EqualTo(DeliveryType())
+
+	if s.Annotations != nil {
+		s.Annotations.Validate(validator.WithReference("annotations"))
+	}
+	validator.Float64("percent", s.Percent).InRange(PercentMinimum, PercentMaximum)
+	validator.Float64("rate", s.Rate).Exists().InRange(RateMinimum, RateMaximum)
+	validateSuppressed(validator.WithReference("suppressed"), s.Suppressed)
+}
+
+func (s *SuppressedTemporary) Normalize(normalizer data.Normalizer) {
+	if s.Annotations != nil {
+		s.Annotations.Normalize(normalizer.WithReference("annotations"))
+	}
+	if s.Suppressed != nil {
+		s.Suppressed.Normalize(normalizer.WithReference("suppressed"))
+	}
+}
+
+var suppressedDeliveryTypes = []string{
+	dataTypesBasalScheduled.DeliveryType(),
+}
+
+func parseSuppressed(parser data.ObjectParser) Suppressed {
+	if deliveryType := basal.ParseDeliveryType(parser); deliveryType != nil {
+		switch *deliveryType {
+		case dataTypesBasalScheduled.DeliveryType():
+			return dataTypesBasalScheduled.ParseSuppressedScheduled(parser)
+		default:
+			parser.AppendError("type", service.ErrorValueStringNotOneOf(*deliveryType, suppressedDeliveryTypes))
+		}
+	}
+	return nil
+}
+
+func validateSuppressed(validator structure.Validator, suppressed Suppressed) {
+	if suppressed != nil {
+		switch suppressed := suppressed.(type) {
+		case *dataTypesBasalScheduled.SuppressedScheduled:
+			suppressed.Validate(validator)
+		default:
+			validator.ReportError(structureValidator.ErrorValueExists()) // TODO: Better error?
+		}
 	}
 }

@@ -11,8 +11,10 @@ import (
 	"github.com/tidepool-org/platform/data/parser"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/basal"
+	dataTypesBasalScheduled "github.com/tidepool-org/platform/data/types/basal/scheduled"
+	testDataTypesBasalScheduled "github.com/tidepool-org/platform/data/types/basal/scheduled/test"
 	"github.com/tidepool-org/platform/data/types/basal/temporary"
-	basalTest "github.com/tidepool-org/platform/data/types/basal/test"
+	testDataTypesBasalTemporary "github.com/tidepool-org/platform/data/types/basal/temporary/test"
 	testDataTypesBasal "github.com/tidepool-org/platform/data/types/basal/test"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
@@ -40,7 +42,7 @@ func NewTemporary() *temporary.Temporary {
 	datum.DurationExpected = pointer.Int(test.RandomIntFromRange(*datum.Duration, temporary.DurationMaximum))
 	datum.Percent = pointer.Float64(test.RandomFloat64FromRange(temporary.PercentMinimum, temporary.PercentMaximum))
 	datum.Rate = pointer.Float64(test.RandomFloat64FromRange(temporary.RateMinimum, temporary.RateMaximum))
-	datum.Suppressed = testDataTypesBasal.NewSuppressedScheduled()
+	datum.Suppressed = testDataTypesBasalScheduled.NewSuppressedScheduled()
 	return datum
 }
 
@@ -54,11 +56,16 @@ func CloneTemporary(datum *temporary.Temporary) *temporary.Temporary {
 	clone.DurationExpected = test.CloneInt(datum.DurationExpected)
 	clone.Percent = test.CloneFloat64(datum.Percent)
 	clone.Rate = test.CloneFloat64(datum.Rate)
-	clone.Suppressed = testDataTypesBasal.CloneSuppressed(datum.Suppressed)
+	if datum.Suppressed != nil {
+		switch suppressed := datum.Suppressed.(type) {
+		case *dataTypesBasalScheduled.SuppressedScheduled:
+			clone.Suppressed = testDataTypesBasalScheduled.CloneSuppressedScheduled(suppressed)
+		}
+	}
 	return clone
 }
 
-func NewTestTemporary(sourceTime interface{}, sourceDuration interface{}, sourceDurationExpected interface{}, sourceRate interface{}, sourcePercent interface{}, sourceSuppressed *basal.Suppressed) *temporary.Temporary {
+func NewTestTemporary(sourceTime interface{}, sourceDuration interface{}, sourceDurationExpected interface{}, sourceRate interface{}, sourcePercent interface{}, sourceSuppressed temporary.Suppressed) *temporary.Temporary {
 	datum := temporary.Init()
 	datum.DeviceID = pointer.String(id.New())
 	if val, ok := sourceTime.(string); ok {
@@ -103,10 +110,6 @@ var _ = Describe("Temporary", func() {
 
 	It("RateMinimum is expected", func() {
 		Expect(temporary.RateMinimum).To(Equal(0.0))
-	})
-
-	It("SuppressedDeliveryTypes returns expected", func() {
-		Expect(temporary.SuppressedDeliveryTypes()).To(Equal([]string{"scheduled"}))
 	})
 
 	Context("DeliveryType", func() {
@@ -188,7 +191,11 @@ var _ = Describe("Temporary", func() {
 					Expect(datum.DurationExpected).To(Equal(expectedDatum.DurationExpected))
 					Expect(datum.Rate).To(Equal(expectedDatum.Rate))
 					Expect(datum.Percent).To(Equal(expectedDatum.Percent))
-					Expect(datum.Suppressed).To(Equal(expectedDatum.Suppressed))
+					if expectedDatum.Suppressed != nil {
+						Expect(datum.Suppressed).To(Equal(expectedDatum.Suppressed))
+					} else {
+						Expect(datum.Suppressed).To(BeNil())
+					}
 					Expect(testContext.Errors()).To(ConsistOf(expectedErrors))
 				},
 				Entry("parses object that is nil",
@@ -251,7 +258,7 @@ var _ = Describe("Temporary", func() {
 					}),
 				Entry("parses object that has valid suppressed",
 					&map[string]interface{}{"suppressed": map[string]interface{}{"type": "basal", "deliveryType": "scheduled", "rate": 2.0, "scheduleName": "Weekday"}},
-					NewTestTemporary(nil, nil, nil, nil, nil, basalTest.NewTestSuppressed("basal", "scheduled", nil, 2.0, "Weekday", nil)),
+					NewTestTemporary(nil, nil, nil, nil, nil, &dataTypesBasalScheduled.SuppressedScheduled{Type: pointer.String("basal"), DeliveryType: pointer.String("scheduled"), Rate: pointer.Float64(2.0), ScheduleName: pointer.String("Weekday")}),
 					[]*service.Error{}),
 				Entry("parses object that has invalid suppressed",
 					&map[string]interface{}{"suppressed": "invalid"},
@@ -522,28 +529,16 @@ var _ = Describe("Temporary", func() {
 				Entry("suppressed missing",
 					func(datum *temporary.Temporary) { datum.Suppressed = nil },
 				),
-				Entry("suppressed scheduled with suppressed missing",
+				Entry("suppressed scheduled",
 					func(datum *temporary.Temporary) {
-						datum.Suppressed = testDataTypesBasal.NewSuppressedScheduled()
-						datum.Suppressed.Suppressed = nil
+						datum.Suppressed = testDataTypesBasalScheduled.NewSuppressedScheduled()
 					},
 				),
-				Entry("suppressed scheduled with suppressed exists",
+				Entry("suppressed temporary with suppressed missing",
 					func(datum *temporary.Temporary) {
-						datum.Suppressed = testDataTypesBasal.NewSuppressedScheduled()
-						datum.Suppressed.Suppressed = testDataTypesBasal.NewSuppressedScheduled()
+						datum.Suppressed = testDataTypesBasalTemporary.NewSuppressedTemporary(nil)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/suppressed/suppressed", NewMeta()),
-				),
-				Entry("suppressed suspend",
-					func(datum *temporary.Temporary) {
-						datum.Suppressed = testDataTypesBasal.NewSuppressedSuspend()
-					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("suspend", []string{"scheduled"}), "/suppressed/deliveryType", NewMeta()),
-				),
-				Entry("suppressed temporary",
-					func(datum *temporary.Temporary) { datum.Suppressed = testDataTypesBasal.NewSuppressedTemporary() },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("temp", []string{"scheduled"}), "/suppressed/deliveryType", NewMeta()),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/suppressed", NewMeta()),
 				),
 				Entry("multiple errors",
 					func(datum *temporary.Temporary) {
@@ -553,7 +548,7 @@ var _ = Describe("Temporary", func() {
 						datum.DurationExpected = pointer.Int(604800001)
 						datum.Percent = pointer.Float64(10.1)
 						datum.Rate = pointer.Float64(100.1)
-						datum.Suppressed = testDataTypesBasal.NewSuppressedSuspend()
+						datum.Suppressed = testDataTypesBasalTemporary.NewSuppressedTemporary(nil)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "basal"), "/type", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidDeliveryType", "temp"), "/deliveryType", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
@@ -561,7 +556,7 @@ var _ = Describe("Temporary", func() {
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(10.1, 0.0, 10.0), "/percent", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("suspend", []string{"scheduled"}), "/suppressed/deliveryType", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/suppressed", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 				),
 			)
 		})
@@ -604,6 +599,162 @@ var _ = Describe("Temporary", func() {
 				),
 				Entry("does not modify the datum; suppressed missing",
 					func(datum *temporary.Temporary) { datum.Suppressed = nil },
+				),
+			)
+		})
+	})
+
+	Context("ParseSuppressedTemporary", func() {
+		// TODO
+	})
+
+	Context("NewSuppressedTemporary", func() {
+		It("returns the expected datum", func() {
+			Expect(temporary.NewSuppressedTemporary()).To(Equal(&temporary.SuppressedTemporary{
+				Type:         pointer.String("basal"),
+				DeliveryType: pointer.String("temp"),
+			}))
+		})
+	})
+
+	Context("SuppressedTemporary", func() {
+		Context("Parse", func() {
+			// TODO
+		})
+
+		Context("Validate", func() {
+			DescribeTable("validates the datum",
+				func(mutator func(datum *temporary.SuppressedTemporary), expectedErrors ...error) {
+					datum := testDataTypesBasalTemporary.NewSuppressedTemporary(testDataTypesBasalScheduled.NewSuppressedScheduled())
+					mutator(datum)
+					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+				},
+				Entry("succeeds",
+					func(datum *temporary.SuppressedTemporary) {},
+				),
+				Entry("type missing",
+					func(datum *temporary.SuppressedTemporary) { datum.Type = nil },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
+				),
+				Entry("type invalid",
+					func(datum *temporary.SuppressedTemporary) { datum.Type = pointer.String("invalidType") },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalidType", "basal"), "/type"),
+				),
+				Entry("type basal",
+					func(datum *temporary.SuppressedTemporary) { datum.Type = pointer.String("basal") },
+				),
+				Entry("delivery type missing",
+					func(datum *temporary.SuppressedTemporary) { datum.DeliveryType = nil },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/deliveryType"),
+				),
+				Entry("delivery type invalid",
+					func(datum *temporary.SuppressedTemporary) { datum.DeliveryType = pointer.String("invalidDeliveryType") },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalidDeliveryType", "temp"), "/deliveryType"),
+				),
+				Entry("delivery type temp",
+					func(datum *temporary.SuppressedTemporary) { datum.DeliveryType = pointer.String("temp") },
+				),
+				Entry("percent missing",
+					func(datum *temporary.SuppressedTemporary) { datum.Percent = nil },
+				),
+				Entry("percent out of range (lower)",
+					func(datum *temporary.SuppressedTemporary) { datum.Percent = pointer.Float64(-0.1) },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 10.0), "/percent"),
+				),
+				Entry("percent in range (lower)",
+					func(datum *temporary.SuppressedTemporary) { datum.Percent = pointer.Float64(0.0) },
+				),
+				Entry("percent in range (upper)",
+					func(datum *temporary.SuppressedTemporary) { datum.Percent = pointer.Float64(10.0) },
+				),
+				Entry("percent out of range (upper)",
+					func(datum *temporary.SuppressedTemporary) { datum.Percent = pointer.Float64(10.1) },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(10.1, 0.0, 10.0), "/percent"),
+				),
+				Entry("rate missing",
+					func(datum *temporary.SuppressedTemporary) { datum.Rate = nil },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
+				),
+				Entry("rate out of range (lower)",
+					func(datum *temporary.SuppressedTemporary) { datum.Rate = pointer.Float64(-0.1) },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/rate"),
+				),
+				Entry("rate in range (lower)",
+					func(datum *temporary.SuppressedTemporary) { datum.Rate = pointer.Float64(0.0) },
+				),
+				Entry("rate in range (upper)",
+					func(datum *temporary.SuppressedTemporary) { datum.Rate = pointer.Float64(100.0) },
+				),
+				Entry("rate out of range (upper)",
+					func(datum *temporary.SuppressedTemporary) { datum.Rate = pointer.Float64(100.1) },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate"),
+				),
+				Entry("suppressed missing",
+					func(datum *temporary.SuppressedTemporary) { datum.Suppressed = nil },
+				),
+				Entry("suppressed scheduled",
+					func(datum *temporary.SuppressedTemporary) {
+						datum.Suppressed = testDataTypesBasalScheduled.NewSuppressedScheduled()
+					},
+				),
+				Entry("suppressed temporary with suppressed missing",
+					func(datum *temporary.SuppressedTemporary) {
+						datum.Suppressed = testDataTypesBasalTemporary.NewSuppressedTemporary(nil)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/suppressed"),
+				),
+				Entry("multiple errors",
+					func(datum *temporary.SuppressedTemporary) {
+						datum.Type = pointer.String("invalidType")
+						datum.DeliveryType = pointer.String("invalidDeliveryType")
+						datum.Percent = pointer.Float64(10.1)
+						datum.Rate = pointer.Float64(100.1)
+						datum.Suppressed = testDataTypesBasalTemporary.NewSuppressedTemporary(nil)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalidType", "basal"), "/type"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalidDeliveryType", "temp"), "/deliveryType"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(10.1, 0.0, 10.0), "/percent"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/suppressed"),
+				),
+			)
+		})
+
+		Context("Normalize", func() {
+			DescribeTable("normalizes the datum",
+				func(mutator func(datum *temporary.SuppressedTemporary)) {
+					for _, origin := range structure.Origins() {
+						datum := testDataTypesBasalTemporary.NewSuppressedTemporary(testDataTypesBasalScheduled.NewSuppressedScheduled())
+						mutator(datum)
+						expectedDatum := testDataTypesBasalTemporary.CloneSuppressedTemporary(datum)
+						normalizer := dataNormalizer.New()
+						Expect(normalizer).ToNot(BeNil())
+						datum.Normalize(normalizer.WithOrigin(origin))
+						Expect(normalizer.Error()).To(BeNil())
+						Expect(normalizer.Data()).To(BeEmpty())
+						Expect(datum).To(Equal(expectedDatum))
+					}
+				},
+				Entry("does not modify the datum",
+					func(datum *temporary.SuppressedTemporary) {},
+				),
+				Entry("does not modify the datum; type missing",
+					func(datum *temporary.SuppressedTemporary) { datum.Type = nil },
+				),
+				Entry("does not modify the datum; delivery type missing",
+					func(datum *temporary.SuppressedTemporary) { datum.DeliveryType = nil },
+				),
+				Entry("does not modify the datum; annotations missing",
+					func(datum *temporary.SuppressedTemporary) { datum.Annotations = nil },
+				),
+				Entry("does not modify the datum; percent missing",
+					func(datum *temporary.SuppressedTemporary) { datum.Percent = nil },
+				),
+				Entry("does not modify the datum; reate missing",
+					func(datum *temporary.SuppressedTemporary) { datum.Rate = nil },
+				),
+				Entry("does not modify the datum; suppressed missing",
+					func(datum *temporary.SuppressedTemporary) { datum.Suppressed = nil },
 				),
 			)
 		})

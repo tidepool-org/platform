@@ -11,7 +11,11 @@ import (
 	"github.com/tidepool-org/platform/data/parser"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/basal"
+	dataTypesBasalScheduled "github.com/tidepool-org/platform/data/types/basal/scheduled"
+	testDataTypesBasalScheduled "github.com/tidepool-org/platform/data/types/basal/scheduled/test"
 	"github.com/tidepool-org/platform/data/types/basal/suspend"
+	dataTypesBasalTemporary "github.com/tidepool-org/platform/data/types/basal/temporary"
+	testDataTypesBasalTemporary "github.com/tidepool-org/platform/data/types/basal/temporary/test"
 	testDataTypesBasal "github.com/tidepool-org/platform/data/types/basal/test"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
@@ -37,7 +41,7 @@ func NewSuspend() *suspend.Suspend {
 	datum.DeliveryType = "suspend"
 	datum.Duration = pointer.Int(test.RandomIntFromRange(suspend.DurationMinimum, suspend.DurationMaximum))
 	datum.DurationExpected = pointer.Int(test.RandomIntFromRange(*datum.Duration, suspend.DurationMaximum))
-	datum.Suppressed = testDataTypesBasal.NewSuppressedTemporary()
+	datum.Suppressed = testDataTypesBasalTemporary.NewSuppressedTemporary(testDataTypesBasalScheduled.NewSuppressedScheduled())
 	return datum
 }
 
@@ -49,11 +53,18 @@ func CloneSuspend(datum *suspend.Suspend) *suspend.Suspend {
 	clone.Basal = *testDataTypesBasal.CloneBasal(&datum.Basal)
 	clone.Duration = test.CloneInt(datum.Duration)
 	clone.DurationExpected = test.CloneInt(datum.DurationExpected)
-	clone.Suppressed = testDataTypesBasal.CloneSuppressed(datum.Suppressed)
+	if datum.Suppressed != nil {
+		switch suppressed := datum.Suppressed.(type) {
+		case *dataTypesBasalScheduled.SuppressedScheduled:
+			clone.Suppressed = testDataTypesBasalScheduled.CloneSuppressedScheduled(suppressed)
+		case *dataTypesBasalTemporary.SuppressedTemporary:
+			clone.Suppressed = testDataTypesBasalTemporary.CloneSuppressedTemporary(suppressed)
+		}
+	}
 	return clone
 }
 
-func NewTestSuspend(sourceTime interface{}, sourceDuration interface{}, sourceDurationExpected interface{}, sourceSuppressed *basal.Suppressed) *suspend.Suspend {
+func NewTestSuspend(sourceTime interface{}, sourceDuration interface{}, sourceDurationExpected interface{}, sourceSuppressed suspend.Suppressed) *suspend.Suspend {
 	datum := suspend.Init()
 	datum.DeviceID = pointer.String(id.New())
 	if val, ok := sourceTime.(string); ok {
@@ -76,10 +87,6 @@ var _ = Describe("Suspend", func() {
 
 	It("DurationMinimum is expected", func() {
 		Expect(suspend.DurationMinimum).To(Equal(0))
-	})
-
-	It("SuppressedDeliveryTypes returns expected", func() {
-		Expect(suspend.SuppressedDeliveryTypes()).To(Equal([]string{"scheduled", "temp"}))
 	})
 
 	Context("DeliveryType", func() {
@@ -155,7 +162,11 @@ var _ = Describe("Suspend", func() {
 					Expect(datum.Time).To(Equal(expectedDatum.Time))
 					Expect(datum.Duration).To(Equal(expectedDatum.Duration))
 					Expect(datum.DurationExpected).To(Equal(expectedDatum.DurationExpected))
-					Expect(datum.Suppressed).To(Equal(expectedDatum.Suppressed))
+					if expectedDatum.Suppressed != nil {
+						Expect(datum.Suppressed).To(Equal(expectedDatum.Suppressed))
+					} else {
+						Expect(datum.Suppressed).To(BeNil())
+					}
 					Expect(testContext.Errors()).To(ConsistOf(expectedErrors))
 				},
 				Entry("parses object that is nil",
@@ -198,7 +209,7 @@ var _ = Describe("Suspend", func() {
 					}),
 				Entry("parses object that has valid suppressed",
 					&map[string]interface{}{"suppressed": map[string]interface{}{"type": "basal", "deliveryType": "scheduled", "rate": 1.0, "scheduleName": "Weekday"}},
-					NewTestSuspend(nil, nil, nil, testDataTypesBasal.NewTestSuppressed("basal", "scheduled", nil, 1.0, "Weekday", nil)),
+					NewTestSuspend(nil, nil, nil, &dataTypesBasalScheduled.SuppressedScheduled{Type: pointer.String("basal"), DeliveryType: pointer.String("scheduled"), Rate: pointer.Float64(1.0), ScheduleName: pointer.String("Weekday")}),
 					[]*service.Error{}),
 				Entry("parses object that has invalid suppressed",
 					&map[string]interface{}{"suppressed": "invalid"},
@@ -432,55 +443,26 @@ var _ = Describe("Suspend", func() {
 				Entry("suppressed missing",
 					func(datum *suspend.Suspend) { datum.Suppressed = nil },
 				),
-				Entry("suppressed scheduled with suppressed missing",
+				Entry("suppressed scheduled",
 					func(datum *suspend.Suspend) {
-						datum.Suppressed = testDataTypesBasal.NewSuppressedScheduled()
-						datum.Suppressed.Suppressed = nil
+						datum.Suppressed = testDataTypesBasalScheduled.NewSuppressedScheduled()
 					},
-				),
-				Entry("suppressed scheduled with suppressed exists",
-					func(datum *suspend.Suspend) {
-						datum.Suppressed = testDataTypesBasal.NewSuppressedScheduled()
-						datum.Suppressed.Suppressed = testDataTypesBasal.NewSuppressedScheduled()
-					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/suppressed/suppressed", NewMeta()),
-				),
-				Entry("suppressed suspend",
-					func(datum *suspend.Suspend) {
-						datum.Suppressed = testDataTypesBasal.NewSuppressedSuspend()
-					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("suspend", []string{"scheduled", "temp"}), "/suppressed/deliveryType", NewMeta()),
 				),
 				Entry("suppressed temporary with suppressed missing",
 					func(datum *suspend.Suspend) {
-						datum.Suppressed = testDataTypesBasal.NewSuppressedTemporary()
-						datum.Suppressed.Suppressed = nil
+						datum.Suppressed = testDataTypesBasalTemporary.NewSuppressedTemporary(nil)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/suppressed/suppressed", NewMeta()),
 				),
-				Entry("suppressed temporary with suppressed scheduled with suppressed missing",
-					func(datum *suspend.Suspend) { datum.Suppressed = testDataTypesBasal.NewSuppressedTemporary() },
-				),
-				Entry("suppressed temporary with suppressed scheduled with suppressed exists",
+				Entry("suppressed temporary with suppressed scheduled",
 					func(datum *suspend.Suspend) {
-						datum.Suppressed = testDataTypesBasal.NewSuppressedTemporary()
-						datum.Suppressed.Suppressed.Suppressed = testDataTypesBasal.NewSuppressedScheduled()
+						datum.Suppressed = testDataTypesBasalTemporary.NewSuppressedTemporary(testDataTypesBasalScheduled.NewSuppressedScheduled())
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/suppressed/suppressed/suppressed", NewMeta()),
 				),
-				Entry("suppressed temporary with suppressed suspend",
+				Entry("suppressed temporary with suppressed temporary with suppressed missing",
 					func(datum *suspend.Suspend) {
-						datum.Suppressed = testDataTypesBasal.NewSuppressedTemporary()
-						datum.Suppressed.Suppressed = testDataTypesBasal.NewSuppressedSuspend()
+						datum.Suppressed = testDataTypesBasalTemporary.NewSuppressedTemporary(testDataTypesBasalTemporary.NewSuppressedTemporary(nil))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("suspend", []string{"scheduled"}), "/suppressed/suppressed/deliveryType", NewMeta()),
-				),
-				Entry("suppressed temporary with suppressed temporary",
-					func(datum *suspend.Suspend) {
-						datum.Suppressed = testDataTypesBasal.NewSuppressedTemporary()
-						datum.Suppressed.Suppressed = testDataTypesBasal.NewSuppressedTemporary()
-					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("temp", []string{"scheduled"}), "/suppressed/suppressed/deliveryType", NewMeta()),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/suppressed/suppressed", NewMeta()),
 				),
 				Entry("multiple errors",
 					func(datum *suspend.Suspend) {
@@ -488,13 +470,13 @@ var _ = Describe("Suspend", func() {
 						datum.DeliveryType = "invalidDeliveryType"
 						datum.Duration = nil
 						datum.DurationExpected = pointer.Int(604800001)
-						datum.Suppressed = testDataTypesBasal.NewSuppressedSuspend()
+						datum.Suppressed = testDataTypesBasalTemporary.NewSuppressedTemporary(testDataTypesBasalTemporary.NewSuppressedTemporary(nil))
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "basal"), "/type", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidDeliveryType", "suspend"), "/deliveryType", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("suspend", []string{"scheduled", "temp"}), "/suppressed/deliveryType", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/suppressed/suppressed", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 				),
 			)
 		})
