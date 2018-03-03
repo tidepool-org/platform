@@ -11,6 +11,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/factory"
 	testData "github.com/tidepool-org/platform/data/test"
+	"github.com/tidepool-org/platform/data/types/basal/automated"
 	"github.com/tidepool-org/platform/data/types/basal/scheduled"
 	"github.com/tidepool-org/platform/data/types/basal/suspend"
 	"github.com/tidepool-org/platform/data/types/basal/temporary"
@@ -225,6 +226,7 @@ var _ = Describe("Standard", func() {
 			})
 
 			ValidStandardFactoryEntries := []TableEntry{
+				Entry("is basal automated", map[string]string{"type": "basal", "deliveryType": "automated"}, automated.New()),
 				Entry("is basal scheduled", map[string]string{"type": "basal", "deliveryType": "scheduled"}, scheduled.New()),
 				Entry("is basal suspend", map[string]string{"type": "basal", "deliveryType": "suspend"}, suspend.New()),
 				Entry("is basal temp", map[string]string{"type": "basal", "deliveryType": "temp"}, temporary.New()),

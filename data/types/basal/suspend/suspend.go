@@ -3,6 +3,7 @@ package suspend
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/basal"
+	dataTypesBasalAutomated "github.com/tidepool-org/platform/data/types/basal/automated"
 	dataTypesBasalScheduled "github.com/tidepool-org/platform/data/types/basal/scheduled"
 	dataTypesBasalTemporary "github.com/tidepool-org/platform/data/types/basal/temporary"
 	"github.com/tidepool-org/platform/service"
@@ -102,6 +103,7 @@ func (s *Suspend) Normalize(normalizer data.Normalizer) {
 }
 
 var suppressedDeliveryTypes = []string{
+	dataTypesBasalAutomated.DeliveryType(),
 	dataTypesBasalScheduled.DeliveryType(),
 	dataTypesBasalTemporary.DeliveryType(),
 }
@@ -109,6 +111,8 @@ var suppressedDeliveryTypes = []string{
 func parseSuppressed(parser data.ObjectParser) Suppressed {
 	if deliveryType := basal.ParseDeliveryType(parser); deliveryType != nil {
 		switch *deliveryType {
+		case dataTypesBasalAutomated.DeliveryType():
+			return dataTypesBasalAutomated.ParseSuppressedAutomated(parser)
 		case dataTypesBasalScheduled.DeliveryType():
 			return dataTypesBasalScheduled.ParseSuppressedScheduled(parser)
 		case dataTypesBasalTemporary.DeliveryType():
@@ -123,6 +127,8 @@ func parseSuppressed(parser data.ObjectParser) Suppressed {
 func validateSuppressed(validator structure.Validator, suppressed Suppressed) {
 	if suppressed != nil {
 		switch suppressed := suppressed.(type) {
+		case *dataTypesBasalAutomated.SuppressedAutomated:
+			suppressed.Validate(validator)
 		case *dataTypesBasalScheduled.SuppressedScheduled:
 			suppressed.Validate(validator)
 		case *dataTypesBasalTemporary.SuppressedTemporary:

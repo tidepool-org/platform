@@ -11,6 +11,8 @@ import (
 	"github.com/tidepool-org/platform/data/parser"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/basal"
+	dataTypesBasalAutomated "github.com/tidepool-org/platform/data/types/basal/automated"
+	testDataTypesBasalAutomated "github.com/tidepool-org/platform/data/types/basal/automated/test"
 	dataTypesBasalScheduled "github.com/tidepool-org/platform/data/types/basal/scheduled"
 	testDataTypesBasalScheduled "github.com/tidepool-org/platform/data/types/basal/scheduled/test"
 	"github.com/tidepool-org/platform/data/types/basal/suspend"
@@ -55,6 +57,8 @@ func CloneSuspend(datum *suspend.Suspend) *suspend.Suspend {
 	clone.DurationExpected = test.CloneInt(datum.DurationExpected)
 	if datum.Suppressed != nil {
 		switch suppressed := datum.Suppressed.(type) {
+		case *dataTypesBasalAutomated.SuppressedAutomated:
+			clone.Suppressed = testDataTypesBasalAutomated.CloneSuppressedAutomated(suppressed)
 		case *dataTypesBasalScheduled.SuppressedScheduled:
 			clone.Suppressed = testDataTypesBasalScheduled.CloneSuppressedScheduled(suppressed)
 		case *dataTypesBasalTemporary.SuppressedTemporary:
@@ -443,6 +447,11 @@ var _ = Describe("Suspend", func() {
 				Entry("suppressed missing",
 					func(datum *suspend.Suspend) { datum.Suppressed = nil },
 				),
+				Entry("suppressed automated",
+					func(datum *suspend.Suspend) {
+						datum.Suppressed = testDataTypesBasalAutomated.NewSuppressedAutomated()
+					},
+				),
 				Entry("suppressed scheduled",
 					func(datum *suspend.Suspend) {
 						datum.Suppressed = testDataTypesBasalScheduled.NewSuppressedScheduled()
@@ -452,6 +461,12 @@ var _ = Describe("Suspend", func() {
 					func(datum *suspend.Suspend) {
 						datum.Suppressed = testDataTypesBasalTemporary.NewSuppressedTemporary(nil)
 					},
+				),
+				Entry("suppressed temporary with suppressed automated",
+					func(datum *suspend.Suspend) {
+						datum.Suppressed = testDataTypesBasalTemporary.NewSuppressedTemporary(testDataTypesBasalAutomated.NewSuppressedAutomated())
+					},
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/suppressed/suppressed", NewMeta()),
 				),
 				Entry("suppressed temporary with suppressed scheduled",
 					func(datum *suspend.Suspend) {

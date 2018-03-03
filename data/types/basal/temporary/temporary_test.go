@@ -11,6 +11,7 @@ import (
 	"github.com/tidepool-org/platform/data/parser"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/basal"
+	testDataTypesBasalAutomated "github.com/tidepool-org/platform/data/types/basal/automated/test"
 	dataTypesBasalScheduled "github.com/tidepool-org/platform/data/types/basal/scheduled"
 	testDataTypesBasalScheduled "github.com/tidepool-org/platform/data/types/basal/scheduled/test"
 	"github.com/tidepool-org/platform/data/types/basal/temporary"
@@ -529,6 +530,12 @@ var _ = Describe("Temporary", func() {
 				Entry("suppressed missing",
 					func(datum *temporary.Temporary) { datum.Suppressed = nil },
 				),
+				Entry("suppressed automated",
+					func(datum *temporary.Temporary) {
+						datum.Suppressed = testDataTypesBasalAutomated.NewSuppressedAutomated()
+					},
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/suppressed", NewMeta()),
+				),
 				Entry("suppressed scheduled",
 					func(datum *temporary.Temporary) {
 						datum.Suppressed = testDataTypesBasalScheduled.NewSuppressedScheduled()
@@ -691,6 +698,12 @@ var _ = Describe("Temporary", func() {
 				),
 				Entry("suppressed missing",
 					func(datum *temporary.SuppressedTemporary) { datum.Suppressed = nil },
+				),
+				Entry("suppressed automated",
+					func(datum *temporary.SuppressedTemporary) {
+						datum.Suppressed = testDataTypesBasalAutomated.NewSuppressedAutomated()
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/suppressed"),
 				),
 				Entry("suppressed scheduled",
 					func(datum *temporary.SuppressedTemporary) {
