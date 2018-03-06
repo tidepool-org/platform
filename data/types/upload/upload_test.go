@@ -540,6 +540,16 @@ var _ = Describe("Upload", func() {
 						upload.SortAndDeduplicateStringArray(expectedDatum.DeviceTags)
 					},
 				),
+				Entry("upload id missing",
+					func(datum *upload.Upload) { datum.UploadID = nil },
+					func(datum *upload.Upload, expectedDatum *upload.Upload) {
+						Expect(datum.UploadID).ToNot(BeNil())
+						Expect(*datum.UploadID).ToNot(BeEmpty())
+						expectedDatum.UploadID = datum.UploadID
+						upload.SortAndDeduplicateStringArray(expectedDatum.DeviceManufacturers)
+						upload.SortAndDeduplicateStringArray(expectedDatum.DeviceTags)
+					},
+				),
 				Entry("data set type missing",
 					func(datum *upload.Upload) { datum.DataSetType = nil },
 					func(datum *upload.Upload, expectedDatum *upload.Upload) {
