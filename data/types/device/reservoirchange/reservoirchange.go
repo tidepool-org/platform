@@ -3,9 +3,8 @@ package reservoirchange
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/device"
-	"github.com/tidepool-org/platform/data/types/device/status"
+	dataTypesDeviceStatus "github.com/tidepool-org/platform/data/types/device/status"
 	"github.com/tidepool-org/platform/id"
-	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -17,8 +16,8 @@ const (
 type ReservoirChange struct {
 	device.Device `bson:",inline"`
 
-	Status   *status.Status `json:"-" bson:"-"`
-	StatusID *string        `json:"status,omitempty" bson:"status,omitempty"`
+	Status   *data.Datum `json:"-" bson:"-"`
+	StatusID *string     `json:"status,omitempty" bson:"status,omitempty"`
 }
 
 func NewDatum() data.Datum {
@@ -48,21 +47,7 @@ func (r *ReservoirChange) Parse(parser data.ObjectParser) error {
 		return err
 	}
 
-	// TODO: This is a bit hacky to ensure we only parse true status data. Is there a better way?
-
-	if statusParser := parser.NewChildObjectParser("status"); statusParser.Object() != nil {
-		if statusType := statusParser.ParseString("type"); statusType == nil {
-			statusParser.AppendError("type", service.ErrorValueNotExists())
-		} else if *statusType != device.Type {
-			statusParser.AppendError("type", service.ErrorValueStringNotOneOf(*statusType, []string{device.Type}))
-		} else if statusSubType := statusParser.ParseString("subType"); statusSubType == nil {
-			statusParser.AppendError("subType", service.ErrorValueNotExists())
-		} else if *statusSubType != status.SubType {
-			statusParser.AppendError("subType", service.ErrorValueStringNotOneOf(*statusSubType, []string{status.SubType}))
-		} else if datum := parser.ParseDatum("status"); datum != nil {
-			r.Status = (*datum).(*status.Status)
-		}
-	}
+	r.Status = dataTypesDeviceStatus.ParseStatusDatum(parser.NewChildObjectParser("status"))
 
 	return nil
 }
@@ -80,7 +65,7 @@ func (r *ReservoirChange) Validate(validator structure.Validator) {
 
 	if validator.Origin() == structure.OriginExternal {
 		if r.Status != nil {
-			r.Status.Validate(validator.WithReference("status"))
+			(*r.Status).Validate(validator.WithReference("status"))
 		}
 		validator.String("statusId", r.StatusID).NotExists()
 	} else {
@@ -99,13 +84,16 @@ func (r *ReservoirChange) Normalize(normalizer data.Normalizer) {
 	r.Device.Normalize(normalizer)
 
 	if r.Status != nil {
-		r.Status.Normalize(normalizer.WithReference("status"))
+		(*r.Status).Normalize(normalizer.WithReference("status"))
 	}
 
 	if normalizer.Origin() == structure.OriginExternal {
 		if r.Status != nil {
-			normalizer.AddData(r.Status)
-			r.StatusID = r.Status.ID
+			normalizer.AddData(*r.Status)
+			switch status := (*r.Status).(type) {
+			case *dataTypesDeviceStatus.Status:
+				r.StatusID = status.ID
+			}
 			r.Status = nil
 		}
 	}

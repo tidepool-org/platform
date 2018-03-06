@@ -9,6 +9,7 @@ import (
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/types/device/alarm"
+	dataTypesDeviceStatus "github.com/tidepool-org/platform/data/types/device/status"
 	testDataTypesDeviceStatus "github.com/tidepool-org/platform/data/types/device/status/test"
 	testDataTypesDevice "github.com/tidepool-org/platform/data/types/device/test"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
@@ -36,8 +37,10 @@ func NewAlarm() *alarm.Alarm {
 }
 
 func NewAlarmWithStatus() *alarm.Alarm {
+	var status data.Datum
+	status = testDataTypesDeviceStatus.NewStatus()
 	datum := NewAlarm()
-	datum.Status = testDataTypesDeviceStatus.NewStatus()
+	datum.Status = &status
 	return datum
 }
 
@@ -54,7 +57,12 @@ func CloneAlarm(datum *alarm.Alarm) *alarm.Alarm {
 	clone := alarm.New()
 	clone.Device = *testDataTypesDevice.CloneDevice(&datum.Device)
 	clone.AlarmType = test.CloneString(datum.AlarmType)
-	clone.Status = testDataTypesDeviceStatus.CloneStatus(datum.Status)
+	if datum.Status != nil {
+		switch status := (*datum.Status).(type) {
+		case *dataTypesDeviceStatus.Status:
+			clone.Status = data.DatumAsPointer(testDataTypesDeviceStatus.CloneStatus(status))
+		}
+	}
 	clone.StatusID = test.CloneString(datum.StatusID)
 	return clone
 }
@@ -243,12 +251,10 @@ var _ = Describe("Change", func() {
 				Entry("status missing",
 					func(datum *alarm.Alarm) { datum.Status = nil },
 				),
-				Entry("status invalid",
-					func(datum *alarm.Alarm) { datum.Status.Name = nil },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/status/status", NewMeta()),
-				),
 				Entry("status valid",
-					func(datum *alarm.Alarm) { datum.Status = testDataTypesDeviceStatus.NewStatus() },
+					func(datum *alarm.Alarm) {
+						datum.Status = data.DatumAsPointer(testDataTypesDeviceStatus.NewStatus())
+					},
 				),
 				Entry("status id missing",
 					func(datum *alarm.Alarm) { datum.StatusID = nil },
@@ -259,10 +265,8 @@ var _ = Describe("Change", func() {
 				),
 				Entry("multiple errors",
 					func(datum *alarm.Alarm) {
-						datum.Status.Name = nil
 						datum.StatusID = pointer.String(id.New())
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/status/status", NewMeta()),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/statusId", NewMeta()),
 				),
 			)
@@ -281,7 +285,9 @@ var _ = Describe("Change", func() {
 					func(datum *alarm.Alarm) { datum.Status = nil },
 				),
 				Entry("status exists",
-					func(datum *alarm.Alarm) { datum.Status = testDataTypesDeviceStatus.NewStatus() },
+					func(datum *alarm.Alarm) {
+						datum.Status = data.DatumAsPointer(testDataTypesDeviceStatus.NewStatus())
+					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/status", NewMeta()),
 				),
 				Entry("status id missing",
@@ -296,7 +302,7 @@ var _ = Describe("Change", func() {
 				),
 				Entry("multiple errors",
 					func(datum *alarm.Alarm) {
-						datum.Status = testDataTypesDeviceStatus.NewStatus()
+						datum.Status = data.DatumAsPointer(testDataTypesDeviceStatus.NewStatus())
 						datum.StatusID = pointer.String("invalid")
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/status", NewMeta()),
@@ -320,7 +326,7 @@ var _ = Describe("Change", func() {
 			It("normalizes the datum and replaces status with status id", func() {
 				datumStatus := testDataTypesDeviceStatus.NewStatus()
 				datum := NewAlarmWithStatusID()
-				datum.Status = datumStatus
+				datum.Status = data.DatumAsPointer(datumStatus)
 				expectedDatum := CloneAlarm(datum)
 				normalizer := dataNormalizer.New()
 				Expect(normalizer).ToNot(BeNil())

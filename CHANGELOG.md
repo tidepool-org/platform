@@ -1,5 +1,6 @@
 ## HEAD
 
+* Refactor data factory into specific packages
 * Refactor data type functions to constants
 * Add tests for missing upload id
 * Add automated basal data type
