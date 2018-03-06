@@ -35,10 +35,8 @@ func NewTestDevice(sourceTime interface{}, sourceSubType interface{}) *device.De
 }
 
 var _ = Describe("Device", func() {
-	Context("Type", func() {
-		It("returns the expected type", func() {
-			Expect(device.Type()).To(Equal("deviceEvent"))
-		})
+	It("Type is expected", func() {
+		Expect(device.Type).To(Equal("deviceEvent"))
 	})
 
 	Context("with new datum", func() {

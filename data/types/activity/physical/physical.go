@@ -7,6 +7,8 @@ import (
 )
 
 const (
+	Type = "physicalActivity" // TODO: Change to "activity/physical"
+
 	ReportedIntensityHigh   = "high"
 	ReportedIntensityLow    = "low"
 	ReportedIntensityMedium = "medium"
@@ -27,10 +29,6 @@ type Physical struct {
 	ReportedIntensity *string   `json:"reportedIntensity,omitempty" bson:"reportedIntensity,omitempty"`
 }
 
-func Type() string {
-	return "physicalActivity" // TODO: Change to "activity/physical"
-}
-
 func NewDatum() data.Datum {
 	return New()
 }
@@ -47,7 +45,7 @@ func Init() *Physical {
 
 func (p *Physical) Init() {
 	p.Base.Init()
-	p.Type = Type()
+	p.Type = Type
 
 	p.Duration = nil
 	p.ReportedIntensity = nil
@@ -74,7 +72,7 @@ func (p *Physical) Validate(validator structure.Validator) {
 	p.Base.Validate(validator)
 
 	if p.Type != "" {
-		validator.String("type", &p.Type).EqualTo(Type())
+		validator.String("type", &p.Type).EqualTo(Type)
 	}
 
 	if p.Duration != nil {

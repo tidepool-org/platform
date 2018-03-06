@@ -60,6 +60,10 @@ func CloneAlarm(datum *alarm.Alarm) *alarm.Alarm {
 }
 
 var _ = Describe("Change", func() {
+	It("SubType is expected", func() {
+		Expect(alarm.SubType).To(Equal("alarm"))
+	})
+
 	It("AlarmTypeAutoOff is expected", func() {
 		Expect(alarm.AlarmTypeAutoOff).To(Equal("auto_off"))
 	})
@@ -98,12 +102,6 @@ var _ = Describe("Change", func() {
 
 	It("AlarmTypes returns expected", func() {
 		Expect(alarm.AlarmTypes()).To(Equal([]string{"auto_off", "low_insulin", "low_power", "no_delivery", "no_insulin", "no_power", "occlusion", "other", "over_limit"}))
-	})
-
-	Context("SubType", func() {
-		It("returns the expected sub type", func() {
-			Expect(alarm.SubType()).To(Equal("alarm"))
-		})
 	})
 
 	Context("NewDatum", func() {

@@ -51,6 +51,10 @@ func CloneAutomated(datum *automated.Automated) *automated.Automated {
 }
 
 var _ = Describe("Automated", func() {
+	It("DeliveryType is expected", func() {
+		Expect(automated.DeliveryType).To(Equal("automated"))
+	})
+
 	It("DurationMaximum is expected", func() {
 		Expect(automated.DurationMaximum).To(Equal(604800000))
 	})
@@ -65,12 +69,6 @@ var _ = Describe("Automated", func() {
 
 	It("RateMinimum is expected", func() {
 		Expect(automated.RateMinimum).To(Equal(0.0))
-	})
-
-	Context("DeliveryType", func() {
-		It("returns the expected delivery type", func() {
-			Expect(automated.DeliveryType()).To(Equal("automated"))
-		})
 	})
 
 	Context("NewDatum", func() {

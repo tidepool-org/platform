@@ -78,6 +78,10 @@ func NewTestScheduled(sourceTime interface{}, sourceDuration interface{}, source
 }
 
 var _ = Describe("Scheduled", func() {
+	It("DeliveryType is expected", func() {
+		Expect(scheduled.DeliveryType).To(Equal("scheduled"))
+	})
+
 	It("DurationMaximum is expected", func() {
 		Expect(scheduled.DurationMaximum).To(Equal(604800000))
 	})
@@ -92,12 +96,6 @@ var _ = Describe("Scheduled", func() {
 
 	It("RateMinimum is expected", func() {
 		Expect(scheduled.RateMinimum).To(Equal(0.0))
-	})
-
-	Context("DeliveryType", func() {
-		It("returns the expected delivery type", func() {
-			Expect(scheduled.DeliveryType()).To(Equal("scheduled"))
-		})
 	})
 
 	Context("NewDatum", func() {

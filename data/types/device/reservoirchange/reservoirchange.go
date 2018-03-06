@@ -10,15 +10,15 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
+const (
+	SubType = "reservoirChange" // TODO: Rename Type to "device/reservoirChange"; remove SubType
+)
+
 type ReservoirChange struct {
 	device.Device `bson:",inline"`
 
 	Status   *status.Status `json:"-" bson:"-"`
 	StatusID *string        `json:"status,omitempty" bson:"status,omitempty"`
-}
-
-func SubType() string {
-	return "reservoirChange" // TODO: Rename Type to "device/reservoirChange"; remove SubType
 }
 
 func NewDatum() data.Datum {
@@ -37,7 +37,7 @@ func Init() *ReservoirChange {
 
 func (r *ReservoirChange) Init() {
 	r.Device.Init()
-	r.SubType = SubType()
+	r.SubType = SubType
 
 	r.Status = nil
 	r.StatusID = nil
@@ -53,12 +53,12 @@ func (r *ReservoirChange) Parse(parser data.ObjectParser) error {
 	if statusParser := parser.NewChildObjectParser("status"); statusParser.Object() != nil {
 		if statusType := statusParser.ParseString("type"); statusType == nil {
 			statusParser.AppendError("type", service.ErrorValueNotExists())
-		} else if *statusType != device.Type() {
-			statusParser.AppendError("type", service.ErrorValueStringNotOneOf(*statusType, []string{device.Type()}))
+		} else if *statusType != device.Type {
+			statusParser.AppendError("type", service.ErrorValueStringNotOneOf(*statusType, []string{device.Type}))
 		} else if statusSubType := statusParser.ParseString("subType"); statusSubType == nil {
 			statusParser.AppendError("subType", service.ErrorValueNotExists())
-		} else if *statusSubType != status.SubType() {
-			statusParser.AppendError("subType", service.ErrorValueStringNotOneOf(*statusSubType, []string{status.SubType()}))
+		} else if *statusSubType != status.SubType {
+			statusParser.AppendError("subType", service.ErrorValueStringNotOneOf(*statusSubType, []string{status.SubType}))
 		} else if datum := parser.ParseDatum("status"); datum != nil {
 			r.Status = (*datum).(*status.Status)
 		}
@@ -75,7 +75,7 @@ func (r *ReservoirChange) Validate(validator structure.Validator) {
 	r.Device.Validate(validator)
 
 	if r.SubType != "" {
-		validator.String("subType", &r.SubType).EqualTo(SubType())
+		validator.String("subType", &r.SubType).EqualTo(SubType)
 	}
 
 	if validator.Origin() == structure.OriginExternal {

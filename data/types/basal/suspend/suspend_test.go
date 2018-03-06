@@ -85,18 +85,16 @@ func NewTestSuspend(sourceTime interface{}, sourceDuration interface{}, sourceDu
 }
 
 var _ = Describe("Suspend", func() {
+	It("DeliveryType is expected", func() {
+		Expect(suspend.DeliveryType).To(Equal("suspend"))
+	})
+
 	It("DurationMaximum is expected", func() {
 		Expect(suspend.DurationMaximum).To(Equal(604800000))
 	})
 
 	It("DurationMinimum is expected", func() {
 		Expect(suspend.DurationMinimum).To(Equal(0))
-	})
-
-	Context("DeliveryType", func() {
-		It("returns the expected delivery type", func() {
-			Expect(suspend.DeliveryType()).To(Equal("suspend"))
-		})
 	})
 
 	Context("NewDatum", func() {

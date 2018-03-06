@@ -10,6 +10,10 @@ import (
 
 // TODO: Can we use suppressed by reference only (i.e. by id)?
 
+const (
+	Type = "basal"
+)
+
 type Basal struct {
 	types.Base `bson:",inline"`
 
@@ -21,13 +25,9 @@ type Meta struct {
 	DeliveryType string `json:"deliveryType,omitempty"`
 }
 
-func Type() string {
-	return "basal"
-}
-
 func (b *Basal) Init() {
 	b.Base.Init()
-	b.Type = Type()
+	b.Type = Type
 
 	b.DeliveryType = ""
 }
@@ -49,7 +49,7 @@ func (b *Basal) Validate(validator structure.Validator) {
 	b.Base.Validate(validator)
 
 	if b.Type != "" {
-		validator.String("type", &b.Type).EqualTo(Type())
+		validator.String("type", &b.Type).EqualTo(Type)
 	}
 
 	validator.String("deliveryType", &b.DeliveryType).Exists().NotEmpty()
@@ -78,8 +78,8 @@ func ParseDeliveryType(parser data.ObjectParser) *string {
 		parser.AppendError("type", service.ErrorValueNotExists())
 		return nil
 	}
-	if *typ != Type() {
-		parser.AppendError("type", service.ErrorValueStringNotOneOf(*typ, []string{Type()}))
+	if *typ != Type {
+		parser.AppendError("type", service.ErrorValueStringNotOneOf(*typ, []string{Type}))
 		return nil
 	}
 

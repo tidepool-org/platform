@@ -1,5 +1,7 @@
 ## HEAD
 
+* Refactor data type functions to constants
+
 ## v1.25.0
 
 * Use correct 2-Clause BSD License

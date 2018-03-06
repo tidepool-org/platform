@@ -35,10 +35,8 @@ func NewTestBasal(sourceTime interface{}, sourceDeliveryType interface{}) *basal
 }
 
 var _ = Describe("Basal", func() {
-	Context("Type", func() {
-		It("returns the expected type", func() {
-			Expect(basal.Type()).To(Equal("basal"))
-		})
+	It("Type is expected", func() {
+		Expect(basal.Type).To(Equal("basal"))
 	})
 
 	Context("with new datum", func() {

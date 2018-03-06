@@ -7,6 +7,10 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
+const (
+	Type = "deviceEvent"
+)
+
 type Device struct {
 	types.Base `bson:",inline"`
 
@@ -18,13 +22,9 @@ type Meta struct {
 	SubType string `json:"subType,omitempty"`
 }
 
-func Type() string {
-	return "deviceEvent"
-}
-
 func (d *Device) Init() {
 	d.Base.Init()
-	d.Type = Type()
+	d.Type = Type
 
 	d.SubType = ""
 }
@@ -46,7 +46,7 @@ func (d *Device) Validate(validator structure.Validator) {
 	d.Base.Validate(validator)
 
 	if d.Type != "" {
-		validator.String("type", &d.Type).EqualTo(Type())
+		validator.String("type", &d.Type).EqualTo(Type)
 	}
 
 	validator.String("subType", &d.SubType).Exists().NotEmpty()

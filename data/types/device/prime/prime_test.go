@@ -72,6 +72,10 @@ func NewTestPrime(sourceTime interface{}, sourceTarget interface{}, sourceVolume
 }
 
 var _ = Describe("Status", func() {
+	It("SubType is expected", func() {
+		Expect(prime.SubType).To(Equal("prime"))
+	})
+
 	It("TargetCannula is expected", func() {
 		Expect(prime.TargetCannula).To(Equal("cannula"))
 	})
@@ -98,12 +102,6 @@ var _ = Describe("Status", func() {
 
 	It("Targets returns expected", func() {
 		Expect(prime.Targets()).To(Equal([]string{"cannula", "tubing"}))
-	})
-
-	Context("SubType", func() {
-		It("returns the expected sub type", func() {
-			Expect(prime.SubType()).To(Equal("prime"))
-		})
 	})
 
 	Context("NewDatum", func() {

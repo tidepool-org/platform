@@ -7,6 +7,8 @@ import (
 )
 
 const (
+	SubType = "dual/square" // TODO: Rename Type to "bolus/combination"; remove SubType
+
 	DurationMaximum = 86400000
 	DurationMinimum = 0
 	ExtendedMaximum = 100.0
@@ -26,10 +28,6 @@ type Combination struct {
 	NormalExpected   *float64 `json:"expectedNormal,omitempty" bson:"expectedNormal,omitempty"`
 }
 
-func SubType() string {
-	return "dual/square" // TODO: Rename Type to "bolus/combination"; remove SubType
-}
-
 func NewDatum() data.Datum {
 	return New()
 }
@@ -46,7 +44,7 @@ func Init() *Combination {
 
 func (c *Combination) Init() {
 	c.Bolus.Init()
-	c.SubType = SubType()
+	c.SubType = SubType
 
 	c.Duration = nil
 	c.DurationExpected = nil
@@ -79,7 +77,7 @@ func (c *Combination) Validate(validator structure.Validator) {
 	c.Bolus.Validate(validator)
 
 	if c.SubType != "" {
-		validator.String("subType", &c.SubType).EqualTo(SubType())
+		validator.String("subType", &c.SubType).EqualTo(SubType)
 	}
 
 	if c.NormalExpected != nil {

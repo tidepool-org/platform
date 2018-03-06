@@ -59,6 +59,10 @@ func NewTestCombination(sourceTime interface{}, sourceDuration interface{}, sour
 }
 
 var _ = Describe("Combination", func() {
+	It("SubType is expected", func() {
+		Expect(combination.SubType).To(Equal("dual/square"))
+	})
+
 	It("DurationMaximum is expected", func() {
 		Expect(combination.DurationMaximum).To(Equal(86400000))
 	})
@@ -81,12 +85,6 @@ var _ = Describe("Combination", func() {
 
 	It("NormalMinimum is expected", func() {
 		Expect(combination.NormalMinimum).To(Equal(0.0))
-	})
-
-	Context("SubType", func() {
-		It("returns the expected sub type", func() {
-			Expect(combination.SubType()).To(Equal("dual/square"))
-		})
 	})
 
 	Context("NewDatum", func() {

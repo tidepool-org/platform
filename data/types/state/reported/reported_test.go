@@ -45,10 +45,8 @@ func CloneReported(datum *reported.Reported) *reported.Reported {
 }
 
 var _ = Describe("Reported", func() {
-	Context("Type", func() {
-		It("returns the expected type", func() {
-			Expect(reported.Type()).To(Equal("reportedState"))
-		})
+	It("Type is expected", func() {
+		Expect(reported.Type).To(Equal("reportedState"))
 	})
 
 	Context("NewDatum", func() {

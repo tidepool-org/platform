@@ -58,10 +58,8 @@ func CloneReservoirChange(datum *reservoirchange.ReservoirChange) *reservoirchan
 }
 
 var _ = Describe("Change", func() {
-	Context("SubType", func() {
-		It("returns the expected sub type", func() {
-			Expect(reservoirchange.SubType()).To(Equal("reservoirChange"))
-		})
+	It("SubType is expected", func() {
+		Expect(reservoirchange.SubType).To(Equal("reservoirChange"))
 	})
 
 	Context("NewDatum", func() {
