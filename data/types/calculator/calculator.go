@@ -4,12 +4,11 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/types"
-	"github.com/tidepool-org/platform/data/types/bolus"
-	"github.com/tidepool-org/platform/data/types/bolus/combination"
-	"github.com/tidepool-org/platform/data/types/bolus/extended"
-	"github.com/tidepool-org/platform/data/types/bolus/normal"
+	dataTypesBolusCombination "github.com/tidepool-org/platform/data/types/bolus/combination"
+	dataTypesBolusExtended "github.com/tidepool-org/platform/data/types/bolus/extended"
+	dataTypesBolusFactory "github.com/tidepool-org/platform/data/types/bolus/factory"
+	dataTypesBolusNormal "github.com/tidepool-org/platform/data/types/bolus/normal"
 	"github.com/tidepool-org/platform/id"
-	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -85,18 +84,7 @@ func (c *Calculator) Parse(parser data.ObjectParser) error {
 	c.InsulinSensitivity = parser.ParseFloat("insulinSensitivity")
 	c.Recommended = ParseRecommended(parser.NewChildObjectParser("recommended"))
 	c.Units = parser.ParseString("units")
-
-	// TODO: This is a bit hacky to ensure we only parse true bolus data. Is there a better way?
-
-	if bolusParser := parser.NewChildObjectParser("bolus"); bolusParser.Object() != nil {
-		if bolusType := bolusParser.ParseString("type"); bolusType == nil {
-			bolusParser.AppendError("type", service.ErrorValueNotExists())
-		} else if *bolusType != bolus.Type {
-			bolusParser.AppendError("type", service.ErrorValueStringNotOneOf(*bolusType, []string{bolus.Type}))
-		} else {
-			c.Bolus = parser.ParseDatum("bolus")
-		}
-	}
+	c.Bolus = dataTypesBolusFactory.ParseBolusDatum(parser.NewChildObjectParser("bolus"))
 
 	return nil
 }
@@ -164,11 +152,11 @@ func (c *Calculator) Normalize(normalizer data.Normalizer) {
 		if c.Bolus != nil {
 			normalizer.AddData(*c.Bolus)
 			switch bolus := (*c.Bolus).(type) {
-			case *combination.Combination:
+			case *dataTypesBolusCombination.Combination:
 				c.BolusID = bolus.ID
-			case *extended.Extended:
+			case *dataTypesBolusExtended.Extended:
 				c.BolusID = bolus.ID
-			case *normal.Normal:
+			case *dataTypesBolusNormal.Normal:
 				c.BolusID = bolus.ID
 			}
 			c.Bolus = nil

@@ -36,6 +36,10 @@ type Datum interface {
 	SetDeduplicatorDescriptor(deduplicatorDescriptor *DeduplicatorDescriptor)
 }
 
+func DatumAsPointer(datum Datum) *Datum {
+	return &datum
+}
+
 var dataSetIDExpression = regexp.MustCompile("(upid_[0-9a-f]{12}|upid_[0-9a-f]{32}|[0-9a-f]{32})") // TODO: Want just "[0-9a-f]{32}"
 
 func ValidateDataSetID(value string, errorReporter structure.ErrorReporter) {

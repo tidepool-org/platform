@@ -1,5 +1,6 @@
 ## HEAD
 
+* Refactor data factory into specific packages
 * Refactor data type functions to constants
 
 ## v1.25.0

@@ -19,7 +19,7 @@
 ./data/storeDEPRECATED/store.go:1:1: don't use MixedCaps in package name; storeDEPRECATED should be storedeprecated
 ./data/storeDEPRECATED/store_suite_test.go:1:1: don't use MixedCaps in package name; storeDEPRECATED_test should be storedeprecated_test
 ./data/storeDEPRECATED/store_test.go:1:1: don't use MixedCaps in package name; storeDEPRECATED_test should be storedeprecated_test
-./data/types/device/alarm/alarm.go:27:6: func name will be used as alarm.AlarmTypes by other packages, and that stutters; consider calling this Types
+./data/types/device/alarm/alarm.go:26:6: func name will be used as alarm.AlarmTypes by other packages, and that stutters; consider calling this Types
 ./service/response_test.go:27:30: method WriteJson should be WriteJSON
 ./service/response_test.go:31:30: method EncodeJson should be EncodeJSON
 ./task/task.go:22:6: type name will be used as task.TaskAccessor by other packages, and that stutters; consider calling this Accessor
