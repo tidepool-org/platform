@@ -48,6 +48,10 @@ func NewTestStatus(sourceTime interface{}, sourceDuration interface{}, sourceNam
 }
 
 var _ = Describe("Status", func() {
+	It("SubType is expected", func() {
+		Expect(status.SubType).To(Equal("status"))
+	})
+
 	It("DurationMinimum is expected", func() {
 		Expect(status.DurationMinimum).To(Equal(0))
 	})
@@ -62,12 +66,6 @@ var _ = Describe("Status", func() {
 
 	It("Names returns expected", func() {
 		Expect(status.Names()).To(Equal([]string{"resumed", "suspended"}))
-	})
-
-	Context("SubType", func() {
-		It("returns the expected sub type", func() {
-			Expect(status.SubType()).To(Equal("status"))
-		})
 	})
 
 	Context("NewDatum", func() {

@@ -8,6 +8,8 @@ import (
 )
 
 const (
+	SubType = "status" // TODO: Rename Type to "device/status"; remove SubType; consider device/resumed + device/suspended
+
 	DurationMinimum = 0
 	NameResumed     = "resumed"
 	NameSuspended   = "suspended"
@@ -28,10 +30,6 @@ type Status struct {
 	Reason   *data.Blob `json:"reason,omitempty" bson:"reason,omitempty"`
 }
 
-func SubType() string {
-	return "status" // TODO: Rename Type to "device/status"; remove SubType; consider device/resumed + device/suspended
-}
-
 func NewDatum() data.Datum {
 	return New()
 }
@@ -48,7 +46,7 @@ func Init() *Status {
 
 func (s *Status) Init() {
 	s.Device.Init()
-	s.SubType = SubType()
+	s.SubType = SubType
 
 	s.Duration = nil
 	s.Name = nil
@@ -75,7 +73,7 @@ func (s *Status) Validate(validator structure.Validator) {
 	s.Device.Validate(validator)
 
 	if s.SubType != "" {
-		validator.String("subType", &s.SubType).EqualTo(SubType())
+		validator.String("subType", &s.SubType).EqualTo(SubType)
 	}
 
 	validator.Int("duration", s.Duration).GreaterThanOrEqualTo(DurationMinimum) // TODO: .Exists() - Suspend events on Animas do not have duration?

@@ -46,18 +46,16 @@ func NewTestNormal(sourceTime interface{}, sourceNormal interface{}, sourceNorma
 }
 
 var _ = Describe("Normal", func() {
+	It("SubType is expected", func() {
+		Expect(normal.SubType).To(Equal("normal"))
+	})
+
 	It("NormalMaximum is expected", func() {
 		Expect(normal.NormalMaximum).To(Equal(100.0))
 	})
 
 	It("NormalMinimum is expected", func() {
 		Expect(normal.NormalMinimum).To(Equal(0.0))
-	})
-
-	Context("SubType", func() {
-		It("returns the expected sub type", func() {
-			Expect(normal.SubType()).To(Equal("normal"))
-		})
 	})
 
 	Context("NewDatum", func() {

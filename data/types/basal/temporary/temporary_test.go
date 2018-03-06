@@ -89,6 +89,10 @@ func NewTestTemporary(sourceTime interface{}, sourceDuration interface{}, source
 }
 
 var _ = Describe("Temporary", func() {
+	It("DeliveryType is expected", func() {
+		Expect(temporary.DeliveryType).To(Equal("temp"))
+	})
+
 	It("DurationMaximum is expected", func() {
 		Expect(temporary.DurationMaximum).To(Equal(604800000))
 	})
@@ -111,12 +115,6 @@ var _ = Describe("Temporary", func() {
 
 	It("RateMinimum is expected", func() {
 		Expect(temporary.RateMinimum).To(Equal(0.0))
-	})
-
-	Context("DeliveryType", func() {
-		It("returns the expected delivery type", func() {
-			Expect(temporary.DeliveryType()).To(Equal("temp"))
-		})
 	})
 
 	Context("NewDatum", func() {

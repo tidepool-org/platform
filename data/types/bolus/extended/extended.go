@@ -7,6 +7,8 @@ import (
 )
 
 const (
+	SubType = "square" // TODO: Rename Type to "bolus/extended"; remove SubType
+
 	DurationMaximum = 86400000
 	DurationMinimum = 0
 	ExtendedMaximum = 100.0
@@ -20,10 +22,6 @@ type Extended struct {
 	DurationExpected *int     `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
 	Extended         *float64 `json:"extended,omitempty" bson:"extended,omitempty"`
 	ExtendedExpected *float64 `json:"expectedExtended,omitempty" bson:"expectedExtended,omitempty"`
-}
-
-func SubType() string {
-	return "square" // TODO: Rename Type to "bolus/extended"; remove SubType
 }
 
 func NewDatum() data.Datum {
@@ -42,7 +40,7 @@ func Init() *Extended {
 
 func (e *Extended) Init() {
 	e.Bolus.Init()
-	e.SubType = SubType()
+	e.SubType = SubType
 
 	e.Duration = nil
 	e.DurationExpected = nil
@@ -71,7 +69,7 @@ func (e *Extended) Validate(validator structure.Validator) {
 	e.Bolus.Validate(validator)
 
 	if e.SubType != "" {
-		validator.String("subType", &e.SubType).EqualTo(SubType())
+		validator.String("subType", &e.SubType).EqualTo(SubType)
 	}
 
 	validator.Int("duration", e.Duration).Exists().InRange(DurationMinimum, DurationMaximum)

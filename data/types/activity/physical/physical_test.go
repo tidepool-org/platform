@@ -43,6 +43,10 @@ func ClonePhysical(datum *physical.Physical) *physical.Physical {
 }
 
 var _ = Describe("Physical", func() {
+	It("Type is expected", func() {
+		Expect(physical.Type).To(Equal("physicalActivity"))
+	})
+
 	It("ReportedIntensityHigh is expected", func() {
 		Expect(physical.ReportedIntensityHigh).To(Equal("high"))
 	})
@@ -57,12 +61,6 @@ var _ = Describe("Physical", func() {
 
 	It("ReportedIntensities returns expected", func() {
 		Expect(physical.ReportedIntensities()).To(Equal([]string{"high", "low", "medium"}))
-	})
-
-	Context("Type", func() {
-		It("returns the expected type", func() {
-			Expect(physical.Type()).To(Equal("physicalActivity"))
-		})
 	})
 
 	Context("NewDatum", func() {

@@ -1,5 +1,6 @@
 ## HEAD
 
+* Refactor data type functions to constants
 * Fix Dexcom API unexpected data; temporarily modify incoming data to expected values
 * Fix Dexcom API unknown device model failure; allow unknown device model
 * Fix Dexcom API authentication failure; always update provider session, even if error

@@ -35,10 +35,8 @@ func NewTestBolus(sourceTime interface{}, sourceSubType interface{}) *bolus.Bolu
 }
 
 var _ = Describe("Bolus", func() {
-	Context("Type", func() {
-		It("returns the expected type", func() {
-			Expect(bolus.Type()).To(Equal("bolus"))
-		})
+	It("Type is expected", func() {
+		Expect(bolus.Type).To(Equal("bolus"))
 	})
 
 	Context("with new datum", func() {

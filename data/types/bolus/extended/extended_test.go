@@ -52,6 +52,10 @@ func NewTestExtended(sourceTime interface{}, sourceDuration interface{}, sourceD
 }
 
 var _ = Describe("Extended", func() {
+	It("SubType is expected", func() {
+		Expect(extended.SubType).To(Equal("square"))
+	})
+
 	It("DurationMaximum is expected", func() {
 		Expect(extended.DurationMaximum).To(Equal(86400000))
 	})
@@ -66,12 +70,6 @@ var _ = Describe("Extended", func() {
 
 	It("ExtendedMinimum is expected", func() {
 		Expect(extended.ExtendedMinimum).To(Equal(0.0))
-	})
-
-	Context("SubType", func() {
-		It("returns the expected sub type", func() {
-			Expect(extended.SubType()).To(Equal("square"))
-		})
 	})
 
 	Context("NewDatum", func() {

@@ -39,10 +39,8 @@ func CloneInsulin(datum *insulin.Insulin) *insulin.Insulin {
 }
 
 var _ = Describe("Insulin", func() {
-	Context("Type", func() {
-		It("returns the expected type", func() {
-			Expect(insulin.Type()).To(Equal("insulin"))
-		})
+	It("Type is expected", func() {
+		Expect(insulin.Type).To(Equal("insulin"))
 	})
 
 	Context("NewDatum", func() {

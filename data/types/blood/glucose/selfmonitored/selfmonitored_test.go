@@ -68,6 +68,10 @@ func NewTestSelfMonitored(sourceTime interface{}, sourceUnits interface{}, sourc
 }
 
 var _ = Describe("SelfMonitored", func() {
+	It("Type is expected", func() {
+		Expect(selfmonitored.Type).To(Equal("smbg"))
+	})
+
 	It("SubTypeLinked is expected", func() {
 		Expect(selfmonitored.SubTypeLinked).To(Equal("linked"))
 	})
@@ -78,12 +82,6 @@ var _ = Describe("SelfMonitored", func() {
 
 	It("SubTypes returns expected", func() {
 		Expect(selfmonitored.SubTypes()).To(Equal([]string{"linked", "manual"}))
-	})
-
-	Context("Type", func() {
-		It("returns the expected type", func() {
-			Expect(selfmonitored.Type()).To(Equal("smbg"))
-		})
 	})
 
 	Context("NewDatum", func() {

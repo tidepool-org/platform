@@ -11,6 +11,8 @@ import (
 )
 
 const (
+	DeliveryType = "temp" // TODO: Rename Type to "basal/temporary"; remove DeliveryType
+
 	DurationMaximum = 604800000
 	DurationMinimum = 0
 	PercentMaximum  = 10.0
@@ -35,10 +37,6 @@ type Temporary struct {
 	Suppressed       Suppressed `json:"suppressed,omitempty" bson:"suppressed,omitempty"`
 }
 
-func DeliveryType() string {
-	return "temp" // TODO: Rename Type to "basal/temporary"; remove DeliveryType
-}
-
 func NewDatum() data.Datum {
 	return New()
 }
@@ -55,7 +53,7 @@ func Init() *Temporary {
 
 func (t *Temporary) Init() {
 	t.Basal.Init()
-	t.DeliveryType = DeliveryType()
+	t.DeliveryType = DeliveryType
 
 	t.Duration = nil
 	t.DurationExpected = nil
@@ -86,7 +84,7 @@ func (t *Temporary) Validate(validator structure.Validator) {
 	t.Basal.Validate(validator)
 
 	if t.DeliveryType != "" {
-		validator.String("deliveryType", &t.DeliveryType).EqualTo(DeliveryType())
+		validator.String("deliveryType", &t.DeliveryType).EqualTo(DeliveryType)
 	}
 
 	validator.Int("duration", t.Duration).Exists().InRange(DurationMinimum, DurationMaximum)
@@ -135,8 +133,8 @@ func ParseSuppressedTemporary(parser data.ObjectParser) *SuppressedTemporary {
 
 func NewSuppressedTemporary() *SuppressedTemporary {
 	return &SuppressedTemporary{
-		Type:         pointer.String(basal.Type()),
-		DeliveryType: pointer.String(DeliveryType()),
+		Type:         pointer.String(basal.Type),
+		DeliveryType: pointer.String(DeliveryType),
 	}
 }
 
@@ -153,8 +151,8 @@ func (s *SuppressedTemporary) Parse(parser data.ObjectParser) error {
 }
 
 func (s *SuppressedTemporary) Validate(validator structure.Validator) {
-	validator.String("type", s.Type).Exists().EqualTo(basal.Type())
-	validator.String("deliveryType", s.DeliveryType).Exists().EqualTo(DeliveryType())
+	validator.String("type", s.Type).Exists().EqualTo(basal.Type)
+	validator.String("deliveryType", s.DeliveryType).Exists().EqualTo(DeliveryType)
 
 	if s.Annotations != nil {
 		s.Annotations.Validate(validator.WithReference("annotations"))
@@ -174,13 +172,13 @@ func (s *SuppressedTemporary) Normalize(normalizer data.Normalizer) {
 }
 
 var suppressedDeliveryTypes = []string{
-	dataTypesBasalScheduled.DeliveryType(),
+	dataTypesBasalScheduled.DeliveryType,
 }
 
 func parseSuppressed(parser data.ObjectParser) Suppressed {
 	if deliveryType := basal.ParseDeliveryType(parser); deliveryType != nil {
 		switch *deliveryType {
-		case dataTypesBasalScheduled.DeliveryType():
+		case dataTypesBasalScheduled.DeliveryType:
 			return dataTypesBasalScheduled.ParseSuppressedScheduled(parser)
 		default:
 			parser.AppendError("type", service.ErrorValueStringNotOneOf(*deliveryType, suppressedDeliveryTypes))

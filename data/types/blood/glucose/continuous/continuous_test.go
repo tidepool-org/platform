@@ -40,10 +40,8 @@ func CloneContinuous(datum *continuous.Continuous) *continuous.Continuous {
 }
 
 var _ = Describe("Continuous", func() {
-	Context("Type", func() {
-		It("returns the expected type", func() {
-			Expect(continuous.Type()).To(Equal("cbg"))
-		})
+	It("Type is expected", func() {
+		Expect(continuous.Type).To(Equal("cbg"))
 	})
 
 	Context("NewDatum", func() {

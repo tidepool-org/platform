@@ -8,6 +8,8 @@ import (
 )
 
 const (
+	DeliveryType = "scheduled" // TODO: Rename Type to "basal/scheduled"; remove DeliveryType
+
 	DurationMaximum = 604800000
 	DurationMinimum = 0
 	RateMaximum     = 100.0
@@ -21,10 +23,6 @@ type Scheduled struct {
 	DurationExpected *int     `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
 	Rate             *float64 `json:"rate,omitempty" bson:"rate,omitempty"`
 	ScheduleName     *string  `json:"scheduleName,omitempty" bson:"scheduleName,omitempty"`
-}
-
-func DeliveryType() string {
-	return "scheduled" // TODO: Rename Type to "basal/scheduled"; remove DeliveryType
 }
 
 func NewDatum() data.Datum {
@@ -43,7 +41,7 @@ func Init() *Scheduled {
 
 func (s *Scheduled) Init() {
 	s.Basal.Init()
-	s.DeliveryType = DeliveryType()
+	s.DeliveryType = DeliveryType
 
 	s.Duration = nil
 	s.DurationExpected = nil
@@ -72,7 +70,7 @@ func (s *Scheduled) Validate(validator structure.Validator) {
 	s.Basal.Validate(validator)
 
 	if s.DeliveryType != "" {
-		validator.String("deliveryType", &s.DeliveryType).EqualTo(DeliveryType())
+		validator.String("deliveryType", &s.DeliveryType).EqualTo(DeliveryType)
 	}
 
 	validator.Int("duration", s.Duration).Exists().InRange(DurationMinimum, DurationMaximum)
@@ -115,8 +113,8 @@ func ParseSuppressedScheduled(parser data.ObjectParser) *SuppressedScheduled {
 
 func NewSuppressedScheduled() *SuppressedScheduled {
 	return &SuppressedScheduled{
-		Type:         pointer.String(basal.Type()),
-		DeliveryType: pointer.String(DeliveryType()),
+		Type:         pointer.String(basal.Type),
+		DeliveryType: pointer.String(DeliveryType),
 	}
 }
 
@@ -132,8 +130,8 @@ func (s *SuppressedScheduled) Parse(parser data.ObjectParser) error {
 }
 
 func (s *SuppressedScheduled) Validate(validator structure.Validator) {
-	validator.String("type", s.Type).Exists().EqualTo(basal.Type())
-	validator.String("deliveryType", s.DeliveryType).Exists().EqualTo(DeliveryType())
+	validator.String("type", s.Type).Exists().EqualTo(basal.Type)
+	validator.String("deliveryType", s.DeliveryType).Exists().EqualTo(DeliveryType)
 
 	if s.Annotations != nil {
 		s.Annotations.Validate(validator.WithReference("annotations"))

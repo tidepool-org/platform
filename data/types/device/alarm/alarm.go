@@ -11,6 +11,8 @@ import (
 )
 
 const (
+	SubType = "alarm" // TODO: Rename Type to "device/alarm"; remove SubType
+
 	AlarmTypeAutoOff    = "auto_off"
 	AlarmTypeLowInsulin = "low_insulin"
 	AlarmTypeLowPower   = "low_power"
@@ -44,10 +46,6 @@ type Alarm struct {
 	StatusID  *string        `json:"status,omitempty" bson:"status,omitempty"`
 }
 
-func SubType() string {
-	return "alarm" // TODO: Rename Type to "device/alarm"; remove SubType
-}
-
 func NewDatum() data.Datum {
 	return New()
 }
@@ -64,7 +62,7 @@ func Init() *Alarm {
 
 func (a *Alarm) Init() {
 	a.Device.Init()
-	a.SubType = SubType()
+	a.SubType = SubType
 
 	a.AlarmType = nil
 	a.Status = nil
@@ -83,12 +81,12 @@ func (a *Alarm) Parse(parser data.ObjectParser) error {
 	if statusParser := parser.NewChildObjectParser("status"); statusParser.Object() != nil {
 		if statusType := statusParser.ParseString("type"); statusType == nil {
 			statusParser.AppendError("type", service.ErrorValueNotExists())
-		} else if *statusType != device.Type() {
-			statusParser.AppendError("type", service.ErrorValueStringNotOneOf(*statusType, []string{device.Type()}))
+		} else if *statusType != device.Type {
+			statusParser.AppendError("type", service.ErrorValueStringNotOneOf(*statusType, []string{device.Type}))
 		} else if statusSubType := statusParser.ParseString("subType"); statusSubType == nil {
 			statusParser.AppendError("subType", service.ErrorValueNotExists())
-		} else if *statusSubType != status.SubType() {
-			statusParser.AppendError("subType", service.ErrorValueStringNotOneOf(*statusSubType, []string{status.SubType()}))
+		} else if *statusSubType != status.SubType {
+			statusParser.AppendError("subType", service.ErrorValueStringNotOneOf(*statusSubType, []string{status.SubType}))
 		} else if datum := parser.ParseDatum("status"); datum != nil {
 			a.Status = (*datum).(*status.Status)
 		}
@@ -105,7 +103,7 @@ func (a *Alarm) Validate(validator structure.Validator) {
 	a.Device.Validate(validator)
 
 	if a.SubType != "" {
-		validator.String("subType", &a.SubType).EqualTo(SubType())
+		validator.String("subType", &a.SubType).EqualTo(SubType)
 	}
 
 	validator.String("alarmType", a.AlarmType).Exists().OneOf(AlarmTypes()...)

@@ -12,6 +12,8 @@ import (
 )
 
 const (
+	DeliveryType = "suspend" // TODO: Rename Type to "basal/suspended"; remove DeliveryType
+
 	DurationMaximum = 604800000
 	DurationMinimum = 0
 )
@@ -30,10 +32,6 @@ type Suspend struct {
 	Suppressed       Suppressed `json:"suppressed,omitempty" bson:"suppressed,omitempty"`
 }
 
-func DeliveryType() string {
-	return "suspend" // TODO: Rename Type to "basal/suspended"; remove DeliveryType
-}
-
 func NewDatum() data.Datum {
 	return New()
 }
@@ -50,7 +48,7 @@ func Init() *Suspend {
 
 func (s *Suspend) Init() {
 	s.Basal.Init()
-	s.DeliveryType = DeliveryType()
+	s.DeliveryType = DeliveryType
 
 	s.Duration = nil
 	s.DurationExpected = nil
@@ -77,7 +75,7 @@ func (s *Suspend) Validate(validator structure.Validator) {
 	s.Basal.Validate(validator)
 
 	if s.DeliveryType != "" {
-		validator.String("deliveryType", &s.DeliveryType).EqualTo(DeliveryType())
+		validator.String("deliveryType", &s.DeliveryType).EqualTo(DeliveryType)
 	}
 
 	validator.Int("duration", s.Duration).Exists().InRange(DurationMinimum, DurationMaximum)
@@ -103,19 +101,19 @@ func (s *Suspend) Normalize(normalizer data.Normalizer) {
 }
 
 var suppressedDeliveryTypes = []string{
-	dataTypesBasalAutomated.DeliveryType(),
-	dataTypesBasalScheduled.DeliveryType(),
-	dataTypesBasalTemporary.DeliveryType(),
+	dataTypesBasalAutomated.DeliveryType,
+	dataTypesBasalScheduled.DeliveryType,
+	dataTypesBasalTemporary.DeliveryType,
 }
 
 func parseSuppressed(parser data.ObjectParser) Suppressed {
 	if deliveryType := basal.ParseDeliveryType(parser); deliveryType != nil {
 		switch *deliveryType {
-		case dataTypesBasalAutomated.DeliveryType():
+		case dataTypesBasalAutomated.DeliveryType:
 			return dataTypesBasalAutomated.ParseSuppressedAutomated(parser)
-		case dataTypesBasalScheduled.DeliveryType():
+		case dataTypesBasalScheduled.DeliveryType:
 			return dataTypesBasalScheduled.ParseSuppressedScheduled(parser)
-		case dataTypesBasalTemporary.DeliveryType():
+		case dataTypesBasalTemporary.DeliveryType:
 			return dataTypesBasalTemporary.ParseSuppressedTemporary(parser)
 		default:
 			parser.AppendError("type", service.ErrorValueStringNotOneOf(*deliveryType, suppressedDeliveryTypes))

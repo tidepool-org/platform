@@ -6,6 +6,10 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
+const (
+	Type = "pumpSettings"
+)
+
 type Pump struct {
 	types.Base `bson:",inline"`
 
@@ -15,10 +19,6 @@ type Pump struct {
 	CarbohydrateRatios   *CarbohydrateRatioArray  `json:"carbRatio,omitempty" bson:"carbRatio,omitempty"`
 	InsulinSensitivities *InsulinSensitivityArray `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`
 	Units                *Units                   `json:"units,omitempty" bson:"units,omitempty"`
-}
-
-func Type() string {
-	return "pumpSettings"
 }
 
 func NewDatum() data.Datum {
@@ -37,7 +37,7 @@ func Init() *Pump {
 
 func (p *Pump) Init() {
 	p.Base.Init()
-	p.Type = Type()
+	p.Type = Type
 
 	p.ActiveScheduleName = nil
 	p.BasalSchedules = nil
@@ -72,7 +72,7 @@ func (p *Pump) Validate(validator structure.Validator) {
 	p.Base.Validate(validator)
 
 	if p.Type != "" {
-		validator.String("type", &p.Type).EqualTo(Type())
+		validator.String("type", &p.Type).EqualTo(Type)
 	}
 
 	var unitsBloodGlucose *string

@@ -11,6 +11,8 @@ import (
 )
 
 const (
+	Type = "upload"
+
 	ComputerTimeFormat                   = "2006-01-02T15:04:05"
 	DataSetTypeContinuous                = "continuous"
 	DataSetTypeNormal                    = "normal"
@@ -76,10 +78,6 @@ type Upload struct {
 	Version             *string   `json:"version,omitempty" bson:"version,omitempty"` // TODO: Deprecate in favor of Client.Version
 }
 
-func Type() string {
-	return "upload"
-}
-
 func NewDatum() data.Datum {
 	return New()
 }
@@ -96,7 +94,7 @@ func Init() *Upload {
 
 func (u *Upload) Init() {
 	u.Base.Init()
-	u.Type = Type()
+	u.Type = Type
 
 	u.ByUser = nil
 	u.Client = nil
@@ -142,7 +140,7 @@ func (u *Upload) Validate(validator structure.Validator) {
 	u.Base.Validate(validator)
 
 	if u.Type != "" {
-		validator.String("type", &u.Type).EqualTo(Type())
+		validator.String("type", &u.Type).EqualTo(Type)
 	}
 
 	if u.Client != nil {

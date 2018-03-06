@@ -7,12 +7,12 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
+const (
+	Type = "bloodKetone"
+)
+
 type Ketone struct {
 	blood.Blood `bson:",inline"`
-}
-
-func Type() string {
-	return "bloodKetone"
 }
 
 func NewDatum() data.Datum {
@@ -31,7 +31,7 @@ func Init() *Ketone {
 
 func (k *Ketone) Init() {
 	k.Blood.Init()
-	k.Type = Type()
+	k.Type = Type
 }
 
 func (k *Ketone) Validate(validator structure.Validator) {
@@ -42,7 +42,7 @@ func (k *Ketone) Validate(validator structure.Validator) {
 	k.Blood.Validate(validator)
 
 	if k.Type != "" {
-		validator.String("type", &k.Type).EqualTo(Type())
+		validator.String("type", &k.Type).EqualTo(Type)
 	}
 
 	validator.String("units", k.Units).Exists().OneOf(ketone.Units()...)
