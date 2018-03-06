@@ -7,6 +7,10 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
+const (
+	Type = "bolus"
+)
+
 type Bolus struct {
 	types.Base `bson:",inline"`
 
@@ -18,13 +22,9 @@ type Meta struct {
 	SubType string `json:"subType,omitempty"`
 }
 
-func Type() string {
-	return "bolus"
-}
-
 func (b *Bolus) Init() {
 	b.Base.Init()
-	b.Type = Type()
+	b.Type = Type
 
 	b.SubType = ""
 }
@@ -46,7 +46,7 @@ func (b *Bolus) Validate(validator structure.Validator) {
 	b.Base.Validate(validator)
 
 	if b.Type != "" {
-		validator.String("type", &b.Type).EqualTo(Type())
+		validator.String("type", &b.Type).EqualTo(Type)
 	}
 
 	validator.String("subType", &b.SubType).Exists().NotEmpty()

@@ -43,10 +43,8 @@ func CloneKetone(datum *ketone.Ketone) *ketone.Ketone {
 }
 
 var _ = Describe("Ketone", func() {
-	Context("Type", func() {
-		It("returns the expected type", func() {
-			Expect(ketone.Type()).To(Equal("bloodKetone"))
-		})
+	It("Type is expected", func() {
+		Expect(ketone.Type).To(Equal("bloodKetone"))
 	})
 
 	Context("NewDatum", func() {

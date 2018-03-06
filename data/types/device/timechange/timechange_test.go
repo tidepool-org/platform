@@ -59,10 +59,8 @@ func NewTestTimeChange(sourceTime interface{}, sourceChange *timechange.Change) 
 }
 
 var _ = Describe("Change", func() {
-	Context("SubType", func() {
-		It("returns the expected sub type", func() {
-			Expect(timechange.SubType()).To(Equal("timeChange"))
-		})
+	It("SubType is expected", func() {
+		Expect(timechange.SubType).To(Equal("timeChange"))
 	})
 
 	Context("NewDatum", func() {

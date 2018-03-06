@@ -87,41 +87,41 @@ func NewNewFuncWithKeyAndMap(key string, newFuncMap NewFuncMap) NewFunc {
 
 func NewStandard() (*Standard, error) {
 	var basalNewFuncMap = NewFuncMap{
-		automated.DeliveryType(): NewNewFuncWithFunc(automated.NewDatum),
-		scheduled.DeliveryType(): NewNewFuncWithFunc(scheduled.NewDatum),
-		suspend.DeliveryType():   NewNewFuncWithFunc(suspend.NewDatum),
-		temporary.DeliveryType(): NewNewFuncWithFunc(temporary.NewDatum),
+		automated.DeliveryType: NewNewFuncWithFunc(automated.NewDatum),
+		scheduled.DeliveryType: NewNewFuncWithFunc(scheduled.NewDatum),
+		suspend.DeliveryType:   NewNewFuncWithFunc(suspend.NewDatum),
+		temporary.DeliveryType: NewNewFuncWithFunc(temporary.NewDatum),
 	}
 
 	var bolusNewFuncMap = NewFuncMap{
-		combination.SubType(): NewNewFuncWithFunc(combination.NewDatum),
-		extended.SubType():    NewNewFuncWithFunc(extended.NewDatum),
-		normal.SubType():      NewNewFuncWithFunc(normal.NewDatum),
+		combination.SubType: NewNewFuncWithFunc(combination.NewDatum),
+		extended.SubType:    NewNewFuncWithFunc(extended.NewDatum),
+		normal.SubType:      NewNewFuncWithFunc(normal.NewDatum),
 	}
 
 	var deviceNewFuncMap = NewFuncMap{
-		alarm.SubType():           NewNewFuncWithFunc(alarm.NewDatum),
-		calibration.SubType():     NewNewFuncWithFunc(calibration.NewDatum),
-		prime.SubType():           NewNewFuncWithFunc(prime.NewDatum),
-		reservoirchange.SubType(): NewNewFuncWithFunc(reservoirchange.NewDatum),
-		status.SubType():          NewNewFuncWithFunc(status.NewDatum),
-		timechange.SubType():      NewNewFuncWithFunc(timechange.NewDatum),
+		alarm.SubType:           NewNewFuncWithFunc(alarm.NewDatum),
+		calibration.SubType:     NewNewFuncWithFunc(calibration.NewDatum),
+		prime.SubType:           NewNewFuncWithFunc(prime.NewDatum),
+		reservoirchange.SubType: NewNewFuncWithFunc(reservoirchange.NewDatum),
+		status.SubType:          NewNewFuncWithFunc(status.NewDatum),
+		timechange.SubType:      NewNewFuncWithFunc(timechange.NewDatum),
 	}
 
 	var baseNewFuncMap = NewFuncMap{
-		basal.Type():         NewNewFuncWithKeyAndMap("deliveryType", basalNewFuncMap),
-		bolus.Type():         NewNewFuncWithKeyAndMap("subType", bolusNewFuncMap),
-		calculator.Type():    NewNewFuncWithFunc(calculator.NewDatum),
-		continuous.Type():    NewNewFuncWithFunc(continuous.NewDatum),
-		device.Type():        NewNewFuncWithKeyAndMap("subType", deviceNewFuncMap),
-		food.Type():          NewNewFuncWithFunc(food.NewDatum),
-		insulin.Type():       NewNewFuncWithFunc(insulin.NewDatum),
-		ketone.Type():        NewNewFuncWithFunc(ketone.NewDatum),
-		physical.Type():      NewNewFuncWithFunc(physical.NewDatum),
-		pump.Type():          NewNewFuncWithFunc(pump.NewDatum),
-		reported.Type():      NewNewFuncWithFunc(reported.NewDatum),
-		selfmonitored.Type(): NewNewFuncWithFunc(selfmonitored.NewDatum),
-		upload.Type():        NewNewFuncWithFunc(upload.NewDatum),
+		basal.Type:         NewNewFuncWithKeyAndMap("deliveryType", basalNewFuncMap),
+		bolus.Type:         NewNewFuncWithKeyAndMap("subType", bolusNewFuncMap),
+		calculator.Type:    NewNewFuncWithFunc(calculator.NewDatum),
+		continuous.Type:    NewNewFuncWithFunc(continuous.NewDatum),
+		device.Type:        NewNewFuncWithKeyAndMap("subType", deviceNewFuncMap),
+		food.Type:          NewNewFuncWithFunc(food.NewDatum),
+		insulin.Type:       NewNewFuncWithFunc(insulin.NewDatum),
+		ketone.Type:        NewNewFuncWithFunc(ketone.NewDatum),
+		physical.Type:      NewNewFuncWithFunc(physical.NewDatum),
+		pump.Type:          NewNewFuncWithFunc(pump.NewDatum),
+		reported.Type:      NewNewFuncWithFunc(reported.NewDatum),
+		selfmonitored.Type: NewNewFuncWithFunc(selfmonitored.NewDatum),
+		upload.Type:        NewNewFuncWithFunc(upload.NewDatum),
 	}
 
 	return &Standard{

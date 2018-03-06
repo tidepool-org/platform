@@ -6,14 +6,14 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
+const (
+	Type = "reportedState" // TODO: Change to "state/reported"
+)
+
 type Reported struct {
 	types.Base `bson:",inline"`
 
 	States *StateArray `json:"states,omitempty" bson:"states,omitempty"`
-}
-
-func Type() string {
-	return "reportedState" // TODO: Change to "state/reported"
 }
 
 func NewDatum() data.Datum {
@@ -32,7 +32,7 @@ func Init() *Reported {
 
 func (r *Reported) Init() {
 	r.Base.Init()
-	r.Type = Type()
+	r.Type = Type
 
 	r.States = nil
 }
@@ -57,7 +57,7 @@ func (r *Reported) Validate(validator structure.Validator) {
 	r.Base.Validate(validator)
 
 	if r.Type != "" {
-		validator.String("type", &r.Type).EqualTo(Type())
+		validator.String("type", &r.Type).EqualTo(Type)
 	}
 
 	if r.States != nil {

@@ -6,14 +6,14 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
+const (
+	Type = "insulin"
+)
+
 type Insulin struct {
 	types.Base `bson:",inline"`
 
 	Dose *Dose `json:"dose,omitempty" bson:"dose,omitempty"`
-}
-
-func Type() string {
-	return "insulin"
 }
 
 func NewDatum() data.Datum {
@@ -32,7 +32,7 @@ func Init() *Insulin {
 
 func (i *Insulin) Init() {
 	i.Base.Init()
-	i.Type = Type()
+	i.Type = Type
 
 	i.Dose = nil
 }
@@ -57,7 +57,7 @@ func (i *Insulin) Validate(validator structure.Validator) {
 	i.Base.Validate(validator)
 
 	if i.Type != "" {
-		validator.String("type", &i.Type).EqualTo(Type())
+		validator.String("type", &i.Type).EqualTo(Type)
 	}
 
 	if i.Dose != nil {

@@ -69,10 +69,8 @@ func NewTestCalibration(sourceTime interface{}, sourceUnits interface{}, sourceV
 }
 
 var _ = Describe("Calibration", func() {
-	Context("SubType", func() {
-		It("returns the expected sub type", func() {
-			Expect(calibration.SubType()).To(Equal("calibration"))
-		})
+	It("SubType is expected", func() {
+		Expect(calibration.SubType).To(Equal("calibration"))
 	})
 
 	Context("NewDatum", func() {

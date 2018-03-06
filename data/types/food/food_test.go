@@ -39,10 +39,8 @@ func CloneFood(datum *food.Food) *food.Food {
 }
 
 var _ = Describe("Food", func() {
-	Context("Type", func() {
-		It("returns the expected type", func() {
-			Expect(food.Type()).To(Equal("food"))
-		})
+	It("Type is expected", func() {
+		Expect(food.Type).To(Equal("food"))
 	})
 
 	Context("NewDatum", func() {

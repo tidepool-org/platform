@@ -56,10 +56,8 @@ func ClonePump(datum *pump.Pump) *pump.Pump {
 }
 
 var _ = Describe("Pump", func() {
-	Context("Type", func() {
-		It("returns the expected type", func() {
-			Expect(pump.Type()).To(Equal("pumpSettings"))
-		})
+	It("Type is expected", func() {
+		Expect(pump.Type).To(Equal("pumpSettings"))
 	})
 
 	Context("NewDatum", func() {

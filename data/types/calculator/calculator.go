@@ -15,6 +15,8 @@ import (
 )
 
 const (
+	Type = "wizard" // TODO: Rename Type to "calculator"
+
 	CarbohydrateInputMaximum        = 1000.0
 	CarbohydrateInputMinimum        = 0.0
 	InsulinCarbohydrateRatioMaximum = 250.0
@@ -38,10 +40,6 @@ type Calculator struct {
 	Units                    *string                  `json:"units,omitempty" bson:"units,omitempty"`
 }
 
-func Type() string {
-	return "wizard" // TODO: Rename Type to "calculator"
-}
-
 func NewDatum() data.Datum {
 	return New()
 }
@@ -58,7 +56,7 @@ func Init() *Calculator {
 
 func (c *Calculator) Init() {
 	c.Base.Init()
-	c.Type = Type()
+	c.Type = Type
 
 	c.BloodGlucoseInput = nil
 	c.BloodGlucoseTarget = nil
@@ -93,8 +91,8 @@ func (c *Calculator) Parse(parser data.ObjectParser) error {
 	if bolusParser := parser.NewChildObjectParser("bolus"); bolusParser.Object() != nil {
 		if bolusType := bolusParser.ParseString("type"); bolusType == nil {
 			bolusParser.AppendError("type", service.ErrorValueNotExists())
-		} else if *bolusType != bolus.Type() {
-			bolusParser.AppendError("type", service.ErrorValueStringNotOneOf(*bolusType, []string{bolus.Type()}))
+		} else if *bolusType != bolus.Type {
+			bolusParser.AppendError("type", service.ErrorValueStringNotOneOf(*bolusType, []string{bolus.Type}))
 		} else {
 			c.Bolus = parser.ParseDatum("bolus")
 		}
@@ -111,7 +109,7 @@ func (c *Calculator) Validate(validator structure.Validator) {
 	c.Base.Validate(validator)
 
 	if c.Type != "" {
-		validator.String("type", &c.Type).EqualTo(Type())
+		validator.String("type", &c.Type).EqualTo(Type)
 	}
 
 	units := c.Units

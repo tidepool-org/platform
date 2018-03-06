@@ -67,6 +67,10 @@ func CloneUpload(datum *upload.Upload) *upload.Upload {
 }
 
 var _ = Describe("Upload", func() {
+	It("Type is expected", func() {
+		Expect(upload.Type).To(Equal("upload"))
+	})
+
 	It("ComputerTimeFormat is expected", func() {
 		Expect(upload.ComputerTimeFormat).To(Equal("2006-01-02T15:04:05"))
 	})
@@ -129,12 +133,6 @@ var _ = Describe("Upload", func() {
 
 	It("TimeProcessings returns expected", func() {
 		Expect(upload.TimeProcessings()).To(Equal([]string{"across-the-board-timezone", "none", "utc-bootstrapping"}))
-	})
-
-	Context("Type", func() {
-		It("returns the expected type", func() {
-			Expect(upload.Type()).To(Equal("upload"))
-		})
 	})
 
 	Context("NewDatum", func() {

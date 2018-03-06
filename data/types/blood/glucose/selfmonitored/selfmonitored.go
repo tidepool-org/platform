@@ -7,6 +7,8 @@ import (
 )
 
 const (
+	Type = "smbg"
+
 	SubTypeLinked = "linked"
 	SubTypeManual = "manual"
 )
@@ -22,10 +24,6 @@ type SelfMonitored struct {
 	glucose.Glucose `bson:",inline"`
 
 	SubType *string `json:"subType,omitempty" bson:"subType,omitempty"`
-}
-
-func Type() string {
-	return "smbg"
 }
 
 func NewDatum() data.Datum {
@@ -44,7 +42,7 @@ func Init() *SelfMonitored {
 
 func (s *SelfMonitored) Init() {
 	s.Glucose.Init()
-	s.Type = Type()
+	s.Type = Type
 
 	s.SubType = nil
 }
@@ -67,7 +65,7 @@ func (s *SelfMonitored) Validate(validator structure.Validator) {
 	s.Glucose.Validate(validator)
 
 	if s.Type != "" {
-		validator.String("type", &s.Type).EqualTo(Type())
+		validator.String("type", &s.Type).EqualTo(Type)
 	}
 
 	validator.String("subType", s.SubType).OneOf(SubTypes()...)

@@ -110,6 +110,10 @@ func CloneCalculator(datum *calculator.Calculator) *calculator.Calculator {
 }
 
 var _ = Describe("Calculator", func() {
+	It("Type is expected", func() {
+		Expect(calculator.Type).To(Equal("wizard"))
+	})
+
 	It("CarbohydrateInputMaximum is expected", func() {
 		Expect(calculator.CarbohydrateInputMaximum).To(Equal(1000.0))
 	})
@@ -132,12 +136,6 @@ var _ = Describe("Calculator", func() {
 
 	It("InsulinOnBoardMinimum is expected", func() {
 		Expect(calculator.InsulinOnBoardMinimum).To(Equal(0.0))
-	})
-
-	Context("Type", func() {
-		It("returns the expected type", func() {
-			Expect(calculator.Type()).To(Equal("wizard"))
-		})
 	})
 
 	Context("NewDatum", func() {
