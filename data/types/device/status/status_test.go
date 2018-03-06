@@ -68,6 +68,14 @@ var _ = Describe("Status", func() {
 		Expect(status.Names()).To(Equal([]string{"resumed", "suspended"}))
 	})
 
+	Context("NewStatusDatum", func() {
+		// TODO
+	})
+
+	Context("ParseStatusDatum", func() {
+		// TODO
+	})
+
 	Context("NewDatum", func() {
 		It("returns the expected datum", func() {
 			Expect(status.NewDatum()).To(Equal(&status.Status{}))

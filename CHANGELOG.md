@@ -1,5 +1,6 @@
 ## HEAD
 
+* Refactor data factory into specific packages
 * Refactor data type functions to constants
 * Fix Dexcom API unexpected data; temporarily modify incoming data to expected values
 * Fix Dexcom API unknown device model failure; allow unknown device model

@@ -3,6 +3,7 @@ package status
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/device"
+	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -28,6 +29,40 @@ type Status struct {
 	Duration *int       `json:"duration,omitempty" bson:"duration,omitempty"`
 	Name     *string    `json:"status,omitempty" bson:"status,omitempty"`
 	Reason   *data.Blob `json:"reason,omitempty" bson:"reason,omitempty"`
+}
+
+func NewStatusDatum(parser data.ObjectParser) data.Datum {
+	if parser.Object() == nil {
+		return nil
+	}
+
+	if value := parser.ParseString("type"); value == nil {
+		parser.AppendError("type", service.ErrorValueNotExists())
+		return nil
+	} else if *value != device.Type {
+		parser.AppendError("type", service.ErrorValueStringNotOneOf(*value, []string{device.Type}))
+		return nil
+	}
+
+	if value := parser.ParseString("subType"); value == nil {
+		parser.AppendError("subType", service.ErrorValueNotExists())
+		return nil
+	} else if *value != SubType {
+		parser.AppendError("subType", service.ErrorValueStringNotOneOf(*value, []string{SubType}))
+		return nil
+	}
+
+	return Init()
+}
+
+func ParseStatusDatum(parser data.ObjectParser) *data.Datum {
+	datum := NewStatusDatum(parser)
+	if datum == nil {
+		return nil
+	}
+
+	datum.Parse(parser)
+	return &datum
 }
 
 func NewDatum() data.Datum {
