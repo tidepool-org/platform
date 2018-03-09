@@ -18,7 +18,7 @@ import (
 func NewCarbohydrates() *food.Carbohydrates {
 	datum := food.NewCarbohydrates()
 	datum.Net = pointer.Int(test.RandomIntFromRange(food.ValueGramsMinimum, food.ValueGramsMaximum))
-	datum.Units = pointer.String(test.RandomStringFromStringArray(food.Units()))
+	datum.Units = pointer.String(test.RandomStringFromArray(food.Units()))
 	return datum
 }
 

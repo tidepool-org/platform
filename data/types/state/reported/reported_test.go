@@ -29,7 +29,7 @@ func NewReported() *reported.Reported {
 	datum.Type = "reportedState"
 	datum.States = NewStateArray()
 	for index := rand.Intn(len(reported.States())); index >= 0; index-- {
-		*datum.States = append(*datum.States, NewState(test.RandomStringFromStringArray(reported.States())))
+		*datum.States = append(*datum.States, NewState(test.RandomStringFromArray(reported.States())))
 	}
 	return datum
 }

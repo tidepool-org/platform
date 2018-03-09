@@ -17,7 +17,7 @@ import (
 
 func NewChange() *timechange.Change {
 	datum := timechange.NewChange()
-	datum.Agent = pointer.String(test.RandomStringFromStringArray(timechange.Agents()))
+	datum.Agent = pointer.String(test.RandomStringFromArray(timechange.Agents()))
 	datum.From = pointer.String(test.NewTime().Format("2006-01-02T15:04:05"))
 	datum.To = pointer.String(test.NewTime().Format("2006-01-02T15:04:05"))
 	return datum

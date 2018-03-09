@@ -35,7 +35,7 @@ func NewPrime() *prime.Prime {
 	datum := prime.New()
 	datum.Device = *testDataTypesDevice.NewDevice()
 	datum.SubType = "prime"
-	datum.Target = pointer.String(test.RandomStringFromStringArray(prime.Targets()))
+	datum.Target = pointer.String(test.RandomStringFromArray(prime.Targets()))
 	switch *datum.Target {
 	case "cannula":
 		datum.Volume = pointer.Float64(test.RandomFloat64FromRange(prime.VolumeTargetCannulaMinimum, prime.VolumeTargetCannulaMaximum))

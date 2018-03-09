@@ -33,7 +33,7 @@ func ValueRangeForUnits(units *string) (float64, float64) {
 
 func NewDuration() *physical.Duration {
 	datum := physical.NewDuration()
-	datum.Units = pointer.String(test.RandomStringFromStringArray(physical.Units()))
+	datum.Units = pointer.String(test.RandomStringFromArray(physical.Units()))
 	datum.Value = pointer.Float64(test.RandomFloat64FromRange(ValueRangeForUnits(datum.Units)))
 	return datum
 }
