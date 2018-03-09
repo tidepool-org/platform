@@ -18,7 +18,7 @@ import (
 func NewDose() *insulin.Dose {
 	datum := insulin.NewDose()
 	datum.Total = pointer.Float64(test.RandomFloat64FromRange(insulin.TotalMinimum, insulin.TotalMaximum))
-	datum.Units = pointer.String(test.RandomStringFromStringArray(insulin.Units()))
+	datum.Units = pointer.String(test.RandomStringFromArray(insulin.Units()))
 	return datum
 }
 

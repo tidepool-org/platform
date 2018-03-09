@@ -35,7 +35,7 @@ func NewSelfMonitored(units *string) *selfmonitored.SelfMonitored {
 	datum := selfmonitored.New()
 	datum.Glucose = *testDataTypesBloodGlucose.NewGlucose(units)
 	datum.Type = "smbg"
-	datum.SubType = pointer.String(test.RandomStringFromStringArray(selfmonitored.SubTypes()))
+	datum.SubType = pointer.String(test.RandomStringFromArray(selfmonitored.SubTypes()))
 	return datum
 }
 

@@ -32,7 +32,7 @@ func NewAlarm() *alarm.Alarm {
 	datum := alarm.New()
 	datum.Device = *testDataTypesDevice.NewDevice()
 	datum.SubType = "alarm"
-	datum.AlarmType = pointer.String(test.RandomStringFromStringArray(alarm.AlarmTypes()))
+	datum.AlarmType = pointer.String(test.RandomStringFromArray(alarm.AlarmTypes()))
 	return datum
 }
 

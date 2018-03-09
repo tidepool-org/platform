@@ -27,7 +27,7 @@ func NewPhysical() *physical.Physical {
 	datum.Base = *testDataTypes.NewBase()
 	datum.Type = "physicalActivity"
 	datum.Duration = NewDuration()
-	datum.ReportedIntensity = pointer.String(test.RandomStringFromStringArray(physical.ReportedIntensities()))
+	datum.ReportedIntensity = pointer.String(test.RandomStringFromArray(physical.ReportedIntensities()))
 	return datum
 }
 

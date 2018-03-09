@@ -1,5 +1,13 @@
 package test
 
+func CloneBool(datum *bool) *bool {
+	if datum == nil {
+		return nil
+	}
+	clone := *datum
+	return &clone
+}
+
 func CloneFloat64(datum *float64) *float64 {
 	if datum == nil {
 		return nil
