@@ -1,5 +1,6 @@
 ## HEAD
 
+* Add new cgm settings data model type
 * New and updated test helpers
 * Remove unnecessary (and misleading) test expectations
 * Refactor data factory into specific packages
