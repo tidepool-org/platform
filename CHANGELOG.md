@@ -1,5 +1,6 @@
 ## HEAD
 
+* Remove unnecessary (and misleading) test expectations
 * Refactor data factory into specific packages
 * Refactor data type functions to constants
 * Fix Dexcom API unexpected data; temporarily modify incoming data to expected values

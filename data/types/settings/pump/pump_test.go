@@ -312,18 +312,12 @@ var _ = Describe("Pump", func() {
 				Entry("does not modify the datum; units mmol/L",
 					pointer.String("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {},
-					func(datum *pump.Pump, expectedDatum *pump.Pump, unitsBloodGlucose *string) {
-						testDataBloodGlucose.ExpectNormalizedTarget(&(*datum.BloodGlucoseTargets)[0].Target, &(*expectedDatum.BloodGlucoseTargets)[0].Target, unitsBloodGlucose)
-						testDataBloodGlucose.ExpectNormalizedValue((*datum.InsulinSensitivities)[0].Amount, (*expectedDatum.InsulinSensitivities)[0].Amount, unitsBloodGlucose)
-						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units.BloodGlucose, expectedDatum.Units.BloodGlucose)
-					},
+					nil,
 				),
 				Entry("modifies the datum; units mmol/l",
 					pointer.String("mmol/l"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {},
 					func(datum *pump.Pump, expectedDatum *pump.Pump, unitsBloodGlucose *string) {
-						testDataBloodGlucose.ExpectNormalizedTarget(&(*datum.BloodGlucoseTargets)[0].Target, &(*expectedDatum.BloodGlucoseTargets)[0].Target, unitsBloodGlucose)
-						testDataBloodGlucose.ExpectNormalizedValue((*datum.InsulinSensitivities)[0].Amount, (*expectedDatum.InsulinSensitivities)[0].Amount, unitsBloodGlucose)
 						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units.BloodGlucose, expectedDatum.Units.BloodGlucose)
 					},
 				),

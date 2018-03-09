@@ -324,18 +324,14 @@ var _ = Describe("InsulinSensitivity", func() {
 					pointer.String("mg/dL"),
 					func(datum *pump.InsulinSensitivity, units *string) {},
 					func(datum *pump.InsulinSensitivity, expectedDatum *pump.InsulinSensitivity, units *string) {
-						Expect(datum.Amount).ToNot(BeNil())
-						Expect(*datum.Amount).To(Equal(*dataBloodGlucose.NormalizeValueForUnits(expectedDatum.Amount, units)))
-						expectedDatum.Amount = datum.Amount
+						testDataBloodGlucose.ExpectNormalizedValue(datum.Amount, expectedDatum.Amount, units)
 					},
 				),
 				Entry("modifies the datum; units mg/dl",
 					pointer.String("mg/dl"),
 					func(datum *pump.InsulinSensitivity, units *string) {},
 					func(datum *pump.InsulinSensitivity, expectedDatum *pump.InsulinSensitivity, units *string) {
-						Expect(datum.Amount).ToNot(BeNil())
-						Expect(*datum.Amount).To(Equal(*dataBloodGlucose.NormalizeValueForUnits(expectedDatum.Amount, units)))
-						expectedDatum.Amount = datum.Amount
+						testDataBloodGlucose.ExpectNormalizedValue(datum.Amount, expectedDatum.Amount, units)
 					},
 				),
 			)
@@ -367,12 +363,12 @@ var _ = Describe("InsulinSensitivity", func() {
 					func(datum *pump.InsulinSensitivity, units *string) {},
 					nil,
 				),
-				Entry("modifies the datum; units mg/dL",
+				Entry("does not modify the datum; units mg/dL",
 					pointer.String("mg/dL"),
 					func(datum *pump.InsulinSensitivity, units *string) {},
 					nil,
 				),
-				Entry("modifies the datum; units mg/dl",
+				Entry("does not modify the datum; units mg/dl",
 					pointer.String("mg/dl"),
 					func(datum *pump.InsulinSensitivity, units *string) {},
 					nil,
@@ -579,12 +575,12 @@ var _ = Describe("InsulinSensitivity", func() {
 					func(datum *pump.InsulinSensitivityArray, units *string) {},
 					nil,
 				),
-				Entry("modifies the datum; units mg/dL",
+				Entry("does not modify the datum; units mg/dL",
 					pointer.String("mg/dL"),
 					func(datum *pump.InsulinSensitivityArray, units *string) {},
 					nil,
 				),
-				Entry("modifies the datum; units mg/dl",
+				Entry("does not modify the datum; units mg/dl",
 					pointer.String("mg/dl"),
 					func(datum *pump.InsulinSensitivityArray, units *string) {},
 					nil,
