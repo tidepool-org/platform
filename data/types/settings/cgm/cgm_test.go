@@ -1,0 +1,438 @@
+package cgm_test
+
+import (
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/gomega"
+
+	"encoding/json"
+	"fmt"
+
+	testDataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose/test"
+	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
+	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/settings/cgm"
+	testDataTypes "github.com/tidepool-org/platform/data/types/test"
+	"github.com/tidepool-org/platform/errors"
+	testErrors "github.com/tidepool-org/platform/errors/test"
+	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/structure"
+	testStructure "github.com/tidepool-org/platform/structure/test"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/test"
+)
+
+const transmitterIDCharSet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+func NewMeta() interface{} {
+	return &types.Meta{
+		Type: "cgmSettings",
+	}
+}
+
+func NewCGM(units *string) *cgm.CGM {
+	datum := cgm.New()
+	datum.Base = *testDataTypes.NewBase()
+	datum.Type = "cgmSettings"
+	datum.HighLevelAlert = NewHighLevelAlert(units)
+	datum.LowLevelAlert = NewLowLevelAlert(units)
+	datum.OutOfRangeAlert = NewOutOfRangeAlert()
+	datum.RateAlerts = NewRateAlerts(units)
+	datum.TransmitterID = pointer.String(test.NewVariableString(5, 6, transmitterIDCharSet))
+	datum.Units = units
+	return datum
+}
+
+func CloneCGM(datum *cgm.CGM) *cgm.CGM {
+	if datum == nil {
+		return nil
+	}
+	clone := cgm.New()
+	clone.Base = *testDataTypes.CloneBase(&datum.Base)
+	clone.HighLevelAlert = CloneHighLevelAlert(datum.HighLevelAlert)
+	clone.LowLevelAlert = CloneLowLevelAlert(datum.LowLevelAlert)
+	clone.OutOfRangeAlert = CloneOutOfRangeAlert(datum.OutOfRangeAlert)
+	clone.RateAlerts = CloneRateAlerts(datum.RateAlerts)
+	clone.TransmitterID = test.CloneString(datum.TransmitterID)
+	clone.Units = test.CloneString(datum.Units)
+	return clone
+}
+
+var _ = Describe("CGM", func() {
+	It("Type is expected", func() {
+		Expect(cgm.Type).To(Equal("cgmSettings"))
+	})
+
+	It("TransmitterIDExpressionString is expected", func() {
+		Expect(cgm.TransmitterIDExpressionString).To(Equal("^[0-9A-Z]{5,6}$"))
+	})
+
+	Context("NewDatum", func() {
+		It("returns the expected datum", func() {
+			Expect(cgm.NewDatum()).To(Equal(&cgm.CGM{}))
+		})
+	})
+
+	Context("New", func() {
+		It("returns the expected datum", func() {
+			Expect(cgm.New()).To(Equal(&cgm.CGM{}))
+		})
+	})
+
+	Context("Init", func() {
+		It("returns the expected datum with all values initialized", func() {
+			datum := cgm.Init()
+			Expect(datum).ToNot(BeNil())
+			Expect(datum.Type).To(Equal("cgmSettings"))
+			Expect(datum.HighLevelAlert).To(BeNil())
+			Expect(datum.LowLevelAlert).To(BeNil())
+			Expect(datum.OutOfRangeAlert).To(BeNil())
+			Expect(datum.RateAlerts).To(BeNil())
+			Expect(datum.TransmitterID).To(BeNil())
+			Expect(datum.Units).To(BeNil())
+		})
+	})
+
+	Context("with new datum", func() {
+		var datum *cgm.CGM
+
+		BeforeEach(func() {
+			datum = cgm.New()
+			Expect(datum).ToNot(BeNil())
+		})
+
+		Context("Init", func() {
+			It("initializes the datum", func() {
+				datum.Init()
+				Expect(datum.Type).To(Equal("cgmSettings"))
+				Expect(datum.HighLevelAlert).To(BeNil())
+				Expect(datum.LowLevelAlert).To(BeNil())
+				Expect(datum.OutOfRangeAlert).To(BeNil())
+				Expect(datum.RateAlerts).To(BeNil())
+				Expect(datum.TransmitterID).To(BeNil())
+				Expect(datum.Units).To(BeNil())
+			})
+		})
+	})
+
+	Context("CGM", func() {
+		Context("Parse", func() {
+			// TODO
+		})
+
+		Context("Validate", func() {
+			DescribeTable("validates the datum",
+				func(units *string, mutator func(datum *cgm.CGM, units *string), expectedErrors ...error) {
+					datum := NewCGM(units)
+					mutator(datum, units)
+					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+				},
+				Entry("succeeds",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) {},
+				),
+				Entry("type missing",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.Type = "" },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &types.Meta{}),
+				),
+				Entry("type invalid",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.Type = "invalidType" },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "cgmSettings"), "/type", &types.Meta{Type: "invalidType"}),
+				),
+				Entry("type cgmSettings",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.Type = "cgmSettings" },
+				),
+				Entry("high level alert missing",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.HighLevelAlert = nil },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/highAlerts", NewMeta()),
+				),
+				Entry("high level alert invalid",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.HighLevelAlert.Enabled = nil },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/highAlerts/enabled", NewMeta()),
+				),
+				Entry("high level alert valid",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.HighLevelAlert = NewHighLevelAlert(units) },
+				),
+				Entry("low level alert missing",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.LowLevelAlert = nil },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/lowAlerts", NewMeta()),
+				),
+				Entry("low level alert invalid",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.LowLevelAlert.Enabled = nil },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/lowAlerts/enabled", NewMeta()),
+				),
+				Entry("low level alert valid",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.LowLevelAlert = NewLowLevelAlert(units) },
+				),
+				Entry("out of range alert missing",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.OutOfRangeAlert = nil },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/outOfRangeAlerts", NewMeta()),
+				),
+				Entry("out of range alert invalid",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.OutOfRangeAlert.Enabled = nil },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/outOfRangeAlerts/enabled", NewMeta()),
+				),
+				Entry("out of range alert valid",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.OutOfRangeAlert = NewOutOfRangeAlert() },
+				),
+				Entry("rate alerts missing",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.RateAlerts = nil },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/rateOfChangeAlerts", NewMeta()),
+				),
+				Entry("rate alerts invalid",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.RateAlerts.FallRateAlert = nil },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/rateOfChangeAlerts/fallRate", NewMeta()),
+				),
+				Entry("rate alerts valid",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.RateAlerts = NewRateAlerts(units) },
+				),
+				Entry("transmitted id missing",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.TransmitterID = nil },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/transmitterId", NewMeta()),
+				),
+				Entry("transmitted id empty",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.TransmitterID = pointer.String("") },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/transmitterId", NewMeta()),
+				),
+				Entry("transmitted id invalid length",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.TransmitterID = pointer.String("ABC") },
+					testErrors.WithPointerSourceAndMeta(cgm.ErrorValueStringAsTransmitterIDNotValid("ABC"), "/transmitterId", NewMeta()),
+				),
+				Entry("transmitted id invalid characters",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.TransmitterID = pointer.String("abc") },
+					testErrors.WithPointerSourceAndMeta(cgm.ErrorValueStringAsTransmitterIDNotValid("abc"), "/transmitterId", NewMeta()),
+				),
+				Entry("transmitted id valid",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) {
+						datum.TransmitterID = pointer.String(test.NewVariableString(5, 6, transmitterIDCharSet))
+					},
+				),
+				Entry("units missing",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.Units = nil },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", NewMeta()),
+				),
+				Entry("units invalid",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.Units = pointer.String("invalid") },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
+				),
+				Entry("units valid; mmol/L",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.Units = pointer.String("mmol/L") },
+				),
+				Entry("units valid; mmol/l",
+					pointer.String("mmol/l"),
+					func(datum *cgm.CGM, units *string) { datum.Units = pointer.String("mmol/l") },
+				),
+				Entry("units valid; mg/dL",
+					pointer.String("mg/dL"),
+					func(datum *cgm.CGM, units *string) { datum.Units = pointer.String("mg/dL") },
+				),
+				Entry("units valid; mg/dl",
+					pointer.String("mg/dl"),
+					func(datum *cgm.CGM, units *string) { datum.Units = pointer.String("mg/dl") },
+				),
+				Entry("multiple errors",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) {
+						datum.Type = "invalidType"
+						datum.HighLevelAlert = nil
+						datum.LowLevelAlert = nil
+						datum.OutOfRangeAlert = nil
+						datum.RateAlerts = nil
+						datum.TransmitterID = nil
+						datum.Units = nil
+					},
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "cgmSettings"), "/type", &types.Meta{Type: "invalidType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/highAlerts", &types.Meta{Type: "invalidType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/lowAlerts", &types.Meta{Type: "invalidType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/outOfRangeAlerts", &types.Meta{Type: "invalidType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/rateOfChangeAlerts", &types.Meta{Type: "invalidType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/transmitterId", &types.Meta{Type: "invalidType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", &types.Meta{Type: "invalidType"}),
+				),
+			)
+		})
+
+		Context("Normalize", func() {
+			DescribeTable("normalizes the datum",
+				func(units *string, mutator func(datum *cgm.CGM, units *string), expectator func(datum *cgm.CGM, expectedDatum *cgm.CGM, units *string)) {
+					for _, origin := range structure.Origins() {
+						datum := NewCGM(units)
+						mutator(datum, units)
+						expectedDatum := CloneCGM(datum)
+						normalizer := dataNormalizer.New()
+						Expect(normalizer).ToNot(BeNil())
+						datum.Normalize(normalizer.WithOrigin(origin))
+						Expect(normalizer.Error()).To(BeNil())
+						Expect(normalizer.Data()).To(BeEmpty())
+						if expectator != nil {
+							expectator(datum, expectedDatum, units)
+						}
+						Expect(datum).To(Equal(expectedDatum))
+					}
+				},
+				Entry("does not modify the datum",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) {},
+					nil,
+				),
+				Entry("does not modify the datum; units missing",
+					nil,
+					func(datum *cgm.CGM, units *string) {},
+					nil,
+				),
+				Entry("does not modify the datum; units invalid",
+					pointer.String("invalid"),
+					func(datum *cgm.CGM, units *string) {},
+					nil,
+				),
+			)
+
+			DescribeTable("normalizes the datum with origin external",
+				func(units *string, mutator func(datum *cgm.CGM, units *string), expectator func(datum *cgm.CGM, expectedDatum *cgm.CGM, units *string)) {
+					datum := NewCGM(units)
+					mutator(datum, units)
+					expectedDatum := CloneCGM(datum)
+					normalizer := dataNormalizer.New()
+					Expect(normalizer).ToNot(BeNil())
+					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
+					Expect(normalizer.Error()).To(BeNil())
+					Expect(normalizer.Data()).To(BeEmpty())
+					if expectator != nil {
+						expectator(datum, expectedDatum, units)
+					}
+					Expect(datum).To(Equal(expectedDatum))
+				},
+				Entry("does not modify the datum; units mmol/L",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) {},
+					nil,
+				),
+				Entry("modifies the datum; units mmol/l",
+					pointer.String("mmol/l"),
+					func(datum *cgm.CGM, units *string) {},
+					func(datum *cgm.CGM, expectedDatum *cgm.CGM, units *string) {
+						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+					},
+				),
+				Entry("modifies the datum; units mg/dL",
+					pointer.String("mg/dL"),
+					func(datum *cgm.CGM, units *string) {},
+					func(datum *cgm.CGM, expectedDatum *cgm.CGM, units *string) {
+						testDataBloodGlucose.ExpectNormalizedValue(datum.HighLevelAlert.Level, expectedDatum.HighLevelAlert.Level, units)
+						testDataBloodGlucose.ExpectNormalizedValue(datum.LowLevelAlert.Level, expectedDatum.LowLevelAlert.Level, units)
+						testDataBloodGlucose.ExpectNormalizedValue(datum.RateAlerts.FallRateAlert.Rate, expectedDatum.RateAlerts.FallRateAlert.Rate, units)
+						testDataBloodGlucose.ExpectNormalizedValue(datum.RateAlerts.RiseRateAlert.Rate, expectedDatum.RateAlerts.RiseRateAlert.Rate, units)
+						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+					},
+				),
+				Entry("modifies the datum; units mg/dl",
+					pointer.String("mg/dl"),
+					func(datum *cgm.CGM, units *string) {},
+					func(datum *cgm.CGM, expectedDatum *cgm.CGM, units *string) {
+						testDataBloodGlucose.ExpectNormalizedValue(datum.HighLevelAlert.Level, expectedDatum.HighLevelAlert.Level, units)
+						testDataBloodGlucose.ExpectNormalizedValue(datum.LowLevelAlert.Level, expectedDatum.LowLevelAlert.Level, units)
+						testDataBloodGlucose.ExpectNormalizedValue(datum.RateAlerts.FallRateAlert.Rate, expectedDatum.RateAlerts.FallRateAlert.Rate, units)
+						testDataBloodGlucose.ExpectNormalizedValue(datum.RateAlerts.RiseRateAlert.Rate, expectedDatum.RateAlerts.RiseRateAlert.Rate, units)
+						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+					},
+				),
+			)
+
+			DescribeTable("normalizes the datum with origin internal/store",
+				func(units *string, mutator func(datum *cgm.CGM, units *string), expectator func(datum *cgm.CGM, expectedDatum *cgm.CGM, units *string)) {
+					for _, origin := range []structure.Origin{structure.OriginInternal, structure.OriginStore} {
+						datum := NewCGM(units)
+						mutator(datum, units)
+						expectedDatum := CloneCGM(datum)
+						normalizer := dataNormalizer.New()
+						Expect(normalizer).ToNot(BeNil())
+						datum.Normalize(normalizer.WithOrigin(origin))
+						Expect(normalizer.Error()).To(BeNil())
+						Expect(normalizer.Data()).To(BeEmpty())
+						if expectator != nil {
+							expectator(datum, expectedDatum, units)
+						}
+						Expect(datum).To(Equal(expectedDatum))
+					}
+				},
+				Entry("does not modify the datum; units mmol/L",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) {},
+					nil,
+				),
+				Entry("does not modify the datum; units mmol/l",
+					pointer.String("mmol/l"),
+					func(datum *cgm.CGM, units *string) {},
+					nil,
+				),
+				Entry("does not modify the datum; units mg/dL",
+					pointer.String("mg/dL"),
+					func(datum *cgm.CGM, units *string) {},
+					nil,
+				),
+				Entry("does not modify the datum; units mg/dl",
+					pointer.String("mg/dl"),
+					func(datum *cgm.CGM, units *string) {},
+					nil,
+				),
+			)
+		})
+	})
+
+	Context("ValidateTransmitterID", func() {
+		DescribeTable("validates the transmitter id",
+			func(value string, expectedErrors ...error) {
+				errorReporter := testStructure.NewErrorReporter()
+				Expect(errorReporter).ToNot(BeNil())
+				cgm.ValidateTransmitterID(value, errorReporter)
+				testErrors.ExpectEqual(errorReporter.Error(), expectedErrors...)
+			},
+			Entry("is valid", test.NewVariableString(5, 6, transmitterIDCharSet)),
+			Entry("is empty string", "", structureValidator.ErrorValueEmpty()),
+			Entry("has invalid length; out of range (lower)", "ABCD", cgm.ErrorValueStringAsTransmitterIDNotValid("ABCD")),
+			Entry("has invalid length; in range (lower)", test.NewString(5, transmitterIDCharSet)),
+			Entry("has invalid length; in range (upper)", test.NewString(6, transmitterIDCharSet)),
+			Entry("has invalid length; out of range (upper)", "ABCDEFG", cgm.ErrorValueStringAsTransmitterIDNotValid("ABCDEFG")),
+			Entry("has invalid characters; lowercase", "abcdef", cgm.ErrorValueStringAsTransmitterIDNotValid("abcdef")),
+			Entry("has invalid characters; symbols", "@#$%^&", cgm.ErrorValueStringAsTransmitterIDNotValid("@#$%^&")),
+		)
+	})
+
+	Context("ErrorValueStringAsTransmitterIDNotValid", func() {
+		DescribeTable("all errors",
+			func(err error, code string, title string, detail string) {
+				Expect(err).ToNot(BeNil())
+				Expect(errors.Code(err)).To(Equal(code))
+				Expect(errors.Cause(err)).To(Equal(err))
+				bytes, bytesErr := json.Marshal(errors.Sanitize(err))
+				Expect(bytesErr).ToNot(HaveOccurred())
+				Expect(bytes).To(MatchJSON(fmt.Sprintf(`{"code": %q, "title": %q, "detail": %q}`, code, title, detail)))
+			},
+			Entry("is ErrorValueStringAsTransmitterIDNotValid with empty string", cgm.ErrorValueStringAsTransmitterIDNotValid(""), "value-not-valid", "value is not valid", `value "" is not valid as transmitter id`),
+			Entry("is ErrorValueStringAsTransmitterIDNotValid with non-empty string", cgm.ErrorValueStringAsTransmitterIDNotValid("ABC"), "value-not-valid", "value is not valid", `value "ABC" is not valid as transmitter id`),
+		)
+	})
+})
