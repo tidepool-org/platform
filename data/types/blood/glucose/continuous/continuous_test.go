@@ -328,24 +328,18 @@ var _ = Describe("Continuous", func() {
 			Entry("does not modify the datum; units mmol/L",
 				pointer.String("mmol/L"),
 				func(datum *continuous.Continuous, units *string) {},
-				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string) {
-					testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
-					testDataBloodGlucose.ExpectNormalizedValue(datum.Value, expectedDatum.Value, units)
-				},
+				nil,
 			),
 			Entry("does not modify the datum; units mmol/L; value missing",
 				pointer.String("mmol/L"),
 				func(datum *continuous.Continuous, units *string) { datum.Value = nil },
-				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string) {
-					testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
-				},
+				nil,
 			),
 			Entry("modifies the datum; units mmol/l",
 				pointer.String("mmol/l"),
 				func(datum *continuous.Continuous, units *string) {},
 				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string) {
 					testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
-					testDataBloodGlucose.ExpectNormalizedValue(datum.Value, expectedDatum.Value, units)
 				},
 			),
 			Entry("modifies the datum; units mmol/l; value missing",

@@ -324,24 +324,18 @@ var _ = Describe("Glucose", func() {
 			Entry("does not modify the datum; units mmol/L",
 				pointer.String("mmol/L"),
 				func(datum *glucose.Glucose, units *string) {},
-				func(datum *glucose.Glucose, expectedDatum *glucose.Glucose, units *string) {
-					testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
-					testDataBloodGlucose.ExpectNormalizedValue(datum.Value, expectedDatum.Value, units)
-				},
+				nil,
 			),
 			Entry("does not modify the datum; units mmol/L; value missing",
 				pointer.String("mmol/L"),
 				func(datum *glucose.Glucose, units *string) { datum.Value = nil },
-				func(datum *glucose.Glucose, expectedDatum *glucose.Glucose, units *string) {
-					testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
-				},
+				nil,
 			),
 			Entry("modifies the datum; units mmol/l",
 				pointer.String("mmol/l"),
 				func(datum *glucose.Glucose, units *string) {},
 				func(datum *glucose.Glucose, expectedDatum *glucose.Glucose, units *string) {
 					testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
-					testDataBloodGlucose.ExpectNormalizedValue(datum.Value, expectedDatum.Value, units)
 				},
 			),
 			Entry("modifies the datum; units mmol/l; value missing",

@@ -1857,20 +1857,12 @@ var _ = Describe("Calculator", func() {
 				Entry("does not modify the datum; units mmol/L",
 					pointer.String("mmol/L"),
 					func(datum *calculator.Calculator, units *string) {},
-					func(datum *calculator.Calculator, expectedDatum *calculator.Calculator, units *string) {
-						testDataBloodGlucose.ExpectNormalizedValue(datum.BloodGlucoseInput, expectedDatum.BloodGlucoseInput, units)
-						testDataBloodGlucose.ExpectNormalizedTarget(datum.BloodGlucoseTarget, expectedDatum.BloodGlucoseTarget, units)
-						testDataBloodGlucose.ExpectNormalizedValue(datum.InsulinSensitivity, expectedDatum.InsulinSensitivity, units)
-						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
-					},
+					nil,
 				),
 				Entry("modifies the datum; units mmol/l",
 					pointer.String("mmol/l"),
 					func(datum *calculator.Calculator, units *string) {},
 					func(datum *calculator.Calculator, expectedDatum *calculator.Calculator, units *string) {
-						testDataBloodGlucose.ExpectNormalizedValue(datum.BloodGlucoseInput, expectedDatum.BloodGlucoseInput, units)
-						testDataBloodGlucose.ExpectNormalizedTarget(datum.BloodGlucoseTarget, expectedDatum.BloodGlucoseTarget, units)
-						testDataBloodGlucose.ExpectNormalizedValue(datum.InsulinSensitivity, expectedDatum.InsulinSensitivity, units)
 						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
 					},
 				),
