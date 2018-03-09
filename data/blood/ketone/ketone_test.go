@@ -66,22 +66,53 @@ var _ = Describe("Ketone", func() {
 		Entry("returns unchanged units for mg/dl", pointer.String("mg/dl"), pointer.String("mg/dl")),
 	)
 
-	DescribeTable("NormalizeValueForUnits",
-		func(value *float64, units *string, expectedValue *float64) {
-			actualValue := ketone.NormalizeValueForUnits(value, units)
-			if expectedValue == nil {
-				Expect(actualValue).To(BeNil())
-			} else {
-				Expect(actualValue).ToNot(BeNil())
-				Expect(*actualValue).To(Equal(*expectedValue))
+	Context("NormalizeValueForUnits", func() {
+		DescribeTable("given value and units",
+			func(value *float64, units *string, expectedValue *float64) {
+				actualValue := ketone.NormalizeValueForUnits(value, units)
+				if expectedValue == nil {
+					Expect(actualValue).To(BeNil())
+				} else {
+					Expect(actualValue).ToNot(BeNil())
+					Expect(*actualValue).To(Equal(*expectedValue))
+				}
+			},
+			Entry("returns nil for nil value", nil, pointer.String("mmol/L"), nil),
+			Entry("returns unchanged value for nil units", pointer.Float64(10.123456789012345), nil, pointer.Float64(10.123456789012345)),
+			Entry("returns unchanged value for unknown units", pointer.Float64(10.123456789012345), pointer.String("unknown"), pointer.Float64(10.123456789012345)),
+			Entry("returns unchanged value for mmol/L units", pointer.Float64(10.123456789012345), pointer.String("mmol/L"), pointer.Float64(10.123456789012345)),
+			Entry("returns unchanged value for mmol/l units", pointer.Float64(10.123456789012345), pointer.String("mmol/l"), pointer.Float64(10.123456789012345)),
+			Entry("returns unchanged value for mg/dL units", pointer.Float64(180.123456789012345), pointer.String("mg/dL"), pointer.Float64(180.123456789012345)),
+			Entry("returns unchanged value for mg/dl units", pointer.Float64(180.123456789012345), pointer.String("mg/dl"), pointer.Float64(180.123456789012345)),
+		)
+
+		It("properly normalizes a range of mmol/L values", func() {
+			for value := ketone.MmolLMinimum; value <= ketone.MmolLMaximum; value += 0.1 {
+				normalizedValue := ketone.NormalizeValueForUnits(pointer.Float64(float64(value)), pointer.String("mmol/L"))
+				Expect(normalizedValue).ToNot(BeNil())
+				Expect(*normalizedValue).To(Equal(value))
 			}
-		},
-		Entry("returns nil for nil value", nil, pointer.String("mmol/L"), nil),
-		Entry("returns unchanged value for nil units", pointer.Float64(10.0), nil, pointer.Float64(10.0)),
-		Entry("returns unchanged value for unknown units", pointer.Float64(10.0), pointer.String("unknown"), pointer.Float64(10.0)),
-		Entry("returns unchanged value for mmol/L units", pointer.Float64(10.0), pointer.String("mmol/L"), pointer.Float64(10.0)),
-		Entry("returns unchanged value for mmol/l units", pointer.Float64(10.0), pointer.String("mmol/l"), pointer.Float64(10.0)),
-		Entry("returns unchanged value for mg/dL units", pointer.Float64(180.0), pointer.String("mg/dL"), pointer.Float64(180.0)),
-		Entry("returns unchanged value for mg/dl units", pointer.Float64(180.0), pointer.String("mg/dl"), pointer.Float64(180.0)),
-	)
+		})
+	})
+
+	Context("NormalizePrecisionForUnits", func() {
+		DescribeTable("given value and units",
+			func(value *float64, units *string, expectedValue *float64) {
+				actualValue := ketone.NormalizePrecisionForUnits(value, units)
+				if expectedValue == nil {
+					Expect(actualValue).To(BeNil())
+				} else {
+					Expect(actualValue).ToNot(BeNil())
+					Expect(*actualValue).To(Equal(*expectedValue))
+				}
+			},
+			Entry("returns nil for nil value", nil, pointer.String("mmol/L"), nil),
+			Entry("returns unchanged value for nil units", pointer.Float64(10.123456789012345), nil, pointer.Float64(10.123456789012345)),
+			Entry("returns unchanged value for unknown units", pointer.Float64(10.123456789012345), pointer.String("unknown"), pointer.Float64(10.123456789012345)),
+			Entry("returns value with limited precision for mmol/L units", pointer.Float64(10.123456789012345), pointer.String("mmol/L"), pointer.Float64(10.12346)),
+			Entry("returns value with limited precision for mmol/l units", pointer.Float64(10.123456789012345), pointer.String("mmol/l"), pointer.Float64(10.12346)),
+			Entry("returns unchanged value for mg/dL units", pointer.Float64(180.123456789012345), pointer.String("mg/dL"), pointer.Float64(180.123456789012345)),
+			Entry("returns unchanged value for mg/dl units", pointer.Float64(180.123456789012345), pointer.String("mg/dl"), pointer.Float64(180.123456789012345)),
+		)
+	})
 })

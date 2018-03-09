@@ -20,7 +20,9 @@ const (
 	MgdLMaximum float64 = 1000.0
 
 	MmolLToMgdLConversionFactor float64 = 18.01559
-	MmolLToMgdLPrecisionFactor  float64 = 100000.0
+
+	MmolLPrecisionFactor float64 = 100000.0
+	MgdLPrecisionFactor  float64 = 1.0
 )
 
 func Units() []string {
@@ -52,10 +54,23 @@ func NormalizeUnits(units *string) *string {
 func NormalizeValueForUnits(value *float64, units *string) *float64 {
 	if value != nil && units != nil {
 		switch *units {
+		case MmolL, Mmoll:
+			// TODO: Normalize mmol/L values to standard precision
+			// return NormalizePrecisionForUnits(value, units)
 		case MgdL, Mgdl:
-			intValue := int(*value/MmolLToMgdLConversionFactor*MmolLToMgdLPrecisionFactor + 0.5)
-			floatValue := float64(intValue) / MmolLToMgdLPrecisionFactor
-			return &floatValue
+			return NormalizePrecisionForUnits(pointer.Float64(*NormalizePrecisionForUnits(value, units)/MmolLToMgdLConversionFactor), pointer.String(MmolL))
+		}
+	}
+	return value
+}
+
+func NormalizePrecisionForUnits(value *float64, units *string) *float64 {
+	if value != nil && units != nil {
+		switch *units {
+		case MmolL, Mmoll:
+			return pointer.Float64(float64(int(*value*MmolLPrecisionFactor+0.5)) / MmolLPrecisionFactor)
+		case MgdL, Mgdl:
+			return pointer.Float64(float64(int(*value*MgdLPrecisionFactor+0.5)) / MgdLPrecisionFactor)
 		}
 	}
 	return value

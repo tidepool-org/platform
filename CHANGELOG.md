@@ -1,5 +1,6 @@
 ## HEAD
 
+* Refactor blood glucose and ketone value and precision normalization
 * Refactor data factory into specific packages
 * Refactor data type functions to constants
 * Add tests for missing upload id
