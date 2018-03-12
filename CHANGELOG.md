@@ -1,5 +1,6 @@
 ## HEAD
 
+* Refactor data set filter to use new query parser
 * Cleanup data types New and Init functions
 * Remove deprecated data factory
 * Add new cgm settings data model type
