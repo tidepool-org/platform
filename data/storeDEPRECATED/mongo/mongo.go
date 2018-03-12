@@ -52,7 +52,7 @@ func (d *DataSession) GetDatasetsForUserByID(ctx context.Context, userID string,
 	}
 	if filter == nil {
 		filter = storeDEPRECATED.NewFilter()
-	} else if err := filter.Validate(); err != nil {
+	} else if err := structureValidator.New().Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}
 	if pagination == nil {
