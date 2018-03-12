@@ -56,7 +56,7 @@ func UsersDatasetsCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	datumParser, err := parser.NewStandardObject(datumContext, dataServiceContext.DataFactory(), &rawDatum, parser.AppendErrorNotParsed)
+	datumParser, err := parser.NewStandardObject(datumContext, &rawDatum, parser.AppendErrorNotParsed)
 	if err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to create datum parser", err)
 		return
@@ -65,15 +65,10 @@ func UsersDatasetsCreate(dataServiceContext dataService.Context) {
 	validator := structureValidator.New()
 	normalizer := dataNormalizer.New()
 
-	datasetDatum, err := parser.ParseDatum(datumParser, dataServiceContext.DataFactory())
-	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to parse datum parser", err)
-		return
-	}
+	dataset := upload.ParseUpload(datumParser)
 
-	if datasetDatum != nil && *datasetDatum != nil {
+	if dataset != nil {
 		datumParser.ProcessNotParsed()
-		(*datasetDatum).Validate(validator)
 	}
 
 	if errs := datumContext.Errors(); len(errs) > 0 {
@@ -81,23 +76,18 @@ func UsersDatasetsCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
+	dataset.Validate(validator)
 	if err = validator.Error(); err != nil {
 		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
 		return
 	}
 
-	(*datasetDatum).SetUserID(&targetUserID)
+	dataset.SetUserID(&targetUserID)
 
-	normalizer.Normalize(*datasetDatum)
+	dataset.Normalize(normalizer)
 
 	if err = normalizer.Error(); err != nil {
 		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
-		return
-	}
-
-	dataset, ok := (*datasetDatum).(*upload.Upload)
-	if !ok {
-		dataServiceContext.RespondWithInternalServerFailure("Unexpected datum type", *datasetDatum)
 		return
 	}
 

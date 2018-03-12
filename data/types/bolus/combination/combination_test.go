@@ -6,7 +6,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data/context"
-	"github.com/tidepool-org/platform/data/factory"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
 	testData "github.com/tidepool-org/platform/data/test"
@@ -150,10 +149,7 @@ var _ = Describe("Combination", func() {
 					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
-					testFactory, err := factory.NewStandard()
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testFactory).ToNot(BeNil())
-					testParser, err := parser.NewStandardObject(testContext, testFactory, sourceObject, parser.AppendErrorNotParsed)
+					testParser, err := parser.NewStandardObject(testContext, sourceObject, parser.AppendErrorNotParsed)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testParser).ToNot(BeNil())
 					Expect(datum.Parse(testParser)).To(Succeed())

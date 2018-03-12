@@ -1,5 +1,6 @@
 ## HEAD
 
+* Remove deprecated data factory
 * Add new cgm settings data model type
 * New and updated test helpers
 * Remove unnecessary (and misleading) test expectations

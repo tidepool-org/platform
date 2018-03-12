@@ -2,7 +2,6 @@ package service
 
 import (
 	"github.com/tidepool-org/platform/auth"
-	"github.com/tidepool-org/platform/data"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
@@ -19,7 +18,6 @@ type Context interface {
 	MetricClient() metric.Client
 	UserClient() user.Client
 
-	DataFactory() data.Factory
 	DataDeduplicatorFactory() deduplicator.Factory
 
 	DataSession() dataStoreDEPRECATED.DataSession

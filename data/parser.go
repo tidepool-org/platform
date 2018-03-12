@@ -23,8 +23,6 @@ type ObjectParser interface {
 	ParseObjectArray(key string) *[]map[string]interface{}
 	ParseInterface(key string) *interface{}
 	ParseInterfaceArray(key string) *[]interface{}
-	ParseDatum(key string) *Datum
-	ParseDatumArray(key string) *[]Datum
 
 	ProcessNotParsed()
 
@@ -50,8 +48,6 @@ type ArrayParser interface {
 	ParseObjectArray(index int) *[]map[string]interface{}
 	ParseInterface(index int) *interface{}
 	ParseInterfaceArray(index int) *[]interface{}
-	ParseDatum(index int) *Datum
-	ParseDatumArray(index int) *[]Datum
 
 	ProcessNotParsed()
 

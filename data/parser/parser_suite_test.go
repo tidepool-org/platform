@@ -38,8 +38,6 @@ func (t *TestObjectParser) ParseObject(key string) *map[string]interface{}      
 func (t *TestObjectParser) ParseObjectArray(key string) *[]map[string]interface{} { return nil }
 func (t *TestObjectParser) ParseInterface(key string) *interface{}                { return nil }
 func (t *TestObjectParser) ParseInterfaceArray(key string) *[]interface{}         { return nil }
-func (t *TestObjectParser) ParseDatum(key string) *data.Datum                     { return nil }
-func (t *TestObjectParser) ParseDatumArray(key string) *[]data.Datum              { return nil }
 func (t *TestObjectParser) ProcessNotParsed()                                     {}
 func (t *TestObjectParser) NewChildObjectParser(key string) data.ObjectParser     { return nil }
 func (t *TestObjectParser) NewChildArrayParser(key string) data.ArrayParser       { return nil }
@@ -62,9 +60,7 @@ func (t *TestObjectParser) ParseString(key string) *string {
 }
 
 type TestArrayParser struct {
-	ArrayOutputs      []*[]interface{}
-	ParseDatumInputs  []int
-	ParseDatumOutputs []*data.Datum
+	ArrayOutputs []*[]interface{}
 }
 
 func (t *TestArrayParser) Logger() log.Logger                                    { return nil }
@@ -79,7 +75,6 @@ func (t *TestArrayParser) ParseObject(index int) *map[string]interface{}        
 func (t *TestArrayParser) ParseObjectArray(index int) *[]map[string]interface{}  { return nil }
 func (t *TestArrayParser) ParseInterface(index int) *interface{}                 { return nil }
 func (t *TestArrayParser) ParseInterfaceArray(index int) *[]interface{}          { return nil }
-func (t *TestArrayParser) ParseDatumArray(index int) *[]data.Datum               { return nil }
 func (t *TestArrayParser) ProcessNotParsed()                                     {}
 func (t *TestArrayParser) NewChildObjectParser(index int) data.ObjectParser      { return nil }
 func (t *TestArrayParser) NewChildArrayParser(index int) data.ArrayParser        { return nil }
@@ -90,28 +85,7 @@ func (t *TestArrayParser) Array() *[]interface{} {
 	return output
 }
 
-func (t *TestArrayParser) ParseDatum(index int) *data.Datum {
-	t.ParseDatumInputs = append(t.ParseDatumInputs, index)
-	output := t.ParseDatumOutputs[0]
-	t.ParseDatumOutputs = t.ParseDatumOutputs[1:]
-	return output
-}
-
 type InitOutput struct {
 	Datum data.Datum
 	Error error
-}
-
-type TestFactory struct {
-	InitInputs  []data.Inspector
-	InitOutputs []InitOutput
-}
-
-func (t *TestFactory) New(inspector data.Inspector) (data.Datum, error) { return nil, nil }
-
-func (t *TestFactory) Init(inspector data.Inspector) (data.Datum, error) {
-	t.InitInputs = append(t.InitInputs, inspector)
-	output := t.InitOutputs[0]
-	t.InitOutputs = t.InitOutputs[1:]
-	return output.Datum, output.Error
 }
