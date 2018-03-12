@@ -2,7 +2,6 @@ package service
 
 import (
 	"github.com/tidepool-org/platform/data/deduplicator"
-	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/service/api"
 	"github.com/tidepool-org/platform/data/service/api/v1"
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
@@ -21,7 +20,6 @@ type Standard struct {
 	*service.DEPRECATEDService
 	metricClient            *metricClient.Client
 	userClient              *userClient.Client
-	dataFactory             *factory.Standard
 	dataDeduplicatorFactory deduplicator.Factory
 	dataStoreDEPRECATED     *dataStoreDEPRECATEDMongo.Store
 	dataStore               *dataStoreMongo.Store
@@ -51,9 +49,6 @@ func (s *Standard) Initialize() error {
 		return err
 	}
 	if err := s.initializeUserClient(); err != nil {
-		return err
-	}
-	if err := s.initializeDataFactory(); err != nil {
 		return err
 	}
 	if err := s.initializeDataDeduplicatorFactory(); err != nil {
@@ -94,7 +89,6 @@ func (s *Standard) Terminate() {
 		s.dataStoreDEPRECATED = nil
 	}
 	s.dataDeduplicatorFactory = nil
-	s.dataFactory = nil
 	s.userClient = nil
 	s.metricClient = nil
 
@@ -145,18 +139,6 @@ func (s *Standard) initializeUserClient() error {
 		return errors.Wrap(err, "unable to create user client")
 	}
 	s.userClient = clnt
-
-	return nil
-}
-
-func (s *Standard) initializeDataFactory() error {
-	s.Logger().Debug("Creating data factory")
-
-	dataFactory, err := factory.NewStandard()
-	if err != nil {
-		return errors.Wrap(err, "unable to create data factory")
-	}
-	s.dataFactory = dataFactory
 
 	return nil
 }
@@ -273,7 +255,7 @@ func (s *Standard) initializeAPI() error {
 	s.Logger().Debug("Creating api")
 
 	newAPI, err := api.NewStandard(s, s.metricClient, s.userClient,
-		s.dataFactory, s.dataDeduplicatorFactory, s.dataStore,
+		s.dataDeduplicatorFactory, s.dataStore,
 		s.dataStoreDEPRECATED, s.syncTaskStore, s.dataClient)
 	if err != nil {
 		return errors.Wrap(err, "unable to create api")

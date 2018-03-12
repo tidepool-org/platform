@@ -9,6 +9,7 @@ import (
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
 	dataService "github.com/tidepool-org/platform/data/service"
+	dataTypesFactory "github.com/tidepool-org/platform/data/types/factory"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/request"
@@ -77,7 +78,7 @@ func DatasetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	datumArrayParser, err := parser.NewStandardArray(datumArrayContext, dataServiceContext.DataFactory(), &rawDatumArray, parser.AppendErrorNotParsed)
+	datumArrayParser, err := parser.NewStandardArray(datumArrayContext, &rawDatumArray, parser.AppendErrorNotParsed)
 	if err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to create datum array parser", err)
 		return
@@ -89,7 +90,7 @@ func DatasetsDataCreate(dataServiceContext dataService.Context) {
 	datumArray := []data.Datum{}
 	for index := range *datumArrayParser.Array() {
 		reference := strconv.Itoa(index)
-		if datum := datumArrayParser.ParseDatum(index); datum != nil && *datum != nil {
+		if datum := dataTypesFactory.ParseDatum(datumArrayParser.NewChildObjectParser(index)); datum != nil && *datum != nil {
 			(*datum).Validate(validator.WithReference(reference))
 			(*datum).Normalize(normalizer.WithReference(reference))
 			datumArray = append(datumArray, *datum)

@@ -4,36 +4,25 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"errors"
-
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/parser"
-	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/service"
 )
 
 var _ = Describe("StandardArray", func() {
 	var standardContext *context.Standard
-	var testFactory *TestFactory
 
 	BeforeEach(func() {
 		var err error
 		standardContext, err = context.NewStandard(null.NewLogger())
 		Expect(err).ToNot(HaveOccurred())
 		Expect(standardContext).ToNot(BeNil())
-		testFactory = &TestFactory{}
 	})
 
 	It("NewStandardArray returns an error if context is nil", func() {
-		standard, err := parser.NewStandardArray(nil, testFactory, &[]interface{}{}, parser.IgnoreNotParsed)
+		standard, err := parser.NewStandardArray(nil, &[]interface{}{}, parser.IgnoreNotParsed)
 		Expect(err).To(MatchError("context is missing"))
-		Expect(standard).To(BeNil())
-	})
-
-	It("NewStandardArray returns an error if factory is nil", func() {
-		standard, err := parser.NewStandardArray(standardContext, nil, &[]interface{}{}, parser.IgnoreNotParsed)
-		Expect(err).To(MatchError("factory is missing"))
 		Expect(standard).To(BeNil())
 	})
 
@@ -42,7 +31,7 @@ var _ = Describe("StandardArray", func() {
 
 		BeforeEach(func() {
 			var err error
-			standardArray, err = parser.NewStandardArray(standardContext, testFactory, nil, parser.IgnoreNotParsed)
+			standardArray, err = parser.NewStandardArray(standardContext, nil, parser.IgnoreNotParsed)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -105,14 +94,6 @@ var _ = Describe("StandardArray", func() {
 			Expect(standardArray.ParseInterfaceArray(8)).To(BeNil())
 		})
 
-		It("ParseDatum returns nil", func() {
-			Expect(standardArray.ParseDatum(9)).To(BeNil())
-		})
-
-		It("ParseDatumArray returns nil", func() {
-			Expect(standardArray.ParseDatumArray(10)).To(BeNil())
-		})
-
 		It("ProcessNotParsed does not add an error", func() {
 			standardArray.ProcessNotParsed()
 			Expect(standardContext.Errors()).To(BeEmpty())
@@ -136,7 +117,7 @@ var _ = Describe("StandardArray", func() {
 
 		BeforeEach(func() {
 			var err error
-			standardArray, err = parser.NewStandardArray(standardContext, testFactory, &[]interface{}{}, parser.IgnoreNotParsed)
+			standardArray, err = parser.NewStandardArray(standardContext, &[]interface{}{}, parser.IgnoreNotParsed)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -159,7 +140,7 @@ var _ = Describe("StandardArray", func() {
 
 		Context("ParseBoolean", func() {
 			BeforeEach(func() {
-				standardArray, _ = parser.NewStandardArray(standardContext, testFactory, &[]interface{}{
+				standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 					"not a boolean",
 					true,
 				}, parser.IgnoreNotParsed)
@@ -191,7 +172,7 @@ var _ = Describe("StandardArray", func() {
 
 		Context("ParseInteger", func() {
 			BeforeEach(func() {
-				standardArray, _ = parser.NewStandardArray(standardContext, testFactory, &[]interface{}{
+				standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 					false,
 					3,
 					4.0,
@@ -238,7 +219,7 @@ var _ = Describe("StandardArray", func() {
 
 		Context("ParseFloat", func() {
 			BeforeEach(func() {
-				standardArray, _ = parser.NewStandardArray(standardContext, testFactory, &[]interface{}{
+				standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 					false,
 					3,
 					4.0,
@@ -286,7 +267,7 @@ var _ = Describe("StandardArray", func() {
 
 		Context("ParseString", func() {
 			BeforeEach(func() {
-				standardArray, _ = parser.NewStandardArray(standardContext, testFactory, &[]interface{}{
+				standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 					false,
 					"this is a string",
 				}, parser.IgnoreNotParsed)
@@ -318,7 +299,7 @@ var _ = Describe("StandardArray", func() {
 
 		Context("ParseStringArray", func() {
 			BeforeEach(func() {
-				standardArray, _ = parser.NewStandardArray(standardContext, testFactory, &[]interface{}{
+				standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 					false,
 					[]string{
 						"one",
@@ -376,7 +357,7 @@ var _ = Describe("StandardArray", func() {
 
 		Context("ParseObject", func() {
 			BeforeEach(func() {
-				standardArray, _ = parser.NewStandardArray(standardContext, testFactory, &[]interface{}{
+				standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 					false,
 					map[string]interface{}{
 						"1": "2",
@@ -410,7 +391,7 @@ var _ = Describe("StandardArray", func() {
 
 		Context("ParseObjectArray", func() {
 			BeforeEach(func() {
-				standardArray, _ = parser.NewStandardArray(standardContext, testFactory, &[]interface{}{
+				standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 					false,
 					[]map[string]interface{}{
 						{
@@ -478,7 +459,7 @@ var _ = Describe("StandardArray", func() {
 
 		Context("ParseInterface", func() {
 			BeforeEach(func() {
-				standardArray, _ = parser.NewStandardArray(standardContext, testFactory, &[]interface{}{
+				standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 					false,
 					"zombie",
 				}, parser.IgnoreNotParsed)
@@ -511,7 +492,7 @@ var _ = Describe("StandardArray", func() {
 
 		Context("ParseInterfaceArray", func() {
 			BeforeEach(func() {
-				standardArray, _ = parser.NewStandardArray(standardContext, testFactory, &[]interface{}{
+				standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 					false,
 					[]interface{}{
 						"1",
@@ -544,171 +525,10 @@ var _ = Describe("StandardArray", func() {
 			})
 		})
 
-		Context("ParseDatum", func() {
-			var testDatum *testData.Datum
-
-			BeforeEach(func() {
-				testDatum = testData.NewDatum()
-				testDatum.ParseOutputs = []error{nil}
-				testFactory.InitOutputs = []InitOutput{{testDatum, nil}}
-				standardArray, _ = parser.NewStandardArray(standardContext, testFactory, &[]interface{}{
-					false,
-					map[string]interface{}{
-						"1": "2",
-					},
-				}, parser.IgnoreNotParsed)
-			})
-
-			It("with index parameter less that the first index in the array returns nil", func() {
-				Expect(standardArray.ParseDatum(-1)).To(BeNil())
-				Expect(standardContext.Errors()).To(BeEmpty())
-			})
-
-			It("with index parameter greater than the last index in the array returns nil", func() {
-				Expect(standardArray.ParseDatum(len(*standardArray.Array()))).To(BeNil())
-				Expect(standardContext.Errors()).To(BeEmpty())
-			})
-
-			It("with index parameter with different type returns nil and appends an ErrorTypeNotObject", func() {
-				Expect(standardArray.ParseDatum(0)).To(BeNil())
-				Expect(standardContext.Errors()).To(HaveLen(1))
-				Expect(standardContext.Errors()[0].Code).To(Equal("type-not-object"))
-			})
-
-			It("with index parameter with datum type returns value", func() {
-				value := standardArray.ParseDatum(1)
-				Expect(value).ToNot(BeNil())
-				Expect(*value).To(Equal(testDatum))
-				Expect(standardContext.Errors()).To(BeEmpty())
-				Expect(testFactory.InitInputs).To(HaveLen(1))
-				Expect(testDatum.ParseInputs).To(HaveLen(1))
-			})
-
-			It("with index parameter with datum type returns nil if init datum returns error", func() {
-				testFactory.InitOutputs = []InitOutput{{nil, errors.New("test: init returns error")}}
-				value := standardArray.ParseDatum(1)
-				Expect(value).To(BeNil())
-				Expect(standardContext.Errors()).To(BeEmpty())
-				Expect(testFactory.InitInputs).To(HaveLen(1))
-			})
-
-			It("with index parameter with datum type returns nil if init datum returns nil", func() {
-				testFactory.InitOutputs = []InitOutput{{nil, nil}}
-				value := standardArray.ParseDatum(1)
-				Expect(value).To(BeNil())
-				Expect(standardContext.Errors()).To(BeEmpty())
-				Expect(testFactory.InitInputs).To(HaveLen(1))
-			})
-
-			It("with index parameter with datum type returns nil if datum parse returns error", func() {
-				testDatum.ParseOutputs = []error{errors.New("test: init returns error")}
-				value := standardArray.ParseDatum(1)
-				Expect(value).To(BeNil())
-				Expect(standardContext.Errors()).To(BeEmpty())
-				Expect(testFactory.InitInputs).To(HaveLen(1))
-			})
-		})
-
-		Context("ParseDatumArray", func() {
-			var testDatum1 *testData.Datum
-			var testDatum2 *testData.Datum
-
-			BeforeEach(func() {
-				testDatum1 = testData.NewDatum()
-				testDatum1.ParseOutputs = []error{nil}
-				testDatum2 = testData.NewDatum()
-				testDatum2.ParseOutputs = []error{nil}
-				testFactory.InitOutputs = []InitOutput{{testDatum1, nil}, {testDatum2, nil}}
-				standardArray, _ = parser.NewStandardArray(standardContext, testFactory, &[]interface{}{
-					false,
-					[]interface{}{
-						map[string]interface{}{
-							"5": "6",
-						},
-						map[string]interface{}{
-							"7": "8",
-						},
-					},
-					[]interface{}{
-						map[string]interface{}{
-							"9": "0",
-						},
-						"not",
-					},
-				}, parser.IgnoreNotParsed)
-			})
-
-			It("with index parameter less that the first index in the array returns nil", func() {
-				Expect(standardArray.ParseDatumArray(-1)).To(BeNil())
-				Expect(standardContext.Errors()).To(BeEmpty())
-			})
-
-			It("with index parameter greater than the last index in the array returns nil", func() {
-				Expect(standardArray.ParseDatumArray(len(*standardArray.Array()))).To(BeNil())
-				Expect(standardContext.Errors()).To(BeEmpty())
-			})
-
-			It("with index parameter with different type returns nil and appends an ErrorTypeNotArray", func() {
-				Expect(standardArray.ParseDatumArray(0)).To(BeNil())
-				Expect(standardContext.Errors()).To(HaveLen(1))
-				Expect(standardContext.Errors()[0].Code).To(Equal("type-not-array"))
-			})
-
-			It("with index parameter with object array type returns value", func() {
-				value := standardArray.ParseDatumArray(1)
-				Expect(value).ToNot(BeNil())
-				Expect(*value).To(ConsistOf(testDatum1, testDatum2))
-				Expect(standardContext.Errors()).To(BeEmpty())
-				Expect(testFactory.InitInputs).To(HaveLen(2))
-				Expect(testDatum1.ParseInputs).To(HaveLen(1))
-				Expect(testDatum2.ParseInputs).To(HaveLen(1))
-			})
-
-			It("with index parameter with datum type returns nil if init datum returns error", func() {
-				testFactory.InitOutputs = []InitOutput{{nil, errors.New("test: init returns error")}, {testDatum2, nil}}
-				value := standardArray.ParseDatumArray(1)
-				Expect(value).ToNot(BeNil())
-				Expect(*value).To(ConsistOf(testDatum2))
-				Expect(standardContext.Errors()).To(BeEmpty())
-				Expect(testFactory.InitInputs).To(HaveLen(2))
-				Expect(testDatum2.ParseInputs).To(HaveLen(1))
-			})
-
-			It("with index parameter with datum type returns nil if init datum returns nil", func() {
-				testFactory.InitOutputs = []InitOutput{{nil, nil}, {testDatum2, nil}}
-				value := standardArray.ParseDatumArray(1)
-				Expect(value).ToNot(BeNil())
-				Expect(*value).To(ConsistOf(testDatum2))
-				Expect(standardContext.Errors()).To(BeEmpty())
-				Expect(testFactory.InitInputs).To(HaveLen(2))
-				Expect(testDatum2.ParseInputs).To(HaveLen(1))
-			})
-
-			It("with index parameter with datum type returns nil if datum parse returns error", func() {
-				testDatum1.ParseOutputs = []error{errors.New("test: init returns error")}
-				value := standardArray.ParseDatumArray(1)
-				Expect(value).ToNot(BeNil())
-				Expect(*value).To(ConsistOf(testDatum2))
-				Expect(standardContext.Errors()).To(BeEmpty())
-				Expect(testFactory.InitInputs).To(HaveLen(2))
-				Expect(testDatum2.ParseInputs).To(HaveLen(1))
-			})
-
-			It("with index parameter with interface array and does not contains all datum type returns partial value and error", func() {
-				value := standardArray.ParseDatumArray(2)
-				Expect(value).ToNot(BeNil())
-				Expect(*value).To(ConsistOf(testDatum1))
-				Expect(standardContext.Errors()).To(HaveLen(1))
-				Expect(standardContext.Errors()[0].Code).To(Equal("type-not-object"))
-				Expect(testFactory.InitInputs).To(HaveLen(1))
-				Expect(testDatum1.ParseInputs).To(HaveLen(1))
-			})
-		})
-
 		Context("ProcessNotParsed", func() {
 			Context("with ParsedPolicy as IgnoreNotParsed", func() {
 				BeforeEach(func() {
-					standardArray, _ = parser.NewStandardArray(standardContext, testFactory, &[]interface{}{
+					standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 						1,
 						"two",
 						3,
@@ -723,7 +543,7 @@ var _ = Describe("StandardArray", func() {
 
 			Context("with ParsedPolicy as WarnLoggerNotParsed", func() {
 				BeforeEach(func() {
-					standardArray, _ = parser.NewStandardArray(standardContext, testFactory, &[]interface{}{
+					standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 						1,
 						"two",
 						3,
@@ -738,7 +558,7 @@ var _ = Describe("StandardArray", func() {
 
 			Context("with ParsedPolicy as AppendErrorNotParsed", func() {
 				BeforeEach(func() {
-					standardArray, _ = parser.NewStandardArray(standardContext, testFactory, &[]interface{}{
+					standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 						1,
 						"two",
 						3,
@@ -778,7 +598,7 @@ var _ = Describe("StandardArray", func() {
 
 		Context("NewChildObjectParser", func() {
 			BeforeEach(func() {
-				standardArray, _ = parser.NewStandardArray(standardContext, testFactory, &[]interface{}{
+				standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 					false,
 					map[string]interface{}{
 						"1": "2",
@@ -820,7 +640,7 @@ var _ = Describe("StandardArray", func() {
 
 		Context("NewChildArrayParser", func() {
 			BeforeEach(func() {
-				standardArray, _ = parser.NewStandardArray(standardContext, testFactory, &[]interface{}{
+				standardArray, _ = parser.NewStandardArray(standardContext, &[]interface{}{
 					false,
 					[]interface{}{
 						"1",

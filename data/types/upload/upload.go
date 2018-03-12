@@ -5,8 +5,10 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -76,6 +78,32 @@ type Upload struct {
 	TimeProcessing      *string   `json:"timeProcessing,omitempty" bson:"timeProcessing,omitempty"`
 	Timezone            *string   `json:"timezone,omitempty" bson:"timezone,omitempty"`
 	Version             *string   `json:"version,omitempty" bson:"version,omitempty"` // TODO: Deprecate in favor of Client.Version
+}
+
+func NewUpload(parser data.ObjectParser) *Upload {
+	if parser.Object() == nil {
+		return nil
+	}
+
+	if value := parser.ParseString("type"); value == nil {
+		parser.AppendError("type", service.ErrorValueNotExists())
+		return nil
+	} else if *value != device.Type {
+		parser.AppendError("type", service.ErrorValueStringNotOneOf(*value, []string{device.Type}))
+		return nil
+	}
+
+	return Init()
+}
+
+func ParseUpload(parser data.ObjectParser) *Upload {
+	datum := NewUpload(parser)
+	if datum == nil {
+		return nil
+	}
+
+	datum.Parse(parser)
+	return datum
 }
 
 func NewDatum() data.Datum {

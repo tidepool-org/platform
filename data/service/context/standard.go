@@ -6,7 +6,6 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/auth"
-	"github.com/tidepool-org/platform/data"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataService "github.com/tidepool-org/platform/data/service"
@@ -24,7 +23,6 @@ type Standard struct {
 	authClient              auth.Client
 	metricClient            metric.Client
 	userClient              user.Client
-	dataFactory             data.Factory
 	dataDeduplicatorFactory deduplicator.Factory
 	dataStore               dataStore.Store
 	dataStoreDEPRECATED     dataStoreDEPRECATED.Store
@@ -35,11 +33,11 @@ type Standard struct {
 }
 
 func WithContext(authClient auth.Client, metricClient metric.Client, userClient user.Client,
-	dataFactory data.Factory, dataDeduplicatorFactory deduplicator.Factory, dataStore dataStore.Store,
+	dataDeduplicatorFactory deduplicator.Factory, dataStore dataStore.Store,
 	dataStoreDEPRECATED dataStoreDEPRECATED.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, handler dataService.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
 		standard, standardErr := NewStandard(response, request, authClient, metricClient, userClient,
-			dataFactory, dataDeduplicatorFactory, dataStore, dataStoreDEPRECATED, syncTaskStore, dataClient)
+			dataDeduplicatorFactory, dataStore, dataStoreDEPRECATED, syncTaskStore, dataClient)
 		if standardErr != nil {
 			if responder, responderErr := serviceContext.NewResponder(response, request); responderErr != nil {
 				response.WriteHeader(http.StatusInternalServerError)
@@ -56,7 +54,7 @@ func WithContext(authClient auth.Client, metricClient metric.Client, userClient 
 
 func NewStandard(response rest.ResponseWriter, request *rest.Request,
 	authClient auth.Client, metricClient metric.Client, userClient user.Client,
-	dataFactory data.Factory, dataDeduplicatorFactory deduplicator.Factory, dataStore dataStore.Store,
+	dataDeduplicatorFactory deduplicator.Factory, dataStore dataStore.Store,
 	dataStoreDEPRECATED dataStoreDEPRECATED.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client) (*Standard, error) {
 	if authClient == nil {
 		return nil, errors.New("auth client is missing")
@@ -66,9 +64,6 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 	}
 	if userClient == nil {
 		return nil, errors.New("user client is missing")
-	}
-	if dataFactory == nil {
-		return nil, errors.New("data factory is missing")
 	}
 	if dataDeduplicatorFactory == nil {
 		return nil, errors.New("data deduplicator factory is missing")
@@ -100,7 +95,6 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 		authClient:              authClient,
 		metricClient:            metricClient,
 		userClient:              userClient,
-		dataFactory:             dataFactory,
 		dataDeduplicatorFactory: dataDeduplicatorFactory,
 		dataStore:               dataStore,
 		dataStoreDEPRECATED:     dataStoreDEPRECATED,
@@ -130,10 +124,6 @@ func (s *Standard) MetricClient() metric.Client {
 
 func (s *Standard) UserClient() user.Client {
 	return s.userClient
-}
-
-func (s *Standard) DataFactory() data.Factory {
-	return s.dataFactory
 }
 
 func (s *Standard) DataDeduplicatorFactory() deduplicator.Factory {
