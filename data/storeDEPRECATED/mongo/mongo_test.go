@@ -40,7 +40,7 @@ package mongo_test
 // }
 
 // func NewDataset(userID string, deviceID string) *upload.Upload {
-// 	dataset := upload.Init()
+// 	dataset := upload.New()
 // 	Expect(dataset).ToNot(BeNil())
 
 // 	dataset.Deduplicator = &data.DeduplicatorDescriptor{Name: "test-deduplicator"}
@@ -69,7 +69,7 @@ package mongo_test
 // 	datasetData := []data.Datum{}
 // 	for count := 0; count < 3; count++ {
 // 		baseDatum := &types.Base{}
-// 		baseDatum.Init()
+// 		baseDatum.New()
 
 // 		baseDatum.Deduplicator = &data.DeduplicatorDescriptor{Hash: id.New()}
 // 		baseDatum.Type = "test"

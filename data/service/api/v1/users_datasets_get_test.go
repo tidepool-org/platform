@@ -32,7 +32,7 @@ package v1_test
 // 			targetUserID = id.New()
 // 			uploads = []*upload.Upload{}
 // 			for i := 0; i < 3; i++ {
-// 				uploads = append(uploads, upload.Init())
+// 				uploads = append(uploads, upload.New())
 // 			}
 // 			context = NewTestContext()
 // 			context.RequestImpl.PathParams["user_id"] = targetUserID

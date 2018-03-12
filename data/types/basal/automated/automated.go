@@ -25,28 +25,10 @@ type Automated struct {
 	ScheduleName     *string  `json:"scheduleName,omitempty" bson:"scheduleName,omitempty"`
 }
 
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *Automated {
-	return &Automated{}
-}
-
-func Init() *Automated {
-	automated := New()
-	automated.Init()
-	return automated
-}
-
-func (a *Automated) Init() {
-	a.Basal.Init()
-	a.DeliveryType = DeliveryType
-
-	a.Duration = nil
-	a.DurationExpected = nil
-	a.Rate = nil
-	a.ScheduleName = nil
+	return &Automated{
+		Basal: basal.New(DeliveryType),
+	}
 }
 
 func (a *Automated) Parse(parser data.ObjectParser) error {

@@ -37,29 +37,10 @@ type Temporary struct {
 	Suppressed       Suppressed `json:"suppressed,omitempty" bson:"suppressed,omitempty"`
 }
 
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *Temporary {
-	return &Temporary{}
-}
-
-func Init() *Temporary {
-	temporary := New()
-	temporary.Init()
-	return temporary
-}
-
-func (t *Temporary) Init() {
-	t.Basal.Init()
-	t.DeliveryType = DeliveryType
-
-	t.Duration = nil
-	t.DurationExpected = nil
-	t.Percent = nil
-	t.Rate = nil
-	t.Suppressed = nil
+	return &Temporary{
+		Basal: basal.New(DeliveryType),
+	}
 }
 
 func (t *Temporary) Parse(parser data.ObjectParser) error {

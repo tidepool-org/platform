@@ -66,7 +66,7 @@ package deduplicator_test
 // 				testFactory, err = deduplicator.NewBaseFactory(testName, testVersion)
 // 				Expect(err).ToNot(HaveOccurred())
 // 				Expect(testFactory).ToNot(BeNil())
-// 				testDataset = upload.Init()
+// 				testDataset = upload.New()
 // 				Expect(testDataset).ToNot(BeNil())
 // 				testDataset.UserID = id.New()
 // 			})
@@ -277,7 +277,7 @@ package deduplicator_test
 // 			Expect(testLogger).ToNot(BeNil())
 // 			testDataSession = testDataStoreDEPRECATED.NewDataSession()
 // 			Expect(testDataSession).ToNot(BeNil())
-// 			testDataset = upload.Init()
+// 			testDataset = upload.New()
 // 			Expect(testDataset).ToNot(BeNil())
 // 			testDataset.UserID = id.New()
 // 		})
@@ -377,7 +377,7 @@ package deduplicator_test
 // 					var hash string
 
 // 					BeforeEach(func() {
-// 						testDataSession.UpdateDataSetOutputs = []testDataStoreDEPRECATED.UpdateDataSetOutput{{DataSet: upload.Init(), Error: nil}}
+// 						testDataSession.UpdateDataSetOutputs = []testDataStoreDEPRECATED.UpdateDataSetOutput{{DataSet: upload.New(), Error: nil}}
 // 					})
 
 // 					AfterEach(func() {

@@ -43,40 +43,12 @@ var _ = Describe("Food", func() {
 		Expect(food.Type).To(Equal("food"))
 	})
 
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(food.NewDatum()).To(Equal(&food.Food{}))
-		})
-	})
-
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(food.New()).To(Equal(&food.Food{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := food.Init()
+			datum := food.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("food"))
 			Expect(datum.Nutrition).To(BeNil())
-		})
-	})
-
-	Context("with new datum", func() {
-		var datum *food.Food
-
-		BeforeEach(func() {
-			datum = NewFood()
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("food"))
-				Expect(datum.Nutrition).To(BeNil())
-			})
 		})
 	})
 

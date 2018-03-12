@@ -49,40 +49,12 @@ var _ = Describe("Reported", func() {
 		Expect(reported.Type).To(Equal("reportedState"))
 	})
 
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(reported.NewDatum()).To(Equal(&reported.Reported{}))
-		})
-	})
-
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(reported.New()).To(Equal(&reported.Reported{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := reported.Init()
+			datum := reported.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("reportedState"))
 			Expect(datum.States).To(BeNil())
-		})
-	})
-
-	Context("with new datum", func() {
-		var datum *reported.Reported
-
-		BeforeEach(func() {
-			datum = NewReported()
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("reportedState"))
-				Expect(datum.States).To(BeNil())
-			})
 		})
 	})
 

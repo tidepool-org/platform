@@ -31,7 +31,7 @@ func NewMeta() interface{} {
 }
 
 func NewTestCombination(sourceTime interface{}, sourceDuration interface{}, sourceDurationExpected interface{}, sourceExtended interface{}, sourceExtendedExpected interface{}, sourceNormal interface{}, sourceNormalExpected interface{}) *combination.Combination {
-	datum := combination.Init()
+	datum := combination.New()
 	datum.DeviceID = pointer.String(id.New())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
@@ -86,21 +86,9 @@ var _ = Describe("Combination", func() {
 		Expect(combination.NormalMinimum).To(Equal(0.0))
 	})
 
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(combination.NewDatum()).To(Equal(&combination.Combination{}))
-		})
-	})
-
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(combination.New()).To(Equal(&combination.Combination{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := combination.Init()
+			datum := combination.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("bolus"))
 			Expect(datum.SubType).To(Equal("dual/square"))
@@ -113,34 +101,12 @@ var _ = Describe("Combination", func() {
 		})
 	})
 
-	Context("with new datum", func() {
-		var datum *combination.Combination
-
-		BeforeEach(func() {
-			datum = testDataTypesBolusCombination.NewCombination()
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("bolus"))
-				Expect(datum.SubType).To(Equal("dual/square"))
-				Expect(datum.Duration).To(BeNil())
-				Expect(datum.DurationExpected).To(BeNil())
-				Expect(datum.Extended).To(BeNil())
-				Expect(datum.ExtendedExpected).To(BeNil())
-				Expect(datum.Normal).To(BeNil())
-				Expect(datum.NormalExpected).To(BeNil())
-			})
-		})
-	})
-
 	Context("Combination", func() {
 		Context("Parse", func() {
 			var datum *combination.Combination
 
 			BeforeEach(func() {
-				datum = combination.Init()
+				datum = combination.New()
 				Expect(datum).ToNot(BeNil())
 			})
 

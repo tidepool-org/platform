@@ -38,13 +38,13 @@ func NewBasalDatum(parser data.ObjectParser) data.Datum {
 
 	switch *value {
 	case dataTypesBasalAutomated.DeliveryType:
-		return dataTypesBasalAutomated.Init()
+		return dataTypesBasalAutomated.New()
 	case dataTypesBasalScheduled.DeliveryType:
-		return dataTypesBasalScheduled.Init()
+		return dataTypesBasalScheduled.New()
 	case dataTypesBasalSuspend.DeliveryType:
-		return dataTypesBasalSuspend.Init()
+		return dataTypesBasalSuspend.New()
 	case dataTypesBasalTemporary.DeliveryType:
-		return dataTypesBasalTemporary.Init()
+		return dataTypesBasalTemporary.New()
 	}
 
 	parser.AppendError("deliveryType", service.ErrorValueStringNotOneOf(*value, deliveryTypes))

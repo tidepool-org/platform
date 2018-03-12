@@ -25,28 +25,10 @@ type Scheduled struct {
 	ScheduleName     *string  `json:"scheduleName,omitempty" bson:"scheduleName,omitempty"`
 }
 
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *Scheduled {
-	return &Scheduled{}
-}
-
-func Init() *Scheduled {
-	scheduled := New()
-	scheduled.Init()
-	return scheduled
-}
-
-func (s *Scheduled) Init() {
-	s.Basal.Init()
-	s.DeliveryType = DeliveryType
-
-	s.Duration = nil
-	s.DurationExpected = nil
-	s.Rate = nil
-	s.ScheduleName = nil
+	return &Scheduled{
+		Basal: basal.New(DeliveryType),
+	}
 }
 
 func (s *Scheduled) Parse(parser data.ObjectParser) error {

@@ -17,25 +17,10 @@ type TimeChange struct {
 	Change *Change `json:"change,omitempty" bson:"change,omitempty"`
 }
 
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *TimeChange {
-	return &TimeChange{}
-}
-
-func Init() *TimeChange {
-	timeChange := New()
-	timeChange.Init()
-	return timeChange
-}
-
-func (t *TimeChange) Init() {
-	t.Device.Init()
-	t.SubType = SubType
-
-	t.Change = nil
+	return &TimeChange{
+		Device: device.New(SubType),
+	}
 }
 
 func (t *TimeChange) Parse(parser data.ObjectParser) error {

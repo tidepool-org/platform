@@ -52,7 +52,7 @@ var _ = Describe("Delegate", func() {
 			testDelegateFactory, err = deduplicator.NewDelegateFactory([]deduplicator.Factory{testFirstFactory, testSecondFactory})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testDelegateFactory).ToNot(BeNil())
-			testDataset = upload.Init()
+			testDataset = upload.New()
 			Expect(testDataset).ToNot(BeNil())
 		})
 

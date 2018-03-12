@@ -28,30 +28,10 @@ type Combination struct {
 	NormalExpected   *float64 `json:"expectedNormal,omitempty" bson:"expectedNormal,omitempty"`
 }
 
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *Combination {
-	return &Combination{}
-}
-
-func Init() *Combination {
-	combination := New()
-	combination.Init()
-	return combination
-}
-
-func (c *Combination) Init() {
-	c.Bolus.Init()
-	c.SubType = SubType
-
-	c.Duration = nil
-	c.DurationExpected = nil
-	c.Extended = nil
-	c.ExtendedExpected = nil
-	c.Normal = nil
-	c.NormalExpected = nil
+	return &Combination{
+		Bolus: bolus.New(SubType),
+	}
 }
 
 func (c *Combination) Parse(parser data.ObjectParser) error {

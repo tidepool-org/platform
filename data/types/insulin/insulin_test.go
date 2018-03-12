@@ -43,41 +43,12 @@ var _ = Describe("Insulin", func() {
 		Expect(insulin.Type).To(Equal("insulin"))
 	})
 
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(insulin.NewDatum()).To(Equal(&insulin.Insulin{}))
-		})
-	})
-
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(insulin.New()).To(Equal(&insulin.Insulin{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := insulin.Init()
+			datum := insulin.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("insulin"))
 			Expect(datum.Dose).To(BeNil())
-		})
-	})
-
-	Context("with new datum", func() {
-		var datum *insulin.Insulin
-
-		BeforeEach(func() {
-			datum = insulin.New()
-			Expect(datum).ToNot(BeNil())
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("insulin"))
-				Expect(datum.Dose).To(BeNil())
-			})
 		})
 	})
 

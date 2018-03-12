@@ -8,6 +8,7 @@ import (
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	testDataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose/test"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
+	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
 	testDataTypesBloodGlucose "github.com/tidepool-org/platform/data/types/blood/glucose/test"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
@@ -19,6 +20,32 @@ import (
 )
 
 var _ = Describe("Glucose", func() {
+	Context("New", func() {
+		It("creates a new datum with all values initialized", func() {
+			typ := testDataTypes.NewType()
+			datum := glucose.New(typ)
+			Expect(datum.Type).To(Equal(typ))
+			Expect(datum.Units).To(BeNil())
+			Expect(datum.Value).To(BeNil())
+		})
+	})
+
+	Context("with new datum", func() {
+		var typ string
+		var datum glucose.Glucose
+
+		BeforeEach(func() {
+			typ = testDataTypes.NewType()
+			datum = glucose.New(typ)
+		})
+
+		Context("Meta", func() {
+			It("returns the meta with delivery type", func() {
+				Expect(datum.Meta()).To(Equal(&types.Meta{Type: typ}))
+			})
+		})
+	})
+
 	Context("Validate", func() {
 		DescribeTable("validates the datum",
 			func(units *string, mutator func(datum *glucose.Glucose, units *string), expectedErrors ...error) {

@@ -70,44 +70,14 @@ var _ = Describe("Change", func() {
 		Expect(reservoirchange.SubType).To(Equal("reservoirChange"))
 	})
 
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(reservoirchange.NewDatum()).To(Equal(&reservoirchange.ReservoirChange{}))
-		})
-	})
-
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(reservoirchange.New()).To(Equal(&reservoirchange.ReservoirChange{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := reservoirchange.Init()
+			datum := reservoirchange.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("deviceEvent"))
 			Expect(datum.SubType).To(Equal("reservoirChange"))
 			Expect(datum.Status).To(BeNil())
 			Expect(datum.StatusID).To(BeNil())
-		})
-	})
-
-	Context("with new datum", func() {
-		var datum *reservoirchange.ReservoirChange
-
-		BeforeEach(func() {
-			datum = NewReservoirChange()
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("deviceEvent"))
-				Expect(datum.SubType).To(Equal("reservoirChange"))
-				Expect(datum.Status).To(BeNil())
-				Expect(datum.StatusID).To(BeNil())
-			})
 		})
 	})
 

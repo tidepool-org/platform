@@ -29,26 +29,10 @@ type Physical struct {
 	ReportedIntensity *string   `json:"reportedIntensity,omitempty" bson:"reportedIntensity,omitempty"`
 }
 
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *Physical {
-	return &Physical{}
-}
-
-func Init() *Physical {
-	physical := New()
-	physical.Init()
-	return physical
-}
-
-func (p *Physical) Init() {
-	p.Base.Init()
-	p.Type = Type
-
-	p.Duration = nil
-	p.ReportedIntensity = nil
+	return &Physical{
+		Base: types.New(Type),
+	}
 }
 
 func (p *Physical) Parse(parser data.ObjectParser) error {

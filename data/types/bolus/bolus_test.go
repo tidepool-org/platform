@@ -21,8 +21,7 @@ import (
 )
 
 func NewTestBolus(sourceTime interface{}, sourceSubType interface{}) *bolus.Bolus {
-	datum := &bolus.Bolus{}
-	datum.Init()
+	datum := bolus.New("")
 	datum.DeviceID = pointer.String(id.New())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
@@ -30,7 +29,7 @@ func NewTestBolus(sourceTime interface{}, sourceSubType interface{}) *bolus.Bolu
 	if val, ok := sourceSubType.(string); ok {
 		datum.SubType = val
 	}
-	return datum
+	return &datum
 }
 
 var _ = Describe("Bolus", func() {
@@ -38,35 +37,27 @@ var _ = Describe("Bolus", func() {
 		Expect(bolus.Type).To(Equal("bolus"))
 	})
 
+	Context("New", func() {
+		It("creates a new datum with all values initialized", func() {
+			subType := testDataTypes.NewType()
+			datum := bolus.New(subType)
+			Expect(datum.Type).To(Equal("bolus"))
+			Expect(datum.SubType).To(Equal(subType))
+		})
+	})
+
 	Context("with new datum", func() {
-		var datum *bolus.Bolus
+		var subType string
+		var datum bolus.Bolus
 
 		BeforeEach(func() {
-			datum = testDataTypesBolus.NewBolus()
+			subType = testDataTypes.NewType()
+			datum = bolus.New(subType)
 		})
 
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("bolus"))
-				Expect(datum.SubType).To(BeEmpty())
-			})
-		})
-
-		Context("with initialized", func() {
-			BeforeEach(func() {
-				datum.Init()
-			})
-
-			Context("Meta", func() {
-				It("returns the meta with no sub type", func() {
-					Expect(datum.Meta()).To(Equal(&bolus.Meta{Type: "bolus"}))
-				})
-
-				It("returns the meta with sub type", func() {
-					datum.SubType = testDataTypes.NewType()
-					Expect(datum.Meta()).To(Equal(&bolus.Meta{Type: "bolus", SubType: datum.SubType}))
-				})
+		Context("Meta", func() {
+			It("returns the meta with delivery type", func() {
+				Expect(datum.Meta()).To(Equal(&bolus.Meta{Type: "bolus", SubType: subType}))
 			})
 		})
 	})
@@ -76,8 +67,7 @@ var _ = Describe("Bolus", func() {
 			var datum *bolus.Bolus
 
 			BeforeEach(func() {
-				datum = &bolus.Bolus{}
-				datum.Init()
+				datum = NewTestBolus("bolus", nil)
 			})
 
 			DescribeTable("parses the datum",

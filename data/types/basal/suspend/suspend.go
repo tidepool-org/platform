@@ -32,27 +32,10 @@ type Suspend struct {
 	Suppressed       Suppressed `json:"suppressed,omitempty" bson:"suppressed,omitempty"`
 }
 
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *Suspend {
-	return &Suspend{}
-}
-
-func Init() *Suspend {
-	suspend := New()
-	suspend.Init()
-	return suspend
-}
-
-func (s *Suspend) Init() {
-	s.Basal.Init()
-	s.DeliveryType = DeliveryType
-
-	s.Duration = nil
-	s.DurationExpected = nil
-	s.Suppressed = nil
+	return &Suspend{
+		Basal: basal.New(DeliveryType),
+	}
 }
 
 func (s *Suspend) Parse(parser data.ObjectParser) error {

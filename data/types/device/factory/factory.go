@@ -42,17 +42,17 @@ func NewDeviceDatum(parser data.ObjectParser) data.Datum {
 
 	switch *value {
 	case dataTypesDeviceAlarm.SubType:
-		return dataTypesDeviceAlarm.Init()
+		return dataTypesDeviceAlarm.New()
 	case dataTypesDeviceCalibration.SubType:
-		return dataTypesDeviceCalibration.Init()
+		return dataTypesDeviceCalibration.New()
 	case dataTypesDevicePrime.SubType:
-		return dataTypesDevicePrime.Init()
+		return dataTypesDevicePrime.New()
 	case dataTypesDeviceReservoirchange.SubType:
-		return dataTypesDeviceReservoirchange.Init()
+		return dataTypesDeviceReservoirchange.New()
 	case dataTypesDeviceStatus.SubType:
-		return dataTypesDeviceStatus.Init()
+		return dataTypesDeviceStatus.New()
 	case dataTypesDeviceTimechange.SubType:
-		return dataTypesDeviceTimechange.Init()
+		return dataTypesDeviceTimechange.New()
 	}
 
 	parser.AppendError("subType", service.ErrorValueStringNotOneOf(*value, subTypes))

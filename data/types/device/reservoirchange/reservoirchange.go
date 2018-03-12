@@ -20,26 +20,10 @@ type ReservoirChange struct {
 	StatusID *string     `json:"status,omitempty" bson:"status,omitempty"`
 }
 
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *ReservoirChange {
-	return &ReservoirChange{}
-}
-
-func Init() *ReservoirChange {
-	reservoirChange := New()
-	reservoirChange.Init()
-	return reservoirChange
-}
-
-func (r *ReservoirChange) Init() {
-	r.Device.Init()
-	r.SubType = SubType
-
-	r.Status = nil
-	r.StatusID = nil
+	return &ReservoirChange{
+		Device: device.New(SubType),
+	}
 }
 
 func (r *ReservoirChange) Parse(parser data.ObjectParser) error {

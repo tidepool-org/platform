@@ -26,25 +26,10 @@ type SelfMonitored struct {
 	SubType *string `json:"subType,omitempty" bson:"subType,omitempty"`
 }
 
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *SelfMonitored {
-	return &SelfMonitored{}
-}
-
-func Init() *SelfMonitored {
-	selfMonitored := New()
-	selfMonitored.Init()
-	return selfMonitored
-}
-
-func (s *SelfMonitored) Init() {
-	s.Glucose.Init()
-	s.Type = Type
-
-	s.SubType = nil
+	return &SelfMonitored{
+		Glucose: glucose.New(Type),
+	}
 }
 
 func (s *SelfMonitored) Parse(parser data.ObjectParser) error {

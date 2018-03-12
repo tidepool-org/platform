@@ -28,30 +28,10 @@ type CGM struct {
 	Units           *string          `json:"units,omitempty" bson:"units,omitempty"`
 }
 
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *CGM {
-	return &CGM{}
-}
-
-func Init() *CGM {
-	cgm := New()
-	cgm.Init()
-	return cgm
-}
-
-func (c *CGM) Init() {
-	c.Base.Init()
-	c.Type = Type
-
-	c.HighLevelAlert = nil
-	c.LowLevelAlert = nil
-	c.OutOfRangeAlert = nil
-	c.RateAlerts = nil
-	c.TransmitterID = nil
-	c.Units = nil
+	return &CGM{
+		Base: types.New(Type),
+	}
 }
 
 func (c *CGM) Parse(parser data.ObjectParser) error {

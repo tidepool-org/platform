@@ -93,7 +93,7 @@ func NewUpload(parser data.ObjectParser) *Upload {
 		return nil
 	}
 
-	return Init()
+	return New()
 }
 
 func ParseUpload(parser data.ObjectParser) *Upload {
@@ -111,32 +111,9 @@ func NewDatum() data.Datum {
 }
 
 func New() *Upload {
-	return &Upload{}
-}
-
-func Init() *Upload {
-	upload := New()
-	upload.Init()
-	return upload
-}
-
-func (u *Upload) Init() {
-	u.Base.Init()
-	u.Type = Type
-
-	u.ByUser = nil
-	u.Client = nil
-	u.ComputerTime = nil
-	u.DataSetType = nil
-	u.DataState = nil
-	u.DeviceManufacturers = nil
-	u.DeviceModel = nil
-	u.DeviceSerialNumber = nil
-	u.DeviceTags = nil
-	u.State = nil
-	u.TimeProcessing = nil
-	u.Timezone = nil
-	u.Version = nil
+	return &Upload{
+		Base: types.New(Type),
+	}
 }
 
 func (u *Upload) Parse(parser data.ObjectParser) error {

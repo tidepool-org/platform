@@ -23,59 +23,51 @@ import (
 var futureTime = time.Unix(4102444800, 0)
 
 var _ = Describe("Base", func() {
+	Context("New", func() {
+		It("creates a new datum with all values initialized", func() {
+			typ := testDataTypes.NewType()
+			datum := types.New(typ)
+			Expect(datum.Active).To(BeFalse())
+			Expect(datum.Annotations).To(BeNil())
+			Expect(datum.ArchivedDataSetID).To(BeNil())
+			Expect(datum.ArchivedTime).To(BeNil())
+			Expect(datum.ClockDriftOffset).To(BeNil())
+			Expect(datum.ConversionOffset).To(BeNil())
+			Expect(datum.CreatedTime).To(BeNil())
+			Expect(datum.CreatedUserID).To(BeNil())
+			Expect(datum.Deduplicator).To(BeNil())
+			Expect(datum.DeletedTime).To(BeNil())
+			Expect(datum.DeletedUserID).To(BeNil())
+			Expect(datum.DeviceID).To(BeNil())
+			Expect(datum.DeviceTime).To(BeNil())
+			Expect(datum.GUID).To(BeNil())
+			Expect(datum.ID).To(BeNil())
+			Expect(datum.ModifiedTime).To(BeNil())
+			Expect(datum.ModifiedUserID).To(BeNil())
+			Expect(datum.Payload).To(BeNil())
+			Expect(datum.SchemaVersion).To(Equal(0))
+			Expect(datum.Source).To(BeNil())
+			Expect(datum.Time).To(BeNil())
+			Expect(datum.TimezoneOffset).To(BeNil())
+			Expect(datum.Type).To(Equal(typ))
+			Expect(datum.UploadID).To(BeNil())
+			Expect(datum.UserID).To(BeNil())
+			Expect(datum.Version).To(Equal(0))
+		})
+	})
+
 	Context("with new datum", func() {
-		var datum *types.Base
+		var typ string
+		var datum types.Base
 
 		BeforeEach(func() {
-			datum = testDataTypes.NewBase()
+			typ = testDataTypes.NewType()
+			datum = types.New(typ)
 		})
 
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Active).To(BeFalse())
-				Expect(datum.Annotations).To(BeNil())
-				Expect(datum.ArchivedDataSetID).To(BeNil())
-				Expect(datum.ArchivedTime).To(BeNil())
-				Expect(datum.ClockDriftOffset).To(BeNil())
-				Expect(datum.ConversionOffset).To(BeNil())
-				Expect(datum.CreatedTime).To(BeNil())
-				Expect(datum.CreatedUserID).To(BeNil())
-				Expect(datum.Deduplicator).To(BeNil())
-				Expect(datum.DeletedTime).To(BeNil())
-				Expect(datum.DeletedUserID).To(BeNil())
-				Expect(datum.DeviceID).To(BeNil())
-				Expect(datum.DeviceTime).To(BeNil())
-				Expect(datum.GUID).To(BeNil())
-				Expect(datum.ID).To(BeNil())
-				Expect(datum.ModifiedTime).To(BeNil())
-				Expect(datum.ModifiedUserID).To(BeNil())
-				Expect(datum.Payload).To(BeNil())
-				Expect(datum.SchemaVersion).To(Equal(0))
-				Expect(datum.Source).To(BeNil())
-				Expect(datum.Time).To(BeNil())
-				Expect(datum.TimezoneOffset).To(BeNil())
-				Expect(datum.Type).To(BeEmpty())
-				Expect(datum.UploadID).To(BeNil())
-				Expect(datum.UserID).To(BeNil())
-				Expect(datum.Version).To(Equal(0))
-			})
-		})
-
-		Context("with initialized", func() {
-			BeforeEach(func() {
-				datum.Init()
-			})
-
-			Context("Meta", func() {
-				It("returns the meta with no type", func() {
-					Expect(datum.Meta()).To(Equal(&types.Meta{}))
-				})
-
-				It("returns the meta with type", func() {
-					datum.Type = testDataTypes.NewType()
-					Expect(datum.Meta()).To(Equal(&types.Meta{Type: datum.Type}))
-				})
+		Context("Meta", func() {
+			It("returns the meta with type", func() {
+				Expect(datum.Meta()).To(Equal(&types.Meta{Type: typ}))
 			})
 		})
 	})
@@ -742,8 +734,7 @@ var _ = Describe("Base", func() {
 				),
 				Entry("all missing",
 					func(datum *types.Base) {
-						*datum = types.Base{}
-						datum.Init()
+						*datum = types.New("")
 					},
 					func(datum *types.Base, expectedDatum *types.Base) {
 						Expect(datum.GUID).ToNot(BeNil())
@@ -789,8 +780,7 @@ var _ = Describe("Base", func() {
 				),
 				Entry("all missing",
 					func(datum *types.Base) {
-						*datum = types.Base{}
-						datum.Init()
+						*datum = types.New("")
 					},
 					nil,
 				),

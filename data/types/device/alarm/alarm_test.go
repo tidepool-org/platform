@@ -112,46 +112,15 @@ var _ = Describe("Change", func() {
 		Expect(alarm.AlarmTypes()).To(Equal([]string{"auto_off", "low_insulin", "low_power", "no_delivery", "no_insulin", "no_power", "occlusion", "other", "over_limit"}))
 	})
 
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(alarm.NewDatum()).To(Equal(&alarm.Alarm{}))
-		})
-	})
-
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(alarm.New()).To(Equal(&alarm.Alarm{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := alarm.Init()
+			datum := alarm.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("deviceEvent"))
 			Expect(datum.SubType).To(Equal("alarm"))
 			Expect(datum.AlarmType).To(BeNil())
 			Expect(datum.Status).To(BeNil())
 			Expect(datum.StatusID).To(BeNil())
-		})
-	})
-
-	Context("with new datum", func() {
-		var datum *alarm.Alarm
-
-		BeforeEach(func() {
-			datum = NewAlarm()
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("deviceEvent"))
-				Expect(datum.SubType).To(Equal("alarm"))
-				Expect(datum.AlarmType).To(BeNil())
-				Expect(datum.Status).To(BeNil())
-				Expect(datum.StatusID).To(BeNil())
-			})
 		})
 	})
 

@@ -56,7 +56,7 @@ func ClonePrime(datum *prime.Prime) *prime.Prime {
 }
 
 func NewTestPrime(sourceTime interface{}, sourceTarget interface{}, sourceVolume interface{}) *prime.Prime {
-	datum := prime.Init()
+	datum := prime.New()
 	datum.DeviceID = pointer.String(id.New())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
@@ -103,21 +103,9 @@ var _ = Describe("Status", func() {
 		Expect(prime.Targets()).To(Equal([]string{"cannula", "tubing"}))
 	})
 
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(prime.NewDatum()).To(Equal(&prime.Prime{}))
-		})
-	})
-
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(prime.New()).To(Equal(&prime.Prime{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := prime.Init()
+			datum := prime.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("deviceEvent"))
 			Expect(datum.SubType).To(Equal("prime"))
@@ -126,30 +114,12 @@ var _ = Describe("Status", func() {
 		})
 	})
 
-	Context("with new datum", func() {
-		var datum *prime.Prime
-
-		BeforeEach(func() {
-			datum = NewPrime()
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("deviceEvent"))
-				Expect(datum.SubType).To(Equal("prime"))
-				Expect(datum.Target).To(BeNil())
-				Expect(datum.Volume).To(BeNil())
-			})
-		})
-	})
-
 	Context("Prime", func() {
 		Context("Parse", func() {
 			var datum *prime.Prime
 
 			BeforeEach(func() {
-				datum = prime.Init()
+				datum = prime.New()
 				Expect(datum).ToNot(BeNil())
 			})
 

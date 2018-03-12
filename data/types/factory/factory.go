@@ -52,33 +52,33 @@ func NewDatum(parser data.ObjectParser) data.Datum {
 
 	switch *value {
 	case dataTypesActivityPhysical.Type:
-		return dataTypesActivityPhysical.Init()
+		return dataTypesActivityPhysical.New()
 	case dataTypesBasal.Type:
 		return dataTypesBasalFactory.NewBasalDatum(parser)
 	case dataTypesBloodGlucoseContinuous.Type:
-		return dataTypesBloodGlucoseContinuous.Init()
+		return dataTypesBloodGlucoseContinuous.New()
 	case dataTypesBloodGlucoseSelfmonitored.Type:
-		return dataTypesBloodGlucoseSelfmonitored.Init()
+		return dataTypesBloodGlucoseSelfmonitored.New()
 	case dataTypesBloodKetone.Type:
-		return dataTypesBloodKetone.Init()
+		return dataTypesBloodKetone.New()
 	case dataTypesBolus.Type:
 		return dataTypesBolusFactory.NewBolusDatum(parser)
 	case dataTypesCalculator.Type:
-		return dataTypesCalculator.Init()
+		return dataTypesCalculator.New()
 	case dataTypesDevice.Type:
 		return dataTypesDeviceFactory.NewDeviceDatum(parser)
 	case dataTypesFood.Type:
-		return dataTypesFood.Init()
+		return dataTypesFood.New()
 	case dataTypesInsulin.Type:
-		return dataTypesInsulin.Init()
+		return dataTypesInsulin.New()
 	case dataTypesSettingsCGM.Type:
-		return dataTypesSettingsCGM.Init()
+		return dataTypesSettingsCGM.New()
 	case dataTypesSettingsPump.Type:
-		return dataTypesSettingsPump.Init()
+		return dataTypesSettingsPump.New()
 	case dataTypesStateReported.Type:
-		return dataTypesStateReported.Init()
+		return dataTypesStateReported.New()
 	case dataTypesUpload.Type:
-		return dataTypesUpload.Init()
+		return dataTypesUpload.New()
 	}
 
 	parser.AppendError("type", service.ErrorValueStringNotOneOf(*value, types))

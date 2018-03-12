@@ -25,11 +25,11 @@ type Meta struct {
 	DeliveryType string `json:"deliveryType,omitempty"`
 }
 
-func (b *Basal) Init() {
-	b.Base.Init()
-	b.Type = Type
-
-	b.DeliveryType = ""
+func New(deliveryType string) Basal {
+	return Basal{
+		Base:         types.New(Type),
+		DeliveryType: deliveryType,
+	}
 }
 
 func (b *Basal) Meta() interface{} {

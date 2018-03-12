@@ -49,7 +49,7 @@ func CloneSelfMonitored(datum *selfmonitored.SelfMonitored) *selfmonitored.SelfM
 }
 
 func NewTestSelfMonitored(sourceTime interface{}, sourceUnits interface{}, sourceValue interface{}, sourceSubType interface{}) *selfmonitored.SelfMonitored {
-	datum := selfmonitored.Init()
+	datum := selfmonitored.New()
 	datum.DeviceID = pointer.String(id.New())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
@@ -83,21 +83,9 @@ var _ = Describe("SelfMonitored", func() {
 		Expect(selfmonitored.SubTypes()).To(Equal([]string{"linked", "manual"}))
 	})
 
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(selfmonitored.NewDatum()).To(Equal(&selfmonitored.SelfMonitored{}))
-		})
-	})
-
 	Context("New", func() {
 		It("returns the expected datum", func() {
-			Expect(selfmonitored.New()).To(Equal(&selfmonitored.SelfMonitored{}))
-		})
-	})
-
-	Context("Init", func() {
-		It("returns the expected datum", func() {
-			datum := selfmonitored.Init()
+			datum := selfmonitored.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("smbg"))
 			Expect(datum.Units).To(BeNil())
@@ -106,30 +94,12 @@ var _ = Describe("SelfMonitored", func() {
 		})
 	})
 
-	Context("with new datum", func() {
-		var datum *selfmonitored.SelfMonitored
-
-		BeforeEach(func() {
-			datum = NewSelfMonitored(pointer.String("mmol/L"))
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("smbg"))
-				Expect(datum.Units).To(BeNil())
-				Expect(datum.Value).To(BeNil())
-				Expect(datum.SubType).To(BeNil())
-			})
-		})
-	})
-
 	Context("SelfMonitored", func() {
 		Context("Parse", func() {
 			var datum *selfmonitored.SelfMonitored
 
 			BeforeEach(func() {
-				datum = selfmonitored.Init()
+				datum = selfmonitored.New()
 				Expect(datum).ToNot(BeNil())
 			})
 

@@ -36,11 +36,11 @@ func NewBolusDatum(parser data.ObjectParser) data.Datum {
 
 	switch *value {
 	case dataTypesBolusCombination.SubType:
-		return dataTypesBolusCombination.Init()
+		return dataTypesBolusCombination.New()
 	case dataTypesBolusExtended.SubType:
-		return dataTypesBolusExtended.Init()
+		return dataTypesBolusExtended.New()
 	case dataTypesBolusNormal.SubType:
-		return dataTypesBolusNormal.Init()
+		return dataTypesBolusNormal.New()
 	}
 
 	parser.AppendError("subType", service.ErrorValueStringNotOneOf(*value, subTypes))

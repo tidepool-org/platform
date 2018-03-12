@@ -9,8 +9,6 @@ import (
 )
 
 type Datum interface {
-	Init()
-
 	Meta() interface{}
 
 	Parse(parser ObjectParser) error

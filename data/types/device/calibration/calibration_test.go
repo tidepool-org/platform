@@ -53,7 +53,7 @@ func CloneCalibration(datum *calibration.Calibration) *calibration.Calibration {
 }
 
 func NewTestCalibration(sourceTime interface{}, sourceUnits interface{}, sourceValue interface{}) *calibration.Calibration {
-	datum := calibration.Init()
+	datum := calibration.New()
 	datum.DeviceID = pointer.String(id.New())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
@@ -72,21 +72,9 @@ var _ = Describe("Calibration", func() {
 		Expect(calibration.SubType).To(Equal("calibration"))
 	})
 
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(calibration.NewDatum()).To(Equal(&calibration.Calibration{}))
-		})
-	})
-
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(calibration.New()).To(Equal(&calibration.Calibration{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := calibration.Init()
+			datum := calibration.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("deviceEvent"))
 			Expect(datum.SubType).To(Equal("calibration"))
@@ -95,30 +83,12 @@ var _ = Describe("Calibration", func() {
 		})
 	})
 
-	Context("with new datum", func() {
-		var datum *calibration.Calibration
-
-		BeforeEach(func() {
-			datum = NewCalibration(pointer.String("mmol/L"))
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("deviceEvent"))
-				Expect(datum.SubType).To(Equal("calibration"))
-				Expect(datum.Units).To(BeNil())
-				Expect(datum.Value).To(BeNil())
-			})
-		})
-	})
-
 	Context("Calibration", func() {
 		Context("Parse", func() {
 			var datum *calibration.Calibration
 
 			BeforeEach(func() {
-				datum = calibration.Init()
+				datum = calibration.New()
 				Expect(datum).ToNot(BeNil())
 			})
 

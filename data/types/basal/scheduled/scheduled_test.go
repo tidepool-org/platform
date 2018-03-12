@@ -56,7 +56,7 @@ func CloneScheduled(datum *scheduled.Scheduled) *scheduled.Scheduled {
 }
 
 func NewTestScheduled(sourceTime interface{}, sourceDuration interface{}, sourceDurationExpected interface{}, sourceRate interface{}, scheduleName interface{}) *scheduled.Scheduled {
-	datum := scheduled.Init()
+	datum := scheduled.New()
 	datum.DeviceID = pointer.String(id.New())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
@@ -97,21 +97,9 @@ var _ = Describe("Scheduled", func() {
 		Expect(scheduled.RateMinimum).To(Equal(0.0))
 	})
 
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(scheduled.NewDatum()).To(Equal(&scheduled.Scheduled{}))
-		})
-	})
-
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(scheduled.New()).To(Equal(&scheduled.Scheduled{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := scheduled.Init()
+			datum := scheduled.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("basal"))
 			Expect(datum.DeliveryType).To(Equal("scheduled"))
@@ -122,32 +110,12 @@ var _ = Describe("Scheduled", func() {
 		})
 	})
 
-	Context("with new datum", func() {
-		var datum *scheduled.Scheduled
-
-		BeforeEach(func() {
-			datum = NewScheduled()
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("basal"))
-				Expect(datum.DeliveryType).To(Equal("scheduled"))
-				Expect(datum.Duration).To(BeNil())
-				Expect(datum.DurationExpected).To(BeNil())
-				Expect(datum.Rate).To(BeNil())
-				Expect(datum.ScheduleName).To(BeNil())
-			})
-		})
-	})
-
 	Context("Scheduled", func() {
 		Context("Parse", func() {
 			var datum *scheduled.Scheduled
 
 			BeforeEach(func() {
-				datum = scheduled.Init()
+				datum = scheduled.New()
 				Expect(datum).ToNot(BeNil())
 			})
 

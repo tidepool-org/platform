@@ -72,7 +72,7 @@ func translateTime(systemTime time.Time, displayTime time.Time, datum *types.Bas
 }
 
 func translateCalibrationToDatum(c *dexcom.Calibration) data.Datum {
-	datum := calibration.Init()
+	datum := calibration.New()
 
 	// TODO: Refactor so we don't have to clear these here
 	datum.ID = nil
@@ -90,7 +90,7 @@ func translateCalibrationToDatum(c *dexcom.Calibration) data.Datum {
 }
 
 func translateEGVToDatum(e *dexcom.EGV, unit string, rateUnit string) data.Datum {
-	datum := continuous.Init()
+	datum := continuous.New()
 
 	// TODO: Refactor so we don't have to clear these here
 	datum.ID = nil
@@ -140,7 +140,7 @@ func translateEGVToDatum(e *dexcom.EGV, unit string, rateUnit string) data.Datum
 }
 
 func translateEventCarbsToDatum(e *dexcom.Event) data.Datum {
-	datum := food.Init()
+	datum := food.New()
 
 	// TODO: Refactor so we don't have to clear these here
 	datum.ID = nil
@@ -160,7 +160,7 @@ func translateEventCarbsToDatum(e *dexcom.Event) data.Datum {
 }
 
 func translateEventExerciseToDatum(e *dexcom.Event) data.Datum {
-	datum := physical.Init()
+	datum := physical.New()
 
 	// TODO: Refactor so we don't have to clear these here
 	datum.ID = nil
@@ -188,7 +188,7 @@ func translateEventExerciseToDatum(e *dexcom.Event) data.Datum {
 }
 
 func translateEventHealthToDatum(e *dexcom.Event) data.Datum {
-	datum := reported.Init()
+	datum := reported.New()
 
 	// TODO: Refactor so we don't have to clear these here
 	datum.ID = nil
@@ -216,7 +216,7 @@ func translateEventHealthToDatum(e *dexcom.Event) data.Datum {
 }
 
 func translateEventInsulinToDatum(e *dexcom.Event) data.Datum {
-	datum := insulin.Init()
+	datum := insulin.New()
 
 	// TODO: Refactor so we don't have to clear these here
 	datum.ID = nil
