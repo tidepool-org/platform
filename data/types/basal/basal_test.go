@@ -21,8 +21,7 @@ import (
 )
 
 func NewTestBasal(sourceTime interface{}, sourceDeliveryType interface{}) *basal.Basal {
-	datum := &basal.Basal{}
-	datum.Init()
+	datum := basal.New("")
 	datum.DeviceID = pointer.String(id.New())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
@@ -30,7 +29,7 @@ func NewTestBasal(sourceTime interface{}, sourceDeliveryType interface{}) *basal
 	if val, ok := sourceDeliveryType.(string); ok {
 		datum.DeliveryType = val
 	}
-	return datum
+	return &datum
 }
 
 var _ = Describe("Basal", func() {
@@ -38,35 +37,27 @@ var _ = Describe("Basal", func() {
 		Expect(basal.Type).To(Equal("basal"))
 	})
 
+	Context("New", func() {
+		It("creates a new datum with all values initialized", func() {
+			deliveryType := testDataTypes.NewType()
+			datum := basal.New(deliveryType)
+			Expect(datum.Type).To(Equal("basal"))
+			Expect(datum.DeliveryType).To(Equal(deliveryType))
+		})
+	})
+
 	Context("with new datum", func() {
-		var datum *basal.Basal
+		var deliveryType string
+		var datum basal.Basal
 
 		BeforeEach(func() {
-			datum = testDataTypesBasal.NewBasal()
+			deliveryType = testDataTypes.NewType()
+			datum = basal.New(deliveryType)
 		})
 
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("basal"))
-				Expect(datum.DeliveryType).To(BeEmpty())
-			})
-		})
-
-		Context("with initialized", func() {
-			BeforeEach(func() {
-				datum.Init()
-			})
-
-			Context("Meta", func() {
-				It("returns the meta with no delivery type", func() {
-					Expect(datum.Meta()).To(Equal(&basal.Meta{Type: "basal"}))
-				})
-
-				It("returns the meta with delivery type", func() {
-					datum.DeliveryType = testDataTypes.NewType()
-					Expect(datum.Meta()).To(Equal(&basal.Meta{Type: "basal", DeliveryType: datum.DeliveryType}))
-				})
+		Context("Meta", func() {
+			It("returns the meta with delivery type", func() {
+				Expect(datum.Meta()).To(Equal(&basal.Meta{Type: "basal", DeliveryType: deliveryType}))
 			})
 		})
 	})
@@ -76,8 +67,7 @@ var _ = Describe("Basal", func() {
 			var datum *basal.Basal
 
 			BeforeEach(func() {
-				datum = &basal.Basal{}
-				datum.Init()
+				datum = NewTestBasal("basal", nil)
 			})
 
 			DescribeTable("parses the datum",

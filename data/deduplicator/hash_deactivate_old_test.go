@@ -41,7 +41,7 @@ var _ = Describe("HashDeactivateOld", func() {
 			Expect(testFactory).ToNot(BeNil())
 			testUploadID = id.New()
 			testUserID = id.New()
-			testDataset = upload.Init()
+			testDataset = upload.New()
 			Expect(testDataset).ToNot(BeNil())
 			testDataset.UploadID = &testUploadID
 			testDataset.UserID = &testUserID

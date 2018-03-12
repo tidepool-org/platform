@@ -66,7 +66,7 @@ func CloneTemporary(datum *temporary.Temporary) *temporary.Temporary {
 }
 
 func NewTestTemporary(sourceTime interface{}, sourceDuration interface{}, sourceDurationExpected interface{}, sourceRate interface{}, sourcePercent interface{}, sourceSuppressed temporary.Suppressed) *temporary.Temporary {
-	datum := temporary.Init()
+	datum := temporary.New()
 	datum.DeviceID = pointer.String(id.New())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
@@ -116,21 +116,9 @@ var _ = Describe("Temporary", func() {
 		Expect(temporary.RateMinimum).To(Equal(0.0))
 	})
 
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(temporary.NewDatum()).To(Equal(&temporary.Temporary{}))
-		})
-	})
-
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(temporary.New()).To(Equal(&temporary.Temporary{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := temporary.Init()
+			datum := temporary.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("basal"))
 			Expect(datum.DeliveryType).To(Equal("temp"))
@@ -142,33 +130,12 @@ var _ = Describe("Temporary", func() {
 		})
 	})
 
-	Context("with new datum", func() {
-		var datum *temporary.Temporary
-
-		BeforeEach(func() {
-			datum = NewTemporary()
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("basal"))
-				Expect(datum.DeliveryType).To(Equal("temp"))
-				Expect(datum.Duration).To(BeNil())
-				Expect(datum.DurationExpected).To(BeNil())
-				Expect(datum.Percent).To(BeNil())
-				Expect(datum.Rate).To(BeNil())
-				Expect(datum.Suppressed).To(BeNil())
-			})
-		})
-	})
-
 	Context("Temporary", func() {
 		Context("Parse", func() {
 			var datum *temporary.Temporary
 
 			BeforeEach(func() {
-				datum = temporary.Init()
+				datum = temporary.New()
 				Expect(datum).ToNot(BeNil())
 			})
 

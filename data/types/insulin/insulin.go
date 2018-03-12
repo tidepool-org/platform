@@ -16,25 +16,10 @@ type Insulin struct {
 	Dose *Dose `json:"dose,omitempty" bson:"dose,omitempty"`
 }
 
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *Insulin {
-	return &Insulin{}
-}
-
-func Init() *Insulin {
-	insulin := New()
-	insulin.Init()
-	return insulin
-}
-
-func (i *Insulin) Init() {
-	i.Base.Init()
-	i.Type = Type
-
-	i.Dose = nil
+	return &Insulin{
+		Base: types.New(Type),
+	}
 }
 
 func (i *Insulin) Parse(parser data.ObjectParser) error {

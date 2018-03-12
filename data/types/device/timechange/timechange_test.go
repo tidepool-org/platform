@@ -48,7 +48,7 @@ func CloneTimeChange(datum *timechange.TimeChange) *timechange.TimeChange {
 }
 
 func NewTestTimeChange(sourceTime interface{}, sourceChange *timechange.Change) *timechange.TimeChange {
-	datum := timechange.Init()
+	datum := timechange.New()
 	datum.DeviceID = pointer.String(id.New())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
@@ -62,42 +62,13 @@ var _ = Describe("Change", func() {
 		Expect(timechange.SubType).To(Equal("timeChange"))
 	})
 
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(timechange.NewDatum()).To(Equal(&timechange.TimeChange{}))
-		})
-	})
-
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(timechange.New()).To(Equal(&timechange.TimeChange{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := timechange.Init()
+			datum := timechange.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("deviceEvent"))
 			Expect(datum.SubType).To(Equal("timeChange"))
 			Expect(datum.Change).To(BeNil())
-		})
-	})
-
-	Context("with new datum", func() {
-		var datum *timechange.TimeChange
-
-		BeforeEach(func() {
-			datum = NewTimeChange()
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("deviceEvent"))
-				Expect(datum.SubType).To(Equal("timeChange"))
-				Expect(datum.Change).To(BeNil())
-			})
 		})
 	})
 
@@ -106,7 +77,7 @@ var _ = Describe("Change", func() {
 			var datum *timechange.TimeChange
 
 			BeforeEach(func() {
-				datum = timechange.Init()
+				datum = timechange.New()
 				Expect(datum).ToNot(BeNil())
 			})
 

@@ -20,26 +20,10 @@ type Normal struct {
 	NormalExpected *float64 `json:"expectedNormal,omitempty" bson:"expectedNormal,omitempty"`
 }
 
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *Normal {
-	return &Normal{}
-}
-
-func Init() *Normal {
-	normal := New()
-	normal.Init()
-	return normal
-}
-
-func (n *Normal) Init() {
-	n.Bolus.Init()
-	n.SubType = SubType
-
-	n.Normal = nil
-	n.NormalExpected = nil
+	return &Normal{
+		Bolus: bolus.New(SubType),
+	}
 }
 
 func (n *Normal) Parse(parser data.ObjectParser) error {

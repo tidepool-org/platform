@@ -134,21 +134,9 @@ var _ = Describe("Calculator", func() {
 		Expect(calculator.InsulinOnBoardMinimum).To(Equal(0.0))
 	})
 
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(calculator.NewDatum()).To(Equal(&calculator.Calculator{}))
-		})
-	})
-
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(calculator.New()).To(Equal(&calculator.Calculator{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := calculator.Init()
+			datum := calculator.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("wizard"))
 			Expect(datum.BloodGlucoseInput).To(BeNil())
@@ -161,31 +149,6 @@ var _ = Describe("Calculator", func() {
 			Expect(datum.InsulinSensitivity).To(BeNil())
 			Expect(datum.Recommended).To(BeNil())
 			Expect(datum.Units).To(BeNil())
-		})
-	})
-
-	Context("with new datum", func() {
-		var datum *calculator.Calculator
-
-		BeforeEach(func() {
-			datum = NewCalculator(pointer.String("mmol/L"))
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("wizard"))
-				Expect(datum.BloodGlucoseInput).To(BeNil())
-				Expect(datum.BloodGlucoseTarget).To(BeNil())
-				Expect(datum.Bolus).To(BeNil())
-				Expect(datum.BolusID).To(BeNil())
-				Expect(datum.CarbohydrateInput).To(BeNil())
-				Expect(datum.InsulinCarbohydrateRatio).To(BeNil())
-				Expect(datum.InsulinOnBoard).To(BeNil())
-				Expect(datum.InsulinSensitivity).To(BeNil())
-				Expect(datum.Recommended).To(BeNil())
-				Expect(datum.Units).To(BeNil())
-			})
 		})
 	})
 

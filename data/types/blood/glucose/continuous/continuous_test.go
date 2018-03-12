@@ -44,42 +44,13 @@ var _ = Describe("Continuous", func() {
 		Expect(continuous.Type).To(Equal("cbg"))
 	})
 
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(continuous.NewDatum()).To(Equal(&continuous.Continuous{}))
-		})
-	})
-
 	Context("New", func() {
 		It("returns the expected datum", func() {
-			Expect(continuous.New()).To(Equal(&continuous.Continuous{}))
-		})
-	})
-
-	Context("Init", func() {
-		It("returns the expected datum", func() {
-			datum := continuous.Init()
+			datum := continuous.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("cbg"))
 			Expect(datum.Units).To(BeNil())
 			Expect(datum.Value).To(BeNil())
-		})
-	})
-
-	Context("with new datum", func() {
-		var datum *continuous.Continuous
-
-		BeforeEach(func() {
-			datum = NewContinuous(pointer.String("mmol/L"))
-		})
-
-		Context("Init", func() {
-			It("initializes the continuous", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("cbg"))
-				Expect(datum.Units).To(BeNil())
-				Expect(datum.Value).To(BeNil())
-			})
 		})
 	})
 

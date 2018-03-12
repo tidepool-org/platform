@@ -1,5 +1,6 @@
 ## HEAD
 
+* Cleanup data types New and Init functions
 * Remove deprecated data factory
 * Add new cgm settings data model type
 * New and updated test helpers

@@ -30,7 +30,7 @@ func NewMeta() interface{} {
 }
 
 func NewTestNormal(sourceTime interface{}, sourceNormal interface{}, sourceNormalExpected interface{}) *normal.Normal {
-	datum := normal.Init()
+	datum := normal.New()
 	datum.DeviceID = pointer.String(id.New())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
@@ -57,21 +57,9 @@ var _ = Describe("Normal", func() {
 		Expect(normal.NormalMinimum).To(Equal(0.0))
 	})
 
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(normal.NewDatum()).To(Equal(&normal.Normal{}))
-		})
-	})
-
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(normal.New()).To(Equal(&normal.Normal{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := normal.Init()
+			datum := normal.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("bolus"))
 			Expect(datum.SubType).To(Equal("normal"))
@@ -80,30 +68,12 @@ var _ = Describe("Normal", func() {
 		})
 	})
 
-	Context("with new datum", func() {
-		var datum *normal.Normal
-
-		BeforeEach(func() {
-			datum = testDataTypesBolusNormal.NewNormal()
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("bolus"))
-				Expect(datum.SubType).To(Equal("normal"))
-				Expect(datum.Normal).To(BeNil())
-				Expect(datum.NormalExpected).To(BeNil())
-			})
-		})
-	})
-
 	Context("Normal", func() {
 		Context("Parse", func() {
 			var datum *normal.Normal
 
 			BeforeEach(func() {
-				datum = normal.Init()
+				datum = normal.New()
 				Expect(datum).ToNot(BeNil())
 			})
 

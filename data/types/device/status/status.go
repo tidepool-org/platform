@@ -52,7 +52,7 @@ func NewStatusDatum(parser data.ObjectParser) data.Datum {
 		return nil
 	}
 
-	return Init()
+	return New()
 }
 
 func ParseStatusDatum(parser data.ObjectParser) *data.Datum {
@@ -65,27 +65,10 @@ func ParseStatusDatum(parser data.ObjectParser) *data.Datum {
 	return &datum
 }
 
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *Status {
-	return &Status{}
-}
-
-func Init() *Status {
-	status := New()
-	status.Init()
-	return status
-}
-
-func (s *Status) Init() {
-	s.Device.Init()
-	s.SubType = SubType
-
-	s.Duration = nil
-	s.Name = nil
-	s.Reason = nil
+	return &Status{
+		Device: device.New(SubType),
+	}
 }
 
 func (s *Status) Parse(parser data.ObjectParser) error {

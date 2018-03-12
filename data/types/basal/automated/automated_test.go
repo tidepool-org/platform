@@ -71,21 +71,9 @@ var _ = Describe("Automated", func() {
 		Expect(automated.RateMinimum).To(Equal(0.0))
 	})
 
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(automated.NewDatum()).To(Equal(&automated.Automated{}))
-		})
-	})
-
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(automated.New()).To(Equal(&automated.Automated{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := automated.Init()
+			datum := automated.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("basal"))
 			Expect(datum.DeliveryType).To(Equal("automated"))
@@ -93,26 +81,6 @@ var _ = Describe("Automated", func() {
 			Expect(datum.DurationExpected).To(BeNil())
 			Expect(datum.Rate).To(BeNil())
 			Expect(datum.ScheduleName).To(BeNil())
-		})
-	})
-
-	Context("with new datum", func() {
-		var datum *automated.Automated
-
-		BeforeEach(func() {
-			datum = NewAutomated()
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("basal"))
-				Expect(datum.DeliveryType).To(Equal("automated"))
-				Expect(datum.Duration).To(BeNil())
-				Expect(datum.DurationExpected).To(BeNil())
-				Expect(datum.Rate).To(BeNil())
-				Expect(datum.ScheduleName).To(BeNil())
-			})
 		})
 	})
 

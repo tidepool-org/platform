@@ -14,7 +14,6 @@ type IdentityFieldsOutput struct {
 
 type Datum struct {
 	*test.Mock
-	InitInvocations                      int
 	MetaInvocations                      int
 	MetaOutputs                          []interface{}
 	ParseInvocations                     int
@@ -57,10 +56,6 @@ func NewDatum() *Datum {
 	return &Datum{
 		Mock: test.NewMock(),
 	}
-}
-
-func (d *Datum) Init() {
-	d.InitInvocations++
 }
 
 func (d *Datum) Meta() interface{} {

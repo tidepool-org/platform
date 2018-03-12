@@ -21,8 +21,7 @@ import (
 )
 
 func NewTestDevice(sourceTime interface{}, sourceSubType interface{}) *device.Device {
-	datum := &device.Device{}
-	datum.Init()
+	datum := device.New("")
 	datum.DeviceID = pointer.String(id.New())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
@@ -30,7 +29,7 @@ func NewTestDevice(sourceTime interface{}, sourceSubType interface{}) *device.De
 	if val, ok := sourceSubType.(string); ok {
 		datum.SubType = val
 	}
-	return datum
+	return &datum
 }
 
 var _ = Describe("Device", func() {
@@ -38,35 +37,27 @@ var _ = Describe("Device", func() {
 		Expect(device.Type).To(Equal("deviceEvent"))
 	})
 
+	Context("New", func() {
+		It("creates a new datum with all values initialized", func() {
+			subType := testDataTypes.NewType()
+			datum := device.New(subType)
+			Expect(datum.Type).To(Equal("deviceEvent"))
+			Expect(datum.SubType).To(Equal(subType))
+		})
+	})
+
 	Context("with new datum", func() {
-		var datum *device.Device
+		var subType string
+		var datum device.Device
 
 		BeforeEach(func() {
-			datum = testDataTypesDevice.NewDevice()
+			subType = testDataTypes.NewType()
+			datum = device.New(subType)
 		})
 
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("deviceEvent"))
-				Expect(datum.SubType).To(BeEmpty())
-			})
-		})
-
-		Context("with initialized", func() {
-			BeforeEach(func() {
-				datum.Init()
-			})
-
-			Context("Meta", func() {
-				It("returns the meta with no sub type", func() {
-					Expect(datum.Meta()).To(Equal(&device.Meta{Type: "deviceEvent"}))
-				})
-
-				It("returns the meta with sub type", func() {
-					datum.SubType = testDataTypes.NewType()
-					Expect(datum.Meta()).To(Equal(&device.Meta{Type: "deviceEvent", SubType: datum.SubType}))
-				})
+		Context("Meta", func() {
+			It("returns the meta with delivery type", func() {
+				Expect(datum.Meta()).To(Equal(&device.Meta{Type: "deviceEvent", SubType: subType}))
 			})
 		})
 	})
@@ -76,8 +67,7 @@ var _ = Describe("Device", func() {
 			var datum *device.Device
 
 			BeforeEach(func() {
-				datum = &device.Device{}
-				datum.Init()
+				datum = NewTestDevice("deviceEvent", nil)
 			})
 
 			DescribeTable("parses the datum",

@@ -31,7 +31,7 @@ func NewMeta() interface{} {
 }
 
 func NewTestStatus(sourceTime interface{}, sourceDuration interface{}, sourceName interface{}, sourceReason *data.Blob) *status.Status {
-	datum := status.Init()
+	datum := status.New()
 	datum.DeviceID = pointer.String(id.New())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
@@ -75,21 +75,9 @@ var _ = Describe("Status", func() {
 		// TODO
 	})
 
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(status.NewDatum()).To(Equal(&status.Status{}))
-		})
-	})
-
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(status.New()).To(Equal(&status.Status{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := status.Init()
+			datum := status.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("deviceEvent"))
 			Expect(datum.SubType).To(Equal("status"))
@@ -99,31 +87,12 @@ var _ = Describe("Status", func() {
 		})
 	})
 
-	Context("with new datum", func() {
-		var datum *status.Status
-
-		BeforeEach(func() {
-			datum = testDataTypesDeviceStatus.NewStatus()
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("deviceEvent"))
-				Expect(datum.SubType).To(Equal("status"))
-				Expect(datum.Duration).To(BeNil())
-				Expect(datum.Name).To(BeNil())
-				Expect(datum.Reason).To(BeNil())
-			})
-		})
-	})
-
 	Context("Status", func() {
 		Context("Parse", func() {
 			var datum *status.Status
 
 			BeforeEach(func() {
-				datum = status.Init()
+				datum = status.New()
 				Expect(datum).ToNot(BeNil())
 			})
 

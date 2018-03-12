@@ -18,26 +18,10 @@ type Calibration struct {
 	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
 }
 
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *Calibration {
-	return &Calibration{}
-}
-
-func Init() *Calibration {
-	calibration := New()
-	calibration.Init()
-	return calibration
-}
-
-func (c *Calibration) Init() {
-	c.Device.Init()
-	c.SubType = SubType
-
-	c.Units = nil
-	c.Value = nil
+	return &Calibration{
+		Device: device.New(SubType),
+	}
 }
 
 func (c *Calibration) Parse(parser data.ObjectParser) error {

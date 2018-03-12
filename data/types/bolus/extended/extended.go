@@ -24,28 +24,10 @@ type Extended struct {
 	ExtendedExpected *float64 `json:"expectedExtended,omitempty" bson:"expectedExtended,omitempty"`
 }
 
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *Extended {
-	return &Extended{}
-}
-
-func Init() *Extended {
-	extended := New()
-	extended.Init()
-	return extended
-}
-
-func (e *Extended) Init() {
-	e.Bolus.Init()
-	e.SubType = SubType
-
-	e.Duration = nil
-	e.DurationExpected = nil
-	e.Extended = nil
-	e.ExtendedExpected = nil
+	return &Extended{
+		Bolus: bolus.New(SubType),
+	}
 }
 
 func (e *Extended) Parse(parser data.ObjectParser) error {

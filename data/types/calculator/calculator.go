@@ -39,34 +39,10 @@ type Calculator struct {
 	Units                    *string                  `json:"units,omitempty" bson:"units,omitempty"`
 }
 
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *Calculator {
-	return &Calculator{}
-}
-
-func Init() *Calculator {
-	calculator := New()
-	calculator.Init()
-	return calculator
-}
-
-func (c *Calculator) Init() {
-	c.Base.Init()
-	c.Type = Type
-
-	c.BloodGlucoseInput = nil
-	c.BloodGlucoseTarget = nil
-	c.Bolus = nil
-	c.BolusID = nil
-	c.CarbohydrateInput = nil
-	c.InsulinCarbohydrateRatio = nil
-	c.InsulinOnBoard = nil
-	c.InsulinSensitivity = nil
-	c.Recommended = nil
-	c.Units = nil
+	return &Calculator{
+		Base: types.New(Type),
+	}
 }
 
 func (c *Calculator) Parse(parser data.ObjectParser) error {

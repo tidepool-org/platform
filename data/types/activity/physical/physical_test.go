@@ -63,42 +63,13 @@ var _ = Describe("Physical", func() {
 		Expect(physical.ReportedIntensities()).To(Equal([]string{"high", "low", "medium"}))
 	})
 
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(physical.NewDatum()).To(Equal(&physical.Physical{}))
-		})
-	})
-
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(physical.New()).To(Equal(&physical.Physical{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := physical.Init()
+			datum := physical.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("physicalActivity"))
 			Expect(datum.Duration).To(BeNil())
 			Expect(datum.ReportedIntensity).To(BeNil())
-		})
-	})
-
-	Context("with new datum", func() {
-		var datum *physical.Physical
-
-		BeforeEach(func() {
-			datum = NewPhysical()
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("physicalActivity"))
-				Expect(datum.Duration).To(BeNil())
-				Expect(datum.ReportedIntensity).To(BeNil())
-			})
 		})
 	})
 

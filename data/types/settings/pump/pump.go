@@ -21,30 +21,10 @@ type Pump struct {
 	Units                *Units                   `json:"units,omitempty" bson:"units,omitempty"`
 }
 
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *Pump {
-	return &Pump{}
-}
-
-func Init() *Pump {
-	pump := New()
-	pump.Init()
-	return pump
-}
-
-func (p *Pump) Init() {
-	p.Base.Init()
-	p.Type = Type
-
-	p.ActiveScheduleName = nil
-	p.BasalSchedules = nil
-	p.BloodGlucoseTargets = nil
-	p.CarbohydrateRatios = nil
-	p.InsulinSensitivities = nil
-	p.Units = nil
+	return &Pump{
+		Base: types.New(Type),
+	}
 }
 
 func (p *Pump) Parse(parser data.ObjectParser) error {

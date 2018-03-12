@@ -135,21 +135,9 @@ var _ = Describe("Upload", func() {
 		Expect(upload.TimeProcessings()).To(Equal([]string{"across-the-board-timezone", "none", "utc-bootstrapping"}))
 	})
 
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(upload.NewDatum()).To(Equal(&upload.Upload{}))
-		})
-	})
-
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(upload.New()).To(Equal(&upload.Upload{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := upload.Init()
+			datum := upload.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("upload"))
 			Expect(datum.ByUser).To(BeNil())
@@ -165,34 +153,6 @@ var _ = Describe("Upload", func() {
 			Expect(datum.TimeProcessing).To(BeNil())
 			Expect(datum.Timezone).To(BeNil())
 			Expect(datum.Version).To(BeNil())
-		})
-	})
-
-	Context("with new datum", func() {
-		var datum *upload.Upload
-
-		BeforeEach(func() {
-			datum = NewUpload()
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("upload"))
-				Expect(datum.ByUser).To(BeNil())
-				Expect(datum.Client).To(BeNil())
-				Expect(datum.ComputerTime).To(BeNil())
-				Expect(datum.DataSetType).To(BeNil())
-				Expect(datum.DataState).To(BeNil())
-				Expect(datum.DeviceManufacturers).To(BeNil())
-				Expect(datum.DeviceModel).To(BeNil())
-				Expect(datum.DeviceSerialNumber).To(BeNil())
-				Expect(datum.DeviceTags).To(BeNil())
-				Expect(datum.State).To(BeNil())
-				Expect(datum.TimeProcessing).To(BeNil())
-				Expect(datum.Timezone).To(BeNil())
-				Expect(datum.Version).To(BeNil())
-			})
 		})
 	})
 
@@ -560,7 +520,7 @@ var _ = Describe("Upload", func() {
 				),
 				Entry("all missing",
 					func(datum *upload.Upload) {
-						*datum = *upload.Init()
+						*datum = *upload.New()
 						datum.Base = *testDataTypes.NewBase()
 					},
 					func(datum *upload.Upload, expectedDatum *upload.Upload) {
@@ -600,7 +560,7 @@ var _ = Describe("Upload", func() {
 				),
 				Entry("all missing",
 					func(datum *upload.Upload) {
-						*datum = *upload.Init()
+						*datum = *upload.New()
 						datum.Base = *testDataTypes.NewBase()
 					},
 					nil,

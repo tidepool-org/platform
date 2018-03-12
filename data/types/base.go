@@ -60,33 +60,10 @@ type Meta struct {
 	Type string `json:"type,omitempty"`
 }
 
-func (b *Base) Init() {
-	b.Active = false
-	b.Annotations = nil
-	b.ArchivedDataSetID = nil
-	b.ArchivedTime = nil
-	b.ClockDriftOffset = nil
-	b.ConversionOffset = nil
-	b.CreatedTime = nil
-	b.CreatedUserID = nil
-	b.Deduplicator = nil
-	b.DeletedTime = nil
-	b.DeletedUserID = nil
-	b.DeviceID = nil
-	b.DeviceTime = nil
-	b.GUID = nil
-	b.ID = nil
-	b.ModifiedTime = nil
-	b.ModifiedUserID = nil
-	b.Payload = nil
-	b.SchemaVersion = 0
-	b.Source = nil
-	b.Time = nil
-	b.TimezoneOffset = nil
-	b.Type = ""
-	b.UploadID = nil
-	b.UserID = nil
-	b.Version = 0
+func New(typ string) Base {
+	return Base{
+		Type: typ,
+	}
 }
 
 func (b *Base) Meta() interface{} {

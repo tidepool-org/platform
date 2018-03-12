@@ -16,25 +16,10 @@ type Food struct {
 	Nutrition *Nutrition `json:"nutrition,omitempty" bson:"nutrition,omitempty"`
 }
 
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *Food {
-	return &Food{}
-}
-
-func Init() *Food {
-	food := New()
-	food.Init()
-	return food
-}
-
-func (f *Food) Init() {
-	f.Base.Init()
-	f.Type = Type
-
-	f.Nutrition = nil
+	return &Food{
+		Base: types.New(Type),
+	}
 }
 
 func (f *Food) Parse(parser data.ObjectParser) error {

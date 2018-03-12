@@ -67,21 +67,9 @@ var _ = Describe("CGM", func() {
 		Expect(cgm.TransmitterIDExpressionString).To(Equal("^[0-9A-Z]{5,6}$"))
 	})
 
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(cgm.NewDatum()).To(Equal(&cgm.CGM{}))
-		})
-	})
-
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(cgm.New()).To(Equal(&cgm.CGM{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := cgm.Init()
+			datum := cgm.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("cgmSettings"))
 			Expect(datum.HighLevelAlert).To(BeNil())
@@ -90,28 +78,6 @@ var _ = Describe("CGM", func() {
 			Expect(datum.RateAlerts).To(BeNil())
 			Expect(datum.TransmitterID).To(BeNil())
 			Expect(datum.Units).To(BeNil())
-		})
-	})
-
-	Context("with new datum", func() {
-		var datum *cgm.CGM
-
-		BeforeEach(func() {
-			datum = cgm.New()
-			Expect(datum).ToNot(BeNil())
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("cgmSettings"))
-				Expect(datum.HighLevelAlert).To(BeNil())
-				Expect(datum.LowLevelAlert).To(BeNil())
-				Expect(datum.OutOfRangeAlert).To(BeNil())
-				Expect(datum.RateAlerts).To(BeNil())
-				Expect(datum.TransmitterID).To(BeNil())
-				Expect(datum.Units).To(BeNil())
-			})
 		})
 	})
 

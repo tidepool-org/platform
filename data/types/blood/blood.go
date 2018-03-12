@@ -15,11 +15,10 @@ type Blood struct {
 	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
 }
 
-func (b *Blood) Init() {
-	b.Base.Init()
-
-	b.Units = nil
-	b.Value = nil
+func New(typ string) Blood {
+	return Blood{
+		Base: types.New(typ),
+	}
 }
 
 func (b *Blood) Parse(parser data.ObjectParser) error {

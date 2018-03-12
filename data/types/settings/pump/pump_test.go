@@ -60,21 +60,9 @@ var _ = Describe("Pump", func() {
 		Expect(pump.Type).To(Equal("pumpSettings"))
 	})
 
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(pump.NewDatum()).To(Equal(&pump.Pump{}))
-		})
-	})
-
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(pump.New()).To(Equal(&pump.Pump{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := pump.Init()
+			datum := pump.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("pumpSettings"))
 			Expect(datum.ActiveScheduleName).To(BeNil())
@@ -83,28 +71,6 @@ var _ = Describe("Pump", func() {
 			Expect(datum.CarbohydrateRatios).To(BeNil())
 			Expect(datum.InsulinSensitivities).To(BeNil())
 			Expect(datum.Units).To(BeNil())
-		})
-	})
-
-	Context("with new datum", func() {
-		var datum *pump.Pump
-
-		BeforeEach(func() {
-			datum = pump.New()
-			Expect(datum).ToNot(BeNil())
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("pumpSettings"))
-				Expect(datum.ActiveScheduleName).To(BeNil())
-				Expect(datum.BasalSchedules).To(BeNil())
-				Expect(datum.BloodGlucoseTargets).To(BeNil())
-				Expect(datum.CarbohydrateRatios).To(BeNil())
-				Expect(datum.InsulinSensitivities).To(BeNil())
-				Expect(datum.Units).To(BeNil())
-			})
 		})
 	})
 

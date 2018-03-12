@@ -28,7 +28,7 @@ package v1_test
 // 		BeforeEach(func() {
 // 			authUserID = id.New()
 // 			targetUserID = id.New()
-// 			targetUpload = upload.Init()
+// 			targetUpload = upload.New()
 // 			targetUpload.UserID = targetUserID
 // 			targetUpload.ByUser = pointer.String(id.New())
 // 			context = NewTestContext()

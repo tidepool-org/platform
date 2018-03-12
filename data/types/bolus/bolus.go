@@ -22,11 +22,11 @@ type Meta struct {
 	SubType string `json:"subType,omitempty"`
 }
 
-func (b *Bolus) Init() {
-	b.Base.Init()
-	b.Type = Type
-
-	b.SubType = ""
+func New(subType string) Bolus {
+	return Bolus{
+		Base:    types.New(Type),
+		SubType: subType,
+	}
 }
 
 func (b *Bolus) Meta() interface{} {

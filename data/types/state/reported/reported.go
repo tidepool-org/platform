@@ -16,25 +16,10 @@ type Reported struct {
 	States *StateArray `json:"states,omitempty" bson:"states,omitempty"`
 }
 
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *Reported {
-	return &Reported{}
-}
-
-func Init() *Reported {
-	reported := New()
-	reported.Init()
-	return reported
-}
-
-func (r *Reported) Init() {
-	r.Base.Init()
-	r.Type = Type
-
-	r.States = nil
+	return &Reported{
+		Base: types.New(Type),
+	}
 }
 
 func (r *Reported) Parse(parser data.ObjectParser) error {

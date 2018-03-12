@@ -45,27 +45,10 @@ type Alarm struct {
 	StatusID  *string     `json:"status,omitempty" bson:"status,omitempty"`
 }
 
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *Alarm {
-	return &Alarm{}
-}
-
-func Init() *Alarm {
-	alarm := New()
-	alarm.Init()
-	return alarm
-}
-
-func (a *Alarm) Init() {
-	a.Device.Init()
-	a.SubType = SubType
-
-	a.AlarmType = nil
-	a.Status = nil
-	a.StatusID = nil
+	return &Alarm{
+		Device: device.New(SubType),
+	}
 }
 
 func (a *Alarm) Parse(parser data.ObjectParser) error {

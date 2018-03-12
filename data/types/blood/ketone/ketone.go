@@ -15,23 +15,10 @@ type Ketone struct {
 	blood.Blood `bson:",inline"`
 }
 
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *Ketone {
-	return &Ketone{}
-}
-
-func Init() *Ketone {
-	ketone := New()
-	ketone.Init()
-	return ketone
-}
-
-func (k *Ketone) Init() {
-	k.Blood.Init()
-	k.Type = Type
+	return &Ketone{
+		Blood: blood.New(Type),
+	}
 }
 
 func (k *Ketone) Validate(validator structure.Validator) {
