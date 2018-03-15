@@ -45,7 +45,7 @@ func (t *Time) Zero() structure.Time {
 func (t *Time) NotZero() structure.Time {
 	if t.value != nil {
 		if (*t.value).IsZero() {
-			t.base.ReportError(ErrorValueTimeZero(*t.value))
+			t.base.ReportError(ErrorValueTimeZero())
 		}
 	}
 	return t

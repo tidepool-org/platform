@@ -16,7 +16,7 @@ var _ = Describe("Time", func() {
 	var base *structureBase.Base
 
 	BeforeEach(func() {
-		base = structureBase.New()
+		base = structureBase.New().WithSource(structure.NewPointerSource())
 	})
 
 	Context("NewTime", func() {
@@ -522,7 +522,7 @@ var _ = Describe("Time", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueTimeZero(value))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueTimeZero())
 			})
 
 			It("returns self", func() {

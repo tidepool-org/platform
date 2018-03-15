@@ -15,6 +15,7 @@ const (
 	ErrorCodeValueExists      = "value-exists"
 	ErrorCodeValueNotEmpty    = "value-not-empty"
 	ErrorCodeValueEmpty       = "value-empty"
+	ErrorCodeValueDuplicate   = "value-duplicate"
 	ErrorCodeValueNotTrue     = "value-not-true"
 	ErrorCodeValueNotFalse    = "value-not-false"
 	ErrorCodeValueOutOfRange  = "value-out-of-range"
@@ -44,6 +45,10 @@ func ErrorValueNotEmpty() error {
 
 func ErrorValueEmpty() error {
 	return errors.Prepared(ErrorCodeValueEmpty, "value is empty", "value is empty")
+}
+
+func ErrorValueDuplicate() error {
+	return errors.Preparedf(ErrorCodeValueDuplicate, "value is a duplicate", "value is a duplicate")
 }
 
 func ErrorValueNotTrue() error {
@@ -148,8 +153,8 @@ func ErrorValueStringAsTimeNotValid(value string, layout string) error {
 	return errors.Preparedf(ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as time with layout %q", value, layout)
 }
 
-func ErrorValueTimeZero(value time.Time) error {
-	return errors.Preparedf(ErrorCodeValueZero, "value is zero", "value %q is zero", value.Format(time.RFC3339))
+func ErrorValueTimeZero() error {
+	return errors.Preparedf(ErrorCodeValueZero, "value is zero", "value is zero")
 }
 
 func ErrorValueTimeNotZero(value time.Time) error {
