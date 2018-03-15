@@ -2,6 +2,7 @@ package parser
 
 import (
 	"math"
+	"time"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/errors"
@@ -183,6 +184,34 @@ func (s *StandardArray) ParseStringArray(index int) *[]string {
 	}
 
 	return &stringArrayValue
+}
+
+func (s *StandardArray) ParseTime(index int, layout string) *time.Time {
+	if s.array == nil {
+		return nil
+	}
+
+	if index < 0 || index >= len(*s.array) {
+		return nil
+	}
+
+	s.parsed[index] = true
+
+	rawValue := (*s.array)[index]
+
+	stringValue, ok := rawValue.(string)
+	if !ok {
+		s.AppendError(index, service.ErrorTypeNotTime(rawValue))
+		return nil
+	}
+
+	timeValue, err := time.Parse(layout, stringValue)
+	if err != nil {
+		s.AppendError(index, service.ErrorTimeNotParsable(stringValue, layout))
+		return nil
+	}
+
+	return &timeValue
 }
 
 func (s *StandardArray) ParseObject(index int) *map[string]interface{} {

@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"errors"
+	"time"
 
 	"github.com/tidepool-org/platform/service"
 )
@@ -41,6 +42,10 @@ var _ = Describe("Errors", func() {
 		Entry("is ErrorTypeNotString with int parameter", service.ErrorTypeNotString(-1), "type-not-string", "type is not string", "Type is not string, but int", 0),
 		Entry("is ErrorTypeNotString with string parameter", service.ErrorTypeNotString("test"), "type-not-string", "type is not string", "Type is not string, but string", 0),
 		Entry("is ErrorTypeNotString with string array parameter", service.ErrorTypeNotString([]string{}), "type-not-string", "type is not string", "Type is not string, but []string", 0),
+		Entry("is ErrorTypeNotTime with nil parameter", service.ErrorTypeNotTime(nil), "type-not-time", "type is not time", "Type is not time, but <nil>", 0),
+		Entry("is ErrorTypeNotTime with int parameter", service.ErrorTypeNotTime(-1), "type-not-time", "type is not time", "Type is not time, but int", 0),
+		Entry("is ErrorTypeNotTime with string parameter", service.ErrorTypeNotTime("test"), "type-not-time", "type is not time", "Type is not time, but string", 0),
+		Entry("is ErrorTypeNotTime with string array parameter", service.ErrorTypeNotTime([]string{}), "type-not-time", "type is not time", "Type is not time, but []string", 0),
 		Entry("is ErrorTypeNotObject with nil parameter", service.ErrorTypeNotObject(nil), "type-not-object", "type is not object", "Type is not object, but <nil>", 0),
 		Entry("is ErrorTypeNotObject with int parameter", service.ErrorTypeNotObject(-1), "type-not-object", "type is not object", "Type is not object, but int", 0),
 		Entry("is ErrorTypeNotObject with string parameter", service.ErrorTypeNotObject("test"), "type-not-object", "type is not object", "Type is not object, but string", 0),
@@ -49,6 +54,7 @@ var _ = Describe("Errors", func() {
 		Entry("is ErrorTypeNotArray with int parameter", service.ErrorTypeNotArray(-1), "type-not-array", "type is not array", "Type is not array, but int", 0),
 		Entry("is ErrorTypeNotArray with string parameter", service.ErrorTypeNotArray("test"), "type-not-array", "type is not array", "Type is not array, but string", 0),
 		Entry("is ErrorTypeNotArray with string array parameter", service.ErrorTypeNotArray([]string{}), "type-not-array", "type is not array", "Type is not array, but []string", 0),
+		Entry("is ErrorTimeNotParsable", service.ErrorTimeNotParsable("abc", time.RFC3339), "value-not-parsable", "value is not a parsable time", `value "abc" is not a parsable time of format "2006-01-02T15:04:05Z07:00"`, 0),
 		Entry("is ErrorValueNotExists", service.ErrorValueNotExists(), "value-not-exists", "value does not exist", "Value does not exist", 0),
 		Entry("is ErrorValueNotGreaterThanOrEqualTo with int", service.ErrorValueNotGreaterThanOrEqualTo(1, 2), "value-out-of-range", "value is out of range", "Value 1 is not greater than or equal to 2", 0),
 		Entry("is ErrorValueNotGreaterThanOrEqualTo with float", service.ErrorValueNotGreaterThanOrEqualTo(3.4, 5.6), "value-out-of-range", "value is out of range", "Value 3.4 is not greater than or equal to 5.6", 0),

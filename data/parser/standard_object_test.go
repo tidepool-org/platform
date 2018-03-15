@@ -1,6 +1,8 @@
 package parser_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -327,6 +329,40 @@ var _ = Describe("StandardObject", func() {
 				Expect(*value).To(Equal([]string{"five", ""}))
 				Expect(standardContext.Errors()).To(HaveLen(1))
 				Expect(standardContext.Errors()[0].Code).To(Equal("type-not-string"))
+			})
+		})
+
+		Context("ParseTime", func() {
+			BeforeEach(func() {
+				standardObject, _ = parser.NewStandardObject(standardContext, &map[string]interface{}{
+					"zero": false,
+					"one":  "this is a string",
+					"two":  "2017-12-15T12:34:56Z",
+				}, parser.IgnoreNotParsed)
+			})
+
+			It("with key not found in the object returns nil", func() {
+				Expect(standardObject.ParseTime("unknown", time.RFC3339)).To(BeNil())
+				Expect(standardContext.Errors()).To(BeEmpty())
+			})
+
+			It("with key with value with different type returns nil and appends an ErrorTypeNotTime", func() {
+				Expect(standardObject.ParseTime("zero", time.RFC3339)).To(BeNil())
+				Expect(standardContext.Errors()).To(HaveLen(1))
+				Expect(standardContext.Errors()[0].Code).To(Equal("type-not-time"))
+			})
+
+			It("with index parameter with not parseable table returns nil and appends an ErrorTimeNotParsable", func() {
+				Expect(standardObject.ParseTime("one", time.RFC3339)).To(BeNil())
+				Expect(standardContext.Errors()).To(HaveLen(1))
+				Expect(standardContext.Errors()[0].Code).To(Equal("value-not-parsable"))
+			})
+
+			It("with index parameter with time type returns value", func() {
+				value := standardObject.ParseTime("two", time.RFC3339)
+				Expect(value).ToNot(BeNil())
+				Expect(value.Format(time.RFC3339)).To(Equal("2017-12-15T12:34:56Z"))
+				Expect(standardContext.Errors()).To(BeEmpty())
 			})
 		})
 
