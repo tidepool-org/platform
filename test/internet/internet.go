@@ -34,7 +34,7 @@ func NewReverseDomain() string {
 func NewSubDomains() string {
 	subDomains := make([]string, rand.Intn(SubDomainsMaximum)+1)
 	for index := range subDomains {
-		subDomains[index] = test.NewVariableString(1, 8, test.CharsetAlpha)
+		subDomains[index] = test.NewVariableString(1, 8, test.CharsetLowercase)
 	}
 	return strings.Join(subDomains, ".")
 }

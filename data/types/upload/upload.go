@@ -159,10 +159,10 @@ func (u *Upload) Validate(validator structure.Validator) {
 		validator.String("dataState", u.DataState).OneOf(States()...)
 	}
 
-	validator.StringArray("deviceManufacturers", u.DeviceManufacturers).Exists().NotEmpty().EachNotEmpty()
+	validator.StringArray("deviceManufacturers", u.DeviceManufacturers).Exists().NotEmpty().EachNotEmpty().EachUnique()
 	validator.String("deviceModel", u.DeviceModel).Exists().NotEmpty()               // TODO: Some clients USED to send ""; requires DB migration
 	validator.String("deviceSerialNumber", u.DeviceSerialNumber).Exists().NotEmpty() // TODO: Some clients STILL send "" via Jellyfish; requires fix & DB migration
-	validator.StringArray("deviceTags", u.DeviceTags).Exists().NotEmpty().EachOneOf(DeviceTags()...)
+	validator.StringArray("deviceTags", u.DeviceTags).Exists().NotEmpty().EachOneOf(DeviceTags()...).EachUnique()
 
 	if validator.Origin() <= structure.OriginInternal {
 		validator.String("state", u.State).OneOf(States()...)
@@ -194,8 +194,12 @@ func (u *Upload) Normalize(normalizer data.Normalizer) {
 		if u.DataSetType == nil {
 			u.DataSetType = pointer.String(DataSetTypeNormal)
 		}
-		SortAndDeduplicateStringArray(u.DeviceManufacturers)
-		SortAndDeduplicateStringArray(u.DeviceTags)
+		if u.DeviceManufacturers != nil {
+			sort.Strings(*u.DeviceManufacturers)
+		}
+		if u.DeviceTags != nil {
+			sort.Strings(*u.DeviceTags)
+		}
 	}
 }
 
@@ -213,21 +217,4 @@ func (u *Upload) HasDeviceManufacturerOneOf(deviceManufacturers []string) bool {
 	}
 
 	return false
-}
-
-func SortAndDeduplicateStringArray(strs *[]string) {
-	if strs != nil {
-		if length := len(*strs); length > 1 {
-			sort.Strings(*strs)
-
-			var lastIndex int
-			for index := 1; index < length; index++ {
-				if (*strs)[lastIndex] != (*strs)[index] {
-					lastIndex++
-					(*strs)[lastIndex] = (*strs)[index]
-				}
-			}
-			*strs = (*strs)[:lastIndex+1]
-		}
-	}
 }

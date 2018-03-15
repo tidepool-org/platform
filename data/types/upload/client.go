@@ -3,6 +3,7 @@ package upload
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/structure"
+	"github.com/tidepool-org/platform/validate"
 )
 
 type Client struct {
@@ -32,8 +33,8 @@ func (c *Client) Parse(parser data.ObjectParser) {
 }
 
 func (c *Client) Validate(validator structure.Validator) {
-	validator.String("name", c.Name).Exists().Using(data.ValidateReverseDomain)
-	validator.String("version", c.Version).Exists().Using(data.ValidateSemanticVersion)
+	validator.String("name", c.Name).Exists().Using(validate.ReverseDomain)
+	validator.String("version", c.Version).Exists().Using(validate.SemanticVersion)
 	if c.Private != nil {
 		c.Private.Validate(validator.WithReference("private"))
 	}
