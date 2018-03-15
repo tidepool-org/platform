@@ -115,51 +115,47 @@ func (s *StringArray) LengthInRange(lowerLimit int, upperLimit int) structure.St
 	return s
 }
 
-func (s *StringArray) EachNotEmpty() structure.StringArray {
+func (s *StringArray) Each(stringFunc structure.StringFunc) structure.StringArray {
 	if s.value != nil {
-		validator := NewValidator(s.base)
-		for index, value := range *s.value {
-			validator.String(strconv.Itoa(index), &value).NotEmpty()
+		if stringFunc != nil {
+			validator := NewValidator(s.base)
+			for index, value := range *s.value {
+				stringFunc(validator.String(strconv.Itoa(index), &value))
+			}
 		}
 	}
 	return s
+}
+
+func (s *StringArray) EachNotEmpty() structure.StringArray {
+	return s.Each(func(stringValidator structure.String) { stringValidator.NotEmpty() })
 }
 
 func (s *StringArray) EachOneOf(allowedValues ...string) structure.StringArray {
-	if s.value != nil {
-		validator := NewValidator(s.base)
-		for index, value := range *s.value {
-			validator.String(strconv.Itoa(index), &value).OneOf(allowedValues...)
-		}
-	}
-	return s
+	return s.Each(func(stringValidator structure.String) { stringValidator.OneOf(allowedValues...) })
 }
 
 func (s *StringArray) EachNotOneOf(disallowedValues ...string) structure.StringArray {
-	if s.value != nil {
-		validator := NewValidator(s.base)
-		for index, value := range *s.value {
-			validator.String(strconv.Itoa(index), &value).NotOneOf(disallowedValues...)
-		}
-	}
-	return s
+	return s.Each(func(stringValidator structure.String) { stringValidator.NotOneOf(disallowedValues...) })
 }
 
 func (s *StringArray) EachMatches(expression *regexp.Regexp) structure.StringArray {
-	if s.value != nil {
-		validator := NewValidator(s.base)
-		for index, value := range *s.value {
-			validator.String(strconv.Itoa(index), &value).Matches(expression)
-		}
-	}
-	return s
+	return s.Each(func(stringValidator structure.String) { stringValidator.Matches(expression) })
 }
 
 func (s *StringArray) EachNotMatches(expression *regexp.Regexp) structure.StringArray {
+	return s.Each(func(stringValidator structure.String) { stringValidator.NotMatches(expression) })
+}
+
+func (s *StringArray) EachUnique() structure.StringArray {
 	if s.value != nil {
-		validator := NewValidator(s.base)
+		values := map[string]bool{}
 		for index, value := range *s.value {
-			validator.String(strconv.Itoa(index), &value).NotMatches(expression)
+			if _, found := values[value]; found {
+				s.base.WithReference(strconv.Itoa(index)).ReportError(ErrorValueDuplicate())
+			} else {
+				values[value] = true
+			}
 		}
 	}
 	return s

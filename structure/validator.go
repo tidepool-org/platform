@@ -111,6 +111,8 @@ type String interface {
 	AsTime(layout string) Time
 }
 
+type StringFunc func(stringValidator String)
+
 type StringArray interface {
 	Exists() StringArray
 	NotExists() StringArray
@@ -126,6 +128,8 @@ type StringArray interface {
 	LengthGreaterThanOrEqualTo(limit int) StringArray
 	LengthInRange(lowerLimit int, upperLimit int) StringArray
 
+	Each(stringFunc StringFunc) StringArray
+
 	EachNotEmpty() StringArray
 
 	EachOneOf(allowedValues ...string) StringArray
@@ -133,6 +137,8 @@ type StringArray interface {
 
 	EachMatches(expression *regexp.Regexp) StringArray
 	EachNotMatches(expression *regexp.Regexp) StringArray
+
+	EachUnique() StringArray
 
 	Using(using func(value []string, errorReporter ErrorReporter)) StringArray
 }

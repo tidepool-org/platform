@@ -1,5 +1,9 @@
 ## HEAD
 
+* Add EachUnique and generic function validators to string array structure validator
+* Ensure structure source references are used correctly in tests
+* Return unparsed structure object references deterministically
+* Remove unnecessary time field from ErrorValueTimeZero
 * Add time parsing to data parser
 * Refactor data set filter to use new query parser
 * Cleanup data types New and Init functions
