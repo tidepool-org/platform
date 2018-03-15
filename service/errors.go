@@ -75,6 +75,14 @@ func ErrorTypeNotString(value interface{}) *Error {
 	}
 }
 
+func ErrorTypeNotTime(value interface{}) *Error {
+	return &Error{
+		Code:   "type-not-time",
+		Title:  "type is not time",
+		Detail: fmt.Sprintf("Type is not time, but %T", value),
+	}
+}
+
 func ErrorTypeNotObject(value interface{}) *Error {
 	return &Error{
 		Code:   "type-not-object",
@@ -88,6 +96,14 @@ func ErrorTypeNotArray(value interface{}) *Error {
 		Code:   "type-not-array",
 		Title:  "type is not array",
 		Detail: fmt.Sprintf("Type is not array, but %T", value),
+	}
+}
+
+func ErrorTimeNotParsable(value string, layout string) *Error {
+	return &Error{
+		Code:   "value-not-parsable",
+		Title:  "value is not a parsable time",
+		Detail: fmt.Sprintf("value %q is not a parsable time of format %q", value, layout),
 	}
 }
 

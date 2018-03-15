@@ -1,6 +1,8 @@
 package parser_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -33,6 +35,7 @@ func (t *TestObjectParser) SetMeta(meta interface{})                            
 func (t *TestObjectParser) ParseBoolean(key string) *bool                         { return nil }
 func (t *TestObjectParser) ParseInteger(key string) *int                          { return nil }
 func (t *TestObjectParser) ParseFloat(key string) *float64                        { return nil }
+func (t *TestObjectParser) ParseTime(key string, layout string) *time.Time        { return nil }
 func (t *TestObjectParser) ParseStringArray(key string) *[]string                 { return nil }
 func (t *TestObjectParser) ParseObject(key string) *map[string]interface{}        { return nil }
 func (t *TestObjectParser) ParseObjectArray(key string) *[]map[string]interface{} { return nil }
@@ -69,6 +72,7 @@ func (t *TestArrayParser) AppendError(reference interface{}, err *service.Error)
 func (t *TestArrayParser) ParseBoolean(index int) *bool                          { return nil }
 func (t *TestArrayParser) ParseInteger(index int) *int                           { return nil }
 func (t *TestArrayParser) ParseFloat(index int) *float64                         { return nil }
+func (t *TestArrayParser) ParseTime(index int, layout string) *time.Time         { return nil }
 func (t *TestArrayParser) ParseString(index int) *string                         { return nil }
 func (t *TestArrayParser) ParseStringArray(index int) *[]string                  { return nil }
 func (t *TestArrayParser) ParseObject(index int) *map[string]interface{}         { return nil }

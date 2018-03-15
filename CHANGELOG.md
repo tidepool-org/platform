@@ -1,5 +1,6 @@
 ## HEAD
 
+* Add time parsing to data parser
 * Refactor data set filter to use new query parser
 * Cleanup data types New and Init functions
 * Remove deprecated data factory
