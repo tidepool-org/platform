@@ -5,7 +5,6 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/data"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	testData "github.com/tidepool-org/platform/data/test"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
@@ -16,6 +15,7 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 	testInternet "github.com/tidepool-org/platform/test/internet"
+	"github.com/tidepool-org/platform/validate"
 )
 
 func NewClient() *upload.Client {
@@ -73,7 +73,7 @@ var _ = Describe("Client", func() {
 				),
 				Entry("name invalid",
 					func(datum *upload.Client) { datum.Name = pointer.String("org") },
-					testErrors.WithPointerSource(data.ErrorValueStringAsReverseDomainNotValid("org"), "/name"),
+					testErrors.WithPointerSource(validate.ErrorValueStringAsReverseDomainNotValid("org"), "/name"),
 				),
 				Entry("name valid",
 					func(datum *upload.Client) { datum.Name = pointer.String(testInternet.NewReverseDomain()) },
@@ -88,7 +88,7 @@ var _ = Describe("Client", func() {
 				),
 				Entry("version invalid",
 					func(datum *upload.Client) { datum.Version = pointer.String("1.2") },
-					testErrors.WithPointerSource(data.ErrorValueStringAsSemanticVersionNotValid("1.2"), "/version"),
+					testErrors.WithPointerSource(validate.ErrorValueStringAsSemanticVersionNotValid("1.2"), "/version"),
 				),
 				Entry("version valid",
 					func(datum *upload.Client) { datum.Version = pointer.String(testInternet.NewSemanticVersion()) },

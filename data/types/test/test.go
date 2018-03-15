@@ -12,7 +12,7 @@ import (
 )
 
 func NewClockDriftOffset() int {
-	return -14400000 + rand.Intn(14400000+3600000)
+	return -86400000 + rand.Intn(86400000+86400000)
 }
 
 func NewConversionOffset() int {

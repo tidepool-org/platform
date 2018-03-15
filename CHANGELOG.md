@@ -1,5 +1,8 @@
 ## HEAD
 
+* Report error on duplicate upload device manufacturers or tags
+* Additional validations of reverse domain, semantic version, and URL
+* Minor test updates
 * Add EachUnique and generic function validators to string array structure validator
 * Ensure structure source references are used correctly in tests
 * Return unparsed structure object references deterministically

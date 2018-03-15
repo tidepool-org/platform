@@ -18,6 +18,7 @@ import (
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
+	"github.com/tidepool-org/platform/validate"
 )
 
 var futureTime = time.Unix(4102444800, 0)
@@ -335,7 +336,7 @@ var _ = Describe("Base", func() {
 				Entry("deduplicator invalid",
 					func(datum *types.Base) { datum.Deduplicator.Name = "invalid" },
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
-					testErrors.WithPointerSource(data.ErrorValueStringAsReverseDomainNotValid("invalid"), "/_deduplicator/name"),
+					testErrors.WithPointerSource(validate.ErrorValueStringAsReverseDomainNotValid("invalid"), "/_deduplicator/name"),
 				),
 				Entry("deduplicator valid",
 					func(datum *types.Base) { datum.Deduplicator = testData.NewDeduplicatorDescriptor() },
@@ -640,7 +641,7 @@ var _ = Describe("Base", func() {
 					testErrors.WithPointerSource(data.ErrorValueStringAsUserIDNotValid("invalid"), "/createdUserId"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339), "/deletedTime"),
 					testErrors.WithPointerSource(data.ErrorValueStringAsUserIDNotValid("invalid"), "/deletedUserId"),
-					testErrors.WithPointerSource(data.ErrorValueStringAsReverseDomainNotValid("invalid"), "/_deduplicator/name"),
+					testErrors.WithPointerSource(validate.ErrorValueStringAsReverseDomainNotValid("invalid"), "/_deduplicator/name"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/id"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339), "/modifiedTime"),
 					testErrors.WithPointerSource(data.ErrorValueStringAsUserIDNotValid("invalid"), "/modifiedUserId"),

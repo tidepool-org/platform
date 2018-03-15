@@ -5,6 +5,8 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
+	"sort"
+
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
@@ -36,7 +38,7 @@ func NewUpload() *upload.Upload {
 	datum.DeviceManufacturers = pointer.StringArray([]string{test.NewText(1, 16), test.NewText(1, 16)})
 	datum.DeviceModel = pointer.String(test.NewText(1, 32))
 	datum.DeviceSerialNumber = pointer.String(test.NewText(1, 16))
-	datum.DeviceTags = pointer.StringArray(test.RandomStringArrayFromArray(1, len(upload.DeviceTags()), true, upload.DeviceTags()))
+	datum.DeviceTags = pointer.StringArray(test.RandomStringArrayFromArray(1, len(upload.DeviceTags()), false, upload.DeviceTags()))
 	datum.State = pointer.String(test.RandomStringFromArray(upload.States()))
 	datum.TimeProcessing = pointer.String(upload.TimeProcessingUTCBootstrapping)
 	datum.Timezone = pointer.String(test.NewTimeZone())
@@ -293,6 +295,14 @@ var _ = Describe("Upload", func() {
 					},
 					structure.Origins(),
 				),
+				Entry("device manufacturers multiple duplicates",
+					func(datum *upload.Upload) {
+						duplicate := test.NewText(1, 16)
+						datum.DeviceManufacturers = pointer.StringArray([]string{test.NewText(1, 16), duplicate, duplicate, test.NewText(1, 16)})
+					},
+					structure.Origins(),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueDuplicate(), "/deviceManufacturers/2", NewMeta()),
+				),
 				Entry("device model missing",
 					func(datum *upload.Upload) { datum.DeviceModel = nil },
 					structure.Origins(),
@@ -358,6 +368,14 @@ var _ = Describe("Upload", func() {
 				Entry("device tags elements multiple valid",
 					func(datum *upload.Upload) { datum.DeviceTags = pointer.StringArray([]string{"cgm", "insulin-pump"}) },
 					structure.Origins(),
+				),
+				Entry("device tags elements multiple valid duplicates",
+					func(datum *upload.Upload) {
+						datum.DeviceTags = pointer.StringArray([]string{"cgm", "insulin-pump", "cgm", "insulin-pump"})
+					},
+					structure.Origins(),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueDuplicate(), "/deviceTags/2", NewMeta()),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueDuplicate(), "/deviceTags/3", NewMeta()),
 				),
 				Entry("state missing",
 					func(datum *upload.Upload) { datum.State = nil },
@@ -494,8 +512,8 @@ var _ = Describe("Upload", func() {
 					func(datum *upload.Upload) {},
 					func(datum *upload.Upload, expectedDatum *upload.Upload) {
 						Expect(datum.DataSetType).ToNot(BeNil())
-						upload.SortAndDeduplicateStringArray(expectedDatum.DeviceManufacturers)
-						upload.SortAndDeduplicateStringArray(expectedDatum.DeviceTags)
+						sort.Strings(*expectedDatum.DeviceManufacturers)
+						sort.Strings(*expectedDatum.DeviceTags)
 					},
 				),
 				Entry("upload id missing",
@@ -504,8 +522,8 @@ var _ = Describe("Upload", func() {
 						Expect(datum.UploadID).ToNot(BeNil())
 						Expect(*datum.UploadID).ToNot(BeEmpty())
 						expectedDatum.UploadID = datum.UploadID
-						upload.SortAndDeduplicateStringArray(expectedDatum.DeviceManufacturers)
-						upload.SortAndDeduplicateStringArray(expectedDatum.DeviceTags)
+						sort.Strings(*expectedDatum.DeviceManufacturers)
+						sort.Strings(*expectedDatum.DeviceTags)
 					},
 				),
 				Entry("data set type missing",
@@ -514,8 +532,8 @@ var _ = Describe("Upload", func() {
 						Expect(datum.DataSetType).ToNot(BeNil())
 						Expect(*datum.DataSetType).To(Equal(upload.DataSetTypeNormal))
 						expectedDatum.DataSetType = datum.DataSetType
-						upload.SortAndDeduplicateStringArray(expectedDatum.DeviceManufacturers)
-						upload.SortAndDeduplicateStringArray(expectedDatum.DeviceTags)
+						sort.Strings(*expectedDatum.DeviceManufacturers)
+						sort.Strings(*expectedDatum.DeviceTags)
 					},
 				),
 				Entry("all missing",
@@ -527,8 +545,6 @@ var _ = Describe("Upload", func() {
 						Expect(datum.DataSetType).ToNot(BeNil())
 						Expect(*datum.DataSetType).To(Equal(upload.DataSetTypeNormal))
 						expectedDatum.DataSetType = datum.DataSetType
-						upload.SortAndDeduplicateStringArray(expectedDatum.DeviceManufacturers)
-						upload.SortAndDeduplicateStringArray(expectedDatum.DeviceTags)
 					},
 				),
 			)
@@ -608,24 +624,5 @@ var _ = Describe("Upload", func() {
 				Entry("is multiple datum array with multiple invalid and valid search array", []string{"two", "four"}, []string{"one", "two", "three", "four"}, true),
 			)
 		})
-	})
-
-	Context("SortAndDeduplicateStringArray", func() {
-		It("does nothing if string array is nil", func() {
-			upload.SortAndDeduplicateStringArray(nil)
-		})
-
-		DescribeTable("returns expected result",
-			func(stringArray []string, expectedStringArray []string) {
-				upload.SortAndDeduplicateStringArray(&stringArray)
-				Expect(stringArray).To(Equal(expectedStringArray))
-			},
-			Entry("empty", []string{}, []string{}),
-			Entry("single element", []string{"alpha"}, []string{"alpha"}),
-			Entry("multiple elements; in order", []string{"alpha", "beta", "charlie"}, []string{"alpha", "beta", "charlie"}),
-			Entry("multiple elements; out of order", []string{"charlie", "alpha", "beta"}, []string{"alpha", "beta", "charlie"}),
-			Entry("multiple elements; duplicates; in order", []string{"alpha", "alpha", "beta", "beta", "charlie", "charlie"}, []string{"alpha", "beta", "charlie"}),
-			Entry("multiple elements; duplicates; out of order", []string{"charlie", "charlie", "beta", "beta", "alpha", "charlie", "beta", "alpha", "beta", "alpha", "beta", "beta"}, []string{"alpha", "beta", "charlie"}),
-		)
 	})
 })
