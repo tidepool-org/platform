@@ -5,6 +5,9 @@ import (
 
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
+	testDataTypesCommonAssociation "github.com/tidepool-org/platform/data/types/common/association/test"
+	testDataTypesCommonLocation "github.com/tidepool-org/platform/data/types/common/location/test"
+	testDataTypesCommonOrigin "github.com/tidepool-org/platform/data/types/common/origin/test"
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
@@ -19,6 +22,7 @@ func NewBase() *types.Base {
 	datum := &types.Base{}
 	datum.Active = false
 	datum.Annotations = testData.NewBlobArray()
+	datum.Associations = testDataTypesCommonAssociation.NewAssociationArray()
 	datum.ArchivedDataSetID = pointer.String(id.New())
 	datum.ArchivedTime = pointer.String(archivedTime.Format(time.RFC3339))
 	datum.ClockDriftOffset = pointer.Int(NewClockDriftOffset())
@@ -32,11 +36,15 @@ func NewBase() *types.Base {
 	datum.DeviceTime = pointer.String(test.NewTime().Format("2006-01-02T15:04:05"))
 	datum.GUID = pointer.String(id.New())
 	datum.ID = pointer.String(id.New())
+	datum.Location = testDataTypesCommonLocation.NewLocation()
 	datum.ModifiedTime = pointer.String(modifiedTime.Format(time.RFC3339))
 	datum.ModifiedUserID = pointer.String(id.New())
+	datum.Notes = pointer.StringArray([]string{NewNote(1, 20), NewNote(1, 20)})
+	datum.Origin = testDataTypesCommonOrigin.NewOrigin()
 	datum.Payload = testData.NewBlob()
 	datum.SchemaVersion = 2
 	datum.Source = pointer.String("carelink")
+	datum.Tags = pointer.StringArray([]string{NewTag(1, 10)})
 	datum.Time = pointer.String(test.NewTime().Format(time.RFC3339))
 	datum.TimezoneOffset = pointer.Int(NewTimezoneOffset())
 	datum.Type = NewType()
@@ -53,6 +61,7 @@ func CloneBase(datum *types.Base) *types.Base {
 	clone := &types.Base{}
 	clone.Active = datum.Active
 	clone.Annotations = testData.CloneBlobArray(datum.Annotations)
+	clone.Associations = testDataTypesCommonAssociation.CloneAssociationArray(datum.Associations)
 	clone.ArchivedDataSetID = test.CloneString(datum.ArchivedDataSetID)
 	clone.ArchivedTime = test.CloneString(datum.ArchivedTime)
 	clone.ClockDriftOffset = test.CloneInt(datum.ClockDriftOffset)
@@ -66,11 +75,15 @@ func CloneBase(datum *types.Base) *types.Base {
 	clone.DeviceTime = test.CloneString(datum.DeviceTime)
 	clone.GUID = test.CloneString(datum.GUID)
 	clone.ID = test.CloneString(datum.ID)
+	clone.Location = testDataTypesCommonLocation.CloneLocation(datum.Location)
 	clone.ModifiedTime = test.CloneString(datum.ModifiedTime)
 	clone.ModifiedUserID = test.CloneString(datum.ModifiedUserID)
+	clone.Notes = test.CloneStringArray(datum.Notes)
+	clone.Origin = testDataTypesCommonOrigin.CloneOrigin(datum.Origin)
 	clone.Payload = testData.CloneBlob(datum.Payload)
 	clone.SchemaVersion = datum.SchemaVersion
 	clone.Source = test.CloneString(datum.Source)
+	clone.Tags = test.CloneStringArray(datum.Tags)
 	clone.Time = test.CloneString(datum.Time)
 	clone.TimezoneOffset = test.CloneInt(datum.TimezoneOffset)
 	clone.Type = datum.Type

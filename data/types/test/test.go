@@ -19,6 +19,30 @@ func NewConversionOffset() int {
 	return -9999999999 + rand.Intn(9999999999+9999999999)
 }
 
+func NewNote(minimumLength int, maximumLength int) string {
+	return test.NewText(minimumLength, maximumLength)
+}
+
+func NewNotes(minimumLength int, maximumLength int) []string {
+	result := make([]string, minimumLength+rand.Intn(maximumLength-minimumLength+1))
+	for index := range result {
+		result[index] = NewNote(1, 1000)
+	}
+	return result
+}
+
+func NewTag(minimumLength int, maximumLength int) string {
+	return test.NewText(minimumLength, maximumLength)
+}
+
+func NewTags(minimumLength int, maximumLength int) []string {
+	result := make([]string, minimumLength+rand.Intn(maximumLength-minimumLength+1))
+	for index := range result {
+		result[index] = NewTag(1, 100)
+	}
+	return result
+}
+
 func NewTimezoneOffset() int {
 	return -4440 + rand.Intn(4440+6960)
 }
