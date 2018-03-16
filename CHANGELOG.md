@@ -1,5 +1,6 @@
 ## HEAD
 
+* Add associations, location, notes, origin, and tags to base data type
 * Report error on duplicate upload device manufacturers or tags
 * Additional validations of reverse domain, semantic version, and URL
 * Minor test updates
