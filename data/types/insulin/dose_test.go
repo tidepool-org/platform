@@ -17,8 +17,10 @@ import (
 
 func NewDose() *insulin.Dose {
 	datum := insulin.NewDose()
-	datum.Total = pointer.Float64(test.RandomFloat64FromRange(insulin.TotalMinimum, insulin.TotalMaximum))
-	datum.Units = pointer.String(test.RandomStringFromArray(insulin.Units()))
+	datum.Correction = pointer.Float64(test.RandomFloat64FromRange(insulin.DoseCorrectionMinimum, insulin.DoseCorrectionMaximum))
+	datum.Food = pointer.Float64(test.RandomFloat64FromRange(insulin.DoseFoodMinimum, insulin.DoseFoodMaximum))
+	datum.Total = pointer.Float64(test.RandomFloat64FromRange(insulin.DoseTotalMinimum, insulin.DoseTotalMaximum))
+	datum.Units = pointer.String(test.RandomStringFromArray(insulin.DoseUnits()))
 	return datum
 }
 
@@ -27,26 +29,44 @@ func CloneDose(datum *insulin.Dose) *insulin.Dose {
 		return nil
 	}
 	clone := insulin.NewDose()
+	clone.Correction = test.CloneFloat64(datum.Correction)
+	clone.Food = test.CloneFloat64(datum.Food)
 	clone.Total = test.CloneFloat64(datum.Total)
 	clone.Units = test.CloneString(datum.Units)
 	return clone
 }
 
 var _ = Describe("Dose", func() {
-	It("TotalMaximum is expected", func() {
-		Expect(insulin.TotalMaximum).To(Equal(250.0))
+	It("DoseCorrectionMaximum is expected", func() {
+		Expect(insulin.DoseCorrectionMaximum).To(Equal(250.0))
 	})
 
-	It("TotalMinimum is expected", func() {
-		Expect(insulin.TotalMinimum).To(Equal(0.0))
+	It("DoseCorrectionMinimum is expected", func() {
+		Expect(insulin.DoseCorrectionMinimum).To(Equal(-250.0))
 	})
 
-	It("UnitsUnits is expected", func() {
-		Expect(insulin.UnitsUnits).To(Equal("units"))
+	It("DoseFoodMaximum is expected", func() {
+		Expect(insulin.DoseFoodMaximum).To(Equal(250.0))
 	})
 
-	It("Units returns expected", func() {
-		Expect(insulin.Units()).To(Equal([]string{"units"}))
+	It("DoseFoodMinimum is expected", func() {
+		Expect(insulin.DoseFoodMinimum).To(Equal(0.0))
+	})
+
+	It("DoseTotalMaximum is expected", func() {
+		Expect(insulin.DoseTotalMaximum).To(Equal(250.0))
+	})
+
+	It("DoseTotalMinimum is expected", func() {
+		Expect(insulin.DoseTotalMinimum).To(Equal(0.0))
+	})
+
+	It("DoseUnitsUnits is expected", func() {
+		Expect(insulin.DoseUnitsUnits).To(Equal("units"))
+	})
+
+	It("DoseUnits returns expected", func() {
+		Expect(insulin.DoseUnits()).To(Equal([]string{"units"}))
 	})
 
 	Context("ParseDose", func() {
@@ -73,6 +93,40 @@ var _ = Describe("Dose", func() {
 				},
 				Entry("succeeds",
 					func(datum *insulin.Dose) {},
+				),
+				Entry("correction missing",
+					func(datum *insulin.Dose) { datum.Correction = nil },
+				),
+				Entry("correction out of range (lower)",
+					func(datum *insulin.Dose) { datum.Correction = pointer.Float64(-250.1) },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-250.1, -250, 250), "/correction"),
+				),
+				Entry("correction in range (lower)",
+					func(datum *insulin.Dose) { datum.Correction = pointer.Float64(-250.0) },
+				),
+				Entry("correction in range (upper)",
+					func(datum *insulin.Dose) { datum.Correction = pointer.Float64(250.0) },
+				),
+				Entry("correction out of range (upper)",
+					func(datum *insulin.Dose) { datum.Correction = pointer.Float64(250.1) },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(250.1, -250, 250), "/correction"),
+				),
+				Entry("food missing",
+					func(datum *insulin.Dose) { datum.Food = nil },
+				),
+				Entry("food out of range (lower)",
+					func(datum *insulin.Dose) { datum.Food = pointer.Float64(-0.1) },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 250), "/food"),
+				),
+				Entry("food in range (lower)",
+					func(datum *insulin.Dose) { datum.Food = pointer.Float64(0.0) },
+				),
+				Entry("food in range (upper)",
+					func(datum *insulin.Dose) { datum.Food = pointer.Float64(250.0) },
+				),
+				Entry("food out of range (upper)",
+					func(datum *insulin.Dose) { datum.Food = pointer.Float64(250.1) },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(250.1, 0, 250), "/food"),
 				),
 				Entry("total missing",
 					func(datum *insulin.Dose) { datum.Total = nil },
@@ -131,6 +185,12 @@ var _ = Describe("Dose", func() {
 				},
 				Entry("does not modify the datum",
 					func(datum *insulin.Dose) {},
+				),
+				Entry("does not modify the datum; correction nil",
+					func(datum *insulin.Dose) { datum.Correction = nil },
+				),
+				Entry("does not modify the datum; food nil",
+					func(datum *insulin.Dose) { datum.Food = nil },
 				),
 				Entry("does not modify the datum; total nil",
 					func(datum *insulin.Dose) { datum.Total = nil },
