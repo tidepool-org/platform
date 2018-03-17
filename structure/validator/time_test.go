@@ -215,7 +215,7 @@ var _ = Describe("Time", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueTimeNotZero(value))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueNotEmpty())
 			})
 
 			It("returns self", func() {
@@ -378,7 +378,7 @@ var _ = Describe("Time", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueTimeNotZero(value))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueNotEmpty())
 			})
 
 			It("returns self", func() {
@@ -522,7 +522,7 @@ var _ = Describe("Time", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueTimeZero())
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueEmpty())
 			})
 
 			It("returns self", func() {

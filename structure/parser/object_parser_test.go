@@ -554,7 +554,7 @@ var _ = Describe("Object", func() {
 		It("with key with different type returns nil and reports an ErrorCodeTimeNotParsable", func() {
 			Expect(parser.Time("one", time.RFC3339)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureParser.ErrorTimeNotParsable("abc", time.RFC3339), "/one"))
+			testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureParser.ErrorValueTimeNotParsable("abc", time.RFC3339), "/one"))
 		})
 
 		It("with key with string type returns value", func() {

@@ -209,7 +209,7 @@ func (o *Object) Time(reference string, layout string) *time.Time {
 
 	timeValue, err := time.Parse(layout, stringValue)
 	if err != nil {
-		o.base.WithReference(reference).ReportError(ErrorTimeNotParsable(stringValue, layout))
+		o.base.WithReference(reference).ReportError(ErrorValueTimeNotParsable(stringValue, layout))
 		return nil
 	}
 

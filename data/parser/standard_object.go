@@ -201,7 +201,7 @@ func (s *StandardObject) ParseTime(key string, layout string) *time.Time {
 
 	timeValue, err := time.Parse(layout, stringValue)
 	if err != nil {
-		s.AppendError(key, service.ErrorTimeNotParsable(stringValue, layout))
+		s.AppendError(key, service.ErrorValueTimeNotParsable(stringValue, layout))
 		return nil
 	}
 

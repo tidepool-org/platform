@@ -352,7 +352,7 @@ var _ = Describe("StandardObject", func() {
 				Expect(standardContext.Errors()[0].Code).To(Equal("type-not-time"))
 			})
 
-			It("with index parameter with not parseable table returns nil and appends an ErrorTimeNotParsable", func() {
+			It("with index parameter with not parseable table returns nil and appends an ErrorValueTimeNotParsable", func() {
 				Expect(standardObject.ParseTime("one", time.RFC3339)).To(BeNil())
 				Expect(standardContext.Errors()).To(HaveLen(1))
 				Expect(standardContext.Errors()[0].Code).To(Equal("value-not-parsable"))

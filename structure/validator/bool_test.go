@@ -168,7 +168,7 @@ var _ = Describe("Bool", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueNotFalse())
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueBooleanNotFalse())
 			})
 
 			It("returns self", func() {
@@ -256,7 +256,7 @@ var _ = Describe("Bool", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueNotTrue())
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueBooleanNotTrue())
 			})
 
 			It("returns self", func() {
