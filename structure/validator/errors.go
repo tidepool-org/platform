@@ -23,8 +23,6 @@ const (
 	ErrorCodeValueNotAllowed  = "value-not-allowed"
 	ErrorCodeValueMatches     = "value-matches"
 	ErrorCodeValueNotMatches  = "value-not-matches"
-	ErrorCodeValueZero        = "value-zero"
-	ErrorCodeValueNotZero     = "value-not-zero"
 	ErrorCodeValueNotAfter    = "value-not-after"
 	ErrorCodeValueNotBefore   = "value-not-before"
 	ErrorCodeValueNotValid    = "value-not-valid"
@@ -51,11 +49,11 @@ func ErrorValueDuplicate() error {
 	return errors.Preparedf(ErrorCodeValueDuplicate, "value is a duplicate", "value is a duplicate")
 }
 
-func ErrorValueNotTrue() error {
+func ErrorValueBooleanNotTrue() error {
 	return errors.Prepared(ErrorCodeValueNotTrue, "value is not true", "value is not true")
 }
 
-func ErrorValueNotFalse() error {
+func ErrorValueBooleanNotFalse() error {
 	return errors.Prepared(ErrorCodeValueNotFalse, "value is not false", "value is not false")
 }
 
@@ -151,14 +149,6 @@ func ErrorValueStringNotMatches(value string, expression *regexp.Regexp) error {
 
 func ErrorValueStringAsTimeNotValid(value string, layout string) error {
 	return errors.Preparedf(ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as time with layout %q", value, layout)
-}
-
-func ErrorValueTimeZero() error {
-	return errors.Preparedf(ErrorCodeValueZero, "value is zero", "value is zero")
-}
-
-func ErrorValueTimeNotZero(value time.Time) error {
-	return errors.Preparedf(ErrorCodeValueNotZero, "value is not zero", "value %q is not zero", value.Format(time.RFC3339))
 }
 
 func ErrorValueTimeNotAfter(value time.Time, limit time.Time) error {

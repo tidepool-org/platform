@@ -207,7 +207,7 @@ func (s *StandardArray) ParseTime(index int, layout string) *time.Time {
 
 	timeValue, err := time.Parse(layout, stringValue)
 	if err != nil {
-		s.AppendError(index, service.ErrorTimeNotParsable(stringValue, layout))
+		s.AppendError(index, service.ErrorValueTimeNotParsable(stringValue, layout))
 		return nil
 	}
 

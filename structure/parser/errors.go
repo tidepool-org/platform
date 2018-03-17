@@ -3,15 +3,15 @@ package parser
 import "github.com/tidepool-org/platform/errors"
 
 const (
-	ErrorCodeTypeNotBool     = "type-not-bool"
-	ErrorCodeTypeNotFloat64  = "type-not-float64"
-	ErrorCodeTypeNotInt      = "type-not-int"
-	ErrorCodeTypeNotString   = "type-not-string"
-	ErrorCodeTypeNotTime     = "type-not-time"
-	ErrorCodeTypeNotObject   = "type-not-object"
-	ErrorCodeTypeNotArray    = "type-not-array"
-	ErrorCodeTimeNotParsable = "value-not-parsable"
-	ErrorCodeNotParsed       = "not-parsed"
+	ErrorCodeTypeNotBool      = "type-not-bool"
+	ErrorCodeTypeNotFloat64   = "type-not-float64"
+	ErrorCodeTypeNotInt       = "type-not-int"
+	ErrorCodeTypeNotString    = "type-not-string"
+	ErrorCodeTypeNotTime      = "type-not-time"
+	ErrorCodeTypeNotObject    = "type-not-object"
+	ErrorCodeTypeNotArray     = "type-not-array"
+	ErrorCodeValueNotParsable = "value-not-parsable"
+	ErrorCodeNotParsed        = "not-parsed"
 )
 
 func ErrorTypeNotBool(value interface{}) error {
@@ -42,8 +42,8 @@ func ErrorTypeNotArray(value interface{}) error {
 	return errors.Preparedf(ErrorCodeTypeNotArray, "type is not array", "type is not array, but %T", value)
 }
 
-func ErrorTimeNotParsable(value string, layout string) error {
-	return errors.Preparedf(ErrorCodeTimeNotParsable, "value is not a parsable time", "value %q is not a parsable time of format %q", value, layout)
+func ErrorValueTimeNotParsable(value string, layout string) error {
+	return errors.Preparedf(ErrorCodeValueNotParsable, "value is not a parsable time", "value %q is not a parsable time of format %q", value, layout)
 }
 
 func ErrorNotParsed() error {

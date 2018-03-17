@@ -579,10 +579,10 @@ var _ = Describe("Array", func() {
 			testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureParser.ErrorTypeNotTime(false), "/0"))
 		})
 
-		It("with index parameter with different type returns nil and reports an ErrorTimeNotParsable", func() {
+		It("with index parameter with different type returns nil and reports an ErrorValueTimeNotParsable", func() {
 			Expect(parser.Time(1, time.RFC3339)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureParser.ErrorTimeNotParsable("abc", time.RFC3339), "/1"))
+			testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureParser.ErrorValueTimeNotParsable("abc", time.RFC3339), "/1"))
 		})
 
 		It("with index parameter with string type returns value", func() {

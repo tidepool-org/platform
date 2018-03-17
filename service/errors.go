@@ -99,7 +99,7 @@ func ErrorTypeNotArray(value interface{}) *Error {
 	}
 }
 
-func ErrorTimeNotParsable(value string, layout string) *Error {
+func ErrorValueTimeNotParsable(value string, layout string) *Error {
 	return &Error{
 		Code:   "value-not-parsable",
 		Title:  "value is not a parsable time",

@@ -34,7 +34,7 @@ func (b *Bool) NotExists() structure.Bool {
 func (b *Bool) True() structure.Bool {
 	if b.value != nil {
 		if !*b.value {
-			b.base.ReportError(ErrorValueNotTrue())
+			b.base.ReportError(ErrorValueBooleanNotTrue())
 		}
 	}
 	return b
@@ -43,7 +43,7 @@ func (b *Bool) True() structure.Bool {
 func (b *Bool) False() structure.Bool {
 	if b.value != nil {
 		if *b.value {
-			b.base.ReportError(ErrorValueNotFalse())
+			b.base.ReportError(ErrorValueBooleanNotFalse())
 		}
 	}
 	return b
