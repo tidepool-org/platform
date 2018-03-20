@@ -28,6 +28,7 @@ func NewInsulin() *insulin.Insulin {
 	datum.Type = "insulin"
 	datum.ActingType = pointer.String(test.RandomStringFromArray(insulin.ActingTypes()))
 	datum.Brand = pointer.String(test.NewText(1, 100))
+	datum.Concentration = pointer.Int(test.RandomIntFromRange(insulin.ConcentrationMinimum, insulin.ConcentrationMaximum))
 	datum.Dose = NewDose()
 	datum.Name = pointer.String(test.NewText(1, 100))
 	datum.Site = pointer.String(test.NewText(1, 100))
@@ -42,6 +43,7 @@ func CloneInsulin(datum *insulin.Insulin) *insulin.Insulin {
 	clone.Base = *testDataTypes.CloneBase(&datum.Base)
 	clone.ActingType = test.CloneString(datum.ActingType)
 	clone.Brand = test.CloneString(datum.Brand)
+	clone.Concentration = test.CloneInt(datum.Concentration)
 	clone.Dose = CloneDose(datum.Dose)
 	clone.Name = test.CloneString(datum.Name)
 	clone.Site = test.CloneString(datum.Site)
@@ -124,6 +126,23 @@ var _ = Describe("Insulin", func() {
 				),
 				Entry("brand valid",
 					func(datum *insulin.Insulin) { datum.Brand = pointer.String(test.NewText(1, 100)) },
+				),
+				Entry("concentration missing",
+					func(datum *insulin.Insulin) { datum.Concentration = nil },
+				),
+				Entry("concentration out of range (lower)",
+					func(datum *insulin.Insulin) { datum.Concentration = pointer.Int(0) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(0, 1, 10000), "/concentration", NewMeta()),
+				),
+				Entry("concentration in range (lower)",
+					func(datum *insulin.Insulin) { datum.Concentration = pointer.Int(1) },
+				),
+				Entry("concentration in range (upper)",
+					func(datum *insulin.Insulin) { datum.Concentration = pointer.Int(10000) },
+				),
+				Entry("concentration out of range (upper)",
+					func(datum *insulin.Insulin) { datum.Concentration = pointer.Int(10001) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(10001, 1, 10000), "/concentration", NewMeta()),
 				),
 				Entry("dose missing",
 					func(datum *insulin.Insulin) { datum.Dose = nil },
