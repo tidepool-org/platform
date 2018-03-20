@@ -14,6 +14,8 @@ const (
 	ActingTypeRapid        = "rapid"
 	ActingTypeShort        = "short"
 	BrandLengthMaximum     = 100
+	ConcentrationMaximum   = 10000
+	ConcentrationMinimum   = 1
 	NameLengthMaximum      = 100
 	SiteLengthMaximum      = 100
 )
@@ -30,11 +32,12 @@ func ActingTypes() []string {
 type Insulin struct {
 	types.Base `bson:",inline"`
 
-	ActingType *string `json:"actingType,omitempty" bson:"actingType,omitempty"`
-	Brand      *string `json:"brand,omitempty" bson:"brand,omitempty"`
-	Dose       *Dose   `json:"dose,omitempty" bson:"dose,omitempty"`
-	Name       *string `json:"name,omitempty" bson:"name,omitempty"`
-	Site       *string `json:"site,omitempty" bson:"site,omitempty"`
+	ActingType    *string `json:"actingType,omitempty" bson:"actingType,omitempty"`
+	Brand         *string `json:"brand,omitempty" bson:"brand,omitempty"`
+	Concentration *int    `json:"concentration,omitempty" bson:"concentration,omitempty"`
+	Dose          *Dose   `json:"dose,omitempty" bson:"dose,omitempty"`
+	Name          *string `json:"name,omitempty" bson:"name,omitempty"`
+	Site          *string `json:"site,omitempty" bson:"site,omitempty"`
 }
 
 func New() *Insulin {
@@ -52,6 +55,7 @@ func (i *Insulin) Parse(parser data.ObjectParser) error {
 
 	i.ActingType = parser.ParseString("actingType")
 	i.Brand = parser.ParseString("brand")
+	i.Concentration = parser.ParseInteger("concentration")
 	i.Dose = ParseDose(parser.NewChildObjectParser("dose"))
 	i.Name = parser.ParseString("name")
 	i.Site = parser.ParseString("site")
@@ -72,6 +76,7 @@ func (i *Insulin) Validate(validator structure.Validator) {
 
 	validator.String("actingType", i.ActingType).OneOf(ActingTypes()...)
 	validator.String("brand", i.Brand).NotEmpty().LengthLessThanOrEqualTo(BrandLengthMaximum)
+	validator.Int("concentration", i.Concentration).InRange(ConcentrationMinimum, ConcentrationMaximum)
 	if i.Dose != nil {
 		i.Dose.Validate(validator.WithReference("dose"))
 	}

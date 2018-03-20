@@ -1,5 +1,6 @@
 ## HEAD
 
+* Add concentration field to insulin data type
 * Update string generation for structure validation error detail
 * Add new fields to insulin data type
 * Add associations, location, notes, origin, and tags to base data type
