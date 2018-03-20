@@ -6,17 +6,20 @@ import (
 )
 
 type Nutrition struct {
-	Carbohydrates *Carbohydrates `json:"carbohydrates,omitempty" bson:"carbohydrates,omitempty"`
+	Carbohydrate *Carbohydrate `json:"carbohydrate,omitempty" bson:"carbohydrate,omitempty"`
+	Energy       *Energy       `json:"energy,omitempty" bson:"energy,omitempty"`
+	Fat          *Fat          `json:"fat,omitempty" bson:"fat,omitempty"`
+	Protein      *Protein      `json:"protein,omitempty" bson:"protein,omitempty"`
 }
 
 func ParseNutrition(parser data.ObjectParser) *Nutrition {
 	if parser.Object() == nil {
 		return nil
 	}
-	nutrition := NewNutrition()
-	nutrition.Parse(parser)
+	datum := NewNutrition()
+	datum.Parse(parser)
 	parser.ProcessNotParsed()
-	return nutrition
+	return datum
 }
 
 func NewNutrition() *Nutrition {
@@ -24,17 +27,38 @@ func NewNutrition() *Nutrition {
 }
 
 func (n *Nutrition) Parse(parser data.ObjectParser) {
-	n.Carbohydrates = ParseCarbohydrates(parser.NewChildObjectParser("carbohydrates"))
+	n.Carbohydrate = ParseCarbohydrate(parser.NewChildObjectParser("carbohydrate"))
+	n.Energy = ParseEnergy(parser.NewChildObjectParser("energy"))
+	n.Fat = ParseFat(parser.NewChildObjectParser("fat"))
+	n.Protein = ParseProtein(parser.NewChildObjectParser("protein"))
 }
 
 func (n *Nutrition) Validate(validator structure.Validator) {
-	if n.Carbohydrates != nil {
-		n.Carbohydrates.Validate(validator.WithReference("carbohydrates"))
+	if n.Carbohydrate != nil {
+		n.Carbohydrate.Validate(validator.WithReference("carbohydrate"))
+	}
+	if n.Energy != nil {
+		n.Energy.Validate(validator.WithReference("energy"))
+	}
+	if n.Fat != nil {
+		n.Fat.Validate(validator.WithReference("fat"))
+	}
+	if n.Protein != nil {
+		n.Protein.Validate(validator.WithReference("protein"))
 	}
 }
 
 func (n *Nutrition) Normalize(normalizer data.Normalizer) {
-	if n.Carbohydrates != nil {
-		n.Carbohydrates.Normalize(normalizer.WithReference("carbohydrates"))
+	if n.Carbohydrate != nil {
+		n.Carbohydrate.Normalize(normalizer.WithReference("carbohydrate"))
+	}
+	if n.Energy != nil {
+		n.Energy.Normalize(normalizer.WithReference("energy"))
+	}
+	if n.Fat != nil {
+		n.Fat.Normalize(normalizer.WithReference("fat"))
+	}
+	if n.Protein != nil {
+		n.Protein.Normalize(normalizer.WithReference("protein"))
 	}
 }
