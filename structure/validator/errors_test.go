@@ -96,38 +96,4 @@ var _ = Describe("Errors", func() {
 		Entry("is ErrorLengthNotGreaterThanOrEqualTo with int", structureValidator.ErrorLengthNotGreaterThanOrEqualTo(1, 2), "length-out-of-range", "length is out of range", "length 1 is not greater than or equal to 2"),
 		Entry("is ErrorLengthNotInRange", structureValidator.ErrorLengthNotInRange(1, 2, 3), "length-out-of-range", "length is out of range", "length 1 is not between 2 and 3"),
 	)
-
-	Context("QuoteIfString", func() {
-		It("returns nil when the interface value is nil", func() {
-			Expect(structureValidator.QuoteIfString(nil)).To(BeNil())
-		})
-
-		DescribeTable("returns expected value when",
-			func(interfaceValue interface{}, expectedValue interface{}) {
-				Expect(structureValidator.QuoteIfString(interfaceValue)).To(Equal(expectedValue))
-			},
-			Entry("is a string", "a string", `"a string"`),
-			Entry("is an empty string", "", `""`),
-			Entry("is an integer", 1, 1),
-			Entry("is a float", 1.23, 1.23),
-			Entry("is an array", []string{"a"}, []string{"a"}),
-			Entry("is a map", map[string]string{"a": "b"}, map[string]string{"a": "b"}),
-		)
-	})
-
-	Context("ExpressionAsString", func() {
-		It("returns as expected if the expression is nil", func() {
-			Expect(structureValidator.ExpressionAsString(nil)).To(Equal("<MISSING>"))
-		})
-
-		DescribeTable("returns expected value when",
-			func(expressionString string, expectedString string) {
-				Expect(structureValidator.ExpressionAsString(regexp.MustCompile(expressionString))).To(Equal(expectedString))
-			},
-			Entry("is an empty string", "", ""),
-			Entry("is a simple string", "abc", "abc"),
-			Entry("is a complex string", "[a-z]*.?.{32}", "[a-z]*.?.{32}"),
-			Entry("contains single and double quotes", "'\"", "'\""),
-		)
-	})
 })
