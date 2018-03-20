@@ -148,7 +148,7 @@ func translateEventCarbsToDatum(e *dexcom.Event) data.Datum {
 
 	if e.Value != nil && e.Unit != nil {
 		datum.Nutrition = &food.Nutrition{
-			Carbohydrates: &food.Carbohydrates{
+			Carbohydrate: &food.Carbohydrate{
 				Net:   pointer.Int(int(*e.Value)),
 				Units: pointer.String(*e.Unit),
 			},

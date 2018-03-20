@@ -1,5 +1,7 @@
 ## HEAD
 
+* Add new fields to food data type
+* Remove redundant empty string tests for enumeration string fields
 * Add concentration field to insulin data type
 * Update string generation for structure validation error detail
 * Add new fields to insulin data type

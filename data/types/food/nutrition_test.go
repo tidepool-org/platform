@@ -15,7 +15,10 @@ import (
 
 func NewNutrition() *food.Nutrition {
 	datum := food.NewNutrition()
-	datum.Carbohydrates = NewCarbohydrates()
+	datum.Carbohydrate = NewCarbohydrate()
+	datum.Energy = NewEnergy()
+	datum.Fat = NewFat()
+	datum.Protein = NewProtein()
 	return datum
 }
 
@@ -24,7 +27,10 @@ func CloneNutrition(datum *food.Nutrition) *food.Nutrition {
 		return nil
 	}
 	clone := food.NewNutrition()
-	clone.Carbohydrates = CloneCarbohydrates(datum.Carbohydrates)
+	clone.Carbohydrate = CloneCarbohydrate(datum.Carbohydrate)
+	clone.Energy = CloneEnergy(datum.Energy)
+	clone.Fat = CloneFat(datum.Fat)
+	clone.Protein = CloneProtein(datum.Protein)
 	return clone
 }
 
@@ -54,23 +60,57 @@ var _ = Describe("Nutrition", func() {
 				Entry("succeeds",
 					func(datum *food.Nutrition) {},
 				),
-				Entry("carbohydrates missing",
-					func(datum *food.Nutrition) { datum.Carbohydrates = nil },
+				Entry("carbohydrate missing",
+					func(datum *food.Nutrition) { datum.Carbohydrate = nil },
 				),
-				Entry("carbohydrates invalid",
-					func(datum *food.Nutrition) { datum.Carbohydrates.Net = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/carbohydrates/net"),
+				Entry("carbohydrate invalid",
+					func(datum *food.Nutrition) { datum.Carbohydrate.Units = nil },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/carbohydrate/units"),
 				),
-				Entry("carbohydrates valid",
-					func(datum *food.Nutrition) { datum.Carbohydrates = NewCarbohydrates() },
+				Entry("carbohydrate valid",
+					func(datum *food.Nutrition) { datum.Carbohydrate = NewCarbohydrate() },
+				),
+				Entry("energy missing",
+					func(datum *food.Nutrition) { datum.Energy = nil },
+				),
+				Entry("energy invalid",
+					func(datum *food.Nutrition) { datum.Energy.Units = nil },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/energy/units"),
+				),
+				Entry("energy valid",
+					func(datum *food.Nutrition) { datum.Energy = NewEnergy() },
+				),
+				Entry("fat missing",
+					func(datum *food.Nutrition) { datum.Fat = nil },
+				),
+				Entry("fat invalid",
+					func(datum *food.Nutrition) { datum.Fat.Units = nil },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/fat/units"),
+				),
+				Entry("fat valid",
+					func(datum *food.Nutrition) { datum.Fat = NewFat() },
+				),
+				Entry("protein missing",
+					func(datum *food.Nutrition) { datum.Protein = nil },
+				),
+				Entry("protein invalid",
+					func(datum *food.Nutrition) { datum.Protein.Units = nil },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/protein/units"),
+				),
+				Entry("protein valid",
+					func(datum *food.Nutrition) { datum.Protein = NewProtein() },
 				),
 				Entry("multiple errors",
 					func(datum *food.Nutrition) {
-						datum.Carbohydrates.Net = nil
-						datum.Carbohydrates.Units = nil
+						datum.Carbohydrate.Units = nil
+						datum.Energy.Units = nil
+						datum.Fat.Units = nil
+						datum.Protein.Units = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/carbohydrates/net"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/carbohydrates/units"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/carbohydrate/units"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/energy/units"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/fat/units"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/protein/units"),
 				),
 			)
 		})
@@ -93,8 +133,17 @@ var _ = Describe("Nutrition", func() {
 				Entry("does not modify the datum",
 					func(datum *food.Nutrition) {},
 				),
-				Entry("does not modify the datum; carbohydrates missing",
-					func(datum *food.Nutrition) { datum.Carbohydrates = nil },
+				Entry("does not modify the datum; carbohydrate missing",
+					func(datum *food.Nutrition) { datum.Carbohydrate = nil },
+				),
+				Entry("does not modify the datum; energy missing",
+					func(datum *food.Nutrition) { datum.Energy = nil },
+				),
+				Entry("does not modify the datum; fat missing",
+					func(datum *food.Nutrition) { datum.Fat = nil },
+				),
+				Entry("does not modify the datum; protein missing",
+					func(datum *food.Nutrition) { datum.Protein = nil },
 				),
 			)
 		})

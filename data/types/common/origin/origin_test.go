@@ -112,10 +112,6 @@ var _ = Describe("Origin", func() {
 				Entry("type missing",
 					func(datum *origin.Origin) { datum.Type = nil },
 				),
-				Entry("type empty",
-					func(datum *origin.Origin) { datum.Type = pointer.String("") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("", []string{"device", "manual"}), "/type"),
-				),
 				Entry("type invalid",
 					func(datum *origin.Origin) { datum.Type = pointer.String("invalid") },
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"device", "manual"}), "/type"),
@@ -145,13 +141,13 @@ var _ = Describe("Origin", func() {
 						datum.ID = pointer.String("")
 						datum.Name = nil
 						datum.Time = pointer.Time(time.Time{})
-						datum.Type = pointer.String("")
+						datum.Type = pointer.String("invalid")
 						datum.Version = pointer.String("")
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/id"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/name"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/time"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("", []string{"device", "manual"}), "/type"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"device", "manual"}), "/type"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/version"),
 				),
 			)
