@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	UnitsLengthMaximum = 100
-	ValueMinimum       = 0.0
+	AmountUnitsLengthMaximum = 100
+	AmountValueMinimum       = 0.0
 )
 
 type Amount struct {
@@ -35,8 +35,8 @@ func (a *Amount) Parse(parser data.ObjectParser) {
 }
 
 func (a *Amount) Validate(validator structure.Validator) {
-	validator.String("units", a.Units).Exists().NotEmpty().LengthLessThanOrEqualTo(UnitsLengthMaximum)
-	validator.Float64("value", a.Value).Exists().GreaterThanOrEqualTo(ValueMinimum)
+	validator.String("units", a.Units).Exists().NotEmpty().LengthLessThanOrEqualTo(AmountUnitsLengthMaximum)
+	validator.Float64("value", a.Value).Exists().GreaterThanOrEqualTo(AmountValueMinimum)
 }
 
 func (a *Amount) Normalize(normalizer data.Normalizer) {}

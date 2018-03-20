@@ -4,6 +4,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 const (
@@ -79,6 +80,8 @@ func (i *Insulin) Validate(validator structure.Validator) {
 	validator.Int("concentration", i.Concentration).InRange(ConcentrationMinimum, ConcentrationMaximum)
 	if i.Dose != nil {
 		i.Dose.Validate(validator.WithReference("dose"))
+	} else {
+		validator.WithReference("dose").ReportError(structureValidator.ErrorValueNotExists())
 	}
 	validator.String("name", i.Name).NotEmpty().LengthLessThanOrEqualTo(NameLengthMaximum)
 	validator.String("site", i.Site).NotEmpty().LengthLessThanOrEqualTo(SiteLengthMaximum)
