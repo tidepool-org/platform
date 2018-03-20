@@ -197,17 +197,17 @@ func translateEventHealthToDatum(e *dexcom.Event) data.Datum {
 	if e.EventSubType != nil {
 		switch *e.EventSubType {
 		case dexcom.HealthIllness:
-			datum.States = &reported.StateArray{{State: pointer.String(reported.StateIllness)}}
+			datum.States = &reported.StateArray{{State: pointer.String(reported.StateStateIllness)}}
 		case dexcom.HealthStress:
-			datum.States = &reported.StateArray{{State: pointer.String(reported.StateStress)}}
+			datum.States = &reported.StateArray{{State: pointer.String(reported.StateStateStress)}}
 		case dexcom.HealthHighSymptoms:
-			datum.States = &reported.StateArray{{State: pointer.String(reported.StateHyperglycemiaSymptoms)}}
+			datum.States = &reported.StateArray{{State: pointer.String(reported.StateStateHyperglycemiaSymptoms)}}
 		case dexcom.HealthLowSymptoms:
-			datum.States = &reported.StateArray{{State: pointer.String(reported.StateHypoglycemiaSymptoms)}}
+			datum.States = &reported.StateArray{{State: pointer.String(reported.StateStateHypoglycemiaSymptoms)}}
 		case dexcom.HealthCycle:
-			datum.States = &reported.StateArray{{State: pointer.String(reported.StateCycle)}}
+			datum.States = &reported.StateArray{{State: pointer.String(reported.StateStateCycle)}}
 		case dexcom.HealthAlcohol:
-			datum.States = &reported.StateArray{{State: pointer.String(reported.StateAlcohol)}}
+			datum.States = &reported.StateArray{{State: pointer.String(reported.StateStateAlcohol)}}
 		}
 	}
 

@@ -1,5 +1,6 @@
 ## HEAD
 
+* Add new fields to reported state data type
 * Add new fields to food data type
 * Remove redundant empty string tests for enumeration string fields
 * Add concentration field to insulin data type

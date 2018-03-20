@@ -9,37 +9,44 @@ import (
 )
 
 const (
-	StateAlcohol               = "alcohol"
-	StateCycle                 = "cycle"
-	StateHyperglycemiaSymptoms = "hyperglycemiaSymptoms"
-	StateHypoglycemiaSymptoms  = "hypoglycemiaSymptoms"
-	StateIllness               = "illness"
-	StateStress                = "stress"
+	StateSeverityMaximum            = 10
+	StateSeverityMinimum            = 0
+	StateStateAlcohol               = "alcohol"
+	StateStateCycle                 = "cycle"
+	StateStateHyperglycemiaSymptoms = "hyperglycemiaSymptoms"
+	StateStateHypoglycemiaSymptoms  = "hypoglycemiaSymptoms"
+	StateStateIllness               = "illness"
+	StateStateOther                 = "other"
+	StateStateOtherLengthMaximum    = 100
+	StateStateStress                = "stress"
 )
 
-func States() []string {
+func StateStates() []string {
 	return []string{
-		StateAlcohol,
-		StateCycle,
-		StateHyperglycemiaSymptoms,
-		StateHypoglycemiaSymptoms,
-		StateIllness,
-		StateStress,
+		StateStateAlcohol,
+		StateStateCycle,
+		StateStateHyperglycemiaSymptoms,
+		StateStateHypoglycemiaSymptoms,
+		StateStateIllness,
+		StateStateOther,
+		StateStateStress,
 	}
 }
 
 type State struct {
-	State *string `json:"state,omitempty" bson:"state,omitempty"`
+	Severity   *int    `json:"severity,omitempty" bson:"severity,omitempty"`
+	State      *string `json:"state,omitempty" bson:"state,omitempty"`
+	StateOther *string `json:"stateOther,omitempty" bson:"stateOther,omitempty"`
 }
 
 func ParseState(parser data.ObjectParser) *State {
 	if parser.Object() == nil {
 		return nil
 	}
-	state := NewState()
-	state.Parse(parser)
+	datum := NewState()
+	datum.Parse(parser)
 	parser.ProcessNotParsed()
-	return state
+	return datum
 }
 
 func NewState() *State {
@@ -47,11 +54,19 @@ func NewState() *State {
 }
 
 func (s *State) Parse(parser data.ObjectParser) {
+	s.Severity = parser.ParseInteger("severity")
 	s.State = parser.ParseString("state")
+	s.StateOther = parser.ParseString("stateOther")
 }
 
 func (s *State) Validate(validator structure.Validator) {
-	validator.String("state", s.State).Exists().OneOf(States()...)
+	validator.Int("severity", s.Severity).InRange(StateSeverityMinimum, StateSeverityMaximum)
+	validator.String("state", s.State).Exists().OneOf(StateStates()...)
+	if s.State != nil && *s.State == StateStateOther {
+		validator.String("stateOther", s.StateOther).Exists().NotEmpty().LengthLessThanOrEqualTo(StateStateOtherLengthMaximum)
+	} else {
+		validator.String("stateOther", s.StateOther).NotExists()
+	}
 }
 
 func (s *State) Normalize(normalizer data.Normalizer) {}
@@ -62,10 +77,10 @@ func ParseStateArray(parser data.ArrayParser) *StateArray {
 	if parser.Array() == nil {
 		return nil
 	}
-	stateArray := NewStateArray()
-	stateArray.Parse(parser)
+	datum := NewStateArray()
+	datum.Parse(parser)
 	parser.ProcessNotParsed()
-	return stateArray
+	return datum
 }
 
 func NewStateArray() *StateArray {
