@@ -35,12 +35,12 @@ func CloneAmount(datum *food.Amount) *food.Amount {
 }
 
 var _ = Describe("Amount", func() {
-	It("UnitsLengthMaximum is expected", func() {
-		Expect(food.UnitsLengthMaximum).To(Equal(100))
+	It("AmountUnitsLengthMaximum is expected", func() {
+		Expect(food.AmountUnitsLengthMaximum).To(Equal(100))
 	})
 
-	It("ValueMinimum is expected", func() {
-		Expect(food.ValueMinimum).To(Equal(0.0))
+	It("AmountValueMinimum is expected", func() {
+		Expect(food.AmountValueMinimum).To(Equal(0.0))
 	})
 
 	Context("ParseAmount", func() {

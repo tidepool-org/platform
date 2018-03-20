@@ -1,5 +1,7 @@
 ## HEAD
 
+* Add water data type
+* Minor rename of food related constants
 * Add new fields to reported state data type
 * Add new fields to food data type
 * Remove redundant empty string tests for enumeration string fields
