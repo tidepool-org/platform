@@ -8,6 +8,7 @@ import (
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/insulin"
+	testDataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin/test"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -26,11 +27,8 @@ func NewInsulin() *insulin.Insulin {
 	datum := insulin.New()
 	datum.Base = *testDataTypes.NewBase()
 	datum.Type = "insulin"
-	datum.ActingType = pointer.String(test.RandomStringFromArray(insulin.ActingTypes()))
-	datum.Brand = pointer.String(test.NewText(1, 100))
-	datum.Concentration = pointer.Int(test.RandomIntFromRange(insulin.ConcentrationMinimum, insulin.ConcentrationMaximum))
 	datum.Dose = NewDose()
-	datum.Name = pointer.String(test.NewText(1, 100))
+	datum.InsulinType = testDataTypesInsulin.NewInsulinType()
 	datum.Site = pointer.String(test.NewText(1, 100))
 	return datum
 }
@@ -41,11 +39,8 @@ func CloneInsulin(datum *insulin.Insulin) *insulin.Insulin {
 	}
 	clone := insulin.New()
 	clone.Base = *testDataTypes.CloneBase(&datum.Base)
-	clone.ActingType = test.CloneString(datum.ActingType)
-	clone.Brand = test.CloneString(datum.Brand)
-	clone.Concentration = test.CloneInt(datum.Concentration)
 	clone.Dose = CloneDose(datum.Dose)
-	clone.Name = test.CloneString(datum.Name)
+	clone.InsulinType = testDataTypesInsulin.CloneInsulinType(datum.InsulinType)
 	clone.Site = test.CloneString(datum.Site)
 	return clone
 }
@@ -60,10 +55,8 @@ var _ = Describe("Insulin", func() {
 			datum := insulin.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("insulin"))
-			Expect(datum.ActingType).To(BeNil())
-			Expect(datum.Brand).To(BeNil())
 			Expect(datum.Dose).To(BeNil())
-			Expect(datum.Name).To(BeNil())
+			Expect(datum.InsulinType).To(BeNil())
 			Expect(datum.Site).To(BeNil())
 		})
 	})
@@ -94,56 +87,6 @@ var _ = Describe("Insulin", func() {
 				Entry("type insulin",
 					func(datum *insulin.Insulin) { datum.Type = "insulin" },
 				),
-				Entry("acting type missing",
-					func(datum *insulin.Insulin) { datum.ActingType = nil },
-				),
-				Entry("acting type invalid",
-					func(datum *insulin.Insulin) { datum.ActingType = pointer.String("invalid") },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"intermediate", "long", "rapid", "short"}), "/actingType", NewMeta()),
-				),
-				Entry("acting type intermediate",
-					func(datum *insulin.Insulin) { datum.ActingType = pointer.String("intermediate") },
-				),
-				Entry("acting type long",
-					func(datum *insulin.Insulin) { datum.ActingType = pointer.String("long") },
-				),
-				Entry("acting type rapid",
-					func(datum *insulin.Insulin) { datum.ActingType = pointer.String("rapid") },
-				),
-				Entry("acting type short",
-					func(datum *insulin.Insulin) { datum.ActingType = pointer.String("short") },
-				),
-				Entry("brand missing",
-					func(datum *insulin.Insulin) { datum.Brand = nil },
-				),
-				Entry("brand empty",
-					func(datum *insulin.Insulin) { datum.Brand = pointer.String("") },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/brand", NewMeta()),
-				),
-				Entry("brand invalid",
-					func(datum *insulin.Insulin) { datum.Brand = pointer.String(test.NewText(101, 101)) },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/brand", NewMeta()),
-				),
-				Entry("brand valid",
-					func(datum *insulin.Insulin) { datum.Brand = pointer.String(test.NewText(1, 100)) },
-				),
-				Entry("concentration missing",
-					func(datum *insulin.Insulin) { datum.Concentration = nil },
-				),
-				Entry("concentration out of range (lower)",
-					func(datum *insulin.Insulin) { datum.Concentration = pointer.Int(0) },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(0, 1, 10000), "/concentration", NewMeta()),
-				),
-				Entry("concentration in range (lower)",
-					func(datum *insulin.Insulin) { datum.Concentration = pointer.Int(1) },
-				),
-				Entry("concentration in range (upper)",
-					func(datum *insulin.Insulin) { datum.Concentration = pointer.Int(10000) },
-				),
-				Entry("concentration out of range (upper)",
-					func(datum *insulin.Insulin) { datum.Concentration = pointer.Int(10001) },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(10001, 1, 10000), "/concentration", NewMeta()),
-				),
 				Entry("dose missing",
 					func(datum *insulin.Insulin) { datum.Dose = nil },
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/dose", NewMeta()),
@@ -155,19 +98,18 @@ var _ = Describe("Insulin", func() {
 				Entry("dose valid",
 					func(datum *insulin.Insulin) { datum.Dose = NewDose() },
 				),
-				Entry("name missing",
-					func(datum *insulin.Insulin) { datum.Name = nil },
+				Entry("insulin type missing",
+					func(datum *insulin.Insulin) { datum.InsulinType = nil },
 				),
-				Entry("name empty",
-					func(datum *insulin.Insulin) { datum.Name = pointer.String("") },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/name", NewMeta()),
+				Entry("insulin type invalid",
+					func(datum *insulin.Insulin) {
+						datum.InsulinType.Formulation = nil
+						datum.InsulinType.Mix = nil
+					},
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulinType/formulation", NewMeta()),
 				),
-				Entry("name invalid",
-					func(datum *insulin.Insulin) { datum.Name = pointer.String(test.NewText(101, 101)) },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/name", NewMeta()),
-				),
-				Entry("name valid",
-					func(datum *insulin.Insulin) { datum.Name = pointer.String(test.NewText(1, 100)) },
+				Entry("insulin type valid",
+					func(datum *insulin.Insulin) { datum.InsulinType = testDataTypesInsulin.NewInsulinType() },
 				),
 				Entry("site missing",
 					func(datum *insulin.Insulin) { datum.Site = nil },
@@ -186,17 +128,14 @@ var _ = Describe("Insulin", func() {
 				Entry("multiple errors",
 					func(datum *insulin.Insulin) {
 						datum.Type = "invalidType"
-						datum.ActingType = pointer.String("invalid")
-						datum.Brand = pointer.String("")
 						datum.Dose = nil
-						datum.Name = pointer.String("")
+						datum.InsulinType.Formulation = nil
+						datum.InsulinType.Mix = nil
 						datum.Site = pointer.String("")
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "insulin"), "/type", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"intermediate", "long", "rapid", "short"}), "/actingType", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/brand", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/dose", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/name", &types.Meta{Type: "invalidType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulinType/formulation", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/site", &types.Meta{Type: "invalidType"}),
 				),
 			)
@@ -220,17 +159,11 @@ var _ = Describe("Insulin", func() {
 				Entry("does not modify the datum",
 					func(datum *insulin.Insulin) {},
 				),
-				Entry("does not modify the datum; acting type nil",
-					func(datum *insulin.Insulin) { datum.ActingType = nil },
-				),
-				Entry("does not modify the datum; brand nil",
-					func(datum *insulin.Insulin) { datum.Brand = nil },
-				),
 				Entry("does not modify the datum; dose nil",
 					func(datum *insulin.Insulin) { datum.Dose = nil },
 				),
-				Entry("does not modify the datum; name nil",
-					func(datum *insulin.Insulin) { datum.Name = nil },
+				Entry("does not modify the datum; insulin type nil",
+					func(datum *insulin.Insulin) { datum.InsulinType = nil },
 				),
 				Entry("does not modify the datum; site nil",
 					func(datum *insulin.Insulin) { datum.Site = nil },
