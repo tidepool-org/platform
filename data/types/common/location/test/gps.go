@@ -2,6 +2,7 @@ package test
 
 import (
 	"github.com/tidepool-org/platform/data/types/common/location"
+	testDataTypesCommonOrigin "github.com/tidepool-org/platform/data/types/common/origin/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
 )
@@ -13,6 +14,7 @@ func NewGPS() *location.GPS {
 	datum.HorizontalAccuracy = NewAccuracy(pointer.String("feet"))
 	datum.Latitude = NewLatitude()
 	datum.Longitude = NewLongitude()
+	datum.Origin = testDataTypesCommonOrigin.NewOrigin()
 	datum.VerticalAccuracy = NewAccuracy(pointer.String("feet"))
 	return datum
 }
@@ -27,6 +29,7 @@ func CloneGPS(datum *location.GPS) *location.GPS {
 	clone.HorizontalAccuracy = CloneAccuracy(datum.HorizontalAccuracy)
 	clone.Latitude = CloneLatitude(datum.Latitude)
 	clone.Longitude = CloneLongitude(datum.Longitude)
+	clone.Origin = testDataTypesCommonOrigin.CloneOrigin(datum.Origin)
 	clone.VerticalAccuracy = CloneAccuracy(datum.VerticalAccuracy)
 	return clone
 }

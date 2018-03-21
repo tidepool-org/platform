@@ -1,5 +1,6 @@
 ## HEAD
 
+* Add origin to location common data type
 * Add new fields to physical activity data type
 * Add water data type
 * Minor rename of food related constants

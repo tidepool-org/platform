@@ -8,6 +8,7 @@ import (
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/common/location"
 	testDataTypesCommonLocation "github.com/tidepool-org/platform/data/types/common/location/test"
+	testDataTypesCommonOrigin "github.com/tidepool-org/platform/data/types/common/origin/test"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -112,6 +113,16 @@ var _ = Describe("GPS", func() {
 				Entry("longitude valid",
 					func(datum *location.GPS) { datum.Longitude = testDataTypesCommonLocation.NewLongitude() },
 				),
+				Entry("origin missing",
+					func(datum *location.GPS) { datum.Origin = nil },
+				),
+				Entry("origin invalid",
+					func(datum *location.GPS) { datum.Origin.Name = nil },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/origin/name"),
+				),
+				Entry("origin valid",
+					func(datum *location.GPS) { datum.Origin = testDataTypesCommonOrigin.NewOrigin() },
+				),
 				Entry("vertical accuracy missing",
 					func(datum *location.GPS) { datum.VerticalAccuracy = nil },
 				),
@@ -131,6 +142,7 @@ var _ = Describe("GPS", func() {
 						datum.HorizontalAccuracy.Units = nil
 						datum.Latitude.Units = nil
 						datum.Longitude.Units = nil
+						datum.Origin.Name = nil
 						datum.VerticalAccuracy.Units = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/elevation/units"),
@@ -138,6 +150,7 @@ var _ = Describe("GPS", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/horizontalAccuracy/units"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/latitude/units"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/longitude/units"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/origin/name"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/verticalAccuracy/units"),
 				),
 			)
@@ -175,6 +188,9 @@ var _ = Describe("GPS", func() {
 				),
 				Entry("does not modify the datum; longitude missing",
 					func(datum *location.GPS) { datum.Longitude = nil },
+				),
+				Entry("does not modify the datum; origin missing",
+					func(datum *location.GPS) { datum.Origin = nil },
 				),
 				Entry("does not modify the datum; vertical accuracy missing",
 					func(datum *location.GPS) { datum.VerticalAccuracy = nil },

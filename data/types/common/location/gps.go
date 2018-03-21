@@ -2,6 +2,7 @@ package location
 
 import (
 	"github.com/tidepool-org/platform/data"
+	dataTypesCommonOrigin "github.com/tidepool-org/platform/data/types/common/origin"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -12,12 +13,13 @@ const (
 )
 
 type GPS struct {
-	Elevation          *Elevation `json:"elevation,omitempty" bson:"elevation,omitempty"`
-	Floor              *int       `json:"floor,omitempty" bson:"floor,omitempty"`
-	HorizontalAccuracy *Accuracy  `json:"horizontalAccuracy,omitempty" bson:"horizontalAccuracy,omitempty"`
-	Latitude           *Latitude  `json:"latitude,omitempty" bson:"latitude,omitempty"`
-	Longitude          *Longitude `json:"longitude,omitempty" bson:"longitude,omitempty"`
-	VerticalAccuracy   *Accuracy  `json:"verticalAccuracy,omitempty" bson:"verticalAccuracy,omitempty"`
+	Elevation          *Elevation                    `json:"elevation,omitempty" bson:"elevation,omitempty"`
+	Floor              *int                          `json:"floor,omitempty" bson:"floor,omitempty"`
+	HorizontalAccuracy *Accuracy                     `json:"horizontalAccuracy,omitempty" bson:"horizontalAccuracy,omitempty"`
+	Latitude           *Latitude                     `json:"latitude,omitempty" bson:"latitude,omitempty"`
+	Longitude          *Longitude                    `json:"longitude,omitempty" bson:"longitude,omitempty"`
+	Origin             *dataTypesCommonOrigin.Origin `json:"origin,omitempty" bson:"origin,omitempty"`
+	VerticalAccuracy   *Accuracy                     `json:"verticalAccuracy,omitempty" bson:"verticalAccuracy,omitempty"`
 }
 
 func ParseGPS(parser data.ObjectParser) *GPS {
@@ -40,6 +42,7 @@ func (g *GPS) Parse(parser data.ObjectParser) {
 	g.HorizontalAccuracy = ParseAccuracy(parser.NewChildObjectParser("horizontalAccuracy"))
 	g.Latitude = ParseLatitude(parser.NewChildObjectParser("latitude"))
 	g.Longitude = ParseLongitude(parser.NewChildObjectParser("longitude"))
+	g.Origin = dataTypesCommonOrigin.ParseOrigin(parser.NewChildObjectParser("origin"))
 	g.VerticalAccuracy = ParseAccuracy(parser.NewChildObjectParser("verticalAccuracy"))
 }
 
@@ -61,6 +64,9 @@ func (g *GPS) Validate(validator structure.Validator) {
 	} else {
 		validator.WithReference("longitude").ReportError(structureValidator.ErrorValueNotExists())
 	}
+	if g.Origin != nil {
+		g.Origin.Validate(validator.WithReference("origin"))
+	}
 	if g.VerticalAccuracy != nil {
 		g.VerticalAccuracy.Validate(validator.WithReference("verticalAccuracy"))
 	}
@@ -78,6 +84,9 @@ func (g *GPS) Normalize(normalizer data.Normalizer) {
 	}
 	if g.Longitude != nil {
 		g.Longitude.Normalize(normalizer.WithReference("longitude"))
+	}
+	if g.Origin != nil {
+		g.Origin.Normalize(normalizer.WithReference("origin"))
 	}
 	if g.VerticalAccuracy != nil {
 		g.VerticalAccuracy.Normalize(normalizer.WithReference("verticalAccuracy"))
