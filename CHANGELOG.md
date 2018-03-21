@@ -1,5 +1,6 @@
 ## HEAD
 
+* Add new fields to physical activity data type
 * Add water data type
 * Minor rename of food related constants
 * Add new fields to reported state data type
