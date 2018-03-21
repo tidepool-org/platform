@@ -1,5 +1,6 @@
 ## HEAD
 
+* Refactor insulin data type to add formulation and mix
 * Add origin to location common data type
 * Add new fields to physical activity data type
 * Add water data type
