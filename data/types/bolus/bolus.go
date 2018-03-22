@@ -3,6 +3,7 @@ package bolus
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/insulin"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
 )
@@ -15,6 +16,8 @@ type Bolus struct {
 	types.Base `bson:",inline"`
 
 	SubType string `json:"subType,omitempty" bson:"subType,omitempty"`
+
+	InsulinType *insulin.InsulinType `json:"insulinType,omitempty" bson:"insulinType,omitempty"`
 }
 
 type Meta struct {
@@ -39,7 +42,13 @@ func (b *Bolus) Meta() interface{} {
 func (b *Bolus) Parse(parser data.ObjectParser) error {
 	parser.SetMeta(b.Meta())
 
-	return b.Base.Parse(parser)
+	if err := b.Base.Parse(parser); err != nil {
+		return nil
+	}
+
+	b.InsulinType = insulin.ParseInsulinType(parser.NewChildObjectParser("insulinType"))
+
+	return nil
 }
 
 func (b *Bolus) Validate(validator structure.Validator) {
@@ -50,6 +59,18 @@ func (b *Bolus) Validate(validator structure.Validator) {
 	}
 
 	validator.String("subType", &b.SubType).Exists().NotEmpty()
+
+	if b.InsulinType != nil {
+		b.InsulinType.Validate(validator.WithReference("insulinType"))
+	}
+}
+
+func (b *Bolus) Normalize(normalizer data.Normalizer) {
+	b.Base.Normalize(normalizer)
+
+	if b.InsulinType != nil {
+		b.InsulinType.Normalize(normalizer.WithReference("insulinType"))
+	}
 }
 
 func (b *Bolus) IdentityFields() ([]string, error) {

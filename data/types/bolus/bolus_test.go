@@ -6,10 +6,12 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data/context"
+	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/bolus"
 	testDataTypesBolus "github.com/tidepool-org/platform/data/types/bolus/test"
+	testDataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin/test"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/id"
@@ -43,6 +45,7 @@ var _ = Describe("Bolus", func() {
 			datum := bolus.New(subType)
 			Expect(datum.Type).To(Equal("bolus"))
 			Expect(datum.SubType).To(Equal(subType))
+			Expect(datum.InsulinType).To(BeNil())
 		})
 	})
 
@@ -146,13 +149,59 @@ var _ = Describe("Bolus", func() {
 				Entry("sub type valid",
 					func(datum *bolus.Bolus) { datum.SubType = testDataTypes.NewType() },
 				),
+				Entry("insulin type missing",
+					func(datum *bolus.Bolus) { datum.InsulinType = nil },
+				),
+				Entry("insulin type invalid",
+					func(datum *bolus.Bolus) {
+						datum.InsulinType.Formulation = nil
+						datum.InsulinType.Mix = nil
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulinType/formulation"),
+				),
+				Entry("insulin type valid",
+					func(datum *bolus.Bolus) { datum.InsulinType = testDataTypesInsulin.NewInsulinType() },
+				),
 				Entry("multiple errors",
 					func(datum *bolus.Bolus) {
 						datum.Type = "invalid"
 						datum.SubType = ""
+						datum.InsulinType.Formulation = nil
+						datum.InsulinType.Mix = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "bolus"), "/type"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/subType"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulinType/formulation"),
+				),
+			)
+		})
+
+		Context("Normalize", func() {
+			DescribeTable("normalizes the datum",
+				func(mutator func(datum *bolus.Bolus)) {
+					for _, origin := range structure.Origins() {
+						datum := testDataTypesBolus.NewBolus()
+						mutator(datum)
+						expectedDatum := testDataTypesBolus.CloneBolus(datum)
+						normalizer := dataNormalizer.New()
+						Expect(normalizer).ToNot(BeNil())
+						datum.Normalize(normalizer.WithOrigin(origin))
+						Expect(normalizer.Error()).To(BeNil())
+						Expect(normalizer.Data()).To(BeEmpty())
+						Expect(datum).To(Equal(expectedDatum))
+					}
+				},
+				Entry("does not modify the datum",
+					func(datum *bolus.Bolus) {},
+				),
+				Entry("does not modify the datum; type missing",
+					func(datum *bolus.Bolus) { datum.Type = "" },
+				),
+				Entry("does not modify the datum; sub type missing",
+					func(datum *bolus.Bolus) { datum.SubType = "" },
+				),
+				Entry("does not modify the datum; insulin type missing",
+					func(datum *bolus.Bolus) { datum.InsulinType = nil },
 				),
 			)
 		})

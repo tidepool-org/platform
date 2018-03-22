@@ -16,6 +16,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/basal/temporary"
 	testDataTypesBasalTemporary "github.com/tidepool-org/platform/data/types/basal/temporary/test"
 	testDataTypesBasal "github.com/tidepool-org/platform/data/types/basal/test"
+	testDataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin/test"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/id"
@@ -40,6 +41,7 @@ func NewTemporary() *temporary.Temporary {
 	datum.DeliveryType = "temp"
 	datum.Duration = pointer.Int(test.RandomIntFromRange(temporary.DurationMinimum, temporary.DurationMaximum))
 	datum.DurationExpected = pointer.Int(test.RandomIntFromRange(*datum.Duration, temporary.DurationMaximum))
+	datum.InsulinType = testDataTypesInsulin.NewInsulinType()
 	datum.Percent = pointer.Float64(test.RandomFloat64FromRange(temporary.PercentMinimum, temporary.PercentMaximum))
 	datum.Rate = pointer.Float64(test.RandomFloat64FromRange(temporary.RateMinimum, temporary.RateMaximum))
 	datum.Suppressed = testDataTypesBasalScheduled.NewSuppressedScheduled()
@@ -54,6 +56,7 @@ func CloneTemporary(datum *temporary.Temporary) *temporary.Temporary {
 	clone.Basal = *testDataTypesBasal.CloneBasal(&datum.Basal)
 	clone.Duration = test.CloneInt(datum.Duration)
 	clone.DurationExpected = test.CloneInt(datum.DurationExpected)
+	clone.InsulinType = testDataTypesInsulin.CloneInsulinType(datum.InsulinType)
 	clone.Percent = test.CloneFloat64(datum.Percent)
 	clone.Rate = test.CloneFloat64(datum.Rate)
 	if datum.Suppressed != nil {
@@ -124,6 +127,7 @@ var _ = Describe("Temporary", func() {
 			Expect(datum.DeliveryType).To(Equal("temp"))
 			Expect(datum.Duration).To(BeNil())
 			Expect(datum.DurationExpected).To(BeNil())
+			Expect(datum.InsulinType).To(BeNil())
 			Expect(datum.Percent).To(BeNil())
 			Expect(datum.Rate).To(BeNil())
 			Expect(datum.Suppressed).To(BeNil())
@@ -453,6 +457,19 @@ var _ = Describe("Temporary", func() {
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/duration", NewMeta()),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", NewMeta()),
 				),
+				Entry("insulin type missing",
+					func(datum *temporary.Temporary) { datum.InsulinType = nil },
+				),
+				Entry("insulin type invalid",
+					func(datum *temporary.Temporary) {
+						datum.InsulinType.Formulation = nil
+						datum.InsulinType.Mix = nil
+					},
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulinType/formulation", NewMeta()),
+				),
+				Entry("insulin type valid",
+					func(datum *temporary.Temporary) { datum.InsulinType = testDataTypesInsulin.NewInsulinType() },
+				),
 				Entry("percent missing",
 					func(datum *temporary.Temporary) { datum.Percent = nil },
 				),
@@ -514,6 +531,8 @@ var _ = Describe("Temporary", func() {
 						datum.DeliveryType = "invalidDeliveryType"
 						datum.Duration = nil
 						datum.DurationExpected = pointer.Int(604800001)
+						datum.InsulinType.Formulation = nil
+						datum.InsulinType.Mix = nil
 						datum.Percent = pointer.Float64(10.1)
 						datum.Rate = pointer.Float64(100.1)
 						datum.Suppressed = testDataTypesBasalTemporary.NewSuppressedTemporary(nil)
@@ -522,6 +541,7 @@ var _ = Describe("Temporary", func() {
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidDeliveryType", "temp"), "/deliveryType", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulinType/formulation", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(10.1, 0.0, 10.0), "/percent", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/suppressed", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
@@ -558,6 +578,9 @@ var _ = Describe("Temporary", func() {
 				),
 				Entry("does not modify the datum; duration expected missing",
 					func(datum *temporary.Temporary) { datum.DurationExpected = nil },
+				),
+				Entry("does not modify the datum; insulin type missing",
+					func(datum *temporary.Temporary) { datum.InsulinType = nil },
 				),
 				Entry("does not modify the datum; percent missing",
 					func(datum *temporary.Temporary) { datum.Percent = nil },
@@ -622,6 +645,19 @@ var _ = Describe("Temporary", func() {
 				Entry("delivery type temp",
 					func(datum *temporary.SuppressedTemporary) { datum.DeliveryType = pointer.String("temp") },
 				),
+				Entry("insulin type missing",
+					func(datum *temporary.SuppressedTemporary) { datum.InsulinType = nil },
+				),
+				Entry("insulin type invalid",
+					func(datum *temporary.SuppressedTemporary) {
+						datum.InsulinType.Formulation = nil
+						datum.InsulinType.Mix = nil
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulinType/formulation"),
+				),
+				Entry("insulin type valid",
+					func(datum *temporary.SuppressedTemporary) { datum.InsulinType = testDataTypesInsulin.NewInsulinType() },
+				),
 				Entry("percent missing",
 					func(datum *temporary.SuppressedTemporary) { datum.Percent = nil },
 				),
@@ -681,12 +717,15 @@ var _ = Describe("Temporary", func() {
 					func(datum *temporary.SuppressedTemporary) {
 						datum.Type = pointer.String("invalidType")
 						datum.DeliveryType = pointer.String("invalidDeliveryType")
+						datum.InsulinType.Formulation = nil
+						datum.InsulinType.Mix = nil
 						datum.Percent = pointer.Float64(10.1)
 						datum.Rate = pointer.Float64(100.1)
 						datum.Suppressed = testDataTypesBasalTemporary.NewSuppressedTemporary(nil)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalidType", "basal"), "/type"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalidDeliveryType", "temp"), "/deliveryType"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulinType/formulation"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(10.1, 0.0, 10.0), "/percent"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/suppressed"),
@@ -720,6 +759,9 @@ var _ = Describe("Temporary", func() {
 				),
 				Entry("does not modify the datum; annotations missing",
 					func(datum *temporary.SuppressedTemporary) { datum.Annotations = nil },
+				),
+				Entry("does not modify the datum; insulin type missing",
+					func(datum *temporary.SuppressedTemporary) { datum.InsulinType = nil },
 				),
 				Entry("does not modify the datum; percent missing",
 					func(datum *temporary.SuppressedTemporary) { datum.Percent = nil },

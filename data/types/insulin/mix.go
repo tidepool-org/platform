@@ -74,6 +74,9 @@ func (m *Mix) Parse(parser data.ArrayParser) {
 }
 
 func (m *Mix) Validate(validator structure.Validator) {
+	if len(*m) == 0 {
+		validator.ReportError(structureValidator.ErrorValueEmpty())
+	}
 	for index, datum := range *m {
 		datumValidator := validator.WithReference(strconv.Itoa(index))
 		if datum != nil {
