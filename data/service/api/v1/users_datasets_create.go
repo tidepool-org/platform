@@ -83,6 +83,7 @@ func UsersDatasetsCreate(dataServiceContext dataService.Context) {
 
 	if err = validator.Error(); err != nil {
 		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
+		return
 	}
 
 	(*datasetDatum).SetUserID(&targetUserID)
@@ -91,6 +92,7 @@ func UsersDatasetsCreate(dataServiceContext dataService.Context) {
 
 	if err = normalizer.Error(); err != nil {
 		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
+		return
 	}
 
 	dataset, ok := (*datasetDatum).(*upload.Upload)
