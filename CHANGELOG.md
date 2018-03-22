@@ -1,5 +1,6 @@
 ## HEAD
 
+* Add new fields to pump settings data type
 * Add insulin type to automated, scheduled, temporary basal and all bolus types
 * Refactor insulin data type to add formulation and mix
 * Add origin to location common data type
