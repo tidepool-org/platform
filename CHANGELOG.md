@@ -1,5 +1,6 @@
 ## HEAD
 
+* Add new fields to cgm settings data type
 * Add new fields to pump settings data type
 * Add insulin type to automated, scheduled, temporary basal and all bolus types
 * Refactor insulin data type to add formulation and mix

@@ -1,6 +1,9 @@
 package cgm_test
 
 import (
+	"math/rand"
+	"sort"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -30,14 +33,29 @@ func NewMeta() interface{} {
 	}
 }
 
+func NewManufacturer(minimumLength int, maximumLength int) string {
+	return test.NewText(minimumLength, maximumLength)
+}
+
+func NewManufacturers(minimumLength int, maximumLength int) []string {
+	result := make([]string, minimumLength+rand.Intn(maximumLength-minimumLength+1))
+	for index := range result {
+		result[index] = NewManufacturer(1, 100)
+	}
+	return result
+}
+
 func NewCGM(units *string) *cgm.CGM {
 	datum := cgm.New()
 	datum.Base = *testDataTypes.NewBase()
 	datum.Type = "cgmSettings"
 	datum.HighLevelAlert = NewHighLevelAlert(units)
 	datum.LowLevelAlert = NewLowLevelAlert(units)
+	datum.Manufacturers = pointer.StringArray(NewManufacturers(1, 10))
+	datum.Model = pointer.String(test.NewText(1, 100))
 	datum.OutOfRangeAlert = NewOutOfRangeAlert()
 	datum.RateAlerts = NewRateAlerts(units)
+	datum.SerialNumber = pointer.String(test.NewText(1, 100))
 	datum.TransmitterID = pointer.String(test.NewVariableString(5, 6, transmitterIDCharSet))
 	datum.Units = units
 	return datum
@@ -51,8 +69,11 @@ func CloneCGM(datum *cgm.CGM) *cgm.CGM {
 	clone.Base = *testDataTypes.CloneBase(&datum.Base)
 	clone.HighLevelAlert = CloneHighLevelAlert(datum.HighLevelAlert)
 	clone.LowLevelAlert = CloneLowLevelAlert(datum.LowLevelAlert)
+	clone.Manufacturers = test.CloneStringArray(datum.Manufacturers)
+	clone.Model = test.CloneString(datum.Model)
 	clone.OutOfRangeAlert = CloneOutOfRangeAlert(datum.OutOfRangeAlert)
 	clone.RateAlerts = CloneRateAlerts(datum.RateAlerts)
+	clone.SerialNumber = test.CloneString(datum.SerialNumber)
 	clone.TransmitterID = test.CloneString(datum.TransmitterID)
 	clone.Units = test.CloneString(datum.Units)
 	return clone
@@ -74,8 +95,11 @@ var _ = Describe("CGM", func() {
 			Expect(datum.Type).To(Equal("cgmSettings"))
 			Expect(datum.HighLevelAlert).To(BeNil())
 			Expect(datum.LowLevelAlert).To(BeNil())
+			Expect(datum.Manufacturers).To(BeNil())
+			Expect(datum.Model).To(BeNil())
 			Expect(datum.OutOfRangeAlert).To(BeNil())
 			Expect(datum.RateAlerts).To(BeNil())
+			Expect(datum.SerialNumber).To(BeNil())
 			Expect(datum.TransmitterID).To(BeNil())
 			Expect(datum.Units).To(BeNil())
 		})
@@ -139,6 +163,73 @@ var _ = Describe("CGM", func() {
 					pointer.String("mmol/L"),
 					func(datum *cgm.CGM, units *string) { datum.LowLevelAlert = NewLowLevelAlert(units) },
 				),
+				Entry("manufacturers missing",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.Manufacturers = nil },
+				),
+				Entry("manufacturers empty",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) {
+						datum.Manufacturers = pointer.StringArray([]string{})
+					},
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/manufacturers", NewMeta()),
+				),
+				Entry("manufacturers length; in range (upper)",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) {
+						datum.Manufacturers = pointer.StringArray(NewManufacturers(10, 10))
+					},
+				),
+				Entry("manufacturers length; out of range (upper)",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) {
+						datum.Manufacturers = pointer.StringArray(NewManufacturers(11, 11))
+					},
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(11, 10), "/manufacturers", NewMeta()),
+				),
+				Entry("manufacturers manufacturer empty",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) {
+						datum.Manufacturers = pointer.StringArray(append([]string{NewManufacturer(1, 100), "", NewManufacturer(1, 100), ""}, NewManufacturers(0, 6)...))
+					},
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/manufacturers/1", NewMeta()),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/manufacturers/3", NewMeta()),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueDuplicate(), "/manufacturers/3", NewMeta()),
+				),
+				Entry("manufacturers manufacturer length; in range (upper)",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) {
+						datum.Manufacturers = pointer.StringArray(append([]string{NewManufacturer(100, 100), NewManufacturer(1, 100), NewManufacturer(100, 100)}, NewManufacturers(0, 7)...))
+					},
+				),
+				Entry("manufacturers manufacturer length; out of range (upper)",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) {
+						datum.Manufacturers = pointer.StringArray(append([]string{NewManufacturer(101, 101), NewManufacturer(1, 100), NewManufacturer(101, 101)}, NewManufacturers(0, 7)...))
+					},
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/manufacturers/0", NewMeta()),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/manufacturers/2", NewMeta()),
+				),
+				Entry("model missing",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.Model = nil },
+				),
+				Entry("model empty",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.Model = pointer.String("") },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/model", NewMeta()),
+				),
+				Entry("model length in range (upper)",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.Model = pointer.String(test.NewText(1, 100)) },
+				),
+				Entry("model length out of range (upper)",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) {
+						datum.Model = pointer.String(test.NewText(101, 101))
+					},
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/model", NewMeta()),
+				),
 				Entry("out of range alert missing",
 					pointer.String("mmol/L"),
 					func(datum *cgm.CGM, units *string) { datum.OutOfRangeAlert = nil },
@@ -166,6 +257,28 @@ var _ = Describe("CGM", func() {
 				Entry("rate alerts valid",
 					pointer.String("mmol/L"),
 					func(datum *cgm.CGM, units *string) { datum.RateAlerts = NewRateAlerts(units) },
+				),
+				Entry("serial number missing",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.SerialNumber = nil },
+				),
+				Entry("serial number empty",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) { datum.SerialNumber = pointer.String("") },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/serialNumber", NewMeta()),
+				),
+				Entry("serial number length in range (upper)",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) {
+						datum.SerialNumber = pointer.String(test.NewText(1, 100))
+					},
+				),
+				Entry("serial number length out of range (upper)",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) {
+						datum.SerialNumber = pointer.String(test.NewText(101, 101))
+					},
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/serialNumber", NewMeta()),
 				),
 				Entry("transmitted id missing",
 					pointer.String("mmol/L"),
@@ -242,40 +355,6 @@ var _ = Describe("CGM", func() {
 		})
 
 		Context("Normalize", func() {
-			DescribeTable("normalizes the datum",
-				func(units *string, mutator func(datum *cgm.CGM, units *string), expectator func(datum *cgm.CGM, expectedDatum *cgm.CGM, units *string)) {
-					for _, origin := range structure.Origins() {
-						datum := NewCGM(units)
-						mutator(datum, units)
-						expectedDatum := CloneCGM(datum)
-						normalizer := dataNormalizer.New()
-						Expect(normalizer).ToNot(BeNil())
-						datum.Normalize(normalizer.WithOrigin(origin))
-						Expect(normalizer.Error()).To(BeNil())
-						Expect(normalizer.Data()).To(BeEmpty())
-						if expectator != nil {
-							expectator(datum, expectedDatum, units)
-						}
-						Expect(datum).To(Equal(expectedDatum))
-					}
-				},
-				Entry("does not modify the datum",
-					pointer.String("mmol/L"),
-					func(datum *cgm.CGM, units *string) {},
-					nil,
-				),
-				Entry("does not modify the datum; units missing",
-					nil,
-					func(datum *cgm.CGM, units *string) {},
-					nil,
-				),
-				Entry("does not modify the datum; units invalid",
-					pointer.String("invalid"),
-					func(datum *cgm.CGM, units *string) {},
-					nil,
-				),
-			)
-
 			DescribeTable("normalizes the datum with origin external",
 				func(units *string, mutator func(datum *cgm.CGM, units *string), expectator func(datum *cgm.CGM, expectedDatum *cgm.CGM, units *string)) {
 					datum := NewCGM(units)
@@ -291,15 +370,39 @@ var _ = Describe("CGM", func() {
 					}
 					Expect(datum).To(Equal(expectedDatum))
 				},
-				Entry("does not modify the datum; units mmol/L",
+				Entry("modifies the datum",
 					pointer.String("mmol/L"),
 					func(datum *cgm.CGM, units *string) {},
+					func(datum *cgm.CGM, expectedDatum *cgm.CGM, units *string) {
+						sort.Strings(*expectedDatum.Manufacturers)
+					},
+				),
+				Entry("modifies the datum; units missing",
 					nil,
+					func(datum *cgm.CGM, units *string) {},
+					func(datum *cgm.CGM, expectedDatum *cgm.CGM, units *string) {
+						sort.Strings(*expectedDatum.Manufacturers)
+					},
+				),
+				Entry("modifies the datum; units invalid",
+					pointer.String("invalid"),
+					func(datum *cgm.CGM, units *string) {},
+					func(datum *cgm.CGM, expectedDatum *cgm.CGM, units *string) {
+						sort.Strings(*expectedDatum.Manufacturers)
+					},
+				),
+				Entry("modifies the datum; units mmol/L",
+					pointer.String("mmol/L"),
+					func(datum *cgm.CGM, units *string) {},
+					func(datum *cgm.CGM, expectedDatum *cgm.CGM, units *string) {
+						sort.Strings(*expectedDatum.Manufacturers)
+					},
 				),
 				Entry("modifies the datum; units mmol/l",
 					pointer.String("mmol/l"),
 					func(datum *cgm.CGM, units *string) {},
 					func(datum *cgm.CGM, expectedDatum *cgm.CGM, units *string) {
+						sort.Strings(*expectedDatum.Manufacturers)
 						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
 					},
 				),
@@ -309,6 +412,7 @@ var _ = Describe("CGM", func() {
 					func(datum *cgm.CGM, expectedDatum *cgm.CGM, units *string) {
 						testDataBloodGlucose.ExpectNormalizedValue(datum.HighLevelAlert.Level, expectedDatum.HighLevelAlert.Level, units)
 						testDataBloodGlucose.ExpectNormalizedValue(datum.LowLevelAlert.Level, expectedDatum.LowLevelAlert.Level, units)
+						sort.Strings(*expectedDatum.Manufacturers)
 						testDataBloodGlucose.ExpectNormalizedValue(datum.RateAlerts.FallRateAlert.Rate, expectedDatum.RateAlerts.FallRateAlert.Rate, units)
 						testDataBloodGlucose.ExpectNormalizedValue(datum.RateAlerts.RiseRateAlert.Rate, expectedDatum.RateAlerts.RiseRateAlert.Rate, units)
 						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
@@ -320,6 +424,7 @@ var _ = Describe("CGM", func() {
 					func(datum *cgm.CGM, expectedDatum *cgm.CGM, units *string) {
 						testDataBloodGlucose.ExpectNormalizedValue(datum.HighLevelAlert.Level, expectedDatum.HighLevelAlert.Level, units)
 						testDataBloodGlucose.ExpectNormalizedValue(datum.LowLevelAlert.Level, expectedDatum.LowLevelAlert.Level, units)
+						sort.Strings(*expectedDatum.Manufacturers)
 						testDataBloodGlucose.ExpectNormalizedValue(datum.RateAlerts.FallRateAlert.Rate, expectedDatum.RateAlerts.FallRateAlert.Rate, units)
 						testDataBloodGlucose.ExpectNormalizedValue(datum.RateAlerts.RiseRateAlert.Rate, expectedDatum.RateAlerts.RiseRateAlert.Rate, units)
 						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)

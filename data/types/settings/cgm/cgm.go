@@ -2,6 +2,7 @@ package cgm
 
 import (
 	"regexp"
+	"sort"
 
 	"github.com/tidepool-org/platform/data"
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
@@ -14,16 +15,23 @@ import (
 const (
 	Type = "cgmSettings"
 
+	ManufacturerLengthMaximum     = 100
+	ManufacturersLengthMaximum    = 10
+	ModelLengthMaximum            = 100
+	SerialNumberLengthMaximum     = 100
 	TransmitterIDExpressionString = "^[0-9A-Z]{5,6}$"
 )
 
 type CGM struct {
 	types.Base `bson:",inline"`
 
-	HighLevelAlert  *HighLevelAlert  `json:"highAlerts,omitempty" bson:"highAlerts,omitempty"`               // TODO: Rename highLevelAlert
-	LowLevelAlert   *LowLevelAlert   `json:"lowAlerts,omitempty" bson:"lowAlerts,omitempty"`                 // TODO: Rename lowLevelAlert
+	HighLevelAlert  *HighLevelAlert  `json:"highAlerts,omitempty" bson:"highAlerts,omitempty"` // TODO: Rename highLevelAlert
+	LowLevelAlert   *LowLevelAlert   `json:"lowAlerts,omitempty" bson:"lowAlerts,omitempty"`   // TODO: Rename lowLevelAlert
+	Manufacturers   *[]string        `json:"manufacturers,omitempty" bson:"manufacturers,omitempty"`
+	Model           *string          `json:"model,omitempty" bson:"model,omitempty"`
 	OutOfRangeAlert *OutOfRangeAlert `json:"outOfRangeAlerts,omitempty" bson:"outOfRangeAlerts,omitempty"`   // TODO: Rename outOfRangeAlert
 	RateAlerts      *RateAlerts      `json:"rateOfChangeAlert,omitempty" bson:"rateOfChangeAlert,omitempty"` // TODO: Split into separate fallRateAlert, riseRateAlert
+	SerialNumber    *string          `json:"serialNumber,omitempty" bson:"serialNumber,omitempty"`
 	TransmitterID   *string          `json:"transmitterId,omitempty" bson:"transmitterId,omitempty"`
 	Units           *string          `json:"units,omitempty" bson:"units,omitempty"`
 }
@@ -43,8 +51,11 @@ func (c *CGM) Parse(parser data.ObjectParser) error {
 
 	c.HighLevelAlert = ParseHighLevelAlert(parser.NewChildObjectParser("highAlerts"))
 	c.LowLevelAlert = ParseLowLevelAlert(parser.NewChildObjectParser("lowAlerts"))
+	c.Manufacturers = parser.ParseStringArray("manufacturers")
+	c.Model = parser.ParseString("model")
 	c.OutOfRangeAlert = ParseOutOfRangeAlert(parser.NewChildObjectParser("outOfRangeAlerts"))
 	c.RateAlerts = ParseRateAlerts(parser.NewChildObjectParser("rateOfChangeAlerts"))
+	c.SerialNumber = parser.ParseString("serialNumber")
 	c.TransmitterID = parser.ParseString("transmitterId")
 	c.Units = parser.ParseString("units")
 
@@ -72,6 +83,10 @@ func (c *CGM) Validate(validator structure.Validator) {
 	} else {
 		validator.WithReference("lowAlerts").ReportError(structureValidator.ErrorValueNotExists())
 	}
+	validator.StringArray("manufacturers", c.Manufacturers).NotEmpty().LengthLessThanOrEqualTo(ManufacturersLengthMaximum).Each(func(stringValidator structure.String) {
+		stringValidator.Exists().NotEmpty().LengthLessThanOrEqualTo(ManufacturerLengthMaximum)
+	}).EachUnique()
+	validator.String("model", c.Model).NotEmpty().LengthLessThanOrEqualTo(ModelLengthMaximum)
 	if c.OutOfRangeAlert != nil {
 		c.OutOfRangeAlert.Validate(validator.WithReference("outOfRangeAlerts"))
 	} else {
@@ -82,6 +97,7 @@ func (c *CGM) Validate(validator structure.Validator) {
 	} else {
 		validator.WithReference("rateOfChangeAlerts").ReportError(structureValidator.ErrorValueNotExists())
 	}
+	validator.String("serialNumber", c.SerialNumber).NotEmpty().LengthLessThanOrEqualTo(SerialNumberLengthMaximum)
 	validator.String("transmitterId", c.TransmitterID).Exists().Using(ValidateTransmitterID)
 	validator.String("units", c.Units).Exists().OneOf(dataBloodGlucose.Units()...)
 }
@@ -98,6 +114,11 @@ func (c *CGM) Normalize(normalizer data.Normalizer) {
 	}
 	if c.LowLevelAlert != nil {
 		c.LowLevelAlert.Normalize(normalizer.WithReference("lowAlerts"), c.Units)
+	}
+	if normalizer.Origin() == structure.OriginExternal {
+		if c.Manufacturers != nil {
+			sort.Strings(*c.Manufacturers)
+		}
 	}
 	if c.OutOfRangeAlert != nil {
 		c.OutOfRangeAlert.Normalize(normalizer.WithReference("outOfRangeAlerts"))
