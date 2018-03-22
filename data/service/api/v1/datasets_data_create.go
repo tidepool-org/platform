@@ -106,9 +106,11 @@ func DatasetsDataCreate(dataServiceContext dataService.Context) {
 
 	if err = validator.Error(); err != nil {
 		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
+		return
 	}
 	if err = normalizer.Error(); err != nil {
 		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
+		return
 	}
 
 	datumArray = append(datumArray, normalizer.Data()...)

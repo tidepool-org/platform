@@ -79,6 +79,7 @@ func UsersDatasetsCreate(dataServiceContext dataService.Context) {
 	dataset.Validate(validator)
 	if err = validator.Error(); err != nil {
 		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
+		return
 	}
 
 	dataset.SetUserID(&targetUserID)
@@ -87,6 +88,7 @@ func UsersDatasetsCreate(dataServiceContext dataService.Context) {
 
 	if err = normalizer.Error(); err != nil {
 		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
+		return
 	}
 
 	dataset.DataState = pointer.String("open") // TODO: Deprecated DataState (after data migration)
