@@ -153,7 +153,7 @@ var _ = Describe("Pump", func() {
 				Entry("active schedule name valid",
 					pointer.String("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						datum.ActiveScheduleName = pointer.String(datum.BasalSchedules.Entries[0].Name)
+						datum.ActiveScheduleName = pointer.String(testDataTypesBasal.NewScheduleName())
 					},
 				),
 				Entry("basal schedules missing",

@@ -61,8 +61,8 @@ func CloneBasalScheduleArrayMap(datumMap *pump.BasalScheduleArrayMap) *pump.Basa
 		return nil
 	}
 	clone := pump.NewBasalScheduleArrayMap()
-	for _, entry := range datumMap.Entries {
-		clone.Set(entry.Name, CloneBasalScheduleArray(entry.Array))
+	for datumName, datumArray := range *datumMap {
+		clone.Set(datumName, CloneBasalScheduleArray(datumArray))
 	}
 	return clone
 }

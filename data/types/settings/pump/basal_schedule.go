@@ -1,6 +1,7 @@
 package pump
 
 import (
+	"sort"
 	"strconv"
 
 	"github.com/tidepool-org/platform/data"
@@ -89,26 +90,16 @@ func (b *BasalScheduleArray) Normalize(normalizer data.Normalizer) {
 	}
 }
 
-// TODO: Can we have multiple schedules with the same name?
-// TODO: Can we have an empty name (i.e. "")?
-
-type BasalScheduleNameArrayEntry struct {
-	Name  string
-	Array *BasalScheduleArray
-}
-
-type BasalScheduleArrayMap struct {
-	Entries []BasalScheduleNameArrayEntry
-}
+type BasalScheduleArrayMap map[string]*BasalScheduleArray
 
 func ParseBasalScheduleArrayMap(parser data.ObjectParser) *BasalScheduleArrayMap {
 	if parser.Object() == nil {
 		return nil
 	}
-	basalScheduleArrayMap := NewBasalScheduleArrayMap()
-	basalScheduleArrayMap.Parse(parser)
+	datum := NewBasalScheduleArrayMap()
+	datum.Parse(parser)
 	parser.ProcessNotParsed()
-	return basalScheduleArrayMap
+	return datum
 }
 
 func NewBasalScheduleArrayMap() *BasalScheduleArrayMap {
@@ -116,16 +107,16 @@ func NewBasalScheduleArrayMap() *BasalScheduleArrayMap {
 }
 
 func (b *BasalScheduleArrayMap) Parse(parser data.ObjectParser) {
-	for key := range *parser.Object() {
-		b.Set(key, ParseBasalScheduleArray(parser.NewChildArrayParser(key)))
+	for name := range *parser.Object() {
+		b.Set(name, ParseBasalScheduleArray(parser.NewChildArrayParser(name)))
 	}
 }
 
 func (b *BasalScheduleArrayMap) Validate(validator structure.Validator) {
-	for _, entry := range b.Entries {
-		arrayValidator := validator.WithReference(entry.Name)
-		if entry.Array != nil {
-			entry.Array.Validate(arrayValidator)
+	for _, name := range b.sortedNames() {
+		arrayValidator := validator.WithReference(name)
+		if array := b.Get(name); array != nil {
+			array.Validate(arrayValidator)
 		} else {
 			arrayValidator.ReportError(structureValidator.ErrorValueNotExists())
 		}
@@ -133,32 +124,29 @@ func (b *BasalScheduleArrayMap) Validate(validator structure.Validator) {
 }
 
 func (b *BasalScheduleArrayMap) Normalize(normalizer data.Normalizer) {
-	for _, entry := range b.Entries {
-		if entry.Array != nil {
-			entry.Array.Normalize(normalizer.WithReference(entry.Name))
+	for _, name := range b.sortedNames() {
+		if array := b.Get(name); array != nil {
+			array.Normalize(normalizer.WithReference(name))
 		}
 	}
 }
 
 func (b *BasalScheduleArrayMap) Get(name string) *BasalScheduleArray {
-	if index := b.find(name); index != -1 {
-		return b.Entries[index].Array
+	if array, exists := (*b)[name]; exists {
+		return array
 	}
 	return nil
 }
 
-func (b *BasalScheduleArrayMap) Set(name string, basalScheduleArray *BasalScheduleArray) {
-	if index := b.find(name); index != -1 {
-		b.Entries = append(b.Entries[:index], b.Entries[index+1:]...)
-	}
-	b.Entries = append(b.Entries, BasalScheduleNameArrayEntry{Name: name, Array: basalScheduleArray})
+func (b *BasalScheduleArrayMap) Set(name string, array *BasalScheduleArray) {
+	(*b)[name] = array
 }
 
-func (b *BasalScheduleArrayMap) find(name string) int {
-	for index, entry := range b.Entries {
-		if entry.Name == name {
-			return index
-		}
+func (b *BasalScheduleArrayMap) sortedNames() []string {
+	names := []string{}
+	for name := range *b {
+		names = append(names, name)
 	}
-	return -1
+	sort.Strings(names)
+	return names
 }
