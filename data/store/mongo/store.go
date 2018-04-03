@@ -11,7 +11,7 @@ type Store struct {
 }
 
 func NewStore(cfg *mongo.Config, lgr log.Logger) (*Store, error) {
-	str, err := mongo.New(cfg, lgr)
+	str, err := mongo.NewStore(cfg, lgr)
 	if err != nil {
 		return nil, err
 	}

@@ -86,14 +86,14 @@ package mongo_test
 // 	Context("New", func() {
 // 		It("returns an error if unsuccessful", func() {
 // 			var err error
-// 			mongoStore, err = mongo.New(nil, nil)
+// 			mongoStore, err = mongo.NewStore(nil, nil)
 // 			Expect(err).To(HaveOccurred())
 // 			Expect(mongoStore).To(BeNil())
 // 		})
 
 // 		It("returns a new store and no error if successful", func() {
 // 			var err error
-// 			mongoStore, err = mongo.New(mongoConfig, null.NewLogger())
+// 			mongoStore, err = mongo.NewStore(mongoConfig, null.NewLogger())
 // 			Expect(err).ToNot(HaveOccurred())
 // 			Expect(mongoStore).ToNot(BeNil())
 // 		})
@@ -102,7 +102,7 @@ package mongo_test
 // 	Context("with a new store", func() {
 // 		BeforeEach(func() {
 // 			var err error
-// 			mongoStore, err = mongo.New(mongoConfig, null.NewLogger())
+// 			mongoStore, err = mongo.NewStore(mongoConfig, null.NewLogger())
 // 			Expect(err).ToNot(HaveOccurred())
 // 			Expect(mongoStore).ToNot(BeNil())
 // 		})

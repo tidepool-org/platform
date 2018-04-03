@@ -100,7 +100,7 @@ func (s *Service) initializeNotificationStore() error {
 
 	s.Logger().Debug("Creating notification store")
 
-	str, err := notificationMongo.New(cfg, s.Logger())
+	str, err := notificationMongo.NewStore(cfg, s.Logger())
 	if err != nil {
 		return errors.Wrap(err, "unable to create notification store")
 	}

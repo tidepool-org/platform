@@ -14,8 +14,8 @@ import (
 	"github.com/tidepool-org/platform/store/mongo"
 )
 
-func New(cfg *mongo.Config, lgr log.Logger) (*Store, error) {
-	baseStore, err := mongo.New(cfg, lgr)
+func NewStore(cfg *mongo.Config, lgr log.Logger) (*Store, error) {
+	baseStore, err := mongo.NewStore(cfg, lgr)
 	if err != nil {
 		return nil, err
 	}

@@ -24,7 +24,7 @@ type Status struct {
 	Ping        string
 }
 
-func New(cfg *Config, lgr log.Logger) (*Store, error) {
+func NewStore(cfg *Config, lgr log.Logger) (*Store, error) {
 	if cfg == nil {
 		return nil, errors.New("config is missing")
 	}

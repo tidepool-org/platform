@@ -15,12 +15,12 @@ import (
 	"github.com/tidepool-org/platform/user/store"
 )
 
-func New(cfg *Config, lgr log.Logger) (*Store, error) {
+func NewStore(cfg *Config, lgr log.Logger) (*Store, error) {
 	if cfg == nil {
 		return nil, errors.New("config is missing")
 	}
 
-	baseStore, err := mongo.New(cfg.Config, lgr)
+	baseStore, err := mongo.NewStore(cfg.Config, lgr)
 	if err != nil {
 		return nil, err
 	}

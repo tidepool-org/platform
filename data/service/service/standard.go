@@ -192,7 +192,7 @@ func (s *Standard) initializeDataStoreDEPRECATED() error {
 
 	s.Logger().Debug("Creating data store")
 
-	str, err := dataStoreDEPRECATEDMongo.New(cfg, s.Logger())
+	str, err := dataStoreDEPRECATEDMongo.NewStore(cfg, s.Logger())
 	if err != nil {
 		return errors.Wrap(err, "unable to create data store DEPRECATED")
 	}
@@ -230,7 +230,7 @@ func (s *Standard) initializeSyncTaskStore() error {
 
 	s.Logger().Debug("Creating sync task store")
 
-	str, err := syncTaskMongo.New(cfg, s.Logger())
+	str, err := syncTaskMongo.NewStore(cfg, s.Logger())
 	if err != nil {
 		return errors.Wrap(err, "unable to create sync task store")
 	}
