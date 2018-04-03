@@ -102,7 +102,7 @@ func (s *Service) initializeTaskStore() error {
 
 	s.Logger().Debug("Creating task store")
 
-	taskStore, err := taskMongo.New(cfg, s.Logger())
+	taskStore, err := taskMongo.NewStore(cfg, s.Logger())
 	if err != nil {
 		return errors.Wrap(err, "unable to create task store")
 	}
