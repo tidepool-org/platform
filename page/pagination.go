@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/tidepool-org/platform/client"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -44,5 +44,5 @@ func (p *Pagination) Mutate(req *http.Request) error {
 		"page": strconv.Itoa(p.Page),
 		"size": strconv.Itoa(p.Size),
 	}
-	return client.NewParametersMutator(parameters).Mutate(req)
+	return request.NewParametersMutator(parameters).Mutate(req)
 }

@@ -45,7 +45,7 @@ func (c *Client) HTTPClient() *http.Client {
 	return c.httpClient
 }
 
-func (c *Client) SendRequestAsUser(ctx context.Context, method string, url string, mutators []client.Mutator, requestBody interface{}, responseBody interface{}) error {
+func (c *Client) SendRequestAsUser(ctx context.Context, method string, url string, mutators []request.Mutator, requestBody interface{}, responseBody interface{}) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -60,7 +60,7 @@ func (c *Client) SendRequestAsUser(ctx context.Context, method string, url strin
 	return c.SendRequest(ctx, method, url, mutators, requestBody, responseBody, c.HTTPClient())
 }
 
-func (c *Client) SendRequestAsServer(ctx context.Context, method string, url string, mutators []client.Mutator, requestBody interface{}, responseBody interface{}) error {
+func (c *Client) SendRequestAsServer(ctx context.Context, method string, url string, mutators []request.Mutator, requestBody interface{}, responseBody interface{}) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}

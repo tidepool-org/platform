@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/page"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -130,7 +130,7 @@ func (d *DataSetFilter) Mutate(req *http.Request) error {
 	if d.DeviceID != nil {
 		parameters["deviceId"] = *d.DeviceID
 	}
-	return client.NewParametersMutator(parameters).Mutate(req)
+	return request.NewParametersMutator(parameters).Mutate(req)
 }
 
 type DataSetCreate struct {

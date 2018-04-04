@@ -5,18 +5,17 @@ import (
 	"net/http"
 
 	"github.com/tidepool-org/platform/auth"
-	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/request"
 )
 
 type SessionTokenHeaderMutator struct {
-	*client.HeaderMutator
+	*request.HeaderMutator
 }
 
 func NewSessionTokenHeaderMutator(sessionToken string) *SessionTokenHeaderMutator {
 	return &SessionTokenHeaderMutator{
-		HeaderMutator: client.NewHeaderMutator(auth.TidepoolSessionTokenHeaderKey, sessionToken),
+		HeaderMutator: request.NewHeaderMutator(auth.TidepoolSessionTokenHeaderKey, sessionToken),
 	}
 }
 
@@ -29,12 +28,12 @@ func (s *SessionTokenHeaderMutator) Mutate(req *http.Request) error {
 }
 
 type RestrictedTokenParameterMutator struct {
-	*client.ParameterMutator
+	*request.ParameterMutator
 }
 
 func NewRestrictedTokenParameterMutator(restrictedToken string) *RestrictedTokenParameterMutator {
 	return &RestrictedTokenParameterMutator{
-		ParameterMutator: client.NewParameterMutator(auth.TidepoolRestrictedTokenParameterKey, restrictedToken),
+		ParameterMutator: request.NewParameterMutator(auth.TidepoolRestrictedTokenParameterKey, restrictedToken),
 	}
 }
 
@@ -47,12 +46,12 @@ func (r *RestrictedTokenParameterMutator) Mutate(req *http.Request) error {
 }
 
 type ServiceSecretHeaderMutator struct {
-	*client.HeaderMutator
+	*request.HeaderMutator
 }
 
 func NewServiceSecretHeaderMutator(serviceSecret string) *ServiceSecretHeaderMutator {
 	return &ServiceSecretHeaderMutator{
-		HeaderMutator: client.NewHeaderMutator(auth.TidepoolServiceSecretHeaderKey, serviceSecret),
+		HeaderMutator: request.NewHeaderMutator(auth.TidepoolServiceSecretHeaderKey, serviceSecret),
 	}
 }
 

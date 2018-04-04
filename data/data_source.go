@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/auth"
-	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/page"
@@ -77,7 +76,7 @@ func (d *DataSourceFilter) Mutate(req *http.Request) error {
 	if d.State != nil {
 		parameters["state"] = *d.State
 	}
-	return client.NewParametersMutator(parameters).Mutate(req)
+	return request.NewParametersMutator(parameters).Mutate(req)
 }
 
 type DataSourceCreate struct {
