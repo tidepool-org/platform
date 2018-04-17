@@ -1,5 +1,6 @@
 ## HEAD
 
+* Add additional support Medtronic device models
 * Add tests for missing upload id
 * Add automated basal data type
 * Refactor suppressed basal to improve validations
