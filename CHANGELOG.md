@@ -1,5 +1,6 @@
 ## HEAD
 
+* Fix Dexcom API authentication failure; always update provider session, even if error
 * Add additional support Medtronic device models
 * Add tests for missing upload id
 * Add automated basal data type

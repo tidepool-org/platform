@@ -266,6 +266,10 @@ func (q *Queue) completeTask(ctx context.Context, tsk *task.Task) {
 	if err != nil {
 		logger.WithError(err).Error("Failure to update state during complete task")
 	}
+
+	if tsk.HasError() {
+		logger.WithError(tsk.Error.Error).Error("Error occurred while running task")
+	}
 }
 
 func (q *Queue) computeState(tsk *task.Task) {
