@@ -1,5 +1,6 @@
 ## HEAD
 
+* Fix Dexcom API authentication failure; always update provider session, even if error
 * Add additional support Medtronic device models
 
 ## v1.24.0
