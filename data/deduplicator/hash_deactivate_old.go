@@ -24,7 +24,7 @@ const _HashDeactivateOldDeduplicatorVersion = "1.1.0"
 var _HashDeactivateOldExpectedDeviceManufacturerModels = map[string][]string{
 	"Abbott":          {"FreeStyle Libre"},
 	"LifeScan":        {"OneTouch Ultra 2", "OneTouch UltraMini", "Verio", "Verio Flex"},
-	"Medtronic":       {"523", "551", "554", "723", "751", "754", "1510", "1511", "1512", "1710", "1711", "1712", "1715", "1780"},
+	"Medtronic":       {"523", "523K", "551", "554", "723", "723K", "751", "754", "1510", "1510K", "1511", "1512", "1580", "1581", "1582", "1710", "1710K", "1711", "1712", "1714", "1714K", "1715", "1780", "1781", "1782"},
 	"Trividia Health": {"TRUE METRIX", "TRUE METRIX AIR", "TRUE METRIX GO"},
 }
 

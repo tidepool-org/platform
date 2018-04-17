@@ -1,5 +1,7 @@
 ## HEAD
 
+* Add additional support Medtronic device models
+
 ## v1.24.0
 
 * Add support for new Trividia Health devices
