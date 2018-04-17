@@ -423,11 +423,10 @@ func (t *TaskRunner) fetch(startTime time.Time, endTime time.Time) error {
 
 func (t *TaskRunner) fetchDevices(startTime time.Time, endTime time.Time) ([]*dexcom.Device, error) {
 	response, err := t.DexcomClient().GetDevices(t.context, startTime, endTime, t.tokenSource)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to get devices")
+	if updateErr := t.updateProviderSession(); updateErr != nil {
+		return nil, updateErr
 	}
-
-	if err = t.updateProviderSession(); err != nil {
+	if err != nil {
 		return nil, err
 	}
 
@@ -492,11 +491,10 @@ func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) ([]data.D
 
 func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) ([]data.Datum, error) {
 	response, err := t.DexcomClient().GetCalibrations(t.context, startTime, endTime, t.tokenSource)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to get calibrations")
+	if updateErr := t.updateProviderSession(); updateErr != nil {
+		return nil, updateErr
 	}
-
-	if err = t.updateProviderSession(); err != nil {
+	if err != nil {
 		return nil, err
 	}
 
@@ -517,11 +515,10 @@ func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) (
 
 func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) ([]data.Datum, error) {
 	response, err := t.DexcomClient().GetEGVs(t.context, startTime, endTime, t.tokenSource)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to get egvs")
+	if updateErr := t.updateProviderSession(); updateErr != nil {
+		return nil, updateErr
 	}
-
-	if err = t.updateProviderSession(); err != nil {
+	if err != nil {
 		return nil, err
 	}
 
@@ -542,11 +539,10 @@ func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) ([]data.D
 
 func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) ([]data.Datum, error) {
 	response, err := t.DexcomClient().GetEvents(t.context, startTime, endTime, t.tokenSource)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to get events")
+	if updateErr := t.updateProviderSession(); updateErr != nil {
+		return nil, updateErr
 	}
-
-	if err = t.updateProviderSession(); err != nil {
+	if err != nil {
 		return nil, err
 	}
 
