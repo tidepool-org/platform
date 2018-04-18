@@ -33,6 +33,7 @@ const (
 	ModelG5Receiver          = "G5 Receiver"
 	ModelG4WithShareReceiver = "G4 with Share Receiver"
 	ModelG4Receiver          = "G4 Receiver"
+	ModelUnknown             = "Unknown"
 
 	StatusHigh             = "high"
 	StatusLow              = "low"
