@@ -95,6 +95,12 @@ func (e *Event) validateCarbs(validator structure.Validator) {
 }
 
 func (e *Event) validateExercise(validator structure.Validator) {
+	// HACK: Dexcom - value of -1 is invalid; ignore unit and value instead (per Dexcom)
+	if e.Value != nil && *e.Value == -1.0 {
+		e.Unit = nil
+		e.Value = nil
+	}
+
 	validator.String("eventSubType", e.EventSubType).OneOf(ExerciseLight, ExerciseMedium, ExerciseHeavy)
 	if e.Unit != nil || e.Value != nil {
 		validator.String("unit", e.Unit).Exists().EqualTo(UnitMinutes)
