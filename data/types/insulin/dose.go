@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	TotalMaximum = 100.0
+	TotalMaximum = 250.0
 	TotalMinimum = 0.0
 	UnitsUnits   = "units"
 )
