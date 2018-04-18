@@ -398,7 +398,7 @@ func (t *TaskRunner) fetch(startTime time.Time, endTime time.Time) error {
 			return nil
 		} else if deviceInfo, err = NewDeviceInfoFromDataSet(t.dataSet); err != nil {
 			return err
-		} else if !deviceInfo.IsG5Mobile() {
+		} else if !deviceInfo.IsDeviceModelG5Mobile() && !deviceInfo.IsDeviceModelUnknown() {
 			deviceInfo = NewDeviceInfoFromMultiple()
 		}
 	}
@@ -760,6 +760,9 @@ func NewDeviceInfoFromDevice(device *dexcom.Device) (*DeviceInfo, error) {
 	case dexcom.ModelG4Receiver:
 		deviceModel = "G4Receiver"
 		deviceIDPrefix = "DexG4Rec_"
+	case dexcom.ModelUnknown:
+		deviceModel = "Unknown"
+		deviceIDPrefix = "DexUnknown_"
 	default:
 		return nil, errors.New("unknown device model")
 	}
@@ -780,8 +783,12 @@ func (d *DeviceInfo) IsEmpty() bool {
 	return d.DeviceID == "" && d.DeviceModel == "" && d.DeviceSerialNumber == ""
 }
 
-func (d *DeviceInfo) IsG5Mobile() bool {
+func (d *DeviceInfo) IsDeviceModelG5Mobile() bool {
 	return d.DeviceModel == "G5Mobile"
+}
+
+func (d *DeviceInfo) IsDeviceModelUnknown() bool {
+	return d.DeviceModel == "Unknown"
 }
 
 func (d *DeviceInfo) Merge(deviceInfo *DeviceInfo) (*DeviceInfo, error) {

@@ -94,7 +94,7 @@ func (d *Device) Parse(parser structure.ObjectParser) {
 }
 
 func (d *Device) Validate(validator structure.Validator) {
-	validator.String("model", &d.Model).OneOf(ModelG5MobileApp, ModelG5Receiver, ModelG4WithShareReceiver, ModelG4Receiver)
+	validator.String("model", &d.Model).OneOf(ModelG5MobileApp, ModelG5Receiver, ModelG4WithShareReceiver, ModelG4Receiver, ModelUnknown)
 	validator.Time("lastUploadDate", &d.LastUploadDate).NotZero()
 	existingAlertNames := &[]string{}
 	validator = validator.WithReference("alertSettings")
