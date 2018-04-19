@@ -87,10 +87,10 @@ func (t *Time) BeforeNow(threshold time.Duration) structure.Time {
 	return t
 }
 
-func (t *Time) Using(using func(value time.Time, errorReporter structure.ErrorReporter)) structure.Time {
+func (t *Time) Using(usingFunc structure.TimeUsingFunc) structure.Time {
 	if t.value != nil {
-		if using != nil {
-			using(*t.value, t.base)
+		if usingFunc != nil {
+			usingFunc(*t.value, t.base)
 		}
 	}
 	return t

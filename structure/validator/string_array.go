@@ -115,12 +115,12 @@ func (s *StringArray) LengthInRange(lowerLimit int, upperLimit int) structure.St
 	return s
 }
 
-func (s *StringArray) Each(stringFunc structure.StringFunc) structure.StringArray {
+func (s *StringArray) Each(eachFunc structure.StringEachFunc) structure.StringArray {
 	if s.value != nil {
-		if stringFunc != nil {
+		if eachFunc != nil {
 			validator := NewValidator(s.base)
 			for index, value := range *s.value {
-				stringFunc(validator.String(strconv.Itoa(index), &value))
+				eachFunc(validator.String(strconv.Itoa(index), &value))
 			}
 		}
 	}
@@ -161,10 +161,10 @@ func (s *StringArray) EachUnique() structure.StringArray {
 	return s
 }
 
-func (s *StringArray) Using(using func(value []string, errorReporter structure.ErrorReporter)) structure.StringArray {
+func (s *StringArray) Using(usingFunc structure.StringArrayUsingFunc) structure.StringArray {
 	if s.value != nil {
-		if using != nil {
-			using(*s.value, s.base)
+		if usingFunc != nil {
+			usingFunc(*s.value, s.base)
 		}
 	}
 	return s

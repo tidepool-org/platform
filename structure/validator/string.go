@@ -175,10 +175,10 @@ func (s *String) NotMatches(expression *regexp.Regexp) structure.String {
 	return s
 }
 
-func (s *String) Using(using func(value string, errorReporter structure.ErrorReporter)) structure.String {
+func (s *String) Using(usingFunc structure.StringUsingFunc) structure.String {
 	if s.value != nil {
-		if using != nil {
-			using(*s.value, s.base)
+		if usingFunc != nil {
+			usingFunc(*s.value, s.base)
 		}
 	}
 	return s

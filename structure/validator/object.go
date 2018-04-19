@@ -49,10 +49,10 @@ func (o *Object) NotEmpty() structure.Object {
 	return o
 }
 
-func (o *Object) Using(using func(value map[string]interface{}, errorReporter structure.ErrorReporter)) structure.Object {
+func (o *Object) Using(usingFunc structure.ObjectUsingFunc) structure.Object {
 	if o.value != nil {
-		if using != nil {
-			using(*o.value, o.base)
+		if usingFunc != nil {
+			usingFunc(*o.value, o.base)
 		}
 	}
 	return o
