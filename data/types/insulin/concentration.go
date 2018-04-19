@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	ConcentrationUnitsUnitsPerML        = "units/mL"
+	ConcentrationUnitsUnitsPerML        = "Units/mL"
 	ConcentrationValueUnitsPerMLMaximum = 10000.0
 	ConcentrationValueUnitsPerMLMinimum = 0.0
 )

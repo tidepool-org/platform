@@ -62,11 +62,11 @@ var _ = Describe("Dose", func() {
 	})
 
 	It("DoseUnitsUnits is expected", func() {
-		Expect(insulin.DoseUnitsUnits).To(Equal("units"))
+		Expect(insulin.DoseUnitsUnits).To(Equal("Units"))
 	})
 
 	It("DoseUnits returns expected", func() {
-		Expect(insulin.DoseUnits()).To(Equal([]string{"units"}))
+		Expect(insulin.DoseUnits()).To(Equal([]string{"Units"}))
 	})
 
 	Context("ParseDose", func() {
@@ -152,10 +152,10 @@ var _ = Describe("Dose", func() {
 				),
 				Entry("units invalid",
 					func(datum *insulin.Dose) { datum.Units = pointer.String("invalid") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"units"}), "/units"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"Units"}), "/units"),
 				),
-				Entry("units units",
-					func(datum *insulin.Dose) { datum.Units = pointer.String("units") },
+				Entry("units Units",
+					func(datum *insulin.Dose) { datum.Units = pointer.String("Units") },
 				),
 				Entry("multiple errors",
 					func(datum *insulin.Dose) {

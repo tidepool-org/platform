@@ -1,5 +1,6 @@
 ## HEAD
 
+* Use "Units" rather than "units" for insulin
 * Fix bug in upload data type with check against incorrect type
 * Move mutator to request package; ignore missing mutators in client
 * Rename various New functions in mongo packages to NewStore for consistency

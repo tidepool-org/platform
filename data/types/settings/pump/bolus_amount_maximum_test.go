@@ -36,7 +36,7 @@ func CloneBolusAmountMaximum(datum *pump.BolusAmountMaximum) *pump.BolusAmountMa
 
 var _ = Describe("BolusAmountMaximum", func() {
 	It("BolusAmountMaximumUnitsUnits is expected", func() {
-		Expect(pump.BolusAmountMaximumUnitsUnits).To(Equal("units"))
+		Expect(pump.BolusAmountMaximumUnitsUnits).To(Equal("Units"))
 	})
 
 	It("BolusAmountMaximumValueUnitsMaximum is expected", func() {
@@ -48,7 +48,7 @@ var _ = Describe("BolusAmountMaximum", func() {
 	})
 
 	It("BolusAmountMaximumUnits returns expected", func() {
-		Expect(pump.BolusAmountMaximumUnits()).To(Equal([]string{"units"}))
+		Expect(pump.BolusAmountMaximumUnits()).To(Equal([]string{"Units"}))
 	})
 
 	Context("ParseBolusAmountMaximum", func() {
@@ -82,11 +82,11 @@ var _ = Describe("BolusAmountMaximum", func() {
 				),
 				Entry("units invalid",
 					func(datum *pump.BolusAmountMaximum) { datum.Units = pointer.String("invalid") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"units"}), "/units"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"Units"}), "/units"),
 				),
-				Entry("units units",
+				Entry("units Units",
 					func(datum *pump.BolusAmountMaximum) {
-						datum.Units = pointer.String("units")
+						datum.Units = pointer.String("Units")
 						datum.Value = pointer.Float64(0.0)
 					},
 				),
@@ -131,7 +131,7 @@ var _ = Describe("BolusAmountMaximum", func() {
 						datum.Units = pointer.String("invalid")
 						datum.Value = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"units"}), "/units"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"Units"}), "/units"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units invalid; value out of range (lower)",
@@ -139,58 +139,58 @@ var _ = Describe("BolusAmountMaximum", func() {
 						datum.Units = pointer.String("invalid")
 						datum.Value = pointer.Float64(-0.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"units"}), "/units"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"Units"}), "/units"),
 				),
 				Entry("units invalid; value in range (lower)",
 					func(datum *pump.BolusAmountMaximum) {
 						datum.Units = pointer.String("invalid")
 						datum.Value = pointer.Float64(0.0)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"units"}), "/units"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"Units"}), "/units"),
 				),
 				Entry("units invalid; value in range (upper)",
 					func(datum *pump.BolusAmountMaximum) {
 						datum.Units = pointer.String("invalid")
 						datum.Value = pointer.Float64(100.0)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"units"}), "/units"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"Units"}), "/units"),
 				),
 				Entry("units invalid; value out of range (upper)",
 					func(datum *pump.BolusAmountMaximum) {
 						datum.Units = pointer.String("invalid")
 						datum.Value = pointer.Float64(100.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"units"}), "/units"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"Units"}), "/units"),
 				),
-				Entry("units units; value missing",
+				Entry("units Units; value missing",
 					func(datum *pump.BolusAmountMaximum) {
-						datum.Units = pointer.String("units")
+						datum.Units = pointer.String("Units")
 						datum.Value = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
-				Entry("units units; value out of range (lower)",
+				Entry("units Units; value out of range (lower)",
 					func(datum *pump.BolusAmountMaximum) {
-						datum.Units = pointer.String("units")
+						datum.Units = pointer.String("Units")
 						datum.Value = pointer.Float64(-0.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/value"),
 				),
-				Entry("units units; value in range (lower)",
+				Entry("units Units; value in range (lower)",
 					func(datum *pump.BolusAmountMaximum) {
-						datum.Units = pointer.String("units")
+						datum.Units = pointer.String("Units")
 						datum.Value = pointer.Float64(0.0)
 					},
 				),
-				Entry("units units; value in range (upper)",
+				Entry("units Units; value in range (upper)",
 					func(datum *pump.BolusAmountMaximum) {
-						datum.Units = pointer.String("units")
+						datum.Units = pointer.String("Units")
 						datum.Value = pointer.Float64(100.0)
 					},
 				),
-				Entry("units units; value out of range (upper)",
+				Entry("units Units; value out of range (upper)",
 					func(datum *pump.BolusAmountMaximum) {
-						datum.Units = pointer.String("units")
+						datum.Units = pointer.String("Units")
 						datum.Value = pointer.Float64(100.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/value"),
@@ -247,8 +247,8 @@ var _ = Describe("BolusAmountMaximum", func() {
 			Expect(maximum).To(Equal(math.MaxFloat64))
 		})
 
-		It("returns expected range for units units", func() {
-			minimum, maximum := pump.BolusAmountMaximumValueRangeForUnits(pointer.String("units"))
+		It("returns expected range for units Units", func() {
+			minimum, maximum := pump.BolusAmountMaximumValueRangeForUnits(pointer.String("Units"))
 			Expect(minimum).To(Equal(0.0))
 			Expect(maximum).To(Equal(100.0))
 		})

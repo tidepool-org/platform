@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	BasalRateMaximumUnitsUnitsPerHour        = "units/hour"
+	BasalRateMaximumUnitsUnitsPerHour        = "Units/hour"
 	BasalRateMaximumValueUnitsPerHourMaximum = 100.0
 	BasalRateMaximumValueUnitsPerHourMinimum = 0.0
 )

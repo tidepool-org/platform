@@ -12,7 +12,7 @@ const (
 	DoseFoodMinimum       = 0.0
 	DoseTotalMaximum      = 250.0
 	DoseTotalMinimum      = 0.0
-	DoseUnitsUnits        = "units"
+	DoseUnitsUnits        = "Units"
 )
 
 func DoseUnits() []string {

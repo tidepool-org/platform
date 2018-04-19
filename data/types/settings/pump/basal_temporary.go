@@ -7,7 +7,7 @@ import (
 
 const (
 	BasalTemporaryTypePercent      = "percent"
-	BasalTemporaryTypeUnitsPerHour = "units/hour"
+	BasalTemporaryTypeUnitsPerHour = "Units/hour"
 )
 
 func BasalTemporaryTypes() []string {

@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	BolusAmountMaximumUnitsUnits        = "units"
+	BolusAmountMaximumUnitsUnits        = "Units"
 	BolusAmountMaximumValueUnitsMaximum = 100.0
 	BolusAmountMaximumValueUnitsMinimum = 0.0
 )
