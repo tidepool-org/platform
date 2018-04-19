@@ -5,7 +5,6 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
-	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
@@ -88,8 +87,8 @@ func NewUpload(parser data.ObjectParser) *Upload {
 	if value := parser.ParseString("type"); value == nil {
 		parser.AppendError("type", service.ErrorValueNotExists())
 		return nil
-	} else if *value != device.Type {
-		parser.AppendError("type", service.ErrorValueStringNotOneOf(*value, []string{device.Type}))
+	} else if *value != Type {
+		parser.AppendError("type", service.ErrorValueStringNotOneOf(*value, []string{Type}))
 		return nil
 	}
 
