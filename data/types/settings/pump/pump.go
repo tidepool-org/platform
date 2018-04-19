@@ -6,6 +6,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 const (
@@ -20,19 +21,23 @@ const (
 type Pump struct {
 	types.Base `bson:",inline"`
 
-	ActiveScheduleName   *string                  `json:"activeSchedule,omitempty" bson:"activeSchedule,omitempty"` // TODO: Rename to activeScheduleName; move into basal struct
-	Basal                *Basal                   `json:"basal,omitempty" bson:"basal,omitempty"`
-	BasalSchedules       *BasalScheduleArrayMap   `json:"basalSchedules,omitempty" bson:"basalSchedules,omitempty"` // TODO: Move into basal struct
-	BloodGlucoseTargets  *BloodGlucoseTargetArray `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`             // TODO: Move into bolus struct
-	Bolus                *Bolus                   `json:"bolus,omitempty" bson:"bolus,omitempty"`
-	CarbohydrateRatios   *CarbohydrateRatioArray  `json:"carbRatio,omitempty" bson:"carbRatio,omitempty"` // TODO: Move into bolus struct
-	Display              *Display                 `json:"display,omitempty" bson:"display,omitempty"`
-	Insulin              *Insulin                 `json:"insulin,omitempty" bson:"insulin,omitempty"`
-	InsulinSensitivities *InsulinSensitivityArray `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"` // TODO: Move into bolus struct
-	Manufacturers        *[]string                `json:"manufacturers,omitempty" bson:"manufacturers,omitempty"`
-	Model                *string                  `json:"model,omitempty" bson:"model,omitempty"`
-	SerialNumber         *string                  `json:"serialNumber,omitempty" bson:"serialNumber,omitempty"`
-	Units                *Units                   `json:"units,omitempty" bson:"units,omitempty"` // TODO: Move into all appropriate structs
+	ActiveScheduleName          *string                          `json:"activeSchedule,omitempty" bson:"activeSchedule,omitempty"` // TODO: Rename to activeScheduleName; move into basal struct
+	Basal                       *Basal                           `json:"basal,omitempty" bson:"basal,omitempty"`
+	BasalRateSchedule           *BasalRateStartArray             `json:"basalSchedule,omitempty" bson:"basalSchedule,omitempty"`   // TODO: Move into basal struct
+	BasalRateSchedules          *BasalRateStartArrayMap          `json:"basalSchedules,omitempty" bson:"basalSchedules,omitempty"` // TODO: Move into basal struct
+	BloodGlucoseTargetSchedule  *BloodGlucoseTargetStartArray    `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`             // TODO: Move into bolus struct
+	BloodGlucoseTargetSchedules *BloodGlucoseTargetStartArrayMap `json:"bgTargets,omitempty" bson:"bgTargets,omitempty"`           // TODO: Move into bolus struct
+	Bolus                       *Bolus                           `json:"bolus,omitempty" bson:"bolus,omitempty"`
+	CarbohydrateRatioSchedule   *CarbohydrateRatioStartArray     `json:"carbRatio,omitempty" bson:"carbRatio,omitempty"`   // TODO: Move into bolus struct
+	CarbohydrateRatioSchedules  *CarbohydrateRatioStartArrayMap  `json:"carbRatios,omitempty" bson:"carbRatios,omitempty"` // TODO: Move into bolus struct
+	Display                     *Display                         `json:"display,omitempty" bson:"display,omitempty"`
+	Insulin                     *Insulin                         `json:"insulin,omitempty" bson:"insulin,omitempty"`
+	InsulinSensitivitySchedule  *InsulinSensitivityStartArray    `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`     // TODO: Move into bolus struct
+	InsulinSensitivitySchedules *InsulinSensitivityStartArrayMap `json:"insulinSensitivities,omitempty" bson:"insulinSensitivities,omitempty"` // TODO: Move into bolus struct
+	Manufacturers               *[]string                        `json:"manufacturers,omitempty" bson:"manufacturers,omitempty"`
+	Model                       *string                          `json:"model,omitempty" bson:"model,omitempty"`
+	SerialNumber                *string                          `json:"serialNumber,omitempty" bson:"serialNumber,omitempty"`
+	Units                       *Units                           `json:"units,omitempty" bson:"units,omitempty"` // TODO: Move into all appropriate structs
 }
 
 func New() *Pump {
@@ -50,13 +55,17 @@ func (p *Pump) Parse(parser data.ObjectParser) error {
 
 	p.ActiveScheduleName = parser.ParseString("activeSchedule")
 	p.Basal = ParseBasal(parser.NewChildObjectParser("basal"))
-	p.BasalSchedules = ParseBasalScheduleArrayMap(parser.NewChildObjectParser("basalSchedules"))
-	p.BloodGlucoseTargets = ParseBloodGlucoseTargetArray(parser.NewChildArrayParser("bgTarget"))
+	p.BasalRateSchedule = ParseBasalRateStartArray(parser.NewChildArrayParser("basalSchedule"))
+	p.BasalRateSchedules = ParseBasalRateStartArrayMap(parser.NewChildObjectParser("basalSchedules"))
+	p.BloodGlucoseTargetSchedule = ParseBloodGlucoseTargetStartArray(parser.NewChildArrayParser("bgTarget"))
+	p.BloodGlucoseTargetSchedules = ParseBloodGlucoseTargetStartArrayMap(parser.NewChildObjectParser("bgTargets"))
 	p.Bolus = ParseBolus(parser.NewChildObjectParser("bolus"))
-	p.CarbohydrateRatios = ParseCarbohydrateRatioArray(parser.NewChildArrayParser("carbRatio"))
+	p.CarbohydrateRatioSchedule = ParseCarbohydrateRatioStartArray(parser.NewChildArrayParser("carbRatio"))
+	p.CarbohydrateRatioSchedules = ParseCarbohydrateRatioStartArrayMap(parser.NewChildObjectParser("carbRatios"))
 	p.Display = ParseDisplay(parser.NewChildObjectParser("display"))
 	p.Insulin = ParseInsulin(parser.NewChildObjectParser("insulin"))
-	p.InsulinSensitivities = ParseInsulinSensitivityArray(parser.NewChildArrayParser("insulinSensitivity"))
+	p.InsulinSensitivitySchedule = ParseInsulinSensitivityStartArray(parser.NewChildArrayParser("insulinSensitivity"))
+	p.InsulinSensitivitySchedules = ParseInsulinSensitivityStartArrayMap(parser.NewChildObjectParser("insulinSensitivities"))
 	p.Manufacturers = parser.ParseStringArray("manufacturers")
 	p.Model = parser.ParseString("model")
 	p.SerialNumber = parser.ParseString("serialNumber")
@@ -85,17 +94,38 @@ func (p *Pump) Validate(validator structure.Validator) {
 	if p.Basal != nil {
 		p.Basal.Validate(validator.WithReference("basal"))
 	}
-	if p.BasalSchedules != nil {
-		p.BasalSchedules.Validate(validator.WithReference("basalSchedules"))
+	if p.BasalRateSchedule != nil {
+		p.BasalRateSchedule.Validate(validator.WithReference("basalSchedule"))
+		if p.BasalRateSchedules != nil {
+			validator.WithReference("basalSchedules").ReportError(structureValidator.ErrorValueExists())
+		}
+	} else if p.BasalRateSchedules != nil {
+		p.BasalRateSchedules.Validate(validator.WithReference("basalSchedules"))
+	} else {
+		validator.WithReference("basalSchedule").ReportError(structureValidator.ErrorValueNotExists())
 	}
-	if p.BloodGlucoseTargets != nil {
-		p.BloodGlucoseTargets.Validate(validator.WithReference("bgTarget"), unitsBloodGlucose)
+	if p.BloodGlucoseTargetSchedule != nil {
+		p.BloodGlucoseTargetSchedule.Validate(validator.WithReference("bgTarget"), unitsBloodGlucose)
+		if p.BloodGlucoseTargetSchedules != nil {
+			validator.WithReference("bgTargets").ReportError(structureValidator.ErrorValueExists())
+		}
+	} else if p.BloodGlucoseTargetSchedules != nil {
+		p.BloodGlucoseTargetSchedules.Validate(validator.WithReference("bgTargets"), unitsBloodGlucose)
+	} else {
+		validator.WithReference("bgTarget").ReportError(structureValidator.ErrorValueNotExists())
 	}
 	if p.Bolus != nil {
 		p.Bolus.Validate(validator.WithReference("bolus"))
 	}
-	if p.CarbohydrateRatios != nil {
-		p.CarbohydrateRatios.Validate(validator.WithReference("carbRatio"))
+	if p.CarbohydrateRatioSchedule != nil {
+		p.CarbohydrateRatioSchedule.Validate(validator.WithReference("carbRatio"))
+		if p.CarbohydrateRatioSchedules != nil {
+			validator.WithReference("carbRatios").ReportError(structureValidator.ErrorValueExists())
+		}
+	} else if p.CarbohydrateRatioSchedules != nil {
+		p.CarbohydrateRatioSchedules.Validate(validator.WithReference("carbRatios"))
+	} else {
+		validator.WithReference("carbRatio").ReportError(structureValidator.ErrorValueNotExists())
 	}
 	if p.Display != nil {
 		p.Display.Validate(validator.WithReference("display"))
@@ -103,8 +133,15 @@ func (p *Pump) Validate(validator structure.Validator) {
 	if p.Insulin != nil {
 		p.Insulin.Validate(validator.WithReference("insulin"))
 	}
-	if p.InsulinSensitivities != nil {
-		p.InsulinSensitivities.Validate(validator.WithReference("insulinSensitivity"), unitsBloodGlucose)
+	if p.InsulinSensitivitySchedule != nil {
+		p.InsulinSensitivitySchedule.Validate(validator.WithReference("insulinSensitivity"), unitsBloodGlucose)
+		if p.InsulinSensitivitySchedules != nil {
+			validator.WithReference("insulinSensitivities").ReportError(structureValidator.ErrorValueExists())
+		}
+	} else if p.InsulinSensitivitySchedules != nil {
+		p.InsulinSensitivitySchedules.Validate(validator.WithReference("insulinSensitivities"), unitsBloodGlucose)
+	} else {
+		validator.WithReference("insulinSensitivity").ReportError(structureValidator.ErrorValueNotExists())
 	}
 	validator.StringArray("manufacturers", p.Manufacturers).NotEmpty().LengthLessThanOrEqualTo(ManufacturersLengthMaximum).Each(func(stringValidator structure.String) {
 		stringValidator.Exists().NotEmpty().LengthLessThanOrEqualTo(ManufacturerLengthMaximum)
@@ -131,17 +168,26 @@ func (p *Pump) Normalize(normalizer data.Normalizer) {
 	if p.Basal != nil {
 		p.Basal.Normalize(normalizer.WithReference("basal"))
 	}
-	if p.BasalSchedules != nil {
-		p.BasalSchedules.Normalize(normalizer.WithReference("basalSchedules"))
+	if p.BasalRateSchedule != nil {
+		p.BasalRateSchedule.Normalize(normalizer.WithReference("basalSchedule"))
 	}
-	if p.BloodGlucoseTargets != nil {
-		p.BloodGlucoseTargets.Normalize(normalizer.WithReference("bgTarget"), unitsBloodGlucose)
+	if p.BasalRateSchedules != nil {
+		p.BasalRateSchedules.Normalize(normalizer.WithReference("basalSchedules"))
+	}
+	if p.BloodGlucoseTargetSchedule != nil {
+		p.BloodGlucoseTargetSchedule.Normalize(normalizer.WithReference("bgTarget"), unitsBloodGlucose)
+	}
+	if p.BloodGlucoseTargetSchedules != nil {
+		p.BloodGlucoseTargetSchedules.Normalize(normalizer.WithReference("bgTargets"), unitsBloodGlucose)
 	}
 	if p.Bolus != nil {
 		p.Bolus.Normalize(normalizer.WithReference("bolus"))
 	}
-	if p.CarbohydrateRatios != nil {
-		p.CarbohydrateRatios.Normalize(normalizer.WithReference("carbRatio"))
+	if p.CarbohydrateRatioSchedule != nil {
+		p.CarbohydrateRatioSchedule.Normalize(normalizer.WithReference("carbRatio"))
+	}
+	if p.CarbohydrateRatioSchedules != nil {
+		p.CarbohydrateRatioSchedules.Normalize(normalizer.WithReference("carbRatios"))
 	}
 	if p.Display != nil {
 		p.Display.Normalize(normalizer.WithReference("display"))
@@ -149,8 +195,11 @@ func (p *Pump) Normalize(normalizer data.Normalizer) {
 	if p.Insulin != nil {
 		p.Insulin.Normalize(normalizer.WithReference("insulin"))
 	}
-	if p.InsulinSensitivities != nil {
-		p.InsulinSensitivities.Normalize(normalizer.WithReference("insulinSensitivity"), unitsBloodGlucose)
+	if p.InsulinSensitivitySchedule != nil {
+		p.InsulinSensitivitySchedule.Normalize(normalizer.WithReference("insulinSensitivity"), unitsBloodGlucose)
+	}
+	if p.InsulinSensitivitySchedules != nil {
+		p.InsulinSensitivitySchedules.Normalize(normalizer.WithReference("insulinSensitivities"), unitsBloodGlucose)
 	}
 	if normalizer.Origin() == structure.OriginExternal {
 		if p.Manufacturers != nil {

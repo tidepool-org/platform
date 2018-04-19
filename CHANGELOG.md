@@ -1,5 +1,6 @@
 ## HEAD
 
+* Add missing pump settings fields
 * Refactor structure validator to define new function types
 * Use "Units" rather than "units" for insulin
 * Fix bug in upload data type with check against incorrect type
