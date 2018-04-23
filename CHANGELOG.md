@@ -1,5 +1,6 @@
 ## HEAD
 
+* Add bolus calculator enabled field to pump settings data model
 * Add tzdata to development Docker images
 * Validate data time zone against known time zones
 * Support time zone across all data types
