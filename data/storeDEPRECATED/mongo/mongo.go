@@ -216,11 +216,11 @@ func (d *DataSession) UpdateDataSet(ctx context.Context, id string, update *data
 	if update.Time != nil {
 		set["time"] = (*update.Time).Format(data.TimeFormat)
 	}
-	if update.Timezone != nil {
-		set["timezone"] = *update.Timezone
+	if update.TimeZoneName != nil {
+		set["timezone"] = *update.TimeZoneName
 	}
-	if update.TimezoneOffset != nil {
-		set["timezoneOffset"] = *update.TimezoneOffset
+	if update.TimeZoneOffset != nil {
+		set["timezoneOffset"] = *update.TimeZoneOffset
 	}
 	changeInfo, err := d.C().UpdateAll(bson.M{"type": "upload", "uploadId": id}, d.ConstructUpdate(set, unset))
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("UpdateDataSet")

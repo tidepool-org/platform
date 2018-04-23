@@ -1,5 +1,9 @@
 ## HEAD
 
+* Add tzdata to development Docker images
+* Validate data time zone against known time zones
+* Support time zone across all data types
+* Break timezone usage into two words
 * Add missing pump settings fields
 * Refactor structure validator to define new function types
 * Use "Units" rather than "units" for insulin

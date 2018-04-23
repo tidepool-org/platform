@@ -1,8 +1,9 @@
 # Development
 FROM golang:1.9.2-alpine AS development
 
-RUN apk add --no-cache git make && \
-    go get github.com/tidepool-org/CompileDaemon
+RUN ["apk", "add", "--no-cache", "git", "make", "tzdata"]
+
+RUN ["go", "get", "github.com/githubnemo/CompileDaemon"]
 
 WORKDIR /go/src/github.com/tidepool-org/platform
 

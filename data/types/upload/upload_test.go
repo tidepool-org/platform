@@ -41,7 +41,6 @@ func NewUpload() *upload.Upload {
 	datum.DeviceTags = pointer.StringArray(test.RandomStringArrayFromArray(1, len(upload.DeviceTags()), false, upload.DeviceTags()))
 	datum.State = pointer.String(test.RandomStringFromArray(upload.States()))
 	datum.TimeProcessing = pointer.String(upload.TimeProcessingUTCBootstrapping)
-	datum.Timezone = pointer.String(test.NewTimeZone())
 	datum.Version = pointer.String(testInternet.NewSemanticVersion())
 	return datum
 }
@@ -63,7 +62,6 @@ func CloneUpload(datum *upload.Upload) *upload.Upload {
 	clone.DeviceTags = test.CloneStringArray(datum.DeviceTags)
 	clone.State = test.CloneString(datum.State)
 	clone.TimeProcessing = test.CloneString(datum.TimeProcessing)
-	clone.Timezone = test.CloneString(datum.Timezone)
 	clone.Version = test.CloneString(datum.Version)
 	return clone
 }
@@ -105,8 +103,8 @@ var _ = Describe("Upload", func() {
 		Expect(upload.StateOpen).To(Equal("open"))
 	})
 
-	It("TimeProcessingAcrossTheBoardTimezone is expected", func() {
-		Expect(upload.TimeProcessingAcrossTheBoardTimezone).To(Equal("across-the-board-timezone"))
+	It("TimeProcessingAcrossTheBoardTimeZone is expected", func() {
+		Expect(upload.TimeProcessingAcrossTheBoardTimeZone).To(Equal("across-the-board-timezone"))
 	})
 
 	It("TimeProcessingNone is expected", func() {
@@ -153,7 +151,6 @@ var _ = Describe("Upload", func() {
 			Expect(datum.DeviceTags).To(BeNil())
 			Expect(datum.State).To(BeNil())
 			Expect(datum.TimeProcessing).To(BeNil())
-			Expect(datum.Timezone).To(BeNil())
 			Expect(datum.Version).To(BeNil())
 		})
 	})
@@ -416,19 +413,6 @@ var _ = Describe("Upload", func() {
 					func(datum *upload.Upload) { datum.TimeProcessing = pointer.String("utc-bootstrapping") },
 					structure.Origins(),
 				),
-				Entry("timezone missing",
-					func(datum *upload.Upload) { datum.Timezone = nil },
-					structure.Origins(),
-				),
-				Entry("timezone empty",
-					func(datum *upload.Upload) { datum.Timezone = pointer.String("") },
-					structure.Origins(),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/timezone", NewMeta()),
-				),
-				Entry("timezone exists",
-					func(datum *upload.Upload) { datum.Timezone = pointer.String(test.NewTimeZone()) },
-					structure.Origins(),
-				),
 				Entry("version missing",
 					func(datum *upload.Upload) { datum.Version = nil },
 					structure.Origins(),
@@ -467,7 +451,6 @@ var _ = Describe("Upload", func() {
 						datum.DeviceSerialNumber = nil
 						datum.DeviceTags = nil
 						datum.TimeProcessing = nil
-						datum.Timezone = pointer.String("")
 						datum.Version = pointer.String("1.23")
 					},
 					structure.Origins(),
@@ -481,7 +464,6 @@ var _ = Describe("Upload", func() {
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/deviceSerialNumber", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/deviceTags", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/timeProcessing", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/timezone", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotGreaterThanOrEqualTo(4, 5), "/version", &types.Meta{Type: "invalidType"}),
 				),
 			)

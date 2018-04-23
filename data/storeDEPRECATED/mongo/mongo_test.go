@@ -51,7 +51,7 @@ package mongo_test
 // 	dataset.DeviceID = pointer.String(deviceID)
 // 	dataset.DeviceTime = pointer.String(SampleTime().Format("2006-01-02T15:04:05"))
 // 	dataset.Time = pointer.String(SampleTime().UTC().Format(time.RFC3339))
-// 	dataset.TimezoneOffset = pointer.Int(-420)
+// 	dataset.TimeZoneOffset = pointer.Int(-420)
 
 // 	dataset.ComputerTime = pointer.String(SampleTime().Format("2006-01-02T15:04:05"))
 // 	dataset.DeviceManufacturers = pointer.StringArray([]string{"Tesla"})
@@ -59,7 +59,7 @@ package mongo_test
 // 	dataset.DeviceSerialNumber = pointer.String("567890")
 // 	dataset.DeviceTags = pointer.StringArray([]string{upload.DeviceTagInsulinPump})
 // 	dataset.TimeProcessing = pointer.String(upload.TimeProcessingUTCBootstrapping)
-// 	dataset.Timezone = pointer.String("US/Pacific")
+// 	dataset.TimeZoneName = pointer.String("US/Pacific")
 // 	dataset.Version = pointer.String("0.260.1")
 
 // 	return dataset
@@ -79,7 +79,7 @@ package mongo_test
 // 		baseDatum.DeviceID = pointer.String(deviceID)
 // 		baseDatum.DeviceTime = pointer.String(SampleTime().Format("2006-01-02T15:04:05"))
 // 		baseDatum.Time = pointer.String(SampleTime().UTC().Format(time.RFC3339))
-// 		baseDatum.TimezoneOffset = pointer.Int(-420)
+// 		baseDatum.TimeZoneOffset = pointer.Int(-420)
 
 // 		datasetData = append(datasetData, baseDatum)
 // 	}
@@ -116,7 +116,7 @@ package mongo_test
 // 			clonedBaseDatum.Payload = baseDatum.Payload
 // 			clonedBaseDatum.Source = baseDatum.Source
 // 			clonedBaseDatum.Time = baseDatum.Time
-// 			clonedBaseDatum.TimezoneOffset = baseDatum.TimezoneOffset
+// 			clonedBaseDatum.TimeZoneOffset = baseDatum.TimeZoneOffset
 
 // 			clonedDatasetData = append(clonedDatasetData, clonedBaseDatum)
 // 		}

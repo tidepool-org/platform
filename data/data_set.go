@@ -10,6 +10,7 @@ import (
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
+	"github.com/tidepool-org/platform/time/zone"
 )
 
 // TODO: This is a migration in progress from upload.Upload to DataSet. Some structures
@@ -39,9 +40,9 @@ const (
 	DeviceTagCGM         = "cgm"
 	DeviceTagInsulinPump = "insulin-pump"
 
-	TimeProcessingAcrossTheBoardTimezone = "across-the-board-timezone"
+	TimeProcessingAcrossTheBoardTimeZone = "across-the-board-timezone" // TODO: Rename to across-the-board-time-zone or alternative
 	TimeProcessingNone                   = "none"
-	TimeProcessingUTCBootstrapping       = "utc-bootstrapping"
+	TimeProcessingUTCBootstrapping       = "utc-bootstrapping" // TODO: Rename to utc-bootstrap or alternative
 )
 
 func DataSetTypes() []string {
@@ -68,7 +69,7 @@ func DeviceTags() []string {
 
 func TimeProcessings() []string {
 	return []string{
-		TimeProcessingAcrossTheBoardTimezone,
+		TimeProcessingAcrossTheBoardTimeZone,
 		TimeProcessingNone,
 		TimeProcessingUTCBootstrapping,
 	}
@@ -144,8 +145,8 @@ type DataSetCreate struct {
 	Time                time.Time      `json:"time,omitempty"`
 	Type                string         `json:"type,omitempty"`
 	TimeProcessing      string         `json:"timeProcessing,omitempty"`
-	Timezone            string         `json:"timezone,omitempty"`
-	TimezoneOffset      int            `json:"timezoneOffset,omitempty"`
+	TimeZoneName        *string        `json:"timezone,omitempty"`
+	TimeZoneOffset      int            `json:"timezoneOffset,omitempty"`
 }
 
 func NewDataSetCreate() *DataSetCreate {
@@ -184,11 +185,9 @@ func (d *DataSetCreate) Parse(parser structure.ObjectParser) {
 	if ptr := parser.String("timeProcessing"); ptr != nil {
 		d.TimeProcessing = *ptr
 	}
-	if ptr := parser.String("timezone"); ptr != nil {
-		d.Timezone = *ptr
-	}
+	d.TimeZoneName = parser.String("timezone")
 	if ptr := parser.Int("timezoneOffset"); ptr != nil {
-		d.TimezoneOffset = *ptr
+		d.TimeZoneOffset = *ptr
 	}
 }
 
@@ -204,8 +203,8 @@ func (d *DataSetCreate) Validate(validator structure.Validator) {
 	validator.StringArray("deviceTags", &d.DeviceTags).NotEmpty().EachOneOf(DeviceTags()...)
 	validator.Time("time", &d.Time).NotZero()
 	validator.String("timeProcessing", &d.TimeProcessing).OneOf(TimeProcessings()...)
-	validator.String("timezone", &d.Timezone) // TODO: Timezone
-	validator.Int("timezoneOffset", &d.TimezoneOffset).InRange(-12*60, 14*60)
+	validator.String("timezone", d.TimeZoneName).OneOf(zone.Names()...)
+	validator.Int("timezoneOffset", &d.TimeZoneOffset).InRange(-12*60, 14*60)
 }
 
 func (d *DataSetCreate) Normalize(normalizer structure.Normalizer) {
@@ -221,8 +220,8 @@ type DataSetUpdate struct {
 	Deduplicator       *DeduplicatorDescriptor `json:"-"`
 	State              *string                 `json:"state,omitempty"`
 	Time               *time.Time              `json:"time,omitempty"`
-	Timezone           *string                 `json:"timezone,omitempty"`
-	TimezoneOffset     *int                    `json:"timezoneOffset,omitempty"`
+	TimeZoneName       *string                 `json:"timezone,omitempty"`
+	TimeZoneOffset     *int                    `json:"timezoneOffset,omitempty"`
 }
 
 func NewDataSetUpdate() *DataSetUpdate {
@@ -231,7 +230,7 @@ func NewDataSetUpdate() *DataSetUpdate {
 
 func (d *DataSetUpdate) HasUpdates() bool {
 	return d.Active != nil || d.DeviceID != nil || d.DeviceModel != nil || d.DeviceSerialNumber != nil ||
-		d.Deduplicator != nil || d.State != nil || d.Time != nil || d.Timezone != nil || d.TimezoneOffset != nil
+		d.Deduplicator != nil || d.State != nil || d.Time != nil || d.TimeZoneName != nil || d.TimeZoneOffset != nil
 }
 
 func (d *DataSetUpdate) Parse(parser structure.ObjectParser) {
@@ -240,8 +239,8 @@ func (d *DataSetUpdate) Parse(parser structure.ObjectParser) {
 	d.DeviceSerialNumber = parser.String("deviceSerialNumber")
 	d.State = parser.String("state")
 	d.Time = parser.Time("time", TimeFormat)
-	d.Timezone = parser.String("timezone")
-	d.TimezoneOffset = parser.Int("timezoneOffset")
+	d.TimeZoneName = parser.String("timezone")
+	d.TimeZoneOffset = parser.Int("timezoneOffset")
 }
 
 func (d *DataSetUpdate) Validate(validator structure.Validator) {
@@ -250,8 +249,8 @@ func (d *DataSetUpdate) Validate(validator structure.Validator) {
 	validator.String("deviceSerialNumber", d.DeviceSerialNumber).LengthGreaterThan(1)
 	validator.String("state", d.State).OneOf(DataSetStates()...)
 	validator.Time("time", d.Time).NotZero()
-	validator.String("timezone", d.Timezone) // TODO: Timezone
-	validator.Int("timezoneOffset", d.TimezoneOffset).InRange(-12*60, 14*60)
+	validator.String("timezone", d.TimeZoneName).OneOf(zone.Names()...)
+	validator.Int("timezoneOffset", d.TimeZoneOffset).InRange(-12*60, 14*60)
 }
 
 type DataSet struct {
@@ -287,8 +286,8 @@ type DataSet struct {
 	State               string                  `json:"-" bson:"_state,omitempty"`
 	Time                *string                 `json:"time,omitempty" bson:"time,omitempty"`
 	TimeProcessing      *string                 `json:"timeProcessing,omitempty" bson:"timeProcessing,omitempty"`
-	Timezone            *string                 `json:"timezone,omitempty" bson:"timezone,omitempty"`
-	TimezoneOffset      *int                    `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty"`
+	TimeZoneName        *string                 `json:"timezone,omitempty" bson:"timezone,omitempty"`
+	TimeZoneOffset      *int                    `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty"`
 	Type                string                  `json:"type,omitempty" bson:"type,omitempty"`
 	UploadID            string                  `json:"uploadId,omitempty" bson:"uploadId,omitempty"`
 	UserID              string                  `json:"-" bson:"_userId,omitempty"`

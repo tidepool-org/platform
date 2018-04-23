@@ -22,9 +22,9 @@ const (
 	DeviceTagInsulinPump                 = "insulin-pump"
 	StateClosed                          = "closed"
 	StateOpen                            = "open"
-	TimeProcessingAcrossTheBoardTimezone = "across-the-board-timezone"
+	TimeProcessingAcrossTheBoardTimeZone = "across-the-board-timezone" // TODO: Rename to across-the-board-time-zone or alternative
 	TimeProcessingNone                   = "none"
-	TimeProcessingUTCBootstrapping       = "utc-bootstrapping"
+	TimeProcessingUTCBootstrapping       = "utc-bootstrapping" // TODO: Rename to utc-bootstrap or alternative
 	VersionLengthMinimum                 = 5
 )
 
@@ -52,7 +52,7 @@ func States() []string {
 
 func TimeProcessings() []string {
 	return []string{
-		TimeProcessingAcrossTheBoardTimezone,
+		TimeProcessingAcrossTheBoardTimeZone,
 		TimeProcessingNone,
 		TimeProcessingUTCBootstrapping,
 	}
@@ -75,7 +75,6 @@ type Upload struct {
 	DeviceTags          *[]string `json:"deviceTags,omitempty" bson:"deviceTags,omitempty"`
 	State               *string   `json:"-" bson:"_state,omitempty"` // TODO: Should this be returned in JSON? I think so.
 	TimeProcessing      *string   `json:"timeProcessing,omitempty" bson:"timeProcessing,omitempty"`
-	Timezone            *string   `json:"timezone,omitempty" bson:"timezone,omitempty"`
 	Version             *string   `json:"version,omitempty" bson:"version,omitempty"` // TODO: Deprecate in favor of Client.Version
 }
 
@@ -130,7 +129,6 @@ func (u *Upload) Parse(parser data.ObjectParser) error {
 	u.DeviceSerialNumber = parser.ParseString("deviceSerialNumber")
 	u.DeviceTags = parser.ParseStringArray("deviceTags")
 	u.TimeProcessing = parser.ParseString("timeProcessing")
-	u.Timezone = parser.ParseString("timezone")
 	u.Version = parser.ParseString("version")
 
 	return nil
@@ -168,7 +166,6 @@ func (u *Upload) Validate(validator structure.Validator) {
 	}
 
 	validator.String("timeProcessing", u.TimeProcessing).Exists().OneOf(TimeProcessings()...) // TODO: Some clients USED to send ""; requires DB migration
-	validator.String("timezone", u.Timezone).NotEmpty()
 	validator.String("version", u.Version).LengthGreaterThanOrEqualTo(VersionLengthMinimum)
 }
 

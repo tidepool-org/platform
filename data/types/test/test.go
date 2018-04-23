@@ -43,7 +43,7 @@ func NewTags(minimumLength int, maximumLength int) []string {
 	return result
 }
 
-func NewTimezoneOffset() int {
+func NewTimeZoneOffset() int {
 	return -4440 + rand.Intn(4440+6960)
 }
 

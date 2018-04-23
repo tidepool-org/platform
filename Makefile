@@ -71,7 +71,7 @@ endif
 
 CompileDaemon: check-environment
 ifeq ($(shell which CompileDaemon),)
-	go get -u github.com/tidepool-org/CompileDaemon
+	go get -u github.com/githubnemo/CompileDaemon
 endif
 
 esc: check-environment

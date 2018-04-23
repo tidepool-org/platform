@@ -11,6 +11,7 @@ import (
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
+	testTimeZone "github.com/tidepool-org/platform/time/zone/test"
 )
 
 func NewBase() *types.Base {
@@ -46,7 +47,8 @@ func NewBase() *types.Base {
 	datum.Source = pointer.String("carelink")
 	datum.Tags = pointer.StringArray([]string{NewTag(1, 10)})
 	datum.Time = pointer.String(test.NewTime().Format(time.RFC3339))
-	datum.TimezoneOffset = pointer.Int(NewTimezoneOffset())
+	datum.TimeZoneName = pointer.String(testTimeZone.NewName())
+	datum.TimeZoneOffset = pointer.Int(NewTimeZoneOffset())
 	datum.Type = NewType()
 	datum.UploadID = pointer.String(id.New())
 	datum.UserID = pointer.String(id.New())
@@ -85,7 +87,8 @@ func CloneBase(datum *types.Base) *types.Base {
 	clone.Source = test.CloneString(datum.Source)
 	clone.Tags = test.CloneStringArray(datum.Tags)
 	clone.Time = test.CloneString(datum.Time)
-	clone.TimezoneOffset = test.CloneInt(datum.TimezoneOffset)
+	clone.TimeZoneName = test.CloneString(datum.TimeZoneName)
+	clone.TimeZoneOffset = test.CloneInt(datum.TimeZoneOffset)
 	clone.Type = datum.Type
 	clone.UploadID = test.CloneString(datum.UploadID)
 	clone.UserID = test.CloneString(datum.UserID)

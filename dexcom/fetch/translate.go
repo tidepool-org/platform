@@ -23,10 +23,10 @@ import (
 // device was not in use and displayTime immediately prior to or immediately after period not it use
 // were grossly in error.)
 
-const OffsetDuration = 30 * time.Minute // Duration between timezone offsets we scan for
+const OffsetDuration = 30 * time.Minute // Duration between time zone offsets we scan for
 
-const MaximumOffsets = (14 * time.Hour) / OffsetDuration  // Maximum timezone offset is +14:00
-const MinimumOffsets = (-12 * time.Hour) / OffsetDuration // Minimum timezone offset is -12:00
+const MaximumOffsets = (14 * time.Hour) / OffsetDuration  // Maximum time zone offset is +14:00
+const MinimumOffsets = (-12 * time.Hour) / OffsetDuration // Minimum time zone offset is -12:00
 
 const DailyDuration = 24 * time.Hour
 const DailyOffsets = DailyDuration / OffsetDuration
@@ -34,7 +34,7 @@ const DailyOffsets = DailyDuration / OffsetDuration
 func translateTime(systemTime time.Time, displayTime time.Time, datum *types.Base) {
 	var clockDriftOffsetDuration time.Duration
 	var conversionOffsetDuration time.Duration
-	var timezoneOffsetDuration time.Duration
+	var timeZoneOffsetDuration time.Duration
 
 	delta := displayTime.Sub(systemTime)
 	if delta > 0 {
@@ -44,7 +44,7 @@ func translateTime(systemTime time.Time, displayTime time.Time, datum *types.Bas
 			conversionOffsetDuration += DailyDuration
 			offsetCount -= DailyOffsets
 		}
-		timezoneOffsetDuration = offsetCount * OffsetDuration
+		timeZoneOffsetDuration = offsetCount * OffsetDuration
 	} else if delta < 0 {
 		offsetCount := time.Duration((float64(delta) - float64(OffsetDuration)/2) / float64(OffsetDuration))
 		clockDriftOffsetDuration = delta - offsetCount*OffsetDuration
@@ -52,12 +52,12 @@ func translateTime(systemTime time.Time, displayTime time.Time, datum *types.Bas
 			conversionOffsetDuration -= DailyDuration
 			offsetCount += DailyOffsets
 		}
-		timezoneOffsetDuration = offsetCount * OffsetDuration
+		timeZoneOffsetDuration = offsetCount * OffsetDuration
 	}
 
 	datum.Time = pointer.String(systemTime.Format(types.TimeFormat))
 	datum.DeviceTime = pointer.String(displayTime.Format(types.DeviceTimeFormat))
-	datum.TimezoneOffset = pointer.Int(int(timezoneOffsetDuration / time.Minute))
+	datum.TimeZoneOffset = pointer.Int(int(timeZoneOffsetDuration / time.Minute))
 	if clockDriftOffsetDuration != 0 {
 		datum.ClockDriftOffset = pointer.Int(int(clockDriftOffsetDuration / time.Millisecond))
 	}

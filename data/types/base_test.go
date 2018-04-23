@@ -23,6 +23,8 @@ import (
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
+	"github.com/tidepool-org/platform/time/zone"
+	testTimeZone "github.com/tidepool-org/platform/time/zone/test"
 	"github.com/tidepool-org/platform/validate"
 )
 
@@ -59,7 +61,8 @@ var _ = Describe("Base", func() {
 			Expect(datum.Source).To(BeNil())
 			Expect(datum.Tags).To(BeNil())
 			Expect(datum.Time).To(BeNil())
-			Expect(datum.TimezoneOffset).To(BeNil())
+			Expect(datum.TimeZoneName).To(BeNil())
+			Expect(datum.TimeZoneOffset).To(BeNil())
 			Expect(datum.Type).To(Equal(typ))
 			Expect(datum.UploadID).To(BeNil())
 			Expect(datum.UserID).To(BeNil())
@@ -678,25 +681,38 @@ var _ = Describe("Base", func() {
 					func(datum *types.Base) { datum.Time = pointer.String(test.NewTime().Format(time.RFC3339)) },
 					structure.Origins(),
 				),
+				Entry("time zone name missing",
+					func(datum *types.Base) { datum.TimeZoneName = nil },
+					structure.Origins(),
+				),
+				Entry("time zone name empty",
+					func(datum *types.Base) { datum.TimeZoneName = pointer.String("") },
+					structure.Origins(),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("", zone.Names()), "/timezone"),
+				),
+				Entry("time zone name exists",
+					func(datum *types.Base) { datum.TimeZoneName = pointer.String(testTimeZone.NewName()) },
+					structure.Origins(),
+				),
 				Entry("time zone offset missing",
-					func(datum *types.Base) { datum.TimezoneOffset = nil },
+					func(datum *types.Base) { datum.TimeZoneOffset = nil },
 					structure.Origins(),
 				),
 				Entry("time zone offset; out of range (lower)",
-					func(datum *types.Base) { datum.TimezoneOffset = pointer.Int(-10081) },
+					func(datum *types.Base) { datum.TimeZoneOffset = pointer.Int(-10081) },
 					structure.Origins(),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-10081, -10080, 10080), "/timezoneOffset"),
 				),
 				Entry("time zone offset; in range (lower)",
-					func(datum *types.Base) { datum.TimezoneOffset = pointer.Int(-10080) },
+					func(datum *types.Base) { datum.TimeZoneOffset = pointer.Int(-10080) },
 					structure.Origins(),
 				),
 				Entry("time zone offset; in range (upper)",
-					func(datum *types.Base) { datum.TimezoneOffset = pointer.Int(10080) },
+					func(datum *types.Base) { datum.TimeZoneOffset = pointer.Int(10080) },
 					structure.Origins(),
 				),
 				Entry("time zone offset; out of range (upper)",
-					func(datum *types.Base) { datum.TimezoneOffset = pointer.Int(10081) },
+					func(datum *types.Base) { datum.TimeZoneOffset = pointer.Int(10081) },
 					structure.Origins(),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(10081, -10080, 10080), "/timezoneOffset"),
 				),
@@ -807,7 +823,8 @@ var _ = Describe("Base", func() {
 						datum.Source = pointer.String("invalid")
 						datum.Tags = pointer.StringArray([]string{})
 						datum.Time = nil
-						datum.TimezoneOffset = pointer.Int(-10081)
+						datum.TimeZoneName = pointer.String("")
+						datum.TimeZoneOffset = pointer.Int(-10081)
 						datum.Type = ""
 					},
 					structure.Origins(),
@@ -821,6 +838,7 @@ var _ = Describe("Base", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "carelink"), "/source"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/tags"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/time"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("", zone.Names()), "/timezone"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-10081, -10080, 10080), "/timezoneOffset"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/type"),
 				),

@@ -12,6 +12,7 @@ import (
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
+	"github.com/tidepool-org/platform/time/zone"
 )
 
 const (
@@ -30,8 +31,8 @@ const (
 	TagLengthMaximum        = 100
 	TagsLengthMaximum       = 100
 	TimeFormat              = time.RFC3339
-	TimezoneOffsetMaximum   = 7 * 24 * 60  // TODO: Fix! Limit to reasonable values
-	TimezoneOffsetMinimum   = -7 * 24 * 60 // TODO: Fix! Limit to reasonable values
+	TimeZoneOffsetMaximum   = 7 * 24 * 60  // TODO: Fix! Limit to reasonable values
+	TimeZoneOffsetMinimum   = -7 * 24 * 60 // TODO: Fix! Limit to reasonable values
 	VersionMinimum          = 0
 )
 
@@ -62,7 +63,8 @@ type Base struct {
 	Source            *string                                      `json:"source,omitempty" bson:"source,omitempty"`
 	Tags              *[]string                                    `json:"tags,omitempty" bson:"tags,omitempty"`
 	Time              *string                                      `json:"time,omitempty" bson:"time,omitempty"`
-	TimezoneOffset    *int                                         `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty"`
+	TimeZoneName      *string                                      `json:"timezone,omitempty" bson:"timezone,omitempty"`             // TODO: Rename to timeZoneName
+	TimeZoneOffset    *int                                         `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty"` // TODO: Rename to timeZoneOffset
 	Type              string                                       `json:"type,omitempty" bson:"type,omitempty"`
 	UploadID          *string                                      `json:"uploadId,omitempty" bson:"uploadId,omitempty"`
 	UserID            *string                                      `json:"-" bson:"_userId,omitempty"`
@@ -100,7 +102,8 @@ func (b *Base) Parse(parser data.ObjectParser) error {
 	b.Source = parser.ParseString("source")
 	b.Tags = parser.ParseStringArray("tags")
 	b.Time = parser.ParseString("time")
-	b.TimezoneOffset = parser.ParseInteger("timezoneOffset")
+	b.TimeZoneName = parser.ParseString("timezone")
+	b.TimeZoneOffset = parser.ParseInteger("timezoneOffset")
 
 	return nil
 }
@@ -203,7 +206,8 @@ func (b *Base) Validate(validator structure.Validator) {
 		stringValidator.Exists().NotEmpty().LengthLessThanOrEqualTo(TagLengthMaximum)
 	}).EachUnique()
 	validator.String("time", b.Time).Exists().AsTime(TimeFormat)
-	validator.Int("timezoneOffset", b.TimezoneOffset).InRange(TimezoneOffsetMinimum, TimezoneOffsetMaximum)
+	validator.String("timezone", b.TimeZoneName).OneOf(zone.Names()...)
+	validator.Int("timezoneOffset", b.TimeZoneOffset).InRange(TimeZoneOffsetMinimum, TimeZoneOffsetMaximum)
 	validator.String("type", &b.Type).Exists().NotEmpty()
 
 	if validator.Origin() <= structure.OriginInternal {
