@@ -2,6 +2,42 @@ package structure
 
 import "strings"
 
+type Origin int
+
+const (
+	OriginStore Origin = iota
+	OriginInternal
+	OriginExternal
+)
+
+func Origins() []Origin {
+	return []Origin{
+		OriginStore,
+		OriginInternal,
+		OriginExternal,
+	}
+}
+
+type OriginReporter interface {
+	Origin() Origin
+}
+
+type SourceReporter interface {
+	HasSource() bool
+	Source() Source
+}
+
+type MetaReporter interface {
+	HasMeta() bool
+	Meta() interface{}
+}
+
+type ErrorReporter interface {
+	HasError() bool
+	Error() error
+	ReportError(err error)
+}
+
 type Source interface {
 	Parameter() string
 	Pointer() string

@@ -48,3 +48,12 @@ func (b *Bool) False() structure.Bool {
 	}
 	return b
 }
+
+func (b *Bool) Using(using func(value bool, errorReporter structure.ErrorReporter)) structure.Bool {
+	if b.value != nil {
+		if using != nil {
+			using(*b.value, b.base)
+		}
+	}
+	return b
+}

@@ -197,7 +197,7 @@ func (s *Standard) initializeConfirmationStore() error {
 
 	s.Logger().Debug("Creating confirmation store")
 
-	confirmationStore, err := confirmationMongo.New(confirmationStoreConfig, s.Logger())
+	confirmationStore, err := confirmationMongo.NewStore(confirmationStoreConfig, s.Logger())
 	if err != nil {
 		return errors.Wrap(err, "unable to create confirmation store")
 	}

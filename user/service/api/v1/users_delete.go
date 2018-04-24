@@ -112,7 +112,7 @@ func UsersDelete(userServiceContext userService.Context) {
 		return
 	}
 
-	if err = userServiceContext.ConfirmationsSession().DestroyConfirmationsForUserByID(ctx, targetUserID); err != nil {
+	if err = userServiceContext.ConfirmationSession().DeleteUserConfirmations(ctx, targetUserID); err != nil {
 		userServiceContext.RespondWithInternalServerFailure("Unable to destroy confirmations for user by id", err)
 		return
 	}

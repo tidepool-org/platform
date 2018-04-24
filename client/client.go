@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	netURL "net/url"
@@ -35,11 +36,11 @@ func New(cfg *Config) (*Client, error) {
 }
 
 func (c *Client) ConstructURL(paths ...string) string {
-	segments := []string{c.address}
+	segments := []string{}
 	for _, path := range paths {
 		segments = append(segments, netURL.PathEscape(strings.Trim(path, "/")))
 	}
-	return strings.Join(segments, "/")
+	return fmt.Sprintf("%s/%s", strings.TrimRight(c.address, "/"), strings.Join(segments, "/"))
 }
 
 func (c *Client) AppendURLQuery(urlString string, query map[string]string) string {
@@ -86,6 +87,8 @@ func (c *Client) SendRequest(ctx context.Context, method string, url string, mut
 	switch res.StatusCode {
 	case http.StatusOK, http.StatusCreated:
 		return c.decodeResponseBody(res, responseBody)
+	case http.StatusNoContent:
+		return nil
 	case http.StatusBadRequest:
 		return c.handleBadRequest(res, req)
 	case http.StatusUnauthorized:
@@ -94,6 +97,8 @@ func (c *Client) SendRequest(ctx context.Context, method string, url string, mut
 		return request.ErrorUnauthorized()
 	case http.StatusNotFound:
 		return request.ErrorResourceNotFound()
+	case http.StatusTooManyRequests:
+		return request.ErrorTooManyRequests()
 	}
 
 	return request.ErrorUnexpectedResponse(res, req)

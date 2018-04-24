@@ -1,10 +1,34 @@
 package pump
 
-import "github.com/tidepool-org/platform/data"
+import (
+	"sort"
+	"strconv"
+
+	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
+)
+
+const (
+	BasalScheduleRateMaximum  = 100.0
+	BasalScheduleRateMinimum  = 0.0
+	BasalScheduleStartMaximum = 86400000
+	BasalScheduleStartMinimum = 0
+)
 
 type BasalSchedule struct {
 	Rate  *float64 `json:"rate,omitempty" bson:"rate,omitempty"`
 	Start *int     `json:"start,omitempty" bson:"start,omitempty"`
+}
+
+func ParseBasalSchedule(parser data.ObjectParser) *BasalSchedule {
+	if parser.Object() == nil {
+		return nil
+	}
+	basalSchedule := NewBasalSchedule()
+	basalSchedule.Parse(parser)
+	parser.ProcessNotParsed()
+	return basalSchedule
 }
 
 func NewBasalSchedule() *BasalSchedule {
@@ -16,44 +40,113 @@ func (b *BasalSchedule) Parse(parser data.ObjectParser) {
 	b.Start = parser.ParseInteger("start")
 }
 
-func (b *BasalSchedule) Validate(validator data.Validator) {
-	validator.ValidateFloat("rate", b.Rate).Exists().InRange(0.0, 100.0)
-	validator.ValidateInteger("start", b.Start).Exists().InRange(0, 86400000)
+func (b *BasalSchedule) Validate(validator structure.Validator) {
+	validator.Float64("rate", b.Rate).Exists().InRange(BasalScheduleRateMinimum, BasalScheduleRateMaximum)
+	validator.Int("start", b.Start).Exists().InRange(BasalScheduleStartMinimum, BasalScheduleStartMaximum)
 }
 
-func (b *BasalSchedule) Normalize(normalizer data.Normalizer) {
-}
+func (b *BasalSchedule) Normalize(normalizer data.Normalizer) {}
 
-func parseBasalSchedule(parser data.ObjectParser) *BasalSchedule {
-	var basalSchedule *BasalSchedule
-	if parser.Object() != nil {
-		basalSchedule = NewBasalSchedule()
-		basalSchedule.Parse(parser)
-		parser.ProcessNotParsed()
+// TODO: Can/should we validate that each Start in the array is greater than the previous Start?
+
+type BasalScheduleArray []*BasalSchedule
+
+func ParseBasalScheduleArray(parser data.ArrayParser) *BasalScheduleArray {
+	if parser.Array() == nil {
+		return nil
 	}
-	return basalSchedule
-}
-
-func parseBasalScheduleArray(parser data.ArrayParser) *[]*BasalSchedule {
-	var basalScheduleArray *[]*BasalSchedule
-	if parser.Array() != nil {
-		basalScheduleArray = &[]*BasalSchedule{}
-		for index := range *parser.Array() {
-			*basalScheduleArray = append(*basalScheduleArray, parseBasalSchedule(parser.NewChildObjectParser(index)))
-		}
-		parser.ProcessNotParsed()
-	}
+	basalScheduleArray := NewBasalScheduleArray()
+	basalScheduleArray.Parse(parser)
+	parser.ProcessNotParsed()
 	return basalScheduleArray
 }
 
-func ParseBasalSchedulesMap(parser data.ObjectParser) *map[string]*[]*BasalSchedule {
-	var basalScheduleMap *map[string]*[]*BasalSchedule
-	if parser.Object() != nil {
-		basalScheduleMap = &map[string]*[]*BasalSchedule{}
-		for key := range *parser.Object() {
-			(*basalScheduleMap)[key] = parseBasalScheduleArray(parser.NewChildArrayParser(key))
-		}
-		parser.ProcessNotParsed()
+func NewBasalScheduleArray() *BasalScheduleArray {
+	return &BasalScheduleArray{}
+}
+
+func (b *BasalScheduleArray) Parse(parser data.ArrayParser) {
+	for index := range *parser.Array() {
+		*b = append(*b, ParseBasalSchedule(parser.NewChildObjectParser(index)))
 	}
-	return basalScheduleMap
+}
+
+func (b *BasalScheduleArray) Validate(validator structure.Validator) {
+	for index, basalSchedule := range *b {
+		basalScheduleValidator := validator.WithReference(strconv.Itoa(index))
+		if basalSchedule != nil {
+			basalSchedule.Validate(basalScheduleValidator)
+		} else {
+			basalScheduleValidator.ReportError(structureValidator.ErrorValueNotExists())
+		}
+	}
+}
+
+func (b *BasalScheduleArray) Normalize(normalizer data.Normalizer) {
+	for index, basalSchedule := range *b {
+		if basalSchedule != nil {
+			basalSchedule.Normalize(normalizer.WithReference(strconv.Itoa(index)))
+		}
+	}
+}
+
+type BasalScheduleArrayMap map[string]*BasalScheduleArray
+
+func ParseBasalScheduleArrayMap(parser data.ObjectParser) *BasalScheduleArrayMap {
+	if parser.Object() == nil {
+		return nil
+	}
+	datum := NewBasalScheduleArrayMap()
+	datum.Parse(parser)
+	parser.ProcessNotParsed()
+	return datum
+}
+
+func NewBasalScheduleArrayMap() *BasalScheduleArrayMap {
+	return &BasalScheduleArrayMap{}
+}
+
+func (b *BasalScheduleArrayMap) Parse(parser data.ObjectParser) {
+	for name := range *parser.Object() {
+		b.Set(name, ParseBasalScheduleArray(parser.NewChildArrayParser(name)))
+	}
+}
+
+func (b *BasalScheduleArrayMap) Validate(validator structure.Validator) {
+	for _, name := range b.sortedNames() {
+		arrayValidator := validator.WithReference(name)
+		if array := b.Get(name); array != nil {
+			array.Validate(arrayValidator)
+		} else {
+			arrayValidator.ReportError(structureValidator.ErrorValueNotExists())
+		}
+	}
+}
+
+func (b *BasalScheduleArrayMap) Normalize(normalizer data.Normalizer) {
+	for _, name := range b.sortedNames() {
+		if array := b.Get(name); array != nil {
+			array.Normalize(normalizer.WithReference(name))
+		}
+	}
+}
+
+func (b *BasalScheduleArrayMap) Get(name string) *BasalScheduleArray {
+	if array, exists := (*b)[name]; exists {
+		return array
+	}
+	return nil
+}
+
+func (b *BasalScheduleArrayMap) Set(name string, array *BasalScheduleArray) {
+	(*b)[name] = array
+}
+
+func (b *BasalScheduleArrayMap) sortedNames() []string {
+	names := []string{}
+	for name := range *b {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }

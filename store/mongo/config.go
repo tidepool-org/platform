@@ -11,13 +11,13 @@ import (
 )
 
 type Config struct {
-	Addresses        []string
-	TLS              bool
-	Database         string
-	CollectionPrefix string
-	Username         *string
-	Password         *string
-	Timeout          time.Duration
+	Addresses        []string      `json:"addresses"`
+	TLS              bool          `json:"tls"`
+	Database         string        `json:"database"`
+	CollectionPrefix string        `json:"collectionPrefix"`
+	Username         *string       `json:"-"`
+	Password         *string       `json:"-"`
+	Timeout          time.Duration `json:"timeout"`
 }
 
 func NewConfig() *Config {

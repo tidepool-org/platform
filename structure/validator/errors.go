@@ -26,6 +26,7 @@ const (
 	ErrorCodeValueNotZero     = "value-not-zero"
 	ErrorCodeValueNotAfter    = "value-not-after"
 	ErrorCodeValueNotBefore   = "value-not-before"
+	ErrorCodeValueNotValid    = "value-not-valid"
 	ErrorCodeLengthOutOfRange = "length-out-of-range"
 )
 
@@ -141,6 +142,10 @@ func ErrorValueStringMatches(value string, expression *regexp.Regexp) error {
 
 func ErrorValueStringNotMatches(value string, expression *regexp.Regexp) error {
 	return errors.Preparedf(ErrorCodeValueNotMatches, "value does not match expression", "value %q does not match expression %q", value, ExpressionAsString(expression))
+}
+
+func ErrorValueStringAsTimeNotValid(value string, layout string) error {
+	return errors.Preparedf(ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as time with layout %q", value, layout)
 }
 
 func ErrorValueTimeZero(value time.Time) error {

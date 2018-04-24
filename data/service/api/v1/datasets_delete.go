@@ -32,7 +32,7 @@ func DatasetsDelete(dataServiceContext dataService.Context) {
 	}
 
 	targetUserID := dataset.UserID
-	if targetUserID == "" {
+	if targetUserID == nil || *targetUserID == "" {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to get user id from dataset")
 		return
 	}
@@ -41,7 +41,7 @@ func DatasetsDelete(dataServiceContext dataService.Context) {
 		authUserID := details.UserID()
 
 		var permissions user.Permissions
-		permissions, err = dataServiceContext.UserClient().GetUserPermissions(ctx, authUserID, targetUserID)
+		permissions, err = dataServiceContext.UserClient().GetUserPermissions(ctx, authUserID, *targetUserID)
 		if err != nil {
 			if errors.Code(err) == request.ErrorCodeUnauthorized {
 				dataServiceContext.RespondWithError(service.ErrorUnauthorized())
@@ -52,7 +52,7 @@ func DatasetsDelete(dataServiceContext dataService.Context) {
 		}
 		if _, ok := permissions[user.OwnerPermission]; !ok {
 			if _, ok = permissions[user.CustodianPermission]; !ok {
-				if _, ok = permissions[user.UploadPermission]; !ok || authUserID != dataset.ByUser {
+				if _, ok = permissions[user.UploadPermission]; !ok || dataset.ByUser == nil || authUserID != *dataset.ByUser {
 					dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 					return
 				}

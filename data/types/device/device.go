@@ -4,6 +4,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/structure"
 )
 
 type Device struct {
@@ -41,24 +42,14 @@ func (d *Device) Parse(parser data.ObjectParser) error {
 	return d.Base.Parse(parser)
 }
 
-func (d *Device) Validate(validator data.Validator) error {
-	validator.SetMeta(d.Meta())
+func (d *Device) Validate(validator structure.Validator) {
+	d.Base.Validate(validator)
 
-	if err := d.Base.Validate(validator); err != nil {
-		return err
+	if d.Type != "" {
+		validator.String("type", &d.Type).EqualTo(Type())
 	}
 
-	validator.ValidateString("type", &d.Type).EqualTo(Type())
-
-	validator.ValidateString("subType", &d.SubType).NotEmpty()
-
-	return nil
-}
-
-func (d *Device) Normalize(normalizer data.Normalizer) error {
-	normalizer.SetMeta(d.Meta())
-
-	return d.Base.Normalize(normalizer)
+	validator.String("subType", &d.SubType).Exists().NotEmpty()
 }
 
 func (d *Device) IdentityFields() ([]string, error) {

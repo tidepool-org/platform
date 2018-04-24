@@ -29,7 +29,7 @@ var _ = Describe("Application", func() {
 		})
 
 		It("returns successfully with multiple scopes", func() {
-			Expect(application.New("TIDEPOOL", "alpha", "bravo")).ToNot(BeNil())
+			Expect(application.New("TIDEPOOL", "alpha", "bravo", "charlie")).ToNot(BeNil())
 		})
 	})
 
@@ -58,6 +58,19 @@ var _ = Describe("Application", func() {
 
 				It("returns an error if the version is not specified correctly", func() {
 					Expect(app.Initialize()).To(MatchError("unable to create version reporter; base is missing"))
+				})
+			})
+
+			Context("with invalid prefix", func() {
+				BeforeEach(func() {
+					var err error
+					app, err = application.New("*INVALID*")
+					Expect(err).ToNot(HaveOccurred())
+					Expect(app).ToNot(BeNil())
+				})
+
+				It("returns an error if the prefix is invalid", func() {
+					Expect(app.Initialize()).To(MatchError("unable to create config reporter; prefix is invalid"))
 				})
 			})
 

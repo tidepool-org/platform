@@ -5,18 +5,17 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"math"
-
-	"github.com/tidepool-org/platform/data/context"
-	"github.com/tidepool-org/platform/data/normalizer"
-	testData "github.com/tidepool-org/platform/data/test"
+	dataBloodKetone "github.com/tidepool-org/platform/data/blood/ketone"
+	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood/ketone"
-	"github.com/tidepool-org/platform/data/validator"
-	"github.com/tidepool-org/platform/id"
-	"github.com/tidepool-org/platform/log/null"
+	testDataTypesBlood "github.com/tidepool-org/platform/data/types/blood/test"
+	testDataTypes "github.com/tidepool-org/platform/data/types/test"
+	testErrors "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/test"
 )
 
 func NewMeta() interface{} {
@@ -25,19 +24,22 @@ func NewMeta() interface{} {
 	}
 }
 
-func NewTestKetone(sourceTime interface{}, sourceUnits interface{}, sourceValue interface{}) *ketone.Ketone {
-	testKetone := ketone.Init()
-	testKetone.DeviceID = pointer.String(id.New())
-	if value, ok := sourceTime.(string); ok {
-		testKetone.Time = pointer.String(value)
+func NewKetone(units *string) *ketone.Ketone {
+	datum := ketone.New()
+	datum.Blood = *testDataTypesBlood.NewBlood()
+	datum.Type = "bloodKetone"
+	datum.Units = units
+	datum.Value = pointer.Float64(test.RandomFloat64FromRange(dataBloodKetone.ValueRangeForUnits(units)))
+	return datum
+}
+
+func CloneKetone(datum *ketone.Ketone) *ketone.Ketone {
+	if datum == nil {
+		return nil
 	}
-	if value, ok := sourceUnits.(string); ok {
-		testKetone.Units = pointer.String(value)
-	}
-	if value, ok := sourceValue.(float64); ok {
-		testKetone.Value = pointer.Float64(value)
-	}
-	return testKetone
+	clone := ketone.New()
+	clone.Blood = *testDataTypesBlood.CloneBlood(&datum.Blood)
+	return clone
 }
 
 var _ = Describe("Ketone", func() {
@@ -54,195 +56,348 @@ var _ = Describe("Ketone", func() {
 	})
 
 	Context("New", func() {
-		It("returns the expected ketone", func() {
+		It("returns the expected datum", func() {
 			Expect(ketone.New()).To(Equal(&ketone.Ketone{}))
 		})
 	})
 
 	Context("Init", func() {
-		It("returns the expected ketone", func() {
-			testKetone := ketone.Init()
-			Expect(testKetone).ToNot(BeNil())
-			Expect(testKetone.ID).ToNot(BeEmpty())
-			Expect(testKetone.Type).To(Equal("bloodKetone"))
+		It("returns the expected datum", func() {
+			datum := ketone.Init()
+			Expect(datum).ToNot(BeNil())
+			Expect(datum.Type).To(Equal("bloodKetone"))
+			Expect(datum.Units).To(BeNil())
+			Expect(datum.Value).To(BeNil())
 		})
 	})
 
-	Context("with new ketone", func() {
-		var testKetone *ketone.Ketone
+	Context("with new datum", func() {
+		var datum *ketone.Ketone
 
 		BeforeEach(func() {
-			testKetone = ketone.New()
-			Expect(testKetone).ToNot(BeNil())
+			datum = NewKetone(pointer.String("mmol/L"))
 		})
 
 		Context("Init", func() {
-			It("initializes the ketone", func() {
-				testKetone.Init()
-				Expect(testKetone.ID).ToNot(BeEmpty())
-				Expect(testKetone.Type).To(Equal("bloodKetone"))
+			It("initializes the datum", func() {
+				datum.Init()
+				Expect(datum.Type).To(Equal("bloodKetone"))
+				Expect(datum.Units).To(BeNil())
+				Expect(datum.Value).To(BeNil())
 			})
 		})
+	})
 
-		Context("with initialized", func() {
-			BeforeEach(func() {
-				testKetone.Init()
-			})
-
-			DescribeTable("Validate",
-				func(sourceKetone *ketone.Ketone, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(null.NewLogger())
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testContext).ToNot(BeNil())
-					testValidator, err := validator.NewStandard(testContext)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testValidator).ToNot(BeNil())
-					Expect(sourceKetone.Validate(testValidator)).To(Succeed())
-					Expect(testContext.Errors()).To(ConsistOf(expectedErrors))
+	Context("Ketone", func() {
+		Context("Validate", func() {
+			DescribeTable("validates the datum",
+				func(units *string, mutator func(datum *ketone.Ketone, units *string), expectedErrors ...error) {
+					datum := NewKetone(units)
+					mutator(datum, units)
+					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
-				Entry("all valid",
-					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/L", 1.0),
-					[]*service.Error{}),
-				Entry("missing time",
-					NewTestKetone(nil, "mmol/L", 1.0),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta()),
-					}),
-				Entry("missing units",
-					NewTestKetone("2016-09-06T13:45:58-07:00", nil, 1.0),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueNotExists(), "/units", NewMeta()),
-					}),
-				Entry("unknown units",
-					NewTestKetone("2016-09-06T13:45:58-07:00", "unknown", 1.0),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
-					}),
-				Entry("mmol/L units",
-					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/L", 1.0),
-					[]*service.Error{}),
-				Entry("mmol/l units",
-					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/l", 1.0),
-					[]*service.Error{}),
-				Entry("mg/dL units",
-					NewTestKetone("2016-09-06T13:45:58-07:00", "mg/dL", 1.0),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueStringNotOneOf("mg/dL", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
-					}),
-				Entry("mg/dl units",
-					NewTestKetone("2016-09-06T13:45:58-07:00", "mg/dl", 1.0),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueStringNotOneOf("mg/dl", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
-					}),
-				Entry("missing value",
-					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/L", nil),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueNotExists(), "/value", NewMeta()),
-					}),
-				Entry("unknown units; value in range (lower)",
-					NewTestKetone("2016-09-06T13:45:58-07:00", "unknown", -math.MaxFloat64),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
-					}),
-				Entry("unknown units; value in range (upper)",
-					NewTestKetone("2016-09-06T13:45:58-07:00", "unknown", math.MaxFloat64),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
-					}),
-				Entry("mmol/L units; value out of range (lower)",
-					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/L", -0.1),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 10.0), "/value", NewMeta()),
-					}),
-				Entry("mmol/L units; value in range (lower)",
-					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/L", 0.0),
-					[]*service.Error{}),
-				Entry("mmol/L units; value in range (upper)",
-					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/L", 10.0),
-					[]*service.Error{}),
-				Entry("mmol/L units; value out of range (upper)",
-					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/L", 10.1),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueNotInRange(10.1, 0.0, 10.0), "/value", NewMeta()),
-					}),
-				Entry("mmol/l units; value out of range (lower)",
-					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/l", -0.1),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueNotInRange(-0.1, 0.0, 10.0), "/value", NewMeta()),
-					}),
-				Entry("mmol/l units; value in range (lower)",
-					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/l", 0.0),
-					[]*service.Error{}),
-				Entry("mmol/l units; value in range (upper)",
-					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/l", 10.0),
-					[]*service.Error{}),
-				Entry("mmol/l units; value out of range (upper)",
-					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/l", 10.1),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueNotInRange(10.1, 0.0, 10.0), "/value", NewMeta()),
-					}),
-				Entry("mg/dL units; value in range (lower)",
-					NewTestKetone("2016-09-06T13:45:58-07:00", "mg/dL", -math.MaxFloat64),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueStringNotOneOf("mg/dL", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
-					}),
-				Entry("mg/dL units; value in range (upper)",
-					NewTestKetone("2016-09-06T13:45:58-07:00", "mg/dL", math.MaxFloat64),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueStringNotOneOf("mg/dL", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
-					}),
-				Entry("mg/dl units; value in range (lower)",
-					NewTestKetone("2016-09-06T13:45:58-07:00", "mg/dl", -math.MaxFloat64),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueStringNotOneOf("mg/dl", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
-					}),
-				Entry("mg/dl units; value in range (upper)",
-					NewTestKetone("2016-09-06T13:45:58-07:00", "mg/dl", math.MaxFloat64),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueStringNotOneOf("mg/dl", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
-					}),
-				Entry("multiple",
-					NewTestKetone(nil, "unknown", nil),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorValueNotExists(), "/time", NewMeta()),
-						testData.ComposeError(service.ErrorValueStringNotOneOf("unknown", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
-						testData.ComposeError(service.ErrorValueNotExists(), "/value", NewMeta()),
-					}),
+				Entry("succeeds",
+					pointer.String("mmol/L"),
+					func(datum *ketone.Ketone, units *string) {},
+				),
+				Entry("type missing",
+					pointer.String("mmol/L"),
+					func(datum *ketone.Ketone, units *string) { datum.Type = "" },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &types.Meta{}),
+				),
+				Entry("type invalid",
+					pointer.String("mmol/L"),
+					func(datum *ketone.Ketone, units *string) { datum.Type = "invalidType" },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "bloodKetone"), "/type", &types.Meta{Type: "invalidType"}),
+				),
+				Entry("type bloodKetone",
+					pointer.String("mmol/L"),
+					func(datum *ketone.Ketone, units *string) { datum.Type = "bloodKetone" },
+				),
+				Entry("units missing; value missing",
+					nil,
+					func(datum *ketone.Ketone, units *string) { datum.Value = nil },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", NewMeta()),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/value", NewMeta()),
+				),
+				Entry("units missing; value out of range (lower)",
+					nil,
+					func(datum *ketone.Ketone, units *string) { datum.Value = pointer.Float64(-0.1) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", NewMeta()),
+				),
+				Entry("units missing; value in range (lower)",
+					nil,
+					func(datum *ketone.Ketone, units *string) { datum.Value = pointer.Float64(0.) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", NewMeta()),
+				),
+				Entry("units missing; value in range (upper)",
+					nil,
+					func(datum *ketone.Ketone, units *string) { datum.Value = pointer.Float64(10.0) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", NewMeta()),
+				),
+				Entry("units missing; value out of range (upper)",
+					nil,
+					func(datum *ketone.Ketone, units *string) { datum.Value = pointer.Float64(10.1) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", NewMeta()),
+				),
+				Entry("units invalid; value missing",
+					pointer.String("invalid"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = nil },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/value", NewMeta()),
+				),
+				Entry("units invalid; value out of range (lower)",
+					pointer.String("invalid"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = pointer.Float64(-0.1) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+				),
+				Entry("units invalid; value in range (lower)",
+					pointer.String("invalid"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = pointer.Float64(0.0) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+				),
+				Entry("units invalid; value in range (upper)",
+					pointer.String("invalid"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = pointer.Float64(10.0) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+				),
+				Entry("units invalid; value out of range (upper)",
+					pointer.String("invalid"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = pointer.Float64(10.1) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+				),
+				Entry("units mmol/L; value missing",
+					pointer.String("mmol/L"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = nil },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/value", NewMeta()),
+				),
+				Entry("units mmol/L; value out of range (lower)",
+					pointer.String("mmol/L"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = pointer.Float64(-0.1) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 10.0), "/value", NewMeta()),
+				),
+				Entry("units mmol/L; value in range (lower)",
+					pointer.String("mmol/L"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = pointer.Float64(0.0) },
+				),
+				Entry("units mmol/L; value in range (upper)",
+					pointer.String("mmol/L"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = pointer.Float64(10.0) },
+				),
+				Entry("units mmol/L; value out of range (upper)",
+					pointer.String("mmol/L"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = pointer.Float64(10.1) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(10.1, 0.0, 10.0), "/value", NewMeta()),
+				),
+				Entry("units mmol/l; value missing",
+					pointer.String("mmol/l"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = nil },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/value", NewMeta()),
+				),
+				Entry("units mmol/l; value out of range (lower)",
+					pointer.String("mmol/l"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = pointer.Float64(-0.1) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 10.0), "/value", NewMeta()),
+				),
+				Entry("units mmol/l; value in range (lower)",
+					pointer.String("mmol/l"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = pointer.Float64(0.0) },
+				),
+				Entry("units mmol/l; value in range (upper)",
+					pointer.String("mmol/l"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = pointer.Float64(10.0) },
+				),
+				Entry("units mmol/l; value out of range (upper)",
+					pointer.String("mmol/l"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = pointer.Float64(10.1) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(10.1, 0.0, 10.0), "/value", NewMeta()),
+				),
+				Entry("units mg/dL; value missing",
+					pointer.String("mg/dL"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = nil },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("mg/dL", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/value", NewMeta()),
+				),
+				Entry("units mg/dL; value out of range (lower)",
+					pointer.String("mg/dL"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = pointer.Float64(-0.1) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("mg/dL", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+				),
+				Entry("units mg/dL; value in range (lower)",
+					pointer.String("mg/dL"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = pointer.Float64(0.0) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("mg/dL", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+				),
+				Entry("units mg/dL; value in range (upper)",
+					pointer.String("mg/dL"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = pointer.Float64(10.0) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("mg/dL", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+				),
+				Entry("units mg/dL; value out of range (upper)",
+					pointer.String("mg/dL"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = pointer.Float64(10.1) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("mg/dL", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+				),
+				Entry("units mg/dl; value missing",
+					pointer.String("mg/dl"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = nil },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("mg/dl", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/value", NewMeta()),
+				),
+				Entry("units mg/dl; value out of range (lower)",
+					pointer.String("mg/dl"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = pointer.Float64(-0.1) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("mg/dl", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+				),
+				Entry("units mg/dl; value in range (lower)",
+					pointer.String("mg/dl"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = pointer.Float64(0.0) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("mg/dl", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+				),
+				Entry("units mg/dl; value in range (upper)",
+					pointer.String("mg/dl"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = pointer.Float64(10.0) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("mg/dl", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+				),
+				Entry("units mg/dl; value out of range (upper)",
+					pointer.String("mg/dl"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = pointer.Float64(10.1) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("mg/dl", []string{"mmol/L", "mmol/l"}), "/units", NewMeta()),
+				),
+				Entry("multiple errors",
+					nil,
+					func(datum *ketone.Ketone, units *string) {
+						datum.Type = ""
+						datum.Value = nil
+					},
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &types.Meta{}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", &types.Meta{}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/value", &types.Meta{}),
+				),
+			)
+		})
+
+		Context("Normalize", func() {
+			DescribeTable("normalizes the datum",
+				func(units *string, mutator func(datum *ketone.Ketone, units *string), expectator func(datum *ketone.Ketone, expectedDatum *ketone.Ketone, units *string)) {
+					for _, origin := range structure.Origins() {
+						datum := NewKetone(units)
+						mutator(datum, units)
+						expectedDatum := CloneKetone(datum)
+						normalizer := dataNormalizer.New()
+						Expect(normalizer).ToNot(BeNil())
+						datum.Normalize(normalizer.WithOrigin(origin))
+						Expect(normalizer.Error()).To(BeNil())
+						Expect(normalizer.Data()).To(BeEmpty())
+						if expectator != nil {
+							expectator(datum, expectedDatum, units)
+						}
+						Expect(datum).To(Equal(expectedDatum))
+					}
+				},
+				Entry("does not modify the datum; units missing",
+					nil,
+					func(datum *ketone.Ketone, units *string) {},
+					nil,
+				),
+				Entry("does not modify the datum; units missing; value missing",
+					nil,
+					func(datum *ketone.Ketone, units *string) { datum.Value = nil },
+					nil,
+				),
+				Entry("does not modify the datum; units invalid",
+					pointer.String("invalid"),
+					func(datum *ketone.Ketone, units *string) {},
+					nil,
+				),
+				Entry("does not modify the datum; units invalid; value missing",
+					pointer.String("invalid"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = nil },
+					nil,
+				),
 			)
 
-			DescribeTable("Normalize",
-				func(sourceKetone *ketone.Ketone, expectedKetone *ketone.Ketone) {
-					sourceKetone.GUID = expectedKetone.GUID
-					sourceKetone.ID = expectedKetone.ID
-					sourceKetone.DeviceID = expectedKetone.DeviceID
-					testContext, err := context.NewStandard(null.NewLogger())
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testContext).ToNot(BeNil())
-					testNormalizer, err := normalizer.NewStandard(testContext)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testNormalizer).ToNot(BeNil())
-					Expect(sourceKetone.Normalize(testNormalizer)).To(Succeed())
-					Expect(sourceKetone).To(Equal(expectedKetone))
+			DescribeTable("normalizes the datum with origin external",
+				func(units *string, mutator func(datum *ketone.Ketone, units *string), expectator func(datum *ketone.Ketone, expectedDatum *ketone.Ketone, units *string)) {
+					datum := NewKetone(units)
+					mutator(datum, units)
+					expectedDatum := CloneKetone(datum)
+					normalizer := dataNormalizer.New()
+					Expect(normalizer).ToNot(BeNil())
+					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
+					Expect(normalizer.Error()).To(BeNil())
+					Expect(normalizer.Data()).To(BeEmpty())
+					if expectator != nil {
+						expectator(datum, expectedDatum, units)
+					}
+					Expect(datum).To(Equal(expectedDatum))
 				},
-				Entry("unknown units",
-					NewTestKetone("2016-09-06T13:45:58-07:00", "unknown", 1.0),
-					NewTestKetone("2016-09-06T13:45:58-07:00", "unknown", 1.0),
+				Entry("does not modify the datum; units mmol/L",
+					pointer.String("mmol/L"),
+					func(datum *ketone.Ketone, units *string) {},
+					nil,
 				),
-				Entry("mmol/L units",
-					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/L", 1.0),
-					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/L", 1.0),
+				Entry("does not modify the datum; units mmol/L; value missing",
+					pointer.String("mmol/L"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = nil },
+					nil,
 				),
-				Entry("mmol/l units",
-					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/l", 1.0),
-					NewTestKetone("2016-09-06T13:45:58-07:00", "mmol/L", 1.0),
+				Entry("modifies the datum; units mmol/l",
+					pointer.String("mmol/l"),
+					func(datum *ketone.Ketone, units *string) {},
+					func(datum *ketone.Ketone, expectedDatum *ketone.Ketone, units *string) {
+						Expect(datum.Units).ToNot(BeNil())
+						Expect(*datum.Units).To(Equal("mmol/L"))
+						expectedDatum.Units = datum.Units
+					},
 				),
-				Entry("mg/dL units",
-					NewTestKetone("2016-09-06T13:45:58-07:00", "mg/dL", 180.0),
-					NewTestKetone("2016-09-06T13:45:58-07:00", "mg/dL", 180.0),
+				Entry("modifies the datum; units mmol/l; value missing",
+					pointer.String("mmol/l"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = nil },
+					func(datum *ketone.Ketone, expectedDatum *ketone.Ketone, units *string) {
+						Expect(datum.Units).ToNot(BeNil())
+						Expect(*datum.Units).To(Equal("mmol/L"))
+						expectedDatum.Units = datum.Units
+					},
 				),
-				Entry("mg/dl units",
-					NewTestKetone("2016-09-06T13:45:58-07:00", "mg/dl", 180.0),
-					NewTestKetone("2016-09-06T13:45:58-07:00", "mg/dl", 180.0),
+			)
+
+			DescribeTable("normalizes the datum with origin internal/store",
+				func(units *string, mutator func(datum *ketone.Ketone, units *string), expectator func(datum *ketone.Ketone, expectedDatum *ketone.Ketone, units *string)) {
+					for _, origin := range []structure.Origin{structure.OriginInternal, structure.OriginStore} {
+						datum := NewKetone(units)
+						mutator(datum, units)
+						expectedDatum := CloneKetone(datum)
+						normalizer := dataNormalizer.New()
+						Expect(normalizer).ToNot(BeNil())
+						datum.Normalize(normalizer.WithOrigin(origin))
+						Expect(normalizer.Error()).To(BeNil())
+						Expect(normalizer.Data()).To(BeEmpty())
+						if expectator != nil {
+							expectator(datum, expectedDatum, units)
+						}
+						Expect(datum).To(Equal(expectedDatum))
+					}
+				},
+				Entry("does not modify the datum; units mmol/L",
+					pointer.String("mmol/L"),
+					func(datum *ketone.Ketone, units *string) {},
+					nil,
+				),
+				Entry("does not modify the datum; units mmol/L; value missing",
+					pointer.String("mmol/L"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = nil },
+					nil,
+				),
+				Entry("does not modify the datum; units mmol/l",
+					pointer.String("mmol/l"),
+					func(datum *ketone.Ketone, units *string) {},
+					nil,
+				),
+				Entry("does not modify the datum; units mmol/l; value missing",
+					pointer.String("mmol/l"),
+					func(datum *ketone.Ketone, units *string) { datum.Value = nil },
+					nil,
 				),
 			)
 		})

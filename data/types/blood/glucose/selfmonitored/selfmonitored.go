@@ -3,7 +3,20 @@ package selfmonitored
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
+	"github.com/tidepool-org/platform/structure"
 )
+
+const (
+	SubTypeLinked = "linked"
+	SubTypeManual = "manual"
+)
+
+func SubTypes() []string {
+	return []string{
+		SubTypeLinked,
+		SubTypeManual,
+	}
+}
 
 type SelfMonitored struct {
 	glucose.Glucose `bson:",inline"`
@@ -46,14 +59,24 @@ func (s *SelfMonitored) Parse(parser data.ObjectParser) error {
 	return nil
 }
 
-func (s *SelfMonitored) Validate(validator data.Validator) error {
-	if err := s.Glucose.Validate(validator); err != nil {
-		return err
+func (s *SelfMonitored) Validate(validator structure.Validator) {
+	if !validator.HasMeta() {
+		validator = validator.WithMeta(s.Meta())
 	}
 
-	validator.ValidateString("type", &s.Type).EqualTo(Type())
+	s.Glucose.Validate(validator)
 
-	validator.ValidateString("subType", s.SubType).OneOf([]string{"linked", "manual"})
+	if s.Type != "" {
+		validator.String("type", &s.Type).EqualTo(Type())
+	}
 
-	return nil
+	validator.String("subType", s.SubType).OneOf(SubTypes()...)
+}
+
+func (s *SelfMonitored) Normalize(normalizer data.Normalizer) {
+	if !normalizer.HasMeta() {
+		normalizer = normalizer.WithMeta(s.Meta())
+	}
+
+	s.Glucose.Normalize(normalizer)
 }

@@ -1,7 +1,51 @@
 ## HEAD
 
+* Add tests for missing upload id
+* Add automated basal data type
+* Refactor suppressed basal to improve validations
+* Add build-watch and ci-build-watch targets to automatic build after file change
+* Remove old unused data validator code and unused errors
+* Use consistent paradigm for creation of contained data objects
+* Randomize most test input for data validate and normalize
+* Fix meta reporting for embedded data (Status within Alarm, Bolus within Calculator)
+* Distinguish between normalizing data from external origin versus internal or store origin
+* Add Blob and BlobArray to encapsulate object and object array parse, validate, and normalize
+* Update most all data object properties to use pointers
+* Through validation of all data properties
+* Improve all data validation and normalization tests to be complete and thorough
+* Refactor all data validations to be accurate
+* Use constants for all data validations
+* Additional test helpers
+* Add New and Clone functions for all test data objects
+* Refactor global variables to make private or use functions to enforce as constant
+* Log debug mongo connection configuration
+* Add structure origin
+* New structure validator validations
+* Refactor error expectations using new test helpers
+* Additional test helpers
+* Add Object and Array structure validators
+* Remove data.ValidateInterface...; does not work as expected
+* Remove structure.Validating; does not work as expected
+* Refactor data normalizer to use common structure normalizer
+* Remove normalization from physical activity duration as necessary
+* Expose ReportError function in structure parser, normalizer, and validator
+* Update application package and tests
+* Remove unnecessary verbose flag from tools; use environment variable instead
+* Update confirmation package to use latest code and test style
+* Additional test helpers
+* Add OAuth client credentials provider
+* Add golang.org/x/oauth2/clientcredentials dependency
+* Refactor oauth package to allow alternate grant workflows
+* Add Makefile generate target for code generation
+* Update mechanism to find files with main()
+* Add file embedding tool to Makefile
+* Handle additional client response codes
+* Strip trailing slashes from client base address
 * Return error from config.Get rather than bool for compatibility
 * Allow additional scopes on tools
+
+## v1.23.0
+
 * Fix start script source of environment file
 * Add LifeScan Verio and LifeScan Verio Flex to supported devices
 * Accomodate out-of-sync server time between Tidepool and Dexcom

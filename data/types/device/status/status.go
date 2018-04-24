@@ -3,18 +3,33 @@ package status
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/device"
+	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
+
+const (
+	DurationMinimum = 0
+	NameResumed     = "resumed"
+	NameSuspended   = "suspended"
+)
+
+func Names() []string {
+	return []string{
+		NameResumed,
+		NameSuspended,
+	}
+}
 
 type Status struct {
 	device.Device `bson:",inline"`
 
-	Name     *string                 `json:"status,omitempty" bson:"status,omitempty"`
-	Duration *int                    `json:"duration,omitempty" bson:"duration,omitempty"`
-	Reason   *map[string]interface{} `json:"reason,omitempty" bson:"reason,omitempty"`
+	Duration *int       `json:"duration,omitempty" bson:"duration,omitempty"`
+	Name     *string    `json:"status,omitempty" bson:"status,omitempty"`
+	Reason   *data.Blob `json:"reason,omitempty" bson:"reason,omitempty"`
 }
 
 func SubType() string {
-	return "status"
+	return "status" // TODO: Rename Type to "device/status"; remove SubType; consider device/resumed + device/suspended
 }
 
 func NewDatum() data.Datum {
@@ -35,8 +50,8 @@ func (s *Status) Init() {
 	s.Device.Init()
 	s.SubType = SubType()
 
-	s.Name = nil
 	s.Duration = nil
+	s.Name = nil
 	s.Reason = nil
 }
 
@@ -47,21 +62,41 @@ func (s *Status) Parse(parser data.ObjectParser) error {
 
 	s.Duration = parser.ParseInteger("duration")
 	s.Name = parser.ParseString("status")
-	s.Reason = parser.ParseObject("reason")
+	s.Reason = data.ParseBlob(parser.NewChildObjectParser("reason"))
 
 	return nil
 }
 
-func (s *Status) Validate(validator data.Validator) error {
-	if err := s.Device.Validate(validator); err != nil {
-		return err
+func (s *Status) Validate(validator structure.Validator) {
+	if !validator.HasMeta() {
+		validator = validator.WithMeta(s.Meta())
 	}
 
-	validator.ValidateString("subType", &s.SubType).EqualTo(SubType())
+	s.Device.Validate(validator)
 
-	validator.ValidateInteger("duration", s.Duration).GreaterThanOrEqualTo(0) // TODO_DATA: .Exists() - Suspend events on Animas do not have duration?
-	validator.ValidateString("status", s.Name).Exists().OneOf([]string{"resumed", "suspended"})
-	validator.ValidateObject("reason", s.Reason).Exists()
+	if s.SubType != "" {
+		validator.String("subType", &s.SubType).EqualTo(SubType())
+	}
 
-	return nil
+	validator.Int("duration", s.Duration).GreaterThanOrEqualTo(DurationMinimum) // TODO: .Exists() - Suspend events on Animas do not have duration?
+	validator.String("status", s.Name).Exists().OneOf(Names()...)
+
+	reasonValidator := validator.WithReference("reason")
+	if s.Reason != nil {
+		s.Reason.Validate(reasonValidator)
+	} else {
+		reasonValidator.ReportError(structureValidator.ErrorValueNotExists())
+	}
+}
+
+func (s *Status) Normalize(normalizer data.Normalizer) {
+	if !normalizer.HasMeta() {
+		normalizer = normalizer.WithMeta(s.Meta())
+	}
+
+	s.Device.Normalize(normalizer)
+
+	if s.Reason != nil {
+		s.Reason.Normalize(normalizer.WithReference("reason"))
+	}
 }

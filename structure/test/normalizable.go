@@ -9,6 +9,7 @@ type Normalizable struct {
 	*test.Mock
 	NormalizeInvocations int
 	NormalizeInputs      []structure.Normalizer
+	NormalizeStub        func(normalizer structure.Normalizer)
 }
 
 func NewNormalizable() *Normalizable {
@@ -21,6 +22,10 @@ func (n *Normalizable) Normalize(normalizer structure.Normalizer) {
 	n.NormalizeInvocations++
 
 	n.NormalizeInputs = append(n.NormalizeInputs, normalizer)
+
+	if n.NormalizeStub != nil {
+		n.NormalizeStub(normalizer)
+	}
 }
 
 func (n *Normalizable) Expectations() {

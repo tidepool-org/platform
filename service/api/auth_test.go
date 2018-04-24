@@ -7,7 +7,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 
 	testAuth "github.com/tidepool-org/platform/auth/test"
-	"github.com/tidepool-org/platform/errors"
+	testErrors "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	logNull "github.com/tidepool-org/platform/log/null"
@@ -76,7 +76,7 @@ var _ = Describe("Auth", func() {
 				requireFunc(res, req)
 				Expect(res.WriteHeaderInputs).To(Equal([]int{401}))
 				Expect(res.WriteJsonInputs).To(HaveLen(1))
-				Expect(res.WriteJsonInputs[0]).To(Equal(errors.Sanitize(request.ErrorUnauthenticated())))
+				testErrors.ExpectEqual(res.WriteJsonInputs[0].(error), request.ErrorUnauthenticated())
 			})
 
 			Context("with server details", func() {
@@ -139,7 +139,7 @@ var _ = Describe("Auth", func() {
 				requireFunc(res, req)
 				Expect(res.WriteHeaderInputs).To(Equal([]int{401}))
 				Expect(res.WriteJsonInputs).To(HaveLen(1))
-				Expect(res.WriteJsonInputs[0]).To(Equal(errors.Sanitize(request.ErrorUnauthenticated())))
+				testErrors.ExpectEqual(res.WriteJsonInputs[0].(error), request.ErrorUnauthenticated())
 			})
 
 			Context("with server details", func() {
@@ -164,7 +164,7 @@ var _ = Describe("Auth", func() {
 					requireFunc(res, req)
 					Expect(res.WriteHeaderInputs).To(Equal([]int{403}))
 					Expect(res.WriteJsonInputs).To(HaveLen(1))
-					Expect(res.WriteJsonInputs[0]).To(Equal(errors.Sanitize(request.ErrorUnauthorized())))
+					testErrors.ExpectEqual(res.WriteJsonInputs[0].(error), request.ErrorUnauthorized())
 				})
 			})
 		})
@@ -204,7 +204,7 @@ var _ = Describe("Auth", func() {
 				requireFunc(res, req)
 				Expect(res.WriteHeaderInputs).To(Equal([]int{401}))
 				Expect(res.WriteJsonInputs).To(HaveLen(1))
-				Expect(res.WriteJsonInputs[0]).To(Equal(errors.Sanitize(request.ErrorUnauthenticated())))
+				testErrors.ExpectEqual(res.WriteJsonInputs[0].(error), request.ErrorUnauthenticated())
 			})
 
 			Context("with server details", func() {
@@ -217,7 +217,7 @@ var _ = Describe("Auth", func() {
 					requireFunc(res, req)
 					Expect(res.WriteHeaderInputs).To(Equal([]int{403}))
 					Expect(res.WriteJsonInputs).To(HaveLen(1))
-					Expect(res.WriteJsonInputs[0]).To(Equal(errors.Sanitize(request.ErrorUnauthorized())))
+					testErrors.ExpectEqual(res.WriteJsonInputs[0].(error), request.ErrorUnauthorized())
 				})
 			})
 

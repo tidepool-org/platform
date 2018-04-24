@@ -14,12 +14,10 @@ VERSION_SHORT_COMMIT:=$(shell git rev-parse --short HEAD)
 VERSION_FULL_COMMIT:=$(shell git rev-parse HEAD)
 VERSION_PACKAGE:=$(REPOSITORY_PACKAGE)/application/version
 
-GO_LD_FLAGS:=-ldflags "-X $(VERSION_PACKAGE).Base=$(VERSION_BASE) -X $(VERSION_PACKAGE).ShortCommit=$(VERSION_SHORT_COMMIT) -X $(VERSION_PACKAGE).FullCommit=$(VERSION_FULL_COMMIT)"
+GO_LD_FLAGS:=-ldflags '-X $(VERSION_PACKAGE).Base=$(VERSION_BASE) -X $(VERSION_PACKAGE).ShortCommit=$(VERSION_SHORT_COMMIT) -X $(VERSION_PACKAGE).FullCommit=$(VERSION_FULL_COMMIT)'
 
-FIND_MAIN_CMD:=find . -path './$(BUILD)*' -not -path './vendor/*' -name '*.go' -not -name '*_test.go' -type f -exec egrep -l '^\s*package\s+main\s*$$' {} \;
-TRANSFORM_MKDIR_CMD:=sed 's/\.\(.*\/\)[^\/]*\.go/_bin\1/'
-MKDIR_CMD:=mkdir -p
-TRANSFORM_GO_BUILD_CMD:=sed 's/\(\.\(\/.*\)\.go\)/_bin\2 \1/'
+FIND_MAIN_CMD:=find . -path './$(BUILD)*' -not -path './vendor/*' -name '*.go' -not -name '*_test.go' -type f -exec egrep -l '^\s*func\s+main\s*(\s*)' {} \;
+TRANSFORM_GO_BUILD_CMD:=sed 's|\.\(.*\)\(/[^/]*\)/[^/]*|_bin\1\2\2 .\1\2/.|'
 GO_BUILD_CMD:=go build $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -o
 
 ifeq ($(TRAVIS_BRANCH),master)
@@ -43,7 +41,6 @@ ifndef GOPATH
 	@echo "FATAL: GOPATH environment variable not defined. Please see http://golang.org/doc/code.html#GOPATH."
 	@exit 1
 endif
-	@exit 0
 
 check-environment: check-gopath
 
@@ -77,6 +74,11 @@ ifeq ($(shell which CompileDaemon),)
 	go get -u github.com/tidepool-org/CompileDaemon
 endif
 
+esc: check-environment
+ifeq ($(shell which esc),)
+	go get -u github.com/mjibson/esc
+endif
+
 ginkgo: check-environment
 ifeq ($(shell which ginkgo),)
 	mkdir -p $(REPOSITORY_GOPATH)/src/github.com/onsi/
@@ -87,6 +89,14 @@ endif
 buildable: goimports golint ginkgo
 
 editable: buildable gocode godef
+
+generate: check-environment esc
+	@echo "go generate ./..."
+	@cd $(ROOT_DIRECTORY) && go generate ./...
+
+ci-generate: generate
+	@cd $(ROOT_DIRECTORY) && \
+		O=`git diff` && [ "$${O}" = "" ] || (echo "$${O}" && exit 1)
 
 format: check-environment
 	@echo "gofmt -d -e -s"
@@ -132,10 +142,15 @@ build-list:
 
 build: check-environment
 	@echo "go build $(BUILD)"
-	@cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD) | $(TRANSFORM_MKDIR_CMD) | while read LINE; do $(MKDIR_CMD) $${LINE}; done
 	@cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD) | $(TRANSFORM_GO_BUILD_CMD) | while read LINE; do $(GO_BUILD_CMD) $${LINE}; done
 
+build-watch:
+	@cd $(ROOT_DIRECTORY) && BUILD=$(BUILD) CompileDaemon -build-dir='.' -build='make build' -color -directory='.' -exclude='*_test.go' -include='Makefile' -recursive=true
+
 ci-build: pre-build build
+
+ci-build-watch:
+	@cd $(ROOT_DIRECTORY) && BUILD=$(BUILD) CompileDaemon -build-dir='.' -build='make ci-build' -color -directory='.' -include='Makefile' -recursive=true
 
 service-build:
 ifdef SERVICE
@@ -275,7 +290,10 @@ bootstrap-dependencies: godep
 	go get github.com/onsi/ginkgo/extensions/table
 	go get github.com/onsi/ginkgo/ginkgo
 	go get github.com/onsi/gomega
+	go get github.com/onsi/gomega/gbytes
+	go get github.com/onsi/gomega/gexec
 	go get github.com/onsi/gomega/ghttp
+	go get github.com/onsi/gomega/gstruct
 	go get golang.org/x/sys/unix
 	go get ./...
 
@@ -283,7 +301,10 @@ bootstrap-save: bootstrap-dependencies
 	cd $(ROOT_DIRECTORY) && godep save ./... \
 		github.com/onsi/ginkgo/extensions/table \
 		github.com/onsi/ginkgo/ginkgo \
-		github.com/onsi/gomega/ghttp
+		github.com/onsi/gomega/gbytes \
+		github.com/onsi/gomega/gexec \
+		github.com/onsi/gomega/ghttp \
+		github.com/onsi/gomega/gstruct
 
 # Bootstrap with initial dependencies
 bootstrap:

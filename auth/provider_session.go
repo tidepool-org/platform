@@ -15,9 +15,15 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-const ProviderTypeOAuth = "oauth"
+const (
+	ProviderTypeOAuth = "oauth"
+)
 
-var ProviderTypes = []string{ProviderTypeOAuth}
+func ProviderTypes() []string {
+	return []string{
+		ProviderTypeOAuth,
+	}
+}
 
 type ProviderSessionAccessor interface {
 	ListUserProviderSessions(ctx context.Context, userID string, filter *ProviderSessionFilter, pagination *page.Pagination) (ProviderSessions, error)
@@ -42,7 +48,7 @@ func (p *ProviderSessionFilter) Parse(parser structure.ObjectParser) {
 }
 
 func (p *ProviderSessionFilter) Validate(validator structure.Validator) {
-	validator.String("type", p.Type).OneOf(ProviderTypes...)
+	validator.String("type", p.Type).OneOf(ProviderTypes()...)
 	validator.String("name", p.Name).NotEmpty()
 }
 
@@ -82,11 +88,15 @@ func (p *ProviderSessionCreate) Parse(parser structure.ObjectParser) {
 }
 
 func (p *ProviderSessionCreate) Validate(validator structure.Validator) {
-	validator.String("type", &p.Type).OneOf(ProviderTypes...)
+	validator.String("type", &p.Type).OneOf(ProviderTypes()...)
 	validator.String("name", &p.Name).NotEmpty()
 	switch p.Type {
 	case ProviderTypeOAuth:
-		validator.Validating("oauthToken", p.OAuthToken).Exists().Validate()
+		if oauthTokenValidator := validator.WithReference("oauthToken"); p.OAuthToken != nil {
+			p.OAuthToken.Validate(oauthTokenValidator)
+		} else {
+			oauthTokenValidator.ReportError(structureValidator.ErrorValueNotExists())
+		}
 	}
 }
 
@@ -111,7 +121,9 @@ func (p *ProviderSessionUpdate) Parse(parser structure.ObjectParser) {
 }
 
 func (p *ProviderSessionUpdate) Validate(validator structure.Validator) {
-	validator.Validating("oauthToken", p.OAuthToken).Validate()
+	if p.OAuthToken != nil {
+		p.OAuthToken.Validate(validator.WithReference("oauthToken"))
+	}
 }
 
 type ProviderSession struct {
@@ -169,13 +181,17 @@ func (p *ProviderSession) Parse(parser structure.ObjectParser) {
 }
 
 func (p *ProviderSession) Validate(validator structure.Validator) {
-	validator.String("id", &p.ID).Matches(id.Expression)
+	validator.String("id", &p.ID).Using(id.Validate)
 	validator.String("userId", &p.UserID).NotEmpty() // TODO: Further validation
-	validator.String("type", &p.Type).OneOf(ProviderTypes...)
+	validator.String("type", &p.Type).OneOf(ProviderTypes()...)
 	validator.String("name", &p.Name).NotEmpty()
 	switch p.Type {
 	case ProviderTypeOAuth:
-		validator.Validating("oauthToken", p.OAuthToken).Exists().Validate()
+		if oauthTokenValidator := validator.WithReference("oauthToken"); p.OAuthToken != nil {
+			p.OAuthToken.Validate(oauthTokenValidator)
+		} else {
+			oauthTokenValidator.ReportError(structureValidator.ErrorValueNotExists())
+		}
 	}
 	validator.Time("createdTime", &p.CreatedTime).NotZero().BeforeNow(time.Second)
 	validator.Time("modifiedTime", p.ModifiedTime).After(p.CreatedTime).BeforeNow(time.Second)

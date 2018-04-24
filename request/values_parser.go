@@ -34,8 +34,36 @@ func NewValuesParser(base *structureBase.Base, values *url.Values) *Values {
 	}
 }
 
+func (v *Values) Origin() structure.Origin {
+	return v.base.Origin()
+}
+
+func (v *Values) HasSource() bool {
+	return v.base.HasSource()
+}
+
+func (v *Values) Source() structure.Source {
+	return v.base.Source()
+}
+
+func (v *Values) HasMeta() bool {
+	return v.base.HasMeta()
+}
+
+func (v *Values) Meta() interface{} {
+	return v.base.Meta()
+}
+
+func (v *Values) HasError() bool {
+	return v.base.HasError()
+}
+
 func (v *Values) Error() error {
 	return v.base.Error()
+}
+
+func (v *Values) ReportError(err error) {
+	v.base.ReportError(err)
 }
 
 func (v *Values) Exists() bool {
@@ -207,6 +235,14 @@ func (v *Values) NotParsed() error {
 	}
 
 	return v.Error()
+}
+
+func (v *Values) WithOrigin(origin structure.Origin) structure.ObjectParser {
+	return &Values{
+		base:   v.base.WithOrigin(origin),
+		values: v.values,
+		parsed: v.parsed,
+	}
 }
 
 func (v *Values) WithSource(source structure.Source) structure.ObjectParser {

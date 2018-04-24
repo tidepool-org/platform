@@ -115,6 +115,16 @@ func (s *StringArray) LengthInRange(lowerLimit int, upperLimit int) structure.St
 	return s
 }
 
+func (s *StringArray) EachNotEmpty() structure.StringArray {
+	if s.value != nil {
+		validator := NewValidator(s.base)
+		for index, value := range *s.value {
+			validator.String(strconv.Itoa(index), &value).NotEmpty()
+		}
+	}
+	return s
+}
+
 func (s *StringArray) EachOneOf(allowedValues ...string) structure.StringArray {
 	if s.value != nil {
 		validator := NewValidator(s.base)
@@ -150,6 +160,15 @@ func (s *StringArray) EachNotMatches(expression *regexp.Regexp) structure.String
 		validator := NewValidator(s.base)
 		for index, value := range *s.value {
 			validator.String(strconv.Itoa(index), &value).NotMatches(expression)
+		}
+	}
+	return s
+}
+
+func (s *StringArray) Using(using func(value []string, errorReporter structure.ErrorReporter)) structure.StringArray {
+	if s.value != nil {
+		if using != nil {
+			using(*s.value, s.base)
 		}
 	}
 	return s

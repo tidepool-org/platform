@@ -2,6 +2,7 @@ package validator
 
 import (
 	"regexp"
+	"time"
 
 	"github.com/tidepool-org/platform/structure"
 	structureBase "github.com/tidepool-org/platform/structure/base"
@@ -172,4 +173,27 @@ func (s *String) NotMatches(expression *regexp.Regexp) structure.String {
 		}
 	}
 	return s
+}
+
+func (s *String) Using(using func(value string, errorReporter structure.ErrorReporter)) structure.String {
+	if s.value != nil {
+		if using != nil {
+			using(*s.value, s.base)
+		}
+	}
+	return s
+}
+
+func (s *String) AsTime(layout string) structure.Time {
+	var valueAsTime *time.Time
+
+	if s.value != nil {
+		if parsed, err := time.Parse(layout, *s.value); err != nil {
+			s.base.ReportError(ErrorValueStringAsTimeNotValid(*s.value, layout))
+		} else {
+			valueAsTime = &parsed
+		}
+	}
+
+	return NewTime(s.base, valueAsTime)
 }

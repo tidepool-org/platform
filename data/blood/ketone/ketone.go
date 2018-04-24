@@ -7,11 +7,11 @@ import (
 )
 
 const (
-	MmolL string = "mmol/L"
-	Mmoll string = "mmol/l"
+	MmolL = "mmol/L"
+	Mmoll = "mmol/l"
 
-	MmolLLowerLimit float64 = 0.0
-	MmolLUpperLimit float64 = 10.0
+	MmolLMinimum = 0.0
+	MmolLMaximum = 10.0
 )
 
 func Units() []string {
@@ -22,7 +22,7 @@ func ValueRangeForUnits(units *string) (float64, float64) {
 	if units != nil {
 		switch *units {
 		case MmolL, Mmoll:
-			return MmolLLowerLimit, MmolLUpperLimit
+			return MmolLMinimum, MmolLMaximum
 		}
 	}
 	return -math.MaxFloat64, math.MaxFloat64

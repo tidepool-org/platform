@@ -2,32 +2,28 @@ package glucose
 
 import (
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/blood/glucose"
+	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/blood"
+	"github.com/tidepool-org/platform/structure"
 )
 
 type Glucose struct {
 	blood.Blood `bson:",inline"`
 }
 
-func (g *Glucose) Validate(validator data.Validator) error {
-	if err := g.Blood.Validate(validator); err != nil {
-		return err
-	}
+func (g *Glucose) Validate(validator structure.Validator) {
+	g.Blood.Validate(validator)
 
-	validator.ValidateString("units", g.Units).OneOf(glucose.Units())
-	validator.ValidateFloat("value", g.Value).InRange(glucose.ValueRangeForUnits(g.Units))
-
-	return nil
+	validator.String("units", g.Units).Exists().OneOf(dataBloodGlucose.Units()...)
+	validator.Float64("value", g.Value).Exists().InRange(dataBloodGlucose.ValueRangeForUnits(g.Units))
 }
 
-func (g *Glucose) Normalize(normalizer data.Normalizer) error {
-	if err := g.Blood.Normalize(normalizer); err != nil {
-		return err
+func (g *Glucose) Normalize(normalizer data.Normalizer) {
+	g.Blood.Normalize(normalizer)
+
+	if normalizer.Origin() == structure.OriginExternal {
+		units := g.Units
+		g.Units = dataBloodGlucose.NormalizeUnits(units)
+		g.Value = dataBloodGlucose.NormalizeValueForUnits(g.Value, units)
 	}
-
-	g.Value = glucose.NormalizeValueForUnits(g.Value, g.Units)
-	g.Units = glucose.NormalizeUnits(g.Units)
-
-	return nil
 }

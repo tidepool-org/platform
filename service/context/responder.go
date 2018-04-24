@@ -1,8 +1,6 @@
 package context
 
 import (
-	"fmt"
-
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/errors"
@@ -79,13 +77,6 @@ func (r *Responder) RespondWithError(err *service.Error) {
 func (r *Responder) RespondWithInternalServerFailure(message string, failure ...interface{}) {
 	logger := r.Logger()
 	if len(failure) > 0 {
-		for index := range failure {
-			if err, errOk := failure[index].(error); errOk {
-				failure[index] = err.Error()
-			} else if stringer, stringerOk := failure[index].(fmt.Stringer); stringerOk {
-				failure[index] = stringer.String()
-			}
-		}
 		logger = logger.WithField("failure", failure)
 	}
 	logger.Error(message)

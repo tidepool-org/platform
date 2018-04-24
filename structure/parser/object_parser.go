@@ -31,8 +31,36 @@ func NewObjectParser(base *structureBase.Base, object *map[string]interface{}) *
 	}
 }
 
+func (o *Object) Origin() structure.Origin {
+	return o.base.Origin()
+}
+
+func (o *Object) HasSource() bool {
+	return o.base.HasSource()
+}
+
+func (o *Object) Source() structure.Source {
+	return o.base.Source()
+}
+
+func (o *Object) HasMeta() bool {
+	return o.base.HasMeta()
+}
+
+func (o *Object) Meta() interface{} {
+	return o.base.Meta()
+}
+
+func (o *Object) HasError() bool {
+	return o.base.HasError()
+}
+
 func (o *Object) Error() error {
 	return o.base.Error()
+}
+
+func (o *Object) ReportError(err error) {
+	o.base.ReportError(err)
 }
 
 func (o *Object) Exists() bool {
@@ -238,6 +266,14 @@ func (o *Object) NotParsed() error {
 	}
 
 	return o.Error()
+}
+
+func (o *Object) WithOrigin(origin structure.Origin) structure.ObjectParser {
+	return &Object{
+		base:   o.base.WithOrigin(origin),
+		object: o.object,
+		parsed: o.parsed,
+	}
 }
 
 func (o *Object) WithSource(source structure.Source) structure.ObjectParser {

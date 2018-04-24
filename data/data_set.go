@@ -27,7 +27,7 @@ const (
 	SchemaVersionCurrent = 3 // DEPRECATED
 
 	ComputerTimeFormat = "2006-01-02T15:04:05"
-	TimeFormat         = "2006-01-02T15:04:05Z07:00"
+	TimeFormat         = time.RFC3339
 
 	DataSetTypeContinuous = "continuous"
 	DataSetTypeNormal     = "normal" // TODO: Normal?
@@ -44,10 +44,35 @@ const (
 	TimeProcessingUTCBootstrapping       = "utc-bootstrapping"
 )
 
-var DataSetTypes = []string{DataSetTypeContinuous, DataSetTypeNormal}
-var DataSetStates = []string{DataSetStateClosed, DataSetStateOpen}
-var DeviceTags = []string{DeviceTagBGM, DeviceTagCGM, DeviceTagInsulinPump}
-var TimeProcessings = []string{TimeProcessingAcrossTheBoardTimezone, TimeProcessingNone, TimeProcessingUTCBootstrapping}
+func DataSetTypes() []string {
+	return []string{
+		DataSetTypeContinuous,
+		DataSetTypeNormal,
+	}
+}
+
+func DataSetStates() []string {
+	return []string{
+		DataSetStateClosed,
+		DataSetStateOpen,
+	}
+}
+
+func DeviceTags() []string {
+	return []string{
+		DeviceTagBGM,
+		DeviceTagCGM,
+		DeviceTagInsulinPump,
+	}
+}
+
+func TimeProcessings() []string {
+	return []string{
+		TimeProcessingAcrossTheBoardTimezone,
+		TimeProcessingNone,
+		TimeProcessingUTCBootstrapping,
+	}
+}
 
 // TODO: Add OAuth client id to DataSetClient when available
 // TODO: Pull from OAuth rather than be dependent upon client to complete
@@ -171,14 +196,14 @@ func (d *DataSetCreate) Validate(validator structure.Validator) {
 	if d.Client != nil {
 		d.Client.Validate(validator.WithReference("client"))
 	}
-	validator.String("dataSetType", &d.DataSetType).OneOf(DataSetTypes...)
+	validator.String("dataSetType", &d.DataSetType).OneOf(DataSetTypes()...)
 	validator.String("deviceId", &d.DeviceID).NotEmpty()
 	validator.StringArray("deviceManufacturers", &d.DeviceManufacturers).NotEmpty()
 	validator.String("deviceModel", &d.DeviceModel).NotEmpty()
 	validator.String("deviceSerialNumber", &d.DeviceSerialNumber).NotEmpty()
-	validator.StringArray("deviceTags", &d.DeviceTags).NotEmpty().EachOneOf(DeviceTags...)
+	validator.StringArray("deviceTags", &d.DeviceTags).NotEmpty().EachOneOf(DeviceTags()...)
 	validator.Time("time", &d.Time).NotZero()
-	validator.String("timeProcessing", &d.TimeProcessing).OneOf(TimeProcessings...)
+	validator.String("timeProcessing", &d.TimeProcessing).OneOf(TimeProcessings()...)
 	validator.String("timezone", &d.Timezone) // TODO: Timezone
 	validator.Int("timezoneOffset", &d.TimezoneOffset).InRange(-12*60, 14*60)
 }
@@ -223,52 +248,52 @@ func (d *DataSetUpdate) Validate(validator structure.Validator) {
 	validator.String("deviceId", d.DeviceID).NotEmpty()
 	validator.String("deviceModel", d.DeviceModel).LengthGreaterThan(1)
 	validator.String("deviceSerialNumber", d.DeviceSerialNumber).LengthGreaterThan(1)
-	validator.String("state", d.State).OneOf(DataSetStates...)
+	validator.String("state", d.State).OneOf(DataSetStates()...)
 	validator.Time("time", d.Time).NotZero()
 	validator.String("timezone", d.Timezone) // TODO: Timezone
 	validator.Int("timezoneOffset", d.TimezoneOffset).InRange(-12*60, 14*60)
 }
 
 type DataSet struct {
-	Active              bool                      `json:"-" bson:"_active"`
-	Annotations         *[]map[string]interface{} `json:"annotations,omitempty" bson:"annotations,omitempty"`
-	ArchivedDatasetID   string                    `json:"-" bson:"archivedDatasetId,omitempty"`
-	ArchivedTime        string                    `json:"-" bson:"archivedTime,omitempty"`
-	ByUser              string                    `json:"byUser,omitempty" bson:"byUser,omitempty"`
-	Client              *DataSetClient            `json:"client,omitempty" bson:"client,omitempty"`
-	ClockDriftOffset    *int                      `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty"`
-	ComputerTime        *string                   `json:"computerTime,omitempty" bson:"computerTime,omitempty"`
-	ConversionOffset    *int                      `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty"`
-	CreatedTime         string                    `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
-	CreatedUserID       string                    `json:"createdUserId,omitempty" bson:"createdUserId,omitempty"`
-	DataSetType         *string                   `json:"dataSetType,omitempty" bson:"dataSetType,omitempty"`
-	DataState           string                    `json:"-" bson:"_dataState,omitempty"` // TODO: Deprecated DataState (after data migration)
-	Deduplicator        *DeduplicatorDescriptor   `json:"-" bson:"_deduplicator,omitempty"`
-	DeletedTime         string                    `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
-	DeletedUserID       string                    `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
-	DeviceID            *string                   `json:"deviceId,omitempty" bson:"deviceId,omitempty"`
-	DeviceManufacturers *[]string                 `json:"deviceManufacturers,omitempty" bson:"deviceManufacturers,omitempty"`
-	DeviceModel         *string                   `json:"deviceModel,omitempty" bson:"deviceModel,omitempty"`
-	DeviceSerialNumber  *string                   `json:"deviceSerialNumber,omitempty" bson:"deviceSerialNumber,omitempty"`
-	DeviceTags          *[]string                 `json:"deviceTags,omitempty" bson:"deviceTags,omitempty"`
-	DeviceTime          *string                   `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
-	GUID                string                    `json:"guid,omitempty" bson:"guid,omitempty"`
-	ID                  string                    `json:"id,omitempty" bson:"id,omitempty"`
-	ModifiedTime        string                    `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
-	ModifiedUserID      string                    `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
-	Payload             *map[string]interface{}   `json:"payload,omitempty" bson:"payload,omitempty"`
-	SchemaVersion       int                       `json:"-" bson:"_schemaVersion,omitempty"`
-	Source              *string                   `json:"source,omitempty" bson:"source,omitempty"`
-	State               string                    `json:"-" bson:"_state,omitempty"`
-	Time                *string                   `json:"time,omitempty" bson:"time,omitempty"`
-	TimeProcessing      *string                   `json:"timeProcessing,omitempty" bson:"timeProcessing,omitempty"`
-	Timezone            *string                   `json:"timezone,omitempty" bson:"timezone,omitempty"`
-	TimezoneOffset      *int                      `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty"`
-	Type                string                    `json:"type,omitempty" bson:"type,omitempty"`
-	UploadID            string                    `json:"uploadId,omitempty" bson:"uploadId,omitempty"`
-	UserID              string                    `json:"-" bson:"_userId,omitempty"`
-	Version             *string                   `json:"version,omitempty" bson:"version,omitempty"`
-	VersionInternal     int                       `json:"-" bson:"_version,omitempty"`
+	Active              bool                    `json:"-" bson:"_active"`
+	Annotations         *BlobArray              `json:"annotations,omitempty" bson:"annotations,omitempty"`
+	ArchivedDatasetID   string                  `json:"-" bson:"archivedDatasetId,omitempty"`
+	ArchivedTime        string                  `json:"-" bson:"archivedTime,omitempty"`
+	ByUser              *string                 `json:"byUser,omitempty" bson:"byUser,omitempty"`
+	Client              *DataSetClient          `json:"client,omitempty" bson:"client,omitempty"`
+	ClockDriftOffset    *int                    `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty"`
+	ComputerTime        *string                 `json:"computerTime,omitempty" bson:"computerTime,omitempty"`
+	ConversionOffset    *int                    `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty"`
+	CreatedTime         string                  `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
+	CreatedUserID       string                  `json:"createdUserId,omitempty" bson:"createdUserId,omitempty"`
+	DataSetType         *string                 `json:"dataSetType,omitempty" bson:"dataSetType,omitempty"`
+	DataState           string                  `json:"-" bson:"_dataState,omitempty"` // TODO: Deprecated DataState (after data migration)
+	Deduplicator        *DeduplicatorDescriptor `json:"-" bson:"_deduplicator,omitempty"`
+	DeletedTime         string                  `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
+	DeletedUserID       string                  `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
+	DeviceID            *string                 `json:"deviceId,omitempty" bson:"deviceId,omitempty"`
+	DeviceManufacturers *[]string               `json:"deviceManufacturers,omitempty" bson:"deviceManufacturers,omitempty"`
+	DeviceModel         *string                 `json:"deviceModel,omitempty" bson:"deviceModel,omitempty"`
+	DeviceSerialNumber  *string                 `json:"deviceSerialNumber,omitempty" bson:"deviceSerialNumber,omitempty"`
+	DeviceTags          *[]string               `json:"deviceTags,omitempty" bson:"deviceTags,omitempty"`
+	DeviceTime          *string                 `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
+	GUID                string                  `json:"guid,omitempty" bson:"guid,omitempty"`
+	ID                  string                  `json:"id,omitempty" bson:"id,omitempty"`
+	ModifiedTime        string                  `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
+	ModifiedUserID      string                  `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
+	Payload             *Blob                   `json:"payload,omitempty" bson:"payload,omitempty"`
+	SchemaVersion       int                     `json:"-" bson:"_schemaVersion,omitempty"`
+	Source              *string                 `json:"source,omitempty" bson:"source,omitempty"`
+	State               string                  `json:"-" bson:"_state,omitempty"`
+	Time                *string                 `json:"time,omitempty" bson:"time,omitempty"`
+	TimeProcessing      *string                 `json:"timeProcessing,omitempty" bson:"timeProcessing,omitempty"`
+	Timezone            *string                 `json:"timezone,omitempty" bson:"timezone,omitempty"`
+	TimezoneOffset      *int                    `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty"`
+	Type                string                  `json:"type,omitempty" bson:"type,omitempty"`
+	UploadID            string                  `json:"uploadId,omitempty" bson:"uploadId,omitempty"`
+	UserID              string                  `json:"-" bson:"_userId,omitempty"`
+	Version             *string                 `json:"version,omitempty" bson:"version,omitempty"`
+	VersionInternal     int                     `json:"-" bson:"_version,omitempty"`
 }
 
 type DataSets []*DataSet

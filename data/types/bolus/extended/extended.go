@@ -3,19 +3,27 @@ package extended
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/bolus"
+	"github.com/tidepool-org/platform/structure"
+)
+
+const (
+	DurationMaximum = 86400000
+	DurationMinimum = 0
+	ExtendedMaximum = 100.0
+	ExtendedMinimum = 0.0
 )
 
 type Extended struct {
 	bolus.Bolus `bson:",inline"`
 
-	Extended         *float64 `json:"extended,omitempty" bson:"extended,omitempty"`
-	ExpectedExtended *float64 `json:"expectedExtended,omitempty" bson:"expectedExtended,omitempty"`
 	Duration         *int     `json:"duration,omitempty" bson:"duration,omitempty"`
-	ExpectedDuration *int     `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
+	DurationExpected *int     `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
+	Extended         *float64 `json:"extended,omitempty" bson:"extended,omitempty"`
+	ExtendedExpected *float64 `json:"expectedExtended,omitempty" bson:"expectedExtended,omitempty"`
 }
 
 func SubType() string {
-	return "square"
+	return "square" // TODO: Rename Type to "bolus/extended"; remove SubType
 }
 
 func NewDatum() data.Datum {
@@ -36,10 +44,10 @@ func (e *Extended) Init() {
 	e.Bolus.Init()
 	e.SubType = SubType()
 
-	e.Extended = nil
-	e.ExpectedExtended = nil
 	e.Duration = nil
-	e.ExpectedDuration = nil
+	e.DurationExpected = nil
+	e.Extended = nil
+	e.ExtendedExpected = nil
 }
 
 func (e *Extended) Parse(parser data.ObjectParser) error {
@@ -47,46 +55,53 @@ func (e *Extended) Parse(parser data.ObjectParser) error {
 		return err
 	}
 
-	e.Extended = parser.ParseFloat("extended")
-	e.ExpectedExtended = parser.ParseFloat("expectedExtended")
 	e.Duration = parser.ParseInteger("duration")
-	e.ExpectedDuration = parser.ParseInteger("expectedDuration")
+	e.DurationExpected = parser.ParseInteger("expectedDuration")
+	e.Extended = parser.ParseFloat("extended")
+	e.ExtendedExpected = parser.ParseFloat("expectedExtended")
 
 	return nil
 }
 
-func (e *Extended) Validate(validator data.Validator) error {
-	if err := e.Bolus.Validate(validator); err != nil {
-		return err
+func (e *Extended) Validate(validator structure.Validator) {
+	if !validator.HasMeta() {
+		validator = validator.WithMeta(e.Meta())
 	}
 
-	validator.ValidateString("subType", &e.SubType).EqualTo(SubType())
+	e.Bolus.Validate(validator)
 
-	validator.ValidateFloat("extended", e.Extended).Exists().InRange(0.0, 100.0)
+	if e.SubType != "" {
+		validator.String("subType", &e.SubType).EqualTo(SubType())
+	}
 
-	expectedExtendedValidator := validator.ValidateFloat("expectedExtended", e.ExpectedExtended)
-	if e.Extended != nil {
-		if *e.Extended == 0.0 {
-			expectedExtendedValidator.Exists()
+	validator.Int("duration", e.Duration).Exists().InRange(DurationMinimum, DurationMaximum)
+	durationExpectedValidator := validator.Int("expectedDuration", e.DurationExpected)
+	if e.Duration != nil && *e.Duration >= DurationMinimum && *e.Duration <= DurationMaximum {
+		durationExpectedValidator.InRange(*e.Duration, DurationMaximum)
+	} else {
+		durationExpectedValidator.InRange(DurationMinimum, DurationMaximum)
+	}
+	if e.ExtendedExpected != nil {
+		durationExpectedValidator.Exists()
+	} else {
+		durationExpectedValidator.NotExists()
+	}
+	validator.Float64("extended", e.Extended).Exists().InRange(ExtendedMinimum, ExtendedMaximum)
+	extendedExpectedValidator := validator.Float64("expectedExtended", e.ExtendedExpected)
+	if e.Extended != nil && *e.Extended >= ExtendedMinimum && *e.Extended <= ExtendedMaximum {
+		if *e.Extended == ExtendedMinimum {
+			extendedExpectedValidator.Exists()
 		}
-		expectedExtendedValidator.InRange(*e.Extended, 100.0)
+		extendedExpectedValidator.InRange(*e.Extended, ExtendedMaximum)
 	} else {
-		expectedExtendedValidator.InRange(0.0, 100.0)
+		extendedExpectedValidator.InRange(ExtendedMinimum, ExtendedMaximum)
+	}
+}
+
+func (e *Extended) Normalize(normalizer data.Normalizer) {
+	if !normalizer.HasMeta() {
+		normalizer = normalizer.WithMeta(e.Meta())
 	}
 
-	validator.ValidateInteger("duration", e.Duration).Exists().InRange(0, 86400000)
-
-	expectedDurationValidator := validator.ValidateInteger("expectedDuration", e.ExpectedDuration)
-	if e.Duration != nil {
-		expectedDurationValidator.InRange(*e.Duration, 86400000)
-	} else {
-		expectedDurationValidator.InRange(0, 86400000)
-	}
-	if e.ExpectedExtended != nil {
-		expectedDurationValidator.Exists()
-	} else {
-		expectedDurationValidator.NotExists()
-	}
-
-	return nil
+	e.Bolus.Normalize(normalizer)
 }

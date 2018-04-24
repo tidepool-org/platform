@@ -11,7 +11,7 @@ import (
 	testMongo "github.com/tidepool-org/platform/test/mongo"
 )
 
-var _ = Describe("Mongo", func() {
+var _ = Describe("Store", func() {
 	var cfg *storeMongo.Config
 	var str *mongo.Store
 

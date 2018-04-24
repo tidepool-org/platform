@@ -3,20 +3,18 @@ package pump
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/structure"
 )
 
 type Pump struct {
 	types.Base `bson:",inline"`
 
-	*Units `json:"units,omitempty" bson:"units,omitempty"`
-
-	BasalSchedules *map[string]*[]*BasalSchedule `json:"basalSchedules,omitempty" bson:"basalSchedules,omitempty"`
-
-	CarbohydrateRatios   *[]*CarbohydrateRatio  `json:"carbRatio,omitempty" bson:"carbRatio,omitempty"`
-	InsulinSensitivities *[]*InsulinSensitivity `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`
-	BloodGlucoseTargets  *[]*BloodGlucoseTarget `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`
-
-	ActiveSchedule *string `json:"activeSchedule,omitempty" bson:"activeSchedule,omitempty"`
+	ActiveScheduleName   *string                  `json:"activeSchedule,omitempty" bson:"activeSchedule,omitempty"` // TODO: Rename to activeScheduleName
+	BasalSchedules       *BasalScheduleArrayMap   `json:"basalSchedules,omitempty" bson:"basalSchedules,omitempty"`
+	BloodGlucoseTargets  *BloodGlucoseTargetArray `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`
+	CarbohydrateRatios   *CarbohydrateRatioArray  `json:"carbRatio,omitempty" bson:"carbRatio,omitempty"`
+	InsulinSensitivities *InsulinSensitivityArray `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`
+	Units                *Units                   `json:"units,omitempty" bson:"units,omitempty"`
 }
 
 func Type() string {
@@ -41,15 +39,12 @@ func (p *Pump) Init() {
 	p.Base.Init()
 	p.Type = Type()
 
-	p.Units = nil
-
+	p.ActiveScheduleName = nil
 	p.BasalSchedules = nil
-
+	p.BloodGlucoseTargets = nil
 	p.CarbohydrateRatios = nil
 	p.InsulinSensitivities = nil
-	p.BloodGlucoseTargets = nil
-
-	p.ActiveSchedule = nil
+	p.Units = nil
 }
 
 func (p *Pump) Parse(parser data.ObjectParser) error {
@@ -59,107 +54,75 @@ func (p *Pump) Parse(parser data.ObjectParser) error {
 		return err
 	}
 
-	p.ActiveSchedule = parser.ParseString("activeSchedule")
-
-	p.Units = ParseUnits(parser.NewChildObjectParser("units"))
-
+	p.ActiveScheduleName = parser.ParseString("activeSchedule")
+	p.BasalSchedules = ParseBasalScheduleArrayMap(parser.NewChildObjectParser("basalSchedules"))
+	p.BloodGlucoseTargets = ParseBloodGlucoseTargetArray(parser.NewChildArrayParser("bgTarget"))
 	p.CarbohydrateRatios = ParseCarbohydrateRatioArray(parser.NewChildArrayParser("carbRatio"))
 	p.InsulinSensitivities = ParseInsulinSensitivityArray(parser.NewChildArrayParser("insulinSensitivity"))
-	p.BloodGlucoseTargets = ParseBloodGlucoseTargetArray(parser.NewChildArrayParser("bgTarget"))
-	p.BasalSchedules = ParseBasalSchedulesMap(parser.NewChildObjectParser("basalSchedules"))
+	p.Units = ParseUnits(parser.NewChildObjectParser("units"))
 
 	return nil
 }
 
-func (p *Pump) Validate(validator data.Validator) error {
-	validator.SetMeta(p.Meta())
-
-	if err := p.Base.Validate(validator); err != nil {
-		return err
+func (p *Pump) Validate(validator structure.Validator) {
+	if !validator.HasMeta() {
+		validator = validator.WithMeta(p.Meta())
 	}
 
-	validator.ValidateString("type", &p.Type).EqualTo(Type())
+	p.Base.Validate(validator)
 
-	validator.ValidateString("activeSchedule", p.ActiveSchedule).Exists().NotEmpty()
+	if p.Type != "" {
+		validator.String("type", &p.Type).EqualTo(Type())
+	}
 
+	var unitsBloodGlucose *string
 	if p.Units != nil {
-		p.Units.Validate(validator.NewChildValidator("units"))
+		unitsBloodGlucose = p.Units.BloodGlucose
 	}
 
-	if p.CarbohydrateRatios != nil {
-		carbohydrateRatiosValidator := validator.NewChildValidator("carbRatio")
-		for index, carbohydrateRatio := range *p.CarbohydrateRatios {
-			if carbohydrateRatio != nil {
-				carbohydrateRatio.Validate(carbohydrateRatiosValidator.NewChildValidator(index))
-			}
-		}
+	validator.String("activeSchedule", p.ActiveScheduleName).Exists().NotEmpty()
+	if p.BasalSchedules != nil {
+		p.BasalSchedules.Validate(validator.WithReference("basalSchedules"))
 	}
-
-	if p.InsulinSensitivities != nil {
-		insulinSensitivitiesValidator := validator.NewChildValidator("insulinSensitivity")
-		for index, insulinSensitivity := range *p.InsulinSensitivities {
-			if insulinSensitivity != nil {
-				insulinSensitivity.Validate(insulinSensitivitiesValidator.NewChildValidator(index), p.Units.BloodGlucose)
-			}
-		}
-	}
-
 	if p.BloodGlucoseTargets != nil {
-		bloodGlucoseTargetsValidator := validator.NewChildValidator("bgTarget")
-		for index, bgTarget := range *p.BloodGlucoseTargets {
-			if bgTarget != nil {
-				bgTarget.Validate(bloodGlucoseTargetsValidator.NewChildValidator(index), p.Units.BloodGlucose)
-			}
-		}
+		p.BloodGlucoseTargets.Validate(validator.WithReference("bgTarget"), unitsBloodGlucose)
+	}
+	if p.CarbohydrateRatios != nil {
+		p.CarbohydrateRatios.Validate(validator.WithReference("carbRatio"))
+	}
+	if p.InsulinSensitivities != nil {
+		p.InsulinSensitivities.Validate(validator.WithReference("insulinSensitivity"), unitsBloodGlucose)
+	}
+	if p.Units != nil {
+		p.Units.Validate(validator.WithReference("units"))
+	}
+}
+
+func (p *Pump) Normalize(normalizer data.Normalizer) {
+	if !normalizer.HasMeta() {
+		normalizer = normalizer.WithMeta(p.Meta())
+	}
+
+	p.Base.Normalize(normalizer)
+
+	var unitsBloodGlucose *string
+	if p.Units != nil {
+		unitsBloodGlucose = p.Units.BloodGlucose
 	}
 
 	if p.BasalSchedules != nil {
-		basalSchedulesValidator := validator.NewChildValidator("basalSchedules")
-		for basalScheduleName, basalSchedule := range *p.BasalSchedules {
-			basalSchedulesValidator.ValidateString("", &basalScheduleName).Exists().NotEmpty()
-			if basalSchedule != nil {
-				basalScheduleValidator := basalSchedulesValidator.NewChildValidator(basalScheduleName)
-				for index, scheduleItem := range *basalSchedule {
-					scheduleItem.Validate(basalScheduleValidator.NewChildValidator(index))
-				}
-			}
-		}
+		p.BasalSchedules.Normalize(normalizer.WithReference("basalSchedules"))
 	}
-
-	return nil
-}
-
-func (p *Pump) Normalize(normalizer data.Normalizer) error {
-	normalizer.SetMeta(p.Meta())
-
-	if err := p.Base.Normalize(normalizer); err != nil {
-		return err
-	}
-
-	var originalUnits *string
-
-	if p.Units != nil {
-		originalUnits = p.Units.BloodGlucose
-		p.Units.Normalize(normalizer.NewChildNormalizer("units"))
-	}
-
 	if p.BloodGlucoseTargets != nil {
-		bloodGlucoseTargetsNormalizer := normalizer.NewChildNormalizer("bgTarget")
-		for index, bgTarget := range *p.BloodGlucoseTargets {
-			if bgTarget != nil {
-				bgTarget.Normalize(bloodGlucoseTargetsNormalizer.NewChildNormalizer(index), originalUnits)
-			}
-		}
+		p.BloodGlucoseTargets.Normalize(normalizer.WithReference("bgTarget"), unitsBloodGlucose)
 	}
-
+	if p.CarbohydrateRatios != nil {
+		p.CarbohydrateRatios.Normalize(normalizer.WithReference("carbRatio"))
+	}
 	if p.InsulinSensitivities != nil {
-		insulinSensitivitiesNormalizer := normalizer.NewChildNormalizer("insulinSensitivity")
-		for index, insulinSensitivity := range *p.InsulinSensitivities {
-			if insulinSensitivity != nil {
-				insulinSensitivity.Normalize(insulinSensitivitiesNormalizer.NewChildNormalizer(index), originalUnits)
-			}
-		}
+		p.InsulinSensitivities.Normalize(normalizer.WithReference("insulinSensitivity"), unitsBloodGlucose)
 	}
-
-	return nil
+	if p.Units != nil {
+		p.Units.Normalize(normalizer.WithReference("units"))
+	}
 }

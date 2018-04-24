@@ -41,11 +41,82 @@ var _ = Describe("Validator", func() {
 			Expect(validator).ToNot(BeNil())
 		})
 
+		Context("Origin", func() {
+			It("returns OriginExternal if default", func() {
+				Expect(validator.Origin()).To(Equal(structure.OriginExternal))
+			})
+
+			It("returns set origin", func() {
+				Expect(validator.WithOrigin(structure.OriginInternal).Origin()).To(Equal(structure.OriginInternal))
+			})
+		})
+
+		Context("HasSource", func() {
+			It("returns false if no source set", func() {
+				Expect(validator.WithSource(nil).HasSource()).To(BeFalse())
+			})
+
+			It("returns true if source set", func() {
+				Expect(validator.WithSource(testStructure.NewSource()).HasSource()).To(BeTrue())
+			})
+		})
+
+		Context("Source", func() {
+			It("returns default source", func() {
+				Expect(validator.Source()).To(BeNil())
+			})
+
+			It("returns set source", func() {
+				src := testStructure.NewSource()
+				Expect(validator.WithSource(src).Source()).To(Equal(src))
+			})
+		})
+
+		Context("HasMeta", func() {
+			It("returns false if no meta set", func() {
+				Expect(validator.WithMeta(nil).HasMeta()).To(BeFalse())
+			})
+
+			It("returns true if meta set", func() {
+				Expect(validator.WithMeta(testErrors.NewMeta()).HasMeta()).To(BeTrue())
+			})
+		})
+
+		Context("Meta", func() {
+			It("returns default meta", func() {
+				Expect(validator.Meta()).To(BeNil())
+			})
+
+			It("returns set meta", func() {
+				meta := testErrors.NewMeta()
+				Expect(validator.WithMeta(meta).Meta()).To(Equal(meta))
+			})
+		})
+
+		Context("HasError", func() {
+			It("returns false if no errors reported", func() {
+				Expect(validator.HasError()).To(BeFalse())
+			})
+
+			It("returns true if any errors reported", func() {
+				base.ReportError(testErrors.NewError())
+				Expect(validator.HasError()).To(BeTrue())
+			})
+		})
+
 		Context("Error", func() {
 			It("returns the error from the base", func() {
 				err := testErrors.NewError()
 				base.ReportError(err)
 				Expect(validator.Error()).To(Equal(errors.Normalize(err)))
+			})
+		})
+
+		Context("ReportError", func() {
+			It("reports the error to the base", func() {
+				err := testErrors.NewError()
+				validator.ReportError(err)
+				Expect(base.Error()).To(Equal(errors.Normalize(err)))
 			})
 		})
 
@@ -65,17 +136,6 @@ var _ = Describe("Validator", func() {
 				base.ReportError(err)
 				Expect(validator.Validate(validatable)).To(Equal(errors.Normalize(err)))
 				Expect(validatable.ValidateInputs).To(Equal([]structure.Validator{validator}))
-			})
-		})
-
-		Context("Validating", func() {
-			It("returns a validator when called with nil value", func() {
-				Expect(validator.Validating("reference", nil)).ToNot(BeNil())
-			})
-
-			It("returns a validator when called with non-nil value", func() {
-				value := testStructure.NewValidatable()
-				Expect(validator.Validating("reference", value)).ToNot(BeNil())
 			})
 		})
 
@@ -145,6 +205,39 @@ var _ = Describe("Validator", func() {
 			})
 		})
 
+		Context("Object", func() {
+			It("returns a validator when called with nil value", func() {
+				Expect(validator.Object("reference", nil)).ToNot(BeNil())
+			})
+
+			It("returns a validator when called with non-nil value", func() {
+				value := map[string]interface{}{"a": 1, "b": 2}
+				Expect(validator.Object("reference", &value)).ToNot(BeNil())
+			})
+		})
+
+		Context("Array", func() {
+			It("returns a validator when called with nil value", func() {
+				Expect(validator.Array("reference", nil)).ToNot(BeNil())
+			})
+
+			It("returns a validator when called with non-nil value", func() {
+				value := []interface{}{"a", "b"}
+				Expect(validator.Array("reference", &value)).ToNot(BeNil())
+			})
+		})
+
+		Context("WithOrigin", func() {
+			It("returns a new validator with origin", func() {
+				result := validator.WithOrigin(structure.OriginInternal)
+				Expect(result).ToNot(BeNil())
+				Expect(result).ToNot(BeIdenticalTo(validator))
+				Expect(result.Error()).ToNot(HaveOccurred())
+				Expect(result.Origin()).To(Equal(structure.OriginInternal))
+				Expect(validator.Origin()).To(Equal(structure.OriginExternal))
+			})
+		})
+
 		Context("WithSource", func() {
 			It("returns new validator", func() {
 				src := testStructure.NewSource()
@@ -156,8 +249,7 @@ var _ = Describe("Validator", func() {
 
 		Context("WithMeta", func() {
 			It("returns new validator", func() {
-				meta := testErrors.NewMeta()
-				result := validator.WithMeta(meta)
+				result := validator.WithMeta(testErrors.NewMeta())
 				Expect(result).ToNot(BeNil())
 				Expect(result).ToNot(Equal(validator))
 			})

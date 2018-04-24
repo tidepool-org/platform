@@ -13,6 +13,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/store/mongo"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -140,7 +141,7 @@ func (d *DataSession) CreateDataset(ctx context.Context, dataset *upload.Upload)
 
 	startTime := time.Now()
 
-	dataset.CreatedTime = time.Now().Format(time.RFC3339)
+	dataset.CreatedTime = pointer.String(time.Now().Format(time.RFC3339))
 
 	dataset.ByUser = dataset.CreatedUserID
 
@@ -277,7 +278,7 @@ func (d *DataSession) DeleteDataset(ctx context.Context, dataset *upload.Upload)
 		return errors.Wrap(err, "unable to delete dataset")
 	}
 
-	dataset.SetDeletedTime(timestamp)
+	dataset.SetDeletedTime(&timestamp)
 	return nil
 }
 
@@ -304,7 +305,7 @@ func (d *DataSession) CreateDatasetData(ctx context.Context, dataset *upload.Upl
 	for index, datum := range datasetData {
 		datum.SetUserID(dataset.UserID)
 		datum.SetDatasetID(dataset.UploadID)
-		datum.SetCreatedTime(timestamp)
+		datum.SetCreatedTime(&timestamp)
 		insertData[index] = datum
 	}
 
@@ -361,7 +362,7 @@ func (d *DataSession) ActivateDatasetData(ctx context.Context, dataset *upload.U
 	}
 
 	dataset.SetActive(true)
-	dataset.SetModifiedTime(timestamp)
+	dataset.SetModifiedTime(&timestamp)
 	return nil
 }
 
@@ -686,11 +687,17 @@ func (d *DataSession) validateDataset(dataset *upload.Upload) error {
 	if dataset == nil {
 		return errors.New("dataset is missing")
 	}
-	if dataset.UserID == "" {
+	if dataset.UserID == nil {
 		return errors.New("dataset user id is missing")
 	}
-	if dataset.UploadID == "" {
+	if *dataset.UserID == "" {
+		return errors.New("dataset user id is empty")
+	}
+	if dataset.UploadID == nil {
 		return errors.New("dataset upload id is missing")
+	}
+	if *dataset.UploadID == "" {
+		return errors.New("dataset upload id is empty")
 	}
 	if dataset.DeviceID == nil || *dataset.DeviceID == "" {
 		return errors.New("dataset device id is missing")

@@ -43,10 +43,10 @@ var _ = Describe("HashDeactivateOld", func() {
 			testUserID = id.New()
 			testDataset = upload.Init()
 			Expect(testDataset).ToNot(BeNil())
-			testDataset.UploadID = testUploadID
-			testDataset.UserID = testUserID
+			testDataset.UploadID = &testUploadID
+			testDataset.UserID = &testUserID
 			testDataset.DeviceID = pointer.String(id.New())
-			testDataset.DeviceManufacturers = pointer.StringArray([]string{"Medtronic"})
+			testDataset.DeviceManufacturers = &[]string{"Medtronic"}
 			testDataset.DeviceModel = pointer.String("523")
 		})
 
@@ -58,12 +58,22 @@ var _ = Describe("HashDeactivateOld", func() {
 			})
 
 			It("returns false if the dataset id is missing", func() {
-				testDataset.UploadID = ""
+				testDataset.UploadID = nil
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
+			})
+
+			It("returns false if the dataset id is empty", func() {
+				testDataset.UploadID = pointer.String("")
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
 			It("returns false if the dataset user id is missing", func() {
-				testDataset.UserID = ""
+				testDataset.UserID = nil
+				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
+			})
+
+			It("returns false if the dataset user id is empty", func() {
+				testDataset.UserID = pointer.String("")
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
@@ -122,17 +132,28 @@ var _ = Describe("HashDeactivateOld", func() {
 					testDataset.DeviceModel = pointer.String(deviceModel)
 					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeTrue())
 				},
-				Entry("is Medtronic 523", "Medtronic", "523"),
-				Entry("is Medtronic 723", "Medtronic", "723"),
-				Entry("is Medtronic 551", "Medtronic", "551"),
-				Entry("is Medtronic 751", "Medtronic", "751"),
-				Entry("is Medtronic 554", "Medtronic", "554"),
-				Entry("is Medtronic 754", "Medtronic", "754"),
+				Entry("is Abbott FreeStyle Libre", "Abbott", "FreeStyle Libre"),
 				Entry("is LifeScan OneTouch Ultra 2", "LifeScan", "OneTouch Ultra 2"),
 				Entry("is LifeScan OneTouch UltraMini", "LifeScan", "OneTouch UltraMini"),
 				Entry("is LifeScan Verio", "LifeScan", "Verio"),
 				Entry("is LifeScan Verio Flex", "LifeScan", "Verio Flex"),
-				Entry("is Abbott FreeStyle Libre", "Abbott", "FreeStyle Libre"),
+				Entry("is Medtronic 523", "Medtronic", "523"),
+				Entry("is Medtronic 551", "Medtronic", "551"),
+				Entry("is Medtronic 554", "Medtronic", "554"),
+				Entry("is Medtronic 723", "Medtronic", "723"),
+				Entry("is Medtronic 751", "Medtronic", "751"),
+				Entry("is Medtronic 754", "Medtronic", "754"),
+				Entry("is Medtronic 1510", "Medtronic", "1510"),
+				Entry("is Medtronic 1511", "Medtronic", "1511"),
+				Entry("is Medtronic 1512", "Medtronic", "1512"),
+				Entry("is Medtronic 1710", "Medtronic", "1710"),
+				Entry("is Medtronic 1711", "Medtronic", "1711"),
+				Entry("is Medtronic 1712", "Medtronic", "1712"),
+				Entry("is Medtronic 1715", "Medtronic", "1715"),
+				Entry("is Medtronic 1780", "Medtronic", "1780"),
+				Entry("is Trividia Health TRUE METRIX", "Trividia Health", "TRUE METRIX"),
+				Entry("is Trividia Health TRUE METRIX AIR", "Trividia Health", "TRUE METRIX AIR"),
+				Entry("is Trividia Health TRUE METRIX GO", "Trividia Health", "TRUE METRIX GO"),
 			)
 		})
 
@@ -171,16 +192,30 @@ var _ = Describe("HashDeactivateOld", func() {
 				})
 
 				It("returns an error if the dataset id is missing", func() {
-					testDataset.UploadID = ""
+					testDataset.UploadID = nil
 					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
 					Expect(err).To(MatchError("dataset id is missing"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
+				It("returns an error if the dataset id is empty", func() {
+					testDataset.UploadID = pointer.String("")
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
+					Expect(err).To(MatchError("dataset id is empty"))
+					Expect(testDeduplicator).To(BeNil())
+				})
+
 				It("returns an error if the dataset user id is missing", func() {
-					testDataset.UserID = ""
+					testDataset.UserID = nil
 					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
 					Expect(err).To(MatchError("dataset user id is missing"))
+					Expect(testDeduplicator).To(BeNil())
+				})
+
+				It("returns an error if the dataset user id is empty", func() {
+					testDataset.UserID = pointer.String("")
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
+					Expect(err).To(MatchError("dataset user id is empty"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
@@ -255,15 +290,28 @@ var _ = Describe("HashDeactivateOld", func() {
 						testDataset.DeviceModel = pointer.String(deviceModel)
 						Expect(testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)).ToNot(BeNil())
 					},
-					Entry("is Medtronic 523", "Medtronic", "523"),
-					Entry("is Medtronic 723", "Medtronic", "723"),
-					Entry("is Medtronic 551", "Medtronic", "551"),
-					Entry("is Medtronic 751", "Medtronic", "751"),
-					Entry("is Medtronic 554", "Medtronic", "554"),
-					Entry("is Medtronic 754", "Medtronic", "754"),
+					Entry("is Abbott FreeStyle Libre", "Abbott", "FreeStyle Libre"),
 					Entry("is LifeScan OneTouch Ultra 2", "LifeScan", "OneTouch Ultra 2"),
 					Entry("is LifeScan OneTouch UltraMini", "LifeScan", "OneTouch UltraMini"),
-					Entry("is Abbott FreeStyle Libre", "Abbott", "FreeStyle Libre"),
+					Entry("is LifeScan Verio", "LifeScan", "Verio"),
+					Entry("is LifeScan Verio Flex", "LifeScan", "Verio Flex"),
+					Entry("is Medtronic 523", "Medtronic", "523"),
+					Entry("is Medtronic 551", "Medtronic", "551"),
+					Entry("is Medtronic 554", "Medtronic", "554"),
+					Entry("is Medtronic 723", "Medtronic", "723"),
+					Entry("is Medtronic 751", "Medtronic", "751"),
+					Entry("is Medtronic 754", "Medtronic", "754"),
+					Entry("is Medtronic 1510", "Medtronic", "1510"),
+					Entry("is Medtronic 1511", "Medtronic", "1511"),
+					Entry("is Medtronic 1512", "Medtronic", "1512"),
+					Entry("is Medtronic 1710", "Medtronic", "1710"),
+					Entry("is Medtronic 1711", "Medtronic", "1711"),
+					Entry("is Medtronic 1712", "Medtronic", "1712"),
+					Entry("is Medtronic 1715", "Medtronic", "1715"),
+					Entry("is Medtronic 1780", "Medtronic", "1780"),
+					Entry("is Trividia Health TRUE METRIX", "Trividia Health", "TRUE METRIX"),
+					Entry("is Trividia Health TRUE METRIX AIR", "Trividia Health", "TRUE METRIX AIR"),
+					Entry("is Trividia Health TRUE METRIX GO", "Trividia Health", "TRUE METRIX GO"),
 				)
 			})
 
@@ -360,7 +408,7 @@ var _ = Describe("HashDeactivateOld", func() {
 							It("returns an error if there is an error with CreateDatasetDataInput", func() {
 								testDataSession.CreateDatasetDataOutputs = []error{errors.New("test error")}
 								err := testDeduplicator.AddDatasetData(ctx, testDatasetData)
-								Expect(err).To(MatchError(fmt.Sprintf(`unable to create dataset data with id "%s"; test error`, testDataset.UploadID)))
+								Expect(err).To(MatchError(fmt.Sprintf("unable to create dataset data with id %q; test error", testUploadID)))
 							})
 
 							It("returns successfully if there is no error", func() {
@@ -383,7 +431,7 @@ var _ = Describe("HashDeactivateOld", func() {
 						It("returns an error if there is an error with ArchiveDeviceDataUsingHashesFromDataset", func() {
 							testDataSession.ArchiveDeviceDataUsingHashesFromDatasetOutputs = []error{errors.New("test error")}
 							err := testDeduplicator.DeduplicateDataset(ctx)
-							Expect(err).To(MatchError(fmt.Sprintf(`unable to archive device data using hashes from dataset with id "%s"; test error`, testUploadID)))
+							Expect(err).To(MatchError(fmt.Sprintf("unable to archive device data using hashes from dataset with id %q; test error", testUploadID)))
 						})
 
 						Context("with activating dataset data", func() {
@@ -398,7 +446,7 @@ var _ = Describe("HashDeactivateOld", func() {
 							It("returns an error if there is an error with ActivateDatasetData", func() {
 								testDataSession.ActivateDatasetDataOutputs = []error{errors.New("test error")}
 								err := testDeduplicator.DeduplicateDataset(ctx)
-								Expect(err).To(MatchError(fmt.Sprintf(`unable to activate dataset data with id "%s"; test error`, testUploadID)))
+								Expect(err).To(MatchError(fmt.Sprintf("unable to activate dataset data with id %q; test error", testUploadID)))
 							})
 
 							It("returns successfully if there is no error", func() {
@@ -421,7 +469,7 @@ var _ = Describe("HashDeactivateOld", func() {
 						It("returns an error if there is an error with UnarchiveDeviceDataUsingHashesFromDataset", func() {
 							testDataSession.UnarchiveDeviceDataUsingHashesFromDatasetOutputs = []error{errors.New("test error")}
 							err := testDeduplicator.DeleteDataset(ctx)
-							Expect(err).To(MatchError(fmt.Sprintf(`unable to unarchive device data using hashes from dataset with id "%s"; test error`, testUploadID)))
+							Expect(err).To(MatchError(fmt.Sprintf("unable to unarchive device data using hashes from dataset with id %q; test error", testUploadID)))
 						})
 
 						Context("with deleting dataset", func() {
@@ -436,7 +484,7 @@ var _ = Describe("HashDeactivateOld", func() {
 							It("returns an error if there is an error with DeleteDataset", func() {
 								testDataSession.DeleteDatasetOutputs = []error{errors.New("test error")}
 								err := testDeduplicator.DeleteDataset(ctx)
-								Expect(err).To(MatchError(fmt.Sprintf(`unable to delete dataset with id "%s"; test error`, testUploadID)))
+								Expect(err).To(MatchError(fmt.Sprintf("unable to delete dataset with id %q; test error", testUploadID)))
 							})
 
 							It("returns successfully if there is no error", func() {

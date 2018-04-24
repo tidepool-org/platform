@@ -6,6 +6,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/activity/physical"
 	"github.com/tidepool-org/platform/data/types/basal"
+	"github.com/tidepool-org/platform/data/types/basal/automated"
 	"github.com/tidepool-org/platform/data/types/basal/scheduled"
 	"github.com/tidepool-org/platform/data/types/basal/suspend"
 	"github.com/tidepool-org/platform/data/types/basal/temporary"
@@ -86,6 +87,7 @@ func NewNewFuncWithKeyAndMap(key string, newFuncMap NewFuncMap) NewFunc {
 
 func NewStandard() (*Standard, error) {
 	var basalNewFuncMap = NewFuncMap{
+		automated.DeliveryType(): NewNewFuncWithFunc(automated.NewDatum),
 		scheduled.DeliveryType(): NewNewFuncWithFunc(scheduled.NewDatum),
 		suspend.DeliveryType():   NewNewFuncWithFunc(suspend.NewDatum),
 		temporary.DeliveryType(): NewNewFuncWithFunc(temporary.NewDatum),

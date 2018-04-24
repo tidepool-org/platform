@@ -259,7 +259,7 @@ func (s *Service) initializeProviderFactory() error {
 	s.providerFactory = prvdrFctry
 
 	if prvdr, prvdrErr := dexcomProvider.New(s.ConfigReporter().WithScopes("provider"), s.DataClient(), s.TaskClient()); prvdrErr != nil {
-		s.Logger().Warn("Unable to create dexcom provider")
+		s.Logger().WithError(prvdrErr).Warn("Unable to create dexcom provider")
 	} else if prvdrErr = prvdrFctry.Add(prvdr); prvdrErr != nil {
 		return errors.Wrap(prvdrErr, "unable to add dexcom provider")
 	}

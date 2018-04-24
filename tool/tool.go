@@ -8,13 +8,11 @@ import (
 	"github.com/urfave/cli"
 
 	"github.com/tidepool-org/platform/application"
-	"github.com/tidepool-org/platform/log"
 )
 
 const (
 	HelpFlag    = "help"
 	VersionFlag = "version"
-	VerboseFlag = "verbose"
 )
 
 type Tool struct {
@@ -54,10 +52,6 @@ func (t *Tool) Initialize() error {
 			Name:  VersionFlag,
 			Usage: "print version and exit",
 		},
-		cli.BoolFlag{
-			Name:  fmt.Sprintf("%s,%s", VerboseFlag, "v"),
-			Usage: "increased verbosity",
-		},
 	}
 
 	return nil
@@ -91,10 +85,6 @@ func (t *Tool) ParseContext(context *cli.Context) bool {
 	if context.Bool(VersionFlag) {
 		fmt.Fprintln(t.CLI().Writer, t.VersionReporter().Long())
 		return false
-	}
-
-	if context.Bool(VerboseFlag) {
-		t.SetLogger(t.Logger().WithLevel(log.DebugLevel))
 	}
 
 	t.args = context.Args()

@@ -3,6 +3,7 @@ package continuous
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
+	"github.com/tidepool-org/platform/structure"
 )
 
 type Continuous struct {
@@ -32,12 +33,22 @@ func (c *Continuous) Init() {
 	c.Type = Type()
 }
 
-func (c *Continuous) Validate(validator data.Validator) error {
-	if err := c.Glucose.Validate(validator); err != nil {
-		return err
+func (c *Continuous) Validate(validator structure.Validator) {
+	if !validator.HasMeta() {
+		validator = validator.WithMeta(c.Meta())
 	}
 
-	validator.ValidateString("type", &c.Type).EqualTo(Type())
+	c.Glucose.Validate(validator)
 
-	return nil
+	if c.Type != "" {
+		validator.String("type", &c.Type).EqualTo(Type())
+	}
+}
+
+func (c *Continuous) Normalize(normalizer data.Normalizer) {
+	if !normalizer.HasMeta() {
+		normalizer = normalizer.WithMeta(c.Meta())
+	}
+
+	c.Glucose.Normalize(normalizer)
 }

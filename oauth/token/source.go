@@ -11,13 +11,17 @@ import (
 )
 
 type Source struct {
-	token       *oauth.Token
-	tokenSource oauth2.TokenSource
-	httpClient  *http.Client
-	provider    oauth.Provider
+	token             *oauth.Token
+	tokenSourceSource oauth.TokenSourceSource
+	tokenSource       oauth2.TokenSource
+	httpClient        *http.Client
 }
 
-func NewSource(tkn *oauth.Token) (*Source, error) {
+func NewSource() (*Source, error) {
+	return &Source{}, nil
+}
+
+func NewSourceWithToken(tkn *oauth.Token) (*Source, error) {
 	if tkn == nil {
 		return nil, errors.New("token is missing")
 	}
@@ -27,23 +31,18 @@ func NewSource(tkn *oauth.Token) (*Source, error) {
 	}, nil
 }
 
-func (s *Source) HTTPClient(ctx context.Context, prvdr oauth.Provider) (*http.Client, error) {
+func (s *Source) HTTPClient(ctx context.Context, tknSrcSrc oauth.TokenSourceSource) (*http.Client, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if prvdr == nil {
-		return nil, errors.New("provider is missing")
+	if tknSrcSrc == nil {
+		return nil, errors.New("token source source is missing")
 	}
 
-	if prvdr != s.provider {
-		cfg := prvdr.Config()
-		if cfg == nil {
-			return nil, errors.New("unable to create provider config")
-		}
-
-		tknSrc := cfg.TokenSource(ctx, s.token.RawToken())
-		if tknSrc == nil {
-			return nil, errors.New("unable to create token source")
+	if tknSrcSrc != s.tokenSourceSource {
+		tknSrc, err := tknSrcSrc.TokenSource(ctx, s.token)
+		if err != nil {
+			return nil, err
 		}
 
 		httpClient := oauth2.NewClient(ctx, tknSrc)
@@ -51,9 +50,9 @@ func (s *Source) HTTPClient(ctx context.Context, prvdr oauth.Provider) (*http.Cl
 			return nil, errors.New("unable to create http client")
 		}
 
+		s.tokenSourceSource = tknSrcSrc
 		s.tokenSource = tknSrc
 		s.httpClient = httpClient
-		s.provider = prvdr
 	}
 
 	return s.httpClient, nil
@@ -69,7 +68,7 @@ func (s *Source) RefreshedToken() (*oauth.Token, error) {
 		return nil, errors.Wrap(err, "unable to get token")
 	}
 
-	if s.token.MatchesRawToken(tknSrcTkn) {
+	if s.token == nil || s.token.MatchesRawToken(tknSrcTkn) {
 		return nil, nil
 	}
 
@@ -83,9 +82,11 @@ func (s *Source) RefreshedToken() (*oauth.Token, error) {
 }
 
 func (s *Source) ExpireToken() {
-	s.provider = nil
 	s.httpClient = nil
 	s.tokenSource = nil
+	s.tokenSourceSource = nil
 
-	s.token.Expire()
+	if s.token != nil {
+		s.token.Expire()
+	}
 }

@@ -14,16 +14,26 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
+type TokenSourceSource interface {
+	TokenSource(ctx context.Context, token *Token) (oauth2.TokenSource, error)
+}
+
 type Provider interface {
 	provider.Provider
+	TokenSourceSource
 
-	Config() *oauth2.Config
+	CalculateStateForRestrictedToken(restrictedToken string) string // state = crypto of provider name, restrictedToken, secret
+	GetAuthorizationCodeURLWithState(state string) string
+	ExchangeAuthorizationCodeForToken(ctx context.Context, authorizationCode string) (*Token, error)
+}
 
-	State(restrictedToken string) string // state = crypto of provider name, restrictedToken, secret
+type HTTPClientSource interface {
+	HTTPClient(ctx context.Context, tokenSourceSource TokenSourceSource) (*http.Client, error)
 }
 
 type TokenSource interface {
-	HTTPClient(ctx context.Context, prvdr Provider) (*http.Client, error)
+	HTTPClientSource
+
 	RefreshedToken() (*Token, error)
 	ExpireToken()
 }

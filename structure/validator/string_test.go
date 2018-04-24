@@ -5,8 +5,10 @@ import (
 	. "github.com/onsi/gomega"
 
 	"regexp"
+	"time"
 
-	"github.com/tidepool-org/platform/errors"
+	testErrors "github.com/tidepool-org/platform/errors/test"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureBase "github.com/tidepool-org/platform/structure/base"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -42,7 +44,7 @@ var _ = Describe("String", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotExists())))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueNotExists())
 			})
 
 			It("returns self", func() {
@@ -273,6 +275,22 @@ var _ = Describe("String", func() {
 				Expect(result).To(BeIdenticalTo(validator))
 			})
 		})
+
+		Context("Using", func() {
+			BeforeEach(func() {
+				result = validator.Using(func(value string, errorReporter structure.ErrorReporter) {
+					errorReporter.ReportError(structureValidator.ErrorValueExists())
+				})
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).ToNot(HaveOccurred())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
 	})
 
 	Context("with new validator with empty string value", func() {
@@ -307,7 +325,7 @@ var _ = Describe("String", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueExists())))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
 			})
 
 			It("returns self", func() {
@@ -336,7 +354,39 @@ var _ = Describe("String", func() {
 
 			It("does not report an error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueEmpty())))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueEmpty())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("Using", func() {
+			BeforeEach(func() {
+				result = validator.Using(func(value string, errorReporter structure.ErrorReporter) {
+					Expect(value).To(Equal(value))
+					errorReporter.ReportError(structureValidator.ErrorValueExists())
+				})
+			})
+
+			It("reports the expected error", func() {
+				Expect(base.Error()).To(HaveOccurred())
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("Using (without func)", func() {
+			BeforeEach(func() {
+				result = validator.Using(nil)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -377,7 +427,7 @@ var _ = Describe("String", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueExists())))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
 			})
 
 			It("returns self", func() {
@@ -392,7 +442,7 @@ var _ = Describe("String", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotEmpty())))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueNotEmpty())
 			})
 
 			It("returns self", func() {
@@ -505,7 +555,7 @@ var _ = Describe("String", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorLengthNotGreaterThan(1, 3))))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorLengthNotGreaterThan(1, 3))
 			})
 
 			It("returns self", func() {
@@ -520,7 +570,7 @@ var _ = Describe("String", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorLengthNotGreaterThanOrEqualTo(1, 4))))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorLengthNotGreaterThanOrEqualTo(1, 4))
 			})
 
 			It("returns self", func() {
@@ -597,6 +647,38 @@ var _ = Describe("String", func() {
 				Expect(result).To(BeIdenticalTo(validator))
 			})
 		})
+
+		Context("Using", func() {
+			BeforeEach(func() {
+				result = validator.Using(func(value string, errorReporter structure.ErrorReporter) {
+					Expect(value).To(Equal(value))
+					errorReporter.ReportError(structureValidator.ErrorValueExists())
+				})
+			})
+
+			It("reports the expected error", func() {
+				Expect(base.Error()).To(HaveOccurred())
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("Using (without func)", func() {
+			BeforeEach(func() {
+				result = validator.Using(nil)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).ToNot(HaveOccurred())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
 	})
 
 	Context("with new validator with value with length of four", func() {
@@ -631,7 +713,7 @@ var _ = Describe("String", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueExists())))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
 			})
 
 			It("returns self", func() {
@@ -646,7 +728,7 @@ var _ = Describe("String", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotEmpty())))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueNotEmpty())
 			})
 
 			It("returns self", func() {
@@ -675,7 +757,7 @@ var _ = Describe("String", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueNotEqualTo("four", "1"))))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueNotEqualTo("four", "1"))
 			})
 
 			It("returns self", func() {
@@ -690,7 +772,7 @@ var _ = Describe("String", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueEqualTo("four", "four"))))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueEqualTo("four", "four"))
 			})
 
 			It("returns self", func() {
@@ -705,7 +787,7 @@ var _ = Describe("String", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorLengthNotEqualTo(4, 1))))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorLengthNotEqualTo(4, 1))
 			})
 
 			It("returns self", func() {
@@ -720,7 +802,7 @@ var _ = Describe("String", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorLengthEqualTo(4, 4))))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorLengthEqualTo(4, 4))
 			})
 
 			It("returns self", func() {
@@ -735,7 +817,7 @@ var _ = Describe("String", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorLengthNotLessThan(4, 3))))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorLengthNotLessThan(4, 3))
 			})
 
 			It("returns self", func() {
@@ -750,7 +832,7 @@ var _ = Describe("String", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorLengthNotLessThanOrEqualTo(4, 1))))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorLengthNotLessThanOrEqualTo(4, 1))
 			})
 
 			It("returns self", func() {
@@ -793,7 +875,7 @@ var _ = Describe("String", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorLengthNotInRange(4, 0, 3))))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorLengthNotInRange(4, 0, 3))
 			})
 
 			It("returns self", func() {
@@ -808,7 +890,7 @@ var _ = Describe("String", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueStringNotOneOf("four", []string{"1", "seven"}))))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueStringNotOneOf("four", []string{"1", "seven"}))
 			})
 
 			It("returns self", func() {
@@ -823,7 +905,7 @@ var _ = Describe("String", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueStringOneOf("four", []string{"seven", "four"}))))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueStringOneOf("four", []string{"seven", "four"}))
 			})
 
 			It("returns self", func() {
@@ -838,7 +920,7 @@ var _ = Describe("String", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueStringNotOneOf("four", []string{}))))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueStringNotOneOf("four", []string{}))
 			})
 
 			It("returns self", func() {
@@ -870,7 +952,7 @@ var _ = Describe("String", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueStringNotMatches("four", expression))))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueStringNotMatches("four", expression))
 			})
 
 			It("returns self", func() {
@@ -888,7 +970,7 @@ var _ = Describe("String", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueStringMatches("four", expression))))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueStringMatches("four", expression))
 			})
 
 			It("returns self", func() {
@@ -903,7 +985,7 @@ var _ = Describe("String", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueStringNotMatches("four", nil))))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueStringNotMatches("four", nil))
 			})
 
 			It("returns self", func() {
@@ -918,11 +1000,135 @@ var _ = Describe("String", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureValidator.ErrorValueStringMatches("four", nil))))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueStringMatches("four", nil))
 			})
 
 			It("returns self", func() {
 				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("Using", func() {
+			BeforeEach(func() {
+				result = validator.Using(func(value string, errorReporter structure.ErrorReporter) {
+					Expect(value).To(Equal(value))
+					errorReporter.ReportError(structureValidator.ErrorValueExists())
+				})
+			})
+
+			It("reports the expected error", func() {
+				Expect(base.Error()).To(HaveOccurred())
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("Using (without func)", func() {
+			BeforeEach(func() {
+				result = validator.Using(nil)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).ToNot(HaveOccurred())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+	})
+
+	Context("AsTime", func() {
+		var validator *structureValidator.String
+		var result structure.Time
+		var value *string
+
+		JustBeforeEach(func() {
+			validator = structureValidator.NewString(base, value)
+			Expect(validator).ToNot(BeNil())
+		})
+
+		Context("with nil string", func() {
+			BeforeEach(func() {
+				value = nil
+			})
+
+			JustBeforeEach(func() {
+				result = validator.AsTime(time.RFC3339)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).ToNot(HaveOccurred())
+			})
+
+			It("returns a Time validator", func() {
+				Expect(result).ToNot(Equal(validator))
+				Expect(result).To(Equal(structureValidator.NewTime(base, nil)))
+			})
+		})
+
+		Context("with invalid time string", func() {
+			BeforeEach(func() {
+				value = pointer.String("abc")
+			})
+
+			JustBeforeEach(func() {
+				result = validator.AsTime(time.RFC3339)
+			})
+
+			It("reports the expected error", func() {
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueStringAsTimeNotValid(*value, time.RFC3339))
+			})
+
+			It("returns a Time validator", func() {
+				Expect(result).ToNot(Equal(validator))
+				Expect(result).To(Equal(structureValidator.NewTime(base, nil)))
+			})
+		})
+
+		Context("with invalid layout", func() {
+			BeforeEach(func() {
+				value = pointer.String("2017-06-23T11:36:45-05:00")
+			})
+
+			JustBeforeEach(func() {
+				result = validator.AsTime("abc")
+			})
+
+			It("reports the expected error", func() {
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueStringAsTimeNotValid(*value, "abc"))
+			})
+
+			It("returns a Time validator", func() {
+				Expect(result).ToNot(Equal(validator))
+				Expect(result).To(Equal(structureValidator.NewTime(base, nil)))
+			})
+		})
+
+		Context("with valid time string", func() {
+			var valueAsTime time.Time
+
+			BeforeEach(func() {
+				value = pointer.String("2017-06-23T11:36:45-05:00")
+				var err error
+				valueAsTime, err = time.Parse(time.RFC3339, "2017-06-23T11:36:45-05:00")
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			JustBeforeEach(func() {
+				result = validator.AsTime(time.RFC3339)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).ToNot(HaveOccurred())
+			})
+
+			It("returns a Time validator", func() {
+				Expect(result).ToNot(Equal(validator))
+				Expect(result).To(Equal(structureValidator.NewTime(base, &valueAsTime)))
 			})
 		})
 	})

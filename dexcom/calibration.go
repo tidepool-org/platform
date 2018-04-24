@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 type CalibrationsResponse struct {
@@ -32,7 +33,11 @@ func (c *CalibrationsResponse) Parse(parser structure.ObjectParser) {
 func (c *CalibrationsResponse) Validate(validator structure.Validator) {
 	validator = validator.WithReference("calibrations")
 	for index, calibration := range c.Calibrations {
-		validator.Validating(strconv.Itoa(index), calibration).Exists().Validate()
+		if calibrationValidator := validator.WithReference(strconv.Itoa(index)); calibration != nil {
+			calibration.Validate(calibrationValidator)
+		} else {
+			calibrationValidator.ReportError(structureValidator.ErrorValueNotExists())
+		}
 	}
 }
 
@@ -74,5 +79,5 @@ func (c *Calibration) Validate(validator structure.Validator) {
 	case UnitMmolL:
 		// TODO: Add value validation
 	}
-	validator.String("transmitterId", c.TransmitterID).Matches(TransmitterIDExpression)
+	validator.String("transmitterId", c.TransmitterID).Matches(transmitterIDExpression)
 }

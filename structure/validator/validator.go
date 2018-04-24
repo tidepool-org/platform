@@ -21,17 +21,41 @@ func NewValidator(base *structureBase.Base) *Validator {
 	}
 }
 
+func (v *Validator) Origin() structure.Origin {
+	return v.base.Origin()
+}
+
+func (v *Validator) HasSource() bool {
+	return v.base.HasSource()
+}
+
+func (v *Validator) Source() structure.Source {
+	return v.base.Source()
+}
+
+func (v *Validator) HasMeta() bool {
+	return v.base.HasMeta()
+}
+
+func (v *Validator) Meta() interface{} {
+	return v.base.Meta()
+}
+
+func (v *Validator) HasError() bool {
+	return v.base.HasError()
+}
+
 func (v *Validator) Error() error {
 	return v.base.Error()
+}
+
+func (v *Validator) ReportError(err error) {
+	v.base.ReportError(err)
 }
 
 func (v *Validator) Validate(validatable structure.Validatable) error {
 	validatable.Validate(v)
 	return v.Error()
-}
-
-func (v *Validator) Validating(reference string, value structure.Validatable) structure.Validating {
-	return NewValidating(v.base.WithReference(reference), value)
 }
 
 func (v *Validator) Bool(reference string, value *bool) structure.Bool {
@@ -56,6 +80,20 @@ func (v *Validator) StringArray(reference string, value *[]string) structure.Str
 
 func (v *Validator) Time(reference string, value *time.Time) structure.Time {
 	return NewTime(v.base.WithReference(reference), value)
+}
+
+func (v *Validator) Object(reference string, value *map[string]interface{}) structure.Object {
+	return NewObject(v.base.WithReference(reference), value)
+}
+
+func (v *Validator) Array(reference string, value *[]interface{}) structure.Array {
+	return NewArray(v.base.WithReference(reference), value)
+}
+
+func (v *Validator) WithOrigin(origin structure.Origin) structure.Validator {
+	return &Validator{
+		base: v.base.WithOrigin(origin),
+	}
 }
 
 func (v *Validator) WithSource(source structure.Source) structure.Validator {

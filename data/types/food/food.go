@@ -3,6 +3,7 @@ package food
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/structure"
 )
 
 type Food struct {
@@ -48,31 +49,30 @@ func (f *Food) Parse(parser data.ObjectParser) error {
 	return nil
 }
 
-func (f *Food) Validate(validator data.Validator) error {
-	validator.SetMeta(f.Meta())
-
-	if err := f.Base.Validate(validator); err != nil {
-		return err
+func (f *Food) Validate(validator structure.Validator) {
+	if !validator.HasMeta() {
+		validator = validator.WithMeta(f.Meta())
 	}
 
-	validator.ValidateString("type", &f.Type).EqualTo(Type())
+	f.Base.Validate(validator)
+
+	if f.Type != "" {
+		validator.String("type", &f.Type).EqualTo(Type())
+	}
+
 	if f.Nutrition != nil {
-		f.Nutrition.Validate(validator.NewChildValidator("nutrition"))
+		f.Nutrition.Validate(validator.WithReference("nutrition"))
 	}
-
-	return nil
 }
 
-func (f *Food) Normalize(normalizer data.Normalizer) error {
-	normalizer.SetMeta(f.Meta())
-
-	if err := f.Base.Normalize(normalizer); err != nil {
-		return err
+func (f *Food) Normalize(normalizer data.Normalizer) {
+	if !normalizer.HasMeta() {
+		normalizer = normalizer.WithMeta(f.Meta())
 	}
+
+	f.Base.Normalize(normalizer)
 
 	if f.Nutrition != nil {
-		f.Nutrition.Normalize(normalizer.NewChildNormalizer("nutrition"))
+		f.Nutrition.Normalize(normalizer.WithReference("nutrition"))
 	}
-
-	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/blood/ketone"
 	"github.com/tidepool-org/platform/data/types/blood"
+	"github.com/tidepool-org/platform/structure"
 )
 
 type Ketone struct {
@@ -33,26 +34,31 @@ func (k *Ketone) Init() {
 	k.Type = Type()
 }
 
-func (k *Ketone) Validate(validator data.Validator) error {
-	if err := k.Blood.Validate(validator); err != nil {
-		return err
+func (k *Ketone) Validate(validator structure.Validator) {
+	if !validator.HasMeta() {
+		validator = validator.WithMeta(k.Meta())
 	}
 
-	validator.ValidateString("type", &k.Type).EqualTo(Type())
+	k.Blood.Validate(validator)
 
-	validator.ValidateString("units", k.Units).OneOf(ketone.Units())
-	validator.ValidateFloat("value", k.Value).InRange(ketone.ValueRangeForUnits(k.Units))
+	if k.Type != "" {
+		validator.String("type", &k.Type).EqualTo(Type())
+	}
 
-	return nil
+	validator.String("units", k.Units).Exists().OneOf(ketone.Units()...)
+	validator.Float64("value", k.Value).Exists().InRange(ketone.ValueRangeForUnits(k.Units))
 }
 
-func (k *Ketone) Normalize(normalizer data.Normalizer) error {
-	if err := k.Blood.Normalize(normalizer); err != nil {
-		return err
+func (k *Ketone) Normalize(normalizer data.Normalizer) {
+	if !normalizer.HasMeta() {
+		normalizer = normalizer.WithMeta(k.Meta())
 	}
 
-	k.Value = ketone.NormalizeValueForUnits(k.Value, k.Units)
-	k.Units = ketone.NormalizeUnits(k.Units)
+	k.Blood.Normalize(normalizer)
 
-	return nil
+	if normalizer.Origin() == structure.OriginExternal {
+		units := k.Units
+		k.Units = ketone.NormalizeUnits(units)
+		k.Value = ketone.NormalizeValueForUnits(k.Value, units)
+	}
 }

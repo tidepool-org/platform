@@ -1,6 +1,6 @@
 package version
 
-// WARNING: Concurrent modification of these global variables is unsupported
+// WARNING: Concurrent modification of these global variables is unsupported (eg. multiple parallel tests)
 
 import "github.com/tidepool-org/platform/version"
 

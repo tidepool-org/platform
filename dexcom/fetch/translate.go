@@ -66,7 +66,7 @@ func translateTime(systemTime time.Time, displayTime time.Time, datum *types.Bas
 	}
 
 	if datum.Payload == nil {
-		datum.Payload = &map[string]interface{}{}
+		datum.Payload = data.NewBlob()
 	}
 	(*datum.Payload)["systemTime"] = systemTime
 }
@@ -75,12 +75,12 @@ func translateCalibrationToDatum(c *dexcom.Calibration) data.Datum {
 	datum := calibration.Init()
 
 	// TODO: Refactor so we don't have to clear these here
-	datum.ID = ""
-	datum.GUID = ""
+	datum.ID = nil
+	datum.GUID = nil
 
 	datum.Units = pointer.String(c.Unit)
 	datum.Value = pointer.Float64(c.Value)
-	datum.Payload = &map[string]interface{}{}
+	datum.Payload = data.NewBlob()
 	if c.TransmitterID != nil {
 		(*datum.Payload)["transmitterId"] = *c.TransmitterID
 	}
@@ -93,12 +93,12 @@ func translateEGVToDatum(e *dexcom.EGV, unit string, rateUnit string) data.Datum
 	datum := continuous.Init()
 
 	// TODO: Refactor so we don't have to clear these here
-	datum.ID = ""
-	datum.GUID = ""
+	datum.ID = nil
+	datum.GUID = nil
 
 	datum.Value = pointer.Float64(e.Value)
 	datum.Units = pointer.String(unit)
-	datum.Payload = &map[string]interface{}{}
+	datum.Payload = data.NewBlob()
 	if e.Status != nil {
 		(*datum.Payload)["status"] = *e.Status
 	}
@@ -119,13 +119,13 @@ func translateEGVToDatum(e *dexcom.EGV, unit string, rateUnit string) data.Datum
 	switch unit {
 	case dexcom.UnitMgdL:
 		if e.Value < dexcom.EGVValueMinMgdL {
-			datum.Annotations = &[]map[string]interface{}{{
+			datum.Annotations = &data.BlobArray{{
 				"code":      "bg/out-of-range",
 				"value":     "low",
 				"threshold": dexcom.EGVValueMinMgdL,
 			}}
 		} else if e.Value > dexcom.EGVValueMaxMgdL {
-			datum.Annotations = &[]map[string]interface{}{{
+			datum.Annotations = &data.BlobArray{{
 				"code":      "bg/out-of-range",
 				"value":     "high",
 				"threshold": dexcom.EGVValueMaxMgdL,
@@ -143,8 +143,8 @@ func translateEventCarbsToDatum(e *dexcom.Event) data.Datum {
 	datum := food.Init()
 
 	// TODO: Refactor so we don't have to clear these here
-	datum.ID = ""
-	datum.GUID = ""
+	datum.ID = nil
+	datum.GUID = nil
 
 	if e.Value != nil && e.Unit != nil {
 		datum.Nutrition = &food.Nutrition{
@@ -163,8 +163,8 @@ func translateEventExerciseToDatum(e *dexcom.Event) data.Datum {
 	datum := physical.Init()
 
 	// TODO: Refactor so we don't have to clear these here
-	datum.ID = ""
-	datum.GUID = ""
+	datum.ID = nil
+	datum.GUID = nil
 
 	if e.EventSubType != nil {
 		switch *e.EventSubType {
@@ -191,23 +191,23 @@ func translateEventHealthToDatum(e *dexcom.Event) data.Datum {
 	datum := reported.Init()
 
 	// TODO: Refactor so we don't have to clear these here
-	datum.ID = ""
-	datum.GUID = ""
+	datum.ID = nil
+	datum.GUID = nil
 
 	if e.EventSubType != nil {
 		switch *e.EventSubType {
 		case dexcom.HealthIllness:
-			datum.States = &[]*reported.State{{State: pointer.String(reported.StateIllness)}}
+			datum.States = &reported.StateArray{{State: pointer.String(reported.StateIllness)}}
 		case dexcom.HealthStress:
-			datum.States = &[]*reported.State{{State: pointer.String(reported.StateStress)}}
+			datum.States = &reported.StateArray{{State: pointer.String(reported.StateStress)}}
 		case dexcom.HealthHighSymptoms:
-			datum.States = &[]*reported.State{{State: pointer.String(reported.StateHyperglycemiaSymptoms)}}
+			datum.States = &reported.StateArray{{State: pointer.String(reported.StateHyperglycemiaSymptoms)}}
 		case dexcom.HealthLowSymptoms:
-			datum.States = &[]*reported.State{{State: pointer.String(reported.StateHypoglycemiaSymptoms)}}
+			datum.States = &reported.StateArray{{State: pointer.String(reported.StateHypoglycemiaSymptoms)}}
 		case dexcom.HealthCycle:
-			datum.States = &[]*reported.State{{State: pointer.String(reported.StateCycle)}}
+			datum.States = &reported.StateArray{{State: pointer.String(reported.StateCycle)}}
 		case dexcom.HealthAlcohol:
-			datum.States = &[]*reported.State{{State: pointer.String(reported.StateAlcohol)}}
+			datum.States = &reported.StateArray{{State: pointer.String(reported.StateAlcohol)}}
 		}
 	}
 
@@ -219,8 +219,8 @@ func translateEventInsulinToDatum(e *dexcom.Event) data.Datum {
 	datum := insulin.Init()
 
 	// TODO: Refactor so we don't have to clear these here
-	datum.ID = ""
-	datum.GUID = ""
+	datum.ID = nil
+	datum.GUID = nil
 
 	if e.Value != nil && e.Unit != nil {
 		datum.Dose = &insulin.Dose{

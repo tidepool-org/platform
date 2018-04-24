@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 type EGVsResponse struct {
@@ -43,7 +44,11 @@ func (e *EGVsResponse) Validate(validator structure.Validator) {
 
 	validator = validator.WithReference("egvs")
 	for index, egv := range e.EGVs {
-		validator.Validating(strconv.Itoa(index), egv).Exists().Validate()
+		if egvValidator := validator.WithReference(strconv.Itoa(index)); egv != nil {
+			egv.Validate(egvValidator)
+		} else {
+			egvValidator.ReportError(structureValidator.ErrorValueNotExists())
+		}
 	}
 }
 
@@ -99,6 +104,6 @@ func (e *EGV) Validate(validator structure.Validator) {
 	}
 	validator.String("status", e.Status).OneOf(StatusHigh, StatusLow, StatusOK, StatusOutOfCalibration, StatusSensorNoise)
 	validator.String("trend", e.Trend).OneOf(TrendDoubleUp, TrendSingleUp, TrendFortyFiveUp, TrendFlat, TrendFortyFiveDown, TrendSingleDown, TrendDoubleDown, TrendNone, TrendNotComputable, TrendRateOutOfRange)
-	validator.String("transmitterId", e.TransmitterID).Matches(TransmitterIDExpression)
+	validator.String("transmitterId", e.TransmitterID).Matches(transmitterIDExpression)
 	validator.Int("transmitterTicks", e.TransmitterTicks).GreaterThanOrEqualTo(0)
 }

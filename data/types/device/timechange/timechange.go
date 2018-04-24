@@ -3,6 +3,8 @@ package timechange
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/device"
+	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 type TimeChange struct {
@@ -12,7 +14,7 @@ type TimeChange struct {
 }
 
 func SubType() string {
-	return "timeChange"
+	return "timeChange" // TODO: Rename Type to "device/timeChange"; remove SubType
 }
 
 func NewDatum() data.Datum {
@@ -46,16 +48,33 @@ func (t *TimeChange) Parse(parser data.ObjectParser) error {
 	return nil
 }
 
-func (t *TimeChange) Validate(validator data.Validator) error {
-	if err := t.Device.Validate(validator); err != nil {
-		return err
+func (t *TimeChange) Validate(validator structure.Validator) {
+	if !validator.HasMeta() {
+		validator = validator.WithMeta(t.Meta())
 	}
 
-	validator.ValidateString("subType", &t.SubType).EqualTo(SubType())
+	t.Device.Validate(validator)
+
+	if t.SubType != "" {
+		validator.String("subType", &t.SubType).EqualTo(SubType())
+	}
+
+	changeValidator := validator.WithReference("change")
+	if t.Change != nil {
+		t.Change.Validate(changeValidator)
+	} else {
+		changeValidator.ReportError(structureValidator.ErrorValueNotExists())
+	}
+}
+
+func (t *TimeChange) Normalize(normalizer data.Normalizer) {
+	if !normalizer.HasMeta() {
+		normalizer = normalizer.WithMeta(t.Meta())
+	}
+
+	t.Device.Normalize(normalizer)
 
 	if t.Change != nil {
-		t.Change.Validate(validator.NewChildValidator("change"))
+		t.Change.Normalize(normalizer.WithReference("change"))
 	}
-
-	return nil
 }

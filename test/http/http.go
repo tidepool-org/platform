@@ -21,14 +21,14 @@ const (
 )
 
 var (
-	Methods = []string{
+	methods = []string{
 		http.MethodGet,
 		http.MethodPost,
 		http.MethodPut,
 		http.MethodPatch,
 		http.MethodDelete,
 	}
-	StatusCodes = []int{
+	statusCodes = []int{
 		http.StatusContinue,
 		http.StatusSwitchingProtocols,
 		http.StatusProcessing,
@@ -92,7 +92,7 @@ var (
 )
 
 func NewMethod() string {
-	return Methods[rand.Intn(len(Methods))]
+	return methods[rand.Intn(len(methods))]
 }
 
 func NewScheme() string {
@@ -160,7 +160,7 @@ func NewTimeout() int {
 }
 
 func NewStatusCode() int {
-	return StatusCodes[rand.Intn(len(StatusCodes))]
+	return statusCodes[rand.Intn(len(statusCodes))]
 }
 
 func NewRequest() *http.Request {

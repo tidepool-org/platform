@@ -2,35 +2,44 @@ package calculator
 
 import (
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/blood/glucose"
+	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/bolus"
 	"github.com/tidepool-org/platform/data/types/bolus/combination"
 	"github.com/tidepool-org/platform/data/types/bolus/extended"
 	"github.com/tidepool-org/platform/data/types/bolus/normal"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
+)
+
+const (
+	CarbohydrateInputMaximum        = 1000.0
+	CarbohydrateInputMinimum        = 0.0
+	InsulinCarbohydrateRatioMaximum = 250.0
+	InsulinCarbohydrateRatioMinimum = 0.0
+	InsulinOnBoardMaximum           = 250.0
+	InsulinOnBoardMinimum           = 0.0
 )
 
 type Calculator struct {
 	types.Base `bson:",inline"`
 
-	Recommended        *Recommended    `json:"recommended,omitempty" bson:"recommended,omitempty"`
-	BloodGlucoseTarget *glucose.Target `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`
-
-	BolusID                  *string  `json:"bolus,omitempty" bson:"bolus,omitempty"`
-	CarbohydrateInput        *float64 `json:"carbInput,omitempty" bson:"carbInput,omitempty"`
-	InsulinOnBoard           *float64 `json:"insulinOnBoard,omitempty" bson:"insulinOnBoard,omitempty"`
-	InsulinSensitivity       *float64 `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`
-	InsulinCarbohydrateRatio *float64 `json:"insulinCarbRatio,omitempty" bson:"insulinCarbRatio,omitempty"`
-	BloodGlucoseInput        *float64 `json:"bgInput,omitempty" bson:"bgInput,omitempty"`
-	Units                    *string  `json:"units,omitempty" bson:"units,omitempty"`
-
-	// Embedded bolus
-	bolus *data.Datum
+	BloodGlucoseInput        *float64                 `json:"bgInput,omitempty" bson:"bgInput,omitempty"`
+	BloodGlucoseTarget       *dataBloodGlucose.Target `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`
+	Bolus                    *data.Datum              `json:"-" bson:"-"`
+	BolusID                  *string                  `json:"bolus,omitempty" bson:"bolus,omitempty"`
+	CarbohydrateInput        *float64                 `json:"carbInput,omitempty" bson:"carbInput,omitempty"`
+	InsulinCarbohydrateRatio *float64                 `json:"insulinCarbRatio,omitempty" bson:"insulinCarbRatio,omitempty"`
+	InsulinOnBoard           *float64                 `json:"insulinOnBoard,omitempty" bson:"insulinOnBoard,omitempty"`
+	InsulinSensitivity       *float64                 `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`
+	Recommended              *Recommended             `json:"recommended,omitempty" bson:"recommended,omitempty"`
+	Units                    *string                  `json:"units,omitempty" bson:"units,omitempty"`
 }
 
 func Type() string {
-	return "wizard"
+	return "wizard" // TODO: Rename Type to "calculator"
 }
 
 func NewDatum() data.Datum {
@@ -51,18 +60,16 @@ func (c *Calculator) Init() {
 	c.Base.Init()
 	c.Type = Type()
 
-	c.Recommended = nil
+	c.BloodGlucoseInput = nil
 	c.BloodGlucoseTarget = nil
-
+	c.Bolus = nil
 	c.BolusID = nil
 	c.CarbohydrateInput = nil
+	c.InsulinCarbohydrateRatio = nil
 	c.InsulinOnBoard = nil
 	c.InsulinSensitivity = nil
-	c.InsulinCarbohydrateRatio = nil
-	c.BloodGlucoseInput = nil
+	c.Recommended = nil
 	c.Units = nil
-
-	c.bolus = nil
 }
 
 func (c *Calculator) Parse(parser data.ObjectParser) error {
@@ -72,15 +79,14 @@ func (c *Calculator) Parse(parser data.ObjectParser) error {
 		return err
 	}
 
+	c.BloodGlucoseInput = parser.ParseFloat("bgInput")
+	c.BloodGlucoseTarget = dataBloodGlucose.ParseTarget(parser.NewChildObjectParser("bgTarget"))
 	c.CarbohydrateInput = parser.ParseFloat("carbInput")
+	c.InsulinCarbohydrateRatio = parser.ParseFloat("insulinCarbRatio")
 	c.InsulinOnBoard = parser.ParseFloat("insulinOnBoard")
 	c.InsulinSensitivity = parser.ParseFloat("insulinSensitivity")
-	c.InsulinCarbohydrateRatio = parser.ParseFloat("insulinCarbRatio")
-	c.BloodGlucoseInput = parser.ParseFloat("bgInput")
-	c.Units = parser.ParseString("units")
-
 	c.Recommended = ParseRecommended(parser.NewChildObjectParser("recommended"))
-	c.BloodGlucoseTarget = glucose.ParseTarget(parser.NewChildObjectParser("bgTarget"))
+	c.Units = parser.ParseString("units")
 
 	// TODO: This is a bit hacky to ensure we only parse true bolus data. Is there a better way?
 
@@ -90,83 +96,93 @@ func (c *Calculator) Parse(parser data.ObjectParser) error {
 		} else if *bolusType != bolus.Type() {
 			bolusParser.AppendError("type", service.ErrorValueStringNotOneOf(*bolusType, []string{bolus.Type()}))
 		} else {
-			c.bolus = parser.ParseDatum("bolus")
+			c.Bolus = parser.ParseDatum("bolus")
 		}
 	}
 
 	return nil
 }
 
-func (c *Calculator) Validate(validator data.Validator) error {
-	validator.SetMeta(c.Meta())
-
-	if err := c.Base.Validate(validator); err != nil {
-		return err
+func (c *Calculator) Validate(validator structure.Validator) {
+	if !validator.HasMeta() {
+		validator = validator.WithMeta(c.Meta())
 	}
 
-	validator.ValidateString("type", &c.Type).EqualTo(Type())
+	c.Base.Validate(validator)
 
-	validator.ValidateFloat("carbInput", c.CarbohydrateInput).InRange(0.0, 1000.0)
-	validator.ValidateFloat("insulinOnBoard", c.InsulinOnBoard).InRange(0.0, 250.0)
-	validator.ValidateFloat("insulinCarbRatio", c.InsulinCarbohydrateRatio).InRange(0.0, 250.0)
-
-	validator.ValidateString("units", c.Units).Exists().OneOf(glucose.Units())
-	validator.ValidateFloat("insulinSensitivity", c.InsulinSensitivity).InRange(glucose.ValueRangeForUnits(c.Units))
-	validator.ValidateFloat("bgInput", c.BloodGlucoseInput).InRange(glucose.ValueRangeForUnits(c.Units))
-
-	if c.Recommended != nil {
-		c.Recommended.Validate(validator.NewChildValidator("recommended"))
-	}
-
-	if c.BloodGlucoseTarget != nil {
-		c.BloodGlucoseTarget.Validate(validator.NewChildValidator("bgTarget"), c.Units)
-	}
-
-	if c.bolus != nil {
-		(*c.bolus).Validate(validator.NewChildValidator("bolus"))
-	}
-
-	return nil
-}
-
-func (c *Calculator) Normalize(normalizer data.Normalizer) error {
-	normalizer.SetMeta(c.Meta())
-
-	if err := c.Base.Normalize(normalizer); err != nil {
-		return err
+	if c.Type != "" {
+		validator.String("type", &c.Type).EqualTo(Type())
 	}
 
 	units := c.Units
 
-	c.InsulinSensitivity = glucose.NormalizeValueForUnits(c.InsulinSensitivity, c.Units)
-	c.BloodGlucoseInput = glucose.NormalizeValueForUnits(c.BloodGlucoseInput, c.Units)
-	c.Units = glucose.NormalizeUnits(c.Units)
+	validator.Float64("bgInput", c.BloodGlucoseInput).InRange(dataBloodGlucose.ValueRangeForUnits(units))
+	if c.BloodGlucoseTarget != nil {
+		c.BloodGlucoseTarget.Validate(validator.WithReference("bgTarget"), units)
+	}
 
+	if validator.Origin() == structure.OriginExternal {
+		if c.Bolus != nil {
+			(*c.Bolus).Validate(validator.WithReference("bolus"))
+		}
+		validator.String("bolusId", c.BolusID).NotExists()
+	} else {
+		if c.Bolus != nil {
+			validator.WithReference("bolus").ReportError(structureValidator.ErrorValueExists())
+		}
+		validator.String("bolusId", c.BolusID).Using(id.Validate)
+	}
+
+	validator.Float64("carbInput", c.CarbohydrateInput).InRange(CarbohydrateInputMinimum, CarbohydrateInputMaximum)
+	validator.Float64("insulinCarbRatio", c.InsulinCarbohydrateRatio).InRange(InsulinCarbohydrateRatioMinimum, InsulinCarbohydrateRatioMaximum)
+	validator.Float64("insulinOnBoard", c.InsulinOnBoard).InRange(InsulinOnBoardMinimum, InsulinOnBoardMaximum)
+	validator.Float64("insulinSensitivity", c.InsulinSensitivity).InRange(dataBloodGlucose.ValueRangeForUnits(units))
 	if c.Recommended != nil {
-		c.Recommended.Normalize(normalizer.NewChildNormalizer("recommended"))
+		c.Recommended.Validate(validator.WithReference("recommended"))
+	}
+	validator.String("units", c.Units).Exists().OneOf(dataBloodGlucose.Units()...)
+}
+
+func (c *Calculator) Normalize(normalizer data.Normalizer) {
+	if !normalizer.HasMeta() {
+		normalizer = normalizer.WithMeta(c.Meta())
+	}
+
+	c.Base.Normalize(normalizer)
+
+	if normalizer.Origin() == structure.OriginExternal {
+		c.BloodGlucoseInput = dataBloodGlucose.NormalizeValueForUnits(c.BloodGlucoseInput, c.Units)
 	}
 
 	if c.BloodGlucoseTarget != nil {
-		c.BloodGlucoseTarget.Normalize(normalizer.NewChildNormalizer("bgTarget"), units)
+		c.BloodGlucoseTarget.Normalize(normalizer.WithReference("bgTarget"), c.Units)
 	}
 
-	if c.bolus != nil {
-		if err := (*c.bolus).Normalize(normalizer.NewChildNormalizer("bolus")); err != nil {
-			return err
-		}
-
-		switch (*c.bolus).(type) {
-		case *extended.Extended:
-			c.BolusID = &(*c.bolus).(*extended.Extended).ID
-		case *normal.Normal:
-			c.BolusID = &(*c.bolus).(*normal.Normal).ID
-		case *combination.Combination:
-			c.BolusID = &(*c.bolus).(*combination.Combination).ID
-		}
-
-		normalizer.AppendDatum(*c.bolus)
-		c.bolus = nil
+	if c.Bolus != nil {
+		(*c.Bolus).Normalize(normalizer.WithReference("bolus"))
 	}
 
-	return nil
+	if normalizer.Origin() == structure.OriginExternal {
+		if c.Bolus != nil {
+			normalizer.AddData(*c.Bolus)
+			switch bolus := (*c.Bolus).(type) {
+			case *combination.Combination:
+				c.BolusID = bolus.ID
+			case *extended.Extended:
+				c.BolusID = bolus.ID
+			case *normal.Normal:
+				c.BolusID = bolus.ID
+			}
+			c.Bolus = nil
+		}
+		c.InsulinSensitivity = dataBloodGlucose.NormalizeValueForUnits(c.InsulinSensitivity, c.Units)
+	}
+
+	if c.Recommended != nil {
+		c.Recommended.Normalize(normalizer.WithReference("recommended"))
+	}
+
+	if normalizer.Origin() == structure.OriginExternal {
+		c.Units = dataBloodGlucose.NormalizeUnits(c.Units)
+	}
 }

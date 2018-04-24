@@ -33,7 +33,11 @@ func (d *DevicesResponse) Parse(parser structure.ObjectParser) {
 func (d *DevicesResponse) Validate(validator structure.Validator) {
 	validator = validator.WithReference("devices")
 	for index, device := range d.Devices {
-		validator.Validating(strconv.Itoa(index), device).Exists().Validate()
+		if deviceValidator := validator.WithReference(strconv.Itoa(index)); device != nil {
+			device.Validate(deviceValidator)
+		} else {
+			deviceValidator.ReportError(structureValidator.ErrorValueNotExists())
+		}
 	}
 }
 
@@ -95,11 +99,15 @@ func (d *Device) Validate(validator structure.Validator) {
 	existingAlertNames := &[]string{}
 	validator = validator.WithReference("alertSettings")
 	for index, alertSetting := range d.AlertSettings {
-		validator.Validating(strconv.Itoa(index), structureValidator.NewValidatableWithStringArrayAdapter(alertSetting, existingAlertNames)).Exists().Validate() // TODO: Exists broken!!!
+		if alertSettingValidator := validator.WithReference(strconv.Itoa(index)); alertSetting != nil {
+			structureValidator.NewValidatableWithStringArrayAdapter(alertSetting, existingAlertNames).Validate(alertSettingValidator)
+		} else {
+			alertSettingValidator.ReportError(structureValidator.ErrorValueNotExists())
+		}
 	}
 	validator.String("udi", d.UDI).NotEmpty()
 	validator.String("serialNumber", d.SerialNumber).NotEmpty()
-	validator.String("transmitterId", d.TransmitterID).Matches(TransmitterIDExpression)
+	validator.String("transmitterId", d.TransmitterID).Matches(transmitterIDExpression)
 	validator.String("softwareVersion", d.SoftwareVersion).NotEmpty()
 	validator.String("softwareNumber", d.SoftwareNumber).NotEmpty()
 	validator.String("language", d.Language).NotEmpty()

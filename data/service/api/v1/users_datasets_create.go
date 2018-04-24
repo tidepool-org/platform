@@ -4,15 +4,17 @@ import (
 	"net/http"
 
 	"github.com/tidepool-org/platform/data/context"
-	"github.com/tidepool-org/platform/data/normalizer"
+	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/data/types/upload"
-	"github.com/tidepool-org/platform/data/validator"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/user"
 )
 
@@ -60,17 +62,8 @@ func UsersDatasetsCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	datumValidator, err := validator.NewStandard(datumContext)
-	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to create datum validator", err)
-		return
-	}
-
-	datumNormalizer, err := normalizer.NewStandard(datumContext)
-	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to create datum normalizer", err)
-		return
-	}
+	validator := structureValidator.New()
+	normalizer := dataNormalizer.New()
 
 	datasetDatum, err := parser.ParseDatum(datumParser, dataServiceContext.DataFactory())
 	if err != nil {
@@ -80,7 +73,7 @@ func UsersDatasetsCreate(dataServiceContext dataService.Context) {
 
 	if datasetDatum != nil && *datasetDatum != nil {
 		datumParser.ProcessNotParsed()
-		(*datasetDatum).Validate(datumValidator)
+		(*datasetDatum).Validate(validator)
 	}
 
 	if errs := datumContext.Errors(); len(errs) > 0 {
@@ -88,14 +81,27 @@ func UsersDatasetsCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	(*datasetDatum).SetUserID(targetUserID)
-	(*datasetDatum).Normalize(datumNormalizer)
+	if err = validator.Error(); err != nil {
+		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
+	}
+
+	(*datasetDatum).SetUserID(&targetUserID)
+
+	normalizer.Normalize(*datasetDatum)
+
+	if err = normalizer.Error(); err != nil {
+		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
+	}
 
 	dataset, ok := (*datasetDatum).(*upload.Upload)
 	if !ok {
 		dataServiceContext.RespondWithInternalServerFailure("Unexpected datum type", *datasetDatum)
 		return
 	}
+
+	dataset.DataState = pointer.String("open") // TODO: Deprecated DataState (after data migration)
+	dataset.ID = pointer.String(id.New())
+	dataset.State = pointer.String("open")
 
 	if err = dataServiceContext.DataSession().CreateDataset(ctx, dataset); err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to insert dataset", err)

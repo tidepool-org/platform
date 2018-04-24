@@ -11,7 +11,7 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 )
 
-var _ = Describe("Glucose", func() {
+var _ = Describe("Ketone", func() {
 	It("has MmolL", func() {
 		Expect(ketone.MmolL).To(Equal("mmol/L"))
 	})
@@ -20,12 +20,12 @@ var _ = Describe("Glucose", func() {
 		Expect(ketone.Mmoll).To(Equal("mmol/l"))
 	})
 
-	It("has MmolLLowerLimit", func() {
-		Expect(ketone.MmolLLowerLimit).To(Equal(0.0))
+	It("has MmolLMinimum", func() {
+		Expect(ketone.MmolLMinimum).To(Equal(0.0))
 	})
 
-	It("has MmolLUpperLimit", func() {
-		Expect(ketone.MmolLUpperLimit).To(Equal(10.0))
+	It("has MmolLMaximum", func() {
+		Expect(ketone.MmolLMaximum).To(Equal(10.0))
 	})
 
 	Context("Units", func() {

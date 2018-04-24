@@ -41,11 +41,82 @@ var _ = Describe("Object", func() {
 			Expect(parser).ToNot(BeNil())
 		})
 
+		Context("Origin", func() {
+			It("returns OriginExternal if default", func() {
+				Expect(parser.Origin()).To(Equal(structure.OriginExternal))
+			})
+
+			It("returns set origin", func() {
+				Expect(parser.WithOrigin(structure.OriginInternal).Origin()).To(Equal(structure.OriginInternal))
+			})
+		})
+
+		Context("HasSource", func() {
+			It("returns false if no source set", func() {
+				Expect(parser.WithSource(nil).HasSource()).To(BeFalse())
+			})
+
+			It("returns true if source set", func() {
+				Expect(parser.WithSource(testStructure.NewSource()).HasSource()).To(BeTrue())
+			})
+		})
+
+		Context("Source", func() {
+			It("returns default source", func() {
+				Expect(parser.Source()).To(BeNil())
+			})
+
+			It("returns set source", func() {
+				src := testStructure.NewSource()
+				Expect(parser.WithSource(src).Source()).To(Equal(src))
+			})
+		})
+
+		Context("HasMeta", func() {
+			It("returns false if no meta set", func() {
+				Expect(parser.WithMeta(nil).HasMeta()).To(BeFalse())
+			})
+
+			It("returns true if meta set", func() {
+				Expect(parser.WithMeta(testErrors.NewMeta()).HasMeta()).To(BeTrue())
+			})
+		})
+
+		Context("Meta", func() {
+			It("returns default meta", func() {
+				Expect(parser.Meta()).To(BeNil())
+			})
+
+			It("returns set meta", func() {
+				meta := testErrors.NewMeta()
+				Expect(parser.WithMeta(meta).Meta()).To(Equal(meta))
+			})
+		})
+
+		Context("HasError", func() {
+			It("returns false if no errors reported", func() {
+				Expect(parser.HasError()).To(BeFalse())
+			})
+
+			It("returns true if any errors reported", func() {
+				base.ReportError(testErrors.NewError())
+				Expect(parser.HasError()).To(BeTrue())
+			})
+		})
+
 		Context("Error", func() {
 			It("returns the error from the base", func() {
 				err := testErrors.NewError()
 				base.ReportError(err)
 				Expect(parser.Error()).To(Equal(errors.Normalize(err)))
+			})
+		})
+
+		Context("ReportError", func() {
+			It("reports the error to the base", func() {
+				err := testErrors.NewError()
+				parser.ReportError(err)
+				Expect(base.Error()).To(Equal(errors.Normalize(err)))
 			})
 		})
 
@@ -139,8 +210,7 @@ var _ = Describe("Object", func() {
 
 		Context("WithMeta", func() {
 			It("returns new parser", func() {
-				meta := testErrors.NewMeta()
-				result := parser.WithMeta(meta)
+				result := parser.WithMeta(testErrors.NewMeta())
 				Expect(result).ToNot(BeNil())
 				Expect(result).ToNot(Equal(parser))
 			})
@@ -281,7 +351,7 @@ var _ = Describe("Object", func() {
 		It("with key with different type returns nil and reports an ErrorTypeNotBool", func() {
 			Expect(parser.Bool("zero")).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotBool("not a boolean"))))
+			testErrors.ExpectEqual(base.Error(), structureParser.ErrorTypeNotBool("not a boolean"))
 		})
 
 		It("with key with boolean type returns value", func() {
@@ -313,7 +383,7 @@ var _ = Describe("Object", func() {
 		It("with key with different type returns nil and reports an ErrorCodeTypeNotFloat64", func() {
 			Expect(parser.Float64("zero")).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotFloat64(false))))
+			testErrors.ExpectEqual(base.Error(), structureParser.ErrorTypeNotFloat64(false))
 		})
 
 		It("with key with integer type returns value", func() {
@@ -359,7 +429,7 @@ var _ = Describe("Object", func() {
 		It("with key with different type returns nil and reports an ErrorCodeTypeNotInt", func() {
 			Expect(parser.Int("zero")).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotInt(false))))
+			testErrors.ExpectEqual(base.Error(), structureParser.ErrorTypeNotInt(false))
 		})
 
 		It("with key with integer type returns value", func() {
@@ -379,7 +449,7 @@ var _ = Describe("Object", func() {
 		It("with key with float type and not whole number returns nil and reports an ErrorCodeTypeNotInt", func() {
 			Expect(parser.Int("three")).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotInt(5.67))))
+			testErrors.ExpectEqual(base.Error(), structureParser.ErrorTypeNotInt(5.67))
 		})
 	})
 
@@ -402,7 +472,7 @@ var _ = Describe("Object", func() {
 		It("with key with different type returns nil and reports an ErrorCodeTypeNotString", func() {
 			Expect(parser.String("zero")).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotString(false))))
+			testErrors.ExpectEqual(base.Error(), structureParser.ErrorTypeNotString(false))
 		})
 
 		It("with key with string type returns value", func() {
@@ -443,7 +513,7 @@ var _ = Describe("Object", func() {
 		It("with key with different type returns nil and reports an ErrorCodeTypeNotArray", func() {
 			Expect(parser.StringArray("zero")).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotArray(false))))
+			testErrors.ExpectEqual(base.Error(), structureParser.ErrorTypeNotArray(false))
 		})
 
 		It("with key with string array type returns value", func() {
@@ -465,7 +535,7 @@ var _ = Describe("Object", func() {
 			Expect(value).ToNot(BeNil())
 			Expect(*value).To(Equal([]string{"five", ""}))
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotString(6))))
+			testErrors.ExpectEqual(base.Error(), structureParser.ErrorTypeNotString(6))
 		})
 	})
 
@@ -491,13 +561,13 @@ var _ = Describe("Object", func() {
 		It("with key with different type returns nil and reports an ErrorCodeTypeNotTime", func() {
 			Expect(parser.Time("zero", time.RFC3339)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotTime(false))))
+			testErrors.ExpectEqual(base.Error(), structureParser.ErrorTypeNotTime(false))
 		})
 
 		It("with key with different type returns nil and reports an ErrorCodeTimeNotParsable", func() {
 			Expect(parser.Time("one", time.RFC3339)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTimeNotParsable("abc", time.RFC3339))))
+			testErrors.ExpectEqual(base.Error(), structureParser.ErrorTimeNotParsable("abc", time.RFC3339))
 		})
 
 		It("with key with string type returns value", func() {
@@ -529,7 +599,7 @@ var _ = Describe("Object", func() {
 		It("with key with different type returns nil and reports an ErrorCodeTypeNotObject", func() {
 			Expect(parser.Object("zero")).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotObject(false))))
+			testErrors.ExpectEqual(base.Error(), structureParser.ErrorTypeNotObject(false))
 		})
 
 		It("with key with object type returns value", func() {
@@ -562,7 +632,7 @@ var _ = Describe("Object", func() {
 		It("with key with different type returns nil and reports an ErrorCodeTypeNotArray", func() {
 			Expect(parser.Array("zero")).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotArray(false))))
+			testErrors.ExpectEqual(base.Error(), structureParser.ErrorTypeNotArray(false))
 		})
 
 		It("with key with array type returns value", func() {
@@ -632,21 +702,21 @@ var _ = Describe("Object", func() {
 		It("without anything parsed reports all unparsed as errors", func() {
 			parser.NotParsed()
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(errors.Append(
+			testErrors.ExpectEqual(base.Error(), errors.Append(
 				structureParser.ErrorNotParsed(),
 				structureParser.ErrorNotParsed(),
 				structureParser.ErrorNotParsed(),
-			))))
+			))
 		})
 
 		It("with some items parsed reports all unparsed as errors", func() {
 			parser.String("one")
 			parser.NotParsed()
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(errors.Append(
+			testErrors.ExpectEqual(base.Error(), errors.Append(
 				structureParser.ErrorNotParsed(),
 				structureParser.ErrorNotParsed(),
-			))))
+			))
 		})
 
 		It("with all items parsed has no errors", func() {
@@ -655,6 +725,24 @@ var _ = Describe("Object", func() {
 			parser.Int("two")
 			parser.NotParsed()
 			Expect(base.Error()).ToNot(HaveOccurred())
+		})
+	})
+
+	Context("WithOrigin", func() {
+		var parser *structureParser.Object
+
+		BeforeEach(func() {
+			parser = structureParser.NewObjectParser(base, nil)
+			Expect(parser).ToNot(BeNil())
+		})
+
+		It("returns a new parser with origin", func() {
+			result := parser.WithOrigin(structure.OriginInternal)
+			Expect(result).ToNot(BeNil())
+			Expect(result).ToNot(BeIdenticalTo(parser))
+			Expect(result.Error()).ToNot(HaveOccurred())
+			Expect(result.Origin()).To(Equal(structure.OriginInternal))
+			Expect(parser.Origin()).To(Equal(structure.OriginExternal))
 		})
 	})
 
@@ -683,8 +771,7 @@ var _ = Describe("Object", func() {
 		})
 
 		It("returns new parser", func() {
-			meta := testErrors.NewMeta()
-			result := parser.WithMeta(meta)
+			result := parser.WithMeta(testErrors.NewMeta())
 			Expect(result).ToNot(BeNil())
 			Expect(result).ToNot(Equal(parser))
 		})
@@ -715,7 +802,7 @@ var _ = Describe("Object", func() {
 			Expect(objectParser).ToNot(BeNil())
 			Expect(objectParser.Exists()).To(BeFalse())
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotObject(false))))
+			testErrors.ExpectEqual(base.Error(), structureParser.ErrorTypeNotObject(false))
 		})
 
 		It("with key with object type returns value", func() {
@@ -753,7 +840,7 @@ var _ = Describe("Object", func() {
 			Expect(arrayParser).ToNot(BeNil())
 			Expect(arrayParser.Exists()).To(BeFalse())
 			Expect(base.Error()).To(HaveOccurred())
-			Expect(errors.Sanitize(base.Error())).To(Equal(errors.Sanitize(structureParser.ErrorTypeNotArray(false))))
+			testErrors.ExpectEqual(base.Error(), structureParser.ErrorTypeNotArray(false))
 		})
 
 		It("with key with object type returns value", func() {

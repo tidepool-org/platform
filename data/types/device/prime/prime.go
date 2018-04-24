@@ -3,7 +3,24 @@ package prime
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/device"
+	"github.com/tidepool-org/platform/structure"
 )
+
+const (
+	TargetCannula              = "cannula"
+	TargetTubing               = "tubing"
+	VolumeTargetCannulaMaximum = 10.0
+	VolumeTargetCannulaMinimum = 0.0
+	VolumeTargetTubingMaximum  = 100.0
+	VolumeTargetTubingMinimum  = 0.0
+)
+
+func Targets() []string {
+	return []string{
+		TargetCannula,
+		TargetTubing,
+	}
+}
 
 type Prime struct {
 	device.Device `bson:",inline"`
@@ -13,7 +30,7 @@ type Prime struct {
 }
 
 func SubType() string {
-	return "prime"
+	return "prime" // TODO: Rename Type to "device/prime"; remove SubType
 }
 
 func NewDatum() data.Datum {
@@ -49,22 +66,33 @@ func (p *Prime) Parse(parser data.ObjectParser) error {
 	return nil
 }
 
-func (p *Prime) Validate(validator data.Validator) error {
-	if err := p.Device.Validate(validator); err != nil {
-		return err
+func (p *Prime) Validate(validator structure.Validator) {
+	if !validator.HasMeta() {
+		validator = validator.WithMeta(p.Meta())
 	}
 
-	validator.ValidateString("subType", &p.SubType).EqualTo(SubType())
+	p.Device.Validate(validator)
 
-	validator.ValidateString("primeTarget", p.Target).Exists().OneOf([]string{"cannula", "tubing"})
+	if p.SubType != "" {
+		validator.String("subType", &p.SubType).EqualTo(SubType())
+	}
 
+	validator.String("primeTarget", p.Target).Exists().OneOf(Targets()...)
 	if p.Target != nil {
-		if *p.Target == "cannula" {
-			validator.ValidateFloat("volume", p.Volume).InRange(0.0, 10.0)
-		} else if *p.Target == "tubing" {
-			validator.ValidateFloat("volume", p.Volume).InRange(0.0, 100.0)
+		volumeValidator := validator.Float64("volume", p.Volume)
+		switch *p.Target {
+		case TargetCannula:
+			volumeValidator.InRange(VolumeTargetCannulaMinimum, VolumeTargetCannulaMaximum)
+		case TargetTubing:
+			volumeValidator.InRange(VolumeTargetTubingMinimum, VolumeTargetTubingMaximum)
 		}
 	}
+}
 
-	return nil
+func (p *Prime) Normalize(normalizer data.Normalizer) {
+	if !normalizer.HasMeta() {
+		normalizer = normalizer.WithMeta(p.Meta())
+	}
+
+	p.Device.Normalize(normalizer)
 }

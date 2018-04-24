@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 type EventsResponse struct {
@@ -32,7 +33,11 @@ func (e *EventsResponse) Parse(parser structure.ObjectParser) {
 func (e *EventsResponse) Validate(validator structure.Validator) {
 	validator = validator.WithReference("events")
 	for index, event := range e.Events {
-		validator.Validating(strconv.Itoa(index), event).Exists().Validate()
+		if eventValidator := validator.WithReference(strconv.Itoa(index)); event != nil {
+			event.Validate(eventValidator)
+		} else {
+			eventValidator.ReportError(structureValidator.ErrorValueNotExists())
+		}
 	}
 }
 

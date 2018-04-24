@@ -2,27 +2,37 @@ package physical
 
 import (
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/structure"
 )
 
 const (
 	UnitsHours   = "hours"
 	UnitsMinutes = "minutes"
 	UnitsSeconds = "seconds"
-
-	ValueDaysMaximum    = 7
-	ValueHoursMaximum   = ValueDaysMaximum * MinutesPerHour
-	ValueMinutesMaximum = ValueHoursMaximum * MinutesPerHour
-	ValueSecondsMaximum = ValueMinutesMaximum * SecondsPerMinute
-
-	HoursPerDay      = 24
-	MinutesPerHour   = 60
-	SecondsPerMinute = 60
+	ValueMinimum = 0
 )
 
+func Units() []string {
+	return []string{
+		UnitsHours,
+		UnitsMinutes,
+		UnitsSeconds,
+	}
+}
+
 type Duration struct {
-	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
 	Units *string  `json:"units,omitempty" bson:"units,omitempty"`
+	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
+}
+
+func ParseDuration(parser data.ObjectParser) *Duration {
+	if parser.Object() == nil {
+		return nil
+	}
+	duration := NewDuration()
+	duration.Parse(parser)
+	parser.ProcessNotParsed()
+	return duration
 }
 
 func NewDuration() *Duration {
@@ -30,45 +40,13 @@ func NewDuration() *Duration {
 }
 
 func (d *Duration) Parse(parser data.ObjectParser) {
-	d.Value = parser.ParseFloat("value")
 	d.Units = parser.ParseString("units")
+	d.Value = parser.ParseFloat("value")
 }
 
-func (d *Duration) Validate(validator data.Validator) {
-	valueValidator := validator.ValidateFloat("value", d.Value)
-	valueValidator.Exists()
-	if d.Units != nil {
-		switch *d.Units {
-		case UnitsHours:
-			valueValidator.InRange(0, ValueHoursMaximum)
-		case UnitsMinutes:
-			valueValidator.InRange(0, ValueMinutesMaximum)
-		case UnitsSeconds:
-			valueValidator.InRange(0, ValueSecondsMaximum)
-		}
-	}
-	validator.ValidateString("units", d.Units).Exists().OneOf([]string{UnitsHours, UnitsMinutes, UnitsSeconds})
+func (d *Duration) Validate(validator structure.Validator) {
+	validator.String("units", d.Units).Exists().OneOf(Units()...)
+	validator.Float64("value", d.Value).Exists().GreaterThan(ValueMinimum)
 }
 
-func (d *Duration) Normalize(normalizer data.Normalizer) {
-	switch *d.Units {
-	case UnitsHours:
-		d.Value = pointer.Float64(*d.Value * MinutesPerHour * SecondsPerMinute)
-		d.Units = pointer.String(UnitsSeconds)
-	case UnitsMinutes:
-		d.Value = pointer.Float64(*d.Value * SecondsPerMinute)
-		d.Units = pointer.String(UnitsSeconds)
-	}
-}
-
-func ParseDuration(parser data.ObjectParser) *Duration {
-	if parser.Object() == nil {
-		return nil
-	}
-
-	duration := NewDuration()
-	duration.Parse(parser)
-	parser.ProcessNotParsed()
-
-	return duration
-}
+func (d *Duration) Normalize(normalizer data.Normalizer) {}

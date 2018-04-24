@@ -69,7 +69,7 @@ var _ = Describe("Client", func() {
 			address = testHTTP.NewAddress()
 			config := client.NewConfig()
 			Expect(config).ToNot(BeNil())
-			config.Address = address
+			config.Address = address + "///"
 			config.UserAgent = testHTTP.NewUserAgent()
 			var err error
 			clnt, err = client.New(config)
@@ -79,7 +79,7 @@ var _ = Describe("Client", func() {
 
 		Context("ConstructURL", func() {
 			It("returns a valid URL with no paths", func() {
-				Expect(clnt.ConstructURL()).To(Equal(address))
+				Expect(clnt.ConstructURL()).To(Equal(address + "/"))
 			})
 
 			It("returns a valid URL with one path", func() {
@@ -258,6 +258,25 @@ var _ = Describe("Client", func() {
 				})
 			})
 
+			Context("with an bad request 400", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
+							RespondWith(http.StatusBadRequest, "bad request", nil)),
+					)
+				})
+
+				It("returns an error", func() {
+					err := clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)
+					Expect(err).To(MatchError("bad request"))
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
 			Context("with an unauthorized response 401", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
@@ -273,6 +292,63 @@ var _ = Describe("Client", func() {
 				It("returns an error", func() {
 					err := clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)
 					Expect(err).To(MatchError("authentication token is invalid"))
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with an forbidden response 403", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
+							RespondWith(http.StatusForbidden, nil, nil)),
+					)
+				})
+
+				It("returns an error", func() {
+					err := clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)
+					Expect(err).To(MatchError("authentication token is not authorized for requested action"))
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with an resource not found 404", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
+							RespondWith(http.StatusNotFound, nil, nil)),
+					)
+				})
+
+				It("returns an error", func() {
+					err := clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)
+					Expect(err).To(MatchError("resource not found"))
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with a too many requests response 429", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
+							RespondWith(http.StatusTooManyRequests, nil, nil)),
+					)
+				})
+
+				It("returns an error", func() {
+					err := clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)
+					Expect(err).To(MatchError("too many requests"))
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 			})
@@ -333,6 +409,26 @@ var _ = Describe("Client", func() {
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 					Expect(responseBody).ToNot(BeNil())
 					Expect(responseBody.Response).To(Equal(responseBodyString))
+				})
+			})
+
+			Context("with a successful response 204 without parsing content", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
+							RespondWith(http.StatusNoContent, []byte("{\"response\":\""+responseBodyString+"\"}"), nil)),
+					)
+				})
+
+				It("returns success", func() {
+					Expect(clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)).To(Succeed())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+					Expect(responseBody).ToNot(BeNil())
+					Expect(responseBody.Response).To(BeEmpty())
 				})
 			})
 

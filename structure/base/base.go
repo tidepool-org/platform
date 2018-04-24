@@ -6,6 +6,7 @@ import (
 )
 
 type Base struct {
+	origin       structure.Origin
 	source       structure.Source
 	meta         interface{}
 	serializable *errors.Serializable
@@ -13,8 +14,33 @@ type Base struct {
 
 func New() *Base {
 	return &Base{
+		origin:       structure.OriginExternal,
 		serializable: &errors.Serializable{},
 	}
+}
+
+func (b *Base) Origin() structure.Origin {
+	return b.origin
+}
+
+func (b *Base) HasSource() bool {
+	return b.source != nil
+}
+
+func (b *Base) Source() structure.Source {
+	return b.source
+}
+
+func (b *Base) HasMeta() bool {
+	return b.meta != nil
+}
+
+func (b *Base) Meta() interface{} {
+	return b.meta
+}
+
+func (b *Base) HasError() bool {
+	return b.serializable.Error != nil
 }
 
 func (b *Base) Error() error {
@@ -29,8 +55,18 @@ func (b *Base) ReportError(err error) {
 	}
 }
 
+func (b *Base) WithOrigin(origin structure.Origin) *Base {
+	return &Base{
+		origin:       origin,
+		source:       b.source,
+		meta:         b.meta,
+		serializable: b.serializable,
+	}
+}
+
 func (b *Base) WithSource(source structure.Source) *Base {
 	return &Base{
+		origin:       b.origin,
 		source:       source,
 		meta:         b.meta,
 		serializable: b.serializable,
@@ -39,6 +75,7 @@ func (b *Base) WithSource(source structure.Source) *Base {
 
 func (b *Base) WithMeta(meta interface{}) *Base {
 	return &Base{
+		origin:       b.origin,
 		source:       b.source,
 		meta:         meta,
 		serializable: b.serializable,
@@ -47,6 +84,7 @@ func (b *Base) WithMeta(meta interface{}) *Base {
 
 func (b *Base) WithReference(reference string) *Base {
 	base := &Base{
+		origin:       b.origin,
 		source:       b.source,
 		meta:         b.meta,
 		serializable: b.serializable,

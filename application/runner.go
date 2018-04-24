@@ -12,25 +12,32 @@ type Runner interface {
 	Run() error
 }
 
-func Run(runner Runner, err error) {
+const (
+	Success = 0
+	Failure = 1
+)
+
+func Run(runner Runner, err error) int {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "ERROR: Unable to create:", err)
-		os.Exit(1)
+		return Failure
 	}
 	if runner == nil {
 		fmt.Fprintln(os.Stderr, "ERROR: Runner is missing")
-		os.Exit(1)
+		return Failure
 	}
 
 	defer runner.Terminate()
 
 	if err = runner.Initialize(); err != nil {
 		fmt.Fprintln(os.Stderr, "ERROR: Unable to initialize:", err)
-		os.Exit(1)
+		return Failure
 	}
 
 	if err = runner.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "ERROR: Unable to run:", err)
-		os.Exit(1)
+		return Failure
 	}
+
+	return Success
 }
