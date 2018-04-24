@@ -26,9 +26,10 @@ func Names() []string {
 type Status struct {
 	device.Device `bson:",inline"`
 
-	Duration *int       `json:"duration,omitempty" bson:"duration,omitempty"`
-	Name     *string    `json:"status,omitempty" bson:"status,omitempty"`
-	Reason   *data.Blob `json:"reason,omitempty" bson:"reason,omitempty"`
+	Duration         *int       `json:"duration,omitempty" bson:"duration,omitempty"`
+	DurationExpected *int       `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
+	Name             *string    `json:"status,omitempty" bson:"status,omitempty"`
+	Reason           *data.Blob `json:"reason,omitempty" bson:"reason,omitempty"`
 }
 
 func NewStatusDatum(parser data.ObjectParser) data.Datum {
@@ -77,6 +78,7 @@ func (s *Status) Parse(parser data.ObjectParser) error {
 	}
 
 	s.Duration = parser.ParseInteger("duration")
+	s.DurationExpected = parser.ParseInteger("expectedDuration")
 	s.Name = parser.ParseString("status")
 	s.Reason = data.ParseBlob(parser.NewChildObjectParser("reason"))
 
@@ -95,6 +97,12 @@ func (s *Status) Validate(validator structure.Validator) {
 	}
 
 	validator.Int("duration", s.Duration).GreaterThanOrEqualTo(DurationMinimum) // TODO: .Exists() - Suspend events on Animas do not have duration?
+	expectedDurationValidator := validator.Int("expectedDuration", s.DurationExpected)
+	if s.Duration != nil && *s.Duration >= DurationMinimum {
+		expectedDurationValidator.GreaterThanOrEqualTo(*s.Duration)
+	} else {
+		expectedDurationValidator.GreaterThanOrEqualTo(DurationMinimum)
+	}
 	validator.String("status", s.Name).Exists().OneOf(Names()...)
 
 	reasonValidator := validator.WithReference("reason")

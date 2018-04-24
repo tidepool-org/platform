@@ -1,5 +1,6 @@
 ## HEAD
 
+* Add expected duration to status device event data model
 * Add bolus calculator enabled field to pump settings data model
 * Add tzdata to development Docker images
 * Validate data time zone against known time zones
