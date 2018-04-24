@@ -36,6 +36,7 @@ func NewPhysical() *physical.Physical {
 	datum.ElevationChange = NewElevationChange()
 	datum.Energy = NewEnergy()
 	datum.Flight = NewFlight()
+	datum.Lap = NewLap()
 	datum.Name = pointer.String(test.NewText(1, 100))
 	datum.ReportedIntensity = pointer.String(test.RandomStringFromArray(physical.ReportedIntensities()))
 	datum.Step = NewStep()
@@ -56,6 +57,7 @@ func ClonePhysical(datum *physical.Physical) *physical.Physical {
 	clone.ElevationChange = CloneElevationChange(datum.ElevationChange)
 	clone.Energy = CloneEnergy(datum.Energy)
 	clone.Flight = CloneFlight(datum.Flight)
+	clone.Lap = CloneLap(datum.Lap)
 	clone.Name = test.CloneString(datum.Name)
 	clone.ReportedIntensity = test.CloneString(datum.ReportedIntensity)
 	clone.Step = CloneStep(datum.Step)
@@ -113,6 +115,7 @@ var _ = Describe("Physical", func() {
 			Expect(datum.ElevationChange).To(BeNil())
 			Expect(datum.Energy).To(BeNil())
 			Expect(datum.Flight).To(BeNil())
+			Expect(datum.Lap).To(BeNil())
 			Expect(datum.Name).To(BeNil())
 			Expect(datum.ReportedIntensity).To(BeNil())
 			Expect(datum.Step).To(BeNil())
@@ -1222,6 +1225,18 @@ var _ = Describe("Physical", func() {
 				Entry("flight valid",
 					func(datum *physical.Physical) { datum.Flight = NewFlight() },
 				),
+				Entry("lap missing",
+					func(datum *physical.Physical) { datum.Lap = nil },
+				),
+				Entry("lap invalid",
+					func(datum *physical.Physical) {
+						datum.Lap.Count = nil
+					},
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/lap/count", NewMeta()),
+				),
+				Entry("lap valid",
+					func(datum *physical.Physical) { datum.Lap = NewLap() },
+				),
 				Entry("name missing",
 					func(datum *physical.Physical) { datum.Name = nil },
 				),
@@ -1253,7 +1268,7 @@ var _ = Describe("Physical", func() {
 					func(datum *physical.Physical) { datum.ReportedIntensity = pointer.String("medium") },
 				),
 				Entry("step missing",
-					func(datum *physical.Physical) { datum.Flight = nil },
+					func(datum *physical.Physical) { datum.Step = nil },
 				),
 				Entry("step invalid",
 					func(datum *physical.Physical) {
@@ -1262,7 +1277,7 @@ var _ = Describe("Physical", func() {
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/step/count", NewMeta()),
 				),
 				Entry("step valid",
-					func(datum *physical.Physical) { datum.Flight = NewFlight() },
+					func(datum *physical.Physical) { datum.Step = NewStep() },
 				),
 				Entry("multiple errors",
 					func(datum *physical.Physical) {
@@ -1272,8 +1287,11 @@ var _ = Describe("Physical", func() {
 						datum.Distance.Units = nil
 						datum.Duration.Units = nil
 						datum.ElevationChange.Units = nil
+						datum.Flight.Count = nil
+						datum.Lap.Count = nil
 						datum.Name = pointer.String("")
 						datum.ReportedIntensity = pointer.String("invalid")
+						datum.Step.Count = nil
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "physicalActivity"), "/type", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", physical.ActivityTypes()), "/activityType", &types.Meta{Type: "invalidType"}),
@@ -1281,8 +1299,11 @@ var _ = Describe("Physical", func() {
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/distance/units", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration/units", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/elevationChange/units", &types.Meta{Type: "invalidType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/flight/count", &types.Meta{Type: "invalidType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/lap/count", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/name", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"high", "low", "medium"}), "/reportedIntensity", &types.Meta{Type: "invalidType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/step/count", &types.Meta{Type: "invalidType"}),
 				),
 			)
 		})
@@ -1328,6 +1349,9 @@ var _ = Describe("Physical", func() {
 				),
 				Entry("does not modify the datum; flight missing",
 					func(datum *physical.Physical) { datum.Flight = nil },
+				),
+				Entry("does not modify the datum; lap missing",
+					func(datum *physical.Physical) { datum.Lap = nil },
 				),
 				Entry("does not modify the datum; name missing",
 					func(datum *physical.Physical) { datum.Name = nil },

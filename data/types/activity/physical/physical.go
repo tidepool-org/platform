@@ -192,6 +192,7 @@ type Physical struct {
 	ElevationChange   *ElevationChange `json:"elevationChange,omitempty" bson:"elevationChange,omitempty"`
 	Energy            *Energy          `json:"energy,omitempty" bson:"energy,omitempty"`
 	Flight            *Flight          `json:"flight,omitempty" bson:"flight,omitempty"`
+	Lap               *Lap             `json:"lap,omitempty" bson:"lap,omitempty"`
 	Name              *string          `json:"name,omitempty" bson:"name,omitempty"`
 	ReportedIntensity *string          `json:"reportedIntensity,omitempty" bson:"reportedIntensity,omitempty"`
 	Step              *Step            `json:"step,omitempty" bson:"step,omitempty"`
@@ -218,6 +219,7 @@ func (p *Physical) Parse(parser data.ObjectParser) error {
 	p.ElevationChange = ParseElevationChange(parser.NewChildObjectParser("elevationChange"))
 	p.Energy = ParseEnergy(parser.NewChildObjectParser("energy"))
 	p.Flight = ParseFlight(parser.NewChildObjectParser("flight"))
+	p.Lap = ParseLap(parser.NewChildObjectParser("lap"))
 	p.Name = parser.ParseString("name")
 	p.ReportedIntensity = parser.ParseString("reportedIntensity")
 	p.Step = ParseStep(parser.NewChildObjectParser("step"))
@@ -257,6 +259,9 @@ func (p *Physical) Validate(validator structure.Validator) {
 	if p.Flight != nil {
 		p.Flight.Validate(validator.WithReference("flight"))
 	}
+	if p.Lap != nil {
+		p.Lap.Validate(validator.WithReference("lap"))
+	}
 	validator.String("name", p.Name).NotEmpty().LengthLessThanOrEqualTo(NameLengthMaximum)
 	validator.String("reportedIntensity", p.ReportedIntensity).OneOf(ReportedIntensities()...)
 	if p.Step != nil {
@@ -285,6 +290,9 @@ func (p *Physical) Normalize(normalizer data.Normalizer) {
 	}
 	if p.Flight != nil {
 		p.Flight.Normalize(normalizer.WithReference("flight"))
+	}
+	if p.Lap != nil {
+		p.Lap.Normalize(normalizer.WithReference("lap"))
 	}
 	if p.Step != nil {
 		p.Step.Normalize(normalizer.WithReference("step"))

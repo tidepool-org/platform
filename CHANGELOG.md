@@ -1,5 +1,6 @@
 ## HEAD
 
+* Add lap data to physical activity data model
 * Add expected duration to status device event data model
 * Add bolus calculator enabled field to pump settings data model
 * Add tzdata to development Docker images
