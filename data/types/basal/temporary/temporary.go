@@ -31,12 +31,12 @@ type Suppressed interface {
 type Temporary struct {
 	basal.Basal `bson:",inline"`
 
-	Duration         *int                 `json:"duration,omitempty" bson:"duration,omitempty"`
-	DurationExpected *int                 `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
-	InsulinType      *insulin.InsulinType `json:"insulinType,omitempty" bson:"insulinType,omitempty"`
-	Percent          *float64             `json:"percent,omitempty" bson:"percent,omitempty"`
-	Rate             *float64             `json:"rate,omitempty" bson:"rate,omitempty"`
-	Suppressed       Suppressed           `json:"suppressed,omitempty" bson:"suppressed,omitempty"`
+	Duration           *int                 `json:"duration,omitempty" bson:"duration,omitempty"`
+	DurationExpected   *int                 `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
+	InsulinFormulation *insulin.Formulation `json:"insulinFormulation,omitempty" bson:"insulinFormulation,omitempty"`
+	Percent            *float64             `json:"percent,omitempty" bson:"percent,omitempty"`
+	Rate               *float64             `json:"rate,omitempty" bson:"rate,omitempty"`
+	Suppressed         Suppressed           `json:"suppressed,omitempty" bson:"suppressed,omitempty"`
 }
 
 func New() *Temporary {
@@ -52,7 +52,7 @@ func (t *Temporary) Parse(parser data.ObjectParser) error {
 
 	t.Duration = parser.ParseInteger("duration")
 	t.DurationExpected = parser.ParseInteger("expectedDuration")
-	t.InsulinType = insulin.ParseInsulinType(parser.NewChildObjectParser("insulinType"))
+	t.InsulinFormulation = insulin.ParseFormulation(parser.NewChildObjectParser("insulinFormulation"))
 	t.Percent = parser.ParseFloat("percent")
 	t.Rate = parser.ParseFloat("rate")
 	t.Suppressed = parseSuppressed(parser.NewChildObjectParser("suppressed"))
@@ -78,8 +78,8 @@ func (t *Temporary) Validate(validator structure.Validator) {
 	} else {
 		expectedDurationValidator.InRange(DurationMinimum, DurationMaximum)
 	}
-	if t.InsulinType != nil {
-		t.InsulinType.Validate(validator.WithReference("insulinType"))
+	if t.InsulinFormulation != nil {
+		t.InsulinFormulation.Validate(validator.WithReference("insulinFormulation"))
 	}
 	validator.Float64("percent", t.Percent).InRange(PercentMinimum, PercentMaximum)
 	validator.Float64("rate", t.Rate).Exists().InRange(RateMinimum, RateMaximum)
@@ -93,8 +93,8 @@ func (t *Temporary) Normalize(normalizer data.Normalizer) {
 
 	t.Basal.Normalize(normalizer)
 
-	if t.InsulinType != nil {
-		t.InsulinType.Normalize(normalizer.WithReference("insulinType"))
+	if t.InsulinFormulation != nil {
+		t.InsulinFormulation.Normalize(normalizer.WithReference("insulinFormulation"))
 	}
 	if t.Suppressed != nil {
 		t.Suppressed.Normalize(normalizer.WithReference("suppressed"))
@@ -105,11 +105,11 @@ type SuppressedTemporary struct {
 	Type         *string `json:"type,omitempty" bson:"type,omitempty"`
 	DeliveryType *string `json:"deliveryType,omitempty" bson:"deliveryType,omitempty"`
 
-	Annotations *data.BlobArray      `json:"annotations,omitempty" bson:"annotations,omitempty"`
-	InsulinType *insulin.InsulinType `json:"insulinType,omitempty" bson:"insulinType,omitempty"`
-	Percent     *float64             `json:"percent,omitempty" bson:"percent,omitempty"`
-	Rate        *float64             `json:"rate,omitempty" bson:"rate,omitempty"`
-	Suppressed  Suppressed           `json:"suppressed,omitempty" bson:"suppressed,omitempty"`
+	Annotations        *data.BlobArray      `json:"annotations,omitempty" bson:"annotations,omitempty"`
+	InsulinFormulation *insulin.Formulation `json:"insulinFormulation,omitempty" bson:"insulinFormulation,omitempty"`
+	Percent            *float64             `json:"percent,omitempty" bson:"percent,omitempty"`
+	Rate               *float64             `json:"rate,omitempty" bson:"rate,omitempty"`
+	Suppressed         Suppressed           `json:"suppressed,omitempty" bson:"suppressed,omitempty"`
 }
 
 func ParseSuppressedTemporary(parser data.ObjectParser) *SuppressedTemporary {
@@ -134,7 +134,7 @@ func (s *SuppressedTemporary) Parse(parser data.ObjectParser) error {
 	s.DeliveryType = parser.ParseString("deliveryType")
 
 	s.Annotations = data.ParseBlobArray(parser.NewChildArrayParser("annotations"))
-	s.InsulinType = insulin.ParseInsulinType(parser.NewChildObjectParser("insulinType"))
+	s.InsulinFormulation = insulin.ParseFormulation(parser.NewChildObjectParser("insulinFormulation"))
 	s.Percent = parser.ParseFloat("percent")
 	s.Rate = parser.ParseFloat("rate")
 	s.Suppressed = parseSuppressed(parser.NewChildObjectParser("suppressed"))
@@ -149,8 +149,8 @@ func (s *SuppressedTemporary) Validate(validator structure.Validator) {
 	if s.Annotations != nil {
 		s.Annotations.Validate(validator.WithReference("annotations"))
 	}
-	if s.InsulinType != nil {
-		s.InsulinType.Validate(validator.WithReference("insulinType"))
+	if s.InsulinFormulation != nil {
+		s.InsulinFormulation.Validate(validator.WithReference("insulinFormulation"))
 	}
 	validator.Float64("percent", s.Percent).InRange(PercentMinimum, PercentMaximum)
 	validator.Float64("rate", s.Rate).Exists().InRange(RateMinimum, RateMaximum)
@@ -161,8 +161,8 @@ func (s *SuppressedTemporary) Normalize(normalizer data.Normalizer) {
 	if s.Annotations != nil {
 		s.Annotations.Normalize(normalizer.WithReference("annotations"))
 	}
-	if s.InsulinType != nil {
-		s.InsulinType.Normalize(normalizer.WithReference("insulinType"))
+	if s.InsulinFormulation != nil {
+		s.InsulinFormulation.Normalize(normalizer.WithReference("insulinFormulation"))
 	}
 	if s.Suppressed != nil {
 		s.Suppressed.Normalize(normalizer.WithReference("suppressed"))

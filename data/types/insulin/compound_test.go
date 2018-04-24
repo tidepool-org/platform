@@ -15,60 +15,60 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-var _ = Describe("Mix", func() {
-	It("MixElementAmountMinimum is expected", func() {
-		Expect(insulin.MixElementAmountMinimum).To(Equal(0.0))
+var _ = Describe("Compound", func() {
+	It("CompoundAmountMinimum is expected", func() {
+		Expect(insulin.CompoundAmountMinimum).To(Equal(0.0))
 	})
 
-	Context("ParseMixElement", func() {
+	Context("ParseCompound", func() {
 		// TODO
 	})
 
-	Context("NewMixElement", func() {
+	Context("NewCompound", func() {
 		It("is successful", func() {
-			Expect(insulin.NewMixElement()).To(Equal(&insulin.MixElement{}))
+			Expect(insulin.NewCompound()).To(Equal(&insulin.Compound{}))
 		})
 	})
 
-	Context("MixElement", func() {
+	Context("Compound", func() {
 		Context("Parse", func() {
 			// TODO
 		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
-				func(mutator func(datum *insulin.MixElement), expectedErrors ...error) {
-					datum := testDataTypesInsulin.NewMixElement()
+				func(mutator func(datum *insulin.Compound), expectedErrors ...error) {
+					datum := testDataTypesInsulin.NewCompound(3)
 					mutator(datum)
 					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
-					func(datum *insulin.MixElement) {},
+					func(datum *insulin.Compound) {},
 				),
 				Entry("amount missing",
-					func(datum *insulin.MixElement) { datum.Amount = nil },
+					func(datum *insulin.Compound) { datum.Amount = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amount"),
 				),
 				Entry("amount out of range (lower)",
-					func(datum *insulin.MixElement) { datum.Amount = pointer.Float64(-0.1) },
+					func(datum *insulin.Compound) { datum.Amount = pointer.Float64(-0.1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-0.1, 0.0), "/amount"),
 				),
 				Entry("amount in range (lower)",
-					func(datum *insulin.MixElement) { datum.Amount = pointer.Float64(0.0) },
+					func(datum *insulin.Compound) { datum.Amount = pointer.Float64(0.0) },
 				),
 				Entry("formulation missing",
-					func(datum *insulin.MixElement) { datum.Formulation = nil },
+					func(datum *insulin.Compound) { datum.Formulation = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/formulation"),
 				),
 				Entry("formulation invalid",
-					func(datum *insulin.MixElement) { datum.Formulation.Name = pointer.String("") },
+					func(datum *insulin.Compound) { datum.Formulation.Name = pointer.String("") },
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/formulation/name"),
 				),
 				Entry("formulation valid",
-					func(datum *insulin.MixElement) { datum.Formulation = testDataTypesInsulin.NewFormulation() },
+					func(datum *insulin.Compound) { datum.Formulation = testDataTypesInsulin.NewFormulation(3) },
 				),
 				Entry("multiple errors",
-					func(datum *insulin.MixElement) {
+					func(datum *insulin.Compound) {
 						datum.Amount = nil
 						datum.Formulation = nil
 					},
@@ -80,11 +80,11 @@ var _ = Describe("Mix", func() {
 
 		Context("Normalize", func() {
 			DescribeTable("normalizes the datum",
-				func(mutator func(datum *insulin.MixElement)) {
+				func(mutator func(datum *insulin.Compound)) {
 					for _, origin := range structure.Origins() {
-						datum := testDataTypesInsulin.NewMixElement()
+						datum := testDataTypesInsulin.NewCompound(3)
 						mutator(datum)
-						expectedDatum := testDataTypesInsulin.CloneMixElement(datum)
+						expectedDatum := testDataTypesInsulin.CloneCompound(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
@@ -94,83 +94,98 @@ var _ = Describe("Mix", func() {
 					}
 				},
 				Entry("does not modify the datum",
-					func(datum *insulin.MixElement) {},
+					func(datum *insulin.Compound) {},
 				),
 				Entry("does not modify the datum; amount missing",
-					func(datum *insulin.MixElement) { datum.Amount = nil },
+					func(datum *insulin.Compound) { datum.Amount = nil },
 				),
 				Entry("does not modify the datum; formulation missing",
-					func(datum *insulin.MixElement) { datum.Formulation = nil },
+					func(datum *insulin.Compound) { datum.Formulation = nil },
 				),
 			)
 		})
 	})
 
-	Context("ParseMix", func() {
+	Context("ParseCompoundArray", func() {
 		// TODO
 	})
 
-	Context("NewMix", func() {
+	Context("NewCompoundArray", func() {
 		It("is successful", func() {
-			Expect(insulin.NewMix()).To(Equal(&insulin.Mix{}))
+			Expect(insulin.NewCompoundArray()).To(Equal(&insulin.CompoundArray{}))
 		})
 	})
 
-	Context("Mix", func() {
+	Context("CompoundArray", func() {
 		Context("Parse", func() {
 			// TODO
 		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
-				func(mutator func(datum *insulin.Mix), expectedErrors ...error) {
-					datum := insulin.NewMix()
+				func(mutator func(datum *insulin.CompoundArray), expectedErrors ...error) {
+					datum := insulin.NewCompoundArray()
 					mutator(datum)
 					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
-					func(datum *insulin.Mix) {},
+					func(datum *insulin.CompoundArray) {},
 					structureValidator.ErrorValueEmpty(),
 				),
 				Entry("empty",
-					func(datum *insulin.Mix) { *datum = *insulin.NewMix() },
+					func(datum *insulin.CompoundArray) { *datum = *insulin.NewCompoundArray() },
 					structureValidator.ErrorValueEmpty(),
 				),
 				Entry("nil",
-					func(datum *insulin.Mix) { *datum = append(*datum, nil) },
+					func(datum *insulin.CompoundArray) { *datum = append(*datum, nil) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
 				),
 				Entry("single invalid",
-					func(datum *insulin.Mix) {
-						invalid := testDataTypesInsulin.NewMixElement()
+					func(datum *insulin.CompoundArray) {
+						invalid := testDataTypesInsulin.NewCompound(3)
 						invalid.Amount = nil
 						*datum = append(*datum, invalid)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0/amount"),
 				),
 				Entry("single valid",
-					func(datum *insulin.Mix) {
-						*datum = append(*datum, testDataTypesInsulin.NewMixElement())
+					func(datum *insulin.CompoundArray) {
+						*datum = append(*datum, testDataTypesInsulin.NewCompound(3))
 					},
 				),
 				Entry("multiple invalid",
-					func(datum *insulin.Mix) {
-						invalid := testDataTypesInsulin.NewMixElement()
+					func(datum *insulin.CompoundArray) {
+						invalid := testDataTypesInsulin.NewCompound(3)
 						invalid.Amount = nil
-						*datum = append(*datum, testDataTypesInsulin.NewMixElement(), invalid, testDataTypesInsulin.NewMixElement())
+						*datum = append(*datum, testDataTypesInsulin.NewCompound(3), invalid, testDataTypesInsulin.NewCompound(3))
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/amount"),
 				),
 				Entry("multiple valid",
-					func(datum *insulin.Mix) {
-						*datum = append(*datum, testDataTypesInsulin.NewMixElement(), testDataTypesInsulin.NewMixElement(), testDataTypesInsulin.NewMixElement())
+					func(datum *insulin.CompoundArray) {
+						*datum = append(*datum, testDataTypesInsulin.NewCompound(3), testDataTypesInsulin.NewCompound(3), testDataTypesInsulin.NewCompound(3))
 					},
 				),
+				Entry("multiple; length in range (upper)",
+					func(datum *insulin.CompoundArray) {
+						for len(*datum) < 100 {
+							*datum = append(*datum, testDataTypesInsulin.NewCompound(1))
+						}
+					},
+				),
+				Entry("multiple; length out of range (upper)",
+					func(datum *insulin.CompoundArray) {
+						for len(*datum) < 101 {
+							*datum = append(*datum, testDataTypesInsulin.NewCompound(1))
+						}
+					},
+					structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100),
+				),
 				Entry("multiple errors",
-					func(datum *insulin.Mix) {
-						invalid := testDataTypesInsulin.NewMixElement()
+					func(datum *insulin.CompoundArray) {
+						invalid := testDataTypesInsulin.NewCompound(3)
 						invalid.Amount = nil
-						*datum = append(*datum, nil, invalid, testDataTypesInsulin.NewMixElement())
+						*datum = append(*datum, nil, invalid, testDataTypesInsulin.NewCompound(3))
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/amount"),
@@ -180,11 +195,11 @@ var _ = Describe("Mix", func() {
 
 		Context("Normalize", func() {
 			DescribeTable("normalizes the datum",
-				func(mutator func(datum *insulin.Mix)) {
+				func(mutator func(datum *insulin.CompoundArray)) {
 					for _, origin := range structure.Origins() {
-						datum := testDataTypesInsulin.NewMix()
+						datum := testDataTypesInsulin.NewCompoundArray(3)
 						mutator(datum)
-						expectedDatum := testDataTypesInsulin.CloneMix(datum)
+						expectedDatum := testDataTypesInsulin.CloneCompoundArray(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
@@ -194,13 +209,13 @@ var _ = Describe("Mix", func() {
 					}
 				},
 				Entry("does not modify the datum",
-					func(datum *insulin.Mix) {},
+					func(datum *insulin.CompoundArray) {},
 				),
 				Entry("does not modify the datum; amount missing",
-					func(datum *insulin.Mix) { (*datum)[0].Amount = nil },
+					func(datum *insulin.CompoundArray) { (*datum)[0].Amount = nil },
 				),
 				Entry("does not modify the datum; formulation missing",
-					func(datum *insulin.Mix) { (*datum)[0].Formulation = nil },
+					func(datum *insulin.CompoundArray) { (*datum)[0].Formulation = nil },
 				),
 			)
 		})

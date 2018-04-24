@@ -6,12 +6,16 @@ import (
 	"github.com/tidepool-org/platform/test"
 )
 
-func NewFormulation() *insulin.Formulation {
+func NewFormulation(compoundArrayDepth int) *insulin.Formulation {
+	simple := test.RandomBool()
 	datum := insulin.NewFormulation()
-	datum.ActingType = pointer.String(test.RandomStringFromArray(insulin.FormulationActingTypes()))
-	datum.Brand = pointer.String(test.NewText(1, 100))
-	datum.Concentration = NewConcentration()
+	if !simple {
+		datum.Compounds = NewCompoundArray(compoundArrayDepth)
+	}
 	datum.Name = pointer.String(test.NewText(1, 100))
+	if simple {
+		datum.Simple = NewSimple()
+	}
 	return datum
 }
 
@@ -20,9 +24,8 @@ func CloneFormulation(datum *insulin.Formulation) *insulin.Formulation {
 		return nil
 	}
 	clone := insulin.NewFormulation()
-	clone.ActingType = test.CloneString(datum.ActingType)
-	clone.Brand = test.CloneString(datum.Brand)
-	clone.Concentration = CloneConcentration(datum.Concentration)
+	clone.Compounds = CloneCompoundArray(datum.Compounds)
 	clone.Name = test.CloneString(datum.Name)
+	clone.Simple = CloneSimple(datum.Simple)
 	return clone
 }

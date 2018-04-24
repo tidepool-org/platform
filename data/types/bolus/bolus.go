@@ -17,7 +17,7 @@ type Bolus struct {
 
 	SubType string `json:"subType,omitempty" bson:"subType,omitempty"`
 
-	InsulinType *insulin.InsulinType `json:"insulinType,omitempty" bson:"insulinType,omitempty"`
+	InsulinFormulation *insulin.Formulation `json:"insulinFormulation,omitempty" bson:"insulinFormulation,omitempty"`
 }
 
 type Meta struct {
@@ -46,7 +46,7 @@ func (b *Bolus) Parse(parser data.ObjectParser) error {
 		return nil
 	}
 
-	b.InsulinType = insulin.ParseInsulinType(parser.NewChildObjectParser("insulinType"))
+	b.InsulinFormulation = insulin.ParseFormulation(parser.NewChildObjectParser("insulinFormulation"))
 
 	return nil
 }
@@ -60,16 +60,16 @@ func (b *Bolus) Validate(validator structure.Validator) {
 
 	validator.String("subType", &b.SubType).Exists().NotEmpty()
 
-	if b.InsulinType != nil {
-		b.InsulinType.Validate(validator.WithReference("insulinType"))
+	if b.InsulinFormulation != nil {
+		b.InsulinFormulation.Validate(validator.WithReference("insulinFormulation"))
 	}
 }
 
 func (b *Bolus) Normalize(normalizer data.Normalizer) {
 	b.Base.Normalize(normalizer)
 
-	if b.InsulinType != nil {
-		b.InsulinType.Normalize(normalizer.WithReference("insulinType"))
+	if b.InsulinFormulation != nil {
+		b.InsulinFormulation.Normalize(normalizer.WithReference("insulinFormulation"))
 	}
 }
 

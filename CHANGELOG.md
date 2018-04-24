@@ -1,5 +1,7 @@
 ## HEAD
 
+* Refactor insulin data model to allow more flexibility and understanding
+* Add active insulin to insulin dose data model
 * Add lap data to physical activity data model
 * Add expected duration to status device event data model
 * Add bolus calculator enabled field to pump settings data model

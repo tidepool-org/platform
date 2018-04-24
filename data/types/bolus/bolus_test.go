@@ -45,7 +45,7 @@ var _ = Describe("Bolus", func() {
 			datum := bolus.New(subType)
 			Expect(datum.Type).To(Equal("bolus"))
 			Expect(datum.SubType).To(Equal(subType))
-			Expect(datum.InsulinType).To(BeNil())
+			Expect(datum.InsulinFormulation).To(BeNil())
 		})
 	})
 
@@ -149,29 +149,31 @@ var _ = Describe("Bolus", func() {
 				Entry("sub type valid",
 					func(datum *bolus.Bolus) { datum.SubType = testDataTypes.NewType() },
 				),
-				Entry("insulin type missing",
-					func(datum *bolus.Bolus) { datum.InsulinType = nil },
+				Entry("insulin formulation missing",
+					func(datum *bolus.Bolus) { datum.InsulinFormulation = nil },
 				),
-				Entry("insulin type invalid",
+				Entry("insulin formulation invalid",
 					func(datum *bolus.Bolus) {
-						datum.InsulinType.Formulation = nil
-						datum.InsulinType.Mix = nil
+						datum.InsulinFormulation.Compounds = nil
+						datum.InsulinFormulation.Name = nil
+						datum.InsulinFormulation.Simple = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulinType/formulation"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple"),
 				),
-				Entry("insulin type valid",
-					func(datum *bolus.Bolus) { datum.InsulinType = testDataTypesInsulin.NewInsulinType() },
+				Entry("insulin formulation valid",
+					func(datum *bolus.Bolus) { datum.InsulinFormulation = testDataTypesInsulin.NewFormulation(3) },
 				),
 				Entry("multiple errors",
 					func(datum *bolus.Bolus) {
 						datum.Type = "invalid"
 						datum.SubType = ""
-						datum.InsulinType.Formulation = nil
-						datum.InsulinType.Mix = nil
+						datum.InsulinFormulation.Compounds = nil
+						datum.InsulinFormulation.Name = nil
+						datum.InsulinFormulation.Simple = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "bolus"), "/type"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/subType"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulinType/formulation"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple"),
 				),
 			)
 		})
@@ -200,8 +202,8 @@ var _ = Describe("Bolus", func() {
 				Entry("does not modify the datum; sub type missing",
 					func(datum *bolus.Bolus) { datum.SubType = "" },
 				),
-				Entry("does not modify the datum; insulin type missing",
-					func(datum *bolus.Bolus) { datum.InsulinType = nil },
+				Entry("does not modify the datum; insulin formulation missing",
+					func(datum *bolus.Bolus) { datum.InsulinFormulation = nil },
 				),
 			)
 		})

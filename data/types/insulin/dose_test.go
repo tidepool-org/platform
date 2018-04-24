@@ -7,36 +7,23 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/insulin"
+	testDataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin/test"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"github.com/tidepool-org/platform/test"
 )
 
-func NewDose() *insulin.Dose {
-	datum := insulin.NewDose()
-	datum.Correction = pointer.Float64(test.RandomFloat64FromRange(insulin.DoseCorrectionMinimum, insulin.DoseCorrectionMaximum))
-	datum.Food = pointer.Float64(test.RandomFloat64FromRange(insulin.DoseFoodMinimum, insulin.DoseFoodMaximum))
-	datum.Total = pointer.Float64(test.RandomFloat64FromRange(insulin.DoseTotalMinimum, insulin.DoseTotalMaximum))
-	datum.Units = pointer.String(test.RandomStringFromArray(insulin.DoseUnits()))
-	return datum
-}
-
-func CloneDose(datum *insulin.Dose) *insulin.Dose {
-	if datum == nil {
-		return nil
-	}
-	clone := insulin.NewDose()
-	clone.Correction = test.CloneFloat64(datum.Correction)
-	clone.Food = test.CloneFloat64(datum.Food)
-	clone.Total = test.CloneFloat64(datum.Total)
-	clone.Units = test.CloneString(datum.Units)
-	return clone
-}
-
 var _ = Describe("Dose", func() {
+	It("DoseActiveMaximum is expected", func() {
+		Expect(insulin.DoseActiveMaximum).To(Equal(250.0))
+	})
+
+	It("DoseActiveMinimum is expected", func() {
+		Expect(insulin.DoseActiveMinimum).To(Equal(0.0))
+	})
+
 	It("DoseCorrectionMaximum is expected", func() {
 		Expect(insulin.DoseCorrectionMaximum).To(Equal(250.0))
 	})
@@ -87,12 +74,29 @@ var _ = Describe("Dose", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *insulin.Dose), expectedErrors ...error) {
-					datum := NewDose()
+					datum := testDataTypesInsulin.NewDose()
 					mutator(datum)
 					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *insulin.Dose) {},
+				),
+				Entry("active missing",
+					func(datum *insulin.Dose) { datum.Active = nil },
+				),
+				Entry("active out of range (lower)",
+					func(datum *insulin.Dose) { datum.Active = pointer.Float64(-0.1) },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 250), "/active"),
+				),
+				Entry("active in range (lower)",
+					func(datum *insulin.Dose) { datum.Active = pointer.Float64(0.0) },
+				),
+				Entry("active in range (upper)",
+					func(datum *insulin.Dose) { datum.Active = pointer.Float64(250.0) },
+				),
+				Entry("active out of range (upper)",
+					func(datum *insulin.Dose) { datum.Active = pointer.Float64(250.1) },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(250.1, 0, 250), "/active"),
 				),
 				Entry("correction missing",
 					func(datum *insulin.Dose) { datum.Correction = nil },
@@ -159,9 +163,15 @@ var _ = Describe("Dose", func() {
 				),
 				Entry("multiple errors",
 					func(datum *insulin.Dose) {
+						datum.Active = pointer.Float64(-0.1)
+						datum.Correction = pointer.Float64(-250.1)
+						datum.Food = pointer.Float64(-0.1)
 						datum.Total = nil
 						datum.Units = nil
 					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 250), "/active"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-250.1, -250, 250), "/correction"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 250), "/food"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/total"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
@@ -172,9 +182,9 @@ var _ = Describe("Dose", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *insulin.Dose)) {
 					for _, origin := range structure.Origins() {
-						datum := NewDose()
+						datum := testDataTypesInsulin.NewDose()
 						mutator(datum)
-						expectedDatum := CloneDose(datum)
+						expectedDatum := testDataTypesInsulin.CloneDose(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
@@ -185,6 +195,9 @@ var _ = Describe("Dose", func() {
 				},
 				Entry("does not modify the datum",
 					func(datum *insulin.Dose) {},
+				),
+				Entry("does not modify the datum; active nil",
+					func(datum *insulin.Dose) { datum.Active = nil },
 				),
 				Entry("does not modify the datum; correction nil",
 					func(datum *insulin.Dose) { datum.Correction = nil },

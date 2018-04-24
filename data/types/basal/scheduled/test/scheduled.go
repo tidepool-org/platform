@@ -12,7 +12,7 @@ import (
 func NewSuppressedScheduled() *scheduled.SuppressedScheduled {
 	datum := scheduled.NewSuppressedScheduled()
 	datum.Annotations = testData.NewBlobArray()
-	datum.InsulinType = testDataTypesInsulin.NewInsulinType()
+	datum.InsulinFormulation = testDataTypesInsulin.NewFormulation(3)
 	datum.Rate = pointer.Float64(test.RandomFloat64FromRange(scheduled.RateMinimum, scheduled.RateMaximum))
 	datum.ScheduleName = pointer.String(testDataTypesBasal.NewScheduleName())
 	return datum
@@ -26,7 +26,7 @@ func CloneSuppressedScheduled(datum *scheduled.SuppressedScheduled) *scheduled.S
 	clone.Type = datum.Type
 	clone.DeliveryType = datum.DeliveryType
 	clone.Annotations = testData.CloneBlobArray(datum.Annotations)
-	clone.InsulinType = testDataTypesInsulin.CloneInsulinType(datum.InsulinType)
+	clone.InsulinFormulation = testDataTypesInsulin.CloneFormulation(datum.InsulinFormulation)
 	clone.Rate = test.CloneFloat64(datum.Rate)
 	clone.ScheduleName = test.CloneString(datum.ScheduleName)
 	return clone

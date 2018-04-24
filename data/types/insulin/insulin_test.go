@@ -27,8 +27,8 @@ func NewInsulin() *insulin.Insulin {
 	datum := insulin.New()
 	datum.Base = *testDataTypes.NewBase()
 	datum.Type = "insulin"
-	datum.Dose = NewDose()
-	datum.InsulinType = testDataTypesInsulin.NewInsulinType()
+	datum.Dose = testDataTypesInsulin.NewDose()
+	datum.Formulation = testDataTypesInsulin.NewFormulation(3)
 	datum.Site = pointer.String(test.NewText(1, 100))
 	return datum
 }
@@ -39,8 +39,8 @@ func CloneInsulin(datum *insulin.Insulin) *insulin.Insulin {
 	}
 	clone := insulin.New()
 	clone.Base = *testDataTypes.CloneBase(&datum.Base)
-	clone.Dose = CloneDose(datum.Dose)
-	clone.InsulinType = testDataTypesInsulin.CloneInsulinType(datum.InsulinType)
+	clone.Dose = testDataTypesInsulin.CloneDose(datum.Dose)
+	clone.Formulation = testDataTypesInsulin.CloneFormulation(datum.Formulation)
 	clone.Site = test.CloneString(datum.Site)
 	return clone
 }
@@ -56,7 +56,7 @@ var _ = Describe("Insulin", func() {
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("insulin"))
 			Expect(datum.Dose).To(BeNil())
-			Expect(datum.InsulinType).To(BeNil())
+			Expect(datum.Formulation).To(BeNil())
 			Expect(datum.Site).To(BeNil())
 		})
 	})
@@ -96,20 +96,19 @@ var _ = Describe("Insulin", func() {
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/dose/total", NewMeta()),
 				),
 				Entry("dose valid",
-					func(datum *insulin.Insulin) { datum.Dose = NewDose() },
+					func(datum *insulin.Insulin) { datum.Dose = testDataTypesInsulin.NewDose() },
 				),
-				Entry("insulin type missing",
-					func(datum *insulin.Insulin) { datum.InsulinType = nil },
+				Entry("formulation missing",
+					func(datum *insulin.Insulin) { datum.Formulation = nil },
 				),
-				Entry("insulin type invalid",
+				Entry("formulation invalid",
 					func(datum *insulin.Insulin) {
-						datum.InsulinType.Formulation = nil
-						datum.InsulinType.Mix = nil
+						datum.Formulation.Name = pointer.String("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulinType/formulation", NewMeta()),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/formulation/name", NewMeta()),
 				),
-				Entry("insulin type valid",
-					func(datum *insulin.Insulin) { datum.InsulinType = testDataTypesInsulin.NewInsulinType() },
+				Entry("formulation valid",
+					func(datum *insulin.Insulin) { datum.Formulation = testDataTypesInsulin.NewFormulation(3) },
 				),
 				Entry("site missing",
 					func(datum *insulin.Insulin) { datum.Site = nil },
@@ -129,13 +128,12 @@ var _ = Describe("Insulin", func() {
 					func(datum *insulin.Insulin) {
 						datum.Type = "invalidType"
 						datum.Dose = nil
-						datum.InsulinType.Formulation = nil
-						datum.InsulinType.Mix = nil
+						datum.Formulation.Name = pointer.String("")
 						datum.Site = pointer.String("")
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "insulin"), "/type", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/dose", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulinType/formulation", &types.Meta{Type: "invalidType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/formulation/name", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/site", &types.Meta{Type: "invalidType"}),
 				),
 			)
@@ -162,8 +160,8 @@ var _ = Describe("Insulin", func() {
 				Entry("does not modify the datum; dose nil",
 					func(datum *insulin.Insulin) { datum.Dose = nil },
 				),
-				Entry("does not modify the datum; insulin type nil",
-					func(datum *insulin.Insulin) { datum.InsulinType = nil },
+				Entry("does not modify the datum; formulation nil",
+					func(datum *insulin.Insulin) { datum.Formulation = nil },
 				),
 				Entry("does not modify the datum; site nil",
 					func(datum *insulin.Insulin) { datum.Site = nil },

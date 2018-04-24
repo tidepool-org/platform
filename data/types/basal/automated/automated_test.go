@@ -33,7 +33,7 @@ func NewAutomated() *automated.Automated {
 	datum.DeliveryType = "automated"
 	datum.Duration = pointer.Int(test.RandomIntFromRange(automated.DurationMinimum, automated.DurationMaximum))
 	datum.DurationExpected = pointer.Int(test.RandomIntFromRange(*datum.Duration, automated.DurationMaximum))
-	datum.InsulinType = testDataTypesInsulin.NewInsulinType()
+	datum.InsulinFormulation = testDataTypesInsulin.NewFormulation(3)
 	datum.Rate = pointer.Float64(test.RandomFloat64FromRange(automated.RateMinimum, automated.RateMaximum))
 	datum.ScheduleName = pointer.String(testDataTypesBasal.NewScheduleName())
 	return datum
@@ -47,7 +47,7 @@ func CloneAutomated(datum *automated.Automated) *automated.Automated {
 	clone.Basal = *testDataTypesBasal.CloneBasal(&datum.Basal)
 	clone.Duration = test.CloneInt(datum.Duration)
 	clone.DurationExpected = test.CloneInt(datum.DurationExpected)
-	clone.InsulinType = testDataTypesInsulin.CloneInsulinType(datum.InsulinType)
+	clone.InsulinFormulation = testDataTypesInsulin.CloneFormulation(datum.InsulinFormulation)
 	clone.Rate = test.CloneFloat64(datum.Rate)
 	clone.ScheduleName = test.CloneString(datum.ScheduleName)
 	return clone
@@ -82,7 +82,7 @@ var _ = Describe("Automated", func() {
 			Expect(datum.DeliveryType).To(Equal("automated"))
 			Expect(datum.Duration).To(BeNil())
 			Expect(datum.DurationExpected).To(BeNil())
-			Expect(datum.InsulinType).To(BeNil())
+			Expect(datum.InsulinFormulation).To(BeNil())
 			Expect(datum.Rate).To(BeNil())
 			Expect(datum.ScheduleName).To(BeNil())
 		})
@@ -300,18 +300,19 @@ var _ = Describe("Automated", func() {
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/duration", NewMeta()),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", NewMeta()),
 				),
-				Entry("insulin type missing",
-					func(datum *automated.Automated) { datum.InsulinType = nil },
+				Entry("insulin formulation missing",
+					func(datum *automated.Automated) { datum.InsulinFormulation = nil },
 				),
-				Entry("insulin type invalid",
+				Entry("insulin formulation invalid",
 					func(datum *automated.Automated) {
-						datum.InsulinType.Formulation = nil
-						datum.InsulinType.Mix = nil
+						datum.InsulinFormulation.Compounds = nil
+						datum.InsulinFormulation.Name = nil
+						datum.InsulinFormulation.Simple = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulinType/formulation", NewMeta()),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple", NewMeta()),
 				),
-				Entry("insulin type valid",
-					func(datum *automated.Automated) { datum.InsulinType = testDataTypesInsulin.NewInsulinType() },
+				Entry("insulin formulation valid",
+					func(datum *automated.Automated) { datum.InsulinFormulation = testDataTypesInsulin.NewFormulation(3) },
 				),
 				Entry("rate missing",
 					func(datum *automated.Automated) { datum.Rate = nil },
@@ -346,8 +347,9 @@ var _ = Describe("Automated", func() {
 						datum.DeliveryType = "invalidDeliveryType"
 						datum.Duration = nil
 						datum.DurationExpected = pointer.Int(604800001)
-						datum.InsulinType.Formulation = nil
-						datum.InsulinType.Mix = nil
+						datum.InsulinFormulation.Compounds = nil
+						datum.InsulinFormulation.Name = nil
+						datum.InsulinFormulation.Simple = nil
 						datum.Rate = pointer.Float64(100.1)
 						datum.ScheduleName = pointer.String("")
 					},
@@ -355,7 +357,7 @@ var _ = Describe("Automated", func() {
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidDeliveryType", "automated"), "/deliveryType", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulinType/formulation", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/scheduleName", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 				),
@@ -392,8 +394,8 @@ var _ = Describe("Automated", func() {
 				Entry("does not modify the datum; duration expected missing",
 					func(datum *automated.Automated) { datum.DurationExpected = nil },
 				),
-				Entry("does not modify the datum; insulin type missing",
-					func(datum *automated.Automated) { datum.InsulinType = nil },
+				Entry("does not modify the datum; insulin formulation missing",
+					func(datum *automated.Automated) { datum.InsulinFormulation = nil },
 				),
 				Entry("does not modify the datum; rate missing",
 					func(datum *automated.Automated) { datum.Rate = nil },
@@ -461,18 +463,21 @@ var _ = Describe("Automated", func() {
 				Entry("annotations valid",
 					func(datum *automated.SuppressedAutomated) { datum.Annotations = testData.NewBlobArray() },
 				),
-				Entry("insulin type missing",
-					func(datum *automated.SuppressedAutomated) { datum.InsulinType = nil },
+				Entry("insulin formulation missing",
+					func(datum *automated.SuppressedAutomated) { datum.InsulinFormulation = nil },
 				),
-				Entry("insulin type invalid",
+				Entry("insulin formulation invalid",
 					func(datum *automated.SuppressedAutomated) {
-						datum.InsulinType.Formulation = nil
-						datum.InsulinType.Mix = nil
+						datum.InsulinFormulation.Compounds = nil
+						datum.InsulinFormulation.Name = nil
+						datum.InsulinFormulation.Simple = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulinType/formulation"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple"),
 				),
-				Entry("insulin type valid",
-					func(datum *automated.SuppressedAutomated) { datum.InsulinType = testDataTypesInsulin.NewInsulinType() },
+				Entry("insulin formulation valid",
+					func(datum *automated.SuppressedAutomated) {
+						datum.InsulinFormulation = testDataTypesInsulin.NewFormulation(3)
+					},
 				),
 				Entry("rate missing",
 					func(datum *automated.SuppressedAutomated) { datum.Rate = nil },
@@ -543,8 +548,8 @@ var _ = Describe("Automated", func() {
 				Entry("does not modify the datum; annotations missing",
 					func(datum *automated.SuppressedAutomated) { datum.Annotations = nil },
 				),
-				Entry("does not modify the datum; insulin type missing",
-					func(datum *automated.SuppressedAutomated) { datum.InsulinType = nil },
+				Entry("does not modify the datum; insulin formulation missing",
+					func(datum *automated.SuppressedAutomated) { datum.InsulinFormulation = nil },
 				),
 				Entry("does not modify the datum; rate missing",
 					func(datum *automated.SuppressedAutomated) { datum.Rate = nil },

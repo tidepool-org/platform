@@ -17,7 +17,7 @@ type Insulin struct {
 	types.Base `bson:",inline"`
 
 	Dose        *Dose        `json:"dose,omitempty" bson:"dose,omitempty"`
-	InsulinType *InsulinType `json:"insulinType,omitempty" bson:"insulinType,omitempty"`
+	Formulation *Formulation `json:"formulation,omitempty" bson:"formulation,omitempty"`
 	Site        *string      `json:"site,omitempty" bson:"site,omitempty"`
 }
 
@@ -35,7 +35,7 @@ func (i *Insulin) Parse(parser data.ObjectParser) error {
 	}
 
 	i.Dose = ParseDose(parser.NewChildObjectParser("dose"))
-	i.InsulinType = ParseInsulinType(parser.NewChildObjectParser("insulinType"))
+	i.Formulation = ParseFormulation(parser.NewChildObjectParser("formulation"))
 	i.Site = parser.ParseString("site")
 
 	return nil
@@ -57,8 +57,8 @@ func (i *Insulin) Validate(validator structure.Validator) {
 	} else {
 		validator.WithReference("dose").ReportError(structureValidator.ErrorValueNotExists())
 	}
-	if i.InsulinType != nil {
-		i.InsulinType.Validate(validator.WithReference("insulinType"))
+	if i.Formulation != nil {
+		i.Formulation.Validate(validator.WithReference("formulation"))
 	}
 	validator.String("site", i.Site).NotEmpty().LengthLessThanOrEqualTo(SiteLengthMaximum)
 }
@@ -73,7 +73,7 @@ func (i *Insulin) Normalize(normalizer data.Normalizer) {
 	if i.Dose != nil {
 		i.Dose.Normalize(normalizer.WithReference("dose"))
 	}
-	if i.InsulinType != nil {
-		i.InsulinType.Normalize(normalizer.WithReference("insulinType"))
+	if i.Formulation != nil {
+		i.Formulation.Normalize(normalizer.WithReference("formulation"))
 	}
 }
