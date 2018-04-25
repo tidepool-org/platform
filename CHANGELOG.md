@@ -1,5 +1,9 @@
 ## HEAD
 
+## v1.24.0
+
+* Add support for new Trividia Health devices
+* Fix serialization bug introduced with new basal schedule array map structure
 * Add tests for missing upload id
 * Add automated basal data type
 * Refactor suppressed basal to improve validations
