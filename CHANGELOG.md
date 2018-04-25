@@ -1,5 +1,6 @@
 ## HEAD
 
+* Return only active data sets
 * Return on validation or normalization error after sending response
 * Fix Dexcom API unexpected data; temporarily modify incoming data to expected values
 * Fix Dexcom API unknown device model failure; allow unknown device model
