@@ -10,6 +10,7 @@ const (
 	Type = "food"
 
 	BrandLengthMaximum     = 100
+	CodeLengthMaximum      = 100
 	MealBreakfast          = "breakfast"
 	MealDinner             = "dinner"
 	MealLunch              = "lunch"
@@ -32,12 +33,14 @@ func Meals() []string {
 type Food struct {
 	types.Base `bson:",inline"`
 
-	Amount    *Amount    `json:"amount,omitempty" bson:"amount,omitempty"`
-	Brand     *string    `json:"brand,omitempty" bson:"brand,omitempty"`
-	Meal      *string    `json:"meal,omitempty" bson:"meal,omitempty"`
-	MealOther *string    `json:"mealOther,omitempty" bson:"mealOther,omitempty"`
-	Name      *string    `json:"name,omitempty" bson:"name,omitempty"`
-	Nutrition *Nutrition `json:"nutrition,omitempty" bson:"nutrition,omitempty"`
+	Amount      *Amount          `json:"amount,omitempty" bson:"amount,omitempty"`
+	Brand       *string          `json:"brand,omitempty" bson:"brand,omitempty"`
+	Code        *string          `json:"code,omitempty" bson:"code,omitempty"`
+	Ingredients *IngredientArray `json:"ingredients,omitempty" bson:"ingredients,omitempty"`
+	Meal        *string          `json:"meal,omitempty" bson:"meal,omitempty"`
+	MealOther   *string          `json:"mealOther,omitempty" bson:"mealOther,omitempty"`
+	Name        *string          `json:"name,omitempty" bson:"name,omitempty"`
+	Nutrition   *Nutrition       `json:"nutrition,omitempty" bson:"nutrition,omitempty"`
 }
 
 func New() *Food {
@@ -55,6 +58,8 @@ func (f *Food) Parse(parser data.ObjectParser) error {
 
 	f.Amount = ParseAmount(parser.NewChildObjectParser("amount"))
 	f.Brand = parser.ParseString("brand")
+	f.Code = parser.ParseString("code")
+	f.Ingredients = ParseIngredientArray(parser.NewChildArrayParser("ingredients"))
 	f.Meal = parser.ParseString("meal")
 	f.MealOther = parser.ParseString("mealOther")
 	f.Name = parser.ParseString("name")
@@ -78,6 +83,10 @@ func (f *Food) Validate(validator structure.Validator) {
 		f.Amount.Validate(validator.WithReference("amount"))
 	}
 	validator.String("brand", f.Brand).NotEmpty().LengthLessThanOrEqualTo(BrandLengthMaximum)
+	validator.String("code", f.Code).NotEmpty().LengthLessThanOrEqualTo(CodeLengthMaximum)
+	if f.Ingredients != nil {
+		f.Ingredients.Validate(validator.WithReference("ingredients"))
+	}
 	validator.String("meal", f.Meal).OneOf(Meals()...)
 	if f.Meal != nil && *f.Meal == MealOther {
 		validator.String("mealOther", f.MealOther).Exists().NotEmpty().LengthLessThanOrEqualTo(MealOtherLengthMaximum)
@@ -99,6 +108,9 @@ func (f *Food) Normalize(normalizer data.Normalizer) {
 
 	if f.Amount != nil {
 		f.Amount.Normalize(normalizer.WithReference("amount"))
+	}
+	if f.Ingredients != nil {
+		f.Ingredients.Normalize(normalizer.WithReference("ingredients"))
 	}
 	if f.Nutrition != nil {
 		f.Nutrition.Normalize(normalizer.WithReference("nutrition"))

@@ -1,5 +1,6 @@
 ## HEAD
 
+* Add ingredients to food data model for greater flexibility
 * Refactor insulin data model to allow more flexibility and understanding
 * Add active insulin to insulin dose data model
 * Add lap data to physical activity data model

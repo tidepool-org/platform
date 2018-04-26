@@ -22,12 +22,14 @@ func NewMeta() interface{} {
 	}
 }
 
-func NewFood() *food.Food {
+func NewFood(ingredientArrayDepth int) *food.Food {
 	datum := food.New()
 	datum.Base = *testDataTypes.NewBase()
 	datum.Type = "food"
 	datum.Amount = NewAmount()
 	datum.Brand = pointer.String(test.NewText(1, 100))
+	datum.Code = pointer.String(test.NewText(1, 100))
+	datum.Ingredients = NewIngredientArray(ingredientArrayDepth)
 	datum.Meal = pointer.String(test.RandomStringFromArray(food.Meals()))
 	if datum.Meal != nil && *datum.Meal == food.MealOther {
 		datum.MealOther = pointer.String(test.NewText(1, 100))
@@ -45,6 +47,8 @@ func CloneFood(datum *food.Food) *food.Food {
 	clone.Base = *testDataTypes.CloneBase(&datum.Base)
 	clone.Amount = CloneAmount(datum.Amount)
 	clone.Brand = test.CloneString(datum.Brand)
+	clone.Code = test.CloneString(datum.Code)
+	clone.Ingredients = CloneIngredientArray(datum.Ingredients)
 	clone.Meal = test.CloneString(datum.Meal)
 	clone.MealOther = test.CloneString(datum.MealOther)
 	clone.Name = test.CloneString(datum.Name)
@@ -59,6 +63,10 @@ var _ = Describe("Food", func() {
 
 	It("BrandLengthMaximum is expected", func() {
 		Expect(food.BrandLengthMaximum).To(Equal(100))
+	})
+
+	It("CodeLengthMaximum is expected", func() {
+		Expect(food.CodeLengthMaximum).To(Equal(100))
 	})
 
 	It("MealBreakfast is expected", func() {
@@ -100,6 +108,8 @@ var _ = Describe("Food", func() {
 			Expect(datum.Type).To(Equal("food"))
 			Expect(datum.Amount).To(BeNil())
 			Expect(datum.Brand).To(BeNil())
+			Expect(datum.Code).To(BeNil())
+			Expect(datum.Ingredients).To(BeNil())
 			Expect(datum.Meal).To(BeNil())
 			Expect(datum.MealOther).To(BeNil())
 			Expect(datum.Name).To(BeNil())
@@ -115,7 +125,7 @@ var _ = Describe("Food", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *food.Food), expectedErrors ...error) {
-					datum := NewFood()
+					datum := NewFood(3)
 					mutator(datum)
 					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
@@ -156,6 +166,30 @@ var _ = Describe("Food", func() {
 				Entry("brand length; out of range (upper)",
 					func(datum *food.Food) { datum.Brand = pointer.String(test.NewText(101, 101)) },
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/brand", NewMeta()),
+				),
+				Entry("code missing",
+					func(datum *food.Food) { datum.Code = nil },
+				),
+				Entry("code empty",
+					func(datum *food.Food) { datum.Code = pointer.String("") },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/code", NewMeta()),
+				),
+				Entry("code length; in range (upper)",
+					func(datum *food.Food) { datum.Code = pointer.String(test.NewText(100, 100)) },
+				),
+				Entry("code length; out of range (upper)",
+					func(datum *food.Food) { datum.Code = pointer.String(test.NewText(101, 101)) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/code", NewMeta()),
+				),
+				Entry("ingredients missing",
+					func(datum *food.Food) { datum.Ingredients = nil },
+				),
+				Entry("ingredients invalid",
+					func(datum *food.Food) { (*datum.Ingredients)[0] = nil },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/ingredients/0", NewMeta()),
+				),
+				Entry("ingredients valid",
+					func(datum *food.Food) { datum.Ingredients = NewIngredientArray(3) },
 				),
 				Entry("meal missing; meal other missing",
 					func(datum *food.Food) {
@@ -293,6 +327,8 @@ var _ = Describe("Food", func() {
 						datum.Type = "invalidType"
 						datum.Amount.Units = nil
 						datum.Brand = pointer.String("")
+						datum.Code = pointer.String("")
+						(*datum.Ingredients)[0] = nil
 						datum.Meal = pointer.String("invalid")
 						datum.MealOther = pointer.String(test.NewText(1, 100))
 						datum.Name = pointer.String("")
@@ -301,6 +337,8 @@ var _ = Describe("Food", func() {
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "food"), "/type", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/amount/units", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/brand", &types.Meta{Type: "invalidType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/code", &types.Meta{Type: "invalidType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/ingredients/0", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"breakfast", "dinner", "lunch", "other", "snack"}), "/meal", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/mealOther", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/name", &types.Meta{Type: "invalidType"}),
@@ -313,7 +351,7 @@ var _ = Describe("Food", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *food.Food)) {
 					for _, origin := range structure.Origins() {
-						datum := NewFood()
+						datum := NewFood(3)
 						mutator(datum)
 						expectedDatum := CloneFood(datum)
 						normalizer := dataNormalizer.New()
@@ -332,6 +370,12 @@ var _ = Describe("Food", func() {
 				),
 				Entry("does not modify the datum; brand missing",
 					func(datum *food.Food) { datum.Brand = nil },
+				),
+				Entry("does not modify the datum; code missing",
+					func(datum *food.Food) { datum.Code = nil },
+				),
+				Entry("does not modify the datum; ingredients missing",
+					func(datum *food.Food) { datum.Ingredients = nil },
 				),
 				Entry("does not modify the datum; meal missing",
 					func(datum *food.Food) { datum.Meal = nil },
