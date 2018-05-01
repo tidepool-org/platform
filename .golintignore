@@ -29,11 +29,11 @@
 ./task/task.go:81:6: type name will be used as task.TaskCreate by other packages, and that stutters; consider calling this Create
 ./task/task.go:119:6: type name will be used as task.TaskUpdate by other packages, and that stutters; consider calling this Update
 ./test/rest/response_writer.go:11:6: type EncodeJsonOutput should be EncodeJSONOutput
-./test/rest/response_writer.go:19:2: struct field WriteJsonInvocations should be WriteJSONInvocations
-./test/rest/response_writer.go:20:2: struct field WriteJsonInputs should be WriteJSONInputs
-./test/rest/response_writer.go:21:2: struct field WriteJsonOutputs should be WriteJSONOutputs
-./test/rest/response_writer.go:22:2: struct field EncodeJsonInvocations should be EncodeJSONInvocations
-./test/rest/response_writer.go:23:2: struct field EncodeJsonInputs should be EncodeJSONInputs
-./test/rest/response_writer.go:24:2: struct field EncodeJsonOutputs should be EncodeJSONOutputs
-./test/rest/response_writer.go:40:26: method WriteJson should be WriteJSON
-./test/rest/response_writer.go:52:26: method EncodeJson should be EncodeJSON
+./test/rest/response_writer.go:24:2: struct field WriteJsonInvocations should be WriteJSONInvocations
+./test/rest/response_writer.go:25:2: struct field WriteJsonInputs should be WriteJSONInputs
+./test/rest/response_writer.go:26:2: struct field WriteJsonOutputs should be WriteJSONOutputs
+./test/rest/response_writer.go:27:2: struct field EncodeJsonInvocations should be EncodeJSONInvocations
+./test/rest/response_writer.go:28:2: struct field EncodeJsonInputs should be EncodeJSONInputs
+./test/rest/response_writer.go:29:2: struct field EncodeJsonOutputs should be EncodeJSONOutputs
+./test/rest/response_writer.go:48:26: method WriteJson should be WriteJSON
+./test/rest/response_writer.go:60:26: method EncodeJson should be EncodeJSON

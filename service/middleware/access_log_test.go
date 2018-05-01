@@ -56,6 +56,10 @@ var _ = Describe("AccessLog", func() {
 			res = testRest.NewResponseWriter()
 		})
 
+		AfterEach(func() {
+			res.Expectations()
+		})
+
 		It("is successful", func() {
 			accessLogMiddleware.MiddlewareFunc(hndlr)(res, req)
 		})

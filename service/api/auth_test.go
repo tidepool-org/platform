@@ -73,6 +73,7 @@ var _ = Describe("Auth", func() {
 
 			It("responds with unauthenticated error if details are missing", func() {
 				res.WriteJsonOutputs = []error{nil}
+				res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 				requireFunc(res, req)
 				Expect(res.WriteHeaderInputs).To(Equal([]int{401}))
 				Expect(res.WriteJsonInputs).To(HaveLen(1))
@@ -136,6 +137,7 @@ var _ = Describe("Auth", func() {
 
 			It("responds with unauthenticated error if details are missing", func() {
 				res.WriteJsonOutputs = []error{nil}
+				res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 				requireFunc(res, req)
 				Expect(res.WriteHeaderInputs).To(Equal([]int{401}))
 				Expect(res.WriteJsonInputs).To(HaveLen(1))
@@ -161,6 +163,7 @@ var _ = Describe("Auth", func() {
 
 				It("responds with unauthorized error", func() {
 					res.WriteJsonOutputs = []error{nil}
+					res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 					requireFunc(res, req)
 					Expect(res.WriteHeaderInputs).To(Equal([]int{403}))
 					Expect(res.WriteJsonInputs).To(HaveLen(1))
@@ -201,6 +204,7 @@ var _ = Describe("Auth", func() {
 
 			It("responds with unauthenticated error if details are missing", func() {
 				res.WriteJsonOutputs = []error{nil}
+				res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 				requireFunc(res, req)
 				Expect(res.WriteHeaderInputs).To(Equal([]int{401}))
 				Expect(res.WriteJsonInputs).To(HaveLen(1))
@@ -214,6 +218,7 @@ var _ = Describe("Auth", func() {
 
 				It("responds with unauthorized error", func() {
 					res.WriteJsonOutputs = []error{nil}
+					res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 					requireFunc(res, req)
 					Expect(res.WriteHeaderInputs).To(Equal([]int{403}))
 					Expect(res.WriteJsonInputs).To(HaveLen(1))

@@ -1,5 +1,9 @@
 ## HEAD
 
+* Refactor responder to log error if failure to write response
+* Update test ResponseWriter to implement http.ResponseWriter interface
+* Write new line after JSON response
+* Check all test ResponseWriter expectations
 * Add ingredients to food data model for greater flexibility
 * Refactor insulin data model to allow more flexibility and understanding
 * Add active insulin to insulin dose data model

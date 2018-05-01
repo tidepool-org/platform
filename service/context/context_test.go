@@ -26,6 +26,10 @@ var _ = Describe("Context", func() {
 			req.Env["AUTH-DETAILS"] = details
 		})
 
+		AfterEach(func() {
+			res.Expectations()
+		})
+
 		Context("New", func() {
 			It("returns an error if it fails", func() {
 				ctx, err := context.New(nil, nil)

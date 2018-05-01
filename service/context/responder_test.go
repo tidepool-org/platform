@@ -120,6 +120,10 @@ var _ = Describe("Responder", func() {
 			response = testRest.NewResponseWriter()
 		})
 
+		AfterEach(func() {
+			response.Expectations()
+		})
+
 		Context("NewResponder", func() {
 			It("returns an error if the response is missing", func() {
 				responder, err := context.NewResponder(nil, request)
