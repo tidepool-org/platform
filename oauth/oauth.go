@@ -58,7 +58,7 @@ func NewTokenFromRawToken(rawToken *oauth2.Token) (*Token, error) {
 		AccessToken:    rawToken.AccessToken,
 		TokenType:      rawToken.TokenType,
 		RefreshToken:   rawToken.RefreshToken,
-		ExpirationTime: rawToken.Expiry.UTC(),
+		ExpirationTime: rawToken.Expiry,
 	}, nil
 }
 
@@ -81,12 +81,10 @@ func (t *Token) Validate(validator structure.Validator) {
 	validator.String("accessToken", &t.AccessToken).NotEmpty()
 }
 
-func (t *Token) Normalize(normalizer structure.Normalizer) {
-	t.ExpirationTime = t.ExpirationTime.UTC()
-}
+func (t *Token) Normalize(normalizer structure.Normalizer) {}
 
 func (t *Token) Expire() {
-	t.ExpirationTime = time.Now().Add(-time.Second).UTC()
+	t.ExpirationTime = time.Now().Add(-time.Second)
 }
 
 func (t *Token) RawToken() *oauth2.Token {

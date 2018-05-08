@@ -30,7 +30,7 @@ const (
 	TaskDurationMaximum           = 5 * time.Minute
 )
 
-var initialDataTime = time.Unix(1420070400, 0).UTC() // 2015-01-01T00:00:00Z
+var initialDataTime = time.Unix(1420070400, 0) // 2015-01-01T00:00:00Z
 
 type Runner struct {
 	logger          log.Logger
@@ -269,13 +269,13 @@ func (t *TaskRunner) updateDataSourceWithDataTime(earliestDataTime time.Time, la
 		return nil
 	}
 
-	dataSourceUpdate.LastImportTime = pointer.Time(time.Now().Truncate(time.Second).UTC())
+	dataSourceUpdate.LastImportTime = pointer.Time(time.Now().Truncate(time.Second))
 	return t.updateDataSource(dataSourceUpdate)
 }
 
 func (t *TaskRunner) updateDataSourceWithLastImportTime() error {
 	dataSourceUpdate := data.NewDataSourceUpdate()
-	dataSourceUpdate.LastImportTime = pointer.Time(time.Now().Truncate(time.Second).UTC())
+	dataSourceUpdate.LastImportTime = pointer.Time(time.Now().Truncate(time.Second))
 	return t.updateDataSource(dataSourceUpdate)
 }
 
@@ -360,7 +360,7 @@ func (t *TaskRunner) fetchSinceLatestDataTime() error {
 		startTime = *t.dataSource.LatestDataTime
 	}
 
-	now := time.Now().Add(-time.Minute).Truncate(time.Second).UTC()
+	now := time.Now().Add(-time.Minute).Truncate(time.Second)
 	for startTime.Before(now) {
 		endTime := startTime.AddDate(0, 0, 90)
 		if endTime.After(now) {
@@ -372,7 +372,7 @@ func (t *TaskRunner) fetchSinceLatestDataTime() error {
 		}
 
 		startTime = startTime.AddDate(0, 0, 90)
-		now = time.Now().Add(-time.Minute).Truncate(time.Second).UTC()
+		now = time.Now().Add(-time.Minute).Truncate(time.Second)
 	}
 	return nil
 }
@@ -627,7 +627,7 @@ func (t *TaskRunner) createDataSet(deviceInfo *DeviceInfo) (*data.DataSet, error
 	dataSetCreate.DeviceModel = deviceInfo.DeviceModel
 	dataSetCreate.DeviceSerialNumber = deviceInfo.DeviceSerialNumber
 	dataSetCreate.DeviceTags = []string{data.DeviceTagCGM}
-	dataSetCreate.Time = time.Now().Truncate(time.Second).UTC()
+	dataSetCreate.Time = time.Now().Truncate(time.Second)
 	dataSetCreate.TimeProcessing = upload.TimeProcessingNone
 
 	dataSet, err := t.DataClient().CreateUserDataSet(t.context, t.providerSession.UserID, dataSetCreate)

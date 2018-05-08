@@ -1,5 +1,7 @@
 ## HEAD
 
+* Do not strip original time zone information using time.UTC()
+* Only convert to UTC when required (eg. time.Format that requires UTC time with or without time zone)
 * Refactor responder to log error if failure to write response
 * Update test ResponseWriter to implement http.ResponseWriter interface
 * Write new line after JSON response

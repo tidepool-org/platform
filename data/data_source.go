@@ -161,13 +161,13 @@ func (d *DataSourceUpdate) Normalize(normalizer structure.Normalizer) {
 		d.Error.Normalize(normalizer.WithReference("error"))
 	}
 	if d.EarliestDataTime != nil {
-		d.EarliestDataTime = pointer.Time((*d.EarliestDataTime).UTC().Truncate(time.Second))
+		d.EarliestDataTime = pointer.Time((*d.EarliestDataTime).Truncate(time.Second))
 	}
 	if d.LatestDataTime != nil {
-		d.LatestDataTime = pointer.Time((*d.LatestDataTime).UTC().Truncate(time.Second))
+		d.LatestDataTime = pointer.Time((*d.LatestDataTime).Truncate(time.Second))
 	}
 	if d.LastImportTime != nil {
-		d.LastImportTime = pointer.Time((*d.LastImportTime).UTC().Truncate(time.Second))
+		d.LastImportTime = pointer.Time((*d.LastImportTime).Truncate(time.Second))
 	}
 }
 

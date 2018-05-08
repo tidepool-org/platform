@@ -75,8 +75,8 @@ func (c *Client) sendDexcomRequest(ctx context.Context, startTime time.Time, end
 	requestStartTime := time.Now()
 
 	url = c.client.AppendURLQuery(url, map[string]string{
-		"startDate": startTime.Format(dexcom.DateTimeFormat),
-		"endDate":   endTime.Format(dexcom.DateTimeFormat),
+		"startDate": startTime.UTC().Format(dexcom.DateTimeFormat),
+		"endDate":   endTime.UTC().Format(dexcom.DateTimeFormat),
 	})
 
 	err := c.client.SendOAuthRequest(ctx, method, url, nil, nil, responseBody, tokenSource)

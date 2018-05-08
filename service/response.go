@@ -8,6 +8,6 @@ import (
 
 func AddDateHeader(response rest.ResponseWriter) {
 	if response != nil {
-		response.Header().Set("Date", time.Now().UTC().Format(time.RFC1123))
+		response.Header().Set("Date", time.Now().Format(time.RFC1123))
 	}
 }
