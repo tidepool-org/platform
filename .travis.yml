@@ -5,6 +5,8 @@ language: go
 go:
   - 1.9.2
 
+go_import_path: github.com/tidepool-org/platform
+
 addons:
   apt:
     sources:
