@@ -1,5 +1,6 @@
 ## HEAD
 
+* Update Makefile to exclude .git directory from CompileDaemon
 * Rename array depth to array depth limit in test helpers
 * Do not strip original time zone information using time.UTC()
 * Only convert to UTC when required (eg. time.Format that requires UTC time with or without time zone)
