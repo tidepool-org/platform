@@ -1,5 +1,6 @@
 ## HEAD
 
+* Rename array depth to array depth limit in test helpers
 * Do not strip original time zone information using time.UTC()
 * Only convert to UTC when required (eg. time.Format that requires UTC time with or without time zone)
 * Refactor responder to log error if failure to write response

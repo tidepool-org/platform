@@ -15,12 +15,12 @@ import (
 	"github.com/tidepool-org/platform/test"
 )
 
-func NewIngredient(ingredientArrayDepth int) *food.Ingredient {
+func NewIngredient(ingredientArrayDepthLimit int) *food.Ingredient {
 	datum := food.NewIngredient()
 	datum.Amount = NewAmount()
 	datum.Brand = pointer.String(test.NewText(1, 100))
 	datum.Code = pointer.String(test.NewText(1, 100))
-	datum.Ingredients = NewIngredientArray(ingredientArrayDepth)
+	datum.Ingredients = NewIngredientArray(ingredientArrayDepthLimit)
 	datum.Name = pointer.String(test.NewText(1, 100))
 	datum.Nutrition = NewNutrition()
 	return datum
@@ -40,13 +40,13 @@ func CloneIngredient(datum *food.Ingredient) *food.Ingredient {
 	return clone
 }
 
-func NewIngredientArray(ingredientArrayDepth int) *food.IngredientArray {
-	var datum *food.IngredientArray
-	if ingredientArrayDepth--; ingredientArrayDepth > 0 {
-		datum = food.NewIngredientArray()
-		for count := 0; count < test.RandomIntFromRange(1, 3); count++ {
-			*datum = append(*datum, NewIngredient(ingredientArrayDepth))
-		}
+func NewIngredientArray(ingredientArrayDepthLimit int) *food.IngredientArray {
+	if ingredientArrayDepthLimit--; ingredientArrayDepthLimit <= 0 {
+		return nil
+	}
+	datum := food.NewIngredientArray()
+	for count := 0; count < test.RandomIntFromRange(1, 3); count++ {
+		*datum = append(*datum, NewIngredient(ingredientArrayDepthLimit))
 	}
 	return datum
 }

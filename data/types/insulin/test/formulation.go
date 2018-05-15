@@ -6,11 +6,11 @@ import (
 	"github.com/tidepool-org/platform/test"
 )
 
-func NewFormulation(compoundArrayDepth int) *insulin.Formulation {
+func NewFormulation(compoundArrayDepthLimit int) *insulin.Formulation {
 	simple := test.RandomBool()
 	datum := insulin.NewFormulation()
 	if !simple {
-		datum.Compounds = NewCompoundArray(compoundArrayDepth)
+		datum.Compounds = NewCompoundArray(compoundArrayDepthLimit)
 	}
 	datum.Name = pointer.String(test.NewText(1, 100))
 	if simple {

@@ -22,14 +22,14 @@ func NewMeta() interface{} {
 	}
 }
 
-func NewFood(ingredientArrayDepth int) *food.Food {
+func NewFood(ingredientArrayDepthLimit int) *food.Food {
 	datum := food.New()
 	datum.Base = *testDataTypes.NewBase()
 	datum.Type = "food"
 	datum.Amount = NewAmount()
 	datum.Brand = pointer.String(test.NewText(1, 100))
 	datum.Code = pointer.String(test.NewText(1, 100))
-	datum.Ingredients = NewIngredientArray(ingredientArrayDepth)
+	datum.Ingredients = NewIngredientArray(ingredientArrayDepthLimit)
 	datum.Meal = pointer.String(test.RandomStringFromArray(food.Meals()))
 	if datum.Meal != nil && *datum.Meal == food.MealOther {
 		datum.MealOther = pointer.String(test.NewText(1, 100))

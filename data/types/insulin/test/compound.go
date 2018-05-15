@@ -8,10 +8,10 @@ import (
 	"github.com/tidepool-org/platform/test"
 )
 
-func NewCompound(compoundArrayDepth int) *insulin.Compound {
+func NewCompound(compoundArrayDepthLimit int) *insulin.Compound {
 	datum := insulin.NewCompound()
 	datum.Amount = pointer.Float64(test.RandomFloat64FromRange(0.0, math.MaxFloat64))
-	datum.Formulation = NewFormulation(compoundArrayDepth)
+	datum.Formulation = NewFormulation(compoundArrayDepthLimit)
 	return datum
 }
 
@@ -25,13 +25,13 @@ func CloneCompound(datum *insulin.Compound) *insulin.Compound {
 	return clone
 }
 
-func NewCompoundArray(compoundArrayDepth int) *insulin.CompoundArray {
-	var datum *insulin.CompoundArray
-	if compoundArrayDepth--; compoundArrayDepth > 0 {
-		datum = insulin.NewCompoundArray()
-		for count := 0; count < test.RandomIntFromRange(1, 3); count++ {
-			*datum = append(*datum, NewCompound(compoundArrayDepth))
-		}
+func NewCompoundArray(compoundArrayDepthLimit int) *insulin.CompoundArray {
+	if compoundArrayDepthLimit--; compoundArrayDepthLimit <= 0 {
+		return nil
+	}
+	datum := insulin.NewCompoundArray()
+	for count := 0; count < test.RandomIntFromRange(1, 3); count++ {
+		*datum = append(*datum, NewCompound(compoundArrayDepthLimit))
 	}
 	return datum
 }
