@@ -1,5 +1,7 @@
 ## HEAD
 
+## v1.26.0
+
 * Update Makefile to exclude .git directory from CompileDaemon
 * Rename array depth to array depth limit in test helpers
 * Do not strip original time zone information using time.UTC()
