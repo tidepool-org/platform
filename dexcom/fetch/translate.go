@@ -225,7 +225,7 @@ func translateEventInsulinToDatum(e *dexcom.Event) data.Datum {
 	if e.Value != nil && e.Unit != nil {
 		datum.Dose = &insulin.Dose{
 			Total: pointer.Float64(*e.Value),
-			Units: pointer.String(*e.Unit),
+			Units: pointer.String(insulin.DoseUnitsUnits),
 		}
 	}
 
