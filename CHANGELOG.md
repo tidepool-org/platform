@@ -1,5 +1,7 @@
 ## HEAD
 
+* Update to Go 1.10.2
+
 ## v1.26.0
 
 * Use correct form of insulin dose "Units" for Dexcom API ingestion
