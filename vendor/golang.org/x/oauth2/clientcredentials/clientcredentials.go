@@ -11,7 +11,7 @@
 // server.
 //
 // See https://tools.ietf.org/html/rfc6749#section-4.4
-package clientcredentials // import "golang.org/x/oauth2/clientcredentials"
+package clientcredentials
 
 import (
 	"fmt"
@@ -82,7 +82,9 @@ type tokenSource struct {
 func (c *tokenSource) Token() (*oauth2.Token, error) {
 	v := url.Values{
 		"grant_type": {"client_credentials"},
-		"scope":      internal.CondVal(strings.Join(c.conf.Scopes, " ")),
+	}
+	if len(c.conf.Scopes) > 0 {
+		v.Set("scope", strings.Join(c.conf.Scopes, " "))
 	}
 	for k, p := range c.conf.EndpointParams {
 		if _, ok := v[k]; ok {
@@ -92,6 +94,9 @@ func (c *tokenSource) Token() (*oauth2.Token, error) {
 	}
 	tk, err := internal.RetrieveToken(c.ctx, c.conf.ClientID, c.conf.ClientSecret, c.conf.TokenURL, v)
 	if err != nil {
+		if rErr, ok := err.(*internal.RetrieveError); ok {
+			return nil, (*oauth2.RetrieveError)(rErr)
+		}
 		return nil, err
 	}
 	t := &oauth2.Token{

@@ -1,5 +1,6 @@
 ## HEAD
 
+* Update dependencies
 * Update to Go 1.10.2
 
 ## v1.26.0
