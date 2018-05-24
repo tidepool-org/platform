@@ -14,9 +14,9 @@ func NewStatus() *status.Status {
 	datum := status.New()
 	datum.Device = *testDataTypesDevice.NewDevice()
 	datum.SubType = "status"
-	datum.Duration = pointer.Int(test.RandomIntFromRange(status.DurationMinimum, math.MaxInt32))
-	datum.DurationExpected = pointer.Int(test.RandomIntFromRange(*datum.Duration, math.MaxInt32))
-	datum.Name = pointer.String(test.RandomStringFromArray(status.Names()))
+	datum.Duration = pointer.FromInt(test.RandomIntFromRange(status.DurationMinimum, math.MaxInt32))
+	datum.DurationExpected = pointer.FromInt(test.RandomIntFromRange(*datum.Duration, math.MaxInt32))
+	datum.Name = pointer.FromString(test.RandomStringFromArray(status.Names()))
 	datum.Reason = testData.NewBlob()
 	return datum
 }

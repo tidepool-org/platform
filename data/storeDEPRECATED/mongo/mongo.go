@@ -142,7 +142,7 @@ func (d *DataSession) CreateDataset(ctx context.Context, dataset *upload.Upload)
 
 	startTime := time.Now()
 
-	dataset.CreatedTime = pointer.String(time.Now().Format(time.RFC3339))
+	dataset.CreatedTime = pointer.FromString(time.Now().Format(time.RFC3339))
 
 	dataset.ByUser = dataset.CreatedUserID
 

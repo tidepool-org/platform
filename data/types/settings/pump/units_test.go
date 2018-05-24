@@ -19,7 +19,7 @@ import (
 func NewUnits(unitsBloodGlucose *string) *pump.Units {
 	datum := pump.NewUnits()
 	datum.BloodGlucose = unitsBloodGlucose
-	datum.Carbohydrate = pointer.String(test.RandomStringFromArray(pump.Carbohydrates()))
+	datum.Carbohydrate = pointer.FromString(test.RandomStringFromArray(pump.Carbohydrates()))
 	return datum
 }
 
@@ -64,7 +64,7 @@ var _ = Describe("Units", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *pump.Units), expectedErrors ...error) {
-					datum := NewUnits(pointer.String("mmol/L"))
+					datum := NewUnits(pointer.FromString("mmol/L"))
 					mutator(datum)
 					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
@@ -76,34 +76,34 @@ var _ = Describe("Units", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/bg"),
 				),
 				Entry("blood glucose invalid",
-					func(datum *pump.Units) { datum.BloodGlucose = pointer.String("invalid") },
+					func(datum *pump.Units) { datum.BloodGlucose = pointer.FromString("invalid") },
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/bg"),
 				),
 				Entry("blood glucose mmol/L",
-					func(datum *pump.Units) { datum.BloodGlucose = pointer.String("mmol/L") },
+					func(datum *pump.Units) { datum.BloodGlucose = pointer.FromString("mmol/L") },
 				),
 				Entry("blood glucose mmol/l",
-					func(datum *pump.Units) { datum.BloodGlucose = pointer.String("mmol/l") },
+					func(datum *pump.Units) { datum.BloodGlucose = pointer.FromString("mmol/l") },
 				),
 				Entry("blood glucose mg/dL",
-					func(datum *pump.Units) { datum.BloodGlucose = pointer.String("mg/dL") },
+					func(datum *pump.Units) { datum.BloodGlucose = pointer.FromString("mg/dL") },
 				),
 				Entry("blood glucose mg/dl",
-					func(datum *pump.Units) { datum.BloodGlucose = pointer.String("mg/dl") },
+					func(datum *pump.Units) { datum.BloodGlucose = pointer.FromString("mg/dl") },
 				),
 				Entry("carbohydrate missing",
 					func(datum *pump.Units) { datum.Carbohydrate = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/carb"),
 				),
 				Entry("carbohydrate invalid",
-					func(datum *pump.Units) { datum.Carbohydrate = pointer.String("invalid") },
+					func(datum *pump.Units) { datum.Carbohydrate = pointer.FromString("invalid") },
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"exchanges", "grams"}), "/carb"),
 				),
 				Entry("carbohydrate exchanges",
-					func(datum *pump.Units) { datum.Carbohydrate = pointer.String("exchanges") },
+					func(datum *pump.Units) { datum.Carbohydrate = pointer.FromString("exchanges") },
 				),
 				Entry("carbohydrate grams",
-					func(datum *pump.Units) { datum.Carbohydrate = pointer.String("grams") },
+					func(datum *pump.Units) { datum.Carbohydrate = pointer.FromString("grams") },
 				),
 				Entry("multiple errors",
 					func(datum *pump.Units) {
@@ -120,7 +120,7 @@ var _ = Describe("Units", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *pump.Units), expectator func(datum *pump.Units, expectedDatum *pump.Units)) {
 					for _, origin := range structure.Origins() {
-						datum := NewUnits(pointer.String("mmol/L"))
+						datum := NewUnits(pointer.FromString("mmol/L"))
 						mutator(datum)
 						expectedDatum := CloneUnits(datum)
 						normalizer := dataNormalizer.New()
@@ -143,7 +143,7 @@ var _ = Describe("Units", func() {
 					nil,
 				),
 				Entry("does not modify the datum; blood glucose invalid",
-					func(datum *pump.Units) { datum.BloodGlucose = pointer.String("invalid") },
+					func(datum *pump.Units) { datum.BloodGlucose = pointer.FromString("invalid") },
 					nil,
 				),
 				Entry("does not modify the datum; carbohydrate missing",
@@ -151,22 +151,22 @@ var _ = Describe("Units", func() {
 					nil,
 				),
 				Entry("does not modify the datum; carbohydrate invalid",
-					func(datum *pump.Units) { datum.Carbohydrate = pointer.String("invalid") },
+					func(datum *pump.Units) { datum.Carbohydrate = pointer.FromString("invalid") },
 					nil,
 				),
 				Entry("does not modify the datum; carbohydrate exchanges",
-					func(datum *pump.Units) { datum.Carbohydrate = pointer.String("exchanges") },
+					func(datum *pump.Units) { datum.Carbohydrate = pointer.FromString("exchanges") },
 					nil,
 				),
 				Entry("does not modify the datum; carbohydrate grams",
-					func(datum *pump.Units) { datum.Carbohydrate = pointer.String("grams") },
+					func(datum *pump.Units) { datum.Carbohydrate = pointer.FromString("grams") },
 					nil,
 				),
 			)
 
 			DescribeTable("normalizes the datum with origin external",
 				func(mutator func(datum *pump.Units), expectator func(datum *pump.Units, expectedDatum *pump.Units)) {
-					datum := NewUnits(pointer.String("mmol/L"))
+					datum := NewUnits(pointer.FromString("mmol/L"))
 					mutator(datum)
 					expectedDatum := CloneUnits(datum)
 					normalizer := dataNormalizer.New()
@@ -180,23 +180,23 @@ var _ = Describe("Units", func() {
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("does not modify the datum; blood glucose mmol/L",
-					func(datum *pump.Units) { datum.BloodGlucose = pointer.String("mmol/L") },
+					func(datum *pump.Units) { datum.BloodGlucose = pointer.FromString("mmol/L") },
 					nil,
 				),
 				Entry("modifies the datum; blood glucose mmol/l",
-					func(datum *pump.Units) { datum.BloodGlucose = pointer.String("mmol/l") },
+					func(datum *pump.Units) { datum.BloodGlucose = pointer.FromString("mmol/l") },
 					func(datum *pump.Units, expectedDatum *pump.Units) {
 						testDataBloodGlucose.ExpectNormalizedUnits(datum.BloodGlucose, expectedDatum.BloodGlucose)
 					},
 				),
 				Entry("modifies the datum; blood glucose mg/dL",
-					func(datum *pump.Units) { datum.BloodGlucose = pointer.String("mg/dL") },
+					func(datum *pump.Units) { datum.BloodGlucose = pointer.FromString("mg/dL") },
 					func(datum *pump.Units, expectedDatum *pump.Units) {
 						testDataBloodGlucose.ExpectNormalizedUnits(datum.BloodGlucose, expectedDatum.BloodGlucose)
 					},
 				),
 				Entry("modifies the datum; blood glucose mg/dl",
-					func(datum *pump.Units) { datum.BloodGlucose = pointer.String("mg/dl") },
+					func(datum *pump.Units) { datum.BloodGlucose = pointer.FromString("mg/dl") },
 					func(datum *pump.Units, expectedDatum *pump.Units) {
 						testDataBloodGlucose.ExpectNormalizedUnits(datum.BloodGlucose, expectedDatum.BloodGlucose)
 					},
@@ -206,7 +206,7 @@ var _ = Describe("Units", func() {
 			DescribeTable("normalizes the datum with origin internal/store",
 				func(mutator func(datum *pump.Units), expectator func(datum *pump.Units, expectedDatum *pump.Units)) {
 					for _, origin := range []structure.Origin{structure.OriginInternal, structure.OriginStore} {
-						datum := NewUnits(pointer.String("mmol/L"))
+						datum := NewUnits(pointer.FromString("mmol/L"))
 						mutator(datum)
 						expectedDatum := CloneUnits(datum)
 						normalizer := dataNormalizer.New()
@@ -221,19 +221,19 @@ var _ = Describe("Units", func() {
 					}
 				},
 				Entry("does not modify the datum; blood glucose mmol/L",
-					func(datum *pump.Units) { datum.BloodGlucose = pointer.String("mmol/L") },
+					func(datum *pump.Units) { datum.BloodGlucose = pointer.FromString("mmol/L") },
 					nil,
 				),
 				Entry("does not modify the datum; blood glucose mmol/l",
-					func(datum *pump.Units) { datum.BloodGlucose = pointer.String("mmol/l") },
+					func(datum *pump.Units) { datum.BloodGlucose = pointer.FromString("mmol/l") },
 					nil,
 				),
 				Entry("does not modify the datum; blood glucose mg/dL",
-					func(datum *pump.Units) { datum.BloodGlucose = pointer.String("mg/dL") },
+					func(datum *pump.Units) { datum.BloodGlucose = pointer.FromString("mg/dL") },
 					nil,
 				),
 				Entry("does not modify the datum; blood glucose mg/dl",
-					func(datum *pump.Units) { datum.BloodGlucose = pointer.String("mg/dl") },
+					func(datum *pump.Units) { datum.BloodGlucose = pointer.FromString("mg/dl") },
 					nil,
 				),
 			)

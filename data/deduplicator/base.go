@@ -172,7 +172,7 @@ func (b *BaseDeduplicator) RegisterDataset(ctx context.Context) error {
 	deduplicatorDescriptor.RegisterWithDeduplicator(b)
 
 	update := data.NewDataSetUpdate()
-	update.Active = pointer.Bool(b.dataset.Active)
+	update.Active = pointer.FromBool(b.dataset.Active)
 	update.Deduplicator = deduplicatorDescriptor
 	dataset, err := b.dataSession.UpdateDataSet(ctx, *b.dataset.UploadID, update)
 	if err != nil {

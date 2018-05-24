@@ -71,8 +71,8 @@ func (r *Router) OAuthProviderAuthorizeDelete(res rest.ResponseWriter, req *rest
 	}
 
 	providerSessionFilter := auth.NewProviderSessionFilter()
-	providerSessionFilter.Type = pointer.String(prvdr.Type())
-	providerSessionFilter.Name = pointer.String(prvdr.Name())
+	providerSessionFilter.Type = pointer.FromString(prvdr.Type())
+	providerSessionFilter.Name = pointer.FromString(prvdr.Name())
 	providerSessions, err := r.AuthClient().ListUserProviderSessions(ctx, details.UserID(), providerSessionFilter, page.NewPagination())
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
@@ -125,8 +125,8 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 	}
 
 	filter := auth.NewProviderSessionFilter()
-	filter.Type = pointer.String(prvdr.Type())
-	filter.Name = pointer.String(prvdr.Name())
+	filter.Type = pointer.FromString(prvdr.Type())
+	filter.Name = pointer.FromString(prvdr.Name())
 	providerSessions, err := r.AuthClient().ListUserProviderSessions(ctx, restrictedToken.UserID, filter, nil)
 	if err != nil {
 		r.htmlOnError(res, req, err)

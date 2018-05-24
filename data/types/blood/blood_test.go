@@ -27,7 +27,7 @@ import (
 
 func NewTestBlood(sourceTime interface{}, sourceUnits interface{}, sourceValue interface{}) *blood.Blood {
 	datum := blood.New("blood")
-	datum.DeviceID = pointer.String(id.New())
+	datum.DeviceID = pointer.FromString(id.New())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
 	}
@@ -159,14 +159,14 @@ var _ = Describe("Blood", func() {
 					func(datum *blood.Blood) { datum.Units = nil },
 				),
 				Entry("units exists",
-					func(datum *blood.Blood) { datum.Units = pointer.String(testDataTypes.NewType()) },
+					func(datum *blood.Blood) { datum.Units = pointer.FromString(testDataTypes.NewType()) },
 				),
 				Entry("value missing",
 					func(datum *blood.Blood) { datum.Value = nil },
 				),
 				Entry("value exists",
 					func(datum *blood.Blood) {
-						datum.Value = pointer.Float64(test.RandomFloat64FromRange(-math.MaxFloat64, math.MaxFloat64))
+						datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(-math.MaxFloat64, math.MaxFloat64))
 					},
 				),
 			)
@@ -187,7 +187,7 @@ var _ = Describe("Blood", func() {
 			})
 
 			It("returns error if user id is empty", func() {
-				datum.UserID = pointer.String("")
+				datum.UserID = pointer.FromString("")
 				identityFields, err := datum.IdentityFields()
 				Expect(err).To(MatchError("user id is empty"))
 				Expect(identityFields).To(BeEmpty())

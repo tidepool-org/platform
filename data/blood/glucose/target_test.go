@@ -21,7 +21,7 @@ import (
 
 func AsStringPointer(source interface{}) *string {
 	if sourceString, ok := source.(string); ok {
-		return pointer.String(sourceString)
+		return pointer.FromString(sourceString)
 	}
 	return nil
 }
@@ -46,16 +46,16 @@ func NewTarget(high interface{}, low interface{}, rng interface{}, target interf
 func NewTestTarget(sourceTarget interface{}, sourceRange interface{}, sourceLow interface{}, sourceHigh interface{}) *glucose.Target {
 	testTarget := glucose.NewTarget()
 	if value, ok := sourceTarget.(float64); ok {
-		testTarget.Target = pointer.Float64(value)
+		testTarget.Target = pointer.FromFloat64(value)
 	}
 	if value, ok := sourceRange.(float64); ok {
-		testTarget.Range = pointer.Float64(value)
+		testTarget.Range = pointer.FromFloat64(value)
 	}
 	if value, ok := sourceLow.(float64); ok {
-		testTarget.Low = pointer.Float64(value)
+		testTarget.Low = pointer.FromFloat64(value)
 	}
 	if value, ok := sourceHigh.(float64); ok {
-		testTarget.High = pointer.Float64(value)
+		testTarget.High = pointer.FromFloat64(value)
 	}
 	return testTarget
 }
@@ -557,11 +557,11 @@ var _ = Describe("Target", func() {
 			Expect(actualUpper).To(Equal(expectedUpper))
 		},
 		Entry("returns no range for nil", nil, -math.MaxFloat64, math.MaxFloat64),
-		Entry("returns no range for unknown units", pointer.String("unknown"), -math.MaxFloat64, math.MaxFloat64),
-		Entry("returns expected range for mmol/L units", pointer.String("mmol/L"), 0.0, 55.0),
-		Entry("returns expected range for mmol/l units", pointer.String("mmol/l"), 0.0, 55.0),
-		Entry("returns expected range for mg/dL units", pointer.String("mg/dL"), 0.0, 1000.0),
-		Entry("returns expected range for mg/dl units", pointer.String("mg/dl"), 0.0, 1000.0),
+		Entry("returns no range for unknown units", pointer.FromString("unknown"), -math.MaxFloat64, math.MaxFloat64),
+		Entry("returns expected range for mmol/L units", pointer.FromString("mmol/L"), 0.0, 55.0),
+		Entry("returns expected range for mmol/l units", pointer.FromString("mmol/l"), 0.0, 55.0),
+		Entry("returns expected range for mg/dL units", pointer.FromString("mg/dL"), 0.0, 1000.0),
+		Entry("returns expected range for mg/dl units", pointer.FromString("mg/dl"), 0.0, 1000.0),
 	)
 
 	DescribeTable("RangeRangeForUnits",
@@ -609,10 +609,10 @@ var _ = Describe("Target", func() {
 			Expect(actualUpper).To(Equal(expectedUpper))
 		},
 		Entry("returns no range for nil", nil, -math.MaxFloat64, math.MaxFloat64),
-		Entry("returns no range for unknown units", pointer.String("unknown"), -math.MaxFloat64, math.MaxFloat64),
-		Entry("returns expected range for mmol/L units", pointer.String("mmol/L"), 0.0, 55.0),
-		Entry("returns expected range for mmol/l units", pointer.String("mmol/l"), 0.0, 55.0),
-		Entry("returns expected range for mg/dL units", pointer.String("mg/dL"), 0.0, 1000.0),
-		Entry("returns expected range for mg/dl units", pointer.String("mg/dl"), 0.0, 1000.0),
+		Entry("returns no range for unknown units", pointer.FromString("unknown"), -math.MaxFloat64, math.MaxFloat64),
+		Entry("returns expected range for mmol/L units", pointer.FromString("mmol/L"), 0.0, 55.0),
+		Entry("returns expected range for mmol/l units", pointer.FromString("mmol/l"), 0.0, 55.0),
+		Entry("returns expected range for mg/dL units", pointer.FromString("mg/dL"), 0.0, 1000.0),
+		Entry("returns expected range for mg/dl units", pointer.FromString("mg/dl"), 0.0, 1000.0),
 	)
 })

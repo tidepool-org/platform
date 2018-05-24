@@ -46,21 +46,21 @@ package mongo_test
 // 	dataset.Deduplicator = &data.DeduplicatorDescriptor{Name: "test-deduplicator"}
 // 	dataset.UserID = userID
 
-// 	dataset.ClockDriftOffset = pointer.Int(0)
-// 	dataset.ConversionOffset = pointer.Int(0)
-// 	dataset.DeviceID = pointer.String(deviceID)
-// 	dataset.DeviceTime = pointer.String(SampleTime().Format("2006-01-02T15:04:05"))
-// 	dataset.Time = pointer.String(SampleTime().UTC().Format(time.RFC3339))
-// 	dataset.TimeZoneOffset = pointer.Int(-420)
+// 	dataset.ClockDriftOffset = pointer.FromInt(0)
+// 	dataset.ConversionOffset = pointer.FromInt(0)
+// 	dataset.DeviceID = pointer.FromString(deviceID)
+// 	dataset.DeviceTime = pointer.FromString(SampleTime().Format("2006-01-02T15:04:05"))
+// 	dataset.Time = pointer.FromString(SampleTime().UTC().Format(time.RFC3339))
+// 	dataset.TimeZoneOffset = pointer.FromInt(-420)
 
-// 	dataset.ComputerTime = pointer.String(SampleTime().Format("2006-01-02T15:04:05"))
-// 	dataset.DeviceManufacturers = pointer.StringArray([]string{"Tesla"})
-// 	dataset.DeviceModel = pointer.String("1234")
-// 	dataset.DeviceSerialNumber = pointer.String("567890")
-// 	dataset.DeviceTags = pointer.StringArray([]string{upload.DeviceTagInsulinPump})
-// 	dataset.TimeProcessing = pointer.String(upload.TimeProcessingUTCBootstrapping)
-// 	dataset.TimeZoneName = pointer.String("US/Pacific")
-// 	dataset.Version = pointer.String("0.260.1")
+// 	dataset.ComputerTime = pointer.FromString(SampleTime().Format("2006-01-02T15:04:05"))
+// 	dataset.DeviceManufacturers = pointer.FromStringArray([]string{"Tesla"})
+// 	dataset.DeviceModel = pointer.FromString("1234")
+// 	dataset.DeviceSerialNumber = pointer.FromString("567890")
+// 	dataset.DeviceTags = pointer.FromStringArray([]string{upload.DeviceTagInsulinPump})
+// 	dataset.TimeProcessing = pointer.FromString(upload.TimeProcessingUTCBootstrapping)
+// 	dataset.TimeZoneName = pointer.FromString("US/Pacific")
+// 	dataset.Version = pointer.FromString("0.260.1")
 
 // 	return dataset
 // }
@@ -74,12 +74,12 @@ package mongo_test
 // 		baseDatum.Deduplicator = &data.DeduplicatorDescriptor{Hash: id.New()}
 // 		baseDatum.Type = "test"
 
-// 		baseDatum.ClockDriftOffset = pointer.Int(0)
-// 		baseDatum.ConversionOffset = pointer.Int(0)
-// 		baseDatum.DeviceID = pointer.String(deviceID)
-// 		baseDatum.DeviceTime = pointer.String(SampleTime().Format("2006-01-02T15:04:05"))
-// 		baseDatum.Time = pointer.String(SampleTime().UTC().Format(time.RFC3339))
-// 		baseDatum.TimeZoneOffset = pointer.Int(-420)
+// 		baseDatum.ClockDriftOffset = pointer.FromInt(0)
+// 		baseDatum.ConversionOffset = pointer.FromInt(0)
+// 		baseDatum.DeviceID = pointer.FromString(deviceID)
+// 		baseDatum.DeviceTime = pointer.FromString(SampleTime().Format("2006-01-02T15:04:05"))
+// 		baseDatum.Time = pointer.FromString(SampleTime().UTC().Format(time.RFC3339))
+// 		baseDatum.TimeZoneOffset = pointer.FromInt(-420)
 
 // 		datasetData = append(datasetData, baseDatum)
 // 	}
@@ -405,7 +405,7 @@ package mongo_test
 // 					})
 
 // 					It("returns an error if the device id is missing (empty)", func() {
-// 						dataset.DeviceID = pointer.String("")
+// 						dataset.DeviceID = pointer.FromString("")
 // 						Expect(mongoSession.CreateDataset(dataset)).To(MatchError("dataset device id is missing"))
 // 					})
 
@@ -468,7 +468,7 @@ package mongo_test
 // 						})
 
 // 						It("returns an error if the device id is missing (empty)", func() {
-// 							dataset.DeviceID = pointer.String("")
+// 							dataset.DeviceID = pointer.FromString("")
 // 							Expect(mongoSession.UpdateDataset(dataset)).To(MatchError("dataset device id is missing"))
 // 						})
 
@@ -547,7 +547,7 @@ package mongo_test
 // 						})
 
 // 						It("returns an error if the device id is missing (empty)", func() {
-// 							dataset.DeviceID = pointer.String("")
+// 							dataset.DeviceID = pointer.FromString("")
 // 							Expect(mongoSession.DeleteDataset(dataset)).To(MatchError("dataset device id is missing"))
 // 						})
 
@@ -604,7 +604,7 @@ package mongo_test
 // 						})
 
 // 						It("returns an error if the device id is missing (empty)", func() {
-// 							dataset.DeviceID = pointer.String("")
+// 							dataset.DeviceID = pointer.FromString("")
 // 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(MatchError("dataset device id is missing"))
 // 						})
 
@@ -682,7 +682,7 @@ package mongo_test
 // 						})
 
 // 						It("returns an error if the device id is missing (empty)", func() {
-// 							dataset.DeviceID = pointer.String("")
+// 							dataset.DeviceID = pointer.FromString("")
 // 							Expect(mongoSession.ActivateDatasetData(dataset)).To(MatchError("dataset device id is missing"))
 // 						})
 
@@ -755,7 +755,7 @@ package mongo_test
 // 						})
 
 // 						It("returns an error if the device id is missing (empty)", func() {
-// 							dataset.DeviceID = pointer.String("")
+// 							dataset.DeviceID = pointer.FromString("")
 // 							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataset(dataset)).To(MatchError("dataset device id is missing"))
 // 						})
 
@@ -833,7 +833,7 @@ package mongo_test
 // 						})
 
 // 						It("returns an error if the device id is missing (empty)", func() {
-// 							dataset.DeviceID = pointer.String("")
+// 							dataset.DeviceID = pointer.FromString("")
 // 							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataset(dataset)).To(MatchError("dataset device id is missing"))
 // 						})
 
@@ -931,7 +931,7 @@ package mongo_test
 // 						})
 
 // 						It("returns an error if the device id is missing (empty)", func() {
-// 							dataset.DeviceID = pointer.String("")
+// 							dataset.DeviceID = pointer.FromString("")
 // 							Expect(mongoSession.DeleteOtherDatasetData(dataset)).To(MatchError("dataset device id is missing"))
 // 						})
 

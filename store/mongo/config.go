@@ -44,10 +44,10 @@ func (c *Config) Load(configReporter config.Reporter) error {
 	c.Database = configReporter.GetWithDefault("database", "")
 	c.CollectionPrefix = configReporter.GetWithDefault("collection_prefix", "")
 	if username, err := configReporter.Get("username"); err == nil {
-		c.Username = pointer.String(username)
+		c.Username = pointer.FromString(username)
 	}
 	if password, err := configReporter.Get("password"); err == nil {
-		c.Password = pointer.String(password)
+		c.Password = pointer.FromString(password)
 	}
 	if timeoutString, err := configReporter.Get("timeout"); err == nil {
 		var timeout int64

@@ -20,11 +20,11 @@ import (
 
 func NewFallRateAlert(units *string) *cgm.FallRateAlert {
 	datum := cgm.NewFallRateAlert()
-	datum.Enabled = pointer.Bool(test.RandomBool())
+	datum.Enabled = pointer.FromBool(test.RandomBool())
 	if rates := datum.RatesForUnits(units); len(rates) > 0 {
-		datum.Rate = pointer.Float64(test.RandomFloat64FromArray(rates))
+		datum.Rate = pointer.FromFloat64(test.RandomFloat64FromArray(rates))
 	} else {
-		datum.Rate = pointer.Float64(test.RandomFloat64FromRange(-math.MaxFloat64, math.MaxFloat64))
+		datum.Rate = pointer.FromFloat64(test.RandomFloat64FromRange(-math.MaxFloat64, math.MaxFloat64))
 	}
 	return datum
 }
@@ -41,11 +41,11 @@ func CloneFallRateAlert(datum *cgm.FallRateAlert) *cgm.FallRateAlert {
 
 func NewRiseRateAlert(units *string) *cgm.RiseRateAlert {
 	datum := cgm.NewRiseRateAlert()
-	datum.Enabled = pointer.Bool(test.RandomBool())
+	datum.Enabled = pointer.FromBool(test.RandomBool())
 	if rates := datum.RatesForUnits(units); len(rates) > 0 {
-		datum.Rate = pointer.Float64(test.RandomFloat64FromArray(rates))
+		datum.Rate = pointer.FromFloat64(test.RandomFloat64FromArray(rates))
 	} else {
-		datum.Rate = pointer.Float64(test.RandomFloat64FromRange(-math.MaxFloat64, math.MaxFloat64))
+		datum.Rate = pointer.FromFloat64(test.RandomFloat64FromRange(-math.MaxFloat64, math.MaxFloat64))
 	}
 	return datum
 }
@@ -117,7 +117,7 @@ var _ = Describe("RateAlert", func() {
 					testDataTypes.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithStringAdapter(datum, units), structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *cgm.FallRateAlert, units *string) {},
 				),
 				Entry("enabled missing",
@@ -127,11 +127,11 @@ var _ = Describe("RateAlert", func() {
 				),
 				Entry("enabled true",
 					nil,
-					func(datum *cgm.FallRateAlert, units *string) { datum.Enabled = pointer.Bool(true) },
+					func(datum *cgm.FallRateAlert, units *string) { datum.Enabled = pointer.FromBool(true) },
 				),
 				Entry("enabled false",
 					nil,
-					func(datum *cgm.FallRateAlert, units *string) { datum.Enabled = pointer.Bool(false) },
+					func(datum *cgm.FallRateAlert, units *string) { datum.Enabled = pointer.FromBool(false) },
 				),
 				Entry("units missing; rate missing",
 					nil,
@@ -141,118 +141,118 @@ var _ = Describe("RateAlert", func() {
 				Entry("units missing; rate valid",
 					nil,
 					func(datum *cgm.FallRateAlert, units *string) {
-						datum.Rate = pointer.Float64(test.RandomFloat64FromRange(-math.MaxFloat64, math.MaxFloat64))
+						datum.Rate = pointer.FromFloat64(test.RandomFloat64FromRange(-math.MaxFloat64, math.MaxFloat64))
 					},
 				),
 				Entry("units invalid; rate missing",
-					pointer.String("invalid"),
+					pointer.FromString("invalid"),
 					func(datum *cgm.FallRateAlert, units *string) { datum.Rate = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
 				),
 				Entry("units invalid; rate valid",
-					pointer.String("invalid"),
+					pointer.FromString("invalid"),
 					func(datum *cgm.FallRateAlert, units *string) {
-						datum.Rate = pointer.Float64(test.RandomFloat64FromRange(-math.MaxFloat64, math.MaxFloat64))
+						datum.Rate = pointer.FromFloat64(test.RandomFloat64FromRange(-math.MaxFloat64, math.MaxFloat64))
 					},
 				),
 				Entry("units mmol/L; rate missing",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *cgm.FallRateAlert, units *string) { datum.Rate = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
 				),
 				Entry("units mmol/L; rate invalid",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *cgm.FallRateAlert, units *string) {
-						datum.Rate = pointer.Float64(0.0)
+						datum.Rate = pointer.FromFloat64(0.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueFloat64NotOneOf(0.0, []float64{-0.16652243973136602, -0.11101495982091067}), "/rate"),
 				),
 				Entry("units mmol/L; rate valid -3 mg/dL",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *cgm.FallRateAlert, units *string) {
-						datum.Rate = pointer.Float64(-0.16652243973136602)
+						datum.Rate = pointer.FromFloat64(-0.16652243973136602)
 					},
 				),
 				Entry("units mmol/L; rate valid -2 mg/dL",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *cgm.FallRateAlert, units *string) {
-						datum.Rate = pointer.Float64(-0.11101495982091067)
+						datum.Rate = pointer.FromFloat64(-0.11101495982091067)
 					},
 				),
 				Entry("units mmol/l; rate missing",
-					pointer.String("mmol/l"),
+					pointer.FromString("mmol/l"),
 					func(datum *cgm.FallRateAlert, units *string) { datum.Rate = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
 				),
 				Entry("units mmol/l; rate invalid",
-					pointer.String("mmol/l"),
+					pointer.FromString("mmol/l"),
 					func(datum *cgm.FallRateAlert, units *string) {
-						datum.Rate = pointer.Float64(0.0)
+						datum.Rate = pointer.FromFloat64(0.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueFloat64NotOneOf(0.0, []float64{-0.16652243973136602, -0.11101495982091067}), "/rate"),
 				),
 				Entry("units mmol/l; rate valid -3 mg/dL",
-					pointer.String("mmol/l"),
+					pointer.FromString("mmol/l"),
 					func(datum *cgm.FallRateAlert, units *string) {
-						datum.Rate = pointer.Float64(-0.16652243973136602)
+						datum.Rate = pointer.FromFloat64(-0.16652243973136602)
 					},
 				),
 				Entry("units mmol/l; rate valid -2 mg/dL",
-					pointer.String("mmol/l"),
+					pointer.FromString("mmol/l"),
 					func(datum *cgm.FallRateAlert, units *string) {
-						datum.Rate = pointer.Float64(-0.11101495982091067)
+						datum.Rate = pointer.FromFloat64(-0.11101495982091067)
 					},
 				),
 				Entry("units mg/dL; rate missing",
-					pointer.String("mg/dL"),
+					pointer.FromString("mg/dL"),
 					func(datum *cgm.FallRateAlert, units *string) { datum.Rate = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
 				),
 				Entry("units mg/dL; rate invalid",
-					pointer.String("mg/dL"),
+					pointer.FromString("mg/dL"),
 					func(datum *cgm.FallRateAlert, units *string) {
-						datum.Rate = pointer.Float64(0.0)
+						datum.Rate = pointer.FromFloat64(0.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueFloat64NotOneOf(0.0, []float64{-3.0, -2.0}), "/rate"),
 				),
 				Entry("units mg/dL; rate valid -3 mg/dL",
-					pointer.String("mg/dL"),
+					pointer.FromString("mg/dL"),
 					func(datum *cgm.FallRateAlert, units *string) {
-						datum.Rate = pointer.Float64(-3.0)
+						datum.Rate = pointer.FromFloat64(-3.0)
 					},
 				),
 				Entry("units mg/dL; rate valid -2 mg/dL",
-					pointer.String("mg/dL"),
+					pointer.FromString("mg/dL"),
 					func(datum *cgm.FallRateAlert, units *string) {
-						datum.Rate = pointer.Float64(-2.0)
+						datum.Rate = pointer.FromFloat64(-2.0)
 					},
 				),
 				Entry("units mg/dl; rate missing",
-					pointer.String("mg/dl"),
+					pointer.FromString("mg/dl"),
 					func(datum *cgm.FallRateAlert, units *string) { datum.Rate = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
 				),
 				Entry("units mg/dl; rate invalid",
-					pointer.String("mg/dl"),
+					pointer.FromString("mg/dl"),
 					func(datum *cgm.FallRateAlert, units *string) {
-						datum.Rate = pointer.Float64(0.0)
+						datum.Rate = pointer.FromFloat64(0.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueFloat64NotOneOf(0.0, []float64{-3.0, -2.0}), "/rate"),
 				),
 				Entry("units mg/dl; rate valid -3 mg/dl",
-					pointer.String("mg/dl"),
+					pointer.FromString("mg/dl"),
 					func(datum *cgm.FallRateAlert, units *string) {
-						datum.Rate = pointer.Float64(-3.0)
+						datum.Rate = pointer.FromFloat64(-3.0)
 					},
 				),
 				Entry("units mg/dl; rate valid -2 mg/dl",
-					pointer.String("mg/dl"),
+					pointer.FromString("mg/dl"),
 					func(datum *cgm.FallRateAlert, units *string) {
-						datum.Rate = pointer.Float64(-2.0)
+						datum.Rate = pointer.FromFloat64(-2.0)
 					},
 				),
 				Entry("multiple errors",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *cgm.FallRateAlert, units *string) {
 						datum.Enabled = nil
 						datum.Rate = nil
@@ -282,7 +282,7 @@ var _ = Describe("RateAlert", func() {
 					}
 				},
 				Entry("does not modify the datum",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *cgm.FallRateAlert, units *string) {},
 					nil,
 				),
@@ -292,12 +292,12 @@ var _ = Describe("RateAlert", func() {
 					nil,
 				),
 				Entry("does not modify the datum; units invalid",
-					pointer.String("invalid"),
+					pointer.FromString("invalid"),
 					func(datum *cgm.FallRateAlert, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; enabled missing",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *cgm.FallRateAlert, units *string) { datum.Enabled = nil },
 					nil,
 				),
@@ -319,24 +319,24 @@ var _ = Describe("RateAlert", func() {
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("does not modify the datum; units mmol/L",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *cgm.FallRateAlert, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mmol/l",
-					pointer.String("mmol/l"),
+					pointer.FromString("mmol/l"),
 					func(datum *cgm.FallRateAlert, units *string) {},
 					nil,
 				),
 				Entry("modifies the datum; units mg/dL",
-					pointer.String("mg/dL"),
+					pointer.FromString("mg/dL"),
 					func(datum *cgm.FallRateAlert, units *string) {},
 					func(datum *cgm.FallRateAlert, expectedDatum *cgm.FallRateAlert, units *string) {
 						testDataBloodGlucose.ExpectNormalizedValue(datum.Rate, expectedDatum.Rate, units)
 					},
 				),
 				Entry("modifies the datum; units mg/dl",
-					pointer.String("mg/dl"),
+					pointer.FromString("mg/dl"),
 					func(datum *cgm.FallRateAlert, units *string) {},
 					func(datum *cgm.FallRateAlert, expectedDatum *cgm.FallRateAlert, units *string) {
 						testDataBloodGlucose.ExpectNormalizedValue(datum.Rate, expectedDatum.Rate, units)
@@ -362,22 +362,22 @@ var _ = Describe("RateAlert", func() {
 					}
 				},
 				Entry("does not modify the datum; units mmol/L",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *cgm.FallRateAlert, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mmol/l",
-					pointer.String("mmol/l"),
+					pointer.FromString("mmol/l"),
 					func(datum *cgm.FallRateAlert, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mg/dL",
-					pointer.String("mg/dL"),
+					pointer.FromString("mg/dL"),
 					func(datum *cgm.FallRateAlert, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mg/dl",
-					pointer.String("mg/dl"),
+					pointer.FromString("mg/dl"),
 					func(datum *cgm.FallRateAlert, units *string) {},
 					nil,
 				),
@@ -408,7 +408,7 @@ var _ = Describe("RateAlert", func() {
 					testDataTypes.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithStringAdapter(datum, units), structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *cgm.RiseRateAlert, units *string) {},
 				),
 				Entry("enabled missing",
@@ -418,11 +418,11 @@ var _ = Describe("RateAlert", func() {
 				),
 				Entry("enabled true",
 					nil,
-					func(datum *cgm.RiseRateAlert, units *string) { datum.Enabled = pointer.Bool(true) },
+					func(datum *cgm.RiseRateAlert, units *string) { datum.Enabled = pointer.FromBool(true) },
 				),
 				Entry("enabled false",
 					nil,
-					func(datum *cgm.RiseRateAlert, units *string) { datum.Enabled = pointer.Bool(false) },
+					func(datum *cgm.RiseRateAlert, units *string) { datum.Enabled = pointer.FromBool(false) },
 				),
 				Entry("units missing; rate missing",
 					nil,
@@ -432,118 +432,118 @@ var _ = Describe("RateAlert", func() {
 				Entry("units missing; rate valid",
 					nil,
 					func(datum *cgm.RiseRateAlert, units *string) {
-						datum.Rate = pointer.Float64(test.RandomFloat64FromRange(-math.MaxFloat64, math.MaxFloat64))
+						datum.Rate = pointer.FromFloat64(test.RandomFloat64FromRange(-math.MaxFloat64, math.MaxFloat64))
 					},
 				),
 				Entry("units invalid; rate missing",
-					pointer.String("invalid"),
+					pointer.FromString("invalid"),
 					func(datum *cgm.RiseRateAlert, units *string) { datum.Rate = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
 				),
 				Entry("units invalid; rate valid",
-					pointer.String("invalid"),
+					pointer.FromString("invalid"),
 					func(datum *cgm.RiseRateAlert, units *string) {
-						datum.Rate = pointer.Float64(test.RandomFloat64FromRange(-math.MaxFloat64, math.MaxFloat64))
+						datum.Rate = pointer.FromFloat64(test.RandomFloat64FromRange(-math.MaxFloat64, math.MaxFloat64))
 					},
 				),
 				Entry("units mmol/L; rate missing",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *cgm.RiseRateAlert, units *string) { datum.Rate = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
 				),
 				Entry("units mmol/L; rate invalid",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *cgm.RiseRateAlert, units *string) {
-						datum.Rate = pointer.Float64(0.0)
+						datum.Rate = pointer.FromFloat64(0.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueFloat64NotOneOf(0.0, []float64{0.11101495982091067, 0.16652243973136602}), "/rate"),
 				),
 				Entry("units mmol/L; rate valid 2 mg/dL",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *cgm.RiseRateAlert, units *string) {
-						datum.Rate = pointer.Float64(0.11101495982091067)
+						datum.Rate = pointer.FromFloat64(0.11101495982091067)
 					},
 				),
 				Entry("units mmol/L; rate valid 3 mg/dL",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *cgm.RiseRateAlert, units *string) {
-						datum.Rate = pointer.Float64(0.16652243973136602)
+						datum.Rate = pointer.FromFloat64(0.16652243973136602)
 					},
 				),
 				Entry("units mmol/l; rate missing",
-					pointer.String("mmol/l"),
+					pointer.FromString("mmol/l"),
 					func(datum *cgm.RiseRateAlert, units *string) { datum.Rate = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
 				),
 				Entry("units mmol/l; rate invalid",
-					pointer.String("mmol/l"),
+					pointer.FromString("mmol/l"),
 					func(datum *cgm.RiseRateAlert, units *string) {
-						datum.Rate = pointer.Float64(0.0)
+						datum.Rate = pointer.FromFloat64(0.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueFloat64NotOneOf(0.0, []float64{0.11101495982091067, 0.16652243973136602}), "/rate"),
 				),
 				Entry("units mmol/l; rate valid 2 mg/dL",
-					pointer.String("mmol/l"),
+					pointer.FromString("mmol/l"),
 					func(datum *cgm.RiseRateAlert, units *string) {
-						datum.Rate = pointer.Float64(0.11101495982091067)
+						datum.Rate = pointer.FromFloat64(0.11101495982091067)
 					},
 				),
 				Entry("units mmol/l; rate valid 3 mg/dL",
-					pointer.String("mmol/l"),
+					pointer.FromString("mmol/l"),
 					func(datum *cgm.RiseRateAlert, units *string) {
-						datum.Rate = pointer.Float64(0.16652243973136602)
+						datum.Rate = pointer.FromFloat64(0.16652243973136602)
 					},
 				),
 				Entry("units mg/dL; rate missing",
-					pointer.String("mg/dL"),
+					pointer.FromString("mg/dL"),
 					func(datum *cgm.RiseRateAlert, units *string) { datum.Rate = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
 				),
 				Entry("units mg/dL; rate invalid",
-					pointer.String("mg/dL"),
+					pointer.FromString("mg/dL"),
 					func(datum *cgm.RiseRateAlert, units *string) {
-						datum.Rate = pointer.Float64(0.0)
+						datum.Rate = pointer.FromFloat64(0.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueFloat64NotOneOf(0.0, []float64{2.0, 3.0}), "/rate"),
 				),
 				Entry("units mg/dL; rate valid 2 mg/dL",
-					pointer.String("mg/dL"),
+					pointer.FromString("mg/dL"),
 					func(datum *cgm.RiseRateAlert, units *string) {
-						datum.Rate = pointer.Float64(2.0)
+						datum.Rate = pointer.FromFloat64(2.0)
 					},
 				),
 				Entry("units mg/dL; rate valid 3 mg/dL",
-					pointer.String("mg/dL"),
+					pointer.FromString("mg/dL"),
 					func(datum *cgm.RiseRateAlert, units *string) {
-						datum.Rate = pointer.Float64(3.0)
+						datum.Rate = pointer.FromFloat64(3.0)
 					},
 				),
 				Entry("units mg/dl; rate missing",
-					pointer.String("mg/dl"),
+					pointer.FromString("mg/dl"),
 					func(datum *cgm.RiseRateAlert, units *string) { datum.Rate = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
 				),
 				Entry("units mg/dl; rate invalid",
-					pointer.String("mg/dl"),
+					pointer.FromString("mg/dl"),
 					func(datum *cgm.RiseRateAlert, units *string) {
-						datum.Rate = pointer.Float64(0.0)
+						datum.Rate = pointer.FromFloat64(0.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueFloat64NotOneOf(0.0, []float64{2.0, 3.0}), "/rate"),
 				),
 				Entry("units mg/dl; rate valid 2 mg/dl",
-					pointer.String("mg/dl"),
+					pointer.FromString("mg/dl"),
 					func(datum *cgm.RiseRateAlert, units *string) {
-						datum.Rate = pointer.Float64(2.0)
+						datum.Rate = pointer.FromFloat64(2.0)
 					},
 				),
 				Entry("units mg/dl; rate valid 3 mg/dl",
-					pointer.String("mg/dl"),
+					pointer.FromString("mg/dl"),
 					func(datum *cgm.RiseRateAlert, units *string) {
-						datum.Rate = pointer.Float64(3.0)
+						datum.Rate = pointer.FromFloat64(3.0)
 					},
 				),
 				Entry("multiple errors",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *cgm.RiseRateAlert, units *string) {
 						datum.Enabled = nil
 						datum.Rate = nil
@@ -573,7 +573,7 @@ var _ = Describe("RateAlert", func() {
 					}
 				},
 				Entry("does not modify the datum",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *cgm.RiseRateAlert, units *string) {},
 					nil,
 				),
@@ -583,12 +583,12 @@ var _ = Describe("RateAlert", func() {
 					nil,
 				),
 				Entry("does not modify the datum; units invalid",
-					pointer.String("invalid"),
+					pointer.FromString("invalid"),
 					func(datum *cgm.RiseRateAlert, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; enabled missing",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *cgm.RiseRateAlert, units *string) { datum.Enabled = nil },
 					nil,
 				),
@@ -610,24 +610,24 @@ var _ = Describe("RateAlert", func() {
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("does not modify the datum; units mmol/L",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *cgm.RiseRateAlert, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mmol/l",
-					pointer.String("mmol/l"),
+					pointer.FromString("mmol/l"),
 					func(datum *cgm.RiseRateAlert, units *string) {},
 					nil,
 				),
 				Entry("modifies the datum; units mg/dL",
-					pointer.String("mg/dL"),
+					pointer.FromString("mg/dL"),
 					func(datum *cgm.RiseRateAlert, units *string) {},
 					func(datum *cgm.RiseRateAlert, expectedDatum *cgm.RiseRateAlert, units *string) {
 						testDataBloodGlucose.ExpectNormalizedValue(datum.Rate, expectedDatum.Rate, units)
 					},
 				),
 				Entry("modifies the datum; units mg/dl",
-					pointer.String("mg/dl"),
+					pointer.FromString("mg/dl"),
 					func(datum *cgm.RiseRateAlert, units *string) {},
 					func(datum *cgm.RiseRateAlert, expectedDatum *cgm.RiseRateAlert, units *string) {
 						testDataBloodGlucose.ExpectNormalizedValue(datum.Rate, expectedDatum.Rate, units)
@@ -653,22 +653,22 @@ var _ = Describe("RateAlert", func() {
 					}
 				},
 				Entry("does not modify the datum; units mmol/L",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *cgm.RiseRateAlert, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mmol/l",
-					pointer.String("mmol/l"),
+					pointer.FromString("mmol/l"),
 					func(datum *cgm.RiseRateAlert, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mg/dL",
-					pointer.String("mg/dL"),
+					pointer.FromString("mg/dL"),
 					func(datum *cgm.RiseRateAlert, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mg/dl",
-					pointer.String("mg/dl"),
+					pointer.FromString("mg/dl"),
 					func(datum *cgm.RiseRateAlert, units *string) {},
 					nil,
 				),
@@ -699,7 +699,7 @@ var _ = Describe("RateAlert", func() {
 					testDataTypes.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithStringAdapter(datum, units), structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *cgm.RateAlerts, units *string) {},
 				),
 				Entry("fall rate alert missing",
@@ -731,7 +731,7 @@ var _ = Describe("RateAlert", func() {
 					func(datum *cgm.RateAlerts, units *string) { datum.RiseRateAlert = NewRiseRateAlert(units) },
 				),
 				Entry("multiple errors",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *cgm.RateAlerts, units *string) {
 						datum.FallRateAlert = nil
 						datum.RiseRateAlert = nil
@@ -761,7 +761,7 @@ var _ = Describe("RateAlert", func() {
 					}
 				},
 				Entry("does not modify the datum",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *cgm.RateAlerts, units *string) {},
 					nil,
 				),
@@ -771,17 +771,17 @@ var _ = Describe("RateAlert", func() {
 					nil,
 				),
 				Entry("does not modify the datum; units invalid",
-					pointer.String("invalid"),
+					pointer.FromString("invalid"),
 					func(datum *cgm.RateAlerts, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; fall rate alert missing",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *cgm.RateAlerts, units *string) { datum.FallRateAlert = nil },
 					nil,
 				),
 				Entry("does not modify the datum; rise rate alert missing",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *cgm.RateAlerts, units *string) { datum.RiseRateAlert = nil },
 					nil,
 				),
@@ -803,17 +803,17 @@ var _ = Describe("RateAlert", func() {
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("does not modify the datum; units mmol/L",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *cgm.RateAlerts, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mmol/l",
-					pointer.String("mmol/l"),
+					pointer.FromString("mmol/l"),
 					func(datum *cgm.RateAlerts, units *string) {},
 					nil,
 				),
 				Entry("modifies the datum; units mg/dL",
-					pointer.String("mg/dL"),
+					pointer.FromString("mg/dL"),
 					func(datum *cgm.RateAlerts, units *string) {},
 					func(datum *cgm.RateAlerts, expectedDatum *cgm.RateAlerts, units *string) {
 						testDataBloodGlucose.ExpectNormalizedValue(datum.FallRateAlert.Rate, expectedDatum.FallRateAlert.Rate, units)
@@ -821,7 +821,7 @@ var _ = Describe("RateAlert", func() {
 					},
 				),
 				Entry("modifies the datum; units mg/dl",
-					pointer.String("mg/dl"),
+					pointer.FromString("mg/dl"),
 					func(datum *cgm.RateAlerts, units *string) {},
 					func(datum *cgm.RateAlerts, expectedDatum *cgm.RateAlerts, units *string) {
 						testDataBloodGlucose.ExpectNormalizedValue(datum.FallRateAlert.Rate, expectedDatum.FallRateAlert.Rate, units)
@@ -848,22 +848,22 @@ var _ = Describe("RateAlert", func() {
 					}
 				},
 				Entry("does not modify the datum; units mmol/L",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *cgm.RateAlerts, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mmol/l",
-					pointer.String("mmol/l"),
+					pointer.FromString("mmol/l"),
 					func(datum *cgm.RateAlerts, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mg/dL",
-					pointer.String("mg/dL"),
+					pointer.FromString("mg/dL"),
 					func(datum *cgm.RateAlerts, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mg/dl",
-					pointer.String("mg/dl"),
+					pointer.FromString("mg/dl"),
 					func(datum *cgm.RateAlerts, units *string) {},
 					nil,
 				),

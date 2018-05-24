@@ -13,7 +13,7 @@ func NewInsulin() *insulin.Insulin {
 	datum.Type = "insulin"
 	datum.Dose = NewDose()
 	datum.Formulation = NewFormulation(3)
-	datum.Site = pointer.String(test.NewText(1, 100))
+	datum.Site = pointer.FromString(test.NewText(1, 100))
 	return datum
 }
 

@@ -161,13 +161,13 @@ func (d *DataSourceUpdate) Normalize(normalizer structure.Normalizer) {
 		d.Error.Normalize(normalizer.WithReference("error"))
 	}
 	if d.EarliestDataTime != nil {
-		d.EarliestDataTime = pointer.Time((*d.EarliestDataTime).Truncate(time.Second))
+		d.EarliestDataTime = pointer.FromTime((*d.EarliestDataTime).Truncate(time.Second))
 	}
 	if d.LatestDataTime != nil {
-		d.LatestDataTime = pointer.Time((*d.LatestDataTime).Truncate(time.Second))
+		d.LatestDataTime = pointer.FromTime((*d.LatestDataTime).Truncate(time.Second))
 	}
 	if d.LastImportTime != nil {
-		d.LastImportTime = pointer.Time((*d.LastImportTime).Truncate(time.Second))
+		d.LastImportTime = pointer.FromTime((*d.LastImportTime).Truncate(time.Second))
 	}
 }
 
@@ -202,7 +202,7 @@ func NewDataSource(userID string, create *DataSourceCreate) (*DataSource, error)
 		UserID:            userID,
 		ProviderType:      create.ProviderType,
 		ProviderName:      create.ProviderName,
-		ProviderSessionID: pointer.String(create.ProviderSessionID),
+		ProviderSessionID: pointer.FromString(create.ProviderSessionID),
 		State:             create.State,
 		CreatedTime:       time.Now().Truncate(time.Second),
 	}, nil

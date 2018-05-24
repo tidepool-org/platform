@@ -9,13 +9,13 @@ import (
 
 func NewGPS() *location.GPS {
 	datum := location.NewGPS()
-	datum.Elevation = NewElevation(pointer.String("feet"))
-	datum.Floor = pointer.Int(test.RandomIntFromRange(-1000, 1000))
-	datum.HorizontalAccuracy = NewAccuracy(pointer.String("feet"))
+	datum.Elevation = NewElevation(pointer.FromString("feet"))
+	datum.Floor = pointer.FromInt(test.RandomIntFromRange(-1000, 1000))
+	datum.HorizontalAccuracy = NewAccuracy(pointer.FromString("feet"))
 	datum.Latitude = NewLatitude()
 	datum.Longitude = NewLongitude()
 	datum.Origin = testDataTypesCommonOrigin.NewOrigin()
-	datum.VerticalAccuracy = NewAccuracy(pointer.String("feet"))
+	datum.VerticalAccuracy = NewAccuracy(pointer.FromString("feet"))
 	return datum
 }
 

@@ -32,7 +32,7 @@ func NewMeta() interface{} {
 
 func NewTestStatus(sourceTime interface{}, sourceDuration interface{}, sourceName interface{}, sourceReason *data.Blob) *status.Status {
 	datum := status.New()
-	datum.DeviceID = pointer.String(id.New())
+	datum.DeviceID = pointer.FromString(id.New())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
 	}
@@ -218,74 +218,74 @@ var _ = Describe("Status", func() {
 				Entry("duration missing; duration expected out of range (lower)",
 					func(datum *status.Status) {
 						datum.Duration = nil
-						datum.DurationExpected = pointer.Int(-1)
+						datum.DurationExpected = pointer.FromInt(-1)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration missing; duration expected in range (lower)",
 					func(datum *status.Status) {
 						datum.Duration = nil
-						datum.DurationExpected = pointer.Int(0)
+						datum.DurationExpected = pointer.FromInt(0)
 					},
 				),
 				Entry("duration out of range (lower); duration expected missing",
 					func(datum *status.Status) {
-						datum.Duration = pointer.Int(-1)
+						datum.Duration = pointer.FromInt(-1)
 						datum.DurationExpected = nil
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/duration", NewMeta()),
 				),
 				Entry("duration out of range (lower); duration expected out of range (lower)",
 					func(datum *status.Status) {
-						datum.Duration = pointer.Int(-1)
-						datum.DurationExpected = pointer.Int(-1)
+						datum.Duration = pointer.FromInt(-1)
+						datum.DurationExpected = pointer.FromInt(-1)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/duration", NewMeta()),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration out of range (lower); duration expected in range (lower)",
 					func(datum *status.Status) {
-						datum.Duration = pointer.Int(-1)
-						datum.DurationExpected = pointer.Int(0)
+						datum.Duration = pointer.FromInt(-1)
+						datum.DurationExpected = pointer.FromInt(0)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/duration", NewMeta()),
 				),
 				Entry("duration in range (lower); duration expected missing",
 					func(datum *status.Status) {
-						datum.Duration = pointer.Int(0)
+						datum.Duration = pointer.FromInt(0)
 						datum.DurationExpected = nil
 					},
 				),
 				Entry("duration in range (lower); duration expected out of range (lower)",
 					func(datum *status.Status) {
-						datum.Duration = pointer.Int(0)
-						datum.DurationExpected = pointer.Int(-1)
+						datum.Duration = pointer.FromInt(0)
+						datum.DurationExpected = pointer.FromInt(-1)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration in range (lower); duration expected in range (lower)",
 					func(datum *status.Status) {
-						datum.Duration = pointer.Int(0)
-						datum.DurationExpected = pointer.Int(0)
+						datum.Duration = pointer.FromInt(0)
+						datum.DurationExpected = pointer.FromInt(0)
 					},
 				),
 				Entry("duration in range; duration expected missing",
 					func(datum *status.Status) {
-						datum.Duration = pointer.Int(1)
+						datum.Duration = pointer.FromInt(1)
 						datum.DurationExpected = nil
 					},
 				),
 				Entry("duration in range; duration expected out of range",
 					func(datum *status.Status) {
-						datum.Duration = pointer.Int(1)
-						datum.DurationExpected = pointer.Int(0)
+						datum.Duration = pointer.FromInt(1)
+						datum.DurationExpected = pointer.FromInt(0)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThanOrEqualTo(0, 1), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration in range; duration expected in range",
 					func(datum *status.Status) {
-						datum.Duration = pointer.Int(1)
-						datum.DurationExpected = pointer.Int(1)
+						datum.Duration = pointer.FromInt(1)
+						datum.DurationExpected = pointer.FromInt(1)
 					},
 				),
 				Entry("name missing",
@@ -293,14 +293,14 @@ var _ = Describe("Status", func() {
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/status", NewMeta()),
 				),
 				Entry("name invalid",
-					func(datum *status.Status) { datum.Name = pointer.String("invalid") },
+					func(datum *status.Status) { datum.Name = pointer.FromString("invalid") },
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"resumed", "suspended"}), "/status", NewMeta()),
 				),
 				Entry("name resumed",
-					func(datum *status.Status) { datum.Name = pointer.String("resumed") },
+					func(datum *status.Status) { datum.Name = pointer.FromString("resumed") },
 				),
 				Entry("name suspended",
-					func(datum *status.Status) { datum.Name = pointer.String("suspended") },
+					func(datum *status.Status) { datum.Name = pointer.FromString("suspended") },
 				),
 				Entry("reason missing",
 					func(datum *status.Status) { datum.Reason = nil },
@@ -313,9 +313,9 @@ var _ = Describe("Status", func() {
 					func(datum *status.Status) {
 						datum.Type = "invalidType"
 						datum.SubType = "invalidSubType"
-						datum.Duration = pointer.Int(-1)
-						datum.DurationExpected = pointer.Int(-1)
-						datum.Name = pointer.String("invalid")
+						datum.Duration = pointer.FromInt(-1)
+						datum.DurationExpected = pointer.FromInt(-1)
+						datum.Name = pointer.FromString("invalid")
 						datum.Reason = nil
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "deviceEvent"), "/type", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),

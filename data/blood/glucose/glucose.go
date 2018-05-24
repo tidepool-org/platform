@@ -43,7 +43,7 @@ func NormalizeUnits(units *string) *string {
 	if units != nil {
 		switch *units {
 		case MmolL, Mmoll, MgdL, Mgdl:
-			return pointer.String(MmolL)
+			return pointer.FromString(MmolL)
 		}
 	}
 	return units

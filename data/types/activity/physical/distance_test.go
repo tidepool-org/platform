@@ -19,8 +19,8 @@ import (
 
 func NewDistance() *physical.Distance {
 	datum := physical.NewDistance()
-	datum.Units = pointer.String(test.RandomStringFromArray(physical.DistanceUnits()))
-	datum.Value = pointer.Float64(test.RandomFloat64FromRange(physical.DistanceValueRangeForUnits(datum.Units)))
+	datum.Units = pointer.FromString(test.RandomStringFromArray(physical.DistanceUnits()))
+	datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(physical.DistanceValueRangeForUnits(datum.Units)))
 	return datum
 }
 
@@ -147,34 +147,34 @@ var _ = Describe("Distance", func() {
 				Entry("units missing; value out of range (lower)",
 					func(datum *physical.Distance) {
 						datum.Units = nil
-						datum.Value = pointer.Float64(-0.1)
+						datum.Value = pointer.FromFloat64(-0.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; value in range (lower)",
 					func(datum *physical.Distance) {
 						datum.Units = nil
-						datum.Value = pointer.Float64(0.0)
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; value in range (upper)",
 					func(datum *physical.Distance) {
 						datum.Units = nil
-						datum.Value = pointer.Float64(528000.0)
+						datum.Value = pointer.FromFloat64(528000.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; value out of range (upper)",
 					func(datum *physical.Distance) {
 						datum.Units = nil
-						datum.Value = pointer.Float64(528000.1)
+						datum.Value = pointer.FromFloat64(528000.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units invalid; value missing",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("invalid")
+						datum.Units = pointer.FromString("invalid")
 						datum.Value = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"feet", "kilometers", "meters", "miles", "yards"}), "/units"),
@@ -182,194 +182,194 @@ var _ = Describe("Distance", func() {
 				),
 				Entry("units invalid; value out of range (lower)",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("invalid")
-						datum.Value = pointer.Float64(-0.1)
+						datum.Units = pointer.FromString("invalid")
+						datum.Value = pointer.FromFloat64(-0.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"feet", "kilometers", "meters", "miles", "yards"}), "/units"),
 				),
 				Entry("units invalid; value in range (lower)",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("invalid")
-						datum.Value = pointer.Float64(0.0)
+						datum.Units = pointer.FromString("invalid")
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"feet", "kilometers", "meters", "miles", "yards"}), "/units"),
 				),
 				Entry("units invalid; value in range (upper)",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("invalid")
-						datum.Value = pointer.Float64(528000.0)
+						datum.Units = pointer.FromString("invalid")
+						datum.Value = pointer.FromFloat64(528000.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"feet", "kilometers", "meters", "miles", "yards"}), "/units"),
 				),
 				Entry("units invalid; value out of range (upper)",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("invalid")
-						datum.Value = pointer.Float64(528000.1)
+						datum.Units = pointer.FromString("invalid")
+						datum.Value = pointer.FromFloat64(528000.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"feet", "kilometers", "meters", "miles", "yards"}), "/units"),
 				),
 				Entry("units feet; value missing",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("feet")
+						datum.Units = pointer.FromString("feet")
 						datum.Value = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units feet; value out of range (lower)",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("feet")
-						datum.Value = pointer.Float64(-0.1)
+						datum.Units = pointer.FromString("feet")
+						datum.Value = pointer.FromFloat64(-0.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 528000.0), "/value"),
 				),
 				Entry("units feet; value in range (lower)",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("feet")
-						datum.Value = pointer.Float64(0.0)
+						datum.Units = pointer.FromString("feet")
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 				),
 				Entry("units feet; value in range (upper)",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("feet")
-						datum.Value = pointer.Float64(528000.0)
+						datum.Units = pointer.FromString("feet")
+						datum.Value = pointer.FromFloat64(528000.0)
 					},
 				),
 				Entry("units feet; value out of range (upper)",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("feet")
-						datum.Value = pointer.Float64(528000.1)
+						datum.Units = pointer.FromString("feet")
+						datum.Value = pointer.FromFloat64(528000.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(528000.1, 0.0, 528000.0), "/value"),
 				),
 				Entry("units kilometers; value missing",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("kilometers")
+						datum.Units = pointer.FromString("kilometers")
 						datum.Value = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units kilometers; value out of range (lower)",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("kilometers")
-						datum.Value = pointer.Float64(-0.1)
+						datum.Units = pointer.FromString("kilometers")
+						datum.Value = pointer.FromFloat64(-0.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 160.9344), "/value"),
 				),
 				Entry("units kilometers; value in range (lower)",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("kilometers")
-						datum.Value = pointer.Float64(0.0)
+						datum.Units = pointer.FromString("kilometers")
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 				),
 				Entry("units kilometers; value in range (upper)",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("kilometers")
-						datum.Value = pointer.Float64(160.9344)
+						datum.Units = pointer.FromString("kilometers")
+						datum.Value = pointer.FromFloat64(160.9344)
 					},
 				),
 				Entry("units kilometers; value out of range (upper)",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("kilometers")
-						datum.Value = pointer.Float64(160.9345)
+						datum.Units = pointer.FromString("kilometers")
+						datum.Value = pointer.FromFloat64(160.9345)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(160.9345, 0.0, 160.9344), "/value"),
 				),
 				Entry("units meters; value missing",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("meters")
+						datum.Units = pointer.FromString("meters")
 						datum.Value = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units meters; value out of range (lower)",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("meters")
-						datum.Value = pointer.Float64(-0.1)
+						datum.Units = pointer.FromString("meters")
+						datum.Value = pointer.FromFloat64(-0.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 160934.4), "/value"),
 				),
 				Entry("units meters; value in range (lower)",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("meters")
-						datum.Value = pointer.Float64(0.0)
+						datum.Units = pointer.FromString("meters")
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 				),
 				Entry("units meters; value in range (upper)",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("meters")
-						datum.Value = pointer.Float64(160934.4)
+						datum.Units = pointer.FromString("meters")
+						datum.Value = pointer.FromFloat64(160934.4)
 					},
 				),
 				Entry("units meters; value out of range (upper)",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("meters")
-						datum.Value = pointer.Float64(160934.5)
+						datum.Units = pointer.FromString("meters")
+						datum.Value = pointer.FromFloat64(160934.5)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(160934.5, 0.0, 160934.4), "/value"),
 				),
 				Entry("units miles; value missing",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("miles")
+						datum.Units = pointer.FromString("miles")
 						datum.Value = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units miles; value out of range (lower)",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("miles")
-						datum.Value = pointer.Float64(-0.1)
+						datum.Units = pointer.FromString("miles")
+						datum.Value = pointer.FromFloat64(-0.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/value"),
 				),
 				Entry("units miles; value in range (lower)",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("miles")
-						datum.Value = pointer.Float64(0.0)
+						datum.Units = pointer.FromString("miles")
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 				),
 				Entry("units miles; value in range (upper)",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("miles")
-						datum.Value = pointer.Float64(100.0)
+						datum.Units = pointer.FromString("miles")
+						datum.Value = pointer.FromFloat64(100.0)
 					},
 				),
 				Entry("units miles; value out of range (upper)",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("miles")
-						datum.Value = pointer.Float64(100.1)
+						datum.Units = pointer.FromString("miles")
+						datum.Value = pointer.FromFloat64(100.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/value"),
 				),
 				Entry("units yards; value missing",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("yards")
+						datum.Units = pointer.FromString("yards")
 						datum.Value = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units yards; value out of range (lower)",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("yards")
-						datum.Value = pointer.Float64(-0.1)
+						datum.Units = pointer.FromString("yards")
+						datum.Value = pointer.FromFloat64(-0.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 176000.0), "/value"),
 				),
 				Entry("units yards; value in range (lower)",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("yards")
-						datum.Value = pointer.Float64(0.0)
+						datum.Units = pointer.FromString("yards")
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 				),
 				Entry("units yards; value in range (upper)",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("yards")
-						datum.Value = pointer.Float64(176000.0)
+						datum.Units = pointer.FromString("yards")
+						datum.Value = pointer.FromFloat64(176000.0)
 					},
 				),
 				Entry("units yards; value out of range (upper)",
 					func(datum *physical.Distance) {
-						datum.Units = pointer.String("yards")
-						datum.Value = pointer.Float64(176000.1)
+						datum.Units = pointer.FromString("yards")
+						datum.Value = pointer.FromFloat64(176000.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(176000.1, 0.0, 176000.0), "/value"),
 				),
@@ -406,19 +406,19 @@ var _ = Describe("Distance", func() {
 					func(datum *physical.Distance) { datum.Units = nil },
 				),
 				Entry("does not modify the datum; units feet",
-					func(datum *physical.Distance) { datum.Units = pointer.String("feet") },
+					func(datum *physical.Distance) { datum.Units = pointer.FromString("feet") },
 				),
 				Entry("does not modify the datum; units kilometers",
-					func(datum *physical.Distance) { datum.Units = pointer.String("kilometers") },
+					func(datum *physical.Distance) { datum.Units = pointer.FromString("kilometers") },
 				),
 				Entry("does not modify the datum; units meters",
-					func(datum *physical.Distance) { datum.Units = pointer.String("meters") },
+					func(datum *physical.Distance) { datum.Units = pointer.FromString("meters") },
 				),
 				Entry("does not modify the datum; units miles",
-					func(datum *physical.Distance) { datum.Units = pointer.String("miles") },
+					func(datum *physical.Distance) { datum.Units = pointer.FromString("miles") },
 				),
 				Entry("does not modify the datum; units yards",
-					func(datum *physical.Distance) { datum.Units = pointer.String("yards") },
+					func(datum *physical.Distance) { datum.Units = pointer.FromString("yards") },
 				),
 				Entry("does not modify the datum; value missing",
 					func(datum *physical.Distance) { datum.Value = nil },
@@ -435,37 +435,37 @@ var _ = Describe("Distance", func() {
 		})
 
 		It("returns expected range for units invalid", func() {
-			minimum, maximum := physical.DistanceValueRangeForUnits(pointer.String("invalid"))
+			minimum, maximum := physical.DistanceValueRangeForUnits(pointer.FromString("invalid"))
 			Expect(minimum).To(Equal(-math.MaxFloat64))
 			Expect(maximum).To(Equal(math.MaxFloat64))
 		})
 
 		It("returns expected range for units feet", func() {
-			minimum, maximum := physical.DistanceValueRangeForUnits(pointer.String("feet"))
+			minimum, maximum := physical.DistanceValueRangeForUnits(pointer.FromString("feet"))
 			Expect(minimum).To(Equal(0.0))
 			Expect(maximum).To(Equal(528000.0))
 		})
 
 		It("returns expected range for units kilometers", func() {
-			minimum, maximum := physical.DistanceValueRangeForUnits(pointer.String("kilometers"))
+			minimum, maximum := physical.DistanceValueRangeForUnits(pointer.FromString("kilometers"))
 			Expect(minimum).To(Equal(0.0))
 			Expect(maximum).To(Equal(160.9344))
 		})
 
 		It("returns expected range for units meters", func() {
-			minimum, maximum := physical.DistanceValueRangeForUnits(pointer.String("meters"))
+			minimum, maximum := physical.DistanceValueRangeForUnits(pointer.FromString("meters"))
 			Expect(minimum).To(Equal(0.0))
 			Expect(maximum).To(Equal(160934.4))
 		})
 
 		It("returns expected range for units miles", func() {
-			minimum, maximum := physical.DistanceValueRangeForUnits(pointer.String("miles"))
+			minimum, maximum := physical.DistanceValueRangeForUnits(pointer.FromString("miles"))
 			Expect(minimum).To(Equal(0.0))
 			Expect(maximum).To(Equal(100.0))
 		})
 
 		It("returns expected range for units yards", func() {
-			minimum, maximum := physical.DistanceValueRangeForUnits(pointer.String("yards"))
+			minimum, maximum := physical.DistanceValueRangeForUnits(pointer.FromString("yards"))
 			Expect(minimum).To(Equal(0.0))
 			Expect(maximum).To(Equal(176000.0))
 		})

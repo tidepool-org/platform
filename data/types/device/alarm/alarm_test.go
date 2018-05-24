@@ -32,7 +32,7 @@ func NewAlarm() *alarm.Alarm {
 	datum := alarm.New()
 	datum.Device = *testDataTypesDevice.NewDevice()
 	datum.SubType = "alarm"
-	datum.AlarmType = pointer.String(test.RandomStringFromArray(alarm.AlarmTypes()))
+	datum.AlarmType = pointer.FromString(test.RandomStringFromArray(alarm.AlarmTypes()))
 	return datum
 }
 
@@ -46,7 +46,7 @@ func NewAlarmWithStatus() *alarm.Alarm {
 
 func NewAlarmWithStatusID() *alarm.Alarm {
 	datum := NewAlarm()
-	datum.StatusID = pointer.String(id.New())
+	datum.StatusID = pointer.FromString(id.New())
 	return datum
 }
 
@@ -166,41 +166,41 @@ var _ = Describe("Change", func() {
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/alarmType", NewMeta()),
 				),
 				Entry("alarm type invalid",
-					func(datum *alarm.Alarm) { datum.AlarmType = pointer.String("invalid") },
+					func(datum *alarm.Alarm) { datum.AlarmType = pointer.FromString("invalid") },
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"auto_off", "low_insulin", "low_power", "no_delivery", "no_insulin", "no_power", "occlusion", "other", "over_limit"}), "/alarmType", NewMeta()),
 				),
 				Entry("alarm type auto_off",
-					func(datum *alarm.Alarm) { datum.AlarmType = pointer.String("auto_off") },
+					func(datum *alarm.Alarm) { datum.AlarmType = pointer.FromString("auto_off") },
 				),
 				Entry("alarm type low_insulin",
-					func(datum *alarm.Alarm) { datum.AlarmType = pointer.String("low_insulin") },
+					func(datum *alarm.Alarm) { datum.AlarmType = pointer.FromString("low_insulin") },
 				),
 				Entry("alarm type low_power",
-					func(datum *alarm.Alarm) { datum.AlarmType = pointer.String("low_power") },
+					func(datum *alarm.Alarm) { datum.AlarmType = pointer.FromString("low_power") },
 				),
 				Entry("alarm type no_delivery",
-					func(datum *alarm.Alarm) { datum.AlarmType = pointer.String("no_delivery") },
+					func(datum *alarm.Alarm) { datum.AlarmType = pointer.FromString("no_delivery") },
 				),
 				Entry("alarm type no_insulin",
-					func(datum *alarm.Alarm) { datum.AlarmType = pointer.String("no_insulin") },
+					func(datum *alarm.Alarm) { datum.AlarmType = pointer.FromString("no_insulin") },
 				),
 				Entry("alarm type no_power",
-					func(datum *alarm.Alarm) { datum.AlarmType = pointer.String("no_power") },
+					func(datum *alarm.Alarm) { datum.AlarmType = pointer.FromString("no_power") },
 				),
 				Entry("alarm type occlusion",
-					func(datum *alarm.Alarm) { datum.AlarmType = pointer.String("occlusion") },
+					func(datum *alarm.Alarm) { datum.AlarmType = pointer.FromString("occlusion") },
 				),
 				Entry("alarm type other",
-					func(datum *alarm.Alarm) { datum.AlarmType = pointer.String("other") },
+					func(datum *alarm.Alarm) { datum.AlarmType = pointer.FromString("other") },
 				),
 				Entry("alarm type over_limit",
-					func(datum *alarm.Alarm) { datum.AlarmType = pointer.String("over_limit") },
+					func(datum *alarm.Alarm) { datum.AlarmType = pointer.FromString("over_limit") },
 				),
 				Entry("multiple errors",
 					func(datum *alarm.Alarm) {
 						datum.Type = "invalidType"
 						datum.SubType = "invalidSubType"
-						datum.AlarmType = pointer.String("invalid")
+						datum.AlarmType = pointer.FromString("invalid")
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "deviceEvent"), "/type", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "alarm"), "/subType", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
@@ -229,12 +229,12 @@ var _ = Describe("Change", func() {
 					func(datum *alarm.Alarm) { datum.StatusID = nil },
 				),
 				Entry("status id exists",
-					func(datum *alarm.Alarm) { datum.StatusID = pointer.String(id.New()) },
+					func(datum *alarm.Alarm) { datum.StatusID = pointer.FromString(id.New()) },
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/statusId", NewMeta()),
 				),
 				Entry("multiple errors",
 					func(datum *alarm.Alarm) {
-						datum.StatusID = pointer.String(id.New())
+						datum.StatusID = pointer.FromString(id.New())
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/statusId", NewMeta()),
 				),
@@ -263,16 +263,16 @@ var _ = Describe("Change", func() {
 					func(datum *alarm.Alarm) { datum.StatusID = nil },
 				),
 				Entry("status id invalid",
-					func(datum *alarm.Alarm) { datum.StatusID = pointer.String("invalid") },
+					func(datum *alarm.Alarm) { datum.StatusID = pointer.FromString("invalid") },
 					testErrors.WithPointerSourceAndMeta(id.ErrorValueStringAsIDNotValid("invalid"), "/statusId", NewMeta()),
 				),
 				Entry("status id valid",
-					func(datum *alarm.Alarm) { datum.StatusID = pointer.String(id.New()) },
+					func(datum *alarm.Alarm) { datum.StatusID = pointer.FromString(id.New()) },
 				),
 				Entry("multiple errors",
 					func(datum *alarm.Alarm) {
 						datum.Status = data.DatumAsPointer(testDataTypesDeviceStatus.NewStatus())
-						datum.StatusID = pointer.String("invalid")
+						datum.StatusID = pointer.FromString("invalid")
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/status", NewMeta()),
 					testErrors.WithPointerSourceAndMeta(id.ErrorValueStringAsIDNotValid("invalid"), "/statusId", NewMeta()),
@@ -303,7 +303,7 @@ var _ = Describe("Change", func() {
 				Expect(normalizer.Error()).To(BeNil())
 				Expect(normalizer.Data()).To(Equal([]data.Datum{datumStatus}))
 				expectedDatum.Status = nil
-				expectedDatum.StatusID = pointer.String(*datumStatus.ID)
+				expectedDatum.StatusID = pointer.FromString(*datumStatus.ID)
 				Expect(datum).To(Equal(expectedDatum))
 			})
 		})

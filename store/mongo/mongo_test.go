@@ -74,8 +74,8 @@ var _ = Describe("Mongo", func() {
 		})
 
 		It("returns an error if the username or password is invalid", func() {
-			mongoConfig.Username = pointer.String("username")
-			mongoConfig.Password = pointer.String("password")
+			mongoConfig.Username = pointer.FromString("username")
+			mongoConfig.Password = pointer.FromString("password")
 			var err error
 			mongoStore, err = mongo.NewStore(mongoConfig, logger)
 			Expect(err).To(MatchError("unable to dial database; server returned error on SASL authentication step: Authentication failed."))

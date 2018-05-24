@@ -251,16 +251,16 @@ func (t *TaskSession) UpdateFromState(ctx context.Context, tsk *task.Task, state
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": tsk.ID, "state": state})
 
-	tsk.ModifiedTime = pointer.Time(now.Truncate(time.Second))
+	tsk.ModifiedTime = pointer.FromTime(now.Truncate(time.Second))
 
 	if tsk.AvailableTime != nil {
-		tsk.AvailableTime = pointer.Time((*tsk.AvailableTime).Truncate(time.Second))
+		tsk.AvailableTime = pointer.FromTime((*tsk.AvailableTime).Truncate(time.Second))
 	}
 	if tsk.ExpirationTime != nil {
-		tsk.ExpirationTime = pointer.Time((*tsk.ExpirationTime).Truncate(time.Second))
+		tsk.ExpirationTime = pointer.FromTime((*tsk.ExpirationTime).Truncate(time.Second))
 	}
 	if tsk.RunTime != nil {
-		tsk.RunTime = pointer.Time((*tsk.RunTime).Truncate(time.Second))
+		tsk.RunTime = pointer.FromTime((*tsk.RunTime).Truncate(time.Second))
 	}
 	tsk.CreatedTime = tsk.CreatedTime.Truncate(time.Second)
 

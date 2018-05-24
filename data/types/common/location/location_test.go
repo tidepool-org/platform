@@ -67,20 +67,20 @@ var _ = Describe("Location", func() {
 					func(datum *location.Location) { datum.Name = nil },
 				),
 				Entry("name empty",
-					func(datum *location.Location) { datum.Name = pointer.String("") },
+					func(datum *location.Location) { datum.Name = pointer.FromString("") },
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/name"),
 				),
 				Entry("name length; in range (upper)",
-					func(datum *location.Location) { datum.Name = pointer.String(test.NewText(100, 100)) },
+					func(datum *location.Location) { datum.Name = pointer.FromString(test.NewText(100, 100)) },
 				),
 				Entry("name length; out of range (upper)",
-					func(datum *location.Location) { datum.Name = pointer.String(test.NewText(101, 101)) },
+					func(datum *location.Location) { datum.Name = pointer.FromString(test.NewText(101, 101)) },
 					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/name"),
 				),
 				Entry("multiple errors",
 					func(datum *location.Location) {
 						datum.GPS.Latitude = nil
-						datum.Name = pointer.String("")
+						datum.Name = pointer.FromString("")
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/gps/latitude"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/name"),

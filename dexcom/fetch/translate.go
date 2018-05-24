@@ -55,14 +55,14 @@ func translateTime(systemTime time.Time, displayTime time.Time, datum *types.Bas
 		timeZoneOffsetDuration = offsetCount * OffsetDuration
 	}
 
-	datum.Time = pointer.String(systemTime.Format(types.TimeFormat))
-	datum.DeviceTime = pointer.String(displayTime.UTC().Format(types.DeviceTimeFormat))
-	datum.TimeZoneOffset = pointer.Int(int(timeZoneOffsetDuration / time.Minute))
+	datum.Time = pointer.FromString(systemTime.Format(types.TimeFormat))
+	datum.DeviceTime = pointer.FromString(displayTime.UTC().Format(types.DeviceTimeFormat))
+	datum.TimeZoneOffset = pointer.FromInt(int(timeZoneOffsetDuration / time.Minute))
 	if clockDriftOffsetDuration != 0 {
-		datum.ClockDriftOffset = pointer.Int(int(clockDriftOffsetDuration / time.Millisecond))
+		datum.ClockDriftOffset = pointer.FromInt(int(clockDriftOffsetDuration / time.Millisecond))
 	}
 	if conversionOffsetDuration != 0 {
-		datum.ConversionOffset = pointer.Int(int(conversionOffsetDuration / time.Millisecond))
+		datum.ConversionOffset = pointer.FromInt(int(conversionOffsetDuration / time.Millisecond))
 	}
 
 	if datum.Payload == nil {
@@ -78,8 +78,8 @@ func translateCalibrationToDatum(c *dexcom.Calibration) data.Datum {
 	datum.ID = nil
 	datum.GUID = nil
 
-	datum.Units = pointer.String(c.Unit)
-	datum.Value = pointer.Float64(c.Value)
+	datum.Units = pointer.FromString(c.Unit)
+	datum.Value = pointer.FromFloat64(c.Value)
 	datum.Payload = data.NewBlob()
 	if c.TransmitterID != nil {
 		(*datum.Payload)["transmitterId"] = *c.TransmitterID
@@ -96,8 +96,8 @@ func translateEGVToDatum(e *dexcom.EGV, unit string, rateUnit string) data.Datum
 	datum.ID = nil
 	datum.GUID = nil
 
-	datum.Value = pointer.Float64(e.Value)
-	datum.Units = pointer.String(unit)
+	datum.Value = pointer.FromFloat64(e.Value)
+	datum.Units = pointer.FromString(unit)
 	datum.Payload = data.NewBlob()
 	if e.Status != nil {
 		(*datum.Payload)["status"] = *e.Status
@@ -149,8 +149,8 @@ func translateEventCarbsToDatum(e *dexcom.Event) data.Datum {
 	if e.Value != nil && e.Unit != nil {
 		datum.Nutrition = &food.Nutrition{
 			Carbohydrate: &food.Carbohydrate{
-				Net:   pointer.Int(int(*e.Value)),
-				Units: pointer.String(*e.Unit),
+				Net:   pointer.FromInt(int(*e.Value)),
+				Units: pointer.FromString(*e.Unit),
 			},
 		}
 	}
@@ -169,17 +169,17 @@ func translateEventExerciseToDatum(e *dexcom.Event) data.Datum {
 	if e.EventSubType != nil {
 		switch *e.EventSubType {
 		case dexcom.ExerciseLight:
-			datum.ReportedIntensity = pointer.String(physical.ReportedIntensityLow)
+			datum.ReportedIntensity = pointer.FromString(physical.ReportedIntensityLow)
 		case dexcom.ExerciseMedium:
-			datum.ReportedIntensity = pointer.String(physical.ReportedIntensityMedium)
+			datum.ReportedIntensity = pointer.FromString(physical.ReportedIntensityMedium)
 		case dexcom.ExerciseHeavy:
-			datum.ReportedIntensity = pointer.String(physical.ReportedIntensityHigh)
+			datum.ReportedIntensity = pointer.FromString(physical.ReportedIntensityHigh)
 		}
 	}
 	if e.Value != nil && e.Unit != nil {
 		datum.Duration = &physical.Duration{
-			Value: pointer.Float64(*e.Value),
-			Units: pointer.String(*e.Unit),
+			Value: pointer.FromFloat64(*e.Value),
+			Units: pointer.FromString(*e.Unit),
 		}
 	}
 
@@ -197,17 +197,17 @@ func translateEventHealthToDatum(e *dexcom.Event) data.Datum {
 	if e.EventSubType != nil {
 		switch *e.EventSubType {
 		case dexcom.HealthIllness:
-			datum.States = &reported.StateArray{{State: pointer.String(reported.StateStateIllness)}}
+			datum.States = &reported.StateArray{{State: pointer.FromString(reported.StateStateIllness)}}
 		case dexcom.HealthStress:
-			datum.States = &reported.StateArray{{State: pointer.String(reported.StateStateStress)}}
+			datum.States = &reported.StateArray{{State: pointer.FromString(reported.StateStateStress)}}
 		case dexcom.HealthHighSymptoms:
-			datum.States = &reported.StateArray{{State: pointer.String(reported.StateStateHyperglycemiaSymptoms)}}
+			datum.States = &reported.StateArray{{State: pointer.FromString(reported.StateStateHyperglycemiaSymptoms)}}
 		case dexcom.HealthLowSymptoms:
-			datum.States = &reported.StateArray{{State: pointer.String(reported.StateStateHypoglycemiaSymptoms)}}
+			datum.States = &reported.StateArray{{State: pointer.FromString(reported.StateStateHypoglycemiaSymptoms)}}
 		case dexcom.HealthCycle:
-			datum.States = &reported.StateArray{{State: pointer.String(reported.StateStateCycle)}}
+			datum.States = &reported.StateArray{{State: pointer.FromString(reported.StateStateCycle)}}
 		case dexcom.HealthAlcohol:
-			datum.States = &reported.StateArray{{State: pointer.String(reported.StateStateAlcohol)}}
+			datum.States = &reported.StateArray{{State: pointer.FromString(reported.StateStateAlcohol)}}
 		}
 	}
 
@@ -224,8 +224,8 @@ func translateEventInsulinToDatum(e *dexcom.Event) data.Datum {
 
 	if e.Value != nil && e.Unit != nil {
 		datum.Dose = &insulin.Dose{
-			Total: pointer.Float64(*e.Value),
-			Units: pointer.String(insulin.DoseUnitsUnits),
+			Total: pointer.FromFloat64(*e.Value),
+			Units: pointer.FromString(insulin.DoseUnitsUnits),
 		}
 	}
 

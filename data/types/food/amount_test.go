@@ -19,8 +19,8 @@ import (
 
 func NewAmount() *food.Amount {
 	datum := food.NewAmount()
-	datum.Units = pointer.String(test.NewText(1, 100))
-	datum.Value = pointer.Float64(test.RandomFloat64FromRange(0.0, math.MaxFloat64))
+	datum.Units = pointer.FromString(test.NewText(1, 100))
+	datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(0.0, math.MaxFloat64))
 	return datum
 }
 
@@ -73,29 +73,29 @@ var _ = Describe("Amount", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units empty",
-					func(datum *food.Amount) { datum.Units = pointer.String("") },
+					func(datum *food.Amount) { datum.Units = pointer.FromString("") },
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/units"),
 				),
 				Entry("units invalid",
-					func(datum *food.Amount) { datum.Units = pointer.String(test.NewText(101, 101)) },
+					func(datum *food.Amount) { datum.Units = pointer.FromString(test.NewText(101, 101)) },
 					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/units"),
 				),
 				Entry("units valid",
-					func(datum *food.Amount) { datum.Units = pointer.String(test.NewText(1, 100)) },
+					func(datum *food.Amount) { datum.Units = pointer.FromString(test.NewText(1, 100)) },
 				),
 				Entry("value missing",
 					func(datum *food.Amount) { datum.Value = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("value out of range (lower)",
-					func(datum *food.Amount) { datum.Value = pointer.Float64(-0.1) },
+					func(datum *food.Amount) { datum.Value = pointer.FromFloat64(-0.1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-0.1, 0.0), "/value"),
 				),
 				Entry("value in range (lower)",
-					func(datum *food.Amount) { datum.Value = pointer.Float64(0.0) },
+					func(datum *food.Amount) { datum.Value = pointer.FromFloat64(0.0) },
 				),
 				Entry("value in range (upper)",
-					func(datum *food.Amount) { datum.Value = pointer.Float64(math.MaxFloat64) },
+					func(datum *food.Amount) { datum.Value = pointer.FromFloat64(math.MaxFloat64) },
 				),
 				Entry("multiple errors",
 					func(datum *food.Amount) {

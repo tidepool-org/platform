@@ -22,9 +22,9 @@ func NewBloodGlucoseTargetStart(units *string, startMinimum int) *pump.BloodGluc
 	datum := pump.NewBloodGlucoseTargetStart()
 	datum.Target = *testDataBloodGlucose.NewTarget(units)
 	if startMinimum == pump.BloodGlucoseTargetStartStartMinimum {
-		datum.Start = pointer.Int(pump.BloodGlucoseTargetStartStartMinimum)
+		datum.Start = pointer.FromInt(pump.BloodGlucoseTargetStartStartMinimum)
 	} else {
-		datum.Start = pointer.Int(test.RandomIntFromRange(startMinimum, pump.BloodGlucoseTargetStartStartMaximum))
+		datum.Start = pointer.FromInt(test.RandomIntFromRange(startMinimum, pump.BloodGlucoseTargetStartStartMaximum))
 	}
 	return datum
 }
@@ -126,26 +126,26 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 				func(units *string, mutator func(datum *pump.BloodGlucoseTargetStart, units *string), expectedErrors ...error) {
 					datum := NewBloodGlucoseTargetStart(units, pump.BloodGlucoseTargetStartStartMinimum)
 					mutator(datum, units)
-					testDataTypes.ValidateWithExpectedOrigins(NewValidatableWithUnitsAndStartMinimumAdapter(datum, units, pointer.Int(pump.BloodGlucoseTargetStartStartMinimum)), structure.Origins(), expectedErrors...)
+					testDataTypes.ValidateWithExpectedOrigins(NewValidatableWithUnitsAndStartMinimumAdapter(datum, units, pointer.FromInt(pump.BloodGlucoseTargetStartStartMinimum)), structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStart, units *string) {},
 				),
 				Entry("target missing",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStart, units *string) {
 						datum.Target = *dataBloodGlucose.NewTarget()
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/target"),
 				),
 				Entry("start missing",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStart, units *string) { datum.Start = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/start"),
 				),
 				Entry("multiple errors",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStart, units *string) {
 						datum.Target = *dataBloodGlucose.NewTarget()
 						datum.Start = nil
@@ -159,20 +159,20 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 				func(units *string, mutator func(datum *pump.BloodGlucoseTargetStart, units *string), expectedErrors ...error) {
 					datum := NewBloodGlucoseTargetStart(units, pump.BloodGlucoseTargetStartStartMinimum)
 					mutator(datum, units)
-					testDataTypes.ValidateWithExpectedOrigins(NewValidatableWithUnitsAndStartMinimumAdapter(datum, units, pointer.Int(pump.BloodGlucoseTargetStartStartMinimum)), structure.Origins(), expectedErrors...)
+					testDataTypes.ValidateWithExpectedOrigins(NewValidatableWithUnitsAndStartMinimumAdapter(datum, units, pointer.FromInt(pump.BloodGlucoseTargetStartStartMinimum)), structure.Origins(), expectedErrors...)
 				},
 				Entry("start out of range (lower)",
-					pointer.String("mmol/L"),
-					func(datum *pump.BloodGlucoseTargetStart, units *string) { datum.Start = pointer.Int(-1) },
+					pointer.FromString("mmol/L"),
+					func(datum *pump.BloodGlucoseTargetStart, units *string) { datum.Start = pointer.FromInt(-1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo(-1, 0), "/start"),
 				),
 				Entry("start in range",
-					pointer.String("mmol/L"),
-					func(datum *pump.BloodGlucoseTargetStart, units *string) { datum.Start = pointer.Int(0) },
+					pointer.FromString("mmol/L"),
+					func(datum *pump.BloodGlucoseTargetStart, units *string) { datum.Start = pointer.FromInt(0) },
 				),
 				Entry("start out of range (upper)",
-					pointer.String("mmol/L"),
-					func(datum *pump.BloodGlucoseTargetStart, units *string) { datum.Start = pointer.Int(1) },
+					pointer.FromString("mmol/L"),
+					func(datum *pump.BloodGlucoseTargetStart, units *string) { datum.Start = pointer.FromInt(1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo(1, 0), "/start"),
 				),
 			)
@@ -181,24 +181,24 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 				func(units *string, mutator func(datum *pump.BloodGlucoseTargetStart, units *string), expectedErrors ...error) {
 					datum := NewBloodGlucoseTargetStart(units, pump.BloodGlucoseTargetStartStartMinimum+1)
 					mutator(datum, units)
-					testDataTypes.ValidateWithExpectedOrigins(NewValidatableWithUnitsAndStartMinimumAdapter(datum, units, pointer.Int(pump.BloodGlucoseTargetStartStartMinimum+1)), structure.Origins(), expectedErrors...)
+					testDataTypes.ValidateWithExpectedOrigins(NewValidatableWithUnitsAndStartMinimumAdapter(datum, units, pointer.FromInt(pump.BloodGlucoseTargetStartStartMinimum+1)), structure.Origins(), expectedErrors...)
 				},
 				Entry("start out of range (lower)",
-					pointer.String("mmol/L"),
-					func(datum *pump.BloodGlucoseTargetStart, units *string) { datum.Start = pointer.Int(0) },
+					pointer.FromString("mmol/L"),
+					func(datum *pump.BloodGlucoseTargetStart, units *string) { datum.Start = pointer.FromInt(0) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(0, 1, 86400000), "/start"),
 				),
 				Entry("start in range (lower)",
-					pointer.String("mmol/L"),
-					func(datum *pump.BloodGlucoseTargetStart, units *string) { datum.Start = pointer.Int(1) },
+					pointer.FromString("mmol/L"),
+					func(datum *pump.BloodGlucoseTargetStart, units *string) { datum.Start = pointer.FromInt(1) },
 				),
 				Entry("start in range (upper)",
-					pointer.String("mmol/L"),
-					func(datum *pump.BloodGlucoseTargetStart, units *string) { datum.Start = pointer.Int(86400000) },
+					pointer.FromString("mmol/L"),
+					func(datum *pump.BloodGlucoseTargetStart, units *string) { datum.Start = pointer.FromInt(86400000) },
 				),
 				Entry("start out of range (upper)",
-					pointer.String("mmol/L"),
-					func(datum *pump.BloodGlucoseTargetStart, units *string) { datum.Start = pointer.Int(86400001) },
+					pointer.FromString("mmol/L"),
+					func(datum *pump.BloodGlucoseTargetStart, units *string) { datum.Start = pointer.FromInt(86400001) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(86400001, 1, 86400000), "/start"),
 				),
 			)
@@ -223,7 +223,7 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					}
 				},
 				Entry("does not modify the datum",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStart, units *string) {},
 					nil,
 				),
@@ -233,12 +233,12 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					nil,
 				),
 				Entry("does not modify the datum; units invalid",
-					pointer.String("invalid"),
+					pointer.FromString("invalid"),
 					func(datum *pump.BloodGlucoseTargetStart, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; start missing",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStart, units *string) { datum.Start = nil },
 					nil,
 				),
@@ -260,24 +260,24 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("does not modify the datum; units mmol/L",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStart, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mmol/l",
-					pointer.String("mmol/l"),
+					pointer.FromString("mmol/l"),
 					func(datum *pump.BloodGlucoseTargetStart, units *string) {},
 					nil,
 				),
 				Entry("modifies the datum; units mg/dL",
-					pointer.String("mg/dL"),
+					pointer.FromString("mg/dL"),
 					func(datum *pump.BloodGlucoseTargetStart, units *string) {},
 					func(datum *pump.BloodGlucoseTargetStart, expectedDatum *pump.BloodGlucoseTargetStart, units *string) {
 						testDataBloodGlucose.ExpectNormalizedTarget(&datum.Target, &expectedDatum.Target, units)
 					},
 				),
 				Entry("modifies the datum; units mg/dl",
-					pointer.String("mg/dl"),
+					pointer.FromString("mg/dl"),
 					func(datum *pump.BloodGlucoseTargetStart, units *string) {},
 					func(datum *pump.BloodGlucoseTargetStart, expectedDatum *pump.BloodGlucoseTargetStart, units *string) {
 						testDataBloodGlucose.ExpectNormalizedTarget(&datum.Target, &expectedDatum.Target, units)
@@ -303,22 +303,22 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					}
 				},
 				Entry("does not modify the datum; units mmol/L",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStart, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mmol/l",
-					pointer.String("mmol/l"),
+					pointer.FromString("mmol/l"),
 					func(datum *pump.BloodGlucoseTargetStart, units *string) {},
 					nil,
 				),
 				Entry("modifies the datum; units mg/dL",
-					pointer.String("mg/dL"),
+					pointer.FromString("mg/dL"),
 					func(datum *pump.BloodGlucoseTargetStart, units *string) {},
 					nil,
 				),
 				Entry("modifies the datum; units mg/dl",
-					pointer.String("mg/dl"),
+					pointer.FromString("mg/dl"),
 					func(datum *pump.BloodGlucoseTargetStart, units *string) {},
 					nil,
 				),
@@ -349,22 +349,22 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					testDataTypes.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithStringAdapter(datum, units), structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStartArray, units *string) {},
 				),
 				Entry("empty",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStartArray, units *string) {
 						*datum = *pump.NewBloodGlucoseTargetStartArray()
 					},
 				),
 				Entry("nil",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStartArray, units *string) { *datum = append(*datum, nil) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
 				),
 				Entry("single invalid",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStartArray, units *string) {
 						invalid := NewBloodGlucoseTargetStart(units, pump.BloodGlucoseTargetStartStartMinimum)
 						invalid.Target = *dataBloodGlucose.NewTarget()
@@ -373,13 +373,13 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0/target"),
 				),
 				Entry("single valid",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStartArray, units *string) {
 						*datum = append(*datum, NewBloodGlucoseTargetStart(units, pump.BloodGlucoseTargetStartStartMinimum))
 					},
 				),
 				Entry("multiple invalid",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStartArray, units *string) {
 						*datum = append(*datum, NewBloodGlucoseTargetStart(units, pump.BloodGlucoseTargetStartStartMinimum))
 						invalid := NewBloodGlucoseTargetStart(units, *datum.Last().Start+1)
@@ -390,7 +390,7 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/target"),
 				),
 				Entry("multiple valid",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStartArray, units *string) {
 						*datum = append(*datum, NewBloodGlucoseTargetStart(units, pump.BloodGlucoseTargetStartStartMinimum))
 						*datum = append(*datum, NewBloodGlucoseTargetStart(units, *datum.Last().Start+1))
@@ -398,7 +398,7 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					},
 				),
 				Entry("multiple errors",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStartArray, units *string) {
 						invalid := NewBloodGlucoseTargetStart(units, pump.BloodGlucoseTargetStartStartMinimum)
 						invalid.Target = *dataBloodGlucose.NewTarget()
@@ -431,7 +431,7 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					}
 				},
 				Entry("does not modify the datum",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStartArray, units *string) {},
 					nil,
 				),
@@ -441,12 +441,12 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					nil,
 				),
 				Entry("does not modify the datum; units invalid",
-					pointer.String("invalid"),
+					pointer.FromString("invalid"),
 					func(datum *pump.BloodGlucoseTargetStartArray, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; start missing",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStartArray, units *string) { (*datum)[0].Start = nil },
 					nil,
 				),
@@ -468,17 +468,17 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("does not modify the datum; units mmol/L",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStartArray, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mmol/l",
-					pointer.String("mmol/l"),
+					pointer.FromString("mmol/l"),
 					func(datum *pump.BloodGlucoseTargetStartArray, units *string) {},
 					nil,
 				),
 				Entry("modifies the datum; units mg/dL",
-					pointer.String("mg/dL"),
+					pointer.FromString("mg/dL"),
 					func(datum *pump.BloodGlucoseTargetStartArray, units *string) {},
 					func(datum *pump.BloodGlucoseTargetStartArray, expectedDatum *pump.BloodGlucoseTargetStartArray, units *string) {
 						for index := range *datum {
@@ -487,7 +487,7 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					},
 				),
 				Entry("modifies the datum; units mg/dl",
-					pointer.String("mg/dl"),
+					pointer.FromString("mg/dl"),
 					func(datum *pump.BloodGlucoseTargetStartArray, units *string) {},
 					func(datum *pump.BloodGlucoseTargetStartArray, expectedDatum *pump.BloodGlucoseTargetStartArray, units *string) {
 						for index := range *datum {
@@ -515,22 +515,22 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					}
 				},
 				Entry("does not modify the datum; units mmol/L",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStartArray, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mmol/l",
-					pointer.String("mmol/l"),
+					pointer.FromString("mmol/l"),
 					func(datum *pump.BloodGlucoseTargetStartArray, units *string) {},
 					nil,
 				),
 				Entry("modifies the datum; units mg/dL",
-					pointer.String("mg/dL"),
+					pointer.FromString("mg/dL"),
 					func(datum *pump.BloodGlucoseTargetStartArray, units *string) {},
 					nil,
 				),
 				Entry("modifies the datum; units mg/dl",
-					pointer.String("mg/dl"),
+					pointer.FromString("mg/dl"),
 					func(datum *pump.BloodGlucoseTargetStartArray, units *string) {},
 					nil,
 				),
@@ -549,14 +549,14 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 			})
 
 			It("returns the first element if the array has one element", func() {
-				*datum = append(*datum, NewBloodGlucoseTargetStart(pointer.String("mmol/L"), pump.BloodGlucoseTargetStartStartMinimum))
+				*datum = append(*datum, NewBloodGlucoseTargetStart(pointer.FromString("mmol/L"), pump.BloodGlucoseTargetStartStartMinimum))
 				Expect(datum.First()).To(Equal((*datum)[0]))
 			})
 
 			It("returns the first element if the array has multiple elements", func() {
-				*datum = append(*datum, NewBloodGlucoseTargetStart(pointer.String("mmol/L"), pump.BloodGlucoseTargetStartStartMinimum))
-				*datum = append(*datum, NewBloodGlucoseTargetStart(pointer.String("mmol/L"), *datum.Last().Start+1))
-				*datum = append(*datum, NewBloodGlucoseTargetStart(pointer.String("mmol/L"), *datum.Last().Start+1))
+				*datum = append(*datum, NewBloodGlucoseTargetStart(pointer.FromString("mmol/L"), pump.BloodGlucoseTargetStartStartMinimum))
+				*datum = append(*datum, NewBloodGlucoseTargetStart(pointer.FromString("mmol/L"), *datum.Last().Start+1))
+				*datum = append(*datum, NewBloodGlucoseTargetStart(pointer.FromString("mmol/L"), *datum.Last().Start+1))
 				Expect(datum.First()).To(Equal((*datum)[0]))
 			})
 		})
@@ -573,14 +573,14 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 			})
 
 			It("returns the last element if the array has one element", func() {
-				*datum = append(*datum, NewBloodGlucoseTargetStart(pointer.String("mmol/L"), pump.BloodGlucoseTargetStartStartMinimum))
+				*datum = append(*datum, NewBloodGlucoseTargetStart(pointer.FromString("mmol/L"), pump.BloodGlucoseTargetStartStartMinimum))
 				Expect(datum.Last()).To(Equal((*datum)[0]))
 			})
 
 			It("returns the last element if the array has multiple elements", func() {
-				*datum = append(*datum, NewBloodGlucoseTargetStart(pointer.String("mmol/L"), pump.BloodGlucoseTargetStartStartMinimum))
-				*datum = append(*datum, NewBloodGlucoseTargetStart(pointer.String("mmol/L"), *datum.Last().Start+1))
-				*datum = append(*datum, NewBloodGlucoseTargetStart(pointer.String("mmol/L"), *datum.Last().Start+1))
+				*datum = append(*datum, NewBloodGlucoseTargetStart(pointer.FromString("mmol/L"), pump.BloodGlucoseTargetStartStartMinimum))
+				*datum = append(*datum, NewBloodGlucoseTargetStart(pointer.FromString("mmol/L"), *datum.Last().Start+1))
+				*datum = append(*datum, NewBloodGlucoseTargetStart(pointer.FromString("mmol/L"), *datum.Last().Start+1))
 				Expect(datum.Last()).To(Equal((*datum)[2]))
 			})
 		})
@@ -609,28 +609,28 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					testDataTypes.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithStringAdapter(datum, units), structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStartArrayMap, units *string) {},
 				),
 				Entry("empty",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStartArrayMap, units *string) {
 						*datum = *pump.NewBloodGlucoseTargetStartArrayMap()
 					},
 				),
 				Entry("empty name",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStartArrayMap, units *string) {
 						datum.Set("", NewBloodGlucoseTargetStartArray(units))
 					},
 				),
 				Entry("nil value",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStartArrayMap, units *string) { datum.Set("", nil) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/"),
 				),
 				Entry("single invalid",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStartArrayMap, units *string) {
 						invalid := NewBloodGlucoseTargetStartArray(units)
 						(*invalid)[0].Start = nil
@@ -639,13 +639,13 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/one/0/start"),
 				),
 				Entry("single valid",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStartArrayMap, units *string) {
 						datum.Set("one", NewBloodGlucoseTargetStartArray(units))
 					},
 				),
 				Entry("multiple invalid",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStartArrayMap, units *string) {
 						invalid := NewBloodGlucoseTargetStartArray(units)
 						(*invalid)[0].Start = nil
@@ -656,7 +656,7 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/two/0/start"),
 				),
 				Entry("multiple valid",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStartArrayMap, units *string) {
 						datum.Set("one", NewBloodGlucoseTargetStartArray(units))
 						datum.Set("two", NewBloodGlucoseTargetStartArray(units))
@@ -664,7 +664,7 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					},
 				),
 				Entry("multiple errors",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStartArrayMap, units *string) {
 						invalid := NewBloodGlucoseTargetStartArray(units)
 						(*invalid)[0].Start = nil
@@ -697,7 +697,7 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					}
 				},
 				Entry("does not modify the datum",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStartArrayMap, units *string) {},
 					nil,
 				),
@@ -707,12 +707,12 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					nil,
 				),
 				Entry("does not modify the datum; units invalid",
-					pointer.String("invalid"),
+					pointer.FromString("invalid"),
 					func(datum *pump.BloodGlucoseTargetStartArrayMap, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; start missing",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStartArrayMap, units *string) {
 						for name := range *datum {
 							(*(*datum)[name])[0].Start = nil
@@ -738,17 +738,17 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("does not modify the datum; units mmol/L",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStartArrayMap, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mmol/l",
-					pointer.String("mmol/l"),
+					pointer.FromString("mmol/l"),
 					func(datum *pump.BloodGlucoseTargetStartArrayMap, units *string) {},
 					nil,
 				),
 				Entry("modifies the datum; units mg/dL",
-					pointer.String("mg/dL"),
+					pointer.FromString("mg/dL"),
 					func(datum *pump.BloodGlucoseTargetStartArrayMap, units *string) {},
 					func(datum *pump.BloodGlucoseTargetStartArrayMap, expectedDatum *pump.BloodGlucoseTargetStartArrayMap, units *string) {
 						for name := range *datum {
@@ -759,7 +759,7 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					},
 				),
 				Entry("modifies the datum; units mg/dl",
-					pointer.String("mg/dl"),
+					pointer.FromString("mg/dl"),
 					func(datum *pump.BloodGlucoseTargetStartArrayMap, units *string) {},
 					func(datum *pump.BloodGlucoseTargetStartArrayMap, expectedDatum *pump.BloodGlucoseTargetStartArrayMap, units *string) {
 						for name := range *datum {
@@ -789,22 +789,22 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					}
 				},
 				Entry("does not modify the datum; units mmol/L",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.BloodGlucoseTargetStartArrayMap, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mmol/l",
-					pointer.String("mmol/l"),
+					pointer.FromString("mmol/l"),
 					func(datum *pump.BloodGlucoseTargetStartArrayMap, units *string) {},
 					nil,
 				),
 				Entry("modifies the datum; units mg/dL",
-					pointer.String("mg/dL"),
+					pointer.FromString("mg/dL"),
 					func(datum *pump.BloodGlucoseTargetStartArrayMap, units *string) {},
 					nil,
 				),
 				Entry("modifies the datum; units mg/dl",
-					pointer.String("mg/dl"),
+					pointer.FromString("mg/dl"),
 					func(datum *pump.BloodGlucoseTargetStartArrayMap, units *string) {},
 					nil,
 				),

@@ -70,7 +70,7 @@ func DatasetsUpdate(dataServiceContext dataService.Context) {
 			return
 		}
 	} else {
-		update.State = pointer.String(data.DataSetStateClosed)
+		update.State = pointer.FromString(data.DataSetStateClosed)
 	}
 
 	dataset, err = dataServiceContext.DataSession().UpdateDataSet(ctx, datasetID, update)

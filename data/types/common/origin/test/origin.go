@@ -9,11 +9,11 @@ import (
 
 func NewOrigin() *origin.Origin {
 	datum := origin.NewOrigin()
-	datum.ID = pointer.String(test.NewText(1, 100))
-	datum.Name = pointer.String(testInternet.NewReverseDomain())
-	datum.Time = pointer.Time(test.NewTime())
-	datum.Type = pointer.String(test.RandomStringFromArray(origin.Types()))
-	datum.Version = pointer.String(test.NewText(1, 100))
+	datum.ID = pointer.FromString(test.NewText(1, 100))
+	datum.Name = pointer.FromString(testInternet.NewReverseDomain())
+	datum.Time = pointer.FromTime(test.NewTime())
+	datum.Type = pointer.FromString(test.RandomStringFromArray(origin.Types()))
+	datum.Version = pointer.FromString(test.NewText(1, 100))
 	return datum
 }
 

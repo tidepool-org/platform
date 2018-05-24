@@ -17,8 +17,8 @@ import (
 
 func NewOutOfRangeAlert() *cgm.OutOfRangeAlert {
 	datum := cgm.NewOutOfRangeAlert()
-	datum.Enabled = pointer.Bool(test.RandomBool())
-	datum.Threshold = pointer.Int(test.RandomIntFromArray(cgm.OutOfRangeAlertThresholds()))
+	datum.Enabled = pointer.FromBool(test.RandomBool())
+	datum.Threshold = pointer.FromInt(test.RandomIntFromArray(cgm.OutOfRangeAlertThresholds()))
 	return datum
 }
 
@@ -73,21 +73,21 @@ var _ = Describe("OutOfRangeAlert", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/enabled"),
 				),
 				Entry("enabled true",
-					func(datum *cgm.OutOfRangeAlert) { datum.Enabled = pointer.Bool(true) },
+					func(datum *cgm.OutOfRangeAlert) { datum.Enabled = pointer.FromBool(true) },
 				),
 				Entry("enabled false",
-					func(datum *cgm.OutOfRangeAlert) { datum.Enabled = pointer.Bool(false) },
+					func(datum *cgm.OutOfRangeAlert) { datum.Enabled = pointer.FromBool(false) },
 				),
 				Entry("threshold missing",
 					func(datum *cgm.OutOfRangeAlert) { datum.Threshold = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/snooze"),
 				),
 				Entry("threshold invalid",
-					func(datum *cgm.OutOfRangeAlert) { datum.Threshold = pointer.Int(1) },
+					func(datum *cgm.OutOfRangeAlert) { datum.Threshold = pointer.FromInt(1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueIntNotOneOf(1, cgm.OutOfRangeAlertThresholds()), "/snooze"),
 				),
 				Entry("threshold valid",
-					func(datum *cgm.OutOfRangeAlert) { datum.Threshold = pointer.Int(1200000) },
+					func(datum *cgm.OutOfRangeAlert) { datum.Threshold = pointer.FromInt(1200000) },
 				),
 				Entry("multiple errors",
 					func(datum *cgm.OutOfRangeAlert) {

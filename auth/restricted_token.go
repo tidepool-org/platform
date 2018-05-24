@@ -51,7 +51,7 @@ type RestrictedTokenCreate struct {
 
 func NewRestrictedTokenCreate() *RestrictedTokenCreate {
 	return &RestrictedTokenCreate{
-		ExpirationTime: pointer.Time(time.Now().Add(MaximumExpirationDuration).Truncate(time.Second)),
+		ExpirationTime: pointer.FromTime(time.Now().Add(MaximumExpirationDuration).Truncate(time.Second)),
 	}
 }
 
@@ -67,7 +67,7 @@ func (r *RestrictedTokenCreate) Validate(validator structure.Validator) {
 
 func (r *RestrictedTokenCreate) Normalize(normalizer structure.Normalizer) {
 	if r.ExpirationTime != nil {
-		r.ExpirationTime = pointer.Time((*r.ExpirationTime).Truncate(time.Second))
+		r.ExpirationTime = pointer.FromTime((*r.ExpirationTime).Truncate(time.Second))
 	}
 }
 
@@ -96,7 +96,7 @@ func (r *RestrictedTokenUpdate) Validate(validator structure.Validator) {
 
 func (r *RestrictedTokenUpdate) Normalize(normalizer structure.Normalizer) {
 	if r.ExpirationTime != nil {
-		r.ExpirationTime = pointer.Time((*r.ExpirationTime).Truncate(time.Second))
+		r.ExpirationTime = pointer.FromTime((*r.ExpirationTime).Truncate(time.Second))
 	}
 }
 

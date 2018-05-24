@@ -91,9 +91,9 @@ func UsersDatasetsCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	dataset.DataState = pointer.String("open") // TODO: Deprecated DataState (after data migration)
-	dataset.ID = pointer.String(id.New())
-	dataset.State = pointer.String("open")
+	dataset.DataState = pointer.FromString("open") // TODO: Deprecated DataState (after data migration)
+	dataset.ID = pointer.FromString(id.New())
+	dataset.State = pointer.FromString("open")
 
 	if err = dataServiceContext.DataSession().CreateDataset(ctx, dataset); err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to insert dataset", err)

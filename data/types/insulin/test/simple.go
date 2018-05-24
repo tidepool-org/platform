@@ -8,8 +8,8 @@ import (
 
 func NewSimple() *insulin.Simple {
 	datum := insulin.NewSimple()
-	datum.ActingType = pointer.String(test.RandomStringFromArray(insulin.SimpleActingTypes()))
-	datum.Brand = pointer.String(test.NewText(1, 100))
+	datum.ActingType = pointer.FromString(test.RandomStringFromArray(insulin.SimpleActingTypes()))
+	datum.Brand = pointer.FromString(test.NewText(1, 100))
 	datum.Concentration = NewConcentration()
 	return datum
 }

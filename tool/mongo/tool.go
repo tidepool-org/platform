@@ -86,10 +86,10 @@ func (t *Tool) NewMongoConfig() *mongo.Config {
 	mongoConfig.Database = t.mongoConfig.Database
 	mongoConfig.CollectionPrefix = t.mongoConfig.CollectionPrefix
 	if t.mongoConfig.Username != nil {
-		mongoConfig.Username = pointer.String(*t.mongoConfig.Username)
+		mongoConfig.Username = pointer.FromString(*t.mongoConfig.Username)
 	}
 	if t.mongoConfig.Password != nil {
-		mongoConfig.Password = pointer.String(*t.mongoConfig.Password)
+		mongoConfig.Password = pointer.FromString(*t.mongoConfig.Password)
 	}
 	return mongoConfig
 }

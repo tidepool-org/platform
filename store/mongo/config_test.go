@@ -127,8 +127,8 @@ var _ = Describe("Config", func() {
 				config.TLS = false
 				config.Database = "database"
 				config.CollectionPrefix = "collection_prefix"
-				config.Username = pointer.String("username")
-				config.Password = pointer.String("password")
+				config.Username = pointer.FromString("username")
+				config.Password = pointer.FromString("password")
 				config.Timeout = 5 * time.Second
 			})
 

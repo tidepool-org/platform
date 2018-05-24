@@ -20,8 +20,8 @@ import (
 
 func NewClient() *upload.Client {
 	datum := upload.NewClient()
-	datum.Name = pointer.String(testInternet.NewReverseDomain())
-	datum.Version = pointer.String(testInternet.NewSemanticVersion())
+	datum.Name = pointer.FromString(testInternet.NewReverseDomain())
+	datum.Version = pointer.FromString(testInternet.NewSemanticVersion())
 	datum.Private = testData.NewBlob()
 	return datum
 }
@@ -68,30 +68,30 @@ var _ = Describe("Client", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/name"),
 				),
 				Entry("name empty",
-					func(datum *upload.Client) { datum.Name = pointer.String("") },
+					func(datum *upload.Client) { datum.Name = pointer.FromString("") },
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/name"),
 				),
 				Entry("name invalid",
-					func(datum *upload.Client) { datum.Name = pointer.String("org") },
+					func(datum *upload.Client) { datum.Name = pointer.FromString("org") },
 					testErrors.WithPointerSource(validate.ErrorValueStringAsReverseDomainNotValid("org"), "/name"),
 				),
 				Entry("name valid",
-					func(datum *upload.Client) { datum.Name = pointer.String(testInternet.NewReverseDomain()) },
+					func(datum *upload.Client) { datum.Name = pointer.FromString(testInternet.NewReverseDomain()) },
 				),
 				Entry("version missing",
 					func(datum *upload.Client) { datum.Version = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/version"),
 				),
 				Entry("version empty",
-					func(datum *upload.Client) { datum.Version = pointer.String("") },
+					func(datum *upload.Client) { datum.Version = pointer.FromString("") },
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/version"),
 				),
 				Entry("version invalid",
-					func(datum *upload.Client) { datum.Version = pointer.String("1.2") },
+					func(datum *upload.Client) { datum.Version = pointer.FromString("1.2") },
 					testErrors.WithPointerSource(validate.ErrorValueStringAsSemanticVersionNotValid("1.2"), "/version"),
 				),
 				Entry("version valid",
-					func(datum *upload.Client) { datum.Version = pointer.String(testInternet.NewSemanticVersion()) },
+					func(datum *upload.Client) { datum.Version = pointer.FromString(testInternet.NewSemanticVersion()) },
 				),
 				Entry("private missing",
 					func(datum *upload.Client) { datum.Private = nil },

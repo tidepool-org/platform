@@ -385,7 +385,7 @@ package deduplicator_test
 // 							Context: ctx,
 // 							ID:      testDataset.UploadID,
 // 							Update: &data.DataSetUpdate{
-// 								Active: pointer.Bool(false),
+// 								Active: pointer.FromBool(false),
 // 								Deduplicator: &data.DeduplicatorDescriptor{
 // 									Name:    testName,
 // 									Version: testVersion,

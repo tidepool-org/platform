@@ -19,8 +19,8 @@ import (
 
 func NewElevationChange() *physical.ElevationChange {
 	datum := physical.NewElevationChange()
-	datum.Units = pointer.String(test.RandomStringFromArray(physical.ElevationChangeUnits()))
-	datum.Value = pointer.Float64(test.RandomFloat64FromRange(physical.ElevationChangeValueRangeForUnits(datum.Units)))
+	datum.Units = pointer.FromString(test.RandomStringFromArray(physical.ElevationChangeUnits()))
+	datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(physical.ElevationChangeValueRangeForUnits(datum.Units)))
 	return datum
 }
 
@@ -103,34 +103,34 @@ var _ = Describe("ElevationChange", func() {
 				Entry("units missing; value out of range (lower)",
 					func(datum *physical.ElevationChange) {
 						datum.Units = nil
-						datum.Value = pointer.Float64(-0.1)
+						datum.Value = pointer.FromFloat64(-0.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; value in range (lower)",
 					func(datum *physical.ElevationChange) {
 						datum.Units = nil
-						datum.Value = pointer.Float64(0.0)
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; value in range (upper)",
 					func(datum *physical.ElevationChange) {
 						datum.Units = nil
-						datum.Value = pointer.Float64(528000.0)
+						datum.Value = pointer.FromFloat64(528000.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; value out of range (upper)",
 					func(datum *physical.ElevationChange) {
 						datum.Units = nil
-						datum.Value = pointer.Float64(528000.1)
+						datum.Value = pointer.FromFloat64(528000.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units invalid; value missing",
 					func(datum *physical.ElevationChange) {
-						datum.Units = pointer.String("invalid")
+						datum.Units = pointer.FromString("invalid")
 						datum.Value = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"feet", "meters"}), "/units"),
@@ -138,95 +138,95 @@ var _ = Describe("ElevationChange", func() {
 				),
 				Entry("units invalid; value out of range (lower)",
 					func(datum *physical.ElevationChange) {
-						datum.Units = pointer.String("invalid")
-						datum.Value = pointer.Float64(-0.1)
+						datum.Units = pointer.FromString("invalid")
+						datum.Value = pointer.FromFloat64(-0.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"feet", "meters"}), "/units"),
 				),
 				Entry("units invalid; value in range (lower)",
 					func(datum *physical.ElevationChange) {
-						datum.Units = pointer.String("invalid")
-						datum.Value = pointer.Float64(0.0)
+						datum.Units = pointer.FromString("invalid")
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"feet", "meters"}), "/units"),
 				),
 				Entry("units invalid; value in range (upper)",
 					func(datum *physical.ElevationChange) {
-						datum.Units = pointer.String("invalid")
-						datum.Value = pointer.Float64(528000.0)
+						datum.Units = pointer.FromString("invalid")
+						datum.Value = pointer.FromFloat64(528000.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"feet", "meters"}), "/units"),
 				),
 				Entry("units invalid; value out of range (upper)",
 					func(datum *physical.ElevationChange) {
-						datum.Units = pointer.String("invalid")
-						datum.Value = pointer.Float64(528000.1)
+						datum.Units = pointer.FromString("invalid")
+						datum.Value = pointer.FromFloat64(528000.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"feet", "meters"}), "/units"),
 				),
 				Entry("units feet; value missing",
 					func(datum *physical.ElevationChange) {
-						datum.Units = pointer.String("feet")
+						datum.Units = pointer.FromString("feet")
 						datum.Value = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units feet; value out of range (lower)",
 					func(datum *physical.ElevationChange) {
-						datum.Units = pointer.String("feet")
-						datum.Value = pointer.Float64(-0.1)
+						datum.Units = pointer.FromString("feet")
+						datum.Value = pointer.FromFloat64(-0.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 52800.0), "/value"),
 				),
 				Entry("units feet; value in range (lower)",
 					func(datum *physical.ElevationChange) {
-						datum.Units = pointer.String("feet")
-						datum.Value = pointer.Float64(0.0)
+						datum.Units = pointer.FromString("feet")
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 				),
 				Entry("units feet; value in range (upper)",
 					func(datum *physical.ElevationChange) {
-						datum.Units = pointer.String("feet")
-						datum.Value = pointer.Float64(52800.0)
+						datum.Units = pointer.FromString("feet")
+						datum.Value = pointer.FromFloat64(52800.0)
 					},
 				),
 				Entry("units feet; value out of range (upper)",
 					func(datum *physical.ElevationChange) {
-						datum.Units = pointer.String("feet")
-						datum.Value = pointer.Float64(52800.1)
+						datum.Units = pointer.FromString("feet")
+						datum.Value = pointer.FromFloat64(52800.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(52800.1, 0.0, 52800.0), "/value"),
 				),
 				Entry("units meters; value missing",
 					func(datum *physical.ElevationChange) {
-						datum.Units = pointer.String("meters")
+						datum.Units = pointer.FromString("meters")
 						datum.Value = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units meters; value out of range (lower)",
 					func(datum *physical.ElevationChange) {
-						datum.Units = pointer.String("meters")
-						datum.Value = pointer.Float64(-0.1)
+						datum.Units = pointer.FromString("meters")
+						datum.Value = pointer.FromFloat64(-0.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 16093.44), "/value"),
 				),
 				Entry("units meters; value in range (lower)",
 					func(datum *physical.ElevationChange) {
-						datum.Units = pointer.String("meters")
-						datum.Value = pointer.Float64(0.0)
+						datum.Units = pointer.FromString("meters")
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 				),
 				Entry("units meters; value in range (upper)",
 					func(datum *physical.ElevationChange) {
-						datum.Units = pointer.String("meters")
-						datum.Value = pointer.Float64(16093.44)
+						datum.Units = pointer.FromString("meters")
+						datum.Value = pointer.FromFloat64(16093.44)
 					},
 				),
 				Entry("units meters; value out of range (upper)",
 					func(datum *physical.ElevationChange) {
-						datum.Units = pointer.String("meters")
-						datum.Value = pointer.Float64(16093.45)
+						datum.Units = pointer.FromString("meters")
+						datum.Value = pointer.FromFloat64(16093.45)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(16093.45, 0.0, 16093.44), "/value"),
 				),
@@ -263,10 +263,10 @@ var _ = Describe("ElevationChange", func() {
 					func(datum *physical.ElevationChange) { datum.Units = nil },
 				),
 				Entry("does not modify the datum; units feet",
-					func(datum *physical.ElevationChange) { datum.Units = pointer.String("feet") },
+					func(datum *physical.ElevationChange) { datum.Units = pointer.FromString("feet") },
 				),
 				Entry("does not modify the datum; units meters",
-					func(datum *physical.ElevationChange) { datum.Units = pointer.String("meters") },
+					func(datum *physical.ElevationChange) { datum.Units = pointer.FromString("meters") },
 				),
 				Entry("does not modify the datum; value missing",
 					func(datum *physical.ElevationChange) { datum.Value = nil },
@@ -283,19 +283,19 @@ var _ = Describe("ElevationChange", func() {
 		})
 
 		It("returns expected range for units invalid", func() {
-			minimum, maximum := physical.ElevationChangeValueRangeForUnits(pointer.String("invalid"))
+			minimum, maximum := physical.ElevationChangeValueRangeForUnits(pointer.FromString("invalid"))
 			Expect(minimum).To(Equal(-math.MaxFloat64))
 			Expect(maximum).To(Equal(math.MaxFloat64))
 		})
 
 		It("returns expected range for units feet", func() {
-			minimum, maximum := physical.ElevationChangeValueRangeForUnits(pointer.String("feet"))
+			minimum, maximum := physical.ElevationChangeValueRangeForUnits(pointer.FromString("feet"))
 			Expect(minimum).To(Equal(0.0))
 			Expect(maximum).To(Equal(52800.0))
 		})
 
 		It("returns expected range for units meters", func() {
-			minimum, maximum := physical.ElevationChangeValueRangeForUnits(pointer.String("meters"))
+			minimum, maximum := physical.ElevationChangeValueRangeForUnits(pointer.FromString("meters"))
 			Expect(minimum).To(Equal(0.0))
 			Expect(maximum).To(Equal(16093.44))
 		})

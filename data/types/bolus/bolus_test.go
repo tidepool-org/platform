@@ -24,7 +24,7 @@ import (
 
 func NewTestBolus(sourceTime interface{}, sourceSubType interface{}) *bolus.Bolus {
 	datum := bolus.New("")
-	datum.DeviceID = pointer.String(id.New())
+	datum.DeviceID = pointer.FromString(id.New())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
 	}
@@ -223,7 +223,7 @@ var _ = Describe("Bolus", func() {
 			})
 
 			It("returns error if user id is empty", func() {
-				datum.UserID = pointer.String("")
+				datum.UserID = pointer.FromString("")
 				identityFields, err := datum.IdentityFields()
 				Expect(err).To(MatchError("user id is empty"))
 				Expect(identityFields).To(BeEmpty())

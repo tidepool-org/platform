@@ -43,8 +43,8 @@ var _ = Describe("Truncate", func() {
 			Expect(testDataset).ToNot(BeNil())
 			testDataset.UploadID = &testUploadID
 			testDataset.UserID = &testUserID
-			testDataset.DeviceID = pointer.String(id.New())
-			testDataset.DeviceManufacturers = pointer.StringArray([]string{"Animas"})
+			testDataset.DeviceID = pointer.FromString(id.New())
+			testDataset.DeviceManufacturers = pointer.FromStringArray([]string{"Animas"})
 		})
 
 		Context("CanDeduplicateDataset", func() {
@@ -60,7 +60,7 @@ var _ = Describe("Truncate", func() {
 			})
 
 			It("returns false if the dataset id is empty", func() {
-				testDataset.UploadID = pointer.String("")
+				testDataset.UploadID = pointer.FromString("")
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
@@ -70,7 +70,7 @@ var _ = Describe("Truncate", func() {
 			})
 
 			It("returns false if the dataset user id is empty", func() {
-				testDataset.UserID = pointer.String("")
+				testDataset.UserID = pointer.FromString("")
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
@@ -80,7 +80,7 @@ var _ = Describe("Truncate", func() {
 			})
 
 			It("returns false if the device id is empty", func() {
-				testDataset.DeviceID = pointer.String("")
+				testDataset.DeviceID = pointer.FromString("")
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
@@ -90,12 +90,12 @@ var _ = Describe("Truncate", func() {
 			})
 
 			It("returns false if the device manufacturers is empty", func() {
-				testDataset.DeviceManufacturers = pointer.StringArray([]string{})
+				testDataset.DeviceManufacturers = pointer.FromStringArray([]string{})
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
 			It("returns false if the device manufacturers does not contain expected device manufacturer", func() {
-				testDataset.DeviceManufacturers = pointer.StringArray([]string{"Ant", "Zebra", "Cobra"})
+				testDataset.DeviceManufacturers = pointer.FromStringArray([]string{"Ant", "Zebra", "Cobra"})
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
@@ -104,7 +104,7 @@ var _ = Describe("Truncate", func() {
 			})
 
 			It("returns true if the device id and expected device manufacturer are specified with multiple device manufacturers", func() {
-				testDataset.DeviceManufacturers = pointer.StringArray([]string{"Ant", "Zebra", "Animas", "Cobra"})
+				testDataset.DeviceManufacturers = pointer.FromStringArray([]string{"Ant", "Zebra", "Animas", "Cobra"})
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeTrue())
 			})
 		})
@@ -151,7 +151,7 @@ var _ = Describe("Truncate", func() {
 				})
 
 				It("returns an error if the dataset id is empty", func() {
-					testDataset.UploadID = pointer.String("")
+					testDataset.UploadID = pointer.FromString("")
 					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
 					Expect(err).To(MatchError("dataset id is empty"))
 					Expect(testDeduplicator).To(BeNil())
@@ -165,7 +165,7 @@ var _ = Describe("Truncate", func() {
 				})
 
 				It("returns an error if the dataset user id is empty", func() {
-					testDataset.UserID = pointer.String("")
+					testDataset.UserID = pointer.FromString("")
 					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
 					Expect(err).To(MatchError("dataset user id is empty"))
 					Expect(testDeduplicator).To(BeNil())
@@ -179,7 +179,7 @@ var _ = Describe("Truncate", func() {
 				})
 
 				It("returns an error if the dataset device id is empty", func() {
-					testDataset.DeviceID = pointer.String("")
+					testDataset.DeviceID = pointer.FromString("")
 					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
 					Expect(err).To(MatchError("dataset device id is empty"))
 					Expect(testDeduplicator).To(BeNil())
@@ -193,14 +193,14 @@ var _ = Describe("Truncate", func() {
 				})
 
 				It("returns an error if the device manufacturers is empty", func() {
-					testDataset.DeviceManufacturers = pointer.StringArray([]string{})
+					testDataset.DeviceManufacturers = pointer.FromStringArray([]string{})
 					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
 					Expect(err).To(MatchError("dataset device manufacturers does not contain expected device manufacturers"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
 				It("returns an error if the device manufacturers does not contain expected device manufacturer", func() {
-					testDataset.DeviceManufacturers = pointer.StringArray([]string{"Ant", "Zebra", "Cobra"})
+					testDataset.DeviceManufacturers = pointer.FromStringArray([]string{"Ant", "Zebra", "Cobra"})
 					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
 					Expect(err).To(MatchError("dataset device manufacturers does not contain expected device manufacturers"))
 					Expect(testDeduplicator).To(BeNil())
@@ -211,7 +211,7 @@ var _ = Describe("Truncate", func() {
 				})
 
 				It("returns a new deduplicator upon success if the device id and expected device manufacturer are specified with multiple device manufacturers", func() {
-					testDataset.DeviceManufacturers = pointer.StringArray([]string{"Ant", "Zebra", "Animas", "Cobra"})
+					testDataset.DeviceManufacturers = pointer.FromStringArray([]string{"Ant", "Zebra", "Animas", "Cobra"})
 					Expect(testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)).ToNot(BeNil())
 				})
 			})

@@ -9,7 +9,7 @@ import (
 func NewLocation() *location.Location {
 	datum := location.NewLocation()
 	datum.GPS = NewGPS()
-	datum.Name = pointer.String(test.NewText(1, 100))
+	datum.Name = pointer.FromString(test.NewText(1, 100))
 	return datum
 }
 

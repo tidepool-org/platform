@@ -64,13 +64,13 @@ var _ = Describe("Concentration", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units invalid",
-					func(datum *insulin.Concentration) { datum.Units = pointer.String("invalid") },
+					func(datum *insulin.Concentration) { datum.Units = pointer.FromString("invalid") },
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"Units/mL"}), "/units"),
 				),
 				Entry("units Units/mL",
 					func(datum *insulin.Concentration) {
-						datum.Units = pointer.String("Units/mL")
-						datum.Value = pointer.Float64(0.0)
+						datum.Units = pointer.FromString("Units/mL")
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 				),
 				Entry("units missing; value missing",
@@ -84,34 +84,34 @@ var _ = Describe("Concentration", func() {
 				Entry("units missing; value out of range (lower)",
 					func(datum *insulin.Concentration) {
 						datum.Units = nil
-						datum.Value = pointer.Float64(-0.1)
+						datum.Value = pointer.FromFloat64(-0.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; value in range (lower)",
 					func(datum *insulin.Concentration) {
 						datum.Units = nil
-						datum.Value = pointer.Float64(0.0)
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; value in range (upper)",
 					func(datum *insulin.Concentration) {
 						datum.Units = nil
-						datum.Value = pointer.Float64(10000.0)
+						datum.Value = pointer.FromFloat64(10000.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; value out of range (upper)",
 					func(datum *insulin.Concentration) {
 						datum.Units = nil
-						datum.Value = pointer.Float64(10000.1)
+						datum.Value = pointer.FromFloat64(10000.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units invalid; value missing",
 					func(datum *insulin.Concentration) {
-						datum.Units = pointer.String("invalid")
+						datum.Units = pointer.FromString("invalid")
 						datum.Value = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"Units/mL"}), "/units"),
@@ -119,62 +119,62 @@ var _ = Describe("Concentration", func() {
 				),
 				Entry("units invalid; value out of range (lower)",
 					func(datum *insulin.Concentration) {
-						datum.Units = pointer.String("invalid")
-						datum.Value = pointer.Float64(-0.1)
+						datum.Units = pointer.FromString("invalid")
+						datum.Value = pointer.FromFloat64(-0.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"Units/mL"}), "/units"),
 				),
 				Entry("units invalid; value in range (lower)",
 					func(datum *insulin.Concentration) {
-						datum.Units = pointer.String("invalid")
-						datum.Value = pointer.Float64(0.0)
+						datum.Units = pointer.FromString("invalid")
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"Units/mL"}), "/units"),
 				),
 				Entry("units invalid; value in range (upper)",
 					func(datum *insulin.Concentration) {
-						datum.Units = pointer.String("invalid")
-						datum.Value = pointer.Float64(10000.0)
+						datum.Units = pointer.FromString("invalid")
+						datum.Value = pointer.FromFloat64(10000.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"Units/mL"}), "/units"),
 				),
 				Entry("units invalid; value out of range (upper)",
 					func(datum *insulin.Concentration) {
-						datum.Units = pointer.String("invalid")
-						datum.Value = pointer.Float64(10000.1)
+						datum.Units = pointer.FromString("invalid")
+						datum.Value = pointer.FromFloat64(10000.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"Units/mL"}), "/units"),
 				),
 				Entry("units Units/mL; value missing",
 					func(datum *insulin.Concentration) {
-						datum.Units = pointer.String("Units/mL")
+						datum.Units = pointer.FromString("Units/mL")
 						datum.Value = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units Units/mL; value out of range (lower)",
 					func(datum *insulin.Concentration) {
-						datum.Units = pointer.String("Units/mL")
-						datum.Value = pointer.Float64(-0.1)
+						datum.Units = pointer.FromString("Units/mL")
+						datum.Value = pointer.FromFloat64(-0.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 10000.0), "/value"),
 				),
 				Entry("units Units/mL; value in range (lower)",
 					func(datum *insulin.Concentration) {
-						datum.Units = pointer.String("Units/mL")
-						datum.Value = pointer.Float64(0.0)
+						datum.Units = pointer.FromString("Units/mL")
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 				),
 				Entry("units Units/mL; value in range (upper)",
 					func(datum *insulin.Concentration) {
-						datum.Units = pointer.String("Units/mL")
-						datum.Value = pointer.Float64(10000.0)
+						datum.Units = pointer.FromString("Units/mL")
+						datum.Value = pointer.FromFloat64(10000.0)
 					},
 				),
 				Entry("units Units/mL; value out of range (upper)",
 					func(datum *insulin.Concentration) {
-						datum.Units = pointer.String("Units/mL")
-						datum.Value = pointer.Float64(10000.1)
+						datum.Units = pointer.FromString("Units/mL")
+						datum.Value = pointer.FromFloat64(10000.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(10000.1, 0.0, 10000.0), "/value"),
 				),
@@ -225,13 +225,13 @@ var _ = Describe("Concentration", func() {
 		})
 
 		It("returns expected range for units invalid", func() {
-			minimum, maximum := insulin.ConcentrationValueRangeForUnits(pointer.String("invalid"))
+			minimum, maximum := insulin.ConcentrationValueRangeForUnits(pointer.FromString("invalid"))
 			Expect(minimum).To(Equal(-math.MaxFloat64))
 			Expect(maximum).To(Equal(math.MaxFloat64))
 		})
 
 		It("returns expected range for units Units/mL", func() {
-			minimum, maximum := insulin.ConcentrationValueRangeForUnits(pointer.String("Units/mL"))
+			minimum, maximum := insulin.ConcentrationValueRangeForUnits(pointer.FromString("Units/mL"))
 			Expect(minimum).To(Equal(0.0))
 			Expect(maximum).To(Equal(10000.0))
 		})

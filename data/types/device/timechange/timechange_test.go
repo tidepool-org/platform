@@ -49,7 +49,7 @@ func CloneTimeChange(datum *timechange.TimeChange) *timechange.TimeChange {
 
 func NewTestTimeChange(sourceTime interface{}, sourceChange *timechange.Change) *timechange.TimeChange {
 	datum := timechange.New()
-	datum.DeviceID = pointer.String(id.New())
+	datum.DeviceID = pointer.FromString(id.New())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
 	}

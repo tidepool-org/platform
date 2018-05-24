@@ -1,5 +1,7 @@
 ## HEAD
 
+* Add pointer.To*, pointer.Clone*, and pointer.Default*
+* Rename pointer.* to pointer.From*
 * Update dependencies
 * Update to Go 1.10.2
 

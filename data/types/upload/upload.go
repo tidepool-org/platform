@@ -178,7 +178,7 @@ func (u *Upload) Normalize(normalizer data.Normalizer) {
 
 	if normalizer.Origin() == structure.OriginExternal {
 		if u.UploadID == nil {
-			u.UploadID = pointer.String(id.New())
+			u.UploadID = pointer.FromString(id.New())
 		}
 	}
 
@@ -188,7 +188,7 @@ func (u *Upload) Normalize(normalizer data.Normalizer) {
 
 	if normalizer.Origin() == structure.OriginExternal {
 		if u.DataSetType == nil {
-			u.DataSetType = pointer.String(DataSetTypeNormal)
+			u.DataSetType = pointer.FromString(DataSetTypeNormal)
 		}
 		if u.DeviceManufacturers != nil {
 			sort.Strings(*u.DeviceManufacturers)

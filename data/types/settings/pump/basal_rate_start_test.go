@@ -18,11 +18,11 @@ import (
 
 func NewBasalRateStart(startMinimum int) *pump.BasalRateStart {
 	datum := pump.NewBasalRateStart()
-	datum.Rate = pointer.Float64(test.RandomFloat64FromRange(pump.BasalRateStartRateMinimum, pump.BasalRateStartRateMaximum))
+	datum.Rate = pointer.FromFloat64(test.RandomFloat64FromRange(pump.BasalRateStartRateMinimum, pump.BasalRateStartRateMaximum))
 	if startMinimum == pump.BasalRateStartStartMinimum {
-		datum.Start = pointer.Int(pump.BasalRateStartStartMinimum)
+		datum.Start = pointer.FromInt(pump.BasalRateStartStartMinimum)
 	} else {
-		datum.Start = pointer.Int(test.RandomIntFromRange(startMinimum, pump.BasalRateStartStartMaximum))
+		datum.Start = pointer.FromInt(test.RandomIntFromRange(startMinimum, pump.BasalRateStartStartMaximum))
 	}
 	return datum
 }
@@ -110,7 +110,7 @@ var _ = Describe("BasalRateStart", func() {
 				func(mutator func(datum *pump.BasalRateStart), expectedErrors ...error) {
 					datum := NewBasalRateStart(pump.BasalRateStartStartMinimum)
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.Int(pump.BasalRateStartStartMinimum)), structure.Origins(), expectedErrors...)
+					testDataTypes.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.FromInt(pump.BasalRateStartStartMinimum)), structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *pump.BasalRateStart) {},
@@ -120,17 +120,17 @@ var _ = Describe("BasalRateStart", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
 				),
 				Entry("rate out of range (lower)",
-					func(datum *pump.BasalRateStart) { datum.Rate = pointer.Float64(-0.1) },
+					func(datum *pump.BasalRateStart) { datum.Rate = pointer.FromFloat64(-0.1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 100), "/rate"),
 				),
 				Entry("rate in range (lower)",
-					func(datum *pump.BasalRateStart) { datum.Rate = pointer.Float64(0.0) },
+					func(datum *pump.BasalRateStart) { datum.Rate = pointer.FromFloat64(0.0) },
 				),
 				Entry("rate in range (upper)",
-					func(datum *pump.BasalRateStart) { datum.Rate = pointer.Float64(100.0) },
+					func(datum *pump.BasalRateStart) { datum.Rate = pointer.FromFloat64(100.0) },
 				),
 				Entry("rate out of range (upper)",
-					func(datum *pump.BasalRateStart) { datum.Rate = pointer.Float64(100.1) },
+					func(datum *pump.BasalRateStart) { datum.Rate = pointer.FromFloat64(100.1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0, 100), "/rate"),
 				),
 				Entry("start missing",
@@ -151,17 +151,17 @@ var _ = Describe("BasalRateStart", func() {
 				func(mutator func(datum *pump.BasalRateStart), expectedErrors ...error) {
 					datum := NewBasalRateStart(pump.BasalRateStartStartMinimum)
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.Int(pump.BasalRateStartStartMinimum)), structure.Origins(), expectedErrors...)
+					testDataTypes.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.FromInt(pump.BasalRateStartStartMinimum)), structure.Origins(), expectedErrors...)
 				},
 				Entry("start out of range (lower)",
-					func(datum *pump.BasalRateStart) { datum.Start = pointer.Int(-1) },
+					func(datum *pump.BasalRateStart) { datum.Start = pointer.FromInt(-1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo(-1, 0), "/start"),
 				),
 				Entry("start in range",
-					func(datum *pump.BasalRateStart) { datum.Start = pointer.Int(0) },
+					func(datum *pump.BasalRateStart) { datum.Start = pointer.FromInt(0) },
 				),
 				Entry("start out of range (upper)",
-					func(datum *pump.BasalRateStart) { datum.Start = pointer.Int(1) },
+					func(datum *pump.BasalRateStart) { datum.Start = pointer.FromInt(1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo(1, 0), "/start"),
 				),
 			)
@@ -170,20 +170,20 @@ var _ = Describe("BasalRateStart", func() {
 				func(mutator func(datum *pump.BasalRateStart), expectedErrors ...error) {
 					datum := NewBasalRateStart(pump.BasalRateStartStartMinimum + 1)
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.Int(pump.BasalRateStartStartMinimum+1)), structure.Origins(), expectedErrors...)
+					testDataTypes.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.FromInt(pump.BasalRateStartStartMinimum+1)), structure.Origins(), expectedErrors...)
 				},
 				Entry("start out of range (lower)",
-					func(datum *pump.BasalRateStart) { datum.Start = pointer.Int(0) },
+					func(datum *pump.BasalRateStart) { datum.Start = pointer.FromInt(0) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(0, 1, 86400000), "/start"),
 				),
 				Entry("start in range (lower)",
-					func(datum *pump.BasalRateStart) { datum.Start = pointer.Int(1) },
+					func(datum *pump.BasalRateStart) { datum.Start = pointer.FromInt(1) },
 				),
 				Entry("start in range (upper)",
-					func(datum *pump.BasalRateStart) { datum.Start = pointer.Int(86400000) },
+					func(datum *pump.BasalRateStart) { datum.Start = pointer.FromInt(86400000) },
 				),
 				Entry("start out of range (upper)",
-					func(datum *pump.BasalRateStart) { datum.Start = pointer.Int(86400001) },
+					func(datum *pump.BasalRateStart) { datum.Start = pointer.FromInt(86400001) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(86400001, 1, 86400000), "/start"),
 				),
 			)

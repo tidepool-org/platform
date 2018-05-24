@@ -179,10 +179,10 @@ func NewTask(create *TaskCreate) (*Task, error) {
 		CreatedTime: time.Now().Truncate(time.Second),
 	}
 	if create.AvailableTime != nil {
-		tsk.AvailableTime = pointer.Time((*create.AvailableTime).Truncate(time.Second))
+		tsk.AvailableTime = pointer.FromTime((*create.AvailableTime).Truncate(time.Second))
 	}
 	if create.ExpirationTime != nil {
-		tsk.ExpirationTime = pointer.Time((*create.ExpirationTime).Truncate(time.Second))
+		tsk.ExpirationTime = pointer.FromTime((*create.ExpirationTime).Truncate(time.Second))
 	}
 
 	return tsk, nil
@@ -253,7 +253,7 @@ func (t *Task) Sanitize(details request.Details) error {
 
 func (t *Task) RepeatAvailableAt(availableTime time.Time) {
 	t.State = TaskStatePending
-	t.AvailableTime = pointer.Time(availableTime)
+	t.AvailableTime = pointer.FromTime(availableTime)
 }
 
 func (t *Task) RepeatAvailableAfter(availableDuration time.Duration) {

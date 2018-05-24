@@ -12,7 +12,7 @@ func NewFormulation(compoundArrayDepthLimit int) *insulin.Formulation {
 	if !simple {
 		datum.Compounds = NewCompoundArray(compoundArrayDepthLimit)
 	}
-	datum.Name = pointer.String(test.NewText(1, 100))
+	datum.Name = pointer.FromString(test.NewText(1, 100))
 	if simple {
 		datum.Simple = NewSimple()
 	}

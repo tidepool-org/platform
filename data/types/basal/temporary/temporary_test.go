@@ -39,11 +39,11 @@ func NewTemporary() *temporary.Temporary {
 	datum := temporary.New()
 	datum.Basal = *testDataTypesBasal.NewBasal()
 	datum.DeliveryType = "temp"
-	datum.Duration = pointer.Int(test.RandomIntFromRange(temporary.DurationMinimum, temporary.DurationMaximum))
-	datum.DurationExpected = pointer.Int(test.RandomIntFromRange(*datum.Duration, temporary.DurationMaximum))
+	datum.Duration = pointer.FromInt(test.RandomIntFromRange(temporary.DurationMinimum, temporary.DurationMaximum))
+	datum.DurationExpected = pointer.FromInt(test.RandomIntFromRange(*datum.Duration, temporary.DurationMaximum))
 	datum.InsulinFormulation = testDataTypesInsulin.NewFormulation(3)
-	datum.Percent = pointer.Float64(test.RandomFloat64FromRange(temporary.PercentMinimum, temporary.PercentMaximum))
-	datum.Rate = pointer.Float64(test.RandomFloat64FromRange(temporary.RateMinimum, temporary.RateMaximum))
+	datum.Percent = pointer.FromFloat64(test.RandomFloat64FromRange(temporary.PercentMinimum, temporary.PercentMaximum))
+	datum.Rate = pointer.FromFloat64(test.RandomFloat64FromRange(temporary.RateMinimum, temporary.RateMaximum))
 	datum.Suppressed = testDataTypesBasalScheduled.NewSuppressedScheduled()
 	return datum
 }
@@ -70,7 +70,7 @@ func CloneTemporary(datum *temporary.Temporary) *temporary.Temporary {
 
 func NewTestTemporary(sourceTime interface{}, sourceDuration interface{}, sourceDurationExpected interface{}, sourceRate interface{}, sourcePercent interface{}, sourceSuppressed temporary.Suppressed) *temporary.Temporary {
 	datum := temporary.New()
-	datum.DeviceID = pointer.String(id.New())
+	datum.DeviceID = pointer.FromString(id.New())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
 	}
@@ -224,7 +224,7 @@ var _ = Describe("Temporary", func() {
 					}),
 				Entry("parses object that has valid suppressed",
 					&map[string]interface{}{"suppressed": map[string]interface{}{"type": "basal", "deliveryType": "scheduled", "rate": 2.0, "scheduleName": "Weekday"}},
-					NewTestTemporary(nil, nil, nil, nil, nil, &dataTypesBasalScheduled.SuppressedScheduled{Type: pointer.String("basal"), DeliveryType: pointer.String("scheduled"), Rate: pointer.Float64(2.0), ScheduleName: pointer.String("Weekday")}),
+					NewTestTemporary(nil, nil, nil, nil, nil, &dataTypesBasalScheduled.SuppressedScheduled{Type: pointer.FromString("basal"), DeliveryType: pointer.FromString("scheduled"), Rate: pointer.FromFloat64(2.0), ScheduleName: pointer.FromString("Weekday")}),
 					[]*service.Error{}),
 				Entry("parses object that has invalid suppressed",
 					&map[string]interface{}{"suppressed": "invalid"},
@@ -292,7 +292,7 @@ var _ = Describe("Temporary", func() {
 				Entry("duration missing; duration expected out of range (lower)",
 					func(datum *temporary.Temporary) {
 						datum.Duration = nil
-						datum.DurationExpected = pointer.Int(-1)
+						datum.DurationExpected = pointer.FromInt(-1)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/expectedDuration", NewMeta()),
@@ -300,159 +300,159 @@ var _ = Describe("Temporary", func() {
 				Entry("duration missing; duration expected in range (lower)",
 					func(datum *temporary.Temporary) {
 						datum.Duration = nil
-						datum.DurationExpected = pointer.Int(0)
+						datum.DurationExpected = pointer.FromInt(0)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
 				),
 				Entry("duration missing; duration expected in range (upper)",
 					func(datum *temporary.Temporary) {
 						datum.Duration = nil
-						datum.DurationExpected = pointer.Int(604800000)
+						datum.DurationExpected = pointer.FromInt(604800000)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
 				),
 				Entry("duration missing; duration expected out of range (upper)",
 					func(datum *temporary.Temporary) {
 						datum.Duration = nil
-						datum.DurationExpected = pointer.Int(604800001)
+						datum.DurationExpected = pointer.FromInt(604800001)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration out of range (lower); duration expected missing",
 					func(datum *temporary.Temporary) {
-						datum.Duration = pointer.Int(-1)
+						datum.Duration = pointer.FromInt(-1)
 						datum.DurationExpected = nil
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/duration", NewMeta()),
 				),
 				Entry("duration out of range (lower); duration expected out of range (lower)",
 					func(datum *temporary.Temporary) {
-						datum.Duration = pointer.Int(-1)
-						datum.DurationExpected = pointer.Int(-1)
+						datum.Duration = pointer.FromInt(-1)
+						datum.DurationExpected = pointer.FromInt(-1)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/duration", NewMeta()),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration out of range (lower); duration expected in range (lower)",
 					func(datum *temporary.Temporary) {
-						datum.Duration = pointer.Int(-1)
-						datum.DurationExpected = pointer.Int(0)
+						datum.Duration = pointer.FromInt(-1)
+						datum.DurationExpected = pointer.FromInt(0)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/duration", NewMeta()),
 				),
 				Entry("duration out of range (lower); duration expected in range (upper)",
 					func(datum *temporary.Temporary) {
-						datum.Duration = pointer.Int(-1)
-						datum.DurationExpected = pointer.Int(604800000)
+						datum.Duration = pointer.FromInt(-1)
+						datum.DurationExpected = pointer.FromInt(604800000)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/duration", NewMeta()),
 				),
 				Entry("duration out of range (lower); duration expected out of range (upper)",
 					func(datum *temporary.Temporary) {
-						datum.Duration = pointer.Int(-1)
-						datum.DurationExpected = pointer.Int(604800001)
+						datum.Duration = pointer.FromInt(-1)
+						datum.DurationExpected = pointer.FromInt(604800001)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/duration", NewMeta()),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration in range (lower); duration expected missing",
 					func(datum *temporary.Temporary) {
-						datum.Duration = pointer.Int(0)
+						datum.Duration = pointer.FromInt(0)
 						datum.DurationExpected = nil
 					},
 				),
 				Entry("duration in range (lower); duration expected out of range (lower)",
 					func(datum *temporary.Temporary) {
-						datum.Duration = pointer.Int(0)
-						datum.DurationExpected = pointer.Int(-1)
+						datum.Duration = pointer.FromInt(0)
+						datum.DurationExpected = pointer.FromInt(-1)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration in range (lower); duration expected in range (lower)",
 					func(datum *temporary.Temporary) {
-						datum.Duration = pointer.Int(0)
-						datum.DurationExpected = pointer.Int(0)
+						datum.Duration = pointer.FromInt(0)
+						datum.DurationExpected = pointer.FromInt(0)
 					},
 				),
 				Entry("duration in range (lower); duration expected in range (upper)",
 					func(datum *temporary.Temporary) {
-						datum.Duration = pointer.Int(0)
-						datum.DurationExpected = pointer.Int(604800000)
+						datum.Duration = pointer.FromInt(0)
+						datum.DurationExpected = pointer.FromInt(604800000)
 					},
 				),
 				Entry("duration in range (lower); duration expected out of range (upper)",
 					func(datum *temporary.Temporary) {
-						datum.Duration = pointer.Int(0)
-						datum.DurationExpected = pointer.Int(604800001)
+						datum.Duration = pointer.FromInt(0)
+						datum.DurationExpected = pointer.FromInt(604800001)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration in range (upper); duration expected missing",
 					func(datum *temporary.Temporary) {
-						datum.Duration = pointer.Int(604800000)
+						datum.Duration = pointer.FromInt(604800000)
 						datum.DurationExpected = nil
 					},
 				),
 				Entry("duration in range (upper); duration expected out of range (lower)",
 					func(datum *temporary.Temporary) {
-						datum.Duration = pointer.Int(604800000)
-						datum.DurationExpected = pointer.Int(604799999)
+						datum.Duration = pointer.FromInt(604800000)
+						datum.DurationExpected = pointer.FromInt(604799999)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604799999, 604800000, 604800000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration in range (upper); duration expected in range (lower)",
 					func(datum *temporary.Temporary) {
-						datum.Duration = pointer.Int(604800000)
-						datum.DurationExpected = pointer.Int(604800000)
+						datum.Duration = pointer.FromInt(604800000)
+						datum.DurationExpected = pointer.FromInt(604800000)
 					},
 				),
 				Entry("duration in range (upper); duration expected in range (upper)",
 					func(datum *temporary.Temporary) {
-						datum.Duration = pointer.Int(604800000)
-						datum.DurationExpected = pointer.Int(604800000)
+						datum.Duration = pointer.FromInt(604800000)
+						datum.DurationExpected = pointer.FromInt(604800000)
 					},
 				),
 				Entry("duration in range (upper); duration expected out of range (upper)",
 					func(datum *temporary.Temporary) {
-						datum.Duration = pointer.Int(604800000)
-						datum.DurationExpected = pointer.Int(604800001)
+						datum.Duration = pointer.FromInt(604800000)
+						datum.DurationExpected = pointer.FromInt(604800001)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 604800000, 604800000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration out of range (upper); duration expected missing",
 					func(datum *temporary.Temporary) {
-						datum.Duration = pointer.Int(604800001)
+						datum.Duration = pointer.FromInt(604800001)
 						datum.DurationExpected = nil
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/duration", NewMeta()),
 				),
 				Entry("duration out of range (upper); duration expected out of range (lower)",
 					func(datum *temporary.Temporary) {
-						datum.Duration = pointer.Int(604800001)
-						datum.DurationExpected = pointer.Int(-1)
+						datum.Duration = pointer.FromInt(604800001)
+						datum.DurationExpected = pointer.FromInt(-1)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/duration", NewMeta()),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration out of range (upper); duration expected in range (lower)",
 					func(datum *temporary.Temporary) {
-						datum.Duration = pointer.Int(604800001)
-						datum.DurationExpected = pointer.Int(0)
+						datum.Duration = pointer.FromInt(604800001)
+						datum.DurationExpected = pointer.FromInt(0)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/duration", NewMeta()),
 				),
 				Entry("duration out of range (upper); duration expected in range (upper)",
 					func(datum *temporary.Temporary) {
-						datum.Duration = pointer.Int(604800001)
-						datum.DurationExpected = pointer.Int(604800000)
+						datum.Duration = pointer.FromInt(604800001)
+						datum.DurationExpected = pointer.FromInt(604800000)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/duration", NewMeta()),
 				),
 				Entry("duration out of range (upper); duration expected out of range (upper)",
 					func(datum *temporary.Temporary) {
-						datum.Duration = pointer.Int(604800001)
-						datum.DurationExpected = pointer.Int(604800001)
+						datum.Duration = pointer.FromInt(604800001)
+						datum.DurationExpected = pointer.FromInt(604800001)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/duration", NewMeta()),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", NewMeta()),
@@ -475,17 +475,17 @@ var _ = Describe("Temporary", func() {
 					func(datum *temporary.Temporary) { datum.Percent = nil },
 				),
 				Entry("percent out of range (lower)",
-					func(datum *temporary.Temporary) { datum.Percent = pointer.Float64(-0.1) },
+					func(datum *temporary.Temporary) { datum.Percent = pointer.FromFloat64(-0.1) },
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 10.0), "/percent", NewMeta()),
 				),
 				Entry("percent in range (lower)",
-					func(datum *temporary.Temporary) { datum.Percent = pointer.Float64(0.0) },
+					func(datum *temporary.Temporary) { datum.Percent = pointer.FromFloat64(0.0) },
 				),
 				Entry("percent in range (upper)",
-					func(datum *temporary.Temporary) { datum.Percent = pointer.Float64(10.0) },
+					func(datum *temporary.Temporary) { datum.Percent = pointer.FromFloat64(10.0) },
 				),
 				Entry("percent out of range (upper)",
-					func(datum *temporary.Temporary) { datum.Percent = pointer.Float64(10.1) },
+					func(datum *temporary.Temporary) { datum.Percent = pointer.FromFloat64(10.1) },
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(10.1, 0.0, 10.0), "/percent", NewMeta()),
 				),
 				Entry("rate missing",
@@ -493,17 +493,17 @@ var _ = Describe("Temporary", func() {
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/rate", NewMeta()),
 				),
 				Entry("rate out of range (lower)",
-					func(datum *temporary.Temporary) { datum.Rate = pointer.Float64(-0.1) },
+					func(datum *temporary.Temporary) { datum.Rate = pointer.FromFloat64(-0.1) },
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/rate", NewMeta()),
 				),
 				Entry("rate in range (lower)",
-					func(datum *temporary.Temporary) { datum.Rate = pointer.Float64(0.0) },
+					func(datum *temporary.Temporary) { datum.Rate = pointer.FromFloat64(0.0) },
 				),
 				Entry("rate in range (upper)",
-					func(datum *temporary.Temporary) { datum.Rate = pointer.Float64(100.0) },
+					func(datum *temporary.Temporary) { datum.Rate = pointer.FromFloat64(100.0) },
 				),
 				Entry("rate out of range (upper)",
-					func(datum *temporary.Temporary) { datum.Rate = pointer.Float64(100.1) },
+					func(datum *temporary.Temporary) { datum.Rate = pointer.FromFloat64(100.1) },
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate", NewMeta()),
 				),
 				Entry("suppressed missing",
@@ -531,12 +531,12 @@ var _ = Describe("Temporary", func() {
 						datum.Type = "invalidType"
 						datum.DeliveryType = "invalidDeliveryType"
 						datum.Duration = nil
-						datum.DurationExpected = pointer.Int(604800001)
+						datum.DurationExpected = pointer.FromInt(604800001)
 						datum.InsulinFormulation.Compounds = nil
 						datum.InsulinFormulation.Name = nil
 						datum.InsulinFormulation.Simple = nil
-						datum.Percent = pointer.Float64(10.1)
-						datum.Rate = pointer.Float64(100.1)
+						datum.Percent = pointer.FromFloat64(10.1)
+						datum.Rate = pointer.FromFloat64(100.1)
 						datum.Suppressed = testDataTypesBasalTemporary.NewSuppressedTemporary(nil)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "basal"), "/type", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
@@ -604,8 +604,8 @@ var _ = Describe("Temporary", func() {
 	Context("NewSuppressedTemporary", func() {
 		It("returns the expected datum", func() {
 			Expect(temporary.NewSuppressedTemporary()).To(Equal(&temporary.SuppressedTemporary{
-				Type:         pointer.String("basal"),
-				DeliveryType: pointer.String("temp"),
+				Type:         pointer.FromString("basal"),
+				DeliveryType: pointer.FromString("temp"),
 			}))
 		})
 	})
@@ -630,22 +630,24 @@ var _ = Describe("Temporary", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
 				),
 				Entry("type invalid",
-					func(datum *temporary.SuppressedTemporary) { datum.Type = pointer.String("invalidType") },
+					func(datum *temporary.SuppressedTemporary) { datum.Type = pointer.FromString("invalidType") },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalidType", "basal"), "/type"),
 				),
 				Entry("type basal",
-					func(datum *temporary.SuppressedTemporary) { datum.Type = pointer.String("basal") },
+					func(datum *temporary.SuppressedTemporary) { datum.Type = pointer.FromString("basal") },
 				),
 				Entry("delivery type missing",
 					func(datum *temporary.SuppressedTemporary) { datum.DeliveryType = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/deliveryType"),
 				),
 				Entry("delivery type invalid",
-					func(datum *temporary.SuppressedTemporary) { datum.DeliveryType = pointer.String("invalidDeliveryType") },
+					func(datum *temporary.SuppressedTemporary) {
+						datum.DeliveryType = pointer.FromString("invalidDeliveryType")
+					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalidDeliveryType", "temp"), "/deliveryType"),
 				),
 				Entry("delivery type temp",
-					func(datum *temporary.SuppressedTemporary) { datum.DeliveryType = pointer.String("temp") },
+					func(datum *temporary.SuppressedTemporary) { datum.DeliveryType = pointer.FromString("temp") },
 				),
 				Entry("insulin formulation missing",
 					func(datum *temporary.SuppressedTemporary) { datum.InsulinFormulation = nil },
@@ -667,17 +669,17 @@ var _ = Describe("Temporary", func() {
 					func(datum *temporary.SuppressedTemporary) { datum.Percent = nil },
 				),
 				Entry("percent out of range (lower)",
-					func(datum *temporary.SuppressedTemporary) { datum.Percent = pointer.Float64(-0.1) },
+					func(datum *temporary.SuppressedTemporary) { datum.Percent = pointer.FromFloat64(-0.1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 10.0), "/percent"),
 				),
 				Entry("percent in range (lower)",
-					func(datum *temporary.SuppressedTemporary) { datum.Percent = pointer.Float64(0.0) },
+					func(datum *temporary.SuppressedTemporary) { datum.Percent = pointer.FromFloat64(0.0) },
 				),
 				Entry("percent in range (upper)",
-					func(datum *temporary.SuppressedTemporary) { datum.Percent = pointer.Float64(10.0) },
+					func(datum *temporary.SuppressedTemporary) { datum.Percent = pointer.FromFloat64(10.0) },
 				),
 				Entry("percent out of range (upper)",
-					func(datum *temporary.SuppressedTemporary) { datum.Percent = pointer.Float64(10.1) },
+					func(datum *temporary.SuppressedTemporary) { datum.Percent = pointer.FromFloat64(10.1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(10.1, 0.0, 10.0), "/percent"),
 				),
 				Entry("rate missing",
@@ -685,17 +687,17 @@ var _ = Describe("Temporary", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
 				),
 				Entry("rate out of range (lower)",
-					func(datum *temporary.SuppressedTemporary) { datum.Rate = pointer.Float64(-0.1) },
+					func(datum *temporary.SuppressedTemporary) { datum.Rate = pointer.FromFloat64(-0.1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/rate"),
 				),
 				Entry("rate in range (lower)",
-					func(datum *temporary.SuppressedTemporary) { datum.Rate = pointer.Float64(0.0) },
+					func(datum *temporary.SuppressedTemporary) { datum.Rate = pointer.FromFloat64(0.0) },
 				),
 				Entry("rate in range (upper)",
-					func(datum *temporary.SuppressedTemporary) { datum.Rate = pointer.Float64(100.0) },
+					func(datum *temporary.SuppressedTemporary) { datum.Rate = pointer.FromFloat64(100.0) },
 				),
 				Entry("rate out of range (upper)",
-					func(datum *temporary.SuppressedTemporary) { datum.Rate = pointer.Float64(100.1) },
+					func(datum *temporary.SuppressedTemporary) { datum.Rate = pointer.FromFloat64(100.1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate"),
 				),
 				Entry("suppressed missing",
@@ -720,13 +722,13 @@ var _ = Describe("Temporary", func() {
 				),
 				Entry("multiple errors",
 					func(datum *temporary.SuppressedTemporary) {
-						datum.Type = pointer.String("invalidType")
-						datum.DeliveryType = pointer.String("invalidDeliveryType")
+						datum.Type = pointer.FromString("invalidType")
+						datum.DeliveryType = pointer.FromString("invalidDeliveryType")
 						datum.InsulinFormulation.Compounds = nil
 						datum.InsulinFormulation.Name = nil
 						datum.InsulinFormulation.Simple = nil
-						datum.Percent = pointer.Float64(10.1)
-						datum.Rate = pointer.Float64(100.1)
+						datum.Percent = pointer.FromFloat64(10.1)
+						datum.Rate = pointer.FromFloat64(100.1)
 						datum.Suppressed = testDataTypesBasalTemporary.NewSuppressedTemporary(nil)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalidType", "basal"), "/type"),

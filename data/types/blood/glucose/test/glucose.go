@@ -12,7 +12,7 @@ func NewGlucose(units *string) *glucose.Glucose {
 	datum := &glucose.Glucose{}
 	datum.Blood = *testDataTypesBlood.NewBlood()
 	datum.Units = units
-	datum.Value = pointer.Float64(test.RandomFloat64FromRange(dataBloodGlucose.ValueRangeForUnits(units)))
+	datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dataBloodGlucose.ValueRangeForUnits(units)))
 	return datum
 }
 

@@ -84,15 +84,15 @@ func (b *BloodGlucoseTargetStartArray) Parse(parser data.ArrayParser) {
 }
 
 func (b *BloodGlucoseTargetStartArray) Validate(validator structure.Validator, units *string) {
-	startMinimum := pointer.Int(BloodGlucoseTargetStartStartMinimum)
+	startMinimum := pointer.FromInt(BloodGlucoseTargetStartStartMinimum)
 	for index, datum := range *b {
 		datumValidator := validator.WithReference(strconv.Itoa(index))
 		if datum != nil {
 			datum.Validate(datumValidator, units, startMinimum)
 			if index == 0 {
-				startMinimum = pointer.Int(BloodGlucoseTargetStartStartMinimum + 1)
+				startMinimum = pointer.FromInt(BloodGlucoseTargetStartStartMinimum + 1)
 			} else if datum.Start != nil {
-				startMinimum = pointer.Int(*datum.Start + 1)
+				startMinimum = pointer.FromInt(*datum.Start + 1)
 			}
 		} else {
 			datumValidator.ReportError(structureValidator.ErrorValueNotExists())

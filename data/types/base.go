@@ -232,10 +232,10 @@ func (b *Base) Normalize(normalizer data.Normalizer) {
 
 	if normalizer.Origin() == structure.OriginExternal {
 		if b.GUID == nil {
-			b.GUID = pointer.String(id.New())
+			b.GUID = pointer.FromString(id.New())
 		}
 		if b.ID == nil {
-			b.ID = pointer.String(id.New())
+			b.ID = pointer.FromString(id.New())
 		}
 	}
 

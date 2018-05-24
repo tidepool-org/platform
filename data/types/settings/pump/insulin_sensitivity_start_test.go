@@ -20,12 +20,12 @@ import (
 
 func NewInsulinSensitivityStart(units *string, startMinimum int) *pump.InsulinSensitivityStart {
 	datum := pump.NewInsulinSensitivityStart()
-	datum.Amount = pointer.Float64(test.RandomFloat64FromRange(dataBloodGlucose.ValueRangeForUnits(units)))
-	datum.Start = pointer.Int(test.RandomIntFromRange(pump.InsulinSensitivityStartStartMinimum, pump.InsulinSensitivityStartStartMaximum))
+	datum.Amount = pointer.FromFloat64(test.RandomFloat64FromRange(dataBloodGlucose.ValueRangeForUnits(units)))
+	datum.Start = pointer.FromInt(test.RandomIntFromRange(pump.InsulinSensitivityStartStartMinimum, pump.InsulinSensitivityStartStartMaximum))
 	if startMinimum == pump.InsulinSensitivityStartStartMinimum {
-		datum.Start = pointer.Int(pump.InsulinSensitivityStartStartMinimum)
+		datum.Start = pointer.FromInt(pump.InsulinSensitivityStartStartMinimum)
 	} else {
-		datum.Start = pointer.Int(test.RandomIntFromRange(startMinimum, pump.InsulinSensitivityStartStartMaximum))
+		datum.Start = pointer.FromInt(test.RandomIntFromRange(startMinimum, pump.InsulinSensitivityStartStartMaximum))
 	}
 	return datum
 }
@@ -105,10 +105,10 @@ var _ = Describe("InsulinSensitivityStart", func() {
 				func(units *string, mutator func(datum *pump.InsulinSensitivityStart, units *string), expectedErrors ...error) {
 					datum := NewInsulinSensitivityStart(units, pump.InsulinSensitivityStartStartMinimum)
 					mutator(datum, units)
-					testDataTypes.ValidateWithExpectedOrigins(NewValidatableWithUnitsAndStartMinimumAdapter(datum, units, pointer.Int(pump.InsulinSensitivityStartStartMinimum)), structure.Origins(), expectedErrors...)
+					testDataTypes.ValidateWithExpectedOrigins(NewValidatableWithUnitsAndStartMinimumAdapter(datum, units, pointer.FromInt(pump.InsulinSensitivityStartStartMinimum)), structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStart, units *string) {},
 				),
 				Entry("units missing; amount missing",
@@ -118,140 +118,140 @@ var _ = Describe("InsulinSensitivityStart", func() {
 				),
 				Entry("units missing; amount out of range (lower)",
 					nil,
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.Float64(-0.1) },
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.FromFloat64(-0.1) },
 				),
 				Entry("units missing; amount in range (lower)",
 					nil,
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.Float64(0.0) },
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.FromFloat64(0.0) },
 				),
 				Entry("units missing; amount in range (upper)",
 					nil,
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.Float64(1000.0) },
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.FromFloat64(1000.0) },
 				),
 				Entry("units missing; amount out of range (upper)",
 					nil,
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.Float64(1000.1) },
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.FromFloat64(1000.1) },
 				),
 				Entry("units invalid; amount missing",
-					pointer.String("invalid"),
+					pointer.FromString("invalid"),
 					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amount"),
 				),
 				Entry("units invalid; amount out of range (lower)",
-					pointer.String("invalid"),
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.Float64(-0.1) },
+					pointer.FromString("invalid"),
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.FromFloat64(-0.1) },
 				),
 				Entry("units invalid; amount in range (lower)",
-					pointer.String("invalid"),
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.Float64(0.0) },
+					pointer.FromString("invalid"),
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.FromFloat64(0.0) },
 				),
 				Entry("units invalid; amount in range (upper)",
-					pointer.String("invalid"),
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.Float64(1000.0) },
+					pointer.FromString("invalid"),
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.FromFloat64(1000.0) },
 				),
 				Entry("units invalid; amount out of range (upper)",
-					pointer.String("invalid"),
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.Float64(1000.1) },
+					pointer.FromString("invalid"),
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.FromFloat64(1000.1) },
 				),
 				Entry("units mmol/L; amount missing",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amount"),
 				),
 				Entry("units mmol/L; amount out of range (lower)",
-					pointer.String("mmol/L"),
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.Float64(-0.1) },
+					pointer.FromString("mmol/L"),
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.FromFloat64(-0.1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 55.0), "/amount"),
 				),
 				Entry("units mmol/L; amount in range (lower)",
-					pointer.String("mmol/L"),
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.Float64(0.0) },
+					pointer.FromString("mmol/L"),
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.FromFloat64(0.0) },
 				),
 				Entry("units mmol/L; amount in range (upper)",
-					pointer.String("mmol/L"),
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.Float64(55.0) },
+					pointer.FromString("mmol/L"),
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.FromFloat64(55.0) },
 				),
 				Entry("units mmol/L; amount out of range (upper)",
-					pointer.String("mmol/L"),
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.Float64(55.1) },
+					pointer.FromString("mmol/L"),
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.FromFloat64(55.1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(55.1, 0.0, 55.0), "/amount"),
 				),
 				Entry("units mmol/l; amount missing",
-					pointer.String("mmol/l"),
+					pointer.FromString("mmol/l"),
 					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amount"),
 				),
 				Entry("units mmol/l; amount out of range (lower)",
-					pointer.String("mmol/l"),
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.Float64(-0.1) },
+					pointer.FromString("mmol/l"),
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.FromFloat64(-0.1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 55.0), "/amount"),
 				),
 				Entry("units mmol/l; amount in range (lower)",
-					pointer.String("mmol/l"),
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.Float64(0.0) },
+					pointer.FromString("mmol/l"),
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.FromFloat64(0.0) },
 				),
 				Entry("units mmol/l; amount in range (upper)",
-					pointer.String("mmol/l"),
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.Float64(55.0) },
+					pointer.FromString("mmol/l"),
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.FromFloat64(55.0) },
 				),
 				Entry("units mmol/l; amount out of range (upper)",
-					pointer.String("mmol/l"),
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.Float64(55.1) },
+					pointer.FromString("mmol/l"),
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.FromFloat64(55.1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(55.1, 0.0, 55.0), "/amount"),
 				),
 				Entry("units mg/dL; amount missing",
-					pointer.String("mg/dL"),
+					pointer.FromString("mg/dL"),
 					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amount"),
 				),
 				Entry("units mg/dL; amount out of range (lower)",
-					pointer.String("mg/dL"),
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.Float64(-0.1) },
+					pointer.FromString("mg/dL"),
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.FromFloat64(-0.1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/amount"),
 				),
 				Entry("units mg/dL; amount in range (lower)",
-					pointer.String("mg/dL"),
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.Float64(0.0) },
+					pointer.FromString("mg/dL"),
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.FromFloat64(0.0) },
 				),
 				Entry("units mg/dL; amount in range (upper)",
-					pointer.String("mg/dL"),
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.Float64(1000.0) },
+					pointer.FromString("mg/dL"),
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.FromFloat64(1000.0) },
 				),
 				Entry("units mg/dL; amount out of range (upper)",
-					pointer.String("mg/dL"),
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.Float64(1000.1) },
+					pointer.FromString("mg/dL"),
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.FromFloat64(1000.1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/amount"),
 				),
 				Entry("units mg/dl; amount missing",
-					pointer.String("mg/dl"),
+					pointer.FromString("mg/dl"),
 					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amount"),
 				),
 				Entry("units mg/dl; amount out of range (lower)",
-					pointer.String("mg/dl"),
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.Float64(-0.1) },
+					pointer.FromString("mg/dl"),
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.FromFloat64(-0.1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/amount"),
 				),
 				Entry("units mg/dl; amount in range (lower)",
-					pointer.String("mg/dl"),
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.Float64(0.0) },
+					pointer.FromString("mg/dl"),
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.FromFloat64(0.0) },
 				),
 				Entry("units mg/dl; amount in range (upper)",
-					pointer.String("mg/dl"),
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.Float64(1000.0) },
+					pointer.FromString("mg/dl"),
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.FromFloat64(1000.0) },
 				),
 				Entry("units mg/dl; amount out of range (upper)",
-					pointer.String("mg/dl"),
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.Float64(1000.1) },
+					pointer.FromString("mg/dl"),
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Amount = pointer.FromFloat64(1000.1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/amount"),
 				),
 				Entry("start missing",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Start = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/start"),
 				),
 				Entry("multiple errors",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStart, units *string) {
 						datum.Amount = nil
 						datum.Start = nil
@@ -265,20 +265,20 @@ var _ = Describe("InsulinSensitivityStart", func() {
 				func(units *string, mutator func(datum *pump.InsulinSensitivityStart, units *string), expectedErrors ...error) {
 					datum := NewInsulinSensitivityStart(units, pump.InsulinSensitivityStartStartMinimum)
 					mutator(datum, units)
-					testDataTypes.ValidateWithExpectedOrigins(NewValidatableWithUnitsAndStartMinimumAdapter(datum, units, pointer.Int(pump.InsulinSensitivityStartStartMinimum)), structure.Origins(), expectedErrors...)
+					testDataTypes.ValidateWithExpectedOrigins(NewValidatableWithUnitsAndStartMinimumAdapter(datum, units, pointer.FromInt(pump.InsulinSensitivityStartStartMinimum)), structure.Origins(), expectedErrors...)
 				},
 				Entry("start out of range (lower)",
-					pointer.String("mmol/L"),
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Start = pointer.Int(-1) },
+					pointer.FromString("mmol/L"),
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Start = pointer.FromInt(-1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo(-1, 0), "/start"),
 				),
 				Entry("start in range",
-					pointer.String("mmol/L"),
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Start = pointer.Int(0) },
+					pointer.FromString("mmol/L"),
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Start = pointer.FromInt(0) },
 				),
 				Entry("start out of range (upper)",
-					pointer.String("mmol/L"),
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Start = pointer.Int(1) },
+					pointer.FromString("mmol/L"),
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Start = pointer.FromInt(1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo(1, 0), "/start"),
 				),
 			)
@@ -287,24 +287,24 @@ var _ = Describe("InsulinSensitivityStart", func() {
 				func(units *string, mutator func(datum *pump.InsulinSensitivityStart, units *string), expectedErrors ...error) {
 					datum := NewInsulinSensitivityStart(units, pump.InsulinSensitivityStartStartMinimum+1)
 					mutator(datum, units)
-					testDataTypes.ValidateWithExpectedOrigins(NewValidatableWithUnitsAndStartMinimumAdapter(datum, units, pointer.Int(pump.InsulinSensitivityStartStartMinimum+1)), structure.Origins(), expectedErrors...)
+					testDataTypes.ValidateWithExpectedOrigins(NewValidatableWithUnitsAndStartMinimumAdapter(datum, units, pointer.FromInt(pump.InsulinSensitivityStartStartMinimum+1)), structure.Origins(), expectedErrors...)
 				},
 				Entry("start out of range (lower)",
-					pointer.String("mmol/L"),
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Start = pointer.Int(0) },
+					pointer.FromString("mmol/L"),
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Start = pointer.FromInt(0) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(0, 1, 86400000), "/start"),
 				),
 				Entry("start in range (lower)",
-					pointer.String("mmol/L"),
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Start = pointer.Int(1) },
+					pointer.FromString("mmol/L"),
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Start = pointer.FromInt(1) },
 				),
 				Entry("start in range (upper)",
-					pointer.String("mmol/L"),
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Start = pointer.Int(86400000) },
+					pointer.FromString("mmol/L"),
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Start = pointer.FromInt(86400000) },
 				),
 				Entry("start out of range (upper)",
-					pointer.String("mmol/L"),
-					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Start = pointer.Int(86400001) },
+					pointer.FromString("mmol/L"),
+					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Start = pointer.FromInt(86400001) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(86400001, 1, 86400000), "/start"),
 				),
 			)
@@ -329,7 +329,7 @@ var _ = Describe("InsulinSensitivityStart", func() {
 					}
 				},
 				Entry("does not modify the datum",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStart, units *string) {},
 					nil,
 				),
@@ -339,12 +339,12 @@ var _ = Describe("InsulinSensitivityStart", func() {
 					nil,
 				),
 				Entry("does not modify the datum; units invalid",
-					pointer.String("invalid"),
+					pointer.FromString("invalid"),
 					func(datum *pump.InsulinSensitivityStart, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; start missing",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStart, units *string) { datum.Start = nil },
 					nil,
 				),
@@ -366,24 +366,24 @@ var _ = Describe("InsulinSensitivityStart", func() {
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("does not modify the datum; units mmol/L",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStart, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mmol/l",
-					pointer.String("mmol/l"),
+					pointer.FromString("mmol/l"),
 					func(datum *pump.InsulinSensitivityStart, units *string) {},
 					nil,
 				),
 				Entry("modifies the datum; units mg/dL",
-					pointer.String("mg/dL"),
+					pointer.FromString("mg/dL"),
 					func(datum *pump.InsulinSensitivityStart, units *string) {},
 					func(datum *pump.InsulinSensitivityStart, expectedDatum *pump.InsulinSensitivityStart, units *string) {
 						testDataBloodGlucose.ExpectNormalizedValue(datum.Amount, expectedDatum.Amount, units)
 					},
 				),
 				Entry("modifies the datum; units mg/dl",
-					pointer.String("mg/dl"),
+					pointer.FromString("mg/dl"),
 					func(datum *pump.InsulinSensitivityStart, units *string) {},
 					func(datum *pump.InsulinSensitivityStart, expectedDatum *pump.InsulinSensitivityStart, units *string) {
 						testDataBloodGlucose.ExpectNormalizedValue(datum.Amount, expectedDatum.Amount, units)
@@ -409,22 +409,22 @@ var _ = Describe("InsulinSensitivityStart", func() {
 					}
 				},
 				Entry("does not modify the datum; units mmol/L",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStart, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mmol/l",
-					pointer.String("mmol/l"),
+					pointer.FromString("mmol/l"),
 					func(datum *pump.InsulinSensitivityStart, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mg/dL",
-					pointer.String("mg/dL"),
+					pointer.FromString("mg/dL"),
 					func(datum *pump.InsulinSensitivityStart, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mg/dl",
-					pointer.String("mg/dl"),
+					pointer.FromString("mg/dl"),
 					func(datum *pump.InsulinSensitivityStart, units *string) {},
 					nil,
 				),
@@ -455,61 +455,61 @@ var _ = Describe("InsulinSensitivityStart", func() {
 					testDataTypes.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithStringAdapter(datum, units), structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArray, units *string) {},
 				),
 				Entry("empty",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArray, units *string) {
 						*datum = *pump.NewInsulinSensitivityStartArray()
 					},
 				),
 				Entry("nil",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArray, units *string) { *datum = append(*datum, nil) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
 				),
 				Entry("single invalid",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArray, units *string) {
-						invalid := NewInsulinSensitivityStart(pointer.String("mmol/L"), pump.InsulinSensitivityStartStartMinimum)
+						invalid := NewInsulinSensitivityStart(pointer.FromString("mmol/L"), pump.InsulinSensitivityStartStartMinimum)
 						invalid.Amount = nil
 						*datum = append(*datum, invalid)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0/amount"),
 				),
 				Entry("single valid",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArray, units *string) {
-						*datum = append(*datum, NewInsulinSensitivityStart(pointer.String("mmol/L"), pump.InsulinSensitivityStartStartMinimum))
+						*datum = append(*datum, NewInsulinSensitivityStart(pointer.FromString("mmol/L"), pump.InsulinSensitivityStartStartMinimum))
 					},
 				),
 				Entry("multiple invalid",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArray, units *string) {
-						*datum = append(*datum, NewInsulinSensitivityStart(pointer.String("mmol/L"), pump.InsulinSensitivityStartStartMinimum))
-						invalid := NewInsulinSensitivityStart(pointer.String("mmol/L"), *datum.Last().Start+1)
+						*datum = append(*datum, NewInsulinSensitivityStart(pointer.FromString("mmol/L"), pump.InsulinSensitivityStartStartMinimum))
+						invalid := NewInsulinSensitivityStart(pointer.FromString("mmol/L"), *datum.Last().Start+1)
 						invalid.Amount = nil
 						*datum = append(*datum, invalid)
-						*datum = append(*datum, NewInsulinSensitivityStart(pointer.String("mmol/L"), *datum.Last().Start+1))
+						*datum = append(*datum, NewInsulinSensitivityStart(pointer.FromString("mmol/L"), *datum.Last().Start+1))
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/amount"),
 				),
 				Entry("multiple valid",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArray, units *string) {
-						*datum = append(*datum, NewInsulinSensitivityStart(pointer.String("mmol/L"), pump.InsulinSensitivityStartStartMinimum))
-						*datum = append(*datum, NewInsulinSensitivityStart(pointer.String("mmol/L"), *datum.Last().Start+1))
-						*datum = append(*datum, NewInsulinSensitivityStart(pointer.String("mmol/L"), *datum.Last().Start+1))
+						*datum = append(*datum, NewInsulinSensitivityStart(pointer.FromString("mmol/L"), pump.InsulinSensitivityStartStartMinimum))
+						*datum = append(*datum, NewInsulinSensitivityStart(pointer.FromString("mmol/L"), *datum.Last().Start+1))
+						*datum = append(*datum, NewInsulinSensitivityStart(pointer.FromString("mmol/L"), *datum.Last().Start+1))
 					},
 				),
 				Entry("multiple errors",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArray, units *string) {
-						invalid := NewInsulinSensitivityStart(pointer.String("mmol/L"), pump.InsulinSensitivityStartStartMinimum)
+						invalid := NewInsulinSensitivityStart(pointer.FromString("mmol/L"), pump.InsulinSensitivityStartStartMinimum)
 						invalid.Amount = nil
 						*datum = append(*datum, nil, invalid)
-						*datum = append(*datum, nil, NewInsulinSensitivityStart(pointer.String("mmol/L"), *datum.Last().Start+1))
+						*datum = append(*datum, nil, NewInsulinSensitivityStart(pointer.FromString("mmol/L"), *datum.Last().Start+1))
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/amount"),
@@ -537,7 +537,7 @@ var _ = Describe("InsulinSensitivityStart", func() {
 					}
 				},
 				Entry("does not modify the datum",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArray, units *string) {},
 					nil,
 				),
@@ -547,12 +547,12 @@ var _ = Describe("InsulinSensitivityStart", func() {
 					nil,
 				),
 				Entry("does not modify the datum; units invalid",
-					pointer.String("invalid"),
+					pointer.FromString("invalid"),
 					func(datum *pump.InsulinSensitivityStartArray, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; start missing",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArray, units *string) { (*datum)[0].Start = nil },
 					nil,
 				),
@@ -574,17 +574,17 @@ var _ = Describe("InsulinSensitivityStart", func() {
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("does not modify the datum; units mmol/L",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArray, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mmol/l",
-					pointer.String("mmol/l"),
+					pointer.FromString("mmol/l"),
 					func(datum *pump.InsulinSensitivityStartArray, units *string) {},
 					nil,
 				),
 				Entry("modifies the datum; units mg/dL",
-					pointer.String("mg/dL"),
+					pointer.FromString("mg/dL"),
 					func(datum *pump.InsulinSensitivityStartArray, units *string) {},
 					func(datum *pump.InsulinSensitivityStartArray, expectedDatum *pump.InsulinSensitivityStartArray, units *string) {
 						for index := range *datum {
@@ -593,7 +593,7 @@ var _ = Describe("InsulinSensitivityStart", func() {
 					},
 				),
 				Entry("modifies the datum; units mg/dl",
-					pointer.String("mg/dl"),
+					pointer.FromString("mg/dl"),
 					func(datum *pump.InsulinSensitivityStartArray, units *string) {},
 					func(datum *pump.InsulinSensitivityStartArray, expectedDatum *pump.InsulinSensitivityStartArray, units *string) {
 						for index := range *datum {
@@ -621,22 +621,22 @@ var _ = Describe("InsulinSensitivityStart", func() {
 					}
 				},
 				Entry("does not modify the datum; units mmol/L",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArray, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mmol/l",
-					pointer.String("mmol/l"),
+					pointer.FromString("mmol/l"),
 					func(datum *pump.InsulinSensitivityStartArray, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mg/dL",
-					pointer.String("mg/dL"),
+					pointer.FromString("mg/dL"),
 					func(datum *pump.InsulinSensitivityStartArray, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mg/dl",
-					pointer.String("mg/dl"),
+					pointer.FromString("mg/dl"),
 					func(datum *pump.InsulinSensitivityStartArray, units *string) {},
 					nil,
 				),
@@ -667,28 +667,28 @@ var _ = Describe("InsulinSensitivityStart", func() {
 					testDataTypes.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithStringAdapter(datum, units), structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArrayMap, units *string) {},
 				),
 				Entry("empty",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArrayMap, units *string) {
 						*datum = *pump.NewInsulinSensitivityStartArrayMap()
 					},
 				),
 				Entry("empty name",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArrayMap, units *string) {
 						datum.Set("", NewInsulinSensitivityStartArray(units))
 					},
 				),
 				Entry("nil value",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArrayMap, units *string) { datum.Set("", nil) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/"),
 				),
 				Entry("single invalid",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArrayMap, units *string) {
 						invalid := NewInsulinSensitivityStartArray(units)
 						(*invalid)[0].Start = nil
@@ -697,13 +697,13 @@ var _ = Describe("InsulinSensitivityStart", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/one/0/start"),
 				),
 				Entry("single valid",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArrayMap, units *string) {
 						datum.Set("one", NewInsulinSensitivityStartArray(units))
 					},
 				),
 				Entry("multiple invalid",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArrayMap, units *string) {
 						invalid := NewInsulinSensitivityStartArray(units)
 						(*invalid)[0].Start = nil
@@ -714,7 +714,7 @@ var _ = Describe("InsulinSensitivityStart", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/two/0/start"),
 				),
 				Entry("multiple valid",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArrayMap, units *string) {
 						datum.Set("one", NewInsulinSensitivityStartArray(units))
 						datum.Set("two", NewInsulinSensitivityStartArray(units))
@@ -722,7 +722,7 @@ var _ = Describe("InsulinSensitivityStart", func() {
 					},
 				),
 				Entry("multiple errors",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArrayMap, units *string) {
 						invalid := NewInsulinSensitivityStartArray(units)
 						(*invalid)[0].Start = nil
@@ -755,7 +755,7 @@ var _ = Describe("InsulinSensitivityStart", func() {
 					}
 				},
 				Entry("does not modify the datum",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArrayMap, units *string) {},
 					nil,
 				),
@@ -765,12 +765,12 @@ var _ = Describe("InsulinSensitivityStart", func() {
 					nil,
 				),
 				Entry("does not modify the datum; units invalid",
-					pointer.String("invalid"),
+					pointer.FromString("invalid"),
 					func(datum *pump.InsulinSensitivityStartArrayMap, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; start missing",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArrayMap, units *string) {
 						for name := range *datum {
 							(*(*datum)[name])[0].Start = nil
@@ -796,17 +796,17 @@ var _ = Describe("InsulinSensitivityStart", func() {
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("does not modify the datum; units mmol/L",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArrayMap, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mmol/l",
-					pointer.String("mmol/l"),
+					pointer.FromString("mmol/l"),
 					func(datum *pump.InsulinSensitivityStartArrayMap, units *string) {},
 					nil,
 				),
 				Entry("modifies the datum; units mg/dL",
-					pointer.String("mg/dL"),
+					pointer.FromString("mg/dL"),
 					func(datum *pump.InsulinSensitivityStartArrayMap, units *string) {},
 					func(datum *pump.InsulinSensitivityStartArrayMap, expectedDatum *pump.InsulinSensitivityStartArrayMap, units *string) {
 						for name := range *datum {
@@ -817,7 +817,7 @@ var _ = Describe("InsulinSensitivityStart", func() {
 					},
 				),
 				Entry("modifies the datum; units mg/dl",
-					pointer.String("mg/dl"),
+					pointer.FromString("mg/dl"),
 					func(datum *pump.InsulinSensitivityStartArrayMap, units *string) {},
 					func(datum *pump.InsulinSensitivityStartArrayMap, expectedDatum *pump.InsulinSensitivityStartArrayMap, units *string) {
 						for name := range *datum {
@@ -847,22 +847,22 @@ var _ = Describe("InsulinSensitivityStart", func() {
 					}
 				},
 				Entry("does not modify the datum; units mmol/L",
-					pointer.String("mmol/L"),
+					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArrayMap, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mmol/l",
-					pointer.String("mmol/l"),
+					pointer.FromString("mmol/l"),
 					func(datum *pump.InsulinSensitivityStartArrayMap, units *string) {},
 					nil,
 				),
 				Entry("modifies the datum; units mg/dL",
-					pointer.String("mg/dL"),
+					pointer.FromString("mg/dL"),
 					func(datum *pump.InsulinSensitivityStartArrayMap, units *string) {},
 					nil,
 				),
 				Entry("modifies the datum; units mg/dl",
-					pointer.String("mg/dl"),
+					pointer.FromString("mg/dl"),
 					func(datum *pump.InsulinSensitivityStartArrayMap, units *string) {},
 					nil,
 				),

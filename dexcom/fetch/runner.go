@@ -251,7 +251,7 @@ func (t *TaskRunner) getDataSource() error {
 
 func (t *TaskRunner) updateDataSourceWithDataSet(dataSet *data.DataSet) error {
 	dataSourceUpdate := data.NewDataSourceUpdate()
-	dataSourceUpdate.DataSetIDs = pointer.StringArray(append(t.dataSource.DataSetIDs, dataSet.UploadID))
+	dataSourceUpdate.DataSetIDs = pointer.FromStringArray(append(t.dataSource.DataSetIDs, dataSet.UploadID))
 	return t.updateDataSource(dataSourceUpdate)
 }
 
@@ -259,29 +259,29 @@ func (t *TaskRunner) updateDataSourceWithDataTime(earliestDataTime time.Time, la
 	dataSourceUpdate := data.NewDataSourceUpdate()
 
 	if t.beforeEarliestDataTime(earliestDataTime) {
-		dataSourceUpdate.EarliestDataTime = pointer.Time(earliestDataTime.Truncate(time.Second))
+		dataSourceUpdate.EarliestDataTime = pointer.FromTime(earliestDataTime.Truncate(time.Second))
 	}
 	if t.afterLatestDataTime(latestDataTime) {
-		dataSourceUpdate.LatestDataTime = pointer.Time(latestDataTime.Truncate(time.Second))
+		dataSourceUpdate.LatestDataTime = pointer.FromTime(latestDataTime.Truncate(time.Second))
 	}
 
 	if dataSourceUpdate.EarliestDataTime == nil && dataSourceUpdate.LatestDataTime == nil {
 		return nil
 	}
 
-	dataSourceUpdate.LastImportTime = pointer.Time(time.Now().Truncate(time.Second))
+	dataSourceUpdate.LastImportTime = pointer.FromTime(time.Now().Truncate(time.Second))
 	return t.updateDataSource(dataSourceUpdate)
 }
 
 func (t *TaskRunner) updateDataSourceWithLastImportTime() error {
 	dataSourceUpdate := data.NewDataSourceUpdate()
-	dataSourceUpdate.LastImportTime = pointer.Time(time.Now().Truncate(time.Second))
+	dataSourceUpdate.LastImportTime = pointer.FromTime(time.Now().Truncate(time.Second))
 	return t.updateDataSource(dataSourceUpdate)
 }
 
 func (t *TaskRunner) updateDataSourceWithError(err error) error {
 	dataSourceUpdate := data.NewDataSourceUpdate()
-	dataSourceUpdate.State = pointer.String(data.DataSourceStateError)
+	dataSourceUpdate.State = pointer.FromString(data.DataSourceStateError)
 	dataSourceUpdate.Error = &errors.Serializable{Error: err}
 	return t.updateDataSource(dataSourceUpdate)
 }
@@ -326,13 +326,13 @@ func (t *TaskRunner) updateDataSetWithDeviceInfo(deviceInfo *DeviceInfo) error {
 
 	dataSetUpdate := data.NewDataSetUpdate()
 	if t.dataSet.DeviceID == nil || *t.dataSet.DeviceID != dataSetDeviceInfo.DeviceID {
-		dataSetUpdate.DeviceID = pointer.String(dataSetDeviceInfo.DeviceID)
+		dataSetUpdate.DeviceID = pointer.FromString(dataSetDeviceInfo.DeviceID)
 	}
 	if t.dataSet.DeviceModel == nil || *t.dataSet.DeviceModel != dataSetDeviceInfo.DeviceModel {
-		dataSetUpdate.DeviceModel = pointer.String(dataSetDeviceInfo.DeviceModel)
+		dataSetUpdate.DeviceModel = pointer.FromString(dataSetDeviceInfo.DeviceModel)
 	}
 	if t.dataSet.DeviceSerialNumber == nil || *t.dataSet.DeviceSerialNumber != dataSetDeviceInfo.DeviceSerialNumber {
-		dataSetUpdate.DeviceSerialNumber = pointer.String(dataSetDeviceInfo.DeviceSerialNumber)
+		dataSetUpdate.DeviceSerialNumber = pointer.FromString(dataSetDeviceInfo.DeviceSerialNumber)
 	}
 	return t.updateDataSet(dataSetUpdate)
 }
@@ -573,9 +573,9 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) ([]data
 func (t *TaskRunner) prepareDatumArray(datumArray []data.Datum, deviceInfo *DeviceInfo) error {
 	var datumDeviceID *string
 	if deviceInfo.DeviceID != dexcom.DeviceIDMultiple {
-		datumDeviceID = pointer.String(deviceInfo.DeviceID)
+		datumDeviceID = pointer.FromString(deviceInfo.DeviceID)
 	} else {
-		datumDeviceID = pointer.String(dexcom.DeviceIDUnknown)
+		datumDeviceID = pointer.FromString(dexcom.DeviceIDUnknown)
 	}
 
 	for _, datum := range datumArray {
@@ -618,8 +618,8 @@ func (t *TaskRunner) findDataSet() (*data.DataSet, error) {
 func (t *TaskRunner) createDataSet(deviceInfo *DeviceInfo) (*data.DataSet, error) {
 	dataSetCreate := data.NewDataSetCreate()
 	dataSetCreate.Client = &data.DataSetClient{
-		Name:    pointer.String(DatasetClientName),
-		Version: pointer.String(DatasetClientVersion),
+		Name:    pointer.FromString(DatasetClientName),
+		Version: pointer.FromString(DatasetClientVersion),
 	}
 	dataSetCreate.DataSetType = data.DataSetTypeContinuous
 	dataSetCreate.DeviceID = deviceInfo.DeviceID

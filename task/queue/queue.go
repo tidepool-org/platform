@@ -236,7 +236,7 @@ func (q *Queue) dispatchTask(ctx context.Context, tsk *task.Task) {
 	defer ssn.Close()
 
 	tsk.State = task.TaskStateRunning
-	tsk.RunTime = pointer.Time(time.Now())
+	tsk.RunTime = pointer.FromTime(time.Now())
 
 	var err error
 	tsk, err = ssn.UpdateFromState(ctx, tsk, task.TaskStatePending)
@@ -258,7 +258,7 @@ func (q *Queue) completeTask(ctx context.Context, tsk *task.Task) {
 	defer ssn.Close()
 
 	if tsk.RunTime != nil {
-		tsk.Duration = pointer.Float64(time.Since(*tsk.RunTime).Truncate(time.Millisecond).Seconds())
+		tsk.Duration = pointer.FromFloat64(time.Since(*tsk.RunTime).Truncate(time.Millisecond).Seconds())
 	}
 	q.computeState(tsk)
 

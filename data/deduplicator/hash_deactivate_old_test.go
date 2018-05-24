@@ -45,9 +45,9 @@ var _ = Describe("HashDeactivateOld", func() {
 			Expect(testDataset).ToNot(BeNil())
 			testDataset.UploadID = &testUploadID
 			testDataset.UserID = &testUserID
-			testDataset.DeviceID = pointer.String(id.New())
+			testDataset.DeviceID = pointer.FromString(id.New())
 			testDataset.DeviceManufacturers = &[]string{"Medtronic"}
-			testDataset.DeviceModel = pointer.String("523")
+			testDataset.DeviceModel = pointer.FromString("523")
 		})
 
 		Context("CanDeduplicateDataset", func() {
@@ -63,7 +63,7 @@ var _ = Describe("HashDeactivateOld", func() {
 			})
 
 			It("returns false if the dataset id is empty", func() {
-				testDataset.UploadID = pointer.String("")
+				testDataset.UploadID = pointer.FromString("")
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
@@ -73,7 +73,7 @@ var _ = Describe("HashDeactivateOld", func() {
 			})
 
 			It("returns false if the dataset user id is empty", func() {
-				testDataset.UserID = pointer.String("")
+				testDataset.UserID = pointer.FromString("")
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
@@ -83,7 +83,7 @@ var _ = Describe("HashDeactivateOld", func() {
 			})
 
 			It("returns false if the device id is empty", func() {
-				testDataset.DeviceID = pointer.String("")
+				testDataset.DeviceID = pointer.FromString("")
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
@@ -93,7 +93,7 @@ var _ = Describe("HashDeactivateOld", func() {
 			})
 
 			It("returns false if the device manufacturers is empty", func() {
-				testDataset.DeviceManufacturers = pointer.StringArray([]string{})
+				testDataset.DeviceManufacturers = pointer.FromStringArray([]string{})
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
@@ -103,17 +103,17 @@ var _ = Describe("HashDeactivateOld", func() {
 			})
 
 			It("returns false if the device model is empty", func() {
-				testDataset.DeviceModel = pointer.String("")
+				testDataset.DeviceModel = pointer.FromString("")
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
 			It("returns false if the device manufacturers does not contain expected device manufacturer", func() {
-				testDataset.DeviceManufacturers = pointer.StringArray([]string{"Ant", "Zebra", "Cobra"})
+				testDataset.DeviceManufacturers = pointer.FromStringArray([]string{"Ant", "Zebra", "Cobra"})
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
 			It("returns false if the device model does not contain expected device model", func() {
-				testDataset.DeviceModel = pointer.String("123")
+				testDataset.DeviceModel = pointer.FromString("123")
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
 			})
 
@@ -122,14 +122,14 @@ var _ = Describe("HashDeactivateOld", func() {
 			})
 
 			It("returns true if the device id and expected device manufacturer are specified with multiple device manufacturers", func() {
-				testDataset.DeviceManufacturers = pointer.StringArray([]string{"Ant", "Zebra", "Medtronic", "Cobra"})
+				testDataset.DeviceManufacturers = pointer.FromStringArray([]string{"Ant", "Zebra", "Medtronic", "Cobra"})
 				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeTrue())
 			})
 
 			DescribeTable("returns true when",
 				func(deviceManufacturer string, deviceModel string) {
-					testDataset.DeviceManufacturers = pointer.StringArray([]string{deviceManufacturer})
-					testDataset.DeviceModel = pointer.String(deviceModel)
+					testDataset.DeviceManufacturers = pointer.FromStringArray([]string{deviceManufacturer})
+					testDataset.DeviceModel = pointer.FromString(deviceModel)
 					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeTrue())
 				},
 				Entry("is Abbott FreeStyle Libre", "Abbott", "FreeStyle Libre"),
@@ -210,7 +210,7 @@ var _ = Describe("HashDeactivateOld", func() {
 				})
 
 				It("returns an error if the dataset id is empty", func() {
-					testDataset.UploadID = pointer.String("")
+					testDataset.UploadID = pointer.FromString("")
 					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
 					Expect(err).To(MatchError("dataset id is empty"))
 					Expect(testDeduplicator).To(BeNil())
@@ -224,7 +224,7 @@ var _ = Describe("HashDeactivateOld", func() {
 				})
 
 				It("returns an error if the dataset user id is empty", func() {
-					testDataset.UserID = pointer.String("")
+					testDataset.UserID = pointer.FromString("")
 					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
 					Expect(err).To(MatchError("dataset user id is empty"))
 					Expect(testDeduplicator).To(BeNil())
@@ -238,7 +238,7 @@ var _ = Describe("HashDeactivateOld", func() {
 				})
 
 				It("returns an error if the dataset device id is empty", func() {
-					testDataset.DeviceID = pointer.String("")
+					testDataset.DeviceID = pointer.FromString("")
 					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
 					Expect(err).To(MatchError("dataset device id is empty"))
 					Expect(testDeduplicator).To(BeNil())
@@ -252,7 +252,7 @@ var _ = Describe("HashDeactivateOld", func() {
 				})
 
 				It("returns an error if the device manufacturers is empty", func() {
-					testDataset.DeviceManufacturers = pointer.StringArray([]string{})
+					testDataset.DeviceManufacturers = pointer.FromStringArray([]string{})
 					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
 					Expect(err).To(MatchError("dataset device manufacturer and model does not contain expected device manufacturers and models"))
 					Expect(testDeduplicator).To(BeNil())
@@ -266,21 +266,21 @@ var _ = Describe("HashDeactivateOld", func() {
 				})
 
 				It("returns an error if the device model is empty", func() {
-					testDataset.DeviceModel = pointer.String("")
+					testDataset.DeviceModel = pointer.FromString("")
 					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
 					Expect(err).To(MatchError("dataset device manufacturer and model does not contain expected device manufacturers and models"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
 				It("returns an error if the device manufacturers does not contain expected device manufacturer", func() {
-					testDataset.DeviceManufacturers = pointer.StringArray([]string{"Ant", "Zebra", "Cobra"})
+					testDataset.DeviceManufacturers = pointer.FromStringArray([]string{"Ant", "Zebra", "Cobra"})
 					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
 					Expect(err).To(MatchError("dataset device manufacturer and model does not contain expected device manufacturers and models"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
 				It("returns an error if the device model does not contain expected device model", func() {
-					testDataset.DeviceModel = pointer.String("123")
+					testDataset.DeviceModel = pointer.FromString("123")
 					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
 					Expect(err).To(MatchError("dataset device manufacturer and model does not contain expected device manufacturers and models"))
 					Expect(testDeduplicator).To(BeNil())
@@ -291,14 +291,14 @@ var _ = Describe("HashDeactivateOld", func() {
 				})
 
 				It("returns a new deduplicator upon success if the device id and expected device manufacturer are specified with multiple device manufacturers", func() {
-					testDataset.DeviceManufacturers = pointer.StringArray([]string{"Ant", "Zebra", "Medtronic", "Cobra"})
+					testDataset.DeviceManufacturers = pointer.FromStringArray([]string{"Ant", "Zebra", "Medtronic", "Cobra"})
 					Expect(testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)).ToNot(BeNil())
 				})
 
 				DescribeTable("returns a new deduplicator when",
 					func(deviceManufacturer string, deviceModel string) {
-						testDataset.DeviceManufacturers = pointer.StringArray([]string{deviceManufacturer})
-						testDataset.DeviceModel = pointer.String(deviceModel)
+						testDataset.DeviceManufacturers = pointer.FromStringArray([]string{deviceManufacturer})
+						testDataset.DeviceModel = pointer.FromString(deviceModel)
 						Expect(testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)).ToNot(BeNil())
 					},
 					Entry("is Abbott FreeStyle Libre", "Abbott", "FreeStyle Libre"),

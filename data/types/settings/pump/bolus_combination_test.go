@@ -17,7 +17,7 @@ import (
 
 func NewBolusCombination() *pump.BolusCombination {
 	datum := pump.NewBolusCombination()
-	datum.Enabled = pointer.Bool(test.RandomBool())
+	datum.Enabled = pointer.FromBool(test.RandomBool())
 	return datum
 }
 
@@ -61,10 +61,10 @@ var _ = Describe("BolusCombination", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/enabled"),
 				),
 				Entry("enabled false",
-					func(datum *pump.BolusCombination) { datum.Enabled = pointer.Bool(false) },
+					func(datum *pump.BolusCombination) { datum.Enabled = pointer.FromBool(false) },
 				),
 				Entry("enabled true",
-					func(datum *pump.BolusCombination) { datum.Enabled = pointer.Bool(true) },
+					func(datum *pump.BolusCombination) { datum.Enabled = pointer.FromBool(true) },
 				),
 				Entry("multiple errors",
 					func(datum *pump.BolusCombination) {

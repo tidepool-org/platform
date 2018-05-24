@@ -17,7 +17,7 @@ import (
 
 func NewStep() *physical.Step {
 	datum := physical.NewStep()
-	datum.Count = pointer.Int(test.RandomIntFromRange(0, 100000))
+	datum.Count = pointer.FromInt(test.RandomIntFromRange(0, 100000))
 	return datum
 }
 
@@ -69,17 +69,17 @@ var _ = Describe("Step", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/count"),
 				),
 				Entry("count out of range (lower)",
-					func(datum *physical.Step) { datum.Count = pointer.Int(-1) },
+					func(datum *physical.Step) { datum.Count = pointer.FromInt(-1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 100000), "/count"),
 				),
 				Entry("count in range (lower)",
-					func(datum *physical.Step) { datum.Count = pointer.Int(0) },
+					func(datum *physical.Step) { datum.Count = pointer.FromInt(0) },
 				),
 				Entry("count in range (upper)",
-					func(datum *physical.Step) { datum.Count = pointer.Int(100000) },
+					func(datum *physical.Step) { datum.Count = pointer.FromInt(100000) },
 				),
 				Entry("count out of range (upper)",
-					func(datum *physical.Step) { datum.Count = pointer.Int(100001) },
+					func(datum *physical.Step) { datum.Count = pointer.FromInt(100001) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(100001, 0, 100000), "/count"),
 				),
 				Entry("multiple errors",

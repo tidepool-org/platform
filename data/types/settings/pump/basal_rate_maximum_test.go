@@ -19,8 +19,8 @@ import (
 
 func NewBasalRateMaximum() *pump.BasalRateMaximum {
 	datum := pump.NewBasalRateMaximum()
-	datum.Units = pointer.String(test.RandomStringFromArray(pump.BasalRateMaximumUnits()))
-	datum.Value = pointer.Float64(test.RandomFloat64FromRange(pump.BasalRateMaximumValueRangeForUnits(datum.Units)))
+	datum.Units = pointer.FromString(test.RandomStringFromArray(pump.BasalRateMaximumUnits()))
+	datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(pump.BasalRateMaximumValueRangeForUnits(datum.Units)))
 	return datum
 }
 
@@ -81,13 +81,13 @@ var _ = Describe("BasalRateMaximum", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units invalid",
-					func(datum *pump.BasalRateMaximum) { datum.Units = pointer.String("invalid") },
+					func(datum *pump.BasalRateMaximum) { datum.Units = pointer.FromString("invalid") },
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"Units/hour"}), "/units"),
 				),
 				Entry("units Units/hour",
 					func(datum *pump.BasalRateMaximum) {
-						datum.Units = pointer.String("Units/hour")
-						datum.Value = pointer.Float64(0.0)
+						datum.Units = pointer.FromString("Units/hour")
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 				),
 				Entry("units missing; value missing",
@@ -101,34 +101,34 @@ var _ = Describe("BasalRateMaximum", func() {
 				Entry("units missing; value out of range (lower)",
 					func(datum *pump.BasalRateMaximum) {
 						datum.Units = nil
-						datum.Value = pointer.Float64(-0.1)
+						datum.Value = pointer.FromFloat64(-0.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; value in range (lower)",
 					func(datum *pump.BasalRateMaximum) {
 						datum.Units = nil
-						datum.Value = pointer.Float64(0.0)
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; value in range (upper)",
 					func(datum *pump.BasalRateMaximum) {
 						datum.Units = nil
-						datum.Value = pointer.Float64(100.0)
+						datum.Value = pointer.FromFloat64(100.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; value out of range (upper)",
 					func(datum *pump.BasalRateMaximum) {
 						datum.Units = nil
-						datum.Value = pointer.Float64(100.1)
+						datum.Value = pointer.FromFloat64(100.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units invalid; value missing",
 					func(datum *pump.BasalRateMaximum) {
-						datum.Units = pointer.String("invalid")
+						datum.Units = pointer.FromString("invalid")
 						datum.Value = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"Units/hour"}), "/units"),
@@ -136,62 +136,62 @@ var _ = Describe("BasalRateMaximum", func() {
 				),
 				Entry("units invalid; value out of range (lower)",
 					func(datum *pump.BasalRateMaximum) {
-						datum.Units = pointer.String("invalid")
-						datum.Value = pointer.Float64(-0.1)
+						datum.Units = pointer.FromString("invalid")
+						datum.Value = pointer.FromFloat64(-0.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"Units/hour"}), "/units"),
 				),
 				Entry("units invalid; value in range (lower)",
 					func(datum *pump.BasalRateMaximum) {
-						datum.Units = pointer.String("invalid")
-						datum.Value = pointer.Float64(0.0)
+						datum.Units = pointer.FromString("invalid")
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"Units/hour"}), "/units"),
 				),
 				Entry("units invalid; value in range (upper)",
 					func(datum *pump.BasalRateMaximum) {
-						datum.Units = pointer.String("invalid")
-						datum.Value = pointer.Float64(100.0)
+						datum.Units = pointer.FromString("invalid")
+						datum.Value = pointer.FromFloat64(100.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"Units/hour"}), "/units"),
 				),
 				Entry("units invalid; value out of range (upper)",
 					func(datum *pump.BasalRateMaximum) {
-						datum.Units = pointer.String("invalid")
-						datum.Value = pointer.Float64(100.1)
+						datum.Units = pointer.FromString("invalid")
+						datum.Value = pointer.FromFloat64(100.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"Units/hour"}), "/units"),
 				),
 				Entry("units Units/hour; value missing",
 					func(datum *pump.BasalRateMaximum) {
-						datum.Units = pointer.String("Units/hour")
+						datum.Units = pointer.FromString("Units/hour")
 						datum.Value = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units Units/hour; value out of range (lower)",
 					func(datum *pump.BasalRateMaximum) {
-						datum.Units = pointer.String("Units/hour")
-						datum.Value = pointer.Float64(-0.1)
+						datum.Units = pointer.FromString("Units/hour")
+						datum.Value = pointer.FromFloat64(-0.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/value"),
 				),
 				Entry("units Units/hour; value in range (lower)",
 					func(datum *pump.BasalRateMaximum) {
-						datum.Units = pointer.String("Units/hour")
-						datum.Value = pointer.Float64(0.0)
+						datum.Units = pointer.FromString("Units/hour")
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 				),
 				Entry("units Units/hour; value in range (upper)",
 					func(datum *pump.BasalRateMaximum) {
-						datum.Units = pointer.String("Units/hour")
-						datum.Value = pointer.Float64(100.0)
+						datum.Units = pointer.FromString("Units/hour")
+						datum.Value = pointer.FromFloat64(100.0)
 					},
 				),
 				Entry("units Units/hour; value out of range (upper)",
 					func(datum *pump.BasalRateMaximum) {
-						datum.Units = pointer.String("Units/hour")
-						datum.Value = pointer.Float64(100.1)
+						datum.Units = pointer.FromString("Units/hour")
+						datum.Value = pointer.FromFloat64(100.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/value"),
 				),
@@ -242,13 +242,13 @@ var _ = Describe("BasalRateMaximum", func() {
 		})
 
 		It("returns expected range for units invalid", func() {
-			minimum, maximum := pump.BasalRateMaximumValueRangeForUnits(pointer.String("invalid"))
+			minimum, maximum := pump.BasalRateMaximumValueRangeForUnits(pointer.FromString("invalid"))
 			Expect(minimum).To(Equal(-math.MaxFloat64))
 			Expect(maximum).To(Equal(math.MaxFloat64))
 		})
 
 		It("returns expected range for units Units/hour", func() {
-			minimum, maximum := pump.BasalRateMaximumValueRangeForUnits(pointer.String("Units/hour"))
+			minimum, maximum := pump.BasalRateMaximumValueRangeForUnits(pointer.FromString("Units/hour"))
 			Expect(minimum).To(Equal(0.0))
 			Expect(maximum).To(Equal(100.0))
 		})

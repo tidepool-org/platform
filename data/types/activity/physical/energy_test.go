@@ -19,8 +19,8 @@ import (
 
 func NewEnergy() *physical.Energy {
 	datum := physical.NewEnergy()
-	datum.Units = pointer.String(test.RandomStringFromArray(physical.EnergyUnits()))
-	datum.Value = pointer.Float64(test.RandomFloat64FromRange(physical.EnergyValueRangeForUnits(datum.Units)))
+	datum.Units = pointer.FromString(test.RandomStringFromArray(physical.EnergyUnits()))
+	datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(physical.EnergyValueRangeForUnits(datum.Units)))
 	return datum
 }
 
@@ -121,31 +121,31 @@ var _ = Describe("Energy", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units invalid",
-					func(datum *physical.Energy) { datum.Units = pointer.String("invalid") },
+					func(datum *physical.Energy) { datum.Units = pointer.FromString("invalid") },
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"calories", "joules", "kilocalories", "kilojoules"}), "/units"),
 				),
 				Entry("units calories",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("calories")
-						datum.Value = pointer.Float64(0.0)
+						datum.Units = pointer.FromString("calories")
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 				),
 				Entry("units joules",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("joules")
-						datum.Value = pointer.Float64(0.0)
+						datum.Units = pointer.FromString("joules")
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 				),
 				Entry("units kilocalories",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("kilocalories")
-						datum.Value = pointer.Float64(0.0)
+						datum.Units = pointer.FromString("kilocalories")
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 				),
 				Entry("units kilojoules",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("kilojoules")
-						datum.Value = pointer.Float64(0.0)
+						datum.Units = pointer.FromString("kilojoules")
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 				),
 				Entry("units missing; value missing",
@@ -159,34 +159,34 @@ var _ = Describe("Energy", func() {
 				Entry("units missing; value out of range (lower)",
 					func(datum *physical.Energy) {
 						datum.Units = nil
-						datum.Value = pointer.Float64(-0.1)
+						datum.Value = pointer.FromFloat64(-0.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; value in range (lower)",
 					func(datum *physical.Energy) {
 						datum.Units = nil
-						datum.Value = pointer.Float64(0.0)
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; value in range (upper)",
 					func(datum *physical.Energy) {
 						datum.Units = nil
-						datum.Value = pointer.Float64(41858000.0)
+						datum.Value = pointer.FromFloat64(41858000.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; value out of range (upper)",
 					func(datum *physical.Energy) {
 						datum.Units = nil
-						datum.Value = pointer.Float64(41858000.1)
+						datum.Value = pointer.FromFloat64(41858000.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units invalid; value missing",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("invalid")
+						datum.Units = pointer.FromString("invalid")
 						datum.Value = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"calories", "joules", "kilocalories", "kilojoules"}), "/units"),
@@ -194,161 +194,161 @@ var _ = Describe("Energy", func() {
 				),
 				Entry("units invalid; value out of range (lower)",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("invalid")
-						datum.Value = pointer.Float64(-0.1)
+						datum.Units = pointer.FromString("invalid")
+						datum.Value = pointer.FromFloat64(-0.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"calories", "joules", "kilocalories", "kilojoules"}), "/units"),
 				),
 				Entry("units invalid; value in range (lower)",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("invalid")
-						datum.Value = pointer.Float64(0.0)
+						datum.Units = pointer.FromString("invalid")
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"calories", "joules", "kilocalories", "kilojoules"}), "/units"),
 				),
 				Entry("units invalid; value in range (upper)",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("invalid")
-						datum.Value = pointer.Float64(41858000.0)
+						datum.Units = pointer.FromString("invalid")
+						datum.Value = pointer.FromFloat64(41858000.0)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"calories", "joules", "kilocalories", "kilojoules"}), "/units"),
 				),
 				Entry("units invalid; value out of range (upper)",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("invalid")
-						datum.Value = pointer.Float64(41858000.1)
+						datum.Units = pointer.FromString("invalid")
+						datum.Value = pointer.FromFloat64(41858000.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"calories", "joules", "kilocalories", "kilojoules"}), "/units"),
 				),
 				Entry("units calories; value missing",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("calories")
+						datum.Units = pointer.FromString("calories")
 						datum.Value = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units calories; value out of range (lower)",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("calories")
-						datum.Value = pointer.Float64(-0.1)
+						datum.Units = pointer.FromString("calories")
+						datum.Value = pointer.FromFloat64(-0.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 10000000.0), "/value"),
 				),
 				Entry("units calories; value in range (lower)",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("calories")
-						datum.Value = pointer.Float64(0.0)
+						datum.Units = pointer.FromString("calories")
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 				),
 				Entry("units calories; value in range (upper)",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("calories")
-						datum.Value = pointer.Float64(10000000.0)
+						datum.Units = pointer.FromString("calories")
+						datum.Value = pointer.FromFloat64(10000000.0)
 					},
 				),
 				Entry("units calories; value out of range (upper)",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("calories")
-						datum.Value = pointer.Float64(10000000.1)
+						datum.Units = pointer.FromString("calories")
+						datum.Value = pointer.FromFloat64(10000000.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(10000000.1, 0.0, 10000000.0), "/value"),
 				),
 				Entry("units joules; value missing",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("joules")
+						datum.Units = pointer.FromString("joules")
 						datum.Value = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units joules; value out of range (lower)",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("joules")
-						datum.Value = pointer.Float64(-0.1)
+						datum.Units = pointer.FromString("joules")
+						datum.Value = pointer.FromFloat64(-0.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 41858000.0), "/value"),
 				),
 				Entry("units joules; value in range (lower)",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("joules")
-						datum.Value = pointer.Float64(0.0)
+						datum.Units = pointer.FromString("joules")
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 				),
 				Entry("units joules; value in range (upper)",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("joules")
-						datum.Value = pointer.Float64(41858000.0)
+						datum.Units = pointer.FromString("joules")
+						datum.Value = pointer.FromFloat64(41858000.0)
 					},
 				),
 				Entry("units joules; value out of range (upper)",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("joules")
-						datum.Value = pointer.Float64(41858000.1)
+						datum.Units = pointer.FromString("joules")
+						datum.Value = pointer.FromFloat64(41858000.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(41858000.1, 0.0, 41858000.0), "/value"),
 				),
 				Entry("units kilocalories; value missing",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("kilocalories")
+						datum.Units = pointer.FromString("kilocalories")
 						datum.Value = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units kilocalories; value out of range (lower)",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("kilocalories")
-						datum.Value = pointer.Float64(-0.1)
+						datum.Units = pointer.FromString("kilocalories")
+						datum.Value = pointer.FromFloat64(-0.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 10000.0), "/value"),
 				),
 				Entry("units kilocalories; value in range (lower)",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("kilocalories")
-						datum.Value = pointer.Float64(0.0)
+						datum.Units = pointer.FromString("kilocalories")
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 				),
 				Entry("units kilocalories; value in range (upper)",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("kilocalories")
-						datum.Value = pointer.Float64(10000.0)
+						datum.Units = pointer.FromString("kilocalories")
+						datum.Value = pointer.FromFloat64(10000.0)
 					},
 				),
 				Entry("units kilocalories; value out of range (upper)",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("kilocalories")
-						datum.Value = pointer.Float64(10000.1)
+						datum.Units = pointer.FromString("kilocalories")
+						datum.Value = pointer.FromFloat64(10000.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(10000.1, 0.0, 10000.0), "/value"),
 				),
 				Entry("units kilojoules; value missing",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("kilojoules")
+						datum.Units = pointer.FromString("kilojoules")
 						datum.Value = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units kilojoules; value out of range (lower)",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("kilojoules")
-						datum.Value = pointer.Float64(-0.1)
+						datum.Units = pointer.FromString("kilojoules")
+						datum.Value = pointer.FromFloat64(-0.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 41858.0), "/value"),
 				),
 				Entry("units kilojoules; value in range (lower)",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("kilojoules")
-						datum.Value = pointer.Float64(0.0)
+						datum.Units = pointer.FromString("kilojoules")
+						datum.Value = pointer.FromFloat64(0.0)
 					},
 				),
 				Entry("units kilojoules; value in range (upper)",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("kilojoules")
-						datum.Value = pointer.Float64(41858.0)
+						datum.Units = pointer.FromString("kilojoules")
+						datum.Value = pointer.FromFloat64(41858.0)
 					},
 				),
 				Entry("units kilojoules; value out of range (upper)",
 					func(datum *physical.Energy) {
-						datum.Units = pointer.String("kilojoules")
-						datum.Value = pointer.Float64(41858.1)
+						datum.Units = pointer.FromString("kilojoules")
+						datum.Value = pointer.FromFloat64(41858.1)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(41858.1, 0.0, 41858.0), "/value"),
 				),
@@ -399,31 +399,31 @@ var _ = Describe("Energy", func() {
 		})
 
 		It("returns expected range for units invalid", func() {
-			minimum, maximum := physical.EnergyValueRangeForUnits(pointer.String("invalid"))
+			minimum, maximum := physical.EnergyValueRangeForUnits(pointer.FromString("invalid"))
 			Expect(minimum).To(Equal(-math.MaxFloat64))
 			Expect(maximum).To(Equal(math.MaxFloat64))
 		})
 
 		It("returns expected range for units calories", func() {
-			minimum, maximum := physical.EnergyValueRangeForUnits(pointer.String("calories"))
+			minimum, maximum := physical.EnergyValueRangeForUnits(pointer.FromString("calories"))
 			Expect(minimum).To(Equal(0.0))
 			Expect(maximum).To(Equal(10000000.0))
 		})
 
 		It("returns expected range for units joules", func() {
-			minimum, maximum := physical.EnergyValueRangeForUnits(pointer.String("joules"))
+			minimum, maximum := physical.EnergyValueRangeForUnits(pointer.FromString("joules"))
 			Expect(minimum).To(Equal(0.0))
 			Expect(maximum).To(Equal(41858000.0))
 		})
 
 		It("returns expected range for units kilocalories", func() {
-			minimum, maximum := physical.EnergyValueRangeForUnits(pointer.String("kilocalories"))
+			minimum, maximum := physical.EnergyValueRangeForUnits(pointer.FromString("kilocalories"))
 			Expect(minimum).To(Equal(0.0))
 			Expect(maximum).To(Equal(10000.0))
 		})
 
 		It("returns expected range for units kilojoules", func() {
-			minimum, maximum := physical.EnergyValueRangeForUnits(pointer.String("kilojoules"))
+			minimum, maximum := physical.EnergyValueRangeForUnits(pointer.FromString("kilojoules"))
 			Expect(minimum).To(Equal(0.0))
 			Expect(maximum).To(Equal(41858.0))
 		})

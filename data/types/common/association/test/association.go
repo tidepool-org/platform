@@ -14,12 +14,12 @@ func NewAssociation() *association.Association {
 	typ := test.RandomStringFromArray(association.Types())
 	datum := association.NewAssociation()
 	if typ == association.TypeDatum {
-		datum.ID = pointer.String(id.New())
+		datum.ID = pointer.FromString(id.New())
 	}
-	datum.Reason = pointer.String(test.NewText(1, 1000))
-	datum.Type = pointer.String(typ)
+	datum.Reason = pointer.FromString(test.NewText(1, 1000))
+	datum.Type = pointer.FromString(typ)
 	if typ == association.TypeURL {
-		datum.URL = pointer.String(testHTTP.NewURLString())
+		datum.URL = pointer.FromString(testHTTP.NewURLString())
 	}
 	return datum
 }

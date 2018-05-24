@@ -11,10 +11,10 @@ func NewExtended() *extended.Extended {
 	datum := extended.New()
 	datum.Bolus = *testDataTypesBolus.NewBolus()
 	datum.SubType = "square"
-	datum.Duration = pointer.Int(test.RandomIntFromRange(extended.DurationMinimum, extended.DurationMaximum))
-	datum.DurationExpected = pointer.Int(test.RandomIntFromRange(*datum.Duration, extended.DurationMaximum))
-	datum.Extended = pointer.Float64(test.RandomFloat64FromRange(extended.ExtendedMinimum, extended.ExtendedMaximum))
-	datum.ExtendedExpected = pointer.Float64(test.RandomFloat64FromRange(*datum.Extended, extended.ExtendedMaximum))
+	datum.Duration = pointer.FromInt(test.RandomIntFromRange(extended.DurationMinimum, extended.DurationMaximum))
+	datum.DurationExpected = pointer.FromInt(test.RandomIntFromRange(*datum.Duration, extended.DurationMaximum))
+	datum.Extended = pointer.FromFloat64(test.RandomFloat64FromRange(extended.ExtendedMinimum, extended.ExtendedMaximum))
+	datum.ExtendedExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Extended, extended.ExtendedMaximum))
 	return datum
 }
 

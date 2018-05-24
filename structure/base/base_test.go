@@ -26,8 +26,8 @@ var _ = Describe("Base", func() {
 
 		BeforeEach(func() {
 			src = testStructure.NewSource()
-			src.ParameterOutput = pointer.String(testErrors.NewSourceParameter())
-			src.PointerOutput = pointer.String(testErrors.NewSourcePointer())
+			src.ParameterOutput = pointer.FromString(testErrors.NewSourceParameter())
+			src.PointerOutput = pointer.FromString(testErrors.NewSourcePointer())
 			meta = testErrors.NewMeta()
 			base = structureBase.New()
 			Expect(base).ToNot(BeNil())
