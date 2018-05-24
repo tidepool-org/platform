@@ -38,7 +38,7 @@ func NewUpload() *upload.Upload {
 	datum.DeviceManufacturers = pointer.StringArray([]string{test.NewText(1, 16), test.NewText(1, 16)})
 	datum.DeviceModel = pointer.String(test.NewText(1, 32))
 	datum.DeviceSerialNumber = pointer.String(test.NewText(1, 16))
-	datum.DeviceTags = pointer.StringArray(test.RandomStringArrayFromArray(1, len(upload.DeviceTags()), false, upload.DeviceTags()))
+	datum.DeviceTags = pointer.StringArray(test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, len(upload.DeviceTags()), upload.DeviceTags()))
 	datum.State = pointer.String(test.RandomStringFromArray(upload.States()))
 	datum.TimeProcessing = pointer.String(upload.TimeProcessingUTCBootstrapping)
 	datum.Version = pointer.String(testInternet.NewSemanticVersion())
