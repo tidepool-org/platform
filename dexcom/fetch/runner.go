@@ -95,7 +95,7 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
 
 	ctx = log.NewContextWithLogger(ctx, r.Logger())
 
-	// HACK: Skip 2:45am - 3:45am PST to avoid intermittent refresh token failure due to Dexcom backups
+	// HACK: Dexcom - skip 2:45am - 3:45am PST to avoid intermittent refresh token failure due to Dexcom backups (per Dexcom)
 	var skipToAvoidDexcomBackup bool
 	if location, err := time.LoadLocation("America/Los_Angeles"); err != nil {
 		r.Logger().WithError(err).Warn("Unable to load location to detect Dexcom backup")
@@ -383,7 +383,7 @@ func (t *TaskRunner) fetch(startTime time.Time, endTime time.Time) error {
 		return err
 	}
 
-	// HACK: Dexcom API does not guarantee to return a device for G5 Mobile if time range < 24 hours
+	// HACK: Dexcom - does not guarantee to return a device for G5 Mobile if time range < 24 hours (per Dexcom)
 	var deviceInfo *DeviceInfo
 	if endTime.Sub(startTime) > 24*time.Hour {
 		if len(devices) == 0 {
@@ -398,7 +398,7 @@ func (t *TaskRunner) fetch(startTime time.Time, endTime time.Time) error {
 			return nil
 		} else if deviceInfo, err = NewDeviceInfoFromDataSet(t.dataSet); err != nil {
 			return err
-		} else if !deviceInfo.IsG5Mobile() {
+		} else if !deviceInfo.IsDeviceModelG5Mobile() && !deviceInfo.IsDeviceModelUnknown() {
 			deviceInfo = NewDeviceInfoFromMultiple()
 		}
 	}
@@ -423,11 +423,10 @@ func (t *TaskRunner) fetch(startTime time.Time, endTime time.Time) error {
 
 func (t *TaskRunner) fetchDevices(startTime time.Time, endTime time.Time) ([]*dexcom.Device, error) {
 	response, err := t.DexcomClient().GetDevices(t.context, startTime, endTime, t.tokenSource)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to get devices")
+	if updateErr := t.updateProviderSession(); updateErr != nil {
+		return nil, updateErr
 	}
-
-	if err = t.updateProviderSession(); err != nil {
+	if err != nil {
 		return nil, err
 	}
 
@@ -492,11 +491,10 @@ func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) ([]data.D
 
 func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) ([]data.Datum, error) {
 	response, err := t.DexcomClient().GetCalibrations(t.context, startTime, endTime, t.tokenSource)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to get calibrations")
+	if updateErr := t.updateProviderSession(); updateErr != nil {
+		return nil, updateErr
 	}
-
-	if err = t.updateProviderSession(); err != nil {
+	if err != nil {
 		return nil, err
 	}
 
@@ -517,11 +515,10 @@ func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) (
 
 func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) ([]data.Datum, error) {
 	response, err := t.DexcomClient().GetEGVs(t.context, startTime, endTime, t.tokenSource)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to get egvs")
+	if updateErr := t.updateProviderSession(); updateErr != nil {
+		return nil, updateErr
 	}
-
-	if err = t.updateProviderSession(); err != nil {
+	if err != nil {
 		return nil, err
 	}
 
@@ -542,11 +539,10 @@ func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) ([]data.D
 
 func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) ([]data.Datum, error) {
 	response, err := t.DexcomClient().GetEvents(t.context, startTime, endTime, t.tokenSource)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to get events")
+	if updateErr := t.updateProviderSession(); updateErr != nil {
+		return nil, updateErr
 	}
-
-	if err = t.updateProviderSession(); err != nil {
+	if err != nil {
 		return nil, err
 	}
 
@@ -764,6 +760,9 @@ func NewDeviceInfoFromDevice(device *dexcom.Device) (*DeviceInfo, error) {
 	case dexcom.ModelG4Receiver:
 		deviceModel = "G4Receiver"
 		deviceIDPrefix = "DexG4Rec_"
+	case dexcom.ModelUnknown:
+		deviceModel = "Unknown"
+		deviceIDPrefix = "DexUnknown_"
 	default:
 		return nil, errors.New("unknown device model")
 	}
@@ -784,8 +783,12 @@ func (d *DeviceInfo) IsEmpty() bool {
 	return d.DeviceID == "" && d.DeviceModel == "" && d.DeviceSerialNumber == ""
 }
 
-func (d *DeviceInfo) IsG5Mobile() bool {
+func (d *DeviceInfo) IsDeviceModelG5Mobile() bool {
 	return d.DeviceModel == "G5Mobile"
+}
+
+func (d *DeviceInfo) IsDeviceModelUnknown() bool {
+	return d.DeviceModel == "Unknown"
 }
 
 func (d *DeviceInfo) Merge(deviceInfo *DeviceInfo) (*DeviceInfo, error) {

@@ -34,7 +34,7 @@ func CloneDose(datum *insulin.Dose) *insulin.Dose {
 
 var _ = Describe("Dose", func() {
 	It("TotalMaximum is expected", func() {
-		Expect(insulin.TotalMaximum).To(Equal(100.0))
+		Expect(insulin.TotalMaximum).To(Equal(250.0))
 	})
 
 	It("TotalMinimum is expected", func() {
@@ -80,17 +80,17 @@ var _ = Describe("Dose", func() {
 				),
 				Entry("total out of range (lower)",
 					func(datum *insulin.Dose) { datum.Total = pointer.Float64(-0.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 100), "/total"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 250), "/total"),
 				),
 				Entry("total in range (lower)",
 					func(datum *insulin.Dose) { datum.Total = pointer.Float64(0.0) },
 				),
 				Entry("total in range (upper)",
-					func(datum *insulin.Dose) { datum.Total = pointer.Float64(100.0) },
+					func(datum *insulin.Dose) { datum.Total = pointer.Float64(250.0) },
 				),
 				Entry("total out of range (upper)",
-					func(datum *insulin.Dose) { datum.Total = pointer.Float64(100.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0, 100), "/total"),
+					func(datum *insulin.Dose) { datum.Total = pointer.Float64(250.1) },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(250.1, 0, 250), "/total"),
 				),
 				Entry("units missing",
 					func(datum *insulin.Dose) { datum.Units = nil },

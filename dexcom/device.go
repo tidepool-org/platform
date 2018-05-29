@@ -94,7 +94,7 @@ func (d *Device) Parse(parser structure.ObjectParser) {
 }
 
 func (d *Device) Validate(validator structure.Validator) {
-	validator.String("model", &d.Model).OneOf(ModelG5MobileApp, ModelG5Receiver, ModelG4WithShareReceiver, ModelG4Receiver)
+	validator.String("model", &d.Model).OneOf(ModelG5MobileApp, ModelG5Receiver, ModelG4WithShareReceiver, ModelG4Receiver, ModelUnknown)
 	validator.Time("lastUploadDate", &d.LastUploadDate).NotZero()
 	existingAlertNames := &[]string{}
 	validator = validator.WithReference("alertSettings")
@@ -179,6 +179,11 @@ func (a *AlertSetting) Validate(validator structure.Validator, existingAlertName
 }
 
 func (a *AlertSetting) validateFixedLow(validator structure.Validator) {
+	// HACK: Dexcom - snooze of 28 is invalid; use snooze of 30 instead (per Dexcom)
+	if a.Snooze == 28 {
+		a.Snooze = 30
+	}
+
 	validator.String("unit", &a.Unit).OneOf(UnitMgdL) // TODO: Add UnitMmolL
 	switch a.Unit {
 	case UnitMgdL:
@@ -228,6 +233,11 @@ func (a *AlertSetting) validateRise(validator structure.Validator) {
 }
 
 func (a *AlertSetting) validateFall(validator structure.Validator) {
+	// HACK: Dexcom - negative value is invalid; use positive value instead (per Dexcom)
+	if a.Value < 0 {
+		a.Value = -a.Value
+	}
+
 	validator.String("unit", &a.Unit).OneOf(UnitMgdLMin) // TODO: UnitMmolLMin
 	switch a.Unit {
 	case UnitMgdLMin:
@@ -255,7 +265,7 @@ var highSnoozes = append(append([]int{0}, generateIntegerRange(15, 240, 5)...), 
 var riseSnoozes = []int{0, 30}
 var fallSnoozes = []int{0, 30}
 var outOfRangeValues = generateFloatRange(20, 240, 5)
-var outOfRangeSnoozes = []int{0, 20, 30}
+var outOfRangeSnoozes = []int{0, 20, 25, 30}
 
 func generateFloatRange(min float64, max float64, step float64) []float64 {
 	r := []float64{}

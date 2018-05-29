@@ -8,6 +8,7 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/oauth"
+	"github.com/tidepool-org/platform/request"
 )
 
 type Source struct {
@@ -65,6 +66,9 @@ func (s *Source) RefreshedToken() (*oauth.Token, error) {
 
 	tknSrcTkn, err := s.tokenSource.Token()
 	if err != nil {
+		if oauth.IsRefreshTokenError(err) {
+			err = errors.Wrap(request.ErrorUnauthenticated(), err.Error())
+		}
 		return nil, errors.Wrap(err, "unable to get token")
 	}
 

@@ -1,5 +1,15 @@
 ## HEAD
 
+## v1.25.0
+
+* Use correct 2-Clause BSD License
+* Return only active data sets
+* Return on validation or normalization error after sending response
+* Fix Dexcom API unexpected data; temporarily modify incoming data to expected values
+* Fix Dexcom API unknown device model failure; allow unknown device model
+* Fix Dexcom API authentication failure; always update provider session, even if error
+* Add additional support Medtronic device models
+
 ## v1.24.0
 
 * Add support for new Trividia Health devices

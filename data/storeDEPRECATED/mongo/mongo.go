@@ -69,6 +69,7 @@ func (d *DataSession) GetDatasetsForUserByID(ctx context.Context, userID string,
 
 	var datasets []*upload.Upload
 	selector := bson.M{
+		"_active": true,
 		"_userId": userID,
 		"type":    "upload",
 	}
@@ -624,6 +625,7 @@ func (d *DataSession) ListUserDataSets(ctx context.Context, userID string, filte
 
 	dataSets := data.DataSets{}
 	selector := bson.M{
+		"_active": true,
 		"_userId": userID,
 		"type":    "upload",
 	}
