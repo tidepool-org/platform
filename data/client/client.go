@@ -60,7 +60,7 @@ func (c *ClientImpl) ListUserDataSources(ctx context.Context, userID string, fil
 
 	url := c.client.ConstructURL("v1", "users", userID, "data_sources")
 	dataSources := data.DataSources{}
-	if err := c.client.SendRequestAsServer(ctx, http.MethodGet, url, []request.Mutator{filter, pagination}, nil, &dataSources); err != nil {
+	if err := c.client.SendRequestAsServer(ctx, http.MethodGet, url, []request.RequestMutator{filter, pagination}, nil, &dataSources); err != nil {
 		return nil, err
 	}
 
@@ -166,7 +166,7 @@ func (c *ClientImpl) ListUserDataSets(ctx context.Context, userID string, filter
 
 	url := c.client.ConstructURL("v1", "users", userID, "data_sets")
 	dataSets := data.DataSets{}
-	if err := c.client.SendRequestAsServer(ctx, http.MethodGet, url, []request.Mutator{filter, pagination}, nil, &dataSets); err != nil {
+	if err := c.client.SendRequestAsServer(ctx, http.MethodGet, url, []request.RequestMutator{filter, pagination}, nil, &dataSets); err != nil {
 		return nil, err
 	}
 

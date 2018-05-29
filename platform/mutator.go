@@ -19,12 +19,12 @@ func NewSessionTokenHeaderMutator(sessionToken string) *SessionTokenHeaderMutato
 	}
 }
 
-func (s *SessionTokenHeaderMutator) Mutate(req *http.Request) error {
+func (s *SessionTokenHeaderMutator) MutateRequest(req *http.Request) error {
 	if s.HeaderMutator.Value == "" {
 		return errors.New("session token is missing")
 	}
 
-	return s.HeaderMutator.Mutate(req)
+	return s.HeaderMutator.MutateRequest(req)
 }
 
 type RestrictedTokenParameterMutator struct {
@@ -37,12 +37,12 @@ func NewRestrictedTokenParameterMutator(restrictedToken string) *RestrictedToken
 	}
 }
 
-func (r *RestrictedTokenParameterMutator) Mutate(req *http.Request) error {
+func (r *RestrictedTokenParameterMutator) MutateRequest(req *http.Request) error {
 	if r.ParameterMutator.Value == "" {
 		return errors.New("restricted token is missing")
 	}
 
-	return r.ParameterMutator.Mutate(req)
+	return r.ParameterMutator.MutateRequest(req)
 }
 
 type ServiceSecretHeaderMutator struct {
@@ -55,12 +55,12 @@ func NewServiceSecretHeaderMutator(serviceSecret string) *ServiceSecretHeaderMut
 	}
 }
 
-func (s *ServiceSecretHeaderMutator) Mutate(req *http.Request) error {
+func (s *ServiceSecretHeaderMutator) MutateRequest(req *http.Request) error {
 	if s.HeaderMutator.Value == "" {
 		return errors.New("service secret is missing")
 	}
 
-	return s.HeaderMutator.Mutate(req)
+	return s.HeaderMutator.MutateRequest(req)
 }
 
 type TraceMutator struct {
@@ -73,7 +73,7 @@ func NewTraceMutator(ctx context.Context) *TraceMutator {
 	}
 }
 
-func (t *TraceMutator) Mutate(req *http.Request) error {
+func (t *TraceMutator) MutateRequest(req *http.Request) error {
 	if req == nil {
 		return errors.New("request is missing")
 	}

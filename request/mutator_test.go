@@ -43,7 +43,7 @@ var _ = Describe("Mutator", func() {
 				Expect(mutator.Value).To(Equal(value))
 			})
 
-			Context("Mutate", func() {
+			Context("MutateRequest", func() {
 				var request *http.Request
 
 				BeforeEach(func() {
@@ -51,16 +51,16 @@ var _ = Describe("Mutator", func() {
 				})
 
 				It("returns an error if the request is missing", func() {
-					Expect(mutator.Mutate(nil)).To(MatchError("request is missing"))
+					Expect(mutator.MutateRequest(nil)).To(MatchError("request is missing"))
 				})
 
 				It("returns an error if the key is missing", func() {
 					mutator.Key = ""
-					Expect(mutator.Mutate(request)).To(MatchError("key is missing"))
+					Expect(mutator.MutateRequest(request)).To(MatchError("key is missing"))
 				})
 
 				It("adds the header", func() {
-					Expect(mutator.Mutate(request)).To(Succeed())
+					Expect(mutator.MutateRequest(request)).To(Succeed())
 					Expect(request.Header).To(HaveLen(1))
 					Expect(request.Header).To(HaveKeyWithValue(key, []string{value}))
 				})
@@ -69,7 +69,7 @@ var _ = Describe("Mutator", func() {
 					existingKey := testHTTP.NewHeaderKey()
 					existingValue := testHTTP.NewHeaderValue()
 					request.Header.Add(existingKey, existingValue)
-					Expect(mutator.Mutate(request)).To(Succeed())
+					Expect(mutator.MutateRequest(request)).To(Succeed())
 					Expect(request.Header).To(HaveLen(2))
 					Expect(request.Header).To(HaveKeyWithValue(existingKey, []string{existingValue}))
 					Expect(request.Header).To(HaveKeyWithValue(key, []string{value}))
@@ -78,7 +78,7 @@ var _ = Describe("Mutator", func() {
 				It("adds the header even if there are already headers with the same key", func() {
 					existingValue := testHTTP.NewHeaderValue()
 					request.Header.Add(key, existingValue)
-					Expect(mutator.Mutate(request)).To(Succeed())
+					Expect(mutator.MutateRequest(request)).To(Succeed())
 					Expect(request.Header).To(HaveLen(1))
 					Expect(request.Header).To(HaveKeyWithValue(key, []string{existingValue, value}))
 				})
@@ -117,7 +117,7 @@ var _ = Describe("Mutator", func() {
 				Expect(mutator.Value).To(Equal(value))
 			})
 
-			Context("Mutate", func() {
+			Context("MutateRequest", func() {
 				var request *http.Request
 
 				BeforeEach(func() {
@@ -125,16 +125,16 @@ var _ = Describe("Mutator", func() {
 				})
 
 				It("returns an error if the request is missing", func() {
-					Expect(mutator.Mutate(nil)).To(MatchError("request is missing"))
+					Expect(mutator.MutateRequest(nil)).To(MatchError("request is missing"))
 				})
 
 				It("returns an error if the key is missing", func() {
 					mutator.Key = ""
-					Expect(mutator.Mutate(request)).To(MatchError("key is missing"))
+					Expect(mutator.MutateRequest(request)).To(MatchError("key is missing"))
 				})
 
 				It("adds the parameter", func() {
-					Expect(mutator.Mutate(request)).To(Succeed())
+					Expect(mutator.MutateRequest(request)).To(Succeed())
 					Expect(request.URL.Query()).To(HaveLen(1))
 					Expect(request.URL.Query()).To(HaveKeyWithValue(key, []string{value}))
 				})
@@ -145,7 +145,7 @@ var _ = Describe("Mutator", func() {
 					query := request.URL.Query()
 					query.Add(existingKey, existingValue)
 					request.URL.RawQuery = query.Encode()
-					Expect(mutator.Mutate(request)).To(Succeed())
+					Expect(mutator.MutateRequest(request)).To(Succeed())
 					Expect(request.URL.Query()).To(HaveLen(2))
 					Expect(request.URL.Query()).To(HaveKeyWithValue(existingKey, []string{existingValue}))
 					Expect(request.URL.Query()).To(HaveKeyWithValue(key, []string{value}))
@@ -156,7 +156,7 @@ var _ = Describe("Mutator", func() {
 					query := request.URL.Query()
 					query.Add(key, existingValue)
 					request.URL.RawQuery = query.Encode()
-					Expect(mutator.Mutate(request)).To(Succeed())
+					Expect(mutator.MutateRequest(request)).To(Succeed())
 					Expect(request.URL.Query()).To(HaveLen(1))
 					Expect(request.URL.Query()).To(HaveKeyWithValue(key, []string{existingValue, value}))
 				})
@@ -192,7 +192,7 @@ var _ = Describe("Mutator", func() {
 				Expect(mutator.Parameters).To(Equal(parameters))
 			})
 
-			Context("Mutate", func() {
+			Context("MutateRequest", func() {
 				var request *http.Request
 
 				BeforeEach(func() {
@@ -200,16 +200,16 @@ var _ = Describe("Mutator", func() {
 				})
 
 				It("returns an error if the request is missing", func() {
-					Expect(mutator.Mutate(nil)).To(MatchError("request is missing"))
+					Expect(mutator.MutateRequest(nil)).To(MatchError("request is missing"))
 				})
 
 				It("returns an error if a key is missing", func() {
 					mutator.Parameters[""] = testHTTP.NewParameterValue()
-					Expect(mutator.Mutate(request)).To(MatchError("key is missing"))
+					Expect(mutator.MutateRequest(request)).To(MatchError("key is missing"))
 				})
 
 				It("adds the parameters", func() {
-					Expect(mutator.Mutate(request)).To(Succeed())
+					Expect(mutator.MutateRequest(request)).To(Succeed())
 					Expect(request.URL.Query()).To(HaveLen(len(parameters)))
 					for key, value := range parameters {
 						Expect(request.URL.Query()).To(HaveKeyWithValue(key, []string{value}))
@@ -222,7 +222,7 @@ var _ = Describe("Mutator", func() {
 					query := request.URL.Query()
 					query.Add(existingKey, existingValue)
 					request.URL.RawQuery = query.Encode()
-					Expect(mutator.Mutate(request)).To(Succeed())
+					Expect(mutator.MutateRequest(request)).To(Succeed())
 					Expect(request.URL.Query()).To(HaveLen(1 + len(parameters)))
 					Expect(request.URL.Query()).To(HaveKeyWithValue(existingKey, []string{existingValue}))
 					for key, value := range parameters {
@@ -239,7 +239,7 @@ var _ = Describe("Mutator", func() {
 					query := request.URL.Query()
 					query.Add(existingKey, existingValue)
 					request.URL.RawQuery = query.Encode()
-					Expect(mutator.Mutate(request)).To(Succeed())
+					Expect(mutator.MutateRequest(request)).To(Succeed())
 					Expect(request.URL.Query()).To(HaveLen(len(parameters)))
 					for key, value := range parameters {
 						if key == existingKey {

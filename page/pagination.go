@@ -39,10 +39,10 @@ func (p *Pagination) Validate(validator structure.Validator) {
 	validator.Int("size", &p.Size).InRange(PaginationSizeMinimum, PaginationSizeMaximum)
 }
 
-func (p *Pagination) Mutate(req *http.Request) error {
+func (p *Pagination) MutateRequest(req *http.Request) error {
 	parameters := map[string]string{
 		"page": strconv.Itoa(p.Page),
 		"size": strconv.Itoa(p.Size),
 	}
-	return request.NewParametersMutator(parameters).Mutate(req)
+	return request.NewParametersMutator(parameters).MutateRequest(req)
 }

@@ -96,7 +96,7 @@ func (c *Client) ListUserProviderSessions(ctx context.Context, userID string, fi
 
 	url := c.client.ConstructURL("v1", "users", userID, "provider_sessions")
 	providerSessions := auth.ProviderSessions{}
-	if err := c.client.SendRequestAsServer(ctx, http.MethodGet, url, []request.Mutator{filter, pagination}, nil, &providerSessions); err != nil {
+	if err := c.client.SendRequestAsServer(ctx, http.MethodGet, url, []request.RequestMutator{filter, pagination}, nil, &providerSessions); err != nil {
 		return nil, err
 	}
 
@@ -202,7 +202,7 @@ func (c *Client) ListUserRestrictedTokens(ctx context.Context, userID string, fi
 
 	url := c.client.ConstructURL("v1", "users", userID, "restricted_tokens")
 	restrictedTokens := auth.RestrictedTokens{}
-	if err := c.client.SendRequestAsServer(ctx, http.MethodGet, url, []request.Mutator{filter, pagination}, nil, &restrictedTokens); err != nil {
+	if err := c.client.SendRequestAsServer(ctx, http.MethodGet, url, []request.RequestMutator{filter, pagination}, nil, &restrictedTokens); err != nil {
 		return nil, err
 	}
 

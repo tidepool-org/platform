@@ -1,5 +1,6 @@
 ## HEAD
 
+* Refactor request Mutator into RequestMutator and ResponseMutator
 * Refactor id generation and validation
 * Move validate package contents to more specific packages
 * Replace generic usage of id.New()

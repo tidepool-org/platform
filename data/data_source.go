@@ -64,7 +64,7 @@ func (d *DataSourceFilter) Validate(validator structure.Validator) {
 	validator.String("state", d.State).OneOf(DataSourceStates()...)
 }
 
-func (d *DataSourceFilter) Mutate(req *http.Request) error {
+func (d *DataSourceFilter) MutateRequest(req *http.Request) error {
 	parameters := map[string]string{}
 	if d.ProviderType != nil {
 		parameters["providerType"] = *d.ProviderType
@@ -78,7 +78,7 @@ func (d *DataSourceFilter) Mutate(req *http.Request) error {
 	if d.State != nil {
 		parameters["state"] = *d.State
 	}
-	return request.NewParametersMutator(parameters).Mutate(req)
+	return request.NewParametersMutator(parameters).MutateRequest(req)
 }
 
 type DataSourceCreate struct {

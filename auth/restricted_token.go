@@ -41,7 +41,7 @@ func (r *RestrictedTokenFilter) Parse(parser structure.ObjectParser) {
 func (r *RestrictedTokenFilter) Validate(validator structure.Validator) {
 }
 
-func (r *RestrictedTokenFilter) Mutate(req *http.Request) error {
+func (r *RestrictedTokenFilter) MutateRequest(req *http.Request) error {
 	return nil
 }
 

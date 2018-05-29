@@ -65,7 +65,7 @@ func (t *TaskFilter) Validate(validator structure.Validator) {
 	validator.String("state", t.State).OneOf(TaskStates()...)
 }
 
-func (t *TaskFilter) Mutate(req *http.Request) error {
+func (t *TaskFilter) MutateRequest(req *http.Request) error {
 	parameters := map[string]string{}
 	if t.Name != nil {
 		parameters["name"] = *t.Name
@@ -76,7 +76,7 @@ func (t *TaskFilter) Mutate(req *http.Request) error {
 	if t.State != nil {
 		parameters["state"] = *t.State
 	}
-	return request.NewParametersMutator(parameters).Mutate(req)
+	return request.NewParametersMutator(parameters).MutateRequest(req)
 }
 
 type TaskCreate struct {

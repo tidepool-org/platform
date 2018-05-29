@@ -45,7 +45,7 @@ var _ = Describe("Mutator", func() {
 				Expect(mutator.Value).To(Equal(sessionToken))
 			})
 
-			Context("Mutate", func() {
+			Context("MutateRequest", func() {
 				var request *http.Request
 
 				BeforeEach(func() {
@@ -54,11 +54,11 @@ var _ = Describe("Mutator", func() {
 
 				It("returns an error if the session token header value is missing", func() {
 					mutator.Value = ""
-					Expect(mutator.Mutate(request)).To(MatchError("session token is missing"))
+					Expect(mutator.MutateRequest(request)).To(MatchError("session token is missing"))
 				})
 
 				It("adds the header", func() {
-					Expect(mutator.Mutate(request)).To(Succeed())
+					Expect(mutator.MutateRequest(request)).To(Succeed())
 					Expect(request.Header).To(HaveLen(1))
 					Expect(request.Header).To(HaveKeyWithValue(auth.TidepoolSessionTokenHeaderKey, []string{sessionToken}))
 				})
@@ -95,7 +95,7 @@ var _ = Describe("Mutator", func() {
 				Expect(mutator.Value).To(Equal(restrictedToken))
 			})
 
-			Context("Mutate", func() {
+			Context("MutateRequest", func() {
 				var request *http.Request
 
 				BeforeEach(func() {
@@ -104,11 +104,11 @@ var _ = Describe("Mutator", func() {
 
 				It("returns an error if the restricted token parameter value is missing", func() {
 					mutator.Value = ""
-					Expect(mutator.Mutate(request)).To(MatchError("restricted token is missing"))
+					Expect(mutator.MutateRequest(request)).To(MatchError("restricted token is missing"))
 				})
 
 				It("adds the header", func() {
-					Expect(mutator.Mutate(request)).To(Succeed())
+					Expect(mutator.MutateRequest(request)).To(Succeed())
 					Expect(request.URL.Query()).To(HaveLen(1))
 					Expect(request.URL.Query()).To(HaveKeyWithValue(auth.TidepoolRestrictedTokenParameterKey, []string{restrictedToken}))
 				})
@@ -145,7 +145,7 @@ var _ = Describe("Mutator", func() {
 				Expect(mutator.Value).To(Equal(serviceSecret))
 			})
 
-			Context("Mutate", func() {
+			Context("MutateRequest", func() {
 				var request *http.Request
 
 				BeforeEach(func() {
@@ -154,11 +154,11 @@ var _ = Describe("Mutator", func() {
 
 				It("returns an error if the service secret header value is missing", func() {
 					mutator.Value = ""
-					Expect(mutator.Mutate(request)).To(MatchError("service secret is missing"))
+					Expect(mutator.MutateRequest(request)).To(MatchError("service secret is missing"))
 				})
 
 				It("adds the header", func() {
-					Expect(mutator.Mutate(request)).To(Succeed())
+					Expect(mutator.MutateRequest(request)).To(Succeed())
 					Expect(request.Header).To(HaveLen(1))
 					Expect(request.Header).To(HaveKeyWithValue(auth.TidepoolServiceSecretHeaderKey, []string{serviceSecret}))
 				})
@@ -197,7 +197,7 @@ var _ = Describe("Mutator", func() {
 				Expect(mutator.Context).To(Equal(ctx))
 			})
 
-			Context("Mutate", func() {
+			Context("MutateRequest", func() {
 				var req *http.Request
 
 				BeforeEach(func() {
@@ -205,11 +205,11 @@ var _ = Describe("Mutator", func() {
 				})
 
 				It("returns an error if the request is missing", func() {
-					Expect(mutator.Mutate(nil)).To(MatchError("request is missing"))
+					Expect(mutator.MutateRequest(nil)).To(MatchError("request is missing"))
 				})
 
 				It("adds the header", func() {
-					Expect(mutator.Mutate(req)).To(Succeed())
+					Expect(mutator.MutateRequest(req)).To(Succeed())
 					Expect(req.Header).To(HaveLen(2))
 					Expect(req.Header).To(HaveKeyWithValue(request.HTTPHeaderTraceRequest, []string{traceRequest}))
 					Expect(req.Header).To(HaveKeyWithValue(request.HTTPHeaderTraceSession, []string{traceSession}))

@@ -154,7 +154,7 @@ var _ = Describe("Client", func() {
 		var url string
 		var headerMutator *request.HeaderMutator
 		var parameterMutator *request.ParameterMutator
-		var mutators []request.Mutator
+		var mutators []request.RequestMutator
 		var requestBodyString string
 		var requestBody *RequestBody
 		var responseBodyString string
@@ -178,7 +178,7 @@ var _ = Describe("Client", func() {
 			url = server.URL() + path
 			headerMutator = request.NewHeaderMutator(testHTTP.NewHeaderKey(), testHTTP.NewHeaderValue())
 			parameterMutator = request.NewParameterMutator(testHTTP.NewParameterKey(), testHTTP.NewParameterValue())
-			mutators = []request.Mutator{headerMutator, parameterMutator}
+			mutators = []request.RequestMutator{headerMutator, parameterMutator}
 			requestBodyString = test.NewVariableString(0, 32, test.CharsetAlphaNumeric)
 			requestBody = &RequestBody{requestBodyString}
 			responseBodyString = test.NewVariableString(0, 32, test.CharsetAlphaNumeric)
@@ -216,7 +216,7 @@ var _ = Describe("Client", func() {
 
 			It("returns error if mutator returns an error", func() {
 				errorMutator := request.NewHeaderMutator("", "")
-				invalidMutators := []request.Mutator{headerMutator, errorMutator, parameterMutator}
+				invalidMutators := []request.RequestMutator{headerMutator, errorMutator, parameterMutator}
 				Expect(clnt.SendRequest(ctx, method, url, invalidMutators, requestBody, responseBody, httpClient)).To(MatchError("unable to mutate request; key is missing"))
 				Expect(server.ReceivedRequests()).To(BeEmpty())
 			})
@@ -478,7 +478,7 @@ var _ = Describe("Client", func() {
 				})
 
 				It("returns success", func() {
-					mutators = []request.Mutator{nil, headerMutator, nil, parameterMutator, nil}
+					mutators = []request.RequestMutator{nil, headerMutator, nil, parameterMutator, nil}
 					Expect(clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)).To(Succeed())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 					Expect(responseBody).ToNot(BeNil())

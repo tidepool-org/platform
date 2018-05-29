@@ -21,6 +21,7 @@
 ./data/storeDEPRECATED/store_test.go:1:1: don't use MixedCaps in package name; storeDEPRECATED_test should be storedeprecated_test
 ./data/types/common/association/association.go:77:6: type name will be used as association.AssociationArray by other packages, and that stutters; consider calling this Array
 ./data/types/device/alarm/alarm.go:25:6: func name will be used as alarm.AlarmTypes by other packages, and that stutters; consider calling this Types
+./request/mutator.go:9:6: type name will be used as request.RequestMutator by other packages, and that stutters; consider calling this Mutator
 ./service/response_test.go:27:30: method WriteJson should be WriteJSON
 ./service/response_test.go:31:30: method EncodeJson should be EncodeJSON
 ./task/task.go:22:6: type name will be used as task.TaskAccessor by other packages, and that stutters; consider calling this Accessor

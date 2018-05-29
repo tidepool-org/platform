@@ -127,7 +127,7 @@ func (d *DataSetFilter) Validate(validator structure.Validator) {
 	validator.String("deviceId", d.DeviceID).NotEmpty()
 }
 
-func (d *DataSetFilter) Mutate(req *http.Request) error {
+func (d *DataSetFilter) MutateRequest(req *http.Request) error {
 	parameters := map[string]string{}
 	if d.Deleted != nil {
 		parameters["deleted"] = strconv.FormatBool(*d.Deleted)
@@ -135,7 +135,7 @@ func (d *DataSetFilter) Mutate(req *http.Request) error {
 	if d.DeviceID != nil {
 		parameters["deviceId"] = *d.DeviceID
 	}
-	return request.NewParametersMutator(parameters).Mutate(req)
+	return request.NewParametersMutator(parameters).MutateRequest(req)
 }
 
 type DataSetCreate struct {

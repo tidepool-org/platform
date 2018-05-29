@@ -44,7 +44,7 @@ func (c *Client) ListTasks(ctx context.Context, filter *task.TaskFilter, paginat
 
 	url := c.client.ConstructURL("v1", "tasks")
 	tsks := task.Tasks{}
-	if err := c.client.SendRequestAsServer(ctx, http.MethodGet, url, []request.Mutator{filter, pagination}, nil, &tsks); err != nil {
+	if err := c.client.SendRequestAsServer(ctx, http.MethodGet, url, []request.RequestMutator{filter, pagination}, nil, &tsks); err != nil {
 		return nil, err
 	}
 

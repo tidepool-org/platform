@@ -53,7 +53,7 @@ func (p *ProviderSessionFilter) Validate(validator structure.Validator) {
 	validator.String("name", p.Name).NotEmpty()
 }
 
-func (p *ProviderSessionFilter) Mutate(req *http.Request) error {
+func (p *ProviderSessionFilter) MutateRequest(req *http.Request) error {
 	parameters := map[string]string{}
 	if p.Type != nil {
 		parameters["type"] = *p.Type
@@ -61,7 +61,7 @@ func (p *ProviderSessionFilter) Mutate(req *http.Request) error {
 	if p.Name != nil {
 		parameters["name"] = *p.Name
 	}
-	return request.NewParametersMutator(parameters).Mutate(req)
+	return request.NewParametersMutator(parameters).MutateRequest(req)
 }
 
 type ProviderSessionCreate struct {

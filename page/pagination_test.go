@@ -143,7 +143,7 @@ var _ = Describe("Pagination", func() {
 			})
 		})
 
-		Context("Mutate", func() {
+		Context("MutateRequest", func() {
 			var req *http.Request
 
 			BeforeEach(func() {
@@ -151,18 +151,18 @@ var _ = Describe("Pagination", func() {
 			})
 
 			It("returns an error if the request is missing", func() {
-				Expect(pagination.Mutate(nil)).To(MatchError("request is missing"))
+				Expect(pagination.MutateRequest(nil)).To(MatchError("request is missing"))
 			})
 
 			It("adds default page and size to the request as query parameters", func() {
-				Expect(pagination.Mutate(req)).To(Succeed())
+				Expect(pagination.MutateRequest(req)).To(Succeed())
 				Expect(req.URL.Query()).To(And(HaveKeyWithValue("page", []string{"0"}), HaveKeyWithValue("size", []string{"100"})))
 			})
 
 			It("adds custom page and size to the request as query parameters", func() {
 				pagination.Page = 2
 				pagination.Size = 10
-				Expect(pagination.Mutate(req)).To(Succeed())
+				Expect(pagination.MutateRequest(req)).To(Succeed())
 				Expect(req.URL.Query()).To(And(HaveKeyWithValue("page", []string{"2"}), HaveKeyWithValue("size", []string{"10"})))
 			})
 		})
