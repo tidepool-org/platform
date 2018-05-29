@@ -5,24 +5,49 @@ language: go
 go:
   - 1.9.2
 
+go_import_path: github.com/tidepool-org/platform
+
 addons:
   apt:
     sources:
       - mongodb-3.2-trusty
     packages:
       - mongodb-org-server
-  artifacts:
-    s3_region: us-west-2
-    paths:
-      - $(git ls-files -o deploy/*/*-*.tar.gz | tr "\n" ":")
-    target_paths:
-      - /
+  # artifacts:
+  #   s3_region: us-west-2
+  #   paths:
+  #     - $(git ls-files -o deploy/*/*-*.tar.gz | tr "\n" ":")
+  #   target_paths:
+  #     - /
   code_climate:
     repo_token: 91ded9b66924acbe830541ab3593daf535f05f7c6db91b5cbd2d26dcf37da0b8
+
+deploy:
+  # Control deployment by setting a value for `on`. Setting the `branch`
+  # option to `master` means Travis will only attempt a deployment on
+  # builds of your repo's master branch (e.g., after you merge a PR).
+  on:
+    tags: true
+#    branch: dblp
+  provider: s3
+  # You can refer to environment variables from Travis repo settings!
+  access_key_id: $AWS_ACCESS_KEY_ID
+  secret_access_key: $AWS_SECRET_ACCESS_KEY
+  region: $AWS_DEFAULT_REGION
+  # Name of the S3 bucket to which your site should be uploaded.
+  bucket: $AWS_BUCKET
+  # Prevent Travis from deleting your built site so it can be uploaded.
+  skip_cleanup: true
+  # Path of the source directory containing your built site.
+  local_dir: deploy
+  # Path to a directory containing your built site.
+  upload-dir: deploy
+  # Set the Cache-Control header.
+  cache_control: "max-age=21600"
 
 services:
   - docker
   - mongodb
 
 script:
-  - make ci-generate ci-build ci-test ci-deploy ci-docker
+  - make ci-generate ci-build ci-test ci-deploy
