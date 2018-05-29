@@ -12,9 +12,10 @@ import (
 
 	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"
-	"github.com/tidepool-org/platform/id"
+	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/platform"
 	testHTTP "github.com/tidepool-org/platform/test/http"
+	"github.com/tidepool-org/platform/user"
 )
 
 var _ = Describe("Client", func() {
@@ -87,7 +88,7 @@ var _ = Describe("Client", func() {
 			var userID string
 
 			BeforeEach(func() {
-				userID = id.New()
+				userID = user.NewID()
 			})
 
 			It("returns error if context is missing", func() {
@@ -104,7 +105,7 @@ var _ = Describe("Client", func() {
 				var token string
 
 				BeforeEach(func() {
-					token = id.New()
+					token = dataTest.NewSessionToken()
 					ctx = auth.NewContextWithServerSessionToken(ctx, token)
 				})
 

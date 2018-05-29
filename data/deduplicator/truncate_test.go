@@ -12,11 +12,12 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	testDataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED/test"
+	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/upload"
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/user"
 )
 
 var _ = Describe("Truncate", func() {
@@ -37,13 +38,13 @@ var _ = Describe("Truncate", func() {
 			testFactory, err = deduplicator.NewTruncateFactory()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testFactory).ToNot(BeNil())
-			testUploadID = id.New()
-			testUserID = id.New()
+			testUploadID = data.NewSetID()
+			testUserID = user.NewID()
 			testDataset = upload.New()
 			Expect(testDataset).ToNot(BeNil())
 			testDataset.UploadID = &testUploadID
 			testDataset.UserID = &testUserID
-			testDataset.DeviceID = pointer.FromString(id.New())
+			testDataset.DeviceID = pointer.FromString(testData.NewDeviceID())
 			testDataset.DeviceManufacturers = pointer.FromStringArray([]string{"Animas"})
 		})
 

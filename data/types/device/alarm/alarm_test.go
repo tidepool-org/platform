@@ -14,7 +14,6 @@ import (
 	testDataTypesDevice "github.com/tidepool-org/platform/data/types/device/test"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -46,7 +45,7 @@ func NewAlarmWithStatus() *alarm.Alarm {
 
 func NewAlarmWithStatusID() *alarm.Alarm {
 	datum := NewAlarm()
-	datum.StatusID = pointer.FromString(id.New())
+	datum.StatusID = pointer.FromString(data.NewID())
 	return datum
 }
 
@@ -229,12 +228,12 @@ var _ = Describe("Change", func() {
 					func(datum *alarm.Alarm) { datum.StatusID = nil },
 				),
 				Entry("status id exists",
-					func(datum *alarm.Alarm) { datum.StatusID = pointer.FromString(id.New()) },
+					func(datum *alarm.Alarm) { datum.StatusID = pointer.FromString(data.NewID()) },
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/statusId", NewMeta()),
 				),
 				Entry("multiple errors",
 					func(datum *alarm.Alarm) {
-						datum.StatusID = pointer.FromString(id.New())
+						datum.StatusID = pointer.FromString(data.NewID())
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/statusId", NewMeta()),
 				),
@@ -264,10 +263,10 @@ var _ = Describe("Change", func() {
 				),
 				Entry("status id invalid",
 					func(datum *alarm.Alarm) { datum.StatusID = pointer.FromString("invalid") },
-					testErrors.WithPointerSourceAndMeta(id.ErrorValueStringAsIDNotValid("invalid"), "/statusId", NewMeta()),
+					testErrors.WithPointerSourceAndMeta(data.ErrorValueStringAsIDNotValid("invalid"), "/statusId", NewMeta()),
 				),
 				Entry("status id valid",
-					func(datum *alarm.Alarm) { datum.StatusID = pointer.FromString(id.New()) },
+					func(datum *alarm.Alarm) { datum.StatusID = pointer.FromString(data.NewID()) },
 				),
 				Entry("multiple errors",
 					func(datum *alarm.Alarm) {
@@ -275,7 +274,7 @@ var _ = Describe("Change", func() {
 						datum.StatusID = pointer.FromString("invalid")
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/status", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(id.ErrorValueStringAsIDNotValid("invalid"), "/statusId", NewMeta()),
+					testErrors.WithPointerSourceAndMeta(data.ErrorValueStringAsIDNotValid("invalid"), "/statusId", NewMeta()),
 				),
 			)
 		})

@@ -14,7 +14,6 @@ import (
 	testDataTypesBolusExtended "github.com/tidepool-org/platform/data/types/bolus/extended/test"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
@@ -31,7 +30,7 @@ func NewMeta() interface{} {
 
 func NewTestExtended(sourceTime interface{}, sourceDuration interface{}, sourceDurationExpected interface{}, sourceExtended interface{}, sourceExtendedExpected interface{}) *extended.Extended {
 	datum := extended.New()
-	datum.DeviceID = pointer.FromString(id.New())
+	datum.DeviceID = pointer.FromString(testData.NewDeviceID())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
 	}

@@ -4,10 +4,9 @@ import (
 	"strconv"
 
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"github.com/tidepool-org/platform/validate"
 )
 
 const (
@@ -56,7 +55,7 @@ func (a *Association) Validate(validator structure.Validator) {
 	if a.Type != nil {
 		switch *a.Type {
 		case TypeDatum:
-			validator.String("id", a.ID).Exists().Using(id.Validate)
+			validator.String("id", a.ID).Exists().Using(data.IDValidator)
 		case TypeURL:
 			validator.String("id", a.ID).NotExists()
 		}
@@ -68,7 +67,7 @@ func (a *Association) Validate(validator structure.Validator) {
 		case TypeDatum:
 			validator.String("url", a.URL).NotExists()
 		case TypeURL:
-			validator.String("url", a.URL).Exists().Using(validate.URL)
+			validator.String("url", a.URL).Exists().Using(net.URLValidator)
 		}
 	}
 }

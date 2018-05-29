@@ -13,10 +13,10 @@ import (
 
 	"github.com/tidepool-org/platform/confirmation/store"
 	"github.com/tidepool-org/platform/confirmation/store/mongo"
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	logNull "github.com/tidepool-org/platform/log/null"
 	storeMongo "github.com/tidepool-org/platform/store/mongo"
+	"github.com/tidepool-org/platform/test"
 	testInternet "github.com/tidepool-org/platform/test/internet"
 	testMongo "github.com/tidepool-org/platform/test/mongo"
 )
@@ -158,7 +158,7 @@ var _ = Describe("Store", func() {
 				var confirmations []interface{}
 
 				BeforeEach(func() {
-					confirmations = NewConfirmations(id.New(), id.New())
+					confirmations = NewConfirmations(test.NewString(10, test.CharsetHexidecimalLowercase), test.NewString(10, test.CharsetHexidecimalLowercase))
 					Expect(mgoCollection.Insert(confirmations...)).To(Succeed())
 				})
 
@@ -167,8 +167,8 @@ var _ = Describe("Store", func() {
 					var userConfirmations []interface{}
 
 					BeforeEach(func() {
-						userID = id.New()
-						userConfirmations = NewConfirmations(userID, id.New())
+						userID = test.NewString(10, test.CharsetHexidecimalLowercase)
+						userConfirmations = NewConfirmations(userID, test.NewString(10, test.CharsetHexidecimalLowercase))
 						Expect(mgoCollection.Insert(userConfirmations...)).To(Succeed())
 					})
 

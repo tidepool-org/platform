@@ -3,14 +3,15 @@ package test
 import "math/rand"
 
 const (
-	CharsetUppercase    = "ABCDEFGHIJKLMNOPQRSTUVWYXZ"
-	CharsetLowercase    = "abcdefghijklmnopqrstuvwxyz"
-	CharsetNumeric      = "1234567890"
-	CharsetWhitespace   = " "
-	CharsetSymbols      = "!\"#$%&'()*+,-./:;<=>@\\]^_`{|}~"
-	CharsetAlpha        = CharsetUppercase + CharsetLowercase
-	CharsetAlphaNumeric = CharsetUppercase + CharsetLowercase + CharsetNumeric
-	CharsetText         = CharsetAlphaNumeric + CharsetWhitespace + CharsetSymbols
+	CharsetUppercase            = "ABCDEFGHIJKLMNOPQRSTUVWYXZ"
+	CharsetLowercase            = "abcdefghijklmnopqrstuvwxyz"
+	CharsetNumeric              = "1234567890"
+	CharsetWhitespace           = " "
+	CharsetSymbols              = "!\"#$%&'()*+,-./:;<=>@\\]^_`{|}~"
+	CharsetAlpha                = CharsetUppercase + CharsetLowercase
+	CharsetAlphaNumeric         = CharsetUppercase + CharsetLowercase + CharsetNumeric
+	CharsetText                 = CharsetAlphaNumeric + CharsetWhitespace + CharsetSymbols
+	CharsetHexidecimalLowercase = CharsetNumeric + "abcdef"
 )
 
 func NewString(length int, charset string) string {

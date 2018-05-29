@@ -8,9 +8,49 @@ import (
 	"encoding/base64"
 
 	"github.com/tidepool-org/platform/crypto"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
+	structureTest "github.com/tidepool-org/platform/structure/test"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 var _ = Describe("Crypto", func() {
+	Context("IsValidBase64EncodedMD5Hash, Base64EncodedMD5HashValidator, and ValidateBase64EncodedMD5Hash", func() {
+		DescribeTable("return the expected results when the input",
+			func(value string, expectedErrors ...error) {
+				Expect(crypto.IsValidBase64EncodedMD5Hash(value)).To(Equal(len(expectedErrors) == 0))
+				errorReporter := structureTest.NewErrorReporter()
+				crypto.Base64EncodedMD5HashValidator(value, errorReporter)
+				errorsTest.ExpectEqual(errorReporter.Error(), expectedErrors...)
+				errorsTest.ExpectEqual(crypto.ValidateBase64EncodedMD5Hash(value), expectedErrors...)
+			},
+			Entry("is empty", "", structureValidator.ErrorValueEmpty()),
+			Entry("is not valid Base64 encoded", "QUJDREVGSElKS0xNTk9QUQ=$", crypto.ErrorValueStringAsBase64EncodedMD5HashNotValid("QUJDREVGSElKS0xNTk9QUQ=$")),
+			Entry("is valid Base64 encoded and byte length is out of range (lower)", "QUJDREVGSElKS0xNTk9Q", crypto.ErrorValueStringAsBase64EncodedMD5HashNotValid("QUJDREVGSElKS0xNTk9Q")),
+			Entry("is valid Base64 encoded and byte length is in range", "QUJDREVGSElKS0xNTk9QUQ=="),
+			Entry("is valid Base64 encoded and byte length is out of range (upper)", "QUJDREVGSElKS0xNTk9QUVI=", crypto.ErrorValueStringAsBase64EncodedMD5HashNotValid("QUJDREVGSElKS0xNTk9QUVI=")),
+		)
+	})
+
+	Context("Errors", func() {
+		DescribeTable("have expected details when error",
+			errorsTest.ExpectErrorDetails,
+			Entry("is ErrorValueStringAsBase64EncodedMD5HashNotValid with empty string", crypto.ErrorValueStringAsBase64EncodedMD5HashNotValid(""), "value-not-valid", "value is not valid", `value "" is not valid as Base64 encoded MD5 hash`),
+			Entry("is ErrorValueStringAsBase64EncodedMD5HashNotValid with non-empty string", crypto.ErrorValueStringAsBase64EncodedMD5HashNotValid("QUJDREVGSElKS0xNTk9QUQ=="), "value-not-valid", "value is not valid", `value "QUJDREVGSElKS0xNTk9QUQ==" is not valid as Base64 encoded MD5 hash`),
+		)
+	})
+
+	Context("HexEncodedMD5Hash", func() {
+		DescribeTable("returns the expected result when the input",
+			func(value string, expectedResult string) {
+				Expect(crypto.HexEncodedMD5Hash(value)).To(Equal(expectedResult))
+			},
+			Entry("is empty", "", "d41d8cd98f00b204e9800998ecf8427e"),
+			Entry("is not empty", "abcdefghijklmnopqrstuvwxyz", "c3fcd3d76192e4007dfb496cca67e13b"),
+			Entry("is whitespace", "        ", "7bb0edd98f22430a03b67f853e83c2ca"),
+			Entry("includes non-ASCII", "abcABC123 !\"#_😁😂😃ΨΪΫ", "f95f3e07a713a0e44d53bd69493d9279"),
+		)
+	})
+
 	Context("EncryptWithAES256UsingPassphrase", func() {
 		It("returns an error if the bytes is missing", func() {
 			encrypted, err := crypto.EncryptWithAES256UsingPassphrase(nil, []byte("secret"))

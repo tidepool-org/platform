@@ -12,12 +12,12 @@ import (
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	"github.com/tidepool-org/platform/data/types/upload"
 	testErrors "github.com/tidepool-org/platform/errors/test"
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 	testInternet "github.com/tidepool-org/platform/test/internet"
+	"github.com/tidepool-org/platform/user"
 )
 
 func NewMeta() interface{} {
@@ -30,7 +30,7 @@ func NewUpload() *upload.Upload {
 	datum := upload.New()
 	datum.Base = *testDataTypes.NewBase()
 	datum.Type = "upload"
-	datum.ByUser = pointer.FromString(id.New())
+	datum.ByUser = pointer.FromString(user.NewID())
 	datum.Client = NewClient()
 	datum.ComputerTime = pointer.FromString(test.NewTime().Format("2006-01-02T15:04:05"))
 	datum.DataSetType = pointer.FromString(test.RandomStringFromArray(upload.DataSetTypes()))
@@ -194,7 +194,7 @@ var _ = Describe("Upload", func() {
 					structure.Origins(),
 				),
 				Entry("by user exists",
-					func(datum *upload.Upload) { datum.ByUser = pointer.FromString(id.New()) },
+					func(datum *upload.Upload) { datum.ByUser = pointer.FromString(user.NewID()) },
 					structure.Origins(),
 				),
 				Entry("client missing",

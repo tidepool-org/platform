@@ -9,11 +9,11 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 
 	testAuth "github.com/tidepool-org/platform/auth/test"
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	logNull "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
+	serviceTest "github.com/tidepool-org/platform/service/test"
 	testRest "github.com/tidepool-org/platform/test/rest"
 )
 
@@ -34,7 +34,7 @@ var _ = Describe("Request", func() {
 				},
 			}
 			logger = logNull.NewLogger()
-			details = request.NewDetails(request.MethodSessionToken, id.New(), testAuth.NewSessionToken())
+			details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), testAuth.NewSessionToken())
 			req = testRest.NewRequest()
 			req.Env["ERRORS"] = errs
 			req.Env["LOGGER"] = logger
@@ -160,7 +160,7 @@ var _ = Describe("Request", func() {
 			var newDetails request.Details
 
 			BeforeEach(func() {
-				newDetails = request.NewDetails(request.MethodSessionToken, id.New(), testAuth.NewSessionToken())
+				newDetails = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), testAuth.NewSessionToken())
 			})
 
 			It("successfully sets the auth details", func() {

@@ -3,6 +3,7 @@ package task
 import (
 	"context"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/tidepool-org/platform/errors"
@@ -146,6 +147,33 @@ func (t *TaskUpdate) Validate(validator structure.Validator) {
 	}
 }
 
+func NewID() string {
+	return id.Must(id.New(16))
+}
+
+func IsValidID(value string) bool {
+	return ValidateID(value) == nil
+}
+
+func IDValidator(value string, errorReporter structure.ErrorReporter) {
+	errorReporter.ReportError(ValidateID(value))
+}
+
+func ValidateID(value string) error {
+	if value == "" {
+		return structureValidator.ErrorValueEmpty()
+	} else if !idExpression.MatchString(value) {
+		return ErrorValueStringAsIDNotValid(value)
+	}
+	return nil
+}
+
+func ErrorValueStringAsIDNotValid(value string) error {
+	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as task id", value)
+}
+
+var idExpression = regexp.MustCompile("^[0-9a-f]{32}$")
+
 type Task struct {
 	ID             string                 `json:"id,omitempty" bson:"id,omitempty"`
 	Name           *string                `json:"name,omitempty" bson:"name,omitempty"`
@@ -170,7 +198,7 @@ func NewTask(create *TaskCreate) (*Task, error) {
 	}
 
 	tsk := &Task{
-		ID:          id.New(),
+		ID:          NewID(),
 		Name:        create.Name,
 		Type:        create.Type,
 		Priority:    create.Priority,
@@ -220,7 +248,7 @@ func (t *Task) Parse(parser structure.ObjectParser) {
 }
 
 func (t *Task) Validate(validator structure.Validator) {
-	validator.String("id", &t.ID).Using(id.Validate)
+	validator.String("id", &t.ID).Using(IDValidator)
 	validator.String("name", t.Name).NotEmpty()
 	validator.String("type", &t.Type).NotEmpty()
 	expirationTimeValidator := validator.Time("expirationTime", t.ExpirationTime)

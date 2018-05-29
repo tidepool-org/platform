@@ -70,7 +70,7 @@ func (a *Array) Exists() bool {
 
 func (a *Array) Parse(arrayParsable structure.ArrayParsable) error {
 	arrayParsable.Parse(a)
-	return a.Error()
+	return a.NotParsed()
 }
 
 func (a *Array) References() []int {

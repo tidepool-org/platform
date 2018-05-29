@@ -3,13 +3,17 @@ package data
 import (
 	"context"
 	"net/http"
+	"regexp"
 	"sort"
 	"strconv"
 	"time"
 
+	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/time/zone"
 )
 
@@ -252,6 +256,33 @@ func (d *DataSetUpdate) Validate(validator structure.Validator) {
 	validator.String("timezone", d.TimeZoneName).OneOf(zone.Names()...)
 	validator.Int("timezoneOffset", d.TimeZoneOffset).InRange(-12*60, 14*60)
 }
+
+func NewSetID() string {
+	return id.Must(id.New(16))
+}
+
+func IsValidSetID(value string) bool {
+	return ValidateSetID(value) == nil
+}
+
+func SetIDValidator(value string, errorReporter structure.ErrorReporter) {
+	errorReporter.ReportError(ValidateSetID(value))
+}
+
+func ValidateSetID(value string) error {
+	if value == "" {
+		return structureValidator.ErrorValueEmpty()
+	} else if !setIDExpression.MatchString(value) {
+		return ErrorValueStringAsSetIDNotValid(value)
+	}
+	return nil
+}
+
+func ErrorValueStringAsSetIDNotValid(value string) error {
+	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as data set id", value)
+}
+
+var setIDExpression = regexp.MustCompile("^(upid_[0-9a-f]{12}|upid_[0-9a-f]{32}|[0-9a-f]{32})$") // TODO: Want just "[0-9a-f]{32}"
 
 type DataSet struct {
 	Active              bool                    `json:"-" bson:"_active"`

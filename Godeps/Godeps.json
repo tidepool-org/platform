@@ -262,11 +262,6 @@
 			"Rev": "62bff4df71bdbc266561a0caee19f0594b17c240"
 		},
 		{
-			"ImportPath": "github.com/satori/go.uuid",
-			"Comment": "v1.2.0-4-g36e9d2e",
-			"Rev": "36e9d2ebbde5e3f13ab2e25625fd453271d6522e"
-		},
-		{
 			"ImportPath": "github.com/urfave/cli",
 			"Comment": "v1.20.0-73-g8e01ec4",
 			"Rev": "8e01ec4cd3e2d84ab2fe90d8210528ffbb06d8ff"

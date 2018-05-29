@@ -3,15 +3,16 @@ package test
 import (
 	"time"
 
+	"github.com/tidepool-org/platform/data"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
 	testDataTypesCommonAssociation "github.com/tidepool-org/platform/data/types/common/association/test"
 	testDataTypesCommonLocation "github.com/tidepool-org/platform/data/types/common/location/test"
 	testDataTypesCommonOrigin "github.com/tidepool-org/platform/data/types/common/origin/test"
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
 	testTimeZone "github.com/tidepool-org/platform/time/zone/test"
+	"github.com/tidepool-org/platform/user"
 )
 
 func NewBase() *types.Base {
@@ -24,22 +25,22 @@ func NewBase() *types.Base {
 	datum.Active = false
 	datum.Annotations = testData.NewBlobArray()
 	datum.Associations = testDataTypesCommonAssociation.NewAssociationArray()
-	datum.ArchivedDataSetID = pointer.FromString(id.New())
+	datum.ArchivedDataSetID = pointer.FromString(data.NewSetID())
 	datum.ArchivedTime = pointer.FromString(archivedTime.Format(time.RFC3339))
 	datum.ClockDriftOffset = pointer.FromInt(NewClockDriftOffset())
 	datum.ConversionOffset = pointer.FromInt(NewConversionOffset())
 	datum.CreatedTime = pointer.FromString(createdTime.Format(time.RFC3339))
-	datum.CreatedUserID = pointer.FromString(id.New())
+	datum.CreatedUserID = pointer.FromString(user.NewID())
 	datum.Deduplicator = testData.NewDeduplicatorDescriptor()
 	datum.DeletedTime = pointer.FromString(deletedTime.Format(time.RFC3339))
-	datum.DeletedUserID = pointer.FromString(id.New())
-	datum.DeviceID = pointer.FromString(id.New())
+	datum.DeletedUserID = pointer.FromString(user.NewID())
+	datum.DeviceID = pointer.FromString(testData.NewDeviceID())
 	datum.DeviceTime = pointer.FromString(test.NewTime().Format("2006-01-02T15:04:05"))
-	datum.GUID = pointer.FromString(id.New())
-	datum.ID = pointer.FromString(id.New())
+	datum.GUID = pointer.FromString(data.NewID())
+	datum.ID = pointer.FromString(data.NewID())
 	datum.Location = testDataTypesCommonLocation.NewLocation()
 	datum.ModifiedTime = pointer.FromString(modifiedTime.Format(time.RFC3339))
-	datum.ModifiedUserID = pointer.FromString(id.New())
+	datum.ModifiedUserID = pointer.FromString(user.NewID())
 	datum.Notes = pointer.FromStringArray([]string{NewNote(1, 20), NewNote(1, 20)})
 	datum.Origin = testDataTypesCommonOrigin.NewOrigin()
 	datum.Payload = testData.NewBlob()
@@ -50,8 +51,8 @@ func NewBase() *types.Base {
 	datum.TimeZoneName = pointer.FromString(testTimeZone.NewName())
 	datum.TimeZoneOffset = pointer.FromInt(NewTimeZoneOffset())
 	datum.Type = NewType()
-	datum.UploadID = pointer.FromString(id.New())
-	datum.UserID = pointer.FromString(id.New())
+	datum.UploadID = pointer.FromString(data.NewSetID())
+	datum.UserID = pointer.FromString(user.NewID())
 	datum.Version = NewVersion()
 	return datum
 }

@@ -19,7 +19,6 @@ import (
 	"github.com/tidepool-org/platform/data/types/calculator"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -73,7 +72,7 @@ func NewCalculatorWithBolusNormal(units *string) *calculator.Calculator {
 
 func NewCalculatorWithBolusID(units *string) *calculator.Calculator {
 	datum := NewCalculator(units)
-	datum.BolusID = pointer.FromString(id.New())
+	datum.BolusID = pointer.FromString(data.NewID())
 	return datum
 }
 
@@ -1661,7 +1660,7 @@ var _ = Describe("Calculator", func() {
 				),
 				Entry("units missing; bolus id exists",
 					nil,
-					func(datum *calculator.Calculator, units *string) { datum.BolusID = pointer.FromString(id.New()) },
+					func(datum *calculator.Calculator, units *string) { datum.BolusID = pointer.FromString(data.NewID()) },
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", NewMeta()),
 				),
 				Entry("units invalid; bolus missing",
@@ -1690,7 +1689,7 @@ var _ = Describe("Calculator", func() {
 				),
 				Entry("units invalid; bolus id exists",
 					pointer.FromString("invalid"),
-					func(datum *calculator.Calculator, units *string) { datum.BolusID = pointer.FromString(id.New()) },
+					func(datum *calculator.Calculator, units *string) { datum.BolusID = pointer.FromString(data.NewID()) },
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
 				),
 				Entry("units mmol/L; bolus missing",
@@ -1715,7 +1714,7 @@ var _ = Describe("Calculator", func() {
 				),
 				Entry("units mmol/L; bolus id exists",
 					pointer.FromString("mmol/L"),
-					func(datum *calculator.Calculator, units *string) { datum.BolusID = pointer.FromString(id.New()) },
+					func(datum *calculator.Calculator, units *string) { datum.BolusID = pointer.FromString(data.NewID()) },
 				),
 				Entry("units mmol/l; bolus missing",
 					pointer.FromString("mmol/l"),
@@ -1739,7 +1738,7 @@ var _ = Describe("Calculator", func() {
 				),
 				Entry("units mmol/l; bolus id exists",
 					pointer.FromString("mmol/l"),
-					func(datum *calculator.Calculator, units *string) { datum.BolusID = pointer.FromString(id.New()) },
+					func(datum *calculator.Calculator, units *string) { datum.BolusID = pointer.FromString(data.NewID()) },
 				),
 				Entry("units mg/dL; bolus missing",
 					pointer.FromString("mg/dL"),
@@ -1763,7 +1762,7 @@ var _ = Describe("Calculator", func() {
 				),
 				Entry("units mg/dL; bolus id exists",
 					pointer.FromString("mg/dL"),
-					func(datum *calculator.Calculator, units *string) { datum.BolusID = pointer.FromString(id.New()) },
+					func(datum *calculator.Calculator, units *string) { datum.BolusID = pointer.FromString(data.NewID()) },
 				),
 				Entry("units mg/dl; bolus missing",
 					pointer.FromString("mg/dl"),
@@ -1787,7 +1786,7 @@ var _ = Describe("Calculator", func() {
 				),
 				Entry("units mg/dl; bolus id exists",
 					pointer.FromString("mg/dl"),
-					func(datum *calculator.Calculator, units *string) { datum.BolusID = pointer.FromString(id.New()) },
+					func(datum *calculator.Calculator, units *string) { datum.BolusID = pointer.FromString(data.NewID()) },
 				),
 			)
 		})

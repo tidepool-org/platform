@@ -9,7 +9,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	testData "github.com/tidepool-org/platform/data/test"
-	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/user"
 )
 
 var _ = Describe("Hash", func() {
@@ -42,7 +42,7 @@ var _ = Describe("Hash", func() {
 		})
 
 		It("returns an error if any datum returns an error getting identity fields", func() {
-			testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{id.New(), id.New()}, Error: nil}}
+			testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{user.NewID(), testData.NewDeviceID()}, Error: nil}}
 			testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: nil, Error: errors.New("test error")}}
 			hashes, err := deduplicator.AssignDatasetDataIdentityHashes(testDatasetData)
 			Expect(err).To(MatchError("unable to gather identity fields for datum; test error"))
@@ -50,7 +50,7 @@ var _ = Describe("Hash", func() {
 		})
 
 		It("returns an error if any datum returns no identity fields", func() {
-			testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{id.New(), id.New()}, Error: nil}}
+			testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{user.NewID(), testData.NewDeviceID()}, Error: nil}}
 			testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: nil, Error: nil}}
 			hashes, err := deduplicator.AssignDatasetDataIdentityHashes(testDatasetData)
 			Expect(err).To(MatchError("unable to generate identity hash for datum; identity fields are missing"))
@@ -58,7 +58,7 @@ var _ = Describe("Hash", func() {
 		})
 
 		It("returns an error if any datum returns empty identity fields", func() {
-			testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{id.New(), id.New()}, Error: nil}}
+			testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{user.NewID(), testData.NewDeviceID()}, Error: nil}}
 			testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{}, Error: nil}}
 			hashes, err := deduplicator.AssignDatasetDataIdentityHashes(testDatasetData)
 			Expect(err).To(MatchError("unable to generate identity hash for datum; identity fields are missing"))
@@ -66,8 +66,8 @@ var _ = Describe("Hash", func() {
 		})
 
 		It("returns an error if any datum returns any empty identity fields", func() {
-			testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{id.New(), id.New()}, Error: nil}}
-			testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{id.New(), ""}, Error: nil}}
+			testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{user.NewID(), testData.NewDeviceID()}, Error: nil}}
+			testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{user.NewID(), ""}, Error: nil}}
 			hashes, err := deduplicator.AssignDatasetDataIdentityHashes(testDatasetData)
 			Expect(err).To(MatchError("unable to generate identity hash for datum; identity field is empty"))
 			Expect(hashes).To(BeNil())

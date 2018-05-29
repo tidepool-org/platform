@@ -18,14 +18,14 @@ import (
 	testDataTypesCommonOrigin "github.com/tidepool-org/platform/data/types/common/origin/test"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
-	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 	"github.com/tidepool-org/platform/time/zone"
 	testTimeZone "github.com/tidepool-org/platform/time/zone/test"
-	"github.com/tidepool-org/platform/validate"
+	"github.com/tidepool-org/platform/user"
 )
 
 var futureTime = time.Unix(4102444800, 0)
@@ -144,10 +144,10 @@ var _ = Describe("Base", func() {
 				Entry("archived data set id invalid",
 					func(datum *types.Base) { datum.ArchivedDataSetID = pointer.FromString("invalid") },
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
-					testErrors.WithPointerSource(data.ErrorValueStringAsDataSetIDNotValid("invalid"), "/archivedDatasetId"),
+					testErrors.WithPointerSource(data.ErrorValueStringAsSetIDNotValid("invalid"), "/archivedDatasetId"),
 				),
 				Entry("archived data set id valid",
-					func(datum *types.Base) { datum.ArchivedDataSetID = pointer.FromString(id.New()) },
+					func(datum *types.Base) { datum.ArchivedDataSetID = pointer.FromString(data.NewSetID()) },
 					structure.Origins(),
 				),
 				Entry("archived time missing; archived data set id missing",
@@ -159,7 +159,7 @@ var _ = Describe("Base", func() {
 				),
 				Entry("archived time missing; archived data set id exists",
 					func(datum *types.Base) {
-						datum.ArchivedDataSetID = pointer.FromString(id.New())
+						datum.ArchivedDataSetID = pointer.FromString(data.NewSetID())
 						datum.ArchivedTime = nil
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
@@ -236,10 +236,10 @@ var _ = Describe("Base", func() {
 				Entry("created user id invalid",
 					func(datum *types.Base) { datum.CreatedUserID = pointer.FromString("invalid") },
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
-					testErrors.WithPointerSource(data.ErrorValueStringAsUserIDNotValid("invalid"), "/createdUserId"),
+					testErrors.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/createdUserId"),
 				),
 				Entry("created user id valid",
-					func(datum *types.Base) { datum.CreatedUserID = pointer.FromString(id.New()) },
+					func(datum *types.Base) { datum.CreatedUserID = pointer.FromString(user.NewID()) },
 					structure.Origins(),
 				),
 				Entry("created time missing; created user id missing",
@@ -253,7 +253,7 @@ var _ = Describe("Base", func() {
 				Entry("created time missing; created user id exists",
 					func(datum *types.Base) {
 						datum.CreatedTime = nil
-						datum.CreatedUserID = pointer.FromString(id.New())
+						datum.CreatedUserID = pointer.FromString(user.NewID())
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/createdTime"),
@@ -289,10 +289,10 @@ var _ = Describe("Base", func() {
 				Entry("deleted user id invalid",
 					func(datum *types.Base) { datum.DeletedUserID = pointer.FromString("invalid") },
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
-					testErrors.WithPointerSource(data.ErrorValueStringAsUserIDNotValid("invalid"), "/deletedUserId"),
+					testErrors.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/deletedUserId"),
 				),
 				Entry("deleted user id valid",
-					func(datum *types.Base) { datum.DeletedUserID = pointer.FromString(id.New()) },
+					func(datum *types.Base) { datum.DeletedUserID = pointer.FromString(user.NewID()) },
 					structure.Origins(),
 				),
 				Entry("deleted time missing; deleted user id missing",
@@ -305,7 +305,7 @@ var _ = Describe("Base", func() {
 				Entry("deleted time missing; deleted user id exists",
 					func(datum *types.Base) {
 						datum.DeletedTime = nil
-						datum.DeletedUserID = pointer.FromString(id.New())
+						datum.DeletedUserID = pointer.FromString(user.NewID())
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/deletedUserId"),
@@ -362,7 +362,7 @@ var _ = Describe("Base", func() {
 				Entry("deduplicator invalid",
 					func(datum *types.Base) { datum.Deduplicator.Name = "invalid" },
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
-					testErrors.WithPointerSource(validate.ErrorValueStringAsReverseDomainNotValid("invalid"), "/_deduplicator/name"),
+					testErrors.WithPointerSource(net.ErrorValueStringAsReverseDomainNotValid("invalid"), "/_deduplicator/name"),
 				),
 				Entry("deduplicator valid",
 					func(datum *types.Base) { datum.Deduplicator = testData.NewDeduplicatorDescriptor() },
@@ -379,7 +379,7 @@ var _ = Describe("Base", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/deviceId"),
 				),
 				Entry("device id valid",
-					func(datum *types.Base) { datum.DeviceID = pointer.FromString(id.New()) },
+					func(datum *types.Base) { datum.DeviceID = pointer.FromString(testData.NewDeviceID()) },
 					structure.Origins(),
 				),
 				Entry("device time missing",
@@ -410,10 +410,10 @@ var _ = Describe("Base", func() {
 				Entry("id invalid",
 					func(datum *types.Base) { datum.ID = pointer.FromString("invalid") },
 					structure.Origins(),
-					testErrors.WithPointerSource(id.ErrorValueStringAsIDNotValid("invalid"), "/id"),
+					testErrors.WithPointerSource(data.ErrorValueStringAsIDNotValid("invalid"), "/id"),
 				),
 				Entry("id valid",
-					func(datum *types.Base) { datum.ID = pointer.FromString(id.New()) },
+					func(datum *types.Base) { datum.ID = pointer.FromString(data.NewID()) },
 					structure.Origins(),
 				),
 				Entry("location missing",
@@ -444,10 +444,10 @@ var _ = Describe("Base", func() {
 				Entry("modified user id invalid",
 					func(datum *types.Base) { datum.ModifiedUserID = pointer.FromString("invalid") },
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
-					testErrors.WithPointerSource(data.ErrorValueStringAsUserIDNotValid("invalid"), "/modifiedUserId"),
+					testErrors.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/modifiedUserId"),
 				),
 				Entry("modified user id valid",
-					func(datum *types.Base) { datum.ModifiedUserID = pointer.FromString(id.New()) },
+					func(datum *types.Base) { datum.ModifiedUserID = pointer.FromString(user.NewID()) },
 					structure.Origins(),
 				),
 				Entry("modified time missing; modified user id missing",
@@ -464,7 +464,7 @@ var _ = Describe("Base", func() {
 						datum.ArchivedTime = nil
 						datum.ArchivedDataSetID = nil
 						datum.ModifiedTime = nil
-						datum.ModifiedUserID = pointer.FromString(id.New())
+						datum.ModifiedUserID = pointer.FromString(user.NewID())
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/modifiedUserId"),
@@ -482,7 +482,7 @@ var _ = Describe("Base", func() {
 					func(datum *types.Base) {
 						datum.ArchivedTime = datum.ModifiedTime
 						datum.ModifiedTime = nil
-						datum.ModifiedUserID = pointer.FromString(id.New())
+						datum.ModifiedUserID = pointer.FromString(user.NewID())
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/modifiedTime"),
@@ -722,7 +722,7 @@ var _ = Describe("Base", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/type"),
 				),
 				Entry("type valid",
-					func(datum *types.Base) { datum.Type = id.New() },
+					func(datum *types.Base) { datum.Type = test.NewVariableString(1, 16, test.CharsetAlphaNumeric) },
 					structure.Origins(),
 				),
 				Entry("upload id missing",
@@ -738,10 +738,10 @@ var _ = Describe("Base", func() {
 				Entry("upload id invalid",
 					func(datum *types.Base) { datum.UploadID = pointer.FromString("invalid") },
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
-					testErrors.WithPointerSource(data.ErrorValueStringAsDataSetIDNotValid("invalid"), "/uploadId"),
+					testErrors.WithPointerSource(data.ErrorValueStringAsSetIDNotValid("invalid"), "/uploadId"),
 				),
 				Entry("upload id valid",
-					func(datum *types.Base) { datum.UploadID = pointer.FromString(id.New()) },
+					func(datum *types.Base) { datum.UploadID = pointer.FromString(data.NewSetID()) },
 					structure.Origins(),
 				),
 				Entry("user id missing",
@@ -757,10 +757,10 @@ var _ = Describe("Base", func() {
 				Entry("user id invalid",
 					func(datum *types.Base) { datum.UserID = pointer.FromString("invalid") },
 					[]structure.Origin{structure.OriginStore},
-					testErrors.WithPointerSource(data.ErrorValueStringAsUserIDNotValid("invalid"), "/_userId"),
+					testErrors.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/_userId"),
 				),
 				Entry("user id valid",
-					func(datum *types.Base) { datum.UserID = pointer.FromString(id.New()) },
+					func(datum *types.Base) { datum.UserID = pointer.FromString(user.NewID()) },
 					structure.Origins(),
 				),
 				Entry("version; out of range (lower)",
@@ -798,16 +798,16 @@ var _ = Describe("Base", func() {
 						datum.UploadID = nil
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
-					testErrors.WithPointerSource(data.ErrorValueStringAsDataSetIDNotValid("invalid"), "/archivedDatasetId"),
+					testErrors.WithPointerSource(data.ErrorValueStringAsSetIDNotValid("invalid"), "/archivedDatasetId"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339), "/archivedTime"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339), "/createdTime"),
-					testErrors.WithPointerSource(data.ErrorValueStringAsUserIDNotValid("invalid"), "/createdUserId"),
+					testErrors.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/createdUserId"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339), "/deletedTime"),
-					testErrors.WithPointerSource(data.ErrorValueStringAsUserIDNotValid("invalid"), "/deletedUserId"),
-					testErrors.WithPointerSource(validate.ErrorValueStringAsReverseDomainNotValid("invalid"), "/_deduplicator/name"),
+					testErrors.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/deletedUserId"),
+					testErrors.WithPointerSource(net.ErrorValueStringAsReverseDomainNotValid("invalid"), "/_deduplicator/name"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/id"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339), "/modifiedTime"),
-					testErrors.WithPointerSource(data.ErrorValueStringAsUserIDNotValid("invalid"), "/modifiedUserId"),
+					testErrors.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/modifiedUserId"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/uploadId"),
 				),
 				Entry("multiple errors with external origin",
@@ -1046,7 +1046,7 @@ var _ = Describe("Base", func() {
 
 		Context("SetUserID", func() {
 			It("sets the user id", func() {
-				userID := pointer.FromString(id.New())
+				userID := pointer.FromString(user.NewID())
 				datum.SetUserID(userID)
 				Expect(datum.UserID).To(Equal(userID))
 			})
@@ -1054,7 +1054,7 @@ var _ = Describe("Base", func() {
 
 		Context("SetDatasetID", func() {
 			It("sets the data set id", func() {
-				dataSetID := pointer.FromString(id.New())
+				dataSetID := pointer.FromString(data.NewSetID())
 				datum.SetDatasetID(dataSetID)
 				Expect(datum.UploadID).To(Equal(dataSetID))
 			})
@@ -1074,7 +1074,7 @@ var _ = Describe("Base", func() {
 
 		Context("SetDeviceID", func() {
 			It("sets the device id", func() {
-				deviceID := pointer.FromString(id.New())
+				deviceID := pointer.FromString(testData.NewDeviceID())
 				datum.SetDeviceID(deviceID)
 				Expect(datum.DeviceID).To(Equal(deviceID))
 			})
@@ -1090,7 +1090,7 @@ var _ = Describe("Base", func() {
 
 		Context("SetCreatedUserID", func() {
 			It("sets the created user id", func() {
-				createdUserID := pointer.FromString(id.New())
+				createdUserID := pointer.FromString(user.NewID())
 				datum.SetCreatedUserID(createdUserID)
 				Expect(datum.CreatedUserID).To(Equal(createdUserID))
 			})
@@ -1106,7 +1106,7 @@ var _ = Describe("Base", func() {
 
 		Context("SetModifiedUserID", func() {
 			It("sets the modified user id", func() {
-				modifiedUserID := pointer.FromString(id.New())
+				modifiedUserID := pointer.FromString(user.NewID())
 				datum.SetModifiedUserID(modifiedUserID)
 				Expect(datum.ModifiedUserID).To(Equal(modifiedUserID))
 			})
@@ -1122,7 +1122,7 @@ var _ = Describe("Base", func() {
 
 		Context("SetDeletedUserID", func() {
 			It("sets the deleted user id", func() {
-				deletedUserID := pointer.FromString(id.New())
+				deletedUserID := pointer.FromString(user.NewID())
 				datum.SetDeletedUserID(deletedUserID)
 				Expect(datum.DeletedUserID).To(Equal(deletedUserID))
 			})

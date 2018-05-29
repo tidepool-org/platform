@@ -12,12 +12,12 @@ import (
 	"github.com/tidepool-org/platform/auth"
 	testAuth "github.com/tidepool-org/platform/auth/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	logNull "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/service/middleware"
+	serviceTest "github.com/tidepool-org/platform/service/test"
 	testRest "github.com/tidepool-org/platform/test/rest"
 )
 
@@ -215,7 +215,7 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns successfully", func() {
-						userID := id.New()
+						userID := serviceTest.NewUserID()
 						authClient.ValidateSessionTokenOutputs = []testAuth.ValidateSessionTokenOutput{
 							{Details: request.NewDetails(request.MethodSessionToken, userID, accessToken), Error: nil},
 						}
@@ -269,7 +269,7 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns successfully", func() {
-						userID := id.New()
+						userID := serviceTest.NewUserID()
 						authClient.ValidateSessionTokenOutputs = []testAuth.ValidateSessionTokenOutput{
 							{Details: request.NewDetails(request.MethodSessionToken, userID, sessionToken), Error: nil},
 						}
@@ -348,7 +348,7 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns successfully", func() {
-						userID := id.New()
+						userID := serviceTest.NewUserID()
 						restrictedTokenObject := &auth.RestrictedToken{
 							ID:             restrictedToken,
 							UserID:         userID,
@@ -402,7 +402,7 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns successfully with no details if restricted token does not authenticate request", func() {
-						userID := id.New()
+						userID := serviceTest.NewUserID()
 						restrictedTokenObject := &auth.RestrictedToken{
 							ID:             restrictedToken,
 							UserID:         userID,

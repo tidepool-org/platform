@@ -3,13 +3,12 @@ package deduplicator
 import (
 	"context"
 
-	"github.com/blang/semver"
-
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/storeDEPRECATED"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/pointer"
 )
 
@@ -27,11 +26,6 @@ type BaseDeduplicator struct {
 	dataset     *upload.Upload
 }
 
-func IsVersionValid(version string) bool {
-	_, err := semver.Parse(version)
-	return err == nil
-}
-
 func NewBaseFactory(name string, version string) (*BaseFactory, error) {
 	if name == "" {
 		return nil, errors.New("name is missing")
@@ -39,7 +33,7 @@ func NewBaseFactory(name string, version string) (*BaseFactory, error) {
 	if version == "" {
 		return nil, errors.New("version is missing")
 	}
-	if !IsVersionValid(version) {
+	if !net.IsValidSemanticVersion(version) {
 		return nil, errors.New("version is invalid")
 	}
 
@@ -111,7 +105,7 @@ func NewBaseDeduplicator(name string, version string, logger log.Logger, dataSes
 	if version == "" {
 		return nil, errors.New("version is missing")
 	}
-	if !IsVersionValid(version) {
+	if !net.IsValidSemanticVersion(version) {
 		return nil, errors.New("version is invalid")
 	}
 	if logger == nil {

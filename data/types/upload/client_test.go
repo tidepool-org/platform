@@ -10,12 +10,12 @@ import (
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	"github.com/tidepool-org/platform/data/types/upload"
 	testErrors "github.com/tidepool-org/platform/errors/test"
+	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 	testInternet "github.com/tidepool-org/platform/test/internet"
-	"github.com/tidepool-org/platform/validate"
 )
 
 func NewClient() *upload.Client {
@@ -73,7 +73,7 @@ var _ = Describe("Client", func() {
 				),
 				Entry("name invalid",
 					func(datum *upload.Client) { datum.Name = pointer.FromString("org") },
-					testErrors.WithPointerSource(validate.ErrorValueStringAsReverseDomainNotValid("org"), "/name"),
+					testErrors.WithPointerSource(net.ErrorValueStringAsReverseDomainNotValid("org"), "/name"),
 				),
 				Entry("name valid",
 					func(datum *upload.Client) { datum.Name = pointer.FromString(testInternet.NewReverseDomain()) },
@@ -88,7 +88,7 @@ var _ = Describe("Client", func() {
 				),
 				Entry("version invalid",
 					func(datum *upload.Client) { datum.Version = pointer.FromString("1.2") },
-					testErrors.WithPointerSource(validate.ErrorValueStringAsSemanticVersionNotValid("1.2"), "/version"),
+					testErrors.WithPointerSource(net.ErrorValueStringAsSemanticVersionNotValid("1.2"), "/version"),
 				),
 				Entry("version valid",
 					func(datum *upload.Client) { datum.Version = pointer.FromString(testInternet.NewSemanticVersion()) },

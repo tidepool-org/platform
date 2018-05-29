@@ -12,7 +12,6 @@ import (
 	testDataTypesDevice "github.com/tidepool-org/platform/data/types/device/test"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
@@ -22,7 +21,7 @@ import (
 
 func NewTestDevice(sourceTime interface{}, sourceSubType interface{}) *device.Device {
 	datum := device.New("")
-	datum.DeviceID = pointer.FromString(id.New())
+	datum.DeviceID = pointer.FromString(testData.NewDeviceID())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
 	}

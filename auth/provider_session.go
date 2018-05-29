@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/tidepool-org/platform/errors"
@@ -12,6 +13,7 @@ import (
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/user"
 )
 
 const (
@@ -125,6 +127,33 @@ func (p *ProviderSessionUpdate) Validate(validator structure.Validator) {
 	}
 }
 
+func NewProviderSessionID() string {
+	return id.Must(id.New(16))
+}
+
+func IsValidProviderSessionID(value string) bool {
+	return ValidateProviderSessionID(value) == nil
+}
+
+func ProviderSessionIDValidator(value string, errorReporter structure.ErrorReporter) {
+	errorReporter.ReportError(ValidateProviderSessionID(value))
+}
+
+func ValidateProviderSessionID(value string) error {
+	if value == "" {
+		return structureValidator.ErrorValueEmpty()
+	} else if !providerSessionIDExpression.MatchString(value) {
+		return ErrorValueStringAsProviderSessionIDNotValid(value)
+	}
+	return nil
+}
+
+func ErrorValueStringAsProviderSessionIDNotValid(value string) error {
+	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as provider session id", value)
+}
+
+var providerSessionIDExpression = regexp.MustCompile("^[0-9a-z]{32}$")
+
 type ProviderSession struct {
 	ID           string       `json:"id" bson:"id"`
 	UserID       string       `json:"userId" bson:"userId"`
@@ -146,7 +175,7 @@ func NewProviderSession(userID string, create *ProviderSessionCreate) (*Provider
 	}
 
 	return &ProviderSession{
-		ID:          id.New(),
+		ID:          NewProviderSessionID(),
 		UserID:      userID,
 		Type:        create.Type,
 		Name:        create.Name,
@@ -180,8 +209,8 @@ func (p *ProviderSession) Parse(parser structure.ObjectParser) {
 }
 
 func (p *ProviderSession) Validate(validator structure.Validator) {
-	validator.String("id", &p.ID).Using(id.Validate)
-	validator.String("userId", &p.UserID).NotEmpty() // TODO: Further validation
+	validator.String("id", &p.ID).Using(ProviderSessionIDValidator)
+	validator.String("userId", &p.UserID).Using(user.IDValidator)
 	validator.String("type", &p.Type).OneOf(ProviderTypes()...)
 	validator.String("name", &p.Name).NotEmpty()
 	switch p.Type {

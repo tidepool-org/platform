@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/structure"
-	"github.com/tidepool-org/platform/validate"
 )
 
 // TODO: Need to update all deduplicator descriptors in the database to have a name and version
@@ -34,10 +34,10 @@ func NewDeduplicatorDescriptor() *DeduplicatorDescriptor {
 
 func (d *DeduplicatorDescriptor) Validate(validator structure.Validator) {
 	if d.Name != "" { // TODO: Remove once all deduplicator descriptions have a name and version
-		validator.String("name", &d.Name).Exists().Using(validate.ReverseDomain)
+		validator.String("name", &d.Name).Exists().Using(net.ReverseDomainValidator)
 	}
 	if d.Version != "" { // TODO: Remove once all deduplicator descriptions have a name and version
-		validator.String("version", &d.Version).Exists().Using(validate.SemanticVersion)
+		validator.String("version", &d.Version).Exists().Using(net.SemanticVersionValidator)
 	}
 }
 

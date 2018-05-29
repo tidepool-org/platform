@@ -1,4 +1,4 @@
-package validate_test
+package net_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -9,5 +9,5 @@ import (
 
 func TestSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "validate")
+	RunSpecs(t, "net")
 }

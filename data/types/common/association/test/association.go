@@ -3,8 +3,8 @@ package test
 import (
 	"math/rand"
 
+	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/common/association"
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
 	testHTTP "github.com/tidepool-org/platform/test/http"
@@ -14,7 +14,7 @@ func NewAssociation() *association.Association {
 	typ := test.RandomStringFromArray(association.Types())
 	datum := association.NewAssociation()
 	if typ == association.TypeDatum {
-		datum.ID = pointer.FromString(id.New())
+		datum.ID = pointer.FromString(data.NewID())
 	}
 	datum.Reason = pointer.FromString(test.NewText(1, 1000))
 	datum.Type = pointer.FromString(typ)

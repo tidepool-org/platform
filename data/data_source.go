@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/tidepool-org/platform/auth"
@@ -13,6 +14,7 @@ import (
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/user"
 )
 
 type DataSourceAccessor interface {
@@ -58,7 +60,7 @@ func (d *DataSourceFilter) Parse(parser structure.ObjectParser) {
 func (d *DataSourceFilter) Validate(validator structure.Validator) {
 	validator.String("providerType", d.ProviderType).OneOf(auth.ProviderTypes()...)
 	validator.String("providerName", d.ProviderName).NotEmpty()
-	validator.String("providerSessionId", d.ProviderSessionID).Using(id.Validate)
+	validator.String("providerSessionId", d.ProviderSessionID).Using(auth.ProviderSessionIDValidator)
 	validator.String("state", d.State).OneOf(DataSourceStates()...)
 }
 
@@ -108,7 +110,7 @@ func (d *DataSourceCreate) Parse(parser structure.ObjectParser) {
 func (d *DataSourceCreate) Validate(validator structure.Validator) {
 	validator.String("providerType", &d.ProviderType).OneOf(auth.ProviderTypes()...)
 	validator.String("providerName", &d.ProviderName).NotEmpty()
-	validator.String("providerSessionId", &d.ProviderSessionID).Using(id.Validate)
+	validator.String("providerSessionId", &d.ProviderSessionID).Using(auth.ProviderSessionIDValidator)
 	validator.String("state", &d.State).OneOf(DataSourceStates()...)
 }
 
@@ -171,6 +173,33 @@ func (d *DataSourceUpdate) Normalize(normalizer structure.Normalizer) {
 	}
 }
 
+func NewSourceID() string {
+	return id.Must(id.New(16))
+}
+
+func IsValidSourceID(value string) bool {
+	return ValidateSourceID(value) == nil
+}
+
+func SourceIDValidator(value string, errorReporter structure.ErrorReporter) {
+	errorReporter.ReportError(ValidateSourceID(value))
+}
+
+func ValidateSourceID(value string) error {
+	if value == "" {
+		return structureValidator.ErrorValueEmpty()
+	} else if !setIDExpression.MatchString(value) {
+		return ErrorValueStringAsSourceIDNotValid(value)
+	}
+	return nil
+}
+
+func ErrorValueStringAsSourceIDNotValid(value string) error {
+	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as data source id", value)
+}
+
+var sourceIDExpression = regexp.MustCompile("^[0-9a-z]{32}$")
+
 type DataSource struct {
 	ID                string               `json:"id" bson:"id"`
 	UserID            string               `json:"userId" bson:"userId"`
@@ -198,7 +227,7 @@ func NewDataSource(userID string, create *DataSourceCreate) (*DataSource, error)
 	}
 
 	return &DataSource{
-		ID:                id.New(),
+		ID:                NewSourceID(),
 		UserID:            userID,
 		ProviderType:      create.ProviderType,
 		ProviderName:      create.ProviderName,
@@ -242,11 +271,11 @@ func (d *DataSource) Parse(parser structure.ObjectParser) {
 }
 
 func (d *DataSource) Validate(validator structure.Validator) {
-	validator.String("id", &d.ID).Using(id.Validate)
-	validator.String("userId", &d.UserID).NotEmpty() // TODO: Further validation
+	validator.String("id", &d.ID).Using(SourceIDValidator)
+	validator.String("userId", &d.UserID).Using(user.IDValidator)
 	validator.String("providerType", &d.ProviderType).OneOf(auth.ProviderTypes()...)
 	validator.String("providerName", &d.ProviderName).NotEmpty()
-	validator.String("providerSessionId", d.ProviderSessionID).Using(id.Validate)
+	validator.String("providerSessionId", d.ProviderSessionID).Using(auth.ProviderSessionIDValidator)
 	validator.String("state", &d.State).OneOf(DataSourceStates()...)
 	if d.Error != nil {
 		d.Error.Validate(validator.WithReference("error"))

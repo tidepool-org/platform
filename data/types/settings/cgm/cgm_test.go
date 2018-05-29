@@ -469,16 +469,17 @@ var _ = Describe("CGM", func() {
 		})
 	})
 
-	Context("ValidateTransmitterID", func() {
+	Context("IsValidTransmitterID, TransmitterIDValidator, ValidateTransmitterID", func() {
 		DescribeTable("validates the transmitter id",
 			func(value string, expectedErrors ...error) {
+				Expect(cgm.IsValidTransmitterID(value)).To(Equal(len(expectedErrors) == 0))
 				errorReporter := testStructure.NewErrorReporter()
-				Expect(errorReporter).ToNot(BeNil())
-				cgm.ValidateTransmitterID(value, errorReporter)
+				cgm.TransmitterIDValidator(value, errorReporter)
 				testErrors.ExpectEqual(errorReporter.Error(), expectedErrors...)
+				testErrors.ExpectEqual(cgm.ValidateTransmitterID(value), expectedErrors...)
 			},
+			Entry("is empty", "", structureValidator.ErrorValueEmpty()),
 			Entry("is valid", test.NewVariableString(5, 6, transmitterIDCharSet)),
-			Entry("is empty string", "", structureValidator.ErrorValueEmpty()),
 			Entry("has invalid length; out of range (lower)", "ABCD", cgm.ErrorValueStringAsTransmitterIDNotValid("ABCD")),
 			Entry("has invalid length; in range (lower)", test.NewString(5, transmitterIDCharSet)),
 			Entry("has invalid length; in range (upper)", test.NewString(6, transmitterIDCharSet)),

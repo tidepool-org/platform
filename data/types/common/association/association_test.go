@@ -7,18 +7,18 @@ import (
 
 	"strings"
 
+	"github.com/tidepool-org/platform/data"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/common/association"
 	testDataTypesCommonAssociation "github.com/tidepool-org/platform/data/types/common/association/test"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
-	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 	testHTTP "github.com/tidepool-org/platform/test/http"
-	"github.com/tidepool-org/platform/validate"
 )
 
 var _ = Describe("Association", func() {
@@ -90,7 +90,7 @@ var _ = Describe("Association", func() {
 				),
 				Entry("type missing; id valid",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(id.New())
+						datum.ID = pointer.FromString(data.NewID())
 						datum.Type = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
@@ -117,11 +117,11 @@ var _ = Describe("Association", func() {
 						datum.Type = pointer.FromString("datum")
 						datum.URL = nil
 					},
-					testErrors.WithPointerSource(id.ErrorValueStringAsIDNotValid("invalid"), "/id"),
+					testErrors.WithPointerSource(data.ErrorValueStringAsIDNotValid("invalid"), "/id"),
 				),
 				Entry("type datum; id valid",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(id.New())
+						datum.ID = pointer.FromString(data.NewID())
 						datum.Type = pointer.FromString("datum")
 						datum.URL = nil
 					},
@@ -151,7 +151,7 @@ var _ = Describe("Association", func() {
 				),
 				Entry("type url; id valid",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(id.New())
+						datum.ID = pointer.FromString(data.NewID())
 						datum.Type = pointer.FromString("url")
 						datum.URL = pointer.FromString(testHTTP.NewURLString())
 					},
@@ -181,7 +181,7 @@ var _ = Describe("Association", func() {
 				),
 				Entry("type datum",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(id.New())
+						datum.ID = pointer.FromString(data.NewID())
 						datum.Type = pointer.FromString("datum")
 						datum.URL = nil
 					},
@@ -210,27 +210,27 @@ var _ = Describe("Association", func() {
 				Entry("type missing; url length in range (upper)",
 					func(datum *association.Association) {
 						datum.Type = nil
-						datum.URL = pointer.FromString(strings.Repeat("x", 2000))
+						datum.URL = pointer.FromString(strings.Repeat("x", 2047))
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
 				),
 				Entry("type missing; url length out of range (upper)",
 					func(datum *association.Association) {
 						datum.Type = nil
-						datum.URL = pointer.FromString(strings.Repeat("x", 2001))
+						datum.URL = pointer.FromString(strings.Repeat("x", 2048))
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
 				),
 				Entry("type datum; url missing",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(id.New())
+						datum.ID = pointer.FromString(data.NewID())
 						datum.Type = pointer.FromString("datum")
 						datum.URL = nil
 					},
 				),
 				Entry("type datum; url empty",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(id.New())
+						datum.ID = pointer.FromString(data.NewID())
 						datum.Type = pointer.FromString("datum")
 						datum.URL = pointer.FromString("")
 					},
@@ -238,17 +238,17 @@ var _ = Describe("Association", func() {
 				),
 				Entry("type datum; url length in range (upper)",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(id.New())
+						datum.ID = pointer.FromString(data.NewID())
 						datum.Type = pointer.FromString("datum")
-						datum.URL = pointer.FromString(strings.Repeat("x", 2000))
+						datum.URL = pointer.FromString(strings.Repeat("x", 2047))
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/url"),
 				),
 				Entry("type datum; url length out of range (upper)",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(id.New())
+						datum.ID = pointer.FromString(data.NewID())
 						datum.Type = pointer.FromString("datum")
-						datum.URL = pointer.FromString(strings.Repeat("x", 2001))
+						datum.URL = pointer.FromString(strings.Repeat("x", 2048))
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/url"),
 				),
@@ -274,7 +274,7 @@ var _ = Describe("Association", func() {
 						datum.Type = pointer.FromString("url")
 						datum.URL = pointer.FromString("http:::")
 					},
-					testErrors.WithPointerSource(validate.ErrorValueStringAsURLNotValid("http:::"), "/url"),
+					testErrors.WithPointerSource(net.ErrorValueStringAsURLNotValid("http:::"), "/url"),
 				),
 				Entry("type url; url valid",
 					func(datum *association.Association) {
@@ -287,16 +287,16 @@ var _ = Describe("Association", func() {
 					func(datum *association.Association) {
 						datum.ID = nil
 						datum.Type = pointer.FromString("url")
-						datum.URL = pointer.FromString("http://" + strings.Repeat("x", 1993))
+						datum.URL = pointer.FromString("http://" + strings.Repeat("x", 2040))
 					},
 				),
 				Entry("type url; url valid; length out of range (upper)",
 					func(datum *association.Association) {
 						datum.ID = nil
 						datum.Type = pointer.FromString("url")
-						datum.URL = pointer.FromString("http://" + strings.Repeat("x", 1994))
+						datum.URL = pointer.FromString("http://" + strings.Repeat("x", 2041))
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(2001, 2000), "/url"),
+					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(2048, 2047), "/url"),
 				),
 				Entry("multiple errors",
 					func(datum *association.Association) {

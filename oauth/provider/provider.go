@@ -93,7 +93,7 @@ func (p *Provider) TokenSource(ctx context.Context, token *oauth.Token) (oauth2.
 }
 
 func (p *Provider) CalculateStateForRestrictedToken(restrictedToken string) string {
-	return crypto.HashWithMD5(fmt.Sprintf("%s:%s:%s:%s", p.Type(), p.Name(), restrictedToken, p.stateSalt))
+	return crypto.HexEncodedMD5Hash(fmt.Sprintf("%s:%s:%s:%s", p.Type(), p.Name(), restrictedToken, p.stateSalt))
 }
 
 func (p *Provider) GetAuthorizationCodeURLWithState(state string) string {

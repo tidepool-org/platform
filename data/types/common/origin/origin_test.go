@@ -12,12 +12,12 @@ import (
 	testDataTypesCommonOrigin "github.com/tidepool-org/platform/data/types/common/origin/test"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
+	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 	testInternet "github.com/tidepool-org/platform/test/internet"
-	"github.com/tidepool-org/platform/validate"
 )
 
 var _ = Describe("Origin", func() {
@@ -94,7 +94,7 @@ var _ = Describe("Origin", func() {
 				),
 				Entry("name invalid",
 					func(datum *origin.Origin) { datum.Name = pointer.FromString("org") },
-					testErrors.WithPointerSource(validate.ErrorValueStringAsReverseDomainNotValid("org"), "/name"),
+					testErrors.WithPointerSource(net.ErrorValueStringAsReverseDomainNotValid("org"), "/name"),
 				),
 				Entry("name valid",
 					func(datum *origin.Origin) { datum.Name = pointer.FromString(testInternet.NewReverseDomain()) },

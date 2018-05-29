@@ -1,5 +1,14 @@
 package user
 
+import (
+	"regexp"
+
+	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
+)
+
 type User struct {
 	ID                string             `json:"userid,omitempty" bson:"userid,omitempty"`
 	Email             string             `json:"username,omitempty" bson:"username,omitempty"`
@@ -33,3 +42,30 @@ func (u *User) HasRole(role string) bool {
 	}
 	return false
 }
+
+func NewID() string {
+	return id.Must(id.New(5))
+}
+
+func IsValidID(value string) bool {
+	return ValidateID(value) == nil
+}
+
+func IDValidator(value string, errorReporter structure.ErrorReporter) {
+	errorReporter.ReportError(ValidateID(value))
+}
+
+func ValidateID(value string) error {
+	if value == "" {
+		return structureValidator.ErrorValueEmpty()
+	} else if !idExpression.MatchString(value) {
+		return ErrorValueStringAsIDNotValid(value)
+	}
+	return nil
+}
+
+func ErrorValueStringAsIDNotValid(value string) error {
+	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as user id", value)
+}
+
+var idExpression = regexp.MustCompile("^[0-9a-f]{10}$")

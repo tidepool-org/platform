@@ -1,5 +1,13 @@
 ## HEAD
 
+* Refactor id generation and validation
+* Move validate package contents to more specific packages
+* Replace generic usage of id.New()
+* Rename crypto HashWithMD5 to HexEncodedMD5Hash for greater accuracy
+* Add net.NormalizeMediaType
+* Update maximum length for URL validation
+* Structure parser and validator automatically check for unparsed
+* Remove github.com/satori/go.uuid dependency
 * Refactor common error test expectations
 * Add pointer.To*, pointer.Clone*, and pointer.Default*
 * Rename pointer.* to pointer.From*

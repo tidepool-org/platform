@@ -8,7 +8,7 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	testData "github.com/tidepool-org/platform/data/test"
-	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/test"
 )
 
 var _ = Describe("Deduplicator", func() {
@@ -27,7 +27,7 @@ var _ = Describe("Deduplicator", func() {
 			BeforeEach(func() {
 				testDeduplicatorDescriptor = data.NewDeduplicatorDescriptor()
 				Expect(testDeduplicatorDescriptor).ToNot(BeNil())
-				testName = id.New()
+				testName = test.NewVariableString(1, 32, test.CharsetAlphaNumeric)
 				testVersion = "1.2.3"
 				testDeduplicatorDescriptor.Name = testName
 				testDeduplicatorDescriptor.Version = testVersion
@@ -51,7 +51,7 @@ var _ = Describe("Deduplicator", func() {
 				})
 
 				It("returns true if the deduplicator descriptor name is present, but does not match", func() {
-					Expect(testDeduplicatorDescriptor.IsRegisteredWithNamedDeduplicator(id.New())).To(BeFalse())
+					Expect(testDeduplicatorDescriptor.IsRegisteredWithNamedDeduplicator(test.NewVariableString(1, 32, test.CharsetAlphaNumeric))).To(BeFalse())
 				})
 
 				It("returns true if the deduplicator descriptor name is present and matches", func() {

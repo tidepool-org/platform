@@ -10,13 +10,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	logNull "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/metric"
 	metricClient "github.com/tidepool-org/platform/metric/client"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/request"
+	"github.com/tidepool-org/platform/test"
 	testHTTP "github.com/tidepool-org/platform/test/http"
 	"github.com/tidepool-org/platform/version"
 )
@@ -26,7 +26,7 @@ var _ = Describe("Client", func() {
 	var versionReporter version.Reporter
 
 	BeforeEach(func() {
-		name = id.New()
+		name = test.NewVariableString(1, 64, test.CharsetAlphaNumeric)
 		var err error
 		versionReporter, err = version.NewReporter("1.2.3", "4567890", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmn")
 		Expect(err).ToNot(HaveOccurred())
@@ -115,7 +115,7 @@ var _ = Describe("Client", func() {
 			var data map[string]string
 
 			BeforeEach(func() {
-				metric = id.New()
+				metric = test.NewVariableString(1, 32, test.CharsetAlphaNumeric)
 				data = map[string]string{
 					"left":  "handed",
 					"right": "correct",
@@ -136,9 +136,9 @@ var _ = Describe("Client", func() {
 				var token string
 
 				BeforeEach(func() {
-					token = id.New()
+					token = test.NewString(64, test.CharsetAlphaNumeric)
 					ctx = log.NewContextWithLogger(ctx, logNull.NewLogger())
-					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, id.New(), token))
+					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, test.NewString(10, test.CharsetHexidecimalLowercase), token))
 				})
 
 				Context("as user", func() {
@@ -224,7 +224,7 @@ var _ = Describe("Client", func() {
 				var token string
 
 				BeforeEach(func() {
-					token = id.New()
+					token = test.NewString(64, test.CharsetAlphaNumeric)
 					ctx = log.NewContextWithLogger(ctx, logNull.NewLogger())
 					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, "", token))
 				})

@@ -9,10 +9,10 @@ import (
 	dataTypesCommonLocation "github.com/tidepool-org/platform/data/types/common/location"
 	dataTypesCommonOrigin "github.com/tidepool-org/platform/data/types/common/origin"
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/time/zone"
+	"github.com/tidepool-org/platform/user"
 )
 
 const (
@@ -132,7 +132,7 @@ func (b *Base) Validate(validator structure.Validator) {
 
 	if validator.Origin() <= structure.OriginInternal {
 		if b.ArchivedTime != nil {
-			validator.String("archivedDatasetId", b.ArchivedDataSetID).Exists().Using(data.ValidateDataSetID)
+			validator.String("archivedDatasetId", b.ArchivedDataSetID).Exists().Using(data.SetIDValidator)
 			validator.String("archivedTime", b.ArchivedTime).AsTime(ArchivedTimeFormat).After(createdTime).BeforeNow(time.Second)
 		} else {
 			validator.String("archivedDatasetId", b.ArchivedDataSetID).NotExists()
@@ -144,7 +144,7 @@ func (b *Base) Validate(validator structure.Validator) {
 	if validator.Origin() <= structure.OriginInternal {
 		if b.CreatedTime != nil {
 			validator.String("createdTime", b.CreatedTime).AsTime(CreatedTimeFormat).BeforeNow(time.Second)
-			validator.String("createdUserId", b.CreatedUserID).Using(data.ValidateUserID)
+			validator.String("createdUserId", b.CreatedUserID).Using(user.IDValidator)
 		} else {
 			validator.String("createdTime", b.CreatedTime).Exists()
 			validator.String("createdUserId", b.CreatedUserID).NotExists()
@@ -152,7 +152,7 @@ func (b *Base) Validate(validator structure.Validator) {
 
 		if b.DeletedTime != nil {
 			validator.String("deletedTime", b.DeletedTime).AsTime(DeletedTimeFormat).After(latestTime(archivedTime, createdTime, modifiedTime)).BeforeNow(time.Second)
-			validator.String("deletedUserId", b.DeletedUserID).Using(data.ValidateUserID)
+			validator.String("deletedUserId", b.DeletedUserID).Using(user.IDValidator)
 		} else {
 			validator.String("deletedUserId", b.DeletedUserID).NotExists()
 		}
@@ -165,7 +165,7 @@ func (b *Base) Validate(validator structure.Validator) {
 	validator.String("deviceId", b.DeviceID).Exists().NotEmpty()
 	validator.String("deviceTime", b.DeviceTime).AsTime(DeviceTimeFormat)
 
-	validator.String("id", b.ID).Using(id.Validate)
+	validator.String("id", b.ID).Using(data.IDValidator)
 	if validator.Origin() <= structure.OriginInternal {
 		validator.String("id", b.ID).Exists()
 	}
@@ -177,7 +177,7 @@ func (b *Base) Validate(validator structure.Validator) {
 	if validator.Origin() <= structure.OriginInternal {
 		if b.ModifiedTime != nil {
 			validator.String("modifiedTime", b.ModifiedTime).AsTime(ModifiedTimeFormat).After(latestTime(archivedTime, createdTime)).BeforeNow(time.Second)
-			validator.String("modifiedUserId", b.ModifiedUserID).Using(data.ValidateUserID)
+			validator.String("modifiedUserId", b.ModifiedUserID).Using(user.IDValidator)
 		} else {
 			if b.ArchivedTime != nil {
 				validator.String("modifiedTime", b.ModifiedTime).Exists()
@@ -211,10 +211,10 @@ func (b *Base) Validate(validator structure.Validator) {
 	validator.String("type", &b.Type).Exists().NotEmpty()
 
 	if validator.Origin() <= structure.OriginInternal {
-		validator.String("uploadId", b.UploadID).Exists().Using(data.ValidateDataSetID)
+		validator.String("uploadId", b.UploadID).Exists().Using(data.SetIDValidator)
 	}
 	if validator.Origin() <= structure.OriginStore {
-		validator.String("_userId", b.UserID).Exists().Using(data.ValidateUserID)
+		validator.String("_userId", b.UserID).Exists().Using(user.IDValidator)
 		validator.Int("_version", &b.Version).Exists().GreaterThanOrEqualTo(VersionMinimum)
 	}
 }
@@ -232,10 +232,10 @@ func (b *Base) Normalize(normalizer data.Normalizer) {
 
 	if normalizer.Origin() == structure.OriginExternal {
 		if b.GUID == nil {
-			b.GUID = pointer.FromString(id.New())
+			b.GUID = pointer.FromString(data.NewID())
 		}
 		if b.ID == nil {
-			b.ID = pointer.FromString(id.New())
+			b.ID = pointer.FromString(data.NewID())
 		}
 	}
 

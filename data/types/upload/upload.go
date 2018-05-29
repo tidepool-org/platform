@@ -5,7 +5,6 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/structure"
@@ -178,7 +177,7 @@ func (u *Upload) Normalize(normalizer data.Normalizer) {
 
 	if normalizer.Origin() == structure.OriginExternal {
 		if u.UploadID == nil {
-			u.UploadID = pointer.FromString(id.New())
+			u.UploadID = pointer.FromString(data.NewSetID())
 		}
 	}
 
