@@ -3,26 +3,16 @@ package parser_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
 
-	"encoding/json"
-	"fmt"
 	"time"
 
-	"github.com/tidepool-org/platform/errors"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 )
 
 var _ = Describe("Errors", func() {
-	DescribeTable("all errors",
-		func(err error, code string, title string, detail string) {
-			Expect(err).ToNot(BeNil())
-			Expect(errors.Code(err)).To(Equal(code))
-			Expect(errors.Cause(err)).To(Equal(err))
-			bytes, bytesErr := json.Marshal(errors.Sanitize(err))
-			Expect(bytesErr).ToNot(HaveOccurred())
-			Expect(bytes).To(MatchJSON(fmt.Sprintf(`{"code": %q, "title": %q, "detail": %q}`, code, title, detail)))
-		},
+	DescribeTable("have expected details when error",
+		errorsTest.ExpectErrorDetails,
 		Entry("is ErrorTypeNotBool with nil parameter", structureParser.ErrorTypeNotBool(nil), "type-not-bool", "type is not bool", "type is not bool, but <nil>"),
 		Entry("is ErrorTypeNotBool with int parameter", structureParser.ErrorTypeNotBool(-1), "type-not-bool", "type is not bool", "type is not bool, but int"),
 		Entry("is ErrorTypeNotBool with string parameter", structureParser.ErrorTypeNotBool("test"), "type-not-bool", "type is not bool", "type is not bool, but string"),

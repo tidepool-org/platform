@@ -1,5 +1,6 @@
 ## HEAD
 
+* Refactor common error test expectations
 * Add pointer.To*, pointer.Clone*, and pointer.Default*
 * Rename pointer.* to pointer.From*
 * Update dependencies

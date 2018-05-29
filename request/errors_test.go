@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"github.com/tidepool-org/platform/errors"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/request"
 	testHTTP "github.com/tidepool-org/platform/test/http"
 )
@@ -29,15 +30,8 @@ var _ = Describe("Errors", func() {
 		})
 	})
 
-	DescribeTable("all other errors",
-		func(err error, code string, title string, detail string) {
-			Expect(err).ToNot(BeNil())
-			Expect(errors.Code(err)).To(Equal(code))
-			Expect(errors.Cause(err)).To(Equal(err))
-			bytes, bytesErr := json.Marshal(errors.Sanitize(err))
-			Expect(bytesErr).ToNot(HaveOccurred())
-			Expect(bytes).To(MatchJSON(fmt.Sprintf(`{"code": %q, "title": %q, "detail": %q}`, code, title, detail)))
-		},
+	DescribeTable("have expected details when error",
+		errorsTest.ExpectErrorDetails,
 		Entry("is ErrorTooManyRequests", request.ErrorTooManyRequests(), "too-many-requests", "too many requests", "too many requests"),
 		Entry("is ErrorBadRequest", request.ErrorBadRequest(), "bad-request", "bad request", "bad request"),
 		Entry("is ErrorUnauthenticated", request.ErrorUnauthenticated(), "unauthenticated", "authentication token is invalid", "authentication token is invalid"),

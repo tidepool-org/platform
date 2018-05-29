@@ -8,15 +8,11 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"encoding/json"
-	"fmt"
-
 	testDataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose/test"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/settings/cgm"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	"github.com/tidepool-org/platform/errors"
 	testErrors "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
@@ -492,18 +488,11 @@ var _ = Describe("CGM", func() {
 		)
 	})
 
-	Context("ErrorValueStringAsTransmitterIDNotValid", func() {
-		DescribeTable("all errors",
-			func(err error, code string, title string, detail string) {
-				Expect(err).ToNot(BeNil())
-				Expect(errors.Code(err)).To(Equal(code))
-				Expect(errors.Cause(err)).To(Equal(err))
-				bytes, bytesErr := json.Marshal(errors.Sanitize(err))
-				Expect(bytesErr).ToNot(HaveOccurred())
-				Expect(bytes).To(MatchJSON(fmt.Sprintf(`{"code": %q, "title": %q, "detail": %q}`, code, title, detail)))
-			},
+	Context("Errors", func() {
+		DescribeTable("have expected details when error",
+			testErrors.ExpectErrorDetails,
 			Entry("is ErrorValueStringAsTransmitterIDNotValid with empty string", cgm.ErrorValueStringAsTransmitterIDNotValid(""), "value-not-valid", "value is not valid", `value "" is not valid as transmitter id`),
-			Entry("is ErrorValueStringAsTransmitterIDNotValid with non-empty string", cgm.ErrorValueStringAsTransmitterIDNotValid("ABC"), "value-not-valid", "value is not valid", `value "ABC" is not valid as transmitter id`),
+			Entry("is ErrorValueStringAsTransmitterIDNotValid with non-empty string", cgm.ErrorValueStringAsTransmitterIDNotValid("ABCDEF"), "value-not-valid", "value is not valid", `value "ABCDEF" is not valid as transmitter id`),
 		)
 	})
 })

@@ -3,27 +3,17 @@ package validator_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
 
-	"encoding/json"
-	"fmt"
 	"regexp"
 	"time"
 
-	"github.com/tidepool-org/platform/errors"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 var _ = Describe("Errors", func() {
-	DescribeTable("all errors",
-		func(err error, code string, title string, detail string) {
-			Expect(err).ToNot(BeNil())
-			Expect(errors.Code(err)).To(Equal(code))
-			Expect(errors.Cause(err)).To(Equal(err))
-			bytes, bytesErr := json.Marshal(errors.Sanitize(err))
-			Expect(bytesErr).ToNot(HaveOccurred())
-			Expect(bytes).To(MatchJSON(fmt.Sprintf(`{"code": %q, "title": %q, "detail": %q}`, code, title, detail)))
-		},
+	DescribeTable("have expected details when error",
+		errorsTest.ExpectErrorDetails,
 		Entry("is ErrorValueNotExists", structureValidator.ErrorValueNotExists(), "value-not-exists", "value does not exist", "value does not exist"),
 		Entry("is ErrorValueExists", structureValidator.ErrorValueExists(), "value-exists", "value exists", "value exists"),
 		Entry("is ErrorValueNotEmpty", structureValidator.ErrorValueNotEmpty(), "value-not-empty", "value is not empty", "value is not empty"),
