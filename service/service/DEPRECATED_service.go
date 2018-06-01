@@ -5,6 +5,7 @@ import (
 	"github.com/tidepool-org/platform/auth"
 	authClient "github.com/tidepool-org/platform/auth/client"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/platform"
 )
 
 type DEPRECATEDService struct {
@@ -77,7 +78,7 @@ func (d *DEPRECATEDService) initializeAuthClient() error {
 
 	d.Logger().Debug("Creating auth client")
 
-	clnt, err := authClient.NewClient(cfg, d.Name(), d.Logger())
+	clnt, err := authClient.NewClient(cfg, platform.AuthorizeAsService, d.Name(), d.Logger())
 	if err != nil {
 		return errors.Wrap(err, "unable to create auth client")
 	}

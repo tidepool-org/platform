@@ -138,7 +138,7 @@ func (s *Standard) initializeDataClient() error {
 
 	s.Logger().Debug("Creating data client")
 
-	clnt, err := dataClient.New(cfg)
+	clnt, err := dataClient.New(cfg, platform.AuthorizeAsService)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data client")
 	}
@@ -158,7 +158,7 @@ func (s *Standard) initializeMetricClient() error {
 
 	s.Logger().Debug("Creating metric client")
 
-	clnt, err := metricClient.New(cfg, s.Name(), s.VersionReporter())
+	clnt, err := metricClient.New(cfg, platform.AuthorizeAsUser, s.Name(), s.VersionReporter())
 	if err != nil {
 		return errors.Wrap(err, "unable to create metric client")
 	}
@@ -178,7 +178,7 @@ func (s *Standard) initializeUserClient() error {
 
 	s.Logger().Debug("Creating user client")
 
-	clnt, err := userClient.New(cfg)
+	clnt, err := userClient.New(cfg, platform.AuthorizeAsService)
 	if err != nil {
 		return errors.Wrap(err, "unable to create user client")
 	}

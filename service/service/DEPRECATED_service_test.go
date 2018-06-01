@@ -86,16 +86,6 @@ var _ = Describe("DEPRECATEDService", func() {
 				Expect(svc.Initialize()).To(MatchError("secret is missing"))
 			})
 
-			It("returns an error if the timeout is invalid during Load", func() {
-				authClientConfigReporter.Set("timeout", "invalid")
-				Expect(svc.Initialize()).To(MatchError("unable to load auth client config; timeout is invalid"))
-			})
-
-			It("returns an error if the timeout is invalid during Validate", func() {
-				authClientConfigReporter.Set("timeout", "0")
-				Expect(svc.Initialize()).To(MatchError("unable to create auth client; config is invalid; timeout is invalid"))
-			})
-
 			It("returns successfully", func() {
 				Expect(svc.Initialize()).To(Succeed())
 				svc.Terminate()

@@ -45,7 +45,7 @@ type Client struct {
 	*External
 }
 
-func NewClient(cfg *Config, name string, lgr log.Logger) (*Client, error) {
+func NewClient(cfg *Config, authorizeAs platform.AuthorizeAs, name string, lgr log.Logger) (*Client, error) {
 	if cfg == nil {
 		return nil, errors.New("config is missing")
 	}
@@ -60,12 +60,12 @@ func NewClient(cfg *Config, name string, lgr log.Logger) (*Client, error) {
 		return nil, errors.Wrap(err, "config is invalid")
 	}
 
-	clnt, err := platform.NewClient(cfg.Config)
+	clnt, err := platform.NewClient(cfg.Config, authorizeAs)
 	if err != nil {
 		return nil, err
 	}
 
-	extrnl, err := NewExternal(cfg.ExternalConfig, name, lgr)
+	extrnl, err := NewExternal(cfg.ExternalConfig, authorizeAs, name, lgr)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func (c *Client) ListUserProviderSessions(ctx context.Context, userID string, fi
 
 	url := c.client.ConstructURL("v1", "users", userID, "provider_sessions")
 	providerSessions := auth.ProviderSessions{}
-	if err := c.client.SendRequestAsServer(ctx, http.MethodGet, url, []request.RequestMutator{filter, pagination}, nil, &providerSessions); err != nil {
+	if err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{filter, pagination}, nil, &providerSessions); err != nil {
 		return nil, err
 	}
 
@@ -118,7 +118,7 @@ func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, c
 
 	url := c.client.ConstructURL("v1", "users", userID, "provider_sessions")
 	providerSession := &auth.ProviderSession{}
-	if err := c.client.SendRequestAsServer(ctx, http.MethodPost, url, nil, create, providerSession); err != nil {
+	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, create, providerSession); err != nil {
 		return nil, err
 	}
 
@@ -135,7 +135,7 @@ func (c *Client) GetProviderSession(ctx context.Context, id string) (*auth.Provi
 
 	url := c.client.ConstructURL("v1", "provider_sessions", id)
 	providerSession := &auth.ProviderSession{}
-	if err := c.client.SendRequestAsServer(ctx, http.MethodGet, url, nil, nil, providerSession); err != nil {
+	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, providerSession); err != nil {
 		if errors.Code(err) == request.ErrorCodeResourceNotFound {
 			return nil, nil
 		}
@@ -160,7 +160,7 @@ func (c *Client) UpdateProviderSession(ctx context.Context, id string, update *a
 
 	url := c.client.ConstructURL("v1", "provider_sessions", id)
 	providerSession := &auth.ProviderSession{}
-	if err := c.client.SendRequestAsServer(ctx, http.MethodPut, url, nil, update, providerSession); err != nil {
+	if err := c.client.RequestData(ctx, http.MethodPut, url, nil, update, providerSession); err != nil {
 		if errors.Code(err) == request.ErrorCodeResourceNotFound {
 			return nil, nil
 		}
@@ -179,7 +179,7 @@ func (c *Client) DeleteProviderSession(ctx context.Context, id string) error {
 	}
 
 	url := c.client.ConstructURL("v1", "provider_sessions", id)
-	return c.client.SendRequestAsServer(ctx, http.MethodDelete, url, nil, nil, nil)
+	return c.client.RequestData(ctx, http.MethodDelete, url, nil, nil, nil)
 }
 
 func (c *Client) ListUserRestrictedTokens(ctx context.Context, userID string, filter *auth.RestrictedTokenFilter, pagination *page.Pagination) (auth.RestrictedTokens, error) {
@@ -202,7 +202,7 @@ func (c *Client) ListUserRestrictedTokens(ctx context.Context, userID string, fi
 
 	url := c.client.ConstructURL("v1", "users", userID, "restricted_tokens")
 	restrictedTokens := auth.RestrictedTokens{}
-	if err := c.client.SendRequestAsServer(ctx, http.MethodGet, url, []request.RequestMutator{filter, pagination}, nil, &restrictedTokens); err != nil {
+	if err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{filter, pagination}, nil, &restrictedTokens); err != nil {
 		return nil, err
 	}
 
@@ -224,7 +224,7 @@ func (c *Client) CreateUserRestrictedToken(ctx context.Context, userID string, c
 
 	url := c.client.ConstructURL("v1", "users", userID, "restricted_tokens")
 	restrictedToken := &auth.RestrictedToken{}
-	if err := c.client.SendRequestAsServer(ctx, http.MethodPost, url, nil, create, restrictedToken); err != nil {
+	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, create, restrictedToken); err != nil {
 		return nil, err
 	}
 
@@ -241,7 +241,7 @@ func (c *Client) GetRestrictedToken(ctx context.Context, id string) (*auth.Restr
 
 	url := c.client.ConstructURL("v1", "restricted_tokens", id)
 	restrictedToken := &auth.RestrictedToken{}
-	if err := c.client.SendRequestAsServer(ctx, http.MethodGet, url, nil, nil, restrictedToken); err != nil {
+	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, restrictedToken); err != nil {
 		if errors.Code(err) == request.ErrorCodeResourceNotFound {
 			return nil, nil
 		}
@@ -266,7 +266,7 @@ func (c *Client) UpdateRestrictedToken(ctx context.Context, id string, update *a
 
 	url := c.client.ConstructURL("v1", "restricted_tokens", id)
 	restrictedToken := &auth.RestrictedToken{}
-	if err := c.client.SendRequestAsServer(ctx, http.MethodPut, url, nil, update, restrictedToken); err != nil {
+	if err := c.client.RequestData(ctx, http.MethodPut, url, nil, update, restrictedToken); err != nil {
 		if errors.Code(err) == request.ErrorCodeResourceNotFound {
 			return nil, nil
 		}
@@ -285,5 +285,5 @@ func (c *Client) DeleteRestrictedToken(ctx context.Context, id string) error {
 	}
 
 	url := c.client.ConstructURL("v1", "restricted_tokens", id)
-	return c.client.SendRequestAsServer(ctx, http.MethodDelete, url, nil, nil, nil)
+	return c.client.RequestData(ctx, http.MethodDelete, url, nil, nil, nil)
 }

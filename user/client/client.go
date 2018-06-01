@@ -14,8 +14,8 @@ type Client struct {
 	client *platform.Client
 }
 
-func New(cfg *platform.Config) (*Client, error) {
-	clnt, err := platform.NewClient(cfg)
+func New(cfg *platform.Config, authorizeAs platform.AuthorizeAs) (*Client, error) {
+	clnt, err := platform.NewClient(cfg, authorizeAs)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func (c *Client) GetUserPermissions(ctx context.Context, requestUserID string, t
 	log.LoggerFromContext(ctx).WithFields(log.Fields{"requestUserId": requestUserID, "targetUserId": targetUserID}).Debug("Get user permissions")
 
 	permissions := user.Permissions{}
-	if err := c.client.SendRequestAsServer(ctx, "GET", c.client.ConstructURL("access", targetUserID, requestUserID), nil, nil, &permissions); err != nil {
+	if err := c.client.RequestData(ctx, "GET", c.client.ConstructURL("access", targetUserID, requestUserID), nil, nil, &permissions); err != nil {
 		if errors.Code(err) == request.ErrorCodeResourceNotFound {
 			return nil, request.ErrorUnauthorized()
 		}

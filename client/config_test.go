@@ -5,97 +5,101 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/client"
-	testConfig "github.com/tidepool-org/platform/config/test"
+	configTest "github.com/tidepool-org/platform/config/test"
 	testHTTP "github.com/tidepool-org/platform/test/http"
 )
 
 var _ = Describe("Config", func() {
 	Context("NewConfig", func() {
 		It("returns successfully", func() {
-			config := client.NewConfig()
-			Expect(config).ToNot(BeNil())
+			cfg := client.NewConfig()
+			Expect(cfg).ToNot(BeNil())
 		})
 
 		It("returns default values", func() {
-			config := client.NewConfig()
-			Expect(config).ToNot(BeNil())
-			Expect(config.Address).To(Equal(""))
-			Expect(config.UserAgent).To(Equal(""))
+			cfg := client.NewConfig()
+			Expect(cfg).ToNot(BeNil())
+			Expect(cfg.Address).To(BeEmpty())
+			Expect(cfg.UserAgent).To(BeEmpty())
 		})
 	})
 
 	Context("with new config", func() {
 		var address string
 		var userAgent string
-		var config *client.Config
+		var cfg *client.Config
 
 		BeforeEach(func() {
 			address = testHTTP.NewAddress()
 			userAgent = testHTTP.NewUserAgent()
-			config = client.NewConfig()
-			Expect(config).ToNot(BeNil())
+			cfg = client.NewConfig()
+			Expect(cfg).ToNot(BeNil())
 		})
 
 		Context("Load", func() {
-			var configReporter *testConfig.Reporter
+			var configReporter *configTest.Reporter
 
 			BeforeEach(func() {
-				configReporter = testConfig.NewReporter()
+				configReporter = configTest.NewReporter()
 				configReporter.Config["address"] = address
 				configReporter.Config["user_agent"] = userAgent
 			})
 
 			It("returns an error if config reporter is missing", func() {
-				Expect(config.Load(nil)).To(MatchError("config reporter is missing"))
+				Expect(cfg.Load(nil)).To(MatchError("config reporter is missing"))
 			})
 
-			It("uses default address if not set", func() {
+			It("uses existing address if not set", func() {
+				existingAddress := testHTTP.NewAddress()
+				cfg.Address = existingAddress
 				delete(configReporter.Config, "address")
-				Expect(config.Load(configReporter)).To(Succeed())
-				Expect(config.Address).To(Equal(""))
+				Expect(cfg.Load(configReporter)).To(Succeed())
+				Expect(cfg.Address).To(Equal(existingAddress))
+				Expect(cfg.UserAgent).To(Equal(userAgent))
 			})
 
 			It("uses existing user agent if not set", func() {
 				existingUserAgent := testHTTP.NewUserAgent()
-				config.UserAgent = existingUserAgent
+				cfg.UserAgent = existingUserAgent
 				delete(configReporter.Config, "user_agent")
-				Expect(config.Load(configReporter)).To(Succeed())
-				Expect(config.UserAgent).To(Equal(existingUserAgent))
+				Expect(cfg.Load(configReporter)).To(Succeed())
+				Expect(cfg.Address).To(Equal(address))
+				Expect(cfg.UserAgent).To(Equal(existingUserAgent))
 			})
 
 			It("returns successfully and uses values from config reporter", func() {
-				Expect(config.Load(configReporter)).To(Succeed())
-				Expect(config.Address).To(Equal(address))
-				Expect(config.UserAgent).To(Equal(userAgent))
+				Expect(cfg.Load(configReporter)).To(Succeed())
+				Expect(cfg.Address).To(Equal(address))
+				Expect(cfg.UserAgent).To(Equal(userAgent))
 			})
 		})
 
 		Context("with valid values", func() {
 			BeforeEach(func() {
-				config.Address = address
-				config.UserAgent = userAgent
+				cfg.Address = address
+				cfg.UserAgent = userAgent
 			})
 
 			Context("Validate", func() {
 				It("returns an error if the address is missing", func() {
-					config.Address = ""
-					Expect(config.Validate()).To(MatchError("address is missing"))
+					cfg.Address = ""
+					Expect(cfg.Validate()).To(MatchError("address is missing"))
 				})
 
 				It("returns an error if the address is not a parseable URL", func() {
-					config.Address = "Not%Parseable"
-					Expect(config.Validate()).To(MatchError("address is invalid"))
+					cfg.Address = "Not%Parseable"
+					Expect(cfg.Validate()).To(MatchError("address is invalid"))
 				})
 
 				It("returns an error if the user agent is missing", func() {
-					config.UserAgent = ""
-					Expect(config.Validate()).To(MatchError("user agent is missing"))
+					cfg.UserAgent = ""
+					Expect(cfg.Validate()).To(MatchError("user agent is missing"))
 				})
 
 				It("returns success", func() {
-					Expect(config.Validate()).To(Succeed())
-					Expect(config.Address).To(Equal(address))
-					Expect(config.UserAgent).To(Equal(userAgent))
+					Expect(cfg.Validate()).To(Succeed())
+					Expect(cfg.Address).To(Equal(address))
+					Expect(cfg.UserAgent).To(Equal(userAgent))
 				})
 			})
 		})

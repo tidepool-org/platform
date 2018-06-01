@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/gomega/ghttp"
 
 	"net/http"
-	"time"
 
 	"github.com/tidepool-org/platform/log"
 	logNull "github.com/tidepool-org/platform/log/null"
@@ -41,43 +40,42 @@ var _ = Describe("Client", func() {
 			Expect(config).ToNot(BeNil())
 			config.Address = testHTTP.NewAddress()
 			config.UserAgent = testHTTP.NewUserAgent()
-			config.Timeout = 30 * time.Second
 		})
 
 		It("returns an error if config is missing", func() {
-			clnt, err := metricClient.New(nil, name, versionReporter)
+			clnt, err := metricClient.New(nil, platform.AuthorizeAsUser, name, versionReporter)
 			Expect(err).To(MatchError("config is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
 		It("returns an error if name is missing", func() {
-			clnt, err := metricClient.New(config, "", versionReporter)
+			clnt, err := metricClient.New(config, platform.AuthorizeAsUser, "", versionReporter)
 			Expect(err).To(MatchError("name is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
 		It("returns an error if version reporter is missing", func() {
-			clnt, err := metricClient.New(config, name, nil)
+			clnt, err := metricClient.New(config, platform.AuthorizeAsUser, name, nil)
 			Expect(err).To(MatchError("version reporter is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
 		It("returns an error if config address is missing", func() {
 			config.Address = ""
-			clnt, err := metricClient.New(config, name, versionReporter)
+			clnt, err := metricClient.New(config, platform.AuthorizeAsUser, name, versionReporter)
 			Expect(err).To(MatchError("config is invalid; address is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
 		It("returns an error if config user agent is missing", func() {
 			config.UserAgent = ""
-			clnt, err := metricClient.New(config, name, versionReporter)
+			clnt, err := metricClient.New(config, platform.AuthorizeAsUser, name, versionReporter)
 			Expect(err).To(MatchError("config is invalid; user agent is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
 		It("returns success", func() {
-			clnt, err := metricClient.New(config, name, versionReporter)
+			clnt, err := metricClient.New(config, platform.AuthorizeAsUser, name, versionReporter)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clnt).ToNot(BeNil())
 		})
@@ -96,9 +94,8 @@ var _ = Describe("Client", func() {
 			Expect(config).ToNot(BeNil())
 			config.Address = server.URL()
 			config.UserAgent = userAgent
-			config.Timeout = 30 * time.Second
 			var err error
-			clnt, err = metricClient.New(config, name, versionReporter)
+			clnt, err = metricClient.New(config, platform.AuthorizeAsUser, name, versionReporter)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clnt).ToNot(BeNil())
 			ctx = context.Background()

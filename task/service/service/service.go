@@ -151,7 +151,7 @@ func (s *Service) initializeDataClient() error {
 
 	s.Logger().Debug("Creating data client")
 
-	clnt, err := dataClient.New(cfg)
+	clnt, err := dataClient.New(cfg, platform.AuthorizeAsService)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data client")
 	}

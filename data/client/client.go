@@ -29,8 +29,8 @@ type ClientImpl struct {
 	client *platform.Client
 }
 
-func New(cfg *platform.Config) (*ClientImpl, error) {
-	clnt, err := platform.NewClient(cfg)
+func New(cfg *platform.Config, authorizeAs platform.AuthorizeAs) (*ClientImpl, error) {
+	clnt, err := platform.NewClient(cfg, authorizeAs)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func (c *ClientImpl) ListUserDataSources(ctx context.Context, userID string, fil
 
 	url := c.client.ConstructURL("v1", "users", userID, "data_sources")
 	dataSources := data.DataSources{}
-	if err := c.client.SendRequestAsServer(ctx, http.MethodGet, url, []request.RequestMutator{filter, pagination}, nil, &dataSources); err != nil {
+	if err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{filter, pagination}, nil, &dataSources); err != nil {
 		return nil, err
 	}
 
@@ -82,7 +82,7 @@ func (c *ClientImpl) CreateUserDataSource(ctx context.Context, userID string, cr
 
 	url := c.client.ConstructURL("v1", "users", userID, "data_sources")
 	dataSource := &data.DataSource{}
-	if err := c.client.SendRequestAsServer(ctx, http.MethodPost, url, nil, create, dataSource); err != nil {
+	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, create, dataSource); err != nil {
 		return nil, err
 	}
 
@@ -99,7 +99,7 @@ func (c *ClientImpl) GetDataSource(ctx context.Context, id string) (*data.DataSo
 
 	url := c.client.ConstructURL("v1", "data_sources", id)
 	dataSource := &data.DataSource{}
-	if err := c.client.SendRequestAsServer(ctx, http.MethodGet, url, nil, nil, dataSource); err != nil {
+	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, dataSource); err != nil {
 		if errors.Code(err) == request.ErrorCodeResourceNotFound {
 			return nil, nil
 		}
@@ -124,7 +124,7 @@ func (c *ClientImpl) UpdateDataSource(ctx context.Context, id string, update *da
 
 	url := c.client.ConstructURL("v1", "data_sources", id)
 	dataSource := &data.DataSource{}
-	if err := c.client.SendRequestAsServer(ctx, http.MethodPut, url, nil, update, dataSource); err != nil {
+	if err := c.client.RequestData(ctx, http.MethodPut, url, nil, update, dataSource); err != nil {
 		if errors.Code(err) == request.ErrorCodeResourceNotFound {
 			return nil, nil
 		}
@@ -143,7 +143,7 @@ func (c *ClientImpl) DeleteDataSource(ctx context.Context, id string) error {
 	}
 
 	url := c.client.ConstructURL("v1", "data_sources", id)
-	return c.client.SendRequestAsServer(ctx, http.MethodDelete, url, nil, nil, nil)
+	return c.client.RequestData(ctx, http.MethodDelete, url, nil, nil, nil)
 }
 
 func (c *ClientImpl) ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error) {
@@ -166,7 +166,7 @@ func (c *ClientImpl) ListUserDataSets(ctx context.Context, userID string, filter
 
 	url := c.client.ConstructURL("v1", "users", userID, "data_sets")
 	dataSets := data.DataSets{}
-	if err := c.client.SendRequestAsServer(ctx, http.MethodGet, url, []request.RequestMutator{filter, pagination}, nil, &dataSets); err != nil {
+	if err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{filter, pagination}, nil, &dataSets); err != nil {
 		return nil, err
 	}
 
@@ -192,7 +192,7 @@ func (c *ClientImpl) CreateUserDataSet(ctx context.Context, userID string, creat
 		Errors []*service.Error `json:"errors,omitempty"`
 		Meta   *interface{}     `json:"meta,omitempty"`
 	}{} // TODO: Remove response wrapper once service is updated
-	if err := c.client.SendRequestAsServer(ctx, http.MethodPost, url, nil, create, &response); err != nil {
+	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, create, &response); err != nil {
 		return nil, err
 	}
 
@@ -209,7 +209,7 @@ func (c *ClientImpl) GetDataSet(ctx context.Context, id string) (*data.DataSet, 
 
 	url := c.client.ConstructURL("v1", "data_sets", id)
 	dataSet := &data.DataSet{}
-	if err := c.client.SendRequestAsServer(ctx, http.MethodGet, url, nil, nil, dataSet); err != nil {
+	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, dataSet); err != nil {
 		if errors.Code(err) == request.ErrorCodeResourceNotFound {
 			return nil, nil
 		}
@@ -238,7 +238,7 @@ func (c *ClientImpl) UpdateDataSet(ctx context.Context, id string, update *data.
 		Errors []*service.Error `json:"errors,omitempty"`
 		Meta   *interface{}     `json:"meta,omitempty"`
 	}{} // TODO: Remove response wrapper once service is updated
-	if err := c.client.SendRequestAsServer(ctx, http.MethodPut, url, nil, update, &response); err != nil {
+	if err := c.client.RequestData(ctx, http.MethodPut, url, nil, update, &response); err != nil {
 		if errors.Code(err) == request.ErrorCodeResourceNotFound {
 			return nil, nil
 		}
@@ -257,7 +257,7 @@ func (c *ClientImpl) DeleteDataSet(ctx context.Context, id string) error {
 	}
 
 	url := c.client.ConstructURL("v1", "data_sets", id)
-	return c.client.SendRequestAsServer(ctx, http.MethodDelete, url, nil, nil, nil)
+	return c.client.RequestData(ctx, http.MethodDelete, url, nil, nil, nil)
 }
 
 // TODO: Rename for consistency
@@ -280,7 +280,7 @@ func (c *ClientImpl) CreateDataSetsData(ctx context.Context, dataSetID string, d
 		Errors []*service.Error `json:"errors,omitempty"`
 		Meta   *interface{}     `json:"meta,omitempty"`
 	}{}
-	return c.client.SendRequestAsServer(ctx, http.MethodPost, url, nil, datumArray, &response)
+	return c.client.RequestData(ctx, http.MethodPost, url, nil, datumArray, &response)
 }
 
 // TODO: Rename for consistency
@@ -294,5 +294,5 @@ func (c *ClientImpl) DestroyDataForUserByID(ctx context.Context, userID string) 
 	}
 
 	url := c.client.ConstructURL("v1", "users", userID, "data")
-	return c.client.SendRequestAsServer(ctx, http.MethodDelete, url, nil, nil, nil)
+	return c.client.RequestData(ctx, http.MethodDelete, url, nil, nil, nil)
 }

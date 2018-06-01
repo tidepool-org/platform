@@ -30,6 +30,10 @@ func CopyTrace(ctx context.Context, req *http.Request) error {
 	return nil
 }
 
+func IsStatusCodeSuccess(statusCode int) bool {
+	return statusCode >= 200 && statusCode <= 299
+}
+
 type Method string
 
 const (

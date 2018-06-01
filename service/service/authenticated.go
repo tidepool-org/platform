@@ -3,6 +3,7 @@ package service
 import (
 	authClient "github.com/tidepool-org/platform/auth/client"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/platform"
 )
 
 type Authenticated struct {
@@ -47,7 +48,7 @@ func (a *Authenticated) initializeAuthClient() error {
 
 	a.Logger().Debug("Creating auth client")
 
-	clnt, err := authClient.NewClient(cfg, a.Name(), a.Logger())
+	clnt, err := authClient.NewClient(cfg, platform.AuthorizeAsService, a.Name(), a.Logger())
 	if err != nil {
 		return errors.Wrap(err, "unable to create auth client")
 	}

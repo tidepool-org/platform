@@ -1,5 +1,9 @@
 ## HEAD
 
+* Add streamed response from client in addition to existing data response
+* Add ability to specify authorization mechanism at client creation
+* Improve client tests
+* Remove client timeout configuration, as unused
 * Refactor request Mutator into RequestMutator and ResponseMutator
 * Refactor id generation and validation
 * Move validate package contents to more specific packages

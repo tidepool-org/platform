@@ -6,11 +6,11 @@ import (
 	. "github.com/onsi/gomega/ghttp"
 
 	"context"
+	"io"
 	"net/http"
-	"time"
 
 	"github.com/tidepool-org/platform/auth"
-	testAuth "github.com/tidepool-org/platform/auth/test"
+	authTest "github.com/tidepool-org/platform/auth/test"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/test"
@@ -18,171 +18,506 @@ import (
 )
 
 var _ = Describe("Client", func() {
-	Context("NewClient", func() {
-		var config *platform.Config
-
-		BeforeEach(func() {
-			config = platform.NewConfig()
-			Expect(config).ToNot(BeNil())
-			Expect(config.Config).ToNot(BeNil())
-			config.Config.Address = testHTTP.NewAddress()
-			config.Config.UserAgent = testHTTP.NewUserAgent()
-			config.Timeout = time.Duration(testHTTP.NewTimeout()) * time.Second
-		})
-
-		It("returns an error if config is missing", func() {
-			clnt, err := platform.NewClient(nil)
-			Expect(err).To(MatchError("config is missing"))
-			Expect(clnt).To(BeNil())
-		})
-
-		It("returns success", func() {
-			clnt, err := platform.NewClient(config)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(clnt).ToNot(BeNil())
+	Context("AuthorizeAsService", func() {
+		It("returns the expected value", func() {
+			Expect(platform.AuthorizeAsService).To(Equal(platform.AuthorizeAs(0)))
 		})
 	})
 
-	Context("with new client", func() {
-		var timeout time.Duration
-		var clnt *platform.Client
-
-		BeforeEach(func() {
-			timeout = time.Duration(testHTTP.NewTimeout()) * time.Second
-			config := platform.NewConfig()
-			Expect(config).ToNot(BeNil())
-			Expect(config.Config).ToNot(BeNil())
-			config.Config.Address = testHTTP.NewAddress()
-			config.Config.UserAgent = testHTTP.NewUserAgent()
-			config.Timeout = timeout
-			var err error
-			clnt, err = platform.NewClient(config)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(clnt).ToNot(BeNil())
-		})
-
-		Context("HTTPClient", func() {
-			It("returns successfully", func() {
-				Expect(clnt.HTTPClient()).ToNot(BeNil())
-			})
-
-			It("uses the specified timeout", func() {
-				httpClient := clnt.HTTPClient()
-				Expect(httpClient).ToNot(BeNil())
-				Expect(httpClient.Timeout).To(Equal(timeout))
-			})
+	Context("AuthorizeAsUser", func() {
+		It("returns the expected value", func() {
+			Expect(platform.AuthorizeAsUser).To(Equal(platform.AuthorizeAs(1)))
 		})
 	})
 
-	Context("with started server and new client", func() {
-		var server *Server
+	Context("with config", func() {
+		var address string
 		var userAgent string
-		var clnt *platform.Client
+		var serviceSecret string
 		var ctx context.Context
-		var method string
-		var path string
-		var url string
+		var cfg *platform.Config
 
 		BeforeEach(func() {
-			server = NewServer()
+			address = testHTTP.NewAddress()
 			userAgent = testHTTP.NewUserAgent()
-			config := platform.NewConfig()
-			Expect(config).ToNot(BeNil())
-			config.Address = server.URL()
-			config.UserAgent = userAgent
-			var err error
-			clnt, err = platform.NewClient(config)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(clnt).ToNot(BeNil())
+			serviceSecret = authTest.NewServiceSecret()
 			ctx = context.Background()
-			method = testHTTP.NewMethod()
-			path = testHTTP.NewPath()
-			url = server.URL() + path
 		})
 
-		AfterEach(func() {
-			if server != nil {
-				server.Close()
-			}
+		JustBeforeEach(func() {
+			cfg = platform.NewConfig()
+			Expect(cfg).ToNot(BeNil())
+			Expect(cfg.Config).ToNot(BeNil())
+			cfg.Address = address
+			cfg.UserAgent = userAgent
+			cfg.ServiceSecret = serviceSecret
 		})
 
-		Context("SendRequestAsUser", func() {
-			It("returns error if context is missing", func() {
-				Expect(clnt.SendRequestAsUser(nil, method, url, nil, nil, nil)).To(MatchError("context is missing"))
-				Expect(server.ReceivedRequests()).To(BeEmpty())
+		Context("NewClient", func() {
+			It("returns an error if config is missing", func() {
+				clnt, err := platform.NewClient(nil, platform.AuthorizeAsUser)
+				Expect(err).To(MatchError("config is missing"))
+				Expect(clnt).To(BeNil())
 			})
 
-			Context("with session token", func() {
-				var userID string
-				var sessionToken string
+			It("returns an error if config is invalid", func() {
+				cfg.Address = ""
+				clnt, err := platform.NewClient(cfg, platform.AuthorizeAsUser)
+				Expect(err).To(MatchError("config is invalid; address is missing"))
+				Expect(clnt).To(BeNil())
+			})
+
+			It("returns an error if authorized as is invalid", func() {
+				clnt, err := platform.NewClient(cfg, platform.AuthorizeAs(-1))
+				Expect(err).To(MatchError("authorized as is invalid"))
+				Expect(clnt).To(BeNil())
+			})
+
+			It("returns success", func() {
+				clnt, err := platform.NewClient(cfg, platform.AuthorizeAsUser)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(clnt).ToNot(BeNil())
+			})
+		})
+
+		Context("with new client authorized as service", func() {
+			var clnt *platform.Client
+
+			JustBeforeEach(func() {
+				var err error
+				clnt, err = platform.NewClient(cfg, platform.AuthorizeAsService)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(clnt).ToNot(BeNil())
+			})
+
+			Context("IsAuthorizeAsService", func() {
+				It("returns true", func() {
+					Expect(clnt.IsAuthorizeAsService()).To(BeTrue())
+				})
+			})
+
+			Context("Mutators", func() {
+				It("returns an error if context is missing", func() {
+					mutators, err := clnt.Mutators(nil)
+					Expect(err).To(MatchError("context is missing"))
+					Expect(mutators).To(BeNil())
+				})
+
+				It("returns the expected mutators", func() {
+					mutators, err := clnt.Mutators(ctx)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(mutators).To(ConsistOf(
+						platform.NewServiceSecretHeaderMutator(serviceSecret),
+						platform.NewTraceMutator(ctx),
+					))
+				})
+
+				Context("without service secret", func() {
+					BeforeEach(func() {
+						serviceSecret = ""
+					})
+
+					Context("with server session token", func() {
+						var sessionToken string
+
+						BeforeEach(func() {
+							sessionToken = authTest.NewSessionToken()
+							ctx = auth.NewContextWithServerSessionToken(ctx, sessionToken)
+						})
+
+						It("returns the expected mutators", func() {
+							mutators, err := clnt.Mutators(ctx)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(mutators).To(ConsistOf(
+								platform.NewSessionTokenHeaderMutator(sessionToken),
+								platform.NewTraceMutator(ctx),
+							))
+						})
+					})
+
+					It("returns an error", func() {
+						mutators, err := clnt.Mutators(ctx)
+						Expect(err).To(MatchError("service secret is missing"))
+						Expect(mutators).To(BeNil())
+					})
+				})
+			})
+
+			Context("HTTPClient", func() {
+				It("returns successfully", func() {
+					Expect(clnt.HTTPClient()).ToNot(BeNil())
+				})
+			})
+
+			Context("with started server and new client", func() {
+				var server *Server
+				var method string
+				var path string
+				var url string
 
 				BeforeEach(func() {
-					userID = test.NewString(8, test.CharsetAlphaNumeric)
-					sessionToken = testAuth.NewSessionToken()
-					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, userID, sessionToken))
+					server = NewServer()
+					address = server.URL()
+					method = testHTTP.NewMethod()
+					path = testHTTP.NewPath()
+					url = server.URL() + path
 				})
 
-				It("returns error if session token is missing", func() {
-					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, userID, ""))
-					Expect(clnt.SendRequestAsUser(ctx, method, url, nil, nil, nil)).To(MatchError("unable to mutate request; session token is missing"))
-					Expect(server.ReceivedRequests()).To(BeEmpty())
+				AfterEach(func() {
+					if server != nil {
+						server.Close()
+					}
 				})
 
-				Context("with a successful response 200", func() {
-					BeforeEach(func() {
-						server.AppendHandlers(
-							CombineHandlers(
-								VerifyRequest(method, path),
-								VerifyHeaderKV("User-Agent", userAgent),
-								VerifyHeaderKV(auth.TidepoolSessionTokenHeaderKey, sessionToken),
-								VerifyBody([]byte{}),
-								RespondWith(http.StatusOK, nil)),
-						)
+				Context("RequestStream", func() {
+					var reader io.ReadCloser
+					var err error
+
+					AfterEach(func() {
+						if reader != nil {
+							reader.Close()
+						}
 					})
 
-					It("returns success", func() {
-						Expect(clnt.SendRequestAsUser(ctx, method, url, nil, nil, nil)).To(Succeed())
-						Expect(server.ReceivedRequests()).To(HaveLen(1))
+					It("returns error if context is missing", func() {
+						reader, err = clnt.RequestStream(nil, method, url, nil, nil)
+						Expect(err).To(MatchError("context is missing"))
+						Expect(reader).To(BeNil())
+						Expect(server.ReceivedRequests()).To(BeEmpty())
+					})
+
+					It("returns error if method is missing", func() {
+						reader, err = clnt.RequestStream(ctx, "", url, nil, nil)
+						Expect(err).To(MatchError("method is missing"))
+						Expect(reader).To(BeNil())
+						Expect(server.ReceivedRequests()).To(BeEmpty())
+					})
+
+					It("returns error if url is missing", func() {
+						reader, err = clnt.RequestStream(ctx, method, "", nil, nil)
+						Expect(err).To(MatchError("url is missing"))
+						Expect(reader).To(BeNil())
+						Expect(server.ReceivedRequests()).To(BeEmpty())
+					})
+
+					Context("with a successful response 200", func() {
+						BeforeEach(func() {
+							server.AppendHandlers(
+								CombineHandlers(
+									VerifyRequest(method, path),
+									VerifyHeaderKV("User-Agent", userAgent),
+									VerifyHeaderKV(auth.TidepoolServiceSecretHeaderKey, serviceSecret),
+									VerifyBody(nil),
+									RespondWith(http.StatusOK, nil)),
+							)
+						})
+
+						It("returns success", func() {
+							reader, err = clnt.RequestStream(ctx, method, url, nil, nil)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(reader).ToNot(BeNil())
+							Expect(server.ReceivedRequests()).To(HaveLen(1))
+						})
+					})
+
+					Context("with a successful response 200 with additional mutators", func() {
+						var headerKey string
+						var headerValue string
+
+						BeforeEach(func() {
+							headerKey = testHTTP.NewHeaderKey()
+							headerValue = testHTTP.NewHeaderValue()
+							server.AppendHandlers(
+								CombineHandlers(
+									VerifyRequest(method, path),
+									VerifyHeaderKV("User-Agent", userAgent),
+									VerifyHeaderKV(auth.TidepoolServiceSecretHeaderKey, serviceSecret),
+									VerifyHeaderKV(headerKey, headerValue),
+									VerifyBody(nil),
+									RespondWith(http.StatusOK, nil)),
+							)
+						})
+
+						It("returns success", func() {
+							mutators := []request.RequestMutator{request.NewHeaderMutator(headerKey, headerValue)}
+							reader, err = clnt.RequestStream(ctx, method, url, mutators, nil)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(reader).ToNot(BeNil())
+							Expect(server.ReceivedRequests()).To(HaveLen(1))
+						})
+					})
+				})
+
+				Context("RequestData", func() {
+					It("returns error if context is missing", func() {
+						Expect(clnt.RequestData(nil, method, url, nil, nil, nil)).To(MatchError("context is missing"))
+						Expect(server.ReceivedRequests()).To(BeEmpty())
+					})
+
+					It("returns error if method is missing", func() {
+						Expect(clnt.RequestData(ctx, "", url, nil, nil, nil)).To(MatchError("method is missing"))
+						Expect(server.ReceivedRequests()).To(BeEmpty())
+					})
+
+					It("returns error if url is missing", func() {
+						Expect(clnt.RequestData(ctx, method, "", nil, nil, nil)).To(MatchError("url is missing"))
+						Expect(server.ReceivedRequests()).To(BeEmpty())
+					})
+
+					Context("with a successful response 200", func() {
+						BeforeEach(func() {
+							server.AppendHandlers(
+								CombineHandlers(
+									VerifyRequest(method, path),
+									VerifyHeaderKV("User-Agent", userAgent),
+									VerifyHeaderKV(auth.TidepoolServiceSecretHeaderKey, serviceSecret),
+									VerifyBody(nil),
+									RespondWith(http.StatusOK, nil)),
+							)
+						})
+
+						It("returns success", func() {
+							Expect(clnt.RequestData(ctx, method, url, nil, nil, nil)).To(Succeed())
+							Expect(server.ReceivedRequests()).To(HaveLen(1))
+						})
+					})
+
+					Context("with a successful response 200 with additional mutators", func() {
+						var headerKey string
+						var headerValue string
+
+						BeforeEach(func() {
+							headerKey = testHTTP.NewHeaderKey()
+							headerValue = testHTTP.NewHeaderValue()
+							server.AppendHandlers(
+								CombineHandlers(
+									VerifyRequest(method, path),
+									VerifyHeaderKV("User-Agent", userAgent),
+									VerifyHeaderKV(auth.TidepoolServiceSecretHeaderKey, serviceSecret),
+									VerifyHeaderKV(headerKey, headerValue),
+									VerifyBody(nil),
+									RespondWith(http.StatusOK, nil)),
+							)
+						})
+
+						It("returns success", func() {
+							mutators := []request.RequestMutator{request.NewHeaderMutator(headerKey, headerValue)}
+							Expect(clnt.RequestData(ctx, method, url, mutators, nil, nil)).To(Succeed())
+							Expect(server.ReceivedRequests()).To(HaveLen(1))
+						})
 					})
 				})
 			})
 		})
 
-		Context("SendRequestAsServer", func() {
-			It("returns error if context is missing", func() {
-				Expect(clnt.SendRequestAsServer(nil, method, url, nil, nil, nil)).To(MatchError("context is missing"))
-				Expect(server.ReceivedRequests()).To(BeEmpty())
+		Context("with new client authorized as user", func() {
+			var sessionToken string
+			var clnt *platform.Client
+
+			BeforeEach(func() {
+				serviceSecret = ""
+				sessionToken = authTest.NewSessionToken()
+				ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, test.NewString(10, test.CharsetAlphaNumeric), sessionToken))
 			})
 
-			Context("with server token", func() {
-				var serverSessionToken string
+			JustBeforeEach(func() {
+				var err error
+				clnt, err = platform.NewClient(cfg, platform.AuthorizeAsUser)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(clnt).ToNot(BeNil())
+			})
+
+			Context("IsAuthorizeAsService", func() {
+				It("returns false", func() {
+					Expect(clnt.IsAuthorizeAsService()).To(BeFalse())
+				})
+			})
+
+			Context("Mutators", func() {
+				It("returns an error if context is missing", func() {
+					mutators, err := clnt.Mutators(nil)
+					Expect(err).To(MatchError("context is missing"))
+					Expect(mutators).To(BeNil())
+				})
+
+				It("returns an error if details are not in context", func() {
+					mutators, err := clnt.Mutators(request.NewContextWithDetails(ctx, nil))
+					Expect(err).To(MatchError("details is missing"))
+					Expect(mutators).To(BeNil())
+				})
+
+				It("returns the expected mutators", func() {
+					mutators, err := clnt.Mutators(ctx)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(mutators).To(ConsistOf(
+						platform.NewSessionTokenHeaderMutator(sessionToken),
+						platform.NewTraceMutator(ctx),
+					))
+				})
+			})
+
+			Context("HTTPClient", func() {
+				It("returns successfully", func() {
+					Expect(clnt.HTTPClient()).ToNot(BeNil())
+				})
+			})
+
+			Context("with started server and new client", func() {
+				var server *Server
+				var method string
+				var path string
+				var url string
 
 				BeforeEach(func() {
-					serverSessionToken = testAuth.NewSessionToken()
-					ctx = auth.NewContextWithServerSessionToken(ctx, serverSessionToken)
+					server = NewServer()
+					address = server.URL()
+					method = testHTTP.NewMethod()
+					path = testHTTP.NewPath()
+					url = server.URL() + path
 				})
 
-				It("returns error if server token is missing", func() {
-					ctx = auth.NewContextWithServerSessionToken(ctx, "")
-					Expect(clnt.SendRequestAsServer(ctx, method, url, nil, nil, nil)).To(MatchError("server session token is missing"))
-					Expect(server.ReceivedRequests()).To(BeEmpty())
+				AfterEach(func() {
+					if server != nil {
+						server.Close()
+					}
 				})
 
-				Context("with a successful response 200", func() {
-					BeforeEach(func() {
-						server.AppendHandlers(
-							CombineHandlers(
-								VerifyRequest(method, path),
-								VerifyHeaderKV("User-Agent", userAgent),
-								VerifyHeaderKV(auth.TidepoolSessionTokenHeaderKey, serverSessionToken),
-								VerifyBody([]byte{}),
-								RespondWith(http.StatusOK, nil)),
-						)
+				Context("RequestStream", func() {
+					var reader io.ReadCloser
+					var err error
+
+					AfterEach(func() {
+						if reader != nil {
+							reader.Close()
+						}
 					})
 
-					It("returns success", func() {
-						Expect(clnt.SendRequestAsServer(ctx, method, url, nil, nil, nil)).To(Succeed())
-						Expect(server.ReceivedRequests()).To(HaveLen(1))
+					It("returns error if context is missing", func() {
+						reader, err = clnt.RequestStream(nil, method, url, nil, nil)
+						Expect(err).To(MatchError("context is missing"))
+						Expect(reader).To(BeNil())
+						Expect(server.ReceivedRequests()).To(BeEmpty())
+					})
+
+					It("returns error if method is missing", func() {
+						reader, err = clnt.RequestStream(ctx, "", url, nil, nil)
+						Expect(err).To(MatchError("method is missing"))
+						Expect(reader).To(BeNil())
+						Expect(server.ReceivedRequests()).To(BeEmpty())
+					})
+
+					It("returns error if url is missing", func() {
+						reader, err = clnt.RequestStream(ctx, method, "", nil, nil)
+						Expect(err).To(MatchError("url is missing"))
+						Expect(reader).To(BeNil())
+						Expect(server.ReceivedRequests()).To(BeEmpty())
+					})
+
+					Context("with a successful response 200", func() {
+						BeforeEach(func() {
+							server.AppendHandlers(
+								CombineHandlers(
+									VerifyRequest(method, path),
+									VerifyHeaderKV("User-Agent", userAgent),
+									VerifyHeaderKV(auth.TidepoolSessionTokenHeaderKey, sessionToken),
+									VerifyBody(nil),
+									RespondWith(http.StatusOK, nil)),
+							)
+						})
+
+						It("returns success", func() {
+							reader, err = clnt.RequestStream(ctx, method, url, nil, nil)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(reader).ToNot(BeNil())
+							Expect(server.ReceivedRequests()).To(HaveLen(1))
+						})
+					})
+
+					Context("with a successful response 200 with additional mutators", func() {
+						var headerKey string
+						var headerValue string
+
+						BeforeEach(func() {
+							headerKey = testHTTP.NewHeaderKey()
+							headerValue = testHTTP.NewHeaderValue()
+							server.AppendHandlers(
+								CombineHandlers(
+									VerifyRequest(method, path),
+									VerifyHeaderKV("User-Agent", userAgent),
+									VerifyHeaderKV(auth.TidepoolSessionTokenHeaderKey, sessionToken),
+									VerifyHeaderKV(headerKey, headerValue),
+									VerifyBody(nil),
+									RespondWith(http.StatusOK, nil)),
+							)
+						})
+
+						It("returns success", func() {
+							mutators := []request.RequestMutator{request.NewHeaderMutator(headerKey, headerValue)}
+							reader, err = clnt.RequestStream(ctx, method, url, mutators, nil)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(reader).ToNot(BeNil())
+							Expect(server.ReceivedRequests()).To(HaveLen(1))
+						})
+					})
+				})
+
+				Context("RequestData", func() {
+					It("returns error if context is missing", func() {
+						Expect(clnt.RequestData(nil, method, url, nil, nil, nil)).To(MatchError("context is missing"))
+						Expect(server.ReceivedRequests()).To(BeEmpty())
+					})
+
+					It("returns error if method is missing", func() {
+						Expect(clnt.RequestData(ctx, "", url, nil, nil, nil)).To(MatchError("method is missing"))
+						Expect(server.ReceivedRequests()).To(BeEmpty())
+					})
+
+					It("returns error if url is missing", func() {
+						Expect(clnt.RequestData(ctx, method, "", nil, nil, nil)).To(MatchError("url is missing"))
+						Expect(server.ReceivedRequests()).To(BeEmpty())
+					})
+
+					Context("with a successful response 200", func() {
+						BeforeEach(func() {
+							server.AppendHandlers(
+								CombineHandlers(
+									VerifyRequest(method, path),
+									VerifyHeaderKV("User-Agent", userAgent),
+									VerifyHeaderKV(auth.TidepoolSessionTokenHeaderKey, sessionToken),
+									VerifyBody(nil),
+									RespondWith(http.StatusOK, nil)),
+							)
+						})
+
+						It("returns success", func() {
+							Expect(clnt.RequestData(ctx, method, url, nil, nil, nil)).To(Succeed())
+							Expect(server.ReceivedRequests()).To(HaveLen(1))
+						})
+					})
+
+					Context("with a successful response 200 with additional mutators", func() {
+						var headerKey string
+						var headerValue string
+
+						BeforeEach(func() {
+							headerKey = testHTTP.NewHeaderKey()
+							headerValue = testHTTP.NewHeaderValue()
+							server.AppendHandlers(
+								CombineHandlers(
+									VerifyRequest(method, path),
+									VerifyHeaderKV("User-Agent", userAgent),
+									VerifyHeaderKV(auth.TidepoolSessionTokenHeaderKey, sessionToken),
+									VerifyHeaderKV(headerKey, headerValue),
+									VerifyBody(nil),
+									RespondWith(http.StatusOK, nil)),
+							)
+						})
+
+						It("returns success", func() {
+							mutators := []request.RequestMutator{request.NewHeaderMutator(headerKey, headerValue)}
+							Expect(clnt.RequestData(ctx, method, url, mutators, nil, nil)).To(Succeed())
+							Expect(server.ReceivedRequests()).To(HaveLen(1))
+						})
 					})
 				})
 			})

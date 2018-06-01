@@ -18,7 +18,7 @@ type Client struct {
 	versionReporter version.Reporter
 }
 
-func New(cfg *platform.Config, name string, versionReporter version.Reporter) (*Client, error) {
+func New(cfg *platform.Config, authorizeAs platform.AuthorizeAs, name string, versionReporter version.Reporter) (*Client, error) {
 	if cfg == nil {
 		return nil, errors.New("config is missing")
 	}
@@ -29,7 +29,7 @@ func New(cfg *platform.Config, name string, versionReporter version.Reporter) (*
 		return nil, errors.New("version reporter is missing")
 	}
 
-	clnt, err := platform.NewClient(cfg)
+	clnt, err := platform.NewClient(cfg, authorizeAs)
 	if err != nil {
 		return nil, err
 	}
@@ -69,5 +69,5 @@ func (c *Client) RecordMetric(ctx context.Context, metric string, data ...map[st
 
 	log.LoggerFromContext(ctx).WithFields(log.Fields{"metric": metric, "data": data}).Debug("Recording metric")
 
-	return c.client.SendRequestAsUser(ctx, "GET", requestURL+"?"+strings.Join(parameters, "&"), nil, nil, nil)
+	return c.client.RequestData(ctx, "GET", requestURL+"?"+strings.Join(parameters, "&"), nil, nil, nil)
 }

@@ -205,7 +205,7 @@ func (s *Service) initializeDataClient() error {
 
 	s.Logger().Debug("Creating data client")
 
-	clnt, err := dataClient.New(cfg)
+	clnt, err := dataClient.New(cfg, platform.AuthorizeAsService)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data client")
 	}
@@ -232,7 +232,7 @@ func (s *Service) initializeTaskClient() error {
 
 	s.Logger().Debug("Creating task client")
 
-	clnt, err := taskClient.New(cfg)
+	clnt, err := taskClient.New(cfg, platform.AuthorizeAsService)
 	if err != nil {
 		return errors.Wrap(err, "unable to create task client")
 	}
@@ -285,7 +285,7 @@ func (s *Service) initializeAuthClient() error {
 
 	s.Logger().Debug("Creating auth client")
 
-	clnt, err := NewClient(cfg, s.Name(), s.Logger(), s.AuthStore(), s.ProviderFactory())
+	clnt, err := NewClient(cfg, platform.AuthorizeAsService, s.Name(), s.Logger(), s.AuthStore(), s.ProviderFactory())
 	if err != nil {
 		return errors.Wrap(err, "unable to create auth client")
 	}

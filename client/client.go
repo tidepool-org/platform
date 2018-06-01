@@ -7,12 +7,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	netURL "net/url"
+	"net/url"
 	"strings"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/request"
+	"github.com/tidepool-org/platform/structure"
 )
 
 type Client struct {
@@ -23,9 +24,7 @@ type Client struct {
 func New(cfg *Config) (*Client, error) {
 	if cfg == nil {
 		return nil, errors.New("config is missing")
-	}
-
-	if err := cfg.Validate(); err != nil {
+	} else if err := cfg.Validate(); err != nil {
 		return nil, errors.Wrap(err, "config is invalid")
 	}
 
@@ -38,13 +37,13 @@ func New(cfg *Config) (*Client, error) {
 func (c *Client) ConstructURL(paths ...string) string {
 	segments := []string{}
 	for _, path := range paths {
-		segments = append(segments, netURL.PathEscape(strings.Trim(path, "/")))
+		segments = append(segments, url.PathEscape(strings.Trim(path, "/")))
 	}
 	return fmt.Sprintf("%s/%s", strings.TrimRight(c.address, "/"), strings.Join(segments, "/"))
 }
 
 func (c *Client) AppendURLQuery(urlString string, query map[string]string) string {
-	values := netURL.Values{}
+	values := url.Values{}
 	for k, v := range query {
 		values.Add(k, v)
 	}
@@ -62,49 +61,42 @@ func (c *Client) AppendURLQuery(urlString string, query map[string]string) strin
 	return urlString
 }
 
-func (c *Client) SendRequest(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, responseBody interface{}, httpClient *http.Client) error {
+func (c *Client) RequestStreamWithHTTPClient(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, httpClient *http.Client) (io.ReadCloser, error) {
 	if httpClient == nil {
-		return errors.New("http client is missing")
+		return nil, errors.New("http client is missing")
 	}
 
-	req, err := c.buildRequest(ctx, method, url, mutators, requestBody, responseBody)
+	req, err := c.createRequest(ctx, method, url, mutators, requestBody)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	// TODO: Prevents random EOF errors (I think due to the server closing Keep Alive connections automatically)
-	// TODO: Would be better to retry the request with exponential fallback
-	req.Close = true
 
 	res, err := httpClient.Do(req)
 	if err != nil {
-		return errors.Wrapf(err, "unable to perform request %s %s", method, url)
-	}
-	if res.Body != nil {
-		defer res.Body.Close()
+		return nil, errors.Wrapf(err, "unable to perform request to %s %s", method, url)
 	}
 
-	switch res.StatusCode {
-	case http.StatusOK, http.StatusCreated:
-		return c.decodeResponseBody(res, responseBody)
-	case http.StatusNoContent:
-		return nil
-	case http.StatusBadRequest:
-		return c.handleBadRequest(res, req)
-	case http.StatusUnauthorized:
-		return request.ErrorUnauthenticated()
-	case http.StatusForbidden:
-		return request.ErrorUnauthorized()
-	case http.StatusNotFound:
-		return request.ErrorResourceNotFound()
-	case http.StatusTooManyRequests:
-		return request.ErrorTooManyRequests()
-	}
-
-	return request.ErrorUnexpectedResponse(res, req)
+	return c.handleResponse(ctx, res, req)
 }
 
-func (c *Client) buildRequest(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, responseBody interface{}) (*http.Request, error) {
+func (c *Client) RequestDataWithHTTPClient(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, responseBody interface{}, httpClient *http.Client) error {
+	body, err := c.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, httpClient)
+	if err != nil {
+		return err
+	} else if body == nil {
+		return nil
+	}
+
+	defer body.Close()
+
+	if responseBody == nil {
+		return nil
+	}
+
+	return request.DecodeObject(structure.NewPointerSource(), body, responseBody)
+}
+
+func (c *Client) createRequest(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}) (*http.Request, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -115,14 +107,25 @@ func (c *Client) buildRequest(ctx context.Context, method string, url string, mu
 		return nil, errors.New("url is missing")
 	}
 
-	body, err := c.encodeRequestBody(requestBody)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error encoding JSON request to %s %s", method, url)
+	mutators = append(mutators, request.NewHeaderMutator("User-Agent", c.userAgent))
+
+	var body io.Reader
+	if requestBody != nil {
+		if reader, ok := requestBody.(io.Reader); ok {
+			body = reader
+		} else {
+			buffer := &bytes.Buffer{}
+			if err := json.NewEncoder(buffer).Encode(requestBody); err != nil {
+				return nil, errors.Wrapf(err, "unable to serialize request to %s %s", method, url)
+			}
+			body = buffer
+			mutators = append(mutators, request.NewHeaderMutator("Content-Type", "application/json; charset=utf-8"))
+		}
 	}
 
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to create new request for %s %s", method, url)
+		return nil, errors.Wrapf(err, "unable to create request to %s %s", method, url)
 	}
 
 	req = req.WithContext(ctx)
@@ -130,47 +133,55 @@ func (c *Client) buildRequest(ctx context.Context, method string, url string, mu
 	for _, mutator := range mutators {
 		if mutator != nil {
 			if err = mutator.MutateRequest(req); err != nil {
-				return nil, errors.Wrapf(err, "unable to mutate request")
+				return nil, errors.Wrapf(err, "unable to mutate request to %s %s", method, url)
 			}
 		}
 	}
 
-	req.Header.Set("Content-Type", "application/json; charset=utf-8")
-	req.Header.Set("User-Agent", c.userAgent)
+	// TODO: Prevents random EOF errors (I think due to the server closing Keep Alive connections automatically)
+	// TODO: Would be better to retry the request with exponential fallback
+	req.Close = true
 
 	return req, nil
 }
 
-func (c *Client) encodeRequestBody(object interface{}) (io.Reader, error) {
-	if object == nil {
-		return nil, nil
-	}
-
-	buffer := &bytes.Buffer{}
-	if err := json.NewEncoder(buffer).Encode(object); err != nil {
-		return nil, err
-	}
-
-	return buffer, nil
-}
-
-func (c *Client) decodeResponseBody(res *http.Response, object interface{}) error {
-	if object == nil {
-		return nil
-	}
-
-	return request.DecodeResponseBody(res, object)
-}
-
-func (c *Client) handleBadRequest(res *http.Response, req *http.Request) error {
-	if logger := log.LoggerFromContext(req.Context()); logger != nil {
-		if res.Body != nil {
-			buffer := bytes.Buffer{}
-			if _, err := buffer.ReadFrom(io.LimitReader(res.Body, 1<<16)); err == nil {
-				logger = logger.WithField("responseBody", buffer.String())
-			}
+func (c *Client) handleResponse(ctx context.Context, res *http.Response, req *http.Request) (io.ReadCloser, error) {
+	if request.IsStatusCodeSuccess(res.StatusCode) {
+		switch res.StatusCode {
+		case http.StatusNoContent, http.StatusResetContent:
+			res.Body.Close()
+			return nil, nil
+		default:
+			return res.Body, nil
 		}
-		logger.WithFields(log.Fields{"method": req.Method, "url": req.URL.String()}).Warn("bad request")
 	}
-	return request.ErrorBadRequest()
+
+	defer res.Body.Close()
+
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"method": req.Method, "url": req.URL.String()})
+
+	buffer := bytes.Buffer{}
+	if _, err := buffer.ReadFrom(io.LimitReader(res.Body, 1<<16)); err == nil {
+		logger = logger.WithField("responseBody", buffer.String())
+	}
+
+	var err error
+	switch res.StatusCode {
+	case http.StatusBadRequest:
+		logger.Warn("Bad request")
+		err = request.ErrorBadRequest()
+	case http.StatusUnauthorized:
+		err = request.ErrorUnauthenticated()
+	case http.StatusForbidden:
+		err = request.ErrorUnauthorized()
+	case http.StatusNotFound:
+		err = request.ErrorResourceNotFound()
+	case http.StatusTooManyRequests:
+		logger.Warn("Too many requests")
+		err = request.ErrorTooManyRequests()
+	default:
+		logger.Warn("Unexpected response")
+		err = request.ErrorUnexpectedResponse(res, req)
+	}
+	return nil, err
 }

@@ -80,7 +80,7 @@ type External struct {
 	closingChannel            chan chan bool
 }
 
-func NewExternal(cfg *ExternalConfig, name string, lgr log.Logger) (*External, error) {
+func NewExternal(cfg *ExternalConfig, authorizeAs platform.AuthorizeAs, name string, lgr log.Logger) (*External, error) {
 	if cfg == nil {
 		return nil, errors.New("config is missing")
 	}
@@ -95,7 +95,7 @@ func NewExternal(cfg *ExternalConfig, name string, lgr log.Logger) (*External, e
 		return nil, errors.Wrap(err, "config is invalid")
 	}
 
-	clnt, err := platform.NewClient(cfg.Config)
+	clnt, err := platform.NewClient(cfg.Config, authorizeAs)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +171,7 @@ func (e *External) ValidateSessionToken(ctx context.Context, token string) (requ
 		IsServer bool
 		UserID   string
 	}
-	if err := e.client.SendRequestAsServer(ctx, "GET", e.client.ConstructURL("auth", "token", token), nil, nil, &result); err != nil {
+	if err := e.client.RequestData(ctx, "GET", e.client.ConstructURL("auth", "token", token), nil, nil, &result); err != nil {
 		return nil, err
 	}
 
