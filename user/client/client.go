@@ -40,7 +40,7 @@ func (c *Client) GetUserPermissions(ctx context.Context, requestUserID string, t
 
 	permissions := user.Permissions{}
 	if err := c.client.RequestData(ctx, "GET", c.client.ConstructURL("access", targetUserID, requestUserID), nil, nil, &permissions); err != nil {
-		if errors.Code(err) == request.ErrorCodeResourceNotFound {
+		if request.IsErrorResourceNotFound(err) {
 			return nil, request.ErrorUnauthorized()
 		}
 		return nil, err

@@ -178,7 +178,7 @@ func (t *TaskRunner) Run(ctx context.Context) error {
 		return err
 	}
 	if err := t.fetchSinceLatestDataTime(); err != nil {
-		if errors.Code(errors.Cause(err)) == request.ErrorCodeUnauthenticated {
+		if request.IsErrorUnauthenticated(errors.Cause(err)) {
 			t.task.SetFailed()
 			if updateErr := t.updateDataSourceWithError(err); updateErr != nil {
 				t.Logger().WithError(updateErr).Error("unable to update data source with error")

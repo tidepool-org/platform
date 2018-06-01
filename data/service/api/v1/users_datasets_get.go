@@ -5,7 +5,6 @@ import (
 
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
-	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
@@ -24,7 +23,7 @@ func UsersDatasetsGet(dataServiceContext dataService.Context) {
 	if details := request.DetailsFromContext(ctx); !details.IsService() {
 		permissions, err := dataServiceContext.UserClient().GetUserPermissions(ctx, details.UserID(), targetUserID)
 		if err != nil {
-			if errors.Code(err) == request.ErrorCodeUnauthorized {
+			if request.IsErrorUnauthorized(err) {
 				dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 			} else {
 				dataServiceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)

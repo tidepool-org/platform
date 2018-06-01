@@ -136,7 +136,7 @@ func (c *Client) GetProviderSession(ctx context.Context, id string) (*auth.Provi
 	url := c.client.ConstructURL("v1", "provider_sessions", id)
 	providerSession := &auth.ProviderSession{}
 	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, providerSession); err != nil {
-		if errors.Code(err) == request.ErrorCodeResourceNotFound {
+		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
 		}
 		return nil, err
@@ -161,7 +161,7 @@ func (c *Client) UpdateProviderSession(ctx context.Context, id string, update *a
 	url := c.client.ConstructURL("v1", "provider_sessions", id)
 	providerSession := &auth.ProviderSession{}
 	if err := c.client.RequestData(ctx, http.MethodPut, url, nil, update, providerSession); err != nil {
-		if errors.Code(err) == request.ErrorCodeResourceNotFound {
+		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
 		}
 		return nil, err
@@ -242,7 +242,7 @@ func (c *Client) GetRestrictedToken(ctx context.Context, id string) (*auth.Restr
 	url := c.client.ConstructURL("v1", "restricted_tokens", id)
 	restrictedToken := &auth.RestrictedToken{}
 	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, restrictedToken); err != nil {
-		if errors.Code(err) == request.ErrorCodeResourceNotFound {
+		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
 		}
 		return nil, err
@@ -267,7 +267,7 @@ func (c *Client) UpdateRestrictedToken(ctx context.Context, id string, update *a
 	url := c.client.ConstructURL("v1", "restricted_tokens", id)
 	restrictedToken := &auth.RestrictedToken{}
 	if err := c.client.RequestData(ctx, http.MethodPut, url, nil, update, restrictedToken); err != nil {
-		if errors.Code(err) == request.ErrorCodeResourceNotFound {
+		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
 		}
 		return nil, err

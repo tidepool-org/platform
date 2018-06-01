@@ -81,7 +81,7 @@ func (c *Client) GetTask(ctx context.Context, id string) (*task.Task, error) {
 	url := c.client.ConstructURL("v1", "tasks", id)
 	tsk := &task.Task{}
 	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, tsk); err != nil {
-		if errors.Code(err) == request.ErrorCodeResourceNotFound {
+		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
 		}
 		return nil, err
@@ -106,7 +106,7 @@ func (c *Client) UpdateTask(ctx context.Context, id string, update *task.TaskUpd
 	url := c.client.ConstructURL("v1", "tasks", id)
 	tsk := &task.Task{}
 	if err := c.client.RequestData(ctx, http.MethodPut, url, nil, update, tsk); err != nil {
-		if errors.Code(err) == request.ErrorCodeResourceNotFound {
+		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
 		}
 		return nil, err

@@ -100,7 +100,7 @@ func (c *ClientImpl) GetDataSource(ctx context.Context, id string) (*data.DataSo
 	url := c.client.ConstructURL("v1", "data_sources", id)
 	dataSource := &data.DataSource{}
 	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, dataSource); err != nil {
-		if errors.Code(err) == request.ErrorCodeResourceNotFound {
+		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
 		}
 		return nil, err
@@ -125,7 +125,7 @@ func (c *ClientImpl) UpdateDataSource(ctx context.Context, id string, update *da
 	url := c.client.ConstructURL("v1", "data_sources", id)
 	dataSource := &data.DataSource{}
 	if err := c.client.RequestData(ctx, http.MethodPut, url, nil, update, dataSource); err != nil {
-		if errors.Code(err) == request.ErrorCodeResourceNotFound {
+		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
 		}
 		return nil, err
@@ -210,7 +210,7 @@ func (c *ClientImpl) GetDataSet(ctx context.Context, id string) (*data.DataSet, 
 	url := c.client.ConstructURL("v1", "data_sets", id)
 	dataSet := &data.DataSet{}
 	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, dataSet); err != nil {
-		if errors.Code(err) == request.ErrorCodeResourceNotFound {
+		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
 		}
 		return nil, err
@@ -239,7 +239,7 @@ func (c *ClientImpl) UpdateDataSet(ctx context.Context, id string, update *data.
 		Meta   *interface{}     `json:"meta,omitempty"`
 	}{} // TODO: Remove response wrapper once service is updated
 	if err := c.client.RequestData(ctx, http.MethodPut, url, nil, update, &response); err != nil {
-		if errors.Code(err) == request.ErrorCodeResourceNotFound {
+		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
 		}
 		return nil, err

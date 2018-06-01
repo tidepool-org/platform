@@ -306,7 +306,7 @@ func (d *DataSource) Sanitize(details request.Details) error {
 	if details.IsUser() {
 		d.ProviderSessionID = nil
 		if d.Error != nil && d.Error.Error != nil {
-			if cause := errors.Cause(d.Error.Error); errors.Code(cause) == request.ErrorCodeUnauthenticated {
+			if cause := errors.Cause(d.Error.Error); request.IsErrorUnauthenticated(cause) {
 				d.Error.Error = cause
 			}
 			d.Error.Error = errors.Sanitize(d.Error.Error)

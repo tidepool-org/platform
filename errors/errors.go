@@ -82,7 +82,7 @@ func Wrapf(err error, format string, a ...interface{}) error {
 	}
 }
 
-func Prepared(code string, title string, detail string) error {
+func Prepared(code string, title string, detail string) error { // TODO: Rename to NewDetailed
 	return &object{
 		Code:   code,
 		Title:  title,
@@ -91,12 +91,44 @@ func Prepared(code string, title string, detail string) error {
 	}
 }
 
-func Preparedf(code string, title string, format string, a ...interface{}) error {
+func Preparedf(code string, title string, format string, a ...interface{}) error { // TODO: Rename to NewDetailedf
 	return &object{
 		Code:   code,
 		Title:  title,
 		Detail: fmt.Sprintf(format, a...),
 		Caller: GetCaller(2),
+	}
+}
+
+func WrapPrepared(err error, code string, title string, detail string) error { // TODO: Rename to WrapDetailed
+	var cause *Serializable
+	if err != nil {
+		cause = &Serializable{
+			Error: err,
+		}
+	}
+	return &object{
+		Code:   code,
+		Title:  title,
+		Detail: detail,
+		Caller: GetCaller(2),
+		Cause:  cause,
+	}
+}
+
+func WrapPreparedf(err error, code string, title string, format string, a ...interface{}) error { // TODO: Rename to WrapDetailedf
+	var cause *Serializable
+	if err != nil {
+		cause = &Serializable{
+			Error: err,
+		}
+	}
+	return &object{
+		Code:   code,
+		Title:  title,
+		Detail: fmt.Sprintf(format, a...),
+		Caller: GetCaller(2),
+		Cause:  cause,
 	}
 }
 

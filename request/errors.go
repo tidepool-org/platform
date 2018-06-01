@@ -7,15 +7,20 @@ import (
 )
 
 const (
-	ErrorCodeUnexpectedResponse = "unexpected-response"
-	ErrorCodeTooManyRequests    = "too-many-requests"
-	ErrorCodeBadRequest         = "bad-request"
-	ErrorCodeUnauthenticated    = "unauthenticated"
-	ErrorCodeUnauthorized       = "unauthorized"
-	ErrorCodeResourceNotFound   = "resource-not-found"
-	ErrorCodeParameterMissing   = "parameter-missing"
-	ErrorCodeJSONMalformed      = "json-malformed"
+	ErrorCodeInternalServerError = "internal-server-error"
+	ErrorCodeUnexpectedResponse  = "unexpected-response"
+	ErrorCodeTooManyRequests     = "too-many-requests"
+	ErrorCodeBadRequest          = "bad-request"
+	ErrorCodeUnauthenticated     = "unauthenticated"
+	ErrorCodeUnauthorized        = "unauthorized"
+	ErrorCodeResourceNotFound    = "resource-not-found"
+	ErrorCodeParameterMissing    = "parameter-missing"
+	ErrorCodeJSONMalformed       = "json-malformed"
 )
+
+func ErrorInternalServerError(err error) error {
+	return errors.WrapPrepared(err, ErrorCodeInternalServerError, "internal server error", "internal server error")
+}
 
 func ErrorUnexpectedResponse(res *http.Response, req *http.Request) error {
 	return errors.Preparedf(ErrorCodeUnexpectedResponse, "unexpected response", "unexpected response status code %d from %s %q", res.StatusCode, req.Method, req.URL.String())
@@ -69,4 +74,20 @@ func StatusCodeForError(err error) int {
 		}
 	}
 	return http.StatusInternalServerError
+}
+
+func IsErrorInternalServerError(err error) bool {
+	return errors.Code(err) == ErrorCodeInternalServerError
+}
+
+func IsErrorUnauthenticated(err error) bool {
+	return errors.Code(err) == ErrorCodeUnauthenticated
+}
+
+func IsErrorUnauthorized(err error) bool {
+	return errors.Code(err) == ErrorCodeUnauthorized
+}
+
+func IsErrorResourceNotFound(err error) bool {
+	return errors.Code(err) == ErrorCodeResourceNotFound
 }

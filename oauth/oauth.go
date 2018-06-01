@@ -105,7 +105,7 @@ func (t *Token) MatchesRawToken(rawToken *oauth2.Token) bool {
 }
 
 func IsAccessTokenError(err error) bool {
-	return err != nil && errors.Code(errors.Cause(err)) == request.ErrorCodeUnauthenticated
+	return err != nil && request.IsErrorUnauthenticated(errors.Cause(err))
 }
 
 func IsRefreshTokenError(err error) bool {
