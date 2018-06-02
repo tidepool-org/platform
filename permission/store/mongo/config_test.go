@@ -17,7 +17,7 @@ var _ = Describe("Config", func() {
 		It("returns a new config with default values", func() {
 			config := mongo.NewConfig()
 			Expect(config).ToNot(BeNil())
-			Expect(config.Secret).To(Equal(""))
+			Expect(config.Secret).To(BeEmpty())
 		})
 	})
 
@@ -66,13 +66,13 @@ var _ = Describe("Config", func() {
 		Context("with valid values", func() {
 			BeforeEach(func() {
 				config.Config = baseConfig.NewConfig()
-				config.Config.Addresses = []string{"1.2.3.4", "5.6.7.8"}
-				config.Config.TLS = false
-				config.Config.Database = "database"
-				config.Config.CollectionPrefix = "collection_prefix"
-				config.Config.Username = pointer.FromString("username")
-				config.Config.Password = pointer.FromString("password")
-				config.Config.Timeout = 5 * time.Second
+				config.Addresses = []string{"1.2.3.4", "5.6.7.8"}
+				config.TLS = false
+				config.Database = "database"
+				config.CollectionPrefix = "collection_prefix"
+				config.Username = pointer.FromString("username")
+				config.Password = pointer.FromString("password")
+				config.Timeout = 5 * time.Second
 				config.Secret = "super"
 			})
 
@@ -87,7 +87,7 @@ var _ = Describe("Config", func() {
 				})
 
 				It("returns an error if the base config is not valid", func() {
-					config.Config.Addresses = nil
+					config.Addresses = nil
 					Expect(config.Validate()).To(MatchError("addresses is missing"))
 				})
 

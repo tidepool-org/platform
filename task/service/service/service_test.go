@@ -47,7 +47,7 @@ package service_test
 // 					VerifyRequest("POST", "/auth/serverlogin"),
 // 					VerifyHeaderKV("X-Tidepool-Server-Name", "service.test"),
 // 					VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
-// 					VerifyBody([]byte{}),
+// 					VerifyBody(nil),
 // 					RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
 // 			)
 

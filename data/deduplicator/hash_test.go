@@ -102,19 +102,19 @@ var _ = Describe("Hash", func() {
 		It("returns an error if identity fields is missing", func() {
 			hash, err := deduplicator.GenerateIdentityHash(nil)
 			Expect(err).To(MatchError("identity fields are missing"))
-			Expect(hash).To(Equal(""))
+			Expect(hash).To(BeEmpty())
 		})
 
 		It("returns an error if identity fields is empty", func() {
 			hash, err := deduplicator.GenerateIdentityHash([]string{})
 			Expect(err).To(MatchError("identity fields are missing"))
-			Expect(hash).To(Equal(""))
+			Expect(hash).To(BeEmpty())
 		})
 
 		It("returns an error if an identity fields empty", func() {
 			hash, err := deduplicator.GenerateIdentityHash([]string{"alpha", "", "charlie"})
 			Expect(err).To(MatchError("identity field is empty"))
-			Expect(hash).To(Equal(""))
+			Expect(hash).To(BeEmpty())
 		})
 
 		It("successfully returns a hash with one identity field", func() {

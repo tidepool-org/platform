@@ -115,7 +115,7 @@ var _ = Describe("Client", func() {
 								VerifyRequest("DELETE", fmt.Sprintf("/v1/users/%s/data", userID)),
 								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte{}),
+								VerifyBody(nil),
 								RespondWith(http.StatusUnauthorized, nil, nil)),
 						)
 					})
@@ -134,7 +134,7 @@ var _ = Describe("Client", func() {
 								VerifyRequest("DELETE", fmt.Sprintf("/v1/users/%s/data", userID)),
 								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte{}),
+								VerifyBody(nil),
 								RespondWith(http.StatusForbidden, nil, nil)),
 						)
 					})
@@ -153,7 +153,7 @@ var _ = Describe("Client", func() {
 								VerifyRequest("DELETE", fmt.Sprintf("/v1/users/%s/data", userID)),
 								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte{}),
+								VerifyBody(nil),
 								RespondWith(http.StatusOK, nil, nil)),
 						)
 					})

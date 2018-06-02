@@ -19,8 +19,8 @@ var _ = Describe("Config", func() {
 			Expect(config).ToNot(BeNil())
 			Expect(config.Addresses).To(BeNil())
 			Expect(config.TLS).To(BeTrue())
-			Expect(config.Database).To(Equal(""))
-			Expect(config.CollectionPrefix).To(Equal(""))
+			Expect(config.Database).To(BeEmpty())
+			Expect(config.CollectionPrefix).To(BeEmpty())
 			Expect(config.Username).To(BeNil())
 			Expect(config.Password).To(BeNil())
 			Expect(config.Timeout).To(Equal(60 * time.Second))
@@ -74,13 +74,13 @@ var _ = Describe("Config", func() {
 			It("uses default database if not set", func() {
 				delete(configReporter.Config, "database")
 				Expect(config.Load(configReporter)).To(Succeed())
-				Expect(config.Database).To(Equal(""))
+				Expect(config.Database).To(BeEmpty())
 			})
 
 			It("uses default collection prefix if not set", func() {
 				delete(configReporter.Config, "collection_prefix")
 				Expect(config.Load(configReporter)).To(Succeed())
-				Expect(config.CollectionPrefix).To(Equal(""))
+				Expect(config.CollectionPrefix).To(BeEmpty())
 			})
 
 			It("uses default username if not set", func() {

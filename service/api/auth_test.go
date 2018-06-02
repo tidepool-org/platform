@@ -12,7 +12,7 @@ import (
 	logNull "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service/api"
-	"github.com/tidepool-org/platform/test"
+	serviceTest "github.com/tidepool-org/platform/service/test"
 	testRest "github.com/tidepool-org/platform/test/rest"
 )
 
@@ -94,7 +94,7 @@ var _ = Describe("Auth", func() {
 
 			Context("with user details", func() {
 				BeforeEach(func() {
-					details = request.NewDetails(request.MethodSessionToken, test.NewString(10, test.CharsetHexidecimalLowercase), testAuth.NewSessionToken())
+					details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), testAuth.NewSessionToken())
 				})
 
 				It("responds successfully", func() {
@@ -158,7 +158,7 @@ var _ = Describe("Auth", func() {
 
 			Context("with user details", func() {
 				BeforeEach(func() {
-					details = request.NewDetails(request.MethodSessionToken, test.NewString(10, test.CharsetHexidecimalLowercase), testAuth.NewSessionToken())
+					details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), testAuth.NewSessionToken())
 				})
 
 				It("responds with unauthorized error", func() {
@@ -228,7 +228,7 @@ var _ = Describe("Auth", func() {
 
 			Context("with user details", func() {
 				BeforeEach(func() {
-					details = request.NewDetails(request.MethodSessionToken, test.NewString(10, test.CharsetHexidecimalLowercase), testAuth.NewSessionToken())
+					details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), testAuth.NewSessionToken())
 				})
 
 				It("responds successfully", func() {

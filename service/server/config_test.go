@@ -15,10 +15,10 @@ var _ = Describe("Config", func() {
 		It("returns a new config with default values", func() {
 			config := server.NewConfig()
 			Expect(config).ToNot(BeNil())
-			Expect(config.Address).To(Equal(""))
+			Expect(config.Address).To(BeEmpty())
 			Expect(config.TLS).To(BeTrue())
-			Expect(config.TLSCertificateFile).To(Equal(""))
-			Expect(config.TLSKeyFile).To(Equal(""))
+			Expect(config.TLSCertificateFile).To(BeEmpty())
+			Expect(config.TLSKeyFile).To(BeEmpty())
 			Expect(config.Timeout).To(Equal(60 * time.Second))
 		})
 	})
@@ -50,7 +50,7 @@ var _ = Describe("Config", func() {
 			It("uses default address if not set", func() {
 				delete(configReporter.Config, "address")
 				Expect(config.Load(configReporter)).To(Succeed())
-				Expect(config.Address).To(Equal(""))
+				Expect(config.Address).To(BeEmpty())
 			})
 
 			It("uses default tls if not set", func() {
@@ -68,13 +68,13 @@ var _ = Describe("Config", func() {
 			It("uses default tls certificate file if not set", func() {
 				delete(configReporter.Config, "tls_certificate_file")
 				Expect(config.Load(configReporter)).To(Succeed())
-				Expect(config.TLSCertificateFile).To(Equal(""))
+				Expect(config.TLSCertificateFile).To(BeEmpty())
 			})
 
 			It("uses default tls key file if not set", func() {
 				delete(configReporter.Config, "tls_key_file")
 				Expect(config.Load(configReporter)).To(Succeed())
-				Expect(config.TLSKeyFile).To(Equal(""))
+				Expect(config.TLSKeyFile).To(BeEmpty())
 			})
 
 			It("uses default timeout if not set", func() {

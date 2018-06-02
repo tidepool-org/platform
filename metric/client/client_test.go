@@ -146,7 +146,7 @@ var _ = Describe("Client", func() {
 									VerifyRequest("GET", "/metrics/thisuser/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyHeaderKV("X-Tidepool-Session-Token", token),
-									VerifyBody([]byte{}),
+									VerifyBody(nil),
 									RespondWith(http.StatusUnauthorized, nil, nil)),
 							)
 						})
@@ -165,7 +165,7 @@ var _ = Describe("Client", func() {
 									VerifyRequest("GET", "/metrics/thisuser/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyHeaderKV("X-Tidepool-Session-Token", token),
-									VerifyBody([]byte{}),
+									VerifyBody(nil),
 									RespondWith(http.StatusForbidden, nil, nil)),
 							)
 						})
@@ -184,7 +184,7 @@ var _ = Describe("Client", func() {
 									VerifyRequest("GET", "/metrics/thisuser/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyHeaderKV("X-Tidepool-Session-Token", token),
-									VerifyBody([]byte{}),
+									VerifyBody(nil),
 									RespondWith(http.StatusOK, nil, nil)),
 							)
 						})
@@ -203,7 +203,7 @@ var _ = Describe("Client", func() {
 									VerifyRequest("GET", "/metrics/thisuser/"+metric, "sourceVersion=1.2.3"),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyHeaderKV("X-Tidepool-Session-Token", token),
-									VerifyBody([]byte{}),
+									VerifyBody(nil),
 									RespondWith(http.StatusOK, nil, nil)),
 							)
 						})
@@ -233,7 +233,7 @@ var _ = Describe("Client", func() {
 								VerifyRequest("GET", "/metrics/server/"+name+"/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
 								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte{}),
+								VerifyBody(nil),
 								RespondWith(http.StatusUnauthorized, nil, nil)),
 						)
 					})
@@ -252,7 +252,7 @@ var _ = Describe("Client", func() {
 								VerifyRequest("GET", "/metrics/server/"+name+"/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
 								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte{}),
+								VerifyBody(nil),
 								RespondWith(http.StatusForbidden, nil, nil)),
 						)
 					})
@@ -271,7 +271,7 @@ var _ = Describe("Client", func() {
 								VerifyRequest("GET", "/metrics/server/"+name+"/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
 								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte{}),
+								VerifyBody(nil),
 								RespondWith(http.StatusOK, nil, nil)),
 						)
 					})
@@ -290,7 +290,7 @@ var _ = Describe("Client", func() {
 								VerifyRequest("GET", "/metrics/server/"+name+"/"+metric, "sourceVersion=1.2.3"),
 								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte{}),
+								VerifyBody(nil),
 								RespondWith(http.StatusOK, nil, nil)),
 						)
 					})

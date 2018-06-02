@@ -1,5 +1,6 @@
 ## HEAD
 
+* Minor test refactor and cleanup
 * Add shortcuts for request error comparisons
 * Add streamed response from client in addition to existing data response
 * Add ability to specify authorization mechanism at client creation

@@ -115,7 +115,7 @@ package client_test
 // 							CombineHandlers(
 // 								VerifyRequest("GET", "/access/"+targetUserID+"/"+requestUserID),
 // 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-// 								VerifyBody([]byte{}),
+// 								VerifyBody(nil),
 // 								RespondWith(http.StatusUnauthorized, nil, nil)),
 // 						)
 // 					})
@@ -134,7 +134,7 @@ package client_test
 // 							CombineHandlers(
 // 								VerifyRequest("GET", "/access/"+targetUserID+"/"+requestUserID),
 // 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-// 								VerifyBody([]byte{}),
+// 								VerifyBody(nil),
 // 								RespondWith(http.StatusNotFound, nil, nil)),
 // 						)
 // 					})
@@ -153,7 +153,7 @@ package client_test
 // 							CombineHandlers(
 // 								VerifyRequest("GET", "/access/"+targetUserID+"/"+requestUserID),
 // 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-// 								VerifyBody([]byte{}),
+// 								VerifyBody(nil),
 // 								RespondWith(http.StatusOK, "{}", nil)),
 // 						)
 // 					})
@@ -170,7 +170,7 @@ package client_test
 // 							CombineHandlers(
 // 								VerifyRequest("GET", "/access/"+targetUserID+"/"+requestUserID),
 // 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-// 								VerifyBody([]byte{}),
+// 								VerifyBody(nil),
 // 								RespondWith(http.StatusOK, `{"upload": {}, "view": {}}`, nil)),
 // 						)
 // 					})
@@ -190,7 +190,7 @@ package client_test
 // 							CombineHandlers(
 // 								VerifyRequest("GET", "/access/"+targetUserID+"/"+requestUserID),
 // 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-// 								VerifyBody([]byte{}),
+// 								VerifyBody(nil),
 // 								RespondWith(http.StatusOK, `{"root": {"root-inner": "unused"}, "upload": {}}`, nil)),
 // 						)
 // 					})
@@ -211,7 +211,7 @@ package client_test
 // 							CombineHandlers(
 // 								VerifyRequest("GET", "/access/"+targetUserID+"/"+requestUserID),
 // 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-// 								VerifyBody([]byte{}),
+// 								VerifyBody(nil),
 // 								RespondWith(http.StatusOK, `{"root": {"root-inner": "unused"}, "view": {}}`, nil)),
 // 						)
 // 					})
@@ -232,7 +232,7 @@ package client_test
 // 							CombineHandlers(
 // 								VerifyRequest("GET", "/access/"+targetUserID+"/"+requestUserID),
 // 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-// 								VerifyBody([]byte{}),
+// 								VerifyBody(nil),
 // 								RespondWith(http.StatusOK, `{"root": {"root-inner": "unused"}, "upload": {}, "view": {}}`, nil)),
 // 						)
 // 					})

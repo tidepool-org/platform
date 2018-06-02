@@ -54,7 +54,7 @@ var _ = Describe("DEPRECATEDService", func() {
 					VerifyRequest("POST", "/auth/serverlogin"),
 					VerifyHeaderKV("X-Tidepool-Server-Name", "service.test"),
 					VerifyHeaderKV("X-Tidepool-Server-Secret", serverSessionTokenSecret),
-					VerifyBody([]byte{}),
+					VerifyBody(nil),
 					RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverSessionToken}})),
 			)
 
