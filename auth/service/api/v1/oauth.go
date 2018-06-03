@@ -189,7 +189,7 @@ func (r *Router) oauthProviderRestrictedToken(req *http.Request, prvdr oauth.Pro
 }
 
 func (r *Router) htmlOnRedirect(res rest.ResponseWriter, req *rest.Request) {
-	request.MustNewResponder(res, req).HTML(http.StatusOK, htmlOnRedirect)
+	request.MustNewResponder(res, req).String(http.StatusOK, htmlOnRedirect, request.NewHeaderMutator("Content-Type", "text/html"))
 }
 
 func (r *Router) htmlOnError(res rest.ResponseWriter, req *rest.Request, err error, messages ...string) {
@@ -197,7 +197,11 @@ func (r *Router) htmlOnError(res rest.ResponseWriter, req *rest.Request, err err
 		messages = append(messages, unexpectedError)
 	}
 	log.LoggerFromContext(req.Context()).WithError(err).WithField("messages", messages).Error("Unexpected failure during OAuth workflow")
-	request.MustNewResponder(res, req).HTML(request.StatusCodeForError(err), strings.Replace(htmlOnError, "{{ MESSAGES }}", strings.Join(messages, " "), -1))
+	request.MustNewResponder(res, req).String(
+		request.StatusCodeForError(err),
+		strings.Replace(htmlOnError, "{{ MESSAGES }}", strings.Join(messages, " "), -1),
+		request.NewHeaderMutator("Content-Type", "text/html"),
+	)
 }
 
 func (r *Router) providerCookie(prvdr provider.Provider, value string, maxAge int) *http.Cookie {

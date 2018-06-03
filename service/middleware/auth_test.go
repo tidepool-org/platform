@@ -152,7 +152,6 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns unauthorized if multiple values", func() {
-						res.WriteJsonOutputs = []error{nil}
 						res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 						req.Header.Add("X-Tidepool-Service-Secret", serviceSecret)
 						middlewareFunc(res, req)
@@ -160,7 +159,6 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns unauthorized if the server secret does not match", func() {
-						res.WriteJsonOutputs = []error{nil}
 						res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 						req.Header.Set("X-Tidepool-Service-Secret", testAuth.NewServiceSecret())
 						middlewareFunc(res, req)
@@ -191,7 +189,6 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns unauthorized if multiple values", func() {
-						res.WriteJsonOutputs = []error{nil}
 						res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 						req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 						middlewareFunc(res, req)
@@ -199,7 +196,6 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns unauthorized if not valid header", func() {
-						res.WriteJsonOutputs = []error{nil}
 						res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 						req.Header.Set("Authorization", accessToken)
 						middlewareFunc(res, req)
@@ -207,7 +203,6 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns unauthorized if not Bearer token", func() {
-						res.WriteJsonOutputs = []error{nil}
 						res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 						req.Header.Set("Authorization", fmt.Sprintf("NotBearer %s", accessToken))
 						middlewareFunc(res, req)
@@ -261,7 +256,6 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns unauthorized if multiple values", func() {
-						res.WriteJsonOutputs = []error{nil}
 						res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 						req.Header.Add("X-Tidepool-Session-Token", sessionToken)
 						middlewareFunc(res, req)
@@ -338,7 +332,6 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns unauthorized if multiple values", func() {
-						res.WriteJsonOutputs = []error{nil}
 						res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 						query := req.URL.Query()
 						query.Add("restricted_token", restrictedToken)

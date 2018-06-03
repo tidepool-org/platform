@@ -4,6 +4,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"encoding/json"
+
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/auth/service"
@@ -48,14 +50,13 @@ var _ = Describe("StatusGet", func() {
 			BeforeEach(func() {
 				sts = &service.Status{}
 				svc.StatusOutputs = []*service.Status{sts}
-				response.WriteJsonOutputs = []error{nil}
 				response.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 			})
 
 			It("returns successfully", func() {
 				rtr.StatusGet(response, request)
-				Expect(response.WriteJsonInputs).To(HaveLen(1))
-				Expect(response.WriteJsonInputs[0]).To(Equal(sts))
+				Expect(response.WriteInputs).To(HaveLen(1))
+				Expect(json.Marshal(sts)).To(MatchJSON(response.WriteInputs[0]))
 			})
 		})
 	})

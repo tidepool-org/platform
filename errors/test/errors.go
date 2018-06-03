@@ -83,3 +83,9 @@ func ExpectErrorDetails(err error, code string, title string, detail string) {
 	gomega.Expect(bytesErr).ToNot(gomega.HaveOccurred())
 	gomega.Expect(bytes).To(gomega.MatchJSON(fmt.Sprintf(`{"code": %q, "title": %q, "detail": %q}`, code, title, detail)))
 }
+
+func ExpectErrorJSON(err error, actualJSON []byte) {
+	expectedJSON, err := json.Marshal(errors.Sanitize(err))
+	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	gomega.Expect(actualJSON).To(gomega.MatchJSON(expectedJSON))
+}
