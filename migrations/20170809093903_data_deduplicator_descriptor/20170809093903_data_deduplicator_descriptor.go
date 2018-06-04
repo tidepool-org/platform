@@ -12,7 +12,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	mongoMigration "github.com/tidepool-org/platform/migration/mongo"
-	"github.com/tidepool-org/platform/store/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
 func main() {
@@ -71,7 +71,7 @@ func (m *Migration) execute() error {
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "data"
 	mongoConfig.Timeout = 60 * time.Minute
-	dataStore, err := mongo.NewStore(mongoConfig, m.Logger())
+	dataStore, err := storeStructuredMongo.NewStore(mongoConfig, m.Logger())
 	if err != nil {
 		return errors.Wrap(err, "unable to create data store")
 	}
@@ -93,7 +93,7 @@ func (m *Migration) execute() error {
 	return nil
 }
 
-func (m *Migration) migrateUploadDataDeduplicatorDescriptor(dataSession *mongo.Session, fromName string, toName string) int {
+func (m *Migration) migrateUploadDataDeduplicatorDescriptor(dataSession *storeStructuredMongo.Session, fromName string, toName string) int {
 	logger := m.Logger().WithFields(log.Fields{"fromName": fromName, "toName": toName})
 
 	logger.Debug("Migrating upload data deduplicator descriptors")
@@ -132,7 +132,7 @@ func (m *Migration) migrateUploadDataDeduplicatorDescriptor(dataSession *mongo.S
 	return count
 }
 
-func (m *Migration) migrateNonUploadDataDeduplicatorDescriptor(dataSession *mongo.Session) int {
+func (m *Migration) migrateNonUploadDataDeduplicatorDescriptor(dataSession *storeStructuredMongo.Session) int {
 	m.Logger().Debug("Migrating non-upload data deduplicator descriptors")
 
 	var count int

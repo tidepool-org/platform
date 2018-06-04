@@ -15,10 +15,10 @@ import (
 	"github.com/tidepool-org/platform/confirmation/store/mongo"
 	"github.com/tidepool-org/platform/log"
 	logNull "github.com/tidepool-org/platform/log/null"
-	storeMongo "github.com/tidepool-org/platform/store/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
+	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 	"github.com/tidepool-org/platform/test"
 	testInternet "github.com/tidepool-org/platform/test/internet"
-	testMongo "github.com/tidepool-org/platform/test/mongo"
 )
 
 func NewConfirmation(userID string, typ string) bson.M {
@@ -58,13 +58,13 @@ func ValidateConfirmations(mgoCollection *mgo.Collection, selector bson.M, expec
 
 var _ = Describe("Store", func() {
 	var ctx context.Context
-	var cfg *storeMongo.Config
+	var cfg *storeStructuredMongo.Config
 	var str *mongo.Store
 	var ssn store.ConfirmationSession
 
 	BeforeEach(func() {
 		ctx = log.NewContextWithLogger(context.Background(), logNull.NewLogger())
-		cfg = testMongo.NewConfig()
+		cfg = storeStructuredMongoTest.NewConfig()
 	})
 
 	AfterEach(func() {
@@ -101,7 +101,7 @@ var _ = Describe("Store", func() {
 			str, err = mongo.NewStore(cfg, logNull.NewLogger())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(str).ToNot(BeNil())
-			mgoSession = testMongo.Session().Copy()
+			mgoSession = storeStructuredMongoTest.Session().Copy()
 			mgoCollection = mgoSession.DB(cfg.Database).C(cfg.CollectionPrefix + "confirmations")
 		})
 
@@ -137,21 +137,6 @@ var _ = Describe("Store", func() {
 			BeforeEach(func() {
 				ssn = str.NewConfirmationSession()
 				Expect(ssn).ToNot(BeNil())
-			})
-
-			Context("EnsureIndexes", func() {
-				It("returns successfully", func() {
-					Expect(ssn.EnsureIndexes()).To(Succeed())
-					indexes, err := mgoCollection.Indexes()
-					Expect(err).ToNot(HaveOccurred())
-					Expect(indexes).To(ConsistOf(
-						MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("_id")}),
-						MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("email")}),
-						MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("status")}),
-						MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("type")}),
-						MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("userId")}),
-					))
-				})
 			})
 
 			Context("with persisted data", func() {

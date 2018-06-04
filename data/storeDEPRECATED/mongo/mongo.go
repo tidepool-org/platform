@@ -14,12 +14,12 @@ import (
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/store/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-func NewStore(cfg *mongo.Config, lgr log.Logger) (*Store, error) {
-	baseStore, err := mongo.NewStore(cfg, lgr)
+func NewStore(cfg *storeStructuredMongo.Config, lgr log.Logger) (*Store, error) {
+	baseStore, err := storeStructuredMongo.NewStore(cfg, lgr)
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +30,7 @@ func NewStore(cfg *mongo.Config, lgr log.Logger) (*Store, error) {
 }
 
 type Store struct {
-	*mongo.Store
+	*storeStructuredMongo.Store
 }
 
 func (s *Store) NewDataSession() storeDEPRECATED.DataSession {
@@ -40,7 +40,7 @@ func (s *Store) NewDataSession() storeDEPRECATED.DataSession {
 }
 
 type DataSession struct {
-	*mongo.Session
+	*storeStructuredMongo.Session
 }
 
 func (d *DataSession) GetDatasetsForUserByID(ctx context.Context, userID string, filter *storeDEPRECATED.Filter, pagination *page.Pagination) ([]*upload.Upload, error) {

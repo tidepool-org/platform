@@ -11,12 +11,12 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
-	"github.com/tidepool-org/platform/store/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 type ProviderSessionSession struct {
-	*mongo.Session
+	*storeStructuredMongo.Session
 }
 
 func (p *ProviderSessionSession) EnsureIndexes() error {

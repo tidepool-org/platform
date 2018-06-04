@@ -8,12 +8,12 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/store/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/synctask/store"
 )
 
-func NewStore(cfg *mongo.Config, lgr log.Logger) (*Store, error) {
-	baseStore, err := mongo.NewStore(cfg, lgr)
+func NewStore(cfg *storeStructuredMongo.Config, lgr log.Logger) (*Store, error) {
+	baseStore, err := storeStructuredMongo.NewStore(cfg, lgr)
 	if err != nil {
 		return nil, err
 	}
@@ -24,7 +24,7 @@ func NewStore(cfg *mongo.Config, lgr log.Logger) (*Store, error) {
 }
 
 type Store struct {
-	*mongo.Store
+	*storeStructuredMongo.Store
 }
 
 func (s *Store) NewSyncTaskSession() store.SyncTaskSession {
@@ -34,7 +34,7 @@ func (s *Store) NewSyncTaskSession() store.SyncTaskSession {
 }
 
 type SyncTaskSession struct {
-	*mongo.Session
+	*storeStructuredMongo.Session
 }
 
 func (s *SyncTaskSession) DestroySyncTasksForUserByID(ctx context.Context, userID string) error {

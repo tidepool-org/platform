@@ -2,19 +2,17 @@ package store
 
 import (
 	"context"
+	"io"
 
-	"github.com/tidepool-org/platform/store"
 	"github.com/tidepool-org/platform/task"
 )
 
 type Store interface {
-	store.Store
-
 	NewTaskSession() TaskSession
 }
 
 type TaskSession interface {
-	store.Session
+	io.Closer
 	task.TaskAccessor
 
 	UpdateFromState(ctx context.Context, tsk *task.Task, state string) (*task.Task, error)

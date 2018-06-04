@@ -2,18 +2,15 @@ package store
 
 import (
 	"context"
-
-	"github.com/tidepool-org/platform/store"
+	"io"
 )
 
 type Store interface {
-	store.Store
-
 	NewPermissionsSession() PermissionsSession
 }
 
 type PermissionsSession interface {
-	store.Session
+	io.Closer
 
 	DestroyPermissionsForUserByID(ctx context.Context, userID string) error
 }

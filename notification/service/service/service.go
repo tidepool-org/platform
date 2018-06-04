@@ -10,7 +10,7 @@ import (
 	"github.com/tidepool-org/platform/notification/store"
 	notificationMongo "github.com/tidepool-org/platform/notification/store/mongo"
 	serviceService "github.com/tidepool-org/platform/service/service"
-	baseMongo "github.com/tidepool-org/platform/store/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
 type Service struct {
@@ -54,7 +54,7 @@ func (s *Service) NotificationStore() store.Store {
 func (s *Service) Status() *service.Status {
 	return &service.Status{
 		Version:           s.VersionReporter().Long(),
-		NotificationStore: s.NotificationStore().Status(),
+		NotificationStore: s.notificationStore.Status(),
 		Server:            s.API().Status(),
 	}
 }
@@ -93,7 +93,7 @@ func (s *Service) terminateRouter() {
 func (s *Service) initializeNotificationStore() error {
 	s.Logger().Debug("Loading notification store config")
 
-	cfg := baseMongo.NewConfig()
+	cfg := storeStructuredMongo.NewConfig()
 	if err := cfg.Load(s.ConfigReporter().WithScopes("notification", "store")); err != nil {
 		return errors.Wrap(err, "unable to load notification store config")
 	}

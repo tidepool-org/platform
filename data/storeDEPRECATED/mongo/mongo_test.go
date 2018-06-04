@@ -19,8 +19,8 @@ package mongo_test
 // 	"github.com/tidepool-org/platform/log/null"
 // 	"github.com/tidepool-org/platform/page"
 // 	"github.com/tidepool-org/platform/pointer"
-// 	baseMongo "github.com/tidepool-org/platform/store/mongo"
-// 	testMongo "github.com/tidepool-org/platform/test/mongo"
+// 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
+// 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 // )
 
 // var _sampleTimeMutex sync.Mutex
@@ -166,17 +166,12 @@ package mongo_test
 // }
 
 // var _ = Describe("Mongo", func() {
-// 	var mongoConfig *baseMongo.Config
+// 	var mongoConfig *storeStructuredMongo.Config
 // 	var mongoStore *mongo.Store
 // 	var mongoSession storeDEPRECATED.DataSession
 
 // 	BeforeEach(func() {
-// 		mongoConfig = &baseMongo.Config{
-// 			Addresses:        []string{testMongo.Address()},
-// 			Database:         testMongo.Database(),
-// 			CollectionPrefix: testMongo.NewCollectionPrefix(),
-// 			Timeout:          5 * time.Second,
-// 		}
+// 		mongoConfig = storeStructuredMongoTest.NewConfig()
 // 	})
 
 // 	AfterEach(func() {
@@ -236,7 +231,7 @@ package mongo_test
 // 				var dataset *upload.Upload
 
 // 				BeforeEach(func() {
-// 					testMongoSession = testMongo.Session().Copy()
+// 					testMongoSession = storeStructuredMongoTest.Session().Copy()
 // 					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.CollectionPrefix + "deviceData")
 // 					userID = id.New()
 // 					deviceID = id.New()

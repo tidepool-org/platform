@@ -110,11 +110,11 @@ type ListUserDataSetsOutput struct {
 
 type DataSession struct {
 	*test.Mock
+	*test.Closer
 	IsClosedInvocations                                  int
 	IsClosedOutputs                                      []bool
 	EnsureIndexesInvocations                             int
 	EnsureIndexesOutputs                                 []error
-	CloseInvocations                                     int
 	GetDatasetsForUserByIDInvocations                    int
 	GetDatasetsForUserByIDInputs                         []GetDatasetsForUserByIDInput
 	GetDatasetsForUserByIDOutputs                        []GetDatasetsForUserByIDOutput
@@ -158,7 +158,8 @@ type DataSession struct {
 
 func NewDataSession() *DataSession {
 	return &DataSession{
-		Mock: test.NewMock(),
+		Mock:   test.NewMock(),
+		Closer: test.NewCloser(),
 	}
 }
 
@@ -170,10 +171,6 @@ func (d *DataSession) IsClosed() bool {
 	output := d.IsClosedOutputs[0]
 	d.IsClosedOutputs = d.IsClosedOutputs[1:]
 	return output
-}
-
-func (d *DataSession) Close() {
-	d.CloseInvocations++
 }
 
 func (d *DataSession) EnsureIndexes() error {
@@ -344,6 +341,7 @@ func (d *DataSession) GetDataSet(ctx context.Context, id string) (*data.DataSet,
 
 func (d *DataSession) Expectations() {
 	d.Mock.Expectations()
+	d.Closer.AssertOutputsEmpty()
 	gomega.Expect(d.IsClosedOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.EnsureIndexesOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetDatasetsForUserByIDOutputs).To(gomega.BeEmpty())

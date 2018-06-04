@@ -10,7 +10,7 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/store/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/user"
 	"github.com/tidepool-org/platform/user/store"
 )
@@ -20,7 +20,7 @@ func NewStore(cfg *Config, lgr log.Logger) (*Store, error) {
 		return nil, errors.New("config is missing")
 	}
 
-	baseStore, err := mongo.NewStore(cfg.Config, lgr)
+	baseStore, err := storeStructuredMongo.NewStore(cfg.Config, lgr)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func NewStore(cfg *Config, lgr log.Logger) (*Store, error) {
 }
 
 type Store struct {
-	*mongo.Store
+	*storeStructuredMongo.Store
 	config *Config
 }
 
@@ -48,7 +48,7 @@ func (s *Store) NewUsersSession() store.UsersSession {
 }
 
 type UsersSession struct {
-	*mongo.Session
+	*storeStructuredMongo.Session
 	config *Config
 }
 

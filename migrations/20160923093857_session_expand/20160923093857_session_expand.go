@@ -12,7 +12,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	mongoMigration "github.com/tidepool-org/platform/migration/mongo"
 	"github.com/tidepool-org/platform/session"
-	"github.com/tidepool-org/platform/store/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
 const (
@@ -98,7 +98,7 @@ func (m *Migration) execute() error {
 
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "user"
-	sessionsStore, err := mongo.NewStore(mongoConfig, m.Logger())
+	sessionsStore, err := storeStructuredMongo.NewStore(mongoConfig, m.Logger())
 	if err != nil {
 		return errors.Wrap(err, "unable to create sessions store")
 	}

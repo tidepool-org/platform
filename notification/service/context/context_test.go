@@ -99,11 +99,12 @@ var _ = Describe("Context", func() {
 			})
 
 			AfterEach(func() {
-				Expect(ssn.UnusedOutputsCount()).To(Equal(0))
+				ssn.AssertOutputsEmpty()
 			})
 
 			Context("Close", func() {
 				It("returns successfully", func() {
+					ssn.CloseOutputs = []error{nil}
 					Expect(ctx.NotificationsSession()).To(Equal(ssn))
 					ctx.Close()
 					Expect(ssn.CloseInvocations).To(Equal(1))

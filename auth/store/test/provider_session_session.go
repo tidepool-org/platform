@@ -1,23 +1,23 @@
 package test
 
 import (
-	testAuth "github.com/tidepool-org/platform/auth/test"
-	testStore "github.com/tidepool-org/platform/store/test"
+	authTest "github.com/tidepool-org/platform/auth/test"
+	"github.com/tidepool-org/platform/test"
 )
 
 type ProviderSessionSession struct {
-	*testStore.Session
-	*testAuth.ProviderSessionAccessor
+	*test.Closer
+	*authTest.ProviderSessionAccessor
 }
 
 func NewProviderSessionSession() *ProviderSessionSession {
 	return &ProviderSessionSession{
-		Session:                 testStore.NewSession(),
-		ProviderSessionAccessor: testAuth.NewProviderSessionAccessor(),
+		Closer:                  test.NewCloser(),
+		ProviderSessionAccessor: authTest.NewProviderSessionAccessor(),
 	}
 }
 
 func (p *ProviderSessionSession) Expectations() {
-	p.Session.Expectations()
+	p.Closer.AssertOutputsEmpty()
 	p.ProviderSessionAccessor.Expectations()
 }

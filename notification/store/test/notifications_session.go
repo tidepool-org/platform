@@ -1,17 +1,17 @@
 package test
 
-import testStore "github.com/tidepool-org/platform/store/test"
+import "github.com/tidepool-org/platform/test"
 
 type NotificationsSession struct {
-	*testStore.Session
+	*test.Closer
 }
 
 func NewNotificationsSession() *NotificationsSession {
 	return &NotificationsSession{
-		Session: testStore.NewSession(),
+		Closer: test.NewCloser(),
 	}
 }
 
-func (n *NotificationsSession) UnusedOutputsCount() int {
-	return n.Session.UnusedOutputsCount()
+func (n *NotificationsSession) AssertOutputsEmpty() {
+	n.Closer.AssertOutputsEmpty()
 }

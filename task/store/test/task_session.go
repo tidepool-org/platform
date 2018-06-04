@@ -1,14 +1,14 @@
 package test
 
-import testStore "github.com/tidepool-org/platform/store/test"
+import storeStructuredTest "github.com/tidepool-org/platform/store/structured/test"
 
 type TasksSession struct {
-	*testStore.Session
+	*storeStructuredTest.Session
 }
 
 func NewTasksSession() *TasksSession {
 	return &TasksSession{
-		Session: testStore.NewSession(),
+		Session: storeStructuredTest.NewSession(),
 	}
 }
 

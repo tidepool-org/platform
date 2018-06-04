@@ -16,7 +16,7 @@ import (
 	"github.com/tidepool-org/platform/provider"
 	providerFactory "github.com/tidepool-org/platform/provider/factory"
 	serviceService "github.com/tidepool-org/platform/service/service"
-	baseMongo "github.com/tidepool-org/platform/store/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/task"
 	taskClient "github.com/tidepool-org/platform/task/client"
 )
@@ -103,7 +103,7 @@ func (s *Service) ProviderFactory() provider.Factory {
 func (s *Service) Status() *service.Status {
 	return &service.Status{
 		Version:   s.VersionReporter().Long(),
-		AuthStore: s.AuthStore().Status(),
+		AuthStore: s.authStore.Status(),
 		Server:    s.API().Status(),
 	}
 }
@@ -161,7 +161,7 @@ func (s *Service) terminateRouter() {
 func (s *Service) initializeAuthStore() error {
 	s.Logger().Debug("Loading auth store config")
 
-	cfg := baseMongo.NewConfig()
+	cfg := storeStructuredMongo.NewConfig()
 	if err := cfg.Load(s.ConfigReporter().WithScopes("auth", "store")); err != nil {
 		return errors.Wrap(err, "unable to load auth store config")
 	}

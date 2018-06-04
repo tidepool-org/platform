@@ -2,22 +2,22 @@ package storeDEPRECATED
 
 import (
 	"context"
+	"io"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/page"
-	"github.com/tidepool-org/platform/store"
 	"github.com/tidepool-org/platform/structure"
 )
 
 type Store interface {
-	store.Store
+	Status() interface{}
 
 	NewDataSession() DataSession
 }
 
 type DataSession interface {
-	store.Session
+	io.Closer
 
 	GetDatasetsForUserByID(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) ([]*upload.Upload, error)
 	GetDatasetByID(ctx context.Context, datasetID string) (*upload.Upload, error)

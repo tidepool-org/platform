@@ -3,6 +3,7 @@ package mongo
 import (
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/tidepool-org/platform/config"
@@ -32,7 +33,7 @@ func (c *Config) Load(configReporter config.Reporter) error {
 		return errors.New("config reporter is missing")
 	}
 
-	c.Addresses = SplitAddresses(configReporter.GetWithDefault("addresses", ""))
+	c.Addresses = SplitAddresses(configReporter.GetWithDefault("addresses", strings.Join(c.Addresses, ",")))
 	if tlsString, err := configReporter.Get("tls"); err == nil {
 		var tls bool
 		tls, err = strconv.ParseBool(tlsString)
@@ -41,8 +42,8 @@ func (c *Config) Load(configReporter config.Reporter) error {
 		}
 		c.TLS = tls
 	}
-	c.Database = configReporter.GetWithDefault("database", "")
-	c.CollectionPrefix = configReporter.GetWithDefault("collection_prefix", "")
+	c.Database = configReporter.GetWithDefault("database", c.Database)
+	c.CollectionPrefix = configReporter.GetWithDefault("collection_prefix", c.CollectionPrefix)
 	if username, err := configReporter.Get("username"); err == nil {
 		c.Username = pointer.FromString(username)
 	}
@@ -68,8 +69,7 @@ func (c *Config) Validate() error {
 	for _, address := range c.Addresses {
 		if address == "" {
 			return errors.New("address is missing")
-		}
-		if _, err := url.Parse(address); err != nil {
+		} else if _, err := url.Parse(address); err != nil {
 			return errors.New("address is invalid")
 		}
 	}

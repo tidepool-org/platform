@@ -2,19 +2,17 @@ package store
 
 import (
 	"context"
+	"io"
 
-	"github.com/tidepool-org/platform/store"
 	"github.com/tidepool-org/platform/user"
 )
 
 type Store interface {
-	store.Store
-
 	NewUsersSession() UsersSession
 }
 
 type UsersSession interface {
-	store.Session
+	io.Closer
 
 	GetUserByID(ctx context.Context, userID string) (*user.User, error)
 	DeleteUser(ctx context.Context, user *user.User) error

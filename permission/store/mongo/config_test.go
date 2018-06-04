@@ -9,7 +9,7 @@ import (
 	"github.com/tidepool-org/platform/config/test"
 	"github.com/tidepool-org/platform/permission/store/mongo"
 	"github.com/tidepool-org/platform/pointer"
-	baseConfig "github.com/tidepool-org/platform/store/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
 var _ = Describe("Config", func() {
@@ -65,7 +65,7 @@ var _ = Describe("Config", func() {
 
 		Context("with valid values", func() {
 			BeforeEach(func() {
-				config.Config = baseConfig.NewConfig()
+				config.Config = storeStructuredMongo.NewConfig()
 				config.Addresses = []string{"1.2.3.4", "5.6.7.8"}
 				config.TLS = false
 				config.Database = "database"

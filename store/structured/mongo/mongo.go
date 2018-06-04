@@ -27,13 +27,11 @@ type Status struct {
 func NewStore(cfg *Config, lgr log.Logger) (*Store, error) {
 	if cfg == nil {
 		return nil, errors.New("config is missing")
+	} else if err := cfg.Validate(); err != nil {
+		return nil, errors.Wrap(err, "config is invalid")
 	}
 	if lgr == nil {
 		return nil, errors.New("logger is missing")
-	}
-
-	if err := cfg.Validate(); err != nil {
-		return nil, errors.Wrap(err, "config is invalid")
 	}
 
 	loggerFields := map[string]interface{}{
@@ -99,11 +97,12 @@ func (s *Store) IsClosed() bool {
 	return s.Session == nil
 }
 
-func (s *Store) Close() {
+func (s *Store) Close() error {
 	if s.Session != nil {
 		s.Session.Close()
 		s.Session = nil
 	}
+	return nil
 }
 
 func (s *Store) Status() interface{} {
@@ -147,15 +146,12 @@ func (s *Session) IsClosed() bool {
 	return s.sourceSession == nil
 }
 
-func (s *Session) Close() {
+func (s *Session) Close() error {
 	if s.targetSession != nil {
 		s.targetSession.Close()
 		s.targetSession = nil
 	}
 	s.sourceSession = nil
-}
-
-func (s *Session) EnsureIndexes() error {
 	return nil
 }
 

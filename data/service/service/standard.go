@@ -11,7 +11,7 @@ import (
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/service/server"
 	"github.com/tidepool-org/platform/service/service"
-	baseMongo "github.com/tidepool-org/platform/store/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	syncTaskMongo "github.com/tidepool-org/platform/synctask/store/mongo"
 	userClient "github.com/tidepool-org/platform/user/client"
 )
@@ -185,7 +185,7 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 func (s *Standard) initializeDataStoreDEPRECATED() error {
 	s.Logger().Debug("Loading data store DEPRECATED config")
 
-	cfg := baseMongo.NewConfig()
+	cfg := storeStructuredMongo.NewConfig()
 	if err := cfg.Load(s.ConfigReporter().WithScopes("DEPRECATED", "data", "store")); err != nil {
 		return errors.Wrap(err, "unable to load data store DEPRECATED config")
 	}
@@ -204,7 +204,7 @@ func (s *Standard) initializeDataStoreDEPRECATED() error {
 func (s *Standard) initializeDataStore() error {
 	s.Logger().Debug("Loading data store config")
 
-	cfg := baseMongo.NewConfig()
+	cfg := storeStructuredMongo.NewConfig()
 	if err := cfg.Load(s.ConfigReporter().WithScopes("data", "store")); err != nil {
 		return errors.Wrap(err, "unable to load data store config")
 	}
@@ -223,7 +223,7 @@ func (s *Standard) initializeDataStore() error {
 func (s *Standard) initializeSyncTaskStore() error {
 	s.Logger().Debug("Loading sync task store config")
 
-	cfg := baseMongo.NewConfig()
+	cfg := storeStructuredMongo.NewConfig()
 	if err := cfg.Load(s.ConfigReporter().WithScopes("sync_task", "store")); err != nil {
 		return errors.Wrap(err, "unable to load sync task store config")
 	}

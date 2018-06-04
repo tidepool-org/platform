@@ -11,11 +11,11 @@ import (
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/profile"
 	"github.com/tidepool-org/platform/profile/store"
-	"github.com/tidepool-org/platform/store/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
-func NewStore(cfg *mongo.Config, lgr log.Logger) (*Store, error) {
-	baseStore, err := mongo.NewStore(cfg, lgr)
+func NewStore(cfg *storeStructuredMongo.Config, lgr log.Logger) (*Store, error) {
+	baseStore, err := storeStructuredMongo.NewStore(cfg, lgr)
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +26,7 @@ func NewStore(cfg *mongo.Config, lgr log.Logger) (*Store, error) {
 }
 
 type Store struct {
-	*mongo.Store
+	*storeStructuredMongo.Store
 }
 
 func (s *Store) NewProfilesSession() store.ProfilesSession {
@@ -36,7 +36,7 @@ func (s *Store) NewProfilesSession() store.ProfilesSession {
 }
 
 type ProfilesSession struct {
-	*mongo.Session
+	*storeStructuredMongo.Session
 }
 
 func (p *ProfilesSession) GetProfileByID(ctx context.Context, profileID string) (*profile.Profile, error) {

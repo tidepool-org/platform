@@ -1,5 +1,10 @@
 ## HEAD
 
+* Move store/mongo package to store/structured/mongo
+* Use correct import names for store packages
+* Use io.Closer interface for store Close functionality
+* Remove unnecessary store interfaces
+* Remove unnecessary anonymous test mongo imports
 * Refactor request responder for more flexible responses; use direct http.ResponseWriter
 * Minor test refactor and cleanup
 * Add shortcuts for request error comparisons

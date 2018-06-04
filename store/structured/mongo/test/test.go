@@ -1,4 +1,4 @@
-package mongo
+package test
 
 import (
 	"fmt"
@@ -9,7 +9,6 @@ import (
 	"github.com/onsi/gomega"
 	mgo "gopkg.in/mgo.v2"
 
-	"github.com/tidepool-org/platform/store/mongo"
 	"github.com/tidepool-org/platform/test"
 )
 
@@ -64,13 +63,4 @@ func NewCollectionPrefix() string {
 
 func generateUniqueName(base string) string {
 	return fmt.Sprintf("test_%s_%s_%s", time.Now().Format("20060102150405"), test.NewString(16, test.CharsetNumeric), base)
-}
-
-func NewConfig() *mongo.Config {
-	return &mongo.Config{
-		Addresses:        []string{Address()},
-		Database:         Database(),
-		CollectionPrefix: NewCollectionPrefix(),
-		Timeout:          5 * time.Second,
-	}
 }

@@ -13,7 +13,7 @@ import (
 	"github.com/tidepool-org/platform/service/server"
 	"github.com/tidepool-org/platform/service/service"
 	sessionMongo "github.com/tidepool-org/platform/session/store/mongo"
-	baseMongo "github.com/tidepool-org/platform/store/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/user"
 	userClient "github.com/tidepool-org/platform/user/client"
 	"github.com/tidepool-org/platform/user/service/api"
@@ -190,7 +190,7 @@ func (s *Standard) initializeUserClient() error {
 func (s *Standard) initializeConfirmationStore() error {
 	s.Logger().Debug("Loading confirmation store config")
 
-	confirmationStoreConfig := baseMongo.NewConfig()
+	confirmationStoreConfig := storeStructuredMongo.NewConfig()
 	if err := confirmationStoreConfig.Load(s.ConfigReporter().WithScopes("confirmation", "store")); err != nil {
 		return errors.Wrap(err, "unable to load confirmation store config")
 	}
@@ -209,7 +209,7 @@ func (s *Standard) initializeConfirmationStore() error {
 func (s *Standard) initializeMessageStore() error {
 	s.Logger().Debug("Loading message store config")
 
-	messageStoreConfig := baseMongo.NewConfig()
+	messageStoreConfig := storeStructuredMongo.NewConfig()
 	if err := messageStoreConfig.Load(s.ConfigReporter().WithScopes("message", "store")); err != nil {
 		return errors.Wrap(err, "unable to load message store config")
 	}
@@ -247,7 +247,7 @@ func (s *Standard) initializePermissionStore() error {
 func (s *Standard) initializeProfileStore() error {
 	s.Logger().Debug("Loading profile store config")
 
-	profileStoreConfig := baseMongo.NewConfig()
+	profileStoreConfig := storeStructuredMongo.NewConfig()
 	if err := profileStoreConfig.Load(s.ConfigReporter().WithScopes("profile", "store")); err != nil {
 		return errors.Wrap(err, "unable to load profile store config")
 	}
@@ -266,7 +266,7 @@ func (s *Standard) initializeProfileStore() error {
 func (s *Standard) initializeSessionStore() error {
 	s.Logger().Debug("Loading session store config")
 
-	sessionStoreConfig := baseMongo.NewConfig()
+	sessionStoreConfig := storeStructuredMongo.NewConfig()
 	if err := sessionStoreConfig.Load(s.ConfigReporter().WithScopes("session", "store")); err != nil {
 		return errors.Wrap(err, "unable to load session store config")
 	}

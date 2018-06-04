@@ -5,123 +5,116 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"time"
-
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/log/null"
+	logNull "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/store/mongo"
-	testMongo "github.com/tidepool-org/platform/test/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
+	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 )
 
 var _ = Describe("Mongo", func() {
-	var logger log.Logger
-	var mongoConfig *mongo.Config
-	var mongoStore *mongo.Store
-	var mongoSession *mongo.Session
+	var lgr log.Logger
+	var cfg *storeStructuredMongo.Config
+	var str *storeStructuredMongo.Store
+	var ssn *storeStructuredMongo.Session
 
 	BeforeEach(func() {
-		logger = null.NewLogger()
-		mongoConfig = &mongo.Config{
-			Addresses:        []string{testMongo.Address()},
-			Database:         testMongo.Database(),
-			CollectionPrefix: testMongo.NewCollectionPrefix(),
-			Timeout:          5 * time.Second,
-		}
+		lgr = logNull.NewLogger()
+		cfg = storeStructuredMongoTest.NewConfig()
 	})
 
 	AfterEach(func() {
-		if mongoSession != nil {
-			mongoSession.Close()
+		if ssn != nil {
+			ssn.Close()
 		}
-		if mongoStore != nil {
-			mongoStore.Close()
+		if str != nil {
+			str.Close()
 		}
 	})
 
 	Context("New", func() {
 		It("returns an error if the config is missing", func() {
 			var err error
-			mongoStore, err = mongo.NewStore(nil, logger)
+			str, err = storeStructuredMongo.NewStore(nil, lgr)
 			Expect(err).To(MatchError("config is missing"))
-			Expect(mongoStore).To(BeNil())
+			Expect(str).To(BeNil())
+		})
+
+		It("returns an error if the config is invalid", func() {
+			cfg.Addresses = nil
+			var err error
+			str, err = storeStructuredMongo.NewStore(cfg, lgr)
+			Expect(err).To(MatchError("config is invalid; addresses is missing"))
+			Expect(str).To(BeNil())
 		})
 
 		It("returns an error if the logger is missing", func() {
 			var err error
-			mongoStore, err = mongo.NewStore(mongoConfig, nil)
+			str, err = storeStructuredMongo.NewStore(cfg, nil)
 			Expect(err).To(MatchError("logger is missing"))
-			Expect(mongoStore).To(BeNil())
-		})
-
-		It("returns an error if the config is invalid", func() {
-			mongoConfig.Addresses = nil
-			var err error
-			mongoStore, err = mongo.NewStore(mongoConfig, logger)
-			Expect(err).To(MatchError("config is invalid; addresses is missing"))
-			Expect(mongoStore).To(BeNil())
+			Expect(str).To(BeNil())
 		})
 
 		It("returns an error if the addresses are not reachable", func() {
-			mongoConfig.Addresses = []string{"127.0.0.0", "127.0.0.0"}
+			cfg.Addresses = []string{"127.0.0.0", "127.0.0.0"}
 			var err error
-			mongoStore, err = mongo.NewStore(mongoConfig, logger)
+			str, err = storeStructuredMongo.NewStore(cfg, lgr)
 			Expect(err).To(MatchError("unable to dial database; no reachable servers"))
-			Expect(mongoStore).To(BeNil())
+			Expect(str).To(BeNil())
 		})
 
 		It("returns an error if the username or password is invalid", func() {
-			mongoConfig.Username = pointer.FromString("username")
-			mongoConfig.Password = pointer.FromString("password")
+			cfg.Username = pointer.FromString("username")
+			cfg.Password = pointer.FromString("password")
 			var err error
-			mongoStore, err = mongo.NewStore(mongoConfig, logger)
+			str, err = storeStructuredMongo.NewStore(cfg, lgr)
 			Expect(err).To(MatchError("unable to dial database; server returned error on SASL authentication step: Authentication failed."))
-			Expect(mongoStore).To(BeNil())
+			Expect(str).To(BeNil())
 		})
 
 		It("returns an error if TLS is specified on a server that does not support it", func() {
-			mongoConfig.TLS = true
+			cfg.TLS = true
 			var err error
-			mongoStore, err = mongo.NewStore(mongoConfig, logger)
+			str, err = storeStructuredMongo.NewStore(cfg, lgr)
 			Expect(err).To(MatchError("unable to dial database; no reachable servers"))
-			Expect(mongoStore).To(BeNil())
+			Expect(str).To(BeNil())
 		})
 
 		It("returns no error if successful", func() {
 			var err error
-			mongoStore, err = mongo.NewStore(mongoConfig, logger)
+			str, err = storeStructuredMongo.NewStore(cfg, lgr)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(mongoStore).ToNot(BeNil())
+			Expect(str).ToNot(BeNil())
 		})
 	})
 
 	Context("with a new store", func() {
 		BeforeEach(func() {
 			var err error
-			mongoStore, err = mongo.NewStore(mongoConfig, logger)
+			str, err = storeStructuredMongo.NewStore(cfg, lgr)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(mongoStore).ToNot(BeNil())
+			Expect(str).ToNot(BeNil())
 		})
 
 		Context("IsClosed/Close", func() {
 			It("returns false if it is not closed", func() {
-				Expect(mongoStore.IsClosed()).To(BeFalse())
+				Expect(str.IsClosed()).To(BeFalse())
 			})
 
 			It("returns true if it is closed", func() {
-				mongoStore.Close()
-				Expect(mongoStore.IsClosed()).To(BeTrue())
+				str.Close()
+				Expect(str.IsClosed()).To(BeTrue())
 			})
 		})
 
 		Context("Status", func() {
 			It("returns the appropriate status when not closed", func() {
-				status := mongoStore.Status()
+				status := str.Status()
 				Expect(status).ToNot(BeNil())
-				mongoStatus, ok := status.(*mongo.Status)
+				mongoStatus, ok := status.(*storeStructuredMongo.Status)
 				Expect(ok).To(BeTrue())
 				Expect(mongoStatus).ToNot(BeNil())
 				Expect(mongoStatus.State).To(Equal("OPEN"))
@@ -133,11 +126,11 @@ var _ = Describe("Mongo", func() {
 			})
 
 			It("returns the appropriate status when closed", func() {
-				mongoStore.Close()
-				Expect(mongoStore.IsClosed()).To(BeTrue())
-				status := mongoStore.Status()
+				str.Close()
+				Expect(str.IsClosed()).To(BeTrue())
+				status := str.Status()
 				Expect(status).ToNot(BeNil())
-				mongoStatus, ok := status.(*mongo.Status)
+				mongoStatus, ok := status.(*storeStructuredMongo.Status)
 				Expect(ok).To(BeTrue())
 				Expect(mongoStatus).ToNot(BeNil())
 				Expect(mongoStatus.State).To(Equal("CLOSED"))
@@ -151,54 +144,48 @@ var _ = Describe("Mongo", func() {
 
 		Context("NewSession", func() {
 			It("returns a new session if no collection specified", func() {
-				mongoSession = mongoStore.NewSession("")
-				Expect(mongoSession).ToNot(BeNil())
+				ssn = str.NewSession("")
+				Expect(ssn).ToNot(BeNil())
 			})
 
 			It("returns successfully", func() {
-				mongoSession = mongoStore.NewSession("test")
-				Expect(mongoSession).ToNot(BeNil())
+				ssn = str.NewSession("test")
+				Expect(ssn).ToNot(BeNil())
 			})
 		})
 
 		Context("with a new session", func() {
 			BeforeEach(func() {
-				mongoSession = mongoStore.NewSession("test")
-				Expect(mongoSession).ToNot(BeNil())
+				ssn = str.NewSession("test")
+				Expect(ssn).ToNot(BeNil())
 			})
 
 			Context("IsClosed/Close", func() {
 				It("returns false if it is not closed", func() {
-					Expect(mongoSession.IsClosed()).To(BeFalse())
+					Expect(ssn.IsClosed()).To(BeFalse())
 				})
 
 				It("returns true if it is closed", func() {
-					mongoSession.Close()
-					Expect(mongoSession.IsClosed()).To(BeTrue())
-				})
-			})
-
-			Context("EnsureIndexes", func() {
-				It("returns successfully", func() {
-					Expect(mongoSession.EnsureIndexes()).To(Succeed())
+					ssn.Close()
+					Expect(ssn.IsClosed()).To(BeTrue())
 				})
 			})
 
 			Context("EnsureAllIndexes", func() {
 				It("returns an error if the index is invalid", func() {
-					Expect(mongoSession.EnsureAllIndexes([]mgo.Index{{}})).To(MatchError("unable to ensure index with key []; invalid index key: no fields provided"))
+					Expect(ssn.EnsureAllIndexes([]mgo.Index{{}})).To(MatchError("unable to ensure index with key []; invalid index key: no fields provided"))
 				})
 
 				It("returns successfully with nil indexes", func() {
-					Expect(mongoSession.EnsureAllIndexes(nil)).To(Succeed())
+					Expect(ssn.EnsureAllIndexes(nil)).To(Succeed())
 				})
 
 				It("returns successfully with empty indexes", func() {
-					Expect(mongoSession.EnsureAllIndexes([]mgo.Index{})).To(Succeed())
+					Expect(ssn.EnsureAllIndexes([]mgo.Index{})).To(Succeed())
 				})
 
 				It("returns successfully with multiple indexes", func() {
-					Expect(mongoSession.EnsureAllIndexes([]mgo.Index{
+					Expect(ssn.EnsureAllIndexes([]mgo.Index{
 						{Key: []string{"one"}, Unique: true, Background: true},
 						{Key: []string{"two"}, Background: true},
 						{Key: []string{"three"}},
@@ -208,18 +195,18 @@ var _ = Describe("Mongo", func() {
 
 			Context("C", func() {
 				It("returns successfully", func() {
-					Expect(mongoSession.C()).ToNot(BeNil())
+					Expect(ssn.C()).ToNot(BeNil())
 				})
 
 				It("returns nil if the session is closed", func() {
-					mongoSession.Close()
-					Expect(mongoSession.C()).To(BeNil())
+					ssn.Close()
+					Expect(ssn.C()).To(BeNil())
 				})
 			})
 
 			DescribeTable("ConstructUpdate",
 				func(set bson.M, unset bson.M, expected bson.M) {
-					Expect(mongoSession.ConstructUpdate(set, unset)).To(Equal(expected))
+					Expect(ssn.ConstructUpdate(set, unset)).To(Equal(expected))
 				},
 				Entry("where set is nil and unset is nil", nil, nil, nil),
 				Entry("where set is empty and unset is nil", bson.M{}, nil, nil),

@@ -12,7 +12,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/platform"
 	serviceService "github.com/tidepool-org/platform/service/service"
-	baseMongo "github.com/tidepool-org/platform/store/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/task"
 	"github.com/tidepool-org/platform/task/queue"
 	"github.com/tidepool-org/platform/task/service"
@@ -87,7 +87,7 @@ func (s *Service) TaskClient() task.Client {
 func (s *Service) Status() *service.Status {
 	return &service.Status{
 		Version:   s.VersionReporter().Long(),
-		TaskStore: s.TaskStore().Status(),
+		TaskStore: s.taskStore.Status(),
 		Server:    s.API().Status(),
 	}
 }
@@ -95,7 +95,7 @@ func (s *Service) Status() *service.Status {
 func (s *Service) initializeTaskStore() error {
 	s.Logger().Debug("Loading task store config")
 
-	cfg := baseMongo.NewConfig()
+	cfg := storeStructuredMongo.NewConfig()
 	if err := cfg.Load(s.ConfigReporter().WithScopes("task", "store")); err != nil {
 		return errors.Wrap(err, "unable to load task store config")
 	}

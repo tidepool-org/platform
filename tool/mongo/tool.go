@@ -7,7 +7,7 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/store/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/tool"
 )
 
@@ -18,7 +18,7 @@ const (
 
 type Tool struct {
 	*tool.Tool
-	mongoConfig *mongo.Config
+	mongoConfig *storeStructuredMongo.Config
 }
 
 func NewTool(prefix string, scopes ...string) (*Tool, error) {
@@ -29,7 +29,7 @@ func NewTool(prefix string, scopes ...string) (*Tool, error) {
 
 	return &Tool{
 		Tool:        tuel,
-		mongoConfig: mongo.NewConfig(),
+		mongoConfig: storeStructuredMongo.NewConfig(),
 	}, nil
 }
 
@@ -68,7 +68,7 @@ func (t *Tool) ParseContext(context *cli.Context) bool {
 	}
 
 	if context.IsSet(AddressesFlag) {
-		t.mongoConfig.Addresses = mongo.SplitAddresses(context.String(AddressesFlag))
+		t.mongoConfig.Addresses = storeStructuredMongo.SplitAddresses(context.String(AddressesFlag))
 	}
 	if context.IsSet(TLSFlag) {
 		t.mongoConfig.TLS = context.Bool(TLSFlag)
@@ -77,8 +77,8 @@ func (t *Tool) ParseContext(context *cli.Context) bool {
 	return true
 }
 
-func (t *Tool) NewMongoConfig() *mongo.Config {
-	mongoConfig := mongo.NewConfig()
+func (t *Tool) NewMongoConfig() *storeStructuredMongo.Config {
+	mongoConfig := storeStructuredMongo.NewConfig()
 	if t.mongoConfig.Addresses != nil {
 		mongoConfig.Addresses = append([]string{}, t.mongoConfig.Addresses...)
 	}

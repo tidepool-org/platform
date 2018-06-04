@@ -3,15 +3,15 @@ package mongo
 import (
 	"github.com/tidepool-org/platform/auth/store"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/store/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
 type Store struct {
-	*mongo.Store
+	*storeStructuredMongo.Store
 }
 
-func NewStore(cfg *mongo.Config, lgr log.Logger) (*Store, error) {
-	str, err := mongo.NewStore(cfg, lgr)
+func NewStore(cfg *storeStructuredMongo.Config, lgr log.Logger) (*Store, error) {
+	str, err := storeStructuredMongo.NewStore(cfg, lgr)
 	if err != nil {
 		return nil, err
 	}
@@ -22,24 +22,32 @@ func NewStore(cfg *mongo.Config, lgr log.Logger) (*Store, error) {
 }
 
 func (s *Store) EnsureIndexes() error {
-	providerSessionSession := s.NewProviderSessionSession()
+	providerSessionSession := s.providerSessionSession()
 	defer providerSessionSession.Close()
 	if err := providerSessionSession.EnsureIndexes(); err != nil {
 		return err
 	}
 
-	restrictedTokenSession := s.NewRestrictedTokenSession()
+	restrictedTokenSession := s.restrictedTokenSession()
 	defer restrictedTokenSession.Close()
 	return restrictedTokenSession.EnsureIndexes()
 }
 
 func (s *Store) NewProviderSessionSession() store.ProviderSessionSession {
+	return s.providerSessionSession()
+}
+
+func (s *Store) NewRestrictedTokenSession() store.RestrictedTokenSession {
+	return s.restrictedTokenSession()
+}
+
+func (s *Store) providerSessionSession() *ProviderSessionSession {
 	return &ProviderSessionSession{
 		Session: s.Store.NewSession("provider_sessions"),
 	}
 }
 
-func (s *Store) NewRestrictedTokenSession() store.RestrictedTokenSession {
+func (s *Store) restrictedTokenSession() *RestrictedTokenSession {
 	return &RestrictedTokenSession{
 		Session: s.Store.NewSession("restricted_tokens"),
 	}
