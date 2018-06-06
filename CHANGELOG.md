@@ -1,5 +1,10 @@
 ## HEAD
 
+* Add unstructured storage backed by file system and AWS S3 with factory
+* Add AWS API interface with actual and test implementations
+* Update test config reporter to support scopes
+* Add temporary file and directory test helpers
+* Add test io.Reader
 * Use dep dependency management tool rather than Godep
 * Remove unnecessary Makefile targets related to Godep
 * Move store/mongo package to store/structured/mongo

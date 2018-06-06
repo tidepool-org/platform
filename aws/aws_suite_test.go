@@ -1,4 +1,4 @@
-package mongo_test
+package aws_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -9,5 +9,5 @@ import (
 
 func TestSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "store/structured/mongo")
+	RunSpecs(t, "aws")
 }
