@@ -273,44 +273,8 @@ clean-all: clean
 
 pre-commit: format imports vet lint
 
-# DO NOT USE THE FOLLOWING TARGETS UNDER NORMAL CIRCUMSTANCES!!!
-
-# Remove everything in $(REPOSITORY_GOPATH) except $(REPOSITORY_PACKAGE)
 gopath-implode: check-environment
 	cd $(REPOSITORY_GOPATH) && rm -rf bin pkg && find src -not -path "src/$(REPOSITORY_PACKAGE)/*" -type f -delete && find src -not -path "src/$(REPOSITORY_PACKAGE)/*" -type d -empty -delete
-
-# Remove saved dependencies
-dependencies-implode: check-environment
-	cd $(ROOT_DIRECTORY) && rm -rf Godeps vendor
-
-bootstrap-implode: gopath-implode dependencies-implode
-
-bootstrap-dependencies: godep
-	go get github.com/onsi/ginkgo
-	go get github.com/onsi/ginkgo/extensions/table
-	go get github.com/onsi/ginkgo/ginkgo
-	go get github.com/onsi/gomega
-	go get github.com/onsi/gomega/gbytes
-	go get github.com/onsi/gomega/gexec
-	go get github.com/onsi/gomega/ghttp
-	go get github.com/onsi/gomega/gstruct
-	go get golang.org/x/sys/unix
-	go get ./...
-
-bootstrap-save: bootstrap-dependencies
-	cd $(ROOT_DIRECTORY) && godep save ./... \
-		github.com/onsi/ginkgo/extensions/table \
-		github.com/onsi/ginkgo/ginkgo \
-		github.com/onsi/gomega/gbytes \
-		github.com/onsi/gomega/gexec \
-		github.com/onsi/gomega/ghttp \
-		github.com/onsi/gomega/gstruct
-
-# Bootstrap with initial dependencies
-bootstrap:
-	@$(MAKE) bootstrap-implode
-	@$(MAKE) bootstrap-save
-	@$(MAKE) gopath-implode
 
 .PHONY: default tmp check-gopath check-environment \
 	godep goimports golint gocode godef CompileDaemon ginkgo buildable editable \
@@ -319,4 +283,4 @@ bootstrap:
 	deploy deploy-services deploy-migrations deploy-tools ci-deploy bundle-deploy \
 	docker docker-build docker-push ci-docker \
 	clean clean-bin clean-cover clean-debug clean-deploy clean-all pre-commit \
-	gopath-implode dependencies-implode bootstrap-implode bootstrap-dependencies bootstrap-save bootstrap
+	gopath-implode

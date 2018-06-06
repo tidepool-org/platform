@@ -11,7 +11,7 @@
 // server.
 //
 // See https://tools.ietf.org/html/rfc6749#section-4.4
-package clientcredentials
+package clientcredentials // import "golang.org/x/oauth2/clientcredentials"
 
 import (
 	"fmt"

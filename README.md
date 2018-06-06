@@ -8,7 +8,8 @@ The Tidepool Platform API.
 
 # Setup
 
-1. Install Go version 1.8 or later.
+1. Install Go version 1.10 or later.
+1. Install `dep` dependency management tool. See https://golang.github.io/dep/docs/installation.html.
 1. Create a brand new Go directory.
 1. Set the `GOPATH` environment variable to the newly created Go directory.
 1. Add `$GOPATH/bin` to the `PATH` environment variable.
@@ -21,6 +22,7 @@ For example:
 
 ```
 brew install go
+brew install dep
 mkdir ~/go
 export GOPATH=~/go
 export PATH=$GOPATH/bin:$PATH

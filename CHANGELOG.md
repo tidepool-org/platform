@@ -1,5 +1,7 @@
 ## HEAD
 
+* Use dep dependency management tool rather than Godep
+* Remove unnecessary Makefile targets related to Godep
 * Move store/mongo package to store/structured/mongo
 * Use correct import names for store packages
 * Use io.Closer interface for store Close functionality
