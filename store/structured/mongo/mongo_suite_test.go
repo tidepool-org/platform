@@ -9,5 +9,5 @@ import (
 
 func TestSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "store/mongo")
+	RunSpecs(t, "store/structured/mongo")
 }
