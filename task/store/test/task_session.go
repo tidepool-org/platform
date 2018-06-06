@@ -1,17 +1,17 @@
 package test
 
-import storeStructuredTest "github.com/tidepool-org/platform/store/structured/test"
+import "github.com/tidepool-org/platform/test"
 
 type TasksSession struct {
-	*storeStructuredTest.Session
+	*test.Closer
 }
 
 func NewTasksSession() *TasksSession {
 	return &TasksSession{
-		Session: storeStructuredTest.NewSession(),
+		Closer: test.NewCloser(),
 	}
 }
 
-func (t *TasksSession) UnusedOutputsCount() int {
-	return t.Session.UnusedOutputsCount()
+func (t *TasksSession) AssertOutputsEmpty() {
+	t.Closer.AssertOutputsEmpty()
 }

@@ -1,20 +1,16 @@
 package test
 
 import (
-	storeStructuredTest "github.com/tidepool-org/platform/store/structured/test"
 	"github.com/tidepool-org/platform/task/store"
 )
 
 type Store struct {
-	*storeStructuredTest.Store
 	NewTaskSessionInvocations int
 	NewTaskSessionOutputs     []store.TaskSession
 }
 
 func NewStore() *Store {
-	return &Store{
-		Store: storeStructuredTest.NewStore(),
-	}
+	return &Store{}
 }
 
 func (s *Store) NewTaskSession() store.TaskSession {
