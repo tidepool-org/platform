@@ -1,5 +1,8 @@
 ## HEAD
 
+* Add request.DecodeRequestPathParameter helper
+* Add new request errors
+* Remove unused errors.ErrorInternal
 * Add unstructured storage backed by file system and AWS S3 with factory
 * Add AWS API interface with actual and test implementations
 * Update test config reporter to support scopes

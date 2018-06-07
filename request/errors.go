@@ -14,7 +14,10 @@ const (
 	ErrorCodeUnauthenticated     = "unauthenticated"
 	ErrorCodeUnauthorized        = "unauthorized"
 	ErrorCodeResourceNotFound    = "resource-not-found"
+	ErrorCodeHeaderMissing       = "header-missing"
+	ErrorCodeHeaderInvalid       = "header-invalid"
 	ErrorCodeParameterMissing    = "parameter-missing"
+	ErrorCodeParameterInvalid    = "parameter-invalid"
 	ErrorCodeJSONMalformed       = "json-malformed"
 )
 
@@ -50,8 +53,24 @@ func ErrorResourceNotFoundWithID(id string) error {
 	return errors.Preparedf(ErrorCodeResourceNotFound, "resource not found", "resource with id %q not found", id)
 }
 
-func ErrorParameterMissing(parameter string) error {
-	return errors.Preparedf(ErrorCodeParameterMissing, "parameter is missing", "parameter %q is missing", parameter)
+func ErrorResourceNotFoundWithIDAndRevision(id string, revision int) error {
+	return errors.Preparedf(ErrorCodeResourceNotFound, "resource not found", "revision %d of resource with id %q not found", revision, id)
+}
+
+func ErrorHeaderMissing(key string) error {
+	return errors.Preparedf(ErrorCodeHeaderMissing, "header is missing", "header %q is missing", key)
+}
+
+func ErrorHeaderInvalid(key string) error {
+	return errors.Preparedf(ErrorCodeHeaderInvalid, "header is invalid", "header %q is invalid", key)
+}
+
+func ErrorParameterMissing(key string) error {
+	return errors.Preparedf(ErrorCodeParameterMissing, "parameter is missing", "parameter %q is missing", key)
+}
+
+func ErrorParameterInvalid(key string) error {
+	return errors.Preparedf(ErrorCodeParameterInvalid, "parameter is invalid", "parameter %q is invalid", key)
 }
 
 func ErrorJSONMalformed() error {

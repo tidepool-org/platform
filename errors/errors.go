@@ -193,7 +193,7 @@ func Code(err error) string {
 	if objectErr, objectOK := err.(*object); objectOK {
 		return objectErr.Code
 	}
-	return "internal-error"
+	return ""
 }
 
 func Cause(err error) error {
@@ -363,16 +363,6 @@ func (s *Serializable) SetBSON(raw bson.Raw) error {
 		s.Error = errObject
 	}
 	return nil
-}
-
-func ErrorInternal(err error) error {
-	return &object{
-		Code:   "internal-error",
-		Title:  "internal error",
-		Detail: "internal error",
-		Caller: GetCaller(1),
-		Cause:  &Serializable{Error: err},
-	}
 }
 
 type array struct {

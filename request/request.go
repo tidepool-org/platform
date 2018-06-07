@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/ant0ine/go-json-rest/rest"
+
 	"github.com/tidepool-org/platform/errors"
 )
 
@@ -90,6 +92,20 @@ func (d *details) HasToken() bool {
 
 func (d *details) Token() string {
 	return d.token
+}
+
+func DecodeRequestPathParameter(req *rest.Request, key string, validator func(value string) bool) (string, error) {
+	if req == nil {
+		return "", errors.New("request is missing")
+	}
+
+	value, ok := req.PathParams[key]
+	if !ok || value == "" {
+		return "", ErrorParameterMissing(key)
+	} else if validator != nil && !validator(value) {
+		return "", ErrorParameterInvalid(key)
+	}
+	return value, nil
 }
 
 type contextKey string

@@ -216,16 +216,4 @@ var _ = Describe("Errors", func() {
 	// 		Expect(errors.ErrorFromContext(errors.NewContextWithError(context.Background(), errs))).To(BeIdenticalTo(errs))
 	// 	})
 	// })
-
-	// DescribeTable("all errors",
-	// 	func(err *errors.Error, code string, title string, detail string) {
-	// 		Expect(err).ToNot(BeNil())
-	// 		Expect(err.Code).To(Equal(code))
-	// 		Expect(err.Title).To(Equal(title))
-	// 		Expect(err.Detail).To(Equal(detail))
-	// 		Expect(err.Source).To(BeNil())
-	// 		Expect(err.Meta).To(BeNil())
-	// 	},
-	// 	Entry("is ErrorInternal", errors.ErrorInternal(), "internal-error", "internal error", "internal error"),
-	// )
 })

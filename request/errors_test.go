@@ -51,7 +51,11 @@ var _ = Describe("Errors", func() {
 		Entry("is ErrorUnauthorized", request.ErrorUnauthorized(), "unauthorized", "authentication token is not authorized for requested action", "authentication token is not authorized for requested action"),
 		Entry("is ErrorResourceNotFound", request.ErrorResourceNotFound(), "resource-not-found", "resource not found", "resource not found"),
 		Entry("is ErrorResourceNotFoundWithID", request.ErrorResourceNotFoundWithID("test-id"), "resource-not-found", "resource not found", `resource with id "test-id" not found`),
+		Entry("is ErrorResourceNotFoundWithIDAndRevision", request.ErrorResourceNotFoundWithIDAndRevision("test-id", 1), "resource-not-found", "resource not found", `revision 1 of resource with id "test-id" not found`),
+		Entry("is ErrorHeaderMissing", request.ErrorHeaderMissing("X-Test-Header"), "header-missing", "header is missing", `header "X-Test-Header" is missing`),
+		Entry("is ErrorHeaderInvalid", request.ErrorHeaderInvalid("X-Test-Header"), "header-invalid", "header is invalid", `header "X-Test-Header" is invalid`),
 		Entry("is ErrorParameterMissing", request.ErrorParameterMissing("test_parameter"), "parameter-missing", "parameter is missing", `parameter "test_parameter" is missing`),
+		Entry("is ErrorParameterInvalid", request.ErrorParameterInvalid("test_parameter"), "parameter-invalid", "parameter is invalid", `parameter "test_parameter" is invalid`),
 		Entry("is ErrorJSONMalformed", request.ErrorJSONMalformed(), "json-malformed", "json is malformed", "json is malformed"),
 	)
 
@@ -66,6 +70,7 @@ var _ = Describe("Errors", func() {
 			Entry("is ErrorUnauthorized", request.ErrorUnauthorized(), 403),
 			Entry("is ErrorResourceNotFound", request.ErrorResourceNotFound(), 404),
 			Entry("is ErrorResourceNotFoundWithID", request.ErrorResourceNotFoundWithID("test-id"), 404),
+			Entry("is ErrorResourceNotFoundWithIDAndRevision", request.ErrorResourceNotFoundWithIDAndRevision("test-id", 1), 404),
 			Entry("is another request error", request.ErrorJSONMalformed(), 500),
 			Entry("is another error", errors.New("test-error"), 500),
 			Entry("is nil error", nil, 500),
