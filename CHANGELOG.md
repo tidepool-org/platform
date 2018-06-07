@@ -1,5 +1,6 @@
 ## HEAD
 
+* Add common service API status router
 * Add request.DecodeRequestPathParameter helper
 * Add new request errors
 * Remove unused errors.ErrorInternal
