@@ -640,32 +640,31 @@ var _ = Describe("Base", func() {
 				),
 				Entry("tags tag empty",
 					func(datum *types.Base) {
-						datum.Tags = pointer.FromStringArray(append([]string{testDataTypes.NewTag(1, 100), "", testDataTypes.NewTag(1, 100)}, testDataTypes.NewTags(0, 96)...))
+						datum.Tags = pointer.FromStringArray(append([]string{testDataTypes.NewTag(100, 100), ""}, testDataTypes.NewTags(0, 98)...))
 					},
 					structure.Origins(),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/tags/1"),
 				),
 				Entry("tags tag length; in range (upper)",
 					func(datum *types.Base) {
-						datum.Tags = pointer.FromStringArray(append([]string{testDataTypes.NewTag(100, 100), testDataTypes.NewTag(1, 100), testDataTypes.NewTag(100, 100)}, testDataTypes.NewTags(0, 97)...))
+						datum.Tags = pointer.FromStringArray(append([]string{testDataTypes.NewTag(100, 100)}, testDataTypes.NewTags(0, 99)...))
 					},
 					structure.Origins(),
 				),
 				Entry("tags tag length; out of range (upper)",
 					func(datum *types.Base) {
-						datum.Tags = pointer.FromStringArray(append([]string{testDataTypes.NewTag(101, 101), testDataTypes.NewTag(1, 100), testDataTypes.NewTag(101, 101)}, testDataTypes.NewTags(0, 97)...))
+						datum.Tags = pointer.FromStringArray(append([]string{testDataTypes.NewTag(101, 101)}, testDataTypes.NewTags(0, 99)...))
 					},
 					structure.Origins(),
 					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/tags/0"),
-					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/tags/2"),
 				),
 				Entry("tags tag duplicate",
 					func(datum *types.Base) {
-						tag := testDataTypes.NewTag(1, 100)
-						datum.Tags = pointer.FromStringArray(append([]string{testDataTypes.NewTag(1, 100), tag, tag}, testDataTypes.NewTags(0, 96)...))
+						tags := testDataTypes.NewTags(5, 99)
+						datum.Tags = pointer.FromStringArray(append([]string{tags[4]}, tags...))
 					},
 					structure.Origins(),
-					testErrors.WithPointerSource(structureValidator.ErrorValueDuplicate(), "/tags/2"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueDuplicate(), "/tags/5"),
 				),
 				Entry("time missing",
 					func(datum *types.Base) { datum.Time = nil },

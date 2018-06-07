@@ -214,7 +214,7 @@ var _ = Describe("Responder", func() {
 			var byts []byte
 
 			BeforeEach(func() {
-				byts = []byte(test.NewVariableString(0, 64, test.CharsetText))
+				byts = []byte(test.NewVariableString(1, 64, test.CharsetText))
 			})
 
 			It("responds with successful non-empty response", func() {
@@ -251,7 +251,7 @@ var _ = Describe("Responder", func() {
 			var str string
 
 			BeforeEach(func() {
-				str = test.NewVariableString(0, 64, test.CharsetText)
+				str = test.NewVariableString(1, 64, test.CharsetText)
 			})
 
 			It("responds with successful non-empty response", func() {
@@ -289,7 +289,7 @@ var _ = Describe("Responder", func() {
 			var reader io.Reader
 
 			BeforeEach(func() {
-				byts = []byte(test.NewVariableString(0, 64, test.CharsetText))
+				byts = []byte(test.NewVariableString(1, 64, test.CharsetText))
 				reader = bytes.NewReader(byts)
 			})
 

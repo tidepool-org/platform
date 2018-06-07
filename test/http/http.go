@@ -144,7 +144,7 @@ func NewHeaderKey() string {
 }
 
 func NewHeaderValue() string {
-	return test.NewVariableString(0, 15, CharsetValue)
+	return test.NewVariableString(1, 16, CharsetValue)
 }
 
 func NewParameterKey() string {
@@ -152,7 +152,7 @@ func NewParameterKey() string {
 }
 
 func NewParameterValue() string {
-	return test.NewVariableString(0, 15, CharsetValue)
+	return test.NewVariableString(1, 16, CharsetValue)
 }
 
 func NewUserAgent() string {

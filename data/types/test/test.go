@@ -36,9 +36,13 @@ func NewTag(minimumLength int, maximumLength int) string {
 }
 
 func NewTags(minimumLength int, maximumLength int) []string {
-	result := make([]string, minimumLength+rand.Intn(maximumLength-minimumLength+1))
-	for index := range result {
-		result[index] = NewTag(1, 100)
+	var result []string
+	exists := map[string]bool{}
+	for length := minimumLength + rand.Intn(maximumLength-minimumLength+1); len(result) < length; {
+		if tag := NewTag(1, 100); !exists[tag] {
+			result = append(result, tag)
+			exists[tag] = true
+		}
 	}
 	return result
 }
