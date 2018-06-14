@@ -1,5 +1,6 @@
 ## HEAD
 
+* Minor updates to unstructured storage
 * Add and update test helpers
 * Add common service API status router
 * Add request.DecodeRequestPathParameter helper

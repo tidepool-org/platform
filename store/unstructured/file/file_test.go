@@ -155,7 +155,7 @@ var _ = Describe("File", func() {
 				It("returns an error if it is unable to write the file", func() {
 					err := errorsTest.NewError()
 					rdr := test.NewReader()
-					rdr.ReadOutput = &test.ReadOutput{Length: 0, Error: err}
+					rdr.ReadOutput = &test.ReadOutput{BytesRead: 0, Error: err}
 					Expect(str.Put(ctx, key, rdr)).To(MatchError(fmt.Sprintf("unable to write file at path %q; %s", keyPath, err)))
 				})
 

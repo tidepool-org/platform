@@ -17,8 +17,8 @@ type DownloadWithContextInput struct {
 }
 
 type DownloadWithContextOutput struct {
-	Length int64
-	Error  error
+	BytesWritten int64
+	Error        error
 }
 
 type UploadWithContextInput struct {
@@ -61,10 +61,10 @@ func (s *S3Manager) DownloadWithContext(ctx aws.Context, writerAt io.WriterAt, i
 	if len(s.DownloadWithContextOutputs) > 0 {
 		output := s.DownloadWithContextOutputs[0]
 		s.DownloadWithContextOutputs = s.DownloadWithContextOutputs[1:]
-		return output.Length, output.Error
+		return output.BytesWritten, output.Error
 	}
 	if s.DownloadWithContextOutput != nil {
-		return s.DownloadWithContextOutput.Length, s.DownloadWithContextOutput.Error
+		return s.DownloadWithContextOutput.BytesWritten, s.DownloadWithContextOutput.Error
 	}
 	panic("DownloadWithContext has no output")
 }

@@ -47,9 +47,11 @@ func (s *Store) Exists(ctx context.Context, key string) (bool, error) {
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
 		if !os.IsNotExist(err) {
+			logger.WithError(err).Errorf("Unable to stat file at path %q", filePath)
 			return false, errors.Wrapf(err, "unable to stat file at path %q", filePath)
 		}
 	} else if !fileInfo.Mode().IsRegular() {
+		logger.Errorf("Unexpected directory or irregular file at path %q", filePath)
 		return false, errors.Newf("unexpected directory or irregular file at path %q", filePath)
 	} else {
 		exists = true
@@ -78,11 +80,13 @@ func (s *Store) Put(ctx context.Context, key string, reader io.Reader) error {
 
 	err := os.MkdirAll(directoryPath, 0777)
 	if err != nil {
+		logger.WithError(err).Errorf("Unable to create directories at path %q", directoryPath)
 		return errors.Wrapf(err, "unable to create directories at path %q", directoryPath)
 	}
 
 	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
+		logger.WithError(err).Errorf("Unable to create file at path %q", filePath)
 		return errors.Wrapf(err, "unable to create file at path %q", filePath)
 	}
 
@@ -91,6 +95,7 @@ func (s *Store) Put(ctx context.Context, key string, reader io.Reader) error {
 		err = closeErr
 	}
 	if err != nil {
+		logger.WithError(err).Errorf("Unable to write file at path %q", filePath)
 		return errors.Wrapf(err, "unable to write file at path %q", filePath)
 	}
 
@@ -114,13 +119,16 @@ func (s *Store) Get(ctx context.Context, key string) (io.ReadCloser, error) {
 	var reader io.ReadCloser
 	if file, openErr := os.Open(filePath); openErr != nil {
 		if !os.IsNotExist(openErr) {
+			logger.WithError(openErr).Errorf("Unable to open file at path %q", filePath)
 			return nil, errors.Wrapf(openErr, "unable to open file at path %q", filePath)
 		}
 	} else if fileInfo, statErr := file.Stat(); statErr != nil {
 		file.Close()
+		logger.WithError(statErr).Errorf("Unable to stat file at path %q", filePath)
 		return nil, errors.Wrapf(statErr, "unable to stat file at path %q", filePath)
 	} else if !fileInfo.Mode().IsRegular() {
 		file.Close()
+		logger.Errorf("Unexpected directory or irregular file at path %q", filePath)
 		return nil, errors.Newf("unexpected directory or irregular file at path %q", filePath)
 	} else {
 		reader = file
@@ -147,12 +155,15 @@ func (s *Store) Delete(ctx context.Context, key string) (bool, error) {
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
 		if !os.IsNotExist(err) {
+			logger.WithError(err).Errorf("Unable to stat file at path %q", filePath)
 			return false, errors.Wrapf(err, "unable to stat file at path %q", filePath)
 		}
 	} else if !fileInfo.Mode().IsRegular() {
+		logger.Errorf("Unexpected directory or irregular file at path %q", filePath)
 		return false, errors.Newf("unexpected directory or irregular file at path %q", filePath)
 	} else if removeErr := os.Remove(filePath); removeErr != nil {
 		if !os.IsNotExist(removeErr) {
+			logger.WithError(removeErr).Errorf("Unable to remove file at path %q", filePath)
 			return false, errors.Wrapf(removeErr, "unable to remove file at path %q", filePath)
 		}
 	} else {

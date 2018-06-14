@@ -9,15 +9,15 @@ type API struct {
 	S3Invocations                  int
 	S3Stub                         func() s3iface.S3API
 	S3Outputs                      []s3iface.S3API
-	S3Output                       *s3iface.S3API
+	S3Output                       s3iface.S3API
 	S3ManagerDownloaderInvocations int
 	S3ManagerDownloaderStub        func() s3manageriface.DownloaderAPI
 	S3ManagerDownloaderOutputs     []s3manageriface.DownloaderAPI
-	S3ManagerDownloaderOutput      *s3manageriface.DownloaderAPI
+	S3ManagerDownloaderOutput      s3manageriface.DownloaderAPI
 	S3ManagerUploaderInvocations   int
 	S3ManagerUploaderStub          func() s3manageriface.UploaderAPI
 	S3ManagerUploaderOutputs       []s3manageriface.UploaderAPI
-	S3ManagerUploaderOutput        *s3manageriface.UploaderAPI
+	S3ManagerUploaderOutput        s3manageriface.UploaderAPI
 }
 
 func NewAPI() *API {
@@ -35,7 +35,7 @@ func (a *API) S3() s3iface.S3API {
 		return output
 	}
 	if a.S3Output != nil {
-		return *a.S3Output
+		return a.S3Output
 	}
 	panic("S3API has no output")
 }
@@ -51,7 +51,7 @@ func (a *API) S3ManagerDownloader() s3manageriface.DownloaderAPI {
 		return output
 	}
 	if a.S3ManagerDownloaderOutput != nil {
-		return *a.S3ManagerDownloaderOutput
+		return a.S3ManagerDownloaderOutput
 	}
 	panic("S3ManagerDownloader has no output")
 }
@@ -67,7 +67,7 @@ func (a *API) S3ManagerUploader() s3manageriface.UploaderAPI {
 		return output
 	}
 	if a.S3ManagerUploaderOutput != nil {
-		return *a.S3ManagerUploaderOutput
+		return a.S3ManagerUploaderOutput
 	}
 	panic("S3ManagerUploader has no output")
 }

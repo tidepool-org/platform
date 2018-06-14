@@ -62,6 +62,7 @@ func (s *Store) Exists(ctx context.Context, key string) (bool, error) {
 	}
 	if _, err := s.awsAPI.S3().HeadObjectWithContext(ctx, input); err != nil {
 		if awsErr, ok := err.(awserr.Error); !ok || awsErr.Code() != "NotFound" {
+			logger.WithError(err).Errorf("Unable to head object with key %q", key)
 			return false, errors.Wrapf(err, "unable to head object with key %q", key)
 		}
 	} else {
@@ -95,6 +96,7 @@ func (s *Store) Put(ctx context.Context, key string, reader io.Reader) error {
 		ServerSideEncryption: aws.String("AES256"),
 	}
 	if _, err := s.awsAPI.S3ManagerUploader().UploadWithContext(ctx, input); err != nil {
+		logger.WithError(err).Errorf("Unable to upload object with key %q", key)
 		return errors.Wrapf(err, "unable to upload object with key %q", key)
 	}
 
@@ -123,6 +125,7 @@ func (s *Store) Get(ctx context.Context, key string) (io.ReadCloser, error) {
 	output := aws.NewWriteAtBuffer(nil) // FUTURE: Uses memory - if large objects then need to use temporary file on disk
 	if _, err := s.awsAPI.S3ManagerDownloader().DownloadWithContext(ctx, output, input); err != nil {
 		if awsErr, ok := err.(awserr.Error); !ok || awsErr.Code() != s3.ErrCodeNoSuchKey {
+			logger.WithError(err).Errorf("Unable to download object with key %q", key)
 			return nil, errors.Wrapf(err, "unable to download object with key %q", key)
 		}
 	} else {
@@ -154,6 +157,7 @@ func (s *Store) Delete(ctx context.Context, key string) (bool, error) {
 	}
 	if _, err := s.awsAPI.S3().HeadObjectWithContext(ctx, headObjectInput); err != nil {
 		if awsErr, ok := err.(awserr.Error); !ok || awsErr.Code() != "NotFound" {
+			logger.WithError(err).Errorf("Unable to head object with key %q", key)
 			return false, errors.Wrapf(err, "unable to head object with key %q", key)
 		}
 	} else {
@@ -163,6 +167,7 @@ func (s *Store) Delete(ctx context.Context, key string) (bool, error) {
 			Key:    aws.String(key),
 		}
 		if _, err = s.awsAPI.S3().DeleteObjectWithContext(ctx, deleteObjectInput); err != nil {
+			logger.WithError(err).Errorf("Unable to delete object with key %q", key)
 			return false, errors.Wrapf(err, "unable to delete object with key %q", key)
 		}
 	}

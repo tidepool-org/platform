@@ -1,8 +1,8 @@
 package test
 
 type ReadOutput struct {
-	Length int
-	Error  error
+	BytesRead int
+	Error     error
 }
 
 type Reader struct {
@@ -26,10 +26,10 @@ func (r *Reader) Read(bytes []byte) (int, error) {
 	if len(r.ReadOutputs) > 0 {
 		output := r.ReadOutputs[0]
 		r.ReadOutputs = r.ReadOutputs[1:]
-		return output.Length, output.Error
+		return output.BytesRead, output.Error
 	}
 	if r.ReadOutput != nil {
-		return r.ReadOutput.Length, r.ReadOutput.Error
+		return r.ReadOutput.BytesRead, r.ReadOutput.Error
 	}
 	panic("Read has no output")
 }

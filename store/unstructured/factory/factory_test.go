@@ -40,6 +40,20 @@ var _ = Describe("Factory", func() {
 			Expect(str).To(BeNil())
 		})
 
+		It("returns an error if the type is empty", func() {
+			configReporter.Set("type", "")
+			str, err := storeUnstructuredFactory.NewStore(configReporter, awsAPI)
+			Expect(err).To(MatchError("type is empty"))
+			Expect(str).To(BeNil())
+		})
+
+		It("returns an error if the type is invalid", func() {
+			configReporter.Set("type", "invalid")
+			str, err := storeUnstructuredFactory.NewStore(configReporter, awsAPI)
+			Expect(err).To(MatchError("type is invalid"))
+			Expect(str).To(BeNil())
+		})
+
 		Context("with type file", func() {
 			var directory string
 
@@ -100,13 +114,6 @@ var _ = Describe("Factory", func() {
 			It("returns successfully", func() {
 				Expect(storeUnstructuredFactory.NewStore(configReporter, awsAPI)).ToNot(BeNil())
 			})
-		})
-
-		It("returns an error if the type is invalid", func() {
-			configReporter.Set("type", "invalid")
-			str, err := storeUnstructuredFactory.NewStore(configReporter, awsAPI)
-			Expect(err).To(MatchError("type is invalid"))
-			Expect(str).To(BeNil())
 		})
 	})
 

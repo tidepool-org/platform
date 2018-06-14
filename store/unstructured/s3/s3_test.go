@@ -275,7 +275,7 @@ var _ = Describe("S3", func() {
 
 					It("returns an error if aws returns an error, but not awserr.Error", func() {
 						awsErr := errorsTest.NewError()
-						awsS3Manager.DownloadWithContextOutputs = []awsTest.DownloadWithContextOutput{{Length: 0, Error: awsErr}}
+						awsS3Manager.DownloadWithContextOutputs = []awsTest.DownloadWithContextOutput{{BytesWritten: 0, Error: awsErr}}
 						var err error
 						reader, err = str.Get(ctx, key)
 						Expect(err).To(MatchError(fmt.Sprintf("unable to download object with key %q; %s", keyPath, awsErr)))
@@ -284,7 +284,7 @@ var _ = Describe("S3", func() {
 
 					It("returns an error if aws returns an awserr.Error, but not NoSuchKey", func() {
 						awsErr := awserr.New(test.RandomString(), "", nil)
-						awsS3Manager.DownloadWithContextOutputs = []awsTest.DownloadWithContextOutput{{Length: 0, Error: awsErr}}
+						awsS3Manager.DownloadWithContextOutputs = []awsTest.DownloadWithContextOutput{{BytesWritten: 0, Error: awsErr}}
 						var err error
 						reader, err = str.Get(ctx, key)
 						Expect(err).To(MatchError(fmt.Sprintf("unable to download object with key %q; %s", keyPath, awsErr)))
@@ -293,7 +293,7 @@ var _ = Describe("S3", func() {
 
 					It("returns nil if the key does not exist", func() {
 						awsErr := awserr.New("NoSuchKey", "", nil)
-						awsS3Manager.DownloadWithContextOutputs = []awsTest.DownloadWithContextOutput{{Length: 0, Error: awsErr}}
+						awsS3Manager.DownloadWithContextOutputs = []awsTest.DownloadWithContextOutput{{BytesWritten: 0, Error: awsErr}}
 						var err error
 						reader, err = str.Get(ctx, key)
 						Expect(err).ToNot(HaveOccurred())

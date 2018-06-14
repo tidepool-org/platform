@@ -20,6 +20,8 @@ func NewStore(configReporter config.Reporter, awsAPI aws.API) (storeUnstructured
 	typ, err := configReporter.Get("type")
 	if err != nil {
 		return nil, errors.New("type is missing")
+	} else if typ == "" {
+		return nil, errors.New("type is empty")
 	}
 
 	switch typ {
