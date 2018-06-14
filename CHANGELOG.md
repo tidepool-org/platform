@@ -1,5 +1,6 @@
 ## HEAD
 
+* Update logger to delete an existing field if new field value is nil
 * When deserializing errors an empty error array returns nil
 * Refactor application package to allow dependency injection
 * Simplify application execution to automatically inject default dependencies

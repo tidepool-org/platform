@@ -235,13 +235,19 @@ var _ = Describe("Logger", func() {
 			})
 
 			Context("WithError", func() {
-				It("does not include the error field if the error is nil", func() {
+				It("does not include the error field if the error is missing", func() {
 					logger.WithError(nil).Warn("European")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("error"))
 				})
 
-				It("does include the error field if the error is not nil", func() {
+				It("deletes the error field if the error is missing", func() {
+					logger.WithError(fmt.Errorf("euro error")).WithError(nil).Warn("European")
+					Expect(serializer.SerializeInputs).To(HaveLen(1))
+					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("error"))
+				})
+
+				It("does include the error field if the error is not missing", func() {
 					logger.WithError(fmt.Errorf("euro error")).Warn("European")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).To(HaveKey("error"))
@@ -261,6 +267,12 @@ var _ = Describe("Logger", func() {
 					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("sword"))
 				})
 
+				It("deletes the field if the value is missing", func() {
+					logger.WithField("sword", "fish").WithField("sword", nil).Warn("Finnish")
+					Expect(serializer.SerializeInputs).To(HaveLen(1))
+					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("sword"))
+				})
+
 				It("does include the field if the key and value are not missing", func() {
 					logger.WithField("sword", "fish").Warn("Finnish")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
@@ -275,6 +287,12 @@ var _ = Describe("Logger", func() {
 					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey(""))
 					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("nope"))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("yep", "Ja"))
+				})
+
+				It("deletes the field if the value is missing", func() {
+					logger.WithFields(log.Fields{"nope": "Nein"}).WithFields(log.Fields{"nope": nil}).Warn("German")
+					Expect(serializer.SerializeInputs).To(HaveLen(1))
+					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("nope"))
 				})
 			})
 
