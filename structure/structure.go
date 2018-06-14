@@ -63,7 +63,7 @@ func (p *ParameterSource) Pointer() string {
 
 func (p *ParameterSource) WithReference(reference string) Source {
 	if p.parameter != "" {
-		return nil
+		return p
 	}
 
 	return &ParameterSource{

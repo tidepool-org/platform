@@ -1,5 +1,6 @@
 ## HEAD
 
+* Update structure parameter source to return unchanged if multiple references applied
 * Add EnsureAuthorizedService and EnsureAuthorizedUser to user.UserClient
 * Update user client test helper to use latest mocking technique
 * Remove unnecessary parameter from test RespondWith
