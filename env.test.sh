@@ -1,9 +1,13 @@
+# Clear all TIDEPOOL_* environment variables
+unset `env | cut -d'=' -f1 | grep '^TIDEPOOL_' | xargs`
+
 export TIDEPOOL_ENV="test"
+
 export TIDEPOOL_LOGGER_LEVEL="error"
+
 export TIDEPOOL_STORE_ADDRESSES="localhost"
 export TIDEPOOL_STORE_TLS="false"
 export TIDEPOOL_STORE_DATABASE="tidepool_test"
-export TIDEPOOL_SERVER_TLS="false"
 
 export TIDEPOOL_CONFIRMATION_STORE_DATABASE="confirm_test"
 export TIDEPOOL_DATA_STORE_DATABASE="data_test"

@@ -1,5 +1,6 @@
 ## HEAD
 
+* Restrict test environment variables to only necessary
 * Add blob service, store, client, and related structures
 * Update structure parameter source to return unchanged if multiple references applied
 * Add EnsureAuthorizedService and EnsureAuthorizedUser to user.UserClient
