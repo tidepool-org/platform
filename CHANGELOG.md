@@ -1,5 +1,8 @@
 ## HEAD
 
+* Add EnsureAuthorizedService and EnsureAuthorizedUser to user.UserClient
+* Update user client test helper to use latest mocking technique
+* Remove unnecessary parameter from test RespondWith
 * Add client response inspectors
 * Ensure client data responses uses expected application/json content type header
 * Parse client response body for actual error, default to standard error from status code

@@ -25,6 +25,60 @@ func New(cfg *platform.Config, authorizeAs platform.AuthorizeAs) (*Client, error
 	}, nil
 }
 
+// FUTURE: Move to auth service
+
+func (c *Client) EnsureAuthorizedService(ctx context.Context) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+
+	if details := request.DetailsFromContext(ctx); details != nil {
+		if details.IsService() {
+			return nil
+		}
+	}
+
+	return request.ErrorUnauthorized()
+}
+
+// FUTURE: Move to auth service
+
+func (c *Client) EnsureAuthorizedUser(ctx context.Context, targetUserID string, permission string) (string, error) {
+	if ctx == nil {
+		return "", errors.New("context is missing")
+	}
+	if targetUserID == "" {
+		return "", errors.New("target user id is missing")
+	}
+	if permission == "" {
+		return "", errors.New("permission is missing")
+	}
+
+	if details := request.DetailsFromContext(ctx); details != nil {
+		if details.IsService() {
+			return "", nil
+		}
+
+		authenticatedUserID := details.UserID()
+		if authenticatedUserID == targetUserID {
+			if permission != user.CustodianPermission {
+				return authenticatedUserID, nil
+			}
+		} else {
+			permissions, err := c.GetUserPermissions(ctx, authenticatedUserID, targetUserID)
+			if err != nil {
+				if !request.IsErrorUnauthorized(err) {
+					return "", errors.Wrap(err, "unable to get user permissions")
+				}
+			} else if _, ok := permissions[permission]; ok {
+				return authenticatedUserID, nil
+			}
+		}
+	}
+
+	return "", request.ErrorUnauthorized()
+}
+
 func (c *Client) GetUserPermissions(ctx context.Context, requestUserID string, targetUserID string) (user.Permissions, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")

@@ -147,7 +147,7 @@ var _ = Describe("Client", func() {
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyHeaderKV("X-Tidepool-Session-Token", token),
 									VerifyBody(nil),
-									RespondWith(http.StatusUnauthorized, nil, nil)),
+									RespondWith(http.StatusUnauthorized, nil)),
 							)
 						})
 
@@ -166,7 +166,7 @@ var _ = Describe("Client", func() {
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyHeaderKV("X-Tidepool-Session-Token", token),
 									VerifyBody(nil),
-									RespondWith(http.StatusForbidden, nil, nil)),
+									RespondWith(http.StatusForbidden, nil)),
 							)
 						})
 
@@ -185,7 +185,7 @@ var _ = Describe("Client", func() {
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyHeaderKV("X-Tidepool-Session-Token", token),
 									VerifyBody(nil),
-									RespondWith(http.StatusOK, nil, nil)),
+									RespondWith(http.StatusOK, nil)),
 							)
 						})
 
@@ -204,7 +204,7 @@ var _ = Describe("Client", func() {
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyHeaderKV("X-Tidepool-Session-Token", token),
 									VerifyBody(nil),
-									RespondWith(http.StatusOK, nil, nil)),
+									RespondWith(http.StatusOK, nil)),
 							)
 						})
 
@@ -234,7 +234,7 @@ var _ = Describe("Client", func() {
 								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
 								VerifyBody(nil),
-								RespondWith(http.StatusUnauthorized, nil, nil)),
+								RespondWith(http.StatusUnauthorized, nil)),
 						)
 					})
 
@@ -253,7 +253,7 @@ var _ = Describe("Client", func() {
 								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
 								VerifyBody(nil),
-								RespondWith(http.StatusForbidden, nil, nil)),
+								RespondWith(http.StatusForbidden, nil)),
 						)
 					})
 
@@ -272,7 +272,7 @@ var _ = Describe("Client", func() {
 								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
 								VerifyBody(nil),
-								RespondWith(http.StatusOK, nil, nil)),
+								RespondWith(http.StatusOK, nil)),
 						)
 					})
 
@@ -291,7 +291,7 @@ var _ = Describe("Client", func() {
 								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
 								VerifyBody(nil),
-								RespondWith(http.StatusOK, nil, nil)),
+								RespondWith(http.StatusOK, nil)),
 						)
 					})
 

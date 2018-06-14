@@ -149,7 +149,7 @@ package client_test
 // 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
 // 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
 // 							VerifyBody(nil),
-// 							RespondWith(http.StatusBadRequest, nil, nil)),
+// 							RespondWith(http.StatusBadRequest, nil)),
 // 						CombineHandlers(
 // 							VerifyRequest("POST", "/auth/serverlogin"),
 // 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
@@ -176,13 +176,13 @@ package client_test
 // 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
 // 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
 // 							VerifyBody(nil),
-// 							RespondWith(http.StatusBadRequest, nil, nil)),
+// 							RespondWith(http.StatusBadRequest, nil)),
 // 						CombineHandlers(
 // 							VerifyRequest("POST", "/auth/serverlogin"),
 // 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
 // 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
 // 							VerifyBody(nil),
-// 							RespondWith(http.StatusBadRequest, nil, nil)),
+// 							RespondWith(http.StatusBadRequest, nil)),
 // 						CombineHandlers(
 // 							VerifyRequest("POST", "/auth/serverlogin"),
 // 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
@@ -208,7 +208,7 @@ package client_test
 // 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
 // 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
 // 							VerifyBody(nil),
-// 							RespondWith(http.StatusOK, nil, nil)),
+// 							RespondWith(http.StatusOK, nil)),
 // 						CombineHandlers(
 // 							VerifyRequest("POST", "/auth/serverlogin"),
 // 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
@@ -342,7 +342,7 @@ package client_test
 // 								VerifyRequest("GET", "/auth/token/"+token),
 // 								VerifyHeaderKV("X-Tidepool-Session-Token", serverToken),
 // 								VerifyBody(nil),
-// 								RespondWith(http.StatusBadRequest, nil, nil)),
+// 								RespondWith(http.StatusBadRequest, nil)),
 // 						)
 // 					})
 
@@ -362,7 +362,7 @@ package client_test
 // 								VerifyRequest("GET", "/auth/token/"+token),
 // 								VerifyHeaderKV("X-Tidepool-Session-Token", serverToken),
 // 								VerifyBody(nil),
-// 								RespondWith(http.StatusUnauthorized, nil, nil)),
+// 								RespondWith(http.StatusUnauthorized, nil)),
 // 						)
 // 					})
 
@@ -381,7 +381,7 @@ package client_test
 // 								VerifyRequest("GET", "/auth/token/"+token),
 // 								VerifyHeaderKV("X-Tidepool-Session-Token", serverToken),
 // 								VerifyBody(nil),
-// 								RespondWith(http.StatusOK, "}{", nil)),
+// 								RespondWith(http.StatusOK, "}{")),
 // 						)
 // 					})
 
@@ -401,7 +401,7 @@ package client_test
 // 								VerifyRequest("GET", "/auth/token/"+token),
 // 								VerifyHeaderKV("X-Tidepool-Session-Token", serverToken),
 // 								VerifyBody(nil),
-// 								RespondWith(http.StatusOK, "{}", nil)),
+// 								RespondWith(http.StatusOK, "{}")),
 // 						)
 // 					})
 
@@ -420,7 +420,7 @@ package client_test
 // 								VerifyRequest("GET", "/auth/token/"+token),
 // 								VerifyHeaderKV("X-Tidepool-Session-Token", serverToken),
 // 								VerifyBody(nil),
-// 								RespondWith(http.StatusOK, `{"userid": "session-user-id"}`, nil)),
+// 								RespondWith(http.StatusOK, `{"userid": "session-user-id"}`)),
 // 						)
 // 					})
 
@@ -441,7 +441,7 @@ package client_test
 // 								VerifyRequest("GET", "/auth/token/"+token),
 // 								VerifyHeaderKV("X-Tidepool-Session-Token", serverToken),
 // 								VerifyBody(nil),
-// 								RespondWith(http.StatusOK, "{\"isserver\": true}", nil)),
+// 								RespondWith(http.StatusOK, "{\"isserver\": true}")),
 // 						)
 // 					})
 
@@ -465,7 +465,7 @@ package client_test
 // 						VerifyHeaderKV("X-Tidepool-Server-Name", name),
 // 						VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
 // 						VerifyBody(nil),
-// 						RespondWith(http.StatusBadRequest, nil, nil)),
+// 						RespondWith(http.StatusBadRequest, nil)),
 // 				)
 // 			})
 
