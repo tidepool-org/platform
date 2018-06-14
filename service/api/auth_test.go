@@ -4,6 +4,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"net/http"
+
 	"github.com/ant0ine/go-json-rest/rest"
 
 	testAuth "github.com/tidepool-org/platform/auth/test"
@@ -24,6 +26,7 @@ var _ = Describe("Auth", func() {
 
 	BeforeEach(func() {
 		res = testRest.NewResponseWriter()
+		res.HeaderOutput = &http.Header{}
 		req = testRest.NewRequest()
 		req.Request = req.WithContext(log.NewContextWithLogger(req.Context(), logNull.NewLogger()))
 		handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
@@ -39,7 +42,7 @@ var _ = Describe("Auth", func() {
 	})
 
 	AfterEach(func() {
-		res.Expectations()
+		res.AssertOutputsEmpty()
 	})
 
 	Context("Require", func() {

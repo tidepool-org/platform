@@ -1,5 +1,6 @@
 ## HEAD
 
+* Refactor response writer test helper to use latest mocking technique
 * Add crypto.Base64EncodedMD5Hash
 * Minor updates to unstructured storage
 * Add and update test helpers

@@ -5,9 +5,12 @@ import (
 	. "github.com/onsi/gomega"
 
 	"encoding/json"
+	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
 
+	"github.com/tidepool-org/platform/log"
+	logNull "github.com/tidepool-org/platform/log/null"
 	serviveAPI "github.com/tidepool-org/platform/service/api"
 	serviceAPITest "github.com/tidepool-org/platform/service/api/test"
 	"github.com/tidepool-org/platform/test"
@@ -60,10 +63,11 @@ var _ = Describe("StatusRouter", func() {
 			BeforeEach(func() {
 				res = testRest.NewResponseWriter()
 				req = testRest.NewRequest()
+				req.Request = req.WithContext(log.NewContextWithLogger(req.Context(), logNull.NewLogger()))
 			})
 
 			AfterEach(func() {
-				res.Expectations()
+				res.AssertOutputsEmpty()
 			})
 
 			It("panics if response is missing", func() {
@@ -80,6 +84,7 @@ var _ = Describe("StatusRouter", func() {
 				BeforeEach(func() {
 					status = test.NewText(0, 32)
 					statusProvider.StatusOutputs = []interface{}{status}
+					res.HeaderOutput = &http.Header{}
 					res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 				})
 

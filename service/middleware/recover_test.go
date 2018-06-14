@@ -4,6 +4,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"net/http"
+
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/service/middleware"
@@ -34,10 +36,11 @@ var _ = Describe("Recover", func() {
 		})
 
 		AfterEach(func() {
-			res.Expectations()
+			res.AssertOutputsEmpty()
 		})
 
 		It("is successful", func() {
+			res.HeaderOutput = &http.Header{}
 			res.WriteJsonOutputs = []error{nil}
 			recoverMiddleware.MiddlewareFunc(hndlr)(res, req)
 			Expect(res.WriteHeaderInputs).To(Equal([]int{500}))

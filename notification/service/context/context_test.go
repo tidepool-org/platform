@@ -26,7 +26,7 @@ var _ = Describe("Context", func() {
 
 	AfterEach(func() {
 		Expect(svc.UnusedOutputsCount()).To(Equal(0))
-		response.Expectations()
+		response.AssertOutputsEmpty()
 	})
 
 	Context("MustNew", func() {

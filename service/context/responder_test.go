@@ -6,6 +6,7 @@ import (
 
 	"encoding/json"
 	"errors"
+	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
 
@@ -121,7 +122,7 @@ var _ = Describe("Responder", func() {
 		})
 
 		AfterEach(func() {
-			response.Expectations()
+			response.AssertOutputsEmpty()
 		})
 
 		Context("NewResponder", func() {
@@ -175,6 +176,7 @@ var _ = Describe("Responder", func() {
 				var internalServerFailureErrors []*service.Error
 
 				BeforeEach(func() {
+					response.HeaderOutput = &http.Header{}
 					response.WriteJsonOutputs = []error{nil}
 					testErrors = []*service.Error{
 						{
@@ -345,6 +347,7 @@ var _ = Describe("Responder", func() {
 				var testData interface{}
 
 				BeforeEach(func() {
+					response.HeaderOutput = &http.Header{}
 					response.WriteJsonOutputs = []error{nil}
 					testData = []map[string]string{
 						{

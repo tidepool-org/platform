@@ -27,7 +27,7 @@ var _ = Describe("Context", func() {
 		})
 
 		AfterEach(func() {
-			res.Expectations()
+			res.AssertOutputsEmpty()
 		})
 
 		Context("New", func() {
