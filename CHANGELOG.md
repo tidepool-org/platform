@@ -1,5 +1,6 @@
 ## HEAD
 
+* When deserializing errors an empty error array returns nil
 * Refactor application package to allow dependency injection
 * Simplify application execution to automatically inject default dependencies
 * Move all application/service/tool initialization from New to Initialize

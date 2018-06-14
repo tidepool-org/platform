@@ -323,7 +323,9 @@ func (s *Serializable) UnmarshalJSON(bytes []byte) error {
 			for _, errObject := range errObjects {
 				errors = append(errors, errObject)
 			}
-			s.Error = &array{Errors: errors}
+			if len(errors) > 0 {
+				s.Error = &array{Errors: errors}
+			}
 		}
 	} else {
 		s.Error = errObject
@@ -357,7 +359,9 @@ func (s *Serializable) SetBSON(raw bson.Raw) error {
 			for _, errObject := range errObjects {
 				errors = append(errors, errObject)
 			}
-			s.Error = &array{Errors: errors}
+			if len(errors) > 0 {
+				s.Error = &array{Errors: errors}
+			}
 		}
 	} else {
 		s.Error = errObject
