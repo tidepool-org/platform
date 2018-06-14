@@ -12,9 +12,9 @@ endif
 VERSION_BASE:=$(VERSION_BASE:v%=%)
 VERSION_SHORT_COMMIT:=$(shell git rev-parse --short HEAD)
 VERSION_FULL_COMMIT:=$(shell git rev-parse HEAD)
-VERSION_PACKAGE:=$(REPOSITORY_PACKAGE)/application/version
+VERSION_PACKAGE:=$(REPOSITORY_PACKAGE)/application
 
-GO_LD_FLAGS:=-ldflags '-X $(VERSION_PACKAGE).Base=$(VERSION_BASE) -X $(VERSION_PACKAGE).ShortCommit=$(VERSION_SHORT_COMMIT) -X $(VERSION_PACKAGE).FullCommit=$(VERSION_FULL_COMMIT)'
+GO_LD_FLAGS:=-ldflags '-X $(VERSION_PACKAGE).VersionBase=$(VERSION_BASE) -X $(VERSION_PACKAGE).VersionShortCommit=$(VERSION_SHORT_COMMIT) -X $(VERSION_PACKAGE).VersionFullCommit=$(VERSION_FULL_COMMIT)'
 
 FIND_MAIN_CMD:=find . -path './$(BUILD)*' -not -path './vendor/*' -name '*.go' -not -name '*_test.go' -type f -exec egrep -l '^\s*func\s+main\s*(\s*)' {} \;
 TRANSFORM_GO_BUILD_CMD:=sed 's|\.\(.*\)\(/[^/]*\)/[^/]*|_bin\1\2\2 .\1\2/.|'

@@ -13,7 +13,6 @@ package service_test
 // 	"github.com/tidepool-org/platform/id"
 // 	"github.com/tidepool-org/platform/task/service/service"
 
-// 	_ "github.com/tidepool-org/platform/application/version/test"
 // )
 
 // var _ = Describe("Service", func() {

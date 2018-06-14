@@ -3,6 +3,7 @@ package service
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
+	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/client"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/dexcom"
@@ -31,19 +32,14 @@ type Service struct {
 	taskQueue    *queue.Queue
 }
 
-func New(prefix string) (*Service, error) {
-	authenticated, err := serviceService.NewAuthenticated(prefix)
-	if err != nil {
-		return nil, err
-	}
-
+func New() *Service {
 	return &Service{
-		Authenticated: authenticated,
-	}, nil
+		Authenticated: serviceService.NewAuthenticated(),
+	}
 }
 
-func (s *Service) Initialize() error {
-	if err := s.Authenticated.Initialize(); err != nil {
+func (s *Service) Initialize(provider application.Provider) error {
+	if err := s.Authenticated.Initialize(provider); err != nil {
 		return err
 	}
 

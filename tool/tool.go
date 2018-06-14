@@ -21,19 +21,14 @@ type Tool struct {
 	args []string
 }
 
-func New(prefix string, scopes ...string) (*Tool, error) {
-	app, err := application.New(prefix, scopes...)
-	if err != nil {
-		return nil, err
-	}
-
+func New() *Tool {
 	return &Tool{
-		Application: app,
-	}, nil
+		Application: application.New(),
+	}
 }
 
-func (t *Tool) Initialize() error {
-	if err := t.Application.Initialize(); err != nil {
+func (t *Tool) Initialize(provider application.Provider) error {
+	if err := t.Application.Initialize(provider); err != nil {
 		return err
 	}
 

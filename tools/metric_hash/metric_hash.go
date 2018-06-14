@@ -18,7 +18,7 @@ import (
 const SaltFlag = "salt"
 
 func main() {
-	os.Exit(application.Run(NewTool()))
+	application.RunAndExit(NewTool())
 }
 
 type Tool struct {
@@ -26,19 +26,14 @@ type Tool struct {
 	salt string
 }
 
-func NewTool() (*Tool, error) {
-	tuel, err := tool.New("TIDEPOOL")
-	if err != nil {
-		return nil, err
-	}
-
+func NewTool() *Tool {
 	return &Tool{
-		Tool: tuel,
-	}, nil
+		Tool: tool.New(),
+	}
 }
 
-func (t *Tool) Initialize() error {
-	if err := t.Tool.Initialize(); err != nil {
+func (t *Tool) Initialize(provider application.Provider) error {
+	if err := t.Tool.Initialize(provider); err != nil {
 		return err
 	}
 

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/tidepool-org/platform/application"
 	confirmationMongo "github.com/tidepool-org/platform/confirmation/store/mongo"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/errors"
@@ -36,19 +37,14 @@ type Standard struct {
 	server            *server.Standard
 }
 
-func NewStandard(prefix string) (*Standard, error) {
-	svc, err := service.NewDEPRECATEDService(prefix)
-	if err != nil {
-		return nil, err
-	}
-
+func NewStandard() *Standard {
 	return &Standard{
-		DEPRECATEDService: svc,
-	}, nil
+		DEPRECATEDService: service.NewDEPRECATEDService(),
+	}
 }
 
-func (s *Standard) Initialize() error {
-	if err := s.DEPRECATEDService.Initialize(); err != nil {
+func (s *Standard) Initialize(provider application.Provider) error {
+	if err := s.DEPRECATEDService.Initialize(provider); err != nil {
 		return err
 	}
 

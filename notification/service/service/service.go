@@ -3,6 +3,7 @@ package service
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
+	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/notification/service"
 	"github.com/tidepool-org/platform/notification/service/api"
@@ -18,19 +19,14 @@ type Service struct {
 	notificationStore *notificationMongo.Store
 }
 
-func New(prefix string) (*Service, error) {
-	authenticated, err := serviceService.NewAuthenticated(prefix)
-	if err != nil {
-		return nil, err
-	}
-
+func New() *Service {
 	return &Service{
-		Authenticated: authenticated,
-	}, nil
+		Authenticated: serviceService.NewAuthenticated(),
+	}
 }
 
-func (s *Service) Initialize() error {
-	if err := s.Authenticated.Initialize(); err != nil {
+func (s *Service) Initialize(provider application.Provider) error {
+	if err := s.Authenticated.Initialize(provider); err != nil {
 		return err
 	}
 

@@ -4,64 +4,70 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"os"
+	"fmt"
 
 	"github.com/tidepool-org/platform/application"
-	testApplication "github.com/tidepool-org/platform/application/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	applicationTest "github.com/tidepool-org/platform/application/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 )
 
 var _ = Describe("Runner", func() {
+	Context("RunAndExit", func() {
+		// NOTE: Cannot be tested due to embedded os.Exit
+	})
+
 	Context("Run", func() {
-		var rnnr *testApplication.Runner
-		var oldStderr *os.File
+		var runner *applicationTest.Runner
+		var provider *applicationTest.Provider
 
 		BeforeEach(func() {
-			rnnr = testApplication.NewRunner()
-			oldStderr = os.Stderr
-			newStderr, err := os.Open(os.DevNull)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(newStderr).ToNot(BeNil())
-			os.Stderr = newStderr
+			runner = applicationTest.NewRunner()
+			provider = applicationTest.NewProvider()
 		})
 
 		AfterEach(func() {
-			if oldStderr != nil {
-				os.Stderr = oldStderr
-			}
-			rnnr.Expectations()
+			provider.AssertOutputsEmpty()
+			runner.AssertOutputsEmpty()
 		})
 
-		It("returns failure if err is not nil", func() {
-			Expect(application.Run(rnnr, testErrors.NewError())).To(Equal(application.Failure))
+		It("returns error when runner is missing", func() {
+			Expect(application.Run(nil, provider)).To(MatchError("runner is missing"))
 		})
 
-		It("returns failure if runner is nil", func() {
-			Expect(application.Run(nil, nil)).To(Equal(application.Failure))
+		It("returns error when provider is missing", func() {
+			Expect(application.Run(runner, nil)).To(MatchError("provider is missing"))
 		})
 
-		It("returns failure if Initialize returns error", func() {
-			rnnr.InitializeOutputs = []error{testErrors.NewError()}
-			Expect(application.Run(rnnr, nil)).To(Equal(application.Failure))
-		})
-
-		Context("with successful Initialize", func() {
-			BeforeEach(func() {
-				rnnr.InitializeOutputs = []error{nil}
+		When("Initialize is invoked", func() {
+			AfterEach(func() {
+				Expect(runner.InitializeInputs).To(Equal([]application.Provider{provider}))
 			})
 
-			It("returns failure if Run returns error", func() {
-				rnnr.RunOutputs = []error{testErrors.NewError()}
-				Expect(application.Run(rnnr, nil)).To(Equal(application.Failure))
+			It("returns error when Initialize returns error", func() {
+				err := errorsTest.NewError()
+				runner.InitializeOutputs = []error{err}
+				Expect(application.Run(runner, provider)).To(MatchError(fmt.Sprintf("unable to initialize runner; %s", err)))
 			})
 
-			Context("with successful Run", func() {
+			When("Initialize returns successfully", func() {
 				BeforeEach(func() {
-					rnnr.RunOutputs = []error{nil}
+					runner.InitializeOutputs = []error{nil}
 				})
 
-				It("returns successfully", func() {
-					Expect(application.Run(rnnr, nil)).To(Equal(application.Success))
+				It("returns error when Run returns error", func() {
+					err := errorsTest.NewError()
+					runner.RunOutputs = []error{err}
+					Expect(application.Run(runner, provider)).To(MatchError(fmt.Sprintf("unable to run runner; %s", err)))
+				})
+
+				When("Run returns successfully", func() {
+					BeforeEach(func() {
+						runner.RunOutputs = []error{nil}
+					})
+
+					It("returns successfully", func() {
+						Expect(application.Run(runner, provider)).To(Succeed())
+					})
 				})
 			})
 		})

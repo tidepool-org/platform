@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/tidepool-org/platform/application"
 	authClient "github.com/tidepool-org/platform/auth/client"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/platform"
@@ -11,19 +12,14 @@ type Authenticated struct {
 	authClient *authClient.Client
 }
 
-func NewAuthenticated(prefix string) (*Authenticated, error) {
-	svc, err := New(prefix)
-	if err != nil {
-		return nil, err
-	}
-
+func NewAuthenticated() *Authenticated {
 	return &Authenticated{
-		Service: svc,
-	}, nil
+		Service: New(),
+	}
 }
 
-func (a *Authenticated) Initialize() error {
-	if err := a.Service.Initialize(); err != nil {
+func (a *Authenticated) Initialize(provider application.Provider) error {
+	if err := a.Service.Initialize(provider); err != nil {
 		return err
 	}
 

@@ -3,6 +3,7 @@ package service
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
+	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/auth/client"
 	"github.com/tidepool-org/platform/auth/service"
 	"github.com/tidepool-org/platform/auth/service/api"
@@ -31,19 +32,14 @@ type Service struct {
 	authClient      *Client
 }
 
-func New(prefix string) (*Service, error) {
-	svc, err := serviceService.New(prefix)
-	if err != nil {
-		return nil, err
-	}
-
+func New() *Service {
 	return &Service{
-		Service: svc,
-	}, nil
+		Service: serviceService.New(),
+	}
 }
 
-func (s *Service) Initialize() error {
-	if err := s.Service.Initialize(); err != nil {
+func (s *Service) Initialize(provider application.Provider) error {
+	if err := s.Service.Initialize(provider); err != nil {
 		return err
 	}
 

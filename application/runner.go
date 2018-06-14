@@ -3,41 +3,49 @@ package application
 import (
 	"fmt"
 	"os"
+
+	"github.com/tidepool-org/platform/errors"
 )
 
 type Runner interface {
-	Initialize() error
+	Initialize(provider Provider) error
 	Terminate()
 
 	Run() error
 }
 
-const (
-	Success = 0
-	Failure = 1
-)
-
-func Run(runner Runner, err error) int {
+func RunAndExit(runner Runner, scopes ...string) {
+	provider, err := NewProvider("TIDEPOOL", scopes...)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "ERROR: Unable to create:", err)
-		return Failure
+		fmt.Fprintln(os.Stderr, "ERROR:", err)
+		os.Exit(1)
 	}
+
+	if err = Run(runner, provider); err != nil {
+		fmt.Fprintln(os.Stderr, "ERROR:", err)
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+func Run(runner Runner, provider Provider) error {
 	if runner == nil {
-		fmt.Fprintln(os.Stderr, "ERROR: Runner is missing")
-		return Failure
+		return errors.New("runner is missing")
+	}
+	if provider == nil {
+		return errors.New("provider is missing")
 	}
 
 	defer runner.Terminate()
 
-	if err = runner.Initialize(); err != nil {
-		fmt.Fprintln(os.Stderr, "ERROR: Unable to initialize:", err)
-		return Failure
+	if err := runner.Initialize(provider); err != nil {
+		return errors.Wrap(err, "unable to initialize runner")
 	}
 
-	if err = runner.Run(); err != nil {
-		fmt.Fprintln(os.Stderr, "ERROR: Unable to run:", err)
-		return Failure
+	if err := runner.Run(); err != nil {
+		return errors.Wrap(err, "unable to run runner")
 	}
 
-	return Success
+	return nil
 }

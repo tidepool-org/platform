@@ -1,7 +1,6 @@
 package main
 
 import (
-	"os"
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -20,7 +19,7 @@ const (
 )
 
 func main() {
-	os.Exit(application.Run(NewMigration()))
+	application.RunAndExit(NewMigration())
 }
 
 type Migration struct {
@@ -28,19 +27,14 @@ type Migration struct {
 	secret string
 }
 
-func NewMigration() (*Migration, error) {
-	migration, err := mongoMigration.NewMigration("TIDEPOOL")
-	if err != nil {
-		return nil, err
-	}
-
+func NewMigration() *Migration {
 	return &Migration{
-		Migration: migration,
-	}, nil
+		Migration: mongoMigration.NewMigration(),
+	}
 }
 
-func (m *Migration) Initialize() error {
-	if err := m.Migration.Initialize(); err != nil {
+func (m *Migration) Initialize(provider application.Provider) error {
+	if err := m.Migration.Initialize(provider); err != nil {
 		return err
 	}
 

@@ -14,19 +14,14 @@ type DEPRECATEDService struct {
 	authClient *authClient.Client
 }
 
-func NewDEPRECATEDService(prefix string) (*DEPRECATEDService, error) {
-	app, err := application.New(prefix, "service")
-	if err != nil {
-		return nil, err
-	}
-
+func NewDEPRECATEDService() *DEPRECATEDService {
 	return &DEPRECATEDService{
-		Application: app,
-	}, nil
+		Application: application.New(),
+	}
 }
 
-func (d *DEPRECATEDService) Initialize() error {
-	if err := d.Application.Initialize(); err != nil {
+func (d *DEPRECATEDService) Initialize(provider application.Provider) error {
+	if err := d.Application.Initialize(provider); err != nil {
 		return err
 	}
 

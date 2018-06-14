@@ -1,5 +1,10 @@
 ## HEAD
 
+* Refactor application package to allow dependency injection
+* Simplify application execution to automatically inject default dependencies
+* Move all application/service/tool initialization from New to Initialize
+* Move application version to application package
+* Default all applications to use UTC local time
 * Refactor response writer test helper to use latest mocking technique
 * Add crypto.Base64EncodedMD5Hash
 * Minor updates to unstructured storage

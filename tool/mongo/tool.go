@@ -5,6 +5,7 @@ import (
 
 	"github.com/urfave/cli"
 
+	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
@@ -21,20 +22,15 @@ type Tool struct {
 	mongoConfig *storeStructuredMongo.Config
 }
 
-func NewTool(prefix string, scopes ...string) (*Tool, error) {
-	tuel, err := tool.New(prefix, scopes...)
-	if err != nil {
-		return nil, err
-	}
-
+func NewTool() *Tool {
 	return &Tool{
-		Tool:        tuel,
+		Tool:        tool.New(),
 		mongoConfig: storeStructuredMongo.NewConfig(),
-	}, nil
+	}
 }
 
-func (t *Tool) Initialize() error {
-	if err := t.Tool.Initialize(); err != nil {
+func (t *Tool) Initialize(provider application.Provider) error {
+	if err := t.Tool.Initialize(provider); err != nil {
 		return err
 	}
 
