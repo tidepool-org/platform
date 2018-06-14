@@ -36,6 +36,14 @@ func IsStatusCodeSuccess(statusCode int) bool {
 	return statusCode >= 200 && statusCode <= 299
 }
 
+func IsStatusCodeRedirection(statusCode int) bool {
+	return statusCode >= 300 && statusCode <= 399
+}
+
+func IsStatusCodeClientError(statusCode int) bool {
+	return statusCode >= 400 && statusCode <= 499
+}
+
 type Method string
 
 const (

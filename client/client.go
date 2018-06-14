@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -61,7 +63,7 @@ func (c *Client) AppendURLQuery(urlString string, query map[string]string) strin
 	return urlString
 }
 
-func (c *Client) RequestStreamWithHTTPClient(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, httpClient *http.Client) (io.ReadCloser, error) {
+func (c *Client) RequestStreamWithHTTPClient(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, inspectors []request.ResponseInspector, httpClient *http.Client) (io.ReadCloser, error) {
 	if httpClient == nil {
 		return nil, errors.New("http client is missing")
 	}
@@ -76,21 +78,36 @@ func (c *Client) RequestStreamWithHTTPClient(ctx context.Context, method string,
 		return nil, errors.Wrapf(err, "unable to perform request to %s %s", method, url)
 	}
 
+	for _, inspector := range inspectors {
+		if err = inspector.InspectResponse(res); err != nil {
+			drainAndClose(res.Body)
+			return nil, err
+		}
+	}
+
 	return c.handleResponse(ctx, res, req)
 }
 
-func (c *Client) RequestDataWithHTTPClient(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, responseBody interface{}, httpClient *http.Client) error {
-	body, err := c.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, httpClient)
+func (c *Client) RequestDataWithHTTPClient(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, responseBody interface{}, inspectors []request.ResponseInspector, httpClient *http.Client) error {
+	headerInspector := request.NewHeadersInspector()
+	body, err := c.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, append(inspectors, headerInspector), httpClient)
 	if err != nil {
 		return err
 	} else if body == nil {
 		return nil
 	}
 
-	defer body.Close()
+	defer drainAndClose(body)
 
 	if responseBody == nil {
 		return nil
+	}
+
+	mediaType, err := request.ParseMediaTypeHeader(headerInspector.Headers, "Content-Type")
+	if err != nil {
+		return err
+	} else if mediaType == nil || *mediaType != "application/json; charset=utf-8" { // FUTURE: Consider MediaType struct that pulls apart and manages media type
+		return request.ErrorHeaderInvalid("Content-Type")
 	}
 
 	return request.DecodeObject(structure.NewPointerSource(), body, responseBody)
@@ -131,10 +148,8 @@ func (c *Client) createRequest(ctx context.Context, method string, url string, m
 	req = req.WithContext(ctx)
 
 	for _, mutator := range mutators {
-		if mutator != nil {
-			if err = mutator.MutateRequest(req); err != nil {
-				return nil, errors.Wrapf(err, "unable to mutate request to %s %s", method, url)
-			}
+		if err = mutator.MutateRequest(req); err != nil {
+			return nil, errors.Wrapf(err, "unable to mutate request to %s %s", method, url)
 		}
 	}
 
@@ -146,42 +161,75 @@ func (c *Client) createRequest(ctx context.Context, method string, url string, m
 }
 
 func (c *Client) handleResponse(ctx context.Context, res *http.Response, req *http.Request) (io.ReadCloser, error) {
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"method": req.Method, "url": req.URL.String()})
+
 	if request.IsStatusCodeSuccess(res.StatusCode) {
 		switch res.StatusCode {
 		case http.StatusNoContent, http.StatusResetContent:
-			res.Body.Close()
+			drainAndClose(res.Body)
 			return nil, nil
 		default:
 			return res.Body, nil
 		}
 	}
 
-	defer res.Body.Close()
+	defer drainAndClose(res.Body)
 
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"method": req.Method, "url": req.URL.String()})
+	serializable := &errors.Serializable{}
 
-	buffer := bytes.Buffer{}
-	if _, err := buffer.ReadFrom(io.LimitReader(res.Body, 1<<16)); err == nil {
-		logger = logger.WithField("responseBody", buffer.String())
+	if bytes, err := ioutil.ReadAll(io.LimitReader(res.Body, 1<<20)); err != nil {
+		return nil, errors.Wrap(err, "unable to read response body")
+	} else if len(bytes) == 0 {
+		logger.Error("Response body is empty, using defacto error for status code")
+	} else if unmarshalErr := json.Unmarshal(bytes, serializable); unmarshalErr != nil {
+		logger.WithError(unmarshalErr).WithField("responseBody", responseBodyFromBytes(bytes)).Error("Unable to deserialize response body, using defacto error for status code")
+	} else if serializable.Error == nil {
+		logger.WithField("responseBody", responseBodyFromBytes(bytes)).Error("Response body does not contain an error, using defacto error for status code")
 	}
 
-	var err error
+	if serializable.Error == nil {
+		serializable.Error = errorFromStatusCode(res, req)
+	}
+
+	logger = logger.WithError(serializable.Error)
+
+	switch errors.Code(serializable.Error) {
+	case request.ErrorCodeBadRequest:
+		logger.Error("Bad request")
+	case request.ErrorCodeTooManyRequests:
+		logger.Error("Too many requests")
+	case request.ErrorCodeUnexpectedResponse:
+		logger.Error("Unexpected response")
+	}
+
+	return nil, serializable.Error
+}
+
+func errorFromStatusCode(res *http.Response, req *http.Request) error {
 	switch res.StatusCode {
 	case http.StatusBadRequest:
-		logger.Warn("Bad request")
-		err = request.ErrorBadRequest()
+		return request.ErrorBadRequest()
 	case http.StatusUnauthorized:
-		err = request.ErrorUnauthenticated()
+		return request.ErrorUnauthenticated()
 	case http.StatusForbidden:
-		err = request.ErrorUnauthorized()
+		return request.ErrorUnauthorized()
 	case http.StatusNotFound:
-		err = request.ErrorResourceNotFound()
+		return request.ErrorResourceNotFound()
 	case http.StatusTooManyRequests:
-		logger.Warn("Too many requests")
-		err = request.ErrorTooManyRequests()
+		return request.ErrorTooManyRequests()
 	default:
-		logger.Warn("Unexpected response")
-		err = request.ErrorUnexpectedResponse(res, req)
+		return request.ErrorUnexpectedResponse(res, req)
 	}
-	return nil, err
+}
+
+func responseBodyFromBytes(byts []byte) interface{} {
+	if utf8.Valid(byts) {
+		return string(byts)
+	}
+	return byts
+}
+
+func drainAndClose(reader io.ReadCloser) {
+	io.Copy(ioutil.Discard, reader)
+	reader.Close()
 }

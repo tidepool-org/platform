@@ -102,3 +102,32 @@ func (p *ParametersMutator) MutateRequest(req *http.Request) error {
 
 	return nil
 }
+
+type ArrayParametersMutator struct {
+	Parameters map[string][]string
+}
+
+func NewArrayParametersMutator(parameters map[string][]string) *ArrayParametersMutator {
+	return &ArrayParametersMutator{
+		Parameters: parameters,
+	}
+}
+
+func (p *ArrayParametersMutator) MutateRequest(req *http.Request) error {
+	if req == nil {
+		return errors.New("request is missing")
+	}
+
+	query := req.URL.Query()
+	for key, values := range p.Parameters {
+		if key == "" {
+			return errors.New("key is missing")
+		}
+		for _, value := range values {
+			query.Add(key, value)
+		}
+	}
+	req.URL.RawQuery = query.Encode()
+
+	return nil
+}

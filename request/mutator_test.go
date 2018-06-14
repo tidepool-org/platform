@@ -4,11 +4,11 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"math/rand"
 	"net/http"
 
 	"github.com/tidepool-org/platform/request"
-	testHTTP "github.com/tidepool-org/platform/test/http"
+	"github.com/tidepool-org/platform/test"
+	testHttp "github.com/tidepool-org/platform/test/http"
 )
 
 var _ = Describe("Mutator", func() {
@@ -17,8 +17,8 @@ var _ = Describe("Mutator", func() {
 		var value string
 
 		BeforeEach(func() {
-			key = testHTTP.NewHeaderKey()
-			value = testHTTP.NewHeaderValue()
+			key = testHttp.NewHeaderKey()
+			value = testHttp.NewHeaderValue()
 		})
 
 		Context("NewHeaderMutator", func() {
@@ -47,7 +47,7 @@ var _ = Describe("Mutator", func() {
 				var request *http.Request
 
 				BeforeEach(func() {
-					request = testHTTP.NewRequest()
+					request = testHttp.NewRequest()
 				})
 
 				It("returns an error if the request is missing", func() {
@@ -66,8 +66,8 @@ var _ = Describe("Mutator", func() {
 				})
 
 				It("adds the header even if there are already headers", func() {
-					existingKey := testHTTP.NewHeaderKey()
-					existingValue := testHTTP.NewHeaderValue()
+					existingKey := testHttp.NewHeaderKey()
+					existingValue := testHttp.NewHeaderValue()
 					request.Header.Add(existingKey, existingValue)
 					Expect(mutator.MutateRequest(request)).To(Succeed())
 					Expect(request.Header).To(HaveLen(2))
@@ -76,7 +76,7 @@ var _ = Describe("Mutator", func() {
 				})
 
 				It("adds the header even if there are already headers with the same key", func() {
-					existingValue := testHTTP.NewHeaderValue()
+					existingValue := testHttp.NewHeaderValue()
 					request.Header.Add(key, existingValue)
 					Expect(mutator.MutateRequest(request)).To(Succeed())
 					Expect(request.Header).To(HaveLen(1))
@@ -91,8 +91,8 @@ var _ = Describe("Mutator", func() {
 		var value string
 
 		BeforeEach(func() {
-			key = testHTTP.NewParameterKey()
-			value = testHTTP.NewParameterValue()
+			key = testHttp.NewParameterKey()
+			value = testHttp.NewParameterValue()
 		})
 
 		Context("NewParameterMutator", func() {
@@ -121,7 +121,7 @@ var _ = Describe("Mutator", func() {
 				var request *http.Request
 
 				BeforeEach(func() {
-					request = testHTTP.NewRequest()
+					request = testHttp.NewRequest()
 				})
 
 				It("returns an error if the request is missing", func() {
@@ -140,8 +140,8 @@ var _ = Describe("Mutator", func() {
 				})
 
 				It("adds the parameter even if there are already parameters", func() {
-					existingKey := testHTTP.NewParameterKey()
-					existingValue := testHTTP.NewParameterValue()
+					existingKey := testHttp.NewParameterKey()
+					existingValue := testHttp.NewParameterValue()
 					query := request.URL.Query()
 					query.Add(existingKey, existingValue)
 					request.URL.RawQuery = query.Encode()
@@ -152,7 +152,7 @@ var _ = Describe("Mutator", func() {
 				})
 
 				It("adds the parameter even if there are already parameters with the same key", func() {
-					existingValue := testHTTP.NewParameterValue()
+					existingValue := testHttp.NewParameterValue()
 					query := request.URL.Query()
 					query.Add(key, existingValue)
 					request.URL.RawQuery = query.Encode()
@@ -169,8 +169,8 @@ var _ = Describe("Mutator", func() {
 
 		BeforeEach(func() {
 			parameters = map[string]string{}
-			for index := rand.Intn(3); index >= 0; index-- {
-				parameters[testHTTP.NewParameterKey()] = testHTTP.NewParameterValue()
+			for index := test.RandomIntFromRange(0, 3); index >= 0; index-- {
+				parameters[testHttp.NewParameterKey()] = testHttp.NewParameterValue()
 			}
 		})
 
@@ -196,7 +196,7 @@ var _ = Describe("Mutator", func() {
 				var request *http.Request
 
 				BeforeEach(func() {
-					request = testHTTP.NewRequest()
+					request = testHttp.NewRequest()
 				})
 
 				It("returns an error if the request is missing", func() {
@@ -204,7 +204,7 @@ var _ = Describe("Mutator", func() {
 				})
 
 				It("returns an error if a key is missing", func() {
-					mutator.Parameters[""] = testHTTP.NewParameterValue()
+					mutator.Parameters[""] = testHttp.NewParameterValue()
 					Expect(mutator.MutateRequest(request)).To(MatchError("key is missing"))
 				})
 
@@ -217,8 +217,8 @@ var _ = Describe("Mutator", func() {
 				})
 
 				It("adds the parameters even if there are already parameters", func() {
-					existingKey := testHTTP.NewParameterKey()
-					existingValue := testHTTP.NewParameterValue()
+					existingKey := testHttp.NewParameterKey()
+					existingValue := testHttp.NewParameterValue()
 					query := request.URL.Query()
 					query.Add(existingKey, existingValue)
 					request.URL.RawQuery = query.Encode()
@@ -235,7 +235,7 @@ var _ = Describe("Mutator", func() {
 					for existingKey = range parameters {
 						break
 					}
-					existingValue := testHTTP.NewParameterValue()
+					existingValue := testHttp.NewParameterValue()
 					query := request.URL.Query()
 					query.Add(existingKey, existingValue)
 					request.URL.RawQuery = query.Encode()
@@ -246,6 +246,95 @@ var _ = Describe("Mutator", func() {
 							Expect(request.URL.Query()).To(HaveKeyWithValue(key, []string{existingValue, value}))
 						} else {
 							Expect(request.URL.Query()).To(HaveKeyWithValue(key, []string{value}))
+						}
+					}
+				})
+			})
+		})
+	})
+
+	Context("ArrayParametersMutator", func() {
+		var parameters map[string][]string
+
+		BeforeEach(func() {
+			parameters = map[string][]string{}
+			for index := test.RandomIntFromRange(0, 3); index >= 0; index-- {
+				parameters[testHttp.NewParameterKey()] = test.RandomStringArrayFromRangeAndGeneratorWithDuplicates(1, 3, testHttp.NewParameterValue)
+			}
+		})
+
+		Context("NewArrayParametersMutator", func() {
+			It("returns successfully", func() {
+				Expect(request.NewArrayParametersMutator(parameters)).ToNot(BeNil())
+			})
+		})
+
+		Context("with new parameters mutator", func() {
+			var mutator *request.ArrayParametersMutator
+
+			BeforeEach(func() {
+				mutator = request.NewArrayParametersMutator(parameters)
+				Expect(mutator).ToNot(BeNil())
+			})
+
+			It("remembers the parameters", func() {
+				Expect(mutator.Parameters).To(Equal(parameters))
+			})
+
+			Context("MutateRequest", func() {
+				var request *http.Request
+
+				BeforeEach(func() {
+					request = testHttp.NewRequest()
+				})
+
+				It("returns an error if the request is missing", func() {
+					Expect(mutator.MutateRequest(nil)).To(MatchError("request is missing"))
+				})
+
+				It("returns an error if a key is missing", func() {
+					mutator.Parameters[""] = test.RandomStringArrayFromRangeAndGeneratorWithDuplicates(1, 3, testHttp.NewParameterValue)
+					Expect(mutator.MutateRequest(request)).To(MatchError("key is missing"))
+				})
+
+				It("adds the parameters", func() {
+					Expect(mutator.MutateRequest(request)).To(Succeed())
+					Expect(request.URL.Query()).To(HaveLen(len(parameters)))
+					for key, value := range parameters {
+						Expect(request.URL.Query()).To(HaveKeyWithValue(key, value))
+					}
+				})
+
+				It("adds the parameters even if there are already parameters", func() {
+					existingKey := testHttp.NewParameterKey()
+					existingValue := test.RandomStringArrayFromRangeAndGeneratorWithDuplicates(1, 3, testHttp.NewParameterValue)
+					query := request.URL.Query()
+					query[existingKey] = existingValue
+					request.URL.RawQuery = query.Encode()
+					Expect(mutator.MutateRequest(request)).To(Succeed())
+					Expect(request.URL.Query()).To(HaveLen(1 + len(parameters)))
+					Expect(request.URL.Query()).To(HaveKeyWithValue(existingKey, existingValue))
+					for key, value := range parameters {
+						Expect(request.URL.Query()).To(HaveKeyWithValue(key, value))
+					}
+				})
+
+				It("adds the parameters even if there are already parameters with the same key", func() {
+					var existingKey string
+					for existingKey = range parameters {
+						break
+					}
+					existingValue := test.RandomStringArrayFromRangeAndGeneratorWithDuplicates(1, 3, testHttp.NewParameterValue)
+					query := request.URL.Query()
+					query[existingKey] = existingValue
+					request.URL.RawQuery = query.Encode()
+					Expect(mutator.MutateRequest(request)).To(Succeed())
+					Expect(request.URL.Query()).To(HaveLen(len(parameters)))
+					for key, value := range parameters {
+						if key == existingKey {
+							Expect(request.URL.Query()).To(HaveKeyWithValue(key, append(existingValue, value...)))
+						} else {
+							Expect(request.URL.Query()).To(HaveKeyWithValue(key, value))
 						}
 					}
 				})

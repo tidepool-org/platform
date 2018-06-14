@@ -69,8 +69,10 @@ func (r *Responder) Bytes(statusCode int, bytes []byte, mutators ...ResponseMuta
 		r.InternalServerError(err)
 	} else {
 		r.res.WriteHeader(statusCode)
-		if _, err = r.res.(http.ResponseWriter).Write(bytes); err != nil {
-			log.LoggerFromContext(r.req.Context()).WithError(err).Error("Unable to write bytes")
+		if bytesWritten, writeErr := r.res.(http.ResponseWriter).Write(bytes); writeErr != nil {
+			log.LoggerFromContext(r.req.Context()).WithError(writeErr).Error("Unable to write bytes")
+		} else if bytesLength := len(bytes); bytesWritten != bytesLength {
+			log.LoggerFromContext(r.req.Context()).WithFields(log.Fields{"bytesWritten": bytesWritten, "bytesLength": bytesLength}).Error("Bytes written does not equal bytes length")
 		}
 	}
 }

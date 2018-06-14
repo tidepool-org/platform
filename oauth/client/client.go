@@ -51,5 +51,5 @@ func (c *Client) SendOAuthRequest(ctx context.Context, method string, url string
 		return err
 	}
 
-	return c.client.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, httpClient)
+	return c.client.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, nil, httpClient)
 }

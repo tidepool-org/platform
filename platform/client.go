@@ -33,7 +33,7 @@ func NewClient(cfg *Config, authorizeAs AuthorizeAs) (*Client, error) {
 		return nil, errors.Wrap(err, "config is invalid")
 	}
 	if authorizeAs != AuthorizeAsService && authorizeAs != AuthorizeAsUser {
-		return nil, errors.New("authorized as is invalid")
+		return nil, errors.New("authorize as is invalid")
 	}
 
 	clnt, err := client.New(cfg.Config)
@@ -92,20 +92,20 @@ func (c *Client) HTTPClient() *http.Client {
 	return c.httpClient
 }
 
-func (c *Client) RequestStream(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}) (io.ReadCloser, error) {
+func (c *Client) RequestStream(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, inspectors ...request.ResponseInspector) (io.ReadCloser, error) {
 	clientMutators, err := c.Mutators(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return c.RequestStreamWithHTTPClient(ctx, method, url, append(mutators, clientMutators...), requestBody, c.HTTPClient())
+	return c.RequestStreamWithHTTPClient(ctx, method, url, append(mutators, clientMutators...), requestBody, inspectors, c.HTTPClient())
 }
 
-func (c *Client) RequestData(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, responseBody interface{}) error {
+func (c *Client) RequestData(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, responseBody interface{}, inspectors ...request.ResponseInspector) error {
 	clientMutators, err := c.Mutators(ctx)
 	if err != nil {
 		return err
 	}
 
-	return c.RequestDataWithHTTPClient(ctx, method, url, append(mutators, clientMutators...), requestBody, responseBody, c.HTTPClient())
+	return c.RequestDataWithHTTPClient(ctx, method, url, append(mutators, clientMutators...), requestBody, responseBody, inspectors, c.HTTPClient())
 }

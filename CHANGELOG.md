@@ -1,5 +1,14 @@
 ## HEAD
 
+* Add client response inspectors
+* Ensure client data responses uses expected application/json content type header
+* Parse client response body for actual error, default to standard error from status code
+* Forcible drain client response body under all conditions
+* Add ArrayParametersMutator for adding headers with multiple string values
+* Update request values parser to handle generic map
+* Add request ParseDigestMD5Header, ParseMediaTypeHeader, and ParseIntHeader
+* Add request IsStatusCodeRedirection and IsStatusCodeClientError
+* Log any failure or short write during responder response write
 * Update logger to delete an existing field if new field value is nil
 * When deserializing errors an empty error array returns nil
 * Refactor application package to allow dependency injection

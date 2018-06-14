@@ -5,8 +5,12 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
 
+	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/structure"
 	structureNormalizer "github.com/tidepool-org/platform/structure/normalizer"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
@@ -142,10 +146,10 @@ func DecodeRequestQuery(req *http.Request, objectParsables ...structure.ObjectPa
 		return errors.New("unable to parse request query")
 	}
 
-	return DecodeValues(values, objectParsables...)
+	return DecodeValues((map[string][]string)(values), objectParsables...)
 }
 
-func DecodeValues(values url.Values, objectParsables ...structure.ObjectParsable) error {
+func DecodeValues(values map[string][]string, objectParsables ...structure.ObjectParsable) error {
 	objects := []interface{}{}
 	for _, object := range objectParsables {
 		objects = append(objects, object)
@@ -160,11 +164,60 @@ func DecodeValues(values url.Values, objectParsables ...structure.ObjectParsable
 	return NormalizeObjects(structure.NewParameterSource(), objects...)
 }
 
-func ParseValuesObjects(values url.Values, objectParsables ...structure.ObjectParsable) error {
+func ParseValuesObjects(values map[string][]string, objectParsables ...structure.ObjectParsable) error {
 	parser := NewValues(&values)
 	for _, objectParsable := range objectParsables {
 		objectParsable.Parse(parser)
 	}
 	parser.NotParsed()
 	return parser.Error()
+}
+
+func ParseDigestMD5Header(header http.Header, key string) (*string, error) {
+	if values, ok := header[key]; ok {
+		switch len(values) {
+		case 0:
+			return nil, nil
+		case 1:
+			if parts := strings.SplitN(values[0], "=", 2); len(parts) == 2 {
+				if algorithm := strings.ToUpper(parts[0]); algorithm == "MD5" {
+					if value := parts[1]; crypto.IsValidBase64EncodedMD5Hash(value) {
+						return &value, nil
+					}
+				}
+			}
+		}
+		return nil, ErrorHeaderInvalid(key)
+	}
+	return nil, nil
+}
+
+func ParseMediaTypeHeader(header http.Header, key string) (*string, error) {
+	if values, ok := header[key]; ok {
+		switch len(values) {
+		case 0:
+			return nil, nil
+		case 1:
+			if value := values[0]; net.IsValidMediaType(value) {
+				return &value, nil
+			}
+		}
+		return nil, ErrorHeaderInvalid(key)
+	}
+	return nil, nil
+}
+
+func ParseIntHeader(header http.Header, key string) (*int, error) {
+	if values, ok := header[key]; ok {
+		switch len(values) {
+		case 0:
+			return nil, nil
+		case 1:
+			if value, err := strconv.Atoi(values[0]); err == nil {
+				return &value, nil
+			}
+		}
+		return nil, ErrorHeaderInvalid(key)
+	}
+	return nil, nil
 }

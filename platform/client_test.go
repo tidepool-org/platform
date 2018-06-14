@@ -11,6 +11,8 @@ import (
 
 	"github.com/tidepool-org/platform/auth"
 	authTest "github.com/tidepool-org/platform/auth/test"
+	"github.com/tidepool-org/platform/log"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/test"
@@ -41,7 +43,7 @@ var _ = Describe("Client", func() {
 			address = testHTTP.NewAddress()
 			userAgent = testHTTP.NewUserAgent()
 			serviceSecret = authTest.NewServiceSecret()
-			ctx = context.Background()
+			ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
 		})
 
 		JustBeforeEach(func() {
@@ -67,9 +69,9 @@ var _ = Describe("Client", func() {
 				Expect(clnt).To(BeNil())
 			})
 
-			It("returns an error if authorized as is invalid", func() {
+			It("returns an error if authorize as is invalid", func() {
 				clnt, err := platform.NewClient(cfg, platform.AuthorizeAs(-1))
-				Expect(err).To(MatchError("authorized as is invalid"))
+				Expect(err).To(MatchError("authorize as is invalid"))
 				Expect(clnt).To(BeNil())
 			})
 
@@ -80,7 +82,7 @@ var _ = Describe("Client", func() {
 			})
 		})
 
-		Context("with new client authorized as service", func() {
+		Context("with new client authorize as service", func() {
 			var clnt *platform.Client
 
 			JustBeforeEach(func() {
@@ -220,7 +222,7 @@ var _ = Describe("Client", func() {
 						})
 					})
 
-					Context("with a successful response 200 with additional mutators", func() {
+					Context("with a successful response 200 with additional mutators and inspectors", func() {
 						var headerKey string
 						var headerValue string
 
@@ -240,7 +242,8 @@ var _ = Describe("Client", func() {
 
 						It("returns success", func() {
 							mutators := []request.RequestMutator{request.NewHeaderMutator(headerKey, headerValue)}
-							reader, err = clnt.RequestStream(ctx, method, url, mutators, nil)
+							inspector := request.NewHeadersInspector()
+							reader, err = clnt.RequestStream(ctx, method, url, mutators, nil, inspector)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(reader).ToNot(BeNil())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
@@ -282,7 +285,7 @@ var _ = Describe("Client", func() {
 						})
 					})
 
-					Context("with a successful response 200 with additional mutators", func() {
+					Context("with a successful response 200 with additional mutators and inspectors", func() {
 						var headerKey string
 						var headerValue string
 
@@ -302,7 +305,8 @@ var _ = Describe("Client", func() {
 
 						It("returns success", func() {
 							mutators := []request.RequestMutator{request.NewHeaderMutator(headerKey, headerValue)}
-							Expect(clnt.RequestData(ctx, method, url, mutators, nil, nil)).To(Succeed())
+							inspector := request.NewHeadersInspector()
+							Expect(clnt.RequestData(ctx, method, url, mutators, nil, nil, inspector)).To(Succeed())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
 					})
@@ -310,7 +314,7 @@ var _ = Describe("Client", func() {
 			})
 		})
 
-		Context("with new client authorized as user", func() {
+		Context("with new client authorize as user", func() {
 			var sessionToken string
 			var clnt *platform.Client
 
@@ -433,7 +437,7 @@ var _ = Describe("Client", func() {
 						})
 					})
 
-					Context("with a successful response 200 with additional mutators", func() {
+					Context("with a successful response 200 with additional mutators and inspectors", func() {
 						var headerKey string
 						var headerValue string
 
@@ -453,7 +457,8 @@ var _ = Describe("Client", func() {
 
 						It("returns success", func() {
 							mutators := []request.RequestMutator{request.NewHeaderMutator(headerKey, headerValue)}
-							reader, err = clnt.RequestStream(ctx, method, url, mutators, nil)
+							inspector := request.NewHeadersInspector()
+							reader, err = clnt.RequestStream(ctx, method, url, mutators, nil, inspector)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(reader).ToNot(BeNil())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
@@ -495,7 +500,7 @@ var _ = Describe("Client", func() {
 						})
 					})
 
-					Context("with a successful response 200 with additional mutators", func() {
+					Context("with a successful response 200 with additional mutators and inspectors", func() {
 						var headerKey string
 						var headerValue string
 
@@ -515,7 +520,8 @@ var _ = Describe("Client", func() {
 
 						It("returns success", func() {
 							mutators := []request.RequestMutator{request.NewHeaderMutator(headerKey, headerValue)}
-							Expect(clnt.RequestData(ctx, method, url, mutators, nil, nil)).To(Succeed())
+							inspector := request.NewHeadersInspector()
+							Expect(clnt.RequestData(ctx, method, url, mutators, nil, nil, inspector)).To(Succeed())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
 					})
