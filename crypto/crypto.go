@@ -12,6 +12,11 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
+func Base64EncodedMD5Hash(bytes []byte) string {
+	md5Sum := md5.Sum(bytes)
+	return base64.StdEncoding.EncodeToString(md5Sum[:])
+}
+
 func IsValidBase64EncodedMD5Hash(value string) bool {
 	return ValidateBase64EncodedMD5Hash(value) == nil
 }

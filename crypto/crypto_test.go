@@ -14,6 +14,18 @@ import (
 )
 
 var _ = Describe("Crypto", func() {
+	Context("Base64EncodedMD5Hash", func() {
+		DescribeTable("returns the expected result when the input",
+			func(value string, expectedResult string) {
+				Expect(crypto.Base64EncodedMD5Hash([]byte(value))).To(Equal(expectedResult))
+			},
+			Entry("is empty", "", "1B2M2Y8AsgTpgAmY7PhCfg=="),
+			Entry("is not empty", "abcdefghijklmnopqrstuvwxyz", "w/zT12GS5AB9+0lsymfhOw=="),
+			Entry("is whitespace", "        ", "e7Dt2Y8iQwoDtn+FPoPCyg=="),
+			Entry("includes non-ASCII", "abcABC123 !\"#_😁😂😃ΨΪΫ", "+V8+B6cToORNU71pST2SeQ=="),
+		)
+	})
+
 	Context("IsValidBase64EncodedMD5Hash, Base64EncodedMD5HashValidator, and ValidateBase64EncodedMD5Hash", func() {
 		DescribeTable("return the expected results when the input",
 			func(value string, expectedErrors ...error) {

@@ -1,5 +1,6 @@
 ## HEAD
 
+* Add crypto.Base64EncodedMD5Hash
 * Minor updates to unstructured storage
 * Add and update test helpers
 * Add common service API status router
