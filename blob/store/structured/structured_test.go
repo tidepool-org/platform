@@ -1,0 +1,197 @@
+package structured_test
+
+import (
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/gomega"
+
+	"github.com/tidepool-org/platform/blob"
+	blobStoreStructured "github.com/tidepool-org/platform/blob/store/structured"
+	blobStoreStructuredTest "github.com/tidepool-org/platform/blob/store/structured/test"
+	"github.com/tidepool-org/platform/crypto"
+	cryptoTest "github.com/tidepool-org/platform/crypto/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
+	"github.com/tidepool-org/platform/net"
+	netTest "github.com/tidepool-org/platform/net/test"
+	"github.com/tidepool-org/platform/pointer"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/test"
+)
+
+var _ = Describe("Store", func() {
+	Context("NewCreate", func() {
+		It("returns successfully with default values", func() {
+			create := blobStoreStructured.NewCreate()
+			Expect(create).ToNot(BeNil())
+			Expect(create.MediaType).To(BeNil())
+		})
+	})
+
+	Context("with new create", func() {
+		Context("Validate", func() {
+			DescribeTable("validates the datum",
+				func(mutator func(datum *blobStoreStructured.Create), expectedErrors ...error) {
+					datum := blobStoreStructuredTest.RandomCreate()
+					mutator(datum)
+					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+				},
+				Entry("succeeds",
+					func(datum *blobStoreStructured.Create) {},
+				),
+				Entry("media type missing",
+					func(datum *blobStoreStructured.Create) { datum.MediaType = nil },
+				),
+				Entry("media type empty",
+					func(datum *blobStoreStructured.Create) { datum.MediaType = pointer.FromString("") },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/mediaType"),
+				),
+				Entry("media type invalid",
+					func(datum *blobStoreStructured.Create) { datum.MediaType = pointer.FromString("/") },
+					errorsTest.WithPointerSource(net.ErrorValueStringAsMediaTypeNotValid("/"), "/mediaType"),
+				),
+				Entry("media type valid",
+					func(datum *blobStoreStructured.Create) {
+						datum.MediaType = pointer.FromString(netTest.RandomMediaType())
+					},
+				),
+			)
+		})
+	})
+
+	Context("NewUpdate", func() {
+		It("returns successfully with default values", func() {
+			update := blobStoreStructured.NewUpdate()
+			Expect(update).ToNot(BeNil())
+			Expect(update.DigestMD5).To(BeNil())
+			Expect(update.MediaType).To(BeNil())
+			Expect(update.Size).To(BeNil())
+			Expect(update.Status).To(BeNil())
+		})
+	})
+
+	Context("with new update", func() {
+		Context("Validate", func() {
+			DescribeTable("validates the datum",
+				func(mutator func(datum *blobStoreStructured.Update), expectedErrors ...error) {
+					datum := blobStoreStructuredTest.RandomUpdate()
+					mutator(datum)
+					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+				},
+				Entry("succeeds",
+					func(datum *blobStoreStructured.Update) {},
+				),
+				Entry("digest MD5 missing",
+					func(datum *blobStoreStructured.Update) { datum.DigestMD5 = nil },
+				),
+				Entry("digest MD5 empty",
+					func(datum *blobStoreStructured.Update) { datum.DigestMD5 = pointer.FromString("") },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/digestMD5"),
+				),
+				Entry("digest MD5 invalid",
+					func(datum *blobStoreStructured.Update) { datum.DigestMD5 = pointer.FromString("#") },
+					errorsTest.WithPointerSource(crypto.ErrorValueStringAsBase64EncodedMD5HashNotValid("#"), "/digestMD5"),
+				),
+				Entry("digest MD5 valid",
+					func(datum *blobStoreStructured.Update) {
+						datum.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+					},
+				),
+				Entry("media type missing",
+					func(datum *blobStoreStructured.Update) { datum.MediaType = nil },
+				),
+				Entry("media type empty",
+					func(datum *blobStoreStructured.Update) { datum.MediaType = pointer.FromString("") },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/mediaType"),
+				),
+				Entry("media type invalid",
+					func(datum *blobStoreStructured.Update) { datum.MediaType = pointer.FromString("/") },
+					errorsTest.WithPointerSource(net.ErrorValueStringAsMediaTypeNotValid("/"), "/mediaType"),
+				),
+				Entry("media type valid",
+					func(datum *blobStoreStructured.Update) {
+						datum.MediaType = pointer.FromString(netTest.RandomMediaType())
+					},
+				),
+				Entry("size missing",
+					func(datum *blobStoreStructured.Update) { datum.Size = nil },
+				),
+				Entry("size out of range (lower)",
+					func(datum *blobStoreStructured.Update) { datum.Size = pointer.FromInt(-1) },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/size"),
+				),
+				Entry("size in range (lower)",
+					func(datum *blobStoreStructured.Update) { datum.Size = pointer.FromInt(0) },
+				),
+				Entry("status missing",
+					func(datum *blobStoreStructured.Update) { datum.Status = nil },
+				),
+				Entry("status empty",
+					func(datum *blobStoreStructured.Update) { datum.Status = pointer.FromString("") },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("", blob.Statuses()), "/status"),
+				),
+				Entry("status invalid",
+					func(datum *blobStoreStructured.Update) { datum.Status = pointer.FromString("invalid") },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", blob.Statuses()), "/status"),
+				),
+				Entry("status created",
+					func(datum *blobStoreStructured.Update) { datum.Status = pointer.FromString("created") },
+				),
+				Entry("status available",
+					func(datum *blobStoreStructured.Update) { datum.Status = pointer.FromString("available") },
+				),
+				Entry("multiple errors",
+					func(datum *blobStoreStructured.Update) {
+						datum.DigestMD5 = pointer.FromString("")
+						datum.MediaType = pointer.FromString("")
+						datum.Size = pointer.FromInt(-1)
+						datum.Status = pointer.FromString("")
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/digestMD5"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/mediaType"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/size"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("", blob.Statuses()), "/status"),
+				),
+			)
+
+			Context("HasUpdates", func() {
+				var update *blobStoreStructured.Update
+
+				BeforeEach(func() {
+					update = blobStoreStructured.NewUpdate()
+				})
+
+				It("returns false when no fields are specified", func() {
+					Expect(update.HasUpdates()).To(BeFalse())
+				})
+
+				It("returns true when the digest MD5 field is specified", func() {
+					update.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+					Expect(update.HasUpdates()).To(BeTrue())
+				})
+
+				It("returns true when the media type field is specified", func() {
+					update.MediaType = pointer.FromString(netTest.RandomMediaType())
+					Expect(update.HasUpdates()).To(BeTrue())
+				})
+
+				It("returns true when the size field is specified", func() {
+					update.Size = pointer.FromInt(test.RandomIntFromRange(1, 100*1024*1024))
+					Expect(update.HasUpdates()).To(BeTrue())
+				})
+
+				It("returns true when the status field is specified", func() {
+					update.Status = pointer.FromString(test.RandomStringFromArray(blob.Statuses()))
+					Expect(update.HasUpdates()).To(BeTrue())
+				})
+
+				It("returns true when multiple fields are specified", func() {
+					update.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+					update.MediaType = pointer.FromString(netTest.RandomMediaType())
+					update.Size = pointer.FromInt(test.RandomIntFromRange(1, 100*1024*1024))
+					update.Status = pointer.FromString(test.RandomStringFromArray(blob.Statuses()))
+					Expect(update.HasUpdates()).To(BeTrue())
+				})
+			})
+		})
+	})
+})

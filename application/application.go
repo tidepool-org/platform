@@ -2,14 +2,9 @@ package application
 
 import (
 	"os"
-	"time"
 
 	"github.com/tidepool-org/platform/errors"
 )
-
-func init() {
-	time.Local = time.UTC
-}
 
 type Application struct {
 	Provider
