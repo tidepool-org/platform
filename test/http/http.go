@@ -168,8 +168,8 @@ func NewStatusCode() int {
 }
 
 func NewRequest() *http.Request {
-	request, err := http.NewRequest(NewMethod(), NewAddress(), nil)
+	req, err := http.NewRequest(NewMethod(), NewAddress(), nil)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
-	gomega.Expect(request).ToNot(gomega.BeNil())
-	return request
+	gomega.Expect(req).ToNot(gomega.BeNil())
+	return req
 }
