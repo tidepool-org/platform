@@ -103,12 +103,13 @@ func (c *Client) RequestDataWithHTTPClient(ctx context.Context, method string, u
 		return nil
 	}
 
-	mediaType, err := request.ParseMediaTypeHeader(headerInspector.Headers, "Content-Type")
-	if err != nil {
-		return err
-	} else if mediaType == nil || *mediaType != "application/json; charset=utf-8" { // FUTURE: Consider MediaType struct that pulls apart and manages media type
-		return request.ErrorHeaderInvalid("Content-Type")
-	}
+	// FUTURE: Enable once all services respond appropriately, namely legacy services
+	// mediaType, err := request.ParseMediaTypeHeader(headerInspector.Headers, "Content-Type")
+	// if err != nil {
+	// 	return err
+	// } else if mediaType == nil || *mediaType != "application/json; charset=utf-8" { // FUTURE: Consider MediaType struct that pulls apart and manages media type
+	// 	return request.ErrorHeaderInvalid("Content-Type")
+	// }
 
 	return request.DecodeObject(structure.NewPointerSource(), body, responseBody)
 }

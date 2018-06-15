@@ -961,68 +961,69 @@ var _ = Describe("Client", func() {
 				})
 			})
 
-			Context("without a content type", func() {
-				BeforeEach(func() {
-					server.AppendHandlers(
-						CombineHandlers(
-							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
-							VerifyHeaderKV("User-Agent", userAgent),
-							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
-							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(requestJSON),
-							RespondWith(http.StatusOK, responseJSON),
-						),
-					)
-				})
+			// FUTURE: Enable once all services respond appropriately, namely legacy services
+			// Context("without a content type", func() {
+			// 	BeforeEach(func() {
+			// 		server.AppendHandlers(
+			// 			CombineHandlers(
+			// 				VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+			// 				VerifyHeaderKV("User-Agent", userAgent),
+			// 				VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+			// 				VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+			// 				VerifyBody(requestJSON),
+			// 				RespondWith(http.StatusOK, responseJSON),
+			// 			),
+			// 		)
+			// 	})
 
-				It("returns an error", func() {
-					err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
-					Expect(err).To(MatchError(`header "Content-Type" is invalid`))
-					Expect(server.ReceivedRequests()).To(HaveLen(1))
-				})
-			})
+			// 	It("returns an error", func() {
+			// 		err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
+			// 		Expect(err).To(MatchError(`header "Content-Type" is invalid`))
+			// 		Expect(server.ReceivedRequests()).To(HaveLen(1))
+			// 	})
+			// })
 
-			Context("with an invalid content type", func() {
-				BeforeEach(func() {
-					server.AppendHandlers(
-						CombineHandlers(
-							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
-							VerifyHeaderKV("User-Agent", userAgent),
-							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
-							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(requestJSON),
-							RespondWith(http.StatusOK, responseJSON, http.Header{"Content-Type": []string{"/"}}),
-						),
-					)
-				})
+			// Context("with an invalid content type", func() {
+			// 	BeforeEach(func() {
+			// 		server.AppendHandlers(
+			// 			CombineHandlers(
+			// 				VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+			// 				VerifyHeaderKV("User-Agent", userAgent),
+			// 				VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+			// 				VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+			// 				VerifyBody(requestJSON),
+			// 				RespondWith(http.StatusOK, responseJSON, http.Header{"Content-Type": []string{"/"}}),
+			// 			),
+			// 		)
+			// 	})
 
-				It("returns an error", func() {
-					err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
-					Expect(err).To(MatchError(`header "Content-Type" is invalid`))
-					Expect(server.ReceivedRequests()).To(HaveLen(1))
-				})
-			})
+			// 	It("returns an error", func() {
+			// 		err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
+			// 		Expect(err).To(MatchError(`header "Content-Type" is invalid`))
+			// 		Expect(server.ReceivedRequests()).To(HaveLen(1))
+			// 	})
+			// })
 
-			Context("with an unexpected content type", func() {
-				BeforeEach(func() {
-					server.AppendHandlers(
-						CombineHandlers(
-							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
-							VerifyHeaderKV("User-Agent", userAgent),
-							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
-							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(requestJSON),
-							RespondWith(http.StatusOK, responseJSON, http.Header{"Content-Type": []string{"application/json"}}),
-						),
-					)
-				})
+			// Context("with an unexpected content type", func() {
+			// 	BeforeEach(func() {
+			// 		server.AppendHandlers(
+			// 			CombineHandlers(
+			// 				VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+			// 				VerifyHeaderKV("User-Agent", userAgent),
+			// 				VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+			// 				VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+			// 				VerifyBody(requestJSON),
+			// 				RespondWith(http.StatusOK, responseJSON, http.Header{"Content-Type": []string{"application/json"}}),
+			// 			),
+			// 		)
+			// 	})
 
-				It("returns an error", func() {
-					err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
-					Expect(err).To(MatchError(`header "Content-Type" is invalid`))
-					Expect(server.ReceivedRequests()).To(HaveLen(1))
-				})
-			})
+			// 	It("returns an error", func() {
+			// 		err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
+			// 		Expect(err).To(MatchError(`header "Content-Type" is invalid`))
+			// 		Expect(server.ReceivedRequests()).To(HaveLen(1))
+			// 	})
+			// })
 
 			Context("with a successful response 204 without parsing content", func() {
 				BeforeEach(func() {

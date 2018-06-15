@@ -20,6 +20,7 @@ export TIDEPOOL_USER_STORE_DATABASE="user"
 export TIDEPOOL_USER_STORE_PASSWORD_SALT="ADihSEI7tOQQP9xfXMO9HfRpXKu1NpIJ"
 
 export TIDEPOOL_AUTH_CLIENT_ADDRESS="http://localhost:8009"
+export TIDEPOOL_BLOB_CLIENT_ADDRESS="http://localhost:8009"
 export TIDEPOOL_DATA_CLIENT_ADDRESS="http://localhost:8009"
 export TIDEPOOL_METRIC_CLIENT_ADDRESS="http://localhost:8009"
 export TIDEPOOL_TASK_CLIENT_ADDRESS="http://localhost:8009"
@@ -29,6 +30,7 @@ export TIDEPOOL_AUTH_CLIENT_EXTERNAL_ADDRESS="http://localhost:8009"
 export TIDEPOOL_AUTH_CLIENT_EXTERNAL_SERVER_SESSION_TOKEN_SECRET="This needs to be the same secret everywhere. YaHut75NsK1f9UKUXuWqxNN0RUwHFBCy"
 
 export TIDEPOOL_AUTH_SERVICE_SERVER_ADDRESS=":9222"
+export TIDEPOOL_BLOB_SERVICE_SERVER_ADDRESS=":9225"
 export TIDEPOOL_DATA_SERVICE_SERVER_ADDRESS=":9220"
 export TIDEPOOL_NOTIFICATION_SERVICE_SERVER_ADDRESS=":9223"
 export TIDEPOOL_TASK_SERVICE_SERVER_ADDRESS=":9224"
@@ -36,7 +38,11 @@ export TIDEPOOL_USER_SERVICE_SERVER_ADDRESS=":9221"
 
 export TIDEPOOL_AUTH_SERVICE_DOMAIN="localhost"
 
+export TIDEPOOL_BLOB_SERVICE_UNSTRUCTURED_STORE_TYPE="file"
+export TIDEPOOL_BLOB_SERVICE_UNSTRUCTURED_STORE_FILE_DIRECTORY="_data/blobs"
+
 export TIDEPOOL_AUTH_SERVICE_SECRET="Service secret used for interservice requests with the auth service"
+export TIDEPOOL_BLOB_SERVICE_SECRET="Service secret used for interservice requests with the blob service"
 export TIDEPOOL_DATA_SERVICE_SECRET="Service secret used for interservice requests with the data service"
 export TIDEPOOL_NOTIFICATION_SERVICE_SECRET="Service secret used for interservice requests with the notification service"
 export TIDEPOOL_TASK_SERVICE_SECRET="Service secret used for interservice requests with the task service"

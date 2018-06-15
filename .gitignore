@@ -1,5 +1,6 @@
 *.coverprofile
 /_bin
+/_data
 /_log
 /_tmp
 /deploy

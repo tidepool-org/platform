@@ -1,5 +1,9 @@
 ## HEAD
 
+* Add Dockerfile and config for running blob service
+* Remove check for correct content type from legacy service responses
+* Fix incorrect usage of test package in trace middleware
+* Minor updates to blob service configuration
 * Restrict test environment variables to only necessary
 * Add blob service, store, client, and related structures
 * Update structure parameter source to return unchanged if multiple references applied

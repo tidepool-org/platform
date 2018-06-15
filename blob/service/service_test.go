@@ -79,13 +79,11 @@ var _ = Describe("Service", func() {
 				"auth": map[string]interface{}{
 					"client": authClientConfig,
 				},
-				"blob": map[string]interface{}{
-					"structured": map[string]interface{}{
-						"store": blobStructuredStoreConfig,
-					},
-					"unstructured": map[string]interface{}{
-						"store": blobUnstructuredStoreConfig,
-					},
+				"structured": map[string]interface{}{
+					"store": blobStructuredStoreConfig,
+				},
+				"unstructured": map[string]interface{}{
+					"store": blobUnstructuredStoreConfig,
 				},
 				"secret": authTest.NewServiceSecret(),
 				"server": map[string]interface{}{

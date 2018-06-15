@@ -93,7 +93,7 @@ func (s *Service) initializeBlobStructuredStore() error {
 	s.Logger().Debug("Loading blob structured store config")
 
 	config := storeStructuredMongo.NewConfig()
-	if err := config.Load(s.ConfigReporter().WithScopes("blob", "structured", "store")); err != nil {
+	if err := config.Load(s.ConfigReporter().WithScopes("structured", "store")); err != nil {
 		return errors.Wrap(err, "unable to load blob structured store config")
 	}
 
@@ -135,7 +135,7 @@ func (s *Service) initializeBlobUnstructuredStore() error {
 
 	s.Logger().Debug("Creating unstructured store")
 
-	unstructuredStore, err := storeUnstructuredFactory.NewStore(s.ConfigReporter().WithScopes("blob", "unstructured", "store"), awsEhpi)
+	unstructuredStore, err := storeUnstructuredFactory.NewStore(s.ConfigReporter().WithScopes("unstructured", "store"), awsEhpi)
 	if err != nil {
 		return errors.Wrap(err, "unable to create unstructured store")
 	}

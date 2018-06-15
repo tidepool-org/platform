@@ -3,10 +3,10 @@ package middleware
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
-	"github.com/tidepool-org/platform/test"
 )
 
 type Trace struct{}
@@ -43,7 +43,7 @@ func (t *Trace) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
 					traceRequest = traceRequest[:_TraceMaximumLength]
 				}
 			} else {
-				traceRequest = test.NewString(32, test.CharsetHexidecimalLowercase)
+				traceRequest = id.Must(id.New(16))
 			}
 			req.Request = req.WithContext(request.NewContextWithTraceRequest(req.Context(), traceRequest))
 			service.SetRequestTraceRequest(req, traceRequest) // DEPRECATED
