@@ -42,20 +42,20 @@ func (d *DevicesResponse) Validate(validator structure.Validator) {
 }
 
 type Device struct {
-	Model             string          `json:"model,omitempty"`
-	LastUploadDate    time.Time       `json:"lastUploadDate,omitempty"`
-	AlertSettings     []*AlertSetting `json:"alertSettings,omitempty"`
-	UDI               *string         `json:"udi,omitempty"`
-	SerialNumber      *string         `json:"serialNumber,omitempty"`
-	TransmitterID     *string         `json:"transmitterId,omitempty"`
-	SoftwareVersion   *string         `json:"softwareVersion,omitempty"`
-	SoftwareNumber    *string         `json:"softwareNumber,omitempty"`
-	Language          *string         `json:"language,omitempty"`
-	IsMmolDisplayMode *bool           `json:"isMmolDisplayMode,omitempty"`
-	IsBlindedMode     *bool           `json:"isBlindedMode,omitempty"`
-	Is24HourMode      *bool           `json:"is24HourMode,omitempty"`
-	DisplayTimeOffset *int            `json:"displayTimeOffset,omitempty"`
-	SystemTimeOffset  *int            `json:"systemTimeOffset,omitempty"`
+	Model             string        `json:"model,omitempty"`
+	LastUploadDate    time.Time     `json:"lastUploadDate,omitempty"`
+	AlertSettings     AlertSettings `json:"alertSettings,omitempty"`
+	UDI               *string       `json:"udi,omitempty"`
+	SerialNumber      *string       `json:"serialNumber,omitempty"`
+	TransmitterID     *string       `json:"transmitterId,omitempty"`
+	SoftwareVersion   *string       `json:"softwareVersion,omitempty"`
+	SoftwareNumber    *string       `json:"softwareNumber,omitempty"`
+	Language          *string       `json:"language,omitempty"`
+	IsMmolDisplayMode *bool         `json:"isMmolDisplayMode,omitempty"`
+	IsBlindedMode     *bool         `json:"isBlindedMode,omitempty"`
+	Is24HourMode      *bool         `json:"is24HourMode,omitempty"`
+	DisplayTimeOffset *int          `json:"displayTimeOffset,omitempty"`
+	SystemTimeOffset  *int          `json:"systemTimeOffset,omitempty"`
 }
 
 func NewDevice() *Device {
@@ -79,6 +79,7 @@ func (d *Device) Parse(parser structure.ObjectParser) {
 			}
 		}
 		alertSettingsParser.NotParsed()
+		d.AlertSettings = d.AlertSettings.Deduplicate() // HACK: Dexcom - duplicates not allowed; delete older
 	}
 	d.UDI = parser.String("udi")
 	d.SerialNumber = parser.String("serialNumber")
@@ -96,11 +97,10 @@ func (d *Device) Parse(parser structure.ObjectParser) {
 func (d *Device) Validate(validator structure.Validator) {
 	validator.String("model", &d.Model).OneOf(ModelG5MobileApp, ModelG5Receiver, ModelG4WithShareReceiver, ModelG4Receiver, ModelUnknown)
 	validator.Time("lastUploadDate", &d.LastUploadDate).NotZero()
-	existingAlertNames := &[]string{}
 	validator = validator.WithReference("alertSettings")
 	for index, alertSetting := range d.AlertSettings {
 		if alertSettingValidator := validator.WithReference(strconv.Itoa(index)); alertSetting != nil {
-			structureValidator.NewValidatableWithStringArrayAdapter(alertSetting, existingAlertNames).Validate(alertSettingValidator)
+			alertSetting.Validate(alertSettingValidator)
 		} else {
 			alertSettingValidator.ReportError(structureValidator.ErrorValueNotExists())
 		}
@@ -155,27 +155,29 @@ func (a *AlertSetting) Parse(parser structure.ObjectParser) {
 	}
 }
 
-func (a *AlertSetting) Validate(validator structure.Validator, existingAlertNames *[]string) {
-	validator.Time("systemTime", &a.SystemTime).BeforeNow(NowThreshold)
+func (a *AlertSetting) Validate(validator structure.Validator) {
+	validator.Time("systemTime", &a.SystemTime).NotZero().BeforeNow(NowThreshold)
 	validator.Time("displayTime", &a.DisplayTime).NotZero()
-	validator.String("alertName", &a.AlertName).OneOf(AlertFixedLow, AlertLow, AlertHigh, AlertRise, AlertFall, AlertOutOfRange).NotOneOf(*existingAlertNames...)
+	validator.String("alertName", &a.AlertName).OneOf(AlertNames()...)
 
 	switch a.AlertName {
-	case AlertFixedLow:
+	case AlertNameFixedLow:
 		a.validateFixedLow(validator)
-	case AlertLow:
+	case AlertNameLow:
 		a.validateLow(validator)
-	case AlertHigh:
+	case AlertNameHigh:
 		a.validateHigh(validator)
-	case AlertRise:
+	case AlertNameRise:
 		a.validateRise(validator)
-	case AlertFall:
+	case AlertNameFall:
 		a.validateFall(validator)
-	case AlertOutOfRange:
+	case AlertNameOutOfRange:
 		a.validateOutOfRange(validator)
 	}
+}
 
-	*existingAlertNames = append(*existingAlertNames, a.AlertName)
+func (a *AlertSetting) IsNewerMatchThan(alertSetting *AlertSetting) bool {
+	return a.AlertName == alertSetting.AlertName && a.SystemTime.After(alertSetting.SystemTime)
 }
 
 func (a *AlertSetting) validateFixedLow(validator structure.Validator) {
@@ -184,52 +186,40 @@ func (a *AlertSetting) validateFixedLow(validator structure.Validator) {
 		a.Snooze = 30
 	}
 
-	validator.String("unit", &a.Unit).OneOf(UnitMgdL) // TODO: Add UnitMmolL
-	switch a.Unit {
-	case UnitMgdL:
-		validator.Float64("value", &a.Value).EqualTo(55)
-	case UnitMmolL:
-		// TODO: Add value validation
+	validator.String("unit", &a.Unit).OneOf(AlertSettingFixedLowUnits()...)
+	if values := AlertSettingFixedLowValuesForUnits(a.Unit); values != nil {
+		validator.Float64("value", &a.Value).OneOf(values...)
 	}
-	validator.Int("delay", &a.Delay).EqualTo(0)
-	validator.Int("snooze", &a.Snooze).OneOf(fixedLowSnoozes...)
+	validator.Int("delay", &a.Delay).OneOf(0)
+	validator.Int("snooze", &a.Snooze).OneOf(AlertSettingFixedLowSnoozes()...)
 	validator.Bool("enabled", &a.Enabled).True()
 }
 
 func (a *AlertSetting) validateLow(validator structure.Validator) {
-	validator.String("unit", &a.Unit).OneOf(UnitMgdL) // TODO: Add UnitMmolL
-	switch a.Unit {
-	case UnitMgdL:
-		validator.Float64("value", &a.Value).OneOf(lowValues...)
-	case UnitMmolL:
-		// TODO: Add value validation
+	validator.String("unit", &a.Unit).OneOf(AlertSettingLowUnits()...)
+	if values := AlertSettingLowValuesForUnits(a.Unit); values != nil {
+		validator.Float64("value", &a.Value).OneOf(values...)
 	}
-	validator.Int("delay", &a.Delay).EqualTo(0)
-	validator.Int("snooze", &a.Snooze).OneOf(lowSnoozes...)
+	validator.Int("delay", &a.Delay).OneOf(0)
+	validator.Int("snooze", &a.Snooze).OneOf(AlertSettingLowSnoozes()...)
 }
 
 func (a *AlertSetting) validateHigh(validator structure.Validator) {
-	validator.String("unit", &a.Unit).OneOf(UnitMgdL) // TODO: Add UnitMmolL
-	switch a.Unit {
-	case UnitMgdL:
-		validator.Float64("value", &a.Value).OneOf(highValues...)
-	case UnitMmolL:
-		// TODO: Add value validation
+	validator.String("unit", &a.Unit).OneOf(AlertSettingHighUnits()...)
+	if values := AlertSettingHighValuesForUnits(a.Unit); values != nil {
+		validator.Float64("value", &a.Value).OneOf(values...)
 	}
-	validator.Int("delay", &a.Delay).EqualTo(0)
-	validator.Int("snooze", &a.Snooze).OneOf(highSnoozes...)
+	validator.Int("delay", &a.Delay).OneOf(0)
+	validator.Int("snooze", &a.Snooze).OneOf(AlertSettingHighSnoozes()...)
 }
 
 func (a *AlertSetting) validateRise(validator structure.Validator) {
-	validator.String("unit", &a.Unit).OneOf(UnitMgdLMin) // TODO: Add UnitMmolLMin
-	switch a.Unit {
-	case UnitMgdLMin:
-		validator.Float64("value", &a.Value).OneOf(2, 3)
-	case UnitMmolLMin:
-		// TODO: Add value validation
+	validator.String("unit", &a.Unit).OneOf(AlertSettingRiseUnits()...)
+	if values := AlertSettingRiseValuesForUnits(a.Unit); values != nil {
+		validator.Float64("value", &a.Value).OneOf(values...)
 	}
-	validator.Int("delay", &a.Delay).EqualTo(0)
-	validator.Int("snooze", &a.Snooze).OneOf(riseSnoozes...)
+	validator.Int("delay", &a.Delay).OneOf(0)
+	validator.Int("snooze", &a.Snooze).OneOf(AlertSettingRiseSnoozes()...)
 }
 
 func (a *AlertSetting) validateFall(validator structure.Validator) {
@@ -238,34 +228,163 @@ func (a *AlertSetting) validateFall(validator structure.Validator) {
 		a.Value = -a.Value
 	}
 
-	validator.String("unit", &a.Unit).OneOf(UnitMgdLMin) // TODO: UnitMmolLMin
-	switch a.Unit {
-	case UnitMgdLMin:
-		validator.Float64("value", &a.Value).OneOf(2, 3)
-	case UnitMmolLMin:
-		// TODO: Add value validation
+	validator.String("unit", &a.Unit).OneOf(AlertSettingFallUnits()...)
+	if values := AlertSettingFallValuesForUnits(a.Unit); values != nil {
+		validator.Float64("value", &a.Value).OneOf(values...)
 	}
-	validator.Int("delay", &a.Delay).EqualTo(0)
-	validator.Int("snooze", &a.Snooze).OneOf(fallSnoozes...)
+	validator.Int("delay", &a.Delay).OneOf(0)
+	validator.Int("snooze", &a.Snooze).OneOf(AlertSettingFallSnoozes()...)
 }
 
 func (a *AlertSetting) validateOutOfRange(validator structure.Validator) {
-
-	validator.String("unit", &a.Unit).EqualTo(UnitMinutes)
-	validator.Float64("value", &a.Value).OneOf(outOfRangeValues...)
-	validator.Int("delay", &a.Delay).EqualTo(0)
-	validator.Int("snooze", &a.Snooze).OneOf(outOfRangeSnoozes...)
+	validator.String("unit", &a.Unit).OneOf(AlertSettingOutOfRangeUnits()...)
+	if values := AlertSettingOutOfRangeValuesForUnits(a.Unit); values != nil {
+		validator.Float64("value", &a.Value).OneOf(values...)
+	}
+	validator.Int("delay", &a.Delay).OneOf(0)
+	validator.Int("snooze", &a.Snooze).OneOf(AlertSettingOutOfRangeSnoozes()...)
 }
 
-var fixedLowSnoozes = []int{0, 30}
-var lowValues = generateFloatRange(60, 100, 5)
-var lowSnoozes = append(append([]int{0}, generateIntegerRange(15, 240, 5)...), generateIntegerRange(255, 300, 15)...)
-var highValues = generateFloatRange(120, 400, 10)
-var highSnoozes = append(append([]int{0}, generateIntegerRange(15, 240, 5)...), generateIntegerRange(255, 300, 15)...)
-var riseSnoozes = []int{0, 30}
-var fallSnoozes = []int{0, 30}
-var outOfRangeValues = generateFloatRange(20, 240, 5)
-var outOfRangeSnoozes = []int{0, 20, 25, 30}
+type AlertSettings []*AlertSetting
+
+func (a AlertSettings) ContainsNewerMatch(alertSetting *AlertSetting) bool {
+	for _, testAlertSetting := range a {
+		if testAlertSetting.IsNewerMatchThan(alertSetting) {
+			return true
+		}
+	}
+	return false
+}
+
+func (a AlertSettings) Deduplicate() AlertSettings {
+	alertSettings := AlertSettings{}
+	alertNameMap := map[string]bool{}
+	for index, alertSetting := range a {
+		if !alertNameMap[alertSetting.AlertName] && !a[index+1:].ContainsNewerMatch(alertSetting) {
+			alertSettings = append(alertSettings, alertSetting)
+			alertNameMap[alertSetting.AlertName] = true
+		}
+	}
+	return alertSettings
+}
+
+func AlertSettingFixedLowUnits() []string {
+	return []string{UnitMgdL} // TODO: Add UnitMmolL
+}
+
+func AlertSettingFixedLowValuesForUnits(units string) []float64 {
+	switch units {
+	case UnitMgdL:
+		return []float64{55}
+	case UnitMmolL:
+		return nil // TODO: Add values
+	}
+	return nil
+}
+
+func AlertSettingFixedLowSnoozes() []int {
+	return []int{0, 30}
+}
+
+func AlertSettingLowUnits() []string {
+	return []string{UnitMgdL} // TODO: Add UnitMmolL
+}
+
+func AlertSettingLowValuesForUnits(units string) []float64 {
+	switch units {
+	case UnitMgdL:
+		return alertSettingLowValuesMgdL
+	case UnitMmolL:
+		return alertSettingLowValuesMmolL
+	}
+	return nil
+}
+
+var alertSettingLowValuesMgdL = generateFloatRange(60, 100, 5)
+var alertSettingLowValuesMmolL []float64 // TODO: Add values
+
+func AlertSettingLowSnoozes() []int {
+	return alertSettingLowSnoozes
+}
+
+var alertSettingLowSnoozes = append(append([]int{0}, generateIntegerRange(15, 240, 5)...), generateIntegerRange(255, 300, 15)...)
+
+func AlertSettingHighUnits() []string {
+	return []string{UnitMgdL} // TODO: Add UnitMmolL
+}
+
+func AlertSettingHighValuesForUnits(units string) []float64 {
+	switch units {
+	case UnitMgdL:
+		return alertSettingHighValuesMgdL
+	case UnitMmolL:
+		return alertSettingHighValuesMmolL
+	}
+	return nil
+}
+
+var alertSettingHighValuesMgdL = generateFloatRange(120, 400, 10)
+var alertSettingHighValuesMmolL []float64 // TODO: Add values
+
+func AlertSettingHighSnoozes() []int {
+	return alertSettingsHighSnoozes
+}
+
+var alertSettingsHighSnoozes = append(append([]int{0}, generateIntegerRange(15, 240, 5)...), generateIntegerRange(255, 300, 15)...)
+
+func AlertSettingRiseUnits() []string {
+	return []string{UnitMgdLMin} // TODO: UnitMmolLMin
+}
+
+func AlertSettingRiseValuesForUnits(units string) []float64 {
+	switch units {
+	case UnitMgdLMin:
+		return []float64{2, 3}
+	case UnitMmolLMin:
+		return nil // TODO: Add values
+	}
+	return nil
+}
+
+func AlertSettingRiseSnoozes() []int {
+	return []int{0, 30}
+}
+
+func AlertSettingFallUnits() []string {
+	return []string{UnitMgdLMin} // TODO: UnitMmolLMin
+}
+
+func AlertSettingFallValuesForUnits(units string) []float64 {
+	switch units {
+	case UnitMgdLMin:
+		return []float64{2, 3}
+	case UnitMmolLMin:
+		return nil // TODO: Add values
+	}
+	return nil
+}
+
+func AlertSettingFallSnoozes() []int {
+	return []int{0, 30}
+}
+
+func AlertSettingOutOfRangeUnits() []string {
+	return []string{UnitMinutes}
+}
+
+func AlertSettingOutOfRangeValuesForUnits(units string) []float64 {
+	switch units {
+	case UnitMinutes:
+		return alertSettingOutOfRangeValuesMinutes
+	}
+	return nil
+}
+
+var alertSettingOutOfRangeValuesMinutes = generateFloatRange(20, 240, 5)
+
+func AlertSettingOutOfRangeSnoozes() []int {
+	return []int{0, 20, 25, 30}
+}
 
 func generateFloatRange(min float64, max float64, step float64) []float64 {
 	r := []float64{}
