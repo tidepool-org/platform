@@ -1,5 +1,6 @@
 ## HEAD
 
+* Allow insulin data type without dose
 * Rename ErrorValueBoolean* to ErrorValueBool* for consistency
 
 ## v1.27.0

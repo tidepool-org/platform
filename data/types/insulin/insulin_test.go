@@ -89,7 +89,6 @@ var _ = Describe("Insulin", func() {
 				),
 				Entry("dose missing",
 					func(datum *insulin.Insulin) { datum.Dose = nil },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/dose", NewMeta()),
 				),
 				Entry("dose invalid",
 					func(datum *insulin.Insulin) { datum.Dose.Total = nil },
@@ -127,12 +126,12 @@ var _ = Describe("Insulin", func() {
 				Entry("multiple errors",
 					func(datum *insulin.Insulin) {
 						datum.Type = "invalidType"
-						datum.Dose = nil
+						datum.Dose.Total = nil
 						datum.Formulation.Name = pointer.FromString("")
 						datum.Site = pointer.FromString("")
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "insulin"), "/type", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/dose", &types.Meta{Type: "invalidType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/dose/total", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/formulation/name", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/site", &types.Meta{Type: "invalidType"}),
 				),
