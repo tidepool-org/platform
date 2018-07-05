@@ -1,5 +1,7 @@
 ## HEAD
 
+* Rename ErrorValueBoolean* to ErrorValueBool* for consistency
+
 ## v1.27.0
 
 * Add Dockerfile and config for running blob service

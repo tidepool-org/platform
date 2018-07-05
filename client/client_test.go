@@ -346,7 +346,7 @@ var _ = Describe("Client", func() {
 				var responseErr error
 
 				BeforeEach(func() {
-					responseErr = errors.Append(structureValidator.ErrorValueNotEmpty(), structureValidator.ErrorValueBooleanNotTrue(), structureValidator.ErrorValueIntNotOneOf(1, []int{0, 2, 4}))
+					responseErr = errors.Append(structureValidator.ErrorValueNotEmpty(), structureValidator.ErrorValueBoolNotTrue(), structureValidator.ErrorValueIntNotOneOf(1, []int{0, 2, 4}))
 					server.AppendHandlers(
 						CombineHandlers(
 							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
@@ -767,7 +767,7 @@ var _ = Describe("Client", func() {
 				var responseErr error
 
 				BeforeEach(func() {
-					responseErr = errors.Append(structureValidator.ErrorValueNotEmpty(), structureValidator.ErrorValueBooleanNotTrue(), structureValidator.ErrorValueIntNotOneOf(1, []int{0, 2, 4}))
+					responseErr = errors.Append(structureValidator.ErrorValueNotEmpty(), structureValidator.ErrorValueBoolNotTrue(), structureValidator.ErrorValueIntNotOneOf(1, []int{0, 2, 4}))
 					server.AppendHandlers(
 						CombineHandlers(
 							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
