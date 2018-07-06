@@ -110,8 +110,7 @@ func (r *Responder) Error(statusCode int, err error, mutators ...ResponseMutator
 	if err == nil {
 		r.InternalServerError(errors.New("error is missing"))
 	} else {
-		// FUTURE: service.SetRequestErrors(r.req, errs) rather than logger statement below
-		log.LoggerFromContext(r.req.Context()).WithError(err).Warn("Failure during request")
+		SetErrorToContext(r.req.Context(), err)
 		if bytes, marshalErr := json.Marshal(errors.Sanitize(err)); marshalErr != nil {
 			r.InternalServerError(errors.Wrap(marshalErr, "unable to serialize error"))
 		} else {

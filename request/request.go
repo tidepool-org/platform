@@ -162,3 +162,47 @@ func TraceSessionFromContext(ctx context.Context) string {
 	}
 	return ""
 }
+
+const contextErrorContextKey contextKey = "context-error"
+
+type ContextError struct {
+	err error
+}
+
+func NewContextError() *ContextError {
+	return &ContextError{}
+}
+
+func (c *ContextError) Get() error {
+	return c.err
+}
+
+func (c *ContextError) Set(err error) {
+	c.err = err
+}
+
+func NewContextWithContextError(ctx context.Context) context.Context {
+	return context.WithValue(ctx, contextErrorContextKey, NewContextError())
+}
+
+func ContextErrorFromContext(ctx context.Context) *ContextError {
+	if ctx != nil {
+		if contextError, ok := ctx.Value(contextErrorContextKey).(*ContextError); ok {
+			return contextError
+		}
+	}
+	return nil
+}
+
+func GetErrorFromContext(ctx context.Context) error {
+	if contextError := ContextErrorFromContext(ctx); contextError != nil {
+		return contextError.Get()
+	}
+	return nil
+}
+
+func SetErrorToContext(ctx context.Context, err error) {
+	if contextError := ContextErrorFromContext(ctx); contextError != nil {
+		contextError.Set(err)
+	}
+}

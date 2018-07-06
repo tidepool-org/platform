@@ -1,5 +1,6 @@
 ## HEAD
 
+* Log any error with request
 * Remove duplicate Dexcom device alert settings
 * Allow insulin data type without dose
 * Rename ErrorValueBoolean* to ErrorValueBool* for consistency

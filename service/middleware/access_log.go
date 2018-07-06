@@ -7,6 +7,7 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
 )
 
@@ -89,7 +90,7 @@ func (a *AccessLog) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
 				// TODO: Log this to a special logger level "access".
 				// Will need to revamp log package, though.
 
-				logger.WithFields(loggerFields).Warn(message)
+				logger.WithError(request.GetErrorFromContext(req.Context())).WithFields(loggerFields).Warn(message)
 			}
 		}
 	}
