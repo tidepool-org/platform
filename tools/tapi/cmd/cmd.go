@@ -36,7 +36,7 @@ func InitializeApplication() (*cli.App, error) {
 	app.Commands = wrapCommands(mergeCommands(
 		AuthCommands(),
 		UserCommands(),
-		DatasetCommands(),
+		DataSetCommands(),
 		VersionCommands(versionReporter),
 	))
 	return app, nil

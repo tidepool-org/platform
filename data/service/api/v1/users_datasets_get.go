@@ -11,7 +11,7 @@ import (
 	"github.com/tidepool-org/platform/user"
 )
 
-func UsersDatasetsGet(dataServiceContext dataService.Context) {
+func UsersDataSetsGet(dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 
 	targetUserID := dataServiceContext.Request().PathParam("userId")
@@ -43,11 +43,11 @@ func UsersDatasetsGet(dataServiceContext dataService.Context) {
 		return
 	}
 
-	datasets, err := dataServiceContext.DataSession().GetDatasetsForUserByID(ctx, targetUserID, filter, pagination)
+	dataSets, err := dataServiceContext.DataSession().GetDataSetsForUserByID(ctx, targetUserID, filter, pagination)
 	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to get datasets for user", err)
+		dataServiceContext.RespondWithInternalServerFailure("Unable to get data sets for user", err)
 		return
 	}
 
-	dataServiceContext.RespondWithStatusAndData(http.StatusOK, datasets)
+	dataServiceContext.RespondWithStatusAndData(http.StatusOK, dataSets)
 }

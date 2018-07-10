@@ -7,29 +7,29 @@ import (
 )
 
 const (
-	DatasetIDFlag = "dataset-id"
+	DataSetIDFlag = "data-set-id"
 	DeletedFlag   = "deleted"
 	PageFlag      = "page"
 	SizeFlag      = "size"
 )
 
-func DatasetCommands() cli.Commands {
+func DataSetCommands() cli.Commands {
 	return cli.Commands{
 		{
-			Name:  "dataset",
-			Usage: "dataset management",
+			Name:  "data-set",
+			Usage: "data set management",
 			Subcommands: []cli.Command{
 				{
 					Name:  "list",
-					Usage: "list datasets",
+					Usage: "list data sets",
 					Flags: CommandFlags(
 						cli.StringFlag{
 							Name:  UserIDFlag,
-							Usage: "`USERID` of the user to list datasets",
+							Usage: "`USERID` of the user to list data sets",
 						},
 						cli.BoolFlag{
 							Name:  DeletedFlag,
-							Usage: "include deleted datasets in the list",
+							Usage: "include deleted data sets in the list",
 						},
 						cli.IntFlag{
 							Name:  PageFlag,
@@ -41,26 +41,26 @@ func DatasetCommands() cli.Commands {
 						},
 					),
 					Before: ensureNoArgs,
-					Action: datasetList,
+					Action: dataSetList,
 				},
 				{
 					Name:  "delete",
-					Usage: "delete dataset",
+					Usage: "delete data set",
 					Flags: CommandFlags(
 						cli.StringFlag{
-							Name:  DatasetIDFlag,
-							Usage: "`DATASETID` of the dataset to delete",
+							Name:  DataSetIDFlag,
+							Usage: "`DATASETID` of the data set to delete",
 						},
 					),
 					Before: ensureNoArgs,
-					Action: datasetDelete,
+					Action: dataSetDelete,
 				},
 			},
 		},
 	}
 }
 
-func datasetList(c *cli.Context) error {
+func dataSetList(c *cli.Context) error {
 	var filter *api.Filter
 	var pagination *api.Pagination
 
@@ -86,13 +86,13 @@ func datasetList(c *cli.Context) error {
 		pagination.Size = &size
 	}
 
-	responseArray, err := API(c).ListDatasets(c.String(UserIDFlag), filter, pagination)
+	responseArray, err := API(c).ListDataSets(c.String(UserIDFlag), filter, pagination)
 	if err != nil {
 		return err
 	}
 
-	for _, dataset := range responseArray.Data {
-		if err = reportMessageWithJSON(c, dataset); err != nil {
+	for _, dataSet := range responseArray.Data {
+		if err = reportMessageWithJSON(c, dataSet); err != nil {
 			return err
 		}
 	}
@@ -100,10 +100,10 @@ func datasetList(c *cli.Context) error {
 	return nil
 }
 
-func datasetDelete(c *cli.Context) error {
-	if err := API(c).DeleteDataset(c.String(DatasetIDFlag)); err != nil {
+func dataSetDelete(c *cli.Context) error {
+	if err := API(c).DeleteDataSet(c.String(DataSetIDFlag)); err != nil {
 		return err
 	}
 
-	return reportMessage(c, "Dataset deleted.")
+	return reportMessage(c, "Data set deleted.")
 }

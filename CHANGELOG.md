@@ -363,13 +363,13 @@
 ## v1.9.0
 
 * Bump `hash_deactivate_old` data deduplicator to version 1.1.0
-* Update `hash_deactivate_old` data deduplicator to use archived dataset id and time fields to accurately:
-  * Deactivate deduplicate data on dataset addition
-  * Activate undeduplicated data on dataset deletion
+* Update `hash_deactivate_old` data deduplicator to use archived data set id and time fields to accurately:
+  * Deactivate deduplicate data on data set addition
+  * Activate undeduplicated data on data set deletion
   * Record entire deduplication history
 * Update mongo queries related to `hash_deactivate_old` data deduplicator
 * Remove backwards-compatible legacy deduplicator name test in `DeduplicatorDescriptor.IsRegisteredWithNamedDeduplicator` (after `v1.8.0` required migration)
-* Add archived dataset id and time fields to base data type
+* Add archived data set id and time fields to base data type
 * Add MD5 hash of authentication token to request logger
 * Add service middleware to extract select request headers and add as request logger fields
 * Defer access to context store sessions and log until actually needed

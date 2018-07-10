@@ -13,17 +13,17 @@ import (
 )
 
 var _ = Describe("Hash", func() {
-	Context("AssignDatasetDataIdentityHashes", func() {
+	Context("AssignDataSetDataIdentityHashes", func() {
 		var testDataData []*testData.Datum
-		var testDatasetData []data.Datum
+		var testDataSetData []data.Datum
 
 		BeforeEach(func() {
 			testDataData = []*testData.Datum{}
-			testDatasetData = []data.Datum{}
+			testDataSetData = []data.Datum{}
 			for i := 0; i < 3; i++ {
 				testDatum := testData.NewDatum()
 				testDataData = append(testDataData, testDatum)
-				testDatasetData = append(testDatasetData, testDatum)
+				testDataSetData = append(testDataSetData, testDatum)
 			}
 		})
 
@@ -34,17 +34,17 @@ var _ = Describe("Hash", func() {
 		})
 
 		It("returns successfully if the data is nil", func() {
-			Expect(deduplicator.AssignDatasetDataIdentityHashes(nil)).To(BeNil())
+			Expect(deduplicator.AssignDataSetDataIdentityHashes(nil)).To(BeNil())
 		})
 
 		It("returns successfully if there is no data", func() {
-			Expect(deduplicator.AssignDatasetDataIdentityHashes([]data.Datum{})).To(BeNil())
+			Expect(deduplicator.AssignDataSetDataIdentityHashes([]data.Datum{})).To(BeNil())
 		})
 
 		It("returns an error if any datum returns an error getting identity fields", func() {
 			testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{user.NewID(), testData.NewDeviceID()}, Error: nil}}
 			testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: nil, Error: errors.New("test error")}}
-			hashes, err := deduplicator.AssignDatasetDataIdentityHashes(testDatasetData)
+			hashes, err := deduplicator.AssignDataSetDataIdentityHashes(testDataSetData)
 			Expect(err).To(MatchError("unable to gather identity fields for datum; test error"))
 			Expect(hashes).To(BeNil())
 		})
@@ -52,7 +52,7 @@ var _ = Describe("Hash", func() {
 		It("returns an error if any datum returns no identity fields", func() {
 			testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{user.NewID(), testData.NewDeviceID()}, Error: nil}}
 			testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: nil, Error: nil}}
-			hashes, err := deduplicator.AssignDatasetDataIdentityHashes(testDatasetData)
+			hashes, err := deduplicator.AssignDataSetDataIdentityHashes(testDataSetData)
 			Expect(err).To(MatchError("unable to generate identity hash for datum; identity fields are missing"))
 			Expect(hashes).To(BeNil())
 		})
@@ -60,7 +60,7 @@ var _ = Describe("Hash", func() {
 		It("returns an error if any datum returns empty identity fields", func() {
 			testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{user.NewID(), testData.NewDeviceID()}, Error: nil}}
 			testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{}, Error: nil}}
-			hashes, err := deduplicator.AssignDatasetDataIdentityHashes(testDatasetData)
+			hashes, err := deduplicator.AssignDataSetDataIdentityHashes(testDataSetData)
 			Expect(err).To(MatchError("unable to generate identity hash for datum; identity fields are missing"))
 			Expect(hashes).To(BeNil())
 		})
@@ -68,7 +68,7 @@ var _ = Describe("Hash", func() {
 		It("returns an error if any datum returns any empty identity fields", func() {
 			testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{user.NewID(), testData.NewDeviceID()}, Error: nil}}
 			testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{user.NewID(), ""}, Error: nil}}
-			hashes, err := deduplicator.AssignDatasetDataIdentityHashes(testDatasetData)
+			hashes, err := deduplicator.AssignDataSetDataIdentityHashes(testDataSetData)
 			Expect(err).To(MatchError("unable to generate identity hash for datum; identity field is empty"))
 			Expect(hashes).To(BeNil())
 		})
@@ -87,7 +87,7 @@ var _ = Describe("Hash", func() {
 			})
 
 			It("returns successfully", func() {
-				hashes, err := deduplicator.AssignDatasetDataIdentityHashes(testDatasetData)
+				hashes, err := deduplicator.AssignDataSetDataIdentityHashes(testDataSetData)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(hashes).To(Equal([]string{
 					"GRp47M02cMlAzSn7oJTQ2LC9eb1Qd6mIPO1U8GeuoYg=",

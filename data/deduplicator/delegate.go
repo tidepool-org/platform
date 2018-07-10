@@ -22,13 +22,13 @@ func NewDelegateFactory(factories []Factory) (*DelegateFactory, error) {
 	}, nil
 }
 
-func (d *DelegateFactory) CanDeduplicateDataset(dataset *upload.Upload) (bool, error) {
-	if dataset == nil {
-		return false, errors.New("dataset is missing")
+func (d *DelegateFactory) CanDeduplicateDataSet(dataSet *upload.Upload) (bool, error) {
+	if dataSet == nil {
+		return false, errors.New("data set is missing")
 	}
 
 	for _, factory := range d.factories {
-		if can, err := factory.CanDeduplicateDataset(dataset); err != nil {
+		if can, err := factory.CanDeduplicateDataSet(dataSet); err != nil {
 			return false, err
 		} else if can {
 			return true, nil
@@ -37,34 +37,34 @@ func (d *DelegateFactory) CanDeduplicateDataset(dataset *upload.Upload) (bool, e
 	return false, nil
 }
 
-func (d *DelegateFactory) NewDeduplicatorForDataset(logger log.Logger, dataSession storeDEPRECATED.DataSession, dataset *upload.Upload) (data.Deduplicator, error) {
+func (d *DelegateFactory) NewDeduplicatorForDataSet(logger log.Logger, dataSession storeDEPRECATED.DataSession, dataSet *upload.Upload) (data.Deduplicator, error) {
 	if logger == nil {
 		return nil, errors.New("logger is missing")
 	}
 	if dataSession == nil {
 		return nil, errors.New("data store session is missing")
 	}
-	if dataset == nil {
-		return nil, errors.New("dataset is missing")
+	if dataSet == nil {
+		return nil, errors.New("data set is missing")
 	}
 
 	for _, factory := range d.factories {
-		if can, err := factory.CanDeduplicateDataset(dataset); err != nil {
+		if can, err := factory.CanDeduplicateDataSet(dataSet); err != nil {
 			return nil, err
 		} else if can {
-			return factory.NewDeduplicatorForDataset(logger, dataSession, dataset)
+			return factory.NewDeduplicatorForDataSet(logger, dataSession, dataSet)
 		}
 	}
 	return nil, errors.New("deduplicator not found")
 }
 
-func (d *DelegateFactory) IsRegisteredWithDataset(dataset *upload.Upload) (bool, error) {
-	if dataset == nil {
-		return false, errors.New("dataset is missing")
+func (d *DelegateFactory) IsRegisteredWithDataSet(dataSet *upload.Upload) (bool, error) {
+	if dataSet == nil {
+		return false, errors.New("data set is missing")
 	}
 
 	for _, factory := range d.factories {
-		if is, err := factory.IsRegisteredWithDataset(dataset); err != nil {
+		if is, err := factory.IsRegisteredWithDataSet(dataSet); err != nil {
 			return false, err
 		} else if is {
 			return true, nil
@@ -73,27 +73,27 @@ func (d *DelegateFactory) IsRegisteredWithDataset(dataset *upload.Upload) (bool,
 	return false, nil
 }
 
-func (d *DelegateFactory) NewRegisteredDeduplicatorForDataset(logger log.Logger, dataSession storeDEPRECATED.DataSession, dataset *upload.Upload) (data.Deduplicator, error) {
+func (d *DelegateFactory) NewRegisteredDeduplicatorForDataSet(logger log.Logger, dataSession storeDEPRECATED.DataSession, dataSet *upload.Upload) (data.Deduplicator, error) {
 	if logger == nil {
 		return nil, errors.New("logger is missing")
 	}
 	if dataSession == nil {
 		return nil, errors.New("data store session is missing")
 	}
-	if dataset == nil {
-		return nil, errors.New("dataset is missing")
+	if dataSet == nil {
+		return nil, errors.New("data set is missing")
 	}
 
-	deduplicatorDescriptor := dataset.DeduplicatorDescriptor()
+	deduplicatorDescriptor := dataSet.DeduplicatorDescriptor()
 	if deduplicatorDescriptor == nil || !deduplicatorDescriptor.IsRegisteredWithAnyDeduplicator() {
-		return nil, errors.Newf("dataset not registered with deduplicator")
+		return nil, errors.Newf("data set not registered with deduplicator")
 	}
 
 	for _, factory := range d.factories {
-		if is, err := factory.IsRegisteredWithDataset(dataset); err != nil {
+		if is, err := factory.IsRegisteredWithDataSet(dataSet); err != nil {
 			return nil, err
 		} else if is {
-			return factory.NewRegisteredDeduplicatorForDataset(logger, dataSession, dataset)
+			return factory.NewRegisteredDeduplicatorForDataSet(logger, dataSession, dataSet)
 		}
 	}
 	return nil, errors.New("deduplicator not found")

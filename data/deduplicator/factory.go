@@ -8,9 +8,9 @@ import (
 )
 
 type Factory interface {
-	CanDeduplicateDataset(dataset *upload.Upload) (bool, error)
-	NewDeduplicatorForDataset(logger log.Logger, dataSession storeDEPRECATED.DataSession, dataset *upload.Upload) (data.Deduplicator, error)
+	CanDeduplicateDataSet(dataSet *upload.Upload) (bool, error)
+	NewDeduplicatorForDataSet(logger log.Logger, dataSession storeDEPRECATED.DataSession, dataSet *upload.Upload) (data.Deduplicator, error)
 
-	IsRegisteredWithDataset(dataset *upload.Upload) (bool, error)
-	NewRegisteredDeduplicatorForDataset(logger log.Logger, dataSession storeDEPRECATED.DataSession, dataset *upload.Upload) (data.Deduplicator, error)
+	IsRegisteredWithDataSet(dataSet *upload.Upload) (bool, error)
+	NewRegisteredDeduplicatorForDataSet(logger log.Logger, dataSession storeDEPRECATED.DataSession, dataSet *upload.Upload) (data.Deduplicator, error)
 }

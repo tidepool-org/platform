@@ -16,7 +16,7 @@ type Datum interface {
 	GetPayload() *Blob
 
 	SetUserID(userID *string)
-	SetDatasetID(datasetID *string)
+	SetDataSetID(dataSetID *string)
 	SetActive(active bool)
 	SetDeviceID(deviceID *string)
 	SetCreatedTime(createdTime *string)

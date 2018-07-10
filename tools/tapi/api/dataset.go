@@ -17,7 +17,7 @@ type (
 	}
 )
 
-func (a *API) ListDatasets(userID string, filter *Filter, pagination *Pagination) (*ResponseArray, error) {
+func (a *API) ListDataSets(userID string, filter *Filter, pagination *Pagination) (*ResponseArray, error) {
 	if userID == "" {
 		var err error
 		userID, err = a.fetchSessionUserID()
@@ -41,17 +41,17 @@ func (a *API) ListDatasets(userID string, filter *Filter, pagination *Pagination
 		}
 	}
 
-	return a.asResponseArray(a.request("GET", a.addQuery(a.joinPaths("v1", "users", userID, "datasets"), queryMap),
+	return a.asResponseArray(a.request("GET", a.addQuery(a.joinPaths("v1", "users", userID, "data_sets"), queryMap),
 		requestFuncs{a.addSessionToken()},
 		responseFuncs{a.expectStatusCode(http.StatusOK)}))
 }
 
-func (a *API) DeleteDataset(datasetID string) error {
-	if datasetID == "" {
-		return errors.New("Dataset id is missing")
+func (a *API) DeleteDataSet(dataSetID string) error {
+	if dataSetID == "" {
+		return errors.New("Data set id is missing")
 	}
 
-	return a.asEmpty(a.request("DELETE", a.joinPaths("v1", "datasets", datasetID),
+	return a.asEmpty(a.request("DELETE", a.joinPaths("v1", "data_sets", dataSetID),
 		requestFuncs{a.addSessionToken()},
 		responseFuncs{a.expectStatusCode(http.StatusOK)}))
 }

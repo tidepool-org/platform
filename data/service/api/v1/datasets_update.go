@@ -13,32 +13,32 @@ import (
 	"github.com/tidepool-org/platform/user"
 )
 
-func DatasetsUpdate(dataServiceContext dataService.Context) {
+func DataSetsUpdate(dataServiceContext dataService.Context) {
 	req := dataServiceContext.Request()
 	res := dataServiceContext.Response()
 	ctx := req.Context()
 	lgr := log.LoggerFromContext(ctx)
 
-	datasetID := req.PathParam("dataSetId")
-	if datasetID == "" {
-		dataServiceContext.RespondWithError(ErrorDatasetIDMissing())
+	dataSetID := req.PathParam("dataSetId")
+	if dataSetID == "" {
+		dataServiceContext.RespondWithError(ErrorDataSetIDMissing())
 		return
 	}
 
-	dataset, err := dataServiceContext.DataSession().GetDatasetByID(ctx, datasetID)
+	dataSet, err := dataServiceContext.DataSession().GetDataSetByID(ctx, dataSetID)
 	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to get dataset by id", err)
+		dataServiceContext.RespondWithInternalServerFailure("Unable to get data set by id", err)
 		return
 	}
-	if dataset == nil {
-		dataServiceContext.RespondWithError(ErrorDatasetIDNotFound(datasetID))
+	if dataSet == nil {
+		dataServiceContext.RespondWithError(ErrorDataSetIDNotFound(dataSetID))
 		return
 	}
 
 	details := request.DetailsFromContext(ctx)
 	if !details.IsService() {
 		var permissions user.Permissions
-		permissions, err = dataServiceContext.UserClient().GetUserPermissions(ctx, details.UserID(), *dataset.UserID)
+		permissions, err = dataServiceContext.UserClient().GetUserPermissions(ctx, details.UserID(), *dataSet.UserID)
 		if err != nil {
 			if request.IsErrorUnauthorized(err) {
 				dataServiceContext.RespondWithError(service.ErrorUnauthorized())
@@ -53,13 +53,13 @@ func DatasetsUpdate(dataServiceContext dataService.Context) {
 		}
 	}
 
-	if (dataset.State != nil && *dataset.State == "closed") || (dataset.DataState != nil && *dataset.DataState == "closed") { // TODO: Deprecated DataState (after data migration)
-		dataServiceContext.RespondWithError(ErrorDatasetClosed(datasetID))
+	if (dataSet.State != nil && *dataSet.State == "closed") || (dataSet.DataState != nil && *dataSet.DataState == "closed") { // TODO: Deprecated DataState (after data migration)
+		dataServiceContext.RespondWithError(ErrorDataSetClosed(dataSetID))
 		return
 	}
 
 	update := data.NewDataSetUpdate()
-	if dataset.DataSetType != nil && *dataset.DataSetType == upload.DataSetTypeContinuous {
+	if dataSet.DataSetType != nil && *dataSet.DataSetType == upload.DataSetTypeContinuous {
 		if !details.IsService() {
 			dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 			return
@@ -72,26 +72,26 @@ func DatasetsUpdate(dataServiceContext dataService.Context) {
 		update.State = pointer.FromString(data.DataSetStateClosed)
 	}
 
-	dataset, err = dataServiceContext.DataSession().UpdateDataSet(ctx, datasetID, update)
+	dataSet, err = dataServiceContext.DataSession().UpdateDataSet(ctx, dataSetID, update)
 	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to update dataset", err)
+		dataServiceContext.RespondWithInternalServerFailure("Unable to update data set", err)
 		return
 	}
 
-	deduplicator, err := dataServiceContext.DataDeduplicatorFactory().NewRegisteredDeduplicatorForDataset(lgr, dataServiceContext.DataSession(), dataset)
+	deduplicator, err := dataServiceContext.DataDeduplicatorFactory().NewRegisteredDeduplicatorForDataSet(lgr, dataServiceContext.DataSession(), dataSet)
 	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to create registered deduplicator for dataset", err)
+		dataServiceContext.RespondWithInternalServerFailure("Unable to create registered deduplicator for data set", err)
 		return
 	}
 
-	if err = deduplicator.DeduplicateDataset(ctx); err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to deduplicate dataset", err)
+	if err = deduplicator.DeduplicateDataSet(ctx); err != nil {
+		dataServiceContext.RespondWithInternalServerFailure("Unable to deduplicate data set", err)
 		return
 	}
 
-	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "datasets_update"); err != nil {
+	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_update"); err != nil {
 		lgr.WithError(err).Error("Unable to record metric")
 	}
 
-	dataServiceContext.RespondWithStatusAndData(http.StatusOK, dataset)
+	dataServiceContext.RespondWithStatusAndData(http.StatusOK, dataSet)
 }

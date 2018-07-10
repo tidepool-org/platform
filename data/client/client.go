@@ -20,7 +20,7 @@ type Client interface {
 	data.DataSourceAccessor
 	data.DataSetAccessor
 
-	CreateDataSetsData(ctx context.Context, datasetID string, datumArray []data.Datum) error
+	CreateDataSetsData(ctx context.Context, dataSetID string, datumArray []data.Datum) error
 
 	DestroyDataForUserByID(ctx context.Context, userID string) error
 }

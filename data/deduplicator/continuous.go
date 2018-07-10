@@ -35,32 +35,32 @@ func NewContinuousFactory() (Factory, error) {
 	return factory, nil
 }
 
-func (c *continuousFactory) CanDeduplicateDataset(dataset *upload.Upload) (bool, error) {
-	if can, err := c.BaseFactory.CanDeduplicateDataset(dataset); err != nil || !can {
+func (c *continuousFactory) CanDeduplicateDataSet(dataSet *upload.Upload) (bool, error) {
+	if can, err := c.BaseFactory.CanDeduplicateDataSet(dataSet); err != nil || !can {
 		return can, err
 	}
 
-	if dataset.DataSetType == nil {
+	if dataSet.DataSetType == nil {
 		return false, nil
 	}
-	if *dataset.DataSetType != upload.DataSetTypeContinuous {
+	if *dataSet.DataSetType != upload.DataSetTypeContinuous {
 		return false, nil
 	}
 
 	return true, nil
 }
 
-func (c *continuousFactory) NewDeduplicatorForDataset(logger log.Logger, dataSession storeDEPRECATED.DataSession, dataset *upload.Upload) (data.Deduplicator, error) {
-	baseDeduplicator, err := NewBaseDeduplicator(c.name, c.version, logger, dataSession, dataset)
+func (c *continuousFactory) NewDeduplicatorForDataSet(logger log.Logger, dataSession storeDEPRECATED.DataSession, dataSet *upload.Upload) (data.Deduplicator, error) {
+	baseDeduplicator, err := NewBaseDeduplicator(c.name, c.version, logger, dataSession, dataSet)
 	if err != nil {
 		return nil, err
 	}
 
-	if dataset.DataSetType == nil {
-		return nil, errors.New("dataset type is missing")
+	if dataSet.DataSetType == nil {
+		return nil, errors.New("data set type is missing")
 	}
-	if *dataset.DataSetType != upload.DataSetTypeContinuous {
-		return nil, errors.New("dataset type is not continuous")
+	if *dataSet.DataSetType != upload.DataSetTypeContinuous {
+		return nil, errors.New("data set type is not continuous")
 	}
 
 	return &continuousDeduplicator{
@@ -68,33 +68,33 @@ func (c *continuousFactory) NewDeduplicatorForDataset(logger log.Logger, dataSes
 	}, nil
 }
 
-func (c *continuousDeduplicator) RegisterDataset(ctx context.Context) error {
-	c.dataset.SetActive(true)
-	return c.BaseDeduplicator.RegisterDataset(ctx)
+func (c *continuousDeduplicator) RegisterDataSet(ctx context.Context) error {
+	c.dataSet.SetActive(true)
+	return c.BaseDeduplicator.RegisterDataSet(ctx)
 }
 
-func (c *continuousDeduplicator) AddDatasetData(ctx context.Context, datasetData []data.Datum) error {
-	c.logger.WithField("datasetDataLength", len(datasetData)).Debug("AddDatasetData")
+func (c *continuousDeduplicator) AddDataSetData(ctx context.Context, dataSetData []data.Datum) error {
+	c.logger.WithField("dataSetDataLength", len(dataSetData)).Debug("AddDataSetData")
 
-	if len(datasetData) == 0 {
+	if len(dataSetData) == 0 {
 		return nil
 	}
 
-	for _, datasetDatum := range datasetData {
-		datasetDatum.SetActive(true)
+	for _, dataSetDatum := range dataSetData {
+		dataSetDatum.SetActive(true)
 	}
 
-	if err := c.dataSession.CreateDatasetData(ctx, c.dataset, datasetData); err != nil {
-		return errors.Wrapf(err, "unable to create dataset data with id %q", c.dataset.UploadID)
+	if err := c.dataSession.CreateDataSetData(ctx, c.dataSet, dataSetData); err != nil {
+		return errors.Wrapf(err, "unable to create data set data with id %q", c.dataSet.UploadID)
 	}
 
 	return nil
 }
 
-func (c *continuousDeduplicator) DeduplicateDataset(ctx context.Context) error {
+func (c *continuousDeduplicator) DeduplicateDataSet(ctx context.Context) error {
 	return nil
 }
 
-func (c *continuousDeduplicator) DeleteDataset(ctx context.Context) error {
-	return errors.Newf("unable to delete dataset with id %q", c.dataset.UploadID)
+func (c *continuousDeduplicator) DeleteDataSet(ctx context.Context) error {
+	return errors.Newf("unable to delete data set with id %q", c.dataSet.UploadID)
 }

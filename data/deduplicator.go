@@ -14,12 +14,12 @@ type Deduplicator interface {
 	Name() string
 	Version() string
 
-	RegisterDataset(ctx context.Context) error
+	RegisterDataSet(ctx context.Context) error
 
-	AddDatasetData(ctx context.Context, datasetData []Datum) error
-	DeduplicateDataset(ctx context.Context) error
+	AddDataSetData(ctx context.Context, dataSetData []Datum) error
+	DeduplicateDataSet(ctx context.Context) error
 
-	DeleteDataset(ctx context.Context) error
+	DeleteDataSet(ctx context.Context) error
 }
 
 type DeduplicatorDescriptor struct {

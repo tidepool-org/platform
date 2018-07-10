@@ -33,38 +33,38 @@ var _ = Describe("Errors", func() {
 		})
 	})
 
-	Context("ErrorDatasetIDMissing", func() {
+	Context("ErrorDataSetIDMissing", func() {
 		It("matches the expected error", func() {
-			Expect(v1.ErrorDatasetIDMissing()).To(Equal(
+			Expect(v1.ErrorDataSetIDMissing()).To(Equal(
 				&service.Error{
-					Code:   "dataset-id-missing",
+					Code:   "data-set-id-missing",
 					Status: 400,
-					Title:  "dataset id is missing",
-					Detail: "Dataset id is missing",
+					Title:  "data set id is missing",
+					Detail: "Data set id is missing",
 				}))
 		})
 	})
 
-	Context("ErrorDatasetIDNotFound", func() {
+	Context("ErrorDataSetIDNotFound", func() {
 		It("matches the expected error", func() {
-			Expect(v1.ErrorDatasetIDNotFound("1234567890abcdef")).To(Equal(
+			Expect(v1.ErrorDataSetIDNotFound("1234567890abcdef")).To(Equal(
 				&service.Error{
-					Code:   "dataset-id-not-found",
+					Code:   "data-set-id-not-found",
 					Status: 404,
-					Title:  "dataset with specified id not found",
-					Detail: "Dataset with id 1234567890abcdef not found",
+					Title:  "data set with specified id not found",
+					Detail: "Data set with id 1234567890abcdef not found",
 				}))
 		})
 	})
 
-	Context("ErrorDatasetClosed", func() {
+	Context("ErrorDataSetClosed", func() {
 		It("matches the expected error", func() {
-			Expect(v1.ErrorDatasetClosed("1234567890abcdef")).To(Equal(
+			Expect(v1.ErrorDataSetClosed("1234567890abcdef")).To(Equal(
 				&service.Error{
-					Code:   "dataset-closed",
+					Code:   "data-set-closed",
 					Status: 409,
-					Title:  "dataset with specified id is closed for new data",
-					Detail: "Dataset with id 1234567890abcdef is closed for new data",
+					Title:  "data set with specified id is closed for new data",
+					Detail: "Data set with id 1234567890abcdef is closed for new data",
 				}))
 		})
 	})

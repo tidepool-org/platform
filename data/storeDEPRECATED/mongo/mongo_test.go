@@ -39,34 +39,34 @@ package mongo_test
 // 	return _sampleTime
 // }
 
-// func NewDataset(userID string, deviceID string) *upload.Upload {
-// 	dataset := upload.New()
-// 	Expect(dataset).ToNot(BeNil())
+// func NewDataSet(userID string, deviceID string) *upload.Upload {
+// 	dataSet := upload.New()
+// 	Expect(dataSet).ToNot(BeNil())
 
-// 	dataset.Deduplicator = &data.DeduplicatorDescriptor{Name: "test-deduplicator"}
-// 	dataset.UserID = userID
+// 	dataSet.Deduplicator = &data.DeduplicatorDescriptor{Name: "test-deduplicator"}
+// 	dataSet.UserID = userID
 
-// 	dataset.ClockDriftOffset = pointer.FromInt(0)
-// 	dataset.ConversionOffset = pointer.FromInt(0)
-// 	dataset.DeviceID = pointer.FromString(deviceID)
-// 	dataset.DeviceTime = pointer.FromString(SampleTime().Format("2006-01-02T15:04:05"))
-// 	dataset.Time = pointer.FromString(SampleTime().UTC().Format(time.RFC3339))
-// 	dataset.TimeZoneOffset = pointer.FromInt(-420)
+// 	dataSet.ClockDriftOffset = pointer.FromInt(0)
+// 	dataSet.ConversionOffset = pointer.FromInt(0)
+// 	dataSet.DeviceID = pointer.FromString(deviceID)
+// 	dataSet.DeviceTime = pointer.FromString(SampleTime().Format("2006-01-02T15:04:05"))
+// 	dataSet.Time = pointer.FromString(SampleTime().UTC().Format(time.RFC3339))
+// 	dataSet.TimeZoneOffset = pointer.FromInt(-420)
 
-// 	dataset.ComputerTime = pointer.FromString(SampleTime().Format("2006-01-02T15:04:05"))
-// 	dataset.DeviceManufacturers = pointer.FromStringArray([]string{"Tesla"})
-// 	dataset.DeviceModel = pointer.FromString("1234")
-// 	dataset.DeviceSerialNumber = pointer.FromString("567890")
-// 	dataset.DeviceTags = pointer.FromStringArray([]string{upload.DeviceTagInsulinPump})
-// 	dataset.TimeProcessing = pointer.FromString(upload.TimeProcessingUTCBootstrapping)
-// 	dataset.TimeZoneName = pointer.FromString("US/Pacific")
-// 	dataset.Version = pointer.FromString("0.260.1")
+// 	dataSet.ComputerTime = pointer.FromString(SampleTime().Format("2006-01-02T15:04:05"))
+// 	dataSet.DeviceManufacturers = pointer.FromStringArray([]string{"Tesla"})
+// 	dataSet.DeviceModel = pointer.FromString("1234")
+// 	dataSet.DeviceSerialNumber = pointer.FromString("567890")
+// 	dataSet.DeviceTags = pointer.FromStringArray([]string{upload.DeviceTagInsulinPump})
+// 	dataSet.TimeProcessing = pointer.FromString(upload.TimeProcessingUTCBootstrapping)
+// 	dataSet.TimeZoneName = pointer.FromString("US/Pacific")
+// 	dataSet.Version = pointer.FromString("0.260.1")
 
-// 	return dataset
+// 	return dataSet
 // }
 
-// func NewDatasetData(deviceID string) []data.Datum {
-// 	datasetData := []data.Datum{}
+// func NewDataSetData(deviceID string) []data.Datum {
+// 	dataSetData := []data.Datum{}
 // 	for count := 0; count < 3; count++ {
 // 		baseDatum := &types.Base{}
 // 		baseDatum.New()
@@ -81,18 +81,18 @@ package mongo_test
 // 		baseDatum.Time = pointer.FromString(SampleTime().UTC().Format(time.RFC3339))
 // 		baseDatum.TimeZoneOffset = pointer.FromInt(-420)
 
-// 		datasetData = append(datasetData, baseDatum)
+// 		dataSetData = append(dataSetData, baseDatum)
 // 	}
-// 	return datasetData
+// 	return dataSetData
 // }
 
-// func CloneDatasetData(datasetData []data.Datum) []data.Datum {
-// 	clonedDatasetData := []data.Datum{}
-// 	for _, datasetDatum := range datasetData {
-// 		if baseDatum, ok := datasetDatum.(*types.Base); ok {
+// func CloneDataSetData(dataSetData []data.Datum) []data.Datum {
+// 	clonedDataSetData := []data.Datum{}
+// 	for _, dataSetDatum := range dataSetData {
+// 		if baseDatum, ok := dataSetDatum.(*types.Base); ok {
 // 			clonedBaseDatum := &types.Base{}
 // 			clonedBaseDatum.Active = baseDatum.Active
-// 			clonedBaseDatum.ArchivedDatasetID = baseDatum.ArchivedDatasetID
+// 			clonedBaseDatum.ArchivedDataSetID = baseDatum.ArchivedDataSetID
 // 			clonedBaseDatum.ArchivedTime = baseDatum.ArchivedTime
 // 			clonedBaseDatum.CreatedTime = baseDatum.CreatedTime
 // 			clonedBaseDatum.CreatedUserID = baseDatum.CreatedUserID
@@ -118,51 +118,51 @@ package mongo_test
 // 			clonedBaseDatum.Time = baseDatum.Time
 // 			clonedBaseDatum.TimeZoneOffset = baseDatum.TimeZoneOffset
 
-// 			clonedDatasetData = append(clonedDatasetData, clonedBaseDatum)
+// 			clonedDataSetData = append(clonedDataSetData, clonedBaseDatum)
 // 		}
 // 	}
-// 	return clonedDatasetData
+// 	return clonedDataSetData
 // }
 
-// func ValidateDataset(testMongoCollection *mgo.Collection, query bson.M, filter bson.M, expectedDatasets ...*upload.Upload) {
+// func ValidateDataSet(testMongoCollection *mgo.Collection, query bson.M, filter bson.M, expectedDataSets ...*upload.Upload) {
 // 	query["type"] = "upload"
 // 	filter["_id"] = 0
-// 	var actualDatasets []*upload.Upload
-// 	Expect(testMongoCollection.Find(query).Select(filter).All(&actualDatasets)).To(Succeed())
-// 	Expect(actualDatasets).To(ConsistOf(DatasetsAsInterface(expectedDatasets)...))
+// 	var actualDataSets []*upload.Upload
+// 	Expect(testMongoCollection.Find(query).Select(filter).All(&actualDataSets)).To(Succeed())
+// 	Expect(actualDataSets).To(ConsistOf(DataSetsAsInterface(expectedDataSets)...))
 // }
 
-// func DatasetsAsInterface(datasets []*upload.Upload) []interface{} {
-// 	var datasetsAsInterface []interface{}
-// 	for _, dataset := range datasets {
-// 		datasetsAsInterface = append(datasetsAsInterface, dataset)
+// func DataSetsAsInterface(dataSets []*upload.Upload) []interface{} {
+// 	var dataSetsAsInterface []interface{}
+// 	for _, dataSet := range dataSets {
+// 		dataSetsAsInterface = append(dataSetsAsInterface, dataSet)
 // 	}
-// 	return datasetsAsInterface
+// 	return dataSetsAsInterface
 // }
 
-// func ValidateDatasetData(testMongoCollection *mgo.Collection, query bson.M, filter bson.M, expectedDatasetData []data.Datum) {
+// func ValidateDataSetData(testMongoCollection *mgo.Collection, query bson.M, filter bson.M, expectedDataSetData []data.Datum) {
 // 	query["type"] = bson.M{"$ne": "upload"}
 // 	filter["_id"] = 0
-// 	var actualDatasetData []interface{}
-// 	Expect(testMongoCollection.Find(query).Select(filter).All(&actualDatasetData)).To(Succeed())
-// 	Expect(actualDatasetData).To(ConsistOf(DatasetDataAsInterface(expectedDatasetData)...))
+// 	var actualDataSetData []interface{}
+// 	Expect(testMongoCollection.Find(query).Select(filter).All(&actualDataSetData)).To(Succeed())
+// 	Expect(actualDataSetData).To(ConsistOf(DataSetDataAsInterface(expectedDataSetData)...))
 // }
 
-// func DatasetDataAsInterface(datasetData []data.Datum) []interface{} {
-// 	var datasetDataAsInterface []interface{}
-// 	for _, datasetDatum := range datasetData {
-// 		datasetDataAsInterface = append(datasetDataAsInterface, DatasetDatumAsInterface(datasetDatum))
+// func DataSetDataAsInterface(dataSetData []data.Datum) []interface{} {
+// 	var dataSetDataAsInterface []interface{}
+// 	for _, dataSetDatum := range dataSetData {
+// 		dataSetDataAsInterface = append(dataSetDataAsInterface, DataSetDatumAsInterface(dataSetDatum))
 // 	}
-// 	return datasetDataAsInterface
+// 	return dataSetDataAsInterface
 // }
 
-// func DatasetDatumAsInterface(datasetDatum data.Datum) interface{} {
-// 	bytes, err := bson.Marshal(datasetDatum)
+// func DataSetDatumAsInterface(dataSetDatum data.Datum) interface{} {
+// 	bytes, err := bson.Marshal(dataSetDatum)
 // 	Expect(err).ToNot(HaveOccurred())
 // 	Expect(bytes).ToNot(BeNil())
-// 	var datasetDatumAsInterface interface{}
-// 	Expect(bson.Unmarshal(bytes, &datasetDatumAsInterface)).To(Succeed())
-// 	return datasetDatumAsInterface
+// 	var dataSetDatumAsInterface interface{}
+// 	Expect(bson.Unmarshal(bytes, &dataSetDatumAsInterface)).To(Succeed())
+// 	return dataSetDatumAsInterface
 // }
 
 // var _ = Describe("Mongo", func() {
@@ -225,26 +225,26 @@ package mongo_test
 // 				var testMongoCollection *mgo.Collection
 // 				var userID string
 // 				var deviceID string
-// 				var datasetExistingOther *upload.Upload
-// 				var datasetExistingOne *upload.Upload
-// 				var datasetExistingTwo *upload.Upload
-// 				var dataset *upload.Upload
+// 				var dataSetExistingOther *upload.Upload
+// 				var dataSetExistingOne *upload.Upload
+// 				var dataSetExistingTwo *upload.Upload
+// 				var dataSet *upload.Upload
 
 // 				BeforeEach(func() {
 // 					testMongoSession = storeStructuredMongoTest.Session().Copy()
 // 					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.CollectionPrefix + "deviceData")
 // 					userID = id.New()
 // 					deviceID = id.New()
-// 					datasetExistingOther = NewDataset(id.New(), id.New())
-// 					datasetExistingOther.CreatedTime = "2016-09-01T12:00:00Z"
-// 					Expect(testMongoCollection.Insert(datasetExistingOther)).To(Succeed())
-// 					datasetExistingOne = NewDataset(userID, deviceID)
-// 					datasetExistingOne.CreatedTime = "2016-09-01T12:30:00Z"
-// 					Expect(testMongoCollection.Insert(datasetExistingOne)).To(Succeed())
-// 					datasetExistingTwo = NewDataset(userID, deviceID)
-// 					datasetExistingTwo.CreatedTime = "2016-09-01T10:00:00Z"
-// 					Expect(testMongoCollection.Insert(datasetExistingTwo)).To(Succeed())
-// 					dataset = NewDataset(userID, deviceID)
+// 					dataSetExistingOther = NewDataSet(id.New(), id.New())
+// 					dataSetExistingOther.CreatedTime = "2016-09-01T12:00:00Z"
+// 					Expect(testMongoCollection.Insert(dataSetExistingOther)).To(Succeed())
+// 					dataSetExistingOne = NewDataSet(userID, deviceID)
+// 					dataSetExistingOne.CreatedTime = "2016-09-01T12:30:00Z"
+// 					Expect(testMongoCollection.Insert(dataSetExistingOne)).To(Succeed())
+// 					dataSetExistingTwo = NewDataSet(userID, deviceID)
+// 					dataSetExistingTwo.CreatedTime = "2016-09-01T10:00:00Z"
+// 					Expect(testMongoCollection.Insert(dataSetExistingTwo)).To(Succeed())
+// 					dataSet = NewDataSet(userID, deviceID)
 // 				})
 
 // 				AfterEach(func() {
@@ -253,386 +253,386 @@ package mongo_test
 // 					}
 // 				})
 
-// 				Context("GetDatasetsForUserByID", func() {
+// 				Context("GetDataSetsForUserByID", func() {
 // 					var filter *storeDEPRECATED.Filter
 // 					var pagination *page.Pagination
 
 // 					BeforeEach(func() {
-// 						dataset.CreatedTime = "2016-09-01T11:00:00Z"
-// 						Expect(testMongoCollection.Insert(dataset)).To(Succeed())
+// 						dataSet.CreatedTime = "2016-09-01T11:00:00Z"
+// 						Expect(testMongoCollection.Insert(dataSet)).To(Succeed())
 // 						filter = storeDEPRECATED.NewFilter()
 // 						pagination = page.NewPagination()
 // 					})
 
-// 					It("succeeds if it successfully finds the user datasets", func() {
-// 						Expect(mongoSession.GetDatasetsForUserByID(userID, filter, pagination)).To(ConsistOf([]*upload.Upload{datasetExistingOne, dataset, datasetExistingTwo}))
+// 					It("succeeds if it successfully finds the user data sets", func() {
+// 						Expect(mongoSession.GetDataSetsForUserByID(userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSet, dataSetExistingTwo}))
 // 					})
 
 // 					It("succeeds if the filter is not specified", func() {
-// 						Expect(mongoSession.GetDatasetsForUserByID(userID, nil, pagination)).To(ConsistOf([]*upload.Upload{datasetExistingOne, dataset, datasetExistingTwo}))
+// 						Expect(mongoSession.GetDataSetsForUserByID(userID, nil, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSet, dataSetExistingTwo}))
 // 					})
 
 // 					It("succeeds if the pagination is not specified", func() {
-// 						Expect(mongoSession.GetDatasetsForUserByID(userID, filter, nil)).To(ConsistOf([]*upload.Upload{datasetExistingOne, dataset, datasetExistingTwo}))
+// 						Expect(mongoSession.GetDataSetsForUserByID(userID, filter, nil)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSet, dataSetExistingTwo}))
 // 					})
 
 // 					It("succeeds if the pagination size is not default", func() {
 // 						pagination.Size = 2
-// 						Expect(mongoSession.GetDatasetsForUserByID(userID, filter, pagination)).To(ConsistOf([]*upload.Upload{datasetExistingOne, dataset}))
+// 						Expect(mongoSession.GetDataSetsForUserByID(userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSet}))
 // 					})
 
 // 					It("succeeds if the pagination page and size is not default", func() {
 // 						pagination.Page = 1
 // 						pagination.Size = 2
-// 						Expect(mongoSession.GetDatasetsForUserByID(userID, filter, pagination)).To(ConsistOf([]*upload.Upload{datasetExistingTwo}))
+// 						Expect(mongoSession.GetDataSetsForUserByID(userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingTwo}))
 // 					})
 
-// 					It("succeeds if it successfully does not find another user datasets", func() {
-// 						resultDatasets, err := mongoSession.GetDatasetsForUserByID(id.New(), filter, pagination)
+// 					It("succeeds if it successfully does not find another user data sets", func() {
+// 						resultDataSets, err := mongoSession.GetDataSetsForUserByID(id.New(), filter, pagination)
 // 						Expect(err).ToNot(HaveOccurred())
-// 						Expect(resultDatasets).ToNot(BeNil())
-// 						Expect(resultDatasets).To(BeEmpty())
+// 						Expect(resultDataSets).ToNot(BeNil())
+// 						Expect(resultDataSets).To(BeEmpty())
 // 					})
 
 // 					It("returns an error if the user id is missing", func() {
-// 						resultDatasets, err := mongoSession.GetDatasetsForUserByID("", filter, pagination)
+// 						resultDataSets, err := mongoSession.GetDataSetsForUserByID("", filter, pagination)
 // 						Expect(err).To(MatchError("user id is missing"))
-// 						Expect(resultDatasets).To(BeNil())
+// 						Expect(resultDataSets).To(BeNil())
 // 					})
 
 // 					It("returns an error if the pagination page is less than minimum", func() {
 // 						pagination.Page = -1
-// 						resultDatasets, err := mongoSession.GetDatasetsForUserByID(userID, filter, pagination)
+// 						resultDataSets, err := mongoSession.GetDataSetsForUserByID(userID, filter, pagination)
 // 						Expect(err).To(MatchError("pagination is invalid; page is invalid"))
-// 						Expect(resultDatasets).To(BeNil())
+// 						Expect(resultDataSets).To(BeNil())
 // 					})
 
 // 					It("returns an error if the pagination size is less than minimum", func() {
 // 						pagination.Size = 0
-// 						resultDatasets, err := mongoSession.GetDatasetsForUserByID(userID, filter, pagination)
+// 						resultDataSets, err := mongoSession.GetDataSetsForUserByID(userID, filter, pagination)
 // 						Expect(err).To(MatchError("pagination is invalid; size is invalid"))
-// 						Expect(resultDatasets).To(BeNil())
+// 						Expect(resultDataSets).To(BeNil())
 // 					})
 
 // 					It("returns an error if the pagination size is greater than maximum", func() {
 // 						pagination.Size = 101
-// 						resultDatasets, err := mongoSession.GetDatasetsForUserByID(userID, filter, pagination)
+// 						resultDataSets, err := mongoSession.GetDataSetsForUserByID(userID, filter, pagination)
 // 						Expect(err).To(MatchError("pagination is invalid; size is invalid"))
-// 						Expect(resultDatasets).To(BeNil())
+// 						Expect(resultDataSets).To(BeNil())
 // 					})
 
 // 					It("returns an error if the session is closed", func() {
 // 						mongoSession.Close()
-// 						resultDatasets, err := mongoSession.GetDatasetsForUserByID(userID, filter, pagination)
+// 						resultDataSets, err := mongoSession.GetDataSetsForUserByID(userID, filter, pagination)
 // 						Expect(err).To(MatchError("session closed"))
-// 						Expect(resultDatasets).To(BeNil())
+// 						Expect(resultDataSets).To(BeNil())
 // 					})
 
-// 					Context("with deleted dataset", func() {
+// 					Context("with deleted data set", func() {
 // 						BeforeEach(func() {
-// 							dataset.DeletedTime = "2016-09-01T13:00:00Z"
-// 							Expect(testMongoCollection.Update(bson.M{"id": dataset.ID}, dataset)).To(Succeed())
+// 							dataSet.DeletedTime = "2016-09-01T13:00:00Z"
+// 							Expect(testMongoCollection.Update(bson.M{"id": dataSet.ID}, dataSet)).To(Succeed())
 // 						})
 
-// 						It("succeeds if it successfully finds the non-deleted user datasets", func() {
-// 							Expect(mongoSession.GetDatasetsForUserByID(userID, filter, pagination)).To(ConsistOf([]*upload.Upload{datasetExistingOne, datasetExistingTwo}))
+// 						It("succeeds if it successfully finds the non-deleted user data sets", func() {
+// 							Expect(mongoSession.GetDataSetsForUserByID(userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSetExistingTwo}))
 // 						})
 
-// 						It("succeeds if it successfully finds all the user datasets", func() {
+// 						It("succeeds if it successfully finds all the user data sets", func() {
 // 							filter.Deleted = true
-// 							Expect(mongoSession.GetDatasetsForUserByID(userID, filter, pagination)).To(ConsistOf([]*upload.Upload{datasetExistingOne, dataset, datasetExistingTwo}))
+// 							Expect(mongoSession.GetDataSetsForUserByID(userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSet, dataSetExistingTwo}))
 // 						})
 // 					})
 // 				})
 
-// 				Context("GetDatasetByID", func() {
+// 				Context("GetDataSetByID", func() {
 // 					BeforeEach(func() {
-// 						dataset.CreatedTime = "2016-09-01T11:00:00Z"
-// 						Expect(testMongoCollection.Insert(dataset)).To(Succeed())
+// 						dataSet.CreatedTime = "2016-09-01T11:00:00Z"
+// 						Expect(testMongoCollection.Insert(dataSet)).To(Succeed())
 // 					})
 
-// 					It("succeeds if it successfully finds the dataset", func() {
-// 						Expect(mongoSession.GetDatasetByID(dataset.UploadID)).To(Equal(dataset))
+// 					It("succeeds if it successfully finds the data set", func() {
+// 						Expect(mongoSession.GetDataSetByID(dataSet.UploadID)).To(Equal(dataSet))
 // 					})
 
-// 					It("returns an error if the dataset id is missing", func() {
-// 						resultDataset, err := mongoSession.GetDatasetByID("")
-// 						Expect(err).To(MatchError("dataset id is missing"))
-// 						Expect(resultDataset).To(BeNil())
+// 					It("returns an error if the data set id is missing", func() {
+// 						resultDataSet, err := mongoSession.GetDataSetByID("")
+// 						Expect(err).To(MatchError("data set id is missing"))
+// 						Expect(resultDataSet).To(BeNil())
 // 					})
 
 // 					It("returns an error if the session is closed", func() {
 // 						mongoSession.Close()
-// 						resultDataset, err := mongoSession.GetDatasetByID(dataset.UploadID)
+// 						resultDataSet, err := mongoSession.GetDataSetByID(dataSet.UploadID)
 // 						Expect(err).To(MatchError("session closed"))
-// 						Expect(resultDataset).To(BeNil())
+// 						Expect(resultDataSet).To(BeNil())
 // 					})
 
-// 					It("returns no dataset successfully if the dataset cannot be found", func() {
-// 						resultDataset, err := mongoSession.GetDatasetByID("not-found")
+// 					It("returns no data set successfully if the data set cannot be found", func() {
+// 						resultDataSet, err := mongoSession.GetDataSetByID("not-found")
 // 						Expect(err).ToNot(HaveOccurred())
-// 						Expect(resultDataset).To(BeNil())
+// 						Expect(resultDataSet).To(BeNil())
 // 					})
 // 				})
 
-// 				Context("CreateDataset", func() {
-// 					It("succeeds if it successfully creates the dataset", func() {
-// 						Expect(mongoSession.CreateDataset(dataset)).To(Succeed())
+// 				Context("CreateDataSet", func() {
+// 					It("succeeds if it successfully creates the data set", func() {
+// 						Expect(mongoSession.CreateDataSet(dataSet)).To(Succeed())
 // 					})
 
-// 					It("returns an error if the dataset is missing", func() {
-// 						Expect(mongoSession.CreateDataset(nil)).To(MatchError("dataset is missing"))
+// 					It("returns an error if the data set is missing", func() {
+// 						Expect(mongoSession.CreateDataSet(nil)).To(MatchError("data set is missing"))
 // 					})
 
 // 					It("returns an error if the user id is missing", func() {
-// 						dataset.UserID = ""
-// 						Expect(mongoSession.CreateDataset(dataset)).To(MatchError("dataset user id is missing"))
+// 						dataSet.UserID = ""
+// 						Expect(mongoSession.CreateDataSet(dataSet)).To(MatchError("data set user id is missing"))
 // 					})
 
 // 					It("returns an error if the upload id is missing", func() {
-// 						dataset.UploadID = ""
-// 						Expect(mongoSession.CreateDataset(dataset)).To(MatchError("dataset upload id is missing"))
+// 						dataSet.UploadID = ""
+// 						Expect(mongoSession.CreateDataSet(dataSet)).To(MatchError("data set upload id is missing"))
 // 					})
 
 // 					It("returns an error if the device id is missing (nil)", func() {
-// 						dataset.DeviceID = nil
-// 						Expect(mongoSession.CreateDataset(dataset)).To(MatchError("dataset device id is missing"))
+// 						dataSet.DeviceID = nil
+// 						Expect(mongoSession.CreateDataSet(dataSet)).To(MatchError("data set device id is missing"))
 // 					})
 
 // 					It("returns an error if the device id is missing (empty)", func() {
-// 						dataset.DeviceID = pointer.FromString("")
-// 						Expect(mongoSession.CreateDataset(dataset)).To(MatchError("dataset device id is missing"))
+// 						dataSet.DeviceID = pointer.FromString("")
+// 						Expect(mongoSession.CreateDataSet(dataSet)).To(MatchError("data set device id is missing"))
 // 					})
 
 // 					It("returns an error if the session is closed", func() {
 // 						mongoSession.Close()
-// 						Expect(mongoSession.CreateDataset(dataset)).To(MatchError("session closed"))
+// 						Expect(mongoSession.CreateDataSet(dataSet)).To(MatchError("session closed"))
 // 					})
 
-// 					It("returns an error if the dataset with the same id already exists", func() {
-// 						Expect(mongoSession.CreateDataset(dataset)).To(Succeed())
-// 						Expect(mongoSession.CreateDataset(dataset)).To(MatchError("unable to create dataset; dataset already exists"))
+// 					It("returns an error if the data set with the same id already exists", func() {
+// 						Expect(mongoSession.CreateDataSet(dataSet)).To(Succeed())
+// 						Expect(mongoSession.CreateDataSet(dataSet)).To(MatchError("unable to create data set; data set already exists"))
 // 					})
 
 // 					It("sets the created time", func() {
-// 						Expect(mongoSession.CreateDataset(dataset)).To(Succeed())
-// 						Expect(dataset.CreatedTime).ToNot(BeEmpty())
-// 						Expect(dataset.CreatedUserID).To(BeEmpty())
-// 						Expect(dataset.ByUser).To(BeNil())
+// 						Expect(mongoSession.CreateDataSet(dataSet)).To(Succeed())
+// 						Expect(dataSet.CreatedTime).ToNot(BeEmpty())
+// 						Expect(dataSet.CreatedUserID).To(BeEmpty())
+// 						Expect(dataSet.ByUser).To(BeNil())
 // 					})
 
-// 					It("has the correct stored datasets", func() {
-// 						ValidateDataset(testMongoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, datasetExistingOther, datasetExistingOne, datasetExistingTwo)
-// 						Expect(mongoSession.CreateDataset(dataset)).To(Succeed())
-// 						ValidateDataset(testMongoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, datasetExistingOther, datasetExistingOne, datasetExistingTwo, dataset)
+// 					It("has the correct stored data sets", func() {
+// 						ValidateDataSet(testMongoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
+// 						Expect(mongoSession.CreateDataSet(dataSet)).To(Succeed())
+// 						ValidateDataSet(testMongoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo, dataSet)
 // 					})
 // 				})
 
-// 				Context("UpdateDataset", func() {
+// 				Context("UpdateDataSet", func() {
 // 					BeforeEach(func() {
-// 						dataset.CreatedTime = "2016-09-01T11:00:00Z"
-// 						Expect(testMongoCollection.Insert(dataset)).To(Succeed())
+// 						dataSet.CreatedTime = "2016-09-01T11:00:00Z"
+// 						Expect(testMongoCollection.Insert(dataSet)).To(Succeed())
 // 					})
 
 // 					Context("with state closed", func() {
 // 						BeforeEach(func() {
-// 							dataset.State = "closed"
+// 							dataSet.State = "closed"
 // 						})
 
-// 						It("succeeds if it successfully updates the dataset", func() {
-// 							Expect(mongoSession.UpdateDataset(dataset)).To(Succeed())
+// 						It("succeeds if it successfully updates the data set", func() {
+// 							Expect(mongoSession.UpdateDataSet(dataSet)).To(Succeed())
 // 						})
 
-// 						It("returns an error if the dataset is missing", func() {
-// 							Expect(mongoSession.UpdateDataset(nil)).To(MatchError("dataset is missing"))
+// 						It("returns an error if the data set is missing", func() {
+// 							Expect(mongoSession.UpdateDataSet(nil)).To(MatchError("data set is missing"))
 // 						})
 
 // 						It("returns an error if the user id is missing", func() {
-// 							dataset.UserID = ""
-// 							Expect(mongoSession.UpdateDataset(dataset)).To(MatchError("dataset user id is missing"))
+// 							dataSet.UserID = ""
+// 							Expect(mongoSession.UpdateDataSet(dataSet)).To(MatchError("data set user id is missing"))
 // 						})
 
 // 						It("returns an error if the upload id is missing", func() {
-// 							dataset.UploadID = ""
-// 							Expect(mongoSession.UpdateDataset(dataset)).To(MatchError("dataset upload id is missing"))
+// 							dataSet.UploadID = ""
+// 							Expect(mongoSession.UpdateDataSet(dataSet)).To(MatchError("data set upload id is missing"))
 // 						})
 
 // 						It("returns an error if the device id is missing (nil)", func() {
-// 							dataset.DeviceID = nil
-// 							Expect(mongoSession.UpdateDataset(dataset)).To(MatchError("dataset device id is missing"))
+// 							dataSet.DeviceID = nil
+// 							Expect(mongoSession.UpdateDataSet(dataSet)).To(MatchError("data set device id is missing"))
 // 						})
 
 // 						It("returns an error if the device id is missing (empty)", func() {
-// 							dataset.DeviceID = pointer.FromString("")
-// 							Expect(mongoSession.UpdateDataset(dataset)).To(MatchError("dataset device id is missing"))
+// 							dataSet.DeviceID = pointer.FromString("")
+// 							Expect(mongoSession.UpdateDataSet(dataSet)).To(MatchError("data set device id is missing"))
 // 						})
 
 // 						It("returns an error if the session is closed", func() {
 // 							mongoSession.Close()
-// 							Expect(mongoSession.UpdateDataset(dataset)).To(MatchError("session closed"))
+// 							Expect(mongoSession.UpdateDataSet(dataSet)).To(MatchError("session closed"))
 // 						})
 
-// 						It("returns an error if the dataset with the same user id and upload id does not yet exist", func() {
-// 							dataset.UploadID = id.New()
-// 							Expect(mongoSession.UpdateDataset(dataset)).To(MatchError("unable to update dataset; not found"))
+// 						It("returns an error if the data set with the same user id and upload id does not yet exist", func() {
+// 							dataSet.UploadID = id.New()
+// 							Expect(mongoSession.UpdateDataSet(dataSet)).To(MatchError("unable to update data set; not found"))
 // 						})
 // 					})
 
 // 					It("sets the modified time", func() {
-// 						dataset.State = "closed"
-// 						Expect(mongoSession.UpdateDataset(dataset)).To(Succeed())
-// 						Expect(dataset.ModifiedTime).ToNot(BeEmpty())
-// 						Expect(dataset.ModifiedUserID).To(BeEmpty())
+// 						dataSet.State = "closed"
+// 						Expect(mongoSession.UpdateDataSet(dataSet)).To(Succeed())
+// 						Expect(dataSet.ModifiedTime).ToNot(BeEmpty())
+// 						Expect(dataSet.ModifiedUserID).To(BeEmpty())
 // 					})
 
-// 					It("has the correct stored datasets", func() {
-// 						ValidateDataset(testMongoCollection, bson.M{}, bson.M{}, datasetExistingOther, datasetExistingOne, datasetExistingTwo, dataset)
-// 						ValidateDataset(testMongoCollection, bson.M{"modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}}, bson.M{})
-// 						dataset.State = "closed"
-// 						Expect(mongoSession.UpdateDataset(dataset)).To(Succeed())
-// 						ValidateDataset(testMongoCollection, bson.M{}, bson.M{}, datasetExistingOther, datasetExistingOne, datasetExistingTwo, dataset)
-// 						ValidateDataset(testMongoCollection, bson.M{"modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}}, bson.M{}, dataset)
+// 					It("has the correct stored data sets", func() {
+// 						ValidateDataSet(testMongoCollection, bson.M{}, bson.M{}, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo, dataSet)
+// 						ValidateDataSet(testMongoCollection, bson.M{"modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}}, bson.M{})
+// 						dataSet.State = "closed"
+// 						Expect(mongoSession.UpdateDataSet(dataSet)).To(Succeed())
+// 						ValidateDataSet(testMongoCollection, bson.M{}, bson.M{}, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo, dataSet)
+// 						ValidateDataSet(testMongoCollection, bson.M{"modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet)
 // 					})
 // 				})
 
 // 				Context("with data", func() {
-// 					var datasetExistingOtherData []data.Datum
-// 					var datasetExistingOneData []data.Datum
-// 					var datasetExistingTwoData []data.Datum
-// 					var datasetData []data.Datum
+// 					var dataSetExistingOtherData []data.Datum
+// 					var dataSetExistingOneData []data.Datum
+// 					var dataSetExistingTwoData []data.Datum
+// 					var dataSetData []data.Datum
 
 // 					BeforeEach(func() {
-// 						dataset.CreatedTime = "2016-09-01T11:00:00Z"
-// 						Expect(testMongoCollection.Insert(dataset)).To(Succeed())
-// 						datasetExistingOtherData = NewDatasetData(id.New())
-// 						Expect(mongoSession.CreateDatasetData(datasetExistingOther, datasetExistingOtherData)).To(Succeed())
-// 						datasetExistingOneData = NewDatasetData(deviceID)
-// 						Expect(mongoSession.CreateDatasetData(datasetExistingOne, datasetExistingOneData)).To(Succeed())
-// 						datasetExistingTwoData = NewDatasetData(deviceID)
-// 						Expect(mongoSession.CreateDatasetData(datasetExistingTwo, datasetExistingTwoData)).To(Succeed())
-// 						datasetData = NewDatasetData(deviceID)
+// 						dataSet.CreatedTime = "2016-09-01T11:00:00Z"
+// 						Expect(testMongoCollection.Insert(dataSet)).To(Succeed())
+// 						dataSetExistingOtherData = NewDataSetData(id.New())
+// 						Expect(mongoSession.CreateDataSetData(dataSetExistingOther, dataSetExistingOtherData)).To(Succeed())
+// 						dataSetExistingOneData = NewDataSetData(deviceID)
+// 						Expect(mongoSession.CreateDataSetData(dataSetExistingOne, dataSetExistingOneData)).To(Succeed())
+// 						dataSetExistingTwoData = NewDataSetData(deviceID)
+// 						Expect(mongoSession.CreateDataSetData(dataSetExistingTwo, dataSetExistingTwoData)).To(Succeed())
+// 						dataSetData = NewDataSetData(deviceID)
 // 					})
 
-// 					Context("DeleteDataset", func() {
+// 					Context("DeleteDataSet", func() {
 // 						BeforeEach(func() {
-// 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
+// 							Expect(mongoSession.CreateDataSetData(dataSet, dataSetData)).To(Succeed())
 // 						})
 
-// 						It("succeeds if it successfully deletes the dataset", func() {
-// 							Expect(mongoSession.DeleteDataset(dataset)).To(Succeed())
+// 						It("succeeds if it successfully deletes the data set", func() {
+// 							Expect(mongoSession.DeleteDataSet(dataSet)).To(Succeed())
 // 						})
 
-// 						It("returns an error if the dataset is missing", func() {
-// 							Expect(mongoSession.DeleteDataset(nil)).To(MatchError("dataset is missing"))
+// 						It("returns an error if the data set is missing", func() {
+// 							Expect(mongoSession.DeleteDataSet(nil)).To(MatchError("data set is missing"))
 // 						})
 
 // 						It("returns an error if the user id is missing", func() {
-// 							dataset.UserID = ""
-// 							Expect(mongoSession.DeleteDataset(dataset)).To(MatchError("dataset user id is missing"))
+// 							dataSet.UserID = ""
+// 							Expect(mongoSession.DeleteDataSet(dataSet)).To(MatchError("data set user id is missing"))
 // 						})
 
 // 						It("returns an error if the upload id is missing", func() {
-// 							dataset.UploadID = ""
-// 							Expect(mongoSession.DeleteDataset(dataset)).To(MatchError("dataset upload id is missing"))
+// 							dataSet.UploadID = ""
+// 							Expect(mongoSession.DeleteDataSet(dataSet)).To(MatchError("data set upload id is missing"))
 // 						})
 
 // 						It("returns an error if the device id is missing (nil)", func() {
-// 							dataset.DeviceID = nil
-// 							Expect(mongoSession.DeleteDataset(dataset)).To(MatchError("dataset device id is missing"))
+// 							dataSet.DeviceID = nil
+// 							Expect(mongoSession.DeleteDataSet(dataSet)).To(MatchError("data set device id is missing"))
 // 						})
 
 // 						It("returns an error if the device id is missing (empty)", func() {
-// 							dataset.DeviceID = pointer.FromString("")
-// 							Expect(mongoSession.DeleteDataset(dataset)).To(MatchError("dataset device id is missing"))
+// 							dataSet.DeviceID = pointer.FromString("")
+// 							Expect(mongoSession.DeleteDataSet(dataSet)).To(MatchError("data set device id is missing"))
 // 						})
 
 // 						It("returns an error if the session is closed", func() {
 // 							mongoSession.Close()
-// 							Expect(mongoSession.DeleteDataset(dataset)).To(MatchError("session closed"))
+// 							Expect(mongoSession.DeleteDataSet(dataSet)).To(MatchError("session closed"))
 // 						})
 
-// 						It("sets the deleted time on the dataset", func() {
-// 							Expect(mongoSession.DeleteDataset(dataset)).To(Succeed())
-// 							Expect(dataset.DeletedTime).ToNot(BeEmpty())
-// 							Expect(dataset.DeletedUserID).To(BeEmpty())
+// 						It("sets the deleted time on the data set", func() {
+// 							Expect(mongoSession.DeleteDataSet(dataSet)).To(Succeed())
+// 							Expect(dataSet.DeletedTime).ToNot(BeEmpty())
+// 							Expect(dataSet.DeletedUserID).To(BeEmpty())
 // 						})
 
-// 						It("has the correct stored datasets", func() {
-// 							ValidateDataset(testMongoCollection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": bson.M{"$exists": false}}, bson.M{})
-// 							Expect(mongoSession.DeleteDataset(dataset)).To(Succeed())
-// 							ValidateDataset(testMongoCollection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": bson.M{"$exists": false}}, bson.M{}, dataset)
+// 						It("has the correct stored data sets", func() {
+// 							ValidateDataSet(testMongoCollection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": bson.M{"$exists": false}}, bson.M{})
+// 							Expect(mongoSession.DeleteDataSet(dataSet)).To(Succeed())
+// 							ValidateDataSet(testMongoCollection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet)
 // 						})
 
-// 						It("has the correct stored dataset data", func() {
-// 							ValidateDatasetData(testMongoCollection, bson.M{"uploadId": dataset.UploadID}, bson.M{}, datasetData)
-// 							Expect(mongoSession.DeleteDataset(dataset)).To(Succeed())
-// 							ValidateDatasetData(testMongoCollection, bson.M{"uploadId": dataset.UploadID}, bson.M{}, []data.Datum{})
+// 						It("has the correct stored data set data", func() {
+// 							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSetData)
+// 							Expect(mongoSession.DeleteDataSet(dataSet)).To(Succeed())
+// 							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, []data.Datum{})
 // 						})
 // 					})
 
-// 					Context("CreateDatasetData", func() {
-// 						It("succeeds if it successfully creates the dataset data", func() {
-// 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
+// 					Context("CreateDataSetData", func() {
+// 						It("succeeds if it successfully creates the data set data", func() {
+// 							Expect(mongoSession.CreateDataSetData(dataSet, dataSetData)).To(Succeed())
 // 						})
 
-// 						It("returns an error if the dataset is missing", func() {
-// 							Expect(mongoSession.CreateDatasetData(nil, datasetData)).To(MatchError("dataset is missing"))
+// 						It("returns an error if the data set is missing", func() {
+// 							Expect(mongoSession.CreateDataSetData(nil, dataSetData)).To(MatchError("data set is missing"))
 // 						})
 
-// 						It("returns an error if the dataset data is missing", func() {
-// 							Expect(mongoSession.CreateDatasetData(dataset, nil)).To(MatchError("dataset data is missing"))
+// 						It("returns an error if the data set data is missing", func() {
+// 							Expect(mongoSession.CreateDataSetData(dataSet, nil)).To(MatchError("data set data is missing"))
 // 						})
 
 // 						It("returns an error if the user id is missing", func() {
-// 							dataset.UserID = ""
-// 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(MatchError("dataset user id is missing"))
+// 							dataSet.UserID = ""
+// 							Expect(mongoSession.CreateDataSetData(dataSet, dataSetData)).To(MatchError("data set user id is missing"))
 // 						})
 
 // 						It("returns an error if the upload id is missing", func() {
-// 							dataset.UploadID = ""
-// 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(MatchError("dataset upload id is missing"))
+// 							dataSet.UploadID = ""
+// 							Expect(mongoSession.CreateDataSetData(dataSet, dataSetData)).To(MatchError("data set upload id is missing"))
 // 						})
 
 // 						It("returns an error if the device id is missing (nil)", func() {
-// 							dataset.DeviceID = nil
-// 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(MatchError("dataset device id is missing"))
+// 							dataSet.DeviceID = nil
+// 							Expect(mongoSession.CreateDataSetData(dataSet, dataSetData)).To(MatchError("data set device id is missing"))
 // 						})
 
 // 						It("returns an error if the device id is missing (empty)", func() {
-// 							dataset.DeviceID = pointer.FromString("")
-// 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(MatchError("dataset device id is missing"))
+// 							dataSet.DeviceID = pointer.FromString("")
+// 							Expect(mongoSession.CreateDataSetData(dataSet, dataSetData)).To(MatchError("data set device id is missing"))
 // 						})
 
 // 						It("returns an error if the session is closed", func() {
 // 							mongoSession.Close()
-// 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(MatchError("session closed"))
+// 							Expect(mongoSession.CreateDataSetData(dataSet, dataSetData)).To(MatchError("session closed"))
 // 						})
 
-// 						It("sets the user id and upload id on the dataset data to match the dataset", func() {
-// 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
-// 							for _, datasetDatum := range datasetData {
-// 								baseDatum, ok := datasetDatum.(*types.Base)
+// 						It("sets the user id and upload id on the data set data to match the data set", func() {
+// 							Expect(mongoSession.CreateDataSetData(dataSet, dataSetData)).To(Succeed())
+// 							for _, dataSetDatum := range dataSetData {
+// 								baseDatum, ok := dataSetDatum.(*types.Base)
 // 								Expect(ok).To(BeTrue())
 // 								Expect(baseDatum).ToNot(BeNil())
-// 								Expect(baseDatum.UserID).To(Equal(dataset.UserID))
-// 								Expect(baseDatum.UploadID).To(Equal(dataset.UploadID))
+// 								Expect(baseDatum.UserID).To(Equal(dataSet.UserID))
+// 								Expect(baseDatum.UploadID).To(Equal(dataSet.UploadID))
 // 							}
 // 						})
 
-// 						It("leaves the dataset data not active", func() {
-// 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
-// 							for _, datasetDatum := range datasetData {
-// 								baseDatum, ok := datasetDatum.(*types.Base)
+// 						It("leaves the data set data not active", func() {
+// 							Expect(mongoSession.CreateDataSetData(dataSet, dataSetData)).To(Succeed())
+// 							for _, dataSetDatum := range dataSetData {
+// 								baseDatum, ok := dataSetDatum.(*types.Base)
 // 								Expect(ok).To(BeTrue())
 // 								Expect(baseDatum).ToNot(BeNil())
 // 								Expect(baseDatum.Active).To(BeFalse())
 // 							}
 // 						})
 
-// 						It("sets the created time on the dataset data", func() {
-// 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
-// 							for _, datasetDatum := range datasetData {
-// 								baseDatum, ok := datasetDatum.(*types.Base)
+// 						It("sets the created time on the data set data", func() {
+// 							Expect(mongoSession.CreateDataSetData(dataSet, dataSetData)).To(Succeed())
+// 							for _, dataSetDatum := range dataSetData {
+// 								baseDatum, ok := dataSetDatum.(*types.Base)
 // 								Expect(ok).To(BeTrue())
 // 								Expect(baseDatum).ToNot(BeNil())
 // 								Expect(baseDatum.CreatedTime).ToNot(BeEmpty())
@@ -640,334 +640,334 @@ package mongo_test
 // 							}
 // 						})
 
-// 						It("has the correct stored dataset data", func() {
-// 							datasetBeforeCreateData := append(append(datasetExistingOtherData, datasetExistingOneData...), datasetExistingTwoData...)
-// 							ValidateDatasetData(testMongoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, datasetBeforeCreateData)
-// 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
-// 							ValidateDatasetData(testMongoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, append(datasetBeforeCreateData, datasetData...))
+// 						It("has the correct stored data set data", func() {
+// 							dataSetBeforeCreateData := append(append(dataSetExistingOtherData, dataSetExistingOneData...), dataSetExistingTwoData...)
+// 							ValidateDataSetData(testMongoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, dataSetBeforeCreateData)
+// 							Expect(mongoSession.CreateDataSetData(dataSet, dataSetData)).To(Succeed())
+// 							ValidateDataSetData(testMongoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, append(dataSetBeforeCreateData, dataSetData...))
 // 						})
 // 					})
 
-// 					Context("ActivateDatasetData", func() {
+// 					Context("ActivateDataSetData", func() {
 // 						BeforeEach(func() {
-// 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
+// 							Expect(mongoSession.CreateDataSetData(dataSet, dataSetData)).To(Succeed())
 // 						})
 
-// 						It("succeeds if it successfully activates the dataset", func() {
-// 							Expect(mongoSession.ActivateDatasetData(dataset)).To(Succeed())
+// 						It("succeeds if it successfully activates the data set", func() {
+// 							Expect(mongoSession.ActivateDataSetData(dataSet)).To(Succeed())
 // 						})
 
-// 						It("returns an error if the dataset is missing", func() {
-// 							Expect(mongoSession.ActivateDatasetData(nil)).To(MatchError("dataset is missing"))
+// 						It("returns an error if the data set is missing", func() {
+// 							Expect(mongoSession.ActivateDataSetData(nil)).To(MatchError("data set is missing"))
 // 						})
 
 // 						It("returns an error if the user id is missing", func() {
-// 							dataset.UserID = ""
-// 							Expect(mongoSession.ActivateDatasetData(dataset)).To(MatchError("dataset user id is missing"))
+// 							dataSet.UserID = ""
+// 							Expect(mongoSession.ActivateDataSetData(dataSet)).To(MatchError("data set user id is missing"))
 // 						})
 
 // 						It("returns an error if the upload id is missing", func() {
-// 							dataset.UploadID = ""
-// 							Expect(mongoSession.ActivateDatasetData(dataset)).To(MatchError("dataset upload id is missing"))
+// 							dataSet.UploadID = ""
+// 							Expect(mongoSession.ActivateDataSetData(dataSet)).To(MatchError("data set upload id is missing"))
 // 						})
 
 // 						It("returns an error if the device id is missing (nil)", func() {
-// 							dataset.DeviceID = nil
-// 							Expect(mongoSession.ActivateDatasetData(dataset)).To(MatchError("dataset device id is missing"))
+// 							dataSet.DeviceID = nil
+// 							Expect(mongoSession.ActivateDataSetData(dataSet)).To(MatchError("data set device id is missing"))
 // 						})
 
 // 						It("returns an error if the device id is missing (empty)", func() {
-// 							dataset.DeviceID = pointer.FromString("")
-// 							Expect(mongoSession.ActivateDatasetData(dataset)).To(MatchError("dataset device id is missing"))
+// 							dataSet.DeviceID = pointer.FromString("")
+// 							Expect(mongoSession.ActivateDataSetData(dataSet)).To(MatchError("data set device id is missing"))
 // 						})
 
 // 						It("returns an error if the session is closed", func() {
 // 							mongoSession.Close()
-// 							Expect(mongoSession.ActivateDatasetData(dataset)).To(MatchError("session closed"))
+// 							Expect(mongoSession.ActivateDataSetData(dataSet)).To(MatchError("session closed"))
 // 						})
 
-// 						It("sets the active on the dataset", func() {
-// 							Expect(mongoSession.ActivateDatasetData(dataset)).To(Succeed())
-// 							Expect(dataset.Active).To(BeTrue())
+// 						It("sets the active on the data set", func() {
+// 							Expect(mongoSession.ActivateDataSetData(dataSet)).To(Succeed())
+// 							Expect(dataSet.Active).To(BeTrue())
 // 						})
 
-// 						It("sets the modified time on the dataset", func() {
-// 							Expect(mongoSession.ActivateDatasetData(dataset)).To(Succeed())
-// 							Expect(dataset.ModifiedTime).ToNot(BeEmpty())
-// 							Expect(dataset.ModifiedUserID).To(BeEmpty())
+// 						It("sets the modified time on the data set", func() {
+// 							Expect(mongoSession.ActivateDataSetData(dataSet)).To(Succeed())
+// 							Expect(dataSet.ModifiedTime).ToNot(BeEmpty())
+// 							Expect(dataSet.ModifiedUserID).To(BeEmpty())
 // 						})
 
-// 						It("has the correct stored active dataset", func() {
-// 							ValidateDataset(testMongoCollection, bson.M{"_active": true, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}}, bson.M{})
-// 							Expect(mongoSession.ActivateDatasetData(dataset)).To(Succeed())
-// 							ValidateDataset(testMongoCollection, bson.M{"_active": true, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}}, bson.M{}, dataset)
+// 						It("has the correct stored active data set", func() {
+// 							ValidateDataSet(testMongoCollection, bson.M{"_active": true, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}}, bson.M{})
+// 							Expect(mongoSession.ActivateDataSetData(dataSet)).To(Succeed())
+// 							ValidateDataSet(testMongoCollection, bson.M{"_active": true, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet)
 // 						})
 
-// 						It("has the correct stored active dataset data", func() {
-// 							ValidateDatasetData(testMongoCollection, bson.M{"_active": true, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}}, bson.M{}, []data.Datum{})
-// 							Expect(mongoSession.ActivateDatasetData(dataset)).To(Succeed())
-// 							for _, datasetDatum := range datasetData {
-// 								datasetDatum.SetActive(true)
+// 						It("has the correct stored active data set data", func() {
+// 							ValidateDataSetData(testMongoCollection, bson.M{"_active": true, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}}, bson.M{}, []data.Datum{})
+// 							Expect(mongoSession.ActivateDataSetData(dataSet)).To(Succeed())
+// 							for _, dataSetDatum := range dataSetData {
+// 								dataSetDatum.SetActive(true)
 // 							}
-// 							ValidateDatasetData(testMongoCollection, bson.M{"_active": true, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}}, bson.M{"modifiedTime": 0}, datasetData)
+// 							ValidateDataSetData(testMongoCollection, bson.M{"_active": true, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}}, bson.M{"modifiedTime": 0}, dataSetData)
 // 						})
 // 					})
 
-// 					Context("ArchiveDeviceDataUsingHashesFromDataset", func() {
-// 						var datasetExistingOneDataCloned []data.Datum
+// 					Context("ArchiveDeviceDataUsingHashesFromDataSet", func() {
+// 						var dataSetExistingOneDataCloned []data.Datum
 
 // 						BeforeEach(func() {
-// 							datasetExistingOneDataCloned = CloneDatasetData(datasetData)
-// 							Expect(mongoSession.CreateDatasetData(datasetExistingOne, datasetExistingOneDataCloned)).To(Succeed())
-// 							Expect(mongoSession.ActivateDatasetData(datasetExistingOne)).To(Succeed())
-// 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
-// 							for _, datasetDatum := range append(datasetExistingOneData, datasetExistingOneDataCloned...) {
-// 								datasetDatum.SetActive(true)
+// 							dataSetExistingOneDataCloned = CloneDataSetData(dataSetData)
+// 							Expect(mongoSession.CreateDataSetData(dataSetExistingOne, dataSetExistingOneDataCloned)).To(Succeed())
+// 							Expect(mongoSession.ActivateDataSetData(dataSetExistingOne)).To(Succeed())
+// 							Expect(mongoSession.CreateDataSetData(dataSet, dataSetData)).To(Succeed())
+// 							for _, dataSetDatum := range append(dataSetExistingOneData, dataSetExistingOneDataCloned...) {
+// 								dataSetDatum.SetActive(true)
 // 							}
 // 						})
 
-// 						It("succeeds if it successfully archives device data using hashes from dataset", func() {
-// 							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataset(dataset)).To(Succeed())
+// 						It("succeeds if it successfully archives device data using hashes from data set", func() {
+// 							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataSet(dataSet)).To(Succeed())
 // 						})
 
-// 						It("returns an error if the dataset is missing", func() {
-// 							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataset(nil)).To(MatchError("dataset is missing"))
+// 						It("returns an error if the data set is missing", func() {
+// 							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataSet(nil)).To(MatchError("data set is missing"))
 // 						})
 
 // 						It("returns an error if the user id is missing", func() {
-// 							dataset.UserID = ""
-// 							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataset(dataset)).To(MatchError("dataset user id is missing"))
+// 							dataSet.UserID = ""
+// 							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataSet(dataSet)).To(MatchError("data set user id is missing"))
 // 						})
 
 // 						It("returns an error if the upload id is missing", func() {
-// 							dataset.UploadID = ""
-// 							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataset(dataset)).To(MatchError("dataset upload id is missing"))
+// 							dataSet.UploadID = ""
+// 							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataSet(dataSet)).To(MatchError("data set upload id is missing"))
 // 						})
 
 // 						It("returns an error if the device id is missing (nil)", func() {
-// 							dataset.DeviceID = nil
-// 							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataset(dataset)).To(MatchError("dataset device id is missing"))
+// 							dataSet.DeviceID = nil
+// 							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataSet(dataSet)).To(MatchError("data set device id is missing"))
 // 						})
 
 // 						It("returns an error if the device id is missing (empty)", func() {
-// 							dataset.DeviceID = pointer.FromString("")
-// 							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataset(dataset)).To(MatchError("dataset device id is missing"))
+// 							dataSet.DeviceID = pointer.FromString("")
+// 							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataSet(dataSet)).To(MatchError("data set device id is missing"))
 // 						})
 
 // 						It("returns an error if the session is closed", func() {
 // 							mongoSession.Close()
-// 							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataset(dataset)).To(MatchError("session closed"))
+// 							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataSet(dataSet)).To(MatchError("session closed"))
 // 						})
 
-// 						It("has the correct stored datasets", func() {
-// 							ValidateDataset(testMongoCollection, bson.M{"uploadId": datasetExistingOne.UploadID, "_active": true}, bson.M{}, datasetExistingOne)
-// 							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataset(dataset)).To(Succeed())
-// 							ValidateDataset(testMongoCollection, bson.M{"uploadId": datasetExistingOne.UploadID, "_active": true}, bson.M{}, datasetExistingOne)
+// 						It("has the correct stored data sets", func() {
+// 							ValidateDataSet(testMongoCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{}, dataSetExistingOne)
+// 							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataSet(dataSet)).To(Succeed())
+// 							ValidateDataSet(testMongoCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{}, dataSetExistingOne)
 // 						})
 
-// 						It("has the correct stored archived dataset data", func() {
-// 							ValidateDatasetData(testMongoCollection, bson.M{"uploadId": datasetExistingOne.UploadID, "_active": false}, bson.M{}, []data.Datum{})
-// 							ValidateDatasetData(testMongoCollection, bson.M{"uploadId": datasetExistingOne.UploadID, "_active": true}, bson.M{"modifiedTime": 0}, append(datasetExistingOneData, datasetExistingOneDataCloned...))
-// 							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataset(dataset)).To(Succeed())
-// 							for _, datasetDatum := range datasetExistingOneDataCloned {
-// 								datasetDatum.SetActive(false)
+// 						It("has the correct stored archived data set data", func() {
+// 							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": false}, bson.M{}, []data.Datum{})
+// 							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{"modifiedTime": 0}, append(dataSetExistingOneData, dataSetExistingOneDataCloned...))
+// 							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataSet(dataSet)).To(Succeed())
+// 							for _, dataSetDatum := range dataSetExistingOneDataCloned {
+// 								dataSetDatum.SetActive(false)
 // 							}
-// 							ValidateDatasetData(testMongoCollection,
-// 								bson.M{"uploadId": datasetExistingOne.UploadID, "_active": true, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}},
+// 							ValidateDataSetData(testMongoCollection,
+// 								bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}},
 // 								bson.M{"modifiedTime": 0},
-// 								datasetExistingOneData)
-// 							ValidateDatasetData(testMongoCollection,
-// 								bson.M{"uploadId": datasetExistingOne.UploadID, "_active": false, "archivedTime": bson.M{"$exists": true}, "archivedDatasetId": dataset.UploadID, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}},
+// 								dataSetExistingOneData)
+// 							ValidateDataSetData(testMongoCollection,
+// 								bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": false, "archivedTime": bson.M{"$exists": true}, "archivedDatasetId": dataSet.UploadID, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}},
 // 								bson.M{"archivedTime": 0, "archivedDatasetId": 0, "modifiedTime": 0},
-// 								datasetExistingOneDataCloned)
-// 							ValidateDatasetData(testMongoCollection,
-// 								bson.M{"uploadId": dataset.UploadID, "_active": false, "archivedTime": bson.M{"$exists": false}, "archivedDatasetId": bson.M{"$exists": false}},
+// 								dataSetExistingOneDataCloned)
+// 							ValidateDataSetData(testMongoCollection,
+// 								bson.M{"uploadId": dataSet.UploadID, "_active": false, "archivedTime": bson.M{"$exists": false}, "archivedDatasetId": bson.M{"$exists": false}},
 // 								bson.M{},
-// 								datasetData)
+// 								dataSetData)
 // 						})
 // 					})
 
-// 					Context("UnarchiveDeviceDataUsingHashesFromDataset", func() {
-// 						var datasetExistingTwoDataCloned []data.Datum
-// 						var datasetExistingOneDataCloned []data.Datum
+// 					Context("UnarchiveDeviceDataUsingHashesFromDataSet", func() {
+// 						var dataSetExistingTwoDataCloned []data.Datum
+// 						var dataSetExistingOneDataCloned []data.Datum
 
 // 						BeforeEach(func() {
-// 							datasetExistingTwoDataCloned = CloneDatasetData(datasetData)
-// 							datasetExistingOneDataCloned = CloneDatasetData(datasetData)
-// 							Expect(mongoSession.CreateDatasetData(datasetExistingTwo, datasetExistingTwoDataCloned)).To(Succeed())
-// 							Expect(mongoSession.ActivateDatasetData(datasetExistingTwo)).To(Succeed())
-// 							Expect(mongoSession.CreateDatasetData(datasetExistingOne, datasetExistingOneDataCloned)).To(Succeed())
-// 							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataset(datasetExistingOne)).To(Succeed())
-// 							Expect(mongoSession.ActivateDatasetData(datasetExistingOne)).To(Succeed())
-// 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
-// 							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataset(dataset)).To(Succeed())
-// 							Expect(mongoSession.ActivateDatasetData(dataset)).To(Succeed())
+// 							dataSetExistingTwoDataCloned = CloneDataSetData(dataSetData)
+// 							dataSetExistingOneDataCloned = CloneDataSetData(dataSetData)
+// 							Expect(mongoSession.CreateDataSetData(dataSetExistingTwo, dataSetExistingTwoDataCloned)).To(Succeed())
+// 							Expect(mongoSession.ActivateDataSetData(dataSetExistingTwo)).To(Succeed())
+// 							Expect(mongoSession.CreateDataSetData(dataSetExistingOne, dataSetExistingOneDataCloned)).To(Succeed())
+// 							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataSet(dataSetExistingOne)).To(Succeed())
+// 							Expect(mongoSession.ActivateDataSetData(dataSetExistingOne)).To(Succeed())
+// 							Expect(mongoSession.CreateDataSetData(dataSet, dataSetData)).To(Succeed())
+// 							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataSet(dataSet)).To(Succeed())
+// 							Expect(mongoSession.ActivateDataSetData(dataSet)).To(Succeed())
 // 						})
 
-// 						It("succeeds if it successfully unarchives device data using hashes from dataset", func() {
-// 							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataset(dataset)).To(Succeed())
+// 						It("succeeds if it successfully unarchives device data using hashes from data set", func() {
+// 							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataSet(dataSet)).To(Succeed())
 // 						})
 
-// 						It("returns an error if the dataset is missing", func() {
-// 							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataset(nil)).To(MatchError("dataset is missing"))
+// 						It("returns an error if the data set is missing", func() {
+// 							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataSet(nil)).To(MatchError("data set is missing"))
 // 						})
 
 // 						It("returns an error if the user id is missing", func() {
-// 							dataset.UserID = ""
-// 							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataset(dataset)).To(MatchError("dataset user id is missing"))
+// 							dataSet.UserID = ""
+// 							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataSet(dataSet)).To(MatchError("data set user id is missing"))
 // 						})
 
 // 						It("returns an error if the upload id is missing", func() {
-// 							dataset.UploadID = ""
-// 							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataset(dataset)).To(MatchError("dataset upload id is missing"))
+// 							dataSet.UploadID = ""
+// 							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataSet(dataSet)).To(MatchError("data set upload id is missing"))
 // 						})
 
 // 						It("returns an error if the device id is missing (nil)", func() {
-// 							dataset.DeviceID = nil
-// 							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataset(dataset)).To(MatchError("dataset device id is missing"))
+// 							dataSet.DeviceID = nil
+// 							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataSet(dataSet)).To(MatchError("data set device id is missing"))
 // 						})
 
 // 						It("returns an error if the device id is missing (empty)", func() {
-// 							dataset.DeviceID = pointer.FromString("")
-// 							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataset(dataset)).To(MatchError("dataset device id is missing"))
+// 							dataSet.DeviceID = pointer.FromString("")
+// 							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataSet(dataSet)).To(MatchError("data set device id is missing"))
 // 						})
 
 // 						It("returns an error if the session is closed", func() {
 // 							mongoSession.Close()
-// 							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataset(dataset)).To(MatchError("session closed"))
+// 							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataSet(dataSet)).To(MatchError("session closed"))
 // 						})
 
-// 						It("has the correct stored datasets", func() {
-// 							ValidateDataset(testMongoCollection, bson.M{"uploadId": datasetExistingOne.UploadID, "_active": true}, bson.M{}, datasetExistingOne)
-// 							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataset(dataset)).To(Succeed())
-// 							ValidateDataset(testMongoCollection, bson.M{"uploadId": datasetExistingOne.UploadID, "_active": true}, bson.M{}, datasetExistingOne)
+// 						It("has the correct stored data sets", func() {
+// 							ValidateDataSet(testMongoCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{}, dataSetExistingOne)
+// 							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataSet(dataSet)).To(Succeed())
+// 							ValidateDataSet(testMongoCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{}, dataSetExistingOne)
 // 						})
 
-// 						It("has the correct stored unarchived dataset data", func() {
-// 							for _, datasetDatum := range append(datasetData, datasetExistingOneData...) {
-// 								datasetDatum.SetActive(true)
+// 						It("has the correct stored unarchived data set data", func() {
+// 							for _, dataSetDatum := range append(dataSetData, dataSetExistingOneData...) {
+// 								dataSetDatum.SetActive(true)
 // 							}
-// 							ValidateDatasetData(testMongoCollection, bson.M{"uploadId": datasetExistingOne.UploadID, "_active": false}, bson.M{"archivedTime": 0, "archivedDatasetId": 0, "modifiedTime": 0}, datasetExistingOneDataCloned)
-// 							ValidateDatasetData(testMongoCollection, bson.M{"uploadId": datasetExistingOne.UploadID, "_active": true}, bson.M{"archivedTime": 0, "archivedDatasetId": 0, "modifiedTime": 0}, datasetExistingOneData)
-// 							ValidateDatasetData(testMongoCollection, bson.M{"uploadId": dataset.UploadID, "_active": true}, bson.M{"modifiedTime": 0}, datasetData)
-// 							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataset(dataset)).To(Succeed())
-// 							for _, datasetDatum := range datasetExistingOneDataCloned {
-// 								datasetDatum.SetActive(true)
+// 							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": false}, bson.M{"archivedTime": 0, "archivedDatasetId": 0, "modifiedTime": 0}, dataSetExistingOneDataCloned)
+// 							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{"archivedTime": 0, "archivedDatasetId": 0, "modifiedTime": 0}, dataSetExistingOneData)
+// 							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID, "_active": true}, bson.M{"modifiedTime": 0}, dataSetData)
+// 							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataSet(dataSet)).To(Succeed())
+// 							for _, dataSetDatum := range dataSetExistingOneDataCloned {
+// 								dataSetDatum.SetActive(true)
 // 							}
-// 							ValidateDatasetData(testMongoCollection,
-// 								bson.M{"uploadId": datasetExistingOne.UploadID, "_active": true, "archivedTime": bson.M{"$exists": false}, "archivedDatasetId": bson.M{"$exists": false}, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}},
+// 							ValidateDataSetData(testMongoCollection,
+// 								bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true, "archivedTime": bson.M{"$exists": false}, "archivedDatasetId": bson.M{"$exists": false}, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}},
 // 								bson.M{"modifiedTime": 0},
-// 								append(datasetExistingOneData, datasetExistingOneDataCloned...))
-// 							ValidateDatasetData(testMongoCollection,
-// 								bson.M{"uploadId": dataset.UploadID, "_active": true, "archivedTime": bson.M{"$exists": false}, "archivedDatasetId": bson.M{"$exists": false}},
+// 								append(dataSetExistingOneData, dataSetExistingOneDataCloned...))
+// 							ValidateDataSetData(testMongoCollection,
+// 								bson.M{"uploadId": dataSet.UploadID, "_active": true, "archivedTime": bson.M{"$exists": false}, "archivedDatasetId": bson.M{"$exists": false}},
 // 								bson.M{"modifiedTime": 0},
-// 								datasetData)
+// 								dataSetData)
 // 						})
 
-// 						It("has the correct stored datasets if an intermediary is unarchived", func() {
-// 							ValidateDataset(testMongoCollection, bson.M{"uploadId": datasetExistingTwo.UploadID, "_active": true}, bson.M{}, datasetExistingTwo)
-// 							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataset(datasetExistingOne)).To(Succeed())
-// 							ValidateDataset(testMongoCollection, bson.M{"uploadId": datasetExistingTwo.UploadID, "_active": true}, bson.M{}, datasetExistingTwo)
+// 						It("has the correct stored data sets if an intermediary is unarchived", func() {
+// 							ValidateDataSet(testMongoCollection, bson.M{"uploadId": dataSetExistingTwo.UploadID, "_active": true}, bson.M{}, dataSetExistingTwo)
+// 							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataSet(dataSetExistingOne)).To(Succeed())
+// 							ValidateDataSet(testMongoCollection, bson.M{"uploadId": dataSetExistingTwo.UploadID, "_active": true}, bson.M{}, dataSetExistingTwo)
 // 						})
 
-// 						It("has the correct stored unarchived dataset data if an intermediary is unarchived", func() {
-// 							for _, datasetDatum := range append(datasetExistingOneData, datasetExistingTwoData...) {
-// 								datasetDatum.SetActive(true)
+// 						It("has the correct stored unarchived data set data if an intermediary is unarchived", func() {
+// 							for _, dataSetDatum := range append(dataSetExistingOneData, dataSetExistingTwoData...) {
+// 								dataSetDatum.SetActive(true)
 // 							}
-// 							ValidateDatasetData(testMongoCollection, bson.M{"uploadId": datasetExistingTwo.UploadID, "_active": false}, bson.M{"archivedTime": 0, "archivedDatasetId": 0, "modifiedTime": 0}, datasetExistingTwoDataCloned)
-// 							ValidateDatasetData(testMongoCollection, bson.M{"uploadId": datasetExistingTwo.UploadID, "_active": true}, bson.M{"archivedTime": 0, "archivedDatasetId": 0, "modifiedTime": 0}, datasetExistingTwoData)
-// 							ValidateDatasetData(testMongoCollection, bson.M{"uploadId": datasetExistingOne.UploadID, "_active": true}, bson.M{"modifiedTime": 0}, datasetExistingOneData)
-// 							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataset(datasetExistingOne)).To(Succeed())
-// 							ValidateDatasetData(testMongoCollection,
-// 								bson.M{"uploadId": datasetExistingTwo.UploadID, "_active": true, "archivedTime": bson.M{"$exists": false}, "archivedDatasetId": bson.M{"$exists": false}},
+// 							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSetExistingTwo.UploadID, "_active": false}, bson.M{"archivedTime": 0, "archivedDatasetId": 0, "modifiedTime": 0}, dataSetExistingTwoDataCloned)
+// 							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSetExistingTwo.UploadID, "_active": true}, bson.M{"archivedTime": 0, "archivedDatasetId": 0, "modifiedTime": 0}, dataSetExistingTwoData)
+// 							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{"modifiedTime": 0}, dataSetExistingOneData)
+// 							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataSet(dataSetExistingOne)).To(Succeed())
+// 							ValidateDataSetData(testMongoCollection,
+// 								bson.M{"uploadId": dataSetExistingTwo.UploadID, "_active": true, "archivedTime": bson.M{"$exists": false}, "archivedDatasetId": bson.M{"$exists": false}},
 // 								bson.M{"modifiedTime": 0},
-// 								datasetExistingTwoData)
-// 							ValidateDatasetData(testMongoCollection,
-// 								bson.M{"uploadId": datasetExistingTwo.UploadID, "_active": false, "archivedTime": bson.M{"$exists": true}, "archivedDatasetId": dataset.UploadID, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}},
+// 								dataSetExistingTwoData)
+// 							ValidateDataSetData(testMongoCollection,
+// 								bson.M{"uploadId": dataSetExistingTwo.UploadID, "_active": false, "archivedTime": bson.M{"$exists": true}, "archivedDatasetId": dataSet.UploadID, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}},
 // 								bson.M{"archivedTime": 0, "archivedDatasetId": 0, "modifiedTime": 0},
-// 								datasetExistingTwoDataCloned)
-// 							ValidateDatasetData(testMongoCollection,
-// 								bson.M{"uploadId": datasetExistingOne.UploadID, "_active": true, "archivedTime": bson.M{"$exists": false}, "archivedDatasetId": bson.M{"$exists": false}},
+// 								dataSetExistingTwoDataCloned)
+// 							ValidateDataSetData(testMongoCollection,
+// 								bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true, "archivedTime": bson.M{"$exists": false}, "archivedDatasetId": bson.M{"$exists": false}},
 // 								bson.M{"modifiedTime": 0},
-// 								datasetExistingOneData)
-// 							ValidateDatasetData(testMongoCollection,
-// 								bson.M{"uploadId": datasetExistingOne.UploadID, "_active": false, "archivedTime": bson.M{"$exists": true}, "archivedDatasetId": dataset.UploadID},
+// 								dataSetExistingOneData)
+// 							ValidateDataSetData(testMongoCollection,
+// 								bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": false, "archivedTime": bson.M{"$exists": true}, "archivedDatasetId": dataSet.UploadID},
 // 								bson.M{"archivedTime": 0, "archivedDatasetId": 0, "modifiedTime": 0},
-// 								datasetExistingOneDataCloned)
+// 								dataSetExistingOneDataCloned)
 // 						})
 // 					})
 
-// 					Context("DeleteOtherDatasetData", func() {
+// 					Context("DeleteOtherDataSetData", func() {
 // 						BeforeEach(func() {
-// 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
+// 							Expect(mongoSession.CreateDataSetData(dataSet, dataSetData)).To(Succeed())
 // 						})
 
-// 						It("succeeds if it successfully deletes all other dataset data", func() {
-// 							Expect(mongoSession.DeleteOtherDatasetData(dataset)).To(Succeed())
+// 						It("succeeds if it successfully deletes all other data set data", func() {
+// 							Expect(mongoSession.DeleteOtherDataSetData(dataSet)).To(Succeed())
 // 						})
 
-// 						It("returns an error if the dataset is missing", func() {
-// 							Expect(mongoSession.DeleteOtherDatasetData(nil)).To(MatchError("dataset is missing"))
+// 						It("returns an error if the data set is missing", func() {
+// 							Expect(mongoSession.DeleteOtherDataSetData(nil)).To(MatchError("data set is missing"))
 // 						})
 
 // 						It("returns an error if the user id is missing", func() {
-// 							dataset.UserID = ""
-// 							Expect(mongoSession.DeleteOtherDatasetData(dataset)).To(MatchError("dataset user id is missing"))
+// 							dataSet.UserID = ""
+// 							Expect(mongoSession.DeleteOtherDataSetData(dataSet)).To(MatchError("data set user id is missing"))
 // 						})
 
 // 						It("returns an error if the upload id is missing", func() {
-// 							dataset.UploadID = ""
-// 							Expect(mongoSession.DeleteOtherDatasetData(dataset)).To(MatchError("dataset upload id is missing"))
+// 							dataSet.UploadID = ""
+// 							Expect(mongoSession.DeleteOtherDataSetData(dataSet)).To(MatchError("data set upload id is missing"))
 // 						})
 
 // 						It("returns an error if the device id is missing (nil)", func() {
-// 							dataset.DeviceID = nil
-// 							Expect(mongoSession.DeleteOtherDatasetData(dataset)).To(MatchError("dataset device id is missing"))
+// 							dataSet.DeviceID = nil
+// 							Expect(mongoSession.DeleteOtherDataSetData(dataSet)).To(MatchError("data set device id is missing"))
 // 						})
 
 // 						It("returns an error if the device id is missing (empty)", func() {
-// 							dataset.DeviceID = pointer.FromString("")
-// 							Expect(mongoSession.DeleteOtherDatasetData(dataset)).To(MatchError("dataset device id is missing"))
+// 							dataSet.DeviceID = pointer.FromString("")
+// 							Expect(mongoSession.DeleteOtherDataSetData(dataSet)).To(MatchError("data set device id is missing"))
 // 						})
 
 // 						It("returns an error if the session is closed", func() {
 // 							mongoSession.Close()
-// 							Expect(mongoSession.DeleteOtherDatasetData(dataset)).To(MatchError("session closed"))
+// 							Expect(mongoSession.DeleteOtherDataSetData(dataSet)).To(MatchError("session closed"))
 // 						})
 
-// 						It("has the correct stored active dataset", func() {
-// 							ValidateDataset(testMongoCollection, bson.M{}, bson.M{}, dataset, datasetExistingOther, datasetExistingOne, datasetExistingTwo)
-// 							ValidateDataset(testMongoCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, bson.M{}, dataset, datasetExistingOther, datasetExistingOne, datasetExistingTwo)
-// 							Expect(mongoSession.DeleteOtherDatasetData(dataset)).To(Succeed())
+// 						It("has the correct stored active data set", func() {
+// 							ValidateDataSet(testMongoCollection, bson.M{}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
+// 							ValidateDataSet(testMongoCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
+// 							Expect(mongoSession.DeleteOtherDataSetData(dataSet)).To(Succeed())
 // 							Expect(testMongoCollection.Find(bson.M{"type": "upload"}).Count()).To(Equal(4))
-// 							ValidateDataset(testMongoCollection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": bson.M{"$exists": false}}, bson.M{"deletedTime": 0}, datasetExistingTwo, datasetExistingOne)
-// 							ValidateDataset(testMongoCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, bson.M{}, dataset, datasetExistingOther)
+// 							ValidateDataSet(testMongoCollection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": bson.M{"$exists": false}}, bson.M{"deletedTime": 0}, dataSetExistingTwo, dataSetExistingOne)
+// 							ValidateDataSet(testMongoCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet, dataSetExistingOther)
 // 						})
 
-// 						It("has the correct stored active dataset data", func() {
-// 							datasetDataAfterRemoveData := append(datasetData, datasetExistingOtherData...)
-// 							datasetDataBeforeRemoveData := append(append(datasetDataAfterRemoveData, datasetExistingOneData...), datasetExistingTwoData...)
-// 							ValidateDatasetData(testMongoCollection, bson.M{}, bson.M{}, datasetDataBeforeRemoveData)
-// 							Expect(mongoSession.DeleteOtherDatasetData(dataset)).To(Succeed())
-// 							ValidateDatasetData(testMongoCollection, bson.M{}, bson.M{"deletedTime": 0}, datasetDataAfterRemoveData)
+// 						It("has the correct stored active data set data", func() {
+// 							dataSetDataAfterRemoveData := append(dataSetData, dataSetExistingOtherData...)
+// 							dataSetDataBeforeRemoveData := append(append(dataSetDataAfterRemoveData, dataSetExistingOneData...), dataSetExistingTwoData...)
+// 							ValidateDataSetData(testMongoCollection, bson.M{}, bson.M{}, dataSetDataBeforeRemoveData)
+// 							Expect(mongoSession.DeleteOtherDataSetData(dataSet)).To(Succeed())
+// 							ValidateDataSetData(testMongoCollection, bson.M{}, bson.M{"deletedTime": 0}, dataSetDataAfterRemoveData)
 // 						})
 // 					})
 
 // 					Context("DestroyDataForUserByID", func() {
 // 						var deleteUserID string
 // 						var deleteDeviceID string
-// 						var deleteDataset *upload.Upload
-// 						var deleteDatasetData []data.Datum
+// 						var deleteDataSet *upload.Upload
+// 						var deleteDataSetData []data.Datum
 
 // 						BeforeEach(func() {
-// 							Expect(mongoSession.CreateDatasetData(dataset, datasetData)).To(Succeed())
+// 							Expect(mongoSession.CreateDataSetData(dataSet, dataSetData)).To(Succeed())
 // 							deleteUserID = id.New()
 // 							deleteDeviceID = id.New()
-// 							deleteDataset = NewDataset(deleteUserID, deleteDeviceID)
-// 							deleteDataset.CreatedTime = "2016-09-01T11:00:00Z"
-// 							Expect(testMongoCollection.Insert(deleteDataset)).To(Succeed())
-// 							deleteDatasetData = NewDatasetData(deleteDeviceID)
-// 							Expect(mongoSession.CreateDatasetData(deleteDataset, deleteDatasetData)).To(Succeed())
+// 							deleteDataSet = NewDataSet(deleteUserID, deleteDeviceID)
+// 							deleteDataSet.CreatedTime = "2016-09-01T11:00:00Z"
+// 							Expect(testMongoCollection.Insert(deleteDataSet)).To(Succeed())
+// 							deleteDataSetData = NewDataSetData(deleteDeviceID)
+// 							Expect(mongoSession.CreateDataSetData(deleteDataSet, deleteDataSetData)).To(Succeed())
 // 						})
 
 // 						It("succeeds if it successfully destroys all data for user by id", func() {
@@ -983,18 +983,18 @@ package mongo_test
 // 							Expect(mongoSession.DestroyDataForUserByID(deleteUserID)).To(MatchError("session closed"))
 // 						})
 
-// 						It("has the correct stored datasets", func() {
-// 							ValidateDataset(testMongoCollection, bson.M{}, bson.M{}, dataset, datasetExistingOther, datasetExistingOne, datasetExistingTwo, deleteDataset)
+// 						It("has the correct stored data sets", func() {
+// 							ValidateDataSet(testMongoCollection, bson.M{}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo, deleteDataSet)
 // 							Expect(mongoSession.DestroyDataForUserByID(deleteUserID)).To(Succeed())
-// 							ValidateDataset(testMongoCollection, bson.M{}, bson.M{}, dataset, datasetExistingOther, datasetExistingOne, datasetExistingTwo)
+// 							ValidateDataSet(testMongoCollection, bson.M{}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
 // 						})
 
-// 						It("has the correct stored dataset data", func() {
-// 							datasetDataAfterRemoveData := append(append(append(datasetData, datasetExistingOtherData...), datasetExistingOneData...), datasetExistingTwoData...)
-// 							datasetDataBeforeRemoveData := append(datasetDataAfterRemoveData, deleteDatasetData...)
-// 							ValidateDatasetData(testMongoCollection, bson.M{}, bson.M{}, datasetDataBeforeRemoveData)
+// 						It("has the correct stored data set data", func() {
+// 							dataSetDataAfterRemoveData := append(append(append(dataSetData, dataSetExistingOtherData...), dataSetExistingOneData...), dataSetExistingTwoData...)
+// 							dataSetDataBeforeRemoveData := append(dataSetDataAfterRemoveData, deleteDataSetData...)
+// 							ValidateDataSetData(testMongoCollection, bson.M{}, bson.M{}, dataSetDataBeforeRemoveData)
 // 							Expect(mongoSession.DestroyDataForUserByID(deleteUserID)).To(Succeed())
-// 							ValidateDatasetData(testMongoCollection, bson.M{}, bson.M{}, datasetDataAfterRemoveData)
+// 							ValidateDataSetData(testMongoCollection, bson.M{}, bson.M{}, dataSetDataAfterRemoveData)
 // 						})
 // 					})
 // 				})

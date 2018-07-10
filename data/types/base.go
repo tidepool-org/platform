@@ -294,8 +294,8 @@ func (b *Base) SetUserID(userID *string) {
 	b.UserID = userID
 }
 
-func (b *Base) SetDatasetID(datasetID *string) {
-	b.UploadID = datasetID
+func (b *Base) SetDataSetID(dataSetID *string) {
+	b.UploadID = dataSetID
 }
 
 func (b *Base) SetActive(active bool) {

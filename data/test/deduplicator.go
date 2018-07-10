@@ -9,9 +9,9 @@ import (
 	"github.com/tidepool-org/platform/test"
 )
 
-type AddDatasetDataInput struct {
+type AddDataSetDataInput struct {
 	Context     context.Context
-	DatasetData []data.Datum
+	DataSetData []data.Datum
 }
 
 type Deduplicator struct {
@@ -20,18 +20,18 @@ type Deduplicator struct {
 	NameOutputs                   []string
 	VersionInvocations            int
 	VersionOutputs                []string
-	RegisterDatasetInvocations    int
-	RegisterDatasetInputs         []context.Context
-	RegisterDatasetOutputs        []error
-	AddDatasetDataInvocations     int
-	AddDatasetDataInputs          []AddDatasetDataInput
-	AddDatasetDataOutputs         []error
-	DeduplicateDatasetInvocations int
-	DeduplicateDatasetInputs      []context.Context
-	DeduplicateDatasetOutputs     []error
-	DeleteDatasetInvocations      int
-	DeleteDatasetInputs           []context.Context
-	DeleteDatasetOutputs          []error
+	RegisterDataSetInvocations    int
+	RegisterDataSetInputs         []context.Context
+	RegisterDataSetOutputs        []error
+	AddDataSetDataInvocations     int
+	AddDataSetDataInputs          []AddDataSetDataInput
+	AddDataSetDataOutputs         []error
+	DeduplicateDataSetInvocations int
+	DeduplicateDataSetInputs      []context.Context
+	DeduplicateDataSetOutputs     []error
+	DeleteDataSetInvocations      int
+	DeleteDataSetInputs           []context.Context
+	DeleteDataSetOutputs          []error
 }
 
 func NewDeduplicator() *Deduplicator {
@@ -60,51 +60,51 @@ func (d *Deduplicator) Version() string {
 	return output
 }
 
-func (d *Deduplicator) RegisterDataset(ctx context.Context) error {
-	d.RegisterDatasetInvocations++
+func (d *Deduplicator) RegisterDataSet(ctx context.Context) error {
+	d.RegisterDataSetInvocations++
 
-	d.RegisterDatasetInputs = append(d.RegisterDatasetInputs, ctx)
+	d.RegisterDataSetInputs = append(d.RegisterDataSetInputs, ctx)
 
-	gomega.Expect(d.RegisterDatasetOutputs).ToNot(gomega.BeEmpty())
+	gomega.Expect(d.RegisterDataSetOutputs).ToNot(gomega.BeEmpty())
 
-	output := d.RegisterDatasetOutputs[0]
-	d.RegisterDatasetOutputs = d.RegisterDatasetOutputs[1:]
+	output := d.RegisterDataSetOutputs[0]
+	d.RegisterDataSetOutputs = d.RegisterDataSetOutputs[1:]
 	return output
 }
 
-func (d *Deduplicator) AddDatasetData(ctx context.Context, datasetData []data.Datum) error {
-	d.AddDatasetDataInvocations++
+func (d *Deduplicator) AddDataSetData(ctx context.Context, dataSetData []data.Datum) error {
+	d.AddDataSetDataInvocations++
 
-	d.AddDatasetDataInputs = append(d.AddDatasetDataInputs, AddDatasetDataInput{Context: ctx, DatasetData: datasetData})
+	d.AddDataSetDataInputs = append(d.AddDataSetDataInputs, AddDataSetDataInput{Context: ctx, DataSetData: dataSetData})
 
-	gomega.Expect(d.AddDatasetDataOutputs).ToNot(gomega.BeEmpty())
+	gomega.Expect(d.AddDataSetDataOutputs).ToNot(gomega.BeEmpty())
 
-	output := d.AddDatasetDataOutputs[0]
-	d.AddDatasetDataOutputs = d.AddDatasetDataOutputs[1:]
+	output := d.AddDataSetDataOutputs[0]
+	d.AddDataSetDataOutputs = d.AddDataSetDataOutputs[1:]
 	return output
 }
 
-func (d *Deduplicator) DeduplicateDataset(ctx context.Context) error {
-	d.DeduplicateDatasetInvocations++
+func (d *Deduplicator) DeduplicateDataSet(ctx context.Context) error {
+	d.DeduplicateDataSetInvocations++
 
-	d.DeduplicateDatasetInputs = append(d.DeduplicateDatasetInputs, ctx)
+	d.DeduplicateDataSetInputs = append(d.DeduplicateDataSetInputs, ctx)
 
-	gomega.Expect(d.DeduplicateDatasetOutputs).ToNot(gomega.BeEmpty())
+	gomega.Expect(d.DeduplicateDataSetOutputs).ToNot(gomega.BeEmpty())
 
-	output := d.DeduplicateDatasetOutputs[0]
-	d.DeduplicateDatasetOutputs = d.DeduplicateDatasetOutputs[1:]
+	output := d.DeduplicateDataSetOutputs[0]
+	d.DeduplicateDataSetOutputs = d.DeduplicateDataSetOutputs[1:]
 	return output
 }
 
-func (d *Deduplicator) DeleteDataset(ctx context.Context) error {
-	d.DeleteDatasetInvocations++
+func (d *Deduplicator) DeleteDataSet(ctx context.Context) error {
+	d.DeleteDataSetInvocations++
 
-	d.DeleteDatasetInputs = append(d.DeleteDatasetInputs, ctx)
+	d.DeleteDataSetInputs = append(d.DeleteDataSetInputs, ctx)
 
-	gomega.Expect(d.DeleteDatasetOutputs).ToNot(gomega.BeEmpty())
+	gomega.Expect(d.DeleteDataSetOutputs).ToNot(gomega.BeEmpty())
 
-	output := d.DeleteDatasetOutputs[0]
-	d.DeleteDatasetOutputs = d.DeleteDatasetOutputs[1:]
+	output := d.DeleteDataSetOutputs[0]
+	d.DeleteDataSetOutputs = d.DeleteDataSetOutputs[1:]
 	return output
 }
 
@@ -112,8 +112,8 @@ func (d *Deduplicator) Expectations() {
 	d.Mock.Expectations()
 	gomega.Expect(d.NameOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.VersionOutputs).To(gomega.BeEmpty())
-	gomega.Expect(d.RegisterDatasetOutputs).To(gomega.BeEmpty())
-	gomega.Expect(d.AddDatasetDataOutputs).To(gomega.BeEmpty())
-	gomega.Expect(d.DeduplicateDatasetOutputs).To(gomega.BeEmpty())
-	gomega.Expect(d.DeleteDatasetOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.RegisterDataSetOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.AddDataSetDataOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.DeduplicateDataSetOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.DeleteDataSetOutputs).To(gomega.BeEmpty())
 }

@@ -1051,10 +1051,10 @@ var _ = Describe("Base", func() {
 			})
 		})
 
-		Context("SetDatasetID", func() {
+		Context("SetDataSetID", func() {
 			It("sets the data set id", func() {
 				dataSetID := pointer.FromString(data.NewSetID())
-				datum.SetDatasetID(dataSetID)
+				datum.SetDataSetID(dataSetID)
 				Expect(datum.UploadID).To(Equal(dataSetID))
 			})
 		})

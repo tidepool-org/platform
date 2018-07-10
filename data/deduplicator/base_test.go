@@ -59,37 +59,37 @@ package deduplicator_test
 
 // 		Context("with a new factory", func() {
 // 			var testFactory *deduplicator.BaseFactory
-// 			var testDataset *upload.Upload
+// 			var testDataSet *upload.Upload
 
 // 			BeforeEach(func() {
 // 				var err error
 // 				testFactory, err = deduplicator.NewBaseFactory(testName, testVersion)
 // 				Expect(err).ToNot(HaveOccurred())
 // 				Expect(testFactory).ToNot(BeNil())
-// 				testDataset = upload.New()
-// 				Expect(testDataset).ToNot(BeNil())
-// 				testDataset.UserID = id.New()
+// 				testDataSet = upload.New()
+// 				Expect(testDataSet).ToNot(BeNil())
+// 				testDataSet.UserID = id.New()
 // 			})
 
-// 			Context("CanDeduplicateDataset", func() {
-// 				It("returns an error if the dataset is missing", func() {
-// 					can, err := testFactory.CanDeduplicateDataset(nil)
-// 					Expect(err).To(MatchError("dataset is missing"))
+// 			Context("CanDeduplicateDataSet", func() {
+// 				It("returns an error if the data set is missing", func() {
+// 					can, err := testFactory.CanDeduplicateDataSet(nil)
+// 					Expect(err).To(MatchError("data set is missing"))
 // 					Expect(can).To(BeFalse())
 // 				})
 
-// 				It("returns false if the dataset id is missing", func() {
-// 					testDataset.UploadID = ""
-// 					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
+// 				It("returns false if the data set id is missing", func() {
+// 					testDataSet.UploadID = ""
+// 					Expect(testFactory.CanDeduplicateDataSet(testDataSet)).To(BeFalse())
 // 				})
 
-// 				It("returns false if the dataset user id is missing", func() {
-// 					testDataset.UserID = ""
-// 					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
+// 				It("returns false if the data set user id is missing", func() {
+// 					testDataSet.UserID = ""
+// 					Expect(testFactory.CanDeduplicateDataSet(testDataSet)).To(BeFalse())
 // 				})
 
 // 				It("returns true if successful", func() {
-// 					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeTrue())
+// 					Expect(testFactory.CanDeduplicateDataSet(testDataSet)).To(BeTrue())
 // 				})
 // 			})
 
@@ -108,84 +108,84 @@ package deduplicator_test
 // 					testDataSession.Expectations()
 // 				})
 
-// 				Context("NewDeduplicatorForDataset", func() {
+// 				Context("NewDeduplicatorForDataSet", func() {
 // 					It("returns an error if the logger is missing", func() {
-// 						testDeduplicator, err := testFactory.NewDeduplicatorForDataset(nil, testDataSession, testDataset)
+// 						testDeduplicator, err := testFactory.NewDeduplicatorForDataSet(nil, testDataSession, testDataSet)
 // 						Expect(err).To(MatchError("logger is missing"))
 // 						Expect(testDeduplicator).To(BeNil())
 // 					})
 
 // 					It("returns an error if the data store session is missing", func() {
-// 						testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, nil, testDataset)
+// 						testDeduplicator, err := testFactory.NewDeduplicatorForDataSet(testLogger, nil, testDataSet)
 // 						Expect(err).To(MatchError("data store session is missing"))
 // 						Expect(testDeduplicator).To(BeNil())
 // 					})
 
-// 					It("returns an error if the dataset is missing", func() {
-// 						testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, nil)
-// 						Expect(err).To(MatchError("dataset is missing"))
+// 					It("returns an error if the data set is missing", func() {
+// 						testDeduplicator, err := testFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, nil)
+// 						Expect(err).To(MatchError("data set is missing"))
 // 						Expect(testDeduplicator).To(BeNil())
 // 					})
 
-// 					It("returns an error if the dataset id is missing", func() {
-// 						testDataset.UploadID = ""
-// 						testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
-// 						Expect(err).To(MatchError("dataset id is missing"))
+// 					It("returns an error if the data set id is missing", func() {
+// 						testDataSet.UploadID = ""
+// 						testDeduplicator, err := testFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
+// 						Expect(err).To(MatchError("data set id is missing"))
 // 						Expect(testDeduplicator).To(BeNil())
 // 					})
 
-// 					It("returns an error if the dataset user id is missing", func() {
-// 						testDataset.UserID = ""
-// 						testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
-// 						Expect(err).To(MatchError("dataset user id is missing"))
+// 					It("returns an error if the data set user id is missing", func() {
+// 						testDataSet.UserID = ""
+// 						testDeduplicator, err := testFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
+// 						Expect(err).To(MatchError("data set user id is missing"))
 // 						Expect(testDeduplicator).To(BeNil())
 // 					})
 
 // 					It("returns a new deduplicator upon success", func() {
-// 						Expect(testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)).ToNot(BeNil())
+// 						Expect(testFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)).ToNot(BeNil())
 // 					})
 // 				})
 // 			})
 
-// 			Context("with registered dataset", func() {
+// 			Context("with registered data set", func() {
 // 				BeforeEach(func() {
-// 					testDataset.Deduplicator = &data.DeduplicatorDescriptor{Name: testName, Version: testVersion}
+// 					testDataSet.Deduplicator = &data.DeduplicatorDescriptor{Name: testName, Version: testVersion}
 // 				})
 
-// 				Context("IsRegisteredWithDataset", func() {
-// 					It("returns an error if the dataset is missing", func() {
-// 						can, err := testFactory.IsRegisteredWithDataset(nil)
-// 						Expect(err).To(MatchError("dataset is missing"))
+// 				Context("IsRegisteredWithDataSet", func() {
+// 					It("returns an error if the data set is missing", func() {
+// 						can, err := testFactory.IsRegisteredWithDataSet(nil)
+// 						Expect(err).To(MatchError("data set is missing"))
 // 						Expect(can).To(BeFalse())
 // 					})
 
-// 					It("returns false if the dataset id is missing", func() {
-// 						testDataset.UploadID = ""
-// 						Expect(testFactory.IsRegisteredWithDataset(testDataset)).To(BeFalse())
+// 					It("returns false if the data set id is missing", func() {
+// 						testDataSet.UploadID = ""
+// 						Expect(testFactory.IsRegisteredWithDataSet(testDataSet)).To(BeFalse())
 // 					})
 
-// 					It("returns false if the dataset user id is missing", func() {
-// 						testDataset.UserID = ""
-// 						Expect(testFactory.IsRegisteredWithDataset(testDataset)).To(BeFalse())
+// 					It("returns false if the data set user id is missing", func() {
+// 						testDataSet.UserID = ""
+// 						Expect(testFactory.IsRegisteredWithDataSet(testDataSet)).To(BeFalse())
 // 					})
 
 // 					It("returns false if there is no deduplicator descriptor", func() {
-// 						testDataset.Deduplicator = nil
-// 						Expect(testFactory.IsRegisteredWithDataset(testDataset)).To(BeFalse())
+// 						testDataSet.Deduplicator = nil
+// 						Expect(testFactory.IsRegisteredWithDataSet(testDataSet)).To(BeFalse())
 // 					})
 
 // 					It("returns false if the deduplicator descriptor name is missing", func() {
-// 						testDataset.Deduplicator.Name = ""
-// 						Expect(testFactory.IsRegisteredWithDataset(testDataset)).To(BeFalse())
+// 						testDataSet.Deduplicator.Name = ""
+// 						Expect(testFactory.IsRegisteredWithDataSet(testDataSet)).To(BeFalse())
 // 					})
 
 // 					It("returns false if the deduplicator descriptor name does not match", func() {
-// 						testDataset.Deduplicator.Name = id.New()
-// 						Expect(testFactory.IsRegisteredWithDataset(testDataset)).To(BeFalse())
+// 						testDataSet.Deduplicator.Name = id.New()
+// 						Expect(testFactory.IsRegisteredWithDataSet(testDataSet)).To(BeFalse())
 // 					})
 
 // 					It("returns true if successful", func() {
-// 						Expect(testFactory.IsRegisteredWithDataset(testDataset)).To(BeTrue())
+// 						Expect(testFactory.IsRegisteredWithDataSet(testDataSet)).To(BeTrue())
 // 					})
 // 				})
 
@@ -204,62 +204,62 @@ package deduplicator_test
 // 						testDataSession.Expectations()
 // 					})
 
-// 					Context("NewRegisteredDeduplicatorForDataset", func() {
+// 					Context("NewRegisteredDeduplicatorForDataSet", func() {
 // 						It("returns an error if the logger is missing", func() {
-// 							testDeduplicator, err := testFactory.NewRegisteredDeduplicatorForDataset(nil, testDataSession, testDataset)
+// 							testDeduplicator, err := testFactory.NewRegisteredDeduplicatorForDataSet(nil, testDataSession, testDataSet)
 // 							Expect(err).To(MatchError("logger is missing"))
 // 							Expect(testDeduplicator).To(BeNil())
 // 						})
 
 // 						It("returns an error if the data store session is missing", func() {
-// 							testDeduplicator, err := testFactory.NewRegisteredDeduplicatorForDataset(testLogger, nil, testDataset)
+// 							testDeduplicator, err := testFactory.NewRegisteredDeduplicatorForDataSet(testLogger, nil, testDataSet)
 // 							Expect(err).To(MatchError("data store session is missing"))
 // 							Expect(testDeduplicator).To(BeNil())
 // 						})
 
-// 						It("returns an error if the dataset is missing", func() {
-// 							testDeduplicator, err := testFactory.NewRegisteredDeduplicatorForDataset(testLogger, testDataSession, nil)
-// 							Expect(err).To(MatchError("dataset is missing"))
+// 						It("returns an error if the data set is missing", func() {
+// 							testDeduplicator, err := testFactory.NewRegisteredDeduplicatorForDataSet(testLogger, testDataSession, nil)
+// 							Expect(err).To(MatchError("data set is missing"))
 // 							Expect(testDeduplicator).To(BeNil())
 // 						})
 
-// 						It("returns an error if the dataset id is missing", func() {
-// 							testDataset.UploadID = ""
-// 							testDeduplicator, err := testFactory.NewRegisteredDeduplicatorForDataset(testLogger, testDataSession, testDataset)
-// 							Expect(err).To(MatchError("dataset id is missing"))
+// 						It("returns an error if the data set id is missing", func() {
+// 							testDataSet.UploadID = ""
+// 							testDeduplicator, err := testFactory.NewRegisteredDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
+// 							Expect(err).To(MatchError("data set id is missing"))
 // 							Expect(testDeduplicator).To(BeNil())
 // 						})
 
-// 						It("returns an error if the dataset user id is missing", func() {
-// 							testDataset.UserID = ""
-// 							testDeduplicator, err := testFactory.NewRegisteredDeduplicatorForDataset(testLogger, testDataSession, testDataset)
-// 							Expect(err).To(MatchError("dataset user id is missing"))
+// 						It("returns an error if the data set user id is missing", func() {
+// 							testDataSet.UserID = ""
+// 							testDeduplicator, err := testFactory.NewRegisteredDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
+// 							Expect(err).To(MatchError("data set user id is missing"))
 // 							Expect(testDeduplicator).To(BeNil())
 // 						})
 
 // 						It("returns an error if there is no deduplicator descriptor", func() {
-// 							testDataset.Deduplicator = nil
-// 							testDeduplicator, err := testFactory.NewRegisteredDeduplicatorForDataset(testLogger, testDataSession, testDataset)
-// 							Expect(err).To(MatchError("dataset deduplicator descriptor is missing"))
+// 							testDataSet.Deduplicator = nil
+// 							testDeduplicator, err := testFactory.NewRegisteredDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
+// 							Expect(err).To(MatchError("data set deduplicator descriptor is missing"))
 // 							Expect(testDeduplicator).To(BeNil())
 // 						})
 
 // 						It("returns an error if the deduplicator descriptor name is missing", func() {
-// 							testDataset.Deduplicator.Name = ""
-// 							testDeduplicator, err := testFactory.NewRegisteredDeduplicatorForDataset(testLogger, testDataSession, testDataset)
-// 							Expect(err).To(MatchError("dataset deduplicator descriptor is not registered with expected deduplicator"))
+// 							testDataSet.Deduplicator.Name = ""
+// 							testDeduplicator, err := testFactory.NewRegisteredDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
+// 							Expect(err).To(MatchError("data set deduplicator descriptor is not registered with expected deduplicator"))
 // 							Expect(testDeduplicator).To(BeNil())
 // 						})
 
 // 						It("returns an error if the deduplicator descriptor name does not match", func() {
-// 							testDataset.Deduplicator.Name = id.New()
-// 							testDeduplicator, err := testFactory.NewRegisteredDeduplicatorForDataset(testLogger, testDataSession, testDataset)
-// 							Expect(err).To(MatchError("dataset deduplicator descriptor is not registered with expected deduplicator"))
+// 							testDataSet.Deduplicator.Name = id.New()
+// 							testDeduplicator, err := testFactory.NewRegisteredDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
+// 							Expect(err).To(MatchError("data set deduplicator descriptor is not registered with expected deduplicator"))
 // 							Expect(testDeduplicator).To(BeNil())
 // 						})
 
 // 						It("returns a new deduplicator upon success", func() {
-// 							Expect(testFactory.NewRegisteredDeduplicatorForDataset(testLogger, testDataSession, testDataset)).ToNot(BeNil())
+// 							Expect(testFactory.NewRegisteredDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)).ToNot(BeNil())
 // 						})
 // 					})
 // 				})
@@ -270,16 +270,16 @@ package deduplicator_test
 // 	Context("BaseDeduplicator", func() {
 // 		var testLogger log.Logger
 // 		var testDataSession *testDataStoreDEPRECATED.DataSession
-// 		var testDataset *upload.Upload
+// 		var testDataSet *upload.Upload
 
 // 		BeforeEach(func() {
 // 			testLogger = null.NewLogger()
 // 			Expect(testLogger).ToNot(BeNil())
 // 			testDataSession = testDataStoreDEPRECATED.NewDataSession()
 // 			Expect(testDataSession).ToNot(BeNil())
-// 			testDataset = upload.New()
-// 			Expect(testDataset).ToNot(BeNil())
-// 			testDataset.UserID = id.New()
+// 			testDataSet = upload.New()
+// 			Expect(testDataSet).ToNot(BeNil())
+// 			testDataSet.UserID = id.New()
 // 		})
 
 // 		AfterEach(func() {
@@ -288,57 +288,57 @@ package deduplicator_test
 
 // 		Context("NewBaseDeduplicator", func() {
 // 			It("returns an error if the name is missing", func() {
-// 				testDeduplicator, err := deduplicator.NewBaseDeduplicator("", testVersion, testLogger, testDataSession, testDataset)
+// 				testDeduplicator, err := deduplicator.NewBaseDeduplicator("", testVersion, testLogger, testDataSession, testDataSet)
 // 				Expect(err).To(MatchError("name is missing"))
 // 				Expect(testDeduplicator).To(BeNil())
 // 			})
 
 // 			It("returns an error if the version is missing", func() {
-// 				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, "", testLogger, testDataSession, testDataset)
+// 				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, "", testLogger, testDataSession, testDataSet)
 // 				Expect(err).To(MatchError("version is missing"))
 // 				Expect(testDeduplicator).To(BeNil())
 // 			})
 
 // 			It("returns an error if the version is invalid", func() {
-// 				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, "x.y.z", testLogger, testDataSession, testDataset)
+// 				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, "x.y.z", testLogger, testDataSession, testDataSet)
 // 				Expect(err).To(MatchError("version is invalid"))
 // 				Expect(testDeduplicator).To(BeNil())
 // 			})
 
 // 			It("returns an error if the logger is missing", func() {
-// 				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, testVersion, nil, testDataSession, testDataset)
+// 				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, testVersion, nil, testDataSession, testDataSet)
 // 				Expect(err).To(MatchError("logger is missing"))
 // 				Expect(testDeduplicator).To(BeNil())
 // 			})
 
 // 			It("returns an error if the data store session is missing", func() {
-// 				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, testVersion, testLogger, nil, testDataset)
+// 				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, testVersion, testLogger, nil, testDataSet)
 // 				Expect(err).To(MatchError("data store session is missing"))
 // 				Expect(testDeduplicator).To(BeNil())
 // 			})
 
-// 			It("returns an error if the dataset is missing", func() {
+// 			It("returns an error if the data set is missing", func() {
 // 				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, testVersion, testLogger, testDataSession, nil)
-// 				Expect(err).To(MatchError("dataset is missing"))
+// 				Expect(err).To(MatchError("data set is missing"))
 // 				Expect(testDeduplicator).To(BeNil())
 // 			})
 
-// 			It("returns an error if the dataset id is missing", func() {
-// 				testDataset.UploadID = ""
-// 				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, testVersion, testLogger, testDataSession, testDataset)
-// 				Expect(err).To(MatchError("dataset id is missing"))
+// 			It("returns an error if the data set id is missing", func() {
+// 				testDataSet.UploadID = ""
+// 				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, testVersion, testLogger, testDataSession, testDataSet)
+// 				Expect(err).To(MatchError("data set id is missing"))
 // 				Expect(testDeduplicator).To(BeNil())
 // 			})
 
-// 			It("returns an error if the dataset user id is missing", func() {
-// 				testDataset.UserID = ""
-// 				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, testVersion, testLogger, testDataSession, testDataset)
-// 				Expect(err).To(MatchError("dataset user id is missing"))
+// 			It("returns an error if the data set user id is missing", func() {
+// 				testDataSet.UserID = ""
+// 				testDeduplicator, err := deduplicator.NewBaseDeduplicator(testName, testVersion, testLogger, testDataSession, testDataSet)
+// 				Expect(err).To(MatchError("data set user id is missing"))
 // 				Expect(testDeduplicator).To(BeNil())
 // 			})
 
 // 			It("successfully returns a new deduplicator", func() {
-// 				Expect(deduplicator.NewBaseDeduplicator(testName, testVersion, testLogger, testDataSession, testDataset)).ToNot(BeNil())
+// 				Expect(deduplicator.NewBaseDeduplicator(testName, testVersion, testLogger, testDataSession, testDataSet)).ToNot(BeNil())
 // 			})
 // 		})
 
@@ -349,7 +349,7 @@ package deduplicator_test
 // 			BeforeEach(func() {
 // 				ctx = context.Background()
 // 				var err error
-// 				testDeduplicator, err = deduplicator.NewBaseDeduplicator(testName, testVersion, testLogger, testDataSession, testDataset)
+// 				testDeduplicator, err = deduplicator.NewBaseDeduplicator(testName, testVersion, testLogger, testDataSession, testDataSet)
 // 				Expect(err).ToNot(HaveOccurred())
 // 				Expect(testDeduplicator).ToNot(BeNil())
 // 			})
@@ -366,14 +366,14 @@ package deduplicator_test
 // 				})
 // 			})
 
-// 			Context("RegisterDataset", func() {
-// 				It("returns an error if a deduplicator already registered dataset", func() {
-// 					testDataset.SetDeduplicatorDescriptor(&data.DeduplicatorDescriptor{Name: "test", Version: "0.0.0"})
-// 					err := testDeduplicator.RegisterDataset(ctx)
-// 					Expect(err).To(MatchError(fmt.Sprintf(`already registered dataset with id "%s"`, testDataset.UploadID)))
+// 			Context("RegisterDataSet", func() {
+// 				It("returns an error if a deduplicator already registered data set", func() {
+// 					testDataSet.SetDeduplicatorDescriptor(&data.DeduplicatorDescriptor{Name: "test", Version: "0.0.0"})
+// 					err := testDeduplicator.RegisterDataSet(ctx)
+// 					Expect(err).To(MatchError(fmt.Sprintf(`already registered data set with id "%s"`, testDataSet.UploadID)))
 // 				})
 
-// 				Context("with updating dataset", func() {
+// 				Context("with updating data set", func() {
 // 					var hash string
 
 // 					BeforeEach(func() {
@@ -383,7 +383,7 @@ package deduplicator_test
 // 					AfterEach(func() {
 // 						Expect(testDataSession.UpdateDataSetInputs).To(ConsistOf(testDataStoreDEPRECATED.UpdateDataSetInput{
 // 							Context: ctx,
-// 							ID:      testDataset.UploadID,
+// 							ID:      testDataSet.UploadID,
 // 							Update: &data.DataSetUpdate{
 // 								Active: pointer.FromBool(false),
 // 								Deduplicator: &data.DeduplicatorDescriptor{
@@ -395,37 +395,37 @@ package deduplicator_test
 // 						}))
 // 					})
 
-// 					It("returns an error if there is an error with UpdateDataset", func() {
+// 					It("returns an error if there is an error with UpdateDataSet", func() {
 // 						testDataSession.UpdateDataSetOutputs = []testDataStoreDEPRECATED.UpdateDataSetOutput{{DataSet: nil, Error: errors.New("test error")}}
-// 						err := testDeduplicator.RegisterDataset(ctx)
-// 						Expect(err).To(MatchError(fmt.Sprintf(`unable to update dataset with id "%s"; test error`, testDataset.UploadID)))
+// 						err := testDeduplicator.RegisterDataSet(ctx)
+// 						Expect(err).To(MatchError(fmt.Sprintf(`unable to update data set with id "%s"; test error`, testDataSet.UploadID)))
 // 					})
 
 // 					It("returns successfully if there is no error", func() {
-// 						Expect(testDeduplicator.RegisterDataset(ctx)).To(Succeed())
-// 						Expect(testDataset.DeduplicatorDescriptor()).To(BeNil())
+// 						Expect(testDeduplicator.RegisterDataSet(ctx)).To(Succeed())
+// 						Expect(testDataSet.DeduplicatorDescriptor()).To(BeNil())
 // 					})
 
 // 					It("returns successfully even if there is a deduplicator description just without a name", func() {
 // 						hash = "test"
-// 						testDataset.SetDeduplicatorDescriptor(&data.DeduplicatorDescriptor{Hash: hash})
-// 						Expect(testDeduplicator.RegisterDataset(ctx)).To(Succeed())
-// 						Expect(testDataset.DeduplicatorDescriptor()).To(Equal(&data.DeduplicatorDescriptor{Name: testName, Version: testVersion, Hash: hash}))
+// 						testDataSet.SetDeduplicatorDescriptor(&data.DeduplicatorDescriptor{Hash: hash})
+// 						Expect(testDeduplicator.RegisterDataSet(ctx)).To(Succeed())
+// 						Expect(testDataSet.DeduplicatorDescriptor()).To(Equal(&data.DeduplicatorDescriptor{Name: testName, Version: testVersion, Hash: hash}))
 // 					})
 // 				})
 // 			})
 
-// 			Context("AddDatasetData", func() {
+// 			Context("AddDataSetData", func() {
 // 				var testDataData []*testData.Datum
-// 				var testDatasetData []data.Datum
+// 				var testDataSetData []data.Datum
 
 // 				BeforeEach(func() {
 // 					testDataData = []*testData.Datum{}
-// 					testDatasetData = []data.Datum{}
+// 					testDataSetData = []data.Datum{}
 // 					for i := 0; i < 3; i++ {
 // 						testDatum := testData.NewDatum()
 // 						testDataData = append(testDataData, testDatum)
-// 						testDatasetData = append(testDatasetData, testDatum)
+// 						testDataSetData = append(testDataSetData, testDatum)
 // 					}
 // 				})
 
@@ -436,74 +436,74 @@ package deduplicator_test
 // 				})
 
 // 				It("returns successfully if the data is missing", func() {
-// 					Expect(testDeduplicator.AddDatasetData(ctx, nil)).To(Succeed())
+// 					Expect(testDeduplicator.AddDataSetData(ctx, nil)).To(Succeed())
 // 				})
 
 // 				It("returns successfully if the data is empty", func() {
-// 					Expect(testDeduplicator.AddDatasetData(ctx, []data.Datum{})).To(Succeed())
+// 					Expect(testDeduplicator.AddDataSetData(ctx, []data.Datum{})).To(Succeed())
 // 				})
 
-// 				Context("with creating dataset data", func() {
+// 				Context("with creating data set data", func() {
 // 					BeforeEach(func() {
-// 						testDataSession.CreateDatasetDataOutputs = []error{nil}
+// 						testDataSession.CreateDataSetDataOutputs = []error{nil}
 // 					})
 
 // 					AfterEach(func() {
-// 						Expect(testDataSession.CreateDatasetDataInputs).To(ConsistOf(testDataStoreDEPRECATED.CreateDatasetDataInput{Context: ctx, Dataset: testDataset, DatasetData: testDatasetData}))
+// 						Expect(testDataSession.CreateDataSetDataInputs).To(ConsistOf(testDataStoreDEPRECATED.CreateDataSetDataInput{Context: ctx, DataSet: testDataSet, DataSetData: testDataSetData}))
 // 					})
 
-// 					It("returns an error if there is an error with CreateDatasetData", func() {
-// 						testDataSession.CreateDatasetDataOutputs = []error{errors.New("test error")}
-// 						err := testDeduplicator.AddDatasetData(ctx, testDatasetData)
-// 						Expect(err).To(MatchError(fmt.Sprintf(`unable to create dataset data with id "%s"; test error`, testDataset.UploadID)))
-// 					})
-
-// 					It("returns successfully if there is no error", func() {
-// 						Expect(testDeduplicator.AddDatasetData(ctx, testDatasetData)).To(Succeed())
-// 					})
-// 				})
-// 			})
-
-// 			Context("DeduplicateDataset", func() {
-// 				Context("with activating dataset data", func() {
-// 					BeforeEach(func() {
-// 						testDataSession.ActivateDatasetDataOutputs = []error{nil}
-// 					})
-
-// 					AfterEach(func() {
-// 						Expect(testDataSession.ActivateDatasetDataInputs).To(ConsistOf(testDataStoreDEPRECATED.ActivateDatasetDataInput{Context: ctx, Dataset: testDataset}))
-// 					})
-
-// 					It("returns an error if there is an error with ActivateDatasetData", func() {
-// 						testDataSession.ActivateDatasetDataOutputs = []error{errors.New("test error")}
-// 						err := testDeduplicator.DeduplicateDataset(ctx)
-// 						Expect(err).To(MatchError(fmt.Sprintf(`unable to activate dataset data with id "%s"; test error`, testDataset.UploadID)))
+// 					It("returns an error if there is an error with CreateDataSetData", func() {
+// 						testDataSession.CreateDataSetDataOutputs = []error{errors.New("test error")}
+// 						err := testDeduplicator.AddDataSetData(ctx, testDataSetData)
+// 						Expect(err).To(MatchError(fmt.Sprintf(`unable to create data set data with id "%s"; test error`, testDataSet.UploadID)))
 // 					})
 
 // 					It("returns successfully if there is no error", func() {
-// 						Expect(testDeduplicator.DeduplicateDataset(ctx)).To(Succeed())
+// 						Expect(testDeduplicator.AddDataSetData(ctx, testDataSetData)).To(Succeed())
 // 					})
 // 				})
 // 			})
 
-// 			Context("DeleteDataset", func() {
-// 				Context("with deleting dataset", func() {
+// 			Context("DeduplicateDataSet", func() {
+// 				Context("with activating data set data", func() {
 // 					BeforeEach(func() {
-// 						testDataSession.DeleteDatasetOutputs = []error{nil}
+// 						testDataSession.ActivateDataSetDataOutputs = []error{nil}
 // 					})
 
 // 					AfterEach(func() {
-// 						Expect(testDataSession.DeleteDatasetInputs).To(ConsistOf(testDataStoreDEPRECATED.DeleteDatasetInput{Context: ctx, Dataset: testDataset}))
+// 						Expect(testDataSession.ActivateDataSetDataInputs).To(ConsistOf(testDataStoreDEPRECATED.ActivateDataSetDataInput{Context: ctx, DataSet: testDataSet}))
 // 					})
 
-// 					It("returns an error if there is an error with DeleteDataset", func() {
-// 						testDataSession.DeleteDatasetOutputs = []error{errors.New("test error")}
-// 						err := testDeduplicator.DeleteDataset(ctx)
-// 						Expect(err).To(MatchError(fmt.Sprintf(`unable to delete dataset with id "%s"; test error`, testDataset.UploadID)))
+// 					It("returns an error if there is an error with ActivateDataSetData", func() {
+// 						testDataSession.ActivateDataSetDataOutputs = []error{errors.New("test error")}
+// 						err := testDeduplicator.DeduplicateDataSet(ctx)
+// 						Expect(err).To(MatchError(fmt.Sprintf(`unable to activate data set data with id "%s"; test error`, testDataSet.UploadID)))
 // 					})
 
 // 					It("returns successfully if there is no error", func() {
-// 						Expect(testDeduplicator.DeleteDataset(ctx)).To(Succeed())
+// 						Expect(testDeduplicator.DeduplicateDataSet(ctx)).To(Succeed())
+// 					})
+// 				})
+// 			})
+
+// 			Context("DeleteDataSet", func() {
+// 				Context("with deleting data set", func() {
+// 					BeforeEach(func() {
+// 						testDataSession.DeleteDataSetOutputs = []error{nil}
+// 					})
+
+// 					AfterEach(func() {
+// 						Expect(testDataSession.DeleteDataSetInputs).To(ConsistOf(testDataStoreDEPRECATED.DeleteDataSetInput{Context: ctx, DataSet: testDataSet}))
+// 					})
+
+// 					It("returns an error if there is an error with DeleteDataSet", func() {
+// 						testDataSession.DeleteDataSetOutputs = []error{errors.New("test error")}
+// 						err := testDeduplicator.DeleteDataSet(ctx)
+// 						Expect(err).To(MatchError(fmt.Sprintf(`unable to delete data set with id "%s"; test error`, testDataSet.UploadID)))
+// 					})
+
+// 					It("returns successfully if there is no error", func() {
+// 						Expect(testDeduplicator.DeleteDataSet(ctx)).To(Succeed())
 // 					})
 // 				})
 // 			})

@@ -287,7 +287,7 @@ var setIDExpression = regexp.MustCompile("^(upid_[0-9a-f]{12}|upid_[0-9a-f]{32}|
 type DataSet struct {
 	Active              bool                    `json:"-" bson:"_active"`
 	Annotations         *BlobArray              `json:"annotations,omitempty" bson:"annotations,omitempty"`
-	ArchivedDatasetID   string                  `json:"-" bson:"archivedDatasetId,omitempty"`
+	ArchivedDataSetID   string                  `json:"-" bson:"archivedDatasetId,omitempty"`
 	ArchivedTime        string                  `json:"-" bson:"archivedTime,omitempty"`
 	ByUser              *string                 `json:"byUser,omitempty" bson:"byUser,omitempty"`
 	Client              *DataSetClient          `json:"client,omitempty" bson:"client,omitempty"`

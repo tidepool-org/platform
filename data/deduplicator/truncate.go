@@ -37,38 +37,38 @@ func NewTruncateFactory() (Factory, error) {
 	return factory, nil
 }
 
-func (t *truncateFactory) CanDeduplicateDataset(dataset *upload.Upload) (bool, error) {
-	if can, err := t.BaseFactory.CanDeduplicateDataset(dataset); err != nil || !can {
+func (t *truncateFactory) CanDeduplicateDataSet(dataSet *upload.Upload) (bool, error) {
+	if can, err := t.BaseFactory.CanDeduplicateDataSet(dataSet); err != nil || !can {
 		return can, err
 	}
 
-	if dataset.DeviceID == nil {
+	if dataSet.DeviceID == nil {
 		return false, nil
 	}
-	if *dataset.DeviceID == "" {
+	if *dataSet.DeviceID == "" {
 		return false, nil
 	}
-	if !dataset.HasDeviceManufacturerOneOf(_TruncateExpectedDeviceManufacturers) {
+	if !dataSet.HasDeviceManufacturerOneOf(_TruncateExpectedDeviceManufacturers) {
 		return false, nil
 	}
 
 	return true, nil
 }
 
-func (t *truncateFactory) NewDeduplicatorForDataset(logger log.Logger, dataSession storeDEPRECATED.DataSession, dataset *upload.Upload) (data.Deduplicator, error) {
-	baseDeduplicator, err := NewBaseDeduplicator(t.name, t.version, logger, dataSession, dataset)
+func (t *truncateFactory) NewDeduplicatorForDataSet(logger log.Logger, dataSession storeDEPRECATED.DataSession, dataSet *upload.Upload) (data.Deduplicator, error) {
+	baseDeduplicator, err := NewBaseDeduplicator(t.name, t.version, logger, dataSession, dataSet)
 	if err != nil {
 		return nil, err
 	}
 
-	if dataset.DeviceID == nil {
-		return nil, errors.New("dataset device id is missing")
+	if dataSet.DeviceID == nil {
+		return nil, errors.New("data set device id is missing")
 	}
-	if *dataset.DeviceID == "" {
-		return nil, errors.New("dataset device id is empty")
+	if *dataSet.DeviceID == "" {
+		return nil, errors.New("data set device id is empty")
 	}
-	if !dataset.HasDeviceManufacturerOneOf(_TruncateExpectedDeviceManufacturers) {
-		return nil, errors.New("dataset device manufacturers does not contain expected device manufacturers")
+	if !dataSet.HasDeviceManufacturerOneOf(_TruncateExpectedDeviceManufacturers) {
+		return nil, errors.New("data set device manufacturers does not contain expected device manufacturers")
 	}
 
 	return &truncateDeduplicator{
@@ -76,16 +76,16 @@ func (t *truncateFactory) NewDeduplicatorForDataset(logger log.Logger, dataSessi
 	}, nil
 }
 
-func (t *truncateDeduplicator) DeduplicateDataset(ctx context.Context) error {
-	// TODO: Technically, ActivateDatasetData could succeed, but DeleteOtherDatasetData fail. This would
+func (t *truncateDeduplicator) DeduplicateDataSet(ctx context.Context) error {
+	// TODO: Technically, ActivateDataSetData could succeed, but DeleteOtherDataSetData fail. This would
 	// result in duplicate (and possible incorrect) data. Is there a way to resolve this? Would be nice to have transactions.
 
-	if err := t.BaseDeduplicator.DeduplicateDataset(ctx); err != nil {
+	if err := t.BaseDeduplicator.DeduplicateDataSet(ctx); err != nil {
 		return err
 	}
 
-	if err := t.dataSession.DeleteOtherDatasetData(ctx, t.dataset); err != nil {
-		return errors.Wrapf(err, "unable to remove all other data except dataset with id %q", *t.dataset.UploadID)
+	if err := t.dataSession.DeleteOtherDataSetData(ctx, t.dataSet); err != nil {
+		return errors.Wrapf(err, "unable to remove all other data except data set with id %q", *t.dataSet.UploadID)
 	}
 
 	return nil
