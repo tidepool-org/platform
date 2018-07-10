@@ -251,7 +251,7 @@ func (t *TaskRunner) getDataSource() error {
 
 func (t *TaskRunner) updateDataSourceWithDataSet(dataSet *data.DataSet) error {
 	dataSourceUpdate := data.NewDataSourceUpdate()
-	dataSourceUpdate.DataSetIDs = pointer.FromStringArray(append(t.dataSource.DataSetIDs, dataSet.UploadID))
+	dataSourceUpdate.DataSetIDs = pointer.FromStringArray(append(t.dataSource.DataSetIDs, *dataSet.UploadID))
 	return t.updateDataSource(dataSourceUpdate)
 }
 
@@ -342,7 +342,7 @@ func (t *TaskRunner) updateDataSet(dataSetUpdate *data.DataSetUpdate) error {
 		return nil
 	}
 
-	dataSet, err := t.DataClient().UpdateDataSet(t.context, t.dataSet.UploadID, dataSetUpdate)
+	dataSet, err := t.DataClient().UpdateDataSet(t.context, *t.dataSet.UploadID, dataSetUpdate)
 	if err != nil {
 		return errors.Wrap(err, "unable to update data set")
 	} else if dataSet == nil {
@@ -621,14 +621,14 @@ func (t *TaskRunner) createDataSet(deviceInfo *DeviceInfo) (*data.DataSet, error
 		Name:    pointer.FromString(DataSetClientName),
 		Version: pointer.FromString(DataSetClientVersion),
 	}
-	dataSetCreate.DataSetType = data.DataSetTypeContinuous
-	dataSetCreate.DeviceID = deviceInfo.DeviceID
-	dataSetCreate.DeviceManufacturers = []string{"Dexcom"}
-	dataSetCreate.DeviceModel = deviceInfo.DeviceModel
-	dataSetCreate.DeviceSerialNumber = deviceInfo.DeviceSerialNumber
-	dataSetCreate.DeviceTags = []string{data.DeviceTagCGM}
-	dataSetCreate.Time = time.Now().Truncate(time.Second)
-	dataSetCreate.TimeProcessing = upload.TimeProcessingNone
+	dataSetCreate.DataSetType = pointer.FromString(data.DataSetTypeContinuous)
+	dataSetCreate.DeviceID = pointer.FromString(deviceInfo.DeviceID)
+	dataSetCreate.DeviceManufacturers = pointer.FromStringArray([]string{"Dexcom"})
+	dataSetCreate.DeviceModel = pointer.FromString(deviceInfo.DeviceModel)
+	dataSetCreate.DeviceSerialNumber = pointer.FromString(deviceInfo.DeviceSerialNumber)
+	dataSetCreate.DeviceTags = pointer.FromStringArray([]string{data.DeviceTagCGM})
+	dataSetCreate.Time = pointer.FromTime(time.Now().Truncate(time.Second))
+	dataSetCreate.TimeProcessing = pointer.FromString(upload.TimeProcessingNone)
 
 	dataSet, err := t.DataClient().CreateUserDataSet(t.context, t.providerSession.UserID, dataSetCreate)
 	if err != nil {
@@ -649,7 +649,7 @@ func (t *TaskRunner) storeDatumArray(datumArray []data.Datum) error {
 			endIndex = length
 		}
 
-		if err := t.DataClient().CreateDataSetsData(t.context, t.dataSet.UploadID, datumArray[startIndex:endIndex]); err != nil {
+		if err := t.DataClient().CreateDataSetsData(t.context, *t.dataSet.UploadID, datumArray[startIndex:endIndex]); err != nil {
 			return errors.Wrap(err, "unable to create data set data")
 		}
 

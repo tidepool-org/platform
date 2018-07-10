@@ -1,5 +1,6 @@
 ## HEAD
 
+* Use pointers for data set fields to match upload fields
 * Log any error with request
 * Remove duplicate Dexcom device alert settings
 * Allow insulin data type without dose

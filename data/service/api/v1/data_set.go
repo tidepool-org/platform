@@ -114,7 +114,7 @@ func GetDataSet(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if !details.IsService() && details.UserID() != dataSet.UserID {
+	if !details.IsService() && details.UserID() != *dataSet.UserID {
 		request.MustNewResponder(res, req).Error(http.StatusForbidden, request.ErrorUnauthorized())
 		return
 	}
