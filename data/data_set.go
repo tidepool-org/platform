@@ -110,8 +110,9 @@ func (d *DataSetClient) Validate(validator structure.Validator) {
 }
 
 type DataSetFilter struct {
-	Deleted  *bool   `json:"deleted,omitempty" bson:"deleted,omitempty"`
-	DeviceID *string `json:"deviceId,omitempty" bson:"deviceId,omitempty"`
+	ClientName *string
+	Deleted    *bool
+	DeviceID   *string
 }
 
 func NewDataSetFilter() *DataSetFilter {
@@ -119,16 +120,21 @@ func NewDataSetFilter() *DataSetFilter {
 }
 
 func (d *DataSetFilter) Parse(parser structure.ObjectParser) {
+	d.ClientName = parser.String("client.name")
 	d.Deleted = parser.Bool("deleted")
 	d.DeviceID = parser.String("deviceId")
 }
 
 func (d *DataSetFilter) Validate(validator structure.Validator) {
+	validator.String("client.name", d.ClientName).NotEmpty()
 	validator.String("deviceId", d.DeviceID).NotEmpty()
 }
 
 func (d *DataSetFilter) MutateRequest(req *http.Request) error {
 	parameters := map[string]string{}
+	if d.ClientName != nil {
+		parameters["client.name"] = *d.ClientName
+	}
 	if d.Deleted != nil {
 		parameters["deleted"] = strconv.FormatBool(*d.Deleted)
 	}

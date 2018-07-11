@@ -1,5 +1,8 @@
 ## HEAD
 
+* Enable continuous data set type for Tidepool Mobile
+* Device and time related upload record fields are optional for continuous data set type
+* Add client name to data set filter
 * Use pointers for data set fields to match upload fields
 * Log any error with request
 * Remove duplicate Dexcom device alert settings

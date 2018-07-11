@@ -266,7 +266,6 @@ var _ = Describe("Upload", func() {
 				Entry("device manufacturers missing",
 					func(datum *upload.Upload) { datum.DeviceManufacturers = nil },
 					structure.Origins(),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/deviceManufacturers", NewMeta()),
 				),
 				Entry("device manufacturers empty",
 					func(datum *upload.Upload) { datum.DeviceManufacturers = pointer.FromStringArray([]string{}) },
@@ -303,7 +302,6 @@ var _ = Describe("Upload", func() {
 				Entry("device model missing",
 					func(datum *upload.Upload) { datum.DeviceModel = nil },
 					structure.Origins(),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/deviceModel", NewMeta()),
 				),
 				Entry("device model empty",
 					func(datum *upload.Upload) { datum.DeviceModel = pointer.FromString("") },
@@ -317,7 +315,6 @@ var _ = Describe("Upload", func() {
 				Entry("device serial number missing",
 					func(datum *upload.Upload) { datum.DeviceSerialNumber = nil },
 					structure.Origins(),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/deviceSerialNumber", NewMeta()),
 				),
 				Entry("device serial number empty",
 					func(datum *upload.Upload) { datum.DeviceSerialNumber = pointer.FromString("") },
@@ -331,7 +328,6 @@ var _ = Describe("Upload", func() {
 				Entry("device tags missing",
 					func(datum *upload.Upload) { datum.DeviceTags = nil },
 					structure.Origins(),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/deviceTags", NewMeta()),
 				),
 				Entry("device tags empty",
 					func(datum *upload.Upload) { datum.DeviceTags = pointer.FromStringArray([]string{}) },
@@ -396,7 +392,6 @@ var _ = Describe("Upload", func() {
 				Entry("time processing missing",
 					func(datum *upload.Upload) { datum.TimeProcessing = nil },
 					structure.Origins(),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/timeProcessing", NewMeta()),
 				),
 				Entry("time processing invalid",
 					func(datum *upload.Upload) { datum.TimeProcessing = pointer.FromString("invalid") },
@@ -448,11 +443,11 @@ var _ = Describe("Upload", func() {
 						datum.Client.Version = nil
 						datum.ComputerTime = pointer.FromString("invalid")
 						datum.DataSetType = pointer.FromString("invalid")
-						datum.DeviceManufacturers = nil
-						datum.DeviceModel = nil
-						datum.DeviceSerialNumber = nil
-						datum.DeviceTags = nil
-						datum.TimeProcessing = nil
+						datum.DeviceManufacturers = pointer.FromStringArray([]string{})
+						datum.DeviceModel = pointer.FromString("")
+						datum.DeviceSerialNumber = pointer.FromString("")
+						datum.DeviceTags = pointer.FromStringArray([]string{})
+						datum.TimeProcessing = pointer.FromString("invalid")
 						datum.Version = pointer.FromString("1.23")
 					},
 					structure.Origins(),
@@ -461,11 +456,11 @@ var _ = Describe("Upload", func() {
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/client/version", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringAsTimeNotValid("invalid", "2006-01-02T15:04:05"), "/computerTime", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"continuous", "normal"}), "/dataSetType", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/deviceManufacturers", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/deviceModel", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/deviceSerialNumber", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/deviceTags", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/timeProcessing", &types.Meta{Type: "invalidType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/deviceManufacturers", &types.Meta{Type: "invalidType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/deviceModel", &types.Meta{Type: "invalidType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/deviceSerialNumber", &types.Meta{Type: "invalidType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/deviceTags", &types.Meta{Type: "invalidType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"across-the-board-timezone", "none", "utc-bootstrapping"}), "/timeProcessing", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotGreaterThanOrEqualTo(4, 5), "/version", &types.Meta{Type: "invalidType"}),
 				),
 			)
@@ -499,7 +494,7 @@ var _ = Describe("Upload", func() {
 					func(datum *upload.Upload) { datum.UploadID = nil },
 					func(datum *upload.Upload, expectedDatum *upload.Upload) {
 						Expect(datum.UploadID).ToNot(BeNil())
-						Expect(*datum.UploadID).ToNot(BeEmpty())
+						Expect(*datum.UploadID).To(Equal(*datum.ID))
 						expectedDatum.UploadID = datum.UploadID
 						sort.Strings(*expectedDatum.DeviceManufacturers)
 						sort.Strings(*expectedDatum.DeviceTags)

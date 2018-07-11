@@ -885,15 +885,6 @@ var _ = Describe("Base", func() {
 					}
 					Expect(datum).To(Equal(expectedDatum))
 				},
-				Entry("guid missing",
-					func(datum *types.Base) { datum.GUID = nil },
-					func(datum *types.Base, expectedDatum *types.Base) {
-						Expect(datum.GUID).ToNot(BeNil())
-						Expect(datum.GUID).ToNot(Equal(expectedDatum.GUID))
-						expectedDatum.GUID = datum.GUID
-						sort.Strings(*expectedDatum.Tags)
-					},
-				),
 				Entry("id missing",
 					func(datum *types.Base) { datum.ID = nil },
 					func(datum *types.Base, expectedDatum *types.Base) {
@@ -916,12 +907,9 @@ var _ = Describe("Base", func() {
 						*datum = types.New("")
 					},
 					func(datum *types.Base, expectedDatum *types.Base) {
-						Expect(datum.GUID).ToNot(BeNil())
-						Expect(datum.GUID).ToNot(Equal(expectedDatum.GUID))
 						Expect(datum.ID).ToNot(BeNil())
 						Expect(datum.ID).ToNot(Equal(expectedDatum.ID))
 						Expect(datum.SchemaVersion).To(Equal(3))
-						expectedDatum.GUID = datum.GUID
 						expectedDatum.ID = datum.ID
 						expectedDatum.SchemaVersion = datum.SchemaVersion
 					},
@@ -945,12 +933,6 @@ var _ = Describe("Base", func() {
 						Expect(datum).To(Equal(expectedDatum))
 					}
 				},
-				Entry("guid missing",
-					func(datum *types.Base) { datum.GUID = nil },
-					func(datum *types.Base, expectedDatum *types.Base) {
-						sort.Strings(*expectedDatum.Tags)
-					},
-				),
 				Entry("id missing",
 					func(datum *types.Base) { datum.ID = nil },
 					func(datum *types.Base, expectedDatum *types.Base) {

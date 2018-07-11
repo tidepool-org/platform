@@ -162,7 +162,12 @@ func (b *Base) Validate(validator structure.Validator) {
 		}
 	}
 
-	validator.String("deviceId", b.DeviceID).Exists().NotEmpty()
+	deviceIDValidator := validator.String("deviceId", b.DeviceID)
+	if b.Type != "upload" { // HACK: Need to replace upload.Upload with data.DataSet
+		deviceIDValidator.Exists()
+	}
+	deviceIDValidator.NotEmpty()
+
 	validator.String("deviceTime", b.DeviceTime).AsTime(DeviceTimeFormat)
 
 	validator.String("id", b.ID).Using(data.IDValidator)
@@ -205,7 +210,13 @@ func (b *Base) Validate(validator structure.Validator) {
 	validator.StringArray("tags", b.Tags).NotEmpty().LengthLessThanOrEqualTo(TagsLengthMaximum).Each(func(stringValidator structure.String) {
 		stringValidator.Exists().NotEmpty().LengthLessThanOrEqualTo(TagLengthMaximum)
 	}).EachUnique()
-	validator.String("time", b.Time).Exists().AsTime(TimeFormat)
+
+	timeValidator := validator.String("time", b.Time)
+	if b.Type != "upload" { // HACK: Need to replace upload.Upload with data.DataSet
+		timeValidator.Exists()
+	}
+	timeValidator.AsTime(TimeFormat)
+
 	validator.String("timezone", b.TimeZoneName).OneOf(zone.Names()...)
 	validator.Int("timezoneOffset", b.TimeZoneOffset).InRange(TimeZoneOffsetMinimum, TimeZoneOffsetMaximum)
 	validator.String("type", &b.Type).Exists().NotEmpty()
@@ -231,9 +242,6 @@ func (b *Base) Normalize(normalizer data.Normalizer) {
 	}
 
 	if normalizer.Origin() == structure.OriginExternal {
-		if b.GUID == nil {
-			b.GUID = pointer.FromString(data.NewID())
-		}
 		if b.ID == nil {
 			b.ID = pointer.FromString(data.NewID())
 		}

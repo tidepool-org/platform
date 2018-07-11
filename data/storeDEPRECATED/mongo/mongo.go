@@ -374,6 +374,9 @@ func (d *DataSession) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Contex
 	if err := d.validateDataSet(dataSet); err != nil {
 		return err
 	}
+	if dataSet.DeviceID == nil || *dataSet.DeviceID == "" {
+		return errors.New("data set device id is missing")
+	}
 
 	if d.IsClosed() {
 		return errors.New("session closed")
@@ -424,6 +427,9 @@ func (d *DataSession) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Cont
 	}
 	if err := d.validateDataSet(dataSet); err != nil {
 		return err
+	}
+	if dataSet.DeviceID == nil || *dataSet.DeviceID == "" {
+		return errors.New("data set device id is missing")
 	}
 
 	if d.IsClosed() {
@@ -523,6 +529,9 @@ func (d *DataSession) DeleteOtherDataSetData(ctx context.Context, dataSet *uploa
 
 	if err := d.validateDataSet(dataSet); err != nil {
 		return err
+	}
+	if dataSet.DeviceID == nil || *dataSet.DeviceID == "" {
+		return errors.New("data set device id is missing")
 	}
 
 	if d.IsClosed() {
@@ -629,6 +638,9 @@ func (d *DataSession) ListUserDataSets(ctx context.Context, userID string, filte
 		"_userId": userID,
 		"type":    "upload",
 	}
+	if filter.ClientName != nil {
+		selector["client.name"] = *filter.ClientName
+	}
 	if filter.Deleted == nil || !*filter.Deleted {
 		selector["deletedTime"] = bson.M{"$exists": false}
 	}
@@ -700,9 +712,6 @@ func (d *DataSession) validateDataSet(dataSet *upload.Upload) error {
 	}
 	if *dataSet.UploadID == "" {
 		return errors.New("data set upload id is empty")
-	}
-	if dataSet.DeviceID == nil || *dataSet.DeviceID == "" {
-		return errors.New("data set device id is missing")
 	}
 
 	return nil

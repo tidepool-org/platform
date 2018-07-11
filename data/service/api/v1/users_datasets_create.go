@@ -3,7 +3,6 @@ package v1
 import (
 	"net/http"
 
-	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/context"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
@@ -91,7 +90,6 @@ func UsersDataSetsCreate(dataServiceContext dataService.Context) {
 	}
 
 	dataSet.DataState = pointer.FromString("open") // TODO: Deprecated DataState (after data migration)
-	dataSet.ID = pointer.FromString(data.NewSetID())
 	dataSet.State = pointer.FromString("open")
 
 	if err = dataServiceContext.DataSession().CreateDataSet(ctx, dataSet); err != nil {
