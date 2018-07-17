@@ -1,5 +1,7 @@
 ## HEAD
 
+* Minor refactor to reorder sort.Sort interface functions for consistency
+
 ## v1.28.0
 
 * Enable continuous data set type for Tidepool Mobile

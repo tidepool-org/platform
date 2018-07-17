@@ -36,10 +36,6 @@ func (c CreatedTimeDescending) Len() int {
 	return len(c)
 }
 
-func (c CreatedTimeDescending) Swap(left int, right int) {
-	c[left], c[right] = c[right], c[left]
-}
-
 func (c CreatedTimeDescending) Less(left int, right int) bool {
 	if c[left].CreatedTime == nil {
 		return true
@@ -47,6 +43,10 @@ func (c CreatedTimeDescending) Less(left int, right int) bool {
 		return false
 	}
 	return c[right].CreatedTime.Before(*c[left].CreatedTime)
+}
+
+func (c CreatedTimeDescending) Swap(left int, right int) {
+	c[left], c[right] = c[right], c[left]
 }
 
 func SelectAndSort(blbs blob.Blobs, selector func(b *blob.Blob) bool) blob.Blobs {

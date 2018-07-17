@@ -693,12 +693,12 @@ func (b BySystemTime) Len() int {
 	return len(b)
 }
 
-func (b BySystemTime) Swap(left int, right int) {
-	b[left], b[right] = b[right], b[left]
-}
-
 func (b BySystemTime) Less(left int, right int) bool {
 	return payloadSystemTime(b[left]).Before(payloadSystemTime(b[right]))
+}
+
+func (b BySystemTime) Swap(left int, right int) {
+	b[left], b[right] = b[right], b[left]
 }
 
 type DeviceInfo struct {
