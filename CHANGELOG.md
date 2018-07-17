@@ -1,5 +1,6 @@
 ## HEAD
 
+* Add dump users tool
 * Minor refactor to reorder sort.Sort interface functions for consistency
 
 ## v1.28.0
