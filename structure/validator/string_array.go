@@ -115,7 +115,7 @@ func (s *StringArray) LengthInRange(lowerLimit int, upperLimit int) structure.St
 	return s
 }
 
-func (s *StringArray) Each(eachFunc structure.StringEachFunc) structure.StringArray {
+func (s *StringArray) Each(eachFunc structure.StringArrayEachFunc) structure.StringArray {
 	if s.value != nil {
 		if eachFunc != nil {
 			validator := NewValidator(s.base)
@@ -145,6 +145,18 @@ func (s *StringArray) EachMatches(expression *regexp.Regexp) structure.StringArr
 
 func (s *StringArray) EachNotMatches(expression *regexp.Regexp) structure.StringArray {
 	return s.Each(func(stringValidator structure.String) { stringValidator.NotMatches(expression) })
+}
+
+func (s *StringArray) EachUsing(eachUsingFunc structure.StringArrayEachUsingFunc) structure.StringArray {
+	if s.value != nil {
+		if eachUsingFunc != nil {
+			validator := NewValidator(s.base)
+			for index, value := range *s.value {
+				eachUsingFunc(value, validator.WithReference(strconv.Itoa(index)))
+			}
+		}
+	}
+	return s
 }
 
 func (s *StringArray) EachUnique() structure.StringArray {
