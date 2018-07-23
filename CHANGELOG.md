@@ -1,5 +1,6 @@
 ## HEAD
 
+* Add helper functions for auth types
 * Replace data.NewID with dataTest.RandomID in tests
 * Rename various to more generic form in blob service
 * Cleanup blob service and tests
