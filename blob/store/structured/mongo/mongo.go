@@ -137,13 +137,11 @@ func (s *Session) Create(ctx context.Context, userID string, create *blobStoreSt
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "create": create})
 
-	doc := bson.M{
-		"userId":      userID,
-		"status":      blob.StatusCreated,
-		"createdTime": now.Truncate(time.Second),
-	}
-	if create.MediaType != nil {
-		doc["mediaType"] = *create.MediaType
+	doc := &blob.Blob{
+		UserID:      pointer.FromString(userID),
+		MediaType:   create.MediaType,
+		Status:      pointer.FromString(blob.StatusCreated),
+		CreatedTime: pointer.FromTime(now.Truncate(time.Second)),
 	}
 
 	var id string
@@ -152,7 +150,7 @@ func (s *Session) Create(ctx context.Context, userID string, create *blobStoreSt
 		id = blob.NewID()
 		logger = logger.WithField("id", id)
 
-		doc["id"] = id
+		doc.ID = pointer.FromString(id)
 		if err = s.C().Insert(doc); mgo.IsDup(err) {
 			logger.WithError(err).Error("Duplicate blob id")
 		} else {
@@ -225,6 +223,7 @@ func (s *Session) Update(ctx context.Context, id string, update *blobStoreStruct
 		set := bson.M{
 			"modifiedTime": pointer.FromTime(now.Truncate(time.Second)),
 		}
+		unset := bson.M{}
 		if update.MediaType != nil {
 			set["mediaType"] = *update.MediaType
 		}
@@ -237,7 +236,7 @@ func (s *Session) Update(ctx context.Context, id string, update *blobStoreStruct
 		if update.Status != nil {
 			set["status"] = *update.Status
 		}
-		changeInfo, err := s.C().UpdateAll(bson.M{"id": id}, s.ConstructUpdate(set, bson.M{}))
+		changeInfo, err := s.C().UpdateAll(bson.M{"id": id}, s.ConstructUpdate(set, unset))
 		if err != nil {
 			logger.WithError(err).Error("Unable to update blob")
 			return nil, errors.Wrap(err, "unable to update blob")

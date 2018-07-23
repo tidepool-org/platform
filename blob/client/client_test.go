@@ -312,7 +312,10 @@ var _ = Describe("Client", func() {
 					createAssertions := func() {
 						Context("with server response", func() {
 							BeforeEach(func() {
-								requestHandlers = append(requestHandlers, VerifyRequest("POST", fmt.Sprintf("/v1/users/%s/blobs", userID)), VerifyContentType(*create.MediaType), VerifyBody(body))
+								requestHandlers = append(requestHandlers,
+									VerifyRequest("POST", fmt.Sprintf("/v1/users/%s/blobs", userID)),
+									VerifyContentType(*create.MediaType),
+									VerifyBody(body))
 							})
 
 							AfterEach(func() {

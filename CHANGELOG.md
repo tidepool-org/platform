@@ -1,5 +1,6 @@
 ## HEAD
 
+* Cleanup blob service and tests
 * Replace blob.NewID with blobTest.RandomID in tests
 * Update error test helper functions
 * Replace user.NewID with userTest.RandomID in tests

@@ -21,7 +21,7 @@ func RandomID() string {
 }
 
 func RandomStatuses() []string {
-	return test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, 2, blob.Statuses())
+	return test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, len(blob.Statuses()), blob.Statuses())
 }
 
 func RandomFilter() *blob.Filter {

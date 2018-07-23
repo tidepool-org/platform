@@ -20,15 +20,9 @@ import (
 )
 
 const (
-	ErrorCodeDigestsNotEqual = "digests-not-equal"
-
 	StatusAvailable = "available"
 	StatusCreated   = "created"
 )
-
-func ErrorDigestsNotEqual(value string, calculated string) error {
-	return errors.Preparedf(ErrorCodeDigestsNotEqual, "digests not equal", "digest %q does not equal calculated digest %q", value, calculated)
-}
 
 func Statuses() []string {
 	return []string{
@@ -46,8 +40,8 @@ type Client interface {
 }
 
 type Filter struct {
-	MediaType *[]string `json:"mediaType,omitempty"`
-	Status    *[]string `json:"status,omitempty"`
+	MediaType *[]string
+	Status    *[]string
 }
 
 func NewFilter() *Filter {
@@ -55,16 +49,12 @@ func NewFilter() *Filter {
 }
 
 func (f *Filter) Parse(parser structure.ObjectParser) {
-	if value := parser.StringArray("mediaType"); value != nil {
-		f.MediaType = value
-	}
-	if value := parser.StringArray("status"); value != nil {
-		f.Status = value
-	}
+	f.MediaType = parser.StringArray("mediaType")
+	f.Status = parser.StringArray("status")
 }
 
 func (f *Filter) Validate(validator structure.Validator) {
-	validator.StringArray("mediaType", f.MediaType).NotEmpty().Each(func(stringValidator structure.String) { stringValidator.Using(net.MediaTypeValidator) }).EachUnique()
+	validator.StringArray("mediaType", f.MediaType).NotEmpty().EachUsing(net.MediaTypeValidator).EachUnique()
 	validator.StringArray("status", f.Status).NotEmpty().EachOneOf(Statuses()...).EachUnique()
 }
 
@@ -147,7 +137,7 @@ func (b *Blob) Validate(validator structure.Validator) {
 	validator.Int("size", b.Size).Exists().GreaterThanOrEqualTo(0)
 	validator.String("status", b.Status).Exists().OneOf(Statuses()...)
 	validator.Time("createdTime", b.CreatedTime).Exists().NotZero().BeforeNow(time.Second)
-	validator.Time("modifiedTime", b.ModifiedTime).After(pointer.ToTime(b.CreatedTime)).BeforeNow(time.Second)
+	validator.Time("modifiedTime", b.ModifiedTime).NotZero().After(pointer.ToTime(b.CreatedTime)).BeforeNow(time.Second)
 }
 
 type Blobs []*Blob
@@ -173,8 +163,14 @@ func ValidateID(value string) error {
 	return nil
 }
 
+var idExpression = regexp.MustCompile("^[0-9a-z]{32}$")
+
+const ErrorCodeDigestsNotEqual = "digests-not-equal"
+
+func ErrorDigestsNotEqual(value string, calculated string) error {
+	return errors.Preparedf(ErrorCodeDigestsNotEqual, "digests not equal", "digest %q does not equal calculated digest %q", value, calculated)
+}
+
 func ErrorValueStringAsIDNotValid(value string) error {
 	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as blob id", value)
 }
-
-var idExpression = regexp.MustCompile("^[0-9a-z]{32}$")

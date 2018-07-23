@@ -34,10 +34,6 @@ var nearPastTime = time.Unix(1500000000, 0)
 var farPastTime = time.Unix(1200000000, 0)
 
 var _ = Describe("Blob", func() {
-	It("ErrorCodeDigestsNotEqual is expected", func() {
-		Expect(blob.ErrorCodeDigestsNotEqual).To(Equal("digests-not-equal"))
-	})
-
 	It("StatusAvailable is expected", func() {
 		Expect(blob.StatusAvailable).To(Equal("available"))
 	})
@@ -46,32 +42,8 @@ var _ = Describe("Blob", func() {
 		Expect(blob.StatusCreated).To(Equal("created"))
 	})
 
-	Context("Errors", func() {
-		DescribeTable("have expected details when error",
-			errorsTest.ExpectErrorDetails,
-			Entry("is ErrorDigestsNotEqual with empty string", blob.ErrorDigestsNotEqual("", ""), "digests-not-equal", "digests not equal", `digest "" does not equal calculated digest ""`),
-			Entry("is ErrorDigestsNotEqual with non-empty string", blob.ErrorDigestsNotEqual("QUJDREVGSElKS0xNTk9QUQ==", "lah2klptWl+IBNSepXlJ9Q=="), "digests-not-equal", "digests not equal", `digest "QUJDREVGSElKS0xNTk9QUQ==" does not equal calculated digest "lah2klptWl+IBNSepXlJ9Q=="`),
-		)
-	})
-
 	It("Statuses returns expected", func() {
 		Expect(blob.Statuses()).To(Equal([]string{"available", "created"}))
-	})
-
-	Context("Filter", func() {
-		DescribeTable("serializes the datum as expected",
-			func(mutator func(datum *blob.Filter)) {
-				datum := blobTest.RandomFilter()
-				mutator(datum)
-				test.ExpectSerializedJSON(datum, blobTest.NewObjectFromFilter(datum, test.ObjectFormatJSON))
-			},
-			Entry("succeeds",
-				func(datum *blob.Filter) {},
-			),
-			Entry("empty",
-				func(datum *blob.Filter) { *datum = blob.Filter{} },
-			),
-		)
 	})
 
 	Context("NewFilter", func() {
@@ -893,9 +865,15 @@ var _ = Describe("Blob", func() {
 		)
 	})
 
+	It("ErrorCodeDigestsNotEqual is expected", func() {
+		Expect(blob.ErrorCodeDigestsNotEqual).To(Equal("digests-not-equal"))
+	})
+
 	Context("Errors", func() {
 		DescribeTable("have expected details when error",
 			errorsTest.ExpectErrorDetails,
+			Entry("is ErrorDigestsNotEqual with empty string", blob.ErrorDigestsNotEqual("", ""), "digests-not-equal", "digests not equal", `digest "" does not equal calculated digest ""`),
+			Entry("is ErrorDigestsNotEqual with non-empty string", blob.ErrorDigestsNotEqual("QUJDREVGSElKS0xNTk9QUQ==", "lah2klptWl+IBNSepXlJ9Q=="), "digests-not-equal", "digests not equal", `digest "QUJDREVGSElKS0xNTk9QUQ==" does not equal calculated digest "lah2klptWl+IBNSepXlJ9Q=="`),
 			Entry("is ErrorValueStringAsIDNotValid with empty string", blob.ErrorValueStringAsIDNotValid(""), "value-not-valid", "value is not valid", `value "" is not valid as blob id`),
 			Entry("is ErrorValueStringAsIDNotValid with non-empty string", blob.ErrorValueStringAsIDNotValid("0123456789abcdefghijklmnopqrstuv"), "value-not-valid", "value is not valid", `value "0123456789abcdefghijklmnopqrstuv" is not valid as blob id`),
 		)
