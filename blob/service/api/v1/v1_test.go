@@ -487,13 +487,13 @@ var _ = Describe("V1", func() {
 									})
 
 									It("responds successfully", func() {
-										blb := blobTest.RandomBlob()
-										client.CreateOutputs = []blobTest.CreateOutput{{Blob: blb, Error: nil}}
+										responseResult := blobTest.RandomBlob()
+										client.CreateOutputs = []blobTest.CreateOutput{{Blob: responseResult, Error: nil}}
 										res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 										handlerFunc(res, req)
 										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusCreated}))
 										Expect(res.WriteInputs).To(HaveLen(1))
-										Expect(json.Marshal(blb)).To(MatchJSON(res.WriteInputs[0]))
+										Expect(json.Marshal(responseResult)).To(MatchJSON(res.WriteInputs[0]))
 									})
 								}
 
@@ -619,13 +619,13 @@ var _ = Describe("V1", func() {
 							})
 
 							It("responds successfully", func() {
-								blb := blobTest.RandomBlob()
-								client.GetOutputs = []blobTest.GetOutput{{Blob: blb, Error: nil}}
+								responseResult := blobTest.RandomBlob()
+								client.GetOutputs = []blobTest.GetOutput{{Blob: responseResult, Error: nil}}
 								res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 								handlerFunc(res, req)
 								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
 								Expect(res.WriteInputs).To(HaveLen(1))
-								Expect(json.Marshal(blb)).To(MatchJSON(res.WriteInputs[0]))
+								Expect(json.Marshal(responseResult)).To(MatchJSON(res.WriteInputs[0]))
 							})
 						})
 					})

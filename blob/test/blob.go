@@ -127,24 +127,24 @@ func NewObjectFromBlob(datum *blob.Blob, objectFormat test.ObjectFormat) map[str
 	return object
 }
 
-func ExpectEqualBlob(actualBlob *blob.Blob, expectedBlob *blob.Blob) {
-	gomega.Expect(actualBlob).ToNot(gomega.BeNil())
-	gomega.Expect(expectedBlob).ToNot(gomega.BeNil())
-	gomega.Expect(actualBlob.ID).To(gomega.Equal(expectedBlob.ID))
-	gomega.Expect(actualBlob.UserID).To(gomega.Equal(expectedBlob.UserID))
-	gomega.Expect(actualBlob.DigestMD5).To(gomega.Equal(expectedBlob.DigestMD5))
-	gomega.Expect(actualBlob.MediaType).To(gomega.Equal(expectedBlob.MediaType))
-	gomega.Expect(actualBlob.Size).To(gomega.Equal(expectedBlob.Size))
-	gomega.Expect(actualBlob.Status).To(gomega.Equal(expectedBlob.Status))
-	if actualBlob.CreatedTime != nil && expectedBlob.CreatedTime != nil {
-		gomega.Expect(actualBlob.CreatedTime.Local()).To(gomega.Equal(expectedBlob.CreatedTime.Local()))
+func ExpectEqualBlob(actual *blob.Blob, expected *blob.Blob) {
+	gomega.Expect(actual).ToNot(gomega.BeNil())
+	gomega.Expect(expected).ToNot(gomega.BeNil())
+	gomega.Expect(actual.ID).To(gomega.Equal(expected.ID))
+	gomega.Expect(actual.UserID).To(gomega.Equal(expected.UserID))
+	gomega.Expect(actual.DigestMD5).To(gomega.Equal(expected.DigestMD5))
+	gomega.Expect(actual.MediaType).To(gomega.Equal(expected.MediaType))
+	gomega.Expect(actual.Size).To(gomega.Equal(expected.Size))
+	gomega.Expect(actual.Status).To(gomega.Equal(expected.Status))
+	if actual.CreatedTime != nil && expected.CreatedTime != nil {
+		gomega.Expect(actual.CreatedTime.Local()).To(gomega.Equal(expected.CreatedTime.Local()))
 	} else {
-		gomega.Expect(actualBlob.CreatedTime).To(gomega.Equal(expectedBlob.CreatedTime))
+		gomega.Expect(actual.CreatedTime).To(gomega.Equal(expected.CreatedTime))
 	}
-	if actualBlob.ModifiedTime != nil && expectedBlob.ModifiedTime != nil {
-		gomega.Expect(actualBlob.ModifiedTime.Local()).To(gomega.Equal(expectedBlob.ModifiedTime.Local()))
+	if actual.ModifiedTime != nil && expected.ModifiedTime != nil {
+		gomega.Expect(actual.ModifiedTime.Local()).To(gomega.Equal(expected.ModifiedTime.Local()))
 	} else {
-		gomega.Expect(actualBlob.ModifiedTime).To(gomega.Equal(expectedBlob.ModifiedTime))
+		gomega.Expect(actual.ModifiedTime).To(gomega.Equal(expected.ModifiedTime))
 	}
 }
 
@@ -156,9 +156,9 @@ func RandomBlobs(minimumLength int, maximumLength int) blob.Blobs {
 	return datum
 }
 
-func ExpectEqualBlobs(actualBlobs blob.Blobs, expectedBlobs blob.Blobs) {
-	gomega.Expect(actualBlobs).To(gomega.HaveLen(len(expectedBlobs)))
-	for index := range expectedBlobs {
-		ExpectEqualBlob(actualBlobs[index], expectedBlobs[index])
+func ExpectEqualBlobs(actual blob.Blobs, expected blob.Blobs) {
+	gomega.Expect(actual).To(gomega.HaveLen(len(expected)))
+	for index := range expected {
+		ExpectEqualBlob(actual[index], expected[index])
 	}
 }

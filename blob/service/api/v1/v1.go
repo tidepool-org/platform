@@ -60,12 +60,12 @@ func (r *Router) List(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	blbs, err := r.provider.BlobClient().List(req.Context(), userID, filter, pagination)
+	result, err := r.provider.BlobClient().List(req.Context(), userID, filter, pagination)
 	if responder.RespondIfError(err) {
 		return
 	}
 
-	responder.Data(http.StatusOK, blbs)
+	responder.Data(http.StatusOK, result)
 }
 
 func (r *Router) Create(res rest.ResponseWriter, req *rest.Request) {
@@ -98,7 +98,7 @@ func (r *Router) Create(res rest.ResponseWriter, req *rest.Request) {
 	create.DigestMD5 = digestMD5
 	create.MediaType = mediaType
 
-	blb, err := r.provider.BlobClient().Create(req.Context(), userID, create)
+	result, err := r.provider.BlobClient().Create(req.Context(), userID, create)
 	if err != nil {
 		if errors.Code(err) == blob.ErrorCodeDigestsNotEqual {
 			responder.Error(http.StatusBadRequest, err)
@@ -108,7 +108,7 @@ func (r *Router) Create(res rest.ResponseWriter, req *rest.Request) {
 		}
 	}
 
-	responder.Data(http.StatusCreated, blb)
+	responder.Data(http.StatusCreated, result)
 }
 
 func (r *Router) Get(res rest.ResponseWriter, req *rest.Request) {
@@ -122,15 +122,15 @@ func (r *Router) Get(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	blb, err := r.provider.BlobClient().Get(req.Context(), id)
+	result, err := r.provider.BlobClient().Get(req.Context(), id)
 	if responder.RespondIfError(err) {
 		return
-	} else if blb == nil {
+	} else if result == nil {
 		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithID(id))
 		return
 	}
 
-	responder.Data(http.StatusOK, blb)
+	responder.Data(http.StatusOK, result)
 }
 
 func (r *Router) GetContent(res rest.ResponseWriter, req *rest.Request) {

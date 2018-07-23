@@ -117,39 +117,39 @@ var _ = Describe("Client", func() {
 
 							It("returns an error when the context is missing", func() {
 								ctx = nil
-								blbs, err := client.List(ctx, userID, filter, pagination)
+								result, err := client.List(ctx, userID, filter, pagination)
 								errorsTest.ExpectEqual(err, errors.New("context is missing"))
-								Expect(blbs).To(BeNil())
+								Expect(result).To(BeNil())
 							})
 
 							It("returns an error when the user id is missing", func() {
 								userID = ""
-								blbs, err := client.List(ctx, userID, filter, pagination)
+								result, err := client.List(ctx, userID, filter, pagination)
 								errorsTest.ExpectEqual(err, errors.New("user id is missing"))
-								Expect(blbs).To(BeNil())
+								Expect(result).To(BeNil())
 							})
 
 							It("returns an error when the user id is invalid", func() {
 								userID = "invalid"
-								blbs, err := client.List(ctx, userID, filter, pagination)
+								result, err := client.List(ctx, userID, filter, pagination)
 								errorsTest.ExpectEqual(err, errors.New("user id is invalid"))
-								Expect(blbs).To(BeNil())
+								Expect(result).To(BeNil())
 							})
 
 							It("returns an error when the filter is invalid", func() {
 								filter = blob.NewFilter()
 								filter.MediaType = pointer.FromStringArray([]string{""})
-								blbs, err := client.List(ctx, userID, filter, pagination)
+								result, err := client.List(ctx, userID, filter, pagination)
 								errorsTest.ExpectEqual(err, errors.New("filter is invalid"))
-								Expect(blbs).To(BeNil())
+								Expect(result).To(BeNil())
 							})
 
 							It("returns an error when the pagination is invalid", func() {
 								pagination = page.NewPagination()
 								pagination.Page = -1
-								blbs, err := client.List(ctx, userID, filter, pagination)
+								result, err := client.List(ctx, userID, filter, pagination)
 								errorsTest.ExpectEqual(err, errors.New("pagination is invalid"))
-								Expect(blbs).To(BeNil())
+								Expect(result).To(BeNil())
 							})
 						})
 
@@ -168,9 +168,9 @@ var _ = Describe("Client", func() {
 								})
 
 								It("returns an error", func() {
-									blbs, err := client.List(ctx, userID, filter, pagination)
+									result, err := client.List(ctx, userID, filter, pagination)
 									errorsTest.ExpectEqual(err, request.ErrorUnauthenticated())
-									Expect(blbs).To(BeNil())
+									Expect(result).To(BeNil())
 								})
 							})
 
@@ -180,48 +180,48 @@ var _ = Describe("Client", func() {
 								})
 
 								It("returns an error", func() {
-									blbs, err := client.List(ctx, userID, filter, pagination)
+									result, err := client.List(ctx, userID, filter, pagination)
 									errorsTest.ExpectEqual(err, request.ErrorUnauthorized())
-									Expect(blbs).To(BeNil())
+									Expect(result).To(BeNil())
 								})
 							})
 
-							When("the server responds with a user not found error", func() {
+							When("the server responds with a not found error", func() {
 								BeforeEach(func() {
 									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNotFound, errors.NewSerializable(request.ErrorResourceNotFoundWithID(userID)), responseHeaders))
 								})
 
 								It("returns an error", func() {
-									blbs, err := client.List(ctx, userID, filter, pagination)
+									result, err := client.List(ctx, userID, filter, pagination)
 									errorsTest.ExpectEqual(err, request.ErrorResourceNotFoundWithID(userID))
-									Expect(blbs).To(BeNil())
+									Expect(result).To(BeNil())
 								})
 							})
 
-							When("the server responds with no blobs", func() {
+							When("the server responds with no result", func() {
 								BeforeEach(func() {
 									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, blob.Blobs{}, responseHeaders))
 								})
 
 								It("returns successfully", func() {
-									blbs, err := client.List(ctx, userID, filter, pagination)
+									result, err := client.List(ctx, userID, filter, pagination)
 									Expect(err).ToNot(HaveOccurred())
-									Expect(blbs).To(Equal(blob.Blobs{}))
+									Expect(result).To(Equal(blob.Blobs{}))
 								})
 							})
 
-							When("the server responds with blobs", func() {
-								var responseBlobs blob.Blobs
+							When("the server responds with result", func() {
+								var responseResult blob.Blobs
 
 								BeforeEach(func() {
-									responseBlobs = blobTest.RandomBlobs(1, 4)
-									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, responseBlobs, responseHeaders))
+									responseResult = blobTest.RandomBlobs(1, 4)
+									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, responseResult, responseHeaders))
 								})
 
 								It("returns successfully", func() {
-									blbs, err := client.List(ctx, userID, filter, pagination)
+									result, err := client.List(ctx, userID, filter, pagination)
 									Expect(err).ToNot(HaveOccurred())
-									blobTest.ExpectEqualBlobs(blbs, responseBlobs)
+									blobTest.ExpectEqualBlobs(result, responseResult)
 								})
 							})
 						})
@@ -275,37 +275,37 @@ var _ = Describe("Client", func() {
 
 						It("returns an error when the context is missing", func() {
 							ctx = nil
-							blb, err := client.Create(ctx, userID, create)
+							result, err := client.Create(ctx, userID, create)
 							errorsTest.ExpectEqual(err, errors.New("context is missing"))
-							Expect(blb).To(BeNil())
+							Expect(result).To(BeNil())
 						})
 
 						It("returns an error when the user id is missing", func() {
 							userID = ""
-							blb, err := client.Create(ctx, userID, create)
+							result, err := client.Create(ctx, userID, create)
 							errorsTest.ExpectEqual(err, errors.New("user id is missing"))
-							Expect(blb).To(BeNil())
+							Expect(result).To(BeNil())
 						})
 
 						It("returns an error when the user id is invalid", func() {
 							userID = "invalid"
-							blb, err := client.Create(ctx, userID, create)
+							result, err := client.Create(ctx, userID, create)
 							errorsTest.ExpectEqual(err, errors.New("user id is invalid"))
-							Expect(blb).To(BeNil())
+							Expect(result).To(BeNil())
 						})
 
 						It("returns an error when the create is missing", func() {
 							create = nil
-							blb, err := client.Create(ctx, userID, create)
+							result, err := client.Create(ctx, userID, create)
 							errorsTest.ExpectEqual(err, errors.New("create is missing"))
-							Expect(blb).To(BeNil())
+							Expect(result).To(BeNil())
 						})
 
 						It("returns an error when the create is invalid", func() {
 							create.Body = nil
-							blb, err := client.Create(ctx, userID, create)
+							result, err := client.Create(ctx, userID, create)
 							errorsTest.ExpectEqual(err, errors.New("create is invalid"))
-							Expect(blb).To(BeNil())
+							Expect(result).To(BeNil())
 						})
 					})
 
@@ -328,9 +328,9 @@ var _ = Describe("Client", func() {
 								})
 
 								It("returns an error", func() {
-									blb, err := client.Create(ctx, userID, create)
+									result, err := client.Create(ctx, userID, create)
 									errorsTest.ExpectEqual(err, request.ErrorUnauthenticated())
-									Expect(blb).To(BeNil())
+									Expect(result).To(BeNil())
 								})
 							})
 
@@ -340,36 +340,36 @@ var _ = Describe("Client", func() {
 								})
 
 								It("returns an error", func() {
-									blb, err := client.Create(ctx, userID, create)
+									result, err := client.Create(ctx, userID, create)
 									errorsTest.ExpectEqual(err, request.ErrorUnauthorized())
-									Expect(blb).To(BeNil())
+									Expect(result).To(BeNil())
 								})
 							})
 
-							When("the server responds with a user not found error", func() {
+							When("the server responds with a not found error", func() {
 								BeforeEach(func() {
 									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNotFound, errors.NewSerializable(request.ErrorResourceNotFoundWithID(userID)), responseHeaders))
 								})
 
 								It("returns an error", func() {
-									blb, err := client.Create(ctx, userID, create)
+									result, err := client.Create(ctx, userID, create)
 									errorsTest.ExpectEqual(err, request.ErrorResourceNotFoundWithID(userID))
-									Expect(blb).To(BeNil())
+									Expect(result).To(BeNil())
 								})
 							})
 
-							When("the server responds with the blob", func() {
-								var responseBlob *blob.Blob
+							When("the server responds with the result", func() {
+								var responseResult *blob.Blob
 
 								BeforeEach(func() {
-									responseBlob = blobTest.RandomBlob()
-									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, responseBlob, responseHeaders))
+									responseResult = blobTest.RandomBlob()
+									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, responseResult, responseHeaders))
 								})
 
 								It("returns successfully", func() {
-									blb, err := client.Create(ctx, userID, create)
+									result, err := client.Create(ctx, userID, create)
 									Expect(err).ToNot(HaveOccurred())
-									blobTest.ExpectEqualBlob(blb, responseBlob)
+									blobTest.ExpectEqualBlob(result, responseResult)
 								})
 							})
 						})
@@ -408,23 +408,23 @@ var _ = Describe("Client", func() {
 
 						It("returns an error when the context is missing", func() {
 							ctx = nil
-							blb, err := client.Get(ctx, id)
+							result, err := client.Get(ctx, id)
 							errorsTest.ExpectEqual(err, errors.New("context is missing"))
-							Expect(blb).To(BeNil())
+							Expect(result).To(BeNil())
 						})
 
 						It("returns an error when the id is missing", func() {
 							id = ""
-							blb, err := client.Get(ctx, id)
+							result, err := client.Get(ctx, id)
 							errorsTest.ExpectEqual(err, errors.New("id is missing"))
-							Expect(blb).To(BeNil())
+							Expect(result).To(BeNil())
 						})
 
 						It("returns an error when the id is invalid", func() {
 							id = "invalid"
-							blb, err := client.Get(ctx, id)
+							result, err := client.Get(ctx, id)
 							errorsTest.ExpectEqual(err, errors.New("id is invalid"))
-							Expect(blb).To(BeNil())
+							Expect(result).To(BeNil())
 						})
 					})
 
@@ -443,9 +443,9 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								blb, err := client.Get(ctx, id)
+								result, err := client.Get(ctx, id)
 								errorsTest.ExpectEqual(err, request.ErrorUnauthenticated())
-								Expect(blb).To(BeNil())
+								Expect(result).To(BeNil())
 							})
 						})
 
@@ -455,9 +455,9 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								blb, err := client.Get(ctx, id)
+								result, err := client.Get(ctx, id)
 								errorsTest.ExpectEqual(err, request.ErrorUnauthorized())
-								Expect(blb).To(BeNil())
+								Expect(result).To(BeNil())
 							})
 						})
 
@@ -466,25 +466,25 @@ var _ = Describe("Client", func() {
 								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNotFound, errors.NewSerializable(request.ErrorResourceNotFoundWithID(id)), responseHeaders))
 							})
 
-							It("returns successfully without blob", func() {
-								blb, err := client.Get(ctx, id)
+							It("returns successfully without result", func() {
+								result, err := client.Get(ctx, id)
 								Expect(err).ToNot(HaveOccurred())
-								Expect(blb).To(BeNil())
+								Expect(result).To(BeNil())
 							})
 						})
 
-						When("the server responds with the blob", func() {
-							var responseBlob *blob.Blob
+						When("the server responds with the result", func() {
+							var responseResult *blob.Blob
 
 							BeforeEach(func() {
-								responseBlob = blobTest.RandomBlob()
-								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, responseBlob, responseHeaders))
+								responseResult = blobTest.RandomBlob()
+								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, responseResult, responseHeaders))
 							})
 
-							It("returns successfully with blob", func() {
-								blb, err := client.Get(ctx, id)
+							It("returns successfully with result", func() {
+								result, err := client.Get(ctx, id)
 								Expect(err).ToNot(HaveOccurred())
-								blobTest.ExpectEqualBlob(blb, responseBlob)
+								blobTest.ExpectEqualBlob(result, responseResult)
 							})
 						})
 					})

@@ -50,12 +50,12 @@ func (c *Client) List(ctx context.Context, userID string, filter *blob.Filter, p
 	}
 
 	url := c.client.ConstructURL("v1", "users", userID, "blobs")
-	blbs := blob.Blobs{}
-	if err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{filter, pagination}, nil, &blbs); err != nil {
+	result := blob.Blobs{}
+	if err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{filter, pagination}, nil, &result); err != nil {
 		return nil, err
 	}
 
-	return blbs, nil
+	return result, nil
 }
 
 func (c *Client) Create(ctx context.Context, userID string, create *blob.Create) (*blob.Blob, error) {
@@ -82,12 +82,12 @@ func (c *Client) Create(ctx context.Context, userID string, create *blob.Create)
 	}
 
 	url := c.client.ConstructURL("v1", "users", userID, "blobs")
-	blb := &blob.Blob{}
-	if err := c.client.RequestData(ctx, http.MethodPost, url, mutators, create.Body, blb); err != nil {
+	result := &blob.Blob{}
+	if err := c.client.RequestData(ctx, http.MethodPost, url, mutators, create.Body, result); err != nil {
 		return nil, err
 	}
 
-	return blb, nil
+	return result, nil
 }
 
 func (c *Client) Get(ctx context.Context, id string) (*blob.Blob, error) {
@@ -101,15 +101,15 @@ func (c *Client) Get(ctx context.Context, id string) (*blob.Blob, error) {
 	}
 
 	url := c.client.ConstructURL("v1", "blobs", id)
-	blb := &blob.Blob{}
-	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, blb); err != nil {
+	result := &blob.Blob{}
+	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, result); err != nil {
 		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
 		}
 		return nil, err
 	}
 
-	return blb, nil
+	return result, nil
 }
 
 func (c *Client) GetContent(ctx context.Context, id string) (*blob.Content, error) {

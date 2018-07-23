@@ -89,7 +89,7 @@ func (s *Session) List(ctx context.Context, userID string, filter *blob.Filter, 
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "filter": filter, "pagination": pagination})
 
-	blbs := blob.Blobs{}
+	result := blob.Blobs{}
 	query := bson.M{
 		"userId": userID,
 	}
@@ -105,14 +105,14 @@ func (s *Session) List(ctx context.Context, userID string, filter *blob.Filter, 
 	} else {
 		query["status"] = blob.StatusAvailable
 	}
-	err := s.C().Find(query).Sort("-createdTime").Skip(pagination.Page * pagination.Size).Limit(pagination.Size).All(&blbs)
+	err := s.C().Find(query).Sort("-createdTime").Skip(pagination.Page * pagination.Size).Limit(pagination.Size).All(&result)
 	if err != nil {
 		logger.WithError(err).Error("Unable to list blobs")
 		return nil, errors.Wrap(err, "unable to list blobs")
 	}
 
-	logger.WithFields(log.Fields{"count": len(blbs), "duration": time.Since(now) / time.Microsecond}).Debug("List")
-	return blbs, nil
+	logger.WithFields(log.Fields{"count": len(result), "duration": time.Since(now) / time.Microsecond}).Debug("List")
+	return result, nil
 }
 
 func (s *Session) Create(ctx context.Context, userID string, create *blobStoreStructured.Create) (*blob.Blob, error) {
@@ -162,13 +162,13 @@ func (s *Session) Create(ctx context.Context, userID string, create *blobStoreSt
 		return nil, errors.Wrap(err, "unable to create blob")
 	}
 
-	blb, err := s.get(logger, id)
+	result, err := s.get(logger, id)
 	if err != nil {
 		return nil, err
 	}
 
 	logger.WithField("duration", time.Since(now)/time.Microsecond).Debug("Create")
-	return blb, nil
+	return result, nil
 }
 
 func (s *Session) Get(ctx context.Context, id string) (*blob.Blob, error) {
@@ -188,13 +188,13 @@ func (s *Session) Get(ctx context.Context, id string) (*blob.Blob, error) {
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithField("id", id)
 
-	blb, err := s.get(logger, id)
+	result, err := s.get(logger, id)
 	if err != nil {
 		return nil, err
 	}
 
 	logger.WithField("duration", time.Since(now)/time.Microsecond).Debug("Get")
-	return blb, nil
+	return result, nil
 }
 
 func (s *Session) Update(ctx context.Context, id string, update *blobStoreStructured.Update) (*blob.Blob, error) {
@@ -245,13 +245,13 @@ func (s *Session) Update(ctx context.Context, id string, update *blobStoreStruct
 		logger = logger.WithField("changeInfo", changeInfo)
 	}
 
-	blb, err := s.get(logger, id)
+	result, err := s.get(logger, id)
 	if err != nil {
 		return nil, err
 	}
 
 	logger.WithField("duration", time.Since(now)/time.Microsecond).Debug("Update")
-	return blb, nil
+	return result, nil
 }
 
 func (s *Session) Delete(ctx context.Context, id string) (bool, error) {
@@ -282,20 +282,20 @@ func (s *Session) Delete(ctx context.Context, id string) (bool, error) {
 }
 
 func (s *Session) get(logger log.Logger, id string) (*blob.Blob, error) {
-	blbs := blob.Blobs{}
-	err := s.C().Find(bson.M{"id": id}).Limit(2).All(&blbs)
+	result := blob.Blobs{}
+	err := s.C().Find(bson.M{"id": id}).Limit(2).All(&result)
 	if err != nil {
 		logger.WithError(err).Error("Unable to get blob")
 		return nil, errors.Wrap(err, "unable to get blob")
 	}
 
-	switch len(blbs) {
+	switch len(result) {
 	case 0:
 		return nil, nil
 	case 1:
-		return blbs[0], nil
+		return result[0], nil
 	default:
 		logger.Error("Multiple blobs found")
-		return blbs[0], nil
+		return result[0], nil
 	}
 }
