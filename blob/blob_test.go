@@ -487,7 +487,7 @@ var _ = Describe("Blob", func() {
 				),
 				Entry("id valid",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						valid := blob.NewID()
+						valid := blobTest.RandomID()
 						object["id"] = valid
 						expectedDatum.ID = pointer.FromString(valid)
 					},
@@ -724,7 +724,7 @@ var _ = Describe("Blob", func() {
 					errorsTest.WithPointerSource(blob.ErrorValueStringAsIDNotValid("invalid"), "/id"),
 				),
 				Entry("id valid",
-					func(datum *blob.Blob) { datum.ID = pointer.FromString(blob.NewID()) },
+					func(datum *blob.Blob) { datum.ID = pointer.FromString(blobTest.RandomID()) },
 				),
 				Entry("user id missing",
 					func(datum *blob.Blob) { datum.UserID = nil },

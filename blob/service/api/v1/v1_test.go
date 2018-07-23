@@ -542,7 +542,7 @@ var _ = Describe("V1", func() {
 				var id string
 
 				BeforeEach(func() {
-					id = blob.NewID()
+					id = blobTest.RandomID()
 				})
 
 				Context("Get", func() {

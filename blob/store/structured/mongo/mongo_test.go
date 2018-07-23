@@ -232,7 +232,7 @@ var _ = Describe("Mongo", func() {
 									randomBlob.MediaType = pointer.FromString(mediaType)
 								}
 								userBlob := blobTest.CloneBlob(randomBlob)
-								userBlob.ID = pointer.FromString(blob.NewID())
+								userBlob.ID = pointer.FromString(blobTest.RandomID())
 								userBlob.UserID = pointer.FromString(userID)
 								allBlobs = append(allBlobs, randomBlob, userBlob)
 							}
@@ -447,7 +447,7 @@ var _ = Describe("Mongo", func() {
 				var id string
 
 				BeforeEach(func() {
-					id = blob.NewID()
+					id = blobTest.RandomID()
 				})
 
 				It("returns an error when the context is missing", func() {
@@ -495,7 +495,7 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("returns nil when the id does not exist", func() {
-						id = blob.NewID()
+						id = blobTest.RandomID()
 						Expect(session.Get(ctx, id)).To(BeNil())
 					})
 
@@ -510,7 +510,7 @@ var _ = Describe("Mongo", func() {
 				var update *blobStoreStructured.Update
 
 				BeforeEach(func() {
-					id = blob.NewID()
+					id = blobTest.RandomID()
 					update = blobStoreStructuredTest.RandomUpdate()
 				})
 
@@ -591,7 +591,7 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("returns nil when the id does not exist", func() {
-						id = blob.NewID()
+						id = blobTest.RandomID()
 						Expect(session.Update(ctx, id, update)).To(BeNil())
 					})
 
@@ -605,7 +605,7 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns nil when the id does not exist", func() {
-							id = blob.NewID()
+							id = blobTest.RandomID()
 							Expect(session.Update(ctx, id, update)).To(BeNil())
 						})
 					})
@@ -616,7 +616,7 @@ var _ = Describe("Mongo", func() {
 				var id string
 
 				BeforeEach(func() {
-					id = blob.NewID()
+					id = blobTest.RandomID()
 				})
 
 				It("returns an error when the context is missing", func() {
@@ -666,7 +666,7 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("returns false when the id does not exist", func() {
-						id = blob.NewID()
+						id = blobTest.RandomID()
 						Expect(session.Delete(ctx, id)).To(BeFalse())
 					})
 				})

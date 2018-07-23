@@ -346,7 +346,7 @@ var _ = Describe("Client", func() {
 			var id string
 
 			BeforeEach(func() {
-				id = blob.NewID()
+				id = blobTest.RandomID()
 			})
 
 			Context("Get", func() {

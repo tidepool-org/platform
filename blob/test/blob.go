@@ -16,6 +16,10 @@ import (
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
+func RandomID() string {
+	return blob.NewID()
+}
+
 func RandomStatuses() []string {
 	return test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, 2, blob.Statuses())
 }
@@ -62,7 +66,7 @@ func RandomContent() *blob.Content {
 
 func RandomBlob() *blob.Blob {
 	datum := &blob.Blob{}
-	datum.ID = pointer.FromString(blob.NewID())
+	datum.ID = pointer.FromString(RandomID())
 	datum.UserID = pointer.FromString(userTest.RandomID())
 	datum.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
 	datum.MediaType = pointer.FromString(netTest.RandomMediaType())
