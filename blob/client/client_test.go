@@ -164,7 +164,7 @@ var _ = Describe("Client", func() {
 
 							When("the server responds with an unauthenticated error", func() {
 								BeforeEach(func() {
-									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusUnauthorized, errors.Serializable{Error: request.ErrorUnauthenticated()}, responseHeaders))
+									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusUnauthorized, errors.NewSerializable(request.ErrorUnauthenticated()), responseHeaders))
 								})
 
 								It("returns an error", func() {
@@ -176,7 +176,7 @@ var _ = Describe("Client", func() {
 
 							When("the server responds with an unauthorized error", func() {
 								BeforeEach(func() {
-									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusForbidden, errors.Serializable{Error: request.ErrorUnauthorized()}, responseHeaders))
+									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusForbidden, errors.NewSerializable(request.ErrorUnauthorized()), responseHeaders))
 								})
 
 								It("returns an error", func() {
@@ -188,7 +188,7 @@ var _ = Describe("Client", func() {
 
 							When("the server responds with a user not found error", func() {
 								BeforeEach(func() {
-									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNotFound, errors.Serializable{Error: request.ErrorResourceNotFoundWithID(userID)}, responseHeaders))
+									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNotFound, errors.NewSerializable(request.ErrorResourceNotFoundWithID(userID)), responseHeaders))
 								})
 
 								It("returns an error", func() {
@@ -321,7 +321,7 @@ var _ = Describe("Client", func() {
 
 							When("the server responds with an unauthenticated error", func() {
 								BeforeEach(func() {
-									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusUnauthorized, errors.Serializable{Error: request.ErrorUnauthenticated()}, responseHeaders))
+									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusUnauthorized, errors.NewSerializable(request.ErrorUnauthenticated()), responseHeaders))
 								})
 
 								It("returns an error", func() {
@@ -333,7 +333,7 @@ var _ = Describe("Client", func() {
 
 							When("the server responds with an unauthorized error", func() {
 								BeforeEach(func() {
-									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusForbidden, errors.Serializable{Error: request.ErrorUnauthorized()}, responseHeaders))
+									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusForbidden, errors.NewSerializable(request.ErrorUnauthorized()), responseHeaders))
 								})
 
 								It("returns an error", func() {
@@ -345,7 +345,7 @@ var _ = Describe("Client", func() {
 
 							When("the server responds with a user not found error", func() {
 								BeforeEach(func() {
-									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNotFound, errors.Serializable{Error: request.ErrorResourceNotFoundWithID(userID)}, responseHeaders))
+									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNotFound, errors.NewSerializable(request.ErrorResourceNotFoundWithID(userID)), responseHeaders))
 								})
 
 								It("returns an error", func() {
@@ -436,7 +436,7 @@ var _ = Describe("Client", func() {
 
 						When("the server responds with an unauthenticated error", func() {
 							BeforeEach(func() {
-								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusUnauthorized, errors.Serializable{Error: request.ErrorUnauthenticated()}, responseHeaders))
+								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusUnauthorized, errors.NewSerializable(request.ErrorUnauthenticated()), responseHeaders))
 							})
 
 							It("returns an error", func() {
@@ -448,7 +448,7 @@ var _ = Describe("Client", func() {
 
 						When("the server responds with an unauthorized error", func() {
 							BeforeEach(func() {
-								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusForbidden, errors.Serializable{Error: request.ErrorUnauthorized()}, responseHeaders))
+								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusForbidden, errors.NewSerializable(request.ErrorUnauthorized()), responseHeaders))
 							})
 
 							It("returns an error", func() {
@@ -460,7 +460,7 @@ var _ = Describe("Client", func() {
 
 						When("the server responds with a not found error", func() {
 							BeforeEach(func() {
-								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNotFound, errors.Serializable{Error: request.ErrorResourceNotFoundWithID(id)}, responseHeaders))
+								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNotFound, errors.NewSerializable(request.ErrorResourceNotFoundWithID(id)), responseHeaders))
 							})
 
 							It("returns successfully without blob", func() {
@@ -526,7 +526,7 @@ var _ = Describe("Client", func() {
 
 						When("the server responds with an unauthenticated error", func() {
 							BeforeEach(func() {
-								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusUnauthorized, errors.Serializable{Error: request.ErrorUnauthenticated()}, responseHeaders))
+								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusUnauthorized, errors.NewSerializable(request.ErrorUnauthenticated()), responseHeaders))
 							})
 
 							It("returns an error", func() {
@@ -538,7 +538,7 @@ var _ = Describe("Client", func() {
 
 						When("the server responds with an unauthorized error", func() {
 							BeforeEach(func() {
-								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusForbidden, errors.Serializable{Error: request.ErrorUnauthorized()}, responseHeaders))
+								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusForbidden, errors.NewSerializable(request.ErrorUnauthorized()), responseHeaders))
 							})
 
 							It("returns an error", func() {
@@ -550,7 +550,7 @@ var _ = Describe("Client", func() {
 
 						When("the server responds with a not found error", func() {
 							BeforeEach(func() {
-								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNotFound, errors.Serializable{Error: request.ErrorResourceNotFoundWithID(id)}, responseHeaders))
+								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNotFound, errors.NewSerializable(request.ErrorResourceNotFoundWithID(id)), responseHeaders))
 							})
 
 							It("returns an error", func() {
@@ -665,7 +665,7 @@ var _ = Describe("Client", func() {
 
 						When("the server responds with an unauthenticated error", func() {
 							BeforeEach(func() {
-								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusUnauthorized, errors.Serializable{Error: request.ErrorUnauthenticated()}, responseHeaders))
+								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusUnauthorized, errors.NewSerializable(request.ErrorUnauthenticated()), responseHeaders))
 							})
 
 							It("returns an error", func() {
@@ -677,7 +677,7 @@ var _ = Describe("Client", func() {
 
 						When("the server responds with an unauthorized error", func() {
 							BeforeEach(func() {
-								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusForbidden, errors.Serializable{Error: request.ErrorUnauthorized()}, responseHeaders))
+								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusForbidden, errors.NewSerializable(request.ErrorUnauthorized()), responseHeaders))
 							})
 
 							It("returns an error", func() {
@@ -689,7 +689,7 @@ var _ = Describe("Client", func() {
 
 						When("the server responds with a not found error", func() {
 							BeforeEach(func() {
-								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNotFound, errors.Serializable{Error: request.ErrorResourceNotFoundWithID(id)}, responseHeaders))
+								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNotFound, errors.NewSerializable(request.ErrorResourceNotFoundWithID(id)), responseHeaders))
 							})
 
 							It("returns successfully with delete false", func() {

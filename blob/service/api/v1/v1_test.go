@@ -229,7 +229,7 @@ var _ = Describe("V1", func() {
 								})
 
 								It("responds with an internal server error when the client returns an unknown error", func() {
-									client.ListOutputs = []blobTest.ListOutput{{Blobs: nil, Error: errorsTest.NewError()}}
+									client.ListOutputs = []blobTest.ListOutput{{Blobs: nil, Error: errorsTest.RandomError()}}
 									res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 									handlerFunc(res, req)
 									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusInternalServerError}))
@@ -478,7 +478,7 @@ var _ = Describe("V1", func() {
 									})
 
 									It("responds with an internal server error when the client returns an unknown error", func() {
-										client.CreateOutputs = []blobTest.CreateOutput{{Blob: nil, Error: errorsTest.NewError()}}
+										client.CreateOutputs = []blobTest.CreateOutput{{Blob: nil, Error: errorsTest.RandomError()}}
 										res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 										handlerFunc(res, req)
 										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusInternalServerError}))
@@ -601,7 +601,7 @@ var _ = Describe("V1", func() {
 							})
 
 							It("responds with an internal server error when the client returns an unknown error", func() {
-								client.GetOutputs = []blobTest.GetOutput{{Blob: nil, Error: errorsTest.NewError()}}
+								client.GetOutputs = []blobTest.GetOutput{{Blob: nil, Error: errorsTest.RandomError()}}
 								res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 								handlerFunc(res, req)
 								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusInternalServerError}))
@@ -699,7 +699,7 @@ var _ = Describe("V1", func() {
 						})
 
 						It("responds with an internal server error when the client returns an unknown error", func() {
-							client.GetContentOutputs = []blobTest.GetContentOutput{{Content: nil, Error: errorsTest.NewError()}}
+							client.GetContentOutputs = []blobTest.GetContentOutput{{Content: nil, Error: errorsTest.RandomError()}}
 							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 							handlerFunc(res, req)
 							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusInternalServerError}))
@@ -804,7 +804,7 @@ var _ = Describe("V1", func() {
 						})
 
 						It("responds with an internal server error when the client returns an unknown error", func() {
-							client.DeleteOutputs = []blobTest.DeleteOutput{{Deleted: false, Error: errorsTest.NewError()}}
+							client.DeleteOutputs = []blobTest.DeleteOutput{{Deleted: false, Error: errorsTest.RandomError()}}
 							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 							handlerFunc(res, req)
 							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusInternalServerError}))

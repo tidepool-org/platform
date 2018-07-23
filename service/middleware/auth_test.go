@@ -122,7 +122,7 @@ var _ = Describe("Auth", func() {
 				})
 
 				It("does not set the server session token if error", func() {
-					authClient.ServerSessionTokenOutputs = []testAuth.ServerSessionTokenOutput{{Token: serverSessionToken, Error: testErrors.NewError()}}
+					authClient.ServerSessionTokenOutputs = []testAuth.ServerSessionTokenOutput{{Token: serverSessionToken, Error: testErrors.RandomError()}}
 					handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
 						Expect(auth.ServerSessionTokenFromContext(req.Context())).To(BeEmpty())
 					}
@@ -239,7 +239,7 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns successfully with no details if access token is not valid", func() {
-						authClient.ValidateSessionTokenOutputs = []testAuth.ValidateSessionTokenOutput{{Details: nil, Error: testErrors.NewError()}}
+						authClient.ValidateSessionTokenOutputs = []testAuth.ValidateSessionTokenOutput{{Details: nil, Error: testErrors.RandomError()}}
 						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
 							details := request.DetailsFromContext(req.Context())
 							Expect(details).To(BeNil())
@@ -314,7 +314,7 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns successfully with no details if session token is not valid", func() {
-						authClient.ValidateSessionTokenOutputs = []testAuth.ValidateSessionTokenOutput{{Details: nil, Error: testErrors.NewError()}}
+						authClient.ValidateSessionTokenOutputs = []testAuth.ValidateSessionTokenOutput{{Details: nil, Error: testErrors.RandomError()}}
 						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
 							details := request.DetailsFromContext(req.Context())
 							Expect(details).To(BeNil())
@@ -375,7 +375,7 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns successfully with no details if restricted token is not valid", func() {
-						authClient.GetRestrictedTokenOutputs = []testAuth.GetRestrictedTokenOutput{{RestrictedToken: nil, Error: testErrors.NewError()}}
+						authClient.GetRestrictedTokenOutputs = []testAuth.GetRestrictedTokenOutput{{RestrictedToken: nil, Error: testErrors.RandomError()}}
 						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
 							details := request.DetailsFromContext(req.Context())
 							Expect(details).To(BeNil())

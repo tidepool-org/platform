@@ -282,7 +282,7 @@ func (t *TaskRunner) updateDataSourceWithLastImportTime() error {
 func (t *TaskRunner) updateDataSourceWithError(err error) error {
 	dataSourceUpdate := data.NewDataSourceUpdate()
 	dataSourceUpdate.State = pointer.FromString(data.DataSourceStateError)
-	dataSourceUpdate.Error = &errors.Serializable{Error: err}
+	dataSourceUpdate.Error = errors.NewSerializable(err)
 	return t.updateDataSource(dataSourceUpdate)
 }
 
