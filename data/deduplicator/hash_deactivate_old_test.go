@@ -18,7 +18,7 @@ import (
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/user"
+	userTest "github.com/tidepool-org/platform/user/test"
 )
 
 var _ = Describe("HashDeactivateOld", func() {
@@ -40,7 +40,7 @@ var _ = Describe("HashDeactivateOld", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testFactory).ToNot(BeNil())
 			testUploadID = data.NewSetID()
-			testUserID = user.NewID()
+			testUserID = userTest.RandomID()
 			testDataSet = upload.New()
 			Expect(testDataSet).ToNot(BeNil())
 			testDataSet.UploadID = &testUploadID
@@ -374,29 +374,29 @@ var _ = Describe("HashDeactivateOld", func() {
 					})
 
 					It("returns an error if any datum returns an error getting identity fields", func() {
-						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{user.NewID(), testData.NewDeviceID()}, Error: nil}}
+						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{userTest.RandomID(), testData.NewDeviceID()}, Error: nil}}
 						testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: nil, Error: errors.New("test error")}}
 						err := testDeduplicator.AddDataSetData(ctx, testDataSetData)
 						Expect(err).To(MatchError("unable to gather identity fields for datum; test error"))
 					})
 
 					It("returns an error if any datum returns no identity fields", func() {
-						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{user.NewID(), testData.NewDeviceID()}, Error: nil}}
+						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{userTest.RandomID(), testData.NewDeviceID()}, Error: nil}}
 						testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: nil, Error: nil}}
 						err := testDeduplicator.AddDataSetData(ctx, testDataSetData)
 						Expect(err).To(MatchError("unable to generate identity hash for datum; identity fields are missing"))
 					})
 
 					It("returns an error if any datum returns empty identity fields", func() {
-						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{user.NewID(), testData.NewDeviceID()}, Error: nil}}
+						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{userTest.RandomID(), testData.NewDeviceID()}, Error: nil}}
 						testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{}, Error: nil}}
 						err := testDeduplicator.AddDataSetData(ctx, testDataSetData)
 						Expect(err).To(MatchError("unable to generate identity hash for datum; identity fields are missing"))
 					})
 
 					It("returns an error if any datum returns any empty identity fields", func() {
-						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{user.NewID(), testData.NewDeviceID()}, Error: nil}}
-						testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{user.NewID(), ""}, Error: nil}}
+						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{userTest.RandomID(), testData.NewDeviceID()}, Error: nil}}
+						testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{userTest.RandomID(), ""}, Error: nil}}
 						err := testDeduplicator.AddDataSetData(ctx, testDataSetData)
 						Expect(err).To(MatchError("unable to generate identity hash for datum; identity field is empty"))
 					})

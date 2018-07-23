@@ -29,7 +29,7 @@ import (
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/test"
 	testHttp "github.com/tidepool-org/platform/test/http"
-	"github.com/tidepool-org/platform/user"
+	userTest "github.com/tidepool-org/platform/user/test"
 )
 
 var _ = Describe("Client", func() {
@@ -102,7 +102,7 @@ var _ = Describe("Client", func() {
 				var userID string
 
 				BeforeEach(func() {
-					userID = user.NewID()
+					userID = userTest.RandomID()
 				})
 
 				Context("List", func() {
@@ -730,7 +730,7 @@ var _ = Describe("Client", func() {
 				sessionToken := authTest.NewSessionToken()
 				authorizeAs = platform.AuthorizeAsUser
 				requestHandlers = append(requestHandlers, VerifyHeaderKV("X-Tidepool-Session-Token", sessionToken))
-				ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodAccessToken, user.NewID(), sessionToken))
+				ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodAccessToken, userTest.RandomID(), sessionToken))
 			})
 
 			clientAssertions()

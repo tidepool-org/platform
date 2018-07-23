@@ -1,5 +1,6 @@
 ## HEAD
 
+* Replace user.NewID with userTest.RandomID in tests
 * Add EnsureAuthorized to user client
 * Add EachUsing to string array structure validator
 * Add dump users tool

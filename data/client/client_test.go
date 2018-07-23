@@ -16,7 +16,7 @@ import (
 	logNull "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/platform"
 	testHTTP "github.com/tidepool-org/platform/test/http"
-	"github.com/tidepool-org/platform/user"
+	userTest "github.com/tidepool-org/platform/user/test"
 )
 
 var _ = Describe("Client", func() {
@@ -87,7 +87,7 @@ var _ = Describe("Client", func() {
 			var userID string
 
 			BeforeEach(func() {
-				userID = user.NewID()
+				userID = userTest.RandomID()
 			})
 
 			It("returns error if context is missing", func() {

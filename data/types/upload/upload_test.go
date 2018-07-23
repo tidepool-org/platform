@@ -17,7 +17,7 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 	testInternet "github.com/tidepool-org/platform/test/internet"
-	"github.com/tidepool-org/platform/user"
+	userTest "github.com/tidepool-org/platform/user/test"
 )
 
 func NewMeta() interface{} {
@@ -30,7 +30,7 @@ func NewUpload() *upload.Upload {
 	datum := upload.New()
 	datum.Base = *testDataTypes.NewBase()
 	datum.Type = "upload"
-	datum.ByUser = pointer.FromString(user.NewID())
+	datum.ByUser = pointer.FromString(userTest.RandomID())
 	datum.Client = NewClient()
 	datum.ComputerTime = pointer.FromString(test.NewTime().Format("2006-01-02T15:04:05"))
 	datum.DataSetType = pointer.FromString(test.RandomStringFromArray(upload.DataSetTypes()))
@@ -194,7 +194,7 @@ var _ = Describe("Upload", func() {
 					structure.Origins(),
 				),
 				Entry("by user exists",
-					func(datum *upload.Upload) { datum.ByUser = pointer.FromString(user.NewID()) },
+					func(datum *upload.Upload) { datum.ByUser = pointer.FromString(userTest.RandomID()) },
 					structure.Origins(),
 				),
 				Entry("client missing",

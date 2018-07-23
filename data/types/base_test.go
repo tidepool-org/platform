@@ -1,12 +1,11 @@
 package types_test
 
 import (
-	"sort"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
+	"sort"
 	"time"
 
 	"github.com/tidepool-org/platform/data"
@@ -26,6 +25,7 @@ import (
 	"github.com/tidepool-org/platform/time/zone"
 	testTimeZone "github.com/tidepool-org/platform/time/zone/test"
 	"github.com/tidepool-org/platform/user"
+	userTest "github.com/tidepool-org/platform/user/test"
 )
 
 var futureTime = time.Unix(4102444800, 0)
@@ -239,7 +239,7 @@ var _ = Describe("Base", func() {
 					testErrors.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/createdUserId"),
 				),
 				Entry("created user id valid",
-					func(datum *types.Base) { datum.CreatedUserID = pointer.FromString(user.NewID()) },
+					func(datum *types.Base) { datum.CreatedUserID = pointer.FromString(userTest.RandomID()) },
 					structure.Origins(),
 				),
 				Entry("created time missing; created user id missing",
@@ -253,7 +253,7 @@ var _ = Describe("Base", func() {
 				Entry("created time missing; created user id exists",
 					func(datum *types.Base) {
 						datum.CreatedTime = nil
-						datum.CreatedUserID = pointer.FromString(user.NewID())
+						datum.CreatedUserID = pointer.FromString(userTest.RandomID())
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/createdTime"),
@@ -292,7 +292,7 @@ var _ = Describe("Base", func() {
 					testErrors.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/deletedUserId"),
 				),
 				Entry("deleted user id valid",
-					func(datum *types.Base) { datum.DeletedUserID = pointer.FromString(user.NewID()) },
+					func(datum *types.Base) { datum.DeletedUserID = pointer.FromString(userTest.RandomID()) },
 					structure.Origins(),
 				),
 				Entry("deleted time missing; deleted user id missing",
@@ -305,7 +305,7 @@ var _ = Describe("Base", func() {
 				Entry("deleted time missing; deleted user id exists",
 					func(datum *types.Base) {
 						datum.DeletedTime = nil
-						datum.DeletedUserID = pointer.FromString(user.NewID())
+						datum.DeletedUserID = pointer.FromString(userTest.RandomID())
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/deletedUserId"),
@@ -447,7 +447,7 @@ var _ = Describe("Base", func() {
 					testErrors.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/modifiedUserId"),
 				),
 				Entry("modified user id valid",
-					func(datum *types.Base) { datum.ModifiedUserID = pointer.FromString(user.NewID()) },
+					func(datum *types.Base) { datum.ModifiedUserID = pointer.FromString(userTest.RandomID()) },
 					structure.Origins(),
 				),
 				Entry("modified time missing; modified user id missing",
@@ -464,7 +464,7 @@ var _ = Describe("Base", func() {
 						datum.ArchivedTime = nil
 						datum.ArchivedDataSetID = nil
 						datum.ModifiedTime = nil
-						datum.ModifiedUserID = pointer.FromString(user.NewID())
+						datum.ModifiedUserID = pointer.FromString(userTest.RandomID())
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/modifiedUserId"),
@@ -482,7 +482,7 @@ var _ = Describe("Base", func() {
 					func(datum *types.Base) {
 						datum.ArchivedTime = datum.ModifiedTime
 						datum.ModifiedTime = nil
-						datum.ModifiedUserID = pointer.FromString(user.NewID())
+						datum.ModifiedUserID = pointer.FromString(userTest.RandomID())
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/modifiedTime"),
@@ -759,7 +759,7 @@ var _ = Describe("Base", func() {
 					testErrors.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/_userId"),
 				),
 				Entry("user id valid",
-					func(datum *types.Base) { datum.UserID = pointer.FromString(user.NewID()) },
+					func(datum *types.Base) { datum.UserID = pointer.FromString(userTest.RandomID()) },
 					structure.Origins(),
 				),
 				Entry("version; out of range (lower)",
@@ -1027,7 +1027,7 @@ var _ = Describe("Base", func() {
 
 		Context("SetUserID", func() {
 			It("sets the user id", func() {
-				userID := pointer.FromString(user.NewID())
+				userID := pointer.FromString(userTest.RandomID())
 				datum.SetUserID(userID)
 				Expect(datum.UserID).To(Equal(userID))
 			})
@@ -1071,7 +1071,7 @@ var _ = Describe("Base", func() {
 
 		Context("SetCreatedUserID", func() {
 			It("sets the created user id", func() {
-				createdUserID := pointer.FromString(user.NewID())
+				createdUserID := pointer.FromString(userTest.RandomID())
 				datum.SetCreatedUserID(createdUserID)
 				Expect(datum.CreatedUserID).To(Equal(createdUserID))
 			})
@@ -1087,7 +1087,7 @@ var _ = Describe("Base", func() {
 
 		Context("SetModifiedUserID", func() {
 			It("sets the modified user id", func() {
-				modifiedUserID := pointer.FromString(user.NewID())
+				modifiedUserID := pointer.FromString(userTest.RandomID())
 				datum.SetModifiedUserID(modifiedUserID)
 				Expect(datum.ModifiedUserID).To(Equal(modifiedUserID))
 			})
@@ -1103,7 +1103,7 @@ var _ = Describe("Base", func() {
 
 		Context("SetDeletedUserID", func() {
 			It("sets the deleted user id", func() {
-				deletedUserID := pointer.FromString(user.NewID())
+				deletedUserID := pointer.FromString(userTest.RandomID())
 				datum.SetDeletedUserID(deletedUserID)
 				Expect(datum.DeletedUserID).To(Equal(deletedUserID))
 			})

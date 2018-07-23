@@ -27,7 +27,7 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
-	"github.com/tidepool-org/platform/user"
+	userTest "github.com/tidepool-org/platform/user/test"
 )
 
 type CreatedTimeDescending blob.Blobs
@@ -161,7 +161,7 @@ var _ = Describe("Mongo", func() {
 				var userID string
 
 				BeforeEach(func() {
-					userID = user.NewID()
+					userID = userTest.RandomID()
 				})
 
 				Context("List", func() {
@@ -241,7 +241,7 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns no blobs when the user id is unknown", func() {
-							userID = user.NewID()
+							userID = userTest.RandomID()
 							Expect(session.List(ctx, userID, filter, pagination)).To(SatisfyAll(Not(BeNil()), BeEmpty()))
 							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 0})
 						})

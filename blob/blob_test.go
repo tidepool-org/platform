@@ -26,6 +26,7 @@ import (
 	"github.com/tidepool-org/platform/test"
 	testHttp "github.com/tidepool-org/platform/test/http"
 	"github.com/tidepool-org/platform/user"
+	userTest "github.com/tidepool-org/platform/user/test"
 )
 
 var futureTime = time.Unix(4102444800, 0)
@@ -512,7 +513,7 @@ var _ = Describe("Blob", func() {
 				),
 				Entry("user id valid",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						valid := user.NewID()
+						valid := userTest.RandomID()
 						object["userId"] = valid
 						expectedDatum.UserID = pointer.FromString(valid)
 					},
@@ -738,7 +739,7 @@ var _ = Describe("Blob", func() {
 					errorsTest.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/userId"),
 				),
 				Entry("user id valid",
-					func(datum *blob.Blob) { datum.UserID = pointer.FromString(user.NewID()) },
+					func(datum *blob.Blob) { datum.UserID = pointer.FromString(userTest.RandomID()) },
 				),
 				Entry("digest MD5 missing",
 					func(datum *blob.Blob) { datum.DigestMD5 = nil },

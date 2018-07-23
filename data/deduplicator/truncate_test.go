@@ -17,7 +17,7 @@ import (
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/user"
+	userTest "github.com/tidepool-org/platform/user/test"
 )
 
 var _ = Describe("Truncate", func() {
@@ -39,7 +39,7 @@ var _ = Describe("Truncate", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testFactory).ToNot(BeNil())
 			testUploadID = data.NewSetID()
-			testUserID = user.NewID()
+			testUserID = userTest.RandomID()
 			testDataSet = upload.New()
 			Expect(testDataSet).ToNot(BeNil())
 			testDataSet.UploadID = &testUploadID

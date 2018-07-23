@@ -34,7 +34,7 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 	testRest "github.com/tidepool-org/platform/test/rest"
-	"github.com/tidepool-org/platform/user"
+	userTest "github.com/tidepool-org/platform/user/test"
 )
 
 var _ = Describe("V1", func() {
@@ -111,7 +111,7 @@ var _ = Describe("V1", func() {
 				var userID string
 
 				BeforeEach(func() {
-					userID = user.NewID()
+					userID = userTest.RandomID()
 				})
 
 				Context("List", func() {

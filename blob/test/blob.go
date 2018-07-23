@@ -13,7 +13,7 @@ import (
 	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
-	"github.com/tidepool-org/platform/user"
+	userTest "github.com/tidepool-org/platform/user/test"
 )
 
 func RandomStatuses() []string {
@@ -63,7 +63,7 @@ func RandomContent() *blob.Content {
 func RandomBlob() *blob.Blob {
 	datum := &blob.Blob{}
 	datum.ID = pointer.FromString(blob.NewID())
-	datum.UserID = pointer.FromString(user.NewID())
+	datum.UserID = pointer.FromString(userTest.RandomID())
 	datum.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
 	datum.MediaType = pointer.FromString(netTest.RandomMediaType())
 	datum.Size = pointer.FromInt(test.RandomIntFromRange(1, 100*1024*1024))

@@ -12,7 +12,7 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
 	testTimeZone "github.com/tidepool-org/platform/time/zone/test"
-	"github.com/tidepool-org/platform/user"
+	userTest "github.com/tidepool-org/platform/user/test"
 )
 
 func NewBase() *types.Base {
@@ -30,17 +30,17 @@ func NewBase() *types.Base {
 	datum.ClockDriftOffset = pointer.FromInt(NewClockDriftOffset())
 	datum.ConversionOffset = pointer.FromInt(NewConversionOffset())
 	datum.CreatedTime = pointer.FromString(createdTime.Format(time.RFC3339))
-	datum.CreatedUserID = pointer.FromString(user.NewID())
+	datum.CreatedUserID = pointer.FromString(userTest.RandomID())
 	datum.Deduplicator = testData.NewDeduplicatorDescriptor()
 	datum.DeletedTime = pointer.FromString(deletedTime.Format(time.RFC3339))
-	datum.DeletedUserID = pointer.FromString(user.NewID())
+	datum.DeletedUserID = pointer.FromString(userTest.RandomID())
 	datum.DeviceID = pointer.FromString(testData.NewDeviceID())
 	datum.DeviceTime = pointer.FromString(test.NewTime().Format("2006-01-02T15:04:05"))
 	datum.GUID = pointer.FromString(data.NewID())
 	datum.ID = pointer.FromString(data.NewID())
 	datum.Location = testDataTypesCommonLocation.NewLocation()
 	datum.ModifiedTime = pointer.FromString(modifiedTime.Format(time.RFC3339))
-	datum.ModifiedUserID = pointer.FromString(user.NewID())
+	datum.ModifiedUserID = pointer.FromString(userTest.RandomID())
 	datum.Notes = pointer.FromStringArray([]string{NewNote(1, 20), NewNote(1, 20)})
 	datum.Origin = testDataTypesCommonOrigin.NewOrigin()
 	datum.Payload = testData.NewBlob()
@@ -52,7 +52,7 @@ func NewBase() *types.Base {
 	datum.TimeZoneOffset = pointer.FromInt(NewTimeZoneOffset())
 	datum.Type = NewType()
 	datum.UploadID = pointer.FromString(data.NewSetID())
-	datum.UserID = pointer.FromString(user.NewID())
+	datum.UserID = pointer.FromString(userTest.RandomID())
 	datum.Version = NewVersion()
 	return datum
 }

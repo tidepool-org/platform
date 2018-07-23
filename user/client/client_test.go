@@ -20,6 +20,7 @@ import (
 	testHttp "github.com/tidepool-org/platform/test/http"
 	"github.com/tidepool-org/platform/user"
 	userClient "github.com/tidepool-org/platform/user/client"
+	userTest "github.com/tidepool-org/platform/user/test"
 )
 
 var _ = Describe("Client", func() {
@@ -111,7 +112,7 @@ var _ = Describe("Client", func() {
 				})
 
 				It("returns successfully when the details are for a user", func() {
-					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, user.NewID(), sessionToken))
+					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, userTest.RandomID(), sessionToken))
 					Expect(client.EnsureAuthorized(ctx)).To(Succeed())
 				})
 
@@ -138,7 +139,7 @@ var _ = Describe("Client", func() {
 				})
 
 				It("returns an error when the details are for not a service", func() {
-					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, user.NewID(), sessionToken))
+					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, userTest.RandomID(), sessionToken))
 					errorsTest.ExpectEqual(client.EnsureAuthorizedService(ctx), request.ErrorUnauthorized())
 				})
 
@@ -154,8 +155,8 @@ var _ = Describe("Client", func() {
 			var permission string
 
 			BeforeEach(func() {
-				requestUserID = user.NewID()
-				targetUserID = user.NewID()
+				requestUserID = userTest.RandomID()
+				targetUserID = userTest.RandomID()
 				details = request.NewDetails(request.MethodSessionToken, requestUserID, sessionToken)
 				permission = test.RandomStringFromArray([]string{user.UploadPermission, user.ViewPermission})
 			})
@@ -325,8 +326,8 @@ var _ = Describe("Client", func() {
 			var targetUserID string
 
 			BeforeEach(func() {
-				requestUserID = user.NewID()
-				targetUserID = user.NewID()
+				requestUserID = userTest.RandomID()
+				targetUserID = userTest.RandomID()
 			})
 
 			Context("without server response", func() {

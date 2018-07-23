@@ -93,7 +93,7 @@ var _ = Describe("Client", func() {
 			var userID string
 
 			BeforeEach(func() {
-				userID = user.NewID()
+				userID = userTest.RandomID()
 			})
 
 			Context("List", func() {
@@ -165,7 +165,7 @@ var _ = Describe("Client", func() {
 
 				When("user client ensure authorized user returns successfully", func() {
 					BeforeEach(func() {
-						userClient.EnsureAuthorizedUserOutputs = []userTest.EnsureAuthorizedUserOutput{{AuthorizedUserID: user.NewID(), Error: nil}}
+						userClient.EnsureAuthorizedUserOutputs = []userTest.EnsureAuthorizedUserOutput{{AuthorizedUserID: userTest.RandomID(), Error: nil}}
 					})
 
 					It("returns an error if create is missing", func() {
