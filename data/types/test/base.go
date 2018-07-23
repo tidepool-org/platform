@@ -3,7 +3,7 @@ package test
 import (
 	"time"
 
-	"github.com/tidepool-org/platform/data"
+	dataTest "github.com/tidepool-org/platform/data/test"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
 	testDataTypesCommonAssociation "github.com/tidepool-org/platform/data/types/common/association/test"
@@ -25,7 +25,7 @@ func NewBase() *types.Base {
 	datum.Active = false
 	datum.Annotations = testData.NewBlobArray()
 	datum.Associations = testDataTypesCommonAssociation.NewAssociationArray()
-	datum.ArchivedDataSetID = pointer.FromString(data.NewSetID())
+	datum.ArchivedDataSetID = pointer.FromString(dataTest.RandomSetID())
 	datum.ArchivedTime = pointer.FromString(archivedTime.Format(time.RFC3339))
 	datum.ClockDriftOffset = pointer.FromInt(NewClockDriftOffset())
 	datum.ConversionOffset = pointer.FromInt(NewConversionOffset())
@@ -36,8 +36,8 @@ func NewBase() *types.Base {
 	datum.DeletedUserID = pointer.FromString(userTest.RandomID())
 	datum.DeviceID = pointer.FromString(testData.NewDeviceID())
 	datum.DeviceTime = pointer.FromString(test.NewTime().Format("2006-01-02T15:04:05"))
-	datum.GUID = pointer.FromString(data.NewID())
-	datum.ID = pointer.FromString(data.NewID())
+	datum.GUID = pointer.FromString(dataTest.RandomID())
+	datum.ID = pointer.FromString(dataTest.RandomID())
 	datum.Location = testDataTypesCommonLocation.NewLocation()
 	datum.ModifiedTime = pointer.FromString(modifiedTime.Format(time.RFC3339))
 	datum.ModifiedUserID = pointer.FromString(userTest.RandomID())
@@ -51,7 +51,7 @@ func NewBase() *types.Base {
 	datum.TimeZoneName = pointer.FromString(testTimeZone.NewName())
 	datum.TimeZoneOffset = pointer.FromInt(NewTimeZoneOffset())
 	datum.Type = NewType()
-	datum.UploadID = pointer.FromString(data.NewSetID())
+	datum.UploadID = pointer.FromString(dataTest.RandomSetID())
 	datum.UserID = pointer.FromString(userTest.RandomID())
 	datum.Version = NewVersion()
 	return datum

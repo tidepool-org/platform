@@ -1,5 +1,6 @@
 ## HEAD
 
+* Replace data.NewID with dataTest.RandomID in tests
 * Rename various to more generic form in blob service
 * Cleanup blob service and tests
 * Replace blob.NewID with blobTest.RandomID in tests

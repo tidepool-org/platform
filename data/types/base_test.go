@@ -10,6 +10,7 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
+	dataTest "github.com/tidepool-org/platform/data/test"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
 	testDataTypesCommonAssociation "github.com/tidepool-org/platform/data/types/common/association/test"
@@ -147,7 +148,7 @@ var _ = Describe("Base", func() {
 					testErrors.WithPointerSource(data.ErrorValueStringAsSetIDNotValid("invalid"), "/archivedDatasetId"),
 				),
 				Entry("archived data set id valid",
-					func(datum *types.Base) { datum.ArchivedDataSetID = pointer.FromString(data.NewSetID()) },
+					func(datum *types.Base) { datum.ArchivedDataSetID = pointer.FromString(dataTest.RandomSetID()) },
 					structure.Origins(),
 				),
 				Entry("archived time missing; archived data set id missing",
@@ -159,7 +160,7 @@ var _ = Describe("Base", func() {
 				),
 				Entry("archived time missing; archived data set id exists",
 					func(datum *types.Base) {
-						datum.ArchivedDataSetID = pointer.FromString(data.NewSetID())
+						datum.ArchivedDataSetID = pointer.FromString(dataTest.RandomSetID())
 						datum.ArchivedTime = nil
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
@@ -413,7 +414,7 @@ var _ = Describe("Base", func() {
 					testErrors.WithPointerSource(data.ErrorValueStringAsIDNotValid("invalid"), "/id"),
 				),
 				Entry("id valid",
-					func(datum *types.Base) { datum.ID = pointer.FromString(data.NewID()) },
+					func(datum *types.Base) { datum.ID = pointer.FromString(dataTest.RandomID()) },
 					structure.Origins(),
 				),
 				Entry("location missing",
@@ -740,7 +741,7 @@ var _ = Describe("Base", func() {
 					testErrors.WithPointerSource(data.ErrorValueStringAsSetIDNotValid("invalid"), "/uploadId"),
 				),
 				Entry("upload id valid",
-					func(datum *types.Base) { datum.UploadID = pointer.FromString(data.NewSetID()) },
+					func(datum *types.Base) { datum.UploadID = pointer.FromString(dataTest.RandomSetID()) },
 					structure.Origins(),
 				),
 				Entry("user id missing",
@@ -1035,7 +1036,7 @@ var _ = Describe("Base", func() {
 
 		Context("SetDataSetID", func() {
 			It("sets the data set id", func() {
-				dataSetID := pointer.FromString(data.NewSetID())
+				dataSetID := pointer.FromString(dataTest.RandomSetID())
 				datum.SetDataSetID(dataSetID)
 				Expect(datum.UploadID).To(Equal(dataSetID))
 			})

@@ -13,7 +13,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	testDataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED/test"
-	testData "github.com/tidepool-org/platform/data/test"
+	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/log/null"
@@ -39,13 +39,13 @@ var _ = Describe("HashDeactivateOld", func() {
 			testFactory, err = deduplicator.NewHashDeactivateOldFactory()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testFactory).ToNot(BeNil())
-			testUploadID = data.NewSetID()
+			testUploadID = dataTest.RandomSetID()
 			testUserID = userTest.RandomID()
 			testDataSet = upload.New()
 			Expect(testDataSet).ToNot(BeNil())
 			testDataSet.UploadID = &testUploadID
 			testDataSet.UserID = &testUserID
-			testDataSet.DeviceID = pointer.FromString(testData.NewDeviceID())
+			testDataSet.DeviceID = pointer.FromString(dataTest.NewDeviceID())
 			testDataSet.DeviceManufacturers = &[]string{"Medtronic"}
 			testDataSet.DeviceModel = pointer.FromString("523")
 		})
@@ -340,7 +340,7 @@ var _ = Describe("HashDeactivateOld", func() {
 			Context("with a context and new deduplicator", func() {
 				var ctx context.Context
 				var testDeduplicator data.Deduplicator
-				var testDataData []*testData.Datum
+				var testDataData []*dataTest.Datum
 				var testDataSetData []data.Datum
 
 				BeforeEach(func() {
@@ -349,10 +349,10 @@ var _ = Describe("HashDeactivateOld", func() {
 					testDeduplicator, err = testFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testDeduplicator).ToNot(BeNil())
-					testDataData = []*testData.Datum{}
+					testDataData = []*dataTest.Datum{}
 					testDataSetData = []data.Datum{}
 					for i := 0; i < 3; i++ {
-						testDatum := testData.NewDatum()
+						testDatum := dataTest.NewDatum()
 						testDataData = append(testDataData, testDatum)
 						testDataSetData = append(testDataSetData, testDatum)
 					}
@@ -374,38 +374,38 @@ var _ = Describe("HashDeactivateOld", func() {
 					})
 
 					It("returns an error if any datum returns an error getting identity fields", func() {
-						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{userTest.RandomID(), testData.NewDeviceID()}, Error: nil}}
-						testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: nil, Error: errors.New("test error")}}
+						testDataData[0].IdentityFieldsOutputs = []dataTest.IdentityFieldsOutput{{IdentityFields: []string{userTest.RandomID(), dataTest.NewDeviceID()}, Error: nil}}
+						testDataData[1].IdentityFieldsOutputs = []dataTest.IdentityFieldsOutput{{IdentityFields: nil, Error: errors.New("test error")}}
 						err := testDeduplicator.AddDataSetData(ctx, testDataSetData)
 						Expect(err).To(MatchError("unable to gather identity fields for datum; test error"))
 					})
 
 					It("returns an error if any datum returns no identity fields", func() {
-						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{userTest.RandomID(), testData.NewDeviceID()}, Error: nil}}
-						testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: nil, Error: nil}}
+						testDataData[0].IdentityFieldsOutputs = []dataTest.IdentityFieldsOutput{{IdentityFields: []string{userTest.RandomID(), dataTest.NewDeviceID()}, Error: nil}}
+						testDataData[1].IdentityFieldsOutputs = []dataTest.IdentityFieldsOutput{{IdentityFields: nil, Error: nil}}
 						err := testDeduplicator.AddDataSetData(ctx, testDataSetData)
 						Expect(err).To(MatchError("unable to generate identity hash for datum; identity fields are missing"))
 					})
 
 					It("returns an error if any datum returns empty identity fields", func() {
-						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{userTest.RandomID(), testData.NewDeviceID()}, Error: nil}}
-						testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{}, Error: nil}}
+						testDataData[0].IdentityFieldsOutputs = []dataTest.IdentityFieldsOutput{{IdentityFields: []string{userTest.RandomID(), dataTest.NewDeviceID()}, Error: nil}}
+						testDataData[1].IdentityFieldsOutputs = []dataTest.IdentityFieldsOutput{{IdentityFields: []string{}, Error: nil}}
 						err := testDeduplicator.AddDataSetData(ctx, testDataSetData)
 						Expect(err).To(MatchError("unable to generate identity hash for datum; identity fields are missing"))
 					})
 
 					It("returns an error if any datum returns any empty identity fields", func() {
-						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{userTest.RandomID(), testData.NewDeviceID()}, Error: nil}}
-						testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{userTest.RandomID(), ""}, Error: nil}}
+						testDataData[0].IdentityFieldsOutputs = []dataTest.IdentityFieldsOutput{{IdentityFields: []string{userTest.RandomID(), dataTest.NewDeviceID()}, Error: nil}}
+						testDataData[1].IdentityFieldsOutputs = []dataTest.IdentityFieldsOutput{{IdentityFields: []string{userTest.RandomID(), ""}, Error: nil}}
 						err := testDeduplicator.AddDataSetData(ctx, testDataSetData)
 						Expect(err).To(MatchError("unable to generate identity hash for datum; identity field is empty"))
 					})
 
 					Context("with identity fields", func() {
 						BeforeEach(func() {
-							testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{"test", "0"}, Error: nil}}
-							testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{"test", "1"}, Error: nil}}
-							testDataData[2].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{"test", "2"}, Error: nil}}
+							testDataData[0].IdentityFieldsOutputs = []dataTest.IdentityFieldsOutput{{IdentityFields: []string{"test", "0"}, Error: nil}}
+							testDataData[1].IdentityFieldsOutputs = []dataTest.IdentityFieldsOutput{{IdentityFields: []string{"test", "1"}, Error: nil}}
+							testDataData[2].IdentityFieldsOutputs = []dataTest.IdentityFieldsOutput{{IdentityFields: []string{"test", "2"}, Error: nil}}
 						})
 
 						AfterEach(func() {
