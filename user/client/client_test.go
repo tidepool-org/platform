@@ -94,6 +94,33 @@ var _ = Describe("Client", func() {
 			}
 		})
 
+		Context("EnsureAuthorized", func() {
+			Context("without server response", func() {
+				AfterEach(func() {
+					Expect(server.ReceivedRequests()).To(BeEmpty())
+				})
+
+				It("returns an error when the context is missing", func() {
+					ctx = nil
+					errorsTest.ExpectEqual(client.EnsureAuthorized(ctx), errors.New("context is missing"))
+				})
+
+				It("returns an error when the details are missing", func() {
+					ctx = request.NewContextWithDetails(ctx, nil)
+					errorsTest.ExpectEqual(client.EnsureAuthorized(ctx), request.ErrorUnauthorized())
+				})
+
+				It("returns successfully when the details are for a user", func() {
+					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, user.NewID(), sessionToken))
+					Expect(client.EnsureAuthorized(ctx)).To(Succeed())
+				})
+
+				It("returns successfully when the details are for a service", func() {
+					Expect(client.EnsureAuthorized(ctx)).To(Succeed())
+				})
+			})
+		})
+
 		Context("EnsureAuthorizedService", func() {
 			Context("without server response", func() {
 				AfterEach(func() {

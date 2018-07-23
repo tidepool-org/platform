@@ -27,6 +27,18 @@ func New(cfg *platform.Config, authorizeAs platform.AuthorizeAs) (*Client, error
 
 // FUTURE: Move to auth service
 
+func (c *Client) EnsureAuthorized(ctx context.Context) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+
+	if details := request.DetailsFromContext(ctx); details != nil {
+		return nil
+	}
+
+	return request.ErrorUnauthorized()
+}
+
 func (c *Client) EnsureAuthorizedService(ctx context.Context) error {
 	if ctx == nil {
 		return errors.New("context is missing")

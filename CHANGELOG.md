@@ -1,5 +1,6 @@
 ## HEAD
 
+* Add EnsureAuthorized to user client
 * Add EachUsing to string array structure validator
 * Add dump users tool
 * Minor refactor to reorder sort.Sort interface functions for consistency
