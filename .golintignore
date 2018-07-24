@@ -1,5 +1,5 @@
 ./confirmation/confirmation.go:5:6: type name will be used as confirmation.ConfirmationAccessor by other packages, and that stutters; consider calling this Accessor
-./data/client/client.go:28:6: type name will be used as client.ClientImpl by other packages, and that stutters; consider calling this Impl
+./data/client/client.go:27:6: type name will be used as client.ClientImpl by other packages, and that stutters; consider calling this Impl
 ./data/data_set.go:23:6: type name will be used as data.DataSetAccessor by other packages, and that stutters; consider calling this SetAccessor
 ./data/data_set.go:52:6: func name will be used as data.DataSetTypes by other packages, and that stutters; consider calling this SetTypes
 ./data/data_set.go:59:6: func name will be used as data.DataSetStates by other packages, and that stutters; consider calling this SetStates
@@ -9,13 +9,6 @@
 ./data/data_set.go:211:6: type name will be used as data.DataSetUpdate by other packages, and that stutters; consider calling this SetUpdate
 ./data/data_set.go:279:6: type name will be used as data.DataSet by other packages, and that stutters; consider calling this Set
 ./data/data_set.go:321:6: type name will be used as data.DataSets by other packages, and that stutters; consider calling this Sets
-./data/data_source.go:20:6: type name will be used as data.DataSourceAccessor by other packages, and that stutters; consider calling this SourceAccessor
-./data/data_source.go:34:6: func name will be used as data.DataSourceStates by other packages, and that stutters; consider calling this SourceStates
-./data/data_source.go:42:6: type name will be used as data.DataSourceFilter by other packages, and that stutters; consider calling this SourceFilter
-./data/data_source.go:84:6: type name will be used as data.DataSourceCreate by other packages, and that stutters; consider calling this SourceCreate
-./data/data_source.go:117:6: type name will be used as data.DataSourceUpdate by other packages, and that stutters; consider calling this SourceUpdate
-./data/data_source.go:203:6: type name will be used as data.DataSource by other packages, and that stutters; consider calling this Source
-./data/data_source.go:319:6: type name will be used as data.DataSources by other packages, and that stutters; consider calling this Sources
 ./data/storeDEPRECATED/store.go:1:1: don't use MixedCaps in package name; storeDEPRECATED should be storedeprecated
 ./data/storeDEPRECATED/store_suite_test.go:1:1: don't use MixedCaps in package name; storeDEPRECATED_test should be storedeprecated_test
 ./data/storeDEPRECATED/store_test.go:1:1: don't use MixedCaps in package name; storeDEPRECATED_test should be storedeprecated_test

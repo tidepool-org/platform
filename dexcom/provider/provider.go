@@ -4,8 +4,7 @@ import (
 	"context"
 
 	"github.com/tidepool-org/platform/config"
-	"github.com/tidepool-org/platform/data"
-	dataClient "github.com/tidepool-org/platform/data/client"
+	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/dexcom/fetch"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -18,16 +17,16 @@ const ProviderName = "dexcom"
 
 type Provider struct {
 	*oauthProvider.Provider
-	dataClient dataClient.Client
-	taskClient task.Client
+	dataSourceClient dataSource.Client
+	taskClient       task.Client
 }
 
-func New(configReporter config.Reporter, dataClient dataClient.Client, taskClient task.Client) (*Provider, error) {
+func New(configReporter config.Reporter, dataSourceClient dataSource.Client, taskClient task.Client) (*Provider, error) {
 	if configReporter == nil {
 		return nil, errors.New("config reporter is missing")
 	}
-	if dataClient == nil {
-		return nil, errors.New("data client is missing")
+	if dataSourceClient == nil {
+		return nil, errors.New("data source client is missing")
 	}
 	if taskClient == nil {
 		return nil, errors.New("task client is missing")
@@ -39,9 +38,9 @@ func New(configReporter config.Reporter, dataClient dataClient.Client, taskClien
 	}
 
 	return &Provider{
-		Provider:   prvdr,
-		dataClient: dataClient,
-		taskClient: taskClient,
+		Provider:         prvdr,
+		dataSourceClient: dataSourceClient,
+		taskClient:       taskClient,
 	}, nil
 }
 
@@ -55,53 +54,53 @@ func (p *Provider) OnCreate(ctx context.Context, userID string, providerSessionI
 
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "type": p.Type(), "name": p.Name()})
 
-	filter := data.NewDataSourceFilter()
-	filter.ProviderType = pointer.FromString(p.Type())
-	filter.ProviderName = pointer.FromString(p.Name())
-	dataSources, err := p.dataClient.ListUserDataSources(ctx, userID, filter, nil)
+	filter := dataSource.NewFilter()
+	filter.ProviderType = pointer.FromStringArray([]string{p.Type()})
+	filter.ProviderName = pointer.FromStringArray([]string{p.Name()})
+	sources, err := p.dataSourceClient.List(ctx, userID, filter, nil)
 	if err != nil {
 		return errors.Wrap(err, "unable to fetch data sources")
 	}
 
-	var dataSource *data.DataSource
-	if dataSourcesCount := len(dataSources); dataSourcesCount > 0 {
-		if dataSourcesCount > 1 {
-			logger.WithField("dataSourcesCount", dataSourcesCount).Warn("unexpected number of data sources found")
+	var source *dataSource.Source
+	if count := len(sources); count > 0 {
+		if count > 1 {
+			logger.WithField("count", count).Warn("unexpected number of data sources found")
 		}
 
-		dataSource = dataSources[0]
-		if dataSource.State != data.DataSourceStateDisconnected {
-			logger.WithFields(log.Fields{"dataSourceId": dataSource.ID, "dataSourceState": dataSource.State}).Warn("data source in unexpected state")
+		source = sources[0]
+		if *source.State != dataSource.StateDisconnected {
+			logger.WithFields(log.Fields{"id": source.ID, "state": source.State}).Warn("data source in unexpected state")
 		}
 
-		dataSourceUpdate := data.NewDataSourceUpdate()
-		dataSourceUpdate.State = pointer.FromString(data.DataSourceStateConnected)
+		update := dataSource.NewUpdate()
+		update.State = pointer.FromString(dataSource.StateConnected)
 
-		dataSource, err = p.dataClient.UpdateDataSource(ctx, dataSource.ID, dataSourceUpdate)
+		source, err = p.dataSourceClient.Update(ctx, *source.ID, update)
 		if err != nil {
 			return errors.Wrap(err, "unable to update data source")
 		}
 	} else {
-		dataSourceCreate := data.NewDataSourceCreate()
-		dataSourceCreate.ProviderType = p.Type()
-		dataSourceCreate.ProviderName = p.Name()
-		dataSourceCreate.ProviderSessionID = providerSessionID
-		dataSourceCreate.State = data.DataSourceStateConnected
+		create := dataSource.NewCreate()
+		create.ProviderType = pointer.FromString(p.Type())
+		create.ProviderName = pointer.FromString(p.Name())
+		create.ProviderSessionID = pointer.FromString(providerSessionID)
+		create.State = pointer.FromString(dataSource.StateConnected)
 
-		dataSource, err = p.dataClient.CreateUserDataSource(ctx, userID, dataSourceCreate)
+		source, err = p.dataSourceClient.Create(ctx, userID, create)
 		if err != nil {
 			return errors.Wrap(err, "unable to create data source")
 		}
 	}
 
-	taskCreate, err := fetch.NewTaskCreate(providerSessionID, dataSource.ID)
+	taskCreate, err := fetch.NewTaskCreate(providerSessionID, *source.ID)
 	if err != nil {
 		return errors.Wrap(err, "unable to create task create")
 	}
 
 	_, err = p.taskClient.CreateTask(ctx, taskCreate)
 	if err != nil {
-		p.dataClient.DeleteDataSource(ctx, dataSource.ID)
+		p.dataSourceClient.Delete(ctx, *source.ID)
 		return errors.Wrap(err, "unable to create task")
 	}
 
@@ -131,9 +130,9 @@ func (p *Provider) OnDelete(ctx context.Context, userID string, providerSessionI
 			logger.WithError(err).WithField("taskId", task.ID).Error("unable to delete task after deleting provider session")
 		}
 		if dataSourceID, ok := task.Data["dataSourceId"].(string); ok && dataSourceID != "" {
-			dataSourceUpdate := data.NewDataSourceUpdate()
-			dataSourceUpdate.State = pointer.FromString(data.DataSourceStateDisconnected)
-			_, err = p.dataClient.UpdateDataSource(ctx, dataSourceID, dataSourceUpdate)
+			update := dataSource.NewUpdate()
+			update.State = pointer.FromString(dataSource.StateDisconnected)
+			_, err = p.dataSourceClient.Update(ctx, dataSourceID, update)
 			if err != nil {
 				logger.WithError(err).WithField("dataSourceId", dataSourceID).Error("unable to update data source after deleting provider session")
 			}

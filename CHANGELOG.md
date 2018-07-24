@@ -1,5 +1,6 @@
 ## HEAD
 
+* Refactor data source to separate package with complete tests
 * Add helper functions for auth types
 * Replace data.NewID with dataTest.RandomID in tests
 * Rename various to more generic form in blob service

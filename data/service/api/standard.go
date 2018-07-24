@@ -7,7 +7,7 @@ import (
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataContext "github.com/tidepool-org/platform/data/service/context"
-	dataStore "github.com/tidepool-org/platform/data/store"
+	dataSource "github.com/tidepool-org/platform/data/source"
 	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/metric"
@@ -22,15 +22,15 @@ type Standard struct {
 	metricClient            metric.Client
 	userClient              user.Client
 	dataDeduplicatorFactory deduplicator.Factory
-	dataStore               dataStore.Store
 	dataStoreDEPRECATED     dataStoreDEPRECATED.Store
 	syncTaskStore           syncTaskStore.Store
 	dataClient              dataClient.Client
+	dataSourceClient        dataSource.Client
 }
 
 func NewStandard(svc service.Service, metricClient metric.Client, userClient user.Client,
-	dataDeduplicatorFactory deduplicator.Factory, dataStore dataStore.Store,
-	dataStoreDEPRECATED dataStoreDEPRECATED.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client) (*Standard, error) {
+	dataDeduplicatorFactory deduplicator.Factory,
+	dataStoreDEPRECATED dataStoreDEPRECATED.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client) (*Standard, error) {
 	if metricClient == nil {
 		return nil, errors.New("metric client is missing")
 	}
@@ -40,9 +40,6 @@ func NewStandard(svc service.Service, metricClient metric.Client, userClient use
 	if dataDeduplicatorFactory == nil {
 		return nil, errors.New("data deduplicator factory is missing")
 	}
-	if dataStore == nil {
-		return nil, errors.New("data store is missing")
-	}
 	if dataStoreDEPRECATED == nil {
 		return nil, errors.New("data store DEPRECATED is missing")
 	}
@@ -51,6 +48,9 @@ func NewStandard(svc service.Service, metricClient metric.Client, userClient use
 	}
 	if dataClient == nil {
 		return nil, errors.New("data client is missing")
+	}
+	if dataSourceClient == nil {
+		return nil, errors.New("data source client is missing")
 	}
 
 	a, err := api.New(svc)
@@ -63,10 +63,10 @@ func NewStandard(svc service.Service, metricClient metric.Client, userClient use
 		metricClient:            metricClient,
 		userClient:              userClient,
 		dataDeduplicatorFactory: dataDeduplicatorFactory,
-		dataStore:               dataStore,
 		dataStoreDEPRECATED:     dataStoreDEPRECATED,
 		syncTaskStore:           syncTaskStore,
 		dataClient:              dataClient,
+		dataSourceClient:        dataSourceClient,
 	}, nil
 }
 
@@ -99,6 +99,6 @@ func (s *Standard) DEPRECATEDInitializeRouter(routes []dataService.Route) error 
 
 func (s *Standard) withContext(handler dataService.HandlerFunc) rest.HandlerFunc {
 	return dataContext.WithContext(s.AuthClient(), s.metricClient, s.userClient,
-		s.dataDeduplicatorFactory, s.dataStore,
-		s.dataStoreDEPRECATED, s.syncTaskStore, s.dataClient, handler)
+		s.dataDeduplicatorFactory,
+		s.dataStoreDEPRECATED, s.syncTaskStore, s.dataClient, s.dataSourceClient, handler)
 }

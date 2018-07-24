@@ -5,7 +5,9 @@ import (
 	"github.com/tidepool-org/platform/data/deduplicator"
 	"github.com/tidepool-org/platform/data/service/api"
 	"github.com/tidepool-org/platform/data/service/api/v1"
-	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
+	dataSourceService "github.com/tidepool-org/platform/data/source/service"
+	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
+	dataSourceStoreStructuredMongo "github.com/tidepool-org/platform/data/source/store/structured/mongo"
 	dataStoreDEPRECATEDMongo "github.com/tidepool-org/platform/data/storeDEPRECATED/mongo"
 	"github.com/tidepool-org/platform/errors"
 	metricClient "github.com/tidepool-org/platform/metric/client"
@@ -14,20 +16,22 @@ import (
 	"github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	syncTaskMongo "github.com/tidepool-org/platform/synctask/store/mongo"
+	"github.com/tidepool-org/platform/user"
 	userClient "github.com/tidepool-org/platform/user/client"
 )
 
 type Standard struct {
 	*service.DEPRECATEDService
-	metricClient            *metricClient.Client
-	userClient              *userClient.Client
-	dataDeduplicatorFactory deduplicator.Factory
-	dataStoreDEPRECATED     *dataStoreDEPRECATEDMongo.Store
-	dataStore               *dataStoreMongo.Store
-	syncTaskStore           *syncTaskMongo.Store
-	dataClient              *Client
-	api                     *api.Standard
-	server                  *server.Standard
+	metricClient              *metricClient.Client
+	userClient                *userClient.Client
+	dataDeduplicatorFactory   deduplicator.Factory
+	dataStoreDEPRECATED       *dataStoreDEPRECATEDMongo.Store
+	dataSourceStructuredStore *dataSourceStoreStructuredMongo.Store
+	syncTaskStore             *syncTaskMongo.Store
+	dataClient                *Client
+	dataSourceClient          *dataSourceService.Client
+	api                       *api.Standard
+	server                    *server.Standard
 }
 
 func NewStandard() *Standard {
@@ -53,7 +57,7 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeDataStoreDEPRECATED(); err != nil {
 		return err
 	}
-	if err := s.initializeDataStore(); err != nil {
+	if err := s.initializeDataSourceStructuredStore(); err != nil {
 		return err
 	}
 	if err := s.initializeSyncTaskStore(); err != nil {
@@ -76,9 +80,9 @@ func (s *Standard) Terminate() {
 		s.syncTaskStore.Close()
 		s.syncTaskStore = nil
 	}
-	if s.dataStore != nil {
-		s.dataStore.Close()
-		s.dataStore = nil
+	if s.dataSourceStructuredStore != nil {
+		s.dataSourceStructuredStore.Close()
+		s.dataSourceStructuredStore = nil
 	}
 	if s.dataStoreDEPRECATED != nil {
 		s.dataStoreDEPRECATED.Close()
@@ -97,6 +101,14 @@ func (s *Standard) Run() error {
 	}
 
 	return s.server.Serve()
+}
+
+func (s *Standard) UserClient() user.Client {
+	return s.userClient
+}
+
+func (s *Standard) DataSourceStructuredStore() dataSourceStoreStructured.Store {
+	return s.dataSourceStructuredStore
 }
 
 func (s *Standard) initializeMetricClient() error {
@@ -197,21 +209,21 @@ func (s *Standard) initializeDataStoreDEPRECATED() error {
 	return nil
 }
 
-func (s *Standard) initializeDataStore() error {
-	s.Logger().Debug("Loading data store config")
+func (s *Standard) initializeDataSourceStructuredStore() error {
+	s.Logger().Debug("Loading data source structured store config")
 
 	cfg := storeStructuredMongo.NewConfig()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("data", "store")); err != nil {
-		return errors.Wrap(err, "unable to load data store config")
+	if err := cfg.Load(s.ConfigReporter().WithScopes("data_source", "store")); err != nil {
+		return errors.Wrap(err, "unable to load data source structured store config")
 	}
 
-	s.Logger().Debug("Creating data store")
+	s.Logger().Debug("Creating data source structured store")
 
-	str, err := dataStoreMongo.NewStore(cfg, s.Logger())
+	str, err := dataSourceStoreStructuredMongo.NewStore(cfg, s.Logger())
 	if err != nil {
-		return errors.Wrap(err, "unable to create data store")
+		return errors.Wrap(err, "unable to create data source structured store")
 	}
-	s.dataStore = str
+	s.dataSourceStructuredStore = str
 
 	return nil
 }
@@ -238,7 +250,7 @@ func (s *Standard) initializeSyncTaskStore() error {
 func (s *Standard) initializeDataClient() error {
 	s.Logger().Debug("Creating data client")
 
-	clnt, err := NewClient(s.dataStore, s.dataStoreDEPRECATED)
+	clnt, err := NewClient(s.dataStoreDEPRECATED)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data client")
 	}
@@ -247,12 +259,24 @@ func (s *Standard) initializeDataClient() error {
 	return nil
 }
 
+func (s *Standard) initializeDataSourceClient() error {
+	s.Logger().Debug("Creating data client")
+
+	clnt, err := dataSourceService.NewClient(s)
+	if err != nil {
+		return errors.Wrap(err, "unable to create source data client")
+	}
+	s.dataSourceClient = clnt
+
+	return nil
+}
+
 func (s *Standard) initializeAPI() error {
 	s.Logger().Debug("Creating api")
 
 	newAPI, err := api.NewStandard(s, s.metricClient, s.userClient,
-		s.dataDeduplicatorFactory, s.dataStore,
-		s.dataStoreDEPRECATED, s.syncTaskStore, s.dataClient)
+		s.dataDeduplicatorFactory,
+		s.dataStoreDEPRECATED, s.syncTaskStore, s.dataClient, s.dataSourceClient)
 	if err != nil {
 		return errors.Wrap(err, "unable to create api")
 	}
