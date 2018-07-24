@@ -7,6 +7,7 @@ import (
 	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/user"
 )
 
@@ -30,7 +31,7 @@ func NewClient(clientProvider ClientProvider) (*Client, error) {
 }
 
 func (c *Client) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.Sources, error) {
-	if _, err := c.UserClient().EnsureAuthorizedUser(ctx, userID, user.OwnerPermission); err != nil {
+	if _, err := c.UserClient().EnsureAuthorizedUser(ctx, userID, permission.Owner); err != nil {
 		return nil, err
 	}
 
@@ -64,7 +65,7 @@ func (c *Client) Get(ctx context.Context, id string) (*dataSource.Source, error)
 		return nil, err
 	}
 
-	if _, err = c.UserClient().EnsureAuthorizedUser(ctx, *result.UserID, user.OwnerPermission); err != nil {
+	if _, err = c.UserClient().EnsureAuthorizedUser(ctx, *result.UserID, permission.Owner); err != nil {
 		return nil, err
 	}
 

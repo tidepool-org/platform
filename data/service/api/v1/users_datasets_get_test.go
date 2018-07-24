@@ -36,7 +36,7 @@ package v1_test
 // 			}
 // 			context = NewTestContext()
 // 			context.RequestImpl.PathParams["user_id"] = targetUserID
-// 			context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{userClient.Permissions{userClient.ViewPermission: userClient.Permission{}}, nil}}
+// 			context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{permission.Permissions{permission.Read: permission.Permission{}}, nil}}
 // 			context.DataSessionImpl.GetDataSetsForUserByIDOutputs = []testDataStoreDEPRECATED.GetDataSetsForUserByIDOutput{{DataSets: uploads, Error: nil}}
 // 			context.AuthDetailsImpl.IsServerOutputs = []bool{false}
 // 			context.AuthDetailsImpl.UserIDOutputs = []string{authUserID}
@@ -52,7 +52,7 @@ package v1_test
 // 		})
 
 // 		It("succeeds if authenticated as server, not user", func() {
-// 			context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
+// 			context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
 // 			context.AuthDetailsImpl.IsServerOutputs = []bool{true}
 // 			context.AuthDetailsImpl.UserIDOutputs = []string{}
 // 			v1.UsersDataSetsGet(context)
@@ -100,7 +100,7 @@ package v1_test
 // 		})
 
 // 		It("panics if context is missing", func() {
-// 			context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
+// 			context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
 // 			context.DataSessionImpl.GetDataSetsForUserByIDOutputs = []testDataStoreDEPRECATED.GetDataSetsForUserByIDOutput{}
 // 			context.AuthDetailsImpl.IsServerOutputs = []bool{}
 // 			context.AuthDetailsImpl.UserIDOutputs = []string{}
@@ -110,7 +110,7 @@ package v1_test
 
 // 		It("panics if request is missing", func() {
 // 			context.RequestImpl = nil
-// 			context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
+// 			context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
 // 			context.DataSessionImpl.GetDataSetsForUserByIDOutputs = []testDataStoreDEPRECATED.GetDataSetsForUserByIDOutput{}
 // 			context.AuthDetailsImpl.IsServerOutputs = []bool{}
 // 			context.AuthDetailsImpl.UserIDOutputs = []string{}
@@ -119,7 +119,7 @@ package v1_test
 // 		})
 
 // 		It("responds with error if user id not provided as a parameter", func() {
-// 			context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
+// 			context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
 // 			context.DataSessionImpl.GetDataSetsForUserByIDOutputs = []testDataStoreDEPRECATED.GetDataSetsForUserByIDOutput{}
 // 			context.AuthDetailsImpl.IsServerOutputs = []bool{}
 // 			context.AuthDetailsImpl.UserIDOutputs = []string{}
@@ -133,35 +133,35 @@ package v1_test
 // 			context.DataSessionImpl.GetDataSetsForUserByIDOutputs = []testDataStoreDEPRECATED.GetDataSetsForUserByIDOutput{}
 // 			context.AuthDetailsImpl.IsServerOutputs = []bool{}
 // 			context.AuthDetailsImpl.UserIDOutputs = []string{}
-// 			context.UserClientImpl = nil
+// 			context.PermissionClientImpl = nil
 // 			Expect(func() { v1.UsersDataSetsGet(context) }).To(Panic())
 // 			Expect(context.ValidateTest()).To(BeTrue())
 // 		})
 
 // 		It("responds with error if user client get user permissions returns unauthorized error", func() {
-// 			context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{nil, client.NewUnauthorizedError()}}
+// 			context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{nil, client.NewUnauthorizedError()}}
 // 			context.DataSessionImpl.GetDataSetsForUserByIDOutputs = []testDataStoreDEPRECATED.GetDataSetsForUserByIDOutput{}
 // 			v1.UsersDataSetsGet(context)
-// 			Expect(context.UserClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
+// 			Expect(context.PermissionClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
 // 			Expect(context.RespondWithErrorInputs).To(Equal([]*service.Error{service.ErrorUnauthorized()}))
 // 			Expect(context.ValidateTest()).To(BeTrue())
 // 		})
 
 // 		It("responds with error if user client get user permissions returns any other error", func() {
 // 			err := errors.New("other")
-// 			context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{nil, err}}
+// 			context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{nil, err}}
 // 			context.DataSessionImpl.GetDataSetsForUserByIDOutputs = []testDataStoreDEPRECATED.GetDataSetsForUserByIDOutput{}
 // 			v1.UsersDataSetsGet(context)
-// 			Expect(context.UserClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
+// 			Expect(context.PermissionClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
 // 			Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to get user permissions", []interface{}{err}}}))
 // 			Expect(context.ValidateTest()).To(BeTrue())
 // 		})
 
 // 		It("responds with error if user client get user permissions does not return needed permissions", func() {
-// 			context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{userClient.Permissions{userClient.UploadPermission: userClient.Permission{}}, nil}}
+// 			context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{permission.Permissions{permission.Write: permission.Permission{}}, nil}}
 // 			context.DataSessionImpl.GetDataSetsForUserByIDOutputs = []testDataStoreDEPRECATED.GetDataSetsForUserByIDOutput{}
 // 			v1.UsersDataSetsGet(context)
-// 			Expect(context.UserClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
+// 			Expect(context.PermissionClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
 // 			Expect(context.RespondWithErrorInputs).To(Equal([]*service.Error{service.ErrorUnauthorized()}))
 // 			Expect(context.ValidateTest()).To(BeTrue())
 // 		})
@@ -217,7 +217,7 @@ package v1_test
 // 		It("panics if data store session is missing", func() {
 // 			context.DataSessionImpl = nil
 // 			Expect(func() { v1.UsersDataSetsGet(context) }).To(Panic())
-// 			Expect(context.UserClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
+// 			Expect(context.PermissionClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
 // 			Expect(context.ValidateTest()).To(BeTrue())
 // 		})
 
@@ -225,7 +225,7 @@ package v1_test
 // 			err := errors.New("other")
 // 			context.DataSessionImpl.GetDataSetsForUserByIDOutputs = []testDataStoreDEPRECATED.GetDataSetsForUserByIDOutput{{DataSets: nil, Error: err}}
 // 			v1.UsersDataSetsGet(context)
-// 			Expect(context.UserClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
+// 			Expect(context.PermissionClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
 // 			Expect(context.DataSessionImpl.GetDataSetsForUserByIDInputs).To(Equal([]testDataStoreDEPRECATED.GetDataSetsForUserByIDInput{{UserID: targetUserID, Filter: filter, Pagination: pagination}}))
 // 			Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to get data sets for user", []interface{}{err}}}))
 // 			Expect(context.ValidateTest()).To(BeTrue())

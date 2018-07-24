@@ -24,6 +24,7 @@ export TIDEPOOL_BLOB_CLIENT_ADDRESS="http://localhost:8009"
 export TIDEPOOL_DATA_CLIENT_ADDRESS="http://localhost:8009"
 export TIDEPOOL_DATA_SOURCE_CLIENT_ADDRESS="http://localhost:8009"
 export TIDEPOOL_METRIC_CLIENT_ADDRESS="http://localhost:8009"
+export TIDEPOOL_PERMISSION_CLIENT_ADDRESS="http://localhost:8009"
 export TIDEPOOL_TASK_CLIENT_ADDRESS="http://localhost:8009"
 export TIDEPOOL_USER_CLIENT_ADDRESS="http://localhost:8009"
 

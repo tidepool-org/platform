@@ -11,11 +11,11 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	messageStore "github.com/tidepool-org/platform/message/store"
 	"github.com/tidepool-org/platform/metric"
+	"github.com/tidepool-org/platform/permission"
 	permissionStore "github.com/tidepool-org/platform/permission/store"
 	profileStore "github.com/tidepool-org/platform/profile/store"
 	serviceContext "github.com/tidepool-org/platform/service/context"
 	sessionStore "github.com/tidepool-org/platform/session/store"
-	"github.com/tidepool-org/platform/user"
 	userService "github.com/tidepool-org/platform/user/service"
 	userStore "github.com/tidepool-org/platform/user/store"
 )
@@ -25,7 +25,7 @@ type Standard struct {
 	authClient           auth.Client
 	dataClient           dataClient.Client
 	metricClient         metric.Client
-	userClient           user.Client
+	permissionClient     permission.Client
 	confirmationStore    confirmationStore.Store
 	confirmationsSession confirmationStore.ConfirmationSession
 	messageStore         messageStore.Store
@@ -40,11 +40,11 @@ type Standard struct {
 	usersSession         userStore.UsersSession
 }
 
-func WithContext(authClient auth.Client, dataClient dataClient.Client, metricClient metric.Client, userClient user.Client,
+func WithContext(authClient auth.Client, dataClient dataClient.Client, metricClient metric.Client, permissionClient permission.Client,
 	confirmationStore confirmationStore.Store, messageStore messageStore.Store, permissionStore permissionStore.Store, profileStore profileStore.Store,
 	sessionStore sessionStore.Store, userStore userStore.Store, handler userService.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
-		standard, standardErr := NewStandard(response, request, authClient, dataClient, metricClient, userClient,
+		standard, standardErr := NewStandard(response, request, authClient, dataClient, metricClient, permissionClient,
 			confirmationStore, messageStore, permissionStore, profileStore, sessionStore, userStore)
 		if standardErr != nil {
 			if responder, responderErr := serviceContext.NewResponder(response, request); responderErr != nil {
@@ -60,7 +60,7 @@ func WithContext(authClient auth.Client, dataClient dataClient.Client, metricCli
 	}
 }
 
-func NewStandard(response rest.ResponseWriter, request *rest.Request, authClient auth.Client, dataClient dataClient.Client, metricClient metric.Client, userClient user.Client,
+func NewStandard(response rest.ResponseWriter, request *rest.Request, authClient auth.Client, dataClient dataClient.Client, metricClient metric.Client, permissionClient permission.Client,
 	confirmationStore confirmationStore.Store, messageStore messageStore.Store, permissionStore permissionStore.Store, profileStore profileStore.Store,
 	sessionStore sessionStore.Store, userStore userStore.Store) (*Standard, error) {
 	if authClient == nil {
@@ -72,8 +72,8 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request, authClient
 	if metricClient == nil {
 		return nil, errors.New("metric client is missing")
 	}
-	if userClient == nil {
-		return nil, errors.New("user client is missing")
+	if permissionClient == nil {
+		return nil, errors.New("permission client is missing")
 	}
 	if confirmationStore == nil {
 		return nil, errors.New("confirmation store is missing")
@@ -104,7 +104,7 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request, authClient
 		authClient:        authClient,
 		dataClient:        dataClient,
 		metricClient:      metricClient,
-		userClient:        userClient,
+		permissionClient:  permissionClient,
 		confirmationStore: confirmationStore,
 		messageStore:      messageStore,
 		permissionStore:   permissionStore,
@@ -153,8 +153,8 @@ func (s *Standard) MetricClient() metric.Client {
 	return s.metricClient
 }
 
-func (s *Standard) UserClient() user.Client {
-	return s.userClient
+func (s *Standard) PermissionClient() permission.Client {
+	return s.permissionClient
 }
 
 func (s *Standard) ConfirmationSession() confirmationStore.ConfirmationSession {

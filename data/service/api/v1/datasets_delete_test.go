@@ -36,7 +36,7 @@ package v1_test
 // 			context.DataSessionImpl.GetDataSetByIDOutputs = []testDataStoreDEPRECATED.GetDataSetByIDOutput{{DataSet: targetUpload, Error: nil}}
 // 			context.Context.AuthDetailsImpl.IsServerOutputs = []bool{false}
 // 			context.Context.AuthDetailsImpl.UserIDOutputs = []string{authUserID}
-// 			context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{userClient.Permissions{"root": userClient.Permission{}}, nil}}
+// 			context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{permission.Permissions{"root": permission.Permission{}}, nil}}
 // 			context.DataDeduplicatorFactoryImpl.IsRegisteredWithDataSetOutputs = []testDataDeduplicator.IsRegisteredWithDataSetOutput{{Is: false, Error: nil}}
 // 			context.DataSessionImpl.DeleteDataSetOutputs = []error{nil}
 // 			context.MetricClientImpl.RecordMetricOutputs = []error{nil}
@@ -45,7 +45,7 @@ package v1_test
 // 		It("succeeds if authenticated as owner", func() {
 // 			v1.DataSetsDelete(context)
 // 			Expect(context.DataSessionImpl.GetDataSetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
-// 			Expect(context.UserClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
+// 			Expect(context.PermissionClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
 // 			Expect(context.DataDeduplicatorFactoryImpl.IsRegisteredWithDataSetInputs).To(Equal([]*upload.Upload{targetUpload}))
 // 			Expect(context.DataSessionImpl.DeleteDataSetInputs).To(Equal([]*upload.Upload{targetUpload}))
 // 			Expect(context.MetricClientImpl.RecordMetricInputs).To(Equal([]RecordMetricInput{{context, "data_sets_delete", nil}}))
@@ -54,10 +54,10 @@ package v1_test
 // 		})
 
 // 		It("succeeds if authenticated as custodian", func() {
-// 			context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{userClient.Permissions{"custodian": userClient.Permission{}}, nil}}
+// 			context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{permission.Permissions{"custodian": permission.Permission{}}, nil}}
 // 			v1.DataSetsDelete(context)
 // 			Expect(context.DataSessionImpl.GetDataSetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
-// 			Expect(context.UserClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
+// 			Expect(context.PermissionClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
 // 			Expect(context.DataDeduplicatorFactoryImpl.IsRegisteredWithDataSetInputs).To(Equal([]*upload.Upload{targetUpload}))
 // 			Expect(context.DataSessionImpl.DeleteDataSetInputs).To(Equal([]*upload.Upload{targetUpload}))
 // 			Expect(context.MetricClientImpl.RecordMetricInputs).To(Equal([]RecordMetricInput{{context, "data_sets_delete", nil}}))
@@ -67,10 +67,10 @@ package v1_test
 
 // 		It("succeeds if authenticated as uploader and was the uploading user", func() {
 // 			targetUpload.ByUser = pointer.FromString(authUserID)
-// 			context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{userClient.Permissions{"upload": userClient.Permission{}}, nil}}
+// 			context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{permission.Permissions{"upload": permission.Permission{}}, nil}}
 // 			v1.DataSetsDelete(context)
 // 			Expect(context.DataSessionImpl.GetDataSetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
-// 			Expect(context.UserClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
+// 			Expect(context.PermissionClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
 // 			Expect(context.DataDeduplicatorFactoryImpl.IsRegisteredWithDataSetInputs).To(Equal([]*upload.Upload{targetUpload}))
 // 			Expect(context.DataSessionImpl.DeleteDataSetInputs).To(Equal([]*upload.Upload{targetUpload}))
 // 			Expect(context.MetricClientImpl.RecordMetricInputs).To(Equal([]RecordMetricInput{{context, "data_sets_delete", nil}}))
@@ -81,7 +81,7 @@ package v1_test
 // 		It("succeeds if authenticated as server", func() {
 // 			context.Context.AuthDetailsImpl.IsServerOutputs = []bool{true}
 // 			context.Context.AuthDetailsImpl.UserIDOutputs = []string{}
-// 			context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
+// 			context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
 // 			v1.DataSetsDelete(context)
 // 			Expect(context.DataSessionImpl.GetDataSetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
 // 			Expect(context.DataDeduplicatorFactoryImpl.IsRegisteredWithDataSetInputs).To(Equal([]*upload.Upload{targetUpload}))
@@ -95,7 +95,7 @@ package v1_test
 // 			context.DataSessionImpl.GetDataSetByIDOutputs = []testDataStoreDEPRECATED.GetDataSetByIDOutput{}
 // 			context.Context.AuthDetailsImpl.IsServerOutputs = []bool{}
 // 			context.Context.AuthDetailsImpl.UserIDOutputs = []string{}
-// 			context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
+// 			context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
 // 			context.DataDeduplicatorFactoryImpl.IsRegisteredWithDataSetOutputs = []testDataDeduplicator.IsRegisteredWithDataSetOutput{}
 // 			context.DataSessionImpl.DeleteDataSetOutputs = []error{}
 // 			context.MetricClientImpl.RecordMetricOutputs = []error{}
@@ -108,7 +108,7 @@ package v1_test
 // 			context.DataSessionImpl.GetDataSetByIDOutputs = []testDataStoreDEPRECATED.GetDataSetByIDOutput{}
 // 			context.Context.AuthDetailsImpl.IsServerOutputs = []bool{}
 // 			context.Context.AuthDetailsImpl.UserIDOutputs = []string{}
-// 			context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
+// 			context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
 // 			context.DataDeduplicatorFactoryImpl.IsRegisteredWithDataSetOutputs = []testDataDeduplicator.IsRegisteredWithDataSetOutput{}
 // 			context.DataSessionImpl.DeleteDataSetOutputs = []error{}
 // 			context.MetricClientImpl.RecordMetricOutputs = []error{}
@@ -121,7 +121,7 @@ package v1_test
 // 			context.DataSessionImpl.GetDataSetByIDOutputs = []testDataStoreDEPRECATED.GetDataSetByIDOutput{}
 // 			context.Context.AuthDetailsImpl.IsServerOutputs = []bool{}
 // 			context.Context.AuthDetailsImpl.UserIDOutputs = []string{}
-// 			context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
+// 			context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
 // 			context.DataDeduplicatorFactoryImpl.IsRegisteredWithDataSetOutputs = []testDataDeduplicator.IsRegisteredWithDataSetOutput{}
 // 			context.DataSessionImpl.DeleteDataSetOutputs = []error{}
 // 			context.MetricClientImpl.RecordMetricOutputs = []error{}
@@ -134,7 +134,7 @@ package v1_test
 // 			context.DataSessionImpl = nil
 // 			context.Context.AuthDetailsImpl.IsServerOutputs = []bool{}
 // 			context.Context.AuthDetailsImpl.UserIDOutputs = []string{}
-// 			context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
+// 			context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
 // 			context.DataDeduplicatorFactoryImpl.IsRegisteredWithDataSetOutputs = []testDataDeduplicator.IsRegisteredWithDataSetOutput{}
 // 			context.MetricClientImpl.RecordMetricOutputs = []error{}
 // 			Expect(func() { v1.DataSetsDelete(context) }).To(Panic())
@@ -146,7 +146,7 @@ package v1_test
 // 			context.DataSessionImpl.GetDataSetByIDOutputs = []testDataStoreDEPRECATED.GetDataSetByIDOutput{{DataSet: nil, Error: err}}
 // 			context.Context.AuthDetailsImpl.IsServerOutputs = []bool{}
 // 			context.Context.AuthDetailsImpl.UserIDOutputs = []string{}
-// 			context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
+// 			context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
 // 			context.DataDeduplicatorFactoryImpl.IsRegisteredWithDataSetOutputs = []testDataDeduplicator.IsRegisteredWithDataSetOutput{}
 // 			context.DataSessionImpl.DeleteDataSetOutputs = []error{}
 // 			context.MetricClientImpl.RecordMetricOutputs = []error{}
@@ -160,7 +160,7 @@ package v1_test
 // 			context.DataSessionImpl.GetDataSetByIDOutputs = []testDataStoreDEPRECATED.GetDataSetByIDOutput{{DataSet: nil, Error: nil}}
 // 			context.Context.AuthDetailsImpl.IsServerOutputs = []bool{}
 // 			context.Context.AuthDetailsImpl.UserIDOutputs = []string{}
-// 			context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
+// 			context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
 // 			context.DataDeduplicatorFactoryImpl.IsRegisteredWithDataSetOutputs = []testDataDeduplicator.IsRegisteredWithDataSetOutput{}
 // 			context.DataSessionImpl.DeleteDataSetOutputs = []error{}
 // 			context.MetricClientImpl.RecordMetricOutputs = []error{}
@@ -174,7 +174,7 @@ package v1_test
 // 			targetUpload.UserID = ""
 // 			context.Context.AuthDetailsImpl.IsServerOutputs = []bool{}
 // 			context.Context.AuthDetailsImpl.UserIDOutputs = []string{}
-// 			context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
+// 			context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{}
 // 			context.DataDeduplicatorFactoryImpl.IsRegisteredWithDataSetOutputs = []testDataDeduplicator.IsRegisteredWithDataSetOutput{}
 // 			context.DataSessionImpl.DeleteDataSetOutputs = []error{}
 // 			context.MetricClientImpl.RecordMetricOutputs = []error{}
@@ -185,7 +185,7 @@ package v1_test
 // 		})
 
 // 		It("panics if user client is missing", func() {
-// 			context.UserClientImpl = nil
+// 			context.PermissionClientImpl = nil
 // 			context.DataDeduplicatorFactoryImpl.IsRegisteredWithDataSetOutputs = []testDataDeduplicator.IsRegisteredWithDataSetOutput{}
 // 			context.DataSessionImpl.DeleteDataSetOutputs = []error{}
 // 			context.MetricClientImpl.RecordMetricOutputs = []error{}
@@ -195,50 +195,50 @@ package v1_test
 // 		})
 
 // 		It("responds with error if user client get user permissions returns unauthorized error", func() {
-// 			context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{nil, client.NewUnauthorizedError()}}
+// 			context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{nil, client.NewUnauthorizedError()}}
 // 			context.DataDeduplicatorFactoryImpl.IsRegisteredWithDataSetOutputs = []testDataDeduplicator.IsRegisteredWithDataSetOutput{}
 // 			context.DataSessionImpl.DeleteDataSetOutputs = []error{}
 // 			context.MetricClientImpl.RecordMetricOutputs = []error{}
 // 			v1.DataSetsDelete(context)
 // 			Expect(context.DataSessionImpl.GetDataSetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
-// 			Expect(context.UserClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
+// 			Expect(context.PermissionClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
 // 			Expect(context.RespondWithErrorInputs).To(Equal([]*service.Error{service.ErrorUnauthorized()}))
 // 			Expect(context.ValidateTest()).To(BeTrue())
 // 		})
 
 // 		It("responds with error if user client get user permissions returns any other error", func() {
 // 			err := errors.New("other")
-// 			context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{nil, err}}
+// 			context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{nil, err}}
 // 			context.DataDeduplicatorFactoryImpl.IsRegisteredWithDataSetOutputs = []testDataDeduplicator.IsRegisteredWithDataSetOutput{}
 // 			context.DataSessionImpl.DeleteDataSetOutputs = []error{}
 // 			context.MetricClientImpl.RecordMetricOutputs = []error{}
 // 			v1.DataSetsDelete(context)
 // 			Expect(context.DataSessionImpl.GetDataSetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
-// 			Expect(context.UserClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
+// 			Expect(context.PermissionClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
 // 			Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to get user permissions", []interface{}{err}}}))
 // 			Expect(context.ValidateTest()).To(BeTrue())
 // 		})
 
 // 		It("responds with error if user client get user permissions does not return needed permissions", func() {
-// 			context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{userClient.Permissions{"view": userClient.Permission{}}, nil}}
+// 			context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{permission.Permissions{"view": permission.Permission{}}, nil}}
 // 			context.DataDeduplicatorFactoryImpl.IsRegisteredWithDataSetOutputs = []testDataDeduplicator.IsRegisteredWithDataSetOutput{}
 // 			context.DataSessionImpl.DeleteDataSetOutputs = []error{}
 // 			context.MetricClientImpl.RecordMetricOutputs = []error{}
 // 			v1.DataSetsDelete(context)
 // 			Expect(context.DataSessionImpl.GetDataSetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
-// 			Expect(context.UserClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
+// 			Expect(context.PermissionClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
 // 			Expect(context.RespondWithErrorInputs).To(Equal([]*service.Error{service.ErrorUnauthorized()}))
 // 			Expect(context.ValidateTest()).To(BeTrue())
 // 		})
 
 // 		It("responds with error if user client get user permissions returns upload permissions, but not user who uploaded", func() {
-// 			context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{userClient.Permissions{"upload": userClient.Permission{}}, nil}}
+// 			context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{permission.Permissions{"upload": permission.Permission{}}, nil}}
 // 			context.DataDeduplicatorFactoryImpl.IsRegisteredWithDataSetOutputs = []testDataDeduplicator.IsRegisteredWithDataSetOutput{}
 // 			context.DataSessionImpl.DeleteDataSetOutputs = []error{}
 // 			context.MetricClientImpl.RecordMetricOutputs = []error{}
 // 			v1.DataSetsDelete(context)
 // 			Expect(context.DataSessionImpl.GetDataSetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
-// 			Expect(context.UserClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
+// 			Expect(context.PermissionClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
 // 			Expect(context.RespondWithErrorInputs).To(Equal([]*service.Error{service.ErrorUnauthorized()}))
 // 			Expect(context.ValidateTest()).To(BeTrue())
 // 		})
@@ -258,7 +258,7 @@ package v1_test
 // 			context.MetricClientImpl.RecordMetricOutputs = []error{}
 // 			v1.DataSetsDelete(context)
 // 			Expect(context.DataSessionImpl.GetDataSetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
-// 			Expect(context.UserClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
+// 			Expect(context.PermissionClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
 // 			Expect(context.DataDeduplicatorFactoryImpl.IsRegisteredWithDataSetInputs).To(Equal([]*upload.Upload{targetUpload}))
 // 			Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to check if registered with data set", []interface{}{err}}}))
 // 			Expect(context.ValidateTest()).To(BeTrue())
@@ -272,7 +272,7 @@ package v1_test
 // 			context.MetricClientImpl.RecordMetricOutputs = []error{}
 // 			v1.DataSetsDelete(context)
 // 			Expect(context.DataSessionImpl.GetDataSetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
-// 			Expect(context.UserClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
+// 			Expect(context.PermissionClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
 // 			Expect(context.DataDeduplicatorFactoryImpl.IsRegisteredWithDataSetInputs).To(Equal([]*upload.Upload{targetUpload}))
 // 			Expect(context.DataDeduplicatorFactoryImpl.NewRegisteredDeduplicatorForDataSetInputs).To(Equal([]testDataDeduplicator.NewRegisteredDeduplicatorForDataSetInput{{Logger: context.LoggerImpl, DataSession: context.DataSessionImpl, DataSet: targetUpload}}))
 // 			Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to create registered deduplicator for data set", []interface{}{err}}}))
@@ -289,7 +289,7 @@ package v1_test
 // 			context.MetricClientImpl.RecordMetricOutputs = []error{}
 // 			v1.DataSetsDelete(context)
 // 			Expect(context.DataSessionImpl.GetDataSetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
-// 			Expect(context.UserClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
+// 			Expect(context.PermissionClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
 // 			Expect(context.DataDeduplicatorFactoryImpl.IsRegisteredWithDataSetInputs).To(Equal([]*upload.Upload{targetUpload}))
 // 			Expect(context.DataDeduplicatorFactoryImpl.NewRegisteredDeduplicatorForDataSetInputs).To(Equal([]testDataDeduplicator.NewRegisteredDeduplicatorForDataSetInput{{Logger: context.LoggerImpl, DataSession: context.DataSessionImpl, DataSet: targetUpload}}))
 // 			Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to delete data set", []interface{}{err}}}))
@@ -303,7 +303,7 @@ package v1_test
 // 			context.MetricClientImpl.RecordMetricOutputs = []error{}
 // 			v1.DataSetsDelete(context)
 // 			Expect(context.DataSessionImpl.GetDataSetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
-// 			Expect(context.UserClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
+// 			Expect(context.PermissionClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
 // 			Expect(context.DataDeduplicatorFactoryImpl.IsRegisteredWithDataSetInputs).To(Equal([]*upload.Upload{targetUpload}))
 // 			Expect(context.DataSessionImpl.DeleteDataSetInputs).To(Equal([]*upload.Upload{targetUpload}))
 // 			Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to delete data set", []interface{}{err}}}))
@@ -314,7 +314,7 @@ package v1_test
 // 			context.MetricClientImpl = nil
 // 			Expect(func() { v1.DataSetsDelete(context) }).To(Panic())
 // 			Expect(context.DataSessionImpl.GetDataSetByIDInputs).To(Equal([]string{targetUpload.UploadID}))
-// 			Expect(context.UserClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
+// 			Expect(context.PermissionClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
 // 			Expect(context.DataDeduplicatorFactoryImpl.IsRegisteredWithDataSetInputs).To(Equal([]*upload.Upload{targetUpload}))
 // 			Expect(context.DataSessionImpl.DeleteDataSetInputs).To(Equal([]*upload.Upload{targetUpload}))
 // 			Expect(context.ValidateTest()).To(BeTrue())

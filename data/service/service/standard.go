@@ -11,6 +11,8 @@ import (
 	dataStoreDEPRECATEDMongo "github.com/tidepool-org/platform/data/storeDEPRECATED/mongo"
 	"github.com/tidepool-org/platform/errors"
 	metricClient "github.com/tidepool-org/platform/metric/client"
+	"github.com/tidepool-org/platform/permission"
+	permissionClient "github.com/tidepool-org/platform/permission/client"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/service/server"
 	"github.com/tidepool-org/platform/service/service"
@@ -23,6 +25,7 @@ import (
 type Standard struct {
 	*service.DEPRECATEDService
 	metricClient              *metricClient.Client
+	permissionClient          *permissionClient.Client
 	userClient                *userClient.Client
 	dataDeduplicatorFactory   deduplicator.Factory
 	dataStoreDEPRECATED       *dataStoreDEPRECATEDMongo.Store
@@ -48,7 +51,7 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeMetricClient(); err != nil {
 		return err
 	}
-	if err := s.initializeUserClient(); err != nil {
+	if err := s.initializePermissionClient(); err != nil {
 		return err
 	}
 	if err := s.initializeDataDeduplicatorFactory(); err != nil {
@@ -90,6 +93,7 @@ func (s *Standard) Terminate() {
 	}
 	s.dataDeduplicatorFactory = nil
 	s.userClient = nil
+	s.permissionClient = nil
 	s.metricClient = nil
 
 	s.DEPRECATEDService.Terminate()
@@ -101,6 +105,10 @@ func (s *Standard) Run() error {
 	}
 
 	return s.server.Serve()
+}
+
+func (s *Standard) PermissionClient() permission.Client {
+	return s.permissionClient
 }
 
 func (s *Standard) UserClient() user.Client {
@@ -127,6 +135,26 @@ func (s *Standard) initializeMetricClient() error {
 		return errors.Wrap(err, "unable to create metric client")
 	}
 	s.metricClient = clnt
+
+	return nil
+}
+
+func (s *Standard) initializePermissionClient() error {
+	s.Logger().Debug("Loading permission client config")
+
+	cfg := platform.NewConfig()
+	cfg.UserAgent = s.UserAgent()
+	if err := cfg.Load(s.ConfigReporter().WithScopes("permission", "client")); err != nil {
+		return errors.Wrap(err, "unable to load permission client config")
+	}
+
+	s.Logger().Debug("Creating permission client")
+
+	clnt, err := permissionClient.New(cfg, platform.AuthorizeAsService)
+	if err != nil {
+		return errors.Wrap(err, "unable to create permission client")
+	}
+	s.permissionClient = clnt
 
 	return nil
 }
@@ -274,7 +302,7 @@ func (s *Standard) initializeDataSourceClient() error {
 func (s *Standard) initializeAPI() error {
 	s.Logger().Debug("Creating api")
 
-	newAPI, err := api.NewStandard(s, s.metricClient, s.userClient,
+	newAPI, err := api.NewStandard(s, s.metricClient, s.permissionClient,
 		s.dataDeduplicatorFactory,
 		s.dataStoreDEPRECATED, s.syncTaskStore, s.dataClient, s.dataSourceClient)
 	if err != nil {

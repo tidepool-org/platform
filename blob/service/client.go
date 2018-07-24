@@ -12,6 +12,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -50,7 +51,7 @@ func (c *Client) List(ctx context.Context, userID string, filter *blob.Filter, p
 }
 
 func (c *Client) Create(ctx context.Context, userID string, create *blob.Create) (*blob.Blob, error) {
-	if _, err := c.UserClient().EnsureAuthorizedUser(ctx, userID, user.UploadPermission); err != nil {
+	if _, err := c.UserClient().EnsureAuthorizedUser(ctx, userID, permission.Write); err != nil {
 		return nil, err
 	}
 

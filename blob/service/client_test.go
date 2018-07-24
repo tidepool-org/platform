@@ -25,6 +25,7 @@ import (
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/page"
 	pageTest "github.com/tidepool-org/platform/page/test"
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
 	"github.com/tidepool-org/platform/user"
@@ -147,7 +148,7 @@ var _ = Describe("Client", func() {
 				})
 
 				AfterEach(func() {
-					Expect(userClient.EnsureAuthorizedUserInputs).To(Equal([]userTest.EnsureAuthorizedUserInput{{Context: ctx, TargetUserID: userID, Permission: user.UploadPermission}}))
+					Expect(userClient.EnsureAuthorizedUserInputs).To(Equal([]userTest.EnsureAuthorizedUserInput{{Context: ctx, TargetUserID: userID, AuthorizedPermission: permission.Write}}))
 				})
 
 				It("returns an error when the user client ensure authorized user returns an error", func() {

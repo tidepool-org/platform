@@ -14,12 +14,12 @@ import (
 	testDataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED/test"
 	"github.com/tidepool-org/platform/metric"
 	testMetric "github.com/tidepool-org/platform/metric/test"
+	"github.com/tidepool-org/platform/permission"
+	permissionTest "github.com/tidepool-org/platform/permission/test"
 	"github.com/tidepool-org/platform/service"
 	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
 	testSyncTaskStore "github.com/tidepool-org/platform/synctask/store/test"
 	"github.com/tidepool-org/platform/test"
-	"github.com/tidepool-org/platform/user"
-	testUser "github.com/tidepool-org/platform/user/test"
 )
 
 func TestSuite(t *testing.T) {
@@ -49,7 +49,7 @@ type TestContext struct {
 	RespondWithStatusAndErrorsInputs       []RespondWithStatusAndErrorsInput
 	RespondWithStatusAndDataInputs         []RespondWithStatusAndDataInput
 	MetricClientImpl                       *testMetric.Client
-	UserClientImpl                         *testUser.Client
+	PermissionClientImpl                   *permissionTest.Client
 	DataDeduplicatorFactoryImpl            *testDataDeduplicator.Factory
 	DataSessionImpl                        *testDataStoreDEPRECATED.DataSession
 	SyncTaskSessionImpl                    *testSyncTaskStore.SyncTaskSession
@@ -58,7 +58,7 @@ type TestContext struct {
 func NewTestContext() *TestContext {
 	return &TestContext{
 		MetricClientImpl:            testMetric.NewClient(),
-		UserClientImpl:              testUser.NewClient(),
+		PermissionClientImpl:        permissionTest.NewClient(),
 		DataDeduplicatorFactoryImpl: testDataDeduplicator.NewFactory(),
 		DataSessionImpl:             testDataStoreDEPRECATED.NewDataSession(),
 		SyncTaskSessionImpl:         testSyncTaskStore.NewSyncTaskSession(),
@@ -89,8 +89,8 @@ func (t *TestContext) MetricClient() metric.Client {
 	return t.MetricClientImpl
 }
 
-func (t *TestContext) UserClient() user.Client {
-	return t.UserClientImpl
+func (t *TestContext) PermissionClient() permission.Client {
+	return t.PermissionClientImpl
 }
 
 func (t *TestContext) DataDeduplicatorFactory() deduplicator.Factory {
@@ -108,7 +108,7 @@ func (t *TestContext) SyncTaskSession() syncTaskStore.SyncTaskSession {
 func (t *TestContext) Expectations() {
 	t.Mock.Expectations()
 	t.MetricClientImpl.Expectations()
-	t.UserClientImpl.AssertOutputsEmpty()
+	t.PermissionClientImpl.AssertOutputsEmpty()
 	t.DataDeduplicatorFactoryImpl.Expectations()
 	t.DataSessionImpl.Expectations()
 	t.SyncTaskSessionImpl.Expectations()

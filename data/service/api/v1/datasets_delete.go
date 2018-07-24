@@ -5,9 +5,9 @@ import (
 
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
-	"github.com/tidepool-org/platform/user"
 )
 
 func DataSetsDelete(dataServiceContext dataService.Context) {
@@ -39,8 +39,8 @@ func DataSetsDelete(dataServiceContext dataService.Context) {
 	if details := request.DetailsFromContext(ctx); !details.IsService() {
 		authUserID := details.UserID()
 
-		var permissions user.Permissions
-		permissions, err = dataServiceContext.UserClient().GetUserPermissions(ctx, authUserID, *targetUserID)
+		var permissions permission.Permissions
+		permissions, err = dataServiceContext.PermissionClient().GetUserPermissions(ctx, authUserID, *targetUserID)
 		if err != nil {
 			if request.IsErrorUnauthorized(err) {
 				dataServiceContext.RespondWithError(service.ErrorUnauthorized())
@@ -49,9 +49,9 @@ func DataSetsDelete(dataServiceContext dataService.Context) {
 			}
 			return
 		}
-		if _, ok := permissions[user.OwnerPermission]; !ok {
-			if _, ok = permissions[user.CustodianPermission]; !ok {
-				if _, ok = permissions[user.UploadPermission]; !ok || dataSet.ByUser == nil || authUserID != *dataSet.ByUser {
+		if _, ok := permissions[permission.Owner]; !ok {
+			if _, ok = permissions[permission.Custodian]; !ok {
+				if _, ok = permissions[permission.Write]; !ok || dataSet.ByUser == nil || authUserID != *dataSet.ByUser {
 					dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 					return
 				}

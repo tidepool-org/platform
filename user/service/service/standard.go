@@ -8,6 +8,8 @@ import (
 	messageMongo "github.com/tidepool-org/platform/message/store/mongo"
 	"github.com/tidepool-org/platform/metric"
 	metricClient "github.com/tidepool-org/platform/metric/client"
+	"github.com/tidepool-org/platform/permission"
+	permissionClient "github.com/tidepool-org/platform/permission/client"
 	permissionMongo "github.com/tidepool-org/platform/permission/store/mongo"
 	"github.com/tidepool-org/platform/platform"
 	profileMongo "github.com/tidepool-org/platform/profile/store/mongo"
@@ -15,8 +17,6 @@ import (
 	"github.com/tidepool-org/platform/service/service"
 	sessionMongo "github.com/tidepool-org/platform/session/store/mongo"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
-	"github.com/tidepool-org/platform/user"
-	userClient "github.com/tidepool-org/platform/user/client"
 	"github.com/tidepool-org/platform/user/service/api"
 	"github.com/tidepool-org/platform/user/service/api/v1"
 	userMongo "github.com/tidepool-org/platform/user/store/mongo"
@@ -26,7 +26,7 @@ type Standard struct {
 	*service.DEPRECATEDService
 	dataClient        dataClient.Client
 	metricClient      metric.Client
-	userClient        user.Client
+	permissionClient  permission.Client
 	confirmationStore *confirmationMongo.Store
 	messageStore      *messageMongo.Store
 	permissionStore   *permissionMongo.Store
@@ -54,7 +54,7 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeMetricClient(); err != nil {
 		return err
 	}
-	if err := s.initializeUserClient(); err != nil {
+	if err := s.initializePermissionClient(); err != nil {
 		return err
 	}
 	if err := s.initializeConfirmationStore(); err != nil {
@@ -108,7 +108,7 @@ func (s *Standard) Terminate() {
 		s.confirmationStore.Close()
 		s.confirmationStore = nil
 	}
-	s.userClient = nil
+	s.permissionClient = nil
 	s.metricClient = nil
 	s.dataClient = nil
 
@@ -163,22 +163,22 @@ func (s *Standard) initializeMetricClient() error {
 	return nil
 }
 
-func (s *Standard) initializeUserClient() error {
-	s.Logger().Debug("Loading user client config")
+func (s *Standard) initializePermissionClient() error {
+	s.Logger().Debug("Loading permission client config")
 
 	cfg := platform.NewConfig()
 	cfg.UserAgent = s.UserAgent()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("user", "client")); err != nil {
-		return errors.Wrap(err, "unable to load user client config")
+	if err := cfg.Load(s.ConfigReporter().WithScopes("permission", "client")); err != nil {
+		return errors.Wrap(err, "unable to load permission client config")
 	}
 
-	s.Logger().Debug("Creating user client")
+	s.Logger().Debug("Creating permission client")
 
-	clnt, err := userClient.New(cfg, platform.AuthorizeAsService)
+	clnt, err := permissionClient.New(cfg, platform.AuthorizeAsService)
 	if err != nil {
-		return errors.Wrap(err, "unable to create user client")
+		return errors.Wrap(err, "unable to create permission client")
 	}
-	s.userClient = clnt
+	s.permissionClient = clnt
 
 	return nil
 }
@@ -300,7 +300,7 @@ func (s *Standard) initializeUserStore() error {
 func (s *Standard) initializeAPI() error {
 	s.Logger().Debug("Creating api")
 
-	newAPI, err := api.NewStandard(s, s.dataClient, s.metricClient, s.userClient,
+	newAPI, err := api.NewStandard(s, s.dataClient, s.metricClient, s.permissionClient,
 		s.confirmationStore, s.messageStore, s.permissionStore, s.profileStore, s.sessionStore, s.userStore)
 	if err != nil {
 		return errors.Wrap(err, "unable to create api")

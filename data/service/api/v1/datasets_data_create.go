@@ -11,10 +11,10 @@ import (
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataTypesFactory "github.com/tidepool-org/platform/data/types/factory"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"github.com/tidepool-org/platform/user"
 )
 
 func DataSetsDataCreate(dataServiceContext dataService.Context) {
@@ -38,8 +38,8 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 	}
 
 	if details := request.DetailsFromContext(ctx); !details.IsService() {
-		var permissions user.Permissions
-		permissions, err = dataServiceContext.UserClient().GetUserPermissions(ctx, details.UserID(), *dataSet.UserID)
+		var permissions permission.Permissions
+		permissions, err = dataServiceContext.PermissionClient().GetUserPermissions(ctx, details.UserID(), *dataSet.UserID)
 		if err != nil {
 			if request.IsErrorUnauthorized(err) {
 				dataServiceContext.RespondWithError(service.ErrorUnauthorized())
@@ -48,7 +48,7 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 			}
 			return
 		}
-		if _, ok := permissions[user.UploadPermission]; !ok {
+		if _, ok := permissions[permission.Write]; !ok {
 			dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 			return
 		}

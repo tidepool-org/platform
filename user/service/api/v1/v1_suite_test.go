@@ -86,23 +86,23 @@ func TestSuite(t *testing.T) {
 // }
 
 // type GetUserPermissionsOutput struct {
-// 	permissions user.Permissions
+// 	permissions permission.Permissions
 // 	err         error
 // }
 
-// type TestUserClient struct {
+// type TestPermissionClient struct {
 // 	GetUserPermissionsInputs  []GetUserPermissionsInput
 // 	GetUserPermissionsOutputs []GetUserPermissionsOutput
 // }
 
-// func (t *TestUserClient) GetUserPermissions(ctx context.Context, requestUserID string, targetUserID string) (user.Permissions, error) {
+// func (t *TestPermissionClient) GetUserPermissions(ctx context.Context, requestUserID string, targetUserID string) (permission.Permissions, error) {
 // 	t.GetUserPermissionsInputs = append(t.GetUserPermissionsInputs, GetUserPermissionsInput{ctx, requestUserID, targetUserID})
 // 	output := t.GetUserPermissionsOutputs[0]
 // 	t.GetUserPermissionsOutputs = t.GetUserPermissionsOutputs[1:]
 // 	return output.permissions, output.err
 // }
 
-// func (t *TestUserClient) ValidateTest() bool {
+// func (t *TestPermissionClient) ValidateTest() bool {
 // 	return len(t.GetUserPermissionsOutputs) == 0
 // }
 
@@ -366,9 +366,9 @@ func TestSuite(t *testing.T) {
 // 	RespondWithStatusAndErrorsInputs       []RespondWithStatusAndErrorsInput
 // 	RespondWithStatusAndDataInputs         []RespondWithStatusAndDataInput
 // 	MetricClientImpl                       *TestMetricClient
-// 	UserClientImpl                         *TestUserClient
+// 	PermissionClientImpl                   *TestPermissionClient
 // 	DataClientImpl                         *TestDataClient
-// 	ConfirmationSessionImpl               *TestConfirmationSession
+// 	ConfirmationSessionImpl                *TestConfirmationSession
 // 	MessagesSessionImpl                    *TestMessagesSession
 // 	PermissionsSessionImpl                 *TestPermissionsSession
 // 	ProfilesSessionImpl                    *TestProfilesSession
@@ -379,9 +379,9 @@ func TestSuite(t *testing.T) {
 // func NewTestContext() *TestContext {
 // 	return &TestContext{
 // 		MetricClientImpl:         &TestMetricClient{},
-// 		UserClientImpl:           &TestUserClient{},
+// 		PermissionClientImpl:     &TestPermissionClient{},
 // 		DataClientImpl:           &TestDataClient{},
-// 		ConfirmationSessionImpl: &TestConfirmationSession{},
+// 		ConfirmationSessionImpl:  &TestConfirmationSession{},
 // 		MessagesSessionImpl:      &TestMessagesSession{},
 // 		PermissionsSessionImpl:   &TestPermissionsSession{},
 // 		ProfilesSessionImpl:      &TestProfilesSession{},
@@ -414,8 +414,8 @@ func TestSuite(t *testing.T) {
 // 	return t.MetricClientImpl
 // }
 
-// func (t *TestContext) UserClient() user.Client {
-// 	return t.UserClientImpl
+// func (t *TestContext) PermissionClient() permission.Client {
+// 	return t.PermissionClientImpl
 // }
 
 // func (t *TestContext) DataClient() dataClient.Client {
@@ -448,7 +448,7 @@ func TestSuite(t *testing.T) {
 
 // func (t *TestContext) ValidateTest() bool {
 // 	return (t.MetricClientImpl == nil || t.MetricClientImpl.ValidateTest()) &&
-// 		(t.UserClientImpl == nil || t.UserClientImpl.ValidateTest()) &&
+// 		(t.PermissionClientImpl == nil || t.PermissionClientImpl.ValidateTest()) &&
 // 		(t.DataClientImpl == nil || t.DataClientImpl.ValidateTest()) &&
 // 		(t.ConfirmationSessionImpl == nil || t.ConfirmationSessionImpl.ValidateTest()) &&
 // 		(t.MessagesSessionImpl == nil || t.MessagesSessionImpl.ValidateTest()) &&

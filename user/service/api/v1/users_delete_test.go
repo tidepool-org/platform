@@ -434,12 +434,12 @@ package v1_test
 // 				})
 
 // 				AfterEach(func() {
-// 					Expect(context.UserClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
+// 					Expect(context.PermissionClientImpl.GetUserPermissionsInputs).To(Equal([]GetUserPermissionsInput{{context, authUserID, targetUserID}}))
 // 				})
 
 // 				Context("with owner permissions", func() {
 // 					BeforeEach(func() {
-// 						context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{userClient.Permissions{"root": userClient.Permission{}}, nil}}
+// 						context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{permission.Permissions{"root": permission.Permission{}}, nil}}
 // 					})
 
 // 					WithPassword(flags)()
@@ -447,39 +447,39 @@ package v1_test
 
 // 				Context("with custodian permissions", func() {
 // 					BeforeEach(func() {
-// 						context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{userClient.Permissions{"custodian": userClient.Permission{}}, nil}}
+// 						context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{permission.Permissions{"custodian": permission.Permission{}}, nil}}
 // 					})
 
 // 					WithUserID(flags)()
 // 				})
 
 // 				It("responds with failure if it returns other permissions", func() {
-// 					context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{userClient.Permissions{"other": userClient.Permission{}}, nil}}
+// 					context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{permission.Permissions{"other": permission.Permission{}}, nil}}
 // 					v1.UsersDelete(context)
 // 					Expect(context.RespondWithErrorInputs).To(Equal([]*service.Error{service.ErrorUnauthorized()}))
 // 				})
 
 // 				It("responds with failure if it returns empty permissions", func() {
-// 					context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{userClient.Permissions{}, nil}}
+// 					context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{permission.Permissions{}, nil}}
 // 					v1.UsersDelete(context)
 // 					Expect(context.RespondWithErrorInputs).To(Equal([]*service.Error{service.ErrorUnauthorized()}))
 // 				})
 
 // 				It("responds with failure if it returns no permissions", func() {
-// 					context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{nil, nil}}
+// 					context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{nil, nil}}
 // 					v1.UsersDelete(context)
 // 					Expect(context.RespondWithErrorInputs).To(Equal([]*service.Error{service.ErrorUnauthorized()}))
 // 				})
 
 // 				It("responds with failure if it returns unauthorized error", func() {
-// 					context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{nil, client.NewUnauthorizedError()}}
+// 					context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{nil, client.NewUnauthorizedError()}}
 // 					v1.UsersDelete(context)
 // 					Expect(context.RespondWithErrorInputs).To(Equal([]*service.Error{service.ErrorUnauthorized()}))
 // 				})
 
 // 				It("responds with failure if it returns other error", func() {
 // 					err := errors.New("test-error-getting-user-permissions")
-// 					context.UserClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{nil, err}}
+// 					context.PermissionClientImpl.GetUserPermissionsOutputs = []GetUserPermissionsOutput{{nil, err}}
 // 					v1.UsersDelete(context)
 // 					Expect(context.RespondWithInternalServerFailureInputs).To(Equal([]RespondWithInternalServerFailureInput{{"Unable to get user permissions", []interface{}{err}}}))
 // 				})

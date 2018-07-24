@@ -7,10 +7,10 @@ import (
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
-	"github.com/tidepool-org/platform/user"
 )
 
 func DataSetsUpdate(dataServiceContext dataService.Context) {
@@ -37,8 +37,8 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 
 	details := request.DetailsFromContext(ctx)
 	if !details.IsService() {
-		var permissions user.Permissions
-		permissions, err = dataServiceContext.UserClient().GetUserPermissions(ctx, details.UserID(), *dataSet.UserID)
+		var permissions permission.Permissions
+		permissions, err = dataServiceContext.PermissionClient().GetUserPermissions(ctx, details.UserID(), *dataSet.UserID)
 		if err != nil {
 			if request.IsErrorUnauthorized(err) {
 				dataServiceContext.RespondWithError(service.ErrorUnauthorized())
@@ -47,7 +47,7 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 			}
 			return
 		}
-		if _, ok := permissions[user.UploadPermission]; !ok {
+		if _, ok := permissions[permission.Write]; !ok {
 			dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 			return
 		}

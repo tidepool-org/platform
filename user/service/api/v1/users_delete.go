@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 
 	messageStore "github.com/tidepool-org/platform/message/store"
@@ -31,8 +32,8 @@ func UsersDelete(userServiceContext userService.Context) {
 	if details := request.DetailsFromContext(ctx); !details.IsService() {
 		authUserID := details.UserID()
 
-		var permissions user.Permissions
-		permissions, err := userServiceContext.UserClient().GetUserPermissions(ctx, authUserID, targetUserID)
+		var permissions permission.Permissions
+		permissions, err := userServiceContext.PermissionClient().GetUserPermissions(ctx, authUserID, targetUserID)
 		if err != nil {
 			if request.IsErrorUnauthorized(err) {
 				userServiceContext.RespondWithError(service.ErrorUnauthorized())
@@ -41,14 +42,14 @@ func UsersDelete(userServiceContext userService.Context) {
 			}
 			return
 		}
-		if _, ok := permissions[user.OwnerPermission]; ok {
+		if _, ok := permissions[permission.Owner]; ok {
 			var usersDeleteParameters UsersDeleteParameters
 			if err = userServiceContext.Request().DecodeJsonPayload(&usersDeleteParameters); err != nil {
 				userServiceContext.RespondWithError(service.ErrorJSONMalformed())
 				return
 			}
 			password = &usersDeleteParameters.Password
-		} else if _, ok = permissions[user.CustodianPermission]; !ok {
+		} else if _, ok = permissions[permission.Custodian]; !ok {
 			userServiceContext.RespondWithError(service.ErrorUnauthorized())
 			return
 		}

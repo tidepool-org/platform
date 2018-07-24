@@ -18,6 +18,7 @@ import (
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/page"
 	pageTest "github.com/tidepool-org/platform/page/test"
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/user"
 	userTest "github.com/tidepool-org/platform/user/test"
 )
@@ -88,7 +89,7 @@ var _ = Describe("Client", func() {
 				})
 
 				AfterEach(func() {
-					Expect(userClient.EnsureAuthorizedUserInputs).To(Equal([]userTest.EnsureAuthorizedUserInput{{Context: ctx, TargetUserID: userID, Permission: user.OwnerPermission}}))
+					Expect(userClient.EnsureAuthorizedUserInputs).To(Equal([]userTest.EnsureAuthorizedUserInput{{Context: ctx, TargetUserID: userID, AuthorizedPermission: permission.Owner}}))
 				})
 
 				It("return an error when the user client ensure authorized user returns an error", func() {
@@ -219,7 +220,7 @@ var _ = Describe("Client", func() {
 						})
 
 						AfterEach(func() {
-							Expect(userClient.EnsureAuthorizedUserInputs).To(Equal([]userTest.EnsureAuthorizedUserInput{{Context: ctx, TargetUserID: *responseResult.UserID, Permission: user.OwnerPermission}}))
+							Expect(userClient.EnsureAuthorizedUserInputs).To(Equal([]userTest.EnsureAuthorizedUserInput{{Context: ctx, TargetUserID: *responseResult.UserID, AuthorizedPermission: permission.Owner}}))
 						})
 
 						It("returns an error when the user client ensure authorized user returns an error", func() {
