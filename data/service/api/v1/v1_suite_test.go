@@ -8,7 +8,6 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 
-	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	testDataDeduplicator "github.com/tidepool-org/platform/data/deduplicator/test"
 	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
@@ -92,10 +91,6 @@ func (t *TestContext) MetricClient() metric.Client {
 
 func (t *TestContext) UserClient() user.Client {
 	return t.UserClientImpl
-}
-
-func (t *TestContext) DataFactory() data.Factory {
-	panic("Unexpected invocation of DataFactory on TestContext")
 }
 
 func (t *TestContext) DataDeduplicatorFactory() deduplicator.Factory {

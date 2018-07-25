@@ -6,7 +6,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data/context"
-	"github.com/tidepool-org/platform/data/factory"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
 	testData "github.com/tidepool-org/platform/data/test"
@@ -69,7 +68,7 @@ func CloneSuspend(datum *suspend.Suspend) *suspend.Suspend {
 }
 
 func NewTestSuspend(sourceTime interface{}, sourceDuration interface{}, sourceDurationExpected interface{}, sourceSuppressed suspend.Suppressed) *suspend.Suspend {
-	datum := suspend.Init()
+	datum := suspend.New()
 	datum.DeviceID = pointer.String(id.New())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
@@ -85,6 +84,10 @@ func NewTestSuspend(sourceTime interface{}, sourceDuration interface{}, sourceDu
 }
 
 var _ = Describe("Suspend", func() {
+	It("DeliveryType is expected", func() {
+		Expect(suspend.DeliveryType).To(Equal("suspend"))
+	})
+
 	It("DurationMaximum is expected", func() {
 		Expect(suspend.DurationMaximum).To(Equal(604800000))
 	})
@@ -93,27 +96,9 @@ var _ = Describe("Suspend", func() {
 		Expect(suspend.DurationMinimum).To(Equal(0))
 	})
 
-	Context("DeliveryType", func() {
-		It("returns the expected delivery type", func() {
-			Expect(suspend.DeliveryType()).To(Equal("suspend"))
-		})
-	})
-
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(suspend.NewDatum()).To(Equal(&suspend.Suspend{}))
-		})
-	})
-
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(suspend.New()).To(Equal(&suspend.Suspend{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := suspend.Init()
+			datum := suspend.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("basal"))
 			Expect(datum.DeliveryType).To(Equal("suspend"))
@@ -123,31 +108,12 @@ var _ = Describe("Suspend", func() {
 		})
 	})
 
-	Context("with new datum", func() {
-		var datum *suspend.Suspend
-
-		BeforeEach(func() {
-			datum = NewSuspend()
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("basal"))
-				Expect(datum.DeliveryType).To(Equal("suspend"))
-				Expect(datum.Duration).To(BeNil())
-				Expect(datum.DurationExpected).To(BeNil())
-				Expect(datum.Suppressed).To(BeNil())
-			})
-		})
-	})
-
 	Context("Suspend", func() {
 		Context("Parse", func() {
 			var datum *suspend.Suspend
 
 			BeforeEach(func() {
-				datum = suspend.Init()
+				datum = suspend.New()
 				Expect(datum).ToNot(BeNil())
 			})
 
@@ -156,10 +122,7 @@ var _ = Describe("Suspend", func() {
 					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
-					testFactory, err := factory.NewStandard()
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testFactory).ToNot(BeNil())
-					testParser, err := parser.NewStandardObject(testContext, testFactory, sourceObject, parser.AppendErrorNotParsed)
+					testParser, err := parser.NewStandardObject(testContext, sourceObject, parser.AppendErrorNotParsed)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testParser).ToNot(BeNil())
 					Expect(datum.Parse(testParser)).To(Succeed())

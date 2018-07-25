@@ -4,17 +4,18 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/types"
-	"github.com/tidepool-org/platform/data/types/bolus"
-	"github.com/tidepool-org/platform/data/types/bolus/combination"
-	"github.com/tidepool-org/platform/data/types/bolus/extended"
-	"github.com/tidepool-org/platform/data/types/bolus/normal"
+	dataTypesBolusCombination "github.com/tidepool-org/platform/data/types/bolus/combination"
+	dataTypesBolusExtended "github.com/tidepool-org/platform/data/types/bolus/extended"
+	dataTypesBolusFactory "github.com/tidepool-org/platform/data/types/bolus/factory"
+	dataTypesBolusNormal "github.com/tidepool-org/platform/data/types/bolus/normal"
 	"github.com/tidepool-org/platform/id"
-	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 const (
+	Type = "wizard" // TODO: Rename Type to "calculator"
+
 	CarbohydrateInputMaximum        = 1000.0
 	CarbohydrateInputMinimum        = 0.0
 	InsulinCarbohydrateRatioMaximum = 250.0
@@ -38,38 +39,10 @@ type Calculator struct {
 	Units                    *string                  `json:"units,omitempty" bson:"units,omitempty"`
 }
 
-func Type() string {
-	return "wizard" // TODO: Rename Type to "calculator"
-}
-
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *Calculator {
-	return &Calculator{}
-}
-
-func Init() *Calculator {
-	calculator := New()
-	calculator.Init()
-	return calculator
-}
-
-func (c *Calculator) Init() {
-	c.Base.Init()
-	c.Type = Type()
-
-	c.BloodGlucoseInput = nil
-	c.BloodGlucoseTarget = nil
-	c.Bolus = nil
-	c.BolusID = nil
-	c.CarbohydrateInput = nil
-	c.InsulinCarbohydrateRatio = nil
-	c.InsulinOnBoard = nil
-	c.InsulinSensitivity = nil
-	c.Recommended = nil
-	c.Units = nil
+	return &Calculator{
+		Base: types.New(Type),
+	}
 }
 
 func (c *Calculator) Parse(parser data.ObjectParser) error {
@@ -87,18 +60,7 @@ func (c *Calculator) Parse(parser data.ObjectParser) error {
 	c.InsulinSensitivity = parser.ParseFloat("insulinSensitivity")
 	c.Recommended = ParseRecommended(parser.NewChildObjectParser("recommended"))
 	c.Units = parser.ParseString("units")
-
-	// TODO: This is a bit hacky to ensure we only parse true bolus data. Is there a better way?
-
-	if bolusParser := parser.NewChildObjectParser("bolus"); bolusParser.Object() != nil {
-		if bolusType := bolusParser.ParseString("type"); bolusType == nil {
-			bolusParser.AppendError("type", service.ErrorValueNotExists())
-		} else if *bolusType != bolus.Type() {
-			bolusParser.AppendError("type", service.ErrorValueStringNotOneOf(*bolusType, []string{bolus.Type()}))
-		} else {
-			c.Bolus = parser.ParseDatum("bolus")
-		}
-	}
+	c.Bolus = dataTypesBolusFactory.ParseBolusDatum(parser.NewChildObjectParser("bolus"))
 
 	return nil
 }
@@ -111,7 +73,7 @@ func (c *Calculator) Validate(validator structure.Validator) {
 	c.Base.Validate(validator)
 
 	if c.Type != "" {
-		validator.String("type", &c.Type).EqualTo(Type())
+		validator.String("type", &c.Type).EqualTo(Type)
 	}
 
 	units := c.Units
@@ -166,11 +128,11 @@ func (c *Calculator) Normalize(normalizer data.Normalizer) {
 		if c.Bolus != nil {
 			normalizer.AddData(*c.Bolus)
 			switch bolus := (*c.Bolus).(type) {
-			case *combination.Combination:
+			case *dataTypesBolusCombination.Combination:
 				c.BolusID = bolus.ID
-			case *extended.Extended:
+			case *dataTypesBolusExtended.Extended:
 				c.BolusID = bolus.ID
-			case *normal.Normal:
+			case *dataTypesBolusNormal.Normal:
 				c.BolusID = bolus.ID
 			}
 			c.Bolus = nil

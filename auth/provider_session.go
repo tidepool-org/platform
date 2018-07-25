@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/oauth"
@@ -60,7 +59,7 @@ func (p *ProviderSessionFilter) Mutate(req *http.Request) error {
 	if p.Name != nil {
 		parameters["name"] = *p.Name
 	}
-	return client.NewParametersMutator(parameters).Mutate(req)
+	return request.NewParametersMutator(parameters).Mutate(req)
 }
 
 type ProviderSessionCreate struct {

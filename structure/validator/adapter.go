@@ -2,6 +2,26 @@ package validator
 
 import "github.com/tidepool-org/platform/structure"
 
+type ValidatableWithInt interface {
+	Validate(validator structure.Validator, i *int)
+}
+
+type ValidatableWithIntAdapter struct {
+	validatableWithInt ValidatableWithInt
+	i                  *int
+}
+
+func NewValidatableWithIntAdapter(validatableWithInt ValidatableWithInt, i *int) *ValidatableWithIntAdapter {
+	return &ValidatableWithIntAdapter{
+		validatableWithInt: validatableWithInt,
+		i:                  i,
+	}
+}
+
+func (v *ValidatableWithIntAdapter) Validate(validator structure.Validator) {
+	v.validatableWithInt.Validate(validator, v.i)
+}
+
 type ValidatableWithString interface {
 	Validate(validator structure.Validator, str *string)
 }

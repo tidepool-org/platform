@@ -11,6 +11,12 @@ type Glucose struct {
 	blood.Blood `bson:",inline"`
 }
 
+func New(typ string) Glucose {
+	return Glucose{
+		Blood: blood.New(typ),
+	}
+}
+
 func (g *Glucose) Validate(validator structure.Validator) {
 	g.Blood.Validate(validator)
 

@@ -2,6 +2,7 @@ package parser
 
 import (
 	"math"
+	"time"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/errors"
@@ -11,18 +12,14 @@ import (
 
 type StandardObject struct {
 	context         data.Context
-	factory         data.Factory
 	object          *map[string]interface{}
 	parsed          map[string]bool
 	notParsedPolicy NotParsedPolicy
 }
 
-func NewStandardObject(context data.Context, factory data.Factory, object *map[string]interface{}, notParsedPolicy NotParsedPolicy) (*StandardObject, error) {
+func NewStandardObject(context data.Context, object *map[string]interface{}, notParsedPolicy NotParsedPolicy) (*StandardObject, error) {
 	if context == nil {
 		return nil, errors.New("context is missing")
-	}
-	if factory == nil {
-		return nil, errors.New("factory is missing")
 	}
 
 	var parsed map[string]bool
@@ -32,7 +29,6 @@ func NewStandardObject(context data.Context, factory data.Factory, object *map[s
 
 	return &StandardObject{
 		context:         context,
-		factory:         factory,
 		object:          object,
 		parsed:          parsed,
 		notParsedPolicy: notParsedPolicy,
@@ -172,7 +168,7 @@ func (s *StandardObject) ParseStringArray(key string) *[]string {
 		}
 
 		stringArrayValue = []string{}
-		parser, _ := NewStandardArray(s.context.NewChildContext(key), s.factory, &arrayValue, IgnoreNotParsed)
+		parser, _ := NewStandardArray(s.context.NewChildContext(key), &arrayValue, IgnoreNotParsed)
 		for arrayIndex := range arrayValue {
 			var stringElement string
 			if stringParsed := parser.ParseString(arrayIndex); stringParsed != nil {
@@ -183,6 +179,33 @@ func (s *StandardObject) ParseStringArray(key string) *[]string {
 	}
 
 	return &stringArrayValue
+}
+
+func (s *StandardObject) ParseTime(key string, layout string) *time.Time {
+	if s.object == nil {
+		return nil
+	}
+
+	s.parsed[key] = true
+
+	rawValue, ok := (*s.object)[key]
+	if !ok {
+		return nil
+	}
+
+	stringValue, ok := rawValue.(string)
+	if !ok {
+		s.AppendError(key, service.ErrorTypeNotTime(rawValue))
+		return nil
+	}
+
+	timeValue, err := time.Parse(layout, stringValue)
+	if err != nil {
+		s.AppendError(key, service.ErrorValueTimeNotParsable(stringValue, layout))
+		return nil
+	}
+
+	return &timeValue
 }
 
 func (s *StandardObject) ParseObject(key string) *map[string]interface{} {
@@ -226,7 +249,7 @@ func (s *StandardObject) ParseObjectArray(key string) *[]map[string]interface{} 
 			return nil
 		}
 
-		parser, _ := NewStandardArray(s.context.NewChildContext(key), s.factory, &arrayValue, IgnoreNotParsed)
+		parser, _ := NewStandardArray(s.context.NewChildContext(key), &arrayValue, IgnoreNotParsed)
 		for arrayIndex := range arrayValue {
 			var objectElement map[string]interface{}
 			if objectParsed := parser.ParseObject(arrayIndex); objectParsed != nil {
@@ -275,56 +298,6 @@ func (s *StandardObject) ParseInterfaceArray(key string) *[]interface{} {
 	return &arrayValue
 }
 
-func (s *StandardObject) ParseDatum(key string) *data.Datum {
-	parser := s.NewChildObjectParser(key)
-
-	datum, err := ParseDatum(parser, s.factory)
-	if err != nil || datum == nil {
-		return nil
-	}
-
-	if datum != nil && *datum != nil {
-		parser.ProcessNotParsed()
-	}
-
-	return datum
-}
-
-func (s *StandardObject) ParseDatumArray(key string) *[]data.Datum {
-	if s.object == nil {
-		return nil
-	}
-
-	s.parsed[key] = true
-
-	rawValue, ok := (*s.object)[key]
-	if !ok {
-		return nil
-	}
-
-	arrayValue, arrayValueOk := rawValue.([]interface{})
-	if !arrayValueOk {
-		s.AppendError(key, service.ErrorTypeNotArray(rawValue))
-		return nil
-	}
-
-	parser, err := NewStandardArray(s.context.NewChildContext(key), s.factory, &arrayValue, IgnoreNotParsed)
-	if err != nil {
-		return nil
-	}
-
-	datumArray, err := ParseDatumArray(parser)
-	if err != nil {
-		return nil
-	}
-
-	if datumArray != nil && *datumArray != nil {
-		parser.ProcessNotParsed()
-	}
-
-	return datumArray
-}
-
 func (s *StandardObject) ProcessNotParsed() {
 	if s.object == nil {
 		return
@@ -347,11 +320,11 @@ func (s *StandardObject) ProcessNotParsed() {
 }
 
 func (s *StandardObject) NewChildObjectParser(key string) data.ObjectParser {
-	standardObject, _ := NewStandardObject(s.context.NewChildContext(key), s.factory, s.ParseObject(key), s.notParsedPolicy)
+	standardObject, _ := NewStandardObject(s.context.NewChildContext(key), s.ParseObject(key), s.notParsedPolicy)
 	return standardObject
 }
 
 func (s *StandardObject) NewChildArrayParser(key string) data.ArrayParser {
-	standardArray, _ := NewStandardArray(s.context.NewChildContext(key), s.factory, s.ParseInterfaceArray(key), s.notParsedPolicy)
+	standardArray, _ := NewStandardArray(s.context.NewChildContext(key), s.ParseInterfaceArray(key), s.notParsedPolicy)
 	return standardArray
 }

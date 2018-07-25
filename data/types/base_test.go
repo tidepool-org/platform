@@ -1,6 +1,8 @@
 package types_test
 
 import (
+	"sort"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -11,6 +13,9 @@ import (
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
+	testDataTypesCommonAssociation "github.com/tidepool-org/platform/data/types/common/association/test"
+	testDataTypesCommonLocation "github.com/tidepool-org/platform/data/types/common/location/test"
+	testDataTypesCommonOrigin "github.com/tidepool-org/platform/data/types/common/origin/test"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/id"
@@ -18,64 +23,65 @@ import (
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
+	"github.com/tidepool-org/platform/time/zone"
+	testTimeZone "github.com/tidepool-org/platform/time/zone/test"
+	"github.com/tidepool-org/platform/validate"
 )
 
 var futureTime = time.Unix(4102444800, 0)
 
 var _ = Describe("Base", func() {
+	Context("New", func() {
+		It("creates a new datum with all values initialized", func() {
+			typ := testDataTypes.NewType()
+			datum := types.New(typ)
+			Expect(datum.Active).To(BeFalse())
+			Expect(datum.Annotations).To(BeNil())
+			Expect(datum.Associations).To(BeNil())
+			Expect(datum.ArchivedDataSetID).To(BeNil())
+			Expect(datum.ArchivedTime).To(BeNil())
+			Expect(datum.ClockDriftOffset).To(BeNil())
+			Expect(datum.ConversionOffset).To(BeNil())
+			Expect(datum.CreatedTime).To(BeNil())
+			Expect(datum.CreatedUserID).To(BeNil())
+			Expect(datum.Deduplicator).To(BeNil())
+			Expect(datum.DeletedTime).To(BeNil())
+			Expect(datum.DeletedUserID).To(BeNil())
+			Expect(datum.DeviceID).To(BeNil())
+			Expect(datum.DeviceTime).To(BeNil())
+			Expect(datum.GUID).To(BeNil())
+			Expect(datum.ID).To(BeNil())
+			Expect(datum.Location).To(BeNil())
+			Expect(datum.ModifiedTime).To(BeNil())
+			Expect(datum.ModifiedUserID).To(BeNil())
+			Expect(datum.Notes).To(BeNil())
+			Expect(datum.Origin).To(BeNil())
+			Expect(datum.Payload).To(BeNil())
+			Expect(datum.SchemaVersion).To(Equal(0))
+			Expect(datum.Source).To(BeNil())
+			Expect(datum.Tags).To(BeNil())
+			Expect(datum.Time).To(BeNil())
+			Expect(datum.TimeZoneName).To(BeNil())
+			Expect(datum.TimeZoneOffset).To(BeNil())
+			Expect(datum.Type).To(Equal(typ))
+			Expect(datum.UploadID).To(BeNil())
+			Expect(datum.UserID).To(BeNil())
+			Expect(datum.Version).To(Equal(0))
+		})
+	})
+
 	Context("with new datum", func() {
-		var datum *types.Base
+		var typ string
+		var datum types.Base
 
 		BeforeEach(func() {
-			datum = testDataTypes.NewBase()
+			typ = testDataTypes.NewType()
+			datum = types.New(typ)
 		})
 
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Active).To(BeFalse())
-				Expect(datum.Annotations).To(BeNil())
-				Expect(datum.ArchivedDataSetID).To(BeNil())
-				Expect(datum.ArchivedTime).To(BeNil())
-				Expect(datum.ClockDriftOffset).To(BeNil())
-				Expect(datum.ConversionOffset).To(BeNil())
-				Expect(datum.CreatedTime).To(BeNil())
-				Expect(datum.CreatedUserID).To(BeNil())
-				Expect(datum.Deduplicator).To(BeNil())
-				Expect(datum.DeletedTime).To(BeNil())
-				Expect(datum.DeletedUserID).To(BeNil())
-				Expect(datum.DeviceID).To(BeNil())
-				Expect(datum.DeviceTime).To(BeNil())
-				Expect(datum.GUID).To(BeNil())
-				Expect(datum.ID).To(BeNil())
-				Expect(datum.ModifiedTime).To(BeNil())
-				Expect(datum.ModifiedUserID).To(BeNil())
-				Expect(datum.Payload).To(BeNil())
-				Expect(datum.SchemaVersion).To(Equal(0))
-				Expect(datum.Source).To(BeNil())
-				Expect(datum.Time).To(BeNil())
-				Expect(datum.TimezoneOffset).To(BeNil())
-				Expect(datum.Type).To(BeEmpty())
-				Expect(datum.UploadID).To(BeNil())
-				Expect(datum.UserID).To(BeNil())
-				Expect(datum.Version).To(Equal(0))
-			})
-		})
-
-		Context("with initialized", func() {
-			BeforeEach(func() {
-				datum.Init()
-			})
-
-			Context("Meta", func() {
-				It("returns the meta with no type", func() {
-					Expect(datum.Meta()).To(Equal(&types.Meta{}))
-				})
-
-				It("returns the meta with type", func() {
-					datum.Type = testDataTypes.NewType()
-					Expect(datum.Meta()).To(Equal(&types.Meta{Type: datum.Type}))
-				})
+		Context("Meta", func() {
+			It("returns the meta with type", func() {
+				Expect(datum.Meta()).To(Equal(&types.Meta{Type: typ}))
 			})
 		})
 	})
@@ -110,6 +116,19 @@ var _ = Describe("Base", func() {
 				),
 				Entry("annotations exist",
 					func(datum *types.Base) { datum.Annotations = testData.NewBlobArray() },
+					structure.Origins(),
+				),
+				Entry("associations missing",
+					func(datum *types.Base) { datum.Associations = nil },
+					structure.Origins(),
+				),
+				Entry("associations invalid",
+					func(datum *types.Base) { (*datum.Associations)[0].Type = nil },
+					structure.Origins(),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/associations/0/type"),
+				),
+				Entry("associations valid",
+					func(datum *types.Base) { datum.Associations = testDataTypesCommonAssociation.NewAssociationArray() },
 					structure.Origins(),
 				),
 				Entry("archived data set id missing",
@@ -343,7 +362,7 @@ var _ = Describe("Base", func() {
 				Entry("deduplicator invalid",
 					func(datum *types.Base) { datum.Deduplicator.Name = "invalid" },
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
-					testErrors.WithPointerSource(data.ErrorValueStringAsReverseDomainNotValid("invalid"), "/_deduplicator/name"),
+					testErrors.WithPointerSource(validate.ErrorValueStringAsReverseDomainNotValid("invalid"), "/_deduplicator/name"),
 				),
 				Entry("deduplicator valid",
 					func(datum *types.Base) { datum.Deduplicator = testData.NewDeduplicatorDescriptor() },
@@ -395,6 +414,22 @@ var _ = Describe("Base", func() {
 				),
 				Entry("id valid",
 					func(datum *types.Base) { datum.ID = pointer.String(id.New()) },
+					structure.Origins(),
+				),
+				Entry("location missing",
+					func(datum *types.Base) { datum.Location = nil },
+					structure.Origins(),
+				),
+				Entry("location invalid",
+					func(datum *types.Base) {
+						datum.Location.GPS = nil
+						datum.Location.Name = nil
+					},
+					structure.Origins(),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/location/gps"),
+				),
+				Entry("location valid",
+					func(datum *types.Base) { datum.Location = testDataTypesCommonLocation.NewLocation() },
 					structure.Origins(),
 				),
 				Entry("modified user id missing",
@@ -493,6 +528,67 @@ var _ = Describe("Base", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/deletedTime"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/modifiedTime"),
 				),
+				Entry("notes missing",
+					func(datum *types.Base) { datum.Notes = nil },
+					structure.Origins(),
+				),
+				Entry("notes empty",
+					func(datum *types.Base) { datum.Notes = pointer.StringArray([]string{}) },
+					structure.Origins(),
+					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/notes"),
+				),
+				Entry("notes length; in range (upper)",
+					func(datum *types.Base) { datum.Notes = pointer.StringArray(testDataTypes.NewNotes(100, 100)) },
+					structure.Origins(),
+				),
+				Entry("notes length; out of range (upper)",
+					func(datum *types.Base) { datum.Notes = pointer.StringArray(testDataTypes.NewNotes(101, 101)) },
+					structure.Origins(),
+					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/notes"),
+				),
+				Entry("notes note empty",
+					func(datum *types.Base) {
+						datum.Notes = pointer.StringArray(append([]string{testDataTypes.NewNote(1, 1000), "", testDataTypes.NewNote(1, 1000), ""}, testDataTypes.NewNotes(0, 96)...))
+					},
+					structure.Origins(),
+					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/notes/1"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/notes/3"),
+				),
+				Entry("notes note length; in range (upper)",
+					func(datum *types.Base) {
+						datum.Notes = pointer.StringArray(append([]string{testDataTypes.NewNote(1000, 1000), testDataTypes.NewNote(1, 1000), testDataTypes.NewNote(1000, 1000)}, testDataTypes.NewNotes(0, 97)...))
+					},
+					structure.Origins(),
+				),
+				Entry("notes note length; out of range (upper)",
+					func(datum *types.Base) {
+						datum.Notes = pointer.StringArray(append([]string{testDataTypes.NewNote(1001, 1001), testDataTypes.NewNote(1, 1000), testDataTypes.NewNote(1001, 1001)}, testDataTypes.NewNotes(0, 97)...))
+					},
+					structure.Origins(),
+					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(1001, 1000), "/notes/0"),
+					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(1001, 1000), "/notes/2"),
+				),
+				Entry("origin missing",
+					func(datum *types.Base) { datum.Origin = nil },
+					structure.Origins(),
+				),
+				Entry("origin invalid",
+					func(datum *types.Base) { datum.Origin.Name = nil },
+					structure.Origins(),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/origin/name"),
+				),
+				Entry("origin valid",
+					func(datum *types.Base) { datum.Origin = testDataTypesCommonOrigin.NewOrigin() },
+					structure.Origins(),
+				),
+				Entry("payload missing",
+					func(datum *types.Base) { datum.Payload = nil },
+					structure.Origins(),
+				),
+				Entry("payload exists",
+					func(datum *types.Base) { datum.Payload = testData.NewBlob() },
+					structure.Origins(),
+				),
 				Entry("schema version; out of range (lower)",
 					func(datum *types.Base) { datum.SchemaVersion = 0 },
 					[]structure.Origin{structure.OriginStore},
@@ -524,6 +620,53 @@ var _ = Describe("Base", func() {
 					func(datum *types.Base) { datum.Source = pointer.String("carelink") },
 					structure.Origins(),
 				),
+				Entry("tags missing",
+					func(datum *types.Base) { datum.Tags = nil },
+					structure.Origins(),
+				),
+				Entry("tags empty",
+					func(datum *types.Base) { datum.Tags = pointer.StringArray([]string{}) },
+					structure.Origins(),
+					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/tags"),
+				),
+				Entry("tags length; in range (upper)",
+					func(datum *types.Base) { datum.Tags = pointer.StringArray(testDataTypes.NewTags(100, 100)) },
+					structure.Origins(),
+				),
+				Entry("tags length; out of range (upper)",
+					func(datum *types.Base) { datum.Tags = pointer.StringArray(testDataTypes.NewTags(101, 101)) },
+					structure.Origins(),
+					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/tags"),
+				),
+				Entry("tags tag empty",
+					func(datum *types.Base) {
+						datum.Tags = pointer.StringArray(append([]string{testDataTypes.NewTag(1, 100), "", testDataTypes.NewTag(1, 100)}, testDataTypes.NewTags(0, 96)...))
+					},
+					structure.Origins(),
+					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/tags/1"),
+				),
+				Entry("tags tag length; in range (upper)",
+					func(datum *types.Base) {
+						datum.Tags = pointer.StringArray(append([]string{testDataTypes.NewTag(100, 100), testDataTypes.NewTag(1, 100), testDataTypes.NewTag(100, 100)}, testDataTypes.NewTags(0, 97)...))
+					},
+					structure.Origins(),
+				),
+				Entry("tags tag length; out of range (upper)",
+					func(datum *types.Base) {
+						datum.Tags = pointer.StringArray(append([]string{testDataTypes.NewTag(101, 101), testDataTypes.NewTag(1, 100), testDataTypes.NewTag(101, 101)}, testDataTypes.NewTags(0, 97)...))
+					},
+					structure.Origins(),
+					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/tags/0"),
+					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/tags/2"),
+				),
+				Entry("tags tag duplicate",
+					func(datum *types.Base) {
+						tag := testDataTypes.NewTag(1, 100)
+						datum.Tags = pointer.StringArray(append([]string{testDataTypes.NewTag(1, 100), tag, tag}, testDataTypes.NewTags(0, 96)...))
+					},
+					structure.Origins(),
+					testErrors.WithPointerSource(structureValidator.ErrorValueDuplicate(), "/tags/2"),
+				),
 				Entry("time missing",
 					func(datum *types.Base) { datum.Time = nil },
 					structure.Origins(),
@@ -538,25 +681,38 @@ var _ = Describe("Base", func() {
 					func(datum *types.Base) { datum.Time = pointer.String(test.NewTime().Format(time.RFC3339)) },
 					structure.Origins(),
 				),
+				Entry("time zone name missing",
+					func(datum *types.Base) { datum.TimeZoneName = nil },
+					structure.Origins(),
+				),
+				Entry("time zone name empty",
+					func(datum *types.Base) { datum.TimeZoneName = pointer.String("") },
+					structure.Origins(),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("", zone.Names()), "/timezone"),
+				),
+				Entry("time zone name exists",
+					func(datum *types.Base) { datum.TimeZoneName = pointer.String(testTimeZone.NewName()) },
+					structure.Origins(),
+				),
 				Entry("time zone offset missing",
-					func(datum *types.Base) { datum.TimezoneOffset = nil },
+					func(datum *types.Base) { datum.TimeZoneOffset = nil },
 					structure.Origins(),
 				),
 				Entry("time zone offset; out of range (lower)",
-					func(datum *types.Base) { datum.TimezoneOffset = pointer.Int(-10081) },
+					func(datum *types.Base) { datum.TimeZoneOffset = pointer.Int(-10081) },
 					structure.Origins(),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-10081, -10080, 10080), "/timezoneOffset"),
 				),
 				Entry("time zone offset; in range (lower)",
-					func(datum *types.Base) { datum.TimezoneOffset = pointer.Int(-10080) },
+					func(datum *types.Base) { datum.TimeZoneOffset = pointer.Int(-10080) },
 					structure.Origins(),
 				),
 				Entry("time zone offset; in range (upper)",
-					func(datum *types.Base) { datum.TimezoneOffset = pointer.Int(10080) },
+					func(datum *types.Base) { datum.TimeZoneOffset = pointer.Int(10080) },
 					structure.Origins(),
 				),
 				Entry("time zone offset; out of range (upper)",
-					func(datum *types.Base) { datum.TimezoneOffset = pointer.Int(10081) },
+					func(datum *types.Base) { datum.TimeZoneOffset = pointer.Int(10081) },
 					structure.Origins(),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(10081, -10080, 10080), "/timezoneOffset"),
 				),
@@ -648,7 +804,7 @@ var _ = Describe("Base", func() {
 					testErrors.WithPointerSource(data.ErrorValueStringAsUserIDNotValid("invalid"), "/createdUserId"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339), "/deletedTime"),
 					testErrors.WithPointerSource(data.ErrorValueStringAsUserIDNotValid("invalid"), "/deletedUserId"),
-					testErrors.WithPointerSource(data.ErrorValueStringAsReverseDomainNotValid("invalid"), "/_deduplicator/name"),
+					testErrors.WithPointerSource(validate.ErrorValueStringAsReverseDomainNotValid("invalid"), "/_deduplicator/name"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/id"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339), "/modifiedTime"),
 					testErrors.WithPointerSource(data.ErrorValueStringAsUserIDNotValid("invalid"), "/modifiedUserId"),
@@ -660,9 +816,15 @@ var _ = Describe("Base", func() {
 						datum.DeviceID = nil
 						datum.DeviceTime = pointer.String("invalid")
 						datum.ID = pointer.String("")
+						datum.Location.GPS = nil
+						datum.Location.Name = nil
+						datum.Notes = pointer.StringArray([]string{})
+						datum.Origin.Name = nil
 						datum.Source = pointer.String("invalid")
+						datum.Tags = pointer.StringArray([]string{})
 						datum.Time = nil
-						datum.TimezoneOffset = pointer.Int(-10081)
+						datum.TimeZoneName = pointer.String("")
+						datum.TimeZoneOffset = pointer.Int(-10081)
 						datum.Type = ""
 					},
 					structure.Origins(),
@@ -670,8 +832,13 @@ var _ = Describe("Base", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/deviceId"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", "2006-01-02T15:04:05"), "/deviceTime"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/id"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/location/gps"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/notes"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/origin/name"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "carelink"), "/source"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/tags"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/time"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("", zone.Names()), "/timezone"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-10081, -10080, 10080), "/timezoneOffset"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/type"),
 				),
@@ -696,9 +863,11 @@ var _ = Describe("Base", func() {
 						Expect(datum).To(Equal(expectedDatum))
 					}
 				},
-				Entry("does not modify the datum",
+				Entry("tags sorted",
 					func(datum *types.Base) {},
-					nil,
+					func(datum *types.Base, expectedDatum *types.Base) {
+						sort.Strings(*expectedDatum.Tags)
+					},
 				),
 			)
 
@@ -723,6 +892,7 @@ var _ = Describe("Base", func() {
 						Expect(datum.GUID).ToNot(BeNil())
 						Expect(datum.GUID).ToNot(Equal(expectedDatum.GUID))
 						expectedDatum.GUID = datum.GUID
+						sort.Strings(*expectedDatum.Tags)
 					},
 				),
 				Entry("id missing",
@@ -731,6 +901,7 @@ var _ = Describe("Base", func() {
 						Expect(datum.ID).ToNot(BeNil())
 						Expect(datum.ID).ToNot(Equal(expectedDatum.ID))
 						expectedDatum.ID = datum.ID
+						sort.Strings(*expectedDatum.Tags)
 					},
 				),
 				Entry("default schema version",
@@ -738,12 +909,12 @@ var _ = Describe("Base", func() {
 					func(datum *types.Base, expectedDatum *types.Base) {
 						Expect(datum.SchemaVersion).To(Equal(3))
 						expectedDatum.SchemaVersion = datum.SchemaVersion
+						sort.Strings(*expectedDatum.Tags)
 					},
 				),
 				Entry("all missing",
 					func(datum *types.Base) {
-						*datum = types.Base{}
-						datum.Init()
+						*datum = types.New("")
 					},
 					func(datum *types.Base, expectedDatum *types.Base) {
 						Expect(datum.GUID).ToNot(BeNil())
@@ -777,20 +948,25 @@ var _ = Describe("Base", func() {
 				},
 				Entry("guid missing",
 					func(datum *types.Base) { datum.GUID = nil },
-					nil,
+					func(datum *types.Base, expectedDatum *types.Base) {
+						sort.Strings(*expectedDatum.Tags)
+					},
 				),
 				Entry("id missing",
 					func(datum *types.Base) { datum.ID = nil },
-					nil,
+					func(datum *types.Base, expectedDatum *types.Base) {
+						sort.Strings(*expectedDatum.Tags)
+					},
 				),
 				Entry("default schema version",
 					func(datum *types.Base) { datum.SchemaVersion = 0 },
-					nil,
+					func(datum *types.Base, expectedDatum *types.Base) {
+						sort.Strings(*expectedDatum.Tags)
+					},
 				),
 				Entry("all missing",
 					func(datum *types.Base) {
-						*datum = types.Base{}
-						datum.Init()
+						*datum = types.New("")
 					},
 					nil,
 				),

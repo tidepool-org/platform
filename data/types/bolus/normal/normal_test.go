@@ -6,7 +6,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data/context"
-	"github.com/tidepool-org/platform/data/factory"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
 	testData "github.com/tidepool-org/platform/data/test"
@@ -31,7 +30,7 @@ func NewMeta() interface{} {
 }
 
 func NewTestNormal(sourceTime interface{}, sourceNormal interface{}, sourceNormalExpected interface{}) *normal.Normal {
-	datum := normal.Init()
+	datum := normal.New()
 	datum.DeviceID = pointer.String(id.New())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
@@ -46,6 +45,10 @@ func NewTestNormal(sourceTime interface{}, sourceNormal interface{}, sourceNorma
 }
 
 var _ = Describe("Normal", func() {
+	It("SubType is expected", func() {
+		Expect(normal.SubType).To(Equal("normal"))
+	})
+
 	It("NormalMaximum is expected", func() {
 		Expect(normal.NormalMaximum).To(Equal(100.0))
 	})
@@ -54,27 +57,9 @@ var _ = Describe("Normal", func() {
 		Expect(normal.NormalMinimum).To(Equal(0.0))
 	})
 
-	Context("SubType", func() {
-		It("returns the expected sub type", func() {
-			Expect(normal.SubType()).To(Equal("normal"))
-		})
-	})
-
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(normal.NewDatum()).To(Equal(&normal.Normal{}))
-		})
-	})
-
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(normal.New()).To(Equal(&normal.Normal{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := normal.Init()
+			datum := normal.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("bolus"))
 			Expect(datum.SubType).To(Equal("normal"))
@@ -83,30 +68,12 @@ var _ = Describe("Normal", func() {
 		})
 	})
 
-	Context("with new datum", func() {
-		var datum *normal.Normal
-
-		BeforeEach(func() {
-			datum = testDataTypesBolusNormal.NewNormal()
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("bolus"))
-				Expect(datum.SubType).To(Equal("normal"))
-				Expect(datum.Normal).To(BeNil())
-				Expect(datum.NormalExpected).To(BeNil())
-			})
-		})
-	})
-
 	Context("Normal", func() {
 		Context("Parse", func() {
 			var datum *normal.Normal
 
 			BeforeEach(func() {
-				datum = normal.Init()
+				datum = normal.New()
 				Expect(datum).ToNot(BeNil())
 			})
 
@@ -115,10 +82,7 @@ var _ = Describe("Normal", func() {
 					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
-					testFactory, err := factory.NewStandard()
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testFactory).ToNot(BeNil())
-					testParser, err := parser.NewStandardObject(testContext, testFactory, sourceObject, parser.AppendErrorNotParsed)
+					testParser, err := parser.NewStandardObject(testContext, sourceObject, parser.AppendErrorNotParsed)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testParser).ToNot(BeNil())
 					Expect(datum.Parse(testParser)).To(Succeed())

@@ -7,7 +7,6 @@ import (
 
 	testDataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose/test"
 	"github.com/tidepool-org/platform/data/context"
-	"github.com/tidepool-org/platform/data/factory"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
 	testData "github.com/tidepool-org/platform/data/test"
@@ -35,7 +34,7 @@ func NewSelfMonitored(units *string) *selfmonitored.SelfMonitored {
 	datum := selfmonitored.New()
 	datum.Glucose = *testDataTypesBloodGlucose.NewGlucose(units)
 	datum.Type = "smbg"
-	datum.SubType = pointer.String(test.RandomStringFromStringArray(selfmonitored.SubTypes()))
+	datum.SubType = pointer.String(test.RandomStringFromArray(selfmonitored.SubTypes()))
 	return datum
 }
 
@@ -50,7 +49,7 @@ func CloneSelfMonitored(datum *selfmonitored.SelfMonitored) *selfmonitored.SelfM
 }
 
 func NewTestSelfMonitored(sourceTime interface{}, sourceUnits interface{}, sourceValue interface{}, sourceSubType interface{}) *selfmonitored.SelfMonitored {
-	datum := selfmonitored.Init()
+	datum := selfmonitored.New()
 	datum.DeviceID = pointer.String(id.New())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
@@ -68,6 +67,10 @@ func NewTestSelfMonitored(sourceTime interface{}, sourceUnits interface{}, sourc
 }
 
 var _ = Describe("SelfMonitored", func() {
+	It("Type is expected", func() {
+		Expect(selfmonitored.Type).To(Equal("smbg"))
+	})
+
 	It("SubTypeLinked is expected", func() {
 		Expect(selfmonitored.SubTypeLinked).To(Equal("linked"))
 	})
@@ -80,27 +83,9 @@ var _ = Describe("SelfMonitored", func() {
 		Expect(selfmonitored.SubTypes()).To(Equal([]string{"linked", "manual"}))
 	})
 
-	Context("Type", func() {
-		It("returns the expected type", func() {
-			Expect(selfmonitored.Type()).To(Equal("smbg"))
-		})
-	})
-
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(selfmonitored.NewDatum()).To(Equal(&selfmonitored.SelfMonitored{}))
-		})
-	})
-
 	Context("New", func() {
 		It("returns the expected datum", func() {
-			Expect(selfmonitored.New()).To(Equal(&selfmonitored.SelfMonitored{}))
-		})
-	})
-
-	Context("Init", func() {
-		It("returns the expected datum", func() {
-			datum := selfmonitored.Init()
+			datum := selfmonitored.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("smbg"))
 			Expect(datum.Units).To(BeNil())
@@ -109,30 +94,12 @@ var _ = Describe("SelfMonitored", func() {
 		})
 	})
 
-	Context("with new datum", func() {
-		var datum *selfmonitored.SelfMonitored
-
-		BeforeEach(func() {
-			datum = NewSelfMonitored(pointer.String("mmol/L"))
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("smbg"))
-				Expect(datum.Units).To(BeNil())
-				Expect(datum.Value).To(BeNil())
-				Expect(datum.SubType).To(BeNil())
-			})
-		})
-	})
-
 	Context("SelfMonitored", func() {
 		Context("Parse", func() {
 			var datum *selfmonitored.SelfMonitored
 
 			BeforeEach(func() {
-				datum = selfmonitored.Init()
+				datum = selfmonitored.New()
 				Expect(datum).ToNot(BeNil())
 			})
 
@@ -141,10 +108,7 @@ var _ = Describe("SelfMonitored", func() {
 					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
-					testFactory, err := factory.NewStandard()
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testFactory).ToNot(BeNil())
-					testParser, err := parser.NewStandardObject(testContext, testFactory, sourceObject, parser.AppendErrorNotParsed)
+					testParser, err := parser.NewStandardObject(testContext, sourceObject, parser.AppendErrorNotParsed)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testParser).ToNot(BeNil())
 					Expect(datum.Parse(testParser)).To(Succeed())
@@ -497,24 +461,18 @@ var _ = Describe("SelfMonitored", func() {
 				Entry("does not modify the datum; units mmol/L",
 					pointer.String("mmol/L"),
 					func(datum *selfmonitored.SelfMonitored, units *string) {},
-					func(datum *selfmonitored.SelfMonitored, expectedDatum *selfmonitored.SelfMonitored, units *string) {
-						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
-						testDataBloodGlucose.ExpectNormalizedValue(datum.Value, expectedDatum.Value, units)
-					},
+					nil,
 				),
 				Entry("does not modify the datum; units mmol/L; value missing",
 					pointer.String("mmol/L"),
 					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = nil },
-					func(datum *selfmonitored.SelfMonitored, expectedDatum *selfmonitored.SelfMonitored, units *string) {
-						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
-					},
+					nil,
 				),
 				Entry("modifies the datum; units mmol/l",
 					pointer.String("mmol/l"),
 					func(datum *selfmonitored.SelfMonitored, units *string) {},
 					func(datum *selfmonitored.SelfMonitored, expectedDatum *selfmonitored.SelfMonitored, units *string) {
 						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
-						testDataBloodGlucose.ExpectNormalizedValue(datum.Value, expectedDatum.Value, units)
 					},
 				),
 				Entry("modifies the datum; units mmol/l; value missing",

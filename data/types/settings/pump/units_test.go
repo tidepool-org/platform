@@ -19,7 +19,7 @@ import (
 func NewUnits(unitsBloodGlucose *string) *pump.Units {
 	datum := pump.NewUnits()
 	datum.BloodGlucose = unitsBloodGlucose
-	datum.Carbohydrate = pointer.String(test.RandomStringFromStringArray(pump.Carbohydrates()))
+	datum.Carbohydrate = pointer.String(test.RandomStringFromArray(pump.Carbohydrates()))
 	return datum
 }
 

@@ -40,7 +40,7 @@ package mongo_test
 // }
 
 // func NewDataset(userID string, deviceID string) *upload.Upload {
-// 	dataset := upload.Init()
+// 	dataset := upload.New()
 // 	Expect(dataset).ToNot(BeNil())
 
 // 	dataset.Deduplicator = &data.DeduplicatorDescriptor{Name: "test-deduplicator"}
@@ -51,7 +51,7 @@ package mongo_test
 // 	dataset.DeviceID = pointer.String(deviceID)
 // 	dataset.DeviceTime = pointer.String(SampleTime().Format("2006-01-02T15:04:05"))
 // 	dataset.Time = pointer.String(SampleTime().UTC().Format(time.RFC3339))
-// 	dataset.TimezoneOffset = pointer.Int(-420)
+// 	dataset.TimeZoneOffset = pointer.Int(-420)
 
 // 	dataset.ComputerTime = pointer.String(SampleTime().Format("2006-01-02T15:04:05"))
 // 	dataset.DeviceManufacturers = pointer.StringArray([]string{"Tesla"})
@@ -59,7 +59,7 @@ package mongo_test
 // 	dataset.DeviceSerialNumber = pointer.String("567890")
 // 	dataset.DeviceTags = pointer.StringArray([]string{upload.DeviceTagInsulinPump})
 // 	dataset.TimeProcessing = pointer.String(upload.TimeProcessingUTCBootstrapping)
-// 	dataset.Timezone = pointer.String("US/Pacific")
+// 	dataset.TimeZoneName = pointer.String("US/Pacific")
 // 	dataset.Version = pointer.String("0.260.1")
 
 // 	return dataset
@@ -69,7 +69,7 @@ package mongo_test
 // 	datasetData := []data.Datum{}
 // 	for count := 0; count < 3; count++ {
 // 		baseDatum := &types.Base{}
-// 		baseDatum.Init()
+// 		baseDatum.New()
 
 // 		baseDatum.Deduplicator = &data.DeduplicatorDescriptor{Hash: id.New()}
 // 		baseDatum.Type = "test"
@@ -79,7 +79,7 @@ package mongo_test
 // 		baseDatum.DeviceID = pointer.String(deviceID)
 // 		baseDatum.DeviceTime = pointer.String(SampleTime().Format("2006-01-02T15:04:05"))
 // 		baseDatum.Time = pointer.String(SampleTime().UTC().Format(time.RFC3339))
-// 		baseDatum.TimezoneOffset = pointer.Int(-420)
+// 		baseDatum.TimeZoneOffset = pointer.Int(-420)
 
 // 		datasetData = append(datasetData, baseDatum)
 // 	}
@@ -116,7 +116,7 @@ package mongo_test
 // 			clonedBaseDatum.Payload = baseDatum.Payload
 // 			clonedBaseDatum.Source = baseDatum.Source
 // 			clonedBaseDatum.Time = baseDatum.Time
-// 			clonedBaseDatum.TimezoneOffset = baseDatum.TimezoneOffset
+// 			clonedBaseDatum.TimeZoneOffset = baseDatum.TimeZoneOffset
 
 // 			clonedDatasetData = append(clonedDatasetData, clonedBaseDatum)
 // 		}
@@ -191,14 +191,14 @@ package mongo_test
 // 	Context("New", func() {
 // 		It("returns an error if unsuccessful", func() {
 // 			var err error
-// 			mongoStore, err = mongo.New(nil, nil)
+// 			mongoStore, err = mongo.NewStore(nil, nil)
 // 			Expect(err).To(HaveOccurred())
 // 			Expect(mongoStore).To(BeNil())
 // 		})
 
 // 		It("returns a new store and no error if successful", func() {
 // 			var err error
-// 			mongoStore, err = mongo.New(mongoConfig, null.NewLogger())
+// 			mongoStore, err = mongo.NewStore(mongoConfig, null.NewLogger())
 // 			Expect(err).ToNot(HaveOccurred())
 // 			Expect(mongoStore).ToNot(BeNil())
 // 		})
@@ -207,7 +207,7 @@ package mongo_test
 // 	Context("with a new store", func() {
 // 		BeforeEach(func() {
 // 			var err error
-// 			mongoStore, err = mongo.New(mongoConfig, null.NewLogger())
+// 			mongoStore, err = mongo.NewStore(mongoConfig, null.NewLogger())
 // 			Expect(err).ToNot(HaveOccurred())
 // 			Expect(mongoStore).ToNot(BeNil())
 // 		})

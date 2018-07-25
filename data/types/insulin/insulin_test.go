@@ -8,10 +8,13 @@ import (
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/insulin"
+	testDataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin/test"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/test"
 )
 
 func NewMeta() interface{} {
@@ -24,7 +27,9 @@ func NewInsulin() *insulin.Insulin {
 	datum := insulin.New()
 	datum.Base = *testDataTypes.NewBase()
 	datum.Type = "insulin"
-	datum.Dose = NewDose()
+	datum.Dose = testDataTypesInsulin.NewDose()
+	datum.Formulation = testDataTypesInsulin.NewFormulation(3)
+	datum.Site = pointer.String(test.NewText(1, 100))
 	return datum
 }
 
@@ -34,52 +39,25 @@ func CloneInsulin(datum *insulin.Insulin) *insulin.Insulin {
 	}
 	clone := insulin.New()
 	clone.Base = *testDataTypes.CloneBase(&datum.Base)
-	clone.Dose = CloneDose(datum.Dose)
+	clone.Dose = testDataTypesInsulin.CloneDose(datum.Dose)
+	clone.Formulation = testDataTypesInsulin.CloneFormulation(datum.Formulation)
+	clone.Site = test.CloneString(datum.Site)
 	return clone
 }
 
 var _ = Describe("Insulin", func() {
-	Context("Type", func() {
-		It("returns the expected type", func() {
-			Expect(insulin.Type()).To(Equal("insulin"))
-		})
-	})
-
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(insulin.NewDatum()).To(Equal(&insulin.Insulin{}))
-		})
+	It("Type is expected", func() {
+		Expect(insulin.Type).To(Equal("insulin"))
 	})
 
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(insulin.New()).To(Equal(&insulin.Insulin{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := insulin.Init()
+			datum := insulin.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("insulin"))
 			Expect(datum.Dose).To(BeNil())
-		})
-	})
-
-	Context("with new datum", func() {
-		var datum *insulin.Insulin
-
-		BeforeEach(func() {
-			datum = insulin.New()
-			Expect(datum).ToNot(BeNil())
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("insulin"))
-				Expect(datum.Dose).To(BeNil())
-			})
+			Expect(datum.Formulation).To(BeNil())
+			Expect(datum.Site).To(BeNil())
 		})
 	})
 
@@ -111,23 +89,52 @@ var _ = Describe("Insulin", func() {
 				),
 				Entry("dose missing",
 					func(datum *insulin.Insulin) { datum.Dose = nil },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/dose", NewMeta()),
 				),
 				Entry("dose invalid",
 					func(datum *insulin.Insulin) { datum.Dose.Total = nil },
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/dose/total", NewMeta()),
 				),
 				Entry("dose valid",
-					func(datum *insulin.Insulin) { datum.Dose = NewDose() },
+					func(datum *insulin.Insulin) { datum.Dose = testDataTypesInsulin.NewDose() },
+				),
+				Entry("formulation missing",
+					func(datum *insulin.Insulin) { datum.Formulation = nil },
+				),
+				Entry("formulation invalid",
+					func(datum *insulin.Insulin) {
+						datum.Formulation.Name = pointer.String("")
+					},
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/formulation/name", NewMeta()),
+				),
+				Entry("formulation valid",
+					func(datum *insulin.Insulin) { datum.Formulation = testDataTypesInsulin.NewFormulation(3) },
+				),
+				Entry("site missing",
+					func(datum *insulin.Insulin) { datum.Site = nil },
+				),
+				Entry("site empty",
+					func(datum *insulin.Insulin) { datum.Site = pointer.String("") },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/site", NewMeta()),
+				),
+				Entry("site invalid",
+					func(datum *insulin.Insulin) { datum.Site = pointer.String(test.NewText(101, 101)) },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/site", NewMeta()),
+				),
+				Entry("site valid",
+					func(datum *insulin.Insulin) { datum.Site = pointer.String(test.NewText(1, 100)) },
 				),
 				Entry("multiple errors",
 					func(datum *insulin.Insulin) {
 						datum.Type = "invalidType"
-						datum.Dose.Total = nil
-						datum.Dose.Units = nil
+						datum.Dose = nil
+						datum.Formulation.Name = pointer.String("")
+						datum.Site = pointer.String("")
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "insulin"), "/type", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/dose/total", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/dose/units", &types.Meta{Type: "invalidType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/dose", &types.Meta{Type: "invalidType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/formulation/name", &types.Meta{Type: "invalidType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/site", &types.Meta{Type: "invalidType"}),
 				),
 			)
 		})
@@ -152,6 +159,12 @@ var _ = Describe("Insulin", func() {
 				),
 				Entry("does not modify the datum; dose nil",
 					func(datum *insulin.Insulin) { datum.Dose = nil },
+				),
+				Entry("does not modify the datum; formulation nil",
+					func(datum *insulin.Insulin) { datum.Formulation = nil },
+				),
+				Entry("does not modify the datum; site nil",
+					func(datum *insulin.Insulin) { datum.Site = nil },
 				),
 			)
 		})

@@ -18,8 +18,8 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-func New(cfg *mongo.Config, lgr log.Logger) (*Store, error) {
-	baseStore, err := mongo.New(cfg, lgr)
+func NewStore(cfg *mongo.Config, lgr log.Logger) (*Store, error) {
+	baseStore, err := mongo.NewStore(cfg, lgr)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func (d *DataSession) GetDatasetsForUserByID(ctx context.Context, userID string,
 	}
 	if filter == nil {
 		filter = storeDEPRECATED.NewFilter()
-	} else if err := filter.Validate(); err != nil {
+	} else if err := structureValidator.New().Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}
 	if pagination == nil {
@@ -216,11 +216,11 @@ func (d *DataSession) UpdateDataSet(ctx context.Context, id string, update *data
 	if update.Time != nil {
 		set["time"] = (*update.Time).Format(data.TimeFormat)
 	}
-	if update.Timezone != nil {
-		set["timezone"] = *update.Timezone
+	if update.TimeZoneName != nil {
+		set["timezone"] = *update.TimeZoneName
 	}
-	if update.TimezoneOffset != nil {
-		set["timezoneOffset"] = *update.TimezoneOffset
+	if update.TimeZoneOffset != nil {
+		set["timezoneOffset"] = *update.TimeZoneOffset
 	}
 	changeInfo, err := d.C().UpdateAll(bson.M{"type": "upload", "uploadId": id}, d.ConstructUpdate(set, unset))
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("UpdateDataSet")

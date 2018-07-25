@@ -7,35 +7,20 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
+const (
+	SubType = "timeChange" // TODO: Rename Type to "device/timeChange"; remove SubType
+)
+
 type TimeChange struct {
 	device.Device `bson:",inline"`
 
 	Change *Change `json:"change,omitempty" bson:"change,omitempty"`
 }
 
-func SubType() string {
-	return "timeChange" // TODO: Rename Type to "device/timeChange"; remove SubType
-}
-
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *TimeChange {
-	return &TimeChange{}
-}
-
-func Init() *TimeChange {
-	timeChange := New()
-	timeChange.Init()
-	return timeChange
-}
-
-func (t *TimeChange) Init() {
-	t.Device.Init()
-	t.SubType = SubType()
-
-	t.Change = nil
+	return &TimeChange{
+		Device: device.New(SubType),
+	}
 }
 
 func (t *TimeChange) Parse(parser data.ObjectParser) error {
@@ -56,7 +41,7 @@ func (t *TimeChange) Validate(validator structure.Validator) {
 	t.Device.Validate(validator)
 
 	if t.SubType != "" {
-		validator.String("subType", &t.SubType).EqualTo(SubType())
+		validator.String("subType", &t.SubType).EqualTo(SubType)
 	}
 
 	changeValidator := validator.WithReference("change")

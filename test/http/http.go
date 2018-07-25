@@ -128,6 +128,10 @@ func NewPath() string {
 	return "/" + strings.Join(segments, "/")
 }
 
+func NewURLString() string {
+	return NewAddress() + NewPath()
+}
+
 func NewURL() *url.URL {
 	earl, err := url.Parse(NewAddress() + NewPath())
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())

@@ -1,0 +1,435 @@
+package water_test
+
+import (
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/gomega"
+
+	"math"
+
+	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
+	testDataTypes "github.com/tidepool-org/platform/data/types/test"
+	"github.com/tidepool-org/platform/data/types/water"
+	testErrors "github.com/tidepool-org/platform/errors/test"
+	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/test"
+)
+
+func NewAmount() *water.Amount {
+	datum := water.NewAmount()
+	datum.Units = pointer.String(test.RandomStringFromArray(water.AmountUnits()))
+	datum.Value = pointer.Float64(test.RandomFloat64FromRange(water.AmountValueRangeForUnits(datum.Units)))
+	return datum
+}
+
+func CloneAmount(datum *water.Amount) *water.Amount {
+	if datum == nil {
+		return nil
+	}
+	clone := water.NewAmount()
+	clone.Units = test.CloneString(datum.Units)
+	clone.Value = test.CloneFloat64(datum.Value)
+	return clone
+}
+
+var _ = Describe("Amount", func() {
+	It("AmountLitersPerGallon is expected", func() {
+		Expect(water.AmountLitersPerGallon).To(Equal(3.7854118))
+	})
+
+	It("AmountOuncesPerGallon is expected", func() {
+		Expect(water.AmountOuncesPerGallon).To(Equal(128.0))
+	})
+
+	It("AmountUnitsGallons is expected", func() {
+		Expect(water.AmountUnitsGallons).To(Equal("gallons"))
+	})
+
+	It("AmountUnitsLiters is expected", func() {
+		Expect(water.AmountUnitsLiters).To(Equal("liters"))
+	})
+
+	It("AmountUnitsMilliliters is expected", func() {
+		Expect(water.AmountUnitsMilliliters).To(Equal("milliliters"))
+	})
+
+	It("AmountUnitsOunces is expected", func() {
+		Expect(water.AmountUnitsOunces).To(Equal("ounces"))
+	})
+
+	It("AmountValueGallonsMaximum is expected", func() {
+		Expect(water.AmountValueGallonsMaximum).To(Equal(10.0))
+	})
+
+	It("AmountValueGallonsMinimum is expected", func() {
+		Expect(water.AmountValueGallonsMinimum).To(Equal(0.0))
+	})
+
+	It("AmountValueLitersMaximum is expected", func() {
+		Expect(water.AmountValueLitersMaximum).To(Equal(37.854118))
+	})
+
+	It("AmountValueLitersMinimum is expected", func() {
+		Expect(water.AmountValueLitersMinimum).To(Equal(0.0))
+	})
+
+	It("AmountValueMillilitersMaximum is expected", func() {
+		Expect(water.AmountValueMillilitersMaximum).To(Equal(37854.118))
+	})
+
+	It("AmountValueMillilitersMinimum is expected", func() {
+		Expect(water.AmountValueMillilitersMinimum).To(Equal(0.0))
+	})
+
+	It("AmountValueOuncesMaximum is expected", func() {
+		Expect(water.AmountValueOuncesMaximum).To(Equal(1280.0))
+	})
+
+	It("AmountValueOuncesMinimum is expected", func() {
+		Expect(water.AmountValueOuncesMinimum).To(Equal(0.0))
+	})
+
+	It("AmountUnits returns expected", func() {
+		Expect(water.AmountUnits()).To(Equal([]string{"gallons", "liters", "milliliters", "ounces"}))
+	})
+
+	Context("ParseAmount", func() {
+		// TODO
+	})
+
+	Context("NewAmount", func() {
+		It("is successful", func() {
+			Expect(water.NewAmount()).To(Equal(&water.Amount{}))
+		})
+	})
+
+	Context("Amount", func() {
+		Context("Parse", func() {
+			// TODO
+		})
+
+		Context("Validate", func() {
+			DescribeTable("validates the datum",
+				func(mutator func(datum *water.Amount), expectedErrors ...error) {
+					datum := NewAmount()
+					mutator(datum)
+					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+				},
+				Entry("succeeds",
+					func(datum *water.Amount) {},
+				),
+				Entry("units missing",
+					func(datum *water.Amount) { datum.Units = nil },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+				),
+				Entry("units invalid",
+					func(datum *water.Amount) { datum.Units = pointer.String("invalid") },
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"gallons", "liters", "milliliters", "ounces"}), "/units"),
+				),
+				Entry("units gallons",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("gallons")
+						datum.Value = pointer.Float64(0.0)
+					},
+				),
+				Entry("units liters",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("liters")
+						datum.Value = pointer.Float64(0.0)
+					},
+				),
+				Entry("units milliliters",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("milliliters")
+						datum.Value = pointer.Float64(0.0)
+					},
+				),
+				Entry("units ounces",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("ounces")
+						datum.Value = pointer.Float64(0.0)
+					},
+				),
+				Entry("units missing; value missing",
+					func(datum *water.Amount) {
+						datum.Units = nil
+						datum.Value = nil
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+				),
+				Entry("units missing; value out of range (lower)",
+					func(datum *water.Amount) {
+						datum.Units = nil
+						datum.Value = pointer.Float64(-0.1)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+				),
+				Entry("units missing; value in range (lower)",
+					func(datum *water.Amount) {
+						datum.Units = nil
+						datum.Value = pointer.Float64(0.0)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+				),
+				Entry("units missing; value in range (upper)",
+					func(datum *water.Amount) {
+						datum.Units = nil
+						datum.Value = pointer.Float64(37854.118)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+				),
+				Entry("units missing; value out of range (upper)",
+					func(datum *water.Amount) {
+						datum.Units = nil
+						datum.Value = pointer.Float64(37854.119)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+				),
+				Entry("units invalid; value missing",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("invalid")
+						datum.Value = nil
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"gallons", "liters", "milliliters", "ounces"}), "/units"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+				),
+				Entry("units invalid; value out of range (lower)",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("invalid")
+						datum.Value = pointer.Float64(-0.1)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"gallons", "liters", "milliliters", "ounces"}), "/units"),
+				),
+				Entry("units invalid; value in range (lower)",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("invalid")
+						datum.Value = pointer.Float64(0.0)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"gallons", "liters", "milliliters", "ounces"}), "/units"),
+				),
+				Entry("units invalid; value in range (upper)",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("invalid")
+						datum.Value = pointer.Float64(37854.118)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"gallons", "liters", "milliliters", "ounces"}), "/units"),
+				),
+				Entry("units invalid; value out of range (upper)",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("invalid")
+						datum.Value = pointer.Float64(37854.119)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"gallons", "liters", "milliliters", "ounces"}), "/units"),
+				),
+				Entry("units gallons; value missing",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("gallons")
+						datum.Value = nil
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+				),
+				Entry("units gallons; value out of range (lower)",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("gallons")
+						datum.Value = pointer.Float64(-0.1)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 10.0), "/value"),
+				),
+				Entry("units gallons; value in range (lower)",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("gallons")
+						datum.Value = pointer.Float64(0.0)
+					},
+				),
+				Entry("units gallons; value in range (upper)",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("gallons")
+						datum.Value = pointer.Float64(10.0)
+					},
+				),
+				Entry("units gallons; value out of range (upper)",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("gallons")
+						datum.Value = pointer.Float64(10.1)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(10.1, 0.0, 10.0), "/value"),
+				),
+				Entry("units liters; value missing",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("liters")
+						datum.Value = nil
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+				),
+				Entry("units liters; value out of range (lower)",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("liters")
+						datum.Value = pointer.Float64(-0.1)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 37.854118), "/value"),
+				),
+				Entry("units liters; value in range (lower)",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("liters")
+						datum.Value = pointer.Float64(0.0)
+					},
+				),
+				Entry("units liters; value in range (upper)",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("liters")
+						datum.Value = pointer.Float64(37.854118)
+					},
+				),
+				Entry("units liters; value out of range (upper)",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("liters")
+						datum.Value = pointer.Float64(37.854119)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(37.854119, 0.0, 37.854118), "/value"),
+				),
+				Entry("units milliliters; value missing",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("milliliters")
+						datum.Value = nil
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+				),
+				Entry("units milliliters; value out of range (lower)",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("milliliters")
+						datum.Value = pointer.Float64(-0.1)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 37854.118), "/value"),
+				),
+				Entry("units milliliters; value in range (lower)",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("milliliters")
+						datum.Value = pointer.Float64(0.0)
+					},
+				),
+				Entry("units milliliters; value in range (upper)",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("milliliters")
+						datum.Value = pointer.Float64(37854.118)
+					},
+				),
+				Entry("units milliliters; value out of range (upper)",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("milliliters")
+						datum.Value = pointer.Float64(37854.119)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(37854.119, 0.0, 37854.118), "/value"),
+				),
+				Entry("units ounces; value missing",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("ounces")
+						datum.Value = nil
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+				),
+				Entry("units ounces; value out of range (lower)",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("ounces")
+						datum.Value = pointer.Float64(-0.1)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1280.0), "/value"),
+				),
+				Entry("units ounces; value in range (lower)",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("ounces")
+						datum.Value = pointer.Float64(0.0)
+					},
+				),
+				Entry("units ounces; value in range (upper)",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("ounces")
+						datum.Value = pointer.Float64(1280.0)
+					},
+				),
+				Entry("units ounces; value out of range (upper)",
+					func(datum *water.Amount) {
+						datum.Units = pointer.String("ounces")
+						datum.Value = pointer.Float64(1280.1)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(1280.1, 0.0, 1280.0), "/value"),
+				),
+				Entry("multiple errors",
+					func(datum *water.Amount) {
+						datum.Units = nil
+						datum.Value = nil
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+				),
+			)
+		})
+
+		Context("Normalize", func() {
+			DescribeTable("normalizes the datum",
+				func(mutator func(datum *water.Amount)) {
+					for _, origin := range structure.Origins() {
+						datum := NewAmount()
+						mutator(datum)
+						expectedDatum := CloneAmount(datum)
+						normalizer := dataNormalizer.New()
+						Expect(normalizer).ToNot(BeNil())
+						datum.Normalize(normalizer.WithOrigin(origin))
+						Expect(normalizer.Error()).To(BeNil())
+						Expect(normalizer.Data()).To(BeEmpty())
+						Expect(datum).To(Equal(expectedDatum))
+					}
+				},
+				Entry("does not modify the datum",
+					func(datum *water.Amount) {},
+				),
+				Entry("does not modify the datum; units missing",
+					func(datum *water.Amount) { datum.Units = nil },
+				),
+				Entry("does not modify the datum; value missing",
+					func(datum *water.Amount) { datum.Value = nil },
+				),
+			)
+		})
+	})
+
+	Context("AmountValueRangeForUnits", func() {
+		It("returns expected range for units missing", func() {
+			minimum, maximum := water.AmountValueRangeForUnits(nil)
+			Expect(minimum).To(Equal(-math.MaxFloat64))
+			Expect(maximum).To(Equal(math.MaxFloat64))
+		})
+
+		It("returns expected range for units invalid", func() {
+			minimum, maximum := water.AmountValueRangeForUnits(pointer.String("invalid"))
+			Expect(minimum).To(Equal(-math.MaxFloat64))
+			Expect(maximum).To(Equal(math.MaxFloat64))
+		})
+
+		It("returns expected range for units gallons", func() {
+			minimum, maximum := water.AmountValueRangeForUnits(pointer.String("gallons"))
+			Expect(minimum).To(Equal(0.0))
+			Expect(maximum).To(Equal(10.0))
+		})
+
+		It("returns expected range for units liters", func() {
+			minimum, maximum := water.AmountValueRangeForUnits(pointer.String("liters"))
+			Expect(minimum).To(Equal(0.0))
+			Expect(maximum).To(Equal(37.854118))
+		})
+
+		It("returns expected range for units milliliters", func() {
+			minimum, maximum := water.AmountValueRangeForUnits(pointer.String("milliliters"))
+			Expect(minimum).To(Equal(0.0))
+			Expect(maximum).To(Equal(37854.118))
+		})
+
+		It("returns expected range for units ounces", func() {
+			minimum, maximum := water.AmountValueRangeForUnits(pointer.String("ounces"))
+			Expect(minimum).To(Equal(0.0))
+			Expect(maximum).To(Equal(1280.0))
+		})
+	})
+})

@@ -7,6 +7,8 @@ import (
 )
 
 const (
+	SubType = "prime" // TODO: Rename Type to "device/prime"; remove SubType
+
 	TargetCannula              = "cannula"
 	TargetTubing               = "tubing"
 	VolumeTargetCannulaMaximum = 10.0
@@ -29,30 +31,10 @@ type Prime struct {
 	Volume *float64 `json:"volume,omitempty" bson:"volume,omitempty"`
 }
 
-func SubType() string {
-	return "prime" // TODO: Rename Type to "device/prime"; remove SubType
-}
-
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *Prime {
-	return &Prime{}
-}
-
-func Init() *Prime {
-	prime := New()
-	prime.Init()
-	return prime
-}
-
-func (p *Prime) Init() {
-	p.Device.Init()
-	p.SubType = SubType()
-
-	p.Target = nil
-	p.Volume = nil
+	return &Prime{
+		Device: device.New(SubType),
+	}
 }
 
 func (p *Prime) Parse(parser data.ObjectParser) error {
@@ -74,7 +56,7 @@ func (p *Prime) Validate(validator structure.Validator) {
 	p.Device.Validate(validator)
 
 	if p.SubType != "" {
-		validator.String("subType", &p.SubType).EqualTo(SubType())
+		validator.String("subType", &p.SubType).EqualTo(SubType)
 	}
 
 	validator.String("primeTarget", p.Target).Exists().OneOf(Targets()...)

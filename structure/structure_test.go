@@ -11,6 +11,10 @@ import (
 )
 
 var _ = Describe("Structure", func() {
+	It("Origins returns expected", func() {
+		Expect(structure.Origins()).To(Equal([]structure.Origin{0, 1, 2}))
+	})
+
 	Context("NewParameterSource", func() {
 		It("returns successfully", func() {
 			Expect(structure.NewParameterSource()).ToNot(BeNil())

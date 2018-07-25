@@ -11,6 +11,7 @@ import (
 	"net/url"
 
 	"github.com/tidepool-org/platform/client"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/test"
 	testHTTP "github.com/tidepool-org/platform/test/http"
 )
@@ -151,9 +152,9 @@ var _ = Describe("Client", func() {
 		var method string
 		var path string
 		var url string
-		var headerMutator *client.HeaderMutator
-		var parameterMutator *client.ParameterMutator
-		var mutators []client.Mutator
+		var headerMutator *request.HeaderMutator
+		var parameterMutator *request.ParameterMutator
+		var mutators []request.Mutator
 		var requestBodyString string
 		var requestBody *RequestBody
 		var responseBodyString string
@@ -175,9 +176,9 @@ var _ = Describe("Client", func() {
 			method = testHTTP.NewMethod()
 			path = testHTTP.NewPath()
 			url = server.URL() + path
-			headerMutator = client.NewHeaderMutator(testHTTP.NewHeaderKey(), testHTTP.NewHeaderValue())
-			parameterMutator = client.NewParameterMutator(testHTTP.NewParameterKey(), testHTTP.NewParameterValue())
-			mutators = []client.Mutator{headerMutator, parameterMutator}
+			headerMutator = request.NewHeaderMutator(testHTTP.NewHeaderKey(), testHTTP.NewHeaderValue())
+			parameterMutator = request.NewParameterMutator(testHTTP.NewParameterKey(), testHTTP.NewParameterValue())
+			mutators = []request.Mutator{headerMutator, parameterMutator}
 			requestBodyString = test.NewVariableString(0, 32, test.CharsetAlphaNumeric)
 			requestBody = &RequestBody{requestBodyString}
 			responseBodyString = test.NewVariableString(0, 32, test.CharsetAlphaNumeric)
@@ -213,15 +214,9 @@ var _ = Describe("Client", func() {
 				Expect(server.ReceivedRequests()).To(BeEmpty())
 			})
 
-			It("returns error if mutator is missing", func() {
-				invalidMutators := []client.Mutator{headerMutator, nil, parameterMutator}
-				Expect(clnt.SendRequest(ctx, method, url, invalidMutators, requestBody, responseBody, httpClient)).To(MatchError("mutator is missing"))
-				Expect(server.ReceivedRequests()).To(BeEmpty())
-			})
-
 			It("returns error if mutator returns an error", func() {
-				errorMutator := client.NewHeaderMutator("", "")
-				invalidMutators := []client.Mutator{headerMutator, errorMutator, parameterMutator}
+				errorMutator := request.NewHeaderMutator("", "")
+				invalidMutators := []request.Mutator{headerMutator, errorMutator, parameterMutator}
 				Expect(clnt.SendRequest(ctx, method, url, invalidMutators, requestBody, responseBody, httpClient)).To(MatchError("unable to mutate request; key is missing"))
 				Expect(server.ReceivedRequests()).To(BeEmpty())
 			})
@@ -467,6 +462,27 @@ var _ = Describe("Client", func() {
 				It("returns success without parsing response body", func() {
 					Expect(clnt.SendRequest(ctx, method, url, mutators, requestBody, nil, httpClient)).To(Succeed())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with a successful response even if missing mutators", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
+							RespondWith(http.StatusOK, []byte("{\"response\":\""+responseBodyString+"\"}"), nil)),
+					)
+				})
+
+				It("returns success", func() {
+					mutators = []request.Mutator{nil, headerMutator, nil, parameterMutator, nil}
+					Expect(clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)).To(Succeed())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+					Expect(responseBody).ToNot(BeNil())
+					Expect(responseBody.Response).To(Equal(responseBodyString))
 				})
 			})
 		})

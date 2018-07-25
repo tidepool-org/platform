@@ -6,11 +6,12 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data/context"
-	"github.com/tidepool-org/platform/data/factory"
+	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/bolus"
 	testDataTypesBolus "github.com/tidepool-org/platform/data/types/bolus/test"
+	testDataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin/test"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/id"
@@ -22,8 +23,7 @@ import (
 )
 
 func NewTestBolus(sourceTime interface{}, sourceSubType interface{}) *bolus.Bolus {
-	datum := &bolus.Bolus{}
-	datum.Init()
+	datum := bolus.New("")
 	datum.DeviceID = pointer.String(id.New())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
@@ -31,45 +31,36 @@ func NewTestBolus(sourceTime interface{}, sourceSubType interface{}) *bolus.Bolu
 	if val, ok := sourceSubType.(string); ok {
 		datum.SubType = val
 	}
-	return datum
+	return &datum
 }
 
 var _ = Describe("Bolus", func() {
-	Context("Type", func() {
-		It("returns the expected type", func() {
-			Expect(bolus.Type()).To(Equal("bolus"))
+	It("Type is expected", func() {
+		Expect(bolus.Type).To(Equal("bolus"))
+	})
+
+	Context("New", func() {
+		It("creates a new datum with all values initialized", func() {
+			subType := testDataTypes.NewType()
+			datum := bolus.New(subType)
+			Expect(datum.Type).To(Equal("bolus"))
+			Expect(datum.SubType).To(Equal(subType))
+			Expect(datum.InsulinFormulation).To(BeNil())
 		})
 	})
 
 	Context("with new datum", func() {
-		var datum *bolus.Bolus
+		var subType string
+		var datum bolus.Bolus
 
 		BeforeEach(func() {
-			datum = testDataTypesBolus.NewBolus()
+			subType = testDataTypes.NewType()
+			datum = bolus.New(subType)
 		})
 
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("bolus"))
-				Expect(datum.SubType).To(BeEmpty())
-			})
-		})
-
-		Context("with initialized", func() {
-			BeforeEach(func() {
-				datum.Init()
-			})
-
-			Context("Meta", func() {
-				It("returns the meta with no sub type", func() {
-					Expect(datum.Meta()).To(Equal(&bolus.Meta{Type: "bolus"}))
-				})
-
-				It("returns the meta with sub type", func() {
-					datum.SubType = testDataTypes.NewType()
-					Expect(datum.Meta()).To(Equal(&bolus.Meta{Type: "bolus", SubType: datum.SubType}))
-				})
+		Context("Meta", func() {
+			It("returns the meta with delivery type", func() {
+				Expect(datum.Meta()).To(Equal(&bolus.Meta{Type: "bolus", SubType: subType}))
 			})
 		})
 	})
@@ -79,8 +70,7 @@ var _ = Describe("Bolus", func() {
 			var datum *bolus.Bolus
 
 			BeforeEach(func() {
-				datum = &bolus.Bolus{}
-				datum.Init()
+				datum = NewTestBolus("bolus", nil)
 			})
 
 			DescribeTable("parses the datum",
@@ -88,10 +78,7 @@ var _ = Describe("Bolus", func() {
 					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
-					testFactory, err := factory.NewStandard()
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testFactory).ToNot(BeNil())
-					testParser, err := parser.NewStandardObject(testContext, testFactory, sourceObject, parser.AppendErrorNotParsed)
+					testParser, err := parser.NewStandardObject(testContext, sourceObject, parser.AppendErrorNotParsed)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testParser).ToNot(BeNil())
 					Expect(datum.Parse(testParser)).To(Succeed())
@@ -162,13 +149,61 @@ var _ = Describe("Bolus", func() {
 				Entry("sub type valid",
 					func(datum *bolus.Bolus) { datum.SubType = testDataTypes.NewType() },
 				),
+				Entry("insulin formulation missing",
+					func(datum *bolus.Bolus) { datum.InsulinFormulation = nil },
+				),
+				Entry("insulin formulation invalid",
+					func(datum *bolus.Bolus) {
+						datum.InsulinFormulation.Compounds = nil
+						datum.InsulinFormulation.Name = nil
+						datum.InsulinFormulation.Simple = nil
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple"),
+				),
+				Entry("insulin formulation valid",
+					func(datum *bolus.Bolus) { datum.InsulinFormulation = testDataTypesInsulin.NewFormulation(3) },
+				),
 				Entry("multiple errors",
 					func(datum *bolus.Bolus) {
 						datum.Type = "invalid"
 						datum.SubType = ""
+						datum.InsulinFormulation.Compounds = nil
+						datum.InsulinFormulation.Name = nil
+						datum.InsulinFormulation.Simple = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "bolus"), "/type"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/subType"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple"),
+				),
+			)
+		})
+
+		Context("Normalize", func() {
+			DescribeTable("normalizes the datum",
+				func(mutator func(datum *bolus.Bolus)) {
+					for _, origin := range structure.Origins() {
+						datum := testDataTypesBolus.NewBolus()
+						mutator(datum)
+						expectedDatum := testDataTypesBolus.CloneBolus(datum)
+						normalizer := dataNormalizer.New()
+						Expect(normalizer).ToNot(BeNil())
+						datum.Normalize(normalizer.WithOrigin(origin))
+						Expect(normalizer.Error()).To(BeNil())
+						Expect(normalizer.Data()).To(BeEmpty())
+						Expect(datum).To(Equal(expectedDatum))
+					}
+				},
+				Entry("does not modify the datum",
+					func(datum *bolus.Bolus) {},
+				),
+				Entry("does not modify the datum; type missing",
+					func(datum *bolus.Bolus) { datum.Type = "" },
+				),
+				Entry("does not modify the datum; sub type missing",
+					func(datum *bolus.Bolus) { datum.SubType = "" },
+				),
+				Entry("does not modify the datum; insulin formulation missing",
+					func(datum *bolus.Bolus) { datum.InsulinFormulation = nil },
 				),
 			)
 		})

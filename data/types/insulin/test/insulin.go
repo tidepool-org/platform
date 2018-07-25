@@ -1,0 +1,30 @@
+package test
+
+import (
+	"github.com/tidepool-org/platform/data/types/insulin"
+	testDataTypes "github.com/tidepool-org/platform/data/types/test"
+	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/test"
+)
+
+func NewInsulin() *insulin.Insulin {
+	datum := insulin.New()
+	datum.Base = *testDataTypes.NewBase()
+	datum.Type = "insulin"
+	datum.Dose = NewDose()
+	datum.Formulation = NewFormulation(3)
+	datum.Site = pointer.String(test.NewText(1, 100))
+	return datum
+}
+
+func CloneInsulin(datum *insulin.Insulin) *insulin.Insulin {
+	if datum == nil {
+		return nil
+	}
+	clone := insulin.New()
+	clone.Base = *testDataTypes.CloneBase(&datum.Base)
+	clone.Dose = CloneDose(datum.Dose)
+	clone.Formulation = CloneFormulation(datum.Formulation)
+	clone.Site = test.CloneString(datum.Site)
+	return clone
+}

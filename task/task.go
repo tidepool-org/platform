@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/page"
@@ -76,7 +75,7 @@ func (t *TaskFilter) Mutate(req *http.Request) error {
 	if t.State != nil {
 		parameters["state"] = *t.State
 	}
-	return client.NewParametersMutator(parameters).Mutate(req)
+	return request.NewParametersMutator(parameters).Mutate(req)
 }
 
 type TaskCreate struct {

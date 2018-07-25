@@ -1,5 +1,64 @@
 ## HEAD
 
+## v1.26.0
+
+* Use correct form of insulin dose "Units" for Dexcom API ingestion
+* Update Makefile to exclude .git directory from CompileDaemon
+* Rename array depth to array depth limit in test helpers
+* Do not strip original time zone information using time.UTC()
+* Only convert to UTC when required (eg. time.Format that requires UTC time with or without time zone)
+* Refactor responder to log error if failure to write response
+* Update test ResponseWriter to implement http.ResponseWriter interface
+* Write new line after JSON response
+* Check all test ResponseWriter expectations
+* Add ingredients to food data model for greater flexibility
+* Refactor insulin data model to allow more flexibility and understanding
+* Add active insulin to insulin dose data model
+* Add lap data to physical activity data model
+* Add expected duration to status device event data model
+* Add bolus calculator enabled field to pump settings data model
+* Add tzdata to development Docker images
+* Validate data time zone against known time zones
+* Support time zone across all data types
+* Break timezone usage into two words
+* Add missing pump settings fields
+* Refactor structure validator to define new function types
+* Use "Units" rather than "units" for insulin
+* Fix bug in upload data type with check against incorrect type
+* Move mutator to request package; ignore missing mutators in client
+* Rename various New functions in mongo packages to NewStore for consistency
+* Add new fields to cgm settings data type
+* Add new fields to pump settings data type
+* Add insulin type to automated, scheduled, temporary basal and all bolus types
+* Refactor insulin data type to add formulation and mix
+* Add origin to location common data type
+* Add new fields to physical activity data type
+* Add water data type
+* Minor rename of food related constants
+* Add new fields to reported state data type
+* Add new fields to food data type
+* Remove redundant empty string tests for enumeration string fields
+* Add concentration field to insulin data type
+* Update string generation for structure validation error detail
+* Add new fields to insulin data type
+* Add associations, location, notes, origin, and tags to base data type
+* Report error on duplicate upload device manufacturers or tags
+* Additional validations of reverse domain, semantic version, and URL
+* Minor test updates
+* Add EachUnique and generic function validators to string array structure validator
+* Ensure structure source references are used correctly in tests
+* Return unparsed structure object references deterministically
+* Remove unnecessary time field from ErrorValueTimeZero
+* Add time parsing to data parser
+* Refactor data set filter to use new query parser
+* Cleanup data types New and Init functions
+* Remove deprecated data factory
+* Add new cgm settings data model type
+* New and updated test helpers
+* Remove unnecessary (and misleading) test expectations
+* Refactor data factory into specific packages
+* Refactor data type functions to constants
+
 ## v1.25.0
 
 * Use correct 2-Clause BSD License

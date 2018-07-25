@@ -18,7 +18,7 @@ var _ = Describe("String", func() {
 	var base *structureBase.Base
 
 	BeforeEach(func() {
-		base = structureBase.New()
+		base = structureBase.New().WithSource(structure.NewPointerSource())
 	})
 
 	Context("NewString", func() {

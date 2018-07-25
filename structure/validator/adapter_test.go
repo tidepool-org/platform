@@ -4,6 +4,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"math/rand"
+
 	"github.com/tidepool-org/platform/pointer"
 	testStructure "github.com/tidepool-org/platform/structure/test"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -11,6 +13,38 @@ import (
 )
 
 var _ = Describe("Adapter", func() {
+	Context("ValidatableWithInt", func() {
+		var validatableWithInt *testStructure.ValidatableWithInt
+		var i *int
+
+		BeforeEach(func() {
+			validatableWithInt = testStructure.NewValidatableWithInt()
+			i = pointer.Int(rand.Int())
+		})
+
+		Context("NewValidatableWithIntAdapter", func() {
+			It("return successfully", func() {
+				Expect(structureValidator.NewValidatableWithIntAdapter(validatableWithInt, i)).ToNot(BeNil())
+			})
+		})
+
+		Context("with new validatable with int adapter", func() {
+			var validatableWithIntAdapter *structureValidator.ValidatableWithIntAdapter
+
+			BeforeEach(func() {
+				validatableWithIntAdapter = structureValidator.NewValidatableWithIntAdapter(validatableWithInt, i)
+				Expect(validatableWithIntAdapter).ToNot(BeNil())
+			})
+
+			Context("Validate", func() {
+				It("returns successfully", func() {
+					validatableWithIntAdapter.Validate(nil)
+					Expect(validatableWithInt.ValidateInputs).To(Equal([]testStructure.ValidatableWithIntInput{{Validator: nil, Int: i}}))
+				})
+			})
+		})
+	})
+
 	Context("ValidatableWithString", func() {
 		var validatableWithString *testStructure.ValidatableWithString
 		var str *string

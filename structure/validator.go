@@ -34,6 +34,8 @@ type Validator interface {
 	WithReference(reference string) Validator
 }
 
+type BoolUsingFunc func(value bool, errorReporter ErrorReporter)
+
 type Bool interface {
 	Exists() Bool
 	NotExists() Bool
@@ -41,8 +43,10 @@ type Bool interface {
 	True() Bool
 	False() Bool
 
-	Using(using func(value bool, errorReporter ErrorReporter)) Bool
+	Using(usingFunc BoolUsingFunc) Bool
 }
+
+type Float64UsingFunc func(value float64, errorReporter ErrorReporter)
 
 type Float64 interface {
 	Exists() Float64
@@ -60,8 +64,10 @@ type Float64 interface {
 	OneOf(allowedValues ...float64) Float64
 	NotOneOf(disallowedValues ...float64) Float64
 
-	Using(using func(value float64, errorReporter ErrorReporter)) Float64
+	Using(usingFunc Float64UsingFunc) Float64
 }
+
+type IntUsingFunc func(value int, errorReporter ErrorReporter)
 
 type Int interface {
 	Exists() Int
@@ -79,8 +85,10 @@ type Int interface {
 	OneOf(allowedValues ...int) Int
 	NotOneOf(disallowedValues ...int) Int
 
-	Using(using func(value int, errorReporter ErrorReporter)) Int
+	Using(usingFunc IntUsingFunc) Int
 }
+
+type StringUsingFunc func(value string, errorReporter ErrorReporter)
 
 type String interface {
 	Exists() String
@@ -106,10 +114,14 @@ type String interface {
 	Matches(expression *regexp.Regexp) String
 	NotMatches(expression *regexp.Regexp) String
 
-	Using(using func(value string, errorReporter ErrorReporter)) String
+	Using(usingFunc StringUsingFunc) String
 
 	AsTime(layout string) Time
 }
+
+type StringEachFunc func(stringValidator String)
+
+type StringArrayUsingFunc func(value []string, errorReporter ErrorReporter)
 
 type StringArray interface {
 	Exists() StringArray
@@ -126,6 +138,8 @@ type StringArray interface {
 	LengthGreaterThanOrEqualTo(limit int) StringArray
 	LengthInRange(lowerLimit int, upperLimit int) StringArray
 
+	Each(eachFunc StringEachFunc) StringArray
+
 	EachNotEmpty() StringArray
 
 	EachOneOf(allowedValues ...string) StringArray
@@ -134,8 +148,12 @@ type StringArray interface {
 	EachMatches(expression *regexp.Regexp) StringArray
 	EachNotMatches(expression *regexp.Regexp) StringArray
 
-	Using(using func(value []string, errorReporter ErrorReporter)) StringArray
+	EachUnique() StringArray
+
+	Using(usingFunc StringArrayUsingFunc) StringArray
 }
+
+type TimeUsingFunc func(value time.Time, errorReporter ErrorReporter)
 
 type Time interface {
 	Exists() Time
@@ -149,8 +167,10 @@ type Time interface {
 	Before(limit time.Time) Time
 	BeforeNow(threshold time.Duration) Time
 
-	Using(using func(value time.Time, errorReporter ErrorReporter)) Time
+	Using(usingFunc TimeUsingFunc) Time
 }
+
+type ObjectUsingFunc func(value map[string]interface{}, errorReporter ErrorReporter)
 
 type Object interface {
 	Exists() Object
@@ -159,8 +179,10 @@ type Object interface {
 	Empty() Object
 	NotEmpty() Object
 
-	Using(using func(value map[string]interface{}, errorReporter ErrorReporter)) Object
+	Using(usingFunc ObjectUsingFunc) Object
 }
+
+type ArrayUsingFunc func(value []interface{}, errorReporter ErrorReporter)
 
 type Array interface {
 	Exists() Array
@@ -169,5 +191,5 @@ type Array interface {
 	Empty() Array
 	NotEmpty() Array
 
-	Using(using func(value []interface{}, errorReporter ErrorReporter)) Array
+	Using(usingFunc ArrayUsingFunc) Array
 }

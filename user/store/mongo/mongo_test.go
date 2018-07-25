@@ -77,7 +77,7 @@ package mongo_test
 // 	Context("New", func() {
 // 		It("returns an error if config is missing", func() {
 // 			var err error
-// 			mongoStore, err = mongo.New(nil, null.NewLogger())
+// 			mongoStore, err = mongo.NewStore(nil, null.NewLogger())
 // 			Expect(err).To(MatchError("config is missing"))
 // 			Expect(mongoStore).To(BeNil())
 // 		})
@@ -85,7 +85,7 @@ package mongo_test
 // 		It("returns an error if base config is missing", func() {
 // 			var err error
 // 			mongoConfig.Config = nil
-// 			mongoStore, err = mongo.New(mongoConfig, null.NewLogger())
+// 			mongoStore, err = mongo.NewStore(mongoConfig, null.NewLogger())
 // 			Expect(err).To(MatchError("config is missing"))
 // 			Expect(mongoStore).To(BeNil())
 // 		})
@@ -93,7 +93,7 @@ package mongo_test
 // 		It("returns an error if base config is invalid", func() {
 // 			var err error
 // 			mongoConfig.Config.Addresses = nil
-// 			mongoStore, err = mongo.New(mongoConfig, null.NewLogger())
+// 			mongoStore, err = mongo.NewStore(mongoConfig, null.NewLogger())
 // 			Expect(err).To(MatchError("config is invalid; addresses is missing"))
 // 			Expect(mongoStore).To(BeNil())
 // 		})
@@ -101,21 +101,21 @@ package mongo_test
 // 		It("returns an error if config is invalid", func() {
 // 			var err error
 // 			mongoConfig.PasswordSalt = ""
-// 			mongoStore, err = mongo.New(mongoConfig, null.NewLogger())
+// 			mongoStore, err = mongo.NewStore(mongoConfig, null.NewLogger())
 // 			Expect(err).To(MatchError("config is invalid; password salt is missing"))
 // 			Expect(mongoStore).To(BeNil())
 // 		})
 
 // 		It("returns an error if logger is missing", func() {
 // 			var err error
-// 			mongoStore, err = mongo.New(mongoConfig, nil)
+// 			mongoStore, err = mongo.NewStore(mongoConfig, nil)
 // 			Expect(err).To(MatchError("logger is missing"))
 // 			Expect(mongoStore).To(BeNil())
 // 		})
 
 // 		It("returns a new store and no error if successful", func() {
 // 			var err error
-// 			mongoStore, err = mongo.New(mongoConfig, null.NewLogger())
+// 			mongoStore, err = mongo.NewStore(mongoConfig, null.NewLogger())
 // 			Expect(err).ToNot(HaveOccurred())
 // 			Expect(mongoStore).ToNot(BeNil())
 // 		})
@@ -124,7 +124,7 @@ package mongo_test
 // 	Context("with a new store", func() {
 // 		BeforeEach(func() {
 // 			var err error
-// 			mongoStore, err = mongo.New(mongoConfig, null.NewLogger())
+// 			mongoStore, err = mongo.NewStore(mongoConfig, null.NewLogger())
 // 			Expect(err).ToNot(HaveOccurred())
 // 			Expect(mongoStore).ToNot(BeNil())
 // 		})

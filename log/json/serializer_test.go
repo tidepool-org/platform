@@ -12,8 +12,8 @@ import (
 )
 
 type WriteOutput struct {
-	Count int
-	Error error
+	BytesWritten int
+	Error        error
 }
 
 type Writer struct {
@@ -40,7 +40,7 @@ func (w *Writer) Write(bytes []byte) (int, error) {
 
 	output := w.WriteOutputs[0]
 	w.WriteOutputs = w.WriteOutputs[1:]
-	return output.Count, output.Error
+	return output.BytesWritten, output.Error
 }
 
 func (w *Writer) UnusedOutputsCount() int {
@@ -90,18 +90,18 @@ var _ = Describe("JSON", func() {
 			})
 
 			It("returns an error if an error is returned when writing bytes to writer", func() {
-				writer.WriteOutputs = []WriteOutput{{Count: 0, Error: errors.New("test error")}}
+				writer.WriteOutputs = []WriteOutput{{BytesWritten: 0, Error: errors.New("test error")}}
 				Expect(serializer.Serialize(log.Fields{})).To(MatchError("unable to write serialized field; test error"))
 			})
 
 			It("returns successfully after writing buffer with empty fields", func() {
-				writer.WriteOutputs = []WriteOutput{{Count: 0, Error: nil}}
+				writer.WriteOutputs = []WriteOutput{{BytesWritten: 0, Error: nil}}
 				Expect(serializer.Serialize(log.Fields{})).To(Succeed())
 				Expect(writer.WriteInputs).To(Equal([][]byte{[]byte("{}\n")}))
 			})
 
 			It("returns successfully after writing buffer with non-empty fields", func() {
-				writer.WriteOutputs = []WriteOutput{{Count: 0, Error: nil}}
+				writer.WriteOutputs = []WriteOutput{{BytesWritten: 0, Error: nil}}
 				Expect(serializer.Serialize(log.Fields{"b": "right", "a": "left"})).To(Succeed())
 				Expect(writer.WriteInputs).To(Equal([][]byte{[]byte("{\"a\":\"left\",\"b\":\"right\"}\n")}))
 			})

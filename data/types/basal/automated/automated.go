@@ -3,11 +3,14 @@ package automated
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/basal"
+	"github.com/tidepool-org/platform/data/types/insulin"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 )
 
 const (
+	DeliveryType = "automated" // TODO: Rename Type to "basal/automated"; remove DeliveryType
+
 	DurationMaximum = 604800000
 	DurationMinimum = 0
 	RateMaximum     = 100.0
@@ -17,38 +20,17 @@ const (
 type Automated struct {
 	basal.Basal `bson:",inline"`
 
-	Duration         *int     `json:"duration,omitempty" bson:"duration,omitempty"`
-	DurationExpected *int     `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
-	Rate             *float64 `json:"rate,omitempty" bson:"rate,omitempty"`
-	ScheduleName     *string  `json:"scheduleName,omitempty" bson:"scheduleName,omitempty"`
-}
-
-func DeliveryType() string {
-	return "automated" // TODO: Rename Type to "basal/automated"; remove DeliveryType
-}
-
-func NewDatum() data.Datum {
-	return New()
+	Duration           *int                 `json:"duration,omitempty" bson:"duration,omitempty"`
+	DurationExpected   *int                 `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
+	InsulinFormulation *insulin.Formulation `json:"insulinFormulation,omitempty" bson:"insulinFormulation,omitempty"`
+	Rate               *float64             `json:"rate,omitempty" bson:"rate,omitempty"`
+	ScheduleName       *string              `json:"scheduleName,omitempty" bson:"scheduleName,omitempty"`
 }
 
 func New() *Automated {
-	return &Automated{}
-}
-
-func Init() *Automated {
-	automated := New()
-	automated.Init()
-	return automated
-}
-
-func (a *Automated) Init() {
-	a.Basal.Init()
-	a.DeliveryType = DeliveryType()
-
-	a.Duration = nil
-	a.DurationExpected = nil
-	a.Rate = nil
-	a.ScheduleName = nil
+	return &Automated{
+		Basal: basal.New(DeliveryType),
+	}
 }
 
 func (a *Automated) Parse(parser data.ObjectParser) error {
@@ -58,6 +40,7 @@ func (a *Automated) Parse(parser data.ObjectParser) error {
 
 	a.Duration = parser.ParseInteger("duration")
 	a.DurationExpected = parser.ParseInteger("expectedDuration")
+	a.InsulinFormulation = insulin.ParseFormulation(parser.NewChildObjectParser("insulinFormulation"))
 	a.Rate = parser.ParseFloat("rate")
 	a.ScheduleName = parser.ParseString("scheduleName")
 
@@ -72,7 +55,7 @@ func (a *Automated) Validate(validator structure.Validator) {
 	a.Basal.Validate(validator)
 
 	if a.DeliveryType != "" {
-		validator.String("deliveryType", &a.DeliveryType).EqualTo(DeliveryType())
+		validator.String("deliveryType", &a.DeliveryType).EqualTo(DeliveryType)
 	}
 
 	validator.Int("duration", a.Duration).Exists().InRange(DurationMinimum, DurationMaximum)
@@ -81,6 +64,9 @@ func (a *Automated) Validate(validator structure.Validator) {
 		expectedDurationValidator.InRange(*a.Duration, DurationMaximum)
 	} else {
 		expectedDurationValidator.InRange(DurationMinimum, DurationMaximum)
+	}
+	if a.InsulinFormulation != nil {
+		a.InsulinFormulation.Validate(validator.WithReference("insulinFormulation"))
 	}
 	validator.Float64("rate", a.Rate).Exists().InRange(RateMinimum, RateMaximum)
 	validator.String("scheduleName", a.ScheduleName).NotEmpty()
@@ -92,15 +78,20 @@ func (a *Automated) Normalize(normalizer data.Normalizer) {
 	}
 
 	a.Basal.Normalize(normalizer)
+
+	if a.InsulinFormulation != nil {
+		a.InsulinFormulation.Normalize(normalizer.WithReference("insulinFormulation"))
+	}
 }
 
 type SuppressedAutomated struct {
 	Type         *string `json:"type,omitempty" bson:"type,omitempty"`
 	DeliveryType *string `json:"deliveryType,omitempty" bson:"deliveryType,omitempty"`
 
-	Annotations  *data.BlobArray `json:"annotations,omitempty" bson:"annotations,omitempty"`
-	Rate         *float64        `json:"rate,omitempty" bson:"rate,omitempty"`
-	ScheduleName *string         `json:"scheduleName,omitempty" bson:"scheduleName,omitempty"`
+	Annotations        *data.BlobArray      `json:"annotations,omitempty" bson:"annotations,omitempty"`
+	InsulinFormulation *insulin.Formulation `json:"insulinFormulation,omitempty" bson:"insulinFormulation,omitempty"`
+	Rate               *float64             `json:"rate,omitempty" bson:"rate,omitempty"`
+	ScheduleName       *string              `json:"scheduleName,omitempty" bson:"scheduleName,omitempty"`
 }
 
 func ParseSuppressedAutomated(parser data.ObjectParser) *SuppressedAutomated {
@@ -115,8 +106,8 @@ func ParseSuppressedAutomated(parser data.ObjectParser) *SuppressedAutomated {
 
 func NewSuppressedAutomated() *SuppressedAutomated {
 	return &SuppressedAutomated{
-		Type:         pointer.String(basal.Type()),
-		DeliveryType: pointer.String(DeliveryType()),
+		Type:         pointer.String(basal.Type),
+		DeliveryType: pointer.String(DeliveryType),
 	}
 }
 
@@ -125,6 +116,7 @@ func (s *SuppressedAutomated) Parse(parser data.ObjectParser) error {
 	s.DeliveryType = parser.ParseString("deliveryType")
 
 	s.Annotations = data.ParseBlobArray(parser.NewChildArrayParser("annotations"))
+	s.InsulinFormulation = insulin.ParseFormulation(parser.NewChildObjectParser("insulinFormulation"))
 	s.Rate = parser.ParseFloat("rate")
 	s.ScheduleName = parser.ParseString("scheduleName")
 
@@ -132,11 +124,14 @@ func (s *SuppressedAutomated) Parse(parser data.ObjectParser) error {
 }
 
 func (s *SuppressedAutomated) Validate(validator structure.Validator) {
-	validator.String("type", s.Type).Exists().EqualTo(basal.Type())
-	validator.String("deliveryType", s.DeliveryType).Exists().EqualTo(DeliveryType())
+	validator.String("type", s.Type).Exists().EqualTo(basal.Type)
+	validator.String("deliveryType", s.DeliveryType).Exists().EqualTo(DeliveryType)
 
 	if s.Annotations != nil {
 		s.Annotations.Validate(validator.WithReference("annotations"))
+	}
+	if s.InsulinFormulation != nil {
+		s.InsulinFormulation.Validate(validator.WithReference("insulinFormulation"))
 	}
 	validator.Float64("rate", s.Rate).Exists().InRange(RateMinimum, RateMaximum)
 	validator.String("scheduleName", s.ScheduleName).NotEmpty()
@@ -145,5 +140,8 @@ func (s *SuppressedAutomated) Validate(validator structure.Validator) {
 func (s *SuppressedAutomated) Normalize(normalizer data.Normalizer) {
 	if s.Annotations != nil {
 		s.Annotations.Normalize(normalizer.WithReference("annotations"))
+	}
+	if s.InsulinFormulation != nil {
+		s.InsulinFormulation.Normalize(normalizer.WithReference("insulinFormulation"))
 	}
 }

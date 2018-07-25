@@ -23,10 +23,10 @@ import (
 // device was not in use and displayTime immediately prior to or immediately after period not it use
 // were grossly in error.)
 
-const OffsetDuration = 30 * time.Minute // Duration between timezone offsets we scan for
+const OffsetDuration = 30 * time.Minute // Duration between time zone offsets we scan for
 
-const MaximumOffsets = (14 * time.Hour) / OffsetDuration  // Maximum timezone offset is +14:00
-const MinimumOffsets = (-12 * time.Hour) / OffsetDuration // Minimum timezone offset is -12:00
+const MaximumOffsets = (14 * time.Hour) / OffsetDuration  // Maximum time zone offset is +14:00
+const MinimumOffsets = (-12 * time.Hour) / OffsetDuration // Minimum time zone offset is -12:00
 
 const DailyDuration = 24 * time.Hour
 const DailyOffsets = DailyDuration / OffsetDuration
@@ -34,7 +34,7 @@ const DailyOffsets = DailyDuration / OffsetDuration
 func translateTime(systemTime time.Time, displayTime time.Time, datum *types.Base) {
 	var clockDriftOffsetDuration time.Duration
 	var conversionOffsetDuration time.Duration
-	var timezoneOffsetDuration time.Duration
+	var timeZoneOffsetDuration time.Duration
 
 	delta := displayTime.Sub(systemTime)
 	if delta > 0 {
@@ -44,7 +44,7 @@ func translateTime(systemTime time.Time, displayTime time.Time, datum *types.Bas
 			conversionOffsetDuration += DailyDuration
 			offsetCount -= DailyOffsets
 		}
-		timezoneOffsetDuration = offsetCount * OffsetDuration
+		timeZoneOffsetDuration = offsetCount * OffsetDuration
 	} else if delta < 0 {
 		offsetCount := time.Duration((float64(delta) - float64(OffsetDuration)/2) / float64(OffsetDuration))
 		clockDriftOffsetDuration = delta - offsetCount*OffsetDuration
@@ -52,12 +52,12 @@ func translateTime(systemTime time.Time, displayTime time.Time, datum *types.Bas
 			conversionOffsetDuration -= DailyDuration
 			offsetCount += DailyOffsets
 		}
-		timezoneOffsetDuration = offsetCount * OffsetDuration
+		timeZoneOffsetDuration = offsetCount * OffsetDuration
 	}
 
 	datum.Time = pointer.String(systemTime.Format(types.TimeFormat))
-	datum.DeviceTime = pointer.String(displayTime.Format(types.DeviceTimeFormat))
-	datum.TimezoneOffset = pointer.Int(int(timezoneOffsetDuration / time.Minute))
+	datum.DeviceTime = pointer.String(displayTime.UTC().Format(types.DeviceTimeFormat))
+	datum.TimeZoneOffset = pointer.Int(int(timeZoneOffsetDuration / time.Minute))
 	if clockDriftOffsetDuration != 0 {
 		datum.ClockDriftOffset = pointer.Int(int(clockDriftOffsetDuration / time.Millisecond))
 	}
@@ -72,7 +72,7 @@ func translateTime(systemTime time.Time, displayTime time.Time, datum *types.Bas
 }
 
 func translateCalibrationToDatum(c *dexcom.Calibration) data.Datum {
-	datum := calibration.Init()
+	datum := calibration.New()
 
 	// TODO: Refactor so we don't have to clear these here
 	datum.ID = nil
@@ -90,7 +90,7 @@ func translateCalibrationToDatum(c *dexcom.Calibration) data.Datum {
 }
 
 func translateEGVToDatum(e *dexcom.EGV, unit string, rateUnit string) data.Datum {
-	datum := continuous.Init()
+	datum := continuous.New()
 
 	// TODO: Refactor so we don't have to clear these here
 	datum.ID = nil
@@ -140,7 +140,7 @@ func translateEGVToDatum(e *dexcom.EGV, unit string, rateUnit string) data.Datum
 }
 
 func translateEventCarbsToDatum(e *dexcom.Event) data.Datum {
-	datum := food.Init()
+	datum := food.New()
 
 	// TODO: Refactor so we don't have to clear these here
 	datum.ID = nil
@@ -148,7 +148,7 @@ func translateEventCarbsToDatum(e *dexcom.Event) data.Datum {
 
 	if e.Value != nil && e.Unit != nil {
 		datum.Nutrition = &food.Nutrition{
-			Carbohydrates: &food.Carbohydrates{
+			Carbohydrate: &food.Carbohydrate{
 				Net:   pointer.Int(int(*e.Value)),
 				Units: pointer.String(*e.Unit),
 			},
@@ -160,7 +160,7 @@ func translateEventCarbsToDatum(e *dexcom.Event) data.Datum {
 }
 
 func translateEventExerciseToDatum(e *dexcom.Event) data.Datum {
-	datum := physical.Init()
+	datum := physical.New()
 
 	// TODO: Refactor so we don't have to clear these here
 	datum.ID = nil
@@ -188,7 +188,7 @@ func translateEventExerciseToDatum(e *dexcom.Event) data.Datum {
 }
 
 func translateEventHealthToDatum(e *dexcom.Event) data.Datum {
-	datum := reported.Init()
+	datum := reported.New()
 
 	// TODO: Refactor so we don't have to clear these here
 	datum.ID = nil
@@ -197,17 +197,17 @@ func translateEventHealthToDatum(e *dexcom.Event) data.Datum {
 	if e.EventSubType != nil {
 		switch *e.EventSubType {
 		case dexcom.HealthIllness:
-			datum.States = &reported.StateArray{{State: pointer.String(reported.StateIllness)}}
+			datum.States = &reported.StateArray{{State: pointer.String(reported.StateStateIllness)}}
 		case dexcom.HealthStress:
-			datum.States = &reported.StateArray{{State: pointer.String(reported.StateStress)}}
+			datum.States = &reported.StateArray{{State: pointer.String(reported.StateStateStress)}}
 		case dexcom.HealthHighSymptoms:
-			datum.States = &reported.StateArray{{State: pointer.String(reported.StateHyperglycemiaSymptoms)}}
+			datum.States = &reported.StateArray{{State: pointer.String(reported.StateStateHyperglycemiaSymptoms)}}
 		case dexcom.HealthLowSymptoms:
-			datum.States = &reported.StateArray{{State: pointer.String(reported.StateHypoglycemiaSymptoms)}}
+			datum.States = &reported.StateArray{{State: pointer.String(reported.StateStateHypoglycemiaSymptoms)}}
 		case dexcom.HealthCycle:
-			datum.States = &reported.StateArray{{State: pointer.String(reported.StateCycle)}}
+			datum.States = &reported.StateArray{{State: pointer.String(reported.StateStateCycle)}}
 		case dexcom.HealthAlcohol:
-			datum.States = &reported.StateArray{{State: pointer.String(reported.StateAlcohol)}}
+			datum.States = &reported.StateArray{{State: pointer.String(reported.StateStateAlcohol)}}
 		}
 	}
 
@@ -216,7 +216,7 @@ func translateEventHealthToDatum(e *dexcom.Event) data.Datum {
 }
 
 func translateEventInsulinToDatum(e *dexcom.Event) data.Datum {
-	datum := insulin.Init()
+	datum := insulin.New()
 
 	// TODO: Refactor so we don't have to clear these here
 	datum.ID = nil
@@ -225,7 +225,7 @@ func translateEventInsulinToDatum(e *dexcom.Event) data.Datum {
 	if e.Value != nil && e.Unit != nil {
 		datum.Dose = &insulin.Dose{
 			Total: pointer.Float64(*e.Value),
-			Units: pointer.String(*e.Unit),
+			Units: pointer.String(insulin.DoseUnitsUnits),
 		}
 	}
 

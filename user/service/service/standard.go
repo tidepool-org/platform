@@ -216,7 +216,7 @@ func (s *Standard) initializeMessageStore() error {
 
 	s.Logger().Debug("Creating message store")
 
-	messageStore, err := messageMongo.New(messageStoreConfig, s.Logger())
+	messageStore, err := messageMongo.NewStore(messageStoreConfig, s.Logger())
 	if err != nil {
 		return errors.Wrap(err, "unable to create message store")
 	}
@@ -235,7 +235,7 @@ func (s *Standard) initializePermissionStore() error {
 
 	s.Logger().Debug("Creating permission store")
 
-	permissionStore, err := permissionMongo.New(permissionStoreConfig, s.Logger())
+	permissionStore, err := permissionMongo.NewStore(permissionStoreConfig, s.Logger())
 	if err != nil {
 		return errors.Wrap(err, "unable to create permission store")
 	}
@@ -254,7 +254,7 @@ func (s *Standard) initializeProfileStore() error {
 
 	s.Logger().Debug("Creating profile store")
 
-	profileStore, err := profileMongo.New(profileStoreConfig, s.Logger())
+	profileStore, err := profileMongo.NewStore(profileStoreConfig, s.Logger())
 	if err != nil {
 		return errors.Wrap(err, "unable to create profile store")
 	}
@@ -273,7 +273,7 @@ func (s *Standard) initializeSessionStore() error {
 
 	s.Logger().Debug("Creating session store")
 
-	sessionStore, err := sessionMongo.New(sessionStoreConfig, s.Logger())
+	sessionStore, err := sessionMongo.NewStore(sessionStoreConfig, s.Logger())
 	if err != nil {
 		return errors.Wrap(err, "unable to create session store")
 	}
@@ -292,7 +292,7 @@ func (s *Standard) initializeUserStore() error {
 
 	s.Logger().Debug("Creating user store")
 
-	userStore, err := userMongo.New(userStoreConfig, s.Logger())
+	userStore, err := userMongo.NewStore(userStoreConfig, s.Logger())
 	if err != nil {
 		return errors.Wrap(err, "unable to create user store")
 	}

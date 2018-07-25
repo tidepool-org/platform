@@ -62,7 +62,7 @@ func (c *Client) AppendURLQuery(urlString string, query map[string]string) strin
 	return urlString
 }
 
-func (c *Client) SendRequest(ctx context.Context, method string, url string, mutators []Mutator, requestBody interface{}, responseBody interface{}, httpClient *http.Client) error {
+func (c *Client) SendRequest(ctx context.Context, method string, url string, mutators []request.Mutator, requestBody interface{}, responseBody interface{}, httpClient *http.Client) error {
 	if httpClient == nil {
 		return errors.New("http client is missing")
 	}
@@ -104,7 +104,7 @@ func (c *Client) SendRequest(ctx context.Context, method string, url string, mut
 	return request.ErrorUnexpectedResponse(res, req)
 }
 
-func (c *Client) buildRequest(ctx context.Context, method string, url string, mutators []Mutator, requestBody interface{}, responseBody interface{}) (*http.Request, error) {
+func (c *Client) buildRequest(ctx context.Context, method string, url string, mutators []request.Mutator, requestBody interface{}, responseBody interface{}) (*http.Request, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -128,11 +128,10 @@ func (c *Client) buildRequest(ctx context.Context, method string, url string, mu
 	req = req.WithContext(ctx)
 
 	for _, mutator := range mutators {
-		if mutator == nil {
-			return nil, errors.New("mutator is missing")
-		}
-		if err = mutator.Mutate(req); err != nil {
-			return nil, errors.Wrapf(err, "unable to mutate request")
+		if mutator != nil {
+			if err = mutator.Mutate(req); err != nil {
+				return nil, errors.Wrapf(err, "unable to mutate request")
+			}
 		}
 	}
 

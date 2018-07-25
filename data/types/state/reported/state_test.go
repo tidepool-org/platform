@@ -17,7 +17,11 @@ import (
 
 func NewState(state string) *reported.State {
 	datum := reported.NewState()
+	datum.Severity = pointer.Int(test.RandomIntFromRange(reported.StateSeverityMinimum, reported.StateSeverityMaximum))
 	datum.State = pointer.String(state)
+	if datum.State != nil && *datum.State == reported.StateStateOther {
+		datum.StateOther = pointer.String(test.NewText(1, 100))
+	}
 	return datum
 }
 
@@ -26,7 +30,9 @@ func CloneState(datum *reported.State) *reported.State {
 		return nil
 	}
 	clone := reported.NewState()
+	clone.Severity = test.CloneInt(datum.Severity)
 	clone.State = test.CloneString(datum.State)
+	clone.StateOther = test.CloneString(datum.StateOther)
 	return clone
 }
 
@@ -48,32 +54,48 @@ func CloneStateArray(datum *reported.StateArray) *reported.StateArray {
 }
 
 var _ = Describe("State", func() {
-	It("StateAlcohol is expected", func() {
-		Expect(reported.StateAlcohol).To(Equal("alcohol"))
+	It("StateSeverityMaximum is expected", func() {
+		Expect(reported.StateSeverityMaximum).To(Equal(10))
 	})
 
-	It("StateCycle is expected", func() {
-		Expect(reported.StateCycle).To(Equal("cycle"))
+	It("StateSeverityMinimum is expected", func() {
+		Expect(reported.StateSeverityMinimum).To(Equal(0))
 	})
 
-	It("StateHyperglycemiaSymptoms is expected", func() {
-		Expect(reported.StateHyperglycemiaSymptoms).To(Equal("hyperglycemiaSymptoms"))
+	It("StateStateAlcohol is expected", func() {
+		Expect(reported.StateStateAlcohol).To(Equal("alcohol"))
 	})
 
-	It("StateHypoglycemiaSymptoms is expected", func() {
-		Expect(reported.StateHypoglycemiaSymptoms).To(Equal("hypoglycemiaSymptoms"))
+	It("StateStateCycle is expected", func() {
+		Expect(reported.StateStateCycle).To(Equal("cycle"))
 	})
 
-	It("StateIllness is expected", func() {
-		Expect(reported.StateIllness).To(Equal("illness"))
+	It("StateStateHyperglycemiaSymptoms is expected", func() {
+		Expect(reported.StateStateHyperglycemiaSymptoms).To(Equal("hyperglycemiaSymptoms"))
 	})
 
-	It("StateStress is expected", func() {
-		Expect(reported.StateStress).To(Equal("stress"))
+	It("StateStateHypoglycemiaSymptoms is expected", func() {
+		Expect(reported.StateStateHypoglycemiaSymptoms).To(Equal("hypoglycemiaSymptoms"))
 	})
 
-	It("States returns expected", func() {
-		Expect(reported.States()).To(Equal([]string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "stress"}))
+	It("StateStateIllness is expected", func() {
+		Expect(reported.StateStateIllness).To(Equal("illness"))
+	})
+
+	It("StateStateOther is expected", func() {
+		Expect(reported.StateStateOther).To(Equal("other"))
+	})
+
+	It("StateStateOtherLengthMaximum is expected", func() {
+		Expect(reported.StateStateOtherLengthMaximum).To(Equal(100))
+	})
+
+	It("StateStateStress is expected", func() {
+		Expect(reported.StateStateStress).To(Equal("stress"))
+	})
+
+	It("StateStates returns expected", func() {
+		Expect(reported.StateStates()).To(Equal([]string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "other", "stress"}))
 	})
 
 	Context("ParseState", func() {
@@ -101,31 +123,167 @@ var _ = Describe("State", func() {
 				Entry("succeeds",
 					func(datum *reported.State) {},
 				),
-				Entry("state missing",
-					func(datum *reported.State) { datum.State = nil },
+				Entry("severity missing",
+					func(datum *reported.State) { datum.Severity = nil },
+				),
+				Entry("severity out of range (lower)",
+					func(datum *reported.State) { datum.Severity = pointer.Int(-1) },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 10), "/severity"),
+				),
+				Entry("severity in range (lower)",
+					func(datum *reported.State) { datum.Severity = pointer.Int(0) },
+				),
+				Entry("severity in range (upper)",
+					func(datum *reported.State) { datum.Severity = pointer.Int(10) },
+				),
+				Entry("severity out of range (upper)",
+					func(datum *reported.State) { datum.Severity = pointer.Int(11) },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(11, 0, 10), "/severity"),
+				),
+				Entry("state missing; state other missing",
+					func(datum *reported.State) {
+						datum.State = nil
+						datum.StateOther = nil
+					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/state"),
 				),
-				Entry("state invalid",
-					func(datum *reported.State) { *datum = *NewState("invalid") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "stress"}), "/state"),
+				Entry("state missing; state other exists",
+					func(datum *reported.State) {
+						datum.State = nil
+						datum.StateOther = pointer.String(test.NewText(1, 100))
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/state"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/stateOther"),
 				),
-				Entry("state alcohol",
-					func(datum *reported.State) { *datum = *NewState("alcohol") },
+				Entry("state invalid; state other missing",
+					func(datum *reported.State) {
+						datum.State = pointer.String("invalid")
+						datum.StateOther = nil
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "other", "stress"}), "/state"),
 				),
-				Entry("state cycle",
-					func(datum *reported.State) { *datum = *NewState("cycle") },
+				Entry("state invalid; state other exists",
+					func(datum *reported.State) {
+						datum.State = pointer.String("invalid")
+						datum.StateOther = pointer.String(test.NewText(1, 100))
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "other", "stress"}), "/state"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/stateOther"),
 				),
-				Entry("state hyperglycemiaSymptoms",
-					func(datum *reported.State) { *datum = *NewState("hyperglycemiaSymptoms") },
+				Entry("state alcohol; state other missing",
+					func(datum *reported.State) {
+						datum.State = pointer.String("alcohol")
+						datum.StateOther = nil
+					},
 				),
-				Entry("state hypoglycemiaSymptoms",
-					func(datum *reported.State) { *datum = *NewState("hypoglycemiaSymptoms") },
+				Entry("state alcohol; state other exists",
+					func(datum *reported.State) {
+						datum.State = pointer.String("alcohol")
+						datum.StateOther = pointer.String(test.NewText(1, 100))
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/stateOther"),
 				),
-				Entry("state illness",
-					func(datum *reported.State) { *datum = *NewState("illness") },
+				Entry("state cycle; state other missing",
+					func(datum *reported.State) {
+						datum.State = pointer.String("cycle")
+						datum.StateOther = nil
+					},
 				),
-				Entry("state stress",
-					func(datum *reported.State) { *datum = *NewState("stress") },
+				Entry("state cycle; state other exists",
+					func(datum *reported.State) {
+						datum.State = pointer.String("cycle")
+						datum.StateOther = pointer.String(test.NewText(1, 100))
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/stateOther"),
+				),
+				Entry("state hyperglycemiaSymptoms; state other missing",
+					func(datum *reported.State) {
+						datum.State = pointer.String("hyperglycemiaSymptoms")
+						datum.StateOther = nil
+					},
+				),
+				Entry("state hyperglycemiaSymptoms; state other exists",
+					func(datum *reported.State) {
+						datum.State = pointer.String("hyperglycemiaSymptoms")
+						datum.StateOther = pointer.String(test.NewText(1, 100))
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/stateOther"),
+				),
+				Entry("state hypoglycemiaSymptoms; state other missing",
+					func(datum *reported.State) {
+						datum.State = pointer.String("hypoglycemiaSymptoms")
+						datum.StateOther = nil
+					},
+				),
+				Entry("state hypoglycemiaSymptoms; state other exists",
+					func(datum *reported.State) {
+						datum.State = pointer.String("hypoglycemiaSymptoms")
+						datum.StateOther = pointer.String(test.NewText(1, 100))
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/stateOther"),
+				),
+				Entry("state illness; state other missing",
+					func(datum *reported.State) {
+						datum.State = pointer.String("illness")
+						datum.StateOther = nil
+					},
+				),
+				Entry("state illness; state other exists",
+					func(datum *reported.State) {
+						datum.State = pointer.String("illness")
+						datum.StateOther = pointer.String(test.NewText(1, 100))
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/stateOther"),
+				),
+				Entry("state other; state other missing",
+					func(datum *reported.State) {
+						datum.State = pointer.String("other")
+						datum.StateOther = nil
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/stateOther"),
+				),
+				Entry("state other; state other empty",
+					func(datum *reported.State) {
+						datum.State = pointer.String("other")
+						datum.StateOther = pointer.String("")
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/stateOther"),
+				),
+				Entry("state other; state other length in range (upper)",
+					func(datum *reported.State) {
+						datum.State = pointer.String("other")
+						datum.StateOther = pointer.String(test.NewText(100, 100))
+					},
+				),
+				Entry("state other; state other length out of range (upper)",
+					func(datum *reported.State) {
+						datum.State = pointer.String("other")
+						datum.StateOther = pointer.String(test.NewText(101, 101))
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/stateOther"),
+				),
+				Entry("state stress; state other missing",
+					func(datum *reported.State) {
+						datum.State = pointer.String("stress")
+						datum.StateOther = nil
+					},
+				),
+				Entry("state stress; state other exists",
+					func(datum *reported.State) {
+						datum.State = pointer.String("stress")
+						datum.StateOther = pointer.String(test.NewText(1, 100))
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/stateOther"),
+				),
+				Entry("multiple errors",
+					func(datum *reported.State) {
+						datum.Severity = pointer.Int(-1)
+						datum.State = pointer.String("invalid")
+						datum.StateOther = pointer.String(test.NewText(1, 100))
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 10), "/severity"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "other", "stress"}), "/state"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/stateOther"),
 				),
 			)
 		})
@@ -148,23 +306,35 @@ var _ = Describe("State", func() {
 				Entry("does not modify the datum",
 					func(datum *reported.State) {},
 				),
-				Entry("does not modify the datum; alcohol",
-					func(datum *reported.State) { *datum = *NewState("alcohol") },
+				Entry("does not modify the datum; severity missing",
+					func(datum *reported.State) { datum.Severity = nil },
 				),
-				Entry("does not modify the datum; cycle",
-					func(datum *reported.State) { *datum = *NewState("cycle") },
+				Entry("does not modify the datum; state missing",
+					func(datum *reported.State) { datum.State = nil },
 				),
-				Entry("does not modify the datum; hyperglycemiaSymptoms",
-					func(datum *reported.State) { *datum = *NewState("hyperglycemiaSymptoms") },
+				Entry("does not modify the datum; state alcohol",
+					func(datum *reported.State) { datum.State = pointer.String("alcohol") },
 				),
-				Entry("does not modify the datum; hypoglycemiaSymptoms",
-					func(datum *reported.State) { *datum = *NewState("hypoglycemiaSymptoms") },
+				Entry("does not modify the datum; state cycle",
+					func(datum *reported.State) { datum.State = pointer.String("cycle") },
 				),
-				Entry("does not modify the datum; illness",
-					func(datum *reported.State) { *datum = *NewState("illness") },
+				Entry("does not modify the datum; state hyperglycemiaSymptoms",
+					func(datum *reported.State) { datum.State = pointer.String("hyperglycemiaSymptoms") },
 				),
-				Entry("does not modify the datum; stress",
-					func(datum *reported.State) { *datum = *NewState("stress") },
+				Entry("does not modify the datum; state hypoglycemiaSymptoms",
+					func(datum *reported.State) { datum.State = pointer.String("hypoglycemiaSymptoms") },
+				),
+				Entry("does not modify the datum; state illness",
+					func(datum *reported.State) { datum.State = pointer.String("illness") },
+				),
+				Entry("does not modify the datum; state other",
+					func(datum *reported.State) { datum.State = pointer.String("other") },
+				),
+				Entry("does not modify the datum; state stress",
+					func(datum *reported.State) { datum.State = pointer.String("stress") },
+				),
+				Entry("does not modify the datum; state other missing",
+					func(datum *reported.State) { datum.StateOther = nil },
 				),
 			)
 		})
@@ -204,20 +374,28 @@ var _ = Describe("State", func() {
 				),
 				Entry("single invalid",
 					func(datum *reported.StateArray) { *datum = *NewStateArray(NewState("invalid")) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "stress"}), "/0/state"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "other", "stress"}), "/0/state"),
 				),
 				Entry("single valid",
 					func(datum *reported.StateArray) { *datum = *NewStateArray(NewState("alcohol")) },
+				),
+				Entry("single valid with state other",
+					func(datum *reported.StateArray) { *datum = *NewStateArray(NewState("other")) },
 				),
 				Entry("multiple invalid",
 					func(datum *reported.StateArray) {
 						*datum = *NewStateArray(NewState("cycle"), NewState("invalid"), NewState("alcohol"), NewState("stress"))
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "stress"}), "/1/state"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "other", "stress"}), "/1/state"),
 				),
 				Entry("multiple valid",
 					func(datum *reported.StateArray) {
 						*datum = *NewStateArray(NewState("cycle"), NewState("illness"), NewState("alcohol"), NewState("stress"))
+					},
+				),
+				Entry("multiple valid with state other",
+					func(datum *reported.StateArray) {
+						*datum = *NewStateArray(NewState("cycle"), NewState("illness"), NewState("other"), NewState("stress"))
 					},
 				),
 				Entry("multiple errors",
@@ -225,7 +403,7 @@ var _ = Describe("State", func() {
 						*datum = *NewStateArray(NewState("cycle"), nil, NewState("invalid"), NewState("stress"))
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "stress"}), "/2/state"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "other", "stress"}), "/2/state"),
 				),
 			)
 		})
@@ -260,6 +438,9 @@ var _ = Describe("State", func() {
 				Entry("does not modify the datum; single valid",
 					func(datum *reported.StateArray) { *datum = *NewStateArray(NewState("alcohol")) },
 				),
+				Entry("does not modify the datum; single valid with state other",
+					func(datum *reported.StateArray) { *datum = *NewStateArray(NewState("other")) },
+				),
 				Entry("does not modify the datum; multiple invalid",
 					func(datum *reported.StateArray) {
 						*datum = *NewStateArray(NewState("cycle"), NewState("invalid"), NewState("alcohol"), NewState("stress"))
@@ -268,6 +449,11 @@ var _ = Describe("State", func() {
 				Entry("does not modify the datum; multiple valid",
 					func(datum *reported.StateArray) {
 						*datum = *NewStateArray(NewState("cycle"), NewState("illness"), NewState("alcohol"), NewState("stress"))
+					},
+				),
+				Entry("does not modify the datum; multiple valid with state other",
+					func(datum *reported.StateArray) {
+						*datum = *NewStateArray(NewState("cycle"), NewState("illness"), NewState("other"), NewState("stress"))
 					},
 				),
 			)

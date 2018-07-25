@@ -13,6 +13,11 @@ type EncodeJsonOutput struct {
 	Error error
 }
 
+type WriteOutput struct {
+	BytesWritten int
+	Error        error
+}
+
 type ResponseWriter struct {
 	*test.Mock
 	HeaderImpl             http.Header
@@ -24,6 +29,9 @@ type ResponseWriter struct {
 	EncodeJsonOutputs      []EncodeJsonOutput
 	WriteHeaderInvocations int
 	WriteHeaderInputs      []int
+	WriteInvocations       int
+	WriteInputs            [][]byte
+	WriteOutputs           []WriteOutput
 }
 
 func NewResponseWriter() *ResponseWriter {
@@ -67,8 +75,21 @@ func (r *ResponseWriter) WriteHeader(code int) {
 	r.WriteHeaderInputs = append(r.WriteHeaderInputs, code)
 }
 
+func (r *ResponseWriter) Write(data []byte) (int, error) {
+	r.WriteInvocations++
+
+	r.WriteInputs = append(r.WriteInputs, data)
+
+	gomega.Expect(r.WriteOutputs).ToNot(gomega.BeEmpty())
+
+	output := r.WriteOutputs[0]
+	r.WriteOutputs = r.WriteOutputs[1:]
+	return output.BytesWritten, output.Error
+}
+
 func (r *ResponseWriter) Expectations() {
 	r.Mock.Expectations()
 	gomega.Expect(r.WriteJsonOutputs).To(gomega.BeEmpty())
 	gomega.Expect(r.EncodeJsonOutputs).To(gomega.BeEmpty())
+	gomega.Expect(r.WriteOutputs).To(gomega.BeEmpty())
 }

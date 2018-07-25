@@ -6,31 +6,18 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
+const (
+	Type = "cbg"
+)
+
 type Continuous struct {
 	glucose.Glucose `bson:",inline"`
 }
 
-func Type() string {
-	return "cbg"
-}
-
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *Continuous {
-	return &Continuous{}
-}
-
-func Init() *Continuous {
-	continuous := New()
-	continuous.Init()
-	return continuous
-}
-
-func (c *Continuous) Init() {
-	c.Glucose.Init()
-	c.Type = Type()
+	return &Continuous{
+		Glucose: glucose.New(Type),
+	}
 }
 
 func (c *Continuous) Validate(validator structure.Validator) {
@@ -41,7 +28,7 @@ func (c *Continuous) Validate(validator structure.Validator) {
 	c.Glucose.Validate(validator)
 
 	if c.Type != "" {
-		validator.String("type", &c.Type).EqualTo(Type())
+		validator.String("type", &c.Type).EqualTo(Type)
 	}
 }
 

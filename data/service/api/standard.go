@@ -3,7 +3,6 @@ package api
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
-	"github.com/tidepool-org/platform/data"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataService "github.com/tidepool-org/platform/data/service"
@@ -22,7 +21,6 @@ type Standard struct {
 	*api.API
 	metricClient            metric.Client
 	userClient              user.Client
-	dataFactory             data.Factory
 	dataDeduplicatorFactory deduplicator.Factory
 	dataStore               dataStore.Store
 	dataStoreDEPRECATED     dataStoreDEPRECATED.Store
@@ -31,16 +29,13 @@ type Standard struct {
 }
 
 func NewStandard(svc service.Service, metricClient metric.Client, userClient user.Client,
-	dataFactory data.Factory, dataDeduplicatorFactory deduplicator.Factory, dataStore dataStore.Store,
+	dataDeduplicatorFactory deduplicator.Factory, dataStore dataStore.Store,
 	dataStoreDEPRECATED dataStoreDEPRECATED.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client) (*Standard, error) {
 	if metricClient == nil {
 		return nil, errors.New("metric client is missing")
 	}
 	if userClient == nil {
 		return nil, errors.New("user client is missing")
-	}
-	if dataFactory == nil {
-		return nil, errors.New("data factory is missing")
 	}
 	if dataDeduplicatorFactory == nil {
 		return nil, errors.New("data deduplicator factory is missing")
@@ -67,7 +62,6 @@ func NewStandard(svc service.Service, metricClient metric.Client, userClient use
 		API:                     a,
 		metricClient:            metricClient,
 		userClient:              userClient,
-		dataFactory:             dataFactory,
 		dataDeduplicatorFactory: dataDeduplicatorFactory,
 		dataStore:               dataStore,
 		dataStoreDEPRECATED:     dataStoreDEPRECATED,
@@ -105,6 +99,6 @@ func (s *Standard) DEPRECATEDInitializeRouter(routes []dataService.Route) error 
 
 func (s *Standard) withContext(handler dataService.HandlerFunc) rest.HandlerFunc {
 	return dataContext.WithContext(s.AuthClient(), s.metricClient, s.userClient,
-		s.dataFactory, s.dataDeduplicatorFactory, s.dataStore,
+		s.dataDeduplicatorFactory, s.dataStore,
 		s.dataStoreDEPRECATED, s.syncTaskStore, s.dataClient, handler)
 }

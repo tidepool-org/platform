@@ -6,7 +6,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data/context"
-	"github.com/tidepool-org/platform/data/factory"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
 	testData "github.com/tidepool-org/platform/data/test"
@@ -31,7 +30,7 @@ func NewMeta() interface{} {
 }
 
 func NewTestExtended(sourceTime interface{}, sourceDuration interface{}, sourceDurationExpected interface{}, sourceExtended interface{}, sourceExtendedExpected interface{}) *extended.Extended {
-	datum := extended.Init()
+	datum := extended.New()
 	datum.DeviceID = pointer.String(id.New())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
@@ -52,6 +51,10 @@ func NewTestExtended(sourceTime interface{}, sourceDuration interface{}, sourceD
 }
 
 var _ = Describe("Extended", func() {
+	It("SubType is expected", func() {
+		Expect(extended.SubType).To(Equal("square"))
+	})
+
 	It("DurationMaximum is expected", func() {
 		Expect(extended.DurationMaximum).To(Equal(86400000))
 	})
@@ -68,27 +71,9 @@ var _ = Describe("Extended", func() {
 		Expect(extended.ExtendedMinimum).To(Equal(0.0))
 	})
 
-	Context("SubType", func() {
-		It("returns the expected sub type", func() {
-			Expect(extended.SubType()).To(Equal("square"))
-		})
-	})
-
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(extended.NewDatum()).To(Equal(&extended.Extended{}))
-		})
-	})
-
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(extended.New()).To(Equal(&extended.Extended{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := extended.Init()
+			datum := extended.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("bolus"))
 			Expect(datum.SubType).To(Equal("square"))
@@ -99,32 +84,12 @@ var _ = Describe("Extended", func() {
 		})
 	})
 
-	Context("with new datum", func() {
-		var datum *extended.Extended
-
-		BeforeEach(func() {
-			datum = testDataTypesBolusExtended.NewExtended()
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("bolus"))
-				Expect(datum.SubType).To(Equal("square"))
-				Expect(datum.Duration).To(BeNil())
-				Expect(datum.DurationExpected).To(BeNil())
-				Expect(datum.Extended).To(BeNil())
-				Expect(datum.ExtendedExpected).To(BeNil())
-			})
-		})
-	})
-
 	Context("Extended", func() {
 		Context("Parse", func() {
 			var datum *extended.Extended
 
 			BeforeEach(func() {
-				datum = extended.Init()
+				datum = extended.New()
 				Expect(datum).ToNot(BeNil())
 			})
 
@@ -133,10 +98,7 @@ var _ = Describe("Extended", func() {
 					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
-					testFactory, err := factory.NewStandard()
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testFactory).ToNot(BeNil())
-					testParser, err := parser.NewStandardObject(testContext, testFactory, sourceObject, parser.AppendErrorNotParsed)
+					testParser, err := parser.NewStandardObject(testContext, sourceObject, parser.AppendErrorNotParsed)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testParser).ToNot(BeNil())
 					Expect(datum.Parse(testParser)).To(Succeed())

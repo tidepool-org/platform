@@ -208,7 +208,7 @@ func (a *Array) Time(reference int, layout string) *time.Time {
 
 	timeValue, err := time.Parse(layout, stringValue)
 	if err != nil {
-		a.base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTimeNotParsable(stringValue, layout))
+		a.base.WithReference(strconv.Itoa(reference)).ReportError(ErrorValueTimeNotParsable(stringValue, layout))
 		return nil
 	}
 

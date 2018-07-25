@@ -14,7 +14,7 @@ var _ = Describe("Float64", func() {
 	var base *structureBase.Base
 
 	BeforeEach(func() {
-		base = structureBase.New()
+		base = structureBase.New().WithSource(structure.NewPointerSource())
 	})
 
 	Context("NewFloat64", func() {

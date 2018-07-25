@@ -32,10 +32,6 @@ func NewMeta() interface{} {
 	}
 }
 
-func DatumAsPointer(datum data.Datum) *data.Datum {
-	return &datum
-}
-
 func NewCalculator(units *string) *calculator.Calculator {
 	datum := calculator.New()
 	datum.Base = *testDataTypes.NewBase()
@@ -92,11 +88,11 @@ func CloneCalculator(datum *calculator.Calculator) *calculator.Calculator {
 	if datum.Bolus != nil {
 		switch bolus := (*datum.Bolus).(type) {
 		case *combination.Combination:
-			clone.Bolus = DatumAsPointer(testDataTypesBolusCombination.CloneCombination(bolus))
+			clone.Bolus = data.DatumAsPointer(testDataTypesBolusCombination.CloneCombination(bolus))
 		case *extended.Extended:
-			clone.Bolus = DatumAsPointer(testDataTypesBolusExtended.CloneExtended(bolus))
+			clone.Bolus = data.DatumAsPointer(testDataTypesBolusExtended.CloneExtended(bolus))
 		case *normal.Normal:
-			clone.Bolus = DatumAsPointer(testDataTypesBolusNormal.CloneNormal(bolus))
+			clone.Bolus = data.DatumAsPointer(testDataTypesBolusNormal.CloneNormal(bolus))
 		}
 	}
 	clone.BolusID = test.CloneString(datum.BolusID)
@@ -110,6 +106,10 @@ func CloneCalculator(datum *calculator.Calculator) *calculator.Calculator {
 }
 
 var _ = Describe("Calculator", func() {
+	It("Type is expected", func() {
+		Expect(calculator.Type).To(Equal("wizard"))
+	})
+
 	It("CarbohydrateInputMaximum is expected", func() {
 		Expect(calculator.CarbohydrateInputMaximum).To(Equal(1000.0))
 	})
@@ -134,27 +134,9 @@ var _ = Describe("Calculator", func() {
 		Expect(calculator.InsulinOnBoardMinimum).To(Equal(0.0))
 	})
 
-	Context("Type", func() {
-		It("returns the expected type", func() {
-			Expect(calculator.Type()).To(Equal("wizard"))
-		})
-	})
-
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(calculator.NewDatum()).To(Equal(&calculator.Calculator{}))
-		})
-	})
-
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(calculator.New()).To(Equal(&calculator.Calculator{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := calculator.Init()
+			datum := calculator.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("wizard"))
 			Expect(datum.BloodGlucoseInput).To(BeNil())
@@ -167,31 +149,6 @@ var _ = Describe("Calculator", func() {
 			Expect(datum.InsulinSensitivity).To(BeNil())
 			Expect(datum.Recommended).To(BeNil())
 			Expect(datum.Units).To(BeNil())
-		})
-	})
-
-	Context("with new datum", func() {
-		var datum *calculator.Calculator
-
-		BeforeEach(func() {
-			datum = NewCalculator(pointer.String("mmol/L"))
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("wizard"))
-				Expect(datum.BloodGlucoseInput).To(BeNil())
-				Expect(datum.BloodGlucoseTarget).To(BeNil())
-				Expect(datum.Bolus).To(BeNil())
-				Expect(datum.BolusID).To(BeNil())
-				Expect(datum.CarbohydrateInput).To(BeNil())
-				Expect(datum.InsulinCarbohydrateRatio).To(BeNil())
-				Expect(datum.InsulinOnBoard).To(BeNil())
-				Expect(datum.InsulinSensitivity).To(BeNil())
-				Expect(datum.Recommended).To(BeNil())
-				Expect(datum.Units).To(BeNil())
-			})
 		})
 	})
 
@@ -1254,7 +1211,7 @@ var _ = Describe("Calculator", func() {
 						bolus := testDataTypesBolusCombination.NewCombination()
 						bolus.Extended = nil
 						bolus.Normal = nil
-						datum.Bolus = DatumAsPointer(bolus)
+						datum.Bolus = data.DatumAsPointer(bolus)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/extended", NewMeta()),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/normal", NewMeta()),
@@ -1263,7 +1220,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units missing; bolus combination valid",
 					nil,
 					func(datum *calculator.Calculator, units *string) {
-						datum.Bolus = DatumAsPointer(testDataTypesBolusCombination.NewCombination())
+						datum.Bolus = data.DatumAsPointer(testDataTypesBolusCombination.NewCombination())
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", NewMeta()),
 				),
@@ -1272,7 +1229,7 @@ var _ = Describe("Calculator", func() {
 					func(datum *calculator.Calculator, units *string) {
 						bolus := testDataTypesBolusExtended.NewExtended()
 						bolus.Extended = nil
-						datum.Bolus = DatumAsPointer(bolus)
+						datum.Bolus = data.DatumAsPointer(bolus)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/extended", NewMeta()),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", NewMeta()),
@@ -1280,7 +1237,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units missing; bolus extended valid",
 					nil,
 					func(datum *calculator.Calculator, units *string) {
-						datum.Bolus = DatumAsPointer(testDataTypesBolusExtended.NewExtended())
+						datum.Bolus = data.DatumAsPointer(testDataTypesBolusExtended.NewExtended())
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", NewMeta()),
 				),
@@ -1289,7 +1246,7 @@ var _ = Describe("Calculator", func() {
 					func(datum *calculator.Calculator, units *string) {
 						bolus := testDataTypesBolusNormal.NewNormal()
 						bolus.Normal = nil
-						datum.Bolus = DatumAsPointer(bolus)
+						datum.Bolus = data.DatumAsPointer(bolus)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/normal", NewMeta()),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", NewMeta()),
@@ -1297,7 +1254,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units missing; bolus normal valid",
 					nil,
 					func(datum *calculator.Calculator, units *string) {
-						datum.Bolus = DatumAsPointer(testDataTypesBolusNormal.NewNormal())
+						datum.Bolus = data.DatumAsPointer(testDataTypesBolusNormal.NewNormal())
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", NewMeta()),
 				),
@@ -1317,7 +1274,7 @@ var _ = Describe("Calculator", func() {
 						bolus := testDataTypesBolusCombination.NewCombination()
 						bolus.Extended = nil
 						bolus.Normal = nil
-						datum.Bolus = DatumAsPointer(bolus)
+						datum.Bolus = data.DatumAsPointer(bolus)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/extended", NewMeta()),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/normal", NewMeta()),
@@ -1326,7 +1283,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units invalid; bolus combination valid",
 					pointer.String("invalid"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.Bolus = DatumAsPointer(testDataTypesBolusCombination.NewCombination())
+						datum.Bolus = data.DatumAsPointer(testDataTypesBolusCombination.NewCombination())
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
 				),
@@ -1335,7 +1292,7 @@ var _ = Describe("Calculator", func() {
 					func(datum *calculator.Calculator, units *string) {
 						bolus := testDataTypesBolusExtended.NewExtended()
 						bolus.Extended = nil
-						datum.Bolus = DatumAsPointer(bolus)
+						datum.Bolus = data.DatumAsPointer(bolus)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/extended", NewMeta()),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
@@ -1343,7 +1300,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units invalid; bolus extended valid",
 					pointer.String("invalid"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.Bolus = DatumAsPointer(testDataTypesBolusExtended.NewExtended())
+						datum.Bolus = data.DatumAsPointer(testDataTypesBolusExtended.NewExtended())
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
 				),
@@ -1352,7 +1309,7 @@ var _ = Describe("Calculator", func() {
 					func(datum *calculator.Calculator, units *string) {
 						bolus := testDataTypesBolusNormal.NewNormal()
 						bolus.Normal = nil
-						datum.Bolus = DatumAsPointer(bolus)
+						datum.Bolus = data.DatumAsPointer(bolus)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/normal", NewMeta()),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
@@ -1360,7 +1317,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units invalid; bolus normal valid",
 					pointer.String("invalid"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.Bolus = DatumAsPointer(testDataTypesBolusNormal.NewNormal())
+						datum.Bolus = data.DatumAsPointer(testDataTypesBolusNormal.NewNormal())
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
 				),
@@ -1379,7 +1336,7 @@ var _ = Describe("Calculator", func() {
 						bolus := testDataTypesBolusCombination.NewCombination()
 						bolus.Extended = nil
 						bolus.Normal = nil
-						datum.Bolus = DatumAsPointer(bolus)
+						datum.Bolus = data.DatumAsPointer(bolus)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/extended", NewMeta()),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/normal", NewMeta()),
@@ -1387,7 +1344,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units mmol/L; bolus combination valid",
 					pointer.String("mmol/L"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.Bolus = DatumAsPointer(testDataTypesBolusCombination.NewCombination())
+						datum.Bolus = data.DatumAsPointer(testDataTypesBolusCombination.NewCombination())
 					},
 				),
 				Entry("units mmol/L; bolus extended invalid",
@@ -1395,14 +1352,14 @@ var _ = Describe("Calculator", func() {
 					func(datum *calculator.Calculator, units *string) {
 						bolus := testDataTypesBolusExtended.NewExtended()
 						bolus.Extended = nil
-						datum.Bolus = DatumAsPointer(bolus)
+						datum.Bolus = data.DatumAsPointer(bolus)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/extended", NewMeta()),
 				),
 				Entry("units mmol/L; bolus extended valid",
 					pointer.String("mmol/L"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.Bolus = DatumAsPointer(testDataTypesBolusExtended.NewExtended())
+						datum.Bolus = data.DatumAsPointer(testDataTypesBolusExtended.NewExtended())
 					},
 				),
 				Entry("units mmol/L; bolus normal invalid",
@@ -1410,14 +1367,14 @@ var _ = Describe("Calculator", func() {
 					func(datum *calculator.Calculator, units *string) {
 						bolus := testDataTypesBolusNormal.NewNormal()
 						bolus.Normal = nil
-						datum.Bolus = DatumAsPointer(bolus)
+						datum.Bolus = data.DatumAsPointer(bolus)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/normal", NewMeta()),
 				),
 				Entry("units mmol/L; bolus normal valid",
 					pointer.String("mmol/L"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.Bolus = DatumAsPointer(testDataTypesBolusNormal.NewNormal())
+						datum.Bolus = data.DatumAsPointer(testDataTypesBolusNormal.NewNormal())
 					},
 				),
 				Entry("units mmol/L; bolus id missing",
@@ -1434,7 +1391,7 @@ var _ = Describe("Calculator", func() {
 						bolus := testDataTypesBolusCombination.NewCombination()
 						bolus.Extended = nil
 						bolus.Normal = nil
-						datum.Bolus = DatumAsPointer(bolus)
+						datum.Bolus = data.DatumAsPointer(bolus)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/extended", NewMeta()),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/normal", NewMeta()),
@@ -1442,7 +1399,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units mmol/l; bolus combination valid",
 					pointer.String("mmol/l"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.Bolus = DatumAsPointer(testDataTypesBolusCombination.NewCombination())
+						datum.Bolus = data.DatumAsPointer(testDataTypesBolusCombination.NewCombination())
 					},
 				),
 				Entry("units mmol/l; bolus extended invalid",
@@ -1450,14 +1407,14 @@ var _ = Describe("Calculator", func() {
 					func(datum *calculator.Calculator, units *string) {
 						bolus := testDataTypesBolusExtended.NewExtended()
 						bolus.Extended = nil
-						datum.Bolus = DatumAsPointer(bolus)
+						datum.Bolus = data.DatumAsPointer(bolus)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/extended", NewMeta()),
 				),
 				Entry("units mmol/l; bolus extended valid",
 					pointer.String("mmol/l"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.Bolus = DatumAsPointer(testDataTypesBolusExtended.NewExtended())
+						datum.Bolus = data.DatumAsPointer(testDataTypesBolusExtended.NewExtended())
 					},
 				),
 				Entry("units mmol/l; bolus normal invalid",
@@ -1465,14 +1422,14 @@ var _ = Describe("Calculator", func() {
 					func(datum *calculator.Calculator, units *string) {
 						bolus := testDataTypesBolusNormal.NewNormal()
 						bolus.Normal = nil
-						datum.Bolus = DatumAsPointer(bolus)
+						datum.Bolus = data.DatumAsPointer(bolus)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/normal", NewMeta()),
 				),
 				Entry("units mmol/l; bolus normal valid",
 					pointer.String("mmol/l"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.Bolus = DatumAsPointer(testDataTypesBolusNormal.NewNormal())
+						datum.Bolus = data.DatumAsPointer(testDataTypesBolusNormal.NewNormal())
 					},
 				),
 				Entry("units mmol/l; bolus id missing",
@@ -1489,7 +1446,7 @@ var _ = Describe("Calculator", func() {
 						bolus := testDataTypesBolusCombination.NewCombination()
 						bolus.Extended = nil
 						bolus.Normal = nil
-						datum.Bolus = DatumAsPointer(bolus)
+						datum.Bolus = data.DatumAsPointer(bolus)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/extended", NewMeta()),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/normal", NewMeta()),
@@ -1497,7 +1454,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units mg/dL; bolus combination valid",
 					pointer.String("mg/dL"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.Bolus = DatumAsPointer(testDataTypesBolusCombination.NewCombination())
+						datum.Bolus = data.DatumAsPointer(testDataTypesBolusCombination.NewCombination())
 					},
 				),
 				Entry("units mg/dL; bolus extended invalid",
@@ -1505,14 +1462,14 @@ var _ = Describe("Calculator", func() {
 					func(datum *calculator.Calculator, units *string) {
 						bolus := testDataTypesBolusExtended.NewExtended()
 						bolus.Extended = nil
-						datum.Bolus = DatumAsPointer(bolus)
+						datum.Bolus = data.DatumAsPointer(bolus)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/extended", NewMeta()),
 				),
 				Entry("units mg/dL; bolus extended valid",
 					pointer.String("mg/dL"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.Bolus = DatumAsPointer(testDataTypesBolusExtended.NewExtended())
+						datum.Bolus = data.DatumAsPointer(testDataTypesBolusExtended.NewExtended())
 					},
 				),
 				Entry("units mg/dL; bolus normal invalid",
@@ -1520,14 +1477,14 @@ var _ = Describe("Calculator", func() {
 					func(datum *calculator.Calculator, units *string) {
 						bolus := testDataTypesBolusNormal.NewNormal()
 						bolus.Normal = nil
-						datum.Bolus = DatumAsPointer(bolus)
+						datum.Bolus = data.DatumAsPointer(bolus)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/normal", NewMeta()),
 				),
 				Entry("units mg/dL; bolus normal valid",
 					pointer.String("mg/dL"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.Bolus = DatumAsPointer(testDataTypesBolusNormal.NewNormal())
+						datum.Bolus = data.DatumAsPointer(testDataTypesBolusNormal.NewNormal())
 					},
 				),
 				Entry("units mg/dL; bolus id missing",
@@ -1544,7 +1501,7 @@ var _ = Describe("Calculator", func() {
 						bolus := testDataTypesBolusCombination.NewCombination()
 						bolus.Extended = nil
 						bolus.Normal = nil
-						datum.Bolus = DatumAsPointer(bolus)
+						datum.Bolus = data.DatumAsPointer(bolus)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/extended", NewMeta()),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/normal", NewMeta()),
@@ -1552,7 +1509,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units mg/dl; bolus combination valid",
 					pointer.String("mg/dl"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.Bolus = DatumAsPointer(testDataTypesBolusCombination.NewCombination())
+						datum.Bolus = data.DatumAsPointer(testDataTypesBolusCombination.NewCombination())
 					},
 				),
 				Entry("units mg/dl; bolus extended invalid",
@@ -1560,14 +1517,14 @@ var _ = Describe("Calculator", func() {
 					func(datum *calculator.Calculator, units *string) {
 						bolus := testDataTypesBolusExtended.NewExtended()
 						bolus.Extended = nil
-						datum.Bolus = DatumAsPointer(bolus)
+						datum.Bolus = data.DatumAsPointer(bolus)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/extended", NewMeta()),
 				),
 				Entry("units mg/dl; bolus extended valid",
 					pointer.String("mg/dl"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.Bolus = DatumAsPointer(testDataTypesBolusExtended.NewExtended())
+						datum.Bolus = data.DatumAsPointer(testDataTypesBolusExtended.NewExtended())
 					},
 				),
 				Entry("units mg/dl; bolus normal invalid",
@@ -1575,14 +1532,14 @@ var _ = Describe("Calculator", func() {
 					func(datum *calculator.Calculator, units *string) {
 						bolus := testDataTypesBolusNormal.NewNormal()
 						bolus.Normal = nil
-						datum.Bolus = DatumAsPointer(bolus)
+						datum.Bolus = data.DatumAsPointer(bolus)
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/normal", NewMeta()),
 				),
 				Entry("units mg/dl; bolus normal valid",
 					pointer.String("mg/dl"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.Bolus = DatumAsPointer(testDataTypesBolusNormal.NewNormal())
+						datum.Bolus = data.DatumAsPointer(testDataTypesBolusNormal.NewNormal())
 					},
 				),
 				Entry("units mg/dl; bolus id missing",
@@ -1610,7 +1567,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units missing; bolus exists",
 					nil,
 					func(datum *calculator.Calculator, units *string) {
-						datum.Bolus = DatumAsPointer(testDataTypesBolusCombination.NewCombination())
+						datum.Bolus = data.DatumAsPointer(testDataTypesBolusCombination.NewCombination())
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/bolus", NewMeta()),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", NewMeta()),
@@ -1639,7 +1596,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units invalid; bolus exists",
 					pointer.String("invalid"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.Bolus = DatumAsPointer(testDataTypesBolusCombination.NewCombination())
+						datum.Bolus = data.DatumAsPointer(testDataTypesBolusCombination.NewCombination())
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/bolus", NewMeta()),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
@@ -1667,7 +1624,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units mmol/L; bolus exists",
 					pointer.String("mmol/L"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.Bolus = DatumAsPointer(testDataTypesBolusCombination.NewCombination())
+						datum.Bolus = data.DatumAsPointer(testDataTypesBolusCombination.NewCombination())
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/bolus", NewMeta()),
 				),
@@ -1691,7 +1648,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units mmol/l; bolus exists",
 					pointer.String("mmol/l"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.Bolus = DatumAsPointer(testDataTypesBolusCombination.NewCombination())
+						datum.Bolus = data.DatumAsPointer(testDataTypesBolusCombination.NewCombination())
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/bolus", NewMeta()),
 				),
@@ -1715,7 +1672,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units mg/dL; bolus exists",
 					pointer.String("mg/dL"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.Bolus = DatumAsPointer(testDataTypesBolusCombination.NewCombination())
+						datum.Bolus = data.DatumAsPointer(testDataTypesBolusCombination.NewCombination())
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/bolus", NewMeta()),
 				),
@@ -1739,7 +1696,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units mg/dl; bolus exists",
 					pointer.String("mg/dl"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.Bolus = DatumAsPointer(testDataTypesBolusCombination.NewCombination())
+						datum.Bolus = data.DatumAsPointer(testDataTypesBolusCombination.NewCombination())
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/bolus", NewMeta()),
 				),
@@ -1774,7 +1731,7 @@ var _ = Describe("Calculator", func() {
 			It("normalizes the datum and replaces combination bolus with bolus id", func() {
 				datumBolus := testDataTypesBolusCombination.NewCombination()
 				datum := NewCalculatorWithBolusID(pointer.String("mmol/L"))
-				datum.Bolus = DatumAsPointer(datumBolus)
+				datum.Bolus = data.DatumAsPointer(datumBolus)
 				expectedDatum := CloneCalculator(datum)
 				normalizer := dataNormalizer.New()
 				Expect(normalizer).ToNot(BeNil())
@@ -1789,7 +1746,7 @@ var _ = Describe("Calculator", func() {
 			It("normalizes the datum and replaces extended bolus with bolus id", func() {
 				datumBolus := testDataTypesBolusExtended.NewExtended()
 				datum := NewCalculatorWithBolusID(pointer.String("mmol/L"))
-				datum.Bolus = DatumAsPointer(datumBolus)
+				datum.Bolus = data.DatumAsPointer(datumBolus)
 				expectedDatum := CloneCalculator(datum)
 				normalizer := dataNormalizer.New()
 				Expect(normalizer).ToNot(BeNil())
@@ -1804,7 +1761,7 @@ var _ = Describe("Calculator", func() {
 			It("normalizes the datum and replaces normal bolus with bolus id", func() {
 				datumBolus := testDataTypesBolusNormal.NewNormal()
 				datum := NewCalculatorWithBolusID(pointer.String("mmol/L"))
-				datum.Bolus = DatumAsPointer(datumBolus)
+				datum.Bolus = data.DatumAsPointer(datumBolus)
 				expectedDatum := CloneCalculator(datum)
 				normalizer := dataNormalizer.New()
 				Expect(normalizer).ToNot(BeNil())
@@ -1863,20 +1820,12 @@ var _ = Describe("Calculator", func() {
 				Entry("does not modify the datum; units mmol/L",
 					pointer.String("mmol/L"),
 					func(datum *calculator.Calculator, units *string) {},
-					func(datum *calculator.Calculator, expectedDatum *calculator.Calculator, units *string) {
-						testDataBloodGlucose.ExpectNormalizedValue(datum.BloodGlucoseInput, expectedDatum.BloodGlucoseInput, units)
-						testDataBloodGlucose.ExpectNormalizedTarget(datum.BloodGlucoseTarget, expectedDatum.BloodGlucoseTarget, units)
-						testDataBloodGlucose.ExpectNormalizedValue(datum.InsulinSensitivity, expectedDatum.InsulinSensitivity, units)
-						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
-					},
+					nil,
 				),
 				Entry("modifies the datum; units mmol/l",
 					pointer.String("mmol/l"),
 					func(datum *calculator.Calculator, units *string) {},
 					func(datum *calculator.Calculator, expectedDatum *calculator.Calculator, units *string) {
-						testDataBloodGlucose.ExpectNormalizedValue(datum.BloodGlucoseInput, expectedDatum.BloodGlucoseInput, units)
-						testDataBloodGlucose.ExpectNormalizedTarget(datum.BloodGlucoseTarget, expectedDatum.BloodGlucoseTarget, units)
-						testDataBloodGlucose.ExpectNormalizedValue(datum.InsulinSensitivity, expectedDatum.InsulinSensitivity, units)
 						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
 					},
 				),

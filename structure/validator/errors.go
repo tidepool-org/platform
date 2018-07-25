@@ -15,6 +15,7 @@ const (
 	ErrorCodeValueExists      = "value-exists"
 	ErrorCodeValueNotEmpty    = "value-not-empty"
 	ErrorCodeValueEmpty       = "value-empty"
+	ErrorCodeValueDuplicate   = "value-duplicate"
 	ErrorCodeValueNotTrue     = "value-not-true"
 	ErrorCodeValueNotFalse    = "value-not-false"
 	ErrorCodeValueOutOfRange  = "value-out-of-range"
@@ -22,8 +23,6 @@ const (
 	ErrorCodeValueNotAllowed  = "value-not-allowed"
 	ErrorCodeValueMatches     = "value-matches"
 	ErrorCodeValueNotMatches  = "value-not-matches"
-	ErrorCodeValueZero        = "value-zero"
-	ErrorCodeValueNotZero     = "value-not-zero"
 	ErrorCodeValueNotAfter    = "value-not-after"
 	ErrorCodeValueNotBefore   = "value-not-before"
 	ErrorCodeValueNotValid    = "value-not-valid"
@@ -46,130 +45,96 @@ func ErrorValueEmpty() error {
 	return errors.Prepared(ErrorCodeValueEmpty, "value is empty", "value is empty")
 }
 
-func ErrorValueNotTrue() error {
+func ErrorValueDuplicate() error {
+	return errors.Preparedf(ErrorCodeValueDuplicate, "value is a duplicate", "value is a duplicate")
+}
+
+func ErrorValueBooleanNotTrue() error {
 	return errors.Prepared(ErrorCodeValueNotTrue, "value is not true", "value is not true")
 }
 
-func ErrorValueNotFalse() error {
+func ErrorValueBooleanNotFalse() error {
 	return errors.Prepared(ErrorCodeValueNotFalse, "value is not false", "value is not false")
 }
 
 func ErrorValueNotEqualTo(value interface{}, limit interface{}) error {
-	return errors.Preparedf(ErrorCodeValueOutOfRange, "value is out of range", "value %v is not equal to %v", QuoteIfString(value), QuoteIfString(limit))
+	return errors.Preparedf(ErrorCodeValueOutOfRange, "value is out of range", "value %s is not equal to %s", stringify(value), stringify(limit))
 }
 
 func ErrorValueEqualTo(value interface{}, limit interface{}) error {
-	return errors.Preparedf(ErrorCodeValueOutOfRange, "value is out of range", "value %v is equal to %v", QuoteIfString(value), QuoteIfString(limit))
+	return errors.Preparedf(ErrorCodeValueOutOfRange, "value is out of range", "value %s is equal to %s", stringify(value), stringify(limit))
 }
 
 func ErrorValueNotLessThan(value interface{}, limit interface{}) error {
-	return errors.Preparedf(ErrorCodeValueOutOfRange, "value is out of range", "value %v is not less than %v", QuoteIfString(value), QuoteIfString(limit))
+	return errors.Preparedf(ErrorCodeValueOutOfRange, "value is out of range", "value %s is not less than %s", stringify(value), stringify(limit))
 }
 
 func ErrorValueNotLessThanOrEqualTo(value interface{}, limit interface{}) error {
-	return errors.Preparedf(ErrorCodeValueOutOfRange, "value is out of range", "value %v is not less than or equal to %v", QuoteIfString(value), QuoteIfString(limit))
+	return errors.Preparedf(ErrorCodeValueOutOfRange, "value is out of range", "value %s is not less than or equal to %s", stringify(value), stringify(limit))
 }
 
 func ErrorValueNotGreaterThan(value interface{}, limit interface{}) error {
-	return errors.Preparedf(ErrorCodeValueOutOfRange, "value is out of range", "value %v is not greater than %v", QuoteIfString(value), QuoteIfString(limit))
+	return errors.Preparedf(ErrorCodeValueOutOfRange, "value is out of range", "value %s is not greater than %s", stringify(value), stringify(limit))
 }
 
 func ErrorValueNotGreaterThanOrEqualTo(value interface{}, limit interface{}) error {
-	return errors.Preparedf(ErrorCodeValueOutOfRange, "value is out of range", "value %v is not greater than or equal to %v", QuoteIfString(value), QuoteIfString(limit))
+	return errors.Preparedf(ErrorCodeValueOutOfRange, "value is out of range", "value %s is not greater than or equal to %s", stringify(value), stringify(limit))
 }
 
 func ErrorValueNotInRange(value interface{}, lowerLimit interface{}, upperLimit interface{}) error {
-	return errors.Preparedf(ErrorCodeValueOutOfRange, "value is out of range", "value %v is not between %v and %v", QuoteIfString(value), QuoteIfString(lowerLimit), QuoteIfString(upperLimit))
+	return errors.Preparedf(ErrorCodeValueOutOfRange, "value is out of range", "value %s is not between %s and %s", stringify(value), stringify(lowerLimit), stringify(upperLimit))
 }
 
 func ErrorValueFloat64OneOf(value float64, disallowedValues []float64) error {
-	disallowedValuesStrings := []string{}
-	for _, disallowedValue := range disallowedValues {
-		disallowedValuesStrings = append(disallowedValuesStrings, fmt.Sprintf("%v", disallowedValue))
-	}
-	disallowedValuesString := strings.Join(disallowedValuesStrings, ", ")
-	return errors.Preparedf(ErrorCodeValueDisallowed, "value is one of the disallowed values", "value %v is one of [%s]", value, disallowedValuesString)
+	return errors.Preparedf(ErrorCodeValueDisallowed, "value is one of the disallowed values", "value %s is one of %s", stringify(value), stringify(disallowedValues))
 }
 
 func ErrorValueFloat64NotOneOf(value float64, allowedValues []float64) error {
-	allowedValuesStrings := []string{}
-	for _, allowedValue := range allowedValues {
-		allowedValuesStrings = append(allowedValuesStrings, fmt.Sprintf("%v", allowedValue))
-	}
-	allowedValuesString := strings.Join(allowedValuesStrings, ", ")
-	return errors.Preparedf(ErrorCodeValueNotAllowed, "value is not one of the allowed values", "value %v is not one of [%s]", value, allowedValuesString)
+	return errors.Preparedf(ErrorCodeValueNotAllowed, "value is not one of the allowed values", "value %s is not one of %s", stringify(value), stringify(allowedValues))
 }
 
 func ErrorValueIntOneOf(value int, disallowedValues []int) error {
-	disallowedValuesStrings := []string{}
-	for _, disallowedValue := range disallowedValues {
-		disallowedValuesStrings = append(disallowedValuesStrings, fmt.Sprintf("%d", disallowedValue))
-	}
-	disallowedValuesString := strings.Join(disallowedValuesStrings, ", ")
-	return errors.Preparedf(ErrorCodeValueDisallowed, "value is one of the disallowed values", "value %d is one of [%s]", value, disallowedValuesString)
+	return errors.Preparedf(ErrorCodeValueDisallowed, "value is one of the disallowed values", "value %s is one of %s", stringify(value), stringify(disallowedValues))
 }
 
 func ErrorValueIntNotOneOf(value int, allowedValues []int) error {
-	allowedValuesStrings := []string{}
-	for _, allowedValue := range allowedValues {
-		allowedValuesStrings = append(allowedValuesStrings, fmt.Sprintf("%d", allowedValue))
-	}
-	allowedValuesString := strings.Join(allowedValuesStrings, ", ")
-	return errors.Preparedf(ErrorCodeValueNotAllowed, "value is not one of the allowed values", "value %d is not one of [%s]", value, allowedValuesString)
+	return errors.Preparedf(ErrorCodeValueNotAllowed, "value is not one of the allowed values", "value %s is not one of %s", stringify(value), stringify(allowedValues))
 }
 
 func ErrorValueStringOneOf(value string, disallowedValues []string) error {
-	disallowedValuesStrings := []string{}
-	for _, disallowedValue := range disallowedValues {
-		disallowedValuesStrings = append(disallowedValuesStrings, strconv.Quote(disallowedValue))
-	}
-	disallowedValuesString := strings.Join(disallowedValuesStrings, ", ")
-	return errors.Preparedf(ErrorCodeValueDisallowed, "value is one of the disallowed values", "value %q is one of [%v]", value, disallowedValuesString)
+	return errors.Preparedf(ErrorCodeValueDisallowed, "value is one of the disallowed values", "value %s is one of %s", stringify(value), stringify(disallowedValues))
 }
 
 func ErrorValueStringNotOneOf(value string, allowedValues []string) error {
-	allowedValuesStrings := []string{}
-	for _, allowedValue := range allowedValues {
-		allowedValuesStrings = append(allowedValuesStrings, strconv.Quote(allowedValue))
-	}
-	allowedValuesString := strings.Join(allowedValuesStrings, ", ")
-	return errors.Preparedf(ErrorCodeValueNotAllowed, "value is not one of the allowed values", "value %q is not one of [%v]", value, allowedValuesString)
+	return errors.Preparedf(ErrorCodeValueNotAllowed, "value is not one of the allowed values", "value %s is not one of %s", stringify(value), stringify(allowedValues))
 }
 
 func ErrorValueStringMatches(value string, expression *regexp.Regexp) error {
-	return errors.Preparedf(ErrorCodeValueMatches, "value matches expression", "value %q matches expression %q", value, ExpressionAsString(expression))
+	return errors.Preparedf(ErrorCodeValueMatches, "value matches expression", "value %s matches expression %s", stringify(value), stringify(expression))
 }
 
 func ErrorValueStringNotMatches(value string, expression *regexp.Regexp) error {
-	return errors.Preparedf(ErrorCodeValueNotMatches, "value does not match expression", "value %q does not match expression %q", value, ExpressionAsString(expression))
+	return errors.Preparedf(ErrorCodeValueNotMatches, "value does not match expression", "value %s does not match expression %s", stringify(value), stringify(expression))
 }
 
 func ErrorValueStringAsTimeNotValid(value string, layout string) error {
-	return errors.Preparedf(ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as time with layout %q", value, layout)
-}
-
-func ErrorValueTimeZero(value time.Time) error {
-	return errors.Preparedf(ErrorCodeValueZero, "value is zero", "value %q is zero", value.Format(time.RFC3339))
-}
-
-func ErrorValueTimeNotZero(value time.Time) error {
-	return errors.Preparedf(ErrorCodeValueNotZero, "value is not zero", "value %q is not zero", value.Format(time.RFC3339))
+	return errors.Preparedf(ErrorCodeValueNotValid, "value is not valid", "value %s is not valid as time with layout %s", stringify(value), stringify(layout))
 }
 
 func ErrorValueTimeNotAfter(value time.Time, limit time.Time) error {
-	return errors.Preparedf(ErrorCodeValueNotAfter, "value is not after the specified time", "value %q is not after %q", value.Format(time.RFC3339), limit.Format(time.RFC3339))
+	return errors.Preparedf(ErrorCodeValueNotAfter, "value is not after the specified time", "value %s is not after %s", stringify(value), stringify(limit))
 }
 
 func ErrorValueTimeNotAfterNow(value time.Time) error {
-	return errors.Preparedf(ErrorCodeValueNotAfter, "value is not after the specified time", "value %q is not after now", value.Format(time.RFC3339))
+	return errors.Preparedf(ErrorCodeValueNotAfter, "value is not after the specified time", "value %s is not after now", stringify(value))
 }
 
 func ErrorValueTimeNotBefore(value time.Time, limit time.Time) error {
-	return errors.Preparedf(ErrorCodeValueNotBefore, "value is not before the specified time", "value %q is not before %q", value.Format(time.RFC3339), limit.Format(time.RFC3339))
+	return errors.Preparedf(ErrorCodeValueNotBefore, "value is not before the specified time", "value %s is not before %s", stringify(value), stringify(limit))
 }
 
 func ErrorValueTimeNotBeforeNow(value time.Time) error {
-	return errors.Preparedf(ErrorCodeValueNotBefore, "value is not before the specified time", "value %q is not before now", value.Format(time.RFC3339))
+	return errors.Preparedf(ErrorCodeValueNotBefore, "value is not before the specified time", "value %s is not before now", stringify(value))
 }
 
 func ErrorLengthNotEqualTo(length int, limit int) error {
@@ -200,16 +165,38 @@ func ErrorLengthNotInRange(length int, lowerLimit int, upperLimit int) error {
 	return errors.Preparedf(ErrorCodeLengthOutOfRange, "length is out of range", "length %d is not between %d and %d", length, lowerLimit, upperLimit)
 }
 
-func QuoteIfString(interfaceValue interface{}) interface{} {
-	if stringValue, ok := interfaceValue.(string); ok {
-		return strconv.Quote(stringValue)
+func stringify(interfaceValue interface{}) string {
+	switch typeValue := interfaceValue.(type) {
+	case float64:
+		return strconv.FormatFloat(typeValue, 'f', -1, 64)
+	case []float64:
+		values := []string{}
+		for _, value := range typeValue {
+			values = append(values, stringify(value))
+		}
+		return fmt.Sprintf("[%s]", strings.Join(values, ", "))
+	case []int:
+		values := []string{}
+		for _, value := range typeValue {
+			values = append(values, stringify(value))
+		}
+		return fmt.Sprintf("[%s]", strings.Join(values, ", "))
+	case string:
+		return strconv.Quote(typeValue)
+	case []string:
+		values := []string{}
+		for _, value := range typeValue {
+			values = append(values, stringify(value))
+		}
+		return fmt.Sprintf("[%s]", strings.Join(values, ", "))
+	case time.Time:
+		return strconv.Quote(typeValue.Format(time.RFC3339))
+	case *regexp.Regexp:
+		if typeValue == nil {
+			return strconv.Quote("<MISSING>")
+		}
+		return strconv.Quote(typeValue.String())
+	default:
+		return fmt.Sprintf("%v", interfaceValue)
 	}
-	return interfaceValue
-}
-
-func ExpressionAsString(expression *regexp.Regexp) string {
-	if expression == nil {
-		return "<MISSING>"
-	}
-	return expression.String()
 }

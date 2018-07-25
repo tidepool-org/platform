@@ -7,6 +7,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/store"
+	"github.com/tidepool-org/platform/structure"
 )
 
 type Store interface {
@@ -42,6 +43,10 @@ func NewFilter() *Filter {
 	return &Filter{}
 }
 
-func (f *Filter) Validate() error {
-	return nil
+func (f *Filter) Parse(parser structure.ObjectParser) {
+	if deleted := parser.Bool("deleted"); deleted != nil {
+		f.Deleted = *deleted
+	}
 }
+
+func (f *Filter) Validate(validator structure.Validator) {}

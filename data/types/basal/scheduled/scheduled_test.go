@@ -6,7 +6,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data/context"
-	"github.com/tidepool-org/platform/data/factory"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
 	testData "github.com/tidepool-org/platform/data/test"
@@ -14,6 +13,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/basal/scheduled"
 	testDataTypesBasalScheduled "github.com/tidepool-org/platform/data/types/basal/scheduled/test"
 	testDataTypesBasal "github.com/tidepool-org/platform/data/types/basal/test"
+	testDataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin/test"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/id"
@@ -38,6 +38,7 @@ func NewScheduled() *scheduled.Scheduled {
 	datum.DeliveryType = "scheduled"
 	datum.Duration = pointer.Int(test.RandomIntFromRange(scheduled.DurationMinimum, scheduled.DurationMaximum))
 	datum.DurationExpected = pointer.Int(test.RandomIntFromRange(*datum.Duration, scheduled.DurationMaximum))
+	datum.InsulinFormulation = testDataTypesInsulin.NewFormulation(3)
 	datum.Rate = pointer.Float64(test.RandomFloat64FromRange(scheduled.RateMinimum, scheduled.RateMaximum))
 	datum.ScheduleName = pointer.String(testDataTypesBasal.NewScheduleName())
 	return datum
@@ -51,13 +52,14 @@ func CloneScheduled(datum *scheduled.Scheduled) *scheduled.Scheduled {
 	clone.Basal = *testDataTypesBasal.CloneBasal(&datum.Basal)
 	clone.Duration = test.CloneInt(datum.Duration)
 	clone.DurationExpected = test.CloneInt(datum.DurationExpected)
+	clone.InsulinFormulation = testDataTypesInsulin.CloneFormulation(datum.InsulinFormulation)
 	clone.Rate = test.CloneFloat64(datum.Rate)
 	clone.ScheduleName = test.CloneString(datum.ScheduleName)
 	return clone
 }
 
 func NewTestScheduled(sourceTime interface{}, sourceDuration interface{}, sourceDurationExpected interface{}, sourceRate interface{}, scheduleName interface{}) *scheduled.Scheduled {
-	datum := scheduled.Init()
+	datum := scheduled.New()
 	datum.DeviceID = pointer.String(id.New())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
@@ -78,6 +80,10 @@ func NewTestScheduled(sourceTime interface{}, sourceDuration interface{}, source
 }
 
 var _ = Describe("Scheduled", func() {
+	It("DeliveryType is expected", func() {
+		Expect(scheduled.DeliveryType).To(Equal("scheduled"))
+	})
+
 	It("DurationMaximum is expected", func() {
 		Expect(scheduled.DurationMaximum).To(Equal(604800000))
 	})
@@ -94,54 +100,17 @@ var _ = Describe("Scheduled", func() {
 		Expect(scheduled.RateMinimum).To(Equal(0.0))
 	})
 
-	Context("DeliveryType", func() {
-		It("returns the expected delivery type", func() {
-			Expect(scheduled.DeliveryType()).To(Equal("scheduled"))
-		})
-	})
-
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(scheduled.NewDatum()).To(Equal(&scheduled.Scheduled{}))
-		})
-	})
-
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(scheduled.New()).To(Equal(&scheduled.Scheduled{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := scheduled.Init()
+			datum := scheduled.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("basal"))
 			Expect(datum.DeliveryType).To(Equal("scheduled"))
 			Expect(datum.Duration).To(BeNil())
 			Expect(datum.DurationExpected).To(BeNil())
+			Expect(datum.InsulinFormulation).To(BeNil())
 			Expect(datum.Rate).To(BeNil())
 			Expect(datum.ScheduleName).To(BeNil())
-		})
-	})
-
-	Context("with new datum", func() {
-		var datum *scheduled.Scheduled
-
-		BeforeEach(func() {
-			datum = NewScheduled()
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("basal"))
-				Expect(datum.DeliveryType).To(Equal("scheduled"))
-				Expect(datum.Duration).To(BeNil())
-				Expect(datum.DurationExpected).To(BeNil())
-				Expect(datum.Rate).To(BeNil())
-				Expect(datum.ScheduleName).To(BeNil())
-			})
 		})
 	})
 
@@ -150,7 +119,7 @@ var _ = Describe("Scheduled", func() {
 			var datum *scheduled.Scheduled
 
 			BeforeEach(func() {
-				datum = scheduled.Init()
+				datum = scheduled.New()
 				Expect(datum).ToNot(BeNil())
 			})
 
@@ -159,10 +128,7 @@ var _ = Describe("Scheduled", func() {
 					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
-					testFactory, err := factory.NewStandard()
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testFactory).ToNot(BeNil())
-					testParser, err := parser.NewStandardObject(testContext, testFactory, sourceObject, parser.AppendErrorNotParsed)
+					testParser, err := parser.NewStandardObject(testContext, sourceObject, parser.AppendErrorNotParsed)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testParser).ToNot(BeNil())
 					Expect(datum.Parse(testParser)).To(Succeed())
@@ -455,6 +421,20 @@ var _ = Describe("Scheduled", func() {
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/duration", NewMeta()),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", NewMeta()),
 				),
+				Entry("insulin formulation missing",
+					func(datum *scheduled.Scheduled) { datum.InsulinFormulation = nil },
+				),
+				Entry("insulin formulation invalid",
+					func(datum *scheduled.Scheduled) {
+						datum.InsulinFormulation.Compounds = nil
+						datum.InsulinFormulation.Name = nil
+						datum.InsulinFormulation.Simple = nil
+					},
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple", NewMeta()),
+				),
+				Entry("insulin formulation valid",
+					func(datum *scheduled.Scheduled) { datum.InsulinFormulation = testDataTypesInsulin.NewFormulation(3) },
+				),
 				Entry("rate missing",
 					func(datum *scheduled.Scheduled) { datum.Rate = nil },
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/rate", NewMeta()),
@@ -488,6 +468,9 @@ var _ = Describe("Scheduled", func() {
 						datum.DeliveryType = "invalidDeliveryType"
 						datum.Duration = nil
 						datum.DurationExpected = pointer.Int(604800001)
+						datum.InsulinFormulation.Compounds = nil
+						datum.InsulinFormulation.Name = nil
+						datum.InsulinFormulation.Simple = nil
 						datum.Rate = pointer.Float64(100.1)
 						datum.ScheduleName = pointer.String("")
 					},
@@ -495,6 +478,7 @@ var _ = Describe("Scheduled", func() {
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidDeliveryType", "scheduled"), "/deliveryType", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/scheduleName", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 				),
@@ -530,6 +514,9 @@ var _ = Describe("Scheduled", func() {
 				),
 				Entry("does not modify the datum; duration expected missing",
 					func(datum *scheduled.Scheduled) { datum.DurationExpected = nil },
+				),
+				Entry("does not modify the datum; insulin formulation missing",
+					func(datum *scheduled.Scheduled) { datum.InsulinFormulation = nil },
 				),
 				Entry("does not modify the datum; rate missing",
 					func(datum *scheduled.Scheduled) { datum.Rate = nil },
@@ -597,6 +584,22 @@ var _ = Describe("Scheduled", func() {
 				Entry("annotations valid",
 					func(datum *scheduled.SuppressedScheduled) { datum.Annotations = testData.NewBlobArray() },
 				),
+				Entry("insulin formulation missing",
+					func(datum *scheduled.SuppressedScheduled) { datum.InsulinFormulation = nil },
+				),
+				Entry("insulin formulation invalid",
+					func(datum *scheduled.SuppressedScheduled) {
+						datum.InsulinFormulation.Compounds = nil
+						datum.InsulinFormulation.Name = nil
+						datum.InsulinFormulation.Simple = nil
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple"),
+				),
+				Entry("insulin formulation valid",
+					func(datum *scheduled.SuppressedScheduled) {
+						datum.InsulinFormulation = testDataTypesInsulin.NewFormulation(3)
+					},
+				),
 				Entry("rate missing",
 					func(datum *scheduled.SuppressedScheduled) { datum.Rate = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
@@ -628,11 +631,15 @@ var _ = Describe("Scheduled", func() {
 					func(datum *scheduled.SuppressedScheduled) {
 						datum.Type = pointer.String("invalidType")
 						datum.DeliveryType = pointer.String("invalidDeliveryType")
+						datum.InsulinFormulation.Compounds = nil
+						datum.InsulinFormulation.Name = nil
+						datum.InsulinFormulation.Simple = nil
 						datum.Rate = pointer.Float64(100.1)
 						datum.ScheduleName = pointer.String("")
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalidType", "basal"), "/type"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalidDeliveryType", "scheduled"), "/deliveryType"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/scheduleName"),
 				),
@@ -665,6 +672,9 @@ var _ = Describe("Scheduled", func() {
 				),
 				Entry("does not modify the datum; annotations missing",
 					func(datum *scheduled.SuppressedScheduled) { datum.Annotations = nil },
+				),
+				Entry("does not modify the datum; insulin formulation missing",
+					func(datum *scheduled.SuppressedScheduled) { datum.InsulinFormulation = nil },
 				),
 				Entry("does not modify the datum; rate missing",
 					func(datum *scheduled.SuppressedScheduled) { datum.Rate = nil },

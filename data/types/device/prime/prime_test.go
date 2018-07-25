@@ -6,7 +6,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data/context"
-	"github.com/tidepool-org/platform/data/factory"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
 	testData "github.com/tidepool-org/platform/data/test"
@@ -35,7 +34,7 @@ func NewPrime() *prime.Prime {
 	datum := prime.New()
 	datum.Device = *testDataTypesDevice.NewDevice()
 	datum.SubType = "prime"
-	datum.Target = pointer.String(test.RandomStringFromStringArray(prime.Targets()))
+	datum.Target = pointer.String(test.RandomStringFromArray(prime.Targets()))
 	switch *datum.Target {
 	case "cannula":
 		datum.Volume = pointer.Float64(test.RandomFloat64FromRange(prime.VolumeTargetCannulaMinimum, prime.VolumeTargetCannulaMaximum))
@@ -57,7 +56,7 @@ func ClonePrime(datum *prime.Prime) *prime.Prime {
 }
 
 func NewTestPrime(sourceTime interface{}, sourceTarget interface{}, sourceVolume interface{}) *prime.Prime {
-	datum := prime.Init()
+	datum := prime.New()
 	datum.DeviceID = pointer.String(id.New())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
@@ -72,6 +71,10 @@ func NewTestPrime(sourceTime interface{}, sourceTarget interface{}, sourceVolume
 }
 
 var _ = Describe("Status", func() {
+	It("SubType is expected", func() {
+		Expect(prime.SubType).To(Equal("prime"))
+	})
+
 	It("TargetCannula is expected", func() {
 		Expect(prime.TargetCannula).To(Equal("cannula"))
 	})
@@ -100,27 +103,9 @@ var _ = Describe("Status", func() {
 		Expect(prime.Targets()).To(Equal([]string{"cannula", "tubing"}))
 	})
 
-	Context("SubType", func() {
-		It("returns the expected sub type", func() {
-			Expect(prime.SubType()).To(Equal("prime"))
-		})
-	})
-
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(prime.NewDatum()).To(Equal(&prime.Prime{}))
-		})
-	})
-
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(prime.New()).To(Equal(&prime.Prime{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := prime.Init()
+			datum := prime.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("deviceEvent"))
 			Expect(datum.SubType).To(Equal("prime"))
@@ -129,30 +114,12 @@ var _ = Describe("Status", func() {
 		})
 	})
 
-	Context("with new datum", func() {
-		var datum *prime.Prime
-
-		BeforeEach(func() {
-			datum = NewPrime()
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("deviceEvent"))
-				Expect(datum.SubType).To(Equal("prime"))
-				Expect(datum.Target).To(BeNil())
-				Expect(datum.Volume).To(BeNil())
-			})
-		})
-	})
-
 	Context("Prime", func() {
 		Context("Parse", func() {
 			var datum *prime.Prime
 
 			BeforeEach(func() {
-				datum = prime.Init()
+				datum = prime.New()
 				Expect(datum).ToNot(BeNil())
 			})
 
@@ -161,10 +128,7 @@ var _ = Describe("Status", func() {
 					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
-					testFactory, err := factory.NewStandard()
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testFactory).ToNot(BeNil())
-					testParser, err := parser.NewStandardObject(testContext, testFactory, sourceObject, parser.AppendErrorNotParsed)
+					testParser, err := parser.NewStandardObject(testContext, sourceObject, parser.AppendErrorNotParsed)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testParser).ToNot(BeNil())
 					Expect(datum.Parse(testParser)).To(Succeed())

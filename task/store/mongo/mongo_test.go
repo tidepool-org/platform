@@ -40,14 +40,14 @@ package mongo_test
 // 	Context("New", func() {
 // 		It("returns an error if unsuccessful", func() {
 // 			var err error
-// 			str, err = mongo.New(nil, nil)
+// 			str, err = mongo.NewStore(nil, nil)
 // 			Expect(err).To(HaveOccurred())
 // 			Expect(str).To(BeNil())
 // 		})
 
 // 		It("returns a new store and no error if successful", func() {
 // 			var err error
-// 			str, err = mongo.New(cfg, nullLog.NewLogger())
+// 			str, err = mongo.NewStore(cfg, nullLog.NewLogger())
 // 			Expect(err).ToNot(HaveOccurred())
 // 			Expect(str).ToNot(BeNil())
 // 		})
@@ -56,7 +56,7 @@ package mongo_test
 // 	Context("with a new store", func() {
 // 		BeforeEach(func() {
 // 			var err error
-// 			str, err = mongo.New(cfg, nullLog.NewLogger())
+// 			str, err = mongo.NewStore(cfg, nullLog.NewLogger())
 // 			Expect(err).ToNot(HaveOccurred())
 // 			Expect(str).ToNot(BeNil())
 // 		})

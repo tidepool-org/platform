@@ -1,6 +1,8 @@
 package data
 
 import (
+	"time"
+
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
 )
@@ -19,12 +21,11 @@ type ObjectParser interface {
 	ParseFloat(key string) *float64
 	ParseString(key string) *string
 	ParseStringArray(key string) *[]string
+	ParseTime(key string, layout string) *time.Time
 	ParseObject(key string) *map[string]interface{}
 	ParseObjectArray(key string) *[]map[string]interface{}
 	ParseInterface(key string) *interface{}
 	ParseInterfaceArray(key string) *[]interface{}
-	ParseDatum(key string) *Datum
-	ParseDatumArray(key string) *[]Datum
 
 	ProcessNotParsed()
 
@@ -46,12 +47,11 @@ type ArrayParser interface {
 	ParseFloat(index int) *float64
 	ParseString(index int) *string
 	ParseStringArray(index int) *[]string
+	ParseTime(index int, layout string) *time.Time
 	ParseObject(index int) *map[string]interface{}
 	ParseObjectArray(index int) *[]map[string]interface{}
 	ParseInterface(index int) *interface{}
 	ParseInterfaceArray(index int) *[]interface{}
-	ParseDatum(index int) *Datum
-	ParseDatumArray(index int) *[]Datum
 
 	ProcessNotParsed()
 

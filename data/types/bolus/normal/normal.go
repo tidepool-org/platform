@@ -7,6 +7,8 @@ import (
 )
 
 const (
+	SubType = "normal" // TODO: Rename Type to "bolus/normal"; remove SubType
+
 	NormalMaximum = 100.0
 	NormalMinimum = 0.0
 )
@@ -18,30 +20,10 @@ type Normal struct {
 	NormalExpected *float64 `json:"expectedNormal,omitempty" bson:"expectedNormal,omitempty"`
 }
 
-func SubType() string {
-	return "normal" // TODO: Rename Type to "bolus/normal"; remove SubType
-}
-
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *Normal {
-	return &Normal{}
-}
-
-func Init() *Normal {
-	normal := New()
-	normal.Init()
-	return normal
-}
-
-func (n *Normal) Init() {
-	n.Bolus.Init()
-	n.SubType = SubType()
-
-	n.Normal = nil
-	n.NormalExpected = nil
+	return &Normal{
+		Bolus: bolus.New(SubType),
+	}
 }
 
 func (n *Normal) Parse(parser data.ObjectParser) error {
@@ -63,7 +45,7 @@ func (n *Normal) Validate(validator structure.Validator) {
 	n.Bolus.Validate(validator)
 
 	if n.SubType != "" {
-		validator.String("subType", &n.SubType).EqualTo(SubType())
+		validator.String("subType", &n.SubType).EqualTo(SubType)
 	}
 
 	validator.Float64("normal", n.Normal).Exists().InRange(NormalMinimum, NormalMaximum)

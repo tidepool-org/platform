@@ -5,6 +5,8 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
+	"sort"
+
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
@@ -31,15 +33,14 @@ func NewUpload() *upload.Upload {
 	datum.ByUser = pointer.String(id.New())
 	datum.Client = NewClient()
 	datum.ComputerTime = pointer.String(test.NewTime().Format("2006-01-02T15:04:05"))
-	datum.DataSetType = pointer.String(test.RandomStringFromStringArray(upload.DataSetTypes()))
-	datum.DataState = pointer.String(test.RandomStringFromStringArray(upload.States()))
+	datum.DataSetType = pointer.String(test.RandomStringFromArray(upload.DataSetTypes()))
+	datum.DataState = pointer.String(test.RandomStringFromArray(upload.States()))
 	datum.DeviceManufacturers = pointer.StringArray([]string{test.NewText(1, 16), test.NewText(1, 16)})
 	datum.DeviceModel = pointer.String(test.NewText(1, 32))
 	datum.DeviceSerialNumber = pointer.String(test.NewText(1, 16))
-	datum.DeviceTags = pointer.StringArray(test.RandomStringArrayFromStringArray(1, len(upload.DeviceTags()), true, upload.DeviceTags()))
-	datum.State = pointer.String(test.RandomStringFromStringArray(upload.States()))
+	datum.DeviceTags = pointer.StringArray(test.RandomStringArrayFromArray(1, len(upload.DeviceTags()), false, upload.DeviceTags()))
+	datum.State = pointer.String(test.RandomStringFromArray(upload.States()))
 	datum.TimeProcessing = pointer.String(upload.TimeProcessingUTCBootstrapping)
-	datum.Timezone = pointer.String(test.NewTimeZone())
 	datum.Version = pointer.String(testInternet.NewSemanticVersion())
 	return datum
 }
@@ -61,12 +62,15 @@ func CloneUpload(datum *upload.Upload) *upload.Upload {
 	clone.DeviceTags = test.CloneStringArray(datum.DeviceTags)
 	clone.State = test.CloneString(datum.State)
 	clone.TimeProcessing = test.CloneString(datum.TimeProcessing)
-	clone.Timezone = test.CloneString(datum.Timezone)
 	clone.Version = test.CloneString(datum.Version)
 	return clone
 }
 
 var _ = Describe("Upload", func() {
+	It("Type is expected", func() {
+		Expect(upload.Type).To(Equal("upload"))
+	})
+
 	It("ComputerTimeFormat is expected", func() {
 		Expect(upload.ComputerTimeFormat).To(Equal("2006-01-02T15:04:05"))
 	})
@@ -99,8 +103,8 @@ var _ = Describe("Upload", func() {
 		Expect(upload.StateOpen).To(Equal("open"))
 	})
 
-	It("TimeProcessingAcrossTheBoardTimezone is expected", func() {
-		Expect(upload.TimeProcessingAcrossTheBoardTimezone).To(Equal("across-the-board-timezone"))
+	It("TimeProcessingAcrossTheBoardTimeZone is expected", func() {
+		Expect(upload.TimeProcessingAcrossTheBoardTimeZone).To(Equal("across-the-board-timezone"))
 	})
 
 	It("TimeProcessingNone is expected", func() {
@@ -131,27 +135,9 @@ var _ = Describe("Upload", func() {
 		Expect(upload.TimeProcessings()).To(Equal([]string{"across-the-board-timezone", "none", "utc-bootstrapping"}))
 	})
 
-	Context("Type", func() {
-		It("returns the expected type", func() {
-			Expect(upload.Type()).To(Equal("upload"))
-		})
-	})
-
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(upload.NewDatum()).To(Equal(&upload.Upload{}))
-		})
-	})
-
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(upload.New()).To(Equal(&upload.Upload{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := upload.Init()
+			datum := upload.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("upload"))
 			Expect(datum.ByUser).To(BeNil())
@@ -165,36 +151,7 @@ var _ = Describe("Upload", func() {
 			Expect(datum.DeviceTags).To(BeNil())
 			Expect(datum.State).To(BeNil())
 			Expect(datum.TimeProcessing).To(BeNil())
-			Expect(datum.Timezone).To(BeNil())
 			Expect(datum.Version).To(BeNil())
-		})
-	})
-
-	Context("with new datum", func() {
-		var datum *upload.Upload
-
-		BeforeEach(func() {
-			datum = NewUpload()
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("upload"))
-				Expect(datum.ByUser).To(BeNil())
-				Expect(datum.Client).To(BeNil())
-				Expect(datum.ComputerTime).To(BeNil())
-				Expect(datum.DataSetType).To(BeNil())
-				Expect(datum.DataState).To(BeNil())
-				Expect(datum.DeviceManufacturers).To(BeNil())
-				Expect(datum.DeviceModel).To(BeNil())
-				Expect(datum.DeviceSerialNumber).To(BeNil())
-				Expect(datum.DeviceTags).To(BeNil())
-				Expect(datum.State).To(BeNil())
-				Expect(datum.TimeProcessing).To(BeNil())
-				Expect(datum.Timezone).To(BeNil())
-				Expect(datum.Version).To(BeNil())
-			})
 		})
 	})
 
@@ -335,6 +292,14 @@ var _ = Describe("Upload", func() {
 					},
 					structure.Origins(),
 				),
+				Entry("device manufacturers multiple duplicates",
+					func(datum *upload.Upload) {
+						duplicate := test.NewText(1, 16)
+						datum.DeviceManufacturers = pointer.StringArray([]string{test.NewText(1, 16), duplicate, duplicate, test.NewText(1, 16)})
+					},
+					structure.Origins(),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueDuplicate(), "/deviceManufacturers/2", NewMeta()),
+				),
 				Entry("device model missing",
 					func(datum *upload.Upload) { datum.DeviceModel = nil },
 					structure.Origins(),
@@ -401,6 +366,14 @@ var _ = Describe("Upload", func() {
 					func(datum *upload.Upload) { datum.DeviceTags = pointer.StringArray([]string{"cgm", "insulin-pump"}) },
 					structure.Origins(),
 				),
+				Entry("device tags elements multiple valid duplicates",
+					func(datum *upload.Upload) {
+						datum.DeviceTags = pointer.StringArray([]string{"cgm", "insulin-pump", "cgm", "insulin-pump"})
+					},
+					structure.Origins(),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueDuplicate(), "/deviceTags/2", NewMeta()),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueDuplicate(), "/deviceTags/3", NewMeta()),
+				),
 				Entry("state missing",
 					func(datum *upload.Upload) { datum.State = nil },
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
@@ -423,11 +396,6 @@ var _ = Describe("Upload", func() {
 					structure.Origins(),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/timeProcessing", NewMeta()),
 				),
-				Entry("time processing empty",
-					func(datum *upload.Upload) { datum.TimeProcessing = pointer.String("") },
-					structure.Origins(),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("", []string{"across-the-board-timezone", "none", "utc-bootstrapping"}), "/timeProcessing", NewMeta()),
-				),
 				Entry("time processing invalid",
 					func(datum *upload.Upload) { datum.TimeProcessing = pointer.String("invalid") },
 					structure.Origins(),
@@ -443,19 +411,6 @@ var _ = Describe("Upload", func() {
 				),
 				Entry("time processing utc-bootstrapping",
 					func(datum *upload.Upload) { datum.TimeProcessing = pointer.String("utc-bootstrapping") },
-					structure.Origins(),
-				),
-				Entry("timezone missing",
-					func(datum *upload.Upload) { datum.Timezone = nil },
-					structure.Origins(),
-				),
-				Entry("timezone empty",
-					func(datum *upload.Upload) { datum.Timezone = pointer.String("") },
-					structure.Origins(),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/timezone", NewMeta()),
-				),
-				Entry("timezone exists",
-					func(datum *upload.Upload) { datum.Timezone = pointer.String(test.NewTimeZone()) },
 					structure.Origins(),
 				),
 				Entry("version missing",
@@ -496,7 +451,6 @@ var _ = Describe("Upload", func() {
 						datum.DeviceSerialNumber = nil
 						datum.DeviceTags = nil
 						datum.TimeProcessing = nil
-						datum.Timezone = pointer.String("")
 						datum.Version = pointer.String("1.23")
 					},
 					structure.Origins(),
@@ -510,7 +464,6 @@ var _ = Describe("Upload", func() {
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/deviceSerialNumber", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/deviceTags", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/timeProcessing", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/timezone", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotGreaterThanOrEqualTo(4, 5), "/version", &types.Meta{Type: "invalidType"}),
 				),
 			)
@@ -536,8 +489,8 @@ var _ = Describe("Upload", func() {
 					func(datum *upload.Upload) {},
 					func(datum *upload.Upload, expectedDatum *upload.Upload) {
 						Expect(datum.DataSetType).ToNot(BeNil())
-						upload.SortAndDeduplicateStringArray(expectedDatum.DeviceManufacturers)
-						upload.SortAndDeduplicateStringArray(expectedDatum.DeviceTags)
+						sort.Strings(*expectedDatum.DeviceManufacturers)
+						sort.Strings(*expectedDatum.DeviceTags)
 					},
 				),
 				Entry("upload id missing",
@@ -546,8 +499,8 @@ var _ = Describe("Upload", func() {
 						Expect(datum.UploadID).ToNot(BeNil())
 						Expect(*datum.UploadID).ToNot(BeEmpty())
 						expectedDatum.UploadID = datum.UploadID
-						upload.SortAndDeduplicateStringArray(expectedDatum.DeviceManufacturers)
-						upload.SortAndDeduplicateStringArray(expectedDatum.DeviceTags)
+						sort.Strings(*expectedDatum.DeviceManufacturers)
+						sort.Strings(*expectedDatum.DeviceTags)
 					},
 				),
 				Entry("data set type missing",
@@ -556,21 +509,19 @@ var _ = Describe("Upload", func() {
 						Expect(datum.DataSetType).ToNot(BeNil())
 						Expect(*datum.DataSetType).To(Equal(upload.DataSetTypeNormal))
 						expectedDatum.DataSetType = datum.DataSetType
-						upload.SortAndDeduplicateStringArray(expectedDatum.DeviceManufacturers)
-						upload.SortAndDeduplicateStringArray(expectedDatum.DeviceTags)
+						sort.Strings(*expectedDatum.DeviceManufacturers)
+						sort.Strings(*expectedDatum.DeviceTags)
 					},
 				),
 				Entry("all missing",
 					func(datum *upload.Upload) {
-						*datum = *upload.Init()
+						*datum = *upload.New()
 						datum.Base = *testDataTypes.NewBase()
 					},
 					func(datum *upload.Upload, expectedDatum *upload.Upload) {
 						Expect(datum.DataSetType).ToNot(BeNil())
 						Expect(*datum.DataSetType).To(Equal(upload.DataSetTypeNormal))
 						expectedDatum.DataSetType = datum.DataSetType
-						upload.SortAndDeduplicateStringArray(expectedDatum.DeviceManufacturers)
-						upload.SortAndDeduplicateStringArray(expectedDatum.DeviceTags)
 					},
 				),
 			)
@@ -602,7 +553,7 @@ var _ = Describe("Upload", func() {
 				),
 				Entry("all missing",
 					func(datum *upload.Upload) {
-						*datum = *upload.Init()
+						*datum = *upload.New()
 						datum.Base = *testDataTypes.NewBase()
 					},
 					nil,
@@ -650,24 +601,5 @@ var _ = Describe("Upload", func() {
 				Entry("is multiple datum array with multiple invalid and valid search array", []string{"two", "four"}, []string{"one", "two", "three", "four"}, true),
 			)
 		})
-	})
-
-	Context("SortAndDeduplicateStringArray", func() {
-		It("does nothing if string array is nil", func() {
-			upload.SortAndDeduplicateStringArray(nil)
-		})
-
-		DescribeTable("returns expected result",
-			func(stringArray []string, expectedStringArray []string) {
-				upload.SortAndDeduplicateStringArray(&stringArray)
-				Expect(stringArray).To(Equal(expectedStringArray))
-			},
-			Entry("empty", []string{}, []string{}),
-			Entry("single element", []string{"alpha"}, []string{"alpha"}),
-			Entry("multiple elements; in order", []string{"alpha", "beta", "charlie"}, []string{"alpha", "beta", "charlie"}),
-			Entry("multiple elements; out of order", []string{"charlie", "alpha", "beta"}, []string{"alpha", "beta", "charlie"}),
-			Entry("multiple elements; duplicates; in order", []string{"alpha", "alpha", "beta", "beta", "charlie", "charlie"}, []string{"alpha", "beta", "charlie"}),
-			Entry("multiple elements; duplicates; out of order", []string{"charlie", "charlie", "beta", "beta", "alpha", "charlie", "beta", "alpha", "beta", "alpha", "beta", "beta"}, []string{"alpha", "beta", "charlie"}),
-		)
 	})
 })

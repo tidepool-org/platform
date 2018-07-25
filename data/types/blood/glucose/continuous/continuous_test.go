@@ -40,48 +40,17 @@ func CloneContinuous(datum *continuous.Continuous) *continuous.Continuous {
 }
 
 var _ = Describe("Continuous", func() {
-	Context("Type", func() {
-		It("returns the expected type", func() {
-			Expect(continuous.Type()).To(Equal("cbg"))
-		})
-	})
-
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(continuous.NewDatum()).To(Equal(&continuous.Continuous{}))
-		})
+	It("Type is expected", func() {
+		Expect(continuous.Type).To(Equal("cbg"))
 	})
 
 	Context("New", func() {
 		It("returns the expected datum", func() {
-			Expect(continuous.New()).To(Equal(&continuous.Continuous{}))
-		})
-	})
-
-	Context("Init", func() {
-		It("returns the expected datum", func() {
-			datum := continuous.Init()
+			datum := continuous.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("cbg"))
 			Expect(datum.Units).To(BeNil())
 			Expect(datum.Value).To(BeNil())
-		})
-	})
-
-	Context("with new datum", func() {
-		var datum *continuous.Continuous
-
-		BeforeEach(func() {
-			datum = NewContinuous(pointer.String("mmol/L"))
-		})
-
-		Context("Init", func() {
-			It("initializes the continuous", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("cbg"))
-				Expect(datum.Units).To(BeNil())
-				Expect(datum.Value).To(BeNil())
-			})
 		})
 	})
 
@@ -330,24 +299,18 @@ var _ = Describe("Continuous", func() {
 			Entry("does not modify the datum; units mmol/L",
 				pointer.String("mmol/L"),
 				func(datum *continuous.Continuous, units *string) {},
-				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string) {
-					testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
-					testDataBloodGlucose.ExpectNormalizedValue(datum.Value, expectedDatum.Value, units)
-				},
+				nil,
 			),
 			Entry("does not modify the datum; units mmol/L; value missing",
 				pointer.String("mmol/L"),
 				func(datum *continuous.Continuous, units *string) { datum.Value = nil },
-				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string) {
-					testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
-				},
+				nil,
 			),
 			Entry("modifies the datum; units mmol/l",
 				pointer.String("mmol/l"),
 				func(datum *continuous.Continuous, units *string) {},
 				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string) {
 					testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
-					testDataBloodGlucose.ExpectNormalizedValue(datum.Value, expectedDatum.Value, units)
 				},
 			),
 			Entry("modifies the datum; units mmol/l; value missing",

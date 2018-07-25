@@ -45,14 +45,14 @@ var _ = Describe("Mongo", func() {
 	Context("New", func() {
 		It("returns an error if the config is missing", func() {
 			var err error
-			mongoStore, err = mongo.New(nil, logger)
+			mongoStore, err = mongo.NewStore(nil, logger)
 			Expect(err).To(MatchError("config is missing"))
 			Expect(mongoStore).To(BeNil())
 		})
 
 		It("returns an error if the logger is missing", func() {
 			var err error
-			mongoStore, err = mongo.New(mongoConfig, nil)
+			mongoStore, err = mongo.NewStore(mongoConfig, nil)
 			Expect(err).To(MatchError("logger is missing"))
 			Expect(mongoStore).To(BeNil())
 		})
@@ -60,7 +60,7 @@ var _ = Describe("Mongo", func() {
 		It("returns an error if the config is invalid", func() {
 			mongoConfig.Addresses = nil
 			var err error
-			mongoStore, err = mongo.New(mongoConfig, logger)
+			mongoStore, err = mongo.NewStore(mongoConfig, logger)
 			Expect(err).To(MatchError("config is invalid; addresses is missing"))
 			Expect(mongoStore).To(BeNil())
 		})
@@ -68,7 +68,7 @@ var _ = Describe("Mongo", func() {
 		It("returns an error if the addresses are not reachable", func() {
 			mongoConfig.Addresses = []string{"127.0.0.0", "127.0.0.0"}
 			var err error
-			mongoStore, err = mongo.New(mongoConfig, logger)
+			mongoStore, err = mongo.NewStore(mongoConfig, logger)
 			Expect(err).To(MatchError("unable to dial database; no reachable servers"))
 			Expect(mongoStore).To(BeNil())
 		})
@@ -77,7 +77,7 @@ var _ = Describe("Mongo", func() {
 			mongoConfig.Username = pointer.String("username")
 			mongoConfig.Password = pointer.String("password")
 			var err error
-			mongoStore, err = mongo.New(mongoConfig, logger)
+			mongoStore, err = mongo.NewStore(mongoConfig, logger)
 			Expect(err).To(MatchError("unable to dial database; server returned error on SASL authentication step: Authentication failed."))
 			Expect(mongoStore).To(BeNil())
 		})
@@ -85,14 +85,14 @@ var _ = Describe("Mongo", func() {
 		It("returns an error if TLS is specified on a server that does not support it", func() {
 			mongoConfig.TLS = true
 			var err error
-			mongoStore, err = mongo.New(mongoConfig, logger)
+			mongoStore, err = mongo.NewStore(mongoConfig, logger)
 			Expect(err).To(MatchError("unable to dial database; no reachable servers"))
 			Expect(mongoStore).To(BeNil())
 		})
 
 		It("returns no error if successful", func() {
 			var err error
-			mongoStore, err = mongo.New(mongoConfig, logger)
+			mongoStore, err = mongo.NewStore(mongoConfig, logger)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mongoStore).ToNot(BeNil())
 		})
@@ -101,7 +101,7 @@ var _ = Describe("Mongo", func() {
 	Context("with a new store", func() {
 		BeforeEach(func() {
 			var err error
-			mongoStore, err = mongo.New(mongoConfig, logger)
+			mongoStore, err = mongo.NewStore(mongoConfig, logger)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mongoStore).ToNot(BeNil())
 		})

@@ -17,24 +17,10 @@ import (
 	"github.com/tidepool-org/platform/test"
 )
 
-func ValueRangeForUnits(units *string) (float64, float64) {
-	if units != nil {
-		switch *units {
-		case physical.UnitsHours:
-			return 0.0, 24.0
-		case physical.UnitsMinutes:
-			return 0.0, 24.0 * 60.0
-		case physical.UnitsSeconds:
-			return 0.0, 24.0 * 60.0 * 60.0
-		}
-	}
-	return -math.MaxFloat64, math.MaxFloat64
-}
-
 func NewDuration() *physical.Duration {
 	datum := physical.NewDuration()
-	datum.Units = pointer.String(test.RandomStringFromStringArray(physical.Units()))
-	datum.Value = pointer.Float64(test.RandomFloat64FromRange(ValueRangeForUnits(datum.Units)))
+	datum.Units = pointer.String(test.RandomStringFromArray(physical.DurationUnits()))
+	datum.Value = pointer.Float64(test.RandomFloat64FromRange(physical.DurationValueRangeForUnits(datum.Units)))
 	return datum
 }
 
@@ -49,24 +35,44 @@ func CloneDuration(datum *physical.Duration) *physical.Duration {
 }
 
 var _ = Describe("Duration", func() {
-	It("UnitsHours is expected", func() {
-		Expect(physical.UnitsHours).To(Equal("hours"))
+	It("DurationUnitsHours is expected", func() {
+		Expect(physical.DurationUnitsHours).To(Equal("hours"))
 	})
 
-	It("UnitsMinutes is expected", func() {
-		Expect(physical.UnitsMinutes).To(Equal("minutes"))
+	It("DurationUnitsMinutes is expected", func() {
+		Expect(physical.DurationUnitsMinutes).To(Equal("minutes"))
 	})
 
-	It("UnitsSeconds is expected", func() {
-		Expect(physical.UnitsSeconds).To(Equal("seconds"))
+	It("DurationUnitsSeconds is expected", func() {
+		Expect(physical.DurationUnitsSeconds).To(Equal("seconds"))
 	})
 
-	It("ValueMinimum is expected", func() {
-		Expect(physical.ValueMinimum).To(Equal(0))
+	It("DurationValueHoursMaximum is expected", func() {
+		Expect(physical.DurationValueHoursMaximum).To(Equal(168.0))
 	})
 
-	It("Units returns expected", func() {
-		Expect(physical.Units()).To(Equal([]string{"hours", "minutes", "seconds"}))
+	It("DurationValueHoursMinimum is expected", func() {
+		Expect(physical.DurationValueHoursMinimum).To(Equal(0.0))
+	})
+
+	It("DurationValueMinutesMaximum is expected", func() {
+		Expect(physical.DurationValueMinutesMaximum).To(Equal(10080.0))
+	})
+
+	It("DurationValueMinutesMinimum is expected", func() {
+		Expect(physical.DurationValueMinutesMinimum).To(Equal(0.0))
+	})
+
+	It("DurationValueSecondsMaximum is expected", func() {
+		Expect(physical.DurationValueSecondsMaximum).To(Equal(604800.0))
+	})
+
+	It("DurationValueSecondsMinimum is expected", func() {
+		Expect(physical.DurationValueSecondsMinimum).To(Equal(0.0))
+	})
+
+	It("DurationUnits returns expected", func() {
+		Expect(physical.DurationUnits()).To(Equal([]string{"hours", "minutes", "seconds"}))
 	})
 
 	Context("ParseDuration", func() {
@@ -94,33 +100,176 @@ var _ = Describe("Duration", func() {
 				Entry("succeeds",
 					func(datum *physical.Duration) {},
 				),
-				Entry("units missing",
-					func(datum *physical.Duration) { datum.Units = nil },
+				Entry("units missing; value missing",
+					func(datum *physical.Duration) {
+						datum.Units = nil
+						datum.Value = nil
+					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
-				),
-				Entry("units invalid",
-					func(datum *physical.Duration) { datum.Units = pointer.String("invalid") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
-				),
-				Entry("units hours",
-					func(datum *physical.Duration) { datum.Units = pointer.String("hours") },
-				),
-				Entry("units minutes",
-					func(datum *physical.Duration) { datum.Units = pointer.String("minutes") },
-				),
-				Entry("units seconds",
-					func(datum *physical.Duration) { datum.Units = pointer.String("seconds") },
-				),
-				Entry("value missing",
-					func(datum *physical.Duration) { datum.Value = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
-				Entry("value out of range (lower)",
-					func(datum *physical.Duration) { datum.Value = pointer.Float64(0.0) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotGreaterThan(0, 0), "/value"),
+				Entry("units missing; value out of range (lower)",
+					func(datum *physical.Duration) {
+						datum.Units = nil
+						datum.Value = pointer.Float64(-0.1)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
-				Entry("value in range (lower)",
-					func(datum *physical.Duration) { datum.Value = pointer.Float64(0.1) },
+				Entry("units missing; value in range (lower)",
+					func(datum *physical.Duration) {
+						datum.Units = nil
+						datum.Value = pointer.Float64(0.0)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+				),
+				Entry("units missing; value in range (upper)",
+					func(datum *physical.Duration) {
+						datum.Units = nil
+						datum.Value = pointer.Float64(604800.0)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+				),
+				Entry("units missing; value out of range (upper)",
+					func(datum *physical.Duration) {
+						datum.Units = nil
+						datum.Value = pointer.Float64(604800.1)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+				),
+				Entry("units invalid; value missing",
+					func(datum *physical.Duration) {
+						datum.Units = pointer.String("invalid")
+						datum.Value = nil
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+				),
+				Entry("units invalid; value out of range (lower)",
+					func(datum *physical.Duration) {
+						datum.Units = pointer.String("invalid")
+						datum.Value = pointer.Float64(-0.1)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
+				),
+				Entry("units invalid; value in range (lower)",
+					func(datum *physical.Duration) {
+						datum.Units = pointer.String("invalid")
+						datum.Value = pointer.Float64(0.0)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
+				),
+				Entry("units invalid; value in range (upper)",
+					func(datum *physical.Duration) {
+						datum.Units = pointer.String("invalid")
+						datum.Value = pointer.Float64(604800.0)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
+				),
+				Entry("units invalid; value out of range (upper)",
+					func(datum *physical.Duration) {
+						datum.Units = pointer.String("invalid")
+						datum.Value = pointer.Float64(604800.1)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
+				),
+				Entry("units hours; value missing",
+					func(datum *physical.Duration) {
+						datum.Units = pointer.String("hours")
+						datum.Value = nil
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+				),
+				Entry("units hours; value out of range (lower)",
+					func(datum *physical.Duration) {
+						datum.Units = pointer.String("hours")
+						datum.Value = pointer.Float64(-0.1)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 168.0), "/value"),
+				),
+				Entry("units hours; value in range (lower)",
+					func(datum *physical.Duration) {
+						datum.Units = pointer.String("hours")
+						datum.Value = pointer.Float64(0.0)
+					},
+				),
+				Entry("units hours; value in range (upper)",
+					func(datum *physical.Duration) {
+						datum.Units = pointer.String("hours")
+						datum.Value = pointer.Float64(168.0)
+					},
+				),
+				Entry("units hours; value out of range (upper)",
+					func(datum *physical.Duration) {
+						datum.Units = pointer.String("hours")
+						datum.Value = pointer.Float64(168.1)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(168.1, 0.0, 168.0), "/value"),
+				),
+				Entry("units minutes; value missing",
+					func(datum *physical.Duration) {
+						datum.Units = pointer.String("minutes")
+						datum.Value = nil
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+				),
+				Entry("units minutes; value out of range (lower)",
+					func(datum *physical.Duration) {
+						datum.Units = pointer.String("minutes")
+						datum.Value = pointer.Float64(-0.1)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 10080.0), "/value"),
+				),
+				Entry("units minutes; value in range (lower)",
+					func(datum *physical.Duration) {
+						datum.Units = pointer.String("minutes")
+						datum.Value = pointer.Float64(0.0)
+					},
+				),
+				Entry("units minutes; value in range (upper)",
+					func(datum *physical.Duration) {
+						datum.Units = pointer.String("minutes")
+						datum.Value = pointer.Float64(10080.0)
+					},
+				),
+				Entry("units minutes; value out of range (upper)",
+					func(datum *physical.Duration) {
+						datum.Units = pointer.String("minutes")
+						datum.Value = pointer.Float64(10080.1)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(10080.1, 0.0, 10080.0), "/value"),
+				),
+				Entry("units seconds; value missing",
+					func(datum *physical.Duration) {
+						datum.Units = pointer.String("seconds")
+						datum.Value = nil
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+				),
+				Entry("units seconds; value out of range (lower)",
+					func(datum *physical.Duration) {
+						datum.Units = pointer.String("seconds")
+						datum.Value = pointer.Float64(-0.1)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 604800.0), "/value"),
+				),
+				Entry("units seconds; value in range (lower)",
+					func(datum *physical.Duration) {
+						datum.Units = pointer.String("seconds")
+						datum.Value = pointer.Float64(0.0)
+					},
+				),
+				Entry("units seconds; value in range (upper)",
+					func(datum *physical.Duration) {
+						datum.Units = pointer.String("seconds")
+						datum.Value = pointer.Float64(604800.0)
+					},
+				),
+				Entry("units seconds; value out of range (upper)",
+					func(datum *physical.Duration) {
+						datum.Units = pointer.String("seconds")
+						datum.Value = pointer.Float64(604800.1)
+					},
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(604800.1, 0.0, 604800.0), "/value"),
 				),
 				Entry("multiple errors",
 					func(datum *physical.Duration) {
@@ -167,6 +316,38 @@ var _ = Describe("Duration", func() {
 					func(datum *physical.Duration) { datum.Value = nil },
 				),
 			)
+		})
+	})
+
+	Context("DurationValueRangeForUnits", func() {
+		It("returns expected range for units missing", func() {
+			minimum, maximum := physical.DurationValueRangeForUnits(nil)
+			Expect(minimum).To(Equal(-math.MaxFloat64))
+			Expect(maximum).To(Equal(math.MaxFloat64))
+		})
+
+		It("returns expected range for units invalid", func() {
+			minimum, maximum := physical.DurationValueRangeForUnits(pointer.String("invalid"))
+			Expect(minimum).To(Equal(-math.MaxFloat64))
+			Expect(maximum).To(Equal(math.MaxFloat64))
+		})
+
+		It("returns expected range for units hours", func() {
+			minimum, maximum := physical.DurationValueRangeForUnits(pointer.String("hours"))
+			Expect(minimum).To(Equal(0.0))
+			Expect(maximum).To(Equal(168.0))
+		})
+
+		It("returns expected range for units minutes", func() {
+			minimum, maximum := physical.DurationValueRangeForUnits(pointer.String("minutes"))
+			Expect(minimum).To(Equal(0.0))
+			Expect(maximum).To(Equal(10080.0))
+		})
+
+		It("returns expected range for units seconds", func() {
+			minimum, maximum := physical.DurationValueRangeForUnits(pointer.String("seconds"))
+			Expect(minimum).To(Equal(0.0))
+			Expect(maximum).To(Equal(604800.0))
 		})
 	})
 })

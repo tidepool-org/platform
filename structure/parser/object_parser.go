@@ -2,6 +2,7 @@ package parser
 
 import (
 	"math"
+	"sort"
 	"time"
 
 	"github.com/tidepool-org/platform/structure"
@@ -208,7 +209,7 @@ func (o *Object) Time(reference string, layout string) *time.Time {
 
 	timeValue, err := time.Parse(layout, stringValue)
 	if err != nil {
-		o.base.WithReference(reference).ReportError(ErrorTimeNotParsable(stringValue, layout))
+		o.base.WithReference(reference).ReportError(ErrorValueTimeNotParsable(stringValue, layout))
 		return nil
 	}
 
@@ -259,8 +260,16 @@ func (o *Object) NotParsed() error {
 		return o.Error()
 	}
 
+	var references []string
 	for reference := range *o.object {
 		if !o.parsed[reference] {
+			references = append(references, reference)
+		}
+	}
+
+	if len(references) > 0 {
+		sort.Strings(references)
+		for _, reference := range references {
 			o.base.WithReference(reference).ReportError(ErrorNotParsed())
 		}
 	}

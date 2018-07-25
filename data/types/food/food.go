@@ -6,35 +6,47 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
+const (
+	Type = "food"
+
+	BrandLengthMaximum     = 100
+	CodeLengthMaximum      = 100
+	MealBreakfast          = "breakfast"
+	MealDinner             = "dinner"
+	MealLunch              = "lunch"
+	MealOther              = "other"
+	MealOtherLengthMaximum = 100
+	MealSnack              = "snack"
+	NameLengthMaximum      = 100
+)
+
+func Meals() []string {
+	return []string{
+		MealBreakfast,
+		MealDinner,
+		MealLunch,
+		MealOther,
+		MealSnack,
+	}
+}
+
 type Food struct {
 	types.Base `bson:",inline"`
 
-	Nutrition *Nutrition `json:"nutrition,omitempty" bson:"nutrition,omitempty"`
-}
-
-func Type() string {
-	return "food"
-}
-
-func NewDatum() data.Datum {
-	return New()
+	Amount      *Amount          `json:"amount,omitempty" bson:"amount,omitempty"`
+	Brand       *string          `json:"brand,omitempty" bson:"brand,omitempty"`
+	Code        *string          `json:"code,omitempty" bson:"code,omitempty"`
+	Ingredients *IngredientArray `json:"ingredients,omitempty" bson:"ingredients,omitempty"`
+	Meal        *string          `json:"meal,omitempty" bson:"meal,omitempty"`
+	MealOther   *string          `json:"mealOther,omitempty" bson:"mealOther,omitempty"`
+	Name        *string          `json:"name,omitempty" bson:"name,omitempty"`
+	Nutrition   *Nutrition       `json:"nutrition,omitempty" bson:"nutrition,omitempty"`
 }
 
 func New() *Food {
-	return &Food{}
-}
-
-func Init() *Food {
-	food := New()
-	food.Init()
-	return food
-}
-
-func (f *Food) Init() {
-	f.Base.Init()
-	f.Type = Type()
-
-	f.Nutrition = nil
+	return &Food{
+		Base: types.New(Type),
+	}
 }
 
 func (f *Food) Parse(parser data.ObjectParser) error {
@@ -44,6 +56,13 @@ func (f *Food) Parse(parser data.ObjectParser) error {
 		return err
 	}
 
+	f.Amount = ParseAmount(parser.NewChildObjectParser("amount"))
+	f.Brand = parser.ParseString("brand")
+	f.Code = parser.ParseString("code")
+	f.Ingredients = ParseIngredientArray(parser.NewChildArrayParser("ingredients"))
+	f.Meal = parser.ParseString("meal")
+	f.MealOther = parser.ParseString("mealOther")
+	f.Name = parser.ParseString("name")
 	f.Nutrition = ParseNutrition(parser.NewChildObjectParser("nutrition"))
 
 	return nil
@@ -57,9 +76,24 @@ func (f *Food) Validate(validator structure.Validator) {
 	f.Base.Validate(validator)
 
 	if f.Type != "" {
-		validator.String("type", &f.Type).EqualTo(Type())
+		validator.String("type", &f.Type).EqualTo(Type)
 	}
 
+	if f.Amount != nil {
+		f.Amount.Validate(validator.WithReference("amount"))
+	}
+	validator.String("brand", f.Brand).NotEmpty().LengthLessThanOrEqualTo(BrandLengthMaximum)
+	validator.String("code", f.Code).NotEmpty().LengthLessThanOrEqualTo(CodeLengthMaximum)
+	if f.Ingredients != nil {
+		f.Ingredients.Validate(validator.WithReference("ingredients"))
+	}
+	validator.String("meal", f.Meal).OneOf(Meals()...)
+	if f.Meal != nil && *f.Meal == MealOther {
+		validator.String("mealOther", f.MealOther).Exists().NotEmpty().LengthLessThanOrEqualTo(MealOtherLengthMaximum)
+	} else {
+		validator.String("mealOther", f.MealOther).NotExists()
+	}
+	validator.String("name", f.Name).NotEmpty().LengthLessThanOrEqualTo(NameLengthMaximum)
 	if f.Nutrition != nil {
 		f.Nutrition.Validate(validator.WithReference("nutrition"))
 	}
@@ -72,6 +106,12 @@ func (f *Food) Normalize(normalizer data.Normalizer) {
 
 	f.Base.Normalize(normalizer)
 
+	if f.Amount != nil {
+		f.Amount.Normalize(normalizer.WithReference("amount"))
+	}
+	if f.Ingredients != nil {
+		f.Ingredients.Normalize(normalizer.WithReference("ingredients"))
+	}
 	if f.Nutrition != nil {
 		f.Nutrition.Normalize(normalizer.WithReference("nutrition"))
 	}

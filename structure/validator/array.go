@@ -49,10 +49,10 @@ func (a *Array) NotEmpty() structure.Array {
 	return a
 }
 
-func (a *Array) Using(using func(value []interface{}, errorReporter structure.ErrorReporter)) structure.Array {
+func (a *Array) Using(usingFunc structure.ArrayUsingFunc) structure.Array {
 	if a.value != nil {
-		if using != nil {
-			using(*a.value, a.base)
+		if usingFunc != nil {
+			usingFunc(*a.value, a.base)
 		}
 	}
 	return a

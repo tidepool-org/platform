@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/auth"
-	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/page"
@@ -77,7 +76,7 @@ func (d *DataSourceFilter) Mutate(req *http.Request) error {
 	if d.State != nil {
 		parameters["state"] = *d.State
 	}
-	return client.NewParametersMutator(parameters).Mutate(req)
+	return request.NewParametersMutator(parameters).Mutate(req)
 }
 
 type DataSourceCreate struct {
@@ -162,13 +161,13 @@ func (d *DataSourceUpdate) Normalize(normalizer structure.Normalizer) {
 		d.Error.Normalize(normalizer.WithReference("error"))
 	}
 	if d.EarliestDataTime != nil {
-		d.EarliestDataTime = pointer.Time((*d.EarliestDataTime).UTC().Truncate(time.Second))
+		d.EarliestDataTime = pointer.Time((*d.EarliestDataTime).Truncate(time.Second))
 	}
 	if d.LatestDataTime != nil {
-		d.LatestDataTime = pointer.Time((*d.LatestDataTime).UTC().Truncate(time.Second))
+		d.LatestDataTime = pointer.Time((*d.LatestDataTime).Truncate(time.Second))
 	}
 	if d.LastImportTime != nil {
-		d.LastImportTime = pointer.Time((*d.LastImportTime).UTC().Truncate(time.Second))
+		d.LastImportTime = pointer.Time((*d.LastImportTime).Truncate(time.Second))
 	}
 }
 

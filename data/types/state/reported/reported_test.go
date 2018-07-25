@@ -28,8 +28,8 @@ func NewReported() *reported.Reported {
 	datum.Base = *testDataTypes.NewBase()
 	datum.Type = "reportedState"
 	datum.States = NewStateArray()
-	for index := rand.Intn(len(reported.States())); index >= 0; index-- {
-		*datum.States = append(*datum.States, NewState(test.RandomStringFromStringArray(reported.States())))
+	for index := rand.Intn(len(reported.StateStates())); index >= 0; index-- {
+		*datum.States = append(*datum.States, NewState(test.RandomStringFromArray(reported.StateStates())))
 	}
 	return datum
 }
@@ -45,46 +45,16 @@ func CloneReported(datum *reported.Reported) *reported.Reported {
 }
 
 var _ = Describe("Reported", func() {
-	Context("Type", func() {
-		It("returns the expected type", func() {
-			Expect(reported.Type()).To(Equal("reportedState"))
-		})
-	})
-
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(reported.NewDatum()).To(Equal(&reported.Reported{}))
-		})
+	It("Type is expected", func() {
+		Expect(reported.Type).To(Equal("reportedState"))
 	})
 
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(reported.New()).To(Equal(&reported.Reported{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := reported.Init()
+			datum := reported.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("reportedState"))
 			Expect(datum.States).To(BeNil())
-		})
-	})
-
-	Context("with new datum", func() {
-		var datum *reported.Reported
-
-		BeforeEach(func() {
-			datum = NewReported()
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("reportedState"))
-				Expect(datum.States).To(BeNil())
-			})
 		})
 	})
 
@@ -122,27 +92,35 @@ var _ = Describe("Reported", func() {
 				),
 				Entry("states single invalid",
 					func(datum *reported.Reported) { datum.States = NewStateArray(NewState("invalidState")) },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidState", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "stress"}), "/states/0/state", NewMeta()),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidState", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "other", "stress"}), "/states/0/state", NewMeta()),
 				),
 				Entry("states single valid",
 					func(datum *reported.Reported) { datum.States = NewStateArray(NewState("alcohol")) },
+				),
+				Entry("states single valid with state other",
+					func(datum *reported.Reported) { datum.States = NewStateArray(NewState("other")) },
 				),
 				Entry("states multiple invalid single",
 					func(datum *reported.Reported) {
 						datum.States = NewStateArray(NewState("alcohol"), NewState("invalidState"), NewState("hyperglycemiaSymptoms"))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidState", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "stress"}), "/states/1/state", NewMeta()),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidState", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "other", "stress"}), "/states/1/state", NewMeta()),
 				),
 				Entry("states multiple invalid multiple",
 					func(datum *reported.Reported) {
 						datum.States = NewStateArray(NewState("invalidStateOne"), NewState("cycle"), NewState("invalidStateTwo"))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidStateOne", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "stress"}), "/states/0/state", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidStateTwo", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "stress"}), "/states/2/state", NewMeta()),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidStateOne", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "other", "stress"}), "/states/0/state", NewMeta()),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidStateTwo", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "other", "stress"}), "/states/2/state", NewMeta()),
 				),
 				Entry("states multiple valid",
 					func(datum *reported.Reported) {
 						datum.States = NewStateArray(NewState("alcohol"), NewState("cycle"), NewState("hyperglycemiaSymptoms"))
+					},
+				),
+				Entry("states multiple valid with state other",
+					func(datum *reported.Reported) {
+						datum.States = NewStateArray(NewState("alcohol"), NewState("other"), NewState("hyperglycemiaSymptoms"))
 					},
 				),
 				Entry("states multiple valid repeats",
@@ -154,7 +132,7 @@ var _ = Describe("Reported", func() {
 						datum.States = NewStateArray(NewState("invalidState"))
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "reportedState"), "/type", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidState", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "stress"}), "/states/0/state", &types.Meta{Type: "invalidType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidState", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "other", "stress"}), "/states/0/state", &types.Meta{Type: "invalidType"}),
 				),
 			)
 		})
@@ -185,7 +163,7 @@ var _ = Describe("Reported", func() {
 				),
 				Entry("does not modify the datum; states multiple",
 					func(datum *reported.Reported) {
-						datum.States = NewStateArray(NewState("alcohol"), NewState("cycle"), NewState("hyperglycemiaSymptoms"))
+						datum.States = NewStateArray(NewState("alcohol"), NewState("other"), NewState("hyperglycemiaSymptoms"))
 					},
 				),
 			)

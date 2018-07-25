@@ -71,7 +71,7 @@ endif
 
 CompileDaemon: check-environment
 ifeq ($(shell which CompileDaemon),)
-	go get -u github.com/tidepool-org/CompileDaemon
+	go get -u github.com/githubnemo/CompileDaemon
 endif
 
 esc: check-environment
@@ -144,13 +144,13 @@ build: check-environment
 	@echo "go build $(BUILD)"
 	@cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD) | $(TRANSFORM_GO_BUILD_CMD) | while read LINE; do $(GO_BUILD_CMD) $${LINE}; done
 
-build-watch:
-	@cd $(ROOT_DIRECTORY) && BUILD=$(BUILD) CompileDaemon -build-dir='.' -build='make build' -color -directory='.' -exclude='*_test.go' -include='Makefile' -recursive=true
+build-watch: CompileDaemon
+	@cd $(ROOT_DIRECTORY) && BUILD=$(BUILD) CompileDaemon -build-dir='.' -build='make build' -color -directory='.' -exclude-dir='.git' -exclude='*_test.go' -include='Makefile' -recursive=true
 
 ci-build: pre-build build
 
-ci-build-watch:
-	@cd $(ROOT_DIRECTORY) && BUILD=$(BUILD) CompileDaemon -build-dir='.' -build='make ci-build' -color -directory='.' -include='Makefile' -recursive=true
+ci-build-watch: CompileDaemon
+	@cd $(ROOT_DIRECTORY) && BUILD=$(BUILD) CompileDaemon -build-dir='.' -build='make ci-build' -color -directory='.' -exclude-dir='.git' -include='Makefile' -recursive=true
 
 service-build:
 ifdef SERVICE

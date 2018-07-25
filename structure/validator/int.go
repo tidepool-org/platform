@@ -118,10 +118,10 @@ func (i *Int) NotOneOf(disallowedValues ...int) structure.Int {
 	return i
 }
 
-func (i *Int) Using(using func(value int, errorReporter structure.ErrorReporter)) structure.Int {
+func (i *Int) Using(usingFunc structure.IntUsingFunc) structure.Int {
 	if i.value != nil {
-		if using != nil {
-			using(*i.value, i.base)
+		if usingFunc != nil {
+			usingFunc(*i.value, i.base)
 		}
 	}
 	return i

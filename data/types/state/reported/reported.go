@@ -6,35 +6,20 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
+const (
+	Type = "reportedState" // TODO: Change to "state/reported"
+)
+
 type Reported struct {
 	types.Base `bson:",inline"`
 
 	States *StateArray `json:"states,omitempty" bson:"states,omitempty"`
 }
 
-func Type() string {
-	return "reportedState" // TODO: Change to "state/reported"
-}
-
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *Reported {
-	return &Reported{}
-}
-
-func Init() *Reported {
-	reported := New()
-	reported.Init()
-	return reported
-}
-
-func (r *Reported) Init() {
-	r.Base.Init()
-	r.Type = Type()
-
-	r.States = nil
+	return &Reported{
+		Base: types.New(Type),
+	}
 }
 
 func (r *Reported) Parse(parser data.ObjectParser) error {
@@ -57,7 +42,7 @@ func (r *Reported) Validate(validator structure.Validator) {
 	r.Base.Validate(validator)
 
 	if r.Type != "" {
-		validator.String("type", &r.Type).EqualTo(Type())
+		validator.String("type", &r.Type).EqualTo(Type)
 	}
 
 	if r.States != nil {

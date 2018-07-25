@@ -17,7 +17,7 @@ var _ = Describe("StringArray", func() {
 	var base *structureBase.Base
 
 	BeforeEach(func() {
-		base = structureBase.New()
+		base = structureBase.New().WithSource(structure.NewPointerSource())
 	})
 
 	Context("NewStringArray", func() {
@@ -191,6 +191,30 @@ var _ = Describe("StringArray", func() {
 			})
 		})
 
+		Context("Each", func() {
+			var invocations int
+
+			BeforeEach(func() {
+				invocations = 0
+				result = validator.Each(func(stringValidator structure.String) {
+					Expect(stringValidator.NotEmpty()).To(BeIdenticalTo(stringValidator))
+					invocations++
+				})
+			})
+
+			It("has the expected invocations", func() {
+				Expect(invocations).To(Equal(0))
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).ToNot(HaveOccurred())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
 		Context("EachNotEmpty", func() {
 			BeforeEach(func() {
 				result = validator.EachNotEmpty()
@@ -256,6 +280,20 @@ var _ = Describe("StringArray", func() {
 			BeforeEach(func() {
 				expression = regexp.MustCompile("^.ou.$")
 				result = validator.EachNotMatches(expression)
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).ToNot(HaveOccurred())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("EachUnique", func() {
+			BeforeEach(func() {
+				result = validator.EachUnique()
 			})
 
 			It("does not report an error", func() {
@@ -555,6 +593,30 @@ var _ = Describe("StringArray", func() {
 			})
 		})
 
+		Context("Each", func() {
+			var invocations int
+
+			BeforeEach(func() {
+				invocations = 0
+				result = validator.Each(func(stringValidator structure.String) {
+					Expect(stringValidator.NotEmpty()).To(BeIdenticalTo(stringValidator))
+					invocations++
+				})
+			})
+
+			It("has the expected invocations", func() {
+				Expect(invocations).To(Equal(1))
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).ToNot(HaveOccurred())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
 		Context("EachNotEmpty", func() {
 			BeforeEach(func() {
 				result = validator.EachNotEmpty()
@@ -623,6 +685,20 @@ var _ = Describe("StringArray", func() {
 			})
 
 			It("reports the expected error", func() {
+				Expect(base.Error()).ToNot(HaveOccurred())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("EachUnique", func() {
+			BeforeEach(func() {
+				result = validator.EachUnique()
+			})
+
+			It("does not report an error", func() {
 				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
@@ -836,6 +912,31 @@ var _ = Describe("StringArray", func() {
 			})
 		})
 
+		Context("Each", func() {
+			var invocations int
+
+			BeforeEach(func() {
+				invocations = 0
+				result = validator.Each(func(stringValidator structure.String) {
+					Expect(stringValidator.NotEmpty()).To(BeIdenticalTo(stringValidator))
+					invocations++
+				})
+			})
+
+			It("has the expected invocations", func() {
+				Expect(invocations).To(Equal(4))
+			})
+
+			It("reports the expected error", func() {
+				Expect(base.Error()).To(HaveOccurred())
+				testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/2"))
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
 		Context("EachNotEmpty", func() {
 			BeforeEach(func() {
 				result = validator.EachNotEmpty()
@@ -843,7 +944,7 @@ var _ = Describe("StringArray", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueEmpty())
+				testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/2"))
 			})
 
 			It("returns self", func() {
@@ -859,9 +960,9 @@ var _ = Describe("StringArray", func() {
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
 				testErrors.ExpectEqual(base.Error(), errors.Append(
-					structureValidator.ErrorValueStringNotOneOf("two", []string{"1", "seven"}),
-					structureValidator.ErrorValueStringNotOneOf("", []string{"1", "seven"}),
-					structureValidator.ErrorValueStringNotOneOf("four", []string{"1", "seven"}),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("two", []string{"1", "seven"}), "/1"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("", []string{"1", "seven"}), "/2"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("four", []string{"1", "seven"}), "/3"),
 				))
 			})
 
@@ -877,7 +978,7 @@ var _ = Describe("StringArray", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueStringOneOf("four", []string{"seven", "four"}))
+				testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureValidator.ErrorValueStringOneOf("four", []string{"seven", "four"}), "/3"))
 			})
 
 			It("returns self", func() {
@@ -893,10 +994,10 @@ var _ = Describe("StringArray", func() {
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
 				testErrors.ExpectEqual(base.Error(), errors.Append(
-					structureValidator.ErrorValueStringNotOneOf("1", []string{}),
-					structureValidator.ErrorValueStringNotOneOf("two", []string{}),
-					structureValidator.ErrorValueStringNotOneOf("", []string{}),
-					structureValidator.ErrorValueStringNotOneOf("four", []string{}),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("1", []string{}), "/0"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("two", []string{}), "/1"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("", []string{}), "/2"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("four", []string{}), "/3"),
 				))
 			})
 
@@ -930,9 +1031,9 @@ var _ = Describe("StringArray", func() {
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
 				testErrors.ExpectEqual(base.Error(), errors.Append(
-					structureValidator.ErrorValueStringNotMatches("two", expression),
-					structureValidator.ErrorValueStringNotMatches("", expression),
-					structureValidator.ErrorValueStringNotMatches("four", expression),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotMatches("two", expression), "/1"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotMatches("", expression), "/2"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotMatches("four", expression), "/3"),
 				))
 			})
 
@@ -951,7 +1052,7 @@ var _ = Describe("StringArray", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueStringMatches("four", expression))
+				testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureValidator.ErrorValueStringMatches("four", expression), "/3"))
 			})
 
 			It("returns self", func() {
@@ -967,10 +1068,10 @@ var _ = Describe("StringArray", func() {
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
 				testErrors.ExpectEqual(base.Error(), errors.Append(
-					structureValidator.ErrorValueStringNotMatches("1", nil),
-					structureValidator.ErrorValueStringNotMatches("two", nil),
-					structureValidator.ErrorValueStringNotMatches("", nil),
-					structureValidator.ErrorValueStringNotMatches("four", nil),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotMatches("1", nil), "/0"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotMatches("two", nil), "/1"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotMatches("", nil), "/2"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotMatches("four", nil), "/3"),
 				))
 			})
 
@@ -987,11 +1088,25 @@ var _ = Describe("StringArray", func() {
 			It("does not report an error", func() {
 				Expect(base.Error()).To(HaveOccurred())
 				testErrors.ExpectEqual(base.Error(), errors.Append(
-					structureValidator.ErrorValueStringMatches("1", nil),
-					structureValidator.ErrorValueStringMatches("two", nil),
-					structureValidator.ErrorValueStringMatches("", nil),
-					structureValidator.ErrorValueStringMatches("four", nil),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringMatches("1", nil), "/0"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringMatches("two", nil), "/1"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringMatches("", nil), "/2"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringMatches("four", nil), "/3"),
 				))
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("EachUnique", func() {
+			BeforeEach(func() {
+				result = validator.EachUnique()
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).ToNot(HaveOccurred())
 			})
 
 			It("returns self", func() {
@@ -1024,6 +1139,37 @@ var _ = Describe("StringArray", func() {
 
 			It("does not report an error", func() {
 				Expect(base.Error()).ToNot(HaveOccurred())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+	})
+
+	Context("with new validator with duplicates", func() {
+		var validator *structureValidator.StringArray
+		var result structure.StringArray
+		var value []string
+
+		BeforeEach(func() {
+			value = []string{"one", "two", "four", "two", "four", "five", "one"}
+			validator = structureValidator.NewStringArray(base, &value)
+			Expect(validator).ToNot(BeNil())
+		})
+
+		Context("EachUnique", func() {
+			BeforeEach(func() {
+				result = validator.EachUnique()
+			})
+
+			It("reports multiple errors", func() {
+				Expect(base.Error()).To(HaveOccurred())
+				testErrors.ExpectEqual(base.Error(),
+					testErrors.WithPointerSource(structureValidator.ErrorValueDuplicate(), "/3"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueDuplicate(), "/4"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueDuplicate(), "/6"),
+				)
 			})
 
 			It("returns self", func() {

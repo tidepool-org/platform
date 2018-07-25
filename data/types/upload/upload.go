@@ -7,10 +7,13 @@ import (
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/structure"
 )
 
 const (
+	Type = "upload"
+
 	ComputerTimeFormat                   = "2006-01-02T15:04:05"
 	DataSetTypeContinuous                = "continuous"
 	DataSetTypeNormal                    = "normal"
@@ -19,9 +22,9 @@ const (
 	DeviceTagInsulinPump                 = "insulin-pump"
 	StateClosed                          = "closed"
 	StateOpen                            = "open"
-	TimeProcessingAcrossTheBoardTimezone = "across-the-board-timezone"
+	TimeProcessingAcrossTheBoardTimeZone = "across-the-board-timezone" // TODO: Rename to across-the-board-time-zone or alternative
 	TimeProcessingNone                   = "none"
-	TimeProcessingUTCBootstrapping       = "utc-bootstrapping"
+	TimeProcessingUTCBootstrapping       = "utc-bootstrapping" // TODO: Rename to utc-bootstrap or alternative
 	VersionLengthMinimum                 = 5
 )
 
@@ -49,7 +52,7 @@ func States() []string {
 
 func TimeProcessings() []string {
 	return []string{
-		TimeProcessingAcrossTheBoardTimezone,
+		TimeProcessingAcrossTheBoardTimeZone,
 		TimeProcessingNone,
 		TimeProcessingUTCBootstrapping,
 	}
@@ -72,12 +75,33 @@ type Upload struct {
 	DeviceTags          *[]string `json:"deviceTags,omitempty" bson:"deviceTags,omitempty"`
 	State               *string   `json:"-" bson:"_state,omitempty"` // TODO: Should this be returned in JSON? I think so.
 	TimeProcessing      *string   `json:"timeProcessing,omitempty" bson:"timeProcessing,omitempty"`
-	Timezone            *string   `json:"timezone,omitempty" bson:"timezone,omitempty"`
 	Version             *string   `json:"version,omitempty" bson:"version,omitempty"` // TODO: Deprecate in favor of Client.Version
 }
 
-func Type() string {
-	return "upload"
+func NewUpload(parser data.ObjectParser) *Upload {
+	if parser.Object() == nil {
+		return nil
+	}
+
+	if value := parser.ParseString("type"); value == nil {
+		parser.AppendError("type", service.ErrorValueNotExists())
+		return nil
+	} else if *value != Type {
+		parser.AppendError("type", service.ErrorValueStringNotOneOf(*value, []string{Type}))
+		return nil
+	}
+
+	return New()
+}
+
+func ParseUpload(parser data.ObjectParser) *Upload {
+	datum := NewUpload(parser)
+	if datum == nil {
+		return nil
+	}
+
+	datum.Parse(parser)
+	return datum
 }
 
 func NewDatum() data.Datum {
@@ -85,32 +109,9 @@ func NewDatum() data.Datum {
 }
 
 func New() *Upload {
-	return &Upload{}
-}
-
-func Init() *Upload {
-	upload := New()
-	upload.Init()
-	return upload
-}
-
-func (u *Upload) Init() {
-	u.Base.Init()
-	u.Type = Type()
-
-	u.ByUser = nil
-	u.Client = nil
-	u.ComputerTime = nil
-	u.DataSetType = nil
-	u.DataState = nil
-	u.DeviceManufacturers = nil
-	u.DeviceModel = nil
-	u.DeviceSerialNumber = nil
-	u.DeviceTags = nil
-	u.State = nil
-	u.TimeProcessing = nil
-	u.Timezone = nil
-	u.Version = nil
+	return &Upload{
+		Base: types.New(Type),
+	}
 }
 
 func (u *Upload) Parse(parser data.ObjectParser) error {
@@ -128,7 +129,6 @@ func (u *Upload) Parse(parser data.ObjectParser) error {
 	u.DeviceSerialNumber = parser.ParseString("deviceSerialNumber")
 	u.DeviceTags = parser.ParseStringArray("deviceTags")
 	u.TimeProcessing = parser.ParseString("timeProcessing")
-	u.Timezone = parser.ParseString("timezone")
 	u.Version = parser.ParseString("version")
 
 	return nil
@@ -142,7 +142,7 @@ func (u *Upload) Validate(validator structure.Validator) {
 	u.Base.Validate(validator)
 
 	if u.Type != "" {
-		validator.String("type", &u.Type).EqualTo(Type())
+		validator.String("type", &u.Type).EqualTo(Type)
 	}
 
 	if u.Client != nil {
@@ -156,17 +156,16 @@ func (u *Upload) Validate(validator structure.Validator) {
 		validator.String("dataState", u.DataState).OneOf(States()...)
 	}
 
-	validator.StringArray("deviceManufacturers", u.DeviceManufacturers).Exists().NotEmpty().EachNotEmpty()
+	validator.StringArray("deviceManufacturers", u.DeviceManufacturers).Exists().NotEmpty().EachNotEmpty().EachUnique()
 	validator.String("deviceModel", u.DeviceModel).Exists().NotEmpty()               // TODO: Some clients USED to send ""; requires DB migration
 	validator.String("deviceSerialNumber", u.DeviceSerialNumber).Exists().NotEmpty() // TODO: Some clients STILL send "" via Jellyfish; requires fix & DB migration
-	validator.StringArray("deviceTags", u.DeviceTags).Exists().NotEmpty().EachOneOf(DeviceTags()...)
+	validator.StringArray("deviceTags", u.DeviceTags).Exists().NotEmpty().EachOneOf(DeviceTags()...).EachUnique()
 
 	if validator.Origin() <= structure.OriginInternal {
 		validator.String("state", u.State).OneOf(States()...)
 	}
 
 	validator.String("timeProcessing", u.TimeProcessing).Exists().OneOf(TimeProcessings()...) // TODO: Some clients USED to send ""; requires DB migration
-	validator.String("timezone", u.Timezone).NotEmpty()
 	validator.String("version", u.Version).LengthGreaterThanOrEqualTo(VersionLengthMinimum)
 }
 
@@ -191,8 +190,12 @@ func (u *Upload) Normalize(normalizer data.Normalizer) {
 		if u.DataSetType == nil {
 			u.DataSetType = pointer.String(DataSetTypeNormal)
 		}
-		SortAndDeduplicateStringArray(u.DeviceManufacturers)
-		SortAndDeduplicateStringArray(u.DeviceTags)
+		if u.DeviceManufacturers != nil {
+			sort.Strings(*u.DeviceManufacturers)
+		}
+		if u.DeviceTags != nil {
+			sort.Strings(*u.DeviceTags)
+		}
 	}
 }
 
@@ -210,21 +213,4 @@ func (u *Upload) HasDeviceManufacturerOneOf(deviceManufacturers []string) bool {
 	}
 
 	return false
-}
-
-func SortAndDeduplicateStringArray(strs *[]string) {
-	if strs != nil {
-		if length := len(*strs); length > 1 {
-			sort.Strings(*strs)
-
-			var lastIndex int
-			for index := 1; index < length; index++ {
-				if (*strs)[lastIndex] != (*strs)[index] {
-					lastIndex++
-					(*strs)[lastIndex] = (*strs)[index]
-				}
-			}
-			*strs = (*strs)[:lastIndex+1]
-		}
-	}
 }

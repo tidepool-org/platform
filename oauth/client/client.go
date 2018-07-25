@@ -6,6 +6,7 @@ import (
 	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/oauth"
+	"github.com/tidepool-org/platform/request"
 )
 
 type Client struct {
@@ -40,7 +41,7 @@ func (c *Client) AppendURLQuery(urlString string, query map[string]string) strin
 	return c.client.AppendURLQuery(urlString, query)
 }
 
-func (c *Client) SendOAuthRequest(ctx context.Context, method string, url string, mutators []client.Mutator, requestBody interface{}, responseBody interface{}, httpClientSource oauth.HTTPClientSource) error {
+func (c *Client) SendOAuthRequest(ctx context.Context, method string, url string, mutators []request.Mutator, requestBody interface{}, responseBody interface{}, httpClientSource oauth.HTTPClientSource) error {
 	if httpClientSource == nil {
 		return errors.New("http client source is missing")
 	}

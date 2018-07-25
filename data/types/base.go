@@ -1,13 +1,18 @@
 package types
 
 import (
+	"sort"
 	"time"
 
 	"github.com/tidepool-org/platform/data"
+	dataTypesCommonAssociation "github.com/tidepool-org/platform/data/types/common/association"
+	dataTypesCommonLocation "github.com/tidepool-org/platform/data/types/common/location"
+	dataTypesCommonOrigin "github.com/tidepool-org/platform/data/types/common/origin"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
+	"github.com/tidepool-org/platform/time/zone"
 )
 
 const (
@@ -18,75 +23,62 @@ const (
 	DeletedTimeFormat       = time.RFC3339
 	DeviceTimeFormat        = "2006-01-02T15:04:05"
 	ModifiedTimeFormat      = time.RFC3339
+	NoteLengthMaximum       = 1000
+	NotesLengthMaximum      = 100
 	SchemaVersionCurrent    = SchemaVersionMaximum
 	SchemaVersionMaximum    = 3
 	SchemaVersionMinimum    = 1
+	TagLengthMaximum        = 100
+	TagsLengthMaximum       = 100
 	TimeFormat              = time.RFC3339
-	TimezoneOffsetMaximum   = 7 * 24 * 60  // TODO: Fix! Limit to reasonable values
-	TimezoneOffsetMinimum   = -7 * 24 * 60 // TODO: Fix! Limit to reasonable values
+	TimeZoneOffsetMaximum   = 7 * 24 * 60  // TODO: Fix! Limit to reasonable values
+	TimeZoneOffsetMinimum   = -7 * 24 * 60 // TODO: Fix! Limit to reasonable values
 	VersionMinimum          = 0
 )
 
 type Base struct {
-	Active            bool                         `json:"-" bson:"_active,omitempty"`
-	Annotations       *data.BlobArray              `json:"annotations,omitempty" bson:"annotations,omitempty"`
-	ArchivedDataSetID *string                      `json:"archivedDatasetId,omitempty" bson:"archivedDatasetId,omitempty"`
-	ArchivedTime      *string                      `json:"archivedTime,omitempty" bson:"archivedTime,omitempty"`
-	ClockDriftOffset  *int                         `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty"`
-	ConversionOffset  *int                         `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty"`
-	CreatedTime       *string                      `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
-	CreatedUserID     *string                      `json:"createdUserId,omitempty" bson:"createdUserId,omitempty"`
-	Deduplicator      *data.DeduplicatorDescriptor `json:"deduplicator,omitempty" bson:"_deduplicator,omitempty"`
-	DeletedTime       *string                      `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
-	DeletedUserID     *string                      `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
-	DeviceID          *string                      `json:"deviceId,omitempty" bson:"deviceId,omitempty"`
-	DeviceTime        *string                      `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
-	GUID              *string                      `json:"guid,omitempty" bson:"guid,omitempty"`
-	ID                *string                      `json:"id,omitempty" bson:"id,omitempty"`
-	ModifiedTime      *string                      `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
-	ModifiedUserID    *string                      `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
-	Payload           *data.Blob                   `json:"payload,omitempty" bson:"payload,omitempty"`
-	SchemaVersion     int                          `json:"-" bson:"_schemaVersion,omitempty"`
-	Source            *string                      `json:"source,omitempty" bson:"source,omitempty"`
-	Time              *string                      `json:"time,omitempty" bson:"time,omitempty"`
-	TimezoneOffset    *int                         `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty"`
-	Type              string                       `json:"type,omitempty" bson:"type,omitempty"`
-	UploadID          *string                      `json:"uploadId,omitempty" bson:"uploadId,omitempty"`
-	UserID            *string                      `json:"-" bson:"_userId,omitempty"`
-	Version           int                          `json:"-" bson:"_version,omitempty"`
+	Active            bool                                         `json:"-" bson:"_active,omitempty"`
+	Annotations       *data.BlobArray                              `json:"annotations,omitempty" bson:"annotations,omitempty"`
+	ArchivedDataSetID *string                                      `json:"archivedDatasetId,omitempty" bson:"archivedDatasetId,omitempty"`
+	ArchivedTime      *string                                      `json:"archivedTime,omitempty" bson:"archivedTime,omitempty"`
+	Associations      *dataTypesCommonAssociation.AssociationArray `json:"associations,omitempty" bson:"associations,omitempty"`
+	ClockDriftOffset  *int                                         `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty"`
+	ConversionOffset  *int                                         `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty"`
+	CreatedTime       *string                                      `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
+	CreatedUserID     *string                                      `json:"createdUserId,omitempty" bson:"createdUserId,omitempty"`
+	Deduplicator      *data.DeduplicatorDescriptor                 `json:"deduplicator,omitempty" bson:"_deduplicator,omitempty"`
+	DeletedTime       *string                                      `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
+	DeletedUserID     *string                                      `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
+	DeviceID          *string                                      `json:"deviceId,omitempty" bson:"deviceId,omitempty"`
+	DeviceTime        *string                                      `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
+	GUID              *string                                      `json:"guid,omitempty" bson:"guid,omitempty"`
+	ID                *string                                      `json:"id,omitempty" bson:"id,omitempty"`
+	Location          *dataTypesCommonLocation.Location            `json:"location,omitempty" bson:"location,omitempty"`
+	ModifiedTime      *string                                      `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
+	ModifiedUserID    *string                                      `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
+	Notes             *[]string                                    `json:"notes,omitempty" bson:"notes,omitempty"`
+	Origin            *dataTypesCommonOrigin.Origin                `json:"origin,omitempty" bson:"origin,omitempty"`
+	Payload           *data.Blob                                   `json:"payload,omitempty" bson:"payload,omitempty"`
+	SchemaVersion     int                                          `json:"-" bson:"_schemaVersion,omitempty"`
+	Source            *string                                      `json:"source,omitempty" bson:"source,omitempty"`
+	Tags              *[]string                                    `json:"tags,omitempty" bson:"tags,omitempty"`
+	Time              *string                                      `json:"time,omitempty" bson:"time,omitempty"`
+	TimeZoneName      *string                                      `json:"timezone,omitempty" bson:"timezone,omitempty"`             // TODO: Rename to timeZoneName
+	TimeZoneOffset    *int                                         `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty"` // TODO: Rename to timeZoneOffset
+	Type              string                                       `json:"type,omitempty" bson:"type,omitempty"`
+	UploadID          *string                                      `json:"uploadId,omitempty" bson:"uploadId,omitempty"`
+	UserID            *string                                      `json:"-" bson:"_userId,omitempty"`
+	Version           int                                          `json:"-" bson:"_version,omitempty"`
 }
 
 type Meta struct {
 	Type string `json:"type,omitempty"`
 }
 
-func (b *Base) Init() {
-	b.Active = false
-	b.Annotations = nil
-	b.ArchivedDataSetID = nil
-	b.ArchivedTime = nil
-	b.ClockDriftOffset = nil
-	b.ConversionOffset = nil
-	b.CreatedTime = nil
-	b.CreatedUserID = nil
-	b.Deduplicator = nil
-	b.DeletedTime = nil
-	b.DeletedUserID = nil
-	b.DeviceID = nil
-	b.DeviceTime = nil
-	b.GUID = nil
-	b.ID = nil
-	b.ModifiedTime = nil
-	b.ModifiedUserID = nil
-	b.Payload = nil
-	b.SchemaVersion = 0
-	b.Source = nil
-	b.Time = nil
-	b.TimezoneOffset = nil
-	b.Type = ""
-	b.UploadID = nil
-	b.UserID = nil
-	b.Version = 0
+func New(typ string) Base {
+	return Base{
+		Type: typ,
+	}
 }
 
 func (b *Base) Meta() interface{} {
@@ -97,15 +89,21 @@ func (b *Base) Meta() interface{} {
 
 func (b *Base) Parse(parser data.ObjectParser) error {
 	b.Annotations = data.ParseBlobArray(parser.NewChildArrayParser("annotations"))
+	b.Associations = dataTypesCommonAssociation.ParseAssociationArray(parser.NewChildArrayParser("associations"))
 	b.ClockDriftOffset = parser.ParseInteger("clockDriftOffset")
 	b.ConversionOffset = parser.ParseInteger("conversionOffset")
 	b.DeviceID = parser.ParseString("deviceId")
 	b.DeviceTime = parser.ParseString("deviceTime")
 	b.ID = parser.ParseString("id")
+	b.Location = dataTypesCommonLocation.ParseLocation(parser.NewChildObjectParser("location"))
+	b.Notes = parser.ParseStringArray("notes")
+	b.Origin = dataTypesCommonOrigin.ParseOrigin(parser.NewChildObjectParser("origin"))
 	b.Payload = data.ParseBlob(parser.NewChildObjectParser("payload"))
 	b.Source = parser.ParseString("source")
+	b.Tags = parser.ParseStringArray("tags")
 	b.Time = parser.ParseString("time")
-	b.TimezoneOffset = parser.ParseInteger("timezoneOffset")
+	b.TimeZoneName = parser.ParseString("timezone")
+	b.TimeZoneOffset = parser.ParseInteger("timezoneOffset")
 
 	return nil
 }
@@ -127,6 +125,9 @@ func (b *Base) Validate(validator structure.Validator) {
 
 	if b.Annotations != nil {
 		b.Annotations.Validate(validator.WithReference("annotations"))
+	}
+	if b.Associations != nil {
+		b.Associations.Validate(validator.WithReference("associations"))
 	}
 
 	if validator.Origin() <= structure.OriginInternal {
@@ -169,6 +170,10 @@ func (b *Base) Validate(validator structure.Validator) {
 		validator.String("id", b.ID).Exists()
 	}
 
+	if b.Location != nil {
+		b.Location.Validate(validator.WithReference("location"))
+	}
+
 	if validator.Origin() <= structure.OriginInternal {
 		if b.ModifiedTime != nil {
 			validator.String("modifiedTime", b.ModifiedTime).AsTime(ModifiedTimeFormat).After(latestTime(archivedTime, createdTime)).BeforeNow(time.Second)
@@ -181,6 +186,13 @@ func (b *Base) Validate(validator structure.Validator) {
 		}
 	}
 
+	validator.StringArray("notes", b.Notes).NotEmpty().LengthLessThanOrEqualTo(NotesLengthMaximum).Each(func(stringValidator structure.String) {
+		stringValidator.Exists().NotEmpty().LengthLessThanOrEqualTo(NoteLengthMaximum)
+	})
+
+	if b.Origin != nil {
+		b.Origin.Validate(validator.WithReference("origin"))
+	}
 	if b.Payload != nil {
 		b.Payload.Validate(validator.WithReference("payload"))
 	}
@@ -190,8 +202,12 @@ func (b *Base) Validate(validator structure.Validator) {
 	}
 
 	validator.String("source", b.Source).EqualTo("carelink")
+	validator.StringArray("tags", b.Tags).NotEmpty().LengthLessThanOrEqualTo(TagsLengthMaximum).Each(func(stringValidator structure.String) {
+		stringValidator.Exists().NotEmpty().LengthLessThanOrEqualTo(TagLengthMaximum)
+	}).EachUnique()
 	validator.String("time", b.Time).Exists().AsTime(TimeFormat)
-	validator.Int("timezoneOffset", b.TimezoneOffset).InRange(TimezoneOffsetMinimum, TimezoneOffsetMaximum)
+	validator.String("timezone", b.TimeZoneName).OneOf(zone.Names()...)
+	validator.Int("timezoneOffset", b.TimeZoneOffset).InRange(TimeZoneOffsetMinimum, TimeZoneOffsetMaximum)
 	validator.String("type", &b.Type).Exists().NotEmpty()
 
 	if validator.Origin() <= structure.OriginInternal {
@@ -207,6 +223,9 @@ func (b *Base) Normalize(normalizer data.Normalizer) {
 	if b.Annotations != nil {
 		b.Annotations.Normalize(normalizer.WithReference("annotations"))
 	}
+	if b.Associations != nil {
+		b.Associations.Normalize(normalizer.WithReference("associations"))
+	}
 	if b.Deduplicator != nil {
 		b.Deduplicator.Normalize(normalizer.WithReference("_deduplicator"))
 	}
@@ -220,6 +239,12 @@ func (b *Base) Normalize(normalizer data.Normalizer) {
 		}
 	}
 
+	if b.Location != nil {
+		b.Location.Normalize(normalizer.WithReference("location"))
+	}
+	if b.Origin != nil {
+		b.Origin.Normalize(normalizer.WithReference("origin"))
+	}
 	if b.Payload != nil {
 		b.Payload.Normalize(normalizer.WithReference("payload"))
 	}
@@ -228,6 +253,10 @@ func (b *Base) Normalize(normalizer data.Normalizer) {
 		if b.SchemaVersion == 0 {
 			b.SchemaVersion = SchemaVersionCurrent
 		}
+	}
+
+	if b.Tags != nil {
+		sort.Strings(*b.Tags)
 	}
 }
 

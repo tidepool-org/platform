@@ -49,6 +49,7 @@ var _ = Describe("StatusGet", func() {
 				sts = &service.Status{}
 				svc.StatusOutputs = []*service.Status{sts}
 				response.WriteJsonOutputs = []error{nil}
+				response.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 			})
 
 			It("returns successfully", func() {

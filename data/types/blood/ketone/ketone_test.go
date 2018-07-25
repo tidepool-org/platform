@@ -43,48 +43,17 @@ func CloneKetone(datum *ketone.Ketone) *ketone.Ketone {
 }
 
 var _ = Describe("Ketone", func() {
-	Context("Type", func() {
-		It("returns the expected type", func() {
-			Expect(ketone.Type()).To(Equal("bloodKetone"))
-		})
-	})
-
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(ketone.NewDatum()).To(Equal(&ketone.Ketone{}))
-		})
+	It("Type is expected", func() {
+		Expect(ketone.Type).To(Equal("bloodKetone"))
 	})
 
 	Context("New", func() {
 		It("returns the expected datum", func() {
-			Expect(ketone.New()).To(Equal(&ketone.Ketone{}))
-		})
-	})
-
-	Context("Init", func() {
-		It("returns the expected datum", func() {
-			datum := ketone.Init()
+			datum := ketone.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("bloodKetone"))
 			Expect(datum.Units).To(BeNil())
 			Expect(datum.Value).To(BeNil())
-		})
-	})
-
-	Context("with new datum", func() {
-		var datum *ketone.Ketone
-
-		BeforeEach(func() {
-			datum = NewKetone(pointer.String("mmol/L"))
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("bloodKetone"))
-				Expect(datum.Units).To(BeNil())
-				Expect(datum.Value).To(BeNil())
-			})
 		})
 	})
 

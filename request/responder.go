@@ -56,9 +56,7 @@ func (r *Responder) Empty(statusCode int) {
 }
 
 func (r *Responder) HTML(statusCode int, html string) {
-	r.response.Header().Set("Content-Type", "text/html")
-	r.response.WriteHeader(statusCode)
-	r.response.(http.ResponseWriter).Write([]byte(html))
+	r.writeRaw("text/html", statusCode, []byte(html))
 }
 
 func (r *Responder) Data(statusCode int, data interface{}) {
@@ -67,8 +65,7 @@ func (r *Responder) Data(statusCode int, data interface{}) {
 	} else if err := r.sanitize(data); err != nil {
 		r.Error(http.StatusInternalServerError, errors.ErrorInternal(errors.Wrap(err, "unable to sanitize data")))
 	} else {
-		r.response.WriteHeader(statusCode)
-		r.response.WriteJson(data)
+		r.writeJSON(statusCode, data)
 	}
 }
 
@@ -80,8 +77,7 @@ func (r *Responder) Error(statusCode int, err error) {
 	// service.SetRequestErrors(r.request, errs) // TODO:
 	log.LoggerFromContext(r.request.Context()).WithError(err).Warn("Failure during request")
 
-	r.response.WriteHeader(statusCode)
-	r.response.WriteJson(errors.Sanitize(err))
+	r.writeJSON(statusCode, errors.Sanitize(err))
 }
 
 func (r *Responder) sanitize(data interface{}) error {
@@ -90,3 +86,23 @@ func (r *Responder) sanitize(data interface{}) error {
 	}
 	return nil
 }
+
+func (r *Responder) writeJSON(statusCode int, object interface{}) {
+	r.response.Header().Set("Content-Type", "application/json; charset=utf-8")
+	r.response.WriteHeader(statusCode)
+	if err := r.response.WriteJson(object); err != nil {
+		log.LoggerFromContext(r.request.Context()).WithError(err).Error("Unable to write JSON")
+	} else if _, err = r.response.(http.ResponseWriter).Write(_NewLine); err != nil {
+		log.LoggerFromContext(r.request.Context()).WithError(err).Error("Unable to write new line")
+	}
+}
+
+func (r *Responder) writeRaw(contentType string, statusCode int, bytes []byte) {
+	r.response.Header().Set("Content-Type", contentType)
+	r.response.WriteHeader(statusCode)
+	if _, err := r.response.(http.ResponseWriter).Write(bytes); err != nil {
+		log.LoggerFromContext(r.request.Context()).WithError(err).Error("Unable to write bytes")
+	}
+}
+
+var _NewLine = []byte("\n")

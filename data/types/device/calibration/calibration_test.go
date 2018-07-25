@@ -8,7 +8,6 @@ import (
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	testDataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose/test"
 	"github.com/tidepool-org/platform/data/context"
-	"github.com/tidepool-org/platform/data/factory"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
 	testData "github.com/tidepool-org/platform/data/test"
@@ -54,7 +53,7 @@ func CloneCalibration(datum *calibration.Calibration) *calibration.Calibration {
 }
 
 func NewTestCalibration(sourceTime interface{}, sourceUnits interface{}, sourceValue interface{}) *calibration.Calibration {
-	datum := calibration.Init()
+	datum := calibration.New()
 	datum.DeviceID = pointer.String(id.New())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
@@ -69,27 +68,13 @@ func NewTestCalibration(sourceTime interface{}, sourceUnits interface{}, sourceV
 }
 
 var _ = Describe("Calibration", func() {
-	Context("SubType", func() {
-		It("returns the expected sub type", func() {
-			Expect(calibration.SubType()).To(Equal("calibration"))
-		})
-	})
-
-	Context("NewDatum", func() {
-		It("returns the expected datum", func() {
-			Expect(calibration.NewDatum()).To(Equal(&calibration.Calibration{}))
-		})
+	It("SubType is expected", func() {
+		Expect(calibration.SubType).To(Equal("calibration"))
 	})
 
 	Context("New", func() {
-		It("returns the expected datum", func() {
-			Expect(calibration.New()).To(Equal(&calibration.Calibration{}))
-		})
-	})
-
-	Context("Init", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := calibration.Init()
+			datum := calibration.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("deviceEvent"))
 			Expect(datum.SubType).To(Equal("calibration"))
@@ -98,30 +83,12 @@ var _ = Describe("Calibration", func() {
 		})
 	})
 
-	Context("with new datum", func() {
-		var datum *calibration.Calibration
-
-		BeforeEach(func() {
-			datum = NewCalibration(pointer.String("mmol/L"))
-		})
-
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Type).To(Equal("deviceEvent"))
-				Expect(datum.SubType).To(Equal("calibration"))
-				Expect(datum.Units).To(BeNil())
-				Expect(datum.Value).To(BeNil())
-			})
-		})
-	})
-
 	Context("Calibration", func() {
 		Context("Parse", func() {
 			var datum *calibration.Calibration
 
 			BeforeEach(func() {
-				datum = calibration.Init()
+				datum = calibration.New()
 				Expect(datum).ToNot(BeNil())
 			})
 
@@ -130,10 +97,7 @@ var _ = Describe("Calibration", func() {
 					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
-					testFactory, err := factory.NewStandard()
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testFactory).ToNot(BeNil())
-					testParser, err := parser.NewStandardObject(testContext, testFactory, sourceObject, parser.AppendErrorNotParsed)
+					testParser, err := parser.NewStandardObject(testContext, sourceObject, parser.AppendErrorNotParsed)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testParser).ToNot(BeNil())
 					Expect(datum.Parse(testParser)).To(Succeed())
@@ -451,24 +415,18 @@ var _ = Describe("Calibration", func() {
 				Entry("does not modify the datum; units mmol/L",
 					pointer.String("mmol/L"),
 					func(datum *calibration.Calibration, units *string) {},
-					func(datum *calibration.Calibration, expectedDatum *calibration.Calibration, units *string) {
-						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
-						testDataBloodGlucose.ExpectNormalizedValue(datum.Value, expectedDatum.Value, units)
-					},
+					nil,
 				),
 				Entry("does not modify the datum; units mmol/L; value missing",
 					pointer.String("mmol/L"),
 					func(datum *calibration.Calibration, units *string) { datum.Value = nil },
-					func(datum *calibration.Calibration, expectedDatum *calibration.Calibration, units *string) {
-						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
-					},
+					nil,
 				),
 				Entry("modifies the datum; units mmol/l",
 					pointer.String("mmol/l"),
 					func(datum *calibration.Calibration, units *string) {},
 					func(datum *calibration.Calibration, expectedDatum *calibration.Calibration, units *string) {
 						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
-						testDataBloodGlucose.ExpectNormalizedValue(datum.Value, expectedDatum.Value, units)
 					},
 				),
 				Entry("modifies the datum; units mmol/l; value missing",

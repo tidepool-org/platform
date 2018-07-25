@@ -2,7 +2,6 @@ package v1
 
 import (
 	"net/http"
-	"strconv"
 
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
@@ -11,12 +10,6 @@ import (
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/user"
-)
-
-const (
-	ParameterFilterDeleted  = "deleted"
-	ParameterPaginationPage = "page"
-	ParameterPaginationSize = "size"
 )
 
 func UsersDatasetsGet(dataServiceContext dataService.Context) {
@@ -46,40 +39,8 @@ func UsersDatasetsGet(dataServiceContext dataService.Context) {
 
 	filter := dataStoreDEPRECATED.NewFilter()
 	pagination := page.NewPagination()
-
-	// TODO: Consider refactoring query string parsing into separate function/interface/package
-
-	var errors []*service.Error
-	for key, values := range dataServiceContext.Request().URL.Query() {
-		for _, value := range values {
-			switch key {
-			case ParameterFilterDeleted:
-				if parsedValue, err := strconv.ParseBool(value); err != nil {
-					errors = append(errors, service.ErrorTypeNotBoolean(value).WithSourceParameter(ParameterFilterDeleted))
-				} else {
-					filter.Deleted = parsedValue
-				}
-			case ParameterPaginationPage:
-				if parsedValue, err := strconv.Atoi(value); err != nil {
-					errors = append(errors, service.ErrorTypeNotInteger(value).WithSourceParameter(ParameterPaginationPage))
-				} else if parsedValue < page.PaginationPageMinimum {
-					errors = append(errors, service.ErrorValueNotGreaterThanOrEqualTo(parsedValue, page.PaginationPageMinimum).WithSourceParameter(ParameterPaginationPage))
-				} else {
-					pagination.Page = parsedValue
-				}
-			case ParameterPaginationSize:
-				if parsedValue, err := strconv.Atoi(value); err != nil {
-					errors = append(errors, service.ErrorTypeNotInteger(value).WithSourceParameter(ParameterPaginationSize))
-				} else if parsedValue < page.PaginationSizeMinimum || parsedValue > page.PaginationSizeMaximum {
-					errors = append(errors, service.ErrorValueNotInRange(parsedValue, page.PaginationSizeMinimum, page.PaginationSizeMaximum).WithSourceParameter(ParameterPaginationSize))
-				} else {
-					pagination.Size = parsedValue
-				}
-			}
-		}
-	}
-	if len(errors) > 0 {
-		dataServiceContext.RespondWithStatusAndErrors(http.StatusBadRequest, errors)
+	if err := request.DecodeRequestQuery(dataServiceContext.Request().Request, filter, pagination); err != nil {
+		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
 		return
 	}
 

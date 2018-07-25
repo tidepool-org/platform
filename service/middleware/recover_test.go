@@ -33,6 +33,10 @@ var _ = Describe("Recover", func() {
 			hndlr = func(res rest.ResponseWriter, req *rest.Request) { panic("test-panic") }
 		})
 
+		AfterEach(func() {
+			res.Expectations()
+		})
+
 		It("is successful", func() {
 			res.WriteJsonOutputs = []error{nil}
 			recoverMiddleware.MiddlewareFunc(hndlr)(res, req)

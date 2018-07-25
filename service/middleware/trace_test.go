@@ -43,6 +43,10 @@ var _ = Describe("Trace", func() {
 			req.Request.Header.Set("X-Tidepool-Trace-Session", traceSession)
 		})
 
+		AfterEach(func() {
+			res.Expectations()
+		})
+
 		Context("without logger", func() {
 			BeforeEach(func() {
 				hndlr = func(res rest.ResponseWriter, req *rest.Request) {

@@ -28,8 +28,9 @@ var _ = Describe("Errors", func() {
 		Entry("is ErrorValueExists", structureValidator.ErrorValueExists(), "value-exists", "value exists", "value exists"),
 		Entry("is ErrorValueNotEmpty", structureValidator.ErrorValueNotEmpty(), "value-not-empty", "value is not empty", "value is not empty"),
 		Entry("is ErrorValueEmpty", structureValidator.ErrorValueEmpty(), "value-empty", "value is empty", "value is empty"),
-		Entry("is ErrorValueNotTrue", structureValidator.ErrorValueNotTrue(), "value-not-true", "value is not true", "value is not true"),
-		Entry("is ErrorValueNotFalse", structureValidator.ErrorValueNotFalse(), "value-not-false", "value is not false", "value is not false"),
+		Entry("is ErrorValueDuplicate", structureValidator.ErrorValueDuplicate(), "value-duplicate", "value is a duplicate", "value is a duplicate"),
+		Entry("is ErrorValueBooleanNotTrue", structureValidator.ErrorValueBooleanNotTrue(), "value-not-true", "value is not true", "value is not true"),
+		Entry("is ErrorValueBooleanNotFalse", structureValidator.ErrorValueBooleanNotFalse(), "value-not-false", "value is not false", "value is not false"),
 		Entry("is ErrorValueNotEqualTo with int", structureValidator.ErrorValueNotEqualTo(1, 2), "value-out-of-range", "value is out of range", "value 1 is not equal to 2"),
 		Entry("is ErrorValueNotEqualTo with float", structureValidator.ErrorValueNotEqualTo(3.4, 5.6), "value-out-of-range", "value is out of range", "value 3.4 is not equal to 5.6"),
 		Entry("is ErrorValueNotEqualTo with string", structureValidator.ErrorValueNotEqualTo("abc", "xyz"), "value-out-of-range", "value is out of range", `value "abc" is not equal to "xyz"`),
@@ -83,8 +84,6 @@ var _ = Describe("Errors", func() {
 		Entry("is ErrorValueStringNotMatches with empty expression", structureValidator.ErrorValueStringNotMatches("abc", regexp.MustCompile("")), "value-not-matches", "value does not match expression", `value "abc" does not match expression ""`),
 		Entry("is ErrorValueStringNotMatches with non-empty expression", structureValidator.ErrorValueStringNotMatches("abc", regexp.MustCompile("[a-z]*")), "value-not-matches", "value does not match expression", `value "abc" does not match expression "[a-z]*"`),
 		Entry("is ErrorValueStringAsTimeNotValid", structureValidator.ErrorValueStringAsTimeNotValid("abc", time.RFC3339), "value-not-valid", "value is not valid", `value "abc" is not valid as time with layout "2006-01-02T15:04:05Z07:00"`),
-		Entry("is ErrorValueTimeZero", structureValidator.ErrorValueTimeZero(time.Unix(0, 0).UTC()), "value-zero", "value is zero", `value "1970-01-01T00:00:00Z" is zero`),
-		Entry("is ErrorValueTimeNotZero", structureValidator.ErrorValueTimeNotZero(time.Unix(1451567655, 0).UTC()), "value-not-zero", "value is not zero", `value "2015-12-31T13:14:15Z" is not zero`),
 		Entry("is ErrorValueTimeNotAfter", structureValidator.ErrorValueTimeNotAfter(time.Unix(1451567655, 0).UTC(), time.Unix(1735737255, 0).UTC()), "value-not-after", "value is not after the specified time", `value "2015-12-31T13:14:15Z" is not after "2025-01-01T13:14:15Z"`),
 		Entry("is ErrorValueTimeNotAfterNow", structureValidator.ErrorValueTimeNotAfterNow(time.Unix(1451567655, 0).UTC()), "value-not-after", "value is not after the specified time", `value "2015-12-31T13:14:15Z" is not after now`),
 		Entry("is ErrorValueTimeNotBefore", structureValidator.ErrorValueTimeNotBefore(time.Unix(1735737255, 0).UTC(), time.Unix(1451567655, 0).UTC()), "value-not-before", "value is not before the specified time", `value "2025-01-01T13:14:15Z" is not before "2015-12-31T13:14:15Z"`),
@@ -97,38 +96,4 @@ var _ = Describe("Errors", func() {
 		Entry("is ErrorLengthNotGreaterThanOrEqualTo with int", structureValidator.ErrorLengthNotGreaterThanOrEqualTo(1, 2), "length-out-of-range", "length is out of range", "length 1 is not greater than or equal to 2"),
 		Entry("is ErrorLengthNotInRange", structureValidator.ErrorLengthNotInRange(1, 2, 3), "length-out-of-range", "length is out of range", "length 1 is not between 2 and 3"),
 	)
-
-	Context("QuoteIfString", func() {
-		It("returns nil when the interface value is nil", func() {
-			Expect(structureValidator.QuoteIfString(nil)).To(BeNil())
-		})
-
-		DescribeTable("returns expected value when",
-			func(interfaceValue interface{}, expectedValue interface{}) {
-				Expect(structureValidator.QuoteIfString(interfaceValue)).To(Equal(expectedValue))
-			},
-			Entry("is a string", "a string", `"a string"`),
-			Entry("is an empty string", "", `""`),
-			Entry("is an integer", 1, 1),
-			Entry("is a float", 1.23, 1.23),
-			Entry("is an array", []string{"a"}, []string{"a"}),
-			Entry("is a map", map[string]string{"a": "b"}, map[string]string{"a": "b"}),
-		)
-	})
-
-	Context("ExpressionAsString", func() {
-		It("returns as expected if the expression is nil", func() {
-			Expect(structureValidator.ExpressionAsString(nil)).To(Equal("<MISSING>"))
-		})
-
-		DescribeTable("returns expected value when",
-			func(expressionString string, expectedString string) {
-				Expect(structureValidator.ExpressionAsString(regexp.MustCompile(expressionString))).To(Equal(expectedString))
-			},
-			Entry("is an empty string", "", ""),
-			Entry("is a simple string", "abc", "abc"),
-			Entry("is a complex string", "[a-z]*.?.{32}", "[a-z]*.?.{32}"),
-			Entry("contains single and double quotes", "'\"", "'\""),
-		)
-	})
 })

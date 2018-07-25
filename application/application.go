@@ -18,6 +18,11 @@ import (
 	"github.com/tidepool-org/platform/version"
 )
 
+// TEST: Optionally force Local time zone to UTC during local development
+// func init() {
+// 	time.Local = time.UTC
+// }
+
 type Application struct {
 	prefix          string
 	name            string

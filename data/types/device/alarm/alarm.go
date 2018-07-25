@@ -3,14 +3,15 @@ package alarm
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/device"
-	"github.com/tidepool-org/platform/data/types/device/status"
+	dataTypesDeviceStatus "github.com/tidepool-org/platform/data/types/device/status"
 	"github.com/tidepool-org/platform/id"
-	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 const (
+	SubType = "alarm" // TODO: Rename Type to "device/alarm"; remove SubType
+
 	AlarmTypeAutoOff    = "auto_off"
 	AlarmTypeLowInsulin = "low_insulin"
 	AlarmTypeLowPower   = "low_power"
@@ -39,36 +40,15 @@ func AlarmTypes() []string {
 type Alarm struct {
 	device.Device `bson:",inline"`
 
-	AlarmType *string        `json:"alarmType,omitempty" bson:"alarmType,omitempty"`
-	Status    *status.Status `json:"-" bson:"-"`
-	StatusID  *string        `json:"status,omitempty" bson:"status,omitempty"`
-}
-
-func SubType() string {
-	return "alarm" // TODO: Rename Type to "device/alarm"; remove SubType
-}
-
-func NewDatum() data.Datum {
-	return New()
+	AlarmType *string     `json:"alarmType,omitempty" bson:"alarmType,omitempty"`
+	Status    *data.Datum `json:"-" bson:"-"`
+	StatusID  *string     `json:"status,omitempty" bson:"status,omitempty"`
 }
 
 func New() *Alarm {
-	return &Alarm{}
-}
-
-func Init() *Alarm {
-	alarm := New()
-	alarm.Init()
-	return alarm
-}
-
-func (a *Alarm) Init() {
-	a.Device.Init()
-	a.SubType = SubType()
-
-	a.AlarmType = nil
-	a.Status = nil
-	a.StatusID = nil
+	return &Alarm{
+		Device: device.New(SubType),
+	}
 }
 
 func (a *Alarm) Parse(parser data.ObjectParser) error {
@@ -77,22 +57,7 @@ func (a *Alarm) Parse(parser data.ObjectParser) error {
 	}
 
 	a.AlarmType = parser.ParseString("alarmType")
-
-	// TODO: This is a bit hacky to ensure we only parse true status data. Is there a better way?
-
-	if statusParser := parser.NewChildObjectParser("status"); statusParser.Object() != nil {
-		if statusType := statusParser.ParseString("type"); statusType == nil {
-			statusParser.AppendError("type", service.ErrorValueNotExists())
-		} else if *statusType != device.Type() {
-			statusParser.AppendError("type", service.ErrorValueStringNotOneOf(*statusType, []string{device.Type()}))
-		} else if statusSubType := statusParser.ParseString("subType"); statusSubType == nil {
-			statusParser.AppendError("subType", service.ErrorValueNotExists())
-		} else if *statusSubType != status.SubType() {
-			statusParser.AppendError("subType", service.ErrorValueStringNotOneOf(*statusSubType, []string{status.SubType()}))
-		} else if datum := parser.ParseDatum("status"); datum != nil {
-			a.Status = (*datum).(*status.Status)
-		}
-	}
+	a.Status = dataTypesDeviceStatus.ParseStatusDatum(parser.NewChildObjectParser("status"))
 
 	return nil
 }
@@ -105,14 +70,14 @@ func (a *Alarm) Validate(validator structure.Validator) {
 	a.Device.Validate(validator)
 
 	if a.SubType != "" {
-		validator.String("subType", &a.SubType).EqualTo(SubType())
+		validator.String("subType", &a.SubType).EqualTo(SubType)
 	}
 
 	validator.String("alarmType", a.AlarmType).Exists().OneOf(AlarmTypes()...)
 
 	if validator.Origin() == structure.OriginExternal {
 		if a.Status != nil {
-			a.Status.Validate(validator.WithReference("status"))
+			(*a.Status).Validate(validator.WithReference("status"))
 		}
 		validator.String("statusId", a.StatusID).NotExists()
 	} else {
@@ -131,13 +96,16 @@ func (a *Alarm) Normalize(normalizer data.Normalizer) {
 	a.Device.Normalize(normalizer)
 
 	if a.Status != nil {
-		a.Status.Normalize(normalizer.WithReference("status"))
+		(*a.Status).Normalize(normalizer.WithReference("status"))
 	}
 
 	if normalizer.Origin() == structure.OriginExternal {
 		if a.Status != nil {
-			normalizer.AddData(a.Status)
-			a.StatusID = a.Status.ID
+			normalizer.AddData(*a.Status)
+			switch status := (*a.Status).(type) {
+			case *dataTypesDeviceStatus.Status:
+				a.StatusID = status.ID
+			}
 			a.Status = nil
 		}
 	}

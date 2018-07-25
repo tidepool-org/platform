@@ -12,14 +12,38 @@ import (
 )
 
 func NewClockDriftOffset() int {
-	return -14400000 + rand.Intn(14400000+3600000)
+	return -86400000 + rand.Intn(86400000+86400000)
 }
 
 func NewConversionOffset() int {
 	return -9999999999 + rand.Intn(9999999999+9999999999)
 }
 
-func NewTimezoneOffset() int {
+func NewNote(minimumLength int, maximumLength int) string {
+	return test.NewText(minimumLength, maximumLength)
+}
+
+func NewNotes(minimumLength int, maximumLength int) []string {
+	result := make([]string, minimumLength+rand.Intn(maximumLength-minimumLength+1))
+	for index := range result {
+		result[index] = NewNote(1, 1000)
+	}
+	return result
+}
+
+func NewTag(minimumLength int, maximumLength int) string {
+	return test.NewText(minimumLength, maximumLength)
+}
+
+func NewTags(minimumLength int, maximumLength int) []string {
+	result := make([]string, minimumLength+rand.Intn(maximumLength-minimumLength+1))
+	for index := range result {
+		result[index] = NewTag(1, 100)
+	}
+	return result
+}
+
+func NewTimeZoneOffset() int {
 	return -4440 + rand.Intn(4440+6960)
 }
 

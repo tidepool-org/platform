@@ -4,6 +4,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/basal"
 	dataTypesBasalScheduled "github.com/tidepool-org/platform/data/types/basal/scheduled"
+	"github.com/tidepool-org/platform/data/types/insulin"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/structure"
@@ -11,6 +12,8 @@ import (
 )
 
 const (
+	DeliveryType = "temp" // TODO: Rename Type to "basal/temporary"; remove DeliveryType
+
 	DurationMaximum = 604800000
 	DurationMinimum = 0
 	PercentMaximum  = 10.0
@@ -28,40 +31,18 @@ type Suppressed interface {
 type Temporary struct {
 	basal.Basal `bson:",inline"`
 
-	Duration         *int       `json:"duration,omitempty" bson:"duration,omitempty"`
-	DurationExpected *int       `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
-	Percent          *float64   `json:"percent,omitempty" bson:"percent,omitempty"`
-	Rate             *float64   `json:"rate,omitempty" bson:"rate,omitempty"`
-	Suppressed       Suppressed `json:"suppressed,omitempty" bson:"suppressed,omitempty"`
-}
-
-func DeliveryType() string {
-	return "temp" // TODO: Rename Type to "basal/temporary"; remove DeliveryType
-}
-
-func NewDatum() data.Datum {
-	return New()
+	Duration           *int                 `json:"duration,omitempty" bson:"duration,omitempty"`
+	DurationExpected   *int                 `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
+	InsulinFormulation *insulin.Formulation `json:"insulinFormulation,omitempty" bson:"insulinFormulation,omitempty"`
+	Percent            *float64             `json:"percent,omitempty" bson:"percent,omitempty"`
+	Rate               *float64             `json:"rate,omitempty" bson:"rate,omitempty"`
+	Suppressed         Suppressed           `json:"suppressed,omitempty" bson:"suppressed,omitempty"`
 }
 
 func New() *Temporary {
-	return &Temporary{}
-}
-
-func Init() *Temporary {
-	temporary := New()
-	temporary.Init()
-	return temporary
-}
-
-func (t *Temporary) Init() {
-	t.Basal.Init()
-	t.DeliveryType = DeliveryType()
-
-	t.Duration = nil
-	t.DurationExpected = nil
-	t.Percent = nil
-	t.Rate = nil
-	t.Suppressed = nil
+	return &Temporary{
+		Basal: basal.New(DeliveryType),
+	}
 }
 
 func (t *Temporary) Parse(parser data.ObjectParser) error {
@@ -71,6 +52,7 @@ func (t *Temporary) Parse(parser data.ObjectParser) error {
 
 	t.Duration = parser.ParseInteger("duration")
 	t.DurationExpected = parser.ParseInteger("expectedDuration")
+	t.InsulinFormulation = insulin.ParseFormulation(parser.NewChildObjectParser("insulinFormulation"))
 	t.Percent = parser.ParseFloat("percent")
 	t.Rate = parser.ParseFloat("rate")
 	t.Suppressed = parseSuppressed(parser.NewChildObjectParser("suppressed"))
@@ -86,7 +68,7 @@ func (t *Temporary) Validate(validator structure.Validator) {
 	t.Basal.Validate(validator)
 
 	if t.DeliveryType != "" {
-		validator.String("deliveryType", &t.DeliveryType).EqualTo(DeliveryType())
+		validator.String("deliveryType", &t.DeliveryType).EqualTo(DeliveryType)
 	}
 
 	validator.Int("duration", t.Duration).Exists().InRange(DurationMinimum, DurationMaximum)
@@ -95,6 +77,9 @@ func (t *Temporary) Validate(validator structure.Validator) {
 		expectedDurationValidator.InRange(*t.Duration, DurationMaximum)
 	} else {
 		expectedDurationValidator.InRange(DurationMinimum, DurationMaximum)
+	}
+	if t.InsulinFormulation != nil {
+		t.InsulinFormulation.Validate(validator.WithReference("insulinFormulation"))
 	}
 	validator.Float64("percent", t.Percent).InRange(PercentMinimum, PercentMaximum)
 	validator.Float64("rate", t.Rate).Exists().InRange(RateMinimum, RateMaximum)
@@ -108,6 +93,9 @@ func (t *Temporary) Normalize(normalizer data.Normalizer) {
 
 	t.Basal.Normalize(normalizer)
 
+	if t.InsulinFormulation != nil {
+		t.InsulinFormulation.Normalize(normalizer.WithReference("insulinFormulation"))
+	}
 	if t.Suppressed != nil {
 		t.Suppressed.Normalize(normalizer.WithReference("suppressed"))
 	}
@@ -117,10 +105,11 @@ type SuppressedTemporary struct {
 	Type         *string `json:"type,omitempty" bson:"type,omitempty"`
 	DeliveryType *string `json:"deliveryType,omitempty" bson:"deliveryType,omitempty"`
 
-	Annotations *data.BlobArray `json:"annotations,omitempty" bson:"annotations,omitempty"`
-	Percent     *float64        `json:"percent,omitempty" bson:"percent,omitempty"`
-	Rate        *float64        `json:"rate,omitempty" bson:"rate,omitempty"`
-	Suppressed  Suppressed      `json:"suppressed,omitempty" bson:"suppressed,omitempty"`
+	Annotations        *data.BlobArray      `json:"annotations,omitempty" bson:"annotations,omitempty"`
+	InsulinFormulation *insulin.Formulation `json:"insulinFormulation,omitempty" bson:"insulinFormulation,omitempty"`
+	Percent            *float64             `json:"percent,omitempty" bson:"percent,omitempty"`
+	Rate               *float64             `json:"rate,omitempty" bson:"rate,omitempty"`
+	Suppressed         Suppressed           `json:"suppressed,omitempty" bson:"suppressed,omitempty"`
 }
 
 func ParseSuppressedTemporary(parser data.ObjectParser) *SuppressedTemporary {
@@ -135,8 +124,8 @@ func ParseSuppressedTemporary(parser data.ObjectParser) *SuppressedTemporary {
 
 func NewSuppressedTemporary() *SuppressedTemporary {
 	return &SuppressedTemporary{
-		Type:         pointer.String(basal.Type()),
-		DeliveryType: pointer.String(DeliveryType()),
+		Type:         pointer.String(basal.Type),
+		DeliveryType: pointer.String(DeliveryType),
 	}
 }
 
@@ -145,6 +134,7 @@ func (s *SuppressedTemporary) Parse(parser data.ObjectParser) error {
 	s.DeliveryType = parser.ParseString("deliveryType")
 
 	s.Annotations = data.ParseBlobArray(parser.NewChildArrayParser("annotations"))
+	s.InsulinFormulation = insulin.ParseFormulation(parser.NewChildObjectParser("insulinFormulation"))
 	s.Percent = parser.ParseFloat("percent")
 	s.Rate = parser.ParseFloat("rate")
 	s.Suppressed = parseSuppressed(parser.NewChildObjectParser("suppressed"))
@@ -153,11 +143,14 @@ func (s *SuppressedTemporary) Parse(parser data.ObjectParser) error {
 }
 
 func (s *SuppressedTemporary) Validate(validator structure.Validator) {
-	validator.String("type", s.Type).Exists().EqualTo(basal.Type())
-	validator.String("deliveryType", s.DeliveryType).Exists().EqualTo(DeliveryType())
+	validator.String("type", s.Type).Exists().EqualTo(basal.Type)
+	validator.String("deliveryType", s.DeliveryType).Exists().EqualTo(DeliveryType)
 
 	if s.Annotations != nil {
 		s.Annotations.Validate(validator.WithReference("annotations"))
+	}
+	if s.InsulinFormulation != nil {
+		s.InsulinFormulation.Validate(validator.WithReference("insulinFormulation"))
 	}
 	validator.Float64("percent", s.Percent).InRange(PercentMinimum, PercentMaximum)
 	validator.Float64("rate", s.Rate).Exists().InRange(RateMinimum, RateMaximum)
@@ -168,19 +161,22 @@ func (s *SuppressedTemporary) Normalize(normalizer data.Normalizer) {
 	if s.Annotations != nil {
 		s.Annotations.Normalize(normalizer.WithReference("annotations"))
 	}
+	if s.InsulinFormulation != nil {
+		s.InsulinFormulation.Normalize(normalizer.WithReference("insulinFormulation"))
+	}
 	if s.Suppressed != nil {
 		s.Suppressed.Normalize(normalizer.WithReference("suppressed"))
 	}
 }
 
 var suppressedDeliveryTypes = []string{
-	dataTypesBasalScheduled.DeliveryType(),
+	dataTypesBasalScheduled.DeliveryType,
 }
 
 func parseSuppressed(parser data.ObjectParser) Suppressed {
 	if deliveryType := basal.ParseDeliveryType(parser); deliveryType != nil {
 		switch *deliveryType {
-		case dataTypesBasalScheduled.DeliveryType():
+		case dataTypesBasalScheduled.DeliveryType:
 			return dataTypesBasalScheduled.ParseSuppressedScheduled(parser)
 		default:
 			parser.AppendError("type", service.ErrorValueStringNotOneOf(*deliveryType, suppressedDeliveryTypes))

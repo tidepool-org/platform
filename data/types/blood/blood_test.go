@@ -9,7 +9,6 @@ import (
 	"strconv"
 
 	"github.com/tidepool-org/platform/data/context"
-	"github.com/tidepool-org/platform/data/factory"
 	"github.com/tidepool-org/platform/data/parser"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
@@ -27,9 +26,7 @@ import (
 )
 
 func NewTestBlood(sourceTime interface{}, sourceUnits interface{}, sourceValue interface{}) *blood.Blood {
-	datum := &blood.Blood{}
-	datum.Init()
-	datum.Type = "blood"
+	datum := blood.New("blood")
 	datum.DeviceID = pointer.String(id.New())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
@@ -40,22 +37,32 @@ func NewTestBlood(sourceTime interface{}, sourceUnits interface{}, sourceValue i
 	if val, ok := sourceValue.(float64); ok {
 		datum.Value = &val
 	}
-	return datum
+	return &datum
 }
 
 var _ = Describe("Blood", func() {
+	Context("New", func() {
+		It("creates a new datum with all values initialized", func() {
+			typ := testDataTypes.NewType()
+			datum := blood.New(typ)
+			Expect(datum.Type).To(Equal(typ))
+			Expect(datum.Units).To(BeNil())
+			Expect(datum.Value).To(BeNil())
+		})
+	})
+
 	Context("with new datum", func() {
-		var datum *blood.Blood
+		var typ string
+		var datum blood.Blood
 
 		BeforeEach(func() {
-			datum = &blood.Blood{}
+			typ = testDataTypes.NewType()
+			datum = blood.New(typ)
 		})
 
-		Context("Init", func() {
-			It("initializes the datum", func() {
-				datum.Init()
-				Expect(datum.Units).To(BeNil())
-				Expect(datum.Value).To(BeNil())
+		Context("Meta", func() {
+			It("returns the meta with delivery type", func() {
+				Expect(datum.Meta()).To(Equal(&types.Meta{Type: typ}))
 			})
 		})
 	})
@@ -67,14 +74,10 @@ var _ = Describe("Blood", func() {
 					testContext, err := context.NewStandard(null.NewLogger())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testContext).ToNot(BeNil())
-					testFactory, err := factory.NewStandard()
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testFactory).ToNot(BeNil())
-					testParser, err := parser.NewStandardObject(testContext, testFactory, sourceObject, parser.AppendErrorNotParsed)
+					testParser, err := parser.NewStandardObject(testContext, sourceObject, parser.AppendErrorNotParsed)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testParser).ToNot(BeNil())
 					datum := &blood.Blood{}
-					datum.Init()
 					datum.Type = "blood"
 					Expect(datum.Parse(testParser)).To(Succeed())
 					Expect(datum.Time).To(Equal(expectedDatum.Time))

@@ -7,6 +7,10 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
+const (
+	SubType = "calibration" // TODO: Rename Type to "device/calibration"; remove SubType
+)
+
 type Calibration struct {
 	device.Device `bson:",inline"`
 
@@ -14,30 +18,10 @@ type Calibration struct {
 	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
 }
 
-func SubType() string {
-	return "calibration" // TODO: Rename Type to "device/calibration"; remove SubType
-}
-
-func NewDatum() data.Datum {
-	return New()
-}
-
 func New() *Calibration {
-	return &Calibration{}
-}
-
-func Init() *Calibration {
-	calibration := New()
-	calibration.Init()
-	return calibration
-}
-
-func (c *Calibration) Init() {
-	c.Device.Init()
-	c.SubType = SubType()
-
-	c.Units = nil
-	c.Value = nil
+	return &Calibration{
+		Device: device.New(SubType),
+	}
 }
 
 func (c *Calibration) Parse(parser data.ObjectParser) error {
@@ -59,7 +43,7 @@ func (c *Calibration) Validate(validator structure.Validator) {
 	c.Device.Validate(validator)
 
 	if c.SubType != "" {
-		validator.String("subType", &c.SubType).EqualTo(SubType())
+		validator.String("subType", &c.SubType).EqualTo(SubType)
 	}
 
 	validator.String("units", c.Units).Exists().OneOf(dataBloodGlucose.Units()...)
