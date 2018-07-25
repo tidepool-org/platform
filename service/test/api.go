@@ -6,6 +6,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/test"
 )
 
@@ -13,9 +14,9 @@ type API struct {
 	*test.Mock
 	InitializeMiddlewareInvocations int
 	InitializeMiddlewareOutputs     []error
-	InitializeRouterInvocations     int
-	InitializeRouterInputs          [][]*rest.Route
-	InitializeRouterOutputs         []error
+	InitializeRoutersInvocations    int
+	InitializeRoutersInputs         [][]service.Router
+	InitializeRoutersOutputs        []error
 	StatusInvocations               int
 	StatusOutputs                   []*rest.Status
 	HandlerInvocations              int
@@ -38,15 +39,15 @@ func (a *API) InitializeMiddleware() error {
 	return output
 }
 
-func (a *API) InitializeRouter(routes ...*rest.Route) error {
-	a.InitializeRouterInvocations++
+func (a *API) InitializeRouters(routes ...service.Router) error {
+	a.InitializeRoutersInvocations++
 
-	a.InitializeRouterInputs = append(a.InitializeRouterInputs, routes)
+	a.InitializeRoutersInputs = append(a.InitializeRoutersInputs, routes)
 
-	gomega.Expect(a.InitializeRouterOutputs).ToNot(gomega.BeEmpty())
+	gomega.Expect(a.InitializeRoutersOutputs).ToNot(gomega.BeEmpty())
 
-	output := a.InitializeRouterOutputs[0]
-	a.InitializeRouterOutputs = a.InitializeRouterOutputs[1:]
+	output := a.InitializeRoutersOutputs[0]
+	a.InitializeRoutersOutputs = a.InitializeRoutersOutputs[1:]
 	return output
 }
 
@@ -73,7 +74,7 @@ func (a *API) Handler() http.Handler {
 func (a *API) Expectations() {
 	a.Mock.Expectations()
 	gomega.Expect(a.InitializeMiddlewareOutputs).To(gomega.BeEmpty())
-	gomega.Expect(a.InitializeRouterOutputs).To(gomega.BeEmpty())
+	gomega.Expect(a.InitializeRoutersOutputs).To(gomega.BeEmpty())
 	gomega.Expect(a.StatusOutputs).To(gomega.BeEmpty())
 	gomega.Expect(a.HandlerOutputs).To(gomega.BeEmpty())
 }

@@ -93,7 +93,13 @@ func (a *API) InitializeMiddleware() error {
 	return nil
 }
 
-func (a *API) InitializeRouter(routes ...*rest.Route) error {
+func (a *API) InitializeRouters(routers ...service.Router) error {
+	routes := []*rest.Route{}
+
+	for _, router := range routers {
+		routes = append(routes, router.Routes()...)
+	}
+
 	router, err := rest.MakeRouter(routes...)
 	if err != nil {
 		return errors.Wrap(err, "unable to initializer router")

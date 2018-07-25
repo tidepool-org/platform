@@ -1,7 +1,6 @@
 package service
 
 import (
-	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/aws/aws-sdk-go/aws/session"
 
 	"github.com/tidepool-org/platform/application"
@@ -205,28 +204,24 @@ func (s *Service) terminateBlobClient() {
 }
 
 func (s *Service) initializeRouter() error {
-	routes := []*rest.Route{}
-
 	s.Logger().Debug("Creating status router")
 
 	statusRouter, err := serviceApi.NewStatusRouter(s)
 	if err != nil {
 		return errors.Wrap(err, "unable to create status router")
 	}
-	routes = append(routes, statusRouter.Routes()...)
 
 	s.Logger().Debug("Creating blob service api v1 router")
 
 	router, err := blobServiceApiV1.NewRouter(s)
 	if err != nil {
-		return errors.Wrap(err, "unable to create v1 router")
+		return errors.Wrap(err, "unable to create blob service api v1 router")
 	}
-	routes = append(routes, router.Routes()...)
 
-	s.Logger().Debug("Initializing router")
+	s.Logger().Debug("Initializing routers")
 
-	if err = s.API().InitializeRouter(routes...); err != nil {
-		return errors.Wrap(err, "unable to initialize router")
+	if err = s.API().InitializeRouters(statusRouter, router); err != nil {
+		return errors.Wrap(err, "unable to initialize routers")
 	}
 
 	return nil
