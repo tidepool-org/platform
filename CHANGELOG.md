@@ -1,5 +1,6 @@
 ## HEAD
 
+* Refactor data source service client into separate package
 * Refactor blob service client into separate package
 * Move EnsureAuthorized functions from user client to auth client
 * Refactor InitializeRouters to encapsulate common functionality

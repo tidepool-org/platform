@@ -5,7 +5,7 @@ import (
 	"github.com/tidepool-org/platform/data/deduplicator"
 	"github.com/tidepool-org/platform/data/service/api"
 	"github.com/tidepool-org/platform/data/service/api/v1"
-	dataSourceService "github.com/tidepool-org/platform/data/source/service"
+	dataSourceServiceClient "github.com/tidepool-org/platform/data/source/service/client"
 	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
 	dataSourceStoreStructuredMongo "github.com/tidepool-org/platform/data/source/store/structured/mongo"
 	dataStoreDEPRECATEDMongo "github.com/tidepool-org/platform/data/storeDEPRECATED/mongo"
@@ -29,7 +29,7 @@ type Standard struct {
 	dataSourceStructuredStore *dataSourceStoreStructuredMongo.Store
 	syncTaskStore             *syncTaskMongo.Store
 	dataClient                *Client
-	dataSourceClient          *dataSourceService.Client
+	dataSourceClient          *dataSourceServiceClient.Client
 	api                       *api.Standard
 	server                    *server.Standard
 }
@@ -262,7 +262,7 @@ func (s *Standard) initializeDataClient() error {
 func (s *Standard) initializeDataSourceClient() error {
 	s.Logger().Debug("Creating data client")
 
-	clnt, err := dataSourceService.NewClient(s)
+	clnt, err := dataSourceServiceClient.New(s)
 	if err != nil {
 		return errors.Wrap(err, "unable to create source data client")
 	}

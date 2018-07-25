@@ -1,4 +1,4 @@
-package service_test
+package client_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -9,5 +9,5 @@ import (
 
 func TestSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "data/source/service")
+	RunSpecs(t, "data/source/service/client")
 }

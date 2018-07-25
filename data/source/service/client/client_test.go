@@ -1,4 +1,4 @@
-package service_test
+package client_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -9,8 +9,8 @@ import (
 	"github.com/tidepool-org/platform/auth"
 	authTest "github.com/tidepool-org/platform/auth/test"
 	dataSource "github.com/tidepool-org/platform/data/source"
-	dataSourceService "github.com/tidepool-org/platform/data/source/service"
-	dataSourceServiceTest "github.com/tidepool-org/platform/data/source/service/test"
+	dataSourceServiceClient "github.com/tidepool-org/platform/data/source/service/client"
+	dataSourceServiceClientTest "github.com/tidepool-org/platform/data/source/service/client/test"
 	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
 	dataSourceStoreStructuredTest "github.com/tidepool-org/platform/data/source/store/structured/test"
 	dataSourceTest "github.com/tidepool-org/platform/data/source/test"
@@ -25,47 +25,48 @@ import (
 )
 
 var _ = Describe("Client", func() {
+	var authClient *authTest.Client
 	var dataSourceStructuredStore *dataSourceStoreStructuredTest.Store
 	var dataSourceStructuredSession *dataSourceStoreStructuredTest.Session
-	var authClient *authTest.Client
-	var clientProvider *dataSourceServiceTest.ClientProvider
+	var provider *dataSourceServiceClientTest.Provider
 
 	BeforeEach(func() {
+		authClient = authTest.NewClient()
 		dataSourceStructuredStore = dataSourceStoreStructuredTest.NewStore()
 		dataSourceStructuredSession = dataSourceStoreStructuredTest.NewSession()
 		dataSourceStructuredSession.CloseOutput = func(err error) *error { return &err }(nil)
 		dataSourceStructuredStore.NewSessionOutput = func(s dataSourceStoreStructured.Session) *dataSourceStoreStructured.Session { return &s }(dataSourceStructuredSession)
-		authClient = authTest.NewClient()
-		clientProvider = dataSourceServiceTest.NewClientProvider()
-		clientProvider.DataSourceStructuredStoreOutput = func(s dataSourceStoreStructured.Store) *dataSourceStoreStructured.Store { return &s }(dataSourceStructuredStore)
-		clientProvider.AuthClientOutput = func(u auth.Client) *auth.Client { return &u }(authClient)
+		provider = dataSourceServiceClientTest.NewProvider()
+		provider.AuthClientOutput = func(u auth.Client) *auth.Client { return &u }(authClient)
+		provider.DataSourceStructuredStoreOutput = func(s dataSourceStoreStructured.Store) *dataSourceStoreStructured.Store { return &s }(dataSourceStructuredStore)
 	})
 
 	AfterEach(func() {
-		clientProvider.AssertOutputsEmpty()
+		provider.AssertOutputsEmpty()
 		dataSourceStructuredStore.AssertOutputsEmpty()
+		authClient.AssertOutputsEmpty()
 	})
 
-	Context("NewClient", func() {
+	Context("New", func() {
 		It("returns an error when the client provider is missing", func() {
-			client, err := dataSourceService.NewClient(nil)
-			errorsTest.ExpectEqual(err, errors.New("client provider is missing"))
+			client, err := dataSourceServiceClient.New(nil)
+			errorsTest.ExpectEqual(err, errors.New("provider is missing"))
 			Expect(client).To(BeNil())
 		})
 
 		It("returns successfully", func() {
-			Expect(dataSourceService.NewClient(clientProvider)).ToNot(BeNil())
+			Expect(dataSourceServiceClient.New(provider)).ToNot(BeNil())
 		})
 	})
 
 	Context("with new client", func() {
-		var client *dataSourceService.Client
+		var client *dataSourceServiceClient.Client
 		var logger *logTest.Logger
 		var ctx context.Context
 
 		BeforeEach(func() {
 			var err error
-			client, err = dataSourceService.NewClient(clientProvider)
+			client, err = dataSourceServiceClient.New(provider)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(client).ToNot(BeNil())
 			logger = logTest.NewLogger()
