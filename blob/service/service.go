@@ -11,20 +11,16 @@ import (
 	blobStoreStructuredMongo "github.com/tidepool-org/platform/blob/store/structured/mongo"
 	blobStoreUnstructured "github.com/tidepool-org/platform/blob/store/unstructured"
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/platform"
 	serviceApi "github.com/tidepool-org/platform/service/api"
 	serviceService "github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	storeUnstructuredFactory "github.com/tidepool-org/platform/store/unstructured/factory"
-	"github.com/tidepool-org/platform/user"
-	userClient "github.com/tidepool-org/platform/user/client"
 )
 
 type Service struct {
 	*serviceService.Authenticated
 	blobStructuredStore   *blobStoreStructuredMongo.Store
 	blobUnstructuredStore *blobStoreUnstructured.StoreImpl
-	userClient            *userClient.Client
 	blobClient            *Client
 }
 
@@ -45,9 +41,6 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeBlobUnstructuredStore(); err != nil {
 		return err
 	}
-	if err := s.initializeUserClient(); err != nil {
-		return err
-	}
 	if err := s.initializeBlobClient(); err != nil {
 		return err
 	}
@@ -57,7 +50,6 @@ func (s *Service) Initialize(provider application.Provider) error {
 func (s *Service) Terminate() {
 	s.terminateRouter()
 	s.terminateBlobClient()
-	s.terminateUserClient()
 	s.terminateBlobUnstructuredStore()
 	s.terminateBlobStructuredStore()
 
@@ -78,10 +70,6 @@ func (s *Service) BlobStructuredStore() blobStoreStructured.Store {
 
 func (s *Service) BlobUnstructuredStore() blobStoreUnstructured.Store {
 	return s.blobUnstructuredStore
-}
-
-func (s *Service) UserClient() user.Client {
-	return s.userClient
 }
 
 func (s *Service) BlobClient() blob.Client {
@@ -154,33 +142,6 @@ func (s *Service) terminateBlobUnstructuredStore() {
 	if s.blobUnstructuredStore != nil {
 		s.Logger().Debug("Destroying blob unstructured store")
 		s.blobUnstructuredStore = nil
-	}
-}
-
-func (s *Service) initializeUserClient() error {
-	s.Logger().Debug("Loading user client config")
-
-	config := platform.NewConfig()
-	config.UserAgent = s.UserAgent()
-	if err := config.Load(s.ConfigReporter().WithScopes("user", "client")); err != nil {
-		return errors.Wrap(err, "unable to load user client config")
-	}
-
-	s.Logger().Debug("Creating user client")
-
-	client, err := userClient.New(config, platform.AuthorizeAsService)
-	if err != nil {
-		return errors.Wrap(err, "unable to create user client")
-	}
-	s.userClient = client
-
-	return nil
-}
-
-func (s *Service) terminateUserClient() {
-	if s.userClient != nil {
-		s.Logger().Debug("Destroying user client")
-		s.userClient = nil
 	}
 }
 

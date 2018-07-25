@@ -32,7 +32,7 @@ var _ = Describe("Auth", func() {
 	})
 
 	AfterEach(func() {
-		authClient.Expectations()
+		authClient.AssertOutputsEmpty()
 	})
 
 	Context("NewAuth", func() {

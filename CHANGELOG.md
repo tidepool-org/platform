@@ -1,5 +1,6 @@
 ## HEAD
 
+* Move EnsureAuthorized functions from user client to auth client
 * Refactor InitializeRouters to encapsulate common functionality
 * Refactor GetUserPermissions into permissions client package
 * Refactor data source to separate package with complete tests

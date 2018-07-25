@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"io"
 
+	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/blob"
 	blobStoreStructured "github.com/tidepool-org/platform/blob/store/structured"
 	blobStoreUnstructured "github.com/tidepool-org/platform/blob/store/unstructured"
@@ -16,13 +17,12 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"github.com/tidepool-org/platform/user"
 )
 
 type ClientProvider interface {
+	AuthClient() auth.Client
 	BlobStructuredStore() blobStoreStructured.Store
 	BlobUnstructuredStore() blobStoreUnstructured.Store
-	UserClient() user.Client
 }
 
 type Client struct {
@@ -40,7 +40,7 @@ func NewClient(clientProvider ClientProvider) (*Client, error) {
 }
 
 func (c *Client) List(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.Blobs, error) {
-	if err := c.UserClient().EnsureAuthorizedService(ctx); err != nil {
+	if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
 		return nil, err
 	}
 
@@ -51,7 +51,7 @@ func (c *Client) List(ctx context.Context, userID string, filter *blob.Filter, p
 }
 
 func (c *Client) Create(ctx context.Context, userID string, create *blob.Create) (*blob.Blob, error) {
-	if _, err := c.UserClient().EnsureAuthorizedUser(ctx, userID, permission.Write); err != nil {
+	if _, err := c.AuthClient().EnsureAuthorizedUser(ctx, userID, permission.Write); err != nil {
 		return nil, err
 	}
 
@@ -104,7 +104,7 @@ func (c *Client) Create(ctx context.Context, userID string, create *blob.Create)
 }
 
 func (c *Client) Get(ctx context.Context, id string) (*blob.Blob, error) {
-	if err := c.UserClient().EnsureAuthorizedService(ctx); err != nil {
+	if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
 		return nil, err
 	}
 
@@ -115,7 +115,7 @@ func (c *Client) Get(ctx context.Context, id string) (*blob.Blob, error) {
 }
 
 func (c *Client) GetContent(ctx context.Context, id string) (*blob.Content, error) {
-	if err := c.UserClient().EnsureAuthorizedService(ctx); err != nil {
+	if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
 		return nil, err
 	}
 
@@ -143,7 +143,7 @@ func (c *Client) GetContent(ctx context.Context, id string) (*blob.Content, erro
 }
 
 func (c *Client) Delete(ctx context.Context, id string) (bool, error) {
-	if err := c.UserClient().EnsureAuthorizedService(ctx); err != nil {
+	if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
 		return false, err
 	}
 

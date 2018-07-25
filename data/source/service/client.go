@@ -3,17 +3,17 @@ package service
 import (
 	"context"
 
+	"github.com/tidepool-org/platform/auth"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/permission"
-	"github.com/tidepool-org/platform/user"
 )
 
 type ClientProvider interface {
+	AuthClient() auth.Client
 	DataSourceStructuredStore() dataSourceStoreStructured.Store
-	UserClient() user.Client
 }
 
 type Client struct {
@@ -31,7 +31,7 @@ func NewClient(clientProvider ClientProvider) (*Client, error) {
 }
 
 func (c *Client) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.Sources, error) {
-	if _, err := c.UserClient().EnsureAuthorizedUser(ctx, userID, permission.Owner); err != nil {
+	if _, err := c.AuthClient().EnsureAuthorizedUser(ctx, userID, permission.Owner); err != nil {
 		return nil, err
 	}
 
@@ -42,7 +42,7 @@ func (c *Client) List(ctx context.Context, userID string, filter *dataSource.Fil
 }
 
 func (c *Client) Create(ctx context.Context, userID string, create *dataSource.Create) (*dataSource.Source, error) {
-	if err := c.UserClient().EnsureAuthorizedService(ctx); err != nil {
+	if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
 		return nil, err
 	}
 
@@ -53,7 +53,7 @@ func (c *Client) Create(ctx context.Context, userID string, create *dataSource.C
 }
 
 func (c *Client) Get(ctx context.Context, id string) (*dataSource.Source, error) {
-	if err := c.UserClient().EnsureAuthorized(ctx); err != nil {
+	if err := c.AuthClient().EnsureAuthorized(ctx); err != nil {
 		return nil, err
 	}
 
@@ -65,7 +65,7 @@ func (c *Client) Get(ctx context.Context, id string) (*dataSource.Source, error)
 		return nil, err
 	}
 
-	if _, err = c.UserClient().EnsureAuthorizedUser(ctx, *result.UserID, permission.Owner); err != nil {
+	if _, err = c.AuthClient().EnsureAuthorizedUser(ctx, *result.UserID, permission.Owner); err != nil {
 		return nil, err
 	}
 
@@ -73,7 +73,7 @@ func (c *Client) Get(ctx context.Context, id string) (*dataSource.Source, error)
 }
 
 func (c *Client) Update(ctx context.Context, id string, update *dataSource.Update) (*dataSource.Source, error) {
-	if err := c.UserClient().EnsureAuthorizedService(ctx); err != nil {
+	if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
 		return nil, err
 	}
 
@@ -84,7 +84,7 @@ func (c *Client) Update(ctx context.Context, id string, update *dataSource.Updat
 }
 
 func (c *Client) Delete(ctx context.Context, id string) (bool, error) {
-	if err := c.UserClient().EnsureAuthorizedService(ctx); err != nil {
+	if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
 		return false, err
 	}
 

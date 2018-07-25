@@ -18,15 +18,12 @@ import (
 	"github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	syncTaskMongo "github.com/tidepool-org/platform/synctask/store/mongo"
-	"github.com/tidepool-org/platform/user"
-	userClient "github.com/tidepool-org/platform/user/client"
 )
 
 type Standard struct {
 	*service.DEPRECATEDService
 	metricClient              *metricClient.Client
 	permissionClient          *permissionClient.Client
-	userClient                *userClient.Client
 	dataDeduplicatorFactory   deduplicator.Factory
 	dataStoreDEPRECATED       *dataStoreDEPRECATEDMongo.Store
 	dataSourceStructuredStore *dataSourceStoreStructuredMongo.Store
@@ -92,7 +89,6 @@ func (s *Standard) Terminate() {
 		s.dataStoreDEPRECATED = nil
 	}
 	s.dataDeduplicatorFactory = nil
-	s.userClient = nil
 	s.permissionClient = nil
 	s.metricClient = nil
 
@@ -109,10 +105,6 @@ func (s *Standard) Run() error {
 
 func (s *Standard) PermissionClient() permission.Client {
 	return s.permissionClient
-}
-
-func (s *Standard) UserClient() user.Client {
-	return s.userClient
 }
 
 func (s *Standard) DataSourceStructuredStore() dataSourceStoreStructured.Store {
@@ -155,26 +147,6 @@ func (s *Standard) initializePermissionClient() error {
 		return errors.Wrap(err, "unable to create permission client")
 	}
 	s.permissionClient = clnt
-
-	return nil
-}
-
-func (s *Standard) initializeUserClient() error {
-	s.Logger().Debug("Loading user client config")
-
-	cfg := platform.NewConfig()
-	cfg.UserAgent = s.UserAgent()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("user", "client")); err != nil {
-		return errors.Wrap(err, "unable to load user client config")
-	}
-
-	s.Logger().Debug("Creating user client")
-
-	clnt, err := userClient.New(cfg, platform.AuthorizeAsService)
-	if err != nil {
-		return errors.Wrap(err, "unable to create user client")
-	}
-	s.userClient = clnt
 
 	return nil
 }

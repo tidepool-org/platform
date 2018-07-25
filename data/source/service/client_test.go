@@ -6,6 +6,8 @@ import (
 
 	"context"
 
+	"github.com/tidepool-org/platform/auth"
+	authTest "github.com/tidepool-org/platform/auth/test"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataSourceService "github.com/tidepool-org/platform/data/source/service"
 	dataSourceServiceTest "github.com/tidepool-org/platform/data/source/service/test"
@@ -19,14 +21,13 @@ import (
 	"github.com/tidepool-org/platform/page"
 	pageTest "github.com/tidepool-org/platform/page/test"
 	"github.com/tidepool-org/platform/permission"
-	"github.com/tidepool-org/platform/user"
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
 var _ = Describe("Client", func() {
 	var dataSourceStructuredStore *dataSourceStoreStructuredTest.Store
 	var dataSourceStructuredSession *dataSourceStoreStructuredTest.Session
-	var userClient *userTest.Client
+	var authClient *authTest.Client
 	var clientProvider *dataSourceServiceTest.ClientProvider
 
 	BeforeEach(func() {
@@ -34,10 +35,10 @@ var _ = Describe("Client", func() {
 		dataSourceStructuredSession = dataSourceStoreStructuredTest.NewSession()
 		dataSourceStructuredSession.CloseOutput = func(err error) *error { return &err }(nil)
 		dataSourceStructuredStore.NewSessionOutput = func(s dataSourceStoreStructured.Session) *dataSourceStoreStructured.Session { return &s }(dataSourceStructuredSession)
-		userClient = userTest.NewClient()
+		authClient = authTest.NewClient()
 		clientProvider = dataSourceServiceTest.NewClientProvider()
 		clientProvider.DataSourceStructuredStoreOutput = func(s dataSourceStoreStructured.Store) *dataSourceStoreStructured.Store { return &s }(dataSourceStructuredStore)
-		clientProvider.UserClientOutput = func(u user.Client) *user.Client { return &u }(userClient)
+		clientProvider.AuthClientOutput = func(u auth.Client) *auth.Client { return &u }(authClient)
 	})
 
 	AfterEach(func() {
@@ -89,12 +90,12 @@ var _ = Describe("Client", func() {
 				})
 
 				AfterEach(func() {
-					Expect(userClient.EnsureAuthorizedUserInputs).To(Equal([]userTest.EnsureAuthorizedUserInput{{Context: ctx, TargetUserID: userID, AuthorizedPermission: permission.Owner}}))
+					Expect(authClient.EnsureAuthorizedUserInputs).To(Equal([]authTest.EnsureAuthorizedUserInput{{Context: ctx, TargetUserID: userID, AuthorizedPermission: permission.Owner}}))
 				})
 
 				It("return an error when the user client ensure authorized user returns an error", func() {
 					responseErr := errorsTest.RandomError()
-					userClient.EnsureAuthorizedUserOutputs = []userTest.EnsureAuthorizedUserOutput{{AuthorizedUserID: "", Error: responseErr}}
+					authClient.EnsureAuthorizedUserOutputs = []authTest.EnsureAuthorizedUserOutput{{AuthorizedUserID: "", Error: responseErr}}
 					result, err := client.List(ctx, userID, filter, pagination)
 					errorsTest.ExpectEqual(err, responseErr)
 					Expect(result).To(BeNil())
@@ -102,7 +103,7 @@ var _ = Describe("Client", func() {
 
 				When("user client ensure authorized user returns successfully", func() {
 					BeforeEach(func() {
-						userClient.EnsureAuthorizedUserOutputs = []userTest.EnsureAuthorizedUserOutput{{AuthorizedUserID: userTest.RandomID(), Error: nil}}
+						authClient.EnsureAuthorizedUserOutputs = []authTest.EnsureAuthorizedUserOutput{{AuthorizedUserID: userTest.RandomID(), Error: nil}}
 					})
 
 					AfterEach(func() {
@@ -135,12 +136,12 @@ var _ = Describe("Client", func() {
 				})
 
 				AfterEach(func() {
-					Expect(userClient.EnsureAuthorizedServiceInputs).To(Equal([]context.Context{ctx}))
+					Expect(authClient.EnsureAuthorizedServiceInputs).To(Equal([]context.Context{ctx}))
 				})
 
 				It("return an error when the user client ensure authorized service returns an error", func() {
 					responseErr := errorsTest.RandomError()
-					userClient.EnsureAuthorizedServiceOutputs = []error{responseErr}
+					authClient.EnsureAuthorizedServiceOutputs = []error{responseErr}
 					result, err := client.Create(ctx, userID, create)
 					errorsTest.ExpectEqual(err, responseErr)
 					Expect(result).To(BeNil())
@@ -148,7 +149,7 @@ var _ = Describe("Client", func() {
 
 				When("user client ensure authorized service returns successfully", func() {
 					BeforeEach(func() {
-						userClient.EnsureAuthorizedServiceOutputs = []error{nil}
+						authClient.EnsureAuthorizedServiceOutputs = []error{nil}
 					})
 
 					AfterEach(func() {
@@ -183,12 +184,12 @@ var _ = Describe("Client", func() {
 
 			Context("Get", func() {
 				AfterEach(func() {
-					Expect(userClient.EnsureAuthorizedInputs).To(Equal([]context.Context{ctx}))
+					Expect(authClient.EnsureAuthorizedInputs).To(Equal([]context.Context{ctx}))
 				})
 
 				It("returns an error when the user client ensure authorized returns an error", func() {
 					responseErr := errorsTest.RandomError()
-					userClient.EnsureAuthorizedOutputs = []error{responseErr}
+					authClient.EnsureAuthorizedOutputs = []error{responseErr}
 					result, err := client.Get(ctx, id)
 					errorsTest.ExpectEqual(err, responseErr)
 					Expect(result).To(BeNil())
@@ -196,7 +197,7 @@ var _ = Describe("Client", func() {
 
 				When("user client ensure authorized returns successfully", func() {
 					BeforeEach(func() {
-						userClient.EnsureAuthorizedOutputs = []error{nil}
+						authClient.EnsureAuthorizedOutputs = []error{nil}
 					})
 
 					AfterEach(func() {
@@ -220,19 +221,19 @@ var _ = Describe("Client", func() {
 						})
 
 						AfterEach(func() {
-							Expect(userClient.EnsureAuthorizedUserInputs).To(Equal([]userTest.EnsureAuthorizedUserInput{{Context: ctx, TargetUserID: *responseResult.UserID, AuthorizedPermission: permission.Owner}}))
+							Expect(authClient.EnsureAuthorizedUserInputs).To(Equal([]authTest.EnsureAuthorizedUserInput{{Context: ctx, TargetUserID: *responseResult.UserID, AuthorizedPermission: permission.Owner}}))
 						})
 
 						It("returns an error when the user client ensure authorized user returns an error", func() {
 							responseErr := errorsTest.RandomError()
-							userClient.EnsureAuthorizedUserOutputs = []userTest.EnsureAuthorizedUserOutput{{AuthorizedUserID: "", Error: responseErr}}
+							authClient.EnsureAuthorizedUserOutputs = []authTest.EnsureAuthorizedUserOutput{{AuthorizedUserID: "", Error: responseErr}}
 							result, err := client.Get(ctx, id)
 							errorsTest.ExpectEqual(err, responseErr)
 							Expect(result).To(BeNil())
 						})
 
 						It("returns successfully when the user client ensure authorized user returns successfully", func() {
-							userClient.EnsureAuthorizedUserOutputs = []userTest.EnsureAuthorizedUserOutput{{AuthorizedUserID: userTest.RandomID(), Error: nil}}
+							authClient.EnsureAuthorizedUserOutputs = []authTest.EnsureAuthorizedUserOutput{{AuthorizedUserID: userTest.RandomID(), Error: nil}}
 							result, err := client.Get(ctx, id)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(result).To(Equal(responseResult))
@@ -249,12 +250,12 @@ var _ = Describe("Client", func() {
 				})
 
 				AfterEach(func() {
-					Expect(userClient.EnsureAuthorizedServiceInputs).To(Equal([]context.Context{ctx}))
+					Expect(authClient.EnsureAuthorizedServiceInputs).To(Equal([]context.Context{ctx}))
 				})
 
 				It("return an error when the user client ensure authorized service returns an error", func() {
 					responseErr := errorsTest.RandomError()
-					userClient.EnsureAuthorizedServiceOutputs = []error{responseErr}
+					authClient.EnsureAuthorizedServiceOutputs = []error{responseErr}
 					result, err := client.Update(ctx, id, update)
 					errorsTest.ExpectEqual(err, responseErr)
 					Expect(result).To(BeNil())
@@ -262,7 +263,7 @@ var _ = Describe("Client", func() {
 
 				When("user client ensure authorized service returns successfully", func() {
 					BeforeEach(func() {
-						userClient.EnsureAuthorizedServiceOutputs = []error{nil}
+						authClient.EnsureAuthorizedServiceOutputs = []error{nil}
 					})
 
 					AfterEach(func() {
@@ -289,12 +290,12 @@ var _ = Describe("Client", func() {
 
 			Context("Delete", func() {
 				AfterEach(func() {
-					Expect(userClient.EnsureAuthorizedServiceInputs).To(Equal([]context.Context{ctx}))
+					Expect(authClient.EnsureAuthorizedServiceInputs).To(Equal([]context.Context{ctx}))
 				})
 
 				It("return an error when the user client ensure authorized service returns an error", func() {
 					responseErr := errorsTest.RandomError()
-					userClient.EnsureAuthorizedServiceOutputs = []error{responseErr}
+					authClient.EnsureAuthorizedServiceOutputs = []error{responseErr}
 					deleted, err := client.Delete(ctx, id)
 					errorsTest.ExpectEqual(err, responseErr)
 					Expect(deleted).To(BeFalse())
@@ -302,7 +303,7 @@ var _ = Describe("Client", func() {
 
 				When("user client ensure authorized service returns successfully", func() {
 					BeforeEach(func() {
-						userClient.EnsureAuthorizedServiceOutputs = []error{nil}
+						authClient.EnsureAuthorizedServiceOutputs = []error{nil}
 					})
 
 					AfterEach(func() {

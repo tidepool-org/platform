@@ -1,12 +1,16 @@
 package test
 
 import (
+	"github.com/tidepool-org/platform/auth"
 	blobStoreStructured "github.com/tidepool-org/platform/blob/store/structured"
 	blobStoreUnstructured "github.com/tidepool-org/platform/blob/store/unstructured"
-	"github.com/tidepool-org/platform/user"
 )
 
 type ClientProvider struct {
+	AuthClientInvocations            int
+	AuthClientStub                   func() auth.Client
+	AuthClientOutputs                []auth.Client
+	AuthClientOutput                 *auth.Client
 	BlobStructuredStoreInvocations   int
 	BlobStructuredStoreStub          func() blobStoreStructured.Store
 	BlobStructuredStoreOutputs       []blobStoreStructured.Store
@@ -15,14 +19,26 @@ type ClientProvider struct {
 	BlobUnstructuredStoreStub        func() blobStoreUnstructured.Store
 	BlobUnstructuredStoreOutputs     []blobStoreUnstructured.Store
 	BlobUnstructuredStoreOutput      *blobStoreUnstructured.Store
-	UserClientInvocations            int
-	UserClientStub                   func() user.Client
-	UserClientOutputs                []user.Client
-	UserClientOutput                 *user.Client
 }
 
 func NewClientProvider() *ClientProvider {
 	return &ClientProvider{}
+}
+
+func (c *ClientProvider) AuthClient() auth.Client {
+	c.AuthClientInvocations++
+	if c.AuthClientStub != nil {
+		return c.AuthClientStub()
+	}
+	if len(c.AuthClientOutputs) > 0 {
+		output := c.AuthClientOutputs[0]
+		c.AuthClientOutputs = c.AuthClientOutputs[1:]
+		return output
+	}
+	if c.AuthClientOutput != nil {
+		return *c.AuthClientOutput
+	}
+	panic("AuthClient has no output")
 }
 
 func (c *ClientProvider) BlobStructuredStore() blobStoreStructured.Store {
@@ -57,30 +73,14 @@ func (c *ClientProvider) BlobUnstructuredStore() blobStoreUnstructured.Store {
 	panic("BlobUnstructuredStore has no output")
 }
 
-func (c *ClientProvider) UserClient() user.Client {
-	c.UserClientInvocations++
-	if c.UserClientStub != nil {
-		return c.UserClientStub()
-	}
-	if len(c.UserClientOutputs) > 0 {
-		output := c.UserClientOutputs[0]
-		c.UserClientOutputs = c.UserClientOutputs[1:]
-		return output
-	}
-	if c.UserClientOutput != nil {
-		return *c.UserClientOutput
-	}
-	panic("UserClient has no output")
-}
-
 func (c *ClientProvider) AssertOutputsEmpty() {
+	if len(c.AuthClientOutputs) > 0 {
+		panic("AuthClientOutputs is not empty")
+	}
 	if len(c.BlobStructuredStoreOutputs) > 0 {
 		panic("BlobStructuredStoreOutputs is not empty")
 	}
 	if len(c.BlobUnstructuredStoreOutputs) > 0 {
 		panic("BlobUnstructuredStoreOutputs is not empty")
-	}
-	if len(c.UserClientOutputs) > 0 {
-		panic("UserClientOutputs is not empty")
 	}
 }
