@@ -1,4 +1,4 @@
-package service
+package client
 
 import (
 	"context"
@@ -19,23 +19,23 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-type ClientProvider interface {
+type Provider interface {
 	AuthClient() auth.Client
 	BlobStructuredStore() blobStoreStructured.Store
 	BlobUnstructuredStore() blobStoreUnstructured.Store
 }
 
 type Client struct {
-	ClientProvider
+	Provider
 }
 
-func NewClient(clientProvider ClientProvider) (*Client, error) {
-	if clientProvider == nil {
-		return nil, errors.New("client provider is missing")
+func New(provider Provider) (*Client, error) {
+	if provider == nil {
+		return nil, errors.New("provider is missing")
 	}
 
 	return &Client{
-		ClientProvider: clientProvider,
+		Provider: provider,
 	}, nil
 }
 

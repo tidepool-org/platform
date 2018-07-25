@@ -1,4 +1,4 @@
-package service_test
+package client_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -13,8 +13,8 @@ import (
 	"github.com/tidepool-org/platform/auth"
 	authTest "github.com/tidepool-org/platform/auth/test"
 	"github.com/tidepool-org/platform/blob"
-	blobService "github.com/tidepool-org/platform/blob/service"
-	blobServiceTest "github.com/tidepool-org/platform/blob/service/test"
+	blobServiceClient "github.com/tidepool-org/platform/blob/service/client"
+	blobServiceClientTest "github.com/tidepool-org/platform/blob/service/client/test"
 	blobStoreStructured "github.com/tidepool-org/platform/blob/store/structured"
 	blobStoreStructuredTest "github.com/tidepool-org/platform/blob/store/structured/test"
 	blobStoreUnstructured "github.com/tidepool-org/platform/blob/store/unstructured"
@@ -34,51 +34,52 @@ import (
 )
 
 var _ = Describe("Client", func() {
+	var authClient *authTest.Client
 	var blobStructuredStore *blobStoreStructuredTest.Store
 	var blobStructuredSession *blobStoreStructuredTest.Session
 	var blobUnstructuredStore *blobStoreUnstructuredTest.Store
-	var authClient *authTest.Client
-	var clientProvider *blobServiceTest.ClientProvider
+	var provider *blobServiceClientTest.Provider
 
 	BeforeEach(func() {
+		authClient = authTest.NewClient()
 		blobStructuredStore = blobStoreStructuredTest.NewStore()
 		blobStructuredSession = blobStoreStructuredTest.NewSession()
 		blobStructuredSession.CloseOutput = func(err error) *error { return &err }(nil)
 		blobStructuredStore.NewSessionOutput = func(s blobStoreStructured.Session) *blobStoreStructured.Session { return &s }(blobStructuredSession)
 		blobUnstructuredStore = blobStoreUnstructuredTest.NewStore()
-		authClient = authTest.NewClient()
-		clientProvider = blobServiceTest.NewClientProvider()
-		clientProvider.BlobStructuredStoreOutput = func(s blobStoreStructured.Store) *blobStoreStructured.Store { return &s }(blobStructuredStore)
-		clientProvider.BlobUnstructuredStoreOutput = func(s blobStoreUnstructured.Store) *blobStoreUnstructured.Store { return &s }(blobUnstructuredStore)
-		clientProvider.AuthClientOutput = func(u auth.Client) *auth.Client { return &u }(authClient)
+		provider = blobServiceClientTest.NewProvider()
+		provider.AuthClientOutput = func(u auth.Client) *auth.Client { return &u }(authClient)
+		provider.BlobStructuredStoreOutput = func(s blobStoreStructured.Store) *blobStoreStructured.Store { return &s }(blobStructuredStore)
+		provider.BlobUnstructuredStoreOutput = func(s blobStoreUnstructured.Store) *blobStoreUnstructured.Store { return &s }(blobUnstructuredStore)
 	})
 
 	AfterEach(func() {
-		clientProvider.AssertOutputsEmpty()
+		provider.AssertOutputsEmpty()
 		blobUnstructuredStore.AssertOutputsEmpty()
 		blobStructuredStore.AssertOutputsEmpty()
+		authClient.AssertOutputsEmpty()
 	})
 
-	Context("NewClient", func() {
-		It("returns an error when the client provider is missing", func() {
-			client, err := blobService.NewClient(nil)
-			errorsTest.ExpectEqual(err, errors.New("client provider is missing"))
+	Context("New", func() {
+		It("returns an error when the provider is missing", func() {
+			client, err := blobServiceClient.New(nil)
+			errorsTest.ExpectEqual(err, errors.New("provider is missing"))
 			Expect(client).To(BeNil())
 		})
 
 		It("returns successfully", func() {
-			Expect(blobService.NewClient(clientProvider)).ToNot(BeNil())
+			Expect(blobServiceClient.New(provider)).ToNot(BeNil())
 		})
 	})
 
 	Context("with new client", func() {
-		var client *blobService.Client
+		var client *blobServiceClient.Client
 		var logger *logTest.Logger
 		var ctx context.Context
 
 		BeforeEach(func() {
 			var err error
-			client, err = blobService.NewClient(clientProvider)
+			client, err = blobServiceClient.New(provider)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(client).ToNot(BeNil())
 			logger = logTest.NewLogger()

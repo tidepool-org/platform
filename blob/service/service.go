@@ -7,6 +7,7 @@ import (
 	awsApi "github.com/tidepool-org/platform/aws/api"
 	"github.com/tidepool-org/platform/blob"
 	blobServiceApiV1 "github.com/tidepool-org/platform/blob/service/api/v1"
+	blobServiceClient "github.com/tidepool-org/platform/blob/service/client"
 	blobStoreStructured "github.com/tidepool-org/platform/blob/store/structured"
 	blobStoreStructuredMongo "github.com/tidepool-org/platform/blob/store/structured/mongo"
 	blobStoreUnstructured "github.com/tidepool-org/platform/blob/store/unstructured"
@@ -21,7 +22,7 @@ type Service struct {
 	*serviceService.Authenticated
 	blobStructuredStore   *blobStoreStructuredMongo.Store
 	blobUnstructuredStore *blobStoreUnstructured.StoreImpl
-	blobClient            *Client
+	blobClient            *blobServiceClient.Client
 }
 
 func New() *Service {
@@ -148,7 +149,7 @@ func (s *Service) terminateBlobUnstructuredStore() {
 func (s *Service) initializeBlobClient() error {
 	s.Logger().Debug("Creating blob client")
 
-	client, err := NewClient(s)
+	client, err := blobServiceClient.New(s)
 	if err != nil {
 		return errors.Wrap(err, "unable to create blob client")
 	}
