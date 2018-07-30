@@ -1,5 +1,6 @@
 ## HEAD
 
+* Add request condition revision to enforce specific update and delete operations
 * Refactor data source service client into separate package
 * Refactor blob service client into separate package
 * Move EnsureAuthorized functions from user client to auth client

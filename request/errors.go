@@ -57,6 +57,13 @@ func ErrorResourceNotFoundWithIDAndRevision(id string, revision int) error {
 	return errors.Preparedf(ErrorCodeResourceNotFound, "resource not found", "revision %d of resource with id %q not found", revision, id)
 }
 
+func ErrorResourceNotFoundWithIDAndOptionalRevision(id string, revision *int) error {
+	if revision != nil {
+		return ErrorResourceNotFoundWithIDAndRevision(id, *revision)
+	}
+	return ErrorResourceNotFoundWithID(id)
+}
+
 func ErrorHeaderMissing(key string) error {
 	return errors.Preparedf(ErrorCodeHeaderMissing, "header is missing", "header %q is missing", key)
 }

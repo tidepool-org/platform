@@ -185,6 +185,9 @@ func (s *Session) ConstructUpdate(set bson.M, unset bson.M) bson.M {
 		update["$unset"] = unset
 	}
 	if len(update) != 0 {
+		update["$inc"] = bson.M{
+			"revision": 1,
+		}
 		return update
 	}
 	return nil
