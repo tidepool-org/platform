@@ -20,6 +20,7 @@ import (
 )
 
 const (
+	SizeMaximum     = 100 * 1024 * 1024
 	StatusAvailable = "available"
 	StatusCreated   = "created"
 )

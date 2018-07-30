@@ -35,6 +35,10 @@ var nearPastTime = time.Unix(1500000000, 0)
 var farPastTime = time.Unix(1200000000, 0)
 
 var _ = Describe("Blob", func() {
+	It("SizeMaximum is expected", func() {
+		Expect(blob.SizeMaximum).To(Equal(104857600))
+	})
+
 	It("StatusAvailable is expected", func() {
 		Expect(blob.StatusAvailable).To(Equal("available"))
 	})

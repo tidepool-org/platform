@@ -20,6 +20,7 @@ import (
 	blobStoreUnstructured "github.com/tidepool-org/platform/blob/store/unstructured"
 	blobStoreUnstructuredTest "github.com/tidepool-org/platform/blob/store/unstructured/test"
 	blobTest "github.com/tidepool-org/platform/blob/test"
+	"github.com/tidepool-org/platform/crypto"
 	cryptoTest "github.com/tidepool-org/platform/crypto/test"
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
@@ -31,6 +32,7 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	requestTest "github.com/tidepool-org/platform/request/test"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 	userTest "github.com/tidepool-org/platform/user/test"
 )
@@ -301,7 +303,59 @@ var _ = Describe("Client", func() {
 									})
 								})
 
-								When("the digest matches", func() {
+								When("the size exceeds maximum", func() {
+									BeforeEach(func() {
+										content := test.RandomBytesFromRange(104857601, 104857601)
+										create.Body = bytes.NewReader(content)
+										create.DigestMD5 = pointer.FromString(crypto.Base64EncodedMD5Hash(content))
+									})
+
+									AfterEach(func() {
+										Expect(blobUnstructuredStore.DeleteInputs).To(Equal([]blobStoreUnstructuredTest.DeleteInput{{Context: ctx, UserID: userID, ID: *createBlob.ID}}))
+										Expect(blobStructuredSession.DeleteInputs).To(Equal([]blobStoreStructuredTest.DeleteInput{{Context: ctx, ID: *createBlob.ID}}))
+									})
+
+									It("returns an error", func() {
+										blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
+										blobStructuredSession.DeleteOutputs = []blobStoreStructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
+										result, err := client.Create(ctx, userID, create)
+										errorsTest.ExpectEqual(err, errorsTest.WithPointerSource(structureValidator.ErrorValueNotLessThanOrEqualTo(104857601, 104857600), "/size"))
+										Expect(result).To(BeNil())
+									})
+
+									It("returns an error and logs an error when the unstructured store returns an error", func() {
+										responseErr := errorsTest.RandomError()
+										blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
+										blobStructuredSession.DeleteOutputs = []blobStoreStructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
+										result, err := client.Create(ctx, userID, create)
+										errorsTest.ExpectEqual(err, errorsTest.WithPointerSource(structureValidator.ErrorValueNotLessThanOrEqualTo(104857601, 104857600), "/size"))
+										Expect(result).To(BeNil())
+										logger.AssertError("Unable to delete blob content exceeding maximum size", log.Fields{"userId": userID, "id": *createBlob.ID, "error": errors.NewSerializable(responseErr)})
+									})
+
+									It("returns an error and logs an error when the structured store returns an error", func() {
+										responseErr := errorsTest.RandomError()
+										blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
+										blobStructuredSession.DeleteOutputs = []blobStoreStructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
+										result, err := client.Create(ctx, userID, create)
+										errorsTest.ExpectEqual(err, errorsTest.WithPointerSource(structureValidator.ErrorValueNotLessThanOrEqualTo(104857601, 104857600), "/size"))
+										Expect(result).To(BeNil())
+										logger.AssertError("Unable to delete blob exceeding maximum size", log.Fields{"userId": userID, "id": *createBlob.ID, "error": errors.NewSerializable(responseErr)})
+									})
+
+									It("returns an error and logs an error when both the unstructured and structured store returns an error", func() {
+										responseErr := errorsTest.RandomError()
+										blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
+										blobStructuredSession.DeleteOutputs = []blobStoreStructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
+										result, err := client.Create(ctx, userID, create)
+										errorsTest.ExpectEqual(err, errorsTest.WithPointerSource(structureValidator.ErrorValueNotLessThanOrEqualTo(104857601, 104857600), "/size"))
+										Expect(result).To(BeNil())
+										logger.AssertError("Unable to delete blob content exceeding maximum size", log.Fields{"userId": userID, "id": *createBlob.ID, "error": errors.NewSerializable(responseErr)})
+										logger.AssertError("Unable to delete blob exceeding maximum size", log.Fields{"userId": userID, "id": *createBlob.ID, "error": errors.NewSerializable(responseErr)})
+									})
+								})
+
+								When("the digest and size are valid", func() {
 									AfterEach(func() {
 										update := blobStoreStructured.NewUpdate()
 										update.DigestMD5 = pointer.CloneString(create.DigestMD5)
@@ -332,6 +386,18 @@ var _ = Describe("Client", func() {
 
 										It("returns successfully", func() {
 											Expect(client.Create(ctx, userID, create)).To(Equal(updateBlob))
+										})
+
+										When("the size is maximum", func() {
+											BeforeEach(func() {
+												content := test.RandomBytesFromRange(104857600, 104857600)
+												create.Body = bytes.NewReader(content)
+												create.DigestMD5 = pointer.FromString(crypto.Base64EncodedMD5Hash(content))
+											})
+
+											It("returns successfully", func() {
+												Expect(client.Create(ctx, userID, create)).To(Equal(updateBlob))
+											})
 										})
 									})
 								})

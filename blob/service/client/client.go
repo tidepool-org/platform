@@ -97,9 +97,20 @@ func (c *Client) Create(ctx context.Context, userID string, create *blob.Create)
 		return nil, errors.WithSource(blob.ErrorDigestsNotEqual(*create.DigestMD5, digestMD5), structure.NewPointerSource().WithReference("digestMD5"))
 	}
 
+	size := sizer.Size
+	if size > blob.SizeMaximum {
+		if _, deleteErr := c.BlobUnstructuredStore().Delete(ctx, userID, *result.ID); deleteErr != nil {
+			logger.WithError(deleteErr).Error("Unable to delete blob content exceeding maximum size")
+		}
+		if _, deleteErr := session.Delete(ctx, *result.ID, nil); deleteErr != nil {
+			logger.WithError(deleteErr).Error("Unable to delete blob exceeding maximum size")
+		}
+		return nil, errors.WithSource(structureValidator.ErrorValueNotLessThanOrEqualTo(size, blob.SizeMaximum), structure.NewPointerSource().WithReference("size"))
+	}
+
 	update := blobStoreStructured.NewUpdate()
 	update.DigestMD5 = pointer.FromString(digestMD5)
-	update.Size = pointer.FromInt(sizer.Size)
+	update.Size = pointer.FromInt(size)
 	update.Status = pointer.FromString(blob.StatusAvailable)
 	return session.Update(ctx, *result.ID, nil, update)
 }
