@@ -301,7 +301,7 @@ func (t *TaskRunner) updateDataSource(update *dataSource.Update) error {
 		return nil
 	}
 
-	source, err := t.DataSourceClient().Update(t.context, *t.dataSource.ID, update)
+	source, err := t.DataSourceClient().Update(t.context, *t.dataSource.ID, nil, update)
 	if err != nil {
 		return errors.Wrap(err, "unable to update data source")
 	} else if source == nil {

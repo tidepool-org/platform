@@ -5,6 +5,7 @@ import (
 
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/page"
+	"github.com/tidepool-org/platform/request"
 )
 
 type ListInput struct {
@@ -41,9 +42,10 @@ type GetOutput struct {
 }
 
 type UpdateInput struct {
-	Context context.Context
-	UserID  string
-	Update  *dataSource.Update
+	Context   context.Context
+	ID        string
+	Condition *request.Condition
+	Update    *dataSource.Update
 }
 
 type UpdateOutput struct {
@@ -52,8 +54,9 @@ type UpdateOutput struct {
 }
 
 type DeleteInput struct {
-	Context context.Context
-	ID      string
+	Context   context.Context
+	ID        string
+	Condition *request.Condition
 }
 
 type DeleteOutput struct {
@@ -79,12 +82,12 @@ type Client struct {
 	GetOutput         *GetOutput
 	UpdateInvocations int
 	UpdateInputs      []UpdateInput
-	UpdateStub        func(ctx context.Context, userID string, create *dataSource.Update) (*dataSource.Source, error)
+	UpdateStub        func(ctx context.Context, id string, condition *request.Condition, create *dataSource.Update) (*dataSource.Source, error)
 	UpdateOutputs     []UpdateOutput
 	UpdateOutput      *UpdateOutput
 	DeleteInvocations int
 	DeleteInputs      []DeleteInput
-	DeleteStub        func(ctx context.Context, id string) (bool, error)
+	DeleteStub        func(ctx context.Context, id string, condition *request.Condition) (bool, error)
 	DeleteOutputs     []DeleteOutput
 	DeleteOutput      *DeleteOutput
 }
@@ -144,11 +147,11 @@ func (c *Client) Get(ctx context.Context, id string) (*dataSource.Source, error)
 	panic("Get has no output")
 }
 
-func (c *Client) Update(ctx context.Context, userID string, update *dataSource.Update) (*dataSource.Source, error) {
+func (c *Client) Update(ctx context.Context, id string, condition *request.Condition, update *dataSource.Update) (*dataSource.Source, error) {
 	c.UpdateInvocations++
-	c.UpdateInputs = append(c.UpdateInputs, UpdateInput{Context: ctx, UserID: userID, Update: update})
+	c.UpdateInputs = append(c.UpdateInputs, UpdateInput{Context: ctx, ID: id, Condition: condition, Update: update})
 	if c.UpdateStub != nil {
-		return c.UpdateStub(ctx, userID, update)
+		return c.UpdateStub(ctx, id, condition, update)
 	}
 	if len(c.UpdateOutputs) > 0 {
 		output := c.UpdateOutputs[0]
@@ -161,11 +164,11 @@ func (c *Client) Update(ctx context.Context, userID string, update *dataSource.U
 	panic("Update has no output")
 }
 
-func (c *Client) Delete(ctx context.Context, id string) (bool, error) {
+func (c *Client) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
 	c.DeleteInvocations++
-	c.DeleteInputs = append(c.DeleteInputs, DeleteInput{Context: ctx, ID: id})
+	c.DeleteInputs = append(c.DeleteInputs, DeleteInput{Context: ctx, ID: id, Condition: condition})
 	if c.DeleteStub != nil {
-		return c.DeleteStub(ctx, id)
+		return c.DeleteStub(ctx, id, condition)
 	}
 	if len(c.DeleteOutputs) > 0 {
 		output := c.DeleteOutputs[0]

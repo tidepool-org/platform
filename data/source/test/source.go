@@ -10,6 +10,7 @@ import (
 	dataTest "github.com/tidepool-org/platform/data/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
+	requestTest "github.com/tidepool-org/platform/request/test"
 	"github.com/tidepool-org/platform/test"
 	userTest "github.com/tidepool-org/platform/user/test"
 )
@@ -169,6 +170,7 @@ func RandomSource() *dataSource.Source {
 	datum.LastImportTime = pointer.FromTime(test.RandomTimeFromRange(*datum.LatestDataTime, time.Now()).Truncate(time.Millisecond))
 	datum.CreatedTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second))
 	datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()).Truncate(time.Second))
+	datum.Revision = pointer.FromInt(requestTest.RandomRevision())
 	return datum
 }
 
@@ -190,6 +192,7 @@ func CloneSource(datum *dataSource.Source) *dataSource.Source {
 	clone.LastImportTime = pointer.CloneTime(datum.LastImportTime)
 	clone.CreatedTime = pointer.CloneTime(datum.CreatedTime)
 	clone.ModifiedTime = pointer.CloneTime(datum.ModifiedTime)
+	clone.Revision = test.CloneInt(datum.Revision)
 	return clone
 }
 
@@ -237,6 +240,9 @@ func NewObjectFromSource(datum *dataSource.Source, objectFormat test.ObjectForma
 	if datum.ModifiedTime != nil {
 		object["modifiedTime"] = test.NewObjectFromTime(*datum.ModifiedTime, objectFormat)
 	}
+	if datum.Revision != nil {
+		object["revision"] = test.NewObjectFromInt(*datum.Revision, objectFormat)
+	}
 	return object
 }
 
@@ -276,6 +282,7 @@ func ExpectEqualSource(actual *dataSource.Source, expected *dataSource.Source) {
 	} else {
 		gomega.Expect(actual.ModifiedTime).To(gomega.Equal(expected.ModifiedTime))
 	}
+	gomega.Expect(actual.Revision).To(gomega.Equal(expected.Revision))
 }
 
 func RandomSources(minimumLength int, maximumLength int) dataSource.Sources {

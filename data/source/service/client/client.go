@@ -9,6 +9,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/permission"
+	"github.com/tidepool-org/platform/request"
 )
 
 type Provider interface {
@@ -72,7 +73,7 @@ func (c *Client) Get(ctx context.Context, id string) (*dataSource.Source, error)
 	return result, nil
 }
 
-func (c *Client) Update(ctx context.Context, id string, update *dataSource.Update) (*dataSource.Source, error) {
+func (c *Client) Update(ctx context.Context, id string, condition *request.Condition, update *dataSource.Update) (*dataSource.Source, error) {
 	if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
 		return nil, err
 	}
@@ -80,10 +81,10 @@ func (c *Client) Update(ctx context.Context, id string, update *dataSource.Updat
 	session := c.DataSourceStructuredStore().NewSession()
 	defer session.Close()
 
-	return session.Update(ctx, id, update)
+	return session.Update(ctx, id, condition, update)
 }
 
-func (c *Client) Delete(ctx context.Context, id string) (bool, error) {
+func (c *Client) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
 	if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
 		return false, err
 	}
@@ -91,5 +92,5 @@ func (c *Client) Delete(ctx context.Context, id string) (bool, error) {
 	session := c.DataSourceStructuredStore().NewSession()
 	defer session.Close()
 
-	return session.Delete(ctx, id)
+	return session.Delete(ctx, id, condition)
 }

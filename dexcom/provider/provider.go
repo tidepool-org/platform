@@ -76,7 +76,7 @@ func (p *Provider) OnCreate(ctx context.Context, userID string, providerSessionI
 		update := dataSource.NewUpdate()
 		update.State = pointer.FromString(dataSource.StateConnected)
 
-		source, err = p.dataSourceClient.Update(ctx, *source.ID, update)
+		source, err = p.dataSourceClient.Update(ctx, *source.ID, nil, update)
 		if err != nil {
 			return errors.Wrap(err, "unable to update data source")
 		}
@@ -100,7 +100,7 @@ func (p *Provider) OnCreate(ctx context.Context, userID string, providerSessionI
 
 	_, err = p.taskClient.CreateTask(ctx, taskCreate)
 	if err != nil {
-		p.dataSourceClient.Delete(ctx, *source.ID)
+		p.dataSourceClient.Delete(ctx, *source.ID, nil)
 		return errors.Wrap(err, "unable to create task")
 	}
 
@@ -132,7 +132,7 @@ func (p *Provider) OnDelete(ctx context.Context, userID string, providerSessionI
 		if dataSourceID, ok := task.Data["dataSourceId"].(string); ok && dataSourceID != "" {
 			update := dataSource.NewUpdate()
 			update.State = pointer.FromString(dataSource.StateDisconnected)
-			_, err = p.dataSourceClient.Update(ctx, dataSourceID, update)
+			_, err = p.dataSourceClient.Update(ctx, dataSourceID, nil, update)
 			if err != nil {
 				logger.WithError(err).WithField("dataSourceId", dataSourceID).Error("unable to update data source after deleting provider session")
 			}

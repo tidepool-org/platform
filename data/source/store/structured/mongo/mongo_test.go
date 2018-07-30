@@ -25,6 +25,8 @@ import (
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/request"
+	requestTest "github.com/tidepool-org/platform/request/test"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 	userTest "github.com/tidepool-org/platform/user/test"
@@ -475,6 +477,7 @@ var _ = Describe("Mongo", func() {
 							"LastImportTime":    BeNil(),
 							"CreatedTime":       PointTo(BeTemporally("~", time.Now(), time.Second)),
 							"ModifiedTime":      BeNil(),
+							"Revision":          PointTo(Equal(0)),
 						})
 						result, err := session.Create(ctx, userID, create)
 						Expect(err).ToNot(HaveOccurred())
@@ -533,6 +536,9 @@ var _ = Describe("Mongo", func() {
 						result = allResult[0]
 						result.ID = pointer.FromString(id)
 						rand.Shuffle(len(allResult), func(i, j int) { allResult[i], allResult[j] = allResult[j], allResult[i] })
+					})
+
+					JustBeforeEach(func() {
 						Expect(mgoCollection.Insert(AsInterfaceArray(allResult)...)).To(Succeed())
 					})
 
@@ -548,234 +554,332 @@ var _ = Describe("Mongo", func() {
 					It("returns the result when the id exists", func() {
 						Expect(session.Get(ctx, id)).To(Equal(result))
 					})
+
+					Context("when the revision is missing", func() {
+						BeforeEach(func() {
+							result.Revision = nil
+						})
+
+						It("returns the result with revision 0", func() {
+							result.Revision = pointer.FromInt(0)
+							Expect(session.Get(ctx, id)).To(Equal(result))
+						})
+					})
 				})
 			})
 
 			Context("Update", func() {
 				var id string
+				var condition *request.Condition
 				var update *dataSource.Update
 
 				BeforeEach(func() {
 					id = dataSourceTest.RandomID()
+					condition = requestTest.RandomCondition()
 					update = dataSourceTest.RandomUpdate()
 				})
 
 				It("returns an error when the context is missing", func() {
 					ctx = nil
-					result, err := session.Update(ctx, id, update)
+					result, err := session.Update(ctx, id, condition, update)
 					errorsTest.ExpectEqual(err, errors.New("context is missing"))
 					Expect(result).To(BeNil())
 				})
 
 				It("returns an error when the id is missing", func() {
 					id = ""
-					result, err := session.Update(ctx, id, update)
+					result, err := session.Update(ctx, id, condition, update)
 					errorsTest.ExpectEqual(err, errors.New("id is missing"))
 					Expect(result).To(BeNil())
 				})
 
 				It("returns an error when the id is invalid", func() {
 					id = "invalid"
-					result, err := session.Update(ctx, id, update)
+					result, err := session.Update(ctx, id, condition, update)
 					errorsTest.ExpectEqual(err, errors.New("id is invalid"))
+					Expect(result).To(BeNil())
+				})
+
+				It("returns an error when the condition is invalid", func() {
+					condition.Revision = pointer.FromInt(-1)
+					result, err := session.Update(ctx, id, condition, update)
+					errorsTest.ExpectEqual(err, errors.New("condition is invalid"))
 					Expect(result).To(BeNil())
 				})
 
 				It("returns an error when the update is missing", func() {
 					update = nil
-					result, err := session.Update(ctx, id, update)
+					result, err := session.Update(ctx, id, condition, update)
 					errorsTest.ExpectEqual(err, errors.New("update is missing"))
 					Expect(result).To(BeNil())
 				})
 
 				It("returns an error when the update is invalid", func() {
 					update.State = pointer.FromString("")
-					result, err := session.Update(ctx, id, update)
+					result, err := session.Update(ctx, id, condition, update)
 					errorsTest.ExpectEqual(err, errors.New("update is invalid"))
 					Expect(result).To(BeNil())
 				})
 
 				It("returns an error when the session is closed", func() {
 					session.Close()
-					result, err := session.Update(ctx, id, update)
+					result, err := session.Update(ctx, id, condition, update)
 					errorsTest.ExpectEqual(err, errors.New("session closed"))
 					Expect(result).To(BeNil())
 				})
 
 				Context("with data", func() {
-					var originalResult *dataSource.Source
+					var original *dataSource.Source
 
 					BeforeEach(func() {
-						originalResult = dataSourceTest.RandomSource()
-						originalResult.ID = pointer.FromString(id)
-						Expect(mgoCollection.Insert(originalResult)).To(Succeed())
+						original = dataSourceTest.RandomSource()
+						original.ID = pointer.FromString(id)
+						Expect(mgoCollection.Insert(original)).To(Succeed())
 					})
 
 					AfterEach(func() {
-						logger.AssertDebug("Update", log.Fields{"id": id, "update": update})
+						if condition != nil {
+							logger.AssertDebug("Update", log.Fields{"id": id, "condition": condition, "update": update})
+						} else {
+							logger.AssertDebug("Update", log.Fields{"id": id, "update": update})
+						}
 					})
 
-					It("returns updated result when the id exists and state is connected without error", func() {
-						update.State = pointer.FromString(dataSource.StateConnected)
-						update.Error = nil
-						matchAllFields := MatchAllFields(Fields{
-							"ID":                PointTo(Equal(id)),
-							"UserID":            Equal(originalResult.UserID),
-							"ProviderType":      Equal(originalResult.ProviderType),
-							"ProviderName":      Equal(originalResult.ProviderName),
-							"ProviderSessionID": Equal(originalResult.ProviderSessionID),
-							"State":             Equal(update.State),
-							"Error":             Equal(update.Error),
-							"DataSetIDs":        Equal(update.DataSetIDs),
-							"EarliestDataTime":  Equal(pointer.FromTime(update.EarliestDataTime.Truncate(time.Second))),
-							"LatestDataTime":    Equal(pointer.FromTime(update.LatestDataTime.Truncate(time.Second))),
-							"LastImportTime":    Equal(pointer.FromTime(update.LastImportTime.Truncate(time.Second))),
-							"CreatedTime":       Equal(originalResult.CreatedTime),
-							"ModifiedTime":      PointTo(BeTemporally("~", time.Now(), time.Second)),
-						})
-						result, err := session.Update(ctx, id, update)
-						Expect(err).ToNot(HaveOccurred())
-						Expect(result).ToNot(BeNil())
-						Expect(*result).To(matchAllFields)
-						storeResult := dataSource.Sources{}
-						Expect(mgoCollection.Find(bson.M{"id": id}).All(&storeResult)).To(Succeed())
-						Expect(storeResult).To(HaveLen(1))
-						Expect(*storeResult[0]).To(matchAllFields)
-					})
-
-					It("returns updated result when the id exists and state is disconnected without error", func() {
-						update.State = pointer.FromString(dataSource.StateDisconnected)
-						update.Error = nil
-						matchAllFields := MatchAllFields(Fields{
-							"ID":                PointTo(Equal(id)),
-							"UserID":            Equal(originalResult.UserID),
-							"ProviderType":      Equal(originalResult.ProviderType),
-							"ProviderName":      Equal(originalResult.ProviderName),
-							"ProviderSessionID": BeNil(),
-							"State":             Equal(update.State),
-							"Error":             Equal(update.Error),
-							"DataSetIDs":        Equal(update.DataSetIDs),
-							"EarliestDataTime":  Equal(pointer.FromTime(update.EarliestDataTime.Truncate(time.Second))),
-							"LatestDataTime":    Equal(pointer.FromTime(update.LatestDataTime.Truncate(time.Second))),
-							"LastImportTime":    Equal(pointer.FromTime(update.LastImportTime.Truncate(time.Second))),
-							"CreatedTime":       Equal(originalResult.CreatedTime),
-							"ModifiedTime":      PointTo(BeTemporally("~", time.Now(), time.Second)),
-						})
-						result, err := session.Update(ctx, id, update)
-						Expect(err).ToNot(HaveOccurred())
-						Expect(result).ToNot(BeNil())
-						Expect(*result).To(matchAllFields)
-						storeResult := dataSource.Sources{}
-						Expect(mgoCollection.Find(bson.M{"id": id}).All(&storeResult)).To(Succeed())
-						Expect(storeResult).To(HaveLen(1))
-						Expect(*storeResult[0]).To(matchAllFields)
-					})
-
-					It("returns updated result when the id exists and state is error with error", func() {
-						update.State = pointer.FromString(dataSource.StateConnected)
-						matchAllFields := MatchAllFields(Fields{
-							"ID":                PointTo(Equal(id)),
-							"UserID":            Equal(originalResult.UserID),
-							"ProviderType":      Equal(originalResult.ProviderType),
-							"ProviderName":      Equal(originalResult.ProviderName),
-							"ProviderSessionID": Equal(originalResult.ProviderSessionID),
-							"State":             Equal(update.State),
-							"Error":             Equal(update.Error),
-							"DataSetIDs":        Equal(update.DataSetIDs),
-							"EarliestDataTime":  Equal(pointer.FromTime(update.EarliestDataTime.Truncate(time.Second))),
-							"LatestDataTime":    Equal(pointer.FromTime(update.LatestDataTime.Truncate(time.Second))),
-							"LastImportTime":    Equal(pointer.FromTime(update.LastImportTime.Truncate(time.Second))),
-							"CreatedTime":       Equal(originalResult.CreatedTime),
-							"ModifiedTime":      PointTo(BeTemporally("~", time.Now(), time.Second)),
-						})
-						result, err := session.Update(ctx, id, update)
-						Expect(err).ToNot(HaveOccurred())
-						Expect(result).ToNot(BeNil())
-						Expect(*result).To(matchAllFields)
-						storeResult := dataSource.Sources{}
-						Expect(mgoCollection.Find(bson.M{"id": id}).All(&storeResult)).To(Succeed())
-						Expect(storeResult).To(HaveLen(1))
-						Expect(*storeResult[0]).To(matchAllFields)
-					})
-
-					It("returns nil when the id does not exist", func() {
-						id = dataSourceTest.RandomID()
-						Expect(session.Update(ctx, id, update)).To(BeNil())
-					})
-
-					Context("without updates", func() {
+					When("the condition revision does not match", func() {
 						BeforeEach(func() {
-							update = dataSource.NewUpdate()
+							condition.Revision = pointer.FromInt(*original.Revision + 1)
 						})
 
-						It("returns original result when the id exists", func() {
-							Expect(session.Update(ctx, id, update)).To(Equal(originalResult))
+						It("returns nil", func() {
+							Expect(session.Update(ctx, id, condition, update)).To(BeNil())
+						})
+					})
+
+					updateAssertions := func() {
+						Context("with updates", func() {
+							It("returns updated result when the id exists and state is connected without error", func() {
+								update.State = pointer.FromString(dataSource.StateConnected)
+								update.Error = nil
+								matchAllFields := MatchAllFields(Fields{
+									"ID":                PointTo(Equal(id)),
+									"UserID":            Equal(original.UserID),
+									"ProviderType":      Equal(original.ProviderType),
+									"ProviderName":      Equal(original.ProviderName),
+									"ProviderSessionID": Equal(original.ProviderSessionID),
+									"State":             Equal(update.State),
+									"Error":             Equal(update.Error),
+									"DataSetIDs":        Equal(update.DataSetIDs),
+									"EarliestDataTime":  PointTo(Equal(update.EarliestDataTime.Truncate(time.Second))),
+									"LatestDataTime":    PointTo(Equal(update.LatestDataTime.Truncate(time.Second))),
+									"LastImportTime":    PointTo(Equal(update.LastImportTime.Truncate(time.Second))),
+									"CreatedTime":       Equal(original.CreatedTime),
+									"ModifiedTime":      PointTo(BeTemporally("~", time.Now(), time.Second)),
+									"Revision":          PointTo(Equal(*original.Revision + 1)),
+								})
+								result, err := session.Update(ctx, id, condition, update)
+								Expect(err).ToNot(HaveOccurred())
+								Expect(result).ToNot(BeNil())
+								Expect(*result).To(matchAllFields)
+								storeResult := dataSource.Sources{}
+								Expect(mgoCollection.Find(bson.M{"id": id}).All(&storeResult)).To(Succeed())
+								Expect(storeResult).To(HaveLen(1))
+								Expect(*storeResult[0]).To(matchAllFields)
+							})
+
+							It("returns updated result when the id exists and state is disconnected without error", func() {
+								update.State = pointer.FromString(dataSource.StateDisconnected)
+								update.Error = nil
+								matchAllFields := MatchAllFields(Fields{
+									"ID":                PointTo(Equal(id)),
+									"UserID":            Equal(original.UserID),
+									"ProviderType":      Equal(original.ProviderType),
+									"ProviderName":      Equal(original.ProviderName),
+									"ProviderSessionID": BeNil(),
+									"State":             Equal(update.State),
+									"Error":             Equal(update.Error),
+									"DataSetIDs":        Equal(update.DataSetIDs),
+									"EarliestDataTime":  PointTo(Equal(update.EarliestDataTime.Truncate(time.Second))),
+									"LatestDataTime":    PointTo(Equal(update.LatestDataTime.Truncate(time.Second))),
+									"LastImportTime":    PointTo(Equal(update.LastImportTime.Truncate(time.Second))),
+									"CreatedTime":       Equal(original.CreatedTime),
+									"ModifiedTime":      PointTo(BeTemporally("~", time.Now(), time.Second)),
+									"Revision":          PointTo(Equal(*original.Revision + 1)),
+								})
+								result, err := session.Update(ctx, id, condition, update)
+								Expect(err).ToNot(HaveOccurred())
+								Expect(result).ToNot(BeNil())
+								Expect(*result).To(matchAllFields)
+								storeResult := dataSource.Sources{}
+								Expect(mgoCollection.Find(bson.M{"id": id}).All(&storeResult)).To(Succeed())
+								Expect(storeResult).To(HaveLen(1))
+								Expect(*storeResult[0]).To(matchAllFields)
+							})
+
+							It("returns updated result when the id exists and state is error with error", func() {
+								update.State = pointer.FromString(dataSource.StateConnected)
+								matchAllFields := MatchAllFields(Fields{
+									"ID":                PointTo(Equal(id)),
+									"UserID":            Equal(original.UserID),
+									"ProviderType":      Equal(original.ProviderType),
+									"ProviderName":      Equal(original.ProviderName),
+									"ProviderSessionID": Equal(original.ProviderSessionID),
+									"State":             Equal(update.State),
+									"Error":             Equal(update.Error),
+									"DataSetIDs":        Equal(update.DataSetIDs),
+									"EarliestDataTime":  PointTo(Equal(update.EarliestDataTime.Truncate(time.Second))),
+									"LatestDataTime":    PointTo(Equal(update.LatestDataTime.Truncate(time.Second))),
+									"LastImportTime":    PointTo(Equal(update.LastImportTime.Truncate(time.Second))),
+									"CreatedTime":       Equal(original.CreatedTime),
+									"ModifiedTime":      PointTo(BeTemporally("~", time.Now(), time.Second)),
+									"Revision":          PointTo(Equal(*original.Revision + 1)),
+								})
+								result, err := session.Update(ctx, id, condition, update)
+								Expect(err).ToNot(HaveOccurred())
+								Expect(result).ToNot(BeNil())
+								Expect(*result).To(matchAllFields)
+								storeResult := dataSource.Sources{}
+								Expect(mgoCollection.Find(bson.M{"id": id}).All(&storeResult)).To(Succeed())
+								Expect(storeResult).To(HaveLen(1))
+								Expect(*storeResult[0]).To(matchAllFields)
+							})
+
+							It("returns nil when the id does not exist", func() {
+								id = dataSourceTest.RandomID()
+								Expect(session.Update(ctx, id, condition, update)).To(BeNil())
+							})
 						})
 
-						It("returns nil when the id does not exist", func() {
-							id = dataSourceTest.RandomID()
-							Expect(session.Update(ctx, id, update)).To(BeNil())
+						Context("without updates", func() {
+							BeforeEach(func() {
+								update = dataSource.NewUpdate()
+							})
+
+							It("returns original when the id exists", func() {
+								Expect(session.Update(ctx, id, condition, update)).To(Equal(original))
+							})
+
+							It("returns nil when the id does not exist", func() {
+								id = dataSourceTest.RandomID()
+								Expect(session.Update(ctx, id, condition, update)).To(BeNil())
+							})
 						})
+					}
+
+					When("the condition is missing", func() {
+						BeforeEach(func() {
+							condition = nil
+						})
+
+						updateAssertions()
+					})
+
+					When("the condition revision is missing", func() {
+						BeforeEach(func() {
+							condition.Revision = nil
+						})
+
+						updateAssertions()
+					})
+
+					When("the condition revision matches", func() {
+						BeforeEach(func() {
+							condition.Revision = pointer.CloneInt(original.Revision)
+						})
+
+						updateAssertions()
 					})
 				})
 			})
 
 			Context("Delete", func() {
 				var id string
+				var condition *request.Condition
 
 				BeforeEach(func() {
 					id = dataSourceTest.RandomID()
+					condition = requestTest.RandomCondition()
 				})
 
 				It("returns an error when the context is missing", func() {
 					ctx = nil
-					deleted, err := session.Delete(ctx, id)
+					deleted, err := session.Delete(ctx, id, condition)
 					errorsTest.ExpectEqual(err, errors.New("context is missing"))
 					Expect(deleted).To(BeFalse())
 				})
 
 				It("returns an error when the id is missing", func() {
 					id = ""
-					deleted, err := session.Delete(ctx, id)
+					deleted, err := session.Delete(ctx, id, condition)
 					errorsTest.ExpectEqual(err, errors.New("id is missing"))
 					Expect(deleted).To(BeFalse())
 				})
 
 				It("returns an error when the id is invalid", func() {
 					id = "invalid"
-					deleted, err := session.Delete(ctx, id)
+					deleted, err := session.Delete(ctx, id, condition)
 					errorsTest.ExpectEqual(err, errors.New("id is invalid"))
+					Expect(deleted).To(BeFalse())
+				})
+
+				It("returns an error when the condition is invalid", func() {
+					condition.Revision = pointer.FromInt(-1)
+					deleted, err := session.Delete(ctx, id, condition)
+					errorsTest.ExpectEqual(err, errors.New("condition is invalid"))
 					Expect(deleted).To(BeFalse())
 				})
 
 				It("returns an error when the session is closed", func() {
 					session.Close()
-					deleted, err := session.Delete(ctx, id)
+					deleted, err := session.Delete(ctx, id, condition)
 					errorsTest.ExpectEqual(err, errors.New("session closed"))
 					Expect(deleted).To(BeFalse())
 				})
 
 				Context("with data", func() {
-					var result *dataSource.Source
+					var original *dataSource.Source
 
 					BeforeEach(func() {
-						result = dataSourceTest.RandomSource()
-						result.ID = pointer.FromString(id)
-						Expect(mgoCollection.Insert(result)).To(Succeed())
+						original = dataSourceTest.RandomSource()
+						original.ID = pointer.FromString(id)
+						Expect(mgoCollection.Insert(original)).To(Succeed())
 					})
 
 					AfterEach(func() {
-						logger.AssertDebug("Delete", log.Fields{"id": id})
+						if condition != nil {
+							logger.AssertDebug("Delete", log.Fields{"id": id, "condition": condition})
+						} else {
+							logger.AssertDebug("Delete", log.Fields{"id": id})
+						}
 					})
 
-					It("returns true and deletes the result when the id exists", func() {
-						Expect(session.Delete(ctx, id)).To(BeTrue())
-						Expect(mgoCollection.Find(bson.M{"id": id}).Count()).To(Equal(0))
-					})
-
-					It("returns false when the id does not exist", func() {
+					It("returns false and does not delete the original when the id does not exist", func() {
 						id = dataSourceTest.RandomID()
-						Expect(session.Delete(ctx, id)).To(BeFalse())
+						Expect(session.Delete(ctx, id, condition)).To(BeFalse())
+						Expect(mgoCollection.Find(bson.M{"id": original.ID}).Count()).To(Equal(1))
+					})
+
+					It("returns false and does not delete the original when the id exists, but the condition revision does not match", func() {
+						condition.Revision = pointer.FromInt(*original.Revision + 1)
+						Expect(session.Delete(ctx, id, condition)).To(BeFalse())
+						Expect(mgoCollection.Find(bson.M{"id": original.ID}).Count()).To(Equal(1))
+					})
+
+					It("returns true and deletes the original when the id exists and the condition is missing", func() {
+						condition = nil
+						Expect(session.Delete(ctx, id, condition)).To(BeTrue())
+						Expect(mgoCollection.Find(bson.M{"id": original.ID}).Count()).To(Equal(0))
+					})
+
+					It("returns true and deletes the original when the id exists and the condition revision is missing", func() {
+						condition.Revision = nil
+						Expect(session.Delete(ctx, id, condition)).To(BeTrue())
+						Expect(mgoCollection.Find(bson.M{"id": original.ID}).Count()).To(Equal(0))
+					})
+
+					It("returns true and deletes the original when the id exists and the condition revision matches", func() {
+						condition.Revision = pointer.CloneInt(original.Revision)
+						Expect(session.Delete(ctx, id, condition)).To(BeTrue())
+						Expect(mgoCollection.Find(bson.M{"id": original.ID}).Count()).To(Equal(0))
 					})
 				})
 			})

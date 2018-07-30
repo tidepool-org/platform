@@ -176,18 +176,24 @@ func UpdateSource(dataServiceContext dataService.Context) {
 		return
 	}
 
+	condition := request.NewCondition()
+	if err := request.DecodeRequestQuery(req.Request, condition); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
 	update := dataSource.NewUpdate()
 	if err := request.DecodeRequestBody(req.Request, update); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
 	}
 
-	source, err := dataServiceContext.DataSourceClient().Update(req.Context(), id, update)
+	source, err := dataServiceContext.DataSourceClient().Update(req.Context(), id, condition, update)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
 	} else if source == nil {
-		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithID(id))
+		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithIDAndOptionalRevision(id, condition.Revision))
 		return
 	}
 
@@ -219,9 +225,18 @@ func DeleteSource(dataServiceContext dataService.Context) {
 		return
 	}
 
-	_, err := dataServiceContext.DataSourceClient().Delete(req.Context(), id)
+	condition := request.NewCondition()
+	if err := request.DecodeRequestQuery(req.Request, condition); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	deleted, err := dataServiceContext.DataSourceClient().Delete(req.Context(), id, condition)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
+		return
+	} else if !deleted {
+		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithIDAndOptionalRevision(id, condition.Revision))
 		return
 	}
 

@@ -36,8 +36,8 @@ type Accessor interface {
 	List(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) (Sources, error)
 	Create(ctx context.Context, userID string, create *Create) (*Source, error)
 	Get(ctx context.Context, id string) (*Source, error)
-	Update(ctx context.Context, id string, update *Update) (*Source, error)
-	Delete(ctx context.Context, id string) (bool, error)
+	Update(ctx context.Context, id string, condition *request.Condition, update *Update) (*Source, error)
+	Delete(ctx context.Context, id string, condition *request.Condition) (bool, error)
 }
 
 type Client interface {
@@ -183,6 +183,7 @@ type Source struct {
 	LastImportTime    *time.Time           `json:"lastImportTime,omitempty" bson:"lastImportTime,omitempty"`
 	CreatedTime       *time.Time           `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
 	ModifiedTime      *time.Time           `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
+	Revision          *int                 `json:"revision,omitempty" bson:"revision,omitempty"`
 }
 
 func (s *Source) Parse(parser structure.ObjectParser) {
@@ -205,6 +206,7 @@ func (s *Source) Parse(parser structure.ObjectParser) {
 	s.LastImportTime = parser.Time("lastImportTime", time.RFC3339)
 	s.CreatedTime = parser.Time("createdTime", time.RFC3339)
 	s.ModifiedTime = parser.Time("modifiedTime", time.RFC3339)
+	s.Revision = parser.Int("revision")
 }
 
 func (s *Source) Validate(validator structure.Validator) {
@@ -223,6 +225,7 @@ func (s *Source) Validate(validator structure.Validator) {
 	validator.Time("lastImportTime", s.LastImportTime).NotZero().BeforeNow(time.Second)
 	validator.Time("createdTime", s.CreatedTime).Exists().NotZero().BeforeNow(time.Second)
 	validator.Time("modifiedTime", s.ModifiedTime).NotZero().After(pointer.ToTime(s.CreatedTime)).BeforeNow(time.Second)
+	validator.Int("revision", s.Revision).Exists().GreaterThanOrEqualTo(0)
 }
 
 func (s *Source) Normalize(normalizer structure.Normalizer) {
