@@ -20,6 +20,7 @@ import (
 	"github.com/tidepool-org/platform/net"
 	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/pointer"
+	requestTest "github.com/tidepool-org/platform/request/test"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureTest "github.com/tidepool-org/platform/structure/test"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -642,6 +643,26 @@ var _ = Describe("Blob", func() {
 						expectedDatum.ModifiedTime = pointer.FromTime(valid)
 					},
 				),
+				Entry("revision missing",
+					func(object map[string]interface{}, expectedDatum *blob.Blob) {
+						delete(object, "revision")
+						expectedDatum.Revision = nil
+					},
+				),
+				Entry("revision invalid type",
+					func(object map[string]interface{}, expectedDatum *blob.Blob) {
+						object["revision"] = true
+						expectedDatum.Revision = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotInt(true), "/revision"),
+				),
+				Entry("revision valid",
+					func(object map[string]interface{}, expectedDatum *blob.Blob) {
+						valid := requestTest.RandomRevision()
+						object["revision"] = valid
+						expectedDatum.Revision = pointer.FromInt(valid)
+					},
+				),
 				Entry("multiple",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
 						object["id"] = true
@@ -652,6 +673,7 @@ var _ = Describe("Blob", func() {
 						object["status"] = true
 						object["createdTime"] = true
 						object["modifiedTime"] = true
+						object["revision"] = true
 						expectedDatum.ID = nil
 						expectedDatum.UserID = nil
 						expectedDatum.DigestMD5 = nil
@@ -660,6 +682,7 @@ var _ = Describe("Blob", func() {
 						expectedDatum.Status = nil
 						expectedDatum.CreatedTime = nil
 						expectedDatum.ModifiedTime = nil
+						expectedDatum.Revision = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/id"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/userId"),
@@ -669,6 +692,7 @@ var _ = Describe("Blob", func() {
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/status"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/createdTime"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/modifiedTime"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotInt(true), "/revision"),
 				),
 			)
 		})
@@ -812,6 +836,23 @@ var _ = Describe("Blob", func() {
 						datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()).Truncate(time.Second))
 					},
 				),
+				Entry("revision missing",
+					func(datum *blob.Blob) {
+						datum.Revision = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/revision"),
+				),
+				Entry("revision out of range (lower)",
+					func(datum *blob.Blob) {
+						datum.Revision = pointer.FromInt(-1)
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/revision"),
+				),
+				Entry("revision in range (lower)",
+					func(datum *blob.Blob) {
+						datum.Revision = pointer.FromInt(0)
+					},
+				),
 				Entry("multiple errors",
 					func(datum *blob.Blob) {
 						datum.ID = nil
@@ -822,6 +863,7 @@ var _ = Describe("Blob", func() {
 						datum.Status = nil
 						datum.CreatedTime = nil
 						datum.ModifiedTime = pointer.FromTime(futureTime)
+						datum.Revision = pointer.FromInt(-1)
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/id"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/userId"),
@@ -831,6 +873,7 @@ var _ = Describe("Blob", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/status"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/createdTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/modifiedTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/revision"),
 				),
 			)
 		})

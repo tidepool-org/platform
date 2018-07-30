@@ -180,11 +180,17 @@ func (r *Router) Delete(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	exists, err := r.provider.BlobClient().Delete(req.Context(), id)
+	condition := request.NewCondition()
+	if err = request.DecodeRequestQuery(req.Request, condition); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	deleted, err := r.provider.BlobClient().Delete(req.Context(), id, condition)
 	if responder.RespondIfError(err) {
 		return
-	} else if !exists {
-		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithID(id))
+	} else if !deleted {
+		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithIDAndOptionalRevision(id, condition.Revision))
 		return
 	}
 

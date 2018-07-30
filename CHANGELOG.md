@@ -1,5 +1,6 @@
 ## HEAD
 
+* Add blob revision
 * Add data source revision
 * Add request condition revision to enforce specific update and delete operations
 * Refactor data source service client into separate package

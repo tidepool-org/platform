@@ -12,6 +12,7 @@ import (
 	cryptoTest "github.com/tidepool-org/platform/crypto/test"
 	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/pointer"
+	requestTest "github.com/tidepool-org/platform/request/test"
 	"github.com/tidepool-org/platform/test"
 	userTest "github.com/tidepool-org/platform/user/test"
 )
@@ -76,6 +77,7 @@ func RandomBlob() *blob.Blob {
 	if *datum.Status == blob.StatusAvailable {
 		datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()).Truncate(time.Second))
 	}
+	datum.Revision = pointer.FromInt(requestTest.RandomRevision())
 	return datum
 }
 
@@ -92,6 +94,7 @@ func CloneBlob(datum *blob.Blob) *blob.Blob {
 	clone.Status = pointer.CloneString(datum.Status)
 	clone.CreatedTime = pointer.CloneTime(datum.CreatedTime)
 	clone.ModifiedTime = pointer.CloneTime(datum.ModifiedTime)
+	clone.Revision = test.CloneInt(datum.Revision)
 	return clone
 }
 
@@ -124,6 +127,9 @@ func NewObjectFromBlob(datum *blob.Blob, objectFormat test.ObjectFormat) map[str
 	if datum.ModifiedTime != nil {
 		object["modifiedTime"] = test.NewObjectFromTime(*datum.ModifiedTime, objectFormat)
 	}
+	if datum.Revision != nil {
+		object["revision"] = test.NewObjectFromInt(*datum.Revision, objectFormat)
+	}
 	return object
 }
 
@@ -146,6 +152,7 @@ func ExpectEqualBlob(actual *blob.Blob, expected *blob.Blob) {
 	} else {
 		gomega.Expect(actual.ModifiedTime).To(gomega.Equal(expected.ModifiedTime))
 	}
+	gomega.Expect(actual.Revision).To(gomega.Equal(expected.Revision))
 }
 
 func RandomBlobs(minimumLength int, maximumLength int) blob.Blobs {

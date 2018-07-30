@@ -153,7 +153,7 @@ func (c *Client) GetContent(ctx context.Context, id string) (*blob.Content, erro
 	}, nil
 }
 
-func (c *Client) Delete(ctx context.Context, id string) (bool, error) {
+func (c *Client) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
 	if ctx == nil {
 		return false, errors.New("context is missing")
 	}
@@ -162,9 +162,14 @@ func (c *Client) Delete(ctx context.Context, id string) (bool, error) {
 	} else if !blob.IsValidID(id) {
 		return false, errors.New("id is invalid")
 	}
+	if condition == nil {
+		condition = request.NewCondition()
+	} else if err := structureValidator.New().Validate(condition); err != nil {
+		return false, errors.Wrap(err, "condition is invalid")
+	}
 
 	url := c.client.ConstructURL("v1", "blobs", id)
-	if err := c.client.RequestData(ctx, http.MethodDelete, url, nil, nil, nil); err != nil {
+	if err := c.client.RequestData(ctx, http.MethodDelete, url, []request.RequestMutator{condition}, nil, nil); err != nil {
 		if request.IsErrorResourceNotFound(err) {
 			return false, nil
 		}

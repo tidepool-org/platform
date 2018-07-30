@@ -15,6 +15,7 @@ import (
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -77,7 +78,7 @@ func (c *Client) Create(ctx context.Context, userID string, create *blob.Create)
 	sizer := NewSizeWriter()
 	err = c.BlobUnstructuredStore().Put(ctx, userID, *result.ID, io.TeeReader(io.TeeReader(create.Body, hasher), sizer))
 	if err != nil {
-		if _, deleteErr := session.Delete(ctx, *result.ID); deleteErr != nil {
+		if _, deleteErr := session.Delete(ctx, *result.ID, nil); deleteErr != nil {
 			logger.WithError(deleteErr).Error("Unable to delete blob after failure to put blob content")
 		}
 		return nil, err
@@ -90,7 +91,7 @@ func (c *Client) Create(ctx context.Context, userID string, create *blob.Create)
 		if _, deleteErr := c.BlobUnstructuredStore().Delete(ctx, userID, *result.ID); deleteErr != nil {
 			logger.WithError(deleteErr).Error("Unable to delete blob content with incorrect MD5 digest")
 		}
-		if _, deleteErr := session.Delete(ctx, *result.ID); deleteErr != nil {
+		if _, deleteErr := session.Delete(ctx, *result.ID, nil); deleteErr != nil {
 			logger.WithError(deleteErr).Error("Unable to delete blob with incorrect MD5 digest")
 		}
 		return nil, errors.WithSource(blob.ErrorDigestsNotEqual(*create.DigestMD5, digestMD5), structure.NewPointerSource().WithReference("digestMD5"))
@@ -100,7 +101,7 @@ func (c *Client) Create(ctx context.Context, userID string, create *blob.Create)
 	update.DigestMD5 = pointer.FromString(digestMD5)
 	update.Size = pointer.FromInt(sizer.Size)
 	update.Status = pointer.FromString(blob.StatusAvailable)
-	return session.Update(ctx, *result.ID, update)
+	return session.Update(ctx, *result.ID, nil, update)
 }
 
 func (c *Client) Get(ctx context.Context, id string) (*blob.Blob, error) {
@@ -142,7 +143,7 @@ func (c *Client) GetContent(ctx context.Context, id string) (*blob.Content, erro
 	}, nil
 }
 
-func (c *Client) Delete(ctx context.Context, id string) (bool, error) {
+func (c *Client) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
 	if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
 		return false, err
 	}
@@ -155,6 +156,8 @@ func (c *Client) Delete(ctx context.Context, id string) (bool, error) {
 		return false, err
 	} else if result == nil {
 		return false, nil
+	} else if condition != nil && condition.Revision != nil && *condition.Revision != *result.Revision {
+		return false, nil
 	}
 
 	exists, err := c.BlobUnstructuredStore().Delete(ctx, *result.UserID, *result.ID)
@@ -164,7 +167,7 @@ func (c *Client) Delete(ctx context.Context, id string) (bool, error) {
 		log.LoggerFromContext(ctx).WithField("id", id).Error("Deleting blob with no content")
 	}
 
-	return session.Delete(ctx, id)
+	return session.Delete(ctx, id, nil)
 }
 
 type SizeWriter struct {

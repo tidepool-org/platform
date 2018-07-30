@@ -31,6 +31,7 @@ import (
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
+	requestTest "github.com/tidepool-org/platform/request/test"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 	testRest "github.com/tidepool-org/platform/test/rest"
@@ -752,9 +753,19 @@ var _ = Describe("V1", func() {
 				})
 
 				Context("Delete", func() {
+					var revision *int
+
 					BeforeEach(func() {
+						revision = pointer.FromInt(requestTest.RandomRevision())
 						req.Method = http.MethodDelete
 						req.URL.Path = fmt.Sprintf("/v1/blobs/%s", id)
+					})
+
+					JustBeforeEach(func() {
+						if revision != nil {
+							query := url.Values{"revision": []string{strconv.Itoa(*revision)}}
+							req.URL.RawQuery = query.Encode()
+						}
 					})
 
 					It("panics when the response is missing", func() {
@@ -780,6 +791,21 @@ var _ = Describe("V1", func() {
 						})
 					})
 
+					When("the query contains an invalid revision", func() {
+						BeforeEach(func() {
+							revision = pointer.FromInt(-1)
+						})
+
+						It("responds with bad request and expected error in body", func() {
+							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+							handlerFunc(res, req)
+							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
+							Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
+							Expect(res.WriteInputs).To(HaveLen(1))
+							errorsTest.ExpectErrorJSON(errorsTest.WithParameterSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "revision"), res.WriteInputs[0])
+						})
+					})
+
 					Context("with client", func() {
 						var client *blobTest.Client
 
@@ -789,45 +815,72 @@ var _ = Describe("V1", func() {
 						})
 
 						AfterEach(func() {
-							Expect(client.DeleteInputs).To(Equal([]blobTest.DeleteInput{{Context: ctx, ID: id}}))
 							client.AssertOutputsEmpty()
 						})
 
-						It("responds with an unauthorized error when the client returns an unauthorized error", func() {
-							client.DeleteOutputs = []blobTest.DeleteOutput{{Deleted: false, Error: request.ErrorUnauthorized()}}
-							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-							handlerFunc(res, req)
-							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
-							Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
-							Expect(res.WriteInputs).To(HaveLen(1))
-							errorsTest.ExpectErrorJSON(request.ErrorUnauthorized(), res.WriteInputs[0])
+						deleteAssertions := func() {
+							Context("deletes", func() {
+								It("responds with an unauthorized error when the client returns an unauthorized error", func() {
+									client.DeleteOutputs = []blobTest.DeleteOutput{{Deleted: false, Error: request.ErrorUnauthorized()}}
+									res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
+									Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									errorsTest.ExpectErrorJSON(request.ErrorUnauthorized(), res.WriteInputs[0])
+								})
+
+								It("responds with an internal server error when the client returns an unknown error", func() {
+									client.DeleteOutputs = []blobTest.DeleteOutput{{Deleted: false, Error: errorsTest.RandomError()}}
+									res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusInternalServerError}))
+									Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									errorsTest.ExpectErrorJSON(request.ErrorInternalServerError(nil), res.WriteInputs[0])
+								})
+
+								It("responds with not found error when the client does not return a blob", func() {
+									client.DeleteOutputs = []blobTest.DeleteOutput{{Deleted: false, Error: nil}}
+									res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusNotFound}))
+									Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									errorsTest.ExpectErrorJSON(request.ErrorResourceNotFoundWithIDAndOptionalRevision(id, revision), res.WriteInputs[0])
+								})
+
+								It("responds successfully", func() {
+									client.DeleteOutputs = []blobTest.DeleteOutput{{Deleted: true, Error: nil}}
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusNoContent}))
+									Expect(res.HeaderOutput).To(Equal(&http.Header{}))
+								})
+							})
+						}
+
+						When("revision is missing", func() {
+							BeforeEach(func() {
+								revision = nil
+							})
+
+							AfterEach(func() {
+								Expect(client.DeleteInputs).To(Equal([]blobTest.DeleteInput{{Context: ctx, ID: id, Condition: &request.Condition{}}}))
+							})
+
+							deleteAssertions()
 						})
 
-						It("responds with an internal server error when the client returns an unknown error", func() {
-							client.DeleteOutputs = []blobTest.DeleteOutput{{Deleted: false, Error: errorsTest.RandomError()}}
-							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-							handlerFunc(res, req)
-							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusInternalServerError}))
-							Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
-							Expect(res.WriteInputs).To(HaveLen(1))
-							errorsTest.ExpectErrorJSON(request.ErrorInternalServerError(nil), res.WriteInputs[0])
-						})
+						When("revision is present", func() {
+							BeforeEach(func() {
+								revision = pointer.FromInt(requestTest.RandomRevision())
+							})
 
-						It("responds with not found error when the client does not return a blob", func() {
-							client.DeleteOutputs = []blobTest.DeleteOutput{{Deleted: false, Error: nil}}
-							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-							handlerFunc(res, req)
-							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusNotFound}))
-							Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
-							Expect(res.WriteInputs).To(HaveLen(1))
-							errorsTest.ExpectErrorJSON(request.ErrorResourceNotFoundWithID(id), res.WriteInputs[0])
-						})
+							AfterEach(func() {
+								Expect(client.DeleteInputs).To(Equal([]blobTest.DeleteInput{{Context: ctx, ID: id, Condition: &request.Condition{Revision: revision}}}))
+							})
 
-						It("responds successfully", func() {
-							client.DeleteOutputs = []blobTest.DeleteOutput{{Deleted: true, Error: nil}}
-							handlerFunc(res, req)
-							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusNoContent}))
-							Expect(res.HeaderOutput).To(Equal(&http.Header{}))
+							deleteAssertions()
 						})
 					})
 				})

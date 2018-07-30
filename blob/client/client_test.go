@@ -27,6 +27,7 @@ import (
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
+	requestTest "github.com/tidepool-org/platform/request/test"
 	"github.com/tidepool-org/platform/test"
 	testHttp "github.com/tidepool-org/platform/test/http"
 	userTest "github.com/tidepool-org/platform/user/test"
@@ -155,7 +156,10 @@ var _ = Describe("Client", func() {
 
 						Context("with server response", func() {
 							BeforeEach(func() {
-								requestHandlers = append(requestHandlers, VerifyContentType(""), VerifyBody(nil))
+								requestHandlers = append(requestHandlers,
+									VerifyContentType(""),
+									VerifyBody(nil),
+								)
 							})
 
 							AfterEach(func() {
@@ -315,7 +319,8 @@ var _ = Describe("Client", func() {
 								requestHandlers = append(requestHandlers,
 									VerifyRequest("POST", fmt.Sprintf("/v1/users/%s/blobs", userID)),
 									VerifyContentType(*create.MediaType),
-									VerifyBody(body))
+									VerifyBody(body),
+								)
 							})
 
 							AfterEach(func() {
@@ -430,7 +435,11 @@ var _ = Describe("Client", func() {
 
 					Context("with server response", func() {
 						BeforeEach(func() {
-							requestHandlers = append(requestHandlers, VerifyRequest("GET", fmt.Sprintf("/v1/blobs/%s", id)), VerifyContentType(""), VerifyBody(nil))
+							requestHandlers = append(requestHandlers,
+								VerifyRequest("GET", fmt.Sprintf("/v1/blobs/%s", id)),
+								VerifyContentType(""),
+								VerifyBody(nil),
+							)
 						})
 
 						AfterEach(func() {
@@ -520,7 +529,11 @@ var _ = Describe("Client", func() {
 
 					Context("with server response", func() {
 						BeforeEach(func() {
-							requestHandlers = append(requestHandlers, VerifyRequest("GET", fmt.Sprintf("/v1/blobs/%s/content", id)), VerifyContentType(""), VerifyBody(nil))
+							requestHandlers = append(requestHandlers,
+								VerifyRequest("GET", fmt.Sprintf("/v1/blobs/%s/content", id)),
+								VerifyContentType(""),
+								VerifyBody(nil),
+							)
 						})
 
 						AfterEach(func() {
@@ -630,6 +643,12 @@ var _ = Describe("Client", func() {
 				})
 
 				Context("Delete", func() {
+					var condition *request.Condition
+
+					BeforeEach(func() {
+						condition = requestTest.RandomCondition()
+					})
+
 					Context("without server response", func() {
 						AfterEach(func() {
 							Expect(server.ReceivedRequests()).To(BeEmpty())
@@ -637,82 +656,128 @@ var _ = Describe("Client", func() {
 
 						It("returns an error when the context is missing", func() {
 							ctx = nil
-							deleted, err := client.Delete(ctx, id)
+							deleted, err := client.Delete(ctx, id, condition)
 							errorsTest.ExpectEqual(err, errors.New("context is missing"))
 							Expect(deleted).To(BeFalse())
 						})
 
 						It("returns an error when the id is missing", func() {
 							id = ""
-							deleted, err := client.Delete(ctx, id)
+							deleted, err := client.Delete(ctx, id, condition)
 							errorsTest.ExpectEqual(err, errors.New("id is missing"))
 							Expect(deleted).To(BeFalse())
 						})
 
 						It("returns an error when the id is invalid", func() {
 							id = "invalid"
-							deleted, err := client.Delete(ctx, id)
+							deleted, err := client.Delete(ctx, id, condition)
 							errorsTest.ExpectEqual(err, errors.New("id is invalid"))
+							Expect(deleted).To(BeFalse())
+						})
+
+						It("returns an error when the condition is invalid", func() {
+							condition.Revision = pointer.FromInt(-1)
+							deleted, err := client.Delete(ctx, id, condition)
+							errorsTest.ExpectEqual(err, errors.New("condition is invalid"))
 							Expect(deleted).To(BeFalse())
 						})
 					})
 
-					Context("with server response", func() {
+					deleteAssertions := func() {
+						Context("with server response", func() {
+							AfterEach(func() {
+								Expect(server.ReceivedRequests()).To(HaveLen(1))
+							})
+
+							When("the server responds with an unauthenticated error", func() {
+								BeforeEach(func() {
+									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusUnauthorized, errors.NewSerializable(request.ErrorUnauthenticated()), responseHeaders))
+								})
+
+								It("returns an error", func() {
+									deleted, err := client.Delete(ctx, id, condition)
+									errorsTest.ExpectEqual(err, request.ErrorUnauthenticated())
+									Expect(deleted).To(BeFalse())
+								})
+							})
+
+							When("the server responds with an unauthorized error", func() {
+								BeforeEach(func() {
+									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusForbidden, errors.NewSerializable(request.ErrorUnauthorized()), responseHeaders))
+								})
+
+								It("returns an error", func() {
+									deleted, err := client.Delete(ctx, id, condition)
+									errorsTest.ExpectEqual(err, request.ErrorUnauthorized())
+									Expect(deleted).To(BeFalse())
+								})
+							})
+
+							When("the server responds with a not found error", func() {
+								BeforeEach(func() {
+									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNotFound, errors.NewSerializable(request.ErrorResourceNotFoundWithID(id)), responseHeaders))
+								})
+
+								It("returns successfully with delete false", func() {
+									deleted, err := client.Delete(ctx, id, condition)
+									Expect(err).ToNot(HaveOccurred())
+									Expect(deleted).To(BeFalse())
+								})
+							})
+
+							When("the server responds successfully", func() {
+								BeforeEach(func() {
+									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNoContent, nil, responseHeaders))
+								})
+
+								It("returns successfully with delete true", func() {
+									deleted, err := client.Delete(ctx, id, condition)
+									Expect(err).ToNot(HaveOccurred())
+									Expect(deleted).To(BeTrue())
+								})
+							})
+						})
+					}
+
+					When("condition is missing", func() {
 						BeforeEach(func() {
-							requestHandlers = append(requestHandlers, VerifyRequest("DELETE", fmt.Sprintf("/v1/blobs/%s", id)), VerifyContentType(""), VerifyBody(nil))
+							condition = nil
+							requestHandlers = append(requestHandlers,
+								VerifyRequest("DELETE", fmt.Sprintf("/v1/blobs/%s", id)),
+								VerifyContentType(""),
+								VerifyBody(nil),
+							)
 						})
 
-						AfterEach(func() {
-							Expect(server.ReceivedRequests()).To(HaveLen(1))
+						deleteAssertions()
+					})
+
+					When("condition revision is missing", func() {
+						BeforeEach(func() {
+							condition.Revision = nil
+							requestHandlers = append(requestHandlers,
+								VerifyRequest("DELETE", fmt.Sprintf("/v1/blobs/%s", id)),
+								VerifyContentType(""),
+								VerifyBody(nil),
+							)
 						})
 
-						When("the server responds with an unauthenticated error", func() {
-							BeforeEach(func() {
-								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusUnauthorized, errors.NewSerializable(request.ErrorUnauthenticated()), responseHeaders))
-							})
+						deleteAssertions()
+					})
 
-							It("returns an error", func() {
-								deleted, err := client.Delete(ctx, id)
-								errorsTest.ExpectEqual(err, request.ErrorUnauthenticated())
-								Expect(deleted).To(BeFalse())
-							})
+					When("condition revision is present", func() {
+						BeforeEach(func() {
+							query := url.Values{
+								"revision": []string{strconv.Itoa(*condition.Revision)},
+							}
+							requestHandlers = append(requestHandlers,
+								VerifyRequest("DELETE", fmt.Sprintf("/v1/blobs/%s", id), query.Encode()),
+								VerifyContentType(""),
+								VerifyBody(nil),
+							)
 						})
 
-						When("the server responds with an unauthorized error", func() {
-							BeforeEach(func() {
-								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusForbidden, errors.NewSerializable(request.ErrorUnauthorized()), responseHeaders))
-							})
-
-							It("returns an error", func() {
-								deleted, err := client.Delete(ctx, id)
-								errorsTest.ExpectEqual(err, request.ErrorUnauthorized())
-								Expect(deleted).To(BeFalse())
-							})
-						})
-
-						When("the server responds with a not found error", func() {
-							BeforeEach(func() {
-								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNotFound, errors.NewSerializable(request.ErrorResourceNotFoundWithID(id)), responseHeaders))
-							})
-
-							It("returns successfully with delete false", func() {
-								deleted, err := client.Delete(ctx, id)
-								Expect(err).ToNot(HaveOccurred())
-								Expect(deleted).To(BeFalse())
-							})
-						})
-
-						When("the server responds successfully", func() {
-							BeforeEach(func() {
-								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNoContent, nil, responseHeaders))
-							})
-
-							It("returns successfully with delete true", func() {
-								deleted, err := client.Delete(ctx, id)
-								Expect(err).ToNot(HaveOccurred())
-								Expect(deleted).To(BeTrue())
-							})
-						})
+						deleteAssertions()
 					})
 				})
 			})

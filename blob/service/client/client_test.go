@@ -29,6 +29,8 @@ import (
 	pageTest "github.com/tidepool-org/platform/page/test"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/request"
+	requestTest "github.com/tidepool-org/platform/request/test"
 	"github.com/tidepool-org/platform/test"
 	userTest "github.com/tidepool-org/platform/user/test"
 )
@@ -463,6 +465,12 @@ var _ = Describe("Client", func() {
 			})
 
 			Context("Delete", func() {
+				var condition *request.Condition
+
+				BeforeEach(func() {
+					condition = requestTest.RandomCondition()
+				})
+
 				AfterEach(func() {
 					Expect(authClient.EnsureAuthorizedServiceInputs).To(Equal([]context.Context{ctx}))
 				})
@@ -470,7 +478,7 @@ var _ = Describe("Client", func() {
 				It("returns an error when the user client ensure authorized service returns an error", func() {
 					responseErr := errorsTest.RandomError()
 					authClient.EnsureAuthorizedServiceOutputs = []error{responseErr}
-					deleted, err := client.Delete(ctx, id)
+					deleted, err := client.Delete(ctx, id, condition)
 					errorsTest.ExpectEqual(err, responseErr)
 					Expect(deleted).To(BeFalse())
 				})
@@ -487,19 +495,19 @@ var _ = Describe("Client", func() {
 					It("returns an error when the blob structured session get returns an error", func() {
 						responseErr := errorsTest.RandomError()
 						blobStructuredSession.GetOutputs = []blobStoreStructuredTest.GetOutput{{Blob: nil, Error: responseErr}}
-						deleted, err := client.Delete(ctx, id)
+						deleted, err := client.Delete(ctx, id, condition)
 						errorsTest.ExpectEqual(err, responseErr)
 						Expect(deleted).To(BeFalse())
 					})
 
 					It("returns successfully when the blob structured session get returns nil", func() {
 						blobStructuredSession.GetOutputs = []blobStoreStructuredTest.GetOutput{{Blob: nil, Error: nil}}
-						deleted, err := client.Delete(ctx, id)
+						deleted, err := client.Delete(ctx, id, condition)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(deleted).To(BeFalse())
 					})
 
-					When("the blob structure session get returns a blob", func() {
+					Context("with result", func() {
 						var responseResult *blob.Blob
 
 						BeforeEach(func() {
@@ -508,56 +516,93 @@ var _ = Describe("Client", func() {
 							blobStructuredSession.GetOutputs = []blobStoreStructuredTest.GetOutput{{Blob: responseResult, Error: nil}}
 						})
 
-						AfterEach(func() {
-							Expect(blobUnstructuredStore.DeleteInputs).To(Equal([]blobStoreUnstructuredTest.DeleteInput{{Context: ctx, UserID: *responseResult.UserID, ID: id}}))
-						})
-
-						It("returns an error when the blob unstructured store delete returns an error", func() {
-							responseErr := errorsTest.RandomError()
-							blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
-							deleted, err := client.Delete(ctx, id)
-							errorsTest.ExpectEqual(err, responseErr)
+						It("returns successfully when the condition revision does not match", func() {
+							condition.Revision = pointer.FromInt(*responseResult.Revision - 1)
+							deleted, err := client.Delete(ctx, id, condition)
+							Expect(err).ToNot(HaveOccurred())
 							Expect(deleted).To(BeFalse())
 						})
 
-						When("the blob unstructured store delete returns successfully", func() {
-							BeforeEach(func() {
-								blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
-							})
-
+						When("the blob structure session get returns a blob", func() {
 							AfterEach(func() {
-								Expect(blobStructuredSession.DeleteInputs).To(Equal([]blobStoreStructuredTest.DeleteInput{{Context: ctx, ID: id}}))
+								Expect(blobUnstructuredStore.DeleteInputs).To(Equal([]blobStoreUnstructuredTest.DeleteInput{{Context: ctx, UserID: *responseResult.UserID, ID: id}}))
 							})
 
-							It("returns an error when the blob structured session delete returns an error", func() {
-								responseErr := errorsTest.RandomError()
-								blobStructuredSession.DeleteOutputs = []blobStoreStructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
-								deleted, err := client.Delete(ctx, id)
-								errorsTest.ExpectEqual(err, responseErr)
-								Expect(deleted).To(BeFalse())
+							deleteAssertions := func() {
+								Context("deletes blob", func() {
+									It("returns an error when the blob unstructured store delete returns an error", func() {
+										responseErr := errorsTest.RandomError()
+										blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
+										deleted, err := client.Delete(ctx, id, condition)
+										errorsTest.ExpectEqual(err, responseErr)
+										Expect(deleted).To(BeFalse())
+									})
+
+									When("the blob unstructured store delete returns successfully", func() {
+										BeforeEach(func() {
+											blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
+										})
+
+										AfterEach(func() {
+											Expect(blobStructuredSession.DeleteInputs).To(Equal([]blobStoreStructuredTest.DeleteInput{{Context: ctx, ID: id}}))
+										})
+
+										It("returns an error when the blob structured session delete returns an error", func() {
+											responseErr := errorsTest.RandomError()
+											blobStructuredSession.DeleteOutputs = []blobStoreStructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
+											deleted, err := client.Delete(ctx, id, condition)
+											errorsTest.ExpectEqual(err, responseErr)
+											Expect(deleted).To(BeFalse())
+										})
+
+										It("returns false when the blob structured session delete returns false", func() {
+											blobStructuredSession.DeleteOutputs = []blobStoreStructuredTest.DeleteOutput{{Deleted: false, Error: nil}}
+											deleted, err := client.Delete(ctx, id, condition)
+											Expect(err).ToNot(HaveOccurred())
+											Expect(deleted).To(BeFalse())
+										})
+
+										It("returns true when the blob structured session delete returns true", func() {
+											blobStructuredSession.DeleteOutputs = []blobStoreStructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
+											deleted, err := client.Delete(ctx, id, condition)
+											Expect(err).ToNot(HaveOccurred())
+											Expect(deleted).To(BeTrue())
+										})
+
+										It("logs a warning when the unstructured store returns false", func() {
+											blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: false, Error: nil}}
+											blobStructuredSession.DeleteOutputs = []blobStoreStructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
+											deleted, err := client.Delete(ctx, id, condition)
+											Expect(err).ToNot(HaveOccurred())
+											Expect(deleted).To(BeTrue())
+											logger.AssertError("Deleting blob with no content", log.Fields{"id": id})
+										})
+									})
+								})
+							}
+
+							When("condition is missing", func() {
+								BeforeEach(func() {
+									condition = nil
+								})
+
+								deleteAssertions()
 							})
 
-							It("returns false when the blob structured session delete returns false", func() {
-								blobStructuredSession.DeleteOutputs = []blobStoreStructuredTest.DeleteOutput{{Deleted: false, Error: nil}}
-								deleted, err := client.Delete(ctx, id)
-								Expect(err).ToNot(HaveOccurred())
-								Expect(deleted).To(BeFalse())
+							When("condition revision is missing", func() {
+								BeforeEach(func() {
+									condition.Revision = nil
+								})
+
+								deleteAssertions()
 							})
 
-							It("returns true when the blob structured session delete returns true", func() {
-								blobStructuredSession.DeleteOutputs = []blobStoreStructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
-								deleted, err := client.Delete(ctx, id)
-								Expect(err).ToNot(HaveOccurred())
-								Expect(deleted).To(BeTrue())
-							})
+							When("condition revision is present", func() {
+								BeforeEach(func() {
+									condition.Revision = pointer.CloneInt(responseResult.Revision)
+								})
 
-							It("logs a warning when the unstructured store returns false", func() {
-								blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: false, Error: nil}}
-								blobStructuredSession.DeleteOutputs = []blobStoreStructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
-								deleted, err := client.Delete(ctx, id)
-								Expect(err).ToNot(HaveOccurred())
-								Expect(deleted).To(BeTrue())
-								logger.AssertError("Deleting blob with no content", log.Fields{"id": id})
+								deleteAssertions()
 							})
 						})
 					})
