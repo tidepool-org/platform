@@ -1,5 +1,6 @@
 ## HEAD
 
+* Fix data store tests
 * Add blob size maximum
 * Add blob revision
 * Add data source revision

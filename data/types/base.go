@@ -37,7 +37,7 @@ const (
 )
 
 type Base struct {
-	Active            bool                                         `json:"-" bson:"_active,omitempty"`
+	Active            bool                                         `json:"-" bson:"_active"`
 	Annotations       *data.BlobArray                              `json:"annotations,omitempty" bson:"annotations,omitempty"`
 	ArchivedDataSetID *string                                      `json:"archivedDatasetId,omitempty" bson:"archivedDatasetId,omitempty"`
 	ArchivedTime      *string                                      `json:"archivedTime,omitempty" bson:"archivedTime,omitempty"`
