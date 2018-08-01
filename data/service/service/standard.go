@@ -173,12 +173,20 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 		return errors.Wrap(err, "unable to create continuous data deduplicator factory")
 	}
 
+	s.Logger().Debug("Creating continuous origin data deduplicator factory")
+
+	continuousOriginDeduplicatorFactory, err := deduplicator.NewContinuousOriginFactory()
+	if err != nil {
+		return errors.Wrap(err, "unable to create continuous origin data deduplicator factory")
+	}
+
 	s.Logger().Debug("Creating data deduplicator factory")
 
 	factories := []deduplicator.Factory{
 		truncateDeduplicatorFactory,
 		hashDeactivateOldDeduplicatorFactory,
 		continuousDeduplicatorFactory,
+		continuousOriginDeduplicatorFactory,
 	}
 
 	dataDeduplicatorFactory, err := deduplicator.NewDelegateFactory(factories)

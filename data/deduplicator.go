@@ -28,8 +28,24 @@ type DeduplicatorDescriptor struct {
 	Hash    string `bson:"hash,omitempty"`
 }
 
+func ParseDeduplicatorDescriptor(parser ObjectParser) *DeduplicatorDescriptor {
+	if parser.Object() == nil {
+		return nil
+	}
+	datum := NewDeduplicatorDescriptor()
+	datum.Parse(parser)
+	parser.ProcessNotParsed()
+	return datum
+}
+
 func NewDeduplicatorDescriptor() *DeduplicatorDescriptor {
 	return &DeduplicatorDescriptor{}
+}
+
+func (d *DeduplicatorDescriptor) Parse(parser ObjectParser) {
+	if ptr := parser.ParseString("name"); ptr != nil {
+		d.Name = *ptr
+	}
 }
 
 func (d *DeduplicatorDescriptor) Validate(validator structure.Validator) {

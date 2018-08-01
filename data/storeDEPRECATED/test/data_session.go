@@ -76,6 +76,17 @@ type UnarchiveDeviceDataUsingHashesFromDataSetInput struct {
 	DataSet *upload.Upload
 }
 
+type ArchiveDataSetDataUsingOriginIDsInput struct {
+	Context   context.Context
+	DataSet   *upload.Upload
+	OriginIDs []string
+}
+
+type DeleteArchivedDataSetDataInput struct {
+	Context context.Context
+	DataSet *upload.Upload
+}
+
 type DeleteOtherDataSetDataInput struct {
 	Context context.Context
 	DataSet *upload.Upload
@@ -142,6 +153,12 @@ type DataSession struct {
 	UnarchiveDeviceDataUsingHashesFromDataSetInvocations int
 	UnarchiveDeviceDataUsingHashesFromDataSetInputs      []UnarchiveDeviceDataUsingHashesFromDataSetInput
 	UnarchiveDeviceDataUsingHashesFromDataSetOutputs     []error
+	ArchiveDataSetDataUsingOriginIDsInvocations          int
+	ArchiveDataSetDataUsingOriginIDsInputs               []ArchiveDataSetDataUsingOriginIDsInput
+	ArchiveDataSetDataUsingOriginIDsOutputs              []error
+	DeleteArchivedDataSetDataInvocations                 int
+	DeleteArchivedDataSetDataInputs                      []DeleteArchivedDataSetDataInput
+	DeleteArchivedDataSetDataOutputs                     []error
 	DeleteOtherDataSetDataInvocations                    int
 	DeleteOtherDataSetDataInputs                         []DeleteOtherDataSetDataInput
 	DeleteOtherDataSetDataOutputs                        []error
@@ -288,6 +305,30 @@ func (d *DataSession) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Cont
 
 	output := d.UnarchiveDeviceDataUsingHashesFromDataSetOutputs[0]
 	d.UnarchiveDeviceDataUsingHashesFromDataSetOutputs = d.UnarchiveDeviceDataUsingHashesFromDataSetOutputs[1:]
+	return output
+}
+
+func (d *DataSession) ArchiveDataSetDataUsingOriginIDs(ctx context.Context, dataSet *upload.Upload, originIDs []string) error {
+	d.ArchiveDataSetDataUsingOriginIDsInvocations++
+
+	d.ArchiveDataSetDataUsingOriginIDsInputs = append(d.ArchiveDataSetDataUsingOriginIDsInputs, ArchiveDataSetDataUsingOriginIDsInput{Context: ctx, DataSet: dataSet, OriginIDs: originIDs})
+
+	gomega.Expect(d.ArchiveDataSetDataUsingOriginIDsOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.ArchiveDataSetDataUsingOriginIDsOutputs[0]
+	d.ArchiveDataSetDataUsingOriginIDsOutputs = d.ArchiveDataSetDataUsingOriginIDsOutputs[1:]
+	return output
+}
+
+func (d *DataSession) DeleteArchivedDataSetData(ctx context.Context, dataSet *upload.Upload) error {
+	d.DeleteArchivedDataSetDataInvocations++
+
+	d.DeleteArchivedDataSetDataInputs = append(d.DeleteArchivedDataSetDataInputs, DeleteArchivedDataSetDataInput{Context: ctx, DataSet: dataSet})
+
+	gomega.Expect(d.DeleteArchivedDataSetDataOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.DeleteArchivedDataSetDataOutputs[0]
+	d.DeleteArchivedDataSetDataOutputs = d.DeleteArchivedDataSetDataOutputs[1:]
 	return output
 }
 

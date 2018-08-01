@@ -28,6 +28,8 @@ type DataSession interface {
 	ActivateDataSetData(ctx context.Context, dataSet *upload.Upload) error
 	ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *upload.Upload) error
 	UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *upload.Upload) error
+	ArchiveDataSetDataUsingOriginIDs(ctx context.Context, dataSet *upload.Upload, originIDs []string) error
+	DeleteArchivedDataSetData(ctx context.Context, dataSet *upload.Upload) error
 	DeleteOtherDataSetData(ctx context.Context, dataSet *upload.Upload) error
 	DestroyDataForUserByID(ctx context.Context, userID string) error
 

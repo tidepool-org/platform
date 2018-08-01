@@ -522,6 +522,81 @@ func (d *DataSession) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Cont
 	return overallErr
 }
 
+func (d *DataSession) ArchiveDataSetDataUsingOriginIDs(ctx context.Context, dataSet *upload.Upload, originIDs []string) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if err := d.validateDataSet(dataSet); err != nil {
+		return err
+	}
+
+	if d.IsClosed() {
+		return errors.New("session closed")
+	}
+
+	startTime := time.Now()
+
+	timestamp := time.Now().Format(time.RFC3339)
+
+	var changeInfo *mgo.ChangeInfo
+	var err error
+	if len(originIDs) > 0 {
+		selector := bson.M{
+			"_userId":   dataSet.UserID,
+			"uploadId":  dataSet.UploadID,
+			"type":      bson.M{"$ne": "upload"},
+			"origin.id": bson.M{"$in": originIDs},
+		}
+		set := bson.M{
+			"_active":           false,
+			"archivedTime":      timestamp,
+			"archivedDatasetId": dataSet.UploadID,
+			"modifiedTime":      timestamp,
+		}
+		unset := bson.M{}
+		changeInfo, err = d.C().UpdateAll(selector, d.constructUpdate(set, unset))
+	}
+
+	loggerFields := log.Fields{"userId": dataSet.UserID, "dataSetID": dataSet.UploadID, "changeInfo": changeInfo, "duration": time.Since(startTime) / time.Microsecond}
+	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("ArchiveDataSetDataUsingOriginIDs")
+
+	if err != nil {
+		return errors.Wrap(err, "unable to archive data set data using origin ids")
+	}
+	return nil
+}
+
+func (d *DataSession) DeleteArchivedDataSetData(ctx context.Context, dataSet *upload.Upload) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if err := d.validateDataSet(dataSet); err != nil {
+		return err
+	}
+
+	if d.IsClosed() {
+		return errors.New("session closed")
+	}
+
+	startTime := time.Now()
+
+	selector := bson.M{
+		"_userId":  dataSet.UserID,
+		"uploadId": dataSet.UploadID,
+		"type":     bson.M{"$ne": "upload"},
+		"_active":  false,
+	}
+	changeInfo, err := d.C().RemoveAll(selector)
+
+	loggerFields := log.Fields{"userId": dataSet.UserID, "dataSetID": dataSet.UploadID, "changeInfo": changeInfo, "duration": time.Since(startTime) / time.Microsecond}
+	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DeleteArchivedDataSetData")
+
+	if err != nil {
+		return errors.Wrap(err, "unable to delete archived data set data")
+	}
+	return nil
+}
+
 func (d *DataSession) DeleteOtherDataSetData(ctx context.Context, dataSet *upload.Upload) error {
 	if ctx == nil {
 		return errors.New("context is missing")

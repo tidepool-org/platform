@@ -122,6 +122,8 @@ func (u *Upload) Parse(parser data.ObjectParser) error {
 		return err
 	}
 
+	u.Deduplicator = data.ParseDeduplicatorDescriptor(parser.NewChildObjectParser("deduplicator"))
+
 	u.Client = ParseClient(parser.NewChildObjectParser("client"))
 	u.ComputerTime = parser.ParseString("computerTime")
 	u.DataSetType = parser.ParseString("dataSetType")

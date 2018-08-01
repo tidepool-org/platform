@@ -48,6 +48,22 @@ func (d *DelegateFactory) NewDeduplicatorForDataSet(logger log.Logger, dataSessi
 		return nil, errors.New("data set is missing")
 	}
 
+	if dataSet.Deduplicator != nil {
+		if dataSet.Deduplicator.Name == "" {
+			return nil, errors.New("data set deduplicator name is missing")
+		}
+
+		for _, factory := range d.factories {
+			if is, err := factory.IsRegisteredWithDataSet(dataSet); err != nil {
+				return nil, err
+			} else if is {
+				return factory.NewDeduplicatorForDataSet(logger, dataSession, dataSet)
+			}
+		}
+
+		return nil, errors.New("data set deduplicator name is unknown")
+	}
+
 	for _, factory := range d.factories {
 		if can, err := factory.CanDeduplicateDataSet(dataSet); err != nil {
 			return nil, err

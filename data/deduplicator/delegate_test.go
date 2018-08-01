@@ -14,6 +14,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/log/null"
+	"github.com/tidepool-org/platform/test"
 )
 
 var _ = Describe("Delegate", func() {
@@ -146,51 +147,115 @@ var _ = Describe("Delegate", func() {
 					Expect(testDeduplicator).To(BeNil())
 				})
 
-				It("returns an error if any contained factory returns an error", func() {
-					testSecondFactory.CanDeduplicateDataSetOutputs = []testDataDeduplicator.CanDeduplicateDataSetOutput{{Can: false, Error: errors.New("test error")}}
-					testDeduplicator, err := testDelegateFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
-					Expect(err).To(MatchError("test error"))
-					Expect(testDeduplicator).To(BeNil())
-					Expect(testFirstFactory.CanDeduplicateDataSetInputs).To(ConsistOf(testDataSet))
-					Expect(testSecondFactory.CanDeduplicateDataSetInputs).To(ConsistOf(testDataSet))
+				When("the deduplicator name is specified in the data set", func() {
+					BeforeEach(func() {
+						testDataSet.Deduplicator = &data.DeduplicatorDescriptor{
+							Name: test.RandomString(),
+						}
+						testFirstFactory.CanDeduplicateDataSetOutputs = []testDataDeduplicator.CanDeduplicateDataSetOutput{}
+						testSecondFactory.CanDeduplicateDataSetOutputs = []testDataDeduplicator.CanDeduplicateDataSetOutput{}
+					})
+
+					It("returns an error if the name is missing", func() {
+						testDataSet.Deduplicator.Name = ""
+						testDeduplicator, err := testDelegateFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
+						Expect(err).To(MatchError("data set deduplicator name is missing"))
+						Expect(testDeduplicator).To(BeNil())
+					})
+
+					It("returns an error if any contained factory does not match the deduplicator", func() {
+						testFirstFactory.IsRegisteredWithDataSetOutputs = []testDataDeduplicator.IsRegisteredWithDataSetOutput{{Is: false, Error: nil}}
+						testSecondFactory.IsRegisteredWithDataSetOutputs = []testDataDeduplicator.IsRegisteredWithDataSetOutput{{Is: false, Error: nil}}
+						testDeduplicator, err := testDelegateFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
+						Expect(err).To(MatchError("data set deduplicator name is unknown"))
+						Expect(testDeduplicator).To(BeNil())
+						Expect(testFirstFactory.IsRegisteredWithDataSetInputs).To(ConsistOf(testDataSet))
+						Expect(testSecondFactory.IsRegisteredWithDataSetInputs).To(ConsistOf(testDataSet))
+					})
+
+					It("returns an error if any contained factory returns an error from IsRegisteredWithDataSet", func() {
+						testFirstFactory.IsRegisteredWithDataSetOutputs = []testDataDeduplicator.IsRegisteredWithDataSetOutput{{Is: false, Error: nil}}
+						testSecondFactory.IsRegisteredWithDataSetOutputs = []testDataDeduplicator.IsRegisteredWithDataSetOutput{{Is: false, Error: errors.New("test error")}}
+						testDeduplicator, err := testDelegateFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
+						Expect(err).To(MatchError("test error"))
+						Expect(testDeduplicator).To(BeNil())
+						Expect(testFirstFactory.IsRegisteredWithDataSetInputs).To(ConsistOf(testDataSet))
+						Expect(testSecondFactory.IsRegisteredWithDataSetInputs).To(ConsistOf(testDataSet))
+					})
+
+					It("returns an error if any contained factory returns an error from NewDeduplicatorForDataSet", func() {
+						testFirstFactory.IsRegisteredWithDataSetOutputs = []testDataDeduplicator.IsRegisteredWithDataSetOutput{{Is: false, Error: nil}}
+						testSecondFactory.IsRegisteredWithDataSetOutputs = []testDataDeduplicator.IsRegisteredWithDataSetOutput{{Is: true, Error: nil}}
+						testSecondFactory.NewDeduplicatorForDataSetOutputs = []testDataDeduplicator.NewDeduplicatorForDataSetOutput{{Deduplicator: nil, Error: errors.New("test error")}}
+						testDeduplicator, err := testDelegateFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
+						Expect(err).To(MatchError("test error"))
+						Expect(testDeduplicator).To(BeNil())
+						Expect(testFirstFactory.IsRegisteredWithDataSetInputs).To(ConsistOf(testDataSet))
+						Expect(testSecondFactory.IsRegisteredWithDataSetInputs).To(ConsistOf(testDataSet))
+						Expect(testSecondFactory.NewDeduplicatorForDataSetInputs).To(ConsistOf(testDataDeduplicator.NewDeduplicatorForDataSetInput{Logger: testLogger, DataSession: testDataSession, DataSet: testDataSet}))
+					})
+
+					It("returns the deduplicator from a matching factory", func() {
+						secondDeduplicator := testData.NewDeduplicator()
+						testFirstFactory.IsRegisteredWithDataSetOutputs = []testDataDeduplicator.IsRegisteredWithDataSetOutput{{Is: false, Error: nil}}
+						testSecondFactory.IsRegisteredWithDataSetOutputs = []testDataDeduplicator.IsRegisteredWithDataSetOutput{{Is: true, Error: nil}}
+						testSecondFactory.NewDeduplicatorForDataSetOutputs = []testDataDeduplicator.NewDeduplicatorForDataSetOutput{{Deduplicator: secondDeduplicator, Error: nil}}
+						testDeduplicator, err := testDelegateFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(testDeduplicator).To(Equal(secondDeduplicator))
+						Expect(testFirstFactory.IsRegisteredWithDataSetInputs).To(ConsistOf(testDataSet))
+						Expect(testSecondFactory.IsRegisteredWithDataSetInputs).To(ConsistOf(testDataSet))
+						Expect(testSecondFactory.NewDeduplicatorForDataSetInputs).To(ConsistOf(testDataDeduplicator.NewDeduplicatorForDataSetInput{Logger: testLogger, DataSession: testDataSession, DataSet: testDataSet}))
+					})
 				})
 
-				It("returns an error if no factory can deduplicate the data set", func() {
-					testDeduplicator, err := testDelegateFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
-					Expect(err).To(MatchError("deduplicator not found"))
-					Expect(testDeduplicator).To(BeNil())
-					Expect(testFirstFactory.CanDeduplicateDataSetInputs).To(ConsistOf(testDataSet))
-					Expect(testSecondFactory.CanDeduplicateDataSetInputs).To(ConsistOf(testDataSet))
-				})
+				When("the deduplicator is not specified in the data set", func() {
+					It("returns an error if any contained factory returns an error", func() {
+						testSecondFactory.CanDeduplicateDataSetOutputs = []testDataDeduplicator.CanDeduplicateDataSetOutput{{Can: false, Error: errors.New("test error")}}
+						testDeduplicator, err := testDelegateFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
+						Expect(err).To(MatchError("test error"))
+						Expect(testDeduplicator).To(BeNil())
+						Expect(testFirstFactory.CanDeduplicateDataSetInputs).To(ConsistOf(testDataSet))
+						Expect(testSecondFactory.CanDeduplicateDataSetInputs).To(ConsistOf(testDataSet))
+					})
 
-				It("returns a deduplicator if any contained factory can deduplicate the data set", func() {
-					secondDeduplicator := testData.NewDeduplicator()
-					testSecondFactory.CanDeduplicateDataSetOutputs = []testDataDeduplicator.CanDeduplicateDataSetOutput{{Can: true, Error: nil}}
-					testSecondFactory.NewDeduplicatorForDataSetOutputs = []testDataDeduplicator.NewDeduplicatorForDataSetOutput{{Deduplicator: secondDeduplicator, Error: nil}}
-					Expect(testDelegateFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)).To(Equal(secondDeduplicator))
-					Expect(testFirstFactory.CanDeduplicateDataSetInputs).To(ConsistOf(testDataSet))
-					Expect(testSecondFactory.CanDeduplicateDataSetInputs).To(ConsistOf(testDataSet))
-				})
+					It("returns an error if no factory can deduplicate the data set", func() {
+						testDeduplicator, err := testDelegateFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
+						Expect(err).To(MatchError("deduplicator not found"))
+						Expect(testDeduplicator).To(BeNil())
+						Expect(testFirstFactory.CanDeduplicateDataSetInputs).To(ConsistOf(testDataSet))
+						Expect(testSecondFactory.CanDeduplicateDataSetInputs).To(ConsistOf(testDataSet))
+					})
 
-				It("returns a deduplicator if any contained factory can deduplicate the data set even if a later factory returns an error", func() {
-					firstDeduplicator := testData.NewDeduplicator()
-					testFirstFactory.CanDeduplicateDataSetOutputs = []testDataDeduplicator.CanDeduplicateDataSetOutput{{Can: true, Error: nil}}
-					testFirstFactory.NewDeduplicatorForDataSetOutputs = []testDataDeduplicator.NewDeduplicatorForDataSetOutput{{Deduplicator: firstDeduplicator, Error: nil}}
-					testSecondFactory.CanDeduplicateDataSetOutputs = []testDataDeduplicator.CanDeduplicateDataSetOutput{}
-					Expect(testDelegateFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)).To(Equal(firstDeduplicator))
-					Expect(testFirstFactory.CanDeduplicateDataSetInputs).To(ConsistOf(testDataSet))
-					Expect(testFirstFactory.NewDeduplicatorForDataSetInputs).To(ConsistOf(testDataDeduplicator.NewDeduplicatorForDataSetInput{Logger: testLogger, DataSession: testDataSession, DataSet: testDataSet}))
-				})
+					It("returns a deduplicator if any contained factory can deduplicate the data set", func() {
+						secondDeduplicator := testData.NewDeduplicator()
+						testSecondFactory.CanDeduplicateDataSetOutputs = []testDataDeduplicator.CanDeduplicateDataSetOutput{{Can: true, Error: nil}}
+						testSecondFactory.NewDeduplicatorForDataSetOutputs = []testDataDeduplicator.NewDeduplicatorForDataSetOutput{{Deduplicator: secondDeduplicator, Error: nil}}
+						Expect(testDelegateFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)).To(Equal(secondDeduplicator))
+						Expect(testFirstFactory.CanDeduplicateDataSetInputs).To(ConsistOf(testDataSet))
+						Expect(testSecondFactory.CanDeduplicateDataSetInputs).To(ConsistOf(testDataSet))
+					})
 
-				It("returns an error if any contained factory can deduplicate the data set, but returns an error when creating", func() {
-					testSecondFactory.CanDeduplicateDataSetOutputs = []testDataDeduplicator.CanDeduplicateDataSetOutput{{Can: true, Error: nil}}
-					testSecondFactory.NewDeduplicatorForDataSetOutputs = []testDataDeduplicator.NewDeduplicatorForDataSetOutput{{Deduplicator: nil, Error: errors.New("test error")}}
-					testDeduplicator, err := testDelegateFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
-					Expect(err).To(MatchError("test error"))
-					Expect(testDeduplicator).To(BeNil())
-					Expect(testFirstFactory.CanDeduplicateDataSetInputs).To(ConsistOf(testDataSet))
-					Expect(testSecondFactory.CanDeduplicateDataSetInputs).To(ConsistOf(testDataSet))
-					Expect(testSecondFactory.NewDeduplicatorForDataSetInputs).To(ConsistOf(testDataDeduplicator.NewDeduplicatorForDataSetInput{Logger: testLogger, DataSession: testDataSession, DataSet: testDataSet}))
+					It("returns a deduplicator if any contained factory can deduplicate the data set even if a later factory returns an error", func() {
+						firstDeduplicator := testData.NewDeduplicator()
+						testFirstFactory.CanDeduplicateDataSetOutputs = []testDataDeduplicator.CanDeduplicateDataSetOutput{{Can: true, Error: nil}}
+						testFirstFactory.NewDeduplicatorForDataSetOutputs = []testDataDeduplicator.NewDeduplicatorForDataSetOutput{{Deduplicator: firstDeduplicator, Error: nil}}
+						testSecondFactory.CanDeduplicateDataSetOutputs = []testDataDeduplicator.CanDeduplicateDataSetOutput{}
+						Expect(testDelegateFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)).To(Equal(firstDeduplicator))
+						Expect(testFirstFactory.CanDeduplicateDataSetInputs).To(ConsistOf(testDataSet))
+						Expect(testFirstFactory.NewDeduplicatorForDataSetInputs).To(ConsistOf(testDataDeduplicator.NewDeduplicatorForDataSetInput{Logger: testLogger, DataSession: testDataSession, DataSet: testDataSet}))
+					})
+
+					It("returns an error if any contained factory can deduplicate the data set, but returns an error when creating", func() {
+						testSecondFactory.CanDeduplicateDataSetOutputs = []testDataDeduplicator.CanDeduplicateDataSetOutput{{Can: true, Error: nil}}
+						testSecondFactory.NewDeduplicatorForDataSetOutputs = []testDataDeduplicator.NewDeduplicatorForDataSetOutput{{Deduplicator: nil, Error: errors.New("test error")}}
+						testDeduplicator, err := testDelegateFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
+						Expect(err).To(MatchError("test error"))
+						Expect(testDeduplicator).To(BeNil())
+						Expect(testFirstFactory.CanDeduplicateDataSetInputs).To(ConsistOf(testDataSet))
+						Expect(testSecondFactory.CanDeduplicateDataSetInputs).To(ConsistOf(testDataSet))
+						Expect(testSecondFactory.NewDeduplicatorForDataSetInputs).To(ConsistOf(testDataDeduplicator.NewDeduplicatorForDataSetInput{Logger: testLogger, DataSession: testDataSession, DataSet: testDataSet}))
+					})
 				})
 			})
 		})

@@ -1,5 +1,7 @@
 ## HEAD
 
+* Add continuous origin deduplicator to use origin id as deduplication key for continuous data sets
+* Allow client to specific data set deduplicator
 * Fix data store tests
 * Add blob size maximum
 * Add blob revision
