@@ -1,5 +1,6 @@
 ## HEAD
 
+* Fix data service data source client
 * Add continuous origin deduplicator to use origin id as deduplication key for continuous data sets
 * Allow client to specific data set deduplicator
 * Fix data store tests
