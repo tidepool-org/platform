@@ -574,9 +574,9 @@ var _ = Describe("Base", func() {
 					structure.Origins(),
 				),
 				Entry("origin invalid",
-					func(datum *types.Base) { datum.Origin.Name = nil },
+					func(datum *types.Base) { datum.Origin.Name = pointer.FromString("") },
 					structure.Origins(),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/origin/name"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/origin/name"),
 				),
 				Entry("origin valid",
 					func(datum *types.Base) { datum.Origin = testDataTypesCommonOrigin.NewOrigin() },
@@ -819,7 +819,7 @@ var _ = Describe("Base", func() {
 						datum.Location.GPS = nil
 						datum.Location.Name = nil
 						datum.Notes = pointer.FromStringArray([]string{})
-						datum.Origin.Name = nil
+						datum.Origin.Name = pointer.FromString("")
 						datum.Source = pointer.FromString("invalid")
 						datum.Tags = pointer.FromStringArray([]string{})
 						datum.Time = nil
@@ -834,7 +834,7 @@ var _ = Describe("Base", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/id"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/location/gps"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/notes"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/origin/name"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/origin/name"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "carelink"), "/source"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/tags"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/time"),

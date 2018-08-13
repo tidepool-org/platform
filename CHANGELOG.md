@@ -1,5 +1,8 @@
 ## HEAD
 
+* Add origin type "service"
+* Add origin payload
+* Update origin name to validate as string with maximum length
 * Fix data service data source client
 * Add continuous origin deduplicator to use origin id as deduplication key for continuous data sets
 * Allow client to specific data set deduplicator
