@@ -5,8 +5,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"context"
-	"sync"
-	"time"
 
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -18,6 +16,7 @@ import (
 	"github.com/tidepool-org/platform/data/types"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	"github.com/tidepool-org/platform/data/types/upload"
+	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/page"
@@ -27,48 +26,21 @@ import (
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
-var _sampleTimeMutex sync.Mutex
-var _sampleTimeOnce sync.Once
-var _sampleTime time.Time
-
-func SampleTime() time.Time {
-	_sampleTimeMutex.Lock()
-	defer _sampleTimeMutex.Unlock()
-
-	_sampleTimeOnce.Do(func() {
-		_sampleTime, _ = time.Parse(time.RFC3339, "2016-08-30T23:59:50-07:00")
-	})
-
-	_sampleTime = _sampleTime.Add(time.Second)
-	return _sampleTime
-}
-
 func NewDataSet(userID string, deviceID string) *upload.Upload {
-	dataSet := upload.New()
-	Expect(dataSet).ToNot(BeNil())
-
+	dataSet := dataTypesUploadTest.NewUpload()
 	dataSet.Active = true
-	dataSet.Deduplicator = &data.DeduplicatorDescriptor{Name: "test-deduplicator"}
-	dataSet.ID = pointer.FromString(dataTest.RandomID())
-	dataSet.UserID = pointer.FromString(userID)
-	dataSet.UploadID = pointer.FromString(dataTest.RandomSetID())
-
-	dataSet.ClockDriftOffset = pointer.FromInt(0)
-	dataSet.ConversionOffset = pointer.FromInt(0)
+	dataSet.ArchivedDataSetID = nil
+	dataSet.ArchivedTime = nil
+	dataSet.CreatedTime = nil
+	dataSet.CreatedUserID = nil
+	dataSet.DeletedTime = nil
+	dataSet.DeletedUserID = nil
 	dataSet.DeviceID = pointer.FromString(deviceID)
-	dataSet.DeviceTime = pointer.FromString(SampleTime().Format("2006-01-02T15:04:05"))
-	dataSet.Time = pointer.FromString(SampleTime().UTC().Format(time.RFC3339))
-	dataSet.TimeZoneOffset = pointer.FromInt(-420)
-
-	dataSet.ComputerTime = pointer.FromString(SampleTime().Format("2006-01-02T15:04:05"))
-	dataSet.DeviceManufacturers = pointer.FromStringArray([]string{"Tesla"})
-	dataSet.DeviceModel = pointer.FromString("1234")
-	dataSet.DeviceSerialNumber = pointer.FromString("567890")
-	dataSet.DeviceTags = pointer.FromStringArray([]string{upload.DeviceTagInsulinPump})
-	dataSet.TimeProcessing = pointer.FromString(upload.TimeProcessingUTCBootstrapping)
-	dataSet.TimeZoneName = pointer.FromString("US/Pacific")
-	dataSet.Version = pointer.FromString("0.260.1")
-
+	dataSet.Location.GPS.Origin.Time = nil
+	dataSet.ModifiedTime = nil
+	dataSet.ModifiedUserID = nil
+	dataSet.Origin.Time = nil
+	dataSet.UserID = pointer.FromString(userID)
 	return dataSet
 }
 
@@ -76,8 +48,9 @@ func NewDataSetData(deviceID string) []data.Datum {
 	dataSetData := []data.Datum{}
 	for count := 0; count < 3; count++ {
 		datum := dataTypesTest.NewBase()
-		datum.ArchivedTime = nil
+		datum.Active = false
 		datum.ArchivedDataSetID = nil
+		datum.ArchivedTime = nil
 		datum.CreatedTime = nil
 		datum.CreatedUserID = nil
 		datum.DeletedTime = nil
@@ -85,7 +58,6 @@ func NewDataSetData(deviceID string) []data.Datum {
 		datum.DeviceID = pointer.FromString(deviceID)
 		datum.ModifiedTime = nil
 		datum.ModifiedUserID = nil
-		datum.Time = pointer.FromString(SampleTime().UTC().Format(time.RFC3339))
 		dataSetData = append(dataSetData, datum)
 	}
 	return dataSetData
@@ -629,6 +601,131 @@ var _ = Describe("Mongo", func() {
 							ValidateDataSetData(testMongoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, dataSetBeforeCreateData)
 							Expect(mongoSession.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
 							ValidateDataSetData(testMongoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, append(dataSetBeforeCreateData, dataSetData...))
+						})
+					})
+
+					Context("DeleteDataSetData", func() {
+						var deletes *data.Deletes
+
+						BeforeEach(func() {
+							Expect(mongoSession.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
+							deletes = &data.Deletes{}
+						})
+
+						var deleteDataSetDataAssertions = func() {
+							It("succeeds if it successfully deletes the data set", func() {
+								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(Succeed())
+							})
+
+							It("returns an error if the context is missing", func() {
+								ctx = nil
+								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(MatchError("context is missing"))
+							})
+
+							It("returns an error if the data set is missing", func() {
+								dataSet = nil
+								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(MatchError("data set is missing"))
+							})
+
+							It("returns an error if the user id is missing", func() {
+								dataSet.UserID = nil
+								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(MatchError("data set user id is missing"))
+							})
+
+							It("returns an error if the user id is empty", func() {
+								dataSet.UserID = pointer.FromString("")
+								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(MatchError("data set user id is empty"))
+							})
+
+							It("returns an error if the upload id is missing", func() {
+								dataSet.UploadID = nil
+								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(MatchError("data set upload id is missing"))
+							})
+
+							It("returns an error if the upload id is empty", func() {
+								dataSet.UploadID = pointer.FromString("")
+								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(MatchError("data set upload id is empty"))
+							})
+
+							It("returns an error if the deletes is missing", func() {
+								deletes = nil
+								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(MatchError("deletes is missing"))
+							})
+
+							It("returns an error if the deletes is invalid", func() {
+								(*deletes)[0].ID = pointer.FromString("")
+								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(MatchError("deletes is invalid; value is empty"))
+							})
+
+							It("returns an error if the session is closed", func() {
+								mongoSession.Close()
+								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(MatchError("session closed"))
+							})
+
+							It("has the correct stored data sets", func() {
+								ValidateDataSet(testMongoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
+								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(Succeed())
+								ValidateDataSet(testMongoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
+							})
+
+							It("has the correct stored data set data", func() {
+								ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSetData)
+								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(Succeed())
+								ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, []data.Datum{})
+							})
+						}
+
+						Context("by id", func() {
+							BeforeEach(func() {
+								for _, datum := range dataSetData {
+									base, _ := datum.(*types.Base)
+									*deletes = append(*deletes, &data.Delete{ID: base.ID})
+								}
+							})
+
+							deleteDataSetDataAssertions()
+						})
+
+						Context("by origin id", func() {
+							BeforeEach(func() {
+								for _, datum := range dataSetData {
+									base, _ := datum.(*types.Base)
+									*deletes = append(*deletes, &data.Delete{Origin: &data.DeleteOrigin{ID: base.Origin.ID}})
+								}
+							})
+
+							deleteDataSetDataAssertions()
+						})
+
+						Context("by both id and origin id", func() {
+							BeforeEach(func() {
+								for _, datum := range dataSetData {
+									base, _ := datum.(*types.Base)
+									*deletes = append(*deletes, &data.Delete{ID: base.ID, Origin: &data.DeleteOrigin{ID: base.Origin.ID}})
+								}
+							})
+
+							deleteDataSetDataAssertions()
+						})
+
+						Context("with neither id nor origin id it deletes nothing", func() {
+							BeforeEach(func() {
+								for range dataSetData {
+									*deletes = append(*deletes, &data.Delete{})
+								}
+							})
+
+							It("has the correct stored data sets", func() {
+								ValidateDataSet(testMongoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
+								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(Succeed())
+								ValidateDataSet(testMongoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
+							})
+
+							It("has the correct stored data set data", func() {
+								ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSetData)
+								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(Succeed())
+								ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSetData)
+							})
 						})
 					})
 

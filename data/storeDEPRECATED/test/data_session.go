@@ -61,6 +61,12 @@ type CreateDataSetDataInput struct {
 	DataSetData []data.Datum
 }
 
+type DeleteDataSetDataInput struct {
+	Context context.Context
+	DataSet *upload.Upload
+	Deletes *data.Deletes
+}
+
 type ActivateDataSetDataInput struct {
 	Context context.Context
 	DataSet *upload.Upload
@@ -144,6 +150,9 @@ type DataSession struct {
 	CreateDataSetDataInvocations                         int
 	CreateDataSetDataInputs                              []CreateDataSetDataInput
 	CreateDataSetDataOutputs                             []error
+	DeleteDataSetDataInvocations                         int
+	DeleteDataSetDataInputs                              []DeleteDataSetDataInput
+	DeleteDataSetDataOutputs                             []error
 	ActivateDataSetDataInvocations                       int
 	ActivateDataSetDataInputs                            []ActivateDataSetDataInput
 	ActivateDataSetDataOutputs                           []error
@@ -272,6 +281,18 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 	return output
 }
 
+func (d *DataSession) DeleteDataSetData(ctx context.Context, dataSet *upload.Upload, deletes *data.Deletes) error {
+	d.DeleteDataSetDataInvocations++
+
+	d.DeleteDataSetDataInputs = append(d.DeleteDataSetDataInputs, DeleteDataSetDataInput{Context: ctx, DataSet: dataSet, Deletes: deletes})
+
+	gomega.Expect(d.DeleteDataSetDataOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.DeleteDataSetDataOutputs[0]
+	d.DeleteDataSetDataOutputs = d.DeleteDataSetDataOutputs[1:]
+	return output
+}
+
 func (d *DataSession) ActivateDataSetData(ctx context.Context, dataSet *upload.Upload) error {
 	d.ActivateDataSetDataInvocations++
 
@@ -391,6 +412,7 @@ func (d *DataSession) Expectations() {
 	gomega.Expect(d.UpdateDataSetOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.DeleteDataSetOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.CreateDataSetDataOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.DeleteDataSetDataOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.ActivateDataSetDataOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.ArchiveDeviceDataUsingHashesFromDataSetOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.UnarchiveDeviceDataUsingHashesFromDataSetOutputs).To(gomega.BeEmpty())

@@ -325,6 +325,60 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 	return nil
 }
 
+func (d *DataSession) DeleteDataSetData(ctx context.Context, dataSet *upload.Upload, deletes *data.Deletes) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if err := d.validateDataSet(dataSet); err != nil {
+		return err
+	}
+	if deletes == nil {
+		return errors.New("deletes is missing")
+	} else if err := structureValidator.New().Validate(deletes); err != nil {
+		return errors.Wrap(err, "deletes is invalid")
+	}
+
+	if d.IsClosed() {
+		return errors.New("session closed")
+	}
+
+	startTime := time.Now()
+
+	datumSelectors := []bson.M{}
+	for _, d := range *deletes {
+		datumSelector := bson.M{}
+		if d.ID != nil {
+			datumSelector["id"] = *d.ID
+		}
+		if d.Origin != nil && d.Origin.ID != nil {
+			datumSelector["origin.id"] = *d.Origin.ID
+		}
+		if len(datumSelector) > 0 {
+			datumSelectors = append(datumSelectors, datumSelector)
+		}
+	}
+
+	if len(datumSelectors) == 0 {
+		return nil
+	}
+
+	selector := bson.M{
+		"_userId":  dataSet.UserID,
+		"uploadId": dataSet.UploadID,
+		"$or":      datumSelectors,
+	}
+
+	changeInfo, err := d.C().RemoveAll(selector)
+
+	loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "changeInfo": changeInfo, "duration": time.Since(startTime) / time.Microsecond}
+	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DeleteDataSetData")
+
+	if err != nil {
+		return errors.Wrap(err, "unable to delete data set data")
+	}
+	return nil
+}
+
 func (d *DataSession) ActivateDataSetData(ctx context.Context, dataSet *upload.Upload) error {
 	if ctx == nil {
 		return errors.New("context is missing")

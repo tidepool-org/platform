@@ -11,6 +11,7 @@ import (
 	"github.com/tidepool-org/platform/data/types"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	"github.com/tidepool-org/platform/data/types/upload"
+	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
@@ -24,46 +25,6 @@ func NewMeta() interface{} {
 	return &types.Meta{
 		Type: "upload",
 	}
-}
-
-func NewUpload() *upload.Upload {
-	datum := upload.New()
-	datum.Base = *testDataTypes.NewBase()
-	datum.Type = "upload"
-	datum.ByUser = pointer.FromString(userTest.RandomID())
-	datum.Client = NewClient()
-	datum.ComputerTime = pointer.FromString(test.NewTime().Format("2006-01-02T15:04:05"))
-	datum.DataSetType = pointer.FromString(test.RandomStringFromArray(upload.DataSetTypes()))
-	datum.DataState = pointer.FromString(test.RandomStringFromArray(upload.States()))
-	datum.DeviceManufacturers = pointer.FromStringArray([]string{test.NewText(1, 16), test.NewText(1, 16)})
-	datum.DeviceModel = pointer.FromString(test.NewText(1, 32))
-	datum.DeviceSerialNumber = pointer.FromString(test.NewText(1, 16))
-	datum.DeviceTags = pointer.FromStringArray(test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, len(upload.DeviceTags()), upload.DeviceTags()))
-	datum.State = pointer.FromString(test.RandomStringFromArray(upload.States()))
-	datum.TimeProcessing = pointer.FromString(upload.TimeProcessingUTCBootstrapping)
-	datum.Version = pointer.FromString(testInternet.NewSemanticVersion())
-	return datum
-}
-
-func CloneUpload(datum *upload.Upload) *upload.Upload {
-	if datum == nil {
-		return nil
-	}
-	clone := upload.New()
-	clone.Base = *testDataTypes.CloneBase(&datum.Base)
-	clone.ByUser = test.CloneString(datum.ByUser)
-	clone.Client = CloneClient(datum.Client)
-	clone.ComputerTime = test.CloneString(datum.ComputerTime)
-	clone.DataSetType = test.CloneString(datum.DataSetType)
-	clone.DataState = test.CloneString(datum.DataState)
-	clone.DeviceManufacturers = test.CloneStringArray(datum.DeviceManufacturers)
-	clone.DeviceModel = test.CloneString(datum.DeviceModel)
-	clone.DeviceSerialNumber = test.CloneString(datum.DeviceSerialNumber)
-	clone.DeviceTags = test.CloneStringArray(datum.DeviceTags)
-	clone.State = test.CloneString(datum.State)
-	clone.TimeProcessing = test.CloneString(datum.TimeProcessing)
-	clone.Version = test.CloneString(datum.Version)
-	return clone
 }
 
 var _ = Describe("Upload", func() {
@@ -163,7 +124,7 @@ var _ = Describe("Upload", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *upload.Upload), expectedOrigins []structure.Origin, expectedErrors ...error) {
-					datum := NewUpload()
+					datum := dataTypesUploadTest.NewUpload()
 					mutator(datum)
 					testDataTypes.ValidateWithExpectedOrigins(datum, expectedOrigins, expectedErrors...)
 				},
@@ -211,7 +172,7 @@ var _ = Describe("Upload", func() {
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/client/version", NewMeta()),
 				),
 				Entry("client valid",
-					func(datum *upload.Upload) { datum.Client = NewClient() },
+					func(datum *upload.Upload) { datum.Client = dataTypesUploadTest.NewClient() },
 					structure.Origins(),
 				),
 				Entry("computer time missing",
@@ -469,9 +430,9 @@ var _ = Describe("Upload", func() {
 		Context("Normalize", func() {
 			DescribeTable("normalizes the datum with origin external",
 				func(mutator func(datum *upload.Upload), expectator func(datum *upload.Upload, expectedDatum *upload.Upload)) {
-					datum := NewUpload()
+					datum := dataTypesUploadTest.NewUpload()
 					mutator(datum)
-					expectedDatum := CloneUpload(datum)
+					expectedDatum := dataTypesUploadTest.CloneUpload(datum)
 					normalizer := dataNormalizer.New()
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
@@ -526,9 +487,9 @@ var _ = Describe("Upload", func() {
 			DescribeTable("normalizes the datum with origin internal/store",
 				func(mutator func(datum *upload.Upload), expectator func(datum *upload.Upload, expectedDatum *upload.Upload)) {
 					for _, origin := range []structure.Origin{structure.OriginInternal, structure.OriginStore} {
-						datum := NewUpload()
+						datum := dataTypesUploadTest.NewUpload()
 						mutator(datum)
-						expectedDatum := CloneUpload(datum)
+						expectedDatum := dataTypesUploadTest.CloneUpload(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
@@ -562,7 +523,7 @@ var _ = Describe("Upload", func() {
 			var datum *upload.Upload
 
 			BeforeEach(func() {
-				datum = NewUpload()
+				datum = dataTypesUploadTest.NewUpload()
 			})
 
 			It("returns false if datum device manufacturers is nil", func() {

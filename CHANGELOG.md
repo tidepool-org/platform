@@ -1,5 +1,6 @@
 ## HEAD
 
+* Add API to batch delete data set data
 * Add origin type "service"
 * Add origin payload
 * Update origin name to validate as string with maximum length
