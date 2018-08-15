@@ -96,5 +96,5 @@ func (c *continuousDeduplicator) DeduplicateDataSet(ctx context.Context) error {
 }
 
 func (c *continuousDeduplicator) DeleteDataSet(ctx context.Context) error {
-	return errors.Newf("unable to delete data set with id %q", c.dataSet.UploadID)
+	return errors.Newf("unable to delete data set with id %q", *c.dataSet.UploadID)
 }

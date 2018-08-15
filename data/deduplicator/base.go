@@ -160,8 +160,8 @@ func (b *BaseDeduplicator) RegisterDataSet(ctx context.Context) error {
 
 	if deduplicatorDescriptor == nil {
 		deduplicatorDescriptor = data.NewDeduplicatorDescriptor()
-	} else if deduplicatorDescriptor.IsRegisteredWithAnyDeduplicator() {
-		return errors.Newf("already registered data set with id %q", b.dataSet.UploadID)
+	} else if deduplicatorDescriptor.IsRegisteredWithAnyDeduplicator() && !deduplicatorDescriptor.IsRegisteredWithNamedDeduplicator(b.Name()) {
+		return errors.Newf("already registered data set with id %q", *b.dataSet.UploadID)
 	}
 	deduplicatorDescriptor.RegisterWithDeduplicator(b)
 
@@ -170,7 +170,7 @@ func (b *BaseDeduplicator) RegisterDataSet(ctx context.Context) error {
 	update.Deduplicator = deduplicatorDescriptor
 	dataSet, err := b.dataSession.UpdateDataSet(ctx, *b.dataSet.UploadID, update)
 	if err != nil {
-		return errors.Wrapf(err, "unable to update data set with id %q", b.dataSet.UploadID)
+		return errors.Wrapf(err, "unable to update data set with id %q", *b.dataSet.UploadID)
 	}
 	b.dataSet = dataSet
 
