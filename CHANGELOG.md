@@ -1,5 +1,7 @@
 ## HEAD
 
+## v1.29.0
+
 * Add API to batch delete data set data
 * Add origin type "service"
 * Add origin payload
