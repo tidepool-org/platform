@@ -33,7 +33,6 @@ type Pump struct {
 	CarbohydrateRatioSchedule   *CarbohydrateRatioStartArray     `json:"carbRatio,omitempty" bson:"carbRatio,omitempty"`   // TODO: Move into BolusCalculator struct; rename carbohydrateRatio
 	CarbohydrateRatioSchedules  *CarbohydrateRatioStartArrayMap  `json:"carbRatios,omitempty" bson:"carbRatios,omitempty"` // TODO: Move into BolusCalculator struct; rename carbohydrateRatios
 	Display                     *Display                         `json:"display,omitempty" bson:"display,omitempty"`
-	Insulin                     *Insulin                         `json:"insulin,omitempty" bson:"insulin,omitempty"`
 	InsulinSensitivitySchedule  *InsulinSensitivityStartArray    `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`     // TODO: Move into BolusCalculator struct
 	InsulinSensitivitySchedules *InsulinSensitivityStartArrayMap `json:"insulinSensitivities,omitempty" bson:"insulinSensitivities,omitempty"` // TODO: Move into BolusCalculator struct
 	Manufacturers               *[]string                        `json:"manufacturers,omitempty" bson:"manufacturers,omitempty"`
@@ -65,7 +64,6 @@ func (p *Pump) Parse(parser data.ObjectParser) error {
 	p.CarbohydrateRatioSchedule = ParseCarbohydrateRatioStartArray(parser.NewChildArrayParser("carbRatio"))
 	p.CarbohydrateRatioSchedules = ParseCarbohydrateRatioStartArrayMap(parser.NewChildObjectParser("carbRatios"))
 	p.Display = ParseDisplay(parser.NewChildObjectParser("display"))
-	p.Insulin = ParseInsulin(parser.NewChildObjectParser("insulin"))
 	p.InsulinSensitivitySchedule = ParseInsulinSensitivityStartArray(parser.NewChildArrayParser("insulinSensitivity"))
 	p.InsulinSensitivitySchedules = ParseInsulinSensitivityStartArrayMap(parser.NewChildObjectParser("insulinSensitivities"))
 	p.Manufacturers = parser.ParseStringArray("manufacturers")
@@ -132,9 +130,6 @@ func (p *Pump) Validate(validator structure.Validator) {
 	if p.Display != nil {
 		p.Display.Validate(validator.WithReference("display"))
 	}
-	if p.Insulin != nil {
-		p.Insulin.Validate(validator.WithReference("insulin"))
-	}
 	if p.InsulinSensitivitySchedule != nil {
 		p.InsulinSensitivitySchedule.Validate(validator.WithReference("insulinSensitivity"), unitsBloodGlucose)
 		if p.InsulinSensitivitySchedules != nil {
@@ -193,9 +188,6 @@ func (p *Pump) Normalize(normalizer data.Normalizer) {
 	}
 	if p.Display != nil {
 		p.Display.Normalize(normalizer.WithReference("display"))
-	}
-	if p.Insulin != nil {
-		p.Insulin.Normalize(normalizer.WithReference("insulin"))
 	}
 	if p.InsulinSensitivitySchedule != nil {
 		p.InsulinSensitivitySchedule.Normalize(normalizer.WithReference("insulinSensitivity"), unitsBloodGlucose)

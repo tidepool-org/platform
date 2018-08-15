@@ -54,7 +54,6 @@ func NewPump(unitsBloodGlucose *string) *pump.Pump {
 	datum.CarbohydrateRatioSchedules = pump.NewCarbohydrateRatioStartArrayMap()
 	datum.CarbohydrateRatioSchedules.Set(scheduleName, NewCarbohydrateRatioStartArray())
 	datum.Display = NewDisplay()
-	datum.Insulin = NewInsulin()
 	datum.InsulinSensitivitySchedules = pump.NewInsulinSensitivityStartArrayMap()
 	datum.InsulinSensitivitySchedules.Set(scheduleName, NewInsulinSensitivityStartArray(unitsBloodGlucose))
 	datum.Manufacturers = pointer.FromStringArray(NewManufacturers(1, 10))
@@ -80,7 +79,6 @@ func ClonePump(datum *pump.Pump) *pump.Pump {
 	clone.CarbohydrateRatioSchedule = CloneCarbohydrateRatioStartArray(datum.CarbohydrateRatioSchedule)
 	clone.CarbohydrateRatioSchedules = CloneCarbohydrateRatioStartArrayMap(datum.CarbohydrateRatioSchedules)
 	clone.Display = CloneDisplay(datum.Display)
-	clone.Insulin = CloneInsulin(datum.Insulin)
 	clone.InsulinSensitivitySchedule = CloneInsulinSensitivityStartArray(datum.InsulinSensitivitySchedule)
 	clone.InsulinSensitivitySchedules = CloneInsulinSensitivityStartArrayMap(datum.InsulinSensitivitySchedules)
 	clone.Manufacturers = test.CloneStringArray(datum.Manufacturers)
@@ -110,7 +108,6 @@ var _ = Describe("Pump", func() {
 			Expect(datum.CarbohydrateRatioSchedule).To(BeNil())
 			Expect(datum.CarbohydrateRatioSchedules).To(BeNil())
 			Expect(datum.Display).To(BeNil())
-			Expect(datum.Insulin).To(BeNil())
 			Expect(datum.InsulinSensitivitySchedule).To(BeNil())
 			Expect(datum.InsulinSensitivitySchedules).To(BeNil())
 			Expect(datum.Manufacturers).To(BeNil())
@@ -325,19 +322,6 @@ var _ = Describe("Pump", func() {
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.Display = NewDisplay() },
 				),
-				Entry("insulin missing",
-					pointer.FromString("mmol/L"),
-					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.Insulin = nil },
-				),
-				Entry("insulin invalid",
-					pointer.FromString("mmol/L"),
-					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.Insulin.Units = nil },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulin/units", NewMeta()),
-				),
-				Entry("insulin valid",
-					pointer.FromString("mmol/L"),
-					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.Insulin = NewInsulin() },
-				),
 				Entry("insulin sensitivity schedule and insulin sensitivity schedules missing",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
@@ -495,7 +479,6 @@ var _ = Describe("Pump", func() {
 						datum.Bolus.Extended.Enabled = nil
 						datum.CarbohydrateRatioSchedules = nil
 						datum.Display.Units = nil
-						datum.Insulin.Units = nil
 						datum.InsulinSensitivitySchedules = nil
 						datum.Manufacturers = pointer.FromStringArray([]string{})
 						datum.Model = pointer.FromString("")
@@ -510,7 +493,6 @@ var _ = Describe("Pump", func() {
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/extended/enabled", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/carbRatio", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/display/units", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulin/units", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulinSensitivity", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/manufacturers", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/model", &types.Meta{Type: "invalidType"}),
