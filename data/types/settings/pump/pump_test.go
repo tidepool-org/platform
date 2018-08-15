@@ -315,8 +315,8 @@ var _ = Describe("Pump", func() {
 				),
 				Entry("display invalid",
 					pointer.FromString("mmol/L"),
-					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.Display.Units = nil },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/display/units", NewMeta()),
+					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.Display.BloodGlucose.Units = nil },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/display/bloodGlucose/units", NewMeta()),
 				),
 				Entry("display valid",
 					pointer.FromString("mmol/L"),
@@ -478,7 +478,7 @@ var _ = Describe("Pump", func() {
 						datum.BloodGlucoseTargetSchedules = nil
 						datum.Bolus.Extended.Enabled = nil
 						datum.CarbohydrateRatioSchedules = nil
-						datum.Display.Units = nil
+						datum.Display.BloodGlucose.Units = nil
 						datum.InsulinSensitivitySchedules = nil
 						datum.Manufacturers = pointer.FromStringArray([]string{})
 						datum.Model = pointer.FromString("")
@@ -492,7 +492,7 @@ var _ = Describe("Pump", func() {
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bgTarget", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/extended/enabled", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/carbRatio", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/display/units", &types.Meta{Type: "invalidType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/display/bloodGlucose/units", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulinSensitivity", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/manufacturers", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/model", &types.Meta{Type: "invalidType"}),
