@@ -265,8 +265,8 @@ var _ = Describe("Pump", func() {
 				),
 				Entry("bolus invalid",
 					pointer.FromString("mmol/L"),
-					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.Bolus.Combination.Enabled = nil },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/combination/enabled", NewMeta()),
+					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.Bolus.Extended.Enabled = nil },
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/extended/enabled", NewMeta()),
 				),
 				Entry("bolus valid",
 					pointer.FromString("mmol/L"),
@@ -492,7 +492,7 @@ var _ = Describe("Pump", func() {
 						datum.Basal.Temporary.Type = nil
 						datum.BasalRateSchedules = nil
 						datum.BloodGlucoseTargetSchedules = nil
-						datum.Bolus.Combination.Enabled = nil
+						datum.Bolus.Extended.Enabled = nil
 						datum.CarbohydrateRatioSchedules = nil
 						datum.Display.Units = nil
 						datum.Insulin.Units = nil
@@ -507,7 +507,7 @@ var _ = Describe("Pump", func() {
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/basal/temporary/type", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/basalSchedule", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bgTarget", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/combination/enabled", &types.Meta{Type: "invalidType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/extended/enabled", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/carbRatio", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/display/units", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulin/units", &types.Meta{Type: "invalidType"}),

@@ -15,59 +15,59 @@ import (
 	"github.com/tidepool-org/platform/test"
 )
 
-func NewBolusCombination() *pump.BolusCombination {
-	datum := pump.NewBolusCombination()
+func NewBolusExtended() *pump.BolusExtended {
+	datum := pump.NewBolusExtended()
 	datum.Enabled = pointer.FromBool(test.RandomBool())
 	return datum
 }
 
-func CloneBolusCombination(datum *pump.BolusCombination) *pump.BolusCombination {
+func CloneBolusExtended(datum *pump.BolusExtended) *pump.BolusExtended {
 	if datum == nil {
 		return nil
 	}
-	clone := pump.NewBolusCombination()
+	clone := pump.NewBolusExtended()
 	clone.Enabled = test.CloneBool(datum.Enabled)
 	return clone
 }
 
-var _ = Describe("BolusCombination", func() {
-	Context("ParseBolusCombination", func() {
+var _ = Describe("BolusExtended", func() {
+	Context("ParseBolusExtended", func() {
 		// TODO
 	})
 
-	Context("NewBolusCombination", func() {
+	Context("NewBolusExtended", func() {
 		It("is successful", func() {
-			Expect(pump.NewBolusCombination()).To(Equal(&pump.BolusCombination{}))
+			Expect(pump.NewBolusExtended()).To(Equal(&pump.BolusExtended{}))
 		})
 	})
 
-	Context("BolusCombination", func() {
+	Context("BolusExtended", func() {
 		Context("Parse", func() {
 			// TODO
 		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
-				func(mutator func(datum *pump.BolusCombination), expectedErrors ...error) {
-					datum := NewBolusCombination()
+				func(mutator func(datum *pump.BolusExtended), expectedErrors ...error) {
+					datum := NewBolusExtended()
 					mutator(datum)
 					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
-					func(datum *pump.BolusCombination) {},
+					func(datum *pump.BolusExtended) {},
 				),
 				Entry("enabled missing",
-					func(datum *pump.BolusCombination) { datum.Enabled = nil },
+					func(datum *pump.BolusExtended) { datum.Enabled = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/enabled"),
 				),
 				Entry("enabled false",
-					func(datum *pump.BolusCombination) { datum.Enabled = pointer.FromBool(false) },
+					func(datum *pump.BolusExtended) { datum.Enabled = pointer.FromBool(false) },
 				),
 				Entry("enabled true",
-					func(datum *pump.BolusCombination) { datum.Enabled = pointer.FromBool(true) },
+					func(datum *pump.BolusExtended) { datum.Enabled = pointer.FromBool(true) },
 				),
 				Entry("multiple errors",
-					func(datum *pump.BolusCombination) {
+					func(datum *pump.BolusExtended) {
 						datum.Enabled = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/enabled"),
@@ -77,11 +77,11 @@ var _ = Describe("BolusCombination", func() {
 
 		Context("Normalize", func() {
 			DescribeTable("normalizes the datum",
-				func(mutator func(datum *pump.BolusCombination)) {
+				func(mutator func(datum *pump.BolusExtended)) {
 					for _, origin := range structure.Origins() {
-						datum := NewBolusCombination()
+						datum := NewBolusExtended()
 						mutator(datum)
-						expectedDatum := CloneBolusCombination(datum)
+						expectedDatum := CloneBolusExtended(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
@@ -91,10 +91,10 @@ var _ = Describe("BolusCombination", func() {
 					}
 				},
 				Entry("does not modify the datum",
-					func(datum *pump.BolusCombination) {},
+					func(datum *pump.BolusExtended) {},
 				),
 				Entry("does not modify the datum; enabled missing",
-					func(datum *pump.BolusCombination) { datum.Enabled = nil },
+					func(datum *pump.BolusExtended) { datum.Enabled = nil },
 				),
 			)
 		})
