@@ -2,6 +2,7 @@
 
 ## v1.29.0
 
+* Update Ginkgo suite usage
 * Add optional provider session id to data source update
 * Add new provider session id to data source after reconnecting Dexcom API
 * Use float64 for food data type values

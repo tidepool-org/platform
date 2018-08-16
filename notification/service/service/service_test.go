@@ -1,131 +1,121 @@
 package service_test
 
-// import (
-// 	. "github.com/onsi/ginkgo"
-// 	. "github.com/onsi/gomega"
-// 	. "github.com/onsi/gomega/ghttp"
+import (
+	. "github.com/onsi/ginkgo"
+)
 
-// 	"net/http"
+var _ = Describe("Service", func() {
+	// 	Context("New", func() {
+	// 		It("returns an error if unsuccessful", func() {
+	// 			svc, err := service.New("")
+	// 			Expect(err).To(HaveOccurred())
+	// 			Expect(svc).To(BeNil())
+	// 		})
 
-// 	"github.com/tidepool-org/platform/config"
-// 	"github.com/tidepool-org/platform/config/env"
-// 	"github.com/tidepool-org/platform/id"
-// 	"github.com/tidepool-org/platform/notification/service/service"
+	// 		It("returns successfully", func() {
+	// 			Expect(service.New("TIDEPOOL")).ToNot(BeNil())
+	// 		})
+	// 	})
 
-// )
+	// 	Context("with started server, config reporter, and new service", func() {
+	// 		var serverTokenSecret string
+	// 		var serverToken string
+	// 		var server *Server
+	// 		var clientConfigReporter config.Reporter
+	// 		var storeConfigReporter config.Reporter
+	// 		var svc *service.Service
 
-// var _ = Describe("Service", func() {
-// 	Context("New", func() {
-// 		It("returns an error if unsuccessful", func() {
-// 			svc, err := service.New("")
-// 			Expect(err).To(HaveOccurred())
-// 			Expect(svc).To(BeNil())
-// 		})
+	// 		BeforeEach(func() {
+	// 			serverTokenSecret = id.New()
+	// 			serverToken = id.New()
+	// 			server = NewServer()
+	// 			Expect(server).ToNot(BeNil())
+	// 			server.AppendHandlers(
+	// 				CombineHandlers(
+	// 					VerifyRequest("POST", "/auth/serverlogin"),
+	// 					VerifyHeaderKV("X-Tidepool-Server-Name", "service.test"),
+	// 					VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
+	// 					VerifyBody(nil),
+	// 					RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
+	// 			)
 
-// 		It("returns successfully", func() {
-// 			Expect(service.New("TIDEPOOL")).ToNot(BeNil())
-// 		})
-// 	})
+	// 			configReporter, err := env.NewReporter("TIDEPOOL")
+	// 			Expect(err).ToNot(HaveOccurred())
+	// 			Expect(configReporter).ToNot(BeNil())
+	// 			configReporter = configReporter.WithScopes("service.test", "service")
 
-// 	Context("with started server, config reporter, and new service", func() {
-// 		var serverTokenSecret string
-// 		var serverToken string
-// 		var server *Server
-// 		var clientConfigReporter config.Reporter
-// 		var storeConfigReporter config.Reporter
-// 		var svc *service.Service
+	// 			configReporter.Set("secret", "This is a secret")
 
-// 		BeforeEach(func() {
-// 			serverTokenSecret = id.New()
-// 			serverToken = id.New()
-// 			server = NewServer()
-// 			Expect(server).ToNot(BeNil())
-// 			server.AppendHandlers(
-// 				CombineHandlers(
-// 					VerifyRequest("POST", "/auth/serverlogin"),
-// 					VerifyHeaderKV("X-Tidepool-Server-Name", "service.test"),
-// 					VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
-// 					VerifyBody(nil),
-// 					RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
-// 			)
+	// 			clientConfigReporter = configReporter.WithScopes("auth", "client")
+	// 			clientConfigReporter.Set("address", server.URL())
+	// 			clientConfigReporter.Set("timeout", "60")
+	// 			clientConfigReporter.Set("server_token_secret", serverTokenSecret)
 
-// 			configReporter, err := env.NewReporter("TIDEPOOL")
-// 			Expect(err).ToNot(HaveOccurred())
-// 			Expect(configReporter).ToNot(BeNil())
-// 			configReporter = configReporter.WithScopes("service.test", "service")
+	// 			storeConfigReporter = configReporter.WithScopes("notification", "store")
+	// 			storeConfigReporter.Set("address", "http://localhost:1234")
+	// 			storeConfigReporter.Set("timeout", "60")
 
-// 			configReporter.Set("secret", "This is a secret")
+	// 			configReporter.WithScopes("server").Set("address", "http://localhost:5678")
 
-// 			clientConfigReporter = configReporter.WithScopes("auth", "client")
-// 			clientConfigReporter.Set("address", server.URL())
-// 			clientConfigReporter.Set("timeout", "60")
-// 			clientConfigReporter.Set("server_token_secret", serverTokenSecret)
+	// 			svc, err = service.New("TIDEPOOL")
+	// 			Expect(err).ToNot(HaveOccurred())
+	// 			Expect(svc).ToNot(BeNil())
+	// 		})
 
-// 			storeConfigReporter = configReporter.WithScopes("notification", "store")
-// 			storeConfigReporter.Set("address", "http://localhost:1234")
-// 			storeConfigReporter.Set("timeout", "60")
+	// 		AfterEach(func() {
+	// 			if server != nil {
+	// 				server.Close()
+	// 			}
+	// 		})
 
-// 			configReporter.WithScopes("server").Set("address", "http://localhost:5678")
+	// 		Context("Initialize", func() {
+	// 			It("returns an error if the timeout is invalid during Load", func() {
+	// 				clientConfigReporter.Set("timeout", "abc")
+	// 				Expect(svc.Initialize()).To(MatchError("unable to load auth client config; timeout is invalid"))
+	// 			})
 
-// 			svc, err = service.New("TIDEPOOL")
-// 			Expect(err).ToNot(HaveOccurred())
-// 			Expect(svc).ToNot(BeNil())
-// 		})
+	// 			It("returns an error if the timeout is invalid during Load", func() {
+	// 				storeConfigReporter.Set("timeout", "abc")
+	// 				Expect(svc.Initialize()).To(MatchError("unable to load notification store config; timeout is invalid"))
+	// 			})
 
-// 		AfterEach(func() {
-// 			if server != nil {
-// 				server.Close()
-// 			}
-// 		})
+	// 			It("returns an error if the timeout is invalid during Validate", func() {
+	// 				storeConfigReporter.Set("timeout", "0")
+	// 				Expect(svc.Initialize()).To(MatchError("unable to create notification store; config is invalid; timeout is invalid"))
+	// 			})
 
-// 		Context("Initialize", func() {
-// 			It("returns an error if the timeout is invalid during Load", func() {
-// 				clientConfigReporter.Set("timeout", "abc")
-// 				Expect(svc.Initialize()).To(MatchError("unable to load auth client config; timeout is invalid"))
-// 			})
+	// 			It("returns successfully", func() {
+	// 				Expect(svc.Initialize()).To(Succeed())
+	// 				svc.Terminate()
+	// 			})
+	// 		})
 
-// 			It("returns an error if the timeout is invalid during Load", func() {
-// 				storeConfigReporter.Set("timeout", "abc")
-// 				Expect(svc.Initialize()).To(MatchError("unable to load notification store config; timeout is invalid"))
-// 			})
+	// 		Context("with being initialized", func() {
+	// 			BeforeEach(func() {
+	// 				Expect(svc.Initialize()).To(Succeed())
+	// 			})
 
-// 			It("returns an error if the timeout is invalid during Validate", func() {
-// 				storeConfigReporter.Set("timeout", "0")
-// 				Expect(svc.Initialize()).To(MatchError("unable to create notification store; config is invalid; timeout is invalid"))
-// 			})
+	// 			AfterEach(func() {
+	// 				svc.Terminate()
+	// 			})
 
-// 			It("returns successfully", func() {
-// 				Expect(svc.Initialize()).To(Succeed())
-// 				svc.Terminate()
-// 			})
-// 		})
+	// 			Context("Terminate", func() {
+	// 				It("returns successfully", func() {
+	// 					svc.Terminate()
+	// 				})
+	// 			})
 
-// 		Context("with being initialized", func() {
-// 			BeforeEach(func() {
-// 				Expect(svc.Initialize()).To(Succeed())
-// 			})
+	// 			Context("NotificationStore", func() {
+	// 				It("returns successfully", func() {
+	// 					Expect(svc.NotificationStore()).ToNot(BeNil())
+	// 				})
+	// 			})
 
-// 			AfterEach(func() {
-// 				svc.Terminate()
-// 			})
-
-// 			Context("Terminate", func() {
-// 				It("returns successfully", func() {
-// 					svc.Terminate()
-// 				})
-// 			})
-
-// 			Context("NotificationStore", func() {
-// 				It("returns successfully", func() {
-// 					Expect(svc.NotificationStore()).ToNot(BeNil())
-// 				})
-// 			})
-
-// 			Context("Status", func() {
-// 				It("returns successfully", func() {
-// 					Expect(svc.Status()).ToNot(BeNil())
-// 				})
-// 			})
-// 		})
-// 	})
-// })
+	// 			Context("Status", func() {
+	// 				It("returns successfully", func() {
+	// 					Expect(svc.Status()).ToNot(BeNil())
+	// 				})
+	// 			})
+	// 		})
+	// 	})
+})

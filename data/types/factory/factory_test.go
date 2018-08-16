@@ -4,12 +4,5 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("Change", func() {
-	Context("NewDatum", func() {
-		// TODO
-	})
-
-	Context("ParseDatum", func() {
-		// TODO
-	})
+var _ = Describe("Factory", func() {
 })

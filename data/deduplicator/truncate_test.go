@@ -1,11 +1,10 @@
 package deduplicator_test
 
 import (
-	"context"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"context"
 	"errors"
 	"fmt"
 
