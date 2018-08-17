@@ -11,7 +11,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
-	"github.com/tidepool-org/platform/time/zone"
+	timeZone "github.com/tidepool-org/platform/time/zone"
 	"github.com/tidepool-org/platform/user"
 )
 
@@ -217,7 +217,7 @@ func (b *Base) Validate(validator structure.Validator) {
 	}
 	timeValidator.AsTime(TimeFormat)
 
-	validator.String("timezone", b.TimeZoneName).OneOf(zone.Names()...)
+	validator.String("timezone", b.TimeZoneName).Using(timeZone.NameValidator)
 	validator.Int("timezoneOffset", b.TimeZoneOffset).InRange(TimeZoneOffsetMinimum, TimeZoneOffsetMaximum)
 	validator.String("type", &b.Type).Exists().NotEmpty()
 

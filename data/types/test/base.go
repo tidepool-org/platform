@@ -48,7 +48,7 @@ func NewBase() *types.Base {
 	datum.Source = pointer.FromString("carelink")
 	datum.Tags = pointer.FromStringArray([]string{NewTag(1, 10)})
 	datum.Time = pointer.FromString(test.NewTime().Format(time.RFC3339))
-	datum.TimeZoneName = pointer.FromString(testTimeZone.NewName())
+	datum.TimeZoneName = pointer.FromString(testTimeZone.RandomName())
 	datum.TimeZoneOffset = pointer.FromInt(NewTimeZoneOffset())
 	datum.Type = NewType()
 	datum.UploadID = pointer.FromString(dataTest.RandomSetID())

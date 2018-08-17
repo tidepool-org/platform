@@ -14,7 +14,7 @@ import (
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"github.com/tidepool-org/platform/time/zone"
+	timeZone "github.com/tidepool-org/platform/time/zone"
 )
 
 // TODO: This is a migration in progress from upload.Upload to DataSet. Some structures
@@ -195,7 +195,7 @@ func (d *DataSetCreate) Validate(validator structure.Validator) {
 	validator.StringArray("deviceTags", d.DeviceTags).NotEmpty().EachOneOf(DeviceTags()...)
 	validator.Time("time", d.Time).NotZero()
 	validator.String("timeProcessing", d.TimeProcessing).OneOf(TimeProcessings()...)
-	validator.String("timezone", d.TimeZoneName).OneOf(zone.Names()...)
+	validator.String("timezone", d.TimeZoneName).Using(timeZone.NameValidator)
 	validator.Int("timezoneOffset", d.TimeZoneOffset).InRange(-12*60, 14*60)
 }
 
@@ -245,7 +245,7 @@ func (d *DataSetUpdate) Validate(validator structure.Validator) {
 	validator.String("deviceSerialNumber", d.DeviceSerialNumber).LengthGreaterThan(1)
 	validator.String("state", d.State).OneOf(DataSetStates()...)
 	validator.Time("time", d.Time).NotZero()
-	validator.String("timezone", d.TimeZoneName).OneOf(zone.Names()...)
+	validator.String("timezone", d.TimeZoneName).Using(timeZone.NameValidator)
 	validator.Int("timezoneOffset", d.TimeZoneOffset).InRange(-12*60, 14*60)
 }
 

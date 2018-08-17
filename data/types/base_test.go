@@ -23,8 +23,8 @@ import (
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
-	"github.com/tidepool-org/platform/time/zone"
-	testTimeZone "github.com/tidepool-org/platform/time/zone/test"
+	timeZone "github.com/tidepool-org/platform/time/zone"
+	timeZoneTest "github.com/tidepool-org/platform/time/zone/test"
 	"github.com/tidepool-org/platform/user"
 	userTest "github.com/tidepool-org/platform/user/test"
 )
@@ -688,10 +688,15 @@ var _ = Describe("Base", func() {
 				Entry("time zone name empty",
 					func(datum *types.Base) { datum.TimeZoneName = pointer.FromString("") },
 					structure.Origins(),
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("", zone.Names()), "/timezone"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/timezone"),
 				),
-				Entry("time zone name exists",
-					func(datum *types.Base) { datum.TimeZoneName = pointer.FromString(testTimeZone.NewName()) },
+				Entry("time zone name invalid",
+					func(datum *types.Base) { datum.TimeZoneName = pointer.FromString("invalid") },
+					structure.Origins(),
+					testErrors.WithPointerSource(timeZone.ErrorValueStringAsNameNotValid("invalid"), "/timezone"),
+				),
+				Entry("time zone name valid",
+					func(datum *types.Base) { datum.TimeZoneName = pointer.FromString(timeZoneTest.RandomName()) },
 					structure.Origins(),
 				),
 				Entry("time zone offset missing",
@@ -838,7 +843,7 @@ var _ = Describe("Base", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "carelink"), "/source"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/tags"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/time"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("", zone.Names()), "/timezone"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/timezone"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-10081, -10080, 10080), "/timezoneOffset"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/type"),
 				),

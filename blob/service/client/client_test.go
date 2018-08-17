@@ -305,7 +305,7 @@ var _ = Describe("Client", func() {
 
 								When("the size exceeds maximum", func() {
 									BeforeEach(func() {
-										content := test.RandomBytesFromRange(104857601, 104857601)
+										content := make([]byte, 104857601)
 										create.Body = bytes.NewReader(content)
 										create.DigestMD5 = pointer.FromString(crypto.Base64EncodedMD5Hash(content))
 									})
@@ -390,7 +390,7 @@ var _ = Describe("Client", func() {
 
 										When("the size is maximum", func() {
 											BeforeEach(func() {
-												content := test.RandomBytesFromRange(104857600, 104857600)
+												content := make([]byte, 104857600)
 												create.Body = bytes.NewReader(content)
 												create.DigestMD5 = pointer.FromString(crypto.Base64EncodedMD5Hash(content))
 											})

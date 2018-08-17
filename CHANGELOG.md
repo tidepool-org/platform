@@ -2,6 +2,12 @@
 
 ## v1.29.0
 
+* Refactor device time change event to include time zone name
+* Add time zone name validator
+* Move pump settings display units to pump settings display blood glucose units
+* Add off value to put settings basal temporary type
+* Move pump settings insulin to pump settings bolus calculator insulin
+* Rename pump settings bolus combination to pump settings bolus extended
 * Add API to batch delete data set data
 * Add origin type "service"
 * Add origin payload
