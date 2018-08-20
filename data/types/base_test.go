@@ -372,7 +372,6 @@ var _ = Describe("Base", func() {
 				Entry("device id missing",
 					func(datum *types.Base) { datum.DeviceID = nil },
 					structure.Origins(),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/deviceId"),
 				),
 				Entry("device id empty",
 					func(datum *types.Base) { datum.DeviceID = pointer.FromString("") },
@@ -818,7 +817,7 @@ var _ = Describe("Base", func() {
 				Entry("multiple errors with external origin",
 					func(datum *types.Base) {
 						datum.ClockDriftOffset = pointer.FromInt(-86400001)
-						datum.DeviceID = nil
+						datum.DeviceID = pointer.FromString("")
 						datum.DeviceTime = pointer.FromString("invalid")
 						datum.ID = pointer.FromString("")
 						datum.Location.GPS = nil
@@ -834,7 +833,7 @@ var _ = Describe("Base", func() {
 					},
 					structure.Origins(),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-86400001, -86400000, 86400000), "/clockDriftOffset"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/deviceId"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/deviceId"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", "2006-01-02T15:04:05"), "/deviceTime"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/id"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/location/gps"),

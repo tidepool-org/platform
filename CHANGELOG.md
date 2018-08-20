@@ -2,6 +2,7 @@
 
 ## v1.29.0
 
+* Make device id optional for data
 * Refactor device time change event to include time zone name
 * Add time zone name validator
 * Move pump settings display units to pump settings display blood glucose units

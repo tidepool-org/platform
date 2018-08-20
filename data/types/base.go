@@ -162,12 +162,7 @@ func (b *Base) Validate(validator structure.Validator) {
 		}
 	}
 
-	deviceIDValidator := validator.String("deviceId", b.DeviceID)
-	if b.Type != "upload" { // HACK: Need to replace upload.Upload with data.DataSet
-		deviceIDValidator.Exists()
-	}
-	deviceIDValidator.NotEmpty()
-
+	validator.String("deviceId", b.DeviceID).NotEmpty()
 	validator.String("deviceTime", b.DeviceTime).AsTime(DeviceTimeFormat)
 
 	validator.String("id", b.ID).Using(data.IDValidator)
