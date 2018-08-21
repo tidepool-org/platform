@@ -2,6 +2,7 @@
 
 ## v1.29.0
 
+* Use float64 for food data type values
 * Add direct access to data origin
 * Make device id optional for data
 * Refactor device time change event to include time zone name
