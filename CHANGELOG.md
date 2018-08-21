@@ -2,6 +2,7 @@
 
 ## v1.29.0
 
+* Add direct access to data origin
 * Make device id optional for data
 * Refactor device time change event to include time zone name
 * Add time zone name validator

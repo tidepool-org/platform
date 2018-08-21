@@ -289,6 +289,10 @@ func (b *Base) IdentityFields() ([]string, error) {
 	return []string{*b.UserID, *b.DeviceID, *b.Time, b.Type}, nil
 }
 
+func (b *Base) GetOrigin() *dataTypesCommonOrigin.Origin {
+	return b.Origin
+}
+
 func (b *Base) GetPayload() *data.Blob {
 	return b.Payload
 }

@@ -25,6 +25,10 @@ func Types() []string {
 	}
 }
 
+type Getter interface {
+	GetOrigin() *Origin
+}
+
 type Origin struct {
 	ID      *string    `json:"id,omitempty" bson:"id,omitempty"`
 	Name    *string    `json:"name,omitempty" bson:"name,omitempty"`

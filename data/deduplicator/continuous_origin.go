@@ -5,7 +5,7 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
-	dataTypes "github.com/tidepool-org/platform/data/types"
+	dataTypesCommonOrigin "github.com/tidepool-org/platform/data/types/common/origin"
 	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -89,10 +89,10 @@ func (c *continuousOriginDeduplicator) AddDataSetData(ctx context.Context, dataS
 	var originIDs []string
 	for _, datum := range dataSetData {
 		datum.SetActive(true)
-		if base, ok := datum.(*dataTypes.Base); !ok {
+		if originGetter, ok := datum.(dataTypesCommonOrigin.Getter); !ok {
 			return errors.New("data set data invalid")
-		} else if base.Origin != nil && base.Origin.ID != nil {
-			originIDs = append(originIDs, *base.Origin.ID)
+		} else if origin := originGetter.GetOrigin(); origin != nil && origin.ID != nil {
+			originIDs = append(originIDs, *origin.ID)
 		}
 	}
 
