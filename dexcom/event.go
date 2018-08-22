@@ -31,6 +31,7 @@ func (e *EventsResponse) Parse(parser structure.ObjectParser) {
 }
 
 func (e *EventsResponse) Validate(validator structure.Validator) {
+	validator = validator.WithMeta(e)
 	validator = validator.WithReference("events")
 	for index, event := range e.Events {
 		if eventValidator := validator.WithReference(strconv.Itoa(index)); event != nil {
@@ -70,6 +71,7 @@ func (e *Event) Parse(parser structure.ObjectParser) {
 }
 
 func (e *Event) Validate(validator structure.Validator) {
+	validator = validator.WithMeta(e)
 	validator.Time("systemTime", &e.SystemTime).BeforeNow(NowThreshold)
 	validator.Time("displayTime", &e.DisplayTime).NotZero()
 	validator.String("eventType", &e.EventType).OneOf(EventCarbs, EventExercise, EventHealth, EventInsulin)

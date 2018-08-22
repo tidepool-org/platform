@@ -31,6 +31,7 @@ func (d *DevicesResponse) Parse(parser structure.ObjectParser) {
 }
 
 func (d *DevicesResponse) Validate(validator structure.Validator) {
+	validator = validator.WithMeta(d)
 	validator = validator.WithReference("devices")
 	for index, device := range d.Devices {
 		if deviceValidator := validator.WithReference(strconv.Itoa(index)); device != nil {
@@ -95,6 +96,7 @@ func (d *Device) Parse(parser structure.ObjectParser) {
 }
 
 func (d *Device) Validate(validator structure.Validator) {
+	validator = validator.WithMeta(d)
 	validator.String("model", &d.Model).OneOf(ModelG5MobileApp, ModelG5Receiver, ModelG4WithShareReceiver, ModelG4Receiver, ModelUnknown)
 	validator.Time("lastUploadDate", &d.LastUploadDate).NotZero()
 	validator = validator.WithReference("alertSettings")
@@ -156,6 +158,7 @@ func (a *AlertSetting) Parse(parser structure.ObjectParser) {
 }
 
 func (a *AlertSetting) Validate(validator structure.Validator) {
+	validator = validator.WithMeta(a)
 	validator.Time("systemTime", &a.SystemTime).NotZero().BeforeNow(NowThreshold)
 	validator.Time("displayTime", &a.DisplayTime).NotZero()
 	validator.String("alertName", &a.AlertName).OneOf(AlertNames()...)
