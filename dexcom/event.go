@@ -9,7 +9,16 @@ import (
 )
 
 type EventsResponse struct {
-	Events []*Event `json:"events,omitempty"`
+	Events *Events `json:"events,omitempty"`
+}
+
+func ParseEventsResponse(parser structure.ObjectParser) *EventsResponse {
+	if !parser.Exists() {
+		return nil
+	}
+	datum := NewEventsResponse()
+	parser.Parse(datum)
+	return datum
 }
 
 func NewEventsResponse() *EventsResponse {
@@ -17,25 +26,42 @@ func NewEventsResponse() *EventsResponse {
 }
 
 func (e *EventsResponse) Parse(parser structure.ObjectParser) {
-	if eventsParser := parser.WithReferenceArrayParser("events"); eventsParser.Exists() {
-		for _, reference := range eventsParser.References() {
-			if eventParser := eventsParser.WithReferenceObjectParser(reference); eventParser.Exists() {
-				event := NewEvent()
-				event.Parse(eventParser)
-				eventParser.NotParsed()
-				e.Events = append(e.Events, event)
-			}
-		}
-		eventsParser.NotParsed()
-	}
+	e.Events = ParseEvents(parser.WithReferenceArrayParser("events"))
 }
 
 func (e *EventsResponse) Validate(validator structure.Validator) {
-	validator = validator.WithMeta(e)
-	validator = validator.WithReference("events")
-	for index, event := range e.Events {
+	if eventsValidator := validator.WithReference("events"); e.Events != nil {
+		eventsValidator.Validate(e.Events)
+	} else {
+		eventsValidator.ReportError(structureValidator.ErrorValueNotExists())
+	}
+}
+
+type Events []*Event
+
+func ParseEvents(parser structure.ArrayParser) *Events {
+	if !parser.Exists() {
+		return nil
+	}
+	datum := NewEvents()
+	parser.Parse(datum)
+	return datum
+}
+
+func NewEvents() *Events {
+	return &Events{}
+}
+
+func (e *Events) Parse(parser structure.ArrayParser) {
+	for _, reference := range parser.References() {
+		*e = append(*e, ParseEvent(parser.WithReferenceObjectParser(reference)))
+	}
+}
+
+func (e *Events) Validate(validator structure.Validator) {
+	for index, event := range *e {
 		if eventValidator := validator.WithReference(strconv.Itoa(index)); event != nil {
-			event.Validate(eventValidator)
+			eventValidator.Validate(event)
 		} else {
 			eventValidator.ReportError(structureValidator.ErrorValueNotExists())
 		}
@@ -43,12 +69,21 @@ func (e *EventsResponse) Validate(validator structure.Validator) {
 }
 
 type Event struct {
-	SystemTime   time.Time `json:"systemTime,omitempty"`
-	DisplayTime  time.Time `json:"displayTime,omitempty"`
-	EventType    string    `json:"eventType,omitempty"`
-	EventSubType *string   `json:"eventSubType,omitempty"`
-	Unit         *string   `json:"unit,omitempty"`
-	Value        *float64  `json:"value,omitempty"`
+	SystemTime   *time.Time `json:"systemTime,omitempty"`
+	DisplayTime  *time.Time `json:"displayTime,omitempty"`
+	EventType    *string    `json:"eventType,omitempty"`
+	EventSubType *string    `json:"eventSubType,omitempty"`
+	Unit         *string    `json:"unit,omitempty"`
+	Value        *float64   `json:"value,omitempty"`
+}
+
+func ParseEvent(parser structure.ObjectParser) *Event {
+	if !parser.Exists() {
+		return nil
+	}
+	datum := NewEvent()
+	parser.Parse(datum)
+	return datum
 }
 
 func NewEvent() *Event {
@@ -56,15 +91,9 @@ func NewEvent() *Event {
 }
 
 func (e *Event) Parse(parser structure.ObjectParser) {
-	if ptr := parser.Time("systemTime", DateTimeFormat); ptr != nil {
-		e.SystemTime = *ptr
-	}
-	if ptr := parser.Time("displayTime", DateTimeFormat); ptr != nil {
-		e.DisplayTime = *ptr
-	}
-	if ptr := parser.String("eventType"); ptr != nil {
-		e.EventType = *ptr
-	}
+	e.SystemTime = parser.Time("systemTime", DateTimeFormat)
+	e.DisplayTime = parser.Time("displayTime", DateTimeFormat)
+	e.EventType = parser.String("eventType")
 	e.EventSubType = parser.String("eventSubType")
 	e.Unit = parser.String("unit")
 	e.Value = parser.Float64("value")
@@ -72,19 +101,20 @@ func (e *Event) Parse(parser structure.ObjectParser) {
 
 func (e *Event) Validate(validator structure.Validator) {
 	validator = validator.WithMeta(e)
-	validator.Time("systemTime", &e.SystemTime).BeforeNow(NowThreshold)
-	validator.Time("displayTime", &e.DisplayTime).NotZero()
-	validator.String("eventType", &e.EventType).OneOf(EventCarbs, EventExercise, EventHealth, EventInsulin)
-
-	switch e.EventType {
-	case EventCarbs:
-		e.validateCarbs(validator)
-	case EventExercise:
-		e.validateExercise(validator)
-	case EventHealth:
-		e.validateHealth(validator)
-	case EventInsulin:
-		e.validateInsulin(validator)
+	validator.Time("systemTime", e.SystemTime).Exists().NotZero().BeforeNow(NowThreshold)
+	validator.Time("displayTime", e.DisplayTime).Exists().NotZero()
+	validator.String("eventType", e.EventType).Exists().OneOf(EventCarbs, EventExercise, EventHealth, EventInsulin)
+	if e.EventType != nil {
+		switch *e.EventType {
+		case EventCarbs:
+			e.validateCarbs(validator)
+		case EventExercise:
+			e.validateExercise(validator)
+		case EventHealth:
+			e.validateHealth(validator)
+		case EventInsulin:
+			e.validateInsulin(validator)
+		}
 	}
 }
 

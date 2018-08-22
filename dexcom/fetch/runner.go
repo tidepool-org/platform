@@ -397,7 +397,7 @@ func (t *TaskRunner) fetch(startTime time.Time, endTime time.Time) error {
 	// HACK: Dexcom - does not guarantee to return a device for G5 Mobile if time range < 24 hours (per Dexcom)
 	var deviceInfo *DeviceInfo
 	if endTime.Sub(startTime) > 24*time.Hour {
-		if len(devices) == 0 {
+		if len(*devices) == 0 {
 			return nil
 		} else if deviceInfo, err = t.calculateDeviceInfo(devices); err != nil {
 			return err
@@ -432,7 +432,7 @@ func (t *TaskRunner) fetch(startTime time.Time, endTime time.Time) error {
 	return t.storeDatumArray(datumArray)
 }
 
-func (t *TaskRunner) fetchDevices(startTime time.Time, endTime time.Time) ([]*dexcom.Device, error) {
+func (t *TaskRunner) fetchDevices(startTime time.Time, endTime time.Time) (*dexcom.Devices, error) {
 	response, err := t.DexcomClient().GetDevices(t.context, startTime, endTime, t.tokenSource)
 	if updateErr := t.updateProviderSession(); updateErr != nil {
 		return nil, updateErr
@@ -464,9 +464,9 @@ func (t *TaskRunner) preloadDataSet() error {
 	return nil
 }
 
-func (t *TaskRunner) calculateDeviceInfo(devices []*dexcom.Device) (*DeviceInfo, error) {
+func (t *TaskRunner) calculateDeviceInfo(devices *dexcom.Devices) (*DeviceInfo, error) {
 	deviceInfo := NewDeviceInfo()
-	for _, device := range devices {
+	for _, device := range *devices {
 		if deviceDeviceInfo, err := NewDeviceInfoFromDevice(device); err != nil {
 			return nil, err
 		} else if deviceInfo, err = deviceInfo.Merge(deviceDeviceInfo); err != nil {
@@ -515,8 +515,8 @@ func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) (
 	}
 
 	datumArray := []data.Datum{}
-	for _, c := range response.Calibrations {
-		if t.afterLatestDataTime(c.SystemTime) {
+	for _, c := range *response.Calibrations {
+		if t.afterLatestDataTime(*c.SystemTime) {
 			datumArray = append(datumArray, translateCalibrationToDatum(c))
 		}
 	}
@@ -539,8 +539,8 @@ func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) ([]data.D
 	}
 
 	datumArray := []data.Datum{}
-	for _, e := range response.EGVs {
-		if t.afterLatestDataTime(e.SystemTime) {
+	for _, e := range *response.EGVs {
+		if t.afterLatestDataTime(*e.SystemTime) {
 			datumArray = append(datumArray, translateEGVToDatum(e, response.Unit, response.RateUnit))
 		}
 	}
@@ -563,9 +563,9 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) ([]data
 	}
 
 	datumArray := []data.Datum{}
-	for _, e := range response.Events {
-		if t.afterLatestDataTime(e.SystemTime) {
-			switch e.EventType {
+	for _, e := range *response.Events {
+		if t.afterLatestDataTime(*e.SystemTime) {
+			switch *e.EventType {
 			case dexcom.EventCarbs:
 				datumArray = append(datumArray, translateEventCarbsToDatum(e))
 			case dexcom.EventExercise:
@@ -762,7 +762,7 @@ func NewDeviceInfoFromDevice(device *dexcom.Device) (*DeviceInfo, error) {
 	var deviceModel string
 	var deviceSerialNumber string
 
-	switch device.Model {
+	switch *device.Model {
 	case dexcom.ModelG5MobileApp:
 		deviceModel = "G5Mobile"
 		deviceIDPrefix = "DexG5Mob_"

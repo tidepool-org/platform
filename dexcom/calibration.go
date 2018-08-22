@@ -9,7 +9,16 @@ import (
 )
 
 type CalibrationsResponse struct {
-	Calibrations []*Calibration `json:"calibrations,omitempty"`
+	Calibrations *Calibrations `json:"calibrations,omitempty"`
+}
+
+func ParseCalibrationsResponse(parser structure.ObjectParser) *CalibrationsResponse {
+	if !parser.Exists() {
+		return nil
+	}
+	datum := NewCalibrationsResponse()
+	parser.Parse(datum)
+	return datum
 }
 
 func NewCalibrationsResponse() *CalibrationsResponse {
@@ -17,25 +26,42 @@ func NewCalibrationsResponse() *CalibrationsResponse {
 }
 
 func (c *CalibrationsResponse) Parse(parser structure.ObjectParser) {
-	if calibrationsParser := parser.WithReferenceArrayParser("calibrations"); calibrationsParser.Exists() {
-		for _, reference := range calibrationsParser.References() {
-			if calibrationParser := calibrationsParser.WithReferenceObjectParser(reference); calibrationParser.Exists() {
-				calibration := NewCalibration()
-				calibration.Parse(calibrationParser)
-				calibrationParser.NotParsed()
-				c.Calibrations = append(c.Calibrations, calibration)
-			}
-		}
-		calibrationsParser.NotParsed()
-	}
+	c.Calibrations = ParseCalibrations(parser.WithReferenceArrayParser("calibrations"))
 }
 
 func (c *CalibrationsResponse) Validate(validator structure.Validator) {
-	validator = validator.WithMeta(c)
-	validator = validator.WithReference("calibrations")
-	for index, calibration := range c.Calibrations {
+	if calibrationsValidator := validator.WithReference("calibrations"); c.Calibrations != nil {
+		calibrationsValidator.Validate(c.Calibrations)
+	} else {
+		calibrationsValidator.ReportError(structureValidator.ErrorValueNotExists())
+	}
+}
+
+type Calibrations []*Calibration
+
+func ParseCalibrations(parser structure.ArrayParser) *Calibrations {
+	if !parser.Exists() {
+		return nil
+	}
+	datum := NewCalibrations()
+	parser.Parse(datum)
+	return datum
+}
+
+func NewCalibrations() *Calibrations {
+	return &Calibrations{}
+}
+
+func (c *Calibrations) Parse(parser structure.ArrayParser) {
+	for _, reference := range parser.References() {
+		*c = append(*c, ParseCalibration(parser.WithReferenceObjectParser(reference)))
+	}
+}
+
+func (c *Calibrations) Validate(validator structure.Validator) {
+	for index, calibration := range *c {
 		if calibrationValidator := validator.WithReference(strconv.Itoa(index)); calibration != nil {
-			calibration.Validate(calibrationValidator)
+			calibrationValidator.Validate(calibration)
 		} else {
 			calibrationValidator.ReportError(structureValidator.ErrorValueNotExists())
 		}
@@ -43,11 +69,20 @@ func (c *CalibrationsResponse) Validate(validator structure.Validator) {
 }
 
 type Calibration struct {
-	SystemTime    time.Time `json:"systemTime,omitempty"`
-	DisplayTime   time.Time `json:"displayTime,omitempty"`
-	Unit          string    `json:"unit,omitempty"`
-	Value         float64   `json:"value,omitempty"`
-	TransmitterID *string   `json:"transmitterId,omitempty"`
+	SystemTime    *time.Time `json:"systemTime,omitempty"`
+	DisplayTime   *time.Time `json:"displayTime,omitempty"`
+	Unit          *string    `json:"unit,omitempty"`
+	Value         *float64   `json:"value,omitempty"`
+	TransmitterID *string    `json:"transmitterId,omitempty"`
+}
+
+func ParseCalibration(parser structure.ObjectParser) *Calibration {
+	if !parser.Exists() {
+		return nil
+	}
+	datum := NewCalibration()
+	parser.Parse(datum)
+	return datum
 }
 
 func NewCalibration() *Calibration {
@@ -55,31 +90,25 @@ func NewCalibration() *Calibration {
 }
 
 func (c *Calibration) Parse(parser structure.ObjectParser) {
-	if ptr := parser.Time("systemTime", DateTimeFormat); ptr != nil {
-		c.SystemTime = *ptr
-	}
-	if ptr := parser.Time("displayTime", DateTimeFormat); ptr != nil {
-		c.DisplayTime = *ptr
-	}
-	if ptr := parser.String("unit"); ptr != nil {
-		c.Unit = *ptr
-	}
-	if ptr := parser.Float64("value"); ptr != nil {
-		c.Value = *ptr
-	}
+	c.SystemTime = parser.Time("systemTime", DateTimeFormat)
+	c.DisplayTime = parser.Time("displayTime", DateTimeFormat)
+	c.Unit = parser.String("unit")
+	c.Value = parser.Float64("value")
 	c.TransmitterID = parser.String("transmitterId")
 }
 
 func (c *Calibration) Validate(validator structure.Validator) {
 	validator = validator.WithMeta(c)
-	validator.Time("systemTime", &c.SystemTime).BeforeNow(NowThreshold)
-	validator.Time("displayTime", &c.DisplayTime).NotZero()
-	validator.String("unit", &c.Unit).OneOf(UnitMgdL) // TODO: Add UnitMmolL
-	switch c.Unit {
-	case UnitMgdL:
-		validator.Float64("value", &c.Value).InRange(20, 600)
-	case UnitMmolL:
-		// TODO: Add value validation
+	validator.Time("systemTime", c.SystemTime).Exists().NotZero().BeforeNow(NowThreshold)
+	validator.Time("displayTime", c.DisplayTime).Exists().NotZero()
+	validator.String("unit", c.Unit).Exists().OneOf(UnitMgdL) // TODO: Add UnitMmolL
+	if c.Unit != nil {
+		switch *c.Unit {
+		case UnitMgdL:
+			validator.Float64("value", c.Value).Exists().InRange(20, 600)
+		case UnitMmolL:
+			// TODO: Add value validation
+		}
 	}
 	validator.String("transmitterId", c.TransmitterID).Matches(transmitterIDExpression)
 }

@@ -31,12 +31,12 @@ const MinimumOffsets = (-12 * time.Hour) / OffsetDuration // Minimum time zone o
 const DailyDuration = 24 * time.Hour
 const DailyOffsets = DailyDuration / OffsetDuration
 
-func translateTime(systemTime time.Time, displayTime time.Time, datum *types.Base) {
+func translateTime(systemTime *time.Time, displayTime *time.Time, datum *types.Base) {
 	var clockDriftOffsetDuration time.Duration
 	var conversionOffsetDuration time.Duration
 	var timeZoneOffsetDuration time.Duration
 
-	delta := displayTime.Sub(systemTime)
+	delta := displayTime.Sub(*systemTime)
 	if delta > 0 {
 		offsetCount := time.Duration((float64(delta) + float64(OffsetDuration)/2) / float64(OffsetDuration))
 		clockDriftOffsetDuration = delta - offsetCount*OffsetDuration
@@ -68,7 +68,7 @@ func translateTime(systemTime time.Time, displayTime time.Time, datum *types.Bas
 	if datum.Payload == nil {
 		datum.Payload = data.NewBlob()
 	}
-	(*datum.Payload)["systemTime"] = systemTime
+	(*datum.Payload)["systemTime"] = *systemTime
 }
 
 func translateCalibrationToDatum(c *dexcom.Calibration) data.Datum {
@@ -78,8 +78,8 @@ func translateCalibrationToDatum(c *dexcom.Calibration) data.Datum {
 	datum.ID = nil
 	datum.GUID = nil
 
-	datum.Units = pointer.FromString(c.Unit)
-	datum.Value = pointer.FromFloat64(c.Value)
+	datum.Value = pointer.CloneFloat64(c.Value)
+	datum.Units = pointer.CloneString(c.Unit)
 	datum.Payload = data.NewBlob()
 	if c.TransmitterID != nil {
 		(*datum.Payload)["transmitterId"] = *c.TransmitterID
@@ -89,15 +89,15 @@ func translateCalibrationToDatum(c *dexcom.Calibration) data.Datum {
 	return datum
 }
 
-func translateEGVToDatum(e *dexcom.EGV, unit string, rateUnit string) data.Datum {
+func translateEGVToDatum(e *dexcom.EGV, unit *string, rateUnit *string) data.Datum {
 	datum := continuous.New()
 
 	// TODO: Refactor so we don't have to clear these here
 	datum.ID = nil
 	datum.GUID = nil
 
-	datum.Value = pointer.FromFloat64(e.Value)
-	datum.Units = pointer.FromString(unit)
+	datum.Value = pointer.CloneFloat64(e.Value)
+	datum.Units = pointer.CloneString(unit)
 	datum.Payload = data.NewBlob()
 	if e.Status != nil {
 		(*datum.Payload)["status"] = *e.Status
@@ -107,7 +107,7 @@ func translateEGVToDatum(e *dexcom.EGV, unit string, rateUnit string) data.Datum
 	}
 	if e.TrendRate != nil {
 		(*datum.Payload)["trendRate"] = *e.TrendRate
-		(*datum.Payload)["trendRateUnits"] = rateUnit
+		(*datum.Payload)["trendRateUnits"] = *rateUnit
 	}
 	if e.TransmitterID != nil {
 		(*datum.Payload)["transmitterId"] = *e.TransmitterID
@@ -116,15 +116,15 @@ func translateEGVToDatum(e *dexcom.EGV, unit string, rateUnit string) data.Datum
 		(*datum.Payload)["transmitterTicks"] = *e.TransmitterTicks
 	}
 
-	switch unit {
+	switch *unit {
 	case dexcom.UnitMgdL:
-		if e.Value < dexcom.EGVValueMinMgdL {
+		if *e.Value < dexcom.EGVValueMinMgdL {
 			datum.Annotations = &data.BlobArray{{
 				"code":      "bg/out-of-range",
 				"value":     "low",
 				"threshold": dexcom.EGVValueMinMgdL,
 			}}
-		} else if e.Value > dexcom.EGVValueMaxMgdL {
+		} else if *e.Value > dexcom.EGVValueMaxMgdL {
 			datum.Annotations = &data.BlobArray{{
 				"code":      "bg/out-of-range",
 				"value":     "high",
@@ -149,8 +149,8 @@ func translateEventCarbsToDatum(e *dexcom.Event) data.Datum {
 	if e.Value != nil && e.Unit != nil {
 		datum.Nutrition = &food.Nutrition{
 			Carbohydrate: &food.Carbohydrate{
-				Net:   pointer.FromFloat64(*e.Value),
-				Units: pointer.FromString(*e.Unit),
+				Net:   pointer.CloneFloat64(e.Value),
+				Units: pointer.CloneString(e.Unit),
 			},
 		}
 	}
@@ -178,8 +178,8 @@ func translateEventExerciseToDatum(e *dexcom.Event) data.Datum {
 	}
 	if e.Value != nil && e.Unit != nil {
 		datum.Duration = &physical.Duration{
-			Value: pointer.FromFloat64(*e.Value),
-			Units: pointer.FromString(*e.Unit),
+			Units: pointer.CloneString(e.Unit),
+			Value: pointer.CloneFloat64(e.Value),
 		}
 	}
 
@@ -224,7 +224,7 @@ func translateEventInsulinToDatum(e *dexcom.Event) data.Datum {
 
 	if e.Value != nil && e.Unit != nil {
 		datum.Dose = &insulin.Dose{
-			Total: pointer.FromFloat64(*e.Value),
+			Total: pointer.CloneFloat64(e.Value),
 			Units: pointer.FromString(insulin.DoseUnitsUnits),
 		}
 	}
