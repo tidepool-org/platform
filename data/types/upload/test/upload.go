@@ -3,9 +3,9 @@ package test
 import (
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
+	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
-	testInternet "github.com/tidepool-org/platform/test/internet"
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
@@ -24,7 +24,7 @@ func NewUpload() *dataTypesUpload.Upload {
 	datum.DeviceTags = pointer.FromStringArray(test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, len(dataTypesUpload.DeviceTags()), dataTypesUpload.DeviceTags()))
 	datum.State = pointer.FromString(test.RandomStringFromArray(dataTypesUpload.States()))
 	datum.TimeProcessing = pointer.FromString(dataTypesUpload.TimeProcessingUTCBootstrapping)
-	datum.Version = pointer.FromString(testInternet.NewSemanticVersion())
+	datum.Version = pointer.FromString(netTest.RandomSemanticVersion())
 	return datum
 }
 

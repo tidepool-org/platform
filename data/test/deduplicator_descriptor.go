@@ -2,14 +2,14 @@ package test
 
 import (
 	"github.com/tidepool-org/platform/data"
+	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/test"
-	testInternet "github.com/tidepool-org/platform/test/internet"
 )
 
 func NewDeduplicatorDescriptor() *data.DeduplicatorDescriptor {
 	datum := data.NewDeduplicatorDescriptor()
-	datum.Name = testInternet.NewReverseDomain()
-	datum.Version = testInternet.NewSemanticVersion()
+	datum.Name = netTest.RandomReverseDomain()
+	datum.Version = netTest.RandomSemanticVersion()
 	datum.Hash = test.NewString(32, test.CharsetHexidecimalLowercase)
 	return datum
 }

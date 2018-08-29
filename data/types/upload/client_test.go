@@ -12,10 +12,10 @@ import (
 	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/net"
+	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	testInternet "github.com/tidepool-org/platform/test/internet"
 )
 
 var _ = Describe("Client", func() {
@@ -57,7 +57,7 @@ var _ = Describe("Client", func() {
 					testErrors.WithPointerSource(net.ErrorValueStringAsReverseDomainNotValid("org"), "/name"),
 				),
 				Entry("name valid",
-					func(datum *upload.Client) { datum.Name = pointer.FromString(testInternet.NewReverseDomain()) },
+					func(datum *upload.Client) { datum.Name = pointer.FromString(netTest.RandomReverseDomain()) },
 				),
 				Entry("version missing",
 					func(datum *upload.Client) { datum.Version = nil },
@@ -72,7 +72,7 @@ var _ = Describe("Client", func() {
 					testErrors.WithPointerSource(net.ErrorValueStringAsSemanticVersionNotValid("1.2"), "/version"),
 				),
 				Entry("version valid",
-					func(datum *upload.Client) { datum.Version = pointer.FromString(testInternet.NewSemanticVersion()) },
+					func(datum *upload.Client) { datum.Version = pointer.FromString(netTest.RandomSemanticVersion()) },
 				),
 				Entry("private missing",
 					func(datum *upload.Client) { datum.Private = nil },

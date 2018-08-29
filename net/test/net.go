@@ -2,22 +2,44 @@ package test
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/tidepool-org/platform/test"
 )
 
-const CharsetMediaType = test.CharsetAlphaNumeric + "._-"
+const (
+	CharsetMediaType = test.CharsetAlphaNumeric + "._-"
+	CharsetSubDomain = test.CharsetAlphaNumeric + "-"
+)
+
+func RandomEmail() string {
+	return fmt.Sprintf("%s+%s@%s", test.NewVariableString(1, 8, test.CharsetAlpha), test.NewVariableString(1, 4, test.CharsetNumeric), RandomFQDN())
+}
+
+func RandomFQDN() string {
+	return RandomSubDomains(2, 4)
+}
 
 func RandomMediaType() string {
-	return fmt.Sprintf("%s/%s",
-		test.RandomStringFromRangeAndCharset(1, 32, CharsetMediaType),
-		test.RandomStringFromRangeAndCharset(1, 32, CharsetMediaType))
+	return fmt.Sprintf("%s/%s", test.RandomStringFromRangeAndCharset(1, 32, CharsetMediaType), test.RandomStringFromRangeAndCharset(1, 32, CharsetMediaType))
 }
 
 func RandomMediaTypes(minimumLength int, maximumLength int) []string {
 	return test.RandomStringArrayFromRangeAndGeneratorWithoutDuplicates(minimumLength, maximumLength, RandomMediaType)
 }
 
+func RandomReverseDomain() string {
+	return RandomSubDomains(2, 4)
+}
+
 func RandomSemanticVersion() string {
-	return fmt.Sprintf("%d.%d.%d", test.RandomIntFromRange(0, 10), test.RandomIntFromRange(0, 10), test.RandomIntFromRange(0, 10))
+	return fmt.Sprintf("%d.%d.%d", test.RandomIntFromRange(0, 20), test.RandomIntFromRange(0, 20), test.RandomIntFromRange(0, 20))
+}
+
+func RandomSubDomain() string {
+	return test.NewVariableString(1, 1, test.CharsetAlphaNumeric) + test.NewVariableString(0, 6, CharsetSubDomain) + test.NewVariableString(1, 1, test.CharsetAlphaNumeric)
+}
+
+func RandomSubDomains(minimumLength int, maximumLength int) string {
+	return strings.Join(test.RandomStringArrayFromRangeAndGeneratorWithoutDuplicates(minimumLength, maximumLength, RandomSubDomain), ".")
 }

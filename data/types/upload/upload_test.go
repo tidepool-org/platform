@@ -13,11 +13,11 @@ import (
 	"github.com/tidepool-org/platform/data/types/upload"
 	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
+	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
-	testInternet "github.com/tidepool-org/platform/test/internet"
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
@@ -381,7 +381,7 @@ var _ = Describe("Upload", func() {
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotGreaterThanOrEqualTo(4, 5), "/version", NewMeta()),
 				),
 				Entry("version in range (lower)",
-					func(datum *upload.Upload) { datum.Version = pointer.FromString(testInternet.NewSemanticVersion()) },
+					func(datum *upload.Upload) { datum.Version = pointer.FromString(netTest.RandomSemanticVersion()) },
 					structure.Origins(),
 				),
 				Entry("multiple errors with store origin",
