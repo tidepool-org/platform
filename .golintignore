@@ -6,9 +6,9 @@
 ./data/data_set.go:85:6: type name will be used as data.DataSetClient by other packages, and that stutters; consider calling this SetClient
 ./data/data_set.go:112:6: type name will be used as data.DataSetFilter by other packages, and that stutters; consider calling this SetFilter
 ./data/data_set.go:147:6: type name will be used as data.DataSetCreate by other packages, and that stutters; consider calling this SetCreate
-./data/data_set.go:211:6: type name will be used as data.DataSetUpdate by other packages, and that stutters; consider calling this SetUpdate
-./data/data_set.go:279:6: type name will be used as data.DataSet by other packages, and that stutters; consider calling this Set
-./data/data_set.go:321:6: type name will be used as data.DataSets by other packages, and that stutters; consider calling this Sets
+./data/data_set.go:219:6: type name will be used as data.DataSetUpdate by other packages, and that stutters; consider calling this SetUpdate
+./data/data_set.go:287:6: type name will be used as data.DataSet by other packages, and that stutters; consider calling this Set
+./data/data_set.go:329:6: type name will be used as data.DataSets by other packages, and that stutters; consider calling this Sets
 ./data/storeDEPRECATED/store.go:1:1: don't use MixedCaps in package name; storeDEPRECATED should be storedeprecated
 ./data/storeDEPRECATED/storeDEPRECATED_suite_test.go:1:1: don't use MixedCaps in package name; storeDEPRECATED_test should be storedeprecated_test
 ./data/storeDEPRECATED/store_test.go:1:1: don't use MixedCaps in package name; storeDEPRECATED_test should be storedeprecated_test

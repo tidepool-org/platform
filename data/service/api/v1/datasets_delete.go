@@ -59,26 +59,19 @@ func DataSetsDelete(dataServiceContext dataService.Context) {
 		}
 	}
 
-	registered, err := dataServiceContext.DataDeduplicatorFactory().IsRegisteredWithDataSet(dataSet)
-	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to check if registered with data set", err)
+	if deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(dataSet); getErr != nil {
+		dataServiceContext.RespondWithInternalServerFailure("Unable to get deduplicator", getErr)
 		return
-	}
-
-	if registered {
-		deduplicator, newErr := dataServiceContext.DataDeduplicatorFactory().NewRegisteredDeduplicatorForDataSet(lgr, dataServiceContext.DataSession(), dataSet)
-		if newErr != nil {
-			dataServiceContext.RespondWithInternalServerFailure("Unable to create registered deduplicator for data set", newErr)
+	} else if deduplicator == nil {
+		if err = dataServiceContext.DataSession().DeleteDataSet(ctx, dataSet); err != nil {
+			dataServiceContext.RespondWithInternalServerFailure("Unable to delete data set", err)
 			return
 		}
-		err = deduplicator.DeleteDataSet(ctx)
 	} else {
-		err = dataServiceContext.DataSession().DeleteDataSet(ctx, dataSet)
-	}
-
-	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to delete data set", err)
-		return
+		if err = deduplicator.Delete(ctx, dataServiceContext.DataSession(), dataSet); err != nil {
+			dataServiceContext.RespondWithInternalServerFailure("Unable to delete", err)
+			return
+		}
 	}
 
 	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_delete"); err != nil {

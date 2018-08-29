@@ -9,6 +9,7 @@ import (
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/data"
 	dataClient "github.com/tidepool-org/platform/data/client"
+	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/dexcom"
@@ -634,6 +635,8 @@ func (t *TaskRunner) createDataSet(deviceInfo *DeviceInfo) (*data.DataSet, error
 		Version: pointer.FromString(DataSetClientVersion),
 	}
 	dataSetCreate.DataSetType = pointer.FromString(data.DataSetTypeContinuous)
+	dataSetCreate.Deduplicator = data.NewDeduplicatorDescriptor()
+	dataSetCreate.Deduplicator.Name = pointer.FromString(dataDeduplicatorDeduplicator.NoneName)
 	dataSetCreate.DeviceID = pointer.FromString(deviceInfo.DeviceID)
 	dataSetCreate.DeviceManufacturers = pointer.FromStringArray([]string{"Dexcom"})
 	dataSetCreate.DeviceModel = pointer.FromString(deviceInfo.DeviceModel)

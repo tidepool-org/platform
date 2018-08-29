@@ -2,7 +2,8 @@ package service
 
 import (
 	"github.com/tidepool-org/platform/application"
-	"github.com/tidepool-org/platform/data/deduplicator"
+	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
+	dataDeduplicatorFactory "github.com/tidepool-org/platform/data/deduplicator/factory"
 	"github.com/tidepool-org/platform/data/service/api"
 	"github.com/tidepool-org/platform/data/service/api/v1"
 	dataSourceServiceClient "github.com/tidepool-org/platform/data/source/service/client"
@@ -24,7 +25,7 @@ type Standard struct {
 	*service.DEPRECATEDService
 	metricClient              *metricClient.Client
 	permissionClient          *permissionClient.Client
-	dataDeduplicatorFactory   deduplicator.Factory
+	dataDeduplicatorFactory   *dataDeduplicatorFactory.Factory
 	dataStoreDEPRECATED       *dataStoreDEPRECATEDMongo.Store
 	dataSourceStructuredStore *dataSourceStoreStructuredMongo.Store
 	syncTaskStore             *syncTaskMongo.Store
@@ -155,48 +156,48 @@ func (s *Standard) initializePermissionClient() error {
 }
 
 func (s *Standard) initializeDataDeduplicatorFactory() error {
-	s.Logger().Debug("Creating truncate data deduplicator factory")
+	s.Logger().Debug("Creating device deactivate hash deduplicator")
 
-	truncateDeduplicatorFactory, err := deduplicator.NewTruncateFactory()
+	deviceDeactivateHashDeduplicator, err := dataDeduplicatorDeduplicator.NewDeviceDeactivateHash()
 	if err != nil {
-		return errors.Wrap(err, "unable to create truncate data deduplicator factory")
+		return errors.Wrap(err, "unable to create device deactivate hash deduplicator")
 	}
 
-	s.Logger().Debug("Creating hash-deactivate-old data deduplicator factory")
+	s.Logger().Debug("Creating device truncate data set deduplicator")
 
-	hashDeactivateOldDeduplicatorFactory, err := deduplicator.NewHashDeactivateOldFactory()
+	deviceTruncateDataSetDeduplicator, err := dataDeduplicatorDeduplicator.NewDeviceTruncateDataSet()
 	if err != nil {
-		return errors.Wrap(err, "unable to create hash-deactivate-old data deduplicator factory")
+		return errors.Wrap(err, "unable to create device truncate data set deduplicator")
 	}
 
-	s.Logger().Debug("Creating continuous data deduplicator factory")
+	s.Logger().Debug("Creating data set delete origin deduplicator")
 
-	continuousDeduplicatorFactory, err := deduplicator.NewContinuousFactory()
+	dataSetDeleteOriginDeduplicator, err := dataDeduplicatorDeduplicator.NewDataSetDeleteOrigin()
 	if err != nil {
-		return errors.Wrap(err, "unable to create continuous data deduplicator factory")
+		return errors.Wrap(err, "unable to create data set delete origin deduplicator")
 	}
 
-	s.Logger().Debug("Creating continuous origin data deduplicator factory")
+	s.Logger().Debug("Creating none deduplicator")
 
-	continuousOriginDeduplicatorFactory, err := deduplicator.NewContinuousOriginFactory()
+	noneDeduplicator, err := dataDeduplicatorDeduplicator.NewNone()
 	if err != nil {
-		return errors.Wrap(err, "unable to create continuous origin data deduplicator factory")
+		return errors.Wrap(err, "unable to create none deduplicator")
 	}
 
 	s.Logger().Debug("Creating data deduplicator factory")
 
-	factories := []deduplicator.Factory{
-		truncateDeduplicatorFactory,
-		hashDeactivateOldDeduplicatorFactory,
-		continuousDeduplicatorFactory,
-		continuousOriginDeduplicatorFactory,
+	deduplicators := []dataDeduplicatorFactory.Deduplicator{
+		deviceDeactivateHashDeduplicator,
+		deviceTruncateDataSetDeduplicator,
+		dataSetDeleteOriginDeduplicator,
+		noneDeduplicator,
 	}
 
-	dataDeduplicatorFactory, err := deduplicator.NewDelegateFactory(factories)
+	factory, err := dataDeduplicatorFactory.New(deduplicators)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data deduplicator factory")
 	}
-	s.dataDeduplicatorFactory = dataDeduplicatorFactory
+	s.dataDeduplicatorFactory = factory
 
 	return nil
 }

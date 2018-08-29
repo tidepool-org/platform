@@ -145,18 +145,19 @@ func (d *DataSetFilter) MutateRequest(req *http.Request) error {
 }
 
 type DataSetCreate struct {
-	Client              *DataSetClient `json:"client,omitempty"`
-	DataSetType         *string        `json:"dataSetType,omitempty"`
-	DeviceID            *string        `json:"deviceId,omitempty"`
-	DeviceManufacturers *[]string      `json:"deviceManufacturers,omitempty"`
-	DeviceModel         *string        `json:"deviceModel,omitempty"`
-	DeviceSerialNumber  *string        `json:"deviceSerialNumber,omitempty"`
-	DeviceTags          *[]string      `json:"deviceTags,omitempty"`
-	Time                *time.Time     `json:"time,omitempty"`
-	Type                string         `json:"type,omitempty"`
-	TimeProcessing      *string        `json:"timeProcessing,omitempty"`
-	TimeZoneName        *string        `json:"timezone,omitempty"`
-	TimeZoneOffset      *int           `json:"timezoneOffset,omitempty"`
+	Client              *DataSetClient          `json:"client,omitempty"`
+	DataSetType         *string                 `json:"dataSetType,omitempty"`
+	Deduplicator        *DeduplicatorDescriptor `json:"deduplicator,omitempty"`
+	DeviceID            *string                 `json:"deviceId,omitempty"`
+	DeviceManufacturers *[]string               `json:"deviceManufacturers,omitempty"`
+	DeviceModel         *string                 `json:"deviceModel,omitempty"`
+	DeviceSerialNumber  *string                 `json:"deviceSerialNumber,omitempty"`
+	DeviceTags          *[]string               `json:"deviceTags,omitempty"`
+	Time                *time.Time              `json:"time,omitempty"`
+	Type                string                  `json:"type,omitempty"`
+	TimeProcessing      *string                 `json:"timeProcessing,omitempty"`
+	TimeZoneName        *string                 `json:"timezone,omitempty"`
+	TimeZoneOffset      *int                    `json:"timezoneOffset,omitempty"`
 }
 
 func NewDataSetCreate() *DataSetCreate {
@@ -172,6 +173,7 @@ func (d *DataSetCreate) Parse(parser structure.ObjectParser) {
 		clientParser.NotParsed()
 	}
 	d.DataSetType = parser.String("dataSetType")
+	d.Deduplicator = ParseDeduplicatorDescriptor(parser.WithReferenceObjectParser("deduplicator"))
 	d.DeviceID = parser.String("deviceId")
 	d.DeviceManufacturers = parser.StringArray("deviceManufacturers")
 	d.DeviceModel = parser.String("deviceModel")
@@ -188,6 +190,9 @@ func (d *DataSetCreate) Validate(validator structure.Validator) {
 		d.Client.Validate(validator.WithReference("client"))
 	}
 	validator.String("dataSetType", d.DataSetType).OneOf(DataSetTypes()...)
+	if d.Deduplicator != nil {
+		d.Deduplicator.Validate(validator.WithReference("deduplicator"))
+	}
 	validator.String("deviceId", d.DeviceID).NotEmpty()
 	validator.StringArray("deviceManufacturers", d.DeviceManufacturers).NotEmpty()
 	validator.String("deviceModel", d.DeviceModel).NotEmpty()
@@ -200,6 +205,9 @@ func (d *DataSetCreate) Validate(validator structure.Validator) {
 }
 
 func (d *DataSetCreate) Normalize(normalizer structure.Normalizer) {
+	if d.Deduplicator != nil {
+		d.Deduplicator.Normalize(normalizer.WithReference("deduplicator"))
+	}
 	if d.DeviceManufacturers != nil {
 		sort.Strings(*d.DeviceManufacturers)
 	}
@@ -290,7 +298,7 @@ type DataSet struct {
 	CreatedUserID       *string                 `json:"createdUserId,omitempty" bson:"createdUserId,omitempty"`
 	DataSetType         *string                 `json:"dataSetType,omitempty" bson:"dataSetType,omitempty"`
 	DataState           *string                 `json:"-" bson:"_dataState,omitempty"` // TODO: Deprecated DataState (after data migration)
-	Deduplicator        *DeduplicatorDescriptor `json:"-" bson:"_deduplicator,omitempty"`
+	Deduplicator        *DeduplicatorDescriptor `json:"deduplicator,omitempty" bson:"_deduplicator,omitempty"`
 	DeletedTime         *string                 `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
 	DeletedUserID       *string                 `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
 	DeviceID            *string                 `json:"deviceId,omitempty" bson:"deviceId,omitempty"`

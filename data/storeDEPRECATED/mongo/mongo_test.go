@@ -27,7 +27,7 @@ import (
 )
 
 func NewDataSet(userID string, deviceID string) *upload.Upload {
-	dataSet := dataTypesUploadTest.NewUpload()
+	dataSet := dataTypesUploadTest.RandomUpload()
 	dataSet.Active = true
 	dataSet.ArchivedDataSetID = nil
 	dataSet.ArchivedTime = nil
@@ -526,6 +526,11 @@ var _ = Describe("Mongo", func() {
 					})
 
 					Context("CreateDataSetData", func() {
+						It("succeeds if data set data is empty", func() {
+							dataSetData = []data.Datum{}
+							Expect(mongoSession.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
+						})
+
 						It("succeeds if it successfully creates the data set data", func() {
 							Expect(mongoSession.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
 						})

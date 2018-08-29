@@ -97,14 +97,14 @@ func UsersDataSetsCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	deduplicator, err := dataServiceContext.DataDeduplicatorFactory().NewDeduplicatorForDataSet(lgr, dataServiceContext.DataSession(), dataSet)
-	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to create deduplicator for data set", err)
+	if deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().New(dataSet); getErr != nil {
+		dataServiceContext.RespondWithInternalServerFailure("Unable to get deduplicator", getErr)
 		return
-	}
-
-	if err = deduplicator.RegisterDataSet(ctx); err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to register data set with deduplicator", err)
+	} else if deduplicator == nil {
+		dataServiceContext.RespondWithInternalServerFailure("Deduplicator not found", err)
+		return
+	} else if _, err = deduplicator.Open(ctx, dataServiceContext.DataSession(), dataSet); err != nil {
+		dataServiceContext.RespondWithInternalServerFailure("Unable to open", err)
 		return
 	}
 

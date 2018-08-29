@@ -59,12 +59,6 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	deduplicator, err := dataServiceContext.DataDeduplicatorFactory().NewRegisteredDeduplicatorForDataSet(lgr, dataServiceContext.DataSession(), dataSet)
-	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to create registered deduplicator for data set", err)
-		return
-	}
-
 	var rawDatumArray []interface{}
 	if err = dataServiceContext.Request().DecodeJsonPayload(&rawDatumArray); err != nil {
 		dataServiceContext.RespondWithError(service.ErrorJSONMalformed())
@@ -119,8 +113,14 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		datum.SetDataSetID(dataSet.UploadID)
 	}
 
-	if err = deduplicator.AddDataSetData(ctx, datumArray); err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to add data set data", err)
+	if deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(dataSet); getErr != nil {
+		dataServiceContext.RespondWithInternalServerFailure("Unable to get deduplicator", getErr)
+		return
+	} else if deduplicator == nil {
+		dataServiceContext.RespondWithInternalServerFailure("Deduplicator not found")
+		return
+	} else if err = deduplicator.AddData(ctx, dataServiceContext.DataSession(), dataSet, datumArray); err != nil {
+		dataServiceContext.RespondWithInternalServerFailure("Unable to add data", err)
 		return
 	}
 

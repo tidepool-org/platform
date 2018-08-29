@@ -361,12 +361,12 @@ var _ = Describe("Base", func() {
 					structure.Origins(),
 				),
 				Entry("deduplicator invalid",
-					func(datum *types.Base) { datum.Deduplicator.Name = "invalid" },
-					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
-					testErrors.WithPointerSource(net.ErrorValueStringAsReverseDomainNotValid("invalid"), "/_deduplicator/name"),
+					func(datum *types.Base) { datum.Deduplicator.Name = pointer.FromString("invalid") },
+					structure.Origins(),
+					testErrors.WithPointerSource(net.ErrorValueStringAsReverseDomainNotValid("invalid"), "/deduplicator/name"),
 				),
 				Entry("deduplicator valid",
-					func(datum *types.Base) { datum.Deduplicator = testData.NewDeduplicatorDescriptor() },
+					func(datum *types.Base) { datum.Deduplicator = testData.RandomDeduplicatorDescriptor() },
 					structure.Origins(),
 				),
 				Entry("device id missing",
@@ -795,7 +795,6 @@ var _ = Describe("Base", func() {
 						datum.CreatedUserID = pointer.FromString("invalid")
 						datum.DeletedTime = pointer.FromString("invalid")
 						datum.DeletedUserID = pointer.FromString("invalid")
-						datum.Deduplicator.Name = "invalid"
 						datum.ID = nil
 						datum.ModifiedTime = pointer.FromString("invalid")
 						datum.ModifiedUserID = pointer.FromString("invalid")
@@ -808,7 +807,6 @@ var _ = Describe("Base", func() {
 					testErrors.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/createdUserId"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339), "/deletedTime"),
 					testErrors.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/deletedUserId"),
-					testErrors.WithPointerSource(net.ErrorValueStringAsReverseDomainNotValid("invalid"), "/_deduplicator/name"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/id"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339), "/modifiedTime"),
 					testErrors.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/modifiedUserId"),
@@ -817,6 +815,7 @@ var _ = Describe("Base", func() {
 				Entry("multiple errors with external origin",
 					func(datum *types.Base) {
 						datum.ClockDriftOffset = pointer.FromInt(-86400001)
+						datum.Deduplicator.Name = pointer.FromString("invalid")
 						datum.DeviceID = pointer.FromString("")
 						datum.DeviceTime = pointer.FromString("invalid")
 						datum.ID = pointer.FromString("")
@@ -833,6 +832,7 @@ var _ = Describe("Base", func() {
 					},
 					structure.Origins(),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-86400001, -86400000, 86400000), "/clockDriftOffset"),
+					testErrors.WithPointerSource(net.ErrorValueStringAsReverseDomainNotValid("invalid"), "/deduplicator/name"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/deviceId"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", "2006-01-02T15:04:05"), "/deviceTime"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/id"),
@@ -1122,7 +1122,7 @@ var _ = Describe("Base", func() {
 
 		Context("SetDeduplicatorDescriptor", func() {
 			It("sets the deduplicator descriptor", func() {
-				deduplicatorDescriptor := testData.NewDeduplicatorDescriptor()
+				deduplicatorDescriptor := testData.RandomDeduplicatorDescriptor()
 				datum.SetDeduplicatorDescriptor(deduplicatorDescriptor)
 				Expect(datum.Deduplicator).To(Equal(deduplicatorDescriptor))
 			})

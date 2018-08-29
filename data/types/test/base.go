@@ -31,7 +31,7 @@ func NewBase() *types.Base {
 	datum.ConversionOffset = pointer.FromInt(NewConversionOffset())
 	datum.CreatedTime = pointer.FromString(createdTime.Format(time.RFC3339))
 	datum.CreatedUserID = pointer.FromString(userTest.RandomID())
-	datum.Deduplicator = testData.NewDeduplicatorDescriptor()
+	datum.Deduplicator = testData.RandomDeduplicatorDescriptor()
 	datum.DeletedTime = pointer.FromString(deletedTime.Format(time.RFC3339))
 	datum.DeletedUserID = pointer.FromString(userTest.RandomID())
 	datum.DeviceID = pointer.FromString(testData.NewDeviceID())

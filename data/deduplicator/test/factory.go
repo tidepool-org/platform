@@ -1,126 +1,76 @@
 package test
 
 import (
-	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/storeDEPRECATED"
-	"github.com/tidepool-org/platform/data/types/upload"
-	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/test"
+	dataDeduplicator "github.com/tidepool-org/platform/data/deduplicator"
+	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 )
 
-type CanDeduplicateDataSetOutput struct {
-	Can   bool
-	Error error
-}
-
-type NewDeduplicatorForDataSetInput struct {
-	Logger      log.Logger
-	DataSession storeDEPRECATED.DataSession
-	DataSet     *upload.Upload
-}
-
-type NewDeduplicatorForDataSetOutput struct {
-	Deduplicator data.Deduplicator
+type NewOutput struct {
+	Deduplicator dataDeduplicator.Deduplicator
 	Error        error
 }
 
-type IsRegisteredWithDataSetOutput struct {
-	Is    bool
-	Error error
-}
-
-type NewRegisteredDeduplicatorForDataSetInput struct {
-	Logger      log.Logger
-	DataSession storeDEPRECATED.DataSession
-	DataSet     *upload.Upload
-}
-
-type NewRegisteredDeduplicatorForDataSetOutput struct {
-	Deduplicator data.Deduplicator
+type GetOutput struct {
+	Deduplicator dataDeduplicator.Deduplicator
 	Error        error
 }
 
 type Factory struct {
-	*test.Mock
-	CanDeduplicateDataSetInvocations               int
-	CanDeduplicateDataSetInputs                    []*upload.Upload
-	CanDeduplicateDataSetOutputs                   []CanDeduplicateDataSetOutput
-	NewDeduplicatorForDataSetInvocations           int
-	NewDeduplicatorForDataSetInputs                []NewDeduplicatorForDataSetInput
-	NewDeduplicatorForDataSetOutputs               []NewDeduplicatorForDataSetOutput
-	IsRegisteredWithDataSetInvocations             int
-	IsRegisteredWithDataSetInputs                  []*upload.Upload
-	IsRegisteredWithDataSetOutputs                 []IsRegisteredWithDataSetOutput
-	NewRegisteredDeduplicatorForDataSetInvocations int
-	NewRegisteredDeduplicatorForDataSetInputs      []NewRegisteredDeduplicatorForDataSetInput
-	NewRegisteredDeduplicatorForDataSetOutputs     []NewRegisteredDeduplicatorForDataSetOutput
+	NewInvocations int
+	NewInputs      []*dataTypesUpload.Upload
+	NewStub        func(dataSet *dataTypesUpload.Upload) (dataDeduplicator.Deduplicator, error)
+	NewOutputs     []NewOutput
+	NewOutput      *NewOutput
+	GetInvocations int
+	GetInputs      []*dataTypesUpload.Upload
+	GetStub        func(dataSet *dataTypesUpload.Upload) (dataDeduplicator.Deduplicator, error)
+	GetOutputs     []GetOutput
+	GetOutput      *GetOutput
 }
 
 func NewFactory() *Factory {
-	return &Factory{
-		Mock: test.NewMock(),
-	}
+	return &Factory{}
 }
 
-func (f *Factory) CanDeduplicateDataSet(dataSet *upload.Upload) (bool, error) {
-	f.CanDeduplicateDataSetInvocations++
-
-	f.CanDeduplicateDataSetInputs = append(f.CanDeduplicateDataSetInputs, dataSet)
-
-	if len(f.CanDeduplicateDataSetOutputs) == 0 {
-		panic("Unexpected invocation of CanDeduplicateDataSet on Factory")
+func (f *Factory) New(dataSet *dataTypesUpload.Upload) (dataDeduplicator.Deduplicator, error) {
+	f.NewInvocations++
+	f.NewInputs = append(f.NewInputs, dataSet)
+	if f.NewStub != nil {
+		return f.NewStub(dataSet)
 	}
-
-	output := f.CanDeduplicateDataSetOutputs[0]
-	f.CanDeduplicateDataSetOutputs = f.CanDeduplicateDataSetOutputs[1:]
-	return output.Can, output.Error
+	if len(f.NewOutputs) > 0 {
+		output := f.NewOutputs[0]
+		f.NewOutputs = f.NewOutputs[1:]
+		return output.Deduplicator, output.Error
+	}
+	if f.NewOutput != nil {
+		return f.NewOutput.Deduplicator, f.NewOutput.Error
+	}
+	panic("New has no output")
 }
 
-func (f *Factory) NewDeduplicatorForDataSet(logger log.Logger, dataSession storeDEPRECATED.DataSession, dataSet *upload.Upload) (data.Deduplicator, error) {
-	f.NewDeduplicatorForDataSetInvocations++
-
-	f.NewDeduplicatorForDataSetInputs = append(f.NewDeduplicatorForDataSetInputs, NewDeduplicatorForDataSetInput{logger, dataSession, dataSet})
-
-	if len(f.NewDeduplicatorForDataSetOutputs) == 0 {
-		panic("Unexpected invocation of NewDeduplicatorForDataSet on Factory")
+func (f *Factory) Get(dataSet *dataTypesUpload.Upload) (dataDeduplicator.Deduplicator, error) {
+	f.GetInvocations++
+	f.GetInputs = append(f.GetInputs, dataSet)
+	if f.GetStub != nil {
+		return f.GetStub(dataSet)
 	}
-
-	output := f.NewDeduplicatorForDataSetOutputs[0]
-	f.NewDeduplicatorForDataSetOutputs = f.NewDeduplicatorForDataSetOutputs[1:]
-	return output.Deduplicator, output.Error
+	if len(f.GetOutputs) > 0 {
+		output := f.GetOutputs[0]
+		f.GetOutputs = f.GetOutputs[1:]
+		return output.Deduplicator, output.Error
+	}
+	if f.GetOutput != nil {
+		return f.GetOutput.Deduplicator, f.GetOutput.Error
+	}
+	panic("Get has no output")
 }
 
-func (f *Factory) IsRegisteredWithDataSet(dataSet *upload.Upload) (bool, error) {
-	f.IsRegisteredWithDataSetInvocations++
-
-	f.IsRegisteredWithDataSetInputs = append(f.IsRegisteredWithDataSetInputs, dataSet)
-
-	if len(f.IsRegisteredWithDataSetOutputs) == 0 {
-		panic("Unexpected invocation of IsRegisteredWithDataSet on Factory")
+func (f *Factory) AssertOutputsEmpty() {
+	if len(f.NewOutputs) > 0 {
+		panic("NewOutputs is not empty")
 	}
-
-	output := f.IsRegisteredWithDataSetOutputs[0]
-	f.IsRegisteredWithDataSetOutputs = f.IsRegisteredWithDataSetOutputs[1:]
-	return output.Is, output.Error
-}
-
-func (f *Factory) NewRegisteredDeduplicatorForDataSet(logger log.Logger, dataSession storeDEPRECATED.DataSession, dataSet *upload.Upload) (data.Deduplicator, error) {
-	f.NewRegisteredDeduplicatorForDataSetInvocations++
-
-	f.NewRegisteredDeduplicatorForDataSetInputs = append(f.NewRegisteredDeduplicatorForDataSetInputs, NewRegisteredDeduplicatorForDataSetInput{logger, dataSession, dataSet})
-
-	if len(f.NewRegisteredDeduplicatorForDataSetOutputs) == 0 {
-		panic("Unexpected invocation of NewRegisteredDeduplicatorForDataSet on Factory")
+	if len(f.GetOutputs) > 0 {
+		panic("GetOutputs is not empty")
 	}
-
-	output := f.NewRegisteredDeduplicatorForDataSetOutputs[0]
-	f.NewRegisteredDeduplicatorForDataSetOutputs = f.NewRegisteredDeduplicatorForDataSetOutputs[1:]
-	return output.Deduplicator, output.Error
-}
-
-func (f *Factory) UnusedOutputsCount() int {
-	return len(f.CanDeduplicateDataSetOutputs) +
-		len(f.NewDeduplicatorForDataSetOutputs) +
-		len(f.IsRegisteredWithDataSetOutputs) +
-		len(f.NewRegisteredDeduplicatorForDataSetOutputs)
 }

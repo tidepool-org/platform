@@ -8,7 +8,7 @@ import (
 )
 
 type Condition struct {
-	Revision *int
+	Revision *int `json:"revision,omitempty"`
 }
 
 func NewCondition() *Condition {

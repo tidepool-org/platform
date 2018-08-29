@@ -156,10 +156,10 @@ func (b *Base) Validate(validator structure.Validator) {
 		} else {
 			validator.String("deletedUserId", b.DeletedUserID).NotExists()
 		}
+	}
 
-		if b.Deduplicator != nil {
-			b.Deduplicator.Validate(validator.WithReference("_deduplicator"))
-		}
+	if b.Deduplicator != nil {
+		b.Deduplicator.Validate(validator.WithReference("deduplicator"))
 	}
 
 	validator.String("deviceId", b.DeviceID).NotEmpty()
@@ -233,7 +233,7 @@ func (b *Base) Normalize(normalizer data.Normalizer) {
 		b.Associations.Normalize(normalizer.WithReference("associations"))
 	}
 	if b.Deduplicator != nil {
-		b.Deduplicator.Normalize(normalizer.WithReference("_deduplicator"))
+		b.Deduplicator.NormalizeDEPRECATED(normalizer.WithReference("deduplicator"))
 	}
 
 	if normalizer.Origin() == structure.OriginExternal {

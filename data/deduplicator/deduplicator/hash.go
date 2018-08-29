@@ -7,39 +7,31 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/pointer"
 )
 
-const _HashIdentityFieldsSeparator = "|"
-
-func AssignDataSetDataIdentityHashes(dataSetData []data.Datum) ([]string, error) {
-	if len(dataSetData) == 0 {
-		return nil, nil
-	}
-
-	hashes := []string{}
+func AssignDataSetDataIdentityHashes(dataSetData data.Data) error {
 	for _, dataSetDatum := range dataSetData {
 		fields, err := dataSetDatum.IdentityFields()
 		if err != nil {
-			return nil, errors.Wrap(err, "unable to gather identity fields for datum")
+			return errors.Wrap(err, "unable to gather identity fields for datum")
 		}
 
 		hash, err := GenerateIdentityHash(fields)
 		if err != nil {
-			return nil, errors.Wrap(err, "unable to generate identity hash for datum")
+			return errors.Wrap(err, "unable to generate identity hash for datum")
 		}
 
-		deduplicatorDescriptor := dataSetDatum.DeduplicatorDescriptor()
-		if deduplicatorDescriptor == nil {
-			deduplicatorDescriptor = data.NewDeduplicatorDescriptor()
+		deduplicator := dataSetDatum.DeduplicatorDescriptor()
+		if deduplicator == nil {
+			deduplicator = data.NewDeduplicatorDescriptor()
 		}
-		deduplicatorDescriptor.Hash = hash
+		deduplicator.Hash = pointer.FromString(hash)
 
-		dataSetDatum.SetDeduplicatorDescriptor(deduplicatorDescriptor)
-
-		hashes = append(hashes, hash)
+		dataSetDatum.SetDeduplicatorDescriptor(deduplicator)
 	}
 
-	return hashes, nil
+	return nil
 }
 
 func GenerateIdentityHash(identityFields []string) (string, error) {
@@ -53,9 +45,11 @@ func GenerateIdentityHash(identityFields []string) (string, error) {
 		}
 	}
 
-	identityString := strings.Join(identityFields, _HashIdentityFieldsSeparator)
+	identityString := strings.Join(identityFields, hashIdentityFieldsSeparator)
 	identitySum := sha256.Sum256([]byte(identityString))
 	identityHash := base64.StdEncoding.EncodeToString(identitySum[:])
 
 	return identityHash, nil
 }
+
+const hashIdentityFieldsSeparator = "|"

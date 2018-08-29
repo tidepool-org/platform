@@ -2,6 +2,8 @@
 
 ## v1.29.0
 
+* Add data deduplicator name migration
+* Refactor entire data deduplicator package
 * Refactor net test package
 * Add meta to Dexcom data to assist with debugging validation errors
 * Update Ginkgo suite usage

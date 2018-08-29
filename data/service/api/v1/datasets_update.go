@@ -78,15 +78,18 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	deduplicator, err := dataServiceContext.DataDeduplicatorFactory().NewRegisteredDeduplicatorForDataSet(lgr, dataServiceContext.DataSession(), dataSet)
-	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to create registered deduplicator for data set", err)
-		return
-	}
-
-	if err = deduplicator.DeduplicateDataSet(ctx); err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to deduplicate data set", err)
-		return
+	if update.State != nil && *update.State == "closed" {
+		deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(dataSet)
+		if getErr != nil {
+			dataServiceContext.RespondWithInternalServerFailure("Unable to get deduplicator", getErr)
+			return
+		} else if deduplicator == nil {
+			dataServiceContext.RespondWithInternalServerFailure("Deduplicator not found")
+			return
+		} else if err = deduplicator.Close(ctx, dataServiceContext.DataSession(), dataSet); err != nil {
+			dataServiceContext.RespondWithInternalServerFailure("Unable to close", err)
+			return
+		}
 	}
 
 	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_update"); err != nil {

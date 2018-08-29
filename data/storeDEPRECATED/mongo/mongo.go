@@ -298,6 +298,10 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 		return errors.New("session closed")
 	}
 
+	if len(dataSetData) == 0 {
+		return nil
+	}
+
 	startTime := time.Now()
 
 	timestamp := time.Now().Format(time.RFC3339)

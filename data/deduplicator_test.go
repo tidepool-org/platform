@@ -2,88 +2,243 @@ package data_test
 
 import (
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"fmt"
-
 	"github.com/tidepool-org/platform/data"
-	testData "github.com/tidepool-org/platform/data/test"
+	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
+	dataTest "github.com/tidepool-org/platform/data/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
+	"github.com/tidepool-org/platform/net"
+	netTest "github.com/tidepool-org/platform/net/test"
+	"github.com/tidepool-org/platform/pointer"
+	structureNormalizer "github.com/tidepool-org/platform/structure/normalizer"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 )
 
 var _ = Describe("Deduplicator", func() {
 	Context("DeduplicatorDescriptor", func() {
+		DescribeTable("serializes the datum as expected",
+			func(mutator func(datum *data.DeduplicatorDescriptor)) {
+				datum := dataTest.RandomDeduplicatorDescriptor()
+				mutator(datum)
+				test.ExpectSerializedJSON(datum, dataTest.NewObjectFromDeduplicatorDescriptor(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedBSON(datum, dataTest.NewObjectFromDeduplicatorDescriptor(datum, test.ObjectFormatBSON))
+			},
+			Entry("succeeds",
+				func(datum *data.DeduplicatorDescriptor) {},
+			),
+			Entry("empty",
+				func(datum *data.DeduplicatorDescriptor) { *datum = data.DeduplicatorDescriptor{} },
+			),
+		)
+
+		Context("ParseDeduplicatorDescriptor", func() {
+			// TODO
+		})
+
+		Context("ParseDeduplicatorDescriptorDEPRECATED", func() {
+			// TODO
+		})
+
 		Context("NewDeduplicatorDescriptor", func() {
-			It("returns a new deduplicator descriptor", func() {
-				Expect(data.NewDeduplicatorDescriptor()).ToNot(BeNil())
+			It("returns successfully with default values", func() {
+				deduplicatorDescriptor := data.NewDeduplicatorDescriptor()
+				Expect(deduplicatorDescriptor).ToNot(BeNil())
+				Expect(deduplicatorDescriptor.Name).To(BeNil())
+				Expect(deduplicatorDescriptor.Version).To(BeNil())
+				Expect(deduplicatorDescriptor.Hash).To(BeNil())
 			})
 		})
 
-		Context("with a new deduplicator descriptor", func() {
-			var testDeduplicatorDescriptor *data.DeduplicatorDescriptor
-			var testName string
-			var testVersion string
+		Context("Parse", func() {
+			// TODO
+		})
+
+		Context("ParseDEPRECATED", func() {
+			// TODO
+		})
+
+		Context("Validate", func() {
+			DescribeTable("validates the datum",
+				func(mutator func(datum *data.DeduplicatorDescriptor), expectedErrors ...error) {
+					datum := dataTest.RandomDeduplicatorDescriptor()
+					mutator(datum)
+					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+				},
+				Entry("succeeds",
+					func(datum *data.DeduplicatorDescriptor) {},
+				),
+				Entry("name missing",
+					func(datum *data.DeduplicatorDescriptor) { datum.Name = nil },
+				),
+				Entry("name empty",
+					func(datum *data.DeduplicatorDescriptor) { datum.Name = pointer.FromString("") },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/name"),
+				),
+				Entry("name invalid",
+					func(datum *data.DeduplicatorDescriptor) { datum.Name = pointer.FromString("invalid") },
+					errorsTest.WithPointerSource(net.ErrorValueStringAsReverseDomainNotValid("invalid"), "/name"),
+				),
+				Entry("name valid",
+					func(datum *data.DeduplicatorDescriptor) {
+						datum.Name = pointer.FromString(netTest.RandomReverseDomain())
+					},
+				),
+				Entry("version missing",
+					func(datum *data.DeduplicatorDescriptor) { datum.Version = nil },
+				),
+				Entry("version empty",
+					func(datum *data.DeduplicatorDescriptor) { datum.Version = pointer.FromString("") },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/version"),
+				),
+				Entry("version invalid",
+					func(datum *data.DeduplicatorDescriptor) { datum.Version = pointer.FromString("invalid") },
+					errorsTest.WithPointerSource(net.ErrorValueStringAsSemanticVersionNotValid("invalid"), "/version"),
+				),
+				Entry("version valid",
+					func(datum *data.DeduplicatorDescriptor) {
+						datum.Version = pointer.FromString(netTest.RandomSemanticVersion())
+					},
+				),
+				Entry("hash missing",
+					func(datum *data.DeduplicatorDescriptor) { datum.Hash = nil },
+				),
+				Entry("hash empty",
+					func(datum *data.DeduplicatorDescriptor) { datum.Hash = pointer.FromString("") },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/hash"),
+				),
+				Entry("hash valid",
+					func(datum *data.DeduplicatorDescriptor) { datum.Hash = pointer.FromString(test.RandomString()) },
+				),
+				Entry("multiple errors",
+					func(datum *data.DeduplicatorDescriptor) {
+						datum.Name = pointer.FromString("")
+						datum.Version = pointer.FromString("")
+						datum.Hash = pointer.FromString("")
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/name"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/version"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/hash"),
+				),
+			)
+		})
+
+		Context("Normalize", func() {
+			DescribeTable("normalizes the datum",
+				func(mutator func(datum *data.DeduplicatorDescriptor), expectator func(datum *data.DeduplicatorDescriptor, expectedDatum *data.DeduplicatorDescriptor)) {
+					datum := dataTest.RandomDeduplicatorDescriptor()
+					mutator(datum)
+					expectedDatum := dataTest.CloneDeduplicatorDescriptor(datum)
+					Expect(structureNormalizer.New().Normalize(datum)).ToNot(HaveOccurred())
+					if expectator != nil {
+						expectator(datum, expectedDatum)
+					}
+					Expect(datum).To(Equal(expectedDatum))
+				},
+				Entry("does not modify the datum",
+					func(datum *data.DeduplicatorDescriptor) {},
+					func(datum *data.DeduplicatorDescriptor, expectedDatum *data.DeduplicatorDescriptor) {},
+				),
+				Entry("does not modify the datum; name missing",
+					func(datum *data.DeduplicatorDescriptor) { datum.Name = nil },
+					func(datum *data.DeduplicatorDescriptor, expectedDatum *data.DeduplicatorDescriptor) {},
+				),
+				Entry("does not modify the datum; version missing",
+					func(datum *data.DeduplicatorDescriptor) { datum.Version = nil },
+					func(datum *data.DeduplicatorDescriptor, expectedDatum *data.DeduplicatorDescriptor) {},
+				),
+				Entry("does not modify the datum; hash missing",
+					func(datum *data.DeduplicatorDescriptor) { datum.Hash = nil },
+					func(datum *data.DeduplicatorDescriptor, expectedDatum *data.DeduplicatorDescriptor) {},
+				),
+			)
+		})
+
+		Context("NormalizeDEPRECATED", func() {
+			DescribeTable("normalizes the datum",
+				func(mutator func(datum *data.DeduplicatorDescriptor), expectator func(datum *data.DeduplicatorDescriptor, expectedDatum *data.DeduplicatorDescriptor)) {
+					datum := dataTest.RandomDeduplicatorDescriptor()
+					mutator(datum)
+					expectedDatum := dataTest.CloneDeduplicatorDescriptor(datum)
+					normalizer := dataNormalizer.New()
+					Expect(normalizer).ToNot(BeNil())
+					datum.NormalizeDEPRECATED(normalizer)
+					Expect(normalizer.Error()).ToNot(HaveOccurred())
+					if expectator != nil {
+						expectator(datum, expectedDatum)
+					}
+					Expect(datum).To(Equal(expectedDatum))
+				},
+				Entry("does not modify the datum",
+					func(datum *data.DeduplicatorDescriptor) {},
+					func(datum *data.DeduplicatorDescriptor, expectedDatum *data.DeduplicatorDescriptor) {},
+				),
+				Entry("does not modify the datum; name missing",
+					func(datum *data.DeduplicatorDescriptor) { datum.Name = nil },
+					func(datum *data.DeduplicatorDescriptor, expectedDatum *data.DeduplicatorDescriptor) {},
+				),
+				Entry("does not modify the datum; version missing",
+					func(datum *data.DeduplicatorDescriptor) { datum.Version = nil },
+					func(datum *data.DeduplicatorDescriptor, expectedDatum *data.DeduplicatorDescriptor) {},
+				),
+				Entry("does not modify the datum; hash missing",
+					func(datum *data.DeduplicatorDescriptor) { datum.Hash = nil },
+					func(datum *data.DeduplicatorDescriptor, expectedDatum *data.DeduplicatorDescriptor) {},
+				),
+			)
+		})
+
+		Context("with new deduplicator descriptor", func() {
+			var datum *data.DeduplicatorDescriptor
 
 			BeforeEach(func() {
-				testDeduplicatorDescriptor = data.NewDeduplicatorDescriptor()
-				Expect(testDeduplicatorDescriptor).ToNot(BeNil())
-				testName = test.NewVariableString(1, 32, test.CharsetAlphaNumeric)
-				testVersion = "1.2.3"
-				testDeduplicatorDescriptor.Name = testName
-				testDeduplicatorDescriptor.Version = testVersion
+				datum = dataTest.RandomDeduplicatorDescriptor()
 			})
 
-			Context("IsRegisteredWithAnyDeduplicator", func() {
-				It("returns false if the deduplicator descriptor name is missing", func() {
-					testDeduplicatorDescriptor.Name = ""
-					Expect(testDeduplicatorDescriptor.IsRegisteredWithAnyDeduplicator()).To(BeFalse())
+			Context("HasName", func() {
+				It("return false if the name is missing", func() {
+					datum.Name = nil
+					Expect(datum.HasName()).To(BeFalse())
 				})
 
-				It("returns true if the deduplicator descriptor name is present", func() {
-					Expect(testDeduplicatorDescriptor.IsRegisteredWithAnyDeduplicator()).To(BeTrue())
-				})
-			})
-
-			Context("IsRegisteredWithNamedDeduplicator", func() {
-				It("returns false if the deduplicator descriptor name is missing", func() {
-					testDeduplicatorDescriptor.Name = ""
-					Expect(testDeduplicatorDescriptor.IsRegisteredWithNamedDeduplicator(testName)).To(BeFalse())
+				It("returns true if the name is empty", func() {
+					datum.Name = pointer.FromString("")
+					Expect(datum.HasName()).To(BeTrue())
 				})
 
-				It("returns true if the deduplicator descriptor name is present, but does not match", func() {
-					Expect(testDeduplicatorDescriptor.IsRegisteredWithNamedDeduplicator(test.NewVariableString(1, 32, test.CharsetAlphaNumeric))).To(BeFalse())
-				})
-
-				It("returns true if the deduplicator descriptor name is present and matches", func() {
-					Expect(testDeduplicatorDescriptor.IsRegisteredWithNamedDeduplicator(testName)).To(BeTrue())
+				It("returns true if the name exists", func() {
+					datum.Name = pointer.FromString(netTest.RandomReverseDomain())
+					Expect(datum.HasName()).To(BeTrue())
 				})
 			})
 
-			Context("RegisterWithDeduplicator", func() {
-				var testDeduplicator *testData.Deduplicator
+			Context("HasNameMatch", func() {
+				var name string
 
 				BeforeEach(func() {
-					testDeduplicator = testData.NewDeduplicator()
+					name = netTest.RandomReverseDomain()
 				})
 
-				AfterEach(func() {
-					testDeduplicator.Expectations()
+				It("return false if the name is missing", func() {
+					datum.Name = nil
+					Expect(datum.HasNameMatch(name)).To(BeFalse())
 				})
 
-				It("returns error if the deduplicator descriptor already has a name", func() {
-					err := testDeduplicatorDescriptor.RegisterWithDeduplicator(testDeduplicator)
-					Expect(err).To(MatchError(fmt.Sprintf("deduplicator descriptor already registered with %q", testName)))
+				It("return false if the name is empty", func() {
+					datum.Name = pointer.FromString("")
+					Expect(datum.HasNameMatch(name)).To(BeFalse())
 				})
 
-				It("returns successfully if the deduplicator descriptor does not already have a name", func() {
-					testDeduplicatorDescriptor.Name = ""
-					testDeduplicatorDescriptor.Version = ""
-					testDeduplicator.NameOutputs = []string{testName}
-					testDeduplicator.VersionOutputs = []string{testVersion}
-					err := testDeduplicatorDescriptor.RegisterWithDeduplicator(testDeduplicator)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testDeduplicatorDescriptor.Name).To(Equal(testName))
-					Expect(testDeduplicatorDescriptor.Version).To(Equal(testVersion))
+				It("returns false if the name does not match", func() {
+					datum.Name = pointer.FromString(netTest.RandomReverseDomain())
+					Expect(datum.HasNameMatch(name)).To(BeFalse())
+				})
+
+				It("returns true if the name matches", func() {
+					datum.Name = pointer.FromString(name)
+					Expect(datum.HasNameMatch(name)).To(BeTrue())
 				})
 			})
 		})
