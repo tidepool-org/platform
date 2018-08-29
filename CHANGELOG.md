@@ -2,6 +2,8 @@
 
 ## v1.29.0
 
+* Add optional provider session id to data source update
+* Add new provider session id to data source after reconnecting Dexcom API
 * Use float64 for food data type values
 * Add direct access to data origin
 * Make device id optional for data

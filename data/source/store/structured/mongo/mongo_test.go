@@ -658,6 +658,7 @@ var _ = Describe("Mongo", func() {
 					updateAssertions := func() {
 						Context("with updates", func() {
 							It("returns updated result when the id exists and state is connected without error", func() {
+								update.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
 								update.State = pointer.FromString(dataSource.StateConnected)
 								update.Error = nil
 								matchAllFields := MatchAllFields(Fields{
@@ -665,7 +666,7 @@ var _ = Describe("Mongo", func() {
 									"UserID":            Equal(original.UserID),
 									"ProviderType":      Equal(original.ProviderType),
 									"ProviderName":      Equal(original.ProviderName),
-									"ProviderSessionID": Equal(original.ProviderSessionID),
+									"ProviderSessionID": Equal(update.ProviderSessionID),
 									"State":             Equal(update.State),
 									"Error":             Equal(update.Error),
 									"DataSetIDs":        Equal(update.DataSetIDs),
@@ -687,6 +688,7 @@ var _ = Describe("Mongo", func() {
 							})
 
 							It("returns updated result when the id exists and state is disconnected without error", func() {
+								update.ProviderSessionID = nil
 								update.State = pointer.FromString(dataSource.StateDisconnected)
 								update.Error = nil
 								matchAllFields := MatchAllFields(Fields{
@@ -716,7 +718,8 @@ var _ = Describe("Mongo", func() {
 							})
 
 							It("returns updated result when the id exists and state is error with error", func() {
-								update.State = pointer.FromString(dataSource.StateConnected)
+								update.ProviderSessionID = nil
+								update.State = pointer.FromString(dataSource.StateError)
 								matchAllFields := MatchAllFields(Fields{
 									"ID":                PointTo(Equal(id)),
 									"UserID":            Equal(original.UserID),

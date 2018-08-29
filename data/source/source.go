@@ -112,12 +112,13 @@ func (c *Create) Validate(validator structure.Validator) {
 }
 
 type Update struct {
-	State            *string              `json:"state,omitempty"`
-	Error            *errors.Serializable `json:"error,omitempty"`
-	DataSetIDs       *[]string            `json:"dataSetIds,omitempty"`
-	EarliestDataTime *time.Time           `json:"earliestDataTime,omitempty"`
-	LatestDataTime   *time.Time           `json:"latestDataTime,omitempty"`
-	LastImportTime   *time.Time           `json:"lastImportTime,omitempty"`
+	ProviderSessionID *string              `json:"providerSessionId,omitempty"`
+	State             *string              `json:"state,omitempty"`
+	Error             *errors.Serializable `json:"error,omitempty"`
+	DataSetIDs        *[]string            `json:"dataSetIds,omitempty"`
+	EarliestDataTime  *time.Time           `json:"earliestDataTime,omitempty"`
+	LatestDataTime    *time.Time           `json:"latestDataTime,omitempty"`
+	LastImportTime    *time.Time           `json:"lastImportTime,omitempty"`
 }
 
 func NewUpdate() *Update {
@@ -125,6 +126,7 @@ func NewUpdate() *Update {
 }
 
 func (u *Update) Parse(parser structure.ObjectParser) {
+	u.ProviderSessionID = parser.String("providerSessionId")
 	u.State = parser.String("state")
 	if parser.ReferenceExists("error") {
 		serializable := &errors.Serializable{}
@@ -140,6 +142,11 @@ func (u *Update) Parse(parser structure.ObjectParser) {
 }
 
 func (u *Update) Validate(validator structure.Validator) {
+	if providerSessionIDValidator := validator.String("providerSessionId", u.ProviderSessionID); u.State == nil || *u.State != StateDisconnected {
+		providerSessionIDValidator.Using(auth.ProviderSessionIDValidator)
+	} else {
+		providerSessionIDValidator.NotExists()
+	}
 	validator.String("state", u.State).OneOf(States()...)
 	if u.Error != nil {
 		u.Error.Validate(validator.WithReference("error"))
@@ -166,7 +173,7 @@ func (u *Update) Normalize(normalizer structure.Normalizer) {
 }
 
 func (u *Update) HasUpdates() bool {
-	return u.State != nil || u.Error != nil || u.DataSetIDs != nil || u.EarliestDataTime != nil || u.LatestDataTime != nil || u.LastImportTime != nil
+	return u.ProviderSessionID != nil || u.State != nil || u.Error != nil || u.DataSetIDs != nil || u.EarliestDataTime != nil || u.LatestDataTime != nil || u.LastImportTime != nil
 }
 
 type Source struct {
@@ -214,7 +221,7 @@ func (s *Source) Validate(validator structure.Validator) {
 	validator.String("userId", s.UserID).Exists().Using(user.IDValidator)
 	validator.String("providerType", s.ProviderType).Exists().OneOf(auth.ProviderTypes()...)
 	validator.String("providerName", s.ProviderName).Exists().Using(auth.ProviderNameValidator)
-	validator.String("providerSessionId", s.ProviderSessionID).Exists().Using(auth.ProviderSessionIDValidator)
+	validator.String("providerSessionId", s.ProviderSessionID).Using(auth.ProviderSessionIDValidator)
 	validator.String("state", s.State).Exists().OneOf(States()...)
 	if s.Error != nil {
 		s.Error.Validate(validator.WithReference("error"))

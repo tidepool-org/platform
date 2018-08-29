@@ -74,6 +74,7 @@ func (p *Provider) OnCreate(ctx context.Context, userID string, providerSessionI
 		}
 
 		update := dataSource.NewUpdate()
+		update.ProviderSessionID = pointer.FromString(providerSessionID)
 		update.State = pointer.FromString(dataSource.StateConnected)
 
 		source, err = p.dataSourceClient.Update(ctx, *source.ID, nil, update)

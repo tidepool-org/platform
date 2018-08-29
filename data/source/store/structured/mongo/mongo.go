@@ -245,10 +245,14 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 			"modifiedTime": pointer.FromTime(now.Truncate(time.Second)),
 		}
 		unset := bson.M{}
+		if update.ProviderSessionID != nil {
+			set["providerSessionId"] = *update.ProviderSessionID
+		}
 		if update.State != nil {
 			set["state"] = *update.State
 			switch *update.State {
 			case dataSource.StateDisconnected:
+				delete(set, "providerSessionId")
 				unset["providerSessionId"] = true
 				unset["error"] = true
 			case dataSource.StateConnected:

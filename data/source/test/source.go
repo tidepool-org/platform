@@ -82,8 +82,12 @@ func NewObjectFromCreate(datum *dataSource.Create, objectFormat test.ObjectForma
 }
 
 func RandomUpdate() *dataSource.Update {
+	state := RandomState()
 	datum := &dataSource.Update{}
-	datum.State = pointer.FromString(RandomState())
+	if state != dataSource.StateDisconnected {
+		datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
+	}
+	datum.State = pointer.FromString(state)
 	datum.Error = errorsTest.RandomSerializable()
 	datum.DataSetIDs = pointer.FromStringArray(dataTest.RandomSetIDs())
 	datum.EarliestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Millisecond))
@@ -97,6 +101,7 @@ func CloneUpdate(datum *dataSource.Update) *dataSource.Update {
 		return nil
 	}
 	clone := &dataSource.Update{}
+	clone.ProviderSessionID = test.CloneString(datum.ProviderSessionID)
 	clone.State = test.CloneString(datum.State)
 	clone.Error = errorsTest.CloneSerializable(datum.Error)
 	clone.DataSetIDs = test.CloneStringArray(datum.DataSetIDs)
@@ -111,6 +116,9 @@ func NewObjectFromUpdate(datum *dataSource.Update, objectFormat test.ObjectForma
 		return nil
 	}
 	object := map[string]interface{}{}
+	if datum.ProviderSessionID != nil {
+		object["providerSessionId"] = test.NewObjectFromString(*datum.ProviderSessionID, objectFormat)
+	}
 	if datum.State != nil {
 		object["state"] = test.NewObjectFromString(*datum.State, objectFormat)
 	}
@@ -135,6 +143,7 @@ func NewObjectFromUpdate(datum *dataSource.Update, objectFormat test.ObjectForma
 func ExpectEqualUpdate(actual *dataSource.Update, expected *dataSource.Update) {
 	gomega.Expect(actual).ToNot(gomega.BeNil())
 	gomega.Expect(expected).ToNot(gomega.BeNil())
+	gomega.Expect(actual.ProviderSessionID).To(gomega.Equal(expected.ProviderSessionID))
 	gomega.Expect(actual.State).To(gomega.Equal(expected.State))
 	gomega.Expect(actual.Error).To(gomega.Equal(expected.Error))
 	gomega.Expect(actual.DataSetIDs).To(gomega.Equal(expected.DataSetIDs))
