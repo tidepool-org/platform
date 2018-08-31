@@ -11,88 +11,98 @@ import (
 )
 
 const (
-	DeleteOriginIDLengthMaximum = 100
+	SelectorOriginIDLengthMaximum = 100
 )
 
-type DeleteOrigin struct {
+type SelectorOrigin struct {
 	ID *string `json:"id,omitempty"`
 }
 
-func ParseDeleteOrigin(parser structure.ObjectParser) *DeleteOrigin {
+func ParseSelectorOrigin(parser structure.ObjectParser) *SelectorOrigin {
 	if !parser.Exists() {
 		return nil
 	}
-	datum := NewDeleteOrigin()
+	datum := NewSelectorOrigin()
 	parser.Parse(datum)
 	return datum
 }
 
-func NewDeleteOrigin() *DeleteOrigin {
-	return &DeleteOrigin{}
+func NewSelectorOrigin() *SelectorOrigin {
+	return &SelectorOrigin{}
 }
 
-func (d *DeleteOrigin) Parse(parser structure.ObjectParser) {
-	d.ID = parser.String("id")
+func (s *SelectorOrigin) Parse(parser structure.ObjectParser) {
+	s.ID = parser.String("id")
 }
 
-func (d *DeleteOrigin) Validate(validator structure.Validator) {
-	validator.String("id", d.ID).NotEmpty().LengthLessThanOrEqualTo(DeleteOriginIDLengthMaximum)
+func (s *SelectorOrigin) Validate(validator structure.Validator) {
+	validator.String("id", s.ID).Exists().NotEmpty().LengthLessThanOrEqualTo(SelectorOriginIDLengthMaximum)
 }
 
-type Delete struct {
-	ID     *string       `json:"id,omitempty"`
-	Origin *DeleteOrigin `json:"origin,omitempty"`
+type Selector struct {
+	ID     *string         `json:"id,omitempty"`
+	Origin *SelectorOrigin `json:"origin,omitempty"`
 }
 
-func ParseDelete(parser structure.ObjectParser) *Delete {
+func ParseSelector(parser structure.ObjectParser) *Selector {
 	if !parser.Exists() {
 		return nil
 	}
-	datum := NewDelete()
+	datum := NewSelector()
 	parser.Parse(datum)
 	return datum
 }
 
-func NewDelete() *Delete {
-	return &Delete{}
+func NewSelector() *Selector {
+	return &Selector{}
 }
 
-func (d *Delete) Parse(parser structure.ObjectParser) {
-	d.ID = parser.String("id")
-	d.Origin = ParseDeleteOrigin(parser.WithReferenceObjectParser("origin"))
+func (s *Selector) Parse(parser structure.ObjectParser) {
+	s.ID = parser.String("id")
+	s.Origin = ParseSelectorOrigin(parser.WithReferenceObjectParser("origin"))
 }
 
-func (d *Delete) Validate(validator structure.Validator) {
-	validator.String("id", d.ID).Using(IDValidator)
-	if d.Origin != nil {
-		d.Origin.Validate(validator.WithReference("origin"))
+func (s *Selector) Validate(validator structure.Validator) {
+	if (s.ID != nil) == (s.Origin != nil) {
+		validator.ReportError(structureValidator.ErrorValuesNotExistForOne("id", "origin"))
+	} else if s.ID != nil {
+		validator.String("id", s.ID).Using(IDValidator)
+	} else {
+		s.Origin.Validate(validator.WithReference("origin"))
 	}
 }
 
-type Deletes []*Delete
+type Selectors []*Selector
 
-func ParseDeletes(parser structure.ArrayParser) *Deletes {
+func ParseSelectors(parser structure.ArrayParser) *Selectors {
 	if !parser.Exists() {
 		return nil
 	}
-	datum := NewDeletes()
+	datum := NewSelectors()
 	parser.Parse(datum)
 	return datum
 }
 
-func NewDeletes() *Deletes {
-	return &Deletes{}
+func NewSelectors() *Selectors {
+	return &Selectors{}
 }
 
-func (d *Deletes) Parse(parser structure.ArrayParser) {
+func (s *Selectors) Parse(parser structure.ArrayParser) {
 	for _, reference := range parser.References() {
-		*d = append(*d, ParseDelete(parser.WithReferenceObjectParser(reference)))
+		*s = append(*s, ParseSelector(parser.WithReferenceObjectParser(reference)))
 	}
 }
 
-func (d *Deletes) Validate(validator structure.Validator) {
-	for index, delete := range *d {
-		delete.Validate(validator.WithReference(strconv.Itoa(index)))
+func (s *Selectors) Validate(validator structure.Validator) {
+	if len(*s) == 0 {
+		validator.ReportError(structureValidator.ErrorValueEmpty())
+	}
+	for index, selector := range *s {
+		if selectorValidator := validator.WithReference(strconv.Itoa(index)); selector != nil {
+			selector.Validate(selectorValidator)
+		} else {
+			selectorValidator.ReportError(structureValidator.ErrorValueNotExists())
+		}
 	}
 }
 

@@ -17,6 +17,8 @@ import (
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	"github.com/tidepool-org/platform/data/types/upload"
 	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
+	"github.com/tidepool-org/platform/errors"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/page"
@@ -610,72 +612,73 @@ var _ = Describe("Mongo", func() {
 					})
 
 					Context("DeleteDataSetData", func() {
-						var deletes *data.Deletes
+						var selectors *data.Selectors
 
 						BeforeEach(func() {
 							Expect(mongoSession.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
-							deletes = &data.Deletes{}
+							selectors = &data.Selectors{}
 						})
 
 						var deleteDataSetDataAssertions = func() {
 							It("succeeds if it successfully deletes the data set", func() {
-								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(Succeed())
+								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, selectors)).To(Succeed())
 							})
 
 							It("returns an error if the context is missing", func() {
 								ctx = nil
-								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(MatchError("context is missing"))
+								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, selectors)).To(MatchError("context is missing"))
 							})
 
 							It("returns an error if the data set is missing", func() {
 								dataSet = nil
-								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(MatchError("data set is missing"))
+								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, selectors)).To(MatchError("data set is missing"))
 							})
 
 							It("returns an error if the user id is missing", func() {
 								dataSet.UserID = nil
-								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(MatchError("data set user id is missing"))
+								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, selectors)).To(MatchError("data set user id is missing"))
 							})
 
 							It("returns an error if the user id is empty", func() {
 								dataSet.UserID = pointer.FromString("")
-								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(MatchError("data set user id is empty"))
+								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, selectors)).To(MatchError("data set user id is empty"))
 							})
 
 							It("returns an error if the upload id is missing", func() {
 								dataSet.UploadID = nil
-								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(MatchError("data set upload id is missing"))
+								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, selectors)).To(MatchError("data set upload id is missing"))
 							})
 
 							It("returns an error if the upload id is empty", func() {
 								dataSet.UploadID = pointer.FromString("")
-								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(MatchError("data set upload id is empty"))
+								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, selectors)).To(MatchError("data set upload id is empty"))
 							})
 
-							It("returns an error if the deletes is missing", func() {
-								deletes = nil
-								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(MatchError("deletes is missing"))
+							It("returns an error if the selectors is missing", func() {
+								selectors = nil
+								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, selectors)).To(MatchError("selectors is missing"))
 							})
 
-							It("returns an error if the deletes is invalid", func() {
-								(*deletes)[0].ID = pointer.FromString("")
-								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(MatchError("deletes is invalid; value is empty"))
+							It("returns an error if the selectors is invalid", func() {
+								(*selectors)[0].ID = pointer.FromString("")
+								(*selectors)[0].Origin = nil
+								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, selectors)).To(MatchError("selectors is invalid; value is empty"))
 							})
 
 							It("returns an error if the session is closed", func() {
 								mongoSession.Close()
-								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(MatchError("session closed"))
+								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, selectors)).To(MatchError("session closed"))
 							})
 
 							It("has the correct stored data sets", func() {
 								ValidateDataSet(testMongoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
-								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(Succeed())
+								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, selectors)).To(Succeed())
 								ValidateDataSet(testMongoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
 							})
 
 							It("has the correct stored data set data", func() {
 								ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSetData)
-								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(Succeed())
+								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, selectors)).To(Succeed())
 								ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, []data.Datum{})
 							})
 						}
@@ -684,7 +687,7 @@ var _ = Describe("Mongo", func() {
 							BeforeEach(func() {
 								for _, datum := range dataSetData {
 									base, _ := datum.(*types.Base)
-									*deletes = append(*deletes, &data.Delete{ID: base.ID})
+									*selectors = append(*selectors, &data.Selector{ID: base.ID})
 								}
 							})
 
@@ -695,7 +698,7 @@ var _ = Describe("Mongo", func() {
 							BeforeEach(func() {
 								for _, datum := range dataSetData {
 									base, _ := datum.(*types.Base)
-									*deletes = append(*deletes, &data.Delete{Origin: &data.DeleteOrigin{ID: base.Origin.ID}})
+									*selectors = append(*selectors, &data.Selector{Origin: &data.SelectorOrigin{ID: base.Origin.ID}})
 								}
 							})
 
@@ -706,30 +709,24 @@ var _ = Describe("Mongo", func() {
 							BeforeEach(func() {
 								for _, datum := range dataSetData {
 									base, _ := datum.(*types.Base)
-									*deletes = append(*deletes, &data.Delete{ID: base.ID, Origin: &data.DeleteOrigin{ID: base.Origin.ID}})
+									*selectors = append(*selectors, &data.Selector{ID: base.ID, Origin: &data.SelectorOrigin{ID: base.Origin.ID}})
 								}
 							})
 
-							deleteDataSetDataAssertions()
+							It("returns an error", func() {
+								errorsTest.ExpectEqual(mongoSession.DeleteDataSetData(ctx, dataSet, selectors), errors.New("selectors is invalid"))
+							})
 						})
 
-						Context("with neither id nor origin id it deletes nothing", func() {
+						Context("with neither id nor origin id", func() {
 							BeforeEach(func() {
 								for range dataSetData {
-									*deletes = append(*deletes, &data.Delete{})
+									*selectors = append(*selectors, &data.Selector{})
 								}
 							})
 
-							It("has the correct stored data sets", func() {
-								ValidateDataSet(testMongoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
-								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(Succeed())
-								ValidateDataSet(testMongoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
-							})
-
-							It("has the correct stored data set data", func() {
-								ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSetData)
-								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, deletes)).To(Succeed())
-								ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSetData)
+							It("returns an error", func() {
+								errorsTest.ExpectEqual(mongoSession.DeleteDataSetData(ctx, dataSet, selectors), errors.New("selectors is invalid"))
 							})
 						})
 					})

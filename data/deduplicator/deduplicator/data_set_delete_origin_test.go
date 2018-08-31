@@ -444,42 +444,42 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 			})
 
 			Context("DeleteData", func() {
-				var deletes *data.Deletes
+				var selectors *data.Selectors
 
 				BeforeEach(func() {
-					deletes = dataTest.RandomDeletes()
+					selectors = dataTest.RandomSelectors()
 				})
 
 				It("returns an error when the context is missing", func() {
-					Expect(deduplicator.DeleteData(nil, session, dataSet, deletes)).To(MatchError("context is missing"))
+					Expect(deduplicator.DeleteData(nil, session, dataSet, selectors)).To(MatchError("context is missing"))
 				})
 
 				It("returns an error when the session is missing", func() {
-					Expect(deduplicator.DeleteData(ctx, nil, dataSet, deletes)).To(MatchError("session is missing"))
+					Expect(deduplicator.DeleteData(ctx, nil, dataSet, selectors)).To(MatchError("session is missing"))
 				})
 
 				It("returns an error when the data set is missing", func() {
-					Expect(deduplicator.DeleteData(ctx, session, nil, deletes)).To(MatchError("data set is missing"))
+					Expect(deduplicator.DeleteData(ctx, session, nil, selectors)).To(MatchError("data set is missing"))
 				})
 
-				It("returns an error when the deletes is missing", func() {
-					Expect(deduplicator.DeleteData(ctx, session, dataSet, nil)).To(MatchError("deletes is missing"))
+				It("returns an error when the selectors is missing", func() {
+					Expect(deduplicator.DeleteData(ctx, session, dataSet, nil)).To(MatchError("selectors is missing"))
 				})
 
 				When("delete data set data is invoked", func() {
 					AfterEach(func() {
-						Expect(session.DeleteDataSetDataInputs).To(Equal([]dataStoreDEPRECATEDTest.DeleteDataSetDataInput{{Context: ctx, DataSet: dataSet, Deletes: deletes}}))
+						Expect(session.DeleteDataSetDataInputs).To(Equal([]dataStoreDEPRECATEDTest.DeleteDataSetDataInput{{Context: ctx, DataSet: dataSet, Selectors: selectors}}))
 					})
 
 					It("returns an error when delete data set data returns an error", func() {
 						responseErr := errorsTest.RandomError()
 						session.DeleteDataSetDataOutputs = []error{responseErr}
-						Expect(deduplicator.DeleteData(ctx, session, dataSet, deletes)).To(Equal(responseErr))
+						Expect(deduplicator.DeleteData(ctx, session, dataSet, selectors)).To(Equal(responseErr))
 					})
 
 					It("returns successfully when delete data set data returns successfully", func() {
 						session.DeleteDataSetDataOutputs = []error{nil}
-						Expect(deduplicator.DeleteData(ctx, session, dataSet, deletes)).To(Succeed())
+						Expect(deduplicator.DeleteData(ctx, session, dataSet, selectors)).To(Succeed())
 					})
 				})
 			})

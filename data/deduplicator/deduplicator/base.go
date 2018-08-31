@@ -86,7 +86,7 @@ func (b *Base) AddData(ctx context.Context, session dataStoreDEPRECATED.DataSess
 	return session.CreateDataSetData(ctx, dataSet, dataSetData)
 }
 
-func (b *Base) DeleteData(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload, deletes *data.Deletes) error {
+func (b *Base) DeleteData(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload, selectors *data.Selectors) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -96,11 +96,11 @@ func (b *Base) DeleteData(ctx context.Context, session dataStoreDEPRECATED.DataS
 	if dataSet == nil {
 		return errors.New("data set is missing")
 	}
-	if deletes == nil {
-		return errors.New("deletes is missing")
+	if selectors == nil {
+		return errors.New("selectors is missing")
 	}
 
-	return session.DeleteDataSetData(ctx, dataSet, deletes)
+	return session.DeleteDataSetData(ctx, dataSet, selectors)
 }
 
 func (b *Base) Close(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload) error {

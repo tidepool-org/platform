@@ -18,53 +18,53 @@ func NewDeviceID() string {
 	return test.NewString(32, test.CharsetText)
 }
 
-func RandomDeleteOrigin() *data.DeleteOrigin {
-	datum := data.NewDeleteOrigin()
+func RandomSelectorOrigin() *data.SelectorOrigin {
+	datum := data.NewSelectorOrigin()
 	datum.ID = pointer.FromString(test.RandomStringFromRangeAndCharset(1, 100, test.CharsetText))
 	return datum
 }
 
-func CloneDeleteOrigin(datum *data.DeleteOrigin) *data.DeleteOrigin {
+func CloneSelectorOrigin(datum *data.SelectorOrigin) *data.SelectorOrigin {
 	if datum == nil {
 		return nil
 	}
-	clone := data.NewDeleteOrigin()
+	clone := data.NewSelectorOrigin()
 	clone.ID = pointer.CloneString(datum.ID)
 	return clone
 }
 
-func RandomDelete() *data.Delete {
-	datum := data.NewDelete()
+func RandomSelector() *data.Selector {
+	datum := data.NewSelector()
 	datum.ID = pointer.FromString(RandomID())
-	datum.Origin = RandomDeleteOrigin()
+	datum.Origin = RandomSelectorOrigin()
 	return datum
 }
 
-func CloneDelete(datum *data.Delete) *data.Delete {
+func CloneSelector(datum *data.Selector) *data.Selector {
 	if datum == nil {
 		return nil
 	}
-	clone := data.NewDelete()
+	clone := data.NewSelector()
 	clone.ID = pointer.CloneString(datum.ID)
-	clone.Origin = CloneDeleteOrigin(datum.Origin)
+	clone.Origin = CloneSelectorOrigin(datum.Origin)
 	return clone
 }
 
-func RandomDeletes() *data.Deletes {
-	datum := data.NewDeletes()
+func RandomSelectors() *data.Selectors {
+	datum := data.NewSelectors()
 	for index := test.RandomIntFromRange(1, 3); index > 0; index-- {
-		*datum = append(*datum, RandomDelete())
+		*datum = append(*datum, RandomSelector())
 	}
 	return datum
 }
 
-func CloneDeletes(datum *data.Deletes) *data.Deletes {
+func CloneSelectors(datum *data.Selectors) *data.Selectors {
 	if datum == nil {
 		return nil
 	}
-	clone := data.NewDeletes()
+	clone := data.NewSelectors()
 	for _, d := range *datum {
-		*clone = append(*clone, CloneDelete(d))
+		*clone = append(*clone, CloneSelector(d))
 	}
 	return clone
 }

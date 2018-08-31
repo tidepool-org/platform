@@ -62,9 +62,9 @@ type CreateDataSetDataInput struct {
 }
 
 type DeleteDataSetDataInput struct {
-	Context context.Context
-	DataSet *upload.Upload
-	Deletes *data.Deletes
+	Context   context.Context
+	DataSet   *upload.Upload
+	Selectors *data.Selectors
 }
 
 type ActivateDataSetDataInput struct {
@@ -281,10 +281,10 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 	return output
 }
 
-func (d *DataSession) DeleteDataSetData(ctx context.Context, dataSet *upload.Upload, deletes *data.Deletes) error {
+func (d *DataSession) DeleteDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
 	d.DeleteDataSetDataInvocations++
 
-	d.DeleteDataSetDataInputs = append(d.DeleteDataSetDataInputs, DeleteDataSetDataInput{Context: ctx, DataSet: dataSet, Deletes: deletes})
+	d.DeleteDataSetDataInputs = append(d.DeleteDataSetDataInputs, DeleteDataSetDataInput{Context: ctx, DataSet: dataSet, Selectors: selectors})
 
 	gomega.Expect(d.DeleteDataSetDataOutputs).ToNot(gomega.BeEmpty())
 

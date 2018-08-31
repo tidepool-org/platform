@@ -51,9 +51,9 @@ func DataSetsDataDelete(dataServiceContext dataService.Context) {
 		return
 	}
 
-	deletes := data.NewDeletes()
-	if err = request.DecodeRequestBody(dataServiceContext.Request().Request, deletes); err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("unable to parse deletes", err)
+	selectors := data.NewSelectors()
+	if err = request.DecodeRequestBody(dataServiceContext.Request().Request, selectors); err != nil {
+		dataServiceContext.RespondWithInternalServerFailure("unable to parse selectors", err)
 		return
 	}
 
@@ -63,7 +63,7 @@ func DataSetsDataDelete(dataServiceContext dataService.Context) {
 	} else if deduplicator == nil {
 		dataServiceContext.RespondWithInternalServerFailure("Deduplicator not found")
 		return
-	} else if err = deduplicator.DeleteData(ctx, dataServiceContext.DataSession(), dataSet, deletes); err != nil {
+	} else if err = deduplicator.DeleteData(ctx, dataServiceContext.DataSession(), dataSet, selectors); err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to delete data", err)
 		return
 	}

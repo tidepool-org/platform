@@ -27,10 +27,10 @@ type AddDataInput struct {
 }
 
 type DeleteDataInput struct {
-	Context context.Context
-	Session dataStoreDEPRECATED.DataSession
-	DataSet *dataTypesUpload.Upload
-	Deletes *data.Deletes
+	Context   context.Context
+	Session   dataStoreDEPRECATED.DataSession
+	DataSet   *dataTypesUpload.Upload
+	Selectors *data.Selectors
 }
 
 type CloseInput struct {
@@ -58,7 +58,7 @@ type Deduplicator struct {
 	AddDataOutput         *error
 	DeleteDataInvocations int
 	DeleteDataInputs      []DeleteDataInput
-	DeleteDataStub        func(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload, deletes *data.Deletes) error
+	DeleteDataStub        func(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload, selectors *data.Selectors) error
 	DeleteDataOutputs     []error
 	DeleteDataOutput      *error
 	CloseInvocations      int
@@ -111,11 +111,11 @@ func (d *Deduplicator) AddData(ctx context.Context, session dataStoreDEPRECATED.
 	panic("AddData has no output")
 }
 
-func (d *Deduplicator) DeleteData(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload, deletes *data.Deletes) error {
+func (d *Deduplicator) DeleteData(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload, selectors *data.Selectors) error {
 	d.DeleteDataInvocations++
-	d.DeleteDataInputs = append(d.DeleteDataInputs, DeleteDataInput{Context: ctx, Session: session, DataSet: dataSet, Deletes: deletes})
+	d.DeleteDataInputs = append(d.DeleteDataInputs, DeleteDataInput{Context: ctx, Session: session, DataSet: dataSet, Selectors: selectors})
 	if d.DeleteDataStub != nil {
-		return d.DeleteDataStub(ctx, session, dataSet, deletes)
+		return d.DeleteDataStub(ctx, session, dataSet, selectors)
 	}
 	if len(d.DeleteDataOutputs) > 0 {
 		output := d.DeleteDataOutputs[0]

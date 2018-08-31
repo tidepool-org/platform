@@ -329,17 +329,17 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 	return nil
 }
 
-func (d *DataSession) DeleteDataSetData(ctx context.Context, dataSet *upload.Upload, deletes *data.Deletes) error {
+func (d *DataSession) DeleteDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
 	if err := d.validateDataSet(dataSet); err != nil {
 		return err
 	}
-	if deletes == nil {
-		return errors.New("deletes is missing")
-	} else if err := structureValidator.New().Validate(deletes); err != nil {
-		return errors.Wrap(err, "deletes is invalid")
+	if selectors == nil {
+		return errors.New("selectors is missing")
+	} else if err := structureValidator.New().Validate(selectors); err != nil {
+		return errors.Wrap(err, "selectors is invalid")
 	}
 
 	if d.IsClosed() {
@@ -349,7 +349,7 @@ func (d *DataSession) DeleteDataSetData(ctx context.Context, dataSet *upload.Upl
 	startTime := time.Now()
 
 	datumSelectors := []bson.M{}
-	for _, d := range *deletes {
+	for _, d := range *selectors {
 		datumSelector := bson.M{}
 		if d.ID != nil {
 			datumSelector["id"] = *d.ID
