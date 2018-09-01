@@ -100,7 +100,7 @@ func (b *Base) DeleteData(ctx context.Context, session dataStoreDEPRECATED.DataS
 		return errors.New("selectors is missing")
 	}
 
-	return session.DeleteDataSetData(ctx, dataSet, selectors)
+	return session.DestroyDataSetData(ctx, dataSet, selectors)
 }
 
 func (b *Base) Close(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload) error {
@@ -114,7 +114,13 @@ func (b *Base) Close(ctx context.Context, session dataStoreDEPRECATED.DataSessio
 		return errors.New("data set is missing")
 	}
 
-	return session.ActivateDataSetData(ctx, dataSet)
+	update := data.NewDataSetUpdate()
+	update.Active = pointer.FromBool(true)
+	if _, err := session.UpdateDataSet(ctx, *dataSet.UploadID, update); err != nil {
+		return err
+	}
+
+	return session.ActivateDataSetData(ctx, dataSet, nil)
 }
 
 func (b *Base) Delete(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload) error {

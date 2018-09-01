@@ -108,7 +108,7 @@ var _ = Describe("Factory", func() {
 				})
 			})
 
-			newValidations := func() {
+			newAssertions := func() {
 				AfterEach(func() {
 					Expect(secondDeduplicator.NewInputs).To(Equal([]*dataTypesUpload.Upload{dataSet}))
 					Expect(firstDeduplicator.NewInputs).To(Equal([]*dataTypesUpload.Upload{dataSet}))
@@ -143,7 +143,7 @@ var _ = Describe("Factory", func() {
 					dataSet.Deduplicator = nil
 				})
 
-				newValidations()
+				newAssertions()
 			})
 
 			When("the data set does not have a deduplicator name", func() {
@@ -151,7 +151,7 @@ var _ = Describe("Factory", func() {
 					dataSet.Deduplicator.Name = nil
 				})
 
-				newValidations()
+				newAssertions()
 			})
 		})
 

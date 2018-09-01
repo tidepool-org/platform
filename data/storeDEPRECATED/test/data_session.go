@@ -61,15 +61,34 @@ type CreateDataSetDataInput struct {
 	DataSetData []data.Datum
 }
 
+type ActivateDataSetDataInput struct {
+	Context   context.Context
+	DataSet   *upload.Upload
+	Selectors *data.Selectors
+}
+
+type ArchiveDataSetDataInput struct {
+	Context   context.Context
+	DataSet   *upload.Upload
+	Selectors *data.Selectors
+}
+
 type DeleteDataSetDataInput struct {
 	Context   context.Context
 	DataSet   *upload.Upload
 	Selectors *data.Selectors
 }
 
-type ActivateDataSetDataInput struct {
-	Context context.Context
-	DataSet *upload.Upload
+type DestroyDeletedDataSetDataInput struct {
+	Context   context.Context
+	DataSet   *upload.Upload
+	Selectors *data.Selectors
+}
+
+type DestroyDataSetDataInput struct {
+	Context   context.Context
+	DataSet   *upload.Upload
+	Selectors *data.Selectors
 }
 
 type ArchiveDeviceDataUsingHashesFromDataSetInput struct {
@@ -86,11 +105,6 @@ type ArchiveDataSetDataUsingOriginIDsInput struct {
 	Context   context.Context
 	DataSet   *upload.Upload
 	OriginIDs []string
-}
-
-type DeleteArchivedDataSetDataInput struct {
-	Context context.Context
-	DataSet *upload.Upload
 }
 
 type DeleteOtherDataSetDataInput struct {
@@ -128,10 +142,6 @@ type ListUserDataSetsOutput struct {
 type DataSession struct {
 	*test.Mock
 	*test.Closer
-	IsClosedInvocations                                  int
-	IsClosedOutputs                                      []bool
-	EnsureIndexesInvocations                             int
-	EnsureIndexesOutputs                                 []error
 	GetDataSetsForUserByIDInvocations                    int
 	GetDataSetsForUserByIDInputs                         []GetDataSetsForUserByIDInput
 	GetDataSetsForUserByIDOutputs                        []GetDataSetsForUserByIDOutput
@@ -150,24 +160,27 @@ type DataSession struct {
 	CreateDataSetDataInvocations                         int
 	CreateDataSetDataInputs                              []CreateDataSetDataInput
 	CreateDataSetDataOutputs                             []error
-	DeleteDataSetDataInvocations                         int
-	DeleteDataSetDataInputs                              []DeleteDataSetDataInput
-	DeleteDataSetDataOutputs                             []error
 	ActivateDataSetDataInvocations                       int
 	ActivateDataSetDataInputs                            []ActivateDataSetDataInput
 	ActivateDataSetDataOutputs                           []error
+	ArchiveDataSetDataInvocations                        int
+	ArchiveDataSetDataInputs                             []ArchiveDataSetDataInput
+	ArchiveDataSetDataOutputs                            []error
+	DeleteDataSetDataInvocations                         int
+	DeleteDataSetDataInputs                              []DeleteDataSetDataInput
+	DeleteDataSetDataOutputs                             []error
+	DestroyDeletedDataSetDataInvocations                 int
+	DestroyDeletedDataSetDataInputs                      []DestroyDeletedDataSetDataInput
+	DestroyDeletedDataSetDataOutputs                     []error
+	DestroyDataSetDataInvocations                        int
+	DestroyDataSetDataInputs                             []DestroyDataSetDataInput
+	DestroyDataSetDataOutputs                            []error
 	ArchiveDeviceDataUsingHashesFromDataSetInvocations   int
 	ArchiveDeviceDataUsingHashesFromDataSetInputs        []ArchiveDeviceDataUsingHashesFromDataSetInput
 	ArchiveDeviceDataUsingHashesFromDataSetOutputs       []error
 	UnarchiveDeviceDataUsingHashesFromDataSetInvocations int
 	UnarchiveDeviceDataUsingHashesFromDataSetInputs      []UnarchiveDeviceDataUsingHashesFromDataSetInput
 	UnarchiveDeviceDataUsingHashesFromDataSetOutputs     []error
-	ArchiveDataSetDataUsingOriginIDsInvocations          int
-	ArchiveDataSetDataUsingOriginIDsInputs               []ArchiveDataSetDataUsingOriginIDsInput
-	ArchiveDataSetDataUsingOriginIDsOutputs              []error
-	DeleteArchivedDataSetDataInvocations                 int
-	DeleteArchivedDataSetDataInputs                      []DeleteArchivedDataSetDataInput
-	DeleteArchivedDataSetDataOutputs                     []error
 	DeleteOtherDataSetDataInvocations                    int
 	DeleteOtherDataSetDataInputs                         []DeleteOtherDataSetDataInput
 	DeleteOtherDataSetDataOutputs                        []error
@@ -187,26 +200,6 @@ func NewDataSession() *DataSession {
 		Mock:   test.NewMock(),
 		Closer: test.NewCloser(),
 	}
-}
-
-func (d *DataSession) IsClosed() bool {
-	d.IsClosedInvocations++
-
-	gomega.Expect(d.IsClosedOutputs).ToNot(gomega.BeEmpty())
-
-	output := d.IsClosedOutputs[0]
-	d.IsClosedOutputs = d.IsClosedOutputs[1:]
-	return output
-}
-
-func (d *DataSession) EnsureIndexes() error {
-	d.EnsureIndexesInvocations++
-
-	gomega.Expect(d.EnsureIndexesOutputs).ToNot(gomega.BeEmpty())
-
-	output := d.EnsureIndexesOutputs[0]
-	d.EnsureIndexesOutputs = d.EnsureIndexesOutputs[1:]
-	return output
 }
 
 func (d *DataSession) GetDataSetsForUserByID(ctx context.Context, userID string, filter *dataStoreDEPRECATED.Filter, pagination *page.Pagination) ([]*upload.Upload, error) {
@@ -281,6 +274,30 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 	return output
 }
 
+func (d *DataSession) ActivateDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+	d.ActivateDataSetDataInvocations++
+
+	d.ActivateDataSetDataInputs = append(d.ActivateDataSetDataInputs, ActivateDataSetDataInput{Context: ctx, DataSet: dataSet, Selectors: selectors})
+
+	gomega.Expect(d.ActivateDataSetDataOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.ActivateDataSetDataOutputs[0]
+	d.ActivateDataSetDataOutputs = d.ActivateDataSetDataOutputs[1:]
+	return output
+}
+
+func (d *DataSession) ArchiveDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+	d.ArchiveDataSetDataInvocations++
+
+	d.ArchiveDataSetDataInputs = append(d.ArchiveDataSetDataInputs, ArchiveDataSetDataInput{Context: ctx, DataSet: dataSet, Selectors: selectors})
+
+	gomega.Expect(d.ArchiveDataSetDataOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.ArchiveDataSetDataOutputs[0]
+	d.ArchiveDataSetDataOutputs = d.ArchiveDataSetDataOutputs[1:]
+	return output
+}
+
 func (d *DataSession) DeleteDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
 	d.DeleteDataSetDataInvocations++
 
@@ -293,15 +310,27 @@ func (d *DataSession) DeleteDataSetData(ctx context.Context, dataSet *upload.Upl
 	return output
 }
 
-func (d *DataSession) ActivateDataSetData(ctx context.Context, dataSet *upload.Upload) error {
-	d.ActivateDataSetDataInvocations++
+func (d *DataSession) DestroyDeletedDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+	d.DestroyDeletedDataSetDataInvocations++
 
-	d.ActivateDataSetDataInputs = append(d.ActivateDataSetDataInputs, ActivateDataSetDataInput{Context: ctx, DataSet: dataSet})
+	d.DestroyDeletedDataSetDataInputs = append(d.DestroyDeletedDataSetDataInputs, DestroyDeletedDataSetDataInput{Context: ctx, DataSet: dataSet, Selectors: selectors})
 
-	gomega.Expect(d.ActivateDataSetDataOutputs).ToNot(gomega.BeEmpty())
+	gomega.Expect(d.DestroyDeletedDataSetDataOutputs).ToNot(gomega.BeEmpty())
 
-	output := d.ActivateDataSetDataOutputs[0]
-	d.ActivateDataSetDataOutputs = d.ActivateDataSetDataOutputs[1:]
+	output := d.DestroyDeletedDataSetDataOutputs[0]
+	d.DestroyDeletedDataSetDataOutputs = d.DestroyDeletedDataSetDataOutputs[1:]
+	return output
+}
+
+func (d *DataSession) DestroyDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+	d.DestroyDataSetDataInvocations++
+
+	d.DestroyDataSetDataInputs = append(d.DestroyDataSetDataInputs, DestroyDataSetDataInput{Context: ctx, DataSet: dataSet, Selectors: selectors})
+
+	gomega.Expect(d.DestroyDataSetDataOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.DestroyDataSetDataOutputs[0]
+	d.DestroyDataSetDataOutputs = d.DestroyDataSetDataOutputs[1:]
 	return output
 }
 
@@ -326,30 +355,6 @@ func (d *DataSession) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Cont
 
 	output := d.UnarchiveDeviceDataUsingHashesFromDataSetOutputs[0]
 	d.UnarchiveDeviceDataUsingHashesFromDataSetOutputs = d.UnarchiveDeviceDataUsingHashesFromDataSetOutputs[1:]
-	return output
-}
-
-func (d *DataSession) ArchiveDataSetDataUsingOriginIDs(ctx context.Context, dataSet *upload.Upload, originIDs []string) error {
-	d.ArchiveDataSetDataUsingOriginIDsInvocations++
-
-	d.ArchiveDataSetDataUsingOriginIDsInputs = append(d.ArchiveDataSetDataUsingOriginIDsInputs, ArchiveDataSetDataUsingOriginIDsInput{Context: ctx, DataSet: dataSet, OriginIDs: originIDs})
-
-	gomega.Expect(d.ArchiveDataSetDataUsingOriginIDsOutputs).ToNot(gomega.BeEmpty())
-
-	output := d.ArchiveDataSetDataUsingOriginIDsOutputs[0]
-	d.ArchiveDataSetDataUsingOriginIDsOutputs = d.ArchiveDataSetDataUsingOriginIDsOutputs[1:]
-	return output
-}
-
-func (d *DataSession) DeleteArchivedDataSetData(ctx context.Context, dataSet *upload.Upload) error {
-	d.DeleteArchivedDataSetDataInvocations++
-
-	d.DeleteArchivedDataSetDataInputs = append(d.DeleteArchivedDataSetDataInputs, DeleteArchivedDataSetDataInput{Context: ctx, DataSet: dataSet})
-
-	gomega.Expect(d.DeleteArchivedDataSetDataOutputs).ToNot(gomega.BeEmpty())
-
-	output := d.DeleteArchivedDataSetDataOutputs[0]
-	d.DeleteArchivedDataSetDataOutputs = d.DeleteArchivedDataSetDataOutputs[1:]
 	return output
 }
 
@@ -404,16 +409,17 @@ func (d *DataSession) GetDataSet(ctx context.Context, id string) (*data.DataSet,
 func (d *DataSession) Expectations() {
 	d.Mock.Expectations()
 	d.Closer.AssertOutputsEmpty()
-	gomega.Expect(d.IsClosedOutputs).To(gomega.BeEmpty())
-	gomega.Expect(d.EnsureIndexesOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetDataSetsForUserByIDOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetDataSetByIDOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.CreateDataSetOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.UpdateDataSetOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.DeleteDataSetOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.CreateDataSetDataOutputs).To(gomega.BeEmpty())
-	gomega.Expect(d.DeleteDataSetDataOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.ActivateDataSetDataOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.ArchiveDataSetDataOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.DeleteDataSetDataOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.DestroyDeletedDataSetDataOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.DestroyDataSetDataOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.ArchiveDeviceDataUsingHashesFromDataSetOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.UnarchiveDeviceDataUsingHashesFromDataSetOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.DeleteOtherDataSetDataOutputs).To(gomega.BeEmpty())

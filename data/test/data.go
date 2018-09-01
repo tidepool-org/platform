@@ -35,8 +35,11 @@ func CloneSelectorOrigin(datum *data.SelectorOrigin) *data.SelectorOrigin {
 
 func RandomSelector() *data.Selector {
 	datum := data.NewSelector()
-	datum.ID = pointer.FromString(RandomID())
-	datum.Origin = RandomSelectorOrigin()
+	if test.RandomBool() {
+		datum.ID = pointer.FromString(RandomID())
+	} else {
+		datum.Origin = RandomSelectorOrigin()
+	}
 	return datum
 }
 

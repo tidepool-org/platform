@@ -2,6 +2,13 @@
 
 ## v1.29.0
 
+* Update delete data set origin deduplicator to delete duplicates found when adding data
+* Update delete data set origin deduplicator to deactivate deleted data
+* Update base deduplicator to activate data set separately from data set data
+* Update data store to not activate data set when data set data activated
+* Add data selectors to data set data operations to target specific data records
+* Update data store to add activate, archive, delete, destroy deleted, and destroy operations on data set data
+* Refactor data store and test for code consistency
 * Refactor for code consistency
 * Rename data.Delete to data.Selector for more general usage
 * Add data deduplicator name migration

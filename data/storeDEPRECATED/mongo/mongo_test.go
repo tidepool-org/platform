@@ -5,6 +5,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"context"
+	"math/rand"
 
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -25,6 +26,7 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
+	"github.com/tidepool-org/platform/test"
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
@@ -46,9 +48,9 @@ func NewDataSet(userID string, deviceID string) *upload.Upload {
 	return dataSet
 }
 
-func NewDataSetData(deviceID string) []data.Datum {
-	dataSetData := []data.Datum{}
-	for count := 0; count < 3; count++ {
+func NewDataSetData(deviceID string) data.Data {
+	dataSetData := data.Data{}
+	for count := 0; count < test.RandomIntFromRange(4, 6); count++ {
 		datum := dataTypesTest.NewBase()
 		datum.Active = false
 		datum.ArchivedDataSetID = nil
@@ -65,8 +67,8 @@ func NewDataSetData(deviceID string) []data.Datum {
 	return dataSetData
 }
 
-func CloneDataSetData(dataSetData []data.Datum) []data.Datum {
-	clonedDataSetData := []data.Datum{}
+func CloneDataSetData(dataSetData data.Data) data.Data {
+	clonedDataSetData := data.Data{}
 	for _, dataSetDatum := range dataSetData {
 		if datum, ok := dataSetDatum.(*types.Base); ok {
 			clonedDataSetData = append(clonedDataSetData, dataTypesTest.CloneBase(datum))
@@ -75,11 +77,11 @@ func CloneDataSetData(dataSetData []data.Datum) []data.Datum {
 	return clonedDataSetData
 }
 
-func ValidateDataSet(testMongoCollection *mgo.Collection, query bson.M, filter bson.M, expectedDataSets ...*upload.Upload) {
+func ValidateDataSet(mgoCollection *mgo.Collection, query bson.M, filter bson.M, expectedDataSets ...*upload.Upload) {
 	query["type"] = "upload"
 	filter["_id"] = 0
 	var actualDataSets []*upload.Upload
-	Expect(testMongoCollection.Find(query).Select(filter).All(&actualDataSets)).To(Succeed())
+	Expect(mgoCollection.Find(query).Select(filter).All(&actualDataSets)).To(Succeed())
 	Expect(actualDataSets).To(ConsistOf(DataSetsAsInterface(expectedDataSets)...))
 }
 
@@ -91,15 +93,16 @@ func DataSetsAsInterface(dataSets []*upload.Upload) []interface{} {
 	return dataSetsAsInterface
 }
 
-func ValidateDataSetData(testMongoCollection *mgo.Collection, query bson.M, filter bson.M, expectedDataSetData []data.Datum) {
+func ValidateDataSetData(mgoCollection *mgo.Collection, query bson.M, filter bson.M, expectedDataSetData data.Data) {
 	query["type"] = bson.M{"$ne": "upload"}
 	filter["_id"] = 0
+	filter["revision"] = 0
 	var actualDataSetData []interface{}
-	Expect(testMongoCollection.Find(query).Select(filter).All(&actualDataSetData)).To(Succeed())
+	Expect(mgoCollection.Find(query).Select(filter).All(&actualDataSetData)).To(Succeed())
 	Expect(actualDataSetData).To(ConsistOf(DataSetDataAsInterface(expectedDataSetData)...))
 }
 
-func DataSetDataAsInterface(dataSetData []data.Datum) []interface{} {
+func DataSetDataAsInterface(dataSetData data.Data) []interface{} {
 	var dataSetDataAsInterface []interface{}
 	for _, dataSetDatum := range dataSetData {
 		dataSetDataAsInterface = append(dataSetDataAsInterface, DataSetDatumAsInterface(dataSetDatum))
@@ -117,95 +120,99 @@ func DataSetDatumAsInterface(dataSetDatum data.Datum) interface{} {
 }
 
 var _ = Describe("Mongo", func() {
-	var logger log.Logger
-	var mongoConfig *storeStructuredMongo.Config
-	var mongoStore *mongo.Store
-	var mongoSession storeDEPRECATED.DataSession
+	var logger *logTest.Logger
+	var config *storeStructuredMongo.Config
+	var store *mongo.Store
+	var session storeDEPRECATED.DataSession
 
 	BeforeEach(func() {
 		logger = logTest.NewLogger()
-		mongoConfig = storeStructuredMongoTest.NewConfig()
+		config = storeStructuredMongoTest.NewConfig()
 	})
 
 	AfterEach(func() {
-		if mongoSession != nil {
-			mongoSession.Close()
+		if session != nil {
+			session.Close()
 		}
-		if mongoStore != nil {
-			mongoStore.Close()
+		if store != nil {
+			store.Close()
 		}
 	})
 
 	Context("New", func() {
 		It("returns an error if unsuccessful", func() {
 			var err error
-			mongoStore, err = mongo.NewStore(nil, nil)
+			store, err = mongo.NewStore(nil, nil)
 			Expect(err).To(HaveOccurred())
-			Expect(mongoStore).To(BeNil())
+			Expect(store).To(BeNil())
 		})
 
 		It("returns a new store and no error if successful", func() {
 			var err error
-			mongoStore, err = mongo.NewStore(mongoConfig, logger)
+			store, err = mongo.NewStore(config, logger)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(mongoStore).ToNot(BeNil())
+			Expect(store).ToNot(BeNil())
 		})
 	})
 
 	Context("with a new store", func() {
 		BeforeEach(func() {
 			var err error
-			mongoStore, err = mongo.NewStore(mongoConfig, logger)
+			store, err = mongo.NewStore(config, logger)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(mongoStore).ToNot(BeNil())
+			Expect(store).ToNot(BeNil())
 		})
 
 		Context("NewDataSession", func() {
 			It("returns a new session", func() {
-				mongoSession = mongoStore.NewDataSession()
-				Expect(mongoSession).ToNot(BeNil())
+				session = store.NewDataSession()
+				Expect(session).ToNot(BeNil())
 			})
 		})
 
 		Context("with a new session", func() {
+			var mgoSession *mgo.Session
+			var mgoCollection *mgo.Collection
+
 			BeforeEach(func() {
-				mongoSession = mongoStore.NewDataSession()
-				Expect(mongoSession).ToNot(BeNil())
+				session = store.NewDataSession()
+				Expect(session).ToNot(BeNil())
 			})
 
-			Context("with persisted data", func() {
+			AfterEach(func() {
+				if mgoSession != nil {
+					mgoSession.Close()
+				}
+			})
+
+			Context("with persisted data sets", func() {
 				var ctx context.Context
-				var testMongoSession *mgo.Session
-				var testMongoCollection *mgo.Collection
 				var userID string
 				var deviceID string
+				var dataSet *upload.Upload
 				var dataSetExistingOther *upload.Upload
 				var dataSetExistingOne *upload.Upload
 				var dataSetExistingTwo *upload.Upload
-				var dataSet *upload.Upload
+
+				preparePersistedDataSets := func() {
+					mgoSession = storeStructuredMongoTest.Session().Copy()
+					mgoCollection = mgoSession.DB(config.Database).C(config.CollectionPrefix + "deviceData")
+					dataSetExistingOther = NewDataSet(userTest.RandomID(), dataTest.NewDeviceID())
+					dataSetExistingOther.CreatedTime = pointer.FromString("2016-09-01T12:00:00Z")
+					Expect(mgoCollection.Insert(dataSetExistingOther)).To(Succeed())
+					dataSetExistingOne = NewDataSet(userID, deviceID)
+					dataSetExistingOne.CreatedTime = pointer.FromString("2016-09-01T12:30:00Z")
+					Expect(mgoCollection.Insert(dataSetExistingOne)).To(Succeed())
+					dataSetExistingTwo = NewDataSet(userID, deviceID)
+					dataSetExistingTwo.CreatedTime = pointer.FromString("2016-09-01T10:00:00Z")
+					Expect(mgoCollection.Insert(dataSetExistingTwo)).To(Succeed())
+				}
 
 				BeforeEach(func() {
 					ctx = log.NewContextWithLogger(context.Background(), logger)
-					testMongoSession = storeStructuredMongoTest.Session().Copy()
-					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.CollectionPrefix + "deviceData")
 					userID = userTest.RandomID()
 					deviceID = dataTest.NewDeviceID()
-					dataSetExistingOther = NewDataSet(userTest.RandomID(), dataTest.NewDeviceID())
-					dataSetExistingOther.CreatedTime = pointer.FromString("2016-09-01T12:00:00Z")
-					Expect(testMongoCollection.Insert(dataSetExistingOther)).To(Succeed())
-					dataSetExistingOne = NewDataSet(userID, deviceID)
-					dataSetExistingOne.CreatedTime = pointer.FromString("2016-09-01T12:30:00Z")
-					Expect(testMongoCollection.Insert(dataSetExistingOne)).To(Succeed())
-					dataSetExistingTwo = NewDataSet(userID, deviceID)
-					dataSetExistingTwo.CreatedTime = pointer.FromString("2016-09-01T10:00:00Z")
-					Expect(testMongoCollection.Insert(dataSetExistingTwo)).To(Succeed())
 					dataSet = NewDataSet(userID, deviceID)
-				})
-
-				AfterEach(func() {
-					if testMongoSession != nil {
-						testMongoSession.Close()
-					}
 				})
 
 				Context("GetDataSetsForUserByID", func() {
@@ -214,88 +221,94 @@ var _ = Describe("Mongo", func() {
 
 					BeforeEach(func() {
 						dataSet.CreatedTime = pointer.FromString("2016-09-01T11:00:00Z")
-						Expect(testMongoCollection.Insert(dataSet)).To(Succeed())
 						filter = storeDEPRECATED.NewFilter()
 						pagination = page.NewPagination()
 					})
 
-					It("succeeds if it successfully finds the user data sets", func() {
-						Expect(mongoSession.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSet, dataSetExistingTwo}))
-					})
-
-					It("succeeds if the filter is not specified", func() {
-						Expect(mongoSession.GetDataSetsForUserByID(ctx, userID, nil, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSet, dataSetExistingTwo}))
-					})
-
-					It("succeeds if the pagination is not specified", func() {
-						Expect(mongoSession.GetDataSetsForUserByID(ctx, userID, filter, nil)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSet, dataSetExistingTwo}))
-					})
-
-					It("succeeds if the pagination size is not default", func() {
-						pagination.Size = 2
-						Expect(mongoSession.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSet}))
-					})
-
-					It("succeeds if the pagination page and size is not default", func() {
-						pagination.Page = 1
-						pagination.Size = 2
-						Expect(mongoSession.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingTwo}))
-					})
-
-					It("succeeds if it successfully does not find another user data sets", func() {
-						resultDataSets, err := mongoSession.GetDataSetsForUserByID(ctx, userTest.RandomID(), filter, pagination)
-						Expect(err).ToNot(HaveOccurred())
-						Expect(resultDataSets).ToNot(BeNil())
-						Expect(resultDataSets).To(BeEmpty())
-					})
-
 					It("returns an error if the user id is missing", func() {
-						resultDataSets, err := mongoSession.GetDataSetsForUserByID(ctx, "", filter, pagination)
+						resultDataSets, err := session.GetDataSetsForUserByID(ctx, "", filter, pagination)
 						Expect(err).To(MatchError("user id is missing"))
 						Expect(resultDataSets).To(BeNil())
 					})
 
 					It("returns an error if the pagination page is less than minimum", func() {
 						pagination.Page = -1
-						resultDataSets, err := mongoSession.GetDataSetsForUserByID(ctx, userID, filter, pagination)
+						resultDataSets, err := session.GetDataSetsForUserByID(ctx, userID, filter, pagination)
 						Expect(err).To(MatchError("pagination is invalid; value -1 is not greater than or equal to 0"))
 						Expect(resultDataSets).To(BeNil())
 					})
 
 					It("returns an error if the pagination size is less than minimum", func() {
 						pagination.Size = 0
-						resultDataSets, err := mongoSession.GetDataSetsForUserByID(ctx, userID, filter, pagination)
+						resultDataSets, err := session.GetDataSetsForUserByID(ctx, userID, filter, pagination)
 						Expect(err).To(MatchError("pagination is invalid; value 0 is not between 1 and 100"))
 						Expect(resultDataSets).To(BeNil())
 					})
 
 					It("returns an error if the pagination size is greater than maximum", func() {
 						pagination.Size = 101
-						resultDataSets, err := mongoSession.GetDataSetsForUserByID(ctx, userID, filter, pagination)
+						resultDataSets, err := session.GetDataSetsForUserByID(ctx, userID, filter, pagination)
 						Expect(err).To(MatchError("pagination is invalid; value 101 is not between 1 and 100"))
 						Expect(resultDataSets).To(BeNil())
 					})
 
 					It("returns an error if the session is closed", func() {
-						mongoSession.Close()
-						resultDataSets, err := mongoSession.GetDataSetsForUserByID(ctx, userID, filter, pagination)
+						session.Close()
+						resultDataSets, err := session.GetDataSetsForUserByID(ctx, userID, filter, pagination)
 						Expect(err).To(MatchError("session closed"))
 						Expect(resultDataSets).To(BeNil())
 					})
 
-					Context("with deleted data set", func() {
+					Context("with database access", func() {
 						BeforeEach(func() {
-							dataSet.DeletedTime = pointer.FromString("2016-09-01T13:00:00Z")
-							Expect(testMongoCollection.Update(bson.M{"id": dataSet.ID}, dataSet)).To(Succeed())
+							preparePersistedDataSets()
+							Expect(mgoCollection.Insert(dataSet)).To(Succeed())
 						})
 
-						It("succeeds if it successfully finds the non-deleted user data sets", func() {
-							Expect(mongoSession.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSetExistingTwo}))
+						It("succeeds if it successfully finds the user data sets", func() {
+							Expect(session.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSet, dataSetExistingTwo}))
 						})
 
-						It("succeeds if it successfully finds all the user data sets", func() {
-							filter.Deleted = true
-							Expect(mongoSession.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSet, dataSetExistingTwo}))
+						It("succeeds if the filter is not specified", func() {
+							Expect(session.GetDataSetsForUserByID(ctx, userID, nil, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSet, dataSetExistingTwo}))
+						})
+
+						It("succeeds if the pagination is not specified", func() {
+							Expect(session.GetDataSetsForUserByID(ctx, userID, filter, nil)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSet, dataSetExistingTwo}))
+						})
+
+						It("succeeds if the pagination size is not default", func() {
+							pagination.Size = 2
+							Expect(session.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSet}))
+						})
+
+						It("succeeds if the pagination page and size is not default", func() {
+							pagination.Page = 1
+							pagination.Size = 2
+							Expect(session.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingTwo}))
+						})
+
+						It("succeeds if it successfully does not find another user data sets", func() {
+							resultDataSets, err := session.GetDataSetsForUserByID(ctx, userTest.RandomID(), filter, pagination)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(resultDataSets).ToNot(BeNil())
+							Expect(resultDataSets).To(BeEmpty())
+						})
+
+						Context("with deleted data set", func() {
+							BeforeEach(func() {
+								dataSet.DeletedTime = pointer.FromString("2016-09-01T13:00:00Z")
+								Expect(mgoCollection.Update(bson.M{"id": dataSet.ID}, dataSet)).To(Succeed())
+							})
+
+							It("succeeds if it successfully finds the non-deleted user data sets", func() {
+								Expect(session.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSetExistingTwo}))
+							})
+
+							It("succeeds if it successfully finds all the user data sets", func() {
+								filter.Deleted = true
+								Expect(session.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSet, dataSetExistingTwo}))
+							})
 						})
 					})
 				})
@@ -303,946 +316,1422 @@ var _ = Describe("Mongo", func() {
 				Context("GetDataSetByID", func() {
 					BeforeEach(func() {
 						dataSet.CreatedTime = pointer.FromString("2016-09-01T11:00:00Z")
-						Expect(testMongoCollection.Insert(dataSet)).To(Succeed())
-					})
-
-					It("succeeds if it successfully finds the data set", func() {
-						Expect(mongoSession.GetDataSetByID(ctx, *dataSet.UploadID)).To(Equal(dataSet))
 					})
 
 					It("returns an error if the data set id is missing", func() {
-						resultDataSet, err := mongoSession.GetDataSetByID(ctx, "")
+						resultDataSet, err := session.GetDataSetByID(ctx, "")
 						Expect(err).To(MatchError("data set id is missing"))
 						Expect(resultDataSet).To(BeNil())
 					})
 
 					It("returns an error if the session is closed", func() {
-						mongoSession.Close()
-						resultDataSet, err := mongoSession.GetDataSetByID(ctx, *dataSet.UploadID)
+						session.Close()
+						resultDataSet, err := session.GetDataSetByID(ctx, *dataSet.UploadID)
 						Expect(err).To(MatchError("session closed"))
 						Expect(resultDataSet).To(BeNil())
 					})
 
-					It("returns no data set successfully if the data set cannot be found", func() {
-						resultDataSet, err := mongoSession.GetDataSetByID(ctx, "not-found")
-						Expect(err).ToNot(HaveOccurred())
-						Expect(resultDataSet).To(BeNil())
+					Context("with database access", func() {
+						BeforeEach(func() {
+							preparePersistedDataSets()
+							Expect(mgoCollection.Insert(dataSet)).To(Succeed())
+						})
+
+						It("succeeds if it successfully finds the data set", func() {
+							Expect(session.GetDataSetByID(ctx, *dataSet.UploadID)).To(Equal(dataSet))
+						})
+
+						It("returns no data set successfully if the data set cannot be found", func() {
+							resultDataSet, err := session.GetDataSetByID(ctx, "not-found")
+							Expect(err).ToNot(HaveOccurred())
+							Expect(resultDataSet).To(BeNil())
+						})
 					})
 				})
 
 				Context("CreateDataSet", func() {
-					It("succeeds if it successfully creates the data set", func() {
-						Expect(mongoSession.CreateDataSet(ctx, dataSet)).To(Succeed())
-					})
-
 					It("returns an error if the data set is missing", func() {
-						Expect(mongoSession.CreateDataSet(ctx, nil)).To(MatchError("data set is missing"))
+						Expect(session.CreateDataSet(ctx, nil)).To(MatchError("data set is missing"))
 					})
 
 					It("returns an error if the user id is missing", func() {
 						dataSet.UserID = nil
-						Expect(mongoSession.CreateDataSet(ctx, dataSet)).To(MatchError("data set user id is missing"))
+						Expect(session.CreateDataSet(ctx, dataSet)).To(MatchError("data set user id is missing"))
 					})
 
 					It("returns an error if the user id is empty", func() {
 						dataSet.UserID = pointer.FromString("")
-						Expect(mongoSession.CreateDataSet(ctx, dataSet)).To(MatchError("data set user id is empty"))
+						Expect(session.CreateDataSet(ctx, dataSet)).To(MatchError("data set user id is empty"))
 					})
 
 					It("returns an error if the upload id is missing", func() {
 						dataSet.UploadID = nil
-						Expect(mongoSession.CreateDataSet(ctx, dataSet)).To(MatchError("data set upload id is missing"))
+						Expect(session.CreateDataSet(ctx, dataSet)).To(MatchError("data set upload id is missing"))
 					})
 
 					It("returns an error if the upload id is empty", func() {
 						dataSet.UploadID = pointer.FromString("")
-						Expect(mongoSession.CreateDataSet(ctx, dataSet)).To(MatchError("data set upload id is empty"))
+						Expect(session.CreateDataSet(ctx, dataSet)).To(MatchError("data set upload id is empty"))
 					})
 
 					It("returns an error if the session is closed", func() {
-						mongoSession.Close()
-						Expect(mongoSession.CreateDataSet(ctx, dataSet)).To(MatchError("session closed"))
+						session.Close()
+						Expect(session.CreateDataSet(ctx, dataSet)).To(MatchError("session closed"))
 					})
 
-					It("returns an error if the data set with the same id already exists", func() {
-						Expect(mongoSession.CreateDataSet(ctx, dataSet)).To(Succeed())
-						Expect(mongoSession.CreateDataSet(ctx, dataSet)).To(MatchError("unable to create data set; data set already exists"))
-					})
+					Context("with database access", func() {
+						BeforeEach(func() {
+							preparePersistedDataSets()
+						})
 
-					It("sets the created time", func() {
-						Expect(mongoSession.CreateDataSet(ctx, dataSet)).To(Succeed())
-						Expect(dataSet.CreatedTime).ToNot(BeNil())
-						Expect(*dataSet.CreatedTime).ToNot(BeEmpty())
-						Expect(dataSet.CreatedUserID).To(BeNil())
-						Expect(dataSet.ByUser).To(BeNil())
-					})
+						It("succeeds if it successfully creates the data set", func() {
+							Expect(session.CreateDataSet(ctx, dataSet)).To(Succeed())
+						})
 
-					It("has the correct stored data sets", func() {
-						ValidateDataSet(testMongoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
-						Expect(mongoSession.CreateDataSet(ctx, dataSet)).To(Succeed())
-						ValidateDataSet(testMongoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo, dataSet)
+						It("returns an error if the data set with the same id already exists", func() {
+							Expect(session.CreateDataSet(ctx, dataSet)).To(Succeed())
+							Expect(session.CreateDataSet(ctx, dataSet)).To(MatchError("unable to create data set; data set already exists"))
+						})
+
+						It("sets the created time", func() {
+							Expect(session.CreateDataSet(ctx, dataSet)).To(Succeed())
+							Expect(dataSet.CreatedTime).ToNot(BeNil())
+							Expect(*dataSet.CreatedTime).ToNot(BeEmpty())
+							Expect(dataSet.CreatedUserID).To(BeNil())
+							Expect(dataSet.ByUser).To(BeNil())
+						})
+
+						It("has the correct stored data sets", func() {
+							ValidateDataSet(mgoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
+							Expect(session.CreateDataSet(ctx, dataSet)).To(Succeed())
+							ValidateDataSet(mgoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo, dataSet)
+						})
 					})
 				})
 
-				// Context("UpdateDataSet", func() {
-				// 	BeforeEach(func() {
-				// 		dataSet.CreatedTime = pointer.FromString("2016-09-01T11:00:00Z")
-				// 		Expect(testMongoCollection.Insert(dataSet)).To(Succeed())
-				// 	})
+				Context("UpdateDataSet", func() {
+					var id string
+					var update *data.DataSetUpdate
 
-				// 	Context("with state closed", func() {
-				// 		BeforeEach(func() {
-				// 			dataSet.State = pointer.FromString("closed")
-				// 		})
+					BeforeEach(func() {
+						id = data.NewSetID()
+						update = data.NewDataSetUpdate()
+					})
 
-				// 		It("succeeds if it successfully updates the data set", func() {
-				// 			Expect(mongoSession.UpdateDataSet(ctx, dataSet)).To(Succeed())
-				// 		})
+					It("returns an error if the context is missing", func() {
+						result, err := session.UpdateDataSet(nil, id, update)
+						Expect(err).To(MatchError("context is missing"))
+						Expect(result).To(BeNil())
+					})
 
-				// 		It("returns an error if the data set is missing", func() {
-				// 			Expect(mongoSession.UpdateDataSet(ctx, nil)).To(MatchError("data set is missing"))
-				// 		})
+					It("returns an error if the id is missing", func() {
+						id = ""
+						result, err := session.UpdateDataSet(ctx, id, update)
+						Expect(err).To(MatchError("id is missing"))
+						Expect(result).To(BeNil())
+					})
 
-				// 		It("returns an error if the user id is missing", func() {
-				// 			dataSet.UserID = ""
-				// 			Expect(mongoSession.UpdateDataSet(ctx, dataSet)).To(MatchError("data set user id is missing"))
-				// 		})
+					It("returns an error if the id is invalid", func() {
+						id = "invalid"
+						result, err := session.UpdateDataSet(ctx, id, update)
+						Expect(err).To(MatchError("id is invalid"))
+						Expect(result).To(BeNil())
+					})
 
-				// 		It("returns an error if the upload id is missing", func() {
-				// 			dataSet.UploadID = ""
-				// 			Expect(mongoSession.UpdateDataSet(ctx, dataSet)).To(MatchError("data set upload id is missing"))
-				// 		})
+					It("returns an error if the update is missing", func() {
+						result, err := session.UpdateDataSet(ctx, id, nil)
+						Expect(err).To(MatchError("update is missing"))
+						Expect(result).To(BeNil())
+					})
 
-				// 		It("returns an error if the device id is missing (nil)", func() {
-				// 			dataSet.DeviceID = nil
-				// 			Expect(mongoSession.UpdateDataSet(ctx, dataSet)).To(MatchError("data set device id is missing"))
-				// 		})
+					It("returns an error if the update is invalid", func() {
+						update.DeviceID = pointer.FromString("")
+						result, err := session.UpdateDataSet(ctx, id, update)
+						Expect(err).To(MatchError("update is invalid; value is empty"))
+						Expect(result).To(BeNil())
+					})
 
-				// 		It("returns an error if the device id is missing (empty)", func() {
-				// 			dataSet.DeviceID = pointer.FromString("")
-				// 			Expect(mongoSession.UpdateDataSet(ctx, dataSet)).To(MatchError("data set device id is missing"))
-				// 		})
+					It("returns an error if the session is closed", func() {
+						session.Close()
+						result, err := session.UpdateDataSet(ctx, id, update)
+						Expect(err).To(MatchError("session closed"))
+						Expect(result).To(BeNil())
+					})
 
-				// 		It("returns an error if the session is closed", func() {
-				// 			mongoSession.Close()
-				// 			Expect(mongoSession.UpdateDataSet(ctx, dataSet)).To(MatchError("session closed"))
-				// 		})
+					Context("with database access", func() {
+						BeforeEach(func() {
+							preparePersistedDataSets()
+							dataSet.State = pointer.FromString("open")
+							Expect(mgoCollection.Insert(dataSet)).To(Succeed())
+							id = *dataSet.UploadID
+						})
 
-				// 		It("returns an error if the data set with the same user id and upload id does not yet exist", func() {
-				// 			dataSet.UploadID = pointer.FromString(dataTest.RandomSetID())
-				// 			Expect(mongoSession.UpdateDataSet(ctx, dataSet)).To(MatchError("unable to update data set; not found"))
-				// 		})
-				// 	})
+						AfterEach(func() {
+							logger.AssertDebug("UpdateDataSet", log.Fields{"id": id, "update": update})
+						})
 
-				// 	It("sets the modified time", func() {
-				// 		dataSet.State = "closed"
-				// 		Expect(mongoSession.UpdateDataSet(ctx, dataSet)).To(Succeed())
-				// 		Expect(dataSet.ModifiedTime).ToNot(BeEmpty())
-				// 		Expect(dataSet.ModifiedUserID).To(BeEmpty())
-				// 	})
+						Context("with updates", func() {
+							// TODO
 
-				// 	It("has the correct stored data sets", func() {
-				// 		ValidateDataSet(testMongoCollection, bson.M{}, bson.M{}, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo, dataSet)
-				// 		ValidateDataSet(testMongoCollection, bson.M{"modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}}, bson.M{})
-				// 		dataSet.State = "closed"
-				// 		Expect(mongoSession.UpdateDataSet(ctx, dataSet)).To(Succeed())
-				// 		ValidateDataSet(testMongoCollection, bson.M{}, bson.M{}, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo, dataSet)
-				// 		ValidateDataSet(testMongoCollection, bson.M{"modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet)
-				// 	})
-				// })
+							It("returns nil when the id does not exist", func() {
+								id = dataTest.RandomSetID()
+								Expect(session.UpdateDataSet(ctx, id, update)).To(BeNil())
+							})
+						})
 
-				Context("with data", func() {
-					var dataSetExistingOtherData []data.Datum
-					var dataSetExistingOneData []data.Datum
-					var dataSetExistingTwoData []data.Datum
-					var dataSetData []data.Datum
+						Context("without updates", func() {
+							BeforeEach(func() {
+								update = data.NewDataSetUpdate()
+							})
+
+							// TODO
+
+							It("returns nil when the id does not exist", func() {
+								id = dataTest.RandomSetID()
+								Expect(session.UpdateDataSet(ctx, id, update)).To(BeNil())
+							})
+						})
+
+						It("has the correct stored data sets", func() {
+							ValidateDataSet(mgoCollection, bson.M{}, bson.M{}, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo, dataSet)
+							ValidateDataSet(mgoCollection, bson.M{"modifiedTime": bson.M{"$exists": true}}, bson.M{})
+							update = data.NewDataSetUpdate()
+							update.State = pointer.FromString("closed")
+							result, err := session.UpdateDataSet(ctx, id, update)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(result).ToNot(BeNil())
+							Expect(result.State).ToNot(BeNil())
+							Expect(*result.State).To(Equal("closed"))
+							ValidateDataSet(mgoCollection, bson.M{}, bson.M{}, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo, result)
+							ValidateDataSet(mgoCollection, bson.M{"modifiedTime": bson.M{"$exists": true}}, bson.M{}, result)
+						})
+					})
+				})
+
+				Context("with persisted data set data", func() {
+					var dataSetExistingOtherData data.Data
+					var dataSetExistingOneData data.Data
+					var dataSetExistingTwoData data.Data
+					var dataSetData data.Data
+
+					preparePersistedDataSetsData := func() {
+						preparePersistedDataSets()
+						Expect(mgoCollection.Insert(dataSet)).To(Succeed())
+						Expect(session.CreateDataSetData(ctx, dataSetExistingOther, dataSetExistingOtherData)).To(Succeed())
+						Expect(session.CreateDataSetData(ctx, dataSetExistingOne, dataSetExistingOneData)).To(Succeed())
+						Expect(session.CreateDataSetData(ctx, dataSetExistingTwo, dataSetExistingTwoData)).To(Succeed())
+					}
 
 					BeforeEach(func() {
 						dataSet.CreatedTime = pointer.FromString("2016-09-01T11:00:00Z")
-						Expect(testMongoCollection.Insert(dataSet)).To(Succeed())
 						dataSetExistingOtherData = NewDataSetData(dataTest.NewDeviceID())
-						Expect(mongoSession.CreateDataSetData(ctx, dataSetExistingOther, dataSetExistingOtherData)).To(Succeed())
 						dataSetExistingOneData = NewDataSetData(deviceID)
-						Expect(mongoSession.CreateDataSetData(ctx, dataSetExistingOne, dataSetExistingOneData)).To(Succeed())
 						dataSetExistingTwoData = NewDataSetData(deviceID)
-						Expect(mongoSession.CreateDataSetData(ctx, dataSetExistingTwo, dataSetExistingTwoData)).To(Succeed())
 						dataSetData = NewDataSetData(deviceID)
 					})
 
 					Context("DeleteDataSet", func() {
-						BeforeEach(func() {
-							Expect(mongoSession.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
-						})
-
-						It("succeeds if it successfully deletes the data set", func() {
-							Expect(mongoSession.DeleteDataSet(ctx, dataSet)).To(Succeed())
-						})
-
 						It("returns an error if the data set is missing", func() {
-							Expect(mongoSession.DeleteDataSet(ctx, nil)).To(MatchError("data set is missing"))
+							Expect(session.DeleteDataSet(ctx, nil)).To(MatchError("data set is missing"))
 						})
 
 						It("returns an error if the user id is missing", func() {
 							dataSet.UserID = nil
-							Expect(mongoSession.DeleteDataSet(ctx, dataSet)).To(MatchError("data set user id is missing"))
+							Expect(session.DeleteDataSet(ctx, dataSet)).To(MatchError("data set user id is missing"))
 						})
 
 						It("returns an error if the user id is empty", func() {
 							dataSet.UserID = pointer.FromString("")
-							Expect(mongoSession.DeleteDataSet(ctx, dataSet)).To(MatchError("data set user id is empty"))
+							Expect(session.DeleteDataSet(ctx, dataSet)).To(MatchError("data set user id is empty"))
 						})
 
 						It("returns an error if the upload id is missing", func() {
 							dataSet.UploadID = nil
-							Expect(mongoSession.DeleteDataSet(ctx, dataSet)).To(MatchError("data set upload id is missing"))
+							Expect(session.DeleteDataSet(ctx, dataSet)).To(MatchError("data set upload id is missing"))
 						})
 
 						It("returns an error if the upload id is empty", func() {
 							dataSet.UploadID = pointer.FromString("")
-							Expect(mongoSession.DeleteDataSet(ctx, dataSet)).To(MatchError("data set upload id is empty"))
+							Expect(session.DeleteDataSet(ctx, dataSet)).To(MatchError("data set upload id is empty"))
 						})
 
 						It("returns an error if the session is closed", func() {
-							mongoSession.Close()
-							Expect(mongoSession.DeleteDataSet(ctx, dataSet)).To(MatchError("session closed"))
+							session.Close()
+							Expect(session.DeleteDataSet(ctx, dataSet)).To(MatchError("session closed"))
 						})
 
-						It("sets the deleted time on the data set", func() {
-							Expect(mongoSession.DeleteDataSet(ctx, dataSet)).To(Succeed())
-							Expect(dataSet.DeletedTime).ToNot(BeNil())
-							Expect(*dataSet.DeletedTime).ToNot(BeEmpty())
-							Expect(dataSet.DeletedUserID).To(BeNil())
-						})
+						Context("with database access", func() {
+							BeforeEach(func() {
+								preparePersistedDataSetsData()
+								Expect(session.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
+							})
 
-						It("has the correct stored data sets", func() {
-							ValidateDataSet(testMongoCollection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": bson.M{"$exists": false}}, bson.M{})
-							Expect(mongoSession.DeleteDataSet(ctx, dataSet)).To(Succeed())
-							ValidateDataSet(testMongoCollection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet)
-						})
+							It("succeeds if it successfully deletes the data set", func() {
+								Expect(session.DeleteDataSet(ctx, dataSet)).To(Succeed())
+							})
 
-						It("has the correct stored data set data", func() {
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSetData)
-							Expect(mongoSession.DeleteDataSet(ctx, dataSet)).To(Succeed())
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, []data.Datum{})
+							It("sets the deleted time on the data set", func() {
+								Expect(session.DeleteDataSet(ctx, dataSet)).To(Succeed())
+								Expect(dataSet.DeletedTime).ToNot(BeNil())
+								Expect(*dataSet.DeletedTime).ToNot(BeEmpty())
+								Expect(dataSet.DeletedUserID).To(BeNil())
+							})
+
+							It("has the correct stored data sets", func() {
+								ValidateDataSet(mgoCollection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": bson.M{"$exists": false}}, bson.M{})
+								Expect(session.DeleteDataSet(ctx, dataSet)).To(Succeed())
+								ValidateDataSet(mgoCollection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet)
+							})
+
+							It("has the correct stored data set data", func() {
+								ValidateDataSetData(mgoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSetData)
+								Expect(session.DeleteDataSet(ctx, dataSet)).To(Succeed())
+								ValidateDataSetData(mgoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, data.Data{})
+							})
 						})
 					})
 
 					Context("CreateDataSetData", func() {
-						It("succeeds if data set data is empty", func() {
-							dataSetData = []data.Datum{}
-							Expect(mongoSession.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
-						})
-
-						It("succeeds if it successfully creates the data set data", func() {
-							Expect(mongoSession.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
-						})
-
 						It("returns an error if the data set is missing", func() {
-							Expect(mongoSession.CreateDataSetData(ctx, nil, dataSetData)).To(MatchError("data set is missing"))
+							Expect(session.CreateDataSetData(ctx, nil, dataSetData)).To(MatchError("data set is missing"))
 						})
 
 						It("returns an error if the data set data is missing", func() {
-							Expect(mongoSession.CreateDataSetData(ctx, dataSet, nil)).To(MatchError("data set data is missing"))
+							Expect(session.CreateDataSetData(ctx, dataSet, nil)).To(MatchError("data set data is missing"))
 						})
 
 						It("returns an error if the user id is missing", func() {
 							dataSet.UserID = nil
-							Expect(mongoSession.CreateDataSetData(ctx, dataSet, dataSetData)).To(MatchError("data set user id is missing"))
+							Expect(session.CreateDataSetData(ctx, dataSet, dataSetData)).To(MatchError("data set user id is missing"))
 						})
 
 						It("returns an error if the user id is empty", func() {
 							dataSet.UserID = pointer.FromString("")
-							Expect(mongoSession.CreateDataSetData(ctx, dataSet, dataSetData)).To(MatchError("data set user id is empty"))
+							Expect(session.CreateDataSetData(ctx, dataSet, dataSetData)).To(MatchError("data set user id is empty"))
 						})
 
 						It("returns an error if the upload id is missing", func() {
 							dataSet.UploadID = nil
-							Expect(mongoSession.CreateDataSetData(ctx, dataSet, dataSetData)).To(MatchError("data set upload id is missing"))
+							Expect(session.CreateDataSetData(ctx, dataSet, dataSetData)).To(MatchError("data set upload id is missing"))
 						})
 
 						It("returns an error if the upload id is empty", func() {
 							dataSet.UploadID = pointer.FromString("")
-							Expect(mongoSession.CreateDataSetData(ctx, dataSet, dataSetData)).To(MatchError("data set upload id is empty"))
+							Expect(session.CreateDataSetData(ctx, dataSet, dataSetData)).To(MatchError("data set upload id is empty"))
 						})
 
 						It("returns an error if the session is closed", func() {
-							mongoSession.Close()
-							Expect(mongoSession.CreateDataSetData(ctx, dataSet, dataSetData)).To(MatchError("session closed"))
+							session.Close()
+							Expect(session.CreateDataSetData(ctx, dataSet, dataSetData)).To(MatchError("session closed"))
 						})
 
-						It("sets the user id and upload id on the data set data to match the data set", func() {
-							Expect(mongoSession.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
-							for _, dataSetDatum := range dataSetData {
-								baseDatum, ok := dataSetDatum.(*types.Base)
-								Expect(ok).To(BeTrue())
-								Expect(baseDatum).ToNot(BeNil())
-								Expect(baseDatum.UserID).To(Equal(dataSet.UserID))
-								Expect(baseDatum.UploadID).To(Equal(dataSet.UploadID))
-							}
-						})
-
-						It("leaves the data set data not active", func() {
-							Expect(mongoSession.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
-							for _, dataSetDatum := range dataSetData {
-								baseDatum, ok := dataSetDatum.(*types.Base)
-								Expect(ok).To(BeTrue())
-								Expect(baseDatum).ToNot(BeNil())
-								Expect(baseDatum.Active).To(BeFalse())
-							}
-						})
-
-						It("sets the created time on the data set data", func() {
-							Expect(mongoSession.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
-							for _, dataSetDatum := range dataSetData {
-								baseDatum, ok := dataSetDatum.(*types.Base)
-								Expect(ok).To(BeTrue())
-								Expect(baseDatum).ToNot(BeNil())
-								Expect(baseDatum.CreatedTime).ToNot(BeNil())
-								Expect(*baseDatum.CreatedTime).ToNot(BeEmpty())
-								Expect(baseDatum.CreatedUserID).To(BeNil())
-							}
-						})
-
-						It("has the correct stored data set data", func() {
-							dataSetBeforeCreateData := append(append(dataSetExistingOtherData, dataSetExistingOneData...), dataSetExistingTwoData...)
-							ValidateDataSetData(testMongoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, dataSetBeforeCreateData)
-							Expect(mongoSession.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
-							ValidateDataSetData(testMongoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, append(dataSetBeforeCreateData, dataSetData...))
-						})
-					})
-
-					Context("DeleteDataSetData", func() {
-						var selectors *data.Selectors
-
-						BeforeEach(func() {
-							Expect(mongoSession.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
-							selectors = &data.Selectors{}
-						})
-
-						var deleteDataSetDataAssertions = func() {
-							It("succeeds if it successfully deletes the data set", func() {
-								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, selectors)).To(Succeed())
+						Context("with database access", func() {
+							BeforeEach(func() {
+								preparePersistedDataSetsData()
 							})
 
-							It("returns an error if the context is missing", func() {
-								ctx = nil
-								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, selectors)).To(MatchError("context is missing"))
+							It("succeeds if it successfully creates the data set data", func() {
+								Expect(session.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
 							})
 
-							It("returns an error if the data set is missing", func() {
-								dataSet = nil
-								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, selectors)).To(MatchError("data set is missing"))
+							It("succeeds if data set data is empty", func() {
+								dataSetData = data.Data{}
+								Expect(session.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
 							})
 
-							It("returns an error if the user id is missing", func() {
-								dataSet.UserID = nil
-								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, selectors)).To(MatchError("data set user id is missing"))
+							It("sets the user id and upload id on the data set data to match the data set", func() {
+								Expect(session.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
+								for _, dataSetDatum := range dataSetData {
+									baseDatum, ok := dataSetDatum.(*types.Base)
+									Expect(ok).To(BeTrue())
+									Expect(baseDatum).ToNot(BeNil())
+									Expect(baseDatum.UserID).To(Equal(dataSet.UserID))
+									Expect(baseDatum.UploadID).To(Equal(dataSet.UploadID))
+								}
 							})
 
-							It("returns an error if the user id is empty", func() {
-								dataSet.UserID = pointer.FromString("")
-								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, selectors)).To(MatchError("data set user id is empty"))
+							It("leaves the data set data not active", func() {
+								Expect(session.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
+								for _, dataSetDatum := range dataSetData {
+									baseDatum, ok := dataSetDatum.(*types.Base)
+									Expect(ok).To(BeTrue())
+									Expect(baseDatum).ToNot(BeNil())
+									Expect(baseDatum.Active).To(BeFalse())
+								}
 							})
 
-							It("returns an error if the upload id is missing", func() {
-								dataSet.UploadID = nil
-								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, selectors)).To(MatchError("data set upload id is missing"))
-							})
-
-							It("returns an error if the upload id is empty", func() {
-								dataSet.UploadID = pointer.FromString("")
-								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, selectors)).To(MatchError("data set upload id is empty"))
-							})
-
-							It("returns an error if the selectors is missing", func() {
-								selectors = nil
-								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, selectors)).To(MatchError("selectors is missing"))
-							})
-
-							It("returns an error if the selectors is invalid", func() {
-								(*selectors)[0].ID = pointer.FromString("")
-								(*selectors)[0].Origin = nil
-								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, selectors)).To(MatchError("selectors is invalid; value is empty"))
-							})
-
-							It("returns an error if the session is closed", func() {
-								mongoSession.Close()
-								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, selectors)).To(MatchError("session closed"))
-							})
-
-							It("has the correct stored data sets", func() {
-								ValidateDataSet(testMongoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
-								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, selectors)).To(Succeed())
-								ValidateDataSet(testMongoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
+							It("sets the created time on the data set data", func() {
+								Expect(session.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
+								for _, dataSetDatum := range dataSetData {
+									baseDatum, ok := dataSetDatum.(*types.Base)
+									Expect(ok).To(BeTrue())
+									Expect(baseDatum).ToNot(BeNil())
+									Expect(baseDatum.CreatedTime).ToNot(BeNil())
+									Expect(*baseDatum.CreatedTime).ToNot(BeEmpty())
+									Expect(baseDatum.CreatedUserID).To(BeNil())
+								}
 							})
 
 							It("has the correct stored data set data", func() {
-								ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSetData)
-								Expect(mongoSession.DeleteDataSetData(ctx, dataSet, selectors)).To(Succeed())
-								ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, []data.Datum{})
-							})
-						}
-
-						Context("by id", func() {
-							BeforeEach(func() {
-								for _, datum := range dataSetData {
-									base, _ := datum.(*types.Base)
-									*selectors = append(*selectors, &data.Selector{ID: base.ID})
-								}
-							})
-
-							deleteDataSetDataAssertions()
-						})
-
-						Context("by origin id", func() {
-							BeforeEach(func() {
-								for _, datum := range dataSetData {
-									base, _ := datum.(*types.Base)
-									*selectors = append(*selectors, &data.Selector{Origin: &data.SelectorOrigin{ID: base.Origin.ID}})
-								}
-							})
-
-							deleteDataSetDataAssertions()
-						})
-
-						Context("by both id and origin id", func() {
-							BeforeEach(func() {
-								for _, datum := range dataSetData {
-									base, _ := datum.(*types.Base)
-									*selectors = append(*selectors, &data.Selector{ID: base.ID, Origin: &data.SelectorOrigin{ID: base.Origin.ID}})
-								}
-							})
-
-							It("returns an error", func() {
-								errorsTest.ExpectEqual(mongoSession.DeleteDataSetData(ctx, dataSet, selectors), errors.New("selectors is invalid"))
-							})
-						})
-
-						Context("with neither id nor origin id", func() {
-							BeforeEach(func() {
-								for range dataSetData {
-									*selectors = append(*selectors, &data.Selector{})
-								}
-							})
-
-							It("returns an error", func() {
-								errorsTest.ExpectEqual(mongoSession.DeleteDataSetData(ctx, dataSet, selectors), errors.New("selectors is invalid"))
+								dataSetBeforeCreateData := append(append(dataSetExistingOtherData, dataSetExistingOneData...), dataSetExistingTwoData...)
+								ValidateDataSetData(mgoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, dataSetBeforeCreateData)
+								Expect(session.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
+								ValidateDataSetData(mgoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, append(dataSetBeforeCreateData, dataSetData...))
 							})
 						})
 					})
 
-					Context("ActivateDataSetData", func() {
+					Context("with selected data set data", func() {
+						var selectors *data.Selectors
+						var selectedDataSetData data.Data
+						var unselectedDataSetData data.Data
+
 						BeforeEach(func() {
-							Expect(mongoSession.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
-						})
-
-						It("succeeds if it successfully activates the data set", func() {
-							Expect(mongoSession.ActivateDataSetData(ctx, dataSet)).To(Succeed())
-						})
-
-						It("returns an error if the data set is missing", func() {
-							Expect(mongoSession.ActivateDataSetData(ctx, nil)).To(MatchError("data set is missing"))
-						})
-
-						It("returns an error if the user id is missing", func() {
-							dataSet.UserID = nil
-							Expect(mongoSession.ActivateDataSetData(ctx, dataSet)).To(MatchError("data set user id is missing"))
-						})
-
-						It("returns an error if the user id is empty", func() {
-							dataSet.UserID = pointer.FromString("")
-							Expect(mongoSession.ActivateDataSetData(ctx, dataSet)).To(MatchError("data set user id is empty"))
-						})
-
-						It("returns an error if the upload id is missing", func() {
-							dataSet.UploadID = nil
-							Expect(mongoSession.ActivateDataSetData(ctx, dataSet)).To(MatchError("data set upload id is missing"))
-						})
-
-						It("returns an error if the upload id is empty", func() {
-							dataSet.UploadID = pointer.FromString("")
-							Expect(mongoSession.ActivateDataSetData(ctx, dataSet)).To(MatchError("data set upload id is empty"))
-						})
-
-						It("returns an error if the session is closed", func() {
-							mongoSession.Close()
-							Expect(mongoSession.ActivateDataSetData(ctx, dataSet)).To(MatchError("session closed"))
-						})
-
-						It("sets the active on the data set", func() {
-							Expect(mongoSession.ActivateDataSetData(ctx, dataSet)).To(Succeed())
-							Expect(dataSet.Active).To(BeTrue())
-						})
-
-						It("sets the modified time on the data set", func() {
-							Expect(mongoSession.ActivateDataSetData(ctx, dataSet)).To(Succeed())
-							Expect(dataSet.ModifiedTime).ToNot(BeNil())
-							Expect(*dataSet.ModifiedTime).ToNot(BeEmpty())
-							Expect(dataSet.ModifiedUserID).To(BeNil())
-						})
-
-						It("has the correct stored active data set", func() {
-							ValidateDataSet(testMongoCollection, bson.M{"_active": true, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}}, bson.M{})
-							Expect(mongoSession.ActivateDataSetData(ctx, dataSet)).To(Succeed())
-							ValidateDataSet(testMongoCollection, bson.M{"_active": true, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet)
-						})
-
-						It("has the correct stored active data set data", func() {
-							ValidateDataSetData(testMongoCollection, bson.M{"_active": true, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}}, bson.M{}, []data.Datum{})
-							Expect(mongoSession.ActivateDataSetData(ctx, dataSet)).To(Succeed())
-							for _, dataSetDatum := range dataSetData {
-								dataSetDatum.SetActive(true)
+							selectors = dataTest.RandomSelectors()
+							selectedDataSetData = data.Data{}
+							unselectedDataSetData = data.Data{}
+							selectedCount := test.RandomIntFromRange(1, len(dataSetData)-1)
+							for index, dataSetDataIndex := range rand.Perm(len(dataSetData)) {
+								if index < selectedCount {
+									selectedDataSetData = append(selectedDataSetData, dataSetData[dataSetDataIndex])
+								} else {
+									unselectedDataSetData = append(unselectedDataSetData, dataSetData[dataSetDataIndex])
+								}
 							}
-							ValidateDataSetData(testMongoCollection, bson.M{"_active": true, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}}, bson.M{"modifiedTime": 0}, dataSetData)
+						})
+
+						Context("ActivateDataSetData", func() {
+							commonAssertions := func() {
+								It("returns an error when the context is missing", func() {
+									Expect(session.ActivateDataSetData(nil, dataSet, selectors)).To(MatchError("context is missing"))
+								})
+
+								It("returns an error when the data set is missing", func() {
+									Expect(session.ActivateDataSetData(ctx, nil, selectors)).To(MatchError("data set is missing"))
+								})
+
+								It("returns an error when the user id is missing", func() {
+									dataSet.UserID = nil
+									Expect(session.ActivateDataSetData(ctx, dataSet, selectors)).To(MatchError("data set user id is missing"))
+								})
+
+								It("returns an error when the user id is empty", func() {
+									dataSet.UserID = pointer.FromString("")
+									Expect(session.ActivateDataSetData(ctx, dataSet, selectors)).To(MatchError("data set user id is empty"))
+								})
+
+								It("returns an error when the upload id is missing", func() {
+									dataSet.UploadID = nil
+									Expect(session.ActivateDataSetData(ctx, dataSet, selectors)).To(MatchError("data set upload id is missing"))
+								})
+
+								It("returns an error when the upload id is empty", func() {
+									dataSet.UploadID = pointer.FromString("")
+									Expect(session.ActivateDataSetData(ctx, dataSet, selectors)).To(MatchError("data set upload id is empty"))
+								})
+							}
+
+							selectorAssertions := func() {
+								It("returns an error when the session is closed", func() {
+									session.Close()
+									Expect(session.ActivateDataSetData(ctx, dataSet, selectors)).To(MatchError("session closed"))
+								})
+
+								Context("with database access", func() {
+									BeforeEach(func() {
+										preparePersistedDataSetsData()
+										Expect(session.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
+										ValidateDataSetData(mgoCollection, bson.M{"_active": true}, bson.M{}, data.Data{})
+										ValidateDataSet(mgoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
+									})
+
+									It("succeeds and has the correct stored active data set data", func() {
+										Expect(session.ActivateDataSetData(ctx, dataSet, selectors)).To(Succeed())
+										selectedDataSetData.SetActive(true)
+										ValidateDataSetData(mgoCollection, bson.M{"_active": true}, bson.M{"modifiedTime": 0}, selectedDataSetData)
+										ValidateDataSet(mgoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
+									})
+
+									It("succeeds with no changes when the data set user id is different", func() {
+										dataSet.UserID = pointer.FromString(userTest.RandomID())
+										Expect(session.ActivateDataSetData(ctx, dataSet, selectors)).To(Succeed())
+										ValidateDataSetData(mgoCollection, bson.M{"_active": true}, bson.M{}, data.Data{})
+									})
+
+									It("succeeds with no changes when the data set upload id is different", func() {
+										dataSet.UploadID = pointer.FromString(dataTest.RandomSetID())
+										Expect(session.ActivateDataSetData(ctx, dataSet, selectors)).To(Succeed())
+										ValidateDataSetData(mgoCollection, bson.M{"_active": true}, bson.M{}, data.Data{})
+									})
+								})
+							}
+
+							Context("with selectors missing", func() {
+								BeforeEach(func() {
+									selectors = nil
+									selectedDataSetData = dataSetData
+									unselectedDataSetData = data.Data{}
+								})
+
+								commonAssertions()
+								selectorAssertions()
+							})
+
+							Context("with selectors empty", func() {
+								BeforeEach(func() {
+									selectors = data.NewSelectors()
+								})
+
+								commonAssertions()
+
+								It("returns an error", func() {
+									errorsTest.ExpectEqual(session.ActivateDataSetData(ctx, dataSet, selectors), errors.New("selectors is invalid"))
+								})
+							})
+
+							Context("with selectors by id", func() {
+								BeforeEach(func() {
+									for _, datum := range selectedDataSetData {
+										*selectors = append(*selectors, &data.Selector{ID: datum.(*types.Base).ID})
+									}
+								})
+
+								commonAssertions()
+								selectorAssertions()
+							})
+
+							Context("with selectors by origin id", func() {
+								BeforeEach(func() {
+									for _, datum := range selectedDataSetData {
+										*selectors = append(*selectors, &data.Selector{Origin: &data.SelectorOrigin{ID: datum.(*types.Base).Origin.ID}})
+									}
+								})
+
+								commonAssertions()
+								selectorAssertions()
+							})
+
+							Context("with selectors by both id and origin id", func() {
+								BeforeEach(func() {
+									for _, datum := range selectedDataSetData {
+										*selectors = append(*selectors, &data.Selector{ID: datum.(*types.Base).ID, Origin: &data.SelectorOrigin{ID: datum.(*types.Base).Origin.ID}})
+									}
+								})
+
+								commonAssertions()
+
+								It("returns an error", func() {
+									errorsTest.ExpectEqual(session.ActivateDataSetData(ctx, dataSet, selectors), errors.New("selectors is invalid"))
+								})
+							})
+
+							Context("with selectors with neither id nor origin id", func() {
+								BeforeEach(func() {
+									for range selectedDataSetData {
+										*selectors = append(*selectors, &data.Selector{})
+									}
+								})
+
+								commonAssertions()
+
+								It("returns an error", func() {
+									errorsTest.ExpectEqual(session.ActivateDataSetData(ctx, dataSet, selectors), errors.New("selectors is invalid"))
+								})
+							})
+						})
+
+						Context("ArchiveDataSetData", func() {
+							commonAssertions := func() {
+								It("returns an error when the context is missing", func() {
+									Expect(session.ArchiveDataSetData(nil, dataSet, selectors)).To(MatchError("context is missing"))
+								})
+
+								It("returns an error when the data set is missing", func() {
+									Expect(session.ArchiveDataSetData(ctx, nil, selectors)).To(MatchError("data set is missing"))
+								})
+
+								It("returns an error when the user id is missing", func() {
+									dataSet.UserID = nil
+									Expect(session.ArchiveDataSetData(ctx, dataSet, selectors)).To(MatchError("data set user id is missing"))
+								})
+
+								It("returns an error when the user id is empty", func() {
+									dataSet.UserID = pointer.FromString("")
+									Expect(session.ArchiveDataSetData(ctx, dataSet, selectors)).To(MatchError("data set user id is empty"))
+								})
+
+								It("returns an error when the upload id is missing", func() {
+									dataSet.UploadID = nil
+									Expect(session.ArchiveDataSetData(ctx, dataSet, selectors)).To(MatchError("data set upload id is missing"))
+								})
+
+								It("returns an error when the upload id is empty", func() {
+									dataSet.UploadID = pointer.FromString("")
+									Expect(session.ArchiveDataSetData(ctx, dataSet, selectors)).To(MatchError("data set upload id is empty"))
+								})
+							}
+
+							selectorAssertions := func() {
+								It("returns an error when the session is closed", func() {
+									session.Close()
+									Expect(session.ArchiveDataSetData(ctx, dataSet, selectors)).To(MatchError("session closed"))
+								})
+
+								Context("with database access", func() {
+									BeforeEach(func() {
+										preparePersistedDataSetsData()
+										Expect(session.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
+										Expect(session.ActivateDataSetData(ctx, dataSet, nil)).To(Succeed())
+										dataSetData.SetActive(true)
+										ValidateDataSetData(mgoCollection, bson.M{"_active": false, "uploadId": dataSet.UploadID}, bson.M{"modifiedTime": 0}, data.Data{})
+										ValidateDataSet(mgoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
+									})
+
+									It("succeeds and has the correct stored active data set data", func() {
+										Expect(session.ArchiveDataSetData(ctx, dataSet, selectors)).To(Succeed())
+										selectedDataSetData.SetActive(false)
+										ValidateDataSetData(mgoCollection, bson.M{"_active": false, "uploadId": dataSet.UploadID}, bson.M{"archivedTime": 0, "modifiedTime": 0}, selectedDataSetData)
+										ValidateDataSet(mgoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
+									})
+
+									It("succeeds with no changes when the data set user id is different", func() {
+										dataSet.UserID = pointer.FromString(userTest.RandomID())
+										Expect(session.ArchiveDataSetData(ctx, dataSet, selectors)).To(Succeed())
+										ValidateDataSetData(mgoCollection, bson.M{"_active": false, "uploadId": dataSet.UploadID}, bson.M{"modifiedTime": 0}, data.Data{})
+									})
+
+									It("succeeds with no changes when the data set upload id is different", func() {
+										dataSetUploadID := dataSet.UploadID
+										dataSet.UploadID = pointer.FromString(dataTest.RandomSetID())
+										Expect(session.ArchiveDataSetData(ctx, dataSet, selectors)).To(Succeed())
+										ValidateDataSetData(mgoCollection, bson.M{"_active": false, "uploadId": dataSetUploadID}, bson.M{"modifiedTime": 0}, data.Data{})
+									})
+								})
+							}
+
+							Context("with selectors missing", func() {
+								BeforeEach(func() {
+									selectors = nil
+									selectedDataSetData = dataSetData
+									unselectedDataSetData = data.Data{}
+								})
+
+								commonAssertions()
+								selectorAssertions()
+							})
+
+							Context("with selectors empty", func() {
+								BeforeEach(func() {
+									selectors = data.NewSelectors()
+								})
+
+								commonAssertions()
+
+								It("returns an error", func() {
+									errorsTest.ExpectEqual(session.ArchiveDataSetData(ctx, dataSet, selectors), errors.New("selectors is invalid"))
+								})
+							})
+
+							Context("with selectors by id", func() {
+								BeforeEach(func() {
+									for _, datum := range selectedDataSetData {
+										*selectors = append(*selectors, &data.Selector{ID: datum.(*types.Base).ID})
+									}
+								})
+
+								commonAssertions()
+								selectorAssertions()
+							})
+
+							Context("with selectors by origin id", func() {
+								BeforeEach(func() {
+									for _, datum := range selectedDataSetData {
+										*selectors = append(*selectors, &data.Selector{Origin: &data.SelectorOrigin{ID: datum.(*types.Base).Origin.ID}})
+									}
+								})
+
+								commonAssertions()
+								selectorAssertions()
+							})
+
+							Context("with selectors by both id and origin id", func() {
+								BeforeEach(func() {
+									for _, datum := range selectedDataSetData {
+										*selectors = append(*selectors, &data.Selector{ID: datum.(*types.Base).ID, Origin: &data.SelectorOrigin{ID: datum.(*types.Base).Origin.ID}})
+									}
+								})
+
+								commonAssertions()
+
+								It("returns an error", func() {
+									errorsTest.ExpectEqual(session.ArchiveDataSetData(ctx, dataSet, selectors), errors.New("selectors is invalid"))
+								})
+							})
+
+							Context("with selectors with neither id nor origin id", func() {
+								BeforeEach(func() {
+									for range selectedDataSetData {
+										*selectors = append(*selectors, &data.Selector{})
+									}
+								})
+
+								commonAssertions()
+
+								It("returns an error", func() {
+									errorsTest.ExpectEqual(session.ArchiveDataSetData(ctx, dataSet, selectors), errors.New("selectors is invalid"))
+								})
+							})
+						})
+
+						Context("DeleteDataSetData", func() {
+							commonAssertions := func() {
+								It("returns an error when the context is missing", func() {
+									Expect(session.DeleteDataSetData(nil, dataSet, selectors)).To(MatchError("context is missing"))
+								})
+
+								It("returns an error when the data set is missing", func() {
+									Expect(session.DeleteDataSetData(ctx, nil, selectors)).To(MatchError("data set is missing"))
+								})
+
+								It("returns an error when the user id is missing", func() {
+									dataSet.UserID = nil
+									Expect(session.DeleteDataSetData(ctx, dataSet, selectors)).To(MatchError("data set user id is missing"))
+								})
+
+								It("returns an error when the user id is empty", func() {
+									dataSet.UserID = pointer.FromString("")
+									Expect(session.DeleteDataSetData(ctx, dataSet, selectors)).To(MatchError("data set user id is empty"))
+								})
+
+								It("returns an error when the upload id is missing", func() {
+									dataSet.UploadID = nil
+									Expect(session.DeleteDataSetData(ctx, dataSet, selectors)).To(MatchError("data set upload id is missing"))
+								})
+
+								It("returns an error when the upload id is empty", func() {
+									dataSet.UploadID = pointer.FromString("")
+									Expect(session.DeleteDataSetData(ctx, dataSet, selectors)).To(MatchError("data set upload id is empty"))
+								})
+							}
+
+							selectorAssertions := func() {
+								It("returns an error when the session is closed", func() {
+									session.Close()
+									Expect(session.DeleteDataSetData(ctx, dataSet, selectors)).To(MatchError("session closed"))
+								})
+
+								Context("with database access", func() {
+									BeforeEach(func() {
+										preparePersistedDataSetsData()
+										Expect(session.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
+										ValidateDataSetData(mgoCollection, bson.M{"deletedTime": bson.M{"$exists": true}}, bson.M{"modifiedTime": 0}, data.Data{})
+										ValidateDataSet(mgoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
+									})
+
+									It("succeeds and has the correct stored active data set data", func() {
+										Expect(session.DeleteDataSetData(ctx, dataSet, selectors)).To(Succeed())
+										selectedDataSetData.SetActive(false)
+										ValidateDataSetData(mgoCollection, bson.M{"deletedTime": bson.M{"$exists": true}}, bson.M{"archivedTime": 0, "deletedTime": 0, "modifiedTime": 0}, selectedDataSetData)
+										ValidateDataSet(mgoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
+									})
+
+									It("succeeds with no changes when the data set user id is different", func() {
+										dataSet.UserID = pointer.FromString(userTest.RandomID())
+										Expect(session.DeleteDataSetData(ctx, dataSet, selectors)).To(Succeed())
+										ValidateDataSetData(mgoCollection, bson.M{"deletedTime": bson.M{"$exists": true}}, bson.M{"modifiedTime": 0}, data.Data{})
+									})
+
+									It("succeeds with no changes when the data set upload id is different", func() {
+										dataSet.UploadID = pointer.FromString(dataTest.RandomSetID())
+										Expect(session.DeleteDataSetData(ctx, dataSet, selectors)).To(Succeed())
+										ValidateDataSetData(mgoCollection, bson.M{"deletedTime": bson.M{"$exists": true}}, bson.M{"modifiedTime": 0}, data.Data{})
+									})
+								})
+							}
+
+							Context("with selectors missing", func() {
+								BeforeEach(func() {
+									selectors = nil
+									selectedDataSetData = dataSetData
+									unselectedDataSetData = data.Data{}
+								})
+
+								commonAssertions()
+								selectorAssertions()
+							})
+
+							Context("with selectors empty", func() {
+								BeforeEach(func() {
+									selectors = data.NewSelectors()
+								})
+
+								commonAssertions()
+
+								It("returns an error", func() {
+									errorsTest.ExpectEqual(session.DeleteDataSetData(ctx, dataSet, selectors), errors.New("selectors is invalid"))
+								})
+							})
+
+							Context("with selectors by id", func() {
+								BeforeEach(func() {
+									for _, datum := range selectedDataSetData {
+										*selectors = append(*selectors, &data.Selector{ID: datum.(*types.Base).ID})
+									}
+								})
+
+								commonAssertions()
+								selectorAssertions()
+							})
+
+							Context("with selectors by origin id", func() {
+								BeforeEach(func() {
+									for _, datum := range selectedDataSetData {
+										*selectors = append(*selectors, &data.Selector{Origin: &data.SelectorOrigin{ID: datum.(*types.Base).Origin.ID}})
+									}
+								})
+
+								commonAssertions()
+								selectorAssertions()
+							})
+
+							Context("with selectors by both id and origin id", func() {
+								BeforeEach(func() {
+									for _, datum := range selectedDataSetData {
+										*selectors = append(*selectors, &data.Selector{ID: datum.(*types.Base).ID, Origin: &data.SelectorOrigin{ID: datum.(*types.Base).Origin.ID}})
+									}
+								})
+
+								commonAssertions()
+
+								It("returns an error", func() {
+									errorsTest.ExpectEqual(session.DeleteDataSetData(ctx, dataSet, selectors), errors.New("selectors is invalid"))
+								})
+							})
+
+							Context("with selectors with neither id nor origin id", func() {
+								BeforeEach(func() {
+									for range selectedDataSetData {
+										*selectors = append(*selectors, &data.Selector{})
+									}
+								})
+
+								commonAssertions()
+
+								It("returns an error", func() {
+									errorsTest.ExpectEqual(session.DeleteDataSetData(ctx, dataSet, selectors), errors.New("selectors is invalid"))
+								})
+							})
+						})
+
+						Context("DestroyDeletedDataSetData", func() {
+							commonAssertions := func() {
+								It("returns an error when the context is missing", func() {
+									Expect(session.DestroyDeletedDataSetData(nil, dataSet, selectors)).To(MatchError("context is missing"))
+								})
+
+								It("returns an error when the data set is missing", func() {
+									Expect(session.DestroyDeletedDataSetData(ctx, nil, selectors)).To(MatchError("data set is missing"))
+								})
+
+								It("returns an error when the user id is missing", func() {
+									dataSet.UserID = nil
+									Expect(session.DestroyDeletedDataSetData(ctx, dataSet, selectors)).To(MatchError("data set user id is missing"))
+								})
+
+								It("returns an error when the user id is empty", func() {
+									dataSet.UserID = pointer.FromString("")
+									Expect(session.DestroyDeletedDataSetData(ctx, dataSet, selectors)).To(MatchError("data set user id is empty"))
+								})
+
+								It("returns an error when the upload id is missing", func() {
+									dataSet.UploadID = nil
+									Expect(session.DestroyDeletedDataSetData(ctx, dataSet, selectors)).To(MatchError("data set upload id is missing"))
+								})
+
+								It("returns an error when the upload id is empty", func() {
+									dataSet.UploadID = pointer.FromString("")
+									Expect(session.DestroyDeletedDataSetData(ctx, dataSet, selectors)).To(MatchError("data set upload id is empty"))
+								})
+							}
+
+							selectorAssertions := func() {
+								It("returns an error when the session is closed", func() {
+									session.Close()
+									Expect(session.DestroyDeletedDataSetData(ctx, dataSet, selectors)).To(MatchError("session closed"))
+								})
+
+								Context("with database access", func() {
+									BeforeEach(func() {
+										preparePersistedDataSetsData()
+										Expect(session.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
+										Expect(session.DeleteDataSetData(ctx, dataSet, nil)).To(Succeed())
+										ValidateDataSetData(mgoCollection, bson.M{"deletedTime": bson.M{"$exists": true}}, bson.M{"archivedTime": 0, "deletedTime": 0, "modifiedTime": 0}, dataSetData)
+										ValidateDataSet(mgoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
+									})
+
+									It("succeeds and has the correct stored active data set data", func() {
+										Expect(session.DestroyDeletedDataSetData(ctx, dataSet, selectors)).To(Succeed())
+										ValidateDataSetData(mgoCollection, bson.M{"deletedTime": bson.M{"$exists": true}}, bson.M{"archivedTime": 0, "deletedTime": 0, "modifiedTime": 0}, unselectedDataSetData)
+										ValidateDataSet(mgoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
+									})
+
+									It("succeeds with no changes when the data set user id is different", func() {
+										dataSet.UserID = pointer.FromString(userTest.RandomID())
+										Expect(session.DestroyDeletedDataSetData(ctx, dataSet, selectors)).To(Succeed())
+										ValidateDataSetData(mgoCollection, bson.M{"deletedTime": bson.M{"$exists": true}}, bson.M{"archivedTime": 0, "deletedTime": 0, "modifiedTime": 0}, dataSetData)
+									})
+
+									It("succeeds with no changes when the data set upload id is different", func() {
+										dataSet.UploadID = pointer.FromString(dataTest.RandomSetID())
+										Expect(session.DestroyDeletedDataSetData(ctx, dataSet, selectors)).To(Succeed())
+										ValidateDataSetData(mgoCollection, bson.M{"deletedTime": bson.M{"$exists": true}}, bson.M{"archivedTime": 0, "deletedTime": 0, "modifiedTime": 0}, dataSetData)
+									})
+								})
+							}
+
+							Context("with selectors missing", func() {
+								BeforeEach(func() {
+									selectors = nil
+									selectedDataSetData = dataSetData
+									unselectedDataSetData = data.Data{}
+								})
+
+								commonAssertions()
+								selectorAssertions()
+							})
+
+							Context("with selectors empty", func() {
+								BeforeEach(func() {
+									selectors = data.NewSelectors()
+								})
+
+								commonAssertions()
+
+								It("returns an error", func() {
+									errorsTest.ExpectEqual(session.DestroyDeletedDataSetData(ctx, dataSet, selectors), errors.New("selectors is invalid"))
+								})
+							})
+
+							Context("with selectors by id", func() {
+								BeforeEach(func() {
+									for _, datum := range selectedDataSetData {
+										*selectors = append(*selectors, &data.Selector{ID: datum.(*types.Base).ID})
+									}
+								})
+
+								commonAssertions()
+								selectorAssertions()
+							})
+
+							Context("with selectors by origin id", func() {
+								BeforeEach(func() {
+									for _, datum := range selectedDataSetData {
+										*selectors = append(*selectors, &data.Selector{Origin: &data.SelectorOrigin{ID: datum.(*types.Base).Origin.ID}})
+									}
+								})
+
+								commonAssertions()
+								selectorAssertions()
+							})
+
+							Context("with selectors by both id and origin id", func() {
+								BeforeEach(func() {
+									for _, datum := range selectedDataSetData {
+										*selectors = append(*selectors, &data.Selector{ID: datum.(*types.Base).ID, Origin: &data.SelectorOrigin{ID: datum.(*types.Base).Origin.ID}})
+									}
+								})
+
+								commonAssertions()
+
+								It("returns an error", func() {
+									errorsTest.ExpectEqual(session.DestroyDeletedDataSetData(ctx, dataSet, selectors), errors.New("selectors is invalid"))
+								})
+							})
+
+							Context("with selectors with neither id nor origin id", func() {
+								BeforeEach(func() {
+									for range selectedDataSetData {
+										*selectors = append(*selectors, &data.Selector{})
+									}
+								})
+
+								commonAssertions()
+
+								It("returns an error", func() {
+									errorsTest.ExpectEqual(session.DestroyDeletedDataSetData(ctx, dataSet, selectors), errors.New("selectors is invalid"))
+								})
+							})
+						})
+
+						Context("DestroyDataSetData", func() {
+							commonAssertions := func() {
+								It("returns an error when the context is missing", func() {
+									Expect(session.DestroyDataSetData(nil, dataSet, selectors)).To(MatchError("context is missing"))
+								})
+
+								It("returns an error when the data set is missing", func() {
+									Expect(session.DestroyDataSetData(ctx, nil, selectors)).To(MatchError("data set is missing"))
+								})
+
+								It("returns an error when the user id is missing", func() {
+									dataSet.UserID = nil
+									Expect(session.DestroyDataSetData(ctx, dataSet, selectors)).To(MatchError("data set user id is missing"))
+								})
+
+								It("returns an error when the user id is empty", func() {
+									dataSet.UserID = pointer.FromString("")
+									Expect(session.DestroyDataSetData(ctx, dataSet, selectors)).To(MatchError("data set user id is empty"))
+								})
+
+								It("returns an error when the upload id is missing", func() {
+									dataSet.UploadID = nil
+									Expect(session.DestroyDataSetData(ctx, dataSet, selectors)).To(MatchError("data set upload id is missing"))
+								})
+
+								It("returns an error when the upload id is empty", func() {
+									dataSet.UploadID = pointer.FromString("")
+									Expect(session.DestroyDataSetData(ctx, dataSet, selectors)).To(MatchError("data set upload id is empty"))
+								})
+							}
+
+							selectorAssertions := func() {
+								It("returns an error when the session is closed", func() {
+									session.Close()
+									Expect(session.DestroyDataSetData(ctx, dataSet, selectors)).To(MatchError("session closed"))
+								})
+
+								Context("with database access", func() {
+									BeforeEach(func() {
+										preparePersistedDataSetsData()
+										Expect(session.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
+										ValidateDataSetData(mgoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{"modifiedTime": 0}, dataSetData)
+										ValidateDataSet(mgoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
+									})
+
+									It("succeeds and has the correct stored active data set data", func() {
+										Expect(session.DestroyDataSetData(ctx, dataSet, selectors)).To(Succeed())
+										ValidateDataSetData(mgoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{"modifiedTime": 0}, unselectedDataSetData)
+										ValidateDataSet(mgoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
+									})
+
+									It("succeeds with no changes when the data set user id is different", func() {
+										dataSet.UserID = pointer.FromString(userTest.RandomID())
+										Expect(session.DestroyDataSetData(ctx, dataSet, selectors)).To(Succeed())
+										ValidateDataSetData(mgoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{"modifiedTime": 0}, dataSetData)
+									})
+
+									It("succeeds with no changes when the data set upload id is different", func() {
+										dataSetUploadID := dataSet.UploadID
+										dataSet.UploadID = pointer.FromString(dataTest.RandomSetID())
+										Expect(session.DestroyDataSetData(ctx, dataSet, selectors)).To(Succeed())
+										ValidateDataSetData(mgoCollection, bson.M{"uploadId": dataSetUploadID}, bson.M{"modifiedTime": 0}, dataSetData)
+									})
+								})
+							}
+
+							Context("with selectors missing", func() {
+								BeforeEach(func() {
+									selectors = nil
+									selectedDataSetData = dataSetData
+									unselectedDataSetData = data.Data{}
+								})
+
+								commonAssertions()
+								selectorAssertions()
+							})
+
+							Context("with selectors empty", func() {
+								BeforeEach(func() {
+									selectors = data.NewSelectors()
+								})
+
+								commonAssertions()
+
+								It("returns an error", func() {
+									errorsTest.ExpectEqual(session.DestroyDataSetData(ctx, dataSet, selectors), errors.New("selectors is invalid"))
+								})
+							})
+
+							Context("with selectors by id", func() {
+								BeforeEach(func() {
+									for _, datum := range selectedDataSetData {
+										*selectors = append(*selectors, &data.Selector{ID: datum.(*types.Base).ID})
+									}
+								})
+
+								commonAssertions()
+								selectorAssertions()
+							})
+
+							Context("with selectors by origin id", func() {
+								BeforeEach(func() {
+									for _, datum := range selectedDataSetData {
+										*selectors = append(*selectors, &data.Selector{Origin: &data.SelectorOrigin{ID: datum.(*types.Base).Origin.ID}})
+									}
+								})
+
+								commonAssertions()
+								selectorAssertions()
+							})
+
+							Context("with selectors by both id and origin id", func() {
+								BeforeEach(func() {
+									for _, datum := range selectedDataSetData {
+										*selectors = append(*selectors, &data.Selector{ID: datum.(*types.Base).ID, Origin: &data.SelectorOrigin{ID: datum.(*types.Base).Origin.ID}})
+									}
+								})
+
+								commonAssertions()
+
+								It("returns an error", func() {
+									errorsTest.ExpectEqual(session.DestroyDataSetData(ctx, dataSet, selectors), errors.New("selectors is invalid"))
+								})
+							})
+
+							Context("with selectors with neither id nor origin id", func() {
+								BeforeEach(func() {
+									for range selectedDataSetData {
+										*selectors = append(*selectors, &data.Selector{})
+									}
+								})
+
+								commonAssertions()
+
+								It("returns an error", func() {
+									errorsTest.ExpectEqual(session.DestroyDataSetData(ctx, dataSet, selectors), errors.New("selectors is invalid"))
+								})
+							})
 						})
 					})
 
 					Context("ArchiveDeviceDataUsingHashesFromDataSet", func() {
-						var dataSetExistingOneDataCloned []data.Datum
-
-						BeforeEach(func() {
-							dataSetExistingOneDataCloned = CloneDataSetData(dataSetData)
-							Expect(mongoSession.CreateDataSetData(ctx, dataSetExistingOne, dataSetExistingOneDataCloned)).To(Succeed())
-							Expect(mongoSession.ActivateDataSetData(ctx, dataSetExistingOne)).To(Succeed())
-							Expect(mongoSession.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
-							for _, dataSetDatum := range append(dataSetExistingOneData, dataSetExistingOneDataCloned...) {
-								dataSetDatum.SetActive(true)
-							}
-						})
-
-						It("succeeds if it successfully archives device data using hashes from data set", func() {
-							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(Succeed())
-						})
-
 						It("returns an error if the data set is missing", func() {
-							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataSet(ctx, nil)).To(MatchError("data set is missing"))
+							Expect(session.ArchiveDeviceDataUsingHashesFromDataSet(ctx, nil)).To(MatchError("data set is missing"))
 						})
 
 						It("returns an error if the user id is missing", func() {
 							dataSet.UserID = nil
-							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("data set user id is missing"))
+							Expect(session.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("data set user id is missing"))
 						})
 
 						It("returns an error if the user id is empty", func() {
 							dataSet.UserID = pointer.FromString("")
-							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("data set user id is empty"))
+							Expect(session.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("data set user id is empty"))
 						})
 
 						It("returns an error if the upload id is missing", func() {
 							dataSet.UploadID = nil
-							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("data set upload id is missing"))
+							Expect(session.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("data set upload id is missing"))
 						})
 
 						It("returns an error if the upload id is empty", func() {
 							dataSet.UploadID = pointer.FromString("")
-							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("data set upload id is empty"))
+							Expect(session.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("data set upload id is empty"))
 						})
 
 						It("returns an error if the device id is missing (nil)", func() {
 							dataSet.DeviceID = nil
-							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("data set device id is missing"))
+							Expect(session.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("data set device id is missing"))
 						})
 
 						It("returns an error if the device id is missing (empty)", func() {
 							dataSet.DeviceID = pointer.FromString("")
-							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("data set device id is missing"))
+							Expect(session.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("data set device id is missing"))
 						})
 
 						It("returns an error if the session is closed", func() {
-							mongoSession.Close()
-							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("session closed"))
+							session.Close()
+							Expect(session.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("session closed"))
 						})
 
-						It("has the correct stored data sets", func() {
-							ValidateDataSet(testMongoCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{}, dataSetExistingOne)
-							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(Succeed())
-							ValidateDataSet(testMongoCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{}, dataSetExistingOne)
-						})
+						Context("with database access", func() {
+							var dataSetExistingOneDataCloned data.Data
 
-						It("has the correct stored archived data set data", func() {
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": false}, bson.M{}, []data.Datum{})
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{"modifiedTime": 0}, append(dataSetExistingOneData, dataSetExistingOneDataCloned...))
-							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(Succeed())
-							for _, dataSetDatum := range dataSetExistingOneDataCloned {
-								dataSetDatum.SetActive(false)
-							}
-							ValidateDataSetData(testMongoCollection,
-								bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}},
-								bson.M{"modifiedTime": 0},
-								dataSetExistingOneData)
-							ValidateDataSetData(testMongoCollection,
-								bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": false, "archivedTime": bson.M{"$exists": true}, "archivedDatasetId": dataSet.UploadID, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}},
-								bson.M{"archivedTime": 0, "archivedDatasetId": 0, "modifiedTime": 0},
-								dataSetExistingOneDataCloned)
-							ValidateDataSetData(testMongoCollection,
-								bson.M{"uploadId": dataSet.UploadID, "_active": false, "archivedTime": bson.M{"$exists": false}, "archivedDatasetId": bson.M{"$exists": false}},
-								bson.M{},
-								dataSetData)
+							BeforeEach(func() {
+								preparePersistedDataSetsData()
+								dataSetExistingOneDataCloned = CloneDataSetData(dataSetData)
+								Expect(session.CreateDataSetData(ctx, dataSetExistingOne, dataSetExistingOneDataCloned)).To(Succeed())
+								Expect(session.ActivateDataSetData(ctx, dataSetExistingOne, nil)).To(Succeed())
+								Expect(session.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
+								for _, dataSetDatum := range append(dataSetExistingOneData, dataSetExistingOneDataCloned...) {
+									dataSetDatum.SetActive(true)
+								}
+							})
+
+							It("succeeds if it successfully archives device data using hashes from data set", func() {
+								Expect(session.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(Succeed())
+							})
+
+							It("has the correct stored data sets", func() {
+								ValidateDataSet(mgoCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{}, dataSetExistingOne)
+								Expect(session.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(Succeed())
+								ValidateDataSet(mgoCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{}, dataSetExistingOne)
+							})
+
+							It("has the correct stored archived data set data", func() {
+								ValidateDataSetData(mgoCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": false}, bson.M{}, data.Data{})
+								ValidateDataSetData(mgoCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{"modifiedTime": 0}, append(dataSetExistingOneData, dataSetExistingOneDataCloned...))
+								Expect(session.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(Succeed())
+								for _, dataSetDatum := range dataSetExistingOneDataCloned {
+									dataSetDatum.SetActive(false)
+								}
+								ValidateDataSetData(mgoCollection,
+									bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}},
+									bson.M{"modifiedTime": 0},
+									dataSetExistingOneData)
+								ValidateDataSetData(mgoCollection,
+									bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": false, "archivedTime": bson.M{"$exists": true}, "archivedDatasetId": dataSet.UploadID, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}},
+									bson.M{"archivedTime": 0, "archivedDatasetId": 0, "modifiedTime": 0},
+									dataSetExistingOneDataCloned)
+								ValidateDataSetData(mgoCollection,
+									bson.M{"uploadId": dataSet.UploadID, "_active": false, "archivedTime": bson.M{"$exists": false}, "archivedDatasetId": bson.M{"$exists": false}},
+									bson.M{},
+									dataSetData)
+							})
 						})
 					})
 
 					Context("UnarchiveDeviceDataUsingHashesFromDataSet", func() {
-						var dataSetExistingTwoDataCloned []data.Datum
-						var dataSetExistingOneDataCloned []data.Datum
-
-						BeforeEach(func() {
-							dataSetExistingTwoDataCloned = CloneDataSetData(dataSetData)
-							dataSetExistingOneDataCloned = CloneDataSetData(dataSetData)
-							Expect(mongoSession.CreateDataSetData(ctx, dataSetExistingTwo, dataSetExistingTwoDataCloned)).To(Succeed())
-							Expect(mongoSession.ActivateDataSetData(ctx, dataSetExistingTwo)).To(Succeed())
-							Expect(mongoSession.CreateDataSetData(ctx, dataSetExistingOne, dataSetExistingOneDataCloned)).To(Succeed())
-							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSetExistingOne)).To(Succeed())
-							Expect(mongoSession.ActivateDataSetData(ctx, dataSetExistingOne)).To(Succeed())
-							Expect(mongoSession.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
-							Expect(mongoSession.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(Succeed())
-							Expect(mongoSession.ActivateDataSetData(ctx, dataSet)).To(Succeed())
-						})
-
-						It("succeeds if it successfully unarchives device data using hashes from data set", func() {
-							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(Succeed())
-						})
-
 						It("returns an error if the data set is missing", func() {
-							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, nil)).To(MatchError("data set is missing"))
+							Expect(session.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, nil)).To(MatchError("data set is missing"))
 						})
 
 						It("returns an error if the user id is missing", func() {
 							dataSet.UserID = nil
-							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("data set user id is missing"))
+							Expect(session.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("data set user id is missing"))
 						})
 
 						It("returns an error if the user id is empty", func() {
 							dataSet.UserID = pointer.FromString("")
-							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("data set user id is empty"))
+							Expect(session.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("data set user id is empty"))
 						})
 
 						It("returns an error if the upload id is missing", func() {
 							dataSet.UploadID = nil
-							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("data set upload id is missing"))
+							Expect(session.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("data set upload id is missing"))
 						})
 
 						It("returns an error if the upload id is empty", func() {
 							dataSet.UploadID = pointer.FromString("")
-							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("data set upload id is empty"))
+							Expect(session.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("data set upload id is empty"))
 						})
 
 						It("returns an error if the device id is missing (nil)", func() {
 							dataSet.DeviceID = nil
-							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("data set device id is missing"))
+							Expect(session.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("data set device id is missing"))
 						})
 
 						It("returns an error if the device id is missing (empty)", func() {
 							dataSet.DeviceID = pointer.FromString("")
-							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("data set device id is missing"))
+							Expect(session.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("data set device id is missing"))
 						})
 
 						It("returns an error if the session is closed", func() {
-							mongoSession.Close()
-							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("session closed"))
+							session.Close()
+							Expect(session.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(MatchError("session closed"))
 						})
 
-						It("has the correct stored data sets", func() {
-							ValidateDataSet(testMongoCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{}, dataSetExistingOne)
-							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(Succeed())
-							ValidateDataSet(testMongoCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{}, dataSetExistingOne)
-						})
+						Context("with database access", func() {
+							var dataSetExistingTwoDataCloned data.Data
+							var dataSetExistingOneDataCloned data.Data
 
-						It("has the correct stored unarchived data set data", func() {
-							for _, dataSetDatum := range append(dataSetData, dataSetExistingOneData...) {
-								dataSetDatum.SetActive(true)
-							}
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": false}, bson.M{"archivedTime": 0, "archivedDatasetId": 0, "modifiedTime": 0}, dataSetExistingOneDataCloned)
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{"archivedTime": 0, "archivedDatasetId": 0, "modifiedTime": 0}, dataSetExistingOneData)
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID, "_active": true}, bson.M{"modifiedTime": 0}, dataSetData)
-							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(Succeed())
-							for _, dataSetDatum := range dataSetExistingOneDataCloned {
-								dataSetDatum.SetActive(true)
-							}
-							ValidateDataSetData(testMongoCollection,
-								bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true, "archivedTime": bson.M{"$exists": false}, "archivedDatasetId": bson.M{"$exists": false}, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}},
-								bson.M{"modifiedTime": 0},
-								append(dataSetExistingOneData, dataSetExistingOneDataCloned...))
-							ValidateDataSetData(testMongoCollection,
-								bson.M{"uploadId": dataSet.UploadID, "_active": true, "archivedTime": bson.M{"$exists": false}, "archivedDatasetId": bson.M{"$exists": false}},
-								bson.M{"modifiedTime": 0},
-								dataSetData)
-						})
+							BeforeEach(func() {
+								preparePersistedDataSetsData()
+								dataSetExistingTwoDataCloned = CloneDataSetData(dataSetData)
+								dataSetExistingOneDataCloned = CloneDataSetData(dataSetData)
+								Expect(session.CreateDataSetData(ctx, dataSetExistingTwo, dataSetExistingTwoDataCloned)).To(Succeed())
+								Expect(session.ActivateDataSetData(ctx, dataSetExistingTwo, nil)).To(Succeed())
+								Expect(session.CreateDataSetData(ctx, dataSetExistingOne, dataSetExistingOneDataCloned)).To(Succeed())
+								Expect(session.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSetExistingOne)).To(Succeed())
+								Expect(session.ActivateDataSetData(ctx, dataSetExistingOne, nil)).To(Succeed())
+								Expect(session.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
+								Expect(session.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(Succeed())
+								Expect(session.ActivateDataSetData(ctx, dataSet, nil)).To(Succeed())
+							})
 
-						It("has the correct stored data sets if an intermediary is unarchived", func() {
-							ValidateDataSet(testMongoCollection, bson.M{"uploadId": dataSetExistingTwo.UploadID, "_active": true}, bson.M{}, dataSetExistingTwo)
-							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSetExistingOne)).To(Succeed())
-							ValidateDataSet(testMongoCollection, bson.M{"uploadId": dataSetExistingTwo.UploadID, "_active": true}, bson.M{}, dataSetExistingTwo)
-						})
+							It("succeeds if it successfully unarchives device data using hashes from data set", func() {
+								Expect(session.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(Succeed())
+							})
 
-						It("has the correct stored unarchived data set data if an intermediary is unarchived", func() {
-							for _, dataSetDatum := range append(dataSetExistingOneData, dataSetExistingTwoData...) {
-								dataSetDatum.SetActive(true)
-							}
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSetExistingTwo.UploadID, "_active": false}, bson.M{"archivedTime": 0, "archivedDatasetId": 0, "modifiedTime": 0}, dataSetExistingTwoDataCloned)
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSetExistingTwo.UploadID, "_active": true}, bson.M{"archivedTime": 0, "archivedDatasetId": 0, "modifiedTime": 0}, dataSetExistingTwoData)
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{"modifiedTime": 0}, dataSetExistingOneData)
-							Expect(mongoSession.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSetExistingOne)).To(Succeed())
-							ValidateDataSetData(testMongoCollection,
-								bson.M{"uploadId": dataSetExistingTwo.UploadID, "_active": true, "archivedTime": bson.M{"$exists": false}, "archivedDatasetId": bson.M{"$exists": false}},
-								bson.M{"modifiedTime": 0},
-								dataSetExistingTwoData)
-							ValidateDataSetData(testMongoCollection,
-								bson.M{"uploadId": dataSetExistingTwo.UploadID, "_active": false, "archivedTime": bson.M{"$exists": true}, "archivedDatasetId": dataSet.UploadID, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}},
-								bson.M{"archivedTime": 0, "archivedDatasetId": 0, "modifiedTime": 0},
-								dataSetExistingTwoDataCloned)
-							ValidateDataSetData(testMongoCollection,
-								bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true, "archivedTime": bson.M{"$exists": false}, "archivedDatasetId": bson.M{"$exists": false}},
-								bson.M{"modifiedTime": 0},
-								dataSetExistingOneData)
-							ValidateDataSetData(testMongoCollection,
-								bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": false, "archivedTime": bson.M{"$exists": true}, "archivedDatasetId": dataSet.UploadID},
-								bson.M{"archivedTime": 0, "archivedDatasetId": 0, "modifiedTime": 0},
-								dataSetExistingOneDataCloned)
-						})
-					})
+							It("has the correct stored data sets", func() {
+								ValidateDataSet(mgoCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{}, dataSetExistingOne)
+								Expect(session.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(Succeed())
+								ValidateDataSet(mgoCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{}, dataSetExistingOne)
+							})
 
-					Context("ArchiveDataSetDataUsingOriginIDs", func() {
-						var originIDs []string
-
-						BeforeEach(func() {
-							Expect(mongoSession.CreateDataSetData(ctx, dataSet, dataSetExistingOneData)).To(Succeed())
-							Expect(mongoSession.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
-							Expect(mongoSession.ActivateDataSetData(ctx, dataSet)).To(Succeed())
-							originIDs = []string{}
-							for _, datum := range dataSetData {
-								baseDatum := datum.(*types.Base)
-								if baseDatum.Origin != nil && baseDatum.Origin.ID != nil {
-									originIDs = append(originIDs, *baseDatum.Origin.ID)
+							It("has the correct stored unarchived data set data", func() {
+								for _, dataSetDatum := range append(dataSetData, dataSetExistingOneData...) {
+									dataSetDatum.SetActive(true)
 								}
-							}
-							for _, datum := range append(dataSetData, dataSetExistingOneData...) {
-								datum.SetActive(true)
-							}
-						})
+								ValidateDataSetData(mgoCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": false}, bson.M{"archivedTime": 0, "archivedDatasetId": 0, "modifiedTime": 0}, dataSetExistingOneDataCloned)
+								ValidateDataSetData(mgoCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{"archivedTime": 0, "archivedDatasetId": 0, "modifiedTime": 0}, dataSetExistingOneData)
+								ValidateDataSetData(mgoCollection, bson.M{"uploadId": dataSet.UploadID, "_active": true}, bson.M{"modifiedTime": 0}, dataSetData)
+								Expect(session.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(Succeed())
+								for _, dataSetDatum := range dataSetExistingOneDataCloned {
+									dataSetDatum.SetActive(true)
+								}
+								ValidateDataSetData(mgoCollection,
+									bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true, "archivedTime": bson.M{"$exists": false}, "archivedDatasetId": bson.M{"$exists": false}, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}},
+									bson.M{"modifiedTime": 0},
+									append(dataSetExistingOneData, dataSetExistingOneDataCloned...))
+								ValidateDataSetData(mgoCollection,
+									bson.M{"uploadId": dataSet.UploadID, "_active": true, "archivedTime": bson.M{"$exists": false}, "archivedDatasetId": bson.M{"$exists": false}},
+									bson.M{"modifiedTime": 0},
+									dataSetData)
+							})
 
-						It("returns an error if the data set is missing", func() {
-							Expect(mongoSession.ArchiveDataSetDataUsingOriginIDs(nil, dataSet, originIDs)).To(MatchError("context is missing"))
-						})
+							It("has the correct stored data sets if an intermediary is unarchived", func() {
+								ValidateDataSet(mgoCollection, bson.M{"uploadId": dataSetExistingTwo.UploadID, "_active": true}, bson.M{}, dataSetExistingTwo)
+								Expect(session.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSetExistingOne)).To(Succeed())
+								ValidateDataSet(mgoCollection, bson.M{"uploadId": dataSetExistingTwo.UploadID, "_active": true}, bson.M{}, dataSetExistingTwo)
+							})
 
-						It("returns an error if the data set is missing", func() {
-							Expect(mongoSession.ArchiveDataSetDataUsingOriginIDs(ctx, nil, originIDs)).To(MatchError("data set is missing"))
-						})
-
-						It("returns an error if the user id is missing", func() {
-							dataSet.UserID = nil
-							Expect(mongoSession.ArchiveDataSetDataUsingOriginIDs(ctx, dataSet, originIDs)).To(MatchError("data set user id is missing"))
-						})
-
-						It("returns an error if the user id is empty", func() {
-							dataSet.UserID = pointer.FromString("")
-							Expect(mongoSession.ArchiveDataSetDataUsingOriginIDs(ctx, dataSet, originIDs)).To(MatchError("data set user id is empty"))
-						})
-
-						It("returns an error if the upload id is missing", func() {
-							dataSet.UploadID = nil
-							Expect(mongoSession.ArchiveDataSetDataUsingOriginIDs(ctx, dataSet, originIDs)).To(MatchError("data set upload id is missing"))
-						})
-
-						It("returns an error if the upload id is empty", func() {
-							dataSet.UploadID = pointer.FromString("")
-							Expect(mongoSession.ArchiveDataSetDataUsingOriginIDs(ctx, dataSet, originIDs)).To(MatchError("data set upload id is empty"))
-						})
-
-						It("returns an error if the session is closed", func() {
-							mongoSession.Close()
-							Expect(mongoSession.ArchiveDataSetDataUsingOriginIDs(ctx, dataSet, originIDs)).To(MatchError("session closed"))
-						})
-
-						It("archives all datum in the data set matching the origin id", func() {
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID, "_active": false}, bson.M{"modifiedTime": 0}, []data.Datum{})
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID, "_active": true}, bson.M{"modifiedTime": 0}, append(dataSetData, dataSetExistingOneData...))
-							Expect(mongoSession.ArchiveDataSetDataUsingOriginIDs(ctx, dataSet, originIDs)).To(Succeed())
-							for _, datum := range dataSetData {
-								datum.SetActive(false)
-							}
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID, "_active": false}, bson.M{"archivedTime": 0, "archivedDatasetId": 0, "modifiedTime": 0}, dataSetData)
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID, "_active": true}, bson.M{"modifiedTime": 0}, dataSetExistingOneData)
-						})
-
-						It("does nothing if the origin ids is missing", func() {
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID, "_active": false}, bson.M{"modifiedTime": 0}, []data.Datum{})
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID, "_active": true}, bson.M{"modifiedTime": 0}, append(dataSetData, dataSetExistingOneData...))
-							Expect(mongoSession.ArchiveDataSetDataUsingOriginIDs(ctx, dataSet, nil)).To(Succeed())
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID, "_active": false}, bson.M{"modifiedTime": 0}, []data.Datum{})
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID, "_active": true}, bson.M{"modifiedTime": 0}, append(dataSetData, dataSetExistingOneData...))
-						})
-
-						It("does nothing if the origin ids is empty", func() {
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID, "_active": false}, bson.M{"modifiedTime": 0}, []data.Datum{})
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID, "_active": true}, bson.M{"modifiedTime": 0}, append(dataSetData, dataSetExistingOneData...))
-							Expect(mongoSession.ArchiveDataSetDataUsingOriginIDs(ctx, dataSet, []string{})).To(Succeed())
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID, "_active": false}, bson.M{"modifiedTime": 0}, []data.Datum{})
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID, "_active": true}, bson.M{"modifiedTime": 0}, append(dataSetData, dataSetExistingOneData...))
-						})
-					})
-
-					Context("DeleteArchivedDataSetData", func() {
-						BeforeEach(func() {
-							Expect(mongoSession.CreateDataSetData(ctx, dataSet, dataSetExistingOneData)).To(Succeed())
-							Expect(mongoSession.ActivateDataSetData(ctx, dataSet)).To(Succeed())
-							Expect(mongoSession.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
-							for _, datum := range dataSetExistingOneData {
-								datum.SetActive(true)
-							}
-						})
-
-						It("returns an error if the data set is missing", func() {
-							Expect(mongoSession.DeleteArchivedDataSetData(nil, dataSet)).To(MatchError("context is missing"))
-						})
-
-						It("returns an error if the data set is missing", func() {
-							Expect(mongoSession.DeleteArchivedDataSetData(ctx, nil)).To(MatchError("data set is missing"))
-						})
-
-						It("returns an error if the user id is missing", func() {
-							dataSet.UserID = nil
-							Expect(mongoSession.DeleteArchivedDataSetData(ctx, dataSet)).To(MatchError("data set user id is missing"))
-						})
-
-						It("returns an error if the user id is empty", func() {
-							dataSet.UserID = pointer.FromString("")
-							Expect(mongoSession.DeleteArchivedDataSetData(ctx, dataSet)).To(MatchError("data set user id is empty"))
-						})
-
-						It("returns an error if the upload id is missing", func() {
-							dataSet.UploadID = nil
-							Expect(mongoSession.DeleteArchivedDataSetData(ctx, dataSet)).To(MatchError("data set upload id is missing"))
-						})
-
-						It("returns an error if the upload id is empty", func() {
-							dataSet.UploadID = pointer.FromString("")
-							Expect(mongoSession.DeleteArchivedDataSetData(ctx, dataSet)).To(MatchError("data set upload id is empty"))
-						})
-
-						It("returns an error if the session is closed", func() {
-							mongoSession.Close()
-							Expect(mongoSession.DeleteArchivedDataSetData(ctx, dataSet)).To(MatchError("session closed"))
-						})
-
-						It("deletes all of the archived data set data", func() {
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID, "_active": false}, bson.M{"modifiedTime": 0}, dataSetData)
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID, "_active": true}, bson.M{"modifiedTime": 0}, dataSetExistingOneData)
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{"modifiedTime": 0}, append(dataSetData, dataSetExistingOneData...))
-							Expect(mongoSession.DeleteArchivedDataSetData(ctx, dataSet)).To(Succeed())
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID, "_active": false}, bson.M{"modifiedTime": 0}, []data.Datum{})
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID, "_active": true}, bson.M{"modifiedTime": 0}, dataSetExistingOneData)
-							ValidateDataSetData(testMongoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{"modifiedTime": 0}, dataSetExistingOneData)
+							It("has the correct stored unarchived data set data if an intermediary is unarchived", func() {
+								for _, dataSetDatum := range append(dataSetExistingOneData, dataSetExistingTwoData...) {
+									dataSetDatum.SetActive(true)
+								}
+								ValidateDataSetData(mgoCollection, bson.M{"uploadId": dataSetExistingTwo.UploadID, "_active": false}, bson.M{"archivedTime": 0, "archivedDatasetId": 0, "modifiedTime": 0}, dataSetExistingTwoDataCloned)
+								ValidateDataSetData(mgoCollection, bson.M{"uploadId": dataSetExistingTwo.UploadID, "_active": true}, bson.M{"archivedTime": 0, "archivedDatasetId": 0, "modifiedTime": 0}, dataSetExistingTwoData)
+								ValidateDataSetData(mgoCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{"modifiedTime": 0}, dataSetExistingOneData)
+								Expect(session.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSetExistingOne)).To(Succeed())
+								ValidateDataSetData(mgoCollection,
+									bson.M{"uploadId": dataSetExistingTwo.UploadID, "_active": true, "archivedTime": bson.M{"$exists": false}, "archivedDatasetId": bson.M{"$exists": false}},
+									bson.M{"modifiedTime": 0},
+									dataSetExistingTwoData)
+								ValidateDataSetData(mgoCollection,
+									bson.M{"uploadId": dataSetExistingTwo.UploadID, "_active": false, "archivedTime": bson.M{"$exists": true}, "archivedDatasetId": dataSet.UploadID, "modifiedTime": bson.M{"$exists": true}, "modifiedUserId": bson.M{"$exists": false}},
+									bson.M{"archivedTime": 0, "archivedDatasetId": 0, "modifiedTime": 0},
+									dataSetExistingTwoDataCloned)
+								ValidateDataSetData(mgoCollection,
+									bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true, "archivedTime": bson.M{"$exists": false}, "archivedDatasetId": bson.M{"$exists": false}},
+									bson.M{"modifiedTime": 0},
+									dataSetExistingOneData)
+								ValidateDataSetData(mgoCollection,
+									bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": false, "archivedTime": bson.M{"$exists": true}, "archivedDatasetId": dataSet.UploadID},
+									bson.M{"archivedTime": 0, "archivedDatasetId": 0, "modifiedTime": 0},
+									dataSetExistingOneDataCloned)
+							})
 						})
 					})
 
 					Context("DeleteOtherDataSetData", func() {
-						BeforeEach(func() {
-							Expect(mongoSession.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
-						})
-
-						It("succeeds if it successfully deletes all other data set data", func() {
-							Expect(mongoSession.DeleteOtherDataSetData(ctx, dataSet)).To(Succeed())
-						})
-
 						It("returns an error if the data set is missing", func() {
-							Expect(mongoSession.DeleteOtherDataSetData(ctx, nil)).To(MatchError("data set is missing"))
+							Expect(session.DeleteOtherDataSetData(ctx, nil)).To(MatchError("data set is missing"))
 						})
 
 						It("returns an error if the user id is missing", func() {
 							dataSet.UserID = nil
-							Expect(mongoSession.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set user id is missing"))
+							Expect(session.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set user id is missing"))
 						})
 
 						It("returns an error if the user id is empty", func() {
 							dataSet.UserID = pointer.FromString("")
-							Expect(mongoSession.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set user id is empty"))
+							Expect(session.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set user id is empty"))
 						})
 
 						It("returns an error if the upload id is missing", func() {
 							dataSet.UploadID = nil
-							Expect(mongoSession.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set upload id is missing"))
+							Expect(session.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set upload id is missing"))
 						})
 
 						It("returns an error if the upload id is empty", func() {
 							dataSet.UploadID = pointer.FromString("")
-							Expect(mongoSession.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set upload id is empty"))
+							Expect(session.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set upload id is empty"))
 						})
 
 						It("returns an error if the device id is missing (nil)", func() {
 							dataSet.DeviceID = nil
-							Expect(mongoSession.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set device id is missing"))
+							Expect(session.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set device id is missing"))
 						})
 
 						It("returns an error if the device id is missing (empty)", func() {
 							dataSet.DeviceID = pointer.FromString("")
-							Expect(mongoSession.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set device id is missing"))
+							Expect(session.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set device id is missing"))
 						})
 
 						It("returns an error if the session is closed", func() {
-							mongoSession.Close()
-							Expect(mongoSession.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("session closed"))
+							session.Close()
+							Expect(session.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("session closed"))
 						})
 
-						It("has the correct stored active data set", func() {
-							ValidateDataSet(testMongoCollection, bson.M{}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
-							ValidateDataSet(testMongoCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
-							Expect(mongoSession.DeleteOtherDataSetData(ctx, dataSet)).To(Succeed())
-							Expect(testMongoCollection.Find(bson.M{"type": "upload"}).Count()).To(Equal(4))
-							ValidateDataSet(testMongoCollection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": bson.M{"$exists": false}}, bson.M{"deletedTime": 0}, dataSetExistingTwo, dataSetExistingOne)
-							ValidateDataSet(testMongoCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet, dataSetExistingOther)
-						})
+						Context("with database access", func() {
+							BeforeEach(func() {
+								preparePersistedDataSetsData()
+								Expect(session.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
+							})
 
-						It("has the correct stored active data set data", func() {
-							dataSetDataAfterRemoveData := append(dataSetData, dataSetExistingOtherData...)
-							dataSetDataBeforeRemoveData := append(append(dataSetDataAfterRemoveData, dataSetExistingOneData...), dataSetExistingTwoData...)
-							ValidateDataSetData(testMongoCollection, bson.M{}, bson.M{}, dataSetDataBeforeRemoveData)
-							Expect(mongoSession.DeleteOtherDataSetData(ctx, dataSet)).To(Succeed())
-							ValidateDataSetData(testMongoCollection, bson.M{}, bson.M{"deletedTime": 0}, dataSetDataAfterRemoveData)
+							It("succeeds if it successfully deletes all other data set data", func() {
+								Expect(session.DeleteOtherDataSetData(ctx, dataSet)).To(Succeed())
+							})
+
+							It("has the correct stored active data set", func() {
+								ValidateDataSet(mgoCollection, bson.M{}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
+								ValidateDataSet(mgoCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
+								Expect(session.DeleteOtherDataSetData(ctx, dataSet)).To(Succeed())
+								Expect(mgoCollection.Find(bson.M{"type": "upload"}).Count()).To(Equal(4))
+								ValidateDataSet(mgoCollection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": bson.M{"$exists": false}}, bson.M{"deletedTime": 0}, dataSetExistingTwo, dataSetExistingOne)
+								ValidateDataSet(mgoCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet, dataSetExistingOther)
+							})
+
+							It("has the correct stored active data set data", func() {
+								dataSetDataAfterRemoveData := append(dataSetData, dataSetExistingOtherData...)
+								dataSetDataBeforeRemoveData := append(append(dataSetDataAfterRemoveData, dataSetExistingOneData...), dataSetExistingTwoData...)
+								ValidateDataSetData(mgoCollection, bson.M{}, bson.M{}, dataSetDataBeforeRemoveData)
+								Expect(session.DeleteOtherDataSetData(ctx, dataSet)).To(Succeed())
+								ValidateDataSetData(mgoCollection, bson.M{}, bson.M{"deletedTime": 0}, dataSetDataAfterRemoveData)
+							})
 						})
 					})
 
 					Context("DestroyDataForUserByID", func() {
-						var deleteUserID string
-						var deleteDeviceID string
-						var deleteDataSet *upload.Upload
-						var deleteDataSetData []data.Datum
+						var destroyUserID string
 
 						BeforeEach(func() {
-							Expect(mongoSession.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
-							deleteUserID = userTest.RandomID()
-							deleteDeviceID = dataTest.NewDeviceID()
-							deleteDataSet = NewDataSet(deleteUserID, deleteDeviceID)
-							deleteDataSet.CreatedTime = pointer.FromString("2016-09-01T11:00:00Z")
-							Expect(testMongoCollection.Insert(deleteDataSet)).To(Succeed())
-							deleteDataSetData = NewDataSetData(deleteDeviceID)
-							Expect(mongoSession.CreateDataSetData(ctx, deleteDataSet, deleteDataSetData)).To(Succeed())
-						})
-
-						It("succeeds if it successfully destroys all data for user by id", func() {
-							Expect(mongoSession.DestroyDataForUserByID(ctx, deleteUserID)).To(Succeed())
+							destroyUserID = userTest.RandomID()
 						})
 
 						It("returns an error if the user id is missing", func() {
-							Expect(mongoSession.DestroyDataForUserByID(ctx, "")).To(MatchError("user id is missing"))
+							Expect(session.DestroyDataForUserByID(ctx, "")).To(MatchError("user id is missing"))
 						})
 
 						It("returns an error if the session is closed", func() {
-							mongoSession.Close()
-							Expect(mongoSession.DestroyDataForUserByID(ctx, deleteUserID)).To(MatchError("session closed"))
+							session.Close()
+							Expect(session.DestroyDataForUserByID(ctx, destroyUserID)).To(MatchError("session closed"))
 						})
 
-						It("has the correct stored data sets", func() {
-							ValidateDataSet(testMongoCollection, bson.M{}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo, deleteDataSet)
-							Expect(mongoSession.DestroyDataForUserByID(ctx, deleteUserID)).To(Succeed())
-							ValidateDataSet(testMongoCollection, bson.M{}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
-						})
+						Context("with database access", func() {
+							var destroyDeviceID string
+							var destroyDataSet *upload.Upload
+							var destroyDataSetData data.Data
 
-						It("has the correct stored data set data", func() {
-							dataSetDataAfterRemoveData := append(append(append(dataSetData, dataSetExistingOtherData...), dataSetExistingOneData...), dataSetExistingTwoData...)
-							dataSetDataBeforeRemoveData := append(dataSetDataAfterRemoveData, deleteDataSetData...)
-							ValidateDataSetData(testMongoCollection, bson.M{}, bson.M{}, dataSetDataBeforeRemoveData)
-							Expect(mongoSession.DestroyDataForUserByID(ctx, deleteUserID)).To(Succeed())
-							ValidateDataSetData(testMongoCollection, bson.M{}, bson.M{}, dataSetDataAfterRemoveData)
+							BeforeEach(func() {
+								preparePersistedDataSetsData()
+								Expect(session.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
+								destroyDeviceID = dataTest.NewDeviceID()
+								destroyDataSet = NewDataSet(destroyUserID, destroyDeviceID)
+								destroyDataSet.CreatedTime = pointer.FromString("2016-09-01T11:00:00Z")
+								Expect(mgoCollection.Insert(destroyDataSet)).To(Succeed())
+								destroyDataSetData = NewDataSetData(destroyDeviceID)
+								Expect(session.CreateDataSetData(ctx, destroyDataSet, destroyDataSetData)).To(Succeed())
+							})
+
+							It("succeeds if it successfully destroys all data for user by id", func() {
+								Expect(session.DestroyDataForUserByID(ctx, destroyUserID)).To(Succeed())
+							})
+
+							It("has the correct stored data sets", func() {
+								ValidateDataSet(mgoCollection, bson.M{}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo, destroyDataSet)
+								Expect(session.DestroyDataForUserByID(ctx, destroyUserID)).To(Succeed())
+								ValidateDataSet(mgoCollection, bson.M{}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
+							})
+
+							It("has the correct stored data set data", func() {
+								dataSetDataAfterRemoveData := append(append(append(dataSetData, dataSetExistingOtherData...), dataSetExistingOneData...), dataSetExistingTwoData...)
+								dataSetDataBeforeRemoveData := append(dataSetDataAfterRemoveData, destroyDataSetData...)
+								ValidateDataSetData(mgoCollection, bson.M{}, bson.M{}, dataSetDataBeforeRemoveData)
+								Expect(session.DestroyDataForUserByID(ctx, destroyUserID)).To(Succeed())
+								ValidateDataSetData(mgoCollection, bson.M{}, bson.M{}, dataSetDataAfterRemoveData)
+							})
 						})
 					})
 				})

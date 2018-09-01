@@ -162,7 +162,7 @@ var _ = Describe("None", func() {
 						Expect(session.UpdateDataSetInputs).To(Equal([]dataStoreDEPRECATEDTest.UpdateDataSetInput{{Context: ctx, ID: *dataSet.UploadID, Update: update}}))
 					})
 
-					updateValidations := func() {
+					updateAssertions := func() {
 						When("the data set does not have a deduplicator", func() {
 							BeforeEach(func() {
 								dataSet.Deduplicator = nil
@@ -234,7 +234,7 @@ var _ = Describe("None", func() {
 							Expect(dataSet.Active).To(BeFalse())
 						})
 
-						updateValidations()
+						updateAssertions()
 					})
 
 					When("data set type is continuous", func() {
@@ -247,7 +247,7 @@ var _ = Describe("None", func() {
 							Expect(dataSet.Active).To(BeTrue())
 						})
 
-						updateValidations()
+						updateAssertions()
 					})
 
 					When("data set type is normal", func() {
@@ -260,7 +260,7 @@ var _ = Describe("None", func() {
 							Expect(dataSet.Active).To(BeFalse())
 						})
 
-						updateValidations()
+						updateAssertions()
 					})
 				})
 			})
@@ -296,7 +296,7 @@ var _ = Describe("None", func() {
 						Expect(session.CreateDataSetDataInputs).To(Equal([]dataStoreDEPRECATEDTest.CreateDataSetDataInput{{Context: ctx, DataSet: dataSet, DataSetData: dataSetData}}))
 					})
 
-					createValidations := func() {
+					createAssertions := func() {
 						It("returns an error when create data set data returns an error", func() {
 							responseErr := errorsTest.RandomError()
 							session.CreateDataSetDataOutputs = []error{responseErr}
@@ -323,7 +323,7 @@ var _ = Describe("None", func() {
 							}
 						})
 
-						createValidations()
+						createAssertions()
 					})
 
 					When("data set type is continuous", func() {
@@ -340,7 +340,7 @@ var _ = Describe("None", func() {
 							}
 						})
 
-						createValidations()
+						createAssertions()
 					})
 
 					When("data set type is normal", func() {
@@ -357,7 +357,7 @@ var _ = Describe("None", func() {
 							}
 						})
 
-						createValidations()
+						createAssertions()
 					})
 				})
 			})
@@ -385,19 +385,19 @@ var _ = Describe("None", func() {
 					Expect(deduplicator.DeleteData(ctx, session, dataSet, nil)).To(MatchError("selectors is missing"))
 				})
 
-				When("delete data set data is invoked", func() {
+				When("destroy data set data is invoked", func() {
 					AfterEach(func() {
-						Expect(session.DeleteDataSetDataInputs).To(Equal([]dataStoreDEPRECATEDTest.DeleteDataSetDataInput{{Context: ctx, DataSet: dataSet, Selectors: selectors}}))
+						Expect(session.DestroyDataSetDataInputs).To(Equal([]dataStoreDEPRECATEDTest.DestroyDataSetDataInput{{Context: ctx, DataSet: dataSet, Selectors: selectors}}))
 					})
 
-					It("returns an error when delete data set data returns an error", func() {
+					It("returns an error when destroy data set data returns an error", func() {
 						responseErr := errorsTest.RandomError()
-						session.DeleteDataSetDataOutputs = []error{responseErr}
+						session.DestroyDataSetDataOutputs = []error{responseErr}
 						Expect(deduplicator.DeleteData(ctx, session, dataSet, selectors)).To(Equal(responseErr))
 					})
 
-					It("returns successfully when delete data set data returns successfully", func() {
-						session.DeleteDataSetDataOutputs = []error{nil}
+					It("returns successfully when destroy data set data returns successfully", func() {
+						session.DestroyDataSetDataOutputs = []error{nil}
 						Expect(deduplicator.DeleteData(ctx, session, dataSet, selectors)).To(Succeed())
 					})
 				})
@@ -426,21 +426,37 @@ var _ = Describe("None", func() {
 					})
 				})
 
-				When("activate data set data is invoked", func() {
+				When("update data set is invoked", func() {
 					AfterEach(func() {
-						Expect(session.ActivateDataSetDataInputs).To(Equal([]dataStoreDEPRECATEDTest.ActivateDataSetDataInput{{Context: ctx, DataSet: dataSet}}))
+						Expect(session.UpdateDataSetInputs).To(Equal([]dataStoreDEPRECATEDTest.UpdateDataSetInput{{Context: ctx, ID: *dataSet.UploadID, Update: &data.DataSetUpdate{Active: pointer.FromBool(true)}}}))
 					})
 
-					activateValidations := func() {
-						It("returns an error when active data set data returns an error", func() {
+					updateAssertions := func() {
+						It("returns an error when update data set data returns an error", func() {
 							responseErr := errorsTest.RandomError()
-							session.ActivateDataSetDataOutputs = []error{responseErr}
+							session.UpdateDataSetOutputs = []dataStoreDEPRECATEDTest.UpdateDataSetOutput{{DataSet: nil, Error: responseErr}}
 							Expect(deduplicator.Close(ctx, session, dataSet)).To(Equal(responseErr))
 						})
 
-						It("returns successfully when active data set data returns successfully", func() {
-							session.ActivateDataSetDataOutputs = []error{nil}
-							Expect(deduplicator.Close(ctx, session, dataSet)).To(Succeed())
+						When("activate data set data is invoked", func() {
+							BeforeEach(func() {
+								session.UpdateDataSetOutputs = []dataStoreDEPRECATEDTest.UpdateDataSetOutput{{DataSet: dataSet, Error: nil}}
+							})
+
+							AfterEach(func() {
+								Expect(session.ActivateDataSetDataInputs).To(Equal([]dataStoreDEPRECATEDTest.ActivateDataSetDataInput{{Context: ctx, DataSet: dataSet, Selectors: nil}}))
+							})
+
+							It("returns an error when active data set data returns an error", func() {
+								responseErr := errorsTest.RandomError()
+								session.ActivateDataSetDataOutputs = []error{responseErr}
+								Expect(deduplicator.Close(ctx, session, dataSet)).To(Equal(responseErr))
+							})
+
+							It("returns successfully when active data set data returns successfully", func() {
+								session.ActivateDataSetDataOutputs = []error{nil}
+								Expect(deduplicator.Close(ctx, session, dataSet)).To(Succeed())
+							})
 						})
 					}
 
@@ -449,7 +465,7 @@ var _ = Describe("None", func() {
 							dataSet.DataSetType = nil
 						})
 
-						activateValidations()
+						updateAssertions()
 					})
 
 					When("data set type is normal", func() {
@@ -457,7 +473,7 @@ var _ = Describe("None", func() {
 							dataSet.DataSetType = pointer.FromString("normal")
 						})
 
-						activateValidations()
+						updateAssertions()
 					})
 				})
 			})

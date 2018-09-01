@@ -162,7 +162,7 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 						Expect(session.UpdateDataSetInputs).To(Equal([]dataStoreDEPRECATEDTest.UpdateDataSetInput{{Context: ctx, ID: *dataSet.UploadID, Update: update}}))
 					})
 
-					updateValidations := func() {
+					updateAssertions := func() {
 						When("the data set does not have a deduplicator", func() {
 							BeforeEach(func() {
 								dataSet.Deduplicator = nil
@@ -234,7 +234,7 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 							Expect(dataSet.Active).To(BeFalse())
 						})
 
-						updateValidations()
+						updateAssertions()
 					})
 
 					When("data set type is continuous", func() {
@@ -247,7 +247,7 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 							Expect(dataSet.Active).To(BeTrue())
 						})
 
-						updateValidations()
+						updateAssertions()
 					})
 
 					When("data set type is normal", func() {
@@ -260,22 +260,22 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 							Expect(dataSet.Active).To(BeFalse())
 						})
 
-						updateValidations()
+						updateAssertions()
 					})
 				})
 			})
 
 			Context("AddData", func() {
 				var dataSetData data.Data
-				var originIDs []string
+				var selectors *data.Selectors
 
 				BeforeEach(func() {
 					dataSetData = make(data.Data, test.RandomIntFromRange(1, 3))
-					originIDs = []string{}
+					selectors = data.NewSelectors()
 					for index := range dataSetData {
 						base := dataTypesTest.NewBase()
-						originIDs = append(originIDs, *base.Origin.ID)
 						dataSetData[index] = base
+						*selectors = append(*selectors, &data.Selector{Origin: &data.SelectorOrigin{ID: pointer.CloneString(base.Origin.ID)}})
 					}
 				})
 
@@ -295,8 +295,8 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 					Expect(deduplicator.AddData(ctx, session, dataSet, nil)).To(MatchError("data set data is missing"))
 				})
 
-				dataSetTypeValidations := func() {
-					originValidations := func() {
+				dataSetTypeAssertions := func() {
+					originAssertions := func() {
 						When("create data set data is invoked", func() {
 							AfterEach(func() {
 								Expect(session.CreateDataSetDataInputs).To(Equal([]dataStoreDEPRECATEDTest.CreateDataSetDataInput{{Context: ctx, DataSet: dataSet, DataSetData: dataSetData}}))
@@ -324,7 +324,7 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 							}
 						})
 
-						originValidations()
+						originAssertions()
 					})
 
 					When("data set data does not have an origin id", func() {
@@ -336,24 +336,24 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 							}
 						})
 
-						originValidations()
+						originAssertions()
 					})
 
 					When("data set data has an origin id", func() {
-						When("archive data set data using origin ids is invoked", func() {
+						When("delete data set data using origin ids is invoked", func() {
 							AfterEach(func() {
-								Expect(session.ArchiveDataSetDataUsingOriginIDsInputs).To(Equal([]dataStoreDEPRECATEDTest.ArchiveDataSetDataUsingOriginIDsInput{{Context: ctx, DataSet: dataSet, OriginIDs: originIDs}}))
+								Expect(session.DeleteDataSetDataInputs).To(Equal([]dataStoreDEPRECATEDTest.DeleteDataSetDataInput{{Context: ctx, DataSet: dataSet, Selectors: selectors}}))
 							})
 
-							It("returns an error when archive data set data using origin id returns an error", func() {
+							It("returns an error when delete data set data using origin id returns an error", func() {
 								responseErr := errorsTest.RandomError()
-								session.ArchiveDataSetDataUsingOriginIDsOutputs = []error{responseErr}
+								session.DeleteDataSetDataOutputs = []error{responseErr}
 								Expect(deduplicator.AddData(ctx, session, dataSet, dataSetData)).To(Equal(responseErr))
 							})
 
 							When("create data set data is invoked", func() {
 								BeforeEach(func() {
-									session.ArchiveDataSetDataUsingOriginIDsOutputs = []error{nil}
+									session.DeleteDataSetDataOutputs = []error{nil}
 								})
 
 								AfterEach(func() {
@@ -366,23 +366,23 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 									Expect(deduplicator.AddData(ctx, session, dataSet, dataSetData)).To(Equal(responseErr))
 								})
 
-								When("delete archived data set data is invoked", func() {
+								When("destroy deleted data set data is invoked", func() {
 									BeforeEach(func() {
 										session.CreateDataSetDataOutputs = []error{nil}
 									})
 
 									AfterEach(func() {
-										Expect(session.DeleteArchivedDataSetDataInputs).To(Equal([]dataStoreDEPRECATEDTest.DeleteArchivedDataSetDataInput{{Context: ctx, DataSet: dataSet}}))
+										Expect(session.DestroyDeletedDataSetDataInputs).To(Equal([]dataStoreDEPRECATEDTest.DestroyDeletedDataSetDataInput{{Context: ctx, DataSet: dataSet, Selectors: selectors}}))
 									})
 
-									It("returns an error when delete archived data set data returns an error", func() {
+									It("returns an error when destroy deleted data set data returns an error", func() {
 										responseErr := errorsTest.RandomError()
-										session.DeleteArchivedDataSetDataOutputs = []error{responseErr}
+										session.DestroyDeletedDataSetDataOutputs = []error{responseErr}
 										Expect(deduplicator.AddData(ctx, session, dataSet, dataSetData)).To(Equal(responseErr))
 									})
 
-									It("returns successfully when delete archived data set data returns successfully", func() {
-										session.DeleteArchivedDataSetDataOutputs = []error{nil}
+									It("returns successfully when destroy deleted data set data returns successfully", func() {
+										session.DestroyDeletedDataSetDataOutputs = []error{nil}
 										Expect(deduplicator.AddData(ctx, session, dataSet, dataSetData)).To(Succeed())
 									})
 								})
@@ -405,7 +405,7 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 						}
 					})
 
-					dataSetTypeValidations()
+					dataSetTypeAssertions()
 				})
 
 				When("data set type is continuous", func() {
@@ -422,7 +422,7 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 						}
 					})
 
-					dataSetTypeValidations()
+					dataSetTypeAssertions()
 				})
 
 				When("data set type is normal", func() {
@@ -439,7 +439,7 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 						}
 					})
 
-					dataSetTypeValidations()
+					dataSetTypeAssertions()
 				})
 			})
 
@@ -466,19 +466,19 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 					Expect(deduplicator.DeleteData(ctx, session, dataSet, nil)).To(MatchError("selectors is missing"))
 				})
 
-				When("delete data set data is invoked", func() {
+				When("archive data set data is invoked", func() {
 					AfterEach(func() {
-						Expect(session.DeleteDataSetDataInputs).To(Equal([]dataStoreDEPRECATEDTest.DeleteDataSetDataInput{{Context: ctx, DataSet: dataSet, Selectors: selectors}}))
+						Expect(session.ArchiveDataSetDataInputs).To(Equal([]dataStoreDEPRECATEDTest.ArchiveDataSetDataInput{{Context: ctx, DataSet: dataSet, Selectors: selectors}}))
 					})
 
-					It("returns an error when delete data set data returns an error", func() {
+					It("returns an error when archive data set data returns an error", func() {
 						responseErr := errorsTest.RandomError()
-						session.DeleteDataSetDataOutputs = []error{responseErr}
+						session.ArchiveDataSetDataOutputs = []error{responseErr}
 						Expect(deduplicator.DeleteData(ctx, session, dataSet, selectors)).To(Equal(responseErr))
 					})
 
-					It("returns successfully when delete data set data returns successfully", func() {
-						session.DeleteDataSetDataOutputs = []error{nil}
+					It("returns successfully when archive data set data returns successfully", func() {
+						session.ArchiveDataSetDataOutputs = []error{nil}
 						Expect(deduplicator.DeleteData(ctx, session, dataSet, selectors)).To(Succeed())
 					})
 				})
@@ -507,21 +507,37 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 					})
 				})
 
-				When("activate data set data is invoked", func() {
+				When("update data set is invoked", func() {
 					AfterEach(func() {
-						Expect(session.ActivateDataSetDataInputs).To(Equal([]dataStoreDEPRECATEDTest.ActivateDataSetDataInput{{Context: ctx, DataSet: dataSet}}))
+						Expect(session.UpdateDataSetInputs).To(Equal([]dataStoreDEPRECATEDTest.UpdateDataSetInput{{Context: ctx, ID: *dataSet.UploadID, Update: &data.DataSetUpdate{Active: pointer.FromBool(true)}}}))
 					})
 
-					activateValidations := func() {
-						It("returns an error when active data set data returns an error", func() {
+					updateAssertions := func() {
+						It("returns an error when update data set data returns an error", func() {
 							responseErr := errorsTest.RandomError()
-							session.ActivateDataSetDataOutputs = []error{responseErr}
+							session.UpdateDataSetOutputs = []dataStoreDEPRECATEDTest.UpdateDataSetOutput{{DataSet: nil, Error: responseErr}}
 							Expect(deduplicator.Close(ctx, session, dataSet)).To(Equal(responseErr))
 						})
 
-						It("returns successfully when active data set data returns successfully", func() {
-							session.ActivateDataSetDataOutputs = []error{nil}
-							Expect(deduplicator.Close(ctx, session, dataSet)).To(Succeed())
+						When("activate data set data is invoked", func() {
+							BeforeEach(func() {
+								session.UpdateDataSetOutputs = []dataStoreDEPRECATEDTest.UpdateDataSetOutput{{DataSet: dataSet, Error: nil}}
+							})
+
+							AfterEach(func() {
+								Expect(session.ActivateDataSetDataInputs).To(Equal([]dataStoreDEPRECATEDTest.ActivateDataSetDataInput{{Context: ctx, DataSet: dataSet, Selectors: nil}}))
+							})
+
+							It("returns an error when active data set data returns an error", func() {
+								responseErr := errorsTest.RandomError()
+								session.ActivateDataSetDataOutputs = []error{responseErr}
+								Expect(deduplicator.Close(ctx, session, dataSet)).To(Equal(responseErr))
+							})
+
+							It("returns successfully when active data set data returns successfully", func() {
+								session.ActivateDataSetDataOutputs = []error{nil}
+								Expect(deduplicator.Close(ctx, session, dataSet)).To(Succeed())
+							})
 						})
 					}
 
@@ -530,7 +546,7 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 							dataSet.DataSetType = nil
 						})
 
-						activateValidations()
+						updateAssertions()
 					})
 
 					When("data set type is normal", func() {
@@ -538,7 +554,7 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 							dataSet.DataSetType = pointer.FromString("normal")
 						})
 
-						activateValidations()
+						updateAssertions()
 					})
 				})
 			})

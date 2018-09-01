@@ -8,6 +8,7 @@ import (
 	dataTypesCommonOrigin "github.com/tidepool-org/platform/data/types/common/origin"
 	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/pointer"
 )
 
 const DataSetDeleteOriginName = "org.tidepool.deduplicator.dataset.delete.origin"
@@ -75,17 +76,34 @@ func (d *DataSetDeleteOrigin) AddData(ctx context.Context, session dataStoreDEPR
 		dataSetData.SetActive(true)
 	}
 
-	if originIDs := getOriginIDs(dataSetData); len(originIDs) > 0 {
-		if err := session.ArchiveDataSetDataUsingOriginIDs(ctx, dataSet, originIDs); err != nil {
+	if selectors := d.getSelectors(dataSetData); selectors != nil {
+		if err := session.DeleteDataSetData(ctx, dataSet, selectors); err != nil {
 			return err
 		}
 		if err := d.Base.AddData(ctx, session, dataSet, dataSetData); err != nil {
 			return err
 		}
-		return session.DeleteArchivedDataSetData(ctx, dataSet)
+		return session.DestroyDeletedDataSetData(ctx, dataSet, selectors)
 	}
 
 	return d.Base.AddData(ctx, session, dataSet, dataSetData)
+}
+
+func (d *DataSetDeleteOrigin) DeleteData(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload, selectors *data.Selectors) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if session == nil {
+		return errors.New("session is missing")
+	}
+	if dataSet == nil {
+		return errors.New("data set is missing")
+	}
+	if selectors == nil {
+		return errors.New("selectors is missing")
+	}
+
+	return session.ArchiveDataSetData(ctx, dataSet, selectors)
 }
 
 func (d *DataSetDeleteOrigin) Close(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload) error {
@@ -106,12 +124,20 @@ func (d *DataSetDeleteOrigin) Close(ctx context.Context, session dataStoreDEPREC
 	return d.Base.Close(ctx, session, dataSet)
 }
 
-func getOriginIDs(dataSetData data.Data) []string {
-	var originIDs []string
+func (d *DataSetDeleteOrigin) getSelectors(dataSetData data.Data) *data.Selectors {
+	selectors := data.Selectors{}
 	for _, dataSetDatum := range dataSetData {
 		if origin := dataSetDatum.(dataTypesCommonOrigin.Getter).GetOrigin(); origin != nil && origin.ID != nil {
-			originIDs = append(originIDs, *origin.ID)
+			selector := &data.Selector{
+				Origin: &data.SelectorOrigin{
+					ID: pointer.CloneString(origin.ID),
+				},
+			}
+			selectors = append(selectors, selector)
 		}
 	}
-	return originIDs
+	if len(selectors) == 0 {
+		return nil
+	}
+	return &selectors
 }
