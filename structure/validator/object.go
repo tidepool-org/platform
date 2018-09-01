@@ -33,7 +33,7 @@ func (o *Object) NotExists() structure.Object {
 
 func (o *Object) Empty() structure.Object {
 	if o.value != nil {
-		if len(*o.value) != 0 {
+		if len(*o.value) > 0 {
 			o.base.ReportError(ErrorValueNotEmpty())
 		}
 	}

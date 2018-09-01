@@ -234,7 +234,7 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 			query["revision"] = *condition.Revision
 		}
 		set := bson.M{
-			"modifiedTime": pointer.FromTime(now.Truncate(time.Second)),
+			"modifiedTime": now.Truncate(time.Second),
 		}
 		unset := bson.M{}
 		if update.MediaType != nil {

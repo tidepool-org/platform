@@ -178,13 +178,13 @@ func (s *Session) C() *mgo.Collection {
 
 func (s *Session) ConstructUpdate(set bson.M, unset bson.M) bson.M {
 	update := bson.M{}
-	if len(set) != 0 {
+	if len(set) > 0 {
 		update["$set"] = set
 	}
-	if len(unset) != 0 {
+	if len(unset) > 0 {
 		update["$unset"] = unset
 	}
-	if len(update) != 0 {
+	if len(update) > 0 {
 		update["$inc"] = bson.M{
 			"revision": 1,
 		}

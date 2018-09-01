@@ -82,8 +82,7 @@ func (b *BasalRateStartArray) Parse(parser data.ArrayParser) {
 func (b *BasalRateStartArray) Validate(validator structure.Validator) {
 	startMinimum := pointer.FromInt(BasalRateStartStartMinimum)
 	for index, datum := range *b {
-		datumValidator := validator.WithReference(strconv.Itoa(index))
-		if datum != nil {
+		if datumValidator := validator.WithReference(strconv.Itoa(index)); datum != nil {
 			datum.Validate(datumValidator, startMinimum)
 			if index == 0 {
 				startMinimum = pointer.FromInt(BasalRateStartStartMinimum + 1)

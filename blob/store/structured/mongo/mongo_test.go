@@ -638,20 +638,20 @@ var _ = Describe("Mongo", func() {
 								id = blobTest.RandomID()
 								Expect(session.Update(ctx, id, condition, update)).To(BeNil())
 							})
+						})
 
-							Context("without updates", func() {
-								BeforeEach(func() {
-									update = blobStoreStructured.NewUpdate()
-								})
+						Context("without updates", func() {
+							BeforeEach(func() {
+								update = blobStoreStructured.NewUpdate()
+							})
 
-								It("returns original when the id exists", func() {
-									Expect(session.Update(ctx, id, condition, update)).To(Equal(original))
-								})
+							It("returns original when the id exists", func() {
+								Expect(session.Update(ctx, id, condition, update)).To(Equal(original))
+							})
 
-								It("returns nil when the id does not exist", func() {
-									id = blobTest.RandomID()
-									Expect(session.Update(ctx, id, condition, update)).To(BeNil())
-								})
+							It("returns nil when the id does not exist", func() {
+								id = blobTest.RandomID()
+								Expect(session.Update(ctx, id, condition, update)).To(BeNil())
 							})
 						})
 					}

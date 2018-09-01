@@ -38,7 +38,7 @@ func CloneAssociation(datum *association.Association) *association.Association {
 
 func NewAssociationArray() *association.AssociationArray {
 	datum := association.NewAssociationArray()
-	for count := rand.Intn(100); count >= 0; count-- {
+	for count := rand.Intn(3); count >= 0; count-- {
 		*datum = append(*datum, NewAssociation())
 	}
 	return datum

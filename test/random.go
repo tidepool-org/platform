@@ -10,6 +10,30 @@ func RandomBool() bool {
 	return rand.Intn(2) == 0
 }
 
+func RandomBytes() []byte {
+	return RandomBytesFromRange(RandomBytesLengthMinimum(), RandomBytesLengthMaximum())
+}
+
+func RandomBytesFromRange(minimumLength int, maximumLength int) []byte {
+	if maximumLength < minimumLength {
+		panic("RandomBytesFromRange: maximum length is not greater than or equal to minimum length")
+	}
+	bytes := make([]byte, RandomIntFromRange(minimumLength, maximumLength))
+	length, err := rand.Read(bytes)
+	if err != nil || length != len(bytes) {
+		panic("RandomBytesFromRange: unable to read random bytes")
+	}
+	return bytes
+}
+
+func RandomBytesLengthMaximum() int {
+	return 1024
+}
+
+func RandomBytesLengthMinimum() int {
+	return 1
+}
+
 func RandomDuration() time.Duration {
 	return RandomDurationFromRange(RandomDurationMinimum(), RandomDurationMaximum())
 }
@@ -152,6 +176,17 @@ func RandomStringArray() []string {
 	return RandomStringArrayFromRange(RandomStringArrayLengthMinimum(), RandomStringArrayLengthMaximum())
 }
 
+func RandomStringArrayFromRange(minimumLength int, maximumLength int) []string {
+	if maximumLength < minimumLength {
+		panic("RandomStringArrayFromRange: maximum length is not greater than or equal to minimum length")
+	}
+	array := make([]string, RandomIntFromRange(minimumLength, maximumLength))
+	for index := range array {
+		array[index] = RandomString()
+	}
+	return array
+}
+
 func RandomStringArrayFromRangeAndArrayWithDuplicates(minimumLength int, maximumLength int, array []string) []string {
 	if maximumLength < minimumLength {
 		panic("RandomStringArrayFromRangeAndArrayWithDuplicates: maximum length is not greater than or equal to minimum length")
@@ -182,17 +217,6 @@ func RandomStringArrayFromRangeAndArrayWithoutDuplicates(minimumLength int, maxi
 		result[index] = array[arrayIndexes[index]]
 	}
 	return result
-}
-
-func RandomStringArrayFromRange(minimumLength int, maximumLength int) []string {
-	if maximumLength < minimumLength {
-		panic("RandomStringArrayFromRange: maximum length is not greater than or equal to minimum length")
-	}
-	array := make([]string, RandomIntFromRange(minimumLength, maximumLength))
-	for index := range array {
-		array[index] = RandomString()
-	}
-	return array
 }
 
 func RandomStringArrayFromRangeAndCharset(minimumLength int, maximumLength int, charset string) []string {
@@ -279,28 +303,4 @@ func RandomTimeMaximum() time.Time {
 
 func RandomTimeMinimum() time.Time {
 	return time.Now().Add(RandomDurationMinimum())
-}
-
-func RandomBytes() []byte {
-	return RandomBytesFromRange(RandomBytesLengthMinimum(), RandomBytesLengthMaximum())
-}
-
-func RandomBytesFromRange(minimumLength int, maximumLength int) []byte {
-	if maximumLength < minimumLength {
-		panic("RandomBytesFromRange: maximum length is not greater than or equal to minimum length")
-	}
-	bytes := make([]byte, RandomIntFromRange(minimumLength, maximumLength))
-	length, err := rand.Read(bytes)
-	if err != nil || length != len(bytes) {
-		panic("RandomBytesFromRange: unable to read random bytes")
-	}
-	return bytes
-}
-
-func RandomBytesLengthMaximum() int {
-	return 1024
-}
-
-func RandomBytesLengthMinimum() int {
-	return 1
 }

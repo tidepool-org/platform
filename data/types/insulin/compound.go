@@ -81,8 +81,7 @@ func (c *CompoundArray) Validate(validator structure.Validator) {
 		validator.ReportError(structureValidator.ErrorLengthNotLessThanOrEqualTo(length, CompoundArrayLengthMaximum))
 	}
 	for index, datum := range *c {
-		datumValidator := validator.WithReference(strconv.Itoa(index))
-		if datum != nil {
+		if datumValidator := validator.WithReference(strconv.Itoa(index)); datum != nil {
 			datum.Validate(datumValidator)
 		} else {
 			datumValidator.ReportError(structureValidator.ErrorValueNotExists())

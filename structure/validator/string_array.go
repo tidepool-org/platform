@@ -36,7 +36,7 @@ func (s *StringArray) NotExists() structure.StringArray {
 
 func (s *StringArray) Empty() structure.StringArray {
 	if s.value != nil {
-		if len(*s.value) != 0 {
+		if len(*s.value) > 0 {
 			s.base.ReportError(ErrorValueNotEmpty())
 		}
 	}

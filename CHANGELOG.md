@@ -2,6 +2,7 @@
 
 ## v1.29.0
 
+* Refactor for code consistency
 * Rename data.Delete to data.Selector for more general usage
 * Add data deduplicator name migration
 * Refactor entire data deduplicator package
