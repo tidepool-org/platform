@@ -140,13 +140,6 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 					Expect(result).To(BeNil())
 				})
 
-				It("returns an error when the data set deduplicator name does not match", func() {
-					dataSet.Deduplicator.Name = pointer.FromString(netTest.RandomReverseDomain())
-					result, err := deduplicator.Open(ctx, session, dataSet)
-					Expect(err).To(MatchError("data set uses different deduplicator"))
-					Expect(result).To(BeNil())
-				})
-
 				When("update data set is invoked", func() {
 					var update *data.DataSetUpdate
 

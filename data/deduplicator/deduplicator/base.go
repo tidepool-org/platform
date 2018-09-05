@@ -57,10 +57,6 @@ func (b *Base) Open(ctx context.Context, session dataStoreDEPRECATED.DataSession
 		return nil, errors.New("data set is missing")
 	}
 
-	if dataSet.HasDeduplicatorName() && !dataSet.HasDeduplicatorNameMatch(b.name) {
-		return nil, errors.New("data set uses different deduplicator")
-	}
-
 	update := data.NewDataSetUpdate()
 	update.Active = pointer.FromBool(dataSet.Active)
 	update.Deduplicator = data.NewDeduplicatorDescriptor()

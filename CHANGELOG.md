@@ -2,6 +2,8 @@
 
 ## v1.29.0
 
+* Return updated data set after creation
+* Remove unnecessary condition when opening deduplicator for data set
 * Update delete data set origin deduplicator to delete duplicates found when adding data
 * Update delete data set origin deduplicator to deactivate deleted data
 * Update base deduplicator to activate data set separately from data set data
