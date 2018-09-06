@@ -2,6 +2,7 @@
 
 ## v1.29.0
 
+* Add minutes and seconds to pump settings bolus calculator insulin duration units
 * Return updated data set after creation
 * Remove unnecessary condition when opening deduplicator for data set
 * Update delete data set origin deduplicator to delete duplicates found when adding data

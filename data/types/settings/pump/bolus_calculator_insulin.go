@@ -8,14 +8,22 @@ import (
 )
 
 const (
-	BolusCalculatorInsulinDurationHoursMaximum = 10.0
-	BolusCalculatorInsulinDurationHoursMinimum = 0.0
-	BolusCalculatorInsulinUnitsHours           = "hours"
+	BolusCalculatorInsulinDurationHoursMaximum   = 10.0
+	BolusCalculatorInsulinDurationHoursMinimum   = 0.0
+	BolusCalculatorInsulinDurationMinutesMaximum = BolusCalculatorInsulinDurationHoursMaximum * 60.0
+	BolusCalculatorInsulinDurationMinutesMinimum = BolusCalculatorInsulinDurationHoursMinimum * 60.0
+	BolusCalculatorInsulinDurationSecondsMaximum = BolusCalculatorInsulinDurationMinutesMaximum * 60.0
+	BolusCalculatorInsulinDurationSecondsMinimum = BolusCalculatorInsulinDurationMinutesMinimum * 60.0
+	BolusCalculatorInsulinUnitsHours             = "hours"
+	BolusCalculatorInsulinUnitsMinutes           = "minutes"
+	BolusCalculatorInsulinUnitsSeconds           = "seconds"
 )
 
 func BolusCalculatorInsulinUnits() []string {
 	return []string{
 		BolusCalculatorInsulinUnitsHours,
+		BolusCalculatorInsulinUnitsMinutes,
+		BolusCalculatorInsulinUnitsSeconds,
 	}
 }
 
@@ -55,6 +63,10 @@ func BolusCalculatorInsulinDurationRangeForUnits(units *string) (float64, float6
 		switch *units {
 		case BolusCalculatorInsulinUnitsHours:
 			return BolusCalculatorInsulinDurationHoursMinimum, BolusCalculatorInsulinDurationHoursMaximum
+		case BolusCalculatorInsulinUnitsMinutes:
+			return BolusCalculatorInsulinDurationMinutesMinimum, BolusCalculatorInsulinDurationMinutesMaximum
+		case BolusCalculatorInsulinUnitsSeconds:
+			return BolusCalculatorInsulinDurationSecondsMinimum, BolusCalculatorInsulinDurationSecondsMaximum
 		}
 	}
 	return -math.MaxFloat64, math.MaxFloat64
