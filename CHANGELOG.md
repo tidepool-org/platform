@@ -1,5 +1,7 @@
 ## HEAD
 
+* Remove unused code in data store mongo implementation
+
 ## v1.29.0
 
 * Update mongo queries for data using selectors to more effectively use indexes
