@@ -134,8 +134,8 @@ func (t *Tool) Initialize(provider application.Provider) error {
 			Usage: "output file",
 		},
 	)
-	t.CLI().Action = func(context *cli.Context) error {
-		if !t.ParseContext(context) {
+	t.CLI().Action = func(ctx *cli.Context) error {
+		if !t.ParseContext(ctx) {
 			return nil
 		}
 		return t.execute()
@@ -162,14 +162,16 @@ func (t *Tool) Terminate() {
 	t.terminateDataSession()
 	t.terminateMetadataSession()
 	t.terminateUsersSession()
+
+	t.Tool.Terminate()
 }
 
-func (t *Tool) ParseContext(context *cli.Context) bool {
-	if parsed := t.Tool.ParseContext(context); !parsed {
+func (t *Tool) ParseContext(ctx *cli.Context) bool {
+	if parsed := t.Tool.ParseContext(ctx); !parsed {
 		return parsed
 	}
 
-	t.output = context.String(OutputFlag)
+	t.output = ctx.String(OutputFlag)
 
 	return true
 }
