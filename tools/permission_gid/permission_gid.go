@@ -65,8 +65,8 @@ func (t *Tool) Initialize(provider application.Provider) error {
 		},
 	)
 
-	t.CLI().Action = func(context *cli.Context) error {
-		if !t.ParseContext(context) {
+	t.CLI().Action = func(ctx *cli.Context) error {
+		if !t.ParseContext(ctx) {
 			return nil
 		}
 		return t.execute()
@@ -75,18 +75,18 @@ func (t *Tool) Initialize(provider application.Provider) error {
 	return nil
 }
 
-func (t *Tool) ParseContext(context *cli.Context) bool {
-	if parsed := t.Tool.ParseContext(context); !parsed {
+func (t *Tool) ParseContext(ctx *cli.Context) bool {
+	if parsed := t.Tool.ParseContext(ctx); !parsed {
 		return parsed
 	}
 
 	t.secret = t.ConfigReporter().WithScopes("permission", "store").GetWithDefault("secret", "")
 
-	if context.IsSet(SecretFlag) {
-		t.secret = context.String(SecretFlag)
+	if ctx.IsSet(SecretFlag) {
+		t.secret = ctx.String(SecretFlag)
 	}
-	t.encode = context.Bool(EncodeFlag)
-	t.decode = context.Bool(DecodeFlag)
+	t.encode = ctx.Bool(EncodeFlag)
+	t.decode = ctx.Bool(DecodeFlag)
 
 	return true
 }

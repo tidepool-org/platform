@@ -39,12 +39,12 @@ func (m *Migration) Initialize(provider application.Provider) error {
 	return nil
 }
 
-func (m *Migration) ParseContext(context *cli.Context) bool {
-	if parsed := m.Tool.ParseContext(context); !parsed {
+func (m *Migration) ParseContext(ctx *cli.Context) bool {
+	if parsed := m.Tool.ParseContext(ctx); !parsed {
 		return parsed
 	}
 
-	m.dryRun = context.Bool(DryRunFlag)
+	m.dryRun = ctx.Bool(DryRunFlag)
 
 	return true
 }

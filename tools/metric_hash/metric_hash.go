@@ -51,8 +51,8 @@ func (t *Tool) Initialize(provider application.Provider) error {
 		},
 	)
 
-	t.CLI().Action = func(context *cli.Context) error {
-		if !t.ParseContext(context) {
+	t.CLI().Action = func(ctx *cli.Context) error {
+		if !t.ParseContext(ctx) {
 			return nil
 		}
 		return t.execute()
@@ -61,15 +61,15 @@ func (t *Tool) Initialize(provider application.Provider) error {
 	return nil
 }
 
-func (t *Tool) ParseContext(context *cli.Context) bool {
-	if parsed := t.Tool.ParseContext(context); !parsed {
+func (t *Tool) ParseContext(ctx *cli.Context) bool {
+	if parsed := t.Tool.ParseContext(ctx); !parsed {
 		return parsed
 	}
 
 	t.salt = t.ConfigReporter().WithScopes("metric").GetWithDefault("salt", "")
 
-	if context.IsSet(SaltFlag) {
-		t.salt = context.String(SaltFlag)
+	if ctx.IsSet(SaltFlag) {
+		t.salt = ctx.String(SaltFlag)
 	}
 
 	return true

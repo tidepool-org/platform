@@ -1,5 +1,6 @@
 ## HEAD
 
+* Rename local variable name context to ctx for consistency
 * Remove unused code in data store mongo implementation
 * Update tool dependencies
 * Add build tools as additional dependencies
