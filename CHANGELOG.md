@@ -1,5 +1,6 @@
 ## HEAD
 
+* Add data store benchmark tool
 * Rename local variable name context to ctx for consistency
 * Remove unused code in data store mongo implementation
 * Update tool dependencies
