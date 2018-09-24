@@ -338,7 +338,7 @@ func (d *DataSession) ActivateDataSetData(ctx context.Context, dataSet *upload.U
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	translatedSelectors, err := validateAndTranslateSelectors(selectors)
+	selector, err := validateAndTranslateSelectors(selectors)
 	if err != nil {
 		return err
 	}
@@ -350,16 +350,11 @@ func (d *DataSession) ActivateDataSetData(ctx context.Context, dataSet *upload.U
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithField("dataSetId", *dataSet.UploadID)
 
-	selector := bson.M{
-		"_userId":     dataSet.UserID,
-		"uploadId":    dataSet.UploadID,
-		"type":        bson.M{"$ne": "upload"},
-		"_active":     false,
-		"deletedTime": bson.M{"$exists": false},
-	}
-	if translatedSelectors != nil {
-		selector["$or"] = translatedSelectors
-	}
+	selector["_userId"] = dataSet.UserID
+	selector["uploadId"] = dataSet.UploadID
+	selector["type"] = bson.M{"$ne": "upload"}
+	selector["_active"] = false
+	selector["deletedTime"] = bson.M{"$exists": false}
 	set := bson.M{
 		"_active":      true,
 		"modifiedTime": now.Format(time.RFC3339),
@@ -386,7 +381,7 @@ func (d *DataSession) ArchiveDataSetData(ctx context.Context, dataSet *upload.Up
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	translatedSelectors, err := validateAndTranslateSelectors(selectors)
+	selector, err := validateAndTranslateSelectors(selectors)
 	if err != nil {
 		return err
 	}
@@ -398,16 +393,11 @@ func (d *DataSession) ArchiveDataSetData(ctx context.Context, dataSet *upload.Up
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithField("dataSetId", *dataSet.UploadID)
 
-	selector := bson.M{
-		"_userId":     dataSet.UserID,
-		"uploadId":    dataSet.UploadID,
-		"type":        bson.M{"$ne": "upload"},
-		"_active":     true,
-		"deletedTime": bson.M{"$exists": false},
-	}
-	if translatedSelectors != nil {
-		selector["$or"] = translatedSelectors
-	}
+	selector["_userId"] = dataSet.UserID
+	selector["uploadId"] = dataSet.UploadID
+	selector["type"] = bson.M{"$ne": "upload"}
+	selector["_active"] = true
+	selector["deletedTime"] = bson.M{"$exists": false}
 	set := bson.M{
 		"_active":      false,
 		"archivedTime": now.Format(time.RFC3339),
@@ -434,7 +424,7 @@ func (d *DataSession) DeleteDataSetData(ctx context.Context, dataSet *upload.Upl
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	translatedSelectors, err := validateAndTranslateSelectors(selectors)
+	selector, err := validateAndTranslateSelectors(selectors)
 	if err != nil {
 		return err
 	}
@@ -446,15 +436,10 @@ func (d *DataSession) DeleteDataSetData(ctx context.Context, dataSet *upload.Upl
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithField("dataSetId", *dataSet.UploadID)
 
-	selector := bson.M{
-		"_userId":     dataSet.UserID,
-		"uploadId":    dataSet.UploadID,
-		"type":        bson.M{"$ne": "upload"},
-		"deletedTime": bson.M{"$exists": false},
-	}
-	if translatedSelectors != nil {
-		selector["$or"] = translatedSelectors
-	}
+	selector["_userId"] = dataSet.UserID
+	selector["uploadId"] = dataSet.UploadID
+	selector["type"] = bson.M{"$ne": "upload"}
+	selector["deletedTime"] = bson.M{"$exists": false}
 	set := bson.M{
 		"_active":      false,
 		"archivedTime": now.Format(time.RFC3339),
@@ -483,7 +468,7 @@ func (d *DataSession) DestroyDeletedDataSetData(ctx context.Context, dataSet *up
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	translatedSelectors, err := validateAndTranslateSelectors(selectors)
+	selector, err := validateAndTranslateSelectors(selectors)
 	if err != nil {
 		return err
 	}
@@ -495,15 +480,10 @@ func (d *DataSession) DestroyDeletedDataSetData(ctx context.Context, dataSet *up
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithField("dataSetId", *dataSet.UploadID)
 
-	selector := bson.M{
-		"_userId":     dataSet.UserID,
-		"uploadId":    dataSet.UploadID,
-		"type":        bson.M{"$ne": "upload"},
-		"deletedTime": bson.M{"$exists": true},
-	}
-	if translatedSelectors != nil {
-		selector["$or"] = translatedSelectors
-	}
+	selector["_userId"] = dataSet.UserID
+	selector["uploadId"] = dataSet.UploadID
+	selector["type"] = bson.M{"$ne": "upload"}
+	selector["deletedTime"] = bson.M{"$exists": true}
 	changeInfo, err := d.C().RemoveAll(selector)
 	if err != nil {
 		logger.WithError(err).Error("Unable to destroy deleted data set data")
@@ -521,7 +501,7 @@ func (d *DataSession) DestroyDataSetData(ctx context.Context, dataSet *upload.Up
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	translatedSelectors, err := validateAndTranslateSelectors(selectors)
+	selector, err := validateAndTranslateSelectors(selectors)
 	if err != nil {
 		return err
 	}
@@ -533,14 +513,9 @@ func (d *DataSession) DestroyDataSetData(ctx context.Context, dataSet *upload.Up
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithField("dataSetId", *dataSet.UploadID)
 
-	selector := bson.M{
-		"_userId":  dataSet.UserID,
-		"uploadId": dataSet.UploadID,
-		"type":     bson.M{"$ne": "upload"},
-	}
-	if translatedSelectors != nil {
-		selector["$or"] = translatedSelectors
-	}
+	selector["_userId"] = dataSet.UserID
+	selector["uploadId"] = dataSet.UploadID
+	selector["type"] = bson.M{"$ne": "upload"}
 	changeInfo, err := d.C().RemoveAll(selector)
 	if err != nil {
 		logger.WithError(err).Error("Unable to destroy data set data")
@@ -939,32 +914,40 @@ func validateDataSet(dataSet *upload.Upload) error {
 	return nil
 }
 
-func validateAndTranslateSelectors(selectors *data.Selectors) ([]bson.M, error) {
+func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
 	if selectors == nil {
-		return nil, nil
+		return bson.M{}, nil
 	} else if err := structureValidator.New().Validate(selectors); err != nil {
 		return nil, errors.Wrap(err, "selectors is invalid")
 	}
 
-	translatedSelectors := []bson.M{}
+	var selectorIDs []string
+	var selectorOriginIDs []string
 	for _, selector := range *selectors {
-		translatedSelector := bson.M{}
 		if selector != nil {
 			if selector.ID != nil {
-				translatedSelector["id"] = *selector.ID
+				selectorIDs = append(selectorIDs, *selector.ID)
+			} else if selector.Origin != nil && selector.Origin.ID != nil {
+				selectorOriginIDs = append(selectorOriginIDs, *selector.Origin.ID)
 			}
-			if selector.Origin != nil && selector.Origin.ID != nil {
-				translatedSelector["origin.id"] = *selector.Origin.ID
-			}
-		}
-		if len(translatedSelector) > 0 {
-			translatedSelectors = append(translatedSelectors, translatedSelector)
 		}
 	}
 
-	if len(translatedSelectors) == 0 {
+	selector := bson.M{}
+	if len(selectorIDs) > 0 && len(selectorOriginIDs) > 0 {
+		selector["$or"] = []bson.M{
+			{"id": bson.M{"$in": selectorIDs}},
+			{"origin.id": bson.M{"$in": selectorOriginIDs}},
+		}
+	} else if len(selectorIDs) > 0 {
+		selector["id"] = bson.M{"$in": selectorIDs}
+	} else if len(selectorOriginIDs) > 0 {
+		selector["origin.id"] = bson.M{"$in": selectorOriginIDs}
+	}
+
+	if len(selector) == 0 {
 		return nil, errors.New("selectors is invalid")
 	}
 
-	return translatedSelectors, nil
+	return selector, nil
 }
