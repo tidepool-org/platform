@@ -9,3 +9,7 @@ func MarshalRequestBody(object interface{}) ([]byte, error) {
 	}
 	return append(bytes, []byte("\n")...), nil
 }
+
+func MarshalResponseBody(object interface{}) ([]byte, error) {
+	return json.Marshal(object)
+}
