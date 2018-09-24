@@ -1,5 +1,6 @@
 ## HEAD
 
+* Update oauth/client package tests to latest best practices
 * Update platform package tests to latest best practices
 * Update client package tests to latest best practices
 * Update Dexcom types to latest best practices
