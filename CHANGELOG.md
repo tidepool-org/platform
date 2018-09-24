@@ -1,5 +1,6 @@
 ## HEAD
 
+* Update platform package tests to latest best practices
 * Update client package tests to latest best practices
 * Update Dexcom types to latest best practices
 * Add data store benchmark tool

@@ -37,7 +37,7 @@ var _ = Describe("Client", func() {
 		var userAgent string
 		var serviceSecret string
 		var ctx context.Context
-		var cfg *platform.Config
+		var config *platform.Config
 
 		BeforeEach(func() {
 			address = testHTTP.NewAddress()
@@ -47,12 +47,12 @@ var _ = Describe("Client", func() {
 		})
 
 		JustBeforeEach(func() {
-			cfg = platform.NewConfig()
-			Expect(cfg).ToNot(BeNil())
-			Expect(cfg.Config).ToNot(BeNil())
-			cfg.Address = address
-			cfg.UserAgent = userAgent
-			cfg.ServiceSecret = serviceSecret
+			config = platform.NewConfig()
+			Expect(config).ToNot(BeNil())
+			Expect(config.Config).ToNot(BeNil())
+			config.Address = address
+			config.UserAgent = userAgent
+			config.ServiceSecret = serviceSecret
 		})
 
 		Context("NewClient", func() {
@@ -63,20 +63,20 @@ var _ = Describe("Client", func() {
 			})
 
 			It("returns an error if config is invalid", func() {
-				cfg.Address = ""
-				clnt, err := platform.NewClient(cfg, platform.AuthorizeAsUser)
+				config.Address = ""
+				clnt, err := platform.NewClient(config, platform.AuthorizeAsUser)
 				Expect(err).To(MatchError("config is invalid; address is missing"))
 				Expect(clnt).To(BeNil())
 			})
 
 			It("returns an error if authorize as is invalid", func() {
-				clnt, err := platform.NewClient(cfg, platform.AuthorizeAs(-1))
+				clnt, err := platform.NewClient(config, platform.AuthorizeAs(-1))
 				Expect(err).To(MatchError("authorize as is invalid"))
 				Expect(clnt).To(BeNil())
 			})
 
 			It("returns success", func() {
-				clnt, err := platform.NewClient(cfg, platform.AuthorizeAsUser)
+				clnt, err := platform.NewClient(config, platform.AuthorizeAsUser)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(clnt).ToNot(BeNil())
 			})
@@ -87,7 +87,7 @@ var _ = Describe("Client", func() {
 
 			JustBeforeEach(func() {
 				var err error
-				clnt, err = platform.NewClient(cfg, platform.AuthorizeAsService)
+				clnt, err = platform.NewClient(config, platform.AuthorizeAsService)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(clnt).ToNot(BeNil())
 			})
@@ -326,7 +326,7 @@ var _ = Describe("Client", func() {
 
 			JustBeforeEach(func() {
 				var err error
-				clnt, err = platform.NewClient(cfg, platform.AuthorizeAsUser)
+				clnt, err = platform.NewClient(config, platform.AuthorizeAsUser)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(clnt).ToNot(BeNil())
 			})
