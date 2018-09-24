@@ -1,5 +1,6 @@
 ## HEAD
 
+* Update client package tests to latest best practices
 * Update Dexcom types to latest best practices
 * Add data store benchmark tool
 * Rename local variable name context to ctx for consistency
