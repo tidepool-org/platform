@@ -15,26 +15,26 @@ import (
 	"github.com/tidepool-org/platform/test"
 )
 
-func NewOutOfRangeAlert() *cgm.OutOfRangeAlert {
-	datum := cgm.NewOutOfRangeAlert()
+func NewOutOfRangeAlertDEPRECATED() *cgm.OutOfRangeAlertDEPRECATED {
+	datum := cgm.NewOutOfRangeAlertDEPRECATED()
 	datum.Enabled = pointer.FromBool(test.RandomBool())
-	datum.Threshold = pointer.FromInt(test.RandomIntFromArray(cgm.OutOfRangeAlertThresholds()))
+	datum.Threshold = pointer.FromInt(test.RandomIntFromArray(cgm.OutOfRangeAlertDEPRECATEDThresholds()))
 	return datum
 }
 
-func CloneOutOfRangeAlert(datum *cgm.OutOfRangeAlert) *cgm.OutOfRangeAlert {
+func CloneOutOfRangeAlertDEPRECATED(datum *cgm.OutOfRangeAlertDEPRECATED) *cgm.OutOfRangeAlertDEPRECATED {
 	if datum == nil {
 		return nil
 	}
-	clone := cgm.NewOutOfRangeAlert()
+	clone := cgm.NewOutOfRangeAlertDEPRECATED()
 	clone.Enabled = test.CloneBool(datum.Enabled)
 	clone.Threshold = test.CloneInt(datum.Threshold)
 	return clone
 }
 
-var _ = Describe("OutOfRangeAlert", func() {
-	It("OutOfRangeAlertThresholds returns expected", func() {
-		Expect(cgm.OutOfRangeAlertThresholds()).To(Equal([]int{
+var _ = Describe("OutOfRangeAlertDEPRECATED", func() {
+	It("OutOfRangeAlertDEPRECATEDThresholds returns expected", func() {
+		Expect(cgm.OutOfRangeAlertDEPRECATEDThresholds()).To(Equal([]int{
 			1200000, 1500000, 1800000, 2100000, 2400000, 2700000, 3000000, 3300000,
 			3600000, 3900000, 4200000, 4500000, 4800000, 5100000, 5400000, 5700000,
 			6000000, 6300000, 6600000, 6900000, 7200000, 7500000, 7800000, 8100000,
@@ -43,54 +43,54 @@ var _ = Describe("OutOfRangeAlert", func() {
 			12600000, 12900000, 13200000, 13500000, 13800000, 14100000, 14400000}))
 	})
 
-	Context("ParseOutOfRangeAlert", func() {
+	Context("ParseOutOfRangeAlertDEPRECATED", func() {
 		// TODO
 	})
 
-	Context("NewOutOfRangeAlert", func() {
+	Context("NewOutOfRangeAlertDEPRECATED", func() {
 		It("is successful", func() {
-			Expect(cgm.NewOutOfRangeAlert()).To(Equal(&cgm.OutOfRangeAlert{}))
+			Expect(cgm.NewOutOfRangeAlertDEPRECATED()).To(Equal(&cgm.OutOfRangeAlertDEPRECATED{}))
 		})
 	})
 
-	Context("OutOfRangeAlert", func() {
+	Context("OutOfRangeAlertDEPRECATED", func() {
 		Context("Parse", func() {
 			// TODO
 		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
-				func(mutator func(datum *cgm.OutOfRangeAlert), expectedErrors ...error) {
-					datum := NewOutOfRangeAlert()
+				func(mutator func(datum *cgm.OutOfRangeAlertDEPRECATED), expectedErrors ...error) {
+					datum := NewOutOfRangeAlertDEPRECATED()
 					mutator(datum)
 					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
-					func(datum *cgm.OutOfRangeAlert) {},
+					func(datum *cgm.OutOfRangeAlertDEPRECATED) {},
 				),
 				Entry("enabled missing",
-					func(datum *cgm.OutOfRangeAlert) { datum.Enabled = nil },
+					func(datum *cgm.OutOfRangeAlertDEPRECATED) { datum.Enabled = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/enabled"),
 				),
 				Entry("enabled true",
-					func(datum *cgm.OutOfRangeAlert) { datum.Enabled = pointer.FromBool(true) },
+					func(datum *cgm.OutOfRangeAlertDEPRECATED) { datum.Enabled = pointer.FromBool(true) },
 				),
 				Entry("enabled false",
-					func(datum *cgm.OutOfRangeAlert) { datum.Enabled = pointer.FromBool(false) },
+					func(datum *cgm.OutOfRangeAlertDEPRECATED) { datum.Enabled = pointer.FromBool(false) },
 				),
 				Entry("threshold missing",
-					func(datum *cgm.OutOfRangeAlert) { datum.Threshold = nil },
+					func(datum *cgm.OutOfRangeAlertDEPRECATED) { datum.Threshold = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/snooze"),
 				),
 				Entry("threshold invalid",
-					func(datum *cgm.OutOfRangeAlert) { datum.Threshold = pointer.FromInt(1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueIntNotOneOf(1, cgm.OutOfRangeAlertThresholds()), "/snooze"),
+					func(datum *cgm.OutOfRangeAlertDEPRECATED) { datum.Threshold = pointer.FromInt(1) },
+					testErrors.WithPointerSource(structureValidator.ErrorValueIntNotOneOf(1, cgm.OutOfRangeAlertDEPRECATEDThresholds()), "/snooze"),
 				),
 				Entry("threshold valid",
-					func(datum *cgm.OutOfRangeAlert) { datum.Threshold = pointer.FromInt(1200000) },
+					func(datum *cgm.OutOfRangeAlertDEPRECATED) { datum.Threshold = pointer.FromInt(1200000) },
 				),
 				Entry("multiple errors",
-					func(datum *cgm.OutOfRangeAlert) {
+					func(datum *cgm.OutOfRangeAlertDEPRECATED) {
 						datum.Enabled = nil
 						datum.Threshold = nil
 					},
@@ -102,11 +102,11 @@ var _ = Describe("OutOfRangeAlert", func() {
 
 		Context("Normalize", func() {
 			DescribeTable("normalizes the datum",
-				func(mutator func(datum *cgm.OutOfRangeAlert), expectator func(datum *cgm.OutOfRangeAlert, expectedDatum *cgm.OutOfRangeAlert)) {
+				func(mutator func(datum *cgm.OutOfRangeAlertDEPRECATED), expectator func(datum *cgm.OutOfRangeAlertDEPRECATED, expectedDatum *cgm.OutOfRangeAlertDEPRECATED)) {
 					for _, origin := range structure.Origins() {
-						datum := NewOutOfRangeAlert()
+						datum := NewOutOfRangeAlertDEPRECATED()
 						mutator(datum)
-						expectedDatum := CloneOutOfRangeAlert(datum)
+						expectedDatum := CloneOutOfRangeAlertDEPRECATED(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
@@ -119,15 +119,15 @@ var _ = Describe("OutOfRangeAlert", func() {
 					}
 				},
 				Entry("does not modify the datum",
-					func(datum *cgm.OutOfRangeAlert) {},
+					func(datum *cgm.OutOfRangeAlertDEPRECATED) {},
 					nil,
 				),
 				Entry("does not modify the datum; enabled missing",
-					func(datum *cgm.OutOfRangeAlert) { datum.Enabled = nil },
+					func(datum *cgm.OutOfRangeAlertDEPRECATED) { datum.Enabled = nil },
 					nil,
 				),
 				Entry("does not modify the datum; threshold missing",
-					func(datum *cgm.OutOfRangeAlert) { datum.Threshold = nil },
+					func(datum *cgm.OutOfRangeAlertDEPRECATED) { datum.Threshold = nil },
 					nil,
 				),
 			)

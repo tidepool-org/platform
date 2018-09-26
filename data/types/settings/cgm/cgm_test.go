@@ -45,12 +45,12 @@ func NewCGM(units *string) *cgm.CGM {
 	datum := cgm.New()
 	datum.Base = *testDataTypes.NewBase()
 	datum.Type = "cgmSettings"
-	datum.HighLevelAlert = NewHighLevelAlert(units)
-	datum.LowLevelAlert = NewLowLevelAlert(units)
+	datum.HighLevelAlert = NewHighLevelAlertDEPRECATED(units)
+	datum.LowLevelAlert = NewLowLevelAlertDEPRECATED(units)
 	datum.Manufacturers = pointer.FromStringArray(NewManufacturers(1, 10))
 	datum.Model = pointer.FromString(test.NewText(1, 100))
-	datum.OutOfRangeAlert = NewOutOfRangeAlert()
-	datum.RateAlerts = NewRateAlerts(units)
+	datum.OutOfRangeAlert = NewOutOfRangeAlertDEPRECATED()
+	datum.RateAlerts = NewRateAlertsDEPRECATED(units)
 	datum.SerialNumber = pointer.FromString(test.NewText(1, 100))
 	datum.TransmitterID = pointer.FromString(test.NewVariableString(5, 6, transmitterIDCharSet))
 	datum.Units = units
@@ -63,12 +63,12 @@ func CloneCGM(datum *cgm.CGM) *cgm.CGM {
 	}
 	clone := cgm.New()
 	clone.Base = *testDataTypes.CloneBase(&datum.Base)
-	clone.HighLevelAlert = CloneHighLevelAlert(datum.HighLevelAlert)
-	clone.LowLevelAlert = CloneLowLevelAlert(datum.LowLevelAlert)
+	clone.HighLevelAlert = CloneHighLevelAlertDEPRECATED(datum.HighLevelAlert)
+	clone.LowLevelAlert = CloneLowLevelAlertDEPRECATED(datum.LowLevelAlert)
 	clone.Manufacturers = test.CloneStringArray(datum.Manufacturers)
 	clone.Model = test.CloneString(datum.Model)
-	clone.OutOfRangeAlert = CloneOutOfRangeAlert(datum.OutOfRangeAlert)
-	clone.RateAlerts = CloneRateAlerts(datum.RateAlerts)
+	clone.OutOfRangeAlert = CloneOutOfRangeAlertDEPRECATED(datum.OutOfRangeAlert)
+	clone.RateAlerts = CloneRateAlertsDEPRECATED(datum.RateAlerts)
 	clone.SerialNumber = test.CloneString(datum.SerialNumber)
 	clone.TransmitterID = test.CloneString(datum.TransmitterID)
 	clone.Units = test.CloneString(datum.Units)
@@ -143,7 +143,7 @@ var _ = Describe("CGM", func() {
 				),
 				Entry("high level alert valid",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.HighLevelAlert = NewHighLevelAlert(units) },
+					func(datum *cgm.CGM, units *string) { datum.HighLevelAlert = NewHighLevelAlertDEPRECATED(units) },
 				),
 				Entry("low level alert missing",
 					pointer.FromString("mmol/L"),
@@ -157,7 +157,7 @@ var _ = Describe("CGM", func() {
 				),
 				Entry("low level alert valid",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.LowLevelAlert = NewLowLevelAlert(units) },
+					func(datum *cgm.CGM, units *string) { datum.LowLevelAlert = NewLowLevelAlertDEPRECATED(units) },
 				),
 				Entry("manufacturers missing",
 					pointer.FromString("mmol/L"),
@@ -238,7 +238,7 @@ var _ = Describe("CGM", func() {
 				),
 				Entry("out of range alert valid",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.OutOfRangeAlert = NewOutOfRangeAlert() },
+					func(datum *cgm.CGM, units *string) { datum.OutOfRangeAlert = NewOutOfRangeAlertDEPRECATED() },
 				),
 				Entry("rate alerts missing",
 					pointer.FromString("mmol/L"),
@@ -252,7 +252,7 @@ var _ = Describe("CGM", func() {
 				),
 				Entry("rate alerts valid",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.RateAlerts = NewRateAlerts(units) },
+					func(datum *cgm.CGM, units *string) { datum.RateAlerts = NewRateAlertsDEPRECATED(units) },
 				),
 				Entry("serial number missing",
 					pointer.FromString("mmol/L"),
