@@ -25,15 +25,15 @@ const (
 type CGM struct {
 	types.Base `bson:",inline"`
 
-	HighLevelAlert  *HighLevelAlert  `json:"highAlerts,omitempty" bson:"highAlerts,omitempty"` // TODO: Rename highLevelAlert
-	LowLevelAlert   *LowLevelAlert   `json:"lowAlerts,omitempty" bson:"lowAlerts,omitempty"`   // TODO: Rename lowLevelAlert
-	Manufacturers   *[]string        `json:"manufacturers,omitempty" bson:"manufacturers,omitempty"`
-	Model           *string          `json:"model,omitempty" bson:"model,omitempty"`
-	OutOfRangeAlert *OutOfRangeAlert `json:"outOfRangeAlerts,omitempty" bson:"outOfRangeAlerts,omitempty"`   // TODO: Rename outOfRangeAlert
-	RateAlerts      *RateAlerts      `json:"rateOfChangeAlert,omitempty" bson:"rateOfChangeAlert,omitempty"` // TODO: Split into separate fallRateAlert, riseRateAlert
-	SerialNumber    *string          `json:"serialNumber,omitempty" bson:"serialNumber,omitempty"`
-	TransmitterID   *string          `json:"transmitterId,omitempty" bson:"transmitterId,omitempty"`
-	Units           *string          `json:"units,omitempty" bson:"units,omitempty"`
+	HighLevelAlert  *HighLevelAlertDEPRECATED  `json:"highAlerts,omitempty" bson:"highAlerts,omitempty"` // TODO: Rename highLevelAlert
+	LowLevelAlert   *LowLevelAlertDEPRECATED   `json:"lowAlerts,omitempty" bson:"lowAlerts,omitempty"`   // TODO: Rename lowLevelAlert
+	Manufacturers   *[]string                  `json:"manufacturers,omitempty" bson:"manufacturers,omitempty"`
+	Model           *string                    `json:"model,omitempty" bson:"model,omitempty"`
+	OutOfRangeAlert *OutOfRangeAlertDEPRECATED `json:"outOfRangeAlerts,omitempty" bson:"outOfRangeAlerts,omitempty"`   // TODO: Rename outOfRangeAlert
+	RateAlerts      *RateAlertsDEPRECATED      `json:"rateOfChangeAlert,omitempty" bson:"rateOfChangeAlert,omitempty"` // TODO: Split into separate fallRateAlert, riseRateAlert
+	SerialNumber    *string                    `json:"serialNumber,omitempty" bson:"serialNumber,omitempty"`
+	TransmitterID   *string                    `json:"transmitterId,omitempty" bson:"transmitterId,omitempty"`
+	Units           *string                    `json:"units,omitempty" bson:"units,omitempty"`
 }
 
 func New() *CGM {
@@ -49,12 +49,12 @@ func (c *CGM) Parse(parser data.ObjectParser) error {
 		return err
 	}
 
-	c.HighLevelAlert = ParseHighLevelAlert(parser.NewChildObjectParser("highAlerts"))
-	c.LowLevelAlert = ParseLowLevelAlert(parser.NewChildObjectParser("lowAlerts"))
+	c.HighLevelAlert = ParseHighLevelAlertDEPRECATED(parser.NewChildObjectParser("highAlerts"))
+	c.LowLevelAlert = ParseLowLevelAlertDEPRECATED(parser.NewChildObjectParser("lowAlerts"))
 	c.Manufacturers = parser.ParseStringArray("manufacturers")
 	c.Model = parser.ParseString("model")
-	c.OutOfRangeAlert = ParseOutOfRangeAlert(parser.NewChildObjectParser("outOfRangeAlerts"))
-	c.RateAlerts = ParseRateAlerts(parser.NewChildObjectParser("rateOfChangeAlerts"))
+	c.OutOfRangeAlert = ParseOutOfRangeAlertDEPRECATED(parser.NewChildObjectParser("outOfRangeAlerts"))
+	c.RateAlerts = ParseRateAlertsDEPRECATED(parser.NewChildObjectParser("rateOfChangeAlerts"))
 	c.SerialNumber = parser.ParseString("serialNumber")
 	c.TransmitterID = parser.ParseString("transmitterId")
 	c.Units = parser.ParseString("units")

@@ -5,7 +5,7 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
-func OutOfRangeAlertThresholds() []int {
+func OutOfRangeAlertDEPRECATEDThresholds() []int {
 	return []int{
 		1200000, 1500000, 1800000, 2100000, 2400000, 2700000, 3000000, 3300000,
 		3600000, 3900000, 4200000, 4500000, 4800000, 5100000, 5400000, 5700000,
@@ -16,33 +16,33 @@ func OutOfRangeAlertThresholds() []int {
 	}
 }
 
-type OutOfRangeAlert struct {
+type OutOfRangeAlertDEPRECATED struct {
 	Enabled   *bool `json:"enabled,omitempty" bson:"enabled,omitempty"`
 	Threshold *int  `json:"snooze,omitempty" bson:"snooze,omitempty"` // TODO: Rename threshold
 }
 
-func ParseOutOfRangeAlert(parser data.ObjectParser) *OutOfRangeAlert {
+func ParseOutOfRangeAlertDEPRECATED(parser data.ObjectParser) *OutOfRangeAlertDEPRECATED {
 	if parser.Object() == nil {
 		return nil
 	}
-	outOfRangeAlert := NewOutOfRangeAlert()
-	outOfRangeAlert.Parse(parser)
+	datum := NewOutOfRangeAlertDEPRECATED()
+	datum.Parse(parser)
 	parser.ProcessNotParsed()
-	return outOfRangeAlert
+	return datum
 }
 
-func NewOutOfRangeAlert() *OutOfRangeAlert {
-	return &OutOfRangeAlert{}
+func NewOutOfRangeAlertDEPRECATED() *OutOfRangeAlertDEPRECATED {
+	return &OutOfRangeAlertDEPRECATED{}
 }
 
-func (o *OutOfRangeAlert) Parse(parser data.ObjectParser) {
+func (o *OutOfRangeAlertDEPRECATED) Parse(parser data.ObjectParser) {
 	o.Enabled = parser.ParseBoolean("enabled")
 	o.Threshold = parser.ParseInteger("snooze")
 }
 
-func (o *OutOfRangeAlert) Validate(validator structure.Validator) {
+func (o *OutOfRangeAlertDEPRECATED) Validate(validator structure.Validator) {
 	validator.Bool("enabled", o.Enabled).Exists()
-	validator.Int("snooze", o.Threshold).Exists().OneOf(OutOfRangeAlertThresholds()...)
+	validator.Int("snooze", o.Threshold).Exists().OneOf(OutOfRangeAlertDEPRECATEDThresholds()...)
 }
 
-func (o *OutOfRangeAlert) Normalize(normalizer data.Normalizer) {}
+func (o *OutOfRangeAlertDEPRECATED) Normalize(normalizer data.Normalizer) {}
