@@ -2,6 +2,7 @@
 
 ## v1.29.0
 
+* Allow physical activity other field as optional
 * Update mongo queries for data using selectors to more effectively use indexes
 * Add minutes and seconds to pump settings bolus calculator insulin duration units
 * Return updated data set after creation
