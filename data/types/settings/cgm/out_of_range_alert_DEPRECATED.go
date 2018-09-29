@@ -18,7 +18,7 @@ func OutOfRangeAlertDEPRECATEDThresholds() []int {
 
 type OutOfRangeAlertDEPRECATED struct {
 	Enabled   *bool `json:"enabled,omitempty" bson:"enabled,omitempty"`
-	Threshold *int  `json:"snooze,omitempty" bson:"snooze,omitempty"` // TODO: Rename threshold
+	Threshold *int  `json:"snooze,omitempty" bson:"snooze,omitempty"`
 }
 
 func ParseOutOfRangeAlertDEPRECATED(parser data.ObjectParser) *OutOfRangeAlertDEPRECATED {
