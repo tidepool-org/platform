@@ -16,7 +16,7 @@ const (
 
 type RateAlertDEPRECATED struct {
 	Enabled *bool    `json:"enabled,omitempty" bson:"enabled,omitempty"`
-	Rate    *float64 `json:"rate,omitempty" bson:"rate,omitempty"` // TODO: Make always positive
+	Rate    *float64 `json:"rate,omitempty" bson:"rate,omitempty"`
 }
 
 func (r *RateAlertDEPRECATED) Parse(parser data.ObjectParser) {

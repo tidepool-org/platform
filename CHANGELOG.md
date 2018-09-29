@@ -1,5 +1,8 @@
 ## HEAD
 
+* Update cgm settings to allow for new settings from Dexcom API
+* Add default alert settings and alternative scheduled alert settings to cgm settings
+* Add test helpers for data parser serialization
 * Add pointer.Equal functions
 * Deprecate current cgm settings alert structures
 * Update oauth/client package tests to latest best practices

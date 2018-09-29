@@ -6,35 +6,18 @@ import (
 	. "github.com/onsi/gomega"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	"github.com/tidepool-org/platform/data/types/settings/cgm"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesSettingsCgm "github.com/tidepool-org/platform/data/types/settings/cgm"
+	dataTypesSettingsCgmTest "github.com/tidepool-org/platform/data/types/settings/cgm/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"github.com/tidepool-org/platform/test"
 )
-
-func NewOutOfRangeAlertDEPRECATED() *cgm.OutOfRangeAlertDEPRECATED {
-	datum := cgm.NewOutOfRangeAlertDEPRECATED()
-	datum.Enabled = pointer.FromBool(test.RandomBool())
-	datum.Threshold = pointer.FromInt(test.RandomIntFromArray(cgm.OutOfRangeAlertDEPRECATEDThresholds()))
-	return datum
-}
-
-func CloneOutOfRangeAlertDEPRECATED(datum *cgm.OutOfRangeAlertDEPRECATED) *cgm.OutOfRangeAlertDEPRECATED {
-	if datum == nil {
-		return nil
-	}
-	clone := cgm.NewOutOfRangeAlertDEPRECATED()
-	clone.Enabled = test.CloneBool(datum.Enabled)
-	clone.Threshold = test.CloneInt(datum.Threshold)
-	return clone
-}
 
 var _ = Describe("OutOfRangeAlertDEPRECATED", func() {
 	It("OutOfRangeAlertDEPRECATEDThresholds returns expected", func() {
-		Expect(cgm.OutOfRangeAlertDEPRECATEDThresholds()).To(Equal([]int{
+		Expect(dataTypesSettingsCgm.OutOfRangeAlertDEPRECATEDThresholds()).To(Equal([]int{
 			1200000, 1500000, 1800000, 2100000, 2400000, 2700000, 3000000, 3300000,
 			3600000, 3900000, 4200000, 4500000, 4800000, 5100000, 5400000, 5700000,
 			6000000, 6300000, 6600000, 6900000, 7200000, 7500000, 7800000, 8100000,
@@ -49,7 +32,7 @@ var _ = Describe("OutOfRangeAlertDEPRECATED", func() {
 
 	Context("NewOutOfRangeAlertDEPRECATED", func() {
 		It("is successful", func() {
-			Expect(cgm.NewOutOfRangeAlertDEPRECATED()).To(Equal(&cgm.OutOfRangeAlertDEPRECATED{}))
+			Expect(dataTypesSettingsCgm.NewOutOfRangeAlertDEPRECATED()).To(Equal(&dataTypesSettingsCgm.OutOfRangeAlertDEPRECATED{}))
 		})
 	})
 
@@ -60,53 +43,55 @@ var _ = Describe("OutOfRangeAlertDEPRECATED", func() {
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
-				func(mutator func(datum *cgm.OutOfRangeAlertDEPRECATED), expectedErrors ...error) {
-					datum := NewOutOfRangeAlertDEPRECATED()
+				func(mutator func(datum *dataTypesSettingsCgm.OutOfRangeAlertDEPRECATED), expectedErrors ...error) {
+					datum := dataTypesSettingsCgmTest.RandomOutOfRangeAlertDEPRECATED()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
-					func(datum *cgm.OutOfRangeAlertDEPRECATED) {},
+					func(datum *dataTypesSettingsCgm.OutOfRangeAlertDEPRECATED) {},
 				),
 				Entry("enabled missing",
-					func(datum *cgm.OutOfRangeAlertDEPRECATED) { datum.Enabled = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/enabled"),
-				),
-				Entry("enabled true",
-					func(datum *cgm.OutOfRangeAlertDEPRECATED) { datum.Enabled = pointer.FromBool(true) },
+					func(datum *dataTypesSettingsCgm.OutOfRangeAlertDEPRECATED) { datum.Enabled = nil },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/enabled"),
 				),
 				Entry("enabled false",
-					func(datum *cgm.OutOfRangeAlertDEPRECATED) { datum.Enabled = pointer.FromBool(false) },
+					func(datum *dataTypesSettingsCgm.OutOfRangeAlertDEPRECATED) { datum.Enabled = pointer.FromBool(false) },
+				),
+				Entry("enabled true",
+					func(datum *dataTypesSettingsCgm.OutOfRangeAlertDEPRECATED) { datum.Enabled = pointer.FromBool(true) },
 				),
 				Entry("threshold missing",
-					func(datum *cgm.OutOfRangeAlertDEPRECATED) { datum.Threshold = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/snooze"),
+					func(datum *dataTypesSettingsCgm.OutOfRangeAlertDEPRECATED) { datum.Threshold = nil },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/snooze"),
 				),
 				Entry("threshold invalid",
-					func(datum *cgm.OutOfRangeAlertDEPRECATED) { datum.Threshold = pointer.FromInt(1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueIntNotOneOf(1, cgm.OutOfRangeAlertDEPRECATEDThresholds()), "/snooze"),
+					func(datum *dataTypesSettingsCgm.OutOfRangeAlertDEPRECATED) { datum.Threshold = pointer.FromInt(1) },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueIntNotOneOf(1, dataTypesSettingsCgm.OutOfRangeAlertDEPRECATEDThresholds()), "/snooze"),
 				),
 				Entry("threshold valid",
-					func(datum *cgm.OutOfRangeAlertDEPRECATED) { datum.Threshold = pointer.FromInt(1200000) },
+					func(datum *dataTypesSettingsCgm.OutOfRangeAlertDEPRECATED) {
+						datum.Threshold = pointer.FromInt(1200000)
+					},
 				),
 				Entry("multiple errors",
-					func(datum *cgm.OutOfRangeAlertDEPRECATED) {
+					func(datum *dataTypesSettingsCgm.OutOfRangeAlertDEPRECATED) {
 						datum.Enabled = nil
 						datum.Threshold = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/enabled"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/snooze"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/enabled"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/snooze"),
 				),
 			)
 		})
 
 		Context("Normalize", func() {
 			DescribeTable("normalizes the datum",
-				func(mutator func(datum *cgm.OutOfRangeAlertDEPRECATED), expectator func(datum *cgm.OutOfRangeAlertDEPRECATED, expectedDatum *cgm.OutOfRangeAlertDEPRECATED)) {
+				func(mutator func(datum *dataTypesSettingsCgm.OutOfRangeAlertDEPRECATED), expectator func(datum *dataTypesSettingsCgm.OutOfRangeAlertDEPRECATED, expectedDatum *dataTypesSettingsCgm.OutOfRangeAlertDEPRECATED)) {
 					for _, origin := range structure.Origins() {
-						datum := NewOutOfRangeAlertDEPRECATED()
+						datum := dataTypesSettingsCgmTest.RandomOutOfRangeAlertDEPRECATED()
 						mutator(datum)
-						expectedDatum := CloneOutOfRangeAlertDEPRECATED(datum)
+						expectedDatum := dataTypesSettingsCgmTest.CloneOutOfRangeAlertDEPRECATED(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
@@ -119,15 +104,15 @@ var _ = Describe("OutOfRangeAlertDEPRECATED", func() {
 					}
 				},
 				Entry("does not modify the datum",
-					func(datum *cgm.OutOfRangeAlertDEPRECATED) {},
+					func(datum *dataTypesSettingsCgm.OutOfRangeAlertDEPRECATED) {},
 					nil,
 				),
 				Entry("does not modify the datum; enabled missing",
-					func(datum *cgm.OutOfRangeAlertDEPRECATED) { datum.Enabled = nil },
+					func(datum *dataTypesSettingsCgm.OutOfRangeAlertDEPRECATED) { datum.Enabled = nil },
 					nil,
 				),
 				Entry("does not modify the datum; threshold missing",
-					func(datum *cgm.OutOfRangeAlertDEPRECATED) { datum.Threshold = nil },
+					func(datum *dataTypesSettingsCgm.OutOfRangeAlertDEPRECATED) { datum.Threshold = nil },
 					nil,
 				),
 			)
