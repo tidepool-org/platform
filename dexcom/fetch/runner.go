@@ -11,7 +11,7 @@ import (
 	dataClient "github.com/tidepool-org/platform/data/client"
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	dataSource "github.com/tidepool-org/platform/data/source"
-	"github.com/tidepool-org/platform/data/types/upload"
+	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/dexcom"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -148,6 +148,7 @@ type TaskRunner struct {
 	providerSession  *auth.ProviderSession
 	dataSource       *dataSource.Source
 	tokenSource      oauth.TokenSource
+	deviceHashes     map[string]string
 	dataSet          *data.DataSet
 	dataSetPreloaded bool
 }
@@ -186,6 +187,9 @@ func (t *TaskRunner) Run(ctx context.Context) error {
 		return err
 	}
 	if err := t.createTokenSource(); err != nil {
+		return err
+	}
+	if err := t.getDeviceHashes(); err != nil {
 		return err
 	}
 	if err := t.fetchSinceLatestDataTime(); err != nil {
@@ -266,7 +270,7 @@ func (t *TaskRunner) updateDataSourceWithDataSet(dataSet *data.DataSet) error {
 	return t.updateDataSource(update)
 }
 
-func (t *TaskRunner) updateDataSourceWithDataTime(earliestDataTime time.Time, latestDataTime time.Time) error {
+func (t *TaskRunner) updateDataSourceWithDataTime(earliestDataTime *time.Time, latestDataTime *time.Time) error {
 	update := dataSource.NewUpdate()
 
 	if t.beforeEarliestDataTime(earliestDataTime) {
@@ -325,27 +329,46 @@ func (t *TaskRunner) createTokenSource() error {
 	return nil
 }
 
-func (t *TaskRunner) updateDataSetWithDeviceInfo(deviceInfo *DeviceInfo) error {
-	dataSetDeviceInfo, err := NewDeviceInfoFromDataSet(t.dataSet)
-	if err != nil {
-		return err
+func (t *TaskRunner) getDeviceHashes() error {
+	raw, rawOK := t.task.Data["deviceHashes"]
+	if !rawOK || raw == nil {
+		return nil
 	}
-	dataSetDeviceInfo, err = dataSetDeviceInfo.Merge(deviceInfo)
-	if err != nil {
-		return err
+	rawMap, rawMapOK := raw.(map[string]interface{})
+	if !rawMapOK || rawMap == nil {
+		t.task.SetFailed()
+		return errors.New("device hashes is invalid")
+	}
+	deviceHashes := map[string]string{}
+	for key, value := range rawMap {
+		if valueString, valueStringOK := value.(string); valueStringOK {
+			deviceHashes[key] = valueString
+		} else {
+			t.task.SetFailed()
+			return errors.New("device hash is invalid")
+		}
 	}
 
-	dataSetUpdate := data.NewDataSetUpdate()
-	if t.dataSet.DeviceID == nil || *t.dataSet.DeviceID != dataSetDeviceInfo.DeviceID {
-		dataSetUpdate.DeviceID = pointer.FromString(dataSetDeviceInfo.DeviceID)
+	t.deviceHashes = deviceHashes
+	return nil
+}
+
+func (t *TaskRunner) updateDeviceHash(device *dexcom.Device) bool {
+	deviceHash, err := device.Hash()
+	if err != nil {
+		return false
 	}
-	if t.dataSet.DeviceModel == nil || *t.dataSet.DeviceModel != dataSetDeviceInfo.DeviceModel {
-		dataSetUpdate.DeviceModel = pointer.FromString(dataSetDeviceInfo.DeviceModel)
+
+	if t.deviceHashes == nil {
+		t.deviceHashes = map[string]string{}
 	}
-	if t.dataSet.DeviceSerialNumber == nil || *t.dataSet.DeviceSerialNumber != dataSetDeviceInfo.DeviceSerialNumber {
-		dataSetUpdate.DeviceSerialNumber = pointer.FromString(dataSetDeviceInfo.DeviceSerialNumber)
+
+	if t.deviceHashes[*device.SerialNumber] != deviceHash {
+		t.deviceHashes[*device.SerialNumber] = deviceHash
+		return true
 	}
-	return t.updateDataSet(dataSetUpdate)
+
+	return false
 }
 
 func (t *TaskRunner) updateDataSet(dataSetUpdate *data.DataSetUpdate) error {
@@ -373,7 +396,7 @@ func (t *TaskRunner) fetchSinceLatestDataTime() error {
 
 	now := time.Now().Add(-time.Minute).Truncate(time.Second)
 	for startTime.Before(now) {
-		endTime := startTime.AddDate(0, 0, 90)
+		endTime := startTime.AddDate(0, 0, 30)
 		if endTime.After(now) {
 			endTime = now
 		}
@@ -382,71 +405,79 @@ func (t *TaskRunner) fetchSinceLatestDataTime() error {
 			return err
 		}
 
-		startTime = startTime.AddDate(0, 0, 90)
+		startTime = startTime.AddDate(0, 0, 30)
 		now = time.Now().Add(-time.Minute).Truncate(time.Second)
 	}
 	return nil
 }
 
 func (t *TaskRunner) fetch(startTime time.Time, endTime time.Time) error {
-	devices, err := t.fetchDevices(startTime, endTime)
+	devices, devicesDatumArray, err := t.fetchDevices(startTime, endTime)
 	if err != nil {
 		return err
 	}
 
 	// HACK: Dexcom - does not guarantee to return a device for G5 Mobile if time range < 24 hours (per Dexcom)
-	var deviceInfo *DeviceInfo
 	if endTime.Sub(startTime) > 24*time.Hour {
 		if len(*devices) == 0 {
 			return nil
-		} else if deviceInfo, err = t.calculateDeviceInfo(devices); err != nil {
-			return err
 		}
 	} else {
 		if err = t.preloadDataSet(); err != nil {
 			return err
 		} else if t.dataSet == nil {
 			return nil
-		} else if deviceInfo, err = NewDeviceInfoFromDataSet(t.dataSet); err != nil {
-			return err
-		} else if !deviceInfo.IsDeviceModelG5Mobile() && !deviceInfo.IsDeviceModelUnknown() {
-			deviceInfo = NewDeviceInfoFromMultiple()
 		}
 	}
 
 	datumArray, err := t.fetchData(startTime, endTime)
 	if err != nil {
 		return err
-	} else if len(datumArray) == 0 {
+	}
+
+	if len(datumArray) == 0 && len(devicesDatumArray) == 0 {
 		return nil
 	}
 
-	if err = t.prepareDatumArray(datumArray, deviceInfo); err != nil {
+	if err = t.prepareDataSet(); err != nil {
 		return err
 	}
 
-	if err = t.prepareDataSet(deviceInfo); err != nil {
+	if err = t.storeDatumArray(datumArray); err != nil {
 		return err
 	}
 
-	return t.storeDatumArray(datumArray)
+	if err = t.storeDevicesDatumArray(devicesDatumArray); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (t *TaskRunner) fetchDevices(startTime time.Time, endTime time.Time) (*dexcom.Devices, error) {
+func (t *TaskRunner) fetchDevices(startTime time.Time, endTime time.Time) (*dexcom.Devices, data.Data, error) {
 	response, err := t.DexcomClient().GetDevices(t.context, startTime, endTime, t.tokenSource)
 	if updateErr := t.updateProviderSession(); updateErr != nil {
-		return nil, updateErr
+		return nil, nil, updateErr
 	}
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	t.validator.Validate(response)
 	if err = t.validator.Error(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return response.Devices, nil
+	devices := response.Devices
+
+	var devicesDatumArray data.Data
+	for _, device := range *devices {
+		if t.updateDeviceHash(device) {
+			devicesDatumArray = append(devicesDatumArray, translateDeviceToDatum(device))
+		}
+	}
+
+	return devices, devicesDatumArray, nil
 }
 
 func (t *TaskRunner) preloadDataSet() error {
@@ -464,20 +495,8 @@ func (t *TaskRunner) preloadDataSet() error {
 	return nil
 }
 
-func (t *TaskRunner) calculateDeviceInfo(devices *dexcom.Devices) (*DeviceInfo, error) {
-	deviceInfo := NewDeviceInfo()
-	for _, device := range *devices {
-		if deviceDeviceInfo, err := NewDeviceInfoFromDevice(device); err != nil {
-			return nil, err
-		} else if deviceInfo, err = deviceInfo.Merge(deviceDeviceInfo); err != nil {
-			return nil, err
-		}
-	}
-	return deviceInfo, nil
-}
-
-func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) ([]data.Datum, error) {
-	datumArray := []data.Datum{}
+func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) (data.Data, error) {
+	datumArray := data.Data{}
 
 	fetchDatumArray, err := t.fetchCalibrations(startTime, endTime)
 	if err != nil {
@@ -497,10 +516,12 @@ func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) ([]data.D
 	}
 	datumArray = append(datumArray, fetchDatumArray...)
 
+	sort.Sort(BySystemTime(datumArray))
+
 	return datumArray, nil
 }
 
-func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) ([]data.Datum, error) {
+func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) (data.Data, error) {
 	response, err := t.DexcomClient().GetCalibrations(t.context, startTime, endTime, t.tokenSource)
 	if updateErr := t.updateProviderSession(); updateErr != nil {
 		return nil, updateErr
@@ -514,9 +535,9 @@ func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) (
 		return nil, err
 	}
 
-	datumArray := []data.Datum{}
+	datumArray := data.Data{}
 	for _, c := range *response.Calibrations {
-		if t.afterLatestDataTime(*c.SystemTime) {
+		if t.afterLatestDataTime(c.SystemTime.Raw()) {
 			datumArray = append(datumArray, translateCalibrationToDatum(c))
 		}
 	}
@@ -524,7 +545,7 @@ func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) (
 	return datumArray, nil
 }
 
-func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) ([]data.Datum, error) {
+func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) (data.Data, error) {
 	response, err := t.DexcomClient().GetEGVs(t.context, startTime, endTime, t.tokenSource)
 	if updateErr := t.updateProviderSession(); updateErr != nil {
 		return nil, updateErr
@@ -538,9 +559,9 @@ func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) ([]data.D
 		return nil, err
 	}
 
-	datumArray := []data.Datum{}
+	datumArray := data.Data{}
 	for _, e := range *response.EGVs {
-		if t.afterLatestDataTime(*e.SystemTime) {
+		if t.afterLatestDataTime(e.SystemTime.Raw()) {
 			datumArray = append(datumArray, translateEGVToDatum(e, response.Unit, response.RateUnit))
 		}
 	}
@@ -548,7 +569,7 @@ func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) ([]data.D
 	return datumArray, nil
 }
 
-func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) ([]data.Datum, error) {
+func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.Data, error) {
 	response, err := t.DexcomClient().GetEvents(t.context, startTime, endTime, t.tokenSource)
 	if updateErr := t.updateProviderSession(); updateErr != nil {
 		return nil, updateErr
@@ -562,52 +583,40 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) ([]data
 		return nil, err
 	}
 
-	datumArray := []data.Datum{}
+	datumArray := data.Data{}
 	for _, e := range *response.Events {
-		if t.afterLatestDataTime(*e.SystemTime) {
-			switch *e.EventType {
-			case dexcom.EventCarbs:
-				datumArray = append(datumArray, translateEventCarbsToDatum(e))
-			case dexcom.EventExercise:
-				datumArray = append(datumArray, translateEventExerciseToDatum(e))
-			case dexcom.EventHealth:
-				datumArray = append(datumArray, translateEventHealthToDatum(e))
-			case dexcom.EventInsulin:
-				datumArray = append(datumArray, translateEventInsulinToDatum(e))
+		switch *e.Status {
+		case dexcom.EventStatusCreated:
+			if t.afterLatestDataTime(e.SystemTime.Raw()) {
+				switch *e.Type {
+				case dexcom.EventTypeCarbs:
+					datumArray = append(datumArray, translateEventCarbsToDatum(e))
+				case dexcom.EventTypeExercise:
+					datumArray = append(datumArray, translateEventExerciseToDatum(e))
+				case dexcom.EventTypeHealth:
+					datumArray = append(datumArray, translateEventHealthToDatum(e))
+				case dexcom.EventTypeInsulin:
+					datumArray = append(datumArray, translateEventInsulinToDatum(e))
+				}
 			}
+		case dexcom.EventStatusDeleted:
+			// FUTURE: Handle deleted events
 		}
 	}
 
 	return datumArray, nil
 }
 
-func (t *TaskRunner) prepareDatumArray(datumArray []data.Datum, deviceInfo *DeviceInfo) error {
-	var datumDeviceID *string
-	if deviceInfo.DeviceID != dexcom.DeviceIDMultiple {
-		datumDeviceID = pointer.FromString(deviceInfo.DeviceID)
-	} else {
-		datumDeviceID = pointer.FromString(dexcom.DeviceIDUnknown)
-	}
-
-	for _, datum := range datumArray {
-		datum.SetDeviceID(datumDeviceID)
-	}
-
-	sort.Sort(BySystemTime(datumArray))
-
-	return nil
-}
-
-func (t *TaskRunner) prepareDataSet(deviceInfo *DeviceInfo) error {
+func (t *TaskRunner) prepareDataSet() error {
 	if err := t.preloadDataSet(); err != nil {
 		return err
 	}
 
 	if t.dataSet != nil {
-		return t.updateDataSetWithDeviceInfo(deviceInfo)
+		return nil
 	}
 
-	dataSet, err := t.createDataSet(deviceInfo)
+	dataSet, err := t.createDataSet()
 	if err != nil {
 		return err
 	}
@@ -628,7 +637,7 @@ func (t *TaskRunner) findDataSet() (*data.DataSet, error) {
 	return nil, nil
 }
 
-func (t *TaskRunner) createDataSet(deviceInfo *DeviceInfo) (*data.DataSet, error) {
+func (t *TaskRunner) createDataSet() (*data.DataSet, error) {
 	dataSetCreate := data.NewDataSetCreate()
 	dataSetCreate.Client = &data.DataSetClient{
 		Name:    pointer.FromString(DataSetClientName),
@@ -637,13 +646,10 @@ func (t *TaskRunner) createDataSet(deviceInfo *DeviceInfo) (*data.DataSet, error
 	dataSetCreate.DataSetType = pointer.FromString(data.DataSetTypeContinuous)
 	dataSetCreate.Deduplicator = data.NewDeduplicatorDescriptor()
 	dataSetCreate.Deduplicator.Name = pointer.FromString(dataDeduplicatorDeduplicator.NoneName)
-	dataSetCreate.DeviceID = pointer.FromString(deviceInfo.DeviceID)
 	dataSetCreate.DeviceManufacturers = pointer.FromStringArray([]string{"Dexcom"})
-	dataSetCreate.DeviceModel = pointer.FromString(deviceInfo.DeviceModel)
-	dataSetCreate.DeviceSerialNumber = pointer.FromString(deviceInfo.DeviceSerialNumber)
 	dataSetCreate.DeviceTags = pointer.FromStringArray([]string{data.DeviceTagCGM})
 	dataSetCreate.Time = pointer.FromTime(time.Now().Truncate(time.Second))
-	dataSetCreate.TimeProcessing = pointer.FromString(upload.TimeProcessingNone)
+	dataSetCreate.TimeProcessing = pointer.FromString(dataTypesUpload.TimeProcessingNone)
 
 	dataSet, err := t.DataClient().CreateUserDataSet(t.context, t.providerSession.UserID, dataSetCreate)
 	if err != nil {
@@ -656,7 +662,7 @@ func (t *TaskRunner) createDataSet(deviceInfo *DeviceInfo) (*data.DataSet, error
 	return dataSet, nil
 }
 
-func (t *TaskRunner) storeDatumArray(datumArray []data.Datum) error {
+func (t *TaskRunner) storeDatumArray(datumArray data.Data) error {
 	length := len(datumArray)
 	for startIndex := 0; startIndex < length; startIndex += DataSetSize {
 		endIndex := startIndex + DataSetSize
@@ -678,160 +684,54 @@ func (t *TaskRunner) storeDatumArray(datumArray []data.Datum) error {
 	return nil
 }
 
-func (t *TaskRunner) beforeEarliestDataTime(earliestDataTime time.Time) bool {
-	return t.dataSource.EarliestDataTime == nil || earliestDataTime.Before(*t.dataSource.EarliestDataTime)
+func (t *TaskRunner) storeDevicesDatumArray(devicesDatumArray data.Data) error {
+	if len(devicesDatumArray) > 0 {
+		if err := t.DataClient().CreateDataSetsData(t.context, *t.dataSet.UploadID, devicesDatumArray); err != nil {
+			return errors.Wrap(err, "unable to create data set data")
+		}
+
+		t.task.Data["deviceHashes"] = t.deviceHashes
+	}
+
+	return nil
 }
 
-func (t *TaskRunner) afterLatestDataTime(latestDataTime time.Time) bool {
-	return t.dataSource.LatestDataTime == nil || latestDataTime.After(*t.dataSource.LatestDataTime)
+func (t *TaskRunner) beforeEarliestDataTime(earliestDataTime *time.Time) bool {
+	return earliestDataTime != nil && (t.dataSource.EarliestDataTime == nil || earliestDataTime.Before(*t.dataSource.EarliestDataTime))
 }
 
-func payloadSystemTime(datum data.Datum) time.Time {
-	payload := datum.GetPayload()
-	if payload == nil {
-		return time.Time{}
-	}
-	value := payload.Get("systemTime")
-	if value == nil {
-		return time.Time{}
-	}
-	systemTime, ok := value.(time.Time)
-	if !ok {
-		return time.Time{}
-	}
-	return systemTime
+func (t *TaskRunner) afterLatestDataTime(latestDataTime *time.Time) bool {
+	return latestDataTime != nil && (t.dataSource.LatestDataTime == nil || latestDataTime.After(*t.dataSource.LatestDataTime))
 }
 
-type BySystemTime []data.Datum
+func payloadSystemTime(datum data.Datum) *time.Time {
+	if payload := datum.GetPayload(); payload == nil {
+		return nil
+	} else if value := payload.Get("systemTime"); value == nil {
+		return nil
+	} else if systemTime, ok := value.(*time.Time); !ok {
+		return nil
+	} else {
+		return systemTime
+	}
+}
+
+type BySystemTime data.Data
 
 func (b BySystemTime) Len() int {
 	return len(b)
 }
 
 func (b BySystemTime) Less(left int, right int) bool {
-	return payloadSystemTime(b[left]).Before(payloadSystemTime(b[right]))
+	if leftSystemTime := payloadSystemTime(b[left]); leftSystemTime == nil {
+		return true
+	} else if rightSystemTime := payloadSystemTime(b[right]); rightSystemTime == nil {
+		return false
+	} else {
+		return leftSystemTime.Before(*rightSystemTime)
+	}
 }
 
 func (b BySystemTime) Swap(left int, right int) {
 	b[left], b[right] = b[right], b[left]
-}
-
-type DeviceInfo struct {
-	DeviceID           string
-	DeviceModel        string
-	DeviceSerialNumber string
-}
-
-func NewDeviceInfo() *DeviceInfo {
-	return &DeviceInfo{}
-}
-
-func NewDeviceInfoFromMultiple() *DeviceInfo {
-	return &DeviceInfo{
-		DeviceID:           dexcom.DeviceIDMultiple,
-		DeviceModel:        dexcom.DeviceModelMultiple,
-		DeviceSerialNumber: dexcom.DeviceSerialNumberMultiple,
-	}
-}
-
-func NewDeviceInfoFromDataSet(dataSet *data.DataSet) (*DeviceInfo, error) {
-	if dataSet == nil {
-		return nil, errors.New("data set is missing")
-	}
-
-	deviceInfo := &DeviceInfo{}
-	if dataSet.DeviceID != nil {
-		deviceInfo.DeviceID = *dataSet.DeviceID
-	}
-	if dataSet.DeviceModel != nil {
-		deviceInfo.DeviceModel = *dataSet.DeviceModel
-	}
-	if dataSet.DeviceSerialNumber != nil {
-		deviceInfo.DeviceSerialNumber = *dataSet.DeviceSerialNumber
-	}
-	return deviceInfo, nil
-}
-
-func NewDeviceInfoFromDevice(device *dexcom.Device) (*DeviceInfo, error) {
-	if device == nil {
-		return nil, errors.New("device is missing")
-	}
-
-	var deviceID string
-	var deviceIDPrefix string
-	var deviceModel string
-	var deviceSerialNumber string
-
-	switch *device.Model {
-	case dexcom.ModelG5MobileApp:
-		deviceModel = "G5Mobile"
-		deviceIDPrefix = "DexG5Mob_"
-	case dexcom.ModelG5Receiver:
-		deviceModel = "G5MobileReceiver"
-		deviceIDPrefix = "DexG5MobRec_"
-	case dexcom.ModelG4WithShareReceiver:
-		deviceModel = "G4ShareReceiver"
-		deviceIDPrefix = "DexG4RecwitSha_"
-	case dexcom.ModelG4Receiver:
-		deviceModel = "G4Receiver"
-		deviceIDPrefix = "DexG4Rec_"
-	case dexcom.ModelUnknown:
-		deviceModel = "Unknown"
-		deviceIDPrefix = "DexUnknown_"
-	default:
-		return nil, errors.New("unknown device model")
-	}
-
-	if device.SerialNumber != nil {
-		deviceSerialNumber = *device.SerialNumber
-		deviceID = deviceIDPrefix + deviceSerialNumber
-	}
-
-	return &DeviceInfo{
-		DeviceID:           deviceID,
-		DeviceModel:        deviceModel,
-		DeviceSerialNumber: deviceSerialNumber,
-	}, nil
-}
-
-func (d *DeviceInfo) IsEmpty() bool {
-	return d.DeviceID == "" && d.DeviceModel == "" && d.DeviceSerialNumber == ""
-}
-
-func (d *DeviceInfo) IsDeviceModelG5Mobile() bool {
-	return d.DeviceModel == "G5Mobile"
-}
-
-func (d *DeviceInfo) IsDeviceModelUnknown() bool {
-	return d.DeviceModel == "Unknown"
-}
-
-func (d *DeviceInfo) Merge(deviceInfo *DeviceInfo) (*DeviceInfo, error) {
-	if deviceInfo == nil {
-		return nil, errors.New("device info is missing")
-	} else if deviceInfo.IsEmpty() {
-		return d, nil
-	}
-
-	if d.IsEmpty() {
-		return deviceInfo, nil
-	}
-
-	mergedDeviceInfo := &DeviceInfo{
-		DeviceID:           d.DeviceID,
-		DeviceModel:        d.DeviceModel,
-		DeviceSerialNumber: d.DeviceSerialNumber,
-	}
-
-	if d.DeviceID != deviceInfo.DeviceID {
-		mergedDeviceInfo.DeviceID = dexcom.DeviceIDMultiple
-	}
-	if d.DeviceModel != deviceInfo.DeviceModel {
-		mergedDeviceInfo.DeviceModel = dexcom.DeviceModelMultiple
-	}
-	if d.DeviceSerialNumber != deviceInfo.DeviceSerialNumber {
-		mergedDeviceInfo.DeviceSerialNumber = dexcom.DeviceSerialNumberMultiple
-	}
-
-	return mergedDeviceInfo, nil
 }

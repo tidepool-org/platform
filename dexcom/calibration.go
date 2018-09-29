@@ -2,11 +2,23 @@ package dexcom
 
 import (
 	"strconv"
-	"time"
 
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
+
+const (
+	CalibrationUnitMgdL = "mg/dL"
+
+	CalibrationValueMgdLMaximum = 600.0
+	CalibrationValueMgdLMinimum = 20.0
+)
+
+func CalibrationUnits() []string {
+	return []string{
+		CalibrationUnitMgdL,
+	}
+}
 
 type CalibrationsResponse struct {
 	Calibrations *Calibrations `json:"calibrations,omitempty"`
@@ -31,7 +43,7 @@ func (c *CalibrationsResponse) Parse(parser structure.ObjectParser) {
 
 func (c *CalibrationsResponse) Validate(validator structure.Validator) {
 	if calibrationsValidator := validator.WithReference("calibrations"); c.Calibrations != nil {
-		calibrationsValidator.Validate(c.Calibrations)
+		c.Calibrations.Validate(calibrationsValidator)
 	} else {
 		calibrationsValidator.ReportError(structureValidator.ErrorValueNotExists())
 	}
@@ -61,7 +73,7 @@ func (c *Calibrations) Parse(parser structure.ArrayParser) {
 func (c *Calibrations) Validate(validator structure.Validator) {
 	for index, calibration := range *c {
 		if calibrationValidator := validator.WithReference(strconv.Itoa(index)); calibration != nil {
-			calibrationValidator.Validate(calibration)
+			calibration.Validate(calibrationValidator)
 		} else {
 			calibrationValidator.ReportError(structureValidator.ErrorValueNotExists())
 		}
@@ -69,11 +81,11 @@ func (c *Calibrations) Validate(validator structure.Validator) {
 }
 
 type Calibration struct {
-	SystemTime    *time.Time `json:"systemTime,omitempty"`
-	DisplayTime   *time.Time `json:"displayTime,omitempty"`
-	Unit          *string    `json:"unit,omitempty"`
-	Value         *float64   `json:"value,omitempty"`
-	TransmitterID *string    `json:"transmitterId,omitempty"`
+	SystemTime    *Time    `json:"systemTime,omitempty"`
+	DisplayTime   *Time    `json:"displayTime,omitempty"`
+	Unit          *string  `json:"unit,omitempty"`
+	Value         *float64 `json:"value,omitempty"`
+	TransmitterID *string  `json:"transmitterId,omitempty"`
 }
 
 func ParseCalibration(parser structure.ObjectParser) *Calibration {
@@ -90,8 +102,8 @@ func NewCalibration() *Calibration {
 }
 
 func (c *Calibration) Parse(parser structure.ObjectParser) {
-	c.SystemTime = parser.Time("systemTime", DateTimeFormat)
-	c.DisplayTime = parser.Time("displayTime", DateTimeFormat)
+	c.SystemTime = TimeFromRaw(parser.Time("systemTime", TimeFormat))
+	c.DisplayTime = TimeFromRaw(parser.Time("displayTime", TimeFormat))
 	c.Unit = parser.String("unit")
 	c.Value = parser.Float64("value")
 	c.TransmitterID = parser.String("transmitterId")
@@ -99,16 +111,14 @@ func (c *Calibration) Parse(parser structure.ObjectParser) {
 
 func (c *Calibration) Validate(validator structure.Validator) {
 	validator = validator.WithMeta(c)
-	validator.Time("systemTime", c.SystemTime).Exists().NotZero().BeforeNow(NowThreshold)
-	validator.Time("displayTime", c.DisplayTime).Exists().NotZero()
-	validator.String("unit", c.Unit).Exists().OneOf(UnitMgdL) // TODO: Add UnitMmolL
+	validator.Time("systemTime", c.SystemTime.Raw()).Exists().NotZero().BeforeNow(SystemTimeNowThreshold)
+	validator.Time("displayTime", c.DisplayTime.Raw()).Exists().NotZero()
+	validator.String("unit", c.Unit).Exists().OneOf(CalibrationUnits()...)
 	if c.Unit != nil {
 		switch *c.Unit {
-		case UnitMgdL:
-			validator.Float64("value", c.Value).Exists().InRange(20, 600)
-		case UnitMmolL:
-			// TODO: Add value validation
+		case CalibrationUnitMgdL:
+			validator.Float64("value", c.Value).Exists().InRange(CalibrationValueMgdLMinimum, CalibrationValueMgdLMaximum)
 		}
 	}
-	validator.String("transmitterId", c.TransmitterID).Matches(transmitterIDExpression)
+	validator.String("transmitterId", c.TransmitterID).Using(TransmitterIDValidator)
 }

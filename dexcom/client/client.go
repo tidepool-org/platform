@@ -15,8 +15,6 @@ import (
 	"github.com/tidepool-org/platform/request"
 )
 
-const RequestDurationMaximum = 10 * time.Second
-
 type Client struct {
 	client *oauthClient.Client
 }
@@ -27,7 +25,7 @@ func New(cfg *client.Config, tknSrcSrc oauth.TokenSourceSource) (*Client, error)
 		return nil, err
 	}
 
-	// Dexcom authorization server does not support HTTP Basic authentication
+	// NOTE: Dexcom authorization server does not support HTTP Basic authentication
 	oauth2.RegisterBrokenAuthHeaderProvider(cfg.Address)
 
 	return &Client{
@@ -37,7 +35,7 @@ func New(cfg *client.Config, tknSrcSrc oauth.TokenSourceSource) (*Client, error)
 
 func (c *Client) GetCalibrations(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.CalibrationsResponse, error) {
 	calibrationsResponse := &dexcom.CalibrationsResponse{}
-	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL("p", "v1", "users", "self", "calibrations"), calibrationsResponse, tokenSource); err != nil {
+	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL("p", "v2", "users", "self", "calibrations"), calibrationsResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get calibrations")
 	}
 
@@ -46,7 +44,7 @@ func (c *Client) GetCalibrations(ctx context.Context, startTime time.Time, endTi
 
 func (c *Client) GetDevices(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.DevicesResponse, error) {
 	devicesResponse := &dexcom.DevicesResponse{}
-	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL("p", "v1", "users", "self", "devices"), devicesResponse, tokenSource); err != nil {
+	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL("p", "v2", "users", "self", "devices"), devicesResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get devices")
 	}
 
@@ -55,7 +53,7 @@ func (c *Client) GetDevices(ctx context.Context, startTime time.Time, endTime ti
 
 func (c *Client) GetEGVs(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.EGVsResponse, error) {
 	egvsResponse := &dexcom.EGVsResponse{}
-	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL("p", "v1", "users", "self", "egvs"), egvsResponse, tokenSource); err != nil {
+	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL("p", "v2", "users", "self", "egvs"), egvsResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get egvs")
 	}
 
@@ -64,7 +62,7 @@ func (c *Client) GetEGVs(ctx context.Context, startTime time.Time, endTime time.
 
 func (c *Client) GetEvents(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.EventsResponse, error) {
 	eventsResponse := &dexcom.EventsResponse{}
-	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL("p", "v1", "users", "self", "events"), eventsResponse, tokenSource); err != nil {
+	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL("p", "v2", "users", "self", "events"), eventsResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get events")
 	}
 
@@ -75,8 +73,8 @@ func (c *Client) sendDexcomRequest(ctx context.Context, startTime time.Time, end
 	requestStartTime := time.Now()
 
 	url = c.client.AppendURLQuery(url, map[string]string{
-		"startDate": startTime.UTC().Format(dexcom.DateTimeFormat),
-		"endDate":   endTime.UTC().Format(dexcom.DateTimeFormat),
+		"startDate": startTime.UTC().Format(dexcom.TimeFormat),
+		"endDate":   endTime.UTC().Format(dexcom.TimeFormat),
 	})
 
 	err := c.client.SendOAuthRequest(ctx, method, url, nil, nil, responseBody, tokenSource)
@@ -88,9 +86,11 @@ func (c *Client) sendDexcomRequest(ctx context.Context, startTime time.Time, end
 		err = errors.Wrap(request.ErrorUnauthenticated(), err.Error())
 	}
 
-	if requestDuration := time.Since(requestStartTime); requestDuration > RequestDurationMaximum {
+	if requestDuration := time.Since(requestStartTime); requestDuration > requestDurationMaximum {
 		log.LoggerFromContext(ctx).WithField("requestDuration", requestDuration.Truncate(time.Millisecond).Seconds()).Warn("Request duration exceeds maximum")
 	}
 
 	return err
 }
+
+const requestDurationMaximum = 15 * time.Second

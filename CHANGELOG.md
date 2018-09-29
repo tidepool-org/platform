@@ -1,5 +1,13 @@
 ## HEAD
 
+* Update to Dexcom API v2
+* Capture cgm settings for changed Dexcom API devices
+* Capture new fields from Dexcom API v2 data
+* Pull data from Dexcom API in 30 day increments rather than 90
+* Add Dexcom time struct for proper formatting during serialization
+* Use constants consistently throughout dexcom package
+* Remove device info from Dexcom API data as not useful
+* Remove unnecessary TODO for Dexcom API mmol/L support
 * Update cgm settings to allow for new settings from Dexcom API
 * Add default alert settings and alternative scheduled alert settings to cgm settings
 * Add test helpers for data parser serialization
