@@ -1,5 +1,7 @@
 ## HEAD
 
+## v1.30.0
+
 * Update to Dexcom API v2
 * Capture cgm settings for changed Dexcom API devices
 * Capture new fields from Dexcom API v2 data
