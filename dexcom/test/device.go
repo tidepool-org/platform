@@ -1,95 +1,106 @@
 package test
 
 import (
-	"math/rand"
-	"time"
+	"math"
 
 	"github.com/tidepool-org/platform/dexcom"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
 )
 
-func RandomAlertSetting() *dexcom.AlertSetting {
-	return RandomAlertSettingWithAlertName(test.RandomStringFromArray(dexcom.AlertNames()))
-}
-
-func RandomAlertSettingWithAlertName(alertName string) *dexcom.AlertSetting {
-	datum := dexcom.NewAlertSetting()
-	datum.SystemTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
-	datum.DisplayTime = pointer.FromTime(test.RandomTime())
-	datum.AlertName = pointer.FromString(alertName)
-	switch *datum.AlertName {
-	case dexcom.AlertNameFixedLow:
-		datum.Unit = pointer.FromString(test.RandomStringFromArray(dexcom.AlertSettingFixedLowUnits()))
-		datum.Value = pointer.FromFloat64(test.RandomFloat64FromArray(dexcom.AlertSettingFixedLowValuesForUnits(datum.Unit)))
-		datum.Delay = pointer.FromInt(0)
-		datum.Snooze = pointer.FromInt(test.RandomIntFromArray(dexcom.AlertSettingFixedLowSnoozes()))
-		datum.Enabled = pointer.FromBool(true)
-	case dexcom.AlertNameLow:
-		datum.Unit = pointer.FromString(test.RandomStringFromArray(dexcom.AlertSettingLowUnits()))
-		datum.Value = pointer.FromFloat64(test.RandomFloat64FromArray(dexcom.AlertSettingLowValuesForUnits(datum.Unit)))
-		datum.Delay = pointer.FromInt(0)
-		datum.Snooze = pointer.FromInt(test.RandomIntFromArray(dexcom.AlertSettingLowSnoozes()))
-		datum.Enabled = pointer.FromBool(test.RandomBool())
-	case dexcom.AlertNameHigh:
-		datum.Unit = pointer.FromString(test.RandomStringFromArray(dexcom.AlertSettingHighUnits()))
-		datum.Value = pointer.FromFloat64(test.RandomFloat64FromArray(dexcom.AlertSettingHighValuesForUnits(datum.Unit)))
-		datum.Delay = pointer.FromInt(0)
-		datum.Snooze = pointer.FromInt(test.RandomIntFromArray(dexcom.AlertSettingHighSnoozes()))
-		datum.Enabled = pointer.FromBool(test.RandomBool())
-	case dexcom.AlertNameRise:
-		datum.Unit = pointer.FromString(test.RandomStringFromArray(dexcom.AlertSettingRiseUnits()))
-		datum.Value = pointer.FromFloat64(test.RandomFloat64FromArray(dexcom.AlertSettingRiseValuesForUnits(datum.Unit)))
-		datum.Delay = pointer.FromInt(0)
-		datum.Snooze = pointer.FromInt(test.RandomIntFromArray(dexcom.AlertSettingRiseSnoozes()))
-		datum.Enabled = pointer.FromBool(test.RandomBool())
-	case dexcom.AlertNameFall:
-		datum.Unit = pointer.FromString(test.RandomStringFromArray(dexcom.AlertSettingFallUnits()))
-		datum.Value = pointer.FromFloat64(test.RandomFloat64FromArray(dexcom.AlertSettingFallValuesForUnits(datum.Unit)))
-		datum.Delay = pointer.FromInt(0)
-		datum.Snooze = pointer.FromInt(test.RandomIntFromArray(dexcom.AlertSettingFallSnoozes()))
-		datum.Enabled = pointer.FromBool(test.RandomBool())
-	case dexcom.AlertNameOutOfRange:
-		datum.Unit = pointer.FromString(test.RandomStringFromArray(dexcom.AlertSettingOutOfRangeUnits()))
-		datum.Value = pointer.FromFloat64(test.RandomFloat64FromArray(dexcom.AlertSettingOutOfRangeValuesForUnits(datum.Unit)))
-		datum.Delay = pointer.FromInt(0)
-		datum.Snooze = pointer.FromInt(test.RandomIntFromArray(dexcom.AlertSettingOutOfRangeSnoozes()))
-		datum.Enabled = pointer.FromBool(test.RandomBool())
-	}
+func RandomDevicesResponse() *dexcom.DevicesResponse {
+	datum := dexcom.NewDevicesResponse()
+	datum.Devices = RandomDevices(0, 3)
 	return datum
 }
 
-func CloneAlertSetting(datum *dexcom.AlertSetting) *dexcom.AlertSetting {
+func CloneDevicesResponse(datum *dexcom.DevicesResponse) *dexcom.DevicesResponse {
 	if datum == nil {
 		return nil
 	}
-	clone := dexcom.NewAlertSetting()
-	clone.SystemTime = pointer.CloneTime(datum.SystemTime)
-	clone.DisplayTime = pointer.CloneTime(datum.DisplayTime)
-	clone.AlertName = pointer.CloneString(datum.AlertName)
-	clone.Unit = pointer.CloneString(datum.Unit)
-	clone.Value = pointer.CloneFloat64(datum.Value)
-	clone.Delay = pointer.CloneInt(datum.Delay)
-	clone.Snooze = pointer.CloneInt(datum.Snooze)
-	clone.Enabled = pointer.CloneBool(datum.Enabled)
+	clone := dexcom.NewDevicesResponse()
+	clone.Devices = CloneDevices(datum.Devices)
 	return clone
 }
 
-func RandomAlertSettings() *dexcom.AlertSettings {
-	datum := dexcom.NewAlertSettings()
-	for _, index := range rand.Perm(len(dexcom.AlertNames())) {
-		*datum = append(*datum, RandomAlertSettingWithAlertName(dexcom.AlertNames()[index]))
+func RandomDevices(minimumLength int, maximumLength int) *dexcom.Devices {
+	datum := make(dexcom.Devices, test.RandomIntFromRange(minimumLength, maximumLength))
+	for index := range datum {
+		datum[index] = RandomDevice()
 	}
+	return &datum
+}
+
+func CloneDevices(datum *dexcom.Devices) *dexcom.Devices {
+	if datum == nil {
+		return nil
+	}
+	clone := make(dexcom.Devices, len(*datum))
+	for index, d := range *datum {
+		clone[index] = CloneDevice(d)
+	}
+	return &clone
+}
+
+func RandomDevice() *dexcom.Device {
+	datum := dexcom.NewDevice()
+	datum.LastUploadDate = RandomTime()
+	datum.AlertScheduleList = RandomAlertSchedules(1, 3)
+	datum.UDI = pointer.FromString(RandomUDI())
+	datum.SerialNumber = pointer.FromString(RandomSerialNumber())
+	datum.TransmitterID = pointer.FromString(RandomTransmitterID())
+	datum.TransmitterGeneration = pointer.FromString(test.RandomStringFromArray(dexcom.DeviceTransmitterGenerations()))
+	datum.DisplayDevice = pointer.FromString(test.RandomStringFromArray(dexcom.DeviceDisplayDevices()))
+	datum.SoftwareVersion = pointer.FromString(RandomSoftwareVersion())
+	datum.SoftwareNumber = pointer.FromString(RandomSoftwareNumber())
+	datum.Language = pointer.FromString(RandomLanguage())
+	datum.IsMmolDisplayMode = pointer.FromBool(test.RandomBool())
+	datum.IsBlindedMode = pointer.FromBool(test.RandomBool())
+	datum.Is24HourMode = pointer.FromBool(test.RandomBool())
+	datum.DisplayTimeOffset = pointer.FromInt(test.RandomIntFromRange(-math.MaxInt32, math.MaxInt32))
+	datum.SystemTimeOffset = pointer.FromInt(test.RandomIntFromRange(-math.MaxInt32, math.MaxInt32))
 	return datum
 }
 
-func CloneAlertSettings(datum *dexcom.AlertSettings) *dexcom.AlertSettings {
+func CloneDevice(datum *dexcom.Device) *dexcom.Device {
 	if datum == nil {
 		return nil
 	}
-	clone := dexcom.NewAlertSettings()
-	for _, alertSetting := range *datum {
-		*clone = append(*clone, CloneAlertSetting(alertSetting))
-	}
+	clone := dexcom.NewDevice()
+	clone.LastUploadDate = CloneTime(datum.LastUploadDate)
+	clone.AlertScheduleList = CloneAlertSchedules(datum.AlertScheduleList)
+	clone.UDI = pointer.CloneString(datum.UDI)
+	clone.SerialNumber = pointer.CloneString(datum.SerialNumber)
+	clone.TransmitterID = pointer.CloneString(datum.TransmitterID)
+	clone.TransmitterGeneration = pointer.CloneString(datum.TransmitterGeneration)
+	clone.DisplayDevice = pointer.CloneString(datum.DisplayDevice)
+	clone.SoftwareVersion = pointer.CloneString(datum.SoftwareVersion)
+	clone.SoftwareNumber = pointer.CloneString(datum.SoftwareNumber)
+	clone.Language = pointer.CloneString(datum.Language)
+	clone.IsMmolDisplayMode = pointer.CloneBool(datum.IsMmolDisplayMode)
+	clone.IsBlindedMode = pointer.CloneBool(datum.IsBlindedMode)
+	clone.Is24HourMode = pointer.CloneBool(datum.Is24HourMode)
+	clone.DisplayTimeOffset = pointer.CloneInt(datum.DisplayTimeOffset)
+	clone.SystemTimeOffset = pointer.CloneInt(datum.SystemTimeOffset)
 	return clone
+}
+
+func RandomUDI() string {
+	return test.RandomString()
+}
+
+func RandomSerialNumber() string {
+	return test.RandomString()
+}
+
+func RandomSoftwareVersion() string {
+	return test.RandomString()
+}
+
+func RandomSoftwareNumber() string {
+	return test.RandomString()
+}
+
+func RandomLanguage() string {
+	return test.RandomString()
 }

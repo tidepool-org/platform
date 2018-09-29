@@ -2,11 +2,86 @@ package dexcom
 
 import (
 	"strconv"
-	"time"
 
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
+
+const (
+	EventTypeCarbs    = "carbs"
+	EventTypeExercise = "exercise"
+	EventTypeHealth   = "health"
+	EventTypeInsulin  = "insulin"
+
+	EventUnitCarbsGrams         = "grams"
+	EventValueCarbsGramsMaximum = 250.0
+	EventValueCarbsGramsMinimum = 0.0
+
+	EventSubTypeExerciseLight        = "light"
+	EventSubTypeExerciseMedium       = "medium"
+	EventSubTypeExerciseHeavy        = "heavy"
+	EventUnitExerciseMinutes         = "minutes"
+	EventValueExerciseMinutesMaximum = 360.0
+	EventValueExerciseMinutesMinimum = 0.0
+
+	EventSubTypeHealthAlcohol      = "alcohol"
+	EventSubTypeHealthCycle        = "cycle"
+	EventSubTypeHealthHighSymptoms = "highSymptoms"
+	EventSubTypeHealthIllness      = "illness"
+	EventSubTypeHealthLowSymptoms  = "lowSymptoms"
+	EventSubTypeHealthStress       = "stress"
+
+	EventSubTypeInsulinFastActing = "fastActing"
+	EventSubTypeInsulinLongActing = "longActing"
+	EventUnitInsulinUnits         = "units"
+	EventValueInsulinUnitsMaximum = 250.0
+	EventValueInsulinUnitsMinimum = 0.0
+
+	EventStatusCreated = "created"
+	EventStatusDeleted = "deleted"
+)
+
+func EventTypes() []string {
+	return []string{
+		EventTypeCarbs,
+		EventTypeExercise,
+		EventTypeHealth,
+		EventTypeInsulin,
+	}
+}
+
+func EventSubTypesExercise() []string {
+	return []string{
+		EventSubTypeExerciseLight,
+		EventSubTypeExerciseMedium,
+		EventSubTypeExerciseHeavy,
+	}
+}
+
+func EventSubTypesHealth() []string {
+	return []string{
+		EventSubTypeHealthAlcohol,
+		EventSubTypeHealthCycle,
+		EventSubTypeHealthHighSymptoms,
+		EventSubTypeHealthIllness,
+		EventSubTypeHealthLowSymptoms,
+		EventSubTypeHealthStress,
+	}
+}
+
+func EventSubTypesInsulin() []string {
+	return []string{
+		EventSubTypeInsulinFastActing,
+		EventSubTypeInsulinLongActing,
+	}
+}
+
+func EventStatuses() []string {
+	return []string{
+		EventStatusCreated,
+		EventStatusDeleted,
+	}
+}
 
 type EventsResponse struct {
 	Events *Events `json:"events,omitempty"`
@@ -31,7 +106,7 @@ func (e *EventsResponse) Parse(parser structure.ObjectParser) {
 
 func (e *EventsResponse) Validate(validator structure.Validator) {
 	if eventsValidator := validator.WithReference("events"); e.Events != nil {
-		eventsValidator.Validate(e.Events)
+		e.Events.Validate(eventsValidator)
 	} else {
 		eventsValidator.ReportError(structureValidator.ErrorValueNotExists())
 	}
@@ -61,7 +136,7 @@ func (e *Events) Parse(parser structure.ArrayParser) {
 func (e *Events) Validate(validator structure.Validator) {
 	for index, event := range *e {
 		if eventValidator := validator.WithReference(strconv.Itoa(index)); event != nil {
-			eventValidator.Validate(event)
+			event.Validate(eventValidator)
 		} else {
 			eventValidator.ReportError(structureValidator.ErrorValueNotExists())
 		}
@@ -69,12 +144,14 @@ func (e *Events) Validate(validator structure.Validator) {
 }
 
 type Event struct {
-	SystemTime   *time.Time `json:"systemTime,omitempty"`
-	DisplayTime  *time.Time `json:"displayTime,omitempty"`
-	EventType    *string    `json:"eventType,omitempty"`
-	EventSubType *string    `json:"eventSubType,omitempty"`
-	Unit         *string    `json:"unit,omitempty"`
-	Value        *float64   `json:"value,omitempty"`
+	SystemTime  *Time    `json:"systemTime,omitempty"`
+	DisplayTime *Time    `json:"displayTime,omitempty"`
+	Type        *string  `json:"eventType,omitempty"`
+	SubType     *string  `json:"eventSubType,omitempty"`
+	Unit        *string  `json:"unit,omitempty"`
+	Value       *float64 `json:"value,omitempty"`
+	ID          *string  `json:"eventId,omitempty"`
+	Status      *string  `json:"eventStatus,omitempty"`
 }
 
 func ParseEvent(parser structure.ObjectParser) *Event {
@@ -91,38 +168,42 @@ func NewEvent() *Event {
 }
 
 func (e *Event) Parse(parser structure.ObjectParser) {
-	e.SystemTime = parser.Time("systemTime", DateTimeFormat)
-	e.DisplayTime = parser.Time("displayTime", DateTimeFormat)
-	e.EventType = parser.String("eventType")
-	e.EventSubType = parser.String("eventSubType")
+	e.SystemTime = TimeFromRaw(parser.Time("systemTime", TimeFormat))
+	e.DisplayTime = TimeFromRaw(parser.Time("displayTime", TimeFormat))
+	e.Type = parser.String("eventType")
+	e.SubType = parser.String("eventSubType")
 	e.Unit = parser.String("unit")
 	e.Value = parser.Float64("value")
+	e.ID = parser.String("eventId")
+	e.Status = parser.String("eventStatus")
 }
 
 func (e *Event) Validate(validator structure.Validator) {
 	validator = validator.WithMeta(e)
-	validator.Time("systemTime", e.SystemTime).Exists().NotZero().BeforeNow(NowThreshold)
-	validator.Time("displayTime", e.DisplayTime).Exists().NotZero()
-	validator.String("eventType", e.EventType).Exists().OneOf(EventCarbs, EventExercise, EventHealth, EventInsulin)
-	if e.EventType != nil {
-		switch *e.EventType {
-		case EventCarbs:
+	validator.Time("systemTime", e.SystemTime.Raw()).Exists().NotZero().BeforeNow(SystemTimeNowThreshold)
+	validator.Time("displayTime", e.DisplayTime.Raw()).Exists().NotZero()
+	validator.String("eventType", e.Type).Exists().OneOf(EventTypes()...)
+	if e.Type != nil {
+		switch *e.Type {
+		case EventTypeCarbs:
 			e.validateCarbs(validator)
-		case EventExercise:
+		case EventTypeExercise:
 			e.validateExercise(validator)
-		case EventHealth:
+		case EventTypeHealth:
 			e.validateHealth(validator)
-		case EventInsulin:
+		case EventTypeInsulin:
 			e.validateInsulin(validator)
 		}
 	}
+	validator.String("eventId", e.ID).Exists().NotEmpty()
+	validator.String("eventStatus", e.Status).Exists().OneOf(EventStatuses()...)
 }
 
 func (e *Event) validateCarbs(validator structure.Validator) {
-	validator.String("eventSubType", e.EventSubType).NotExists()
+	validator.String("eventSubType", e.SubType).NotExists()
 	if e.Unit != nil || e.Value != nil {
-		validator.String("unit", e.Unit).Exists().EqualTo(UnitGrams)
-		validator.Float64("value", e.Value).Exists().InRange(0, 250)
+		validator.String("unit", e.Unit).Exists().OneOf(EventUnitCarbsGrams)
+		validator.Float64("value", e.Value).Exists().InRange(EventValueCarbsGramsMinimum, EventValueCarbsGramsMaximum)
 	}
 }
 
@@ -133,23 +214,23 @@ func (e *Event) validateExercise(validator structure.Validator) {
 		e.Value = nil
 	}
 
-	validator.String("eventSubType", e.EventSubType).OneOf(ExerciseLight, ExerciseMedium, ExerciseHeavy)
+	validator.String("eventSubType", e.SubType).OneOf(EventSubTypesExercise()...)
 	if e.Unit != nil || e.Value != nil {
-		validator.String("unit", e.Unit).Exists().EqualTo(UnitMinutes)
-		validator.Float64("value", e.Value).Exists().InRange(0, 360)
+		validator.String("unit", e.Unit).Exists().OneOf(EventUnitExerciseMinutes)
+		validator.Float64("value", e.Value).Exists().InRange(EventValueExerciseMinutesMinimum, EventValueExerciseMinutesMaximum)
 	}
 }
 
 func (e *Event) validateHealth(validator structure.Validator) {
-	validator.String("eventSubType", e.EventSubType).OneOf(HealthIllness, HealthStress, HealthHighSymptoms, HealthLowSymptoms, HealthCycle, HealthAlcohol)
+	validator.String("eventSubType", e.SubType).OneOf(EventSubTypesHealth()...)
 	validator.String("unit", e.Unit).NotExists()
 	validator.Float64("value", e.Value).NotExists()
 }
 
 func (e *Event) validateInsulin(validator structure.Validator) {
-	validator.String("eventSubType", e.EventSubType).NotExists()
+	validator.String("eventSubType", e.SubType).OneOf(EventSubTypesInsulin()...)
 	if e.Unit != nil || e.Value != nil {
-		validator.String("unit", e.Unit).Exists().EqualTo(UnitUnits)
-		validator.Float64("value", e.Value).Exists().InRange(0, 250)
+		validator.String("unit", e.Unit).Exists().OneOf(EventUnitInsulinUnits)
+		validator.Float64("value", e.Value).Exists().InRange(EventValueInsulinUnitsMinimum, EventValueInsulinUnitsMaximum)
 	}
 }
