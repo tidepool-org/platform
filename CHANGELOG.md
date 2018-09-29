@@ -1,5 +1,6 @@
 ## HEAD
 
+* Add pointer.Equal functions
 * Deprecate current cgm settings alert structures
 * Update oauth/client package tests to latest best practices
 * Update platform package tests to latest best practices
