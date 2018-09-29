@@ -88,8 +88,8 @@ type ValidatableWithUnitsAndStartMinimumAdapter struct {
 func NewValidatableWithUnitsAndStartMinimumAdapter(validatableWithUnitsAndStartMinimum ValidatableWithUnitsAndStartMinimum, units *string, startMinimum *int) *ValidatableWithUnitsAndStartMinimumAdapter {
 	return &ValidatableWithUnitsAndStartMinimumAdapter{
 		validatableWithUnitsAndStartMinimum: validatableWithUnitsAndStartMinimum,
-		units:        units,
-		startMinimum: startMinimum,
+		units:                               units,
+		startMinimum:                        startMinimum,
 	}
 }
 
