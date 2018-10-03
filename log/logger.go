@@ -81,13 +81,11 @@ func (l *logger) Errorf(message string, args ...interface{}) {
 }
 
 func (l *logger) WithError(err error) Logger {
-	fields := Fields{}
-
+	var value interface{}
 	if err != nil {
-		fields["error"] = &errors.Serializable{Error: err}
+		value = &errors.Serializable{Error: err}
 	}
-
-	return l.WithFields(fields)
+	return l.WithField("error", value)
 }
 
 func (l *logger) WithField(key string, value interface{}) Logger {
@@ -177,8 +175,12 @@ func joinFields(fields ...Fields) Fields {
 	joined := Fields{}
 	for _, inner := range fields {
 		for key, value := range inner {
-			if key != "" && value != nil {
-				joined[key] = value
+			if key != "" {
+				if value != nil {
+					joined[key] = value
+				} else {
+					delete(joined, key)
+				}
 			}
 		}
 	}

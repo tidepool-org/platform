@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	"github.com/tidepool-org/platform/data/service/api"
 	"github.com/tidepool-org/platform/data/service/api/v1"
@@ -11,7 +12,7 @@ import (
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/service/server"
 	"github.com/tidepool-org/platform/service/service"
-	baseMongo "github.com/tidepool-org/platform/store/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	syncTaskMongo "github.com/tidepool-org/platform/synctask/store/mongo"
 	userClient "github.com/tidepool-org/platform/user/client"
 )
@@ -29,19 +30,14 @@ type Standard struct {
 	server                  *server.Standard
 }
 
-func NewStandard(prefix string) (*Standard, error) {
-	svc, err := service.NewDEPRECATEDService(prefix)
-	if err != nil {
-		return nil, err
-	}
-
+func NewStandard() *Standard {
 	return &Standard{
-		DEPRECATEDService: svc,
-	}, nil
+		DEPRECATEDService: service.NewDEPRECATEDService(),
+	}
 }
 
-func (s *Standard) Initialize() error {
-	if err := s.DEPRECATEDService.Initialize(); err != nil {
+func (s *Standard) Initialize(provider application.Provider) error {
+	if err := s.DEPRECATEDService.Initialize(provider); err != nil {
 		return err
 	}
 
@@ -114,7 +110,7 @@ func (s *Standard) initializeMetricClient() error {
 
 	s.Logger().Debug("Creating metric client")
 
-	clnt, err := metricClient.New(cfg, s.Name(), s.VersionReporter())
+	clnt, err := metricClient.New(cfg, platform.AuthorizeAsUser, s.Name(), s.VersionReporter())
 	if err != nil {
 		return errors.Wrap(err, "unable to create metric client")
 	}
@@ -134,7 +130,7 @@ func (s *Standard) initializeUserClient() error {
 
 	s.Logger().Debug("Creating user client")
 
-	clnt, err := userClient.New(cfg)
+	clnt, err := userClient.New(cfg, platform.AuthorizeAsService)
 	if err != nil {
 		return errors.Wrap(err, "unable to create user client")
 	}
@@ -185,7 +181,7 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 func (s *Standard) initializeDataStoreDEPRECATED() error {
 	s.Logger().Debug("Loading data store DEPRECATED config")
 
-	cfg := baseMongo.NewConfig()
+	cfg := storeStructuredMongo.NewConfig()
 	if err := cfg.Load(s.ConfigReporter().WithScopes("DEPRECATED", "data", "store")); err != nil {
 		return errors.Wrap(err, "unable to load data store DEPRECATED config")
 	}
@@ -204,7 +200,7 @@ func (s *Standard) initializeDataStoreDEPRECATED() error {
 func (s *Standard) initializeDataStore() error {
 	s.Logger().Debug("Loading data store config")
 
-	cfg := baseMongo.NewConfig()
+	cfg := storeStructuredMongo.NewConfig()
 	if err := cfg.Load(s.ConfigReporter().WithScopes("data", "store")); err != nil {
 		return errors.Wrap(err, "unable to load data store config")
 	}
@@ -223,7 +219,7 @@ func (s *Standard) initializeDataStore() error {
 func (s *Standard) initializeSyncTaskStore() error {
 	s.Logger().Debug("Loading sync task store config")
 
-	cfg := baseMongo.NewConfig()
+	cfg := storeStructuredMongo.NewConfig()
 	if err := cfg.Load(s.ConfigReporter().WithScopes("sync_task", "store")); err != nil {
 		return errors.Wrap(err, "unable to load sync task store config")
 	}

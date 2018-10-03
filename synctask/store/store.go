@@ -2,18 +2,15 @@ package store
 
 import (
 	"context"
-
-	"github.com/tidepool-org/platform/store"
+	"io"
 )
 
 type Store interface {
-	store.Store
-
 	NewSyncTaskSession() SyncTaskSession
 }
 
 type SyncTaskSession interface {
-	store.Session
+	io.Closer
 
 	DestroySyncTasksForUserByID(ctx context.Context, userID string) error
 }

@@ -17,7 +17,7 @@ import (
 
 func NewLap() *physical.Lap {
 	datum := physical.NewLap()
-	datum.Count = pointer.Int(test.RandomIntFromRange(0, 10000))
+	datum.Count = pointer.FromInt(test.RandomIntFromRange(0, 10000))
 	datum.Distance = NewDistance()
 	return datum
 }
@@ -71,17 +71,17 @@ var _ = Describe("Lap", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/count"),
 				),
 				Entry("count out of range (lower)",
-					func(datum *physical.Lap) { datum.Count = pointer.Int(-1) },
+					func(datum *physical.Lap) { datum.Count = pointer.FromInt(-1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 10000), "/count"),
 				),
 				Entry("count in range (lower)",
-					func(datum *physical.Lap) { datum.Count = pointer.Int(0) },
+					func(datum *physical.Lap) { datum.Count = pointer.FromInt(0) },
 				),
 				Entry("count in range (upper)",
-					func(datum *physical.Lap) { datum.Count = pointer.Int(10000) },
+					func(datum *physical.Lap) { datum.Count = pointer.FromInt(10000) },
 				),
 				Entry("count out of range (upper)",
-					func(datum *physical.Lap) { datum.Count = pointer.Int(10001) },
+					func(datum *physical.Lap) { datum.Count = pointer.FromInt(10001) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(10001, 0, 10000), "/count"),
 				),
 				Entry("distance missing",

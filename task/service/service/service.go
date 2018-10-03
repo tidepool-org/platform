@@ -3,6 +3,7 @@ package service
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
+	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/client"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/dexcom"
@@ -12,7 +13,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/platform"
 	serviceService "github.com/tidepool-org/platform/service/service"
-	baseMongo "github.com/tidepool-org/platform/store/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/task"
 	"github.com/tidepool-org/platform/task/queue"
 	"github.com/tidepool-org/platform/task/service"
@@ -31,19 +32,14 @@ type Service struct {
 	taskQueue    *queue.Queue
 }
 
-func New(prefix string) (*Service, error) {
-	authenticated, err := serviceService.NewAuthenticated(prefix)
-	if err != nil {
-		return nil, err
-	}
-
+func New() *Service {
 	return &Service{
-		Authenticated: authenticated,
-	}, nil
+		Authenticated: serviceService.NewAuthenticated(),
+	}
 }
 
-func (s *Service) Initialize() error {
-	if err := s.Authenticated.Initialize(); err != nil {
+func (s *Service) Initialize(provider application.Provider) error {
+	if err := s.Authenticated.Initialize(provider); err != nil {
 		return err
 	}
 
@@ -87,7 +83,7 @@ func (s *Service) TaskClient() task.Client {
 func (s *Service) Status() *service.Status {
 	return &service.Status{
 		Version:   s.VersionReporter().Long(),
-		TaskStore: s.TaskStore().Status(),
+		TaskStore: s.taskStore.Status(),
 		Server:    s.API().Status(),
 	}
 }
@@ -95,7 +91,7 @@ func (s *Service) Status() *service.Status {
 func (s *Service) initializeTaskStore() error {
 	s.Logger().Debug("Loading task store config")
 
-	cfg := baseMongo.NewConfig()
+	cfg := storeStructuredMongo.NewConfig()
 	if err := cfg.Load(s.ConfigReporter().WithScopes("task", "store")); err != nil {
 		return errors.Wrap(err, "unable to load task store config")
 	}
@@ -151,7 +147,7 @@ func (s *Service) initializeDataClient() error {
 
 	s.Logger().Debug("Creating data client")
 
-	clnt, err := dataClient.New(cfg)
+	clnt, err := dataClient.New(cfg, platform.AuthorizeAsService)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data client")
 	}

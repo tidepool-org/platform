@@ -126,20 +126,20 @@ var _ = Describe("Formulation", func() {
 					func(datum *insulin.Formulation) { datum.Name = nil },
 				),
 				Entry("name empty",
-					func(datum *insulin.Formulation) { datum.Name = pointer.String("") },
+					func(datum *insulin.Formulation) { datum.Name = pointer.FromString("") },
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/name"),
 				),
 				Entry("name invalid",
-					func(datum *insulin.Formulation) { datum.Name = pointer.String(test.NewText(101, 101)) },
+					func(datum *insulin.Formulation) { datum.Name = pointer.FromString(test.NewText(101, 101)) },
 					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/name"),
 				),
 				Entry("name valid",
-					func(datum *insulin.Formulation) { datum.Name = pointer.String(test.NewText(1, 100)) },
+					func(datum *insulin.Formulation) { datum.Name = pointer.FromString(test.NewText(1, 100)) },
 				),
 				Entry("multiple errors",
 					func(datum *insulin.Formulation) {
 						datum.Compounds = testDataTypesInsulin.NewCompoundArray(3)
-						datum.Name = pointer.String("")
+						datum.Name = pointer.FromString("")
 						datum.Simple = testDataTypesInsulin.NewSimple()
 						datum.Simple.Concentration = nil
 					},

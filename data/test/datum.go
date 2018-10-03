@@ -29,8 +29,8 @@ type Datum struct {
 	GetPayloadOutputs                    []*data.Blob
 	SetUserIDInvocations                 int
 	SetUserIDInputs                      []*string
-	SetDatasetIDInvocations              int
-	SetDatasetIDInputs                   []*string
+	SetDataSetIDInvocations              int
+	SetDataSetIDInputs                   []*string
 	SetActiveInvocations                 int
 	SetActiveInputs                      []bool
 	SetDeviceIDInvocations               int
@@ -118,10 +118,10 @@ func (d *Datum) SetUserID(userID *string) {
 	d.SetUserIDInputs = append(d.SetUserIDInputs, userID)
 }
 
-func (d *Datum) SetDatasetID(datasetID *string) {
-	d.SetDatasetIDInvocations++
+func (d *Datum) SetDataSetID(dataSetID *string) {
+	d.SetDataSetIDInvocations++
 
-	d.SetDatasetIDInputs = append(d.SetDatasetIDInputs, datasetID)
+	d.SetDataSetIDInputs = append(d.SetDataSetIDInputs, dataSetID)
 }
 
 func (d *Datum) SetActive(active bool) {

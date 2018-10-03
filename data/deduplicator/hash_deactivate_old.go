@@ -42,48 +42,48 @@ func NewHashDeactivateOldFactory() (Factory, error) {
 	return factory, nil
 }
 
-func (h *hashDeactivateOldFactory) CanDeduplicateDataset(dataset *upload.Upload) (bool, error) {
-	if can, err := h.BaseFactory.CanDeduplicateDataset(dataset); err != nil || !can {
+func (h *hashDeactivateOldFactory) CanDeduplicateDataSet(dataSet *upload.Upload) (bool, error) {
+	if can, err := h.BaseFactory.CanDeduplicateDataSet(dataSet); err != nil || !can {
 		return can, err
 	}
 
-	if dataset.DeviceID == nil {
+	if dataSet.DeviceID == nil {
 		return false, nil
 	}
-	if *dataset.DeviceID == "" {
+	if *dataSet.DeviceID == "" {
 		return false, nil
 	}
-	if dataset.DeviceManufacturers == nil {
+	if dataSet.DeviceManufacturers == nil {
 		return false, nil
 	}
-	if dataset.DeviceModel == nil {
+	if dataSet.DeviceModel == nil {
 		return false, nil
 	}
 
-	return allowDeviceManufacturerModel(_HashDeactivateOldExpectedDeviceManufacturerModels, *dataset.DeviceManufacturers, *dataset.DeviceModel), nil
+	return allowDeviceManufacturerModel(_HashDeactivateOldExpectedDeviceManufacturerModels, *dataSet.DeviceManufacturers, *dataSet.DeviceModel), nil
 }
 
-func (h *hashDeactivateOldFactory) NewDeduplicatorForDataset(logger log.Logger, dataSession storeDEPRECATED.DataSession, dataset *upload.Upload) (data.Deduplicator, error) {
-	baseDeduplicator, err := NewBaseDeduplicator(h.name, h.version, logger, dataSession, dataset)
+func (h *hashDeactivateOldFactory) NewDeduplicatorForDataSet(logger log.Logger, dataSession storeDEPRECATED.DataSession, dataSet *upload.Upload) (data.Deduplicator, error) {
+	baseDeduplicator, err := NewBaseDeduplicator(h.name, h.version, logger, dataSession, dataSet)
 	if err != nil {
 		return nil, err
 	}
 
-	if dataset.DeviceID == nil {
-		return nil, errors.New("dataset device id is missing")
+	if dataSet.DeviceID == nil {
+		return nil, errors.New("data set device id is missing")
 	}
-	if *dataset.DeviceID == "" {
-		return nil, errors.New("dataset device id is empty")
+	if *dataSet.DeviceID == "" {
+		return nil, errors.New("data set device id is empty")
 	}
-	if dataset.DeviceManufacturers == nil {
-		return nil, errors.New("dataset device manufacturers is missing")
+	if dataSet.DeviceManufacturers == nil {
+		return nil, errors.New("data set device manufacturers is missing")
 	}
-	if dataset.DeviceModel == nil {
-		return nil, errors.New("dataset device model is missing")
+	if dataSet.DeviceModel == nil {
+		return nil, errors.New("data set device model is missing")
 	}
 
-	if !allowDeviceManufacturerModel(_HashDeactivateOldExpectedDeviceManufacturerModels, *dataset.DeviceManufacturers, *dataset.DeviceModel) {
-		return nil, errors.New("dataset device manufacturer and model does not contain expected device manufacturers and models")
+	if !allowDeviceManufacturerModel(_HashDeactivateOldExpectedDeviceManufacturerModels, *dataSet.DeviceManufacturers, *dataSet.DeviceModel) {
+		return nil, errors.New("data set device manufacturer and model does not contain expected device manufacturers and models")
 	}
 
 	return &hashDeactivateOldDeduplicator{
@@ -91,31 +91,31 @@ func (h *hashDeactivateOldFactory) NewDeduplicatorForDataset(logger log.Logger, 
 	}, nil
 }
 
-func (h *hashDeactivateOldDeduplicator) AddDatasetData(ctx context.Context, datasetData []data.Datum) error {
-	hashes, err := AssignDatasetDataIdentityHashes(datasetData)
+func (h *hashDeactivateOldDeduplicator) AddDataSetData(ctx context.Context, dataSetData []data.Datum) error {
+	hashes, err := AssignDataSetDataIdentityHashes(dataSetData)
 	if err != nil {
 		return err
 	} else if len(hashes) == 0 {
 		return nil
 	}
 
-	return h.BaseDeduplicator.AddDatasetData(ctx, datasetData)
+	return h.BaseDeduplicator.AddDataSetData(ctx, dataSetData)
 }
 
-func (h *hashDeactivateOldDeduplicator) DeduplicateDataset(ctx context.Context) error {
-	if err := h.dataSession.ArchiveDeviceDataUsingHashesFromDataset(ctx, h.dataset); err != nil {
-		return errors.Wrapf(err, "unable to archive device data using hashes from dataset with id %q", *h.dataset.UploadID)
+func (h *hashDeactivateOldDeduplicator) DeduplicateDataSet(ctx context.Context) error {
+	if err := h.dataSession.ArchiveDeviceDataUsingHashesFromDataSet(ctx, h.dataSet); err != nil {
+		return errors.Wrapf(err, "unable to archive device data using hashes from data set with id %q", *h.dataSet.UploadID)
 	}
 
-	return h.BaseDeduplicator.DeduplicateDataset(ctx)
+	return h.BaseDeduplicator.DeduplicateDataSet(ctx)
 }
 
-func (h *hashDeactivateOldDeduplicator) DeleteDataset(ctx context.Context) error {
-	if err := h.dataSession.UnarchiveDeviceDataUsingHashesFromDataset(ctx, h.dataset); err != nil {
-		return errors.Wrapf(err, "unable to unarchive device data using hashes from dataset with id %q", *h.dataset.UploadID)
+func (h *hashDeactivateOldDeduplicator) DeleteDataSet(ctx context.Context) error {
+	if err := h.dataSession.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, h.dataSet); err != nil {
+		return errors.Wrapf(err, "unable to unarchive device data using hashes from data set with id %q", *h.dataSet.UploadID)
 	}
 
-	return h.BaseDeduplicator.DeleteDataset(ctx)
+	return h.BaseDeduplicator.DeleteDataSet(ctx)
 }
 
 func allowDeviceManufacturerModel(allowedDeviceManufacturerModels map[string][]string, deviceManufacturers []string, deviceModel string) bool {

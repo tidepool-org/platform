@@ -18,10 +18,10 @@ import (
 func NewIngredient(ingredientArrayDepthLimit int) *food.Ingredient {
 	datum := food.NewIngredient()
 	datum.Amount = NewAmount()
-	datum.Brand = pointer.String(test.NewText(1, 100))
-	datum.Code = pointer.String(test.NewText(1, 100))
+	datum.Brand = pointer.FromString(test.NewText(1, 100))
+	datum.Code = pointer.FromString(test.NewText(1, 100))
 	datum.Ingredients = NewIngredientArray(ingredientArrayDepthLimit)
-	datum.Name = pointer.String(test.NewText(1, 100))
+	datum.Name = pointer.FromString(test.NewText(1, 100))
 	datum.Nutrition = NewNutrition()
 	return datum
 }
@@ -114,28 +114,28 @@ var _ = Describe("Ingredient", func() {
 					func(datum *food.Ingredient) { datum.Brand = nil },
 				),
 				Entry("brand empty",
-					func(datum *food.Ingredient) { datum.Brand = pointer.String("") },
+					func(datum *food.Ingredient) { datum.Brand = pointer.FromString("") },
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/brand"),
 				),
 				Entry("brand length; in range (upper)",
-					func(datum *food.Ingredient) { datum.Brand = pointer.String(test.NewText(100, 100)) },
+					func(datum *food.Ingredient) { datum.Brand = pointer.FromString(test.NewText(100, 100)) },
 				),
 				Entry("brand length; out of range (upper)",
-					func(datum *food.Ingredient) { datum.Brand = pointer.String(test.NewText(101, 101)) },
+					func(datum *food.Ingredient) { datum.Brand = pointer.FromString(test.NewText(101, 101)) },
 					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/brand"),
 				),
 				Entry("code missing",
 					func(datum *food.Ingredient) { datum.Code = nil },
 				),
 				Entry("code empty",
-					func(datum *food.Ingredient) { datum.Code = pointer.String("") },
+					func(datum *food.Ingredient) { datum.Code = pointer.FromString("") },
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/code"),
 				),
 				Entry("code length; in range (upper)",
-					func(datum *food.Ingredient) { datum.Code = pointer.String(test.NewText(100, 100)) },
+					func(datum *food.Ingredient) { datum.Code = pointer.FromString(test.NewText(100, 100)) },
 				),
 				Entry("code length; out of range (upper)",
-					func(datum *food.Ingredient) { datum.Code = pointer.String(test.NewText(101, 101)) },
+					func(datum *food.Ingredient) { datum.Code = pointer.FromString(test.NewText(101, 101)) },
 					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/code"),
 				),
 				Entry("ingredients missing",
@@ -152,14 +152,14 @@ var _ = Describe("Ingredient", func() {
 					func(datum *food.Ingredient) { datum.Name = nil },
 				),
 				Entry("name empty",
-					func(datum *food.Ingredient) { datum.Name = pointer.String("") },
+					func(datum *food.Ingredient) { datum.Name = pointer.FromString("") },
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/name"),
 				),
 				Entry("name length; in range (upper)",
-					func(datum *food.Ingredient) { datum.Name = pointer.String(test.NewText(100, 100)) },
+					func(datum *food.Ingredient) { datum.Name = pointer.FromString(test.NewText(100, 100)) },
 				),
 				Entry("name length; out of range (upper)",
-					func(datum *food.Ingredient) { datum.Name = pointer.String(test.NewText(101, 101)) },
+					func(datum *food.Ingredient) { datum.Name = pointer.FromString(test.NewText(101, 101)) },
 					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/name"),
 				),
 				Entry("nutrition missing",
@@ -175,10 +175,10 @@ var _ = Describe("Ingredient", func() {
 				Entry("multiple errors",
 					func(datum *food.Ingredient) {
 						datum.Amount.Units = nil
-						datum.Brand = pointer.String("")
-						datum.Code = pointer.String("")
+						datum.Brand = pointer.FromString("")
+						datum.Code = pointer.FromString("")
 						(*datum.Ingredients)[0] = nil
-						datum.Name = pointer.String("")
+						datum.Name = pointer.FromString("")
 						datum.Nutrition.Carbohydrate.Units = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amount/units"),
@@ -268,7 +268,7 @@ var _ = Describe("Ingredient", func() {
 				Entry("single invalid",
 					func(datum *food.IngredientArray) {
 						invalid := NewIngredient(3)
-						invalid.Brand = pointer.String("")
+						invalid.Brand = pointer.FromString("")
 						*datum = append(*datum, invalid)
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/0/brand"),
@@ -281,7 +281,7 @@ var _ = Describe("Ingredient", func() {
 				Entry("multiple invalid",
 					func(datum *food.IngredientArray) {
 						invalid := NewIngredient(3)
-						invalid.Brand = pointer.String("")
+						invalid.Brand = pointer.FromString("")
 						*datum = append(*datum, NewIngredient(3), invalid, NewIngredient(3))
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/1/brand"),
@@ -309,7 +309,7 @@ var _ = Describe("Ingredient", func() {
 				Entry("multiple errors",
 					func(datum *food.IngredientArray) {
 						invalid := NewIngredient(3)
-						invalid.Brand = pointer.String("")
+						invalid.Brand = pointer.FromString("")
 						*datum = append(*datum, nil, invalid, NewIngredient(3))
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),

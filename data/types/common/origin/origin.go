@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/structure"
-	"github.com/tidepool-org/platform/validate"
 )
 
 const (
@@ -55,7 +55,7 @@ func (o *Origin) Parse(parser data.ObjectParser) {
 
 func (o *Origin) Validate(validator structure.Validator) {
 	validator.String("id", o.ID).NotEmpty().LengthLessThanOrEqualTo(IDLengthMaximum)
-	validator.String("name", o.Name).Exists().Using(validate.ReverseDomain)
+	validator.String("name", o.Name).Exists().Using(net.ReverseDomainValidator)
 	validator.Time("time", o.Time).NotZero()
 	validator.String("type", o.Type).OneOf(Types()...)
 	validator.String("version", o.Version).NotEmpty().LengthLessThanOrEqualTo(VersionLengthMaximum)

@@ -7,12 +7,15 @@ import (
 	testAuth "github.com/tidepool-org/platform/auth/test"
 	"github.com/tidepool-org/platform/config"
 	testConfig "github.com/tidepool-org/platform/config/test"
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	nullLog "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/test"
 	"github.com/tidepool-org/platform/version"
 )
+
+func NewUserID() string {
+	return test.NewString(10, test.CharsetHexidecimalLowercase)
+}
 
 type Service struct {
 	*test.Mock
@@ -29,7 +32,7 @@ type Service struct {
 }
 
 func NewService() *Service {
-	versionReporter, _ := version.NewReporter(id.New(), id.New(), id.New())
+	versionReporter, _ := version.NewReporter(test.NewString(4, test.CharsetAlphaNumeric), test.NewString(8, test.CharsetAlphaNumeric), test.NewString(32, test.CharsetAlphaNumeric))
 	return &Service{
 		Mock:                test.NewMock(),
 		VersionReporterImpl: versionReporter,

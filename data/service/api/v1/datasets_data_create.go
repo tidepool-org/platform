@@ -10,7 +10,6 @@ import (
 	"github.com/tidepool-org/platform/data/parser"
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataTypesFactory "github.com/tidepool-org/platform/data/types/factory"
-	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
@@ -18,31 +17,31 @@ import (
 	"github.com/tidepool-org/platform/user"
 )
 
-func DatasetsDataCreate(dataServiceContext dataService.Context) {
+func DataSetsDataCreate(dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	lgr := log.LoggerFromContext(ctx)
 
-	datasetID := dataServiceContext.Request().PathParam("dataSetId")
-	if datasetID == "" {
-		dataServiceContext.RespondWithError(ErrorDatasetIDMissing())
+	dataSetID := dataServiceContext.Request().PathParam("dataSetId")
+	if dataSetID == "" {
+		dataServiceContext.RespondWithError(ErrorDataSetIDMissing())
 		return
 	}
 
-	dataset, err := dataServiceContext.DataSession().GetDatasetByID(ctx, datasetID)
+	dataSet, err := dataServiceContext.DataSession().GetDataSetByID(ctx, dataSetID)
 	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to get dataset by id", err)
+		dataServiceContext.RespondWithInternalServerFailure("Unable to get data set by id", err)
 		return
 	}
-	if dataset == nil {
-		dataServiceContext.RespondWithError(ErrorDatasetIDNotFound(datasetID))
+	if dataSet == nil {
+		dataServiceContext.RespondWithError(ErrorDataSetIDNotFound(dataSetID))
 		return
 	}
 
 	if details := request.DetailsFromContext(ctx); !details.IsService() {
 		var permissions user.Permissions
-		permissions, err = dataServiceContext.UserClient().GetUserPermissions(ctx, details.UserID(), *dataset.UserID)
+		permissions, err = dataServiceContext.UserClient().GetUserPermissions(ctx, details.UserID(), *dataSet.UserID)
 		if err != nil {
-			if errors.Code(err) == request.ErrorCodeUnauthorized {
+			if request.IsErrorUnauthorized(err) {
 				dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 			} else {
 				dataServiceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
@@ -55,14 +54,14 @@ func DatasetsDataCreate(dataServiceContext dataService.Context) {
 		}
 	}
 
-	if (dataset.State != nil && *dataset.State == "closed") || (dataset.DataState != nil && *dataset.DataState == "closed") { // TODO: Deprecated DataState (after data migration)
-		dataServiceContext.RespondWithError(ErrorDatasetClosed(datasetID))
+	if (dataSet.State != nil && *dataSet.State == "closed") || (dataSet.DataState != nil && *dataSet.DataState == "closed") { // TODO: Deprecated DataState (after data migration)
+		dataServiceContext.RespondWithError(ErrorDataSetClosed(dataSetID))
 		return
 	}
 
-	deduplicator, err := dataServiceContext.DataDeduplicatorFactory().NewRegisteredDeduplicatorForDataset(lgr, dataServiceContext.DataSession(), dataset)
+	deduplicator, err := dataServiceContext.DataDeduplicatorFactory().NewRegisteredDeduplicatorForDataSet(lgr, dataServiceContext.DataSession(), dataSet)
 	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to create registered deduplicator for dataset", err)
+		dataServiceContext.RespondWithInternalServerFailure("Unable to create registered deduplicator for data set", err)
 		return
 	}
 
@@ -116,16 +115,16 @@ func DatasetsDataCreate(dataServiceContext dataService.Context) {
 	datumArray = append(datumArray, normalizer.Data()...)
 
 	for _, datum := range datumArray {
-		datum.SetUserID(dataset.UserID)
-		datum.SetDatasetID(dataset.UploadID)
+		datum.SetUserID(dataSet.UserID)
+		datum.SetDataSetID(dataSet.UploadID)
 	}
 
-	if err = deduplicator.AddDatasetData(ctx, datumArray); err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to add dataset data", err)
+	if err = deduplicator.AddDataSetData(ctx, datumArray); err != nil {
+		dataServiceContext.RespondWithInternalServerFailure("Unable to add data set data", err)
 		return
 	}
 
-	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "datasets_data_create", map[string]string{"count": strconv.Itoa(len(datumArray))}); err != nil {
+	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_data_create", map[string]string{"count": strconv.Itoa(len(datumArray))}); err != nil {
 		lgr.WithError(err).Error("Unable to record metric")
 	}
 

@@ -9,7 +9,7 @@ import (
 func NewElevation(units *string) *location.Elevation {
 	datum := location.NewElevation()
 	datum.Units = units
-	datum.Value = pointer.Float64(test.RandomFloat64FromRange(location.ElevationValueRangeForUnits(units)))
+	datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(location.ElevationValueRangeForUnits(units)))
 	return datum
 }
 

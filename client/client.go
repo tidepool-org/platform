@@ -6,13 +6,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
-	netURL "net/url"
+	"net/url"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/request"
+	"github.com/tidepool-org/platform/structure"
 )
 
 type Client struct {
@@ -23,9 +26,7 @@ type Client struct {
 func New(cfg *Config) (*Client, error) {
 	if cfg == nil {
 		return nil, errors.New("config is missing")
-	}
-
-	if err := cfg.Validate(); err != nil {
+	} else if err := cfg.Validate(); err != nil {
 		return nil, errors.Wrap(err, "config is invalid")
 	}
 
@@ -38,13 +39,13 @@ func New(cfg *Config) (*Client, error) {
 func (c *Client) ConstructURL(paths ...string) string {
 	segments := []string{}
 	for _, path := range paths {
-		segments = append(segments, netURL.PathEscape(strings.Trim(path, "/")))
+		segments = append(segments, url.PathEscape(strings.Trim(path, "/")))
 	}
 	return fmt.Sprintf("%s/%s", strings.TrimRight(c.address, "/"), strings.Join(segments, "/"))
 }
 
 func (c *Client) AppendURLQuery(urlString string, query map[string]string) string {
-	values := netURL.Values{}
+	values := url.Values{}
 	for k, v := range query {
 		values.Add(k, v)
 	}
@@ -62,49 +63,58 @@ func (c *Client) AppendURLQuery(urlString string, query map[string]string) strin
 	return urlString
 }
 
-func (c *Client) SendRequest(ctx context.Context, method string, url string, mutators []request.Mutator, requestBody interface{}, responseBody interface{}, httpClient *http.Client) error {
+func (c *Client) RequestStreamWithHTTPClient(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, inspectors []request.ResponseInspector, httpClient *http.Client) (io.ReadCloser, error) {
 	if httpClient == nil {
-		return errors.New("http client is missing")
+		return nil, errors.New("http client is missing")
 	}
 
-	req, err := c.buildRequest(ctx, method, url, mutators, requestBody, responseBody)
+	req, err := c.createRequest(ctx, method, url, mutators, requestBody)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	// TODO: Prevents random EOF errors (I think due to the server closing Keep Alive connections automatically)
-	// TODO: Would be better to retry the request with exponential fallback
-	req.Close = true
 
 	res, err := httpClient.Do(req)
 	if err != nil {
-		return errors.Wrapf(err, "unable to perform request %s %s", method, url)
-	}
-	if res.Body != nil {
-		defer res.Body.Close()
+		return nil, errors.Wrapf(err, "unable to perform request to %s %s", method, url)
 	}
 
-	switch res.StatusCode {
-	case http.StatusOK, http.StatusCreated:
-		return c.decodeResponseBody(res, responseBody)
-	case http.StatusNoContent:
-		return nil
-	case http.StatusBadRequest:
-		return c.handleBadRequest(res, req)
-	case http.StatusUnauthorized:
-		return request.ErrorUnauthenticated()
-	case http.StatusForbidden:
-		return request.ErrorUnauthorized()
-	case http.StatusNotFound:
-		return request.ErrorResourceNotFound()
-	case http.StatusTooManyRequests:
-		return request.ErrorTooManyRequests()
+	for _, inspector := range inspectors {
+		if err = inspector.InspectResponse(res); err != nil {
+			drainAndClose(res.Body)
+			return nil, err
+		}
 	}
 
-	return request.ErrorUnexpectedResponse(res, req)
+	return c.handleResponse(ctx, res, req)
 }
 
-func (c *Client) buildRequest(ctx context.Context, method string, url string, mutators []request.Mutator, requestBody interface{}, responseBody interface{}) (*http.Request, error) {
+func (c *Client) RequestDataWithHTTPClient(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, responseBody interface{}, inspectors []request.ResponseInspector, httpClient *http.Client) error {
+	headerInspector := request.NewHeadersInspector()
+	body, err := c.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, append(inspectors, headerInspector), httpClient)
+	if err != nil {
+		return err
+	} else if body == nil {
+		return nil
+	}
+
+	defer drainAndClose(body)
+
+	if responseBody == nil {
+		return nil
+	}
+
+	// FUTURE: Enable once all services respond appropriately, namely legacy services
+	// mediaType, err := request.ParseMediaTypeHeader(headerInspector.Headers, "Content-Type")
+	// if err != nil {
+	// 	return err
+	// } else if mediaType == nil || *mediaType != "application/json; charset=utf-8" { // FUTURE: Consider MediaType struct that pulls apart and manages media type
+	// 	return request.ErrorHeaderInvalid("Content-Type")
+	// }
+
+	return request.DecodeObject(structure.NewPointerSource(), body, responseBody)
+}
+
+func (c *Client) createRequest(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}) (*http.Request, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -115,62 +125,112 @@ func (c *Client) buildRequest(ctx context.Context, method string, url string, mu
 		return nil, errors.New("url is missing")
 	}
 
-	body, err := c.encodeRequestBody(requestBody)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error encoding JSON request to %s %s", method, url)
+	mutators = append(mutators, request.NewHeaderMutator("User-Agent", c.userAgent))
+
+	var body io.Reader
+	if requestBody != nil {
+		if reader, ok := requestBody.(io.Reader); ok {
+			body = reader
+		} else {
+			buffer := &bytes.Buffer{}
+			if err := json.NewEncoder(buffer).Encode(requestBody); err != nil {
+				return nil, errors.Wrapf(err, "unable to serialize request to %s %s", method, url)
+			}
+			body = buffer
+			mutators = append(mutators, request.NewHeaderMutator("Content-Type", "application/json; charset=utf-8"))
+		}
 	}
 
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to create new request for %s %s", method, url)
+		return nil, errors.Wrapf(err, "unable to create request to %s %s", method, url)
 	}
 
 	req = req.WithContext(ctx)
 
 	for _, mutator := range mutators {
-		if mutator != nil {
-			if err = mutator.Mutate(req); err != nil {
-				return nil, errors.Wrapf(err, "unable to mutate request")
-			}
+		if err = mutator.MutateRequest(req); err != nil {
+			return nil, errors.Wrapf(err, "unable to mutate request to %s %s", method, url)
 		}
 	}
 
-	req.Header.Set("Content-Type", "application/json; charset=utf-8")
-	req.Header.Set("User-Agent", c.userAgent)
+	// TODO: Prevents random EOF errors (I think due to the server closing Keep Alive connections automatically)
+	// TODO: Would be better to retry the request with exponential fallback
+	req.Close = true
 
 	return req, nil
 }
 
-func (c *Client) encodeRequestBody(object interface{}) (io.Reader, error) {
-	if object == nil {
-		return nil, nil
-	}
+func (c *Client) handleResponse(ctx context.Context, res *http.Response, req *http.Request) (io.ReadCloser, error) {
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"method": req.Method, "url": req.URL.String()})
 
-	buffer := &bytes.Buffer{}
-	if err := json.NewEncoder(buffer).Encode(object); err != nil {
-		return nil, err
-	}
-
-	return buffer, nil
-}
-
-func (c *Client) decodeResponseBody(res *http.Response, object interface{}) error {
-	if object == nil {
-		return nil
-	}
-
-	return request.DecodeResponseBody(res, object)
-}
-
-func (c *Client) handleBadRequest(res *http.Response, req *http.Request) error {
-	if logger := log.LoggerFromContext(req.Context()); logger != nil {
-		if res.Body != nil {
-			buffer := bytes.Buffer{}
-			if _, err := buffer.ReadFrom(io.LimitReader(res.Body, 1<<16)); err == nil {
-				logger = logger.WithField("responseBody", buffer.String())
-			}
+	if request.IsStatusCodeSuccess(res.StatusCode) {
+		switch res.StatusCode {
+		case http.StatusNoContent, http.StatusResetContent:
+			drainAndClose(res.Body)
+			return nil, nil
+		default:
+			return res.Body, nil
 		}
-		logger.WithFields(log.Fields{"method": req.Method, "url": req.URL.String()}).Warn("bad request")
 	}
-	return request.ErrorBadRequest()
+
+	defer drainAndClose(res.Body)
+
+	serializable := &errors.Serializable{}
+
+	if bytes, err := ioutil.ReadAll(io.LimitReader(res.Body, 1<<20)); err != nil {
+		return nil, errors.Wrap(err, "unable to read response body")
+	} else if len(bytes) == 0 {
+		logger.Error("Response body is empty, using defacto error for status code")
+	} else if unmarshalErr := json.Unmarshal(bytes, serializable); unmarshalErr != nil {
+		logger.WithError(unmarshalErr).WithField("responseBody", responseBodyFromBytes(bytes)).Error("Unable to deserialize response body, using defacto error for status code")
+	} else if serializable.Error == nil {
+		logger.WithField("responseBody", responseBodyFromBytes(bytes)).Error("Response body does not contain an error, using defacto error for status code")
+	}
+
+	if serializable.Error == nil {
+		serializable.Error = errorFromStatusCode(res, req)
+	}
+
+	logger = logger.WithError(serializable.Error)
+
+	switch errors.Code(serializable.Error) {
+	case request.ErrorCodeBadRequest:
+		logger.Error("Bad request")
+	case request.ErrorCodeTooManyRequests:
+		logger.Error("Too many requests")
+	case request.ErrorCodeUnexpectedResponse:
+		logger.Error("Unexpected response")
+	}
+
+	return nil, serializable.Error
+}
+
+func errorFromStatusCode(res *http.Response, req *http.Request) error {
+	switch res.StatusCode {
+	case http.StatusBadRequest:
+		return request.ErrorBadRequest()
+	case http.StatusUnauthorized:
+		return request.ErrorUnauthenticated()
+	case http.StatusForbidden:
+		return request.ErrorUnauthorized()
+	case http.StatusNotFound:
+		return request.ErrorResourceNotFound()
+	case http.StatusTooManyRequests:
+		return request.ErrorTooManyRequests()
+	default:
+		return request.ErrorUnexpectedResponse(res, req)
+	}
+}
+
+func responseBodyFromBytes(byts []byte) interface{} {
+	if utf8.Valid(byts) {
+		return string(byts)
+	}
+	return byts
+}
+
+func drainAndClose(reader io.ReadCloser) {
+	io.Copy(ioutil.Discard, reader)
+	reader.Close()
 }

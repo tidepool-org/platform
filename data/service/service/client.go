@@ -90,7 +90,7 @@ func (c *Client) DeleteDataSet(ctx context.Context, id string) error {
 	panic("Not Implemented!")
 }
 
-func (c *Client) CreateDataSetsData(ctx context.Context, datasetID string, datumArray []data.Datum) error {
+func (c *Client) CreateDataSetsData(ctx context.Context, dataSetID string, datumArray []data.Datum) error {
 	panic("Not Implemented!")
 }
 

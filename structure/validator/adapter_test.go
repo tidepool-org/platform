@@ -19,7 +19,7 @@ var _ = Describe("Adapter", func() {
 
 		BeforeEach(func() {
 			validatableWithInt = testStructure.NewValidatableWithInt()
-			i = pointer.Int(rand.Int())
+			i = pointer.FromInt(rand.Int())
 		})
 
 		Context("NewValidatableWithIntAdapter", func() {
@@ -51,7 +51,7 @@ var _ = Describe("Adapter", func() {
 
 		BeforeEach(func() {
 			validatableWithString = testStructure.NewValidatableWithString()
-			str = pointer.String(test.NewText(1, 32))
+			str = pointer.FromString(test.NewText(1, 32))
 		})
 
 		Context("NewValidatableWithStringAdapter", func() {

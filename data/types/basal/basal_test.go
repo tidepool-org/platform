@@ -12,7 +12,6 @@ import (
 	testDataTypesBasal "github.com/tidepool-org/platform/data/types/basal/test"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
@@ -22,7 +21,7 @@ import (
 
 func NewTestBasal(sourceTime interface{}, sourceDeliveryType interface{}) *basal.Basal {
 	datum := basal.New("")
-	datum.DeviceID = pointer.String(id.New())
+	datum.DeviceID = pointer.FromString(testData.NewDeviceID())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
 	}
@@ -172,7 +171,7 @@ var _ = Describe("Basal", func() {
 			})
 
 			It("returns error if user id is empty", func() {
-				datum.UserID = pointer.String("")
+				datum.UserID = pointer.FromString("")
 				identityFields, err := datum.IdentityFields()
 				Expect(err).To(MatchError("user id is empty"))
 				Expect(identityFields).To(BeEmpty())

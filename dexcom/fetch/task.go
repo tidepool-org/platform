@@ -21,7 +21,7 @@ func NewTaskCreate(providerSessionID string, dataSourceID string) (*task.TaskCre
 	}
 
 	return &task.TaskCreate{
-		Name: pointer.String(TaskName(providerSessionID)),
+		Name: pointer.FromString(TaskName(providerSessionID)),
 		Type: Type,
 		Data: map[string]interface{}{
 			"providerSessionId": providerSessionID,

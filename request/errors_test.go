@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"github.com/tidepool-org/platform/errors"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/request"
 	testHTTP "github.com/tidepool-org/platform/test/http"
 )
@@ -29,22 +30,32 @@ var _ = Describe("Errors", func() {
 		})
 	})
 
-	DescribeTable("all other errors",
-		func(err error, code string, title string, detail string) {
+	Context("ErrorInternalServerError", func() {
+		It("returns the expected error", func() {
+			cause := errors.New("error")
+			err := request.ErrorInternalServerError(cause)
 			Expect(err).ToNot(BeNil())
-			Expect(errors.Code(err)).To(Equal(code))
-			Expect(errors.Cause(err)).To(Equal(err))
+			Expect(errors.Code(err)).To(Equal("internal-server-error"))
+			Expect(errors.Cause(err)).To(Equal(cause))
 			bytes, bytesErr := json.Marshal(errors.Sanitize(err))
 			Expect(bytesErr).ToNot(HaveOccurred())
-			Expect(bytes).To(MatchJSON(fmt.Sprintf(`{"code": %q, "title": %q, "detail": %q}`, code, title, detail)))
-		},
+			Expect(bytes).To(MatchJSON(`{"code": "internal-server-error", "title": "internal server error", "detail": "internal server error"}`))
+		})
+	})
+
+	DescribeTable("have expected details when error",
+		errorsTest.ExpectErrorDetails,
 		Entry("is ErrorTooManyRequests", request.ErrorTooManyRequests(), "too-many-requests", "too many requests", "too many requests"),
 		Entry("is ErrorBadRequest", request.ErrorBadRequest(), "bad-request", "bad request", "bad request"),
 		Entry("is ErrorUnauthenticated", request.ErrorUnauthenticated(), "unauthenticated", "authentication token is invalid", "authentication token is invalid"),
 		Entry("is ErrorUnauthorized", request.ErrorUnauthorized(), "unauthorized", "authentication token is not authorized for requested action", "authentication token is not authorized for requested action"),
 		Entry("is ErrorResourceNotFound", request.ErrorResourceNotFound(), "resource-not-found", "resource not found", "resource not found"),
 		Entry("is ErrorResourceNotFoundWithID", request.ErrorResourceNotFoundWithID("test-id"), "resource-not-found", "resource not found", `resource with id "test-id" not found`),
+		Entry("is ErrorResourceNotFoundWithIDAndRevision", request.ErrorResourceNotFoundWithIDAndRevision("test-id", 1), "resource-not-found", "resource not found", `revision 1 of resource with id "test-id" not found`),
+		Entry("is ErrorHeaderMissing", request.ErrorHeaderMissing("X-Test-Header"), "header-missing", "header is missing", `header "X-Test-Header" is missing`),
+		Entry("is ErrorHeaderInvalid", request.ErrorHeaderInvalid("X-Test-Header"), "header-invalid", "header is invalid", `header "X-Test-Header" is invalid`),
 		Entry("is ErrorParameterMissing", request.ErrorParameterMissing("test_parameter"), "parameter-missing", "parameter is missing", `parameter "test_parameter" is missing`),
+		Entry("is ErrorParameterInvalid", request.ErrorParameterInvalid("test_parameter"), "parameter-invalid", "parameter is invalid", `parameter "test_parameter" is invalid`),
 		Entry("is ErrorJSONMalformed", request.ErrorJSONMalformed(), "json-malformed", "json is malformed", "json is malformed"),
 	)
 
@@ -59,9 +70,66 @@ var _ = Describe("Errors", func() {
 			Entry("is ErrorUnauthorized", request.ErrorUnauthorized(), 403),
 			Entry("is ErrorResourceNotFound", request.ErrorResourceNotFound(), 404),
 			Entry("is ErrorResourceNotFoundWithID", request.ErrorResourceNotFoundWithID("test-id"), 404),
+			Entry("is ErrorResourceNotFoundWithIDAndRevision", request.ErrorResourceNotFoundWithIDAndRevision("test-id", 1), 404),
 			Entry("is another request error", request.ErrorJSONMalformed(), 500),
 			Entry("is another error", errors.New("test-error"), 500),
 			Entry("is nil error", nil, 500),
 		)
+	})
+
+	Context("IsErrorInternalServerError", func() {
+		It("returns false if the error does not have a code", func() {
+			Expect(request.IsErrorInternalServerError(errors.New("error"))).To(BeFalse())
+		})
+
+		It("returns false if the error code is not ErrorCodeInternalServerError", func() {
+			Expect(request.IsErrorInternalServerError(request.ErrorUnauthenticated())).To(BeFalse())
+		})
+
+		It("returns true if the error code is ErrorCodeInternalServerError", func() {
+			Expect(request.IsErrorInternalServerError(request.ErrorInternalServerError(errors.New("error")))).To(BeTrue())
+		})
+	})
+
+	Context("IsErrorUnauthenticated", func() {
+		It("returns false if the error does not have a code", func() {
+			Expect(request.IsErrorUnauthenticated(errors.New("error"))).To(BeFalse())
+		})
+
+		It("returns false if the error code is not ErrorCodeUnauthenticated", func() {
+			Expect(request.IsErrorUnauthenticated(request.ErrorInternalServerError(errors.New("error")))).To(BeFalse())
+		})
+
+		It("returns true if the error code is ErrorCodeUnauthenticated", func() {
+			Expect(request.IsErrorUnauthenticated(request.ErrorUnauthenticated())).To(BeTrue())
+		})
+	})
+
+	Context("IsErrorUnauthorized", func() {
+		It("returns false if the error does not have a code", func() {
+			Expect(request.IsErrorUnauthorized(errors.New("error"))).To(BeFalse())
+		})
+
+		It("returns false if the error code is not ErrorCodeUnauthorized", func() {
+			Expect(request.IsErrorUnauthorized(request.ErrorInternalServerError(errors.New("error")))).To(BeFalse())
+		})
+
+		It("returns true if the error code is ErrorCodeUnauthorized", func() {
+			Expect(request.IsErrorUnauthorized(request.ErrorUnauthorized())).To(BeTrue())
+		})
+	})
+
+	Context("IsErrorResourceNotFound", func() {
+		It("returns false if the error does not have a code", func() {
+			Expect(request.IsErrorResourceNotFound(errors.New("error"))).To(BeFalse())
+		})
+
+		It("returns false if the error code is not ErrorCodeResourceNotFound", func() {
+			Expect(request.IsErrorResourceNotFound(request.ErrorInternalServerError(errors.New("error")))).To(BeFalse())
+		})
+
+		It("returns true if the error code is ErrorCodeResourceNotFound", func() {
+			Expect(request.IsErrorResourceNotFound(request.ErrorResourceNotFound())).To(BeTrue())
+		})
 	})
 })

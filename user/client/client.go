@@ -14,8 +14,8 @@ type Client struct {
 	client *platform.Client
 }
 
-func New(cfg *platform.Config) (*Client, error) {
-	clnt, err := platform.NewClient(cfg)
+func New(cfg *platform.Config, authorizeAs platform.AuthorizeAs) (*Client, error) {
+	clnt, err := platform.NewClient(cfg, authorizeAs)
 	if err != nil {
 		return nil, err
 	}
@@ -23,6 +23,60 @@ func New(cfg *platform.Config) (*Client, error) {
 	return &Client{
 		client: clnt,
 	}, nil
+}
+
+// FUTURE: Move to auth service
+
+func (c *Client) EnsureAuthorizedService(ctx context.Context) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+
+	if details := request.DetailsFromContext(ctx); details != nil {
+		if details.IsService() {
+			return nil
+		}
+	}
+
+	return request.ErrorUnauthorized()
+}
+
+// FUTURE: Move to auth service
+
+func (c *Client) EnsureAuthorizedUser(ctx context.Context, targetUserID string, permission string) (string, error) {
+	if ctx == nil {
+		return "", errors.New("context is missing")
+	}
+	if targetUserID == "" {
+		return "", errors.New("target user id is missing")
+	}
+	if permission == "" {
+		return "", errors.New("permission is missing")
+	}
+
+	if details := request.DetailsFromContext(ctx); details != nil {
+		if details.IsService() {
+			return "", nil
+		}
+
+		authenticatedUserID := details.UserID()
+		if authenticatedUserID == targetUserID {
+			if permission != user.CustodianPermission {
+				return authenticatedUserID, nil
+			}
+		} else {
+			permissions, err := c.GetUserPermissions(ctx, authenticatedUserID, targetUserID)
+			if err != nil {
+				if !request.IsErrorUnauthorized(err) {
+					return "", errors.Wrap(err, "unable to get user permissions")
+				}
+			} else if _, ok := permissions[permission]; ok {
+				return authenticatedUserID, nil
+			}
+		}
+	}
+
+	return "", request.ErrorUnauthorized()
 }
 
 func (c *Client) GetUserPermissions(ctx context.Context, requestUserID string, targetUserID string) (user.Permissions, error) {
@@ -39,8 +93,8 @@ func (c *Client) GetUserPermissions(ctx context.Context, requestUserID string, t
 	log.LoggerFromContext(ctx).WithFields(log.Fields{"requestUserId": requestUserID, "targetUserId": targetUserID}).Debug("Get user permissions")
 
 	permissions := user.Permissions{}
-	if err := c.client.SendRequestAsServer(ctx, "GET", c.client.ConstructURL("access", targetUserID, requestUserID), nil, nil, &permissions); err != nil {
-		if errors.Code(err) == request.ErrorCodeResourceNotFound {
+	if err := c.client.RequestData(ctx, "GET", c.client.ConstructURL("access", targetUserID, requestUserID), nil, nil, &permissions); err != nil {
+		if request.IsErrorResourceNotFound(err) {
 			return nil, request.ErrorUnauthorized()
 		}
 		return nil, err

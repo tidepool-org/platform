@@ -18,14 +18,14 @@ import (
 	testDataTypesCommonOrigin "github.com/tidepool-org/platform/data/types/common/origin/test"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
-	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 	"github.com/tidepool-org/platform/time/zone"
 	testTimeZone "github.com/tidepool-org/platform/time/zone/test"
-	"github.com/tidepool-org/platform/validate"
+	"github.com/tidepool-org/platform/user"
 )
 
 var futureTime = time.Unix(4102444800, 0)
@@ -137,17 +137,17 @@ var _ = Describe("Base", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/archivedDatasetId"),
 				),
 				Entry("archived data set id empty",
-					func(datum *types.Base) { datum.ArchivedDataSetID = pointer.String("") },
+					func(datum *types.Base) { datum.ArchivedDataSetID = pointer.FromString("") },
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/archivedDatasetId"),
 				),
 				Entry("archived data set id invalid",
-					func(datum *types.Base) { datum.ArchivedDataSetID = pointer.String("invalid") },
+					func(datum *types.Base) { datum.ArchivedDataSetID = pointer.FromString("invalid") },
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
-					testErrors.WithPointerSource(data.ErrorValueStringAsDataSetIDNotValid("invalid"), "/archivedDatasetId"),
+					testErrors.WithPointerSource(data.ErrorValueStringAsSetIDNotValid("invalid"), "/archivedDatasetId"),
 				),
 				Entry("archived data set id valid",
-					func(datum *types.Base) { datum.ArchivedDataSetID = pointer.String(id.New()) },
+					func(datum *types.Base) { datum.ArchivedDataSetID = pointer.FromString(data.NewSetID()) },
 					structure.Origins(),
 				),
 				Entry("archived time missing; archived data set id missing",
@@ -159,23 +159,23 @@ var _ = Describe("Base", func() {
 				),
 				Entry("archived time missing; archived data set id exists",
 					func(datum *types.Base) {
-						datum.ArchivedDataSetID = pointer.String(id.New())
+						datum.ArchivedDataSetID = pointer.FromString(data.NewSetID())
 						datum.ArchivedTime = nil
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/archivedDatasetId"),
 				),
 				Entry("archived time invalid",
-					func(datum *types.Base) { datum.ArchivedTime = pointer.String("invalid") },
+					func(datum *types.Base) { datum.ArchivedTime = pointer.FromString("invalid") },
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339), "/archivedTime"),
 				),
 				Entry("archived time not after created time",
 					func(datum *types.Base) {
-						datum.ArchivedTime = pointer.String(time.Time{}.Format(time.RFC3339))
-						datum.CreatedTime = pointer.String(futureTime.Format(time.RFC3339))
-						datum.DeletedTime = pointer.String(futureTime.Format(time.RFC3339))
-						datum.ModifiedTime = pointer.String(futureTime.Format(time.RFC3339))
+						datum.ArchivedTime = pointer.FromString(time.Time{}.Format(time.RFC3339))
+						datum.CreatedTime = pointer.FromString(futureTime.Format(time.RFC3339))
+						datum.DeletedTime = pointer.FromString(futureTime.Format(time.RFC3339))
+						datum.ModifiedTime = pointer.FromString(futureTime.Format(time.RFC3339))
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueTimeNotAfter(time.Time{}, futureTime), "/archivedTime"),
@@ -185,9 +185,9 @@ var _ = Describe("Base", func() {
 				),
 				Entry("archived time not before now",
 					func(datum *types.Base) {
-						datum.ArchivedTime = pointer.String(futureTime.Format(time.RFC3339))
-						datum.DeletedTime = pointer.String(futureTime.Format(time.RFC3339))
-						datum.ModifiedTime = pointer.String(futureTime.Format(time.RFC3339))
+						datum.ArchivedTime = pointer.FromString(futureTime.Format(time.RFC3339))
+						datum.DeletedTime = pointer.FromString(futureTime.Format(time.RFC3339))
+						datum.ModifiedTime = pointer.FromString(futureTime.Format(time.RFC3339))
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/archivedTime"),
@@ -199,20 +199,20 @@ var _ = Describe("Base", func() {
 					structure.Origins(),
 				),
 				Entry("clock drift offset; out of range (lower)",
-					func(datum *types.Base) { datum.ClockDriftOffset = pointer.Int(-86400001) },
+					func(datum *types.Base) { datum.ClockDriftOffset = pointer.FromInt(-86400001) },
 					structure.Origins(),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-86400001, -86400000, 86400000), "/clockDriftOffset"),
 				),
 				Entry("clock drift offset; in range (lower)",
-					func(datum *types.Base) { datum.ClockDriftOffset = pointer.Int(-86400000) },
+					func(datum *types.Base) { datum.ClockDriftOffset = pointer.FromInt(-86400000) },
 					structure.Origins(),
 				),
 				Entry("clock drift offset; in range (upper)",
-					func(datum *types.Base) { datum.ClockDriftOffset = pointer.Int(86400000) },
+					func(datum *types.Base) { datum.ClockDriftOffset = pointer.FromInt(86400000) },
 					structure.Origins(),
 				),
 				Entry("clock drift offset; out of range (upper)",
-					func(datum *types.Base) { datum.ClockDriftOffset = pointer.Int(86400001) },
+					func(datum *types.Base) { datum.ClockDriftOffset = pointer.FromInt(86400001) },
 					structure.Origins(),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(86400001, -86400000, 86400000), "/clockDriftOffset"),
 				),
@@ -221,7 +221,7 @@ var _ = Describe("Base", func() {
 					structure.Origins(),
 				),
 				Entry("conversion offset exists",
-					func(datum *types.Base) { datum.ConversionOffset = pointer.Int(testDataTypes.NewConversionOffset()) },
+					func(datum *types.Base) { datum.ConversionOffset = pointer.FromInt(testDataTypes.NewConversionOffset()) },
 					structure.Origins(),
 				),
 				Entry("created user id missing",
@@ -229,17 +229,17 @@ var _ = Describe("Base", func() {
 					structure.Origins(),
 				),
 				Entry("created user id empty",
-					func(datum *types.Base) { datum.CreatedUserID = pointer.String("") },
+					func(datum *types.Base) { datum.CreatedUserID = pointer.FromString("") },
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/createdUserId"),
 				),
 				Entry("created user id invalid",
-					func(datum *types.Base) { datum.CreatedUserID = pointer.String("invalid") },
+					func(datum *types.Base) { datum.CreatedUserID = pointer.FromString("invalid") },
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
-					testErrors.WithPointerSource(data.ErrorValueStringAsUserIDNotValid("invalid"), "/createdUserId"),
+					testErrors.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/createdUserId"),
 				),
 				Entry("created user id valid",
-					func(datum *types.Base) { datum.CreatedUserID = pointer.String(id.New()) },
+					func(datum *types.Base) { datum.CreatedUserID = pointer.FromString(user.NewID()) },
 					structure.Origins(),
 				),
 				Entry("created time missing; created user id missing",
@@ -253,23 +253,23 @@ var _ = Describe("Base", func() {
 				Entry("created time missing; created user id exists",
 					func(datum *types.Base) {
 						datum.CreatedTime = nil
-						datum.CreatedUserID = pointer.String(id.New())
+						datum.CreatedUserID = pointer.FromString(user.NewID())
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/createdTime"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/createdUserId"),
 				),
 				Entry("created time invalid",
-					func(datum *types.Base) { datum.CreatedTime = pointer.String("invalid") },
+					func(datum *types.Base) { datum.CreatedTime = pointer.FromString("invalid") },
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339), "/createdTime"),
 				),
 				Entry("created time not before now",
 					func(datum *types.Base) {
-						datum.ArchivedTime = pointer.String(futureTime.Format(time.RFC3339))
-						datum.CreatedTime = pointer.String(futureTime.Format(time.RFC3339))
-						datum.DeletedTime = pointer.String(futureTime.Format(time.RFC3339))
-						datum.ModifiedTime = pointer.String(futureTime.Format(time.RFC3339))
+						datum.ArchivedTime = pointer.FromString(futureTime.Format(time.RFC3339))
+						datum.CreatedTime = pointer.FromString(futureTime.Format(time.RFC3339))
+						datum.DeletedTime = pointer.FromString(futureTime.Format(time.RFC3339))
+						datum.ModifiedTime = pointer.FromString(futureTime.Format(time.RFC3339))
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/archivedTime"),
@@ -282,17 +282,17 @@ var _ = Describe("Base", func() {
 					structure.Origins(),
 				),
 				Entry("deleted user id empty",
-					func(datum *types.Base) { datum.DeletedUserID = pointer.String("") },
+					func(datum *types.Base) { datum.DeletedUserID = pointer.FromString("") },
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/deletedUserId"),
 				),
 				Entry("deleted user id invalid",
-					func(datum *types.Base) { datum.DeletedUserID = pointer.String("invalid") },
+					func(datum *types.Base) { datum.DeletedUserID = pointer.FromString("invalid") },
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
-					testErrors.WithPointerSource(data.ErrorValueStringAsUserIDNotValid("invalid"), "/deletedUserId"),
+					testErrors.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/deletedUserId"),
 				),
 				Entry("deleted user id valid",
-					func(datum *types.Base) { datum.DeletedUserID = pointer.String(id.New()) },
+					func(datum *types.Base) { datum.DeletedUserID = pointer.FromString(user.NewID()) },
 					structure.Origins(),
 				),
 				Entry("deleted time missing; deleted user id missing",
@@ -305,21 +305,21 @@ var _ = Describe("Base", func() {
 				Entry("deleted time missing; deleted user id exists",
 					func(datum *types.Base) {
 						datum.DeletedTime = nil
-						datum.DeletedUserID = pointer.String(id.New())
+						datum.DeletedUserID = pointer.FromString(user.NewID())
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/deletedUserId"),
 				),
 				Entry("deleted time invalid",
-					func(datum *types.Base) { datum.DeletedTime = pointer.String("invalid") },
+					func(datum *types.Base) { datum.DeletedTime = pointer.FromString("invalid") },
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339), "/deletedTime"),
 				),
 				Entry("deleted time not after archived time",
 					func(datum *types.Base) {
-						datum.ArchivedTime = pointer.String(futureTime.Format(time.RFC3339))
-						datum.DeletedTime = pointer.String(time.Time{}.Format(time.RFC3339))
-						datum.ModifiedTime = pointer.String(futureTime.Format(time.RFC3339))
+						datum.ArchivedTime = pointer.FromString(futureTime.Format(time.RFC3339))
+						datum.DeletedTime = pointer.FromString(time.Time{}.Format(time.RFC3339))
+						datum.ModifiedTime = pointer.FromString(futureTime.Format(time.RFC3339))
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/archivedTime"),
@@ -328,10 +328,10 @@ var _ = Describe("Base", func() {
 				),
 				Entry("deleted time not after created time",
 					func(datum *types.Base) {
-						datum.ArchivedTime = pointer.String(futureTime.Format(time.RFC3339))
-						datum.CreatedTime = pointer.String(futureTime.Format(time.RFC3339))
-						datum.DeletedTime = pointer.String(time.Time{}.Format(time.RFC3339))
-						datum.ModifiedTime = pointer.String(futureTime.Format(time.RFC3339))
+						datum.ArchivedTime = pointer.FromString(futureTime.Format(time.RFC3339))
+						datum.CreatedTime = pointer.FromString(futureTime.Format(time.RFC3339))
+						datum.DeletedTime = pointer.FromString(time.Time{}.Format(time.RFC3339))
+						datum.ModifiedTime = pointer.FromString(futureTime.Format(time.RFC3339))
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/archivedTime"),
@@ -341,8 +341,8 @@ var _ = Describe("Base", func() {
 				),
 				Entry("deleted time not after modified time",
 					func(datum *types.Base) {
-						datum.DeletedTime = pointer.String(time.Time{}.Format(time.RFC3339))
-						datum.ModifiedTime = pointer.String(futureTime.Format(time.RFC3339))
+						datum.DeletedTime = pointer.FromString(time.Time{}.Format(time.RFC3339))
+						datum.ModifiedTime = pointer.FromString(futureTime.Format(time.RFC3339))
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueTimeNotAfter(time.Time{}, futureTime), "/deletedTime"),
@@ -350,7 +350,7 @@ var _ = Describe("Base", func() {
 				),
 				Entry("deleted time not before now",
 					func(datum *types.Base) {
-						datum.DeletedTime = pointer.String(futureTime.Format(time.RFC3339))
+						datum.DeletedTime = pointer.FromString(futureTime.Format(time.RFC3339))
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/deletedTime"),
@@ -362,7 +362,7 @@ var _ = Describe("Base", func() {
 				Entry("deduplicator invalid",
 					func(datum *types.Base) { datum.Deduplicator.Name = "invalid" },
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
-					testErrors.WithPointerSource(validate.ErrorValueStringAsReverseDomainNotValid("invalid"), "/_deduplicator/name"),
+					testErrors.WithPointerSource(net.ErrorValueStringAsReverseDomainNotValid("invalid"), "/_deduplicator/name"),
 				),
 				Entry("deduplicator valid",
 					func(datum *types.Base) { datum.Deduplicator = testData.NewDeduplicatorDescriptor() },
@@ -374,12 +374,12 @@ var _ = Describe("Base", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/deviceId"),
 				),
 				Entry("device id empty",
-					func(datum *types.Base) { datum.DeviceID = pointer.String("") },
+					func(datum *types.Base) { datum.DeviceID = pointer.FromString("") },
 					structure.Origins(),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/deviceId"),
 				),
 				Entry("device id valid",
-					func(datum *types.Base) { datum.DeviceID = pointer.String(id.New()) },
+					func(datum *types.Base) { datum.DeviceID = pointer.FromString(testData.NewDeviceID()) },
 					structure.Origins(),
 				),
 				Entry("device time missing",
@@ -387,13 +387,13 @@ var _ = Describe("Base", func() {
 					structure.Origins(),
 				),
 				Entry("device time invalid",
-					func(datum *types.Base) { datum.DeviceTime = pointer.String("invalid") },
+					func(datum *types.Base) { datum.DeviceTime = pointer.FromString("invalid") },
 					structure.Origins(),
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", "2006-01-02T15:04:05"), "/deviceTime"),
 				),
 				Entry("device time valid",
 					func(datum *types.Base) {
-						datum.DeviceTime = pointer.String(test.NewTime().Format("2006-01-02T15:04:05"))
+						datum.DeviceTime = pointer.FromString(test.NewTime().Format("2006-01-02T15:04:05"))
 					},
 					structure.Origins(),
 				),
@@ -403,17 +403,17 @@ var _ = Describe("Base", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/id"),
 				),
 				Entry("id empty",
-					func(datum *types.Base) { datum.ID = pointer.String("") },
+					func(datum *types.Base) { datum.ID = pointer.FromString("") },
 					structure.Origins(),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/id"),
 				),
 				Entry("id invalid",
-					func(datum *types.Base) { datum.ID = pointer.String("invalid") },
+					func(datum *types.Base) { datum.ID = pointer.FromString("invalid") },
 					structure.Origins(),
-					testErrors.WithPointerSource(id.ErrorValueStringAsIDNotValid("invalid"), "/id"),
+					testErrors.WithPointerSource(data.ErrorValueStringAsIDNotValid("invalid"), "/id"),
 				),
 				Entry("id valid",
-					func(datum *types.Base) { datum.ID = pointer.String(id.New()) },
+					func(datum *types.Base) { datum.ID = pointer.FromString(data.NewID()) },
 					structure.Origins(),
 				),
 				Entry("location missing",
@@ -437,17 +437,17 @@ var _ = Describe("Base", func() {
 					structure.Origins(),
 				),
 				Entry("modified user id empty",
-					func(datum *types.Base) { datum.ModifiedUserID = pointer.String("") },
+					func(datum *types.Base) { datum.ModifiedUserID = pointer.FromString("") },
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/modifiedUserId"),
 				),
 				Entry("modified user id invalid",
-					func(datum *types.Base) { datum.ModifiedUserID = pointer.String("invalid") },
+					func(datum *types.Base) { datum.ModifiedUserID = pointer.FromString("invalid") },
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
-					testErrors.WithPointerSource(data.ErrorValueStringAsUserIDNotValid("invalid"), "/modifiedUserId"),
+					testErrors.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/modifiedUserId"),
 				),
 				Entry("modified user id valid",
-					func(datum *types.Base) { datum.ModifiedUserID = pointer.String(id.New()) },
+					func(datum *types.Base) { datum.ModifiedUserID = pointer.FromString(user.NewID()) },
 					structure.Origins(),
 				),
 				Entry("modified time missing; modified user id missing",
@@ -464,7 +464,7 @@ var _ = Describe("Base", func() {
 						datum.ArchivedTime = nil
 						datum.ArchivedDataSetID = nil
 						datum.ModifiedTime = nil
-						datum.ModifiedUserID = pointer.String(id.New())
+						datum.ModifiedUserID = pointer.FromString(user.NewID())
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/modifiedUserId"),
@@ -482,7 +482,7 @@ var _ = Describe("Base", func() {
 					func(datum *types.Base) {
 						datum.ArchivedTime = datum.ModifiedTime
 						datum.ModifiedTime = nil
-						datum.ModifiedUserID = pointer.String(id.New())
+						datum.ModifiedUserID = pointer.FromString(user.NewID())
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/modifiedTime"),
@@ -490,16 +490,16 @@ var _ = Describe("Base", func() {
 				),
 				Entry("modified time invalid",
 					func(datum *types.Base) {
-						datum.ModifiedTime = pointer.String("invalid")
+						datum.ModifiedTime = pointer.FromString("invalid")
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339), "/modifiedTime"),
 				),
 				Entry("modified time not after archived time",
 					func(datum *types.Base) {
-						datum.ArchivedTime = pointer.String(futureTime.Format(time.RFC3339))
-						datum.DeletedTime = pointer.String(futureTime.Format(time.RFC3339))
-						datum.ModifiedTime = pointer.String(time.Time{}.Format(time.RFC3339))
+						datum.ArchivedTime = pointer.FromString(futureTime.Format(time.RFC3339))
+						datum.DeletedTime = pointer.FromString(futureTime.Format(time.RFC3339))
+						datum.ModifiedTime = pointer.FromString(time.Time{}.Format(time.RFC3339))
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/archivedTime"),
@@ -508,10 +508,10 @@ var _ = Describe("Base", func() {
 				),
 				Entry("modified time not after created time",
 					func(datum *types.Base) {
-						datum.ArchivedTime = pointer.String(futureTime.Format(time.RFC3339))
-						datum.DeletedTime = pointer.String(futureTime.Format(time.RFC3339))
-						datum.CreatedTime = pointer.String(futureTime.Format(time.RFC3339))
-						datum.ModifiedTime = pointer.String(time.Time{}.Format(time.RFC3339))
+						datum.ArchivedTime = pointer.FromString(futureTime.Format(time.RFC3339))
+						datum.DeletedTime = pointer.FromString(futureTime.Format(time.RFC3339))
+						datum.CreatedTime = pointer.FromString(futureTime.Format(time.RFC3339))
+						datum.ModifiedTime = pointer.FromString(time.Time{}.Format(time.RFC3339))
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/archivedTime"),
@@ -521,8 +521,8 @@ var _ = Describe("Base", func() {
 				),
 				Entry("modified time not before now",
 					func(datum *types.Base) {
-						datum.DeletedTime = pointer.String(futureTime.Format(time.RFC3339))
-						datum.ModifiedTime = pointer.String(futureTime.Format(time.RFC3339))
+						datum.DeletedTime = pointer.FromString(futureTime.Format(time.RFC3339))
+						datum.ModifiedTime = pointer.FromString(futureTime.Format(time.RFC3339))
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/deletedTime"),
@@ -533,22 +533,22 @@ var _ = Describe("Base", func() {
 					structure.Origins(),
 				),
 				Entry("notes empty",
-					func(datum *types.Base) { datum.Notes = pointer.StringArray([]string{}) },
+					func(datum *types.Base) { datum.Notes = pointer.FromStringArray([]string{}) },
 					structure.Origins(),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/notes"),
 				),
 				Entry("notes length; in range (upper)",
-					func(datum *types.Base) { datum.Notes = pointer.StringArray(testDataTypes.NewNotes(100, 100)) },
+					func(datum *types.Base) { datum.Notes = pointer.FromStringArray(testDataTypes.NewNotes(100, 100)) },
 					structure.Origins(),
 				),
 				Entry("notes length; out of range (upper)",
-					func(datum *types.Base) { datum.Notes = pointer.StringArray(testDataTypes.NewNotes(101, 101)) },
+					func(datum *types.Base) { datum.Notes = pointer.FromStringArray(testDataTypes.NewNotes(101, 101)) },
 					structure.Origins(),
 					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/notes"),
 				),
 				Entry("notes note empty",
 					func(datum *types.Base) {
-						datum.Notes = pointer.StringArray(append([]string{testDataTypes.NewNote(1, 1000), "", testDataTypes.NewNote(1, 1000), ""}, testDataTypes.NewNotes(0, 96)...))
+						datum.Notes = pointer.FromStringArray(append([]string{testDataTypes.NewNote(1, 1000), "", testDataTypes.NewNote(1, 1000), ""}, testDataTypes.NewNotes(0, 96)...))
 					},
 					structure.Origins(),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/notes/1"),
@@ -556,13 +556,13 @@ var _ = Describe("Base", func() {
 				),
 				Entry("notes note length; in range (upper)",
 					func(datum *types.Base) {
-						datum.Notes = pointer.StringArray(append([]string{testDataTypes.NewNote(1000, 1000), testDataTypes.NewNote(1, 1000), testDataTypes.NewNote(1000, 1000)}, testDataTypes.NewNotes(0, 97)...))
+						datum.Notes = pointer.FromStringArray(append([]string{testDataTypes.NewNote(1000, 1000), testDataTypes.NewNote(1, 1000), testDataTypes.NewNote(1000, 1000)}, testDataTypes.NewNotes(0, 97)...))
 					},
 					structure.Origins(),
 				),
 				Entry("notes note length; out of range (upper)",
 					func(datum *types.Base) {
-						datum.Notes = pointer.StringArray(append([]string{testDataTypes.NewNote(1001, 1001), testDataTypes.NewNote(1, 1000), testDataTypes.NewNote(1001, 1001)}, testDataTypes.NewNotes(0, 97)...))
+						datum.Notes = pointer.FromStringArray(append([]string{testDataTypes.NewNote(1001, 1001), testDataTypes.NewNote(1, 1000), testDataTypes.NewNote(1001, 1001)}, testDataTypes.NewNotes(0, 97)...))
 					},
 					structure.Origins(),
 					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(1001, 1000), "/notes/0"),
@@ -612,12 +612,12 @@ var _ = Describe("Base", func() {
 					structure.Origins(),
 				),
 				Entry("source invalid",
-					func(datum *types.Base) { datum.Source = pointer.String("invalid") },
+					func(datum *types.Base) { datum.Source = pointer.FromString("invalid") },
 					structure.Origins(),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "carelink"), "/source"),
 				),
 				Entry("source valid",
-					func(datum *types.Base) { datum.Source = pointer.String("carelink") },
+					func(datum *types.Base) { datum.Source = pointer.FromString("carelink") },
 					structure.Origins(),
 				),
 				Entry("tags missing",
@@ -625,47 +625,46 @@ var _ = Describe("Base", func() {
 					structure.Origins(),
 				),
 				Entry("tags empty",
-					func(datum *types.Base) { datum.Tags = pointer.StringArray([]string{}) },
+					func(datum *types.Base) { datum.Tags = pointer.FromStringArray([]string{}) },
 					structure.Origins(),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/tags"),
 				),
 				Entry("tags length; in range (upper)",
-					func(datum *types.Base) { datum.Tags = pointer.StringArray(testDataTypes.NewTags(100, 100)) },
+					func(datum *types.Base) { datum.Tags = pointer.FromStringArray(testDataTypes.NewTags(100, 100)) },
 					structure.Origins(),
 				),
 				Entry("tags length; out of range (upper)",
-					func(datum *types.Base) { datum.Tags = pointer.StringArray(testDataTypes.NewTags(101, 101)) },
+					func(datum *types.Base) { datum.Tags = pointer.FromStringArray(testDataTypes.NewTags(101, 101)) },
 					structure.Origins(),
 					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/tags"),
 				),
 				Entry("tags tag empty",
 					func(datum *types.Base) {
-						datum.Tags = pointer.StringArray(append([]string{testDataTypes.NewTag(1, 100), "", testDataTypes.NewTag(1, 100)}, testDataTypes.NewTags(0, 96)...))
+						datum.Tags = pointer.FromStringArray(append([]string{testDataTypes.NewTag(100, 100), ""}, testDataTypes.NewTags(0, 98)...))
 					},
 					structure.Origins(),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/tags/1"),
 				),
 				Entry("tags tag length; in range (upper)",
 					func(datum *types.Base) {
-						datum.Tags = pointer.StringArray(append([]string{testDataTypes.NewTag(100, 100), testDataTypes.NewTag(1, 100), testDataTypes.NewTag(100, 100)}, testDataTypes.NewTags(0, 97)...))
+						datum.Tags = pointer.FromStringArray(append([]string{testDataTypes.NewTag(100, 100)}, testDataTypes.NewTags(0, 99)...))
 					},
 					structure.Origins(),
 				),
 				Entry("tags tag length; out of range (upper)",
 					func(datum *types.Base) {
-						datum.Tags = pointer.StringArray(append([]string{testDataTypes.NewTag(101, 101), testDataTypes.NewTag(1, 100), testDataTypes.NewTag(101, 101)}, testDataTypes.NewTags(0, 97)...))
+						datum.Tags = pointer.FromStringArray(append([]string{testDataTypes.NewTag(101, 101)}, testDataTypes.NewTags(0, 99)...))
 					},
 					structure.Origins(),
 					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/tags/0"),
-					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/tags/2"),
 				),
 				Entry("tags tag duplicate",
 					func(datum *types.Base) {
-						tag := testDataTypes.NewTag(1, 100)
-						datum.Tags = pointer.StringArray(append([]string{testDataTypes.NewTag(1, 100), tag, tag}, testDataTypes.NewTags(0, 96)...))
+						tags := testDataTypes.NewTags(5, 99)
+						datum.Tags = pointer.FromStringArray(append([]string{tags[4]}, tags...))
 					},
 					structure.Origins(),
-					testErrors.WithPointerSource(structureValidator.ErrorValueDuplicate(), "/tags/2"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueDuplicate(), "/tags/5"),
 				),
 				Entry("time missing",
 					func(datum *types.Base) { datum.Time = nil },
@@ -673,12 +672,12 @@ var _ = Describe("Base", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/time"),
 				),
 				Entry("time invalid",
-					func(datum *types.Base) { datum.Time = pointer.String("invalid") },
+					func(datum *types.Base) { datum.Time = pointer.FromString("invalid") },
 					structure.Origins(),
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339), "/time"),
 				),
 				Entry("time valid",
-					func(datum *types.Base) { datum.Time = pointer.String(test.NewTime().Format(time.RFC3339)) },
+					func(datum *types.Base) { datum.Time = pointer.FromString(test.NewTime().Format(time.RFC3339)) },
 					structure.Origins(),
 				),
 				Entry("time zone name missing",
@@ -686,12 +685,12 @@ var _ = Describe("Base", func() {
 					structure.Origins(),
 				),
 				Entry("time zone name empty",
-					func(datum *types.Base) { datum.TimeZoneName = pointer.String("") },
+					func(datum *types.Base) { datum.TimeZoneName = pointer.FromString("") },
 					structure.Origins(),
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("", zone.Names()), "/timezone"),
 				),
 				Entry("time zone name exists",
-					func(datum *types.Base) { datum.TimeZoneName = pointer.String(testTimeZone.NewName()) },
+					func(datum *types.Base) { datum.TimeZoneName = pointer.FromString(testTimeZone.NewName()) },
 					structure.Origins(),
 				),
 				Entry("time zone offset missing",
@@ -699,20 +698,20 @@ var _ = Describe("Base", func() {
 					structure.Origins(),
 				),
 				Entry("time zone offset; out of range (lower)",
-					func(datum *types.Base) { datum.TimeZoneOffset = pointer.Int(-10081) },
+					func(datum *types.Base) { datum.TimeZoneOffset = pointer.FromInt(-10081) },
 					structure.Origins(),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-10081, -10080, 10080), "/timezoneOffset"),
 				),
 				Entry("time zone offset; in range (lower)",
-					func(datum *types.Base) { datum.TimeZoneOffset = pointer.Int(-10080) },
+					func(datum *types.Base) { datum.TimeZoneOffset = pointer.FromInt(-10080) },
 					structure.Origins(),
 				),
 				Entry("time zone offset; in range (upper)",
-					func(datum *types.Base) { datum.TimeZoneOffset = pointer.Int(10080) },
+					func(datum *types.Base) { datum.TimeZoneOffset = pointer.FromInt(10080) },
 					structure.Origins(),
 				),
 				Entry("time zone offset; out of range (upper)",
-					func(datum *types.Base) { datum.TimeZoneOffset = pointer.Int(10081) },
+					func(datum *types.Base) { datum.TimeZoneOffset = pointer.FromInt(10081) },
 					structure.Origins(),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(10081, -10080, 10080), "/timezoneOffset"),
 				),
@@ -722,7 +721,7 @@ var _ = Describe("Base", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/type"),
 				),
 				Entry("type valid",
-					func(datum *types.Base) { datum.Type = id.New() },
+					func(datum *types.Base) { datum.Type = test.NewVariableString(1, 16, test.CharsetAlphaNumeric) },
 					structure.Origins(),
 				),
 				Entry("upload id missing",
@@ -731,17 +730,17 @@ var _ = Describe("Base", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/uploadId"),
 				),
 				Entry("upload id empty",
-					func(datum *types.Base) { datum.UploadID = pointer.String("") },
+					func(datum *types.Base) { datum.UploadID = pointer.FromString("") },
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/uploadId"),
 				),
 				Entry("upload id invalid",
-					func(datum *types.Base) { datum.UploadID = pointer.String("invalid") },
+					func(datum *types.Base) { datum.UploadID = pointer.FromString("invalid") },
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
-					testErrors.WithPointerSource(data.ErrorValueStringAsDataSetIDNotValid("invalid"), "/uploadId"),
+					testErrors.WithPointerSource(data.ErrorValueStringAsSetIDNotValid("invalid"), "/uploadId"),
 				),
 				Entry("upload id valid",
-					func(datum *types.Base) { datum.UploadID = pointer.String(id.New()) },
+					func(datum *types.Base) { datum.UploadID = pointer.FromString(data.NewSetID()) },
 					structure.Origins(),
 				),
 				Entry("user id missing",
@@ -750,17 +749,17 @@ var _ = Describe("Base", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/_userId"),
 				),
 				Entry("user id empty",
-					func(datum *types.Base) { datum.UserID = pointer.String("") },
+					func(datum *types.Base) { datum.UserID = pointer.FromString("") },
 					[]structure.Origin{structure.OriginStore},
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/_userId"),
 				),
 				Entry("user id invalid",
-					func(datum *types.Base) { datum.UserID = pointer.String("invalid") },
+					func(datum *types.Base) { datum.UserID = pointer.FromString("invalid") },
 					[]structure.Origin{structure.OriginStore},
-					testErrors.WithPointerSource(data.ErrorValueStringAsUserIDNotValid("invalid"), "/_userId"),
+					testErrors.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/_userId"),
 				),
 				Entry("user id valid",
-					func(datum *types.Base) { datum.UserID = pointer.String(id.New()) },
+					func(datum *types.Base) { datum.UserID = pointer.FromString(user.NewID()) },
 					structure.Origins(),
 				),
 				Entry("version; out of range (lower)",
@@ -785,46 +784,46 @@ var _ = Describe("Base", func() {
 				),
 				Entry("multiple errors with internal origin",
 					func(datum *types.Base) {
-						datum.ArchivedDataSetID = pointer.String("invalid")
-						datum.ArchivedTime = pointer.String("invalid")
-						datum.CreatedTime = pointer.String("invalid")
-						datum.CreatedUserID = pointer.String("invalid")
-						datum.DeletedTime = pointer.String("invalid")
-						datum.DeletedUserID = pointer.String("invalid")
+						datum.ArchivedDataSetID = pointer.FromString("invalid")
+						datum.ArchivedTime = pointer.FromString("invalid")
+						datum.CreatedTime = pointer.FromString("invalid")
+						datum.CreatedUserID = pointer.FromString("invalid")
+						datum.DeletedTime = pointer.FromString("invalid")
+						datum.DeletedUserID = pointer.FromString("invalid")
 						datum.Deduplicator.Name = "invalid"
 						datum.ID = nil
-						datum.ModifiedTime = pointer.String("invalid")
-						datum.ModifiedUserID = pointer.String("invalid")
+						datum.ModifiedTime = pointer.FromString("invalid")
+						datum.ModifiedUserID = pointer.FromString("invalid")
 						datum.UploadID = nil
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
-					testErrors.WithPointerSource(data.ErrorValueStringAsDataSetIDNotValid("invalid"), "/archivedDatasetId"),
+					testErrors.WithPointerSource(data.ErrorValueStringAsSetIDNotValid("invalid"), "/archivedDatasetId"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339), "/archivedTime"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339), "/createdTime"),
-					testErrors.WithPointerSource(data.ErrorValueStringAsUserIDNotValid("invalid"), "/createdUserId"),
+					testErrors.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/createdUserId"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339), "/deletedTime"),
-					testErrors.WithPointerSource(data.ErrorValueStringAsUserIDNotValid("invalid"), "/deletedUserId"),
-					testErrors.WithPointerSource(validate.ErrorValueStringAsReverseDomainNotValid("invalid"), "/_deduplicator/name"),
+					testErrors.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/deletedUserId"),
+					testErrors.WithPointerSource(net.ErrorValueStringAsReverseDomainNotValid("invalid"), "/_deduplicator/name"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/id"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339), "/modifiedTime"),
-					testErrors.WithPointerSource(data.ErrorValueStringAsUserIDNotValid("invalid"), "/modifiedUserId"),
+					testErrors.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/modifiedUserId"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/uploadId"),
 				),
 				Entry("multiple errors with external origin",
 					func(datum *types.Base) {
-						datum.ClockDriftOffset = pointer.Int(-86400001)
+						datum.ClockDriftOffset = pointer.FromInt(-86400001)
 						datum.DeviceID = nil
-						datum.DeviceTime = pointer.String("invalid")
-						datum.ID = pointer.String("")
+						datum.DeviceTime = pointer.FromString("invalid")
+						datum.ID = pointer.FromString("")
 						datum.Location.GPS = nil
 						datum.Location.Name = nil
-						datum.Notes = pointer.StringArray([]string{})
+						datum.Notes = pointer.FromStringArray([]string{})
 						datum.Origin.Name = nil
-						datum.Source = pointer.String("invalid")
-						datum.Tags = pointer.StringArray([]string{})
+						datum.Source = pointer.FromString("invalid")
+						datum.Tags = pointer.FromStringArray([]string{})
 						datum.Time = nil
-						datum.TimeZoneName = pointer.String("")
-						datum.TimeZoneOffset = pointer.Int(-10081)
+						datum.TimeZoneName = pointer.FromString("")
+						datum.TimeZoneOffset = pointer.FromInt(-10081)
 						datum.Type = ""
 					},
 					structure.Origins(),
@@ -886,15 +885,6 @@ var _ = Describe("Base", func() {
 					}
 					Expect(datum).To(Equal(expectedDatum))
 				},
-				Entry("guid missing",
-					func(datum *types.Base) { datum.GUID = nil },
-					func(datum *types.Base, expectedDatum *types.Base) {
-						Expect(datum.GUID).ToNot(BeNil())
-						Expect(datum.GUID).ToNot(Equal(expectedDatum.GUID))
-						expectedDatum.GUID = datum.GUID
-						sort.Strings(*expectedDatum.Tags)
-					},
-				),
 				Entry("id missing",
 					func(datum *types.Base) { datum.ID = nil },
 					func(datum *types.Base, expectedDatum *types.Base) {
@@ -917,12 +907,9 @@ var _ = Describe("Base", func() {
 						*datum = types.New("")
 					},
 					func(datum *types.Base, expectedDatum *types.Base) {
-						Expect(datum.GUID).ToNot(BeNil())
-						Expect(datum.GUID).ToNot(Equal(expectedDatum.GUID))
 						Expect(datum.ID).ToNot(BeNil())
 						Expect(datum.ID).ToNot(Equal(expectedDatum.ID))
 						Expect(datum.SchemaVersion).To(Equal(3))
-						expectedDatum.GUID = datum.GUID
 						expectedDatum.ID = datum.ID
 						expectedDatum.SchemaVersion = datum.SchemaVersion
 					},
@@ -946,12 +933,6 @@ var _ = Describe("Base", func() {
 						Expect(datum).To(Equal(expectedDatum))
 					}
 				},
-				Entry("guid missing",
-					func(datum *types.Base) { datum.GUID = nil },
-					func(datum *types.Base, expectedDatum *types.Base) {
-						sort.Strings(*expectedDatum.Tags)
-					},
-				),
 				Entry("id missing",
 					func(datum *types.Base) { datum.ID = nil },
 					func(datum *types.Base, expectedDatum *types.Base) {
@@ -990,7 +971,7 @@ var _ = Describe("Base", func() {
 			})
 
 			It("returns error if user id is empty", func() {
-				datum.UserID = pointer.String("")
+				datum.UserID = pointer.FromString("")
 				identityFields, err := datum.IdentityFields()
 				Expect(err).To(MatchError("user id is empty"))
 				Expect(identityFields).To(BeEmpty())
@@ -1004,7 +985,7 @@ var _ = Describe("Base", func() {
 			})
 
 			It("returns error if device id is empty", func() {
-				datum.DeviceID = pointer.String("")
+				datum.DeviceID = pointer.FromString("")
 				identityFields, err := datum.IdentityFields()
 				Expect(err).To(MatchError("device id is empty"))
 				Expect(identityFields).To(BeEmpty())
@@ -1018,7 +999,7 @@ var _ = Describe("Base", func() {
 			})
 
 			It("returns error if time is empty", func() {
-				datum.Time = pointer.String("")
+				datum.Time = pointer.FromString("")
 				identityFields, err := datum.IdentityFields()
 				Expect(err).To(MatchError("time is empty"))
 				Expect(identityFields).To(BeEmpty())
@@ -1046,16 +1027,16 @@ var _ = Describe("Base", func() {
 
 		Context("SetUserID", func() {
 			It("sets the user id", func() {
-				userID := pointer.String(id.New())
+				userID := pointer.FromString(user.NewID())
 				datum.SetUserID(userID)
 				Expect(datum.UserID).To(Equal(userID))
 			})
 		})
 
-		Context("SetDatasetID", func() {
+		Context("SetDataSetID", func() {
 			It("sets the data set id", func() {
-				dataSetID := pointer.String(id.New())
-				datum.SetDatasetID(dataSetID)
+				dataSetID := pointer.FromString(data.NewSetID())
+				datum.SetDataSetID(dataSetID)
 				Expect(datum.UploadID).To(Equal(dataSetID))
 			})
 		})
@@ -1074,7 +1055,7 @@ var _ = Describe("Base", func() {
 
 		Context("SetDeviceID", func() {
 			It("sets the device id", func() {
-				deviceID := pointer.String(id.New())
+				deviceID := pointer.FromString(testData.NewDeviceID())
 				datum.SetDeviceID(deviceID)
 				Expect(datum.DeviceID).To(Equal(deviceID))
 			})
@@ -1082,7 +1063,7 @@ var _ = Describe("Base", func() {
 
 		Context("SetCreatedTime", func() {
 			It("sets the created time", func() {
-				createdTime := pointer.String(time.Now().Format(time.RFC3339))
+				createdTime := pointer.FromString(time.Now().Format(time.RFC3339))
 				datum.SetCreatedTime(createdTime)
 				Expect(datum.CreatedTime).To(Equal(createdTime))
 			})
@@ -1090,7 +1071,7 @@ var _ = Describe("Base", func() {
 
 		Context("SetCreatedUserID", func() {
 			It("sets the created user id", func() {
-				createdUserID := pointer.String(id.New())
+				createdUserID := pointer.FromString(user.NewID())
 				datum.SetCreatedUserID(createdUserID)
 				Expect(datum.CreatedUserID).To(Equal(createdUserID))
 			})
@@ -1098,7 +1079,7 @@ var _ = Describe("Base", func() {
 
 		Context("SetModifiedTime", func() {
 			It("sets the modified time", func() {
-				modifiedTime := pointer.String(time.Now().Format(time.RFC3339))
+				modifiedTime := pointer.FromString(time.Now().Format(time.RFC3339))
 				datum.SetModifiedTime(modifiedTime)
 				Expect(datum.ModifiedTime).To(Equal(modifiedTime))
 			})
@@ -1106,7 +1087,7 @@ var _ = Describe("Base", func() {
 
 		Context("SetModifiedUserID", func() {
 			It("sets the modified user id", func() {
-				modifiedUserID := pointer.String(id.New())
+				modifiedUserID := pointer.FromString(user.NewID())
 				datum.SetModifiedUserID(modifiedUserID)
 				Expect(datum.ModifiedUserID).To(Equal(modifiedUserID))
 			})
@@ -1114,7 +1095,7 @@ var _ = Describe("Base", func() {
 
 		Context("SetDeletedTime", func() {
 			It("sets the deleted time", func() {
-				deletedTime := pointer.String(time.Now().Format(time.RFC3339))
+				deletedTime := pointer.FromString(time.Now().Format(time.RFC3339))
 				datum.SetDeletedTime(deletedTime)
 				Expect(datum.DeletedTime).To(Equal(deletedTime))
 			})
@@ -1122,7 +1103,7 @@ var _ = Describe("Base", func() {
 
 		Context("SetDeletedUserID", func() {
 			It("sets the deleted user id", func() {
-				deletedUserID := pointer.String(id.New())
+				deletedUserID := pointer.FromString(user.NewID())
 				datum.SetDeletedUserID(deletedUserID)
 				Expect(datum.DeletedUserID).To(Equal(deletedUserID))
 			})

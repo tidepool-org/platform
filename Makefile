@@ -12,9 +12,9 @@ endif
 VERSION_BASE:=$(VERSION_BASE:v%=%)
 VERSION_SHORT_COMMIT:=$(shell git rev-parse --short HEAD)
 VERSION_FULL_COMMIT:=$(shell git rev-parse HEAD)
-VERSION_PACKAGE:=$(REPOSITORY_PACKAGE)/application/version
+VERSION_PACKAGE:=$(REPOSITORY_PACKAGE)/application
 
-GO_LD_FLAGS:=-ldflags '-X $(VERSION_PACKAGE).Base=$(VERSION_BASE) -X $(VERSION_PACKAGE).ShortCommit=$(VERSION_SHORT_COMMIT) -X $(VERSION_PACKAGE).FullCommit=$(VERSION_FULL_COMMIT)'
+GO_LD_FLAGS:=-ldflags '-X $(VERSION_PACKAGE).VersionBase=$(VERSION_BASE) -X $(VERSION_PACKAGE).VersionShortCommit=$(VERSION_SHORT_COMMIT) -X $(VERSION_PACKAGE).VersionFullCommit=$(VERSION_FULL_COMMIT)'
 
 FIND_MAIN_CMD:=find . -path './$(BUILD)*' -not -path './vendor/*' -name '*.go' -not -name '*_test.go' -type f -exec egrep -l '^\s*func\s+main\s*(\s*)' {} \;
 TRANSFORM_GO_BUILD_CMD:=sed 's|\.\(.*\)\(/[^/]*\)/[^/]*|_bin\1\2\2 .\1\2/.|'
@@ -273,44 +273,8 @@ clean-all: clean
 
 pre-commit: format imports vet lint
 
-# DO NOT USE THE FOLLOWING TARGETS UNDER NORMAL CIRCUMSTANCES!!!
-
-# Remove everything in $(REPOSITORY_GOPATH) except $(REPOSITORY_PACKAGE)
 gopath-implode: check-environment
 	cd $(REPOSITORY_GOPATH) && rm -rf bin pkg && find src -not -path "src/$(REPOSITORY_PACKAGE)/*" -type f -delete && find src -not -path "src/$(REPOSITORY_PACKAGE)/*" -type d -empty -delete
-
-# Remove saved dependencies
-dependencies-implode: check-environment
-	cd $(ROOT_DIRECTORY) && rm -rf Godeps vendor
-
-bootstrap-implode: gopath-implode dependencies-implode
-
-bootstrap-dependencies: godep
-	go get github.com/onsi/ginkgo
-	go get github.com/onsi/ginkgo/extensions/table
-	go get github.com/onsi/ginkgo/ginkgo
-	go get github.com/onsi/gomega
-	go get github.com/onsi/gomega/gbytes
-	go get github.com/onsi/gomega/gexec
-	go get github.com/onsi/gomega/ghttp
-	go get github.com/onsi/gomega/gstruct
-	go get golang.org/x/sys/unix
-	go get ./...
-
-bootstrap-save: bootstrap-dependencies
-	cd $(ROOT_DIRECTORY) && godep save ./... \
-		github.com/onsi/ginkgo/extensions/table \
-		github.com/onsi/ginkgo/ginkgo \
-		github.com/onsi/gomega/gbytes \
-		github.com/onsi/gomega/gexec \
-		github.com/onsi/gomega/ghttp \
-		github.com/onsi/gomega/gstruct
-
-# Bootstrap with initial dependencies
-bootstrap:
-	@$(MAKE) bootstrap-implode
-	@$(MAKE) bootstrap-save
-	@$(MAKE) gopath-implode
 
 .PHONY: default tmp check-gopath check-environment \
 	godep goimports golint gocode godef CompileDaemon ginkgo buildable editable \
@@ -319,4 +283,4 @@ bootstrap:
 	deploy deploy-services deploy-migrations deploy-tools ci-deploy bundle-deploy \
 	docker docker-build docker-push ci-docker \
 	clean clean-bin clean-cover clean-debug clean-deploy clean-all pre-commit \
-	gopath-implode dependencies-implode bootstrap-implode bootstrap-dependencies bootstrap-save bootstrap
+	gopath-implode

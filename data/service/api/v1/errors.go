@@ -25,29 +25,29 @@ func ErrorUserIDNotFound(userID string) *service.Error {
 	}
 }
 
-func ErrorDatasetIDMissing() *service.Error {
+func ErrorDataSetIDMissing() *service.Error {
 	return &service.Error{
-		Code:   "dataset-id-missing",
+		Code:   "data-set-id-missing",
 		Status: http.StatusBadRequest,
-		Title:  "dataset id is missing",
-		Detail: "Dataset id is missing",
+		Title:  "data set id is missing",
+		Detail: "Data set id is missing",
 	}
 }
 
-func ErrorDatasetIDNotFound(datasetID string) *service.Error {
+func ErrorDataSetIDNotFound(dataSetID string) *service.Error {
 	return &service.Error{
-		Code:   "dataset-id-not-found",
+		Code:   "data-set-id-not-found",
 		Status: http.StatusNotFound,
-		Title:  "dataset with specified id not found",
-		Detail: fmt.Sprintf("Dataset with id %s not found", datasetID),
+		Title:  "data set with specified id not found",
+		Detail: fmt.Sprintf("Data set with id %s not found", dataSetID),
 	}
 }
 
-func ErrorDatasetClosed(datasetID string) *service.Error {
+func ErrorDataSetClosed(dataSetID string) *service.Error {
 	return &service.Error{
-		Code:   "dataset-closed",
+		Code:   "data-set-closed",
 		Status: http.StatusConflict,
-		Title:  "dataset with specified id is closed for new data",
-		Detail: fmt.Sprintf("Dataset with id %s is closed for new data", datasetID),
+		Title:  "data set with specified id is closed for new data",
+		Detail: fmt.Sprintf("Data set with id %s is closed for new data", dataSetID),
 	}
 }

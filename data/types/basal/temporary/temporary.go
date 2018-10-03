@@ -124,8 +124,8 @@ func ParseSuppressedTemporary(parser data.ObjectParser) *SuppressedTemporary {
 
 func NewSuppressedTemporary() *SuppressedTemporary {
 	return &SuppressedTemporary{
-		Type:         pointer.String(basal.Type),
-		DeliveryType: pointer.String(DeliveryType),
+		Type:         pointer.FromString(basal.Type),
+		DeliveryType: pointer.FromString(DeliveryType),
 	}
 }
 

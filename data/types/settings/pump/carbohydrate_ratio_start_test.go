@@ -18,11 +18,11 @@ import (
 
 func NewCarbohydrateRatioStart(startMinimum int) *pump.CarbohydrateRatioStart {
 	datum := pump.NewCarbohydrateRatioStart()
-	datum.Amount = pointer.Float64(test.RandomFloat64FromRange(pump.CarbohydrateRatioStartAmountMinimum, pump.CarbohydrateRatioStartAmountMaximum))
+	datum.Amount = pointer.FromFloat64(test.RandomFloat64FromRange(pump.CarbohydrateRatioStartAmountMinimum, pump.CarbohydrateRatioStartAmountMaximum))
 	if startMinimum == pump.CarbohydrateRatioStartStartMinimum {
-		datum.Start = pointer.Int(pump.CarbohydrateRatioStartStartMinimum)
+		datum.Start = pointer.FromInt(pump.CarbohydrateRatioStartStartMinimum)
 	} else {
-		datum.Start = pointer.Int(test.RandomIntFromRange(startMinimum, pump.CarbohydrateRatioStartStartMaximum))
+		datum.Start = pointer.FromInt(test.RandomIntFromRange(startMinimum, pump.CarbohydrateRatioStartStartMaximum))
 	}
 	return datum
 }
@@ -110,7 +110,7 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 				func(mutator func(datum *pump.CarbohydrateRatioStart), expectedErrors ...error) {
 					datum := NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum)
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.Int(pump.CarbohydrateRatioStartStartMinimum)), structure.Origins(), expectedErrors...)
+					testDataTypes.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.FromInt(pump.CarbohydrateRatioStartStartMinimum)), structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *pump.CarbohydrateRatioStart) {},
@@ -120,17 +120,17 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amount"),
 				),
 				Entry("amount out of range (lower)",
-					func(datum *pump.CarbohydrateRatioStart) { datum.Amount = pointer.Float64(-0.1) },
+					func(datum *pump.CarbohydrateRatioStart) { datum.Amount = pointer.FromFloat64(-0.1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 250), "/amount"),
 				),
 				Entry("amount in range (lower)",
-					func(datum *pump.CarbohydrateRatioStart) { datum.Amount = pointer.Float64(0.0) },
+					func(datum *pump.CarbohydrateRatioStart) { datum.Amount = pointer.FromFloat64(0.0) },
 				),
 				Entry("amount in range (upper)",
-					func(datum *pump.CarbohydrateRatioStart) { datum.Amount = pointer.Float64(250.0) },
+					func(datum *pump.CarbohydrateRatioStart) { datum.Amount = pointer.FromFloat64(250.0) },
 				),
 				Entry("amount out of range (upper)",
-					func(datum *pump.CarbohydrateRatioStart) { datum.Amount = pointer.Float64(250.1) },
+					func(datum *pump.CarbohydrateRatioStart) { datum.Amount = pointer.FromFloat64(250.1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(250.1, 0, 250), "/amount"),
 				),
 				Entry("start missing",
@@ -151,17 +151,17 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 				func(mutator func(datum *pump.CarbohydrateRatioStart), expectedErrors ...error) {
 					datum := NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum)
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.Int(pump.CarbohydrateRatioStartStartMinimum)), structure.Origins(), expectedErrors...)
+					testDataTypes.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.FromInt(pump.CarbohydrateRatioStartStartMinimum)), structure.Origins(), expectedErrors...)
 				},
 				Entry("start out of range (lower)",
-					func(datum *pump.CarbohydrateRatioStart) { datum.Start = pointer.Int(-1) },
+					func(datum *pump.CarbohydrateRatioStart) { datum.Start = pointer.FromInt(-1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo(-1, 0), "/start"),
 				),
 				Entry("start in range",
-					func(datum *pump.CarbohydrateRatioStart) { datum.Start = pointer.Int(0) },
+					func(datum *pump.CarbohydrateRatioStart) { datum.Start = pointer.FromInt(0) },
 				),
 				Entry("start out of range (upper)",
-					func(datum *pump.CarbohydrateRatioStart) { datum.Start = pointer.Int(1) },
+					func(datum *pump.CarbohydrateRatioStart) { datum.Start = pointer.FromInt(1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo(1, 0), "/start"),
 				),
 			)
@@ -170,20 +170,20 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 				func(mutator func(datum *pump.CarbohydrateRatioStart), expectedErrors ...error) {
 					datum := NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum + 1)
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.Int(pump.CarbohydrateRatioStartStartMinimum+1)), structure.Origins(), expectedErrors...)
+					testDataTypes.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.FromInt(pump.CarbohydrateRatioStartStartMinimum+1)), structure.Origins(), expectedErrors...)
 				},
 				Entry("start out of range (lower)",
-					func(datum *pump.CarbohydrateRatioStart) { datum.Start = pointer.Int(0) },
+					func(datum *pump.CarbohydrateRatioStart) { datum.Start = pointer.FromInt(0) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(0, 1, 86400000), "/start"),
 				),
 				Entry("start in range (lower)",
-					func(datum *pump.CarbohydrateRatioStart) { datum.Start = pointer.Int(1) },
+					func(datum *pump.CarbohydrateRatioStart) { datum.Start = pointer.FromInt(1) },
 				),
 				Entry("start in range (upper)",
-					func(datum *pump.CarbohydrateRatioStart) { datum.Start = pointer.Int(86400000) },
+					func(datum *pump.CarbohydrateRatioStart) { datum.Start = pointer.FromInt(86400000) },
 				),
 				Entry("start out of range (upper)",
-					func(datum *pump.CarbohydrateRatioStart) { datum.Start = pointer.Int(86400001) },
+					func(datum *pump.CarbohydrateRatioStart) { datum.Start = pointer.FromInt(86400001) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(86400001, 1, 86400000), "/start"),
 				),
 			)

@@ -11,8 +11,8 @@ var _ = Describe("Route", func() {
 	Context("MakeRoute", func() {
 		It("returns a route with missing parameters", func() {
 			route := service.MakeRoute("", "", nil)
-			Expect(route.Method).To(Equal(""))
-			Expect(route.Path).To(Equal(""))
+			Expect(route.Method).To(BeEmpty())
+			Expect(route.Path).To(BeEmpty())
 			Expect(route.Handler).To(BeNil())
 		})
 

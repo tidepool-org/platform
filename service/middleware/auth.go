@@ -60,13 +60,13 @@ func (a *Auth) MiddlewareFunc(handlerFunc rest.HandlerFunc) rest.HandlerFunc {
 				if details.HasToken() {
 					if reqLgr := service.GetRequestLogger(req); reqLgr != nil {
 						defer service.SetRequestLogger(req, reqLgr)
-						service.SetRequestLogger(req, reqLgr.WithField("tokenHash", crypto.HashWithMD5(details.Token())))
+						service.SetRequestLogger(req, reqLgr.WithField("tokenHash", crypto.HexEncodedMD5Hash(details.Token())))
 					}
 				}
 
 				req.Request = req.WithContext(request.NewContextWithDetails(req.Context(), details))
 				if details.HasToken() {
-					req.Request = req.WithContext(log.NewContextWithLogger(req.Context(), lgr.WithField("tokenHash", crypto.HashWithMD5(details.Token()))))
+					req.Request = req.WithContext(log.NewContextWithLogger(req.Context(), lgr.WithField("tokenHash", crypto.HexEncodedMD5Hash(details.Token()))))
 				}
 			}
 

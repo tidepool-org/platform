@@ -8,8 +8,8 @@ import (
 
 func NewLongitude() *location.Longitude {
 	datum := location.NewLongitude()
-	datum.Units = pointer.String("degrees")
-	datum.Value = pointer.Float64(test.RandomFloat64FromRange(-180.0, 180.0))
+	datum.Units = pointer.FromString("degrees")
+	datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(-180.0, 180.0))
 	return datum
 }
 

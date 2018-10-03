@@ -3,7 +3,6 @@ package v1
 import (
 	"net/http"
 
-	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/request"
 
@@ -35,7 +34,7 @@ func UsersDelete(userServiceContext userService.Context) {
 		var permissions user.Permissions
 		permissions, err := userServiceContext.UserClient().GetUserPermissions(ctx, authUserID, targetUserID)
 		if err != nil {
-			if errors.Code(err) == request.ErrorCodeUnauthorized {
+			if request.IsErrorUnauthorized(err) {
 				userServiceContext.RespondWithError(service.ErrorUnauthorized())
 			} else {
 				userServiceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)

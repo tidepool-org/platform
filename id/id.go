@@ -1,30 +1,29 @@
 package id
 
 import (
-	"regexp"
-	"strings"
-
-	uuid "github.com/satori/go.uuid"
+	"crypto/rand"
+	"encoding/hex"
 
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/structure"
-	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-var expression = regexp.MustCompile("^[0-9a-z]{32}$")
-
-func New() string {
-	return strings.Replace(uuid.NewV4().String(), "-", "", -1)
-}
-
-func Validate(value string, errorReporter structure.ErrorReporter) {
-	if value == "" {
-		errorReporter.ReportError(structureValidator.ErrorValueEmpty())
-	} else if !expression.MatchString(value) {
-		errorReporter.ReportError(ErrorValueStringAsIDNotValid(value))
+func New(length int) (string, error) {
+	if length < 1 {
+		return "", errors.New("length is invalid")
 	}
+	bytes := make([]byte, length)
+	n, err := rand.Read(bytes)
+	if err != nil {
+		return "", errors.Wrap(err, "unable to generate id")
+	} else if n != length {
+		return "", errors.New("generated id does not have expected length")
+	}
+	return hex.EncodeToString(bytes), nil
 }
 
-func ErrorValueStringAsIDNotValid(value string) error {
-	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as id", value)
+func Must(value string, err error) string {
+	if err != nil {
+		panic(err)
+	}
+	return value
 }

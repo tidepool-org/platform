@@ -57,7 +57,7 @@ var _ = Describe("AccessLog", func() {
 		})
 
 		AfterEach(func() {
-			res.Expectations()
+			res.AssertOutputsEmpty()
 		})
 
 		It("is successful", func() {

@@ -17,7 +17,7 @@ import (
 
 func NewBasalTemporary() *pump.BasalTemporary {
 	datum := pump.NewBasalTemporary()
-	datum.Type = pointer.String(test.RandomStringFromArray(pump.BasalTemporaryTypes()))
+	datum.Type = pointer.FromString(test.RandomStringFromArray(pump.BasalTemporaryTypes()))
 	return datum
 }
 
@@ -73,14 +73,14 @@ var _ = Describe("BasalTemporary", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
 				),
 				Entry("type invalid",
-					func(datum *pump.BasalTemporary) { datum.Type = pointer.String("invalid") },
+					func(datum *pump.BasalTemporary) { datum.Type = pointer.FromString("invalid") },
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"percent", "Units/hour"}), "/type"),
 				),
 				Entry("type percent",
-					func(datum *pump.BasalTemporary) { datum.Type = pointer.String("percent") },
+					func(datum *pump.BasalTemporary) { datum.Type = pointer.FromString("percent") },
 				),
 				Entry("type Units/hour",
-					func(datum *pump.BasalTemporary) { datum.Type = pointer.String("Units/hour") },
+					func(datum *pump.BasalTemporary) { datum.Type = pointer.FromString("Units/hour") },
 				),
 				Entry("multiple errors",
 					func(datum *pump.BasalTemporary) {

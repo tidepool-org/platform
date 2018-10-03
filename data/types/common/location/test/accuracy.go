@@ -9,7 +9,7 @@ import (
 func NewAccuracy(units *string) *location.Accuracy {
 	datum := location.NewAccuracy()
 	datum.Units = units
-	datum.Value = pointer.Float64(test.RandomFloat64FromRange(location.AccuracyValueRangeForUnits(units)))
+	datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(location.AccuracyValueRangeForUnits(units)))
 	return datum
 }
 

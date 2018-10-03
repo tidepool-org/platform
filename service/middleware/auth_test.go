@@ -5,6 +5,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
@@ -12,12 +13,12 @@ import (
 	"github.com/tidepool-org/platform/auth"
 	testAuth "github.com/tidepool-org/platform/auth/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	logNull "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/service/middleware"
+	serviceTest "github.com/tidepool-org/platform/service/test"
 	testRest "github.com/tidepool-org/platform/test/rest"
 )
 
@@ -97,7 +98,7 @@ var _ = Describe("Auth", func() {
 			})
 
 			AfterEach(func() {
-				res.Expectations()
+				res.AssertOutputsEmpty()
 				Expect(log.LoggerFromContext(req.Context())).To(Equal(lgr))
 				Expect(service.GetRequestLogger(req)).To(Equal(lgr))
 			})
@@ -152,7 +153,7 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns unauthorized if multiple values", func() {
-						res.WriteJsonOutputs = []error{nil}
+						res.HeaderOutput = &http.Header{}
 						res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 						req.Header.Add("X-Tidepool-Service-Secret", serviceSecret)
 						middlewareFunc(res, req)
@@ -160,7 +161,7 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns unauthorized if the server secret does not match", func() {
-						res.WriteJsonOutputs = []error{nil}
+						res.HeaderOutput = &http.Header{}
 						res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 						req.Header.Set("X-Tidepool-Service-Secret", testAuth.NewServiceSecret())
 						middlewareFunc(res, req)
@@ -191,7 +192,7 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns unauthorized if multiple values", func() {
-						res.WriteJsonOutputs = []error{nil}
+						res.HeaderOutput = &http.Header{}
 						res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 						req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 						middlewareFunc(res, req)
@@ -199,7 +200,7 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns unauthorized if not valid header", func() {
-						res.WriteJsonOutputs = []error{nil}
+						res.HeaderOutput = &http.Header{}
 						res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 						req.Header.Set("Authorization", accessToken)
 						middlewareFunc(res, req)
@@ -207,7 +208,7 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns unauthorized if not Bearer token", func() {
-						res.WriteJsonOutputs = []error{nil}
+						res.HeaderOutput = &http.Header{}
 						res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 						req.Header.Set("Authorization", fmt.Sprintf("NotBearer %s", accessToken))
 						middlewareFunc(res, req)
@@ -215,7 +216,7 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns successfully", func() {
-						userID := id.New()
+						userID := serviceTest.NewUserID()
 						authClient.ValidateSessionTokenOutputs = []testAuth.ValidateSessionTokenOutput{
 							{Details: request.NewDetails(request.MethodSessionToken, userID, accessToken), Error: nil},
 						}
@@ -261,7 +262,7 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns unauthorized if multiple values", func() {
-						res.WriteJsonOutputs = []error{nil}
+						res.HeaderOutput = &http.Header{}
 						res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 						req.Header.Add("X-Tidepool-Session-Token", sessionToken)
 						middlewareFunc(res, req)
@@ -269,7 +270,7 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns successfully", func() {
-						userID := id.New()
+						userID := serviceTest.NewUserID()
 						authClient.ValidateSessionTokenOutputs = []testAuth.ValidateSessionTokenOutput{
 							{Details: request.NewDetails(request.MethodSessionToken, userID, sessionToken), Error: nil},
 						}
@@ -338,7 +339,7 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns unauthorized if multiple values", func() {
-						res.WriteJsonOutputs = []error{nil}
+						res.HeaderOutput = &http.Header{}
 						res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 						query := req.URL.Query()
 						query.Add("restricted_token", restrictedToken)
@@ -348,7 +349,7 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns successfully", func() {
-						userID := id.New()
+						userID := serviceTest.NewUserID()
 						restrictedTokenObject := &auth.RestrictedToken{
 							ID:             restrictedToken,
 							UserID:         userID,
@@ -402,7 +403,7 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns successfully with no details if restricted token does not authenticate request", func() {
-						userID := id.New()
+						userID := serviceTest.NewUserID()
 						restrictedTokenObject := &auth.RestrictedToken{
 							ID:             restrictedToken,
 							UserID:         userID,

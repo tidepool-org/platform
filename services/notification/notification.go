@@ -1,12 +1,10 @@
 package main
 
 import (
-	"os"
-
 	"github.com/tidepool-org/platform/application"
-	"github.com/tidepool-org/platform/notification/service/service"
+	notificationServiceService "github.com/tidepool-org/platform/notification/service/service"
 )
 
 func main() {
-	os.Exit(application.Run(service.New("TIDEPOOL")))
+	application.RunAndExit(notificationServiceService.New(), "service")
 }

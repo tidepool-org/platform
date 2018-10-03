@@ -13,8 +13,8 @@ func NewSuppressedScheduled() *scheduled.SuppressedScheduled {
 	datum := scheduled.NewSuppressedScheduled()
 	datum.Annotations = testData.NewBlobArray()
 	datum.InsulinFormulation = testDataTypesInsulin.NewFormulation(3)
-	datum.Rate = pointer.Float64(test.RandomFloat64FromRange(scheduled.RateMinimum, scheduled.RateMaximum))
-	datum.ScheduleName = pointer.String(testDataTypesBasal.NewScheduleName())
+	datum.Rate = pointer.FromFloat64(test.RandomFloat64FromRange(scheduled.RateMinimum, scheduled.RateMaximum))
+	datum.ScheduleName = pointer.FromString(testDataTypesBasal.NewScheduleName())
 	return datum
 }
 

@@ -8,11 +8,11 @@ import (
 
 func NewDose() *insulin.Dose {
 	datum := insulin.NewDose()
-	datum.Active = pointer.Float64(test.RandomFloat64FromRange(insulin.DoseActiveMinimum, insulin.DoseActiveMaximum))
-	datum.Correction = pointer.Float64(test.RandomFloat64FromRange(insulin.DoseCorrectionMinimum, insulin.DoseCorrectionMaximum))
-	datum.Food = pointer.Float64(test.RandomFloat64FromRange(insulin.DoseFoodMinimum, insulin.DoseFoodMaximum))
-	datum.Total = pointer.Float64(test.RandomFloat64FromRange(insulin.DoseTotalMinimum, insulin.DoseTotalMaximum))
-	datum.Units = pointer.String(test.RandomStringFromArray(insulin.DoseUnits()))
+	datum.Active = pointer.FromFloat64(test.RandomFloat64FromRange(insulin.DoseActiveMinimum, insulin.DoseActiveMaximum))
+	datum.Correction = pointer.FromFloat64(test.RandomFloat64FromRange(insulin.DoseCorrectionMinimum, insulin.DoseCorrectionMaximum))
+	datum.Food = pointer.FromFloat64(test.RandomFloat64FromRange(insulin.DoseFoodMinimum, insulin.DoseFoodMaximum))
+	datum.Total = pointer.FromFloat64(test.RandomFloat64FromRange(insulin.DoseTotalMinimum, insulin.DoseTotalMaximum))
+	datum.Units = pointer.FromString(test.RandomStringFromArray(insulin.DoseUnits()))
 	return datum
 }
 

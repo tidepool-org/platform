@@ -112,54 +112,54 @@ If you are authenticated on a Tidepool server instance, then this argument is re
 
 To keep the following examples as succinct as possible, it is assumed that the tool has been previously authenticated with a user account and the `--user-id` argument is not specified.
 
-### Dataset
+### Data Set
 
-This tool can manage datasets.
+This tool can manage data sets.
 
 #### List
 
-To list all datasets for a user:
+To list all data sets for a user:
 
 ```
-$ tapi dataset list
+$ tapi data-set list
 (... output ...)
 ```
 
 ##### Filter
 
-You may provide limited filtering of the datasets.
+You may provide limited filtering of the data sets.
 
 ###### Deleted
 
-Datasets that have been previously deleted are not normally included in the list of datasets. If you wish to include deleted datasets in the list, then specify the `--deleted` argument. For example:
+Data sets that have been previously deleted are not normally included in the list of data sets. If you wish to include deleted data sets in the list, then specify the `--deleted` argument. For example:
 
 ```
-$ tapi dataset list --deleted
+$ tapi data-set list --deleted
 (... output ...)
 ```
 
 ##### Pagination
 
-By default, the Tidepool API returns datasets in pages with a default and maximum pages size of 100. To effectively list all datasets you will need to specify the `--page` and `--size` arguments to interate through all of the available datasets.  For example:
+By default, the Tidepool API returns data sets in pages with a default and maximum pages size of 100. To effectively list all data sets you will need to specify the `--page` and `--size` arguments to interate through all of the available data sets.  For example:
 
 ```
-$ tapi dataset list --size 50 --page 0
-(... first 50 datasets ...)
-$ tapi dataset list --size 50 --page 1
-(... second 50 datasets ...)
+$ tapi data-set list --size 50 --page 0
+(... first 50 data sets ...)
+$ tapi data-set list --size 50 --page 1
+(... second 50 data sets ...)
 ```
 
 The `--size` argument can be from 1 to 100. The `--page` argument can be zero or more.
 
-The last page will either contain less than `size` number of datasets or will be empty.
+The last page will either contain less than `size` number of data sets or will be empty.
 
 #### Delete
 
-To delete a specific dataset, determine its dataset id, also known as `uploadId`, via the list command above, and then invoke the delete dataset command. For example:
+To delete a specific data set, determine its data set id, also known as `uploadId`, via the list command above, and then invoke the delete data set command. For example:
 
 ```
-$ tapi dataset delete --dataset-id ff2346e5623914b1234565661f093459
-Dataset deleted.
+$ tapi data-set delete --data-set-id ff2346e5623914b1234565661f093459
+Data set deleted.
 ```
 
 **NB:** Older upload IDs (from ingestion through the legacy "jellyfish" ingestion service) begin with `upid_` and contain only 12 characters in the hash.
@@ -191,16 +191,16 @@ Replace \<command\> with one of the top-level commands and \<sub-command\> with 
 For example:
 
 ```
-$ tapi dataset list --help
+$ tapi data-set list --help
 NAME:
-   tapi dataset list - list datasets
+   tapi data set list - list data sets
 
 USAGE:
-   tapi dataset list [command options] [arguments...]
+   tapi data-set list [command options] [arguments...]
 
 OPTIONS:
-   --user-id USERID     USERID of the user to list datasets
-   --deleted            include deleted datasets in the list
+   --user-id USERID     USERID of the user to list data sets
+   --deleted            include deleted data sets in the list
    --page PAGE          pagination PAGE (default: 0)
    --size SIZE          pagination SIZE (default: 0)
    --endpoint ENDPOINT  Tidepool API ENDPOINT (eg. 'https://api.tidepool.org') [$TIDEPOOL_ENDPOINT]

@@ -6,12 +6,12 @@ import (
 )
 
 const (
-	AlertFixedLow   = "fixedLow"
-	AlertLow        = "low"
-	AlertHigh       = "high"
-	AlertRise       = "rise"
-	AlertFall       = "fall"
-	AlertOutOfRange = "outOfRange"
+	AlertNameFixedLow   = "fixedLow"
+	AlertNameLow        = "low"
+	AlertNameHigh       = "high"
+	AlertNameRise       = "rise"
+	AlertNameFall       = "fall"
+	AlertNameOutOfRange = "outOfRange"
 
 	EventCarbs    = "carbs"
 	EventExercise = "exercise"
@@ -74,5 +74,16 @@ const (
 
 	TransmitterIDExpressionString = "^[0-9A-Z]{5,6}$"
 )
+
+func AlertNames() []string {
+	return []string{
+		AlertNameFixedLow,
+		AlertNameLow,
+		AlertNameHigh,
+		AlertNameRise,
+		AlertNameFall,
+		AlertNameOutOfRange,
+	}
+}
 
 var transmitterIDExpression = regexp.MustCompile(TransmitterIDExpressionString)

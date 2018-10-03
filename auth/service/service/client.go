@@ -9,6 +9,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
+	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/provider"
 )
 
@@ -18,7 +19,7 @@ type Client struct {
 	providerFactory provider.Factory
 }
 
-func NewClient(cfg *client.ExternalConfig, name string, logger log.Logger, authStore authStore.Store, providerFactory provider.Factory) (*Client, error) {
+func NewClient(cfg *client.ExternalConfig, authorizeAs platform.AuthorizeAs, name string, logger log.Logger, authStore authStore.Store, providerFactory provider.Factory) (*Client, error) {
 	if cfg == nil {
 		return nil, errors.New("config is missing")
 	}
@@ -39,7 +40,7 @@ func NewClient(cfg *client.ExternalConfig, name string, logger log.Logger, authS
 		return nil, errors.Wrap(err, "config is invalid")
 	}
 
-	external, err := client.NewExternal(cfg, name, logger)
+	external, err := client.NewExternal(cfg, authorizeAs, name, logger)
 	if err != nil {
 		return nil, err
 	}

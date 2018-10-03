@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/tidepool-org/platform/auth"
@@ -13,6 +14,7 @@ import (
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/user"
 )
 
 type DataSourceAccessor interface {
@@ -58,11 +60,11 @@ func (d *DataSourceFilter) Parse(parser structure.ObjectParser) {
 func (d *DataSourceFilter) Validate(validator structure.Validator) {
 	validator.String("providerType", d.ProviderType).OneOf(auth.ProviderTypes()...)
 	validator.String("providerName", d.ProviderName).NotEmpty()
-	validator.String("providerSessionId", d.ProviderSessionID).Using(id.Validate)
+	validator.String("providerSessionId", d.ProviderSessionID).Using(auth.ProviderSessionIDValidator)
 	validator.String("state", d.State).OneOf(DataSourceStates()...)
 }
 
-func (d *DataSourceFilter) Mutate(req *http.Request) error {
+func (d *DataSourceFilter) MutateRequest(req *http.Request) error {
 	parameters := map[string]string{}
 	if d.ProviderType != nil {
 		parameters["providerType"] = *d.ProviderType
@@ -76,7 +78,7 @@ func (d *DataSourceFilter) Mutate(req *http.Request) error {
 	if d.State != nil {
 		parameters["state"] = *d.State
 	}
-	return request.NewParametersMutator(parameters).Mutate(req)
+	return request.NewParametersMutator(parameters).MutateRequest(req)
 }
 
 type DataSourceCreate struct {
@@ -108,7 +110,7 @@ func (d *DataSourceCreate) Parse(parser structure.ObjectParser) {
 func (d *DataSourceCreate) Validate(validator structure.Validator) {
 	validator.String("providerType", &d.ProviderType).OneOf(auth.ProviderTypes()...)
 	validator.String("providerName", &d.ProviderName).NotEmpty()
-	validator.String("providerSessionId", &d.ProviderSessionID).Using(id.Validate)
+	validator.String("providerSessionId", &d.ProviderSessionID).Using(auth.ProviderSessionIDValidator)
 	validator.String("state", &d.State).OneOf(DataSourceStates()...)
 }
 
@@ -161,15 +163,42 @@ func (d *DataSourceUpdate) Normalize(normalizer structure.Normalizer) {
 		d.Error.Normalize(normalizer.WithReference("error"))
 	}
 	if d.EarliestDataTime != nil {
-		d.EarliestDataTime = pointer.Time((*d.EarliestDataTime).Truncate(time.Second))
+		d.EarliestDataTime = pointer.FromTime((*d.EarliestDataTime).Truncate(time.Second))
 	}
 	if d.LatestDataTime != nil {
-		d.LatestDataTime = pointer.Time((*d.LatestDataTime).Truncate(time.Second))
+		d.LatestDataTime = pointer.FromTime((*d.LatestDataTime).Truncate(time.Second))
 	}
 	if d.LastImportTime != nil {
-		d.LastImportTime = pointer.Time((*d.LastImportTime).Truncate(time.Second))
+		d.LastImportTime = pointer.FromTime((*d.LastImportTime).Truncate(time.Second))
 	}
 }
+
+func NewSourceID() string {
+	return id.Must(id.New(16))
+}
+
+func IsValidSourceID(value string) bool {
+	return ValidateSourceID(value) == nil
+}
+
+func SourceIDValidator(value string, errorReporter structure.ErrorReporter) {
+	errorReporter.ReportError(ValidateSourceID(value))
+}
+
+func ValidateSourceID(value string) error {
+	if value == "" {
+		return structureValidator.ErrorValueEmpty()
+	} else if !setIDExpression.MatchString(value) {
+		return ErrorValueStringAsSourceIDNotValid(value)
+	}
+	return nil
+}
+
+func ErrorValueStringAsSourceIDNotValid(value string) error {
+	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as data source id", value)
+}
+
+var sourceIDExpression = regexp.MustCompile("^[0-9a-z]{32}$")
 
 type DataSource struct {
 	ID                string               `json:"id" bson:"id"`
@@ -198,11 +227,11 @@ func NewDataSource(userID string, create *DataSourceCreate) (*DataSource, error)
 	}
 
 	return &DataSource{
-		ID:                id.New(),
+		ID:                NewSourceID(),
 		UserID:            userID,
 		ProviderType:      create.ProviderType,
 		ProviderName:      create.ProviderName,
-		ProviderSessionID: pointer.String(create.ProviderSessionID),
+		ProviderSessionID: pointer.FromString(create.ProviderSessionID),
 		State:             create.State,
 		CreatedTime:       time.Now().Truncate(time.Second),
 	}, nil
@@ -242,11 +271,11 @@ func (d *DataSource) Parse(parser structure.ObjectParser) {
 }
 
 func (d *DataSource) Validate(validator structure.Validator) {
-	validator.String("id", &d.ID).Using(id.Validate)
-	validator.String("userId", &d.UserID).NotEmpty() // TODO: Further validation
+	validator.String("id", &d.ID).Using(SourceIDValidator)
+	validator.String("userId", &d.UserID).Using(user.IDValidator)
 	validator.String("providerType", &d.ProviderType).OneOf(auth.ProviderTypes()...)
 	validator.String("providerName", &d.ProviderName).NotEmpty()
-	validator.String("providerSessionId", d.ProviderSessionID).Using(id.Validate)
+	validator.String("providerSessionId", d.ProviderSessionID).Using(auth.ProviderSessionIDValidator)
 	validator.String("state", &d.State).OneOf(DataSourceStates()...)
 	if d.Error != nil {
 		d.Error.Validate(validator.WithReference("error"))
@@ -277,7 +306,7 @@ func (d *DataSource) Sanitize(details request.Details) error {
 	if details.IsUser() {
 		d.ProviderSessionID = nil
 		if d.Error != nil && d.Error.Error != nil {
-			if cause := errors.Cause(d.Error.Error); errors.Code(cause) == request.ErrorCodeUnauthenticated {
+			if cause := errors.Cause(d.Error.Error); request.IsErrorUnauthenticated(cause) {
 				d.Error.Error = cause
 			}
 			d.Error.Error = errors.Sanitize(d.Error.Error)

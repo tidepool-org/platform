@@ -11,18 +11,18 @@ import (
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/store/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/task"
 	"github.com/tidepool-org/platform/task/store"
 )
 
 type Store struct {
-	*mongo.Store
+	*storeStructuredMongo.Store
 }
 
-func NewStore(cfg *mongo.Config, lgr log.Logger) (*Store, error) {
-	str, err := mongo.NewStore(cfg, lgr)
+func NewStore(cfg *storeStructuredMongo.Config, lgr log.Logger) (*Store, error) {
+	str, err := storeStructuredMongo.NewStore(cfg, lgr)
 	if err != nil {
 		return nil, err
 	}
@@ -33,19 +33,23 @@ func NewStore(cfg *mongo.Config, lgr log.Logger) (*Store, error) {
 }
 
 func (s *Store) NewTaskSession() store.TaskSession {
+	return s.taskSession()
+}
+
+func (s *Store) taskSession() *TaskSession {
 	return &TaskSession{
 		Session: s.Store.NewSession("tasks"),
 	}
 }
 
 func (s *Store) EnsureIndexes() error {
-	ssn := s.NewTaskSession()
+	ssn := s.taskSession()
 	defer ssn.Close()
 	return ssn.EnsureIndexes()
 }
 
 type TaskSession struct {
-	*mongo.Session
+	*storeStructuredMongo.Session
 }
 
 func (t *TaskSession) EnsureIndexes() error {
@@ -251,16 +255,16 @@ func (t *TaskSession) UpdateFromState(ctx context.Context, tsk *task.Task, state
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": tsk.ID, "state": state})
 
-	tsk.ModifiedTime = pointer.Time(now.Truncate(time.Second))
+	tsk.ModifiedTime = pointer.FromTime(now.Truncate(time.Second))
 
 	if tsk.AvailableTime != nil {
-		tsk.AvailableTime = pointer.Time((*tsk.AvailableTime).Truncate(time.Second))
+		tsk.AvailableTime = pointer.FromTime((*tsk.AvailableTime).Truncate(time.Second))
 	}
 	if tsk.ExpirationTime != nil {
-		tsk.ExpirationTime = pointer.Time((*tsk.ExpirationTime).Truncate(time.Second))
+		tsk.ExpirationTime = pointer.FromTime((*tsk.ExpirationTime).Truncate(time.Second))
 	}
 	if tsk.RunTime != nil {
-		tsk.RunTime = pointer.Time((*tsk.RunTime).Truncate(time.Second))
+		tsk.RunTime = pointer.FromTime((*tsk.RunTime).Truncate(time.Second))
 	}
 	tsk.CreatedTime = tsk.CreatedTime.Truncate(time.Second)
 

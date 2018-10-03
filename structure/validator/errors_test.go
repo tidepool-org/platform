@@ -3,34 +3,24 @@ package validator_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
 
-	"encoding/json"
-	"fmt"
 	"regexp"
 	"time"
 
-	"github.com/tidepool-org/platform/errors"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 var _ = Describe("Errors", func() {
-	DescribeTable("all errors",
-		func(err error, code string, title string, detail string) {
-			Expect(err).ToNot(BeNil())
-			Expect(errors.Code(err)).To(Equal(code))
-			Expect(errors.Cause(err)).To(Equal(err))
-			bytes, bytesErr := json.Marshal(errors.Sanitize(err))
-			Expect(bytesErr).ToNot(HaveOccurred())
-			Expect(bytes).To(MatchJSON(fmt.Sprintf(`{"code": %q, "title": %q, "detail": %q}`, code, title, detail)))
-		},
+	DescribeTable("have expected details when error",
+		errorsTest.ExpectErrorDetails,
 		Entry("is ErrorValueNotExists", structureValidator.ErrorValueNotExists(), "value-not-exists", "value does not exist", "value does not exist"),
 		Entry("is ErrorValueExists", structureValidator.ErrorValueExists(), "value-exists", "value exists", "value exists"),
 		Entry("is ErrorValueNotEmpty", structureValidator.ErrorValueNotEmpty(), "value-not-empty", "value is not empty", "value is not empty"),
 		Entry("is ErrorValueEmpty", structureValidator.ErrorValueEmpty(), "value-empty", "value is empty", "value is empty"),
 		Entry("is ErrorValueDuplicate", structureValidator.ErrorValueDuplicate(), "value-duplicate", "value is a duplicate", "value is a duplicate"),
-		Entry("is ErrorValueBooleanNotTrue", structureValidator.ErrorValueBooleanNotTrue(), "value-not-true", "value is not true", "value is not true"),
-		Entry("is ErrorValueBooleanNotFalse", structureValidator.ErrorValueBooleanNotFalse(), "value-not-false", "value is not false", "value is not false"),
+		Entry("is ErrorValueBoolNotTrue", structureValidator.ErrorValueBoolNotTrue(), "value-not-true", "value is not true", "value is not true"),
+		Entry("is ErrorValueBoolNotFalse", structureValidator.ErrorValueBoolNotFalse(), "value-not-false", "value is not false", "value is not false"),
 		Entry("is ErrorValueNotEqualTo with int", structureValidator.ErrorValueNotEqualTo(1, 2), "value-out-of-range", "value is out of range", "value 1 is not equal to 2"),
 		Entry("is ErrorValueNotEqualTo with float", structureValidator.ErrorValueNotEqualTo(3.4, 5.6), "value-out-of-range", "value is out of range", "value 3.4 is not equal to 5.6"),
 		Entry("is ErrorValueNotEqualTo with string", structureValidator.ErrorValueNotEqualTo("abc", "xyz"), "value-out-of-range", "value is out of range", `value "abc" is not equal to "xyz"`),

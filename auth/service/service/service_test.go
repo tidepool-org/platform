@@ -12,7 +12,6 @@ package service_test
 // 	"github.com/tidepool-org/platform/config/env"
 // 	"github.com/tidepool-org/platform/id"
 
-// 	_ "github.com/tidepool-org/platform/application/version/test"
 // )
 
 // var _ = Describe("Service", func() {
@@ -46,7 +45,7 @@ package service_test
 // 					VerifyRequest("POST", "/auth/serverlogin"),
 // 					VerifyHeaderKV("X-Tidepool-Server-Name", "service.test"),
 // 					VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
-// 					VerifyBody([]byte{}),
+// 					VerifyBody(nil),
 // 					RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
 // 			)
 

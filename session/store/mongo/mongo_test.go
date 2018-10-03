@@ -13,8 +13,8 @@ package mongo_test
 // 	"github.com/tidepool-org/platform/log/null"
 // 	"github.com/tidepool-org/platform/session/store"
 // 	"github.com/tidepool-org/platform/session/store/mongo"
-// 	baseMongo "github.com/tidepool-org/platform/store/mongo"
-// 	testMongo "github.com/tidepool-org/platform/test/mongo"
+// 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
+// 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 // )
 
 // func NewBaseSession() bson.M {
@@ -61,17 +61,12 @@ package mongo_test
 // }
 
 // var _ = Describe("Mongo", func() {
-// 	var mongoConfig *baseMongo.Config
+// 	var mongoConfig *storeStructuredMongo.Config
 // 	var mongoStore *mongo.Store
 // 	var mongoSession store.SessionsSession
 
 // 	BeforeEach(func() {
-// 		mongoConfig = &baseMongo.Config{
-// 			Addresses:        []string{testMongo.Address()},
-// 			Database:         testMongo.Database(),
-// 			CollectionPrefix: testMongo.NewCollectionPrefix(),
-// 			Timeout:          5 * time.Second,
-// 		}
+// 		mongoConfig = storeStructuredMongoTest.NewConfig()
 // 	})
 
 // 	AfterEach(func() {
@@ -126,7 +121,7 @@ package mongo_test
 // 				var sessions []interface{}
 
 // 				BeforeEach(func() {
-// 					testMongoSession = testMongo.Session().Copy()
+// 					testMongoSession = storeStructuredMongoTest.Session().Copy()
 // 					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.CollectionPrefix + "tokens")
 // 					sessions = append(NewServerSessions(), NewUserSessions(id.New())...)
 // 				})

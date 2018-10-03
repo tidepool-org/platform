@@ -1,15 +1,11 @@
 package store
 
-import (
-	"github.com/tidepool-org/platform/store"
-)
+import "io"
 
 type Store interface {
-	store.Store
-
 	NewNotificationsSession() NotificationsSession
 }
 
 type NotificationsSession interface {
-	store.Session
+	io.Closer
 }

@@ -4,12 +4,43 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/md5"
+	"encoding/base64"
 	"encoding/hex"
 
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-func HashWithMD5(sourceString string) string {
+func Base64EncodedMD5Hash(bytes []byte) string {
+	md5Sum := md5.Sum(bytes)
+	return base64.StdEncoding.EncodeToString(md5Sum[:])
+}
+
+func IsValidBase64EncodedMD5Hash(value string) bool {
+	return ValidateBase64EncodedMD5Hash(value) == nil
+}
+
+func Base64EncodedMD5HashValidator(value string, errorReporter structure.ErrorReporter) {
+	errorReporter.ReportError(ValidateBase64EncodedMD5Hash(value))
+}
+
+func ValidateBase64EncodedMD5Hash(value string) error {
+	if value == "" {
+		return structureValidator.ErrorValueEmpty()
+	} else if bytes, err := base64.StdEncoding.DecodeString(value); err != nil {
+		return ErrorValueStringAsBase64EncodedMD5HashNotValid(value)
+	} else if len(bytes) != 16 {
+		return ErrorValueStringAsBase64EncodedMD5HashNotValid(value)
+	}
+	return nil
+}
+
+func ErrorValueStringAsBase64EncodedMD5HashNotValid(value string) error {
+	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as Base64 encoded MD5 hash", value)
+}
+
+func HexEncodedMD5Hash(sourceString string) string {
 	md5Sum := md5.Sum([]byte(sourceString))
 	return hex.EncodeToString(md5Sum[:])
 }

@@ -1072,7 +1072,7 @@ var _ = Describe("String", func() {
 
 		Context("with invalid time string", func() {
 			BeforeEach(func() {
-				value = pointer.String("abc")
+				value = pointer.FromString("abc")
 			})
 
 			JustBeforeEach(func() {
@@ -1091,7 +1091,7 @@ var _ = Describe("String", func() {
 
 		Context("with invalid layout", func() {
 			BeforeEach(func() {
-				value = pointer.String("2017-06-23T11:36:45-05:00")
+				value = pointer.FromString("2017-06-23T11:36:45-05:00")
 			})
 
 			JustBeforeEach(func() {
@@ -1112,7 +1112,7 @@ var _ = Describe("String", func() {
 			var valueAsTime time.Time
 
 			BeforeEach(func() {
-				value = pointer.String("2017-06-23T11:36:45-05:00")
+				value = pointer.FromString("2017-06-23T11:36:45-05:00")
 				var err error
 				valueAsTime, err = time.Parse(time.RFC3339, "2017-06-23T11:36:45-05:00")
 				Expect(err).ToNot(HaveOccurred())

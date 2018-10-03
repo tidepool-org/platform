@@ -56,8 +56,8 @@ func (p *Provider) OnCreate(ctx context.Context, userID string, providerSessionI
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "type": p.Type(), "name": p.Name()})
 
 	filter := data.NewDataSourceFilter()
-	filter.ProviderType = pointer.String(p.Type())
-	filter.ProviderName = pointer.String(p.Name())
+	filter.ProviderType = pointer.FromString(p.Type())
+	filter.ProviderName = pointer.FromString(p.Name())
 	dataSources, err := p.dataClient.ListUserDataSources(ctx, userID, filter, nil)
 	if err != nil {
 		return errors.Wrap(err, "unable to fetch data sources")
@@ -75,7 +75,7 @@ func (p *Provider) OnCreate(ctx context.Context, userID string, providerSessionI
 		}
 
 		dataSourceUpdate := data.NewDataSourceUpdate()
-		dataSourceUpdate.State = pointer.String(data.DataSourceStateConnected)
+		dataSourceUpdate.State = pointer.FromString(data.DataSourceStateConnected)
 
 		dataSource, err = p.dataClient.UpdateDataSource(ctx, dataSource.ID, dataSourceUpdate)
 		if err != nil {
@@ -119,7 +119,7 @@ func (p *Provider) OnDelete(ctx context.Context, userID string, providerSessionI
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "providerSessionId": providerSessionID})
 
 	taskFilter := task.NewTaskFilter()
-	taskFilter.Name = pointer.String(fetch.TaskName(providerSessionID))
+	taskFilter.Name = pointer.FromString(fetch.TaskName(providerSessionID))
 	tasks, err := p.taskClient.ListTasks(ctx, taskFilter, nil)
 	if err != nil {
 		logger.WithError(err).Error("unable to list tasks after deleting provider session")
@@ -132,7 +132,7 @@ func (p *Provider) OnDelete(ctx context.Context, userID string, providerSessionI
 		}
 		if dataSourceID, ok := task.Data["dataSourceId"].(string); ok && dataSourceID != "" {
 			dataSourceUpdate := data.NewDataSourceUpdate()
-			dataSourceUpdate.State = pointer.String(data.DataSourceStateDisconnected)
+			dataSourceUpdate.State = pointer.FromString(data.DataSourceStateDisconnected)
 			_, err = p.dataClient.UpdateDataSource(ctx, dataSourceID, dataSourceUpdate)
 			if err != nil {
 				logger.WithError(err).WithField("dataSourceId", dataSourceID).Error("unable to update data source after deleting provider session")

@@ -98,7 +98,7 @@ func (c *CGM) Validate(validator structure.Validator) {
 		validator.WithReference("rateOfChangeAlerts").ReportError(structureValidator.ErrorValueNotExists())
 	}
 	validator.String("serialNumber", c.SerialNumber).NotEmpty().LengthLessThanOrEqualTo(SerialNumberLengthMaximum)
-	validator.String("transmitterId", c.TransmitterID).Exists().Using(ValidateTransmitterID)
+	validator.String("transmitterId", c.TransmitterID).Exists().Using(TransmitterIDValidator)
 	validator.String("units", c.Units).Exists().OneOf(dataBloodGlucose.Units()...)
 }
 
@@ -131,16 +131,25 @@ func (c *CGM) Normalize(normalizer data.Normalizer) {
 	}
 }
 
-var transmitterIDExpression = regexp.MustCompile(TransmitterIDExpressionString)
+func IsValidTransmitterID(value string) bool {
+	return ValidateTransmitterID(value) == nil
+}
 
-func ValidateTransmitterID(value string, errorReporter structure.ErrorReporter) {
+func TransmitterIDValidator(value string, errorReporter structure.ErrorReporter) {
+	errorReporter.ReportError(ValidateTransmitterID(value))
+}
+
+func ValidateTransmitterID(value string) error {
 	if value == "" {
-		errorReporter.ReportError(structureValidator.ErrorValueEmpty())
+		return structureValidator.ErrorValueEmpty()
 	} else if !transmitterIDExpression.MatchString(value) {
-		errorReporter.ReportError(ErrorValueStringAsTransmitterIDNotValid(value))
+		return ErrorValueStringAsTransmitterIDNotValid(value)
 	}
+	return nil
 }
 
 func ErrorValueStringAsTransmitterIDNotValid(value string) error {
 	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as transmitter id", value)
 }
+
+var transmitterIDExpression = regexp.MustCompile(TransmitterIDExpressionString)

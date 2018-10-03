@@ -8,24 +8,19 @@ package mongo_test
 // 	"time"
 
 // 	nullLog "github.com/tidepool-org/platform/log/null"
-// 	storeMongo "github.com/tidepool-org/platform/store/mongo"
+// 	storeStructuredMongo "github.com/tidepool-org/platform/store/strutured/mongo"
+// 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 // 	"github.com/tidepool-org/platform/task/store"
 // 	"github.com/tidepool-org/platform/task/store/mongo"
-// 	testMongo "github.com/tidepool-org/platform/test/mongo"
 // )
 
 // var _ = Describe("Mongo", func() {
-// 	var cfg *storeMongo.Config
+// 	var cfg *storeStructuredMongo.Config
 // 	var str *mongo.Store
 // 	var ssn store.TasksSession
 
 // 	BeforeEach(func() {
-// 		cfg = &storeMongo.Config{
-// 			Addresses:        []string{testMongo.Address()},
-// 			Database:         testMongo.Database(),
-// 			CollectionPrefix: testMongo.NewCollectionPrefix(),
-// 			Timeout:          5 * time.Second,
-// 		}
+// 		cfg = storeStructuredMongoTest.NewConfig()
 // 	})
 
 // 	AfterEach(func() {

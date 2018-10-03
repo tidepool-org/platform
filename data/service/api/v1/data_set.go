@@ -5,7 +5,6 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataService "github.com/tidepool-org/platform/data/service"
-	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/user"
@@ -52,7 +51,7 @@ func ListUserDataSets(dataServiceContext dataService.Context) {
 	if !details.IsService() && details.UserID() != userID {
 		permissions, err := dataServiceContext.UserClient().GetUserPermissions(req.Context(), details.UserID(), userID)
 		if err != nil {
-			if errors.Code(err) == request.ErrorCodeUnauthorized {
+			if request.IsErrorUnauthorized(err) {
 				responder.Error(http.StatusForbidden, request.ErrorUnauthorized())
 			} else {
 				responder.Error(http.StatusInternalServerError, err)
@@ -115,7 +114,7 @@ func GetDataSet(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if !details.IsService() && details.UserID() != dataSet.UserID {
+	if !details.IsService() && details.UserID() != *dataSet.UserID {
 		request.MustNewResponder(res, req).Error(http.StatusForbidden, request.ErrorUnauthorized())
 		return
 	}

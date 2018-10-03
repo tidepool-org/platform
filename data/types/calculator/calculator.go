@@ -8,7 +8,6 @@ import (
 	dataTypesBolusExtended "github.com/tidepool-org/platform/data/types/bolus/extended"
 	dataTypesBolusFactory "github.com/tidepool-org/platform/data/types/bolus/factory"
 	dataTypesBolusNormal "github.com/tidepool-org/platform/data/types/bolus/normal"
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -92,7 +91,7 @@ func (c *Calculator) Validate(validator structure.Validator) {
 		if c.Bolus != nil {
 			validator.WithReference("bolus").ReportError(structureValidator.ErrorValueExists())
 		}
-		validator.String("bolusId", c.BolusID).Using(id.Validate)
+		validator.String("bolusId", c.BolusID).Using(data.IDValidator)
 	}
 
 	validator.Float64("carbInput", c.CarbohydrateInput).InRange(CarbohydrateInputMinimum, CarbohydrateInputMaximum)

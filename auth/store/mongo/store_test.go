@@ -7,16 +7,16 @@ import (
 	"github.com/tidepool-org/platform/auth/store"
 	"github.com/tidepool-org/platform/auth/store/mongo"
 	logNull "github.com/tidepool-org/platform/log/null"
-	storeMongo "github.com/tidepool-org/platform/store/mongo"
-	testMongo "github.com/tidepool-org/platform/test/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
+	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 )
 
 var _ = Describe("Store", func() {
-	var cfg *storeMongo.Config
+	var cfg *storeStructuredMongo.Config
 	var str *mongo.Store
 
 	BeforeEach(func() {
-		cfg = testMongo.NewConfig()
+		cfg = storeStructuredMongoTest.NewConfig()
 	})
 
 	AfterEach(func() {

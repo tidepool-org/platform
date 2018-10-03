@@ -26,13 +26,13 @@ var _ = Describe("Client", func() {
 		})
 
 		It("returns an error if unsuccessful", func() {
-			clnt, err := notificationClient.New(nil)
+			clnt, err := notificationClient.New(nil, platform.AuthorizeAsService)
 			Expect(err).To(HaveOccurred())
 			Expect(clnt).To(BeNil())
 		})
 
 		It("returns success", func() {
-			clnt, err := notificationClient.New(cfg)
+			clnt, err := notificationClient.New(cfg, platform.AuthorizeAsService)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clnt).ToNot(BeNil())
 		})
@@ -50,7 +50,7 @@ var _ = Describe("Client", func() {
 			cfg.Address = svr.URL()
 			cfg.UserAgent = userAgent
 			var err error
-			clnt, err = notificationClient.New(cfg)
+			clnt, err = notificationClient.New(cfg, platform.AuthorizeAsService)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clnt).ToNot(BeNil())
 		})

@@ -5,9 +5,10 @@ import (
 
 	"github.com/urfave/cli"
 
+	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/store/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/tool"
 )
 
@@ -18,23 +19,18 @@ const (
 
 type Tool struct {
 	*tool.Tool
-	mongoConfig *mongo.Config
+	mongoConfig *storeStructuredMongo.Config
 }
 
-func NewTool(prefix string, scopes ...string) (*Tool, error) {
-	tuel, err := tool.New(prefix, scopes...)
-	if err != nil {
-		return nil, err
-	}
-
+func NewTool() *Tool {
 	return &Tool{
-		Tool:        tuel,
-		mongoConfig: mongo.NewConfig(),
-	}, nil
+		Tool:        tool.New(),
+		mongoConfig: storeStructuredMongo.NewConfig(),
+	}
 }
 
-func (t *Tool) Initialize() error {
-	if err := t.Tool.Initialize(); err != nil {
+func (t *Tool) Initialize(provider application.Provider) error {
+	if err := t.Tool.Initialize(provider); err != nil {
 		return err
 	}
 
@@ -68,7 +64,7 @@ func (t *Tool) ParseContext(context *cli.Context) bool {
 	}
 
 	if context.IsSet(AddressesFlag) {
-		t.mongoConfig.Addresses = mongo.SplitAddresses(context.String(AddressesFlag))
+		t.mongoConfig.Addresses = storeStructuredMongo.SplitAddresses(context.String(AddressesFlag))
 	}
 	if context.IsSet(TLSFlag) {
 		t.mongoConfig.TLS = context.Bool(TLSFlag)
@@ -77,8 +73,8 @@ func (t *Tool) ParseContext(context *cli.Context) bool {
 	return true
 }
 
-func (t *Tool) NewMongoConfig() *mongo.Config {
-	mongoConfig := mongo.NewConfig()
+func (t *Tool) NewMongoConfig() *storeStructuredMongo.Config {
+	mongoConfig := storeStructuredMongo.NewConfig()
 	if t.mongoConfig.Addresses != nil {
 		mongoConfig.Addresses = append([]string{}, t.mongoConfig.Addresses...)
 	}
@@ -86,10 +82,10 @@ func (t *Tool) NewMongoConfig() *mongo.Config {
 	mongoConfig.Database = t.mongoConfig.Database
 	mongoConfig.CollectionPrefix = t.mongoConfig.CollectionPrefix
 	if t.mongoConfig.Username != nil {
-		mongoConfig.Username = pointer.String(*t.mongoConfig.Username)
+		mongoConfig.Username = pointer.FromString(*t.mongoConfig.Username)
 	}
 	if t.mongoConfig.Password != nil {
-		mongoConfig.Password = pointer.String(*t.mongoConfig.Password)
+		mongoConfig.Password = pointer.FromString(*t.mongoConfig.Password)
 	}
 	return mongoConfig
 }

@@ -3,6 +3,7 @@ package service
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
+	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/auth/client"
 	"github.com/tidepool-org/platform/auth/service"
 	"github.com/tidepool-org/platform/auth/service/api"
@@ -16,7 +17,7 @@ import (
 	"github.com/tidepool-org/platform/provider"
 	providerFactory "github.com/tidepool-org/platform/provider/factory"
 	serviceService "github.com/tidepool-org/platform/service/service"
-	baseMongo "github.com/tidepool-org/platform/store/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/task"
 	taskClient "github.com/tidepool-org/platform/task/client"
 )
@@ -31,19 +32,14 @@ type Service struct {
 	authClient      *Client
 }
 
-func New(prefix string) (*Service, error) {
-	svc, err := serviceService.New(prefix)
-	if err != nil {
-		return nil, err
-	}
-
+func New() *Service {
 	return &Service{
-		Service: svc,
-	}, nil
+		Service: serviceService.New(),
+	}
 }
 
-func (s *Service) Initialize() error {
-	if err := s.Service.Initialize(); err != nil {
+func (s *Service) Initialize(provider application.Provider) error {
+	if err := s.Service.Initialize(provider); err != nil {
 		return err
 	}
 
@@ -103,7 +99,7 @@ func (s *Service) ProviderFactory() provider.Factory {
 func (s *Service) Status() *service.Status {
 	return &service.Status{
 		Version:   s.VersionReporter().Long(),
-		AuthStore: s.AuthStore().Status(),
+		AuthStore: s.authStore.Status(),
 		Server:    s.API().Status(),
 	}
 }
@@ -161,7 +157,7 @@ func (s *Service) terminateRouter() {
 func (s *Service) initializeAuthStore() error {
 	s.Logger().Debug("Loading auth store config")
 
-	cfg := baseMongo.NewConfig()
+	cfg := storeStructuredMongo.NewConfig()
 	if err := cfg.Load(s.ConfigReporter().WithScopes("auth", "store")); err != nil {
 		return errors.Wrap(err, "unable to load auth store config")
 	}
@@ -205,7 +201,7 @@ func (s *Service) initializeDataClient() error {
 
 	s.Logger().Debug("Creating data client")
 
-	clnt, err := dataClient.New(cfg)
+	clnt, err := dataClient.New(cfg, platform.AuthorizeAsService)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data client")
 	}
@@ -232,7 +228,7 @@ func (s *Service) initializeTaskClient() error {
 
 	s.Logger().Debug("Creating task client")
 
-	clnt, err := taskClient.New(cfg)
+	clnt, err := taskClient.New(cfg, platform.AuthorizeAsService)
 	if err != nil {
 		return errors.Wrap(err, "unable to create task client")
 	}
@@ -285,7 +281,7 @@ func (s *Service) initializeAuthClient() error {
 
 	s.Logger().Debug("Creating auth client")
 
-	clnt, err := NewClient(cfg, s.Name(), s.Logger(), s.AuthStore(), s.ProviderFactory())
+	clnt, err := NewClient(cfg, platform.AuthorizeAsService, s.Name(), s.Logger(), s.AuthStore(), s.ProviderFactory())
 	if err != nil {
 		return errors.Wrap(err, "unable to create auth client")
 	}

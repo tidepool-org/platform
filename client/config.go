@@ -21,10 +21,8 @@ func (c *Config) Load(configReporter config.Reporter) error {
 		return errors.New("config reporter is missing")
 	}
 
-	c.Address = configReporter.GetWithDefault("address", "")
-	if userAgent, err := configReporter.Get("user_agent"); err == nil {
-		c.UserAgent = userAgent
-	}
+	c.Address = configReporter.GetWithDefault("address", c.Address)
+	c.UserAgent = configReporter.GetWithDefault("user_agent", c.UserAgent)
 
 	return nil
 }
@@ -32,8 +30,7 @@ func (c *Config) Load(configReporter config.Reporter) error {
 func (c *Config) Validate() error {
 	if c.Address == "" {
 		return errors.New("address is missing")
-	}
-	if _, err := url.Parse(c.Address); err != nil {
+	} else if _, err := url.Parse(c.Address); err != nil {
 		return errors.New("address is invalid")
 	}
 	if c.UserAgent == "" {

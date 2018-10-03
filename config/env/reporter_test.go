@@ -93,7 +93,7 @@ var _ = Describe("Reporter", func() {
 
 			It("returns the value if found, even if empty", func() {
 				Expect(syscall.Setenv("TIDEPOOL_TEST_HOTEL", "")).To(Succeed())
-				Expect(reporter.GetWithDefault("HOTEL", "room")).To(Equal(""))
+				Expect(reporter.GetWithDefault("HOTEL", "room")).To(BeEmpty())
 				Expect(syscall.Unsetenv("TIDEPOOL_TEST_HOTEL")).To(Succeed())
 			})
 

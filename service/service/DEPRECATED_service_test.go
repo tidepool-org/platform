@@ -7,133 +7,120 @@ import (
 
 	"net/http"
 
-	testAuth "github.com/tidepool-org/platform/auth/test"
-	"github.com/tidepool-org/platform/config"
-	"github.com/tidepool-org/platform/config/env"
-	"github.com/tidepool-org/platform/service/service"
-
-	_ "github.com/tidepool-org/platform/application/version/test"
+	applicationTest "github.com/tidepool-org/platform/application/test"
+	authTest "github.com/tidepool-org/platform/auth/test"
+	configTest "github.com/tidepool-org/platform/config/test"
+	serviceService "github.com/tidepool-org/platform/service/service"
 )
 
 var _ = Describe("DEPRECATEDService", func() {
 	Context("NewDEPRECATEDService", func() {
-		It("returns an error if the prefix is missing", func() {
-			svc, err := service.NewDEPRECATEDService("")
-			Expect(err).To(MatchError("prefix is missing"))
-			Expect(svc).To(BeNil())
-		})
-
 		It("returns successfully", func() {
-			Expect(service.NewDEPRECATEDService("TIDEPOOL")).ToNot(BeNil())
+			Expect(serviceService.NewDEPRECATEDService()).ToNot(BeNil())
 		})
 	})
 
 	Context("with started server, config reporter, and new service", func() {
-		var svc *service.DEPRECATEDService
-		var serverSessionTokenSecret string
-		var serverSessionToken string
-		var serviceSecret string
+		var provider *applicationTest.Provider
+		var svc *serviceService.DEPRECATEDService
+		var serverSecret string
+		var sessionToken string
 		var server *Server
-		var serviceConfigReporter config.Reporter
-		var authClientConfigReporter config.Reporter
+		var authClientConfig map[string]interface{}
+		var serviceConfig map[string]interface{}
 
 		BeforeEach(func() {
-			var err error
-			svc, err = service.NewDEPRECATEDService("TIDEPOOL")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(svc).ToNot(BeNil())
+			provider = applicationTest.NewProviderWithDefaults()
 
-			serverSessionTokenSecret = testAuth.NewServiceSecret()
-			serverSessionToken = testAuth.NewSessionToken()
-			serviceSecret = testAuth.NewServiceSecret()
+			serverSecret = authTest.NewServiceSecret()
+			sessionToken = authTest.NewSessionToken()
 
 			server = NewServer()
 			Expect(server).ToNot(BeNil())
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest("POST", "/auth/serverlogin"),
-					VerifyHeaderKV("X-Tidepool-Server-Name", "service.test"),
-					VerifyHeaderKV("X-Tidepool-Server-Secret", serverSessionTokenSecret),
-					VerifyBody([]byte{}),
-					RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverSessionToken}})),
+					VerifyHeaderKV("X-Tidepool-Server-Name", *provider.NameOutput),
+					VerifyHeaderKV("X-Tidepool-Server-Secret", serverSecret),
+					VerifyBody(nil),
+					RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{sessionToken}})),
 			)
 
-			configReporter, err := env.NewReporter("TIDEPOOL")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(configReporter).ToNot(BeNil())
+			authClientConfig = map[string]interface{}{
+				"address":             server.URL(),
+				"server_token_secret": authTest.NewServiceSecret(),
+				"external": map[string]interface{}{
+					"address":                     server.URL(),
+					"server_session_token_secret": serverSecret,
+				},
+			}
+			serviceConfig = map[string]interface{}{
+				"secret": authTest.NewServiceSecret(),
+				"auth": map[string]interface{}{
+					"client": authClientConfig,
+				},
+			}
+			(*provider.ConfigReporterOutput).(*configTest.Reporter).Config = serviceConfig
 
-			serviceConfigReporter = configReporter.WithScopes("service.test", "service")
-			serviceConfigReporter.Set("secret", serviceSecret)
-
-			authClientConfigReporter = serviceConfigReporter.WithScopes("auth", "client")
-			authClientConfigReporter.Set("address", server.URL())
-			authClientConfigReporter.Set("timeout", "60")
-
-			externalConfigReporter := authClientConfigReporter.WithScopes("external")
-			externalConfigReporter.Set("address", server.URL())
-			externalConfigReporter.Set("server_session_token_secret", serverSessionTokenSecret)
+			svc = serviceService.NewDEPRECATEDService()
+			Expect(svc).ToNot(BeNil())
 		})
 
 		AfterEach(func() {
 			if server != nil {
 				server.Close()
 			}
+			provider.AssertOutputsEmpty()
 		})
 
-		Context("Initialize", func() {
-			It("returns an error if the secret is missing", func() {
-				serviceConfigReporter.Delete("secret")
-				Expect(svc.Initialize()).To(MatchError("secret is missing"))
-			})
-
-			It("returns an error if the timeout is invalid during Load", func() {
-				authClientConfigReporter.Set("timeout", "invalid")
-				Expect(svc.Initialize()).To(MatchError("unable to load auth client config; timeout is invalid"))
-			})
-
-			It("returns an error if the timeout is invalid during Validate", func() {
-				authClientConfigReporter.Set("timeout", "0")
-				Expect(svc.Initialize()).To(MatchError("unable to create auth client; config is invalid; timeout is invalid"))
-			})
-
-			It("returns successfully", func() {
-				Expect(svc.Initialize()).To(Succeed())
-				svc.Terminate()
-			})
-		})
-
-		Context("Terminate", func() {
-			It("returns successfully", func() {
-				svc.Terminate()
-			})
-		})
-
-		Context("with being initialized", func() {
-			BeforeEach(func() {
-				Expect(svc.Initialize()).To(Succeed())
-			})
-
+		Context("with Terminate after", func() {
 			AfterEach(func() {
 				svc.Terminate()
 			})
 
-			Context("Terminate", func() {
+			Context("Initialize", func() {
+				It("returns an error when the provider is missing", func() {
+					Expect(svc.Initialize(nil)).To(MatchError("provider is missing"))
+				})
+
+				It("returns an error when the secret is missing", func() {
+					delete(serviceConfig, "secret")
+					Expect(svc.Initialize(provider)).To(MatchError("secret is missing"))
+				})
+
+				It("returns an error when the auth client cannot be initialized", func() {
+					delete(authClientConfig, "address")
+					Expect(svc.Initialize(provider)).To(MatchError("unable to create auth client; config is invalid; address is missing"))
+				})
+
 				It("returns successfully", func() {
-					svc.Terminate()
+					Expect(svc.Initialize(provider)).To(Succeed())
 				})
 			})
 
-			Context("Secret", func() {
-				It("returns the secret", func() {
-					Expect(svc.Secret()).To(Equal(serviceSecret))
+			Context("with Initialize before", func() {
+				BeforeEach(func() {
+					Expect(svc.Initialize(provider)).To(Succeed())
 				})
-			})
 
-			Context("AuthClient", func() {
-				It("returns successfully with server token", func() {
-					authClient := svc.AuthClient()
-					Expect(authClient).ToNot(BeNil())
-					Eventually(authClient.ServerSessionToken).Should(Equal(serverSessionToken))
+				Context("Terminate", func() {
+					It("returns successfully", func() {
+						svc.Terminate()
+					})
+				})
+
+				Context("Secret", func() {
+					It("returns the secret", func() {
+						Expect(svc.Secret()).To(Equal(serviceConfig["secret"]))
+					})
+				})
+
+				Context("AuthClient", func() {
+					It("returns successfully with server token", func() {
+						authClient := svc.AuthClient()
+						Expect(authClient).ToNot(BeNil())
+						Eventually(authClient.ServerSessionToken).Should(Equal(sessionToken))
+					})
 				})
 			})
 		})

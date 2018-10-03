@@ -4,7 +4,6 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/device"
 	dataTypesDeviceStatus "github.com/tidepool-org/platform/data/types/device/status"
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -56,7 +55,7 @@ func (r *ReservoirChange) Validate(validator structure.Validator) {
 		if r.Status != nil {
 			validator.WithReference("status").ReportError(structureValidator.ErrorValueExists())
 		}
-		validator.String("statusId", r.StatusID).Using(id.Validate)
+		validator.String("statusId", r.StatusID).Using(data.IDValidator)
 	}
 }
 

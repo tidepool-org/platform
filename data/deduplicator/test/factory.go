@@ -8,52 +8,52 @@ import (
 	"github.com/tidepool-org/platform/test"
 )
 
-type CanDeduplicateDatasetOutput struct {
+type CanDeduplicateDataSetOutput struct {
 	Can   bool
 	Error error
 }
 
-type NewDeduplicatorForDatasetInput struct {
+type NewDeduplicatorForDataSetInput struct {
 	Logger      log.Logger
 	DataSession storeDEPRECATED.DataSession
-	Dataset     *upload.Upload
+	DataSet     *upload.Upload
 }
 
-type NewDeduplicatorForDatasetOutput struct {
+type NewDeduplicatorForDataSetOutput struct {
 	Deduplicator data.Deduplicator
 	Error        error
 }
 
-type IsRegisteredWithDatasetOutput struct {
+type IsRegisteredWithDataSetOutput struct {
 	Is    bool
 	Error error
 }
 
-type NewRegisteredDeduplicatorForDatasetInput struct {
+type NewRegisteredDeduplicatorForDataSetInput struct {
 	Logger      log.Logger
 	DataSession storeDEPRECATED.DataSession
-	Dataset     *upload.Upload
+	DataSet     *upload.Upload
 }
 
-type NewRegisteredDeduplicatorForDatasetOutput struct {
+type NewRegisteredDeduplicatorForDataSetOutput struct {
 	Deduplicator data.Deduplicator
 	Error        error
 }
 
 type Factory struct {
 	*test.Mock
-	CanDeduplicateDatasetInvocations               int
-	CanDeduplicateDatasetInputs                    []*upload.Upload
-	CanDeduplicateDatasetOutputs                   []CanDeduplicateDatasetOutput
-	NewDeduplicatorForDatasetInvocations           int
-	NewDeduplicatorForDatasetInputs                []NewDeduplicatorForDatasetInput
-	NewDeduplicatorForDatasetOutputs               []NewDeduplicatorForDatasetOutput
-	IsRegisteredWithDatasetInvocations             int
-	IsRegisteredWithDatasetInputs                  []*upload.Upload
-	IsRegisteredWithDatasetOutputs                 []IsRegisteredWithDatasetOutput
-	NewRegisteredDeduplicatorForDatasetInvocations int
-	NewRegisteredDeduplicatorForDatasetInputs      []NewRegisteredDeduplicatorForDatasetInput
-	NewRegisteredDeduplicatorForDatasetOutputs     []NewRegisteredDeduplicatorForDatasetOutput
+	CanDeduplicateDataSetInvocations               int
+	CanDeduplicateDataSetInputs                    []*upload.Upload
+	CanDeduplicateDataSetOutputs                   []CanDeduplicateDataSetOutput
+	NewDeduplicatorForDataSetInvocations           int
+	NewDeduplicatorForDataSetInputs                []NewDeduplicatorForDataSetInput
+	NewDeduplicatorForDataSetOutputs               []NewDeduplicatorForDataSetOutput
+	IsRegisteredWithDataSetInvocations             int
+	IsRegisteredWithDataSetInputs                  []*upload.Upload
+	IsRegisteredWithDataSetOutputs                 []IsRegisteredWithDataSetOutput
+	NewRegisteredDeduplicatorForDataSetInvocations int
+	NewRegisteredDeduplicatorForDataSetInputs      []NewRegisteredDeduplicatorForDataSetInput
+	NewRegisteredDeduplicatorForDataSetOutputs     []NewRegisteredDeduplicatorForDataSetOutput
 }
 
 func NewFactory() *Factory {
@@ -62,65 +62,65 @@ func NewFactory() *Factory {
 	}
 }
 
-func (f *Factory) CanDeduplicateDataset(dataset *upload.Upload) (bool, error) {
-	f.CanDeduplicateDatasetInvocations++
+func (f *Factory) CanDeduplicateDataSet(dataSet *upload.Upload) (bool, error) {
+	f.CanDeduplicateDataSetInvocations++
 
-	f.CanDeduplicateDatasetInputs = append(f.CanDeduplicateDatasetInputs, dataset)
+	f.CanDeduplicateDataSetInputs = append(f.CanDeduplicateDataSetInputs, dataSet)
 
-	if len(f.CanDeduplicateDatasetOutputs) == 0 {
-		panic("Unexpected invocation of CanDeduplicateDataset on Factory")
+	if len(f.CanDeduplicateDataSetOutputs) == 0 {
+		panic("Unexpected invocation of CanDeduplicateDataSet on Factory")
 	}
 
-	output := f.CanDeduplicateDatasetOutputs[0]
-	f.CanDeduplicateDatasetOutputs = f.CanDeduplicateDatasetOutputs[1:]
+	output := f.CanDeduplicateDataSetOutputs[0]
+	f.CanDeduplicateDataSetOutputs = f.CanDeduplicateDataSetOutputs[1:]
 	return output.Can, output.Error
 }
 
-func (f *Factory) NewDeduplicatorForDataset(logger log.Logger, dataSession storeDEPRECATED.DataSession, dataset *upload.Upload) (data.Deduplicator, error) {
-	f.NewDeduplicatorForDatasetInvocations++
+func (f *Factory) NewDeduplicatorForDataSet(logger log.Logger, dataSession storeDEPRECATED.DataSession, dataSet *upload.Upload) (data.Deduplicator, error) {
+	f.NewDeduplicatorForDataSetInvocations++
 
-	f.NewDeduplicatorForDatasetInputs = append(f.NewDeduplicatorForDatasetInputs, NewDeduplicatorForDatasetInput{logger, dataSession, dataset})
+	f.NewDeduplicatorForDataSetInputs = append(f.NewDeduplicatorForDataSetInputs, NewDeduplicatorForDataSetInput{logger, dataSession, dataSet})
 
-	if len(f.NewDeduplicatorForDatasetOutputs) == 0 {
-		panic("Unexpected invocation of NewDeduplicatorForDataset on Factory")
+	if len(f.NewDeduplicatorForDataSetOutputs) == 0 {
+		panic("Unexpected invocation of NewDeduplicatorForDataSet on Factory")
 	}
 
-	output := f.NewDeduplicatorForDatasetOutputs[0]
-	f.NewDeduplicatorForDatasetOutputs = f.NewDeduplicatorForDatasetOutputs[1:]
+	output := f.NewDeduplicatorForDataSetOutputs[0]
+	f.NewDeduplicatorForDataSetOutputs = f.NewDeduplicatorForDataSetOutputs[1:]
 	return output.Deduplicator, output.Error
 }
 
-func (f *Factory) IsRegisteredWithDataset(dataset *upload.Upload) (bool, error) {
-	f.IsRegisteredWithDatasetInvocations++
+func (f *Factory) IsRegisteredWithDataSet(dataSet *upload.Upload) (bool, error) {
+	f.IsRegisteredWithDataSetInvocations++
 
-	f.IsRegisteredWithDatasetInputs = append(f.IsRegisteredWithDatasetInputs, dataset)
+	f.IsRegisteredWithDataSetInputs = append(f.IsRegisteredWithDataSetInputs, dataSet)
 
-	if len(f.IsRegisteredWithDatasetOutputs) == 0 {
-		panic("Unexpected invocation of IsRegisteredWithDataset on Factory")
+	if len(f.IsRegisteredWithDataSetOutputs) == 0 {
+		panic("Unexpected invocation of IsRegisteredWithDataSet on Factory")
 	}
 
-	output := f.IsRegisteredWithDatasetOutputs[0]
-	f.IsRegisteredWithDatasetOutputs = f.IsRegisteredWithDatasetOutputs[1:]
+	output := f.IsRegisteredWithDataSetOutputs[0]
+	f.IsRegisteredWithDataSetOutputs = f.IsRegisteredWithDataSetOutputs[1:]
 	return output.Is, output.Error
 }
 
-func (f *Factory) NewRegisteredDeduplicatorForDataset(logger log.Logger, dataSession storeDEPRECATED.DataSession, dataset *upload.Upload) (data.Deduplicator, error) {
-	f.NewRegisteredDeduplicatorForDatasetInvocations++
+func (f *Factory) NewRegisteredDeduplicatorForDataSet(logger log.Logger, dataSession storeDEPRECATED.DataSession, dataSet *upload.Upload) (data.Deduplicator, error) {
+	f.NewRegisteredDeduplicatorForDataSetInvocations++
 
-	f.NewRegisteredDeduplicatorForDatasetInputs = append(f.NewRegisteredDeduplicatorForDatasetInputs, NewRegisteredDeduplicatorForDatasetInput{logger, dataSession, dataset})
+	f.NewRegisteredDeduplicatorForDataSetInputs = append(f.NewRegisteredDeduplicatorForDataSetInputs, NewRegisteredDeduplicatorForDataSetInput{logger, dataSession, dataSet})
 
-	if len(f.NewRegisteredDeduplicatorForDatasetOutputs) == 0 {
-		panic("Unexpected invocation of NewRegisteredDeduplicatorForDataset on Factory")
+	if len(f.NewRegisteredDeduplicatorForDataSetOutputs) == 0 {
+		panic("Unexpected invocation of NewRegisteredDeduplicatorForDataSet on Factory")
 	}
 
-	output := f.NewRegisteredDeduplicatorForDatasetOutputs[0]
-	f.NewRegisteredDeduplicatorForDatasetOutputs = f.NewRegisteredDeduplicatorForDatasetOutputs[1:]
+	output := f.NewRegisteredDeduplicatorForDataSetOutputs[0]
+	f.NewRegisteredDeduplicatorForDataSetOutputs = f.NewRegisteredDeduplicatorForDataSetOutputs[1:]
 	return output.Deduplicator, output.Error
 }
 
 func (f *Factory) UnusedOutputsCount() int {
-	return len(f.CanDeduplicateDatasetOutputs) +
-		len(f.NewDeduplicatorForDatasetOutputs) +
-		len(f.IsRegisteredWithDatasetOutputs) +
-		len(f.NewRegisteredDeduplicatorForDatasetOutputs)
+	return len(f.CanDeduplicateDataSetOutputs) +
+		len(f.NewDeduplicatorForDataSetOutputs) +
+		len(f.IsRegisteredWithDataSetOutputs) +
+		len(f.NewRegisteredDeduplicatorForDataSetOutputs)
 }

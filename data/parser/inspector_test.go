@@ -47,7 +47,7 @@ var _ = Describe("Inspector", func() {
 				})
 
 				It("returns the value the object parser returns", func() {
-					testObjectParser.ParseStringOutputs = []*string{pointer.String("test-value")}
+					testObjectParser.ParseStringOutputs = []*string{pointer.FromString("test-value")}
 					value := inspector.GetProperty("test-key")
 					Expect(value).ToNot(BeNil())
 					Expect(*value).To(Equal("test-value"))

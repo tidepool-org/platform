@@ -5,7 +5,6 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/structure"
@@ -95,11 +94,13 @@ func NewUpload(parser data.ObjectParser) *Upload {
 }
 
 func ParseUpload(parser data.ObjectParser) *Upload {
-	datum := NewUpload(parser)
-	if datum == nil {
+	if parser.Object() == nil {
 		return nil
 	}
 
+	_ = parser.ParseString("type")
+
+	datum := New()
 	datum.Parse(parser)
 	return datum
 }
@@ -156,16 +157,16 @@ func (u *Upload) Validate(validator structure.Validator) {
 		validator.String("dataState", u.DataState).OneOf(States()...)
 	}
 
-	validator.StringArray("deviceManufacturers", u.DeviceManufacturers).Exists().NotEmpty().EachNotEmpty().EachUnique()
-	validator.String("deviceModel", u.DeviceModel).Exists().NotEmpty()               // TODO: Some clients USED to send ""; requires DB migration
-	validator.String("deviceSerialNumber", u.DeviceSerialNumber).Exists().NotEmpty() // TODO: Some clients STILL send "" via Jellyfish; requires fix & DB migration
-	validator.StringArray("deviceTags", u.DeviceTags).Exists().NotEmpty().EachOneOf(DeviceTags()...).EachUnique()
+	validator.StringArray("deviceManufacturers", u.DeviceManufacturers).NotEmpty().EachNotEmpty().EachUnique()
+	validator.String("deviceModel", u.DeviceModel).NotEmpty()               // TODO: Some clients USED to send ""; requires DB migration
+	validator.String("deviceSerialNumber", u.DeviceSerialNumber).NotEmpty() // TODO: Some clients STILL send "" via Jellyfish; requires fix & DB migration
+	validator.StringArray("deviceTags", u.DeviceTags).NotEmpty().EachOneOf(DeviceTags()...).EachUnique()
 
 	if validator.Origin() <= structure.OriginInternal {
 		validator.String("state", u.State).OneOf(States()...)
 	}
 
-	validator.String("timeProcessing", u.TimeProcessing).Exists().OneOf(TimeProcessings()...) // TODO: Some clients USED to send ""; requires DB migration
+	validator.String("timeProcessing", u.TimeProcessing).OneOf(TimeProcessings()...) // TODO: Some clients USED to send ""; requires DB migration
 	validator.String("version", u.Version).LengthGreaterThanOrEqualTo(VersionLengthMinimum)
 }
 
@@ -178,7 +179,7 @@ func (u *Upload) Normalize(normalizer data.Normalizer) {
 
 	if normalizer.Origin() == structure.OriginExternal {
 		if u.UploadID == nil {
-			u.UploadID = pointer.String(id.New())
+			u.UploadID = u.ID
 		}
 	}
 
@@ -188,7 +189,7 @@ func (u *Upload) Normalize(normalizer data.Normalizer) {
 
 	if normalizer.Origin() == structure.OriginExternal {
 		if u.DataSetType == nil {
-			u.DataSetType = pointer.String(DataSetTypeNormal)
+			u.DataSetType = pointer.FromString(DataSetTypeNormal)
 		}
 		if u.DeviceManufacturers != nil {
 			sort.Strings(*u.DeviceManufacturers)

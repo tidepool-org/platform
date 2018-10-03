@@ -10,7 +10,7 @@ import (
 
 func NewCompound(compoundArrayDepthLimit int) *insulin.Compound {
 	datum := insulin.NewCompound()
-	datum.Amount = pointer.Float64(test.RandomFloat64FromRange(0.0, math.MaxFloat64))
+	datum.Amount = pointer.FromFloat64(test.RandomFloat64FromRange(0.0, math.MaxFloat64))
 	datum.Formulation = NewFormulation(compoundArrayDepthLimit)
 	return datum
 }

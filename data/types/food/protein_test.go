@@ -17,8 +17,8 @@ import (
 
 func NewProtein() *food.Protein {
 	datum := food.NewProtein()
-	datum.Total = pointer.Int(test.RandomIntFromRange(food.ProteinTotalGramsMinimum, food.ProteinTotalGramsMaximum))
-	datum.Units = pointer.String(test.RandomStringFromArray(food.ProteinUnits()))
+	datum.Total = pointer.FromInt(test.RandomIntFromRange(food.ProteinTotalGramsMinimum, food.ProteinTotalGramsMaximum))
+	datum.Units = pointer.FromString(test.RandomStringFromArray(food.ProteinUnits()))
 	return datum
 }
 
@@ -79,17 +79,17 @@ var _ = Describe("Protein", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/total"),
 				),
 				Entry("total out of range (lower)",
-					func(datum *food.Protein) { datum.Total = pointer.Int(-1) },
+					func(datum *food.Protein) { datum.Total = pointer.FromInt(-1) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 1000), "/total"),
 				),
 				Entry("total in range (lower)",
-					func(datum *food.Protein) { datum.Total = pointer.Int(0) },
+					func(datum *food.Protein) { datum.Total = pointer.FromInt(0) },
 				),
 				Entry("total in range (upper)",
-					func(datum *food.Protein) { datum.Total = pointer.Int(1000) },
+					func(datum *food.Protein) { datum.Total = pointer.FromInt(1000) },
 				),
 				Entry("total out of range (upper)",
-					func(datum *food.Protein) { datum.Total = pointer.Int(1001) },
+					func(datum *food.Protein) { datum.Total = pointer.FromInt(1001) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(1001, 0, 1000), "/total"),
 				),
 				Entry("units missing",
@@ -97,11 +97,11 @@ var _ = Describe("Protein", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units invalid",
-					func(datum *food.Protein) { datum.Units = pointer.String("invalid") },
+					func(datum *food.Protein) { datum.Units = pointer.FromString("invalid") },
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"grams"}), "/units"),
 				),
 				Entry("units grams",
-					func(datum *food.Protein) { datum.Units = pointer.String("grams") },
+					func(datum *food.Protein) { datum.Units = pointer.FromString("grams") },
 				),
 				Entry("multiple errors",
 					func(datum *food.Protein) {

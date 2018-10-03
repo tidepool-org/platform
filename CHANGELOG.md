@@ -1,5 +1,86 @@
 ## HEAD
 
+## v1.28.0
+
+* Enable continuous data set type for Tidepool Mobile
+* Device and time related upload record fields are optional for continuous data set type
+* Add client name to data set filter
+* Use pointers for data set fields to match upload fields
+* Log any error with request
+* Remove duplicate Dexcom device alert settings
+* Allow insulin data type without dose
+* Rename ErrorValueBoolean* to ErrorValueBool* for consistency
+
+## v1.27.0
+
+* Add Dockerfile and config for running blob service
+* Remove check for correct content type from legacy service responses
+* Fix incorrect usage of test package in trace middleware
+* Minor updates to blob service configuration
+* Restrict test environment variables to only necessary
+* Add blob service, store, client, and related structures
+* Update structure parameter source to return unchanged if multiple references applied
+* Add EnsureAuthorizedService and EnsureAuthorizedUser to user.UserClient
+* Update user client test helper to use latest mocking technique
+* Remove unnecessary parameter from test RespondWith
+* Add client response inspectors
+* Ensure client data responses uses expected application/json content type header
+* Parse client response body for actual error, default to standard error from status code
+* Forcible drain client response body under all conditions
+* Add ArrayParametersMutator for adding headers with multiple string values
+* Update request values parser to handle generic map
+* Add request ParseDigestMD5Header, ParseMediaTypeHeader, and ParseIntHeader
+* Add request IsStatusCodeRedirection and IsStatusCodeClientError
+* Log any failure or short write during responder response write
+* Update logger to delete an existing field if new field value is nil
+* When deserializing errors an empty error array returns nil
+* Refactor application package to allow dependency injection
+* Simplify application execution to automatically inject default dependencies
+* Move all application/service/tool initialization from New to Initialize
+* Move application version to application package
+* Default all applications to use UTC local time
+* Refactor response writer test helper to use latest mocking technique
+* Add crypto.Base64EncodedMD5Hash
+* Minor updates to unstructured storage
+* Add and update test helpers
+* Add common service API status router
+* Add request.DecodeRequestPathParameter helper
+* Add new request errors
+* Remove unused errors.ErrorInternal
+* Add unstructured storage backed by file system and AWS S3 with factory
+* Add AWS API interface with actual and test implementations
+* Update test config reporter to support scopes
+* Add temporary file and directory test helpers
+* Add test io.Reader
+* Use dep dependency management tool rather than Godep
+* Remove unnecessary Makefile targets related to Godep
+* Move store/mongo package to store/structured/mongo
+* Use correct import names for store packages
+* Use io.Closer interface for store Close functionality
+* Remove unnecessary store interfaces
+* Remove unnecessary anonymous test mongo imports
+* Refactor request responder for more flexible responses; use direct http.ResponseWriter
+* Minor test refactor and cleanup
+* Add shortcuts for request error comparisons
+* Add streamed response from client in addition to existing data response
+* Add ability to specify authorization mechanism at client creation
+* Improve client tests
+* Remove client timeout configuration, as unused
+* Refactor request Mutator into RequestMutator and ResponseMutator
+* Refactor id generation and validation
+* Move validate package contents to more specific packages
+* Replace generic usage of id.New()
+* Rename crypto HashWithMD5 to HexEncodedMD5Hash for greater accuracy
+* Add net.NormalizeMediaType
+* Update maximum length for URL validation
+* Structure parser and validator automatically check for unparsed
+* Remove github.com/satori/go.uuid dependency
+* Refactor common error test expectations
+* Add pointer.To*, pointer.Clone*, and pointer.Default*
+* Rename pointer.* to pointer.From*
+* Update dependencies
+* Update to Go 1.10.2
+
 ## v1.26.0
 
 * Use correct form of insulin dose "Units" for Dexcom API ingestion
@@ -288,13 +369,13 @@
 ## v1.9.0
 
 * Bump `hash_deactivate_old` data deduplicator to version 1.1.0
-* Update `hash_deactivate_old` data deduplicator to use archived dataset id and time fields to accurately:
-  * Deactivate deduplicate data on dataset addition
-  * Activate undeduplicated data on dataset deletion
+* Update `hash_deactivate_old` data deduplicator to use archived data set id and time fields to accurately:
+  * Deactivate deduplicate data on data set addition
+  * Activate undeduplicated data on data set deletion
   * Record entire deduplication history
 * Update mongo queries related to `hash_deactivate_old` data deduplicator
 * Remove backwards-compatible legacy deduplicator name test in `DeduplicatorDescriptor.IsRegisteredWithNamedDeduplicator` (after `v1.8.0` required migration)
-* Add archived dataset id and time fields to base data type
+* Add archived data set id and time fields to base data type
 * Add MD5 hash of authentication token to request logger
 * Add service middleware to extract select request headers and add as request logger fields
 * Defer access to context store sessions and log until actually needed

@@ -5,8 +5,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"testing"
-
-	_ "github.com/tidepool-org/platform/test/mongo"
 )
 
 func TestSuite(t *testing.T) {

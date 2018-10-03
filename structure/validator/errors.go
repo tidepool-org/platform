@@ -49,11 +49,11 @@ func ErrorValueDuplicate() error {
 	return errors.Preparedf(ErrorCodeValueDuplicate, "value is a duplicate", "value is a duplicate")
 }
 
-func ErrorValueBooleanNotTrue() error {
+func ErrorValueBoolNotTrue() error {
 	return errors.Prepared(ErrorCodeValueNotTrue, "value is not true", "value is not true")
 }
 
-func ErrorValueBooleanNotFalse() error {
+func ErrorValueBoolNotFalse() error {
 	return errors.Prepared(ErrorCodeValueNotFalse, "value is not false", "value is not false")
 }
 

@@ -6,12 +6,22 @@ import (
 	. "github.com/onsi/gomega/ghttp"
 
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/tidepool-org/platform/client"
+	"github.com/tidepool-org/platform/errors"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
+	"github.com/tidepool-org/platform/log"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/request"
+	requestTest "github.com/tidepool-org/platform/request/test"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 	testHTTP "github.com/tidepool-org/platform/test/http"
 )
@@ -26,13 +36,13 @@ type ResponseBody struct {
 
 var _ = Describe("Client", func() {
 	Context("New", func() {
-		var config *client.Config
+		var cfg *client.Config
 
 		BeforeEach(func() {
-			config = client.NewConfig()
-			Expect(config).ToNot(BeNil())
-			config.Address = testHTTP.NewAddress()
-			config.UserAgent = testHTTP.NewUserAgent()
+			cfg = client.NewConfig()
+			Expect(cfg).ToNot(BeNil())
+			cfg.Address = testHTTP.NewAddress()
+			cfg.UserAgent = testHTTP.NewUserAgent()
 		})
 
 		It("returns an error if config is missing", func() {
@@ -41,71 +51,86 @@ var _ = Describe("Client", func() {
 			Expect(clnt).To(BeNil())
 		})
 
-		It("returns an error if config address is missing", func() {
-			config.Address = ""
-			clnt, err := client.New(config)
+		It("returns an error if config is invalid", func() {
+			cfg.Address = ""
+			clnt, err := client.New(cfg)
 			Expect(err).To(MatchError("config is invalid; address is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
-		It("returns an error if config user agent is missing", func() {
-			config.UserAgent = ""
-			clnt, err := client.New(config)
-			Expect(err).To(MatchError("config is invalid; user agent is missing"))
-			Expect(clnt).To(BeNil())
-		})
-
 		It("returns success", func() {
-			clnt, err := client.New(config)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(clnt).ToNot(BeNil())
+			Expect(client.New(cfg)).ToNot(BeNil())
 		})
 	})
 
 	Context("with new client", func() {
 		var address string
+		var cfg *client.Config
 		var clnt *client.Client
 
 		BeforeEach(func() {
 			address = testHTTP.NewAddress()
-			config := client.NewConfig()
-			Expect(config).ToNot(BeNil())
-			config.Address = address + "///"
-			config.UserAgent = testHTTP.NewUserAgent()
+			cfg = client.NewConfig()
+			Expect(cfg).ToNot(BeNil())
+			cfg.Address = address
+			cfg.UserAgent = testHTTP.NewUserAgent()
+		})
+
+		JustBeforeEach(func() {
 			var err error
-			clnt, err = client.New(config)
+			clnt, err = client.New(cfg)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clnt).ToNot(BeNil())
 		})
 
 		Context("ConstructURL", func() {
-			It("returns a valid URL with no paths", func() {
-				Expect(clnt.ConstructURL()).To(Equal(address + "/"))
+			AssertExpectedBehavior := func() {
+				It("returns a valid URL with no paths", func() {
+					Expect(clnt.ConstructURL()).To(Equal(address + "/"))
+				})
+
+				It("returns a valid URL with one path", func() {
+					path := test.NewVariableString(1, 8, test.CharsetAlphaNumeric)
+					Expect(clnt.ConstructURL(path)).To(Equal(fmt.Sprintf("%s/%s", address, path)))
+				})
+
+				It("returns a valid URL with multiple paths", func() {
+					path1 := test.NewVariableString(1, 8, test.CharsetAlphaNumeric)
+					path2 := test.NewVariableString(1, 8, test.CharsetAlphaNumeric)
+					path3 := test.NewVariableString(1, 8, test.CharsetAlphaNumeric)
+					Expect(clnt.ConstructURL(path1, path2, path3)).To(Equal(fmt.Sprintf("%s/%s/%s/%s", address, path1, path2, path3)))
+				})
+
+				It("returns a valid URL with multiple paths that need to be escaped", func() {
+					path1 := test.NewVariableString(1, 4, test.CharsetAlphaNumeric) + test.NewVariableString(1, 4, " /;,?") + test.NewVariableString(1, 4, test.CharsetAlphaNumeric)
+					path2 := test.NewVariableString(1, 4, test.CharsetAlphaNumeric) + test.NewVariableString(1, 4, " /;,?") + test.NewVariableString(1, 4, test.CharsetAlphaNumeric)
+					Expect(clnt.ConstructURL(path1, path2)).To(Equal(fmt.Sprintf("%s/%s/%s", address, url.PathEscape(path1), url.PathEscape(path2))))
+				})
+
+				It("returns a valid URL with multiple paths with surrounding slashes", func() {
+					path1 := test.NewVariableString(1, 8, test.CharsetAlphaNumeric)
+					path2 := test.NewVariableString(1, 8, test.CharsetAlphaNumeric)
+					Expect(clnt.ConstructURL("/"+path1+"/", "/"+path2+"/")).To(Equal(fmt.Sprintf("%s/%s/%s", address, path1, path2)))
+				})
+			}
+
+			Context("without trailing slash on address", func() {
+				AssertExpectedBehavior()
 			})
 
-			It("returns a valid URL with one path", func() {
-				path := test.NewVariableString(1, 8, test.CharsetAlphaNumeric)
-				Expect(clnt.ConstructURL(path)).To(Equal(fmt.Sprintf("%s/%s", address, path)))
-			})
+			Context("with trailing slashes on address", func() {
+				BeforeEach(func() {
+					cfg.Address += "///"
+				})
 
-			It("returns a valid URL with multiple paths", func() {
-				path1 := test.NewVariableString(1, 8, test.CharsetAlphaNumeric)
-				path2 := test.NewVariableString(1, 8, test.CharsetAlphaNumeric)
-				path3 := test.NewVariableString(1, 8, test.CharsetAlphaNumeric)
-				Expect(clnt.ConstructURL(path1, path2, path3)).To(Equal(fmt.Sprintf("%s/%s/%s/%s", address, path1, path2, path3)))
-			})
-
-			It("returns a valid URL with multiple paths that need to be escaped", func() {
-				path1 := test.NewVariableString(1, 4, test.CharsetAlphaNumeric) + test.NewVariableString(1, 4, " /;,?") + test.NewVariableString(1, 4, test.CharsetAlphaNumeric)
-				path2 := test.NewVariableString(1, 4, test.CharsetAlphaNumeric) + test.NewVariableString(1, 4, " /;,?") + test.NewVariableString(1, 4, test.CharsetAlphaNumeric)
-				Expect(clnt.ConstructURL(path1, path2)).To(Equal(fmt.Sprintf("%s/%s/%s", address, url.PathEscape(path1), url.PathEscape(path2))))
+				AssertExpectedBehavior()
 			})
 		})
 
 		Context("AppendURLQuery", func() {
 			var urlString string
 
-			BeforeEach(func() {
+			JustBeforeEach(func() {
 				urlString = clnt.ConstructURL(test.NewVariableString(1, 8, test.CharsetAlphaNumeric), test.NewVariableString(1, 8, test.CharsetAlphaNumeric))
 			})
 
@@ -129,7 +154,7 @@ var _ = Describe("Client", func() {
 				Expect(clnt.AppendURLQuery(urlString, query)).To(Equal(fmt.Sprintf("%s?%s=%s&%s=%s", urlString, key1, value1, key2, value2)))
 			})
 
-			It("returns a URL with associated query ven if it already has a query string", func() {
+			It("returns a URL with associated query even if it already has a query string", func() {
 				urlString += "?" + testHTTP.NewParameterKey() + "=" + testHTTP.NewParameterValue()
 				key1 := testHTTP.NewParameterKey()
 				value1 := testHTTP.NewParameterValue()
@@ -146,6 +171,7 @@ var _ = Describe("Client", func() {
 
 	Context("with started server and new client", func() {
 		var server *Server
+		var responseHeaders http.Header
 		var userAgent string
 		var clnt *client.Client
 		var ctx context.Context
@@ -154,35 +180,43 @@ var _ = Describe("Client", func() {
 		var url string
 		var headerMutator *request.HeaderMutator
 		var parameterMutator *request.ParameterMutator
-		var mutators []request.Mutator
-		var requestBodyString string
+		var mutators []request.RequestMutator
+		var requestString string
 		var requestBody *RequestBody
-		var responseBodyString string
-		var responseBody *ResponseBody
+		var requestJSON []byte
+		var responseString string
+		var headersInspector *request.HeadersInspector
+		var inspectors []request.ResponseInspector
 		var httpClient *http.Client
 
 		BeforeEach(func() {
 			server = NewServer()
+			responseHeaders = http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}
 			userAgent = testHTTP.NewUserAgent()
-			config := client.NewConfig()
-			Expect(config).ToNot(BeNil())
-			config.Address = server.URL()
-			config.UserAgent = userAgent
+			cfg := client.NewConfig()
+			Expect(cfg).ToNot(BeNil())
+			cfg.Address = server.URL()
+			cfg.UserAgent = userAgent
 			var err error
-			clnt, err = client.New(config)
+			clnt, err = client.New(cfg)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clnt).ToNot(BeNil())
-			ctx = context.Background()
+			ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
 			method = testHTTP.NewMethod()
 			path = testHTTP.NewPath()
 			url = server.URL() + path
 			headerMutator = request.NewHeaderMutator(testHTTP.NewHeaderKey(), testHTTP.NewHeaderValue())
 			parameterMutator = request.NewParameterMutator(testHTTP.NewParameterKey(), testHTTP.NewParameterValue())
-			mutators = []request.Mutator{headerMutator, parameterMutator}
-			requestBodyString = test.NewVariableString(0, 32, test.CharsetAlphaNumeric)
-			requestBody = &RequestBody{requestBodyString}
-			responseBodyString = test.NewVariableString(0, 32, test.CharsetAlphaNumeric)
-			responseBody = &ResponseBody{}
+			mutators = []request.RequestMutator{headerMutator, parameterMutator}
+			requestString = test.NewVariableString(0, 32, test.CharsetText)
+			requestBody = &RequestBody{Request: requestString}
+			requestJSON, err = json.Marshal(requestBody)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(requestJSON).ToNot(BeNil())
+			requestJSON = append(requestJSON, []byte("\n")...)
+			responseString = test.NewVariableString(0, 32, test.CharsetText)
+			headersInspector = request.NewHeadersInspector()
+			inspectors = []request.ResponseInspector{}
 			httpClient = http.DefaultClient
 		})
 
@@ -192,82 +226,143 @@ var _ = Describe("Client", func() {
 			}
 		})
 
-		Context("SendRequest", func() {
+		Context("RequestStreamWithHTTPClient", func() {
+			var reader io.ReadCloser
+			var err error
+
+			AfterEach(func() {
+				if reader != nil {
+					reader.Close()
+				}
+			})
+
+			It("returns error if http client is missing", func() {
+				reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, nil)
+				Expect(err).To(MatchError("http client is missing"))
+				Expect(reader).To(BeNil())
+				Expect(server.ReceivedRequests()).To(BeEmpty())
+			})
+
 			It("returns error if context is missing", func() {
-				Expect(clnt.SendRequest(nil, method, url, mutators, requestBody, responseBody, httpClient)).To(MatchError("context is missing"))
+				reader, err = clnt.RequestStreamWithHTTPClient(nil, method, url, mutators, requestBody, inspectors, httpClient)
+				Expect(err).To(MatchError("context is missing"))
+				Expect(reader).To(BeNil())
 				Expect(server.ReceivedRequests()).To(BeEmpty())
 			})
 
 			It("returns error if method is missing", func() {
-				Expect(clnt.SendRequest(ctx, "", url, mutators, requestBody, responseBody, httpClient)).To(MatchError("method is missing"))
+				reader, err = clnt.RequestStreamWithHTTPClient(ctx, "", url, mutators, requestBody, inspectors, httpClient)
+				Expect(err).To(MatchError("method is missing"))
+				Expect(reader).To(BeNil())
 				Expect(server.ReceivedRequests()).To(BeEmpty())
 			})
 
 			It("returns error if url is missing", func() {
-				Expect(clnt.SendRequest(ctx, method, "", mutators, requestBody, responseBody, httpClient)).To(MatchError("url is missing"))
+				reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, "", mutators, requestBody, inspectors, httpClient)
+				Expect(err).To(MatchError("url is missing"))
+				Expect(reader).To(BeNil())
 				Expect(server.ReceivedRequests()).To(BeEmpty())
 			})
 
 			It("returns error if the request object cannot be encoded", func() {
 				invalidRequestBody := struct{ Func interface{} }{func() {}}
-				Expect(clnt.SendRequest(ctx, method, url, mutators, invalidRequestBody, responseBody, httpClient).Error()).To(HavePrefix("error encoding JSON request to"))
+				reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, invalidRequestBody, inspectors, httpClient)
+				Expect(err.Error()).To(MatchRegexp("unable to serialize request to .*; json: unsupported type: func()"))
+				Expect(reader).To(BeNil())
 				Expect(server.ReceivedRequests()).To(BeEmpty())
 			})
 
 			It("returns error if mutator returns an error", func() {
 				errorMutator := request.NewHeaderMutator("", "")
-				invalidMutators := []request.Mutator{headerMutator, errorMutator, parameterMutator}
-				Expect(clnt.SendRequest(ctx, method, url, invalidMutators, requestBody, responseBody, httpClient)).To(MatchError("unable to mutate request; key is missing"))
-				Expect(server.ReceivedRequests()).To(BeEmpty())
-			})
-
-			It("returns error if http client is missing", func() {
-				Expect(clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, nil)).To(MatchError("http client is missing"))
+				invalidMutators := []request.RequestMutator{headerMutator, errorMutator, parameterMutator}
+				reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, invalidMutators, requestBody, inspectors, httpClient)
+				Expect(err.Error()).To(MatchRegexp("unable to mutate request to .*; key is missing"))
+				Expect(reader).To(BeNil())
 				Expect(server.ReceivedRequests()).To(BeEmpty())
 			})
 
 			It("returns error if the server is not reachable", func() {
 				server.Close()
 				server = nil
-				err := clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(HavePrefix(fmt.Sprintf("unable to perform request %s %s", method, url)))
+				reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
+				Expect(err.Error()).To(MatchRegexp("unable to perform request to .*: connect: connection refused"))
+				Expect(reader).To(BeNil())
 			})
 
-			Context("with an unexpected response 500", func() {
+			Context("with a successful response and no request body, but inspector returns error", func() {
+				var responseErr error
+				var errorInspector *requestTest.ResponseInspector
+
 				BeforeEach(func() {
 					server.AppendHandlers(
 						CombineHandlers(
 							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
-							RespondWith(http.StatusInternalServerError, nil, nil)),
+							VerifyBody(nil),
+							RespondWith(http.StatusOK, []byte(responseString), responseHeaders),
+						),
 					)
+					responseErr = errorsTest.NewError()
+					errorInspector = requestTest.NewResponseInspector()
+					errorInspector.InspectResponseOutputs = []error{responseErr}
 				})
 
-				It("returns an error", func() {
-					err := clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)
-					Expect(err).To(MatchError(fmt.Sprintf(`unexpected response status code 500 from %s "%s?%s=%s"`, method, url, parameterMutator.Key, parameterMutator.Value)))
+				AfterEach(func() {
+					errorInspector.AssertOutputsEmpty()
+				})
+
+				It("returns error if inspector returns an error", func() {
+					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, nil, append(inspectors, errorInspector), httpClient)
+					Expect(err).To(MatchError(responseErr))
+					Expect(reader).To(BeNil())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 			})
 
-			Context("with an bad request 400", func() {
+			Context("with an bad request 400 without deserializable error body", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
 						CombineHandlers(
 							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
 							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
-							RespondWith(http.StatusBadRequest, "bad request", nil)),
+							VerifyBody(requestJSON),
+							RespondWith(http.StatusBadRequest, "NOT JSON"),
+						),
 					)
 				})
 
 				It("returns an error", func() {
-					err := clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)
-					Expect(err).To(MatchError("bad request"))
+					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
+					errorsTest.ExpectEqual(err, request.ErrorBadRequest())
+					Expect(reader).To(BeNil())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with an bad request 400 with deserializable error body", func() {
+				var responseErr error
+
+				BeforeEach(func() {
+					responseErr = errors.Append(structureValidator.ErrorValueNotEmpty(), structureValidator.ErrorValueBoolNotTrue(), structureValidator.ErrorValueIntNotOneOf(1, []int{0, 2, 4}))
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(requestJSON),
+							RespondWithJSONEncoded(http.StatusBadRequest, errors.Serializable{Error: responseErr}, responseHeaders),
+						),
+					)
+				})
+
+				It("returns an error", func() {
+					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
+					errorsTest.ExpectEqual(err, responseErr)
+					Expect(reader).To(BeNil())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 			})
@@ -278,15 +373,18 @@ var _ = Describe("Client", func() {
 						CombineHandlers(
 							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
 							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
-							RespondWith(http.StatusUnauthorized, nil, nil)),
+							VerifyBody(requestJSON),
+							RespondWith(http.StatusUnauthorized, "NOT JSON", responseHeaders),
+						),
 					)
 				})
 
 				It("returns an error", func() {
-					err := clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)
-					Expect(err).To(MatchError("authentication token is invalid"))
+					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
+					errorsTest.ExpectEqual(err, request.ErrorUnauthenticated())
+					Expect(reader).To(BeNil())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 			})
@@ -297,34 +395,65 @@ var _ = Describe("Client", func() {
 						CombineHandlers(
 							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
 							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
-							RespondWith(http.StatusForbidden, nil, nil)),
+							VerifyBody(requestJSON),
+							RespondWith(http.StatusForbidden, "NOT JSON", responseHeaders),
+						),
 					)
 				})
 
 				It("returns an error", func() {
-					err := clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)
-					Expect(err).To(MatchError("authentication token is not authorized for requested action"))
+					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
+					errorsTest.ExpectEqual(err, request.ErrorUnauthorized())
+					Expect(reader).To(BeNil())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 			})
 
-			Context("with an resource not found 404", func() {
+			Context("with an resource not found 404 without deserializable error body", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
 						CombineHandlers(
 							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
 							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
-							RespondWith(http.StatusNotFound, nil, nil)),
+							VerifyBody(requestJSON),
+							RespondWith(http.StatusNotFound, "NOT JSON", responseHeaders),
+						),
 					)
 				})
 
 				It("returns an error", func() {
-					err := clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)
-					Expect(err).To(MatchError("resource not found"))
+					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
+					errorsTest.ExpectEqual(err, request.ErrorResourceNotFound())
+					Expect(reader).To(BeNil())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with an resource not found 404 with deserializable error body", func() {
+				var responseErr error
+
+				BeforeEach(func() {
+					responseErr = request.ErrorResourceNotFoundWithID(test.RandomStringFromRangeAndCharset(1, 16, test.CharsetHexidecimalLowercase))
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(requestJSON),
+							RespondWithJSONEncoded(http.StatusNotFound, errors.Serializable{Error: responseErr}, responseHeaders),
+						),
+					)
+				})
+
+				It("returns an error", func() {
+					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
+					errorsTest.ExpectEqual(err, responseErr)
+					Expect(reader).To(BeNil())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 			})
@@ -335,15 +464,478 @@ var _ = Describe("Client", func() {
 						CombineHandlers(
 							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
 							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
-							RespondWith(http.StatusTooManyRequests, nil, nil)),
+							VerifyBody(requestJSON),
+							RespondWith(http.StatusTooManyRequests, "NOT JSON", responseHeaders),
+						),
 					)
 				})
 
 				It("returns an error", func() {
-					err := clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)
-					Expect(err).To(MatchError("too many requests"))
+					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
+					errorsTest.ExpectEqual(err, request.ErrorTooManyRequests())
+					Expect(reader).To(BeNil())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with an unexpected response 500 without deserializable error body", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(requestJSON),
+							RespondWith(http.StatusInternalServerError, []byte("[]"), responseHeaders),
+						),
+					)
+				})
+
+				It("returns an error", func() {
+					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
+					Expect(err).To(MatchError(fmt.Sprintf(`unexpected response status code 500 from %s "%s?%s=%s"`, method, url, parameterMutator.Key, parameterMutator.Value)))
+					Expect(reader).To(BeNil())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with an unexpected response 500 with deserializable error body", func() {
+				var responseErr error
+
+				BeforeEach(func() {
+					responseErr = errorsTest.NewError()
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(requestJSON),
+							RespondWithJSONEncoded(http.StatusInternalServerError, errors.Serializable{Error: responseErr}, responseHeaders),
+						),
+					)
+				})
+
+				It("returns an error", func() {
+					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
+					errorsTest.ExpectEqual(err, responseErr)
+					Expect(reader).To(BeNil())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with a successful response 204 without parsing content", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(requestJSON),
+							RespondWith(http.StatusNoContent, nil),
+						),
+					)
+				})
+
+				It("returns success", func() {
+					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(reader).To(BeNil())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with a successful response 205 without parsing content", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(requestJSON),
+							RespondWith(http.StatusResetContent, nil),
+						),
+					)
+				})
+
+				It("returns success", func() {
+					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(reader).To(BeNil())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with a successful response and no request body", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(nil),
+							RespondWith(http.StatusOK, []byte(responseString)),
+						),
+					)
+				})
+
+				It("returns success", func() {
+					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, nil, inspectors, httpClient)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(reader).ToNot(BeNil())
+					Expect(ioutil.ReadAll(reader)).To(Equal([]byte(responseString)))
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with a successful response and request body reader", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody([]byte(requestString)),
+							RespondWith(http.StatusOK, []byte(responseString)),
+						),
+					)
+				})
+
+				It("returns success", func() {
+					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, strings.NewReader(requestString), inspectors, httpClient)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(reader).ToNot(BeNil())
+					Expect(ioutil.ReadAll(reader)).To(Equal([]byte(responseString)))
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with a successful response and request body object", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(requestJSON),
+							RespondWith(http.StatusOK, []byte(responseString)),
+						),
+					)
+				})
+
+				It("returns success", func() {
+					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(reader).ToNot(BeNil())
+					Expect(ioutil.ReadAll(reader)).To(Equal([]byte(responseString)))
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+		})
+
+		Context("RequestDataWithHTTPClient", func() {
+			var responseBody *ResponseBody
+			var responseJSON []byte
+
+			BeforeEach(func() {
+				responseBody = &ResponseBody{}
+				var err error
+				responseJSON, err = json.Marshal(&ResponseBody{Response: responseString})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(responseJSON).ToNot(BeNil())
+			})
+
+			It("returns error if http client is missing", func() {
+				Expect(clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, nil)).To(MatchError("http client is missing"))
+				Expect(server.ReceivedRequests()).To(BeEmpty())
+			})
+
+			It("returns error if context is missing", func() {
+				Expect(clnt.RequestDataWithHTTPClient(nil, method, url, mutators, requestBody, responseBody, inspectors, httpClient)).To(MatchError("context is missing"))
+				Expect(server.ReceivedRequests()).To(BeEmpty())
+			})
+
+			It("returns error if method is missing", func() {
+				Expect(clnt.RequestDataWithHTTPClient(ctx, "", url, mutators, requestBody, responseBody, inspectors, httpClient)).To(MatchError("method is missing"))
+				Expect(server.ReceivedRequests()).To(BeEmpty())
+			})
+
+			It("returns error if url is missing", func() {
+				Expect(clnt.RequestDataWithHTTPClient(ctx, method, "", mutators, requestBody, responseBody, inspectors, httpClient)).To(MatchError("url is missing"))
+				Expect(server.ReceivedRequests()).To(BeEmpty())
+			})
+
+			It("returns error if the request object cannot be encoded", func() {
+				invalidRequestBody := struct{ Func interface{} }{func() {}}
+				Expect(clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, invalidRequestBody, responseBody, inspectors, httpClient).Error()).To(MatchRegexp("unable to serialize request to .*; json: unsupported type: func()"))
+				Expect(server.ReceivedRequests()).To(BeEmpty())
+			})
+
+			It("returns error if mutator returns an error", func() {
+				errorMutator := request.NewHeaderMutator("", "")
+				invalidMutators := []request.RequestMutator{headerMutator, errorMutator, parameterMutator}
+				Expect(clnt.RequestDataWithHTTPClient(ctx, method, url, invalidMutators, requestBody, responseBody, inspectors, httpClient).Error()).To(MatchRegexp("unable to mutate request to .*; key is missing"))
+				Expect(server.ReceivedRequests()).To(BeEmpty())
+			})
+
+			It("returns error if the server is not reachable", func() {
+				server.Close()
+				server = nil
+				Expect(clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient).Error()).To(MatchRegexp("unable to perform request to .*: connect: connection refused"))
+			})
+
+			Context("with a successful response and no request body, but inspector returns error", func() {
+				var responseErr error
+				var errorInspector *requestTest.ResponseInspector
+
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(nil),
+							RespondWith(http.StatusOK, responseJSON, responseHeaders),
+						),
+					)
+					responseErr = errorsTest.NewError()
+					errorInspector = requestTest.NewResponseInspector()
+					errorInspector.InspectResponseOutputs = []error{responseErr}
+				})
+
+				AfterEach(func() {
+					errorInspector.AssertOutputsEmpty()
+				})
+
+				It("returns error if inspector returns an error", func() {
+					Expect(clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, nil, responseBody, append(inspectors, errorInspector), httpClient)).To(MatchError(responseErr))
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+					Expect(responseBody).ToNot(BeNil())
+					Expect(responseBody.Response).To(BeEmpty())
+				})
+			})
+
+			Context("with a successful response and no request body", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(nil),
+							RespondWith(http.StatusOK, responseJSON, responseHeaders),
+						),
+					)
+				})
+
+				It("returns success", func() {
+					Expect(clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, nil, responseBody, inspectors, httpClient)).To(Succeed())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+					Expect(responseBody).ToNot(BeNil())
+					Expect(responseBody.Response).To(Equal(responseString))
+				})
+			})
+
+			Context("with an bad request 400 without deserializable error body", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(requestJSON),
+							RespondWith(http.StatusBadRequest, []byte{255, 255, 255}, responseHeaders),
+						),
+					)
+				})
+
+				It("returns an error", func() {
+					err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
+					errorsTest.ExpectEqual(err, request.ErrorBadRequest())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with an bad request 400 with deserializable error body", func() {
+				var responseErr error
+
+				BeforeEach(func() {
+					responseErr = errors.Append(structureValidator.ErrorValueNotEmpty(), structureValidator.ErrorValueBoolNotTrue(), structureValidator.ErrorValueIntNotOneOf(1, []int{0, 2, 4}))
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(requestJSON),
+							RespondWithJSONEncoded(http.StatusBadRequest, errors.Serializable{Error: responseErr}, responseHeaders),
+						),
+					)
+				})
+
+				It("returns an error", func() {
+					err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
+					errorsTest.ExpectEqual(err, responseErr)
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with an unauthorized response 401", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(requestJSON),
+							RespondWith(http.StatusUnauthorized, "NOT JSON", responseHeaders),
+						),
+					)
+				})
+
+				It("returns an error", func() {
+					err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
+					errorsTest.ExpectEqual(err, request.ErrorUnauthenticated())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with an forbidden response 403", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(requestJSON),
+							RespondWith(http.StatusForbidden, "NOT JSON", responseHeaders),
+						),
+					)
+				})
+
+				It("returns an error", func() {
+					err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
+					errorsTest.ExpectEqual(err, request.ErrorUnauthorized())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with an resource not found 404 without deserializable error body", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(requestJSON),
+							RespondWith(http.StatusNotFound, "NOT JSON", responseHeaders),
+						),
+					)
+				})
+
+				It("returns an error", func() {
+					err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
+					errorsTest.ExpectEqual(err, request.ErrorResourceNotFound())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with an resource not found 404 with deserializable error body", func() {
+				var responseErr error
+
+				BeforeEach(func() {
+					responseErr = request.ErrorResourceNotFoundWithID(test.RandomStringFromRangeAndCharset(1, 16, test.CharsetHexidecimalLowercase))
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(requestJSON),
+							RespondWithJSONEncoded(http.StatusNotFound, errors.Serializable{Error: responseErr}, responseHeaders),
+						),
+					)
+				})
+
+				It("returns an error", func() {
+					err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
+					errorsTest.ExpectEqual(err, responseErr)
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with a too many requests response 429", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(requestJSON),
+							RespondWith(http.StatusTooManyRequests, "NOT JSON", responseHeaders),
+						),
+					)
+				})
+
+				It("returns an error", func() {
+					err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
+					errorsTest.ExpectEqual(err, request.ErrorTooManyRequests())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with an unexpected response 500 without deserializable error body", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(requestJSON),
+							RespondWith(http.StatusInternalServerError, nil, responseHeaders),
+						),
+					)
+				})
+
+				It("returns an error", func() {
+					err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
+					Expect(err).To(MatchError(fmt.Sprintf(`unexpected response status code 500 from %s "%s?%s=%s"`, method, url, parameterMutator.Key, parameterMutator.Value)))
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with an unexpected response 500 with deserializable error body", func() {
+				var responseErr error
+
+				BeforeEach(func() {
+					responseErr = errorsTest.NewError()
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(requestJSON),
+							RespondWithJSONEncoded(http.StatusInternalServerError, errors.Serializable{Error: responseErr}, responseHeaders),
+						),
+					)
+				})
+
+				It("returns an error", func() {
+					err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
+					errorsTest.ExpectEqual(err, responseErr)
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 			})
@@ -354,58 +946,84 @@ var _ = Describe("Client", func() {
 						CombineHandlers(
 							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
 							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
-							RespondWith(http.StatusOK, []byte("{\"response\":"), nil)),
+							VerifyBody(requestJSON),
+							RespondWith(http.StatusOK, []byte("{\"response\":"), responseHeaders),
+						),
 					)
 				})
 
 				It("returns an error", func() {
-					err := clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)
+					err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
 					Expect(err).To(MatchError("json is malformed; unexpected EOF"))
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 			})
 
-			Context("with a successful response 200", func() {
-				BeforeEach(func() {
-					server.AppendHandlers(
-						CombineHandlers(
-							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
-							VerifyHeaderKV("User-Agent", userAgent),
-							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
-							RespondWith(http.StatusOK, []byte("{\"response\":\""+responseBodyString+"\"}"), nil)),
-					)
-				})
+			// FUTURE: Enable once all services respond appropriately, namely legacy services
+			// Context("without a content type", func() {
+			// 	BeforeEach(func() {
+			// 		server.AppendHandlers(
+			// 			CombineHandlers(
+			// 				VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+			// 				VerifyHeaderKV("User-Agent", userAgent),
+			// 				VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+			// 				VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+			// 				VerifyBody(requestJSON),
+			// 				RespondWith(http.StatusOK, responseJSON),
+			// 			),
+			// 		)
+			// 	})
 
-				It("returns success", func() {
-					Expect(clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)).To(Succeed())
-					Expect(server.ReceivedRequests()).To(HaveLen(1))
-					Expect(responseBody).ToNot(BeNil())
-					Expect(responseBody.Response).To(Equal(responseBodyString))
-				})
-			})
+			// 	It("returns an error", func() {
+			// 		err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
+			// 		Expect(err).To(MatchError(`header "Content-Type" is invalid`))
+			// 		Expect(server.ReceivedRequests()).To(HaveLen(1))
+			// 	})
+			// })
 
-			Context("with a successful response 201", func() {
-				BeforeEach(func() {
-					server.AppendHandlers(
-						CombineHandlers(
-							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
-							VerifyHeaderKV("User-Agent", userAgent),
-							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
-							RespondWith(http.StatusCreated, []byte("{\"response\":\""+responseBodyString+"\"}"), nil)),
-					)
-				})
+			// Context("with an invalid content type", func() {
+			// 	BeforeEach(func() {
+			// 		server.AppendHandlers(
+			// 			CombineHandlers(
+			// 				VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+			// 				VerifyHeaderKV("User-Agent", userAgent),
+			// 				VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+			// 				VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+			// 				VerifyBody(requestJSON),
+			// 				RespondWith(http.StatusOK, responseJSON, http.Header{"Content-Type": []string{"/"}}),
+			// 			),
+			// 		)
+			// 	})
 
-				It("returns success", func() {
-					Expect(clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)).To(Succeed())
-					Expect(server.ReceivedRequests()).To(HaveLen(1))
-					Expect(responseBody).ToNot(BeNil())
-					Expect(responseBody.Response).To(Equal(responseBodyString))
-				})
-			})
+			// 	It("returns an error", func() {
+			// 		err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
+			// 		Expect(err).To(MatchError(`header "Content-Type" is invalid`))
+			// 		Expect(server.ReceivedRequests()).To(HaveLen(1))
+			// 	})
+			// })
+
+			// Context("with an unexpected content type", func() {
+			// 	BeforeEach(func() {
+			// 		server.AppendHandlers(
+			// 			CombineHandlers(
+			// 				VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+			// 				VerifyHeaderKV("User-Agent", userAgent),
+			// 				VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+			// 				VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+			// 				VerifyBody(requestJSON),
+			// 				RespondWith(http.StatusOK, responseJSON, http.Header{"Content-Type": []string{"application/json"}}),
+			// 			),
+			// 		)
+			// 	})
+
+			// 	It("returns an error", func() {
+			// 		err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
+			// 		Expect(err).To(MatchError(`header "Content-Type" is invalid`))
+			// 		Expect(server.ReceivedRequests()).To(HaveLen(1))
+			// 	})
+			// })
 
 			Context("with a successful response 204 without parsing content", func() {
 				BeforeEach(func() {
@@ -413,76 +1031,125 @@ var _ = Describe("Client", func() {
 						CombineHandlers(
 							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
 							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
-							RespondWith(http.StatusNoContent, []byte("{\"response\":\""+responseBodyString+"\"}"), nil)),
+							VerifyBody(requestJSON),
+							RespondWith(http.StatusNoContent, nil),
+						),
 					)
 				})
 
 				It("returns success", func() {
-					Expect(clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)).To(Succeed())
+					Expect(clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)).To(Succeed())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 					Expect(responseBody).ToNot(BeNil())
 					Expect(responseBody.Response).To(BeEmpty())
 				})
 			})
 
-			Context("with a successful response, but no request object", func() {
+			Context("with a successful response 205 without parsing content", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
 						CombineHandlers(
 							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
 							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody([]byte{}),
-							RespondWith(http.StatusOK, []byte("{\"response\":\""+responseBodyString+"\"}"), nil)),
+							VerifyBody(requestJSON),
+							RespondWith(http.StatusResetContent, nil),
+						),
 					)
 				})
 
 				It("returns success", func() {
-					Expect(clnt.SendRequest(ctx, method, url, mutators, nil, responseBody, httpClient)).To(Succeed())
+					Expect(clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)).To(Succeed())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 					Expect(responseBody).ToNot(BeNil())
-					Expect(responseBody.Response).To(Equal(responseBodyString))
+					Expect(responseBody.Response).To(BeEmpty())
 				})
 			})
 
-			Context("with a successful response, but no response object", func() {
+			Context("with a successful response and no request body", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
 						CombineHandlers(
 							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
-							RespondWith(http.StatusOK, []byte("{\"response\":\""+responseBodyString+"\"}"), nil)),
+							VerifyBody(nil),
+							RespondWith(http.StatusOK, responseJSON, responseHeaders),
+						),
+					)
+				})
+
+				It("returns success", func() {
+					Expect(clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, nil, responseBody, inspectors, httpClient)).To(Succeed())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+					Expect(responseBody).ToNot(BeNil())
+					Expect(responseBody.Response).To(Equal(responseString))
+				})
+			})
+
+			Context("with a successful response and request body reader", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody([]byte(requestString)),
+							RespondWith(http.StatusOK, responseJSON, responseHeaders),
+						),
+					)
+				})
+
+				It("returns success", func() {
+					Expect(clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, strings.NewReader(requestString), responseBody, inspectors, httpClient)).To(Succeed())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+					Expect(responseBody).ToNot(BeNil())
+					Expect(responseBody.Response).To(Equal(responseString))
+				})
+			})
+
+			Context("with a successful response and request body object", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(requestJSON),
+							RespondWith(http.StatusOK, responseJSON, responseHeaders),
+						),
+					)
+				})
+
+				It("returns success", func() {
+					Expect(clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)).To(Succeed())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+					Expect(responseBody).ToNot(BeNil())
+					Expect(responseBody.Response).To(Equal(responseString))
+				})
+			})
+
+			Context("with a successful response and no response body object", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(requestJSON),
+							RespondWith(http.StatusOK, responseJSON, responseHeaders),
+						),
 					)
 				})
 
 				It("returns success without parsing response body", func() {
-					Expect(clnt.SendRequest(ctx, method, url, mutators, requestBody, nil, httpClient)).To(Succeed())
+					Expect(clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, nil, inspectors, httpClient)).To(Succeed())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
-				})
-			})
-
-			Context("with a successful response even if missing mutators", func() {
-				BeforeEach(func() {
-					server.AppendHandlers(
-						CombineHandlers(
-							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
-							VerifyHeaderKV("User-Agent", userAgent),
-							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody([]byte("{\"request\":\""+requestBodyString+"\"}\n")),
-							RespondWith(http.StatusOK, []byte("{\"response\":\""+responseBodyString+"\"}"), nil)),
-					)
-				})
-
-				It("returns success", func() {
-					mutators = []request.Mutator{nil, headerMutator, nil, parameterMutator, nil}
-					Expect(clnt.SendRequest(ctx, method, url, mutators, requestBody, responseBody, httpClient)).To(Succeed())
-					Expect(server.ReceivedRequests()).To(HaveLen(1))
-					Expect(responseBody).ToNot(BeNil())
-					Expect(responseBody.Response).To(Equal(responseBodyString))
 				})
 			})
 		})

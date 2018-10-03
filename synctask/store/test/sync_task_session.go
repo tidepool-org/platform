@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/onsi/gomega"
-	testStore "github.com/tidepool-org/platform/store/test"
+	"github.com/tidepool-org/platform/test"
 )
 
 type DestroySyncTasksForUserByIDInput struct {
@@ -13,7 +13,7 @@ type DestroySyncTasksForUserByIDInput struct {
 }
 
 type SyncTaskSession struct {
-	*testStore.Session
+	*test.Closer
 	DestroySyncTasksForUserByIDInvocations int
 	DestroySyncTasksForUserByIDInputs      []DestroySyncTasksForUserByIDInput
 	DestroySyncTasksForUserByIDOutputs     []error
@@ -21,7 +21,7 @@ type SyncTaskSession struct {
 
 func NewSyncTaskSession() *SyncTaskSession {
 	return &SyncTaskSession{
-		Session: testStore.NewSession(),
+		Closer: test.NewCloser(),
 	}
 }
 
@@ -38,6 +38,6 @@ func (s *SyncTaskSession) DestroySyncTasksForUserByID(ctx context.Context, userI
 }
 
 func (s *SyncTaskSession) Expectations() {
-	s.Session.Expectations()
+	s.Closer.AssertOutputsEmpty()
 	gomega.Expect(s.DestroySyncTasksForUserByIDOutputs).To(gomega.BeEmpty())
 }

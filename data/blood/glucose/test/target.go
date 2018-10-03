@@ -14,16 +14,16 @@ func NewTarget(units *string) *dataBloodGlucose.Target {
 	datum := dataBloodGlucose.NewTarget()
 	switch rand.Intn(4) {
 	case 0:
-		datum.Target = pointer.Float64(test.RandomFloat64FromRange(dataBloodGlucose.TargetRangeForUnits(units)))
-		datum.Range = pointer.Float64(test.RandomFloat64FromRange(dataBloodGlucose.RangeRangeForUnits(*datum.Target, units)))
+		datum.Target = pointer.FromFloat64(test.RandomFloat64FromRange(dataBloodGlucose.TargetRangeForUnits(units)))
+		datum.Range = pointer.FromFloat64(test.RandomFloat64FromRange(dataBloodGlucose.RangeRangeForUnits(*datum.Target, units)))
 	case 1:
-		datum.Target = pointer.Float64(test.RandomFloat64FromRange(dataBloodGlucose.TargetRangeForUnits(units)))
-		datum.High = pointer.Float64(test.RandomFloat64FromRange(dataBloodGlucose.HighRangeForUnits(*datum.Target, units)))
+		datum.Target = pointer.FromFloat64(test.RandomFloat64FromRange(dataBloodGlucose.TargetRangeForUnits(units)))
+		datum.High = pointer.FromFloat64(test.RandomFloat64FromRange(dataBloodGlucose.HighRangeForUnits(*datum.Target, units)))
 	case 2:
-		datum.Target = pointer.Float64(test.RandomFloat64FromRange(dataBloodGlucose.TargetRangeForUnits(units)))
+		datum.Target = pointer.FromFloat64(test.RandomFloat64FromRange(dataBloodGlucose.TargetRangeForUnits(units)))
 	case 3:
-		datum.Low = pointer.Float64(test.RandomFloat64FromRange(dataBloodGlucose.LowRangeForUnits(units)))
-		datum.High = pointer.Float64(test.RandomFloat64FromRange(dataBloodGlucose.HighRangeForUnits(*datum.Low, units)))
+		datum.Low = pointer.FromFloat64(test.RandomFloat64FromRange(dataBloodGlucose.LowRangeForUnits(units)))
+		datum.High = pointer.FromFloat64(test.RandomFloat64FromRange(dataBloodGlucose.HighRangeForUnits(*datum.Low, units)))
 	}
 	return datum
 }

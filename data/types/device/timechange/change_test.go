@@ -17,9 +17,9 @@ import (
 
 func NewChange() *timechange.Change {
 	datum := timechange.NewChange()
-	datum.Agent = pointer.String(test.RandomStringFromArray(timechange.Agents()))
-	datum.From = pointer.String(test.NewTime().Format("2006-01-02T15:04:05"))
-	datum.To = pointer.String(test.NewTime().Format("2006-01-02T15:04:05"))
+	datum.Agent = pointer.FromString(test.RandomStringFromArray(timechange.Agents()))
+	datum.From = pointer.FromString(test.NewTime().Format("2006-01-02T15:04:05"))
+	datum.To = pointer.FromString(test.NewTime().Format("2006-01-02T15:04:05"))
 	return datum
 }
 
@@ -99,26 +99,26 @@ var _ = Describe("Change", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/agent"),
 				),
 				Entry("agent invalid",
-					func(datum *timechange.Change) { datum.Agent = pointer.String("invalid") },
+					func(datum *timechange.Change) { datum.Agent = pointer.FromString("invalid") },
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"automatic", "manual"}), "/agent"),
 				),
 				Entry("agent automatic",
-					func(datum *timechange.Change) { datum.Agent = pointer.String("automatic") },
+					func(datum *timechange.Change) { datum.Agent = pointer.FromString("automatic") },
 				),
 				Entry("agent manual",
-					func(datum *timechange.Change) { datum.Agent = pointer.String("manual") },
+					func(datum *timechange.Change) { datum.Agent = pointer.FromString("manual") },
 				),
 				Entry("from missing",
 					func(datum *timechange.Change) { datum.From = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/from"),
 				),
 				Entry("from invalid",
-					func(datum *timechange.Change) { datum.From = pointer.String("invalid") },
+					func(datum *timechange.Change) { datum.From = pointer.FromString("invalid") },
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", "2006-01-02T15:04:05"), "/from"),
 				),
 				Entry("from valid",
 					func(datum *timechange.Change) {
-						datum.From = pointer.String(test.NewTime().Format("2006-01-02T15:04:05"))
+						datum.From = pointer.FromString(test.NewTime().Format("2006-01-02T15:04:05"))
 					},
 				),
 				Entry("to missing",
@@ -126,12 +126,12 @@ var _ = Describe("Change", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/to"),
 				),
 				Entry("to invalid",
-					func(datum *timechange.Change) { datum.To = pointer.String("invalid") },
+					func(datum *timechange.Change) { datum.To = pointer.FromString("invalid") },
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", "2006-01-02T15:04:05"), "/to"),
 				),
 				Entry("to valid",
 					func(datum *timechange.Change) {
-						datum.To = pointer.String(test.NewTime().Format("2006-01-02T15:04:05"))
+						datum.To = pointer.FromString(test.NewTime().Format("2006-01-02T15:04:05"))
 					},
 				),
 				Entry("multiple errors",
@@ -169,10 +169,10 @@ var _ = Describe("Change", func() {
 					func(datum *timechange.Change) { datum.Agent = nil },
 				),
 				Entry("does not modify the datum; agent automatic",
-					func(datum *timechange.Change) { datum.Agent = pointer.String("automatic") },
+					func(datum *timechange.Change) { datum.Agent = pointer.FromString("automatic") },
 				),
 				Entry("does not modify the datum; agent manual",
-					func(datum *timechange.Change) { datum.Agent = pointer.String("manual") },
+					func(datum *timechange.Change) { datum.Agent = pointer.FromString("manual") },
 				),
 				Entry("does not modify the datum; from missing",
 					func(datum *timechange.Change) { datum.From = nil },

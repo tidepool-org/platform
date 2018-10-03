@@ -5,6 +5,7 @@ import (
 
 	"github.com/urfave/cli"
 
+	"github.com/tidepool-org/platform/application"
 	mongoTool "github.com/tidepool-org/platform/tool/mongo"
 )
 
@@ -17,19 +18,14 @@ type Migration struct {
 	dryRun bool
 }
 
-func NewMigration(prefix string) (*Migration, error) {
-	tuel, err := mongoTool.NewTool(prefix)
-	if err != nil {
-		return nil, err
-	}
-
+func NewMigration() *Migration {
 	return &Migration{
-		Tool: tuel,
-	}, nil
+		Tool: mongoTool.NewTool(),
+	}
 }
 
-func (m *Migration) Initialize() error {
-	if err := m.Tool.Initialize(); err != nil {
+func (m *Migration) Initialize(provider application.Provider) error {
+	if err := m.Tool.Initialize(provider); err != nil {
 		return err
 	}
 

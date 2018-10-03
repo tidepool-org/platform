@@ -70,8 +70,8 @@ var _ = Describe("Structure", func() {
 			})
 
 			Context("WithReference", func() {
-				It("returns nil", func() {
-					Expect(src.WithReference(testStructure.NewReference())).To(BeNil())
+				It("returns the same source", func() {
+					Expect(src.WithReference(testStructure.NewReference())).To(BeIdenticalTo(src))
 				})
 			})
 		})
@@ -101,8 +101,8 @@ var _ = Describe("Structure", func() {
 			})
 
 			Context("WithReference", func() {
-				It("returns nil", func() {
-					Expect(src.WithReference(testStructure.NewReference())).To(BeNil())
+				It("returns the same source", func() {
+					Expect(src.WithReference(testStructure.NewReference())).To(BeIdenticalTo(src))
 				})
 			})
 		})

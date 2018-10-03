@@ -70,7 +70,7 @@ func (o *Object) Exists() bool {
 
 func (o *Object) Parse(objectParsable structure.ObjectParsable) error {
 	objectParsable.Parse(o)
-	return o.Error()
+	return o.NotParsed()
 }
 
 func (o *Object) References() []string {

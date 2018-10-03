@@ -3,13 +3,17 @@ package data
 import (
 	"context"
 	"net/http"
+	"regexp"
 	"sort"
 	"strconv"
 	"time"
 
+	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/time/zone"
 )
 
@@ -106,8 +110,9 @@ func (d *DataSetClient) Validate(validator structure.Validator) {
 }
 
 type DataSetFilter struct {
-	Deleted  *bool   `json:"deleted,omitempty" bson:"deleted,omitempty"`
-	DeviceID *string `json:"deviceId,omitempty" bson:"deviceId,omitempty"`
+	ClientName *string
+	Deleted    *bool
+	DeviceID   *string
 }
 
 func NewDataSetFilter() *DataSetFilter {
@@ -115,38 +120,43 @@ func NewDataSetFilter() *DataSetFilter {
 }
 
 func (d *DataSetFilter) Parse(parser structure.ObjectParser) {
+	d.ClientName = parser.String("client.name")
 	d.Deleted = parser.Bool("deleted")
 	d.DeviceID = parser.String("deviceId")
 }
 
 func (d *DataSetFilter) Validate(validator structure.Validator) {
+	validator.String("client.name", d.ClientName).NotEmpty()
 	validator.String("deviceId", d.DeviceID).NotEmpty()
 }
 
-func (d *DataSetFilter) Mutate(req *http.Request) error {
+func (d *DataSetFilter) MutateRequest(req *http.Request) error {
 	parameters := map[string]string{}
+	if d.ClientName != nil {
+		parameters["client.name"] = *d.ClientName
+	}
 	if d.Deleted != nil {
 		parameters["deleted"] = strconv.FormatBool(*d.Deleted)
 	}
 	if d.DeviceID != nil {
 		parameters["deviceId"] = *d.DeviceID
 	}
-	return request.NewParametersMutator(parameters).Mutate(req)
+	return request.NewParametersMutator(parameters).MutateRequest(req)
 }
 
 type DataSetCreate struct {
 	Client              *DataSetClient `json:"client,omitempty"`
-	DataSetType         string         `json:"dataSetType,omitempty"`
-	DeviceID            string         `json:"deviceId,omitempty"`
-	DeviceManufacturers []string       `json:"deviceManufacturers,omitempty"`
-	DeviceModel         string         `json:"deviceModel,omitempty"`
-	DeviceSerialNumber  string         `json:"deviceSerialNumber,omitempty"`
-	DeviceTags          []string       `json:"deviceTags,omitempty"`
-	Time                time.Time      `json:"time,omitempty"`
+	DataSetType         *string        `json:"dataSetType,omitempty"`
+	DeviceID            *string        `json:"deviceId,omitempty"`
+	DeviceManufacturers *[]string      `json:"deviceManufacturers,omitempty"`
+	DeviceModel         *string        `json:"deviceModel,omitempty"`
+	DeviceSerialNumber  *string        `json:"deviceSerialNumber,omitempty"`
+	DeviceTags          *[]string      `json:"deviceTags,omitempty"`
+	Time                *time.Time     `json:"time,omitempty"`
 	Type                string         `json:"type,omitempty"`
-	TimeProcessing      string         `json:"timeProcessing,omitempty"`
+	TimeProcessing      *string        `json:"timeProcessing,omitempty"`
 	TimeZoneName        *string        `json:"timezone,omitempty"`
-	TimeZoneOffset      int            `json:"timezoneOffset,omitempty"`
+	TimeZoneOffset      *int           `json:"timezoneOffset,omitempty"`
 }
 
 func NewDataSetCreate() *DataSetCreate {
@@ -161,55 +171,41 @@ func (d *DataSetCreate) Parse(parser structure.ObjectParser) {
 		d.Client.Parse(clientParser)
 		clientParser.NotParsed()
 	}
-	if ptr := parser.String("dataSetType"); ptr != nil {
-		d.DataSetType = *ptr
-	}
-	if ptr := parser.String("deviceId"); ptr != nil {
-		d.DeviceID = *ptr
-	}
-	if ptr := parser.StringArray("deviceManufacturers"); ptr != nil {
-		d.DeviceManufacturers = *ptr
-	}
-	if ptr := parser.String("deviceModel"); ptr != nil {
-		d.DeviceModel = *ptr
-	}
-	if ptr := parser.String("deviceSerialNumber"); ptr != nil {
-		d.DeviceSerialNumber = *ptr
-	}
-	if ptr := parser.StringArray("deviceTags"); ptr != nil {
-		d.DeviceTags = *ptr
-	}
-	if ptr := parser.Time("time", TimeFormat); ptr != nil {
-		d.Time = *ptr
-	}
-	if ptr := parser.String("timeProcessing"); ptr != nil {
-		d.TimeProcessing = *ptr
-	}
+	d.DataSetType = parser.String("dataSetType")
+	d.DeviceID = parser.String("deviceId")
+	d.DeviceManufacturers = parser.StringArray("deviceManufacturers")
+	d.DeviceModel = parser.String("deviceModel")
+	d.DeviceSerialNumber = parser.String("deviceSerialNumber")
+	d.DeviceTags = parser.StringArray("deviceTags")
+	d.Time = parser.Time("time", TimeFormat)
+	d.TimeProcessing = parser.String("timeProcessing")
 	d.TimeZoneName = parser.String("timezone")
-	if ptr := parser.Int("timezoneOffset"); ptr != nil {
-		d.TimeZoneOffset = *ptr
-	}
+	d.TimeZoneOffset = parser.Int("timezoneOffset")
 }
 
 func (d *DataSetCreate) Validate(validator structure.Validator) {
 	if d.Client != nil {
 		d.Client.Validate(validator.WithReference("client"))
 	}
-	validator.String("dataSetType", &d.DataSetType).OneOf(DataSetTypes()...)
-	validator.String("deviceId", &d.DeviceID).NotEmpty()
-	validator.StringArray("deviceManufacturers", &d.DeviceManufacturers).NotEmpty()
-	validator.String("deviceModel", &d.DeviceModel).NotEmpty()
-	validator.String("deviceSerialNumber", &d.DeviceSerialNumber).NotEmpty()
-	validator.StringArray("deviceTags", &d.DeviceTags).NotEmpty().EachOneOf(DeviceTags()...)
-	validator.Time("time", &d.Time).NotZero()
-	validator.String("timeProcessing", &d.TimeProcessing).OneOf(TimeProcessings()...)
+	validator.String("dataSetType", d.DataSetType).OneOf(DataSetTypes()...)
+	validator.String("deviceId", d.DeviceID).NotEmpty()
+	validator.StringArray("deviceManufacturers", d.DeviceManufacturers).NotEmpty()
+	validator.String("deviceModel", d.DeviceModel).NotEmpty()
+	validator.String("deviceSerialNumber", d.DeviceSerialNumber).NotEmpty()
+	validator.StringArray("deviceTags", d.DeviceTags).NotEmpty().EachOneOf(DeviceTags()...)
+	validator.Time("time", d.Time).NotZero()
+	validator.String("timeProcessing", d.TimeProcessing).OneOf(TimeProcessings()...)
 	validator.String("timezone", d.TimeZoneName).OneOf(zone.Names()...)
-	validator.Int("timezoneOffset", &d.TimeZoneOffset).InRange(-12*60, 14*60)
+	validator.Int("timezoneOffset", d.TimeZoneOffset).InRange(-12*60, 14*60)
 }
 
 func (d *DataSetCreate) Normalize(normalizer structure.Normalizer) {
-	sort.Strings(d.DeviceManufacturers)
-	sort.Strings(d.DeviceTags)
+	if d.DeviceManufacturers != nil {
+		sort.Strings(*d.DeviceManufacturers)
+	}
+	if d.DeviceTags != nil {
+		sort.Strings(*d.DeviceTags)
+	}
 }
 
 type DataSetUpdate struct {
@@ -253,44 +249,71 @@ func (d *DataSetUpdate) Validate(validator structure.Validator) {
 	validator.Int("timezoneOffset", d.TimeZoneOffset).InRange(-12*60, 14*60)
 }
 
+func NewSetID() string {
+	return id.Must(id.New(16))
+}
+
+func IsValidSetID(value string) bool {
+	return ValidateSetID(value) == nil
+}
+
+func SetIDValidator(value string, errorReporter structure.ErrorReporter) {
+	errorReporter.ReportError(ValidateSetID(value))
+}
+
+func ValidateSetID(value string) error {
+	if value == "" {
+		return structureValidator.ErrorValueEmpty()
+	} else if !setIDExpression.MatchString(value) {
+		return ErrorValueStringAsSetIDNotValid(value)
+	}
+	return nil
+}
+
+func ErrorValueStringAsSetIDNotValid(value string) error {
+	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as data set id", value)
+}
+
+var setIDExpression = regexp.MustCompile("^(upid_[0-9a-f]{12}|upid_[0-9a-f]{32}|[0-9a-f]{32})$") // TODO: Want just "[0-9a-f]{32}"
+
 type DataSet struct {
 	Active              bool                    `json:"-" bson:"_active"`
 	Annotations         *BlobArray              `json:"annotations,omitempty" bson:"annotations,omitempty"`
-	ArchivedDatasetID   string                  `json:"-" bson:"archivedDatasetId,omitempty"`
-	ArchivedTime        string                  `json:"-" bson:"archivedTime,omitempty"`
+	ArchivedDataSetID   *string                 `json:"-" bson:"archivedDatasetId,omitempty"`
+	ArchivedTime        *string                 `json:"-" bson:"archivedTime,omitempty"`
 	ByUser              *string                 `json:"byUser,omitempty" bson:"byUser,omitempty"`
 	Client              *DataSetClient          `json:"client,omitempty" bson:"client,omitempty"`
 	ClockDriftOffset    *int                    `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty"`
 	ComputerTime        *string                 `json:"computerTime,omitempty" bson:"computerTime,omitempty"`
 	ConversionOffset    *int                    `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty"`
-	CreatedTime         string                  `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
-	CreatedUserID       string                  `json:"createdUserId,omitempty" bson:"createdUserId,omitempty"`
+	CreatedTime         *string                 `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
+	CreatedUserID       *string                 `json:"createdUserId,omitempty" bson:"createdUserId,omitempty"`
 	DataSetType         *string                 `json:"dataSetType,omitempty" bson:"dataSetType,omitempty"`
-	DataState           string                  `json:"-" bson:"_dataState,omitempty"` // TODO: Deprecated DataState (after data migration)
+	DataState           *string                 `json:"-" bson:"_dataState,omitempty"` // TODO: Deprecated DataState (after data migration)
 	Deduplicator        *DeduplicatorDescriptor `json:"-" bson:"_deduplicator,omitempty"`
-	DeletedTime         string                  `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
-	DeletedUserID       string                  `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
+	DeletedTime         *string                 `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
+	DeletedUserID       *string                 `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
 	DeviceID            *string                 `json:"deviceId,omitempty" bson:"deviceId,omitempty"`
 	DeviceManufacturers *[]string               `json:"deviceManufacturers,omitempty" bson:"deviceManufacturers,omitempty"`
 	DeviceModel         *string                 `json:"deviceModel,omitempty" bson:"deviceModel,omitempty"`
 	DeviceSerialNumber  *string                 `json:"deviceSerialNumber,omitempty" bson:"deviceSerialNumber,omitempty"`
 	DeviceTags          *[]string               `json:"deviceTags,omitempty" bson:"deviceTags,omitempty"`
 	DeviceTime          *string                 `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
-	GUID                string                  `json:"guid,omitempty" bson:"guid,omitempty"`
-	ID                  string                  `json:"id,omitempty" bson:"id,omitempty"`
-	ModifiedTime        string                  `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
-	ModifiedUserID      string                  `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
+	GUID                *string                 `json:"guid,omitempty" bson:"guid,omitempty"`
+	ID                  *string                 `json:"id,omitempty" bson:"id,omitempty"`
+	ModifiedTime        *string                 `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
+	ModifiedUserID      *string                 `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
 	Payload             *Blob                   `json:"payload,omitempty" bson:"payload,omitempty"`
 	SchemaVersion       int                     `json:"-" bson:"_schemaVersion,omitempty"`
 	Source              *string                 `json:"source,omitempty" bson:"source,omitempty"`
-	State               string                  `json:"-" bson:"_state,omitempty"`
+	State               *string                 `json:"-" bson:"_state,omitempty"`
 	Time                *string                 `json:"time,omitempty" bson:"time,omitempty"`
 	TimeProcessing      *string                 `json:"timeProcessing,omitempty" bson:"timeProcessing,omitempty"`
 	TimeZoneName        *string                 `json:"timezone,omitempty" bson:"timezone,omitempty"`
 	TimeZoneOffset      *int                    `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty"`
 	Type                string                  `json:"type,omitempty" bson:"type,omitempty"`
-	UploadID            string                  `json:"uploadId,omitempty" bson:"uploadId,omitempty"`
-	UserID              string                  `json:"-" bson:"_userId,omitempty"`
+	UploadID            *string                 `json:"uploadId,omitempty" bson:"uploadId,omitempty"`
+	UserID              *string                 `json:"-" bson:"_userId,omitempty"`
 	Version             *string                 `json:"version,omitempty" bson:"version,omitempty"`
 	VersionInternal     int                     `json:"-" bson:"_version,omitempty"`
 }

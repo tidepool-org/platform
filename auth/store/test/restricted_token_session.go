@@ -1,23 +1,23 @@
 package test
 
 import (
-	testAuth "github.com/tidepool-org/platform/auth/test"
-	testStore "github.com/tidepool-org/platform/store/test"
+	authTest "github.com/tidepool-org/platform/auth/test"
+	"github.com/tidepool-org/platform/test"
 )
 
 type RestrictedTokenSession struct {
-	*testStore.Session
-	*testAuth.RestrictedTokenAccessor
+	*test.Closer
+	*authTest.RestrictedTokenAccessor
 }
 
 func NewRestrictedTokenSession() *RestrictedTokenSession {
 	return &RestrictedTokenSession{
-		Session:                 testStore.NewSession(),
-		RestrictedTokenAccessor: testAuth.NewRestrictedTokenAccessor(),
+		Closer:                  test.NewCloser(),
+		RestrictedTokenAccessor: authTest.NewRestrictedTokenAccessor(),
 	}
 }
 
 func (r *RestrictedTokenSession) Expectations() {
-	r.Session.Expectations()
+	r.Closer.AssertOutputsEmpty()
 	r.RestrictedTokenAccessor.Expectations()
 }

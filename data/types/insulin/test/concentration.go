@@ -8,8 +8,8 @@ import (
 
 func NewConcentration() *insulin.Concentration {
 	datum := insulin.NewConcentration()
-	datum.Units = pointer.String(test.RandomStringFromArray(insulin.ConcentrationUnits()))
-	datum.Value = pointer.Float64(test.RandomFloat64FromRange(insulin.ConcentrationValueRangeForUnits(datum.Units)))
+	datum.Units = pointer.FromString(test.RandomStringFromArray(insulin.ConcentrationUnits()))
+	datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(insulin.ConcentrationValueRangeForUnits(datum.Units)))
 	return datum
 }
 

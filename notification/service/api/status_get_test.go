@@ -4,6 +4,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"net/http"
+
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/notification/service"
@@ -31,7 +33,7 @@ var _ = Describe("StatusGet", func() {
 
 	AfterEach(func() {
 		Expect(svc.UnusedOutputsCount()).To(Equal(0))
-		response.Expectations()
+		response.AssertOutputsEmpty()
 	})
 
 	Context("StatusGet", func() {
@@ -49,6 +51,7 @@ var _ = Describe("StatusGet", func() {
 			BeforeEach(func() {
 				sts = &service.Status{}
 				svc.StatusOutputs = []*service.Status{sts}
+				response.HeaderOutput = &http.Header{}
 				response.WriteJsonOutputs = []error{nil}
 			})
 

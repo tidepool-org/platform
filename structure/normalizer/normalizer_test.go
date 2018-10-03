@@ -177,8 +177,8 @@ var _ = Describe("Normalizer", func() {
 			})
 
 			It("retains the source", func() {
-				source.ParameterOutput = pointer.String("123")
-				source.PointerOutput = pointer.String("/a/b/c")
+				source.ParameterOutput = pointer.FromString("123")
+				source.PointerOutput = pointer.FromString("/a/b/c")
 				err := testErrors.NewError()
 				normalizerWithSource.ReportError(err)
 				Expect(normalizer.Error()).To(Equal(errors.WithSource(err, source)))
@@ -223,8 +223,8 @@ var _ = Describe("Normalizer", func() {
 			It("retains the reference", func() {
 				err := testErrors.NewError()
 				source := testStructure.NewSource()
-				source.ParameterOutput = pointer.String("")
-				source.PointerOutput = pointer.String(fmt.Sprintf("/%s", reference))
+				source.ParameterOutput = pointer.FromString("")
+				source.PointerOutput = pointer.FromString(fmt.Sprintf("/%s", reference))
 				normalizerWithReference.ReportError(err)
 				Expect(normalizer.Error()).To(Equal(errors.WithSource(err, source)))
 			})

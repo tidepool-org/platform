@@ -4,15 +4,17 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"net/http"
+
 	"github.com/ant0ine/go-json-rest/rest"
 
 	testAuth "github.com/tidepool-org/platform/auth/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
-	"github.com/tidepool-org/platform/id"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
 	logNull "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service/api"
+	serviceTest "github.com/tidepool-org/platform/service/test"
 	testRest "github.com/tidepool-org/platform/test/rest"
 )
 
@@ -24,6 +26,7 @@ var _ = Describe("Auth", func() {
 
 	BeforeEach(func() {
 		res = testRest.NewResponseWriter()
+		res.HeaderOutput = &http.Header{}
 		req = testRest.NewRequest()
 		req.Request = req.WithContext(log.NewContextWithLogger(req.Context(), logNull.NewLogger()))
 		handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
@@ -39,7 +42,7 @@ var _ = Describe("Auth", func() {
 	})
 
 	AfterEach(func() {
-		res.Expectations()
+		res.AssertOutputsEmpty()
 	})
 
 	Context("Require", func() {
@@ -48,7 +51,7 @@ var _ = Describe("Auth", func() {
 			Expect(requireFunc).ToNot(BeNil())
 			requireFunc(res, req)
 			Expect(res.WriteHeaderInputs).To(BeEmpty())
-			Expect(res.WriteJsonInputs).To(BeEmpty())
+			Expect(res.WriteInputs).To(BeEmpty())
 		})
 
 		Context("with handlerFunc func", func() {
@@ -62,22 +65,21 @@ var _ = Describe("Auth", func() {
 			It("does nothing if response is nil", func() {
 				requireFunc(nil, req)
 				Expect(res.WriteHeaderInputs).To(BeEmpty())
-				Expect(res.WriteJsonInputs).To(BeEmpty())
+				Expect(res.WriteInputs).To(BeEmpty())
 			})
 
 			It("does nothing if request is nil", func() {
 				requireFunc(res, nil)
 				Expect(res.WriteHeaderInputs).To(BeEmpty())
-				Expect(res.WriteJsonInputs).To(BeEmpty())
+				Expect(res.WriteInputs).To(BeEmpty())
 			})
 
 			It("responds with unauthenticated error if details are missing", func() {
-				res.WriteJsonOutputs = []error{nil}
 				res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 				requireFunc(res, req)
 				Expect(res.WriteHeaderInputs).To(Equal([]int{401}))
-				Expect(res.WriteJsonInputs).To(HaveLen(1))
-				testErrors.ExpectEqual(res.WriteJsonInputs[0].(error), request.ErrorUnauthenticated())
+				Expect(res.WriteInputs).To(HaveLen(1))
+				errorsTest.ExpectErrorJSON(request.ErrorUnauthenticated(), res.WriteInputs[0])
 			})
 
 			Context("with server details", func() {
@@ -88,19 +90,19 @@ var _ = Describe("Auth", func() {
 				It("responds successfully", func() {
 					requireFunc(res, req)
 					Expect(res.WriteHeaderInputs).To(Equal([]int{0}))
-					Expect(res.WriteJsonInputs).To(BeEmpty())
+					Expect(res.WriteInputs).To(BeEmpty())
 				})
 			})
 
 			Context("with user details", func() {
 				BeforeEach(func() {
-					details = request.NewDetails(request.MethodSessionToken, id.New(), testAuth.NewSessionToken())
+					details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), testAuth.NewSessionToken())
 				})
 
 				It("responds successfully", func() {
 					requireFunc(res, req)
 					Expect(res.WriteHeaderInputs).To(Equal([]int{0}))
-					Expect(res.WriteJsonInputs).To(BeEmpty())
+					Expect(res.WriteInputs).To(BeEmpty())
 				})
 			})
 		})
@@ -112,7 +114,7 @@ var _ = Describe("Auth", func() {
 			Expect(requireFunc).ToNot(BeNil())
 			requireFunc(res, req)
 			Expect(res.WriteHeaderInputs).To(BeEmpty())
-			Expect(res.WriteJsonInputs).To(BeEmpty())
+			Expect(res.WriteInputs).To(BeEmpty())
 		})
 
 		Context("with handlerFunc func", func() {
@@ -126,22 +128,21 @@ var _ = Describe("Auth", func() {
 			It("does nothing if response is nil", func() {
 				requireFunc(nil, req)
 				Expect(res.WriteHeaderInputs).To(BeEmpty())
-				Expect(res.WriteJsonInputs).To(BeEmpty())
+				Expect(res.WriteInputs).To(BeEmpty())
 			})
 
 			It("does nothing if request is nil", func() {
 				requireFunc(res, nil)
 				Expect(res.WriteHeaderInputs).To(BeEmpty())
-				Expect(res.WriteJsonInputs).To(BeEmpty())
+				Expect(res.WriteInputs).To(BeEmpty())
 			})
 
 			It("responds with unauthenticated error if details are missing", func() {
-				res.WriteJsonOutputs = []error{nil}
 				res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 				requireFunc(res, req)
 				Expect(res.WriteHeaderInputs).To(Equal([]int{401}))
-				Expect(res.WriteJsonInputs).To(HaveLen(1))
-				testErrors.ExpectEqual(res.WriteJsonInputs[0].(error), request.ErrorUnauthenticated())
+				Expect(res.WriteInputs).To(HaveLen(1))
+				errorsTest.ExpectErrorJSON(request.ErrorUnauthenticated(), res.WriteInputs[0])
 			})
 
 			Context("with server details", func() {
@@ -152,22 +153,21 @@ var _ = Describe("Auth", func() {
 				It("responds successfully", func() {
 					requireFunc(res, req)
 					Expect(res.WriteHeaderInputs).To(Equal([]int{0}))
-					Expect(res.WriteJsonInputs).To(BeEmpty())
+					Expect(res.WriteInputs).To(BeEmpty())
 				})
 			})
 
 			Context("with user details", func() {
 				BeforeEach(func() {
-					details = request.NewDetails(request.MethodSessionToken, id.New(), testAuth.NewSessionToken())
+					details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), testAuth.NewSessionToken())
 				})
 
 				It("responds with unauthorized error", func() {
-					res.WriteJsonOutputs = []error{nil}
 					res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 					requireFunc(res, req)
 					Expect(res.WriteHeaderInputs).To(Equal([]int{403}))
-					Expect(res.WriteJsonInputs).To(HaveLen(1))
-					testErrors.ExpectEqual(res.WriteJsonInputs[0].(error), request.ErrorUnauthorized())
+					Expect(res.WriteInputs).To(HaveLen(1))
+					errorsTest.ExpectErrorJSON(request.ErrorUnauthorized(), res.WriteInputs[0])
 				})
 			})
 		})
@@ -179,7 +179,7 @@ var _ = Describe("Auth", func() {
 			Expect(requireFunc).ToNot(BeNil())
 			requireFunc(res, req)
 			Expect(res.WriteHeaderInputs).To(BeEmpty())
-			Expect(res.WriteJsonInputs).To(BeEmpty())
+			Expect(res.WriteInputs).To(BeEmpty())
 		})
 
 		Context("with handlerFunc func", func() {
@@ -193,22 +193,21 @@ var _ = Describe("Auth", func() {
 			It("does nothing if response is nil", func() {
 				requireFunc(nil, req)
 				Expect(res.WriteHeaderInputs).To(BeEmpty())
-				Expect(res.WriteJsonInputs).To(BeEmpty())
+				Expect(res.WriteInputs).To(BeEmpty())
 			})
 
 			It("does nothing if request is nil", func() {
 				requireFunc(res, nil)
 				Expect(res.WriteHeaderInputs).To(BeEmpty())
-				Expect(res.WriteJsonInputs).To(BeEmpty())
+				Expect(res.WriteInputs).To(BeEmpty())
 			})
 
 			It("responds with unauthenticated error if details are missing", func() {
-				res.WriteJsonOutputs = []error{nil}
 				res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 				requireFunc(res, req)
 				Expect(res.WriteHeaderInputs).To(Equal([]int{401}))
-				Expect(res.WriteJsonInputs).To(HaveLen(1))
-				testErrors.ExpectEqual(res.WriteJsonInputs[0].(error), request.ErrorUnauthenticated())
+				Expect(res.WriteInputs).To(HaveLen(1))
+				errorsTest.ExpectErrorJSON(request.ErrorUnauthenticated(), res.WriteInputs[0])
 			})
 
 			Context("with server details", func() {
@@ -217,24 +216,23 @@ var _ = Describe("Auth", func() {
 				})
 
 				It("responds with unauthorized error", func() {
-					res.WriteJsonOutputs = []error{nil}
 					res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 					requireFunc(res, req)
 					Expect(res.WriteHeaderInputs).To(Equal([]int{403}))
-					Expect(res.WriteJsonInputs).To(HaveLen(1))
-					testErrors.ExpectEqual(res.WriteJsonInputs[0].(error), request.ErrorUnauthorized())
+					Expect(res.WriteInputs).To(HaveLen(1))
+					errorsTest.ExpectErrorJSON(request.ErrorUnauthorized(), res.WriteInputs[0])
 				})
 			})
 
 			Context("with user details", func() {
 				BeforeEach(func() {
-					details = request.NewDetails(request.MethodSessionToken, id.New(), testAuth.NewSessionToken())
+					details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), testAuth.NewSessionToken())
 				})
 
 				It("responds successfully", func() {
 					requireFunc(res, req)
 					Expect(res.WriteHeaderInputs).To(Equal([]int{0}))
-					Expect(res.WriteJsonInputs).To(BeEmpty())
+					Expect(res.WriteInputs).To(BeEmpty())
 				})
 			})
 		})

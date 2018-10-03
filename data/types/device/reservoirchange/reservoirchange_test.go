@@ -14,7 +14,6 @@ import (
 	testDataTypesDevice "github.com/tidepool-org/platform/data/types/device/test"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -45,7 +44,7 @@ func NewReservoirChangeWithStatus() *reservoirchange.ReservoirChange {
 
 func NewReservoirChangeWithStatusID() *reservoirchange.ReservoirChange {
 	datum := NewReservoirChange()
-	datum.StatusID = pointer.String(id.New())
+	datum.StatusID = pointer.FromString(data.NewID())
 	return datum
 }
 
@@ -149,12 +148,12 @@ var _ = Describe("Change", func() {
 					func(datum *reservoirchange.ReservoirChange) { datum.StatusID = nil },
 				),
 				Entry("status id exists",
-					func(datum *reservoirchange.ReservoirChange) { datum.StatusID = pointer.String(id.New()) },
+					func(datum *reservoirchange.ReservoirChange) { datum.StatusID = pointer.FromString(data.NewID()) },
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/statusId", NewMeta()),
 				),
 				Entry("multiple errors",
 					func(datum *reservoirchange.ReservoirChange) {
-						datum.StatusID = pointer.String(id.New())
+						datum.StatusID = pointer.FromString(data.NewID())
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/statusId", NewMeta()),
 				),
@@ -183,19 +182,19 @@ var _ = Describe("Change", func() {
 					func(datum *reservoirchange.ReservoirChange) { datum.StatusID = nil },
 				),
 				Entry("status id invalid",
-					func(datum *reservoirchange.ReservoirChange) { datum.StatusID = pointer.String("invalid") },
-					testErrors.WithPointerSourceAndMeta(id.ErrorValueStringAsIDNotValid("invalid"), "/statusId", NewMeta()),
+					func(datum *reservoirchange.ReservoirChange) { datum.StatusID = pointer.FromString("invalid") },
+					testErrors.WithPointerSourceAndMeta(data.ErrorValueStringAsIDNotValid("invalid"), "/statusId", NewMeta()),
 				),
 				Entry("status id valid",
-					func(datum *reservoirchange.ReservoirChange) { datum.StatusID = pointer.String(id.New()) },
+					func(datum *reservoirchange.ReservoirChange) { datum.StatusID = pointer.FromString(data.NewID()) },
 				),
 				Entry("multiple errors",
 					func(datum *reservoirchange.ReservoirChange) {
 						datum.Status = data.DatumAsPointer(testDataTypesDeviceStatus.NewStatus())
-						datum.StatusID = pointer.String("invalid")
+						datum.StatusID = pointer.FromString("invalid")
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/status", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(id.ErrorValueStringAsIDNotValid("invalid"), "/statusId", NewMeta()),
+					testErrors.WithPointerSourceAndMeta(data.ErrorValueStringAsIDNotValid("invalid"), "/statusId", NewMeta()),
 				),
 			)
 		})
@@ -223,7 +222,7 @@ var _ = Describe("Change", func() {
 				Expect(normalizer.Error()).To(BeNil())
 				Expect(normalizer.Data()).To(Equal([]data.Datum{datumStatus}))
 				expectedDatum.Status = nil
-				expectedDatum.StatusID = pointer.String(*datumStatus.ID)
+				expectedDatum.StatusID = pointer.FromString(*datumStatus.ID)
 				Expect(datum).To(Equal(expectedDatum))
 			})
 		})

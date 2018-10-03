@@ -15,10 +15,10 @@ import (
 	testDataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED/test"
 	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/upload"
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/user"
 )
 
 var _ = Describe("HashDeactivateOld", func() {
@@ -32,105 +32,105 @@ var _ = Describe("HashDeactivateOld", func() {
 		var testFactory deduplicator.Factory
 		var testUploadID string
 		var testUserID string
-		var testDataset *upload.Upload
+		var testDataSet *upload.Upload
 
 		BeforeEach(func() {
 			var err error
 			testFactory, err = deduplicator.NewHashDeactivateOldFactory()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testFactory).ToNot(BeNil())
-			testUploadID = id.New()
-			testUserID = id.New()
-			testDataset = upload.New()
-			Expect(testDataset).ToNot(BeNil())
-			testDataset.UploadID = &testUploadID
-			testDataset.UserID = &testUserID
-			testDataset.DeviceID = pointer.String(id.New())
-			testDataset.DeviceManufacturers = &[]string{"Medtronic"}
-			testDataset.DeviceModel = pointer.String("523")
+			testUploadID = data.NewSetID()
+			testUserID = user.NewID()
+			testDataSet = upload.New()
+			Expect(testDataSet).ToNot(BeNil())
+			testDataSet.UploadID = &testUploadID
+			testDataSet.UserID = &testUserID
+			testDataSet.DeviceID = pointer.FromString(testData.NewDeviceID())
+			testDataSet.DeviceManufacturers = &[]string{"Medtronic"}
+			testDataSet.DeviceModel = pointer.FromString("523")
 		})
 
-		Context("CanDeduplicateDataset", func() {
-			It("returns an error if the dataset is missing", func() {
-				can, err := testFactory.CanDeduplicateDataset(nil)
-				Expect(err).To(MatchError("dataset is missing"))
+		Context("CanDeduplicateDataSet", func() {
+			It("returns an error if the data set is missing", func() {
+				can, err := testFactory.CanDeduplicateDataSet(nil)
+				Expect(err).To(MatchError("data set is missing"))
 				Expect(can).To(BeFalse())
 			})
 
-			It("returns false if the dataset id is missing", func() {
-				testDataset.UploadID = nil
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
+			It("returns false if the data set id is missing", func() {
+				testDataSet.UploadID = nil
+				Expect(testFactory.CanDeduplicateDataSet(testDataSet)).To(BeFalse())
 			})
 
-			It("returns false if the dataset id is empty", func() {
-				testDataset.UploadID = pointer.String("")
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
+			It("returns false if the data set id is empty", func() {
+				testDataSet.UploadID = pointer.FromString("")
+				Expect(testFactory.CanDeduplicateDataSet(testDataSet)).To(BeFalse())
 			})
 
-			It("returns false if the dataset user id is missing", func() {
-				testDataset.UserID = nil
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
+			It("returns false if the data set user id is missing", func() {
+				testDataSet.UserID = nil
+				Expect(testFactory.CanDeduplicateDataSet(testDataSet)).To(BeFalse())
 			})
 
-			It("returns false if the dataset user id is empty", func() {
-				testDataset.UserID = pointer.String("")
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
+			It("returns false if the data set user id is empty", func() {
+				testDataSet.UserID = pointer.FromString("")
+				Expect(testFactory.CanDeduplicateDataSet(testDataSet)).To(BeFalse())
 			})
 
 			It("returns false if the device id is missing", func() {
-				testDataset.DeviceID = nil
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
+				testDataSet.DeviceID = nil
+				Expect(testFactory.CanDeduplicateDataSet(testDataSet)).To(BeFalse())
 			})
 
 			It("returns false if the device id is empty", func() {
-				testDataset.DeviceID = pointer.String("")
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
+				testDataSet.DeviceID = pointer.FromString("")
+				Expect(testFactory.CanDeduplicateDataSet(testDataSet)).To(BeFalse())
 			})
 
 			It("returns false if the device manufacturers is missing", func() {
-				testDataset.DeviceManufacturers = nil
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
+				testDataSet.DeviceManufacturers = nil
+				Expect(testFactory.CanDeduplicateDataSet(testDataSet)).To(BeFalse())
 			})
 
 			It("returns false if the device manufacturers is empty", func() {
-				testDataset.DeviceManufacturers = pointer.StringArray([]string{})
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
+				testDataSet.DeviceManufacturers = pointer.FromStringArray([]string{})
+				Expect(testFactory.CanDeduplicateDataSet(testDataSet)).To(BeFalse())
 			})
 
 			It("returns false if the device model is missing", func() {
-				testDataset.DeviceModel = nil
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
+				testDataSet.DeviceModel = nil
+				Expect(testFactory.CanDeduplicateDataSet(testDataSet)).To(BeFalse())
 			})
 
 			It("returns false if the device model is empty", func() {
-				testDataset.DeviceModel = pointer.String("")
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
+				testDataSet.DeviceModel = pointer.FromString("")
+				Expect(testFactory.CanDeduplicateDataSet(testDataSet)).To(BeFalse())
 			})
 
 			It("returns false if the device manufacturers does not contain expected device manufacturer", func() {
-				testDataset.DeviceManufacturers = pointer.StringArray([]string{"Ant", "Zebra", "Cobra"})
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
+				testDataSet.DeviceManufacturers = pointer.FromStringArray([]string{"Ant", "Zebra", "Cobra"})
+				Expect(testFactory.CanDeduplicateDataSet(testDataSet)).To(BeFalse())
 			})
 
 			It("returns false if the device model does not contain expected device model", func() {
-				testDataset.DeviceModel = pointer.String("123")
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeFalse())
+				testDataSet.DeviceModel = pointer.FromString("123")
+				Expect(testFactory.CanDeduplicateDataSet(testDataSet)).To(BeFalse())
 			})
 
 			It("returns true if the device id and expected device manufacturer are specified", func() {
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeTrue())
+				Expect(testFactory.CanDeduplicateDataSet(testDataSet)).To(BeTrue())
 			})
 
 			It("returns true if the device id and expected device manufacturer are specified with multiple device manufacturers", func() {
-				testDataset.DeviceManufacturers = pointer.StringArray([]string{"Ant", "Zebra", "Medtronic", "Cobra"})
-				Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeTrue())
+				testDataSet.DeviceManufacturers = pointer.FromStringArray([]string{"Ant", "Zebra", "Medtronic", "Cobra"})
+				Expect(testFactory.CanDeduplicateDataSet(testDataSet)).To(BeTrue())
 			})
 
 			DescribeTable("returns true when",
 				func(deviceManufacturer string, deviceModel string) {
-					testDataset.DeviceManufacturers = pointer.StringArray([]string{deviceManufacturer})
-					testDataset.DeviceModel = pointer.String(deviceModel)
-					Expect(testFactory.CanDeduplicateDataset(testDataset)).To(BeTrue())
+					testDataSet.DeviceManufacturers = pointer.FromStringArray([]string{deviceManufacturer})
+					testDataSet.DeviceModel = pointer.FromString(deviceModel)
+					Expect(testFactory.CanDeduplicateDataSet(testDataSet)).To(BeTrue())
 				},
 				Entry("is Abbott FreeStyle Libre", "Abbott", "FreeStyle Libre"),
 				Entry("is LifeScan OneTouch Ultra 2", "LifeScan", "OneTouch Ultra 2"),
@@ -183,123 +183,123 @@ var _ = Describe("HashDeactivateOld", func() {
 				testDataSession.Expectations()
 			})
 
-			Context("NewDeduplicatorForDataset", func() {
+			Context("NewDeduplicatorForDataSet", func() {
 				It("returns an error if the logger is missing", func() {
-					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(nil, testDataSession, testDataset)
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataSet(nil, testDataSession, testDataSet)
 					Expect(err).To(MatchError("logger is missing"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
 				It("returns an error if the data store session is missing", func() {
-					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, nil, testDataset)
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataSet(testLogger, nil, testDataSet)
 					Expect(err).To(MatchError("data store session is missing"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
-				It("returns an error if the dataset is missing", func() {
-					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, nil)
-					Expect(err).To(MatchError("dataset is missing"))
+				It("returns an error if the data set is missing", func() {
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, nil)
+					Expect(err).To(MatchError("data set is missing"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
-				It("returns an error if the dataset id is missing", func() {
-					testDataset.UploadID = nil
-					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
-					Expect(err).To(MatchError("dataset id is missing"))
+				It("returns an error if the data set id is missing", func() {
+					testDataSet.UploadID = nil
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
+					Expect(err).To(MatchError("data set id is missing"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
-				It("returns an error if the dataset id is empty", func() {
-					testDataset.UploadID = pointer.String("")
-					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
-					Expect(err).To(MatchError("dataset id is empty"))
+				It("returns an error if the data set id is empty", func() {
+					testDataSet.UploadID = pointer.FromString("")
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
+					Expect(err).To(MatchError("data set id is empty"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
-				It("returns an error if the dataset user id is missing", func() {
-					testDataset.UserID = nil
-					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
-					Expect(err).To(MatchError("dataset user id is missing"))
+				It("returns an error if the data set user id is missing", func() {
+					testDataSet.UserID = nil
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
+					Expect(err).To(MatchError("data set user id is missing"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
-				It("returns an error if the dataset user id is empty", func() {
-					testDataset.UserID = pointer.String("")
-					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
-					Expect(err).To(MatchError("dataset user id is empty"))
+				It("returns an error if the data set user id is empty", func() {
+					testDataSet.UserID = pointer.FromString("")
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
+					Expect(err).To(MatchError("data set user id is empty"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
-				It("returns an error if the dataset device id is missing", func() {
-					testDataset.DeviceID = nil
-					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
-					Expect(err).To(MatchError("dataset device id is missing"))
+				It("returns an error if the data set device id is missing", func() {
+					testDataSet.DeviceID = nil
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
+					Expect(err).To(MatchError("data set device id is missing"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
-				It("returns an error if the dataset device id is empty", func() {
-					testDataset.DeviceID = pointer.String("")
-					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
-					Expect(err).To(MatchError("dataset device id is empty"))
+				It("returns an error if the data set device id is empty", func() {
+					testDataSet.DeviceID = pointer.FromString("")
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
+					Expect(err).To(MatchError("data set device id is empty"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
 				It("returns an error if the device manufacturers is missing", func() {
-					testDataset.DeviceManufacturers = nil
-					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
-					Expect(err).To(MatchError("dataset device manufacturers is missing"))
+					testDataSet.DeviceManufacturers = nil
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
+					Expect(err).To(MatchError("data set device manufacturers is missing"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
 				It("returns an error if the device manufacturers is empty", func() {
-					testDataset.DeviceManufacturers = pointer.StringArray([]string{})
-					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
-					Expect(err).To(MatchError("dataset device manufacturer and model does not contain expected device manufacturers and models"))
+					testDataSet.DeviceManufacturers = pointer.FromStringArray([]string{})
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
+					Expect(err).To(MatchError("data set device manufacturer and model does not contain expected device manufacturers and models"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
 				It("returns an error if the device model is missing", func() {
-					testDataset.DeviceModel = nil
-					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
-					Expect(err).To(MatchError("dataset device model is missing"))
+					testDataSet.DeviceModel = nil
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
+					Expect(err).To(MatchError("data set device model is missing"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
 				It("returns an error if the device model is empty", func() {
-					testDataset.DeviceModel = pointer.String("")
-					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
-					Expect(err).To(MatchError("dataset device manufacturer and model does not contain expected device manufacturers and models"))
+					testDataSet.DeviceModel = pointer.FromString("")
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
+					Expect(err).To(MatchError("data set device manufacturer and model does not contain expected device manufacturers and models"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
 				It("returns an error if the device manufacturers does not contain expected device manufacturer", func() {
-					testDataset.DeviceManufacturers = pointer.StringArray([]string{"Ant", "Zebra", "Cobra"})
-					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
-					Expect(err).To(MatchError("dataset device manufacturer and model does not contain expected device manufacturers and models"))
+					testDataSet.DeviceManufacturers = pointer.FromStringArray([]string{"Ant", "Zebra", "Cobra"})
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
+					Expect(err).To(MatchError("data set device manufacturer and model does not contain expected device manufacturers and models"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
 				It("returns an error if the device model does not contain expected device model", func() {
-					testDataset.DeviceModel = pointer.String("123")
-					testDeduplicator, err := testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
-					Expect(err).To(MatchError("dataset device manufacturer and model does not contain expected device manufacturers and models"))
+					testDataSet.DeviceModel = pointer.FromString("123")
+					testDeduplicator, err := testFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
+					Expect(err).To(MatchError("data set device manufacturer and model does not contain expected device manufacturers and models"))
 					Expect(testDeduplicator).To(BeNil())
 				})
 
 				It("returns a new deduplicator upon success", func() {
-					Expect(testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)).ToNot(BeNil())
+					Expect(testFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)).ToNot(BeNil())
 				})
 
 				It("returns a new deduplicator upon success if the device id and expected device manufacturer are specified with multiple device manufacturers", func() {
-					testDataset.DeviceManufacturers = pointer.StringArray([]string{"Ant", "Zebra", "Medtronic", "Cobra"})
-					Expect(testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)).ToNot(BeNil())
+					testDataSet.DeviceManufacturers = pointer.FromStringArray([]string{"Ant", "Zebra", "Medtronic", "Cobra"})
+					Expect(testFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)).ToNot(BeNil())
 				})
 
 				DescribeTable("returns a new deduplicator when",
 					func(deviceManufacturer string, deviceModel string) {
-						testDataset.DeviceManufacturers = pointer.StringArray([]string{deviceManufacturer})
-						testDataset.DeviceModel = pointer.String(deviceModel)
-						Expect(testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)).ToNot(BeNil())
+						testDataSet.DeviceManufacturers = pointer.FromStringArray([]string{deviceManufacturer})
+						testDataSet.DeviceModel = pointer.FromString(deviceModel)
+						Expect(testFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)).ToNot(BeNil())
 					},
 					Entry("is Abbott FreeStyle Libre", "Abbott", "FreeStyle Libre"),
 					Entry("is LifeScan OneTouch Ultra 2", "LifeScan", "OneTouch Ultra 2"),
@@ -341,20 +341,20 @@ var _ = Describe("HashDeactivateOld", func() {
 				var ctx context.Context
 				var testDeduplicator data.Deduplicator
 				var testDataData []*testData.Datum
-				var testDatasetData []data.Datum
+				var testDataSetData []data.Datum
 
 				BeforeEach(func() {
 					ctx = context.Background()
 					var err error
-					testDeduplicator, err = testFactory.NewDeduplicatorForDataset(testLogger, testDataSession, testDataset)
+					testDeduplicator, err = testFactory.NewDeduplicatorForDataSet(testLogger, testDataSession, testDataSet)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(testDeduplicator).ToNot(BeNil())
 					testDataData = []*testData.Datum{}
-					testDatasetData = []data.Datum{}
+					testDataSetData = []data.Datum{}
 					for i := 0; i < 3; i++ {
 						testDatum := testData.NewDatum()
 						testDataData = append(testDataData, testDatum)
-						testDatasetData = append(testDatasetData, testDatum)
+						testDataSetData = append(testDataSetData, testDatum)
 					}
 				})
 
@@ -364,40 +364,40 @@ var _ = Describe("HashDeactivateOld", func() {
 					}
 				})
 
-				Context("AddDatasetData", func() {
+				Context("AddDataSetData", func() {
 					It("returns successfully if the data is nil", func() {
-						Expect(testDeduplicator.AddDatasetData(ctx, nil)).To(Succeed())
+						Expect(testDeduplicator.AddDataSetData(ctx, nil)).To(Succeed())
 					})
 
 					It("returns successfully if there is no data", func() {
-						Expect(testDeduplicator.AddDatasetData(ctx, []data.Datum{})).To(Succeed())
+						Expect(testDeduplicator.AddDataSetData(ctx, []data.Datum{})).To(Succeed())
 					})
 
 					It("returns an error if any datum returns an error getting identity fields", func() {
-						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{id.New(), id.New()}, Error: nil}}
+						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{user.NewID(), testData.NewDeviceID()}, Error: nil}}
 						testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: nil, Error: errors.New("test error")}}
-						err := testDeduplicator.AddDatasetData(ctx, testDatasetData)
+						err := testDeduplicator.AddDataSetData(ctx, testDataSetData)
 						Expect(err).To(MatchError("unable to gather identity fields for datum; test error"))
 					})
 
 					It("returns an error if any datum returns no identity fields", func() {
-						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{id.New(), id.New()}, Error: nil}}
+						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{user.NewID(), testData.NewDeviceID()}, Error: nil}}
 						testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: nil, Error: nil}}
-						err := testDeduplicator.AddDatasetData(ctx, testDatasetData)
+						err := testDeduplicator.AddDataSetData(ctx, testDataSetData)
 						Expect(err).To(MatchError("unable to generate identity hash for datum; identity fields are missing"))
 					})
 
 					It("returns an error if any datum returns empty identity fields", func() {
-						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{id.New(), id.New()}, Error: nil}}
+						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{user.NewID(), testData.NewDeviceID()}, Error: nil}}
 						testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{}, Error: nil}}
-						err := testDeduplicator.AddDatasetData(ctx, testDatasetData)
+						err := testDeduplicator.AddDataSetData(ctx, testDataSetData)
 						Expect(err).To(MatchError("unable to generate identity hash for datum; identity fields are missing"))
 					})
 
 					It("returns an error if any datum returns any empty identity fields", func() {
-						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{id.New(), id.New()}, Error: nil}}
-						testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{id.New(), ""}, Error: nil}}
-						err := testDeduplicator.AddDatasetData(ctx, testDatasetData)
+						testDataData[0].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{user.NewID(), testData.NewDeviceID()}, Error: nil}}
+						testDataData[1].IdentityFieldsOutputs = []testData.IdentityFieldsOutput{{IdentityFields: []string{user.NewID(), ""}, Error: nil}}
+						err := testDeduplicator.AddDataSetData(ctx, testDataSetData)
 						Expect(err).To(MatchError("unable to generate identity hash for datum; identity field is empty"))
 					})
 
@@ -414,103 +414,103 @@ var _ = Describe("HashDeactivateOld", func() {
 							Expect(testDataData[2].DeduplicatorDescriptorValue).To(Equal(&data.DeduplicatorDescriptor{Hash: "dCPMoOxFVMbPvMkXMbyKeff8QmdBPu8hr/BVeHJhz78="}))
 						})
 
-						Context("with creating dataset data", func() {
+						Context("with creating data set data", func() {
 							BeforeEach(func() {
-								testDataSession.CreateDatasetDataOutputs = []error{nil}
+								testDataSession.CreateDataSetDataOutputs = []error{nil}
 							})
 
 							AfterEach(func() {
-								Expect(testDataSession.CreateDatasetDataInputs).To(ConsistOf(testDataStoreDEPRECATED.CreateDatasetDataInput{
+								Expect(testDataSession.CreateDataSetDataInputs).To(ConsistOf(testDataStoreDEPRECATED.CreateDataSetDataInput{
 									Context:     ctx,
-									Dataset:     testDataset,
-									DatasetData: testDatasetData,
+									DataSet:     testDataSet,
+									DataSetData: testDataSetData,
 								}))
 							})
 
-							It("returns an error if there is an error with CreateDatasetDataInput", func() {
-								testDataSession.CreateDatasetDataOutputs = []error{errors.New("test error")}
-								err := testDeduplicator.AddDatasetData(ctx, testDatasetData)
-								Expect(err).To(MatchError(fmt.Sprintf("unable to create dataset data with id %q; test error", testUploadID)))
+							It("returns an error if there is an error with CreateDataSetDataInput", func() {
+								testDataSession.CreateDataSetDataOutputs = []error{errors.New("test error")}
+								err := testDeduplicator.AddDataSetData(ctx, testDataSetData)
+								Expect(err).To(MatchError(fmt.Sprintf("unable to create data set data with id %q; test error", testUploadID)))
 							})
 
 							It("returns successfully if there is no error", func() {
-								Expect(testDeduplicator.AddDatasetData(ctx, testDatasetData)).To(Succeed())
+								Expect(testDeduplicator.AddDataSetData(ctx, testDataSetData)).To(Succeed())
 							})
 						})
 					})
 				})
 
-				Context("DeduplicateDataset", func() {
-					Context("with archive device data using hashes from dataset", func() {
+				Context("DeduplicateDataSet", func() {
+					Context("with archive device data using hashes from data set", func() {
 						BeforeEach(func() {
-							testDataSession.ArchiveDeviceDataUsingHashesFromDatasetOutputs = []error{nil}
+							testDataSession.ArchiveDeviceDataUsingHashesFromDataSetOutputs = []error{nil}
 						})
 
 						AfterEach(func() {
-							Expect(testDataSession.ArchiveDeviceDataUsingHashesFromDatasetInputs).To(ConsistOf(testDataStoreDEPRECATED.ArchiveDeviceDataUsingHashesFromDatasetInput{Context: ctx, Dataset: testDataset}))
+							Expect(testDataSession.ArchiveDeviceDataUsingHashesFromDataSetInputs).To(ConsistOf(testDataStoreDEPRECATED.ArchiveDeviceDataUsingHashesFromDataSetInput{Context: ctx, DataSet: testDataSet}))
 						})
 
-						It("returns an error if there is an error with ArchiveDeviceDataUsingHashesFromDataset", func() {
-							testDataSession.ArchiveDeviceDataUsingHashesFromDatasetOutputs = []error{errors.New("test error")}
-							err := testDeduplicator.DeduplicateDataset(ctx)
-							Expect(err).To(MatchError(fmt.Sprintf("unable to archive device data using hashes from dataset with id %q; test error", testUploadID)))
+						It("returns an error if there is an error with ArchiveDeviceDataUsingHashesFromDataSet", func() {
+							testDataSession.ArchiveDeviceDataUsingHashesFromDataSetOutputs = []error{errors.New("test error")}
+							err := testDeduplicator.DeduplicateDataSet(ctx)
+							Expect(err).To(MatchError(fmt.Sprintf("unable to archive device data using hashes from data set with id %q; test error", testUploadID)))
 						})
 
-						Context("with activating dataset data", func() {
+						Context("with activating data set data", func() {
 							BeforeEach(func() {
-								testDataSession.ActivateDatasetDataOutputs = []error{nil}
+								testDataSession.ActivateDataSetDataOutputs = []error{nil}
 							})
 
 							AfterEach(func() {
-								Expect(testDataSession.ActivateDatasetDataInputs).To(ConsistOf(testDataStoreDEPRECATED.ActivateDatasetDataInput{Context: ctx, Dataset: testDataset}))
+								Expect(testDataSession.ActivateDataSetDataInputs).To(ConsistOf(testDataStoreDEPRECATED.ActivateDataSetDataInput{Context: ctx, DataSet: testDataSet}))
 							})
 
-							It("returns an error if there is an error with ActivateDatasetData", func() {
-								testDataSession.ActivateDatasetDataOutputs = []error{errors.New("test error")}
-								err := testDeduplicator.DeduplicateDataset(ctx)
-								Expect(err).To(MatchError(fmt.Sprintf("unable to activate dataset data with id %q; test error", testUploadID)))
+							It("returns an error if there is an error with ActivateDataSetData", func() {
+								testDataSession.ActivateDataSetDataOutputs = []error{errors.New("test error")}
+								err := testDeduplicator.DeduplicateDataSet(ctx)
+								Expect(err).To(MatchError(fmt.Sprintf("unable to activate data set data with id %q; test error", testUploadID)))
 							})
 
 							It("returns successfully if there is no error", func() {
-								Expect(testDeduplicator.DeduplicateDataset(ctx)).To(Succeed())
+								Expect(testDeduplicator.DeduplicateDataSet(ctx)).To(Succeed())
 							})
 						})
 					})
 				})
 
-				Context("DeleteDataset", func() {
-					Context("with unarchive device data using hashes from dataset", func() {
+				Context("DeleteDataSet", func() {
+					Context("with unarchive device data using hashes from data set", func() {
 						BeforeEach(func() {
-							testDataSession.UnarchiveDeviceDataUsingHashesFromDatasetOutputs = []error{nil}
+							testDataSession.UnarchiveDeviceDataUsingHashesFromDataSetOutputs = []error{nil}
 						})
 
 						AfterEach(func() {
-							Expect(testDataSession.UnarchiveDeviceDataUsingHashesFromDatasetInputs).To(ConsistOf(testDataStoreDEPRECATED.UnarchiveDeviceDataUsingHashesFromDatasetInput{Context: ctx, Dataset: testDataset}))
+							Expect(testDataSession.UnarchiveDeviceDataUsingHashesFromDataSetInputs).To(ConsistOf(testDataStoreDEPRECATED.UnarchiveDeviceDataUsingHashesFromDataSetInput{Context: ctx, DataSet: testDataSet}))
 						})
 
-						It("returns an error if there is an error with UnarchiveDeviceDataUsingHashesFromDataset", func() {
-							testDataSession.UnarchiveDeviceDataUsingHashesFromDatasetOutputs = []error{errors.New("test error")}
-							err := testDeduplicator.DeleteDataset(ctx)
-							Expect(err).To(MatchError(fmt.Sprintf("unable to unarchive device data using hashes from dataset with id %q; test error", testUploadID)))
+						It("returns an error if there is an error with UnarchiveDeviceDataUsingHashesFromDataSet", func() {
+							testDataSession.UnarchiveDeviceDataUsingHashesFromDataSetOutputs = []error{errors.New("test error")}
+							err := testDeduplicator.DeleteDataSet(ctx)
+							Expect(err).To(MatchError(fmt.Sprintf("unable to unarchive device data using hashes from data set with id %q; test error", testUploadID)))
 						})
 
-						Context("with deleting dataset", func() {
+						Context("with deleting data set", func() {
 							BeforeEach(func() {
-								testDataSession.DeleteDatasetOutputs = []error{nil}
+								testDataSession.DeleteDataSetOutputs = []error{nil}
 							})
 
 							AfterEach(func() {
-								Expect(testDataSession.DeleteDatasetInputs).To(ConsistOf(testDataStoreDEPRECATED.DeleteDatasetInput{Context: ctx, Dataset: testDataset}))
+								Expect(testDataSession.DeleteDataSetInputs).To(ConsistOf(testDataStoreDEPRECATED.DeleteDataSetInput{Context: ctx, DataSet: testDataSet}))
 							})
 
-							It("returns an error if there is an error with DeleteDataset", func() {
-								testDataSession.DeleteDatasetOutputs = []error{errors.New("test error")}
-								err := testDeduplicator.DeleteDataset(ctx)
-								Expect(err).To(MatchError(fmt.Sprintf("unable to delete dataset with id %q; test error", testUploadID)))
+							It("returns an error if there is an error with DeleteDataSet", func() {
+								testDataSession.DeleteDataSetOutputs = []error{errors.New("test error")}
+								err := testDeduplicator.DeleteDataSet(ctx)
+								Expect(err).To(MatchError(fmt.Sprintf("unable to delete data set with id %q; test error", testUploadID)))
 							})
 
 							It("returns successfully if there is no error", func() {
-								Expect(testDeduplicator.DeleteDataset(ctx)).To(Succeed())
+								Expect(testDeduplicator.DeleteDataSet(ctx)).To(Succeed())
 							})
 						})
 					})

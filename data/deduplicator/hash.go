@@ -11,14 +11,14 @@ import (
 
 const _HashIdentityFieldsSeparator = "|"
 
-func AssignDatasetDataIdentityHashes(datasetData []data.Datum) ([]string, error) {
-	if len(datasetData) == 0 {
+func AssignDataSetDataIdentityHashes(dataSetData []data.Datum) ([]string, error) {
+	if len(dataSetData) == 0 {
 		return nil, nil
 	}
 
 	hashes := []string{}
-	for _, datasetDatum := range datasetData {
-		fields, err := datasetDatum.IdentityFields()
+	for _, dataSetDatum := range dataSetData {
+		fields, err := dataSetDatum.IdentityFields()
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to gather identity fields for datum")
 		}
@@ -28,13 +28,13 @@ func AssignDatasetDataIdentityHashes(datasetData []data.Datum) ([]string, error)
 			return nil, errors.Wrap(err, "unable to generate identity hash for datum")
 		}
 
-		deduplicatorDescriptor := datasetDatum.DeduplicatorDescriptor()
+		deduplicatorDescriptor := dataSetDatum.DeduplicatorDescriptor()
 		if deduplicatorDescriptor == nil {
 			deduplicatorDescriptor = data.NewDeduplicatorDescriptor()
 		}
 		deduplicatorDescriptor.Hash = hash
 
-		datasetDatum.SetDeduplicatorDescriptor(deduplicatorDescriptor)
+		dataSetDatum.SetDeduplicatorDescriptor(deduplicatorDescriptor)
 
 		hashes = append(hashes, hash)
 	}

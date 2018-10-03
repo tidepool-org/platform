@@ -13,8 +13,8 @@ package mongo_test
 
 // 	"github.com/tidepool-org/platform/id"
 // 	"github.com/tidepool-org/platform/log/null"
-// 	baseMongo "github.com/tidepool-org/platform/store/mongo"
-// 	testMongo "github.com/tidepool-org/platform/test/mongo"
+// 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
+// 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 // 	"github.com/tidepool-org/platform/user"
 // 	"github.com/tidepool-org/platform/user/store"
 // 	"github.com/tidepool-org/platform/user/store/mongo"
@@ -55,12 +55,7 @@ package mongo_test
 
 // 	BeforeEach(func() {
 // 		mongoConfig = &mongo.Config{
-// 			Config: &baseMongo.Config{
-// 				Addresses:        []string{testMongo.Address()},
-// 				Database:         testMongo.Database(),
-// 				CollectionPrefix: testMongo.NewCollectionPrefix(),
-// 				Timeout:          5 * time.Second,
-// 			},
+// 			Config: storeStructuredMongoTest.NewConfig(),
 // 			PasswordSalt: "password-salt",
 // 		}
 // 	})
@@ -148,7 +143,7 @@ package mongo_test
 // 				var users []interface{}
 
 // 				BeforeEach(func() {
-// 					testMongoSession = testMongo.Session().Copy()
+// 					testMongoSession = storeStructuredMongoTest.Session().Copy()
 // 					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.CollectionPrefix + "users")
 // 					users = NewUsers()
 // 				})

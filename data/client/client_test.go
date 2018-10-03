@@ -8,13 +8,15 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"
-	"github.com/tidepool-org/platform/id"
+	dataTest "github.com/tidepool-org/platform/data/test"
+	"github.com/tidepool-org/platform/log"
+	logNull "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/platform"
 	testHTTP "github.com/tidepool-org/platform/test/http"
+	"github.com/tidepool-org/platform/user"
 )
 
 var _ = Describe("Client", func() {
@@ -26,31 +28,30 @@ var _ = Describe("Client", func() {
 			Expect(config).ToNot(BeNil())
 			config.Address = testHTTP.NewAddress()
 			config.UserAgent = testHTTP.NewUserAgent()
-			config.Timeout = 30 * time.Second
 		})
 
 		It("returns an error if config is missing", func() {
-			clnt, err := dataClient.New(nil)
+			clnt, err := dataClient.New(nil, platform.AuthorizeAsService)
 			Expect(err).To(MatchError("config is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
 		It("returns an error if config address is missing", func() {
 			config.Address = ""
-			clnt, err := dataClient.New(config)
+			clnt, err := dataClient.New(config, platform.AuthorizeAsService)
 			Expect(err).To(MatchError("config is invalid; address is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
 		It("returns an error if config user agent is missing", func() {
 			config.UserAgent = ""
-			clnt, err := dataClient.New(config)
+			clnt, err := dataClient.New(config, platform.AuthorizeAsService)
 			Expect(err).To(MatchError("config is invalid; user agent is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
 		It("returns success", func() {
-			clnt, err := dataClient.New(config)
+			clnt, err := dataClient.New(config, platform.AuthorizeAsService)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clnt).ToNot(BeNil())
 		})
@@ -69,12 +70,11 @@ var _ = Describe("Client", func() {
 			Expect(config).ToNot(BeNil())
 			config.Address = server.URL()
 			config.UserAgent = userAgent
-			config.Timeout = 30 * time.Second
 			var err error
-			clnt, err = dataClient.New(config)
+			clnt, err = dataClient.New(config, platform.AuthorizeAsService)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clnt).ToNot(BeNil())
-			ctx = context.Background()
+			ctx = log.NewContextWithLogger(context.Background(), logNull.NewLogger())
 		})
 
 		AfterEach(func() {
@@ -87,7 +87,7 @@ var _ = Describe("Client", func() {
 			var userID string
 
 			BeforeEach(func() {
-				userID = id.New()
+				userID = user.NewID()
 			})
 
 			It("returns error if context is missing", func() {
@@ -104,7 +104,7 @@ var _ = Describe("Client", func() {
 				var token string
 
 				BeforeEach(func() {
-					token = id.New()
+					token = dataTest.NewSessionToken()
 					ctx = auth.NewContextWithServerSessionToken(ctx, token)
 				})
 
@@ -115,8 +115,8 @@ var _ = Describe("Client", func() {
 								VerifyRequest("DELETE", fmt.Sprintf("/v1/users/%s/data", userID)),
 								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte{}),
-								RespondWith(http.StatusUnauthorized, nil, nil)),
+								VerifyBody(nil),
+								RespondWith(http.StatusUnauthorized, nil)),
 						)
 					})
 
@@ -134,8 +134,8 @@ var _ = Describe("Client", func() {
 								VerifyRequest("DELETE", fmt.Sprintf("/v1/users/%s/data", userID)),
 								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte{}),
-								RespondWith(http.StatusForbidden, nil, nil)),
+								VerifyBody(nil),
+								RespondWith(http.StatusForbidden, nil)),
 						)
 					})
 
@@ -153,8 +153,8 @@ var _ = Describe("Client", func() {
 								VerifyRequest("DELETE", fmt.Sprintf("/v1/users/%s/data", userID)),
 								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte{}),
-								RespondWith(http.StatusOK, nil, nil)),
+								VerifyBody(nil),
+								RespondWith(http.StatusOK, nil)),
 						)
 					})
 

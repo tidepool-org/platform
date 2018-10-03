@@ -83,15 +83,15 @@ func (i *InsulinSensitivityStartArray) Parse(parser data.ArrayParser) {
 }
 
 func (i *InsulinSensitivityStartArray) Validate(validator structure.Validator, units *string) {
-	startMinimum := pointer.Int(InsulinSensitivityStartStartMinimum)
+	startMinimum := pointer.FromInt(InsulinSensitivityStartStartMinimum)
 	for index, datum := range *i {
 		datumValidator := validator.WithReference(strconv.Itoa(index))
 		if datum != nil {
 			datum.Validate(datumValidator, units, startMinimum)
 			if index == 0 {
-				startMinimum = pointer.Int(InsulinSensitivityStartStartMinimum + 1)
+				startMinimum = pointer.FromInt(InsulinSensitivityStartStartMinimum + 1)
 			} else if datum.Start != nil {
-				startMinimum = pointer.Int(*datum.Start + 1)
+				startMinimum = pointer.FromInt(*datum.Start + 1)
 			}
 		} else {
 			datumValidator.ReportError(structureValidator.ErrorValueNotExists())

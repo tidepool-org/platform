@@ -14,8 +14,8 @@ func NewSuppressedTemporary(suppressed temporary.Suppressed) *temporary.Suppress
 	datum := temporary.NewSuppressedTemporary()
 	datum.Annotations = testData.NewBlobArray()
 	datum.InsulinFormulation = testDataTypesInsulin.NewFormulation(3)
-	datum.Percent = pointer.Float64(test.RandomFloat64FromRange(temporary.PercentMinimum, temporary.PercentMaximum))
-	datum.Rate = pointer.Float64(test.RandomFloat64FromRange(temporary.RateMinimum, temporary.RateMaximum))
+	datum.Percent = pointer.FromFloat64(test.RandomFloat64FromRange(temporary.PercentMinimum, temporary.PercentMaximum))
+	datum.Rate = pointer.FromFloat64(test.RandomFloat64FromRange(temporary.RateMinimum, temporary.RateMaximum))
 	datum.Suppressed = suppressed
 	return datum
 }

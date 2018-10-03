@@ -3,6 +3,7 @@ package service
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
+	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/notification/service"
 	"github.com/tidepool-org/platform/notification/service/api"
@@ -10,7 +11,7 @@ import (
 	"github.com/tidepool-org/platform/notification/store"
 	notificationMongo "github.com/tidepool-org/platform/notification/store/mongo"
 	serviceService "github.com/tidepool-org/platform/service/service"
-	baseMongo "github.com/tidepool-org/platform/store/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
 type Service struct {
@@ -18,19 +19,14 @@ type Service struct {
 	notificationStore *notificationMongo.Store
 }
 
-func New(prefix string) (*Service, error) {
-	authenticated, err := serviceService.NewAuthenticated(prefix)
-	if err != nil {
-		return nil, err
-	}
-
+func New() *Service {
 	return &Service{
-		Authenticated: authenticated,
-	}, nil
+		Authenticated: serviceService.NewAuthenticated(),
+	}
 }
 
-func (s *Service) Initialize() error {
-	if err := s.Authenticated.Initialize(); err != nil {
+func (s *Service) Initialize(provider application.Provider) error {
+	if err := s.Authenticated.Initialize(provider); err != nil {
 		return err
 	}
 
@@ -54,7 +50,7 @@ func (s *Service) NotificationStore() store.Store {
 func (s *Service) Status() *service.Status {
 	return &service.Status{
 		Version:           s.VersionReporter().Long(),
-		NotificationStore: s.NotificationStore().Status(),
+		NotificationStore: s.notificationStore.Status(),
 		Server:            s.API().Status(),
 	}
 }
@@ -93,7 +89,7 @@ func (s *Service) terminateRouter() {
 func (s *Service) initializeNotificationStore() error {
 	s.Logger().Debug("Loading notification store config")
 
-	cfg := baseMongo.NewConfig()
+	cfg := storeStructuredMongo.NewConfig()
 	if err := cfg.Load(s.ConfigReporter().WithScopes("notification", "store")); err != nil {
 		return errors.Wrap(err, "unable to load notification store config")
 	}

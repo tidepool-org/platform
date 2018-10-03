@@ -47,6 +47,10 @@ func (a *API) InitializeMiddleware() error {
 	if err != nil {
 		return err
 	}
+	errorMiddleware, err := middleware.NewError()
+	if err != nil {
+		return err
+	}
 	traceMiddleware, err := middleware.NewTrace()
 	if err != nil {
 		return err
@@ -71,17 +75,16 @@ func (a *API) InitializeMiddleware() error {
 
 	middlewareStack := []rest.Middleware{
 		loggerMiddleware,
+		errorMiddleware,
 		traceMiddleware,
 		accessLogMiddleware,
 		statusMiddleware,
 		timerMiddleware,
 		recorderMiddleware,
-		// recoverMiddleware,
+		recoverMiddleware,
 		authMiddleware,
 		gzipMiddleware,
 	}
-
-	_ = recoverMiddleware
 
 	a.api.Use(middlewareStack...)
 

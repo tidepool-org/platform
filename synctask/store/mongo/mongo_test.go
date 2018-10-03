@@ -11,10 +11,10 @@ package mongo_test
 
 // 	"github.com/tidepool-org/platform/id"
 // 	"github.com/tidepool-org/platform/log/null"
-// 	baseMongo "github.com/tidepool-org/platform/store/mongo"
+// 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
+// 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 // 	"github.com/tidepool-org/platform/synctask/store"
 // 	"github.com/tidepool-org/platform/synctask/store/mongo"
-// 	testMongo "github.com/tidepool-org/platform/test/mongo"
 // )
 
 // func NewSyncTask(userID string) bson.M {
@@ -48,17 +48,12 @@ package mongo_test
 // }
 
 // var _ = Describe("Mongo", func() {
-// 	var mongoConfig *baseMongo.Config
+// 	var mongoConfig *storeStructuredMongo.Config
 // 	var mongoStore *mongo.Store
 // 	var mongoSession store.SyncTaskSession
 
 // 	BeforeEach(func() {
-// 		mongoConfig = &baseMongo.Config{
-// 			Addresses:        []string{testMongo.Address()},
-// 			Database:         testMongo.Database(),
-// 			CollectionPrefix: testMongo.NewCollectionPrefix(),
-// 			Timeout:          5 * time.Second,
-// 		}
+// 		mongoConfig = storeStructuredMongoTest.NewConfig()
 // 	})
 
 // 	AfterEach(func() {
@@ -113,7 +108,7 @@ package mongo_test
 // 				var syncTasks []interface{}
 
 // 				BeforeEach(func() {
-// 					testMongoSession = testMongo.Session().Copy()
+// 					testMongoSession = storeStructuredMongoTest.Session().Copy()
 // 					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.CollectionPrefix + "syncTasks")
 // 					syncTasks = NewSyncTasks(id.New())
 // 				})

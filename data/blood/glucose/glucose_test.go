@@ -65,11 +65,11 @@ var _ = Describe("Glucose", func() {
 			Expect(actualUpper).To(Equal(expectedUpper))
 		},
 		Entry("returns no range for nil", nil, -math.MaxFloat64, math.MaxFloat64),
-		Entry("returns no range for unknown units", pointer.String("unknown"), -math.MaxFloat64, math.MaxFloat64),
-		Entry("returns expected range for mmol/L units", pointer.String("mmol/L"), 0.0, 55.0),
-		Entry("returns expected range for mmol/l units", pointer.String("mmol/l"), 0.0, 55.0),
-		Entry("returns expected range for mg/dL units", pointer.String("mg/dL"), 0.0, 1000.0),
-		Entry("returns expected range for mg/dl units", pointer.String("mg/dl"), 0.0, 1000.0),
+		Entry("returns no range for unknown units", pointer.FromString("unknown"), -math.MaxFloat64, math.MaxFloat64),
+		Entry("returns expected range for mmol/L units", pointer.FromString("mmol/L"), 0.0, 55.0),
+		Entry("returns expected range for mmol/l units", pointer.FromString("mmol/l"), 0.0, 55.0),
+		Entry("returns expected range for mg/dL units", pointer.FromString("mg/dL"), 0.0, 1000.0),
+		Entry("returns expected range for mg/dl units", pointer.FromString("mg/dl"), 0.0, 1000.0),
 	)
 
 	DescribeTable("NormalizeUnits",
@@ -83,11 +83,11 @@ var _ = Describe("Glucose", func() {
 			}
 		},
 		Entry("returns nil for nil", nil, nil),
-		Entry("returns unchanged units for unknown units", pointer.String("unknown"), pointer.String("unknown")),
-		Entry("returns mmol/L for mmol/L", pointer.String("mmol/L"), pointer.String("mmol/L")),
-		Entry("returns mmol/L for mmol/l", pointer.String("mmol/l"), pointer.String("mmol/L")),
-		Entry("returns mmol/L for mg/dL", pointer.String("mg/dL"), pointer.String("mmol/L")),
-		Entry("returns mmol/L for mg/dl", pointer.String("mg/dl"), pointer.String("mmol/L")),
+		Entry("returns unchanged units for unknown units", pointer.FromString("unknown"), pointer.FromString("unknown")),
+		Entry("returns mmol/L for mmol/L", pointer.FromString("mmol/L"), pointer.FromString("mmol/L")),
+		Entry("returns mmol/L for mmol/l", pointer.FromString("mmol/l"), pointer.FromString("mmol/L")),
+		Entry("returns mmol/L for mg/dL", pointer.FromString("mg/dL"), pointer.FromString("mmol/L")),
+		Entry("returns mmol/L for mg/dl", pointer.FromString("mg/dl"), pointer.FromString("mmol/L")),
 	)
 
 	Context("NormalizeValueForUnits", func() {
@@ -101,18 +101,18 @@ var _ = Describe("Glucose", func() {
 					Expect(*actualValue).To(Equal(*expectedValue))
 				}
 			},
-			Entry("returns nil for nil value", nil, pointer.String("mmol/L"), nil),
-			Entry("returns unchanged value for nil units", pointer.Float64(10.0), nil, pointer.Float64(10.0)),
-			Entry("returns unchanged value for unknown units", pointer.Float64(10.0), pointer.String("unknown"), pointer.Float64(10.0)),
-			Entry("returns unchanged value for mmol/L units", pointer.Float64(10.0), pointer.String("mmol/L"), pointer.Float64(10.0)),
-			Entry("returns unchanged value for mmol/l units", pointer.Float64(10.0), pointer.String("mmol/l"), pointer.Float64(10.0)),
-			Entry("returns converted value for mg/dL units", pointer.Float64(180.0), pointer.String("mg/dL"), pointer.Float64(9.99135)),
-			Entry("returns converted value for mg/dl units", pointer.Float64(180.0), pointer.String("mg/dl"), pointer.Float64(9.99135)),
+			Entry("returns nil for nil value", nil, pointer.FromString("mmol/L"), nil),
+			Entry("returns unchanged value for nil units", pointer.FromFloat64(10.0), nil, pointer.FromFloat64(10.0)),
+			Entry("returns unchanged value for unknown units", pointer.FromFloat64(10.0), pointer.FromString("unknown"), pointer.FromFloat64(10.0)),
+			Entry("returns unchanged value for mmol/L units", pointer.FromFloat64(10.0), pointer.FromString("mmol/L"), pointer.FromFloat64(10.0)),
+			Entry("returns unchanged value for mmol/l units", pointer.FromFloat64(10.0), pointer.FromString("mmol/l"), pointer.FromFloat64(10.0)),
+			Entry("returns converted value for mg/dL units", pointer.FromFloat64(180.0), pointer.FromString("mg/dL"), pointer.FromFloat64(9.99135)),
+			Entry("returns converted value for mg/dl units", pointer.FromFloat64(180.0), pointer.FromString("mg/dl"), pointer.FromFloat64(9.99135)),
 		)
 
 		It("properly normalizes a range of mmol/L values", func() {
 			for value := glucose.MmolLMinimum; value <= glucose.MmolLMaximum; value += 0.1 {
-				normalizedValue := glucose.NormalizeValueForUnits(pointer.Float64(float64(value)), pointer.String("mmol/L"))
+				normalizedValue := glucose.NormalizeValueForUnits(pointer.FromFloat64(float64(value)), pointer.FromString("mmol/L"))
 				Expect(normalizedValue).ToNot(BeNil())
 				Expect(*normalizedValue).To(Equal(value))
 			}
@@ -120,7 +120,7 @@ var _ = Describe("Glucose", func() {
 
 		It("properly normalizes a range of mg/dL values", func() {
 			for value := int(glucose.MgdLMinimum); value <= int(glucose.MgdLMaximum); value++ {
-				normalizedValue := glucose.NormalizeValueForUnits(pointer.Float64(float64(value)), pointer.String("mg/dL"))
+				normalizedValue := glucose.NormalizeValueForUnits(pointer.FromFloat64(float64(value)), pointer.FromString("mg/dL"))
 				Expect(normalizedValue).ToNot(BeNil())
 				Expect(int(*normalizedValue*18.01559 + 0.5)).To(Equal(value))
 			}

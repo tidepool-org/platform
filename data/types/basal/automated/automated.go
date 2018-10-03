@@ -106,8 +106,8 @@ func ParseSuppressedAutomated(parser data.ObjectParser) *SuppressedAutomated {
 
 func NewSuppressedAutomated() *SuppressedAutomated {
 	return &SuppressedAutomated{
-		Type:         pointer.String(basal.Type),
-		DeliveryType: pointer.String(DeliveryType),
+		Type:         pointer.FromString(basal.Type),
+		DeliveryType: pointer.FromString(DeliveryType),
 	}
 }
 

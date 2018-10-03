@@ -10,18 +10,18 @@ import (
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	"github.com/tidepool-org/platform/data/types/upload"
 	testErrors "github.com/tidepool-org/platform/errors/test"
+	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 	testInternet "github.com/tidepool-org/platform/test/internet"
-	"github.com/tidepool-org/platform/validate"
 )
 
 func NewClient() *upload.Client {
 	datum := upload.NewClient()
-	datum.Name = pointer.String(testInternet.NewReverseDomain())
-	datum.Version = pointer.String(testInternet.NewSemanticVersion())
+	datum.Name = pointer.FromString(testInternet.NewReverseDomain())
+	datum.Version = pointer.FromString(testInternet.NewSemanticVersion())
 	datum.Private = testData.NewBlob()
 	return datum
 }
@@ -68,30 +68,30 @@ var _ = Describe("Client", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/name"),
 				),
 				Entry("name empty",
-					func(datum *upload.Client) { datum.Name = pointer.String("") },
+					func(datum *upload.Client) { datum.Name = pointer.FromString("") },
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/name"),
 				),
 				Entry("name invalid",
-					func(datum *upload.Client) { datum.Name = pointer.String("org") },
-					testErrors.WithPointerSource(validate.ErrorValueStringAsReverseDomainNotValid("org"), "/name"),
+					func(datum *upload.Client) { datum.Name = pointer.FromString("org") },
+					testErrors.WithPointerSource(net.ErrorValueStringAsReverseDomainNotValid("org"), "/name"),
 				),
 				Entry("name valid",
-					func(datum *upload.Client) { datum.Name = pointer.String(testInternet.NewReverseDomain()) },
+					func(datum *upload.Client) { datum.Name = pointer.FromString(testInternet.NewReverseDomain()) },
 				),
 				Entry("version missing",
 					func(datum *upload.Client) { datum.Version = nil },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/version"),
 				),
 				Entry("version empty",
-					func(datum *upload.Client) { datum.Version = pointer.String("") },
+					func(datum *upload.Client) { datum.Version = pointer.FromString("") },
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/version"),
 				),
 				Entry("version invalid",
-					func(datum *upload.Client) { datum.Version = pointer.String("1.2") },
-					testErrors.WithPointerSource(validate.ErrorValueStringAsSemanticVersionNotValid("1.2"), "/version"),
+					func(datum *upload.Client) { datum.Version = pointer.FromString("1.2") },
+					testErrors.WithPointerSource(net.ErrorValueStringAsSemanticVersionNotValid("1.2"), "/version"),
 				),
 				Entry("version valid",
-					func(datum *upload.Client) { datum.Version = pointer.String(testInternet.NewSemanticVersion()) },
+					func(datum *upload.Client) { datum.Version = pointer.FromString(testInternet.NewSemanticVersion()) },
 				),
 				Entry("private missing",
 					func(datum *upload.Client) { datum.Private = nil },

@@ -1,6 +1,8 @@
 package test
 
 import (
+	"encoding/json"
+	"fmt"
 	"math/rand"
 
 	"github.com/onsi/gomega"
@@ -71,4 +73,19 @@ func ExpectEqual(actualError error, expectedErrors ...error) {
 	default:
 		gomega.Expect(errors.Sanitize(actualError)).To(gomega.Equal(errors.Sanitize(errors.Append(expectedErrors...))))
 	}
+}
+
+func ExpectErrorDetails(err error, code string, title string, detail string) {
+	gomega.Expect(err).ToNot(gomega.BeNil())
+	gomega.Expect(errors.Code(err)).To(gomega.Equal(code))
+	gomega.Expect(errors.Cause(err)).To(gomega.Equal(err))
+	bytes, bytesErr := json.Marshal(errors.Sanitize(err))
+	gomega.Expect(bytesErr).ToNot(gomega.HaveOccurred())
+	gomega.Expect(bytes).To(gomega.MatchJSON(fmt.Sprintf(`{"code": %q, "title": %q, "detail": %q}`, code, title, detail)))
+}
+
+func ExpectErrorJSON(err error, actualJSON []byte) {
+	expectedJSON, err := json.Marshal(errors.Sanitize(err))
+	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	gomega.Expect(actualJSON).To(gomega.MatchJSON(expectedJSON))
 }

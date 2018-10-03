@@ -106,8 +106,8 @@ func ParseSuppressedScheduled(parser data.ObjectParser) *SuppressedScheduled {
 
 func NewSuppressedScheduled() *SuppressedScheduled {
 	return &SuppressedScheduled{
-		Type:         pointer.String(basal.Type),
-		DeliveryType: pointer.String(DeliveryType),
+		Type:         pointer.FromString(basal.Type),
+		DeliveryType: pointer.FromString(DeliveryType),
 	}
 }
 

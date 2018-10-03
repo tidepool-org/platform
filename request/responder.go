@@ -1,6 +1,8 @@
 package request
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
@@ -14,8 +16,8 @@ type Sanitizable interface {
 }
 
 type Responder struct {
-	response rest.ResponseWriter
-	request  *rest.Request
+	res rest.ResponseWriter
+	req *rest.Request
 }
 
 func MustNewResponder(res rest.ResponseWriter, req *rest.Request) *Responder {
@@ -23,7 +25,6 @@ func MustNewResponder(res rest.ResponseWriter, req *rest.Request) *Responder {
 	if err != nil {
 		panic(err)
 	}
-
 	return responder
 }
 
@@ -34,75 +35,125 @@ func NewResponder(res rest.ResponseWriter, req *rest.Request) (*Responder, error
 	if req == nil {
 		return nil, errors.New("request is missing")
 	}
-
 	return &Responder{
-		response: res,
-		request:  req,
+		res: res,
+		req: req,
 	}, nil
 }
 
 func (r *Responder) SetCookie(cookie *http.Cookie) {
 	if cookie != nil {
-		http.SetCookie(r.response.(http.ResponseWriter), cookie)
+		http.SetCookie(r.res.(http.ResponseWriter), cookie)
 	}
 }
 
-func (r *Responder) Redirect(statusCode int, url string) {
-	http.Redirect(r.response.(http.ResponseWriter), r.request.Request, url, statusCode)
-}
-
-func (r *Responder) Empty(statusCode int) {
-	r.response.WriteHeader(statusCode)
-}
-
-func (r *Responder) HTML(statusCode int, html string) {
-	r.writeRaw("text/html", statusCode, []byte(html))
-}
-
-func (r *Responder) Data(statusCode int, data interface{}) {
-	if data == nil {
-		r.Error(http.StatusInternalServerError, errors.ErrorInternal(errors.New("data is missing")))
-	} else if err := r.sanitize(data); err != nil {
-		r.Error(http.StatusInternalServerError, errors.ErrorInternal(errors.Wrap(err, "unable to sanitize data")))
+func (r *Responder) Redirect(statusCode int, url string, mutators ...ResponseMutator) {
+	if err := r.mutateResponse(mutators); err != nil {
+		r.InternalServerError(err)
 	} else {
-		r.writeJSON(statusCode, data)
+		http.Redirect(r.res.(http.ResponseWriter), r.req.Request, url, statusCode)
 	}
 }
 
-func (r *Responder) Error(statusCode int, err error) {
+func (r *Responder) Empty(statusCode int, mutators ...ResponseMutator) {
+	// FUTURE: rest.ResponseWriter sets unnecessary/incorrect Content-Type header
+	if err := r.mutateResponse(mutators); err != nil {
+		r.InternalServerError(err)
+	} else {
+		r.res.WriteHeader(statusCode)
+	}
+}
+
+func (r *Responder) Bytes(statusCode int, bytes []byte, mutators ...ResponseMutator) {
+	if err := r.mutateResponse(mutators); err != nil {
+		r.InternalServerError(err)
+	} else {
+		r.res.WriteHeader(statusCode)
+		if bytesWritten, writeErr := r.res.(http.ResponseWriter).Write(bytes); writeErr != nil {
+			log.LoggerFromContext(r.req.Context()).WithError(writeErr).Error("Unable to write bytes")
+		} else if bytesLength := len(bytes); bytesWritten != bytesLength {
+			log.LoggerFromContext(r.req.Context()).WithFields(log.Fields{"bytesWritten": bytesWritten, "bytesLength": bytesLength}).Error("Bytes written does not equal bytes length")
+		}
+	}
+}
+
+func (r *Responder) String(statusCode int, str string, mutators ...ResponseMutator) {
+	r.Bytes(statusCode, []byte(str), mutators...)
+}
+
+func (r *Responder) Reader(statusCode int, reader io.Reader, mutators ...ResponseMutator) {
+	if reader == nil {
+		r.InternalServerError(errors.New("reader is missing"))
+	} else if err := r.mutateResponse(mutators); err != nil {
+		r.InternalServerError(err)
+	} else {
+		r.res.WriteHeader(statusCode)
+		if _, err = io.Copy(r.res.(io.Writer), reader); err != nil {
+			log.LoggerFromContext(r.req.Context()).WithError(err).Error("Unable to copy bytes from reader")
+		}
+	}
+}
+
+func (r *Responder) Data(statusCode int, data interface{}, mutators ...ResponseMutator) {
+	if data == nil {
+		r.InternalServerError(errors.New("data is missing"))
+	} else if sanitizeErr := r.sanitize(data); sanitizeErr != nil {
+		r.InternalServerError(errors.Wrap(sanitizeErr, "unable to sanitize data"))
+	} else if bytes, marshalErr := json.Marshal(data); marshalErr != nil {
+		r.InternalServerError(errors.Wrap(marshalErr, "unable to serialize data"))
+	} else {
+		r.Bytes(statusCode, append(bytes, newLine...), append(mutators, NewHeaderMutator("Content-Type", "application/json; charset=utf-8"))...)
+	}
+}
+
+func (r *Responder) Error(statusCode int, err error, mutators ...ResponseMutator) {
 	if err == nil {
-		err = errors.ErrorInternal(errors.New("error is missing"))
+		r.InternalServerError(errors.New("error is missing"))
+	} else {
+		SetErrorToContext(r.req.Context(), err)
+		if bytes, marshalErr := json.Marshal(errors.Sanitize(err)); marshalErr != nil {
+			r.InternalServerError(errors.Wrap(marshalErr, "unable to serialize error"))
+		} else {
+			r.Bytes(statusCode, append(bytes, newLine...), append(mutators, NewHeaderMutator("Content-Type", "application/json; charset=utf-8"))...)
+		}
 	}
-
-	// service.SetRequestErrors(r.request, errs) // TODO:
-	log.LoggerFromContext(r.request.Context()).WithError(err).Warn("Failure during request")
-
-	r.writeJSON(statusCode, errors.Sanitize(err))
 }
 
-func (r *Responder) sanitize(data interface{}) error {
-	if sanitizable, ok := data.(Sanitizable); ok {
-		return sanitizable.Sanitize(DetailsFromContext(r.request.Context()))
+func (r *Responder) InternalServerError(err error, mutators ...ResponseMutator) {
+	if err == nil {
+		err = ErrorInternalServerError(errors.New("error is missing"))
+	} else if !IsErrorInternalServerError(err) {
+		err = ErrorInternalServerError(err)
+	}
+	r.Error(http.StatusInternalServerError, err, mutators...)
+}
+
+func (r *Responder) RespondIfError(err error, mutators ...ResponseMutator) bool {
+	if err == nil {
+		return false
+	}
+	if statusCode := StatusCodeForError(err); statusCode != http.StatusInternalServerError {
+		r.Error(statusCode, err, mutators...)
+	} else {
+		r.InternalServerError(err, mutators...)
+	}
+	return true
+}
+
+func (r *Responder) mutateResponse(mutators []ResponseMutator) error {
+	for _, mutator := range mutators {
+		if err := mutator.MutateResponse(r.res.(http.ResponseWriter)); err != nil {
+			return errors.Wrap(err, "unable to mutate response")
+		}
 	}
 	return nil
 }
 
-func (r *Responder) writeJSON(statusCode int, object interface{}) {
-	r.response.Header().Set("Content-Type", "application/json; charset=utf-8")
-	r.response.WriteHeader(statusCode)
-	if err := r.response.WriteJson(object); err != nil {
-		log.LoggerFromContext(r.request.Context()).WithError(err).Error("Unable to write JSON")
-	} else if _, err = r.response.(http.ResponseWriter).Write(_NewLine); err != nil {
-		log.LoggerFromContext(r.request.Context()).WithError(err).Error("Unable to write new line")
+func (r *Responder) sanitize(data interface{}) error {
+	if sanitizable, ok := data.(Sanitizable); ok {
+		return sanitizable.Sanitize(DetailsFromContext(r.req.Context()))
 	}
+	return nil
 }
 
-func (r *Responder) writeRaw(contentType string, statusCode int, bytes []byte) {
-	r.response.Header().Set("Content-Type", contentType)
-	r.response.WriteHeader(statusCode)
-	if _, err := r.response.(http.ResponseWriter).Write(bytes); err != nil {
-		log.LoggerFromContext(r.request.Context()).WithError(err).Error("Unable to write bytes")
-	}
-}
-
-var _NewLine = []byte("\n")
+var newLine = []byte("\n")

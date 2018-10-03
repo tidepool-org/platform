@@ -8,15 +8,14 @@ import (
 	. "github.com/onsi/gomega/ghttp"
 
 	"net/http"
-	"time"
 
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	logNull "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/metric"
 	metricClient "github.com/tidepool-org/platform/metric/client"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/request"
+	"github.com/tidepool-org/platform/test"
 	testHTTP "github.com/tidepool-org/platform/test/http"
 	"github.com/tidepool-org/platform/version"
 )
@@ -26,7 +25,7 @@ var _ = Describe("Client", func() {
 	var versionReporter version.Reporter
 
 	BeforeEach(func() {
-		name = id.New()
+		name = test.NewVariableString(1, 64, test.CharsetAlphaNumeric)
 		var err error
 		versionReporter, err = version.NewReporter("1.2.3", "4567890", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmn")
 		Expect(err).ToNot(HaveOccurred())
@@ -41,43 +40,42 @@ var _ = Describe("Client", func() {
 			Expect(config).ToNot(BeNil())
 			config.Address = testHTTP.NewAddress()
 			config.UserAgent = testHTTP.NewUserAgent()
-			config.Timeout = 30 * time.Second
 		})
 
 		It("returns an error if config is missing", func() {
-			clnt, err := metricClient.New(nil, name, versionReporter)
+			clnt, err := metricClient.New(nil, platform.AuthorizeAsUser, name, versionReporter)
 			Expect(err).To(MatchError("config is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
 		It("returns an error if name is missing", func() {
-			clnt, err := metricClient.New(config, "", versionReporter)
+			clnt, err := metricClient.New(config, platform.AuthorizeAsUser, "", versionReporter)
 			Expect(err).To(MatchError("name is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
 		It("returns an error if version reporter is missing", func() {
-			clnt, err := metricClient.New(config, name, nil)
+			clnt, err := metricClient.New(config, platform.AuthorizeAsUser, name, nil)
 			Expect(err).To(MatchError("version reporter is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
 		It("returns an error if config address is missing", func() {
 			config.Address = ""
-			clnt, err := metricClient.New(config, name, versionReporter)
+			clnt, err := metricClient.New(config, platform.AuthorizeAsUser, name, versionReporter)
 			Expect(err).To(MatchError("config is invalid; address is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
 		It("returns an error if config user agent is missing", func() {
 			config.UserAgent = ""
-			clnt, err := metricClient.New(config, name, versionReporter)
+			clnt, err := metricClient.New(config, platform.AuthorizeAsUser, name, versionReporter)
 			Expect(err).To(MatchError("config is invalid; user agent is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
 		It("returns success", func() {
-			clnt, err := metricClient.New(config, name, versionReporter)
+			clnt, err := metricClient.New(config, platform.AuthorizeAsUser, name, versionReporter)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clnt).ToNot(BeNil())
 		})
@@ -96,9 +94,8 @@ var _ = Describe("Client", func() {
 			Expect(config).ToNot(BeNil())
 			config.Address = server.URL()
 			config.UserAgent = userAgent
-			config.Timeout = 30 * time.Second
 			var err error
-			clnt, err = metricClient.New(config, name, versionReporter)
+			clnt, err = metricClient.New(config, platform.AuthorizeAsUser, name, versionReporter)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clnt).ToNot(BeNil())
 			ctx = context.Background()
@@ -115,7 +112,7 @@ var _ = Describe("Client", func() {
 			var data map[string]string
 
 			BeforeEach(func() {
-				metric = id.New()
+				metric = test.NewVariableString(1, 32, test.CharsetAlphaNumeric)
 				data = map[string]string{
 					"left":  "handed",
 					"right": "correct",
@@ -136,9 +133,9 @@ var _ = Describe("Client", func() {
 				var token string
 
 				BeforeEach(func() {
-					token = id.New()
+					token = test.NewString(64, test.CharsetAlphaNumeric)
 					ctx = log.NewContextWithLogger(ctx, logNull.NewLogger())
-					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, id.New(), token))
+					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, test.NewString(10, test.CharsetHexidecimalLowercase), token))
 				})
 
 				Context("as user", func() {
@@ -149,8 +146,8 @@ var _ = Describe("Client", func() {
 									VerifyRequest("GET", "/metrics/thisuser/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyHeaderKV("X-Tidepool-Session-Token", token),
-									VerifyBody([]byte{}),
-									RespondWith(http.StatusUnauthorized, nil, nil)),
+									VerifyBody(nil),
+									RespondWith(http.StatusUnauthorized, nil)),
 							)
 						})
 
@@ -168,8 +165,8 @@ var _ = Describe("Client", func() {
 									VerifyRequest("GET", "/metrics/thisuser/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyHeaderKV("X-Tidepool-Session-Token", token),
-									VerifyBody([]byte{}),
-									RespondWith(http.StatusForbidden, nil, nil)),
+									VerifyBody(nil),
+									RespondWith(http.StatusForbidden, nil)),
 							)
 						})
 
@@ -187,8 +184,8 @@ var _ = Describe("Client", func() {
 									VerifyRequest("GET", "/metrics/thisuser/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyHeaderKV("X-Tidepool-Session-Token", token),
-									VerifyBody([]byte{}),
-									RespondWith(http.StatusOK, nil, nil)),
+									VerifyBody(nil),
+									RespondWith(http.StatusOK, nil)),
 							)
 						})
 
@@ -206,8 +203,8 @@ var _ = Describe("Client", func() {
 									VerifyRequest("GET", "/metrics/thisuser/"+metric, "sourceVersion=1.2.3"),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyHeaderKV("X-Tidepool-Session-Token", token),
-									VerifyBody([]byte{}),
-									RespondWith(http.StatusOK, nil, nil)),
+									VerifyBody(nil),
+									RespondWith(http.StatusOK, nil)),
 							)
 						})
 
@@ -224,7 +221,7 @@ var _ = Describe("Client", func() {
 				var token string
 
 				BeforeEach(func() {
-					token = id.New()
+					token = test.NewString(64, test.CharsetAlphaNumeric)
 					ctx = log.NewContextWithLogger(ctx, logNull.NewLogger())
 					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, "", token))
 				})
@@ -236,8 +233,8 @@ var _ = Describe("Client", func() {
 								VerifyRequest("GET", "/metrics/server/"+name+"/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
 								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte{}),
-								RespondWith(http.StatusUnauthorized, nil, nil)),
+								VerifyBody(nil),
+								RespondWith(http.StatusUnauthorized, nil)),
 						)
 					})
 
@@ -255,8 +252,8 @@ var _ = Describe("Client", func() {
 								VerifyRequest("GET", "/metrics/server/"+name+"/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
 								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte{}),
-								RespondWith(http.StatusForbidden, nil, nil)),
+								VerifyBody(nil),
+								RespondWith(http.StatusForbidden, nil)),
 						)
 					})
 
@@ -274,8 +271,8 @@ var _ = Describe("Client", func() {
 								VerifyRequest("GET", "/metrics/server/"+name+"/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
 								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte{}),
-								RespondWith(http.StatusOK, nil, nil)),
+								VerifyBody(nil),
+								RespondWith(http.StatusOK, nil)),
 						)
 					})
 
@@ -293,8 +290,8 @@ var _ = Describe("Client", func() {
 								VerifyRequest("GET", "/metrics/server/"+name+"/"+metric, "sourceVersion=1.2.3"),
 								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyHeaderKV("X-Tidepool-Session-Token", token),
-								VerifyBody([]byte{}),
-								RespondWith(http.StatusOK, nil, nil)),
+								VerifyBody(nil),
+								RespondWith(http.StatusOK, nil)),
 						)
 					})
 

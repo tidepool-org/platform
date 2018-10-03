@@ -3,17 +3,17 @@ package mongo
 import (
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/store/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
 type Config struct {
-	*mongo.Config
+	*storeStructuredMongo.Config
 	Secret string
 }
 
 func NewConfig() *Config {
 	return &Config{
-		Config: mongo.NewConfig(),
+		Config: storeStructuredMongo.NewConfig(),
 	}
 }
 

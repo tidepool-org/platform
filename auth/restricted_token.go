@@ -14,6 +14,7 @@ import (
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/user"
 )
 
 const MaximumExpirationDuration = time.Hour
@@ -40,7 +41,7 @@ func (r *RestrictedTokenFilter) Parse(parser structure.ObjectParser) {
 func (r *RestrictedTokenFilter) Validate(validator structure.Validator) {
 }
 
-func (r *RestrictedTokenFilter) Mutate(req *http.Request) error {
+func (r *RestrictedTokenFilter) MutateRequest(req *http.Request) error {
 	return nil
 }
 
@@ -51,7 +52,7 @@ type RestrictedTokenCreate struct {
 
 func NewRestrictedTokenCreate() *RestrictedTokenCreate {
 	return &RestrictedTokenCreate{
-		ExpirationTime: pointer.Time(time.Now().Add(MaximumExpirationDuration).Truncate(time.Second)),
+		ExpirationTime: pointer.FromTime(time.Now().Add(MaximumExpirationDuration).Truncate(time.Second)),
 	}
 }
 
@@ -67,7 +68,7 @@ func (r *RestrictedTokenCreate) Validate(validator structure.Validator) {
 
 func (r *RestrictedTokenCreate) Normalize(normalizer structure.Normalizer) {
 	if r.ExpirationTime != nil {
-		r.ExpirationTime = pointer.Time((*r.ExpirationTime).Truncate(time.Second))
+		r.ExpirationTime = pointer.FromTime((*r.ExpirationTime).Truncate(time.Second))
 	}
 }
 
@@ -96,9 +97,36 @@ func (r *RestrictedTokenUpdate) Validate(validator structure.Validator) {
 
 func (r *RestrictedTokenUpdate) Normalize(normalizer structure.Normalizer) {
 	if r.ExpirationTime != nil {
-		r.ExpirationTime = pointer.Time((*r.ExpirationTime).Truncate(time.Second))
+		r.ExpirationTime = pointer.FromTime((*r.ExpirationTime).Truncate(time.Second))
 	}
 }
+
+func NewRestrictedTokenID() string {
+	return id.Must(id.New(16))
+}
+
+func IsValidRestrictedTokenID(value string) bool {
+	return ValidateRestrictedTokenID(value) == nil
+}
+
+func RestrictedTokenIDValidator(value string, errorReporter structure.ErrorReporter) {
+	errorReporter.ReportError(ValidateRestrictedTokenID(value))
+}
+
+func ValidateRestrictedTokenID(value string) error {
+	if value == "" {
+		return structureValidator.ErrorValueEmpty()
+	} else if !restrictedTokenIDExpression.MatchString(value) {
+		return ErrorValueStringAsRestrictedTokenIDNotValid(value)
+	}
+	return nil
+}
+
+func ErrorValueStringAsRestrictedTokenIDNotValid(value string) error {
+	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as restricted token id", value)
+}
+
+var restrictedTokenIDExpression = regexp.MustCompile("^[0-9a-z]{32}$")
 
 type RestrictedToken struct {
 	ID             string     `json:"id" bson:"id"`
@@ -120,7 +148,7 @@ func NewRestrictedToken(userID string, create *RestrictedTokenCreate) (*Restrict
 	}
 
 	restrictedToken := &RestrictedToken{
-		ID:          id.New(),
+		ID:          NewRestrictedTokenID(),
 		UserID:      userID,
 		Paths:       create.Paths,
 		CreatedTime: time.Now().Truncate(time.Second),
@@ -152,8 +180,8 @@ func (r *RestrictedToken) Parse(parser structure.ObjectParser) {
 }
 
 func (r *RestrictedToken) Validate(validator structure.Validator) {
-	validator.String("id", &r.ID).Using(id.Validate)
-	validator.String("userId", &r.UserID).NotEmpty() // TODO: Further validation
+	validator.String("id", &r.ID).Using(RestrictedTokenIDValidator)
+	validator.String("userId", &r.UserID).Using(user.IDValidator)
 	validator.StringArray("paths", r.Paths).LengthInRange(1, 10).EachMatches(pathExpression)
 	validator.Time("expirationTime", &r.ExpirationTime).Before(time.Now().Add(MaximumExpirationDuration))
 	validator.Time("createdTime", &r.CreatedTime).NotZero().BeforeNow(time.Second)

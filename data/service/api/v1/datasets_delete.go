@@ -4,36 +4,35 @@ import (
 	"net/http"
 
 	dataService "github.com/tidepool-org/platform/data/service"
-	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/user"
 )
 
-func DatasetsDelete(dataServiceContext dataService.Context) {
+func DataSetsDelete(dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	lgr := log.LoggerFromContext(ctx)
 
-	datasetID := dataServiceContext.Request().PathParam("dataSetId")
-	if datasetID == "" {
-		dataServiceContext.RespondWithError(ErrorDatasetIDMissing())
+	dataSetID := dataServiceContext.Request().PathParam("dataSetId")
+	if dataSetID == "" {
+		dataServiceContext.RespondWithError(ErrorDataSetIDMissing())
 		return
 	}
 
-	dataset, err := dataServiceContext.DataSession().GetDatasetByID(ctx, datasetID)
+	dataSet, err := dataServiceContext.DataSession().GetDataSetByID(ctx, dataSetID)
 	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to get dataset by id", err)
+		dataServiceContext.RespondWithInternalServerFailure("Unable to get data set by id", err)
 		return
 	}
-	if dataset == nil {
-		dataServiceContext.RespondWithError(ErrorDatasetIDNotFound(datasetID))
+	if dataSet == nil {
+		dataServiceContext.RespondWithError(ErrorDataSetIDNotFound(dataSetID))
 		return
 	}
 
-	targetUserID := dataset.UserID
+	targetUserID := dataSet.UserID
 	if targetUserID == nil || *targetUserID == "" {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to get user id from dataset")
+		dataServiceContext.RespondWithInternalServerFailure("Unable to get user id from data set")
 		return
 	}
 
@@ -43,7 +42,7 @@ func DatasetsDelete(dataServiceContext dataService.Context) {
 		var permissions user.Permissions
 		permissions, err = dataServiceContext.UserClient().GetUserPermissions(ctx, authUserID, *targetUserID)
 		if err != nil {
-			if errors.Code(err) == request.ErrorCodeUnauthorized {
+			if request.IsErrorUnauthorized(err) {
 				dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 			} else {
 				dataServiceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
@@ -52,7 +51,7 @@ func DatasetsDelete(dataServiceContext dataService.Context) {
 		}
 		if _, ok := permissions[user.OwnerPermission]; !ok {
 			if _, ok = permissions[user.CustodianPermission]; !ok {
-				if _, ok = permissions[user.UploadPermission]; !ok || dataset.ByUser == nil || authUserID != *dataset.ByUser {
+				if _, ok = permissions[user.UploadPermission]; !ok || dataSet.ByUser == nil || authUserID != *dataSet.ByUser {
 					dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 					return
 				}
@@ -60,29 +59,29 @@ func DatasetsDelete(dataServiceContext dataService.Context) {
 		}
 	}
 
-	registered, err := dataServiceContext.DataDeduplicatorFactory().IsRegisteredWithDataset(dataset)
+	registered, err := dataServiceContext.DataDeduplicatorFactory().IsRegisteredWithDataSet(dataSet)
 	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to check if registered with dataset", err)
+		dataServiceContext.RespondWithInternalServerFailure("Unable to check if registered with data set", err)
 		return
 	}
 
 	if registered {
-		deduplicator, newErr := dataServiceContext.DataDeduplicatorFactory().NewRegisteredDeduplicatorForDataset(lgr, dataServiceContext.DataSession(), dataset)
+		deduplicator, newErr := dataServiceContext.DataDeduplicatorFactory().NewRegisteredDeduplicatorForDataSet(lgr, dataServiceContext.DataSession(), dataSet)
 		if newErr != nil {
-			dataServiceContext.RespondWithInternalServerFailure("Unable to create registered deduplicator for dataset", newErr)
+			dataServiceContext.RespondWithInternalServerFailure("Unable to create registered deduplicator for data set", newErr)
 			return
 		}
-		err = deduplicator.DeleteDataset(ctx)
+		err = deduplicator.DeleteDataSet(ctx)
 	} else {
-		err = dataServiceContext.DataSession().DeleteDataset(ctx, dataset)
+		err = dataServiceContext.DataSession().DeleteDataSet(ctx, dataSet)
 	}
 
 	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to delete dataset", err)
+		dataServiceContext.RespondWithInternalServerFailure("Unable to delete data set", err)
 		return
 	}
 
-	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "datasets_delete"); err != nil {
+	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_delete"); err != nil {
 		lgr.WithError(err).Error("Unable to record metric")
 	}
 

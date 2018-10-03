@@ -87,7 +87,7 @@ var _ = Describe("Blob", func() {
 
 				It("sets empty value for the key", func() {
 					datum.Set(key, "")
-					Expect((*datum)[key]).To(Equal(""))
+					Expect((*datum)[key]).To(BeEmpty())
 				})
 
 				It("sets new value for the key", func() {

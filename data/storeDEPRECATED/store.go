@@ -2,33 +2,33 @@ package storeDEPRECATED
 
 import (
 	"context"
+	"io"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/page"
-	"github.com/tidepool-org/platform/store"
 	"github.com/tidepool-org/platform/structure"
 )
 
 type Store interface {
-	store.Store
+	Status() interface{}
 
 	NewDataSession() DataSession
 }
 
 type DataSession interface {
-	store.Session
+	io.Closer
 
-	GetDatasetsForUserByID(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) ([]*upload.Upload, error)
-	GetDatasetByID(ctx context.Context, datasetID string) (*upload.Upload, error)
-	CreateDataset(ctx context.Context, dataset *upload.Upload) error
+	GetDataSetsForUserByID(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) ([]*upload.Upload, error)
+	GetDataSetByID(ctx context.Context, dataSetID string) (*upload.Upload, error)
+	CreateDataSet(ctx context.Context, dataSet *upload.Upload) error
 	UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*upload.Upload, error)
-	DeleteDataset(ctx context.Context, dataset *upload.Upload) error
-	CreateDatasetData(ctx context.Context, dataset *upload.Upload, datasetData []data.Datum) error
-	ActivateDatasetData(ctx context.Context, dataset *upload.Upload) error
-	ArchiveDeviceDataUsingHashesFromDataset(ctx context.Context, dataset *upload.Upload) error
-	UnarchiveDeviceDataUsingHashesFromDataset(ctx context.Context, dataset *upload.Upload) error
-	DeleteOtherDatasetData(ctx context.Context, dataset *upload.Upload) error
+	DeleteDataSet(ctx context.Context, dataSet *upload.Upload) error
+	CreateDataSetData(ctx context.Context, dataSet *upload.Upload, dataSetData []data.Datum) error
+	ActivateDataSetData(ctx context.Context, dataSet *upload.Upload) error
+	ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *upload.Upload) error
+	UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *upload.Upload) error
+	DeleteOtherDataSetData(ctx context.Context, dataSet *upload.Upload) error
 	DestroyDataForUserByID(ctx context.Context, userID string) error
 
 	ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error)

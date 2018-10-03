@@ -5,14 +5,13 @@ import (
 
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
-	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/user"
 )
 
-func UsersDatasetsGet(dataServiceContext dataService.Context) {
+func UsersDataSetsGet(dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 
 	targetUserID := dataServiceContext.Request().PathParam("userId")
@@ -24,7 +23,7 @@ func UsersDatasetsGet(dataServiceContext dataService.Context) {
 	if details := request.DetailsFromContext(ctx); !details.IsService() {
 		permissions, err := dataServiceContext.UserClient().GetUserPermissions(ctx, details.UserID(), targetUserID)
 		if err != nil {
-			if errors.Code(err) == request.ErrorCodeUnauthorized {
+			if request.IsErrorUnauthorized(err) {
 				dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 			} else {
 				dataServiceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
@@ -44,11 +43,11 @@ func UsersDatasetsGet(dataServiceContext dataService.Context) {
 		return
 	}
 
-	datasets, err := dataServiceContext.DataSession().GetDatasetsForUserByID(ctx, targetUserID, filter, pagination)
+	dataSets, err := dataServiceContext.DataSession().GetDataSetsForUserByID(ctx, targetUserID, filter, pagination)
 	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to get datasets for user", err)
+		dataServiceContext.RespondWithInternalServerFailure("Unable to get data sets for user", err)
 		return
 	}
 
-	dataServiceContext.RespondWithStatusAndData(http.StatusOK, datasets)
+	dataServiceContext.RespondWithStatusAndData(http.StatusOK, dataSets)
 }

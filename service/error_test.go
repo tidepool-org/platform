@@ -89,7 +89,7 @@ var _ = Describe("Error", func() {
 				It("sets an empty parameter", func() {
 					err.WithSourceParameter("")
 					Expect(err.Source).ToNot(BeNil())
-					Expect(err.Source.Parameter).To(Equal(""))
+					Expect(err.Source.Parameter).To(BeEmpty())
 				})
 
 				It("sets the parameter even if parameter is initially missing", func() {
@@ -117,7 +117,7 @@ var _ = Describe("Error", func() {
 				It("sets an empty pointer", func() {
 					err.WithSourcePointer("")
 					Expect(err.Source).ToNot(BeNil())
-					Expect(err.Source.Pointer).To(Equal(""))
+					Expect(err.Source.Pointer).To(BeEmpty())
 				})
 
 				It("sets the pointer even if pointer is initially missing", func() {

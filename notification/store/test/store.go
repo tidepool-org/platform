@@ -2,19 +2,15 @@ package test
 
 import (
 	"github.com/tidepool-org/platform/notification/store"
-	testStore "github.com/tidepool-org/platform/store/test"
 )
 
 type Store struct {
-	*testStore.Store
 	NewNotificationsSessionInvocations int
 	NewNotificationsSessionOutputs     []store.NotificationsSession
 }
 
 func NewStore() *Store {
-	return &Store{
-		Store: testStore.NewStore(),
-	}
+	return &Store{}
 }
 
 func (s *Store) NewNotificationsSession() store.NotificationsSession {

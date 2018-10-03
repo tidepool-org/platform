@@ -4,27 +4,20 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"time"
-
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/store/mongo"
 	nullLog "github.com/tidepool-org/platform/log/null"
-	storeMongo "github.com/tidepool-org/platform/store/mongo"
-	testMongo "github.com/tidepool-org/platform/test/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
+	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 )
 
 var _ = Describe("Store", func() {
-	var cfg *storeMongo.Config
+	var cfg *storeStructuredMongo.Config
 	var str *mongo.Store
 	var ssn store.DataSourceSession
 
 	BeforeEach(func() {
-		cfg = &storeMongo.Config{
-			Addresses:        []string{testMongo.Address()},
-			Database:         testMongo.Database(),
-			CollectionPrefix: testMongo.NewCollectionPrefix(),
-			Timeout:          5 * time.Second,
-		}
+		cfg = storeStructuredMongoTest.NewConfig()
 	})
 
 	AfterEach(func() {

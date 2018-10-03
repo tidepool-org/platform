@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/tidepool-org/platform/application"
 	confirmationMongo "github.com/tidepool-org/platform/confirmation/store/mongo"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/errors"
@@ -13,7 +14,7 @@ import (
 	"github.com/tidepool-org/platform/service/server"
 	"github.com/tidepool-org/platform/service/service"
 	sessionMongo "github.com/tidepool-org/platform/session/store/mongo"
-	baseMongo "github.com/tidepool-org/platform/store/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/user"
 	userClient "github.com/tidepool-org/platform/user/client"
 	"github.com/tidepool-org/platform/user/service/api"
@@ -36,19 +37,14 @@ type Standard struct {
 	server            *server.Standard
 }
 
-func NewStandard(prefix string) (*Standard, error) {
-	svc, err := service.NewDEPRECATEDService(prefix)
-	if err != nil {
-		return nil, err
-	}
-
+func NewStandard() *Standard {
 	return &Standard{
-		DEPRECATEDService: svc,
-	}, nil
+		DEPRECATEDService: service.NewDEPRECATEDService(),
+	}
 }
 
-func (s *Standard) Initialize() error {
-	if err := s.DEPRECATEDService.Initialize(); err != nil {
+func (s *Standard) Initialize(provider application.Provider) error {
+	if err := s.DEPRECATEDService.Initialize(provider); err != nil {
 		return err
 	}
 
@@ -138,7 +134,7 @@ func (s *Standard) initializeDataClient() error {
 
 	s.Logger().Debug("Creating data client")
 
-	clnt, err := dataClient.New(cfg)
+	clnt, err := dataClient.New(cfg, platform.AuthorizeAsService)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data client")
 	}
@@ -158,7 +154,7 @@ func (s *Standard) initializeMetricClient() error {
 
 	s.Logger().Debug("Creating metric client")
 
-	clnt, err := metricClient.New(cfg, s.Name(), s.VersionReporter())
+	clnt, err := metricClient.New(cfg, platform.AuthorizeAsUser, s.Name(), s.VersionReporter())
 	if err != nil {
 		return errors.Wrap(err, "unable to create metric client")
 	}
@@ -178,7 +174,7 @@ func (s *Standard) initializeUserClient() error {
 
 	s.Logger().Debug("Creating user client")
 
-	clnt, err := userClient.New(cfg)
+	clnt, err := userClient.New(cfg, platform.AuthorizeAsService)
 	if err != nil {
 		return errors.Wrap(err, "unable to create user client")
 	}
@@ -190,7 +186,7 @@ func (s *Standard) initializeUserClient() error {
 func (s *Standard) initializeConfirmationStore() error {
 	s.Logger().Debug("Loading confirmation store config")
 
-	confirmationStoreConfig := baseMongo.NewConfig()
+	confirmationStoreConfig := storeStructuredMongo.NewConfig()
 	if err := confirmationStoreConfig.Load(s.ConfigReporter().WithScopes("confirmation", "store")); err != nil {
 		return errors.Wrap(err, "unable to load confirmation store config")
 	}
@@ -209,7 +205,7 @@ func (s *Standard) initializeConfirmationStore() error {
 func (s *Standard) initializeMessageStore() error {
 	s.Logger().Debug("Loading message store config")
 
-	messageStoreConfig := baseMongo.NewConfig()
+	messageStoreConfig := storeStructuredMongo.NewConfig()
 	if err := messageStoreConfig.Load(s.ConfigReporter().WithScopes("message", "store")); err != nil {
 		return errors.Wrap(err, "unable to load message store config")
 	}
@@ -247,7 +243,7 @@ func (s *Standard) initializePermissionStore() error {
 func (s *Standard) initializeProfileStore() error {
 	s.Logger().Debug("Loading profile store config")
 
-	profileStoreConfig := baseMongo.NewConfig()
+	profileStoreConfig := storeStructuredMongo.NewConfig()
 	if err := profileStoreConfig.Load(s.ConfigReporter().WithScopes("profile", "store")); err != nil {
 		return errors.Wrap(err, "unable to load profile store config")
 	}
@@ -266,7 +262,7 @@ func (s *Standard) initializeProfileStore() error {
 func (s *Standard) initializeSessionStore() error {
 	s.Logger().Debug("Loading session store config")
 
-	sessionStoreConfig := baseMongo.NewConfig()
+	sessionStoreConfig := storeStructuredMongo.NewConfig()
 	if err := sessionStoreConfig.Load(s.ConfigReporter().WithScopes("session", "store")); err != nil {
 		return errors.Wrap(err, "unable to load session store config")
 	}

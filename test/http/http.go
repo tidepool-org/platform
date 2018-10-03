@@ -144,7 +144,7 @@ func NewHeaderKey() string {
 }
 
 func NewHeaderValue() string {
-	return test.NewVariableString(0, 15, CharsetValue)
+	return test.NewVariableString(1, 16, CharsetValue)
 }
 
 func NewParameterKey() string {
@@ -152,7 +152,7 @@ func NewParameterKey() string {
 }
 
 func NewParameterValue() string {
-	return test.NewVariableString(0, 15, CharsetValue)
+	return test.NewVariableString(1, 16, CharsetValue)
 }
 
 func NewUserAgent() string {
@@ -168,8 +168,8 @@ func NewStatusCode() int {
 }
 
 func NewRequest() *http.Request {
-	request, err := http.NewRequest(NewMethod(), NewAddress(), nil)
+	req, err := http.NewRequest(NewMethod(), NewAddress(), nil)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
-	gomega.Expect(request).ToNot(gomega.BeNil())
-	return request
+	gomega.Expect(req).ToNot(gomega.BeNil())
+	return req
 }

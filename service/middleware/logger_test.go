@@ -54,7 +54,7 @@ var _ = Describe("Logger", func() {
 			AfterEach(func() {
 				Expect(req.Env["LOGGER"]).To(BeNil())
 				Expect(log.LoggerFromContext(req.Context())).To(BeNil())
-				res.Expectations()
+				res.AssertOutputsEmpty()
 			})
 
 			It("is successful", func() {

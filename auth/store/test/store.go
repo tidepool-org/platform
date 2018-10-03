@@ -2,11 +2,9 @@ package test
 
 import (
 	"github.com/tidepool-org/platform/auth/store"
-	testStore "github.com/tidepool-org/platform/store/test"
 )
 
 type Store struct {
-	*testStore.Store
 	NewProviderSessionSessionInvocations int
 	NewProviderSessionSessionImpl        *ProviderSessionSession
 	NewRestrictedTokenSessionInvocations int
@@ -15,7 +13,6 @@ type Store struct {
 
 func NewStore() *Store {
 	return &Store{
-		Store: testStore.NewStore(),
 		NewProviderSessionSessionImpl: NewProviderSessionSession(),
 		NewRestrictedTokenSessionImpl: NewRestrictedTokenSession(),
 	}
@@ -32,7 +29,6 @@ func (s *Store) NewRestrictedTokenSession() store.RestrictedTokenSession {
 }
 
 func (s *Store) Expectations() {
-	s.Store.Expectations()
 	s.NewProviderSessionSessionImpl.Expectations()
 	s.NewRestrictedTokenSessionImpl.Expectations()
 }

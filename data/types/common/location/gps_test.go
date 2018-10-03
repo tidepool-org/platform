@@ -59,24 +59,24 @@ var _ = Describe("GPS", func() {
 				),
 				Entry("elevation valid",
 					func(datum *location.GPS) {
-						datum.Elevation = testDataTypesCommonLocation.NewElevation(pointer.String("feet"))
+						datum.Elevation = testDataTypesCommonLocation.NewElevation(pointer.FromString("feet"))
 					},
 				),
 				Entry("floor missing",
 					func(datum *location.GPS) { datum.Floor = nil },
 				),
 				Entry("floor out of range (lower)",
-					func(datum *location.GPS) { datum.Floor = pointer.Int(-1001) },
+					func(datum *location.GPS) { datum.Floor = pointer.FromInt(-1001) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-1001, -1000, 1000), "/floor"),
 				),
 				Entry("floor in range (lower)",
-					func(datum *location.GPS) { datum.Floor = pointer.Int(0) },
+					func(datum *location.GPS) { datum.Floor = pointer.FromInt(0) },
 				),
 				Entry("floor in range (upper)",
-					func(datum *location.GPS) { datum.Floor = pointer.Int(1000) },
+					func(datum *location.GPS) { datum.Floor = pointer.FromInt(1000) },
 				),
 				Entry("floor out of range (upper)",
-					func(datum *location.GPS) { datum.Floor = pointer.Int(1001) },
+					func(datum *location.GPS) { datum.Floor = pointer.FromInt(1001) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(1001, -1000, 1000), "/floor"),
 				),
 				Entry("horizontal accuracy missing",
@@ -88,7 +88,7 @@ var _ = Describe("GPS", func() {
 				),
 				Entry("horizontal accuracy valid",
 					func(datum *location.GPS) {
-						datum.HorizontalAccuracy = testDataTypesCommonLocation.NewAccuracy(pointer.String("feet"))
+						datum.HorizontalAccuracy = testDataTypesCommonLocation.NewAccuracy(pointer.FromString("feet"))
 					},
 				),
 				Entry("latitude missing",
@@ -132,13 +132,13 @@ var _ = Describe("GPS", func() {
 				),
 				Entry("vertical accuracy valid",
 					func(datum *location.GPS) {
-						datum.VerticalAccuracy = testDataTypesCommonLocation.NewAccuracy(pointer.String("feet"))
+						datum.VerticalAccuracy = testDataTypesCommonLocation.NewAccuracy(pointer.FromString("feet"))
 					},
 				),
 				Entry("multiple errors",
 					func(datum *location.GPS) {
 						datum.Elevation.Units = nil
-						datum.Floor = pointer.Int(-1001)
+						datum.Floor = pointer.FromInt(-1001)
 						datum.HorizontalAccuracy.Units = nil
 						datum.Latitude.Units = nil
 						datum.Longitude.Units = nil

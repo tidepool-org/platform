@@ -8,8 +8,6 @@ import (
 	"github.com/tidepool-org/platform/data/parser"
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/data/types/upload"
-	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
@@ -18,7 +16,7 @@ import (
 	"github.com/tidepool-org/platform/user"
 )
 
-func UsersDatasetsCreate(dataServiceContext dataService.Context) {
+func UsersDataSetsCreate(dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	lgr := log.LoggerFromContext(ctx)
 
@@ -31,7 +29,7 @@ func UsersDatasetsCreate(dataServiceContext dataService.Context) {
 	if details := request.DetailsFromContext(ctx); !details.IsService() {
 		permissions, err := dataServiceContext.UserClient().GetUserPermissions(ctx, details.UserID(), targetUserID)
 		if err != nil {
-			if errors.Code(err) == request.ErrorCodeUnauthorized {
+			if request.IsErrorUnauthorized(err) {
 				dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 			} else {
 				dataServiceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
@@ -65,9 +63,9 @@ func UsersDatasetsCreate(dataServiceContext dataService.Context) {
 	validator := structureValidator.New()
 	normalizer := dataNormalizer.New()
 
-	dataset := upload.ParseUpload(datumParser)
+	dataSet := upload.ParseUpload(datumParser)
 
-	if dataset != nil {
+	if dataSet != nil {
 		datumParser.ProcessNotParsed()
 	}
 
@@ -76,44 +74,43 @@ func UsersDatasetsCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	dataset.Validate(validator)
+	dataSet.Validate(validator)
 	if err = validator.Error(); err != nil {
 		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
 		return
 	}
 
-	dataset.SetUserID(&targetUserID)
+	dataSet.SetUserID(&targetUserID)
 
-	dataset.Normalize(normalizer)
+	dataSet.Normalize(normalizer)
 
 	if err = normalizer.Error(); err != nil {
 		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
 		return
 	}
 
-	dataset.DataState = pointer.String("open") // TODO: Deprecated DataState (after data migration)
-	dataset.ID = pointer.String(id.New())
-	dataset.State = pointer.String("open")
+	dataSet.DataState = pointer.FromString("open") // TODO: Deprecated DataState (after data migration)
+	dataSet.State = pointer.FromString("open")
 
-	if err = dataServiceContext.DataSession().CreateDataset(ctx, dataset); err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to insert dataset", err)
+	if err = dataServiceContext.DataSession().CreateDataSet(ctx, dataSet); err != nil {
+		dataServiceContext.RespondWithInternalServerFailure("Unable to insert data set", err)
 		return
 	}
 
-	deduplicator, err := dataServiceContext.DataDeduplicatorFactory().NewDeduplicatorForDataset(lgr, dataServiceContext.DataSession(), dataset)
+	deduplicator, err := dataServiceContext.DataDeduplicatorFactory().NewDeduplicatorForDataSet(lgr, dataServiceContext.DataSession(), dataSet)
 	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to create deduplicator for dataset", err)
+		dataServiceContext.RespondWithInternalServerFailure("Unable to create deduplicator for data set", err)
 		return
 	}
 
-	if err = deduplicator.RegisterDataset(ctx); err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to register dataset with deduplicator", err)
+	if err = deduplicator.RegisterDataSet(ctx); err != nil {
+		dataServiceContext.RespondWithInternalServerFailure("Unable to register data set with deduplicator", err)
 		return
 	}
 
-	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "users_datasets_create"); err != nil {
+	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "users_data_sets_create"); err != nil {
 		lgr.WithError(err).Error("Unable to record metric")
 	}
 
-	dataServiceContext.RespondWithStatusAndData(http.StatusCreated, dataset)
+	dataServiceContext.RespondWithStatusAndData(http.StatusCreated, dataSet)
 }

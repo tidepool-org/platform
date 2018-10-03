@@ -16,8 +16,8 @@ type Client struct {
 	client *platform.Client
 }
 
-func New(cfg *platform.Config) (*Client, error) {
-	clnt, err := platform.NewClient(cfg)
+func New(cfg *platform.Config, authorizeAs platform.AuthorizeAs) (*Client, error) {
+	clnt, err := platform.NewClient(cfg, authorizeAs)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func (c *Client) ListTasks(ctx context.Context, filter *task.TaskFilter, paginat
 
 	url := c.client.ConstructURL("v1", "tasks")
 	tsks := task.Tasks{}
-	if err := c.client.SendRequestAsServer(ctx, http.MethodGet, url, []request.Mutator{filter, pagination}, nil, &tsks); err != nil {
+	if err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{filter, pagination}, nil, &tsks); err != nil {
 		return nil, err
 	}
 
@@ -63,7 +63,7 @@ func (c *Client) CreateTask(ctx context.Context, create *task.TaskCreate) (*task
 
 	url := c.client.ConstructURL("v1", "tasks")
 	tsk := &task.Task{}
-	if err := c.client.SendRequestAsServer(ctx, http.MethodPost, url, nil, create, tsk); err != nil {
+	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, create, tsk); err != nil {
 		return nil, err
 	}
 
@@ -80,8 +80,8 @@ func (c *Client) GetTask(ctx context.Context, id string) (*task.Task, error) {
 
 	url := c.client.ConstructURL("v1", "tasks", id)
 	tsk := &task.Task{}
-	if err := c.client.SendRequestAsServer(ctx, http.MethodGet, url, nil, nil, tsk); err != nil {
-		if errors.Code(err) == request.ErrorCodeResourceNotFound {
+	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, tsk); err != nil {
+		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
 		}
 		return nil, err
@@ -105,8 +105,8 @@ func (c *Client) UpdateTask(ctx context.Context, id string, update *task.TaskUpd
 
 	url := c.client.ConstructURL("v1", "tasks", id)
 	tsk := &task.Task{}
-	if err := c.client.SendRequestAsServer(ctx, http.MethodPut, url, nil, update, tsk); err != nil {
-		if errors.Code(err) == request.ErrorCodeResourceNotFound {
+	if err := c.client.RequestData(ctx, http.MethodPut, url, nil, update, tsk); err != nil {
+		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
 		}
 		return nil, err
@@ -124,5 +124,5 @@ func (c *Client) DeleteTask(ctx context.Context, id string) error {
 	}
 
 	url := c.client.ConstructURL("v1", "tasks", id)
-	return c.client.SendRequestAsServer(ctx, http.MethodDelete, url, nil, nil, nil)
+	return c.client.RequestData(ctx, http.MethodDelete, url, nil, nil, nil)
 }

@@ -108,7 +108,7 @@ func (t *TestContext) SyncTaskSession() syncTaskStore.SyncTaskSession {
 func (t *TestContext) Expectations() {
 	t.Mock.Expectations()
 	t.MetricClientImpl.Expectations()
-	t.UserClientImpl.Expectations()
+	t.UserClientImpl.AssertOutputsEmpty()
 	t.DataDeduplicatorFactoryImpl.Expectations()
 	t.DataSessionImpl.Expectations()
 	t.SyncTaskSessionImpl.Expectations()

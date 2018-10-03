@@ -7,7 +7,7 @@ import (
 
 	"github.com/urfave/cli"
 
-	"github.com/tidepool-org/platform/application/version"
+	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/tools/tapi/api"
 )
 
@@ -22,24 +22,24 @@ var environmentEndpointMap = map[string]string{
 var _API *api.API
 
 func InitializeApplication() (*cli.App, error) {
-	versionReporter, err := version.NewReporter()
+	versionReporter, err := application.NewVersionReporter()
 	if err != nil {
 		return nil, err
 	}
 
-	application := cli.NewApp()
-	application.Usage = "Command-line interface to interact with the Tidepool API"
-	application.Version = versionReporter.Long()
-	application.Authors = []cli.Author{{Name: "Darin Krauss", Email: "darin@tidepool.org"}}
-	application.Copyright = "Copyright \u00A9 2016, Tidepool Project"
-	application.HideVersion = true
-	application.Commands = wrapCommands(mergeCommands(
+	app := cli.NewApp()
+	app.Usage = "Command-line interface to interact with the Tidepool API"
+	app.Version = versionReporter.Long()
+	app.Authors = []cli.Author{{Name: "Darin Krauss", Email: "darin@tidepool.org"}}
+	app.Copyright = "Copyright \u00A9 2016, Tidepool Project"
+	app.HideVersion = true
+	app.Commands = wrapCommands(mergeCommands(
 		AuthCommands(),
 		UserCommands(),
-		DatasetCommands(),
+		DataSetCommands(),
 		VersionCommands(versionReporter),
 	))
-	return application, nil
+	return app, nil
 }
 
 func initializeAPI(c *cli.Context) (*api.API, error) {

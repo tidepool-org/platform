@@ -15,8 +15,8 @@ package mongo_test
 // 	"github.com/tidepool-org/platform/log/null"
 // 	"github.com/tidepool-org/platform/permission/store"
 // 	"github.com/tidepool-org/platform/permission/store/mongo"
-// 	baseMongo "github.com/tidepool-org/platform/store/mongo"
-// 	testMongo "github.com/tidepool-org/platform/test/mongo"
+// 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
+// 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 // )
 
 // func NewPermission(groupID string, userID string) bson.M {
@@ -52,12 +52,7 @@ package mongo_test
 
 // 	BeforeEach(func() {
 // 		mongoConfig = &mongo.Config{
-// 			Config: &baseMongo.Config{
-// 				Addresses:        []string{testMongo.Address()},
-// 				Database:         testMongo.Database(),
-// 				CollectionPrefix: testMongo.NewCollectionPrefix(),
-// 				Timeout:          5 * time.Second,
-// 			},
+// 			Config: storeStructuredMongoTest.NewConfig(),
 // 			Secret: "secret",
 // 		}
 // 	})
@@ -145,7 +140,7 @@ package mongo_test
 // 				var permissions []interface{}
 
 // 				BeforeEach(func() {
-// 					testMongoSession = testMongo.Session().Copy()
+// 					testMongoSession = storeStructuredMongoTest.Session().Copy()
 // 					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.CollectionPrefix + "perms")
 // 					permissions = NewPermissions(id.New())
 // 				})

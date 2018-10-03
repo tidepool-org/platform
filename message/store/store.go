@@ -2,18 +2,15 @@ package store
 
 import (
 	"context"
-
-	"github.com/tidepool-org/platform/store"
+	"io"
 )
 
 type Store interface {
-	store.Store
-
 	NewMessagesSession() MessagesSession
 }
 
 type MessagesSession interface {
-	store.Session
+	io.Closer
 
 	DeleteMessagesFromUser(ctx context.Context, user *User) error
 	DestroyMessagesForUserByID(ctx context.Context, userID string) error

@@ -17,7 +17,7 @@ import (
 
 func NewDisplay() *pump.Display {
 	datum := pump.NewDisplay()
-	datum.Units = pointer.String(test.RandomStringFromArray(pump.DisplayUnits()))
+	datum.Units = pointer.FromString(test.RandomStringFromArray(pump.DisplayUnits()))
 	return datum
 }
 
@@ -73,14 +73,14 @@ var _ = Describe("Display", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units invalid",
-					func(datum *pump.Display) { datum.Units = pointer.String("invalid") },
+					func(datum *pump.Display) { datum.Units = pointer.FromString("invalid") },
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mg/dL", "mmol/L"}), "/units"),
 				),
 				Entry("units mg/dL",
-					func(datum *pump.Display) { datum.Units = pointer.String("mg/dL") },
+					func(datum *pump.Display) { datum.Units = pointer.FromString("mg/dL") },
 				),
 				Entry("units mmol/L",
-					func(datum *pump.Display) { datum.Units = pointer.String("mmol/L") },
+					func(datum *pump.Display) { datum.Units = pointer.FromString("mmol/L") },
 				),
 				Entry("multiple errors",
 					func(datum *pump.Display) {

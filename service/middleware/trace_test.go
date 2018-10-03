@@ -4,6 +4,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"net/http"
+
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/log"
@@ -37,6 +39,7 @@ var _ = Describe("Trace", func() {
 			Expect(traceMiddleware).ToNot(BeNil())
 			req = testRest.NewRequest()
 			res = testRest.NewResponseWriter()
+			res.HeaderOutput = &http.Header{}
 			traceRequest = testRequest.NewTraceRequest()
 			req.Request.Header.Set("X-Tidepool-Trace-Request", traceRequest)
 			traceSession = testRequest.NewTraceSession()
@@ -44,7 +47,7 @@ var _ = Describe("Trace", func() {
 		})
 
 		AfterEach(func() {
-			res.Expectations()
+			res.AssertOutputsEmpty()
 		})
 
 		Context("without logger", func() {

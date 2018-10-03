@@ -4,11 +4,16 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"encoding/json"
+	"net/http"
+
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/auth/service"
 	"github.com/tidepool-org/platform/auth/service/api"
 	testService "github.com/tidepool-org/platform/auth/service/test"
+	"github.com/tidepool-org/platform/log"
+	logNull "github.com/tidepool-org/platform/log/null"
 	testRest "github.com/tidepool-org/platform/test/rest"
 )
 
@@ -21,6 +26,7 @@ var _ = Describe("StatusGet", func() {
 	BeforeEach(func() {
 		response = testRest.NewResponseWriter()
 		request = testRest.NewRequest()
+		request.Request = request.WithContext(log.NewContextWithLogger(request.Context(), logNull.NewLogger()))
 		svc = testService.NewService()
 		var err error
 		rtr, err = api.NewRouter(svc)
@@ -30,7 +36,7 @@ var _ = Describe("StatusGet", func() {
 
 	AfterEach(func() {
 		svc.Expectations()
-		response.Expectations()
+		response.AssertOutputsEmpty()
 	})
 
 	Context("StatusGet", func() {
@@ -48,14 +54,14 @@ var _ = Describe("StatusGet", func() {
 			BeforeEach(func() {
 				sts = &service.Status{}
 				svc.StatusOutputs = []*service.Status{sts}
-				response.WriteJsonOutputs = []error{nil}
+				response.HeaderOutput = &http.Header{}
 				response.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 			})
 
 			It("returns successfully", func() {
 				rtr.StatusGet(response, request)
-				Expect(response.WriteJsonInputs).To(HaveLen(1))
-				Expect(response.WriteJsonInputs[0]).To(Equal(sts))
+				Expect(response.WriteInputs).To(HaveLen(1))
+				Expect(json.Marshal(sts)).To(MatchJSON(response.WriteInputs[0]))
 			})
 		})
 	})

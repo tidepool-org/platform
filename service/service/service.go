@@ -17,19 +17,14 @@ type Service struct {
 	server         *server.Standard
 }
 
-func New(prefix string) (*Service, error) {
-	app, err := application.New(prefix, "service")
-	if err != nil {
-		return nil, err
-	}
-
+func New() *Service {
 	return &Service{
-		Application: app,
-	}, nil
+		Application: application.New(),
+	}
 }
 
-func (s *Service) Initialize() error {
-	if err := s.Application.Initialize(); err != nil {
+func (s *Service) Initialize(provider application.Provider) error {
+	if err := s.Application.Initialize(provider); err != nil {
 		return err
 	}
 

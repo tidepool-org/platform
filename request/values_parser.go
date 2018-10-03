@@ -1,7 +1,6 @@
 package request
 
 import (
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -13,15 +12,15 @@ import (
 
 type Values struct {
 	base   *structureBase.Base
-	values *url.Values
+	values *map[string][]string
 	parsed map[string]int
 }
 
-func NewValues(values *url.Values) *Values {
+func NewValues(values *map[string][]string) *Values {
 	return NewValuesParser(structureBase.New().WithSource(structure.NewParameterSource()), values)
 }
 
-func NewValuesParser(base *structureBase.Base, values *url.Values) *Values {
+func NewValuesParser(base *structureBase.Base, values *map[string][]string) *Values {
 	var parsed map[string]int
 	if values != nil {
 		parsed = make(map[string]int, len(*values))
