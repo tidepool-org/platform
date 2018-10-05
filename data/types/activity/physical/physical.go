@@ -240,7 +240,7 @@ func (p *Physical) Validate(validator structure.Validator) {
 
 	validator.String("activityType", p.ActivityType).OneOf(ActivityTypes()...)
 	if p.ActivityType != nil && *p.ActivityType == ActivityTypeOther {
-		validator.String("activityTypeOther", p.ActivityTypeOther).Exists().NotEmpty().LengthLessThanOrEqualTo(ActivityTypeOtherLengthMaximum)
+		validator.String("activityTypeOther", p.ActivityTypeOther).NotEmpty().LengthLessThanOrEqualTo(ActivityTypeOtherLengthMaximum)
 	} else {
 		validator.String("activityTypeOther", p.ActivityTypeOther).NotExists()
 	}
