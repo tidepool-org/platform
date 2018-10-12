@@ -298,6 +298,19 @@ var _ = Describe("Food", func() {
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/mealOther", NewMeta()),
 				),
+				Entry("meal rescuecarbs; meal other missing",
+					func(datum *food.Food) {
+						datum.Meal = pointer.FromString("rescuecarbs")
+						datum.MealOther = nil
+					},
+				),
+				Entry("meal rescuecarbs; meal other exists",
+					func(datum *food.Food) {
+						datum.Meal = pointer.FromString("rescuecarbs")
+						datum.MealOther = pointer.FromString(test.NewText(1, 100))
+					},
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/mealOther", NewMeta()),
+				),
 				Entry("name missing",
 					func(datum *food.Food) { datum.Name = nil },
 				),
@@ -339,7 +352,7 @@ var _ = Describe("Food", func() {
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/brand", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/code", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/ingredients/0", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"breakfast", "dinner", "lunch", "other", "snack"}), "/meal", &types.Meta{Type: "invalidType"}),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"breakfast", "dinner", "lunch", "other", "snack", "rescuecarbs"}), "/meal", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/mealOther", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/name", &types.Meta{Type: "invalidType"}),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/nutrition/carbohydrate/units", &types.Meta{Type: "invalidType"}),
