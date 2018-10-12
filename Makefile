@@ -56,7 +56,7 @@ endif
 
 golint: check-environment
 ifeq ($(shell which golint),)
-	go get -u github.com/golang/lint/golint
+	go get -u golang.org/x/lint/golint
 endif
 
 gocode: check-environment
