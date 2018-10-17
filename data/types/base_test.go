@@ -1,12 +1,12 @@
 package types_test
 
 import (
+	"sort"
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-
-	"sort"
-	"time"
 
 	"github.com/tidepool-org/platform/data"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"

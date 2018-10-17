@@ -1,10 +1,10 @@
 package factory_test
 
 import (
+	"os"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"os"
 
 	awsTest "github.com/tidepool-org/platform/aws/test"
 	configTest "github.com/tidepool-org/platform/config/test"

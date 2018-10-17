@@ -1,14 +1,14 @@
 package unstructured_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"strings"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	blobStoreUnstructured "github.com/tidepool-org/platform/blob/store/unstructured"
 	"github.com/tidepool-org/platform/errors"

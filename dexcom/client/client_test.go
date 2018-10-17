@@ -1,15 +1,15 @@
 package client_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/ghttp"
-
 	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/ghttp"
 
 	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/dexcom"

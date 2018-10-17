@@ -1,10 +1,10 @@
 package parser_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"time"
 
 	"github.com/tidepool-org/platform/errors"
 	testErrors "github.com/tidepool-org/platform/errors/test"

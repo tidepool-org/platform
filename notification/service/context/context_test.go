@@ -1,10 +1,9 @@
 package context_test
 
 import (
+	"github.com/ant0ine/go-json-rest/rest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/notification/service/context"
 	testService "github.com/tidepool-org/platform/notification/service/test"

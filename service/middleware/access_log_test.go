@@ -1,12 +1,11 @@
 package middleware_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	logNull "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/service"
