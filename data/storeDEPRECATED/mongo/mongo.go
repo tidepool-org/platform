@@ -548,6 +548,7 @@ func (d *DataSession) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Contex
 
 	var hashes []string
 	selector := bson.M{
+		"_userId":  dataSet.UserID,
 		"uploadId": dataSet.UploadID,
 		"type":     bson.M{"$ne": "upload"},
 	}

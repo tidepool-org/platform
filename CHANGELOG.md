@@ -1,5 +1,7 @@
 ## HEAD
 
+* Add user id to ArchiveDeviceDataUsingHashesFromDataSet selector to properly use indexes
+
 ## v1.30.0
 
 * Update to Dexcom API v2
