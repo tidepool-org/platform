@@ -1,10 +1,10 @@
 package validator_test
 
 import (
+	"math/rand"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"math/rand"
 
 	"github.com/tidepool-org/platform/pointer"
 	testStructure "github.com/tidepool-org/platform/structure/test"

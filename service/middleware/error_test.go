@@ -1,10 +1,9 @@
 package middleware_test
 
 import (
+	"github.com/ant0ine/go-json-rest/rest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/request"
 	serviceMiddleware "github.com/tidepool-org/platform/service/middleware"

@@ -1,10 +1,10 @@
 package file_test
 
 import (
+	"os"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"os"
 
 	configTest "github.com/tidepool-org/platform/config/test"
 	storeUnstructuredFile "github.com/tidepool-org/platform/store/unstructured/file"

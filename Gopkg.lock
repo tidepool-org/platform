@@ -237,14 +237,15 @@
   revision = "0c41d7ab0a0ee717d4590a44bcb987dfd9e183eb"
 
 [[projects]]
-  digest = "1:7bed3b51d5574e7ecca8a1de4081e8dc2bd24d1321f61f2daee054fde27885b1"
+  branch = "master"
+  digest = "1:711b716e33cd86b5ec7ce62f2b226915092323b6b6c95e1e2df922bec4da3d1b"
   name = "golang.org/x/lint"
   packages = [
     ".",
     "golint",
   ]
   pruneopts = "UT"
-  revision = "06c8688daad7faa9da5a0c2f163a3d14aac986ca"
+  revision = "5906bd5c48cd840279ace88b165057fbbd7fb35a"
 
 [[projects]]
   branch = "master"
@@ -310,7 +311,8 @@
   version = "v0.3.0"
 
 [[projects]]
-  digest = "1:7a7603b3e1668655e95e266aecf0968b424d245c04534a78f34281dda3b5001b"
+  branch = "master"
+  digest = "1:b53e32d9d090ecab635626746251d9ac293b91a08f862ec1085a20961c4e17ea"
   name = "golang.org/x/tools"
   packages = [
     "cmd/goimports",
@@ -320,9 +322,10 @@
     "go/types/typeutil",
     "imports",
     "internal/fastwalk",
+    "internal/gopathwalk",
   ]
   pruneopts = "UT"
-  revision = "7ca132754999accbaa5c1735eda29e7ce0f3bf03"
+  revision = "3e7aa9e59977626dc60433e9aeadf1bb63d28295"
 
 [[projects]]
   digest = "1:6247f76e55a1e1a5c19a81e2d4b4dff6730461eeb5bbb0a16dd4a8ec8637ee93"

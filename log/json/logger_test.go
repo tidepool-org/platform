@@ -1,10 +1,10 @@
 package json_test
 
 import (
+	"io/ioutil"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"io/ioutil"
 
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/log/json"

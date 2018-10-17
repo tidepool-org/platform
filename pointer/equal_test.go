@@ -1,11 +1,11 @@
 package pointer_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-
-	"time"
 
 	"github.com/tidepool-org/platform/pointer"
 )

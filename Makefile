@@ -92,15 +92,15 @@ format-write: check-environment
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 imports: goimports
-	@echo "goimports -d -e"
+	@echo "goimports -d -e -local 'github.com/tidepool-org/platform'"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec goimports -d -e {} \; 2>&1` && \
+		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec goimports -d -e -local 'github.com/tidepool-org/platform' {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 imports-write: goimports
-	@echo "goimports -e -w"
+	@echo "goimports -e -w -local 'github.com/tidepool-org/platform'"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec goimports -e -w {} \; 2>&1` && \
+		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec goimports -e -w -local 'github.com/tidepool-org/platform' {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 vet: check-environment tmp

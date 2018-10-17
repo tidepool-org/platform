@@ -1,10 +1,6 @@
 package v1_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gstruct"
-
 	"bytes"
 	"context"
 	"encoding/json"
@@ -16,6 +12,9 @@ import (
 	"strconv"
 
 	"github.com/ant0ine/go-json-rest/rest"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 
 	"github.com/tidepool-org/platform/blob"
 	blobServiceAPIV1 "github.com/tidepool-org/platform/blob/service/api/v1"

@@ -1,10 +1,10 @@
 package structure_test
 
 import (
+	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"fmt"
 
 	"github.com/tidepool-org/platform/structure"
 	testStructure "github.com/tidepool-org/platform/structure/test"

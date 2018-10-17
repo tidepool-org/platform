@@ -1,12 +1,11 @@
 package mongo_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"context"
 	"math/rand"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
