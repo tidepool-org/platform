@@ -1,41 +1,4 @@
 required = ["github.com/githubnemo/CompileDaemon", "github.com/mjibson/esc", "github.com/onsi/ginkgo/ginkgo", "golang.org/x/lint/golint", "golang.org/x/tools/cmd/goimports"]
-ignored = ["google.golang.org/appengine/urlfetch"]
-
-[[constraint]]
-  name = "github.com/ant0ine/go-json-rest"
-  version = "3.3.2"
-
-[[constraint]]
-  name = "github.com/aws/aws-sdk-go"
-  version = "1.14.1"
-
-[[constraint]]
-  name = "github.com/blang/semver"
-  version = "3.5.1"
-
-[[constraint]]
-  name = "github.com/dgrijalva/jwt-go"
-  version = "3.2.0"
-
-[[constraint]]
-  name = "github.com/onsi/ginkgo"
-  version = "1.5.0"
-
-[[constraint]]
-  name = "github.com/onsi/gomega"
-  version = "1.4.0"
-
-[[constraint]]
-  name = "github.com/urfave/cli"
-  version = "1.20.0"
-
-[[constraint]]
-  branch = "v2"
-  name = "gopkg.in/mgo.v2"
-
-[[constraint]]
-  name = "gopkg.in/tylerb/graceful.v1"
-  version = "1.2.15"
 
 [[constraint]]
   name = "golang.org/x/lint"
@@ -44,6 +7,10 @@ ignored = ["google.golang.org/appengine/urlfetch"]
 [[constraint]]
   name = "golang.org/x/tools"
   revision = "7ca132754999accbaa5c1735eda29e7ce0f3bf03"
+
+[[override]]
+  name = "gopkg.in/fsnotify.v1"
+  source = "gopkg.in/fsnotify/fsnotify.v1"
 
 [prune]
   go-tests = true
