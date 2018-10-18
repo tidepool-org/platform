@@ -1,5 +1,6 @@
 ## HEAD
 
+* Update dependencies
 * Update to Go 1.11.1
 * Add user id to ArchiveDeviceDataUsingHashesFromDataSet selector to properly use indexes
 
