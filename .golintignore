@@ -9,8 +9,8 @@
 ./data/data_set.go:219:6: type name will be used as data.DataSetUpdate by other packages, and that stutters; consider calling this SetUpdate
 ./data/data_set.go:287:6: type name will be used as data.DataSet by other packages, and that stutters; consider calling this Set
 ./data/data_set.go:329:6: type name will be used as data.DataSets by other packages, and that stutters; consider calling this Sets
-./data/storeDEPRECATED/store.go:1:1: don't use MixedCaps in package name; storeDEPRECATED should be storedeprecated
 ./data/storeDEPRECATED/storeDEPRECATED_suite_test.go:1:1: don't use MixedCaps in package name; storeDEPRECATED_test should be storedeprecated_test
+./data/storeDEPRECATED/store.go:1:1: don't use MixedCaps in package name; storeDEPRECATED should be storedeprecated
 ./data/storeDEPRECATED/store_test.go:1:1: don't use MixedCaps in package name; storeDEPRECATED_test should be storedeprecated_test
 ./data/types/common/association/association.go:77:6: type name will be used as association.AssociationArray by other packages, and that stutters; consider calling this Array
 ./data/types/device/alarm/alarm.go:25:6: func name will be used as alarm.AlarmTypes by other packages, and that stutters; consider calling this Types

@@ -44,51 +44,32 @@ endif
 
 check-environment: check-gopath
 
-godep: check-environment
-ifeq ($(shell which godep),)
-	go get -u github.com/tools/godep
-endif
-
-goimports: check-environment
-ifeq ($(shell which goimports),)
-	go get -u golang.org/x/tools/cmd/goimports
-endif
-
-golint: check-environment
-ifeq ($(shell which golint),)
-	go get -u github.com/golang/lint/golint
-endif
-
-gocode: check-environment
-ifeq ($(shell which gocode),)
-	go get -u github.com/nsf/gocode
-endif
-
-godef: check-environment
-ifeq ($(shell which godef),)
-	go get -u github.com/rogpeppe/godef
-endif
-
 CompileDaemon: check-environment
 ifeq ($(shell which CompileDaemon),)
-	go get -u github.com/githubnemo/CompileDaemon
+	cd vendor/github.com/githubnemo/CompileDaemon && go install .
 endif
 
 esc: check-environment
 ifeq ($(shell which esc),)
-	go get -u github.com/mjibson/esc
+	cd vendor/github.com/mjibson/esc && go install .
 endif
 
 ginkgo: check-environment
 ifeq ($(shell which ginkgo),)
-	mkdir -p $(REPOSITORY_GOPATH)/src/github.com/onsi/
-	cp -r vendor/github.com/onsi/ginkgo $(REPOSITORY_GOPATH)/src/github.com/onsi/
-	go install github.com/onsi/ginkgo/ginkgo
+	cd vendor/github.com/onsi/ginkgo/ginkgo && go install .
 endif
 
-buildable: goimports golint ginkgo
+goimports: check-environment
+ifeq ($(shell which goimports),)
+	cd vendor/golang.org/x/tools/cmd/goimports && go install .
+endif
 
-editable: buildable gocode godef
+golint: check-environment
+ifeq ($(shell which golint),)
+	cd vendor/golang.org/x/lint/golint && go install .
+endif
+
+buildable: CompileDaemon esc ginkgo goimports golint
 
 generate: check-environment esc
 	@echo "go generate ./..."
@@ -116,6 +97,12 @@ imports: goimports
 		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec goimports -d -e {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
+imports-write: goimports
+	@echo "goimports -e -w"
+	@cd $(ROOT_DIRECTORY) && \
+		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec goimports -e -w {} \; 2>&1` && \
+		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
+
 vet: check-environment tmp
 	@echo "go tool vet -all -shadow -shadowstrict"
 	@cd $(ROOT_DIRECTORY) && \
@@ -128,7 +115,7 @@ vet-ignore:
 lint: golint tmp
 	@echo "golint"
 	@cd $(ROOT_DIRECTORY) && \
-		find . -not -path './vendor/*' -name '*.go' -type f | sort | xargs -I {} golint {} | grep -v 'exported.*should have comment.*or be unexported' 2> _tmp/golint.out > _tmp/golint.out || [ $${?} == 1 ] && \
+		find . -not -path './vendor/*' -name '*.go' -type f | sort -d | xargs -I {} golint {} | grep -v 'exported.*should have comment.*or be unexported' 2> _tmp/golint.out > _tmp/golint.out || [ $${?} == 1 ] && \
 		diff .golintignore _tmp/golint.out || \
 		exit 0
 
@@ -277,7 +264,7 @@ gopath-implode: check-environment
 	cd $(REPOSITORY_GOPATH) && rm -rf bin pkg && find src -not -path "src/$(REPOSITORY_PACKAGE)/*" -type f -delete && find src -not -path "src/$(REPOSITORY_PACKAGE)/*" -type d -empty -delete
 
 .PHONY: default tmp check-gopath check-environment \
-	godep goimports golint gocode godef CompileDaemon ginkgo buildable editable \
+	CompileDaemon esc ginkgo goimports golint buildable \
 	format format-write imports vet vet-ignore lint lint-ignore pre-build build-list build ci-build \
 	service-build service-start service-restart service-restart-all test test-watch ci-test c-test-watch \
 	deploy deploy-services deploy-migrations deploy-tools ci-deploy bundle-deploy \

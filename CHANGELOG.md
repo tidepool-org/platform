@@ -1,5 +1,10 @@
 ## HEAD
 
+* Update tool dependencies
+* Add build tools as additional dependencies
+* Update Makefile to install build tools from vendor directory
+* Update Makefile to remove unused tools
+
 ## v1.29.0
 
 * Allow physical activity other field as optional
