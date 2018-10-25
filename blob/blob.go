@@ -34,7 +34,7 @@ func Statuses() []string {
 
 type Client interface {
 	List(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) (Blobs, error)
-	Create(ctx context.Context, userID string, create *Create) (*Blob, error)
+	Create(ctx context.Context, userID string, content *Content) (*Blob, error)
 	Get(ctx context.Context, id string) (*Blob, error)
 	GetContent(ctx context.Context, id string) (*Content, error)
 	Delete(ctx context.Context, id string, condition *request.Condition) (bool, error)
@@ -70,29 +70,10 @@ func (f *Filter) MutateRequest(req *http.Request) error {
 	return request.NewArrayParametersMutator(parameters).MutateRequest(req)
 }
 
-type Create struct {
-	Body      io.Reader
-	DigestMD5 *string
-	MediaType *string
-}
-
-func NewCreate() *Create {
-	return &Create{}
-}
-
-func (c *Create) Validate(validator structure.Validator) {
-	if c.Body == nil {
-		validator.WithReference("body").ReportError(structureValidator.ErrorValueNotExists())
-	}
-	validator.String("digestMD5", c.DigestMD5).Using(crypto.Base64EncodedMD5HashValidator)
-	validator.String("mediaType", c.MediaType).Exists().Using(net.MediaTypeValidator)
-}
-
 type Content struct {
 	Body      io.ReadCloser
 	DigestMD5 *string
 	MediaType *string
-	Size      *int
 }
 
 func NewContent() *Content {
@@ -103,9 +84,8 @@ func (c *Content) Validate(validator structure.Validator) {
 	if c.Body == nil {
 		validator.WithReference("body").ReportError(structureValidator.ErrorValueNotExists())
 	}
-	validator.String("digestMD5", c.DigestMD5).Exists().Using(crypto.Base64EncodedMD5HashValidator)
+	validator.String("digestMD5", c.DigestMD5).Using(crypto.Base64EncodedMD5HashValidator)
 	validator.String("mediaType", c.MediaType).Exists().Using(net.MediaTypeValidator)
-	validator.Int("size", c.Size).Exists().GreaterThanOrEqualTo(0)
 }
 
 type Blob struct {

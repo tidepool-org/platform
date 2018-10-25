@@ -51,22 +51,22 @@ func (c *Client) List(ctx context.Context, userID string, filter *blob.Filter, p
 	return session.List(ctx, userID, filter, pagination)
 }
 
-func (c *Client) Create(ctx context.Context, userID string, create *blob.Create) (*blob.Blob, error) {
+func (c *Client) Create(ctx context.Context, userID string, content *blob.Content) (*blob.Blob, error) {
 	if _, err := c.AuthClient().EnsureAuthorizedUser(ctx, userID, permission.Write); err != nil {
 		return nil, err
 	}
 
-	if create == nil {
-		return nil, errors.New("create is missing")
-	} else if err := structureValidator.New().Validate(create); err != nil {
-		return nil, errors.Wrap(err, "create is invalid")
+	if content == nil {
+		return nil, errors.New("content is missing")
+	} else if err := structureValidator.New().Validate(content); err != nil {
+		return nil, errors.Wrap(err, "content is invalid")
 	}
 
 	session := c.BlobStructuredStore().NewSession()
 	defer session.Close()
 
 	structuredCreate := blobStoreStructured.NewCreate()
-	structuredCreate.MediaType = pointer.CloneString(create.MediaType)
+	structuredCreate.MediaType = pointer.CloneString(content.MediaType)
 	result, err := session.Create(ctx, userID, structuredCreate)
 	if err != nil {
 		return nil, err
@@ -76,7 +76,7 @@ func (c *Client) Create(ctx context.Context, userID string, create *blob.Create)
 
 	hasher := md5.New()
 	sizer := NewSizeWriter()
-	err = c.BlobUnstructuredStore().Put(ctx, userID, *result.ID, io.TeeReader(io.TeeReader(create.Body, hasher), sizer))
+	err = c.BlobUnstructuredStore().Put(ctx, userID, *result.ID, io.TeeReader(io.TeeReader(content.Body, hasher), sizer))
 	if err != nil {
 		if _, deleteErr := session.Delete(ctx, *result.ID, nil); deleteErr != nil {
 			logger.WithError(deleteErr).Error("Unable to delete blob after failure to put blob content")
@@ -87,14 +87,14 @@ func (c *Client) Create(ctx context.Context, userID string, create *blob.Create)
 	// FUTURE: Consider Digest struct that pulls apart and manages digest
 
 	digestMD5 := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
-	if create.DigestMD5 != nil && *create.DigestMD5 != digestMD5 {
+	if content.DigestMD5 != nil && *content.DigestMD5 != digestMD5 {
 		if _, deleteErr := c.BlobUnstructuredStore().Delete(ctx, userID, *result.ID); deleteErr != nil {
 			logger.WithError(deleteErr).Error("Unable to delete blob content with incorrect MD5 digest")
 		}
 		if _, deleteErr := session.Delete(ctx, *result.ID, nil); deleteErr != nil {
 			logger.WithError(deleteErr).Error("Unable to delete blob with incorrect MD5 digest")
 		}
-		return nil, errors.WithSource(blob.ErrorDigestsNotEqual(*create.DigestMD5, digestMD5), structure.NewPointerSource().WithReference("digestMD5"))
+		return nil, errors.WithSource(blob.ErrorDigestsNotEqual(*content.DigestMD5, digestMD5), structure.NewPointerSource().WithReference("digestMD5"))
 	}
 
 	size := sizer.Size
@@ -105,7 +105,7 @@ func (c *Client) Create(ctx context.Context, userID string, create *blob.Create)
 		if _, deleteErr := session.Delete(ctx, *result.ID, nil); deleteErr != nil {
 			logger.WithError(deleteErr).Error("Unable to delete blob exceeding maximum size")
 		}
-		return nil, errors.WithSource(structureValidator.ErrorValueNotLessThanOrEqualTo(size, blob.SizeMaximum), structure.NewPointerSource().WithReference("size"))
+		return nil, request.ErrorResourceTooLarge()
 	}
 
 	update := blobStoreStructured.NewUpdate()
@@ -150,7 +150,6 @@ func (c *Client) GetContent(ctx context.Context, id string) (*blob.Content, erro
 		Body:      reader,
 		DigestMD5: result.DigestMD5,
 		MediaType: result.MediaType,
-		Size:      result.Size,
 	}, nil
 }
 

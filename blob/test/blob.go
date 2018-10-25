@@ -46,22 +46,12 @@ func NewObjectFromFilter(datum *blob.Filter, objectFormat test.ObjectFormat) map
 	return object
 }
 
-func RandomCreate() *blob.Create {
-	content := test.RandomBytes()
-	datum := &blob.Create{}
-	datum.Body = bytes.NewReader(content)
-	datum.DigestMD5 = pointer.FromString(crypto.Base64EncodedMD5Hash(content))
-	datum.MediaType = pointer.FromString(netTest.RandomMediaType())
-	return datum
-}
-
 func RandomContent() *blob.Content {
 	content := test.RandomBytes()
 	datum := &blob.Content{}
 	datum.Body = ioutil.NopCloser(bytes.NewReader(content))
 	datum.DigestMD5 = pointer.FromString(crypto.Base64EncodedMD5Hash(content))
 	datum.MediaType = pointer.FromString(netTest.RandomMediaType())
-	datum.Size = pointer.FromInt(test.RandomIntFromRange(1, 100*1024*1024))
 	return datum
 }
 

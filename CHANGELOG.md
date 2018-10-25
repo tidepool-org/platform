@@ -1,5 +1,10 @@
 ## HEAD
 
+* Return HTTP status code 413 Request Entity Too Large when blob size exceeds maximum
+* Replace blob.Create with blob.Content
+* Remove blob Content-Length header usage and blob.Content.Size as it does not work with content encoding
+* Update test config reporter for better debugging
+* Fix randomly failing profile mongo test
 * Fix unused tests
 * Fix import ordering due to Golang tool changes
 * Update dependencies

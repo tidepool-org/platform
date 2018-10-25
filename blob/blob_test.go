@@ -255,79 +255,6 @@ var _ = Describe("Blob", func() {
 		})
 	})
 
-	Context("NewCreate", func() {
-		It("returns successfully with default values", func() {
-			create := blob.NewCreate()
-			Expect(create).ToNot(BeNil())
-			Expect(create.Body).To(BeNil())
-			Expect(create.DigestMD5).To(BeNil())
-			Expect(create.MediaType).To(BeNil())
-		})
-	})
-
-	Context("Create", func() {
-		Context("Validate", func() {
-			DescribeTable("validates the datum",
-				func(mutator func(datum *blob.Create), expectedErrors ...error) {
-					datum := blobTest.RandomCreate()
-					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
-				},
-				Entry("succeeds",
-					func(datum *blob.Create) {},
-				),
-				Entry("body missing",
-					func(datum *blob.Create) { datum.Body = nil },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/body"),
-				),
-				Entry("body valid",
-					func(datum *blob.Create) { datum.Body = bytes.NewReader(test.RandomBytes()) },
-				),
-				Entry("digest MD5 missing",
-					func(datum *blob.Create) { datum.DigestMD5 = nil },
-				),
-				Entry("digest MD5 empty",
-					func(datum *blob.Create) { datum.DigestMD5 = pointer.FromString("") },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/digestMD5"),
-				),
-				Entry("digest MD5 invalid",
-					func(datum *blob.Create) { datum.DigestMD5 = pointer.FromString("#") },
-					errorsTest.WithPointerSource(crypto.ErrorValueStringAsBase64EncodedMD5HashNotValid("#"), "/digestMD5"),
-				),
-				Entry("digest MD5 valid",
-					func(datum *blob.Create) {
-						datum.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
-					},
-				),
-				Entry("media type missing",
-					func(datum *blob.Create) { datum.MediaType = nil },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/mediaType"),
-				),
-				Entry("media type empty",
-					func(datum *blob.Create) { datum.MediaType = pointer.FromString("") },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/mediaType"),
-				),
-				Entry("media type invalid",
-					func(datum *blob.Create) { datum.MediaType = pointer.FromString("/") },
-					errorsTest.WithPointerSource(net.ErrorValueStringAsMediaTypeNotValid("/"), "/mediaType"),
-				),
-				Entry("media type valid",
-					func(datum *blob.Create) { datum.MediaType = pointer.FromString(netTest.RandomMediaType()) },
-				),
-				Entry("multiple errors",
-					func(datum *blob.Create) {
-						datum.Body = nil
-						datum.DigestMD5 = pointer.FromString("")
-						datum.MediaType = nil
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/body"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/digestMD5"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/mediaType"),
-				),
-			)
-		})
-	})
-
 	Context("NewContent", func() {
 		It("returns successfully with default values", func() {
 			content := blob.NewContent()
@@ -358,7 +285,6 @@ var _ = Describe("Blob", func() {
 				),
 				Entry("digest MD5 missing",
 					func(datum *blob.Content) { datum.DigestMD5 = nil },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/digestMD5"),
 				),
 				Entry("digest MD5 empty",
 					func(datum *blob.Content) { datum.DigestMD5 = pointer.FromString("") },
@@ -388,28 +314,15 @@ var _ = Describe("Blob", func() {
 				Entry("media type valid",
 					func(datum *blob.Content) { datum.MediaType = pointer.FromString(netTest.RandomMediaType()) },
 				),
-				Entry("size missing",
-					func(datum *blob.Content) { datum.Size = nil },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/size"),
-				),
-				Entry("size out of range (lower)",
-					func(datum *blob.Content) { datum.Size = pointer.FromInt(-1) },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/size"),
-				),
-				Entry("size in range (lower)",
-					func(datum *blob.Content) { datum.Size = pointer.FromInt(0) },
-				),
 				Entry("multiple errors",
 					func(datum *blob.Content) {
 						datum.Body = nil
 						datum.DigestMD5 = pointer.FromString("")
 						datum.MediaType = nil
-						datum.Size = pointer.FromInt(-1)
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/body"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/digestMD5"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/mediaType"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/size"),
 				),
 			)
 		})

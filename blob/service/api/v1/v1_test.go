@@ -358,26 +358,26 @@ var _ = Describe("V1", func() {
 							})
 						})
 
-						Context("with create", func() {
-							var create *blob.Create
+						Context("with content", func() {
+							var content *blob.Content
 
 							BeforeEach(func() {
-								create = blobTest.RandomCreate()
+								content = blobTest.RandomContent()
 							})
 
 							JustBeforeEach(func() {
-								req.Body = ioutil.NopCloser(create.Body)
-								if create.DigestMD5 != nil {
-									req.Header.Add("Digest", fmt.Sprintf("md5=%s", *create.DigestMD5))
+								req.Body = ioutil.NopCloser(content.Body)
+								if content.DigestMD5 != nil {
+									req.Header.Add("Digest", fmt.Sprintf("md5=%s", *content.DigestMD5))
 								}
-								if create.MediaType != nil {
-									req.Header.Add("Content-Type", *create.MediaType)
+								if content.MediaType != nil {
+									req.Header.Add("Content-Type", *content.MediaType)
 								}
 							})
 
 							When("the digest header is invalid", func() {
 								BeforeEach(func() {
-									create.DigestMD5 = pointer.FromString("invalid")
+									content.DigestMD5 = pointer.FromString("invalid")
 								})
 
 								It("responds with bad request and expected error in body", func() {
@@ -391,7 +391,7 @@ var _ = Describe("V1", func() {
 
 							When("the digest header is invalid with multiple values", func() {
 								BeforeEach(func() {
-									req.Header.Add("Digest", fmt.Sprintf("md5=%s", *create.DigestMD5))
+									req.Header.Add("Digest", fmt.Sprintf("md5=%s", *content.DigestMD5))
 								})
 
 								It("responds with bad request and expected error in body", func() {
@@ -405,7 +405,7 @@ var _ = Describe("V1", func() {
 
 							When("the content type header is missing", func() {
 								BeforeEach(func() {
-									create.MediaType = nil
+									content.MediaType = nil
 								})
 
 								It("responds with bad request and expected error in body", func() {
@@ -419,7 +419,7 @@ var _ = Describe("V1", func() {
 
 							When("the content type header is invalid", func() {
 								BeforeEach(func() {
-									create.MediaType = pointer.FromString("/")
+									content.MediaType = pointer.FromString("/")
 								})
 
 								It("responds with bad request and expected error in body", func() {
@@ -433,7 +433,7 @@ var _ = Describe("V1", func() {
 
 							When("the content type header is invalid with multiple values", func() {
 								BeforeEach(func() {
-									req.Header.Add("Content-Type", *create.MediaType)
+									req.Header.Add("Content-Type", *content.MediaType)
 								})
 
 								It("responds with bad request and expected error in body", func() {
@@ -499,17 +499,17 @@ var _ = Describe("V1", func() {
 
 								When("the digest header is not specified", func() {
 									BeforeEach(func() {
-										create.DigestMD5 = nil
+										content.DigestMD5 = nil
 									})
 
 									AfterEach(func() {
 										Expect(client.CreateInputs).To(Equal([]blobTest.CreateInput{{
 											Context: ctx,
 											UserID:  userID,
-											Create: &blob.Create{
-												Body:      ioutil.NopCloser(create.Body),
+											Content: &blob.Content{
+												Body:      ioutil.NopCloser(content.Body),
 												DigestMD5: nil,
-												MediaType: create.MediaType,
+												MediaType: content.MediaType,
 											},
 										}}))
 									})
@@ -522,10 +522,10 @@ var _ = Describe("V1", func() {
 										Expect(client.CreateInputs).To(Equal([]blobTest.CreateInput{{
 											Context: ctx,
 											UserID:  userID,
-											Create: &blob.Create{
-												Body:      ioutil.NopCloser(create.Body),
-												DigestMD5: create.DigestMD5,
-												MediaType: create.MediaType,
+											Content: &blob.Content{
+												Body:      ioutil.NopCloser(content.Body),
+												DigestMD5: content.DigestMD5,
+												MediaType: content.MediaType,
 											},
 										}}))
 									})
@@ -736,16 +736,14 @@ var _ = Describe("V1", func() {
 							content.Body = ioutil.NopCloser(bytes.NewReader(body))
 							content.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
 							content.MediaType = pointer.FromString(netTest.RandomMediaType())
-							content.Size = pointer.FromInt(test.RandomIntFromRange(1, 100*1024*1024))
 							client.GetContentOutputs = []blobTest.GetContentOutput{{Content: content, Error: nil}}
 							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 							handlerFunc(res, req)
 							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
 							Expect(res.WriteInputs).To(Equal([][]byte{body}))
 							Expect(res.HeaderOutput).To(Equal(&http.Header{
-								"Content-Length": []string{strconv.Itoa(*content.Size)},
-								"Content-Type":   []string{*content.MediaType},
-								"Digest":         []string{fmt.Sprintf("MD5=%s", *content.DigestMD5)},
+								"Content-Type": []string{*content.MediaType},
+								"Digest":       []string{fmt.Sprintf("MD5=%s", *content.DigestMD5)},
 							}))
 						})
 					})

@@ -448,6 +448,28 @@ var _ = Describe("Client", func() {
 				})
 			})
 
+			Context("with a too many requests response 413", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
+							RespondWith(http.StatusRequestEntityTooLarge, "NOT JSON", responseHeaders),
+						),
+					)
+				})
+
+				It("returns an error", func() {
+					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
+					errorsTest.ExpectEqual(err, request.ErrorResourceTooLarge())
+					Expect(reader).To(BeNil())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
 			Context("with a too many requests response 429", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
@@ -855,6 +877,27 @@ var _ = Describe("Client", func() {
 				It("returns an error", func() {
 					err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
 					errorsTest.ExpectEqual(err, responseErr)
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with a resource too large response 413", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
+							RespondWith(http.StatusRequestEntityTooLarge, "NOT JSON", responseHeaders),
+						),
+					)
+				})
+
+				It("returns an error", func() {
+					err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
+					errorsTest.ExpectEqual(err, request.ErrorResourceTooLarge())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 			})
