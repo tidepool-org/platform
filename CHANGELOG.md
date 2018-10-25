@@ -1,5 +1,6 @@
 ## HEAD
 
+* Fix unused tests
 * Fix import ordering due to Golang tool changes
 * Update dependencies
 * Update to Go 1.11.1
