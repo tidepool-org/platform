@@ -1,5 +1,6 @@
 ## HEAD
 
+* Update dump users tool to be more generic and usable
 * Return HTTP status code 413 Request Entity Too Large when blob size exceeds maximum
 * Replace blob.Create with blob.Content
 * Remove blob Content-Length header usage and blob.Content.Size as it does not work with content encoding
