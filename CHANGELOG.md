@@ -1,5 +1,6 @@
 ## HEAD
 
+* Fix data set id validation to allow Jellyfish id format
 * Update tool dependencies
 * Add build tools as additional dependencies
 * Update Makefile to install build tools from vendor directory
