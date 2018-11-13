@@ -2,6 +2,7 @@
 
 ## v1.30.0
 
+* Fix Dexcom API v2 edge cases
 * Handle unexpected data from Dexcom API v2
 * Update to Dexcom API v2
 * Capture cgm settings for changed Dexcom API devices

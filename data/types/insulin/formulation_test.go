@@ -64,9 +64,9 @@ var _ = Describe("Formulation", func() {
 					func(datum *insulin.Formulation) {
 						datum.Compounds = nil
 						datum.Simple = testDataTypesInsulin.NewSimple()
-						datum.Simple.Concentration = nil
+						datum.Simple.ActingType = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/simple/concentration"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/simple/actingType"),
 				),
 				Entry("compounds missing; simple valid",
 					func(datum *insulin.Formulation) {
@@ -87,10 +87,10 @@ var _ = Describe("Formulation", func() {
 						datum.Compounds = insulin.NewCompoundArray()
 						*datum.Compounds = append(*datum.Compounds, nil)
 						datum.Simple = testDataTypesInsulin.NewSimple()
-						datum.Simple.Concentration = nil
+						datum.Simple.ActingType = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/compounds"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/simple/concentration"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/simple/actingType"),
 				),
 				Entry("compounds invalid; simple valid",
 					func(datum *insulin.Formulation) {
@@ -110,10 +110,10 @@ var _ = Describe("Formulation", func() {
 					func(datum *insulin.Formulation) {
 						datum.Compounds = testDataTypesInsulin.NewCompoundArray(3)
 						datum.Simple = testDataTypesInsulin.NewSimple()
-						datum.Simple.Concentration = nil
+						datum.Simple.ActingType = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/compounds"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/simple/concentration"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/simple/actingType"),
 				),
 				Entry("compounds valid; simple valid",
 					func(datum *insulin.Formulation) {
@@ -141,11 +141,11 @@ var _ = Describe("Formulation", func() {
 						datum.Compounds = testDataTypesInsulin.NewCompoundArray(3)
 						datum.Name = pointer.FromString("")
 						datum.Simple = testDataTypesInsulin.NewSimple()
-						datum.Simple.Concentration = nil
+						datum.Simple.ActingType = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/compounds"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/name"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/simple/concentration"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/simple/actingType"),
 				),
 			)
 		})

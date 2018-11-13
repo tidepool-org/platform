@@ -204,7 +204,7 @@ func translateAlertScheduleSettingsDaysOfWeekToScheduledAlertDays(daysOfWeek *[]
 	if daysOfWeek == nil {
 		return nil
 	}
-	var days []string
+	days := []string{}
 	for _, dayOfWeek := range *daysOfWeek {
 		days = append(days, translateAlertScheduleSettingsDayOfWeekToScheduledAlertDay(dayOfWeek))
 	}

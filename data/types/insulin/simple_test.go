@@ -102,7 +102,6 @@ var _ = Describe("Simple", func() {
 				),
 				Entry("concentration missing",
 					func(datum *insulin.Simple) { datum.Concentration = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/concentration"),
 				),
 				Entry("concentration invalid",
 					func(datum *insulin.Simple) { datum.Concentration.Units = nil },
@@ -115,11 +114,11 @@ var _ = Describe("Simple", func() {
 					func(datum *insulin.Simple) {
 						datum.ActingType = nil
 						datum.Brand = pointer.FromString("")
-						datum.Concentration = nil
+						datum.Concentration.Units = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/actingType"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/brand"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/concentration"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/concentration/units"),
 				),
 			)
 		})
