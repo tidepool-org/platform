@@ -358,6 +358,23 @@ func (a *AlertScheduleSettings) Parse(parser structure.ObjectParser) {
 }
 
 func (a *AlertScheduleSettings) Validate(validator structure.Validator) {
+	// HACK: Dexcom - force default schedule to use expected startTime and endTime
+	if a.Default != nil && *a.Default {
+		a.StartTime = pointer.FromString(AlertScheduleSettingsStartTimeDefault)
+		a.EndTime = pointer.FromString(AlertScheduleSettingsEndTimeDefault)
+	}
+
+	// HACK: Dexcom - remove empty strings from daysOfWeek
+	if a.DaysOfWeek != nil {
+		daysOfWeek := []string{}
+		for _, dayOfWeek := range *a.DaysOfWeek {
+			if dayOfWeek != "" {
+				daysOfWeek = append(daysOfWeek, dayOfWeek)
+			}
+		}
+		a.DaysOfWeek = pointer.FromStringArray(daysOfWeek)
+	}
+
 	validator = validator.WithMeta(a)
 	validator.Bool("isDefaultSchedule", a.Default).Exists()
 	if a.Default != nil && *a.Default {
