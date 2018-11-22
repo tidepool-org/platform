@@ -1,3 +1,8 @@
+# variables that have to be setup for Docker
+# DOCKER_REGISTRY
+# DOCKER_USERNAME
+# DOCKER_PASSWORD
+
 ROOT_DIRECTORY:=$(realpath $(dir $(realpath $(lastword $(MAKEFILE_LIST)))))
 
 REPOSITORY_GOPATH:=$(word 1, $(subst :, ,$(GOPATH)))
@@ -7,9 +12,9 @@ REPOSITORY_NAME:=$(notdir $(REPOSITORY_PACKAGE))
 ifdef TRAVIS_TAG
 	VERSION_BASE:=$(TRAVIS_TAG)
 else
-	VERSION_BASE:=$(shell git describe --abbrev=0 --tags 2> /dev/null || echo 'v0.0.0')
+	VERSION_BASE:=$(shell git describe --abbrev=0 --tags 2> /dev/null || echo 'dblp.0.0.0')
 endif
-VERSION_BASE:=$(VERSION_BASE:v%=%)
+VERSION_BASE:=$(VERSION_BASE:dblp.%=%)
 VERSION_SHORT_COMMIT:=$(shell git rev-parse --short HEAD)
 VERSION_FULL_COMMIT:=$(shell git rev-parse HEAD)
 VERSION_PACKAGE:=$(REPOSITORY_PACKAGE)/application
@@ -20,7 +25,7 @@ FIND_MAIN_CMD:=find . -path './$(BUILD)*' -not -path './vendor/*' -name '*.go' -
 TRANSFORM_GO_BUILD_CMD:=sed 's|\.\(.*\)\(/[^/]*\)/[^/]*|_bin\1\2\2 .\1\2/.|'
 GO_BUILD_CMD:=go build $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -o
 
-ifeq ($(TRAVIS_BRANCH),master)
+ifeq ($(TRAVIS_BRANCH),dblp)
 ifeq ($(TRAVIS_PULL_REQUEST_BRANCH),)
 	DOCKER:=true
 endif
@@ -28,7 +33,7 @@ else ifdef TRAVIS_TAG
 	DOCKER:=true
 endif
 ifdef DOCKER_FILE
-	DOCKER_REPOSITORY:="tidepool/$(REPOSITORY_NAME)-$(patsubst .%,%,$(suffix $(DOCKER_FILE)))"
+	DOCKER_REPOSITORY:="${DOCKER_REGISTRY}/mdblp/$(REPOSITORY_NAME)-$(patsubst .%,%,$(suffix $(DOCKER_FILE)))"
 endif
 
 default: test
@@ -222,7 +227,7 @@ endif
 
 docker:
 ifdef DOCKER
-	@echo "$(DOCKER_PASSWORD)" | docker login --username "$(DOCKER_USERNAME)" --password-stdin
+	@echo $(DOCKER_PASSWORD) | docker login --username "$(DOCKER_USERNAME)" --password-stdin $(DOCKER_REGISTRY)
 	@cd $(ROOT_DIRECTORY) && for DOCKER_FILE in $(shell ls -1 Dockerfile.*); do $(MAKE) docker-build DOCKER_FILE="$${DOCKER_FILE}"; done
 	@cd $(ROOT_DIRECTORY) && for DOCKER_FILE in $(shell ls -1 Dockerfile.*); do $(MAKE) docker-push DOCKER_FILE="$${DOCKER_FILE}"; done
 endif
@@ -233,7 +238,7 @@ ifdef DOCKER_FILE
 	@docker build --tag "$(DOCKER_REPOSITORY):development" --target=development --file "$(DOCKER_FILE)" .
 	@docker build --tag "$(DOCKER_REPOSITORY)" --file "$(DOCKER_FILE)" .
 ifdef TRAVIS_TAG
-	@docker tag "$(DOCKER_REPOSITORY)" "$(DOCKER_REPOSITORY):$(TRAVIS_TAG:v%=%)"
+	@docker tag "$(DOCKER_REPOSITORY)" "$(DOCKER_REPOSITORY):$(VERSION_BASE)"
 endif
 endif
 endif
@@ -241,13 +246,13 @@ endif
 docker-push:
 ifdef DOCKER
 ifdef DOCKER_REPOSITORY
-ifeq ($(TRAVIS_BRANCH),master)
+ifeq ($(TRAVIS_BRANCH),dblp)
 ifeq ($(TRAVIS_PULL_REQUEST_BRANCH),)
 	@docker push "$(DOCKER_REPOSITORY)"
 endif
 endif
 ifdef TRAVIS_TAG
-	@docker push "$(DOCKER_REPOSITORY):$(TRAVIS_TAG:v%=%)"
+	@docker push "$(DOCKER_REPOSITORY):$(VERSION_BASE)"
 endif
 endif
 endif
