@@ -17,6 +17,7 @@ const (
 	MealOther              = "other"
 	MealOtherLengthMaximum = 100
 	MealSnack              = "snack"
+	MealRescueCarbs        = "rescuecarbs"
 	NameLengthMaximum      = 100
 )
 
@@ -27,6 +28,7 @@ func Meals() []string {
 		MealLunch,
 		MealOther,
 		MealSnack,
+		MealRescueCarbs,
 	}
 }
 
