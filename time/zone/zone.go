@@ -1,7 +1,6 @@
 package zone
 
 import (
-	"errors"
 	"io/ioutil"
 	"os"
 	"path"
@@ -9,10 +8,35 @@ import (
 	"regexp"
 	"sort"
 	"time"
+
+	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 func Names() []string {
 	return _Names
+}
+
+func IsValidName(value string) bool {
+	return ValidateName(value) == nil
+}
+
+func NameValidator(value string, errorReporter structure.ErrorReporter) {
+	errorReporter.ReportError(ValidateName(value))
+}
+
+func ValidateName(value string) error {
+	if value == "" {
+		return structureValidator.ErrorValueEmpty()
+	} else if index := sort.SearchStrings(_Names, value); index == len(_Names) || _Names[index] != value {
+		return ErrorValueStringAsNameNotValid(value)
+	}
+	return nil
+}
+
+func ErrorValueStringAsNameNotValid(value string) error {
+	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid time zone name", value)
 }
 
 var _Names []string

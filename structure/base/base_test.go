@@ -93,7 +93,7 @@ var _ = Describe("Base", func() {
 			})
 
 			It("returns true if any errors reported", func() {
-				base.ReportError(testErrors.NewError())
+				base.ReportError(testErrors.RandomError())
 				Expect(base.HasError()).To(BeTrue())
 			})
 		})
@@ -104,11 +104,11 @@ var _ = Describe("Base", func() {
 			})
 
 			It("returns errors if any errors", func() {
-				err1 := testErrors.NewError()
+				err1 := testErrors.RandomError()
 				base.ReportError(err1)
-				err2 := testErrors.NewError()
+				err2 := testErrors.RandomError()
 				base.ReportError(err2)
-				err3 := testErrors.NewError()
+				err3 := testErrors.RandomError()
 				base.ReportError(err3)
 				Expect(base.Error()).To(Equal(errors.Append(err1, err2, err3)))
 			})
@@ -121,31 +121,31 @@ var _ = Describe("Base", func() {
 			})
 
 			It("reports the error", func() {
-				err := testErrors.NewError()
+				err := testErrors.RandomError()
 				base.ReportError(err)
 				Expect(base.Error()).To(Equal(errors.Append(err)))
 			})
 
 			It("reports the error with source", func() {
-				err := testErrors.NewError()
+				err := testErrors.RandomError()
 				base.WithSource(src).ReportError(err)
 				Expect(base.Error()).To(Equal(errors.WithSource(err, src)))
 			})
 
 			It("reports the error with meta", func() {
-				err := testErrors.NewError()
+				err := testErrors.RandomError()
 				base.WithMeta(meta).ReportError(err)
 				Expect(base.Error()).To(Equal(errors.WithMeta(err, meta)))
 			})
 
 			It("reports the error with source and meta", func() {
-				err := testErrors.NewError()
+				err := testErrors.RandomError()
 				base.WithSource(src).WithMeta(meta).ReportError(err)
 				Expect(base.Error()).To(Equal(errors.WithMeta(errors.WithSource(err, src), meta)))
 			})
 
 			It("reports the error on a offspring and the ancestor has it", func() {
-				err := testErrors.NewError()
+				err := testErrors.RandomError()
 				result := base.WithMeta(meta).WithMeta(meta).WithMeta(meta)
 				result.ReportError(err)
 				Expect(result.Error()).To(Equal(errors.WithMeta(err, meta)))

@@ -291,6 +291,30 @@ var _ = Describe("StringArray", func() {
 			})
 		})
 
+		Context("EachUsing", func() {
+			var values []string
+
+			BeforeEach(func() {
+				values = []string{}
+				result = validator.EachUsing(func(v string, errorReporter structure.ErrorReporter) {
+					values = append(values, v)
+					errorReporter.ReportError(errors.New(v))
+				})
+			})
+
+			It("has the expected values", func() {
+				Expect(values).To(BeEmpty())
+			})
+
+			It("does not report an error", func() {
+				Expect(base.Error()).ToNot(HaveOccurred())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
 		Context("EachUnique", func() {
 			BeforeEach(func() {
 				result = validator.EachUnique()
@@ -686,6 +710,30 @@ var _ = Describe("StringArray", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).ToNot(HaveOccurred())
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("EachUsing", func() {
+			var values []string
+
+			BeforeEach(func() {
+				values = []string{}
+				result = validator.EachUsing(func(v string, errorReporter structure.ErrorReporter) {
+					values = append(values, v)
+					errorReporter.ReportError(errors.New(v))
+				})
+			})
+
+			It("has the expected values", func() {
+				Expect(values).To(Equal(value))
+			})
+
+			It("has the expected errors", func() {
+				testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(errors.New("1"), "/0"))
 			})
 
 			It("returns self", func() {
@@ -1093,6 +1141,35 @@ var _ = Describe("StringArray", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringMatches("", nil), "/2"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringMatches("four", nil), "/3"),
 				))
+			})
+
+			It("returns self", func() {
+				Expect(result).To(BeIdenticalTo(validator))
+			})
+		})
+
+		Context("EachUsing", func() {
+			var values []string
+
+			BeforeEach(func() {
+				values = []string{}
+				result = validator.EachUsing(func(v string, errorReporter structure.ErrorReporter) {
+					values = append(values, v)
+					errorReporter.ReportError(errors.New(v))
+				})
+			})
+
+			It("has the expected values", func() {
+				Expect(values).To(Equal(value))
+			})
+
+			It("has the expected errors", func() {
+				testErrors.ExpectEqual(base.Error(),
+					testErrors.WithPointerSource(errors.New("1"), "/0"),
+					testErrors.WithPointerSource(errors.New("two"), "/1"),
+					testErrors.WithPointerSource(errors.New(""), "/2"),
+					testErrors.WithPointerSource(errors.New("four"), "/3"),
+				)
 			})
 
 			It("returns self", func() {

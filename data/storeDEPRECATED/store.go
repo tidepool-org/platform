@@ -24,8 +24,14 @@ type DataSession interface {
 	CreateDataSet(ctx context.Context, dataSet *upload.Upload) error
 	UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*upload.Upload, error)
 	DeleteDataSet(ctx context.Context, dataSet *upload.Upload) error
+
 	CreateDataSetData(ctx context.Context, dataSet *upload.Upload, dataSetData []data.Datum) error
-	ActivateDataSetData(ctx context.Context, dataSet *upload.Upload) error
+	ActivateDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error
+	ArchiveDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error
+	DeleteDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error
+	DestroyDeletedDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error
+	DestroyDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error
+
 	ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *upload.Upload) error
 	UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *upload.Upload) error
 	DeleteOtherDataSetData(ctx context.Context, dataSet *upload.Upload) error

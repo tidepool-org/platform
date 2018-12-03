@@ -33,3 +33,11 @@ type Datum interface {
 func DatumAsPointer(datum Datum) *Datum {
 	return &datum
 }
+
+type Data []Datum
+
+func (d Data) SetActive(active bool) {
+	for _, datum := range d {
+		datum.SetActive(active)
+	}
+}

@@ -5,6 +5,6 @@ import (
 	"github.com/tidepool-org/platform/time/zone"
 )
 
-func NewName() string {
+func RandomName() string {
 	return test.RandomStringFromArray(zone.Names())
 }

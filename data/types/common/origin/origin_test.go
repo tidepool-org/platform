@@ -8,21 +8,24 @@ import (
 	"time"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
+	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/common/origin"
 	testDataTypesCommonOrigin "github.com/tidepool-org/platform/data/types/common/origin/test"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
-	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
-	testInternet "github.com/tidepool-org/platform/test/internet"
 )
 
 var _ = Describe("Origin", func() {
 	It("IDLengthMaximum is expected", func() {
 		Expect(origin.IDLengthMaximum).To(Equal(100))
+	})
+
+	It("NameLengthMaximum is expected", func() {
+		Expect(origin.NameLengthMaximum).To(Equal(100))
 	})
 
 	It("TimeFormat is expected", func() {
@@ -37,12 +40,16 @@ var _ = Describe("Origin", func() {
 		Expect(origin.TypeManual).To(Equal("manual"))
 	})
 
+	It("TypeService is expected", func() {
+		Expect(origin.TypeService).To(Equal("service"))
+	})
+
 	It("VersionLengthMaximum is expected", func() {
 		Expect(origin.VersionLengthMaximum).To(Equal(100))
 	})
 
 	It("Types returns expected", func() {
-		Expect(origin.Types()).To(Equal([]string{"device", "manual"}))
+		Expect(origin.Types()).To(Equal([]string{"device", "manual", "service"}))
 	})
 
 	Context("ParseOrigin", func() {
@@ -86,18 +93,23 @@ var _ = Describe("Origin", func() {
 				),
 				Entry("name missing",
 					func(datum *origin.Origin) { datum.Name = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/name"),
 				),
 				Entry("name empty",
 					func(datum *origin.Origin) { datum.Name = pointer.FromString("") },
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/name"),
 				),
-				Entry("name invalid",
-					func(datum *origin.Origin) { datum.Name = pointer.FromString("org") },
-					testErrors.WithPointerSource(net.ErrorValueStringAsReverseDomainNotValid("org"), "/name"),
+				Entry("name length; in range (upper)",
+					func(datum *origin.Origin) { datum.Name = pointer.FromString(test.NewText(100, 100)) },
 				),
-				Entry("name valid",
-					func(datum *origin.Origin) { datum.Name = pointer.FromString(testInternet.NewReverseDomain()) },
+				Entry("name length; out of range (upper)",
+					func(datum *origin.Origin) { datum.Name = pointer.FromString(test.NewText(101, 101)) },
+					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/name"),
+				),
+				Entry("payload missing",
+					func(datum *origin.Origin) { datum.Payload = nil },
+				),
+				Entry("payload exists",
+					func(datum *origin.Origin) { datum.Payload = dataTest.NewBlob() },
 				),
 				Entry("time missing",
 					func(datum *origin.Origin) { datum.Time = nil },
@@ -114,13 +126,16 @@ var _ = Describe("Origin", func() {
 				),
 				Entry("type invalid",
 					func(datum *origin.Origin) { datum.Type = pointer.FromString("invalid") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"device", "manual"}), "/type"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"device", "manual", "service"}), "/type"),
 				),
 				Entry("type device",
 					func(datum *origin.Origin) { datum.Type = pointer.FromString("device") },
 				),
 				Entry("type manual",
 					func(datum *origin.Origin) { datum.Type = pointer.FromString("manual") },
+				),
+				Entry("type service",
+					func(datum *origin.Origin) { datum.Type = pointer.FromString("service") },
 				),
 				Entry("version missing",
 					func(datum *origin.Origin) { datum.Version = nil },
@@ -139,15 +154,15 @@ var _ = Describe("Origin", func() {
 				Entry("multiple errors",
 					func(datum *origin.Origin) {
 						datum.ID = pointer.FromString("")
-						datum.Name = nil
+						datum.Name = pointer.FromString("")
 						datum.Time = pointer.FromTime(time.Time{})
 						datum.Type = pointer.FromString("invalid")
 						datum.Version = pointer.FromString("")
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/id"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/name"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/name"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/time"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"device", "manual"}), "/type"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"device", "manual", "service"}), "/type"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/version"),
 				),
 			)
@@ -176,6 +191,9 @@ var _ = Describe("Origin", func() {
 				),
 				Entry("does not modify the datum; name missing",
 					func(datum *origin.Origin) { datum.Name = nil },
+				),
+				Entry("does not modify the datum; payload missing",
+					func(datum *origin.Origin) { datum.Payload = nil },
 				),
 				Entry("does not modify the datum; time missing",
 					func(datum *origin.Origin) { datum.Time = nil },

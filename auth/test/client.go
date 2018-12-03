@@ -14,8 +14,8 @@ func NewClient() *Client {
 	}
 }
 
-func (c *Client) Expectations() {
+func (c *Client) AssertOutputsEmpty() {
 	c.ProviderSessionAccessor.Expectations()
 	c.RestrictedTokenAccessor.Expectations()
-	c.ExternalAccessor.Expectations()
+	c.ExternalAccessor.AssertOutputsEmpty()
 }

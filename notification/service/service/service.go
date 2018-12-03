@@ -1,8 +1,6 @@
 package service
 
 import (
-	"github.com/ant0ine/go-json-rest/rest"
-
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/notification/service"
@@ -56,15 +54,12 @@ func (s *Service) Status() *service.Status {
 }
 
 func (s *Service) initializeRouter() error {
-	routes := []*rest.Route{}
-
 	s.Logger().Debug("Creating api router")
 
 	apiRouter, err := api.NewRouter(s)
 	if err != nil {
 		return errors.Wrap(err, "unable to create api router")
 	}
-	routes = append(routes, apiRouter.Routes()...)
 
 	s.Logger().Debug("Creating v1 router")
 
@@ -72,12 +67,11 @@ func (s *Service) initializeRouter() error {
 	if err != nil {
 		return errors.Wrap(err, "unable to create v1 router")
 	}
-	routes = append(routes, v1Router.Routes()...)
 
-	s.Logger().Debug("Initializing router")
+	s.Logger().Debug("Initializing routers")
 
-	if err = s.API().InitializeRouter(routes...); err != nil {
-		return errors.Wrap(err, "unable to initialize router")
+	if err = s.API().InitializeRouters(apiRouter, v1Router); err != nil {
+		return errors.Wrap(err, "unable to initialize routers")
 	}
 
 	return nil

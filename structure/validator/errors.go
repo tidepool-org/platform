@@ -11,22 +11,24 @@ import (
 )
 
 const (
-	ErrorCodeValueNotExists   = "value-not-exists"
-	ErrorCodeValueExists      = "value-exists"
-	ErrorCodeValueNotEmpty    = "value-not-empty"
-	ErrorCodeValueEmpty       = "value-empty"
-	ErrorCodeValueDuplicate   = "value-duplicate"
-	ErrorCodeValueNotTrue     = "value-not-true"
-	ErrorCodeValueNotFalse    = "value-not-false"
-	ErrorCodeValueOutOfRange  = "value-out-of-range"
-	ErrorCodeValueDisallowed  = "value-disallowed"
-	ErrorCodeValueNotAllowed  = "value-not-allowed"
-	ErrorCodeValueMatches     = "value-matches"
-	ErrorCodeValueNotMatches  = "value-not-matches"
-	ErrorCodeValueNotAfter    = "value-not-after"
-	ErrorCodeValueNotBefore   = "value-not-before"
-	ErrorCodeValueNotValid    = "value-not-valid"
-	ErrorCodeLengthOutOfRange = "length-out-of-range"
+	ErrorCodeValueNotExists       = "value-not-exists"
+	ErrorCodeValueExists          = "value-exists"
+	ErrorCodeValueNotEmpty        = "value-not-empty"
+	ErrorCodeValueEmpty           = "value-empty"
+	ErrorCodeValueDuplicate       = "value-duplicate"
+	ErrorCodeValueNotTrue         = "value-not-true"
+	ErrorCodeValueNotFalse        = "value-not-false"
+	ErrorCodeValueOutOfRange      = "value-out-of-range"
+	ErrorCodeValueDisallowed      = "value-disallowed"
+	ErrorCodeValueNotAllowed      = "value-not-allowed"
+	ErrorCodeValueMatches         = "value-matches"
+	ErrorCodeValueNotMatches      = "value-not-matches"
+	ErrorCodeValueNotAfter        = "value-not-after"
+	ErrorCodeValueNotBefore       = "value-not-before"
+	ErrorCodeValueNotValid        = "value-not-valid"
+	ErrorCodeValuesNotExistForAny = "values-not-exist-for-any"
+	ErrorCodeValuesNotExistForOne = "values-not-exist-for-one"
+	ErrorCodeLengthOutOfRange     = "length-out-of-range"
 )
 
 func ErrorValueNotExists() error {
@@ -135,6 +137,14 @@ func ErrorValueTimeNotBefore(value time.Time, limit time.Time) error {
 
 func ErrorValueTimeNotBeforeNow(value time.Time) error {
 	return errors.Preparedf(ErrorCodeValueNotBefore, "value is not before the specified time", "value %s is not before now", stringify(value))
+}
+
+func ErrorValuesNotExistForAny(references ...string) error {
+	return errors.Preparedf(ErrorCodeValuesNotExistForAny, "values do not exist for any", "values do not exist for any of %s", stringify(references))
+}
+
+func ErrorValuesNotExistForOne(references ...string) error {
+	return errors.Preparedf(ErrorCodeValuesNotExistForOne, "values do not exist for one", "values do not exist for one of %s", stringify(references))
 }
 
 func ErrorLengthNotEqualTo(length int, limit int) error {

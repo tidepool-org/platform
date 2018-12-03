@@ -6,8 +6,8 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/page"
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
-	"github.com/tidepool-org/platform/user"
 )
 
 // TODO: BEGIN: Update to new service paradigm
@@ -49,7 +49,7 @@ func ListUserDataSets(dataServiceContext dataService.Context) {
 
 	// FUTURE: Refactor for global usage
 	if !details.IsService() && details.UserID() != userID {
-		permissions, err := dataServiceContext.UserClient().GetUserPermissions(req.Context(), details.UserID(), userID)
+		permissions, err := dataServiceContext.PermissionClient().GetUserPermissions(req.Context(), details.UserID(), userID)
 		if err != nil {
 			if request.IsErrorUnauthorized(err) {
 				responder.Error(http.StatusForbidden, request.ErrorUnauthorized())
@@ -58,9 +58,9 @@ func ListUserDataSets(dataServiceContext dataService.Context) {
 			}
 			return
 		}
-		_, custodianPermission := permissions[user.CustodianPermission]
-		_, uploadPermission := permissions[user.UploadPermission]
-		_, viewPermission := permissions[user.ViewPermission]
+		_, custodianPermission := permissions[permission.Custodian]
+		_, uploadPermission := permissions[permission.Write]
+		_, viewPermission := permissions[permission.Read]
 		if !custodianPermission && !uploadPermission && !viewPermission {
 			responder.Error(http.StatusForbidden, request.ErrorUnauthorized())
 			return

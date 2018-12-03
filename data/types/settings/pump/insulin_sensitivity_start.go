@@ -85,8 +85,7 @@ func (i *InsulinSensitivityStartArray) Parse(parser data.ArrayParser) {
 func (i *InsulinSensitivityStartArray) Validate(validator structure.Validator, units *string) {
 	startMinimum := pointer.FromInt(InsulinSensitivityStartStartMinimum)
 	for index, datum := range *i {
-		datumValidator := validator.WithReference(strconv.Itoa(index))
-		if datum != nil {
+		if datumValidator := validator.WithReference(strconv.Itoa(index)); datum != nil {
 			datum.Validate(datumValidator, units, startMinimum)
 			if index == 0 {
 				startMinimum = pointer.FromInt(InsulinSensitivityStartStartMinimum + 1)

@@ -303,7 +303,7 @@ var _ = Describe("Client", func() {
 							RespondWith(http.StatusOK, []byte(responseString), responseHeaders),
 						),
 					)
-					responseErr = errorsTest.NewError()
+					responseErr = errorsTest.RandomError()
 					errorInspector = requestTest.NewResponseInspector()
 					errorInspector.InspectResponseOutputs = []error{responseErr}
 				})
@@ -354,7 +354,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody(requestJSON),
-							RespondWithJSONEncoded(http.StatusBadRequest, errors.Serializable{Error: responseErr}, responseHeaders),
+							RespondWithJSONEncoded(http.StatusBadRequest, errors.NewSerializable(responseErr), responseHeaders),
 						),
 					)
 				})
@@ -445,7 +445,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody(requestJSON),
-							RespondWithJSONEncoded(http.StatusNotFound, errors.Serializable{Error: responseErr}, responseHeaders),
+							RespondWithJSONEncoded(http.StatusNotFound, errors.NewSerializable(responseErr), responseHeaders),
 						),
 					)
 				})
@@ -506,7 +506,7 @@ var _ = Describe("Client", func() {
 				var responseErr error
 
 				BeforeEach(func() {
-					responseErr = errorsTest.NewError()
+					responseErr = errorsTest.RandomError()
 					server.AppendHandlers(
 						CombineHandlers(
 							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
@@ -514,7 +514,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody(requestJSON),
-							RespondWithJSONEncoded(http.StatusInternalServerError, errors.Serializable{Error: responseErr}, responseHeaders),
+							RespondWithJSONEncoded(http.StatusInternalServerError, errors.NewSerializable(responseErr), responseHeaders),
 						),
 					)
 				})
@@ -704,7 +704,7 @@ var _ = Describe("Client", func() {
 							RespondWith(http.StatusOK, responseJSON, responseHeaders),
 						),
 					)
-					responseErr = errorsTest.NewError()
+					responseErr = errorsTest.RandomError()
 					errorInspector = requestTest.NewResponseInspector()
 					errorInspector.InspectResponseOutputs = []error{responseErr}
 				})
@@ -775,7 +775,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody(requestJSON),
-							RespondWithJSONEncoded(http.StatusBadRequest, errors.Serializable{Error: responseErr}, responseHeaders),
+							RespondWithJSONEncoded(http.StatusBadRequest, errors.NewSerializable(responseErr), responseHeaders),
 						),
 					)
 				})
@@ -862,7 +862,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody(requestJSON),
-							RespondWithJSONEncoded(http.StatusNotFound, errors.Serializable{Error: responseErr}, responseHeaders),
+							RespondWithJSONEncoded(http.StatusNotFound, errors.NewSerializable(responseErr), responseHeaders),
 						),
 					)
 				})
@@ -920,7 +920,7 @@ var _ = Describe("Client", func() {
 				var responseErr error
 
 				BeforeEach(func() {
-					responseErr = errorsTest.NewError()
+					responseErr = errorsTest.RandomError()
 					server.AppendHandlers(
 						CombineHandlers(
 							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
@@ -928,7 +928,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody(requestJSON),
-							RespondWithJSONEncoded(http.StatusInternalServerError, errors.Serializable{Error: responseErr}, responseHeaders),
+							RespondWithJSONEncoded(http.StatusInternalServerError, errors.NewSerializable(responseErr), responseHeaders),
 						),
 					)
 				})

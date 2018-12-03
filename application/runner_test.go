@@ -44,7 +44,7 @@ var _ = Describe("Runner", func() {
 			})
 
 			It("returns error when Initialize returns error", func() {
-				err := errorsTest.NewError()
+				err := errorsTest.RandomError()
 				runner.InitializeOutputs = []error{err}
 				Expect(application.Run(runner, provider)).To(MatchError(fmt.Sprintf("unable to initialize runner; %s", err)))
 			})
@@ -55,7 +55,7 @@ var _ = Describe("Runner", func() {
 				})
 
 				It("returns error when Run returns error", func() {
-					err := errorsTest.NewError()
+					err := errorsTest.RandomError()
 					runner.RunOutputs = []error{err}
 					Expect(application.Run(runner, provider)).To(MatchError(fmt.Sprintf("unable to run runner; %s", err)))
 				})

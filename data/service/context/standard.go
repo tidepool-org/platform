@@ -9,35 +9,35 @@ import (
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataService "github.com/tidepool-org/platform/data/service"
-	dataStore "github.com/tidepool-org/platform/data/store"
+	dataSource "github.com/tidepool-org/platform/data/source"
 	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/metric"
+	"github.com/tidepool-org/platform/permission"
 	serviceContext "github.com/tidepool-org/platform/service/context"
 	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
-	"github.com/tidepool-org/platform/user"
 )
 
 type Standard struct {
 	*serviceContext.Responder
 	authClient              auth.Client
 	metricClient            metric.Client
-	userClient              user.Client
+	permissionClient        permission.Client
 	dataDeduplicatorFactory deduplicator.Factory
-	dataStore               dataStore.Store
 	dataStoreDEPRECATED     dataStoreDEPRECATED.Store
 	dataSession             dataStoreDEPRECATED.DataSession
 	syncTaskStore           syncTaskStore.Store
 	syncTasksSession        syncTaskStore.SyncTaskSession
 	dataClient              dataClient.Client
+	dataSourceClient        dataSource.Client
 }
 
-func WithContext(authClient auth.Client, metricClient metric.Client, userClient user.Client,
-	dataDeduplicatorFactory deduplicator.Factory, dataStore dataStore.Store,
-	dataStoreDEPRECATED dataStoreDEPRECATED.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, handler dataService.HandlerFunc) rest.HandlerFunc {
+func WithContext(authClient auth.Client, metricClient metric.Client, permissionClient permission.Client,
+	dataDeduplicatorFactory deduplicator.Factory,
+	dataStoreDEPRECATED dataStoreDEPRECATED.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client, handler dataService.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
-		standard, standardErr := NewStandard(response, request, authClient, metricClient, userClient,
-			dataDeduplicatorFactory, dataStore, dataStoreDEPRECATED, syncTaskStore, dataClient)
+		standard, standardErr := NewStandard(response, request, authClient, metricClient, permissionClient,
+			dataDeduplicatorFactory, dataStoreDEPRECATED, syncTaskStore, dataClient, dataSourceClient)
 		if standardErr != nil {
 			if responder, responderErr := serviceContext.NewResponder(response, request); responderErr != nil {
 				response.WriteHeader(http.StatusInternalServerError)
@@ -53,23 +53,20 @@ func WithContext(authClient auth.Client, metricClient metric.Client, userClient 
 }
 
 func NewStandard(response rest.ResponseWriter, request *rest.Request,
-	authClient auth.Client, metricClient metric.Client, userClient user.Client,
-	dataDeduplicatorFactory deduplicator.Factory, dataStore dataStore.Store,
-	dataStoreDEPRECATED dataStoreDEPRECATED.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client) (*Standard, error) {
+	authClient auth.Client, metricClient metric.Client, permissionClient permission.Client,
+	dataDeduplicatorFactory deduplicator.Factory,
+	dataStoreDEPRECATED dataStoreDEPRECATED.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client) (*Standard, error) {
 	if authClient == nil {
 		return nil, errors.New("auth client is missing")
 	}
 	if metricClient == nil {
 		return nil, errors.New("metric client is missing")
 	}
-	if userClient == nil {
-		return nil, errors.New("user client is missing")
+	if permissionClient == nil {
+		return nil, errors.New("permission client is missing")
 	}
 	if dataDeduplicatorFactory == nil {
 		return nil, errors.New("data deduplicator factory is missing")
-	}
-	if dataStore == nil {
-		return nil, errors.New("data store is missing")
 	}
 	if dataStoreDEPRECATED == nil {
 		return nil, errors.New("data store DEPRECATED is missing")
@@ -80,9 +77,8 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 	if dataClient == nil {
 		return nil, errors.New("data client is missing")
 	}
-
-	if dataClient == nil {
-		return nil, errors.New("data client is missing")
+	if dataSourceClient == nil {
+		return nil, errors.New("data source client is missing")
 	}
 
 	responder, err := serviceContext.NewResponder(response, request)
@@ -94,12 +90,12 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 		Responder:               responder,
 		authClient:              authClient,
 		metricClient:            metricClient,
-		userClient:              userClient,
+		permissionClient:        permissionClient,
 		dataDeduplicatorFactory: dataDeduplicatorFactory,
-		dataStore:               dataStore,
 		dataStoreDEPRECATED:     dataStoreDEPRECATED,
 		syncTaskStore:           syncTaskStore,
 		dataClient:              dataClient,
+		dataSourceClient:        dataSourceClient,
 	}, nil
 }
 
@@ -122,8 +118,8 @@ func (s *Standard) MetricClient() metric.Client {
 	return s.metricClient
 }
 
-func (s *Standard) UserClient() user.Client {
-	return s.userClient
+func (s *Standard) PermissionClient() permission.Client {
+	return s.permissionClient
 }
 
 func (s *Standard) DataDeduplicatorFactory() deduplicator.Factory {
@@ -146,4 +142,8 @@ func (s *Standard) SyncTaskSession() syncTaskStore.SyncTaskSession {
 
 func (s *Standard) DataClient() dataClient.Client {
 	return s.dataClient
+}
+
+func (s *Standard) DataSourceClient() dataSource.Client {
+	return s.dataSourceClient
 }

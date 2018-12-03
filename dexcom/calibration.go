@@ -31,6 +31,7 @@ func (c *CalibrationsResponse) Parse(parser structure.ObjectParser) {
 }
 
 func (c *CalibrationsResponse) Validate(validator structure.Validator) {
+	validator = validator.WithMeta(c)
 	validator = validator.WithReference("calibrations")
 	for index, calibration := range c.Calibrations {
 		if calibrationValidator := validator.WithReference(strconv.Itoa(index)); calibration != nil {
@@ -70,6 +71,7 @@ func (c *Calibration) Parse(parser structure.ObjectParser) {
 }
 
 func (c *Calibration) Validate(validator structure.Validator) {
+	validator = validator.WithMeta(c)
 	validator.Time("systemTime", &c.SystemTime).BeforeNow(NowThreshold)
 	validator.Time("displayTime", &c.DisplayTime).NotZero()
 	validator.String("unit", &c.Unit).OneOf(UnitMgdL) // TODO: Add UnitMmolL

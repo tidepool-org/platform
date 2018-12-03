@@ -1,32 +1,28 @@
 package service
 
 import (
-	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/aws/aws-sdk-go/aws/session"
 
 	"github.com/tidepool-org/platform/application"
 	awsApi "github.com/tidepool-org/platform/aws/api"
 	"github.com/tidepool-org/platform/blob"
 	blobServiceApiV1 "github.com/tidepool-org/platform/blob/service/api/v1"
+	blobServiceClient "github.com/tidepool-org/platform/blob/service/client"
 	blobStoreStructured "github.com/tidepool-org/platform/blob/store/structured"
 	blobStoreStructuredMongo "github.com/tidepool-org/platform/blob/store/structured/mongo"
 	blobStoreUnstructured "github.com/tidepool-org/platform/blob/store/unstructured"
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/platform"
 	serviceApi "github.com/tidepool-org/platform/service/api"
 	serviceService "github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	storeUnstructuredFactory "github.com/tidepool-org/platform/store/unstructured/factory"
-	"github.com/tidepool-org/platform/user"
-	userClient "github.com/tidepool-org/platform/user/client"
 )
 
 type Service struct {
 	*serviceService.Authenticated
 	blobStructuredStore   *blobStoreStructuredMongo.Store
 	blobUnstructuredStore *blobStoreUnstructured.StoreImpl
-	userClient            *userClient.Client
-	blobClient            *Client
+	blobClient            *blobServiceClient.Client
 }
 
 func New() *Service {
@@ -46,9 +42,6 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeBlobUnstructuredStore(); err != nil {
 		return err
 	}
-	if err := s.initializeUserClient(); err != nil {
-		return err
-	}
 	if err := s.initializeBlobClient(); err != nil {
 		return err
 	}
@@ -58,7 +51,6 @@ func (s *Service) Initialize(provider application.Provider) error {
 func (s *Service) Terminate() {
 	s.terminateRouter()
 	s.terminateBlobClient()
-	s.terminateUserClient()
 	s.terminateBlobUnstructuredStore()
 	s.terminateBlobStructuredStore()
 
@@ -79,10 +71,6 @@ func (s *Service) BlobStructuredStore() blobStoreStructured.Store {
 
 func (s *Service) BlobUnstructuredStore() blobStoreUnstructured.Store {
 	return s.blobUnstructuredStore
-}
-
-func (s *Service) UserClient() user.Client {
-	return s.userClient
 }
 
 func (s *Service) BlobClient() blob.Client {
@@ -158,37 +146,10 @@ func (s *Service) terminateBlobUnstructuredStore() {
 	}
 }
 
-func (s *Service) initializeUserClient() error {
-	s.Logger().Debug("Loading user client config")
-
-	config := platform.NewConfig()
-	config.UserAgent = s.UserAgent()
-	if err := config.Load(s.ConfigReporter().WithScopes("user", "client")); err != nil {
-		return errors.Wrap(err, "unable to load user client config")
-	}
-
-	s.Logger().Debug("Creating user client")
-
-	client, err := userClient.New(config, platform.AuthorizeAsService)
-	if err != nil {
-		return errors.Wrap(err, "unable to create user client")
-	}
-	s.userClient = client
-
-	return nil
-}
-
-func (s *Service) terminateUserClient() {
-	if s.userClient != nil {
-		s.Logger().Debug("Destroying user client")
-		s.userClient = nil
-	}
-}
-
 func (s *Service) initializeBlobClient() error {
 	s.Logger().Debug("Creating blob client")
 
-	client, err := NewClient(s)
+	client, err := blobServiceClient.New(s)
 	if err != nil {
 		return errors.Wrap(err, "unable to create blob client")
 	}
@@ -205,28 +166,24 @@ func (s *Service) terminateBlobClient() {
 }
 
 func (s *Service) initializeRouter() error {
-	routes := []*rest.Route{}
-
 	s.Logger().Debug("Creating status router")
 
 	statusRouter, err := serviceApi.NewStatusRouter(s)
 	if err != nil {
 		return errors.Wrap(err, "unable to create status router")
 	}
-	routes = append(routes, statusRouter.Routes()...)
 
 	s.Logger().Debug("Creating blob service api v1 router")
 
 	router, err := blobServiceApiV1.NewRouter(s)
 	if err != nil {
-		return errors.Wrap(err, "unable to create v1 router")
+		return errors.Wrap(err, "unable to create blob service api v1 router")
 	}
-	routes = append(routes, router.Routes()...)
 
-	s.Logger().Debug("Initializing router")
+	s.Logger().Debug("Initializing routers")
 
-	if err = s.API().InitializeRouter(routes...); err != nil {
-		return errors.Wrap(err, "unable to initialize router")
+	if err = s.API().InitializeRouters(statusRouter, router); err != nil {
+		return errors.Wrap(err, "unable to initialize routers")
 	}
 
 	return nil

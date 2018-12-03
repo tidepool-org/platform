@@ -261,6 +261,15 @@ type Serializable struct {
 	Error error
 }
 
+func NewSerializable(err error) *Serializable {
+	if err == nil {
+		return nil
+	}
+	return &Serializable{
+		Error: err,
+	}
+}
+
 func (s *Serializable) Parse(reference string, parser structure.ObjectParser) {
 	if iface := parser.Interface(reference); iface != nil {
 		if _, arrayOK := (*iface).([]interface{}); arrayOK {

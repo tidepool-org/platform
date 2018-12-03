@@ -99,14 +99,14 @@ var _ = Describe("Validator", func() {
 			})
 
 			It("returns true if any errors reported", func() {
-				base.ReportError(testErrors.NewError())
+				base.ReportError(testErrors.RandomError())
 				Expect(validator.HasError()).To(BeTrue())
 			})
 		})
 
 		Context("Error", func() {
 			It("returns the error from the base", func() {
-				err := testErrors.NewError()
+				err := testErrors.RandomError()
 				base.ReportError(err)
 				Expect(validator.Error()).To(Equal(errors.Normalize(err)))
 			})
@@ -114,7 +114,7 @@ var _ = Describe("Validator", func() {
 
 		Context("ReportError", func() {
 			It("reports the error to the base", func() {
-				err := testErrors.NewError()
+				err := testErrors.RandomError()
 				validator.ReportError(err)
 				Expect(base.Error()).To(Equal(errors.Normalize(err)))
 			})
@@ -132,7 +132,7 @@ var _ = Describe("Validator", func() {
 			})
 
 			It("invokes normalize and returns current errors", func() {
-				err := testErrors.NewError()
+				err := testErrors.RandomError()
 				base.ReportError(err)
 				Expect(validator.Validate(validatable)).To(Equal(errors.Normalize(err)))
 				Expect(validatable.ValidateInputs).To(Equal([]structure.Validator{validator}))

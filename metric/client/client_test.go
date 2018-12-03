@@ -1,12 +1,11 @@
 package client_test
 
 import (
-	"context"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
 
+	"context"
 	"net/http"
 
 	"github.com/tidepool-org/platform/log"

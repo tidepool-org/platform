@@ -80,5 +80,5 @@ func (s *Service) Expectations() {
 	s.Mock.Expectations()
 	s.ConfigReporterImpl.Expectations()
 	gomega.Expect(s.SecretOutputs).To(gomega.BeEmpty())
-	s.AuthClientImpl.Expectations()
+	s.AuthClientImpl.AssertOutputsEmpty()
 }

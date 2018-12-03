@@ -122,6 +122,8 @@ func (u *Upload) Parse(parser data.ObjectParser) error {
 		return err
 	}
 
+	u.Deduplicator = data.ParseDeduplicatorDescriptorDEPRECATED(parser.NewChildObjectParser("deduplicator"))
+
 	u.Client = ParseClient(parser.NewChildObjectParser("client"))
 	u.ComputerTime = parser.ParseString("computerTime")
 	u.DataSetType = parser.ParseString("dataSetType")
@@ -200,18 +202,18 @@ func (u *Upload) Normalize(normalizer data.Normalizer) {
 	}
 }
 
-func (u *Upload) HasDeviceManufacturerOneOf(deviceManufacturers []string) bool {
-	if u.DeviceManufacturers == nil {
-		return false
-	}
+func (u *Upload) HasDataSetTypeContinuous() bool {
+	return u.DataSetType != nil && *u.DataSetType == DataSetTypeContinuous
+}
 
-	for _, uploadDeviceManufacturer := range *u.DeviceManufacturers {
-		for _, deviceManufacturer := range deviceManufacturers {
-			if deviceManufacturer == uploadDeviceManufacturer {
-				return true
-			}
-		}
-	}
+func (u *Upload) HasDataSetTypeNormal() bool {
+	return u.DataSetType == nil || *u.DataSetType == DataSetTypeNormal
+}
 
-	return false
+func (u *Upload) HasDeduplicatorName() bool {
+	return u.Deduplicator != nil && u.Deduplicator.HasName()
+}
+
+func (u *Upload) HasDeduplicatorNameMatch(name string) bool {
+	return u.Deduplicator != nil && u.Deduplicator.HasNameMatch(name)
 }

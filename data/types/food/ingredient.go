@@ -103,8 +103,7 @@ func (i *IngredientArray) Validate(validator structure.Validator) {
 		validator.ReportError(structureValidator.ErrorLengthNotLessThanOrEqualTo(length, IngredientArrayLengthMaximum))
 	}
 	for index, datum := range *i {
-		datumValidator := validator.WithReference(strconv.Itoa(index))
-		if datum != nil {
+		if datumValidator := validator.WithReference(strconv.Itoa(index)); datum != nil {
 			datum.Validate(datumValidator)
 		} else {
 			datumValidator.ReportError(structureValidator.ErrorValueNotExists())

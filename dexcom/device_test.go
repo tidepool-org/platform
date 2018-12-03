@@ -9,6 +9,7 @@ import (
 
 	"github.com/tidepool-org/platform/dexcom"
 	dexcomTest "github.com/tidepool-org/platform/dexcom/test"
+	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
@@ -23,6 +24,9 @@ var _ = Describe("Device", func() {
 				func(mutator func(datum *dexcom.AlertSetting), expectedErrors ...error) {
 					datum := dexcomTest.RandomAlertSetting()
 					mutator(datum)
+					for index, expectedError := range expectedErrors {
+						expectedErrors[index] = errors.WithMeta(expectedError, datum)
+					}
 					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",

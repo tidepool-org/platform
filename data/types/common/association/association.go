@@ -104,8 +104,7 @@ func (a *AssociationArray) Validate(validator structure.Validator) {
 	}
 
 	for index, datum := range *a {
-		datumValidator := validator.WithReference(strconv.Itoa(index))
-		if datum != nil {
+		if datumValidator := validator.WithReference(strconv.Itoa(index)); datum != nil {
 			datum.Validate(datumValidator)
 		} else {
 			datumValidator.ReportError(structureValidator.ErrorValueNotExists())

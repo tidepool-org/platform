@@ -5,6 +5,7 @@ import (
 
 	"github.com/tidepool-org/platform/blob"
 	"github.com/tidepool-org/platform/page"
+	"github.com/tidepool-org/platform/request"
 )
 
 type ListInput struct {
@@ -51,8 +52,9 @@ type GetContentOutput struct {
 }
 
 type DeleteInput struct {
-	Context context.Context
-	ID      string
+	Context   context.Context
+	ID        string
+	Condition *request.Condition
 }
 
 type DeleteOutput struct {
@@ -83,7 +85,7 @@ type Client struct {
 	GetContentOutput      *GetContentOutput
 	DeleteInvocations     int
 	DeleteInputs          []DeleteInput
-	DeleteStub            func(ctx context.Context, id string) (bool, error)
+	DeleteStub            func(ctx context.Context, id string, condition *request.Condition) (bool, error)
 	DeleteOutputs         []DeleteOutput
 	DeleteOutput          *DeleteOutput
 }
@@ -160,11 +162,11 @@ func (c *Client) GetContent(ctx context.Context, id string) (*blob.Content, erro
 	panic("GetContent has no output")
 }
 
-func (c *Client) Delete(ctx context.Context, id string) (bool, error) {
+func (c *Client) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
 	c.DeleteInvocations++
-	c.DeleteInputs = append(c.DeleteInputs, DeleteInput{Context: ctx, ID: id})
+	c.DeleteInputs = append(c.DeleteInputs, DeleteInput{Context: ctx, ID: id, Condition: condition})
 	if c.DeleteStub != nil {
-		return c.DeleteStub(ctx, id)
+		return c.DeleteStub(ctx, id, condition)
 	}
 	if len(c.DeleteOutputs) > 0 {
 		output := c.DeleteOutputs[0]
