@@ -65,7 +65,7 @@ func (d *DataSession) GetDataSetsForUserByID(ctx context.Context, userID string,
 		return nil, errors.New("session closed")
 	}
 
-	startTime := time.Now()
+	now := time.Now()
 
 	var dataSets []*upload.Upload
 	selector := bson.M{
@@ -78,7 +78,7 @@ func (d *DataSession) GetDataSetsForUserByID(ctx context.Context, userID string,
 	}
 	err := d.C().Find(selector).Sort("-createdTime").Skip(pagination.Page * pagination.Size).Limit(pagination.Size).All(&dataSets)
 
-	loggerFields := log.Fields{"userId": userID, "dataSetsCount": len(dataSets), "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"userId": userID, "dataSetsCount": len(dataSets), "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("GetDataSetsForUserByID")
 
 	if err != nil {
@@ -103,7 +103,7 @@ func (d *DataSession) GetDataSetByID(ctx context.Context, dataSetID string) (*up
 		return nil, errors.New("session closed")
 	}
 
-	startTime := time.Now()
+	now := time.Now()
 
 	dataSets := []*upload.Upload{}
 	selector := bson.M{
@@ -112,7 +112,7 @@ func (d *DataSession) GetDataSetByID(ctx context.Context, dataSetID string) (*up
 	}
 	err := d.C().Find(selector).Limit(2).All(&dataSets)
 
-	loggerFields := log.Fields{"dataSetId": dataSetID, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"dataSetId": dataSetID, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("GetDataSetByID")
 
 	if err != nil {
@@ -132,7 +132,7 @@ func (d *DataSession) CreateDataSet(ctx context.Context, dataSet *upload.Upload)
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
-	if err := d.validateDataSet(dataSet); err != nil {
+	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
 
@@ -140,9 +140,10 @@ func (d *DataSession) CreateDataSet(ctx context.Context, dataSet *upload.Upload)
 		return errors.New("session closed")
 	}
 
-	startTime := time.Now()
+	now := time.Now()
+	timestamp := now.Format(time.RFC3339)
 
-	dataSet.CreatedTime = pointer.FromString(time.Now().Format(time.RFC3339))
+	dataSet.CreatedTime = pointer.FromString(timestamp)
 
 	dataSet.ByUser = dataSet.CreatedUserID
 
@@ -162,7 +163,7 @@ func (d *DataSession) CreateDataSet(ctx context.Context, dataSet *upload.Upload)
 		}
 	}
 
-	loggerFields := log.Fields{"userId": dataSet.UserID, "dataSetId": dataSet.UploadID, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"userId": dataSet.UserID, "dataSetId": dataSet.UploadID, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("CreateDataSet")
 
 	if err != nil {
@@ -177,6 +178,8 @@ func (d *DataSession) UpdateDataSet(ctx context.Context, id string, update *data
 	}
 	if id == "" {
 		return nil, errors.New("id is missing")
+	} else if !data.IsValidSetID(id) {
+		return nil, errors.New("id is invalid")
 	}
 	if update == nil {
 		return nil, errors.New("update is missing")
@@ -189,10 +192,11 @@ func (d *DataSession) UpdateDataSet(ctx context.Context, id string, update *data
 	}
 
 	now := time.Now()
+	timestamp := now.Format(time.RFC3339)
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id, "update": update})
 
 	set := bson.M{
-		"modifiedTime": now.Truncate(time.Second),
+		"modifiedTime": timestamp,
 	}
 	unset := bson.M{}
 	if update.Active != nil {
@@ -211,7 +215,7 @@ func (d *DataSession) UpdateDataSet(ctx context.Context, id string, update *data
 		set["_deduplicator"] = update.Deduplicator
 	}
 	if update.State != nil {
-		set["state"] = *update.State
+		set["_state"] = *update.State
 	}
 	if update.Time != nil {
 		set["time"] = (*update.Time).Format(data.TimeFormat)
@@ -235,7 +239,7 @@ func (d *DataSession) DeleteDataSet(ctx context.Context, dataSet *upload.Upload)
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
-	if err := d.validateDataSet(dataSet); err != nil {
+	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
 
@@ -243,9 +247,8 @@ func (d *DataSession) DeleteDataSet(ctx context.Context, dataSet *upload.Upload)
 		return errors.New("session closed")
 	}
 
-	startTime := time.Now()
-
-	timestamp := time.Now().Format(time.RFC3339)
+	now := time.Now()
+	timestamp := now.Format(time.RFC3339)
 
 	var err error
 	var removeInfo *mgo.ChangeInfo
@@ -269,10 +272,10 @@ func (d *DataSession) DeleteDataSet(ctx context.Context, dataSet *upload.Upload)
 			"deletedTime": timestamp,
 		}
 		unset := bson.M{}
-		updateInfo, err = d.C().UpdateAll(selector, d.constructUpdate(set, unset))
+		updateInfo, err = d.C().UpdateAll(selector, d.ConstructUpdate(set, unset))
 	}
 
-	loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "removeInfo": removeInfo, "updateInfo": updateInfo, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "removeInfo": removeInfo, "updateInfo": updateInfo, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DeleteDataSet")
 
 	if err != nil {
@@ -287,7 +290,7 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
-	if err := d.validateDataSet(dataSet); err != nil {
+	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
 	if dataSetData == nil {
@@ -298,9 +301,12 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 		return errors.New("session closed")
 	}
 
-	startTime := time.Now()
+	if len(dataSetData) == 0 {
+		return nil
+	}
 
-	timestamp := time.Now().Format(time.RFC3339)
+	now := time.Now()
+	timestamp := now.Format(time.RFC3339)
 
 	insertData := make([]interface{}, len(dataSetData))
 	for index, datum := range dataSetData {
@@ -316,7 +322,7 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 
 	_, err := bulk.Run()
 
-	loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "dataCount": len(dataSetData), "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "dataCount": len(dataSetData), "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("CreateDataSetData")
 
 	if err != nil {
@@ -325,11 +331,15 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 	return nil
 }
 
-func (d *DataSession) ActivateDataSetData(ctx context.Context, dataSet *upload.Upload) error {
+func (d *DataSession) ActivateDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
-	if err := d.validateDataSet(dataSet); err != nil {
+	if err := validateDataSet(dataSet); err != nil {
+		return err
+	}
+	selector, err := validateAndTranslateSelectors(selectors)
+	if err != nil {
 		return err
 	}
 
@@ -337,33 +347,182 @@ func (d *DataSession) ActivateDataSetData(ctx context.Context, dataSet *upload.U
 		return errors.New("session closed")
 	}
 
-	startTime := time.Now()
+	now := time.Now()
+	logger := log.LoggerFromContext(ctx).WithField("dataSetId", *dataSet.UploadID)
 
-	timestamp := time.Now().Format(time.RFC3339)
-
-	selector := bson.M{
-		"_userId":  dataSet.UserID,
-		"uploadId": dataSet.UploadID,
-	}
+	selector["_userId"] = dataSet.UserID
+	selector["uploadId"] = dataSet.UploadID
+	selector["type"] = bson.M{"$ne": "upload"}
+	selector["_active"] = false
+	selector["deletedTime"] = bson.M{"$exists": false}
 	set := bson.M{
 		"_active":      true,
-		"modifiedTime": timestamp,
+		"modifiedTime": now.Format(time.RFC3339),
 	}
 	unset := bson.M{
 		"archivedDatasetId": 1,
 		"archivedTime":      1,
+		"modifiedUserId":    1,
 	}
-	updateInfo, err := d.C().UpdateAll(selector, d.constructUpdate(set, unset))
-
-	loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "updateInfo": updateInfo, "duration": time.Since(startTime) / time.Microsecond}
-	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("ActivateDataSetData")
-
+	changeInfo, err := d.C().UpdateAll(selector, d.ConstructUpdate(set, unset))
 	if err != nil {
+		logger.WithError(err).Error("Unable to activate data set data")
 		return errors.Wrap(err, "unable to activate data set data")
 	}
 
-	dataSet.SetActive(true)
-	dataSet.SetModifiedTime(&timestamp)
+	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("ActivateDataSetData")
+	return nil
+}
+
+func (d *DataSession) ArchiveDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if err := validateDataSet(dataSet); err != nil {
+		return err
+	}
+	selector, err := validateAndTranslateSelectors(selectors)
+	if err != nil {
+		return err
+	}
+
+	if d.IsClosed() {
+		return errors.New("session closed")
+	}
+
+	now := time.Now()
+	logger := log.LoggerFromContext(ctx).WithField("dataSetId", *dataSet.UploadID)
+
+	selector["_userId"] = dataSet.UserID
+	selector["uploadId"] = dataSet.UploadID
+	selector["type"] = bson.M{"$ne": "upload"}
+	selector["_active"] = true
+	selector["deletedTime"] = bson.M{"$exists": false}
+	set := bson.M{
+		"_active":      false,
+		"archivedTime": now.Format(time.RFC3339),
+		"modifiedTime": now.Format(time.RFC3339),
+	}
+	unset := bson.M{
+		"archivedDatasetId": 1,
+		"modifiedUserId":    1,
+	}
+	changeInfo, err := d.C().UpdateAll(selector, d.ConstructUpdate(set, unset))
+	if err != nil {
+		logger.WithError(err).Error("Unable to archive data set data")
+		return errors.Wrap(err, "unable to archive data set data")
+	}
+
+	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("ArchiveDataSetData")
+	return nil
+}
+
+func (d *DataSession) DeleteDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if err := validateDataSet(dataSet); err != nil {
+		return err
+	}
+	selector, err := validateAndTranslateSelectors(selectors)
+	if err != nil {
+		return err
+	}
+
+	if d.IsClosed() {
+		return errors.New("session closed")
+	}
+
+	now := time.Now()
+	logger := log.LoggerFromContext(ctx).WithField("dataSetId", *dataSet.UploadID)
+
+	selector["_userId"] = dataSet.UserID
+	selector["uploadId"] = dataSet.UploadID
+	selector["type"] = bson.M{"$ne": "upload"}
+	selector["deletedTime"] = bson.M{"$exists": false}
+	set := bson.M{
+		"_active":      false,
+		"archivedTime": now.Format(time.RFC3339),
+		"deletedTime":  now.Format(time.RFC3339),
+		"modifiedTime": now.Format(time.RFC3339),
+	}
+	unset := bson.M{
+		"archivedDatasetId": 1,
+		"deletedUserId":     1,
+		"modifiedUserId":    1,
+	}
+	changeInfo, err := d.C().UpdateAll(selector, d.ConstructUpdate(set, unset))
+	if err != nil {
+		logger.WithError(err).Error("Unable to delete data set data")
+		return errors.Wrap(err, "unable to delete data set data")
+	}
+
+	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("DeleteDataSetData")
+	return nil
+}
+
+func (d *DataSession) DestroyDeletedDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if err := validateDataSet(dataSet); err != nil {
+		return err
+	}
+	selector, err := validateAndTranslateSelectors(selectors)
+	if err != nil {
+		return err
+	}
+
+	if d.IsClosed() {
+		return errors.New("session closed")
+	}
+
+	now := time.Now()
+	logger := log.LoggerFromContext(ctx).WithField("dataSetId", *dataSet.UploadID)
+
+	selector["_userId"] = dataSet.UserID
+	selector["uploadId"] = dataSet.UploadID
+	selector["type"] = bson.M{"$ne": "upload"}
+	selector["deletedTime"] = bson.M{"$exists": true}
+	changeInfo, err := d.C().RemoveAll(selector)
+	if err != nil {
+		logger.WithError(err).Error("Unable to destroy deleted data set data")
+		return errors.Wrap(err, "unable to destroy deleted data set data")
+	}
+
+	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("DestroyDeletedDataSetData")
+	return nil
+}
+
+func (d *DataSession) DestroyDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if err := validateDataSet(dataSet); err != nil {
+		return err
+	}
+	selector, err := validateAndTranslateSelectors(selectors)
+	if err != nil {
+		return err
+	}
+
+	if d.IsClosed() {
+		return errors.New("session closed")
+	}
+
+	now := time.Now()
+	logger := log.LoggerFromContext(ctx).WithField("dataSetId", *dataSet.UploadID)
+
+	selector["_userId"] = dataSet.UserID
+	selector["uploadId"] = dataSet.UploadID
+	selector["type"] = bson.M{"$ne": "upload"}
+	changeInfo, err := d.C().RemoveAll(selector)
+	if err != nil {
+		logger.WithError(err).Error("Unable to destroy data set data")
+		return errors.Wrap(err, "unable to destroy data set data")
+	}
+
+	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("DestroyDataSetData")
 	return nil
 }
 
@@ -371,7 +530,7 @@ func (d *DataSession) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Contex
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
-	if err := d.validateDataSet(dataSet); err != nil {
+	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
 	if dataSet.DeviceID == nil || *dataSet.DeviceID == "" {
@@ -382,9 +541,8 @@ func (d *DataSession) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Contex
 		return errors.New("session closed")
 	}
 
-	startTime := time.Now()
-
-	timestamp := time.Now().Format(time.RFC3339)
+	now := time.Now()
+	timestamp := now.Format(time.RFC3339)
 
 	var updateInfo *mgo.ChangeInfo
 
@@ -409,10 +567,10 @@ func (d *DataSession) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Contex
 			"modifiedTime":      timestamp,
 		}
 		unset := bson.M{}
-		updateInfo, err = d.C().UpdateAll(selector, d.constructUpdate(set, unset))
+		updateInfo, err = d.C().UpdateAll(selector, d.ConstructUpdate(set, unset))
 	}
 
-	loggerFields := log.Fields{"userId": dataSet.UserID, "deviceId": *dataSet.DeviceID, "updateInfo": updateInfo, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"userId": dataSet.UserID, "deviceId": *dataSet.DeviceID, "updateInfo": updateInfo, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("ArchiveDeviceDataUsingHashesFromDataSet")
 
 	if err != nil {
@@ -425,7 +583,7 @@ func (d *DataSession) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Cont
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
-	if err := d.validateDataSet(dataSet); err != nil {
+	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
 	if dataSet.DeviceID == nil || *dataSet.DeviceID == "" {
@@ -436,9 +594,8 @@ func (d *DataSession) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Cont
 		return errors.New("session closed")
 	}
 
-	startTime := time.Now()
-
-	timestamp := time.Now().Format(time.RFC3339)
+	now := time.Now()
+	timestamp := now.Format(time.RFC3339)
 
 	pipeline := []bson.M{
 		{
@@ -497,7 +654,7 @@ func (d *DataSession) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Cont
 			set["archivedDatasetId"] = result.ID.ArchivedDataSetID
 			set["archivedTime"] = result.ID.ArchivedTime
 		}
-		updateInfo, err := d.C().UpdateAll(selector, d.constructUpdate(set, unset))
+		updateInfo, err := d.C().UpdateAll(selector, d.ConstructUpdate(set, unset))
 		if err != nil {
 			loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "result": result}
 			log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Error("Unable to update result for UnarchiveDeviceDataUsingHashesFromDataSet")
@@ -516,10 +673,52 @@ func (d *DataSession) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Cont
 		}
 	}
 
-	loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "updateInfo": overallUpdateInfo, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "updateInfo": overallUpdateInfo, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(overallErr).Debug("UnarchiveDeviceDataUsingHashesFromDataSet")
 
 	return overallErr
+}
+
+func (d *DataSession) ArchiveDataSetDataUsingOriginIDs(ctx context.Context, dataSet *upload.Upload, originIDs []string) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if err := validateDataSet(dataSet); err != nil {
+		return err
+	}
+
+	if d.IsClosed() {
+		return errors.New("session closed")
+	}
+
+	now := time.Now()
+	timestamp := now.Format(time.RFC3339)
+
+	var changeInfo *mgo.ChangeInfo
+	var err error
+	if len(originIDs) > 0 {
+		selector := bson.M{
+			"_userId":   dataSet.UserID,
+			"uploadId":  dataSet.UploadID,
+			"type":      bson.M{"$ne": "upload"},
+			"origin.id": bson.M{"$in": originIDs},
+		}
+		set := bson.M{
+			"_active":      false,
+			"archivedTime": timestamp,
+			"modifiedTime": timestamp,
+		}
+		unset := bson.M{}
+		changeInfo, err = d.C().UpdateAll(selector, d.ConstructUpdate(set, unset))
+	}
+
+	loggerFields := log.Fields{"userId": dataSet.UserID, "dataSetID": dataSet.UploadID, "changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}
+	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("ArchiveDataSetDataUsingOriginIDs")
+
+	if err != nil {
+		return errors.Wrap(err, "unable to archive data set data using origin ids")
+	}
+	return nil
 }
 
 func (d *DataSession) DeleteOtherDataSetData(ctx context.Context, dataSet *upload.Upload) error {
@@ -527,7 +726,7 @@ func (d *DataSession) DeleteOtherDataSetData(ctx context.Context, dataSet *uploa
 		return errors.New("context is missing")
 	}
 
-	if err := d.validateDataSet(dataSet); err != nil {
+	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
 	if dataSet.DeviceID == nil || *dataSet.DeviceID == "" {
@@ -538,9 +737,8 @@ func (d *DataSession) DeleteOtherDataSetData(ctx context.Context, dataSet *uploa
 		return errors.New("session closed")
 	}
 
-	startTime := time.Now()
-
-	timestamp := time.Now().Format(time.RFC3339)
+	now := time.Now()
+	timestamp := now.Format(time.RFC3339)
 
 	var err error
 	var removeInfo *mgo.ChangeInfo
@@ -566,10 +764,10 @@ func (d *DataSession) DeleteOtherDataSetData(ctx context.Context, dataSet *uploa
 			"deletedTime": timestamp,
 		}
 		unset := bson.M{}
-		updateInfo, err = d.C().UpdateAll(selector, d.constructUpdate(set, unset))
+		updateInfo, err = d.C().UpdateAll(selector, d.ConstructUpdate(set, unset))
 	}
 
-	loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "removeInfo": removeInfo, "updateInfo": updateInfo, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "removeInfo": removeInfo, "updateInfo": updateInfo, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DeleteOtherDataSetData")
 
 	if err != nil {
@@ -590,14 +788,14 @@ func (d *DataSession) DestroyDataForUserByID(ctx context.Context, userID string)
 		return errors.New("session closed")
 	}
 
-	startTime := time.Now()
+	now := time.Now()
 
 	selector := bson.M{
 		"_userId": userID,
 	}
 	removeInfo, err := d.C().RemoveAll(selector)
 
-	loggerFields := log.Fields{"userId": userID, "removeInfo": removeInfo, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"userId": userID, "removeInfo": removeInfo, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DestroyDataForUserByID")
 
 	if err != nil {
@@ -697,7 +895,7 @@ func (d *DataSession) GetDataSet(ctx context.Context, id string) (*data.DataSet,
 	}
 }
 
-func (d *DataSession) validateDataSet(dataSet *upload.Upload) error {
+func validateDataSet(dataSet *upload.Upload) error {
 	if dataSet == nil {
 		return errors.New("data set is missing")
 	}
@@ -713,17 +911,43 @@ func (d *DataSession) validateDataSet(dataSet *upload.Upload) error {
 	if *dataSet.UploadID == "" {
 		return errors.New("data set upload id is empty")
 	}
-
 	return nil
 }
 
-func (d *DataSession) constructUpdate(set bson.M, unset bson.M) bson.M {
-	update := bson.M{}
-	if len(set) > 0 {
-		update["$set"] = set
+func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
+	if selectors == nil {
+		return bson.M{}, nil
+	} else if err := structureValidator.New().Validate(selectors); err != nil {
+		return nil, errors.Wrap(err, "selectors is invalid")
 	}
-	if len(unset) > 0 {
-		update["$unset"] = unset
+
+	var selectorIDs []string
+	var selectorOriginIDs []string
+	for _, selector := range *selectors {
+		if selector != nil {
+			if selector.ID != nil {
+				selectorIDs = append(selectorIDs, *selector.ID)
+			} else if selector.Origin != nil && selector.Origin.ID != nil {
+				selectorOriginIDs = append(selectorOriginIDs, *selector.Origin.ID)
+			}
+		}
 	}
-	return update
+
+	selector := bson.M{}
+	if len(selectorIDs) > 0 && len(selectorOriginIDs) > 0 {
+		selector["$or"] = []bson.M{
+			{"id": bson.M{"$in": selectorIDs}},
+			{"origin.id": bson.M{"$in": selectorOriginIDs}},
+		}
+	} else if len(selectorIDs) > 0 {
+		selector["id"] = bson.M{"$in": selectorIDs}
+	} else if len(selectorOriginIDs) > 0 {
+		selector["origin.id"] = bson.M{"$in": selectorOriginIDs}
+	}
+
+	if len(selector) == 0 {
+		return nil, errors.New("selectors is invalid")
+	}
+
+	return selector, nil
 }

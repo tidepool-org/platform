@@ -9,6 +9,8 @@ import (
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/data"
 	dataClient "github.com/tidepool-org/platform/data/client"
+	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
+	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/dexcom"
 	"github.com/tidepool-org/platform/errors"
@@ -33,14 +35,15 @@ const (
 var initialDataTime = time.Unix(1420070400, 0) // 2015-01-01T00:00:00Z
 
 type Runner struct {
-	logger          log.Logger
-	versionReporter version.Reporter
-	authClient      auth.Client
-	dataClient      dataClient.Client
-	dexcomClient    dexcom.Client
+	logger           log.Logger
+	versionReporter  version.Reporter
+	authClient       auth.Client
+	dataClient       dataClient.Client
+	dataSourceClient dataSource.Client
+	dexcomClient     dexcom.Client
 }
 
-func NewRunner(logger log.Logger, versionReporter version.Reporter, authClient auth.Client, dataClient dataClient.Client, dexcomClient dexcom.Client) (*Runner, error) {
+func NewRunner(logger log.Logger, versionReporter version.Reporter, authClient auth.Client, dataClient dataClient.Client, dataSourceClient dataSource.Client, dexcomClient dexcom.Client) (*Runner, error) {
 	if logger == nil {
 		return nil, errors.New("logger is missing")
 	}
@@ -53,16 +56,20 @@ func NewRunner(logger log.Logger, versionReporter version.Reporter, authClient a
 	if dataClient == nil {
 		return nil, errors.New("data client is missing")
 	}
+	if dataSourceClient == nil {
+		return nil, errors.New("data source client is missing")
+	}
 	if dexcomClient == nil {
 		return nil, errors.New("dexcom client is missing")
 	}
 
 	return &Runner{
-		logger:          logger,
-		versionReporter: versionReporter,
-		authClient:      authClient,
-		dataClient:      dataClient,
-		dexcomClient:    dexcomClient,
+		logger:           logger,
+		versionReporter:  versionReporter,
+		authClient:       authClient,
+		dataClient:       dataClient,
+		dataSourceClient: dataSourceClient,
+		dexcomClient:     dexcomClient,
 	}, nil
 }
 
@@ -80,6 +87,10 @@ func (r *Runner) AuthClient() auth.Client {
 
 func (r *Runner) DataClient() dataClient.Client {
 	return r.dataClient
+}
+
+func (r *Runner) DataSourceClient() dataSource.Client {
+	return r.dataSourceClient
 }
 
 func (r *Runner) DexcomClient() dexcom.Client {
@@ -135,7 +146,7 @@ type TaskRunner struct {
 	context          context.Context
 	validator        structure.Validator
 	providerSession  *auth.ProviderSession
-	dataSource       *data.DataSource
+	dataSource       *dataSource.Source
 	tokenSource      oauth.TokenSource
 	dataSet          *data.DataSet
 	dataSetPreloaded bool
@@ -237,69 +248,69 @@ func (t *TaskRunner) getDataSource() error {
 		return errors.New("data source id is missing")
 	}
 
-	dataSource, err := t.DataClient().GetDataSource(t.context, dataSourceID)
+	source, err := t.DataSourceClient().Get(t.context, dataSourceID)
 	if err != nil {
 		return errors.Wrap(err, "unable to get data source")
-	} else if dataSource == nil {
+	} else if source == nil {
 		t.task.SetFailed()
 		return errors.Wrap(err, "data source is missing")
 	}
-	t.dataSource = dataSource
+	t.dataSource = source
 
 	return nil
 }
 
 func (t *TaskRunner) updateDataSourceWithDataSet(dataSet *data.DataSet) error {
-	dataSourceUpdate := data.NewDataSourceUpdate()
-	dataSourceUpdate.DataSetIDs = pointer.FromStringArray(append(t.dataSource.DataSetIDs, *dataSet.UploadID))
-	return t.updateDataSource(dataSourceUpdate)
+	update := dataSource.NewUpdate()
+	update.DataSetIDs = pointer.FromStringArray(append(pointer.ToStringArray(t.dataSource.DataSetIDs), *dataSet.UploadID))
+	return t.updateDataSource(update)
 }
 
 func (t *TaskRunner) updateDataSourceWithDataTime(earliestDataTime time.Time, latestDataTime time.Time) error {
-	dataSourceUpdate := data.NewDataSourceUpdate()
+	update := dataSource.NewUpdate()
 
 	if t.beforeEarliestDataTime(earliestDataTime) {
-		dataSourceUpdate.EarliestDataTime = pointer.FromTime(earliestDataTime.Truncate(time.Second))
+		update.EarliestDataTime = pointer.FromTime(earliestDataTime.Truncate(time.Second))
 	}
 	if t.afterLatestDataTime(latestDataTime) {
-		dataSourceUpdate.LatestDataTime = pointer.FromTime(latestDataTime.Truncate(time.Second))
+		update.LatestDataTime = pointer.FromTime(latestDataTime.Truncate(time.Second))
 	}
 
-	if dataSourceUpdate.EarliestDataTime == nil && dataSourceUpdate.LatestDataTime == nil {
+	if update.EarliestDataTime == nil && update.LatestDataTime == nil {
 		return nil
 	}
 
-	dataSourceUpdate.LastImportTime = pointer.FromTime(time.Now().Truncate(time.Second))
-	return t.updateDataSource(dataSourceUpdate)
+	update.LastImportTime = pointer.FromTime(time.Now().Truncate(time.Second))
+	return t.updateDataSource(update)
 }
 
 func (t *TaskRunner) updateDataSourceWithLastImportTime() error {
-	dataSourceUpdate := data.NewDataSourceUpdate()
-	dataSourceUpdate.LastImportTime = pointer.FromTime(time.Now().Truncate(time.Second))
-	return t.updateDataSource(dataSourceUpdate)
+	update := dataSource.NewUpdate()
+	update.LastImportTime = pointer.FromTime(time.Now().Truncate(time.Second))
+	return t.updateDataSource(update)
 }
 
 func (t *TaskRunner) updateDataSourceWithError(err error) error {
-	dataSourceUpdate := data.NewDataSourceUpdate()
-	dataSourceUpdate.State = pointer.FromString(data.DataSourceStateError)
-	dataSourceUpdate.Error = &errors.Serializable{Error: err}
-	return t.updateDataSource(dataSourceUpdate)
+	update := dataSource.NewUpdate()
+	update.State = pointer.FromString(dataSource.StateError)
+	update.Error = errors.NewSerializable(err)
+	return t.updateDataSource(update)
 }
 
-func (t *TaskRunner) updateDataSource(dataSourceUpdate *data.DataSourceUpdate) error {
-	if !dataSourceUpdate.HasUpdates() {
+func (t *TaskRunner) updateDataSource(update *dataSource.Update) error {
+	if !update.HasUpdates() {
 		return nil
 	}
 
-	dataSource, err := t.DataClient().UpdateDataSource(t.context, t.dataSource.ID, dataSourceUpdate)
+	source, err := t.DataSourceClient().Update(t.context, *t.dataSource.ID, nil, update)
 	if err != nil {
 		return errors.Wrap(err, "unable to update data source")
-	} else if dataSource == nil {
+	} else if source == nil {
 		t.task.SetFailed()
 		return errors.Wrap(err, "data source is missing")
 	}
 
-	t.dataSource = dataSource
+	t.dataSource = source
 	return nil
 }
 
@@ -605,11 +616,13 @@ func (t *TaskRunner) prepareDataSet(deviceInfo *DeviceInfo) error {
 }
 
 func (t *TaskRunner) findDataSet() (*data.DataSet, error) {
-	for index := len(t.dataSource.DataSetIDs) - 1; index >= 0; index-- {
-		if dataSet, err := t.DataClient().GetDataSet(t.context, t.dataSource.DataSetIDs[index]); err != nil {
-			return nil, errors.Wrap(err, "unable to get data set")
-		} else if dataSet != nil {
-			return dataSet, nil
+	if t.dataSource.DataSetIDs != nil {
+		for index := len(*t.dataSource.DataSetIDs) - 1; index >= 0; index-- {
+			if dataSet, err := t.DataClient().GetDataSet(t.context, (*t.dataSource.DataSetIDs)[index]); err != nil {
+				return nil, errors.Wrap(err, "unable to get data set")
+			} else if dataSet != nil {
+				return dataSet, nil
+			}
 		}
 	}
 	return nil, nil
@@ -622,6 +635,8 @@ func (t *TaskRunner) createDataSet(deviceInfo *DeviceInfo) (*data.DataSet, error
 		Version: pointer.FromString(DataSetClientVersion),
 	}
 	dataSetCreate.DataSetType = pointer.FromString(data.DataSetTypeContinuous)
+	dataSetCreate.Deduplicator = data.NewDeduplicatorDescriptor()
+	dataSetCreate.Deduplicator.Name = pointer.FromString(dataDeduplicatorDeduplicator.NoneName)
 	dataSetCreate.DeviceID = pointer.FromString(deviceInfo.DeviceID)
 	dataSetCreate.DeviceManufacturers = pointer.FromStringArray([]string{"Dexcom"})
 	dataSetCreate.DeviceModel = pointer.FromString(deviceInfo.DeviceModel)
@@ -693,12 +708,12 @@ func (b BySystemTime) Len() int {
 	return len(b)
 }
 
-func (b BySystemTime) Swap(left int, right int) {
-	b[left], b[right] = b[right], b[left]
-}
-
 func (b BySystemTime) Less(left int, right int) bool {
 	return payloadSystemTime(b[left]).Before(payloadSystemTime(b[right]))
+}
+
+func (b BySystemTime) Swap(left int, right int) {
+	b[left], b[right] = b[right], b[left]
 }
 
 type DeviceInfo struct {

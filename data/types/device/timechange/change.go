@@ -29,10 +29,10 @@ func ParseChange(parser data.ObjectParser) *Change {
 	if parser.Object() == nil {
 		return nil
 	}
-	change := NewChange()
-	change.Parse(parser)
+	datum := NewChange()
+	datum.Parse(parser)
 	parser.ProcessNotParsed()
-	return change
+	return datum
 }
 
 func NewChange() *Change {

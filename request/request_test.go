@@ -89,7 +89,7 @@ var _ = Describe("Request", func() {
 
 			Context("Get", func() {
 				It("returns the error", func() {
-					err := errorsTest.NewError()
+					err := errorsTest.RandomError()
 					contextError.Set(err)
 					Expect(contextError.Get()).To(Equal(err))
 				})
@@ -97,7 +97,7 @@ var _ = Describe("Request", func() {
 
 			Context("Set", func() {
 				It("set the error", func() {
-					err := errorsTest.NewError()
+					err := errorsTest.RandomError()
 					contextError.Set(err)
 					Expect(contextError.Get()).To(Equal(err))
 				})
@@ -129,14 +129,14 @@ var _ = Describe("Request", func() {
 
 			Context("Get", func() {
 				It("returns nil", func() {
-					request.SetErrorToContext(ctx, errorsTest.NewError())
+					request.SetErrorToContext(ctx, errorsTest.RandomError())
 					Expect(request.GetErrorFromContext(ctx)).To(BeNil())
 				})
 			})
 
 			Context("Set", func() {
 				It("does not set the error", func() {
-					request.SetErrorToContext(ctx, errorsTest.NewError())
+					request.SetErrorToContext(ctx, errorsTest.RandomError())
 					Expect(request.GetErrorFromContext(ctx)).To(BeNil())
 				})
 			})
@@ -152,7 +152,7 @@ var _ = Describe("Request", func() {
 
 				Context("Get", func() {
 					It("returns the error", func() {
-						err := errorsTest.NewError()
+						err := errorsTest.RandomError()
 						request.SetErrorToContext(ctx, err)
 						Expect(request.GetErrorFromContext(ctx)).To(Equal(err))
 					})
@@ -160,7 +160,7 @@ var _ = Describe("Request", func() {
 
 				Context("Set", func() {
 					It("set the error", func() {
-						err := errorsTest.NewError()
+						err := errorsTest.RandomError()
 						request.SetErrorToContext(ctx, err)
 						Expect(request.GetErrorFromContext(ctx)).To(Equal(err))
 					})

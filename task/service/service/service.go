@@ -1,11 +1,11 @@
 package service
 
 import (
-	"github.com/ant0ine/go-json-rest/rest"
-
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/client"
 	dataClient "github.com/tidepool-org/platform/data/client"
+	dataSource "github.com/tidepool-org/platform/data/source"
+	dataSourceClient "github.com/tidepool-org/platform/data/source/client"
 	"github.com/tidepool-org/platform/dexcom"
 	dexcomClient "github.com/tidepool-org/platform/dexcom/client"
 	dexcomFetch "github.com/tidepool-org/platform/dexcom/fetch"
@@ -25,11 +25,12 @@ import (
 
 type Service struct {
 	*serviceService.Authenticated
-	taskStore    *taskMongo.Store
-	taskClient   *Client
-	dataClient   dataClient.Client
-	dexcomClient dexcom.Client
-	taskQueue    *queue.Queue
+	taskStore        *taskMongo.Store
+	taskClient       *Client
+	dataClient       dataClient.Client
+	dataSourceClient dataSource.Client
+	dexcomClient     dexcom.Client
+	taskQueue        *queue.Queue
 }
 
 func New() *Service {
@@ -52,6 +53,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeDataClient(); err != nil {
 		return err
 	}
+	if err := s.initializeDataSourceClient(); err != nil {
+		return err
+	}
 	if err := s.initializeDexcomClient(); err != nil {
 		return err
 	}
@@ -65,6 +69,7 @@ func (s *Service) Terminate() {
 	s.terminateRouter()
 	s.terminateTaskQueue()
 	s.terminateDexcomClient()
+	s.terminateDataSourceClient()
 	s.terminateDataClient()
 	s.terminateTaskClient()
 	s.terminateTaskStore()
@@ -163,10 +168,37 @@ func (s *Service) terminateDataClient() {
 	}
 }
 
+func (s *Service) initializeDataSourceClient() error {
+	s.Logger().Debug("Loading data source client config")
+
+	cfg := platform.NewConfig()
+	cfg.UserAgent = s.UserAgent()
+	if err := cfg.Load(s.ConfigReporter().WithScopes("data_source", "client")); err != nil {
+		return errors.Wrap(err, "unable to load data source client config")
+	}
+
+	s.Logger().Debug("Creating data source client")
+
+	clnt, err := dataSourceClient.New(cfg, platform.AuthorizeAsService)
+	if err != nil {
+		return errors.Wrap(err, "unable to create data source client")
+	}
+	s.dataSourceClient = clnt
+
+	return nil
+}
+
+func (s *Service) terminateDataSourceClient() {
+	if s.dataSourceClient != nil {
+		s.Logger().Debug("Destroying data source client")
+		s.dataSourceClient = nil
+	}
+}
+
 func (s *Service) initializeDexcomClient() error {
 	s.Logger().Debug("Loading dexcom provider")
 
-	dxcmPrvdr, err := dexcomProvider.New(s.ConfigReporter().WithScopes("provider"), s.dataClient, s.TaskClient())
+	dxcmPrvdr, err := dexcomProvider.New(s.ConfigReporter().WithScopes("provider"), s.dataSourceClient, s.TaskClient())
 	if err != nil {
 		s.Logger().Warn("Unable to create dexcom provider")
 	} else {
@@ -217,7 +249,7 @@ func (s *Service) initializeTaskQueue() error {
 	if s.dexcomClient != nil {
 		s.Logger().Debug("Creating dexcom fetch runner")
 
-		rnnr, rnnrErr := dexcomFetch.NewRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient, s.dexcomClient)
+		rnnr, rnnrErr := dexcomFetch.NewRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient, s.dataSourceClient, s.dexcomClient)
 		if rnnrErr != nil {
 			return errors.Wrap(rnnrErr, "unable to create dexcom fetch runner")
 		}
@@ -243,15 +275,12 @@ func (s *Service) terminateTaskQueue() {
 }
 
 func (s *Service) initializeRouter() error {
-	routes := []*rest.Route{}
-
 	s.Logger().Debug("Creating api router")
 
 	apiRouter, err := api.NewRouter(s)
 	if err != nil {
 		return errors.Wrap(err, "unable to create api router")
 	}
-	routes = append(routes, apiRouter.Routes()...)
 
 	s.Logger().Debug("Creating v1 router")
 
@@ -259,12 +288,11 @@ func (s *Service) initializeRouter() error {
 	if err != nil {
 		return errors.Wrap(err, "unable to create v1 router")
 	}
-	routes = append(routes, v1Router.Routes()...)
 
-	s.Logger().Debug("Initializing router")
+	s.Logger().Debug("Initializing routers")
 
-	if err = s.API().InitializeRouter(routes...); err != nil {
-		return errors.Wrap(err, "unable to initialize router")
+	if err = s.API().InitializeRouters(apiRouter, v1Router); err != nil {
+		return errors.Wrap(err, "unable to initialize routers")
 	}
 
 	return nil

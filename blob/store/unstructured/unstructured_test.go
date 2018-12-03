@@ -64,7 +64,7 @@ var _ = Describe("Unstructured", func() {
 			})
 
 			It("returns an error when the underlying store returns an error", func() {
-				parentErr := errorsTest.NewError()
+				parentErr := errorsTest.RandomError()
 				underlyingStore.ExistsOutputs = []storeUnstructuredTest.ExistsOutput{{Exists: false, Error: parentErr}}
 				exists, err := store.Exists(ctx, userID, id)
 				errorsTest.ExpectEqual(err, errors.New("unable to exists blob"))
@@ -94,7 +94,7 @@ var _ = Describe("Unstructured", func() {
 			})
 
 			It("returns an error when the underlying store returns an error", func() {
-				parentErr := errorsTest.NewError()
+				parentErr := errorsTest.RandomError()
 				underlyingStore.PutOutputs = []error{parentErr}
 				errorsTest.ExpectEqual(store.Put(ctx, userID, id, reader), errors.New("unable to put blob"))
 			})
@@ -117,7 +117,7 @@ var _ = Describe("Unstructured", func() {
 			})
 
 			It("returns an error when the underlying store returns an error", func() {
-				parentErr := errorsTest.NewError()
+				parentErr := errorsTest.RandomError()
 				underlyingStore.GetOutputs = []storeUnstructuredTest.GetOutput{{Reader: nil, Error: parentErr}}
 				reader, err := store.Get(ctx, userID, id)
 				errorsTest.ExpectEqual(err, errors.New("unable to get blob"))
@@ -141,7 +141,7 @@ var _ = Describe("Unstructured", func() {
 			})
 
 			It("returns an error when the underlying store returns an error", func() {
-				parentErr := errorsTest.NewError()
+				parentErr := errorsTest.RandomError()
 				underlyingStore.DeleteOutputs = []storeUnstructuredTest.DeleteOutput{{Deleted: false, Error: parentErr}}
 				exists, err := store.Delete(ctx, userID, id)
 				errorsTest.ExpectEqual(err, errors.New("unable to delete blob"))

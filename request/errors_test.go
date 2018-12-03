@@ -11,6 +11,7 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	testHTTP "github.com/tidepool-org/platform/test/http"
 )
@@ -52,6 +53,8 @@ var _ = Describe("Errors", func() {
 		Entry("is ErrorResourceNotFound", request.ErrorResourceNotFound(), "resource-not-found", "resource not found", "resource not found"),
 		Entry("is ErrorResourceNotFoundWithID", request.ErrorResourceNotFoundWithID("test-id"), "resource-not-found", "resource not found", `resource with id "test-id" not found`),
 		Entry("is ErrorResourceNotFoundWithIDAndRevision", request.ErrorResourceNotFoundWithIDAndRevision("test-id", 1), "resource-not-found", "resource not found", `revision 1 of resource with id "test-id" not found`),
+		Entry("is ErrorResourceNotFoundWithIDAndOptionalRevision", request.ErrorResourceNotFoundWithIDAndOptionalRevision("test-id", nil), "resource-not-found", "resource not found", `resource with id "test-id" not found`),
+		Entry("is ErrorResourceNotFoundWithIDAndOptionalRevision", request.ErrorResourceNotFoundWithIDAndOptionalRevision("test-id", pointer.FromInt(1)), "resource-not-found", "resource not found", `revision 1 of resource with id "test-id" not found`),
 		Entry("is ErrorHeaderMissing", request.ErrorHeaderMissing("X-Test-Header"), "header-missing", "header is missing", `header "X-Test-Header" is missing`),
 		Entry("is ErrorHeaderInvalid", request.ErrorHeaderInvalid("X-Test-Header"), "header-invalid", "header is invalid", `header "X-Test-Header" is invalid`),
 		Entry("is ErrorParameterMissing", request.ErrorParameterMissing("test_parameter"), "parameter-missing", "parameter is missing", `parameter "test_parameter" is missing`),
@@ -71,6 +74,8 @@ var _ = Describe("Errors", func() {
 			Entry("is ErrorResourceNotFound", request.ErrorResourceNotFound(), 404),
 			Entry("is ErrorResourceNotFoundWithID", request.ErrorResourceNotFoundWithID("test-id"), 404),
 			Entry("is ErrorResourceNotFoundWithIDAndRevision", request.ErrorResourceNotFoundWithIDAndRevision("test-id", 1), 404),
+			Entry("is ErrorResourceNotFoundWithIDAndOptionalRevision", request.ErrorResourceNotFoundWithIDAndOptionalRevision("test-id", nil), 404),
+			Entry("is ErrorResourceNotFoundWithIDAndOptionalRevision", request.ErrorResourceNotFoundWithIDAndOptionalRevision("test-id", pointer.FromInt(1)), 404),
 			Entry("is another request error", request.ErrorJSONMalformed(), 500),
 			Entry("is another error", errors.New("test-error"), 500),
 			Entry("is nil error", nil, 500),

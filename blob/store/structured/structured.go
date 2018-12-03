@@ -8,6 +8,7 @@ import (
 	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/page"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -21,8 +22,8 @@ type Session interface {
 	List(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.Blobs, error)
 	Create(ctx context.Context, userID string, create *Create) (*blob.Blob, error)
 	Get(ctx context.Context, id string) (*blob.Blob, error)
-	Update(ctx context.Context, id string, update *Update) (*blob.Blob, error)
-	Delete(ctx context.Context, id string) (bool, error)
+	Update(ctx context.Context, id string, condition *request.Condition, update *Update) (*blob.Blob, error)
+	Delete(ctx context.Context, id string, condition *request.Condition) (bool, error)
 }
 
 type Create struct {

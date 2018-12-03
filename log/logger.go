@@ -83,7 +83,7 @@ func (l *logger) Errorf(message string, args ...interface{}) {
 func (l *logger) WithError(err error) Logger {
 	var value interface{}
 	if err != nil {
-		value = &errors.Serializable{Error: err}
+		value = errors.NewSerializable(err)
 	}
 	return l.WithField("error", value)
 }

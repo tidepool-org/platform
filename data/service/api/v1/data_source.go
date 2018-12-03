@@ -3,39 +3,38 @@ package v1
 import (
 	"net/http"
 
-	"github.com/tidepool-org/platform/data"
 	dataService "github.com/tidepool-org/platform/data/service"
+	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/request"
 )
 
 // TODO: BEGIN: Update to new service paradigm
-// func (r *Router) DataSourcesRoutes() []*rest.Route {
+// func (r *Router) SourcesRoutes() []*rest.Route {
 // 	return []*rest.Route{
-// 		rest.Get("/v1/users/:userId/data_sources", api.Require(r.ListUserDataSources)),
-// 		rest.Post("/v1/users/:userId/data_sources", api.RequireServer(r.CreateUserDataSource)),
-// 		rest.Get("/v1/data_sources/:id", api.Require(r.GetDataSource)),
-// 		rest.Put("/v1/data_sources/:id", api.RequireServer(r.UpdateDataSource)),
-// 		rest.Delete("/v1/data_sources/:id", api.RequireServer(r.DeleteDataSource)),
+// 		rest.Get("/v1/users/:userId/data_sources", api.Require(r.ListSources)),
+// 		rest.Post("/v1/users/:userId/data_sources", api.RequireServer(r.CreateSource)),
+// 		rest.Get("/v1/data_sources/:id", api.Require(r.GetSource)),
+// 		rest.Put("/v1/data_sources/:id", api.RequireServer(r.UpdateSource)),
+// 		rest.Delete("/v1/data_sources/:id", api.RequireServer(r.DeleteSource)),
 // 	}
 // }
 
-func DataSourcesRoutes() []dataService.Route {
+func SourcesRoutes() []dataService.Route {
 	return []dataService.Route{
-		dataService.MakeRoute("GET", "/v1/users/:userId/data_sources", Authenticate(ListUserDataSources)),
-		dataService.MakeRoute("POST", "/v1/users/:userId/data_sources", Authenticate(CreateUserDataSource)),
-		dataService.MakeRoute("GET", "/v1/data_sources/:id", Authenticate(GetDataSource)),
-		dataService.MakeRoute("PUT", "/v1/data_sources/:id", Authenticate(UpdateDataSource)),
-		dataService.MakeRoute("DELETE", "/v1/data_sources/:id", Authenticate(DeleteDataSource)),
+		dataService.MakeRoute("GET", "/v1/users/:userId/data_sources", Authenticate(ListSources)),
+		dataService.MakeRoute("POST", "/v1/users/:userId/data_sources", Authenticate(CreateSource)),
+		dataService.MakeRoute("GET", "/v1/data_sources/:id", Authenticate(GetSource)),
+		dataService.MakeRoute("PUT", "/v1/data_sources/:id", Authenticate(UpdateSource)),
+		dataService.MakeRoute("DELETE", "/v1/data_sources/:id", Authenticate(DeleteSource)),
 	}
 }
 
-// func (r *Router) ListUserDataSources(res rest.ResponseWriter, req *rest.Request) {
+// func (r *Router) ListSources(res rest.ResponseWriter, req *rest.Request) {
 
-func ListUserDataSources(dataServiceContext dataService.Context) {
+func ListSources(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
-	dataClient := dataServiceContext.DataClient()
 
 	details := request.DetailsFromContext(req.Context())
 	if details == nil {
@@ -57,29 +56,28 @@ func ListUserDataSources(dataServiceContext dataService.Context) {
 		return
 	}
 
-	filter := data.NewDataSourceFilter()
+	filter := dataSource.NewFilter()
 	pagination := page.NewPagination()
 	if err := request.DecodeRequestQuery(req.Request, filter, pagination); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
 	}
 
-	dataSources, err := dataClient.ListUserDataSources(req.Context(), userID, filter, pagination)
+	sources, err := dataServiceContext.DataSourceClient().List(req.Context(), userID, filter, pagination)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
 	}
 
-	responder.Data(http.StatusOK, dataSources)
+	responder.Data(http.StatusOK, sources)
 }
 
 // TODO: BEGIN: Update to new service paradigm
-// func (r *Router) CreateUserDataSource(res rest.ResponseWriter, req *rest.Request) {
+// func (r *Router) CreateSource(res rest.ResponseWriter, req *rest.Request) {
 
-func CreateUserDataSource(dataServiceContext dataService.Context) {
+func CreateSource(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
-	dataClient := dataServiceContext.DataClient()
 
 	details := request.DetailsFromContext(req.Context())
 	if details == nil {
@@ -99,28 +97,27 @@ func CreateUserDataSource(dataServiceContext dataService.Context) {
 		return
 	}
 
-	create := data.NewDataSourceCreate()
+	create := dataSource.NewCreate()
 	if err := request.DecodeRequestBody(req.Request, create); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
 	}
 
-	dataSource, err := dataClient.CreateUserDataSource(req.Context(), userID, create)
+	source, err := dataServiceContext.DataSourceClient().Create(req.Context(), userID, create)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
 	}
 
-	responder.Data(http.StatusCreated, dataSource)
+	responder.Data(http.StatusCreated, source)
 }
 
 // TODO: BEGIN: Update to new service paradigm
-// func (r *Router) GetDataSource(res rest.ResponseWriter, req *rest.Request) {
+// func (r *Router) GetSource(res rest.ResponseWriter, req *rest.Request) {
 
-func GetDataSource(dataServiceContext dataService.Context) {
+func GetSource(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
-	dataClient := dataServiceContext.DataClient()
 
 	details := request.DetailsFromContext(req.Context())
 	if details == nil {
@@ -137,30 +134,29 @@ func GetDataSource(dataServiceContext dataService.Context) {
 		return
 	}
 
-	dataSource, err := dataClient.GetDataSource(req.Context(), id)
+	source, err := dataServiceContext.DataSourceClient().Get(req.Context(), id)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
-	} else if dataSource == nil {
+	} else if source == nil {
 		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithID(id))
 		return
 	}
 
-	if !details.IsService() && details.UserID() != dataSource.UserID {
+	if !details.IsService() && details.UserID() != *source.UserID {
 		request.MustNewResponder(res, req).Error(http.StatusForbidden, request.ErrorUnauthorized())
 		return
 	}
 
-	responder.Data(http.StatusOK, dataSource)
+	responder.Data(http.StatusOK, source)
 }
 
 // TODO: BEGIN: Update to new service paradigm
-// func (r *Router) UpdateDataSource(res rest.ResponseWriter, req *rest.Request) {
+// func (r *Router) UpdateSource(res rest.ResponseWriter, req *rest.Request) {
 
-func UpdateDataSource(dataServiceContext dataService.Context) {
+func UpdateSource(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
-	dataClient := dataServiceContext.DataClient()
 
 	details := request.DetailsFromContext(req.Context())
 	if details == nil {
@@ -180,31 +176,36 @@ func UpdateDataSource(dataServiceContext dataService.Context) {
 		return
 	}
 
-	update := data.NewDataSourceUpdate()
+	condition := request.NewCondition()
+	if err := request.DecodeRequestQuery(req.Request, condition); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	update := dataSource.NewUpdate()
 	if err := request.DecodeRequestBody(req.Request, update); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
 	}
 
-	dataSource, err := dataClient.UpdateDataSource(req.Context(), id, update)
+	source, err := dataServiceContext.DataSourceClient().Update(req.Context(), id, condition, update)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
-	} else if dataSource == nil {
-		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithID(id))
+	} else if source == nil {
+		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithIDAndOptionalRevision(id, condition.Revision))
 		return
 	}
 
-	responder.Data(http.StatusOK, dataSource)
+	responder.Data(http.StatusOK, source)
 }
 
 // TODO: BEGIN: Update to new service paradigm
-// func (r *Router) DeleteDataSource(res rest.ResponseWriter, req *rest.Request) {
+// func (r *Router) DeleteSource(res rest.ResponseWriter, req *rest.Request) {
 
-func DeleteDataSource(dataServiceContext dataService.Context) {
+func DeleteSource(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
-	dataClient := dataServiceContext.DataClient()
 
 	details := request.DetailsFromContext(req.Context())
 	if details == nil {
@@ -224,9 +225,18 @@ func DeleteDataSource(dataServiceContext dataService.Context) {
 		return
 	}
 
-	err := dataClient.DeleteDataSource(req.Context(), id)
+	condition := request.NewCondition()
+	if err := request.DecodeRequestQuery(req.Request, condition); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	deleted, err := dataServiceContext.DataSourceClient().Delete(req.Context(), id, condition)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
+		return
+	} else if !deleted {
+		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithIDAndOptionalRevision(id, condition.Revision))
 		return
 	}
 

@@ -9,6 +9,30 @@ import (
 )
 
 var _ = Describe("permission", func() {
+	Context("Owner", func() {
+		It("has the expected permissions", func() {
+			Expect(permission.Owner).To(Equal("root"))
+		})
+	})
+
+	Context("Custodian", func() {
+		It("has the expected permissions", func() {
+			Expect(permission.Custodian).To(Equal("custodian"))
+		})
+	})
+
+	Context("Write", func() {
+		It("has the expected permissions", func() {
+			Expect(permission.Write).To(Equal("upload"))
+		})
+	})
+
+	Context("Read", func() {
+		It("has the expected permissions", func() {
+			Expect(permission.Read).To(Equal("view"))
+		})
+	})
+
 	Context("GroupIDFromUserID", func() {
 		It("returns an error if the user id is missing", func() {
 			groupID, err := permission.GroupIDFromUserID("", "secret")

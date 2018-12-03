@@ -1,5 +1,72 @@
 ## HEAD
 
+* Update tool dependencies
+* Add build tools as additional dependencies
+* Update Makefile to install build tools from vendor directory
+* Update Makefile to remove unused tools
+
+## v1.29.0
+
+* Allow physical activity other field as optional
+* Update mongo queries for data using selectors to more effectively use indexes
+* Add minutes and seconds to pump settings bolus calculator insulin duration units
+* Return updated data set after creation
+* Remove unnecessary condition when opening deduplicator for data set
+* Update delete data set origin deduplicator to delete duplicates found when adding data
+* Update delete data set origin deduplicator to deactivate deleted data
+* Update base deduplicator to activate data set separately from data set data
+* Update data store to not activate data set when data set data activated
+* Add data selectors to data set data operations to target specific data records
+* Update data store to add activate, archive, delete, destroy deleted, and destroy operations on data set data
+* Refactor data store and test for code consistency
+* Refactor for code consistency
+* Rename data.Delete to data.Selector for more general usage
+* Add data deduplicator name migration
+* Refactor entire data deduplicator package
+* Refactor net test package
+* Add meta to Dexcom data to assist with debugging validation errors
+* Update Ginkgo suite usage
+* Add optional provider session id to data source update
+* Add new provider session id to data source after reconnecting Dexcom API
+* Use float64 for food data type values
+* Add direct access to data origin
+* Make device id optional for data
+* Refactor device time change event to include time zone name
+* Add time zone name validator
+* Move pump settings display units to pump settings display blood glucose units
+* Add off value to put settings basal temporary type
+* Move pump settings insulin to pump settings bolus calculator insulin
+* Rename pump settings bolus combination to pump settings bolus extended
+* Add API to batch delete data set data
+* Add origin type "service"
+* Add origin payload
+* Update origin name to validate as string with maximum length
+* Fix data service data source client
+* Add continuous origin deduplicator to use origin id as deduplication key for continuous data sets
+* Allow client to specific data set deduplicator
+* Fix data store tests
+* Add blob size maximum
+* Add blob revision
+* Add data source revision
+* Add request condition revision to enforce specific update and delete operations
+* Refactor data source service client into separate package
+* Refactor blob service client into separate package
+* Move EnsureAuthorized functions from user client to auth client
+* Refactor InitializeRouters to encapsulate common functionality
+* Refactor GetUserPermissions into permissions client package
+* Refactor data source to separate package with complete tests
+* Add helper functions for auth types
+* Replace data.NewID with dataTest.RandomID in tests
+* Rename various to more generic form in blob service
+* Cleanup blob service and tests
+* Replace blob.NewID with blobTest.RandomID in tests
+* Update error test helper functions
+* Replace user.NewID with userTest.RandomID in tests
+* Add EnsureAuthorized to user client
+* Add EachUsing to string array structure validator
+* Add dump users tool
+* Minor refactor to reorder sort.Sort interface functions for consistency
+
 ## v1.28.0
 
 * Enable continuous data set type for Tidepool Mobile

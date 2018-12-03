@@ -18,6 +18,7 @@ import (
 func NewBolusCalculator() *pump.BolusCalculator {
 	datum := pump.NewBolusCalculator()
 	datum.Enabled = pointer.FromBool(test.RandomBool())
+	datum.Insulin = NewBolusCalculatorInsulin()
 	return datum
 }
 
@@ -27,6 +28,7 @@ func CloneBolusCalculator(datum *pump.BolusCalculator) *pump.BolusCalculator {
 	}
 	clone := pump.NewBolusCalculator()
 	clone.Enabled = test.CloneBool(datum.Enabled)
+	clone.Insulin = CloneBolusCalculatorInsulin(datum.Insulin)
 	return clone
 }
 
@@ -66,11 +68,23 @@ var _ = Describe("BolusCalculator", func() {
 				Entry("enabled true",
 					func(datum *pump.BolusCalculator) { datum.Enabled = pointer.FromBool(true) },
 				),
+				Entry("insulin missing",
+					func(datum *pump.BolusCalculator) { datum.Insulin = nil },
+				),
+				Entry("insulin invalid",
+					func(datum *pump.BolusCalculator) { datum.Insulin.Units = nil },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulin/units"),
+				),
+				Entry("insulin valid",
+					func(datum *pump.BolusCalculator) { datum.Insulin = NewBolusCalculatorInsulin() },
+				),
 				Entry("multiple errors",
 					func(datum *pump.BolusCalculator) {
 						datum.Enabled = nil
+						datum.Insulin.Units = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/enabled"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulin/units"),
 				),
 			)
 		})
@@ -95,6 +109,9 @@ var _ = Describe("BolusCalculator", func() {
 				),
 				Entry("does not modify the datum; enabled missing",
 					func(datum *pump.BolusCalculator) { datum.Enabled = nil },
+				),
+				Entry("does not modify the datum; insulin missing",
+					func(datum *pump.BolusCalculator) { datum.Insulin = nil },
 				),
 			)
 		})

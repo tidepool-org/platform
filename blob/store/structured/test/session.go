@@ -6,6 +6,7 @@ import (
 	"github.com/tidepool-org/platform/blob"
 	blobStoreStructured "github.com/tidepool-org/platform/blob/store/structured"
 	"github.com/tidepool-org/platform/page"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/test"
 )
 
@@ -43,9 +44,10 @@ type GetOutput struct {
 }
 
 type UpdateInput struct {
-	Context context.Context
-	ID      string
-	Update  *blobStoreStructured.Update
+	Context   context.Context
+	ID        string
+	Condition *request.Condition
+	Update    *blobStoreStructured.Update
 }
 
 type UpdateOutput struct {
@@ -54,8 +56,9 @@ type UpdateOutput struct {
 }
 
 type DeleteInput struct {
-	Context context.Context
-	ID      string
+	Context   context.Context
+	ID        string
+	Condition *request.Condition
 }
 
 type DeleteOutput struct {
@@ -82,12 +85,12 @@ type Session struct {
 	GetOutput         *GetOutput
 	UpdateInvocations int
 	UpdateInputs      []UpdateInput
-	UpdateStub        func(ctx context.Context, id string, create *blobStoreStructured.Update) (*blob.Blob, error)
+	UpdateStub        func(ctx context.Context, id string, condition *request.Condition, update *blobStoreStructured.Update) (*blob.Blob, error)
 	UpdateOutputs     []UpdateOutput
 	UpdateOutput      *UpdateOutput
 	DeleteInvocations int
 	DeleteInputs      []DeleteInput
-	DeleteStub        func(ctx context.Context, id string) (bool, error)
+	DeleteStub        func(ctx context.Context, id string, condition *request.Condition) (bool, error)
 	DeleteOutputs     []DeleteOutput
 	DeleteOutput      *DeleteOutput
 }
@@ -149,11 +152,11 @@ func (s *Session) Get(ctx context.Context, id string) (*blob.Blob, error) {
 	panic("Get has no output")
 }
 
-func (s *Session) Update(ctx context.Context, id string, update *blobStoreStructured.Update) (*blob.Blob, error) {
+func (s *Session) Update(ctx context.Context, id string, condition *request.Condition, update *blobStoreStructured.Update) (*blob.Blob, error) {
 	s.UpdateInvocations++
-	s.UpdateInputs = append(s.UpdateInputs, UpdateInput{Context: ctx, ID: id, Update: update})
+	s.UpdateInputs = append(s.UpdateInputs, UpdateInput{Context: ctx, ID: id, Condition: condition, Update: update})
 	if s.UpdateStub != nil {
-		return s.UpdateStub(ctx, id, update)
+		return s.UpdateStub(ctx, id, condition, update)
 	}
 	if len(s.UpdateOutputs) > 0 {
 		output := s.UpdateOutputs[0]
@@ -166,11 +169,11 @@ func (s *Session) Update(ctx context.Context, id string, update *blobStoreStruct
 	panic("Update has no output")
 }
 
-func (s *Session) Delete(ctx context.Context, id string) (bool, error) {
+func (s *Session) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
 	s.DeleteInvocations++
-	s.DeleteInputs = append(s.DeleteInputs, DeleteInput{Context: ctx, ID: id})
+	s.DeleteInputs = append(s.DeleteInputs, DeleteInput{Context: ctx, ID: id, Condition: condition})
 	if s.DeleteStub != nil {
-		return s.DeleteStub(ctx, id)
+		return s.DeleteStub(ctx, id, condition)
 	}
 	if len(s.DeleteOutputs) > 0 {
 		output := s.DeleteOutputs[0]

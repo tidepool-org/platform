@@ -6,11 +6,11 @@ import (
 	dataClient "github.com/tidepool-org/platform/data/client"
 	messageStore "github.com/tidepool-org/platform/message/store"
 	"github.com/tidepool-org/platform/metric"
+	"github.com/tidepool-org/platform/permission"
 	permissionStore "github.com/tidepool-org/platform/permission/store"
 	profileStore "github.com/tidepool-org/platform/profile/store"
 	"github.com/tidepool-org/platform/service"
 	sessionStore "github.com/tidepool-org/platform/session/store"
-	"github.com/tidepool-org/platform/user"
 	userStore "github.com/tidepool-org/platform/user/store"
 )
 
@@ -19,7 +19,7 @@ type Context interface {
 
 	AuthClient() auth.Client
 	MetricClient() metric.Client
-	UserClient() user.Client
+	PermissionClient() permission.Client
 	DataClient() dataClient.Client
 
 	ConfirmationSession() confirmationStore.ConfirmationSession

@@ -9,33 +9,14 @@ import (
 	testData "github.com/tidepool-org/platform/data/test"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	"github.com/tidepool-org/platform/data/types/upload"
+	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/net"
+	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"github.com/tidepool-org/platform/test"
-	testInternet "github.com/tidepool-org/platform/test/internet"
 )
-
-func NewClient() *upload.Client {
-	datum := upload.NewClient()
-	datum.Name = pointer.FromString(testInternet.NewReverseDomain())
-	datum.Version = pointer.FromString(testInternet.NewSemanticVersion())
-	datum.Private = testData.NewBlob()
-	return datum
-}
-
-func CloneClient(datum *upload.Client) *upload.Client {
-	if datum == nil {
-		return nil
-	}
-	clone := upload.NewClient()
-	clone.Name = test.CloneString(datum.Name)
-	clone.Version = test.CloneString(datum.Version)
-	clone.Private = testData.CloneBlob(datum.Private)
-	return clone
-}
 
 var _ = Describe("Client", func() {
 	Context("ParseClient", func() {
@@ -56,7 +37,7 @@ var _ = Describe("Client", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *upload.Client), expectedErrors ...error) {
-					datum := NewClient()
+					datum := dataTypesUploadTest.NewClient()
 					mutator(datum)
 					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
@@ -76,7 +57,7 @@ var _ = Describe("Client", func() {
 					testErrors.WithPointerSource(net.ErrorValueStringAsReverseDomainNotValid("org"), "/name"),
 				),
 				Entry("name valid",
-					func(datum *upload.Client) { datum.Name = pointer.FromString(testInternet.NewReverseDomain()) },
+					func(datum *upload.Client) { datum.Name = pointer.FromString(netTest.RandomReverseDomain()) },
 				),
 				Entry("version missing",
 					func(datum *upload.Client) { datum.Version = nil },
@@ -91,7 +72,7 @@ var _ = Describe("Client", func() {
 					testErrors.WithPointerSource(net.ErrorValueStringAsSemanticVersionNotValid("1.2"), "/version"),
 				),
 				Entry("version valid",
-					func(datum *upload.Client) { datum.Version = pointer.FromString(testInternet.NewSemanticVersion()) },
+					func(datum *upload.Client) { datum.Version = pointer.FromString(netTest.RandomSemanticVersion()) },
 				),
 				Entry("private missing",
 					func(datum *upload.Client) { datum.Private = nil },
@@ -114,9 +95,9 @@ var _ = Describe("Client", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *upload.Client)) {
 					for _, origin := range structure.Origins() {
-						datum := NewClient()
+						datum := dataTypesUploadTest.NewClient()
 						mutator(datum)
-						expectedDatum := CloneClient(datum)
+						expectedDatum := dataTypesUploadTest.CloneClient(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))

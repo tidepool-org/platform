@@ -7,6 +7,7 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
+	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/types/device/reservoirchange"
 	dataTypesDeviceStatus "github.com/tidepool-org/platform/data/types/device/status"
@@ -44,7 +45,7 @@ func NewReservoirChangeWithStatus() *reservoirchange.ReservoirChange {
 
 func NewReservoirChangeWithStatusID() *reservoirchange.ReservoirChange {
 	datum := NewReservoirChange()
-	datum.StatusID = pointer.FromString(data.NewID())
+	datum.StatusID = pointer.FromString(dataTest.RandomID())
 	return datum
 }
 
@@ -148,12 +149,12 @@ var _ = Describe("Change", func() {
 					func(datum *reservoirchange.ReservoirChange) { datum.StatusID = nil },
 				),
 				Entry("status id exists",
-					func(datum *reservoirchange.ReservoirChange) { datum.StatusID = pointer.FromString(data.NewID()) },
+					func(datum *reservoirchange.ReservoirChange) { datum.StatusID = pointer.FromString(dataTest.RandomID()) },
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/statusId", NewMeta()),
 				),
 				Entry("multiple errors",
 					func(datum *reservoirchange.ReservoirChange) {
-						datum.StatusID = pointer.FromString(data.NewID())
+						datum.StatusID = pointer.FromString(dataTest.RandomID())
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/statusId", NewMeta()),
 				),
@@ -186,7 +187,7 @@ var _ = Describe("Change", func() {
 					testErrors.WithPointerSourceAndMeta(data.ErrorValueStringAsIDNotValid("invalid"), "/statusId", NewMeta()),
 				),
 				Entry("status id valid",
-					func(datum *reservoirchange.ReservoirChange) { datum.StatusID = pointer.FromString(data.NewID()) },
+					func(datum *reservoirchange.ReservoirChange) { datum.StatusID = pointer.FromString(dataTest.RandomID()) },
 				),
 				Entry("multiple errors",
 					func(datum *reservoirchange.ReservoirChange) {

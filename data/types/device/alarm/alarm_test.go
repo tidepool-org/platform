@@ -7,6 +7,7 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
+	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/types/device/alarm"
 	dataTypesDeviceStatus "github.com/tidepool-org/platform/data/types/device/status"
@@ -45,7 +46,7 @@ func NewAlarmWithStatus() *alarm.Alarm {
 
 func NewAlarmWithStatusID() *alarm.Alarm {
 	datum := NewAlarm()
-	datum.StatusID = pointer.FromString(data.NewID())
+	datum.StatusID = pointer.FromString(dataTest.RandomID())
 	return datum
 }
 
@@ -228,12 +229,12 @@ var _ = Describe("Change", func() {
 					func(datum *alarm.Alarm) { datum.StatusID = nil },
 				),
 				Entry("status id exists",
-					func(datum *alarm.Alarm) { datum.StatusID = pointer.FromString(data.NewID()) },
+					func(datum *alarm.Alarm) { datum.StatusID = pointer.FromString(dataTest.RandomID()) },
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/statusId", NewMeta()),
 				),
 				Entry("multiple errors",
 					func(datum *alarm.Alarm) {
-						datum.StatusID = pointer.FromString(data.NewID())
+						datum.StatusID = pointer.FromString(dataTest.RandomID())
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/statusId", NewMeta()),
 				),
@@ -266,7 +267,7 @@ var _ = Describe("Change", func() {
 					testErrors.WithPointerSourceAndMeta(data.ErrorValueStringAsIDNotValid("invalid"), "/statusId", NewMeta()),
 				),
 				Entry("status id valid",
-					func(datum *alarm.Alarm) { datum.StatusID = pointer.FromString(data.NewID()) },
+					func(datum *alarm.Alarm) { datum.StatusID = pointer.FromString(dataTest.RandomID()) },
 				),
 				Entry("multiple errors",
 					func(datum *alarm.Alarm) {

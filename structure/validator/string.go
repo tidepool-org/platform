@@ -36,7 +36,7 @@ func (s *String) NotExists() structure.String {
 
 func (s *String) Empty() structure.String {
 	if s.value != nil {
-		if len(*s.value) != 0 {
+		if len(*s.value) > 0 {
 			s.base.ReportError(ErrorValueNotEmpty())
 		}
 	}

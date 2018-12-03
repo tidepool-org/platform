@@ -1,13 +1,11 @@
 package selfmonitored_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"testing"
+
+	"github.com/tidepool-org/platform/test"
 )
 
 func TestSuite(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "data/types/blood/glucose/selfmonitored")
+	test.Test(t)
 }

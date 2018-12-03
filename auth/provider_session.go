@@ -154,6 +154,25 @@ func ErrorValueStringAsProviderSessionIDNotValid(value string) error {
 
 var providerSessionIDExpression = regexp.MustCompile("^[0-9a-z]{32}$")
 
+const ProviderNameLengthMaximum = 100
+
+func IsValidProviderName(value string) bool {
+	return ValidateProviderName(value) == nil
+}
+
+func ProviderNameValidator(value string, errorReporter structure.ErrorReporter) {
+	errorReporter.ReportError(ValidateProviderName(value))
+}
+
+func ValidateProviderName(value string) error {
+	if value == "" {
+		return structureValidator.ErrorValueEmpty()
+	} else if length := len(value); length > ProviderNameLengthMaximum {
+		return structureValidator.ErrorLengthNotLessThanOrEqualTo(length, ProviderNameLengthMaximum)
+	}
+	return nil
+}
+
 type ProviderSession struct {
 	ID           string       `json:"id" bson:"id"`
 	UserID       string       `json:"userId" bson:"userId"`

@@ -95,14 +95,14 @@ var _ = Describe("Object", func() {
 			})
 
 			It("returns true if any errors reported", func() {
-				base.ReportError(testErrors.NewError())
+				base.ReportError(testErrors.RandomError())
 				Expect(parser.HasError()).To(BeTrue())
 			})
 		})
 
 		Context("Error", func() {
 			It("returns the error from the base", func() {
-				err := testErrors.NewError()
+				err := testErrors.RandomError()
 				base.ReportError(err)
 				Expect(parser.Error()).To(Equal(errors.Normalize(err)))
 			})
@@ -110,7 +110,7 @@ var _ = Describe("Object", func() {
 
 		Context("ReportError", func() {
 			It("reports the error to the base", func() {
-				err := testErrors.NewError()
+				err := testErrors.RandomError()
 				parser.ReportError(err)
 				Expect(base.Error()).To(Equal(errors.Normalize(err)))
 			})
@@ -134,7 +134,7 @@ var _ = Describe("Object", func() {
 			})
 
 			It("invokes parse and returns current errors", func() {
-				err := testErrors.NewError()
+				err := testErrors.RandomError()
 				base.ReportError(err)
 				Expect(parser.Parse(objectParsable)).To(Equal(errors.Normalize(err)))
 				Expect(objectParsable.ParseInputs).To(Equal([]structure.ObjectParser{parser}))
@@ -190,7 +190,7 @@ var _ = Describe("Object", func() {
 		})
 
 		It("NotParsed only returns existing errors", func() {
-			err := testErrors.NewError()
+			err := testErrors.RandomError()
 			base.ReportError(err)
 			Expect(parser.NotParsed()).To(Equal(errors.Normalize(err)))
 		})
@@ -246,7 +246,7 @@ var _ = Describe("Object", func() {
 
 		Context("Error", func() {
 			It("returns the error from the base", func() {
-				err := testErrors.NewError()
+				err := testErrors.RandomError()
 				base.ReportError(err)
 				Expect(parser.Error()).To(Equal(errors.Normalize(err)))
 			})
@@ -270,7 +270,7 @@ var _ = Describe("Object", func() {
 			})
 
 			It("invokes parse and returns current errors", func() {
-				err := testErrors.NewError()
+				err := testErrors.RandomError()
 				base.ReportError(err)
 				Expect(parser.Parse(objectParsable)).To(Equal(errors.Normalize(err)))
 				Expect(objectParsable.ParseInputs).To(Equal([]structure.ObjectParser{parser}))

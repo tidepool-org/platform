@@ -2,8 +2,7 @@ package v1_test
 
 import (
 	. "github.com/onsi/ginkgo"
-	// . "github.com/onsi/gomega"
 )
 
-var _ = PDescribe("AuthenticateMiddleware", func() {
+var _ = Describe("AuthenticateMiddleware", func() {
 })

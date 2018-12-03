@@ -20,12 +20,14 @@ import (
 	"github.com/tidepool-org/platform/net"
 	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/pointer"
+	requestTest "github.com/tidepool-org/platform/request/test"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureTest "github.com/tidepool-org/platform/structure/test"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 	testHttp "github.com/tidepool-org/platform/test/http"
 	"github.com/tidepool-org/platform/user"
+	userTest "github.com/tidepool-org/platform/user/test"
 )
 
 var futureTime = time.Unix(4102444800, 0)
@@ -33,8 +35,8 @@ var nearPastTime = time.Unix(1500000000, 0)
 var farPastTime = time.Unix(1200000000, 0)
 
 var _ = Describe("Blob", func() {
-	It("ErrorCodeDigestsNotEqual is expected", func() {
-		Expect(blob.ErrorCodeDigestsNotEqual).To(Equal("digests-not-equal"))
+	It("SizeMaximum is expected", func() {
+		Expect(blob.SizeMaximum).To(Equal(104857600))
 	})
 
 	It("StatusAvailable is expected", func() {
@@ -45,32 +47,8 @@ var _ = Describe("Blob", func() {
 		Expect(blob.StatusCreated).To(Equal("created"))
 	})
 
-	Context("Errors", func() {
-		DescribeTable("have expected details when error",
-			errorsTest.ExpectErrorDetails,
-			Entry("is ErrorDigestsNotEqual with empty string", blob.ErrorDigestsNotEqual("", ""), "digests-not-equal", "digests not equal", `digest "" does not equal calculated digest ""`),
-			Entry("is ErrorDigestsNotEqual with non-empty string", blob.ErrorDigestsNotEqual("QUJDREVGSElKS0xNTk9QUQ==", "lah2klptWl+IBNSepXlJ9Q=="), "digests-not-equal", "digests not equal", `digest "QUJDREVGSElKS0xNTk9QUQ==" does not equal calculated digest "lah2klptWl+IBNSepXlJ9Q=="`),
-		)
-	})
-
 	It("Statuses returns expected", func() {
 		Expect(blob.Statuses()).To(Equal([]string{"available", "created"}))
-	})
-
-	Context("Filter", func() {
-		DescribeTable("serializes the datum as expected",
-			func(mutator func(datum *blob.Filter)) {
-				datum := blobTest.RandomFilter()
-				mutator(datum)
-				test.ExpectSerializedJSON(datum, blobTest.NewObjectFromFilter(datum, test.ObjectFormatJSON))
-			},
-			Entry("succeeds",
-				func(datum *blob.Filter) {},
-			),
-			Entry("empty",
-				func(datum *blob.Filter) { *datum = blob.Filter{} },
-			),
-		)
 	})
 
 	Context("NewFilter", func() {
@@ -486,7 +464,7 @@ var _ = Describe("Blob", func() {
 				),
 				Entry("id valid",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						valid := blob.NewID()
+						valid := blobTest.RandomID()
 						object["id"] = valid
 						expectedDatum.ID = pointer.FromString(valid)
 					},
@@ -512,7 +490,7 @@ var _ = Describe("Blob", func() {
 				),
 				Entry("user id valid",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						valid := user.NewID()
+						valid := userTest.RandomID()
 						object["userId"] = valid
 						expectedDatum.UserID = pointer.FromString(valid)
 					},
@@ -669,6 +647,26 @@ var _ = Describe("Blob", func() {
 						expectedDatum.ModifiedTime = pointer.FromTime(valid)
 					},
 				),
+				Entry("revision missing",
+					func(object map[string]interface{}, expectedDatum *blob.Blob) {
+						delete(object, "revision")
+						expectedDatum.Revision = nil
+					},
+				),
+				Entry("revision invalid type",
+					func(object map[string]interface{}, expectedDatum *blob.Blob) {
+						object["revision"] = true
+						expectedDatum.Revision = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotInt(true), "/revision"),
+				),
+				Entry("revision valid",
+					func(object map[string]interface{}, expectedDatum *blob.Blob) {
+						valid := requestTest.RandomRevision()
+						object["revision"] = valid
+						expectedDatum.Revision = pointer.FromInt(valid)
+					},
+				),
 				Entry("multiple",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
 						object["id"] = true
@@ -679,6 +677,7 @@ var _ = Describe("Blob", func() {
 						object["status"] = true
 						object["createdTime"] = true
 						object["modifiedTime"] = true
+						object["revision"] = true
 						expectedDatum.ID = nil
 						expectedDatum.UserID = nil
 						expectedDatum.DigestMD5 = nil
@@ -687,6 +686,7 @@ var _ = Describe("Blob", func() {
 						expectedDatum.Status = nil
 						expectedDatum.CreatedTime = nil
 						expectedDatum.ModifiedTime = nil
+						expectedDatum.Revision = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/id"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/userId"),
@@ -696,6 +696,7 @@ var _ = Describe("Blob", func() {
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/status"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/createdTime"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/modifiedTime"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotInt(true), "/revision"),
 				),
 			)
 		})
@@ -723,7 +724,7 @@ var _ = Describe("Blob", func() {
 					errorsTest.WithPointerSource(blob.ErrorValueStringAsIDNotValid("invalid"), "/id"),
 				),
 				Entry("id valid",
-					func(datum *blob.Blob) { datum.ID = pointer.FromString(blob.NewID()) },
+					func(datum *blob.Blob) { datum.ID = pointer.FromString(blobTest.RandomID()) },
 				),
 				Entry("user id missing",
 					func(datum *blob.Blob) { datum.UserID = nil },
@@ -738,7 +739,7 @@ var _ = Describe("Blob", func() {
 					errorsTest.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/userId"),
 				),
 				Entry("user id valid",
-					func(datum *blob.Blob) { datum.UserID = pointer.FromString(user.NewID()) },
+					func(datum *blob.Blob) { datum.UserID = pointer.FromString(userTest.RandomID()) },
 				),
 				Entry("digest MD5 missing",
 					func(datum *blob.Blob) { datum.DigestMD5 = nil },
@@ -839,6 +840,23 @@ var _ = Describe("Blob", func() {
 						datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()).Truncate(time.Second))
 					},
 				),
+				Entry("revision missing",
+					func(datum *blob.Blob) {
+						datum.Revision = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/revision"),
+				),
+				Entry("revision out of range (lower)",
+					func(datum *blob.Blob) {
+						datum.Revision = pointer.FromInt(-1)
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/revision"),
+				),
+				Entry("revision in range (lower)",
+					func(datum *blob.Blob) {
+						datum.Revision = pointer.FromInt(0)
+					},
+				),
 				Entry("multiple errors",
 					func(datum *blob.Blob) {
 						datum.ID = nil
@@ -849,6 +867,7 @@ var _ = Describe("Blob", func() {
 						datum.Status = nil
 						datum.CreatedTime = nil
 						datum.ModifiedTime = pointer.FromTime(futureTime)
+						datum.Revision = pointer.FromInt(-1)
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/id"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/userId"),
@@ -858,6 +877,7 @@ var _ = Describe("Blob", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/status"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/createdTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/modifiedTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/revision"),
 				),
 			)
 		})
@@ -892,9 +912,15 @@ var _ = Describe("Blob", func() {
 		)
 	})
 
+	It("ErrorCodeDigestsNotEqual is expected", func() {
+		Expect(blob.ErrorCodeDigestsNotEqual).To(Equal("digests-not-equal"))
+	})
+
 	Context("Errors", func() {
 		DescribeTable("have expected details when error",
 			errorsTest.ExpectErrorDetails,
+			Entry("is ErrorDigestsNotEqual with empty string", blob.ErrorDigestsNotEqual("", ""), "digests-not-equal", "digests not equal", `digest "" does not equal calculated digest ""`),
+			Entry("is ErrorDigestsNotEqual with non-empty string", blob.ErrorDigestsNotEqual("QUJDREVGSElKS0xNTk9QUQ==", "lah2klptWl+IBNSepXlJ9Q=="), "digests-not-equal", "digests not equal", `digest "QUJDREVGSElKS0xNTk9QUQ==" does not equal calculated digest "lah2klptWl+IBNSepXlJ9Q=="`),
 			Entry("is ErrorValueStringAsIDNotValid with empty string", blob.ErrorValueStringAsIDNotValid(""), "value-not-valid", "value is not valid", `value "" is not valid as blob id`),
 			Entry("is ErrorValueStringAsIDNotValid with non-empty string", blob.ErrorValueStringAsIDNotValid("0123456789abcdefghijklmnopqrstuv"), "value-not-valid", "value is not valid", `value "0123456789abcdefghijklmnopqrstuv" is not valid as blob id`),
 		)

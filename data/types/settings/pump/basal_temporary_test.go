@@ -31,6 +31,10 @@ func CloneBasalTemporary(datum *pump.BasalTemporary) *pump.BasalTemporary {
 }
 
 var _ = Describe("BasalTemporary", func() {
+	It("BasalTemporaryTypeOff is expected", func() {
+		Expect(pump.BasalTemporaryTypeOff).To(Equal("off"))
+	})
+
 	It("BasalTemporaryTypePercent is expected", func() {
 		Expect(pump.BasalTemporaryTypePercent).To(Equal("percent"))
 	})
@@ -40,7 +44,7 @@ var _ = Describe("BasalTemporary", func() {
 	})
 
 	It("BasalTemporaryTypes returns expected", func() {
-		Expect(pump.BasalTemporaryTypes()).To(Equal([]string{"percent", "Units/hour"}))
+		Expect(pump.BasalTemporaryTypes()).To(Equal([]string{"off", "percent", "Units/hour"}))
 	})
 
 	Context("ParseBasalTemporary", func() {
@@ -74,7 +78,10 @@ var _ = Describe("BasalTemporary", func() {
 				),
 				Entry("type invalid",
 					func(datum *pump.BasalTemporary) { datum.Type = pointer.FromString("invalid") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"percent", "Units/hour"}), "/type"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"off", "percent", "Units/hour"}), "/type"),
+				),
+				Entry("type off",
+					func(datum *pump.BasalTemporary) { datum.Type = pointer.FromString("off") },
 				),
 				Entry("type percent",
 					func(datum *pump.BasalTemporary) { datum.Type = pointer.FromString("percent") },

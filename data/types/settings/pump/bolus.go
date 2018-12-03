@@ -8,7 +8,7 @@ import (
 type Bolus struct {
 	AmountMaximum *BolusAmountMaximum `json:"amountMaximum,omitempty" bson:"amountMaximum,omitempty"`
 	Calculator    *BolusCalculator    `json:"calculator,omitempty" bson:"calculator,omitempty"`
-	Combination   *BolusCombination   `json:"combination,omitempty" bson:"combination,omitempty"`
+	Extended      *BolusExtended      `json:"extended,omitempty" bson:"extended,omitempty"`
 }
 
 func ParseBolus(parser data.ObjectParser) *Bolus {
@@ -28,7 +28,7 @@ func NewBolus() *Bolus {
 func (b *Bolus) Parse(parser data.ObjectParser) {
 	b.AmountMaximum = ParseBolusAmountMaximum(parser.NewChildObjectParser("amountMaximum"))
 	b.Calculator = ParseBolusCalculator(parser.NewChildObjectParser("calculator"))
-	b.Combination = ParseBolusCombination(parser.NewChildObjectParser("combination"))
+	b.Extended = ParseBolusExtended(parser.NewChildObjectParser("extended"))
 }
 
 func (b *Bolus) Validate(validator structure.Validator) {
@@ -38,8 +38,8 @@ func (b *Bolus) Validate(validator structure.Validator) {
 	if b.Calculator != nil {
 		b.Calculator.Validate(validator.WithReference("calculator"))
 	}
-	if b.Combination != nil {
-		b.Combination.Validate(validator.WithReference("combination"))
+	if b.Extended != nil {
+		b.Extended.Validate(validator.WithReference("extended"))
 	}
 }
 
@@ -50,7 +50,7 @@ func (b *Bolus) Normalize(normalizer data.Normalizer) {
 	if b.Calculator != nil {
 		b.Calculator.Normalize(normalizer.WithReference("calculator"))
 	}
-	if b.Combination != nil {
-		b.Combination.Normalize(normalizer.WithReference("combination"))
+	if b.Extended != nil {
+		b.Extended.Normalize(normalizer.WithReference("extended"))
 	}
 }
