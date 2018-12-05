@@ -1,5 +1,29 @@
 ## HEAD
 
+## v1.30.0
+
+* Fix Dexcom API v2 edge cases
+* Handle unexpected data from Dexcom API v2
+* Update to Dexcom API v2
+* Capture cgm settings for changed Dexcom API devices
+* Capture new fields from Dexcom API v2 data
+* Pull data from Dexcom API in 30 day increments rather than 90
+* Add Dexcom time struct for proper formatting during serialization
+* Use constants consistently throughout dexcom package
+* Remove device info from Dexcom API data as not useful
+* Remove unnecessary TODO for Dexcom API mmol/L support
+* Update cgm settings to allow for new settings from Dexcom API
+* Add default alert settings and alternative scheduled alert settings to cgm settings
+* Add test helpers for data parser serialization
+* Add pointer.Equal functions
+* Deprecate current cgm settings alert structures
+* Update oauth/client package tests to latest best practices
+* Update platform package tests to latest best practices
+* Update client package tests to latest best practices
+* Update Dexcom types to latest best practices
+* Add data store benchmark tool
+* Rename local variable name context to ctx for consistency
+* Remove unused code in data store mongo implementation
 * Update tool dependencies
 * Add build tools as additional dependencies
 * Update Makefile to install build tools from vendor directory

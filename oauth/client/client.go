@@ -14,22 +14,22 @@ type Client struct {
 	tokenSourceSource oauth.TokenSourceSource
 }
 
-func New(cfg *client.Config, tknSrcSrc oauth.TokenSourceSource) (*Client, error) {
-	if cfg == nil {
+func New(config *client.Config, tokenSourceSource oauth.TokenSourceSource) (*Client, error) {
+	if config == nil {
 		return nil, errors.New("config is missing")
 	}
-	if tknSrcSrc == nil {
+	if tokenSourceSource == nil {
 		return nil, errors.New("token source source is missing")
 	}
 
-	clnt, err := client.New(cfg)
+	clnt, err := client.New(config)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Client{
 		client:            clnt,
-		tokenSourceSource: tknSrcSrc,
+		tokenSourceSource: tokenSourceSource,
 	}, nil
 }
 

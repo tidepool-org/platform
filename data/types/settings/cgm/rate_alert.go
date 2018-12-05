@@ -1,160 +1,120 @@
 package cgm
 
 import (
+	"math"
+
 	"github.com/tidepool-org/platform/data"
-	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/structure"
-	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 const (
-	RateMgdLThree  = 3.0
-	RateMgdLTwo    = 2.0
-	RateMmolLThree = 0.16652243973136602
-	RateMmolLTwo   = 0.11101495982091067
+	RateAlertUnitsMgdLMinute  = "mg/dL/minute"
+	RateAlertUnitsMmolLMinute = "mmol/L/minute"
+
+	FallAlertRateMgdLMinuteMaximum  = 10.0
+	FallAlertRateMgdLMinuteMinimum  = 1.0
+	FallAlertRateMmolLMinuteMaximum = 0.55507
+	FallAlertRateMmolLMinuteMinimum = 0.05551
+	RiseAlertRateMgdLMinuteMaximum  = 10.0
+	RiseAlertRateMgdLMinuteMinimum  = 1.0
+	RiseAlertRateMmolLMinuteMaximum = 0.55507
+	RiseAlertRateMmolLMinuteMinimum = 0.05551
 )
 
+func RateAlertUnits() []string {
+	return []string{
+		RateAlertUnitsMgdLMinute,
+		RateAlertUnitsMmolLMinute,
+	}
+}
+
 type RateAlert struct {
-	Enabled *bool    `json:"enabled,omitempty" bson:"enabled,omitempty"`
-	Rate    *float64 `json:"rate,omitempty" bson:"rate,omitempty"` // TODO: Make always positive
+	Alert `bson:",inline"`
+	Rate  *float64 `json:"rate,omitempty" bson:"rate,omitempty"`
+	Units *string  `json:"units,omitempty" bson:"units,omitempty"`
 }
 
 func (r *RateAlert) Parse(parser data.ObjectParser) {
-	r.Enabled = parser.ParseBoolean("enabled")
+	r.Alert.Parse(parser)
 	r.Rate = parser.ParseFloat("rate")
+	r.Units = parser.ParseString("units")
 }
 
-func (r *RateAlert) Validate(validator structure.Validator, units *string) {
-	validator.Bool("enabled", r.Enabled).Exists()
-	validator.Float64("rate", r.Rate).Exists()
-}
-
-func (r *RateAlert) Normalize(normalizer data.Normalizer, units *string) {
-	if normalizer.Origin() == structure.OriginExternal {
-		r.Rate = dataBloodGlucose.NormalizeValueForUnits(r.Rate, units)
+func (r *RateAlert) Validate(validator structure.Validator) {
+	r.Alert.Validate(validator)
+	if unitsValidator := validator.String("units", r.Units); r.Rate != nil {
+		unitsValidator.Exists().OneOf(RateAlertUnits()...)
+	} else {
+		unitsValidator.NotExists()
 	}
 }
 
-type FallRateAlert struct {
+type FallAlert struct {
 	RateAlert `bson:",inline"`
 }
 
-func ParseFallRateAlert(parser data.ObjectParser) *FallRateAlert {
+func ParseFallAlert(parser data.ObjectParser) *FallAlert {
 	if parser.Object() == nil {
 		return nil
 	}
-	fallRateAlert := NewFallRateAlert()
-	fallRateAlert.Parse(parser)
+	datum := NewFallAlert()
+	datum.Parse(parser)
 	parser.ProcessNotParsed()
-	return fallRateAlert
+	return datum
 }
 
-func NewFallRateAlert() *FallRateAlert {
-	return &FallRateAlert{}
+func NewFallAlert() *FallAlert {
+	return &FallAlert{}
 }
 
-func (f *FallRateAlert) Validate(validator structure.Validator, units *string) {
-	f.RateAlert.Validate(validator, units)
-
-	if rates := f.RatesForUnits(units); len(rates) > 0 {
-		validator.Float64("rate", f.Rate).OneOf(rates...)
-	}
+func (f *FallAlert) Validate(validator structure.Validator) {
+	f.RateAlert.Validate(validator)
+	validator.Float64("rate", f.Rate).InRange(FallAlertRateRangeForUnits(f.Units))
 }
 
-func (f *FallRateAlert) RatesForUnits(units *string) []float64 {
+func FallAlertRateRangeForUnits(units *string) (float64, float64) {
 	if units != nil {
 		switch *units {
-		case dataBloodGlucose.MgdL, dataBloodGlucose.Mgdl:
-			return []float64{-RateMgdLThree, -RateMgdLTwo}
-		case dataBloodGlucose.MmolL, dataBloodGlucose.Mmoll:
-			return []float64{-RateMmolLThree, -RateMmolLTwo}
+		case RateAlertUnitsMgdLMinute:
+			return FallAlertRateMgdLMinuteMinimum, FallAlertRateMgdLMinuteMaximum
+		case RateAlertUnitsMmolLMinute:
+			return FallAlertRateMmolLMinuteMinimum, FallAlertRateMmolLMinuteMaximum
 		}
 	}
-	return nil
+	return -math.MaxFloat64, math.MaxFloat64
 }
 
-type RiseRateAlert struct {
+type RiseAlert struct {
 	RateAlert `bson:",inline"`
 }
 
-func ParseRiseRateAlert(parser data.ObjectParser) *RiseRateAlert {
+func ParseRiseAlert(parser data.ObjectParser) *RiseAlert {
 	if parser.Object() == nil {
 		return nil
 	}
-	riseRateAlert := NewRiseRateAlert()
-	riseRateAlert.Parse(parser)
+	datum := NewRiseAlert()
+	datum.Parse(parser)
 	parser.ProcessNotParsed()
-	return riseRateAlert
+	return datum
 }
 
-func NewRiseRateAlert() *RiseRateAlert {
-	return &RiseRateAlert{}
+func NewRiseAlert() *RiseAlert {
+	return &RiseAlert{}
 }
 
-func (r *RiseRateAlert) Validate(validator structure.Validator, units *string) {
-	r.RateAlert.Validate(validator, units)
-
-	if rates := r.RatesForUnits(units); len(rates) > 0 {
-		validator.Float64("rate", r.Rate).OneOf(rates...)
-	}
+func (r *RiseAlert) Validate(validator structure.Validator) {
+	r.RateAlert.Validate(validator)
+	validator.Float64("rate", r.Rate).InRange(RiseAlertRateRangeForUnits(r.Units))
 }
 
-func (r *RiseRateAlert) RatesForUnits(units *string) []float64 {
+func RiseAlertRateRangeForUnits(units *string) (float64, float64) {
 	if units != nil {
 		switch *units {
-		case dataBloodGlucose.MgdL, dataBloodGlucose.Mgdl:
-			return []float64{RateMgdLTwo, RateMgdLThree}
-		case dataBloodGlucose.MmolL, dataBloodGlucose.Mmoll:
-			return []float64{RateMmolLTwo, RateMmolLThree}
+		case RateAlertUnitsMgdLMinute:
+			return RiseAlertRateMgdLMinuteMinimum, RiseAlertRateMgdLMinuteMaximum
+		case RateAlertUnitsMmolLMinute:
+			return RiseAlertRateMmolLMinuteMinimum, RiseAlertRateMmolLMinuteMaximum
 		}
 	}
-	return nil
-}
-
-type RateAlerts struct {
-	FallRateAlert *FallRateAlert `json:"fallRate,omitempty" bson:"fallRate,omitempty"`
-	RiseRateAlert *RiseRateAlert `json:"riseRate,omitempty" bson:"riseRate,omitempty"`
-}
-
-func ParseRateAlerts(parser data.ObjectParser) *RateAlerts {
-	if parser.Object() == nil {
-		return nil
-	}
-	rateAlerts := NewRateAlerts()
-	rateAlerts.Parse(parser)
-	parser.ProcessNotParsed()
-	return rateAlerts
-}
-
-func NewRateAlerts() *RateAlerts {
-	return &RateAlerts{}
-}
-
-func (r *RateAlerts) Parse(parser data.ObjectParser) {
-	r.FallRateAlert = ParseFallRateAlert(parser.NewChildObjectParser("fallRate"))
-	r.RiseRateAlert = ParseRiseRateAlert(parser.NewChildObjectParser("riseRate"))
-}
-
-func (r *RateAlerts) Validate(validator structure.Validator, units *string) {
-	if r.FallRateAlert != nil {
-		r.FallRateAlert.Validate(validator.WithReference("fallRate"), units)
-	} else {
-		validator.WithReference("fallRate").ReportError(structureValidator.ErrorValueNotExists())
-	}
-	if r.RiseRateAlert != nil {
-		r.RiseRateAlert.Validate(validator.WithReference("riseRate"), units)
-	} else {
-		validator.WithReference("riseRate").ReportError(structureValidator.ErrorValueNotExists())
-	}
-}
-
-func (r *RateAlerts) Normalize(normalizer data.Normalizer, units *string) {
-	if normalizer.Origin() == structure.OriginExternal {
-		if r.FallRateAlert != nil {
-			r.FallRateAlert.Normalize(normalizer, units)
-		}
-		if r.RiseRateAlert != nil {
-			r.RiseRateAlert.Normalize(normalizer, units)
-		}
-	}
+	return -math.MaxFloat64, math.MaxFloat64
 }

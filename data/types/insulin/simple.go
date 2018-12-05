@@ -3,7 +3,6 @@ package insulin
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/structure"
-	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 const (
@@ -54,8 +53,6 @@ func (s *Simple) Validate(validator structure.Validator) {
 	validator.String("brand", s.Brand).NotEmpty().LengthLessThanOrEqualTo(SimpleBrandLengthMaximum)
 	if s.Concentration != nil {
 		s.Concentration.Validate(validator.WithReference("concentration"))
-	} else {
-		validator.WithReference("concentration").ReportError(structureValidator.ErrorValueNotExists())
 	}
 }
 

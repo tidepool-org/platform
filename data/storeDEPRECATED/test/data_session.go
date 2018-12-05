@@ -101,12 +101,6 @@ type UnarchiveDeviceDataUsingHashesFromDataSetInput struct {
 	DataSet *upload.Upload
 }
 
-type ArchiveDataSetDataUsingOriginIDsInput struct {
-	Context   context.Context
-	DataSet   *upload.Upload
-	OriginIDs []string
-}
-
 type DeleteOtherDataSetDataInput struct {
 	Context context.Context
 	DataSet *upload.Upload
