@@ -1,14 +1,13 @@
 package middleware_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/auth"
 	testAuth "github.com/tidepool-org/platform/auth/test"

@@ -1,10 +1,10 @@
 package normalizer_test
 
 import (
+	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"fmt"
 
 	"github.com/tidepool-org/platform/data"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"

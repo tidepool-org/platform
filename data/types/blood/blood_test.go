@@ -1,12 +1,12 @@
 package blood_test
 
 import (
+	"math"
+	"strconv"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-
-	"math"
-	"strconv"
 
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/parser"

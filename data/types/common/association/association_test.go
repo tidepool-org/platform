@@ -1,11 +1,11 @@
 package association_test
 
 import (
+	"strings"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-
-	"strings"
 
 	"github.com/tidepool-org/platform/data"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"

@@ -1,10 +1,10 @@
 package service_test
 
 import (
+	"encoding/json"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"encoding/json"
 
 	"github.com/tidepool-org/platform/service"
 )

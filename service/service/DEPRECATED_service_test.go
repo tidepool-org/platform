@@ -1,11 +1,11 @@
 package service_test
 
 import (
+	"net/http"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
-
-	"net/http"
 
 	applicationTest "github.com/tidepool-org/platform/application/test"
 	authTest "github.com/tidepool-org/platform/auth/test"

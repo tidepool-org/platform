@@ -1,11 +1,11 @@
 package origin_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-
-	"time"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	dataTest "github.com/tidepool-org/platform/data/test"

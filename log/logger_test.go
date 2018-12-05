@@ -1,14 +1,14 @@
 package log_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
 	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"

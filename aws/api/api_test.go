@@ -1,10 +1,9 @@
 package api_test
 
 import (
+	"github.com/aws/aws-sdk-go/aws/session"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"github.com/aws/aws-sdk-go/aws/session"
 
 	"github.com/tidepool-org/platform/aws/api"
 )

@@ -1,12 +1,12 @@
 package service_test
 
 import (
+	"errors"
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-
-	"errors"
-	"time"
 
 	"github.com/tidepool-org/platform/service"
 )

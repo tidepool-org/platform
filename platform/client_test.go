@@ -1,13 +1,13 @@
 package platform_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/ghttp"
-
 	"context"
 	"io"
 	"net/http"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/ghttp"
 
 	"github.com/tidepool-org/platform/auth"
 	authTest "github.com/tidepool-org/platform/auth/test"

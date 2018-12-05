@@ -1,10 +1,10 @@
 package page_test
 
 import (
+	"net/http"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"net/http"
 
 	"github.com/tidepool-org/platform/errors"
 	testErrors "github.com/tidepool-org/platform/errors/test"

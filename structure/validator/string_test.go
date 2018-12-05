@@ -1,11 +1,11 @@
 package validator_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"regexp"
 	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	testErrors "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"

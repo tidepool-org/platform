@@ -1,5 +1,8 @@
 ## HEAD
 
+* Fix import ordering due to Golang tool changes
+* Update dependencies
+* Update to Go 1.11.1
 * Add user id to ArchiveDeviceDataUsingHashesFromDataSet selector to properly use indexes
 * Fix data set id validation to allow Jellyfish id format
 

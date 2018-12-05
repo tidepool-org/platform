@@ -2,6 +2,7 @@ package test
 
 import (
 	"github.com/onsi/gomega"
+
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/test"

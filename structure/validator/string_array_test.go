@@ -1,10 +1,10 @@
 package validator_test
 
 import (
+	"regexp"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"regexp"
 
 	"github.com/tidepool-org/platform/errors"
 	testErrors "github.com/tidepool-org/platform/errors/test"
