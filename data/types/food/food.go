@@ -9,16 +9,16 @@ import (
 const (
 	Type = "food"
 
-	BrandLengthMaximum     = 100
-	CodeLengthMaximum      = 100
-	MealBreakfast          = "breakfast"
-	MealDinner             = "dinner"
-	MealLunch              = "lunch"
-	MealOther              = "other"
-	MealOtherLengthMaximum = 100
-	MealSnack              = "snack"
-	MealRescueCarbs        = "rescuecarbs"
-	NameLengthMaximum      = 100
+	BrandLengthMaximum        = 100
+	CodeLengthMaximum         = 100
+	MealBreakfast             = "breakfast"
+	MealDinner                = "dinner"
+	MealLunch                 = "lunch"
+	MealOther                 = "other"
+	MealOtherLengthMaximum    = 100
+	MealSnack                 = "snack"
+	MealHypoglycemiaTreatment = "hypoglycemiaTreatment"
+	NameLengthMaximum         = 100
 )
 
 func Meals() []string {
@@ -28,7 +28,7 @@ func Meals() []string {
 		MealLunch,
 		MealOther,
 		MealSnack,
-		MealRescueCarbs,
+		MealHypoglycemiaTreatment,
 	}
 }
 
