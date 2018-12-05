@@ -1,5 +1,7 @@
 ## HEAD
 
+* Fix data set id validation to allow Jellyfish id format
+
 ## v1.30.0
 
 * Fix Dexcom API v2 edge cases
