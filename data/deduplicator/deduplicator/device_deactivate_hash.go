@@ -16,6 +16,7 @@ var DeviceDeactivateHashDeviceManufacturerDeviceModels = map[string][]string{
 	"LifeScan":        {"OneTouch Ultra 2", "OneTouch UltraMini", "Verio", "Verio Flex"},
 	"Medtronic":       {"523", "523K", "551", "554", "723", "723K", "751", "754", "1510", "1510K", "1511", "1512", "1580", "1581", "1582", "1710", "1710K", "1711", "1712", "1714", "1714K", "1715", "1780", "1781", "1782"},
 	"Trividia Health": {"TRUE METRIX", "TRUE METRIX AIR", "TRUE METRIX GO"},
+	"Diabeloop":       {"DBLG1"},
 }
 
 type DeviceDeactivateHash struct {
