@@ -98,7 +98,7 @@ var _ = Describe("Food", func() {
 	})
 
 	It("Meals returns expected", func() {
-		Expect(food.Meals()).To(Equal([]string{"breakfast", "dinner", "lunch", "other", "snack", "hypoglycemiaTreatment"}))
+		Expect(food.Meals()).To(Equal([]string{"breakfast", "dinner", "hypoglycemiaTreatment", "lunch", "other", "snack"}))
 	})
 
 	Context("New", func() {
@@ -209,14 +209,14 @@ var _ = Describe("Food", func() {
 						datum.Meal = pointer.FromString("invalid")
 						datum.MealOther = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"breakfast", "dinner", "lunch", "other", "snack", "hypoglycemiaTreatment"}), "/meal", NewMeta()),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"breakfast", "dinner", "hypoglycemiaTreatment", "lunch", "other", "snack"}), "/meal", NewMeta()),
 				),
 				Entry("meal invalid; meal other exists",
 					func(datum *food.Food) {
 						datum.Meal = pointer.FromString("invalid")
 						datum.MealOther = pointer.FromString(test.NewText(1, 100))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"breakfast", "dinner", "lunch", "other", "snack", "hypoglycemiaTreatment"}), "/meal", NewMeta()),
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"breakfast", "dinner", "hypoglycemiaTreatment", "lunch", "other", "snack"}), "/meal", NewMeta()),
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/mealOther", NewMeta()),
 				),
 				Entry("meal breakfast; meal other missing",
@@ -241,6 +241,19 @@ var _ = Describe("Food", func() {
 				Entry("meal dinner; meal other exists",
 					func(datum *food.Food) {
 						datum.Meal = pointer.FromString("dinner")
+						datum.MealOther = pointer.FromString(test.NewText(1, 100))
+					},
+					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/mealOther", NewMeta()),
+				),
+				Entry("meal hypoglycemiaTreatment; meal other missing",
+					func(datum *food.Food) {
+						datum.Meal = pointer.FromString("hypoglycemiaTreatment")
+						datum.MealOther = nil
+					},
+				),
+				Entry("meal hypoglycemiaTreatment; meal other exists",
+					func(datum *food.Food) {
+						datum.Meal = pointer.FromString("hypoglycemiaTreatment")
 						datum.MealOther = pointer.FromString(test.NewText(1, 100))
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/mealOther", NewMeta()),
@@ -294,19 +307,6 @@ var _ = Describe("Food", func() {
 				Entry("meal snack; meal other exists",
 					func(datum *food.Food) {
 						datum.Meal = pointer.FromString("snack")
-						datum.MealOther = pointer.FromString(test.NewText(1, 100))
-					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/mealOther", NewMeta()),
-				),
-				Entry("meal hypoglycemiaTreatment; meal other missing",
-					func(datum *food.Food) {
-						datum.Meal = pointer.FromString("hypoglycemiaTreatment")
-						datum.MealOther = nil
-					},
-				),
-				Entry("meal hypoglycemiaTreatment; meal other exists",
-					func(datum *food.Food) {
-						datum.Meal = pointer.FromString("hypoglycemiaTreatment")
 						datum.MealOther = pointer.FromString(test.NewText(1, 100))
 					},
 					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/mealOther", NewMeta()),

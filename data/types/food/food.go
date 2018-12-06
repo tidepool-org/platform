@@ -13,11 +13,11 @@ const (
 	CodeLengthMaximum         = 100
 	MealBreakfast             = "breakfast"
 	MealDinner                = "dinner"
+	MealHypoglycemiaTreatment = "hypoglycemiaTreatment"
 	MealLunch                 = "lunch"
 	MealOther                 = "other"
 	MealOtherLengthMaximum    = 100
 	MealSnack                 = "snack"
-	MealHypoglycemiaTreatment = "hypoglycemiaTreatment"
 	NameLengthMaximum         = 100
 )
 
@@ -25,10 +25,10 @@ func Meals() []string {
 	return []string{
 		MealBreakfast,
 		MealDinner,
+		MealHypoglycemiaTreatment,
 		MealLunch,
 		MealOther,
 		MealSnack,
-		MealHypoglycemiaTreatment,
 	}
 }
 
