@@ -29,7 +29,7 @@ var _ = Describe("Event", func() {
 	})
 
 	It("EventValueCarbsGramsMaximum is expected", func() {
-		Expect(dexcom.EventValueCarbsGramsMaximum).To(Equal(250.0))
+		Expect(dexcom.EventValueCarbsGramsMaximum).To(Equal(1000.0))
 	})
 
 	It("EventValueCarbsGramsMinimum is expected", func() {
@@ -53,7 +53,7 @@ var _ = Describe("Event", func() {
 	})
 
 	It("EventValueExerciseMinutesMaximum is expected", func() {
-		Expect(dexcom.EventValueExerciseMinutesMaximum).To(Equal(360.0))
+		Expect(dexcom.EventValueExerciseMinutesMaximum).To(Equal(10080.0))
 	})
 
 	It("EventValueExerciseMinutesMinimum is expected", func() {

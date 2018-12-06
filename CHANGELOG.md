@@ -1,5 +1,10 @@
 ## HEAD
 
+## v1.31.1
+
+* Relax Dexcom API validations to match Tidepool data model validations
+* Rename insulin dose constants to properly include units
+
 ## v1.30.0
 
 * Fix Dexcom API v2 edge cases

@@ -16,36 +16,36 @@ import (
 )
 
 var _ = Describe("Dose", func() {
-	It("DoseActiveMaximum is expected", func() {
-		Expect(insulin.DoseActiveMaximum).To(Equal(250.0))
+	It("DoseActiveUnitsMaximum is expected", func() {
+		Expect(insulin.DoseActiveUnitsMaximum).To(Equal(250.0))
 	})
 
-	It("DoseActiveMinimum is expected", func() {
-		Expect(insulin.DoseActiveMinimum).To(Equal(0.0))
+	It("DoseActiveUnitsMinimum is expected", func() {
+		Expect(insulin.DoseActiveUnitsMinimum).To(Equal(0.0))
 	})
 
-	It("DoseCorrectionMaximum is expected", func() {
-		Expect(insulin.DoseCorrectionMaximum).To(Equal(250.0))
+	It("DoseCorrectionUnitsMaximum is expected", func() {
+		Expect(insulin.DoseCorrectionUnitsMaximum).To(Equal(250.0))
 	})
 
-	It("DoseCorrectionMinimum is expected", func() {
-		Expect(insulin.DoseCorrectionMinimum).To(Equal(-250.0))
+	It("DoseCorrectionUnitsMinimum is expected", func() {
+		Expect(insulin.DoseCorrectionUnitsMinimum).To(Equal(-250.0))
 	})
 
-	It("DoseFoodMaximum is expected", func() {
-		Expect(insulin.DoseFoodMaximum).To(Equal(250.0))
+	It("DoseFoodUnitsMaximum is expected", func() {
+		Expect(insulin.DoseFoodUnitsMaximum).To(Equal(250.0))
 	})
 
-	It("DoseFoodMinimum is expected", func() {
-		Expect(insulin.DoseFoodMinimum).To(Equal(0.0))
+	It("DoseFoodUnitsMinimum is expected", func() {
+		Expect(insulin.DoseFoodUnitsMinimum).To(Equal(0.0))
 	})
 
-	It("DoseTotalMaximum is expected", func() {
-		Expect(insulin.DoseTotalMaximum).To(Equal(250.0))
+	It("DoseTotalUnitsMaximum is expected", func() {
+		Expect(insulin.DoseTotalUnitsMaximum).To(Equal(250.0))
 	})
 
-	It("DoseTotalMinimum is expected", func() {
-		Expect(insulin.DoseTotalMinimum).To(Equal(0.0))
+	It("DoseTotalUnitsMinimum is expected", func() {
+		Expect(insulin.DoseTotalUnitsMinimum).To(Equal(0.0))
 	})
 
 	It("DoseUnitsUnits is expected", func() {

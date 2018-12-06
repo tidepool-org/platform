@@ -80,6 +80,14 @@ var _ = Describe("Alert", func() {
 		Expect(dexcom.AlertSettingAlertNameUrgentLowSoon).To(Equal("urgentLowSoon"))
 	})
 
+	It("AlertSettingSnoozeMinutesMaximum is expected", func() {
+		Expect(dexcom.AlertSettingSnoozeMinutesMaximum).To(Equal(600.0))
+	})
+
+	It("AlertSettingSnoozeMinutesMinimum is expected", func() {
+		Expect(dexcom.AlertSettingSnoozeMinutesMinimum).To(Equal(0.0))
+	})
+
 	It("AlertSettingUnitMinutes is expected", func() {
 		Expect(dexcom.AlertSettingUnitMinutes).To(Equal("minutes"))
 	})
@@ -90,6 +98,70 @@ var _ = Describe("Alert", func() {
 
 	It("AlertSettingUnitMgdLMinute is expected", func() {
 		Expect(dexcom.AlertSettingUnitMgdLMinute).To(Equal("mg/dL/min"))
+	})
+
+	It("AlertSettingValueFallMgdLMinuteMaximum is expected", func() {
+		Expect(dexcom.AlertSettingValueFallMgdLMinuteMaximum).To(Equal(10.0))
+	})
+
+	It("AlertSettingValueFallMgdLMinuteMinimum is expected", func() {
+		Expect(dexcom.AlertSettingValueFallMgdLMinuteMinimum).To(Equal(1.0))
+	})
+
+	It("AlertSettingValueHighMgdLMaximum is expected", func() {
+		Expect(dexcom.AlertSettingValueHighMgdLMaximum).To(Equal(400.0))
+	})
+
+	It("AlertSettingValueHighMgdLMinimum is expected", func() {
+		Expect(dexcom.AlertSettingValueHighMgdLMinimum).To(Equal(100.0))
+	})
+
+	It("AlertSettingValueLowMgdLMaximum is expected", func() {
+		Expect(dexcom.AlertSettingValueLowMgdLMaximum).To(Equal(150.0))
+	})
+
+	It("AlertSettingValueLowMgdLMinimum is expected", func() {
+		Expect(dexcom.AlertSettingValueLowMgdLMinimum).To(Equal(50.0))
+	})
+
+	It("AlertSettingValueNoReadingsMgdLMaximum is expected", func() {
+		Expect(dexcom.AlertSettingValueNoReadingsMgdLMaximum).To(Equal(360.0))
+	})
+
+	It("AlertSettingValueNoReadingsMgdLMinimum is expected", func() {
+		Expect(dexcom.AlertSettingValueNoReadingsMgdLMinimum).To(Equal(0.0))
+	})
+
+	It("AlertSettingValueOutOfRangeMgdLMaximum is expected", func() {
+		Expect(dexcom.AlertSettingValueOutOfRangeMgdLMaximum).To(Equal(360.0))
+	})
+
+	It("AlertSettingValueOutOfRangeMgdLMinimum is expected", func() {
+		Expect(dexcom.AlertSettingValueOutOfRangeMgdLMinimum).To(Equal(0.0))
+	})
+
+	It("AlertSettingValueRiseMgdLMinuteMaximum is expected", func() {
+		Expect(dexcom.AlertSettingValueRiseMgdLMinuteMaximum).To(Equal(10.0))
+	})
+
+	It("AlertSettingValueRiseMgdLMinuteMinimum is expected", func() {
+		Expect(dexcom.AlertSettingValueRiseMgdLMinuteMinimum).To(Equal(1.0))
+	})
+
+	It("AlertSettingValueUrgentLowMgdLMaximum is expected", func() {
+		Expect(dexcom.AlertSettingValueUrgentLowMgdLMaximum).To(Equal(80.0))
+	})
+
+	It("AlertSettingValueUrgentLowMgdLMinimum is expected", func() {
+		Expect(dexcom.AlertSettingValueUrgentLowMgdLMinimum).To(Equal(40.0))
+	})
+
+	It("AlertSettingValueUrgentLowSoonMgdLMaximum is expected", func() {
+		Expect(dexcom.AlertSettingValueUrgentLowSoonMgdLMaximum).To(Equal(80.0))
+	})
+
+	It("AlertSettingValueUrgentLowSoonMgdLMinimum is expected", func() {
+		Expect(dexcom.AlertSettingValueUrgentLowSoonMgdLMinimum).To(Equal(40.0))
 	})
 
 	It("AlertScheduleSettingsDays returns expected", func() {
@@ -121,96 +193,32 @@ var _ = Describe("Alert", func() {
 		Expect(dexcom.AlertSettingUnitFalls()).To(Equal([]string{"mg/dL/min"}))
 	})
 
-	It("AlertSettingValueFallMgdLMinutes returns expected", func() {
-		Expect(dexcom.AlertSettingValueFallMgdLMinutes()).To(Equal([]float64{2, 3}))
-	})
-
-	It("AlertSettingSnoozeFalls returns expected", func() {
-		Expect(dexcom.AlertSettingSnoozeFalls()).To(Equal([]int{0, 30}))
-	})
-
 	It("AlertSettingUnitHighs returns expected", func() {
 		Expect(dexcom.AlertSettingUnitHighs()).To(Equal([]string{"mg/dL"}))
-	})
-
-	It("AlertSettingValueHighMgdLs returns expected", func() {
-		Expect(dexcom.AlertSettingValueHighMgdLs()).To(Equal([]float64{120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 260, 270, 280, 290, 300, 310, 320, 330, 340, 350, 360, 370, 380, 390, 400}))
-	})
-
-	It("AlertSettingSnoozeHighs returns expected", func() {
-		Expect(dexcom.AlertSettingSnoozeHighs()).To(Equal([]int{0, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200, 205, 210, 215, 220, 225, 230, 235, 240, 255, 270, 285, 300}))
 	})
 
 	It("AlertSettingUnitLows returns expected", func() {
 		Expect(dexcom.AlertSettingUnitLows()).To(Equal([]string{"mg/dL"}))
 	})
 
-	It("AlertSettingValueLowMgdLs returns expected", func() {
-		Expect(dexcom.AlertSettingValueLowMgdLs()).To(Equal([]float64{60, 65, 70, 75, 80, 85, 90, 95, 100}))
-	})
-
-	It("AlertSettingSnoozeLows returns expected", func() {
-		Expect(dexcom.AlertSettingSnoozeLows()).To(Equal([]int{0, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200, 205, 210, 215, 220, 225, 230, 235, 240, 255, 270, 285, 300}))
-	})
-
 	It("AlertSettingUnitNoReadings returns expected", func() {
 		Expect(dexcom.AlertSettingUnitNoReadings()).To(Equal([]string{"minutes"}))
-	})
-
-	It("AlertSettingValueNoReadingsMinutes returns expected", func() {
-		Expect(dexcom.AlertSettingValueNoReadingsMinutes()).To(Equal([]float64{0, 20}))
-	})
-
-	It("AlertSettingSnoozeNoReadings returns expected", func() {
-		Expect(dexcom.AlertSettingSnoozeNoReadings()).To(Equal([]int{0, 20, 25, 30}))
 	})
 
 	It("AlertSettingUnitOutOfRanges returns expected", func() {
 		Expect(dexcom.AlertSettingUnitOutOfRanges()).To(Equal([]string{"minutes"}))
 	})
 
-	It("AlertSettingValueOutOfRangeMinutes returns expected", func() {
-		Expect(dexcom.AlertSettingValueOutOfRangeMinutes()).To(Equal([]float64{20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200, 205, 210, 215, 220, 225, 230, 235, 240}))
-	})
-
-	It("AlertSettingSnoozeOutOfRanges returns expected", func() {
-		Expect(dexcom.AlertSettingSnoozeOutOfRanges()).To(Equal([]int{0, 20, 25, 30}))
-	})
-
 	It("AlertSettingUnitRises returns expected", func() {
 		Expect(dexcom.AlertSettingUnitRises()).To(Equal([]string{"mg/dL/min"}))
-	})
-
-	It("AlertSettingValueRiseMgdLMinutes returns expected", func() {
-		Expect(dexcom.AlertSettingValueRiseMgdLMinutes()).To(Equal([]float64{2, 3}))
-	})
-
-	It("AlertSettingSnoozeRises returns expected", func() {
-		Expect(dexcom.AlertSettingSnoozeRises()).To(Equal([]int{0, 30}))
 	})
 
 	It("AlertSettingUnitUrgentLows returns expected", func() {
 		Expect(dexcom.AlertSettingUnitUrgentLows()).To(Equal([]string{"mg/dL"}))
 	})
 
-	It("AlertSettingValueUrgentLowMgdLs returns expected", func() {
-		Expect(dexcom.AlertSettingValueUrgentLowMgdLs()).To(Equal([]float64{55}))
-	})
-
-	It("AlertSettingSnoozeUrgentLows returns expected", func() {
-		Expect(dexcom.AlertSettingSnoozeUrgentLows()).To(Equal([]int{0, 30}))
-	})
-
 	It("AlertSettingUnitUrgentLowSoons returns expected", func() {
 		Expect(dexcom.AlertSettingUnitUrgentLowSoons()).To(Equal([]string{"mg/dL"}))
-	})
-
-	It("AlertSettingValueUrgentLowSoonMgdLs returns expected", func() {
-		Expect(dexcom.AlertSettingValueUrgentLowSoonMgdLs()).To(Equal([]float64{55}))
-	})
-
-	It("AlertSettingSnoozeUrgentLowSoons returns expected", func() {
-		Expect(dexcom.AlertSettingSnoozeUrgentLowSoons()).To(Equal([]int{0, 30}))
 	})
 
 	Context("ParseAlertScheduleSettingsTime", func() {

@@ -13,11 +13,11 @@ var _ = Describe("Calibration", func() {
 	})
 
 	It("CalibrationValueMgdLMaximum is expected", func() {
-		Expect(dexcom.CalibrationValueMgdLMaximum).To(Equal(600.0))
+		Expect(dexcom.CalibrationValueMgdLMaximum).To(Equal(1000.0))
 	})
 
 	It("CalibrationValueMgdLMinimum is expected", func() {
-		Expect(dexcom.CalibrationValueMgdLMinimum).To(Equal(20.0))
+		Expect(dexcom.CalibrationValueMgdLMinimum).To(Equal(0.0))
 	})
 
 	It("CalibrationUnits returns expected", func() {

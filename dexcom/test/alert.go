@@ -111,65 +111,65 @@ func RandomAlertSetting() *dexcom.AlertSetting {
 		datum.Unit = pointer.FromString(test.RandomStringFromArray(dexcom.AlertSettingUnitFalls()))
 		switch *datum.Unit {
 		case dexcom.AlertSettingUnitMgdLMinute:
-			datum.Value = pointer.FromFloat64(test.RandomFloat64FromArray(dexcom.AlertSettingValueFallMgdLMinutes()))
+			datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.AlertSettingValueFallMgdLMinuteMinimum, dexcom.AlertSettingValueFallMgdLMinuteMaximum))
 		}
-		datum.Snooze = pointer.FromInt(test.RandomIntFromArray(dexcom.AlertSettingSnoozeFalls()))
+		datum.Snooze = pointer.FromInt(test.RandomIntFromRange(dexcom.AlertSettingSnoozeMinutesMinimum, dexcom.AlertSettingSnoozeMinutesMaximum))
 		datum.Enabled = pointer.FromBool(test.RandomBool())
 	case dexcom.AlertSettingAlertNameHigh:
 		datum.Unit = pointer.FromString(test.RandomStringFromArray(dexcom.AlertSettingUnitHighs()))
 		switch *datum.Unit {
 		case dexcom.AlertSettingUnitMgdL:
-			datum.Value = pointer.FromFloat64(test.RandomFloat64FromArray(dexcom.AlertSettingValueHighMgdLs()))
+			datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.AlertSettingValueHighMgdLMinimum, dexcom.AlertSettingValueHighMgdLMaximum))
 		}
-		datum.Snooze = pointer.FromInt(test.RandomIntFromArray(dexcom.AlertSettingSnoozeHighs()))
+		datum.Snooze = pointer.FromInt(test.RandomIntFromRange(dexcom.AlertSettingSnoozeMinutesMinimum, dexcom.AlertSettingSnoozeMinutesMaximum))
 		datum.Enabled = pointer.FromBool(test.RandomBool())
 	case dexcom.AlertSettingAlertNameLow:
 		datum.Unit = pointer.FromString(test.RandomStringFromArray(dexcom.AlertSettingUnitLows()))
 		switch *datum.Unit {
 		case dexcom.AlertSettingUnitMgdL:
-			datum.Value = pointer.FromFloat64(test.RandomFloat64FromArray(dexcom.AlertSettingValueLowMgdLs()))
+			datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.AlertSettingValueLowMgdLMinimum, dexcom.AlertSettingValueLowMgdLMaximum))
 		}
-		datum.Snooze = pointer.FromInt(test.RandomIntFromArray(dexcom.AlertSettingSnoozeLows()))
+		datum.Snooze = pointer.FromInt(test.RandomIntFromRange(dexcom.AlertSettingSnoozeMinutesMinimum, dexcom.AlertSettingSnoozeMinutesMaximum))
 		datum.Enabled = pointer.FromBool(test.RandomBool())
 	case dexcom.AlertSettingAlertNameNoReadings:
 		datum.Unit = pointer.FromString(test.RandomStringFromArray(dexcom.AlertSettingUnitNoReadings()))
 		switch *datum.Unit {
 		case dexcom.AlertSettingUnitMinutes:
-			datum.Value = pointer.FromFloat64(test.RandomFloat64FromArray(dexcom.AlertSettingValueNoReadingsMinutes()))
+			datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.AlertSettingValueNoReadingsMgdLMinimum, dexcom.AlertSettingValueNoReadingsMgdLMaximum))
 		}
-		datum.Snooze = pointer.FromInt(test.RandomIntFromArray(dexcom.AlertSettingSnoozeNoReadings()))
+		datum.Snooze = pointer.FromInt(test.RandomIntFromRange(dexcom.AlertSettingSnoozeMinutesMinimum, dexcom.AlertSettingSnoozeMinutesMaximum))
 		datum.Enabled = pointer.FromBool(test.RandomBool())
 	case dexcom.AlertSettingAlertNameOutOfRange:
 		datum.Unit = pointer.FromString(test.RandomStringFromArray(dexcom.AlertSettingUnitOutOfRanges()))
 		switch *datum.Unit {
 		case dexcom.AlertSettingUnitMinutes:
-			datum.Value = pointer.FromFloat64(test.RandomFloat64FromArray(dexcom.AlertSettingValueOutOfRangeMinutes()))
+			datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.AlertSettingValueOutOfRangeMgdLMinimum, dexcom.AlertSettingValueOutOfRangeMgdLMaximum))
 		}
-		datum.Snooze = pointer.FromInt(test.RandomIntFromArray(dexcom.AlertSettingSnoozeOutOfRanges()))
+		datum.Snooze = pointer.FromInt(test.RandomIntFromRange(dexcom.AlertSettingSnoozeMinutesMinimum, dexcom.AlertSettingSnoozeMinutesMaximum))
 		datum.Enabled = pointer.FromBool(test.RandomBool())
 	case dexcom.AlertSettingAlertNameRise:
 		datum.Unit = pointer.FromString(test.RandomStringFromArray(dexcom.AlertSettingUnitRises()))
 		switch *datum.Unit {
 		case dexcom.AlertSettingUnitMgdLMinute:
-			datum.Value = pointer.FromFloat64(test.RandomFloat64FromArray(dexcom.AlertSettingValueRiseMgdLMinutes()))
+			datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.AlertSettingValueRiseMgdLMinuteMinimum, dexcom.AlertSettingValueRiseMgdLMinuteMaximum))
 		}
-		datum.Snooze = pointer.FromInt(test.RandomIntFromArray(dexcom.AlertSettingSnoozeRises()))
+		datum.Snooze = pointer.FromInt(test.RandomIntFromRange(dexcom.AlertSettingSnoozeMinutesMinimum, dexcom.AlertSettingSnoozeMinutesMaximum))
 		datum.Enabled = pointer.FromBool(test.RandomBool())
 	case dexcom.AlertSettingAlertNameUrgentLow:
 		datum.Unit = pointer.FromString(test.RandomStringFromArray(dexcom.AlertSettingUnitUrgentLows()))
 		switch *datum.Unit {
 		case dexcom.AlertSettingUnitMgdL:
-			datum.Value = pointer.FromFloat64(test.RandomFloat64FromArray(dexcom.AlertSettingValueUrgentLowMgdLs()))
+			datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.AlertSettingValueUrgentLowMgdLMinimum, dexcom.AlertSettingValueUrgentLowMgdLMaximum))
 		}
-		datum.Snooze = pointer.FromInt(test.RandomIntFromArray(dexcom.AlertSettingSnoozeUrgentLows()))
+		datum.Snooze = pointer.FromInt(test.RandomIntFromRange(dexcom.AlertSettingSnoozeMinutesMinimum, dexcom.AlertSettingSnoozeMinutesMaximum))
 		datum.Enabled = pointer.FromBool(true)
 	case dexcom.AlertSettingAlertNameUrgentLowSoon:
 		datum.Unit = pointer.FromString(test.RandomStringFromArray(dexcom.AlertSettingUnitUrgentLowSoons()))
 		switch *datum.Unit {
 		case dexcom.AlertSettingUnitMgdL:
-			datum.Value = pointer.FromFloat64(test.RandomFloat64FromArray(dexcom.AlertSettingValueUrgentLowSoonMgdLs()))
+			datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.AlertSettingValueUrgentLowSoonMgdLMinimum, dexcom.AlertSettingValueUrgentLowSoonMgdLMaximum))
 		}
-		datum.Snooze = pointer.FromInt(test.RandomIntFromArray(dexcom.AlertSettingSnoozeUrgentLowSoons()))
+		datum.Snooze = pointer.FromInt(test.RandomIntFromRange(dexcom.AlertSettingSnoozeMinutesMinimum, dexcom.AlertSettingSnoozeMinutesMaximum))
 		datum.Enabled = pointer.FromBool(test.RandomBool())
 	}
 	return datum
