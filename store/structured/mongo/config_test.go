@@ -1,11 +1,11 @@
 package mongo_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-
-	"time"
 
 	configTest "github.com/tidepool-org/platform/config/test"
 	"github.com/tidepool-org/platform/pointer"

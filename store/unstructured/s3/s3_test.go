@@ -1,9 +1,6 @@
 package s3_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"bytes"
 	"context"
 	"fmt"
@@ -16,6 +13,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager/s3manageriface"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	awsTest "github.com/tidepool-org/platform/aws/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"

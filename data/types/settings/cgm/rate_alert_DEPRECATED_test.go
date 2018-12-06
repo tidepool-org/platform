@@ -1,11 +1,11 @@
 package cgm_test
 
 import (
+	"math"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-
-	"math"
 
 	dataBloodGlucoseTest "github.com/tidepool-org/platform/data/blood/glucose/test"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"

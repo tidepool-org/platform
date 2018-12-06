@@ -1,11 +1,11 @@
 package env_test
 
 import (
+	"syscall"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-
-	"syscall"
 
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/config/env"

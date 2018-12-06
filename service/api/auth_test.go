@@ -1,12 +1,11 @@
 package api_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	testAuth "github.com/tidepool-org/platform/auth/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"

@@ -1,11 +1,11 @@
 package reported_test
 
 import (
+	"math/rand"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-
-	"math/rand"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types"

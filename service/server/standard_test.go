@@ -1,10 +1,10 @@
 package server_test
 
 import (
+	"net/http"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"net/http"
 
 	"github.com/tidepool-org/platform/log"
 	nullLog "github.com/tidepool-org/platform/log/null"

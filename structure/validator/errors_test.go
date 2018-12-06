@@ -1,11 +1,11 @@
 package validator_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
-
 	"regexp"
 	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"

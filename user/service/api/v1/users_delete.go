@@ -4,11 +4,10 @@ import (
 	"net/http"
 
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/permission"
-	"github.com/tidepool-org/platform/request"
-
 	messageStore "github.com/tidepool-org/platform/message/store"
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/profile"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/user"
 	userService "github.com/tidepool-org/platform/user/service"

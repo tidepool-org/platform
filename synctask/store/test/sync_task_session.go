@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/onsi/gomega"
+
 	"github.com/tidepool-org/platform/test"
 )
 
