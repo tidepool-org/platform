@@ -3,6 +3,9 @@ package dexcom
 import (
 	"strconv"
 
+	dataTypesActivityPhysical "github.com/tidepool-org/platform/data/types/activity/physical"
+	dataTypesFood "github.com/tidepool-org/platform/data/types/food"
+	dataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -14,15 +17,15 @@ const (
 	EventTypeInsulin  = "insulin"
 
 	EventUnitCarbsGrams         = "grams"
-	EventValueCarbsGramsMaximum = 250.0
-	EventValueCarbsGramsMinimum = 0.0
+	EventValueCarbsGramsMaximum = dataTypesFood.CarbohydrateNetGramsMaximum
+	EventValueCarbsGramsMinimum = dataTypesFood.CarbohydrateNetGramsMinimum
 
 	EventSubTypeExerciseLight        = "light"
 	EventSubTypeExerciseMedium       = "medium"
 	EventSubTypeExerciseHeavy        = "heavy"
 	EventUnitExerciseMinutes         = "minutes"
-	EventValueExerciseMinutesMaximum = 360.0
-	EventValueExerciseMinutesMinimum = 0.0
+	EventValueExerciseMinutesMaximum = dataTypesActivityPhysical.DurationValueMinutesMaximum
+	EventValueExerciseMinutesMinimum = dataTypesActivityPhysical.DurationValueMinutesMinimum
 
 	EventSubTypeHealthAlcohol      = "alcohol"
 	EventSubTypeHealthCycle        = "cycle"
@@ -34,8 +37,8 @@ const (
 	EventSubTypeInsulinFastActing = "fastActing"
 	EventSubTypeInsulinLongActing = "longActing"
 	EventUnitInsulinUnits         = "units"
-	EventValueInsulinUnitsMaximum = 250.0
-	EventValueInsulinUnitsMinimum = 0.0
+	EventValueInsulinUnitsMaximum = dataTypesInsulin.DoseTotalUnitsMaximum
+	EventValueInsulinUnitsMinimum = dataTypesInsulin.DoseTotalUnitsMinimum
 
 	EventStatusCreated = "created"
 	EventStatusDeleted = "deleted"
