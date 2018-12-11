@@ -3,7 +3,7 @@ package dexcom
 import (
 	"strconv"
 
-	"github.com/tidepool-org/platform/pointer"
+	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -12,8 +12,10 @@ const (
 	EGVUnitMgdL       = "mg/dL"
 	EGVUnitMgdLMinute = "mg/dL/min"
 
-	EGVValueMgdLMaximum = 400.0
-	EGVValueMgdLMinimum = 40.0
+	EGVValueMgdLMaximum       = dataBloodGlucose.MgdLMaximum
+	EGVValueMgdLMinimum       = dataBloodGlucose.MgdLMinimum
+	EGVValuePinnedMgdLMaximum = 400.0
+	EGVValuePinnedMgdLMinimum = 40.0
 
 	EGVStatusHigh             = "high"
 	EGVStatusLow              = "low"
@@ -182,11 +184,6 @@ func (e *EGV) Parse(parser structure.ObjectParser) {
 }
 
 func (e *EGV) Validate(validator structure.Validator) {
-	// HACK: Dexcom - pin out of range values
-	e.Value = pinEGVValue(e.Value, e.Unit)
-	e.RealTimeValue = pinEGVValue(e.RealTimeValue, e.Unit)
-	e.SmoothedValue = pinEGVValue(e.SmoothedValue, e.Unit)
-
 	validator = validator.WithMeta(e)
 	validator.Time("systemTime", e.SystemTime.Raw()).Exists().NotZero().BeforeNow(SystemTimeNowThreshold)
 	validator.Time("displayTime", e.DisplayTime.Raw()).Exists().NotZero()
@@ -194,27 +191,13 @@ func (e *EGV) Validate(validator structure.Validator) {
 	if e.Unit != nil {
 		switch *e.Unit {
 		case EGVUnitMgdL:
-			validator.Float64("value", e.Value).Exists().InRange(EGVValueMgdLMinimum-1, EGVValueMgdLMaximum+1)
-			validator.Float64("realtimeValue", e.RealTimeValue).Exists().InRange(EGVValueMgdLMinimum-1, EGVValueMgdLMaximum+1)
-			validator.Float64("smoothedValue", e.SmoothedValue).InRange(EGVValueMgdLMinimum-1, EGVValueMgdLMaximum+1)
+			validator.Float64("value", e.Value).Exists().InRange(EGVValueMgdLMinimum, EGVValueMgdLMaximum)
+			validator.Float64("realtimeValue", e.RealTimeValue).Exists().InRange(EGVValueMgdLMinimum, EGVValueMgdLMaximum)
+			validator.Float64("smoothedValue", e.SmoothedValue).InRange(EGVValueMgdLMinimum, EGVValueMgdLMaximum)
 		}
 	}
 	validator.String("status", e.Status).OneOf(EGVStatuses()...)
 	validator.String("trend", e.Trend).OneOf(EGVTrends()...)
 	validator.String("transmitterId", e.TransmitterID).Using(TransmitterIDValidator)
 	validator.Int("transmitterTicks", e.TransmitterTicks).GreaterThanOrEqualTo(EGVTransmitterTickMinimum)
-}
-
-func pinEGVValue(value *float64, unit *string) *float64 {
-	if value != nil && unit != nil {
-		switch *unit {
-		case EGVUnitMgdL:
-			if *value < EGVValueMgdLMinimum {
-				return pointer.FromFloat64(EGVValueMgdLMinimum - 1)
-			} else if *value > EGVValueMgdLMaximum {
-				return pointer.FromFloat64(EGVValueMgdLMaximum + 1)
-			}
-		}
-	}
-	return value
 }

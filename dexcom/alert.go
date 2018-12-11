@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strconv"
 
+	dataTypesSettingsCgm "github.com/tidepool-org/platform/data/types/settings/cgm"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
@@ -32,9 +33,29 @@ const (
 	AlertSettingAlertNameUrgentLow     = "urgentLow"
 	AlertSettingAlertNameUrgentLowSoon = "urgentLowSoon"
 
+	AlertSettingSnoozeMinutesMaximum = dataTypesSettingsCgm.SnoozeDurationMinutesMaximum
+	AlertSettingSnoozeMinutesMinimum = dataTypesSettingsCgm.SnoozeDurationMinutesMinimum
+
 	AlertSettingUnitMinutes    = "minutes"
 	AlertSettingUnitMgdL       = "mg/dL"
 	AlertSettingUnitMgdLMinute = "mg/dL/min"
+
+	AlertSettingValueFallMgdLMinuteMaximum    = dataTypesSettingsCgm.FallAlertRateMgdLMinuteMaximum
+	AlertSettingValueFallMgdLMinuteMinimum    = dataTypesSettingsCgm.FallAlertRateMgdLMinuteMinimum
+	AlertSettingValueHighMgdLMaximum          = dataTypesSettingsCgm.HighAlertLevelMgdLMaximum
+	AlertSettingValueHighMgdLMinimum          = dataTypesSettingsCgm.HighAlertLevelMgdLMinimum
+	AlertSettingValueLowMgdLMaximum           = dataTypesSettingsCgm.LowAlertLevelMgdLMaximum
+	AlertSettingValueLowMgdLMinimum           = dataTypesSettingsCgm.LowAlertLevelMgdLMinimum
+	AlertSettingValueNoReadingsMgdLMaximum    = dataTypesSettingsCgm.NoDataAlertDurationMinutesMaximum
+	AlertSettingValueNoReadingsMgdLMinimum    = dataTypesSettingsCgm.NoDataAlertDurationMinutesMinimum
+	AlertSettingValueOutOfRangeMgdLMaximum    = dataTypesSettingsCgm.OutOfRangeAlertDurationMinutesMaximum
+	AlertSettingValueOutOfRangeMgdLMinimum    = dataTypesSettingsCgm.OutOfRangeAlertDurationMinutesMinimum
+	AlertSettingValueRiseMgdLMinuteMaximum    = dataTypesSettingsCgm.RiseAlertRateMgdLMinuteMaximum
+	AlertSettingValueRiseMgdLMinuteMinimum    = dataTypesSettingsCgm.RiseAlertRateMgdLMinuteMinimum
+	AlertSettingValueUrgentLowMgdLMaximum     = dataTypesSettingsCgm.UrgentLowAlertLevelMgdLMaximum
+	AlertSettingValueUrgentLowMgdLMinimum     = dataTypesSettingsCgm.UrgentLowAlertLevelMgdLMinimum
+	AlertSettingValueUrgentLowSoonMgdLMaximum = dataTypesSettingsCgm.UrgentLowAlertLevelMgdLMaximum
+	AlertSettingValueUrgentLowSoonMgdLMinimum = dataTypesSettingsCgm.UrgentLowAlertLevelMgdLMinimum
 )
 
 func AlertScheduleSettingsDays() []string {
@@ -87,106 +108,32 @@ func AlertSettingUnitFalls() []string {
 	return []string{AlertSettingUnitMgdLMinute}
 }
 
-func AlertSettingValueFallMgdLMinutes() []float64 {
-	return []float64{2, 3}
-}
-
-func AlertSettingSnoozeFalls() []int {
-	return []int{0, 30}
-}
-
 func AlertSettingUnitHighs() []string {
 	return []string{AlertSettingUnitMgdL}
 }
-
-func AlertSettingValueHighMgdLs() []float64 {
-	return alertSettingValueHighMgdLs
-}
-
-var alertSettingValueHighMgdLs = generateFloatRange(120, 400, 10)
-
-func AlertSettingSnoozeHighs() []int {
-	return alertSettingSnoozeHighs
-}
-
-var alertSettingSnoozeHighs = append(append([]int{0}, generateIntegerRange(15, 240, 5)...), generateIntegerRange(255, 300, 15)...)
 
 func AlertSettingUnitLows() []string {
 	return []string{AlertSettingUnitMgdL}
 }
 
-func AlertSettingValueLowMgdLs() []float64 {
-	return alertSettingValueLowMgdLs
-}
-
-var alertSettingValueLowMgdLs = generateFloatRange(60, 100, 5)
-
-func AlertSettingSnoozeLows() []int {
-	return alertSettingSnoozeLows
-}
-
-var alertSettingSnoozeLows = append(append([]int{0}, generateIntegerRange(15, 240, 5)...), generateIntegerRange(255, 300, 15)...)
-
 func AlertSettingUnitNoReadings() []string {
 	return []string{AlertSettingUnitMinutes}
-}
-
-func AlertSettingValueNoReadingsMinutes() []float64 {
-	return []float64{0, 20}
-}
-
-func AlertSettingSnoozeNoReadings() []int {
-	return []int{0, 20, 25, 30}
 }
 
 func AlertSettingUnitOutOfRanges() []string {
 	return []string{AlertSettingUnitMinutes}
 }
 
-func AlertSettingValueOutOfRangeMinutes() []float64 {
-	return alertSettingValueOutOfRangeMinutes
-}
-
-var alertSettingValueOutOfRangeMinutes = generateFloatRange(20, 240, 5)
-
-func AlertSettingSnoozeOutOfRanges() []int {
-	return []int{0, 20, 25, 30}
-}
-
 func AlertSettingUnitRises() []string {
 	return []string{AlertSettingUnitMgdLMinute}
-}
-
-func AlertSettingValueRiseMgdLMinutes() []float64 {
-	return []float64{2, 3}
-}
-
-func AlertSettingSnoozeRises() []int {
-	return []int{0, 30}
 }
 
 func AlertSettingUnitUrgentLows() []string {
 	return []string{AlertSettingUnitMgdL}
 }
 
-func AlertSettingValueUrgentLowMgdLs() []float64 {
-	return []float64{55}
-}
-
-func AlertSettingSnoozeUrgentLows() []int {
-	return []int{0, 30}
-}
-
 func AlertSettingUnitUrgentLowSoons() []string {
 	return []string{AlertSettingUnitMgdL}
-}
-
-func AlertSettingValueUrgentLowSoonMgdLs() []float64 {
-	return []float64{55}
-}
-
-func AlertSettingSnoozeUrgentLowSoons() []int {
-	return []int{0, 30}
 }
 
 type AlertSchedules []*AlertSchedule
@@ -583,10 +530,10 @@ func (a *AlertSetting) validateFall(validator structure.Validator) {
 	if a.Unit != nil {
 		switch *a.Unit {
 		case AlertSettingUnitMgdLMinute:
-			validator.Float64("value", a.Value).Exists().OneOf(AlertSettingValueFallMgdLMinutes()...)
+			validator.Float64("value", a.Value).Exists().InRange(AlertSettingValueFallMgdLMinuteMinimum, AlertSettingValueFallMgdLMinuteMaximum)
 		}
 	}
-	validator.Int("snooze", a.Snooze).OneOf(AlertSettingSnoozeFalls()...)
+	validator.Int("snooze", a.Snooze).InRange(AlertSettingSnoozeMinutesMinimum, AlertSettingSnoozeMinutesMaximum)
 	validator.Bool("enabled", a.Enabled).Exists()
 }
 
@@ -595,10 +542,10 @@ func (a *AlertSetting) validateHigh(validator structure.Validator) {
 	if a.Unit != nil {
 		switch *a.Unit {
 		case AlertSettingUnitMgdL:
-			validator.Float64("value", a.Value).Exists().OneOf(AlertSettingValueHighMgdLs()...)
+			validator.Float64("value", a.Value).Exists().InRange(AlertSettingValueHighMgdLMinimum, AlertSettingValueHighMgdLMaximum)
 		}
 	}
-	validator.Int("snooze", a.Snooze).Exists().OneOf(AlertSettingSnoozeHighs()...)
+	validator.Int("snooze", a.Snooze).Exists().InRange(AlertSettingSnoozeMinutesMinimum, AlertSettingSnoozeMinutesMaximum)
 	validator.Bool("enabled", a.Enabled).Exists()
 }
 
@@ -607,10 +554,10 @@ func (a *AlertSetting) validateLow(validator structure.Validator) {
 	if a.Unit != nil {
 		switch *a.Unit {
 		case AlertSettingUnitMgdL:
-			validator.Float64("value", a.Value).Exists().OneOf(AlertSettingValueLowMgdLs()...)
+			validator.Float64("value", a.Value).Exists().InRange(AlertSettingValueLowMgdLMinimum, AlertSettingValueLowMgdLMaximum)
 		}
 	}
-	validator.Int("snooze", a.Snooze).Exists().OneOf(AlertSettingSnoozeLows()...)
+	validator.Int("snooze", a.Snooze).Exists().InRange(AlertSettingSnoozeMinutesMinimum, AlertSettingSnoozeMinutesMaximum)
 	validator.Bool("enabled", a.Enabled).Exists()
 }
 
@@ -619,10 +566,10 @@ func (a *AlertSetting) validateNoReadings(validator structure.Validator) {
 	if a.Unit != nil {
 		switch *a.Unit {
 		case AlertSettingUnitMinutes:
-			validator.Float64("value", a.Value).Exists().OneOf(AlertSettingValueNoReadingsMinutes()...)
+			validator.Float64("value", a.Value).Exists().InRange(AlertSettingValueNoReadingsMgdLMinimum, AlertSettingValueNoReadingsMgdLMaximum)
 		}
 	}
-	validator.Int("snooze", a.Snooze).OneOf(AlertSettingSnoozeNoReadings()...)
+	validator.Int("snooze", a.Snooze).InRange(AlertSettingSnoozeMinutesMinimum, AlertSettingSnoozeMinutesMaximum)
 	validator.Bool("enabled", a.Enabled).Exists()
 }
 
@@ -631,10 +578,10 @@ func (a *AlertSetting) validateOutOfRange(validator structure.Validator) {
 	if a.Unit != nil {
 		switch *a.Unit {
 		case AlertSettingUnitMinutes:
-			validator.Float64("value", a.Value).Exists().OneOf(AlertSettingValueOutOfRangeMinutes()...)
+			validator.Float64("value", a.Value).Exists().InRange(AlertSettingValueOutOfRangeMgdLMinimum, AlertSettingValueOutOfRangeMgdLMaximum)
 		}
 	}
-	validator.Int("snooze", a.Snooze).OneOf(AlertSettingSnoozeOutOfRanges()...)
+	validator.Int("snooze", a.Snooze).InRange(AlertSettingSnoozeMinutesMinimum, AlertSettingSnoozeMinutesMaximum)
 	validator.Bool("enabled", a.Enabled).Exists()
 }
 
@@ -643,10 +590,10 @@ func (a *AlertSetting) validateRise(validator structure.Validator) {
 	if a.Unit != nil {
 		switch *a.Unit {
 		case AlertSettingUnitMgdLMinute:
-			validator.Float64("value", a.Value).Exists().OneOf(AlertSettingValueRiseMgdLMinutes()...)
+			validator.Float64("value", a.Value).Exists().InRange(AlertSettingValueRiseMgdLMinuteMinimum, AlertSettingValueRiseMgdLMinuteMaximum)
 		}
 	}
-	validator.Int("snooze", a.Snooze).OneOf(AlertSettingSnoozeRises()...)
+	validator.Int("snooze", a.Snooze).InRange(AlertSettingSnoozeMinutesMinimum, AlertSettingSnoozeMinutesMaximum)
 	validator.Bool("enabled", a.Enabled).Exists()
 }
 
@@ -660,10 +607,10 @@ func (a *AlertSetting) validateUrgentLow(validator structure.Validator) {
 	if a.Unit != nil {
 		switch *a.Unit {
 		case AlertSettingUnitMgdL:
-			validator.Float64("value", a.Value).Exists().OneOf(AlertSettingValueUrgentLowMgdLs()...)
+			validator.Float64("value", a.Value).Exists().InRange(AlertSettingValueUrgentLowMgdLMinimum, AlertSettingValueUrgentLowMgdLMaximum)
 		}
 	}
-	validator.Int("snooze", a.Snooze).Exists().OneOf(AlertSettingSnoozeUrgentLows()...)
+	validator.Int("snooze", a.Snooze).Exists().InRange(AlertSettingSnoozeMinutesMinimum, AlertSettingSnoozeMinutesMaximum)
 	validator.Bool("enabled", a.Enabled).Exists().True()
 }
 
@@ -672,10 +619,10 @@ func (a *AlertSetting) validateUrgentLowSoon(validator structure.Validator) {
 	if a.Unit != nil {
 		switch *a.Unit {
 		case AlertSettingUnitMgdL:
-			validator.Float64("value", a.Value).Exists().OneOf(AlertSettingValueUrgentLowSoonMgdLs()...)
+			validator.Float64("value", a.Value).Exists().InRange(AlertSettingValueUrgentLowSoonMgdLMinimum, AlertSettingValueUrgentLowSoonMgdLMaximum)
 		}
 	}
-	validator.Int("snooze", a.Snooze).Exists().OneOf(AlertSettingSnoozeUrgentLowSoons()...)
+	validator.Int("snooze", a.Snooze).Exists().InRange(AlertSettingSnoozeMinutesMinimum, AlertSettingSnoozeMinutesMaximum)
 	validator.Bool("enabled", a.Enabled).Exists()
 }
 

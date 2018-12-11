@@ -370,19 +370,21 @@ func translateEGVToDatum(egv *dexcom.EGV, unit *string, rateUnit *string) data.D
 		(*datum.Payload)["transmitterTicks"] = *egv.TransmitterTicks
 	}
 
-	switch *unit {
+	switch *datum.Units {
 	case dexcom.EGVUnitMgdL:
-		if *egv.Value < dexcom.EGVValueMgdLMinimum {
+		if *datum.Value < dexcom.EGVValuePinnedMgdLMinimum {
+			datum.Value = pointer.FromFloat64(dexcom.EGVValuePinnedMgdLMinimum - 1)
 			datum.Annotations = &data.BlobArray{{
 				"code":      "bg/out-of-range",
 				"value":     "low",
-				"threshold": dexcom.EGVValueMgdLMinimum,
+				"threshold": dexcom.EGVValuePinnedMgdLMinimum,
 			}}
-		} else if *egv.Value > dexcom.EGVValueMgdLMaximum {
+		} else if *datum.Value > dexcom.EGVValuePinnedMgdLMaximum {
+			datum.Value = pointer.FromFloat64(dexcom.EGVValuePinnedMgdLMaximum + 1)
 			datum.Annotations = &data.BlobArray{{
 				"code":      "bg/out-of-range",
 				"value":     "high",
-				"threshold": dexcom.EGVValueMgdLMaximum,
+				"threshold": dexcom.EGVValuePinnedMgdLMaximum,
 			}}
 		}
 	}

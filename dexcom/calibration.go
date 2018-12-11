@@ -3,6 +3,7 @@ package dexcom
 import (
 	"strconv"
 
+	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -10,8 +11,8 @@ import (
 const (
 	CalibrationUnitMgdL = "mg/dL"
 
-	CalibrationValueMgdLMaximum = 600.0
-	CalibrationValueMgdLMinimum = 20.0
+	CalibrationValueMgdLMaximum = dataBloodGlucose.MgdLMaximum
+	CalibrationValueMgdLMinimum = dataBloodGlucose.MgdLMinimum
 )
 
 func CalibrationUnits() []string {

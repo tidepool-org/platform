@@ -12,6 +12,11 @@
 * Add user id to ArchiveDeviceDataUsingHashesFromDataSet selector to properly use indexes
 * Fix data set id validation to allow Jellyfish id format
 
+## v1.31.1
+
+* Relax Dexcom API validations to match Tidepool data model validations
+* Rename insulin dose constants to properly include units
+
 ## v1.30.0
 
 * Fix Dexcom API v2 edge cases

@@ -17,11 +17,19 @@ var _ = Describe("EGV", func() {
 	})
 
 	It("EGVValueMgdLMaximum is expected", func() {
-		Expect(dexcom.EGVValueMgdLMaximum).To(Equal(400.0))
+		Expect(dexcom.EGVValueMgdLMaximum).To(Equal(1000.0))
 	})
 
 	It("EGVValueMgdLMinimum is expected", func() {
-		Expect(dexcom.EGVValueMgdLMinimum).To(Equal(40.0))
+		Expect(dexcom.EGVValueMgdLMinimum).To(Equal(0.0))
+	})
+
+	It("EGVValuePinnedMgdLMaximum is expected", func() {
+		Expect(dexcom.EGVValuePinnedMgdLMaximum).To(Equal(400.0))
+	})
+
+	It("EGVValuePinnedMgdLMinimum is expected", func() {
+		Expect(dexcom.EGVValuePinnedMgdLMinimum).To(Equal(40.0))
 	})
 
 	It("EGVStatusHigh is expected", func() {
