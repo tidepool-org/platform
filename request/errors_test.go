@@ -13,22 +13,60 @@ import (
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
-	testHTTP "github.com/tidepool-org/platform/test/http"
+	testHttp "github.com/tidepool-org/platform/test/http"
 )
 
 var _ = Describe("Errors", func() {
-	Context("ErrorUnexpectedResponse", func() {
-		It("returns the expected error", func() {
-			req := testHTTP.NewRequest()
-			res := &http.Response{StatusCode: 405}
-			err := request.ErrorUnexpectedResponse(res, req)
-			Expect(err).ToNot(BeNil())
-			Expect(errors.Code(err)).To(Equal("unexpected-response"))
-			Expect(errors.Cause(err)).To(Equal(err))
-			bytes, bytesErr := json.Marshal(errors.Sanitize(err))
-			Expect(bytesErr).ToNot(HaveOccurred())
-			Expect(bytes).To(MatchJSON(fmt.Sprintf(`{"code": "unexpected-response", "title": "unexpected response", "detail": "unexpected response status code %d from %s \"%s\""}`, res.StatusCode, req.Method, req.URL.String())))
-		})
+	It("ErrorCodeInternalServerError is expected", func() {
+		Expect(request.ErrorCodeInternalServerError).To(Equal("internal-server-error"))
+	})
+
+	It("ErrorCodeUnexpectedResponse is expected", func() {
+		Expect(request.ErrorCodeUnexpectedResponse).To(Equal("unexpected-response"))
+	})
+
+	It("ErrorCodeTooManyRequests is expected", func() {
+		Expect(request.ErrorCodeTooManyRequests).To(Equal("too-many-requests"))
+	})
+
+	It("ErrorCodeBadRequest is expected", func() {
+		Expect(request.ErrorCodeBadRequest).To(Equal("bad-request"))
+	})
+
+	It("ErrorCodeUnauthenticated is expected", func() {
+		Expect(request.ErrorCodeUnauthenticated).To(Equal("unauthenticated"))
+	})
+
+	It("ErrorCodeUnauthorized is expected", func() {
+		Expect(request.ErrorCodeUnauthorized).To(Equal("unauthorized"))
+	})
+
+	It("ErrorCodeResourceNotFound is expected", func() {
+		Expect(request.ErrorCodeResourceNotFound).To(Equal("resource-not-found"))
+	})
+
+	It("ErrorCodeResourceTooLarge is expected", func() {
+		Expect(request.ErrorCodeResourceTooLarge).To(Equal("resource-too-large"))
+	})
+
+	It("ErrorCodeHeaderMissing is expected", func() {
+		Expect(request.ErrorCodeHeaderMissing).To(Equal("header-missing"))
+	})
+
+	It("ErrorCodeHeaderInvalid is expected", func() {
+		Expect(request.ErrorCodeHeaderInvalid).To(Equal("header-invalid"))
+	})
+
+	It("ErrorCodeParameterMissing is expected", func() {
+		Expect(request.ErrorCodeParameterMissing).To(Equal("parameter-missing"))
+	})
+
+	It("ErrorCodeParameterInvalid is expected", func() {
+		Expect(request.ErrorCodeParameterInvalid).To(Equal("parameter-invalid"))
+	})
+
+	It("ErrorCodeJSONMalformed is expected", func() {
+		Expect(request.ErrorCodeJSONMalformed).To(Equal("json-malformed"))
 	})
 
 	Context("ErrorInternalServerError", func() {
@@ -44,6 +82,20 @@ var _ = Describe("Errors", func() {
 		})
 	})
 
+	Context("ErrorUnexpectedResponse", func() {
+		It("returns the expected error", func() {
+			req := testHttp.NewRequest()
+			res := &http.Response{StatusCode: 405}
+			err := request.ErrorUnexpectedResponse(res, req)
+			Expect(err).ToNot(BeNil())
+			Expect(errors.Code(err)).To(Equal("unexpected-response"))
+			Expect(errors.Cause(err)).To(Equal(err))
+			bytes, bytesErr := json.Marshal(errors.Sanitize(err))
+			Expect(bytesErr).ToNot(HaveOccurred())
+			Expect(bytes).To(MatchJSON(fmt.Sprintf(`{"code": "unexpected-response", "title": "unexpected response", "detail": "unexpected response status code %d from %s \"%s\""}`, res.StatusCode, req.Method, req.URL.String())))
+		})
+	})
+
 	DescribeTable("have expected details when error",
 		errorsTest.ExpectErrorDetails,
 		Entry("is ErrorTooManyRequests", request.ErrorTooManyRequests(), "too-many-requests", "too many requests", "too many requests"),
@@ -55,6 +107,7 @@ var _ = Describe("Errors", func() {
 		Entry("is ErrorResourceNotFoundWithIDAndRevision", request.ErrorResourceNotFoundWithIDAndRevision("test-id", 1), "resource-not-found", "resource not found", `revision 1 of resource with id "test-id" not found`),
 		Entry("is ErrorResourceNotFoundWithIDAndOptionalRevision", request.ErrorResourceNotFoundWithIDAndOptionalRevision("test-id", nil), "resource-not-found", "resource not found", `resource with id "test-id" not found`),
 		Entry("is ErrorResourceNotFoundWithIDAndOptionalRevision", request.ErrorResourceNotFoundWithIDAndOptionalRevision("test-id", pointer.FromInt(1)), "resource-not-found", "resource not found", `revision 1 of resource with id "test-id" not found`),
+		Entry("is ErrorResourceTooLarge", request.ErrorResourceTooLarge(), "resource-too-large", "resource too large", "resource too large"),
 		Entry("is ErrorHeaderMissing", request.ErrorHeaderMissing("X-Test-Header"), "header-missing", "header is missing", `header "X-Test-Header" is missing`),
 		Entry("is ErrorHeaderInvalid", request.ErrorHeaderInvalid("X-Test-Header"), "header-invalid", "header is invalid", `header "X-Test-Header" is invalid`),
 		Entry("is ErrorParameterMissing", request.ErrorParameterMissing("test_parameter"), "parameter-missing", "parameter is missing", `parameter "test_parameter" is missing`),
@@ -76,6 +129,7 @@ var _ = Describe("Errors", func() {
 			Entry("is ErrorResourceNotFoundWithIDAndRevision", request.ErrorResourceNotFoundWithIDAndRevision("test-id", 1), 404),
 			Entry("is ErrorResourceNotFoundWithIDAndOptionalRevision", request.ErrorResourceNotFoundWithIDAndOptionalRevision("test-id", nil), 404),
 			Entry("is ErrorResourceNotFoundWithIDAndOptionalRevision", request.ErrorResourceNotFoundWithIDAndOptionalRevision("test-id", pointer.FromInt(1)), 404),
+			Entry("is ErrorResourceTooLarge", request.ErrorResourceTooLarge(), 413),
 			Entry("is another request error", request.ErrorJSONMalformed(), 500),
 			Entry("is another error", errors.New("test-error"), 500),
 			Entry("is nil error", nil, 500),

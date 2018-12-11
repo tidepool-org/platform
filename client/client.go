@@ -208,6 +208,8 @@ func errorFromStatusCode(res *http.Response, req *http.Request) error {
 		return request.ErrorUnauthorized()
 	case http.StatusNotFound:
 		return request.ErrorResourceNotFound()
+	case http.StatusRequestEntityTooLarge:
+		return request.ErrorResourceTooLarge()
 	case http.StatusTooManyRequests:
 		return request.ErrorTooManyRequests()
 	default:

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -264,12 +265,12 @@ var _ = Describe("Client", func() {
 
 				Context("Create", func() {
 					var body []byte
-					var create *blob.Create
+					var content *blob.Content
 
 					BeforeEach(func() {
 						body = test.RandomBytes()
-						create = blobTest.RandomCreate()
-						create.Body = bytes.NewReader(body)
+						content = blobTest.RandomContent()
+						content.Body = ioutil.NopCloser(bytes.NewReader(body))
 					})
 
 					Context("without server response", func() {
@@ -279,36 +280,36 @@ var _ = Describe("Client", func() {
 
 						It("returns an error when the context is missing", func() {
 							ctx = nil
-							result, err := client.Create(ctx, userID, create)
+							result, err := client.Create(ctx, userID, content)
 							errorsTest.ExpectEqual(err, errors.New("context is missing"))
 							Expect(result).To(BeNil())
 						})
 
 						It("returns an error when the user id is missing", func() {
 							userID = ""
-							result, err := client.Create(ctx, userID, create)
+							result, err := client.Create(ctx, userID, content)
 							errorsTest.ExpectEqual(err, errors.New("user id is missing"))
 							Expect(result).To(BeNil())
 						})
 
 						It("returns an error when the user id is invalid", func() {
 							userID = "invalid"
-							result, err := client.Create(ctx, userID, create)
+							result, err := client.Create(ctx, userID, content)
 							errorsTest.ExpectEqual(err, errors.New("user id is invalid"))
 							Expect(result).To(BeNil())
 						})
 
-						It("returns an error when the create is missing", func() {
-							create = nil
-							result, err := client.Create(ctx, userID, create)
-							errorsTest.ExpectEqual(err, errors.New("create is missing"))
+						It("returns an error when the content is missing", func() {
+							content = nil
+							result, err := client.Create(ctx, userID, content)
+							errorsTest.ExpectEqual(err, errors.New("content is missing"))
 							Expect(result).To(BeNil())
 						})
 
-						It("returns an error when the create is invalid", func() {
-							create.Body = nil
-							result, err := client.Create(ctx, userID, create)
-							errorsTest.ExpectEqual(err, errors.New("create is invalid"))
+						It("returns an error when the content is invalid", func() {
+							content.Body = nil
+							result, err := client.Create(ctx, userID, content)
+							errorsTest.ExpectEqual(err, errors.New("content is invalid"))
 							Expect(result).To(BeNil())
 						})
 					})
@@ -318,7 +319,7 @@ var _ = Describe("Client", func() {
 							BeforeEach(func() {
 								requestHandlers = append(requestHandlers,
 									VerifyRequest("POST", fmt.Sprintf("/v1/users/%s/blobs", userID)),
-									VerifyContentType(*create.MediaType),
+									VerifyContentType(*content.MediaType),
 									VerifyBody(body),
 								)
 							})
@@ -333,7 +334,7 @@ var _ = Describe("Client", func() {
 								})
 
 								It("returns an error", func() {
-									result, err := client.Create(ctx, userID, create)
+									result, err := client.Create(ctx, userID, content)
 									errorsTest.ExpectEqual(err, request.ErrorUnauthenticated())
 									Expect(result).To(BeNil())
 								})
@@ -345,7 +346,7 @@ var _ = Describe("Client", func() {
 								})
 
 								It("returns an error", func() {
-									result, err := client.Create(ctx, userID, create)
+									result, err := client.Create(ctx, userID, content)
 									errorsTest.ExpectEqual(err, request.ErrorUnauthorized())
 									Expect(result).To(BeNil())
 								})
@@ -357,7 +358,7 @@ var _ = Describe("Client", func() {
 								})
 
 								It("returns an error", func() {
-									result, err := client.Create(ctx, userID, create)
+									result, err := client.Create(ctx, userID, content)
 									errorsTest.ExpectEqual(err, request.ErrorResourceNotFoundWithID(userID))
 									Expect(result).To(BeNil())
 								})
@@ -372,7 +373,7 @@ var _ = Describe("Client", func() {
 								})
 
 								It("returns successfully", func() {
-									result, err := client.Create(ctx, userID, create)
+									result, err := client.Create(ctx, userID, content)
 									Expect(err).ToNot(HaveOccurred())
 									blobTest.ExpectEqualBlob(result, responseResult)
 								})
@@ -382,7 +383,7 @@ var _ = Describe("Client", func() {
 
 					When("the request has no digest header", func() {
 						BeforeEach(func() {
-							create.DigestMD5 = nil
+							content.DigestMD5 = nil
 						})
 
 						createAssertions()
@@ -390,7 +391,7 @@ var _ = Describe("Client", func() {
 
 					When("the request has a digest header", func() {
 						BeforeEach(func() {
-							requestHandlers = append(requestHandlers, VerifyHeaderKV("Digest", fmt.Sprintf("MD5=%s", *create.DigestMD5)))
+							requestHandlers = append(requestHandlers, VerifyHeaderKV("Digest", fmt.Sprintf("MD5=%s", *content.DigestMD5)))
 						})
 
 						createAssertions()
@@ -614,17 +615,14 @@ var _ = Describe("Client", func() {
 							var body []byte
 							var digestMD5 string
 							var mediaType string
-							var size int
 
 							BeforeEach(func() {
 								body = test.RandomBytes()
 								digestMD5 = cryptoTest.RandomBase64EncodedMD5Hash()
 								mediaType = netTest.RandomMediaType()
-								size = len(body)
 								responseHeaders = http.Header{
-									"Digest":         []string{fmt.Sprintf("MD5=%s", digestMD5)},
-									"Content-Type":   []string{mediaType},
-									"Content-Length": []string{strconv.Itoa(size)},
+									"Digest":       []string{fmt.Sprintf("MD5=%s", digestMD5)},
+									"Content-Type": []string{mediaType},
 								}
 								requestHandlers = append(requestHandlers, RespondWith(http.StatusOK, body, responseHeaders))
 							})
@@ -636,7 +634,6 @@ var _ = Describe("Client", func() {
 								Expect(content.Body).ToNot(BeNil())
 								Expect(content.DigestMD5).To(Equal(&digestMD5))
 								Expect(content.MediaType).To(Equal(&mediaType))
-								Expect(content.Size).To(Equal(&size))
 							})
 						})
 					})

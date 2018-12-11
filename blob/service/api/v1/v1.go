@@ -3,7 +3,6 @@ package v1
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/ant0ine/go-json-rest/rest"
 
@@ -93,12 +92,12 @@ func (r *Router) Create(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	create := blob.NewCreate()
-	create.Body = req.Body
-	create.DigestMD5 = digestMD5
-	create.MediaType = mediaType
+	content := blob.NewContent()
+	content.Body = req.Body
+	content.DigestMD5 = digestMD5
+	content.MediaType = mediaType
 
-	result, err := r.provider.BlobClient().Create(req.Context(), userID, create)
+	result, err := r.provider.BlobClient().Create(req.Context(), userID, content)
 	if err != nil {
 		if errors.Code(err) == blob.ErrorCodeDigestsNotEqual {
 			responder.Error(http.StatusBadRequest, err)
@@ -161,9 +160,6 @@ func (r *Router) GetContent(res rest.ResponseWriter, req *rest.Request) {
 	}
 	if content.MediaType != nil {
 		mutators = append(mutators, request.NewHeaderMutator("Content-Type", *content.MediaType))
-	}
-	if content.Size != nil {
-		mutators = append(mutators, request.NewHeaderMutator("Content-Length", strconv.Itoa(*content.Size)))
 	}
 
 	responder.Reader(http.StatusOK, content.Body, mutators...)

@@ -58,7 +58,7 @@ func (c *Client) List(ctx context.Context, userID string, filter *blob.Filter, p
 	return result, nil
 }
 
-func (c *Client) Create(ctx context.Context, userID string, create *blob.Create) (*blob.Blob, error) {
+func (c *Client) Create(ctx context.Context, userID string, content *blob.Content) (*blob.Blob, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -67,23 +67,23 @@ func (c *Client) Create(ctx context.Context, userID string, create *blob.Create)
 	} else if !user.IsValidID(userID) {
 		return nil, errors.New("user id is invalid")
 	}
-	if create == nil {
-		return nil, errors.New("create is missing")
-	} else if err := structureValidator.New().Validate(create); err != nil {
-		return nil, errors.Wrap(err, "create is invalid")
+	if content == nil {
+		return nil, errors.New("content is missing")
+	} else if err := structureValidator.New().Validate(content); err != nil {
+		return nil, errors.Wrap(err, "content is invalid")
 	}
 
 	var mutators []request.RequestMutator
-	if create.DigestMD5 != nil {
-		mutators = append(mutators, request.NewHeaderMutator("Digest", fmt.Sprintf("MD5=%s", *create.DigestMD5)))
+	if content.DigestMD5 != nil {
+		mutators = append(mutators, request.NewHeaderMutator("Digest", fmt.Sprintf("MD5=%s", *content.DigestMD5)))
 	}
-	if create.MediaType != nil {
-		mutators = append(mutators, request.NewHeaderMutator("Content-Type", *create.MediaType))
+	if content.MediaType != nil {
+		mutators = append(mutators, request.NewHeaderMutator("Content-Type", *content.MediaType))
 	}
 
 	url := c.client.ConstructURL("v1", "users", userID, "blobs")
 	result := &blob.Blob{}
-	if err := c.client.RequestData(ctx, http.MethodPost, url, mutators, create.Body, result); err != nil {
+	if err := c.client.RequestData(ctx, http.MethodPost, url, mutators, content.Body, result); err != nil {
 		return nil, err
 	}
 
@@ -140,16 +140,11 @@ func (c *Client) GetContent(ctx context.Context, id string) (*blob.Content, erro
 	if err != nil {
 		return nil, err
 	}
-	size, err := request.ParseIntHeader(headersInspector.Headers, "Content-Length")
-	if err != nil {
-		return nil, err
-	}
 
 	return &blob.Content{
 		Body:      body,
 		DigestMD5: digestMD5,
 		MediaType: mediaType,
-		Size:      size,
 	}, nil
 }
 

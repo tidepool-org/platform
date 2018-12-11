@@ -2,6 +2,7 @@ package mongo_test
 
 import (
 	"context"
+	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -24,7 +25,7 @@ func RandomProfileID() string {
 func NewProfile(profileID string, fullName string) bson.M {
 	return bson.M{
 		"_id":   profileID,
-		"value": `{"profile":{"fullName":"` + fullName + `","patient":{"birthday":"2000-01-01","diagnosisDate":"2010-12-31","targetDevices":["dexcom","tandem"],"targetTimezone":"US/Pacific"}},"private":{"uploads":{"name":"","id":"1234567890","hash":"1234567890abcdef"}}}`,
+		"value": fmt.Sprintf(`{"profile":{"fullName":%q,"patient":{"birthday":"2000-01-01","diagnosisDate":"2010-12-31","targetDevices":["dexcom","tandem"],"targetTimezone":"US/Pacific"}},"private":{"uploads":{"name":"","id":"1234567890","hash":"1234567890abcdef"}}}`, fullName),
 	}
 }
 

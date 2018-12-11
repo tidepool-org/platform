@@ -23,7 +23,7 @@ type ListOutput struct {
 type CreateInput struct {
 	Context context.Context
 	UserID  string
-	Create  *blob.Create
+	Content *blob.Content
 }
 
 type CreateOutput struct {
@@ -70,7 +70,7 @@ type Client struct {
 	ListOutput            *ListOutput
 	CreateInvocations     int
 	CreateInputs          []CreateInput
-	CreateStub            func(ctx context.Context, userID string, create *blob.Create) (*blob.Blob, error)
+	CreateStub            func(ctx context.Context, userID string, content *blob.Content) (*blob.Blob, error)
 	CreateOutputs         []CreateOutput
 	CreateOutput          *CreateOutput
 	GetInvocations        int
@@ -111,11 +111,11 @@ func (c *Client) List(ctx context.Context, userID string, filter *blob.Filter, p
 	panic("List has no output")
 }
 
-func (c *Client) Create(ctx context.Context, userID string, create *blob.Create) (*blob.Blob, error) {
+func (c *Client) Create(ctx context.Context, userID string, content *blob.Content) (*blob.Blob, error) {
 	c.CreateInvocations++
-	c.CreateInputs = append(c.CreateInputs, CreateInput{Context: ctx, UserID: userID, Create: create})
+	c.CreateInputs = append(c.CreateInputs, CreateInput{Context: ctx, UserID: userID, Content: content})
 	if c.CreateStub != nil {
-		return c.CreateStub(ctx, userID, create)
+		return c.CreateStub(ctx, userID, content)
 	}
 	if len(c.CreateOutputs) > 0 {
 		output := c.CreateOutputs[0]

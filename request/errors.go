@@ -14,6 +14,7 @@ const (
 	ErrorCodeUnauthenticated     = "unauthenticated"
 	ErrorCodeUnauthorized        = "unauthorized"
 	ErrorCodeResourceNotFound    = "resource-not-found"
+	ErrorCodeResourceTooLarge    = "resource-too-large"
 	ErrorCodeHeaderMissing       = "header-missing"
 	ErrorCodeHeaderInvalid       = "header-invalid"
 	ErrorCodeParameterMissing    = "parameter-missing"
@@ -64,6 +65,10 @@ func ErrorResourceNotFoundWithIDAndOptionalRevision(id string, revision *int) er
 	return ErrorResourceNotFoundWithID(id)
 }
 
+func ErrorResourceTooLarge() error {
+	return errors.Preparedf(ErrorCodeResourceTooLarge, "resource too large", "resource too large")
+}
+
 func ErrorHeaderMissing(key string) error {
 	return errors.Preparedf(ErrorCodeHeaderMissing, "header is missing", "header %q is missing", key)
 }
@@ -97,6 +102,8 @@ func StatusCodeForError(err error) int {
 			return http.StatusForbidden
 		case ErrorCodeResourceNotFound:
 			return http.StatusNotFound
+		case ErrorCodeResourceTooLarge:
+			return http.StatusRequestEntityTooLarge
 		}
 	}
 	return http.StatusInternalServerError
