@@ -18,7 +18,7 @@ import (
 	sessionMongo "github.com/tidepool-org/platform/session/store/mongo"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/user/service/api"
-	"github.com/tidepool-org/platform/user/service/api/v1"
+	userServiceApiV1 "github.com/tidepool-org/platform/user/service/api/v1"
 	userMongo "github.com/tidepool-org/platform/user/store/mongo"
 )
 
@@ -315,7 +315,7 @@ func (s *Standard) initializeAPI() error {
 
 	s.Logger().Debug("Initializing api router")
 
-	if err = s.api.DEPRECATEDInitializeRouter(v1.Routes()); err != nil {
+	if err = s.api.DEPRECATEDInitializeRouter(userServiceApiV1.Routes()); err != nil {
 		return errors.Wrap(err, "unable to initialize api router")
 	}
 

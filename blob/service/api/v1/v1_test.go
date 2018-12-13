@@ -17,8 +17,8 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 
 	"github.com/tidepool-org/platform/blob"
-	blobServiceAPIV1 "github.com/tidepool-org/platform/blob/service/api/v1"
-	blobServiceAPIV1Test "github.com/tidepool-org/platform/blob/service/api/v1/test"
+	blobServiceApiV1 "github.com/tidepool-org/platform/blob/service/api/v1"
+	blobServiceApiV1Test "github.com/tidepool-org/platform/blob/service/api/v1/test"
 	blobTest "github.com/tidepool-org/platform/blob/test"
 	cryptoTest "github.com/tidepool-org/platform/crypto/test"
 	"github.com/tidepool-org/platform/errors"
@@ -38,10 +38,10 @@ import (
 )
 
 var _ = Describe("V1", func() {
-	var provider *blobServiceAPIV1Test.Provider
+	var provider *blobServiceApiV1Test.Provider
 
 	BeforeEach(func() {
-		provider = blobServiceAPIV1Test.NewProvider()
+		provider = blobServiceApiV1Test.NewProvider()
 	})
 
 	AfterEach(func() {
@@ -50,22 +50,22 @@ var _ = Describe("V1", func() {
 
 	Context("NewRouter", func() {
 		It("returns an error when the provider is missing", func() {
-			router, err := blobServiceAPIV1.NewRouter(nil)
+			router, err := blobServiceApiV1.NewRouter(nil)
 			errorsTest.ExpectEqual(err, errors.New("provider is missing"))
 			Expect(router).To(BeNil())
 		})
 
 		It("returns successfully", func() {
-			Expect(blobServiceAPIV1.NewRouter(provider)).ToNot(BeNil())
+			Expect(blobServiceApiV1.NewRouter(provider)).ToNot(BeNil())
 		})
 	})
 
 	Context("with new router", func() {
-		var router *blobServiceAPIV1.Router
+		var router *blobServiceApiV1.Router
 
 		BeforeEach(func() {
 			var err error
-			router, err = blobServiceAPIV1.NewRouter(provider)
+			router, err = blobServiceApiV1.NewRouter(provider)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(router).ToNot(BeNil())
 		})

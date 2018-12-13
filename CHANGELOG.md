@@ -1,5 +1,6 @@
 ## HEAD
 
+* Fix import alias for any import path ending in /v1
 * Update dump users tool to be more generic and usable
 * Return HTTP status code 413 Request Entity Too Large when blob size exceeds maximum
 * Replace blob.Create with blob.Content
