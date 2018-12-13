@@ -162,6 +162,10 @@ test: ginkgo
 	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r $(TEST)"
 	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 -r $(TEST)
 
+test-until-failure: ginkgo
+	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r -untilItFails $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 -r -untilItFails $(TEST)
+
 test-watch: ginkgo
 	@echo "ginkgo watch -requireSuite -slowSpecThreshold=10 -r $(TEST)"
 	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch -requireSuite -slowSpecThreshold=10 -r $(TEST)
@@ -169,6 +173,10 @@ test-watch: ginkgo
 ci-test: ginkgo
 	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing $(TEST)"
 	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing $(TEST)
+
+ci-test-until-failure: ginkgo
+	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing -untilItFails $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing -untilItFails $(TEST)
 
 ci-test-watch: ginkgo
 	@echo "ginkgo watch -requireSuite -slowSpecThreshold=10 -r -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress $(TEST)"
