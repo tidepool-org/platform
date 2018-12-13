@@ -14,6 +14,7 @@ import (
 	"github.com/tidepool-org/platform/aws"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/pointer"
 	storeUnstructured "github.com/tidepool-org/platform/store/unstructured"
 )
 
@@ -25,10 +26,10 @@ type Store struct {
 	awsAPI aws.API
 }
 
-func NewStore(cfg *Config, awsAPI aws.API) (*Store, error) {
-	if cfg == nil {
+func NewStore(config *Config, awsAPI aws.API) (*Store, error) {
+	if config == nil {
 		return nil, errors.New("config is missing")
-	} else if err := cfg.Validate(); err != nil {
+	} else if err := config.Validate(); err != nil {
 		return nil, errors.Wrap(err, "config is invalid")
 	}
 	if awsAPI == nil {
@@ -36,8 +37,8 @@ func NewStore(cfg *Config, awsAPI aws.API) (*Store, error) {
 	}
 
 	return &Store{
-		bucket: cfg.Bucket,
-		prefix: cfg.Prefix,
+		bucket: config.Bucket,
+		prefix: config.Prefix,
 		awsAPI: awsAPI,
 	}, nil
 }
@@ -57,8 +58,8 @@ func (s *Store) Exists(ctx context.Context, key string) (bool, error) {
 
 	var exists bool
 	input := &s3.HeadObjectInput{
-		Bucket: aws.String(s.bucket),
-		Key:    aws.String(key),
+		Bucket: pointer.FromString(s.bucket),
+		Key:    pointer.FromString(key),
 	}
 	if _, err := s.awsAPI.S3().HeadObjectWithContext(ctx, input); err != nil {
 		if awsErr, ok := err.(awserr.Error); !ok || awsErr.Code() != "NotFound" {
@@ -91,11 +92,11 @@ func (s *Store) Put(ctx context.Context, key string, reader io.Reader) error {
 
 	input := &s3manager.UploadInput{
 		Body:                 reader,
-		Bucket:               aws.String(s.bucket),
-		Key:                  aws.String(key),
-		ServerSideEncryption: aws.String("AES256"),
+		Bucket:               pointer.FromString(s.bucket),
+		Key:                  pointer.FromString(key),
+		ServerSideEncryption: pointer.FromString("AES256"),
 	}
-	if _, err := s.awsAPI.S3ManagerUploader().UploadWithContext(ctx, input); err != nil {
+	if _, err := s.awsAPI.S3Manager().Uploader().UploadWithContext(ctx, input); err != nil {
 		logger.WithError(err).Errorf("Unable to upload object with key %q", key)
 		return errors.Wrapf(err, "unable to upload object with key %q", key)
 	}
@@ -119,11 +120,11 @@ func (s *Store) Get(ctx context.Context, key string) (io.ReadCloser, error) {
 
 	var reader io.ReadCloser
 	input := &s3.GetObjectInput{
-		Bucket: aws.String(s.bucket),
-		Key:    aws.String(key),
+		Bucket: pointer.FromString(s.bucket),
+		Key:    pointer.FromString(key),
 	}
 	output := aws.NewWriteAtBuffer(nil) // FUTURE: Uses memory - if large objects then need to use temporary file on disk
-	if _, err := s.awsAPI.S3ManagerDownloader().DownloadWithContext(ctx, output, input); err != nil {
+	if _, err := s.awsAPI.S3Manager().Downloader().DownloadWithContext(ctx, output, input); err != nil {
 		if awsErr, ok := err.(awserr.Error); !ok || awsErr.Code() != s3.ErrCodeNoSuchKey {
 			logger.WithError(err).Errorf("Unable to download object with key %q", key)
 			return nil, errors.Wrapf(err, "unable to download object with key %q", key)
@@ -152,8 +153,8 @@ func (s *Store) Delete(ctx context.Context, key string) (bool, error) {
 
 	var exists bool
 	headObjectInput := &s3.HeadObjectInput{
-		Bucket: aws.String(s.bucket),
-		Key:    aws.String(key),
+		Bucket: pointer.FromString(s.bucket),
+		Key:    pointer.FromString(key),
 	}
 	if _, err := s.awsAPI.S3().HeadObjectWithContext(ctx, headObjectInput); err != nil {
 		if awsErr, ok := err.(awserr.Error); !ok || awsErr.Code() != "NotFound" {
@@ -163,8 +164,8 @@ func (s *Store) Delete(ctx context.Context, key string) (bool, error) {
 	} else {
 		exists = true
 		deleteObjectInput := &s3.DeleteObjectInput{
-			Bucket: aws.String(s.bucket),
-			Key:    aws.String(key),
+			Bucket: pointer.FromString(s.bucket),
+			Key:    pointer.FromString(key),
 		}
 		if _, err = s.awsAPI.S3().DeleteObjectWithContext(ctx, deleteObjectInput); err != nil {
 			logger.WithError(err).Errorf("Unable to delete object with key %q", key)

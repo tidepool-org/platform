@@ -1,21 +1,30 @@
 package aws
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3/s3iface"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager/s3manageriface"
+	awsSdkGoAws "github.com/aws/aws-sdk-go/aws"
+	awsSdkGoServiceS3 "github.com/aws/aws-sdk-go/service/s3"
+	awsSdkGoServiceS3S3iface "github.com/aws/aws-sdk-go/service/s3/s3iface"
+	awsSdkGoServiceS3S3manager "github.com/aws/aws-sdk-go/service/s3/s3manager"
+	awsSdkGoServiceS3S3managerS3manageriface "github.com/aws/aws-sdk-go/service/s3/s3manager/s3manageriface"
 )
 
 type API interface {
-	S3() s3iface.S3API
-	S3ManagerDownloader() s3manageriface.DownloaderAPI
-	S3ManagerUploader() s3manageriface.UploaderAPI
+	S3() awsSdkGoServiceS3S3iface.S3API
+	S3Manager() S3Manager
 }
 
-func String(value string) *string {
-	return aws.String(value)
+type S3Manager interface {
+	Downloader() awsSdkGoServiceS3S3managerS3manageriface.DownloaderAPI
+	Uploader() awsSdkGoServiceS3S3managerS3manageriface.UploaderAPI
+
+	NewBatchDeleteWithClient(options ...func(*awsSdkGoServiceS3S3manager.BatchDelete)) BatchDeleteWithClient
+	NewDeleteListIterator(listObjectsInput *awsSdkGoServiceS3.ListObjectsInput, options ...func(*awsSdkGoServiceS3S3manager.DeleteListIterator)) awsSdkGoServiceS3S3manager.BatchDeleteIterator
 }
 
-func NewWriteAtBuffer(bytes []byte) *aws.WriteAtBuffer {
-	return aws.NewWriteAtBuffer(bytes)
+type BatchDeleteWithClient interface {
+	Delete(ctx awsSdkGoAws.Context, batchDeleteIterator awsSdkGoServiceS3S3manager.BatchDeleteIterator) error
+}
+
+func NewWriteAtBuffer(bytes []byte) *awsSdkGoAws.WriteAtBuffer {
+	return awsSdkGoAws.NewWriteAtBuffer(bytes)
 }
