@@ -322,6 +322,16 @@ var _ = Describe("Logger", func() {
 			})
 
 			Context("WithLevel", func() {
+				It("uses the current level if the specified level is unknown", func() {
+					logger = logger.WithLevel(log.Level("unknown"))
+					Expect(logger).ToNot(BeNil())
+					Expect(logger.Level()).To(Equal(log.DebugLevel))
+					logger.Debug("WithLevel Message")
+					Expect(serializer.SerializeInputs).To(HaveLen(1))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", log.DebugLevel))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "WithLevel Message"))
+				})
+
 				It("adds the specified level", func() {
 					logger = logger.WithLevel(log.InfoLevel)
 					Expect(logger).ToNot(BeNil())

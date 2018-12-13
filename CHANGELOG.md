@@ -1,5 +1,6 @@
 ## HEAD
 
+* Update log package to enable easier addition of contextual data into context and logger
 * Update structure parser to allow reporting errors in contained data by reference
 * Add Makefile targets to execute unit tests until failure
 * Fix import alias for any import path ending in /v1
