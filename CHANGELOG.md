@@ -1,5 +1,6 @@
 ## HEAD
 
+* Update auth package to remove context from test assertions
 * Refactor and add improved request path and header parsing
 * Update structured store to allow optional update operators and query modifiers
 * Add unstructured store DeleteDirectory to provide batch delete operations

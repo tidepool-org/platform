@@ -93,7 +93,7 @@ var _ = Describe("Client", func() {
 				})
 
 				AfterEach(func() {
-					Expect(authClient.EnsureAuthorizedUserInputs).To(Equal([]authTest.EnsureAuthorizedUserInput{{Context: ctx, TargetUserID: userID, AuthorizedPermission: permission.Owner}}))
+					Expect(authClient.EnsureAuthorizedUserInputs).To(Equal([]authTest.EnsureAuthorizedUserInput{{TargetUserID: userID, AuthorizedPermission: permission.Owner}}))
 				})
 
 				It("return an error when the user client ensure authorized user returns an error", func() {
@@ -139,7 +139,7 @@ var _ = Describe("Client", func() {
 				})
 
 				AfterEach(func() {
-					Expect(authClient.EnsureAuthorizedServiceInputs).To(Equal([]context.Context{ctx}))
+					Expect(authClient.EnsureAuthorizedServiceInvocations).To(Equal(1))
 				})
 
 				It("return an error when the user client ensure authorized service returns an error", func() {
@@ -187,7 +187,7 @@ var _ = Describe("Client", func() {
 
 			Context("Get", func() {
 				AfterEach(func() {
-					Expect(authClient.EnsureAuthorizedInputs).To(Equal([]context.Context{ctx}))
+					Expect(authClient.EnsureAuthorizedInvocations).To(Equal(1))
 				})
 
 				It("returns an error when the user client ensure authorized returns an error", func() {
@@ -224,7 +224,7 @@ var _ = Describe("Client", func() {
 						})
 
 						AfterEach(func() {
-							Expect(authClient.EnsureAuthorizedUserInputs).To(Equal([]authTest.EnsureAuthorizedUserInput{{Context: ctx, TargetUserID: *responseResult.UserID, AuthorizedPermission: permission.Owner}}))
+							Expect(authClient.EnsureAuthorizedUserInputs).To(Equal([]authTest.EnsureAuthorizedUserInput{{TargetUserID: *responseResult.UserID, AuthorizedPermission: permission.Owner}}))
 						})
 
 						It("returns an error when the user client ensure authorized user returns an error", func() {
@@ -255,7 +255,7 @@ var _ = Describe("Client", func() {
 				})
 
 				AfterEach(func() {
-					Expect(authClient.EnsureAuthorizedServiceInputs).To(Equal([]context.Context{ctx}))
+					Expect(authClient.EnsureAuthorizedServiceInvocations).To(Equal(1))
 				})
 
 				It("return an error when the user client ensure authorized service returns an error", func() {
@@ -301,7 +301,7 @@ var _ = Describe("Client", func() {
 				})
 
 				AfterEach(func() {
-					Expect(authClient.EnsureAuthorizedServiceInputs).To(Equal([]context.Context{ctx}))
+					Expect(authClient.EnsureAuthorizedServiceInvocations).To(Equal(1))
 				})
 
 				It("return an error when the user client ensure authorized service returns an error", func() {
