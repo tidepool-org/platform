@@ -232,21 +232,17 @@ var _ = Describe("Client", func() {
 						})
 					}
 
-					When("the request has no filter or pagination", func() {
+					When("the request has no filter or pagination parameters", func() {
 						BeforeEach(func() {
 							filter = nil
 							pagination = nil
-							query := url.Values{
-								"page": []string{"0"},
-								"size": []string{"100"},
-							}
-							requestHandlers = append(requestHandlers, VerifyRequest("GET", fmt.Sprintf("/v1/users/%s/blobs", userID), query.Encode()))
+							requestHandlers = append(requestHandlers, VerifyRequest(http.MethodGet, fmt.Sprintf("/v1/users/%s/blobs", userID), ""))
 						})
 
 						listAssertions()
 					})
 
-					When("the request has a random filter and pagination", func() {
+					When("the request has random filter and pagination parameters", func() {
 						BeforeEach(func() {
 							filter = blobTest.RandomFilter()
 							pagination = pageTest.RandomPagination()

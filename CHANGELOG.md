@@ -1,5 +1,6 @@
 ## HEAD
 
+* Update pagination to not include page or size if defaults are specified
 * Update log package to enable easier addition of contextual data into context and logger
 * Update structure parser to allow reporting errors in contained data by reference
 * Add Makefile targets to execute unit tests until failure
