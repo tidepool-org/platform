@@ -69,6 +69,14 @@ var _ = Describe("Errors", func() {
 		Expect(request.ErrorCodeJSONMalformed).To(Equal("json-malformed"))
 	})
 
+	It("ErrorCodeDigestsNotEqual is expected", func() {
+		Expect(request.ErrorCodeDigestsNotEqual).To(Equal("digests-not-equal"))
+	})
+
+	It("ErrorCodeMediaTypeNotSupported is expected", func() {
+		Expect(request.ErrorCodeMediaTypeNotSupported).To(Equal("media-type-not-supported"))
+	})
+
 	Context("ErrorInternalServerError", func() {
 		It("returns the expected error", func() {
 			cause := errors.New("error")
@@ -113,6 +121,8 @@ var _ = Describe("Errors", func() {
 		Entry("is ErrorParameterMissing", request.ErrorParameterMissing("test_parameter"), "parameter-missing", "parameter is missing", `parameter "test_parameter" is missing`),
 		Entry("is ErrorParameterInvalid", request.ErrorParameterInvalid("test_parameter"), "parameter-invalid", "parameter is invalid", `parameter "test_parameter" is invalid`),
 		Entry("is ErrorJSONMalformed", request.ErrorJSONMalformed(), "json-malformed", "json is malformed", "json is malformed"),
+		Entry("is ErrorDigestsNotEqual", request.ErrorDigestsNotEqual("QUJDREVGSElKS0xNTk9QUQ==", "lah2klptWl+IBNSepXlJ9Q=="), "digests-not-equal", "digests not equal", `digest "QUJDREVGSElKS0xNTk9QUQ==" does not equal calculated digest "lah2klptWl+IBNSepXlJ9Q=="`),
+		Entry("is ErrorMediaTypeNotSupported", request.ErrorMediaTypeNotSupported("application/octet-stream"), "media-type-not-supported", "media type not supported", `media type "application/octet-stream" not supported`),
 	)
 
 	Context("StatusCodeForError", func() {

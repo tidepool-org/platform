@@ -7,19 +7,21 @@ import (
 )
 
 const (
-	ErrorCodeInternalServerError = "internal-server-error"
-	ErrorCodeUnexpectedResponse  = "unexpected-response"
-	ErrorCodeTooManyRequests     = "too-many-requests"
-	ErrorCodeBadRequest          = "bad-request"
-	ErrorCodeUnauthenticated     = "unauthenticated"
-	ErrorCodeUnauthorized        = "unauthorized"
-	ErrorCodeResourceNotFound    = "resource-not-found"
-	ErrorCodeResourceTooLarge    = "resource-too-large"
-	ErrorCodeHeaderMissing       = "header-missing"
-	ErrorCodeHeaderInvalid       = "header-invalid"
-	ErrorCodeParameterMissing    = "parameter-missing"
-	ErrorCodeParameterInvalid    = "parameter-invalid"
-	ErrorCodeJSONMalformed       = "json-malformed"
+	ErrorCodeInternalServerError   = "internal-server-error"
+	ErrorCodeUnexpectedResponse    = "unexpected-response"
+	ErrorCodeTooManyRequests       = "too-many-requests"
+	ErrorCodeBadRequest            = "bad-request"
+	ErrorCodeUnauthenticated       = "unauthenticated"
+	ErrorCodeUnauthorized          = "unauthorized"
+	ErrorCodeResourceNotFound      = "resource-not-found"
+	ErrorCodeResourceTooLarge      = "resource-too-large"
+	ErrorCodeHeaderMissing         = "header-missing"
+	ErrorCodeHeaderInvalid         = "header-invalid"
+	ErrorCodeParameterMissing      = "parameter-missing"
+	ErrorCodeParameterInvalid      = "parameter-invalid"
+	ErrorCodeJSONMalformed         = "json-malformed"
+	ErrorCodeDigestsNotEqual       = "digests-not-equal"
+	ErrorCodeMediaTypeNotSupported = "media-type-not-supported"
 )
 
 func ErrorInternalServerError(err error) error {
@@ -87,6 +89,14 @@ func ErrorParameterInvalid(key string) error {
 
 func ErrorJSONMalformed() error {
 	return errors.Prepared(ErrorCodeJSONMalformed, "json is malformed", "json is malformed")
+}
+
+func ErrorDigestsNotEqual(value string, calculated string) error {
+	return errors.Preparedf(ErrorCodeDigestsNotEqual, "digests not equal", "digest %q does not equal calculated digest %q", value, calculated)
+}
+
+func ErrorMediaTypeNotSupported(value string) error {
+	return errors.Preparedf(ErrorCodeMediaTypeNotSupported, "media type not supported", "media type %q not supported", value)
 }
 
 func StatusCodeForError(err error) int {

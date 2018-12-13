@@ -6,3 +6,10 @@ func MustBytes(bytes []byte, err error) []byte {
 	}
 	return bytes
 }
+
+func MustString(str string, err error) string {
+	if err != nil {
+		panic(err)
+	}
+	return str
+}

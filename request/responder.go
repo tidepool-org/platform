@@ -56,7 +56,7 @@ func (r *Responder) Redirect(statusCode int, url string, mutators ...ResponseMut
 }
 
 func (r *Responder) Empty(statusCode int, mutators ...ResponseMutator) {
-	// FUTURE: rest.ResponseWriter sets unnecessary/incorrect Content-Type header
+	// FUTURE: rest.ResponseWriter sets unnecessary/incorrect Content-Type and Content-Encoding headers
 	if err := r.mutateResponse(mutators); err != nil {
 		r.InternalServerError(err)
 	} else {

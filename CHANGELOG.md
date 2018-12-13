@@ -1,5 +1,6 @@
 ## HEAD
 
+* Refactor and add improved request path and header parsing
 * Update structured store to allow optional update operators and query modifiers
 * Add unstructured store DeleteDirectory to provide batch delete operations
 * Add unstructured store Options during put operation to allow setting content type on S3 object

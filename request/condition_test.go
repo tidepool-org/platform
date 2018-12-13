@@ -23,9 +23,9 @@ import (
 var _ = Describe("Condition", func() {
 	Context("NewCondition", func() {
 		It("returns successfully with default values", func() {
-			condition := request.NewCondition()
-			Expect(condition).ToNot(BeNil())
-			Expect(condition.Revision).To(BeNil())
+			datum := request.NewCondition()
+			Expect(datum).ToNot(BeNil())
+			Expect(datum.Revision).To(BeNil())
 		})
 	})
 

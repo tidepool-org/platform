@@ -116,6 +116,20 @@ func DecodeRequestPathParameter(req *rest.Request, key string, validator func(va
 	return value, nil
 }
 
+func DecodeOptionalRequestPathParameter(req *rest.Request, key string, validator func(value string) bool) (*string, error) {
+	if req == nil {
+		return nil, errors.New("request is missing")
+	}
+
+	value, ok := req.PathParams[key]
+	if !ok || value == "" {
+		return nil, nil
+	} else if validator != nil && !validator(value) {
+		return nil, ErrorParameterInvalid(key)
+	}
+	return &value, nil
+}
+
 type contextKey string
 
 const detailsContextKey contextKey = "details"

@@ -14,7 +14,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
-	logNull "github.com/tidepool-org/platform/log/null"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/test"
 	testHTTP "github.com/tidepool-org/platform/test/http"
@@ -58,7 +58,7 @@ var _ = Describe("Responder", func() {
 		res = testRest.NewResponseWriter()
 		req = testRest.NewRequest()
 		req.Method = "POST"
-		req.Request = req.WithContext(log.NewContextWithLogger(req.Context(), logNull.NewLogger()))
+		req.Request = req.WithContext(log.NewContextWithLogger(req.Context(), logTest.NewLogger()))
 	})
 
 	AfterEach(func() {
