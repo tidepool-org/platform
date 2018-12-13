@@ -16,6 +16,7 @@ import (
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
+	storeUnstructured "github.com/tidepool-org/platform/store/unstructured"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -76,7 +77,9 @@ func (c *Client) Create(ctx context.Context, userID string, content *blob.Conten
 
 	hasher := md5.New()
 	sizer := NewSizeWriter()
-	err = c.BlobUnstructuredStore().Put(ctx, userID, *result.ID, io.TeeReader(io.TeeReader(content.Body, hasher), sizer))
+	options := storeUnstructured.NewOptions()
+	options.MediaType = content.MediaType
+	err = c.BlobUnstructuredStore().Put(ctx, userID, *result.ID, io.TeeReader(io.TeeReader(content.Body, hasher), sizer), options)
 	if err != nil {
 		if _, deleteErr := session.Delete(ctx, *result.ID, nil); deleteErr != nil {
 			logger.WithError(deleteErr).Error("Unable to delete blob after failure to put blob content")

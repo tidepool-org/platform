@@ -1,5 +1,8 @@
 ## HEAD
 
+* Add unstructured store DeleteDirectory to provide batch delete operations
+* Add unstructured store Options during put operation to allow setting content type on S3 object
+* Remove context from unstructured store test mocks as it can change unrelated to target under test
 * Update aws package and interfaces to enable batch object delete
 * Update pagination to not include page or size if defaults are specified
 * Update log package to enable easier addition of contextual data into context and logger

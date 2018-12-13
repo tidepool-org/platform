@@ -3,6 +3,8 @@ package test
 import (
 	"context"
 	"io"
+
+	storeUnstructured "github.com/tidepool-org/platform/store/unstructured"
 )
 
 type ExistsInput struct {
@@ -21,6 +23,7 @@ type PutInput struct {
 	UserID  string
 	ID      string
 	Reader  io.Reader
+	Options *storeUnstructured.Options
 }
 
 type GetInput struct {
@@ -53,7 +56,7 @@ type Store struct {
 	ExistsOutput      *ExistsOutput
 	PutInvocations    int
 	PutInputs         []PutInput
-	PutStub           func(ctx context.Context, userID string, id string, reader io.Reader) error
+	PutStub           func(ctx context.Context, userID string, id string, reader io.Reader, options *storeUnstructured.Options) error
 	PutOutputs        []error
 	PutOutput         *error
 	GetInvocations    int
@@ -89,11 +92,11 @@ func (s *Store) Exists(ctx context.Context, userID string, id string) (bool, err
 	panic("Exists has no output")
 }
 
-func (s *Store) Put(ctx context.Context, userID string, id string, reader io.Reader) error {
+func (s *Store) Put(ctx context.Context, userID string, id string, reader io.Reader, options *storeUnstructured.Options) error {
 	s.PutInvocations++
-	s.PutInputs = append(s.PutInputs, PutInput{Context: ctx, UserID: userID, ID: id, Reader: reader})
+	s.PutInputs = append(s.PutInputs, PutInput{Context: ctx, UserID: userID, ID: id, Reader: reader, Options: options})
 	if s.PutStub != nil {
-		return s.PutStub(ctx, userID, id, reader)
+		return s.PutStub(ctx, userID, id, reader, options)
 	}
 	if len(s.PutOutputs) > 0 {
 		output := s.PutOutputs[0]

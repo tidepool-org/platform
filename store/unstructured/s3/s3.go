@@ -7,15 +7,16 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	awsSdkGoAwsAwserr "github.com/aws/aws-sdk-go/aws/awserr"
+	awsSdkGoServiceS3 "github.com/aws/aws-sdk-go/service/s3"
+	awsSdkGoServiceS3S3manager "github.com/aws/aws-sdk-go/service/s3/s3manager"
 
 	"github.com/tidepool-org/platform/aws"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/pointer"
 	storeUnstructured "github.com/tidepool-org/platform/store/unstructured"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 const Type = "s3"
@@ -53,16 +54,16 @@ func (s *Store) Exists(ctx context.Context, key string) (bool, error) {
 		return false, errors.New("key is invalid")
 	}
 
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"bucket": s.bucket, "prefix": s.prefix, "key": key})
+	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"bucket": s.bucket, "prefix": s.prefix, "key": key})
 	key = s.resolveKey(key)
 
 	var exists bool
-	input := &s3.HeadObjectInput{
+	input := &awsSdkGoServiceS3.HeadObjectInput{
 		Bucket: pointer.FromString(s.bucket),
 		Key:    pointer.FromString(key),
 	}
 	if _, err := s.awsAPI.S3().HeadObjectWithContext(ctx, input); err != nil {
-		if awsErr, ok := err.(awserr.Error); !ok || awsErr.Code() != "NotFound" {
+		if awsErr, ok := err.(awsSdkGoAwsAwserr.Error); !ok || awsErr.Code() != "NotFound" {
 			logger.WithError(err).Errorf("Unable to head object with key %q", key)
 			return false, errors.Wrapf(err, "unable to head object with key %q", key)
 		}
@@ -74,7 +75,7 @@ func (s *Store) Exists(ctx context.Context, key string) (bool, error) {
 	return exists, nil
 }
 
-func (s *Store) Put(ctx context.Context, key string, reader io.Reader) error {
+func (s *Store) Put(ctx context.Context, key string, reader io.Reader, options *storeUnstructured.Options) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -86,13 +87,19 @@ func (s *Store) Put(ctx context.Context, key string, reader io.Reader) error {
 	if reader == nil {
 		return errors.New("reader is missing")
 	}
+	if options == nil {
+		options = storeUnstructured.NewOptions()
+	} else if err := structureValidator.New().Validate(options); err != nil {
+		return errors.Wrap(err, "options is invalid")
+	}
 
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"bucket": s.bucket, "prefix": s.prefix, "key": key})
+	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"bucket": s.bucket, "prefix": s.prefix, "key": key, "options": options})
 	key = s.resolveKey(key)
 
-	input := &s3manager.UploadInput{
+	input := &awsSdkGoServiceS3S3manager.UploadInput{
 		Body:                 reader,
 		Bucket:               pointer.FromString(s.bucket),
+		ContentType:          options.MediaType,
 		Key:                  pointer.FromString(key),
 		ServerSideEncryption: pointer.FromString("AES256"),
 	}
@@ -115,17 +122,17 @@ func (s *Store) Get(ctx context.Context, key string) (io.ReadCloser, error) {
 		return nil, errors.New("key is invalid")
 	}
 
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"bucket": s.bucket, "prefix": s.prefix, "key": key})
+	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"bucket": s.bucket, "prefix": s.prefix, "key": key})
 	key = s.resolveKey(key)
 
 	var reader io.ReadCloser
-	input := &s3.GetObjectInput{
+	input := &awsSdkGoServiceS3.GetObjectInput{
 		Bucket: pointer.FromString(s.bucket),
 		Key:    pointer.FromString(key),
 	}
 	output := aws.NewWriteAtBuffer(nil) // FUTURE: Uses memory - if large objects then need to use temporary file on disk
 	if _, err := s.awsAPI.S3Manager().Downloader().DownloadWithContext(ctx, output, input); err != nil {
-		if awsErr, ok := err.(awserr.Error); !ok || awsErr.Code() != s3.ErrCodeNoSuchKey {
+		if awsErr, ok := err.(awsSdkGoAwsAwserr.Error); !ok || awsErr.Code() != awsSdkGoServiceS3.ErrCodeNoSuchKey {
 			logger.WithError(err).Errorf("Unable to download object with key %q", key)
 			return nil, errors.Wrapf(err, "unable to download object with key %q", key)
 		}
@@ -148,22 +155,22 @@ func (s *Store) Delete(ctx context.Context, key string) (bool, error) {
 		return false, errors.New("key is invalid")
 	}
 
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"bucket": s.bucket, "prefix": s.prefix, "key": key})
+	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"bucket": s.bucket, "prefix": s.prefix, "key": key})
 	key = s.resolveKey(key)
 
 	var exists bool
-	headObjectInput := &s3.HeadObjectInput{
+	headObjectInput := &awsSdkGoServiceS3.HeadObjectInput{
 		Bucket: pointer.FromString(s.bucket),
 		Key:    pointer.FromString(key),
 	}
 	if _, err := s.awsAPI.S3().HeadObjectWithContext(ctx, headObjectInput); err != nil {
-		if awsErr, ok := err.(awserr.Error); !ok || awsErr.Code() != "NotFound" {
+		if awsErr, ok := err.(awsSdkGoAwsAwserr.Error); !ok || awsErr.Code() != "NotFound" {
 			logger.WithError(err).Errorf("Unable to head object with key %q", key)
 			return false, errors.Wrapf(err, "unable to head object with key %q", key)
 		}
 	} else {
 		exists = true
-		deleteObjectInput := &s3.DeleteObjectInput{
+		deleteObjectInput := &awsSdkGoServiceS3.DeleteObjectInput{
 			Bucket: pointer.FromString(s.bucket),
 			Key:    pointer.FromString(key),
 		}
@@ -177,6 +184,38 @@ func (s *Store) Delete(ctx context.Context, key string) (bool, error) {
 	return exists, nil
 }
 
+func (s *Store) DeleteDirectory(ctx context.Context, key string) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if key == "" {
+		return errors.New("key is missing")
+	} else if !storeUnstructured.IsValidKey(key) {
+		return errors.New("key is invalid")
+	}
+
+	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"bucket": s.bucket, "prefix": s.prefix, "key": key})
+	key = s.resolveKey(key)
+
+	batchDelete := s.awsAPI.S3Manager().NewBatchDeleteWithClient(func(batchDelete *awsSdkGoServiceS3S3manager.BatchDelete) {
+		batchDelete.BatchSize = deleteDirectoryBatchSize
+	})
+	listObjectsInput := &awsSdkGoServiceS3.ListObjectsInput{
+		Bucket:  pointer.FromString(s.bucket),
+		Prefix:  pointer.FromString(key),
+		MaxKeys: func(batchSize int64) *int64 { return &batchSize }(deleteDirectoryBatchSize),
+	}
+	if err := batchDelete.Delete(ctx, s.awsAPI.S3Manager().NewDeleteListIterator(listObjectsInput)); err != nil {
+		logger.WithError(err).Errorf("Unable to delete all objects with key %q", key)
+		return errors.Wrapf(err, "unable to delete all objects with key %q", key)
+	}
+
+	logger.Debug("DeleteDirectory")
+	return nil
+}
+
 func (s *Store) resolveKey(key string) string {
 	return fmt.Sprintf("%s/%s", s.prefix, key)
 }
+
+const deleteDirectoryBatchSize = 1000

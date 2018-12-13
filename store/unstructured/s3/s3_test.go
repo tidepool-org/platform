@@ -7,18 +7,21 @@ import (
 	"io"
 	"io/ioutil"
 
-	awsSdkAws "github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	awsSdkGoAws "github.com/aws/aws-sdk-go/aws"
+	awsSdkGoAwsAwserr "github.com/aws/aws-sdk-go/aws/awserr"
+	awsSdkGoServiceS3 "github.com/aws/aws-sdk-go/service/s3"
+	awsSdkGoServiceS3S3manager "github.com/aws/aws-sdk-go/service/s3/s3manager"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/aws"
 	awsTest "github.com/tidepool-org/platform/aws/test"
+	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
+	storeUnstructured "github.com/tidepool-org/platform/store/unstructured"
 	storeUnstructuredS3 "github.com/tidepool-org/platform/store/unstructured/s3"
 	storeUnstructuredTest "github.com/tidepool-org/platform/store/unstructured/test"
 	"github.com/tidepool-org/platform/test"
@@ -126,14 +129,14 @@ var _ = Describe("S3", func() {
 				Context("with aws s3 head object", func() {
 					AfterEach(func() {
 						Expect(awsS3.HeadObjectWithContextInputs).To(HaveLen(1))
-						Expect(awsS3.HeadObjectWithContextInputs[0].Input).To(Equal(&s3.HeadObjectInput{
+						Expect(awsS3.HeadObjectWithContextInputs[0].Input).To(Equal(&awsSdkGoServiceS3.HeadObjectInput{
 							Bucket: pointer.FromString(config.Bucket),
 							Key:    pointer.FromString(keyPath),
 						}))
 						Expect(awsS3.HeadObjectWithContextInputs[0].Options).To(BeEmpty())
 					})
 
-					It("returns an error if aws returns an error, but not awserr.Error", func() {
+					It("returns an error if aws returns an error, but not Error", func() {
 						awsErr := errorsTest.RandomError()
 						awsS3.HeadObjectWithContextOutputs = []awsTest.HeadObjectWithContextOutput{{Output: nil, Error: awsErr}}
 						exists, err := store.Exists(ctx, key)
@@ -141,8 +144,8 @@ var _ = Describe("S3", func() {
 						Expect(exists).To(BeFalse())
 					})
 
-					It("returns an error if aws returns an awserr.Error, but not NotFound", func() {
-						awsErr := awserr.New(test.RandomString(), "", nil)
+					It("returns an error if aws returns an Error, but not NotFound", func() {
+						awsErr := awsSdkGoAwsAwserr.New(test.RandomString(), "", nil)
 						awsS3.HeadObjectWithContextOutputs = []awsTest.HeadObjectWithContextOutput{{Output: nil, Error: awsErr}}
 						exists, err := store.Exists(ctx, key)
 						Expect(err).To(MatchError(fmt.Sprintf("unable to head object with key %q; %s", keyPath, awsErr)))
@@ -150,7 +153,7 @@ var _ = Describe("S3", func() {
 					})
 
 					It("returns false if the key does not exist", func() {
-						awsErr := awserr.New("NotFound", "", nil)
+						awsErr := awsSdkGoAwsAwserr.New("NotFound", "", nil)
 						awsS3.HeadObjectWithContextOutputs = []awsTest.HeadObjectWithContextOutput{{Output: nil, Error: awsErr}}
 						exists, err := store.Exists(ctx, key)
 						Expect(err).ToNot(HaveOccurred())
@@ -168,25 +171,32 @@ var _ = Describe("S3", func() {
 
 			Context("Put", func() {
 				var reader io.Reader
+				var options *storeUnstructured.Options
 
 				BeforeEach(func() {
 					reader = bytes.NewReader(contents)
+					options = storeUnstructuredTest.RandomOptions()
 				})
 
 				It("returns an error if the context is missing", func() {
-					Expect(store.Put(nil, key, reader)).To(MatchError("context is missing"))
+					Expect(store.Put(nil, key, reader, options)).To(MatchError("context is missing"))
 				})
 
 				It("returns an error if the key is missing", func() {
-					Expect(store.Put(ctx, "", reader)).To(MatchError("key is missing"))
+					Expect(store.Put(ctx, "", reader, options)).To(MatchError("key is missing"))
 				})
 
 				It("returns an error if the key is invalid", func() {
-					Expect(store.Put(ctx, "#invalid#", reader)).To(MatchError("key is invalid"))
+					Expect(store.Put(ctx, "#invalid#", reader, options)).To(MatchError("key is invalid"))
 				})
 
 				It("returns an error if the reader is missing", func() {
-					Expect(store.Put(ctx, key, nil)).To(MatchError("reader is missing"))
+					Expect(store.Put(ctx, key, nil, options)).To(MatchError("reader is missing"))
+				})
+
+				It("returns an error if the options is invalid", func() {
+					options.MediaType = pointer.FromString("")
+					Expect(store.Put(ctx, key, reader, options)).To(MatchError("options is invalid; value is empty"))
 				})
 
 				Context("with aws s3 manager upload", func() {
@@ -197,8 +207,12 @@ var _ = Describe("S3", func() {
 					})
 
 					Context("without options", func() {
+						BeforeEach(func() {
+							options = nil
+						})
+
 						AfterEach(func() {
-							Expect(awsUploader.UploadWithContextInputs[0].Input).To(Equal(&s3manager.UploadInput{
+							Expect(awsUploader.UploadWithContextInputs[0].Input).To(Equal(&awsSdkGoServiceS3S3manager.UploadInput{
 								Body:                 reader,
 								Bucket:               pointer.FromString(config.Bucket),
 								Key:                  pointer.FromString(keyPath),
@@ -209,12 +223,41 @@ var _ = Describe("S3", func() {
 						It("returns an error if aws returns an error", func() {
 							awsErr := errorsTest.RandomError()
 							awsUploader.UploadWithContextOutputs = []awsTest.UploadWithContextOutput{{Output: nil, Error: awsErr}}
-							Expect(store.Put(ctx, key, reader)).To(MatchError(fmt.Sprintf("unable to upload object with key %q; %s", keyPath, awsErr)))
+							Expect(store.Put(ctx, key, reader, options)).To(MatchError(fmt.Sprintf("unable to upload object with key %q; %s", keyPath, awsErr)))
 						})
 
 						It("returns successfully", func() {
 							awsUploader.UploadWithContextOutputs = []awsTest.UploadWithContextOutput{{Output: nil, Error: nil}}
-							Expect(store.Put(ctx, key, reader)).To(Succeed())
+							Expect(store.Put(ctx, key, reader, options)).To(Succeed())
+						})
+					})
+
+					Context("with options", func() {
+						AfterEach(func() {
+							Expect(awsUploader.UploadWithContextInputs[0].Input).To(Equal(&awsSdkGoServiceS3S3manager.UploadInput{
+								Body:                 reader,
+								Bucket:               pointer.FromString(config.Bucket),
+								ContentType:          options.MediaType,
+								Key:                  pointer.FromString(keyPath),
+								ServerSideEncryption: pointer.FromString("AES256"),
+							}))
+						})
+
+						It("returns an error if aws returns an error", func() {
+							awsErr := errorsTest.RandomError()
+							awsUploader.UploadWithContextOutputs = []awsTest.UploadWithContextOutput{{Output: nil, Error: awsErr}}
+							Expect(store.Put(ctx, key, reader, options)).To(MatchError(fmt.Sprintf("unable to upload object with key %q; %s", keyPath, awsErr)))
+						})
+
+						It("returns successfully", func() {
+							awsUploader.UploadWithContextOutputs = []awsTest.UploadWithContextOutput{{Output: nil, Error: nil}}
+							Expect(store.Put(ctx, key, reader, options)).To(Succeed())
+						})
+
+						It("returns successfully without options media type", func() {
+							options.MediaType = nil
+							awsUploader.UploadWithContextOutputs = []awsTest.UploadWithContextOutput{{Output: nil, Error: nil}}
+							Expect(store.Put(ctx, key, reader, options)).To(Succeed())
 						})
 					})
 				})
@@ -258,7 +301,7 @@ var _ = Describe("S3", func() {
 					AfterEach(func() {
 						Expect(awsDownloader.DownloadWithContextInputs).To(HaveLen(1))
 						Expect(awsDownloader.DownloadWithContextInputs[0].WriterAt).ToNot(BeNil())
-						Expect(awsDownloader.DownloadWithContextInputs[0].Input).To(Equal(&s3.GetObjectInput{
+						Expect(awsDownloader.DownloadWithContextInputs[0].Input).To(Equal(&awsSdkGoServiceS3.GetObjectInput{
 							Bucket: pointer.FromString(config.Bucket),
 							Key:    pointer.FromString(keyPath),
 						}))
@@ -266,7 +309,7 @@ var _ = Describe("S3", func() {
 						awsDownloader.AssertOutputsEmpty()
 					})
 
-					It("returns an error if aws returns an error, but not awserr.Error", func() {
+					It("returns an error if aws returns an error, but not Error", func() {
 						awsErr := errorsTest.RandomError()
 						awsDownloader.DownloadWithContextOutputs = []awsTest.DownloadWithContextOutput{{BytesWritten: 0, Error: awsErr}}
 						var err error
@@ -275,8 +318,8 @@ var _ = Describe("S3", func() {
 						Expect(reader).To(BeNil())
 					})
 
-					It("returns an error if aws returns an awserr.Error, but not NoSuchKey", func() {
-						awsErr := awserr.New(test.RandomString(), "", nil)
+					It("returns an error if aws returns an Error, but not NoSuchKey", func() {
+						awsErr := awsSdkGoAwsAwserr.New(test.RandomString(), "", nil)
 						awsDownloader.DownloadWithContextOutputs = []awsTest.DownloadWithContextOutput{{BytesWritten: 0, Error: awsErr}}
 						var err error
 						reader, err = store.Get(ctx, key)
@@ -285,7 +328,7 @@ var _ = Describe("S3", func() {
 					})
 
 					It("returns nil if the key does not exist", func() {
-						awsErr := awserr.New("NoSuchKey", "", nil)
+						awsErr := awsSdkGoAwsAwserr.New("NoSuchKey", "", nil)
 						awsDownloader.DownloadWithContextOutputs = []awsTest.DownloadWithContextOutput{{BytesWritten: 0, Error: awsErr}}
 						var err error
 						reader, err = store.Get(ctx, key)
@@ -294,7 +337,7 @@ var _ = Describe("S3", func() {
 					})
 
 					It("returns reader if the key exists", func() {
-						awsDownloader.DownloadWithContextStub = func(ctx awsSdkAws.Context, writerAt io.WriterAt, input *s3.GetObjectInput, options ...func(*s3manager.Downloader)) (int64, error) {
+						awsDownloader.DownloadWithContextStub = func(ctx awsSdkGoAws.Context, writerAt io.WriterAt, input *awsSdkGoServiceS3.GetObjectInput, options ...func(*awsSdkGoServiceS3S3manager.Downloader)) (int64, error) {
 							Expect(writerAt.WriteAt(contents, 0)).To(Equal(len(contents)))
 							return 0, nil
 						}
@@ -329,14 +372,14 @@ var _ = Describe("S3", func() {
 				Context("with aws s3 head object", func() {
 					AfterEach(func() {
 						Expect(awsS3.HeadObjectWithContextInputs).To(HaveLen(1))
-						Expect(awsS3.HeadObjectWithContextInputs[0].Input).To(Equal(&s3.HeadObjectInput{
+						Expect(awsS3.HeadObjectWithContextInputs[0].Input).To(Equal(&awsSdkGoServiceS3.HeadObjectInput{
 							Bucket: pointer.FromString(config.Bucket),
 							Key:    pointer.FromString(keyPath),
 						}))
 						Expect(awsS3.HeadObjectWithContextInputs[0].Options).To(BeEmpty())
 					})
 
-					It("returns an error if aws returns an error, but not awserr.Error", func() {
+					It("returns an error if aws returns an error, but not Error", func() {
 						awsErr := errorsTest.RandomError()
 						awsS3.HeadObjectWithContextOutputs = []awsTest.HeadObjectWithContextOutput{{Output: nil, Error: awsErr}}
 						exists, err := store.Delete(ctx, key)
@@ -344,8 +387,8 @@ var _ = Describe("S3", func() {
 						Expect(exists).To(BeFalse())
 					})
 
-					It("returns an error if aws returns an awserr.Error, but not NotFound", func() {
-						awsErr := awserr.New(test.RandomString(), "", nil)
+					It("returns an error if aws returns an Error, but not NotFound", func() {
+						awsErr := awsSdkGoAwsAwserr.New(test.RandomString(), "", nil)
 						awsS3.HeadObjectWithContextOutputs = []awsTest.HeadObjectWithContextOutput{{Output: nil, Error: awsErr}}
 						exists, err := store.Delete(ctx, key)
 						Expect(err).To(MatchError(fmt.Sprintf("unable to head object with key %q; %s", keyPath, awsErr)))
@@ -353,7 +396,7 @@ var _ = Describe("S3", func() {
 					})
 
 					It("returns false if the key does not exist", func() {
-						awsErr := awserr.New("NotFound", "", nil)
+						awsErr := awsSdkGoAwsAwserr.New("NotFound", "", nil)
 						awsS3.HeadObjectWithContextOutputs = []awsTest.HeadObjectWithContextOutput{{Output: nil, Error: awsErr}}
 						exists, err := store.Delete(ctx, key)
 						Expect(err).ToNot(HaveOccurred())
@@ -367,7 +410,7 @@ var _ = Describe("S3", func() {
 
 						AfterEach(func() {
 							Expect(awsS3.DeleteObjectWithContextInputs).To(HaveLen(1))
-							Expect(awsS3.DeleteObjectWithContextInputs[0].Input).To(Equal(&s3.DeleteObjectInput{
+							Expect(awsS3.DeleteObjectWithContextInputs[0].Input).To(Equal(&awsSdkGoServiceS3.DeleteObjectInput{
 								Bucket: pointer.FromString(config.Bucket),
 								Key:    pointer.FromString(keyPath),
 							}))
@@ -412,14 +455,14 @@ var _ = Describe("S3", func() {
 				Context("with aws s3 head object", func() {
 					AfterEach(func() {
 						Expect(awsS3.HeadObjectWithContextInputs).To(HaveLen(1))
-						Expect(awsS3.HeadObjectWithContextInputs[0].Input).To(Equal(&s3.HeadObjectInput{
+						Expect(awsS3.HeadObjectWithContextInputs[0].Input).To(Equal(&awsSdkGoServiceS3.HeadObjectInput{
 							Bucket: pointer.FromString(config.Bucket),
 							Key:    pointer.FromString(keyPath),
 						}))
 						Expect(awsS3.HeadObjectWithContextInputs[0].Options).To(BeEmpty())
 					})
 
-					It("returns an error if aws returns an error, but not awserr.Error", func() {
+					It("returns an error if aws returns an error, but not Error", func() {
 						awsErr := errorsTest.RandomError()
 						awsS3.HeadObjectWithContextOutputs = []awsTest.HeadObjectWithContextOutput{{Output: nil, Error: awsErr}}
 						exists, err := store.Delete(ctx, key)
@@ -427,8 +470,8 @@ var _ = Describe("S3", func() {
 						Expect(exists).To(BeFalse())
 					})
 
-					It("returns an error if aws returns an awserr.Error, but not NotFound", func() {
-						awsErr := awserr.New(test.RandomString(), "", nil)
+					It("returns an error if aws returns an Error, but not NotFound", func() {
+						awsErr := awsSdkGoAwsAwserr.New(test.RandomString(), "", nil)
 						awsS3.HeadObjectWithContextOutputs = []awsTest.HeadObjectWithContextOutput{{Output: nil, Error: awsErr}}
 						exists, err := store.Delete(ctx, key)
 						Expect(err).To(MatchError(fmt.Sprintf("unable to head object with key %q; %s", keyPath, awsErr)))
@@ -436,7 +479,7 @@ var _ = Describe("S3", func() {
 					})
 
 					It("returns false if the key does not exist", func() {
-						awsErr := awserr.New("NotFound", "", nil)
+						awsErr := awsSdkGoAwsAwserr.New("NotFound", "", nil)
 						awsS3.HeadObjectWithContextOutputs = []awsTest.HeadObjectWithContextOutput{{Output: nil, Error: awsErr}}
 						exists, err := store.Delete(ctx, key)
 						Expect(err).ToNot(HaveOccurred())
@@ -450,7 +493,7 @@ var _ = Describe("S3", func() {
 
 						AfterEach(func() {
 							Expect(awsS3.DeleteObjectWithContextInputs).To(HaveLen(1))
-							Expect(awsS3.DeleteObjectWithContextInputs[0].Input).To(Equal(&s3.DeleteObjectInput{
+							Expect(awsS3.DeleteObjectWithContextInputs[0].Input).To(Equal(&awsSdkGoServiceS3.DeleteObjectInput{
 								Bucket: pointer.FromString(config.Bucket),
 								Key:    pointer.FromString(keyPath),
 							}))
@@ -469,6 +512,63 @@ var _ = Describe("S3", func() {
 							awsS3.DeleteObjectWithContextOutputs = []awsTest.DeleteObjectWithContextOutput{{Output: nil, Error: nil}}
 							Expect(store.Delete(ctx, key)).To(BeTrue())
 						})
+					})
+				})
+			})
+
+			Context("DeleteDirectory", func() {
+				It("returns an error if the context is missing", func() {
+					Expect(store.DeleteDirectory(nil, key)).To(MatchError("context is missing"))
+				})
+
+				It("returns an error if the key is missing", func() {
+					Expect(store.DeleteDirectory(ctx, "")).To(MatchError("key is missing"))
+				})
+
+				It("returns an error if the key is invalid", func() {
+					Expect(store.DeleteDirectory(ctx, "#invalid#")).To(MatchError("key is invalid"))
+				})
+
+				Context("with batch delete with client and delete list iterator", func() {
+					var awsBatchDeleteWithClient *awsTest.BatchDeleteWithClient
+					var awsBatchDeleteIterator *awsTest.BatchDeleteIterator
+
+					BeforeEach(func() {
+						awsBatchDeleteWithClient = awsTest.NewBatchDeleteWithClient()
+						awsS3Manager.NewBatchDeleteWithClientOutputs = []aws.BatchDeleteWithClient{awsBatchDeleteWithClient}
+						awsBatchDeleteIterator = awsTest.NewBatchDeleteIterator()
+						awsS3Manager.NewDeleteListIteratorOutputs = []awsSdkGoServiceS3S3manager.BatchDeleteIterator{awsBatchDeleteIterator}
+					})
+
+					AfterEach(func() {
+						Expect(awsS3Manager.NewBatchDeleteWithClientInputs).To(HaveLen(1))
+						Expect(awsS3Manager.NewBatchDeleteWithClientInputs[0]).ToNot(BeNil())
+						batchDelete := &awsSdkGoServiceS3S3manager.BatchDelete{}
+						for _, option := range awsS3Manager.NewBatchDeleteWithClientInputs[0] {
+							option(batchDelete)
+						}
+						Expect(batchDelete.BatchSize).To(Equal(1000))
+						Expect(awsS3Manager.NewDeleteListIteratorInputs).To(HaveLen(1))
+						Expect(awsS3Manager.NewDeleteListIteratorInputs[0]).ToNot(BeNil())
+						Expect(awsS3Manager.NewDeleteListIteratorInputs[0].ListObjectsInput).ToNot(BeNil())
+						Expect(awsS3Manager.NewDeleteListIteratorInputs[0].ListObjectsInput.Bucket).To(Equal(pointer.FromString(config.Bucket)))
+						Expect(awsS3Manager.NewDeleteListIteratorInputs[0].ListObjectsInput.Prefix).To(Equal(pointer.FromString(keyPath)))
+						Expect(awsS3Manager.NewDeleteListIteratorInputs[0].ListObjectsInput.MaxKeys).ToNot(BeNil())
+						Expect(*awsS3Manager.NewDeleteListIteratorInputs[0].ListObjectsInput.MaxKeys).To(Equal(int64(1000)))
+						Expect(awsS3Manager.NewDeleteListIteratorInputs[0].Options).To(BeEmpty())
+						Expect(awsBatchDeleteWithClient.DeleteInputs).To(Equal([]awsSdkGoServiceS3S3manager.BatchDeleteIterator{awsBatchDeleteIterator}))
+						awsBatchDeleteWithClient.AssertOutputsEmpty()
+					})
+
+					It("returns an error if batch delete returns an error", func() {
+						awsErr := errorsTest.RandomError()
+						awsBatchDeleteWithClient.DeleteOutputs = []error{awsErr}
+						errorsTest.ExpectEqual(store.DeleteDirectory(ctx, key), errors.Wrapf(awsErr, "unable to delete all objects with key %q", keyPath))
+					})
+
+					It("returns successfully if batch delete returns successfully", func() {
+						awsBatchDeleteWithClient.DeleteOutputs = []error{nil}
+						Expect(store.DeleteDirectory(ctx, key)).To(Succeed())
 					})
 				})
 			})

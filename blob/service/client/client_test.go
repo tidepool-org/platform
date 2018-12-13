@@ -32,6 +32,7 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	requestTest "github.com/tidepool-org/platform/request/test"
+	storeUnstructured "github.com/tidepool-org/platform/store/unstructured"
 	"github.com/tidepool-org/platform/test"
 	userTest "github.com/tidepool-org/platform/user/test"
 )
@@ -243,7 +244,7 @@ var _ = Describe("Client", func() {
 								var size int64
 
 								BeforeEach(func() {
-									blobUnstructuredStore.PutStub = func(ctx context.Context, userID string, id string, reader io.Reader) error {
+									blobUnstructuredStore.PutStub = func(ctx context.Context, userID string, id string, reader io.Reader, options *storeUnstructured.Options) error {
 										size, _ = io.Copy(ioutil.Discard, reader)
 										return nil
 									}
