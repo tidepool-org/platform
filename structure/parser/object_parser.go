@@ -309,6 +309,10 @@ func (o *Object) WithReferenceArrayParser(reference string) structure.ArrayParse
 	return NewArrayParser(o.base.WithReference(reference), o.Array(reference))
 }
 
+func (o *Object) WithReferenceErrorReporter(reference string) structure.ErrorReporter {
+	return o.base.WithReference(reference)
+}
+
 func (o *Object) raw(reference string) (interface{}, bool) {
 	if o.object == nil {
 		return nil, false

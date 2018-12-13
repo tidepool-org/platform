@@ -1,5 +1,6 @@
 ## HEAD
 
+* Update structure parser to allow reporting errors in contained data by reference
 * Add Makefile targets to execute unit tests until failure
 * Fix import alias for any import path ending in /v1
 * Update dump users tool to be more generic and usable

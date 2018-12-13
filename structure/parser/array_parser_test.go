@@ -901,4 +901,17 @@ var _ = Describe("Array", func() {
 			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 	})
+
+	Context("WithReferenceErrorReporter", func() {
+		var parser *structureParser.Array
+
+		BeforeEach(func() {
+			parser = structureParser.NewArrayParser(base, nil)
+			Expect(parser).ToNot(BeNil())
+		})
+
+		It("with reference returns not nil", func() {
+			Expect(parser.WithReferenceErrorReporter(0)).ToNot(BeNil())
+		})
+	})
 })
