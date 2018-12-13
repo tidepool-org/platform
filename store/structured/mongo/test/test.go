@@ -19,16 +19,16 @@ var (
 )
 
 var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
-	ssn, err := mgo.Dial(Address())
+	session, err := mgo.Dial(Address())
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
-	gomega.Expect(ssn).ToNot(gomega.BeNil())
-	globalSession = ssn
+	gomega.Expect(session).ToNot(gomega.BeNil())
+	globalSession = session
 	return []byte(generateUniqueName("database"))
 }, func(data []byte) {
-	ssn, err := mgo.Dial(Address())
+	session, err := mgo.Dial(Address())
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
-	gomega.Expect(ssn).ToNot(gomega.BeNil())
-	nodeSession = ssn
+	gomega.Expect(session).ToNot(gomega.BeNil())
+	nodeSession = session
 	database = string(data)
 })
 
