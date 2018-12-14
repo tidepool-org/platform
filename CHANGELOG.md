@@ -1,5 +1,7 @@
 ## HEAD
 
+* Add image service
+* Add new dependencies for image service
 * Fix data model limit validation constants based off alternate unit constants
 * Straighten out handling of time objects and related in tests
 * Rename blob and data source store Delete to Destroy to reflect actual result

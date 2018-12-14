@@ -74,6 +74,14 @@
   version = "v3.2.0"
 
 [[projects]]
+  digest = "1:2694597a20d303502ad1b7f1cc688977c7dc34da732ccf4d27e98b552cceed5b"
+  name = "github.com/disintegration/imaging"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "0bd5694c78c9c3d9a3cd06a706a8f3c59296a9ac"
+  version = "v1.5.0"
+
+[[projects]]
   digest = "1:865079840386857c809b72ce300be7580cb50d3d3129ce11bf9aa6ca2bc1934a"
   name = "github.com/fatih/color"
   packages = ["."]
@@ -235,6 +243,18 @@
   packages = ["ssh/terminal"]
   pruneopts = "UT"
   revision = "0c41d7ab0a0ee717d4590a44bcb987dfd9e183eb"
+
+[[projects]]
+  branch = "master"
+  digest = "1:acadbbf02e5c744709c60ac929e63258a69a3404ab36ed0c1a245cc28f056220"
+  name = "golang.org/x/image"
+  packages = [
+    "bmp",
+    "tiff",
+    "tiff/lzw",
+  ]
+  pruneopts = "UT"
+  revision = "cd38e8056d9b27bb2f265effa37fb0ea6b8a7f0f"
 
 [[projects]]
   branch = "master"
@@ -405,6 +425,7 @@
     "github.com/aws/aws-sdk-go/service/s3/s3manager/s3manageriface",
     "github.com/blang/semver",
     "github.com/dgrijalva/jwt-go",
+    "github.com/disintegration/imaging",
     "github.com/githubnemo/CompileDaemon",
     "github.com/mitchellh/go-homedir",
     "github.com/mjibson/esc",
@@ -414,6 +435,7 @@
     "github.com/onsi/gomega",
     "github.com/onsi/gomega/ghttp",
     "github.com/onsi/gomega/gstruct",
+    "github.com/onsi/gomega/types",
     "github.com/urfave/cli",
     "golang.org/x/crypto/ssh/terminal",
     "golang.org/x/lint/golint",
