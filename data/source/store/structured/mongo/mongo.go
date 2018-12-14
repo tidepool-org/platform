@@ -300,7 +300,7 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 	return result, nil
 }
 
-func (s *Session) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
+func (s *Session) Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error) {
 	if ctx == nil {
 		return false, errors.New("context is missing")
 	}
@@ -334,7 +334,7 @@ func (s *Session) Delete(ctx context.Context, id string, condition *request.Cond
 		return false, errors.Wrap(err, "unable to delete data source")
 	}
 
-	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("Delete")
+	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("Destroy")
 	return changeInfo.Removed > 0, nil
 }
 

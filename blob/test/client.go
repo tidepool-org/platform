@@ -9,7 +9,6 @@ import (
 )
 
 type ListInput struct {
-	Context    context.Context
 	UserID     string
 	Filter     *blob.Filter
 	Pagination *page.Pagination
@@ -21,7 +20,6 @@ type ListOutput struct {
 }
 
 type CreateInput struct {
-	Context context.Context
 	UserID  string
 	Content *blob.Content
 }
@@ -31,19 +29,9 @@ type CreateOutput struct {
 	Error error
 }
 
-type GetInput struct {
-	Context context.Context
-	ID      string
-}
-
 type GetOutput struct {
 	Blob  *blob.Blob
 	Error error
-}
-
-type GetContentInput struct {
-	Context context.Context
-	ID      string
 }
 
 type GetContentOutput struct {
@@ -52,7 +40,6 @@ type GetContentOutput struct {
 }
 
 type DeleteInput struct {
-	Context   context.Context
 	ID        string
 	Condition *request.Condition
 }
@@ -74,12 +61,12 @@ type Client struct {
 	CreateOutputs         []CreateOutput
 	CreateOutput          *CreateOutput
 	GetInvocations        int
-	GetInputs             []GetInput
+	GetInputs             []string
 	GetStub               func(ctx context.Context, id string) (*blob.Blob, error)
 	GetOutputs            []GetOutput
 	GetOutput             *GetOutput
 	GetContentInvocations int
-	GetContentInputs      []GetContentInput
+	GetContentInputs      []string
 	GetContentStub        func(ctx context.Context, id string) (*blob.Content, error)
 	GetContentOutputs     []GetContentOutput
 	GetContentOutput      *GetContentOutput
@@ -96,7 +83,7 @@ func NewClient() *Client {
 
 func (c *Client) List(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.Blobs, error) {
 	c.ListInvocations++
-	c.ListInputs = append(c.ListInputs, ListInput{Context: ctx, UserID: userID, Filter: filter, Pagination: pagination})
+	c.ListInputs = append(c.ListInputs, ListInput{UserID: userID, Filter: filter, Pagination: pagination})
 	if c.ListStub != nil {
 		return c.ListStub(ctx, userID, filter, pagination)
 	}
@@ -113,7 +100,7 @@ func (c *Client) List(ctx context.Context, userID string, filter *blob.Filter, p
 
 func (c *Client) Create(ctx context.Context, userID string, content *blob.Content) (*blob.Blob, error) {
 	c.CreateInvocations++
-	c.CreateInputs = append(c.CreateInputs, CreateInput{Context: ctx, UserID: userID, Content: content})
+	c.CreateInputs = append(c.CreateInputs, CreateInput{UserID: userID, Content: content})
 	if c.CreateStub != nil {
 		return c.CreateStub(ctx, userID, content)
 	}
@@ -130,7 +117,7 @@ func (c *Client) Create(ctx context.Context, userID string, content *blob.Conten
 
 func (c *Client) Get(ctx context.Context, id string) (*blob.Blob, error) {
 	c.GetInvocations++
-	c.GetInputs = append(c.GetInputs, GetInput{Context: ctx, ID: id})
+	c.GetInputs = append(c.GetInputs, id)
 	if c.GetStub != nil {
 		return c.GetStub(ctx, id)
 	}
@@ -147,7 +134,7 @@ func (c *Client) Get(ctx context.Context, id string) (*blob.Blob, error) {
 
 func (c *Client) GetContent(ctx context.Context, id string) (*blob.Content, error) {
 	c.GetContentInvocations++
-	c.GetContentInputs = append(c.GetContentInputs, GetContentInput{Context: ctx, ID: id})
+	c.GetContentInputs = append(c.GetContentInputs, id)
 	if c.GetContentStub != nil {
 		return c.GetContentStub(ctx, id)
 	}
@@ -164,7 +151,7 @@ func (c *Client) GetContent(ctx context.Context, id string) (*blob.Content, erro
 
 func (c *Client) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
 	c.DeleteInvocations++
-	c.DeleteInputs = append(c.DeleteInputs, DeleteInput{Context: ctx, ID: id, Condition: condition})
+	c.DeleteInputs = append(c.DeleteInputs, DeleteInput{ID: id, Condition: condition})
 	if c.DeleteStub != nil {
 		return c.DeleteStub(ctx, id, condition)
 	}

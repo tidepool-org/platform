@@ -8,9 +8,8 @@ import (
 )
 
 type ExistsInput struct {
-	Context context.Context
-	UserID  string
-	ID      string
+	UserID string
+	ID     string
 }
 
 type ExistsOutput struct {
@@ -19,7 +18,6 @@ type ExistsOutput struct {
 }
 
 type PutInput struct {
-	Context context.Context
 	UserID  string
 	ID      string
 	Reader  io.Reader
@@ -27,9 +25,8 @@ type PutInput struct {
 }
 
 type GetInput struct {
-	Context context.Context
-	UserID  string
-	ID      string
+	UserID string
+	ID     string
 }
 
 type GetOutput struct {
@@ -38,9 +35,8 @@ type GetOutput struct {
 }
 
 type DeleteInput struct {
-	Context context.Context
-	UserID  string
-	ID      string
+	UserID string
+	ID     string
 }
 
 type DeleteOutput struct {
@@ -77,7 +73,7 @@ func NewStore() *Store {
 
 func (s *Store) Exists(ctx context.Context, userID string, id string) (bool, error) {
 	s.ExistsInvocations++
-	s.ExistsInputs = append(s.ExistsInputs, ExistsInput{Context: ctx, UserID: userID, ID: id})
+	s.ExistsInputs = append(s.ExistsInputs, ExistsInput{UserID: userID, ID: id})
 	if s.ExistsStub != nil {
 		return s.ExistsStub(ctx, userID, id)
 	}
@@ -94,7 +90,7 @@ func (s *Store) Exists(ctx context.Context, userID string, id string) (bool, err
 
 func (s *Store) Put(ctx context.Context, userID string, id string, reader io.Reader, options *storeUnstructured.Options) error {
 	s.PutInvocations++
-	s.PutInputs = append(s.PutInputs, PutInput{Context: ctx, UserID: userID, ID: id, Reader: reader, Options: options})
+	s.PutInputs = append(s.PutInputs, PutInput{UserID: userID, ID: id, Reader: reader, Options: options})
 	if s.PutStub != nil {
 		return s.PutStub(ctx, userID, id, reader, options)
 	}
@@ -111,7 +107,7 @@ func (s *Store) Put(ctx context.Context, userID string, id string, reader io.Rea
 
 func (s *Store) Get(ctx context.Context, userID string, id string) (io.ReadCloser, error) {
 	s.GetInvocations++
-	s.GetInputs = append(s.GetInputs, GetInput{Context: ctx, UserID: userID, ID: id})
+	s.GetInputs = append(s.GetInputs, GetInput{UserID: userID, ID: id})
 	if s.GetStub != nil {
 		return s.GetStub(ctx, userID, id)
 	}
@@ -128,7 +124,7 @@ func (s *Store) Get(ctx context.Context, userID string, id string) (io.ReadClose
 
 func (s *Store) Delete(ctx context.Context, userID string, id string) (bool, error) {
 	s.DeleteInvocations++
-	s.DeleteInputs = append(s.DeleteInputs, DeleteInput{Context: ctx, UserID: userID, ID: id})
+	s.DeleteInputs = append(s.DeleteInputs, DeleteInput{UserID: userID, ID: id})
 	if s.DeleteStub != nil {
 		return s.DeleteStub(ctx, userID, id)
 	}

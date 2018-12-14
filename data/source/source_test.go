@@ -53,12 +53,7 @@ var _ = Describe("Source", func() {
 
 	Context("NewFilter", func() {
 		It("returns successfully with default values", func() {
-			filter := dataSource.NewFilter()
-			Expect(filter).ToNot(BeNil())
-			Expect(filter.ProviderType).To(BeNil())
-			Expect(filter.ProviderName).To(BeNil())
-			Expect(filter.ProviderSessionID).To(BeNil())
-			Expect(filter.State).To(BeNil())
+			Expect(dataSource.NewFilter()).To(Equal(&dataSource.Filter{}))
 		})
 	})
 
@@ -403,12 +398,7 @@ var _ = Describe("Source", func() {
 
 	Context("NewCreate", func() {
 		It("returns successfully with default values", func() {
-			create := dataSource.NewCreate()
-			Expect(create).ToNot(BeNil())
-			Expect(create.ProviderType).To(BeNil())
-			Expect(create.ProviderName).To(BeNil())
-			Expect(create.ProviderSessionID).To(BeNil())
-			Expect(create.State).To(BeNil())
+			Expect(dataSource.NewCreate()).To(Equal(&dataSource.Create{}))
 		})
 	})
 
@@ -656,15 +646,7 @@ var _ = Describe("Source", func() {
 
 	Context("NewUpdate", func() {
 		It("returns successfully with default values", func() {
-			update := dataSource.NewUpdate()
-			Expect(update).ToNot(BeNil())
-			Expect(update.ProviderSessionID).To(BeNil())
-			Expect(update.State).To(BeNil())
-			Expect(update.Error).To(BeNil())
-			Expect(update.DataSetIDs).To(BeNil())
-			Expect(update.EarliestDataTime).To(BeNil())
-			Expect(update.LatestDataTime).To(BeNil())
-			Expect(update.LastImportTime).To(BeNil())
+			Expect(dataSource.NewUpdate()).To(Equal(&dataSource.Update{}))
 		})
 	})
 

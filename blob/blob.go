@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/crypto"
-	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/page"
@@ -31,6 +30,8 @@ func Statuses() []string {
 		StatusCreated,
 	}
 }
+
+// FUTURE: Add DeleteAll
 
 type Client interface {
 	List(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) (Blobs, error)
@@ -148,13 +149,3 @@ func ValidateID(value string) error {
 }
 
 var idExpression = regexp.MustCompile("^[0-9a-z]{32}$")
-
-const ErrorCodeDigestsNotEqual = "digests-not-equal"
-
-func ErrorDigestsNotEqual(value string, calculated string) error {
-	return errors.Preparedf(ErrorCodeDigestsNotEqual, "digests not equal", "digest %q does not equal calculated digest %q", value, calculated)
-}
-
-func ErrorValueStringAsIDNotValid(value string) error {
-	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as blob id", value)
-}

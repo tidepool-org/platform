@@ -53,10 +53,7 @@ var _ = Describe("Blob", func() {
 
 	Context("NewFilter", func() {
 		It("returns successfully with default values", func() {
-			filter := blob.NewFilter()
-			Expect(filter).ToNot(BeNil())
-			Expect(filter.MediaType).To(BeNil())
-			Expect(filter.Status).To(BeNil())
+			Expect(blob.NewFilter()).To(Equal(&blob.Filter{}))
 		})
 	})
 
@@ -257,11 +254,7 @@ var _ = Describe("Blob", func() {
 
 	Context("NewContent", func() {
 		It("returns successfully with default values", func() {
-			content := blob.NewContent()
-			Expect(content).ToNot(BeNil())
-			Expect(content.Body).To(BeNil())
-			Expect(content.DigestMD5).To(BeNil())
-			Expect(content.MediaType).To(BeNil())
+			Expect(blob.NewContent()).To(Equal(&blob.Content{}))
 		})
 	})
 
@@ -822,20 +815,6 @@ var _ = Describe("Blob", func() {
 			Entry("has uppercase characters", "0123456789ABCDEFGHIJKLMNOPQRSTUV", blob.ErrorValueStringAsIDNotValid("0123456789ABCDEFGHIJKLMNOPQRSTUV")),
 			Entry("has symbols", "0123456789!@#$%^abcdefghijklmnop", blob.ErrorValueStringAsIDNotValid("0123456789!@#$%^abcdefghijklmnop")),
 			Entry("has whitespace", "0123456789      abcdefghijklmnop", blob.ErrorValueStringAsIDNotValid("0123456789      abcdefghijklmnop")),
-		)
-	})
-
-	It("ErrorCodeDigestsNotEqual is expected", func() {
-		Expect(blob.ErrorCodeDigestsNotEqual).To(Equal("digests-not-equal"))
-	})
-
-	Context("Errors", func() {
-		DescribeTable("have expected details when error",
-			errorsTest.ExpectErrorDetails,
-			Entry("is ErrorDigestsNotEqual with empty string", blob.ErrorDigestsNotEqual("", ""), "digests-not-equal", "digests not equal", `digest "" does not equal calculated digest ""`),
-			Entry("is ErrorDigestsNotEqual with non-empty string", blob.ErrorDigestsNotEqual("QUJDREVGSElKS0xNTk9QUQ==", "lah2klptWl+IBNSepXlJ9Q=="), "digests-not-equal", "digests not equal", `digest "QUJDREVGSElKS0xNTk9QUQ==" does not equal calculated digest "lah2klptWl+IBNSepXlJ9Q=="`),
-			Entry("is ErrorValueStringAsIDNotValid with empty string", blob.ErrorValueStringAsIDNotValid(""), "value-not-valid", "value is not valid", `value "" is not valid as blob id`),
-			Entry("is ErrorValueStringAsIDNotValid with non-empty string", blob.ErrorValueStringAsIDNotValid("0123456789abcdefghijklmnopqrstuv"), "value-not-valid", "value is not valid", `value "0123456789abcdefghijklmnopqrstuv" is not valid as blob id`),
 		)
 	})
 })

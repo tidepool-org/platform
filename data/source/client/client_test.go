@@ -250,7 +250,7 @@ var _ = Describe("Client", func() {
 								"page":              []string{strconv.Itoa(pagination.Page)},
 								"size":              []string{strconv.Itoa(pagination.Size)},
 							}
-							requestHandlers = append(requestHandlers, VerifyRequest("GET", fmt.Sprintf("/v1/users/%s/data_sources", userID), query.Encode()))
+							requestHandlers = append(requestHandlers, VerifyRequest(http.MethodGet, fmt.Sprintf("/v1/users/%s/data_sources", userID), query.Encode()))
 						})
 
 						listAssertions()
@@ -410,7 +410,7 @@ var _ = Describe("Client", func() {
 					Context("with server response", func() {
 						BeforeEach(func() {
 							requestHandlers = append(requestHandlers,
-								VerifyRequest("GET", fmt.Sprintf("/v1/data_sources/%s", id)),
+								VerifyRequest(http.MethodGet, fmt.Sprintf("/v1/data_sources/%s", id)),
 								VerifyContentType(""),
 								VerifyBody(nil),
 							)
@@ -565,7 +565,7 @@ var _ = Describe("Client", func() {
 									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNotFound, errors.NewSerializable(request.ErrorResourceNotFoundWithID(id)), responseHeaders))
 								})
 
-								It("returns an error", func() {
+								It("returns successfully without result", func() {
 									result, err := client.Update(ctx, id, condition, update)
 									Expect(err).ToNot(HaveOccurred())
 									Expect(result).To(BeNil())
@@ -593,7 +593,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							condition = nil
 							requestHandlers = append(requestHandlers,
-								VerifyRequest("PUT", fmt.Sprintf("/v1/data_sources/%s", id)),
+								VerifyRequest(http.MethodPut, fmt.Sprintf("/v1/data_sources/%s", id)),
 								VerifyContentType("application/json; charset=utf-8"),
 								VerifyBody(test.MustBytes(test.MarshalRequestBody(update))),
 							)
@@ -606,7 +606,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							condition.Revision = nil
 							requestHandlers = append(requestHandlers,
-								VerifyRequest("PUT", fmt.Sprintf("/v1/data_sources/%s", id)),
+								VerifyRequest(http.MethodPut, fmt.Sprintf("/v1/data_sources/%s", id)),
 								VerifyContentType("application/json; charset=utf-8"),
 								VerifyBody(test.MustBytes(test.MarshalRequestBody(update))),
 							)
@@ -621,7 +621,7 @@ var _ = Describe("Client", func() {
 								"revision": []string{strconv.Itoa(*condition.Revision)},
 							}
 							requestHandlers = append(requestHandlers,
-								VerifyRequest("PUT", fmt.Sprintf("/v1/data_sources/%s", id), query.Encode()),
+								VerifyRequest(http.MethodPut, fmt.Sprintf("/v1/data_sources/%s", id), query.Encode()),
 								VerifyContentType("application/json; charset=utf-8"),
 								VerifyBody(test.MustBytes(test.MarshalRequestBody(update))),
 							)
@@ -707,7 +707,7 @@ var _ = Describe("Client", func() {
 									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNotFound, errors.NewSerializable(request.ErrorResourceNotFoundWithID(id)), responseHeaders))
 								})
 
-								It("returns successfully with delete false", func() {
+								It("returns successfully with deleted false", func() {
 									deleted, err := client.Delete(ctx, id, condition)
 									Expect(err).ToNot(HaveOccurred())
 									Expect(deleted).To(BeFalse())

@@ -101,13 +101,13 @@ func CloneUpdate(datum *dataSource.Update) *dataSource.Update {
 		return nil
 	}
 	clone := &dataSource.Update{}
-	clone.ProviderSessionID = test.CloneString(datum.ProviderSessionID)
-	clone.State = test.CloneString(datum.State)
+	clone.ProviderSessionID = pointer.CloneString(datum.ProviderSessionID)
+	clone.State = pointer.CloneString(datum.State)
 	clone.Error = errorsTest.CloneSerializable(datum.Error)
-	clone.DataSetIDs = test.CloneStringArray(datum.DataSetIDs)
-	clone.EarliestDataTime = test.CloneTime(datum.EarliestDataTime)
-	clone.LatestDataTime = test.CloneTime(datum.LatestDataTime)
-	clone.LastImportTime = test.CloneTime(datum.LastImportTime)
+	clone.DataSetIDs = pointer.CloneStringArray(datum.DataSetIDs)
+	clone.EarliestDataTime = pointer.CloneTime(datum.EarliestDataTime)
+	clone.LatestDataTime = pointer.CloneTime(datum.LatestDataTime)
+	clone.LastImportTime = pointer.CloneTime(datum.LastImportTime)
 	return clone
 }
 
@@ -201,7 +201,7 @@ func CloneSource(datum *dataSource.Source) *dataSource.Source {
 	clone.LastImportTime = pointer.CloneTime(datum.LastImportTime)
 	clone.CreatedTime = pointer.CloneTime(datum.CreatedTime)
 	clone.ModifiedTime = pointer.CloneTime(datum.ModifiedTime)
-	clone.Revision = test.CloneInt(datum.Revision)
+	clone.Revision = pointer.CloneInt(datum.Revision)
 	return clone
 }
 

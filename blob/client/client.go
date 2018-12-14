@@ -122,8 +122,8 @@ func (c *Client) GetContent(ctx context.Context, id string) (*blob.Content, erro
 		return nil, errors.New("id is invalid")
 	}
 
-	headersInspector := request.NewHeadersInspector()
 	url := c.client.ConstructURL("v1", "blobs", id, "content")
+	headersInspector := request.NewHeadersInspector()
 	body, err := c.client.RequestStream(ctx, http.MethodGet, url, nil, nil, headersInspector)
 	if err != nil {
 		if request.IsErrorResourceNotFound(err) {
@@ -134,10 +134,12 @@ func (c *Client) GetContent(ctx context.Context, id string) (*blob.Content, erro
 
 	digestMD5, err := request.ParseDigestMD5Header(headersInspector.Headers, "Digest")
 	if err != nil {
+		body.Close()
 		return nil, err
 	}
 	mediaType, err := request.ParseMediaTypeHeader(headersInspector.Headers, "Content-Type")
 	if err != nil {
+		body.Close()
 		return nil, err
 	}
 

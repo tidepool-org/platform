@@ -793,7 +793,7 @@ var _ = Describe("Mongo", func() {
 				})
 			})
 
-			Context("Delete", func() {
+			Context("Destroy", func() {
 				var id string
 				var condition *request.Condition
 
@@ -804,35 +804,35 @@ var _ = Describe("Mongo", func() {
 
 				It("returns an error when the context is missing", func() {
 					ctx = nil
-					deleted, err := session.Delete(ctx, id, condition)
+					deleted, err := session.Destroy(ctx, id, condition)
 					errorsTest.ExpectEqual(err, errors.New("context is missing"))
 					Expect(deleted).To(BeFalse())
 				})
 
 				It("returns an error when the id is missing", func() {
 					id = ""
-					deleted, err := session.Delete(ctx, id, condition)
+					deleted, err := session.Destroy(ctx, id, condition)
 					errorsTest.ExpectEqual(err, errors.New("id is missing"))
 					Expect(deleted).To(BeFalse())
 				})
 
 				It("returns an error when the id is invalid", func() {
 					id = "invalid"
-					deleted, err := session.Delete(ctx, id, condition)
+					deleted, err := session.Destroy(ctx, id, condition)
 					errorsTest.ExpectEqual(err, errors.New("id is invalid"))
 					Expect(deleted).To(BeFalse())
 				})
 
 				It("returns an error when the condition is invalid", func() {
 					condition.Revision = pointer.FromInt(-1)
-					deleted, err := session.Delete(ctx, id, condition)
+					deleted, err := session.Destroy(ctx, id, condition)
 					errorsTest.ExpectEqual(err, errors.New("condition is invalid"))
 					Expect(deleted).To(BeFalse())
 				})
 
 				It("returns an error when the session is closed", func() {
 					session.Close()
-					deleted, err := session.Delete(ctx, id, condition)
+					deleted, err := session.Destroy(ctx, id, condition)
 					errorsTest.ExpectEqual(err, errors.New("session closed"))
 					Expect(deleted).To(BeFalse())
 				})
@@ -848,39 +848,39 @@ var _ = Describe("Mongo", func() {
 
 					AfterEach(func() {
 						if condition != nil {
-							logger.AssertDebug("Delete", log.Fields{"id": id, "condition": condition})
+							logger.AssertDebug("Destroy", log.Fields{"id": id, "condition": condition})
 						} else {
-							logger.AssertDebug("Delete", log.Fields{"id": id})
+							logger.AssertDebug("Destroy", log.Fields{"id": id})
 						}
 					})
 
-					It("returns false and does not delete the original when the id does not exist", func() {
+					It("returns false and does not destroy the original when the id does not exist", func() {
 						id = dataSourceTest.RandomID()
-						Expect(session.Delete(ctx, id, condition)).To(BeFalse())
+						Expect(session.Destroy(ctx, id, condition)).To(BeFalse())
 						Expect(mgoCollection.Find(bson.M{"id": original.ID}).Count()).To(Equal(1))
 					})
 
-					It("returns false and does not delete the original when the id exists, but the condition revision does not match", func() {
+					It("returns false and does not destroy the original when the id exists, but the condition revision does not match", func() {
 						condition.Revision = pointer.FromInt(*original.Revision + 1)
-						Expect(session.Delete(ctx, id, condition)).To(BeFalse())
+						Expect(session.Destroy(ctx, id, condition)).To(BeFalse())
 						Expect(mgoCollection.Find(bson.M{"id": original.ID}).Count()).To(Equal(1))
 					})
 
-					It("returns true and deletes the original when the id exists and the condition is missing", func() {
+					It("returns true and destroys the original when the id exists and the condition is missing", func() {
 						condition = nil
-						Expect(session.Delete(ctx, id, condition)).To(BeTrue())
+						Expect(session.Destroy(ctx, id, condition)).To(BeTrue())
 						Expect(mgoCollection.Find(bson.M{"id": original.ID}).Count()).To(Equal(0))
 					})
 
-					It("returns true and deletes the original when the id exists and the condition revision is missing", func() {
+					It("returns true and destroys the original when the id exists and the condition revision is missing", func() {
 						condition.Revision = nil
-						Expect(session.Delete(ctx, id, condition)).To(BeTrue())
+						Expect(session.Destroy(ctx, id, condition)).To(BeTrue())
 						Expect(mgoCollection.Find(bson.M{"id": original.ID}).Count()).To(Equal(0))
 					})
 
-					It("returns true and deletes the original when the id exists and the condition revision matches", func() {
+					It("returns true and destroys the original when the id exists and the condition revision matches", func() {
 						condition.Revision = pointer.CloneInt(original.Revision)
-						Expect(session.Delete(ctx, id, condition)).To(BeTrue())
+						Expect(session.Destroy(ctx, id, condition)).To(BeTrue())
 						Expect(mgoCollection.Find(bson.M{"id": original.ID}).Count()).To(Equal(0))
 					})
 				})

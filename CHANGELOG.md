@@ -1,5 +1,7 @@
 ## HEAD
 
+* Rename blob and data source store Delete to Destroy to reflect actual result
+* Update blob and data source packages to remove context from test assertions
 * Update auth package to remove context from test assertions
 * Refactor and add improved request path and header parsing
 * Update structured store to allow optional update operators and query modifiers

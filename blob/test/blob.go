@@ -84,7 +84,7 @@ func CloneBlob(datum *blob.Blob) *blob.Blob {
 	clone.Status = pointer.CloneString(datum.Status)
 	clone.CreatedTime = pointer.CloneTime(datum.CreatedTime)
 	clone.ModifiedTime = pointer.CloneTime(datum.ModifiedTime)
-	clone.Revision = test.CloneInt(datum.Revision)
+	clone.Revision = pointer.CloneInt(datum.Revision)
 	return clone
 }
 
