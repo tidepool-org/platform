@@ -224,9 +224,7 @@ var _ = Describe("Client", func() {
 								})
 
 								It("returns successfully", func() {
-									result, err := client.List(ctx, userID, filter, pagination)
-									Expect(err).ToNot(HaveOccurred())
-									blobTest.ExpectEqualBlobs(result, responseResult)
+									Expect(client.List(ctx, userID, filter, pagination)).To(blobTest.MatchBlobs(responseResult))
 								})
 							})
 						})
@@ -369,9 +367,7 @@ var _ = Describe("Client", func() {
 								})
 
 								It("returns successfully", func() {
-									result, err := client.Create(ctx, userID, content)
-									Expect(err).ToNot(HaveOccurred())
-									blobTest.ExpectEqualBlob(result, responseResult)
+									Expect(client.Create(ctx, userID, content)).To(blobTest.MatchBlob(responseResult))
 								})
 							})
 						})
@@ -488,9 +484,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns successfully with result", func() {
-								result, err := client.Get(ctx, id)
-								Expect(err).ToNot(HaveOccurred())
-								blobTest.ExpectEqualBlob(result, responseResult)
+								Expect(client.Get(ctx, id)).To(blobTest.MatchBlob(responseResult))
 							})
 						})
 					})

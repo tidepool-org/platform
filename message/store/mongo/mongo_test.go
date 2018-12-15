@@ -21,13 +21,16 @@ import (
 )
 
 func NewMessage(groupID string, userID string) bson.M {
+	timestamp := test.RandomTime()
+	createdTime := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+	modifiedTime := test.RandomTimeFromRange(createdTime, time.Now())
 	return bson.M{
 		"groupid":      groupID,
 		"userid":       userID,
 		"guid":         test.RandomString(),
-		"timestamp":    time.Now().UTC().Format(time.RFC3339),
-		"createdtime":  time.Now().UTC().Format(time.RFC3339),
-		"modifiedtime": time.Now().UTC().Format(time.RFC3339),
+		"timestamp":    timestamp.Format(time.RFC3339Nano),
+		"createdtime":  createdTime.Format(time.RFC3339Nano),
+		"modifiedtime": modifiedTime.Format(time.RFC3339Nano),
 		"messagetext":  "test",
 	}
 }

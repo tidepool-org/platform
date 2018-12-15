@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/test"
 )
 
 var _ = Describe("Equal", func() {
@@ -93,11 +94,11 @@ var _ = Describe("Equal", func() {
 			Expect(pointer.EqualTime(a, b)).To(Equal(expected))
 		},
 		Entry("a is missing; b is missing", nil, nil, true),
-		Entry("a is missing; b is present", nil, pointer.FromTime(time.Unix(1500000000, 0)), false),
-		Entry("a is present; b is missing", pointer.FromTime(time.Unix(1200000000, 0)), nil, false),
-		Entry("a is present; b is present", pointer.FromTime(time.Unix(1200000000, 0)), pointer.FromTime(time.Unix(1500000000, 0)), false),
-		Entry("a is present; b is present and match", pointer.FromTime(time.Unix(1200000000, 0)), pointer.FromTime(time.Unix(1200000000, 0)), true),
-		Entry("a is present; b is present and match with Local time zone", pointer.FromTime(time.Unix(1200000000, 0)), pointer.FromTime(time.Unix(1200000000, 0).Local()), true),
-		Entry("a is present; b is present and match with UTC time zone", pointer.FromTime(time.Unix(1200000000, 0)), pointer.FromTime(time.Unix(1200000000, 0).UTC()), true),
+		Entry("a is missing; b is present", nil, pointer.FromTime(test.PastNearTime()), false),
+		Entry("a is present; b is missing", pointer.FromTime(test.PastNearTime()), nil, false),
+		Entry("a is present; b is present", pointer.FromTime(test.PastNearTime()), pointer.FromTime(test.FutureNearTime()), false),
+		Entry("a is present; b is present and match", pointer.FromTime(test.PastNearTime()), pointer.FromTime(test.PastNearTime()), true),
+		Entry("a is present; b is present and match with Local time zone", pointer.FromTime(test.PastNearTime().UTC()), pointer.FromTime(test.PastNearTime()), true),
+		Entry("a is present; b is present and match with UTC time zone", pointer.FromTime(test.PastNearTime()), pointer.FromTime(test.PastNearTime().UTC()), true),
 	)
 })

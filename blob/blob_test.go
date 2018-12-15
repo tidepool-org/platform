@@ -30,10 +30,6 @@ import (
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
-var futureTime = time.Unix(4102444800, 0)
-var nearPastTime = time.Unix(1500000000, 0)
-var farPastTime = time.Unix(1200000000, 0)
-
 var _ = Describe("Blob", func() {
 	It("SizeMaximum is expected", func() {
 		Expect(blob.SizeMaximum).To(Equal(104857600))
@@ -326,6 +322,7 @@ var _ = Describe("Blob", func() {
 			func(mutator func(datum *blob.Blob)) {
 				datum := blobTest.RandomBlob()
 				mutator(datum)
+				test.ExpectSerializedBSON(datum, blobTest.NewObjectFromBlob(datum, test.ObjectFormatBSON))
 				test.ExpectSerializedJSON(datum, blobTest.NewObjectFromBlob(datum, test.ObjectFormatJSON))
 			},
 			Entry("succeeds",
@@ -344,7 +341,7 @@ var _ = Describe("Blob", func() {
 					mutator(object, expectedDatum)
 					datum := &blob.Blob{}
 					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
-					blobTest.ExpectEqualBlob(datum, expectedDatum)
+					Expect(datum).To(blobTest.MatchBlob(expectedDatum))
 				},
 				Entry("succeeds",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {},
@@ -517,12 +514,12 @@ var _ = Describe("Blob", func() {
 						object["createdTime"] = "invalid"
 						expectedDatum.CreatedTime = nil
 					},
-					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339), "/createdTime"),
+					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339Nano), "/createdTime"),
 				),
 				Entry("created time valid",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second)
-						object["createdTime"] = valid.Format(time.RFC3339)
+						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+						object["createdTime"] = valid.Format(time.RFC3339Nano)
 						expectedDatum.CreatedTime = pointer.FromTime(valid)
 					},
 				),
@@ -544,12 +541,12 @@ var _ = Describe("Blob", func() {
 						object["modifiedTime"] = "invalid"
 						expectedDatum.ModifiedTime = nil
 					},
-					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339), "/modifiedTime"),
+					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339Nano), "/modifiedTime"),
 				),
 				Entry("modified time valid",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second)
-						object["modifiedTime"] = valid.Format(time.RFC3339)
+						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+						object["modifiedTime"] = valid.Format(time.RFC3339Nano)
 						expectedDatum.ModifiedTime = pointer.FromTime(valid)
 					},
 				),
@@ -716,14 +713,14 @@ var _ = Describe("Blob", func() {
 				),
 				Entry("created time after now",
 					func(datum *blob.Blob) {
-						datum.CreatedTime = pointer.FromTime(futureTime)
+						datum.CreatedTime = pointer.FromTime(test.FutureFarTime())
 						datum.ModifiedTime = nil
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/createdTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/createdTime"),
 				),
 				Entry("created time valid",
 					func(datum *blob.Blob) {
-						datum.CreatedTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second))
+						datum.CreatedTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
 						datum.ModifiedTime = nil
 					},
 				),
@@ -732,18 +729,18 @@ var _ = Describe("Blob", func() {
 				),
 				Entry("modified time before created time",
 					func(datum *blob.Blob) {
-						datum.CreatedTime = pointer.FromTime(nearPastTime)
-						datum.ModifiedTime = pointer.FromTime(farPastTime)
+						datum.CreatedTime = pointer.FromTime(test.PastNearTime())
+						datum.ModifiedTime = pointer.FromTime(test.PastFarTime())
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotAfter(farPastTime, nearPastTime), "/modifiedTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotAfter(test.PastFarTime(), test.PastNearTime()), "/modifiedTime"),
 				),
 				Entry("modified time after now",
-					func(datum *blob.Blob) { datum.ModifiedTime = pointer.FromTime(futureTime) },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/modifiedTime"),
+					func(datum *blob.Blob) { datum.ModifiedTime = pointer.FromTime(test.FutureFarTime()) },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/modifiedTime"),
 				),
 				Entry("modified time valid",
 					func(datum *blob.Blob) {
-						datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()).Truncate(time.Second))
+						datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()))
 					},
 				),
 				Entry("revision missing",
@@ -772,7 +769,7 @@ var _ = Describe("Blob", func() {
 						datum.Size = nil
 						datum.Status = nil
 						datum.CreatedTime = nil
-						datum.ModifiedTime = pointer.FromTime(futureTime)
+						datum.ModifiedTime = pointer.FromTime(test.FutureFarTime())
 						datum.Revision = pointer.FromInt(-1)
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/id"),
@@ -782,7 +779,7 @@ var _ = Describe("Blob", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/size"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/status"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/createdTime"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/modifiedTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/modifiedTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/revision"),
 				),
 			)

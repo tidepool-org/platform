@@ -32,7 +32,7 @@ const (
 	SchemaVersionCurrent = 3 // DEPRECATED
 
 	ComputerTimeFormat = "2006-01-02T15:04:05"
-	TimeFormat         = time.RFC3339
+	TimeFormat         = time.RFC3339Nano
 
 	DataSetTypeContinuous = "continuous"
 	DataSetTypeNormal     = "normal" // TODO: Normal?

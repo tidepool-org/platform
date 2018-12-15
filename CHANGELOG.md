@@ -1,5 +1,6 @@
 ## HEAD
 
+* Straighten out handling of time objects and related in tests
 * Rename blob and data source store Delete to Destroy to reflect actual result
 * Update blob and data source packages to remove context from test assertions
 * Update auth package to remove context from test assertions

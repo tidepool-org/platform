@@ -199,7 +199,7 @@ func NewProviderSession(userID string, create *ProviderSessionCreate) (*Provider
 		Type:        create.Type,
 		Name:        create.Name,
 		OAuthToken:  create.OAuthToken,
-		CreatedTime: time.Now().Truncate(time.Second),
+		CreatedTime: time.Now(),
 	}, nil
 }
 
@@ -221,10 +221,10 @@ func (p *ProviderSession) Parse(parser structure.ObjectParser) {
 		p.OAuthToken.Parse(oauthTokenParser)
 		oauthTokenParser.NotParsed()
 	}
-	if ptr := parser.Time("createdTime", time.RFC3339); ptr != nil {
+	if ptr := parser.Time("createdTime", time.RFC3339Nano); ptr != nil {
 		p.CreatedTime = *ptr
 	}
-	p.ModifiedTime = parser.Time("modifiedTime", time.RFC3339)
+	p.ModifiedTime = parser.Time("modifiedTime", time.RFC3339Nano)
 }
 
 func (p *ProviderSession) Validate(validator structure.Validator) {

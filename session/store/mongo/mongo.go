@@ -49,14 +49,14 @@ func (s *SessionsSession) DestroySessionsForUserByID(ctx context.Context, userID
 		return errors.New("session closed")
 	}
 
-	startTime := time.Now()
+	now := time.Now()
 
 	selector := bson.M{
 		"userId": userID,
 	}
 	removeInfo, err := s.C().RemoveAll(selector)
 
-	loggerFields := log.Fields{"userId": userID, "removeInfo": removeInfo, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"userId": userID, "removeInfo": removeInfo, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DestroySessionsForUserByID")
 
 	if err != nil {

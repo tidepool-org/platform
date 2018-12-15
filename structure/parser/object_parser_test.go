@@ -174,7 +174,7 @@ var _ = Describe("Object", func() {
 		})
 
 		It("Time returns nil", func() {
-			Expect(parser.Time("6", time.RFC3339)).To(BeNil())
+			Expect(parser.Time("6", time.RFC3339Nano)).To(BeNil())
 		})
 
 		It("Object returns nil", func() {
@@ -531,34 +531,34 @@ var _ = Describe("Object", func() {
 		var parser *structureParser.Object
 
 		BeforeEach(func() {
-			now = time.Now().Truncate(time.Second)
+			now = time.Now()
 			parser = structureParser.NewObjectParser(base, &map[string]interface{}{
 				"zero": false,
 				"one":  "abc",
-				"two":  now.Format(time.RFC3339),
+				"two":  now.Format(time.RFC3339Nano),
 			})
 			Expect(parser).ToNot(BeNil())
 		})
 
 		It("with key not found in the object returns nil", func() {
-			Expect(parser.Time("unknown", time.RFC3339)).To(BeNil())
+			Expect(parser.Time("unknown", time.RFC3339Nano)).To(BeNil())
 			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with key with different type returns nil and reports an ErrorCodeTypeNotTime", func() {
-			Expect(parser.Time("zero", time.RFC3339)).To(BeNil())
+			Expect(parser.Time("zero", time.RFC3339Nano)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
 			testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureParser.ErrorTypeNotTime(false), "/zero"))
 		})
 
 		It("with key with different type returns nil and reports an ErrorCodeTimeNotParsable", func() {
-			Expect(parser.Time("one", time.RFC3339)).To(BeNil())
+			Expect(parser.Time("one", time.RFC3339Nano)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureParser.ErrorValueTimeNotParsable("abc", time.RFC3339), "/one"))
+			testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureParser.ErrorValueTimeNotParsable("abc", time.RFC3339Nano), "/one"))
 		})
 
 		It("with key with string type returns value", func() {
-			value := parser.Time("two", time.RFC3339)
+			value := parser.Time("two", time.RFC3339Nano)
 			Expect(value).ToNot(BeNil())
 			Expect(*value).To(BeTemporally("==", now))
 			Expect(base.Error()).ToNot(HaveOccurred())

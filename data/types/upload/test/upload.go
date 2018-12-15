@@ -16,7 +16,7 @@ func RandomUpload() *dataTypesUpload.Upload {
 	datum.Type = "upload"
 	datum.ByUser = pointer.FromString(userTest.RandomID())
 	datum.Client = NewClient()
-	datum.ComputerTime = pointer.FromString(test.NewTime().Format("2006-01-02T15:04:05"))
+	datum.ComputerTime = pointer.FromString(test.RandomTime().Format("2006-01-02T15:04:05"))
 	datum.DataSetType = pointer.FromString(test.RandomStringFromArray(dataTypesUpload.DataSetTypes()))
 	datum.DataState = pointer.FromString(test.RandomStringFromArray(dataTypesUpload.States()))
 	datum.Deduplicator = dataTest.RandomDeduplicatorDescriptor()

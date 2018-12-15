@@ -142,7 +142,7 @@ func (s *Session) Create(ctx context.Context, userID string, create *blobStoreSt
 		UserID:      pointer.FromString(userID),
 		MediaType:   create.MediaType,
 		Status:      pointer.FromString(blob.StatusCreated),
-		CreatedTime: pointer.FromTime(now.Truncate(time.Second)),
+		CreatedTime: pointer.FromTime(now),
 		Revision:    pointer.FromInt(0),
 	}
 
@@ -234,7 +234,7 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 			query["revision"] = *condition.Revision
 		}
 		set := bson.M{
-			"modifiedTime": now.Truncate(time.Second),
+			"modifiedTime": now,
 		}
 		unset := bson.M{}
 		if update.MediaType != nil {

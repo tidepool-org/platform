@@ -379,7 +379,7 @@ var _ = Describe("Client", func() {
 											updateBlob.DigestMD5 = pointer.CloneString(content.DigestMD5)
 											updateBlob.Size = pointer.FromInt(int(size))
 											updateBlob.Status = pointer.FromString(blob.StatusAvailable)
-											updateBlob.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*createBlob.CreatedTime, time.Now()).Truncate(time.Second))
+											updateBlob.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*createBlob.CreatedTime, time.Now()))
 											blobStructuredSession.UpdateOutputs = []blobStoreStructuredTest.UpdateOutput{{Blob: updateBlob, Error: nil}}
 										})
 

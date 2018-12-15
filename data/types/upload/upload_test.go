@@ -186,7 +186,7 @@ var _ = Describe("Upload", func() {
 				),
 				Entry("computer time valid",
 					func(datum *dataTypesUpload.Upload) {
-						datum.ComputerTime = pointer.FromString(test.NewTime().Format("2006-01-02T15:04:05"))
+						datum.ComputerTime = pointer.FromString(test.RandomTime().Format("2006-01-02T15:04:05"))
 					},
 					structure.Origins(),
 				),

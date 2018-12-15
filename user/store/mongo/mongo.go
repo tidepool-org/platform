@@ -64,7 +64,7 @@ func (u *UsersSession) GetUserByID(ctx context.Context, userID string) (*user.Us
 		return nil, errors.New("session closed")
 	}
 
-	startTime := time.Now()
+	now := time.Now()
 
 	users := []*user.User{}
 	selector := bson.M{
@@ -72,7 +72,7 @@ func (u *UsersSession) GetUserByID(ctx context.Context, userID string) (*user.Us
 	}
 	err := u.C().Find(selector).Limit(2).All(&users)
 
-	loggerFields := log.Fields{"userId": userID, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"userId": userID, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("GetUserByID")
 
 	if err != nil {
@@ -109,16 +109,17 @@ func (u *UsersSession) DeleteUser(ctx context.Context, user *user.User) error {
 		return errors.New("session closed")
 	}
 
-	startTime := time.Now()
+	now := time.Now()
+	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
 
-	user.DeletedTime = time.Now().Format(time.RFC3339)
+	user.DeletedTime = timestamp
 
 	selector := bson.M{
 		"userid": user.ID,
 	}
 	err := u.C().Update(selector, user)
 
-	loggerFields := log.Fields{"userId": user.ID, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"userId": user.ID, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DeleteUser")
 
 	if err != nil {
@@ -139,14 +140,14 @@ func (u *UsersSession) DestroyUserByID(ctx context.Context, userID string) error
 		return errors.New("session closed")
 	}
 
-	startTime := time.Now()
+	now := time.Now()
 
 	selector := bson.M{
 		"userid": userID,
 	}
 	err := u.C().Remove(selector)
 
-	loggerFields := log.Fields{"userId": userID, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"userId": userID, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DestroyUserByID")
 
 	if err != nil {

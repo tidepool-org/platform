@@ -110,7 +110,7 @@ func (m *Migration) execute() error {
 
 	iter := iterateSessionsSession.C().Find(bson.M{}).Iter()
 
-	expiredTime := time.Now().Unix()
+	now := time.Now().Unix()
 	expiredSessionCount := 0
 	migratedSessionCount := 0
 	session := &session.Session{}
@@ -133,7 +133,7 @@ func (m *Migration) execute() error {
 			continue
 		}
 
-		if session.ExpiresAt < expiredTime {
+		if session.ExpiresAt < now {
 			if !m.DryRun() {
 				if err = updateSessionsSession.C().RemoveId(sessionID); err != nil {
 					sessionLogger.WithError(err).Error("Unable to remove session")
@@ -143,7 +143,7 @@ func (m *Migration) execute() error {
 
 			expiredSessionCount++
 
-			sessionLogger.Debugf("Expired session (expired %d seconds ago)", expiredTime-session.ExpiresAt)
+			sessionLogger.Debugf("Expired session (expired %d seconds ago)", now-session.ExpiresAt)
 		} else {
 			if !m.DryRun() {
 				if err = updateSessionsSession.C().UpdateId(sessionID, session); err != nil {
@@ -154,7 +154,7 @@ func (m *Migration) execute() error {
 
 			migratedSessionCount++
 
-			sessionLogger.Debugf("Migrated session (expires %d second from now)", session.ExpiresAt-expiredTime)
+			sessionLogger.Debugf("Migrated session (expires %d second from now)", session.ExpiresAt-now)
 		}
 	}
 	if err = iter.Close(); err != nil {

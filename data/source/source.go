@@ -134,9 +134,9 @@ func (u *Update) Parse(parser structure.ObjectParser) {
 		}
 	}
 	u.DataSetIDs = parser.StringArray("dataSetIds")
-	u.EarliestDataTime = parser.Time("earliestDataTime", time.RFC3339)
-	u.LatestDataTime = parser.Time("latestDataTime", time.RFC3339)
-	u.LastImportTime = parser.Time("lastImportTime", time.RFC3339)
+	u.EarliestDataTime = parser.Time("earliestDataTime", time.RFC3339Nano)
+	u.LatestDataTime = parser.Time("latestDataTime", time.RFC3339Nano)
+	u.LastImportTime = parser.Time("lastImportTime", time.RFC3339Nano)
 }
 
 func (u *Update) Validate(validator structure.Validator) {
@@ -158,15 +158,6 @@ func (u *Update) Validate(validator structure.Validator) {
 func (u *Update) Normalize(normalizer structure.Normalizer) {
 	if u.Error != nil {
 		u.Error.Normalize(normalizer.WithReference("error"))
-	}
-	if u.EarliestDataTime != nil {
-		u.EarliestDataTime = pointer.FromTime((*u.EarliestDataTime).UTC().Truncate(time.Second))
-	}
-	if u.LatestDataTime != nil {
-		u.LatestDataTime = pointer.FromTime((*u.LatestDataTime).UTC().Truncate(time.Second))
-	}
-	if u.LastImportTime != nil {
-		u.LastImportTime = pointer.FromTime((*u.LastImportTime).UTC().Truncate(time.Second))
 	}
 }
 
@@ -206,11 +197,11 @@ func (s *Source) Parse(parser structure.ObjectParser) {
 		}
 	}
 	s.DataSetIDs = parser.StringArray("dataSetIds")
-	s.EarliestDataTime = parser.Time("earliestDataTime", time.RFC3339)
-	s.LatestDataTime = parser.Time("latestDataTime", time.RFC3339)
-	s.LastImportTime = parser.Time("lastImportTime", time.RFC3339)
-	s.CreatedTime = parser.Time("createdTime", time.RFC3339)
-	s.ModifiedTime = parser.Time("modifiedTime", time.RFC3339)
+	s.EarliestDataTime = parser.Time("earliestDataTime", time.RFC3339Nano)
+	s.LatestDataTime = parser.Time("latestDataTime", time.RFC3339Nano)
+	s.LastImportTime = parser.Time("lastImportTime", time.RFC3339Nano)
+	s.CreatedTime = parser.Time("createdTime", time.RFC3339Nano)
+	s.ModifiedTime = parser.Time("modifiedTime", time.RFC3339Nano)
 	s.Revision = parser.Int("revision")
 }
 

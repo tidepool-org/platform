@@ -137,7 +137,7 @@ var _ = Describe("Logger", func() {
 				Expect(serializeInput).To(HaveKeyWithValue("message", "Expected Message"))
 				serializedTime, ok := serializeInput["time"].(string)
 				Expect(ok).To(BeTrue())
-				parsedTime, err := time.Parse("2006-01-02T15:04:05.999Z07:00", serializedTime)
+				parsedTime, err := time.Parse(time.RFC3339Nano, serializedTime)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(parsedTime).To(BeTemporally("~", time.Now(), time.Second))
 				serializedCaller, ok := serializeInput["caller"].(*errors.Caller)

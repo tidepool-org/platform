@@ -8,8 +8,10 @@ import (
 	. "github.com/onsi/gomega"
 
 	logNull "github.com/tidepool-org/platform/log/null"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/service/middleware"
+	"github.com/tidepool-org/platform/test"
 	testRest "github.com/tidepool-org/platform/test/rest"
 )
 
@@ -33,7 +35,6 @@ var _ = Describe("AccessLog", func() {
 			Expect(accessLogMiddleware).ToNot(BeNil())
 			hndlr = func(res rest.ResponseWriter, req *rest.Request) {}
 			elapsedTime := 1 * time.Second
-			startTime := time.Now()
 			req = testRest.NewRequest()
 			req.Env["BYTE_WRITTEN"] = int64(128000)
 			req.Env["ELAPSED_TIME"] = &elapsedTime
@@ -47,7 +48,7 @@ var _ = Describe("AccessLog", func() {
 			}
 			req.Env["LOGGER"] = logNull.NewLogger()
 			req.Env["REMOTE_USER"] = "gollum"
-			req.Env["START_TIME"] = &startTime
+			req.Env["START_TIME"] = pointer.FromTime(test.RandomTime())
 			req.Env["STATUS_CODE"] = 400
 			req.Request.Header.Set("User-Agent", "gomega")
 			req.Request.Header.Set("Referer", "golang")

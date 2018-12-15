@@ -294,13 +294,13 @@ func RandomTimeFromRange(minimum time.Time, maximum time.Time) time.Time {
 	if maximum.After(RandomTimeMaximum()) {
 		maximum = RandomTimeMaximum()
 	}
-	return minimum.Add(time.Duration(rand.Int63n(int64(maximum.Sub(minimum)))))
+	return minimum.Add(time.Duration(rand.Int63n(int64(maximum.Sub(minimum))))).Truncate(time.Millisecond)
 }
 
 func RandomTimeMaximum() time.Time {
-	return time.Now().Add(RandomDurationMaximum())
+	return now.Add(RandomDurationMaximum()).Truncate(time.Millisecond)
 }
 
 func RandomTimeMinimum() time.Time {
-	return time.Now().Add(RandomDurationMinimum())
+	return now.Add(RandomDurationMinimum()).Truncate(time.Millisecond)
 }

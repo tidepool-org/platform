@@ -462,7 +462,7 @@ func (t *Tool) getUserDataDevicesDexcomAPI(userID string, user *User, logger log
 
 	device := &Device{
 		Model:            "DexcomAPI",
-		LatestUploadTime: result[0].LatestDataTime.UTC().Format(time.RFC3339),
+		LatestUploadTime: timeAsUTC(result[0].LatestDataTime),
 		UploadCount:      1,
 	}
 	user.Devices = append(user.Devices, device)
@@ -626,11 +626,15 @@ func timestampAsUTC(timestamp string) string {
 	if timestamp == "" {
 		return ""
 	}
-	timestampTime, err := time.Parse(time.RFC3339, timestamp)
+	tm, err := time.Parse(time.RFC3339Nano, timestamp)
 	if err != nil {
 		return ""
 	}
-	return timestampTime.UTC().Format(time.RFC3339)
+	return timeAsUTC(tm)
+}
+
+func timeAsUTC(tm time.Time) string {
+	return tm.Truncate(time.Second).UTC().Format(time.RFC3339Nano)
 }
 
 func stringInStringArray(str string, strArray []string) bool {

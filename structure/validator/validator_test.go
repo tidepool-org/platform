@@ -1,8 +1,6 @@
 package validator_test
 
 import (
-	"time"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -12,6 +10,7 @@ import (
 	structureBase "github.com/tidepool-org/platform/structure/base"
 	testStructure "github.com/tidepool-org/platform/structure/test"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/test"
 )
 
 var _ = Describe("Validator", func() {
@@ -200,7 +199,7 @@ var _ = Describe("Validator", func() {
 			})
 
 			It("returns a validator when called with non-nil value", func() {
-				value := time.Now()
+				value := test.RandomTime()
 				Expect(validator.Time("reference", &value)).ToNot(BeNil())
 			})
 		})

@@ -29,7 +29,7 @@ var _ = Describe("Origin", func() {
 	})
 
 	It("TimeFormat is expected", func() {
-		Expect(origin.TimeFormat).To(Equal(time.RFC3339))
+		Expect(origin.TimeFormat).To(Equal(time.RFC3339Nano))
 	})
 
 	It("TypeDevice is expected", func() {
@@ -114,12 +114,18 @@ var _ = Describe("Origin", func() {
 				Entry("time missing",
 					func(datum *origin.Origin) { datum.Time = nil },
 				),
+				Entry("time empty",
+					func(datum *origin.Origin) { datum.Time = pointer.FromString("") },
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("", time.RFC3339Nano), "/time"),
+				),
 				Entry("time zero",
-					func(datum *origin.Origin) { datum.Time = pointer.FromTime(time.Time{}) },
+					func(datum *origin.Origin) { datum.Time = pointer.FromString(time.Time{}.Format(time.RFC3339Nano)) },
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/time"),
 				),
 				Entry("time not zero",
-					func(datum *origin.Origin) { datum.Time = pointer.FromTime(test.NewTime()) },
+					func(datum *origin.Origin) {
+						datum.Time = pointer.FromString(test.RandomTime().Format(time.RFC3339Nano))
+					},
 				),
 				Entry("type missing",
 					func(datum *origin.Origin) { datum.Type = nil },
@@ -155,13 +161,13 @@ var _ = Describe("Origin", func() {
 					func(datum *origin.Origin) {
 						datum.ID = pointer.FromString("")
 						datum.Name = pointer.FromString("")
-						datum.Time = pointer.FromTime(time.Time{})
+						datum.Time = pointer.FromString("")
 						datum.Type = pointer.FromString("invalid")
 						datum.Version = pointer.FromString("")
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/id"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/name"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/time"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("", time.RFC3339Nano), "/time"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"device", "manual", "service"}), "/type"),
 					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/version"),
 				),

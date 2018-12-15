@@ -220,9 +220,7 @@ var _ = Describe("Client", func() {
 								})
 
 								It("returns successfully", func() {
-									result, err := client.List(ctx, userID, filter, pagination)
-									Expect(err).ToNot(HaveOccurred())
-									dataSourceTest.ExpectEqualSources(result, responseResult)
+									Expect(client.List(ctx, userID, filter, pagination)).To(dataSourceTest.MatchSources(responseResult))
 								})
 							})
 						})
@@ -363,9 +361,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns successfully", func() {
-								result, err := client.Create(ctx, userID, create)
-								Expect(err).ToNot(HaveOccurred())
-								dataSourceTest.ExpectEqualSource(result, responseResult)
+								Expect(client.Create(ctx, userID, create)).To(dataSourceTest.MatchSource(responseResult))
 							})
 						})
 					})
@@ -465,9 +461,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns successfully with result", func() {
-								result, err := client.Get(ctx, id)
-								Expect(err).ToNot(HaveOccurred())
-								dataSourceTest.ExpectEqualSource(result, responseResult)
+								Expect(client.Get(ctx, id)).To(dataSourceTest.MatchSource(responseResult))
 							})
 						})
 					})
@@ -581,9 +575,7 @@ var _ = Describe("Client", func() {
 								})
 
 								It("returns successfully", func() {
-									result, err := client.Update(ctx, id, condition, update)
-									Expect(err).ToNot(HaveOccurred())
-									dataSourceTest.ExpectEqualSource(result, responseResult)
+									Expect(client.Update(ctx, id, condition, update)).To(dataSourceTest.MatchSource(responseResult))
 								})
 							})
 						})

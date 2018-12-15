@@ -51,7 +51,7 @@ func (p *ProfilesSession) GetProfileByID(ctx context.Context, profileID string) 
 		return nil, errors.New("session closed")
 	}
 
-	startTime := time.Now()
+	now := time.Now()
 
 	profiles := []*profile.Profile{}
 	selector := bson.M{
@@ -59,7 +59,7 @@ func (p *ProfilesSession) GetProfileByID(ctx context.Context, profileID string) 
 	}
 	err := p.C().Find(selector).Limit(2).All(&profiles)
 
-	loggerFields := log.Fields{"profileId": profileID, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"profileId": profileID, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("GetProfileByID")
 
 	if err != nil {
@@ -103,14 +103,14 @@ func (p *ProfilesSession) DestroyProfileByID(ctx context.Context, profileID stri
 		return errors.New("session closed")
 	}
 
-	startTime := time.Now()
+	now := time.Now()
 
 	selector := bson.M{
 		"_id": profileID,
 	}
 	removeInfo, err := p.C().RemoveAll(selector)
 
-	loggerFields := log.Fields{"profileId": profileID, "removeInfo": removeInfo, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"profileId": profileID, "removeInfo": removeInfo, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DestroyProfileByID")
 
 	if err != nil {

@@ -150,7 +150,7 @@ func (s *Session) Create(ctx context.Context, userID string, create *dataSource.
 		ProviderName:      create.ProviderName,
 		ProviderSessionID: create.ProviderSessionID,
 		State:             create.State,
-		CreatedTime:       pointer.FromTime(now.Truncate(time.Second)),
+		CreatedTime:       pointer.FromTime(now),
 		Revision:          pointer.FromInt(0),
 	}
 
@@ -242,7 +242,7 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 			query["revision"] = *condition.Revision
 		}
 		set := bson.M{
-			"modifiedTime": now.Truncate(time.Second),
+			"modifiedTime": now,
 		}
 		unset := bson.M{}
 		if update.ProviderSessionID != nil {
@@ -267,13 +267,13 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 			set["dataSetIds"] = *update.DataSetIDs
 		}
 		if update.EarliestDataTime != nil {
-			set["earliestDataTime"] = (*update.EarliestDataTime).Truncate(time.Second)
+			set["earliestDataTime"] = *update.EarliestDataTime
 		}
 		if update.LatestDataTime != nil {
-			set["latestDataTime"] = (*update.LatestDataTime).Truncate(time.Second)
+			set["latestDataTime"] = *update.LatestDataTime
 		}
 		if update.LastImportTime != nil {
-			set["lastImportTime"] = (*update.LastImportTime).Truncate(time.Second)
+			set["lastImportTime"] = *update.LastImportTime
 		}
 		changeInfo, err := s.C().UpdateAll(query, s.ConstructUpdate(set, unset))
 		if err != nil {

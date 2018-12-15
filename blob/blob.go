@@ -108,8 +108,8 @@ func (b *Blob) Parse(parser structure.ObjectParser) {
 	b.MediaType = parser.String("mediaType")
 	b.Size = parser.Int("size")
 	b.Status = parser.String("status")
-	b.CreatedTime = parser.Time("createdTime", time.RFC3339)
-	b.ModifiedTime = parser.Time("modifiedTime", time.RFC3339)
+	b.CreatedTime = parser.Time("createdTime", time.RFC3339Nano)
+	b.ModifiedTime = parser.Time("modifiedTime", time.RFC3339Nano)
 	b.Revision = parser.Int("revision")
 }
 

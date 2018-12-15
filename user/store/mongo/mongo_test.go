@@ -22,17 +22,19 @@ import (
 
 func NewUser(userID string) *user.User {
 	email := fmt.Sprintf("%s@test.org", userID)
+	createdTime := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+	termsAcceptedTime := test.RandomTimeFromRange(createdTime, time.Now())
 	return &user.User{
 		ID:                userID,
 		Email:             email,
 		Emails:            []string{email},
 		Roles:             []string{user.ClinicRole},
-		TermsAcceptedTime: time.Now().UTC().Format(time.RFC3339),
+		TermsAcceptedTime: termsAcceptedTime.Format(time.RFC3339Nano),
 		EmailVerified:     true,
 		PasswordHash:      "1234567890",
 		Hash:              test.RandomString(),
 		Private:           map[string]*user.IDHash{"meta": {ID: "meta-id", Hash: "meta-hash"}},
-		CreatedTime:       time.Now().UTC().Format(time.RFC3339),
+		CreatedTime:       createdTime.Format(time.RFC3339Nano),
 	}
 }
 

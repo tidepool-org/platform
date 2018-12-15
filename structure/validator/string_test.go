@@ -12,6 +12,7 @@ import (
 	"github.com/tidepool-org/platform/structure"
 	structureBase "github.com/tidepool-org/platform/structure/base"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/test"
 )
 
 var _ = Describe("String", func() {
@@ -1057,7 +1058,7 @@ var _ = Describe("String", func() {
 			})
 
 			JustBeforeEach(func() {
-				result = validator.AsTime(time.RFC3339)
+				result = validator.AsTime(time.RFC3339Nano)
 			})
 
 			It("does not report an error", func() {
@@ -1076,11 +1077,11 @@ var _ = Describe("String", func() {
 			})
 
 			JustBeforeEach(func() {
-				result = validator.AsTime(time.RFC3339)
+				result = validator.AsTime(time.RFC3339Nano)
 			})
 
 			It("reports the expected error", func() {
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueStringAsTimeNotValid(*value, time.RFC3339))
+				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueStringAsTimeNotValid(*value, time.RFC3339Nano))
 			})
 
 			It("returns a Time validator", func() {
@@ -1112,14 +1113,12 @@ var _ = Describe("String", func() {
 			var valueAsTime time.Time
 
 			BeforeEach(func() {
-				value = pointer.FromString("2017-06-23T11:36:45-05:00")
-				var err error
-				valueAsTime, err = time.Parse(time.RFC3339, "2017-06-23T11:36:45-05:00")
-				Expect(err).ToNot(HaveOccurred())
+				valueAsTime = test.RandomTime().UTC()
+				value = pointer.FromString(valueAsTime.Format(time.RFC3339Nano))
 			})
 
 			JustBeforeEach(func() {
-				result = validator.AsTime(time.RFC3339)
+				result = validator.AsTime(time.RFC3339Nano)
 			})
 
 			It("does not report an error", func() {
