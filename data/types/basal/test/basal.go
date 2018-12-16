@@ -2,15 +2,15 @@ package test
 
 import (
 	"github.com/tidepool-org/platform/data/types/basal"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	"github.com/tidepool-org/platform/test"
 )
 
 func NewBasal() *basal.Basal {
 	datum := &basal.Basal{}
-	datum.Base = *testDataTypes.NewBase()
+	datum.Base = *dataTypesTest.NewBase()
 	datum.Type = "basal"
-	datum.DeliveryType = testDataTypes.NewType()
+	datum.DeliveryType = dataTypesTest.NewType()
 	return datum
 }
 
@@ -19,7 +19,7 @@ func CloneBasal(datum *basal.Basal) *basal.Basal {
 		return nil
 	}
 	clone := &basal.Basal{}
-	clone.Base = *testDataTypes.CloneBase(&datum.Base)
+	clone.Base = *dataTypesTest.CloneBase(&datum.Base)
 	clone.DeliveryType = datum.DeliveryType
 	return clone
 }

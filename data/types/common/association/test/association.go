@@ -7,7 +7,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/common/association"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
-	testHTTP "github.com/tidepool-org/platform/test/http"
+	testHttp "github.com/tidepool-org/platform/test/http"
 )
 
 func NewAssociation() *association.Association {
@@ -19,7 +19,7 @@ func NewAssociation() *association.Association {
 	datum.Reason = pointer.FromString(test.NewText(1, 1000))
 	datum.Type = pointer.FromString(typ)
 	if typ == association.TypeURL {
-		datum.URL = pointer.FromString(testHTTP.NewURLString())
+		datum.URL = pointer.FromString(testHttp.NewURLString())
 	}
 	return datum
 }

@@ -8,11 +8,11 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	testData "github.com/tidepool-org/platform/data/test"
+	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/errors"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
-	testStructure "github.com/tidepool-org/platform/structure/test"
+	structureTest "github.com/tidepool-org/platform/structure/test"
 )
 
 var _ = Describe("Normalizer", func() {
@@ -36,7 +36,7 @@ var _ = Describe("Normalizer", func() {
 			})
 
 			It("returns any reported error", func() {
-				err := testErrors.RandomError()
+				err := errorsTest.RandomError()
 				normalizer.ReportError(err)
 				Expect(normalizer.Error()).To(Equal(errors.Normalize(err)))
 			})
@@ -49,17 +49,17 @@ var _ = Describe("Normalizer", func() {
 			})
 
 			It("reports the error", func() {
-				err := testErrors.RandomError()
+				err := errorsTest.RandomError()
 				normalizer.ReportError(err)
 				Expect(normalizer.Error()).To(Equal(errors.Normalize(err)))
 			})
 		})
 
 		Context("Normalize", func() {
-			var normalizable *testData.Normalizable
+			var normalizable *dataTest.Normalizable
 
 			BeforeEach(func() {
-				normalizable = testData.NewNormalizable()
+				normalizable = dataTest.NewNormalizable()
 			})
 
 			AfterEach(func() {
@@ -72,7 +72,7 @@ var _ = Describe("Normalizer", func() {
 			})
 
 			It("returns any error", func() {
-				err := testErrors.RandomError()
+				err := errorsTest.RandomError()
 				normalizable.NormalizeStub = func(normalizer data.Normalizer) { normalizer.ReportError(err) }
 				Expect(normalizer.Normalize(normalizable)).To(Equal(errors.Normalize(err)))
 			})
@@ -84,8 +84,8 @@ var _ = Describe("Normalizer", func() {
 			})
 
 			It("returns data", func() {
-				datum1 := testData.NewDatum()
-				datum2 := testData.NewDatum()
+				datum1 := dataTest.NewDatum()
+				datum2 := dataTest.NewDatum()
 				normalizer.AddData(datum1, datum2)
 				Expect(normalizer.Data()).To(Equal([]data.Datum{datum1, datum2}))
 			})
@@ -98,19 +98,19 @@ var _ = Describe("Normalizer", func() {
 			})
 
 			It("adds data", func() {
-				datum1 := testData.NewDatum()
-				datum2 := testData.NewDatum()
+				datum1 := dataTest.NewDatum()
+				datum2 := dataTest.NewDatum()
 				normalizer.AddData(datum1, datum2)
 				Expect(normalizer.Data()).To(Equal([]data.Datum{datum1, datum2}))
 			})
 		})
 
 		Context("WithSource", func() {
-			var source *testStructure.Source
+			var source *structureTest.Source
 			var normalizerWithSource data.Normalizer
 
 			BeforeEach(func() {
-				source = testStructure.NewSource()
+				source = structureTest.NewSource()
 				normalizerWithSource = normalizer.WithSource(source)
 			})
 
@@ -126,7 +126,7 @@ var _ = Describe("Normalizer", func() {
 			It("retains the source", func() {
 				source.ParameterOutput = pointer.FromString("123")
 				source.PointerOutput = pointer.FromString("/a/b/c")
-				err := testErrors.RandomError()
+				err := errorsTest.RandomError()
 				normalizerWithSource.ReportError(err)
 				Expect(normalizer.Error()).To(Equal(errors.WithSource(err, source)))
 			})
@@ -137,7 +137,7 @@ var _ = Describe("Normalizer", func() {
 			var normalizerWithMeta data.Normalizer
 
 			BeforeEach(func() {
-				meta = testErrors.NewMeta()
+				meta = errorsTest.NewMeta()
 				normalizerWithMeta = normalizer.WithMeta(meta)
 			})
 
@@ -147,7 +147,7 @@ var _ = Describe("Normalizer", func() {
 			})
 
 			It("retains the meta", func() {
-				err := testErrors.RandomError()
+				err := errorsTest.RandomError()
 				normalizerWithMeta.ReportError(err)
 				Expect(normalizer.Error()).To(Equal(errors.WithMeta(err, meta)))
 			})
@@ -158,7 +158,7 @@ var _ = Describe("Normalizer", func() {
 			var normalizerWithReference data.Normalizer
 
 			BeforeEach(func() {
-				reference = testStructure.NewReference()
+				reference = structureTest.NewReference()
 				normalizerWithReference = normalizer.WithReference(reference)
 			})
 
@@ -168,8 +168,8 @@ var _ = Describe("Normalizer", func() {
 			})
 
 			It("retains the reference", func() {
-				err := testErrors.RandomError()
-				source := testStructure.NewSource()
+				err := errorsTest.RandomError()
+				source := structureTest.NewSource()
 				source.ParameterOutput = pointer.FromString("")
 				source.PointerOutput = pointer.FromString(fmt.Sprintf("/%s", reference))
 				normalizerWithReference.ReportError(err)

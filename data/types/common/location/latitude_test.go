@@ -7,9 +7,9 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/common/location"
-	testDataTypesCommonLocation "github.com/tidepool-org/platform/data/types/common/location/test"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesCommonLocationTest "github.com/tidepool-org/platform/data/types/common/location/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -46,35 +46,35 @@ var _ = Describe("Latitude", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *location.Latitude), expectedErrors ...error) {
-					datum := testDataTypesCommonLocation.NewLatitude()
+					datum := dataTypesCommonLocationTest.NewLatitude()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *location.Latitude) {},
 				),
 				Entry("units missing",
 					func(datum *location.Latitude) { datum.Units = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units empty",
 					func(datum *location.Latitude) { datum.Units = pointer.FromString("") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("", "degrees"), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotEqualTo("", "degrees"), "/units"),
 				),
 				Entry("units invalid",
 					func(datum *location.Latitude) { datum.Units = pointer.FromString("invalid") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "degrees"), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "degrees"), "/units"),
 				),
 				Entry("units degrees",
 					func(datum *location.Latitude) { datum.Units = pointer.FromString("degrees") },
 				),
 				Entry("value missing",
 					func(datum *location.Latitude) { datum.Value = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("value out of range (lower)",
 					func(datum *location.Latitude) { datum.Value = pointer.FromFloat64(-90.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-90.1, -90.0, 90.0), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-90.1, -90.0, 90.0), "/value"),
 				),
 				Entry("value in range (lower)",
 					func(datum *location.Latitude) { datum.Value = pointer.FromFloat64(-90.0) },
@@ -84,15 +84,15 @@ var _ = Describe("Latitude", func() {
 				),
 				Entry("value out of range (upper)",
 					func(datum *location.Latitude) { datum.Value = pointer.FromFloat64(90.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(90.1, -90.0, 90.0), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(90.1, -90.0, 90.0), "/value"),
 				),
 				Entry("multiple errors",
 					func(datum *location.Latitude) {
 						datum.Units = nil
 						datum.Value = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 			)
 		})
@@ -101,9 +101,9 @@ var _ = Describe("Latitude", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *location.Latitude)) {
 					for _, origin := range structure.Origins() {
-						datum := testDataTypesCommonLocation.NewLatitude()
+						datum := dataTypesCommonLocationTest.NewLatitude()
 						mutator(datum)
-						expectedDatum := testDataTypesCommonLocation.CloneLatitude(datum)
+						expectedDatum := dataTypesCommonLocationTest.CloneLatitude(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))

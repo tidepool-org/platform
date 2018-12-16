@@ -6,7 +6,7 @@ import (
 
 	"github.com/tidepool-org/platform/client"
 	configTest "github.com/tidepool-org/platform/config/test"
-	testHTTP "github.com/tidepool-org/platform/test/http"
+	testHttp "github.com/tidepool-org/platform/test/http"
 )
 
 var _ = Describe("Config", func() {
@@ -30,8 +30,8 @@ var _ = Describe("Config", func() {
 		var cfg *client.Config
 
 		BeforeEach(func() {
-			address = testHTTP.NewAddress()
-			userAgent = testHTTP.NewUserAgent()
+			address = testHttp.NewAddress()
+			userAgent = testHttp.NewUserAgent()
 			cfg = client.NewConfig()
 			Expect(cfg).ToNot(BeNil())
 		})
@@ -50,7 +50,7 @@ var _ = Describe("Config", func() {
 			})
 
 			It("uses existing address if not set", func() {
-				existingAddress := testHTTP.NewAddress()
+				existingAddress := testHttp.NewAddress()
 				cfg.Address = existingAddress
 				delete(configReporter.Config, "address")
 				Expect(cfg.Load(configReporter)).To(Succeed())
@@ -59,7 +59,7 @@ var _ = Describe("Config", func() {
 			})
 
 			It("uses existing user agent if not set", func() {
-				existingUserAgent := testHTTP.NewUserAgent()
+				existingUserAgent := testHttp.NewUserAgent()
 				cfg.UserAgent = existingUserAgent
 				delete(configReporter.Config, "user_agent")
 				Expect(cfg.Load(configReporter)).To(Succeed())

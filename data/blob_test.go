@@ -7,8 +7,8 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	testData "github.com/tidepool-org/platform/data/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTest "github.com/tidepool-org/platform/data/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 )
@@ -35,18 +35,18 @@ var _ = Describe("Blob", func() {
 					validator := structureValidator.New()
 					Expect(validator).ToNot(BeNil())
 					datum.Validate(validator)
-					testErrors.ExpectEqual(validator.Error(), expectedErrors...)
+					errorsTest.ExpectEqual(validator.Error(), expectedErrors...)
 				},
 				Entry("succeeds",
-					testData.NewBlob(),
+					dataTest.NewBlob(),
 				),
 			)
 		})
 
 		Context("Normalize", func() {
 			It("does not modified the datum", func() {
-				datum := testData.NewBlob()
-				expectedDatum := testData.CloneBlob(datum)
+				datum := dataTest.NewBlob()
+				expectedDatum := dataTest.CloneBlob(datum)
 				normalizer := dataNormalizer.New()
 				Expect(normalizer).ToNot(BeNil())
 				datum.Normalize(normalizer)
@@ -64,7 +64,7 @@ var _ = Describe("Blob", func() {
 			BeforeEach(func() {
 				key = test.NewVariableString(1, 8, test.CharsetAlphaNumeric)
 				value = test.NewText(0, 32)
-				datum = testData.NewBlob()
+				datum = dataTest.NewBlob()
 				(*datum)[key] = value
 			})
 
@@ -128,18 +128,18 @@ var _ = Describe("Blob", func() {
 					validator := structureValidator.New()
 					Expect(validator).ToNot(BeNil())
 					datum.Validate(validator)
-					testErrors.ExpectEqual(validator.Error(), expectedErrors...)
+					errorsTest.ExpectEqual(validator.Error(), expectedErrors...)
 				},
 				Entry("succeeds",
-					testData.NewBlobArray(),
+					dataTest.NewBlobArray(),
 				),
 			)
 		})
 
 		Context("Normalize", func() {
 			It("does not modified the datum", func() {
-				datum := testData.NewBlobArray()
-				expectedDatum := testData.CloneBlobArray(datum)
+				datum := dataTest.NewBlobArray()
+				expectedDatum := dataTest.CloneBlobArray(datum)
 				normalizer := dataNormalizer.New()
 				Expect(normalizer).ToNot(BeNil())
 				datum.Normalize(normalizer)

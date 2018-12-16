@@ -91,8 +91,8 @@ var _ = Describe("Errors", func() {
 	// 		detail = test.NewText(1, 64)
 	// 		source = errors.NewSource()
 	// 		Expect(source).ToNot(BeNil())
-	// 		source.Parameter = testErrors.NewSourceParameter()
-	// 		source.Pointer = testErrors.NewSourcePointer()
+	// 		source.Parameter = errorsTest.NewSourceParameter()
+	// 		source.Pointer = errorsTest.NewSourcePointer()
 	// 		meta = test.NewText(1, 64)
 	// 		err = errors.Prepared(code, title, detail)
 	// 		Expect(err).ToNot(BeNil())
@@ -109,8 +109,8 @@ var _ = Describe("Errors", func() {
 	// 	Context("WithSource", func() {
 	// 		It("returns a copy of the error with new source", func() {
 	// 			withSource := errors.NewSource()
-	// 			withSource.Parameter = testErrors.NewSourceParameter()
-	// 			withSource.Pointer = testErrors.NewSourcePointer()
+	// 			withSource.Parameter = errorsTest.NewSourceParameter()
+	// 			withSource.Pointer = errorsTest.NewSourcePointer()
 	// 			result := err.WithSource(withSource)
 	// 			Expect(result).ToNot(BeNil())
 	// 			Expect(result).ToNot(BeIdenticalTo(err))

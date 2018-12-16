@@ -10,7 +10,7 @@ import (
 	"github.com/tidepool-org/platform/log"
 	logNull "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/request"
-	testRequest "github.com/tidepool-org/platform/request/test"
+	requestTest "github.com/tidepool-org/platform/request/test"
 	"github.com/tidepool-org/platform/service/middleware"
 	"github.com/tidepool-org/platform/test"
 	testRest "github.com/tidepool-org/platform/test/rest"
@@ -39,9 +39,9 @@ var _ = Describe("Trace", func() {
 			req = testRest.NewRequest()
 			res = testRest.NewResponseWriter()
 			res.HeaderOutput = &http.Header{}
-			traceRequest = testRequest.NewTraceRequest()
+			traceRequest = requestTest.NewTraceRequest()
 			req.Request.Header.Set("X-Tidepool-Trace-Request", traceRequest)
-			traceSession = testRequest.NewTraceSession()
+			traceSession = requestTest.NewTraceSession()
 			req.Request.Header.Set("X-Tidepool-Trace-Session", traceSession)
 		})
 

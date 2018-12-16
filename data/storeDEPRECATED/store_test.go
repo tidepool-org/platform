@@ -5,7 +5,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data/storeDEPRECATED"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -61,7 +61,7 @@ var _ = Describe("Store", func() {
 					filter.Parse(parser)
 					Expect(filter.Deleted).To(BeFalse())
 					Expect(parser.Error()).To(HaveOccurred())
-					testErrors.ExpectEqual(parser.Error(), testErrors.WithPointerSource(structureParser.ErrorTypeNotBool("invalid"), "/deleted"))
+					errorsTest.ExpectEqual(parser.Error(), errorsTest.WithPointerSource(structureParser.ErrorTypeNotBool("invalid"), "/deleted"))
 				})
 			})
 

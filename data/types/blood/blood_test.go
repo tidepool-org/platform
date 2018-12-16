@@ -10,12 +10,12 @@ import (
 
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/parser"
-	testData "github.com/tidepool-org/platform/data/test"
+	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood"
-	testDataTypesBlood "github.com/tidepool-org/platform/data/types/blood/test"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesBloodTest "github.com/tidepool-org/platform/data/types/blood/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
@@ -26,7 +26,7 @@ import (
 
 func NewTestBlood(sourceTime interface{}, sourceUnits interface{}, sourceValue interface{}) *blood.Blood {
 	datum := blood.New("blood")
-	datum.DeviceID = pointer.FromString(testData.NewDeviceID())
+	datum.DeviceID = pointer.FromString(dataTest.NewDeviceID())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
 	}
@@ -42,7 +42,7 @@ func NewTestBlood(sourceTime interface{}, sourceUnits interface{}, sourceValue i
 var _ = Describe("Blood", func() {
 	Context("New", func() {
 		It("creates a new datum with all values initialized", func() {
-			typ := testDataTypes.NewType()
+			typ := dataTypesTest.NewType()
 			datum := blood.New(typ)
 			Expect(datum.Type).To(Equal(typ))
 			Expect(datum.Units).To(BeNil())
@@ -55,7 +55,7 @@ var _ = Describe("Blood", func() {
 		var datum blood.Blood
 
 		BeforeEach(func() {
-			typ = testDataTypes.NewType()
+			typ = dataTypesTest.NewType()
 			datum = blood.New(typ)
 		})
 
@@ -100,7 +100,7 @@ var _ = Describe("Blood", func() {
 					&map[string]interface{}{"time": 0},
 					NewTestBlood(nil, nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(0), "/time", &types.Meta{Type: "blood"}),
+						dataTest.ComposeError(service.ErrorTypeNotString(0), "/time", &types.Meta{Type: "blood"}),
 					}),
 				Entry("parses object that has valid units",
 					&map[string]interface{}{"units": "mmol/L"},
@@ -110,7 +110,7 @@ var _ = Describe("Blood", func() {
 					&map[string]interface{}{"units": 0},
 					NewTestBlood(nil, nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(0), "/units", &types.Meta{Type: "blood"}),
+						dataTest.ComposeError(service.ErrorTypeNotString(0), "/units", &types.Meta{Type: "blood"}),
 					}),
 				Entry("parses object that has valid value",
 					&map[string]interface{}{"value": 1.0},
@@ -120,7 +120,7 @@ var _ = Describe("Blood", func() {
 					&map[string]interface{}{"value": "invalid"},
 					NewTestBlood(nil, nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/value", &types.Meta{Type: "blood"}),
+						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/value", &types.Meta{Type: "blood"}),
 					}),
 				Entry("parses object that has multiple valid fields",
 					&map[string]interface{}{"time": "2016-09-06T13:45:58-07:00", "units": "mmol/L", "value": 1.0},
@@ -130,9 +130,9 @@ var _ = Describe("Blood", func() {
 					&map[string]interface{}{"time": 0, "units": 0, "value": "invalid"},
 					NewTestBlood(nil, nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(0), "/time", &types.Meta{Type: "blood"}),
-						testData.ComposeError(service.ErrorTypeNotString(0), "/units", &types.Meta{Type: "blood"}),
-						testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/value", &types.Meta{Type: "blood"}),
+						dataTest.ComposeError(service.ErrorTypeNotString(0), "/time", &types.Meta{Type: "blood"}),
+						dataTest.ComposeError(service.ErrorTypeNotString(0), "/units", &types.Meta{Type: "blood"}),
+						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/value", &types.Meta{Type: "blood"}),
 					}),
 			)
 		})
@@ -140,25 +140,25 @@ var _ = Describe("Blood", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *blood.Blood), expectedErrors ...error) {
-					datum := testDataTypesBlood.NewBlood()
+					datum := dataTypesBloodTest.NewBlood()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *blood.Blood) {},
 				),
 				Entry("type missing",
 					func(datum *blood.Blood) { datum.Type = "" },
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/type"),
 				),
 				Entry("type exists",
-					func(datum *blood.Blood) { datum.Type = testDataTypes.NewType() },
+					func(datum *blood.Blood) { datum.Type = dataTypesTest.NewType() },
 				),
 				Entry("units missing",
 					func(datum *blood.Blood) { datum.Units = nil },
 				),
 				Entry("units exists",
-					func(datum *blood.Blood) { datum.Units = pointer.FromString(testDataTypes.NewType()) },
+					func(datum *blood.Blood) { datum.Units = pointer.FromString(dataTypesTest.NewType()) },
 				),
 				Entry("value missing",
 					func(datum *blood.Blood) { datum.Value = nil },
@@ -175,7 +175,7 @@ var _ = Describe("Blood", func() {
 			var datum *blood.Blood
 
 			BeforeEach(func() {
-				datum = testDataTypesBlood.NewBlood()
+				datum = dataTypesBloodTest.NewBlood()
 			})
 
 			It("returns error if user id is missing", func() {

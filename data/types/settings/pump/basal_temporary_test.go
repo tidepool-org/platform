@@ -7,8 +7,8 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -67,18 +67,18 @@ var _ = Describe("BasalTemporary", func() {
 				func(mutator func(datum *pump.BasalTemporary), expectedErrors ...error) {
 					datum := NewBasalTemporary()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *pump.BasalTemporary) {},
 				),
 				Entry("type missing",
 					func(datum *pump.BasalTemporary) { datum.Type = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
 				),
 				Entry("type invalid",
 					func(datum *pump.BasalTemporary) { datum.Type = pointer.FromString("invalid") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"off", "percent", "Units/hour"}), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"off", "percent", "Units/hour"}), "/type"),
 				),
 				Entry("type off",
 					func(datum *pump.BasalTemporary) { datum.Type = pointer.FromString("off") },
@@ -93,7 +93,7 @@ var _ = Describe("BasalTemporary", func() {
 					func(datum *pump.BasalTemporary) {
 						datum.Type = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
 				),
 			)
 		})

@@ -7,8 +7,8 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/activity/physical"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -61,18 +61,18 @@ var _ = Describe("Lap", func() {
 				func(mutator func(datum *physical.Lap), expectedErrors ...error) {
 					datum := NewLap()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *physical.Lap) {},
 				),
 				Entry("count missing",
 					func(datum *physical.Lap) { datum.Count = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/count"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/count"),
 				),
 				Entry("count out of range (lower)",
 					func(datum *physical.Lap) { datum.Count = pointer.FromInt(-1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 10000), "/count"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 10000), "/count"),
 				),
 				Entry("count in range (lower)",
 					func(datum *physical.Lap) { datum.Count = pointer.FromInt(0) },
@@ -82,15 +82,15 @@ var _ = Describe("Lap", func() {
 				),
 				Entry("count out of range (upper)",
 					func(datum *physical.Lap) { datum.Count = pointer.FromInt(10001) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(10001, 0, 10000), "/count"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(10001, 0, 10000), "/count"),
 				),
 				Entry("distance missing",
 					func(datum *physical.Lap) { datum.Distance = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/distance"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/distance"),
 				),
 				Entry("distance invalid",
 					func(datum *physical.Lap) { datum.Distance.Units = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/distance/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/distance/units"),
 				),
 				Entry("distance valid",
 					func(datum *physical.Lap) { datum.Distance = NewDistance() },
@@ -100,8 +100,8 @@ var _ = Describe("Lap", func() {
 						datum.Count = nil
 						datum.Distance = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/count"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/distance"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/count"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/distance"),
 				),
 			)
 		})

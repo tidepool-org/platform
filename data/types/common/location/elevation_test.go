@@ -9,9 +9,9 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/common/location"
-	testDataTypesCommonLocation "github.com/tidepool-org/platform/data/types/common/location/test"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesCommonLocationTest "github.com/tidepool-org/platform/data/types/common/location/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -22,8 +22,8 @@ var _ = Describe("Elevation", func() {
 		Expect(location.ElevationUnitsFeet).To(Equal("feet"))
 	})
 
-	It("ElevationUnitsMeter is expected", func() {
-		Expect(location.ElevationUnitsMeter).To(Equal("meters"))
+	It("ElevationUnitsMeters is expected", func() {
+		Expect(location.ElevationUnitsMeters).To(Equal("meters"))
 	})
 
 	It("ElevationValueFeetMaximum is expected", func() {
@@ -64,9 +64,9 @@ var _ = Describe("Elevation", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *location.Elevation, units *string), units *string, expectedErrors ...error) {
-					datum := testDataTypesCommonLocation.NewElevation(units)
+					datum := dataTypesCommonLocationTest.NewElevation(units)
 					mutator(datum, units)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *location.Elevation, units *string) {},
@@ -75,12 +75,12 @@ var _ = Describe("Elevation", func() {
 				Entry("units missing",
 					func(datum *location.Elevation, units *string) {},
 					nil,
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units invalid",
 					func(datum *location.Elevation, units *string) {},
 					pointer.FromString("invalid"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"feet", "meters"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"feet", "meters"}), "/units"),
 				),
 				Entry("units feet",
 					func(datum *location.Elevation, units *string) {},
@@ -93,44 +93,44 @@ var _ = Describe("Elevation", func() {
 				Entry("units missing; value missing",
 					func(datum *location.Elevation, units *string) { datum.Value = nil },
 					nil,
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units missing; value in range (lower)",
 					func(datum *location.Elevation, units *string) { datum.Value = pointer.FromFloat64(-0.1) },
 					nil,
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; value in range (upper)",
 					func(datum *location.Elevation, units *string) { datum.Value = pointer.FromFloat64(3281.9) },
 					nil,
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units invalid; value missing",
 					func(datum *location.Elevation, units *string) { datum.Value = nil },
 					pointer.FromString("invalid"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"feet", "meters"}), "/units"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"feet", "meters"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units invalid; value in range (lower)",
 					func(datum *location.Elevation, units *string) { datum.Value = pointer.FromFloat64(-0.1) },
 					pointer.FromString("invalid"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"feet", "meters"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"feet", "meters"}), "/units"),
 				),
 				Entry("units invalid; value in range (upper)",
 					func(datum *location.Elevation, units *string) { datum.Value = pointer.FromFloat64(3281.9) },
 					pointer.FromString("invalid"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"feet", "meters"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"feet", "meters"}), "/units"),
 				),
 				Entry("units feet; value missing",
 					func(datum *location.Elevation, units *string) { datum.Value = nil },
 					pointer.FromString("feet"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units feet; value out of range (lower)",
 					func(datum *location.Elevation, units *string) { datum.Value = pointer.FromFloat64(-0.1) },
 					pointer.FromString("feet"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 10000.0/0.3048), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 10000.0/0.3048), "/value"),
 				),
 				Entry("units feet; value in range (lower)",
 					func(datum *location.Elevation, units *string) { datum.Value = pointer.FromFloat64(0.0) },
@@ -143,17 +143,17 @@ var _ = Describe("Elevation", func() {
 				Entry("units feet; value out of range (upper)",
 					func(datum *location.Elevation, units *string) { datum.Value = pointer.FromFloat64(32808.4) },
 					pointer.FromString("feet"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(32808.4, 0.0, 10000.0/0.3048), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(32808.4, 0.0, 10000.0/0.3048), "/value"),
 				),
 				Entry("units meters; value missing",
 					func(datum *location.Elevation, units *string) { datum.Value = nil },
 					pointer.FromString("meters"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units meters; value out of range (lower)",
 					func(datum *location.Elevation, units *string) { datum.Value = pointer.FromFloat64(-0.1) },
 					pointer.FromString("meters"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 10000.0), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 10000.0), "/value"),
 				),
 				Entry("units meters; value in range (lower)",
 					func(datum *location.Elevation, units *string) { datum.Value = pointer.FromFloat64(0.0) },
@@ -166,15 +166,15 @@ var _ = Describe("Elevation", func() {
 				Entry("units meters; value out of range (upper)",
 					func(datum *location.Elevation, units *string) { datum.Value = pointer.FromFloat64(10000.1) },
 					pointer.FromString("meters"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(10000.1, 0.0, 10000.0), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(10000.1, 0.0, 10000.0), "/value"),
 				),
 				Entry("multiple errors",
 					func(datum *location.Elevation, units *string) {
 						datum.Value = nil
 					},
 					nil,
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 			)
 		})
@@ -183,9 +183,9 @@ var _ = Describe("Elevation", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *location.Elevation, units *string), units *string) {
 					for _, origin := range structure.Origins() {
-						datum := testDataTypesCommonLocation.NewElevation(units)
+						datum := dataTypesCommonLocationTest.NewElevation(units)
 						mutator(datum, units)
-						expectedDatum := testDataTypesCommonLocation.CloneElevation(datum)
+						expectedDatum := dataTypesCommonLocationTest.CloneElevation(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))

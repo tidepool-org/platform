@@ -8,12 +8,12 @@ import (
 	"github.com/tidepool-org/platform/data/context"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
-	testData "github.com/tidepool-org/platform/data/test"
+	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/types/device/prime"
-	testDataTypesDevice "github.com/tidepool-org/platform/data/types/device/test"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesDeviceTest "github.com/tidepool-org/platform/data/types/device/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
@@ -31,7 +31,7 @@ func NewMeta() interface{} {
 
 func NewPrime() *prime.Prime {
 	datum := prime.New()
-	datum.Device = *testDataTypesDevice.NewDevice()
+	datum.Device = *dataTypesDeviceTest.NewDevice()
 	datum.SubType = "prime"
 	datum.Target = pointer.FromString(test.RandomStringFromArray(prime.Targets()))
 	switch *datum.Target {
@@ -48,7 +48,7 @@ func ClonePrime(datum *prime.Prime) *prime.Prime {
 		return nil
 	}
 	clone := prime.New()
-	clone.Device = *testDataTypesDevice.CloneDevice(&datum.Device)
+	clone.Device = *dataTypesDeviceTest.CloneDevice(&datum.Device)
 	clone.Target = test.CloneString(datum.Target)
 	clone.Volume = test.CloneFloat64(datum.Volume)
 	return clone
@@ -56,7 +56,7 @@ func ClonePrime(datum *prime.Prime) *prime.Prime {
 
 func NewTestPrime(sourceTime interface{}, sourceTarget interface{}, sourceVolume interface{}) *prime.Prime {
 	datum := prime.New()
-	datum.DeviceID = pointer.FromString(testData.NewDeviceID())
+	datum.DeviceID = pointer.FromString(dataTest.NewDeviceID())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
 	}
@@ -152,7 +152,7 @@ var _ = Describe("Status", func() {
 					&map[string]interface{}{"time": 0},
 					NewTestPrime(nil, nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
 					}),
 				Entry("parses object that has valid target",
 					&map[string]interface{}{"primeTarget": "cannula"},
@@ -162,7 +162,7 @@ var _ = Describe("Status", func() {
 					&map[string]interface{}{"primeTarget": 123},
 					NewTestPrime(nil, nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(123), "/primeTarget", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotString(123), "/primeTarget", NewMeta()),
 					}),
 				Entry("parses object that has valid volume",
 					&map[string]interface{}{"volume": 0.3},
@@ -172,7 +172,7 @@ var _ = Describe("Status", func() {
 					&map[string]interface{}{"volume": "invalid"},
 					NewTestPrime(nil, nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/volume", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/volume", NewMeta()),
 					}),
 				Entry("parses object that has multiple valid fields",
 					&map[string]interface{}{"time": "2016-09-06T13:45:58-07:00", "primeTarget": "cannula", "volume": 0.3},
@@ -182,9 +182,9 @@ var _ = Describe("Status", func() {
 					&map[string]interface{}{"time": 0, "primeTarget": 123, "volume": "invalid"},
 					NewTestPrime(nil, nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
-						testData.ComposeError(service.ErrorTypeNotString(123), "/primeTarget", NewMeta()),
-						testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/volume", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotString(123), "/primeTarget", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/volume", NewMeta()),
 					}),
 			)
 		})
@@ -194,40 +194,40 @@ var _ = Describe("Status", func() {
 				func(mutator func(datum *prime.Prime), expectedErrors ...error) {
 					datum := NewPrime()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *prime.Prime) {},
 				),
 				Entry("type missing",
 					func(datum *prime.Prime) { datum.Type = "" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &device.Meta{SubType: "prime"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &device.Meta{SubType: "prime"}),
 				),
 				Entry("type invalid",
 					func(datum *prime.Prime) { datum.Type = "invalidType" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "deviceEvent"), "/type", &device.Meta{Type: "invalidType", SubType: "prime"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "deviceEvent"), "/type", &device.Meta{Type: "invalidType", SubType: "prime"}),
 				),
 				Entry("type device",
 					func(datum *prime.Prime) { datum.Type = "deviceEvent" },
 				),
 				Entry("sub type missing",
 					func(datum *prime.Prime) { datum.SubType = "" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/subType", &device.Meta{Type: "deviceEvent"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/subType", &device.Meta{Type: "deviceEvent"}),
 				),
 				Entry("sub type invalid",
 					func(datum *prime.Prime) { datum.SubType = "invalidSubType" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "prime"), "/subType", &device.Meta{Type: "deviceEvent", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "prime"), "/subType", &device.Meta{Type: "deviceEvent", SubType: "invalidSubType"}),
 				),
 				Entry("sub type prime",
 					func(datum *prime.Prime) { datum.SubType = "prime" },
 				),
 				Entry("target missing",
 					func(datum *prime.Prime) { datum.Target = nil },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/primeTarget", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/primeTarget", NewMeta()),
 				),
 				Entry("target invalid",
 					func(datum *prime.Prime) { datum.Target = pointer.FromString("invalid") },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"cannula", "tubing"}), "/primeTarget", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"cannula", "tubing"}), "/primeTarget", NewMeta()),
 				),
 				Entry("target cannula; volume missing",
 					func(datum *prime.Prime) {
@@ -240,7 +240,7 @@ var _ = Describe("Status", func() {
 						datum.Target = pointer.FromString("cannula")
 						datum.Volume = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0, 10), "/volume", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0, 10), "/volume", NewMeta()),
 				),
 				Entry("target cannula; volume in range (lower)",
 					func(datum *prime.Prime) {
@@ -259,7 +259,7 @@ var _ = Describe("Status", func() {
 						datum.Target = pointer.FromString("cannula")
 						datum.Volume = pointer.FromFloat64(10.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(10.1, 0, 10), "/volume", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(10.1, 0, 10), "/volume", NewMeta()),
 				),
 				Entry("target tubing; volume missing",
 					func(datum *prime.Prime) {
@@ -272,7 +272,7 @@ var _ = Describe("Status", func() {
 						datum.Target = pointer.FromString("tubing")
 						datum.Volume = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0, 100), "/volume", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0, 100), "/volume", NewMeta()),
 				),
 				Entry("target tubing; volume in range (lower)",
 					func(datum *prime.Prime) {
@@ -291,7 +291,7 @@ var _ = Describe("Status", func() {
 						datum.Target = pointer.FromString("tubing")
 						datum.Volume = pointer.FromFloat64(100.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0, 100), "/volume", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0, 100), "/volume", NewMeta()),
 				),
 				Entry("multiple errors",
 					func(datum *prime.Prime) {
@@ -299,9 +299,9 @@ var _ = Describe("Status", func() {
 						datum.SubType = "invalidSubType"
 						datum.Target = pointer.FromString("invalid")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "deviceEvent"), "/type", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "prime"), "/subType", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"cannula", "tubing"}), "/primeTarget", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "deviceEvent"), "/type", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "prime"), "/subType", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"cannula", "tubing"}), "/primeTarget", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
 				),
 			)
 		})

@@ -8,12 +8,12 @@ import (
 	"github.com/tidepool-org/platform/data/context"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
-	testData "github.com/tidepool-org/platform/data/test"
+	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/bolus"
-	testDataTypesBolus "github.com/tidepool-org/platform/data/types/bolus/test"
-	testDataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin/test"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesBolusTest "github.com/tidepool-org/platform/data/types/bolus/test"
+	dataTypesInsulinTest "github.com/tidepool-org/platform/data/types/insulin/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
@@ -23,7 +23,7 @@ import (
 
 func NewTestBolus(sourceTime interface{}, sourceSubType interface{}) *bolus.Bolus {
 	datum := bolus.New("")
-	datum.DeviceID = pointer.FromString(testData.NewDeviceID())
+	datum.DeviceID = pointer.FromString(dataTest.NewDeviceID())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
 	}
@@ -40,7 +40,7 @@ var _ = Describe("Bolus", func() {
 
 	Context("New", func() {
 		It("creates a new datum with all values initialized", func() {
-			subType := testDataTypes.NewType()
+			subType := dataTypesTest.NewType()
 			datum := bolus.New(subType)
 			Expect(datum.Type).To(Equal("bolus"))
 			Expect(datum.SubType).To(Equal(subType))
@@ -53,7 +53,7 @@ var _ = Describe("Bolus", func() {
 		var datum bolus.Bolus
 
 		BeforeEach(func() {
-			subType = testDataTypes.NewType()
+			subType = dataTypesTest.NewType()
 			datum = bolus.New(subType)
 		})
 
@@ -101,7 +101,7 @@ var _ = Describe("Bolus", func() {
 					&map[string]interface{}{"time": 0},
 					NewTestBolus(nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(0), "/time", &bolus.Meta{Type: "bolus"}),
+						dataTest.ComposeError(service.ErrorTypeNotString(0), "/time", &bolus.Meta{Type: "bolus"}),
 					}),
 				Entry("does not parse sub type",
 					&map[string]interface{}{"subType": "normal"},
@@ -115,7 +115,7 @@ var _ = Describe("Bolus", func() {
 					&map[string]interface{}{"time": 0, "subType": 0},
 					NewTestBolus(nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(0), "/time", &bolus.Meta{Type: "bolus"}),
+						dataTest.ComposeError(service.ErrorTypeNotString(0), "/time", &bolus.Meta{Type: "bolus"}),
 					}),
 			)
 		})
@@ -123,30 +123,30 @@ var _ = Describe("Bolus", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *bolus.Bolus), expectedErrors ...error) {
-					datum := testDataTypesBolus.NewBolus()
+					datum := dataTypesBolusTest.NewBolus()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *bolus.Bolus) {},
 				),
 				Entry("type missing",
 					func(datum *bolus.Bolus) { datum.Type = "" },
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/type"),
 				),
 				Entry("type invalid",
 					func(datum *bolus.Bolus) { datum.Type = "invalid" },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "bolus"), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "bolus"), "/type"),
 				),
 				Entry("type bolus",
 					func(datum *bolus.Bolus) { datum.Type = "bolus" },
 				),
 				Entry("sub type missing",
 					func(datum *bolus.Bolus) { datum.SubType = "" },
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/subType"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/subType"),
 				),
 				Entry("sub type valid",
-					func(datum *bolus.Bolus) { datum.SubType = testDataTypes.NewType() },
+					func(datum *bolus.Bolus) { datum.SubType = dataTypesTest.NewType() },
 				),
 				Entry("insulin formulation missing",
 					func(datum *bolus.Bolus) { datum.InsulinFormulation = nil },
@@ -157,10 +157,10 @@ var _ = Describe("Bolus", func() {
 						datum.InsulinFormulation.Name = nil
 						datum.InsulinFormulation.Simple = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple"),
 				),
 				Entry("insulin formulation valid",
-					func(datum *bolus.Bolus) { datum.InsulinFormulation = testDataTypesInsulin.NewFormulation(3) },
+					func(datum *bolus.Bolus) { datum.InsulinFormulation = dataTypesInsulinTest.NewFormulation(3) },
 				),
 				Entry("multiple errors",
 					func(datum *bolus.Bolus) {
@@ -170,9 +170,9 @@ var _ = Describe("Bolus", func() {
 						datum.InsulinFormulation.Name = nil
 						datum.InsulinFormulation.Simple = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "bolus"), "/type"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/subType"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "bolus"), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/subType"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple"),
 				),
 			)
 		})
@@ -181,9 +181,9 @@ var _ = Describe("Bolus", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *bolus.Bolus)) {
 					for _, origin := range structure.Origins() {
-						datum := testDataTypesBolus.NewBolus()
+						datum := dataTypesBolusTest.NewBolus()
 						mutator(datum)
-						expectedDatum := testDataTypesBolus.CloneBolus(datum)
+						expectedDatum := dataTypesBolusTest.CloneBolus(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
@@ -211,7 +211,7 @@ var _ = Describe("Bolus", func() {
 			var datum *bolus.Bolus
 
 			BeforeEach(func() {
-				datum = testDataTypesBolus.NewBolus()
+				datum = dataTypesBolusTest.NewBolus()
 			})
 
 			It("returns error if user id is missing", func() {

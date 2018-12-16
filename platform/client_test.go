@@ -16,7 +16,7 @@ import (
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/test"
-	testHTTP "github.com/tidepool-org/platform/test/http"
+	testHttp "github.com/tidepool-org/platform/test/http"
 )
 
 var _ = Describe("Client", func() {
@@ -40,8 +40,8 @@ var _ = Describe("Client", func() {
 		var config *platform.Config
 
 		BeforeEach(func() {
-			address = testHTTP.NewAddress()
-			userAgent = testHTTP.NewUserAgent()
+			address = testHttp.NewAddress()
+			userAgent = testHttp.NewUserAgent()
 			serviceSecret = authTest.NewServiceSecret()
 			ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
 		})
@@ -160,8 +160,8 @@ var _ = Describe("Client", func() {
 				BeforeEach(func() {
 					server = NewServer()
 					address = server.URL()
-					method = testHTTP.NewMethod()
-					path = testHTTP.NewPath()
+					method = testHttp.NewMethod()
+					path = testHttp.NewPath()
 					url = server.URL() + path
 				})
 
@@ -227,8 +227,8 @@ var _ = Describe("Client", func() {
 						var headerValue string
 
 						BeforeEach(func() {
-							headerKey = testHTTP.NewHeaderKey()
-							headerValue = testHTTP.NewHeaderValue()
+							headerKey = testHttp.NewHeaderKey()
+							headerValue = testHttp.NewHeaderValue()
 							server.AppendHandlers(
 								CombineHandlers(
 									VerifyRequest(method, path),
@@ -290,8 +290,8 @@ var _ = Describe("Client", func() {
 						var headerValue string
 
 						BeforeEach(func() {
-							headerKey = testHTTP.NewHeaderKey()
-							headerValue = testHTTP.NewHeaderValue()
+							headerKey = testHttp.NewHeaderKey()
+							headerValue = testHttp.NewHeaderValue()
 							server.AppendHandlers(
 								CombineHandlers(
 									VerifyRequest(method, path),
@@ -375,8 +375,8 @@ var _ = Describe("Client", func() {
 				BeforeEach(func() {
 					server = NewServer()
 					address = server.URL()
-					method = testHTTP.NewMethod()
-					path = testHTTP.NewPath()
+					method = testHttp.NewMethod()
+					path = testHttp.NewPath()
 					url = server.URL() + path
 				})
 
@@ -442,8 +442,8 @@ var _ = Describe("Client", func() {
 						var headerValue string
 
 						BeforeEach(func() {
-							headerKey = testHTTP.NewHeaderKey()
-							headerValue = testHTTP.NewHeaderValue()
+							headerKey = testHttp.NewHeaderKey()
+							headerValue = testHttp.NewHeaderValue()
 							server.AppendHandlers(
 								CombineHandlers(
 									VerifyRequest(method, path),
@@ -505,8 +505,8 @@ var _ = Describe("Client", func() {
 						var headerValue string
 
 						BeforeEach(func() {
-							headerKey = testHTTP.NewHeaderKey()
-							headerValue = testHTTP.NewHeaderValue()
+							headerKey = testHttp.NewHeaderKey()
+							headerValue = testHttp.NewHeaderValue()
 							server.AppendHandlers(
 								CombineHandlers(
 									VerifyRequest(method, path),

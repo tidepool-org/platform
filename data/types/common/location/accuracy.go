@@ -9,7 +9,7 @@ import (
 
 const (
 	AccuracyUnitsFeet          = "feet"
-	AccuracyUnitsMeter         = "meters"
+	AccuracyUnitsMeters        = "meters"
 	AccuracyValueFeetMaximum   = AccuracyValueMetersMaximum / 0.3048
 	AccuracyValueFeetMinimum   = AccuracyValueMetersMinimum / 0.3048
 	AccuracyValueMetersMaximum = 1000.0
@@ -19,7 +19,7 @@ const (
 func AccuracyUnits() []string {
 	return []string{
 		AccuracyUnitsFeet,
-		AccuracyUnitsMeter,
+		AccuracyUnitsMeters,
 	}
 }
 
@@ -59,7 +59,7 @@ func AccuracyValueRangeForUnits(units *string) (float64, float64) {
 		switch *units {
 		case AccuracyUnitsFeet:
 			return AccuracyValueFeetMinimum, AccuracyValueFeetMaximum
-		case AccuracyUnitsMeter:
+		case AccuracyUnitsMeters:
 			return AccuracyValueMetersMinimum, AccuracyValueMetersMaximum
 		}
 	}

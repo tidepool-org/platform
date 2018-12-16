@@ -9,12 +9,12 @@ import (
 	"github.com/tidepool-org/platform/data/context"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
-	testData "github.com/tidepool-org/platform/data/test"
+	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/types/device/status"
-	testDataTypesDeviceStatus "github.com/tidepool-org/platform/data/types/device/status/test"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesDeviceStatusTest "github.com/tidepool-org/platform/data/types/device/status/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
@@ -31,7 +31,7 @@ func NewMeta() interface{} {
 
 func NewTestStatus(sourceTime interface{}, sourceDuration interface{}, sourceName interface{}, sourceReason *data.Blob) *status.Status {
 	datum := status.New()
-	datum.DeviceID = pointer.FromString(testData.NewDeviceID())
+	datum.DeviceID = pointer.FromString(dataTest.NewDeviceID())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
 	}
@@ -128,7 +128,7 @@ var _ = Describe("Status", func() {
 					&map[string]interface{}{"time": 0},
 					NewTestStatus(nil, nil, nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
 					}),
 				Entry("parses object that has valid duration",
 					&map[string]interface{}{"duration": 1000000},
@@ -138,7 +138,7 @@ var _ = Describe("Status", func() {
 					&map[string]interface{}{"duration": "invalid"},
 					NewTestStatus(nil, nil, nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotInteger("invalid"), "/duration", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotInteger("invalid"), "/duration", NewMeta()),
 					}),
 				Entry("parses object that has valid name",
 					&map[string]interface{}{"status": "suspended"},
@@ -148,7 +148,7 @@ var _ = Describe("Status", func() {
 					&map[string]interface{}{"status": 123},
 					NewTestStatus(nil, nil, nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(123), "/status", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotString(123), "/status", NewMeta()),
 					}),
 				Entry("parses object that has valid reason",
 					&map[string]interface{}{"reason": map[string]interface{}{"a": "one", "b": 2}},
@@ -158,7 +158,7 @@ var _ = Describe("Status", func() {
 					&map[string]interface{}{"reason": "invalid"},
 					NewTestStatus(nil, nil, nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotObject("invalid"), "/reason", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotObject("invalid"), "/reason", NewMeta()),
 					}),
 				Entry("parses object that has multiple valid fields",
 					&map[string]interface{}{"time": "2016-09-06T13:45:58-07:00", "duration": 1000000, "status": "suspended", "reason": map[string]interface{}{"a": "one", "b": 2}},
@@ -168,10 +168,10 @@ var _ = Describe("Status", func() {
 					&map[string]interface{}{"time": 0, "duration": "invalid", "status": 123, "reason": "invalid"},
 					NewTestStatus(nil, nil, nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
-						testData.ComposeError(service.ErrorTypeNotInteger("invalid"), "/duration", NewMeta()),
-						testData.ComposeError(service.ErrorTypeNotString(123), "/status", NewMeta()),
-						testData.ComposeError(service.ErrorTypeNotObject("invalid"), "/reason", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotInteger("invalid"), "/duration", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotString(123), "/status", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotObject("invalid"), "/reason", NewMeta()),
 					}),
 			)
 		})
@@ -179,31 +179,31 @@ var _ = Describe("Status", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *status.Status), expectedErrors ...error) {
-					datum := testDataTypesDeviceStatus.NewStatus()
+					datum := dataTypesDeviceStatusTest.NewStatus()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *status.Status) {},
 				),
 				Entry("type missing",
 					func(datum *status.Status) { datum.Type = "" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &device.Meta{SubType: "status"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &device.Meta{SubType: "status"}),
 				),
 				Entry("type invalid",
 					func(datum *status.Status) { datum.Type = "invalidType" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "deviceEvent"), "/type", &device.Meta{Type: "invalidType", SubType: "status"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "deviceEvent"), "/type", &device.Meta{Type: "invalidType", SubType: "status"}),
 				),
 				Entry("type device",
 					func(datum *status.Status) { datum.Type = "deviceEvent" },
 				),
 				Entry("sub type missing",
 					func(datum *status.Status) { datum.SubType = "" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/subType", &device.Meta{Type: "deviceEvent"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/subType", &device.Meta{Type: "deviceEvent"}),
 				),
 				Entry("sub type invalid",
 					func(datum *status.Status) { datum.SubType = "invalidSubType" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "status"), "/subType", &device.Meta{Type: "deviceEvent", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "status"), "/subType", &device.Meta{Type: "deviceEvent", SubType: "invalidSubType"}),
 				),
 				Entry("sub type status",
 					func(datum *status.Status) { datum.SubType = "status" },
@@ -219,7 +219,7 @@ var _ = Describe("Status", func() {
 						datum.Duration = nil
 						datum.DurationExpected = pointer.FromInt(-1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration missing; duration expected in range (lower)",
 					func(datum *status.Status) {
@@ -232,22 +232,22 @@ var _ = Describe("Status", func() {
 						datum.Duration = pointer.FromInt(-1)
 						datum.DurationExpected = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/duration", NewMeta()),
 				),
 				Entry("duration out of range (lower); duration expected out of range (lower)",
 					func(datum *status.Status) {
 						datum.Duration = pointer.FromInt(-1)
 						datum.DurationExpected = pointer.FromInt(-1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration out of range (lower); duration expected in range (lower)",
 					func(datum *status.Status) {
 						datum.Duration = pointer.FromInt(-1)
 						datum.DurationExpected = pointer.FromInt(0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/duration", NewMeta()),
 				),
 				Entry("duration in range (lower); duration expected missing",
 					func(datum *status.Status) {
@@ -260,7 +260,7 @@ var _ = Describe("Status", func() {
 						datum.Duration = pointer.FromInt(0)
 						datum.DurationExpected = pointer.FromInt(-1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration in range (lower); duration expected in range (lower)",
 					func(datum *status.Status) {
@@ -279,7 +279,7 @@ var _ = Describe("Status", func() {
 						datum.Duration = pointer.FromInt(1)
 						datum.DurationExpected = pointer.FromInt(0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThanOrEqualTo(0, 1), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThanOrEqualTo(0, 1), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration in range; duration expected in range",
 					func(datum *status.Status) {
@@ -289,11 +289,11 @@ var _ = Describe("Status", func() {
 				),
 				Entry("name missing",
 					func(datum *status.Status) { datum.Name = nil },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/status", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/status", NewMeta()),
 				),
 				Entry("name invalid",
 					func(datum *status.Status) { datum.Name = pointer.FromString("invalid") },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"resumed", "suspended"}), "/status", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"resumed", "suspended"}), "/status", NewMeta()),
 				),
 				Entry("name resumed",
 					func(datum *status.Status) { datum.Name = pointer.FromString("resumed") },
@@ -303,10 +303,10 @@ var _ = Describe("Status", func() {
 				),
 				Entry("reason missing",
 					func(datum *status.Status) { datum.Reason = nil },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/reason", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/reason", NewMeta()),
 				),
 				Entry("reason exists",
-					func(datum *status.Status) { datum.Reason = testData.NewBlob() },
+					func(datum *status.Status) { datum.Reason = dataTest.NewBlob() },
 				),
 				Entry("multiple errors",
 					func(datum *status.Status) {
@@ -317,12 +317,12 @@ var _ = Describe("Status", func() {
 						datum.Name = pointer.FromString("invalid")
 						datum.Reason = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "deviceEvent"), "/type", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "status"), "/subType", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/duration", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/expectedDuration", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"resumed", "suspended"}), "/status", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/reason", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "deviceEvent"), "/type", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "status"), "/subType", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/duration", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/expectedDuration", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"resumed", "suspended"}), "/status", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/reason", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
 				),
 			)
 		})
@@ -331,9 +331,9 @@ var _ = Describe("Status", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *status.Status)) {
 					for _, origin := range structure.Origins() {
-						datum := testDataTypesDeviceStatus.NewStatus()
+						datum := dataTypesDeviceStatusTest.NewStatus()
 						mutator(datum)
-						expectedDatum := testDataTypesDeviceStatus.CloneStatus(datum)
+						expectedDatum := dataTypesDeviceStatusTest.CloneStatus(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))

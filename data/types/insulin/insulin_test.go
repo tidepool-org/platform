@@ -8,9 +8,9 @@ import (
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/insulin"
-	testDataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin/test"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesInsulinTest "github.com/tidepool-org/platform/data/types/insulin/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -25,10 +25,10 @@ func NewMeta() interface{} {
 
 func NewInsulin() *insulin.Insulin {
 	datum := insulin.New()
-	datum.Base = *testDataTypes.NewBase()
+	datum.Base = *dataTypesTest.NewBase()
 	datum.Type = "insulin"
-	datum.Dose = testDataTypesInsulin.NewDose()
-	datum.Formulation = testDataTypesInsulin.NewFormulation(3)
+	datum.Dose = dataTypesInsulinTest.NewDose()
+	datum.Formulation = dataTypesInsulinTest.NewFormulation(3)
 	datum.Site = pointer.FromString(test.NewText(1, 100))
 	return datum
 }
@@ -38,9 +38,9 @@ func CloneInsulin(datum *insulin.Insulin) *insulin.Insulin {
 		return nil
 	}
 	clone := insulin.New()
-	clone.Base = *testDataTypes.CloneBase(&datum.Base)
-	clone.Dose = testDataTypesInsulin.CloneDose(datum.Dose)
-	clone.Formulation = testDataTypesInsulin.CloneFormulation(datum.Formulation)
+	clone.Base = *dataTypesTest.CloneBase(&datum.Base)
+	clone.Dose = dataTypesInsulinTest.CloneDose(datum.Dose)
+	clone.Formulation = dataTypesInsulinTest.CloneFormulation(datum.Formulation)
 	clone.Site = test.CloneString(datum.Site)
 	return clone
 }
@@ -71,18 +71,18 @@ var _ = Describe("Insulin", func() {
 				func(mutator func(datum *insulin.Insulin), expectedErrors ...error) {
 					datum := NewInsulin()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *insulin.Insulin) {},
 				),
 				Entry("type missing",
 					func(datum *insulin.Insulin) { datum.Type = "" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &types.Meta{}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &types.Meta{}),
 				),
 				Entry("type invalid",
 					func(datum *insulin.Insulin) { datum.Type = "invalidType" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "insulin"), "/type", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "insulin"), "/type", &types.Meta{Type: "invalidType"}),
 				),
 				Entry("type insulin",
 					func(datum *insulin.Insulin) { datum.Type = "insulin" },
@@ -92,10 +92,10 @@ var _ = Describe("Insulin", func() {
 				),
 				Entry("dose invalid",
 					func(datum *insulin.Insulin) { datum.Dose.Total = nil },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/dose/total", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/dose/total", NewMeta()),
 				),
 				Entry("dose valid",
-					func(datum *insulin.Insulin) { datum.Dose = testDataTypesInsulin.NewDose() },
+					func(datum *insulin.Insulin) { datum.Dose = dataTypesInsulinTest.NewDose() },
 				),
 				Entry("formulation missing",
 					func(datum *insulin.Insulin) { datum.Formulation = nil },
@@ -104,21 +104,21 @@ var _ = Describe("Insulin", func() {
 					func(datum *insulin.Insulin) {
 						datum.Formulation.Name = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/formulation/name", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/formulation/name", NewMeta()),
 				),
 				Entry("formulation valid",
-					func(datum *insulin.Insulin) { datum.Formulation = testDataTypesInsulin.NewFormulation(3) },
+					func(datum *insulin.Insulin) { datum.Formulation = dataTypesInsulinTest.NewFormulation(3) },
 				),
 				Entry("site missing",
 					func(datum *insulin.Insulin) { datum.Site = nil },
 				),
 				Entry("site empty",
 					func(datum *insulin.Insulin) { datum.Site = pointer.FromString("") },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/site", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/site", NewMeta()),
 				),
 				Entry("site invalid",
 					func(datum *insulin.Insulin) { datum.Site = pointer.FromString(test.NewText(101, 101)) },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/site", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/site", NewMeta()),
 				),
 				Entry("site valid",
 					func(datum *insulin.Insulin) { datum.Site = pointer.FromString(test.NewText(1, 100)) },
@@ -130,10 +130,10 @@ var _ = Describe("Insulin", func() {
 						datum.Formulation.Name = pointer.FromString("")
 						datum.Site = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "insulin"), "/type", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/dose/total", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/formulation/name", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/site", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "insulin"), "/type", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/dose/total", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/formulation/name", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/site", &types.Meta{Type: "invalidType"}),
 				),
 			)
 		})

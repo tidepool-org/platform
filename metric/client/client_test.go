@@ -15,7 +15,7 @@ import (
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/test"
-	testHTTP "github.com/tidepool-org/platform/test/http"
+	testHttp "github.com/tidepool-org/platform/test/http"
 	"github.com/tidepool-org/platform/version"
 )
 
@@ -37,8 +37,8 @@ var _ = Describe("Client", func() {
 		BeforeEach(func() {
 			config = platform.NewConfig()
 			Expect(config).ToNot(BeNil())
-			config.Address = testHTTP.NewAddress()
-			config.UserAgent = testHTTP.NewUserAgent()
+			config.Address = testHttp.NewAddress()
+			config.UserAgent = testHttp.NewUserAgent()
 		})
 
 		It("returns an error if config is missing", func() {
@@ -88,7 +88,7 @@ var _ = Describe("Client", func() {
 
 		BeforeEach(func() {
 			server = NewServer()
-			userAgent = testHTTP.NewUserAgent()
+			userAgent = testHttp.NewUserAgent()
 			config := platform.NewConfig()
 			Expect(config).ToNot(BeNil())
 			config.Address = server.URL()

@@ -9,8 +9,8 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/activity/physical"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -111,18 +111,18 @@ var _ = Describe("Energy", func() {
 				func(mutator func(datum *physical.Energy), expectedErrors ...error) {
 					datum := NewEnergy()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *physical.Energy) {},
 				),
 				Entry("units missing",
 					func(datum *physical.Energy) { datum.Units = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units invalid",
 					func(datum *physical.Energy) { datum.Units = pointer.FromString("invalid") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"calories", "joules", "kilocalories", "kilojoules"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"calories", "joules", "kilocalories", "kilojoules"}), "/units"),
 				),
 				Entry("units calories",
 					func(datum *physical.Energy) {
@@ -153,86 +153,86 @@ var _ = Describe("Energy", func() {
 						datum.Units = nil
 						datum.Value = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units missing; value out of range (lower)",
 					func(datum *physical.Energy) {
 						datum.Units = nil
 						datum.Value = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; value in range (lower)",
 					func(datum *physical.Energy) {
 						datum.Units = nil
 						datum.Value = pointer.FromFloat64(0.0)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; value in range (upper)",
 					func(datum *physical.Energy) {
 						datum.Units = nil
 						datum.Value = pointer.FromFloat64(41858000.0)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; value out of range (upper)",
 					func(datum *physical.Energy) {
 						datum.Units = nil
 						datum.Value = pointer.FromFloat64(41858000.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units invalid; value missing",
 					func(datum *physical.Energy) {
 						datum.Units = pointer.FromString("invalid")
 						datum.Value = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"calories", "joules", "kilocalories", "kilojoules"}), "/units"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"calories", "joules", "kilocalories", "kilojoules"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units invalid; value out of range (lower)",
 					func(datum *physical.Energy) {
 						datum.Units = pointer.FromString("invalid")
 						datum.Value = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"calories", "joules", "kilocalories", "kilojoules"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"calories", "joules", "kilocalories", "kilojoules"}), "/units"),
 				),
 				Entry("units invalid; value in range (lower)",
 					func(datum *physical.Energy) {
 						datum.Units = pointer.FromString("invalid")
 						datum.Value = pointer.FromFloat64(0.0)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"calories", "joules", "kilocalories", "kilojoules"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"calories", "joules", "kilocalories", "kilojoules"}), "/units"),
 				),
 				Entry("units invalid; value in range (upper)",
 					func(datum *physical.Energy) {
 						datum.Units = pointer.FromString("invalid")
 						datum.Value = pointer.FromFloat64(41858000.0)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"calories", "joules", "kilocalories", "kilojoules"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"calories", "joules", "kilocalories", "kilojoules"}), "/units"),
 				),
 				Entry("units invalid; value out of range (upper)",
 					func(datum *physical.Energy) {
 						datum.Units = pointer.FromString("invalid")
 						datum.Value = pointer.FromFloat64(41858000.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"calories", "joules", "kilocalories", "kilojoules"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"calories", "joules", "kilocalories", "kilojoules"}), "/units"),
 				),
 				Entry("units calories; value missing",
 					func(datum *physical.Energy) {
 						datum.Units = pointer.FromString("calories")
 						datum.Value = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units calories; value out of range (lower)",
 					func(datum *physical.Energy) {
 						datum.Units = pointer.FromString("calories")
 						datum.Value = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 10000000.0), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 10000000.0), "/value"),
 				),
 				Entry("units calories; value in range (lower)",
 					func(datum *physical.Energy) {
@@ -251,21 +251,21 @@ var _ = Describe("Energy", func() {
 						datum.Units = pointer.FromString("calories")
 						datum.Value = pointer.FromFloat64(10000000.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(10000000.1, 0.0, 10000000.0), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(10000000.1, 0.0, 10000000.0), "/value"),
 				),
 				Entry("units joules; value missing",
 					func(datum *physical.Energy) {
 						datum.Units = pointer.FromString("joules")
 						datum.Value = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units joules; value out of range (lower)",
 					func(datum *physical.Energy) {
 						datum.Units = pointer.FromString("joules")
 						datum.Value = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 41858000.0), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 41858000.0), "/value"),
 				),
 				Entry("units joules; value in range (lower)",
 					func(datum *physical.Energy) {
@@ -284,21 +284,21 @@ var _ = Describe("Energy", func() {
 						datum.Units = pointer.FromString("joules")
 						datum.Value = pointer.FromFloat64(41858000.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(41858000.1, 0.0, 41858000.0), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(41858000.1, 0.0, 41858000.0), "/value"),
 				),
 				Entry("units kilocalories; value missing",
 					func(datum *physical.Energy) {
 						datum.Units = pointer.FromString("kilocalories")
 						datum.Value = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units kilocalories; value out of range (lower)",
 					func(datum *physical.Energy) {
 						datum.Units = pointer.FromString("kilocalories")
 						datum.Value = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 10000.0), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 10000.0), "/value"),
 				),
 				Entry("units kilocalories; value in range (lower)",
 					func(datum *physical.Energy) {
@@ -317,21 +317,21 @@ var _ = Describe("Energy", func() {
 						datum.Units = pointer.FromString("kilocalories")
 						datum.Value = pointer.FromFloat64(10000.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(10000.1, 0.0, 10000.0), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(10000.1, 0.0, 10000.0), "/value"),
 				),
 				Entry("units kilojoules; value missing",
 					func(datum *physical.Energy) {
 						datum.Units = pointer.FromString("kilojoules")
 						datum.Value = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units kilojoules; value out of range (lower)",
 					func(datum *physical.Energy) {
 						datum.Units = pointer.FromString("kilojoules")
 						datum.Value = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 41858.0), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 41858.0), "/value"),
 				),
 				Entry("units kilojoules; value in range (lower)",
 					func(datum *physical.Energy) {
@@ -350,15 +350,15 @@ var _ = Describe("Energy", func() {
 						datum.Units = pointer.FromString("kilojoules")
 						datum.Value = pointer.FromFloat64(41858.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(41858.1, 0.0, 41858.0), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(41858.1, 0.0, 41858.0), "/value"),
 				),
 				Entry("multiple errors",
 					func(datum *physical.Energy) {
 						datum.Units = nil
 						datum.Value = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 			)
 		})

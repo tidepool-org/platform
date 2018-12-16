@@ -6,21 +6,21 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/notification/service/context"
-	testService "github.com/tidepool-org/platform/notification/service/test"
+	notificationServiceTest "github.com/tidepool-org/platform/notification/service/test"
 	"github.com/tidepool-org/platform/notification/store"
-	testStore "github.com/tidepool-org/platform/notification/store/test"
+	notificationStoreTest "github.com/tidepool-org/platform/notification/store/test"
 	testRest "github.com/tidepool-org/platform/test/rest"
 )
 
 var _ = Describe("Context", func() {
 	var response *testRest.ResponseWriter
 	var request *rest.Request
-	var svc *testService.Service
+	var svc *notificationServiceTest.Service
 
 	BeforeEach(func() {
 		response = testRest.NewResponseWriter()
 		request = testRest.NewRequest()
-		svc = testService.NewService()
+		svc = notificationServiceTest.NewService()
 	})
 
 	AfterEach(func() {
@@ -90,10 +90,10 @@ var _ = Describe("Context", func() {
 		})
 
 		Context("with store session", func() {
-			var ssn *testStore.NotificationsSession
+			var ssn *notificationStoreTest.NotificationsSession
 
 			BeforeEach(func() {
-				ssn = testStore.NewNotificationsSession()
+				ssn = notificationStoreTest.NewNotificationsSession()
 				svc.NotificationStoreImpl.NewNotificationsSessionOutputs = []store.NotificationsSession{ssn}
 			})
 

@@ -5,7 +5,7 @@ import (
 
 	"github.com/onsi/gomega"
 
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
@@ -63,7 +63,7 @@ func ValidateWithOrigin(validatable structure.Validatable, origin structure.Orig
 	validator := structureValidator.New()
 	gomega.Expect(validator).ToNot(gomega.BeNil())
 	validatable.Validate(validator.WithOrigin(origin))
-	testErrors.ExpectEqual(validator.Error(), expectedErrors...)
+	errorsTest.ExpectEqual(validator.Error(), expectedErrors...)
 }
 
 func ValidateWithExpectedOrigins(validatable structure.Validatable, expectedOrigins []structure.Origin, expectedErrors ...error) {

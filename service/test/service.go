@@ -4,9 +4,9 @@ import (
 	"github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/auth"
-	testAuth "github.com/tidepool-org/platform/auth/test"
+	authTest "github.com/tidepool-org/platform/auth/test"
 	"github.com/tidepool-org/platform/config"
-	testConfig "github.com/tidepool-org/platform/config/test"
+	configTest "github.com/tidepool-org/platform/config/test"
 	"github.com/tidepool-org/platform/log"
 	nullLog "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/test"
@@ -22,13 +22,13 @@ type Service struct {
 	VersionReporterInvocations int
 	VersionReporterImpl        version.Reporter
 	ConfigReporterInvocations  int
-	ConfigReporterImpl         *testConfig.Reporter
+	ConfigReporterImpl         *configTest.Reporter
 	LoggerInvocations          int
 	LoggerImpl                 log.Logger
 	SecretInvocations          int
 	SecretOutputs              []string
 	AuthClientInvocations      int
-	AuthClientImpl             *testAuth.Client
+	AuthClientImpl             *authTest.Client
 }
 
 func NewService() *Service {
@@ -36,9 +36,9 @@ func NewService() *Service {
 	return &Service{
 		Mock:                test.NewMock(),
 		VersionReporterImpl: versionReporter,
-		ConfigReporterImpl:  testConfig.NewReporter(),
+		ConfigReporterImpl:  configTest.NewReporter(),
 		LoggerImpl:          nullLog.NewLogger(),
-		AuthClientImpl:      testAuth.NewClient(),
+		AuthClientImpl:      authTest.NewClient(),
 	}
 }
 

@@ -2,14 +2,14 @@ package test
 
 import (
 	"github.com/tidepool-org/platform/data/types/bolus/normal"
-	testDataTypesBolus "github.com/tidepool-org/platform/data/types/bolus/test"
+	dataTypesBolusTest "github.com/tidepool-org/platform/data/types/bolus/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
 )
 
 func NewNormal() *normal.Normal {
 	datum := normal.New()
-	datum.Bolus = *testDataTypesBolus.NewBolus()
+	datum.Bolus = *dataTypesBolusTest.NewBolus()
 	datum.SubType = "normal"
 	datum.Normal = pointer.FromFloat64(test.RandomFloat64FromRange(normal.NormalMinimum, normal.NormalMaximum))
 	datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, normal.NormalMaximum))
@@ -21,7 +21,7 @@ func CloneNormal(datum *normal.Normal) *normal.Normal {
 		return nil
 	}
 	clone := normal.New()
-	clone.Bolus = *testDataTypesBolus.CloneBolus(&datum.Bolus)
+	clone.Bolus = *dataTypesBolusTest.CloneBolus(&datum.Bolus)
 	clone.Normal = test.CloneFloat64(datum.Normal)
 	clone.NormalExpected = test.CloneFloat64(datum.NormalExpected)
 	return clone

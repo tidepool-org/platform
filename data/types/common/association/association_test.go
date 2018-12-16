@@ -11,15 +11,15 @@ import (
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/common/association"
-	testDataTypesCommonAssociation "github.com/tidepool-org/platform/data/types/common/association/test"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesCommonAssociationTest "github.com/tidepool-org/platform/data/types/common/association/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
-	testHTTP "github.com/tidepool-org/platform/test/http"
+	testHttp "github.com/tidepool-org/platform/test/http"
 )
 
 var _ = Describe("Association", func() {
@@ -61,9 +61,9 @@ var _ = Describe("Association", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *association.Association), expectedErrors ...error) {
-					datum := testDataTypesCommonAssociation.NewAssociation()
+					datum := dataTypesCommonAssociationTest.NewAssociation()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *association.Association) {},
@@ -73,28 +73,28 @@ var _ = Describe("Association", func() {
 						datum.ID = nil
 						datum.Type = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
 				),
 				Entry("type missing; id empty",
 					func(datum *association.Association) {
 						datum.ID = pointer.FromString("")
 						datum.Type = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
 				),
 				Entry("type missing; id invalid",
 					func(datum *association.Association) {
 						datum.ID = pointer.FromString("invalid")
 						datum.Type = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
 				),
 				Entry("type missing; id valid",
 					func(datum *association.Association) {
 						datum.ID = pointer.FromString(dataTest.RandomID())
 						datum.Type = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
 				),
 				Entry("type datum; id missing",
 					func(datum *association.Association) {
@@ -102,7 +102,7 @@ var _ = Describe("Association", func() {
 						datum.Type = pointer.FromString("datum")
 						datum.URL = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/id"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/id"),
 				),
 				Entry("type datum; id empty",
 					func(datum *association.Association) {
@@ -110,7 +110,7 @@ var _ = Describe("Association", func() {
 						datum.Type = pointer.FromString("datum")
 						datum.URL = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/id"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/id"),
 				),
 				Entry("type datum; id invalid",
 					func(datum *association.Association) {
@@ -118,7 +118,7 @@ var _ = Describe("Association", func() {
 						datum.Type = pointer.FromString("datum")
 						datum.URL = nil
 					},
-					testErrors.WithPointerSource(data.ErrorValueStringAsIDNotValid("invalid"), "/id"),
+					errorsTest.WithPointerSource(data.ErrorValueStringAsIDNotValid("invalid"), "/id"),
 				),
 				Entry("type datum; id valid",
 					func(datum *association.Association) {
@@ -131,54 +131,54 @@ var _ = Describe("Association", func() {
 					func(datum *association.Association) {
 						datum.ID = nil
 						datum.Type = pointer.FromString("url")
-						datum.URL = pointer.FromString(testHTTP.NewURLString())
+						datum.URL = pointer.FromString(testHttp.NewURLString())
 					},
 				),
 				Entry("type url; id empty",
 					func(datum *association.Association) {
 						datum.ID = pointer.FromString("")
 						datum.Type = pointer.FromString("url")
-						datum.URL = pointer.FromString(testHTTP.NewURLString())
+						datum.URL = pointer.FromString(testHttp.NewURLString())
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/id"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/id"),
 				),
 				Entry("type url; id invalid",
 					func(datum *association.Association) {
 						datum.ID = pointer.FromString("invalid")
 						datum.Type = pointer.FromString("url")
-						datum.URL = pointer.FromString(testHTTP.NewURLString())
+						datum.URL = pointer.FromString(testHttp.NewURLString())
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/id"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/id"),
 				),
 				Entry("type url; id valid",
 					func(datum *association.Association) {
 						datum.ID = pointer.FromString(dataTest.RandomID())
 						datum.Type = pointer.FromString("url")
-						datum.URL = pointer.FromString(testHTTP.NewURLString())
+						datum.URL = pointer.FromString(testHttp.NewURLString())
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/id"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/id"),
 				),
 				Entry("reason missing",
 					func(datum *association.Association) { datum.Reason = nil },
 				),
 				Entry("reason empty",
 					func(datum *association.Association) { datum.Reason = pointer.FromString("") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/reason"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/reason"),
 				),
 				Entry("reason length; in range (upper)",
 					func(datum *association.Association) { datum.Reason = pointer.FromString(test.NewText(1000, 1000)) },
 				),
 				Entry("reason length; out of range (upper)",
 					func(datum *association.Association) { datum.Reason = pointer.FromString(test.NewText(1001, 1001)) },
-					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(1001, 1000), "/reason"),
+					errorsTest.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(1001, 1000), "/reason"),
 				),
 				Entry("type missing",
 					func(datum *association.Association) { datum.Type = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
 				),
 				Entry("type invalid",
 					func(datum *association.Association) { datum.Type = pointer.FromString("invalid") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"datum", "url"}), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"datum", "url"}), "/type"),
 				),
 				Entry("type datum",
 					func(datum *association.Association) {
@@ -191,7 +191,7 @@ var _ = Describe("Association", func() {
 					func(datum *association.Association) {
 						datum.ID = nil
 						datum.Type = pointer.FromString("url")
-						datum.URL = pointer.FromString(testHTTP.NewURLString())
+						datum.URL = pointer.FromString(testHttp.NewURLString())
 					},
 				),
 				Entry("type missing; url missing",
@@ -199,28 +199,28 @@ var _ = Describe("Association", func() {
 						datum.Type = nil
 						datum.URL = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
 				),
 				Entry("type missing; url empty",
 					func(datum *association.Association) {
 						datum.Type = nil
 						datum.URL = pointer.FromString("")
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
 				),
 				Entry("type missing; url length in range (upper)",
 					func(datum *association.Association) {
 						datum.Type = nil
 						datum.URL = pointer.FromString(strings.Repeat("x", 2047))
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
 				),
 				Entry("type missing; url length out of range (upper)",
 					func(datum *association.Association) {
 						datum.Type = nil
 						datum.URL = pointer.FromString(strings.Repeat("x", 2048))
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
 				),
 				Entry("type datum; url missing",
 					func(datum *association.Association) {
@@ -235,7 +235,7 @@ var _ = Describe("Association", func() {
 						datum.Type = pointer.FromString("datum")
 						datum.URL = pointer.FromString("")
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/url"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/url"),
 				),
 				Entry("type datum; url length in range (upper)",
 					func(datum *association.Association) {
@@ -243,7 +243,7 @@ var _ = Describe("Association", func() {
 						datum.Type = pointer.FromString("datum")
 						datum.URL = pointer.FromString(strings.Repeat("x", 2047))
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/url"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/url"),
 				),
 				Entry("type datum; url length out of range (upper)",
 					func(datum *association.Association) {
@@ -251,7 +251,7 @@ var _ = Describe("Association", func() {
 						datum.Type = pointer.FromString("datum")
 						datum.URL = pointer.FromString(strings.Repeat("x", 2048))
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/url"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/url"),
 				),
 				Entry("type url; url missing",
 					func(datum *association.Association) {
@@ -259,7 +259,7 @@ var _ = Describe("Association", func() {
 						datum.Type = pointer.FromString("url")
 						datum.URL = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/url"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/url"),
 				),
 				Entry("type url; url empty",
 					func(datum *association.Association) {
@@ -267,7 +267,7 @@ var _ = Describe("Association", func() {
 						datum.Type = pointer.FromString("url")
 						datum.URL = pointer.FromString("")
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/url"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/url"),
 				),
 				Entry("type url; url invalid",
 					func(datum *association.Association) {
@@ -275,13 +275,13 @@ var _ = Describe("Association", func() {
 						datum.Type = pointer.FromString("url")
 						datum.URL = pointer.FromString("http:::")
 					},
-					testErrors.WithPointerSource(net.ErrorValueStringAsURLNotValid("http:::"), "/url"),
+					errorsTest.WithPointerSource(net.ErrorValueStringAsURLNotValid("http:::"), "/url"),
 				),
 				Entry("type url; url valid",
 					func(datum *association.Association) {
 						datum.ID = nil
 						datum.Type = pointer.FromString("url")
-						datum.URL = pointer.FromString(testHTTP.NewURLString())
+						datum.URL = pointer.FromString(testHttp.NewURLString())
 					},
 				),
 				Entry("type url; url valid; length in range (upper)",
@@ -297,7 +297,7 @@ var _ = Describe("Association", func() {
 						datum.Type = pointer.FromString("url")
 						datum.URL = pointer.FromString("http://" + strings.Repeat("x", 2041))
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(2048, 2047), "/url"),
+					errorsTest.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(2048, 2047), "/url"),
 				),
 				Entry("multiple errors",
 					func(datum *association.Association) {
@@ -306,9 +306,9 @@ var _ = Describe("Association", func() {
 						datum.Type = pointer.FromString(association.TypeDatum)
 						datum.URL = pointer.FromString("")
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/id"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/reason"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueExists(), "/url"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/id"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/reason"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/url"),
 				),
 			)
 		})
@@ -317,9 +317,9 @@ var _ = Describe("Association", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *association.Association)) {
 					for _, origin := range structure.Origins() {
-						datum := testDataTypesCommonAssociation.NewAssociation()
+						datum := dataTypesCommonAssociationTest.NewAssociation()
 						mutator(datum)
-						expectedDatum := testDataTypesCommonAssociation.CloneAssociation(datum)
+						expectedDatum := dataTypesCommonAssociationTest.CloneAssociation(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
@@ -368,9 +368,9 @@ var _ = Describe("Association", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *association.AssociationArray), expectedErrors ...error) {
-					datum := testDataTypesCommonAssociation.NewAssociationArray()
+					datum := dataTypesCommonAssociationTest.NewAssociationArray()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *association.AssociationArray) {},
@@ -381,42 +381,42 @@ var _ = Describe("Association", func() {
 				),
 				Entry("nil",
 					func(datum *association.AssociationArray) { *datum = append(*association.NewAssociationArray(), nil) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
 				),
 				Entry("single invalid",
 					func(datum *association.AssociationArray) {
-						invalid := testDataTypesCommonAssociation.NewAssociation()
+						invalid := dataTypesCommonAssociationTest.NewAssociation()
 						invalid.Type = nil
 						*datum = append(*association.NewAssociationArray(), invalid)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0/type"),
 				),
 				Entry("single valid",
 					func(datum *association.AssociationArray) {
-						*datum = append(*association.NewAssociationArray(), testDataTypesCommonAssociation.NewAssociation())
+						*datum = append(*association.NewAssociationArray(), dataTypesCommonAssociationTest.NewAssociation())
 					},
 				),
 				Entry("multiple invalid",
 					func(datum *association.AssociationArray) {
-						invalid := testDataTypesCommonAssociation.NewAssociation()
+						invalid := dataTypesCommonAssociationTest.NewAssociation()
 						invalid.Type = nil
-						*datum = append(*association.NewAssociationArray(), testDataTypesCommonAssociation.NewAssociation(), invalid, testDataTypesCommonAssociation.NewAssociation())
+						*datum = append(*association.NewAssociationArray(), dataTypesCommonAssociationTest.NewAssociation(), invalid, dataTypesCommonAssociationTest.NewAssociation())
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/type"),
 				),
 				Entry("multiple valid",
 					func(datum *association.AssociationArray) {
-						*datum = *testDataTypesCommonAssociation.NewAssociationArray()
+						*datum = *dataTypesCommonAssociationTest.NewAssociationArray()
 					},
 				),
 				Entry("multiple errors",
 					func(datum *association.AssociationArray) {
-						invalid := testDataTypesCommonAssociation.NewAssociation()
+						invalid := dataTypesCommonAssociationTest.NewAssociation()
 						invalid.Type = nil
-						*datum = append(*association.NewAssociationArray(), nil, invalid, testDataTypesCommonAssociation.NewAssociation())
+						*datum = append(*association.NewAssociationArray(), nil, invalid, dataTypesCommonAssociationTest.NewAssociation())
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/type"),
 				),
 			)
 		})
@@ -425,9 +425,9 @@ var _ = Describe("Association", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *association.AssociationArray)) {
 					for _, origin := range structure.Origins() {
-						datum := testDataTypesCommonAssociation.NewAssociationArray()
+						datum := dataTypesCommonAssociationTest.NewAssociationArray()
 						mutator(datum)
-						expectedDatum := testDataTypesCommonAssociation.CloneAssociationArray(datum)
+						expectedDatum := dataTypesCommonAssociationTest.CloneAssociationArray(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))

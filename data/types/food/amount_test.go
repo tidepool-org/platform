@@ -9,8 +9,8 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/food"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -63,33 +63,33 @@ var _ = Describe("Amount", func() {
 				func(mutator func(datum *food.Amount), expectedErrors ...error) {
 					datum := NewAmount()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *food.Amount) {},
 				),
 				Entry("units missing",
 					func(datum *food.Amount) { datum.Units = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units empty",
 					func(datum *food.Amount) { datum.Units = pointer.FromString("") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/units"),
 				),
 				Entry("units invalid",
 					func(datum *food.Amount) { datum.Units = pointer.FromString(test.NewText(101, 101)) },
-					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/units"),
 				),
 				Entry("units valid",
 					func(datum *food.Amount) { datum.Units = pointer.FromString(test.NewText(1, 100)) },
 				),
 				Entry("value missing",
 					func(datum *food.Amount) { datum.Value = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("value out of range (lower)",
 					func(datum *food.Amount) { datum.Value = pointer.FromFloat64(-0.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-0.1, 0.0), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-0.1, 0.0), "/value"),
 				),
 				Entry("value in range (lower)",
 					func(datum *food.Amount) { datum.Value = pointer.FromFloat64(0.0) },
@@ -102,8 +102,8 @@ var _ = Describe("Amount", func() {
 						datum.Units = nil
 						datum.Value = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 			)
 		})

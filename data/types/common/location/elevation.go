@@ -9,7 +9,7 @@ import (
 
 const (
 	ElevationUnitsFeet          = "feet"
-	ElevationUnitsMeter         = "meters"
+	ElevationUnitsMeters        = "meters"
 	ElevationValueFeetMaximum   = ElevationValueMetersMaximum / 0.3048
 	ElevationValueFeetMinimum   = ElevationValueMetersMinimum / 0.3048
 	ElevationValueMetersMaximum = 10000.0
@@ -19,7 +19,7 @@ const (
 func ElevationUnits() []string {
 	return []string{
 		ElevationUnitsFeet,
-		ElevationUnitsMeter,
+		ElevationUnitsMeters,
 	}
 }
 
@@ -59,7 +59,7 @@ func ElevationValueRangeForUnits(units *string) (float64, float64) {
 		switch *units {
 		case ElevationUnitsFeet:
 			return ElevationValueFeetMinimum, ElevationValueFeetMaximum
-		case ElevationUnitsMeter:
+		case ElevationUnitsMeters:
 			return ElevationValueMetersMinimum, ElevationValueMetersMaximum
 		}
 	}

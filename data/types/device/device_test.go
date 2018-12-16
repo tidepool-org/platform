@@ -7,11 +7,11 @@ import (
 
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/parser"
-	testData "github.com/tidepool-org/platform/data/test"
+	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/device"
-	testDataTypesDevice "github.com/tidepool-org/platform/data/types/device/test"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesDeviceTest "github.com/tidepool-org/platform/data/types/device/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
@@ -21,7 +21,7 @@ import (
 
 func NewTestDevice(sourceTime interface{}, sourceSubType interface{}) *device.Device {
 	datum := device.New("")
-	datum.DeviceID = pointer.FromString(testData.NewDeviceID())
+	datum.DeviceID = pointer.FromString(dataTest.NewDeviceID())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
 	}
@@ -38,7 +38,7 @@ var _ = Describe("Device", func() {
 
 	Context("New", func() {
 		It("creates a new datum with all values initialized", func() {
-			subType := testDataTypes.NewType()
+			subType := dataTypesTest.NewType()
 			datum := device.New(subType)
 			Expect(datum.Type).To(Equal("deviceEvent"))
 			Expect(datum.SubType).To(Equal(subType))
@@ -50,7 +50,7 @@ var _ = Describe("Device", func() {
 		var datum device.Device
 
 		BeforeEach(func() {
-			subType = testDataTypes.NewType()
+			subType = dataTypesTest.NewType()
 			datum = device.New(subType)
 		})
 
@@ -98,7 +98,7 @@ var _ = Describe("Device", func() {
 					&map[string]interface{}{"time": 0},
 					NewTestDevice(nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(0), "/time", &device.Meta{Type: "deviceEvent"}),
+						dataTest.ComposeError(service.ErrorTypeNotString(0), "/time", &device.Meta{Type: "deviceEvent"}),
 					}),
 				Entry("does not parse sub type",
 					&map[string]interface{}{"subType": "alarm"},
@@ -112,7 +112,7 @@ var _ = Describe("Device", func() {
 					&map[string]interface{}{"time": 0, "subType": 0},
 					NewTestDevice(nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(0), "/time", &device.Meta{Type: "deviceEvent"}),
+						dataTest.ComposeError(service.ErrorTypeNotString(0), "/time", &device.Meta{Type: "deviceEvent"}),
 					}),
 			)
 		})
@@ -120,38 +120,38 @@ var _ = Describe("Device", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *device.Device), expectedErrors ...error) {
-					datum := testDataTypesDevice.NewDevice()
+					datum := dataTypesDeviceTest.NewDevice()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *device.Device) {},
 				),
 				Entry("type missing",
 					func(datum *device.Device) { datum.Type = "" },
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/type"),
 				),
 				Entry("type invalid",
 					func(datum *device.Device) { datum.Type = "invalid" },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "deviceEvent"), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "deviceEvent"), "/type"),
 				),
 				Entry("type deviceEvent",
 					func(datum *device.Device) { datum.Type = "deviceEvent" },
 				),
 				Entry("sub type missing",
 					func(datum *device.Device) { datum.SubType = "" },
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/subType"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/subType"),
 				),
 				Entry("sub type valid",
-					func(datum *device.Device) { datum.SubType = testDataTypes.NewType() },
+					func(datum *device.Device) { datum.SubType = dataTypesTest.NewType() },
 				),
 				Entry("multiple errors",
 					func(datum *device.Device) {
 						datum.Type = "invalid"
 						datum.SubType = ""
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "deviceEvent"), "/type"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/subType"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "deviceEvent"), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/subType"),
 				),
 			)
 		})
@@ -160,7 +160,7 @@ var _ = Describe("Device", func() {
 			var datum *device.Device
 
 			BeforeEach(func() {
-				datum = testDataTypesDevice.NewDevice()
+				datum = dataTypesDeviceTest.NewDevice()
 			})
 
 			It("returns error if user id is missing", func() {

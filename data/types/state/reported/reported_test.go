@@ -10,8 +10,8 @@ import (
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/state/reported"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
@@ -25,7 +25,7 @@ func NewMeta() interface{} {
 
 func NewReported() *reported.Reported {
 	datum := reported.New()
-	datum.Base = *testDataTypes.NewBase()
+	datum.Base = *dataTypesTest.NewBase()
 	datum.Type = "reportedState"
 	datum.States = NewStateArray()
 	for index := rand.Intn(len(reported.StateStates())); index >= 0; index-- {
@@ -39,7 +39,7 @@ func CloneReported(datum *reported.Reported) *reported.Reported {
 		return nil
 	}
 	clone := reported.New()
-	clone.Base = *testDataTypes.CloneBase(&datum.Base)
+	clone.Base = *dataTypesTest.CloneBase(&datum.Base)
 	clone.States = CloneStateArray(datum.States)
 	return clone
 }
@@ -68,18 +68,18 @@ var _ = Describe("Reported", func() {
 				func(mutator func(datum *reported.Reported), expectedErrors ...error) {
 					datum := NewReported()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *reported.Reported) {},
 				),
 				Entry("type missing",
 					func(datum *reported.Reported) { datum.Type = "" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &types.Meta{}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &types.Meta{}),
 				),
 				Entry("type invalid",
 					func(datum *reported.Reported) { datum.Type = "invalidType" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "reportedState"), "/type", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "reportedState"), "/type", &types.Meta{Type: "invalidType"}),
 				),
 				Entry("type reportedState",
 					func(datum *reported.Reported) { datum.Type = "reportedState" },
@@ -92,7 +92,7 @@ var _ = Describe("Reported", func() {
 				),
 				Entry("states single invalid",
 					func(datum *reported.Reported) { datum.States = NewStateArray(NewState("invalidState")) },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidState", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "other", "stress"}), "/states/0/state", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidState", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "other", "stress"}), "/states/0/state", NewMeta()),
 				),
 				Entry("states single valid",
 					func(datum *reported.Reported) { datum.States = NewStateArray(NewState("alcohol")) },
@@ -104,14 +104,14 @@ var _ = Describe("Reported", func() {
 					func(datum *reported.Reported) {
 						datum.States = NewStateArray(NewState("alcohol"), NewState("invalidState"), NewState("hyperglycemiaSymptoms"))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidState", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "other", "stress"}), "/states/1/state", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidState", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "other", "stress"}), "/states/1/state", NewMeta()),
 				),
 				Entry("states multiple invalid multiple",
 					func(datum *reported.Reported) {
 						datum.States = NewStateArray(NewState("invalidStateOne"), NewState("cycle"), NewState("invalidStateTwo"))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidStateOne", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "other", "stress"}), "/states/0/state", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidStateTwo", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "other", "stress"}), "/states/2/state", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidStateOne", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "other", "stress"}), "/states/0/state", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidStateTwo", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "other", "stress"}), "/states/2/state", NewMeta()),
 				),
 				Entry("states multiple valid",
 					func(datum *reported.Reported) {
@@ -131,8 +131,8 @@ var _ = Describe("Reported", func() {
 						datum.Type = "invalidType"
 						datum.States = NewStateArray(NewState("invalidState"))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "reportedState"), "/type", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidState", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "other", "stress"}), "/states/0/state", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "reportedState"), "/type", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidState", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "other", "stress"}), "/states/0/state", &types.Meta{Type: "invalidType"}),
 				),
 			)
 		})

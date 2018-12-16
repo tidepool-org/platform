@@ -41,6 +41,8 @@ func New(provider Provider) (*Client, error) {
 	}, nil
 }
 
+// FUTURE: Return ErrorResourceNotFoundWithID(userID) if userID does not exist at all
+
 func (c *Client) List(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.Blobs, error) {
 	if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
 		return nil, err

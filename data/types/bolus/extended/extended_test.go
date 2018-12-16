@@ -8,12 +8,12 @@ import (
 	"github.com/tidepool-org/platform/data/context"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
-	testData "github.com/tidepool-org/platform/data/test"
+	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/bolus"
 	"github.com/tidepool-org/platform/data/types/bolus/extended"
-	testDataTypesBolusExtended "github.com/tidepool-org/platform/data/types/bolus/extended/test"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesBolusExtendedTest "github.com/tidepool-org/platform/data/types/bolus/extended/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
@@ -30,7 +30,7 @@ func NewMeta() interface{} {
 
 func NewTestExtended(sourceTime interface{}, sourceDuration interface{}, sourceDurationExpected interface{}, sourceExtended interface{}, sourceExtendedExpected interface{}) *extended.Extended {
 	datum := extended.New()
-	datum.DeviceID = pointer.FromString(testData.NewDeviceID())
+	datum.DeviceID = pointer.FromString(dataTest.NewDeviceID())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
 	}
@@ -124,7 +124,7 @@ var _ = Describe("Extended", func() {
 					&map[string]interface{}{"time": 0},
 					NewTestExtended(nil, nil, nil, nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
 					}),
 				Entry("parses object that has valid duration",
 					&map[string]interface{}{"duration": 1000000},
@@ -134,7 +134,7 @@ var _ = Describe("Extended", func() {
 					&map[string]interface{}{"duration": "invalid"},
 					NewTestExtended(nil, nil, nil, nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotInteger("invalid"), "/duration", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotInteger("invalid"), "/duration", NewMeta()),
 					}),
 				Entry("parses object that has valid duration expected",
 					&map[string]interface{}{"expectedDuration": 2000000},
@@ -144,7 +144,7 @@ var _ = Describe("Extended", func() {
 					&map[string]interface{}{"expectedDuration": "invalid"},
 					NewTestExtended(nil, nil, nil, nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotInteger("invalid"), "/expectedDuration", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotInteger("invalid"), "/expectedDuration", NewMeta()),
 					}),
 				Entry("parses object that has valid extended",
 					&map[string]interface{}{"extended": 3.6},
@@ -154,7 +154,7 @@ var _ = Describe("Extended", func() {
 					&map[string]interface{}{"extended": "invalid"},
 					NewTestExtended(nil, nil, nil, nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/extended", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/extended", NewMeta()),
 					}),
 				Entry("parses object that has valid extended expected",
 					&map[string]interface{}{"expectedExtended": 7.2},
@@ -164,7 +164,7 @@ var _ = Describe("Extended", func() {
 					&map[string]interface{}{"expectedExtended": "invalid"},
 					NewTestExtended(nil, nil, nil, nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/expectedExtended", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/expectedExtended", NewMeta()),
 					}),
 				Entry("parses object that has multiple valid fields",
 					&map[string]interface{}{"time": "2016-09-06T13:45:58-07:00", "duration": 1000000, "expectedDuration": 2000000, "extended": 3.6, "expectedExtended": 7.2},
@@ -174,11 +174,11 @@ var _ = Describe("Extended", func() {
 					&map[string]interface{}{"time": 0, "duration": "invalid", "expectedDuration": "invalid", "extended": "invalid", "expectedExtended": "invalid"},
 					NewTestExtended(nil, nil, nil, nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
-						testData.ComposeError(service.ErrorTypeNotInteger("invalid"), "/duration", NewMeta()),
-						testData.ComposeError(service.ErrorTypeNotInteger("invalid"), "/expectedDuration", NewMeta()),
-						testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/extended", NewMeta()),
-						testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/expectedExtended", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotInteger("invalid"), "/duration", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotInteger("invalid"), "/expectedDuration", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/extended", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/expectedExtended", NewMeta()),
 					}),
 			)
 		})
@@ -186,31 +186,31 @@ var _ = Describe("Extended", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *extended.Extended), expectedErrors ...error) {
-					datum := testDataTypesBolusExtended.NewExtended()
+					datum := dataTypesBolusExtendedTest.NewExtended()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *extended.Extended) {},
 				),
 				Entry("type missing",
 					func(datum *extended.Extended) { datum.Type = "" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &bolus.Meta{SubType: "square"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &bolus.Meta{SubType: "square"}),
 				),
 				Entry("type invalid",
 					func(datum *extended.Extended) { datum.Type = "invalidType" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "bolus"), "/type", &bolus.Meta{Type: "invalidType", SubType: "square"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "bolus"), "/type", &bolus.Meta{Type: "invalidType", SubType: "square"}),
 				),
 				Entry("type bolus",
 					func(datum *extended.Extended) { datum.Type = "bolus" },
 				),
 				Entry("sub type missing",
 					func(datum *extended.Extended) { datum.SubType = "" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/subType", &bolus.Meta{Type: "bolus"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/subType", &bolus.Meta{Type: "bolus"}),
 				),
 				Entry("sub type invalid",
 					func(datum *extended.Extended) { datum.SubType = "invalidSubType" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "square"), "/subType", &bolus.Meta{Type: "bolus", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "square"), "/subType", &bolus.Meta{Type: "bolus", SubType: "invalidSubType"}),
 				),
 				Entry("sub type square",
 					func(datum *extended.Extended) { datum.SubType = "square" },
@@ -222,37 +222,37 @@ var _ = Describe("Extended", func() {
 						datum.ExtendedExpected = nil
 						datum.ExtendedExpected = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
 				),
 				Entry("duration missing; duration expected out of range (lower)",
 					func(datum *extended.Extended) {
 						datum.Duration = nil
 						datum.DurationExpected = pointer.FromInt(-1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration missing; duration expected in range (lower)",
 					func(datum *extended.Extended) {
 						datum.Duration = nil
 						datum.DurationExpected = pointer.FromInt(0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
 				),
 				Entry("duration missing; duration expected in range (upper)",
 					func(datum *extended.Extended) {
 						datum.Duration = nil
 						datum.DurationExpected = pointer.FromInt(86400000)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
 				),
 				Entry("duration missing; duration expected out of range (upper)",
 					func(datum *extended.Extended) {
 						datum.Duration = nil
 						datum.DurationExpected = pointer.FromInt(86400001)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration out of range (lower); duration expected missing",
 					func(datum *extended.Extended) {
@@ -260,37 +260,37 @@ var _ = Describe("Extended", func() {
 						datum.DurationExpected = nil
 						datum.ExtendedExpected = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/duration", NewMeta()),
 				),
 				Entry("duration out of range (lower); duration expected out of range (lower)",
 					func(datum *extended.Extended) {
 						datum.Duration = pointer.FromInt(-1)
 						datum.DurationExpected = pointer.FromInt(-1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration out of range (lower); duration expected in range (lower)",
 					func(datum *extended.Extended) {
 						datum.Duration = pointer.FromInt(-1)
 						datum.DurationExpected = pointer.FromInt(0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/duration", NewMeta()),
 				),
 				Entry("duration out of range (lower); duration expected in range (upper)",
 					func(datum *extended.Extended) {
 						datum.Duration = pointer.FromInt(-1)
 						datum.DurationExpected = pointer.FromInt(86400000)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/duration", NewMeta()),
 				),
 				Entry("duration out of range (lower); duration expected out of range (upper)",
 					func(datum *extended.Extended) {
 						datum.Duration = pointer.FromInt(-1)
 						datum.DurationExpected = pointer.FromInt(86400001)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration in range (lower); duration expected missing",
 					func(datum *extended.Extended) {
@@ -304,7 +304,7 @@ var _ = Describe("Extended", func() {
 						datum.Duration = pointer.FromInt(0)
 						datum.DurationExpected = pointer.FromInt(-1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration in range (lower); duration expected in range (lower)",
 					func(datum *extended.Extended) {
@@ -323,7 +323,7 @@ var _ = Describe("Extended", func() {
 						datum.Duration = pointer.FromInt(0)
 						datum.DurationExpected = pointer.FromInt(86400001)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration in range (upper); duration expected missing",
 					func(datum *extended.Extended) {
@@ -337,7 +337,7 @@ var _ = Describe("Extended", func() {
 						datum.Duration = pointer.FromInt(86400000)
 						datum.DurationExpected = pointer.FromInt(604799999)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604799999, 86400000, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604799999, 86400000, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration in range (upper); duration expected in range (lower)",
 					func(datum *extended.Extended) {
@@ -356,7 +356,7 @@ var _ = Describe("Extended", func() {
 						datum.Duration = pointer.FromInt(86400000)
 						datum.DurationExpected = pointer.FromInt(86400001)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 86400000, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 86400000, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration out of range (upper); duration expected missing",
 					func(datum *extended.Extended) {
@@ -364,37 +364,37 @@ var _ = Describe("Extended", func() {
 						datum.DurationExpected = nil
 						datum.ExtendedExpected = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/duration", NewMeta()),
 				),
 				Entry("duration out of range (upper); duration expected out of range (lower)",
 					func(datum *extended.Extended) {
 						datum.Duration = pointer.FromInt(86400001)
 						datum.DurationExpected = pointer.FromInt(-1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration out of range (upper); duration expected in range (lower)",
 					func(datum *extended.Extended) {
 						datum.Duration = pointer.FromInt(86400001)
 						datum.DurationExpected = pointer.FromInt(0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/duration", NewMeta()),
 				),
 				Entry("duration out of range (upper); duration expected in range (upper)",
 					func(datum *extended.Extended) {
 						datum.Duration = pointer.FromInt(86400001)
 						datum.DurationExpected = pointer.FromInt(86400000)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/duration", NewMeta()),
 				),
 				Entry("duration out of range (upper); duration expected out of range (upper)",
 					func(datum *extended.Extended) {
 						datum.Duration = pointer.FromInt(86400001)
 						datum.DurationExpected = pointer.FromInt(86400001)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("extended missing; extended expected missing",
 					func(datum *extended.Extended) {
@@ -402,37 +402,37 @@ var _ = Describe("Extended", func() {
 						datum.Extended = nil
 						datum.ExtendedExpected = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
 				),
 				Entry("extended missing; extended expected out of range (lower)",
 					func(datum *extended.Extended) {
 						datum.Extended = nil
 						datum.ExtendedExpected = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("extended missing; extended expected in range (lower)",
 					func(datum *extended.Extended) {
 						datum.Extended = nil
 						datum.ExtendedExpected = pointer.FromFloat64(0.0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
 				),
 				Entry("extended missing; extended expected in range (upper)",
 					func(datum *extended.Extended) {
 						datum.Extended = nil
 						datum.ExtendedExpected = pointer.FromFloat64(100.0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
 				),
 				Entry("extended missing; extended expected out of range (upper)",
 					func(datum *extended.Extended) {
 						datum.Extended = nil
 						datum.ExtendedExpected = pointer.FromFloat64(100.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("extended out of range (lower); extended expected missing",
 					func(datum *extended.Extended) {
@@ -440,37 +440,37 @@ var _ = Describe("Extended", func() {
 						datum.Extended = pointer.FromFloat64(-0.1)
 						datum.ExtendedExpected = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/extended", NewMeta()),
 				),
 				Entry("extended out of range (lower); extended expected out of range (lower)",
 					func(datum *extended.Extended) {
 						datum.Extended = pointer.FromFloat64(-0.1)
 						datum.ExtendedExpected = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/extended", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("extended out of range (lower); extended expected in range (lower)",
 					func(datum *extended.Extended) {
 						datum.Extended = pointer.FromFloat64(-0.1)
 						datum.ExtendedExpected = pointer.FromFloat64(0.0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/extended", NewMeta()),
 				),
 				Entry("extended out of range (lower); extended expected in range (upper)",
 					func(datum *extended.Extended) {
 						datum.Extended = pointer.FromFloat64(-0.1)
 						datum.ExtendedExpected = pointer.FromFloat64(100.0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/extended", NewMeta()),
 				),
 				Entry("extended out of range (lower); extended expected out of range (upper)",
 					func(datum *extended.Extended) {
 						datum.Extended = pointer.FromFloat64(-0.1)
 						datum.ExtendedExpected = pointer.FromFloat64(100.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/extended", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("extended in range (lower); extended expected missing",
 					func(datum *extended.Extended) {
@@ -478,14 +478,14 @@ var _ = Describe("Extended", func() {
 						datum.Extended = pointer.FromFloat64(0.0)
 						datum.ExtendedExpected = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedExtended", NewMeta()),
 				),
 				Entry("extended in range (lower); extended expected out of range (lower)",
 					func(datum *extended.Extended) {
 						datum.Extended = pointer.FromFloat64(0.0)
 						datum.ExtendedExpected = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("extended in range (lower); extended expected in range (lower)",
 					func(datum *extended.Extended) {
@@ -504,7 +504,7 @@ var _ = Describe("Extended", func() {
 						datum.Extended = pointer.FromFloat64(0.0)
 						datum.ExtendedExpected = pointer.FromFloat64(100.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("extended in range (upper); extended expected missing",
 					func(datum *extended.Extended) {
@@ -518,7 +518,7 @@ var _ = Describe("Extended", func() {
 						datum.Extended = pointer.FromFloat64(100.0)
 						datum.ExtendedExpected = pointer.FromFloat64(99.9)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(99.9, 100.0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(99.9, 100.0, 100.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("extended in range (upper); extended expected in range (lower)",
 					func(datum *extended.Extended) {
@@ -537,7 +537,7 @@ var _ = Describe("Extended", func() {
 						datum.Extended = pointer.FromFloat64(100.0)
 						datum.ExtendedExpected = pointer.FromFloat64(100.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 100.0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 100.0, 100.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("extended out of range (upper); extended expected missing",
 					func(datum *extended.Extended) {
@@ -545,37 +545,37 @@ var _ = Describe("Extended", func() {
 						datum.Extended = pointer.FromFloat64(100.1)
 						datum.ExtendedExpected = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/extended", NewMeta()),
 				),
 				Entry("extended out of range (upper); extended expected out of range (lower)",
 					func(datum *extended.Extended) {
 						datum.Extended = pointer.FromFloat64(100.1)
 						datum.ExtendedExpected = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/extended", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("extended out of range (upper); extended expected in range (lower)",
 					func(datum *extended.Extended) {
 						datum.Extended = pointer.FromFloat64(100.1)
 						datum.ExtendedExpected = pointer.FromFloat64(0.0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/extended", NewMeta()),
 				),
 				Entry("extended out of range (upper); extended expected in range (upper)",
 					func(datum *extended.Extended) {
 						datum.Extended = pointer.FromFloat64(100.1)
 						datum.ExtendedExpected = pointer.FromFloat64(100.0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/extended", NewMeta()),
 				),
 				Entry("extended out of range (upper); extended expected out of range (upper)",
 					func(datum *extended.Extended) {
 						datum.Extended = pointer.FromFloat64(100.1)
 						datum.ExtendedExpected = pointer.FromFloat64(100.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/extended", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
 				),
 
 				Entry("duration missing; extended expected missing",
@@ -589,14 +589,14 @@ var _ = Describe("Extended", func() {
 						datum.DurationExpected = nil
 						datum.ExtendedExpected = pointer.FromFloat64(100.0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration exists; extended expected missing",
 					func(datum *extended.Extended) {
 						datum.DurationExpected = pointer.FromInt(86400000)
 						datum.ExtendedExpected = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration exists; extended expected exists",
 					func(datum *extended.Extended) {
@@ -613,12 +613,12 @@ var _ = Describe("Extended", func() {
 						datum.Extended = nil
 						datum.ExtendedExpected = pointer.FromFloat64(100.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "bolus"), "/type", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "square"), "/subType", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0, 100), "/expectedExtended", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "bolus"), "/type", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "square"), "/subType", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0, 100), "/expectedExtended", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
 				),
 			)
 		})
@@ -627,9 +627,9 @@ var _ = Describe("Extended", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *extended.Extended)) {
 					for _, origin := range structure.Origins() {
-						datum := testDataTypesBolusExtended.NewExtended()
+						datum := dataTypesBolusExtendedTest.NewExtended()
 						mutator(datum)
-						expectedDatum := testDataTypesBolusExtended.CloneExtended(datum)
+						expectedDatum := dataTypesBolusExtendedTest.CloneExtended(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))

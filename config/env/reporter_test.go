@@ -9,7 +9,7 @@ import (
 
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/config/env"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 )
 
 var _ = Describe("Reporter", func() {
@@ -64,7 +64,7 @@ var _ = Describe("Reporter", func() {
 		Context("Get", func() {
 			It("returns an error if not found", func() {
 				value, err := reporter.Get("NOTFOXTROT")
-				testErrors.ExpectEqual(err, config.ErrorKeyNotFound("TIDEPOOL_TEST_NOTFOXTROT"))
+				errorsTest.ExpectEqual(err, config.ErrorKeyNotFound("TIDEPOOL_TEST_NOTFOXTROT"))
 				Expect(value).To(BeEmpty())
 			})
 
@@ -128,7 +128,7 @@ var _ = Describe("Reporter", func() {
 				Expect(syscall.Setenv("TIDEPOOL_TEST_DEE", "DDD")).To(Succeed())
 				value, err := reporter.WithScopes("ONE", "TWO", "THREE").Get("DEE")
 				Expect(syscall.Unsetenv("TIDEPOOL_TEST_DEE")).To(Succeed())
-				testErrors.ExpectEqual(err, config.ErrorKeyNotFound("TIDEPOOL_TEST_ONE_TWO_THREE_DEE"))
+				errorsTest.ExpectEqual(err, config.ErrorKeyNotFound("TIDEPOOL_TEST_ONE_TWO_THREE_DEE"))
 				Expect(value).To(BeEmpty())
 			})
 

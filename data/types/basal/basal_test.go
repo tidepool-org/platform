@@ -7,11 +7,11 @@ import (
 
 	"github.com/tidepool-org/platform/data/context"
 	"github.com/tidepool-org/platform/data/parser"
-	testData "github.com/tidepool-org/platform/data/test"
+	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/basal"
-	testDataTypesBasal "github.com/tidepool-org/platform/data/types/basal/test"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesBasalTest "github.com/tidepool-org/platform/data/types/basal/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
@@ -21,7 +21,7 @@ import (
 
 func NewTestBasal(sourceTime interface{}, sourceDeliveryType interface{}) *basal.Basal {
 	datum := basal.New("")
-	datum.DeviceID = pointer.FromString(testData.NewDeviceID())
+	datum.DeviceID = pointer.FromString(dataTest.NewDeviceID())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
 	}
@@ -38,7 +38,7 @@ var _ = Describe("Basal", func() {
 
 	Context("New", func() {
 		It("creates a new datum with all values initialized", func() {
-			deliveryType := testDataTypes.NewType()
+			deliveryType := dataTypesTest.NewType()
 			datum := basal.New(deliveryType)
 			Expect(datum.Type).To(Equal("basal"))
 			Expect(datum.DeliveryType).To(Equal(deliveryType))
@@ -50,7 +50,7 @@ var _ = Describe("Basal", func() {
 		var datum basal.Basal
 
 		BeforeEach(func() {
-			deliveryType = testDataTypes.NewType()
+			deliveryType = dataTypesTest.NewType()
 			datum = basal.New(deliveryType)
 		})
 
@@ -98,7 +98,7 @@ var _ = Describe("Basal", func() {
 					&map[string]interface{}{"time": 0},
 					NewTestBasal(nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(0), "/time", &basal.Meta{Type: "basal"}),
+						dataTest.ComposeError(service.ErrorTypeNotString(0), "/time", &basal.Meta{Type: "basal"}),
 					}),
 				Entry("does not parse delivery type",
 					&map[string]interface{}{"deliveryType": "scheduled"},
@@ -112,7 +112,7 @@ var _ = Describe("Basal", func() {
 					&map[string]interface{}{"time": 0, "deliveryType": 0},
 					NewTestBasal(nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(0), "/time", &basal.Meta{Type: "basal"}),
+						dataTest.ComposeError(service.ErrorTypeNotString(0), "/time", &basal.Meta{Type: "basal"}),
 					}),
 			)
 		})
@@ -120,38 +120,38 @@ var _ = Describe("Basal", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *basal.Basal), expectedErrors ...error) {
-					datum := testDataTypesBasal.NewBasal()
+					datum := dataTypesBasalTest.NewBasal()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *basal.Basal) {},
 				),
 				Entry("type missing",
 					func(datum *basal.Basal) { datum.Type = "" },
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/type"),
 				),
 				Entry("type invalid",
 					func(datum *basal.Basal) { datum.Type = "invalid" },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "basal"), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "basal"), "/type"),
 				),
 				Entry("type basal",
 					func(datum *basal.Basal) { datum.Type = "basal" },
 				),
 				Entry("delivery type missing",
 					func(datum *basal.Basal) { datum.DeliveryType = "" },
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/deliveryType"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/deliveryType"),
 				),
 				Entry("delivery type valid",
-					func(datum *basal.Basal) { datum.DeliveryType = testDataTypes.NewType() },
+					func(datum *basal.Basal) { datum.DeliveryType = dataTypesTest.NewType() },
 				),
 				Entry("multiple errors",
 					func(datum *basal.Basal) {
 						datum.Type = "invalid"
 						datum.DeliveryType = ""
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "basal"), "/type"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/deliveryType"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "basal"), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/deliveryType"),
 				),
 			)
 		})
@@ -160,7 +160,7 @@ var _ = Describe("Basal", func() {
 			var datum *basal.Basal
 
 			BeforeEach(func() {
-				datum = testDataTypesBasal.NewBasal()
+				datum = dataTypesBasalTest.NewBasal()
 			})
 
 			It("returns error if user id is missing", func() {

@@ -7,10 +7,10 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/common/location"
-	testDataTypesCommonLocation "github.com/tidepool-org/platform/data/types/common/location/test"
-	testDataTypesCommonOrigin "github.com/tidepool-org/platform/data/types/common/origin/test"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesCommonLocationTest "github.com/tidepool-org/platform/data/types/common/location/test"
+	dataTypesCommonOriginTest "github.com/tidepool-org/platform/data/types/common/origin/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -43,9 +43,9 @@ var _ = Describe("GPS", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *location.GPS), expectedErrors ...error) {
-					datum := testDataTypesCommonLocation.NewGPS()
+					datum := dataTypesCommonLocationTest.NewGPS()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *location.GPS) {},
@@ -55,11 +55,11 @@ var _ = Describe("GPS", func() {
 				),
 				Entry("elevation invalid",
 					func(datum *location.GPS) { datum.Elevation.Units = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/elevation/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/elevation/units"),
 				),
 				Entry("elevation valid",
 					func(datum *location.GPS) {
-						datum.Elevation = testDataTypesCommonLocation.NewElevation(pointer.FromString("feet"))
+						datum.Elevation = dataTypesCommonLocationTest.NewElevation(pointer.FromString("feet"))
 					},
 				),
 				Entry("floor missing",
@@ -67,7 +67,7 @@ var _ = Describe("GPS", func() {
 				),
 				Entry("floor out of range (lower)",
 					func(datum *location.GPS) { datum.Floor = pointer.FromInt(-1001) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-1001, -1000, 1000), "/floor"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1001, -1000, 1000), "/floor"),
 				),
 				Entry("floor in range (lower)",
 					func(datum *location.GPS) { datum.Floor = pointer.FromInt(0) },
@@ -77,62 +77,62 @@ var _ = Describe("GPS", func() {
 				),
 				Entry("floor out of range (upper)",
 					func(datum *location.GPS) { datum.Floor = pointer.FromInt(1001) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(1001, -1000, 1000), "/floor"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(1001, -1000, 1000), "/floor"),
 				),
 				Entry("horizontal accuracy missing",
 					func(datum *location.GPS) { datum.HorizontalAccuracy = nil },
 				),
 				Entry("horizontal accuracy invalid",
 					func(datum *location.GPS) { datum.HorizontalAccuracy.Units = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/horizontalAccuracy/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/horizontalAccuracy/units"),
 				),
 				Entry("horizontal accuracy valid",
 					func(datum *location.GPS) {
-						datum.HorizontalAccuracy = testDataTypesCommonLocation.NewAccuracy(pointer.FromString("feet"))
+						datum.HorizontalAccuracy = dataTypesCommonLocationTest.NewAccuracy(pointer.FromString("feet"))
 					},
 				),
 				Entry("latitude missing",
 					func(datum *location.GPS) { datum.Latitude = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/latitude"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/latitude"),
 				),
 				Entry("latitude invalid",
 					func(datum *location.GPS) { datum.Latitude.Units = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/latitude/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/latitude/units"),
 				),
 				Entry("latitude valid",
-					func(datum *location.GPS) { datum.Latitude = testDataTypesCommonLocation.NewLatitude() },
+					func(datum *location.GPS) { datum.Latitude = dataTypesCommonLocationTest.NewLatitude() },
 				),
 				Entry("longitude missing",
 					func(datum *location.GPS) { datum.Longitude = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/longitude"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/longitude"),
 				),
 				Entry("longitude invalid",
 					func(datum *location.GPS) { datum.Longitude.Units = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/longitude/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/longitude/units"),
 				),
 				Entry("longitude valid",
-					func(datum *location.GPS) { datum.Longitude = testDataTypesCommonLocation.NewLongitude() },
+					func(datum *location.GPS) { datum.Longitude = dataTypesCommonLocationTest.NewLongitude() },
 				),
 				Entry("origin missing",
 					func(datum *location.GPS) { datum.Origin = nil },
 				),
 				Entry("origin invalid",
 					func(datum *location.GPS) { datum.Origin.Name = pointer.FromString("") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/origin/name"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/origin/name"),
 				),
 				Entry("origin valid",
-					func(datum *location.GPS) { datum.Origin = testDataTypesCommonOrigin.NewOrigin() },
+					func(datum *location.GPS) { datum.Origin = dataTypesCommonOriginTest.NewOrigin() },
 				),
 				Entry("vertical accuracy missing",
 					func(datum *location.GPS) { datum.VerticalAccuracy = nil },
 				),
 				Entry("vertical accuracy invalid",
 					func(datum *location.GPS) { datum.VerticalAccuracy.Units = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/verticalAccuracy/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/verticalAccuracy/units"),
 				),
 				Entry("vertical accuracy valid",
 					func(datum *location.GPS) {
-						datum.VerticalAccuracy = testDataTypesCommonLocation.NewAccuracy(pointer.FromString("feet"))
+						datum.VerticalAccuracy = dataTypesCommonLocationTest.NewAccuracy(pointer.FromString("feet"))
 					},
 				),
 				Entry("multiple errors",
@@ -145,13 +145,13 @@ var _ = Describe("GPS", func() {
 						datum.Origin.Name = pointer.FromString("")
 						datum.VerticalAccuracy.Units = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/elevation/units"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-1001, -1000, 1000), "/floor"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/horizontalAccuracy/units"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/latitude/units"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/longitude/units"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/origin/name"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/verticalAccuracy/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/elevation/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1001, -1000, 1000), "/floor"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/horizontalAccuracy/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/latitude/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/longitude/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/origin/name"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/verticalAccuracy/units"),
 				),
 			)
 		})
@@ -160,9 +160,9 @@ var _ = Describe("GPS", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *location.GPS)) {
 					for _, origin := range structure.Origins() {
-						datum := testDataTypesCommonLocation.NewGPS()
+						datum := dataTypesCommonLocationTest.NewGPS()
 						mutator(datum)
-						expectedDatum := testDataTypesCommonLocation.CloneGPS(datum)
+						expectedDatum := dataTypesCommonLocationTest.CloneGPS(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))

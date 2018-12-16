@@ -10,7 +10,7 @@ import (
 	structureTest "github.com/tidepool-org/platform/structure/test"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
-	testHTTP "github.com/tidepool-org/platform/test/http"
+	testHttp "github.com/tidepool-org/platform/test/http"
 )
 
 var _ = Describe("Validate", func() {
@@ -141,8 +141,8 @@ var _ = Describe("Validate", func() {
 			Entry("is not parsable", "http:::", net.ErrorValueStringAsURLNotValid("http:::")),
 			Entry("is relative", "/relative/path", net.ErrorValueStringAsURLNotValid("/relative/path")),
 			Entry("has host missing", "http:///nohost", net.ErrorValueStringAsURLNotValid("http:///nohost")),
-			Entry("has length in range (upper)", "http://"+test.NewString(2040, testHTTP.CharsetPath)),
-			Entry("has length out of range (upper)", "http://"+test.NewString(2041, testHTTP.CharsetPath), structureValidator.ErrorLengthNotLessThanOrEqualTo(2048, 2047)),
+			Entry("has length in range (upper)", "http://"+test.NewString(2040, testHttp.CharsetPath)),
+			Entry("has length out of range (upper)", "http://"+test.NewString(2041, testHttp.CharsetPath), structureValidator.ErrorLengthNotLessThanOrEqualTo(2048, 2047)),
 		)
 	})
 

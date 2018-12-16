@@ -8,12 +8,12 @@ import (
 	"github.com/tidepool-org/platform/data/context"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/parser"
-	testData "github.com/tidepool-org/platform/data/test"
+	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/bolus"
 	"github.com/tidepool-org/platform/data/types/bolus/combination"
-	testDataTypesBolusCombination "github.com/tidepool-org/platform/data/types/bolus/combination/test"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesBolusCombinationTest "github.com/tidepool-org/platform/data/types/bolus/combination/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/service"
@@ -31,7 +31,7 @@ func NewMeta() interface{} {
 
 func NewTestCombination(sourceTime interface{}, sourceDuration interface{}, sourceDurationExpected interface{}, sourceExtended interface{}, sourceExtendedExpected interface{}, sourceNormal interface{}, sourceNormalExpected interface{}) *combination.Combination {
 	datum := combination.New()
-	datum.DeviceID = pointer.FromString(testData.NewDeviceID())
+	datum.DeviceID = pointer.FromString(dataTest.NewDeviceID())
 	if val, ok := sourceTime.(string); ok {
 		datum.Time = &val
 	}
@@ -143,7 +143,7 @@ var _ = Describe("Combination", func() {
 					&map[string]interface{}{"time": 0},
 					NewTestCombination(nil, nil, nil, nil, nil, nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
 					}),
 				Entry("parses object that has valid duration",
 					&map[string]interface{}{"duration": 1000000},
@@ -153,7 +153,7 @@ var _ = Describe("Combination", func() {
 					&map[string]interface{}{"duration": "invalid"},
 					NewTestCombination(nil, nil, nil, nil, nil, nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotInteger("invalid"), "/duration", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotInteger("invalid"), "/duration", NewMeta()),
 					}),
 				Entry("parses object that has valid duration expected",
 					&map[string]interface{}{"expectedDuration": 2000000},
@@ -163,7 +163,7 @@ var _ = Describe("Combination", func() {
 					&map[string]interface{}{"expectedDuration": "invalid"},
 					NewTestCombination(nil, nil, nil, nil, nil, nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotInteger("invalid"), "/expectedDuration", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotInteger("invalid"), "/expectedDuration", NewMeta()),
 					}),
 				Entry("parses object that has valid extended",
 					&map[string]interface{}{"extended": 3.6},
@@ -173,7 +173,7 @@ var _ = Describe("Combination", func() {
 					&map[string]interface{}{"extended": "invalid"},
 					NewTestCombination(nil, nil, nil, nil, nil, nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/extended", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/extended", NewMeta()),
 					}),
 				Entry("parses object that has valid extended expected",
 					&map[string]interface{}{"expectedExtended": 7.2},
@@ -183,7 +183,7 @@ var _ = Describe("Combination", func() {
 					&map[string]interface{}{"expectedExtended": "invalid"},
 					NewTestCombination(nil, nil, nil, nil, nil, nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/expectedExtended", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/expectedExtended", NewMeta()),
 					}),
 				Entry("parses object that has valid normal",
 					&map[string]interface{}{"normal": 5.4},
@@ -193,7 +193,7 @@ var _ = Describe("Combination", func() {
 					&map[string]interface{}{"normal": "invalid"},
 					NewTestCombination(nil, nil, nil, nil, nil, nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/normal", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/normal", NewMeta()),
 					}),
 				Entry("parses object that has valid normal expected",
 					&map[string]interface{}{"expectedNormal": 9.1},
@@ -203,7 +203,7 @@ var _ = Describe("Combination", func() {
 					&map[string]interface{}{"expectedNormal": "invalid"},
 					NewTestCombination(nil, nil, nil, nil, nil, nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/expectedNormal", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/expectedNormal", NewMeta()),
 					}),
 				Entry("parses object that has multiple valid fields",
 					&map[string]interface{}{"time": "2016-09-06T13:45:58-07:00", "duration": 1000000, "expectedDuration": 2000000, "extended": 3.6, "expectedExtended": 7.2, "normal": 5.4, "expectedNormal": 9.1},
@@ -213,13 +213,13 @@ var _ = Describe("Combination", func() {
 					&map[string]interface{}{"time": 0, "duration": "invalid", "expectedDuration": "invalid", "extended": "invalid", "expectedExtended": "invalid", "normal": "invalid", "expectedNormal": "invalid"},
 					NewTestCombination(nil, nil, nil, nil, nil, nil, nil),
 					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
-						testData.ComposeError(service.ErrorTypeNotInteger("invalid"), "/duration", NewMeta()),
-						testData.ComposeError(service.ErrorTypeNotInteger("invalid"), "/expectedDuration", NewMeta()),
-						testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/extended", NewMeta()),
-						testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/expectedExtended", NewMeta()),
-						testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/normal", NewMeta()),
-						testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/expectedNormal", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotInteger("invalid"), "/duration", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotInteger("invalid"), "/expectedDuration", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/extended", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/expectedExtended", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/normal", NewMeta()),
+						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/expectedNormal", NewMeta()),
 					}),
 			)
 		})
@@ -227,31 +227,31 @@ var _ = Describe("Combination", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *combination.Combination), expectedErrors ...error) {
-					datum := testDataTypesBolusCombination.NewCombination()
+					datum := dataTypesBolusCombinationTest.NewCombination()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *combination.Combination) {},
 				),
 				Entry("type missing",
 					func(datum *combination.Combination) { datum.Type = "" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &bolus.Meta{SubType: "dual/square"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &bolus.Meta{SubType: "dual/square"}),
 				),
 				Entry("type invalid",
 					func(datum *combination.Combination) { datum.Type = "invalidType" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "bolus"), "/type", &bolus.Meta{Type: "invalidType", SubType: "dual/square"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "bolus"), "/type", &bolus.Meta{Type: "invalidType", SubType: "dual/square"}),
 				),
 				Entry("type bolus",
 					func(datum *combination.Combination) { datum.Type = "bolus" },
 				),
 				Entry("sub type missing",
 					func(datum *combination.Combination) { datum.SubType = "" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/subType", &bolus.Meta{Type: "bolus"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/subType", &bolus.Meta{Type: "bolus"}),
 				),
 				Entry("sub type invalid",
 					func(datum *combination.Combination) { datum.SubType = "invalidSubType" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "dual/square"), "/subType", &bolus.Meta{Type: "bolus", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "dual/square"), "/subType", &bolus.Meta{Type: "bolus", SubType: "invalidSubType"}),
 				),
 				Entry("sub type dual/square",
 					func(datum *combination.Combination) { datum.SubType = "dual/square" },
@@ -262,37 +262,37 @@ var _ = Describe("Combination", func() {
 						datum.DurationExpected = nil
 						datum.ExtendedExpected = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
 				),
 				Entry("normal expected missing; duration missing; duration expected out of range (lower)",
 					func(datum *combination.Combination) {
 						datum.Duration = nil
 						datum.DurationExpected = pointer.FromInt(-1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("normal expected missing; duration missing; duration expected in range (lower)",
 					func(datum *combination.Combination) {
 						datum.Duration = nil
 						datum.DurationExpected = pointer.FromInt(0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
 				),
 				Entry("normal expected missing; duration missing; duration expected in range (upper)",
 					func(datum *combination.Combination) {
 						datum.Duration = nil
 						datum.DurationExpected = pointer.FromInt(86400000)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
 				),
 				Entry("normal expected missing; duration missing; duration expected out of range (upper)",
 					func(datum *combination.Combination) {
 						datum.Duration = nil
 						datum.DurationExpected = pointer.FromInt(86400001)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("normal expected missing; duration out of range (lower); duration expected missing",
 					func(datum *combination.Combination) {
@@ -300,37 +300,37 @@ var _ = Describe("Combination", func() {
 						datum.DurationExpected = nil
 						datum.ExtendedExpected = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/duration", NewMeta()),
 				),
 				Entry("normal expected missing; duration out of range (lower); duration expected out of range (lower)",
 					func(datum *combination.Combination) {
 						datum.Duration = pointer.FromInt(-1)
 						datum.DurationExpected = pointer.FromInt(-1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("normal expected missing; duration out of range (lower); duration expected in range (lower)",
 					func(datum *combination.Combination) {
 						datum.Duration = pointer.FromInt(-1)
 						datum.DurationExpected = pointer.FromInt(0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/duration", NewMeta()),
 				),
 				Entry("normal expected missing; duration out of range (lower); duration expected in range (upper)",
 					func(datum *combination.Combination) {
 						datum.Duration = pointer.FromInt(-1)
 						datum.DurationExpected = pointer.FromInt(86400000)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/duration", NewMeta()),
 				),
 				Entry("normal expected missing; duration out of range (lower); duration expected out of range (upper)",
 					func(datum *combination.Combination) {
 						datum.Duration = pointer.FromInt(-1)
 						datum.DurationExpected = pointer.FromInt(86400001)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("normal expected missing; duration in range (lower); duration expected missing",
 					func(datum *combination.Combination) {
@@ -344,7 +344,7 @@ var _ = Describe("Combination", func() {
 						datum.Duration = pointer.FromInt(0)
 						datum.DurationExpected = pointer.FromInt(-1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("normal expected missing; duration in range (lower); duration expected in range (lower)",
 					func(datum *combination.Combination) {
@@ -363,7 +363,7 @@ var _ = Describe("Combination", func() {
 						datum.Duration = pointer.FromInt(0)
 						datum.DurationExpected = pointer.FromInt(86400001)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("normal expected missing; duration in range (upper); duration expected missing",
 					func(datum *combination.Combination) {
@@ -377,7 +377,7 @@ var _ = Describe("Combination", func() {
 						datum.Duration = pointer.FromInt(86400000)
 						datum.DurationExpected = pointer.FromInt(86399999)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86399999, 86400000, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86399999, 86400000, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("normal expected missing; duration in range (upper); duration expected in range (lower)",
 					func(datum *combination.Combination) {
@@ -396,7 +396,7 @@ var _ = Describe("Combination", func() {
 						datum.Duration = pointer.FromInt(86400000)
 						datum.DurationExpected = pointer.FromInt(86400001)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 86400000, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 86400000, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("normal expected missing; duration out of range (upper); duration expected missing",
 					func(datum *combination.Combination) {
@@ -404,37 +404,37 @@ var _ = Describe("Combination", func() {
 						datum.DurationExpected = nil
 						datum.ExtendedExpected = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/duration", NewMeta()),
 				),
 				Entry("normal expected missing; duration out of range (upper); duration expected out of range (lower)",
 					func(datum *combination.Combination) {
 						datum.Duration = pointer.FromInt(86400001)
 						datum.DurationExpected = pointer.FromInt(-1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("normal expected missing; duration out of range (upper); duration expected in range (lower)",
 					func(datum *combination.Combination) {
 						datum.Duration = pointer.FromInt(86400001)
 						datum.DurationExpected = pointer.FromInt(0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/duration", NewMeta()),
 				),
 				Entry("normal expected missing; duration out of range (upper); duration expected in range (upper)",
 					func(datum *combination.Combination) {
 						datum.Duration = pointer.FromInt(86400001)
 						datum.DurationExpected = pointer.FromInt(86400000)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/duration", NewMeta()),
 				),
 				Entry("normal expected missing; duration out of range (upper); duration expected out of range (upper)",
 					func(datum *combination.Combination) {
 						datum.Duration = pointer.FromInt(86400001)
 						datum.DurationExpected = pointer.FromInt(86400001)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("normal expected missing; extended missing; extended expected missing",
 					func(datum *combination.Combination) {
@@ -442,37 +442,37 @@ var _ = Describe("Combination", func() {
 						datum.Extended = nil
 						datum.ExtendedExpected = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
 				),
 				Entry("normal expected missing; extended missing; extended expected out of range (lower)",
 					func(datum *combination.Combination) {
 						datum.Extended = nil
 						datum.ExtendedExpected = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("normal expected missing; extended missing; extended expected in range (lower)",
 					func(datum *combination.Combination) {
 						datum.Extended = nil
 						datum.ExtendedExpected = pointer.FromFloat64(0.0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
 				),
 				Entry("normal expected missing; extended missing; extended expected in range (upper)",
 					func(datum *combination.Combination) {
 						datum.Extended = nil
 						datum.ExtendedExpected = pointer.FromFloat64(100.0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
 				),
 				Entry("normal expected missing; extended missing; extended expected out of range (upper)",
 					func(datum *combination.Combination) {
 						datum.Extended = nil
 						datum.ExtendedExpected = pointer.FromFloat64(100.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("normal expected missing; extended out of range (lower); extended expected missing",
 					func(datum *combination.Combination) {
@@ -480,37 +480,37 @@ var _ = Describe("Combination", func() {
 						datum.Extended = pointer.FromFloat64(-0.1)
 						datum.ExtendedExpected = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/extended", NewMeta()),
 				),
 				Entry("normal expected missing; extended out of range (lower); extended expected out of range (lower)",
 					func(datum *combination.Combination) {
 						datum.Extended = pointer.FromFloat64(-0.1)
 						datum.ExtendedExpected = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/extended", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("normal expected missing; extended out of range (lower); extended expected in range (lower)",
 					func(datum *combination.Combination) {
 						datum.Extended = pointer.FromFloat64(-0.1)
 						datum.ExtendedExpected = pointer.FromFloat64(0.0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/extended", NewMeta()),
 				),
 				Entry("normal expected missing; extended out of range (lower); extended expected in range (upper)",
 					func(datum *combination.Combination) {
 						datum.Extended = pointer.FromFloat64(-0.1)
 						datum.ExtendedExpected = pointer.FromFloat64(100.0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/extended", NewMeta()),
 				),
 				Entry("normal expected missing; extended out of range (lower); extended expected out of range (upper)",
 					func(datum *combination.Combination) {
 						datum.Extended = pointer.FromFloat64(-0.1)
 						datum.ExtendedExpected = pointer.FromFloat64(100.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/extended", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("normal expected missing; extended in range (lower); extended expected missing",
 					func(datum *combination.Combination) {
@@ -518,14 +518,14 @@ var _ = Describe("Combination", func() {
 						datum.Extended = pointer.FromFloat64(0.0)
 						datum.ExtendedExpected = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedExtended", NewMeta()),
 				),
 				Entry("normal expected missing; extended in range (lower); extended expected out of range (lower)",
 					func(datum *combination.Combination) {
 						datum.Extended = pointer.FromFloat64(0.0)
 						datum.ExtendedExpected = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("normal expected missing; extended in range (lower); extended expected in range (lower)",
 					func(datum *combination.Combination) {
@@ -544,7 +544,7 @@ var _ = Describe("Combination", func() {
 						datum.Extended = pointer.FromFloat64(0.0)
 						datum.ExtendedExpected = pointer.FromFloat64(100.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("normal expected missing; extended in range (upper); extended expected missing",
 					func(datum *combination.Combination) {
@@ -558,7 +558,7 @@ var _ = Describe("Combination", func() {
 						datum.Extended = pointer.FromFloat64(100.0)
 						datum.ExtendedExpected = pointer.FromFloat64(99.9)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(99.9, 100.0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(99.9, 100.0, 100.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("normal expected missing; extended in range (upper); extended expected in range (lower)",
 					func(datum *combination.Combination) {
@@ -577,7 +577,7 @@ var _ = Describe("Combination", func() {
 						datum.Extended = pointer.FromFloat64(100.0)
 						datum.ExtendedExpected = pointer.FromFloat64(100.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 100.0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 100.0, 100.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("normal expected missing; extended out of range (upper); extended expected missing",
 					func(datum *combination.Combination) {
@@ -585,37 +585,37 @@ var _ = Describe("Combination", func() {
 						datum.Extended = pointer.FromFloat64(100.1)
 						datum.ExtendedExpected = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/extended", NewMeta()),
 				),
 				Entry("normal expected missing; extended out of range (upper); extended expected out of range (lower)",
 					func(datum *combination.Combination) {
 						datum.Extended = pointer.FromFloat64(100.1)
 						datum.ExtendedExpected = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/extended", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("normal expected missing; extended out of range (upper); extended expected in range (lower)",
 					func(datum *combination.Combination) {
 						datum.Extended = pointer.FromFloat64(100.1)
 						datum.ExtendedExpected = pointer.FromFloat64(0.0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/extended", NewMeta()),
 				),
 				Entry("normal expected missing; extended out of range (upper); extended expected in range (upper)",
 					func(datum *combination.Combination) {
 						datum.Extended = pointer.FromFloat64(100.1)
 						datum.ExtendedExpected = pointer.FromFloat64(100.0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/extended", NewMeta()),
 				),
 				Entry("normal expected missing; extended out of range (upper); extended expected out of range (upper)",
 					func(datum *combination.Combination) {
 						datum.Extended = pointer.FromFloat64(100.1)
 						datum.ExtendedExpected = pointer.FromFloat64(100.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/extended", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("normal expected missing; duration missing; extended expected missing",
 					func(datum *combination.Combination) {
@@ -629,14 +629,14 @@ var _ = Describe("Combination", func() {
 						datum.DurationExpected = nil
 						datum.NormalExpected = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedDuration", NewMeta()),
 				),
 				Entry("normal expected missing; duration exists; extended expected missing",
 					func(datum *combination.Combination) {
 						datum.ExtendedExpected = nil
 						datum.NormalExpected = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/expectedDuration", NewMeta()),
 				),
 				Entry("normal expected missing; duration exists; extended expected exists",
 					func(datum *combination.Combination) {
@@ -651,8 +651,8 @@ var _ = Describe("Combination", func() {
 						datum.Extended = pointer.FromFloat64(0.0)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedDuration", NewMeta()),
 				),
 				Entry("normal expected exists; duration missing; duration expected out of range (lower)",
 					func(datum *combination.Combination) {
@@ -661,8 +661,8 @@ var _ = Describe("Combination", func() {
 						datum.Extended = pointer.FromFloat64(0.0)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("normal expected exists; duration missing; duration expected in range (lower)",
 					func(datum *combination.Combination) {
@@ -671,7 +671,7 @@ var _ = Describe("Combination", func() {
 						datum.Extended = pointer.FromFloat64(0.0)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
 				),
 				Entry("normal expected exists; duration missing; duration expected in range (upper)",
 					func(datum *combination.Combination) {
@@ -680,7 +680,7 @@ var _ = Describe("Combination", func() {
 						datum.Extended = pointer.FromFloat64(0.0)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
 				),
 				Entry("normal expected exists; duration missing; duration expected out of range (upper)",
 					func(datum *combination.Combination) {
@@ -689,8 +689,8 @@ var _ = Describe("Combination", func() {
 						datum.Extended = pointer.FromFloat64(0.0)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("normal expected exists; duration out of range (lower); duration expected missing",
 					func(datum *combination.Combination) {
@@ -699,8 +699,8 @@ var _ = Describe("Combination", func() {
 						datum.Extended = pointer.FromFloat64(0.0)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(-1, 0), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(-1, 0), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedDuration", NewMeta()),
 				),
 				Entry("normal expected exists; duration out of range (lower); duration expected out of range (lower)",
 					func(datum *combination.Combination) {
@@ -709,8 +709,8 @@ var _ = Describe("Combination", func() {
 						datum.Extended = pointer.FromFloat64(0.0)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(-1, 0), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(-1, 0), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("normal expected exists; duration out of range (lower); duration expected in range (lower)",
 					func(datum *combination.Combination) {
@@ -719,7 +719,7 @@ var _ = Describe("Combination", func() {
 						datum.Extended = pointer.FromFloat64(0.0)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(-1, 0), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(-1, 0), "/duration", NewMeta()),
 				),
 				Entry("normal expected exists; duration out of range (lower); duration expected in range (upper)",
 					func(datum *combination.Combination) {
@@ -728,7 +728,7 @@ var _ = Describe("Combination", func() {
 						datum.Extended = pointer.FromFloat64(0.0)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(-1, 0), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(-1, 0), "/duration", NewMeta()),
 				),
 				Entry("normal expected exists; duration out of range (lower); duration expected out of range (upper)",
 					func(datum *combination.Combination) {
@@ -737,8 +737,8 @@ var _ = Describe("Combination", func() {
 						datum.Extended = pointer.FromFloat64(0.0)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(-1, 0), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(-1, 0), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("normal expected exists; duration in range; duration expected missing",
 					func(datum *combination.Combination) {
@@ -747,7 +747,7 @@ var _ = Describe("Combination", func() {
 						datum.Extended = pointer.FromFloat64(0.0)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedDuration", NewMeta()),
 				),
 				Entry("normal expected exists; duration in range; duration expected out of range (lower)",
 					func(datum *combination.Combination) {
@@ -756,7 +756,7 @@ var _ = Describe("Combination", func() {
 						datum.Extended = pointer.FromFloat64(0.0)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("normal expected exists; duration in range; duration expected in range (lower)",
 					func(datum *combination.Combination) {
@@ -781,7 +781,7 @@ var _ = Describe("Combination", func() {
 						datum.Extended = pointer.FromFloat64(0.0)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("normal expected exists; duration out of range (upper); duration expected missing",
 					func(datum *combination.Combination) {
@@ -790,8 +790,8 @@ var _ = Describe("Combination", func() {
 						datum.Extended = pointer.FromFloat64(0.0)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(1, 0), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(1, 0), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedDuration", NewMeta()),
 				),
 				Entry("normal expected exists; duration out of range (upper); duration expected out of range (lower)",
 					func(datum *combination.Combination) {
@@ -800,8 +800,8 @@ var _ = Describe("Combination", func() {
 						datum.Extended = pointer.FromFloat64(0.0)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(1, 0), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(1, 0), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("normal expected exists; duration out of range (upper); duration expected in range (lower)",
 					func(datum *combination.Combination) {
@@ -810,7 +810,7 @@ var _ = Describe("Combination", func() {
 						datum.Extended = pointer.FromFloat64(0.0)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(1, 0), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(1, 0), "/duration", NewMeta()),
 				),
 				Entry("normal expected exists; duration out of range (upper); duration expected in range (upper)",
 					func(datum *combination.Combination) {
@@ -819,7 +819,7 @@ var _ = Describe("Combination", func() {
 						datum.Extended = pointer.FromFloat64(0.0)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(1, 0), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(1, 0), "/duration", NewMeta()),
 				),
 				Entry("normal expected exists; duration out of range (upper); duration expected out of range (upper)",
 					func(datum *combination.Combination) {
@@ -828,8 +828,8 @@ var _ = Describe("Combination", func() {
 						datum.Extended = pointer.FromFloat64(0.0)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(1, 0), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(1, 0), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", NewMeta()),
 				),
 				Entry("normal expected exists; extended missing; extended expected missing",
 					func(datum *combination.Combination) {
@@ -838,8 +838,8 @@ var _ = Describe("Combination", func() {
 						datum.ExtendedExpected = nil
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedExtended", NewMeta()),
 				),
 				Entry("normal expected exists; extended missing; extended expected out of range (lower)",
 					func(datum *combination.Combination) {
@@ -848,8 +848,8 @@ var _ = Describe("Combination", func() {
 						datum.ExtendedExpected = pointer.FromFloat64(-0.1)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("normal expected exists; extended missing; extended expected in range (lower)",
 					func(datum *combination.Combination) {
@@ -858,7 +858,7 @@ var _ = Describe("Combination", func() {
 						datum.ExtendedExpected = pointer.FromFloat64(0.0)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
 				),
 				Entry("normal expected exists; extended missing; extended expected in range (upper)",
 					func(datum *combination.Combination) {
@@ -867,7 +867,7 @@ var _ = Describe("Combination", func() {
 						datum.ExtendedExpected = pointer.FromFloat64(100.0)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
 				),
 				Entry("normal expected exists; extended missing; extended expected out of range (upper)",
 					func(datum *combination.Combination) {
@@ -876,8 +876,8 @@ var _ = Describe("Combination", func() {
 						datum.ExtendedExpected = pointer.FromFloat64(100.1)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("normal expected exists; extended out of range (lower); extended expected missing",
 					func(datum *combination.Combination) {
@@ -886,8 +886,8 @@ var _ = Describe("Combination", func() {
 						datum.ExtendedExpected = nil
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(-0.1, 0.0), "/extended", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(-0.1, 0.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedExtended", NewMeta()),
 				),
 				Entry("normal expected exists; extended out of range (lower); extended expected out of range (lower)",
 					func(datum *combination.Combination) {
@@ -896,8 +896,8 @@ var _ = Describe("Combination", func() {
 						datum.ExtendedExpected = pointer.FromFloat64(-0.1)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(-0.1, 0.0), "/extended", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(-0.1, 0.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("normal expected exists; extended out of range (lower); extended expected in range (lower)",
 					func(datum *combination.Combination) {
@@ -906,7 +906,7 @@ var _ = Describe("Combination", func() {
 						datum.ExtendedExpected = pointer.FromFloat64(0.0)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(-0.1, 0.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(-0.1, 0.0), "/extended", NewMeta()),
 				),
 				Entry("normal expected exists; extended out of range (lower); extended expected in range (upper)",
 					func(datum *combination.Combination) {
@@ -915,7 +915,7 @@ var _ = Describe("Combination", func() {
 						datum.ExtendedExpected = pointer.FromFloat64(100.0)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(-0.1, 0.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(-0.1, 0.0), "/extended", NewMeta()),
 				),
 				Entry("normal expected exists; extended out of range (lower); extended expected out of range (upper)",
 					func(datum *combination.Combination) {
@@ -924,8 +924,8 @@ var _ = Describe("Combination", func() {
 						datum.ExtendedExpected = pointer.FromFloat64(100.1)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(-0.1, 0.0), "/extended", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(-0.1, 0.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("normal expected exists; extended in range; extended expected missing",
 					func(datum *combination.Combination) {
@@ -934,7 +934,7 @@ var _ = Describe("Combination", func() {
 						datum.ExtendedExpected = nil
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedExtended", NewMeta()),
 				),
 				Entry("normal expected exists; extended in range; extended expected out of range (lower)",
 					func(datum *combination.Combination) {
@@ -943,7 +943,7 @@ var _ = Describe("Combination", func() {
 						datum.ExtendedExpected = pointer.FromFloat64(-0.1)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0, 100.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("normal expected exists; extended in range; extended expected in range (lower)",
 					func(datum *combination.Combination) {
@@ -968,7 +968,7 @@ var _ = Describe("Combination", func() {
 						datum.ExtendedExpected = pointer.FromFloat64(100.1)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0, 100.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("normal expected exists; extended out of range (upper); extended expected missing",
 					func(datum *combination.Combination) {
@@ -977,8 +977,8 @@ var _ = Describe("Combination", func() {
 						datum.ExtendedExpected = nil
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(0.1, 0.0), "/extended", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(0.1, 0.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedExtended", NewMeta()),
 				),
 				Entry("normal expected exists; extended out of range (upper); extended expected out of range (lower)",
 					func(datum *combination.Combination) {
@@ -987,8 +987,8 @@ var _ = Describe("Combination", func() {
 						datum.ExtendedExpected = pointer.FromFloat64(-0.1)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(0.1, 0.0), "/extended", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(0.1, 0.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("normal expected exists; extended out of range (upper); extended expected in range (lower)",
 					func(datum *combination.Combination) {
@@ -997,7 +997,7 @@ var _ = Describe("Combination", func() {
 						datum.ExtendedExpected = pointer.FromFloat64(0.0)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(0.1, 0.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(0.1, 0.0), "/extended", NewMeta()),
 				),
 				Entry("normal expected exists; extended out of range (upper); extended expected in range (upper)",
 					func(datum *combination.Combination) {
@@ -1006,7 +1006,7 @@ var _ = Describe("Combination", func() {
 						datum.ExtendedExpected = pointer.FromFloat64(100.0)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(0.1, 0.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(0.1, 0.0), "/extended", NewMeta()),
 				),
 				Entry("normal expected exists; extended out of range (upper); extended expected out of range (upper)",
 					func(datum *combination.Combination) {
@@ -1015,14 +1015,14 @@ var _ = Describe("Combination", func() {
 						datum.ExtendedExpected = pointer.FromFloat64(100.1)
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(0.1, 0.0), "/extended", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(0.1, 0.0), "/extended", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("normal missing; normal expected missing",
 					func(datum *combination.Combination) {
 						datum.Normal = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/normal", NewMeta()),
 				),
 				Entry("normal missing; normal expected out of range (lower)",
 					func(datum *combination.Combination) {
@@ -1031,8 +1031,8 @@ var _ = Describe("Combination", func() {
 						datum.Normal = nil
 						datum.NormalExpected = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/normal", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedNormal", NewMeta()),
 				),
 				Entry("normal missing; normal expected in range (lower)",
 					func(datum *combination.Combination) {
@@ -1041,7 +1041,7 @@ var _ = Describe("Combination", func() {
 						datum.Normal = nil
 						datum.NormalExpected = pointer.FromFloat64(0.0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/normal", NewMeta()),
 				),
 				Entry("normal missing; normal expected in range (upper)",
 					func(datum *combination.Combination) {
@@ -1050,7 +1050,7 @@ var _ = Describe("Combination", func() {
 						datum.Normal = nil
 						datum.NormalExpected = pointer.FromFloat64(100.0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/normal", NewMeta()),
 				),
 				Entry("normal missing; normal expected out of range (upper)",
 					func(datum *combination.Combination) {
@@ -1059,15 +1059,15 @@ var _ = Describe("Combination", func() {
 						datum.Normal = nil
 						datum.NormalExpected = pointer.FromFloat64(100.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/normal", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedNormal", NewMeta()),
 				),
 				Entry("normal out of range (lower); normal expected missing",
 					func(datum *combination.Combination) {
 						datum.Normal = pointer.FromFloat64(-0.1)
 						datum.NormalExpected = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/normal", NewMeta()),
 				),
 				Entry("normal out of range (lower); normal expected out of range (lower)",
 					func(datum *combination.Combination) {
@@ -1076,8 +1076,8 @@ var _ = Describe("Combination", func() {
 						datum.Normal = pointer.FromFloat64(-0.1)
 						datum.NormalExpected = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/normal", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedNormal", NewMeta()),
 				),
 				Entry("normal out of range (lower); normal expected in range (lower)",
 					func(datum *combination.Combination) {
@@ -1086,7 +1086,7 @@ var _ = Describe("Combination", func() {
 						datum.Normal = pointer.FromFloat64(-0.1)
 						datum.NormalExpected = pointer.FromFloat64(0.0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/normal", NewMeta()),
 				),
 				Entry("normal out of range (lower); normal expected in range (upper)",
 					func(datum *combination.Combination) {
@@ -1095,7 +1095,7 @@ var _ = Describe("Combination", func() {
 						datum.Normal = pointer.FromFloat64(-0.1)
 						datum.NormalExpected = pointer.FromFloat64(100.0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/normal", NewMeta()),
 				),
 				Entry("normal out of range (lower); normal expected out of range (upper)",
 					func(datum *combination.Combination) {
@@ -1104,15 +1104,15 @@ var _ = Describe("Combination", func() {
 						datum.Normal = pointer.FromFloat64(-0.1)
 						datum.NormalExpected = pointer.FromFloat64(100.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/normal", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedNormal", NewMeta()),
 				),
 				Entry("normal in range (lower); normal expected missing",
 					func(datum *combination.Combination) {
 						datum.Normal = pointer.FromFloat64(0.0)
 						datum.NormalExpected = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedNormal", NewMeta()),
 				),
 				Entry("normal in range (lower); normal expected out of range (lower)",
 					func(datum *combination.Combination) {
@@ -1121,7 +1121,7 @@ var _ = Describe("Combination", func() {
 						datum.Normal = pointer.FromFloat64(0.0)
 						datum.NormalExpected = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedNormal", NewMeta()),
 				),
 				Entry("normal in range (lower); normal expected in range (lower)",
 					func(datum *combination.Combination) {
@@ -1146,7 +1146,7 @@ var _ = Describe("Combination", func() {
 						datum.Normal = pointer.FromFloat64(0.0)
 						datum.NormalExpected = pointer.FromFloat64(100.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedNormal", NewMeta()),
 				),
 				Entry("normal in range (upper); normal expected missing",
 					func(datum *combination.Combination) {
@@ -1161,7 +1161,7 @@ var _ = Describe("Combination", func() {
 						datum.Normal = pointer.FromFloat64(100.0)
 						datum.NormalExpected = pointer.FromFloat64(99.9)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(99.9, 100.0, 100.0), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(99.9, 100.0, 100.0), "/expectedNormal", NewMeta()),
 				),
 				Entry("normal in range (upper); normal expected in range (lower)",
 					func(datum *combination.Combination) {
@@ -1186,14 +1186,14 @@ var _ = Describe("Combination", func() {
 						datum.Normal = pointer.FromFloat64(100.0)
 						datum.NormalExpected = pointer.FromFloat64(100.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 100.0, 100.0), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 100.0, 100.0), "/expectedNormal", NewMeta()),
 				),
 				Entry("normal out of range (upper); normal expected missing",
 					func(datum *combination.Combination) {
 						datum.Normal = pointer.FromFloat64(100.1)
 						datum.NormalExpected = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/normal", NewMeta()),
 				),
 				Entry("normal out of range (upper); normal expected out of range (lower)",
 					func(datum *combination.Combination) {
@@ -1202,8 +1202,8 @@ var _ = Describe("Combination", func() {
 						datum.Normal = pointer.FromFloat64(100.1)
 						datum.NormalExpected = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/normal", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedNormal", NewMeta()),
 				),
 				Entry("normal out of range (upper); normal expected in range (lower)",
 					func(datum *combination.Combination) {
@@ -1212,7 +1212,7 @@ var _ = Describe("Combination", func() {
 						datum.Normal = pointer.FromFloat64(100.1)
 						datum.NormalExpected = pointer.FromFloat64(0.0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/normal", NewMeta()),
 				),
 				Entry("normal out of range (upper); normal expected in range (upper)",
 					func(datum *combination.Combination) {
@@ -1221,7 +1221,7 @@ var _ = Describe("Combination", func() {
 						datum.Normal = pointer.FromFloat64(100.1)
 						datum.NormalExpected = pointer.FromFloat64(100.0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/normal", NewMeta()),
 				),
 				Entry("normal out of range (upper); normal expected out of range (upper)",
 					func(datum *combination.Combination) {
@@ -1230,8 +1230,8 @@ var _ = Describe("Combination", func() {
 						datum.Normal = pointer.FromFloat64(100.1)
 						datum.NormalExpected = pointer.FromFloat64(100.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/normal", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedNormal", NewMeta()),
 				),
 				Entry("multiple errors",
 					func(datum *combination.Combination) {
@@ -1244,14 +1244,14 @@ var _ = Describe("Combination", func() {
 						datum.Normal = nil
 						datum.NormalExpected = pointer.FromFloat64(100.1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "bolus"), "/type", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "dual/square"), "/subType", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0, 100), "/expectedExtended", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/normal", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0, 100), "/expectedNormal", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "bolus"), "/type", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "dual/square"), "/subType", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/expectedDuration", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0, 100), "/expectedExtended", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/normal", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0, 100), "/expectedNormal", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
 				),
 			)
 		})
@@ -1260,9 +1260,9 @@ var _ = Describe("Combination", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *combination.Combination)) {
 					for _, origin := range structure.Origins() {
-						datum := testDataTypesBolusCombination.NewCombination()
+						datum := dataTypesBolusCombinationTest.NewCombination()
 						mutator(datum)
-						expectedDatum := testDataTypesBolusCombination.CloneCombination(datum)
+						expectedDatum := dataTypesBolusCombinationTest.CloneCombination(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
