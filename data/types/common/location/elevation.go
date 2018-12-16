@@ -10,8 +10,8 @@ import (
 const (
 	ElevationUnitsFeet          = "feet"
 	ElevationUnitsMeter         = "meters"
-	ElevationValueFeetMaximum   = 10000.0 / 0.3048
-	ElevationValueFeetMinimum   = 0.0
+	ElevationValueFeetMaximum   = ElevationValueMetersMaximum / 0.3048
+	ElevationValueFeetMinimum   = ElevationValueMetersMinimum / 0.3048
 	ElevationValueMetersMaximum = 10000.0
 	ElevationValueMetersMinimum = 0.0
 )

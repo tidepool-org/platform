@@ -10,8 +10,8 @@ import (
 const (
 	AccuracyUnitsFeet          = "feet"
 	AccuracyUnitsMeter         = "meters"
-	AccuracyValueFeetMaximum   = 1000.0 / 0.3048
-	AccuracyValueFeetMinimum   = 0.0
+	AccuracyValueFeetMaximum   = AccuracyValueMetersMaximum / 0.3048
+	AccuracyValueFeetMinimum   = AccuracyValueMetersMinimum / 0.3048
 	AccuracyValueMetersMaximum = 1000.0
 	AccuracyValueMetersMinimum = 0.0
 )
