@@ -80,12 +80,6 @@ var _ = Describe("Blob", func() {
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/mediaType"),
 				),
-				Entry("media type empty",
-					func(object map[string]interface{}, expectedDatum *blob.Filter) {
-						object["mediaType"] = []string{}
-						expectedDatum.MediaType = pointer.FromStringArray([]string{})
-					},
-				),
 				Entry("media type valid",
 					func(object map[string]interface{}, expectedDatum *blob.Filter) {
 						valid := netTest.RandomMediaTypes(1, 3)
@@ -105,12 +99,6 @@ var _ = Describe("Blob", func() {
 						expectedDatum.Status = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/status"),
-				),
-				Entry("status empty",
-					func(object map[string]interface{}, expectedDatum *blob.Filter) {
-						object["status"] = []string{}
-						expectedDatum.Status = pointer.FromStringArray([]string{})
-					},
 				),
 				Entry("status valid",
 					func(object map[string]interface{}, expectedDatum *blob.Filter) {
@@ -359,12 +347,6 @@ var _ = Describe("Blob", func() {
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/id"),
 				),
-				Entry("id empty",
-					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						object["id"] = ""
-						expectedDatum.ID = pointer.FromString("")
-					},
-				),
 				Entry("id valid",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
 						valid := blobTest.RandomID()
@@ -384,12 +366,6 @@ var _ = Describe("Blob", func() {
 						expectedDatum.UserID = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/userId"),
-				),
-				Entry("user id empty",
-					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						object["userId"] = ""
-						expectedDatum.UserID = pointer.FromString("")
-					},
 				),
 				Entry("user id valid",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
@@ -411,12 +387,6 @@ var _ = Describe("Blob", func() {
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/digestMD5"),
 				),
-				Entry("digest MD5 empty",
-					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						object["digestMD5"] = ""
-						expectedDatum.DigestMD5 = pointer.FromString("")
-					},
-				),
 				Entry("digest MD5 valid",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
 						valid := cryptoTest.RandomBase64EncodedMD5Hash()
@@ -436,12 +406,6 @@ var _ = Describe("Blob", func() {
 						expectedDatum.MediaType = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/mediaType"),
-				),
-				Entry("media type empty",
-					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						object["mediaType"] = ""
-						expectedDatum.MediaType = pointer.FromString("")
-					},
 				),
 				Entry("media type valid",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
@@ -482,12 +446,6 @@ var _ = Describe("Blob", func() {
 						expectedDatum.Status = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/status"),
-				),
-				Entry("status empty",
-					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						object["status"] = ""
-						expectedDatum.Status = pointer.FromString("")
-					},
 				),
 				Entry("status valid",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {

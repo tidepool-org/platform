@@ -80,12 +80,6 @@ var _ = Describe("Source", func() {
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/providerType"),
 				),
-				Entry("provider type empty",
-					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
-						object["providerType"] = []string{}
-						expectedDatum.ProviderType = pointer.FromStringArray([]string{})
-					},
-				),
 				Entry("provider type valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
 						valid := authTest.RandomProviderTypes()
@@ -105,12 +99,6 @@ var _ = Describe("Source", func() {
 						expectedDatum.ProviderName = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/providerName"),
-				),
-				Entry("provider name empty",
-					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
-						object["providerName"] = []string{}
-						expectedDatum.ProviderName = pointer.FromStringArray([]string{})
-					},
 				),
 				Entry("provider name valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
@@ -132,12 +120,6 @@ var _ = Describe("Source", func() {
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/providerSessionId"),
 				),
-				Entry("provider session id empty",
-					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
-						object["providerSessionId"] = []string{}
-						expectedDatum.ProviderSessionID = pointer.FromStringArray([]string{})
-					},
-				),
 				Entry("provider session id valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
 						valid := authTest.RandomProviderSessionIDs()
@@ -157,12 +139,6 @@ var _ = Describe("Source", func() {
 						expectedDatum.State = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/state"),
-				),
-				Entry("state empty",
-					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
-						object["state"] = []string{}
-						expectedDatum.State = pointer.FromStringArray([]string{})
-					},
 				),
 				Entry("state valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
@@ -746,12 +722,6 @@ var _ = Describe("Source", func() {
 						expectedDatum.DataSetIDs = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/dataSetIds"),
-				),
-				Entry("data set ids empty",
-					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
-						object["dataSetIds"] = []string{}
-						expectedDatum.DataSetIDs = pointer.FromStringArray([]string{})
-					},
 				),
 				Entry("data set ids valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
@@ -1428,12 +1398,6 @@ var _ = Describe("Source", func() {
 						expectedDatum.DataSetIDs = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/dataSetIds"),
-				),
-				Entry("data set ids empty",
-					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						object["dataSetIds"] = []string{}
-						expectedDatum.DataSetIDs = pointer.FromStringArray([]string{})
-					},
 				),
 				Entry("data set ids valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Source) {

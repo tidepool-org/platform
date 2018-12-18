@@ -1,5 +1,6 @@
 ## HEAD
 
+* Remove unnecessary tests to prevent future propogation
 * Rename test functions with prefix ExpectSerialized to ExpectSerializeObject
 * Update test package imports to current best practices
 * Fix data model limit validation constants based off alternate unit constants
