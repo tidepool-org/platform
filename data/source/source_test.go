@@ -403,7 +403,7 @@ var _ = Describe("Source", func() {
 			func(mutator func(datum *dataSource.Create)) {
 				datum := dataSourceTest.RandomCreate()
 				mutator(datum)
-				test.ExpectSerializedJSON(datum, dataSourceTest.NewObjectFromCreate(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectJSON(datum, dataSourceTest.NewObjectFromCreate(datum, test.ObjectFormatJSON))
 			},
 			Entry("succeeds",
 				func(datum *dataSource.Create) {},
@@ -651,7 +651,7 @@ var _ = Describe("Source", func() {
 			func(mutator func(datum *dataSource.Update)) {
 				datum := dataSourceTest.RandomUpdate()
 				mutator(datum)
-				test.ExpectSerializedJSON(datum, dataSourceTest.NewObjectFromUpdate(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectJSON(datum, dataSourceTest.NewObjectFromUpdate(datum, test.ObjectFormatJSON))
 			},
 			Entry("succeeds",
 				func(datum *dataSource.Update) {},
@@ -1252,8 +1252,8 @@ var _ = Describe("Source", func() {
 			func(mutator func(datum *dataSource.Source)) {
 				datum := dataSourceTest.RandomSource()
 				mutator(datum)
-				test.ExpectSerializedJSON(datum, dataSourceTest.NewObjectFromSource(datum, test.ObjectFormatJSON))
-				test.ExpectSerializedBSON(datum, dataSourceTest.NewObjectFromSource(datum, test.ObjectFormatBSON))
+				test.ExpectSerializedObjectJSON(datum, dataSourceTest.NewObjectFromSource(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataSourceTest.NewObjectFromSource(datum, test.ObjectFormatBSON))
 			},
 			Entry("succeeds",
 				func(datum *dataSource.Source) {},

@@ -173,8 +173,8 @@ var _ = Describe("ScheduledAlert", func() {
 			func(mutator func(datum *dataTypesSettingsCgm.ScheduledAlert)) {
 				datum := dataTypesSettingsCgmTest.RandomScheduledAlert()
 				mutator(datum)
-				test.ExpectSerializedBSON(datum, dataTypesSettingsCgmTest.NewObjectFromScheduledAlert(datum, test.ObjectFormatBSON))
-				test.ExpectSerializedJSON(datum, dataTypesSettingsCgmTest.NewObjectFromScheduledAlert(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataTypesSettingsCgmTest.NewObjectFromScheduledAlert(datum, test.ObjectFormatBSON))
+				test.ExpectSerializedObjectJSON(datum, dataTypesSettingsCgmTest.NewObjectFromScheduledAlert(datum, test.ObjectFormatJSON))
 				dataTest.ExpectSerializedObject(datum, dataTypesSettingsCgmTest.NewObjectFromScheduledAlert(datum, test.ObjectFormatJSON),
 					func(parser data.ObjectParser) interface{} { return dataTypesSettingsCgm.ParseScheduledAlert(parser) })
 			},

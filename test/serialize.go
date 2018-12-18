@@ -58,7 +58,7 @@ func NewObjectFromTime(source time.Time, objectFormat ObjectFormat) interface{} 
 	return source
 }
 
-func ExpectSerializedBSON(object interface{}, expected interface{}) {
+func ExpectSerializedObjectBSON(object interface{}, expected interface{}) {
 	gomega.Expect(object).ToNot(gomega.BeNil())
 	gomega.Expect(expected).ToNot(gomega.BeNil())
 	bytes, err := bson.Marshal(object)
@@ -69,7 +69,7 @@ func ExpectSerializedBSON(object interface{}, expected interface{}) {
 	gomega.Expect(output).To(gomega.Equal(expected), "Unexpected serialized BSON")
 }
 
-func ExpectSerializedJSON(object interface{}, expected interface{}) {
+func ExpectSerializedObjectJSON(object interface{}, expected interface{}) {
 	gomega.Expect(object).ToNot(gomega.BeNil())
 	gomega.Expect(expected).ToNot(gomega.BeNil())
 	bytes, err := json.Marshal(object)

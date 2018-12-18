@@ -76,8 +76,8 @@ var _ = Describe("Snooze", func() {
 			func(mutator func(datum *dataTypesSettingsCgm.Snooze)) {
 				datum := dataTypesSettingsCgmTest.RandomSnooze()
 				mutator(datum)
-				test.ExpectSerializedBSON(datum, dataTypesSettingsCgmTest.NewObjectFromSnooze(datum, test.ObjectFormatBSON))
-				test.ExpectSerializedJSON(datum, dataTypesSettingsCgmTest.NewObjectFromSnooze(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataTypesSettingsCgmTest.NewObjectFromSnooze(datum, test.ObjectFormatBSON))
+				test.ExpectSerializedObjectJSON(datum, dataTypesSettingsCgmTest.NewObjectFromSnooze(datum, test.ObjectFormatJSON))
 				dataTest.ExpectSerializedObject(datum, dataTypesSettingsCgmTest.NewObjectFromSnooze(datum, test.ObjectFormatJSON),
 					func(parser data.ObjectParser) interface{} { return dataTypesSettingsCgm.ParseSnooze(parser) })
 			},

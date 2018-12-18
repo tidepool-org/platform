@@ -23,8 +23,8 @@ var _ = Describe("Deduplicator", func() {
 			func(mutator func(datum *data.DeduplicatorDescriptor)) {
 				datum := dataTest.RandomDeduplicatorDescriptor()
 				mutator(datum)
-				test.ExpectSerializedJSON(datum, dataTest.NewObjectFromDeduplicatorDescriptor(datum, test.ObjectFormatJSON))
-				test.ExpectSerializedBSON(datum, dataTest.NewObjectFromDeduplicatorDescriptor(datum, test.ObjectFormatBSON))
+				test.ExpectSerializedObjectJSON(datum, dataTest.NewObjectFromDeduplicatorDescriptor(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataTest.NewObjectFromDeduplicatorDescriptor(datum, test.ObjectFormatBSON))
 			},
 			Entry("succeeds",
 				func(datum *data.DeduplicatorDescriptor) {},

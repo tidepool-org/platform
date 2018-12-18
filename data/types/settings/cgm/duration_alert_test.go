@@ -85,8 +85,8 @@ var _ = Describe("DurationAlert", func() {
 			func(mutator func(datum *dataTypesSettingsCgm.DurationAlert)) {
 				datum := dataTypesSettingsCgmTest.RandomDurationAlert()
 				mutator(datum)
-				test.ExpectSerializedBSON(datum, dataTypesSettingsCgmTest.NewObjectFromDurationAlert(datum, test.ObjectFormatBSON))
-				test.ExpectSerializedJSON(datum, dataTypesSettingsCgmTest.NewObjectFromDurationAlert(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataTypesSettingsCgmTest.NewObjectFromDurationAlert(datum, test.ObjectFormatBSON))
+				test.ExpectSerializedObjectJSON(datum, dataTypesSettingsCgmTest.NewObjectFromDurationAlert(datum, test.ObjectFormatJSON))
 			},
 			Entry("succeeds",
 				func(datum *dataTypesSettingsCgm.DurationAlert) {},
@@ -233,8 +233,8 @@ var _ = Describe("DurationAlert", func() {
 			func(mutator func(datum *dataTypesSettingsCgm.NoDataAlert)) {
 				datum := dataTypesSettingsCgmTest.RandomNoDataAlert()
 				mutator(datum)
-				test.ExpectSerializedBSON(datum, dataTypesSettingsCgmTest.NewObjectFromNoDataAlert(datum, test.ObjectFormatBSON))
-				test.ExpectSerializedJSON(datum, dataTypesSettingsCgmTest.NewObjectFromNoDataAlert(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataTypesSettingsCgmTest.NewObjectFromNoDataAlert(datum, test.ObjectFormatBSON))
+				test.ExpectSerializedObjectJSON(datum, dataTypesSettingsCgmTest.NewObjectFromNoDataAlert(datum, test.ObjectFormatJSON))
 				dataTest.ExpectSerializedObject(datum, dataTypesSettingsCgmTest.NewObjectFromNoDataAlert(datum, test.ObjectFormatJSON),
 					func(parser data.ObjectParser) interface{} { return dataTypesSettingsCgm.ParseNoDataAlert(parser) })
 			},
@@ -473,8 +473,8 @@ var _ = Describe("DurationAlert", func() {
 			func(mutator func(datum *dataTypesSettingsCgm.OutOfRangeAlert)) {
 				datum := dataTypesSettingsCgmTest.RandomOutOfRangeAlert()
 				mutator(datum)
-				test.ExpectSerializedBSON(datum, dataTypesSettingsCgmTest.NewObjectFromOutOfRangeAlert(datum, test.ObjectFormatBSON))
-				test.ExpectSerializedJSON(datum, dataTypesSettingsCgmTest.NewObjectFromOutOfRangeAlert(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataTypesSettingsCgmTest.NewObjectFromOutOfRangeAlert(datum, test.ObjectFormatBSON))
+				test.ExpectSerializedObjectJSON(datum, dataTypesSettingsCgmTest.NewObjectFromOutOfRangeAlert(datum, test.ObjectFormatJSON))
 				dataTest.ExpectSerializedObject(datum, dataTypesSettingsCgmTest.NewObjectFromOutOfRangeAlert(datum, test.ObjectFormatJSON),
 					func(parser data.ObjectParser) interface{} { return dataTypesSettingsCgm.ParseOutOfRangeAlert(parser) })
 			},

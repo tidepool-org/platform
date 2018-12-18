@@ -322,8 +322,8 @@ var _ = Describe("Blob", func() {
 			func(mutator func(datum *blob.Blob)) {
 				datum := blobTest.RandomBlob()
 				mutator(datum)
-				test.ExpectSerializedBSON(datum, blobTest.NewObjectFromBlob(datum, test.ObjectFormatBSON))
-				test.ExpectSerializedJSON(datum, blobTest.NewObjectFromBlob(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, blobTest.NewObjectFromBlob(datum, test.ObjectFormatBSON))
+				test.ExpectSerializedObjectJSON(datum, blobTest.NewObjectFromBlob(datum, test.ObjectFormatJSON))
 			},
 			Entry("succeeds",
 				func(datum *blob.Blob) {},

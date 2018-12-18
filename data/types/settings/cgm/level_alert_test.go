@@ -83,8 +83,8 @@ var _ = Describe("LevelAlert", func() {
 			func(mutator func(datum *dataTypesSettingsCgm.LevelAlert)) {
 				datum := dataTypesSettingsCgmTest.RandomLevelAlert()
 				mutator(datum)
-				test.ExpectSerializedBSON(datum, dataTypesSettingsCgmTest.NewObjectFromLevelAlert(datum, test.ObjectFormatBSON))
-				test.ExpectSerializedJSON(datum, dataTypesSettingsCgmTest.NewObjectFromLevelAlert(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataTypesSettingsCgmTest.NewObjectFromLevelAlert(datum, test.ObjectFormatBSON))
+				test.ExpectSerializedObjectJSON(datum, dataTypesSettingsCgmTest.NewObjectFromLevelAlert(datum, test.ObjectFormatJSON))
 			},
 			Entry("succeeds",
 				func(datum *dataTypesSettingsCgm.LevelAlert) {},
@@ -216,8 +216,8 @@ var _ = Describe("LevelAlert", func() {
 			func(mutator func(datum *dataTypesSettingsCgm.HighAlert)) {
 				datum := dataTypesSettingsCgmTest.RandomHighAlert()
 				mutator(datum)
-				test.ExpectSerializedBSON(datum, dataTypesSettingsCgmTest.NewObjectFromHighAlert(datum, test.ObjectFormatBSON))
-				test.ExpectSerializedJSON(datum, dataTypesSettingsCgmTest.NewObjectFromHighAlert(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataTypesSettingsCgmTest.NewObjectFromHighAlert(datum, test.ObjectFormatBSON))
+				test.ExpectSerializedObjectJSON(datum, dataTypesSettingsCgmTest.NewObjectFromHighAlert(datum, test.ObjectFormatJSON))
 				dataTest.ExpectSerializedObject(datum, dataTypesSettingsCgmTest.NewObjectFromHighAlert(datum, test.ObjectFormatJSON),
 					func(parser data.ObjectParser) interface{} { return dataTypesSettingsCgm.ParseHighAlert(parser) })
 			},
@@ -417,8 +417,8 @@ var _ = Describe("LevelAlert", func() {
 			func(mutator func(datum *dataTypesSettingsCgm.LowAlert)) {
 				datum := dataTypesSettingsCgmTest.RandomLowAlert()
 				mutator(datum)
-				test.ExpectSerializedBSON(datum, dataTypesSettingsCgmTest.NewObjectFromLowAlert(datum, test.ObjectFormatBSON))
-				test.ExpectSerializedJSON(datum, dataTypesSettingsCgmTest.NewObjectFromLowAlert(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataTypesSettingsCgmTest.NewObjectFromLowAlert(datum, test.ObjectFormatBSON))
+				test.ExpectSerializedObjectJSON(datum, dataTypesSettingsCgmTest.NewObjectFromLowAlert(datum, test.ObjectFormatJSON))
 				dataTest.ExpectSerializedObject(datum, dataTypesSettingsCgmTest.NewObjectFromLowAlert(datum, test.ObjectFormatJSON),
 					func(parser data.ObjectParser) interface{} { return dataTypesSettingsCgm.ParseLowAlert(parser) })
 			},
@@ -618,8 +618,8 @@ var _ = Describe("LevelAlert", func() {
 			func(mutator func(datum *dataTypesSettingsCgm.UrgentLowAlert)) {
 				datum := dataTypesSettingsCgmTest.RandomUrgentLowAlert()
 				mutator(datum)
-				test.ExpectSerializedBSON(datum, dataTypesSettingsCgmTest.NewObjectFromUrgentLowAlert(datum, test.ObjectFormatBSON))
-				test.ExpectSerializedJSON(datum, dataTypesSettingsCgmTest.NewObjectFromUrgentLowAlert(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataTypesSettingsCgmTest.NewObjectFromUrgentLowAlert(datum, test.ObjectFormatBSON))
+				test.ExpectSerializedObjectJSON(datum, dataTypesSettingsCgmTest.NewObjectFromUrgentLowAlert(datum, test.ObjectFormatJSON))
 				dataTest.ExpectSerializedObject(datum, dataTypesSettingsCgmTest.NewObjectFromUrgentLowAlert(datum, test.ObjectFormatJSON),
 					func(parser data.ObjectParser) interface{} { return dataTypesSettingsCgm.ParseUrgentLowAlert(parser) })
 			},
