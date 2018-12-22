@@ -110,11 +110,11 @@ func DataSetDataAsInterface(dataSetData data.Data) []interface{} {
 }
 
 func DataSetDatumAsInterface(dataSetDatum data.Datum) interface{} {
-	bytes, err := bson.Marshal(dataSetDatum)
+	bites, err := bson.Marshal(dataSetDatum)
 	Expect(err).ToNot(HaveOccurred())
-	Expect(bytes).ToNot(BeNil())
+	Expect(bites).ToNot(BeNil())
 	var dataSetDatumAsInterface interface{}
-	Expect(bson.Unmarshal(bytes, &dataSetDatumAsInterface)).To(Succeed())
+	Expect(bson.Unmarshal(bites, &dataSetDatumAsInterface)).To(Succeed())
 	return dataSetDatumAsInterface
 }
 

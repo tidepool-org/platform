@@ -29,10 +29,10 @@ func NewWriter() *Writer {
 	}
 }
 
-func (w *Writer) Write(bytes []byte) (int, error) {
+func (w *Writer) Write(bites []byte) (int, error) {
 	w.WriteInvocations++
 
-	w.WriteInputs = append(w.WriteInputs, bytes)
+	w.WriteInputs = append(w.WriteInputs, bites)
 
 	if len(w.WriteOutputs) == 0 {
 		panic("Unexpected invocation of Write on Writer")

@@ -170,14 +170,14 @@ func (c *Client) handleResponse(ctx context.Context, res *http.Response, req *ht
 
 	serializable := &errors.Serializable{}
 
-	if bytes, err := ioutil.ReadAll(io.LimitReader(res.Body, 1<<20)); err != nil {
+	if bites, err := ioutil.ReadAll(io.LimitReader(res.Body, 1<<20)); err != nil {
 		return nil, errors.Wrap(err, "unable to read response body")
-	} else if len(bytes) == 0 {
+	} else if len(bites) == 0 {
 		logger.Error("Response body is empty, using defacto error for status code")
-	} else if unmarshalErr := json.Unmarshal(bytes, serializable); unmarshalErr != nil {
-		logger.WithError(unmarshalErr).WithField("responseBody", responseBodyFromBytes(bytes)).Error("Unable to deserialize response body, using defacto error for status code")
+	} else if unmarshalErr := json.Unmarshal(bites, serializable); unmarshalErr != nil {
+		logger.WithError(unmarshalErr).WithField("responseBody", responseBodyFromBytes(bites)).Error("Unable to deserialize response body, using defacto error for status code")
 	} else if serializable.Error == nil {
-		logger.WithField("responseBody", responseBodyFromBytes(bytes)).Error("Response body does not contain an error, using defacto error for status code")
+		logger.WithField("responseBody", responseBodyFromBytes(bites)).Error("Response body does not contain an error, using defacto error for status code")
 	}
 
 	if serializable.Error == nil {
@@ -217,11 +217,11 @@ func errorFromStatusCode(res *http.Response, req *http.Request) error {
 	}
 }
 
-func responseBodyFromBytes(byts []byte) interface{} {
-	if utf8.Valid(byts) {
-		return string(byts)
+func responseBodyFromBytes(bites []byte) interface{} {
+	if utf8.Valid(bites) {
+		return string(bites)
 	}
-	return byts
+	return bites
 }
 
 func drainAndClose(reader io.ReadCloser) {

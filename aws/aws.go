@@ -25,6 +25,6 @@ type BatchDeleteWithClient interface {
 	Delete(ctx awsSdkGoAws.Context, batchDeleteIterator awsSdkGoServiceS3S3manager.BatchDeleteIterator) error
 }
 
-func NewWriteAtBuffer(bytes []byte) *awsSdkGoAws.WriteAtBuffer {
-	return awsSdkGoAws.NewWriteAtBuffer(bytes)
+func NewWriteAtBuffer(bites []byte) *awsSdkGoAws.WriteAtBuffer {
+	return awsSdkGoAws.NewWriteAtBuffer(bites)
 }

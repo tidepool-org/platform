@@ -1,5 +1,6 @@
 ## HEAD
 
+* Rename bytes local variable to avoid conflict with bytes package
 * Remove unnecessary tests to prevent future propogation
 * Rename test functions with prefix ExpectSerialized to ExpectSerializeObject
 * Update test package imports to current best practices

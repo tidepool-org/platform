@@ -15,11 +15,11 @@ const (
 )
 
 func NewString(length int, charset string) string {
-	bytes := make([]byte, length)
-	for index := range bytes {
-		bytes[index] = charset[rand.Intn(len(charset))]
+	bites := make([]byte, length)
+	for index := range bites {
+		bites[index] = charset[rand.Intn(len(charset))]
 	}
-	return string(bytes)
+	return string(bites)
 }
 
 func NewVariableString(minimumLength int, maximumLength int, charset string) string {

@@ -3,11 +3,11 @@ package test
 import "encoding/json"
 
 func MarshalRequestBody(object interface{}) ([]byte, error) {
-	bytes, err := json.Marshal(object)
+	bites, err := json.Marshal(object)
 	if err != nil {
 		return nil, err
 	}
-	return append(bytes, []byte("\n")...), nil
+	return append(bites, []byte("\n")...), nil
 }
 
 func MarshalResponseBody(object interface{}) ([]byte, error) {

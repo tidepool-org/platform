@@ -55,15 +55,15 @@ func NewObjectFromSerializable(serializable *errors.Serializable, objectFormat t
 
 	switch objectFormat {
 	case test.ObjectFormatBSON:
-		if bytes, err := bson.Marshal(serializable); err != nil {
+		if bites, err := bson.Marshal(serializable); err != nil {
 			return nil
-		} else if err = bson.Unmarshal(bytes, &object); err != nil {
+		} else if err = bson.Unmarshal(bites, &object); err != nil {
 			return nil
 		}
 	case test.ObjectFormatJSON:
-		if bytes, err := json.Marshal(serializable); err != nil {
+		if bites, err := json.Marshal(serializable); err != nil {
 			return nil
-		} else if err = json.Unmarshal(bytes, &object); err != nil {
+		} else if err = json.Unmarshal(bites, &object); err != nil {
 			return nil
 		}
 	default:
@@ -125,9 +125,9 @@ func ExpectErrorDetails(err error, code string, title string, detail string) {
 	gomega.Expect(err).ToNot(gomega.BeNil())
 	gomega.Expect(errors.Code(err)).To(gomega.Equal(code))
 	gomega.Expect(errors.Cause(err)).To(gomega.Equal(err))
-	bytes, bytesErr := json.Marshal(errors.Sanitize(err))
-	gomega.Expect(bytesErr).ToNot(gomega.HaveOccurred())
-	gomega.Expect(bytes).To(gomega.MatchJSON(fmt.Sprintf(`{"code": %q, "title": %q, "detail": %q}`, code, title, detail)))
+	bites, marshalErr := json.Marshal(errors.Sanitize(err))
+	gomega.Expect(marshalErr).ToNot(gomega.HaveOccurred())
+	gomega.Expect(bites).To(gomega.MatchJSON(fmt.Sprintf(`{"code": %q, "title": %q, "detail": %q}`, code, title, detail)))
 }
 
 func ExpectErrorJSON(err error, actualJSON []byte) {

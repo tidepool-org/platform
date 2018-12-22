@@ -191,8 +191,8 @@ func NewSizeWriter() *SizeWriter {
 	return &SizeWriter{}
 }
 
-func (s *SizeWriter) Write(bytes []byte) (int, error) {
-	length := len(bytes)
+func (s *SizeWriter) Write(bites []byte) (int, error) {
+	length := len(bites)
 	s.Size += length
 	return length, nil
 }

@@ -135,11 +135,11 @@ func readFromConsole(prompt string) (string, error) {
 
 func readFromConsoleNoEcho(prompt string) (string, error) {
 	fmt.Print(prompt)
-	bytes, err := terminal.ReadPassword(int(syscall.Stdin))
+	bites, err := terminal.ReadPassword(int(syscall.Stdin))
 	fmt.Println()
 	if err != nil {
 		return "", err
 	}
-	result := string(bytes)
+	result := string(bites)
 	return result, nil
 }

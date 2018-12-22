@@ -211,24 +211,24 @@ var _ = Describe("Responder", func() {
 		})
 
 		Context("Bytes", func() {
-			var byts []byte
+			var bites []byte
 
 			BeforeEach(func() {
-				byts = []byte(test.NewVariableString(1, 64, test.CharsetText))
+				bites = []byte(test.NewVariableString(1, 64, test.CharsetText))
 			})
 
 			It("responds with successful non-empty response", func() {
 				res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-				responder.Bytes(http.StatusOK, byts)
+				responder.Bytes(http.StatusOK, bites)
 				Expect(*res.HeaderOutput).To(BeEmpty())
 				Expect(res.WriteHeaderInputs).To(Equal([]int{200}))
-				Expect(res.WriteInputs).To(Equal([][]byte{byts}))
+				Expect(res.WriteInputs).To(Equal([][]byte{bites}))
 			})
 
 			It("responds with an internal server error if there is an error with the mutators", func() {
 				res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 				invalidMutator := request.NewHeaderMutator("", "")
-				responder.Bytes(http.StatusOK, byts, invalidMutator)
+				responder.Bytes(http.StatusOK, bites, invalidMutator)
 				Expect(*res.HeaderOutput).To(Equal(http.Header{
 					"Content-Type": []string{"application/json; charset=utf-8"},
 				}))
@@ -240,10 +240,10 @@ var _ = Describe("Responder", func() {
 			It("responds with successful non-empty response with mutator", func() {
 				res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 				headerMutator := request.NewHeaderMutator(testHttp.NewHeaderKey(), testHttp.NewHeaderValue())
-				responder.Bytes(http.StatusOK, byts, headerMutator)
+				responder.Bytes(http.StatusOK, bites, headerMutator)
 				Expect(*res.HeaderOutput).To(Equal(http.Header{headerMutator.Key: []string{headerMutator.Value}}))
 				Expect(res.WriteHeaderInputs).To(Equal([]int{200}))
-				Expect(res.WriteInputs).To(Equal([][]byte{byts}))
+				Expect(res.WriteInputs).To(Equal([][]byte{bites}))
 			})
 		})
 
@@ -285,12 +285,12 @@ var _ = Describe("Responder", func() {
 		})
 
 		Context("Reader", func() {
-			var byts []byte
+			var bites []byte
 			var reader io.Reader
 
 			BeforeEach(func() {
-				byts = []byte(test.NewVariableString(1, 64, test.CharsetText))
-				reader = bytes.NewReader(byts)
+				bites = []byte(test.NewVariableString(1, 64, test.CharsetText))
+				reader = bytes.NewReader(bites)
 			})
 
 			It("responds with an internal server error if the reader is missing", func() {
@@ -309,7 +309,7 @@ var _ = Describe("Responder", func() {
 				responder.Reader(http.StatusOK, reader)
 				Expect(*res.HeaderOutput).To(BeEmpty())
 				Expect(res.WriteHeaderInputs).To(Equal([]int{200}))
-				Expect(res.WriteInputs).To(Equal([][]byte{byts}))
+				Expect(res.WriteInputs).To(Equal([][]byte{bites}))
 			})
 
 			It("responds with an internal server error if there is an error with the mutators", func() {
@@ -330,7 +330,7 @@ var _ = Describe("Responder", func() {
 				responder.Reader(http.StatusOK, reader, headerMutator)
 				Expect(*res.HeaderOutput).To(Equal(http.Header{headerMutator.Key: []string{headerMutator.Value}}))
 				Expect(res.WriteHeaderInputs).To(Equal([]int{200}))
-				Expect(res.WriteInputs).To(Equal([][]byte{byts}))
+				Expect(res.WriteInputs).To(Equal([][]byte{bites}))
 			})
 		})
 

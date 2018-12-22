@@ -18,12 +18,12 @@ func RandomBytesFromRange(minimumLength int, maximumLength int) []byte {
 	if maximumLength < minimumLength {
 		panic("RandomBytesFromRange: maximum length is not greater than or equal to minimum length")
 	}
-	bytes := make([]byte, RandomIntFromRange(minimumLength, maximumLength))
-	length, err := rand.Read(bytes)
-	if err != nil || length != len(bytes) {
+	bites := make([]byte, RandomIntFromRange(minimumLength, maximumLength))
+	length, err := rand.Read(bites)
+	if err != nil || length != len(bites) {
 		panic("RandomBytesFromRange: unable to read random bytes")
 	}
-	return bytes
+	return bites
 }
 
 func RandomBytesLengthMaximum() int {

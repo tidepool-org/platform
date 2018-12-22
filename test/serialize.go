@@ -61,21 +61,21 @@ func NewObjectFromTime(source time.Time, objectFormat ObjectFormat) interface{} 
 func ExpectSerializedObjectBSON(object interface{}, expected interface{}) {
 	gomega.Expect(object).ToNot(gomega.BeNil())
 	gomega.Expect(expected).ToNot(gomega.BeNil())
-	bytes, err := bson.Marshal(object)
+	bites, err := bson.Marshal(object)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
-	gomega.Expect(bytes).ToNot(gomega.BeNil())
+	gomega.Expect(bites).ToNot(gomega.BeNil())
 	output := map[string]interface{}{}
-	gomega.Expect(bson.Unmarshal(bytes, &output)).To(gomega.Succeed())
+	gomega.Expect(bson.Unmarshal(bites, &output)).To(gomega.Succeed())
 	gomega.Expect(output).To(gomega.Equal(expected), "Unexpected serialized BSON")
 }
 
 func ExpectSerializedObjectJSON(object interface{}, expected interface{}) {
 	gomega.Expect(object).ToNot(gomega.BeNil())
 	gomega.Expect(expected).ToNot(gomega.BeNil())
-	bytes, err := json.Marshal(object)
+	bites, err := json.Marshal(object)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
-	gomega.Expect(bytes).ToNot(gomega.BeNil())
+	gomega.Expect(bites).ToNot(gomega.BeNil())
 	output := map[string]interface{}{}
-	gomega.Expect(json.Unmarshal(bytes, &output)).To(gomega.Succeed())
+	gomega.Expect(json.Unmarshal(bites, &output)).To(gomega.Succeed())
 	gomega.Expect(output).To(gomega.Equal(expected), "Unexpected serialized JSON")
 }
