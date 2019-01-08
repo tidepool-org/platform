@@ -4,6 +4,8 @@ import (
 	"github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/metadata"
+	"github.com/tidepool-org/platform/origin"
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/test"
 )
@@ -26,7 +28,9 @@ type Datum struct {
 	IdentityFieldsInvocations            int
 	IdentityFieldsOutputs                []IdentityFieldsOutput
 	GetPayloadInvocations                int
-	GetPayloadOutputs                    []*data.Blob
+	GetPayloadOutputs                    []*metadata.Metadata
+	GetOriginInvocations                 int
+	GetOriginOutputs                     []*origin.Origin
 	SetUserIDInvocations                 int
 	SetUserIDInputs                      []*string
 	SetDataSetIDInvocations              int
@@ -96,13 +100,23 @@ func (d *Datum) IdentityFields() ([]string, error) {
 	return output.IdentityFields, output.Error
 }
 
-func (d *Datum) GetPayload() *data.Blob {
+func (d *Datum) GetPayload() *metadata.Metadata {
 	d.GetPayloadInvocations++
 
 	gomega.Expect(d.GetPayloadOutputs).ToNot(gomega.BeEmpty())
 
 	output := d.GetPayloadOutputs[0]
 	d.GetPayloadOutputs = d.GetPayloadOutputs[1:]
+	return output
+}
+
+func (d *Datum) GetOrigin() *origin.Origin {
+	d.GetOriginInvocations++
+
+	gomega.Expect(d.GetOriginOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.GetOriginOutputs[0]
+	d.GetOriginOutputs = d.GetOriginOutputs[1:]
 	return output
 }
 
@@ -183,4 +197,5 @@ func (d *Datum) Expectations() {
 	gomega.Expect(d.MetaOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.IdentityFieldsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetPayloadOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.GetOriginOutputs).To(gomega.BeEmpty())
 }

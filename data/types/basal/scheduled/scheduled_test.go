@@ -6,7 +6,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/basal"
 	"github.com/tidepool-org/platform/data/types/basal/scheduled"
 	dataTypesBasalScheduledTest "github.com/tidepool-org/platform/data/types/basal/scheduled/test"
@@ -14,6 +13,7 @@ import (
 	dataTypesInsulinTest "github.com/tidepool-org/platform/data/types/insulin/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -463,7 +463,9 @@ var _ = Describe("Scheduled", func() {
 					func(datum *scheduled.SuppressedScheduled) { datum.Annotations = nil },
 				),
 				Entry("annotations valid",
-					func(datum *scheduled.SuppressedScheduled) { datum.Annotations = dataTest.NewBlobArray() },
+					func(datum *scheduled.SuppressedScheduled) {
+						datum.Annotations = metadataTest.RandomMetadataArray()
+					},
 				),
 				Entry("insulin formulation missing",
 					func(datum *scheduled.SuppressedScheduled) { datum.InsulinFormulation = nil },

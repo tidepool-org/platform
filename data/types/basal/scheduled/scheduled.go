@@ -4,6 +4,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/basal"
 	"github.com/tidepool-org/platform/data/types/insulin"
+	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 )
@@ -88,10 +89,10 @@ type SuppressedScheduled struct {
 	Type         *string `json:"type,omitempty" bson:"type,omitempty"`
 	DeliveryType *string `json:"deliveryType,omitempty" bson:"deliveryType,omitempty"`
 
-	Annotations        *data.BlobArray      `json:"annotations,omitempty" bson:"annotations,omitempty"`
-	InsulinFormulation *insulin.Formulation `json:"insulinFormulation,omitempty" bson:"insulinFormulation,omitempty"`
-	Rate               *float64             `json:"rate,omitempty" bson:"rate,omitempty"`
-	ScheduleName       *string              `json:"scheduleName,omitempty" bson:"scheduleName,omitempty"`
+	Annotations        *metadata.MetadataArray `json:"annotations,omitempty" bson:"annotations,omitempty"`
+	InsulinFormulation *insulin.Formulation    `json:"insulinFormulation,omitempty" bson:"insulinFormulation,omitempty"`
+	Rate               *float64                `json:"rate,omitempty" bson:"rate,omitempty"`
+	ScheduleName       *string                 `json:"scheduleName,omitempty" bson:"scheduleName,omitempty"`
 }
 
 func ParseSuppressedScheduled(parser structure.ObjectParser) *SuppressedScheduled {
@@ -114,7 +115,7 @@ func (s *SuppressedScheduled) Parse(parser structure.ObjectParser) {
 	s.Type = parser.String("type")
 	s.DeliveryType = parser.String("deliveryType")
 
-	s.Annotations = data.ParseBlobArray(parser.WithReferenceArrayParser("annotations"))
+	s.Annotations = metadata.ParseMetadataArray(parser.WithReferenceArrayParser("annotations"))
 	s.InsulinFormulation = insulin.ParseFormulation(parser.WithReferenceObjectParser("insulinFormulation"))
 	s.Rate = parser.Float64("rate")
 	s.ScheduleName = parser.String("scheduleName")
@@ -135,9 +136,6 @@ func (s *SuppressedScheduled) Validate(validator structure.Validator) {
 }
 
 func (s *SuppressedScheduled) Normalize(normalizer data.Normalizer) {
-	if s.Annotations != nil {
-		s.Annotations.Normalize(normalizer.WithReference("annotations"))
-	}
 	if s.InsulinFormulation != nil {
 		s.InsulinFormulation.Normalize(normalizer.WithReference("insulinFormulation"))
 	}

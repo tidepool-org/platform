@@ -1,6 +1,8 @@
 package data
 
 import (
+	"github.com/tidepool-org/platform/metadata"
+	"github.com/tidepool-org/platform/origin"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -13,7 +15,8 @@ type Datum interface {
 
 	IdentityFields() ([]string, error)
 
-	GetPayload() *Blob
+	GetOrigin() *origin.Origin
+	GetPayload() *metadata.Metadata
 
 	SetUserID(userID *string)
 	SetDataSetID(dataSetID *string)

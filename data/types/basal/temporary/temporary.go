@@ -5,6 +5,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/basal"
 	dataTypesBasalScheduled "github.com/tidepool-org/platform/data/types/basal/scheduled"
 	"github.com/tidepool-org/platform/data/types/insulin"
+	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -104,11 +105,11 @@ type SuppressedTemporary struct {
 	Type         *string `json:"type,omitempty" bson:"type,omitempty"`
 	DeliveryType *string `json:"deliveryType,omitempty" bson:"deliveryType,omitempty"`
 
-	Annotations        *data.BlobArray      `json:"annotations,omitempty" bson:"annotations,omitempty"`
-	InsulinFormulation *insulin.Formulation `json:"insulinFormulation,omitempty" bson:"insulinFormulation,omitempty"`
-	Percent            *float64             `json:"percent,omitempty" bson:"percent,omitempty"`
-	Rate               *float64             `json:"rate,omitempty" bson:"rate,omitempty"`
-	Suppressed         Suppressed           `json:"suppressed,omitempty" bson:"suppressed,omitempty"`
+	Annotations        *metadata.MetadataArray `json:"annotations,omitempty" bson:"annotations,omitempty"`
+	InsulinFormulation *insulin.Formulation    `json:"insulinFormulation,omitempty" bson:"insulinFormulation,omitempty"`
+	Percent            *float64                `json:"percent,omitempty" bson:"percent,omitempty"`
+	Rate               *float64                `json:"rate,omitempty" bson:"rate,omitempty"`
+	Suppressed         Suppressed              `json:"suppressed,omitempty" bson:"suppressed,omitempty"`
 }
 
 func ParseSuppressedTemporary(parser structure.ObjectParser) *SuppressedTemporary {
@@ -131,7 +132,7 @@ func (s *SuppressedTemporary) Parse(parser structure.ObjectParser) {
 	s.Type = parser.String("type")
 	s.DeliveryType = parser.String("deliveryType")
 
-	s.Annotations = data.ParseBlobArray(parser.WithReferenceArrayParser("annotations"))
+	s.Annotations = metadata.ParseMetadataArray(parser.WithReferenceArrayParser("annotations"))
 	s.InsulinFormulation = insulin.ParseFormulation(parser.WithReferenceObjectParser("insulinFormulation"))
 	s.Percent = parser.Float64("percent")
 	s.Rate = parser.Float64("rate")
@@ -154,9 +155,6 @@ func (s *SuppressedTemporary) Validate(validator structure.Validator) {
 }
 
 func (s *SuppressedTemporary) Normalize(normalizer data.Normalizer) {
-	if s.Annotations != nil {
-		s.Annotations.Normalize(normalizer.WithReference("annotations"))
-	}
 	if s.InsulinFormulation != nil {
 		s.InsulinFormulation.Normalize(normalizer.WithReference("insulinFormulation"))
 	}

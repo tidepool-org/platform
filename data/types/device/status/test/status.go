@@ -3,9 +3,9 @@ package test
 import (
 	"math"
 
-	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/device/status"
 	dataTypesDeviceTest "github.com/tidepool-org/platform/data/types/device/test"
+	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
 )
@@ -17,7 +17,7 @@ func NewStatus() *status.Status {
 	datum.Duration = pointer.FromInt(test.RandomIntFromRange(status.DurationMinimum, math.MaxInt32))
 	datum.DurationExpected = pointer.FromInt(test.RandomIntFromRange(*datum.Duration, math.MaxInt32))
 	datum.Name = pointer.FromString(test.RandomStringFromArray(status.Names()))
-	datum.Reason = dataTest.NewBlob()
+	datum.Reason = metadataTest.RandomMetadata()
 	return datum
 }
 
@@ -30,6 +30,6 @@ func CloneStatus(datum *status.Status) *status.Status {
 	clone.Duration = test.CloneInt(datum.Duration)
 	clone.DurationExpected = test.CloneInt(datum.DurationExpected)
 	clone.Name = test.CloneString(datum.Name)
-	clone.Reason = dataTest.CloneBlob(datum.Reason)
+	clone.Reason = metadataTest.CloneMetadata(datum.Reason)
 	return clone
 }

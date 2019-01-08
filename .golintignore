@@ -1,19 +1,20 @@
+./association/association.go:74:6: type name will be used as association.AssociationArray by other packages, and that stutters; consider calling this Array
 ./confirmation/confirmation.go:5:6: type name will be used as confirmation.ConfirmationAccessor by other packages, and that stutters; consider calling this Accessor
 ./data/client/client.go:27:6: type name will be used as client.ClientImpl by other packages, and that stutters; consider calling this Impl
-./data/data_set.go:23:6: type name will be used as data.DataSetAccessor by other packages, and that stutters; consider calling this SetAccessor
-./data/data_set.go:52:6: func name will be used as data.DataSetTypes by other packages, and that stutters; consider calling this SetTypes
-./data/data_set.go:59:6: func name will be used as data.DataSetStates by other packages, and that stutters; consider calling this SetStates
-./data/data_set.go:85:6: type name will be used as data.DataSetClient by other packages, and that stutters; consider calling this SetClient
-./data/data_set.go:112:6: type name will be used as data.DataSetFilter by other packages, and that stutters; consider calling this SetFilter
-./data/data_set.go:147:6: type name will be used as data.DataSetCreate by other packages, and that stutters; consider calling this SetCreate
-./data/data_set.go:219:6: type name will be used as data.DataSetUpdate by other packages, and that stutters; consider calling this SetUpdate
-./data/data_set.go:287:6: type name will be used as data.DataSet by other packages, and that stutters; consider calling this Set
-./data/data_set.go:329:6: type name will be used as data.DataSets by other packages, and that stutters; consider calling this Sets
+./data/data_set.go:24:6: type name will be used as data.DataSetAccessor by other packages, and that stutters; consider calling this SetAccessor
+./data/data_set.go:53:6: func name will be used as data.DataSetTypes by other packages, and that stutters; consider calling this SetTypes
+./data/data_set.go:60:6: func name will be used as data.DataSetStates by other packages, and that stutters; consider calling this SetStates
+./data/data_set.go:86:6: type name will be used as data.DataSetClient by other packages, and that stutters; consider calling this SetClient
+./data/data_set.go:113:6: type name will be used as data.DataSetFilter by other packages, and that stutters; consider calling this SetFilter
+./data/data_set.go:148:6: type name will be used as data.DataSetCreate by other packages, and that stutters; consider calling this SetCreate
+./data/data_set.go:220:6: type name will be used as data.DataSetUpdate by other packages, and that stutters; consider calling this SetUpdate
+./data/data_set.go:288:6: type name will be used as data.DataSet by other packages, and that stutters; consider calling this Set
+./data/data_set.go:330:6: type name will be used as data.DataSets by other packages, and that stutters; consider calling this Sets
 ./data/storeDEPRECATED/storeDEPRECATED_suite_test.go:1:1: don't use MixedCaps in package name; storeDEPRECATED_test should be storedeprecated_test
 ./data/storeDEPRECATED/store.go:1:1: don't use MixedCaps in package name; storeDEPRECATED should be storedeprecated
 ./data/storeDEPRECATED/store_test.go:1:1: don't use MixedCaps in package name; storeDEPRECATED_test should be storedeprecated_test
-./data/types/common/association/association.go:76:6: type name will be used as association.AssociationArray by other packages, and that stutters; consider calling this Array
 ./data/types/device/alarm/alarm.go:25:6: func name will be used as alarm.AlarmTypes by other packages, and that stutters; consider calling this Types
+./metadata/metadata.go:65:6: type name will be used as metadata.MetadataArray by other packages, and that stutters; consider calling this Array
 ./request/mutator.go:9:6: type name will be used as request.RequestMutator by other packages, and that stutters; consider calling this Mutator
 ./service/response_test.go:27:30: method WriteJson should be WriteJSON
 ./service/response_test.go:31:30: method EncodeJson should be EncodeJSON

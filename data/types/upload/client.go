@@ -2,14 +2,15 @@ package upload
 
 import (
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/structure"
 )
 
 type Client struct {
-	Name    *string    `json:"name,omitempty" bson:"name,omitempty"`
-	Version *string    `json:"version,omitempty" bson:"version,omitempty"`
-	Private *data.Blob `json:"private,omitempty" bson:"private,omitempty"`
+	Name    *string            `json:"name,omitempty" bson:"name,omitempty"`
+	Version *string            `json:"version,omitempty" bson:"version,omitempty"`
+	Private *metadata.Metadata `json:"private,omitempty" bson:"private,omitempty"`
 }
 
 func ParseClient(parser structure.ObjectParser) *Client {
@@ -28,7 +29,7 @@ func NewClient() *Client {
 func (c *Client) Parse(parser structure.ObjectParser) {
 	c.Name = parser.String("name")
 	c.Version = parser.String("version")
-	c.Private = data.ParseBlob(parser.WithReferenceObjectParser("private"))
+	c.Private = metadata.ParseMetadata(parser.WithReferenceObjectParser("private"))
 }
 
 func (c *Client) Validate(validator structure.Validator) {

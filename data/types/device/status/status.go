@@ -3,6 +3,7 @@ package status
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/device"
+	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -25,10 +26,10 @@ func Names() []string {
 type Status struct {
 	device.Device `bson:",inline"`
 
-	Duration         *int       `json:"duration,omitempty" bson:"duration,omitempty"`
-	DurationExpected *int       `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
-	Name             *string    `json:"status,omitempty" bson:"status,omitempty"`
-	Reason           *data.Blob `json:"reason,omitempty" bson:"reason,omitempty"`
+	Duration         *int               `json:"duration,omitempty" bson:"duration,omitempty"`
+	DurationExpected *int               `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
+	Name             *string            `json:"status,omitempty" bson:"status,omitempty"`
+	Reason           *metadata.Metadata `json:"reason,omitempty" bson:"reason,omitempty"`
 }
 
 func NewStatusDatum(parser structure.ObjectParser) data.Datum {
@@ -81,7 +82,7 @@ func (s *Status) Parse(parser structure.ObjectParser) {
 	s.Duration = parser.Int("duration")
 	s.DurationExpected = parser.Int("expectedDuration")
 	s.Name = parser.String("status")
-	s.Reason = data.ParseBlob(parser.WithReferenceObjectParser("reason"))
+	s.Reason = metadata.ParseMetadata(parser.WithReferenceObjectParser("reason"))
 }
 
 func (s *Status) Validate(validator structure.Validator) {
@@ -118,8 +119,4 @@ func (s *Status) Normalize(normalizer data.Normalizer) {
 	}
 
 	s.Device.Normalize(normalizer)
-
-	if s.Reason != nil {
-		s.Reason.Normalize(normalizer.WithReference("reason"))
-	}
 }

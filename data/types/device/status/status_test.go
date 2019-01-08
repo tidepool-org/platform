@@ -6,12 +6,12 @@ import (
 	. "github.com/onsi/gomega"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/types/device/status"
 	dataTypesDeviceStatusTest "github.com/tidepool-org/platform/data/types/device/status/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -201,7 +201,7 @@ var _ = Describe("Status", func() {
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/reason", NewMeta()),
 				),
 				Entry("reason exists",
-					func(datum *status.Status) { datum.Reason = dataTest.NewBlob() },
+					func(datum *status.Status) { datum.Reason = metadataTest.RandomMetadata() },
 				),
 				Entry("multiple errors",
 					func(datum *status.Status) {

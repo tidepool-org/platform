@@ -19,10 +19,10 @@ import (
 	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
 	dataStoreDEPRECATEDMongo "github.com/tidepool-org/platform/data/storeDEPRECATED/mongo"
 	dataTypes "github.com/tidepool-org/platform/data/types"
-	dataTypesCommonOrigin "github.com/tidepool-org/platform/data/types/common/origin"
 	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/origin"
 	"github.com/tidepool-org/platform/pointer"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/tool"
@@ -395,7 +395,7 @@ func (t *Tool) benchmarkPlatformMetaDeleteDataWithOrigin(ctx context.Context, se
 
 	selectors := data.NewSelectors()
 	for _, dataSetDatum := range preparedDataSetData {
-		*selectors = append(*selectors, &data.Selector{Origin: &data.SelectorOrigin{ID: pointer.CloneString(dataSetDatum.(dataTypesCommonOrigin.Getter).GetOrigin().ID)}})
+		*selectors = append(*selectors, &data.Selector{Origin: &data.SelectorOrigin{ID: pointer.CloneString(dataSetDatum.GetOrigin().ID)}})
 	}
 
 	if err = session.DeleteDataSetData(ctx, dataSet, selectors); err != nil {
@@ -847,7 +847,7 @@ func (t *Tool) generateRandomDataSetData(deviceID *string) data.Data {
 }
 
 func (t *Tool) generateRandomDataSetDatum(deviceID *string) data.Datum {
-	origin := &dataTypesCommonOrigin.Origin{
+	origin := &origin.Origin{
 		ID: pointer.FromString(strconv.Itoa(rand.Int())),
 	}
 	return &dataTypes.Base{

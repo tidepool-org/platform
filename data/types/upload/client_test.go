@@ -6,11 +6,11 @@ import (
 	. "github.com/onsi/gomega"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	dataTest "github.com/tidepool-org/platform/data/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	"github.com/tidepool-org/platform/data/types/upload"
 	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/net"
 	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -78,7 +78,7 @@ var _ = Describe("Client", func() {
 					func(datum *upload.Client) { datum.Private = nil },
 				),
 				Entry("private exists",
-					func(datum *upload.Client) { datum.Private = dataTest.NewBlob() },
+					func(datum *upload.Client) { datum.Private = metadataTest.RandomMetadata() },
 				),
 				Entry("multiple errors",
 					func(datum *upload.Client) {

@@ -8,16 +8,17 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
+	associationTest "github.com/tidepool-org/platform/association/test"
 	"github.com/tidepool-org/platform/data"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
-	dataTypesCommonAssociationTest "github.com/tidepool-org/platform/data/types/common/association/test"
-	dataTypesCommonLocationTest "github.com/tidepool-org/platform/data/types/common/location/test"
-	dataTypesCommonOriginTest "github.com/tidepool-org/platform/data/types/common/origin/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	locationTest "github.com/tidepool-org/platform/location/test"
+	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/net"
+	originTest "github.com/tidepool-org/platform/origin/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -113,7 +114,7 @@ var _ = Describe("Base", func() {
 					structure.Origins(),
 				),
 				Entry("annotations exist",
-					func(datum *types.Base) { datum.Annotations = dataTest.NewBlobArray() },
+					func(datum *types.Base) { datum.Annotations = metadataTest.RandomMetadataArray() },
 					structure.Origins(),
 				),
 				Entry("associations missing",
@@ -126,7 +127,7 @@ var _ = Describe("Base", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/associations/0/type"),
 				),
 				Entry("associations valid",
-					func(datum *types.Base) { datum.Associations = dataTypesCommonAssociationTest.NewAssociationArray() },
+					func(datum *types.Base) { datum.Associations = associationTest.RandomAssociationArray() },
 					structure.Origins(),
 				),
 				Entry("archived data set id missing",
@@ -423,10 +424,10 @@ var _ = Describe("Base", func() {
 						datum.Location.Name = nil
 					},
 					structure.Origins(),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/location/gps"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValuesNotExistForAny("gps", "name"), "/location"),
 				),
 				Entry("location valid",
-					func(datum *types.Base) { datum.Location = dataTypesCommonLocationTest.NewLocation() },
+					func(datum *types.Base) { datum.Location = locationTest.RandomLocation() },
 					structure.Origins(),
 				),
 				Entry("modified user id missing",
@@ -575,7 +576,7 @@ var _ = Describe("Base", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/origin/name"),
 				),
 				Entry("origin valid",
-					func(datum *types.Base) { datum.Origin = dataTypesCommonOriginTest.NewOrigin() },
+					func(datum *types.Base) { datum.Origin = originTest.RandomOrigin() },
 					structure.Origins(),
 				),
 				Entry("payload missing",
@@ -583,7 +584,7 @@ var _ = Describe("Base", func() {
 					structure.Origins(),
 				),
 				Entry("payload exists",
-					func(datum *types.Base) { datum.Payload = dataTest.NewBlob() },
+					func(datum *types.Base) { datum.Payload = metadataTest.RandomMetadata() },
 					structure.Origins(),
 				),
 				Entry("schema version; out of range (lower)",
@@ -833,7 +834,7 @@ var _ = Describe("Base", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/deviceId"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", "2006-01-02T15:04:05"), "/deviceTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/id"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/location/gps"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValuesNotExistForAny("gps", "name"), "/location"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/notes"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/origin/name"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "carelink"), "/source"),

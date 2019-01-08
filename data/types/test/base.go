@@ -3,11 +3,12 @@ package test
 import (
 	"time"
 
+	associationTest "github.com/tidepool-org/platform/association/test"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
-	dataTypesCommonAssociationTest "github.com/tidepool-org/platform/data/types/common/association/test"
-	dataTypesCommonLocationTest "github.com/tidepool-org/platform/data/types/common/location/test"
-	dataTypesCommonOriginTest "github.com/tidepool-org/platform/data/types/common/origin/test"
+	locationTest "github.com/tidepool-org/platform/location/test"
+	metadataTest "github.com/tidepool-org/platform/metadata/test"
+	originTest "github.com/tidepool-org/platform/origin/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
 	timeZoneTest "github.com/tidepool-org/platform/time/zone/test"
@@ -22,8 +23,8 @@ func NewBase() *types.Base {
 
 	datum := &types.Base{}
 	datum.Active = false
-	datum.Annotations = dataTest.NewBlobArray()
-	datum.Associations = dataTypesCommonAssociationTest.NewAssociationArray()
+	datum.Annotations = metadataTest.RandomMetadataArray()
+	datum.Associations = associationTest.RandomAssociationArray()
 	datum.ArchivedDataSetID = pointer.FromString(dataTest.RandomSetID())
 	datum.ArchivedTime = pointer.FromString(archivedTime.Format(time.RFC3339Nano))
 	datum.ClockDriftOffset = pointer.FromInt(NewClockDriftOffset())
@@ -37,12 +38,12 @@ func NewBase() *types.Base {
 	datum.DeviceTime = pointer.FromString(test.RandomTime().Format("2006-01-02T15:04:05"))
 	datum.GUID = pointer.FromString(dataTest.RandomID())
 	datum.ID = pointer.FromString(dataTest.RandomID())
-	datum.Location = dataTypesCommonLocationTest.NewLocation()
+	datum.Location = locationTest.RandomLocation()
 	datum.ModifiedTime = pointer.FromString(modifiedTime.Format(time.RFC3339Nano))
 	datum.ModifiedUserID = pointer.FromString(userTest.RandomID())
 	datum.Notes = pointer.FromStringArray([]string{NewNote(1, 20), NewNote(1, 20)})
-	datum.Origin = dataTypesCommonOriginTest.NewOrigin()
-	datum.Payload = dataTest.NewBlob()
+	datum.Origin = originTest.RandomOrigin()
+	datum.Payload = metadataTest.RandomMetadata()
 	datum.SchemaVersion = 2
 	datum.Source = pointer.FromString("carelink")
 	datum.Tags = pointer.FromStringArray([]string{NewTag(1, 10)})
@@ -62,8 +63,8 @@ func CloneBase(datum *types.Base) *types.Base {
 	}
 	clone := &types.Base{}
 	clone.Active = datum.Active
-	clone.Annotations = dataTest.CloneBlobArray(datum.Annotations)
-	clone.Associations = dataTypesCommonAssociationTest.CloneAssociationArray(datum.Associations)
+	clone.Annotations = metadataTest.CloneMetadataArray(datum.Annotations)
+	clone.Associations = associationTest.CloneAssociationArray(datum.Associations)
 	clone.ArchivedDataSetID = test.CloneString(datum.ArchivedDataSetID)
 	clone.ArchivedTime = test.CloneString(datum.ArchivedTime)
 	clone.ClockDriftOffset = test.CloneInt(datum.ClockDriftOffset)
@@ -77,12 +78,12 @@ func CloneBase(datum *types.Base) *types.Base {
 	clone.DeviceTime = test.CloneString(datum.DeviceTime)
 	clone.GUID = test.CloneString(datum.GUID)
 	clone.ID = test.CloneString(datum.ID)
-	clone.Location = dataTypesCommonLocationTest.CloneLocation(datum.Location)
+	clone.Location = locationTest.CloneLocation(datum.Location)
 	clone.ModifiedTime = test.CloneString(datum.ModifiedTime)
 	clone.ModifiedUserID = test.CloneString(datum.ModifiedUserID)
 	clone.Notes = test.CloneStringArray(datum.Notes)
-	clone.Origin = dataTypesCommonOriginTest.CloneOrigin(datum.Origin)
-	clone.Payload = dataTest.CloneBlob(datum.Payload)
+	clone.Origin = originTest.CloneOrigin(datum.Origin)
+	clone.Payload = metadataTest.CloneMetadata(datum.Payload)
 	clone.SchemaVersion = datum.SchemaVersion
 	clone.Source = test.CloneString(datum.Source)
 	clone.Tags = test.CloneStringArray(datum.Tags)
