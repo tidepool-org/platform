@@ -21,6 +21,14 @@ func New() *Ketone {
 	}
 }
 
+func (k *Ketone) Parse(parser structure.ObjectParser) {
+	if !parser.HasMeta() {
+		parser = parser.WithMeta(k.Meta())
+	}
+
+	k.Blood.Parse(parser)
+}
+
 func (k *Ketone) Validate(validator structure.Validator) {
 	if !validator.HasMeta() {
 		validator = validator.WithMeta(k.Meta())

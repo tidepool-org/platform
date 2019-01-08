@@ -8,14 +8,9 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data/blood/glucose"
-	"github.com/tidepool-org/platform/data/context"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	"github.com/tidepool-org/platform/data/parser"
-	dataTest "github.com/tidepool-org/platform/data/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
-	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/service"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
@@ -43,51 +38,10 @@ func NewTarget(high interface{}, low interface{}, rng interface{}, target interf
 	return datum
 }
 
-func NewTestTarget(sourceTarget interface{}, sourceRange interface{}, sourceLow interface{}, sourceHigh interface{}) *glucose.Target {
-	testTarget := glucose.NewTarget()
-	if value, ok := sourceTarget.(float64); ok {
-		testTarget.Target = pointer.FromFloat64(value)
-	}
-	if value, ok := sourceRange.(float64); ok {
-		testTarget.Range = pointer.FromFloat64(value)
-	}
-	if value, ok := sourceLow.(float64); ok {
-		testTarget.Low = pointer.FromFloat64(value)
-	}
-	if value, ok := sourceHigh.(float64); ok {
-		testTarget.High = pointer.FromFloat64(value)
-	}
-	return testTarget
-}
-
 var _ = Describe("Target", func() {
-	DescribeTable("ParseTarget",
-		func(sourceObject *map[string]interface{}, expectedTarget *glucose.Target, expectedErrors []*service.Error) {
-			testContext, err := context.NewStandard(null.NewLogger())
-			Expect(err).ToNot(HaveOccurred())
-			Expect(testContext).ToNot(BeNil())
-			testParser, err := parser.NewStandardObject(testContext, sourceObject, parser.AppendErrorNotParsed)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(testParser).ToNot(BeNil())
-			Expect(glucose.ParseTarget(testParser)).To(Equal(expectedTarget))
-			Expect(testContext.Errors()).To(ConsistOf(expectedErrors))
-		},
-		Entry("parses object that is nil", nil, nil, []*service.Error{}),
-		Entry("parses object that is empty", &map[string]interface{}{}, NewTestTarget(nil, nil, nil, nil), []*service.Error{}),
-		Entry("parses object that has multiple valid fields", &map[string]interface{}{"target": 120.0, "range": 10.0, "low": 110.0, "high": 130.0},
-			NewTestTarget(120.0, 10.0, 110.0, 130.0), []*service.Error{}),
-		Entry("parses object that has multiple invalid fields", &map[string]interface{}{"target": "invalid", "range": "invalid", "low": "invalid", "high": "invalid"},
-			NewTestTarget(nil, nil, nil, nil), []*service.Error{
-				dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/target", nil),
-				dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/range", nil),
-				dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/low", nil),
-				dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/high", nil),
-			}),
-		Entry("parses object that has additional fields", &map[string]interface{}{"target": 120.0, "range": 10.0, "low": 110.0, "high": 130.0, "additional": 0.0},
-			NewTestTarget(120.0, 10.0, 110.0, 130.0), []*service.Error{
-				dataTest.ComposeError(parser.ErrorNotParsed(), "/additional", nil),
-			}),
-	)
+	Context("ParseTarget", func() {
+		// TODO
+	})
 
 	Context("NewTarget", func() {
 		It("is successful", func() {
@@ -97,47 +51,7 @@ var _ = Describe("Target", func() {
 
 	Context("Target", func() {
 		Context("Parse", func() {
-			DescribeTable("parses the datum",
-				func(sourceObject *map[string]interface{}, expectedDatum *glucose.Target, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(null.NewLogger())
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testContext).ToNot(BeNil())
-					testParser, err := parser.NewStandardObject(testContext, sourceObject, parser.AppendErrorNotParsed)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testParser).ToNot(BeNil())
-					sourceTarget := &glucose.Target{}
-					sourceTarget.Parse(testParser)
-					Expect(sourceTarget).To(Equal(expectedDatum))
-					Expect(testContext.Errors()).To(ConsistOf(expectedErrors))
-				},
-				Entry("succeeds", &map[string]interface{}{"target": 120.0, "range": 10.0, "low": 110.0, "high": 130.0},
-					NewTestTarget(120.0, 10.0, 110.0, 130.0), []*service.Error{}),
-				Entry("nil", nil, NewTestTarget(nil, nil, nil, nil), []*service.Error{}),
-				Entry("empty", &map[string]interface{}{}, NewTestTarget(nil, nil, nil, nil), []*service.Error{}),
-				Entry("target valid", &map[string]interface{}{"target": 120.0}, NewTestTarget(120.0, nil, nil, nil), []*service.Error{}),
-				Entry("target invalid", &map[string]interface{}{"target": "invalid"}, NewTestTarget(nil, nil, nil, nil), []*service.Error{
-					dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/target", nil),
-				}),
-				Entry("range valid", &map[string]interface{}{"range": 10.0}, NewTestTarget(nil, 10.0, nil, nil), []*service.Error{}),
-				Entry("range invalid", &map[string]interface{}{"range": "invalid"}, NewTestTarget(nil, nil, nil, nil), []*service.Error{
-					dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/range", nil),
-				}),
-				Entry("low valid", &map[string]interface{}{"low": 110.0}, NewTestTarget(nil, nil, 110.0, nil), []*service.Error{}),
-				Entry("low invalid", &map[string]interface{}{"low": "invalid"}, NewTestTarget(nil, nil, nil, nil), []*service.Error{
-					dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/low", nil),
-				}),
-				Entry("high valid", &map[string]interface{}{"high": 130.0}, NewTestTarget(nil, nil, nil, 130.0), []*service.Error{}),
-				Entry("high invalid", &map[string]interface{}{"high": "invalid"}, NewTestTarget(nil, nil, nil, nil), []*service.Error{
-					dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/high", nil),
-				}),
-				Entry("multiple errors", &map[string]interface{}{"target": "invalid", "range": "invalid", "low": "invalid", "high": "invalid"},
-					NewTestTarget(nil, nil, nil, nil), []*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/target", nil),
-						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/range", nil),
-						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/low", nil),
-						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/high", nil),
-					}),
-			)
+			// TODO
 		})
 
 		Context("Validate", func() {

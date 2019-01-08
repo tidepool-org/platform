@@ -5,9 +5,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/data/context"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	"github.com/tidepool-org/platform/data/parser"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/basal"
 	"github.com/tidepool-org/platform/data/types/basal/scheduled"
@@ -16,9 +14,7 @@ import (
 	dataTypesInsulinTest "github.com/tidepool-org/platform/data/types/insulin/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
-	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
@@ -55,27 +51,6 @@ func CloneScheduled(datum *scheduled.Scheduled) *scheduled.Scheduled {
 	clone.Rate = test.CloneFloat64(datum.Rate)
 	clone.ScheduleName = test.CloneString(datum.ScheduleName)
 	return clone
-}
-
-func NewTestScheduled(sourceTime interface{}, sourceDuration interface{}, sourceDurationExpected interface{}, sourceRate interface{}, scheduleName interface{}) *scheduled.Scheduled {
-	datum := scheduled.New()
-	datum.DeviceID = pointer.FromString(dataTest.NewDeviceID())
-	if val, ok := sourceTime.(string); ok {
-		datum.Time = &val
-	}
-	if val, ok := sourceDuration.(int); ok {
-		datum.Duration = &val
-	}
-	if val, ok := sourceDurationExpected.(int); ok {
-		datum.DurationExpected = &val
-	}
-	if val, ok := sourceRate.(float64); ok {
-		datum.Rate = &val
-	}
-	if val, ok := scheduleName.(string); ok {
-		datum.ScheduleName = &val
-	}
-	return datum
 }
 
 var _ = Describe("Scheduled", func() {
@@ -115,102 +90,7 @@ var _ = Describe("Scheduled", func() {
 
 	Context("Scheduled", func() {
 		Context("Parse", func() {
-			var datum *scheduled.Scheduled
-
-			BeforeEach(func() {
-				datum = scheduled.New()
-				Expect(datum).ToNot(BeNil())
-			})
-
-			DescribeTable("parses the datum",
-				func(sourceObject *map[string]interface{}, expectedDatum *scheduled.Scheduled, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(null.NewLogger())
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testContext).ToNot(BeNil())
-					testParser, err := parser.NewStandardObject(testContext, sourceObject, parser.AppendErrorNotParsed)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testParser).ToNot(BeNil())
-					Expect(datum.Parse(testParser)).To(Succeed())
-					Expect(datum.Time).To(Equal(expectedDatum.Time))
-					Expect(datum.Duration).To(Equal(expectedDatum.Duration))
-					Expect(datum.DurationExpected).To(Equal(expectedDatum.DurationExpected))
-					Expect(datum.Rate).To(Equal(expectedDatum.Rate))
-					Expect(datum.ScheduleName).To(Equal(expectedDatum.ScheduleName))
-					Expect(testContext.Errors()).To(ConsistOf(expectedErrors))
-				},
-				Entry("parses object that is nil",
-					nil,
-					NewTestScheduled(nil, nil, nil, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that is empty",
-					&map[string]interface{}{},
-					NewTestScheduled(nil, nil, nil, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that has valid time",
-					&map[string]interface{}{"time": "2016-09-06T13:45:58-07:00"},
-					NewTestScheduled("2016-09-06T13:45:58-07:00", nil, nil, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that has invalid time",
-					&map[string]interface{}{"time": 0},
-					NewTestScheduled(nil, nil, nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
-					}),
-				Entry("parses object that has valid duration",
-					&map[string]interface{}{"duration": 3600000},
-					NewTestScheduled(nil, 3600000, nil, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that has invalid duration",
-					&map[string]interface{}{"duration": "invalid"},
-					NewTestScheduled(nil, nil, nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotInteger("invalid"), "/duration", NewMeta()),
-					}),
-				Entry("parses object that has valid duration expected",
-					&map[string]interface{}{"expectedDuration": 7200000},
-					NewTestScheduled(nil, nil, 7200000, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that has invalid duration expected",
-					&map[string]interface{}{"expectedDuration": "invalid"},
-					NewTestScheduled(nil, nil, nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotInteger("invalid"), "/expectedDuration", NewMeta()),
-					}),
-				Entry("parses object that has valid rate",
-					&map[string]interface{}{"rate": 1.0},
-					NewTestScheduled(nil, nil, nil, 1.0, nil),
-					[]*service.Error{}),
-				Entry("parses object that has invalid rate",
-					&map[string]interface{}{"rate": "invalid"},
-					NewTestScheduled(nil, nil, nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/rate", NewMeta()),
-					}),
-				Entry("parses object that has valid schedule name",
-					&map[string]interface{}{"scheduleName": "Weekday"},
-					NewTestScheduled(nil, nil, nil, nil, "Weekday"),
-					[]*service.Error{}),
-				Entry("parses object that has invalid schedule name",
-					&map[string]interface{}{"scheduleName": 0},
-					NewTestScheduled(nil, nil, nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotString(0), "/scheduleName", NewMeta()),
-					}),
-				Entry("parses object that has multiple valid fields",
-					&map[string]interface{}{"time": "2016-09-06T13:45:58-07:00", "duration": 3600000, "expectedDuration": 7200000, "rate": 1.0, "scheduleName": "Weekday"},
-					NewTestScheduled("2016-09-06T13:45:58-07:00", 3600000, 7200000, 1.0, "Weekday"),
-					[]*service.Error{}),
-				Entry("parses object that has multiple invalid fields",
-					&map[string]interface{}{"time": 0, "duration": "invalid", "expectedDuration": "invalid", "rate": "invalid", "scheduleName": 0, "suppressed": "invalid"},
-					NewTestScheduled(nil, nil, nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
-						dataTest.ComposeError(service.ErrorTypeNotInteger("invalid"), "/duration", NewMeta()),
-						dataTest.ComposeError(service.ErrorTypeNotInteger("invalid"), "/expectedDuration", NewMeta()),
-						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/rate", NewMeta()),
-						dataTest.ComposeError(service.ErrorTypeNotString(0), "/scheduleName", NewMeta()),
-					}),
-			)
+			// TODO
 		})
 
 		Context("Validate", func() {

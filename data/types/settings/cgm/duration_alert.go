@@ -3,7 +3,6 @@ package cgm
 import (
 	"math"
 
-	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -40,10 +39,10 @@ type DurationAlert struct {
 	Units    *string  `json:"units,omitempty" bson:"units,omitempty"`
 }
 
-func (d *DurationAlert) Parse(parser data.ObjectParser) {
+func (d *DurationAlert) Parse(parser structure.ObjectParser) {
 	d.Alert.Parse(parser)
-	d.Duration = parser.ParseFloat("duration")
-	d.Units = parser.ParseString("units")
+	d.Duration = parser.Float64("duration")
+	d.Units = parser.String("units")
 }
 
 func (d *DurationAlert) Validate(validator structure.Validator) {
@@ -59,13 +58,12 @@ type NoDataAlert struct {
 	DurationAlert `bson:",inline"`
 }
 
-func ParseNoDataAlert(parser data.ObjectParser) *NoDataAlert {
-	if parser.Object() == nil {
+func ParseNoDataAlert(parser structure.ObjectParser) *NoDataAlert {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewNoDataAlert()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -96,13 +94,12 @@ type OutOfRangeAlert struct {
 	DurationAlert `bson:",inline"`
 }
 
-func ParseOutOfRangeAlert(parser data.ObjectParser) *OutOfRangeAlert {
-	if parser.Object() == nil {
+func ParseOutOfRangeAlert(parser structure.ObjectParser) *OutOfRangeAlert {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewOutOfRangeAlert()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 

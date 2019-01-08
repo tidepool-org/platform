@@ -28,13 +28,12 @@ type Elevation struct {
 	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
 }
 
-func ParseElevation(parser data.ObjectParser) *Elevation {
-	if parser.Object() == nil {
+func ParseElevation(parser structure.ObjectParser) *Elevation {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewElevation()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -42,9 +41,9 @@ func NewElevation() *Elevation {
 	return &Elevation{}
 }
 
-func (e *Elevation) Parse(parser data.ObjectParser) {
-	e.Units = parser.ParseString("units")
-	e.Value = parser.ParseFloat("value")
+func (e *Elevation) Parse(parser structure.ObjectParser) {
+	e.Units = parser.String("units")
+	e.Value = parser.Float64("value")
 }
 
 func (e *Elevation) Validate(validator structure.Validator) {

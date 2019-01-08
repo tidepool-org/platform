@@ -7,8 +7,6 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/data"
-	dataTest "github.com/tidepool-org/platform/data/test"
 	dataTypesSettingsCgm "github.com/tidepool-org/platform/data/types/settings/cgm"
 	dataTypesSettingsCgmTest "github.com/tidepool-org/platform/data/types/settings/cgm/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
@@ -218,8 +216,6 @@ var _ = Describe("LevelAlert", func() {
 				mutator(datum)
 				test.ExpectSerializedObjectBSON(datum, dataTypesSettingsCgmTest.NewObjectFromHighAlert(datum, test.ObjectFormatBSON))
 				test.ExpectSerializedObjectJSON(datum, dataTypesSettingsCgmTest.NewObjectFromHighAlert(datum, test.ObjectFormatJSON))
-				dataTest.ExpectSerializedObject(datum, dataTypesSettingsCgmTest.NewObjectFromHighAlert(datum, test.ObjectFormatJSON),
-					func(parser data.ObjectParser) interface{} { return dataTypesSettingsCgm.ParseHighAlert(parser) })
 			},
 			Entry("succeeds",
 				func(datum *dataTypesSettingsCgm.HighAlert) {},
@@ -419,8 +415,6 @@ var _ = Describe("LevelAlert", func() {
 				mutator(datum)
 				test.ExpectSerializedObjectBSON(datum, dataTypesSettingsCgmTest.NewObjectFromLowAlert(datum, test.ObjectFormatBSON))
 				test.ExpectSerializedObjectJSON(datum, dataTypesSettingsCgmTest.NewObjectFromLowAlert(datum, test.ObjectFormatJSON))
-				dataTest.ExpectSerializedObject(datum, dataTypesSettingsCgmTest.NewObjectFromLowAlert(datum, test.ObjectFormatJSON),
-					func(parser data.ObjectParser) interface{} { return dataTypesSettingsCgm.ParseLowAlert(parser) })
 			},
 			Entry("succeeds",
 				func(datum *dataTypesSettingsCgm.LowAlert) {},
@@ -620,8 +614,6 @@ var _ = Describe("LevelAlert", func() {
 				mutator(datum)
 				test.ExpectSerializedObjectBSON(datum, dataTypesSettingsCgmTest.NewObjectFromUrgentLowAlert(datum, test.ObjectFormatBSON))
 				test.ExpectSerializedObjectJSON(datum, dataTypesSettingsCgmTest.NewObjectFromUrgentLowAlert(datum, test.ObjectFormatJSON))
-				dataTest.ExpectSerializedObject(datum, dataTypesSettingsCgmTest.NewObjectFromUrgentLowAlert(datum, test.ObjectFormatJSON),
-					func(parser data.ObjectParser) interface{} { return dataTypesSettingsCgm.ParseUrgentLowAlert(parser) })
 			},
 			Entry("succeeds",
 				func(datum *dataTypesSettingsCgm.UrgentLowAlert) {},

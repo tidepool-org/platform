@@ -28,13 +28,12 @@ type Accuracy struct {
 	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
 }
 
-func ParseAccuracy(parser data.ObjectParser) *Accuracy {
-	if parser.Object() == nil {
+func ParseAccuracy(parser structure.ObjectParser) *Accuracy {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewAccuracy()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -42,9 +41,9 @@ func NewAccuracy() *Accuracy {
 	return &Accuracy{}
 }
 
-func (a *Accuracy) Parse(parser data.ObjectParser) {
-	a.Units = parser.ParseString("units")
-	a.Value = parser.ParseFloat("value")
+func (a *Accuracy) Parse(parser structure.ObjectParser) {
+	a.Units = parser.String("units")
+	a.Value = parser.Float64("value")
 }
 
 func (a *Accuracy) Validate(validator structure.Validator) {

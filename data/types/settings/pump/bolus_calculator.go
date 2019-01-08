@@ -10,13 +10,12 @@ type BolusCalculator struct {
 	Insulin *BolusCalculatorInsulin `json:"insulin,omitempty" bson:"insulin,omitempty"`
 }
 
-func ParseBolusCalculator(parser data.ObjectParser) *BolusCalculator {
-	if parser.Object() == nil {
+func ParseBolusCalculator(parser structure.ObjectParser) *BolusCalculator {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewBolusCalculator()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -24,9 +23,9 @@ func NewBolusCalculator() *BolusCalculator {
 	return &BolusCalculator{}
 }
 
-func (b *BolusCalculator) Parse(parser data.ObjectParser) {
-	b.Enabled = parser.ParseBoolean("enabled")
-	b.Insulin = ParseBolusCalculatorInsulin(parser.NewChildObjectParser("insulin"))
+func (b *BolusCalculator) Parse(parser structure.ObjectParser) {
+	b.Enabled = parser.Bool("enabled")
+	b.Insulin = ParseBolusCalculatorInsulin(parser.WithReferenceObjectParser("insulin"))
 }
 
 func (b *BolusCalculator) Validate(validator structure.Validator) {

@@ -1,11 +1,10 @@
 package basal
 
 import (
-	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 // TODO: Can we use suppressed by reference only (i.e. by id)?
@@ -39,12 +38,6 @@ func (b *Basal) Meta() interface{} {
 	}
 }
 
-func (b *Basal) Parse(parser data.ObjectParser) error {
-	parser.SetMeta(b.Meta())
-
-	return b.Base.Parse(parser)
-}
-
 func (b *Basal) Validate(validator structure.Validator) {
 	b.Base.Validate(validator)
 
@@ -68,24 +61,24 @@ func (b *Basal) IdentityFields() ([]string, error) {
 	return append(identityFields, b.DeliveryType), nil
 }
 
-func ParseDeliveryType(parser data.ObjectParser) *string {
-	if parser.Object() == nil {
+func ParseDeliveryType(parser structure.ObjectParser) *string {
+	if !parser.Exists() {
 		return nil
 	}
 
-	typ := parser.ParseString("type")
+	typ := parser.String("type")
 	if typ == nil {
-		parser.AppendError("type", service.ErrorValueNotExists())
+		parser.WithReferenceErrorReporter("type").ReportError(structureValidator.ErrorValueNotExists())
 		return nil
 	}
 	if *typ != Type {
-		parser.AppendError("type", service.ErrorValueStringNotOneOf(*typ, []string{Type}))
+		parser.WithReferenceErrorReporter("type").ReportError(structureValidator.ErrorValueStringNotOneOf(*typ, []string{Type}))
 		return nil
 	}
 
-	dlvryTyp := parser.ParseString("deliveryType")
+	dlvryTyp := parser.String("deliveryType")
 	if dlvryTyp == nil {
-		parser.AppendError("deliveryType", service.ErrorValueNotExists())
+		parser.WithReferenceErrorReporter("deliveryType").ReportError(structureValidator.ErrorValueNotExists())
 		return nil
 	}
 

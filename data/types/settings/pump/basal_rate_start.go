@@ -22,13 +22,12 @@ type BasalRateStart struct {
 	Start *int     `json:"start,omitempty" bson:"start,omitempty"`
 }
 
-func ParseBasalRateStart(parser data.ObjectParser) *BasalRateStart {
-	if parser.Object() == nil {
+func ParseBasalRateStart(parser structure.ObjectParser) *BasalRateStart {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewBasalRateStart()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -36,9 +35,9 @@ func NewBasalRateStart() *BasalRateStart {
 	return &BasalRateStart{}
 }
 
-func (b *BasalRateStart) Parse(parser data.ObjectParser) {
-	b.Rate = parser.ParseFloat("rate")
-	b.Start = parser.ParseInteger("start")
+func (b *BasalRateStart) Parse(parser structure.ObjectParser) {
+	b.Rate = parser.Float64("rate")
+	b.Start = parser.Int("start")
 }
 
 func (b *BasalRateStart) Validate(validator structure.Validator, startMinimum *int) {
@@ -59,13 +58,12 @@ func (b *BasalRateStart) Normalize(normalizer data.Normalizer) {}
 
 type BasalRateStartArray []*BasalRateStart
 
-func ParseBasalRateStartArray(parser data.ArrayParser) *BasalRateStartArray {
-	if parser.Array() == nil {
+func ParseBasalRateStartArray(parser structure.ArrayParser) *BasalRateStartArray {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewBasalRateStartArray()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -73,9 +71,9 @@ func NewBasalRateStartArray() *BasalRateStartArray {
 	return &BasalRateStartArray{}
 }
 
-func (b *BasalRateStartArray) Parse(parser data.ArrayParser) {
-	for index := range *parser.Array() {
-		*b = append(*b, ParseBasalRateStart(parser.NewChildObjectParser(index)))
+func (b *BasalRateStartArray) Parse(parser structure.ArrayParser) {
+	for _, reference := range parser.References() {
+		*b = append(*b, ParseBasalRateStart(parser.WithReferenceObjectParser(reference)))
 	}
 }
 
@@ -119,13 +117,12 @@ func (b *BasalRateStartArray) Last() *BasalRateStart {
 
 type BasalRateStartArrayMap map[string]*BasalRateStartArray
 
-func ParseBasalRateStartArrayMap(parser data.ObjectParser) *BasalRateStartArrayMap {
-	if parser.Object() == nil {
+func ParseBasalRateStartArrayMap(parser structure.ObjectParser) *BasalRateStartArrayMap {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewBasalRateStartArrayMap()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -133,9 +130,9 @@ func NewBasalRateStartArrayMap() *BasalRateStartArrayMap {
 	return &BasalRateStartArrayMap{}
 }
 
-func (b *BasalRateStartArrayMap) Parse(parser data.ObjectParser) {
-	for name := range *parser.Object() {
-		b.Set(name, ParseBasalRateStartArray(parser.NewChildArrayParser(name)))
+func (b *BasalRateStartArrayMap) Parse(parser structure.ObjectParser) {
+	for _, reference := range parser.References() {
+		b.Set(reference, ParseBasalRateStartArray(parser.WithReferenceArrayParser(reference)))
 	}
 }
 

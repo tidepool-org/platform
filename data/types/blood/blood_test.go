@@ -8,36 +8,16 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/data/context"
-	"github.com/tidepool-org/platform/data/parser"
-	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood"
 	dataTypesBloodTest "github.com/tidepool-org/platform/data/types/blood/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
-	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 )
-
-func NewTestBlood(sourceTime interface{}, sourceUnits interface{}, sourceValue interface{}) *blood.Blood {
-	datum := blood.New("blood")
-	datum.DeviceID = pointer.FromString(dataTest.NewDeviceID())
-	if val, ok := sourceTime.(string); ok {
-		datum.Time = &val
-	}
-	if val, ok := sourceUnits.(string); ok {
-		datum.Units = &val
-	}
-	if val, ok := sourceValue.(float64); ok {
-		datum.Value = &val
-	}
-	return &datum
-}
 
 var _ = Describe("Blood", func() {
 	Context("New", func() {
@@ -68,73 +48,7 @@ var _ = Describe("Blood", func() {
 
 	Context("Blood", func() {
 		Context("Parse", func() {
-			DescribeTable("parses the datum",
-				func(sourceObject *map[string]interface{}, expectedDatum *blood.Blood, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(null.NewLogger())
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testContext).ToNot(BeNil())
-					testParser, err := parser.NewStandardObject(testContext, sourceObject, parser.AppendErrorNotParsed)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testParser).ToNot(BeNil())
-					datum := &blood.Blood{}
-					datum.Type = "blood"
-					Expect(datum.Parse(testParser)).To(Succeed())
-					Expect(datum.Time).To(Equal(expectedDatum.Time))
-					Expect(datum.Units).To(Equal(expectedDatum.Units))
-					Expect(datum.Value).To(Equal(expectedDatum.Value))
-					Expect(testContext.Errors()).To(ConsistOf(expectedErrors))
-				},
-				Entry("parses object that is nil",
-					nil,
-					NewTestBlood(nil, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that is empty",
-					&map[string]interface{}{},
-					NewTestBlood(nil, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that has valid time",
-					&map[string]interface{}{"time": "2016-09-06T13:45:58-07:00"},
-					NewTestBlood("2016-09-06T13:45:58-07:00", nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that has invalid time",
-					&map[string]interface{}{"time": 0},
-					NewTestBlood(nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotString(0), "/time", &types.Meta{Type: "blood"}),
-					}),
-				Entry("parses object that has valid units",
-					&map[string]interface{}{"units": "mmol/L"},
-					NewTestBlood(nil, "mmol/L", nil),
-					[]*service.Error{}),
-				Entry("parses object that has invalid units",
-					&map[string]interface{}{"units": 0},
-					NewTestBlood(nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotString(0), "/units", &types.Meta{Type: "blood"}),
-					}),
-				Entry("parses object that has valid value",
-					&map[string]interface{}{"value": 1.0},
-					NewTestBlood(nil, nil, 1.0),
-					[]*service.Error{}),
-				Entry("parses object that has invalid value",
-					&map[string]interface{}{"value": "invalid"},
-					NewTestBlood(nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/value", &types.Meta{Type: "blood"}),
-					}),
-				Entry("parses object that has multiple valid fields",
-					&map[string]interface{}{"time": "2016-09-06T13:45:58-07:00", "units": "mmol/L", "value": 1.0},
-					NewTestBlood("2016-09-06T13:45:58-07:00", "mmol/L", 1.0),
-					[]*service.Error{}),
-				Entry("parses object that has multiple invalid fields",
-					&map[string]interface{}{"time": 0, "units": 0, "value": "invalid"},
-					NewTestBlood(nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotString(0), "/time", &types.Meta{Type: "blood"}),
-						dataTest.ComposeError(service.ErrorTypeNotString(0), "/units", &types.Meta{Type: "blood"}),
-						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/value", &types.Meta{Type: "blood"}),
-					}),
-			)
+			// TODO
 		})
 
 		Context("Validate", func() {

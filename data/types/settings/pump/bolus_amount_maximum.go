@@ -24,13 +24,12 @@ type BolusAmountMaximum struct {
 	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
 }
 
-func ParseBolusAmountMaximum(parser data.ObjectParser) *BolusAmountMaximum {
-	if parser.Object() == nil {
+func ParseBolusAmountMaximum(parser structure.ObjectParser) *BolusAmountMaximum {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewBolusAmountMaximum()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -38,9 +37,9 @@ func NewBolusAmountMaximum() *BolusAmountMaximum {
 	return &BolusAmountMaximum{}
 }
 
-func (b *BolusAmountMaximum) Parse(parser data.ObjectParser) {
-	b.Units = parser.ParseString("units")
-	b.Value = parser.ParseFloat("value")
+func (b *BolusAmountMaximum) Parse(parser structure.ObjectParser) {
+	b.Units = parser.String("units")
+	b.Value = parser.Float64("value")
 }
 
 func (b *BolusAmountMaximum) Validate(validator structure.Validator) {

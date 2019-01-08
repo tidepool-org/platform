@@ -7,8 +7,6 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/data"
-	dataTest "github.com/tidepool-org/platform/data/test"
 	dataTypesSettingsCgm "github.com/tidepool-org/platform/data/types/settings/cgm"
 	dataTypesSettingsCgmTest "github.com/tidepool-org/platform/data/types/settings/cgm/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
@@ -235,8 +233,6 @@ var _ = Describe("DurationAlert", func() {
 				mutator(datum)
 				test.ExpectSerializedObjectBSON(datum, dataTypesSettingsCgmTest.NewObjectFromNoDataAlert(datum, test.ObjectFormatBSON))
 				test.ExpectSerializedObjectJSON(datum, dataTypesSettingsCgmTest.NewObjectFromNoDataAlert(datum, test.ObjectFormatJSON))
-				dataTest.ExpectSerializedObject(datum, dataTypesSettingsCgmTest.NewObjectFromNoDataAlert(datum, test.ObjectFormatJSON),
-					func(parser data.ObjectParser) interface{} { return dataTypesSettingsCgm.ParseNoDataAlert(parser) })
 			},
 			Entry("succeeds",
 				func(datum *dataTypesSettingsCgm.NoDataAlert) {},
@@ -475,8 +471,6 @@ var _ = Describe("DurationAlert", func() {
 				mutator(datum)
 				test.ExpectSerializedObjectBSON(datum, dataTypesSettingsCgmTest.NewObjectFromOutOfRangeAlert(datum, test.ObjectFormatBSON))
 				test.ExpectSerializedObjectJSON(datum, dataTypesSettingsCgmTest.NewObjectFromOutOfRangeAlert(datum, test.ObjectFormatJSON))
-				dataTest.ExpectSerializedObject(datum, dataTypesSettingsCgmTest.NewObjectFromOutOfRangeAlert(datum, test.ObjectFormatJSON),
-					func(parser data.ObjectParser) interface{} { return dataTypesSettingsCgm.ParseOutOfRangeAlert(parser) })
 			},
 			Entry("succeeds",
 				func(datum *dataTypesSettingsCgm.OutOfRangeAlert) {},

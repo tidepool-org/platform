@@ -9,22 +9,24 @@ import (
 
 type Blob map[string]interface{}
 
-func ParseBlob(parser ObjectParser) *Blob {
-	if parser.Object() == nil {
+func ParseBlob(parser structure.ObjectParser) *Blob {
+	if !parser.Exists() {
 		return nil
 	}
-	blob := NewBlob()
-	blob.Parse(parser)
-	return blob
+	datum := NewBlob()
+	parser.Parse(datum)
+	return datum
 }
 
 func NewBlob() *Blob {
 	return &Blob{}
 }
 
-func (b *Blob) Parse(parser ObjectParser) {
-	if obj := parser.Object(); obj != nil {
-		*b = *obj
+func (b *Blob) Parse(parser structure.ObjectParser) {
+	for _, reference := range parser.References() {
+		if value := parser.Interface(reference); value != nil {
+			(*b)[reference] = *value
+		}
 	}
 }
 
@@ -52,23 +54,22 @@ func (b *Blob) Delete(key string) {
 
 type BlobArray []*Blob
 
-func ParseBlobArray(parser ArrayParser) *BlobArray {
-	if parser.Array() == nil {
+func ParseBlobArray(parser structure.ArrayParser) *BlobArray {
+	if !parser.Exists() {
 		return nil
 	}
-	blobArray := NewBlobArray()
-	blobArray.Parse(parser)
-	parser.ProcessNotParsed()
-	return blobArray
+	datum := NewBlobArray()
+	parser.Parse(datum)
+	return datum
 }
 
 func NewBlobArray() *BlobArray {
 	return &BlobArray{}
 }
 
-func (b *BlobArray) Parse(parser ArrayParser) {
-	for index := range *parser.Array() {
-		*b = append(*b, ParseBlob(parser.NewChildObjectParser(index)))
+func (b *BlobArray) Parse(parser structure.ArrayParser) {
+	for _, reference := range parser.References() {
+		*b = append(*b, ParseBlob(parser.WithReferenceObjectParser(reference)))
 	}
 }
 

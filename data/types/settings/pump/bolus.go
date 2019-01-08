@@ -11,13 +11,12 @@ type Bolus struct {
 	Extended      *BolusExtended      `json:"extended,omitempty" bson:"extended,omitempty"`
 }
 
-func ParseBolus(parser data.ObjectParser) *Bolus {
-	if parser.Object() == nil {
+func ParseBolus(parser structure.ObjectParser) *Bolus {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewBolus()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -25,10 +24,10 @@ func NewBolus() *Bolus {
 	return &Bolus{}
 }
 
-func (b *Bolus) Parse(parser data.ObjectParser) {
-	b.AmountMaximum = ParseBolusAmountMaximum(parser.NewChildObjectParser("amountMaximum"))
-	b.Calculator = ParseBolusCalculator(parser.NewChildObjectParser("calculator"))
-	b.Extended = ParseBolusExtended(parser.NewChildObjectParser("extended"))
+func (b *Bolus) Parse(parser structure.ObjectParser) {
+	b.AmountMaximum = ParseBolusAmountMaximum(parser.WithReferenceObjectParser("amountMaximum"))
+	b.Calculator = ParseBolusCalculator(parser.WithReferenceObjectParser("calculator"))
+	b.Extended = ParseBolusExtended(parser.WithReferenceObjectParser("extended"))
 }
 
 func (b *Bolus) Validate(validator structure.Validator) {

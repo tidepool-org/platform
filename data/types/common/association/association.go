@@ -30,13 +30,12 @@ type Association struct {
 	URL    *string `json:"url,omitempty" bson:"url,omitempty"`
 }
 
-func ParseAssociation(parser data.ObjectParser) *Association {
-	if parser.Object() == nil {
+func ParseAssociation(parser structure.ObjectParser) *Association {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewAssociation()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -44,11 +43,11 @@ func NewAssociation() *Association {
 	return &Association{}
 }
 
-func (a *Association) Parse(parser data.ObjectParser) {
-	a.ID = parser.ParseString("id")
-	a.Reason = parser.ParseString("reason")
-	a.Type = parser.ParseString("type")
-	a.URL = parser.ParseString("url")
+func (a *Association) Parse(parser structure.ObjectParser) {
+	a.ID = parser.String("id")
+	a.Reason = parser.String("reason")
+	a.Type = parser.String("type")
+	a.URL = parser.String("url")
 }
 
 func (a *Association) Validate(validator structure.Validator) {
@@ -76,13 +75,12 @@ func (a *Association) Normalize(normalizer data.Normalizer) {}
 
 type AssociationArray []*Association
 
-func ParseAssociationArray(parser data.ArrayParser) *AssociationArray {
-	if parser.Array() == nil {
+func ParseAssociationArray(parser structure.ArrayParser) *AssociationArray {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewAssociationArray()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -90,9 +88,9 @@ func NewAssociationArray() *AssociationArray {
 	return &AssociationArray{}
 }
 
-func (a *AssociationArray) Parse(parser data.ArrayParser) {
-	for index := range *parser.Array() {
-		*a = append(*a, ParseAssociation(parser.NewChildObjectParser(index)))
+func (a *AssociationArray) Parse(parser structure.ArrayParser) {
+	for _, reference := range parser.References() {
+		*a = append(*a, ParseAssociation(parser.WithReferenceObjectParser(reference)))
 	}
 }
 

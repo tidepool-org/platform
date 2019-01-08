@@ -24,15 +24,15 @@ func New() *Calibration {
 	}
 }
 
-func (c *Calibration) Parse(parser data.ObjectParser) error {
-	if err := c.Device.Parse(parser); err != nil {
-		return err
+func (c *Calibration) Parse(parser structure.ObjectParser) {
+	if !parser.HasMeta() {
+		parser = parser.WithMeta(c.Meta())
 	}
 
-	c.Units = parser.ParseString("units")
-	c.Value = parser.ParseFloat("value")
+	c.Device.Parse(parser)
 
-	return nil
+	c.Units = parser.String("units")
+	c.Value = parser.Float64("value")
 }
 
 func (c *Calibration) Validate(validator structure.Validator) {

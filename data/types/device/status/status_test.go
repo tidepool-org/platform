@@ -5,19 +5,14 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/context"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	"github.com/tidepool-org/platform/data/parser"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/types/device/status"
 	dataTypesDeviceStatusTest "github.com/tidepool-org/platform/data/types/device/status/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
-	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -27,22 +22,6 @@ func NewMeta() interface{} {
 		Type:    "deviceEvent",
 		SubType: "status",
 	}
-}
-
-func NewTestStatus(sourceTime interface{}, sourceDuration interface{}, sourceName interface{}, sourceReason *data.Blob) *status.Status {
-	datum := status.New()
-	datum.DeviceID = pointer.FromString(dataTest.NewDeviceID())
-	if val, ok := sourceTime.(string); ok {
-		datum.Time = &val
-	}
-	if val, ok := sourceDuration.(int); ok {
-		datum.Duration = &val
-	}
-	if val, ok := sourceName.(string); ok {
-		datum.Name = &val
-	}
-	datum.Reason = sourceReason
-	return datum
 }
 
 var _ = Describe("Status", func() {
@@ -89,91 +68,7 @@ var _ = Describe("Status", func() {
 
 	Context("Status", func() {
 		Context("Parse", func() {
-			var datum *status.Status
-
-			BeforeEach(func() {
-				datum = status.New()
-				Expect(datum).ToNot(BeNil())
-			})
-
-			DescribeTable("parses the datum",
-				func(sourceObject *map[string]interface{}, expectedDatum *status.Status, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(null.NewLogger())
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testContext).ToNot(BeNil())
-					testParser, err := parser.NewStandardObject(testContext, sourceObject, parser.AppendErrorNotParsed)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testParser).ToNot(BeNil())
-					Expect(datum.Parse(testParser)).To(Succeed())
-					Expect(datum.Time).To(Equal(expectedDatum.Time))
-					Expect(datum.Duration).To(Equal(expectedDatum.Duration))
-					Expect(datum.DurationExpected).To(Equal(expectedDatum.DurationExpected))
-					Expect(datum.Name).To(Equal(expectedDatum.Name))
-					Expect(datum.Reason).To(Equal(expectedDatum.Reason))
-					Expect(testContext.Errors()).To(ConsistOf(expectedErrors))
-				},
-				Entry("parses object that is nil",
-					nil,
-					NewTestStatus(nil, nil, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that is empty",
-					&map[string]interface{}{},
-					NewTestStatus(nil, nil, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that has valid time",
-					&map[string]interface{}{"time": "2016-09-06T13:45:58-07:00"},
-					NewTestStatus("2016-09-06T13:45:58-07:00", nil, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that has invalid time",
-					&map[string]interface{}{"time": 0},
-					NewTestStatus(nil, nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
-					}),
-				Entry("parses object that has valid duration",
-					&map[string]interface{}{"duration": 1000000},
-					NewTestStatus(nil, 1000000, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that has invalid duration",
-					&map[string]interface{}{"duration": "invalid"},
-					NewTestStatus(nil, nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotInteger("invalid"), "/duration", NewMeta()),
-					}),
-				Entry("parses object that has valid name",
-					&map[string]interface{}{"status": "suspended"},
-					NewTestStatus(nil, nil, "suspended", nil),
-					[]*service.Error{}),
-				Entry("parses object that has invalid name",
-					&map[string]interface{}{"status": 123},
-					NewTestStatus(nil, nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotString(123), "/status", NewMeta()),
-					}),
-				Entry("parses object that has valid reason",
-					&map[string]interface{}{"reason": map[string]interface{}{"a": "one", "b": 2}},
-					NewTestStatus(nil, nil, nil, &data.Blob{"a": "one", "b": 2}),
-					[]*service.Error{}),
-				Entry("parses object that has invalid reason",
-					&map[string]interface{}{"reason": "invalid"},
-					NewTestStatus(nil, nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotObject("invalid"), "/reason", NewMeta()),
-					}),
-				Entry("parses object that has multiple valid fields",
-					&map[string]interface{}{"time": "2016-09-06T13:45:58-07:00", "duration": 1000000, "status": "suspended", "reason": map[string]interface{}{"a": "one", "b": 2}},
-					NewTestStatus("2016-09-06T13:45:58-07:00", 1000000, "suspended", &data.Blob{"a": "one", "b": 2}),
-					[]*service.Error{}),
-				Entry("parses object that has multiple invalid fields",
-					&map[string]interface{}{"time": 0, "duration": "invalid", "status": 123, "reason": "invalid"},
-					NewTestStatus(nil, nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
-						dataTest.ComposeError(service.ErrorTypeNotInteger("invalid"), "/duration", NewMeta()),
-						dataTest.ComposeError(service.ErrorTypeNotString(123), "/status", NewMeta()),
-						dataTest.ComposeError(service.ErrorTypeNotObject("invalid"), "/reason", NewMeta()),
-					}),
-			)
+			// TODO
 		})
 
 		Context("Validate", func() {

@@ -15,13 +15,12 @@ type Location struct {
 	Name *string `json:"name,omitempty" bson:"name,omitempty"`
 }
 
-func ParseLocation(parser data.ObjectParser) *Location {
-	if parser.Object() == nil {
+func ParseLocation(parser structure.ObjectParser) *Location {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewLocation()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -29,9 +28,9 @@ func NewLocation() *Location {
 	return &Location{}
 }
 
-func (l *Location) Parse(parser data.ObjectParser) {
-	l.GPS = ParseGPS(parser.NewChildObjectParser("gps"))
-	l.Name = parser.ParseString("name")
+func (l *Location) Parse(parser structure.ObjectParser) {
+	l.GPS = ParseGPS(parser.WithReferenceObjectParser("gps"))
+	l.Name = parser.String("name")
 }
 
 func (l *Location) Validate(validator structure.Validator) {

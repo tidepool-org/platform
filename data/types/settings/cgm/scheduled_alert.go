@@ -3,7 +3,6 @@ package cgm
 import (
 	"strconv"
 
-	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -42,13 +41,12 @@ func ScheduledAlertDays() []string {
 
 type ScheduledAlerts []*ScheduledAlert
 
-func ParseScheduledAlerts(parser data.ArrayParser) *ScheduledAlerts {
-	if parser.Array() == nil {
+func ParseScheduledAlerts(parser structure.ArrayParser) *ScheduledAlerts {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewScheduledAlerts()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -56,9 +54,9 @@ func NewScheduledAlerts() *ScheduledAlerts {
 	return &ScheduledAlerts{}
 }
 
-func (s *ScheduledAlerts) Parse(parser data.ArrayParser) {
-	for index := range *parser.Array() {
-		*s = append(*s, ParseScheduledAlert(parser.NewChildObjectParser(index)))
+func (s *ScheduledAlerts) Parse(parser structure.ArrayParser) {
+	for _, reference := range parser.References() {
+		*s = append(*s, ParseScheduledAlert(parser.WithReferenceObjectParser(reference)))
 	}
 }
 
@@ -86,13 +84,12 @@ type ScheduledAlert struct {
 	Alerts *Alerts   `json:"alerts,omitempty" bson:"alerts,omitempty"`
 }
 
-func ParseScheduledAlert(parser data.ObjectParser) *ScheduledAlert {
-	if parser.Object() == nil {
+func ParseScheduledAlert(parser structure.ObjectParser) *ScheduledAlert {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewScheduledAlert()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -100,12 +97,12 @@ func NewScheduledAlert() *ScheduledAlert {
 	return &ScheduledAlert{}
 }
 
-func (s *ScheduledAlert) Parse(parser data.ObjectParser) {
-	s.Name = parser.ParseString("name")
-	s.Days = parser.ParseStringArray("days")
-	s.Start = parser.ParseInteger("start")
-	s.End = parser.ParseInteger("end")
-	s.Alerts = ParseAlerts(parser.NewChildObjectParser("alerts"))
+func (s *ScheduledAlert) Parse(parser structure.ObjectParser) {
+	s.Name = parser.String("name")
+	s.Days = parser.StringArray("days")
+	s.Start = parser.Int("start")
+	s.End = parser.Int("end")
+	s.Alerts = ParseAlerts(parser.WithReferenceObjectParser("alerts"))
 }
 
 func (s *ScheduledAlert) Validate(validator structure.Validator) {

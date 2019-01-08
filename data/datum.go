@@ -7,7 +7,7 @@ import (
 type Datum interface {
 	Meta() interface{}
 
-	Parse(parser ObjectParser) error
+	Parse(parser structure.ObjectParser)
 	Validate(validator structure.Validator)
 	Normalize(normalizer Normalizer)
 

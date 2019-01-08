@@ -87,25 +87,23 @@ func (b *Base) Meta() interface{} {
 	}
 }
 
-func (b *Base) Parse(parser data.ObjectParser) error {
-	b.Annotations = data.ParseBlobArray(parser.NewChildArrayParser("annotations"))
-	b.Associations = dataTypesCommonAssociation.ParseAssociationArray(parser.NewChildArrayParser("associations"))
-	b.ClockDriftOffset = parser.ParseInteger("clockDriftOffset")
-	b.ConversionOffset = parser.ParseInteger("conversionOffset")
-	b.DeviceID = parser.ParseString("deviceId")
-	b.DeviceTime = parser.ParseString("deviceTime")
-	b.ID = parser.ParseString("id")
-	b.Location = dataTypesCommonLocation.ParseLocation(parser.NewChildObjectParser("location"))
-	b.Notes = parser.ParseStringArray("notes")
-	b.Origin = dataTypesCommonOrigin.ParseOrigin(parser.NewChildObjectParser("origin"))
-	b.Payload = data.ParseBlob(parser.NewChildObjectParser("payload"))
-	b.Source = parser.ParseString("source")
-	b.Tags = parser.ParseStringArray("tags")
-	b.Time = parser.ParseString("time")
-	b.TimeZoneName = parser.ParseString("timezone")
-	b.TimeZoneOffset = parser.ParseInteger("timezoneOffset")
-
-	return nil
+func (b *Base) Parse(parser structure.ObjectParser) {
+	b.Annotations = data.ParseBlobArray(parser.WithReferenceArrayParser("annotations"))
+	b.Associations = dataTypesCommonAssociation.ParseAssociationArray(parser.WithReferenceArrayParser("associations"))
+	b.ClockDriftOffset = parser.Int("clockDriftOffset")
+	b.ConversionOffset = parser.Int("conversionOffset")
+	b.DeviceID = parser.String("deviceId")
+	b.DeviceTime = parser.String("deviceTime")
+	b.ID = parser.String("id")
+	b.Location = dataTypesCommonLocation.ParseLocation(parser.WithReferenceObjectParser("location"))
+	b.Notes = parser.StringArray("notes")
+	b.Origin = dataTypesCommonOrigin.ParseOrigin(parser.WithReferenceObjectParser("origin"))
+	b.Payload = data.ParseBlob(parser.WithReferenceObjectParser("payload"))
+	b.Source = parser.String("source")
+	b.Tags = parser.StringArray("tags")
+	b.Time = parser.String("time")
+	b.TimeZoneName = parser.String("timezone")
+	b.TimeZoneOffset = parser.Int("timezoneOffset")
 }
 
 func (b *Base) Validate(validator structure.Validator) {

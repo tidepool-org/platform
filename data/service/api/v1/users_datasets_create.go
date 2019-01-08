@@ -3,9 +3,7 @@ package v1
 import (
 	"net/http"
 
-	"github.com/tidepool-org/platform/data/context"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	"github.com/tidepool-org/platform/data/parser"
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/log"
@@ -13,6 +11,7 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
+	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
@@ -48,34 +47,22 @@ func UsersDataSetsCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	datumContext, err := context.NewStandard(lgr)
-	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to create datum context", err)
-		return
-	}
-
-	datumParser, err := parser.NewStandardObject(datumContext, &rawDatum, parser.AppendErrorNotParsed)
-	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to create datum parser", err)
-		return
-	}
-
+	parser := structureParser.NewObject(&rawDatum)
 	validator := structureValidator.New()
 	normalizer := dataNormalizer.New()
 
-	dataSet := upload.ParseUpload(datumParser)
-
+	dataSet := upload.ParseUpload(parser)
 	if dataSet != nil {
-		datumParser.ProcessNotParsed()
+		parser.NotParsed()
 	}
 
-	if errs := datumContext.Errors(); len(errs) > 0 {
-		dataServiceContext.RespondWithStatusAndErrors(http.StatusBadRequest, errs)
+	if err := parser.Error(); err != nil {
+		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
 		return
 	}
 
 	dataSet.Validate(validator)
-	if err = validator.Error(); err != nil {
+	if err := validator.Error(); err != nil {
 		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
 		return
 	}
@@ -84,7 +71,7 @@ func UsersDataSetsCreate(dataServiceContext dataService.Context) {
 
 	dataSet.Normalize(normalizer)
 
-	if err = normalizer.Error(); err != nil {
+	if err := normalizer.Error(); err != nil {
 		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
 		return
 	}
@@ -92,13 +79,13 @@ func UsersDataSetsCreate(dataServiceContext dataService.Context) {
 	dataSet.DataState = pointer.FromString("open") // TODO: Deprecated DataState (after data migration)
 	dataSet.State = pointer.FromString("open")
 
-	if err = dataServiceContext.DataSession().CreateDataSet(ctx, dataSet); err != nil {
+	if err := dataServiceContext.DataSession().CreateDataSet(ctx, dataSet); err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to insert data set", err)
 		return
 	}
 
-	if deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().New(dataSet); getErr != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to get deduplicator", getErr)
+	if deduplicator, err := dataServiceContext.DataDeduplicatorFactory().New(dataSet); err != nil {
+		dataServiceContext.RespondWithInternalServerFailure("Unable to get deduplicator", err)
 		return
 	} else if deduplicator == nil {
 		dataServiceContext.RespondWithInternalServerFailure("Deduplicator not found", err)
@@ -108,7 +95,7 @@ func UsersDataSetsCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "users_data_sets_create"); err != nil {
+	if err := dataServiceContext.MetricClient().RecordMetric(ctx, "users_data_sets_create"); err != nil {
 		lgr.WithError(err).Error("Unable to record metric")
 	}
 

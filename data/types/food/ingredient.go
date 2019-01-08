@@ -24,13 +24,12 @@ type Ingredient struct {
 	Nutrition   *Nutrition       `json:"nutrition,omitempty" bson:"nutrition,omitempty"`
 }
 
-func ParseIngredient(parser data.ObjectParser) *Ingredient {
-	if parser.Object() == nil {
+func ParseIngredient(parser structure.ObjectParser) *Ingredient {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewIngredient()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -38,13 +37,13 @@ func NewIngredient() *Ingredient {
 	return &Ingredient{}
 }
 
-func (i *Ingredient) Parse(parser data.ObjectParser) {
-	i.Amount = ParseAmount(parser.NewChildObjectParser("amount"))
-	i.Brand = parser.ParseString("brand")
-	i.Code = parser.ParseString("code")
-	i.Ingredients = ParseIngredientArray(parser.NewChildArrayParser("ingredients"))
-	i.Name = parser.ParseString("name")
-	i.Nutrition = ParseNutrition(parser.NewChildObjectParser("nutrition"))
+func (i *Ingredient) Parse(parser structure.ObjectParser) {
+	i.Amount = ParseAmount(parser.WithReferenceObjectParser("amount"))
+	i.Brand = parser.String("brand")
+	i.Code = parser.String("code")
+	i.Ingredients = ParseIngredientArray(parser.WithReferenceArrayParser("ingredients"))
+	i.Name = parser.String("name")
+	i.Nutrition = ParseNutrition(parser.WithReferenceObjectParser("nutrition"))
 }
 
 func (i *Ingredient) Validate(validator structure.Validator) {
@@ -76,13 +75,12 @@ func (i *Ingredient) Normalize(normalizer data.Normalizer) {
 
 type IngredientArray []*Ingredient
 
-func ParseIngredientArray(parser data.ArrayParser) *IngredientArray {
-	if parser.Array() == nil {
+func ParseIngredientArray(parser structure.ArrayParser) *IngredientArray {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewIngredientArray()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -90,9 +88,9 @@ func NewIngredientArray() *IngredientArray {
 	return &IngredientArray{}
 }
 
-func (i *IngredientArray) Parse(parser data.ArrayParser) {
-	for index := range *parser.Array() {
-		*i = append(*i, ParseIngredient(parser.NewChildObjectParser(index)))
+func (i *IngredientArray) Parse(parser structure.ArrayParser) {
+	for _, reference := range parser.References() {
+		*i = append(*i, ParseIngredient(parser.WithReferenceObjectParser(reference)))
 	}
 }
 

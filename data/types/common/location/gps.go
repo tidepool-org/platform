@@ -22,13 +22,12 @@ type GPS struct {
 	VerticalAccuracy   *Accuracy                     `json:"verticalAccuracy,omitempty" bson:"verticalAccuracy,omitempty"`
 }
 
-func ParseGPS(parser data.ObjectParser) *GPS {
-	if parser.Object() == nil {
+func ParseGPS(parser structure.ObjectParser) *GPS {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewGPS()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -36,14 +35,14 @@ func NewGPS() *GPS {
 	return &GPS{}
 }
 
-func (g *GPS) Parse(parser data.ObjectParser) {
-	g.Elevation = ParseElevation(parser.NewChildObjectParser("elevation"))
-	g.Floor = parser.ParseInteger("floor")
-	g.HorizontalAccuracy = ParseAccuracy(parser.NewChildObjectParser("horizontalAccuracy"))
-	g.Latitude = ParseLatitude(parser.NewChildObjectParser("latitude"))
-	g.Longitude = ParseLongitude(parser.NewChildObjectParser("longitude"))
-	g.Origin = dataTypesCommonOrigin.ParseOrigin(parser.NewChildObjectParser("origin"))
-	g.VerticalAccuracy = ParseAccuracy(parser.NewChildObjectParser("verticalAccuracy"))
+func (g *GPS) Parse(parser structure.ObjectParser) {
+	g.Elevation = ParseElevation(parser.WithReferenceObjectParser("elevation"))
+	g.Floor = parser.Int("floor")
+	g.HorizontalAccuracy = ParseAccuracy(parser.WithReferenceObjectParser("horizontalAccuracy"))
+	g.Latitude = ParseLatitude(parser.WithReferenceObjectParser("latitude"))
+	g.Longitude = ParseLongitude(parser.WithReferenceObjectParser("longitude"))
+	g.Origin = dataTypesCommonOrigin.ParseOrigin(parser.WithReferenceObjectParser("origin"))
+	g.VerticalAccuracy = ParseAccuracy(parser.WithReferenceObjectParser("verticalAccuracy"))
 }
 
 func (g *GPS) Validate(validator structure.Validator) {

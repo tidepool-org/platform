@@ -37,15 +37,15 @@ func New() *Prime {
 	}
 }
 
-func (p *Prime) Parse(parser data.ObjectParser) error {
-	if err := p.Device.Parse(parser); err != nil {
-		return err
+func (p *Prime) Parse(parser structure.ObjectParser) {
+	if !parser.HasMeta() {
+		parser = parser.WithMeta(p.Meta())
 	}
 
-	p.Target = parser.ParseString("primeTarget")
-	p.Volume = parser.ParseFloat("volume")
+	p.Device.Parse(parser)
 
-	return nil
+	p.Target = parser.String("primeTarget")
+	p.Volume = parser.Float64("volume")
 }
 
 func (p *Prime) Validate(validator structure.Validator) {

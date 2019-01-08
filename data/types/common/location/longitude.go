@@ -16,13 +16,12 @@ type Longitude struct {
 	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
 }
 
-func ParseLongitude(parser data.ObjectParser) *Longitude {
-	if parser.Object() == nil {
+func ParseLongitude(parser structure.ObjectParser) *Longitude {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewLongitude()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -30,9 +29,9 @@ func NewLongitude() *Longitude {
 	return &Longitude{}
 }
 
-func (l *Longitude) Parse(parser data.ObjectParser) {
-	l.Units = parser.ParseString("units")
-	l.Value = parser.ParseFloat("value")
+func (l *Longitude) Parse(parser structure.ObjectParser) {
+	l.Units = parser.String("units")
+	l.Value = parser.Float64("value")
 }
 
 func (l *Longitude) Validate(validator structure.Validator) {

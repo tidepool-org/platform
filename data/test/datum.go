@@ -18,8 +18,7 @@ type Datum struct {
 	MetaInvocations                      int
 	MetaOutputs                          []interface{}
 	ParseInvocations                     int
-	ParseInputs                          []data.ObjectParser
-	ParseOutputs                         []error
+	ParseInputs                          []structure.ObjectParser
 	ValidateInvocations                  int
 	ValidateInputs                       []structure.Validator
 	NormalizeInvocations                 int
@@ -69,16 +68,10 @@ func (d *Datum) Meta() interface{} {
 	return output
 }
 
-func (d *Datum) Parse(parser data.ObjectParser) error {
+func (d *Datum) Parse(parser structure.ObjectParser) {
 	d.ParseInvocations++
 
 	d.ParseInputs = append(d.ParseInputs, parser)
-
-	gomega.Expect(d.ParseOutputs).ToNot(gomega.BeEmpty())
-
-	output := d.ParseOutputs[0]
-	d.ParseOutputs = d.ParseOutputs[1:]
-	return output
 }
 
 func (d *Datum) Validate(validator structure.Validator) {
@@ -188,7 +181,6 @@ func (d *Datum) SetDeduplicatorDescriptor(deduplicatorDescriptor *data.Deduplica
 func (d *Datum) Expectations() {
 	d.Mock.Expectations()
 	gomega.Expect(d.MetaOutputs).To(gomega.BeEmpty())
-	gomega.Expect(d.ParseOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.IdentityFieldsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetPayloadOutputs).To(gomega.BeEmpty())
 }

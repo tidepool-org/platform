@@ -22,13 +22,12 @@ type BloodGlucoseTargetStart struct {
 	Start *int `json:"start,omitempty" bson:"start,omitempty"`
 }
 
-func ParseBloodGlucoseTargetStart(parser data.ObjectParser) *BloodGlucoseTargetStart {
-	if parser.Object() == nil {
+func ParseBloodGlucoseTargetStart(parser structure.ObjectParser) *BloodGlucoseTargetStart {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewBloodGlucoseTargetStart()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -36,10 +35,10 @@ func NewBloodGlucoseTargetStart() *BloodGlucoseTargetStart {
 	return &BloodGlucoseTargetStart{}
 }
 
-func (b *BloodGlucoseTargetStart) Parse(parser data.ObjectParser) {
+func (b *BloodGlucoseTargetStart) Parse(parser structure.ObjectParser) {
 	b.Target.Parse(parser)
 
-	b.Start = parser.ParseInteger("start")
+	b.Start = parser.Int("start")
 }
 
 func (b *BloodGlucoseTargetStart) Validate(validator structure.Validator, units *string, startMinimum *int) {
@@ -63,13 +62,12 @@ func (b *BloodGlucoseTargetStart) Normalize(normalizer data.Normalizer, units *s
 
 type BloodGlucoseTargetStartArray []*BloodGlucoseTargetStart
 
-func ParseBloodGlucoseTargetStartArray(parser data.ArrayParser) *BloodGlucoseTargetStartArray {
-	if parser.Array() == nil {
+func ParseBloodGlucoseTargetStartArray(parser structure.ArrayParser) *BloodGlucoseTargetStartArray {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewBloodGlucoseTargetStartArray()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -77,9 +75,9 @@ func NewBloodGlucoseTargetStartArray() *BloodGlucoseTargetStartArray {
 	return &BloodGlucoseTargetStartArray{}
 }
 
-func (b *BloodGlucoseTargetStartArray) Parse(parser data.ArrayParser) {
-	for index := range *parser.Array() {
-		*b = append(*b, ParseBloodGlucoseTargetStart(parser.NewChildObjectParser(index)))
+func (b *BloodGlucoseTargetStartArray) Parse(parser structure.ArrayParser) {
+	for _, reference := range parser.References() {
+		*b = append(*b, ParseBloodGlucoseTargetStart(parser.WithReferenceObjectParser(reference)))
 	}
 }
 
@@ -123,13 +121,12 @@ func (b *BloodGlucoseTargetStartArray) Last() *BloodGlucoseTargetStart {
 
 type BloodGlucoseTargetStartArrayMap map[string]*BloodGlucoseTargetStartArray
 
-func ParseBloodGlucoseTargetStartArrayMap(parser data.ObjectParser) *BloodGlucoseTargetStartArrayMap {
-	if parser.Object() == nil {
+func ParseBloodGlucoseTargetStartArrayMap(parser structure.ObjectParser) *BloodGlucoseTargetStartArrayMap {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewBloodGlucoseTargetStartArrayMap()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -137,9 +134,9 @@ func NewBloodGlucoseTargetStartArrayMap() *BloodGlucoseTargetStartArrayMap {
 	return &BloodGlucoseTargetStartArrayMap{}
 }
 
-func (b *BloodGlucoseTargetStartArrayMap) Parse(parser data.ObjectParser) {
-	for name := range *parser.Object() {
-		b.Set(name, ParseBloodGlucoseTargetStartArray(parser.NewChildArrayParser(name)))
+func (b *BloodGlucoseTargetStartArrayMap) Parse(parser structure.ObjectParser) {
+	for _, reference := range parser.References() {
+		b.Set(reference, ParseBloodGlucoseTargetStartArray(parser.WithReferenceArrayParser(reference)))
 	}
 }
 

@@ -5,10 +5,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/data/context"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	"github.com/tidepool-org/platform/data/parser"
-	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/basal"
 	dataTypesBasalAutomatedTest "github.com/tidepool-org/platform/data/types/basal/automated/test"
 	dataTypesBasalScheduled "github.com/tidepool-org/platform/data/types/basal/scheduled"
@@ -19,9 +16,7 @@ import (
 	dataTypesInsulinTest "github.com/tidepool-org/platform/data/types/insulin/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
-	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
@@ -65,28 +60,6 @@ func CloneTemporary(datum *temporary.Temporary) *temporary.Temporary {
 		}
 	}
 	return clone
-}
-
-func NewTestTemporary(sourceTime interface{}, sourceDuration interface{}, sourceDurationExpected interface{}, sourceRate interface{}, sourcePercent interface{}, sourceSuppressed temporary.Suppressed) *temporary.Temporary {
-	datum := temporary.New()
-	datum.DeviceID = pointer.FromString(dataTest.NewDeviceID())
-	if val, ok := sourceTime.(string); ok {
-		datum.Time = &val
-	}
-	if val, ok := sourceDuration.(int); ok {
-		datum.Duration = &val
-	}
-	if val, ok := sourceDurationExpected.(int); ok {
-		datum.DurationExpected = &val
-	}
-	if val, ok := sourceRate.(float64); ok {
-		datum.Rate = &val
-	}
-	if val, ok := sourcePercent.(float64); ok {
-		datum.Percent = &val
-	}
-	datum.Suppressed = sourceSuppressed
-	return datum
 }
 
 var _ = Describe("Temporary", func() {
@@ -135,118 +108,7 @@ var _ = Describe("Temporary", func() {
 
 	Context("Temporary", func() {
 		Context("Parse", func() {
-			var datum *temporary.Temporary
-
-			BeforeEach(func() {
-				datum = temporary.New()
-				Expect(datum).ToNot(BeNil())
-			})
-
-			DescribeTable("parses the datum",
-				func(sourceObject *map[string]interface{}, expectedDatum *temporary.Temporary, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(null.NewLogger())
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testContext).ToNot(BeNil())
-					testParser, err := parser.NewStandardObject(testContext, sourceObject, parser.AppendErrorNotParsed)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testParser).ToNot(BeNil())
-					Expect(datum.Parse(testParser)).To(Succeed())
-					Expect(datum.Time).To(Equal(expectedDatum.Time))
-					Expect(datum.Duration).To(Equal(expectedDatum.Duration))
-					Expect(datum.DurationExpected).To(Equal(expectedDatum.DurationExpected))
-					Expect(datum.Rate).To(Equal(expectedDatum.Rate))
-					Expect(datum.Percent).To(Equal(expectedDatum.Percent))
-					if expectedDatum.Suppressed != nil {
-						Expect(datum.Suppressed).To(Equal(expectedDatum.Suppressed))
-					} else {
-						Expect(datum.Suppressed).To(BeNil())
-					}
-					Expect(testContext.Errors()).To(ConsistOf(expectedErrors))
-				},
-				Entry("parses object that is nil",
-					nil,
-					NewTestTemporary(nil, nil, nil, nil, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that is empty",
-					&map[string]interface{}{},
-					NewTestTemporary(nil, nil, nil, nil, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that has valid time",
-					&map[string]interface{}{"time": "2016-09-06T13:45:58-07:00"},
-					NewTestTemporary("2016-09-06T13:45:58-07:00", nil, nil, nil, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that has invalid time",
-					&map[string]interface{}{"time": 0},
-					NewTestTemporary(nil, nil, nil, nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
-					}),
-				Entry("parses object that has valid duration",
-					&map[string]interface{}{"duration": 3600000},
-					NewTestTemporary(nil, 3600000, nil, nil, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that has invalid duration",
-					&map[string]interface{}{"duration": "invalid"},
-					NewTestTemporary(nil, nil, nil, nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotInteger("invalid"), "/duration", NewMeta()),
-					}),
-				Entry("parses object that has valid duration expected",
-					&map[string]interface{}{"expectedDuration": 7200000},
-					NewTestTemporary(nil, nil, 7200000, nil, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that has invalid duration expected",
-					&map[string]interface{}{"expectedDuration": "invalid"},
-					NewTestTemporary(nil, nil, nil, nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotInteger("invalid"), "/expectedDuration", NewMeta()),
-					}),
-				Entry("parses object that has valid rate",
-					&map[string]interface{}{"rate": 2.0},
-					NewTestTemporary(nil, nil, nil, 2.0, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that has invalid rate",
-					&map[string]interface{}{"rate": "invalid"},
-					NewTestTemporary(nil, nil, nil, nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/rate", NewMeta()),
-					}),
-				Entry("parses object that has valid percent",
-					&map[string]interface{}{"percent": 0.5},
-					NewTestTemporary(nil, nil, nil, nil, 0.5, nil),
-					[]*service.Error{}),
-				Entry("parses object that has invalid percent",
-					&map[string]interface{}{"percent": "invalid"},
-					NewTestTemporary(nil, nil, nil, nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/percent", NewMeta()),
-					}),
-				Entry("parses object that has valid suppressed",
-					&map[string]interface{}{"suppressed": map[string]interface{}{"type": "basal", "deliveryType": "scheduled", "rate": 2.0, "scheduleName": "Weekday"}},
-					NewTestTemporary(nil, nil, nil, nil, nil, &dataTypesBasalScheduled.SuppressedScheduled{Type: pointer.FromString("basal"), DeliveryType: pointer.FromString("scheduled"), Rate: pointer.FromFloat64(2.0), ScheduleName: pointer.FromString("Weekday")}),
-					[]*service.Error{}),
-				Entry("parses object that has invalid suppressed",
-					&map[string]interface{}{"suppressed": "invalid"},
-					NewTestTemporary(nil, nil, nil, nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotObject("invalid"), "/suppressed", NewMeta()),
-					}),
-				Entry("parses object that has multiple valid fields",
-					&map[string]interface{}{"time": "2016-09-06T13:45:58-07:00", "duration": 3600000, "expectedDuration": 7200000, "rate": 2.0, "percent": 0.5},
-					NewTestTemporary("2016-09-06T13:45:58-07:00", 3600000, 7200000, 2.0, 0.5, nil),
-					[]*service.Error{}),
-				Entry("parses object that has multiple invalid fields",
-					&map[string]interface{}{"time": 0, "duration": "invalid", "expectedDuration": "invalid", "rate": "invalid", "percent": "invalid", "suppressed": "invalid"},
-					NewTestTemporary(nil, nil, nil, nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
-						dataTest.ComposeError(service.ErrorTypeNotInteger("invalid"), "/duration", NewMeta()),
-						dataTest.ComposeError(service.ErrorTypeNotInteger("invalid"), "/expectedDuration", NewMeta()),
-						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/rate", NewMeta()),
-						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/percent", NewMeta()),
-						dataTest.ComposeError(service.ErrorTypeNotObject("invalid"), "/suppressed", NewMeta()),
-					}),
-			)
+			// TODO
 		})
 
 		Context("Validate", func() {

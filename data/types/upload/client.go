@@ -12,24 +12,23 @@ type Client struct {
 	Private *data.Blob `json:"private,omitempty" bson:"private,omitempty"`
 }
 
-func ParseClient(parser data.ObjectParser) *Client {
-	if parser.Object() == nil {
+func ParseClient(parser structure.ObjectParser) *Client {
+	if !parser.Exists() {
 		return nil
 	}
-	client := NewClient()
-	client.Parse(parser)
-	parser.ProcessNotParsed()
-	return client
+	datum := NewClient()
+	parser.Parse(datum)
+	return datum
 }
 
 func NewClient() *Client {
 	return &Client{}
 }
 
-func (c *Client) Parse(parser data.ObjectParser) {
-	c.Name = parser.ParseString("name")
-	c.Version = parser.ParseString("version")
-	c.Private = data.ParseBlob(parser.NewChildObjectParser("private"))
+func (c *Client) Parse(parser structure.ObjectParser) {
+	c.Name = parser.String("name")
+	c.Version = parser.String("version")
+	c.Private = data.ParseBlob(parser.WithReferenceObjectParser("private"))
 }
 
 func (c *Client) Validate(validator structure.Validator) {

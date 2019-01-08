@@ -33,18 +33,18 @@ func New() *Scheduled {
 	}
 }
 
-func (s *Scheduled) Parse(parser data.ObjectParser) error {
-	if err := s.Basal.Parse(parser); err != nil {
-		return err
+func (s *Scheduled) Parse(parser structure.ObjectParser) {
+	if !parser.HasMeta() {
+		parser = parser.WithMeta(s.Meta())
 	}
 
-	s.Duration = parser.ParseInteger("duration")
-	s.DurationExpected = parser.ParseInteger("expectedDuration")
-	s.InsulinFormulation = insulin.ParseFormulation(parser.NewChildObjectParser("insulinFormulation"))
-	s.Rate = parser.ParseFloat("rate")
-	s.ScheduleName = parser.ParseString("scheduleName")
+	s.Basal.Parse(parser)
 
-	return nil
+	s.Duration = parser.Int("duration")
+	s.DurationExpected = parser.Int("expectedDuration")
+	s.InsulinFormulation = insulin.ParseFormulation(parser.WithReferenceObjectParser("insulinFormulation"))
+	s.Rate = parser.Float64("rate")
+	s.ScheduleName = parser.String("scheduleName")
 }
 
 func (s *Scheduled) Validate(validator structure.Validator) {
@@ -94,14 +94,13 @@ type SuppressedScheduled struct {
 	ScheduleName       *string              `json:"scheduleName,omitempty" bson:"scheduleName,omitempty"`
 }
 
-func ParseSuppressedScheduled(parser data.ObjectParser) *SuppressedScheduled {
-	if parser.Object() == nil {
+func ParseSuppressedScheduled(parser structure.ObjectParser) *SuppressedScheduled {
+	if !parser.Exists() {
 		return nil
 	}
-	suppressed := NewSuppressedScheduled()
-	suppressed.Parse(parser)
-	parser.ProcessNotParsed()
-	return suppressed
+	datum := NewSuppressedScheduled()
+	parser.Parse(datum)
+	return datum
 }
 
 func NewSuppressedScheduled() *SuppressedScheduled {
@@ -111,16 +110,14 @@ func NewSuppressedScheduled() *SuppressedScheduled {
 	}
 }
 
-func (s *SuppressedScheduled) Parse(parser data.ObjectParser) error {
-	s.Type = parser.ParseString("type")
-	s.DeliveryType = parser.ParseString("deliveryType")
+func (s *SuppressedScheduled) Parse(parser structure.ObjectParser) {
+	s.Type = parser.String("type")
+	s.DeliveryType = parser.String("deliveryType")
 
-	s.Annotations = data.ParseBlobArray(parser.NewChildArrayParser("annotations"))
-	s.InsulinFormulation = insulin.ParseFormulation(parser.NewChildObjectParser("insulinFormulation"))
-	s.Rate = parser.ParseFloat("rate")
-	s.ScheduleName = parser.ParseString("scheduleName")
-
-	return nil
+	s.Annotations = data.ParseBlobArray(parser.WithReferenceArrayParser("annotations"))
+	s.InsulinFormulation = insulin.ParseFormulation(parser.WithReferenceObjectParser("insulinFormulation"))
+	s.Rate = parser.Float64("rate")
+	s.ScheduleName = parser.String("scheduleName")
 }
 
 func (s *SuppressedScheduled) Validate(validator structure.Validator) {

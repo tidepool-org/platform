@@ -5,10 +5,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/data/context"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	"github.com/tidepool-org/platform/data/parser"
-	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/basal"
 	dataTypesBasalAutomated "github.com/tidepool-org/platform/data/types/basal/automated"
 	dataTypesBasalAutomatedTest "github.com/tidepool-org/platform/data/types/basal/automated/test"
@@ -20,9 +17,7 @@ import (
 	dataTypesBasalTest "github.com/tidepool-org/platform/data/types/basal/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
-	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
@@ -66,22 +61,6 @@ func CloneSuspend(datum *suspend.Suspend) *suspend.Suspend {
 	return clone
 }
 
-func NewTestSuspend(sourceTime interface{}, sourceDuration interface{}, sourceDurationExpected interface{}, sourceSuppressed suspend.Suppressed) *suspend.Suspend {
-	datum := suspend.New()
-	datum.DeviceID = pointer.FromString(dataTest.NewDeviceID())
-	if val, ok := sourceTime.(string); ok {
-		datum.Time = &val
-	}
-	if val, ok := sourceDuration.(int); ok {
-		datum.Duration = &val
-	}
-	if val, ok := sourceDurationExpected.(int); ok {
-		datum.DurationExpected = &val
-	}
-	datum.Suppressed = sourceSuppressed
-	return datum
-}
-
 var _ = Describe("Suspend", func() {
 	It("DeliveryType is expected", func() {
 		Expect(suspend.DeliveryType).To(Equal("suspend"))
@@ -109,94 +88,7 @@ var _ = Describe("Suspend", func() {
 
 	Context("Suspend", func() {
 		Context("Parse", func() {
-			var datum *suspend.Suspend
-
-			BeforeEach(func() {
-				datum = suspend.New()
-				Expect(datum).ToNot(BeNil())
-			})
-
-			DescribeTable("parses the datum",
-				func(sourceObject *map[string]interface{}, expectedDatum *suspend.Suspend, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(null.NewLogger())
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testContext).ToNot(BeNil())
-					testParser, err := parser.NewStandardObject(testContext, sourceObject, parser.AppendErrorNotParsed)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testParser).ToNot(BeNil())
-					Expect(datum.Parse(testParser)).To(Succeed())
-					Expect(datum.Time).To(Equal(expectedDatum.Time))
-					Expect(datum.Duration).To(Equal(expectedDatum.Duration))
-					Expect(datum.DurationExpected).To(Equal(expectedDatum.DurationExpected))
-					if expectedDatum.Suppressed != nil {
-						Expect(datum.Suppressed).To(Equal(expectedDatum.Suppressed))
-					} else {
-						Expect(datum.Suppressed).To(BeNil())
-					}
-					Expect(testContext.Errors()).To(ConsistOf(expectedErrors))
-				},
-				Entry("parses object that is nil",
-					nil,
-					NewTestSuspend(nil, nil, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that is empty",
-					&map[string]interface{}{},
-					NewTestSuspend(nil, nil, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that has valid time",
-					&map[string]interface{}{"time": "2016-09-06T13:45:58-07:00"},
-					NewTestSuspend("2016-09-06T13:45:58-07:00", nil, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that has invalid time",
-					&map[string]interface{}{"time": 0},
-					NewTestSuspend(nil, nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
-					}),
-				Entry("parses object that has valid duration",
-					&map[string]interface{}{"duration": 3600000},
-					NewTestSuspend(nil, 3600000, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that has invalid duration",
-					&map[string]interface{}{"duration": "invalid"},
-					NewTestSuspend(nil, nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotInteger("invalid"), "/duration", NewMeta()),
-					}),
-				Entry("parses object that has valid duration expected",
-					&map[string]interface{}{"expectedDuration": 7200000},
-					NewTestSuspend(nil, nil, 7200000, nil),
-					[]*service.Error{}),
-				Entry("parses object that has invalid duration expected",
-					&map[string]interface{}{"expectedDuration": "invalid"},
-					NewTestSuspend(nil, nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotInteger("invalid"), "/expectedDuration", NewMeta()),
-					}),
-				Entry("parses object that has valid suppressed",
-					&map[string]interface{}{"suppressed": map[string]interface{}{"type": "basal", "deliveryType": "scheduled", "rate": 1.0, "scheduleName": "Weekday"}},
-					NewTestSuspend(nil, nil, nil, &dataTypesBasalScheduled.SuppressedScheduled{Type: pointer.FromString("basal"), DeliveryType: pointer.FromString("scheduled"), Rate: pointer.FromFloat64(1.0), ScheduleName: pointer.FromString("Weekday")}),
-					[]*service.Error{}),
-				Entry("parses object that has invalid suppressed",
-					&map[string]interface{}{"suppressed": "invalid"},
-					NewTestSuspend(nil, nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotObject("invalid"), "/suppressed", NewMeta()),
-					}),
-				Entry("parses object that has multiple valid fields",
-					&map[string]interface{}{"time": "2016-09-06T13:45:58-07:00", "duration": 3600000, "expectedDuration": 7200000},
-					NewTestSuspend("2016-09-06T13:45:58-07:00", 3600000, 7200000, nil),
-					[]*service.Error{}),
-				Entry("parses object that has multiple invalid fields",
-					&map[string]interface{}{"time": 0, "duration": "invalid", "expectedDuration": "invalid", "suppressed": "invalid"},
-					NewTestSuspend(nil, nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
-						dataTest.ComposeError(service.ErrorTypeNotInteger("invalid"), "/duration", NewMeta()),
-						dataTest.ComposeError(service.ErrorTypeNotInteger("invalid"), "/expectedDuration", NewMeta()),
-						dataTest.ComposeError(service.ErrorTypeNotObject("invalid"), "/suppressed", NewMeta()),
-					}),
-			)
+			// TODO
 		})
 
 		Context("Validate", func() {

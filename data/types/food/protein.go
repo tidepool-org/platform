@@ -22,13 +22,12 @@ type Protein struct {
 	Units *string  `json:"units,omitempty" bson:"units,omitempty"`
 }
 
-func ParseProtein(parser data.ObjectParser) *Protein {
-	if parser.Object() == nil {
+func ParseProtein(parser structure.ObjectParser) *Protein {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewProtein()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -36,9 +35,9 @@ func NewProtein() *Protein {
 	return &Protein{}
 }
 
-func (p *Protein) Parse(parser data.ObjectParser) {
-	p.Total = parser.ParseFloat("total")
-	p.Units = parser.ParseString("units")
+func (p *Protein) Parse(parser structure.ObjectParser) {
+	p.Total = parser.Float64("total")
+	p.Units = parser.String("units")
 }
 
 func (p *Protein) Validate(validator structure.Validator) {

@@ -1,5 +1,6 @@
 ## HEAD
 
+* Replace deprecated data parsers with structure parsers
 * Rename bytes local variable to avoid conflict with bytes package
 * Remove unnecessary tests to prevent future propogation
 * Rename test functions with prefix ExpectSerialized to ExpectSerializeObject

@@ -5,18 +5,13 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/data/context"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	"github.com/tidepool-org/platform/data/parser"
-	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/bolus"
 	"github.com/tidepool-org/platform/data/types/bolus/normal"
 	dataTypesBolusNormalTest "github.com/tidepool-org/platform/data/types/bolus/normal/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
-	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -26,21 +21,6 @@ func NewMeta() interface{} {
 		Type:    "bolus",
 		SubType: "normal",
 	}
-}
-
-func NewTestNormal(sourceTime interface{}, sourceNormal interface{}, sourceNormalExpected interface{}) *normal.Normal {
-	datum := normal.New()
-	datum.DeviceID = pointer.FromString(dataTest.NewDeviceID())
-	if val, ok := sourceTime.(string); ok {
-		datum.Time = &val
-	}
-	if val, ok := sourceNormal.(float64); ok {
-		datum.Normal = &val
-	}
-	if val, ok := sourceNormalExpected.(float64); ok {
-		datum.NormalExpected = &val
-	}
-	return datum
 }
 
 var _ = Describe("Normal", func() {
@@ -69,78 +49,7 @@ var _ = Describe("Normal", func() {
 
 	Context("Normal", func() {
 		Context("Parse", func() {
-			var datum *normal.Normal
-
-			BeforeEach(func() {
-				datum = normal.New()
-				Expect(datum).ToNot(BeNil())
-			})
-
-			DescribeTable("parses the datum",
-				func(sourceObject *map[string]interface{}, expectedDatum *normal.Normal, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(null.NewLogger())
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testContext).ToNot(BeNil())
-					testParser, err := parser.NewStandardObject(testContext, sourceObject, parser.AppendErrorNotParsed)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testParser).ToNot(BeNil())
-					Expect(datum.Parse(testParser)).To(Succeed())
-					Expect(datum.Time).To(Equal(expectedDatum.Time))
-					Expect(datum.Normal).To(Equal(expectedDatum.Normal))
-					Expect(datum.NormalExpected).To(Equal(expectedDatum.NormalExpected))
-					Expect(testContext.Errors()).To(ConsistOf(expectedErrors))
-				},
-				Entry("parses object that is nil",
-					nil,
-					NewTestNormal(nil, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that is empty",
-					&map[string]interface{}{},
-					NewTestNormal(nil, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that has valid time",
-					&map[string]interface{}{"time": "2016-09-06T13:45:58-07:00"},
-					NewTestNormal("2016-09-06T13:45:58-07:00", nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that has invalid time",
-					&map[string]interface{}{"time": 0.0},
-					NewTestNormal(nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotString(0.0), "/time", NewMeta()),
-					}),
-				Entry("parses object that has valid normal",
-					&map[string]interface{}{"normal": 3.6},
-					NewTestNormal(nil, 3.6, nil),
-					[]*service.Error{}),
-				Entry("parses object that has invalid normal",
-					&map[string]interface{}{"normal": "invalid"},
-					NewTestNormal(nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/normal", NewMeta()),
-					}),
-				Entry("parses object that has valid normal expected",
-					&map[string]interface{}{"expectedNormal": 7.2},
-					NewTestNormal(nil, nil, 7.2),
-					[]*service.Error{}),
-				Entry("parses object that has invalid normal expected",
-					&map[string]interface{}{"expectedNormal": "invalid"},
-					NewTestNormal(nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/expectedNormal", NewMeta()),
-					}),
-				Entry("parses object that has multiple valid fields",
-					&map[string]interface{}{"time": "2016-09-06T13:45:58-07:00", "normal": 3.6, "expectedNormal": 7.2},
-					NewTestNormal("2016-09-06T13:45:58-07:00", 3.6, 7.2),
-					[]*service.Error{}),
-				Entry("parses object that has multiple invalid fields",
-					&map[string]interface{}{"time": 0.0, "normal": "invalid", "expectedNormal": "invalid"},
-					NewTestNormal(nil, nil, nil),
-					[]*service.Error{
-						dataTest.ComposeError(service.ErrorTypeNotString(0.0), "/time", NewMeta()),
-						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/normal", NewMeta()),
-						dataTest.ComposeError(service.ErrorTypeNotFloat("invalid"), "/expectedNormal", NewMeta()),
-					}),
-			)
+			// TODO
 		})
 
 		Context("Validate", func() {

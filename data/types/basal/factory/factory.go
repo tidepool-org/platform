@@ -7,7 +7,8 @@ import (
 	dataTypesBasalScheduled "github.com/tidepool-org/platform/data/types/basal/scheduled"
 	dataTypesBasalSuspend "github.com/tidepool-org/platform/data/types/basal/suspend"
 	dataTypesBasalTemporary "github.com/tidepool-org/platform/data/types/basal/temporary"
-	"github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 var deliveryTypes = []string{
@@ -17,22 +18,22 @@ var deliveryTypes = []string{
 	dataTypesBasalTemporary.DeliveryType,
 }
 
-func NewBasalDatum(parser data.ObjectParser) data.Datum {
-	if parser.Object() == nil {
+func NewBasalDatum(parser structure.ObjectParser) data.Datum {
+	if !parser.Exists() {
 		return nil
 	}
 
-	if value := parser.ParseString("type"); value == nil {
-		parser.AppendError("type", service.ErrorValueNotExists())
+	if value := parser.String("type"); value == nil {
+		parser.WithReferenceErrorReporter("type").ReportError(structureValidator.ErrorValueNotExists())
 		return nil
 	} else if *value != basal.Type {
-		parser.AppendError("type", service.ErrorValueStringNotOneOf(*value, []string{basal.Type}))
+		parser.WithReferenceErrorReporter("type").ReportError(structureValidator.ErrorValueStringNotOneOf(*value, []string{basal.Type}))
 		return nil
 	}
 
-	value := parser.ParseString("deliveryType")
+	value := parser.String("deliveryType")
 	if value == nil {
-		parser.AppendError("deliveryType", service.ErrorValueNotExists())
+		parser.WithReferenceErrorReporter("deliveryType").ReportError(structureValidator.ErrorValueNotExists())
 		return nil
 	}
 
@@ -47,11 +48,11 @@ func NewBasalDatum(parser data.ObjectParser) data.Datum {
 		return dataTypesBasalTemporary.New()
 	}
 
-	parser.AppendError("deliveryType", service.ErrorValueStringNotOneOf(*value, deliveryTypes))
+	parser.WithReferenceErrorReporter("deliveryType").ReportError(structureValidator.ErrorValueStringNotOneOf(*value, deliveryTypes))
 	return nil
 }
 
-func ParseBasalDatum(parser data.ObjectParser) *data.Datum {
+func ParseBasalDatum(parser structure.ObjectParser) *data.Datum {
 	datum := NewBasalDatum(parser)
 	if datum == nil {
 		return nil

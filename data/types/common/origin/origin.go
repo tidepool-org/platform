@@ -38,13 +38,12 @@ type Origin struct {
 	Version *string    `json:"version,omitempty" bson:"version,omitempty"`
 }
 
-func ParseOrigin(parser data.ObjectParser) *Origin {
-	if parser.Object() == nil {
+func ParseOrigin(parser structure.ObjectParser) *Origin {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewOrigin()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -52,13 +51,13 @@ func NewOrigin() *Origin {
 	return &Origin{}
 }
 
-func (o *Origin) Parse(parser data.ObjectParser) {
-	o.ID = parser.ParseString("id")
-	o.Name = parser.ParseString("name")
-	o.Payload = data.ParseBlob(parser.NewChildObjectParser("payload"))
-	o.Time = parser.ParseString("time")
-	o.Type = parser.ParseString("type")
-	o.Version = parser.ParseString("version")
+func (o *Origin) Parse(parser structure.ObjectParser) {
+	o.ID = parser.String("id")
+	o.Name = parser.String("name")
+	o.Payload = data.ParseBlob(parser.WithReferenceObjectParser("payload"))
+	o.Time = parser.String("time")
+	o.Type = parser.String("type")
+	o.Version = parser.String("version")
 }
 
 func (o *Origin) Validate(validator structure.Validator) {

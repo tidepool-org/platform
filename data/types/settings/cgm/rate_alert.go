@@ -3,7 +3,6 @@ package cgm
 import (
 	"math"
 
-	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -34,10 +33,10 @@ type RateAlert struct {
 	Units *string  `json:"units,omitempty" bson:"units,omitempty"`
 }
 
-func (r *RateAlert) Parse(parser data.ObjectParser) {
+func (r *RateAlert) Parse(parser structure.ObjectParser) {
 	r.Alert.Parse(parser)
-	r.Rate = parser.ParseFloat("rate")
-	r.Units = parser.ParseString("units")
+	r.Rate = parser.Float64("rate")
+	r.Units = parser.String("units")
 }
 
 func (r *RateAlert) Validate(validator structure.Validator) {
@@ -53,13 +52,12 @@ type FallAlert struct {
 	RateAlert `bson:",inline"`
 }
 
-func ParseFallAlert(parser data.ObjectParser) *FallAlert {
-	if parser.Object() == nil {
+func ParseFallAlert(parser structure.ObjectParser) *FallAlert {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewFallAlert()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -88,13 +86,12 @@ type RiseAlert struct {
 	RateAlert `bson:",inline"`
 }
 
-func ParseRiseAlert(parser data.ObjectParser) *RiseAlert {
-	if parser.Object() == nil {
+func ParseRiseAlert(parser structure.ObjectParser) *RiseAlert {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewRiseAlert()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
