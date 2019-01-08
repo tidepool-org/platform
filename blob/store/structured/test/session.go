@@ -11,7 +11,6 @@ import (
 )
 
 type ListInput struct {
-	Context    context.Context
 	UserID     string
 	Filter     *blob.Filter
 	Pagination *page.Pagination
@@ -23,19 +22,13 @@ type ListOutput struct {
 }
 
 type CreateInput struct {
-	Context context.Context
-	UserID  string
-	Create  *blobStoreStructured.Create
+	UserID string
+	Create *blobStoreStructured.Create
 }
 
 type CreateOutput struct {
 	Blob  *blob.Blob
 	Error error
-}
-
-type GetInput struct {
-	Context context.Context
-	ID      string
 }
 
 type GetOutput struct {
@@ -44,7 +37,6 @@ type GetOutput struct {
 }
 
 type UpdateInput struct {
-	Context   context.Context
 	ID        string
 	Condition *request.Condition
 	Update    *blobStoreStructured.Update
@@ -55,44 +47,43 @@ type UpdateOutput struct {
 	Error error
 }
 
-type DeleteInput struct {
-	Context   context.Context
+type DestroyInput struct {
 	ID        string
 	Condition *request.Condition
 }
 
-type DeleteOutput struct {
-	Deleted bool
-	Error   error
+type DestroyOutput struct {
+	Destroyed bool
+	Error     error
 }
 
 type Session struct {
 	*test.Closer
-	ListInvocations   int
-	ListInputs        []ListInput
-	ListStub          func(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.Blobs, error)
-	ListOutputs       []ListOutput
-	ListOutput        *ListOutput
-	CreateInvocations int
-	CreateInputs      []CreateInput
-	CreateStub        func(ctx context.Context, userID string, create *blobStoreStructured.Create) (*blob.Blob, error)
-	CreateOutputs     []CreateOutput
-	CreateOutput      *CreateOutput
-	GetInvocations    int
-	GetInputs         []GetInput
-	GetStub           func(ctx context.Context, id string) (*blob.Blob, error)
-	GetOutputs        []GetOutput
-	GetOutput         *GetOutput
-	UpdateInvocations int
-	UpdateInputs      []UpdateInput
-	UpdateStub        func(ctx context.Context, id string, condition *request.Condition, update *blobStoreStructured.Update) (*blob.Blob, error)
-	UpdateOutputs     []UpdateOutput
-	UpdateOutput      *UpdateOutput
-	DeleteInvocations int
-	DeleteInputs      []DeleteInput
-	DeleteStub        func(ctx context.Context, id string, condition *request.Condition) (bool, error)
-	DeleteOutputs     []DeleteOutput
-	DeleteOutput      *DeleteOutput
+	ListInvocations    int
+	ListInputs         []ListInput
+	ListStub           func(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.Blobs, error)
+	ListOutputs        []ListOutput
+	ListOutput         *ListOutput
+	CreateInvocations  int
+	CreateInputs       []CreateInput
+	CreateStub         func(ctx context.Context, userID string, create *blobStoreStructured.Create) (*blob.Blob, error)
+	CreateOutputs      []CreateOutput
+	CreateOutput       *CreateOutput
+	GetInvocations     int
+	GetInputs          []string
+	GetStub            func(ctx context.Context, id string) (*blob.Blob, error)
+	GetOutputs         []GetOutput
+	GetOutput          *GetOutput
+	UpdateInvocations  int
+	UpdateInputs       []UpdateInput
+	UpdateStub         func(ctx context.Context, id string, condition *request.Condition, update *blobStoreStructured.Update) (*blob.Blob, error)
+	UpdateOutputs      []UpdateOutput
+	UpdateOutput       *UpdateOutput
+	DestroyInvocations int
+	DestroyInputs      []DestroyInput
+	DestroyStub        func(ctx context.Context, id string, condition *request.Condition) (bool, error)
+	DestroyOutputs     []DestroyOutput
+	DestroyOutput      *DestroyOutput
 }
 
 func NewSession() *Session {
@@ -103,7 +94,7 @@ func NewSession() *Session {
 
 func (s *Session) List(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.Blobs, error) {
 	s.ListInvocations++
-	s.ListInputs = append(s.ListInputs, ListInput{Context: ctx, UserID: userID, Filter: filter, Pagination: pagination})
+	s.ListInputs = append(s.ListInputs, ListInput{UserID: userID, Filter: filter, Pagination: pagination})
 	if s.ListStub != nil {
 		return s.ListStub(ctx, userID, filter, pagination)
 	}
@@ -120,7 +111,7 @@ func (s *Session) List(ctx context.Context, userID string, filter *blob.Filter, 
 
 func (s *Session) Create(ctx context.Context, userID string, create *blobStoreStructured.Create) (*blob.Blob, error) {
 	s.CreateInvocations++
-	s.CreateInputs = append(s.CreateInputs, CreateInput{Context: ctx, UserID: userID, Create: create})
+	s.CreateInputs = append(s.CreateInputs, CreateInput{UserID: userID, Create: create})
 	if s.CreateStub != nil {
 		return s.CreateStub(ctx, userID, create)
 	}
@@ -137,7 +128,7 @@ func (s *Session) Create(ctx context.Context, userID string, create *blobStoreSt
 
 func (s *Session) Get(ctx context.Context, id string) (*blob.Blob, error) {
 	s.GetInvocations++
-	s.GetInputs = append(s.GetInputs, GetInput{Context: ctx, ID: id})
+	s.GetInputs = append(s.GetInputs, id)
 	if s.GetStub != nil {
 		return s.GetStub(ctx, id)
 	}
@@ -154,7 +145,7 @@ func (s *Session) Get(ctx context.Context, id string) (*blob.Blob, error) {
 
 func (s *Session) Update(ctx context.Context, id string, condition *request.Condition, update *blobStoreStructured.Update) (*blob.Blob, error) {
 	s.UpdateInvocations++
-	s.UpdateInputs = append(s.UpdateInputs, UpdateInput{Context: ctx, ID: id, Condition: condition, Update: update})
+	s.UpdateInputs = append(s.UpdateInputs, UpdateInput{ID: id, Condition: condition, Update: update})
 	if s.UpdateStub != nil {
 		return s.UpdateStub(ctx, id, condition, update)
 	}
@@ -169,21 +160,21 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 	panic("Update has no output")
 }
 
-func (s *Session) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
-	s.DeleteInvocations++
-	s.DeleteInputs = append(s.DeleteInputs, DeleteInput{Context: ctx, ID: id, Condition: condition})
-	if s.DeleteStub != nil {
-		return s.DeleteStub(ctx, id, condition)
+func (s *Session) Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error) {
+	s.DestroyInvocations++
+	s.DestroyInputs = append(s.DestroyInputs, DestroyInput{ID: id, Condition: condition})
+	if s.DestroyStub != nil {
+		return s.DestroyStub(ctx, id, condition)
 	}
-	if len(s.DeleteOutputs) > 0 {
-		output := s.DeleteOutputs[0]
-		s.DeleteOutputs = s.DeleteOutputs[1:]
-		return output.Deleted, output.Error
+	if len(s.DestroyOutputs) > 0 {
+		output := s.DestroyOutputs[0]
+		s.DestroyOutputs = s.DestroyOutputs[1:]
+		return output.Destroyed, output.Error
 	}
-	if s.DeleteOutput != nil {
-		return s.DeleteOutput.Deleted, s.DeleteOutput.Error
+	if s.DestroyOutput != nil {
+		return s.DestroyOutput.Destroyed, s.DestroyOutput.Error
 	}
-	panic("Delete has no output")
+	panic("Destroy has no output")
 }
 
 func (s *Session) AssertOutputsEmpty() {
@@ -200,7 +191,7 @@ func (s *Session) AssertOutputsEmpty() {
 	if len(s.UpdateOutputs) > 0 {
 		panic("UpdateOutputs is not empty")
 	}
-	if len(s.DeleteOutputs) > 0 {
-		panic("DeleteOutputs is not empty")
+	if len(s.DestroyOutputs) > 0 {
+		panic("DestroyOutputs is not empty")
 	}
 }

@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	CharsetMediaType = test.CharsetAlphaNumeric + "._-"
+	CharsetMediaType = test.CharsetLowercase + test.CharsetNumeric + "._-"
 	CharsetSubDomain = test.CharsetAlphaNumeric + "-"
 )
 

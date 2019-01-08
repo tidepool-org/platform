@@ -25,7 +25,7 @@ func RandomDataSetUpdate() *data.DataSetUpdate {
 	datum.DeviceSerialNumber = pointer.FromString(test.NewText(1, 16))
 	datum.Deduplicator = RandomDeduplicatorDescriptor()
 	datum.State = pointer.FromString(test.RandomStringFromArray([]string{"closed", "open"}))
-	datum.Time = pointer.FromTime(test.NewTime())
+	datum.Time = pointer.FromTime(test.RandomTime())
 	datum.TimeZoneName = pointer.FromString(timeZoneTest.RandomName())
 	datum.TimeZoneOffset = pointer.FromInt(RandomTimeZoneOffset())
 	return datum

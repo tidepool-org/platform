@@ -20,13 +20,15 @@ import (
 )
 
 func NewBaseSession() bson.M {
-	now := time.Now()
+	createdTime := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+	expiresAt := test.RandomTimeFromRange(time.Now(), test.RandomTimeMaximum())
+	thyme := test.RandomTimeFromRange(createdTime, time.Now())
 	return bson.M{
 		"_id":       test.RandomStringFromRangeAndCharset(32, 32, test.CharsetAlphaNumeric),
 		"duration":  86400,
-		"expiresAt": now.Add(86400 * time.Second).Unix(),
-		"createdAt": now.Unix(),
-		"time":      now.Unix(),
+		"createdAt": createdTime.Unix(),
+		"expiresAt": expiresAt.Unix(),
+		"time":      thyme.Unix(),
 	}
 }
 

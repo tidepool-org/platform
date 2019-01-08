@@ -142,7 +142,7 @@ func (s *Session) Create(ctx context.Context, userID string, create *blobStoreSt
 		UserID:      pointer.FromString(userID),
 		MediaType:   create.MediaType,
 		Status:      pointer.FromString(blob.StatusCreated),
-		CreatedTime: pointer.FromTime(now.Truncate(time.Second)),
+		CreatedTime: pointer.FromTime(now),
 		Revision:    pointer.FromInt(0),
 	}
 
@@ -234,7 +234,7 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 			query["revision"] = *condition.Revision
 		}
 		set := bson.M{
-			"modifiedTime": now.Truncate(time.Second),
+			"modifiedTime": now,
 		}
 		unset := bson.M{}
 		if update.MediaType != nil {
@@ -274,7 +274,7 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 	return result, nil
 }
 
-func (s *Session) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
+func (s *Session) Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error) {
 	if ctx == nil {
 		return false, errors.New("context is missing")
 	}
@@ -308,7 +308,7 @@ func (s *Session) Delete(ctx context.Context, id string, condition *request.Cond
 		return false, errors.Wrap(err, "unable to delete blob")
 	}
 
-	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("Delete")
+	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("Destroy")
 	return changeInfo.Removed > 0, nil
 }
 

@@ -5,7 +5,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/notification/service"
 	"github.com/tidepool-org/platform/notification/service/api"
-	"github.com/tidepool-org/platform/notification/service/api/v1"
+	notificationServiceApiV1 "github.com/tidepool-org/platform/notification/service/api/v1"
 	"github.com/tidepool-org/platform/notification/store"
 	notificationMongo "github.com/tidepool-org/platform/notification/store/mongo"
 	serviceService "github.com/tidepool-org/platform/service/service"
@@ -63,7 +63,7 @@ func (s *Service) initializeRouter() error {
 
 	s.Logger().Debug("Creating v1 router")
 
-	v1Router, err := v1.NewRouter(s)
+	v1Router, err := notificationServiceApiV1.NewRouter(s)
 	if err != nil {
 		return errors.Wrap(err, "unable to create v1 router")
 	}

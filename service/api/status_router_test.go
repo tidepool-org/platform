@@ -10,17 +10,17 @@ import (
 
 	"github.com/tidepool-org/platform/log"
 	logNull "github.com/tidepool-org/platform/log/null"
-	serviveAPI "github.com/tidepool-org/platform/service/api"
-	serviceAPITest "github.com/tidepool-org/platform/service/api/test"
+	serviceApi "github.com/tidepool-org/platform/service/api"
+	serviceApiTest "github.com/tidepool-org/platform/service/api/test"
 	"github.com/tidepool-org/platform/test"
 	testRest "github.com/tidepool-org/platform/test/rest"
 )
 
 var _ = Describe("StatusRouter", func() {
-	var statusProvider *serviceAPITest.StatusProvider
+	var statusProvider *serviceApiTest.StatusProvider
 
 	BeforeEach(func() {
-		statusProvider = serviceAPITest.NewStatusProvider()
+		statusProvider = serviceApiTest.NewStatusProvider()
 	})
 
 	AfterEach(func() {
@@ -29,22 +29,22 @@ var _ = Describe("StatusRouter", func() {
 
 	Context("NewStatusRouter", func() {
 		It("returns an error if status provider is missing", func() {
-			statusRouter, err := serviveAPI.NewStatusRouter(nil)
+			statusRouter, err := serviceApi.NewStatusRouter(nil)
 			Expect(err).To(MatchError("status provider is missing"))
 			Expect(statusRouter).To(BeNil())
 		})
 
 		It("returns successfully", func() {
-			Expect(serviveAPI.NewStatusRouter(statusProvider)).ToNot(BeNil())
+			Expect(serviceApi.NewStatusRouter(statusProvider)).ToNot(BeNil())
 		})
 	})
 
 	Context("with new status router", func() {
-		var statusRouter *serviveAPI.StatusRouter
+		var statusRouter *serviceApi.StatusRouter
 
 		BeforeEach(func() {
 			var err error
-			statusRouter, err = serviveAPI.NewStatusRouter(statusProvider)
+			statusRouter, err = serviceApi.NewStatusRouter(statusProvider)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(statusRouter).ToNot(BeNil())
 		})

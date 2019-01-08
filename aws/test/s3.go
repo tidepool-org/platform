@@ -1,45 +1,43 @@
 package test
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3iface"
+	awsSdkGoAws "github.com/aws/aws-sdk-go/aws"
+	awsSdkGoAwsRequest "github.com/aws/aws-sdk-go/aws/request"
+	awsSdkGoServiceS3 "github.com/aws/aws-sdk-go/service/s3"
+	awsSdkGoServiceS3S3iface "github.com/aws/aws-sdk-go/service/s3/s3iface"
 )
 
 type HeadObjectWithContextInput struct {
-	Context aws.Context
-	Input   *s3.HeadObjectInput
-	Options []request.Option
+	Input   *awsSdkGoServiceS3.HeadObjectInput
+	Options []awsSdkGoAwsRequest.Option
 }
 
 type HeadObjectWithContextOutput struct {
-	Output *s3.HeadObjectOutput
+	Output *awsSdkGoServiceS3.HeadObjectOutput
 	Error  error
 }
 
 type DeleteObjectWithContextInput struct {
-	Context aws.Context
-	Input   *s3.DeleteObjectInput
-	Options []request.Option
+	Input   *awsSdkGoServiceS3.DeleteObjectInput
+	Options []awsSdkGoAwsRequest.Option
 }
 
 type DeleteObjectWithContextOutput struct {
-	Output *s3.DeleteObjectOutput
+	Output *awsSdkGoServiceS3.DeleteObjectOutput
 	Error  error
 }
 
 type S3 struct {
-	s3iface.S3API
+	awsSdkGoServiceS3S3iface.S3API
 
 	HeadObjectWithContextInvocations   int
 	HeadObjectWithContextInputs        []HeadObjectWithContextInput
-	HeadObjectWithContextStub          func(ctx aws.Context, input *s3.HeadObjectInput, options ...request.Option) (*s3.HeadObjectOutput, error)
+	HeadObjectWithContextStub          func(ctx awsSdkGoAws.Context, input *awsSdkGoServiceS3.HeadObjectInput, options ...awsSdkGoAwsRequest.Option) (*awsSdkGoServiceS3.HeadObjectOutput, error)
 	HeadObjectWithContextOutputs       []HeadObjectWithContextOutput
 	HeadObjectWithContextOutput        *HeadObjectWithContextOutput
 	DeleteObjectWithContextInvocations int
 	DeleteObjectWithContextInputs      []DeleteObjectWithContextInput
-	DeleteObjectWithContextStub        func(ctx aws.Context, input *s3.DeleteObjectInput, options ...request.Option) (*s3.DeleteObjectOutput, error)
+	DeleteObjectWithContextStub        func(ctx awsSdkGoAws.Context, input *awsSdkGoServiceS3.DeleteObjectInput, options ...awsSdkGoAwsRequest.Option) (*awsSdkGoServiceS3.DeleteObjectOutput, error)
 	DeleteObjectWithContextOutputs     []DeleteObjectWithContextOutput
 	DeleteObjectWithContextOutput      *DeleteObjectWithContextOutput
 }
@@ -48,9 +46,9 @@ func NewS3() *S3 {
 	return &S3{}
 }
 
-func (s *S3) HeadObjectWithContext(ctx aws.Context, input *s3.HeadObjectInput, options ...request.Option) (*s3.HeadObjectOutput, error) {
+func (s *S3) HeadObjectWithContext(ctx awsSdkGoAws.Context, input *awsSdkGoServiceS3.HeadObjectInput, options ...awsSdkGoAwsRequest.Option) (*awsSdkGoServiceS3.HeadObjectOutput, error) {
 	s.HeadObjectWithContextInvocations++
-	s.HeadObjectWithContextInputs = append(s.HeadObjectWithContextInputs, HeadObjectWithContextInput{Context: ctx, Input: input, Options: options})
+	s.HeadObjectWithContextInputs = append(s.HeadObjectWithContextInputs, HeadObjectWithContextInput{Input: input, Options: options})
 	if s.HeadObjectWithContextStub != nil {
 		return s.HeadObjectWithContextStub(ctx, input, options...)
 	}
@@ -65,9 +63,9 @@ func (s *S3) HeadObjectWithContext(ctx aws.Context, input *s3.HeadObjectInput, o
 	panic("HeadObjectWithContext has no output")
 }
 
-func (s *S3) DeleteObjectWithContext(ctx aws.Context, input *s3.DeleteObjectInput, options ...request.Option) (*s3.DeleteObjectOutput, error) {
+func (s *S3) DeleteObjectWithContext(ctx awsSdkGoAws.Context, input *awsSdkGoServiceS3.DeleteObjectInput, options ...awsSdkGoAwsRequest.Option) (*awsSdkGoServiceS3.DeleteObjectOutput, error) {
 	s.DeleteObjectWithContextInvocations++
-	s.DeleteObjectWithContextInputs = append(s.DeleteObjectWithContextInputs, DeleteObjectWithContextInput{Context: ctx, Input: input, Options: options})
+	s.DeleteObjectWithContextInputs = append(s.DeleteObjectWithContextInputs, DeleteObjectWithContextInput{Input: input, Options: options})
 	if s.DeleteObjectWithContextStub != nil {
 		return s.DeleteObjectWithContextStub(ctx, input, options...)
 	}
@@ -80,6 +78,14 @@ func (s *S3) DeleteObjectWithContext(ctx aws.Context, input *s3.DeleteObjectInpu
 		return s.DeleteObjectWithContextOutput.Output, s.DeleteObjectWithContextOutput.Error
 	}
 	panic("DeleteObjectWithContext has no output")
+}
+
+func (s *S3) SetHeadObjectWithContextOutput(output HeadObjectWithContextOutput) {
+	s.HeadObjectWithContextOutput = &output
+}
+
+func (s *S3) SetDeleteObjectWithContextOutput(output DeleteObjectWithContextOutput) {
+	s.DeleteObjectWithContextOutput = &output
 }
 
 func (s *S3) AssertOutputsEmpty() {

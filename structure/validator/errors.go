@@ -200,7 +200,7 @@ func stringify(interfaceValue interface{}) string {
 		}
 		return fmt.Sprintf("[%s]", strings.Join(values, ", "))
 	case time.Time:
-		return strconv.Quote(typeValue.Format(time.RFC3339))
+		return strconv.Quote(typeValue.Format(time.RFC3339Nano))
 	case *regexp.Regexp:
 		if typeValue == nil {
 			return strconv.Quote("<MISSING>")

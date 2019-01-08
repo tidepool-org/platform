@@ -70,7 +70,7 @@ func (a *AccessLog) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
 					loggerFields[_LogRemoteUser] = remoteUser
 				}
 				if startTime, ok := req.Env[_RequestEnvStartTime].(*time.Time); ok {
-					loggerFields[_LogStartTime] = startTime.Format(time.RFC3339)
+					loggerFields[_LogStartTime] = startTime.Truncate(time.Microsecond).Format(time.RFC3339Nano)
 				}
 				if statusCode, ok := req.Env[_RequestEnvStatusCode].(int); ok {
 					loggerFields[_LogStatusCode] = statusCode

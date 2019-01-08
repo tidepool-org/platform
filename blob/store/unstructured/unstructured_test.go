@@ -13,6 +13,7 @@ import (
 	blobStoreUnstructured "github.com/tidepool-org/platform/blob/store/unstructured"
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	storeUnstructured "github.com/tidepool-org/platform/store/unstructured"
 	storeUnstructuredTest "github.com/tidepool-org/platform/store/unstructured/test"
 	"github.com/tidepool-org/platform/test"
 )
@@ -60,7 +61,7 @@ var _ = Describe("Unstructured", func() {
 
 		Context("Exists", func() {
 			AfterEach(func() {
-				Expect(underlyingStore.ExistsInputs).To(Equal([]storeUnstructuredTest.ExistsInput{{Context: ctx, Key: key}}))
+				Expect(underlyingStore.ExistsInputs).To(Equal([]string{key}))
 			})
 
 			It("returns an error when the underlying store returns an error", func() {
@@ -84,24 +85,26 @@ var _ = Describe("Unstructured", func() {
 
 		Context("Put", func() {
 			var reader io.Reader
+			var options *storeUnstructured.Options
 
 			BeforeEach(func() {
 				reader = strings.NewReader(test.RandomString())
+				options = storeUnstructuredTest.RandomOptions()
 			})
 
 			AfterEach(func() {
-				Expect(underlyingStore.PutInputs).To(Equal([]storeUnstructuredTest.PutInput{{Context: ctx, Key: key, Reader: reader}}))
+				Expect(underlyingStore.PutInputs).To(Equal([]storeUnstructuredTest.PutInput{{Key: key, Reader: reader, Options: options}}))
 			})
 
 			It("returns an error when the underlying store returns an error", func() {
 				parentErr := errorsTest.RandomError()
 				underlyingStore.PutOutputs = []error{parentErr}
-				errorsTest.ExpectEqual(store.Put(ctx, userID, id, reader), errors.New("unable to put blob"))
+				errorsTest.ExpectEqual(store.Put(ctx, userID, id, reader, options), errors.New("unable to put blob"))
 			})
 
 			It("returns successfully when the underlying store returns successfully", func() {
 				underlyingStore.PutOutputs = []error{nil}
-				Expect(store.Put(ctx, userID, id, reader)).ToNot(HaveOccurred())
+				Expect(store.Put(ctx, userID, id, reader, options)).To(Succeed())
 			})
 		})
 
@@ -113,7 +116,7 @@ var _ = Describe("Unstructured", func() {
 			})
 
 			AfterEach(func() {
-				Expect(underlyingStore.GetInputs).To(Equal([]storeUnstructuredTest.GetInput{{Context: ctx, Key: key}}))
+				Expect(underlyingStore.GetInputs).To(Equal([]string{key}))
 			})
 
 			It("returns an error when the underlying store returns an error", func() {
@@ -137,7 +140,7 @@ var _ = Describe("Unstructured", func() {
 
 		Context("Delete", func() {
 			AfterEach(func() {
-				Expect(underlyingStore.DeleteInputs).To(Equal([]storeUnstructuredTest.DeleteInput{{Context: ctx, Key: key}}))
+				Expect(underlyingStore.DeleteInputs).To(Equal([]string{key}))
 			})
 
 			It("returns an error when the underlying store returns an error", func() {

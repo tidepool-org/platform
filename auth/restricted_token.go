@@ -52,24 +52,18 @@ type RestrictedTokenCreate struct {
 
 func NewRestrictedTokenCreate() *RestrictedTokenCreate {
 	return &RestrictedTokenCreate{
-		ExpirationTime: pointer.FromTime(time.Now().Add(MaximumExpirationDuration).Truncate(time.Second)),
+		ExpirationTime: pointer.FromTime(time.Now().Add(MaximumExpirationDuration)),
 	}
 }
 
 func (r *RestrictedTokenCreate) Parse(parser structure.ObjectParser) {
 	r.Paths = parser.StringArray("paths")
-	r.ExpirationTime = parser.Time("expirationTime", time.RFC3339)
+	r.ExpirationTime = parser.Time("expirationTime", time.RFC3339Nano)
 }
 
 func (r *RestrictedTokenCreate) Validate(validator structure.Validator) {
 	validator.StringArray("paths", r.Paths).LengthInRange(1, 10).EachMatches(pathExpression)
 	validator.Time("expirationTime", r.ExpirationTime).Before(time.Now().Add(MaximumExpirationDuration))
-}
-
-func (r *RestrictedTokenCreate) Normalize(normalizer structure.Normalizer) {
-	if r.ExpirationTime != nil {
-		r.ExpirationTime = pointer.FromTime((*r.ExpirationTime).Truncate(time.Second))
-	}
 }
 
 type RestrictedTokenUpdate struct {
@@ -87,18 +81,12 @@ func (r *RestrictedTokenUpdate) HasUpdates() bool {
 
 func (r *RestrictedTokenUpdate) Parse(parser structure.ObjectParser) {
 	r.Paths = parser.StringArray("paths")
-	r.ExpirationTime = parser.Time("expirationTime", time.RFC3339)
+	r.ExpirationTime = parser.Time("expirationTime", time.RFC3339Nano)
 }
 
 func (r *RestrictedTokenUpdate) Validate(validator structure.Validator) {
 	validator.StringArray("paths", r.Paths).LengthInRange(1, 10).EachMatches(pathExpression)
 	validator.Time("expirationTime", r.ExpirationTime).Before(time.Now().Add(MaximumExpirationDuration))
-}
-
-func (r *RestrictedTokenUpdate) Normalize(normalizer structure.Normalizer) {
-	if r.ExpirationTime != nil {
-		r.ExpirationTime = pointer.FromTime((*r.ExpirationTime).Truncate(time.Second))
-	}
 }
 
 func NewRestrictedTokenID() string {
@@ -151,12 +139,12 @@ func NewRestrictedToken(userID string, create *RestrictedTokenCreate) (*Restrict
 		ID:          NewRestrictedTokenID(),
 		UserID:      userID,
 		Paths:       create.Paths,
-		CreatedTime: time.Now().Truncate(time.Second),
+		CreatedTime: time.Now(),
 	}
 	if create.ExpirationTime != nil {
-		restrictedToken.ExpirationTime = (*create.ExpirationTime).Truncate(time.Second)
+		restrictedToken.ExpirationTime = *create.ExpirationTime
 	} else {
-		restrictedToken.ExpirationTime = time.Now().Add(MaximumExpirationDuration).Truncate(time.Second)
+		restrictedToken.ExpirationTime = time.Now().Add(MaximumExpirationDuration)
 	}
 
 	return restrictedToken, nil
@@ -170,13 +158,13 @@ func (r *RestrictedToken) Parse(parser structure.ObjectParser) {
 		r.UserID = *ptr
 	}
 	r.Paths = parser.StringArray("paths")
-	if ptr := parser.Time("expirationTime", time.RFC3339); ptr != nil {
+	if ptr := parser.Time("expirationTime", time.RFC3339Nano); ptr != nil {
 		r.ExpirationTime = *ptr
 	}
-	if ptr := parser.Time("createdTime", time.RFC3339); ptr != nil {
+	if ptr := parser.Time("createdTime", time.RFC3339Nano); ptr != nil {
 		r.CreatedTime = *ptr
 	}
-	r.ModifiedTime = parser.Time("modifiedTime", time.RFC3339)
+	r.ModifiedTime = parser.Time("modifiedTime", time.RFC3339Nano)
 }
 
 func (r *RestrictedToken) Validate(validator structure.Validator) {

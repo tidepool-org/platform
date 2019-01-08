@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/log/json"
+	logJson "github.com/tidepool-org/platform/log/json"
 	"github.com/tidepool-org/platform/test"
 )
 
@@ -60,13 +60,13 @@ var _ = Describe("JSON", func() {
 
 	Context("NewSerializer", func() {
 		It("returns an error if writer is missing", func() {
-			serializer, err := json.NewSerializer(nil)
+			serializer, err := logJson.NewSerializer(nil)
 			Expect(err).To(MatchError("writer is missing"))
 			Expect(serializer).To(BeNil())
 		})
 
 		It("returns successfully", func() {
-			Expect(json.NewSerializer(writer)).ToNot(BeNil())
+			Expect(logJson.NewSerializer(writer)).ToNot(BeNil())
 		})
 	})
 
@@ -75,7 +75,7 @@ var _ = Describe("JSON", func() {
 
 		BeforeEach(func() {
 			var err error
-			serializer, err = json.NewSerializer(writer)
+			serializer, err = logJson.NewSerializer(writer)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(serializer).ToNot(BeNil())
 		})

@@ -128,6 +128,10 @@ func NewPath() string {
 	return "/" + strings.Join(segments, "/")
 }
 
+func RandomPathPart() string {
+	return url.PathEscape(test.RandomStringFromRange(1, 8))
+}
+
 func NewURLString() string {
 	return NewAddress() + NewPath()
 }
@@ -137,6 +141,26 @@ func NewURL() *url.URL {
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	gomega.Expect(earl).ToNot(gomega.BeNil())
 	return earl
+}
+
+func RandomHeader() http.Header {
+	header := http.Header{}
+	for i := test.RandomIntFromRange(2, 4); i > 0; i-- {
+		values := []string{}
+		for j := test.RandomIntFromRange(0, 2); j > 0; j-- {
+			values = append(values, RandomHeaderValue())
+		}
+		header[RandomHeaderKey()] = values
+	}
+	return header
+}
+
+func RandomHeaderKey() string {
+	return textproto.CanonicalMIMEHeaderKey(test.RandomStringFromRangeAndCharset(1, 16, CharsetName))
+}
+
+func RandomHeaderValue() string {
+	return test.RandomStringFromRangeAndCharset(1, 16, CharsetValue)
 }
 
 func NewHeaderKey() string {

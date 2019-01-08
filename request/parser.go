@@ -173,51 +173,44 @@ func ParseValuesObjects(values map[string][]string, objectParsables ...structure
 	return parser.Error()
 }
 
+func ParseSingletonHeader(header http.Header, key string) (*string, error) {
+	if values, ok := header[key]; !ok {
+		return nil, nil
+	} else if length := len(values); length == 0 {
+		return nil, nil
+	} else if length == 1 {
+		return &values[0], nil
+	}
+	return nil, ErrorHeaderInvalid(key)
+}
+
 func ParseDigestMD5Header(header http.Header, key string) (*string, error) {
-	if values, ok := header[key]; ok {
-		switch len(values) {
-		case 0:
-			return nil, nil
-		case 1:
-			if parts := strings.SplitN(values[0], "=", 2); len(parts) == 2 {
-				if algorithm := strings.ToUpper(parts[0]); algorithm == "MD5" {
-					if value := parts[1]; crypto.IsValidBase64EncodedMD5Hash(value) {
-						return &value, nil
-					}
-				}
+	if stringValue, err := ParseSingletonHeader(header, key); err != nil || stringValue == nil {
+		return nil, err
+	} else if parts := strings.SplitN(*stringValue, "=", 2); len(parts) == 2 {
+		if algorithm := strings.ToUpper(parts[0]); algorithm == "MD5" {
+			if value := parts[1]; crypto.IsValidBase64EncodedMD5Hash(value) {
+				return &value, nil
 			}
 		}
-		return nil, ErrorHeaderInvalid(key)
 	}
-	return nil, nil
+	return nil, ErrorHeaderInvalid(key)
 }
 
 func ParseMediaTypeHeader(header http.Header, key string) (*string, error) {
-	if values, ok := header[key]; ok {
-		switch len(values) {
-		case 0:
-			return nil, nil
-		case 1:
-			if value := values[0]; net.IsValidMediaType(value) {
-				return &value, nil
-			}
-		}
-		return nil, ErrorHeaderInvalid(key)
+	if stringValue, err := ParseSingletonHeader(header, key); err != nil || stringValue == nil {
+		return nil, err
+	} else if value, valid := net.NormalizeMediaType(*stringValue); valid {
+		return &value, nil
 	}
-	return nil, nil
+	return nil, ErrorHeaderInvalid(key)
 }
 
 func ParseIntHeader(header http.Header, key string) (*int, error) {
-	if values, ok := header[key]; ok {
-		switch len(values) {
-		case 0:
-			return nil, nil
-		case 1:
-			if value, err := strconv.Atoi(values[0]); err == nil {
-				return &value, nil
-			}
-		}
-		return nil, ErrorHeaderInvalid(key)
+	if stringValue, err := ParseSingletonHeader(header, key); err != nil || stringValue == nil {
+		return nil, err
+	} else if value, valueErr := strconv.Atoi(*stringValue); valueErr == nil {
+		return &value, nil
 	}
-	return nil, nil
+	return nil, ErrorHeaderInvalid(key)
 }

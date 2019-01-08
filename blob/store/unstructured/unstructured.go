@@ -11,7 +11,7 @@ import (
 
 type Store interface {
 	Exists(ctx context.Context, userID string, id string) (bool, error)
-	Put(ctx context.Context, userID string, id string, reader io.Reader) error
+	Put(ctx context.Context, userID string, id string, reader io.Reader, options *storeUnstructured.Options) error
 	Get(ctx context.Context, userID string, id string) (io.ReadCloser, error)
 	Delete(ctx context.Context, userID string, id string) (bool, error)
 }
@@ -38,9 +38,8 @@ func (s *StoreImpl) Exists(ctx context.Context, userID string, id string) (bool,
 	return exists, nil
 }
 
-func (s *StoreImpl) Put(ctx context.Context, userID string, id string, reader io.Reader) error {
-	err := s.store.Put(ctx, asKey(userID, id), reader)
-	if err != nil {
+func (s *StoreImpl) Put(ctx context.Context, userID string, id string, reader io.Reader, options *storeUnstructured.Options) error {
+	if err := s.store.Put(ctx, asKey(userID, id), reader, options); err != nil {
 		return errors.Wrap(err, "unable to put blob")
 	}
 	return nil

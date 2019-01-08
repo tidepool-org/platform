@@ -174,7 +174,7 @@ var _ = Describe("Array", func() {
 		})
 
 		It("Time returns nil", func() {
-			Expect(parser.Time(6, time.RFC3339)).To(BeNil())
+			Expect(parser.Time(6, time.RFC3339Nano)).To(BeNil())
 		})
 
 		It("Object returns nil", func() {
@@ -554,39 +554,39 @@ var _ = Describe("Array", func() {
 		var parser *structureParser.Array
 
 		BeforeEach(func() {
-			now = time.Now().Truncate(time.Second)
+			now = time.Now()
 			parser = structureParser.NewArrayParser(base, &[]interface{}{
 				false,
 				"abc",
-				now.Format(time.RFC3339),
+				now.Format(time.RFC3339Nano),
 			})
 			Expect(parser).ToNot(BeNil())
 		})
 
 		It("with index parameter less that the first index in the array returns nil", func() {
-			Expect(parser.Time(-1, time.RFC3339)).To(BeNil())
+			Expect(parser.Time(-1, time.RFC3339Nano)).To(BeNil())
 			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter greater than the last index in the array returns nil", func() {
-			Expect(parser.Time(len(parser.References()), time.RFC3339)).To(BeNil())
+			Expect(parser.Time(len(parser.References()), time.RFC3339Nano)).To(BeNil())
 			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter with different type returns nil and reports an ErrorTypeNotTime", func() {
-			Expect(parser.Time(0, time.RFC3339)).To(BeNil())
+			Expect(parser.Time(0, time.RFC3339Nano)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
 			testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureParser.ErrorTypeNotTime(false), "/0"))
 		})
 
 		It("with index parameter with different type returns nil and reports an ErrorValueTimeNotParsable", func() {
-			Expect(parser.Time(1, time.RFC3339)).To(BeNil())
+			Expect(parser.Time(1, time.RFC3339Nano)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureParser.ErrorValueTimeNotParsable("abc", time.RFC3339), "/1"))
+			testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureParser.ErrorValueTimeNotParsable("abc", time.RFC3339Nano), "/1"))
 		})
 
 		It("with index parameter with string type returns value", func() {
-			value := parser.Time(2, time.RFC3339)
+			value := parser.Time(2, time.RFC3339Nano)
 			Expect(value).ToNot(BeNil())
 			Expect(*value).To(BeTemporally("==", now))
 			Expect(base.Error()).ToNot(HaveOccurred())
@@ -899,6 +899,19 @@ var _ = Describe("Array", func() {
 			Expect(arrayParser.Exists()).To(BeTrue())
 			Expect(arrayParser.References()).To(Equal([]int{0, 1}))
 			Expect(base.Error()).ToNot(HaveOccurred())
+		})
+	})
+
+	Context("WithReferenceErrorReporter", func() {
+		var parser *structureParser.Array
+
+		BeforeEach(func() {
+			parser = structureParser.NewArrayParser(base, nil)
+			Expect(parser).ToNot(BeNil())
+		})
+
+		It("with reference returns not nil", func() {
+			Expect(parser.WithReferenceErrorReporter(0)).ToNot(BeNil())
 		})
 	})
 })

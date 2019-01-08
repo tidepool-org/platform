@@ -16,6 +16,7 @@ import (
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
+	storeUnstructured "github.com/tidepool-org/platform/store/unstructured"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -76,25 +77,14 @@ func (c *Client) Create(ctx context.Context, userID string, content *blob.Conten
 
 	hasher := md5.New()
 	sizer := NewSizeWriter()
-	err = c.BlobUnstructuredStore().Put(ctx, userID, *result.ID, io.TeeReader(io.TeeReader(content.Body, hasher), sizer))
+	options := storeUnstructured.NewOptions()
+	options.MediaType = content.MediaType
+	err = c.BlobUnstructuredStore().Put(ctx, userID, *result.ID, io.TeeReader(io.TeeReader(io.LimitReader(content.Body, blob.SizeMaximum+1), hasher), sizer), options)
 	if err != nil {
-		if _, deleteErr := session.Delete(ctx, *result.ID, nil); deleteErr != nil {
-			logger.WithError(deleteErr).Error("Unable to delete blob after failure to put blob content")
+		if _, destroyErr := session.Destroy(ctx, *result.ID, nil); destroyErr != nil {
+			logger.WithError(destroyErr).Error("Unable to destroy blob after failure to put blob content")
 		}
 		return nil, err
-	}
-
-	// FUTURE: Consider Digest struct that pulls apart and manages digest
-
-	digestMD5 := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
-	if content.DigestMD5 != nil && *content.DigestMD5 != digestMD5 {
-		if _, deleteErr := c.BlobUnstructuredStore().Delete(ctx, userID, *result.ID); deleteErr != nil {
-			logger.WithError(deleteErr).Error("Unable to delete blob content with incorrect MD5 digest")
-		}
-		if _, deleteErr := session.Delete(ctx, *result.ID, nil); deleteErr != nil {
-			logger.WithError(deleteErr).Error("Unable to delete blob with incorrect MD5 digest")
-		}
-		return nil, errors.WithSource(blob.ErrorDigestsNotEqual(*content.DigestMD5, digestMD5), structure.NewPointerSource().WithReference("digestMD5"))
 	}
 
 	size := sizer.Size
@@ -102,10 +92,21 @@ func (c *Client) Create(ctx context.Context, userID string, content *blob.Conten
 		if _, deleteErr := c.BlobUnstructuredStore().Delete(ctx, userID, *result.ID); deleteErr != nil {
 			logger.WithError(deleteErr).Error("Unable to delete blob content exceeding maximum size")
 		}
-		if _, deleteErr := session.Delete(ctx, *result.ID, nil); deleteErr != nil {
-			logger.WithError(deleteErr).Error("Unable to delete blob exceeding maximum size")
+		if _, destroyErr := session.Destroy(ctx, *result.ID, nil); destroyErr != nil {
+			logger.WithError(destroyErr).Error("Unable to destroy blob exceeding maximum size")
 		}
 		return nil, request.ErrorResourceTooLarge()
+	}
+
+	digestMD5 := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
+	if content.DigestMD5 != nil && *content.DigestMD5 != digestMD5 {
+		if _, deleteErr := c.BlobUnstructuredStore().Delete(ctx, userID, *result.ID); deleteErr != nil {
+			logger.WithError(deleteErr).Error("Unable to delete blob content with incorrect MD5 digest")
+		}
+		if _, destroyErr := session.Destroy(ctx, *result.ID, nil); destroyErr != nil {
+			logger.WithError(destroyErr).Error("Unable to destroy blob with incorrect MD5 digest")
+		}
+		return nil, errors.WithSource(request.ErrorDigestsNotEqual(*content.DigestMD5, digestMD5), structure.NewPointerSource().WithReference("digestMD5"))
 	}
 
 	update := blobStoreStructured.NewUpdate()
@@ -177,7 +178,7 @@ func (c *Client) Delete(ctx context.Context, id string, condition *request.Condi
 		log.LoggerFromContext(ctx).WithField("id", id).Error("Deleting blob with no content")
 	}
 
-	return session.Delete(ctx, id, nil)
+	return session.Destroy(ctx, id, nil)
 }
 
 type SizeWriter struct {

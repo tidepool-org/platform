@@ -240,7 +240,7 @@ func (t *Tool) executeBenchmark(ctx context.Context, benchmark *Benchmark) error
 		return errors.New("benchmark function is missing")
 	}
 
-	start := time.Now()
+	now := time.Now()
 
 	logger := t.Logger().WithField("benchmark", benchmark)
 	logger.Debug("Executing benchmark")
@@ -314,7 +314,7 @@ func (t *Tool) executeBenchmark(ctx context.Context, benchmark *Benchmark) error
 		err = errors.New("benchmark name invalid")
 	}
 
-	logger.WithError(err).WithField("duration", time.Since(start)/time.Microsecond).Debug("Executed benchmark")
+	logger.WithError(err).WithField("duration", time.Since(now)/time.Microsecond).Debug("Executed benchmark")
 
 	if err != nil {
 		err = errors.Wrapf(err, "failure executing benchmark %q", *benchmark.Name)
@@ -775,10 +775,10 @@ func (t *Tool) benchmarkTideWhispererDBGetDeviceData(ctx context.Context, sessio
 	// 		{"uploadId": bson.M{"$in": p.DexcomDataSource["dataSetIds"]}},
 	// 	}
 	// 	if earliestDataTime, ok := p.DexcomDataSource["earliestDataTime"].(time.Time); ok {
-	// 		dexcomQuery = append(dexcomQuery, bson.M{"time": bson.M{"$lt": earliestDataTime.Format(time.RFC3339)}})
+	// 		dexcomQuery = append(dexcomQuery, bson.M{"time": bson.M{"$lt": earliestDataTime.Format(time.RFC3339Nano)}})
 	// 	}
 	// 	if latestDataTime, ok := p.DexcomDataSource["latestDataTime"].(time.Time); ok {
-	// 		dexcomQuery = append(dexcomQuery, bson.M{"time": bson.M{"$gt": latestDataTime.Format(time.RFC3339)}})
+	// 		dexcomQuery = append(dexcomQuery, bson.M{"time": bson.M{"$gt": latestDataTime.Format(time.RFC3339Nano)}})
 	// 	}
 	// 	selector["$or"] = dexcomQuery
 	// }
@@ -855,7 +855,7 @@ func (t *Tool) generateRandomDataSetDatum(deviceID *string) data.Datum {
 		ID:            pointer.FromString(data.NewID()),
 		Origin:        origin,
 		SchemaVersion: 3,
-		Time:          pointer.FromString(time.Now().Add(-timeYear).Add(time.Duration(rand.Int63n(int64(2 * timeYear)))).Format(time.RFC3339)),
+		Time:          pointer.FromString(time.Now().Add(-timeYear).Add(time.Duration(rand.Int63n(int64(2 * timeYear)))).Format(time.RFC3339Nano)),
 		Type:          "benchmark",
 	}
 }

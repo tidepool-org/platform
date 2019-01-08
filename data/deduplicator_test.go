@@ -44,11 +44,7 @@ var _ = Describe("Deduplicator", func() {
 
 		Context("NewDeduplicatorDescriptor", func() {
 			It("returns successfully with default values", func() {
-				deduplicatorDescriptor := data.NewDeduplicatorDescriptor()
-				Expect(deduplicatorDescriptor).ToNot(BeNil())
-				Expect(deduplicatorDescriptor.Name).To(BeNil())
-				Expect(deduplicatorDescriptor.Version).To(BeNil())
-				Expect(deduplicatorDescriptor.Hash).To(BeNil())
+				Expect(data.NewDeduplicatorDescriptor()).To(Equal(&data.DeduplicatorDescriptor{}))
 			})
 		})
 

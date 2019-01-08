@@ -9,19 +9,19 @@ import (
 
 func RandomSystemTime() *dexcom.Time {
 	datum := dexcom.NewTime()
-	datum.Time = test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).UTC().Truncate(time.Second)
+	datum.Time = test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second).UTC()
 	return datum
 }
 
 func RandomDisplayTime() *dexcom.Time {
 	datum := dexcom.NewTime()
-	datum.Time = test.RandomTime().UTC().Truncate(time.Second)
+	datum.Time = test.RandomTime().Truncate(time.Second).UTC()
 	return datum
 }
 
 func RandomTime() *dexcom.Time {
 	datum := dexcom.NewTime()
-	datum.Time = test.RandomTime().UTC().Truncate(time.Second)
+	datum.Time = test.RandomTime().Truncate(time.Second).UTC()
 	return datum
 }
 

@@ -11,7 +11,7 @@ func TimeGet(serviceContext service.Context) {
 	response := struct {
 		Time string `json:"time"`
 	}{
-		Time: time.Now().Format(time.RFC3339),
+		Time: time.Now().Truncate(time.Millisecond).Format(time.RFC3339Nano),
 	}
 	serviceContext.RespondWithStatusAndData(http.StatusOK, response)
 }

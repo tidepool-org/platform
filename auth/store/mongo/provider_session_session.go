@@ -157,7 +157,7 @@ func (p *ProviderSessionSession) UpdateProviderSession(ctx context.Context, id s
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id, "update": update})
 
 	set := bson.M{
-		"modifiedTime": now.Truncate(time.Second),
+		"modifiedTime": now,
 	}
 	unset := bson.M{}
 	if update.OAuthToken != nil {

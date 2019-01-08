@@ -1,5 +1,21 @@
 ## HEAD
 
+* Fix data model limit validation constants based off alternate unit constants
+* Straighten out handling of time objects and related in tests
+* Rename blob and data source store Delete to Destroy to reflect actual result
+* Update blob and data source packages to remove context from test assertions
+* Update auth package to remove context from test assertions
+* Refactor and add improved request path and header parsing
+* Update structured store to allow optional update operators and query modifiers
+* Add unstructured store DeleteDirectory to provide batch delete operations
+* Add unstructured store Options during put operation to allow setting content type on S3 object
+* Remove context from unstructured store test mocks as it can change unrelated to target under test
+* Update aws package and interfaces to enable batch object delete
+* Update pagination to not include page or size if defaults are specified
+* Update log package to enable easier addition of contextual data into context and logger
+* Update structure parser to allow reporting errors in contained data by reference
+* Add Makefile targets to execute unit tests until failure
+* Fix import alias for any import path ending in /v1
 * Update dump users tool to be more generic and usable
 * Return HTTP status code 413 Request Entity Too Large when blob size exceeds maximum
 * Replace blob.Create with blob.Content

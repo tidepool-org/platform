@@ -23,7 +23,7 @@ type Session interface {
 	Create(ctx context.Context, userID string, create *Create) (*blob.Blob, error)
 	Get(ctx context.Context, id string) (*blob.Blob, error)
 	Update(ctx context.Context, id string, condition *request.Condition, update *Update) (*blob.Blob, error)
-	Delete(ctx context.Context, id string, condition *request.Condition) (bool, error)
+	Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error)
 }
 
 type Create struct {

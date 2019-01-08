@@ -44,8 +44,6 @@ func (r *Router) Routes() []*rest.Route {
 func (r *Router) List(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 
-	// FUTURE: Validate supplemental request headers
-
 	userID, err := request.DecodeRequestPathParameter(req, "userId", user.IsValidID)
 	if err != nil {
 		responder.Error(http.StatusBadRequest, err)
@@ -69,8 +67,6 @@ func (r *Router) List(res rest.ResponseWriter, req *rest.Request) {
 
 func (r *Router) Create(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
-
-	// FUTURE: Validate supplemental request headers
 
 	userID, err := request.DecodeRequestPathParameter(req, "userId", user.IsValidID)
 	if err != nil {
@@ -99,7 +95,7 @@ func (r *Router) Create(res rest.ResponseWriter, req *rest.Request) {
 
 	result, err := r.provider.BlobClient().Create(req.Context(), userID, content)
 	if err != nil {
-		if errors.Code(err) == blob.ErrorCodeDigestsNotEqual {
+		if errors.Code(err) == request.ErrorCodeDigestsNotEqual {
 			responder.Error(http.StatusBadRequest, err)
 			return
 		} else if responder.RespondIfError(err) {
@@ -112,8 +108,6 @@ func (r *Router) Create(res rest.ResponseWriter, req *rest.Request) {
 
 func (r *Router) Get(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
-
-	// FUTURE: Validate supplemental request headers
 
 	id, err := request.DecodeRequestPathParameter(req, "id", blob.IsValidID)
 	if err != nil {
@@ -134,8 +128,6 @@ func (r *Router) Get(res rest.ResponseWriter, req *rest.Request) {
 
 func (r *Router) GetContent(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
-
-	// FUTURE: Validate supplemental request headers
 	// FUTURE: Support range request headers, add range response headers
 
 	id, err := request.DecodeRequestPathParameter(req, "id", blob.IsValidID)
@@ -167,8 +159,6 @@ func (r *Router) GetContent(res rest.ResponseWriter, req *rest.Request) {
 
 func (r *Router) Delete(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
-
-	// FUTURE: Validate supplemental request headers
 
 	id, err := request.DecodeRequestPathParameter(req, "id", blob.IsValidID)
 	if err != nil {

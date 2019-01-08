@@ -18,12 +18,10 @@ import (
 	"github.com/tidepool-org/platform/test"
 )
 
-var _ = Describe("Store", func() {
+var _ = Describe("Structured", func() {
 	Context("NewCreate", func() {
 		It("returns successfully with default values", func() {
-			create := blobStoreStructured.NewCreate()
-			Expect(create).ToNot(BeNil())
-			Expect(create.MediaType).To(BeNil())
+			Expect(blobStoreStructured.NewCreate()).To(Equal(&blobStoreStructured.Create{}))
 		})
 	})
 
@@ -60,12 +58,7 @@ var _ = Describe("Store", func() {
 
 	Context("NewUpdate", func() {
 		It("returns successfully with default values", func() {
-			update := blobStoreStructured.NewUpdate()
-			Expect(update).ToNot(BeNil())
-			Expect(update.DigestMD5).To(BeNil())
-			Expect(update.MediaType).To(BeNil())
-			Expect(update.Size).To(BeNil())
-			Expect(update.Status).To(BeNil())
+			Expect(blobStoreStructured.NewUpdate()).To(Equal(&blobStoreStructured.Update{}))
 		})
 	})
 

@@ -24,46 +24,46 @@ type Status struct {
 	Ping        string
 }
 
-func NewStore(cfg *Config, lgr log.Logger) (*Store, error) {
-	if cfg == nil {
+func NewStore(config *Config, logger log.Logger) (*Store, error) {
+	if config == nil {
 		return nil, errors.New("config is missing")
-	} else if err := cfg.Validate(); err != nil {
+	} else if err := config.Validate(); err != nil {
 		return nil, errors.Wrap(err, "config is invalid")
 	}
-	if lgr == nil {
+	if logger == nil {
 		return nil, errors.New("logger is missing")
 	}
 
 	loggerFields := map[string]interface{}{
-		"database":         cfg.Database,
-		"collectionPrefix": cfg.CollectionPrefix,
+		"database":         config.Database,
+		"collectionPrefix": config.CollectionPrefix,
 	}
-	lgr = lgr.WithFields(loggerFields)
+	logger = logger.WithFields(loggerFields)
 
 	dialInfo := mgo.DialInfo{}
-	dialInfo.Addrs = cfg.Addresses
-	if cfg.TLS {
+	dialInfo.Addrs = config.Addresses
+	if config.TLS {
 		dialInfo.DialServer = func(serverAddr *mgo.ServerAddr) (net.Conn, error) {
 			return tls.Dial("tcp", serverAddr.String(), &tls.Config{InsecureSkipVerify: true}) // TODO: Secure this connection
 		}
 	}
-	dialInfo.Database = cfg.Database
-	if cfg.Username != nil {
-		dialInfo.Username = *cfg.Username
+	dialInfo.Database = config.Database
+	if config.Username != nil {
+		dialInfo.Username = *config.Username
 	}
-	if cfg.Password != nil {
-		dialInfo.Password = *cfg.Password
+	if config.Password != nil {
+		dialInfo.Password = *config.Password
 	}
-	dialInfo.Timeout = cfg.Timeout
+	dialInfo.Timeout = config.Timeout
 
-	lgr.WithField("config", cfg).Debug("Dialing Mongo database")
+	logger.WithField("config", config).Debug("Dialing Mongo database")
 
 	session, err := mgo.DialWithInfo(&dialInfo)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to dial database")
 	}
 
-	lgr.Debug("Verifying Mongo build version is supported")
+	logger.Debug("Verifying Mongo build version is supported")
 
 	buildInfo, err := session.BuildInfo()
 	if err != nil {
@@ -76,14 +76,14 @@ func NewStore(cfg *Config, lgr log.Logger) (*Store, error) {
 		return nil, errors.Newf("unsupported mongo build version %q", buildInfo.Version)
 	}
 
-	lgr.Debug("Setting Mongo consistency mode to Strong")
+	logger.Debug("Setting Mongo consistency mode to Strong")
 
 	session.SetMode(mgo.Strong, true)
 
 	// TODO: Do we need to set Safe so we get write > 1?
 
 	return &Store{
-		Config:  cfg,
+		Config:  config,
 		Session: session,
 	}, nil
 }
@@ -176,7 +176,7 @@ func (s *Session) C() *mgo.Collection {
 	return s.targetSession.DB(s.database).C(s.collection)
 }
 
-func (s *Session) ConstructUpdate(set bson.M, unset bson.M) bson.M {
+func (s *Session) ConstructUpdate(set bson.M, unset bson.M, operators ...map[string]bson.M) bson.M {
 	update := bson.M{}
 	if len(set) > 0 {
 		update["$set"] = set
@@ -184,11 +184,54 @@ func (s *Session) ConstructUpdate(set bson.M, unset bson.M) bson.M {
 	if len(unset) > 0 {
 		update["$unset"] = unset
 	}
-	if len(update) > 0 {
-		update["$inc"] = bson.M{
-			"revision": 1,
+	for _, operator := range operators {
+		for fieldKey, fieldValues := range operator {
+			update = mergeUpdateField(update, fieldKey, fieldValues)
 		}
-		return update
+	}
+	if len(update) > 0 {
+		return mergeUpdateField(update, "$inc", bson.M{"revision": 1})
 	}
 	return nil
+}
+
+func mergeUpdateField(update bson.M, fieldKey string, fieldValues bson.M) bson.M {
+	var mergedFieldValues bson.M
+	if raw, ok := update[fieldKey]; ok {
+		mergedFieldValues, _ = raw.(bson.M)
+	}
+	if mergedFieldValues == nil {
+		mergedFieldValues = bson.M{}
+	}
+	for key, value := range fieldValues {
+		mergedFieldValues[key] = value
+	}
+	if len(mergedFieldValues) > 0 {
+		update[fieldKey] = mergedFieldValues
+	} else {
+		delete(update, fieldKey)
+	}
+	return update
+}
+
+type QueryModifier func(query bson.M) bson.M
+
+func ModifyQuery(query bson.M, queryModifiers ...QueryModifier) bson.M {
+	if query == nil {
+		return nil
+	}
+	for _, queryModifier := range queryModifiers {
+		query = queryModifier(query)
+	}
+	return query
+}
+
+func NotDeleted(query bson.M) bson.M {
+	if query == nil {
+		return nil
+	}
+	query["deletedTime"] = bson.M{
+		"$exists": false,
+	}
+	return query
 }

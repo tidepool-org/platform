@@ -233,8 +233,7 @@ var _ = Describe("Auth", func() {
 							Expect(service.GetRequestLogger(req)).ToNot(Equal(lgr))
 						}
 						middlewareFunc(res, req)
-						Expect(authClient.ValidateSessionTokenInputs).To(HaveLen(1))
-						Expect(authClient.ValidateSessionTokenInputs[0].Token).To(Equal(accessToken))
+						Expect(authClient.ValidateSessionTokenInputs).To(Equal([]string{accessToken}))
 					})
 
 					It("returns successfully with no details if access token is not valid", func() {
@@ -247,8 +246,7 @@ var _ = Describe("Auth", func() {
 							Expect(service.GetRequestLogger(req)).To(Equal(lgr))
 						}
 						middlewareFunc(res, req)
-						Expect(authClient.ValidateSessionTokenInputs).To(HaveLen(1))
-						Expect(authClient.ValidateSessionTokenInputs[0].Token).To(Equal(accessToken))
+						Expect(authClient.ValidateSessionTokenInputs).To(Equal([]string{accessToken}))
 					})
 				})
 
@@ -287,8 +285,7 @@ var _ = Describe("Auth", func() {
 							Expect(service.GetRequestLogger(req)).ToNot(Equal(lgr))
 						}
 						middlewareFunc(res, req)
-						Expect(authClient.ValidateSessionTokenInputs).To(HaveLen(1))
-						Expect(authClient.ValidateSessionTokenInputs[0].Token).To(Equal(sessionToken))
+						Expect(authClient.ValidateSessionTokenInputs).To(Equal([]string{sessionToken}))
 					})
 
 					It("returns successfully as service", func() {
@@ -308,8 +305,7 @@ var _ = Describe("Auth", func() {
 							Expect(service.GetRequestLogger(req)).ToNot(Equal(lgr))
 						}
 						middlewareFunc(res, req)
-						Expect(authClient.ValidateSessionTokenInputs).To(HaveLen(1))
-						Expect(authClient.ValidateSessionTokenInputs[0].Token).To(Equal(sessionToken))
+						Expect(authClient.ValidateSessionTokenInputs).To(Equal([]string{sessionToken}))
 					})
 
 					It("returns successfully with no details if session token is not valid", func() {
@@ -322,8 +318,7 @@ var _ = Describe("Auth", func() {
 							Expect(service.GetRequestLogger(req)).To(Equal(lgr))
 						}
 						middlewareFunc(res, req)
-						Expect(authClient.ValidateSessionTokenInputs).To(HaveLen(1))
-						Expect(authClient.ValidateSessionTokenInputs[0].Token).To(Equal(sessionToken))
+						Expect(authClient.ValidateSessionTokenInputs).To(Equal([]string{sessionToken}))
 					})
 				})
 

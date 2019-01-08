@@ -32,6 +32,7 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	requestTest "github.com/tidepool-org/platform/request/test"
+	storeUnstructured "github.com/tidepool-org/platform/store/unstructured"
 	"github.com/tidepool-org/platform/test"
 	userTest "github.com/tidepool-org/platform/user/test"
 )
@@ -107,7 +108,7 @@ var _ = Describe("Client", func() {
 				})
 
 				AfterEach(func() {
-					Expect(authClient.EnsureAuthorizedServiceInputs).To(Equal([]context.Context{ctx}))
+					Expect(authClient.EnsureAuthorizedServiceInvocations).To(Equal(1))
 				})
 
 				It("return an error when the user client ensure authorized service returns an error", func() {
@@ -118,13 +119,13 @@ var _ = Describe("Client", func() {
 					Expect(result).To(BeNil())
 				})
 
-				When("user client ensure authorized service returns successfully", func() {
+				When("the user client ensure authorized service returns successfully", func() {
 					BeforeEach(func() {
 						authClient.EnsureAuthorizedServiceOutputs = []error{nil}
 					})
 
 					AfterEach(func() {
-						Expect(blobStructuredSession.ListInputs).To(Equal([]blobStoreStructuredTest.ListInput{{Context: ctx, UserID: userID, Filter: filter, Pagination: pagination}}))
+						Expect(blobStructuredSession.ListInputs).To(Equal([]blobStoreStructuredTest.ListInput{{UserID: userID, Filter: filter, Pagination: pagination}}))
 					})
 
 					It("returns an error when the blob structured session list returns an error", func() {
@@ -153,7 +154,7 @@ var _ = Describe("Client", func() {
 				})
 
 				AfterEach(func() {
-					Expect(authClient.EnsureAuthorizedUserInputs).To(Equal([]authTest.EnsureAuthorizedUserInput{{Context: ctx, TargetUserID: userID, AuthorizedPermission: permission.Write}}))
+					Expect(authClient.EnsureAuthorizedUserInputs).To(Equal([]authTest.EnsureAuthorizedUserInput{{TargetUserID: userID, AuthorizedPermission: permission.Write}}))
 				})
 
 				It("returns an error when the user client ensure authorized user returns an error", func() {
@@ -164,7 +165,7 @@ var _ = Describe("Client", func() {
 					Expect(result).To(BeNil())
 				})
 
-				When("user client ensure authorized user returns successfully", func() {
+				When("the user client ensure authorized user returns successfully", func() {
 					BeforeEach(func() {
 						authClient.EnsureAuthorizedUserOutputs = []authTest.EnsureAuthorizedUserOutput{{AuthorizedUserID: userTest.RandomID(), Error: nil}}
 					})
@@ -187,7 +188,7 @@ var _ = Describe("Client", func() {
 						AfterEach(func() {
 							structuredCreate := blobStoreStructured.NewCreate()
 							structuredCreate.MediaType = content.MediaType
-							Expect(blobStructuredSession.CreateInputs).To(Equal([]blobStoreStructuredTest.CreateInput{{Context: ctx, UserID: userID, Create: structuredCreate}}))
+							Expect(blobStructuredSession.CreateInputs).To(Equal([]blobStoreStructuredTest.CreateInput{{UserID: userID, Create: structuredCreate}}))
 						})
 
 						It("returns an error when the blob structured session create returns an error", func() {
@@ -214,7 +215,6 @@ var _ = Describe("Client", func() {
 
 							AfterEach(func() {
 								Expect(blobUnstructuredStore.PutInputs).To(HaveLen(1))
-								Expect(blobUnstructuredStore.PutInputs[0].Context).To(Equal(ctx))
 								Expect(blobUnstructuredStore.PutInputs[0].UserID).To(Equal(userID))
 								Expect(blobUnstructuredStore.PutInputs[0].ID).To(Equal(*createBlob.ID))
 								Expect(blobUnstructuredStore.PutInputs[0].Reader).ToNot(BeNil())
@@ -223,30 +223,82 @@ var _ = Describe("Client", func() {
 							It("returns an error when the blob unstructured store put returns an error", func() {
 								responseErr := errorsTest.RandomError()
 								blobUnstructuredStore.PutOutputs = []error{responseErr}
-								blobStructuredSession.DeleteOutputs = []blobStoreStructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
+								blobStructuredSession.DestroyOutputs = []blobStoreStructuredTest.DestroyOutput{{Destroyed: true, Error: nil}}
 								result, err := client.Create(ctx, userID, content)
 								errorsTest.ExpectEqual(err, responseErr)
 								Expect(result).To(BeNil())
 							})
 
-							It("returns an error when the blob unstructured store put returns an error and logs an error when the blob structured session delete returns error", func() {
+							It("returns an error when the blob unstructured store put returns an error and logs an error when the blob structured session destroy returns error", func() {
 								responseErr := errorsTest.RandomError()
 								blobUnstructuredStore.PutOutputs = []error{responseErr}
-								blobStructuredSession.DeleteOutputs = []blobStoreStructuredTest.DeleteOutput{{Deleted: true, Error: responseErr}}
+								blobStructuredSession.DestroyOutputs = []blobStoreStructuredTest.DestroyOutput{{Destroyed: true, Error: responseErr}}
 								result, err := client.Create(ctx, userID, content)
 								errorsTest.ExpectEqual(err, responseErr)
 								Expect(result).To(BeNil())
-								logger.AssertError("Unable to delete blob after failure to put blob content", log.Fields{"userId": userID, "id": *createBlob.ID, "error": errors.NewSerializable(responseErr)})
+								logger.AssertError("Unable to destroy blob after failure to put blob content", log.Fields{"userId": userID, "id": *createBlob.ID, "error": errors.NewSerializable(responseErr)})
 							})
 
 							When("the blob unstructured store put returns successfully", func() {
 								var size int64
 
 								BeforeEach(func() {
-									blobUnstructuredStore.PutStub = func(ctx context.Context, userID string, id string, reader io.Reader) error {
+									blobUnstructuredStore.PutStub = func(ctx context.Context, userID string, id string, reader io.Reader, options *storeUnstructured.Options) error {
 										size, _ = io.Copy(ioutil.Discard, reader)
 										return nil
 									}
+								})
+
+								When("the size exceeds maximum", func() {
+									BeforeEach(func() {
+										body := make([]byte, 104857601)
+										content.Body = ioutil.NopCloser(bytes.NewReader(body))
+										content.DigestMD5 = pointer.FromString(crypto.Base64EncodedMD5Hash(body))
+									})
+
+									AfterEach(func() {
+										Expect(blobUnstructuredStore.DeleteInputs).To(Equal([]blobStoreUnstructuredTest.DeleteInput{{UserID: userID, ID: *createBlob.ID}}))
+										Expect(blobStructuredSession.DestroyInputs).To(Equal([]blobStoreStructuredTest.DestroyInput{{ID: *createBlob.ID}}))
+									})
+
+									It("returns an error", func() {
+										blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
+										blobStructuredSession.DestroyOutputs = []blobStoreStructuredTest.DestroyOutput{{Destroyed: true, Error: nil}}
+										result, err := client.Create(ctx, userID, content)
+										errorsTest.ExpectEqual(err, request.ErrorResourceTooLarge())
+										Expect(result).To(BeNil())
+									})
+
+									It("returns an error and logs an error when the unstructured store returns an error", func() {
+										responseErr := errorsTest.RandomError()
+										blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
+										blobStructuredSession.DestroyOutputs = []blobStoreStructuredTest.DestroyOutput{{Destroyed: true, Error: nil}}
+										result, err := client.Create(ctx, userID, content)
+										errorsTest.ExpectEqual(err, request.ErrorResourceTooLarge())
+										Expect(result).To(BeNil())
+										logger.AssertError("Unable to delete blob content exceeding maximum size", log.Fields{"userId": userID, "id": *createBlob.ID, "error": errors.NewSerializable(responseErr)})
+									})
+
+									It("returns an error and logs an error when the structured store returns an error", func() {
+										responseErr := errorsTest.RandomError()
+										blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
+										blobStructuredSession.DestroyOutputs = []blobStoreStructuredTest.DestroyOutput{{Destroyed: false, Error: responseErr}}
+										result, err := client.Create(ctx, userID, content)
+										errorsTest.ExpectEqual(err, request.ErrorResourceTooLarge())
+										Expect(result).To(BeNil())
+										logger.AssertError("Unable to destroy blob exceeding maximum size", log.Fields{"userId": userID, "id": *createBlob.ID, "error": errors.NewSerializable(responseErr)})
+									})
+
+									It("returns an error and logs an error when both the unstructured and structured store returns an error", func() {
+										responseErr := errorsTest.RandomError()
+										blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
+										blobStructuredSession.DestroyOutputs = []blobStoreStructuredTest.DestroyOutput{{Destroyed: false, Error: responseErr}}
+										result, err := client.Create(ctx, userID, content)
+										errorsTest.ExpectEqual(err, request.ErrorResourceTooLarge())
+										Expect(result).To(BeNil())
+										logger.AssertError("Unable to delete blob content exceeding maximum size", log.Fields{"userId": userID, "id": *createBlob.ID, "error": errors.NewSerializable(responseErr)})
+										logger.AssertError("Unable to destroy blob exceeding maximum size", log.Fields{"userId": userID, "id": *createBlob.ID, "error": errors.NewSerializable(responseErr)})
+									})
 								})
 
 								When("the digest does not match", func() {
@@ -258,24 +310,24 @@ var _ = Describe("Client", func() {
 									})
 
 									AfterEach(func() {
-										Expect(blobUnstructuredStore.DeleteInputs).To(Equal([]blobStoreUnstructuredTest.DeleteInput{{Context: ctx, UserID: userID, ID: *createBlob.ID}}))
-										Expect(blobStructuredSession.DeleteInputs).To(Equal([]blobStoreStructuredTest.DeleteInput{{Context: ctx, ID: *createBlob.ID}}))
+										Expect(blobUnstructuredStore.DeleteInputs).To(Equal([]blobStoreUnstructuredTest.DeleteInput{{UserID: userID, ID: *createBlob.ID}}))
+										Expect(blobStructuredSession.DestroyInputs).To(Equal([]blobStoreStructuredTest.DestroyInput{{ID: *createBlob.ID}}))
 									})
 
 									It("returns an error", func() {
 										blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
-										blobStructuredSession.DeleteOutputs = []blobStoreStructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
+										blobStructuredSession.DestroyOutputs = []blobStoreStructuredTest.DestroyOutput{{Destroyed: true, Error: nil}}
 										result, err := client.Create(ctx, userID, content)
-										errorsTest.ExpectEqual(err, errorsTest.WithPointerSource(blob.ErrorDigestsNotEqual(*content.DigestMD5, digestMD5), "/digestMD5"))
+										errorsTest.ExpectEqual(err, errorsTest.WithPointerSource(request.ErrorDigestsNotEqual(*content.DigestMD5, digestMD5), "/digestMD5"))
 										Expect(result).To(BeNil())
 									})
 
 									It("returns an error and logs an error when the unstructured store returns an error", func() {
 										responseErr := errorsTest.RandomError()
 										blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
-										blobStructuredSession.DeleteOutputs = []blobStoreStructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
+										blobStructuredSession.DestroyOutputs = []blobStoreStructuredTest.DestroyOutput{{Destroyed: true, Error: nil}}
 										result, err := client.Create(ctx, userID, content)
-										errorsTest.ExpectEqual(err, errorsTest.WithPointerSource(blob.ErrorDigestsNotEqual(*content.DigestMD5, digestMD5), "/digestMD5"))
+										errorsTest.ExpectEqual(err, errorsTest.WithPointerSource(request.ErrorDigestsNotEqual(*content.DigestMD5, digestMD5), "/digestMD5"))
 										Expect(result).To(BeNil())
 										logger.AssertError("Unable to delete blob content with incorrect MD5 digest", log.Fields{"userId": userID, "id": *createBlob.ID, "error": errors.NewSerializable(responseErr)})
 									})
@@ -283,74 +335,22 @@ var _ = Describe("Client", func() {
 									It("returns an error and logs an error when the structured store returns an error", func() {
 										responseErr := errorsTest.RandomError()
 										blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
-										blobStructuredSession.DeleteOutputs = []blobStoreStructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
+										blobStructuredSession.DestroyOutputs = []blobStoreStructuredTest.DestroyOutput{{Destroyed: false, Error: responseErr}}
 										result, err := client.Create(ctx, userID, content)
-										errorsTest.ExpectEqual(err, errorsTest.WithPointerSource(blob.ErrorDigestsNotEqual(*content.DigestMD5, digestMD5), "/digestMD5"))
+										errorsTest.ExpectEqual(err, errorsTest.WithPointerSource(request.ErrorDigestsNotEqual(*content.DigestMD5, digestMD5), "/digestMD5"))
 										Expect(result).To(BeNil())
-										logger.AssertError("Unable to delete blob with incorrect MD5 digest", log.Fields{"userId": userID, "id": *createBlob.ID, "error": errors.NewSerializable(responseErr)})
+										logger.AssertError("Unable to destroy blob with incorrect MD5 digest", log.Fields{"userId": userID, "id": *createBlob.ID, "error": errors.NewSerializable(responseErr)})
 									})
 
 									It("returns an error and logs an error when both the unstructured and structured store returns an error", func() {
 										responseErr := errorsTest.RandomError()
 										blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
-										blobStructuredSession.DeleteOutputs = []blobStoreStructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
+										blobStructuredSession.DestroyOutputs = []blobStoreStructuredTest.DestroyOutput{{Destroyed: false, Error: responseErr}}
 										result, err := client.Create(ctx, userID, content)
-										errorsTest.ExpectEqual(err, errorsTest.WithPointerSource(blob.ErrorDigestsNotEqual(*content.DigestMD5, digestMD5), "/digestMD5"))
+										errorsTest.ExpectEqual(err, errorsTest.WithPointerSource(request.ErrorDigestsNotEqual(*content.DigestMD5, digestMD5), "/digestMD5"))
 										Expect(result).To(BeNil())
 										logger.AssertError("Unable to delete blob content with incorrect MD5 digest", log.Fields{"userId": userID, "id": *createBlob.ID, "error": errors.NewSerializable(responseErr)})
-										logger.AssertError("Unable to delete blob with incorrect MD5 digest", log.Fields{"userId": userID, "id": *createBlob.ID, "error": errors.NewSerializable(responseErr)})
-									})
-								})
-
-								When("the size exceeds maximum", func() {
-									BeforeEach(func() {
-										body := make([]byte, 104857601)
-										content.Body = ioutil.NopCloser(bytes.NewReader(body))
-										content.DigestMD5 = pointer.FromString(crypto.Base64EncodedMD5Hash(body))
-									})
-
-									AfterEach(func() {
-										Expect(blobUnstructuredStore.DeleteInputs).To(Equal([]blobStoreUnstructuredTest.DeleteInput{{Context: ctx, UserID: userID, ID: *createBlob.ID}}))
-										Expect(blobStructuredSession.DeleteInputs).To(Equal([]blobStoreStructuredTest.DeleteInput{{Context: ctx, ID: *createBlob.ID}}))
-									})
-
-									It("returns an error", func() {
-										blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
-										blobStructuredSession.DeleteOutputs = []blobStoreStructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
-										result, err := client.Create(ctx, userID, content)
-										errorsTest.ExpectEqual(err, request.ErrorResourceTooLarge())
-										Expect(result).To(BeNil())
-									})
-
-									It("returns an error and logs an error when the unstructured store returns an error", func() {
-										responseErr := errorsTest.RandomError()
-										blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
-										blobStructuredSession.DeleteOutputs = []blobStoreStructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
-										result, err := client.Create(ctx, userID, content)
-										errorsTest.ExpectEqual(err, request.ErrorResourceTooLarge())
-										Expect(result).To(BeNil())
-										logger.AssertError("Unable to delete blob content exceeding maximum size", log.Fields{"userId": userID, "id": *createBlob.ID, "error": errors.NewSerializable(responseErr)})
-									})
-
-									It("returns an error and logs an error when the structured store returns an error", func() {
-										responseErr := errorsTest.RandomError()
-										blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
-										blobStructuredSession.DeleteOutputs = []blobStoreStructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
-										result, err := client.Create(ctx, userID, content)
-										errorsTest.ExpectEqual(err, request.ErrorResourceTooLarge())
-										Expect(result).To(BeNil())
-										logger.AssertError("Unable to delete blob exceeding maximum size", log.Fields{"userId": userID, "id": *createBlob.ID, "error": errors.NewSerializable(responseErr)})
-									})
-
-									It("returns an error and logs an error when both the unstructured and structured store returns an error", func() {
-										responseErr := errorsTest.RandomError()
-										blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
-										blobStructuredSession.DeleteOutputs = []blobStoreStructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
-										result, err := client.Create(ctx, userID, content)
-										errorsTest.ExpectEqual(err, request.ErrorResourceTooLarge())
-										Expect(result).To(BeNil())
-										logger.AssertError("Unable to delete blob content exceeding maximum size", log.Fields{"userId": userID, "id": *createBlob.ID, "error": errors.NewSerializable(responseErr)})
-										logger.AssertError("Unable to delete blob exceeding maximum size", log.Fields{"userId": userID, "id": *createBlob.ID, "error": errors.NewSerializable(responseErr)})
+										logger.AssertError("Unable to destroy blob with incorrect MD5 digest", log.Fields{"userId": userID, "id": *createBlob.ID, "error": errors.NewSerializable(responseErr)})
 									})
 								})
 
@@ -360,7 +360,7 @@ var _ = Describe("Client", func() {
 										update.DigestMD5 = pointer.CloneString(content.DigestMD5)
 										update.Size = pointer.FromInt(int(size))
 										update.Status = pointer.FromString(blob.StatusAvailable)
-										Expect(blobStructuredSession.UpdateInputs).To(Equal([]blobStoreStructuredTest.UpdateInput{{Context: ctx, ID: *createBlob.ID, Update: update}}))
+										Expect(blobStructuredSession.UpdateInputs).To(Equal([]blobStoreStructuredTest.UpdateInput{{ID: *createBlob.ID, Update: update}}))
 									})
 
 									It("returns an error when blob structured session update returns an error", func() {
@@ -379,7 +379,7 @@ var _ = Describe("Client", func() {
 											updateBlob.DigestMD5 = pointer.CloneString(content.DigestMD5)
 											updateBlob.Size = pointer.FromInt(int(size))
 											updateBlob.Status = pointer.FromString(blob.StatusAvailable)
-											updateBlob.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*createBlob.CreatedTime, time.Now()).Truncate(time.Second))
+											updateBlob.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*createBlob.CreatedTime, time.Now()))
 											blobStructuredSession.UpdateOutputs = []blobStoreStructuredTest.UpdateOutput{{Blob: updateBlob, Error: nil}}
 										})
 
@@ -416,7 +416,7 @@ var _ = Describe("Client", func() {
 
 			Context("Get", func() {
 				AfterEach(func() {
-					Expect(authClient.EnsureAuthorizedServiceInputs).To(Equal([]context.Context{ctx}))
+					Expect(authClient.EnsureAuthorizedServiceInvocations).To(Equal(1))
 				})
 
 				It("returns an error when the user client ensure authorized service returns an error", func() {
@@ -427,13 +427,13 @@ var _ = Describe("Client", func() {
 					Expect(result).To(BeNil())
 				})
 
-				When("user client ensure authorized service returns successfully", func() {
+				When("the user client ensure authorized service returns successfully", func() {
 					BeforeEach(func() {
 						authClient.EnsureAuthorizedServiceOutputs = []error{nil}
 					})
 
 					AfterEach(func() {
-						Expect(blobStructuredSession.GetInputs).To(Equal([]blobStoreStructuredTest.GetInput{{Context: ctx, ID: id}}))
+						Expect(blobStructuredSession.GetInputs).To(Equal([]string{id}))
 					})
 
 					It("returns an error when the blob structured session get returns an error", func() {
@@ -456,39 +456,39 @@ var _ = Describe("Client", func() {
 
 			Context("GetContent", func() {
 				AfterEach(func() {
-					Expect(authClient.EnsureAuthorizedServiceInputs).To(Equal([]context.Context{ctx}))
+					Expect(authClient.EnsureAuthorizedServiceInvocations).To(Equal(1))
 				})
 
 				It("returns an error when the user client ensure authorized service returns an error", func() {
 					responseErr := errorsTest.RandomError()
 					authClient.EnsureAuthorizedServiceOutputs = []error{responseErr}
-					content, err := client.GetContent(ctx, id)
+					result, err := client.GetContent(ctx, id)
 					errorsTest.ExpectEqual(err, responseErr)
-					Expect(content).To(BeNil())
+					Expect(result).To(BeNil())
 				})
 
-				When("user client ensure authorized service returns successfully", func() {
+				When("the user client ensure authorized service returns successfully", func() {
 					BeforeEach(func() {
 						authClient.EnsureAuthorizedServiceOutputs = []error{nil}
 					})
 
 					AfterEach(func() {
-						Expect(blobStructuredSession.GetInputs).To(Equal([]blobStoreStructuredTest.GetInput{{Context: ctx, ID: id}}))
+						Expect(blobStructuredSession.GetInputs).To(Equal([]string{id}))
 					})
 
 					It("returns an error when the blob structured session get returns an error", func() {
 						responseErr := errorsTest.RandomError()
 						blobStructuredSession.GetOutputs = []blobStoreStructuredTest.GetOutput{{Blob: nil, Error: responseErr}}
-						content, err := client.GetContent(ctx, id)
+						result, err := client.GetContent(ctx, id)
 						errorsTest.ExpectEqual(err, responseErr)
-						Expect(content).To(BeNil())
+						Expect(result).To(BeNil())
 					})
 
 					It("returns successfully when the blob structured session get returns nil", func() {
 						blobStructuredSession.GetOutputs = []blobStoreStructuredTest.GetOutput{{Blob: nil, Error: nil}}
-						content, err := client.GetContent(ctx, id)
+						result, err := client.GetContent(ctx, id)
 						Expect(err).ToNot(HaveOccurred())
-						Expect(content).To(BeNil())
+						Expect(result).To(BeNil())
 					})
 
 					When("the blob structure session get returns a blob", func() {
@@ -501,24 +501,24 @@ var _ = Describe("Client", func() {
 						})
 
 						AfterEach(func() {
-							Expect(blobUnstructuredStore.GetInputs).To(Equal([]blobStoreUnstructuredTest.GetInput{{Context: ctx, UserID: *responseResult.UserID, ID: id}}))
+							Expect(blobUnstructuredStore.GetInputs).To(Equal([]blobStoreUnstructuredTest.GetInput{{UserID: *responseResult.UserID, ID: id}}))
 						})
 
 						It("returns an error when the blob unstructured store get returns an error", func() {
 							responseErr := errorsTest.RandomError()
 							blobUnstructuredStore.GetOutputs = []blobStoreUnstructuredTest.GetOutput{{Reader: nil, Error: responseErr}}
-							content, err := client.GetContent(ctx, id)
+							result, err := client.GetContent(ctx, id)
 							errorsTest.ExpectEqual(err, responseErr)
-							Expect(content).To(BeNil())
+							Expect(result).To(BeNil())
 						})
 
 						It("returns successfully when the blob unstructured store get returns successfully", func() {
 							body := test.RandomBytes()
 							reader := ioutil.NopCloser(bytes.NewReader(body))
 							blobUnstructuredStore.GetOutputs = []blobStoreUnstructuredTest.GetOutput{{Reader: reader, Error: nil}}
-							content, err := client.GetContent(ctx, id)
+							result, err := client.GetContent(ctx, id)
 							Expect(err).ToNot(HaveOccurred())
-							Expect(content).To(Equal(&blob.Content{
+							Expect(result).To(Equal(&blob.Content{
 								Body:      reader,
 								DigestMD5: responseResult.DigestMD5,
 								MediaType: responseResult.MediaType,
@@ -536,7 +536,7 @@ var _ = Describe("Client", func() {
 				})
 
 				AfterEach(func() {
-					Expect(authClient.EnsureAuthorizedServiceInputs).To(Equal([]context.Context{ctx}))
+					Expect(authClient.EnsureAuthorizedServiceInvocations).To(Equal(1))
 				})
 
 				It("returns an error when the user client ensure authorized service returns an error", func() {
@@ -547,13 +547,13 @@ var _ = Describe("Client", func() {
 					Expect(deleted).To(BeFalse())
 				})
 
-				When("user client ensure authorized service returns successfully", func() {
+				When("the user client ensure authorized service returns successfully", func() {
 					BeforeEach(func() {
 						authClient.EnsureAuthorizedServiceOutputs = []error{nil}
 					})
 
 					AfterEach(func() {
-						Expect(blobStructuredSession.GetInputs).To(Equal([]blobStoreStructuredTest.GetInput{{Context: ctx, ID: id}}))
+						Expect(blobStructuredSession.GetInputs).To(Equal([]string{id}))
 					})
 
 					It("returns an error when the blob structured session get returns an error", func() {
@@ -589,10 +589,10 @@ var _ = Describe("Client", func() {
 
 						When("the blob structure session get returns a blob", func() {
 							AfterEach(func() {
-								Expect(blobUnstructuredStore.DeleteInputs).To(Equal([]blobStoreUnstructuredTest.DeleteInput{{Context: ctx, UserID: *responseResult.UserID, ID: id}}))
+								Expect(blobUnstructuredStore.DeleteInputs).To(Equal([]blobStoreUnstructuredTest.DeleteInput{{UserID: *responseResult.UserID, ID: id}}))
 							})
 
-							deleteAssertions := func() {
+							conditionAssertions := func() {
 								Context("deletes blob", func() {
 									It("returns an error when the blob unstructured store delete returns an error", func() {
 										responseErr := errorsTest.RandomError()
@@ -608,26 +608,26 @@ var _ = Describe("Client", func() {
 										})
 
 										AfterEach(func() {
-											Expect(blobStructuredSession.DeleteInputs).To(Equal([]blobStoreStructuredTest.DeleteInput{{Context: ctx, ID: id}}))
+											Expect(blobStructuredSession.DestroyInputs).To(Equal([]blobStoreStructuredTest.DestroyInput{{ID: id}}))
 										})
 
-										It("returns an error when the blob structured session delete returns an error", func() {
+										It("returns an error when the blob structured session destroy returns an error", func() {
 											responseErr := errorsTest.RandomError()
-											blobStructuredSession.DeleteOutputs = []blobStoreStructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
+											blobStructuredSession.DestroyOutputs = []blobStoreStructuredTest.DestroyOutput{{Destroyed: false, Error: responseErr}}
 											deleted, err := client.Delete(ctx, id, condition)
 											errorsTest.ExpectEqual(err, responseErr)
 											Expect(deleted).To(BeFalse())
 										})
 
-										It("returns false when the blob structured session delete returns false", func() {
-											blobStructuredSession.DeleteOutputs = []blobStoreStructuredTest.DeleteOutput{{Deleted: false, Error: nil}}
+										It("returns false when the blob structured session destroy returns false", func() {
+											blobStructuredSession.DestroyOutputs = []blobStoreStructuredTest.DestroyOutput{{Destroyed: false, Error: nil}}
 											deleted, err := client.Delete(ctx, id, condition)
 											Expect(err).ToNot(HaveOccurred())
 											Expect(deleted).To(BeFalse())
 										})
 
-										It("returns true when the blob structured session delete returns true", func() {
-											blobStructuredSession.DeleteOutputs = []blobStoreStructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
+										It("returns true when the blob structured session destroy returns true", func() {
+											blobStructuredSession.DestroyOutputs = []blobStoreStructuredTest.DestroyOutput{{Destroyed: true, Error: nil}}
 											deleted, err := client.Delete(ctx, id, condition)
 											Expect(err).ToNot(HaveOccurred())
 											Expect(deleted).To(BeTrue())
@@ -635,7 +635,7 @@ var _ = Describe("Client", func() {
 
 										It("logs a warning when the unstructured store returns false", func() {
 											blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: false, Error: nil}}
-											blobStructuredSession.DeleteOutputs = []blobStoreStructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
+											blobStructuredSession.DestroyOutputs = []blobStoreStructuredTest.DestroyOutput{{Destroyed: true, Error: nil}}
 											deleted, err := client.Delete(ctx, id, condition)
 											Expect(err).ToNot(HaveOccurred())
 											Expect(deleted).To(BeTrue())
@@ -650,7 +650,7 @@ var _ = Describe("Client", func() {
 									condition = nil
 								})
 
-								deleteAssertions()
+								conditionAssertions()
 							})
 
 							When("condition revision is missing", func() {
@@ -658,7 +658,7 @@ var _ = Describe("Client", func() {
 									condition.Revision = nil
 								})
 
-								deleteAssertions()
+								conditionAssertions()
 							})
 
 							When("condition revision is present", func() {
@@ -666,7 +666,7 @@ var _ = Describe("Client", func() {
 									condition.Revision = pointer.CloneInt(responseResult.Revision)
 								})
 
-								deleteAssertions()
+								conditionAssertions()
 							})
 						})
 					})

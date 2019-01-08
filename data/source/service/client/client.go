@@ -92,5 +92,5 @@ func (c *Client) Delete(ctx context.Context, id string, condition *request.Condi
 	session := c.DataSourceStructuredStore().NewSession()
 	defer session.Close()
 
-	return session.Delete(ctx, id, condition)
+	return session.Destroy(ctx, id, condition)
 }

@@ -23,35 +23,35 @@ var _ = Describe("Factory", func() {
 
 	Context("NewStore", func() {
 		It("returns an error if the config reporter is missing", func() {
-			str, err := storeUnstructuredFactory.NewStore(nil, awsAPI)
+			store, err := storeUnstructuredFactory.NewStore(nil, awsAPI)
 			Expect(err).To(MatchError("config reporter is missing"))
-			Expect(str).To(BeNil())
+			Expect(store).To(BeNil())
 		})
 
 		It("returns an error if the aws api is missing", func() {
-			str, err := storeUnstructuredFactory.NewStore(configReporter, nil)
+			store, err := storeUnstructuredFactory.NewStore(configReporter, nil)
 			Expect(err).To(MatchError("aws api is missing"))
-			Expect(str).To(BeNil())
+			Expect(store).To(BeNil())
 		})
 
 		It("returns an error if the type is missing", func() {
-			str, err := storeUnstructuredFactory.NewStore(configReporter, awsAPI)
+			store, err := storeUnstructuredFactory.NewStore(configReporter, awsAPI)
 			Expect(err).To(MatchError("type is missing"))
-			Expect(str).To(BeNil())
+			Expect(store).To(BeNil())
 		})
 
 		It("returns an error if the type is empty", func() {
 			configReporter.Set("type", "")
-			str, err := storeUnstructuredFactory.NewStore(configReporter, awsAPI)
+			store, err := storeUnstructuredFactory.NewStore(configReporter, awsAPI)
 			Expect(err).To(MatchError("type is empty"))
-			Expect(str).To(BeNil())
+			Expect(store).To(BeNil())
 		})
 
 		It("returns an error if the type is invalid", func() {
 			configReporter.Set("type", "invalid")
-			str, err := storeUnstructuredFactory.NewStore(configReporter, awsAPI)
+			store, err := storeUnstructuredFactory.NewStore(configReporter, awsAPI)
 			Expect(err).To(MatchError("type is invalid"))
-			Expect(str).To(BeNil())
+			Expect(store).To(BeNil())
 		})
 
 		Context("with type file", func() {
@@ -73,15 +73,15 @@ var _ = Describe("Factory", func() {
 
 			It("returns an error if the config is invalid", func() {
 				delete(configReporter.Config, "file")
-				str, err := storeUnstructuredFactory.NewStore(configReporter, awsAPI)
+				store, err := storeUnstructuredFactory.NewStore(configReporter, awsAPI)
 				Expect(err).To(MatchError("config is invalid; directory is missing"))
-				Expect(str).To(BeNil())
+				Expect(store).To(BeNil())
 			})
 
 			It("returns an error if the aws api is invalid", func() {
-				str, err := storeUnstructuredFactory.NewStore(configReporter, nil)
+				store, err := storeUnstructuredFactory.NewStore(configReporter, nil)
 				Expect(err).To(MatchError("aws api is missing"))
-				Expect(str).To(BeNil())
+				Expect(store).To(BeNil())
 			})
 
 			It("returns successfully", func() {
@@ -100,15 +100,15 @@ var _ = Describe("Factory", func() {
 
 			It("returns an error if the config is invalid", func() {
 				delete(configReporter.Config, "s3")
-				str, err := storeUnstructuredFactory.NewStore(configReporter, awsAPI)
+				store, err := storeUnstructuredFactory.NewStore(configReporter, awsAPI)
 				Expect(err).To(MatchError("config is invalid; bucket is missing"))
-				Expect(str).To(BeNil())
+				Expect(store).To(BeNil())
 			})
 
 			It("returns an error if the aws api is invalid", func() {
-				str, err := storeUnstructuredFactory.NewStore(configReporter, nil)
+				store, err := storeUnstructuredFactory.NewStore(configReporter, nil)
 				Expect(err).To(MatchError("aws api is missing"))
-				Expect(str).To(BeNil())
+				Expect(store).To(BeNil())
 			})
 
 			It("returns successfully", func() {
@@ -132,16 +132,16 @@ var _ = Describe("Factory", func() {
 		})
 
 		It("returns an error if the config reporter is missing", func() {
-			str, err := storeUnstructuredFactory.NewFileStore(nil)
+			store, err := storeUnstructuredFactory.NewFileStore(nil)
 			Expect(err).To(MatchError("unable to load config; config reporter is missing"))
-			Expect(str).To(BeNil())
+			Expect(store).To(BeNil())
 		})
 
 		It("returns an error if the config is invalid", func() {
 			delete(configReporter.Config, "directory")
-			str, err := storeUnstructuredFactory.NewFileStore(configReporter)
+			store, err := storeUnstructuredFactory.NewFileStore(configReporter)
 			Expect(err).To(MatchError("config is invalid; directory is missing"))
-			Expect(str).To(BeNil())
+			Expect(store).To(BeNil())
 		})
 
 		It("returns successfully", func() {
@@ -156,22 +156,22 @@ var _ = Describe("Factory", func() {
 		})
 
 		It("returns an error if the config reporter is missing", func() {
-			str, err := storeUnstructuredFactory.NewS3Store(nil, awsAPI)
+			store, err := storeUnstructuredFactory.NewS3Store(nil, awsAPI)
 			Expect(err).To(MatchError("unable to load config; config reporter is missing"))
-			Expect(str).To(BeNil())
+			Expect(store).To(BeNil())
 		})
 
 		It("returns an error if the aws api is missing", func() {
-			str, err := storeUnstructuredFactory.NewS3Store(configReporter, nil)
+			store, err := storeUnstructuredFactory.NewS3Store(configReporter, nil)
 			Expect(err).To(MatchError("aws api is missing"))
-			Expect(str).To(BeNil())
+			Expect(store).To(BeNil())
 		})
 
 		It("returns an error if the config is invalid", func() {
 			delete(configReporter.Config, "bucket")
-			str, err := storeUnstructuredFactory.NewS3Store(configReporter, awsAPI)
+			store, err := storeUnstructuredFactory.NewS3Store(configReporter, awsAPI)
 			Expect(err).To(MatchError("config is invalid; bucket is missing"))
-			Expect(str).To(BeNil())
+			Expect(store).To(BeNil())
 		})
 
 		It("returns successfully", func() {

@@ -9,7 +9,6 @@ import (
 )
 
 type ListInput struct {
-	Context    context.Context
 	UserID     string
 	Filter     *dataSource.Filter
 	Pagination *page.Pagination
@@ -21,19 +20,13 @@ type ListOutput struct {
 }
 
 type CreateInput struct {
-	Context context.Context
-	UserID  string
-	Create  *dataSource.Create
+	UserID string
+	Create *dataSource.Create
 }
 
 type CreateOutput struct {
 	Source *dataSource.Source
 	Error  error
-}
-
-type GetInput struct {
-	Context context.Context
-	ID      string
 }
 
 type GetOutput struct {
@@ -42,7 +35,6 @@ type GetOutput struct {
 }
 
 type UpdateInput struct {
-	Context   context.Context
 	ID        string
 	Condition *request.Condition
 	Update    *dataSource.Update
@@ -54,7 +46,6 @@ type UpdateOutput struct {
 }
 
 type DeleteInput struct {
-	Context   context.Context
 	ID        string
 	Condition *request.Condition
 }
@@ -76,7 +67,7 @@ type Client struct {
 	CreateOutputs     []CreateOutput
 	CreateOutput      *CreateOutput
 	GetInvocations    int
-	GetInputs         []GetInput
+	GetInputs         []string
 	GetStub           func(ctx context.Context, id string) (*dataSource.Source, error)
 	GetOutputs        []GetOutput
 	GetOutput         *GetOutput
@@ -98,7 +89,7 @@ func NewClient() *Client {
 
 func (c *Client) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.Sources, error) {
 	c.ListInvocations++
-	c.ListInputs = append(c.ListInputs, ListInput{Context: ctx, UserID: userID, Filter: filter, Pagination: pagination})
+	c.ListInputs = append(c.ListInputs, ListInput{UserID: userID, Filter: filter, Pagination: pagination})
 	if c.ListStub != nil {
 		return c.ListStub(ctx, userID, filter, pagination)
 	}
@@ -115,7 +106,7 @@ func (c *Client) List(ctx context.Context, userID string, filter *dataSource.Fil
 
 func (c *Client) Create(ctx context.Context, userID string, create *dataSource.Create) (*dataSource.Source, error) {
 	c.CreateInvocations++
-	c.CreateInputs = append(c.CreateInputs, CreateInput{Context: ctx, UserID: userID, Create: create})
+	c.CreateInputs = append(c.CreateInputs, CreateInput{UserID: userID, Create: create})
 	if c.CreateStub != nil {
 		return c.CreateStub(ctx, userID, create)
 	}
@@ -132,7 +123,7 @@ func (c *Client) Create(ctx context.Context, userID string, create *dataSource.C
 
 func (c *Client) Get(ctx context.Context, id string) (*dataSource.Source, error) {
 	c.GetInvocations++
-	c.GetInputs = append(c.GetInputs, GetInput{Context: ctx, ID: id})
+	c.GetInputs = append(c.GetInputs, id)
 	if c.GetStub != nil {
 		return c.GetStub(ctx, id)
 	}
@@ -149,7 +140,7 @@ func (c *Client) Get(ctx context.Context, id string) (*dataSource.Source, error)
 
 func (c *Client) Update(ctx context.Context, id string, condition *request.Condition, update *dataSource.Update) (*dataSource.Source, error) {
 	c.UpdateInvocations++
-	c.UpdateInputs = append(c.UpdateInputs, UpdateInput{Context: ctx, ID: id, Condition: condition, Update: update})
+	c.UpdateInputs = append(c.UpdateInputs, UpdateInput{ID: id, Condition: condition, Update: update})
 	if c.UpdateStub != nil {
 		return c.UpdateStub(ctx, id, condition, update)
 	}
@@ -166,7 +157,7 @@ func (c *Client) Update(ctx context.Context, id string, condition *request.Condi
 
 func (c *Client) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
 	c.DeleteInvocations++
-	c.DeleteInputs = append(c.DeleteInputs, DeleteInput{Context: ctx, ID: id, Condition: condition})
+	c.DeleteInputs = append(c.DeleteInputs, DeleteInput{ID: id, Condition: condition})
 	if c.DeleteStub != nil {
 		return c.DeleteStub(ctx, id, condition)
 	}

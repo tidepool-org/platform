@@ -1,7 +1,7 @@
 package service
 
 import (
-	"github.com/aws/aws-sdk-go/aws/session"
+	awsSdkGoAwsSession "github.com/aws/aws-sdk-go/aws/session"
 
 	"github.com/tidepool-org/platform/application"
 	awsApi "github.com/tidepool-org/platform/aws/api"
@@ -109,21 +109,21 @@ func (s *Service) terminateBlobStructuredStore() {
 func (s *Service) initializeBlobUnstructuredStore() error {
 	s.Logger().Debug("Creating aws session")
 
-	awsSession, err := session.NewSession() // FUTURE: Session pooling
+	session, err := awsSdkGoAwsSession.NewSession() // FUTURE: Session pooling
 	if err != nil {
 		return errors.Wrap(err, "unable to create aws session")
 	}
 
 	s.Logger().Debug("Creating aws session")
 
-	awsEhpi, err := awsApi.New(awsSession)
+	api, err := awsApi.New(session)
 	if err != nil {
 		return errors.Wrap(err, "unable to create aws api")
 	}
 
 	s.Logger().Debug("Creating unstructured store")
 
-	unstructuredStore, err := storeUnstructuredFactory.NewStore(s.ConfigReporter().WithScopes("unstructured", "store"), awsEhpi)
+	unstructuredStore, err := storeUnstructuredFactory.NewStore(s.ConfigReporter().WithScopes("unstructured", "store"), api)
 	if err != nil {
 		return errors.Wrap(err, "unable to create unstructured store")
 	}

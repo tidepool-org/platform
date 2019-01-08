@@ -1,24 +1,25 @@
 package test
 
-import (
-	"math/rand"
-	"time"
-)
+import "time"
 
-const TimeLimit = 365 * 24 * time.Hour
+var now = time.Now().Truncate(time.Millisecond)
 
-func TimeMaximum() time.Time {
-	return time.Now().Add(TimeLimit)
+func Now() time.Time {
+	return now
 }
 
-func TimeMinimum() time.Time {
-	return time.Now().Add(-TimeLimit)
+func PastFarTime() time.Time {
+	return now.AddDate(-30, 0, 0)
 }
 
-func NewTime() time.Time {
-	return NewTimeInRange(TimeMinimum(), TimeMaximum())
+func PastNearTime() time.Time {
+	return now.AddDate(0, -1, 0)
 }
 
-func NewTimeInRange(earliest time.Time, latest time.Time) time.Time {
-	return earliest.Add(time.Duration(rand.Int63n(int64(latest.Sub(earliest)))))
+func FutureNearTime() time.Time {
+	return now.AddDate(0, 1, 0)
+}
+
+func FutureFarTime() time.Time {
+	return now.AddDate(30, 0, 0)
 }

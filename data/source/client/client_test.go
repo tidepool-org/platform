@@ -220,29 +220,23 @@ var _ = Describe("Client", func() {
 								})
 
 								It("returns successfully", func() {
-									result, err := client.List(ctx, userID, filter, pagination)
-									Expect(err).ToNot(HaveOccurred())
-									dataSourceTest.ExpectEqualSources(result, responseResult)
+									Expect(client.List(ctx, userID, filter, pagination)).To(dataSourceTest.MatchSources(responseResult))
 								})
 							})
 						})
 					}
 
-					When("the request has no filter or pagination", func() {
+					When("the request has no filter or pagination parameters", func() {
 						BeforeEach(func() {
 							filter = nil
 							pagination = nil
-							query := url.Values{
-								"page": []string{"0"},
-								"size": []string{"100"},
-							}
-							requestHandlers = append(requestHandlers, VerifyRequest("GET", fmt.Sprintf("/v1/users/%s/data_sources", userID), query.Encode()))
+							requestHandlers = append(requestHandlers, VerifyRequest(http.MethodGet, fmt.Sprintf("/v1/users/%s/data_sources", userID), ""))
 						})
 
 						listAssertions()
 					})
 
-					When("the request has a random filter and pagination", func() {
+					When("the request has random filter and pagination parameters", func() {
 						BeforeEach(func() {
 							filter = dataSourceTest.RandomFilter()
 							pagination = pageTest.RandomPagination()
@@ -254,7 +248,7 @@ var _ = Describe("Client", func() {
 								"page":              []string{strconv.Itoa(pagination.Page)},
 								"size":              []string{strconv.Itoa(pagination.Size)},
 							}
-							requestHandlers = append(requestHandlers, VerifyRequest("GET", fmt.Sprintf("/v1/users/%s/data_sources", userID), query.Encode()))
+							requestHandlers = append(requestHandlers, VerifyRequest(http.MethodGet, fmt.Sprintf("/v1/users/%s/data_sources", userID), query.Encode()))
 						})
 
 						listAssertions()
@@ -367,9 +361,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns successfully", func() {
-								result, err := client.Create(ctx, userID, create)
-								Expect(err).ToNot(HaveOccurred())
-								dataSourceTest.ExpectEqualSource(result, responseResult)
+								Expect(client.Create(ctx, userID, create)).To(dataSourceTest.MatchSource(responseResult))
 							})
 						})
 					})
@@ -414,7 +406,7 @@ var _ = Describe("Client", func() {
 					Context("with server response", func() {
 						BeforeEach(func() {
 							requestHandlers = append(requestHandlers,
-								VerifyRequest("GET", fmt.Sprintf("/v1/data_sources/%s", id)),
+								VerifyRequest(http.MethodGet, fmt.Sprintf("/v1/data_sources/%s", id)),
 								VerifyContentType(""),
 								VerifyBody(nil),
 							)
@@ -469,9 +461,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns successfully with result", func() {
-								result, err := client.Get(ctx, id)
-								Expect(err).ToNot(HaveOccurred())
-								dataSourceTest.ExpectEqualSource(result, responseResult)
+								Expect(client.Get(ctx, id)).To(dataSourceTest.MatchSource(responseResult))
 							})
 						})
 					})
@@ -569,7 +559,7 @@ var _ = Describe("Client", func() {
 									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNotFound, errors.NewSerializable(request.ErrorResourceNotFoundWithID(id)), responseHeaders))
 								})
 
-								It("returns an error", func() {
+								It("returns successfully without result", func() {
 									result, err := client.Update(ctx, id, condition, update)
 									Expect(err).ToNot(HaveOccurred())
 									Expect(result).To(BeNil())
@@ -585,9 +575,7 @@ var _ = Describe("Client", func() {
 								})
 
 								It("returns successfully", func() {
-									result, err := client.Update(ctx, id, condition, update)
-									Expect(err).ToNot(HaveOccurred())
-									dataSourceTest.ExpectEqualSource(result, responseResult)
+									Expect(client.Update(ctx, id, condition, update)).To(dataSourceTest.MatchSource(responseResult))
 								})
 							})
 						})
@@ -597,7 +585,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							condition = nil
 							requestHandlers = append(requestHandlers,
-								VerifyRequest("PUT", fmt.Sprintf("/v1/data_sources/%s", id)),
+								VerifyRequest(http.MethodPut, fmt.Sprintf("/v1/data_sources/%s", id)),
 								VerifyContentType("application/json; charset=utf-8"),
 								VerifyBody(test.MustBytes(test.MarshalRequestBody(update))),
 							)
@@ -610,7 +598,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							condition.Revision = nil
 							requestHandlers = append(requestHandlers,
-								VerifyRequest("PUT", fmt.Sprintf("/v1/data_sources/%s", id)),
+								VerifyRequest(http.MethodPut, fmt.Sprintf("/v1/data_sources/%s", id)),
 								VerifyContentType("application/json; charset=utf-8"),
 								VerifyBody(test.MustBytes(test.MarshalRequestBody(update))),
 							)
@@ -625,7 +613,7 @@ var _ = Describe("Client", func() {
 								"revision": []string{strconv.Itoa(*condition.Revision)},
 							}
 							requestHandlers = append(requestHandlers,
-								VerifyRequest("PUT", fmt.Sprintf("/v1/data_sources/%s", id), query.Encode()),
+								VerifyRequest(http.MethodPut, fmt.Sprintf("/v1/data_sources/%s", id), query.Encode()),
 								VerifyContentType("application/json; charset=utf-8"),
 								VerifyBody(test.MustBytes(test.MarshalRequestBody(update))),
 							)
@@ -711,7 +699,7 @@ var _ = Describe("Client", func() {
 									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNotFound, errors.NewSerializable(request.ErrorResourceNotFoundWithID(id)), responseHeaders))
 								})
 
-								It("returns successfully with delete false", func() {
+								It("returns successfully with deleted false", func() {
 									deleted, err := client.Delete(ctx, id, condition)
 									Expect(err).ToNot(HaveOccurred())
 									Expect(deleted).To(BeFalse())

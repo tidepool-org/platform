@@ -103,8 +103,8 @@ func (t *TaskCreate) Parse(parser structure.ObjectParser) {
 	if ptr := parser.Object("data"); ptr != nil {
 		t.Data = *ptr
 	}
-	t.AvailableTime = parser.Time("availableTime", time.RFC3339)
-	t.ExpirationTime = parser.Time("expirationTime", time.RFC3339)
+	t.AvailableTime = parser.Time("availableTime", time.RFC3339Nano)
+	t.ExpirationTime = parser.Time("expirationTime", time.RFC3339Nano)
 }
 
 func (t *TaskCreate) Validate(validator structure.Validator) {
@@ -135,8 +135,8 @@ func (t *TaskUpdate) HasUpdates() bool {
 func (t *TaskUpdate) Parse(parser structure.ObjectParser) {
 	t.Priority = parser.Int("priority")
 	t.Data = parser.Object("data")
-	t.AvailableTime = parser.Time("availableTime", time.RFC3339)
-	t.ExpirationTime = parser.Time("expirationTime", time.RFC3339)
+	t.AvailableTime = parser.Time("availableTime", time.RFC3339Nano)
+	t.ExpirationTime = parser.Time("expirationTime", time.RFC3339Nano)
 }
 
 func (t *TaskUpdate) Validate(validator structure.Validator) {
@@ -197,23 +197,17 @@ func NewTask(create *TaskCreate) (*Task, error) {
 		return nil, errors.Wrap(err, "create is invalid")
 	}
 
-	tsk := &Task{
-		ID:          NewID(),
-		Name:        create.Name,
-		Type:        create.Type,
-		Priority:    create.Priority,
-		Data:        create.Data,
-		State:       TaskStatePending,
-		CreatedTime: time.Now().Truncate(time.Second),
-	}
-	if create.AvailableTime != nil {
-		tsk.AvailableTime = pointer.FromTime((*create.AvailableTime).Truncate(time.Second))
-	}
-	if create.ExpirationTime != nil {
-		tsk.ExpirationTime = pointer.FromTime((*create.ExpirationTime).Truncate(time.Second))
-	}
-
-	return tsk, nil
+	return &Task{
+		ID:             NewID(),
+		Name:           create.Name,
+		Type:           create.Type,
+		Priority:       create.Priority,
+		Data:           create.Data,
+		AvailableTime:  create.AvailableTime,
+		ExpirationTime: create.ExpirationTime,
+		State:          TaskStatePending,
+		CreatedTime:    time.Now(),
+	}, nil
 }
 
 func (t *Task) Parse(parser structure.ObjectParser) {
@@ -230,8 +224,8 @@ func (t *Task) Parse(parser structure.ObjectParser) {
 	if ptr := parser.Object("data"); ptr != nil {
 		t.Data = *ptr
 	}
-	t.AvailableTime = parser.Time("availableTime", time.RFC3339)
-	t.ExpirationTime = parser.Time("expirationTime", time.RFC3339)
+	t.AvailableTime = parser.Time("availableTime", time.RFC3339Nano)
+	t.ExpirationTime = parser.Time("expirationTime", time.RFC3339Nano)
 	if ptr := parser.String("state"); ptr != nil {
 		t.State = *ptr
 	}
@@ -239,12 +233,12 @@ func (t *Task) Parse(parser structure.ObjectParser) {
 		t.Error = &errors.Serializable{}
 		t.Error.Parse("error", parser)
 	}
-	t.RunTime = parser.Time("runTime", time.RFC3339)
+	t.RunTime = parser.Time("runTime", time.RFC3339Nano)
 	t.Duration = parser.Float64("duration")
-	if ptr := parser.Time("createdTime", time.RFC3339); ptr != nil {
+	if ptr := parser.Time("createdTime", time.RFC3339Nano); ptr != nil {
 		t.CreatedTime = *ptr
 	}
-	t.ModifiedTime = parser.Time("modifiedTime", time.RFC3339)
+	t.ModifiedTime = parser.Time("modifiedTime", time.RFC3339Nano)
 }
 
 func (t *Task) Validate(validator structure.Validator) {

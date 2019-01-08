@@ -14,9 +14,9 @@ const (
 	SnoozeDurationHoursMaximum   = 10.0
 	SnoozeDurationHoursMinimum   = 0.0
 	SnoozeDurationMinutesMaximum = SnoozeDurationHoursMaximum * 60.0
-	SnoozeDurationMinutesMinimum = 0.0
+	SnoozeDurationMinutesMinimum = SnoozeDurationHoursMinimum * 60.0
 	SnoozeDurationSecondsMaximum = SnoozeDurationMinutesMaximum * 60.0
-	SnoozeDurationSecondsMinimum = 0.0
+	SnoozeDurationSecondsMinimum = SnoozeDurationMinutesMinimum * 60.0
 )
 
 func SnoozeUnits() []string {

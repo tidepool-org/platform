@@ -70,7 +70,7 @@ func (c *Client) GetEvents(ctx context.Context, startTime time.Time, endTime tim
 }
 
 func (c *Client) sendDexcomRequest(ctx context.Context, startTime time.Time, endTime time.Time, method string, url string, responseBody interface{}, tokenSource oauth.TokenSource) error {
-	requestStartTime := time.Now()
+	now := time.Now()
 
 	url = c.client.AppendURLQuery(url, map[string]string{
 		"startDate": startTime.UTC().Format(dexcom.TimeFormat),
@@ -86,7 +86,7 @@ func (c *Client) sendDexcomRequest(ctx context.Context, startTime time.Time, end
 		err = errors.Wrap(request.ErrorUnauthenticated(), err.Error())
 	}
 
-	if requestDuration := time.Since(requestStartTime); requestDuration > requestDurationMaximum {
+	if requestDuration := time.Since(now); requestDuration > requestDurationMaximum {
 		log.LoggerFromContext(ctx).WithField("requestDuration", requestDuration.Truncate(time.Millisecond).Seconds()).Warn("Request duration exceeds maximum")
 	}
 

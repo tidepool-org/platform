@@ -10,7 +10,7 @@ import (
 const (
 	IDLengthMaximum      = 100
 	NameLengthMaximum    = 100
-	TimeFormat           = time.RFC3339
+	TimeFormat           = time.RFC3339Nano
 	TypeDevice           = "device"
 	TypeManual           = "manual"
 	TypeService          = "service"
@@ -33,7 +33,7 @@ type Origin struct {
 	ID      *string    `json:"id,omitempty" bson:"id,omitempty"`
 	Name    *string    `json:"name,omitempty" bson:"name,omitempty"`
 	Payload *data.Blob `json:"payload,omitempty" bson:"payload,omitempty"`
-	Time    *time.Time `json:"time,omitempty" bson:"time,omitempty"`
+	Time    *string    `json:"time,omitempty" bson:"time,omitempty"`
 	Type    *string    `json:"type,omitempty" bson:"type,omitempty"`
 	Version *string    `json:"version,omitempty" bson:"version,omitempty"`
 }
@@ -56,7 +56,7 @@ func (o *Origin) Parse(parser data.ObjectParser) {
 	o.ID = parser.ParseString("id")
 	o.Name = parser.ParseString("name")
 	o.Payload = data.ParseBlob(parser.NewChildObjectParser("payload"))
-	o.Time = parser.ParseTime("time", TimeFormat)
+	o.Time = parser.ParseString("time")
 	o.Type = parser.ParseString("type")
 	o.Version = parser.ParseString("version")
 }
@@ -67,7 +67,7 @@ func (o *Origin) Validate(validator structure.Validator) {
 	if o.Payload != nil {
 		o.Payload.Validate(validator.WithReference("payload"))
 	}
-	validator.Time("time", o.Time).NotZero()
+	validator.String("time", o.Time).AsTime(TimeFormat).NotZero()
 	validator.String("type", o.Type).OneOf(Types()...)
 	validator.String("version", o.Version).NotEmpty().LengthLessThanOrEqualTo(VersionLengthMaximum)
 }

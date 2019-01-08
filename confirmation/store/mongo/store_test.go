@@ -21,13 +21,14 @@ import (
 )
 
 func NewConfirmation(userID string, typ string) bson.M {
-	now := time.Now().UTC()
+	createdTime := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+	modifiedTime := test.RandomTimeFromRange(createdTime, time.Now())
 	return bson.M{
-		"created":   now.Format(time.RFC3339),
+		"created":   createdTime.Format(time.RFC3339Nano),
 		"creator":   bson.M{},
 		"creatorId": "",
 		"email":     netTest.RandomEmail(),
-		"modified":  now.Format(time.RFC3339),
+		"modified":  modifiedTime.Format(time.RFC3339Nano),
 		"status":    "completed",
 		"type":      typ,
 		"userId":    userID,

@@ -15,13 +15,16 @@ import (
 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 	synctaskStore "github.com/tidepool-org/platform/synctask/store"
 	synctaskStoreMongo "github.com/tidepool-org/platform/synctask/store/mongo"
+	"github.com/tidepool-org/platform/test"
 	"github.com/tidepool-org/platform/user"
 )
 
 func NewSyncTask(userID string) bson.M {
+	createdTime := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+	modifiedTime := test.RandomTimeFromRange(createdTime, time.Now())
 	return bson.M{
-		"_createdTime":  time.Now().UTC().Format(time.RFC3339),
-		"_modifiedTime": time.Now().UTC().Format(time.RFC3339),
+		"_createdTime":  createdTime.Format(time.RFC3339Nano),
+		"_modifiedTime": modifiedTime.Format(time.RFC3339Nano),
 		"_storage": bson.M{
 			"bucket":     "shovel",
 			"encryption": "none",

@@ -86,7 +86,7 @@ var _ = Describe("Change", func() {
 				),
 				Entry("from valid",
 					func(datum *dataTypesDeviceTimechange.Change) {
-						datum.From = pointer.FromString(test.NewTime().Format("2006-01-02T15:04:05"))
+						datum.From = pointer.FromString(test.RandomTime().Format("2006-01-02T15:04:05"))
 					},
 				),
 				Entry("to missing",
@@ -99,7 +99,7 @@ var _ = Describe("Change", func() {
 				),
 				Entry("to valid",
 					func(datum *dataTypesDeviceTimechange.Change) {
-						datum.To = pointer.FromString(test.NewTime().Format("2006-01-02T15:04:05"))
+						datum.To = pointer.FromString(test.RandomTime().Format("2006-01-02T15:04:05"))
 					},
 				),
 				Entry("multiple errors",

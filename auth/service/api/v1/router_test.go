@@ -4,7 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/auth/service/api/v1"
+	authServiceApiV1 "github.com/tidepool-org/platform/auth/service/api/v1"
 	testService "github.com/tidepool-org/platform/auth/service/test"
 )
 
@@ -17,24 +17,24 @@ var _ = Describe("Router", func() {
 
 	Context("NewRouter", func() {
 		It("returns an error if context is missing", func() {
-			rtr, err := v1.NewRouter(nil)
+			rtr, err := authServiceApiV1.NewRouter(nil)
 			Expect(err).To(MatchError("service is missing"))
 			Expect(rtr).To(BeNil())
 		})
 
 		It("returns successfully", func() {
-			rtr, err := v1.NewRouter(svc)
+			rtr, err := authServiceApiV1.NewRouter(svc)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(rtr).ToNot(BeNil())
 		})
 	})
 
 	Context("with new router", func() {
-		var rtr *v1.Router
+		var rtr *authServiceApiV1.Router
 
 		BeforeEach(func() {
 			var err error
-			rtr, err = v1.NewRouter(svc)
+			rtr, err = authServiceApiV1.NewRouter(svc)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(rtr).ToNot(BeNil())
 		})

@@ -67,6 +67,61 @@ var _ = Describe("Request", func() {
 		})
 	})
 
+	Context("DecodeOptionalRequestPathParameter", func() {
+		var req *rest.Request
+		var key string
+		var value string
+		var validator func(value string) bool
+
+		BeforeEach(func() {
+			req = testRest.NewRequest()
+			key = testHTTP.NewParameterKey()
+			value = testHTTP.NewParameterValue()
+			validator = func(value string) bool { return true }
+			req.PathParams[key] = value
+		})
+
+		It("returns error if the request is missing", func() {
+			result, err := request.DecodeOptionalRequestPathParameter(nil, key, validator)
+			Expect(err).To(MatchError("request is missing"))
+			Expect(result).To(BeNil())
+		})
+
+		It("returns nil if parameter is not found", func() {
+			delete(req.PathParams, key)
+			result, err := request.DecodeOptionalRequestPathParameter(req, key, validator)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(BeNil())
+		})
+
+		It("returns nil if parameter is empty", func() {
+			req.PathParams[key] = ""
+			result, err := request.DecodeOptionalRequestPathParameter(req, key, validator)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(BeNil())
+		})
+
+		It("returns error if validator returns false", func() {
+			result, err := request.DecodeOptionalRequestPathParameter(req, key, func(value string) bool { return false })
+			errorsTest.ExpectEqual(err, request.ErrorParameterInvalid(key))
+			Expect(result).To(BeNil())
+		})
+
+		It("returns successfully if validator returns true", func() {
+			result, err := request.DecodeOptionalRequestPathParameter(req, key, validator)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).ToNot(BeNil())
+			Expect(*result).To(Equal(value))
+		})
+
+		It("returns successfully if validator is not specified", func() {
+			result, err := request.DecodeOptionalRequestPathParameter(req, key, nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).ToNot(BeNil())
+			Expect(*result).To(Equal(value))
+		})
+	})
+
 	Context("ContextError", func() {
 		Context("NewContextError", func() {
 			It("return successfully", func() {

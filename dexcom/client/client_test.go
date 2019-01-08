@@ -91,8 +91,8 @@ var _ = Describe("Client", func() {
 			server = NewServer()
 			responseHeaders = http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}
 			ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
-			startTime = test.RandomTime()
-			endTime = test.RandomTime()
+			startTime = test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+			endTime = test.RandomTimeFromRange(startTime, time.Now())
 			requestQuery = fmt.Sprintf("startDate=%s&endDate=%s", startTime.UTC().Format(dexcom.TimeFormat), endTime.UTC().Format(dexcom.TimeFormat))
 			tokenSource = oauthTest.NewTokenSource()
 		})
