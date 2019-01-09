@@ -29,7 +29,7 @@ func NewInsulin() *insulin.Insulin {
 	datum.Type = "insulin"
 	datum.Dose = dataTypesInsulinTest.NewDose()
 	datum.Formulation = dataTypesInsulinTest.NewFormulation(3)
-	datum.Site = pointer.FromString(test.NewText(1, 100))
+	datum.Site = pointer.FromString(test.RandomStringFromRange(1, 100))
 	return datum
 }
 
@@ -41,7 +41,7 @@ func CloneInsulin(datum *insulin.Insulin) *insulin.Insulin {
 	clone.Base = *dataTypesTest.CloneBase(&datum.Base)
 	clone.Dose = dataTypesInsulinTest.CloneDose(datum.Dose)
 	clone.Formulation = dataTypesInsulinTest.CloneFormulation(datum.Formulation)
-	clone.Site = test.CloneString(datum.Site)
+	clone.Site = pointer.CloneString(datum.Site)
 	return clone
 }
 
@@ -117,11 +117,11 @@ var _ = Describe("Insulin", func() {
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/site", NewMeta()),
 				),
 				Entry("site invalid",
-					func(datum *insulin.Insulin) { datum.Site = pointer.FromString(test.NewText(101, 101)) },
+					func(datum *insulin.Insulin) { datum.Site = pointer.FromString(test.RandomStringFromRange(101, 101)) },
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/site", NewMeta()),
 				),
 				Entry("site valid",
-					func(datum *insulin.Insulin) { datum.Site = pointer.FromString(test.NewText(1, 100)) },
+					func(datum *insulin.Insulin) { datum.Site = pointer.FromString(test.RandomStringFromRange(1, 100)) },
 				),
 				Entry("multiple errors",
 					func(datum *insulin.Insulin) {

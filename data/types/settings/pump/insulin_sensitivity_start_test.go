@@ -35,8 +35,8 @@ func CloneInsulinSensitivityStart(datum *pump.InsulinSensitivityStart) *pump.Ins
 		return nil
 	}
 	clone := pump.NewInsulinSensitivityStart()
-	clone.Amount = test.CloneFloat64(datum.Amount)
-	clone.Start = test.CloneInt(datum.Start)
+	clone.Amount = pointer.CloneFloat64(datum.Amount)
+	clone.Start = pointer.CloneInt(datum.Start)
 	return clone
 }
 

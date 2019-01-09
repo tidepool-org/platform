@@ -27,7 +27,7 @@ func CloneSuppressedAutomated(datum *automated.SuppressedAutomated) *automated.S
 	clone.DeliveryType = datum.DeliveryType
 	clone.Annotations = metadataTest.CloneMetadataArray(datum.Annotations)
 	clone.InsulinFormulation = dataTypesInsulinTest.CloneFormulation(datum.InsulinFormulation)
-	clone.Rate = test.CloneFloat64(datum.Rate)
-	clone.ScheduleName = test.CloneString(datum.ScheduleName)
+	clone.Rate = pointer.CloneFloat64(datum.Rate)
+	clone.ScheduleName = pointer.CloneString(datum.ScheduleName)
 	return clone
 }

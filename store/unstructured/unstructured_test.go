@@ -78,8 +78,8 @@ var _ = Describe("Unstructured", func() {
 			Entry("contains a non-ASCII character", "abc😁123/D=EF-456.g7", storeUnstructured.ErrorValueStringAsKeyNotValid("abc😁123/D=EF-456.g7")),
 			Entry("contains no slashes", "D=EF-456.g7"),
 			Entry("contains multiple slashes", "abc_123/abc_123/abc_123/D=EF-456.g7"),
-			Entry("has length in range (upper)", test.NewString(2047, test.CharsetAlphaNumeric)),
-			Entry("has length out of range (upper)", test.NewString(2048, test.CharsetAlphaNumeric), structureValidator.ErrorLengthNotLessThanOrEqualTo(2048, 2047)),
+			Entry("has length in range (upper)", test.RandomStringFromRangeAndCharset(2047, 2047, test.CharsetAlphaNumeric)),
+			Entry("has length out of range (upper)", test.RandomStringFromRangeAndCharset(2048, 2048, test.CharsetAlphaNumeric), structureValidator.ErrorLengthNotLessThanOrEqualTo(2048, 2047)),
 		)
 	})
 

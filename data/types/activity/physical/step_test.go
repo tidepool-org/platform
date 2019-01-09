@@ -26,7 +26,7 @@ func CloneStep(datum *physical.Step) *physical.Step {
 		return nil
 	}
 	clone := physical.NewStep()
-	clone.Count = test.CloneInt(datum.Count)
+	clone.Count = pointer.CloneInt(datum.Count)
 	return clone
 }
 

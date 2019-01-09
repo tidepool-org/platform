@@ -81,7 +81,7 @@ var _ = Describe("StatusRouter", func() {
 				var status interface{}
 
 				BeforeEach(func() {
-					status = test.NewText(0, 32)
+					status = test.RandomStringFromRange(0, 32)
 					statusProvider.StatusOutputs = []interface{}{status}
 					res.HeaderOutput = &http.Header{}
 					res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}

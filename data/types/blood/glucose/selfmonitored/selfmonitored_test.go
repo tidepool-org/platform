@@ -38,7 +38,7 @@ func CloneSelfMonitored(datum *selfmonitored.SelfMonitored) *selfmonitored.SelfM
 	}
 	clone := selfmonitored.New()
 	clone.Glucose = *dataTypesBloodGlucoseTest.CloneGlucose(&datum.Glucose)
-	clone.SubType = test.CloneString(datum.SubType)
+	clone.SubType = pointer.CloneString(datum.SubType)
 	return clone
 }
 

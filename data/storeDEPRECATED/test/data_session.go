@@ -134,7 +134,6 @@ type ListUserDataSetsOutput struct {
 }
 
 type DataSession struct {
-	*test.Mock
 	*test.Closer
 	GetDataSetsForUserByIDInvocations                    int
 	GetDataSetsForUserByIDInputs                         []GetDataSetsForUserByIDInput
@@ -191,7 +190,6 @@ type DataSession struct {
 
 func NewDataSession() *DataSession {
 	return &DataSession{
-		Mock:   test.NewMock(),
 		Closer: test.NewCloser(),
 	}
 }
@@ -401,7 +399,6 @@ func (d *DataSession) GetDataSet(ctx context.Context, id string) (*data.DataSet,
 }
 
 func (d *DataSession) Expectations() {
-	d.Mock.Expectations()
 	d.Closer.AssertOutputsEmpty()
 	gomega.Expect(d.GetDataSetsForUserByIDOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetDataSetByIDOutputs).To(gomega.BeEmpty())

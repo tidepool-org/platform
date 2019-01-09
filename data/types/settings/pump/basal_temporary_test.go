@@ -26,7 +26,7 @@ func CloneBasalTemporary(datum *pump.BasalTemporary) *pump.BasalTemporary {
 		return nil
 	}
 	clone := pump.NewBasalTemporary()
-	clone.Type = test.CloneString(datum.Type)
+	clone.Type = pointer.CloneString(datum.Type)
 	return clone
 }
 

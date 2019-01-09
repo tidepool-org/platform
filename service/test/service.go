@@ -14,11 +14,10 @@ import (
 )
 
 func NewUserID() string {
-	return test.NewString(10, test.CharsetHexidecimalLowercase)
+	return test.RandomStringFromRangeAndCharset(10, 10, test.CharsetHexidecimalLowercase)
 }
 
 type Service struct {
-	*test.Mock
 	VersionReporterInvocations int
 	VersionReporterImpl        version.Reporter
 	ConfigReporterInvocations  int
@@ -32,9 +31,8 @@ type Service struct {
 }
 
 func NewService() *Service {
-	versionReporter, _ := version.NewReporter(test.NewString(4, test.CharsetAlphaNumeric), test.NewString(8, test.CharsetAlphaNumeric), test.NewString(32, test.CharsetAlphaNumeric))
+	versionReporter, _ := version.NewReporter(test.RandomStringFromRangeAndCharset(4, 4, test.CharsetAlphaNumeric), test.RandomStringFromRangeAndCharset(8, 8, test.CharsetAlphaNumeric), test.RandomStringFromRangeAndCharset(32, 32, test.CharsetAlphaNumeric))
 	return &Service{
-		Mock:                test.NewMock(),
 		VersionReporterImpl: versionReporter,
 		ConfigReporterImpl:  configTest.NewReporter(),
 		LoggerImpl:          nullLog.NewLogger(),
@@ -77,7 +75,6 @@ func (s *Service) AuthClient() auth.Client {
 }
 
 func (s *Service) Expectations() {
-	s.Mock.Expectations()
 	gomega.Expect(s.SecretOutputs).To(gomega.BeEmpty())
 	s.AuthClientImpl.AssertOutputsEmpty()
 }

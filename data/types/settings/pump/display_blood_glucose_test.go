@@ -26,7 +26,7 @@ func CloneDisplayBloodGlucose(datum *pump.DisplayBloodGlucose) *pump.DisplayBloo
 		return nil
 	}
 	clone := pump.NewDisplayBloodGlucose()
-	clone.Units = test.CloneString(datum.Units)
+	clone.Units = pointer.CloneString(datum.Units)
 	return clone
 }
 

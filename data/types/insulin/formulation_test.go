@@ -130,11 +130,13 @@ var _ = Describe("Formulation", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/name"),
 				),
 				Entry("name invalid",
-					func(datum *insulin.Formulation) { datum.Name = pointer.FromString(test.NewText(101, 101)) },
+					func(datum *insulin.Formulation) {
+						datum.Name = pointer.FromString(test.RandomStringFromRange(101, 101))
+					},
 					errorsTest.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/name"),
 				),
 				Entry("name valid",
-					func(datum *insulin.Formulation) { datum.Name = pointer.FromString(test.NewText(1, 100)) },
+					func(datum *insulin.Formulation) { datum.Name = pointer.FromString(test.RandomStringFromRange(1, 100)) },
 				),
 				Entry("multiple errors",
 					func(datum *insulin.Formulation) {

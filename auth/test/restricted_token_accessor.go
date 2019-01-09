@@ -7,7 +7,6 @@ import (
 
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/page"
-	"github.com/tidepool-org/platform/test"
 )
 
 type ListUserRestrictedTokensInput struct {
@@ -60,7 +59,6 @@ type DeleteRestrictedTokenInput struct {
 }
 
 type RestrictedTokenAccessor struct {
-	*test.Mock
 	ListUserRestrictedTokensInvocations  int
 	ListUserRestrictedTokensInputs       []ListUserRestrictedTokensInput
 	ListUserRestrictedTokensOutputs      []ListUserRestrictedTokensOutput
@@ -79,9 +77,7 @@ type RestrictedTokenAccessor struct {
 }
 
 func NewRestrictedTokenAccessor() *RestrictedTokenAccessor {
-	return &RestrictedTokenAccessor{
-		Mock: test.NewMock(),
-	}
+	return &RestrictedTokenAccessor{}
 }
 
 func (r *RestrictedTokenAccessor) ListUserRestrictedTokens(ctx context.Context, userID string, filter *auth.RestrictedTokenFilter, pagination *page.Pagination) (auth.RestrictedTokens, error) {
@@ -145,7 +141,6 @@ func (r *RestrictedTokenAccessor) DeleteRestrictedToken(ctx context.Context, id 
 }
 
 func (r *RestrictedTokenAccessor) Expectations() {
-	r.Mock.Expectations()
 	gomega.Expect(r.ListUserRestrictedTokensOutputs).To(gomega.BeEmpty())
 	gomega.Expect(r.CreateUserRestrictedTokenOutputs).To(gomega.BeEmpty())
 	gomega.Expect(r.GetRestrictedTokenOutputs).To(gomega.BeEmpty())

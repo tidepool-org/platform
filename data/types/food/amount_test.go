@@ -19,7 +19,7 @@ import (
 
 func NewAmount() *food.Amount {
 	datum := food.NewAmount()
-	datum.Units = pointer.FromString(test.NewText(1, 100))
+	datum.Units = pointer.FromString(test.RandomStringFromRange(1, 100))
 	datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(0.0, math.MaxFloat64))
 	return datum
 }
@@ -29,8 +29,8 @@ func CloneAmount(datum *food.Amount) *food.Amount {
 		return nil
 	}
 	clone := food.NewAmount()
-	clone.Units = test.CloneString(datum.Units)
-	clone.Value = test.CloneFloat64(datum.Value)
+	clone.Units = pointer.CloneString(datum.Units)
+	clone.Value = pointer.CloneFloat64(datum.Value)
 	return clone
 }
 
@@ -77,11 +77,11 @@ var _ = Describe("Amount", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/units"),
 				),
 				Entry("units invalid",
-					func(datum *food.Amount) { datum.Units = pointer.FromString(test.NewText(101, 101)) },
+					func(datum *food.Amount) { datum.Units = pointer.FromString(test.RandomStringFromRange(101, 101)) },
 					errorsTest.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/units"),
 				),
 				Entry("units valid",
-					func(datum *food.Amount) { datum.Units = pointer.FromString(test.NewText(1, 100)) },
+					func(datum *food.Amount) { datum.Units = pointer.FromString(test.RandomStringFromRange(1, 100)) },
 				),
 				Entry("value missing",
 					func(datum *food.Amount) { datum.Value = nil },

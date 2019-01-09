@@ -29,8 +29,8 @@ func CloneEnergy(datum *food.Energy) *food.Energy {
 		return nil
 	}
 	clone := food.NewEnergy()
-	clone.Units = test.CloneString(datum.Units)
-	clone.Value = test.CloneFloat64(datum.Value)
+	clone.Units = pointer.CloneString(datum.Units)
+	clone.Value = pointer.CloneFloat64(datum.Value)
 	return clone
 }
 

@@ -12,7 +12,7 @@ func NewFormulation(compoundArrayDepthLimit int) *insulin.Formulation {
 	if !simple {
 		datum.Compounds = NewCompoundArray(compoundArrayDepthLimit)
 	}
-	datum.Name = pointer.FromString(test.NewText(1, 100))
+	datum.Name = pointer.FromString(test.RandomStringFromRange(1, 100))
 	if simple {
 		datum.Simple = NewSimple()
 	}
@@ -25,7 +25,7 @@ func CloneFormulation(datum *insulin.Formulation) *insulin.Formulation {
 	}
 	clone := insulin.NewFormulation()
 	clone.Compounds = CloneCompoundArray(datum.Compounds)
-	clone.Name = test.CloneString(datum.Name)
+	clone.Name = pointer.CloneString(datum.Name)
 	clone.Simple = CloneSimple(datum.Simple)
 	return clone
 }

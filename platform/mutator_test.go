@@ -172,8 +172,8 @@ var _ = Describe("Mutator", func() {
 		var ctx context.Context
 
 		BeforeEach(func() {
-			traceRequest = test.NewString(32, test.CharsetAlphaNumeric)
-			traceSession = test.NewString(32, test.CharsetAlphaNumeric)
+			traceRequest = test.RandomStringFromRangeAndCharset(32, 32, test.CharsetAlphaNumeric)
+			traceSession = test.RandomStringFromRangeAndCharset(32, 32, test.CharsetAlphaNumeric)
 			ctx = context.Background()
 			ctx = request.NewContextWithTraceRequest(ctx, traceRequest)
 			ctx = request.NewContextWithTraceSession(ctx, traceSession)

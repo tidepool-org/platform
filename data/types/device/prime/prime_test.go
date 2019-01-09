@@ -44,8 +44,8 @@ func ClonePrime(datum *prime.Prime) *prime.Prime {
 	}
 	clone := prime.New()
 	clone.Device = *dataTypesDeviceTest.CloneDevice(&datum.Device)
-	clone.Target = test.CloneString(datum.Target)
-	clone.Volume = test.CloneFloat64(datum.Volume)
+	clone.Target = pointer.CloneString(datum.Target)
+	clone.Volume = pointer.CloneFloat64(datum.Volume)
 	return clone
 }
 

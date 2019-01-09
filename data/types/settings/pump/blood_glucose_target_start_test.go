@@ -35,7 +35,7 @@ func CloneBloodGlucoseTargetStart(datum *pump.BloodGlucoseTargetStart) *pump.Blo
 	}
 	clone := pump.NewBloodGlucoseTargetStart()
 	clone.Target = *dataBloodGlucoseTest.CloneTarget(&datum.Target)
-	clone.Start = test.CloneInt(datum.Start)
+	clone.Start = pointer.CloneInt(datum.Start)
 	return clone
 }
 

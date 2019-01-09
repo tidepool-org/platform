@@ -1,17 +1,9 @@
 package test
 
-import (
-	"github.com/tidepool-org/platform/test"
-)
-
-type Client struct {
-	*test.Mock
-}
+type Client struct{}
 
 func NewClient() *Client {
-	return &Client{
-		Mock: test.NewMock(),
-	}
+	return &Client{}
 }
 
 func (c *Client) UnusedOutputsCount() int {

@@ -83,7 +83,7 @@ func CloneCalculator(datum *calculator.Calculator) *calculator.Calculator {
 	}
 	clone := calculator.New()
 	clone.Base = *dataTypesTest.CloneBase(&datum.Base)
-	clone.BloodGlucoseInput = test.CloneFloat64(datum.BloodGlucoseInput)
+	clone.BloodGlucoseInput = pointer.CloneFloat64(datum.BloodGlucoseInput)
 	clone.BloodGlucoseTarget = dataBloodGlucoseTest.CloneTarget(datum.BloodGlucoseTarget)
 	if datum.Bolus != nil {
 		switch bolus := (*datum.Bolus).(type) {
@@ -95,13 +95,13 @@ func CloneCalculator(datum *calculator.Calculator) *calculator.Calculator {
 			clone.Bolus = data.DatumAsPointer(dataTypesBolusNormalTest.CloneNormal(bolus))
 		}
 	}
-	clone.BolusID = test.CloneString(datum.BolusID)
-	clone.CarbohydrateInput = test.CloneFloat64(datum.CarbohydrateInput)
-	clone.InsulinCarbohydrateRatio = test.CloneFloat64(datum.InsulinCarbohydrateRatio)
-	clone.InsulinOnBoard = test.CloneFloat64(datum.InsulinOnBoard)
-	clone.InsulinSensitivity = test.CloneFloat64(datum.InsulinSensitivity)
+	clone.BolusID = pointer.CloneString(datum.BolusID)
+	clone.CarbohydrateInput = pointer.CloneFloat64(datum.CarbohydrateInput)
+	clone.InsulinCarbohydrateRatio = pointer.CloneFloat64(datum.InsulinCarbohydrateRatio)
+	clone.InsulinOnBoard = pointer.CloneFloat64(datum.InsulinOnBoard)
+	clone.InsulinSensitivity = pointer.CloneFloat64(datum.InsulinSensitivity)
 	clone.Recommended = CloneRecommended(datum.Recommended)
-	clone.Units = test.CloneString(datum.Units)
+	clone.Units = pointer.CloneString(datum.Units)
 	return clone
 }
 

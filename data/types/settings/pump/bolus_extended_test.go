@@ -26,7 +26,7 @@ func CloneBolusExtended(datum *pump.BolusExtended) *pump.BolusExtended {
 		return nil
 	}
 	clone := pump.NewBolusExtended()
-	clone.Enabled = test.CloneBool(datum.Enabled)
+	clone.Enabled = pointer.CloneBool(datum.Enabled)
 	return clone
 }
 

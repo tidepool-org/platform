@@ -32,8 +32,8 @@ func CloneCarbohydrateRatioStart(datum *pump.CarbohydrateRatioStart) *pump.Carbo
 		return nil
 	}
 	clone := pump.NewCarbohydrateRatioStart()
-	clone.Amount = test.CloneFloat64(datum.Amount)
-	clone.Start = test.CloneInt(datum.Start)
+	clone.Amount = pointer.CloneFloat64(datum.Amount)
+	clone.Start = pointer.CloneInt(datum.Start)
 	return clone
 }
 

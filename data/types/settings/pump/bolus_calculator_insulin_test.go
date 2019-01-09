@@ -30,8 +30,8 @@ func CloneBolusCalculatorInsulin(datum *pump.BolusCalculatorInsulin) *pump.Bolus
 		return nil
 	}
 	clone := pump.NewBolusCalculatorInsulin()
-	clone.Duration = test.CloneFloat64(datum.Duration)
-	clone.Units = test.CloneString(datum.Units)
+	clone.Duration = pointer.CloneFloat64(datum.Duration)
+	clone.Units = pointer.CloneString(datum.Units)
 	return clone
 }
 

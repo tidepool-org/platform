@@ -1,5 +1,9 @@
 ## HEAD
 
+* Fix string length validation bug in structure validator package
+* Cleanup test package
+* Remove test.Mock as unnecessary
+* Replace legacy test function usage
 * Remove redundant parsing tests
 * Refactor out common data types
 * Replace deprecated data parsers with structure parsers

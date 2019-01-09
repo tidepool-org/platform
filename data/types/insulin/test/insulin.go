@@ -13,7 +13,7 @@ func NewInsulin() *insulin.Insulin {
 	datum.Type = "insulin"
 	datum.Dose = NewDose()
 	datum.Formulation = NewFormulation(3)
-	datum.Site = pointer.FromString(test.NewText(1, 100))
+	datum.Site = pointer.FromString(test.RandomStringFromRange(1, 100))
 	return datum
 }
 
@@ -25,6 +25,6 @@ func CloneInsulin(datum *insulin.Insulin) *insulin.Insulin {
 	clone.Base = *dataTypesTest.CloneBase(&datum.Base)
 	clone.Dose = CloneDose(datum.Dose)
 	clone.Formulation = CloneFormulation(datum.Formulation)
-	clone.Site = test.CloneString(datum.Site)
+	clone.Site = pointer.CloneString(datum.Site)
 	return clone
 }

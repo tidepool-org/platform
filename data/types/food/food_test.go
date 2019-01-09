@@ -27,14 +27,14 @@ func NewFood(ingredientArrayDepthLimit int) *food.Food {
 	datum.Base = *dataTypesTest.NewBase()
 	datum.Type = "food"
 	datum.Amount = NewAmount()
-	datum.Brand = pointer.FromString(test.NewText(1, 100))
-	datum.Code = pointer.FromString(test.NewText(1, 100))
+	datum.Brand = pointer.FromString(test.RandomStringFromRange(1, 100))
+	datum.Code = pointer.FromString(test.RandomStringFromRange(1, 100))
 	datum.Ingredients = NewIngredientArray(ingredientArrayDepthLimit)
 	datum.Meal = pointer.FromString(test.RandomStringFromArray(food.Meals()))
 	if datum.Meal != nil && *datum.Meal == food.MealOther {
-		datum.MealOther = pointer.FromString(test.NewText(1, 100))
+		datum.MealOther = pointer.FromString(test.RandomStringFromRange(1, 100))
 	}
-	datum.Name = pointer.FromString(test.NewText(1, 100))
+	datum.Name = pointer.FromString(test.RandomStringFromRange(1, 100))
 	datum.Nutrition = NewNutrition()
 	return datum
 }
@@ -46,12 +46,12 @@ func CloneFood(datum *food.Food) *food.Food {
 	clone := food.New()
 	clone.Base = *dataTypesTest.CloneBase(&datum.Base)
 	clone.Amount = CloneAmount(datum.Amount)
-	clone.Brand = test.CloneString(datum.Brand)
-	clone.Code = test.CloneString(datum.Code)
+	clone.Brand = pointer.CloneString(datum.Brand)
+	clone.Code = pointer.CloneString(datum.Code)
 	clone.Ingredients = CloneIngredientArray(datum.Ingredients)
-	clone.Meal = test.CloneString(datum.Meal)
-	clone.MealOther = test.CloneString(datum.MealOther)
-	clone.Name = test.CloneString(datum.Name)
+	clone.Meal = pointer.CloneString(datum.Meal)
+	clone.MealOther = pointer.CloneString(datum.MealOther)
+	clone.Name = pointer.CloneString(datum.Name)
 	clone.Nutrition = CloneNutrition(datum.Nutrition)
 	return clone
 }
@@ -161,10 +161,10 @@ var _ = Describe("Food", func() {
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/brand", NewMeta()),
 				),
 				Entry("brand length; in range (upper)",
-					func(datum *food.Food) { datum.Brand = pointer.FromString(test.NewText(100, 100)) },
+					func(datum *food.Food) { datum.Brand = pointer.FromString(test.RandomStringFromRange(100, 100)) },
 				),
 				Entry("brand length; out of range (upper)",
-					func(datum *food.Food) { datum.Brand = pointer.FromString(test.NewText(101, 101)) },
+					func(datum *food.Food) { datum.Brand = pointer.FromString(test.RandomStringFromRange(101, 101)) },
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/brand", NewMeta()),
 				),
 				Entry("code missing",
@@ -175,10 +175,10 @@ var _ = Describe("Food", func() {
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/code", NewMeta()),
 				),
 				Entry("code length; in range (upper)",
-					func(datum *food.Food) { datum.Code = pointer.FromString(test.NewText(100, 100)) },
+					func(datum *food.Food) { datum.Code = pointer.FromString(test.RandomStringFromRange(100, 100)) },
 				),
 				Entry("code length; out of range (upper)",
-					func(datum *food.Food) { datum.Code = pointer.FromString(test.NewText(101, 101)) },
+					func(datum *food.Food) { datum.Code = pointer.FromString(test.RandomStringFromRange(101, 101)) },
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/code", NewMeta()),
 				),
 				Entry("ingredients missing",
@@ -200,7 +200,7 @@ var _ = Describe("Food", func() {
 				Entry("meal missing; meal other exists",
 					func(datum *food.Food) {
 						datum.Meal = nil
-						datum.MealOther = pointer.FromString(test.NewText(1, 100))
+						datum.MealOther = pointer.FromString(test.RandomStringFromRange(1, 100))
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/mealOther", NewMeta()),
 				),
@@ -214,7 +214,7 @@ var _ = Describe("Food", func() {
 				Entry("meal invalid; meal other exists",
 					func(datum *food.Food) {
 						datum.Meal = pointer.FromString("invalid")
-						datum.MealOther = pointer.FromString(test.NewText(1, 100))
+						datum.MealOther = pointer.FromString(test.RandomStringFromRange(1, 100))
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"breakfast", "dinner", "lunch", "other", "snack"}), "/meal", NewMeta()),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/mealOther", NewMeta()),
@@ -228,7 +228,7 @@ var _ = Describe("Food", func() {
 				Entry("meal breakfast; meal other exists",
 					func(datum *food.Food) {
 						datum.Meal = pointer.FromString("breakfast")
-						datum.MealOther = pointer.FromString(test.NewText(1, 100))
+						datum.MealOther = pointer.FromString(test.RandomStringFromRange(1, 100))
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/mealOther", NewMeta()),
 				),
@@ -241,7 +241,7 @@ var _ = Describe("Food", func() {
 				Entry("meal dinner; meal other exists",
 					func(datum *food.Food) {
 						datum.Meal = pointer.FromString("dinner")
-						datum.MealOther = pointer.FromString(test.NewText(1, 100))
+						datum.MealOther = pointer.FromString(test.RandomStringFromRange(1, 100))
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/mealOther", NewMeta()),
 				),
@@ -254,7 +254,7 @@ var _ = Describe("Food", func() {
 				Entry("meal lunch; meal other exists",
 					func(datum *food.Food) {
 						datum.Meal = pointer.FromString("lunch")
-						datum.MealOther = pointer.FromString(test.NewText(1, 100))
+						datum.MealOther = pointer.FromString(test.RandomStringFromRange(1, 100))
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/mealOther", NewMeta()),
 				),
@@ -275,13 +275,13 @@ var _ = Describe("Food", func() {
 				Entry("meal other; meal other length; in range (upper)",
 					func(datum *food.Food) {
 						datum.Meal = pointer.FromString("other")
-						datum.MealOther = pointer.FromString(test.NewText(100, 100))
+						datum.MealOther = pointer.FromString(test.RandomStringFromRange(100, 100))
 					},
 				),
 				Entry("meal other; meal other length; out of range (upper)",
 					func(datum *food.Food) {
 						datum.Meal = pointer.FromString("other")
-						datum.MealOther = pointer.FromString(test.NewText(101, 101))
+						datum.MealOther = pointer.FromString(test.RandomStringFromRange(101, 101))
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/mealOther", NewMeta()),
 				),
@@ -294,7 +294,7 @@ var _ = Describe("Food", func() {
 				Entry("meal snack; meal other exists",
 					func(datum *food.Food) {
 						datum.Meal = pointer.FromString("snack")
-						datum.MealOther = pointer.FromString(test.NewText(1, 100))
+						datum.MealOther = pointer.FromString(test.RandomStringFromRange(1, 100))
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/mealOther", NewMeta()),
 				),
@@ -306,10 +306,10 @@ var _ = Describe("Food", func() {
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/name", NewMeta()),
 				),
 				Entry("name length; in range (upper)",
-					func(datum *food.Food) { datum.Name = pointer.FromString(test.NewText(100, 100)) },
+					func(datum *food.Food) { datum.Name = pointer.FromString(test.RandomStringFromRange(100, 100)) },
 				),
 				Entry("name length; out of range (upper)",
-					func(datum *food.Food) { datum.Name = pointer.FromString(test.NewText(101, 101)) },
+					func(datum *food.Food) { datum.Name = pointer.FromString(test.RandomStringFromRange(101, 101)) },
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/name", NewMeta()),
 				),
 				Entry("nutrition missing",
@@ -330,7 +330,7 @@ var _ = Describe("Food", func() {
 						datum.Code = pointer.FromString("")
 						(*datum.Ingredients)[0] = nil
 						datum.Meal = pointer.FromString("invalid")
-						datum.MealOther = pointer.FromString(test.NewText(1, 100))
+						datum.MealOther = pointer.FromString(test.RandomStringFromRange(1, 100))
 						datum.Name = pointer.FromString("")
 						datum.Nutrition.Carbohydrate.Units = nil
 					},

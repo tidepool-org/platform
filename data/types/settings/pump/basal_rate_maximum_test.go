@@ -29,8 +29,8 @@ func CloneBasalRateMaximum(datum *pump.BasalRateMaximum) *pump.BasalRateMaximum 
 		return nil
 	}
 	clone := pump.NewBasalRateMaximum()
-	clone.Units = test.CloneString(datum.Units)
-	clone.Value = test.CloneFloat64(datum.Value)
+	clone.Units = pointer.CloneString(datum.Units)
+	clone.Value = pointer.CloneFloat64(datum.Value)
 	return clone
 }
 

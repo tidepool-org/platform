@@ -3,22 +3,11 @@ package test
 import (
 	"fmt"
 	"reflect"
-	"time"
 
-	"github.com/onsi/gomega"
-	"github.com/onsi/gomega/format"
 	gomegaFormat "github.com/onsi/gomega/format"
-	gomegaGstruct "github.com/onsi/gomega/gstruct"
 	gomegaMatchers "github.com/onsi/gomega/matchers"
 	gomegaTypes "github.com/onsi/gomega/types"
 )
-
-func MatchTime(datum *time.Time) gomegaTypes.GomegaMatcher {
-	if datum == nil {
-		return gomega.BeNil()
-	}
-	return gomegaGstruct.PointTo(gomega.BeTemporally("==", *datum))
-}
 
 func MatchArray(elements ...interface{}) gomegaTypes.GomegaMatcher {
 	return &MatchArrayMatcher{
@@ -73,11 +62,11 @@ func (m *MatchArrayMatcher) Match(actual interface{}) (bool, error) {
 }
 
 func (m *MatchArrayMatcher) FailureMessage(actual interface{}) (message string) {
-	return format.Message(actual, "to match array", m.Elements)
+	return gomegaFormat.Message(actual, "to match array", m.Elements)
 }
 
 func (m *MatchArrayMatcher) NegatedFailureMessage(actual interface{}) (message string) {
-	return format.Message(actual, "not to match array", m.Elements)
+	return gomegaFormat.Message(actual, "not to match array", m.Elements)
 }
 
 func isArrayOrSlice(actual interface{}) bool {

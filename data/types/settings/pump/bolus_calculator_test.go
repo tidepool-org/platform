@@ -27,7 +27,7 @@ func CloneBolusCalculator(datum *pump.BolusCalculator) *pump.BolusCalculator {
 		return nil
 	}
 	clone := pump.NewBolusCalculator()
-	clone.Enabled = test.CloneBool(datum.Enabled)
+	clone.Enabled = pointer.CloneBool(datum.Enabled)
 	clone.Insulin = CloneBolusCalculatorInsulin(datum.Insulin)
 	return clone
 }

@@ -27,8 +27,8 @@ func CloneProtein(datum *food.Protein) *food.Protein {
 		return nil
 	}
 	clone := food.NewProtein()
-	clone.Total = test.CloneFloat64(datum.Total)
-	clone.Units = test.CloneString(datum.Units)
+	clone.Total = pointer.CloneFloat64(datum.Total)
+	clone.Units = pointer.CloneString(datum.Units)
 	return clone
 }
 

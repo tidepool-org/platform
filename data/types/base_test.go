@@ -724,7 +724,9 @@ var _ = Describe("Base", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/type"),
 				),
 				Entry("type valid",
-					func(datum *types.Base) { datum.Type = test.NewVariableString(1, 16, test.CharsetAlphaNumeric) },
+					func(datum *types.Base) {
+						datum.Type = test.RandomStringFromRangeAndCharset(1, 16, test.CharsetAlphaNumeric)
+					},
 					structure.Origins(),
 				),
 				Entry("upload id missing",

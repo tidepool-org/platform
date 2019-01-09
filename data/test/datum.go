@@ -7,7 +7,6 @@ import (
 	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/origin"
 	"github.com/tidepool-org/platform/structure"
-	"github.com/tidepool-org/platform/test"
 )
 
 type IdentityFieldsOutput struct {
@@ -16,7 +15,6 @@ type IdentityFieldsOutput struct {
 }
 
 type Datum struct {
-	*test.Mock
 	MetaInvocations                      int
 	MetaOutputs                          []interface{}
 	ParseInvocations                     int
@@ -57,9 +55,7 @@ type Datum struct {
 }
 
 func NewDatum() *Datum {
-	return &Datum{
-		Mock: test.NewMock(),
-	}
+	return &Datum{}
 }
 
 func (d *Datum) Meta() interface{} {
@@ -193,7 +189,6 @@ func (d *Datum) SetDeduplicatorDescriptor(deduplicatorDescriptor *data.Deduplica
 }
 
 func (d *Datum) Expectations() {
-	d.Mock.Expectations()
 	gomega.Expect(d.MetaOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.IdentityFieldsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetPayloadOutputs).To(gomega.BeEmpty())

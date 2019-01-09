@@ -143,7 +143,7 @@ var _ = Describe("Store", func() {
 				var confirmations []interface{}
 
 				BeforeEach(func() {
-					confirmations = NewConfirmations(test.NewString(10, test.CharsetHexidecimalLowercase), test.NewString(10, test.CharsetHexidecimalLowercase))
+					confirmations = NewConfirmations(test.RandomStringFromRangeAndCharset(10, 10, test.CharsetHexidecimalLowercase), test.RandomStringFromRangeAndCharset(10, 10, test.CharsetHexidecimalLowercase))
 					Expect(mgoCollection.Insert(confirmations...)).To(Succeed())
 				})
 
@@ -152,8 +152,8 @@ var _ = Describe("Store", func() {
 					var userConfirmations []interface{}
 
 					BeforeEach(func() {
-						userID = test.NewString(10, test.CharsetHexidecimalLowercase)
-						userConfirmations = NewConfirmations(userID, test.NewString(10, test.CharsetHexidecimalLowercase))
+						userID = test.RandomStringFromRangeAndCharset(10, 10, test.CharsetHexidecimalLowercase)
+						userConfirmations = NewConfirmations(userID, test.RandomStringFromRangeAndCharset(10, 10, test.CharsetHexidecimalLowercase))
 						Expect(mgoCollection.Insert(userConfirmations...)).To(Succeed())
 					})
 

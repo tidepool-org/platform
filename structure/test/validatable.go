@@ -1,20 +1,14 @@
 package test
 
-import (
-	"github.com/tidepool-org/platform/structure"
-	"github.com/tidepool-org/platform/test"
-)
+import "github.com/tidepool-org/platform/structure"
 
 type Validatable struct {
-	*test.Mock
 	ValidateInvocations int
 	ValidateInputs      []structure.Validator
 }
 
 func NewValidatable() *Validatable {
-	return &Validatable{
-		Mock: test.NewMock(),
-	}
+	return &Validatable{}
 }
 
 func (v *Validatable) Validate(validator structure.Validator) {
@@ -23,6 +17,4 @@ func (v *Validatable) Validate(validator structure.Validator) {
 	v.ValidateInputs = append(v.ValidateInputs, validator)
 }
 
-func (v *Validatable) Expectations() {
-	v.Mock.Expectations()
-}
+func (v *Validatable) Expectations() {}

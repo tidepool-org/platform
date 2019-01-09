@@ -45,11 +45,11 @@ func CloneAutomated(datum *automated.Automated) *automated.Automated {
 	}
 	clone := automated.New()
 	clone.Basal = *dataTypesBasalTest.CloneBasal(&datum.Basal)
-	clone.Duration = test.CloneInt(datum.Duration)
-	clone.DurationExpected = test.CloneInt(datum.DurationExpected)
+	clone.Duration = pointer.CloneInt(datum.Duration)
+	clone.DurationExpected = pointer.CloneInt(datum.DurationExpected)
 	clone.InsulinFormulation = dataTypesInsulinTest.CloneFormulation(datum.InsulinFormulation)
-	clone.Rate = test.CloneFloat64(datum.Rate)
-	clone.ScheduleName = test.CloneString(datum.ScheduleName)
+	clone.Rate = pointer.CloneFloat64(datum.Rate)
+	clone.ScheduleName = pointer.CloneString(datum.ScheduleName)
 	return clone
 }
 

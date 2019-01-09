@@ -28,9 +28,9 @@ func CloneRecommended(datum *calculator.Recommended) *calculator.Recommended {
 		return nil
 	}
 	clone := calculator.NewRecommended()
-	clone.Carbohydrate = test.CloneFloat64(datum.Carbohydrate)
-	clone.Correction = test.CloneFloat64(datum.Correction)
-	clone.Net = test.CloneFloat64(datum.Net)
+	clone.Carbohydrate = pointer.CloneFloat64(datum.Carbohydrate)
+	clone.Correction = pointer.CloneFloat64(datum.Correction)
+	clone.Net = pointer.CloneFloat64(datum.Net)
 	return clone
 }
 

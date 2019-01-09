@@ -5,7 +5,6 @@ import (
 	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/test"
 )
 
 func NewClient() *dataTypesUpload.Client {
@@ -21,8 +20,8 @@ func CloneClient(datum *dataTypesUpload.Client) *dataTypesUpload.Client {
 		return nil
 	}
 	clone := dataTypesUpload.NewClient()
-	clone.Name = test.CloneString(datum.Name)
-	clone.Version = test.CloneString(datum.Version)
+	clone.Name = pointer.CloneString(datum.Name)
+	clone.Version = pointer.CloneString(datum.Version)
 	clone.Private = metadataTest.CloneMetadata(datum.Private)
 	return clone
 }

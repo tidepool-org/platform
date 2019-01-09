@@ -308,7 +308,7 @@ var _ = Describe("Client", func() {
 							requestHandlers = append(requestHandlers,
 								VerifyRequest("POST", fmt.Sprintf("/v1/users/%s/data_sources", userID)),
 								VerifyContentType("application/json; charset=utf-8"),
-								VerifyBody(test.MustBytes(test.MarshalRequestBody(create))),
+								VerifyBody(test.MarshalRequestBody(create)),
 							)
 						})
 
@@ -587,7 +587,7 @@ var _ = Describe("Client", func() {
 							requestHandlers = append(requestHandlers,
 								VerifyRequest(http.MethodPut, fmt.Sprintf("/v1/data_sources/%s", id)),
 								VerifyContentType("application/json; charset=utf-8"),
-								VerifyBody(test.MustBytes(test.MarshalRequestBody(update))),
+								VerifyBody(test.MarshalRequestBody(update)),
 							)
 						})
 
@@ -600,7 +600,7 @@ var _ = Describe("Client", func() {
 							requestHandlers = append(requestHandlers,
 								VerifyRequest(http.MethodPut, fmt.Sprintf("/v1/data_sources/%s", id)),
 								VerifyContentType("application/json; charset=utf-8"),
-								VerifyBody(test.MustBytes(test.MarshalRequestBody(update))),
+								VerifyBody(test.MarshalRequestBody(update)),
 							)
 						})
 
@@ -615,7 +615,7 @@ var _ = Describe("Client", func() {
 							requestHandlers = append(requestHandlers,
 								VerifyRequest(http.MethodPut, fmt.Sprintf("/v1/data_sources/%s", id), query.Encode()),
 								VerifyContentType("application/json; charset=utf-8"),
-								VerifyBody(test.MustBytes(test.MarshalRequestBody(update))),
+								VerifyBody(test.MarshalRequestBody(update)),
 							)
 						})
 

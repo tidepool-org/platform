@@ -172,7 +172,7 @@ var _ = Describe("Trace", func() {
 		})
 
 		It("trims trace request to maximum length", func() {
-			traceRequest = test.NewVariableString(65, 256, test.CharsetAlphaNumeric)
+			traceRequest = test.RandomStringFromRangeAndCharset(65, 256, test.CharsetAlphaNumeric)
 			req.Request.Header.Set("X-Tidepool-Trace-Request", traceRequest)
 			hndlr = func(res rest.ResponseWriter, req *rest.Request) {
 				Expect(req.Env["TRACE-REQUEST"]).To(Equal(traceRequest[0:64]))
@@ -195,7 +195,7 @@ var _ = Describe("Trace", func() {
 		})
 
 		It("trims trace session to maximum length", func() {
-			traceSession = test.NewVariableString(65, 256, test.CharsetAlphaNumeric)
+			traceSession = test.RandomStringFromRangeAndCharset(65, 256, test.CharsetAlphaNumeric)
 			req.Request.Header.Set("X-Tidepool-Trace-Session", traceSession)
 			hndlr = func(res rest.ResponseWriter, req *rest.Request) {
 				Expect(req.Env["TRACE-SESSION"]).To(Equal(traceSession[0:64]))

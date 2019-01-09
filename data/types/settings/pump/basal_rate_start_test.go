@@ -32,8 +32,8 @@ func CloneBasalRateStart(datum *pump.BasalRateStart) *pump.BasalRateStart {
 		return nil
 	}
 	clone := pump.NewBasalRateStart()
-	clone.Rate = test.CloneFloat64(datum.Rate)
-	clone.Start = test.CloneInt(datum.Start)
+	clone.Rate = pointer.CloneFloat64(datum.Rate)
+	clone.Start = pointer.CloneInt(datum.Start)
 	return clone
 }
 

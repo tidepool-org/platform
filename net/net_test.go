@@ -35,8 +35,8 @@ var _ = Describe("Validate", func() {
 			Entry("has valid media type with parameter with trailing semicolon", "text/plain; x=y; y=z; "),
 			Entry("has valid media type with duplicate parameter", "text/plain; x=y; x=y", net.ErrorValueStringAsMediaTypeNotValid("text/plain; x=y; x=y")),
 			Entry("has valid media type with invalid parameter", "text/plain; x", net.ErrorValueStringAsMediaTypeNotValid("text/plain; x")),
-			Entry("has length in range (upper)", "text/plain; x="+test.NewString(242, test.CharsetAlphaNumeric)),
-			Entry("has length out of range (upper)", "text/plain; x="+test.NewString(243, test.CharsetAlphaNumeric), structureValidator.ErrorLengthNotLessThanOrEqualTo(257, 256)),
+			Entry("has length in range (upper)", "text/plain; x="+test.RandomStringFromRangeAndCharset(242, 242, test.CharsetAlphaNumeric)),
+			Entry("has length out of range (upper)", "text/plain; x="+test.RandomStringFromRangeAndCharset(243, 243, test.CharsetAlphaNumeric), structureValidator.ErrorLengthNotLessThanOrEqualTo(257, 256)),
 		)
 	})
 
@@ -122,8 +122,8 @@ var _ = Describe("Validate", func() {
 			Entry("has build missing", "1.2", net.ErrorValueStringAsSemanticVersionNotValid("1.2")),
 			Entry("has minor and build missing", "1", net.ErrorValueStringAsSemanticVersionNotValid("1")),
 			Entry("has v prefix", "v1.2.3", net.ErrorValueStringAsSemanticVersionNotValid("v1.2.3")),
-			Entry("has length in range (upper)", "1.2.3-"+test.NewString(250, test.CharsetAlphaNumeric)),
-			Entry("has length out of range (upper)", "1.2.3-"+test.NewString(251, test.CharsetAlphaNumeric), structureValidator.ErrorLengthNotLessThanOrEqualTo(257, 256)),
+			Entry("has length in range (upper)", "1.2.3-"+test.RandomStringFromRangeAndCharset(250, 250, test.CharsetAlphaNumeric)),
+			Entry("has length out of range (upper)", "1.2.3-"+test.RandomStringFromRangeAndCharset(251, 251, test.CharsetAlphaNumeric), structureValidator.ErrorLengthNotLessThanOrEqualTo(257, 256)),
 		)
 	})
 
@@ -141,8 +141,8 @@ var _ = Describe("Validate", func() {
 			Entry("is not parsable", "http:::", net.ErrorValueStringAsURLNotValid("http:::")),
 			Entry("is relative", "/relative/path", net.ErrorValueStringAsURLNotValid("/relative/path")),
 			Entry("has host missing", "http:///nohost", net.ErrorValueStringAsURLNotValid("http:///nohost")),
-			Entry("has length in range (upper)", "http://"+test.NewString(2040, testHttp.CharsetPath)),
-			Entry("has length out of range (upper)", "http://"+test.NewString(2041, testHttp.CharsetPath), structureValidator.ErrorLengthNotLessThanOrEqualTo(2048, 2047)),
+			Entry("has length in range (upper)", "http://"+test.RandomStringFromRangeAndCharset(2040, 2040, testHttp.CharsetPath)),
+			Entry("has length out of range (upper)", "http://"+test.RandomStringFromRangeAndCharset(2041, 2041, testHttp.CharsetPath), structureValidator.ErrorLengthNotLessThanOrEqualTo(2048, 2047)),
 		)
 	})
 

@@ -62,5 +62,5 @@ func NewCollectionPrefix() string {
 }
 
 func generateUniqueName(base string) string {
-	return fmt.Sprintf("test_%s_%s_%s", time.Now().Format("20060102150405"), test.NewString(16, test.CharsetNumeric), base)
+	return fmt.Sprintf("test_%s_%s_%s", time.Now().Format("20060102150405"), test.RandomStringFromRangeAndCharset(16, 16, test.CharsetNumeric), base)
 }

@@ -37,7 +37,7 @@ var _ = Describe("Config", func() {
 		BeforeEach(func() {
 			address = testHttp.NewAddress()
 			userAgent = testHttp.NewUserAgent()
-			serviceSecret = test.NewVariableString(1, 64, test.CharsetText)
+			serviceSecret = test.RandomStringFromRangeAndCharset(1, 64, test.CharsetText)
 			cfg = platform.NewConfig()
 			Expect(cfg).ToNot(BeNil())
 			Expect(cfg.Config).ToNot(BeNil())
@@ -79,7 +79,7 @@ var _ = Describe("Config", func() {
 			})
 
 			It("uses existing service secret if not set", func() {
-				existingServiceSecret := test.NewVariableString(1, 64, test.CharsetText)
+				existingServiceSecret := test.RandomStringFromRangeAndCharset(1, 64, test.CharsetText)
 				cfg.ServiceSecret = existingServiceSecret
 				delete(configReporter.Config, "service_secret")
 				Expect(cfg.Load(configReporter)).To(Succeed())

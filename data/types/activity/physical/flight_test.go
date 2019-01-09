@@ -26,7 +26,7 @@ func CloneFlight(datum *physical.Flight) *physical.Flight {
 		return nil
 	}
 	clone := physical.NewFlight()
-	clone.Count = test.CloneInt(datum.Count)
+	clone.Count = pointer.CloneInt(datum.Count)
 	return clone
 }
 

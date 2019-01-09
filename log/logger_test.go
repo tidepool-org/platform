@@ -12,20 +12,16 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/test"
 )
 
 type Serializer struct {
-	*test.Mock
 	SerializeInvocations int
 	SerializeInputs      []log.Fields
 	SerializeOutputs     []error
 }
 
 func NewSerializer() *Serializer {
-	return &Serializer{
-		Mock: test.NewMock(),
-	}
+	return &Serializer{}
 }
 
 func (s *Serializer) Serialize(fields log.Fields) error {

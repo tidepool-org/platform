@@ -30,11 +30,11 @@ func CloneCarbohydrate(datum *food.Carbohydrate) *food.Carbohydrate {
 		return nil
 	}
 	clone := food.NewCarbohydrate()
-	clone.DietaryFiber = test.CloneFloat64(datum.DietaryFiber)
-	clone.Net = test.CloneFloat64(datum.Net)
-	clone.Sugars = test.CloneFloat64(datum.Sugars)
-	clone.Total = test.CloneFloat64(datum.Total)
-	clone.Units = test.CloneString(datum.Units)
+	clone.DietaryFiber = pointer.CloneFloat64(datum.DietaryFiber)
+	clone.Net = pointer.CloneFloat64(datum.Net)
+	clone.Sugars = pointer.CloneFloat64(datum.Sugars)
+	clone.Total = pointer.CloneFloat64(datum.Total)
+	clone.Units = pointer.CloneString(datum.Units)
 	return clone
 }
 

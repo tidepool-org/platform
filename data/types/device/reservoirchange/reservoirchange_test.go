@@ -18,7 +18,6 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"github.com/tidepool-org/platform/test"
 )
 
 func NewMeta() interface{} {
@@ -61,7 +60,7 @@ func CloneReservoirChange(datum *reservoirchange.ReservoirChange) *reservoirchan
 			clone.Status = data.DatumAsPointer(dataTypesDeviceStatusTest.CloneStatus(status))
 		}
 	}
-	clone.StatusID = test.CloneString(datum.StatusID)
+	clone.StatusID = pointer.CloneString(datum.StatusID)
 	return clone
 }
 

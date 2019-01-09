@@ -28,8 +28,8 @@ func CloneUnits(datum *pump.Units) *pump.Units {
 		return nil
 	}
 	clone := pump.NewUnits()
-	clone.BloodGlucose = test.CloneString(datum.BloodGlucose)
-	clone.Carbohydrate = test.CloneString(datum.Carbohydrate)
+	clone.BloodGlucose = pointer.CloneString(datum.BloodGlucose)
+	clone.Carbohydrate = pointer.CloneString(datum.Carbohydrate)
 	return clone
 }
 

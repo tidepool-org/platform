@@ -46,8 +46,8 @@ func CloneSuspend(datum *suspend.Suspend) *suspend.Suspend {
 	}
 	clone := suspend.New()
 	clone.Basal = *dataTypesBasalTest.CloneBasal(&datum.Basal)
-	clone.Duration = test.CloneInt(datum.Duration)
-	clone.DurationExpected = test.CloneInt(datum.DurationExpected)
+	clone.Duration = pointer.CloneInt(datum.Duration)
+	clone.DurationExpected = pointer.CloneInt(datum.DurationExpected)
 	if datum.Suppressed != nil {
 		switch suppressed := datum.Suppressed.(type) {
 		case *dataTypesBasalAutomated.SuppressedAutomated:

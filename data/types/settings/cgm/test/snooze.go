@@ -19,8 +19,8 @@ func CloneSnooze(datum *dataTypesSettingsCgm.Snooze) *dataTypesSettingsCgm.Snooz
 		return nil
 	}
 	clone := dataTypesSettingsCgm.NewSnooze()
-	clone.Duration = test.CloneFloat64(datum.Duration)
-	clone.Units = test.CloneString(datum.Units)
+	clone.Duration = pointer.CloneFloat64(datum.Duration)
+	clone.Units = pointer.CloneString(datum.Units)
 	return clone
 }
 

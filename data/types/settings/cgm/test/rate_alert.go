@@ -20,8 +20,8 @@ func CloneRateAlert(datum *dataTypesSettingsCgm.RateAlert) *dataTypesSettingsCgm
 	}
 	clone := &dataTypesSettingsCgm.RateAlert{}
 	clone.Alert = *CloneAlert(&datum.Alert)
-	clone.Rate = test.CloneFloat64(datum.Rate)
-	clone.Units = test.CloneString(datum.Units)
+	clone.Rate = pointer.CloneFloat64(datum.Rate)
+	clone.Units = pointer.CloneString(datum.Units)
 	return clone
 }
 

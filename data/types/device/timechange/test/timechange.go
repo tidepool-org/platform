@@ -36,7 +36,7 @@ func CloneTimeChange(datum *dataTypesDeviceTimechange.TimeChange) *dataTypesDevi
 	clone := dataTypesDeviceTimechange.New()
 	clone.Device = *dataTypesDeviceTest.CloneDevice(&datum.Device)
 	clone.From = CloneInfo(datum.From)
-	clone.Method = test.CloneString(datum.Method)
+	clone.Method = pointer.CloneString(datum.Method)
 	clone.To = CloneInfo(datum.To)
 	clone.Change = CloneChange(datum.Change)
 	return clone

@@ -29,8 +29,8 @@ func CloneDuration(datum *physical.Duration) *physical.Duration {
 		return nil
 	}
 	clone := physical.NewDuration()
-	clone.Units = test.CloneString(datum.Units)
-	clone.Value = test.CloneFloat64(datum.Value)
+	clone.Units = pointer.CloneString(datum.Units)
+	clone.Value = pointer.CloneFloat64(datum.Value)
 	return clone
 }
 

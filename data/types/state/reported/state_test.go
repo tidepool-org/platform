@@ -20,7 +20,7 @@ func NewState(state string) *reported.State {
 	datum.Severity = pointer.FromInt(test.RandomIntFromRange(reported.StateSeverityMinimum, reported.StateSeverityMaximum))
 	datum.State = pointer.FromString(state)
 	if datum.State != nil && *datum.State == reported.StateStateOther {
-		datum.StateOther = pointer.FromString(test.NewText(1, 100))
+		datum.StateOther = pointer.FromString(test.RandomStringFromRange(1, 100))
 	}
 	return datum
 }
@@ -30,9 +30,9 @@ func CloneState(datum *reported.State) *reported.State {
 		return nil
 	}
 	clone := reported.NewState()
-	clone.Severity = test.CloneInt(datum.Severity)
-	clone.State = test.CloneString(datum.State)
-	clone.StateOther = test.CloneString(datum.StateOther)
+	clone.Severity = pointer.CloneInt(datum.Severity)
+	clone.State = pointer.CloneString(datum.State)
+	clone.StateOther = pointer.CloneString(datum.StateOther)
 	return clone
 }
 
@@ -150,7 +150,7 @@ var _ = Describe("State", func() {
 				Entry("state missing; state other exists",
 					func(datum *reported.State) {
 						datum.State = nil
-						datum.StateOther = pointer.FromString(test.NewText(1, 100))
+						datum.StateOther = pointer.FromString(test.RandomStringFromRange(1, 100))
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/state"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/stateOther"),
@@ -165,7 +165,7 @@ var _ = Describe("State", func() {
 				Entry("state invalid; state other exists",
 					func(datum *reported.State) {
 						datum.State = pointer.FromString("invalid")
-						datum.StateOther = pointer.FromString(test.NewText(1, 100))
+						datum.StateOther = pointer.FromString(test.RandomStringFromRange(1, 100))
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "other", "stress"}), "/state"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/stateOther"),
@@ -179,7 +179,7 @@ var _ = Describe("State", func() {
 				Entry("state alcohol; state other exists",
 					func(datum *reported.State) {
 						datum.State = pointer.FromString("alcohol")
-						datum.StateOther = pointer.FromString(test.NewText(1, 100))
+						datum.StateOther = pointer.FromString(test.RandomStringFromRange(1, 100))
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/stateOther"),
 				),
@@ -192,7 +192,7 @@ var _ = Describe("State", func() {
 				Entry("state cycle; state other exists",
 					func(datum *reported.State) {
 						datum.State = pointer.FromString("cycle")
-						datum.StateOther = pointer.FromString(test.NewText(1, 100))
+						datum.StateOther = pointer.FromString(test.RandomStringFromRange(1, 100))
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/stateOther"),
 				),
@@ -205,7 +205,7 @@ var _ = Describe("State", func() {
 				Entry("state hyperglycemiaSymptoms; state other exists",
 					func(datum *reported.State) {
 						datum.State = pointer.FromString("hyperglycemiaSymptoms")
-						datum.StateOther = pointer.FromString(test.NewText(1, 100))
+						datum.StateOther = pointer.FromString(test.RandomStringFromRange(1, 100))
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/stateOther"),
 				),
@@ -218,7 +218,7 @@ var _ = Describe("State", func() {
 				Entry("state hypoglycemiaSymptoms; state other exists",
 					func(datum *reported.State) {
 						datum.State = pointer.FromString("hypoglycemiaSymptoms")
-						datum.StateOther = pointer.FromString(test.NewText(1, 100))
+						datum.StateOther = pointer.FromString(test.RandomStringFromRange(1, 100))
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/stateOther"),
 				),
@@ -231,7 +231,7 @@ var _ = Describe("State", func() {
 				Entry("state illness; state other exists",
 					func(datum *reported.State) {
 						datum.State = pointer.FromString("illness")
-						datum.StateOther = pointer.FromString(test.NewText(1, 100))
+						datum.StateOther = pointer.FromString(test.RandomStringFromRange(1, 100))
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/stateOther"),
 				),
@@ -252,13 +252,13 @@ var _ = Describe("State", func() {
 				Entry("state other; state other length in range (upper)",
 					func(datum *reported.State) {
 						datum.State = pointer.FromString("other")
-						datum.StateOther = pointer.FromString(test.NewText(100, 100))
+						datum.StateOther = pointer.FromString(test.RandomStringFromRange(100, 100))
 					},
 				),
 				Entry("state other; state other length out of range (upper)",
 					func(datum *reported.State) {
 						datum.State = pointer.FromString("other")
-						datum.StateOther = pointer.FromString(test.NewText(101, 101))
+						datum.StateOther = pointer.FromString(test.RandomStringFromRange(101, 101))
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/stateOther"),
 				),
@@ -271,7 +271,7 @@ var _ = Describe("State", func() {
 				Entry("state stress; state other exists",
 					func(datum *reported.State) {
 						datum.State = pointer.FromString("stress")
-						datum.StateOther = pointer.FromString(test.NewText(1, 100))
+						datum.StateOther = pointer.FromString(test.RandomStringFromRange(1, 100))
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/stateOther"),
 				),
@@ -279,7 +279,7 @@ var _ = Describe("State", func() {
 					func(datum *reported.State) {
 						datum.Severity = pointer.FromInt(-1)
 						datum.State = pointer.FromString("invalid")
-						datum.StateOther = pointer.FromString(test.NewText(1, 100))
+						datum.StateOther = pointer.FromString(test.RandomStringFromRange(1, 100))
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 10), "/severity"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "other", "stress"}), "/state"),

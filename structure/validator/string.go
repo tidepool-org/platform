@@ -36,7 +36,7 @@ func (s *String) NotExists() structure.String {
 
 func (s *String) Empty() structure.String {
 	if s.value != nil {
-		if len(*s.value) > 0 {
+		if len([]rune(*s.value)) > 0 {
 			s.base.ReportError(ErrorValueNotEmpty())
 		}
 	}
@@ -45,7 +45,7 @@ func (s *String) Empty() structure.String {
 
 func (s *String) NotEmpty() structure.String {
 	if s.value != nil {
-		if len(*s.value) == 0 {
+		if len([]rune(*s.value)) == 0 {
 			s.base.ReportError(ErrorValueEmpty())
 		}
 	}
@@ -72,7 +72,7 @@ func (s *String) NotEqualTo(value string) structure.String {
 
 func (s *String) LengthEqualTo(limit int) structure.String {
 	if s.value != nil {
-		if length := len(*s.value); length != limit {
+		if length := len([]rune(*s.value)); length != limit {
 			s.base.ReportError(ErrorLengthNotEqualTo(length, limit))
 		}
 	}
@@ -81,7 +81,7 @@ func (s *String) LengthEqualTo(limit int) structure.String {
 
 func (s *String) LengthNotEqualTo(limit int) structure.String {
 	if s.value != nil {
-		if length := len(*s.value); length == limit {
+		if length := len([]rune(*s.value)); length == limit {
 			s.base.ReportError(ErrorLengthEqualTo(length, limit))
 		}
 	}
@@ -90,7 +90,7 @@ func (s *String) LengthNotEqualTo(limit int) structure.String {
 
 func (s *String) LengthLessThan(limit int) structure.String {
 	if s.value != nil {
-		if length := len(*s.value); length >= limit {
+		if length := len([]rune(*s.value)); length >= limit {
 			s.base.ReportError(ErrorLengthNotLessThan(length, limit))
 		}
 	}
@@ -99,7 +99,7 @@ func (s *String) LengthLessThan(limit int) structure.String {
 
 func (s *String) LengthLessThanOrEqualTo(limit int) structure.String {
 	if s.value != nil {
-		if length := len(*s.value); length > limit {
+		if length := len([]rune(*s.value)); length > limit {
 			s.base.ReportError(ErrorLengthNotLessThanOrEqualTo(length, limit))
 		}
 	}
@@ -108,7 +108,7 @@ func (s *String) LengthLessThanOrEqualTo(limit int) structure.String {
 
 func (s *String) LengthGreaterThan(limit int) structure.String {
 	if s.value != nil {
-		if length := len(*s.value); length <= limit {
+		if length := len([]rune(*s.value)); length <= limit {
 			s.base.ReportError(ErrorLengthNotGreaterThan(length, limit))
 		}
 	}
@@ -117,7 +117,7 @@ func (s *String) LengthGreaterThan(limit int) structure.String {
 
 func (s *String) LengthGreaterThanOrEqualTo(limit int) structure.String {
 	if s.value != nil {
-		if length := len(*s.value); length < limit {
+		if length := len([]rune(*s.value)); length < limit {
 			s.base.ReportError(ErrorLengthNotGreaterThanOrEqualTo(length, limit))
 		}
 	}
@@ -126,7 +126,7 @@ func (s *String) LengthGreaterThanOrEqualTo(limit int) structure.String {
 
 func (s *String) LengthInRange(lowerLimit int, upperLimit int) structure.String {
 	if s.value != nil {
-		if length := len(*s.value); length < lowerLimit || length > upperLimit {
+		if length := len([]rune(*s.value)); length < lowerLimit || length > upperLimit {
 			s.base.ReportError(ErrorLengthNotInRange(length, lowerLimit, upperLimit))
 		}
 	}

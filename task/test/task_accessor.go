@@ -7,7 +7,6 @@ import (
 
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/task"
-	"github.com/tidepool-org/platform/test"
 )
 
 type ListTasksInput struct {
@@ -58,7 +57,6 @@ type DeleteTaskInput struct {
 }
 
 type TaskAccessor struct {
-	*test.Mock
 	ListTasksInvocations  int
 	ListTasksInputs       []ListTasksInput
 	ListTasksOutputs      []ListTasksOutput
@@ -77,9 +75,7 @@ type TaskAccessor struct {
 }
 
 func NewTaskAccessor() *TaskAccessor {
-	return &TaskAccessor{
-		Mock: test.NewMock(),
-	}
+	return &TaskAccessor{}
 }
 
 func (t *TaskAccessor) ListTasks(ctx context.Context, filter *task.TaskFilter, pagination *page.Pagination) (task.Tasks, error) {
@@ -143,7 +139,6 @@ func (t *TaskAccessor) DeleteTask(ctx context.Context, id string) error {
 }
 
 func (t *TaskAccessor) Expectations() {
-	t.Mock.Expectations()
 	gomega.Expect(t.ListTasksOutputs).To(gomega.BeEmpty())
 	gomega.Expect(t.CreateTaskOutputs).To(gomega.BeEmpty())
 	gomega.Expect(t.GetTaskOutputs).To(gomega.BeEmpty())

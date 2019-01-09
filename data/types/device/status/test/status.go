@@ -27,9 +27,9 @@ func CloneStatus(datum *status.Status) *status.Status {
 	}
 	clone := status.New()
 	clone.Device = *dataTypesDeviceTest.CloneDevice(&datum.Device)
-	clone.Duration = test.CloneInt(datum.Duration)
-	clone.DurationExpected = test.CloneInt(datum.DurationExpected)
-	clone.Name = test.CloneString(datum.Name)
+	clone.Duration = pointer.CloneInt(datum.Duration)
+	clone.DurationExpected = pointer.CloneInt(datum.DurationExpected)
+	clone.Name = pointer.CloneString(datum.Name)
 	clone.Reason = metadataTest.CloneMetadata(datum.Reason)
 	return clone
 }

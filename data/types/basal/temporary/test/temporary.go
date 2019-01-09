@@ -29,8 +29,8 @@ func CloneSuppressedTemporary(datum *temporary.SuppressedTemporary) *temporary.S
 	clone.DeliveryType = datum.DeliveryType
 	clone.Annotations = metadataTest.CloneMetadataArray(datum.Annotations)
 	clone.InsulinFormulation = dataTypesInsulinTest.CloneFormulation(datum.InsulinFormulation)
-	clone.Percent = test.CloneFloat64(datum.Percent)
-	clone.Rate = test.CloneFloat64(datum.Rate)
+	clone.Percent = pointer.CloneFloat64(datum.Percent)
+	clone.Rate = pointer.CloneFloat64(datum.Rate)
 	if datum.Suppressed != nil {
 		switch suppressed := datum.Suppressed.(type) {
 		case *dataTypesBasalScheduled.SuppressedScheduled:

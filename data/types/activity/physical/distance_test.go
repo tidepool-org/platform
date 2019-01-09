@@ -29,8 +29,8 @@ func CloneDistance(datum *physical.Distance) *physical.Distance {
 		return nil
 	}
 	clone := physical.NewDistance()
-	clone.Units = test.CloneString(datum.Units)
-	clone.Value = test.CloneFloat64(datum.Value)
+	clone.Units = pointer.CloneString(datum.Units)
+	clone.Value = pointer.CloneFloat64(datum.Value)
 	return clone
 }
 

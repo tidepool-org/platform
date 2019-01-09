@@ -24,9 +24,9 @@ func CloneExtended(datum *extended.Extended) *extended.Extended {
 	}
 	clone := extended.New()
 	clone.Bolus = *dataTypesBolusTest.CloneBolus(&datum.Bolus)
-	clone.Duration = test.CloneInt(datum.Duration)
-	clone.DurationExpected = test.CloneInt(datum.DurationExpected)
-	clone.Extended = test.CloneFloat64(datum.Extended)
-	clone.ExtendedExpected = test.CloneFloat64(datum.ExtendedExpected)
+	clone.Duration = pointer.CloneInt(datum.Duration)
+	clone.DurationExpected = pointer.CloneInt(datum.DurationExpected)
+	clone.Extended = pointer.CloneFloat64(datum.Extended)
+	clone.ExtendedExpected = pointer.CloneFloat64(datum.ExtendedExpected)
 	return clone
 }

@@ -29,8 +29,8 @@ func CloneElevationChange(datum *physical.ElevationChange) *physical.ElevationCh
 		return nil
 	}
 	clone := physical.NewElevationChange()
-	clone.Units = test.CloneString(datum.Units)
-	clone.Value = test.CloneFloat64(datum.Value)
+	clone.Units = pointer.CloneString(datum.Units)
+	clone.Value = pointer.CloneFloat64(datum.Value)
 	return clone
 }
 

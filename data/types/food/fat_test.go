@@ -27,8 +27,8 @@ func CloneFat(datum *food.Fat) *food.Fat {
 		return nil
 	}
 	clone := food.NewFat()
-	clone.Total = test.CloneFloat64(datum.Total)
-	clone.Units = test.CloneString(datum.Units)
+	clone.Total = pointer.CloneFloat64(datum.Total)
+	clone.Units = pointer.CloneString(datum.Units)
 	return clone
 }
 

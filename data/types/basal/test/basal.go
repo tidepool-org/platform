@@ -25,5 +25,5 @@ func CloneBasal(datum *basal.Basal) *basal.Basal {
 }
 
 func NewScheduleName() string {
-	return test.NewText(1, 32)
+	return test.RandomStringFromRange(1, 32)
 }

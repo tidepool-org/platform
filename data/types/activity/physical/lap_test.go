@@ -27,7 +27,7 @@ func CloneLap(datum *physical.Lap) *physical.Lap {
 		return nil
 	}
 	clone := physical.NewLap()
-	clone.Count = test.CloneInt(datum.Count)
+	clone.Count = pointer.CloneInt(datum.Count)
 	clone.Distance = CloneDistance(datum.Distance)
 	return clone
 }

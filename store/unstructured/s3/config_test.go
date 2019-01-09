@@ -22,8 +22,8 @@ var _ = Describe("Config", func() {
 		var config *storeUnstructuredS3.Config
 
 		BeforeEach(func() {
-			bucket = test.NewVariableString(1, 64, test.CharsetAlphaNumeric)
-			prefix = test.NewVariableString(1, 64, test.CharsetAlphaNumeric)
+			bucket = test.RandomStringFromRangeAndCharset(1, 64, test.CharsetAlphaNumeric)
+			prefix = test.RandomStringFromRangeAndCharset(1, 64, test.CharsetAlphaNumeric)
 			config = storeUnstructuredS3.NewConfig()
 			Expect(config).ToNot(BeNil())
 		})

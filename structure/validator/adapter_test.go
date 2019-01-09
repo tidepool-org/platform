@@ -51,7 +51,7 @@ var _ = Describe("Adapter", func() {
 
 		BeforeEach(func() {
 			validatableWithString = structureTest.NewValidatableWithString()
-			str = pointer.FromString(test.NewText(1, 32))
+			str = pointer.FromString(test.RandomStringFromRange(1, 32))
 		})
 
 		Context("NewValidatableWithStringAdapter", func() {
@@ -83,7 +83,7 @@ var _ = Describe("Adapter", func() {
 
 		BeforeEach(func() {
 			validatableWithStringArray = structureTest.NewValidatableWithStringArray()
-			strArray = &[]string{test.NewText(1, 32), test.NewText(1, 32), test.NewText(1, 32)}
+			strArray = &[]string{test.RandomStringFromRange(1, 32), test.RandomStringFromRange(1, 32), test.RandomStringFromRange(1, 32)}
 		})
 
 		Context("NewValidatableWithStringArrayAdapter", func() {

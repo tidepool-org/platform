@@ -28,7 +28,7 @@ func NewPhysical() *physical.Physical {
 	datum.Type = "physicalActivity"
 	datum.ActivityType = pointer.FromString(test.RandomStringFromArray(physical.ActivityTypes()))
 	if datum.ActivityType != nil && *datum.ActivityType == physical.ActivityTypeOther {
-		datum.ActivityTypeOther = pointer.FromString(test.NewText(1, 100))
+		datum.ActivityTypeOther = pointer.FromString(test.RandomStringFromRange(1, 100))
 	}
 	datum.Aggregate = pointer.FromBool(test.RandomBool())
 	datum.Distance = NewDistance()
@@ -37,7 +37,7 @@ func NewPhysical() *physical.Physical {
 	datum.Energy = NewEnergy()
 	datum.Flight = NewFlight()
 	datum.Lap = NewLap()
-	datum.Name = pointer.FromString(test.NewText(1, 100))
+	datum.Name = pointer.FromString(test.RandomStringFromRange(1, 100))
 	datum.ReportedIntensity = pointer.FromString(test.RandomStringFromArray(physical.ReportedIntensities()))
 	datum.Step = NewStep()
 	return datum
@@ -49,17 +49,17 @@ func ClonePhysical(datum *physical.Physical) *physical.Physical {
 	}
 	clone := physical.New()
 	clone.Base = *dataTypesTest.CloneBase(&datum.Base)
-	clone.ActivityType = test.CloneString(datum.ActivityType)
-	clone.ActivityTypeOther = test.CloneString(datum.ActivityTypeOther)
-	clone.Aggregate = test.CloneBool(datum.Aggregate)
+	clone.ActivityType = pointer.CloneString(datum.ActivityType)
+	clone.ActivityTypeOther = pointer.CloneString(datum.ActivityTypeOther)
+	clone.Aggregate = pointer.CloneBool(datum.Aggregate)
 	clone.Distance = CloneDistance(datum.Distance)
 	clone.Duration = CloneDuration(datum.Duration)
 	clone.ElevationChange = CloneElevationChange(datum.ElevationChange)
 	clone.Energy = CloneEnergy(datum.Energy)
 	clone.Flight = CloneFlight(datum.Flight)
 	clone.Lap = CloneLap(datum.Lap)
-	clone.Name = test.CloneString(datum.Name)
-	clone.ReportedIntensity = test.CloneString(datum.ReportedIntensity)
+	clone.Name = pointer.CloneString(datum.Name)
+	clone.ReportedIntensity = pointer.CloneString(datum.ReportedIntensity)
 	clone.Step = CloneStep(datum.Step)
 	return clone
 }
@@ -157,7 +157,7 @@ var _ = Describe("Physical", func() {
 				Entry("activity type missing; activity type other exists",
 					func(datum *physical.Physical) {
 						datum.ActivityType = nil
-						datum.ActivityTypeOther = pointer.FromString(test.NewText(1, 100))
+						datum.ActivityTypeOther = pointer.FromString(test.RandomStringFromRange(1, 100))
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
@@ -171,7 +171,7 @@ var _ = Describe("Physical", func() {
 				Entry("activity type invalid; activity type other exists",
 					func(datum *physical.Physical) {
 						datum.ActivityType = pointer.FromString("invalid")
-						datum.ActivityTypeOther = pointer.FromString(test.NewText(1, 100))
+						datum.ActivityTypeOther = pointer.FromString(test.RandomStringFromRange(1, 100))
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", physical.ActivityTypes()), "/activityType", NewMeta()),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
@@ -712,13 +712,13 @@ var _ = Describe("Physical", func() {
 				Entry("activity type other; activity type other length; in range (upper)",
 					func(datum *physical.Physical) {
 						datum.ActivityType = pointer.FromString("other")
-						datum.ActivityTypeOther = pointer.FromString(test.NewText(100, 100))
+						datum.ActivityTypeOther = pointer.FromString(test.RandomStringFromRange(100, 100))
 					},
 				),
 				Entry("activity type other; activity type other length; out of range (upper)",
 					func(datum *physical.Physical) {
 						datum.ActivityType = pointer.FromString("other")
-						datum.ActivityTypeOther = pointer.FromString(test.NewText(101, 101))
+						datum.ActivityTypeOther = pointer.FromString(test.RandomStringFromRange(101, 101))
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/activityTypeOther", NewMeta()),
 				),
@@ -1244,10 +1244,10 @@ var _ = Describe("Physical", func() {
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/name", NewMeta()),
 				),
 				Entry("name length; in range (upper)",
-					func(datum *physical.Physical) { datum.Name = pointer.FromString(test.NewText(100, 100)) },
+					func(datum *physical.Physical) { datum.Name = pointer.FromString(test.RandomStringFromRange(100, 100)) },
 				),
 				Entry("name length; out of range (upper)",
-					func(datum *physical.Physical) { datum.Name = pointer.FromString(test.NewText(101, 101)) },
+					func(datum *physical.Physical) { datum.Name = pointer.FromString(test.RandomStringFromRange(101, 101)) },
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/name", NewMeta()),
 				),
 				Entry("reported intensity missing",
@@ -1282,7 +1282,7 @@ var _ = Describe("Physical", func() {
 					func(datum *physical.Physical) {
 						datum.Type = "invalidType"
 						datum.ActivityType = pointer.FromString("invalid")
-						datum.ActivityTypeOther = pointer.FromString(test.NewText(1, 100))
+						datum.ActivityTypeOther = pointer.FromString(test.RandomStringFromRange(1, 100))
 						datum.Distance.Units = nil
 						datum.Duration.Units = nil
 						datum.ElevationChange.Units = nil

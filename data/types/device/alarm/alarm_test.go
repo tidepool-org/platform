@@ -56,14 +56,14 @@ func CloneAlarm(datum *alarm.Alarm) *alarm.Alarm {
 	}
 	clone := alarm.New()
 	clone.Device = *dataTypesDeviceTest.CloneDevice(&datum.Device)
-	clone.AlarmType = test.CloneString(datum.AlarmType)
+	clone.AlarmType = pointer.CloneString(datum.AlarmType)
 	if datum.Status != nil {
 		switch status := (*datum.Status).(type) {
 		case *dataTypesDeviceStatus.Status:
 			clone.Status = data.DatumAsPointer(dataTypesDeviceStatusTest.CloneStatus(status))
 		}
 	}
-	clone.StatusID = test.CloneString(datum.StatusID)
+	clone.StatusID = pointer.CloneString(datum.StatusID)
 	return clone
 }
 

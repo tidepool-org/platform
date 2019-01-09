@@ -276,7 +276,7 @@ var _ = Describe("Client", func() {
 									VerifyRequest("GET", "/p/v2/users/self/calibrations", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
-									RespondWith(http.StatusOK, test.MustBytes(test.MarshalResponseBody(responseCalibrationsResponse)), responseHeaders),
+									RespondWith(http.StatusOK, test.MarshalResponseBody(responseCalibrationsResponse), responseHeaders),
 								),
 							)
 						})
@@ -506,7 +506,7 @@ var _ = Describe("Client", func() {
 									VerifyRequest("GET", "/p/v2/users/self/devices", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
-									RespondWith(http.StatusOK, test.MustBytes(test.MarshalResponseBody(responseDevicesResponse)), responseHeaders),
+									RespondWith(http.StatusOK, test.MarshalResponseBody(responseDevicesResponse), responseHeaders),
 								),
 							)
 						})
@@ -737,7 +737,7 @@ var _ = Describe("Client", func() {
 									VerifyRequest("GET", "/p/v2/users/self/egvs", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
-									RespondWith(http.StatusOK, test.MustBytes(test.MarshalResponseBody(prepareEGVsResponse(responseEGVsResponse))), responseHeaders),
+									RespondWith(http.StatusOK, test.MarshalResponseBody(prepareEGVsResponse(responseEGVsResponse)), responseHeaders),
 								),
 							)
 						})
@@ -967,7 +967,7 @@ var _ = Describe("Client", func() {
 									VerifyRequest("GET", "/p/v2/users/self/events", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
-									RespondWith(http.StatusOK, test.MustBytes(test.MarshalResponseBody(responseEventsResponse)), responseHeaders),
+									RespondWith(http.StatusOK, test.MarshalResponseBody(responseEventsResponse), responseHeaders),
 								),
 							)
 						})

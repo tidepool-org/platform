@@ -22,7 +22,7 @@ func CloneNormal(datum *normal.Normal) *normal.Normal {
 	}
 	clone := normal.New()
 	clone.Bolus = *dataTypesBolusTest.CloneBolus(&datum.Bolus)
-	clone.Normal = test.CloneFloat64(datum.Normal)
-	clone.NormalExpected = test.CloneFloat64(datum.NormalExpected)
+	clone.Normal = pointer.CloneFloat64(datum.Normal)
+	clone.NormalExpected = pointer.CloneFloat64(datum.NormalExpected)
 	return clone
 }
