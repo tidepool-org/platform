@@ -43,12 +43,6 @@ var _ = Describe("Condition", func() {
 				Entry("succeeds",
 					func(object map[string]interface{}, expectedDatum *request.Condition) {},
 				),
-				Entry("revision missing",
-					func(object map[string]interface{}, expectedDatum *request.Condition) {
-						delete(object, "revision")
-						expectedDatum.Revision = nil
-					},
-				),
 				Entry("revision invalid type",
 					func(object map[string]interface{}, expectedDatum *request.Condition) {
 						object["revision"] = true

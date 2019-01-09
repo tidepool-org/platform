@@ -1,5 +1,6 @@
 ## HEAD
 
+* Remove redundant parsing tests
 * Refactor out common data types
 * Replace deprecated data parsers with structure parsers
 * Rename bytes local variable to avoid conflict with bytes package

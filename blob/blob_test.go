@@ -67,12 +67,6 @@ var _ = Describe("Blob", func() {
 				Entry("succeeds",
 					func(object map[string]interface{}, expectedDatum *blob.Filter) {},
 				),
-				Entry("media type missing",
-					func(object map[string]interface{}, expectedDatum *blob.Filter) {
-						delete(object, "mediaType")
-						expectedDatum.MediaType = nil
-					},
-				),
 				Entry("media type invalid type",
 					func(object map[string]interface{}, expectedDatum *blob.Filter) {
 						object["mediaType"] = true
@@ -85,12 +79,6 @@ var _ = Describe("Blob", func() {
 						valid := netTest.RandomMediaTypes(1, 3)
 						object["mediaType"] = valid
 						expectedDatum.MediaType = pointer.FromStringArray(valid)
-					},
-				),
-				Entry("status missing",
-					func(object map[string]interface{}, expectedDatum *blob.Filter) {
-						delete(object, "status")
-						expectedDatum.Status = nil
 					},
 				),
 				Entry("status invalid type",
@@ -334,12 +322,6 @@ var _ = Describe("Blob", func() {
 				Entry("succeeds",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {},
 				),
-				Entry("id missing",
-					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						delete(object, "id")
-						expectedDatum.ID = nil
-					},
-				),
 				Entry("id invalid type",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
 						object["id"] = true
@@ -352,12 +334,6 @@ var _ = Describe("Blob", func() {
 						valid := blobTest.RandomID()
 						object["id"] = valid
 						expectedDatum.ID = pointer.FromString(valid)
-					},
-				),
-				Entry("user id missing",
-					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						delete(object, "userId")
-						expectedDatum.UserID = nil
 					},
 				),
 				Entry("user id invalid type",
@@ -374,12 +350,6 @@ var _ = Describe("Blob", func() {
 						expectedDatum.UserID = pointer.FromString(valid)
 					},
 				),
-				Entry("digest MD5 missing",
-					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						delete(object, "digestMD5")
-						expectedDatum.DigestMD5 = nil
-					},
-				),
 				Entry("digest MD5 invalid type",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
 						object["digestMD5"] = true
@@ -392,12 +362,6 @@ var _ = Describe("Blob", func() {
 						valid := cryptoTest.RandomBase64EncodedMD5Hash()
 						object["digestMD5"] = valid
 						expectedDatum.DigestMD5 = pointer.FromString(valid)
-					},
-				),
-				Entry("media type missing",
-					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						delete(object, "mediaType")
-						expectedDatum.MediaType = nil
 					},
 				),
 				Entry("media type invalid type",
@@ -414,12 +378,6 @@ var _ = Describe("Blob", func() {
 						expectedDatum.MediaType = pointer.FromString(valid)
 					},
 				),
-				Entry("size missing",
-					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						delete(object, "size")
-						expectedDatum.Size = nil
-					},
-				),
 				Entry("size invalid type",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
 						object["size"] = true
@@ -434,12 +392,6 @@ var _ = Describe("Blob", func() {
 						expectedDatum.Size = pointer.FromInt(valid)
 					},
 				),
-				Entry("status missing",
-					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						delete(object, "status")
-						expectedDatum.Status = nil
-					},
-				),
 				Entry("status invalid type",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
 						object["status"] = true
@@ -452,12 +404,6 @@ var _ = Describe("Blob", func() {
 						valid := test.RandomStringFromArray(blob.Statuses())
 						object["status"] = valid
 						expectedDatum.Status = pointer.FromString(valid)
-					},
-				),
-				Entry("created time missing",
-					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						delete(object, "createdTime")
-						expectedDatum.CreatedTime = nil
 					},
 				),
 				Entry("created time invalid type",
@@ -481,12 +427,6 @@ var _ = Describe("Blob", func() {
 						expectedDatum.CreatedTime = pointer.FromTime(valid)
 					},
 				),
-				Entry("modified time missing",
-					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						delete(object, "modifiedTime")
-						expectedDatum.ModifiedTime = nil
-					},
-				),
 				Entry("modified time invalid type",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
 						object["modifiedTime"] = true
@@ -506,12 +446,6 @@ var _ = Describe("Blob", func() {
 						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
 						object["modifiedTime"] = valid.Format(time.RFC3339Nano)
 						expectedDatum.ModifiedTime = pointer.FromTime(valid)
-					},
-				),
-				Entry("revision missing",
-					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						delete(object, "revision")
-						expectedDatum.Revision = nil
 					},
 				),
 				Entry("revision invalid type",
