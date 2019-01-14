@@ -201,7 +201,7 @@ var _ = Describe("V1", func() {
 								handlerFunc(res, req)
 								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
 								Expect(res.WriteInputs).To(HaveLen(1))
-								errorsTest.ExpectErrorJSON(errorsTest.WithParameterSource(structureValidator.ErrorValueNotInRange(0, 1, 100), "size"), res.WriteInputs[0])
+								errorsTest.ExpectErrorJSON(errorsTest.WithParameterSource(structureValidator.ErrorValueNotInRange(0, 1, 1000), "size"), res.WriteInputs[0])
 							})
 						})
 

@@ -13,7 +13,7 @@ const (
 	PaginationPageMinimum = 0
 	PaginationSizeDefault = 100
 	PaginationSizeMinimum = 1
-	PaginationSizeMaximum = 100
+	PaginationSizeMaximum = 1000
 )
 
 // FUTURE: Use pointers to Page and Size

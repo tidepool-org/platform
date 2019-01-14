@@ -240,14 +240,14 @@ var _ = Describe("Mongo", func() {
 					It("returns an error if the pagination size is less than minimum", func() {
 						pagination.Size = 0
 						resultDataSets, err := session.GetDataSetsForUserByID(ctx, userID, filter, pagination)
-						Expect(err).To(MatchError("pagination is invalid; value 0 is not between 1 and 100"))
+						Expect(err).To(MatchError("pagination is invalid; value 0 is not between 1 and 1000"))
 						Expect(resultDataSets).To(BeNil())
 					})
 
 					It("returns an error if the pagination size is greater than maximum", func() {
-						pagination.Size = 101
+						pagination.Size = 1001
 						resultDataSets, err := session.GetDataSetsForUserByID(ctx, userID, filter, pagination)
-						Expect(err).To(MatchError("pagination is invalid; value 101 is not between 1 and 100"))
+						Expect(err).To(MatchError("pagination is invalid; value 1001 is not between 1 and 1000"))
 						Expect(resultDataSets).To(BeNil())
 					})
 
