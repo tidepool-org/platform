@@ -1074,55 +1074,55 @@ var _ = Describe("Source", func() {
 			)
 		})
 
-		Context("HasUpdates", func() {
-			var update *dataSource.Update
+		Context("IsEmpty", func() {
+			var datum *dataSource.Update
 
 			BeforeEach(func() {
-				update = dataSource.NewUpdate()
+				datum = dataSource.NewUpdate()
 			})
 
-			It("returns false when no fields are specified", func() {
-				Expect(update.HasUpdates()).To(BeFalse())
+			It("returns true when no fields are specified", func() {
+				Expect(datum.IsEmpty()).To(BeTrue())
 			})
 
-			It("returns true when provider session id is not nil", func() {
-				update.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
-				Expect(update.HasUpdates()).To(BeTrue())
+			It("returns false when provider session id is not nil", func() {
+				datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
+				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 
-			It("returns true when state is not nil", func() {
-				update.State = pointer.FromString(dataSourceTest.RandomState())
-				Expect(update.HasUpdates()).To(BeTrue())
+			It("returns false when state is not nil", func() {
+				datum.State = pointer.FromString(dataSourceTest.RandomState())
+				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 
-			It("returns true when error is not nil", func() {
-				update.Error = errorsTest.RandomSerializable()
-				Expect(update.HasUpdates()).To(BeTrue())
+			It("returns false when error is not nil", func() {
+				datum.Error = errorsTest.RandomSerializable()
+				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 
-			It("returns true when data set ids is not nil", func() {
-				update.DataSetIDs = pointer.FromStringArray(dataTest.RandomSetIDs())
-				Expect(update.HasUpdates()).To(BeTrue())
+			It("returns false when data set ids is not nil", func() {
+				datum.DataSetIDs = pointer.FromStringArray(dataTest.RandomSetIDs())
+				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 
-			It("returns true when earliest data time is not nil", func() {
-				update.EarliestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
-				Expect(update.HasUpdates()).To(BeTrue())
+			It("returns false when earliest data time is not nil", func() {
+				datum.EarliestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 
-			It("returns true when latest data time is not nil", func() {
-				update.LatestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
-				Expect(update.HasUpdates()).To(BeTrue())
+			It("returns false when latest data time is not nil", func() {
+				datum.LatestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 
-			It("returns true when last import time is not nil", func() {
-				update.LastImportTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
-				Expect(update.HasUpdates()).To(BeTrue())
+			It("returns false when last import time is not nil", func() {
+				datum.LastImportTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 
-			It("returns true when all fields are not nil", func() {
-				update = dataSourceTest.RandomUpdate()
-				Expect(update.HasUpdates()).To(BeTrue())
+			It("returns false when all fields are not nil", func() {
+				datum = dataSourceTest.RandomUpdate()
+				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 		})
 	})

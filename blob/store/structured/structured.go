@@ -56,6 +56,6 @@ func (u *Update) Validate(validator structure.Validator) {
 	validator.String("status", u.Status).OneOf(blob.Statuses()...)
 }
 
-func (u *Update) HasUpdates() bool {
-	return u.DigestMD5 != nil || u.MediaType != nil || u.Size != nil || u.Status != nil
+func (u *Update) IsEmpty() bool {
+	return u.DigestMD5 == nil && u.MediaType == nil && u.Size == nil && u.Status == nil
 }

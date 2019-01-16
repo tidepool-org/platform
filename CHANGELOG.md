@@ -1,5 +1,6 @@
 ## HEAD
 
+* Rename HasUpdates to IsEmpty to be more descriptive
 * Fix string length validation bug in structure validator package
 * Cleanup test package
 * Remove test.Mock as unnecessary

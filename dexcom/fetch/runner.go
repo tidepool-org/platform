@@ -302,7 +302,7 @@ func (t *TaskRunner) updateDataSourceWithError(err error) error {
 }
 
 func (t *TaskRunner) updateDataSource(update *dataSource.Update) error {
-	if !update.HasUpdates() {
+	if update.IsEmpty() {
 		return nil
 	}
 
@@ -372,7 +372,7 @@ func (t *TaskRunner) updateDeviceHash(device *dexcom.Device) bool {
 }
 
 func (t *TaskRunner) updateDataSet(dataSetUpdate *data.DataSetUpdate) error {
-	if !dataSetUpdate.HasUpdates() {
+	if dataSetUpdate.IsEmpty() {
 		return nil
 	}
 

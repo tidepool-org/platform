@@ -233,11 +233,6 @@ func NewDataSetUpdate() *DataSetUpdate {
 	return &DataSetUpdate{}
 }
 
-func (d *DataSetUpdate) HasUpdates() bool {
-	return d.Active != nil || d.DeviceID != nil || d.DeviceModel != nil || d.DeviceSerialNumber != nil ||
-		d.Deduplicator != nil || d.State != nil || d.Time != nil || d.TimeZoneName != nil || d.TimeZoneOffset != nil
-}
-
 func (d *DataSetUpdate) Parse(parser structure.ObjectParser) {
 	d.DeviceID = parser.String("deviceId")
 	d.DeviceModel = parser.String("deviceModel")
@@ -256,6 +251,11 @@ func (d *DataSetUpdate) Validate(validator structure.Validator) {
 	validator.Time("time", d.Time).NotZero()
 	validator.String("timezone", d.TimeZoneName).Using(timeZone.NameValidator)
 	validator.Int("timezoneOffset", d.TimeZoneOffset).InRange(-12*60, 14*60)
+}
+
+func (d *DataSetUpdate) IsEmpty() bool {
+	return d.Active == nil && d.DeviceID == nil && d.DeviceModel == nil && d.DeviceSerialNumber == nil &&
+		d.Deduplicator == nil && d.State == nil && d.Time == nil && d.TimeZoneName == nil && d.TimeZoneOffset == nil
 }
 
 func NewSetID() string {

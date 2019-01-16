@@ -234,7 +234,7 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id, "condition": condition, "update": update})
 
-	if update.HasUpdates() {
+	if !update.IsEmpty() {
 		query := bson.M{
 			"id": id,
 		}

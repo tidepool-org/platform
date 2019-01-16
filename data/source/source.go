@@ -161,8 +161,8 @@ func (u *Update) Normalize(normalizer structure.Normalizer) {
 	}
 }
 
-func (u *Update) HasUpdates() bool {
-	return u.ProviderSessionID != nil || u.State != nil || u.Error != nil || u.DataSetIDs != nil || u.EarliestDataTime != nil || u.LatestDataTime != nil || u.LastImportTime != nil
+func (u *Update) IsEmpty() bool {
+	return u.ProviderSessionID == nil && u.State == nil && u.Error == nil && u.DataSetIDs == nil && u.EarliestDataTime == nil && u.LatestDataTime == nil && u.LastImportTime == nil
 }
 
 type Source struct {

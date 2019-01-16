@@ -141,7 +141,7 @@ func (a *API) ApplyUpdatersToUserByObject(updateUser *user.User, updaters []User
 		}
 	}
 
-	if !userUpdates.HasUpdates() {
+	if userUpdates.IsEmpty() {
 		return updateUser, nil
 	}
 
@@ -201,8 +201,8 @@ func (a *API) asUsers(responseBody io.Reader, err error) ([]*user.User, error) {
 	return responseUsers, nil
 }
 
-func (u *UserUpdates) HasUpdates() bool {
-	return u.Username != nil || u.Emails != nil || u.Password != nil || u.Roles != nil || u.TermsAccepted != nil || u.EmailVerified != nil
+func (u *UserUpdates) IsEmpty() bool {
+	return u.Username == nil && u.Emails == nil && u.Password == nil && u.Roles == nil && u.TermsAccepted == nil && u.EmailVerified == nil
 }
 
 func NewAddRolesUserUpdater(roles []string) (*AddRolesUserUpdater, error) {
