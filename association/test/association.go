@@ -12,7 +12,7 @@ func RandomAssociation() *association.Association {
 	tipe := RandomType()
 	datum := association.NewAssociation()
 	switch tipe {
-	case association.TypeDatum:
+	case association.TypeBlob, association.TypeDatum, association.TypeImage:
 		datum.ID = pointer.FromString(dataTest.RandomID())
 	}
 	datum.Reason = pointer.FromString(RandomReason())

@@ -12,13 +12,17 @@ import (
 const (
 	AssociationArrayLengthMaximum = 100
 	ReasonLengthMaximum           = 1000
+	TypeBlob                      = "blob"
 	TypeDatum                     = "datum"
+	TypeImage                     = "image"
 	TypeURL                       = "url"
 )
 
 func Types() []string {
 	return []string{
+		TypeBlob,
 		TypeDatum,
+		TypeImage,
 		TypeURL,
 	}
 }
@@ -53,7 +57,7 @@ func (a *Association) Parse(parser structure.ObjectParser) {
 func (a *Association) Validate(validator structure.Validator) {
 	if idValidator := validator.String("id", a.ID); a.Type != nil {
 		switch *a.Type {
-		case TypeDatum:
+		case TypeBlob, TypeDatum, TypeImage:
 			idValidator.Exists().Using(data.IDValidator)
 		case TypeURL:
 			idValidator.NotExists()
@@ -63,7 +67,7 @@ func (a *Association) Validate(validator structure.Validator) {
 	validator.String("type", a.Type).Exists().OneOf(Types()...)
 	if urlValidator := validator.String("url", a.URL); a.Type != nil {
 		switch *a.Type {
-		case TypeDatum:
+		case TypeBlob, TypeDatum, TypeImage:
 			urlValidator.NotExists()
 		case TypeURL:
 			urlValidator.Exists().Using(net.URLValidator)
