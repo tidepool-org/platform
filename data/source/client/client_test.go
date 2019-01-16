@@ -201,26 +201,26 @@ var _ = Describe("Client", func() {
 
 							When("the server responds with no result", func() {
 								BeforeEach(func() {
-									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, dataSource.Sources{}, responseHeaders))
+									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, dataSource.SourceArray{}, responseHeaders))
 								})
 
 								It("returns successfully", func() {
 									result, err := client.List(ctx, userID, filter, pagination)
 									Expect(err).ToNot(HaveOccurred())
-									Expect(result).To(Equal(dataSource.Sources{}))
+									Expect(result).To(Equal(dataSource.SourceArray{}))
 								})
 							})
 
 							When("the server responds with result", func() {
-								var responseResult dataSource.Sources
+								var responseResult dataSource.SourceArray
 
 								BeforeEach(func() {
-									responseResult = dataSourceTest.RandomSources(1, 4)
+									responseResult = dataSourceTest.RandomSourceArray(1, 4)
 									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, responseResult, responseHeaders))
 								})
 
 								It("returns successfully", func() {
-									Expect(client.List(ctx, userID, filter, pagination)).To(dataSourceTest.MatchSources(responseResult))
+									Expect(client.List(ctx, userID, filter, pagination)).To(dataSourceTest.MatchSourceArray(responseResult))
 								})
 							})
 						})

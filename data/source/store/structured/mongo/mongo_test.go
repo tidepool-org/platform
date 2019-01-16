@@ -31,7 +31,7 @@ import (
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
-type CreatedTimeDescending dataSource.Sources
+type CreatedTimeDescending dataSource.SourceArray
 
 func (c CreatedTimeDescending) Len() int {
 	return len(c)
@@ -50,8 +50,8 @@ func (c CreatedTimeDescending) Less(left int, right int) bool {
 	return c[right].CreatedTime.Before(*c[left].CreatedTime)
 }
 
-func SelectAndSort(sources dataSource.Sources, selector func(s *dataSource.Source) bool) dataSource.Sources {
-	var selected dataSource.Sources
+func SelectAndSort(sources dataSource.SourceArray, selector func(s *dataSource.Source) bool) dataSource.SourceArray {
+	var selected dataSource.SourceArray
 	for _, s := range sources {
 		if selector(s) {
 			selected = append(selected, s)
@@ -61,7 +61,7 @@ func SelectAndSort(sources dataSource.Sources, selector func(s *dataSource.Sourc
 	return selected
 }
 
-func AsInterfaceArray(sources dataSource.Sources) []interface{} {
+func AsInterfaceArray(sources dataSource.SourceArray) []interface{} {
 	if sources == nil {
 		return nil
 	}
@@ -218,14 +218,14 @@ var _ = Describe("Mongo", func() {
 						var providerType string
 						var providerName string
 						var providerSessionID string
-						var allResult dataSource.Sources
+						var allResult dataSource.SourceArray
 
 						BeforeEach(func() {
 							providerType = auth.ProviderTypeOAuth
 							providerName = authTest.RandomProviderName()
 							providerSessionID = authTest.RandomProviderSessionID()
-							allResult = dataSource.Sources{}
-							for index, randomResult := range dataSourceTest.RandomSources(12, 12) {
+							allResult = dataSource.SourceArray{}
+							for index, randomResult := range dataSourceTest.RandomSourceArray(12, 12) {
 								if index < 4 {
 									randomResult.State = pointer.FromString(dataSource.StateConnected)
 								} else if index < 8 {
@@ -482,7 +482,7 @@ var _ = Describe("Mongo", func() {
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
 						Expect(*result).To(matchAllFields)
-						storeResult := dataSource.Sources{}
+						storeResult := dataSource.SourceArray{}
 						Expect(mgoCollection.Find(bson.M{"id": result.ID}).All(&storeResult)).To(Succeed())
 						Expect(storeResult).To(HaveLen(1))
 						Expect(*storeResult[0]).To(matchAllFields)
@@ -527,11 +527,11 @@ var _ = Describe("Mongo", func() {
 				})
 
 				Context("with data", func() {
-					var allResult dataSource.Sources
+					var allResult dataSource.SourceArray
 					var result *dataSource.Source
 
 					BeforeEach(func() {
-						allResult = dataSourceTest.RandomSources(4, 4)
+						allResult = dataSourceTest.RandomSourceArray(4, 4)
 						result = allResult[0]
 						result.ID = pointer.FromString(id)
 						rand.Shuffle(len(allResult), func(i, j int) { allResult[i], allResult[j] = allResult[j], allResult[i] })
@@ -680,7 +680,7 @@ var _ = Describe("Mongo", func() {
 								Expect(err).ToNot(HaveOccurred())
 								Expect(result).ToNot(BeNil())
 								Expect(*result).To(matchAllFields)
-								storeResult := dataSource.Sources{}
+								storeResult := dataSource.SourceArray{}
 								Expect(mgoCollection.Find(bson.M{"id": id}).All(&storeResult)).To(Succeed())
 								Expect(storeResult).To(HaveLen(1))
 								Expect(*storeResult[0]).To(matchAllFields)
@@ -710,7 +710,7 @@ var _ = Describe("Mongo", func() {
 								Expect(err).ToNot(HaveOccurred())
 								Expect(result).ToNot(BeNil())
 								Expect(*result).To(matchAllFields)
-								storeResult := dataSource.Sources{}
+								storeResult := dataSource.SourceArray{}
 								Expect(mgoCollection.Find(bson.M{"id": id}).All(&storeResult)).To(Succeed())
 								Expect(storeResult).To(HaveLen(1))
 								Expect(*storeResult[0]).To(matchAllFields)
@@ -739,7 +739,7 @@ var _ = Describe("Mongo", func() {
 								Expect(err).ToNot(HaveOccurred())
 								Expect(result).ToNot(BeNil())
 								Expect(*result).To(matchAllFields)
-								storeResult := dataSource.Sources{}
+								storeResult := dataSource.SourceArray{}
 								Expect(mgoCollection.Find(bson.M{"id": id}).All(&storeResult)).To(Succeed())
 								Expect(storeResult).To(HaveLen(1))
 								Expect(*storeResult[0]).To(matchAllFields)

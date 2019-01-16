@@ -1875,14 +1875,14 @@ var _ = Describe("Source", func() {
 		})
 	})
 
-	Context("Sources", func() {
+	Context("SourceArray", func() {
 		Context("Sanitize", func() {
-			var originals dataSource.Sources
-			var sanitized dataSource.Sources
+			var originals dataSource.SourceArray
+			var sanitized dataSource.SourceArray
 
 			BeforeEach(func() {
-				originals = dataSourceTest.RandomSources(1, 3)
-				sanitized = dataSourceTest.CloneSources(originals)
+				originals = dataSourceTest.RandomSourceArray(1, 3)
+				sanitized = dataSourceTest.CloneSourceArray(originals)
 			})
 
 			It("returns an error when the details are missing", func() {

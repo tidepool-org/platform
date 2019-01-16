@@ -29,7 +29,7 @@ func New(config *platform.Config, authorizeAs platform.AuthorizeAs) (*Client, er
 	}, nil
 }
 
-func (c *Client) List(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.Blobs, error) {
+func (c *Client) List(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.BlobArray, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -50,7 +50,7 @@ func (c *Client) List(ctx context.Context, userID string, filter *blob.Filter, p
 	}
 
 	url := c.client.ConstructURL("v1", "users", userID, "blobs")
-	result := blob.Blobs{}
+	result := blob.BlobArray{}
 	if err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{filter, pagination}, nil, &result); err != nil {
 		return nil, err
 	}

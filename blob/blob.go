@@ -34,7 +34,7 @@ func Statuses() []string {
 // FUTURE: Add DeleteAll
 
 type Client interface {
-	List(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) (Blobs, error)
+	List(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) (BlobArray, error)
 	Create(ctx context.Context, userID string, content *Content) (*Blob, error)
 	Get(ctx context.Context, id string) (*Blob, error)
 	GetContent(ctx context.Context, id string) (*Content, error)
@@ -125,7 +125,7 @@ func (b *Blob) Validate(validator structure.Validator) {
 	validator.Int("revision", b.Revision).Exists().GreaterThanOrEqualTo(0)
 }
 
-type Blobs []*Blob
+type BlobArray []*Blob
 
 func NewID() string {
 	return id.Must(id.New(16))

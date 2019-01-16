@@ -16,8 +16,8 @@ type ListInput struct {
 }
 
 type ListOutput struct {
-	Sources dataSource.Sources
-	Error   error
+	SourceArray dataSource.SourceArray
+	Error       error
 }
 
 type CreateInput struct {
@@ -60,7 +60,7 @@ type Session struct {
 	*test.Closer
 	ListInvocations    int
 	ListInputs         []ListInput
-	ListStub           func(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.Sources, error)
+	ListStub           func(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error)
 	ListOutputs        []ListOutput
 	ListOutput         *ListOutput
 	CreateInvocations  int
@@ -91,7 +91,7 @@ func NewSession() *Session {
 	}
 }
 
-func (s *Session) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.Sources, error) {
+func (s *Session) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
 	s.ListInvocations++
 	s.ListInputs = append(s.ListInputs, ListInput{UserID: userID, Filter: filter, Pagination: pagination})
 	if s.ListStub != nil {
@@ -100,10 +100,10 @@ func (s *Session) List(ctx context.Context, userID string, filter *dataSource.Fi
 	if len(s.ListOutputs) > 0 {
 		output := s.ListOutputs[0]
 		s.ListOutputs = s.ListOutputs[1:]
-		return output.Sources, output.Error
+		return output.SourceArray, output.Error
 	}
 	if s.ListOutput != nil {
-		return s.ListOutput.Sources, s.ListOutput.Error
+		return s.ListOutput.SourceArray, s.ListOutput.Error
 	}
 	panic("List has no output")
 }

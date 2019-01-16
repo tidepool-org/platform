@@ -61,7 +61,7 @@ func (s *Session) EnsureIndexes() error {
 	})
 }
 
-func (s *Session) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.Sources, error) {
+func (s *Session) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -88,7 +88,7 @@ func (s *Session) List(ctx context.Context, userID string, filter *dataSource.Fi
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "filter": filter, "pagination": pagination})
 
-	result := dataSource.Sources{}
+	result := dataSource.SourceArray{}
 	query := bson.M{
 		"userId": userID,
 	}
@@ -339,7 +339,7 @@ func (s *Session) Destroy(ctx context.Context, id string, condition *request.Con
 }
 
 func (s *Session) get(logger log.Logger, id string, condition *request.Condition) (*dataSource.Source, error) {
-	results := dataSource.Sources{}
+	results := dataSource.SourceArray{}
 	query := bson.M{
 		"id": id,
 	}

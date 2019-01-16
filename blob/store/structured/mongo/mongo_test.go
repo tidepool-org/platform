@@ -31,7 +31,7 @@ import (
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
-type CreatedTimeDescending blob.Blobs
+type CreatedTimeDescending blob.BlobArray
 
 func (c CreatedTimeDescending) Len() int {
 	return len(c)
@@ -50,8 +50,8 @@ func (c CreatedTimeDescending) Swap(left int, right int) {
 	c[left], c[right] = c[right], c[left]
 }
 
-func SelectAndSort(blobs blob.Blobs, selector func(b *blob.Blob) bool) blob.Blobs {
-	var selected blob.Blobs
+func SelectAndSort(blobs blob.BlobArray, selector func(b *blob.Blob) bool) blob.BlobArray {
+	var selected blob.BlobArray
 	for _, b := range blobs {
 		if selector(b) {
 			selected = append(selected, b)
@@ -61,7 +61,7 @@ func SelectAndSort(blobs blob.Blobs, selector func(b *blob.Blob) bool) blob.Blob
 	return selected
 }
 
-func AsInterfaceArray(blobs blob.Blobs) []interface{} {
+func AsInterfaceArray(blobs blob.BlobArray) []interface{} {
 	if blobs == nil {
 		return nil
 	}
@@ -218,12 +218,12 @@ var _ = Describe("Mongo", func() {
 
 					Context("with data", func() {
 						var mediaType string
-						var allResult blob.Blobs
+						var allResult blob.BlobArray
 
 						BeforeEach(func() {
 							mediaType = netTest.RandomMediaType()
-							allResult = blob.Blobs{}
-							for index, randomResult := range blobTest.RandomBlobs(4, 4) {
+							allResult = blob.BlobArray{}
+							for index, randomResult := range blobTest.RandomBlobArray(4, 4) {
 								if index < 2 {
 									randomResult.MediaType = pointer.FromString(mediaType)
 								}
@@ -409,7 +409,7 @@ var _ = Describe("Mongo", func() {
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
 						Expect(*result).To(matchAllFields)
-						storeResult := blob.Blobs{}
+						storeResult := blob.BlobArray{}
 						Expect(mgoCollection.Find(bson.M{"id": result.ID}).All(&storeResult)).To(Succeed())
 						Expect(storeResult).To(HaveLen(1))
 						Expect(*storeResult[0]).To(matchAllFields)
@@ -433,7 +433,7 @@ var _ = Describe("Mongo", func() {
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
 						Expect(*result).To(matchAllFields)
-						storeResult := blob.Blobs{}
+						storeResult := blob.BlobArray{}
 						Expect(mgoCollection.Find(bson.M{"id": result.ID}).All(&storeResult)).To(Succeed())
 						Expect(storeResult).To(HaveLen(1))
 						Expect(*storeResult[0]).To(matchAllFields)
@@ -478,11 +478,11 @@ var _ = Describe("Mongo", func() {
 				})
 
 				Context("with data", func() {
-					var allResult blob.Blobs
+					var allResult blob.BlobArray
 					var result *blob.Blob
 
 					BeforeEach(func() {
-						allResult = blobTest.RandomBlobs(4, 4)
+						allResult = blobTest.RandomBlobArray(4, 4)
 						result = allResult[0]
 						result.ID = pointer.FromString(id)
 						rand.Shuffle(len(allResult), func(i, j int) { allResult[i], allResult[j] = allResult[j], allResult[i] })
@@ -623,7 +623,7 @@ var _ = Describe("Mongo", func() {
 								Expect(err).ToNot(HaveOccurred())
 								Expect(result).ToNot(BeNil())
 								Expect(*result).To(matchAllFields)
-								storeResult := blob.Blobs{}
+								storeResult := blob.BlobArray{}
 								Expect(mgoCollection.Find(bson.M{"id": id}).All(&storeResult)).To(Succeed())
 								Expect(storeResult).To(HaveLen(1))
 								Expect(*storeResult[0]).To(matchAllFields)

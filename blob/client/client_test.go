@@ -205,26 +205,26 @@ var _ = Describe("Client", func() {
 
 							When("the server responds with no result", func() {
 								BeforeEach(func() {
-									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, blob.Blobs{}, responseHeaders))
+									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, blob.BlobArray{}, responseHeaders))
 								})
 
 								It("returns successfully", func() {
 									result, err := client.List(ctx, userID, filter, pagination)
 									Expect(err).ToNot(HaveOccurred())
-									Expect(result).To(Equal(blob.Blobs{}))
+									Expect(result).To(Equal(blob.BlobArray{}))
 								})
 							})
 
 							When("the server responds with result", func() {
-								var responseResult blob.Blobs
+								var responseResult blob.BlobArray
 
 								BeforeEach(func() {
-									responseResult = blobTest.RandomBlobs(1, 4)
+									responseResult = blobTest.RandomBlobArray(1, 4)
 									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, responseResult, responseHeaders))
 								})
 
 								It("returns successfully", func() {
-									Expect(client.List(ctx, userID, filter, pagination)).To(blobTest.MatchBlobs(responseResult))
+									Expect(client.List(ctx, userID, filter, pagination)).To(blobTest.MatchBlobArray(responseResult))
 								})
 							})
 						})

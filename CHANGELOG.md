@@ -1,5 +1,6 @@
 ## HEAD
 
+* Rename Blobs to BlobArray and Sources to SourceArray for consistency
 * Add request.ErrorExtensionNotSupported
 * Minor test updates
 * Rename HasUpdates to IsEmpty to be more descriptive
