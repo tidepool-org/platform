@@ -129,3 +129,29 @@ If you use the Sublime Text editor with the GoSublime plugin, open the `platform
   "use_named_imports": true
 }
 ```
+
+# Upgrade Golang Version
+
+## Prepare
+
+**Before** you update this repository to use a newer version of Golang, please perform these checks:
+
+- Review the release notes for **all** Golang versions, major and minor, from the current Golang version to the target Golang version. The entire Golang release history can be found at https://golang.org/doc/devel/release.html.
+  - For major revisions, if any change described in the release notes could have a negative impact upon this repository, follow up and review any associated issues and the updated code. Make note of this change in order to explicitly test after upgrading.
+  - For minor revisions, review all issues included in the associated GitHub milestone issue tracker. These can be found in the minor revision release notes. If any issue could have a negative impact upon this repository, review the updated code. Make note of this issue in order to explicitly test after upgrading.
+- Install `gimme` via `brew`. Execute `gimme -k`. Ensure that the target Golang version is listed. The `gimme` tool is used by Travis CI to manage Golang versions. If the version is not listed, then the Travis CI build will not succeed.
+- Browse to https://hub.docker.com/_/golang and ensure the target Golang version in an Alpine Linux image is available. For example, if the target version is `1.11.4`, then ensure that the `1.11.4-alpine` image tag is available. If the image tag is not avaiable, then the Travis CI build will not succeed.
+
+## Upgrade
+
+Ensure you are using the target Golang version locally.
+
+Change the version in `.travis.yml` and all `Dockerfile.*` files.
+
+Add an entry in `CHANGELOG.md` and commit.
+
+## Test
+
+Ensure the `ci-build` and `ci-test` Makefile targets pass using the target Golang version.
+
+If you previously noted any changes or issues of concern, perform any explicit tests necessary.
