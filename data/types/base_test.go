@@ -16,6 +16,7 @@ import (
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	locationTest "github.com/tidepool-org/platform/location/test"
+	"github.com/tidepool-org/platform/metadata"
 	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/net"
 	originTest "github.com/tidepool-org/platform/origin/test"
@@ -583,7 +584,12 @@ var _ = Describe("Base", func() {
 					func(datum *types.Base) { datum.Payload = nil },
 					structure.Origins(),
 				),
-				Entry("payload exists",
+				Entry("payload invalid",
+					func(datum *types.Base) { datum.Payload = metadata.NewMetadata() },
+					structure.Origins(),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/payload"),
+				),
+				Entry("payload valid",
 					func(datum *types.Base) { datum.Payload = metadataTest.RandomMetadata() },
 					structure.Origins(),
 				),

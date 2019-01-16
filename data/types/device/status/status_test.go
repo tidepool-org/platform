@@ -11,6 +11,7 @@ import (
 	dataTypesDeviceStatusTest "github.com/tidepool-org/platform/data/types/device/status/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	"github.com/tidepool-org/platform/metadata"
 	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
@@ -200,7 +201,11 @@ var _ = Describe("Status", func() {
 					func(datum *status.Status) { datum.Reason = nil },
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/reason", NewMeta()),
 				),
-				Entry("reason exists",
+				Entry("reason invalid",
+					func(datum *status.Status) { datum.Reason = metadata.NewMetadata() },
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/reason", NewMeta()),
+				),
+				Entry("reason valid",
 					func(datum *status.Status) { datum.Reason = metadataTest.RandomMetadata() },
 				),
 				Entry("multiple errors",

@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	"github.com/tidepool-org/platform/metadata"
 	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/origin"
 	originTest "github.com/tidepool-org/platform/origin/test"
@@ -181,7 +182,11 @@ var _ = Describe("Origin", func() {
 				Entry("payload missing",
 					func(datum *origin.Origin) { datum.Payload = nil },
 				),
-				Entry("payload exists",
+				Entry("payload invalid",
+					func(datum *origin.Origin) { datum.Payload = metadata.NewMetadata() },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/payload"),
+				),
+				Entry("payload valid",
 					func(datum *origin.Origin) { datum.Payload = metadataTest.RandomMetadata() },
 				),
 				Entry("time missing",

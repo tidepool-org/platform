@@ -22,6 +22,7 @@ const (
 	ErrorCodeJSONMalformed         = "json-malformed"
 	ErrorCodeDigestsNotEqual       = "digests-not-equal"
 	ErrorCodeMediaTypeNotSupported = "media-type-not-supported"
+	ErrorCodeExtensionNotSupported = "extension-not-supported"
 )
 
 func ErrorInternalServerError(err error) error {
@@ -97,6 +98,10 @@ func ErrorDigestsNotEqual(value string, calculated string) error {
 
 func ErrorMediaTypeNotSupported(value string) error {
 	return errors.Preparedf(ErrorCodeMediaTypeNotSupported, "media type not supported", "media type %q not supported", value)
+}
+
+func ErrorExtensionNotSupported(value string) error {
+	return errors.Preparedf(ErrorCodeExtensionNotSupported, "extension not supported", "extension %q not supported", value)
 }
 
 func StatusCodeForError(err error) int {

@@ -123,6 +123,7 @@ var _ = Describe("Errors", func() {
 		Entry("is ErrorJSONMalformed", request.ErrorJSONMalformed(), "json-malformed", "json is malformed", "json is malformed"),
 		Entry("is ErrorDigestsNotEqual", request.ErrorDigestsNotEqual("QUJDREVGSElKS0xNTk9QUQ==", "lah2klptWl+IBNSepXlJ9Q=="), "digests-not-equal", "digests not equal", `digest "QUJDREVGSElKS0xNTk9QUQ==" does not equal calculated digest "lah2klptWl+IBNSepXlJ9Q=="`),
 		Entry("is ErrorMediaTypeNotSupported", request.ErrorMediaTypeNotSupported("application/octet-stream"), "media-type-not-supported", "media type not supported", `media type "application/octet-stream" not supported`),
+		Entry("is ErrorExtensionNotSupported", request.ErrorExtensionNotSupported("bin"), "extension-not-supported", "extension not supported", `extension "bin" not supported`),
 	)
 
 	Context("StatusCodeForError", func() {

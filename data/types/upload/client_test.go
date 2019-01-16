@@ -10,6 +10,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/upload"
 	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	"github.com/tidepool-org/platform/metadata"
 	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/net"
 	netTest "github.com/tidepool-org/platform/net/test"
@@ -77,7 +78,11 @@ var _ = Describe("Client", func() {
 				Entry("private missing",
 					func(datum *upload.Client) { datum.Private = nil },
 				),
-				Entry("private exists",
+				Entry("private invalid",
+					func(datum *upload.Client) { datum.Private = metadata.NewMetadata() },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/private"),
+				),
+				Entry("private valid",
 					func(datum *upload.Client) { datum.Private = metadataTest.RandomMetadata() },
 				),
 				Entry("multiple errors",

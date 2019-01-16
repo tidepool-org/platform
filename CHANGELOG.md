@@ -1,5 +1,7 @@
 ## HEAD
 
+* Add request.ErrorExtensionNotSupported
+* Minor test updates
 * Rename HasUpdates to IsEmpty to be more descriptive
 * Fix string length validation bug in structure validator package
 * Cleanup test package
