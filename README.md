@@ -155,3 +155,19 @@ Add an entry in `CHANGELOG.md` and commit.
 Ensure the `ci-build` and `ci-test` Makefile targets pass using the target Golang version.
 
 If you previously noted any changes or issues of concern, perform any explicit tests necessary.
+
+# Upgrade Dependencies
+
+## Upgrade
+
+Install `dep` via `brew`. Execute `dep ensure -update`.
+
+## Review
+
+Review all pending changes to all dependencies. If any changes could have a negative impact upon this repository, make note of this change to explicitly test afterwards.
+
+## Test
+
+Ensure the `ci-build` and `ci-test` Makefile targets pass using the target Golang version.
+
+If you previously noted any changes or issues of concern, perform any explicit tests necessary.

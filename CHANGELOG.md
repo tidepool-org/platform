@@ -1,5 +1,6 @@
 ## HEAD
 
+* Update dependencies
 * Update to Go 1.11.4
 * Rename Blobs to BlobArray and Sources to SourceArray for consistency
 * Add request.ErrorExtensionNotSupported
