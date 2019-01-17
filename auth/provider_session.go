@@ -13,7 +13,6 @@ import (
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"github.com/tidepool-org/platform/user"
 )
 
 const (
@@ -229,7 +228,7 @@ func (p *ProviderSession) Parse(parser structure.ObjectParser) {
 
 func (p *ProviderSession) Validate(validator structure.Validator) {
 	validator.String("id", &p.ID).Using(ProviderSessionIDValidator)
-	validator.String("userId", &p.UserID).Using(user.IDValidator)
+	validator.String("userId", &p.UserID).Using(UserIDValidator)
 	validator.String("type", &p.Type).OneOf(ProviderTypes()...)
 	validator.String("name", &p.Name).NotEmpty()
 	switch p.Type {

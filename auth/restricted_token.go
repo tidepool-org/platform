@@ -14,7 +14,6 @@ import (
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"github.com/tidepool-org/platform/user"
 )
 
 const MaximumExpirationDuration = time.Hour
@@ -169,7 +168,7 @@ func (r *RestrictedToken) Parse(parser structure.ObjectParser) {
 
 func (r *RestrictedToken) Validate(validator structure.Validator) {
 	validator.String("id", &r.ID).Using(RestrictedTokenIDValidator)
-	validator.String("userId", &r.UserID).Using(user.IDValidator)
+	validator.String("userId", &r.UserID).Using(UserIDValidator)
 	validator.StringArray("paths", r.Paths).LengthInRange(1, 10).EachMatches(pathExpression)
 	validator.Time("expirationTime", &r.ExpirationTime).Before(time.Now().Add(MaximumExpirationDuration))
 	validator.Time("createdTime", &r.CreatedTime).NotZero().BeforeNow(time.Second)
