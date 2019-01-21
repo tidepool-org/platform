@@ -35,6 +35,7 @@ func (r *Router) Routes() []*rest.Route {
 	return []*rest.Route{
 		rest.Get("/v1/users/:userId/blobs", r.List),
 		rest.Post("/v1/users/:userId/blobs", r.Create),
+		rest.Delete("/v1/users/:userId/blobs", r.DeleteAll),
 		rest.Get("/v1/blobs/:id", r.Get),
 		rest.Get("/v1/blobs/:id/content", r.GetContent),
 		rest.Delete("/v1/blobs/:id", r.Delete),
@@ -104,6 +105,22 @@ func (r *Router) Create(res rest.ResponseWriter, req *rest.Request) {
 	}
 
 	responder.Data(http.StatusCreated, result)
+}
+
+func (r *Router) DeleteAll(res rest.ResponseWriter, req *rest.Request) {
+	responder := request.MustNewResponder(res, req)
+
+	userID, err := request.DecodeRequestPathParameter(req, "userId", user.IsValidID)
+	if err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	if responder.RespondIfError(r.provider.BlobClient().DeleteAll(req.Context(), userID)) {
+		return
+	}
+
+	responder.Empty(http.StatusNoContent)
 }
 
 func (r *Router) Get(res rest.ResponseWriter, req *rest.Request) {

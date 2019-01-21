@@ -28,6 +28,7 @@ import (
 	requestTest "github.com/tidepool-org/platform/request/test"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
+	"github.com/tidepool-org/platform/test"
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
@@ -222,17 +223,20 @@ var _ = Describe("Mongo", func() {
 
 						BeforeEach(func() {
 							mediaType = netTest.RandomMediaType()
-							allResult = blob.BlobArray{}
-							for index, randomResult := range blobTest.RandomBlobArray(4, 4) {
-								if index < 2 {
-									randomResult.MediaType = pointer.FromString(mediaType)
+							allResult = blobTest.RandomBlobArray(8, 8)
+							for index, result := range allResult {
+								result.ID = pointer.FromString(blobTest.RandomID())
+								result.UserID = pointer.FromString(userID)
+								if (index/4)%2 == 0 {
+									result.MediaType = pointer.FromString(mediaType)
 								}
-								randomResult.Status = pointer.FromString(blob.Statuses()[index%2])
-								userResult := blobTest.CloneBlob(randomResult)
-								userResult.ID = pointer.FromString(blobTest.RandomID())
-								userResult.UserID = pointer.FromString(userID)
-								allResult = append(allResult, randomResult, userResult)
+								result.Status = pointer.FromString(blob.Statuses()[(index/2)%2])
+								if index%2 == 0 {
+									result.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*result.CreatedTime, time.Now()).Truncate(time.Second))
+									result.DeletedTime = pointer.CloneTime(result.ModifiedTime)
+								}
 							}
+							allResult = append(allResult, blobTest.RandomBlob(), blobTest.RandomBlob())
 							rand.Shuffle(len(allResult), func(i, j int) { allResult[i], allResult[j] = allResult[j], allResult[i] })
 							Expect(mgoCollection.Insert(AsInterfaceArray(allResult)...)).To(Succeed())
 						})
@@ -246,7 +250,9 @@ var _ = Describe("Mongo", func() {
 						It("returns expected result when the filter is missing", func() {
 							filter = nil
 							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
-								func(b *blob.Blob) bool { return *b.UserID == userID && *b.Status == blob.StatusAvailable },
+								func(b *blob.Blob) bool {
+									return *b.UserID == userID && b.DeletedTime == nil && *b.Status == blob.StatusAvailable
+								},
 							)))
 							logger.AssertDebug("List", log.Fields{"userId": userID, "pagination": pagination, "count": 2})
 						})
@@ -254,7 +260,9 @@ var _ = Describe("Mongo", func() {
 						It("returns expected result when the filter media type is missing", func() {
 							filter.MediaType = nil
 							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
-								func(b *blob.Blob) bool { return *b.UserID == userID && *b.Status == blob.StatusAvailable },
+								func(b *blob.Blob) bool {
+									return *b.UserID == userID && b.DeletedTime == nil && *b.Status == blob.StatusAvailable
+								},
 							)))
 							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 2})
 						})
@@ -263,7 +271,7 @@ var _ = Describe("Mongo", func() {
 							filter.MediaType = pointer.FromStringArray([]string{netTest.RandomMediaType(), mediaType})
 							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(b *blob.Blob) bool {
-									return *b.UserID == userID && *b.MediaType == mediaType && *b.Status == blob.StatusAvailable
+									return *b.UserID == userID && b.DeletedTime == nil && *b.MediaType == mediaType && *b.Status == blob.StatusAvailable
 								},
 							)))
 							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 1})
@@ -272,7 +280,9 @@ var _ = Describe("Mongo", func() {
 						It("returns expected result when the filter status is missing", func() {
 							filter.Status = nil
 							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
-								func(b *blob.Blob) bool { return *b.UserID == userID && *b.Status == blob.StatusAvailable },
+								func(b *blob.Blob) bool {
+									return *b.UserID == userID && b.DeletedTime == nil && *b.Status == blob.StatusAvailable
+								},
 							)))
 							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 2})
 						})
@@ -280,7 +290,9 @@ var _ = Describe("Mongo", func() {
 						It("returns expected result when the filter status is set to available", func() {
 							filter.Status = pointer.FromStringArray([]string{blob.StatusAvailable})
 							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
-								func(b *blob.Blob) bool { return *b.UserID == userID && *b.Status == blob.StatusAvailable },
+								func(b *blob.Blob) bool {
+									return *b.UserID == userID && b.DeletedTime == nil && *b.Status == blob.StatusAvailable
+								},
 							)))
 							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 2})
 						})
@@ -288,7 +300,9 @@ var _ = Describe("Mongo", func() {
 						It("returns expected result when the filter status is set to created", func() {
 							filter.Status = pointer.FromStringArray([]string{blob.StatusCreated})
 							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
-								func(b *blob.Blob) bool { return *b.UserID == userID && *b.Status == blob.StatusCreated },
+								func(b *blob.Blob) bool {
+									return *b.UserID == userID && b.DeletedTime == nil && *b.Status == blob.StatusCreated
+								},
 							)))
 							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 2})
 						})
@@ -296,7 +310,7 @@ var _ = Describe("Mongo", func() {
 						It("returns expected result when the filter status is set to both available and created", func() {
 							filter.Status = pointer.FromStringArray(blob.Statuses())
 							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
-								func(b *blob.Blob) bool { return *b.UserID == userID },
+								func(b *blob.Blob) bool { return *b.UserID == userID && b.DeletedTime == nil },
 							)))
 							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 4})
 						})
@@ -306,7 +320,7 @@ var _ = Describe("Mongo", func() {
 							filter.Status = pointer.FromStringArray([]string{blob.StatusAvailable})
 							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(b *blob.Blob) bool {
-									return *b.UserID == userID && *b.MediaType == mediaType && *b.Status == blob.StatusAvailable
+									return *b.UserID == userID && b.DeletedTime == nil && *b.MediaType == mediaType && *b.Status == blob.StatusAvailable
 								},
 							)))
 							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 1})
@@ -317,7 +331,7 @@ var _ = Describe("Mongo", func() {
 							filter.Status = pointer.FromStringArray([]string{blob.StatusCreated})
 							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(b *blob.Blob) bool {
-									return *b.UserID == userID && *b.MediaType == mediaType && *b.Status == blob.StatusCreated
+									return *b.UserID == userID && b.DeletedTime == nil && *b.MediaType == mediaType && *b.Status == blob.StatusCreated
 								},
 							)))
 							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 1})
@@ -327,7 +341,7 @@ var _ = Describe("Mongo", func() {
 							filter.Status = pointer.FromStringArray(blob.Statuses())
 							pagination = nil
 							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
-								func(b *blob.Blob) bool { return *b.UserID == userID },
+								func(b *blob.Blob) bool { return *b.UserID == userID && b.DeletedTime == nil },
 							)))
 							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "count": 4})
 						})
@@ -337,7 +351,7 @@ var _ = Describe("Mongo", func() {
 							pagination.Page = 1
 							pagination.Size = 2
 							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
-								func(b *blob.Blob) bool { return *b.UserID == userID },
+								func(b *blob.Blob) bool { return *b.UserID == userID && b.DeletedTime == nil },
 							)[2:4]))
 							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 2})
 						})
@@ -403,6 +417,7 @@ var _ = Describe("Mongo", func() {
 							"Status":       PointTo(Equal(blob.StatusCreated)),
 							"CreatedTime":  PointTo(BeTemporally("~", time.Now(), time.Second)),
 							"ModifiedTime": BeNil(),
+							"DeletedTime":  BeNil(),
 							"Revision":     PointTo(Equal(0)),
 						})
 						result, err := session.Create(ctx, userID, create)
@@ -427,6 +442,7 @@ var _ = Describe("Mongo", func() {
 							"Status":       PointTo(Equal(blob.StatusCreated)),
 							"CreatedTime":  PointTo(BeTemporally("~", time.Now(), time.Second)),
 							"ModifiedTime": BeNil(),
+							"DeletedTime":  BeNil(),
 							"Revision":     PointTo(Equal(0)),
 						})
 						result, err := session.Create(ctx, userID, create)
@@ -440,39 +456,178 @@ var _ = Describe("Mongo", func() {
 						logger.AssertDebug("Create", log.Fields{"userId": userID, "create": create, "id": *storeResult[0].ID})
 					})
 				})
+
+				Context("DeleteAll", func() {
+					It("returns an error when the context is missing", func() {
+						ctx = nil
+						deleted, err := session.DeleteAll(ctx, userID)
+						errorsTest.ExpectEqual(err, errors.New("context is missing"))
+						Expect(deleted).To(BeFalse())
+					})
+
+					It("returns an error when the user id is missing", func() {
+						userID = ""
+						deleted, err := session.DeleteAll(ctx, userID)
+						errorsTest.ExpectEqual(err, errors.New("user id is missing"))
+						Expect(deleted).To(BeFalse())
+					})
+
+					It("returns an error when the user id is invalid", func() {
+						userID = "invalid"
+						deleted, err := session.DeleteAll(ctx, userID)
+						errorsTest.ExpectEqual(err, errors.New("user id is invalid"))
+						Expect(deleted).To(BeFalse())
+					})
+
+					It("returns an error when the session is closed", func() {
+						session.Close()
+						deleted, err := session.DeleteAll(ctx, userID)
+						errorsTest.ExpectEqual(err, errors.New("session closed"))
+						Expect(deleted).To(BeFalse())
+					})
+
+					Context("with data", func() {
+						var originals blob.BlobArray
+
+						BeforeEach(func() {
+							originals = blobTest.RandomBlobArray(4, 4)
+							for index, original := range originals {
+								original.UserID = pointer.FromString(userID)
+								if index%2 == 0 {
+									original.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*original.CreatedTime, time.Now()).Truncate(time.Second))
+									original.DeletedTime = pointer.CloneTime(original.ModifiedTime)
+								}
+								Expect(mgoCollection.Insert(original)).To(Succeed())
+							}
+							Expect(mgoCollection.Insert(blobTest.RandomBlob(), blobTest.RandomBlob())).To(Succeed())
+						})
+
+						AfterEach(func() {
+							logger.AssertDebug("DeleteAll", log.Fields{"userId": userID})
+						})
+
+						It("returns false and does not delete the originals when the user id does not match", func() {
+							originalUserID := userID
+							userID = userTest.RandomID()
+							Expect(session.DeleteAll(ctx, userID)).To(BeFalse())
+							Expect(mgoCollection.Find(bson.M{"userId": originalUserID, "deletedTime": bson.M{"$exists": true}}).Count()).To(Equal(2))
+							Expect(mgoCollection.Find(bson.M{"deletedTime": bson.M{"$exists": true}}).Count()).To(Equal(2))
+						})
+
+						It("returns true and deletes the originals when the user id matches", func() {
+							Expect(session.DeleteAll(ctx, userID)).To(BeTrue())
+							Expect(mgoCollection.Find(bson.M{"userId": userID, "deletedTime": bson.M{"$exists": true}}).Count()).To(Equal(4))
+							Expect(mgoCollection.Find(bson.M{"deletedTime": bson.M{"$exists": true}}).Count()).To(Equal(4))
+						})
+					})
+				})
+
+				Context("DestroyAll", func() {
+					It("returns an error when the context is missing", func() {
+						ctx = nil
+						destroyed, err := session.DestroyAll(ctx, userID)
+						errorsTest.ExpectEqual(err, errors.New("context is missing"))
+						Expect(destroyed).To(BeFalse())
+					})
+
+					It("returns an error when the user id is missing", func() {
+						userID = ""
+						destroyed, err := session.DestroyAll(ctx, userID)
+						errorsTest.ExpectEqual(err, errors.New("user id is missing"))
+						Expect(destroyed).To(BeFalse())
+					})
+
+					It("returns an error when the user id is invalid", func() {
+						userID = "invalid"
+						destroyed, err := session.DestroyAll(ctx, userID)
+						errorsTest.ExpectEqual(err, errors.New("user id is invalid"))
+						Expect(destroyed).To(BeFalse())
+					})
+
+					It("returns an error when the session is closed", func() {
+						session.Close()
+						destroyed, err := session.DestroyAll(ctx, userID)
+						errorsTest.ExpectEqual(err, errors.New("session closed"))
+						Expect(destroyed).To(BeFalse())
+					})
+
+					Context("with data", func() {
+						var originals blob.BlobArray
+
+						BeforeEach(func() {
+							originals = blobTest.RandomBlobArray(4, 4)
+							for index, original := range originals {
+								original.UserID = pointer.FromString(userID)
+								if index%2 == 0 {
+									original.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*original.CreatedTime, time.Now()).Truncate(time.Second))
+									original.DeletedTime = pointer.CloneTime(original.ModifiedTime)
+								}
+								Expect(mgoCollection.Insert(original)).To(Succeed())
+							}
+							Expect(mgoCollection.Insert(blobTest.RandomBlob(), blobTest.RandomBlob())).To(Succeed())
+						})
+
+						AfterEach(func() {
+							logger.AssertDebug("DestroyAll", log.Fields{"userId": userID})
+						})
+
+						It("returns false and does not destroy the originals when the user id does not match", func() {
+							originalUserID := userID
+							userID = userTest.RandomID()
+							Expect(session.DestroyAll(ctx, userID)).To(BeFalse())
+							Expect(mgoCollection.Find(bson.M{"userId": originalUserID}).Count()).To(Equal(4))
+							Expect(mgoCollection.Find(bson.M{}).Count()).To(Equal(6))
+						})
+
+						It("returns true and destroys the originals when the user id matches", func() {
+							Expect(session.DestroyAll(ctx, userID)).To(BeTrue())
+							Expect(mgoCollection.Find(bson.M{"userId": userID}).Count()).To(Equal(0))
+							Expect(mgoCollection.Find(bson.M{}).Count()).To(Equal(2))
+						})
+					})
+				})
 			})
 
 			Context("Get", func() {
 				var id string
+				var condition *request.Condition
 
 				BeforeEach(func() {
 					id = blobTest.RandomID()
+					condition = requestTest.RandomCondition()
 				})
 
 				It("returns an error when the context is missing", func() {
 					ctx = nil
-					result, err := session.Get(ctx, id)
+					result, err := session.Get(ctx, id, condition)
 					errorsTest.ExpectEqual(err, errors.New("context is missing"))
 					Expect(result).To(BeNil())
 				})
 
 				It("returns an error when the id is missing", func() {
 					id = ""
-					result, err := session.Get(ctx, id)
+					result, err := session.Get(ctx, id, condition)
 					errorsTest.ExpectEqual(err, errors.New("id is missing"))
 					Expect(result).To(BeNil())
 				})
 
 				It("returns an error when the id is invalid", func() {
 					id = "invalid"
-					result, err := session.Get(ctx, id)
+					result, err := session.Get(ctx, id, condition)
 					errorsTest.ExpectEqual(err, errors.New("id is invalid"))
+					Expect(result).To(BeNil())
+				})
+
+				It("returns an error when the condition is invalid", func() {
+					condition.Revision = pointer.FromInt(-1)
+					result, err := session.Get(ctx, id, condition)
+					errorsTest.ExpectEqual(err, errors.New("condition is invalid"))
 					Expect(result).To(BeNil())
 				})
 
 				It("returns an error when the session is closed", func() {
 					session.Close()
-					result, err := session.Get(ctx, id)
+					result, err := session.Get(ctx, id, condition)
 					errorsTest.ExpectEqual(err, errors.New("session closed"))
 					Expect(result).To(BeNil())
 				})
@@ -482,7 +637,7 @@ var _ = Describe("Mongo", func() {
 					var result *blob.Blob
 
 					BeforeEach(func() {
-						allResult = blobTest.RandomBlobArray(4, 4)
+						allResult = blobTest.RandomBlobArray(3, 3)
 						result = allResult[0]
 						result.ID = pointer.FromString(id)
 						rand.Shuffle(len(allResult), func(i, j int) { allResult[i], allResult[j] = allResult[j], allResult[i] })
@@ -498,21 +653,89 @@ var _ = Describe("Mongo", func() {
 
 					It("returns nil when the id does not exist", func() {
 						id = blobTest.RandomID()
-						Expect(session.Get(ctx, id)).To(BeNil())
+						Expect(session.Get(ctx, id, condition)).To(BeNil())
 					})
 
-					It("returns the result when the id exists", func() {
-						Expect(session.Get(ctx, id)).To(Equal(result))
-					})
-
-					Context("when the revision is missing", func() {
+					When("the condition revision does not match", func() {
 						BeforeEach(func() {
-							result.Revision = nil
+							condition.Revision = pointer.FromInt(*result.Revision + 1)
 						})
 
-						It("returns the result with revision 0", func() {
-							result.Revision = pointer.FromInt(0)
-							Expect(session.Get(ctx, id)).To(Equal(result))
+						It("returns nil", func() {
+							Expect(session.Get(ctx, id, condition)).To(BeNil())
+						})
+					})
+
+					conditionAssertions := func() {
+						It("returns the result when the id exists", func() {
+							Expect(session.Get(ctx, id, condition)).To(Equal(result))
+						})
+
+						Context("when the result is marked as deleted", func() {
+							BeforeEach(func() {
+								result.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*result.CreatedTime, time.Now()).Truncate(time.Second))
+								result.DeletedTime = pointer.CloneTime(result.ModifiedTime)
+							})
+
+							It("returns nil", func() {
+								Expect(session.Get(ctx, id, condition)).To(BeNil())
+							})
+						})
+					}
+
+					When("the condition is missing", func() {
+						BeforeEach(func() {
+							condition = nil
+						})
+
+						conditionAssertions()
+
+						Context("when the revision is missing", func() {
+							BeforeEach(func() {
+								result.Revision = nil
+							})
+
+							It("returns the result with revision 0", func() {
+								result.Revision = pointer.FromInt(0)
+								Expect(session.Get(ctx, id, condition)).To(Equal(result))
+							})
+						})
+					})
+
+					When("the condition revision is missing", func() {
+						BeforeEach(func() {
+							condition.Revision = nil
+						})
+
+						conditionAssertions()
+
+						Context("when the revision is missing", func() {
+							BeforeEach(func() {
+								result.Revision = nil
+							})
+
+							It("returns the result with revision 0", func() {
+								result.Revision = pointer.FromInt(0)
+								Expect(session.Get(ctx, id, condition)).To(Equal(result))
+							})
+						})
+					})
+
+					When("the condition revision matches", func() {
+						BeforeEach(func() {
+							condition.Revision = pointer.CloneInt(result.Revision)
+						})
+
+						conditionAssertions()
+
+						Context("when the revision is missing", func() {
+							BeforeEach(func() {
+								result.Revision = nil
+							})
+
+							It("returns nil", func() {
+								Expect(session.Get(ctx, id, condition)).To(BeNil())
+							})
 						})
 					})
 				})
@@ -617,6 +840,7 @@ var _ = Describe("Mongo", func() {
 									"Status":       Equal(update.Status),
 									"CreatedTime":  Equal(original.CreatedTime),
 									"ModifiedTime": PointTo(BeTemporally("~", time.Now(), time.Second)),
+									"DeletedTime":  BeNil(),
 									"Revision":     PointTo(Equal(*original.Revision + 1)),
 								})
 								result, err := session.Update(ctx, id, condition, update)
@@ -647,6 +871,146 @@ var _ = Describe("Mongo", func() {
 							It("returns nil when the id does not exist", func() {
 								id = blobTest.RandomID()
 								Expect(session.Update(ctx, id, condition, update)).To(BeNil())
+							})
+						})
+					}
+
+					When("the condition is missing", func() {
+						BeforeEach(func() {
+							condition = nil
+						})
+
+						conditionAssertions()
+					})
+
+					When("the condition revision is missing", func() {
+						BeforeEach(func() {
+							condition.Revision = nil
+						})
+
+						conditionAssertions()
+					})
+
+					When("the condition revision matches", func() {
+						BeforeEach(func() {
+							condition.Revision = pointer.CloneInt(original.Revision)
+						})
+
+						conditionAssertions()
+					})
+				})
+			})
+
+			Context("Delete", func() {
+				var id string
+				var condition *request.Condition
+
+				BeforeEach(func() {
+					id = blobTest.RandomID()
+					condition = requestTest.RandomCondition()
+				})
+
+				It("returns an error when the context is missing", func() {
+					ctx = nil
+					result, err := session.Delete(ctx, id, condition)
+					errorsTest.ExpectEqual(err, errors.New("context is missing"))
+					Expect(result).To(BeFalse())
+				})
+
+				It("returns an error when the id is missing", func() {
+					id = ""
+					result, err := session.Delete(ctx, id, condition)
+					errorsTest.ExpectEqual(err, errors.New("id is missing"))
+					Expect(result).To(BeFalse())
+				})
+
+				It("returns an error when the id is invalid", func() {
+					id = "invalid"
+					result, err := session.Delete(ctx, id, condition)
+					errorsTest.ExpectEqual(err, errors.New("id is invalid"))
+					Expect(result).To(BeFalse())
+				})
+
+				It("returns an error when the condition is invalid", func() {
+					condition.Revision = pointer.FromInt(-1)
+					result, err := session.Delete(ctx, id, condition)
+					errorsTest.ExpectEqual(err, errors.New("condition is invalid"))
+					Expect(result).To(BeFalse())
+				})
+
+				It("returns an error when the session is closed", func() {
+					session.Close()
+					result, err := session.Delete(ctx, id, condition)
+					errorsTest.ExpectEqual(err, errors.New("session closed"))
+					Expect(result).To(BeFalse())
+				})
+
+				Context("with data", func() {
+					var original *blob.Blob
+
+					BeforeEach(func() {
+						original = blobTest.RandomBlob()
+						original.ID = pointer.FromString(id)
+					})
+
+					JustBeforeEach(func() {
+						Expect(mgoCollection.Insert(original)).To(Succeed())
+					})
+
+					AfterEach(func() {
+						if condition != nil {
+							logger.AssertDebug("Delete", log.Fields{"id": id, "condition": condition})
+						} else {
+							logger.AssertDebug("Delete", log.Fields{"id": id})
+						}
+					})
+
+					When("the original is marked as deleted", func() {
+						BeforeEach(func() {
+							original.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*original.CreatedTime, time.Now()).Truncate(time.Second))
+							original.DeletedTime = pointer.CloneTime(original.ModifiedTime)
+						})
+
+						It("returns false", func() {
+							Expect(session.Delete(ctx, id, condition)).To(BeFalse())
+						})
+					})
+
+					When("the condition revision does not match", func() {
+						BeforeEach(func() {
+							condition.Revision = pointer.FromInt(*original.Revision + 1)
+						})
+
+						It("returns false", func() {
+							Expect(session.Delete(ctx, id, condition)).To(BeFalse())
+						})
+					})
+
+					conditionAssertions := func() {
+						Context("with updates", func() {
+							It("returns true when the id exists", func() {
+								matchAllFields := MatchAllFields(Fields{
+									"ID":           PointTo(Equal(id)),
+									"UserID":       Equal(original.UserID),
+									"DigestMD5":    Equal(original.DigestMD5),
+									"MediaType":    Equal(original.MediaType),
+									"Size":         Equal(original.Size),
+									"Status":       Equal(original.Status),
+									"CreatedTime":  Equal(original.CreatedTime),
+									"ModifiedTime": PointTo(BeTemporally("~", time.Now(), time.Second)),
+									"DeletedTime":  PointTo(BeTemporally("~", time.Now(), time.Second)),
+									"Revision":     PointTo(Equal(*original.Revision + 1)),
+								})
+								Expect(session.Delete(ctx, id, condition)).To(BeTrue())
+								storeResult := blob.BlobArray{}
+								Expect(mgoCollection.Find(bson.M{"id": id}).All(&storeResult)).To(Succeed())
+								Expect(storeResult).To(HaveLen(1))
+								Expect(*storeResult[0]).To(matchAllFields)
+							})
+
+							It("returns false when the id does not exist", func() {
+								id = blobTest.RandomID()
+								Expect(session.Delete(ctx, id, condition)).To(BeFalse())
 							})
 						})
 					}

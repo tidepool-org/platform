@@ -389,6 +389,73 @@ var _ = Describe("Client", func() {
 						digestAssertions()
 					})
 				})
+
+				Context("DeleteAll", func() {
+					Context("without server response", func() {
+						AfterEach(func() {
+							Expect(server.ReceivedRequests()).To(BeEmpty())
+						})
+
+						It("returns an error when the context is missing", func() {
+							ctx = nil
+							errorsTest.ExpectEqual(client.DeleteAll(ctx, userID), errors.New("context is missing"))
+						})
+
+						It("returns an error when the user id is missing", func() {
+							userID = ""
+							errorsTest.ExpectEqual(client.DeleteAll(ctx, userID), errors.New("user id is missing"))
+						})
+
+						It("returns an error when the user id is invalid", func() {
+							userID = "invalid"
+							errorsTest.ExpectEqual(client.DeleteAll(ctx, userID), errors.New("user id is invalid"))
+						})
+					})
+
+					Context("with server response", func() {
+						BeforeEach(func() {
+							requestHandlers = append(requestHandlers,
+								VerifyRequest(http.MethodDelete, fmt.Sprintf("/v1/users/%s/blobs", userID)),
+								VerifyContentType(""),
+								VerifyBody(nil),
+							)
+						})
+
+						AfterEach(func() {
+							Expect(server.ReceivedRequests()).To(HaveLen(1))
+						})
+
+						When("the server responds with an unauthenticated error", func() {
+							BeforeEach(func() {
+								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusUnauthorized, errors.NewSerializable(request.ErrorUnauthenticated()), responseHeaders))
+							})
+
+							It("returns an error", func() {
+								errorsTest.ExpectEqual(client.DeleteAll(ctx, userID), request.ErrorUnauthenticated())
+							})
+						})
+
+						When("the server responds with an unauthorized error", func() {
+							BeforeEach(func() {
+								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusForbidden, errors.NewSerializable(request.ErrorUnauthorized()), responseHeaders))
+							})
+
+							It("returns an error", func() {
+								errorsTest.ExpectEqual(client.DeleteAll(ctx, userID), request.ErrorUnauthorized())
+							})
+						})
+
+						When("the server responds successfully", func() {
+							BeforeEach(func() {
+								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNoContent, nil, responseHeaders))
+							})
+
+							It("returns successfully", func() {
+								Expect(client.DeleteAll(ctx, userID)).To(Succeed())
+							})
+						})
+					})
+				})
 			})
 
 			Context("with id", func() {

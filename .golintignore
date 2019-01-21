@@ -1,5 +1,5 @@
 ./association/association.go:78:6: type name will be used as association.AssociationArray by other packages, and that stutters; consider calling this Array
-./blob/blob.go:128:6: type name will be used as blob.BlobArray by other packages, and that stutters; consider calling this Array
+./blob/blob.go:132:6: type name will be used as blob.BlobArray by other packages, and that stutters; consider calling this Array
 ./confirmation/confirmation.go:5:6: type name will be used as confirmation.ConfirmationAccessor by other packages, and that stutters; consider calling this Accessor
 ./data/client/client.go:27:6: type name will be used as client.ClientImpl by other packages, and that stutters; consider calling this Impl
 ./data/data_set.go:24:6: type name will be used as data.DataSetAccessor by other packages, and that stutters; consider calling this SetAccessor
