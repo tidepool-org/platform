@@ -12,9 +12,11 @@ import (
 	"github.com/tidepool-org/platform/auth"
 	authClient "github.com/tidepool-org/platform/auth/client"
 	authTest "github.com/tidepool-org/platform/auth/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/platform"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/test"
 	testHttp "github.com/tidepool-org/platform/test/http"
 )
@@ -392,7 +394,7 @@ var _ = Describe("Client", func() {
 						details, err := client.ValidateSessionToken(ctx, token)
 						Expect(err).To(HaveOccurred())
 						Expect(details).To(BeNil())
-						Expect(err).To(MatchError("json is malformed; invalid character '}' looking for beginning of value"))
+						errorsTest.ExpectEqual(err, request.ErrorJSONMalformed())
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})

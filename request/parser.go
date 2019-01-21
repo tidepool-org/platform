@@ -22,7 +22,7 @@ func DecodeRequestBody(req *http.Request, object interface{}) error {
 		return errors.New("request is missing")
 	}
 	if req.Body == nil {
-		return errors.New("request body is missing")
+		return ErrorJSONNotFound()
 	}
 
 	defer req.Body.Close()
@@ -34,7 +34,7 @@ func DecodeResponseBody(res *http.Response, object interface{}) error {
 		return errors.New("response is missing")
 	}
 	if res.Body == nil {
-		return errors.New("response body is missing")
+		return ErrorJSONNotFound()
 	}
 
 	defer res.Body.Close()
@@ -96,8 +96,10 @@ func ParseSimpleStreamObject(reader io.Reader, object interface{}) error {
 	}
 
 	if err := json.NewDecoder(reader).Decode(object); err != nil {
-		return errors.Wrap(err, "json is malformed")
-		// return ErrorJSONMalformed()
+		if err == io.EOF {
+			return ErrorJSONNotFound()
+		}
+		return ErrorJSONMalformed()
 	}
 
 	return nil

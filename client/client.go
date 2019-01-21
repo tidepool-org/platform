@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 	"unicode/utf8"
 
@@ -121,15 +122,17 @@ func (c *Client) createRequest(ctx context.Context, method string, url string, m
 
 	var body io.Reader
 	if requestBody != nil {
-		if reader, ok := requestBody.(io.Reader); ok {
-			body = reader
-		} else {
-			buffer := &bytes.Buffer{}
-			if err := json.NewEncoder(buffer).Encode(requestBody); err != nil {
-				return nil, errors.Wrapf(err, "unable to serialize request to %s %s", method, url)
+		if valueOf := reflect.ValueOf(requestBody); valueOf.Kind() != reflect.Ptr || !valueOf.IsNil() {
+			if reader, ok := requestBody.(io.Reader); ok {
+				body = reader
+			} else {
+				buffer := &bytes.Buffer{}
+				if err := json.NewEncoder(buffer).Encode(requestBody); err != nil {
+					return nil, errors.Wrapf(err, "unable to serialize request to %s %s", method, url)
+				}
+				body = buffer
+				mutators = append(mutators, request.NewHeaderMutator("Content-Type", "application/json; charset=utf-8"))
 			}
-			body = buffer
-			mutators = append(mutators, request.NewHeaderMutator("Content-Type", "application/json; charset=utf-8"))
 		}
 	}
 

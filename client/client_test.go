@@ -984,7 +984,7 @@ var _ = Describe("Client", func() {
 
 				It("returns an error", func() {
 					err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
-					Expect(err).To(MatchError("json is malformed; unexpected EOF"))
+					errorsTest.ExpectEqual(err, request.ErrorJSONMalformed())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 			})

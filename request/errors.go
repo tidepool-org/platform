@@ -19,6 +19,7 @@ const (
 	ErrorCodeHeaderInvalid         = "header-invalid"
 	ErrorCodeParameterMissing      = "parameter-missing"
 	ErrorCodeParameterInvalid      = "parameter-invalid"
+	ErrorCodeJSONNotFound          = "json-not-found"
 	ErrorCodeJSONMalformed         = "json-malformed"
 	ErrorCodeDigestsNotEqual       = "digests-not-equal"
 	ErrorCodeMediaTypeNotSupported = "media-type-not-supported"
@@ -86,6 +87,10 @@ func ErrorParameterMissing(key string) error {
 
 func ErrorParameterInvalid(key string) error {
 	return errors.Preparedf(ErrorCodeParameterInvalid, "parameter is invalid", "parameter %q is invalid", key)
+}
+
+func ErrorJSONNotFound() error {
+	return errors.Prepared(ErrorCodeJSONNotFound, "json not found", "json not found")
 }
 
 func ErrorJSONMalformed() error {

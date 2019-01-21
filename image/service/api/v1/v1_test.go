@@ -579,7 +579,7 @@ var _ = Describe("V1", func() {
 								handlerFunc(res, req)
 								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
 								Expect(res.WriteInputs).To(HaveLen(1))
-								errorsTest.ExpectErrorJSON(errors.New("json is malformed"), res.WriteInputs[0])
+								errorsTest.ExpectErrorJSON(request.ErrorJSONMalformed(), res.WriteInputs[0])
 							})
 						})
 
@@ -1609,7 +1609,7 @@ var _ = Describe("V1", func() {
 								handlerFunc(res, req)
 								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
 								Expect(res.WriteInputs).To(HaveLen(1))
-								errorsTest.ExpectErrorJSON(errors.New("json is malformed"), res.WriteInputs[0])
+								errorsTest.ExpectErrorJSON(request.ErrorJSONMalformed(), res.WriteInputs[0])
 							})
 						})
 
