@@ -23,6 +23,8 @@ var pathExpression = regexp.MustCompile("^/.*$")
 type RestrictedTokenAccessor interface {
 	ListUserRestrictedTokens(ctx context.Context, userID string, filter *RestrictedTokenFilter, pagination *page.Pagination) (RestrictedTokens, error)
 	CreateUserRestrictedToken(ctx context.Context, userID string, create *RestrictedTokenCreate) (*RestrictedToken, error)
+	DeleteAllRestrictedTokens(ctx context.Context, userID string) error
+
 	GetRestrictedToken(ctx context.Context, id string) (*RestrictedToken, error)
 	UpdateRestrictedToken(ctx context.Context, id string, update *RestrictedTokenUpdate) (*RestrictedToken, error)
 	DeleteRestrictedToken(ctx context.Context, id string) error

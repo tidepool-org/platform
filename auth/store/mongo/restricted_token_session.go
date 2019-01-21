@@ -96,6 +96,30 @@ func (r *RestrictedTokenSession) CreateUserRestrictedToken(ctx context.Context, 
 	return restrictedToken, nil
 }
 
+func (r *RestrictedTokenSession) DeleteAllRestrictedTokens(ctx context.Context, userID string) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if userID == "" {
+		return errors.New("user id is missing")
+	}
+
+	if r.IsClosed() {
+		return errors.New("session closed")
+	}
+
+	now := time.Now()
+	logger := log.LoggerFromContext(ctx).WithField("userId", userID)
+
+	changeInfo, err := r.C().RemoveAll(bson.M{"userId": userID})
+	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("DeleteAllRestrictedTokens")
+	if err != nil {
+		return errors.Wrap(err, "unable to delete all restricted tokens")
+	}
+
+	return nil
+}
+
 func (r *RestrictedTokenSession) GetRestrictedToken(ctx context.Context, id string) (*auth.RestrictedToken, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")

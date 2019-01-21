@@ -6,6 +6,8 @@ import (
 
 	authServiceApiV1 "github.com/tidepool-org/platform/auth/service/api/v1"
 	serviceTest "github.com/tidepool-org/platform/auth/service/test"
+	"github.com/tidepool-org/platform/errors"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 )
 
 var _ = Describe("Router", func() {
@@ -18,7 +20,7 @@ var _ = Describe("Router", func() {
 	Context("NewRouter", func() {
 		It("returns an error if context is missing", func() {
 			rtr, err := authServiceApiV1.NewRouter(nil)
-			Expect(err).To(MatchError("service is missing"))
+			errorsTest.ExpectEqual(err, errors.New("service is missing"))
 			Expect(rtr).To(BeNil())
 		})
 
