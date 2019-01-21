@@ -32,11 +32,11 @@ func States() []string {
 	}
 }
 
-// FUTURE: Add DeleteAll
-
 type Client interface {
 	List(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) (SourceArray, error)
 	Create(ctx context.Context, userID string, create *Create) (*Source, error)
+	DeleteAll(ctx context.Context, userID string) error
+
 	Get(ctx context.Context, id string) (*Source, error)
 	Update(ctx context.Context, id string, condition *request.Condition, update *Update) (*Source, error)
 	Delete(ctx context.Context, id string, condition *request.Condition) (bool, error)
@@ -253,8 +253,8 @@ func (s *Source) Sanitize(details request.Details) error {
 type SourceArray []*Source
 
 func (s SourceArray) Sanitize(details request.Details) error {
-	for _, source := range s {
-		if err := source.Sanitize(details); err != nil {
+	for _, datum := range s {
+		if err := datum.Sanitize(details); err != nil {
 			return err
 		}
 	}

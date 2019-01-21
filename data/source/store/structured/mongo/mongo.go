@@ -181,6 +181,36 @@ func (s *Session) Create(ctx context.Context, userID string, create *dataSource.
 	return result, nil
 }
 
+func (s *Session) DestroyAll(ctx context.Context, userID string) (bool, error) {
+	if ctx == nil {
+		return false, errors.New("context is missing")
+	}
+	if userID == "" {
+		return false, errors.New("user id is missing")
+	} else if !user.IsValidID(userID) {
+		return false, errors.New("user id is invalid")
+	}
+
+	if s.IsClosed() {
+		return false, errors.New("session closed")
+	}
+
+	now := time.Now()
+	logger := log.LoggerFromContext(ctx).WithField("userId", userID)
+
+	query := bson.M{
+		"userId": userID,
+	}
+	changeInfo, err := s.C().RemoveAll(query)
+	if err != nil {
+		logger.WithError(err).Error("Unable to destroy all data sources")
+		return false, errors.Wrap(err, "unable to destroy all data sources")
+	}
+
+	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("DestroyAll")
+	return changeInfo.Removed > 0, nil
+}
+
 func (s *Session) Get(ctx context.Context, id string) (*dataSource.Source, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
@@ -330,8 +360,8 @@ func (s *Session) Destroy(ctx context.Context, id string, condition *request.Con
 	}
 	changeInfo, err := s.C().RemoveAll(query)
 	if err != nil {
-		logger.WithError(err).Error("Unable to delete data source")
-		return false, errors.Wrap(err, "unable to delete data source")
+		logger.WithError(err).Error("Unable to destroy data source")
+		return false, errors.Wrap(err, "unable to destroy data source")
 	}
 
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("Destroy")

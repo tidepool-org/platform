@@ -81,6 +81,20 @@ func (c *Client) Create(ctx context.Context, userID string, create *dataSource.C
 	return result, nil
 }
 
+func (c *Client) DeleteAll(ctx context.Context, userID string) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if userID == "" {
+		return errors.New("user id is missing")
+	} else if !user.IsValidID(userID) {
+		return errors.New("user id is invalid")
+	}
+
+	url := c.client.ConstructURL("v1", "users", userID, "data_sources")
+	return c.client.RequestData(ctx, http.MethodDelete, url, nil, nil, nil)
+}
+
 func (c *Client) Get(ctx context.Context, id string) (*dataSource.Source, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
