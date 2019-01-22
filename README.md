@@ -61,7 +61,7 @@ Use `Ctrl-C` to stop the executable. It may take up to 60 seconds to stop.
 * To setup your Go environment for building and editing the project:
 
 ```
-make editable
+make buildable
 ```
 
 * To build the executables:
