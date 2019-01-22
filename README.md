@@ -8,15 +8,17 @@ The Tidepool Platform API.
 
 # Setup
 
-1. Install Go version 1.10 or later.
+1. Install Go version 1.11.4 or later.
 1. Install `dep` dependency management tool. See https://golang.github.io/dep/docs/installation.html.
+1. Install mongodb (if it is not already installed).
+1. Start mongodb (if it is not already running).
 1. Create a brand new Go directory.
 1. Set the `GOPATH` environment variable to the newly created Go directory.
 1. Add `$GOPATH/bin` to the `PATH` environment variable.
 1. Execute `go get github.com/tidepool-org/platform` to pull down the project. You may ignore a "no buildable Go source files" warning.
 1. Change directory to `$GOPATH/src/github.com/tidepool-org/platform`.
 1. Source the `env.sh` file.
-1. Execute `make buildable` to install the various Go tools needed for building and editing the project.
+1. Execute `make editable` to install the various Go tools needed for building and editing the project.
 
 For example:
 
@@ -31,7 +33,7 @@ export PATH=$GOPATH/bin:$PATH
 go get github.com/tidepool-org/platform
 cd $GOPATH/src/github.com/tidepool-org/platform
 . ./env.sh
-make buildable
+make editable
 ```
 
 For reuse, you may want to include the following lines in your shell config (e.g. `.bashrc`) or use a tool like [direnv](http://direnv.net/ 'direnv'):
@@ -61,7 +63,7 @@ Use `Ctrl-C` to stop the executable. It may take up to 60 seconds to stop.
 * To setup your Go environment for building and editing the project:
 
 ```
-make buildable
+make editable
 ```
 
 * To build the executables:
