@@ -18,6 +18,7 @@
 ./data/types/device/alarm/alarm.go:25:6: func name will be used as alarm.AlarmTypes by other packages, and that stutters; consider calling this Types
 ./image/image.go:526:6: type name will be used as image.ImageArray by other packages, and that stutters; consider calling this Array
 ./metadata/metadata.go:65:6: type name will be used as metadata.MetadataArray by other packages, and that stutters; consider calling this Array
+./profile/profile.go:17:6: type name will be used as profile.ProfileArray by other packages, and that stutters; consider calling this Array
 ./request/mutator.go:9:6: type name will be used as request.RequestMutator by other packages, and that stutters; consider calling this Mutator
 ./service/response_test.go:27:30: method WriteJson should be WriteJSON
 ./service/response_test.go:31:30: method EncodeJson should be EncodeJSON
@@ -39,3 +40,4 @@
 ./test/rest/response_writer.go:39:2: struct field EncodeJsonOutput should be EncodeJSONOutput
 ./test/rest/response_writer.go:80:26: method WriteJson should be WriteJSON
 ./test/rest/response_writer.go:97:26: method EncodeJson should be EncodeJSON
+./user/user.go:103:6: type name will be used as user.UserArray by other packages, and that stutters; consider calling this Array
