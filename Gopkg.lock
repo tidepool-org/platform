@@ -13,7 +13,7 @@
   version = "v3.3.2"
 
 [[projects]]
-  digest = "1:941dea738ad9d389153eef4cf40c9f26dbcc1f91b3d0e993b15454a6b240c4b4"
+  digest = "1:6d1256209b9e60ca206ddc4267a1adfa1338792b1425e2a818ae066e4864d8a7"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -25,6 +25,7 @@
     "aws/credentials",
     "aws/credentials/ec2rolecreds",
     "aws/credentials/endpointcreds",
+    "aws/credentials/processcreds",
     "aws/credentials/stscreds",
     "aws/csm",
     "aws/defaults",
@@ -54,8 +55,8 @@
     "service/sts",
   ]
   pruneopts = "UT"
-  revision = "c0037b52736b07cea4e0cb6521f7995adef833bc"
-  version = "v1.15.59"
+  revision = "3afa899153ab972b5e6bf2552721b677e3fdaeb5"
+  version = "v1.16.20"
 
 [[projects]]
   digest = "1:705c40022f5c03bf96ffeb6477858d88565064485a513abcd0f11a0911546cb6"
@@ -120,11 +121,11 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:e22af8c7518e1eab6f2eab2b7d7558927f816262586cd6ed9f349c97a6c285c4"
+  digest = "1:bb81097a5b62634f3e9fec1014657855610c82d19b9a40c17612e32651e35dca"
   name = "github.com/jmespath/go-jmespath"
   packages = ["."]
   pruneopts = "UT"
-  revision = "0b12d6b5"
+  revision = "c2b33e84"
 
 [[projects]]
   digest = "1:c658e84ad3916da105a761660dcaeb01e63416c8ec7bc62256a9b411a05fcd67"
@@ -162,7 +163,7 @@
   version = "v0.1.0"
 
 [[projects]]
-  digest = "1:57d6806e01f0f182eabbdd636cd86fd6e06eb3007090dad2e13bece984c988f1"
+  digest = "1:6401bd7de0db456395e2bcb3105d94c70dcbff76268d96adfd8dd37ac6680a9d"
   name = "github.com/onsi/ginkgo"
   packages = [
     ".",
@@ -193,11 +194,11 @@
     "types",
   ]
   pruneopts = "UT"
-  revision = "3774a09d95489ccaa16032e0770d08ea77ba6184"
-  version = "v1.6.0"
+  revision = "2e1be8f7d90e9d3e3e58b0ce470f2f14d075406f"
+  version = "v1.7.0"
 
 [[projects]]
-  digest = "1:1b73d080e1ef7f9d60c5449b154af6b3f5666613cfb3cea7fa891b2a490906fe"
+  digest = "1:7062188582c8b8814247fb7454f9b9e10457a1bc56c37dcd67772762028fbbd3"
   name = "github.com/onsi/gomega"
   packages = [
     ".",
@@ -217,8 +218,8 @@
     "types",
   ]
   pruneopts = "UT"
-  revision = "7615b9433f86a8bdf29709bf288bc4fd0636a369"
-  version = "v1.4.2"
+  revision = "65fb64232476ad9046e57c26cd0bff3d3a8dc6cd"
+  version = "v1.4.3"
 
 [[projects]]
   digest = "1:b24d38b282bacf9791408a080f606370efa3d364e4b5fd9ba0f7b87786d3b679"
@@ -230,26 +231,26 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:3f3a05ae0b95893d90b9b3b5afdb79a9b3d96e4e36e099d841ae602e4aca0da8"
+  digest = "1:38f553aff0273ad6f367cb0a0f8b6eecbaef8dc6cb8b50e57b6a81c1d5b1e332"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
   pruneopts = "UT"
-  revision = "0c41d7ab0a0ee717d4590a44bcb987dfd9e183eb"
+  revision = "ff983b9c42bc9fbf91556e191cc8efb585c16908"
 
 [[projects]]
   branch = "master"
-  digest = "1:711b716e33cd86b5ec7ce62f2b226915092323b6b6c95e1e2df922bec4da3d1b"
+  digest = "1:395763139fd6f101dd123c1b124d8c4ae614f37b09690a8675e9d523dbb2557f"
   name = "golang.org/x/lint"
   packages = [
     ".",
     "golint",
   ]
   pruneopts = "UT"
-  revision = "5906bd5c48cd840279ace88b165057fbbd7fb35a"
+  revision = "8f45f776aaf18cebc8d65861cc70c33c60471952"
 
 [[projects]]
   branch = "master"
-  digest = "1:d0a0bdd2b64d981aa4e6a1ade90431d042cd7fa31b584e33d45e62cbfec43380"
+  digest = "1:302d2c4338fa5b4bfd2d495aef2622961d38e8be7d599446b3cfeb03c07d0c9c"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -259,11 +260,11 @@
     "html/charset",
   ]
   pruneopts = "UT"
-  revision = "04a2e542c03f1d053ab3e4d6e5abcd4b66e2be8e"
+  revision = "915654e7eabcea33ae277abbecf52f0d8b7a9fdc"
 
 [[projects]]
   branch = "master"
-  digest = "1:3f224b12f04060f6098b22819c35ace3b0d91c9c65850dedf3223ed095212351"
+  digest = "1:1c4d9557bf07117ad8ccdc82efa2d4746046280722378d76a576f52bf6ff80f0"
   name = "golang.org/x/oauth2"
   packages = [
     ".",
@@ -271,18 +272,18 @@
     "internal",
   ]
   pruneopts = "UT"
-  revision = "9dcd33a902f40452422c2367fefcb95b54f9f8f8"
+  revision = "5dab4167f31cbd76b407f1486c86b40748bc5073"
 
 [[projects]]
   branch = "master"
-  digest = "1:56e0fb6e56fa651d9183abd2db5f29d05da203a7c50bf9b331259e5087aca683"
+  digest = "1:43cde116ff48f299eddb7e6515677e6d0a2c915854bb05a333877f07c3bb3033"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "8e24a49d80f82323e1c4db1b5da3e0f31171a151"
+  revision = "11f53e03133963fb11ae0588e08b5e0b85be8be5"
 
 [[projects]]
   digest = "1:aa4d6967a3237f8367b6bf91503964a77183ecf696f1273e8ad3551bb4412b5f"
@@ -312,23 +313,27 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:b53e32d9d090ecab635626746251d9ac293b91a08f862ec1085a20961c4e17ea"
+  digest = "1:caefb10e1fdb0d6ca43324e50e7aa8ca6cca9b7f39f9a0f66954c5cd82aa5711"
   name = "golang.org/x/tools"
   packages = [
     "cmd/goimports",
     "go/ast/astutil",
     "go/gcexportdata",
+    "go/internal/cgo",
     "go/internal/gcimporter",
+    "go/internal/packagesdriver",
+    "go/packages",
     "go/types/typeutil",
     "imports",
     "internal/fastwalk",
     "internal/gopathwalk",
+    "internal/semver",
   ]
   pruneopts = "UT"
-  revision = "3e7aa9e59977626dc60433e9aeadf1bb63d28295"
+  revision = "f94e9803bfe7e52f51cac3714eb124a23b669bec"
 
 [[projects]]
-  digest = "1:6247f76e55a1e1a5c19a81e2d4b4dff6730461eeb5bbb0a16dd4a8ec8637ee93"
+  digest = "1:6f3bd49ddf2e104e52062774d797714371fac1b8bddfd8e124ce78e6b2264a10"
   name = "google.golang.org/appengine"
   packages = [
     "internal",
@@ -340,8 +345,8 @@
     "urlfetch",
   ]
   pruneopts = "UT"
-  revision = "ae0ab99deb4dc413a2b4bd6c8bdd0eb67f1e4d06"
-  version = "v1.2.0"
+  revision = "e9657d882bb81064595ca3b56cbe2546bbabf7b1"
+  version = "v1.4.0"
 
 [[projects]]
   digest = "1:abeb38ade3f32a92943e5be54f55ed6d6e3b6602761d74b4aab4c9dd45c18abd"
@@ -383,12 +388,12 @@
   version = "v1.2.15"
 
 [[projects]]
-  digest = "1:342378ac4dcb378a5448dd723f0784ae519383532f5e70ade24132c4c8693202"
+  digest = "1:4d2e5a73dc1500038e504a8d78b986630e3626dc027bc030ba5c75da257cdb96"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
   pruneopts = "UT"
-  revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
-  version = "v2.2.1"
+  revision = "51d6538a90f86fe93ac480b35f37b2be17fef232"
+  version = "v2.2.2"
 
 [solve-meta]
   analyzer-name = "dep"
@@ -412,8 +417,11 @@
     "github.com/onsi/ginkgo/extensions/table",
     "github.com/onsi/ginkgo/ginkgo",
     "github.com/onsi/gomega",
+    "github.com/onsi/gomega/format",
     "github.com/onsi/gomega/ghttp",
     "github.com/onsi/gomega/gstruct",
+    "github.com/onsi/gomega/matchers",
+    "github.com/onsi/gomega/types",
     "github.com/urfave/cli",
     "golang.org/x/crypto/ssh/terminal",
     "golang.org/x/lint/golint",
