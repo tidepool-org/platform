@@ -201,7 +201,7 @@ var _ = Describe("V1", func() {
 								handlerFunc(res, req)
 								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
 								Expect(res.WriteInputs).To(HaveLen(1))
-								errorsTest.ExpectErrorJSON(errorsTest.WithParameterSource(structureValidator.ErrorValueNotInRange(0, 1, 100), "size"), res.WriteInputs[0])
+								errorsTest.ExpectErrorJSON(errorsTest.WithParameterSource(structureValidator.ErrorValueNotInRange(0, 1, 1000), "size"), res.WriteInputs[0])
 							})
 						})
 
@@ -219,7 +219,7 @@ var _ = Describe("V1", func() {
 
 							parameterAssertions := func() {
 								It("responds with an unauthorized error when the client returns an unauthorized error", func() {
-									client.ListOutputs = []blobTest.ListOutput{{Blobs: nil, Error: request.ErrorUnauthorized()}}
+									client.ListOutputs = []blobTest.ListOutput{{BlobArray: nil, Error: request.ErrorUnauthorized()}}
 									handlerFunc(res, req)
 									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
 									Expect(res.WriteInputs).To(HaveLen(1))
@@ -227,7 +227,7 @@ var _ = Describe("V1", func() {
 								})
 
 								It("responds with an internal server error when the client returns an unknown error", func() {
-									client.ListOutputs = []blobTest.ListOutput{{Blobs: nil, Error: errorsTest.RandomError()}}
+									client.ListOutputs = []blobTest.ListOutput{{BlobArray: nil, Error: errorsTest.RandomError()}}
 									handlerFunc(res, req)
 									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusInternalServerError}))
 									Expect(res.WriteInputs).To(HaveLen(1))
@@ -235,7 +235,7 @@ var _ = Describe("V1", func() {
 								})
 
 								It("responds successfully when the client does not return blobs", func() {
-									client.ListOutputs = []blobTest.ListOutput{{Blobs: blob.Blobs{}, Error: nil}}
+									client.ListOutputs = []blobTest.ListOutput{{BlobArray: blob.BlobArray{}, Error: nil}}
 									handlerFunc(res, req)
 									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
 									Expect(res.WriteInputs).To(HaveLen(1))
@@ -243,8 +243,8 @@ var _ = Describe("V1", func() {
 								})
 
 								It("responds successfully when the client returns blobs", func() {
-									blobs := blobTest.RandomBlobs(1, 4)
-									client.ListOutputs = []blobTest.ListOutput{{Blobs: blobs, Error: nil}}
+									blobs := blobTest.RandomBlobArray(1, 4)
+									client.ListOutputs = []blobTest.ListOutput{{BlobArray: blobs, Error: nil}}
 									handlerFunc(res, req)
 									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
 									Expect(res.WriteInputs).To(HaveLen(1))

@@ -64,14 +64,14 @@ func (r *Responder) Empty(statusCode int, mutators ...ResponseMutator) {
 	}
 }
 
-func (r *Responder) Bytes(statusCode int, bytes []byte, mutators ...ResponseMutator) {
+func (r *Responder) Bytes(statusCode int, bites []byte, mutators ...ResponseMutator) {
 	if err := r.mutateResponse(mutators); err != nil {
 		r.InternalServerError(err)
 	} else {
 		r.res.WriteHeader(statusCode)
-		if bytesWritten, writeErr := r.res.(http.ResponseWriter).Write(bytes); writeErr != nil {
+		if bytesWritten, writeErr := r.res.(http.ResponseWriter).Write(bites); writeErr != nil {
 			log.LoggerFromContext(r.req.Context()).WithError(writeErr).Error("Unable to write bytes")
-		} else if bytesLength := len(bytes); bytesWritten != bytesLength {
+		} else if bytesLength := len(bites); bytesWritten != bytesLength {
 			log.LoggerFromContext(r.req.Context()).WithFields(log.Fields{"bytesWritten": bytesWritten, "bytesLength": bytesLength}).Error("Bytes written does not equal bytes length")
 		}
 	}
@@ -99,10 +99,10 @@ func (r *Responder) Data(statusCode int, data interface{}, mutators ...ResponseM
 		r.InternalServerError(errors.New("data is missing"))
 	} else if sanitizeErr := r.sanitize(data); sanitizeErr != nil {
 		r.InternalServerError(errors.Wrap(sanitizeErr, "unable to sanitize data"))
-	} else if bytes, marshalErr := json.Marshal(data); marshalErr != nil {
+	} else if bites, marshalErr := json.Marshal(data); marshalErr != nil {
 		r.InternalServerError(errors.Wrap(marshalErr, "unable to serialize data"))
 	} else {
-		r.Bytes(statusCode, append(bytes, newLine...), append(mutators, NewHeaderMutator("Content-Type", "application/json; charset=utf-8"))...)
+		r.Bytes(statusCode, append(bites, newLine...), append(mutators, NewHeaderMutator("Content-Type", "application/json; charset=utf-8"))...)
 	}
 }
 
@@ -111,10 +111,10 @@ func (r *Responder) Error(statusCode int, err error, mutators ...ResponseMutator
 		r.InternalServerError(errors.New("error is missing"))
 	} else {
 		SetErrorToContext(r.req.Context(), err)
-		if bytes, marshalErr := json.Marshal(errors.Sanitize(err)); marshalErr != nil {
+		if bites, marshalErr := json.Marshal(errors.Sanitize(err)); marshalErr != nil {
 			r.InternalServerError(errors.Wrap(marshalErr, "unable to serialize error"))
 		} else {
-			r.Bytes(statusCode, append(bytes, newLine...), append(mutators, NewHeaderMutator("Content-Type", "application/json; charset=utf-8"))...)
+			r.Bytes(statusCode, append(bites, newLine...), append(mutators, NewHeaderMutator("Content-Type", "application/json; charset=utf-8"))...)
 		}
 	}
 }

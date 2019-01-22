@@ -2,14 +2,14 @@ package test
 
 import (
 	"github.com/tidepool-org/platform/data/types/device"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 )
 
 func NewDevice() *device.Device {
 	datum := &device.Device{}
-	datum.Base = *testDataTypes.NewBase()
+	datum.Base = *dataTypesTest.NewBase()
 	datum.Type = "deviceEvent"
-	datum.SubType = testDataTypes.NewType()
+	datum.SubType = dataTypesTest.NewType()
 	return datum
 }
 
@@ -18,7 +18,7 @@ func CloneDevice(datum *device.Device) *device.Device {
 		return nil
 	}
 	clone := &device.Device{}
-	clone.Base = *testDataTypes.CloneBase(&datum.Base)
+	clone.Base = *dataTypesTest.CloneBase(&datum.Base)
 	clone.SubType = datum.SubType
 	return clone
 }

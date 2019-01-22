@@ -3,7 +3,6 @@ package cgm
 import (
 	"math"
 
-	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -38,10 +37,10 @@ type LevelAlert struct {
 	Units *string  `json:"units,omitempty" bson:"units,omitempty"`
 }
 
-func (l *LevelAlert) Parse(parser data.ObjectParser) {
+func (l *LevelAlert) Parse(parser structure.ObjectParser) {
 	l.Alert.Parse(parser)
-	l.Level = parser.ParseFloat("level")
-	l.Units = parser.ParseString("units")
+	l.Level = parser.Float64("level")
+	l.Units = parser.String("units")
 }
 
 func (l *LevelAlert) Validate(validator structure.Validator) {
@@ -57,13 +56,12 @@ type HighAlert struct {
 	LevelAlert `bson:",inline"`
 }
 
-func ParseHighAlert(parser data.ObjectParser) *HighAlert {
-	if parser.Object() == nil {
+func ParseHighAlert(parser structure.ObjectParser) *HighAlert {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewHighAlert()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -92,13 +90,12 @@ type LowAlert struct {
 	LevelAlert `bson:",inline"`
 }
 
-func ParseLowAlert(parser data.ObjectParser) *LowAlert {
-	if parser.Object() == nil {
+func ParseLowAlert(parser structure.ObjectParser) *LowAlert {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewLowAlert()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -127,13 +124,12 @@ type UrgentLowAlert struct {
 	LevelAlert `bson:",inline"`
 }
 
-func ParseUrgentLowAlert(parser data.ObjectParser) *UrgentLowAlert {
-	if parser.Object() == nil {
+func ParseUrgentLowAlert(parser structure.ObjectParser) *UrgentLowAlert {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewUrgentLowAlert()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 

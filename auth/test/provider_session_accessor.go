@@ -7,7 +7,6 @@ import (
 
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/page"
-	"github.com/tidepool-org/platform/test"
 )
 
 type ListUserProviderSessionsInput struct {
@@ -60,7 +59,6 @@ type DeleteProviderSessionInput struct {
 }
 
 type ProviderSessionAccessor struct {
-	*test.Mock
 	ListUserProviderSessionsInvocations  int
 	ListUserProviderSessionsInputs       []ListUserProviderSessionsInput
 	ListUserProviderSessionsOutputs      []ListUserProviderSessionsOutput
@@ -79,9 +77,7 @@ type ProviderSessionAccessor struct {
 }
 
 func NewProviderSessionAccessor() *ProviderSessionAccessor {
-	return &ProviderSessionAccessor{
-		Mock: test.NewMock(),
-	}
+	return &ProviderSessionAccessor{}
 }
 
 func (p *ProviderSessionAccessor) ListUserProviderSessions(ctx context.Context, userID string, filter *auth.ProviderSessionFilter, pagination *page.Pagination) (auth.ProviderSessions, error) {
@@ -145,7 +141,6 @@ func (p *ProviderSessionAccessor) DeleteProviderSession(ctx context.Context, id 
 }
 
 func (p *ProviderSessionAccessor) Expectations() {
-	p.Mock.Expectations()
 	gomega.Expect(p.ListUserProviderSessionsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(p.CreateUserProviderSessionOutputs).To(gomega.BeEmpty())
 	gomega.Expect(p.GetProviderSessionOutputs).To(gomega.BeEmpty())

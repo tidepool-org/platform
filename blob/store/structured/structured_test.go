@@ -146,43 +146,43 @@ var _ = Describe("Structured", func() {
 				),
 			)
 
-			Context("HasUpdates", func() {
-				var update *blobStoreStructured.Update
+			Context("IsEmpty", func() {
+				var datum *blobStoreStructured.Update
 
 				BeforeEach(func() {
-					update = blobStoreStructured.NewUpdate()
+					datum = blobStoreStructured.NewUpdate()
 				})
 
-				It("returns false when no fields are specified", func() {
-					Expect(update.HasUpdates()).To(BeFalse())
+				It("returns true when no fields are specified", func() {
+					Expect(datum.IsEmpty()).To(BeTrue())
 				})
 
-				It("returns true when the digest MD5 field is specified", func() {
-					update.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
-					Expect(update.HasUpdates()).To(BeTrue())
+				It("returns false when the digest MD5 field is specified", func() {
+					datum.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+					Expect(datum.IsEmpty()).To(BeFalse())
 				})
 
-				It("returns true when the media type field is specified", func() {
-					update.MediaType = pointer.FromString(netTest.RandomMediaType())
-					Expect(update.HasUpdates()).To(BeTrue())
+				It("returns false when the media type field is specified", func() {
+					datum.MediaType = pointer.FromString(netTest.RandomMediaType())
+					Expect(datum.IsEmpty()).To(BeFalse())
 				})
 
-				It("returns true when the size field is specified", func() {
-					update.Size = pointer.FromInt(test.RandomIntFromRange(1, 100*1024*1024))
-					Expect(update.HasUpdates()).To(BeTrue())
+				It("returns false when the size field is specified", func() {
+					datum.Size = pointer.FromInt(test.RandomIntFromRange(1, 100*1024*1024))
+					Expect(datum.IsEmpty()).To(BeFalse())
 				})
 
-				It("returns true when the status field is specified", func() {
-					update.Status = pointer.FromString(test.RandomStringFromArray(blob.Statuses()))
-					Expect(update.HasUpdates()).To(BeTrue())
+				It("returns false when the status field is specified", func() {
+					datum.Status = pointer.FromString(test.RandomStringFromArray(blob.Statuses()))
+					Expect(datum.IsEmpty()).To(BeFalse())
 				})
 
-				It("returns true when multiple fields are specified", func() {
-					update.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
-					update.MediaType = pointer.FromString(netTest.RandomMediaType())
-					update.Size = pointer.FromInt(test.RandomIntFromRange(1, 100*1024*1024))
-					update.Status = pointer.FromString(test.RandomStringFromArray(blob.Statuses()))
-					Expect(update.HasUpdates()).To(BeTrue())
+				It("returns false when multiple fields are specified", func() {
+					datum.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+					datum.MediaType = pointer.FromString(netTest.RandomMediaType())
+					datum.Size = pointer.FromInt(test.RandomIntFromRange(1, 100*1024*1024))
+					datum.Status = pointer.FromString(test.RandomStringFromArray(blob.Statuses()))
+					Expect(datum.IsEmpty()).To(BeFalse())
 				})
 			})
 		})

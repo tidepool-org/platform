@@ -7,8 +7,8 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -51,7 +51,7 @@ var _ = Describe("Bolus", func() {
 				func(mutator func(datum *pump.Bolus), expectedErrors ...error) {
 					datum := NewBolus()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *pump.Bolus) {},
@@ -61,7 +61,7 @@ var _ = Describe("Bolus", func() {
 				),
 				Entry("amount maximum invalid",
 					func(datum *pump.Bolus) { datum.AmountMaximum.Units = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amountMaximum/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amountMaximum/units"),
 				),
 				Entry("amount maximum valid",
 					func(datum *pump.Bolus) { datum.AmountMaximum = NewBolusAmountMaximum() },
@@ -71,7 +71,7 @@ var _ = Describe("Bolus", func() {
 				),
 				Entry("extended invalid",
 					func(datum *pump.Bolus) { datum.Extended.Enabled = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/extended/enabled"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/extended/enabled"),
 				),
 				Entry("extended valid",
 					func(datum *pump.Bolus) { datum.Extended = NewBolusExtended() },
@@ -81,8 +81,8 @@ var _ = Describe("Bolus", func() {
 						datum.AmountMaximum.Units = nil
 						datum.Extended.Enabled = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amountMaximum/units"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/extended/enabled"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amountMaximum/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/extended/enabled"),
 				),
 			)
 		})

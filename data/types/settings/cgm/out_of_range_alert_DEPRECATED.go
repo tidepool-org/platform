@@ -21,13 +21,12 @@ type OutOfRangeAlertDEPRECATED struct {
 	Threshold *int  `json:"snooze,omitempty" bson:"snooze,omitempty"`
 }
 
-func ParseOutOfRangeAlertDEPRECATED(parser data.ObjectParser) *OutOfRangeAlertDEPRECATED {
-	if parser.Object() == nil {
+func ParseOutOfRangeAlertDEPRECATED(parser structure.ObjectParser) *OutOfRangeAlertDEPRECATED {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewOutOfRangeAlertDEPRECATED()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -35,9 +34,9 @@ func NewOutOfRangeAlertDEPRECATED() *OutOfRangeAlertDEPRECATED {
 	return &OutOfRangeAlertDEPRECATED{}
 }
 
-func (o *OutOfRangeAlertDEPRECATED) Parse(parser data.ObjectParser) {
-	o.Enabled = parser.ParseBoolean("enabled")
-	o.Threshold = parser.ParseInteger("snooze")
+func (o *OutOfRangeAlertDEPRECATED) Parse(parser structure.ObjectParser) {
+	o.Enabled = parser.Bool("enabled")
+	o.Threshold = parser.Int("snooze")
 }
 
 func (o *OutOfRangeAlertDEPRECATED) Validate(validator structure.Validator) {

@@ -28,7 +28,7 @@ func New(config *platform.Config, authorizeAs platform.AuthorizeAs) (*Client, er
 	}, nil
 }
 
-func (c *Client) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.Sources, error) {
+func (c *Client) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -49,7 +49,7 @@ func (c *Client) List(ctx context.Context, userID string, filter *dataSource.Fil
 	}
 
 	url := c.client.ConstructURL("v1", "users", userID, "data_sources")
-	result := dataSource.Sources{}
+	result := dataSource.SourceArray{}
 	if err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{filter, pagination}, nil, &result); err != nil {
 		return nil, err
 	}

@@ -9,7 +9,7 @@ import (
 
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/request"
-	testHTTP "github.com/tidepool-org/platform/test/http"
+	testHttp "github.com/tidepool-org/platform/test/http"
 	testRest "github.com/tidepool-org/platform/test/rest"
 )
 
@@ -22,8 +22,8 @@ var _ = Describe("Request", func() {
 
 		BeforeEach(func() {
 			req = testRest.NewRequest()
-			key = testHTTP.NewParameterKey()
-			value = testHTTP.NewParameterValue()
+			key = testHttp.NewParameterKey()
+			value = testHttp.NewParameterValue()
 			validator = func(value string) bool { return true }
 			req.PathParams[key] = value
 		})
@@ -75,8 +75,8 @@ var _ = Describe("Request", func() {
 
 		BeforeEach(func() {
 			req = testRest.NewRequest()
-			key = testHTTP.NewParameterKey()
-			value = testHTTP.NewParameterValue()
+			key = testHttp.NewParameterKey()
+			value = testHttp.NewParameterValue()
 			validator = func(value string) bool { return true }
 			req.PathParams[key] = value
 		})

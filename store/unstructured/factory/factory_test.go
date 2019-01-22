@@ -93,8 +93,8 @@ var _ = Describe("Factory", func() {
 			BeforeEach(func() {
 				configReporter.Config["type"] = "s3"
 				configReporter.Config["s3"] = map[string]interface{}{
-					"bucket": test.NewVariableString(1, 64, test.CharsetAlphaNumeric),
-					"prefix": test.NewVariableString(1, 64, test.CharsetAlphaNumeric),
+					"bucket": test.RandomStringFromRangeAndCharset(1, 64, test.CharsetAlphaNumeric),
+					"prefix": test.RandomStringFromRangeAndCharset(1, 64, test.CharsetAlphaNumeric),
 				}
 			})
 
@@ -151,8 +151,8 @@ var _ = Describe("Factory", func() {
 
 	Context("NewS3Store", func() {
 		BeforeEach(func() {
-			configReporter.Config["bucket"] = test.NewVariableString(1, 64, test.CharsetAlphaNumeric)
-			configReporter.Config["prefix"] = test.NewVariableString(1, 64, test.CharsetAlphaNumeric)
+			configReporter.Config["bucket"] = test.RandomStringFromRangeAndCharset(1, 64, test.CharsetAlphaNumeric)
+			configReporter.Config["prefix"] = test.RandomStringFromRangeAndCharset(1, 64, test.CharsetAlphaNumeric)
 		})
 
 		It("returns an error if the config reporter is missing", func() {

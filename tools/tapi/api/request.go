@@ -131,12 +131,12 @@ func (a *API) addObjectBody(requestBody interface{}) requestFunc {
 			return errors.New("Body is missing")
 		}
 
-		bytes, err := json.Marshal(requestBody)
+		bites, err := json.Marshal(requestBody)
 		if err != nil {
 			return fmt.Errorf("Error encoding request body to JSON: %s", err.Error())
 		}
 
-		return a.addStringBody(string(bytes), "application/json")(request)
+		return a.addStringBody(string(bites), "application/json")(request)
 	}
 }
 

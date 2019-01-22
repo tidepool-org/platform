@@ -9,8 +9,8 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/activity/physical"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -29,8 +29,8 @@ func CloneDuration(datum *physical.Duration) *physical.Duration {
 		return nil
 	}
 	clone := physical.NewDuration()
-	clone.Units = test.CloneString(datum.Units)
-	clone.Value = test.CloneFloat64(datum.Value)
+	clone.Units = pointer.CloneString(datum.Units)
+	clone.Value = pointer.CloneFloat64(datum.Value)
 	return clone
 }
 
@@ -95,7 +95,7 @@ var _ = Describe("Duration", func() {
 				func(mutator func(datum *physical.Duration), expectedErrors ...error) {
 					datum := NewDuration()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *physical.Duration) {},
@@ -105,86 +105,86 @@ var _ = Describe("Duration", func() {
 						datum.Units = nil
 						datum.Value = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units missing; value out of range (lower)",
 					func(datum *physical.Duration) {
 						datum.Units = nil
 						datum.Value = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; value in range (lower)",
 					func(datum *physical.Duration) {
 						datum.Units = nil
 						datum.Value = pointer.FromFloat64(0.0)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; value in range (upper)",
 					func(datum *physical.Duration) {
 						datum.Units = nil
 						datum.Value = pointer.FromFloat64(604800.0)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; value out of range (upper)",
 					func(datum *physical.Duration) {
 						datum.Units = nil
 						datum.Value = pointer.FromFloat64(604800.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units invalid; value missing",
 					func(datum *physical.Duration) {
 						datum.Units = pointer.FromString("invalid")
 						datum.Value = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units invalid; value out of range (lower)",
 					func(datum *physical.Duration) {
 						datum.Units = pointer.FromString("invalid")
 						datum.Value = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
 				),
 				Entry("units invalid; value in range (lower)",
 					func(datum *physical.Duration) {
 						datum.Units = pointer.FromString("invalid")
 						datum.Value = pointer.FromFloat64(0.0)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
 				),
 				Entry("units invalid; value in range (upper)",
 					func(datum *physical.Duration) {
 						datum.Units = pointer.FromString("invalid")
 						datum.Value = pointer.FromFloat64(604800.0)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
 				),
 				Entry("units invalid; value out of range (upper)",
 					func(datum *physical.Duration) {
 						datum.Units = pointer.FromString("invalid")
 						datum.Value = pointer.FromFloat64(604800.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
 				),
 				Entry("units hours; value missing",
 					func(datum *physical.Duration) {
 						datum.Units = pointer.FromString("hours")
 						datum.Value = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units hours; value out of range (lower)",
 					func(datum *physical.Duration) {
 						datum.Units = pointer.FromString("hours")
 						datum.Value = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 168.0), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 168.0), "/value"),
 				),
 				Entry("units hours; value in range (lower)",
 					func(datum *physical.Duration) {
@@ -203,21 +203,21 @@ var _ = Describe("Duration", func() {
 						datum.Units = pointer.FromString("hours")
 						datum.Value = pointer.FromFloat64(168.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(168.1, 0.0, 168.0), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(168.1, 0.0, 168.0), "/value"),
 				),
 				Entry("units minutes; value missing",
 					func(datum *physical.Duration) {
 						datum.Units = pointer.FromString("minutes")
 						datum.Value = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units minutes; value out of range (lower)",
 					func(datum *physical.Duration) {
 						datum.Units = pointer.FromString("minutes")
 						datum.Value = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 10080.0), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 10080.0), "/value"),
 				),
 				Entry("units minutes; value in range (lower)",
 					func(datum *physical.Duration) {
@@ -236,21 +236,21 @@ var _ = Describe("Duration", func() {
 						datum.Units = pointer.FromString("minutes")
 						datum.Value = pointer.FromFloat64(10080.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(10080.1, 0.0, 10080.0), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(10080.1, 0.0, 10080.0), "/value"),
 				),
 				Entry("units seconds; value missing",
 					func(datum *physical.Duration) {
 						datum.Units = pointer.FromString("seconds")
 						datum.Value = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units seconds; value out of range (lower)",
 					func(datum *physical.Duration) {
 						datum.Units = pointer.FromString("seconds")
 						datum.Value = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 604800.0), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 604800.0), "/value"),
 				),
 				Entry("units seconds; value in range (lower)",
 					func(datum *physical.Duration) {
@@ -269,15 +269,15 @@ var _ = Describe("Duration", func() {
 						datum.Units = pointer.FromString("seconds")
 						datum.Value = pointer.FromFloat64(604800.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(604800.1, 0.0, 604800.0), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(604800.1, 0.0, 604800.0), "/value"),
 				),
 				Entry("multiple errors",
 					func(datum *physical.Duration) {
 						datum.Units = nil
 						datum.Value = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 			)
 		})

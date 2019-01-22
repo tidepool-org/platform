@@ -15,8 +15,8 @@ type ListInput struct {
 }
 
 type ListOutput struct {
-	Sources dataSource.Sources
-	Error   error
+	SourceArray dataSource.SourceArray
+	Error       error
 }
 
 type CreateInput struct {
@@ -58,7 +58,7 @@ type DeleteOutput struct {
 type Client struct {
 	ListInvocations   int
 	ListInputs        []ListInput
-	ListStub          func(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.Sources, error)
+	ListStub          func(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error)
 	ListOutputs       []ListOutput
 	ListOutput        *ListOutput
 	CreateInvocations int
@@ -87,7 +87,7 @@ func NewClient() *Client {
 	return &Client{}
 }
 
-func (c *Client) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.Sources, error) {
+func (c *Client) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
 	c.ListInvocations++
 	c.ListInputs = append(c.ListInputs, ListInput{UserID: userID, Filter: filter, Pagination: pagination})
 	if c.ListStub != nil {
@@ -96,10 +96,10 @@ func (c *Client) List(ctx context.Context, userID string, filter *dataSource.Fil
 	if len(c.ListOutputs) > 0 {
 		output := c.ListOutputs[0]
 		c.ListOutputs = c.ListOutputs[1:]
-		return output.Sources, output.Error
+		return output.SourceArray, output.Error
 	}
 	if c.ListOutput != nil {
-		return c.ListOutput.Sources, c.ListOutput.Error
+		return c.ListOutput.SourceArray, c.ListOutput.Error
 	}
 	panic("List has no output")
 }

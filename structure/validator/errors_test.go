@@ -49,6 +49,7 @@ var _ = Describe("Errors", func() {
 		Entry("is ErrorValueNotInRange with float", structureValidator.ErrorValueNotInRange(1.4, 2.4, 3.4), "value-out-of-range", "value is out of range", "value 1.4 is not between 2.4 and 3.4"),
 		Entry("is ErrorValueNotInRange with string", structureValidator.ErrorValueNotInRange("zzz", "abc", "xyz"), "value-out-of-range", "value is out of range", `value "zzz" is not between "abc" and "xyz"`),
 		Entry("is ErrorValueNotInRange with string with quotes", structureValidator.ErrorValueNotInRange(`z"z"z`, `a"b"c`, `x"y"z`), "value-out-of-range", "value is out of range", `value "z\"z\"z" is not between "a\"b\"c" and "x\"y\"z"`),
+		Entry("is ErrorValueNotSerializable", structureValidator.ErrorValueNotSerializable(), "value-not-serializable", "value is not serializable", "value is not serializable"),
 		Entry("is ErrorValueFloat64OneOf with nil array", structureValidator.ErrorValueFloat64OneOf(2.5, nil), "value-disallowed", "value is one of the disallowed values", "value 2.5 is one of []"),
 		Entry("is ErrorValueFloat64OneOf with empty array", structureValidator.ErrorValueFloat64OneOf(2.5, []float64{}), "value-disallowed", "value is one of the disallowed values", "value 2.5 is one of []"),
 		Entry("is ErrorValueFloat64OneOf with non-empty array", structureValidator.ErrorValueFloat64OneOf(2.5, []float64{2.5, 3.5, 4.5}), "value-disallowed", "value is one of the disallowed values", "value 2.5 is one of [2.5, 3.5, 4.5]"),
@@ -89,5 +90,12 @@ var _ = Describe("Errors", func() {
 		Entry("is ErrorLengthNotGreaterThan with int", structureValidator.ErrorLengthNotGreaterThan(1, 2), "length-out-of-range", "length is out of range", "length 1 is not greater than 2"),
 		Entry("is ErrorLengthNotGreaterThanOrEqualTo with int", structureValidator.ErrorLengthNotGreaterThanOrEqualTo(1, 2), "length-out-of-range", "length is out of range", "length 1 is not greater than or equal to 2"),
 		Entry("is ErrorLengthNotInRange", structureValidator.ErrorLengthNotInRange(1, 2, 3), "length-out-of-range", "length is out of range", "length 1 is not between 2 and 3"),
+		Entry("is ErrorSizeNotEqualTo with int", structureValidator.ErrorSizeNotEqualTo(1, 2), "size-out-of-range", "size is out of range", "size 1 is not equal to 2"),
+		Entry("is ErrorSizeEqualTo with int", structureValidator.ErrorSizeEqualTo(2, 2), "size-out-of-range", "size is out of range", "size 2 is equal to 2"),
+		Entry("is ErrorSizeNotLessThan with int", structureValidator.ErrorSizeNotLessThan(2, 1), "size-out-of-range", "size is out of range", "size 2 is not less than 1"),
+		Entry("is ErrorSizeNotLessThanOrEqualTo with int", structureValidator.ErrorSizeNotLessThanOrEqualTo(2, 1), "size-out-of-range", "size is out of range", "size 2 is not less than or equal to 1"),
+		Entry("is ErrorSizeNotGreaterThan with int", structureValidator.ErrorSizeNotGreaterThan(1, 2), "size-out-of-range", "size is out of range", "size 1 is not greater than 2"),
+		Entry("is ErrorSizeNotGreaterThanOrEqualTo with int", structureValidator.ErrorSizeNotGreaterThanOrEqualTo(1, 2), "size-out-of-range", "size is out of range", "size 1 is not greater than or equal to 2"),
+		Entry("is ErrorSizeNotInRange", structureValidator.ErrorSizeNotInRange(1, 2, 3), "size-out-of-range", "size is out of range", "size 1 is not between 2 and 3"),
 	)
 })

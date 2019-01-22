@@ -142,15 +142,15 @@ func MatchBlob(datum *blob.Blob) gomegaTypes.GomegaMatcher {
 	}))
 }
 
-func RandomBlobs(minimumLength int, maximumLength int) blob.Blobs {
-	datum := make(blob.Blobs, test.RandomIntFromRange(minimumLength, maximumLength))
+func RandomBlobArray(minimumLength int, maximumLength int) blob.BlobArray {
+	datum := make(blob.BlobArray, test.RandomIntFromRange(minimumLength, maximumLength))
 	for index := range datum {
 		datum[index] = RandomBlob()
 	}
 	return datum
 }
 
-func MatchBlobs(datum blob.Blobs) gomegaTypes.GomegaMatcher {
+func MatchBlobArray(datum blob.BlobArray) gomegaTypes.GomegaMatcher {
 	matchers := []gomegaTypes.GomegaMatcher{}
 	for _, d := range datum {
 		matchers = append(matchers, MatchBlob(d))

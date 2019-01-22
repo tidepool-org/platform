@@ -1,21 +1,15 @@
 package test
 
-import (
-	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/test"
-)
+import "github.com/tidepool-org/platform/data"
 
 type Normalizable struct {
-	*test.Mock
 	NormalizeInvocations int
 	NormalizeInputs      []data.Normalizer
 	NormalizeStub        func(normalizer data.Normalizer)
 }
 
 func NewNormalizable() *Normalizable {
-	return &Normalizable{
-		Mock: test.NewMock(),
-	}
+	return &Normalizable{}
 }
 
 func (n *Normalizable) Normalize(normalizer data.Normalizer) {
@@ -29,5 +23,4 @@ func (n *Normalizable) Normalize(normalizer data.Normalizer) {
 }
 
 func (n *Normalizable) Expectations() {
-	n.Mock.Expectations()
 }

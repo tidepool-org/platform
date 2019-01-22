@@ -1,7 +1,6 @@
 package device
 
 import (
-	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
@@ -34,12 +33,6 @@ func (d *Device) Meta() interface{} {
 		Type:    d.Type,
 		SubType: d.SubType,
 	}
-}
-
-func (d *Device) Parse(parser data.ObjectParser) error {
-	parser.SetMeta(d.Meta())
-
-	return d.Base.Parse(parser)
 }
 
 func (d *Device) Validate(validator structure.Validator) {

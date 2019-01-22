@@ -31,7 +31,9 @@ func New(provider Provider) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.Sources, error) {
+// FUTURE: Return ErrorResourceNotFoundWithID(userID) if userID does not exist at all
+
+func (c *Client) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
 	if _, err := c.AuthClient().EnsureAuthorizedUser(ctx, userID, permission.Owner); err != nil {
 		return nil, err
 	}

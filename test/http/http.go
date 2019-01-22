@@ -123,7 +123,7 @@ func NewAddress() string {
 func NewPath() string {
 	segments := make([]string, rand.Intn(4))
 	for index := range segments {
-		segments[index] = test.NewVariableString(1, 8, CharsetPath)
+		segments[index] = test.RandomStringFromRangeAndCharset(1, 8, CharsetPath)
 	}
 	return "/" + strings.Join(segments, "/")
 }
@@ -164,23 +164,23 @@ func RandomHeaderValue() string {
 }
 
 func NewHeaderKey() string {
-	return textproto.CanonicalMIMEHeaderKey(test.NewVariableString(1, 8, CharsetName))
+	return textproto.CanonicalMIMEHeaderKey(test.RandomStringFromRangeAndCharset(1, 8, CharsetName))
 }
 
 func NewHeaderValue() string {
-	return test.NewVariableString(1, 16, CharsetValue)
+	return test.RandomStringFromRangeAndCharset(1, 16, CharsetValue)
 }
 
 func NewParameterKey() string {
-	return test.NewVariableString(1, 8, CharsetName)
+	return test.RandomStringFromRangeAndCharset(1, 8, CharsetName)
 }
 
 func NewParameterValue() string {
-	return test.NewVariableString(1, 16, CharsetValue)
+	return test.RandomStringFromRangeAndCharset(1, 16, CharsetValue)
 }
 
 func NewUserAgent() string {
-	return test.NewVariableString(1, 16, CharsetValue)
+	return test.RandomStringFromRangeAndCharset(1, 16, CharsetValue)
 }
 
 func NewTimeout() int {

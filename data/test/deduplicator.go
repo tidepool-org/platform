@@ -11,7 +11,7 @@ func RandomDeduplicatorDescriptor() *data.DeduplicatorDescriptor {
 	datum := data.NewDeduplicatorDescriptor()
 	datum.Name = pointer.FromString(netTest.RandomReverseDomain())
 	datum.Version = pointer.FromString(netTest.RandomSemanticVersion())
-	datum.Hash = pointer.FromString(test.NewString(32, test.CharsetHexidecimalLowercase))
+	datum.Hash = pointer.FromString(test.RandomStringFromRangeAndCharset(32, 32, test.CharsetHexidecimalLowercase))
 	return datum
 }
 

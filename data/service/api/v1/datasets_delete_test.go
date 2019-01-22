@@ -266,7 +266,7 @@ var _ = Describe("DataSetsDelete", func() {
 	// 		})
 
 	// 		It("responds with error if deduplicator delete data set returns an error", func() {
-	// 			deduplicatorImpl := testData.NewDeduplicator()
+	// 			deduplicatorImpl := dataTest.NewDeduplicator()
 	// 			err := errors.New("other")
 	// 			context.DataDeduplicatorFactoryImpl.IsRegisteredWithDataSetOutputs = []testDataDeduplicator.IsRegisteredWithDataSetOutput{{Is: true, Error: nil}}
 	// 			context.DataDeduplicatorFactoryImpl.NewRegisteredDeduplicatorForDataSetOutputs = []testDataDeduplicator.NewRegisteredDeduplicatorForDataSetOutput{{Deduplicator: deduplicatorImpl, Error: nil}}

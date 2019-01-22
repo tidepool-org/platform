@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	testAuth "github.com/tidepool-org/platform/auth/test"
+	authTest "github.com/tidepool-org/platform/auth/test"
 	"github.com/tidepool-org/platform/log"
 	logNull "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/request"
@@ -33,7 +33,7 @@ var _ = Describe("Request", func() {
 				},
 			}
 			logger = logNull.NewLogger()
-			details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), testAuth.NewSessionToken())
+			details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), authTest.NewSessionToken())
 			req = testRest.NewRequest()
 			req.Env["ERRORS"] = errs
 			req.Env["LOGGER"] = logger
@@ -159,7 +159,7 @@ var _ = Describe("Request", func() {
 			var newDetails request.Details
 
 			BeforeEach(func() {
-				newDetails = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), testAuth.NewSessionToken())
+				newDetails = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), authTest.NewSessionToken())
 			})
 
 			It("successfully sets the auth details", func() {

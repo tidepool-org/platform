@@ -49,23 +49,21 @@ func New() *Food {
 	}
 }
 
-func (f *Food) Parse(parser data.ObjectParser) error {
-	parser.SetMeta(f.Meta())
-
-	if err := f.Base.Parse(parser); err != nil {
-		return err
+func (f *Food) Parse(parser structure.ObjectParser) {
+	if !parser.HasMeta() {
+		parser = parser.WithMeta(f.Meta())
 	}
 
-	f.Amount = ParseAmount(parser.NewChildObjectParser("amount"))
-	f.Brand = parser.ParseString("brand")
-	f.Code = parser.ParseString("code")
-	f.Ingredients = ParseIngredientArray(parser.NewChildArrayParser("ingredients"))
-	f.Meal = parser.ParseString("meal")
-	f.MealOther = parser.ParseString("mealOther")
-	f.Name = parser.ParseString("name")
-	f.Nutrition = ParseNutrition(parser.NewChildObjectParser("nutrition"))
+	f.Base.Parse(parser)
 
-	return nil
+	f.Amount = ParseAmount(parser.WithReferenceObjectParser("amount"))
+	f.Brand = parser.String("brand")
+	f.Code = parser.String("code")
+	f.Ingredients = ParseIngredientArray(parser.WithReferenceArrayParser("ingredients"))
+	f.Meal = parser.String("meal")
+	f.MealOther = parser.String("mealOther")
+	f.Name = parser.String("name")
+	f.Nutrition = ParseNutrition(parser.WithReferenceObjectParser("nutrition"))
 }
 
 func (f *Food) Validate(validator structure.Validator) {

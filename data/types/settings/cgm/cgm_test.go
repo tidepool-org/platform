@@ -212,7 +212,7 @@ var _ = Describe("CGM", func() {
 				Entry("transmitted id valid",
 					pointer.FromString("mmol/L"),
 					func(datum *dataTypesSettingsCgm.CGM, units *string) {
-						datum.TransmitterID = pointer.FromString(test.NewVariableString(5, 6, dataTypesSettingsCgmTest.CharsetTransmitterID))
+						datum.TransmitterID = pointer.FromString(test.RandomStringFromRangeAndCharset(5, 6, dataTypesSettingsCgmTest.CharsetTransmitterID))
 					},
 				),
 				Entry("units missing",
@@ -484,10 +484,10 @@ var _ = Describe("CGM", func() {
 				errorsTest.ExpectEqual(dataTypesSettingsCgm.ValidateTransmitterID(value), expectedErrors...)
 			},
 			Entry("is empty", "", structureValidator.ErrorValueEmpty()),
-			Entry("is valid", test.NewVariableString(5, 6, dataTypesSettingsCgmTest.CharsetTransmitterID)),
+			Entry("is valid", test.RandomStringFromRangeAndCharset(5, 6, dataTypesSettingsCgmTest.CharsetTransmitterID)),
 			Entry("has invalid length; out of range (lower)", "ABCD", dataTypesSettingsCgm.ErrorValueStringAsTransmitterIDNotValid("ABCD")),
-			Entry("has invalid length; in range (lower)", test.NewString(5, dataTypesSettingsCgmTest.CharsetTransmitterID)),
-			Entry("has invalid length; in range (upper)", test.NewString(6, dataTypesSettingsCgmTest.CharsetTransmitterID)),
+			Entry("has invalid length; in range (lower)", test.RandomStringFromRangeAndCharset(5, 5, dataTypesSettingsCgmTest.CharsetTransmitterID)),
+			Entry("has invalid length; in range (upper)", test.RandomStringFromRangeAndCharset(6, 6, dataTypesSettingsCgmTest.CharsetTransmitterID)),
 			Entry("has invalid length; out of range (upper)", "ABCDEFG", dataTypesSettingsCgm.ErrorValueStringAsTransmitterIDNotValid("ABCDEFG")),
 			Entry("has invalid characters; lowercase", "abcdef", dataTypesSettingsCgm.ErrorValueStringAsTransmitterIDNotValid("abcdef")),
 			Entry("has invalid characters; symbols", "@#$%^&", dataTypesSettingsCgm.ErrorValueStringAsTransmitterIDNotValid("@#$%^&")),

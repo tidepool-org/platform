@@ -22,13 +22,12 @@ type CarbohydrateRatioStart struct {
 	Start  *int     `json:"start,omitempty" bson:"start,omitempty"`
 }
 
-func ParseCarbohydrateRatioStart(parser data.ObjectParser) *CarbohydrateRatioStart {
-	if parser.Object() == nil {
+func ParseCarbohydrateRatioStart(parser structure.ObjectParser) *CarbohydrateRatioStart {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewCarbohydrateRatioStart()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -36,9 +35,9 @@ func NewCarbohydrateRatioStart() *CarbohydrateRatioStart {
 	return &CarbohydrateRatioStart{}
 }
 
-func (c *CarbohydrateRatioStart) Parse(parser data.ObjectParser) {
-	c.Amount = parser.ParseFloat("amount")
-	c.Start = parser.ParseInteger("start")
+func (c *CarbohydrateRatioStart) Parse(parser structure.ObjectParser) {
+	c.Amount = parser.Float64("amount")
+	c.Start = parser.Int("start")
 }
 
 func (c *CarbohydrateRatioStart) Validate(validator structure.Validator, startMinimum *int) {
@@ -59,13 +58,12 @@ func (c *CarbohydrateRatioStart) Normalize(normalizer data.Normalizer) {}
 
 type CarbohydrateRatioStartArray []*CarbohydrateRatioStart
 
-func ParseCarbohydrateRatioStartArray(parser data.ArrayParser) *CarbohydrateRatioStartArray {
-	if parser.Array() == nil {
+func ParseCarbohydrateRatioStartArray(parser structure.ArrayParser) *CarbohydrateRatioStartArray {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewCarbohydrateRatioStartArray()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -73,9 +71,9 @@ func NewCarbohydrateRatioStartArray() *CarbohydrateRatioStartArray {
 	return &CarbohydrateRatioStartArray{}
 }
 
-func (c *CarbohydrateRatioStartArray) Parse(parser data.ArrayParser) {
-	for index := range *parser.Array() {
-		*c = append(*c, ParseCarbohydrateRatioStart(parser.NewChildObjectParser(index)))
+func (c *CarbohydrateRatioStartArray) Parse(parser structure.ArrayParser) {
+	for _, reference := range parser.References() {
+		*c = append(*c, ParseCarbohydrateRatioStart(parser.WithReferenceObjectParser(reference)))
 	}
 }
 
@@ -119,13 +117,12 @@ func (c *CarbohydrateRatioStartArray) Last() *CarbohydrateRatioStart {
 
 type CarbohydrateRatioStartArrayMap map[string]*CarbohydrateRatioStartArray
 
-func ParseCarbohydrateRatioStartArrayMap(parser data.ObjectParser) *CarbohydrateRatioStartArrayMap {
-	if parser.Object() == nil {
+func ParseCarbohydrateRatioStartArrayMap(parser structure.ObjectParser) *CarbohydrateRatioStartArrayMap {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewCarbohydrateRatioStartArrayMap()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -133,9 +130,9 @@ func NewCarbohydrateRatioStartArrayMap() *CarbohydrateRatioStartArrayMap {
 	return &CarbohydrateRatioStartArrayMap{}
 }
 
-func (c *CarbohydrateRatioStartArrayMap) Parse(parser data.ObjectParser) {
-	for name := range *parser.Object() {
-		c.Set(name, ParseCarbohydrateRatioStartArray(parser.NewChildArrayParser(name)))
+func (c *CarbohydrateRatioStartArrayMap) Parse(parser structure.ObjectParser) {
+	for _, reference := range parser.References() {
+		c.Set(reference, ParseCarbohydrateRatioStartArray(parser.WithReferenceArrayParser(reference)))
 	}
 }
 

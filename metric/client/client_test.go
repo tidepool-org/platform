@@ -15,7 +15,7 @@ import (
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/test"
-	testHTTP "github.com/tidepool-org/platform/test/http"
+	testHttp "github.com/tidepool-org/platform/test/http"
 	"github.com/tidepool-org/platform/version"
 )
 
@@ -24,7 +24,7 @@ var _ = Describe("Client", func() {
 	var versionReporter version.Reporter
 
 	BeforeEach(func() {
-		name = test.NewVariableString(1, 64, test.CharsetAlphaNumeric)
+		name = test.RandomStringFromRangeAndCharset(1, 64, test.CharsetAlphaNumeric)
 		var err error
 		versionReporter, err = version.NewReporter("1.2.3", "4567890", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmn")
 		Expect(err).ToNot(HaveOccurred())
@@ -37,8 +37,8 @@ var _ = Describe("Client", func() {
 		BeforeEach(func() {
 			config = platform.NewConfig()
 			Expect(config).ToNot(BeNil())
-			config.Address = testHTTP.NewAddress()
-			config.UserAgent = testHTTP.NewUserAgent()
+			config.Address = testHttp.NewAddress()
+			config.UserAgent = testHttp.NewUserAgent()
 		})
 
 		It("returns an error if config is missing", func() {
@@ -88,7 +88,7 @@ var _ = Describe("Client", func() {
 
 		BeforeEach(func() {
 			server = NewServer()
-			userAgent = testHTTP.NewUserAgent()
+			userAgent = testHttp.NewUserAgent()
 			config := platform.NewConfig()
 			Expect(config).ToNot(BeNil())
 			config.Address = server.URL()
@@ -111,7 +111,7 @@ var _ = Describe("Client", func() {
 			var data map[string]string
 
 			BeforeEach(func() {
-				metric = test.NewVariableString(1, 32, test.CharsetAlphaNumeric)
+				metric = test.RandomStringFromRangeAndCharset(1, 32, test.CharsetAlphaNumeric)
 				data = map[string]string{
 					"left":  "handed",
 					"right": "correct",
@@ -132,9 +132,9 @@ var _ = Describe("Client", func() {
 				var token string
 
 				BeforeEach(func() {
-					token = test.NewString(64, test.CharsetAlphaNumeric)
+					token = test.RandomStringFromRangeAndCharset(64, 64, test.CharsetAlphaNumeric)
 					ctx = log.NewContextWithLogger(ctx, logNull.NewLogger())
-					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, test.NewString(10, test.CharsetHexidecimalLowercase), token))
+					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, test.RandomStringFromRangeAndCharset(10, 10, test.CharsetHexidecimalLowercase), token))
 				})
 
 				Context("as user", func() {
@@ -220,7 +220,7 @@ var _ = Describe("Client", func() {
 				var token string
 
 				BeforeEach(func() {
-					token = test.NewString(64, test.CharsetAlphaNumeric)
+					token = test.RandomStringFromRangeAndCharset(64, 64, test.CharsetAlphaNumeric)
 					ctx = log.NewContextWithLogger(ctx, logNull.NewLogger())
 					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, "", token))
 				})

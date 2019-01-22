@@ -17,7 +17,7 @@ import (
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/test"
-	testHTTP "github.com/tidepool-org/platform/test/http"
+	testHttp "github.com/tidepool-org/platform/test/http"
 	testRest "github.com/tidepool-org/platform/test/rest"
 )
 
@@ -28,7 +28,7 @@ type Data struct {
 
 func NewData() *Data {
 	return &Data{
-		Value: testHTTP.NewHeaderValue(),
+		Value: testHttp.NewHeaderValue(),
 	}
 }
 
@@ -42,7 +42,7 @@ type Error struct {
 
 func NewError() *Error {
 	return &Error{
-		Value: testHTTP.NewHeaderValue(),
+		Value: testHttp.NewHeaderValue(),
 	}
 }
 
@@ -116,8 +116,8 @@ var _ = Describe("Responder", func() {
 
 			It("adds the expected header if the cookie is not nil", func() {
 				cookie := http.Cookie{
-					Name:  testHTTP.NewHeaderKey(),
-					Value: testHTTP.NewHeaderValue(),
+					Name:  testHttp.NewHeaderKey(),
+					Value: testHttp.NewHeaderValue(),
 				}
 				responder.SetCookie(&cookie)
 				Expect(*res.HeaderOutput).To(HaveKey("Set-Cookie"))
@@ -128,12 +128,12 @@ var _ = Describe("Responder", func() {
 
 			It("adds the expected header for multiple cookies", func() {
 				cookie1 := http.Cookie{
-					Name:  testHTTP.NewHeaderKey(),
-					Value: testHTTP.NewHeaderValue(),
+					Name:  testHttp.NewHeaderKey(),
+					Value: testHttp.NewHeaderValue(),
 				}
 				cookie2 := http.Cookie{
-					Name:  testHTTP.NewHeaderKey(),
-					Value: testHTTP.NewHeaderValue(),
+					Name:  testHttp.NewHeaderKey(),
+					Value: testHttp.NewHeaderValue(),
 				}
 				responder.SetCookie(&cookie1)
 				responder.SetCookie(&cookie2)
@@ -149,7 +149,7 @@ var _ = Describe("Responder", func() {
 			var url string
 
 			BeforeEach(func() {
-				url = testHTTP.NewURLString()
+				url = testHttp.NewURLString()
 			})
 
 			It("responds with successful redirect", func() {
@@ -173,7 +173,7 @@ var _ = Describe("Responder", func() {
 			})
 
 			It("responds with successful redirect with mutator", func() {
-				headerMutator := request.NewHeaderMutator(testHTTP.NewHeaderKey(), testHTTP.NewHeaderValue())
+				headerMutator := request.NewHeaderMutator(testHttp.NewHeaderKey(), testHttp.NewHeaderValue())
 				responder.Redirect(http.StatusPermanentRedirect, url, headerMutator)
 				Expect(*res.HeaderOutput).To(Equal(http.Header{
 					"Location":        []string{url},
@@ -203,7 +203,7 @@ var _ = Describe("Responder", func() {
 			})
 
 			It("responds with successful empty response with mutator", func() {
-				headerMutator := request.NewHeaderMutator(testHTTP.NewHeaderKey(), testHTTP.NewHeaderValue())
+				headerMutator := request.NewHeaderMutator(testHttp.NewHeaderKey(), testHttp.NewHeaderValue())
 				responder.Empty(http.StatusOK, headerMutator)
 				Expect(*res.HeaderOutput).To(Equal(http.Header{headerMutator.Key: []string{headerMutator.Value}}))
 				Expect(res.WriteHeaderInputs).To(Equal([]int{200}))
@@ -211,24 +211,24 @@ var _ = Describe("Responder", func() {
 		})
 
 		Context("Bytes", func() {
-			var byts []byte
+			var bites []byte
 
 			BeforeEach(func() {
-				byts = []byte(test.NewVariableString(1, 64, test.CharsetText))
+				bites = []byte(test.RandomStringFromRangeAndCharset(1, 64, test.CharsetText))
 			})
 
 			It("responds with successful non-empty response", func() {
 				res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-				responder.Bytes(http.StatusOK, byts)
+				responder.Bytes(http.StatusOK, bites)
 				Expect(*res.HeaderOutput).To(BeEmpty())
 				Expect(res.WriteHeaderInputs).To(Equal([]int{200}))
-				Expect(res.WriteInputs).To(Equal([][]byte{byts}))
+				Expect(res.WriteInputs).To(Equal([][]byte{bites}))
 			})
 
 			It("responds with an internal server error if there is an error with the mutators", func() {
 				res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 				invalidMutator := request.NewHeaderMutator("", "")
-				responder.Bytes(http.StatusOK, byts, invalidMutator)
+				responder.Bytes(http.StatusOK, bites, invalidMutator)
 				Expect(*res.HeaderOutput).To(Equal(http.Header{
 					"Content-Type": []string{"application/json; charset=utf-8"},
 				}))
@@ -239,11 +239,11 @@ var _ = Describe("Responder", func() {
 
 			It("responds with successful non-empty response with mutator", func() {
 				res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-				headerMutator := request.NewHeaderMutator(testHTTP.NewHeaderKey(), testHTTP.NewHeaderValue())
-				responder.Bytes(http.StatusOK, byts, headerMutator)
+				headerMutator := request.NewHeaderMutator(testHttp.NewHeaderKey(), testHttp.NewHeaderValue())
+				responder.Bytes(http.StatusOK, bites, headerMutator)
 				Expect(*res.HeaderOutput).To(Equal(http.Header{headerMutator.Key: []string{headerMutator.Value}}))
 				Expect(res.WriteHeaderInputs).To(Equal([]int{200}))
-				Expect(res.WriteInputs).To(Equal([][]byte{byts}))
+				Expect(res.WriteInputs).To(Equal([][]byte{bites}))
 			})
 		})
 
@@ -251,7 +251,7 @@ var _ = Describe("Responder", func() {
 			var str string
 
 			BeforeEach(func() {
-				str = test.NewVariableString(1, 64, test.CharsetText)
+				str = test.RandomStringFromRangeAndCharset(1, 64, test.CharsetText)
 			})
 
 			It("responds with successful non-empty response", func() {
@@ -276,7 +276,7 @@ var _ = Describe("Responder", func() {
 
 			It("responds with successful non-empty response with mutator", func() {
 				res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-				headerMutator := request.NewHeaderMutator(testHTTP.NewHeaderKey(), testHTTP.NewHeaderValue())
+				headerMutator := request.NewHeaderMutator(testHttp.NewHeaderKey(), testHttp.NewHeaderValue())
 				responder.String(http.StatusOK, str, headerMutator)
 				Expect(*res.HeaderOutput).To(Equal(http.Header{headerMutator.Key: []string{headerMutator.Value}}))
 				Expect(res.WriteHeaderInputs).To(Equal([]int{200}))
@@ -285,12 +285,12 @@ var _ = Describe("Responder", func() {
 		})
 
 		Context("Reader", func() {
-			var byts []byte
+			var bites []byte
 			var reader io.Reader
 
 			BeforeEach(func() {
-				byts = []byte(test.NewVariableString(1, 64, test.CharsetText))
-				reader = bytes.NewReader(byts)
+				bites = []byte(test.RandomStringFromRangeAndCharset(1, 64, test.CharsetText))
+				reader = bytes.NewReader(bites)
 			})
 
 			It("responds with an internal server error if the reader is missing", func() {
@@ -309,7 +309,7 @@ var _ = Describe("Responder", func() {
 				responder.Reader(http.StatusOK, reader)
 				Expect(*res.HeaderOutput).To(BeEmpty())
 				Expect(res.WriteHeaderInputs).To(Equal([]int{200}))
-				Expect(res.WriteInputs).To(Equal([][]byte{byts}))
+				Expect(res.WriteInputs).To(Equal([][]byte{bites}))
 			})
 
 			It("responds with an internal server error if there is an error with the mutators", func() {
@@ -326,11 +326,11 @@ var _ = Describe("Responder", func() {
 
 			It("responds with successful non-empty response with mutator", func() {
 				res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-				headerMutator := request.NewHeaderMutator(testHTTP.NewHeaderKey(), testHTTP.NewHeaderValue())
+				headerMutator := request.NewHeaderMutator(testHttp.NewHeaderKey(), testHttp.NewHeaderValue())
 				responder.Reader(http.StatusOK, reader, headerMutator)
 				Expect(*res.HeaderOutput).To(Equal(http.Header{headerMutator.Key: []string{headerMutator.Value}}))
 				Expect(res.WriteHeaderInputs).To(Equal([]int{200}))
-				Expect(res.WriteInputs).To(Equal([][]byte{byts}))
+				Expect(res.WriteInputs).To(Equal([][]byte{bites}))
 			})
 		})
 
@@ -401,7 +401,7 @@ var _ = Describe("Responder", func() {
 
 			It("responds with successful non-empty response with mutator", func() {
 				res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-				headerMutator := request.NewHeaderMutator(testHTTP.NewHeaderKey(), testHTTP.NewHeaderValue())
+				headerMutator := request.NewHeaderMutator(testHttp.NewHeaderKey(), testHttp.NewHeaderValue())
 				responder.Data(http.StatusOK, data, headerMutator)
 				Expect(*res.HeaderOutput).To(Equal(http.Header{
 					"Content-Type":    []string{"application/json; charset=utf-8"},
@@ -468,7 +468,7 @@ var _ = Describe("Responder", func() {
 
 			It("responds with successful non-empty response with mutator", func() {
 				res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-				headerMutator := request.NewHeaderMutator(testHTTP.NewHeaderKey(), testHTTP.NewHeaderValue())
+				headerMutator := request.NewHeaderMutator(testHttp.NewHeaderKey(), testHttp.NewHeaderValue())
 				responder.Data(http.StatusBadRequest, err, headerMutator)
 				Expect(*res.HeaderOutput).To(Equal(http.Header{
 					"Content-Type":    []string{"application/json; charset=utf-8"},
@@ -516,7 +516,7 @@ var _ = Describe("Responder", func() {
 
 			It("responds with an internal server error if the error is an internal service error with mutators", func() {
 				res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-				headerMutator := request.NewHeaderMutator(testHTTP.NewHeaderKey(), testHTTP.NewHeaderValue())
+				headerMutator := request.NewHeaderMutator(testHttp.NewHeaderKey(), testHttp.NewHeaderValue())
 				responder.InternalServerError(request.ErrorInternalServerError(nil), headerMutator)
 				Expect(*res.HeaderOutput).To(Equal(http.Header{
 					"Content-Type":    []string{"application/json; charset=utf-8"},
@@ -546,7 +546,7 @@ var _ = Describe("Responder", func() {
 
 			It("responds with successful non-empty response if the error is associated with a status code with mutators", func() {
 				res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-				headerMutator := request.NewHeaderMutator(testHTTP.NewHeaderKey(), testHTTP.NewHeaderValue())
+				headerMutator := request.NewHeaderMutator(testHttp.NewHeaderKey(), testHttp.NewHeaderValue())
 				Expect(responder.RespondIfError(request.ErrorUnauthenticated(), headerMutator)).To(BeTrue())
 				Expect(*res.HeaderOutput).To(Equal(http.Header{
 					"Content-Type":    []string{"application/json; charset=utf-8"},
@@ -570,7 +570,7 @@ var _ = Describe("Responder", func() {
 
 			It("responds with successful non-empty response if the error is not associated with a status code with mutators", func() {
 				res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-				headerMutator := request.NewHeaderMutator(testHTTP.NewHeaderKey(), testHTTP.NewHeaderValue())
+				headerMutator := request.NewHeaderMutator(testHttp.NewHeaderKey(), testHttp.NewHeaderValue())
 				Expect(responder.RespondIfError(request.ErrorJSONMalformed(), headerMutator)).To(BeTrue())
 				Expect(*res.HeaderOutput).To(Equal(http.Header{
 					"Content-Type":    []string{"application/json; charset=utf-8"},

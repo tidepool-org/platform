@@ -84,9 +84,9 @@ var _ = Describe("Errors", func() {
 			Expect(err).ToNot(BeNil())
 			Expect(errors.Code(err)).To(Equal("internal-server-error"))
 			Expect(errors.Cause(err)).To(Equal(cause))
-			bytes, bytesErr := json.Marshal(errors.Sanitize(err))
-			Expect(bytesErr).ToNot(HaveOccurred())
-			Expect(bytes).To(MatchJSON(`{"code": "internal-server-error", "title": "internal server error", "detail": "internal server error"}`))
+			bites, marshalErr := json.Marshal(errors.Sanitize(err))
+			Expect(marshalErr).ToNot(HaveOccurred())
+			Expect(bites).To(MatchJSON(`{"code": "internal-server-error", "title": "internal server error", "detail": "internal server error"}`))
 		})
 	})
 
@@ -98,9 +98,9 @@ var _ = Describe("Errors", func() {
 			Expect(err).ToNot(BeNil())
 			Expect(errors.Code(err)).To(Equal("unexpected-response"))
 			Expect(errors.Cause(err)).To(Equal(err))
-			bytes, bytesErr := json.Marshal(errors.Sanitize(err))
-			Expect(bytesErr).ToNot(HaveOccurred())
-			Expect(bytes).To(MatchJSON(fmt.Sprintf(`{"code": "unexpected-response", "title": "unexpected response", "detail": "unexpected response status code %d from %s \"%s\""}`, res.StatusCode, req.Method, req.URL.String())))
+			bites, marshalErr := json.Marshal(errors.Sanitize(err))
+			Expect(marshalErr).ToNot(HaveOccurred())
+			Expect(bites).To(MatchJSON(fmt.Sprintf(`{"code": "unexpected-response", "title": "unexpected response", "detail": "unexpected response status code %d from %s \"%s\""}`, res.StatusCode, req.Method, req.URL.String())))
 		})
 	})
 
@@ -123,6 +123,7 @@ var _ = Describe("Errors", func() {
 		Entry("is ErrorJSONMalformed", request.ErrorJSONMalformed(), "json-malformed", "json is malformed", "json is malformed"),
 		Entry("is ErrorDigestsNotEqual", request.ErrorDigestsNotEqual("QUJDREVGSElKS0xNTk9QUQ==", "lah2klptWl+IBNSepXlJ9Q=="), "digests-not-equal", "digests not equal", `digest "QUJDREVGSElKS0xNTk9QUQ==" does not equal calculated digest "lah2klptWl+IBNSepXlJ9Q=="`),
 		Entry("is ErrorMediaTypeNotSupported", request.ErrorMediaTypeNotSupported("application/octet-stream"), "media-type-not-supported", "media type not supported", `media type "application/octet-stream" not supported`),
+		Entry("is ErrorExtensionNotSupported", request.ErrorExtensionNotSupported("bin"), "extension-not-supported", "extension not supported", `extension "bin" not supported`),
 	)
 
 	Context("StatusCodeForError", func() {

@@ -4,8 +4,6 @@ import (
 	"context"
 
 	"github.com/onsi/gomega"
-
-	"github.com/tidepool-org/platform/test"
 )
 
 type OnCreateInput struct {
@@ -21,7 +19,6 @@ type OnDeleteInput struct {
 }
 
 type Provider struct {
-	*test.Mock
 	Type                string
 	Name                string
 	OnCreateInvocations int
@@ -34,7 +31,6 @@ type Provider struct {
 
 func NewProvider(typ string, name string) *Provider {
 	return &Provider{
-		Mock: test.NewMock(),
 		Type: typ,
 		Name: name,
 	}
@@ -65,7 +61,6 @@ func (p *Provider) OnDelete(ctx context.Context, userID string, providerSessionI
 }
 
 func (p *Provider) Expectations() {
-	p.Mock.Expectations()
 	gomega.Expect(p.OnCreateOutputs).To(gomega.BeEmpty())
 	gomega.Expect(p.OnDeleteOutputs).To(gomega.BeEmpty())
 }

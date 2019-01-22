@@ -31,13 +31,12 @@ type Carbohydrate struct {
 	Units        *string  `json:"units,omitempty" bson:"units,omitempty"`
 }
 
-func ParseCarbohydrate(parser data.ObjectParser) *Carbohydrate {
-	if parser.Object() == nil {
+func ParseCarbohydrate(parser structure.ObjectParser) *Carbohydrate {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewCarbohydrate()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -45,12 +44,12 @@ func NewCarbohydrate() *Carbohydrate {
 	return &Carbohydrate{}
 }
 
-func (c *Carbohydrate) Parse(parser data.ObjectParser) {
-	c.DietaryFiber = parser.ParseFloat("dietaryFiber")
-	c.Net = parser.ParseFloat("net")
-	c.Sugars = parser.ParseFloat("sugars")
-	c.Total = parser.ParseFloat("total")
-	c.Units = parser.ParseString("units")
+func (c *Carbohydrate) Parse(parser structure.ObjectParser) {
+	c.DietaryFiber = parser.Float64("dietaryFiber")
+	c.Net = parser.Float64("net")
+	c.Sugars = parser.Float64("sugars")
+	c.Total = parser.Float64("total")
+	c.Units = parser.String("units")
 }
 
 func (c *Carbohydrate) Validate(validator structure.Validator) {

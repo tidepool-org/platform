@@ -235,27 +235,27 @@ var _ = Describe("Upload", func() {
 				),
 				Entry("device manufacturers element empty",
 					func(datum *dataTypesUpload.Upload) {
-						datum.DeviceManufacturers = pointer.FromStringArray([]string{test.NewText(1, 16), ""})
+						datum.DeviceManufacturers = pointer.FromStringArray([]string{test.RandomStringFromRange(1, 16), ""})
 					},
 					structure.Origins(),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/deviceManufacturers/1", NewMeta()),
 				),
 				Entry("device manufacturers single",
 					func(datum *dataTypesUpload.Upload) {
-						datum.DeviceManufacturers = pointer.FromStringArray([]string{test.NewText(1, 16)})
+						datum.DeviceManufacturers = pointer.FromStringArray([]string{test.RandomStringFromRange(1, 16)})
 					},
 					structure.Origins(),
 				),
 				Entry("device manufacturers multiple",
 					func(datum *dataTypesUpload.Upload) {
-						datum.DeviceManufacturers = pointer.FromStringArray([]string{test.NewText(1, 16), test.NewText(1, 16)})
+						datum.DeviceManufacturers = pointer.FromStringArray([]string{test.RandomStringFromRange(1, 16), test.RandomStringFromRange(1, 16)})
 					},
 					structure.Origins(),
 				),
 				Entry("device manufacturers multiple duplicates",
 					func(datum *dataTypesUpload.Upload) {
-						duplicate := test.NewText(1, 16)
-						datum.DeviceManufacturers = pointer.FromStringArray([]string{test.NewText(1, 16), duplicate, duplicate, test.NewText(1, 16)})
+						duplicate := test.RandomStringFromRange(1, 16)
+						datum.DeviceManufacturers = pointer.FromStringArray([]string{test.RandomStringFromRange(1, 16), duplicate, duplicate, test.RandomStringFromRange(1, 16)})
 					},
 					structure.Origins(),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueDuplicate(), "/deviceManufacturers/2", NewMeta()),
@@ -270,7 +270,9 @@ var _ = Describe("Upload", func() {
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/deviceModel", NewMeta()),
 				),
 				Entry("device model exists",
-					func(datum *dataTypesUpload.Upload) { datum.DeviceModel = pointer.FromString(test.NewText(1, 32)) },
+					func(datum *dataTypesUpload.Upload) {
+						datum.DeviceModel = pointer.FromString(test.RandomStringFromRange(1, 32))
+					},
 					structure.Origins(),
 				),
 				Entry("device serial number missing",
@@ -284,7 +286,7 @@ var _ = Describe("Upload", func() {
 				),
 				Entry("device serial number exists",
 					func(datum *dataTypesUpload.Upload) {
-						datum.DeviceSerialNumber = pointer.FromString(test.NewText(1, 16))
+						datum.DeviceSerialNumber = pointer.FromString(test.RandomStringFromRange(1, 16))
 					},
 					structure.Origins(),
 				),

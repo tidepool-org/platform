@@ -15,7 +15,7 @@ var _ = Describe("Errors", func() {
 		var msg string
 
 		BeforeEach(func() {
-			msg = test.NewText(1, 64)
+			msg = test.RandomStringFromRange(1, 64)
 		})
 
 		Context("New", func() {
@@ -32,7 +32,7 @@ var _ = Describe("Errors", func() {
 
 		Context("Wrap", func() {
 			It("returns a formatted error", func() {
-				wrapped := test.NewText(1, 64)
+				wrapped := test.RandomStringFromRange(1, 64)
 				err := fmt.Errorf("%s", wrapped)
 				Expect(errors.Wrap(err, msg)).To(MatchError(msg + "; " + wrapped))
 			})
@@ -44,7 +44,7 @@ var _ = Describe("Errors", func() {
 
 		Context("Wrapf", func() {
 			It("returns a formatted error", func() {
-				wrapped := test.NewText(1, 64)
+				wrapped := test.RandomStringFromRange(1, 64)
 				err := fmt.Errorf("%s", wrapped)
 				Expect(errors.Wrapf(err, "%d %s", 222, msg)).To(MatchError("222 " + msg + "; " + wrapped))
 			})
@@ -66,9 +66,9 @@ var _ = Describe("Errors", func() {
 
 	// Context("NewError", func() {
 	// 	It("return successfully", func() {
-	// 		code := test.NewText(1, 16)
-	// 		title := test.NewText(1, 64)
-	// 		detail := test.NewText(1, 64)
+	// 		code := test.RandomStringFromRange(1, 16)
+	// 		title := test.RandomStringFromRange(1, 64)
+	// 		detail := test.RandomStringFromRange(1, 64)
 	// 		err := errors.Prepared(code, title, detail)
 	// 		Expect(err).ToNot(BeNil())
 	// 		Expect(err.Code).To(Equal(code))
@@ -86,14 +86,14 @@ var _ = Describe("Errors", func() {
 	// 	var err *errors.Error
 
 	// 	BeforeEach(func() {
-	// 		code = test.NewText(1, 16)
-	// 		title = test.NewText(1, 64)
-	// 		detail = test.NewText(1, 64)
+	// 		code = test.RandomStringFromRange(1, 16)
+	// 		title = test.RandomStringFromRange(1, 64)
+	// 		detail = test.RandomStringFromRange(1, 64)
 	// 		source = errors.NewSource()
 	// 		Expect(source).ToNot(BeNil())
-	// 		source.Parameter = testErrors.NewSourceParameter()
-	// 		source.Pointer = testErrors.NewSourcePointer()
-	// 		meta = test.NewText(1, 64)
+	// 		source.Parameter = errorsTest.NewSourceParameter()
+	// 		source.Pointer = errorsTest.NewSourcePointer()
+	// 		meta = test.RandomStringFromRange(1, 64)
 	// 		err = errors.Prepared(code, title, detail)
 	// 		Expect(err).ToNot(BeNil())
 	// 		err.Source = source
@@ -109,8 +109,8 @@ var _ = Describe("Errors", func() {
 	// 	Context("WithSource", func() {
 	// 		It("returns a copy of the error with new source", func() {
 	// 			withSource := errors.NewSource()
-	// 			withSource.Parameter = testErrors.NewSourceParameter()
-	// 			withSource.Pointer = testErrors.NewSourcePointer()
+	// 			withSource.Parameter = errorsTest.NewSourceParameter()
+	// 			withSource.Pointer = errorsTest.NewSourcePointer()
 	// 			result := err.WithSource(withSource)
 	// 			Expect(result).ToNot(BeNil())
 	// 			Expect(result).ToNot(BeIdenticalTo(err))
@@ -124,7 +124,7 @@ var _ = Describe("Errors", func() {
 
 	// 	Context("WithMeta", func() {
 	// 		It("returns a copy of the error with new meta", func() {
-	// 			withMeta := test.NewText(1, 64)
+	// 			withMeta := test.RandomStringFromRange(1, 64)
 	// 			result := err.WithMeta(withMeta)
 	// 			Expect(result).ToNot(BeNil())
 	// 			Expect(result).ToNot(BeIdenticalTo(err))
@@ -158,9 +158,9 @@ var _ = Describe("Errors", func() {
 	// 		It("returns the expected string", func() {
 	// 			expected := []string{}
 	// 			for index := 0; index < 3; index++ {
-	// 				code := test.NewText(1, 16)
-	// 				title := test.NewText(1, 64)
-	// 				detail := test.NewText(1, 64)
+	// 				code := test.RandomStringFromRange(1, 16)
+	// 				title := test.RandomStringFromRange(1, 64)
+	// 				detail := test.RandomStringFromRange(1, 64)
 	// 				err := errors.Prepared(code, title, detail)
 	// 				Expect(err).ToNot(BeNil())
 	// 				errs.Append(err)
@@ -174,9 +174,9 @@ var _ = Describe("Errors", func() {
 	// 		It("successfully appends errors", func() {
 	// 			expected := []interface{}{}
 	// 			for index := 0; index < 3; index++ {
-	// 				code := test.NewText(1, 16)
-	// 				title := test.NewText(1, 64)
-	// 				detail := test.NewText(1, 64)
+	// 				code := test.RandomStringFromRange(1, 16)
+	// 				title := test.RandomStringFromRange(1, 64)
+	// 				detail := test.RandomStringFromRange(1, 64)
 	// 				err := errors.Prepared(code, title, detail)
 	// 				Expect(err).ToNot(BeNil())
 	// 				errs.Append(err)

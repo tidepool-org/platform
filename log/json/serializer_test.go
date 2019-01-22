@@ -8,7 +8,6 @@ import (
 
 	"github.com/tidepool-org/platform/log"
 	logJson "github.com/tidepool-org/platform/log/json"
-	"github.com/tidepool-org/platform/test"
 )
 
 type WriteOutput struct {
@@ -17,22 +16,19 @@ type WriteOutput struct {
 }
 
 type Writer struct {
-	*test.Mock
 	WriteInvocations int
 	WriteInputs      [][]byte
 	WriteOutputs     []WriteOutput
 }
 
 func NewWriter() *Writer {
-	return &Writer{
-		Mock: test.NewMock(),
-	}
+	return &Writer{}
 }
 
-func (w *Writer) Write(bytes []byte) (int, error) {
+func (w *Writer) Write(bites []byte) (int, error) {
 	w.WriteInvocations++
 
-	w.WriteInputs = append(w.WriteInputs, bytes)
+	w.WriteInputs = append(w.WriteInputs, bites)
 
 	if len(w.WriteOutputs) == 0 {
 		panic("Unexpected invocation of Write on Writer")

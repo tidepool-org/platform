@@ -19,9 +19,9 @@ func CloneHighLevelAlertDEPRECATED(datum *dataTypesSettingsCgm.HighLevelAlertDEP
 		return nil
 	}
 	clone := dataTypesSettingsCgm.NewHighLevelAlertDEPRECATED()
-	clone.Enabled = test.CloneBool(datum.Enabled)
-	clone.Level = test.CloneFloat64(datum.Level)
-	clone.Snooze = test.CloneInt(datum.Snooze)
+	clone.Enabled = pointer.CloneBool(datum.Enabled)
+	clone.Level = pointer.CloneFloat64(datum.Level)
+	clone.Snooze = pointer.CloneInt(datum.Snooze)
 	return clone
 }
 
@@ -38,8 +38,8 @@ func CloneLowLevelAlertDEPRECATED(datum *dataTypesSettingsCgm.LowLevelAlertDEPRE
 		return nil
 	}
 	clone := dataTypesSettingsCgm.NewLowLevelAlertDEPRECATED()
-	clone.Enabled = test.CloneBool(datum.Enabled)
-	clone.Level = test.CloneFloat64(datum.Level)
-	clone.Snooze = test.CloneInt(datum.Snooze)
+	clone.Enabled = pointer.CloneBool(datum.Enabled)
+	clone.Level = pointer.CloneFloat64(datum.Level)
+	clone.Snooze = pointer.CloneInt(datum.Snooze)
 	return clone
 }

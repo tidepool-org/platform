@@ -1,5 +1,20 @@
 ## HEAD
 
+* Rename Blobs to BlobArray and Sources to SourceArray for consistency
+* Add request.ErrorExtensionNotSupported
+* Minor test updates
+* Rename HasUpdates to IsEmpty to be more descriptive
+* Fix string length validation bug in structure validator package
+* Cleanup test package
+* Remove test.Mock as unnecessary
+* Replace legacy test function usage
+* Remove redundant parsing tests
+* Refactor out common data types
+* Replace deprecated data parsers with structure parsers
+* Rename bytes local variable to avoid conflict with bytes package
+* Remove unnecessary tests to prevent future propogation
+* Rename test functions with prefix ExpectSerialized to ExpectSerializeObject
+* Update test package imports to current best practices
 * Fix data model limit validation constants based off alternate unit constants
 * Straighten out handling of time objects and related in tests
 * Rename blob and data source store Delete to Destroy to reflect actual result

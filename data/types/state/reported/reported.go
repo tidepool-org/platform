@@ -22,16 +22,14 @@ func New() *Reported {
 	}
 }
 
-func (r *Reported) Parse(parser data.ObjectParser) error {
-	parser.SetMeta(r.Meta())
-
-	if err := r.Base.Parse(parser); err != nil {
-		return err
+func (r *Reported) Parse(parser structure.ObjectParser) {
+	if !parser.HasMeta() {
+		parser = parser.WithMeta(r.Meta())
 	}
 
-	r.States = ParseStateArray(parser.NewChildArrayParser("states"))
+	r.Base.Parse(parser)
 
-	return nil
+	r.States = ParseStateArray(parser.WithReferenceArrayParser("states"))
 }
 
 func (r *Reported) Validate(validator structure.Validator) {

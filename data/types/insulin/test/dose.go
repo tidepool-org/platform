@@ -21,10 +21,10 @@ func CloneDose(datum *insulin.Dose) *insulin.Dose {
 		return nil
 	}
 	clone := insulin.NewDose()
-	clone.Active = test.CloneFloat64(datum.Active)
-	clone.Correction = test.CloneFloat64(datum.Correction)
-	clone.Food = test.CloneFloat64(datum.Food)
-	clone.Total = test.CloneFloat64(datum.Total)
-	clone.Units = test.CloneString(datum.Units)
+	clone.Active = pointer.CloneFloat64(datum.Active)
+	clone.Correction = pointer.CloneFloat64(datum.Correction)
+	clone.Food = pointer.CloneFloat64(datum.Food)
+	clone.Total = pointer.CloneFloat64(datum.Total)
+	clone.Units = pointer.CloneString(datum.Units)
 	return clone
 }

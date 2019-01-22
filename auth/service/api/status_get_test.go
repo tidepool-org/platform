@@ -10,7 +10,7 @@ import (
 
 	"github.com/tidepool-org/platform/auth/service"
 	"github.com/tidepool-org/platform/auth/service/api"
-	testService "github.com/tidepool-org/platform/auth/service/test"
+	serviceTest "github.com/tidepool-org/platform/auth/service/test"
 	"github.com/tidepool-org/platform/log"
 	logNull "github.com/tidepool-org/platform/log/null"
 	testRest "github.com/tidepool-org/platform/test/rest"
@@ -19,14 +19,14 @@ import (
 var _ = Describe("StatusGet", func() {
 	var response *testRest.ResponseWriter
 	var request *rest.Request
-	var svc *testService.Service
+	var svc *serviceTest.Service
 	var rtr *api.Router
 
 	BeforeEach(func() {
 		response = testRest.NewResponseWriter()
 		request = testRest.NewRequest()
 		request.Request = request.WithContext(log.NewContextWithLogger(request.Context(), logNull.NewLogger()))
-		svc = testService.NewService()
+		svc = serviceTest.NewService()
 		var err error
 		rtr, err = api.NewRouter(svc)
 		Expect(err).ToNot(HaveOccurred())

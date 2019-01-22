@@ -2,30 +2,55 @@ package test
 
 import "math/rand"
 
-const (
-	CharsetUppercase            = "ABCDEFGHIJKLMNOPQRSTUVWYXZ"
-	CharsetLowercase            = "abcdefghijklmnopqrstuvwxyz"
-	CharsetNumeric              = "1234567890"
-	CharsetWhitespace           = " "
-	CharsetSymbols              = "!\"#$%&'()*+,-./:;<=>@\\]^_`{|}~"
-	CharsetAlpha                = CharsetUppercase + CharsetLowercase
-	CharsetAlphaNumeric         = CharsetUppercase + CharsetLowercase + CharsetNumeric
-	CharsetText                 = CharsetAlphaNumeric + CharsetWhitespace + CharsetSymbols
-	CharsetHexidecimalLowercase = CharsetNumeric + "abcdef"
-)
-
-func NewString(length int, charset string) string {
-	bytes := make([]byte, length)
-	for index := range bytes {
-		bytes[index] = charset[rand.Intn(len(charset))]
+func MustString(value string, err error) string {
+	if err != nil {
+		panic(err)
 	}
-	return string(bytes)
+	return value
 }
 
-func NewVariableString(minimumLength int, maximumLength int, charset string) string {
-	return NewString(minimumLength+rand.Intn(maximumLength-minimumLength+1), charset)
+func RandomString() string {
+	return RandomStringFromRangeAndCharset(RandomStringLengthMinimum(), RandomStringLengthMaximum(), CharsetText)
 }
 
-func NewText(minimumLength int, maximumLength int) string {
-	return NewVariableString(minimumLength, maximumLength, CharsetText)
+func RandomStringFromArray(array []string) string {
+	if len(array) == 0 {
+		panic("RandomStringFromArray: array is empty")
+	}
+	return array[rand.Intn(len(array))]
+}
+
+func RandomStringFromCharset(charset string) string {
+	return RandomStringFromRangeAndCharset(RandomStringLengthMinimum(), RandomStringLengthMaximum(), charset)
+}
+
+func RandomStringFromRange(minimumLength int, maximumLength int) string {
+	return RandomStringFromRangeAndCharset(minimumLength, maximumLength, CharsetText)
+}
+
+func RandomStringFromRangeAndCharset(minimumLength int, maximumLength int, charset string) string {
+	if maximumLength < minimumLength {
+		panic("RandomStringFromRangeAndCharset: maximum length is not greater than or equal to minimum length")
+	}
+	if len(charset) == 0 {
+		panic("RandomStringFromRangeAndCharset: charset is empty")
+	}
+	charsetRunes := []rune(charset)
+	resultRunes := make([]rune, RandomIntFromRange(minimumLength, maximumLength))
+	for index := range resultRunes {
+		resultRunes[index] = charsetRunes[rand.Intn(len(charsetRunes))]
+	}
+	return string(resultRunes)
+}
+
+func RandomStringLengthMaximum() int {
+	return 32
+}
+
+func RandomStringLengthMinimum() int {
+	return 1
+}
+
+func NewObjectFromString(value string, objectFormat ObjectFormat) interface{} {
+	return value
 }

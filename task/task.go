@@ -128,10 +128,6 @@ func NewTaskUpdate() *TaskUpdate {
 	return &TaskUpdate{}
 }
 
-func (t *TaskUpdate) HasUpdates() bool {
-	return t.Priority != nil || t.Data != nil || t.AvailableTime != nil || t.ExpirationTime != nil
-}
-
 func (t *TaskUpdate) Parse(parser structure.ObjectParser) {
 	t.Priority = parser.Int("priority")
 	t.Data = parser.Object("data")
@@ -145,6 +141,10 @@ func (t *TaskUpdate) Validate(validator structure.Validator) {
 	if t.AvailableTime != nil {
 		expirationTimeValidator.After(*t.AvailableTime)
 	}
+}
+
+func (t *TaskUpdate) IsEmpty() bool {
+	return t.Priority == nil && t.Data == nil && t.AvailableTime == nil && t.ExpirationTime == nil
 }
 
 func NewID() string {

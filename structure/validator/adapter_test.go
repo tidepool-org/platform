@@ -7,18 +7,18 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/pointer"
-	testStructure "github.com/tidepool-org/platform/structure/test"
+	structureTest "github.com/tidepool-org/platform/structure/test"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 )
 
 var _ = Describe("Adapter", func() {
 	Context("ValidatableWithInt", func() {
-		var validatableWithInt *testStructure.ValidatableWithInt
+		var validatableWithInt *structureTest.ValidatableWithInt
 		var i *int
 
 		BeforeEach(func() {
-			validatableWithInt = testStructure.NewValidatableWithInt()
+			validatableWithInt = structureTest.NewValidatableWithInt()
 			i = pointer.FromInt(rand.Int())
 		})
 
@@ -39,19 +39,19 @@ var _ = Describe("Adapter", func() {
 			Context("Validate", func() {
 				It("returns successfully", func() {
 					validatableWithIntAdapter.Validate(nil)
-					Expect(validatableWithInt.ValidateInputs).To(Equal([]testStructure.ValidatableWithIntInput{{Validator: nil, Int: i}}))
+					Expect(validatableWithInt.ValidateInputs).To(Equal([]structureTest.ValidatableWithIntInput{{Validator: nil, Int: i}}))
 				})
 			})
 		})
 	})
 
 	Context("ValidatableWithString", func() {
-		var validatableWithString *testStructure.ValidatableWithString
+		var validatableWithString *structureTest.ValidatableWithString
 		var str *string
 
 		BeforeEach(func() {
-			validatableWithString = testStructure.NewValidatableWithString()
-			str = pointer.FromString(test.NewText(1, 32))
+			validatableWithString = structureTest.NewValidatableWithString()
+			str = pointer.FromString(test.RandomStringFromRange(1, 32))
 		})
 
 		Context("NewValidatableWithStringAdapter", func() {
@@ -71,19 +71,19 @@ var _ = Describe("Adapter", func() {
 			Context("Validate", func() {
 				It("returns successfully", func() {
 					validatableWithStringAdapter.Validate(nil)
-					Expect(validatableWithString.ValidateInputs).To(Equal([]testStructure.ValidatableWithStringInput{{Validator: nil, String: str}}))
+					Expect(validatableWithString.ValidateInputs).To(Equal([]structureTest.ValidatableWithStringInput{{Validator: nil, String: str}}))
 				})
 			})
 		})
 	})
 
 	Context("ValidatableWithStringArray", func() {
-		var validatableWithStringArray *testStructure.ValidatableWithStringArray
+		var validatableWithStringArray *structureTest.ValidatableWithStringArray
 		var strArray *[]string
 
 		BeforeEach(func() {
-			validatableWithStringArray = testStructure.NewValidatableWithStringArray()
-			strArray = &[]string{test.NewText(1, 32), test.NewText(1, 32), test.NewText(1, 32)}
+			validatableWithStringArray = structureTest.NewValidatableWithStringArray()
+			strArray = &[]string{test.RandomStringFromRange(1, 32), test.RandomStringFromRange(1, 32), test.RandomStringFromRange(1, 32)}
 		})
 
 		Context("NewValidatableWithStringArrayAdapter", func() {
@@ -103,7 +103,7 @@ var _ = Describe("Adapter", func() {
 			Context("Validate", func() {
 				It("returns successfully", func() {
 					validatableWithStringArrayAdapter.Validate(nil)
-					Expect(validatableWithStringArray.ValidateInputs).To(Equal([]testStructure.ValidatableWithStringArrayInput{{Validator: nil, StringArray: strArray}}))
+					Expect(validatableWithStringArray.ValidateInputs).To(Equal([]structureTest.ValidatableWithStringArrayInput{{Validator: nil, StringArray: strArray}}))
 				})
 			})
 		})

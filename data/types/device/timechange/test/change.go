@@ -19,8 +19,8 @@ func CloneChange(datum *dataTypesDeviceTimechange.Change) *dataTypesDeviceTimech
 		return nil
 	}
 	clone := dataTypesDeviceTimechange.NewChange()
-	clone.Agent = test.CloneString(datum.Agent)
-	clone.From = test.CloneString(datum.From)
-	clone.To = test.CloneString(datum.To)
+	clone.Agent = pointer.CloneString(datum.Agent)
+	clone.From = pointer.CloneString(datum.From)
+	clone.To = pointer.CloneString(datum.To)
 	return clone
 }

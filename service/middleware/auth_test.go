@@ -10,8 +10,8 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/auth"
-	testAuth "github.com/tidepool-org/platform/auth/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	authTest "github.com/tidepool-org/platform/auth/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
 	logNull "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/request"
@@ -23,11 +23,11 @@ import (
 
 var _ = Describe("Auth", func() {
 	var serviceSecret string
-	var authClient *testAuth.Client
+	var authClient *authTest.Client
 
 	BeforeEach(func() {
-		serviceSecret = testAuth.NewServiceSecret()
-		authClient = testAuth.NewClient()
+		serviceSecret = authTest.NewServiceSecret()
+		authClient = authTest.NewClient()
 	})
 
 	AfterEach(func() {
@@ -116,12 +116,12 @@ var _ = Describe("Auth", func() {
 				var serverSessionToken string
 
 				BeforeEach(func() {
-					serverSessionToken = testAuth.NewSessionToken()
-					authClient.ServerSessionTokenOutputs = []testAuth.ServerSessionTokenOutput{{Token: serverSessionToken, Error: nil}}
+					serverSessionToken = authTest.NewSessionToken()
+					authClient.ServerSessionTokenOutputs = []authTest.ServerSessionTokenOutput{{Token: serverSessionToken, Error: nil}}
 				})
 
 				It("does not set the server session token if error", func() {
-					authClient.ServerSessionTokenOutputs = []testAuth.ServerSessionTokenOutput{{Token: serverSessionToken, Error: testErrors.RandomError()}}
+					authClient.ServerSessionTokenOutputs = []authTest.ServerSessionTokenOutput{{Token: serverSessionToken, Error: errorsTest.RandomError()}}
 					handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
 						Expect(auth.ServerSessionTokenFromContext(req.Context())).To(BeEmpty())
 					}
@@ -162,7 +162,7 @@ var _ = Describe("Auth", func() {
 					It("returns unauthorized if the server secret does not match", func() {
 						res.HeaderOutput = &http.Header{}
 						res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-						req.Header.Set("X-Tidepool-Service-Secret", testAuth.NewServiceSecret())
+						req.Header.Set("X-Tidepool-Service-Secret", authTest.NewServiceSecret())
 						middlewareFunc(res, req)
 						Expect(res.WriteHeaderInputs).To(Equal([]int{403}))
 					})
@@ -186,7 +186,7 @@ var _ = Describe("Auth", func() {
 					var accessToken string
 
 					BeforeEach(func() {
-						accessToken = testAuth.NewAccessToken()
+						accessToken = authTest.NewAccessToken()
 						req.Header.Add("Authorization", fmt.Sprintf("bEaReR %s", accessToken))
 					})
 
@@ -216,7 +216,7 @@ var _ = Describe("Auth", func() {
 
 					It("returns successfully", func() {
 						userID := serviceTest.NewUserID()
-						authClient.ValidateSessionTokenOutputs = []testAuth.ValidateSessionTokenOutput{
+						authClient.ValidateSessionTokenOutputs = []authTest.ValidateSessionTokenOutput{
 							{Details: request.NewDetails(request.MethodSessionToken, userID, accessToken), Error: nil},
 						}
 						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
@@ -237,7 +237,7 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns successfully with no details if access token is not valid", func() {
-						authClient.ValidateSessionTokenOutputs = []testAuth.ValidateSessionTokenOutput{{Details: nil, Error: testErrors.RandomError()}}
+						authClient.ValidateSessionTokenOutputs = []authTest.ValidateSessionTokenOutput{{Details: nil, Error: errorsTest.RandomError()}}
 						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
 							details := request.DetailsFromContext(req.Context())
 							Expect(details).To(BeNil())
@@ -254,7 +254,7 @@ var _ = Describe("Auth", func() {
 					var sessionToken string
 
 					BeforeEach(func() {
-						sessionToken = testAuth.NewSessionToken()
+						sessionToken = authTest.NewSessionToken()
 						req.Header.Add("X-Tidepool-Session-Token", sessionToken)
 					})
 
@@ -268,7 +268,7 @@ var _ = Describe("Auth", func() {
 
 					It("returns successfully", func() {
 						userID := serviceTest.NewUserID()
-						authClient.ValidateSessionTokenOutputs = []testAuth.ValidateSessionTokenOutput{
+						authClient.ValidateSessionTokenOutputs = []authTest.ValidateSessionTokenOutput{
 							{Details: request.NewDetails(request.MethodSessionToken, userID, sessionToken), Error: nil},
 						}
 						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
@@ -289,7 +289,7 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns successfully as service", func() {
-						authClient.ValidateSessionTokenOutputs = []testAuth.ValidateSessionTokenOutput{
+						authClient.ValidateSessionTokenOutputs = []authTest.ValidateSessionTokenOutput{
 							{Details: request.NewDetails(request.MethodSessionToken, "", sessionToken), Error: nil},
 						}
 						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
@@ -309,7 +309,7 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns successfully with no details if session token is not valid", func() {
-						authClient.ValidateSessionTokenOutputs = []testAuth.ValidateSessionTokenOutput{{Details: nil, Error: testErrors.RandomError()}}
+						authClient.ValidateSessionTokenOutputs = []authTest.ValidateSessionTokenOutput{{Details: nil, Error: errorsTest.RandomError()}}
 						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
 							details := request.DetailsFromContext(req.Context())
 							Expect(details).To(BeNil())
@@ -326,7 +326,7 @@ var _ = Describe("Auth", func() {
 					var restrictedToken string
 
 					BeforeEach(func() {
-						restrictedToken = testAuth.NewRestrictedToken()
+						restrictedToken = authTest.NewRestrictedToken()
 						query := req.URL.Query()
 						query.Add("restricted_token", restrictedToken)
 						req.URL.RawQuery = query.Encode()
@@ -349,7 +349,7 @@ var _ = Describe("Auth", func() {
 							UserID:         userID,
 							ExpirationTime: time.Now().Add(time.Hour),
 						}
-						authClient.GetRestrictedTokenOutputs = []testAuth.GetRestrictedTokenOutput{{RestrictedToken: restrictedTokenObject, Error: nil}}
+						authClient.GetRestrictedTokenOutputs = []authTest.GetRestrictedTokenOutput{{RestrictedToken: restrictedTokenObject, Error: nil}}
 						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
 							details := request.DetailsFromContext(req.Context())
 							Expect(details).ToNot(BeNil())
@@ -369,7 +369,7 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns successfully with no details if restricted token is not valid", func() {
-						authClient.GetRestrictedTokenOutputs = []testAuth.GetRestrictedTokenOutput{{RestrictedToken: nil, Error: testErrors.RandomError()}}
+						authClient.GetRestrictedTokenOutputs = []authTest.GetRestrictedTokenOutput{{RestrictedToken: nil, Error: errorsTest.RandomError()}}
 						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
 							details := request.DetailsFromContext(req.Context())
 							Expect(details).To(BeNil())
@@ -383,7 +383,7 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns successfully with no details if restricted token is missing", func() {
-						authClient.GetRestrictedTokenOutputs = []testAuth.GetRestrictedTokenOutput{{RestrictedToken: nil, Error: nil}}
+						authClient.GetRestrictedTokenOutputs = []authTest.GetRestrictedTokenOutput{{RestrictedToken: nil, Error: nil}}
 						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
 							details := request.DetailsFromContext(req.Context())
 							Expect(details).To(BeNil())
@@ -403,7 +403,7 @@ var _ = Describe("Auth", func() {
 							UserID:         userID,
 							ExpirationTime: time.Now().Add(-time.Hour),
 						}
-						authClient.GetRestrictedTokenOutputs = []testAuth.GetRestrictedTokenOutput{{RestrictedToken: restrictedTokenObject, Error: nil}}
+						authClient.GetRestrictedTokenOutputs = []authTest.GetRestrictedTokenOutput{{RestrictedToken: restrictedTokenObject, Error: nil}}
 						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
 							details := request.DetailsFromContext(req.Context())
 							Expect(details).To(BeNil())

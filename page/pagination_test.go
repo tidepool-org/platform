@@ -35,7 +35,7 @@ var _ = Describe("Pagination", func() {
 	})
 
 	It("PaginationSizeMaximum is expected", func() {
-		Expect(page.PaginationSizeMaximum).To(Equal(100))
+		Expect(page.PaginationSizeMaximum).To(Equal(1000))
 	})
 
 	Context("Pagination", func() {
@@ -146,14 +146,14 @@ var _ = Describe("Pagination", func() {
 					datum.Size = 0
 					datum.Validate(validator)
 					Expect(validator.Error()).To(HaveOccurred())
-					errorsTest.ExpectEqual(validator.Error(), errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(0, 1, 100), "/size"))
+					errorsTest.ExpectEqual(validator.Error(), errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(0, 1, 1000), "/size"))
 				})
 
-				It("reports an error if the size is greater than 100", func() {
-					datum.Size = 101
+				It("reports an error if the size is greater than 1000", func() {
+					datum.Size = 1001
 					datum.Validate(validator)
 					Expect(validator.Error()).To(HaveOccurred())
-					errorsTest.ExpectEqual(validator.Error(), errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(101, 1, 100), "/size"))
+					errorsTest.ExpectEqual(validator.Error(), errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(1001, 1, 1000), "/size"))
 				})
 
 				It("reports an error if the page and size are less than minimum", func() {
@@ -163,7 +163,7 @@ var _ = Describe("Pagination", func() {
 					Expect(validator.Error()).To(HaveOccurred())
 					errorsTest.ExpectEqual(validator.Error(), errors.Append(
 						errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/page"),
-						errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(0, 1, 100), "/size"),
+						errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(0, 1, 1000), "/size"),
 					))
 				})
 			})

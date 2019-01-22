@@ -34,19 +34,19 @@ func New() *Combination {
 	}
 }
 
-func (c *Combination) Parse(parser data.ObjectParser) error {
-	if err := c.Bolus.Parse(parser); err != nil {
-		return err
+func (c *Combination) Parse(parser structure.ObjectParser) {
+	if !parser.HasMeta() {
+		parser = parser.WithMeta(c.Meta())
 	}
 
-	c.Duration = parser.ParseInteger("duration")
-	c.DurationExpected = parser.ParseInteger("expectedDuration")
-	c.Extended = parser.ParseFloat("extended")
-	c.ExtendedExpected = parser.ParseFloat("expectedExtended")
-	c.Normal = parser.ParseFloat("normal")
-	c.NormalExpected = parser.ParseFloat("expectedNormal")
+	c.Bolus.Parse(parser)
 
-	return nil
+	c.Duration = parser.Int("duration")
+	c.DurationExpected = parser.Int("expectedDuration")
+	c.Extended = parser.Float64("extended")
+	c.ExtendedExpected = parser.Float64("expectedExtended")
+	c.Normal = parser.Float64("normal")
+	c.NormalExpected = parser.Float64("expectedNormal")
 }
 
 func (c *Combination) Validate(validator structure.Validator) {

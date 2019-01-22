@@ -9,8 +9,8 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -30,8 +30,8 @@ func CloneBolusCalculatorInsulin(datum *pump.BolusCalculatorInsulin) *pump.Bolus
 		return nil
 	}
 	clone := pump.NewBolusCalculatorInsulin()
-	clone.Duration = test.CloneFloat64(datum.Duration)
-	clone.Units = test.CloneString(datum.Units)
+	clone.Duration = pointer.CloneFloat64(datum.Duration)
+	clone.Units = pointer.CloneString(datum.Units)
 	return clone
 }
 
@@ -96,7 +96,7 @@ var _ = Describe("BolusCalculatorInsulin", func() {
 				func(mutator func(datum *pump.BolusCalculatorInsulin), expectedErrors ...error) {
 					datum := NewBolusCalculatorInsulin()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *pump.BolusCalculatorInsulin) {},
@@ -106,86 +106,86 @@ var _ = Describe("BolusCalculatorInsulin", func() {
 						datum.Duration = nil
 						datum.Units = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/duration"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/duration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; duration out of range (lower)",
 					func(datum *pump.BolusCalculatorInsulin) {
 						datum.Duration = pointer.FromFloat64(-0.1)
 						datum.Units = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; duration in range (lower)",
 					func(datum *pump.BolusCalculatorInsulin) {
 						datum.Duration = pointer.FromFloat64(0.0)
 						datum.Units = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; duration in range (upper)",
 					func(datum *pump.BolusCalculatorInsulin) {
 						datum.Duration = pointer.FromFloat64(10.0)
 						datum.Units = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; duration out of range (upper)",
 					func(datum *pump.BolusCalculatorInsulin) {
 						datum.Duration = pointer.FromFloat64(10.1)
 						datum.Units = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units invalid; duration missing",
 					func(datum *pump.BolusCalculatorInsulin) {
 						datum.Duration = nil
 						datum.Units = pointer.FromString("invalid")
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/duration"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/duration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
 				),
 				Entry("units invalid; duration out of range (lower)",
 					func(datum *pump.BolusCalculatorInsulin) {
 						datum.Duration = pointer.FromFloat64(-0.1)
 						datum.Units = pointer.FromString("invalid")
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
 				),
 				Entry("units invalid; duration in range (lower)",
 					func(datum *pump.BolusCalculatorInsulin) {
 						datum.Duration = pointer.FromFloat64(0.0)
 						datum.Units = pointer.FromString("invalid")
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
 				),
 				Entry("units invalid; duration in range (upper)",
 					func(datum *pump.BolusCalculatorInsulin) {
 						datum.Duration = pointer.FromFloat64(10.0)
 						datum.Units = pointer.FromString("invalid")
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
 				),
 				Entry("units invalid; duration out of range (upper)",
 					func(datum *pump.BolusCalculatorInsulin) {
 						datum.Duration = pointer.FromFloat64(10.1)
 						datum.Units = pointer.FromString("invalid")
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
 				),
 				Entry("units hours: duration missing",
 					func(datum *pump.BolusCalculatorInsulin) {
 						datum.Duration = nil
 						datum.Units = pointer.FromString("hours")
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/duration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/duration"),
 				),
 				Entry("units hours: duration out of range (lower)",
 					func(datum *pump.BolusCalculatorInsulin) {
 						datum.Duration = pointer.FromFloat64(-0.1)
 						datum.Units = pointer.FromString("hours")
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 10.0), "/duration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 10.0), "/duration"),
 				),
 				Entry("units hours: duration in range (lower)",
 					func(datum *pump.BolusCalculatorInsulin) {
@@ -204,21 +204,21 @@ var _ = Describe("BolusCalculatorInsulin", func() {
 						datum.Duration = pointer.FromFloat64(10.1)
 						datum.Units = pointer.FromString("hours")
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(10.1, 0.0, 10.0), "/duration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(10.1, 0.0, 10.0), "/duration"),
 				),
 				Entry("units minutes: duration missing",
 					func(datum *pump.BolusCalculatorInsulin) {
 						datum.Duration = nil
 						datum.Units = pointer.FromString("minutes")
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/duration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/duration"),
 				),
 				Entry("units minutes: duration out of range (lower)",
 					func(datum *pump.BolusCalculatorInsulin) {
 						datum.Duration = pointer.FromFloat64(-0.1)
 						datum.Units = pointer.FromString("minutes")
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 600.0), "/duration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 600.0), "/duration"),
 				),
 				Entry("units minutes: duration in range (lower)",
 					func(datum *pump.BolusCalculatorInsulin) {
@@ -237,21 +237,21 @@ var _ = Describe("BolusCalculatorInsulin", func() {
 						datum.Duration = pointer.FromFloat64(600.1)
 						datum.Units = pointer.FromString("minutes")
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(600.1, 0.0, 600.0), "/duration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(600.1, 0.0, 600.0), "/duration"),
 				),
 				Entry("units seconds: duration missing",
 					func(datum *pump.BolusCalculatorInsulin) {
 						datum.Duration = nil
 						datum.Units = pointer.FromString("seconds")
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/duration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/duration"),
 				),
 				Entry("units seconds: duration out of range (lower)",
 					func(datum *pump.BolusCalculatorInsulin) {
 						datum.Duration = pointer.FromFloat64(-0.1)
 						datum.Units = pointer.FromString("seconds")
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 36000.0), "/duration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 36000.0), "/duration"),
 				),
 				Entry("units seconds: duration in range (lower)",
 					func(datum *pump.BolusCalculatorInsulin) {
@@ -270,15 +270,15 @@ var _ = Describe("BolusCalculatorInsulin", func() {
 						datum.Duration = pointer.FromFloat64(36000.1)
 						datum.Units = pointer.FromString("seconds")
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(36000.1, 0.0, 36000.0), "/duration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(36000.1, 0.0, 36000.0), "/duration"),
 				),
 				Entry("units missing",
 					func(datum *pump.BolusCalculatorInsulin) { datum.Units = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units invalid",
 					func(datum *pump.BolusCalculatorInsulin) { datum.Units = pointer.FromString("invalid") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"hours", "minutes", "seconds"}), "/units"),
 				),
 				Entry("units hours",
 					func(datum *pump.BolusCalculatorInsulin) {
@@ -291,8 +291,8 @@ var _ = Describe("BolusCalculatorInsulin", func() {
 						datum.Duration = nil
 						datum.Units = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/duration"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/duration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 			)
 		})

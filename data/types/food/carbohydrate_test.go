@@ -7,8 +7,8 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/food"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -30,11 +30,11 @@ func CloneCarbohydrate(datum *food.Carbohydrate) *food.Carbohydrate {
 		return nil
 	}
 	clone := food.NewCarbohydrate()
-	clone.DietaryFiber = test.CloneFloat64(datum.DietaryFiber)
-	clone.Net = test.CloneFloat64(datum.Net)
-	clone.Sugars = test.CloneFloat64(datum.Sugars)
-	clone.Total = test.CloneFloat64(datum.Total)
-	clone.Units = test.CloneString(datum.Units)
+	clone.DietaryFiber = pointer.CloneFloat64(datum.DietaryFiber)
+	clone.Net = pointer.CloneFloat64(datum.Net)
+	clone.Sugars = pointer.CloneFloat64(datum.Sugars)
+	clone.Total = pointer.CloneFloat64(datum.Total)
+	clone.Units = pointer.CloneString(datum.Units)
 	return clone
 }
 
@@ -99,7 +99,7 @@ var _ = Describe("Carbohydrate", func() {
 				func(mutator func(datum *food.Carbohydrate), expectedErrors ...error) {
 					datum := NewCarbohydrate()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *food.Carbohydrate) {},
@@ -109,7 +109,7 @@ var _ = Describe("Carbohydrate", func() {
 				),
 				Entry("dietary fiber out of range (lower)",
 					func(datum *food.Carbohydrate) { datum.DietaryFiber = pointer.FromFloat64(-0.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/dietaryFiber"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/dietaryFiber"),
 				),
 				Entry("dietary fiber in range (lower)",
 					func(datum *food.Carbohydrate) { datum.DietaryFiber = pointer.FromFloat64(0.0) },
@@ -119,15 +119,15 @@ var _ = Describe("Carbohydrate", func() {
 				),
 				Entry("dietary fiber out of range (upper)",
 					func(datum *food.Carbohydrate) { datum.DietaryFiber = pointer.FromFloat64(1000.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/dietaryFiber"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/dietaryFiber"),
 				),
 				Entry("net missing",
 					func(datum *food.Carbohydrate) { datum.Net = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/net"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/net"),
 				),
 				Entry("net out of range (lower)",
 					func(datum *food.Carbohydrate) { datum.Net = pointer.FromFloat64(-0.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/net"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/net"),
 				),
 				Entry("net in range (lower)",
 					func(datum *food.Carbohydrate) { datum.Net = pointer.FromFloat64(0.0) },
@@ -137,14 +137,14 @@ var _ = Describe("Carbohydrate", func() {
 				),
 				Entry("net out of range (upper)",
 					func(datum *food.Carbohydrate) { datum.Net = pointer.FromFloat64(1000.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/net"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/net"),
 				),
 				Entry("sugars missing",
 					func(datum *food.Carbohydrate) { datum.Sugars = nil },
 				),
 				Entry("sugars out of range (lower)",
 					func(datum *food.Carbohydrate) { datum.Sugars = pointer.FromFloat64(-0.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/sugars"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/sugars"),
 				),
 				Entry("sugars in range (lower)",
 					func(datum *food.Carbohydrate) { datum.Sugars = pointer.FromFloat64(0.0) },
@@ -154,14 +154,14 @@ var _ = Describe("Carbohydrate", func() {
 				),
 				Entry("sugars out of range (upper)",
 					func(datum *food.Carbohydrate) { datum.Sugars = pointer.FromFloat64(1000.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/sugars"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/sugars"),
 				),
 				Entry("total missing",
 					func(datum *food.Carbohydrate) { datum.Total = nil },
 				),
 				Entry("total out of range (lower)",
 					func(datum *food.Carbohydrate) { datum.Total = pointer.FromFloat64(-0.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/total"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/total"),
 				),
 				Entry("total in range (lower)",
 					func(datum *food.Carbohydrate) { datum.Total = pointer.FromFloat64(0.0) },
@@ -171,15 +171,15 @@ var _ = Describe("Carbohydrate", func() {
 				),
 				Entry("total out of range (upper)",
 					func(datum *food.Carbohydrate) { datum.Total = pointer.FromFloat64(1000.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/total"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/total"),
 				),
 				Entry("units missing",
 					func(datum *food.Carbohydrate) { datum.Units = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units invalid",
 					func(datum *food.Carbohydrate) { datum.Units = pointer.FromString("invalid") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"grams"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"grams"}), "/units"),
 				),
 				Entry("units grams",
 					func(datum *food.Carbohydrate) { datum.Units = pointer.FromString("grams") },
@@ -192,11 +192,11 @@ var _ = Describe("Carbohydrate", func() {
 						datum.Total = pointer.FromFloat64(-0.1)
 						datum.Units = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/dietaryFiber"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/net"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/sugars"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/total"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/dietaryFiber"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/net"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/sugars"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/total"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 			)
 		})

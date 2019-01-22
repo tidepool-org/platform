@@ -17,8 +17,8 @@ type ListInput struct {
 }
 
 type ListOutput struct {
-	Blobs blob.Blobs
-	Error error
+	BlobArray blob.BlobArray
+	Error     error
 }
 
 type CreateInput struct {
@@ -61,7 +61,7 @@ type Session struct {
 	*test.Closer
 	ListInvocations    int
 	ListInputs         []ListInput
-	ListStub           func(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.Blobs, error)
+	ListStub           func(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.BlobArray, error)
 	ListOutputs        []ListOutput
 	ListOutput         *ListOutput
 	CreateInvocations  int
@@ -92,7 +92,7 @@ func NewSession() *Session {
 	}
 }
 
-func (s *Session) List(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.Blobs, error) {
+func (s *Session) List(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.BlobArray, error) {
 	s.ListInvocations++
 	s.ListInputs = append(s.ListInputs, ListInput{UserID: userID, Filter: filter, Pagination: pagination})
 	if s.ListStub != nil {
@@ -101,10 +101,10 @@ func (s *Session) List(ctx context.Context, userID string, filter *blob.Filter, 
 	if len(s.ListOutputs) > 0 {
 		output := s.ListOutputs[0]
 		s.ListOutputs = s.ListOutputs[1:]
-		return output.Blobs, output.Error
+		return output.BlobArray, output.Error
 	}
 	if s.ListOutput != nil {
-		return s.ListOutput.Blobs, s.ListOutput.Error
+		return s.ListOutput.BlobArray, s.ListOutput.Error
 	}
 	panic("List has no output")
 }

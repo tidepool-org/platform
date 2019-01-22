@@ -63,7 +63,7 @@ func (s *Session) EnsureIndexes() error {
 	})
 }
 
-func (s *Session) List(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.Blobs, error) {
+func (s *Session) List(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.BlobArray, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -90,7 +90,7 @@ func (s *Session) List(ctx context.Context, userID string, filter *blob.Filter, 
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "filter": filter, "pagination": pagination})
 
-	result := blob.Blobs{}
+	result := blob.BlobArray{}
 	query := bson.M{
 		"userId": userID,
 	}
@@ -226,7 +226,7 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id, "condition": condition, "update": update})
 
-	if update.HasUpdates() {
+	if !update.IsEmpty() {
 		query := bson.M{
 			"id": id,
 		}
@@ -313,7 +313,7 @@ func (s *Session) Destroy(ctx context.Context, id string, condition *request.Con
 }
 
 func (s *Session) get(logger log.Logger, id string, condition *request.Condition) (*blob.Blob, error) {
-	results := blob.Blobs{}
+	results := blob.BlobArray{}
 	query := bson.M{
 		"id": id,
 	}

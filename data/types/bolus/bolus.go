@@ -39,16 +39,10 @@ func (b *Bolus) Meta() interface{} {
 	}
 }
 
-func (b *Bolus) Parse(parser data.ObjectParser) error {
-	parser.SetMeta(b.Meta())
+func (b *Bolus) Parse(parser structure.ObjectParser) {
+	b.Base.Parse(parser)
 
-	if err := b.Base.Parse(parser); err != nil {
-		return nil
-	}
-
-	b.InsulinFormulation = insulin.ParseFormulation(parser.NewChildObjectParser("insulinFormulation"))
-
-	return nil
+	b.InsulinFormulation = insulin.ParseFormulation(parser.WithReferenceObjectParser("insulinFormulation"))
 }
 
 func (b *Bolus) Validate(validator structure.Validator) {

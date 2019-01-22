@@ -115,15 +115,15 @@ var _ = Describe("Client", func() {
 
 					It("returns an error when the data source structured session list returns an error", func() {
 						responseErr := errorsTest.RandomError()
-						dataSourceStructuredSession.ListOutputs = []dataSourceStoreStructuredTest.ListOutput{{Sources: nil, Error: responseErr}}
+						dataSourceStructuredSession.ListOutputs = []dataSourceStoreStructuredTest.ListOutput{{SourceArray: nil, Error: responseErr}}
 						result, err := client.List(ctx, userID, filter, pagination)
 						errorsTest.ExpectEqual(err, responseErr)
 						Expect(result).To(BeNil())
 					})
 
 					It("returns successfully when the data source structured session list returns successfully", func() {
-						responseResult := dataSourceTest.RandomSources(1, 3)
-						dataSourceStructuredSession.ListOutputs = []dataSourceStoreStructuredTest.ListOutput{{Sources: responseResult, Error: nil}}
+						responseResult := dataSourceTest.RandomSourceArray(1, 3)
+						dataSourceStructuredSession.ListOutputs = []dataSourceStoreStructuredTest.ListOutput{{SourceArray: responseResult, Error: nil}}
 						result, err := client.List(ctx, userID, filter, pagination)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).To(Equal(responseResult))

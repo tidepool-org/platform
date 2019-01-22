@@ -19,7 +19,7 @@ type Store interface {
 type Session interface {
 	io.Closer
 
-	List(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.Blobs, error)
+	List(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.BlobArray, error)
 	Create(ctx context.Context, userID string, create *Create) (*blob.Blob, error)
 	Get(ctx context.Context, id string) (*blob.Blob, error)
 	Update(ctx context.Context, id string, condition *request.Condition, update *Update) (*blob.Blob, error)
@@ -56,6 +56,6 @@ func (u *Update) Validate(validator structure.Validator) {
 	validator.String("status", u.Status).OneOf(blob.Statuses()...)
 }
 
-func (u *Update) HasUpdates() bool {
-	return u.DigestMD5 != nil || u.MediaType != nil || u.Size != nil || u.Status != nil
+func (u *Update) IsEmpty() bool {
+	return u.DigestMD5 == nil && u.MediaType == nil && u.Size == nil && u.Status == nil
 }

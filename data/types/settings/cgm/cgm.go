@@ -46,28 +46,26 @@ func New() *CGM {
 	}
 }
 
-func (c *CGM) Parse(parser data.ObjectParser) error {
-	parser.SetMeta(c.Meta())
-
-	if err := c.Base.Parse(parser); err != nil {
-		return err
+func (c *CGM) Parse(parser structure.ObjectParser) {
+	if !parser.HasMeta() {
+		parser = parser.WithMeta(c.Meta())
 	}
 
-	c.Manufacturers = parser.ParseStringArray("manufacturers")
-	c.Model = parser.ParseString("model")
-	c.SerialNumber = parser.ParseString("serialNumber")
-	c.TransmitterID = parser.ParseString("transmitterId")
-	c.Units = parser.ParseString("units")
+	c.Base.Parse(parser)
 
-	c.DefaultAlerts = ParseAlerts(parser.NewChildObjectParser("defaultAlerts"))
-	c.ScheduledAlerts = ParseScheduledAlerts(parser.NewChildArrayParser("scheduledAlerts"))
+	c.Manufacturers = parser.StringArray("manufacturers")
+	c.Model = parser.String("model")
+	c.SerialNumber = parser.String("serialNumber")
+	c.TransmitterID = parser.String("transmitterId")
+	c.Units = parser.String("units")
 
-	c.HighLevelAlert = ParseHighLevelAlertDEPRECATED(parser.NewChildObjectParser("highAlerts"))
-	c.LowLevelAlert = ParseLowLevelAlertDEPRECATED(parser.NewChildObjectParser("lowAlerts"))
-	c.OutOfRangeAlert = ParseOutOfRangeAlertDEPRECATED(parser.NewChildObjectParser("outOfRangeAlerts"))
-	c.RateAlerts = ParseRateAlertsDEPRECATED(parser.NewChildObjectParser("rateOfChangeAlerts"))
+	c.DefaultAlerts = ParseAlerts(parser.WithReferenceObjectParser("defaultAlerts"))
+	c.ScheduledAlerts = ParseScheduledAlerts(parser.WithReferenceArrayParser("scheduledAlerts"))
 
-	return nil
+	c.HighLevelAlert = ParseHighLevelAlertDEPRECATED(parser.WithReferenceObjectParser("highAlerts"))
+	c.LowLevelAlert = ParseLowLevelAlertDEPRECATED(parser.WithReferenceObjectParser("lowAlerts"))
+	c.OutOfRangeAlert = ParseOutOfRangeAlertDEPRECATED(parser.WithReferenceObjectParser("outOfRangeAlerts"))
+	c.RateAlerts = ParseRateAlertsDEPRECATED(parser.WithReferenceObjectParser("rateOfChangeAlerts"))
 }
 
 func (c *CGM) Validate(validator structure.Validator) {

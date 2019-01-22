@@ -75,10 +75,6 @@ func NewRestrictedTokenUpdate() *RestrictedTokenUpdate {
 	return &RestrictedTokenUpdate{}
 }
 
-func (r *RestrictedTokenUpdate) HasUpdates() bool {
-	return r.Paths != nil || r.ExpirationTime != nil
-}
-
 func (r *RestrictedTokenUpdate) Parse(parser structure.ObjectParser) {
 	r.Paths = parser.StringArray("paths")
 	r.ExpirationTime = parser.Time("expirationTime", time.RFC3339Nano)
@@ -87,6 +83,10 @@ func (r *RestrictedTokenUpdate) Parse(parser structure.ObjectParser) {
 func (r *RestrictedTokenUpdate) Validate(validator structure.Validator) {
 	validator.StringArray("paths", r.Paths).LengthInRange(1, 10).EachMatches(pathExpression)
 	validator.Time("expirationTime", r.ExpirationTime).Before(time.Now().Add(MaximumExpirationDuration))
+}
+
+func (r *RestrictedTokenUpdate) IsEmpty() bool {
+	return r.Paths == nil && r.ExpirationTime == nil
 }
 
 func NewRestrictedTokenID() string {

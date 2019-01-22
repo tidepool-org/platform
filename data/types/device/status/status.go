@@ -3,7 +3,7 @@ package status
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/device"
-	"github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -26,37 +26,37 @@ func Names() []string {
 type Status struct {
 	device.Device `bson:",inline"`
 
-	Duration         *int       `json:"duration,omitempty" bson:"duration,omitempty"`
-	DurationExpected *int       `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
-	Name             *string    `json:"status,omitempty" bson:"status,omitempty"`
-	Reason           *data.Blob `json:"reason,omitempty" bson:"reason,omitempty"`
+	Duration         *int               `json:"duration,omitempty" bson:"duration,omitempty"`
+	DurationExpected *int               `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
+	Name             *string            `json:"status,omitempty" bson:"status,omitempty"`
+	Reason           *metadata.Metadata `json:"reason,omitempty" bson:"reason,omitempty"`
 }
 
-func NewStatusDatum(parser data.ObjectParser) data.Datum {
-	if parser.Object() == nil {
+func NewStatusDatum(parser structure.ObjectParser) data.Datum {
+	if !parser.Exists() {
 		return nil
 	}
 
-	if value := parser.ParseString("type"); value == nil {
-		parser.AppendError("type", service.ErrorValueNotExists())
+	if value := parser.String("type"); value == nil {
+		parser.WithReferenceErrorReporter("type").ReportError(structureValidator.ErrorValueNotExists())
 		return nil
 	} else if *value != device.Type {
-		parser.AppendError("type", service.ErrorValueStringNotOneOf(*value, []string{device.Type}))
+		parser.WithReferenceErrorReporter("type").ReportError(structureValidator.ErrorValueStringNotOneOf(*value, []string{device.Type}))
 		return nil
 	}
 
-	if value := parser.ParseString("subType"); value == nil {
-		parser.AppendError("subType", service.ErrorValueNotExists())
+	if value := parser.String("subType"); value == nil {
+		parser.WithReferenceErrorReporter("subType").ReportError(structureValidator.ErrorValueNotExists())
 		return nil
 	} else if *value != SubType {
-		parser.AppendError("subType", service.ErrorValueStringNotOneOf(*value, []string{SubType}))
+		parser.WithReferenceErrorReporter("subType").ReportError(structureValidator.ErrorValueStringNotOneOf(*value, []string{SubType}))
 		return nil
 	}
 
 	return New()
 }
 
-func ParseStatusDatum(parser data.ObjectParser) *data.Datum {
+func ParseStatusDatum(parser structure.ObjectParser) *data.Datum {
 	datum := NewStatusDatum(parser)
 	if datum == nil {
 		return nil
@@ -72,17 +72,17 @@ func New() *Status {
 	}
 }
 
-func (s *Status) Parse(parser data.ObjectParser) error {
-	if err := s.Device.Parse(parser); err != nil {
-		return err
+func (s *Status) Parse(parser structure.ObjectParser) {
+	if !parser.HasMeta() {
+		parser = parser.WithMeta(s.Meta())
 	}
 
-	s.Duration = parser.ParseInteger("duration")
-	s.DurationExpected = parser.ParseInteger("expectedDuration")
-	s.Name = parser.ParseString("status")
-	s.Reason = data.ParseBlob(parser.NewChildObjectParser("reason"))
+	s.Device.Parse(parser)
 
-	return nil
+	s.Duration = parser.Int("duration")
+	s.DurationExpected = parser.Int("expectedDuration")
+	s.Name = parser.String("status")
+	s.Reason = metadata.ParseMetadata(parser.WithReferenceObjectParser("reason"))
 }
 
 func (s *Status) Validate(validator structure.Validator) {
@@ -119,8 +119,4 @@ func (s *Status) Normalize(normalizer data.Normalizer) {
 	}
 
 	s.Device.Normalize(normalizer)
-
-	if s.Reason != nil {
-		s.Reason.Normalize(normalizer.WithReference("reason"))
-	}
 }

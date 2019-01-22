@@ -8,7 +8,7 @@ import (
 	"github.com/tidepool-org/platform/notification"
 	notificationClient "github.com/tidepool-org/platform/notification/client"
 	"github.com/tidepool-org/platform/platform"
-	testHTTP "github.com/tidepool-org/platform/test/http"
+	testHttp "github.com/tidepool-org/platform/test/http"
 )
 
 var _ = Describe("Client", func() {
@@ -21,8 +21,8 @@ var _ = Describe("Client", func() {
 
 	Context("New", func() {
 		BeforeEach(func() {
-			cfg.Address = testHTTP.NewAddress()
-			cfg.UserAgent = testHTTP.NewUserAgent()
+			cfg.Address = testHttp.NewAddress()
+			cfg.UserAgent = testHttp.NewUserAgent()
 		})
 
 		It("returns an error if unsuccessful", func() {
@@ -45,7 +45,7 @@ var _ = Describe("Client", func() {
 
 		BeforeEach(func() {
 			svr = NewServer()
-			userAgent = testHTTP.NewUserAgent()
+			userAgent = testHttp.NewUserAgent()
 			Expect(svr).ToNot(BeNil())
 			cfg.Address = svr.URL()
 			cfg.UserAgent = userAgent

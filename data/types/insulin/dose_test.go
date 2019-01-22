@@ -7,9 +7,9 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/insulin"
-	testDataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin/test"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesInsulinTest "github.com/tidepool-org/platform/data/types/insulin/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -74,9 +74,9 @@ var _ = Describe("Dose", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *insulin.Dose), expectedErrors ...error) {
-					datum := testDataTypesInsulin.NewDose()
+					datum := dataTypesInsulinTest.NewDose()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *insulin.Dose) {},
@@ -86,7 +86,7 @@ var _ = Describe("Dose", func() {
 				),
 				Entry("active out of range (lower)",
 					func(datum *insulin.Dose) { datum.Active = pointer.FromFloat64(-0.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 250), "/active"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 250), "/active"),
 				),
 				Entry("active in range (lower)",
 					func(datum *insulin.Dose) { datum.Active = pointer.FromFloat64(0.0) },
@@ -96,14 +96,14 @@ var _ = Describe("Dose", func() {
 				),
 				Entry("active out of range (upper)",
 					func(datum *insulin.Dose) { datum.Active = pointer.FromFloat64(250.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(250.1, 0, 250), "/active"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(250.1, 0, 250), "/active"),
 				),
 				Entry("correction missing",
 					func(datum *insulin.Dose) { datum.Correction = nil },
 				),
 				Entry("correction out of range (lower)",
 					func(datum *insulin.Dose) { datum.Correction = pointer.FromFloat64(-250.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-250.1, -250, 250), "/correction"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-250.1, -250, 250), "/correction"),
 				),
 				Entry("correction in range (lower)",
 					func(datum *insulin.Dose) { datum.Correction = pointer.FromFloat64(-250.0) },
@@ -113,14 +113,14 @@ var _ = Describe("Dose", func() {
 				),
 				Entry("correction out of range (upper)",
 					func(datum *insulin.Dose) { datum.Correction = pointer.FromFloat64(250.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(250.1, -250, 250), "/correction"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(250.1, -250, 250), "/correction"),
 				),
 				Entry("food missing",
 					func(datum *insulin.Dose) { datum.Food = nil },
 				),
 				Entry("food out of range (lower)",
 					func(datum *insulin.Dose) { datum.Food = pointer.FromFloat64(-0.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 250), "/food"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 250), "/food"),
 				),
 				Entry("food in range (lower)",
 					func(datum *insulin.Dose) { datum.Food = pointer.FromFloat64(0.0) },
@@ -130,15 +130,15 @@ var _ = Describe("Dose", func() {
 				),
 				Entry("food out of range (upper)",
 					func(datum *insulin.Dose) { datum.Food = pointer.FromFloat64(250.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(250.1, 0, 250), "/food"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(250.1, 0, 250), "/food"),
 				),
 				Entry("total missing",
 					func(datum *insulin.Dose) { datum.Total = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/total"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/total"),
 				),
 				Entry("total out of range (lower)",
 					func(datum *insulin.Dose) { datum.Total = pointer.FromFloat64(-0.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 250), "/total"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 250), "/total"),
 				),
 				Entry("total in range (lower)",
 					func(datum *insulin.Dose) { datum.Total = pointer.FromFloat64(0.0) },
@@ -148,15 +148,15 @@ var _ = Describe("Dose", func() {
 				),
 				Entry("total out of range (upper)",
 					func(datum *insulin.Dose) { datum.Total = pointer.FromFloat64(250.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(250.1, 0, 250), "/total"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(250.1, 0, 250), "/total"),
 				),
 				Entry("units missing",
 					func(datum *insulin.Dose) { datum.Units = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units invalid",
 					func(datum *insulin.Dose) { datum.Units = pointer.FromString("invalid") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"Units"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"Units"}), "/units"),
 				),
 				Entry("units Units",
 					func(datum *insulin.Dose) { datum.Units = pointer.FromString("Units") },
@@ -169,11 +169,11 @@ var _ = Describe("Dose", func() {
 						datum.Total = nil
 						datum.Units = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 250), "/active"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-250.1, -250, 250), "/correction"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 250), "/food"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/total"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 250), "/active"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-250.1, -250, 250), "/correction"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 250), "/food"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/total"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 			)
 		})
@@ -182,9 +182,9 @@ var _ = Describe("Dose", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *insulin.Dose)) {
 					for _, origin := range structure.Origins() {
-						datum := testDataTypesInsulin.NewDose()
+						datum := dataTypesInsulinTest.NewDose()
 						mutator(datum)
-						expectedDatum := testDataTypesInsulin.CloneDose(datum)
+						expectedDatum := dataTypesInsulinTest.CloneDose(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))

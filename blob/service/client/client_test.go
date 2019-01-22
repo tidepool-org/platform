@@ -130,15 +130,15 @@ var _ = Describe("Client", func() {
 
 					It("returns an error when the blob structured session list returns an error", func() {
 						responseErr := errorsTest.RandomError()
-						blobStructuredSession.ListOutputs = []blobStoreStructuredTest.ListOutput{{Blobs: nil, Error: responseErr}}
+						blobStructuredSession.ListOutputs = []blobStoreStructuredTest.ListOutput{{BlobArray: nil, Error: responseErr}}
 						result, err := client.List(ctx, userID, filter, pagination)
 						errorsTest.ExpectEqual(err, responseErr)
 						Expect(result).To(BeNil())
 					})
 
 					It("returns successfully when the blob structured session list returns successfully", func() {
-						responseResult := blobTest.RandomBlobs(1, 3)
-						blobStructuredSession.ListOutputs = []blobStoreStructuredTest.ListOutput{{Blobs: responseResult, Error: nil}}
+						responseResult := blobTest.RandomBlobArray(1, 3)
+						blobStructuredSession.ListOutputs = []blobStoreStructuredTest.ListOutput{{BlobArray: responseResult, Error: nil}}
 						result, err := client.List(ctx, userID, filter, pagination)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).To(Equal(responseResult))

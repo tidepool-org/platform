@@ -7,7 +7,7 @@ import (
 	configTest "github.com/tidepool-org/platform/config/test"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/test"
-	testHTTP "github.com/tidepool-org/platform/test/http"
+	testHttp "github.com/tidepool-org/platform/test/http"
 )
 
 var _ = Describe("Config", func() {
@@ -35,9 +35,9 @@ var _ = Describe("Config", func() {
 		var cfg *platform.Config
 
 		BeforeEach(func() {
-			address = testHTTP.NewAddress()
-			userAgent = testHTTP.NewUserAgent()
-			serviceSecret = test.NewVariableString(1, 64, test.CharsetText)
+			address = testHttp.NewAddress()
+			userAgent = testHttp.NewUserAgent()
+			serviceSecret = test.RandomStringFromRangeAndCharset(1, 64, test.CharsetText)
 			cfg = platform.NewConfig()
 			Expect(cfg).ToNot(BeNil())
 			Expect(cfg.Config).ToNot(BeNil())
@@ -58,7 +58,7 @@ var _ = Describe("Config", func() {
 			})
 
 			It("uses existing address if not set", func() {
-				existingAddress := testHTTP.NewAddress()
+				existingAddress := testHttp.NewAddress()
 				cfg.Address = existingAddress
 				delete(configReporter.Config, "address")
 				Expect(cfg.Load(configReporter)).To(Succeed())
@@ -68,7 +68,7 @@ var _ = Describe("Config", func() {
 			})
 
 			It("uses existing user agent if not set", func() {
-				existingUserAgent := testHTTP.NewUserAgent()
+				existingUserAgent := testHttp.NewUserAgent()
 				cfg.UserAgent = existingUserAgent
 				delete(configReporter.Config, "user_agent")
 				Expect(cfg.Load(configReporter)).To(Succeed())
@@ -79,7 +79,7 @@ var _ = Describe("Config", func() {
 			})
 
 			It("uses existing service secret if not set", func() {
-				existingServiceSecret := test.NewVariableString(1, 64, test.CharsetText)
+				existingServiceSecret := test.RandomStringFromRangeAndCharset(1, 64, test.CharsetText)
 				cfg.ServiceSecret = existingServiceSecret
 				delete(configReporter.Config, "service_secret")
 				Expect(cfg.Load(configReporter)).To(Succeed())

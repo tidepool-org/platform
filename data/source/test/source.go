@@ -270,26 +270,26 @@ func MatchSource(datum *dataSource.Source) gomegaTypes.GomegaMatcher {
 	}))
 }
 
-func RandomSources(minimumLength int, maximumLength int) dataSource.Sources {
-	datum := make(dataSource.Sources, test.RandomIntFromRange(minimumLength, maximumLength))
+func RandomSourceArray(minimumLength int, maximumLength int) dataSource.SourceArray {
+	datum := make(dataSource.SourceArray, test.RandomIntFromRange(minimumLength, maximumLength))
 	for index := range datum {
 		datum[index] = RandomSource()
 	}
 	return datum
 }
 
-func CloneSources(datum dataSource.Sources) dataSource.Sources {
+func CloneSourceArray(datum dataSource.SourceArray) dataSource.SourceArray {
 	if len(datum) == 0 {
 		return datum
 	}
-	clone := dataSource.Sources{}
+	clone := dataSource.SourceArray{}
 	for _, source := range datum {
 		clone = append(clone, CloneSource(source))
 	}
 	return clone
 }
 
-func MatchSources(datum dataSource.Sources) gomegaTypes.GomegaMatcher {
+func MatchSourceArray(datum dataSource.SourceArray) gomegaTypes.GomegaMatcher {
 	matchers := []gomegaTypes.GomegaMatcher{}
 	for _, d := range datum {
 		matchers = append(matchers, MatchSource(d))

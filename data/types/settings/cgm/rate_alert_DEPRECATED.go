@@ -19,9 +19,9 @@ type RateAlertDEPRECATED struct {
 	Rate    *float64 `json:"rate,omitempty" bson:"rate,omitempty"`
 }
 
-func (r *RateAlertDEPRECATED) Parse(parser data.ObjectParser) {
-	r.Enabled = parser.ParseBoolean("enabled")
-	r.Rate = parser.ParseFloat("rate")
+func (r *RateAlertDEPRECATED) Parse(parser structure.ObjectParser) {
+	r.Enabled = parser.Bool("enabled")
+	r.Rate = parser.Float64("rate")
 }
 
 func (r *RateAlertDEPRECATED) Validate(validator structure.Validator, units *string) {
@@ -39,13 +39,12 @@ type FallRateAlertDEPRECATED struct {
 	RateAlertDEPRECATED `bson:",inline"`
 }
 
-func ParseFallRateAlertDEPRECATED(parser data.ObjectParser) *FallRateAlertDEPRECATED {
-	if parser.Object() == nil {
+func ParseFallRateAlertDEPRECATED(parser structure.ObjectParser) *FallRateAlertDEPRECATED {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewFallRateAlertDEPRECATED()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -77,13 +76,12 @@ type RiseRateAlertDEPRECATED struct {
 	RateAlertDEPRECATED `bson:",inline"`
 }
 
-func ParseRiseRateAlertDEPRECATED(parser data.ObjectParser) *RiseRateAlertDEPRECATED {
-	if parser.Object() == nil {
+func ParseRiseRateAlertDEPRECATED(parser structure.ObjectParser) *RiseRateAlertDEPRECATED {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewRiseRateAlertDEPRECATED()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -116,13 +114,12 @@ type RateAlertsDEPRECATED struct {
 	RiseRateAlert *RiseRateAlertDEPRECATED `json:"riseRate,omitempty" bson:"riseRate,omitempty"`
 }
 
-func ParseRateAlertsDEPRECATED(parser data.ObjectParser) *RateAlertsDEPRECATED {
-	if parser.Object() == nil {
+func ParseRateAlertsDEPRECATED(parser structure.ObjectParser) *RateAlertsDEPRECATED {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewRateAlertsDEPRECATED()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -130,9 +127,9 @@ func NewRateAlertsDEPRECATED() *RateAlertsDEPRECATED {
 	return &RateAlertsDEPRECATED{}
 }
 
-func (r *RateAlertsDEPRECATED) Parse(parser data.ObjectParser) {
-	r.FallRateAlert = ParseFallRateAlertDEPRECATED(parser.NewChildObjectParser("fallRate"))
-	r.RiseRateAlert = ParseRiseRateAlertDEPRECATED(parser.NewChildObjectParser("riseRate"))
+func (r *RateAlertsDEPRECATED) Parse(parser structure.ObjectParser) {
+	r.FallRateAlert = ParseFallRateAlertDEPRECATED(parser.WithReferenceObjectParser("fallRate"))
+	r.RiseRateAlert = ParseRiseRateAlertDEPRECATED(parser.WithReferenceObjectParser("riseRate"))
 }
 
 func (r *RateAlertsDEPRECATED) Validate(validator structure.Validator, units *string) {

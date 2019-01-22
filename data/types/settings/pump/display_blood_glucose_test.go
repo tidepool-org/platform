@@ -7,8 +7,8 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -26,7 +26,7 @@ func CloneDisplayBloodGlucose(datum *pump.DisplayBloodGlucose) *pump.DisplayBloo
 		return nil
 	}
 	clone := pump.NewDisplayBloodGlucose()
-	clone.Units = test.CloneString(datum.Units)
+	clone.Units = pointer.CloneString(datum.Units)
 	return clone
 }
 
@@ -63,18 +63,18 @@ var _ = Describe("DisplayBloodGlucose", func() {
 				func(mutator func(datum *pump.DisplayBloodGlucose), expectedErrors ...error) {
 					datum := NewDisplayBloodGlucose()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *pump.DisplayBloodGlucose) {},
 				),
 				Entry("units missing",
 					func(datum *pump.DisplayBloodGlucose) { datum.Units = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units invalid",
 					func(datum *pump.DisplayBloodGlucose) { datum.Units = pointer.FromString("invalid") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mg/dL", "mmol/L"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mg/dL", "mmol/L"}), "/units"),
 				),
 				Entry("units mg/dL",
 					func(datum *pump.DisplayBloodGlucose) { datum.Units = pointer.FromString("mg/dL") },
@@ -86,7 +86,7 @@ var _ = Describe("DisplayBloodGlucose", func() {
 					func(datum *pump.DisplayBloodGlucose) {
 						datum.Units = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 			)
 		})

@@ -38,13 +38,12 @@ type Amount struct {
 	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
 }
 
-func ParseAmount(parser data.ObjectParser) *Amount {
-	if parser.Object() == nil {
+func ParseAmount(parser structure.ObjectParser) *Amount {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewAmount()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -52,9 +51,9 @@ func NewAmount() *Amount {
 	return &Amount{}
 }
 
-func (a *Amount) Parse(parser data.ObjectParser) {
-	a.Units = parser.ParseString("units")
-	a.Value = parser.ParseFloat("value")
+func (a *Amount) Parse(parser structure.ObjectParser) {
+	a.Units = parser.String("units")
+	a.Value = parser.Float64("value")
 }
 
 func (a *Amount) Validate(validator structure.Validator) {

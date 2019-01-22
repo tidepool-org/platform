@@ -24,8 +24,8 @@ func CloneFallRateAlertDEPRECATED(datum *dataTypesSettingsCgm.FallRateAlertDEPRE
 		return nil
 	}
 	clone := dataTypesSettingsCgm.NewFallRateAlertDEPRECATED()
-	clone.Enabled = test.CloneBool(datum.Enabled)
-	clone.Rate = test.CloneFloat64(datum.Rate)
+	clone.Enabled = pointer.CloneBool(datum.Enabled)
+	clone.Rate = pointer.CloneFloat64(datum.Rate)
 	return clone
 }
 
@@ -45,8 +45,8 @@ func CloneRiseRateAlertDEPRECATED(datum *dataTypesSettingsCgm.RiseRateAlertDEPRE
 		return nil
 	}
 	clone := dataTypesSettingsCgm.NewRiseRateAlertDEPRECATED()
-	clone.Enabled = test.CloneBool(datum.Enabled)
-	clone.Rate = test.CloneFloat64(datum.Rate)
+	clone.Enabled = pointer.CloneBool(datum.Enabled)
+	clone.Rate = pointer.CloneFloat64(datum.Rate)
 	return clone
 }
 

@@ -4,9 +4,9 @@ import (
 	"github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/auth"
-	testAuth "github.com/tidepool-org/platform/auth/test"
+	authTest "github.com/tidepool-org/platform/auth/test"
 	"github.com/tidepool-org/platform/config"
-	testConfig "github.com/tidepool-org/platform/config/test"
+	configTest "github.com/tidepool-org/platform/config/test"
 	"github.com/tidepool-org/platform/log"
 	nullLog "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/test"
@@ -14,31 +14,29 @@ import (
 )
 
 func NewUserID() string {
-	return test.NewString(10, test.CharsetHexidecimalLowercase)
+	return test.RandomStringFromRangeAndCharset(10, 10, test.CharsetHexidecimalLowercase)
 }
 
 type Service struct {
-	*test.Mock
 	VersionReporterInvocations int
 	VersionReporterImpl        version.Reporter
 	ConfigReporterInvocations  int
-	ConfigReporterImpl         *testConfig.Reporter
+	ConfigReporterImpl         *configTest.Reporter
 	LoggerInvocations          int
 	LoggerImpl                 log.Logger
 	SecretInvocations          int
 	SecretOutputs              []string
 	AuthClientInvocations      int
-	AuthClientImpl             *testAuth.Client
+	AuthClientImpl             *authTest.Client
 }
 
 func NewService() *Service {
-	versionReporter, _ := version.NewReporter(test.NewString(4, test.CharsetAlphaNumeric), test.NewString(8, test.CharsetAlphaNumeric), test.NewString(32, test.CharsetAlphaNumeric))
+	versionReporter, _ := version.NewReporter(test.RandomStringFromRangeAndCharset(4, 4, test.CharsetAlphaNumeric), test.RandomStringFromRangeAndCharset(8, 8, test.CharsetAlphaNumeric), test.RandomStringFromRangeAndCharset(32, 32, test.CharsetAlphaNumeric))
 	return &Service{
-		Mock:                test.NewMock(),
 		VersionReporterImpl: versionReporter,
-		ConfigReporterImpl:  testConfig.NewReporter(),
+		ConfigReporterImpl:  configTest.NewReporter(),
 		LoggerImpl:          nullLog.NewLogger(),
-		AuthClientImpl:      testAuth.NewClient(),
+		AuthClientImpl:      authTest.NewClient(),
 	}
 }
 
@@ -77,7 +75,6 @@ func (s *Service) AuthClient() auth.Client {
 }
 
 func (s *Service) Expectations() {
-	s.Mock.Expectations()
 	gomega.Expect(s.SecretOutputs).To(gomega.BeEmpty())
 	s.AuthClientImpl.AssertOutputsEmpty()
 }
