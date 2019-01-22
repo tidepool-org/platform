@@ -23,6 +23,8 @@ For example:
 ```
 brew install go
 brew install dep
+brew install mongo
+brew services start mongodb
 mkdir ~/go
 export GOPATH=~/go
 export PATH=$GOPATH/bin:$PATH
