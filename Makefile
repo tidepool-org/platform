@@ -59,17 +59,12 @@ ifeq ($(shell which ginkgo),)
 	cd vendor/github.com/onsi/ginkgo/ginkgo && go install .
 endif
 
-goimports: check-environment
-ifeq ($(shell which goimports),)
-	cd vendor/golang.org/x/tools/cmd/goimports && go install .
-endif
-
 golint: check-environment
 ifeq ($(shell which golint),)
 	cd vendor/golang.org/x/lint/golint && go install .
 endif
 
-buildable: CompileDaemon esc ginkgo goimports golint
+buildable: CompileDaemon esc ginkgo golint
 
 generate: check-environment esc
 	@echo "go generate ./..."
@@ -91,18 +86,6 @@ format-write: check-environment
 		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec gofmt -e -s -w {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
-imports: goimports
-	@echo "goimports -d -e -local 'github.com/tidepool-org/platform'"
-	@cd $(ROOT_DIRECTORY) && \
-		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec goimports -d -e -local 'github.com/tidepool-org/platform' {} \; 2>&1` && \
-		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
-
-imports-write: goimports
-	@echo "goimports -e -w -local 'github.com/tidepool-org/platform'"
-	@cd $(ROOT_DIRECTORY) && \
-		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec goimports -e -w -local 'github.com/tidepool-org/platform' {} \; 2>&1` && \
-		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
-
 vet: check-environment tmp
 	@echo "go tool vet -all -shadow -shadowstrict"
 	@cd $(ROOT_DIRECTORY) && \
@@ -122,7 +105,7 @@ lint: golint tmp
 lint-ignore:
 	@cd $(ROOT_DIRECTORY) && cp _tmp/golint.out .golintignore
 
-pre-build: format imports vet lint
+pre-build: format vet lint
 
 build-list:
 	@cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD)
@@ -266,14 +249,14 @@ clean-deploy:
 
 clean-all: clean
 
-pre-commit: format imports vet lint
+pre-commit: format vet lint
 
 gopath-implode: check-environment
 	cd $(REPOSITORY_GOPATH) && rm -rf bin pkg && find src -not -path "src/$(REPOSITORY_PACKAGE)/*" -type f -delete && find src -not -path "src/$(REPOSITORY_PACKAGE)/*" -type d -empty -delete
 
 .PHONY: default tmp check-gopath check-environment \
-	CompileDaemon esc ginkgo goimports golint buildable \
-	format format-write imports vet vet-ignore lint lint-ignore pre-build build-list build ci-build \
+	CompileDaemon esc ginkgo golint buildable \
+	format format-write vet vet-ignore lint lint-ignore pre-build build-list build ci-build \
 	service-build service-start service-restart service-restart-all test test-watch ci-test c-test-watch \
 	deploy deploy-services deploy-migrations deploy-tools ci-deploy bundle-deploy \
 	docker docker-build docker-push ci-docker \

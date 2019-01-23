@@ -5,6 +5,9 @@ language: go
 go:
   - 1.11.4
 
+env:
+  - GO111MODULE=on
+
 go_import_path: github.com/tidepool-org/platform
 
 addons:
