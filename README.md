@@ -18,7 +18,7 @@ The Tidepool Platform API.
 1. Execute `go get github.com/tidepool-org/platform` to pull down the project. You may ignore a "no buildable Go source files" warning.
 1. Change directory to `$GOPATH/src/github.com/tidepool-org/platform`.
 1. Source the `env.sh` file.
-1. Execute `make editable` to install the various Go tools needed for building and editing the project.
+1. Execute `make buildtable` to install the various Go tools needed for building and editing the project.
 
 For example:
 
@@ -33,7 +33,7 @@ export PATH=$GOPATH/bin:$PATH
 go get github.com/tidepool-org/platform
 cd $GOPATH/src/github.com/tidepool-org/platform
 . ./env.sh
-make editable
+make buildable
 ```
 
 For reuse, you may want to include the following lines in your shell config (e.g. `.bashrc`) or use a tool like [direnv](http://direnv.net/ 'direnv'):
@@ -63,7 +63,7 @@ Use `Ctrl-C` to stop the executable. It may take up to 60 seconds to stop.
 * To setup your Go environment for building and editing the project:
 
 ```
-make editable
+make buildable
 ```
 
 * To build the executables:
