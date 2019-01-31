@@ -75,6 +75,14 @@
   version = "v3.2.0"
 
 [[projects]]
+  digest = "1:2694597a20d303502ad1b7f1cc688977c7dc34da732ccf4d27e98b552cceed5b"
+  name = "github.com/disintegration/imaging"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "0bd5694c78c9c3d9a3cd06a706a8f3c59296a9ac"
+  version = "v1.5.0"
+
+[[projects]]
   digest = "1:865079840386857c809b72ce300be7580cb50d3d3129ce11bf9aa6ca2bc1934a"
   name = "github.com/fatih/color"
   packages = ["."]
@@ -239,6 +247,18 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:acadbbf02e5c744709c60ac929e63258a69a3404ab36ed0c1a245cc28f056220"
+  name = "golang.org/x/image"
+  packages = [
+    "bmp",
+    "tiff",
+    "tiff/lzw",
+  ]
+  pruneopts = "UT"
+  revision = "cd38e8056d9b27bb2f265effa37fb0ea6b8a7f0f"
+
+[[projects]]
+  branch = "master"
   digest = "1:395763139fd6f101dd123c1b124d8c4ae614f37b09690a8675e9d523dbb2557f"
   name = "golang.org/x/lint"
   packages = [
@@ -313,7 +333,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:caefb10e1fdb0d6ca43324e50e7aa8ca6cca9b7f39f9a0f66954c5cd82aa5711"
+  digest = "1:447cb0144f0355b912416e980a6faad1dcb784418ab0849291fb6164229bc887"
   name = "golang.org/x/tools"
   packages = [
     "cmd/goimports",
@@ -330,7 +350,7 @@
     "internal/semver",
   ]
   pruneopts = "UT"
-  revision = "f94e9803bfe7e52f51cac3714eb124a23b669bec"
+  revision = "c3e15677277459a71545fa40c982ca9e4562801e"
 
 [[projects]]
   digest = "1:6f3bd49ddf2e104e52062774d797714371fac1b8bddfd8e124ce78e6b2264a10"
@@ -410,6 +430,7 @@
     "github.com/aws/aws-sdk-go/service/s3/s3manager/s3manageriface",
     "github.com/blang/semver",
     "github.com/dgrijalva/jwt-go",
+    "github.com/disintegration/imaging",
     "github.com/githubnemo/CompileDaemon",
     "github.com/mitchellh/go-homedir",
     "github.com/mjibson/esc",

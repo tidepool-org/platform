@@ -1,4 +1,4 @@
-./association/association.go:74:6: type name will be used as association.AssociationArray by other packages, and that stutters; consider calling this Array
+./association/association.go:78:6: type name will be used as association.AssociationArray by other packages, and that stutters; consider calling this Array
 ./blob/blob.go:128:6: type name will be used as blob.BlobArray by other packages, and that stutters; consider calling this Array
 ./confirmation/confirmation.go:5:6: type name will be used as confirmation.ConfirmationAccessor by other packages, and that stutters; consider calling this Accessor
 ./data/client/client.go:27:6: type name will be used as client.ClientImpl by other packages, and that stutters; consider calling this Impl
@@ -16,6 +16,7 @@
 ./data/storeDEPRECATED/store.go:1:1: don't use MixedCaps in package name; storeDEPRECATED should be storedeprecated
 ./data/storeDEPRECATED/store_test.go:1:1: don't use MixedCaps in package name; storeDEPRECATED_test should be storedeprecated_test
 ./data/types/device/alarm/alarm.go:25:6: func name will be used as alarm.AlarmTypes by other packages, and that stutters; consider calling this Types
+./image/image.go:526:6: type name will be used as image.ImageArray by other packages, and that stutters; consider calling this Array
 ./metadata/metadata.go:65:6: type name will be used as metadata.MetadataArray by other packages, and that stutters; consider calling this Array
 ./request/mutator.go:9:6: type name will be used as request.RequestMutator by other packages, and that stutters; consider calling this Mutator
 ./service/response_test.go:27:30: method WriteJson should be WriteJSON
