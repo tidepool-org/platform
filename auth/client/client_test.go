@@ -12,9 +12,12 @@ import (
 	"github.com/tidepool-org/platform/auth"
 	authClient "github.com/tidepool-org/platform/auth/client"
 	authTest "github.com/tidepool-org/platform/auth/test"
+	"github.com/tidepool-org/platform/errors"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/platform"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/test"
 	testHttp "github.com/tidepool-org/platform/test/http"
 )
@@ -59,33 +62,33 @@ var _ = Describe("Client", func() {
 
 		It("returns an error if config is missing", func() {
 			client, err := authClient.NewClient(nil, authorizeAs, name, logger)
-			Expect(err).To(MatchError("config is missing"))
+			errorsTest.ExpectEqual(err, errors.New("config is missing"))
 			Expect(client).To(BeNil())
 		})
 
 		It("returns an error if name is missing", func() {
 			client, err := authClient.NewClient(config, authorizeAs, "", logger)
-			Expect(err).To(MatchError("name is missing"))
+			errorsTest.ExpectEqual(err, errors.New("name is missing"))
 			Expect(client).To(BeNil())
 		})
 
 		It("returns an error if logger is missing", func() {
 			client, err := authClient.NewClient(config, authorizeAs, name, nil)
-			Expect(err).To(MatchError("logger is missing"))
+			errorsTest.ExpectEqual(err, errors.New("logger is missing"))
 			Expect(client).To(BeNil())
 		})
 
 		It("returns an error if config address is missing", func() {
 			config.Config.Address = ""
 			client, err := authClient.NewClient(config, authorizeAs, name, logger)
-			Expect(err).To(MatchError("config is invalid; address is missing"))
+			errorsTest.ExpectEqual(err, errors.New("config is invalid"))
 			Expect(client).To(BeNil())
 		})
 
 		It("returns an error if config server session token secret is missing", func() {
 			config.ExternalConfig.ServerSessionTokenSecret = ""
 			client, err := authClient.NewClient(config, authorizeAs, name, logger)
-			Expect(err).To(MatchError("config is invalid; server session token secret is missing"))
+			errorsTest.ExpectEqual(err, errors.New("config is invalid"))
 			Expect(client).To(BeNil())
 		})
 
@@ -309,7 +312,7 @@ var _ = Describe("Client", func() {
 				It("returns error if client is closed", func() {
 					client.Close()
 					returnedServerSessionToken, err := client.ServerSessionToken()
-					Expect(err).To(MatchError("client is closed"))
+					errorsTest.ExpectEqual(err, errors.New("client is closed"))
 					Expect(returnedServerSessionToken).To(BeEmpty())
 				})
 			})
@@ -317,14 +320,14 @@ var _ = Describe("Client", func() {
 			Context("ValidateSessionToken", func() {
 				It("returns error if context is missing", func() {
 					details, err := client.ValidateSessionToken(nil, token)
-					Expect(err).To(MatchError("context is missing"))
+					errorsTest.ExpectEqual(err, errors.New("context is missing"))
 					Expect(details).To(BeNil())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 
 				It("returns error if session token is missing", func() {
 					details, err := client.ValidateSessionToken(ctx, "")
-					Expect(err).To(MatchError("token is missing"))
+					errorsTest.ExpectEqual(err, errors.New("token is missing"))
 					Expect(details).To(BeNil())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
@@ -353,7 +356,7 @@ var _ = Describe("Client", func() {
 						details, err := client.ValidateSessionToken(ctx, token)
 						Expect(err).To(HaveOccurred())
 						Expect(details).To(BeNil())
-						Expect(err).To(MatchError("bad request"))
+						errorsTest.ExpectEqual(err, request.ErrorBadRequest())
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
@@ -371,7 +374,7 @@ var _ = Describe("Client", func() {
 
 					It("returns an error", func() {
 						details, err := client.ValidateSessionToken(ctx, token)
-						Expect(err).To(MatchError("authentication token is invalid"))
+						errorsTest.ExpectEqual(err, request.ErrorUnauthenticated())
 						Expect(details).To(BeNil())
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
@@ -392,7 +395,7 @@ var _ = Describe("Client", func() {
 						details, err := client.ValidateSessionToken(ctx, token)
 						Expect(err).To(HaveOccurred())
 						Expect(details).To(BeNil())
-						Expect(err).To(MatchError("json is malformed; invalid character '}' looking for beginning of value"))
+						errorsTest.ExpectEqual(err, request.ErrorJSONMalformed())
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
@@ -410,7 +413,7 @@ var _ = Describe("Client", func() {
 
 					It("returns an error", func() {
 						details, err := client.ValidateSessionToken(ctx, token)
-						Expect(err).To(MatchError("user id is missing"))
+						errorsTest.ExpectEqual(err, errors.New("user id is missing"))
 						Expect(details).To(BeNil())
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})

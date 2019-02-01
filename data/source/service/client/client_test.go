@@ -176,6 +176,44 @@ var _ = Describe("Client", func() {
 					})
 				})
 			})
+
+			Context("DeleteAll", func() {
+				AfterEach(func() {
+					Expect(authClient.EnsureAuthorizedServiceInvocations).To(Equal(1))
+				})
+
+				It("returns an error when the user client ensure authorized service returns an error", func() {
+					responseErr := errorsTest.RandomError()
+					authClient.EnsureAuthorizedServiceOutputs = []error{responseErr}
+					errorsTest.ExpectEqual(client.DeleteAll(ctx, userID), responseErr)
+				})
+
+				When("the user client ensure authorized service returns successfully", func() {
+					BeforeEach(func() {
+						authClient.EnsureAuthorizedServiceOutputs = []error{nil}
+					})
+
+					AfterEach(func() {
+						Expect(dataSourceStructuredSession.DestroyAllInputs).To(Equal([]string{userID}))
+					})
+
+					It("returns an error when the data source structured session destroy returns an error", func() {
+						responseErr := errorsTest.RandomError()
+						dataSourceStructuredSession.DestroyAllOutputs = []dataSourceStoreStructuredTest.DestroyAllOutput{{Destroyed: false, Error: responseErr}}
+						errorsTest.ExpectEqual(client.DeleteAll(ctx, userID), responseErr)
+					})
+
+					It("returns successfully when the data source structured session destroy returns false", func() {
+						dataSourceStructuredSession.DestroyAllOutputs = []dataSourceStoreStructuredTest.DestroyAllOutput{{Destroyed: false, Error: nil}}
+						Expect(client.DeleteAll(ctx, userID)).To(Succeed())
+					})
+
+					It("returns successfully when the data source structured session destroy returns true", func() {
+						dataSourceStructuredSession.DestroyAllOutputs = []dataSourceStoreStructuredTest.DestroyAllOutput{{Destroyed: true, Error: nil}}
+						Expect(client.DeleteAll(ctx, userID)).To(Succeed())
+					})
+				})
+			})
 		})
 
 		Context("with id", func() {

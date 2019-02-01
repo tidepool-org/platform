@@ -86,6 +86,7 @@ func CloneBlob(datum *blob.Blob) *blob.Blob {
 	clone.Status = pointer.CloneString(datum.Status)
 	clone.CreatedTime = pointer.CloneTime(datum.CreatedTime)
 	clone.ModifiedTime = pointer.CloneTime(datum.ModifiedTime)
+	clone.DeletedTime = pointer.CloneTime(datum.DeletedTime)
 	clone.Revision = pointer.CloneInt(datum.Revision)
 	return clone
 }
@@ -119,6 +120,9 @@ func NewObjectFromBlob(datum *blob.Blob, objectFormat test.ObjectFormat) map[str
 	if datum.ModifiedTime != nil {
 		object["modifiedTime"] = test.NewObjectFromTime(*datum.ModifiedTime, objectFormat)
 	}
+	if datum.DeletedTime != nil {
+		object["deletedTime"] = test.NewObjectFromTime(*datum.DeletedTime, objectFormat)
+	}
 	if datum.Revision != nil {
 		object["revision"] = test.NewObjectFromInt(*datum.Revision, objectFormat)
 	}
@@ -138,6 +142,7 @@ func MatchBlob(datum *blob.Blob) gomegaTypes.GomegaMatcher {
 		"Status":       gomega.Equal(datum.Status),
 		"CreatedTime":  test.MatchTime(datum.CreatedTime),
 		"ModifiedTime": test.MatchTime(datum.ModifiedTime),
+		"DeletedTime":  test.MatchTime(datum.DeletedTime),
 		"Revision":     gomega.Equal(datum.Revision),
 	}))
 }

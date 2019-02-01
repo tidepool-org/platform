@@ -118,6 +118,30 @@ func (c *Client) Create(ctx context.Context, userID string, content *blob.Conten
 	return session.Update(ctx, *result.ID, nil, update)
 }
 
+func (c *Client) DeleteAll(ctx context.Context, userID string) error {
+	ctx = log.ContextWithField(ctx, "userId", userID)
+
+	if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
+		return err
+	}
+
+	session := c.BlobStructuredStore().NewSession()
+	defer session.Close()
+
+	if deleted, err := session.DeleteAll(ctx, userID); err != nil {
+		return err
+	} else if !deleted {
+		return nil
+	}
+
+	if err := c.BlobUnstructuredStore().DeleteAll(ctx, userID); err != nil {
+		return err
+	}
+
+	_, err := session.DestroyAll(ctx, userID)
+	return err
+}
+
 func (c *Client) Get(ctx context.Context, id string) (*blob.Blob, error) {
 	if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
 		return nil, err
@@ -126,7 +150,7 @@ func (c *Client) Get(ctx context.Context, id string) (*blob.Blob, error) {
 	session := c.BlobStructuredStore().NewSession()
 	defer session.Close()
 
-	return session.Get(ctx, id)
+	return session.Get(ctx, id, nil)
 }
 
 func (c *Client) GetContent(ctx context.Context, id string) (*blob.Content, error) {
@@ -137,7 +161,7 @@ func (c *Client) GetContent(ctx context.Context, id string) (*blob.Content, erro
 	session := c.BlobStructuredStore().NewSession()
 	defer session.Close()
 
-	result, err := session.Get(ctx, id)
+	result, err := session.Get(ctx, id, nil)
 	if err != nil {
 		return nil, err
 	} else if result == nil {
@@ -164,12 +188,17 @@ func (c *Client) Delete(ctx context.Context, id string, condition *request.Condi
 	session := c.BlobStructuredStore().NewSession()
 	defer session.Close()
 
-	result, err := session.Get(ctx, id)
+	result, err := session.Get(ctx, id, condition)
 	if err != nil {
 		return false, err
 	} else if result == nil {
 		return false, nil
-	} else if condition != nil && condition.Revision != nil && *condition.Revision != *result.Revision {
+	}
+
+	deleted, err := session.Delete(ctx, id, condition)
+	if err != nil {
+		return false, err
+	} else if !deleted {
 		return false, nil
 	}
 

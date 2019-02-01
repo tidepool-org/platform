@@ -13,7 +13,6 @@ import (
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"github.com/tidepool-org/platform/user"
 )
 
 const (
@@ -29,6 +28,8 @@ func ProviderTypes() []string {
 type ProviderSessionAccessor interface {
 	ListUserProviderSessions(ctx context.Context, userID string, filter *ProviderSessionFilter, pagination *page.Pagination) (ProviderSessions, error)
 	CreateUserProviderSession(ctx context.Context, userID string, create *ProviderSessionCreate) (*ProviderSession, error)
+	DeleteAllProviderSessions(ctx context.Context, userID string) error
+
 	GetProviderSession(ctx context.Context, id string) (*ProviderSession, error)
 	UpdateProviderSession(ctx context.Context, id string, update *ProviderSessionUpdate) (*ProviderSession, error)
 	DeleteProviderSession(ctx context.Context, id string) error
@@ -229,7 +230,7 @@ func (p *ProviderSession) Parse(parser structure.ObjectParser) {
 
 func (p *ProviderSession) Validate(validator structure.Validator) {
 	validator.String("id", &p.ID).Using(ProviderSessionIDValidator)
-	validator.String("userId", &p.UserID).Using(user.IDValidator)
+	validator.String("userId", &p.UserID).Using(UserIDValidator)
 	validator.String("type", &p.Type).OneOf(ProviderTypes()...)
 	validator.String("name", &p.Name).NotEmpty()
 	switch p.Type {

@@ -30,6 +30,11 @@ type CreateOutput struct {
 	Error  error
 }
 
+type DestroyAllOutput struct {
+	Destroyed bool
+	Error     error
+}
+
 type GetOutput struct {
 	Source *dataSource.Source
 	Error  error
@@ -58,31 +63,36 @@ type DestroyOutput struct {
 
 type Session struct {
 	*test.Closer
-	ListInvocations    int
-	ListInputs         []ListInput
-	ListStub           func(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error)
-	ListOutputs        []ListOutput
-	ListOutput         *ListOutput
-	CreateInvocations  int
-	CreateInputs       []CreateInput
-	CreateStub         func(ctx context.Context, userID string, create *dataSource.Create) (*dataSource.Source, error)
-	CreateOutputs      []CreateOutput
-	CreateOutput       *CreateOutput
-	GetInvocations     int
-	GetInputs          []string
-	GetStub            func(ctx context.Context, id string) (*dataSource.Source, error)
-	GetOutputs         []GetOutput
-	GetOutput          *GetOutput
-	UpdateInvocations  int
-	UpdateInputs       []UpdateInput
-	UpdateStub         func(ctx context.Context, id string, condition *request.Condition, create *dataSource.Update) (*dataSource.Source, error)
-	UpdateOutputs      []UpdateOutput
-	UpdateOutput       *UpdateOutput
-	DestroyInvocations int
-	DestroyInputs      []DestroyInput
-	DestroyStub        func(ctx context.Context, id string, condition *request.Condition) (bool, error)
-	DestroyOutputs     []DestroyOutput
-	DestroyOutput      *DestroyOutput
+	ListInvocations       int
+	ListInputs            []ListInput
+	ListStub              func(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error)
+	ListOutputs           []ListOutput
+	ListOutput            *ListOutput
+	CreateInvocations     int
+	CreateInputs          []CreateInput
+	CreateStub            func(ctx context.Context, userID string, create *dataSource.Create) (*dataSource.Source, error)
+	CreateOutputs         []CreateOutput
+	CreateOutput          *CreateOutput
+	DestroyAllInvocations int
+	DestroyAllInputs      []string
+	DestroyAllStub        func(ctx context.Context, userID string) (bool, error)
+	DestroyAllOutputs     []DestroyAllOutput
+	DestroyAllOutput      *DestroyAllOutput
+	GetInvocations        int
+	GetInputs             []string
+	GetStub               func(ctx context.Context, id string) (*dataSource.Source, error)
+	GetOutputs            []GetOutput
+	GetOutput             *GetOutput
+	UpdateInvocations     int
+	UpdateInputs          []UpdateInput
+	UpdateStub            func(ctx context.Context, id string, condition *request.Condition, create *dataSource.Update) (*dataSource.Source, error)
+	UpdateOutputs         []UpdateOutput
+	UpdateOutput          *UpdateOutput
+	DestroyInvocations    int
+	DestroyInputs         []DestroyInput
+	DestroyStub           func(ctx context.Context, id string, condition *request.Condition) (bool, error)
+	DestroyOutputs        []DestroyOutput
+	DestroyOutput         *DestroyOutput
 }
 
 func NewSession() *Session {
@@ -123,6 +133,23 @@ func (s *Session) Create(ctx context.Context, userID string, create *dataSource.
 		return s.CreateOutput.Source, s.CreateOutput.Error
 	}
 	panic("Create has no output")
+}
+
+func (s *Session) DestroyAll(ctx context.Context, userID string) (bool, error) {
+	s.DestroyAllInvocations++
+	s.DestroyAllInputs = append(s.DestroyAllInputs, userID)
+	if s.DestroyAllStub != nil {
+		return s.DestroyAllStub(ctx, userID)
+	}
+	if len(s.DestroyAllOutputs) > 0 {
+		output := s.DestroyAllOutputs[0]
+		s.DestroyAllOutputs = s.DestroyAllOutputs[1:]
+		return output.Destroyed, output.Error
+	}
+	if s.DestroyAllOutput != nil {
+		return s.DestroyAllOutput.Destroyed, s.DestroyAllOutput.Error
+	}
+	panic("DestroyAll has no output")
 }
 
 func (s *Session) Get(ctx context.Context, id string) (*dataSource.Source, error) {
@@ -183,6 +210,9 @@ func (s *Session) AssertOutputsEmpty() {
 	}
 	if len(s.CreateOutputs) > 0 {
 		panic("CreateOutputs is not empty")
+	}
+	if len(s.DestroyAllOutputs) > 0 {
+		panic("DestroyAllOutputs is not empty")
 	}
 	if len(s.GetOutputs) > 0 {
 		panic("GetOutputs is not empty")

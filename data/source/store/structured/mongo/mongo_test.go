@@ -489,6 +489,67 @@ var _ = Describe("Mongo", func() {
 						logger.AssertDebug("Create", log.Fields{"userId": userID, "create": create, "id": *storeResult[0].ID})
 					})
 				})
+
+				Context("DestroyAll", func() {
+					It("returns an error when the context is missing", func() {
+						ctx = nil
+						deleted, err := session.DestroyAll(ctx, userID)
+						errorsTest.ExpectEqual(err, errors.New("context is missing"))
+						Expect(deleted).To(BeFalse())
+					})
+
+					It("returns an error when the user id is missing", func() {
+						userID = ""
+						deleted, err := session.DestroyAll(ctx, userID)
+						errorsTest.ExpectEqual(err, errors.New("user id is missing"))
+						Expect(deleted).To(BeFalse())
+					})
+
+					It("returns an error when the user id is invalid", func() {
+						userID = "invalid"
+						deleted, err := session.DestroyAll(ctx, userID)
+						errorsTest.ExpectEqual(err, errors.New("user id is invalid"))
+						Expect(deleted).To(BeFalse())
+					})
+
+					It("returns an error when the session is closed", func() {
+						session.Close()
+						deleted, err := session.DestroyAll(ctx, userID)
+						errorsTest.ExpectEqual(err, errors.New("session closed"))
+						Expect(deleted).To(BeFalse())
+					})
+
+					Context("with data", func() {
+						var originals dataSource.SourceArray
+
+						BeforeEach(func() {
+							originals = dataSourceTest.RandomSourceArray(2, 4)
+							for _, original := range originals {
+								original.UserID = pointer.FromString(userID)
+							}
+							Expect(mgoCollection.Insert(AsInterfaceArray(originals)...)).To(Succeed())
+							Expect(mgoCollection.Insert(dataSourceTest.RandomSource(), dataSourceTest.RandomSource())).To(Succeed())
+						})
+
+						AfterEach(func() {
+							logger.AssertDebug("DestroyAll", log.Fields{"userId": userID})
+						})
+
+						It("returns false and does not destroy the original when the id does not exist", func() {
+							originalUserID := userID
+							userID = userTest.RandomID()
+							Expect(session.DestroyAll(ctx, userID)).To(BeFalse())
+							Expect(mgoCollection.Find(bson.M{"userId": originalUserID}).Count()).To(Equal(len(originals)))
+							Expect(mgoCollection.Find(bson.M{}).Count()).To(Equal(len(originals) + 2))
+						})
+
+						It("returns true and destroys the original when the id exists and the condition is missing", func() {
+							Expect(session.DestroyAll(ctx, userID)).To(BeTrue())
+							Expect(mgoCollection.Find(bson.M{"userId": userID}).Count()).To(Equal(0))
+							Expect(mgoCollection.Find(bson.M{}).Count()).To(Equal(2))
+						})
+					})
+				})
 			})
 
 			Context("Get", func() {
@@ -843,7 +904,7 @@ var _ = Describe("Mongo", func() {
 					BeforeEach(func() {
 						original = dataSourceTest.RandomSource()
 						original.ID = pointer.FromString(id)
-						Expect(mgoCollection.Insert(original)).To(Succeed())
+						Expect(mgoCollection.Insert(original, dataSourceTest.RandomSource(), dataSourceTest.RandomSource())).To(Succeed())
 					})
 
 					AfterEach(func() {

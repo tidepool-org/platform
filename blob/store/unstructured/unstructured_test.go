@@ -161,5 +161,22 @@ var _ = Describe("Unstructured", func() {
 				Expect(store.Delete(ctx, userID, id)).To(BeTrue())
 			})
 		})
+
+		Context("DeleteAll", func() {
+			AfterEach(func() {
+				Expect(underlyingStore.DeleteDirectoryInputs).To(Equal([]string{userID}))
+			})
+
+			It("returns an error when the underlying store returns an error", func() {
+				parentErr := errorsTest.RandomError()
+				underlyingStore.DeleteDirectoryOutputs = []error{parentErr}
+				errorsTest.ExpectEqual(store.DeleteAll(ctx, userID), errors.Wrap(parentErr, "unable to delete all blobs"))
+			})
+
+			It("returns successfully when the underlying store returns successfully", func() {
+				underlyingStore.DeleteDirectoryOutputs = []error{nil}
+				Expect(store.DeleteAll(ctx, userID)).To(Succeed())
+			})
+		})
 	})
 })

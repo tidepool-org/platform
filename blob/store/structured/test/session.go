@@ -31,6 +31,21 @@ type CreateOutput struct {
 	Error error
 }
 
+type DeleteAllOutput struct {
+	Deleted bool
+	Error   error
+}
+
+type DestroyAllOutput struct {
+	Destroyed bool
+	Error     error
+}
+
+type GetInput struct {
+	ID        string
+	Condition *request.Condition
+}
+
 type GetOutput struct {
 	Blob  *blob.Blob
 	Error error
@@ -47,6 +62,16 @@ type UpdateOutput struct {
 	Error error
 }
 
+type DeleteInput struct {
+	ID        string
+	Condition *request.Condition
+}
+
+type DeleteOutput struct {
+	Deleted bool
+	Error   error
+}
+
 type DestroyInput struct {
 	ID        string
 	Condition *request.Condition
@@ -59,31 +84,46 @@ type DestroyOutput struct {
 
 type Session struct {
 	*test.Closer
-	ListInvocations    int
-	ListInputs         []ListInput
-	ListStub           func(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.BlobArray, error)
-	ListOutputs        []ListOutput
-	ListOutput         *ListOutput
-	CreateInvocations  int
-	CreateInputs       []CreateInput
-	CreateStub         func(ctx context.Context, userID string, create *blobStoreStructured.Create) (*blob.Blob, error)
-	CreateOutputs      []CreateOutput
-	CreateOutput       *CreateOutput
-	GetInvocations     int
-	GetInputs          []string
-	GetStub            func(ctx context.Context, id string) (*blob.Blob, error)
-	GetOutputs         []GetOutput
-	GetOutput          *GetOutput
-	UpdateInvocations  int
-	UpdateInputs       []UpdateInput
-	UpdateStub         func(ctx context.Context, id string, condition *request.Condition, update *blobStoreStructured.Update) (*blob.Blob, error)
-	UpdateOutputs      []UpdateOutput
-	UpdateOutput       *UpdateOutput
-	DestroyInvocations int
-	DestroyInputs      []DestroyInput
-	DestroyStub        func(ctx context.Context, id string, condition *request.Condition) (bool, error)
-	DestroyOutputs     []DestroyOutput
-	DestroyOutput      *DestroyOutput
+	ListInvocations       int
+	ListInputs            []ListInput
+	ListStub              func(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.BlobArray, error)
+	ListOutputs           []ListOutput
+	ListOutput            *ListOutput
+	CreateInvocations     int
+	CreateInputs          []CreateInput
+	CreateStub            func(ctx context.Context, userID string, create *blobStoreStructured.Create) (*blob.Blob, error)
+	CreateOutputs         []CreateOutput
+	CreateOutput          *CreateOutput
+	DeleteAllInvocations  int
+	DeleteAllInputs       []string
+	DeleteAllStub         func(ctx context.Context, userID string) (bool, error)
+	DeleteAllOutputs      []DeleteAllOutput
+	DeleteAllOutput       *DeleteAllOutput
+	DestroyAllInvocations int
+	DestroyAllInputs      []string
+	DestroyAllStub        func(ctx context.Context, userID string) (bool, error)
+	DestroyAllOutputs     []DestroyAllOutput
+	DestroyAllOutput      *DestroyAllOutput
+	GetInvocations        int
+	GetInputs             []GetInput
+	GetStub               func(ctx context.Context, id string, condition *request.Condition) (*blob.Blob, error)
+	GetOutputs            []GetOutput
+	GetOutput             *GetOutput
+	UpdateInvocations     int
+	UpdateInputs          []UpdateInput
+	UpdateStub            func(ctx context.Context, id string, condition *request.Condition, update *blobStoreStructured.Update) (*blob.Blob, error)
+	UpdateOutputs         []UpdateOutput
+	UpdateOutput          *UpdateOutput
+	DeleteInvocations     int
+	DeleteInputs          []DeleteInput
+	DeleteStub            func(ctx context.Context, id string, condition *request.Condition) (bool, error)
+	DeleteOutputs         []DeleteOutput
+	DeleteOutput          *DeleteOutput
+	DestroyInvocations    int
+	DestroyInputs         []DestroyInput
+	DestroyStub           func(ctx context.Context, id string, condition *request.Condition) (bool, error)
+	DestroyOutputs        []DestroyOutput
+	DestroyOutput         *DestroyOutput
 }
 
 func NewSession() *Session {
@@ -126,11 +166,45 @@ func (s *Session) Create(ctx context.Context, userID string, create *blobStoreSt
 	panic("Create has no output")
 }
 
-func (s *Session) Get(ctx context.Context, id string) (*blob.Blob, error) {
+func (s *Session) DeleteAll(ctx context.Context, userID string) (bool, error) {
+	s.DeleteAllInvocations++
+	s.DeleteAllInputs = append(s.DeleteAllInputs, userID)
+	if s.DeleteAllStub != nil {
+		return s.DeleteAllStub(ctx, userID)
+	}
+	if len(s.DeleteAllOutputs) > 0 {
+		output := s.DeleteAllOutputs[0]
+		s.DeleteAllOutputs = s.DeleteAllOutputs[1:]
+		return output.Deleted, output.Error
+	}
+	if s.DeleteAllOutput != nil {
+		return s.DeleteAllOutput.Deleted, s.DeleteAllOutput.Error
+	}
+	panic("DeleteAll has no output")
+}
+
+func (s *Session) DestroyAll(ctx context.Context, userID string) (bool, error) {
+	s.DestroyAllInvocations++
+	s.DestroyAllInputs = append(s.DestroyAllInputs, userID)
+	if s.DestroyAllStub != nil {
+		return s.DestroyAllStub(ctx, userID)
+	}
+	if len(s.DestroyAllOutputs) > 0 {
+		output := s.DestroyAllOutputs[0]
+		s.DestroyAllOutputs = s.DestroyAllOutputs[1:]
+		return output.Destroyed, output.Error
+	}
+	if s.DestroyAllOutput != nil {
+		return s.DestroyAllOutput.Destroyed, s.DestroyAllOutput.Error
+	}
+	panic("DestroyAll has no output")
+}
+
+func (s *Session) Get(ctx context.Context, id string, condition *request.Condition) (*blob.Blob, error) {
 	s.GetInvocations++
-	s.GetInputs = append(s.GetInputs, id)
+	s.GetInputs = append(s.GetInputs, GetInput{ID: id, Condition: condition})
 	if s.GetStub != nil {
-		return s.GetStub(ctx, id)
+		return s.GetStub(ctx, id, condition)
 	}
 	if len(s.GetOutputs) > 0 {
 		output := s.GetOutputs[0]
@@ -160,6 +234,23 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 	panic("Update has no output")
 }
 
+func (s *Session) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
+	s.DeleteInvocations++
+	s.DeleteInputs = append(s.DeleteInputs, DeleteInput{ID: id, Condition: condition})
+	if s.DeleteStub != nil {
+		return s.DeleteStub(ctx, id, condition)
+	}
+	if len(s.DeleteOutputs) > 0 {
+		output := s.DeleteOutputs[0]
+		s.DeleteOutputs = s.DeleteOutputs[1:]
+		return output.Deleted, output.Error
+	}
+	if s.DeleteOutput != nil {
+		return s.DeleteOutput.Deleted, s.DeleteOutput.Error
+	}
+	panic("Delete has no output")
+}
+
 func (s *Session) Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error) {
 	s.DestroyInvocations++
 	s.DestroyInputs = append(s.DestroyInputs, DestroyInput{ID: id, Condition: condition})
@@ -185,11 +276,20 @@ func (s *Session) AssertOutputsEmpty() {
 	if len(s.CreateOutputs) > 0 {
 		panic("CreateOutputs is not empty")
 	}
+	if len(s.DeleteAllOutputs) > 0 {
+		panic("DeleteAllOutputs is not empty")
+	}
+	if len(s.DestroyAllOutputs) > 0 {
+		panic("DestroyAllOutputs is not empty")
+	}
 	if len(s.GetOutputs) > 0 {
 		panic("GetOutputs is not empty")
 	}
 	if len(s.UpdateOutputs) > 0 {
 		panic("UpdateOutputs is not empty")
+	}
+	if len(s.DeleteOutputs) > 0 {
+		panic("DeleteOutputs is not empty")
 	}
 	if len(s.DestroyOutputs) > 0 {
 		panic("DestroyOutputs is not empty")
