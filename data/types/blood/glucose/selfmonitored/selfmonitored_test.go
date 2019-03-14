@@ -55,8 +55,12 @@ var _ = Describe("SelfMonitored", func() {
 		Expect(selfmonitored.SubTypeManual).To(Equal("manual"))
 	})
 
+	It("SubTypeManual is expected", func() {
+		Expect(selfmonitored.SubTypeScanned).To(Equal("scanned"))
+	})
+
 	It("SubTypes returns expected", func() {
-		Expect(selfmonitored.SubTypes()).To(Equal([]string{"linked", "manual"}))
+		Expect(selfmonitored.SubTypes()).To(Equal([]string{"linked", "manual", "scanned"}))
 	})
 
 	Context("New", func() {
