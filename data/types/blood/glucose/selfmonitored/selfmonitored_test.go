@@ -55,7 +55,7 @@ var _ = Describe("SelfMonitored", func() {
 		Expect(selfmonitored.SubTypeManual).To(Equal("manual"))
 	})
 
-	It("SubTypeManual is expected", func() {
+	It("SubTypeScanned is expected", func() {
 		Expect(selfmonitored.SubTypeScanned).To(Equal("scanned"))
 	})
 
@@ -255,7 +255,7 @@ var _ = Describe("SelfMonitored", func() {
 				Entry("sub type invalid",
 					pointer.FromString("mmol/L"),
 					func(datum *selfmonitored.SelfMonitored, units *string) { datum.SubType = pointer.FromString("invalid") },
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"linked", "manual"}), "/subType", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"linked", "manual", "scanned"}), "/subType", NewMeta()),
 				),
 				Entry("sub type linked",
 					pointer.FromString("mmol/L"),
@@ -264,6 +264,10 @@ var _ = Describe("SelfMonitored", func() {
 				Entry("sub type manual",
 					pointer.FromString("mmol/L"),
 					func(datum *selfmonitored.SelfMonitored, units *string) { datum.SubType = pointer.FromString("manual") },
+				),
+				Entry("sub type scanned",
+					pointer.FromString("mmol/L"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.SubType = pointer.FromString("scanned") },
 				),
 				Entry("multiple errors",
 					nil,
@@ -275,7 +279,7 @@ var _ = Describe("SelfMonitored", func() {
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &types.Meta{}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", &types.Meta{}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/value", &types.Meta{}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"linked", "manual"}), "/subType", &types.Meta{}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"linked", "manual", "scanned"}), "/subType", &types.Meta{}),
 				),
 			)
 		})
@@ -336,6 +340,11 @@ var _ = Describe("SelfMonitored", func() {
 				Entry("does not modify the datum; sub type manual",
 					pointer.FromString("mmol/L"),
 					func(datum *selfmonitored.SelfMonitored, units *string) { datum.SubType = pointer.FromString("manual") },
+					nil,
+				),
+				Entry("does not modify the datum; sub type scanned",
+					pointer.FromString("mmol/L"),
+					func(datum *selfmonitored.SelfMonitored, units *string) { datum.SubType = pointer.FromString("scanned") },
 					nil,
 				),
 			)
