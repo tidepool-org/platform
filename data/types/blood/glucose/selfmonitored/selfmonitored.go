@@ -9,8 +9,8 @@ import (
 const (
 	Type = "smbg"
 
-	SubTypeLinked = "linked"
-	SubTypeManual = "manual"
+	SubTypeLinked  = "linked"
+	SubTypeManual  = "manual"
 	SubTypeScanned = "scanned"
 )
 
