@@ -41,7 +41,7 @@ func NewAccessLog() (*AccessLog, error) {
 
 func (a *AccessLog) ignore(req *rest.Request) bool {
 	// ignore liveness and readiness probes
-	if strings.Compare(req.URL.RequestURI(), "/status") == 0 {
+	if req.URL.RequestURI() == "/status") {
 		return true
 	}
 	return false
