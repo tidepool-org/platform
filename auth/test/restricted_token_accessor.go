@@ -32,6 +32,11 @@ type CreateUserRestrictedTokenOutput struct {
 	Error           error
 }
 
+type DeleteAllRestrictedTokensInput struct {
+	Context context.Context
+	UserID  string
+}
+
 type GetRestrictedTokenInput struct {
 	Context context.Context
 	ID      string
@@ -65,6 +70,9 @@ type RestrictedTokenAccessor struct {
 	CreateUserRestrictedTokenInvocations int
 	CreateUserRestrictedTokenInputs      []CreateUserRestrictedTokenInput
 	CreateUserRestrictedTokenOutputs     []CreateUserRestrictedTokenOutput
+	DeleteAllRestrictedTokensInvocations int
+	DeleteAllRestrictedTokensInputs      []DeleteAllRestrictedTokensInput
+	DeleteAllRestrictedTokensOutputs     []error
 	GetRestrictedTokenInvocations        int
 	GetRestrictedTokenInputs             []GetRestrictedTokenInput
 	GetRestrictedTokenOutputs            []GetRestrictedTokenOutput
@@ -102,6 +110,18 @@ func (r *RestrictedTokenAccessor) CreateUserRestrictedToken(ctx context.Context,
 	output := r.CreateUserRestrictedTokenOutputs[0]
 	r.CreateUserRestrictedTokenOutputs = r.CreateUserRestrictedTokenOutputs[1:]
 	return output.RestrictedToken, output.Error
+}
+
+func (r *RestrictedTokenAccessor) DeleteAllRestrictedTokens(ctx context.Context, userID string) error {
+	r.DeleteAllRestrictedTokensInvocations++
+
+	r.DeleteAllRestrictedTokensInputs = append(r.DeleteAllRestrictedTokensInputs, DeleteAllRestrictedTokensInput{Context: ctx, UserID: userID})
+
+	gomega.Expect(r.DeleteAllRestrictedTokensOutputs).ToNot(gomega.BeEmpty())
+
+	output := r.DeleteAllRestrictedTokensOutputs[0]
+	r.DeleteAllRestrictedTokensOutputs = r.DeleteAllRestrictedTokensOutputs[1:]
+	return output
 }
 
 func (r *RestrictedTokenAccessor) GetRestrictedToken(ctx context.Context, id string) (*auth.RestrictedToken, error) {
@@ -143,6 +163,8 @@ func (r *RestrictedTokenAccessor) DeleteRestrictedToken(ctx context.Context, id 
 func (r *RestrictedTokenAccessor) Expectations() {
 	gomega.Expect(r.ListUserRestrictedTokensOutputs).To(gomega.BeEmpty())
 	gomega.Expect(r.CreateUserRestrictedTokenOutputs).To(gomega.BeEmpty())
+	gomega.Expect(r.DeleteAllRestrictedTokensOutputs).To(gomega.BeEmpty())
 	gomega.Expect(r.GetRestrictedTokenOutputs).To(gomega.BeEmpty())
 	gomega.Expect(r.UpdateRestrictedTokenOutputs).To(gomega.BeEmpty())
+	gomega.Expect(r.DeleteRestrictedTokenOutputs).To(gomega.BeEmpty())
 }

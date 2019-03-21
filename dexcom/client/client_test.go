@@ -264,7 +264,7 @@ var _ = Describe("Client", func() {
 
 						It("returns an error", func() {
 							calibrationsResponse, err := clnt.GetCalibrations(ctx, startTime, endTime, tokenSource)
-							Expect(err).To(MatchError("unable to get calibrations; json is malformed; unexpected EOF"))
+							Expect(err).To(MatchError("unable to get calibrations; json is malformed"))
 							Expect(calibrationsResponse).To(BeNil())
 						})
 					})
@@ -494,7 +494,7 @@ var _ = Describe("Client", func() {
 
 						It("returns an error", func() {
 							devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, tokenSource)
-							Expect(err).To(MatchError("unable to get devices; json is malformed; unexpected EOF"))
+							Expect(err).To(MatchError("unable to get devices; json is malformed"))
 							Expect(devicesResponse).To(BeNil())
 						})
 					})
@@ -725,7 +725,7 @@ var _ = Describe("Client", func() {
 
 						It("returns an error", func() {
 							egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, tokenSource)
-							Expect(err).To(MatchError("unable to get egvs; json is malformed; unexpected EOF"))
+							Expect(err).To(MatchError("unable to get egvs; json is malformed"))
 							Expect(egvsResponse).To(BeNil())
 						})
 					})
@@ -955,7 +955,7 @@ var _ = Describe("Client", func() {
 
 						It("returns an error", func() {
 							eventsResponse, err := clnt.GetEvents(ctx, startTime, endTime, tokenSource)
-							Expect(err).To(MatchError("unable to get events; json is malformed; unexpected EOF"))
+							Expect(err).To(MatchError("unable to get events; json is malformed"))
 							Expect(eventsResponse).To(BeNil())
 						})
 					})

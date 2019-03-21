@@ -45,26 +45,31 @@ type DeleteOutput struct {
 }
 
 type Store struct {
-	ExistsInvocations int
-	ExistsInputs      []ExistsInput
-	ExistsStub        func(ctx context.Context, userID string, id string) (bool, error)
-	ExistsOutputs     []ExistsOutput
-	ExistsOutput      *ExistsOutput
-	PutInvocations    int
-	PutInputs         []PutInput
-	PutStub           func(ctx context.Context, userID string, id string, reader io.Reader, options *storeUnstructured.Options) error
-	PutOutputs        []error
-	PutOutput         *error
-	GetInvocations    int
-	GetInputs         []GetInput
-	GetStub           func(ctx context.Context, userID string, id string) (io.ReadCloser, error)
-	GetOutputs        []GetOutput
-	GetOutput         *GetOutput
-	DeleteInvocations int
-	DeleteInputs      []DeleteInput
-	DeleteStub        func(ctx context.Context, userID string, id string) (bool, error)
-	DeleteOutputs     []DeleteOutput
-	DeleteOutput      *DeleteOutput
+	ExistsInvocations    int
+	ExistsInputs         []ExistsInput
+	ExistsStub           func(ctx context.Context, userID string, id string) (bool, error)
+	ExistsOutputs        []ExistsOutput
+	ExistsOutput         *ExistsOutput
+	PutInvocations       int
+	PutInputs            []PutInput
+	PutStub              func(ctx context.Context, userID string, id string, reader io.Reader, options *storeUnstructured.Options) error
+	PutOutputs           []error
+	PutOutput            *error
+	GetInvocations       int
+	GetInputs            []GetInput
+	GetStub              func(ctx context.Context, userID string, id string) (io.ReadCloser, error)
+	GetOutputs           []GetOutput
+	GetOutput            *GetOutput
+	DeleteInvocations    int
+	DeleteInputs         []DeleteInput
+	DeleteStub           func(ctx context.Context, userID string, id string) (bool, error)
+	DeleteOutputs        []DeleteOutput
+	DeleteOutput         *DeleteOutput
+	DeleteAllInvocations int
+	DeleteAllInputs      []string
+	DeleteAllStub        func(ctx context.Context, userID string) error
+	DeleteAllOutputs     []error
+	DeleteAllOutput      *error
 }
 
 func NewStore() *Store {
@@ -139,6 +144,23 @@ func (s *Store) Delete(ctx context.Context, userID string, id string) (bool, err
 	panic("Delete has no output")
 }
 
+func (s *Store) DeleteAll(ctx context.Context, userID string) error {
+	s.DeleteAllInvocations++
+	s.DeleteAllInputs = append(s.DeleteAllInputs, userID)
+	if s.DeleteAllStub != nil {
+		return s.DeleteAllStub(ctx, userID)
+	}
+	if len(s.DeleteAllOutputs) > 0 {
+		output := s.DeleteAllOutputs[0]
+		s.DeleteAllOutputs = s.DeleteAllOutputs[1:]
+		return output
+	}
+	if s.DeleteAllOutput != nil {
+		return *s.DeleteAllOutput
+	}
+	panic("DeleteAll has no output")
+}
+
 func (s *Store) AssertOutputsEmpty() {
 	if len(s.ExistsOutputs) > 0 {
 		panic("ExistsOutputs is not empty")
@@ -151,5 +173,8 @@ func (s *Store) AssertOutputsEmpty() {
 	}
 	if len(s.DeleteOutputs) > 0 {
 		panic("DeleteOutputs is not empty")
+	}
+	if len(s.DeleteAllOutputs) > 0 {
+		panic("DeleteAllOutputs is not empty")
 	}
 }

@@ -1,5 +1,8 @@
 ## HEAD
 
+* Add image service
+* Add new dependencies for image service
+* Add blob and image types for association
 * Update dependencies
 * Update to Go 1.11.4
 * Rename Blobs to BlobArray and Sources to SourceArray for consistency

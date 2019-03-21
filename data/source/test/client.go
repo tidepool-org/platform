@@ -56,31 +56,36 @@ type DeleteOutput struct {
 }
 
 type Client struct {
-	ListInvocations   int
-	ListInputs        []ListInput
-	ListStub          func(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error)
-	ListOutputs       []ListOutput
-	ListOutput        *ListOutput
-	CreateInvocations int
-	CreateInputs      []CreateInput
-	CreateStub        func(ctx context.Context, userID string, create *dataSource.Create) (*dataSource.Source, error)
-	CreateOutputs     []CreateOutput
-	CreateOutput      *CreateOutput
-	GetInvocations    int
-	GetInputs         []string
-	GetStub           func(ctx context.Context, id string) (*dataSource.Source, error)
-	GetOutputs        []GetOutput
-	GetOutput         *GetOutput
-	UpdateInvocations int
-	UpdateInputs      []UpdateInput
-	UpdateStub        func(ctx context.Context, id string, condition *request.Condition, create *dataSource.Update) (*dataSource.Source, error)
-	UpdateOutputs     []UpdateOutput
-	UpdateOutput      *UpdateOutput
-	DeleteInvocations int
-	DeleteInputs      []DeleteInput
-	DeleteStub        func(ctx context.Context, id string, condition *request.Condition) (bool, error)
-	DeleteOutputs     []DeleteOutput
-	DeleteOutput      *DeleteOutput
+	ListInvocations      int
+	ListInputs           []ListInput
+	ListStub             func(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error)
+	ListOutputs          []ListOutput
+	ListOutput           *ListOutput
+	CreateInvocations    int
+	CreateInputs         []CreateInput
+	CreateStub           func(ctx context.Context, userID string, create *dataSource.Create) (*dataSource.Source, error)
+	CreateOutputs        []CreateOutput
+	CreateOutput         *CreateOutput
+	DeleteAllInvocations int
+	DeleteAllInputs      []string
+	DeleteAllStub        func(ctx context.Context, id string) error
+	DeleteAllOutputs     []error
+	DeleteAllOutput      *error
+	GetInvocations       int
+	GetInputs            []string
+	GetStub              func(ctx context.Context, id string) (*dataSource.Source, error)
+	GetOutputs           []GetOutput
+	GetOutput            *GetOutput
+	UpdateInvocations    int
+	UpdateInputs         []UpdateInput
+	UpdateStub           func(ctx context.Context, id string, condition *request.Condition, create *dataSource.Update) (*dataSource.Source, error)
+	UpdateOutputs        []UpdateOutput
+	UpdateOutput         *UpdateOutput
+	DeleteInvocations    int
+	DeleteInputs         []DeleteInput
+	DeleteStub           func(ctx context.Context, id string, condition *request.Condition) (bool, error)
+	DeleteOutputs        []DeleteOutput
+	DeleteOutput         *DeleteOutput
 }
 
 func NewClient() *Client {
@@ -119,6 +124,23 @@ func (c *Client) Create(ctx context.Context, userID string, create *dataSource.C
 		return c.CreateOutput.Source, c.CreateOutput.Error
 	}
 	panic("Create has no output")
+}
+
+func (c *Client) DeleteAll(ctx context.Context, userID string) error {
+	c.DeleteAllInvocations++
+	c.DeleteAllInputs = append(c.DeleteAllInputs, userID)
+	if c.DeleteAllStub != nil {
+		return c.DeleteAllStub(ctx, userID)
+	}
+	if len(c.DeleteAllOutputs) > 0 {
+		output := c.DeleteAllOutputs[0]
+		c.DeleteAllOutputs = c.DeleteAllOutputs[1:]
+		return output
+	}
+	if c.DeleteAllOutput != nil {
+		return *c.DeleteAllOutput
+	}
+	panic("DeleteAll has no output")
 }
 
 func (c *Client) Get(ctx context.Context, id string) (*dataSource.Source, error) {
@@ -178,6 +200,9 @@ func (c *Client) AssertOutputsEmpty() {
 	}
 	if len(c.CreateOutputs) > 0 {
 		panic("CreateOutputs is not empty")
+	}
+	if len(c.DeleteAllOutputs) > 0 {
+		panic("DeleteAllOutputs is not empty")
 	}
 	if len(c.GetOutputs) > 0 {
 		panic("GetOutputs is not empty")

@@ -55,6 +55,18 @@ func (c *Client) Create(ctx context.Context, userID string, create *dataSource.C
 	return session.Create(ctx, userID, create)
 }
 
+func (c *Client) DeleteAll(ctx context.Context, userID string) error {
+	if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
+		return err
+	}
+
+	session := c.DataSourceStructuredStore().NewSession()
+	defer session.Close()
+
+	_, err := session.DestroyAll(ctx, userID)
+	return err
+}
+
 func (c *Client) Get(ctx context.Context, id string) (*dataSource.Source, error) {
 	if err := c.AuthClient().EnsureAuthorized(ctx); err != nil {
 		return nil, err

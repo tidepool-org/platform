@@ -90,6 +90,20 @@ func (c *Client) Create(ctx context.Context, userID string, content *blob.Conten
 	return result, nil
 }
 
+func (c *Client) DeleteAll(ctx context.Context, userID string) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if userID == "" {
+		return errors.New("user id is missing")
+	} else if !user.IsValidID(userID) {
+		return errors.New("user id is invalid")
+	}
+
+	url := c.client.ConstructURL("v1", "users", userID, "blobs")
+	return c.client.RequestData(ctx, http.MethodDelete, url, nil, nil, nil)
+}
+
 func (c *Client) Get(ctx context.Context, id string) (*blob.Blob, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")

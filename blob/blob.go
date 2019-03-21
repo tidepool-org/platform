@@ -36,6 +36,7 @@ func Statuses() []string {
 type Client interface {
 	List(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) (BlobArray, error)
 	Create(ctx context.Context, userID string, content *Content) (*Blob, error)
+	DeleteAll(ctx context.Context, userID string) error
 	Get(ctx context.Context, id string) (*Blob, error)
 	GetContent(ctx context.Context, id string) (*Content, error)
 	Delete(ctx context.Context, id string, condition *request.Condition) (bool, error)
@@ -98,6 +99,7 @@ type Blob struct {
 	Status       *string    `json:"status,omitempty" bson:"status,omitempty"`
 	CreatedTime  *time.Time `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
 	ModifiedTime *time.Time `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
+	DeletedTime  *time.Time `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
 	Revision     *int       `json:"revision,omitempty" bson:"revision,omitempty"`
 }
 
@@ -110,6 +112,7 @@ func (b *Blob) Parse(parser structure.ObjectParser) {
 	b.Status = parser.String("status")
 	b.CreatedTime = parser.Time("createdTime", time.RFC3339Nano)
 	b.ModifiedTime = parser.Time("modifiedTime", time.RFC3339Nano)
+	b.DeletedTime = parser.Time("deletedTime", time.RFC3339Nano)
 	b.Revision = parser.Int("revision")
 }
 
@@ -122,6 +125,7 @@ func (b *Blob) Validate(validator structure.Validator) {
 	validator.String("status", b.Status).Exists().OneOf(Statuses()...)
 	validator.Time("createdTime", b.CreatedTime).Exists().NotZero().BeforeNow(time.Second)
 	validator.Time("modifiedTime", b.ModifiedTime).NotZero().After(pointer.ToTime(b.CreatedTime)).BeforeNow(time.Second)
+	validator.Time("deletedTime", b.DeletedTime).NotZero().After(pointer.ToTime(b.CreatedTime)).BeforeNow(time.Second)
 	validator.Int("revision", b.Revision).Exists().GreaterThanOrEqualTo(0)
 }
 

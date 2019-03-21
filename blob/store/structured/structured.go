@@ -21,8 +21,12 @@ type Session interface {
 
 	List(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.BlobArray, error)
 	Create(ctx context.Context, userID string, create *Create) (*blob.Blob, error)
-	Get(ctx context.Context, id string) (*blob.Blob, error)
+	DeleteAll(ctx context.Context, userID string) (bool, error)
+	DestroyAll(ctx context.Context, userID string) (bool, error)
+
+	Get(ctx context.Context, id string, condition *request.Condition) (*blob.Blob, error)
 	Update(ctx context.Context, id string, condition *request.Condition, update *Update) (*blob.Blob, error)
+	Delete(ctx context.Context, id string, condition *request.Condition) (bool, error)
 	Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error)
 }
 

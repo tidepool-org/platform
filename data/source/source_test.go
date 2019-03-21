@@ -1838,7 +1838,7 @@ var _ = Describe("Source", func() {
 			})
 
 			It("returns an error when the details are missing", func() {
-				Expect(sanitized.Sanitize(nil)).To(MatchError("unable to sanitize"))
+				errorsTest.ExpectEqual(sanitized.Sanitize(nil), errors.New("unable to sanitize"))
 			})
 
 			It("does not modify the original when the details are server", func() {
@@ -1886,7 +1886,7 @@ var _ = Describe("Source", func() {
 			})
 
 			It("returns an error when the details are missing", func() {
-				Expect(sanitized.Sanitize(nil)).To(MatchError("unable to sanitize"))
+				errorsTest.ExpectEqual(sanitized.Sanitize(nil), errors.New("unable to sanitize"))
 			})
 
 			It("does not modify the originals when the details are server", func() {

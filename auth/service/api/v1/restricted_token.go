@@ -15,6 +15,7 @@ func (r *Router) RestrictedTokensRoutes() []*rest.Route {
 	return []*rest.Route{
 		rest.Get("/v1/users/:userId/restricted_tokens", api.RequireServer(r.ListUserRestrictedTokens)),
 		rest.Post("/v1/users/:userId/restricted_tokens", api.Require(r.CreateUserRestrictedToken)),
+		rest.Delete("/v1/users/:userId/restricted_tokens", api.RequireServer(r.DeleteAllRestrictedTokens)),
 		rest.Get("/v1/restricted_tokens/:id", api.RequireServer(r.GetRestrictedToken)),
 		rest.Put("/v1/restricted_tokens/:id", api.RequireServer(r.UpdateRestrictedToken)),
 		rest.Delete("/v1/restricted_tokens/:id", api.Require(r.DeleteRestrictedToken)),
@@ -74,6 +75,23 @@ func (r *Router) CreateUserRestrictedToken(res rest.ResponseWriter, req *rest.Re
 	}
 
 	responder.Data(http.StatusCreated, restrictedToken)
+}
+
+func (r *Router) DeleteAllRestrictedTokens(res rest.ResponseWriter, req *rest.Request) {
+	responder := request.MustNewResponder(res, req)
+
+	userID := req.PathParam("userId")
+	if userID == "" {
+		responder.Error(http.StatusBadRequest, request.ErrorParameterMissing("userId"))
+		return
+	}
+
+	if err := r.AuthClient().DeleteAllRestrictedTokens(req.Context(), userID); err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+
+	responder.Empty(http.StatusNoContent)
 }
 
 func (r *Router) GetRestrictedToken(res rest.ResponseWriter, req *rest.Request) {

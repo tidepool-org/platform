@@ -47,13 +47,13 @@ var _ = Describe("Blob", func() {
 		Expect(blob.Statuses()).To(Equal([]string{"available", "created"}))
 	})
 
-	Context("NewFilter", func() {
-		It("returns successfully with default values", func() {
-			Expect(blob.NewFilter()).To(Equal(&blob.Filter{}))
-		})
-	})
-
 	Context("Filter", func() {
+		Context("NewFilter", func() {
+			It("returns successfully with default values", func() {
+				Expect(blob.NewFilter()).To(Equal(&blob.Filter{}))
+			})
+		})
+
 		Context("Parse", func() {
 			DescribeTable("parses the datum",
 				func(mutator func(object map[string]interface{}, expectedDatum *blob.Filter), expectedErrors ...error) {
@@ -224,13 +224,13 @@ var _ = Describe("Blob", func() {
 		})
 	})
 
-	Context("NewContent", func() {
-		It("returns successfully with default values", func() {
-			Expect(blob.NewContent()).To(Equal(&blob.Content{}))
-		})
-	})
-
 	Context("Content", func() {
+		Context("NewContent", func() {
+			It("returns successfully with default values", func() {
+				Expect(blob.NewContent()).To(Equal(&blob.Content{}))
+			})
+		})
+
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *blob.Content), expectedErrors ...error) {
@@ -306,6 +306,17 @@ var _ = Describe("Blob", func() {
 			),
 			Entry("empty",
 				func(datum *blob.Blob) { *datum = blob.Blob{} },
+			),
+			Entry("with modified time",
+				func(datum *blob.Blob) {
+					datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()).Truncate(time.Second))
+				},
+			),
+			Entry("with deleted time",
+				func(datum *blob.Blob) {
+					datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()).Truncate(time.Second))
+					datum.DeletedTime = pointer.CloneTime(datum.ModifiedTime)
+				},
 			),
 		)
 
@@ -448,6 +459,27 @@ var _ = Describe("Blob", func() {
 						expectedDatum.ModifiedTime = pointer.FromTime(valid)
 					},
 				),
+				Entry("deleted time invalid type",
+					func(object map[string]interface{}, expectedDatum *blob.Blob) {
+						object["deletedTime"] = true
+						expectedDatum.DeletedTime = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/deletedTime"),
+				),
+				Entry("deleted time invalid",
+					func(object map[string]interface{}, expectedDatum *blob.Blob) {
+						object["deletedTime"] = "invalid"
+						expectedDatum.DeletedTime = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339Nano), "/deletedTime"),
+				),
+				Entry("deleted time valid",
+					func(object map[string]interface{}, expectedDatum *blob.Blob) {
+						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second)
+						object["deletedTime"] = valid.Format(time.RFC3339Nano)
+						expectedDatum.DeletedTime = pointer.FromTime(valid)
+					},
+				),
 				Entry("revision invalid type",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
 						object["revision"] = true
@@ -472,6 +504,7 @@ var _ = Describe("Blob", func() {
 						object["status"] = true
 						object["createdTime"] = true
 						object["modifiedTime"] = true
+						object["deletedTime"] = true
 						object["revision"] = true
 						expectedDatum.ID = nil
 						expectedDatum.UserID = nil
@@ -481,6 +514,7 @@ var _ = Describe("Blob", func() {
 						expectedDatum.Status = nil
 						expectedDatum.CreatedTime = nil
 						expectedDatum.ModifiedTime = nil
+						expectedDatum.DeletedTime = nil
 						expectedDatum.Revision = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/id"),
@@ -491,6 +525,7 @@ var _ = Describe("Blob", func() {
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/status"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/createdTime"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/modifiedTime"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/deletedTime"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotInt(true), "/revision"),
 				),
 			)
@@ -635,6 +670,26 @@ var _ = Describe("Blob", func() {
 						datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()))
 					},
 				),
+				Entry("deleted time missing",
+					func(datum *blob.Blob) { datum.DeletedTime = nil },
+				),
+				Entry("deleted time before created time",
+					func(datum *blob.Blob) {
+						datum.CreatedTime = pointer.FromTime(test.PastNearTime())
+						datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()).Truncate(time.Second))
+						datum.DeletedTime = pointer.FromTime(test.PastFarTime())
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotAfter(test.PastFarTime(), test.PastNearTime()), "/deletedTime"),
+				),
+				Entry("deleted time after now",
+					func(datum *blob.Blob) { datum.DeletedTime = pointer.FromTime(test.FutureFarTime()) },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/deletedTime"),
+				),
+				Entry("deleted time valid",
+					func(datum *blob.Blob) {
+						datum.DeletedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()).Truncate(time.Second))
+					},
+				),
 				Entry("revision missing",
 					func(datum *blob.Blob) {
 						datum.Revision = nil
@@ -662,6 +717,7 @@ var _ = Describe("Blob", func() {
 						datum.Status = nil
 						datum.CreatedTime = nil
 						datum.ModifiedTime = pointer.FromTime(test.FutureFarTime())
+						datum.DeletedTime = pointer.FromTime(test.FutureFarTime())
 						datum.Revision = pointer.FromInt(-1)
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/id"),
@@ -672,6 +728,7 @@ var _ = Describe("Blob", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/status"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/createdTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/modifiedTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/deletedTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/revision"),
 				),
 			)

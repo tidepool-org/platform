@@ -244,7 +244,7 @@ func (a *API) storeTidepoolSession(isServer bool) responseFunc {
 			if err != nil {
 				return err
 			}
-			session.UserID = user.ID
+			session.UserID = *user.UserID
 		}
 
 		if err := a.storeSession(session); err != nil {
