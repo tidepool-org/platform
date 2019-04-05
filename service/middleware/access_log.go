@@ -3,7 +3,6 @@ package middleware
 import (
 	"fmt"
 	"net"
-	"strings"
 	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
