@@ -104,9 +104,9 @@ imports-write: goimports
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 vet: check-environment tmp
-	@echo "go tool vet -all -shadow -shadowstrict"
-	@cd $(ROOT_DIRECTORY) && \
-		find . -mindepth 1 -maxdepth 1 -not -path "./.*" -not -path "./_*" -not -path "./vendor" -type d -exec go tool vet -all -shadow -shadowstrict {} \; 2> _tmp/govet.out > _tmp/govet.out && \
+	@echo "go vet"
+	cd $(ROOT_DIRECTORY) && \
+		go vet ./... 2> _tmp/govet.out > _tmp/govet.out && \
 		O=`diff .govetignore _tmp/govet.out` || (echo "$${O}" && exit 1)
 
 vet-ignore:
