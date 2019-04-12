@@ -1,19 +1,22 @@
 package data
 
 import (
+	"github.com/tidepool-org/platform/metadata"
+	"github.com/tidepool-org/platform/origin"
 	"github.com/tidepool-org/platform/structure"
 )
 
 type Datum interface {
 	Meta() interface{}
 
-	Parse(parser ObjectParser) error
+	Parse(parser structure.ObjectParser)
 	Validate(validator structure.Validator)
 	Normalize(normalizer Normalizer)
 
 	IdentityFields() ([]string, error)
 
-	GetPayload() *Blob
+	GetOrigin() *origin.Origin
+	GetPayload() *metadata.Metadata
 
 	SetUserID(userID *string)
 	SetDataSetID(dataSetID *string)

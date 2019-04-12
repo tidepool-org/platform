@@ -20,24 +20,23 @@ type Recommended struct {
 	Net          *float64 `json:"net,omitempty" bson:"net,omitempty"`
 }
 
-func ParseRecommended(parser data.ObjectParser) *Recommended {
-	if parser.Object() == nil {
+func ParseRecommended(parser structure.ObjectParser) *Recommended {
+	if !parser.Exists() {
 		return nil
 	}
-	recommended := NewRecommended()
-	recommended.Parse(parser)
-	parser.ProcessNotParsed()
-	return recommended
+	datum := NewRecommended()
+	parser.Parse(datum)
+	return datum
 }
 
 func NewRecommended() *Recommended {
 	return &Recommended{}
 }
 
-func (r *Recommended) Parse(parser data.ObjectParser) {
-	r.Carbohydrate = parser.ParseFloat("carb")
-	r.Correction = parser.ParseFloat("correction")
-	r.Net = parser.ParseFloat("net")
+func (r *Recommended) Parse(parser structure.ObjectParser) {
+	r.Carbohydrate = parser.Float64("carb")
+	r.Correction = parser.Float64("correction")
+	r.Net = parser.Float64("net")
 }
 
 func (r *Recommended) Validate(validator structure.Validator) {

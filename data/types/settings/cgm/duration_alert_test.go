@@ -1,14 +1,12 @@
 package cgm_test
 
 import (
+	"math"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"math"
-
-	"github.com/tidepool-org/platform/data"
-	dataTest "github.com/tidepool-org/platform/data/test"
 	dataTypesSettingsCgm "github.com/tidepool-org/platform/data/types/settings/cgm"
 	dataTypesSettingsCgmTest "github.com/tidepool-org/platform/data/types/settings/cgm/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
@@ -85,8 +83,8 @@ var _ = Describe("DurationAlert", func() {
 			func(mutator func(datum *dataTypesSettingsCgm.DurationAlert)) {
 				datum := dataTypesSettingsCgmTest.RandomDurationAlert()
 				mutator(datum)
-				test.ExpectSerializedBSON(datum, dataTypesSettingsCgmTest.NewObjectFromDurationAlert(datum, test.ObjectFormatBSON))
-				test.ExpectSerializedJSON(datum, dataTypesSettingsCgmTest.NewObjectFromDurationAlert(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataTypesSettingsCgmTest.NewObjectFromDurationAlert(datum, test.ObjectFormatBSON))
+				test.ExpectSerializedObjectJSON(datum, dataTypesSettingsCgmTest.NewObjectFromDurationAlert(datum, test.ObjectFormatJSON))
 			},
 			Entry("succeeds",
 				func(datum *dataTypesSettingsCgm.DurationAlert) {},
@@ -233,10 +231,8 @@ var _ = Describe("DurationAlert", func() {
 			func(mutator func(datum *dataTypesSettingsCgm.NoDataAlert)) {
 				datum := dataTypesSettingsCgmTest.RandomNoDataAlert()
 				mutator(datum)
-				test.ExpectSerializedBSON(datum, dataTypesSettingsCgmTest.NewObjectFromNoDataAlert(datum, test.ObjectFormatBSON))
-				test.ExpectSerializedJSON(datum, dataTypesSettingsCgmTest.NewObjectFromNoDataAlert(datum, test.ObjectFormatJSON))
-				dataTest.ExpectSerializedObject(datum, dataTypesSettingsCgmTest.NewObjectFromNoDataAlert(datum, test.ObjectFormatJSON),
-					func(parser data.ObjectParser) interface{} { return dataTypesSettingsCgm.ParseNoDataAlert(parser) })
+				test.ExpectSerializedObjectBSON(datum, dataTypesSettingsCgmTest.NewObjectFromNoDataAlert(datum, test.ObjectFormatBSON))
+				test.ExpectSerializedObjectJSON(datum, dataTypesSettingsCgmTest.NewObjectFromNoDataAlert(datum, test.ObjectFormatJSON))
 			},
 			Entry("succeeds",
 				func(datum *dataTypesSettingsCgm.NoDataAlert) {},
@@ -473,10 +469,8 @@ var _ = Describe("DurationAlert", func() {
 			func(mutator func(datum *dataTypesSettingsCgm.OutOfRangeAlert)) {
 				datum := dataTypesSettingsCgmTest.RandomOutOfRangeAlert()
 				mutator(datum)
-				test.ExpectSerializedBSON(datum, dataTypesSettingsCgmTest.NewObjectFromOutOfRangeAlert(datum, test.ObjectFormatBSON))
-				test.ExpectSerializedJSON(datum, dataTypesSettingsCgmTest.NewObjectFromOutOfRangeAlert(datum, test.ObjectFormatJSON))
-				dataTest.ExpectSerializedObject(datum, dataTypesSettingsCgmTest.NewObjectFromOutOfRangeAlert(datum, test.ObjectFormatJSON),
-					func(parser data.ObjectParser) interface{} { return dataTypesSettingsCgm.ParseOutOfRangeAlert(parser) })
+				test.ExpectSerializedObjectBSON(datum, dataTypesSettingsCgmTest.NewObjectFromOutOfRangeAlert(datum, test.ObjectFormatBSON))
+				test.ExpectSerializedObjectJSON(datum, dataTypesSettingsCgmTest.NewObjectFromOutOfRangeAlert(datum, test.ObjectFormatJSON))
 			},
 			Entry("succeeds",
 				func(datum *dataTypesSettingsCgm.OutOfRangeAlert) {},

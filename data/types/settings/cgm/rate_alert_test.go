@@ -1,14 +1,12 @@
 package cgm_test
 
 import (
+	"math"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"math"
-
-	"github.com/tidepool-org/platform/data"
-	dataTest "github.com/tidepool-org/platform/data/test"
 	dataTypesSettingsCgm "github.com/tidepool-org/platform/data/types/settings/cgm"
 	dataTypesSettingsCgmTest "github.com/tidepool-org/platform/data/types/settings/cgm/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
@@ -67,8 +65,8 @@ var _ = Describe("RateAlert", func() {
 			func(mutator func(datum *dataTypesSettingsCgm.RateAlert)) {
 				datum := dataTypesSettingsCgmTest.RandomRateAlert()
 				mutator(datum)
-				test.ExpectSerializedBSON(datum, dataTypesSettingsCgmTest.NewObjectFromRateAlert(datum, test.ObjectFormatBSON))
-				test.ExpectSerializedJSON(datum, dataTypesSettingsCgmTest.NewObjectFromRateAlert(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataTypesSettingsCgmTest.NewObjectFromRateAlert(datum, test.ObjectFormatBSON))
+				test.ExpectSerializedObjectJSON(datum, dataTypesSettingsCgmTest.NewObjectFromRateAlert(datum, test.ObjectFormatJSON))
 			},
 			Entry("succeeds",
 				func(datum *dataTypesSettingsCgm.RateAlert) {},
@@ -200,10 +198,8 @@ var _ = Describe("RateAlert", func() {
 			func(mutator func(datum *dataTypesSettingsCgm.FallAlert)) {
 				datum := dataTypesSettingsCgmTest.RandomFallAlert()
 				mutator(datum)
-				test.ExpectSerializedBSON(datum, dataTypesSettingsCgmTest.NewObjectFromFallAlert(datum, test.ObjectFormatBSON))
-				test.ExpectSerializedJSON(datum, dataTypesSettingsCgmTest.NewObjectFromFallAlert(datum, test.ObjectFormatJSON))
-				dataTest.ExpectSerializedObject(datum, dataTypesSettingsCgmTest.NewObjectFromFallAlert(datum, test.ObjectFormatJSON),
-					func(parser data.ObjectParser) interface{} { return dataTypesSettingsCgm.ParseFallAlert(parser) })
+				test.ExpectSerializedObjectBSON(datum, dataTypesSettingsCgmTest.NewObjectFromFallAlert(datum, test.ObjectFormatBSON))
+				test.ExpectSerializedObjectJSON(datum, dataTypesSettingsCgmTest.NewObjectFromFallAlert(datum, test.ObjectFormatJSON))
 			},
 			Entry("succeeds",
 				func(datum *dataTypesSettingsCgm.FallAlert) {},
@@ -401,10 +397,8 @@ var _ = Describe("RateAlert", func() {
 			func(mutator func(datum *dataTypesSettingsCgm.RiseAlert)) {
 				datum := dataTypesSettingsCgmTest.RandomRiseAlert()
 				mutator(datum)
-				test.ExpectSerializedBSON(datum, dataTypesSettingsCgmTest.NewObjectFromRiseAlert(datum, test.ObjectFormatBSON))
-				test.ExpectSerializedJSON(datum, dataTypesSettingsCgmTest.NewObjectFromRiseAlert(datum, test.ObjectFormatJSON))
-				dataTest.ExpectSerializedObject(datum, dataTypesSettingsCgmTest.NewObjectFromRiseAlert(datum, test.ObjectFormatJSON),
-					func(parser data.ObjectParser) interface{} { return dataTypesSettingsCgm.ParseRiseAlert(parser) })
+				test.ExpectSerializedObjectBSON(datum, dataTypesSettingsCgmTest.NewObjectFromRiseAlert(datum, test.ObjectFormatBSON))
+				test.ExpectSerializedObjectJSON(datum, dataTypesSettingsCgmTest.NewObjectFromRiseAlert(datum, test.ObjectFormatJSON))
 			},
 			Entry("succeeds",
 				func(datum *dataTypesSettingsCgm.RiseAlert) {},

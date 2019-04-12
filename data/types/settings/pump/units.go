@@ -23,23 +23,22 @@ type Units struct {
 	Carbohydrate *string `json:"carb,omitempty" bson:"carb,omitempty"` // TODO: Rename "carbohydrate"
 }
 
-func ParseUnits(parser data.ObjectParser) *Units {
-	if parser.Object() == nil {
+func ParseUnits(parser structure.ObjectParser) *Units {
+	if !parser.Exists() {
 		return nil
 	}
-	units := NewUnits()
-	units.Parse(parser)
-	parser.ProcessNotParsed()
-	return units
+	datum := NewUnits()
+	parser.Parse(datum)
+	return datum
 }
 
 func NewUnits() *Units {
 	return &Units{}
 }
 
-func (u *Units) Parse(parser data.ObjectParser) {
-	u.BloodGlucose = parser.ParseString("bg")
-	u.Carbohydrate = parser.ParseString("carb")
+func (u *Units) Parse(parser structure.ObjectParser) {
+	u.BloodGlucose = parser.String("bg")
+	u.Carbohydrate = parser.String("carb")
 }
 
 func (u *Units) Validate(validator structure.Validator) {

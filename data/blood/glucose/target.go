@@ -14,25 +14,24 @@ type Target struct {
 	Target *float64 `json:"target,omitempty" bson:"target,omitempty"`
 }
 
-func ParseTarget(parser data.ObjectParser) *Target {
-	if parser.Object() == nil {
+func ParseTarget(parser structure.ObjectParser) *Target {
+	if !parser.Exists() {
 		return nil
 	}
-	target := NewTarget()
-	target.Parse(parser)
-	parser.ProcessNotParsed()
-	return target
+	datum := NewTarget()
+	parser.Parse(datum)
+	return datum
 }
 
 func NewTarget() *Target {
 	return &Target{}
 }
 
-func (t *Target) Parse(parser data.ObjectParser) {
-	t.High = parser.ParseFloat("high")
-	t.Low = parser.ParseFloat("low")
-	t.Range = parser.ParseFloat("range")
-	t.Target = parser.ParseFloat("target")
+func (t *Target) Parse(parser structure.ObjectParser) {
+	t.High = parser.Float64("high")
+	t.Low = parser.Float64("low")
+	t.Range = parser.Float64("range")
+	t.Target = parser.Float64("target")
 }
 
 func (t *Target) Validate(validator structure.Validator, units *string) {

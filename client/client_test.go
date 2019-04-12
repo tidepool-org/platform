@@ -1,10 +1,6 @@
 package client_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/ghttp"
-
 	"context"
 	"fmt"
 	"io"
@@ -12,6 +8,10 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/ghttp"
 
 	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/errors"
@@ -22,7 +22,7 @@ import (
 	requestTest "github.com/tidepool-org/platform/request/test"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
-	testHTTP "github.com/tidepool-org/platform/test/http"
+	testHttp "github.com/tidepool-org/platform/test/http"
 )
 
 type RequestBody struct {
@@ -38,14 +38,14 @@ var _ = Describe("Client", func() {
 	var config *client.Config
 
 	BeforeEach(func() {
-		userAgent = testHTTP.NewUserAgent()
+		userAgent = testHttp.NewUserAgent()
 		config = client.NewConfig()
 		config.UserAgent = userAgent
 	})
 
 	Context("New", func() {
 		BeforeEach(func() {
-			config.Address = testHTTP.NewAddress()
+			config.Address = testHttp.NewAddress()
 		})
 
 		It("returns an error if config is missing", func() {
@@ -71,7 +71,7 @@ var _ = Describe("Client", func() {
 		var clnt *client.Client
 
 		BeforeEach(func() {
-			address = testHTTP.NewAddress()
+			address = testHttp.NewAddress()
 			config.Address = address
 		})
 
@@ -89,26 +89,26 @@ var _ = Describe("Client", func() {
 				})
 
 				It("returns a valid URL with one path", func() {
-					path := test.NewVariableString(1, 8, test.CharsetAlphaNumeric)
+					path := test.RandomStringFromRangeAndCharset(1, 8, test.CharsetAlphaNumeric)
 					Expect(clnt.ConstructURL(path)).To(Equal(fmt.Sprintf("%s/%s", address, path)))
 				})
 
 				It("returns a valid URL with multiple paths", func() {
-					path1 := test.NewVariableString(1, 8, test.CharsetAlphaNumeric)
-					path2 := test.NewVariableString(1, 8, test.CharsetAlphaNumeric)
-					path3 := test.NewVariableString(1, 8, test.CharsetAlphaNumeric)
+					path1 := test.RandomStringFromRangeAndCharset(1, 8, test.CharsetAlphaNumeric)
+					path2 := test.RandomStringFromRangeAndCharset(1, 8, test.CharsetAlphaNumeric)
+					path3 := test.RandomStringFromRangeAndCharset(1, 8, test.CharsetAlphaNumeric)
 					Expect(clnt.ConstructURL(path1, path2, path3)).To(Equal(fmt.Sprintf("%s/%s/%s/%s", address, path1, path2, path3)))
 				})
 
 				It("returns a valid URL with multiple paths that need to be escaped", func() {
-					path1 := test.NewVariableString(1, 4, test.CharsetAlphaNumeric) + test.NewVariableString(1, 4, " /;,?") + test.NewVariableString(1, 4, test.CharsetAlphaNumeric)
-					path2 := test.NewVariableString(1, 4, test.CharsetAlphaNumeric) + test.NewVariableString(1, 4, " /;,?") + test.NewVariableString(1, 4, test.CharsetAlphaNumeric)
+					path1 := test.RandomStringFromRangeAndCharset(1, 4, test.CharsetAlphaNumeric) + test.RandomStringFromRangeAndCharset(1, 4, " /;,?") + test.RandomStringFromRangeAndCharset(1, 4, test.CharsetAlphaNumeric)
+					path2 := test.RandomStringFromRangeAndCharset(1, 4, test.CharsetAlphaNumeric) + test.RandomStringFromRangeAndCharset(1, 4, " /;,?") + test.RandomStringFromRangeAndCharset(1, 4, test.CharsetAlphaNumeric)
 					Expect(clnt.ConstructURL(path1, path2)).To(Equal(fmt.Sprintf("%s/%s/%s", address, url.PathEscape(path1), url.PathEscape(path2))))
 				})
 
 				It("returns a valid URL with multiple paths with surrounding slashes", func() {
-					path1 := test.NewVariableString(1, 8, test.CharsetAlphaNumeric)
-					path2 := test.NewVariableString(1, 8, test.CharsetAlphaNumeric)
+					path1 := test.RandomStringFromRangeAndCharset(1, 8, test.CharsetAlphaNumeric)
+					path2 := test.RandomStringFromRangeAndCharset(1, 8, test.CharsetAlphaNumeric)
 					Expect(clnt.ConstructURL("/"+path1+"/", "/"+path2+"/")).To(Equal(fmt.Sprintf("%s/%s/%s", address, path1, path2)))
 				})
 			}
@@ -130,7 +130,7 @@ var _ = Describe("Client", func() {
 			var urlString string
 
 			JustBeforeEach(func() {
-				urlString = clnt.ConstructURL(test.NewVariableString(1, 8, test.CharsetAlphaNumeric), test.NewVariableString(1, 8, test.CharsetAlphaNumeric))
+				urlString = clnt.ConstructURL(test.RandomStringFromRangeAndCharset(1, 8, test.CharsetAlphaNumeric), test.RandomStringFromRangeAndCharset(1, 8, test.CharsetAlphaNumeric))
 			})
 
 			It("returns a URL without change if the query is nil", func() {
@@ -142,10 +142,10 @@ var _ = Describe("Client", func() {
 			})
 
 			It("returns a URL with associated query", func() {
-				key1 := testHTTP.NewParameterKey()
-				value1 := testHTTP.NewParameterValue()
-				key2 := key1 + testHTTP.NewParameterKey()
-				value2 := testHTTP.NewParameterValue()
+				key1 := testHttp.NewParameterKey()
+				value1 := testHttp.NewParameterValue()
+				key2 := key1 + testHttp.NewParameterKey()
+				value2 := testHttp.NewParameterValue()
 				query := map[string]string{
 					key1: value1,
 					key2: value2,
@@ -154,11 +154,11 @@ var _ = Describe("Client", func() {
 			})
 
 			It("returns a URL with associated query even if it already has a query string", func() {
-				urlString += "?" + testHTTP.NewParameterKey() + "=" + testHTTP.NewParameterValue()
-				key1 := testHTTP.NewParameterKey()
-				value1 := testHTTP.NewParameterValue()
-				key2 := key1 + testHTTP.NewParameterKey()
-				value2 := testHTTP.NewParameterValue()
+				urlString += "?" + testHttp.NewParameterKey() + "=" + testHttp.NewParameterValue()
+				key1 := testHttp.NewParameterKey()
+				value1 := testHttp.NewParameterValue()
+				key2 := key1 + testHttp.NewParameterKey()
+				value2 := testHttp.NewParameterValue()
 				query := map[string]string{
 					key1: value1,
 					key2: value2,
@@ -189,15 +189,15 @@ var _ = Describe("Client", func() {
 			server = NewServer()
 			responseHeaders = http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}
 			ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
-			method = testHTTP.NewMethod()
-			path = testHTTP.NewPath()
+			method = testHttp.NewMethod()
+			path = testHttp.NewPath()
 			url = server.URL() + path
-			headerMutator = request.NewHeaderMutator(testHTTP.NewHeaderKey(), testHTTP.NewHeaderValue())
-			parameterMutator = request.NewParameterMutator(testHTTP.NewParameterKey(), testHTTP.NewParameterValue())
+			headerMutator = request.NewHeaderMutator(testHttp.NewHeaderKey(), testHttp.NewHeaderValue())
+			parameterMutator = request.NewParameterMutator(testHttp.NewParameterKey(), testHttp.NewParameterValue())
 			mutators = []request.RequestMutator{headerMutator, parameterMutator}
-			requestString = test.NewVariableString(0, 32, test.CharsetText)
+			requestString = test.RandomStringFromRangeAndCharset(0, 32, test.CharsetText)
 			requestBody = &RequestBody{Request: requestString}
-			responseString = test.NewVariableString(0, 32, test.CharsetText)
+			responseString = test.RandomStringFromRangeAndCharset(0, 32, test.CharsetText)
 			inspectors = []request.ResponseInspector{request.NewHeadersInspector()}
 			httpClient = http.DefaultClient
 		})
@@ -318,7 +318,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
 							RespondWith(http.StatusBadRequest, "NOT JSON"),
 						),
 					)
@@ -343,7 +343,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
 							RespondWithJSONEncoded(http.StatusBadRequest, errors.NewSerializable(responseErr), responseHeaders),
 						),
 					)
@@ -365,7 +365,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
 							RespondWith(http.StatusUnauthorized, "NOT JSON", responseHeaders),
 						),
 					)
@@ -387,7 +387,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
 							RespondWith(http.StatusForbidden, "NOT JSON", responseHeaders),
 						),
 					)
@@ -409,7 +409,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
 							RespondWith(http.StatusNotFound, "NOT JSON", responseHeaders),
 						),
 					)
@@ -434,7 +434,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
 							RespondWithJSONEncoded(http.StatusNotFound, errors.NewSerializable(responseErr), responseHeaders),
 						),
 					)
@@ -448,6 +448,28 @@ var _ = Describe("Client", func() {
 				})
 			})
 
+			Context("with a too many requests response 413", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
+							RespondWith(http.StatusRequestEntityTooLarge, "NOT JSON", responseHeaders),
+						),
+					)
+				})
+
+				It("returns an error", func() {
+					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
+					errorsTest.ExpectEqual(err, request.ErrorResourceTooLarge())
+					Expect(reader).To(BeNil())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
 			Context("with a too many requests response 429", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
@@ -456,7 +478,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
 							RespondWith(http.StatusTooManyRequests, "NOT JSON", responseHeaders),
 						),
 					)
@@ -478,7 +500,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
 							RespondWith(http.StatusInternalServerError, []byte("[]"), responseHeaders),
 						),
 					)
@@ -503,7 +525,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
 							RespondWithJSONEncoded(http.StatusInternalServerError, errors.NewSerializable(responseErr), responseHeaders),
 						),
 					)
@@ -525,7 +547,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
 							RespondWith(http.StatusNoContent, nil),
 						),
 					)
@@ -547,7 +569,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
 							RespondWith(http.StatusResetContent, nil),
 						),
 					)
@@ -613,7 +635,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
 							RespondWith(http.StatusOK, []byte(responseString)),
 						),
 					)
@@ -686,7 +708,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody(nil),
-							RespondWith(http.StatusOK, test.MustBytes(test.MarshalResponseBody(&ResponseBody{Response: responseString})), responseHeaders),
+							RespondWith(http.StatusOK, test.MarshalResponseBody(&ResponseBody{Response: responseString}), responseHeaders),
 						),
 					)
 					responseErr = errorsTest.RandomError()
@@ -714,7 +736,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody(nil),
-							RespondWith(http.StatusOK, test.MustBytes(test.MarshalResponseBody(&ResponseBody{Response: responseString})), responseHeaders),
+							RespondWith(http.StatusOK, test.MarshalResponseBody(&ResponseBody{Response: responseString}), responseHeaders),
 						),
 					)
 				})
@@ -735,7 +757,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
 							RespondWith(http.StatusBadRequest, []byte{255, 255, 255}, responseHeaders),
 						),
 					)
@@ -759,7 +781,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
 							RespondWithJSONEncoded(http.StatusBadRequest, errors.NewSerializable(responseErr), responseHeaders),
 						),
 					)
@@ -780,7 +802,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
 							RespondWith(http.StatusUnauthorized, "NOT JSON", responseHeaders),
 						),
 					)
@@ -801,7 +823,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
 							RespondWith(http.StatusForbidden, "NOT JSON", responseHeaders),
 						),
 					)
@@ -822,7 +844,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
 							RespondWith(http.StatusNotFound, "NOT JSON", responseHeaders),
 						),
 					)
@@ -846,7 +868,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
 							RespondWithJSONEncoded(http.StatusNotFound, errors.NewSerializable(responseErr), responseHeaders),
 						),
 					)
@@ -859,6 +881,27 @@ var _ = Describe("Client", func() {
 				})
 			})
 
+			Context("with a resource too large response 413", func() {
+				BeforeEach(func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("User-Agent", userAgent),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
+							RespondWith(http.StatusRequestEntityTooLarge, "NOT JSON", responseHeaders),
+						),
+					)
+				})
+
+				It("returns an error", func() {
+					err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
+					errorsTest.ExpectEqual(err, request.ErrorResourceTooLarge())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
 			Context("with a too many requests response 429", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
@@ -867,7 +910,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
 							RespondWith(http.StatusTooManyRequests, "NOT JSON", responseHeaders),
 						),
 					)
@@ -888,7 +931,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
 							RespondWith(http.StatusInternalServerError, nil, responseHeaders),
 						),
 					)
@@ -912,7 +955,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
 							RespondWithJSONEncoded(http.StatusInternalServerError, errors.NewSerializable(responseErr), responseHeaders),
 						),
 					)
@@ -933,7 +976,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
 							RespondWith(http.StatusOK, []byte("{\"response\":"), responseHeaders),
 						),
 					)
@@ -941,7 +984,7 @@ var _ = Describe("Client", func() {
 
 				It("returns an error", func() {
 					err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
-					Expect(err).To(MatchError("json is malformed; unexpected EOF"))
+					errorsTest.ExpectEqual(err, request.ErrorJSONMalformed())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 			})
@@ -954,7 +997,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
 							RespondWith(http.StatusNoContent, nil),
 						),
 					)
@@ -976,7 +1019,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
 							RespondWith(http.StatusResetContent, nil),
 						),
 					)
@@ -998,7 +1041,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody(nil),
-							RespondWith(http.StatusOK, test.MustBytes(test.MarshalResponseBody(&ResponseBody{Response: responseString})), responseHeaders),
+							RespondWith(http.StatusOK, test.MarshalResponseBody(&ResponseBody{Response: responseString}), responseHeaders),
 						),
 					)
 				})
@@ -1019,7 +1062,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody([]byte(requestString)),
-							RespondWith(http.StatusOK, test.MustBytes(test.MarshalResponseBody(&ResponseBody{Response: responseString})), responseHeaders),
+							RespondWith(http.StatusOK, test.MarshalResponseBody(&ResponseBody{Response: responseString}), responseHeaders),
 						),
 					)
 				})
@@ -1040,8 +1083,8 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
-							RespondWith(http.StatusOK, test.MustBytes(test.MarshalResponseBody(&ResponseBody{Response: responseString})), responseHeaders),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
+							RespondWith(http.StatusOK, test.MarshalResponseBody(&ResponseBody{Response: responseString}), responseHeaders),
 						),
 					)
 				})
@@ -1062,8 +1105,8 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("User-Agent", userAgent),
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MustBytes(test.MarshalRequestBody(requestBody))),
-							RespondWith(http.StatusOK, test.MustBytes(test.MarshalResponseBody(&ResponseBody{Response: responseString})), responseHeaders),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
+							RespondWith(http.StatusOK, test.MarshalResponseBody(&ResponseBody{Response: responseString}), responseHeaders),
 						),
 					)
 				})

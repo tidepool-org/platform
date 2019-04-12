@@ -1,12 +1,12 @@
 package service_test
 
 import (
+	"net/http"
+	"os"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
-
-	"net/http"
-	"os"
 
 	applicationTest "github.com/tidepool-org/platform/application/test"
 	authTest "github.com/tidepool-org/platform/auth/test"
@@ -44,7 +44,7 @@ var _ = Describe("Service", func() {
 			server = NewServer()
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest("POST", "/auth/serverlogin"),
+					VerifyRequest(http.MethodPost, "/auth/serverlogin"),
 					VerifyHeaderKV("X-Tidepool-Server-Name", *provider.NameOutput),
 					VerifyHeaderKV("X-Tidepool-Server-Secret", serverSecret),
 					VerifyBody(nil),

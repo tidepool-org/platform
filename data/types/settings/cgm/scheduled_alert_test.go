@@ -5,8 +5,6 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/data"
-	dataTest "github.com/tidepool-org/platform/data/test"
 	dataTypesSettingsCgm "github.com/tidepool-org/platform/data/types/settings/cgm"
 	dataTypesSettingsCgmTest "github.com/tidepool-org/platform/data/types/settings/cgm/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
@@ -85,21 +83,6 @@ var _ = Describe("ScheduledAlert", func() {
 	})
 
 	Context("ScheduledAlerts", func() {
-		DescribeTable("serializes the datum as expected",
-			func(mutator func(datum *dataTypesSettingsCgm.ScheduledAlerts)) {
-				datum := dataTypesSettingsCgmTest.RandomScheduledAlerts(1, 3)
-				mutator(datum)
-				dataTest.ExpectSerializedArray(datum, dataTypesSettingsCgmTest.NewArrayFromScheduledAlerts(datum, test.ObjectFormatJSON),
-					func(parser data.ArrayParser) interface{} { return dataTypesSettingsCgm.ParseScheduledAlerts(parser) })
-			},
-			Entry("succeeds",
-				func(datum *dataTypesSettingsCgm.ScheduledAlerts) {},
-			),
-			Entry("empty",
-				func(datum *dataTypesSettingsCgm.ScheduledAlerts) { *datum = dataTypesSettingsCgm.ScheduledAlerts{} },
-			),
-		)
-
 		Context("Parse", func() {
 			// TODO
 		})
@@ -173,10 +156,8 @@ var _ = Describe("ScheduledAlert", func() {
 			func(mutator func(datum *dataTypesSettingsCgm.ScheduledAlert)) {
 				datum := dataTypesSettingsCgmTest.RandomScheduledAlert()
 				mutator(datum)
-				test.ExpectSerializedBSON(datum, dataTypesSettingsCgmTest.NewObjectFromScheduledAlert(datum, test.ObjectFormatBSON))
-				test.ExpectSerializedJSON(datum, dataTypesSettingsCgmTest.NewObjectFromScheduledAlert(datum, test.ObjectFormatJSON))
-				dataTest.ExpectSerializedObject(datum, dataTypesSettingsCgmTest.NewObjectFromScheduledAlert(datum, test.ObjectFormatJSON),
-					func(parser data.ObjectParser) interface{} { return dataTypesSettingsCgm.ParseScheduledAlert(parser) })
+				test.ExpectSerializedObjectBSON(datum, dataTypesSettingsCgmTest.NewObjectFromScheduledAlert(datum, test.ObjectFormatBSON))
+				test.ExpectSerializedObjectJSON(datum, dataTypesSettingsCgmTest.NewObjectFromScheduledAlert(datum, test.ObjectFormatJSON))
 			},
 			Entry("succeeds",
 				func(datum *dataTypesSettingsCgm.ScheduledAlert) {},

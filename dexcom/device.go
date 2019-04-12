@@ -188,10 +188,10 @@ func (d *Device) Normalize(normalizer structure.Normalizer) {
 }
 
 func (d *Device) Hash() (string, error) {
-	bytes, err := yaml.Marshal(d)
+	bites, err := yaml.Marshal(d)
 	if err != nil {
 		return "", errors.Wrap(err, "unable to generate hash")
 	}
-	md5Sum := md5.Sum(bytes)
+	md5Sum := md5.Sum(bites)
 	return hex.EncodeToString(md5Sum[:]), nil
 }

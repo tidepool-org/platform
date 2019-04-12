@@ -3,7 +3,6 @@ package cgm
 import (
 	"math"
 
-	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -14,9 +13,9 @@ const (
 	SnoozeDurationHoursMaximum   = 10.0
 	SnoozeDurationHoursMinimum   = 0.0
 	SnoozeDurationMinutesMaximum = SnoozeDurationHoursMaximum * 60.0
-	SnoozeDurationMinutesMinimum = 0.0
+	SnoozeDurationMinutesMinimum = SnoozeDurationHoursMinimum * 60.0
 	SnoozeDurationSecondsMaximum = SnoozeDurationMinutesMaximum * 60.0
-	SnoozeDurationSecondsMinimum = 0.0
+	SnoozeDurationSecondsMinimum = SnoozeDurationMinutesMinimum * 60.0
 )
 
 func SnoozeUnits() []string {
@@ -32,13 +31,12 @@ type Snooze struct {
 	Units    *string  `json:"units,omitempty" bson:"units,omitempty"`
 }
 
-func ParseSnooze(parser data.ObjectParser) *Snooze {
-	if parser.Object() == nil {
+func ParseSnooze(parser structure.ObjectParser) *Snooze {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewSnooze()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -46,9 +44,9 @@ func NewSnooze() *Snooze {
 	return &Snooze{}
 }
 
-func (s *Snooze) Parse(parser data.ObjectParser) {
-	s.Duration = parser.ParseFloat("duration")
-	s.Units = parser.ParseString("units")
+func (s *Snooze) Parse(parser structure.ObjectParser) {
+	s.Duration = parser.Float64("duration")
+	s.Units = parser.String("units")
 }
 
 func (s *Snooze) Validate(validator structure.Validator) {

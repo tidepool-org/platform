@@ -1,0 +1,1021 @@
+openapi: '3.0.0'
+info:
+  title: Tidepool API
+  description: |-
+    The Tidepool API is an HTTP REST API served by Tidepool. It is the API that Tidepool clients use to communicate
+    with the Tidepool Platform.
+
+    # Authentication
+
+    Most Tidepool API requests require authentication using the `X-Tidepool-Session-Token` header received from the
+    Login API endpoint (not documented here).
+
+    # Tracing
+
+    All Tidepool API requests may include two HTTP headers to trace requests and "sessions" of requests throughout the
+    Tidepool ecosystem.
+
+    The `X-Tidepool-Trace-Request` HTTP header allows for a 1-64 character string value to be associated with all server logging
+    during the request. Typically, a client would generate a unique value and add it to each request. If not specified with the
+    request, then one is generated and returned in the response. The client should capture this header value with
+    any failure for future analysis.
+
+    The `X-Tidepool-Trace-Session` HTTP header allows for a 1-64 character string value to be associated with all server logging
+    during a "session" of requests. Typically, a client would generate a unique value when a session starts and add it to
+    each request during the session. If not specified by the client on the request, no header is returned in the response.
+    The client should capture this header value with any failure for future analysis.
+
+    For brevity, these headers are *not* documented for each specific endpoint below.
+
+    For example, a request with both headers specified:
+
+    ```
+    GET  /v1/users/a43d25a01f/images HTTP/1.1
+    Host: int-api.tidepool.org
+    X-Tidepool-Trace-Request: c836ab48d92c4789abb38d759a021b3e
+    X-Tidepool-Trace-Session: a4928790fbc02cabd749dbc920eb9c73
+    ```
+
+    # Errors
+
+    The Tidepool API uses standard HTTP status codes to indicate success or failure of any API call. In the case of failure,
+    the body of the response will be UTF-8 JSON in the following format:
+
+    ```
+    {
+      "code": "length-out-of-range",
+      "title": "length is out of range",
+      "detail": "length 101 is not less than or equal to 100",
+      "source": "/name",
+      "metadata": {
+        "type": "image"
+      }
+    }
+    ```
+
+    The `code`, `title`, and `detail` fields are required. The `source` and `metadata` fields are optional and are dependent
+    upon the type and location of the error.
+
+    The most common failure HTTP status codes are `400`, `401`, `403`, and `404`, but `413`, `429`, and `500` may be
+    used under certain circumstances.
+
+    For brevity, these errors are *not* documented for each specific endpoint below.
+  termsOfService: https://tidepool.org/terms
+  contact:
+    name: API Support
+    url: https://support.tidepool.org/
+    email: support@tidepool.org
+  license:
+    name: BSD 2-Clause "Simplified" License
+    url: https://github.com/tidepool-org/platform/blob/master/LICENSE
+  version: v1
+  x-logo:
+    url: https://s3-us-west-2.amazonaws.com/tidepool-docs/public/images/tidepool.png
+    backgroundColor: '#281946'
+    altTest: Tidepool
+    href: https://tidepool.org
+servers:
+    - url: http://localhost:8009
+      description: Local
+    - url: https://dev-api.tidepool.org
+      description: Development [Internal Use Only]
+    - url: https://stg-api.tidepool.org
+      description: Staging [Internal Use Only]
+    - url: https://int-api.tidepool.org
+      description: Integration
+    - url: https://api.tidepool.org
+      description: Production [Requires Approval]
+tags:
+  - name: Images
+    description: |-
+      List, create, and manage images.
+
+      Images may be created with or without metadata and content. The content format may be either JPEG or PNG, with or without transparency.
+      The content width and height may be up to 10,000 pixels. The content size, in bytes, may be up to 100MB.
+
+      Each image has a `status`. If an image is created without content, then its status is `created`. If the image is created with content
+      or has been updated to include content then its status is `available`.
+
+      Each image with content has a `contentIntent`. When content is uploaded for an image, the uploader must specify whether the intent of
+      the content is `original`, indicating that the content is the original, or `alternate`, indicating that the content is an alternate version
+      of the original, typically a smaller, lower resolution or lower quality version. The image may be created or updated with `alternate` content
+      intent initially and at a later time updated with the `original` content intent. This supports mobile device clients initially uploading low
+      resolution `alternate` content while on a cellular network and later uploading the `original` content while on a WiFi network.
+
+      When content is uploaded or downloaded, the MD5 digest of the content may be included to confirm the correct bytes were received.
+
+      Renditions of the current content can be requested using a variety of URL path parameters. The requested rendition can
+      specify the width, height, mode of transformation, background color, quality (JPEG only), and format. See the Get Image Rendition endpoint
+      for further details.
+components:
+  parameters:
+    imageId:
+      name: imageId
+      in: path
+      description: The id of an image.
+      required: true
+      schema:
+        $ref: images.yaml#/components/schemas/ImageId
+    contentIntent:
+      name: contentIntent
+      in: path
+      description: The intent for the content of an image.
+      required: true
+      schema:
+        $ref: images.yaml#/components/schemas/ContentIntent
+  schemas:
+    ImageId:
+      type: string
+      description: The id of an image.
+      format: imageId
+      example: ac0fd9cfbc4a3d25a01fb8c390d7523b
+    Status:
+      type: string
+      description: The status of an image. The status is available if and only if the image has content. Otherwise, the status is created.
+      enum: [available, created]
+    MediaType:
+      $ref: common.yaml#/components/schemas/MediaType
+      description: The media type of an image.
+      enum:
+        - image/jpeg
+        - image/png
+    Metadata:
+      type: object
+      description: The user metadata for an image.
+      properties:
+        name:
+          type: string
+          description: A name for the image.
+          minLength: 1
+          maxLength: 100
+        associations:
+          $ref: common.yaml#/components/schemas/AssociationArray
+        location:
+          $ref: common.yaml#/components/schemas/Location
+        metadata:
+          $ref: common.yaml#/components/schemas/Metadata
+        origin:
+          $ref: common.yaml#/components/schemas/Origin
+      example:
+        name: Rover being funny!
+        associations:
+          - type: url
+            url: https://disneyland.disney.go.com/
+            reason: Disneyland is the greatest place on earth!
+        location:
+          name: Disneyland Park, Anaheim, CA, USA
+          gps:
+            latitude:
+              units: degrees
+              value: 33.812101
+            longitude:
+              units: degrees
+              value: -117.918975
+        metadata:
+          animal: dog
+        origin:
+          id: AA5634B2-387A-415E-AB32-166C9EDAC32D
+          name: com.apple.HealthKit
+          type: service
+    ContentIntent:
+      type: string
+      description: |-
+        The intent of the image content. It is preferred to only upload the original image content. In some cases, however, it is not possible to
+        do so and a smaller, lower resolution or lower quality alternate image content must be uploaded prior to (or instead of) uploading the
+        original image content.
+      enum: [alternate, original]
+    Content:
+      type: string
+      format: binary
+      description: The raw bytes of the content of the image.
+    ContentAttributes:
+      type: object
+      required:
+        - digestMD5
+        - mediaType
+        - width
+        - height
+        - size
+        - createdTime
+      properties:
+        digestMD5:
+          $ref: common.yaml#/components/schemas/DigestMD5
+        mediaType:
+          $ref: images.yaml#/components/schemas/MediaType
+        width:
+          type: integer
+          description: The width of the image content, in pixels.
+        height:
+          type: integer
+          description: The height of the image content, in pixels.
+        size:
+          type: integer
+          description: The size of the image content, in bytes.
+        createdTime:
+          $ref: common.yaml#/components/schemas/CreatedTime
+        modifiedTime:
+          $ref: common.yaml#/components/schemas/ModifiedTime
+    ImageBase:
+      type: object
+      description: The read-only, base portion of an image.
+      required:
+        - id
+        - userId
+        - status
+        - createdTime
+        - revision
+      properties:
+        id:
+          $ref: images.yaml#/components/schemas/ImageId
+        userId:
+          $ref: users.yaml#/components/schemas/UserId
+        status:
+          $ref: images.yaml#/components/schemas/Status
+        createdTime:
+          $ref: common.yaml#/components/schemas/CreatedTime
+        modifiedTime:
+          $ref: common.yaml#/components/schemas/ModifiedTime
+        revision:
+          $ref: common.yaml#/components/schemas/Revision
+    ImageWithMetadata:
+      type: object
+      description: An image with just metadata.
+      allOf:
+        - $ref: images.yaml#/components/schemas/ImageBase
+        - type: object
+          properties:
+            metadata:
+              $ref: images.yaml#/components/schemas/Metadata
+      example:
+        id: bc4a3d25a01fb8ac0fd9cfc390d7523b
+        userId: a43d25a01f
+        status: created
+        createdTime: '2018-06-15T13:45:56Z'
+        revision: 0
+        metadata:
+          name: Rover being funny!
+          associations:
+            - type: url
+              url: https://disneyland.disney.go.com/
+              reason: Disneyland is the greatest place on earth!
+          location:
+            name: Disneyland Park, Anaheim, CA, USA
+            gps:
+              latitude:
+                units: degrees
+                value: 33.812101
+              longitude:
+                units: degrees
+                value: -117.918975
+          metadata:
+            animal: dog
+          origin:
+            id: AA5634B2-387A-415E-AB32-166C9EDAC32D
+            name: com.apple.HealthKit
+            type: service
+    ImageWithContent:
+      type: object
+      description: An image with just content.
+      allOf:
+        - $ref: images.yaml#/components/schemas/ImageBase
+        - type: object
+          required:
+            - contentIntent
+            - contentAttributes
+          properties:
+            contentIntent:
+              $ref: images.yaml#/components/schemas/ContentIntent
+            contentAttributes:
+              $ref: images.yaml#/components/schemas/ContentAttributes
+      example:
+        id: ac0fd9cfbc4a3d25a01fb8c390d7523b
+        userId: a43d25a01f
+        status: available
+        createdTime: '2018-06-15T13:45:58Z'
+        modifiedTime: '2018-06-15T13:46:15Z'
+        revision: 2
+        contentIntent: alternate
+        contentAttributes:
+          digestMD5: 1f32f4e4af1d0e21c55693d6c55b9baa
+          mediaType: image/png
+          width: 400
+          height: 300
+          size: 125390
+          createdTime: '2018-06-15T13:46:15Z'
+    Image:
+      type: object
+      description: An image with both metadata and content.
+      allOf:
+        - $ref: images.yaml#/components/schemas/ImageBase
+        - type: object
+          required:
+            - contentIntent
+            - contentAttributes
+          properties:
+            metadata:
+              $ref: images.yaml#/components/schemas/Metadata
+            contentIntent:
+              $ref: images.yaml#/components/schemas/ContentIntent
+            contentAttributes:
+              $ref: images.yaml#/components/schemas/ContentAttributes
+      example:
+        id: ac0fd9cfbc4a3d25a01fb8c390d7523b
+        userId: a43d25a01f
+        status: available
+        createdTime: '2018-06-15T13:45:58Z'
+        modifiedTime: '2018-06-15T13:46:15Z'
+        revision: 2
+        metadata:
+          name: Rover being funny!
+          associations:
+            - type: url
+              url: https://disneyland.disney.go.com/
+              reason: Disneyland is the greatest place on earth!
+          location:
+            name: Disneyland Park, Anaheim, CA, USA
+            gps:
+              latitude:
+                units: degrees
+                value: 33.812101
+              longitude:
+                units: degrees
+                value: -117.918975
+          metadata:
+            animal: dog
+          origin:
+            id: AA5634B2-387A-415E-AB32-166C9EDAC32D
+            name: com.apple.HealthKit
+            type: service
+        contentIntent: alternate
+        contentAttributes:
+          digestMD5: 1f32f4e4af1d0e21c55693d6c55b9baa
+          mediaType: image/png
+          width: 400
+          height: 300
+          size: 125390
+          createdTime: '2018-06-15T13:46:15Z'
+    ImageArray:
+      type: array
+      description: An array of images.
+      items:
+        $ref: images.yaml#/components/schemas/Image
+      example:
+        - id: bc4a3d25a01fb8ac0fd9cfc390d7523b
+          userId: a43d25a01f
+          status: created
+          createdTime: '2018-06-15T13:45:56Z'
+          revision: 0
+        - id: ac0fd9cfbc4a3d25a01fb8c390d7523b
+          userId: a43d25a01f
+          status: available
+          createdTime: '2018-06-15T13:45:58Z'
+          modifiedTime: '2018-06-15T13:46:15Z'
+          revision: 2
+          metadata:
+            name: Rover being funny!
+            associations:
+              - type: url
+                url: https://disneyland.disney.go.com/
+                reason: Disneyland is the greatest place on earth!
+            location:
+              name: Disneyland Park, Anaheim, CA, USA
+              gps:
+                latitude:
+                  units: degrees
+                  value: 33.812101
+                longitude:
+                  units: degrees
+                  value: -117.918975
+            metadata:
+              animal: dog
+            origin:
+              id: AA5634B2-387A-415E-AB32-166C9EDAC32D
+              name: com.apple.HealthKit
+              type: service
+          contentIntent: alternate
+          contentAttributes:
+            digestMD5: 1f32f4e4af1d0e21c55693d6c55b9baa
+            mediaType: image/png
+            width: 400
+            height: 300
+            size: 125390
+            createdTime: '2018-06-15T13:46:15Z'
+  securitySchemes:
+    X-Tidepool-Session-Token:
+      $ref: common.yaml#/components/securitySchemes/X-Tidepool-Session-Token
+paths:
+  /v1/users/{userId}/images/metadata:
+    post:
+      operationId: Create Image (Metadata)
+      summary: Create Image (Metadata)
+      description: |-
+        Create a new image for the specified user with only metadata. Content can be added later.
+
+        The body of the request is the UTF-8 JSON encoded Metadata.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: images.yaml#/components/schemas/Metadata
+      responses:
+        '201':
+          description: Successfully created an image.
+          content:
+            application/json:
+              schema:
+                $ref: images.yaml#/components/schemas/ImageWithMetadata
+      security:
+        - X-Tidepool-Session-Token: []
+      tags: [Images]
+    parameters:
+      - name: userId
+        in: path
+        description: The id of a user.
+        required: true
+        schema:
+          $ref: users.yaml#/components/schemas/UserId
+  /v1/users/{userId}/images/content/{contentIntent}:
+    post:
+      operationId: Create Image (Content)
+      summary: Create Image (Content)
+      description: |-
+        Create a new image for the specified user with only content using the specified
+        content intent. Metadata can be added later.
+
+        The body of the request is the raw bytes of the content.
+
+        The Content-Type header must be the MIME type of the content.
+      requestBody:
+        required: true
+        content:
+          image/jpeg:
+            $ref: images.yaml#/components/schemas/Content
+          image/png:
+            $ref: images.yaml#/components/schemas/Content
+      responses:
+        '201':
+          description: Successfully created image with content.
+          content:
+            application/json:
+              schema:
+                $ref: images.yaml#/components/schemas/ImageWithContent
+      security:
+        - X-Tidepool-Session-Token: []
+      tags: [Images]
+    parameters:
+      - name: userId
+        in: path
+        description: The id of a user.
+        required: true
+        schema:
+          $ref: users.yaml#/components/schemas/UserId
+      - name: contentIntent
+        in: path
+        description: The intent of the image content.
+        required: true
+        schema:
+          $ref: images.yaml#/components/schemas/ContentIntent
+  /v1/users/{userId}/images:
+    post:
+      operationId: Create Image (MIME)
+      summary: Create Image (MIME)
+      description: |-
+        Create a new image for the specified user from a MIME/Multipart encoded request body
+        containing metadata, content intent, and content.
+
+        The Content-Type header must be `multipart/form-data` and include a valid `boundary` parameter.
+
+        The form may contain three parts:
+          - `metadata` where the part body is the UTF-8 JSON encoded Metadata and includes a Content-Type
+            header equal to `application/json; charset=utf-8`
+          - `contentIntent` where the part body is the content intent string of `alternate` or `original` and
+            includes a Content-Type header of equal to `text/plain; charset=utf-8`; must be specified if
+            the `content` part is specified
+          - `content` where the part body is the raw content bytes and includes a Content-Type header equal
+            to the MIME type of the content; may optionally include a Digest header with the MD5 digest of the
+            raw content bytes; must be specified if the `contentIntent` part is specified
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                metadata:
+                  $ref: images.yaml#/components/schemas/Metadata
+                contentIntent:
+                  $ref: images.yaml#/components/schemas/ContentIntent
+                content:
+                  $ref: images.yaml#/components/schemas/Content
+            encoding:
+              metadata:
+                contentType: application/json; charset=utf-8
+              contentIntent:
+                contentType: text/plain; charset=utf-8
+              content:
+                contentType: image/jpeg, image/png
+      responses:
+        '201':
+          description: Successfully created an image.
+          content:
+            application/json:
+              schema:
+                $ref: images.yaml#/components/schemas/Image
+      security:
+        - X-Tidepool-Session-Token: []
+      tags: [Images]
+    get:
+      operationId: List Images
+      summary: List Images
+      description: |-
+        List images for the specified user after applying all of the specified filters.
+
+        The `status` query parameter may be specified to filter the response to only those images with the specified
+        `status`. The `status` query parameter may be set to one of:
+          - `available` - return those images with content (i.e. images where renditions can be generated)
+          - `created` - return those images without content
+
+        If the `status` query parameter is not specified then the default behavior is to filter on `available` status. This
+        query parameter may be specified *multiple* times.
+
+        The `contentIntent` query parameter may be specified to filter the response to only those images with content
+        with the specified `contentIntent`. The `contentIntent` query parameter may be set to one of:
+
+          - `alternate` - return those images with alternate content; alternate content is typically a smaller, lower resolution
+          or lower quality version of the original content
+          - `original` - return those images with original content
+
+        If the `contentIntent` query parameter is not specified then the default behavior is to not filter based upon content intent. This
+        query parameter may be specified *multiple* times.
+
+        The `page` and `size` query parameters may be specified to paginate the response.
+
+        For example:
+          - `GET /v1/users/a43d25a01f/images`
+          - `GET /v1/users/a43d25a01f/images?page=4&size=50`
+          - `GET /v1/users/a43d25a01f/images?status=available&status=created`
+          - `GET /v1/users/a43d25a01f/images?contentIntent=original`
+          - `GET /v1/users/a43d25a01f/images?status=created&contentIntent=alternate&page=2&size=250`
+      parameters:
+        - name: status
+          in: query
+          description: |-
+            The status of the images to be returned. The status of an image is initially `created` and becomes
+            `available` when content is successfully uploaded. If not specified, only images with `available` status
+            are returned. May be specified *multiple* times.
+          schema:
+            type: string
+            enum: [available, created]
+            default: available
+        - name: contentIntent
+          in: query
+          description: |-
+            The content intent of the images to be returned. An image can not have content, have `alternate` content, or
+            have `original` content. If not specified, no filtering based upon content intent is applied. May be specified
+            *multiple* times.
+          schema:
+            type: string
+            enum: [alternate, original]
+        - name: page
+          in: query
+          description: The pagination page.
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: The pagination size.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 100
+      responses:
+        '200':
+          description: Successfully returned user images.
+          content:
+            application/json:
+              schema:
+                $ref: images.yaml#/components/schemas/ImageArray
+      security:
+        - X-Tidepool-Session-Token: []
+      tags: [Images]
+    delete:
+      operationId: Delete All Images
+      summary: Delete All Images
+      description: Delete all user images, including all content and renditions.
+      responses:
+        '204':
+          description: Successfully deleted all user images.
+      security:
+        - X-Tidepool-Session-Token: []
+      tags: [Images]
+    parameters:
+      - name: userId
+        in: path
+        description: The id of a user.
+        required: true
+        schema:
+          $ref: users.yaml#/components/schemas/UserId
+  /v1/images/{imageId}:
+    delete:
+      operationId: Delete Image
+      summary: Delete Image
+      description: |-
+        Delete the specified image, including all content and renditions.
+
+        The `revision` query parameter may be specified to require that the current
+        image *must* have the specified revision in order to delete the image. If the specified
+        `revision` does not match the actual revision of the image, then a `404` error is
+        returned. If used properly this can prevent accidental overwrite by multiple
+        simultaneous updates or deletes.
+      parameters:
+        - name: revision
+          in: query
+          description: The revision the current image must match in order to delete the image.
+          schema:
+            $ref: common.yaml#/components/schemas/Revision
+      responses:
+        '204':
+          description: Successfully deleted image.
+      security:
+        - X-Tidepool-Session-Token: []
+      tags: [Images]
+    get:
+      operationId: Get Image
+      summary: Get Image
+      description: Get the specified image.
+      responses:
+        '200':
+          description: Successfully returned image.
+          content:
+            application/json:
+              schema:
+                $ref: images.yaml#/components/schemas/Image
+      security:
+        - X-Tidepool-Session-Token: []
+      tags: [Images]
+    parameters:
+      - name: imageId
+        in: path
+        description: The id of an image.
+        required: true
+        schema:
+          $ref: images.yaml#/components/schemas/ImageId
+  /v1/images/{imageId}/metadata:
+    get:
+      operationId: Get Image Metadata
+      summary: Get Image Metadata
+      description: Get the metadata for the specified image.
+      responses:
+        '200':
+          description: Successfully returned metadata for the specified image.
+          content:
+            application/json:
+              schema:
+                $ref: images.yaml#/components/schemas/Metadata
+      security:
+        - X-Tidepool-Session-Token: []
+      tags: [Images]
+    put:
+      operationId: Put Image Metadata
+      summary: Put Image Metadata
+      description: |-
+        Update the metadata associated with the specified image.
+
+        The update is not a wholesale replace of the entire metadata. Each field within
+        the metadata update replaces each field in the existing image metadata.
+
+        The `revision` query parameter may be specified to require that the current
+        image *must* have the specified revision in order to apply the update. If the specified
+        `revision` does not match the actual revision of the image, then a `404` error is
+        returned. If used properly this can prevent accidental overwrite by multiple
+        simultaneous updates or deletes.
+      parameters:
+        - name: revision
+          in: query
+          description: The revision the current image must match in order to apply the update.
+          schema:
+            $ref: common.yaml#/components/schemas/Revision
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: images.yaml#/components/schemas/Metadata
+      responses:
+        '200':
+          description: Successfully updated the content and content intent for the image.
+          content:
+            application/json:
+              schema:
+                $ref: images.yaml#/components/schemas/Image
+      security:
+        - X-Tidepool-Session-Token: []
+      tags: [Images]
+    parameters:
+      - name: imageId
+        in: path
+        description: The id of an image.
+        required: true
+        schema:
+          $ref: images.yaml#/components/schemas/ImageId
+  /v1/images/{imageId}/content:
+    get:
+      operationId: Get Image Content
+      summary: Get Image Content
+      description: |-
+        Get the content for specified image. It may be alternate or original content.
+
+        If the image does not have content then a `404` error will be returned.
+      responses:
+        '200':
+          description: Successfully returned content for the specified image.
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+      security:
+        - X-Tidepool-Session-Token: []
+      tags: [Images]
+    parameters:
+      - name: imageId
+        in: path
+        description: The id of an image.
+        required: true
+        schema:
+          $ref: images.yaml#/components/schemas/ImageId
+  /v1/images/{imageId}/content/{suffix}:
+    get:
+      operationId: Get Image Content (Suffix)
+      summary: Get Image Content (Suffix)
+      description: |-
+        Get the content for specified image with an optional suffix.
+
+        The suffix may be any additional path segments after the required portion. The only restriction
+        is that if the last path segment specifies an extension (ie. contains a dot) then the extension
+        must match the format of the image content. If it does not then a `404` error is returned.
+        The suffix may be specified to enable sane browser downloads.
+
+        An example provides the clearest explanation. If the `imageId` were
+        `ac0fd9cfbc4a3d25a01fb8c390d7523b` and it contained JPEG content then these would all be valid URLs:
+        - `/v1/images/ac0fd9cfbc4a3d25a01fb8c390d7523b/content`
+        - `/v1/images/ac0fd9cfbc4a3d25a01fb8c390d7523b/content/dog`
+        - `/v1/images/ac0fd9cfbc4a3d25a01fb8c390d7523b/content/cat.jpg`
+        - `/v1/images/ac0fd9cfbc4a3d25a01fb8c390d7523b/content/a/house`
+        - `/v1/images/ac0fd9cfbc4a3d25a01fb8c390d7523b/content/b/c/car.jpeg`
+
+        If the image does not have content then a `404` error will be returned.
+      responses:
+        '200':
+          description: Successfully returned content for the specified image.
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+      security:
+        - X-Tidepool-Session-Token: []
+      tags: [Images]
+    parameters:
+      - name: imageId
+        in: path
+        description: The id of an image.
+        required: true
+        schema:
+          $ref: images.yaml#/components/schemas/ImageId
+      - name: suffix
+        in: path
+        description: |-
+          The suffix may be any additional path segments after the required portion. The only restriction
+          is that if the last path segment contains an extension (ie. contains a dot) then the extension
+          must match the format of the image content. If it does not then a `404` error is returned.
+          The suffix may be specified to enable useful browser downloads.
+        schema:
+          type: string
+  /v1/images/{imageId}/content/{contentIntent}:
+    put:
+      operationId: Put Image Content
+      summary: Put Image Content
+      description: |-
+        Update the image with the specified content intent and the content in the request body.
+
+        If the image does not already have content, then any content intent is allowed on update.
+
+        If the image already has content with `alternate` content intent, then only `original` content
+        intent is allowed on update.
+
+        If the image already has content with `original` content intent, then any request to update the
+        content results in a `400` error being returned.
+
+        The `revision` query parameter may be specified to require that the current
+        image *must* have the specified revision in order to apply the update. If the specified
+        `revision` does not match the actual revision of the image, then a `404` error is
+        returned. If used properly this can prevent accidental overwrite by multiple
+        simultaneous updates or deletes.
+      parameters:
+        - name: revision
+          in: query
+          description: The revision the current image must match in order to apply the update.
+          schema:
+            $ref: common.yaml#/components/schemas/Revision
+      requestBody:
+        required: true
+        content:
+          image/jpeg:
+            schema:
+              type: string
+              format: binary
+          image/png:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '200':
+          description: Successfully updated the content and content intent for the image.
+          content:
+            application/json:
+              schema:
+                $ref: images.yaml#/components/schemas/Image
+      security:
+        - X-Tidepool-Session-Token: []
+      tags: [Images]
+    parameters:
+      - name: imageId
+        in: path
+        description: The id of an image.
+        required: true
+        schema:
+          $ref: images.yaml#/components/schemas/ImageId
+      - name: contentIntent
+        in: path
+        description: The intent of the image content.
+        required: true
+        schema:
+          $ref: images.yaml#/components/schemas/ContentIntent
+  /v1/images/{imageId}/rendition/{rendition}.{extension}:
+    get:
+      operationId: Get Image Rendition
+      summary: Get Image Rendition
+      description: |-
+        Get a rendition of the image content.
+
+        The `rendition` parameter is a sequence of key-value pairs separated by an underscore
+        followed by a filename `extension` parameter representing the format of the requested rendition.
+        These parameters are used to calculate the necessary transformations to apply to the
+        image content before returning.
+
+        The valid rendition parameters are:
+          - `w` - width - the value is an integer width of the requested rendition; if the width is not
+          specified then it is calculated using the height parameter and the aspect ratio of the image content
+          - `h` - height - the value is an integer height of the requested rendition; if the height is not
+          specified then it is calculated using the width parameter and the aspect ratio of the image content
+          - `m` - mode - the value is the mode used to transform the image content into the requested
+            rendition; the default mode is `fit`; the valid modes are:
+              - `fill` - return an image with the exact specified or calculated width and height while retaining
+                the aspect ratio of the image content; use only the part of the image content that fills the
+                specified dimensions, if necessary; only part of the image content might be visible if the requested
+                aspect ratio is different from the image content aspect ratio
+              - `fillDown` - same as `fill`, but only if requested rendition is smaller than image content;
+                otherwise, return the image content as-is
+              - `fit` - the image content is resized so that it takes up as much space as possible within a
+                bounding box defined by the specified or calculated width and height; the aspect ratio is
+                respected and all of the image content is visible
+              - `fitDown` - same as `fit`, but only if requested rendition is smaller than image content;
+                otherwise, return the image content as-is
+              - `pad` - resize the image to fill the specified or calculated width and height while retaining the
+                aspect ratio; if the proportions of the image content do not match the specified
+                or calculated width and height, padding using the background color is added to the image to match
+                the specified size
+              - `padDown` - same as `pad`, but only if requested rendition is smaller than image content;
+                otherwise, return the image content as-is
+              - `scale` - change the size of the image content exactly to match the specified width and height; may
+                not respect the image content aspect ratio; all image content parts are visible, but
+                might be squeezed or stretched
+              - `scaleDown` - same as `scale`, but only if requested rendition is smaller than image content;
+                otherwise, return the image content as-is
+          - `b` - background - the value is a string representing a 3-byte RGB or 4-byte RGBA value
+            for the background color; used if the transformed image content does not perfectly match the requested
+            rendition size or the image content is a transparent PNG and the requested rendition is a JPEG; for example: `aaccaa`,
+            `aaccaaff`; the alpha channel is used only when the requested renditon is a PNG; the default background is `ffffffff`
+          - `q` - quality - the value is an integer from 1 to 100 representing the quality of the requested rendition;
+            the default quality is 95; ignored if the requested format is not JPEG
+
+        The key and value of each rendition parameter are separated by a `=` and each of those are separated by a `_`.
+
+        Only one of the width or height rendition parameters are required. All other rendition parameters are optional.
+        The order of the parameters is irrelevant.
+
+        The rendition extension does *not* have to match the image content MIME type. Any necessary conversion between
+        image formats will be made.
+
+        This API is intended to generate a *small, single-digit* number of different renditions for each image. Please do
+        not use this API to generate large numbers of different renditions.
+
+        Some examples:
+          - `/v1/images/ac0fd9cfbc4a3d25a01fb8c390d7523b/rendition/w=300_h=200_m=scaleDown_b=ff00ffff_q=80.jpeg`
+          - `/v1/images/ac0fd9cfbc4a3d25a01fb8c390d7523b/rendition/h=180_m=fit.png`
+          - `/v1/images/ac0fd9cfbc4a3d25a01fb8c390d7523b/rendition/w=800_h=200.jpeg`
+      responses:
+        '200':
+          description: Successfully returned requested rendition for the specified image.
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+      security:
+        - X-Tidepool-Session-Token: []
+      tags: [Images]
+    parameters:
+      - name: imageId
+        in: path
+        description: The id of an image.
+        required: true
+        schema:
+          $ref: images.yaml#/components/schemas/ImageId
+      - name: rendition
+        in: path
+        description: Rendition parameters. See above.
+        required: true
+        schema:
+          type: string
+      - name: extension
+        in: path
+        description: Mime type extension of the requested rendition.
+        required: true
+        schema:
+          type: string
+          enum: [jpeg, png]
+  /v1/images/{imageId}/rendition/{rendition}/{suffix}.{extension}:
+    get:
+      operationId: Get Image Rendition (Suffix)
+      summary: Get Image Rendition (Suffix)
+      description: |-
+        Get a rendition of the image content with an optional suffix.
+
+        Same as Get Image Rendition with the addition of allowing for an optional suffix between
+        the rendition parameters and rendition extension. The suffix may be any sequence of additional path segments.
+        The suffix may be specified to enable sane browser downloads.
+
+        For example:
+          - `/v1/images/ac0fd9cfbc4a3d25a01fb8c390d7523b/rendition/h=180_m=fit/dog_small.png`
+          - `/v1/images/ac0fd9cfbc4a3d25a01fb8c390d7523b/rendition/h=180_m=fit/dog/black_lab.jpg`
+      responses:
+        '200':
+          description: Successfully returned requested rendition for the specified image.
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+      security:
+        - X-Tidepool-Session-Token: []
+      tags: [Images]
+    parameters:
+      - name: imageId
+        in: path
+        description: The id of an image.
+        required: true
+        schema:
+          $ref: images.yaml#/components/schemas/ImageId
+      - name: rendition
+        in: path
+        description: Rendition parameters. See above.
+        required: true
+        schema:
+          type: string
+      - name: suffix
+        in: path
+        description: |-
+          The suffix may be any additional path segments between the required portions. The extension of the
+          suffix will be used as the requested rendition format. The suffix may be specified to enable sane
+          browser downloads.
+        schema:
+          type: string
+      - name: extension
+        in: path
+        description: Mime type extension of the requested rendition.
+        required: true
+        schema:
+          type: string
+          enum: [jpeg, png]

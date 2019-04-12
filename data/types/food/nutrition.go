@@ -12,13 +12,12 @@ type Nutrition struct {
 	Protein      *Protein      `json:"protein,omitempty" bson:"protein,omitempty"`
 }
 
-func ParseNutrition(parser data.ObjectParser) *Nutrition {
-	if parser.Object() == nil {
+func ParseNutrition(parser structure.ObjectParser) *Nutrition {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewNutrition()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -26,11 +25,11 @@ func NewNutrition() *Nutrition {
 	return &Nutrition{}
 }
 
-func (n *Nutrition) Parse(parser data.ObjectParser) {
-	n.Carbohydrate = ParseCarbohydrate(parser.NewChildObjectParser("carbohydrate"))
-	n.Energy = ParseEnergy(parser.NewChildObjectParser("energy"))
-	n.Fat = ParseFat(parser.NewChildObjectParser("fat"))
-	n.Protein = ParseProtein(parser.NewChildObjectParser("protein"))
+func (n *Nutrition) Parse(parser structure.ObjectParser) {
+	n.Carbohydrate = ParseCarbohydrate(parser.WithReferenceObjectParser("carbohydrate"))
+	n.Energy = ParseEnergy(parser.WithReferenceObjectParser("energy"))
+	n.Fat = ParseFat(parser.WithReferenceObjectParser("fat"))
+	n.Protein = ParseProtein(parser.WithReferenceObjectParser("protein"))
 }
 
 func (n *Nutrition) Validate(validator structure.Validator) {

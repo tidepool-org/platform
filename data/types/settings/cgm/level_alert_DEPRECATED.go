@@ -37,10 +37,10 @@ type LevelAlertDEPRECATED struct {
 	Snooze  *int     `json:"snooze,omitempty" bson:"snooze,omitempty"`
 }
 
-func (l *LevelAlertDEPRECATED) Parse(parser data.ObjectParser) {
-	l.Enabled = parser.ParseBoolean("enabled")
-	l.Level = parser.ParseFloat("level")
-	l.Snooze = parser.ParseInteger("snooze")
+func (l *LevelAlertDEPRECATED) Parse(parser structure.ObjectParser) {
+	l.Enabled = parser.Bool("enabled")
+	l.Level = parser.Float64("level")
+	l.Snooze = parser.Int("snooze")
 }
 
 func (l *LevelAlertDEPRECATED) Validate(validator structure.Validator, units *string) {
@@ -59,13 +59,12 @@ type HighLevelAlertDEPRECATED struct {
 	LevelAlertDEPRECATED `bson:",inline"`
 }
 
-func ParseHighLevelAlertDEPRECATED(parser data.ObjectParser) *HighLevelAlertDEPRECATED {
-	if parser.Object() == nil {
+func ParseHighLevelAlertDEPRECATED(parser structure.ObjectParser) *HighLevelAlertDEPRECATED {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewHighLevelAlertDEPRECATED()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -95,13 +94,12 @@ type LowLevelAlertDEPRECATED struct {
 	LevelAlertDEPRECATED `bson:",inline"`
 }
 
-func ParseLowLevelAlertDEPRECATED(parser data.ObjectParser) *LowLevelAlertDEPRECATED {
-	if parser.Object() == nil {
+func ParseLowLevelAlertDEPRECATED(parser structure.ObjectParser) *LowLevelAlertDEPRECATED {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewLowLevelAlertDEPRECATED()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 

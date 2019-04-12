@@ -1,30 +1,27 @@
 package test
 
 import (
-	"github.com/aws/aws-sdk-go/service/s3/s3iface"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager/s3manageriface"
+	awsSdkGoServiceS3S3iface "github.com/aws/aws-sdk-go/service/s3/s3iface"
+
+	"github.com/tidepool-org/platform/aws"
 )
 
 type API struct {
-	S3Invocations                  int
-	S3Stub                         func() s3iface.S3API
-	S3Outputs                      []s3iface.S3API
-	S3Output                       s3iface.S3API
-	S3ManagerDownloaderInvocations int
-	S3ManagerDownloaderStub        func() s3manageriface.DownloaderAPI
-	S3ManagerDownloaderOutputs     []s3manageriface.DownloaderAPI
-	S3ManagerDownloaderOutput      s3manageriface.DownloaderAPI
-	S3ManagerUploaderInvocations   int
-	S3ManagerUploaderStub          func() s3manageriface.UploaderAPI
-	S3ManagerUploaderOutputs       []s3manageriface.UploaderAPI
-	S3ManagerUploaderOutput        s3manageriface.UploaderAPI
+	S3Invocations        int
+	S3Stub               func() awsSdkGoServiceS3S3iface.S3API
+	S3Outputs            []awsSdkGoServiceS3S3iface.S3API
+	S3Output             *awsSdkGoServiceS3S3iface.S3API
+	S3ManagerInvocations int
+	S3ManagerStub        func() aws.S3Manager
+	S3ManagerOutputs     []aws.S3Manager
+	S3ManagerOutput      *aws.S3Manager
 }
 
 func NewAPI() *API {
 	return &API{}
 }
 
-func (a *API) S3() s3iface.S3API {
+func (a *API) S3() awsSdkGoServiceS3S3iface.S3API {
 	a.S3Invocations++
 	if a.S3Stub != nil {
 		return a.S3Stub()
@@ -35,51 +32,40 @@ func (a *API) S3() s3iface.S3API {
 		return output
 	}
 	if a.S3Output != nil {
-		return a.S3Output
+		return *a.S3Output
 	}
-	panic("S3API has no output")
+	panic("S3 has no output")
 }
 
-func (a *API) S3ManagerDownloader() s3manageriface.DownloaderAPI {
-	a.S3ManagerDownloaderInvocations++
-	if a.S3ManagerDownloaderStub != nil {
-		return a.S3ManagerDownloaderStub()
+func (a *API) S3Manager() aws.S3Manager {
+	a.S3ManagerInvocations++
+	if a.S3ManagerStub != nil {
+		return a.S3ManagerStub()
 	}
-	if len(a.S3ManagerDownloaderOutputs) > 0 {
-		output := a.S3ManagerDownloaderOutputs[0]
-		a.S3ManagerDownloaderOutputs = a.S3ManagerDownloaderOutputs[1:]
+	if len(a.S3ManagerOutputs) > 0 {
+		output := a.S3ManagerOutputs[0]
+		a.S3ManagerOutputs = a.S3ManagerOutputs[1:]
 		return output
 	}
-	if a.S3ManagerDownloaderOutput != nil {
-		return a.S3ManagerDownloaderOutput
+	if a.S3ManagerOutput != nil {
+		return *a.S3ManagerOutput
 	}
-	panic("S3ManagerDownloader has no output")
+	panic("S3ManagerAPI has no output")
 }
 
-func (a *API) S3ManagerUploader() s3manageriface.UploaderAPI {
-	a.S3ManagerUploaderInvocations++
-	if a.S3ManagerUploaderStub != nil {
-		return a.S3ManagerUploaderStub()
-	}
-	if len(a.S3ManagerUploaderOutputs) > 0 {
-		output := a.S3ManagerUploaderOutputs[0]
-		a.S3ManagerUploaderOutputs = a.S3ManagerUploaderOutputs[1:]
-		return output
-	}
-	if a.S3ManagerUploaderOutput != nil {
-		return a.S3ManagerUploaderOutput
-	}
-	panic("S3ManagerUploader has no output")
+func (a *API) SetS3Output(output awsSdkGoServiceS3S3iface.S3API) {
+	a.S3Output = &output
+}
+
+func (a *API) SetS3ManagerOutput(output aws.S3Manager) {
+	a.S3ManagerOutput = &output
 }
 
 func (a *API) AssertOutputsEmpty() {
 	if len(a.S3Outputs) > 0 {
 		panic("S3Outputs is not empty")
 	}
-	if len(a.S3ManagerDownloaderOutputs) > 0 {
-		panic("S3ManagerDownloaderOutputs is not empty")
-	}
-	if len(a.S3ManagerUploaderOutputs) > 0 {
-		panic("S3ManagerUploaderOutputs is not empty")
+	if len(a.S3ManagerOutputs) > 0 {
+		panic("S3ManagerOutputs is not empty")
 	}
 }

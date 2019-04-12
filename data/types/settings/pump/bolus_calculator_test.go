@@ -7,8 +7,8 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -27,7 +27,7 @@ func CloneBolusCalculator(datum *pump.BolusCalculator) *pump.BolusCalculator {
 		return nil
 	}
 	clone := pump.NewBolusCalculator()
-	clone.Enabled = test.CloneBool(datum.Enabled)
+	clone.Enabled = pointer.CloneBool(datum.Enabled)
 	clone.Insulin = CloneBolusCalculatorInsulin(datum.Insulin)
 	return clone
 }
@@ -53,14 +53,14 @@ var _ = Describe("BolusCalculator", func() {
 				func(mutator func(datum *pump.BolusCalculator), expectedErrors ...error) {
 					datum := NewBolusCalculator()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *pump.BolusCalculator) {},
 				),
 				Entry("enabled missing",
 					func(datum *pump.BolusCalculator) { datum.Enabled = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/enabled"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/enabled"),
 				),
 				Entry("enabled false",
 					func(datum *pump.BolusCalculator) { datum.Enabled = pointer.FromBool(false) },
@@ -73,7 +73,7 @@ var _ = Describe("BolusCalculator", func() {
 				),
 				Entry("insulin invalid",
 					func(datum *pump.BolusCalculator) { datum.Insulin.Units = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulin/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulin/units"),
 				),
 				Entry("insulin valid",
 					func(datum *pump.BolusCalculator) { datum.Insulin = NewBolusCalculatorInsulin() },
@@ -83,8 +83,8 @@ var _ = Describe("BolusCalculator", func() {
 						datum.Enabled = nil
 						datum.Insulin.Units = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/enabled"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulin/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/enabled"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulin/units"),
 				),
 			)
 		})

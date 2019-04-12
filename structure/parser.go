@@ -39,6 +39,7 @@ type ObjectParser interface {
 	WithMeta(meta interface{}) ObjectParser
 	WithReferenceObjectParser(reference string) ObjectParser
 	WithReferenceArrayParser(reference string) ArrayParser
+	WithReferenceErrorReporter(reference string) ErrorReporter
 }
 
 type ArrayParsable interface {
@@ -78,4 +79,5 @@ type ArrayParser interface {
 	WithMeta(meta interface{}) ArrayParser
 	WithReferenceObjectParser(reference int) ObjectParser
 	WithReferenceArrayParser(reference int) ArrayParser
+	WithReferenceErrorReporter(reference int) ErrorReporter
 }

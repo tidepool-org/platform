@@ -4,7 +4,6 @@ import (
 	"github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/provider"
-	"github.com/tidepool-org/platform/test"
 )
 
 type GetInput struct {
@@ -18,16 +17,13 @@ type GetOutput struct {
 }
 
 type Factory struct {
-	*test.Mock
 	GetInvocations int
 	GetInputs      []GetInput
 	GetOutputs     []GetOutput
 }
 
 func NewFactory() *Factory {
-	return &Factory{
-		Mock: test.NewMock(),
-	}
+	return &Factory{}
 }
 
 func (f *Factory) Get(typ string, name string) (provider.Provider, error) {
@@ -43,6 +39,5 @@ func (f *Factory) Get(typ string, name string) (provider.Provider, error) {
 }
 
 func (f *Factory) Expectations() {
-	f.Mock.Expectations()
 	gomega.Expect(f.GetOutputs).To(gomega.BeEmpty())
 }

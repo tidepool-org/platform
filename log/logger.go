@@ -10,8 +10,6 @@ import (
 
 // CONCURRENCY: SAFE IFF serializer is safe
 
-const TimeFormat = "2006-01-02T15:04:05.999Z07:00"
-
 func NewLogger(serializer Serializer, levelRanks LevelRanks, level Level) (Logger, error) {
 	if serializer == nil {
 		return nil, errors.New("serializer is missing")
@@ -149,7 +147,7 @@ func (l *logger) log(level Level, message string) {
 	fields := Fields{
 		"caller": errors.GetCaller(2),
 		"level":  level,
-		"time":   time.Now().Format(TimeFormat),
+		"time":   time.Now().Truncate(time.Microsecond).Format(time.RFC3339Nano),
 	}
 
 	if message != "" {

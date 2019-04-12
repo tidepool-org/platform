@@ -1,11 +1,11 @@
 package dexcom_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-
-	"time"
 
 	"github.com/tidepool-org/platform/dexcom"
 	errorsTest "github.com/tidepool-org/platform/errors/test"

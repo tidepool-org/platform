@@ -7,8 +7,8 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/activity/physical"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -26,7 +26,7 @@ func CloneStep(datum *physical.Step) *physical.Step {
 		return nil
 	}
 	clone := physical.NewStep()
-	clone.Count = test.CloneInt(datum.Count)
+	clone.Count = pointer.CloneInt(datum.Count)
 	return clone
 }
 
@@ -59,18 +59,18 @@ var _ = Describe("Step", func() {
 				func(mutator func(datum *physical.Step), expectedErrors ...error) {
 					datum := NewStep()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *physical.Step) {},
 				),
 				Entry("count missing",
 					func(datum *physical.Step) { datum.Count = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/count"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/count"),
 				),
 				Entry("count out of range (lower)",
 					func(datum *physical.Step) { datum.Count = pointer.FromInt(-1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 100000), "/count"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 100000), "/count"),
 				),
 				Entry("count in range (lower)",
 					func(datum *physical.Step) { datum.Count = pointer.FromInt(0) },
@@ -80,11 +80,11 @@ var _ = Describe("Step", func() {
 				),
 				Entry("count out of range (upper)",
 					func(datum *physical.Step) { datum.Count = pointer.FromInt(100001) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(100001, 0, 100000), "/count"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(100001, 0, 100000), "/count"),
 				),
 				Entry("multiple errors",
 					func(datum *physical.Step) { datum.Count = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/count"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/count"),
 				),
 			)
 		})

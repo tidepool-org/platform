@@ -39,13 +39,12 @@ type State struct {
 	StateOther *string `json:"stateOther,omitempty" bson:"stateOther,omitempty"`
 }
 
-func ParseState(parser data.ObjectParser) *State {
-	if parser.Object() == nil {
+func ParseState(parser structure.ObjectParser) *State {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewState()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -53,10 +52,10 @@ func NewState() *State {
 	return &State{}
 }
 
-func (s *State) Parse(parser data.ObjectParser) {
-	s.Severity = parser.ParseInteger("severity")
-	s.State = parser.ParseString("state")
-	s.StateOther = parser.ParseString("stateOther")
+func (s *State) Parse(parser structure.ObjectParser) {
+	s.Severity = parser.Int("severity")
+	s.State = parser.String("state")
+	s.StateOther = parser.String("stateOther")
 }
 
 func (s *State) Validate(validator structure.Validator) {
@@ -73,13 +72,12 @@ func (s *State) Normalize(normalizer data.Normalizer) {}
 
 type StateArray []*State
 
-func ParseStateArray(parser data.ArrayParser) *StateArray {
-	if parser.Array() == nil {
+func ParseStateArray(parser structure.ArrayParser) *StateArray {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewStateArray()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -87,9 +85,9 @@ func NewStateArray() *StateArray {
 	return &StateArray{}
 }
 
-func (s *StateArray) Parse(parser data.ArrayParser) {
-	for index := range *parser.Array() {
-		*s = append(*s, ParseState(parser.NewChildObjectParser(index)))
+func (s *StateArray) Parse(parser structure.ArrayParser) {
+	for _, reference := range parser.References() {
+		*s = append(*s, ParseState(parser.WithReferenceObjectParser(reference)))
 	}
 }
 

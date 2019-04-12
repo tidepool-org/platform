@@ -44,13 +44,12 @@ type Distance struct {
 	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
 }
 
-func ParseDistance(parser data.ObjectParser) *Distance {
-	if parser.Object() == nil {
+func ParseDistance(parser structure.ObjectParser) *Distance {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewDistance()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -58,9 +57,9 @@ func NewDistance() *Distance {
 	return &Distance{}
 }
 
-func (d *Distance) Parse(parser data.ObjectParser) {
-	d.Units = parser.ParseString("units")
-	d.Value = parser.ParseFloat("value")
+func (d *Distance) Parse(parser structure.ObjectParser) {
+	d.Units = parser.String("units")
+	d.Value = parser.Float64("value")
 }
 
 func (d *Distance) Validate(validator structure.Validator) {

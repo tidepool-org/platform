@@ -102,11 +102,14 @@ func (a *API) UpdateUserByObject(updateUser *user.User, userUpdates *UserUpdates
 	if updateUser == nil {
 		return nil, errors.New("User is missing")
 	}
-	if updateUser.ID == "" {
+	if updateUser.UserID == nil {
 		return nil, errors.New("User id is missing")
 	}
+	if *updateUser.UserID == "" {
+		return nil, errors.New("User id is empty")
+	}
 
-	return a.UpdateUserByID(updateUser.ID, userUpdates)
+	return a.UpdateUserByID(*updateUser.UserID, userUpdates)
 }
 
 func (a *API) ApplyUpdatersToUserByID(userID string, updaters []UserUpdater) (*user.User, error) {
@@ -141,11 +144,11 @@ func (a *API) ApplyUpdatersToUserByObject(updateUser *user.User, updaters []User
 		}
 	}
 
-	if !userUpdates.HasUpdates() {
+	if userUpdates.IsEmpty() {
 		return updateUser, nil
 	}
 
-	return a.UpdateUserByID(updateUser.ID, userUpdates)
+	return a.UpdateUserByID(*updateUser.UserID, userUpdates)
 }
 
 func (a *API) DeleteUserByID(userID string, password string) error {
@@ -201,8 +204,8 @@ func (a *API) asUsers(responseBody io.Reader, err error) ([]*user.User, error) {
 	return responseUsers, nil
 }
 
-func (u *UserUpdates) HasUpdates() bool {
-	return u.Username != nil || u.Emails != nil || u.Password != nil || u.Roles != nil || u.TermsAccepted != nil || u.EmailVerified != nil
+func (u *UserUpdates) IsEmpty() bool {
+	return u.Username == nil && u.Emails == nil && u.Password == nil && u.Roles == nil && u.TermsAccepted == nil && u.EmailVerified == nil
 }
 
 func NewAddRolesUserUpdater(roles []string) (*AddRolesUserUpdater, error) {
@@ -218,7 +221,7 @@ func (a *AddRolesUserUpdater) Update(updateUser *user.User, userUpdates *UserUpd
 	if userUpdates.Roles != nil {
 		originalRoles = userUpdates.Roles
 	} else if updateUser.Roles != nil {
-		originalRoles = &updateUser.Roles
+		originalRoles = updateUser.Roles
 	} else {
 		originalRoles = &[]string{}
 	}
@@ -246,7 +249,7 @@ func (r *RemoveRolesUserUpdater) Update(updateUser *user.User, userUpdates *User
 	if userUpdates.Roles != nil {
 		originalRoles = userUpdates.Roles
 	} else if updateUser.Roles != nil {
-		originalRoles = &updateUser.Roles
+		originalRoles = updateUser.Roles
 	} else {
 		return nil
 	}

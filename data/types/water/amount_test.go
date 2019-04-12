@@ -1,16 +1,16 @@
 package water_test
 
 import (
+	"math"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"math"
-
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	"github.com/tidepool-org/platform/data/types/water"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -29,8 +29,8 @@ func CloneAmount(datum *water.Amount) *water.Amount {
 		return nil
 	}
 	clone := water.NewAmount()
-	clone.Units = test.CloneString(datum.Units)
-	clone.Value = test.CloneFloat64(datum.Value)
+	clone.Units = pointer.CloneString(datum.Units)
+	clone.Value = pointer.CloneFloat64(datum.Value)
 	return clone
 }
 
@@ -115,18 +115,18 @@ var _ = Describe("Amount", func() {
 				func(mutator func(datum *water.Amount), expectedErrors ...error) {
 					datum := NewAmount()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *water.Amount) {},
 				),
 				Entry("units missing",
 					func(datum *water.Amount) { datum.Units = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units invalid",
 					func(datum *water.Amount) { datum.Units = pointer.FromString("invalid") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"gallons", "liters", "milliliters", "ounces"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"gallons", "liters", "milliliters", "ounces"}), "/units"),
 				),
 				Entry("units gallons",
 					func(datum *water.Amount) {
@@ -157,86 +157,86 @@ var _ = Describe("Amount", func() {
 						datum.Units = nil
 						datum.Value = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units missing; value out of range (lower)",
 					func(datum *water.Amount) {
 						datum.Units = nil
 						datum.Value = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; value in range (lower)",
 					func(datum *water.Amount) {
 						datum.Units = nil
 						datum.Value = pointer.FromFloat64(0.0)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; value in range (upper)",
 					func(datum *water.Amount) {
 						datum.Units = nil
 						datum.Value = pointer.FromFloat64(37854.118)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units missing; value out of range (upper)",
 					func(datum *water.Amount) {
 						datum.Units = nil
 						datum.Value = pointer.FromFloat64(37854.119)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units invalid; value missing",
 					func(datum *water.Amount) {
 						datum.Units = pointer.FromString("invalid")
 						datum.Value = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"gallons", "liters", "milliliters", "ounces"}), "/units"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"gallons", "liters", "milliliters", "ounces"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units invalid; value out of range (lower)",
 					func(datum *water.Amount) {
 						datum.Units = pointer.FromString("invalid")
 						datum.Value = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"gallons", "liters", "milliliters", "ounces"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"gallons", "liters", "milliliters", "ounces"}), "/units"),
 				),
 				Entry("units invalid; value in range (lower)",
 					func(datum *water.Amount) {
 						datum.Units = pointer.FromString("invalid")
 						datum.Value = pointer.FromFloat64(0.0)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"gallons", "liters", "milliliters", "ounces"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"gallons", "liters", "milliliters", "ounces"}), "/units"),
 				),
 				Entry("units invalid; value in range (upper)",
 					func(datum *water.Amount) {
 						datum.Units = pointer.FromString("invalid")
 						datum.Value = pointer.FromFloat64(37854.118)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"gallons", "liters", "milliliters", "ounces"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"gallons", "liters", "milliliters", "ounces"}), "/units"),
 				),
 				Entry("units invalid; value out of range (upper)",
 					func(datum *water.Amount) {
 						datum.Units = pointer.FromString("invalid")
 						datum.Value = pointer.FromFloat64(37854.119)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"gallons", "liters", "milliliters", "ounces"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"gallons", "liters", "milliliters", "ounces"}), "/units"),
 				),
 				Entry("units gallons; value missing",
 					func(datum *water.Amount) {
 						datum.Units = pointer.FromString("gallons")
 						datum.Value = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units gallons; value out of range (lower)",
 					func(datum *water.Amount) {
 						datum.Units = pointer.FromString("gallons")
 						datum.Value = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 10.0), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 10.0), "/value"),
 				),
 				Entry("units gallons; value in range (lower)",
 					func(datum *water.Amount) {
@@ -255,21 +255,21 @@ var _ = Describe("Amount", func() {
 						datum.Units = pointer.FromString("gallons")
 						datum.Value = pointer.FromFloat64(10.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(10.1, 0.0, 10.0), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(10.1, 0.0, 10.0), "/value"),
 				),
 				Entry("units liters; value missing",
 					func(datum *water.Amount) {
 						datum.Units = pointer.FromString("liters")
 						datum.Value = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units liters; value out of range (lower)",
 					func(datum *water.Amount) {
 						datum.Units = pointer.FromString("liters")
 						datum.Value = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 37.854118), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 37.854118), "/value"),
 				),
 				Entry("units liters; value in range (lower)",
 					func(datum *water.Amount) {
@@ -288,21 +288,21 @@ var _ = Describe("Amount", func() {
 						datum.Units = pointer.FromString("liters")
 						datum.Value = pointer.FromFloat64(37.854119)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(37.854119, 0.0, 37.854118), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(37.854119, 0.0, 37.854118), "/value"),
 				),
 				Entry("units milliliters; value missing",
 					func(datum *water.Amount) {
 						datum.Units = pointer.FromString("milliliters")
 						datum.Value = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units milliliters; value out of range (lower)",
 					func(datum *water.Amount) {
 						datum.Units = pointer.FromString("milliliters")
 						datum.Value = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 37854.118), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 37854.118), "/value"),
 				),
 				Entry("units milliliters; value in range (lower)",
 					func(datum *water.Amount) {
@@ -321,21 +321,21 @@ var _ = Describe("Amount", func() {
 						datum.Units = pointer.FromString("milliliters")
 						datum.Value = pointer.FromFloat64(37854.119)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(37854.119, 0.0, 37854.118), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(37854.119, 0.0, 37854.118), "/value"),
 				),
 				Entry("units ounces; value missing",
 					func(datum *water.Amount) {
 						datum.Units = pointer.FromString("ounces")
 						datum.Value = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units ounces; value out of range (lower)",
 					func(datum *water.Amount) {
 						datum.Units = pointer.FromString("ounces")
 						datum.Value = pointer.FromFloat64(-0.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1280.0), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1280.0), "/value"),
 				),
 				Entry("units ounces; value in range (lower)",
 					func(datum *water.Amount) {
@@ -354,15 +354,15 @@ var _ = Describe("Amount", func() {
 						datum.Units = pointer.FromString("ounces")
 						datum.Value = pointer.FromFloat64(1280.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(1280.1, 0.0, 1280.0), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(1280.1, 0.0, 1280.0), "/value"),
 				),
 				Entry("multiple errors",
 					func(datum *water.Amount) {
 						datum.Units = nil
 						datum.Value = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 			)
 		})

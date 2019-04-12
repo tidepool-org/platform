@@ -14,13 +14,12 @@ type Flight struct {
 	Count *int `json:"count,omitempty" bson:"count,omitempty"`
 }
 
-func ParseFlight(parser data.ObjectParser) *Flight {
-	if parser.Object() == nil {
+func ParseFlight(parser structure.ObjectParser) *Flight {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewFlight()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -28,8 +27,8 @@ func NewFlight() *Flight {
 	return &Flight{}
 }
 
-func (f *Flight) Parse(parser data.ObjectParser) {
-	f.Count = parser.ParseInteger("count")
+func (f *Flight) Parse(parser structure.ObjectParser) {
+	f.Count = parser.Int("count")
 }
 
 func (f *Flight) Validate(validator structure.Validator) {

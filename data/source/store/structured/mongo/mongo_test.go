@@ -1,15 +1,14 @@
 package mongo_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gstruct"
-
 	"context"
 	"math/rand"
 	"sort"
 	"time"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
@@ -32,7 +31,7 @@ import (
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
-type CreatedTimeDescending dataSource.Sources
+type CreatedTimeDescending dataSource.SourceArray
 
 func (c CreatedTimeDescending) Len() int {
 	return len(c)
@@ -51,8 +50,8 @@ func (c CreatedTimeDescending) Less(left int, right int) bool {
 	return c[right].CreatedTime.Before(*c[left].CreatedTime)
 }
 
-func SelectAndSort(sources dataSource.Sources, selector func(s *dataSource.Source) bool) dataSource.Sources {
-	var selected dataSource.Sources
+func SelectAndSort(sources dataSource.SourceArray, selector func(s *dataSource.Source) bool) dataSource.SourceArray {
+	var selected dataSource.SourceArray
 	for _, s := range sources {
 		if selector(s) {
 			selected = append(selected, s)
@@ -62,7 +61,7 @@ func SelectAndSort(sources dataSource.Sources, selector func(s *dataSource.Sourc
 	return selected
 }
 
-func AsInterfaceArray(sources dataSource.Sources) []interface{} {
+func AsInterfaceArray(sources dataSource.SourceArray) []interface{} {
 	if sources == nil {
 		return nil
 	}
@@ -219,14 +218,14 @@ var _ = Describe("Mongo", func() {
 						var providerType string
 						var providerName string
 						var providerSessionID string
-						var allResult dataSource.Sources
+						var allResult dataSource.SourceArray
 
 						BeforeEach(func() {
 							providerType = auth.ProviderTypeOAuth
 							providerName = authTest.RandomProviderName()
 							providerSessionID = authTest.RandomProviderSessionID()
-							allResult = dataSource.Sources{}
-							for index, randomResult := range dataSourceTest.RandomSources(12, 12) {
+							allResult = dataSource.SourceArray{}
+							for index, randomResult := range dataSourceTest.RandomSourceArray(12, 12) {
 								if index < 4 {
 									randomResult.State = pointer.FromString(dataSource.StateConnected)
 								} else if index < 8 {
@@ -483,11 +482,72 @@ var _ = Describe("Mongo", func() {
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
 						Expect(*result).To(matchAllFields)
-						storeResult := dataSource.Sources{}
+						storeResult := dataSource.SourceArray{}
 						Expect(mgoCollection.Find(bson.M{"id": result.ID}).All(&storeResult)).To(Succeed())
 						Expect(storeResult).To(HaveLen(1))
 						Expect(*storeResult[0]).To(matchAllFields)
 						logger.AssertDebug("Create", log.Fields{"userId": userID, "create": create, "id": *storeResult[0].ID})
+					})
+				})
+
+				Context("DestroyAll", func() {
+					It("returns an error when the context is missing", func() {
+						ctx = nil
+						deleted, err := session.DestroyAll(ctx, userID)
+						errorsTest.ExpectEqual(err, errors.New("context is missing"))
+						Expect(deleted).To(BeFalse())
+					})
+
+					It("returns an error when the user id is missing", func() {
+						userID = ""
+						deleted, err := session.DestroyAll(ctx, userID)
+						errorsTest.ExpectEqual(err, errors.New("user id is missing"))
+						Expect(deleted).To(BeFalse())
+					})
+
+					It("returns an error when the user id is invalid", func() {
+						userID = "invalid"
+						deleted, err := session.DestroyAll(ctx, userID)
+						errorsTest.ExpectEqual(err, errors.New("user id is invalid"))
+						Expect(deleted).To(BeFalse())
+					})
+
+					It("returns an error when the session is closed", func() {
+						session.Close()
+						deleted, err := session.DestroyAll(ctx, userID)
+						errorsTest.ExpectEqual(err, errors.New("session closed"))
+						Expect(deleted).To(BeFalse())
+					})
+
+					Context("with data", func() {
+						var originals dataSource.SourceArray
+
+						BeforeEach(func() {
+							originals = dataSourceTest.RandomSourceArray(2, 4)
+							for _, original := range originals {
+								original.UserID = pointer.FromString(userID)
+							}
+							Expect(mgoCollection.Insert(AsInterfaceArray(originals)...)).To(Succeed())
+							Expect(mgoCollection.Insert(dataSourceTest.RandomSource(), dataSourceTest.RandomSource())).To(Succeed())
+						})
+
+						AfterEach(func() {
+							logger.AssertDebug("DestroyAll", log.Fields{"userId": userID})
+						})
+
+						It("returns false and does not destroy the original when the id does not exist", func() {
+							originalUserID := userID
+							userID = userTest.RandomID()
+							Expect(session.DestroyAll(ctx, userID)).To(BeFalse())
+							Expect(mgoCollection.Find(bson.M{"userId": originalUserID}).Count()).To(Equal(len(originals)))
+							Expect(mgoCollection.Find(bson.M{}).Count()).To(Equal(len(originals) + 2))
+						})
+
+						It("returns true and destroys the original when the id exists and the condition is missing", func() {
+							Expect(session.DestroyAll(ctx, userID)).To(BeTrue())
+							Expect(mgoCollection.Find(bson.M{"userId": userID}).Count()).To(Equal(0))
+							Expect(mgoCollection.Find(bson.M{}).Count()).To(Equal(2))
+						})
 					})
 				})
 			})
@@ -528,11 +588,11 @@ var _ = Describe("Mongo", func() {
 				})
 
 				Context("with data", func() {
-					var allResult dataSource.Sources
+					var allResult dataSource.SourceArray
 					var result *dataSource.Source
 
 					BeforeEach(func() {
-						allResult = dataSourceTest.RandomSources(4, 4)
+						allResult = dataSourceTest.RandomSourceArray(4, 4)
 						result = allResult[0]
 						result.ID = pointer.FromString(id)
 						rand.Shuffle(len(allResult), func(i, j int) { allResult[i], allResult[j] = allResult[j], allResult[i] })
@@ -670,9 +730,9 @@ var _ = Describe("Mongo", func() {
 									"State":             Equal(update.State),
 									"Error":             Equal(update.Error),
 									"DataSetIDs":        Equal(update.DataSetIDs),
-									"EarliestDataTime":  PointTo(Equal(update.EarliestDataTime.Truncate(time.Second))),
-									"LatestDataTime":    PointTo(Equal(update.LatestDataTime.Truncate(time.Second))),
-									"LastImportTime":    PointTo(Equal(update.LastImportTime.Truncate(time.Second))),
+									"EarliestDataTime":  Equal(update.EarliestDataTime),
+									"LatestDataTime":    Equal(update.LatestDataTime),
+									"LastImportTime":    Equal(update.LastImportTime),
 									"CreatedTime":       Equal(original.CreatedTime),
 									"ModifiedTime":      PointTo(BeTemporally("~", time.Now(), time.Second)),
 									"Revision":          PointTo(Equal(*original.Revision + 1)),
@@ -681,7 +741,7 @@ var _ = Describe("Mongo", func() {
 								Expect(err).ToNot(HaveOccurred())
 								Expect(result).ToNot(BeNil())
 								Expect(*result).To(matchAllFields)
-								storeResult := dataSource.Sources{}
+								storeResult := dataSource.SourceArray{}
 								Expect(mgoCollection.Find(bson.M{"id": id}).All(&storeResult)).To(Succeed())
 								Expect(storeResult).To(HaveLen(1))
 								Expect(*storeResult[0]).To(matchAllFields)
@@ -700,9 +760,9 @@ var _ = Describe("Mongo", func() {
 									"State":             Equal(update.State),
 									"Error":             Equal(update.Error),
 									"DataSetIDs":        Equal(update.DataSetIDs),
-									"EarliestDataTime":  PointTo(Equal(update.EarliestDataTime.Truncate(time.Second))),
-									"LatestDataTime":    PointTo(Equal(update.LatestDataTime.Truncate(time.Second))),
-									"LastImportTime":    PointTo(Equal(update.LastImportTime.Truncate(time.Second))),
+									"EarliestDataTime":  Equal(update.EarliestDataTime),
+									"LatestDataTime":    Equal(update.LatestDataTime),
+									"LastImportTime":    Equal(update.LastImportTime),
 									"CreatedTime":       Equal(original.CreatedTime),
 									"ModifiedTime":      PointTo(BeTemporally("~", time.Now(), time.Second)),
 									"Revision":          PointTo(Equal(*original.Revision + 1)),
@@ -711,7 +771,7 @@ var _ = Describe("Mongo", func() {
 								Expect(err).ToNot(HaveOccurred())
 								Expect(result).ToNot(BeNil())
 								Expect(*result).To(matchAllFields)
-								storeResult := dataSource.Sources{}
+								storeResult := dataSource.SourceArray{}
 								Expect(mgoCollection.Find(bson.M{"id": id}).All(&storeResult)).To(Succeed())
 								Expect(storeResult).To(HaveLen(1))
 								Expect(*storeResult[0]).To(matchAllFields)
@@ -729,9 +789,9 @@ var _ = Describe("Mongo", func() {
 									"State":             Equal(update.State),
 									"Error":             Equal(update.Error),
 									"DataSetIDs":        Equal(update.DataSetIDs),
-									"EarliestDataTime":  PointTo(Equal(update.EarliestDataTime.Truncate(time.Second))),
-									"LatestDataTime":    PointTo(Equal(update.LatestDataTime.Truncate(time.Second))),
-									"LastImportTime":    PointTo(Equal(update.LastImportTime.Truncate(time.Second))),
+									"EarliestDataTime":  Equal(update.EarliestDataTime),
+									"LatestDataTime":    Equal(update.LatestDataTime),
+									"LastImportTime":    Equal(update.LastImportTime),
 									"CreatedTime":       Equal(original.CreatedTime),
 									"ModifiedTime":      PointTo(BeTemporally("~", time.Now(), time.Second)),
 									"Revision":          PointTo(Equal(*original.Revision + 1)),
@@ -740,7 +800,7 @@ var _ = Describe("Mongo", func() {
 								Expect(err).ToNot(HaveOccurred())
 								Expect(result).ToNot(BeNil())
 								Expect(*result).To(matchAllFields)
-								storeResult := dataSource.Sources{}
+								storeResult := dataSource.SourceArray{}
 								Expect(mgoCollection.Find(bson.M{"id": id}).All(&storeResult)).To(Succeed())
 								Expect(storeResult).To(HaveLen(1))
 								Expect(*storeResult[0]).To(matchAllFields)
@@ -794,7 +854,7 @@ var _ = Describe("Mongo", func() {
 				})
 			})
 
-			Context("Delete", func() {
+			Context("Destroy", func() {
 				var id string
 				var condition *request.Condition
 
@@ -805,35 +865,35 @@ var _ = Describe("Mongo", func() {
 
 				It("returns an error when the context is missing", func() {
 					ctx = nil
-					deleted, err := session.Delete(ctx, id, condition)
+					deleted, err := session.Destroy(ctx, id, condition)
 					errorsTest.ExpectEqual(err, errors.New("context is missing"))
 					Expect(deleted).To(BeFalse())
 				})
 
 				It("returns an error when the id is missing", func() {
 					id = ""
-					deleted, err := session.Delete(ctx, id, condition)
+					deleted, err := session.Destroy(ctx, id, condition)
 					errorsTest.ExpectEqual(err, errors.New("id is missing"))
 					Expect(deleted).To(BeFalse())
 				})
 
 				It("returns an error when the id is invalid", func() {
 					id = "invalid"
-					deleted, err := session.Delete(ctx, id, condition)
+					deleted, err := session.Destroy(ctx, id, condition)
 					errorsTest.ExpectEqual(err, errors.New("id is invalid"))
 					Expect(deleted).To(BeFalse())
 				})
 
 				It("returns an error when the condition is invalid", func() {
 					condition.Revision = pointer.FromInt(-1)
-					deleted, err := session.Delete(ctx, id, condition)
+					deleted, err := session.Destroy(ctx, id, condition)
 					errorsTest.ExpectEqual(err, errors.New("condition is invalid"))
 					Expect(deleted).To(BeFalse())
 				})
 
 				It("returns an error when the session is closed", func() {
 					session.Close()
-					deleted, err := session.Delete(ctx, id, condition)
+					deleted, err := session.Destroy(ctx, id, condition)
 					errorsTest.ExpectEqual(err, errors.New("session closed"))
 					Expect(deleted).To(BeFalse())
 				})
@@ -844,44 +904,44 @@ var _ = Describe("Mongo", func() {
 					BeforeEach(func() {
 						original = dataSourceTest.RandomSource()
 						original.ID = pointer.FromString(id)
-						Expect(mgoCollection.Insert(original)).To(Succeed())
+						Expect(mgoCollection.Insert(original, dataSourceTest.RandomSource(), dataSourceTest.RandomSource())).To(Succeed())
 					})
 
 					AfterEach(func() {
 						if condition != nil {
-							logger.AssertDebug("Delete", log.Fields{"id": id, "condition": condition})
+							logger.AssertDebug("Destroy", log.Fields{"id": id, "condition": condition})
 						} else {
-							logger.AssertDebug("Delete", log.Fields{"id": id})
+							logger.AssertDebug("Destroy", log.Fields{"id": id})
 						}
 					})
 
-					It("returns false and does not delete the original when the id does not exist", func() {
+					It("returns false and does not destroy the original when the id does not exist", func() {
 						id = dataSourceTest.RandomID()
-						Expect(session.Delete(ctx, id, condition)).To(BeFalse())
+						Expect(session.Destroy(ctx, id, condition)).To(BeFalse())
 						Expect(mgoCollection.Find(bson.M{"id": original.ID}).Count()).To(Equal(1))
 					})
 
-					It("returns false and does not delete the original when the id exists, but the condition revision does not match", func() {
+					It("returns false and does not destroy the original when the id exists, but the condition revision does not match", func() {
 						condition.Revision = pointer.FromInt(*original.Revision + 1)
-						Expect(session.Delete(ctx, id, condition)).To(BeFalse())
+						Expect(session.Destroy(ctx, id, condition)).To(BeFalse())
 						Expect(mgoCollection.Find(bson.M{"id": original.ID}).Count()).To(Equal(1))
 					})
 
-					It("returns true and deletes the original when the id exists and the condition is missing", func() {
+					It("returns true and destroys the original when the id exists and the condition is missing", func() {
 						condition = nil
-						Expect(session.Delete(ctx, id, condition)).To(BeTrue())
+						Expect(session.Destroy(ctx, id, condition)).To(BeTrue())
 						Expect(mgoCollection.Find(bson.M{"id": original.ID}).Count()).To(Equal(0))
 					})
 
-					It("returns true and deletes the original when the id exists and the condition revision is missing", func() {
+					It("returns true and destroys the original when the id exists and the condition revision is missing", func() {
 						condition.Revision = nil
-						Expect(session.Delete(ctx, id, condition)).To(BeTrue())
+						Expect(session.Destroy(ctx, id, condition)).To(BeTrue())
 						Expect(mgoCollection.Find(bson.M{"id": original.ID}).Count()).To(Equal(0))
 					})
 
-					It("returns true and deletes the original when the id exists and the condition revision matches", func() {
+					It("returns true and destroys the original when the id exists and the condition revision matches", func() {
 						condition.Revision = pointer.CloneInt(original.Revision)
-						Expect(session.Delete(ctx, id, condition)).To(BeTrue())
+						Expect(session.Destroy(ctx, id, condition)).To(BeTrue())
 						Expect(mgoCollection.Find(bson.M{"id": original.ID}).Count()).To(Equal(0))
 					})
 				})

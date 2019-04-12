@@ -5,20 +5,22 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/auth/service/api"
-	testService "github.com/tidepool-org/platform/auth/service/test"
+	serviceTest "github.com/tidepool-org/platform/auth/service/test"
+	"github.com/tidepool-org/platform/errors"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 )
 
 var _ = Describe("Router", func() {
-	var svc *testService.Service
+	var svc *serviceTest.Service
 
 	BeforeEach(func() {
-		svc = testService.NewService()
+		svc = serviceTest.NewService()
 	})
 
 	Context("NewRouter", func() {
 		It("returns an error if context is missing", func() {
 			rtr, err := api.NewRouter(nil)
-			Expect(err).To(MatchError("service is missing"))
+			errorsTest.ExpectEqual(err, errors.New("service is missing"))
 			Expect(rtr).To(BeNil())
 		})
 

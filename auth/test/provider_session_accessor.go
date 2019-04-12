@@ -7,7 +7,6 @@ import (
 
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/page"
-	"github.com/tidepool-org/platform/test"
 )
 
 type ListUserProviderSessionsInput struct {
@@ -31,6 +30,11 @@ type CreateUserProviderSessionInput struct {
 type CreateUserProviderSessionOutput struct {
 	ProviderSession *auth.ProviderSession
 	Error           error
+}
+
+type DeleteAllProviderSessionsInput struct {
+	Context context.Context
+	UserID  string
 }
 
 type GetProviderSessionInput struct {
@@ -60,13 +64,15 @@ type DeleteProviderSessionInput struct {
 }
 
 type ProviderSessionAccessor struct {
-	*test.Mock
 	ListUserProviderSessionsInvocations  int
 	ListUserProviderSessionsInputs       []ListUserProviderSessionsInput
 	ListUserProviderSessionsOutputs      []ListUserProviderSessionsOutput
 	CreateUserProviderSessionInvocations int
 	CreateUserProviderSessionInputs      []CreateUserProviderSessionInput
 	CreateUserProviderSessionOutputs     []CreateUserProviderSessionOutput
+	DeleteAllProviderSessionsInvocations int
+	DeleteAllProviderSessionsInputs      []DeleteAllProviderSessionsInput
+	DeleteAllProviderSessionsOutputs     []error
 	GetProviderSessionInvocations        int
 	GetProviderSessionInputs             []GetProviderSessionInput
 	GetProviderSessionOutputs            []GetProviderSessionOutput
@@ -79,9 +85,7 @@ type ProviderSessionAccessor struct {
 }
 
 func NewProviderSessionAccessor() *ProviderSessionAccessor {
-	return &ProviderSessionAccessor{
-		Mock: test.NewMock(),
-	}
+	return &ProviderSessionAccessor{}
 }
 
 func (p *ProviderSessionAccessor) ListUserProviderSessions(ctx context.Context, userID string, filter *auth.ProviderSessionFilter, pagination *page.Pagination) (auth.ProviderSessions, error) {
@@ -106,6 +110,18 @@ func (p *ProviderSessionAccessor) CreateUserProviderSession(ctx context.Context,
 	output := p.CreateUserProviderSessionOutputs[0]
 	p.CreateUserProviderSessionOutputs = p.CreateUserProviderSessionOutputs[1:]
 	return output.ProviderSession, output.Error
+}
+
+func (p *ProviderSessionAccessor) DeleteAllProviderSessions(ctx context.Context, userID string) error {
+	p.DeleteAllProviderSessionsInvocations++
+
+	p.DeleteAllProviderSessionsInputs = append(p.DeleteAllProviderSessionsInputs, DeleteAllProviderSessionsInput{Context: ctx, UserID: userID})
+
+	gomega.Expect(p.DeleteAllProviderSessionsOutputs).ToNot(gomega.BeEmpty())
+
+	output := p.DeleteAllProviderSessionsOutputs[0]
+	p.DeleteAllProviderSessionsOutputs = p.DeleteAllProviderSessionsOutputs[1:]
+	return output
 }
 
 func (p *ProviderSessionAccessor) GetProviderSession(ctx context.Context, id string) (*auth.ProviderSession, error) {
@@ -145,9 +161,10 @@ func (p *ProviderSessionAccessor) DeleteProviderSession(ctx context.Context, id 
 }
 
 func (p *ProviderSessionAccessor) Expectations() {
-	p.Mock.Expectations()
 	gomega.Expect(p.ListUserProviderSessionsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(p.CreateUserProviderSessionOutputs).To(gomega.BeEmpty())
+	gomega.Expect(p.DeleteAllProviderSessionsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(p.GetProviderSessionOutputs).To(gomega.BeEmpty())
 	gomega.Expect(p.UpdateProviderSessionOutputs).To(gomega.BeEmpty())
+	gomega.Expect(p.DeleteProviderSessionOutputs).To(gomega.BeEmpty())
 }

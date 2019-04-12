@@ -1,15 +1,15 @@
 package client_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/ghttp"
-
 	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/ghttp"
 
 	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/dexcom"
@@ -91,8 +91,8 @@ var _ = Describe("Client", func() {
 			server = NewServer()
 			responseHeaders = http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}
 			ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
-			startTime = test.RandomTime()
-			endTime = test.RandomTime()
+			startTime = test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+			endTime = test.RandomTimeFromRange(startTime, time.Now())
 			requestQuery = fmt.Sprintf("startDate=%s&endDate=%s", startTime.UTC().Format(dexcom.TimeFormat), endTime.UTC().Format(dexcom.TimeFormat))
 			tokenSource = oauthTest.NewTokenSource()
 		})
@@ -264,7 +264,7 @@ var _ = Describe("Client", func() {
 
 						It("returns an error", func() {
 							calibrationsResponse, err := clnt.GetCalibrations(ctx, startTime, endTime, tokenSource)
-							Expect(err).To(MatchError("unable to get calibrations; json is malformed; unexpected EOF"))
+							Expect(err).To(MatchError("unable to get calibrations; json is malformed"))
 							Expect(calibrationsResponse).To(BeNil())
 						})
 					})
@@ -276,7 +276,7 @@ var _ = Describe("Client", func() {
 									VerifyRequest("GET", "/p/v2/users/self/calibrations", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
-									RespondWith(http.StatusOK, test.MustBytes(test.MarshalResponseBody(responseCalibrationsResponse)), responseHeaders),
+									RespondWith(http.StatusOK, test.MarshalResponseBody(responseCalibrationsResponse), responseHeaders),
 								),
 							)
 						})
@@ -494,7 +494,7 @@ var _ = Describe("Client", func() {
 
 						It("returns an error", func() {
 							devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, tokenSource)
-							Expect(err).To(MatchError("unable to get devices; json is malformed; unexpected EOF"))
+							Expect(err).To(MatchError("unable to get devices; json is malformed"))
 							Expect(devicesResponse).To(BeNil())
 						})
 					})
@@ -506,7 +506,7 @@ var _ = Describe("Client", func() {
 									VerifyRequest("GET", "/p/v2/users/self/devices", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
-									RespondWith(http.StatusOK, test.MustBytes(test.MarshalResponseBody(responseDevicesResponse)), responseHeaders),
+									RespondWith(http.StatusOK, test.MarshalResponseBody(responseDevicesResponse), responseHeaders),
 								),
 							)
 						})
@@ -725,7 +725,7 @@ var _ = Describe("Client", func() {
 
 						It("returns an error", func() {
 							egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, tokenSource)
-							Expect(err).To(MatchError("unable to get egvs; json is malformed; unexpected EOF"))
+							Expect(err).To(MatchError("unable to get egvs; json is malformed"))
 							Expect(egvsResponse).To(BeNil())
 						})
 					})
@@ -737,7 +737,7 @@ var _ = Describe("Client", func() {
 									VerifyRequest("GET", "/p/v2/users/self/egvs", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
-									RespondWith(http.StatusOK, test.MustBytes(test.MarshalResponseBody(prepareEGVsResponse(responseEGVsResponse))), responseHeaders),
+									RespondWith(http.StatusOK, test.MarshalResponseBody(prepareEGVsResponse(responseEGVsResponse)), responseHeaders),
 								),
 							)
 						})
@@ -955,7 +955,7 @@ var _ = Describe("Client", func() {
 
 						It("returns an error", func() {
 							eventsResponse, err := clnt.GetEvents(ctx, startTime, endTime, tokenSource)
-							Expect(err).To(MatchError("unable to get events; json is malformed; unexpected EOF"))
+							Expect(err).To(MatchError("unable to get events; json is malformed"))
 							Expect(eventsResponse).To(BeNil())
 						})
 					})
@@ -967,7 +967,7 @@ var _ = Describe("Client", func() {
 									VerifyRequest("GET", "/p/v2/users/self/events", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
-									RespondWith(http.StatusOK, test.MustBytes(test.MarshalResponseBody(responseEventsResponse)), responseHeaders),
+									RespondWith(http.StatusOK, test.MarshalResponseBody(responseEventsResponse), responseHeaders),
 								),
 							)
 						})

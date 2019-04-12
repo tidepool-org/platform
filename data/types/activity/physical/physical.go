@@ -204,27 +204,25 @@ func New() *Physical {
 	}
 }
 
-func (p *Physical) Parse(parser data.ObjectParser) error {
-	parser.SetMeta(p.Meta())
-
-	if err := p.Base.Parse(parser); err != nil {
-		return err
+func (p *Physical) Parse(parser structure.ObjectParser) {
+	if !parser.HasMeta() {
+		parser = parser.WithMeta(p.Meta())
 	}
 
-	p.ActivityType = parser.ParseString("activityType")
-	p.ActivityTypeOther = parser.ParseString("activityTypeOther")
-	p.Aggregate = parser.ParseBoolean("aggregate")
-	p.Distance = ParseDistance(parser.NewChildObjectParser("distance"))
-	p.Duration = ParseDuration(parser.NewChildObjectParser("duration"))
-	p.ElevationChange = ParseElevationChange(parser.NewChildObjectParser("elevationChange"))
-	p.Energy = ParseEnergy(parser.NewChildObjectParser("energy"))
-	p.Flight = ParseFlight(parser.NewChildObjectParser("flight"))
-	p.Lap = ParseLap(parser.NewChildObjectParser("lap"))
-	p.Name = parser.ParseString("name")
-	p.ReportedIntensity = parser.ParseString("reportedIntensity")
-	p.Step = ParseStep(parser.NewChildObjectParser("step"))
+	p.Base.Parse(parser)
 
-	return nil
+	p.ActivityType = parser.String("activityType")
+	p.ActivityTypeOther = parser.String("activityTypeOther")
+	p.Aggregate = parser.Bool("aggregate")
+	p.Distance = ParseDistance(parser.WithReferenceObjectParser("distance"))
+	p.Duration = ParseDuration(parser.WithReferenceObjectParser("duration"))
+	p.ElevationChange = ParseElevationChange(parser.WithReferenceObjectParser("elevationChange"))
+	p.Energy = ParseEnergy(parser.WithReferenceObjectParser("energy"))
+	p.Flight = ParseFlight(parser.WithReferenceObjectParser("flight"))
+	p.Lap = ParseLap(parser.WithReferenceObjectParser("lap"))
+	p.Name = parser.String("name")
+	p.ReportedIntensity = parser.String("reportedIntensity")
+	p.Step = ParseStep(parser.WithReferenceObjectParser("step"))
 }
 
 func (p *Physical) Validate(validator structure.Validator) {

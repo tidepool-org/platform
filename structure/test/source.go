@@ -4,11 +4,9 @@ import (
 	"github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/structure"
-	"github.com/tidepool-org/platform/test"
 )
 
 type Source struct {
-	*test.Mock
 	ParameterInvocations     int
 	ParameterOutput          *string
 	ParameterOutputs         []string
@@ -22,9 +20,7 @@ type Source struct {
 }
 
 func NewSource() *Source {
-	return &Source{
-		Mock: test.NewMock(),
-	}
+	return &Source{}
 }
 
 func (s *Source) Parameter() string {
@@ -72,7 +68,6 @@ func (s *Source) WithReference(reference string) structure.Source {
 }
 
 func (s *Source) Expectations() {
-	s.Mock.Expectations()
 	gomega.Expect(s.ParameterOutputs).To(gomega.BeEmpty())
 	gomega.Expect(s.PointerOutputs).To(gomega.BeEmpty())
 	gomega.Expect(s.WithReferenceOutputs).To(gomega.BeEmpty())

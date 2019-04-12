@@ -30,10 +30,10 @@ func NewTarget(units *string) *dataBloodGlucose.Target {
 
 func CloneTarget(datum *dataBloodGlucose.Target) *dataBloodGlucose.Target {
 	clone := dataBloodGlucose.NewTarget()
-	clone.High = test.CloneFloat64(datum.High)
-	clone.Low = test.CloneFloat64(datum.Low)
-	clone.Range = test.CloneFloat64(datum.Range)
-	clone.Target = test.CloneFloat64(datum.Target)
+	clone.High = pointer.CloneFloat64(datum.High)
+	clone.Low = pointer.CloneFloat64(datum.Low)
+	clone.Range = pointer.CloneFloat64(datum.Range)
+	clone.Target = pointer.CloneFloat64(datum.Target)
 	return clone
 }
 

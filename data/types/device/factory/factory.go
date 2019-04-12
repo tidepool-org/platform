@@ -9,7 +9,8 @@ import (
 	dataTypesDeviceReservoirchange "github.com/tidepool-org/platform/data/types/device/reservoirchange"
 	dataTypesDeviceStatus "github.com/tidepool-org/platform/data/types/device/status"
 	dataTypesDeviceTimechange "github.com/tidepool-org/platform/data/types/device/timechange"
-	"github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 var subTypes = []string{
@@ -21,22 +22,22 @@ var subTypes = []string{
 	dataTypesDeviceTimechange.SubType,
 }
 
-func NewDeviceDatum(parser data.ObjectParser) data.Datum {
-	if parser.Object() == nil {
+func NewDeviceDatum(parser structure.ObjectParser) data.Datum {
+	if !parser.Exists() {
 		return nil
 	}
 
-	if value := parser.ParseString("type"); value == nil {
-		parser.AppendError("type", service.ErrorValueNotExists())
+	if value := parser.String("type"); value == nil {
+		parser.WithReferenceErrorReporter("type").ReportError(structureValidator.ErrorValueNotExists())
 		return nil
 	} else if *value != device.Type {
-		parser.AppendError("type", service.ErrorValueStringNotOneOf(*value, []string{device.Type}))
+		parser.WithReferenceErrorReporter("type").ReportError(structureValidator.ErrorValueStringNotOneOf(*value, []string{device.Type}))
 		return nil
 	}
 
-	value := parser.ParseString("subType")
+	value := parser.String("subType")
 	if value == nil {
-		parser.AppendError("subType", service.ErrorValueNotExists())
+		parser.WithReferenceErrorReporter("subType").ReportError(structureValidator.ErrorValueNotExists())
 		return nil
 	}
 
@@ -55,11 +56,11 @@ func NewDeviceDatum(parser data.ObjectParser) data.Datum {
 		return dataTypesDeviceTimechange.New()
 	}
 
-	parser.AppendError("subType", service.ErrorValueStringNotOneOf(*value, subTypes))
+	parser.WithReferenceErrorReporter("subType").ReportError(structureValidator.ErrorValueStringNotOneOf(*value, subTypes))
 	return nil
 }
 
-func ParseDeviceDatum(parser data.ObjectParser) *data.Datum {
+func ParseDeviceDatum(parser structure.ObjectParser) *data.Datum {
 	datum := NewDeviceDatum(parser)
 	if datum == nil {
 		return nil

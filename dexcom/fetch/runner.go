@@ -32,7 +32,7 @@ const (
 	TaskDurationMaximum           = 5 * time.Minute
 )
 
-var initialDataTime = time.Unix(1420070400, 0) // 2015-01-01T00:00:00Z
+var initialDataTime = time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC)
 
 type Runner struct {
 	logger           log.Logger
@@ -102,7 +102,7 @@ func (r *Runner) CanRunTask(tsk *task.Task) bool {
 }
 
 func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
-	taskStartTime := time.Now()
+	now := time.Now()
 
 	ctx = log.NewContextWithLogger(ctx, r.Logger())
 
@@ -111,7 +111,7 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
 	if location, err := time.LoadLocation("America/Los_Angeles"); err != nil {
 		r.Logger().WithError(err).Warn("Unable to load location to detect Dexcom backup")
 	} else {
-		tm := time.Now().In(location).Format("15:04:05")
+		tm := now.In(location).Format("15:04:05")
 		skipToAvoidDexcomBackup = (tm >= "02:45:00") && (tm < "03:45:00")
 	}
 
@@ -135,7 +135,7 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
 		tsk.RepeatAvailableAfter(AvailableAfterDurationMinimum + time.Duration(rand.Int63n(int64(AvailableAfterDurationMaximum-AvailableAfterDurationMinimum+1))))
 	}
 
-	if taskDuration := time.Since(taskStartTime); taskDuration > TaskDurationMaximum {
+	if taskDuration := time.Since(now); taskDuration > TaskDurationMaximum {
 		r.Logger().WithField("taskDuration", taskDuration.Truncate(time.Millisecond).Seconds()).Warn("Task duration exceeds maximum")
 	}
 }
@@ -274,23 +274,23 @@ func (t *TaskRunner) updateDataSourceWithDataTime(earliestDataTime *time.Time, l
 	update := dataSource.NewUpdate()
 
 	if t.beforeEarliestDataTime(earliestDataTime) {
-		update.EarliestDataTime = pointer.FromTime(earliestDataTime.Truncate(time.Second))
+		update.EarliestDataTime = earliestDataTime
 	}
 	if t.afterLatestDataTime(latestDataTime) {
-		update.LatestDataTime = pointer.FromTime(latestDataTime.Truncate(time.Second))
+		update.LatestDataTime = latestDataTime
 	}
 
 	if update.EarliestDataTime == nil && update.LatestDataTime == nil {
 		return nil
 	}
 
-	update.LastImportTime = pointer.FromTime(time.Now().Truncate(time.Second))
+	update.LastImportTime = pointer.FromTime(time.Now())
 	return t.updateDataSource(update)
 }
 
 func (t *TaskRunner) updateDataSourceWithLastImportTime() error {
 	update := dataSource.NewUpdate()
-	update.LastImportTime = pointer.FromTime(time.Now().Truncate(time.Second))
+	update.LastImportTime = pointer.FromTime(time.Now())
 	return t.updateDataSource(update)
 }
 
@@ -302,7 +302,7 @@ func (t *TaskRunner) updateDataSourceWithError(err error) error {
 }
 
 func (t *TaskRunner) updateDataSource(update *dataSource.Update) error {
-	if !update.HasUpdates() {
+	if update.IsEmpty() {
 		return nil
 	}
 
@@ -372,7 +372,7 @@ func (t *TaskRunner) updateDeviceHash(device *dexcom.Device) bool {
 }
 
 func (t *TaskRunner) updateDataSet(dataSetUpdate *data.DataSetUpdate) error {
-	if !dataSetUpdate.HasUpdates() {
+	if dataSetUpdate.IsEmpty() {
 		return nil
 	}
 
@@ -394,11 +394,11 @@ func (t *TaskRunner) fetchSinceLatestDataTime() error {
 		startTime = *t.dataSource.LatestDataTime
 	}
 
-	now := time.Now().Add(-time.Minute).Truncate(time.Second)
-	for startTime.Before(now) {
+	almostNow := time.Now().Add(-time.Minute)
+	for startTime.Before(almostNow) {
 		endTime := startTime.AddDate(0, 0, 30)
-		if endTime.After(now) {
-			endTime = now
+		if endTime.After(almostNow) {
+			endTime = almostNow
 		}
 
 		if err := t.fetch(startTime, endTime); err != nil {
@@ -406,7 +406,7 @@ func (t *TaskRunner) fetchSinceLatestDataTime() error {
 		}
 
 		startTime = startTime.AddDate(0, 0, 30)
-		now = time.Now().Add(-time.Minute).Truncate(time.Second)
+		almostNow = time.Now().Add(-time.Minute)
 	}
 	return nil
 }
@@ -648,7 +648,7 @@ func (t *TaskRunner) createDataSet() (*data.DataSet, error) {
 	dataSetCreate.Deduplicator.Name = pointer.FromString(dataDeduplicatorDeduplicator.NoneName)
 	dataSetCreate.DeviceManufacturers = pointer.FromStringArray([]string{"Dexcom"})
 	dataSetCreate.DeviceTags = pointer.FromStringArray([]string{data.DeviceTagCGM})
-	dataSetCreate.Time = pointer.FromTime(time.Now().Truncate(time.Second))
+	dataSetCreate.Time = pointer.FromTime(time.Now())
 	dataSetCreate.TimeProcessing = pointer.FromString(dataTypesUpload.TimeProcessingNone)
 
 	dataSet, err := t.DataClient().CreateUserDataSet(t.context, t.providerSession.UserID, dataSetCreate)

@@ -1,7 +1,6 @@
 package cgm
 
 import (
-	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -19,13 +18,12 @@ type Alerts struct {
 	OutOfRange         *OutOfRangeAlert `json:"outOfRange,omitempty" bson:"outOfRange,omitempty"`
 }
 
-func ParseAlerts(parser data.ObjectParser) *Alerts {
-	if parser.Object() == nil {
+func ParseAlerts(parser structure.ObjectParser) *Alerts {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewAlerts()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -33,18 +31,18 @@ func NewAlerts() *Alerts {
 	return &Alerts{}
 }
 
-func (a *Alerts) Parse(parser data.ObjectParser) {
-	a.Enabled = parser.ParseBoolean("enabled")
-	a.UrgentLow = ParseUrgentLowAlert(parser.NewChildObjectParser("urgentLow"))
-	a.UrgentLowPredicted = ParseUrgentLowAlert(parser.NewChildObjectParser("urgentLowPredicted"))
-	a.Low = ParseLowAlert(parser.NewChildObjectParser("low"))
-	a.LowPredicted = ParseLowAlert(parser.NewChildObjectParser("lowPredicted"))
-	a.High = ParseHighAlert(parser.NewChildObjectParser("high"))
-	a.HighPredicted = ParseHighAlert(parser.NewChildObjectParser("highPredicted"))
-	a.Fall = ParseFallAlert(parser.NewChildObjectParser("fall"))
-	a.Rise = ParseRiseAlert(parser.NewChildObjectParser("rise"))
-	a.NoData = ParseNoDataAlert(parser.NewChildObjectParser("noData"))
-	a.OutOfRange = ParseOutOfRangeAlert(parser.NewChildObjectParser("outOfRange"))
+func (a *Alerts) Parse(parser structure.ObjectParser) {
+	a.Enabled = parser.Bool("enabled")
+	a.UrgentLow = ParseUrgentLowAlert(parser.WithReferenceObjectParser("urgentLow"))
+	a.UrgentLowPredicted = ParseUrgentLowAlert(parser.WithReferenceObjectParser("urgentLowPredicted"))
+	a.Low = ParseLowAlert(parser.WithReferenceObjectParser("low"))
+	a.LowPredicted = ParseLowAlert(parser.WithReferenceObjectParser("lowPredicted"))
+	a.High = ParseHighAlert(parser.WithReferenceObjectParser("high"))
+	a.HighPredicted = ParseHighAlert(parser.WithReferenceObjectParser("highPredicted"))
+	a.Fall = ParseFallAlert(parser.WithReferenceObjectParser("fall"))
+	a.Rise = ParseRiseAlert(parser.WithReferenceObjectParser("rise"))
+	a.NoData = ParseNoDataAlert(parser.WithReferenceObjectParser("noData"))
+	a.OutOfRange = ParseOutOfRangeAlert(parser.WithReferenceObjectParser("outOfRange"))
 }
 
 func (a *Alerts) Validate(validator structure.Validator) {
@@ -86,9 +84,9 @@ type Alert struct {
 	Snooze  *Snooze `json:"snooze,omitempty" bson:"snooze,omitempty"`
 }
 
-func (a *Alert) Parse(parser data.ObjectParser) {
-	a.Enabled = parser.ParseBoolean("enabled")
-	a.Snooze = ParseSnooze(parser.NewChildObjectParser("snooze"))
+func (a *Alert) Parse(parser structure.ObjectParser) {
+	a.Enabled = parser.Bool("enabled")
+	a.Snooze = ParseSnooze(parser.WithReferenceObjectParser("snooze"))
 }
 
 func (a *Alert) Validate(validator structure.Validator) {

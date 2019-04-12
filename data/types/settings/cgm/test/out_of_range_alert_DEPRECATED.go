@@ -18,7 +18,7 @@ func CloneOutOfRangeAlertDEPRECATED(datum *dataTypesSettingsCgm.OutOfRangeAlertD
 		return nil
 	}
 	clone := dataTypesSettingsCgm.NewOutOfRangeAlertDEPRECATED()
-	clone.Enabled = test.CloneBool(datum.Enabled)
-	clone.Threshold = test.CloneInt(datum.Threshold)
+	clone.Enabled = pointer.CloneBool(datum.Enabled)
+	clone.Threshold = pointer.CloneInt(datum.Threshold)
 	return clone
 }

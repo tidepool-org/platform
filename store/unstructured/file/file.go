@@ -10,6 +10,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	storeUnstructured "github.com/tidepool-org/platform/store/unstructured"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 const Type = "file"
@@ -18,15 +19,15 @@ type Store struct {
 	directory string
 }
 
-func NewStore(cfg *Config) (*Store, error) {
-	if cfg == nil {
+func NewStore(config *Config) (*Store, error) {
+	if config == nil {
 		return nil, errors.New("config is missing")
-	} else if err := cfg.Validate(); err != nil {
+	} else if err := config.Validate(); err != nil {
 		return nil, errors.Wrap(err, "config is invalid")
 	}
 
 	return &Store{
-		directory: cfg.Directory,
+		directory: config.Directory,
 	}, nil
 }
 
@@ -61,7 +62,7 @@ func (s *Store) Exists(ctx context.Context, key string) (bool, error) {
 	return exists, nil
 }
 
-func (s *Store) Put(ctx context.Context, key string, reader io.Reader) error {
+func (s *Store) Put(ctx context.Context, key string, reader io.Reader, options *storeUnstructured.Options) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -73,8 +74,13 @@ func (s *Store) Put(ctx context.Context, key string, reader io.Reader) error {
 	if reader == nil {
 		return errors.New("reader is missing")
 	}
+	if options == nil {
+		options = storeUnstructured.NewOptions()
+	} else if err := structureValidator.New().Validate(options); err != nil {
+		return errors.Wrap(err, "options is invalid")
+	}
 
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"directory": s.directory, "key": key})
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"directory": s.directory, "key": key, "options": options})
 	filePath := s.resolveKey(key)
 	directoryPath := filepath.Dir(filePath)
 
@@ -177,6 +183,45 @@ func (s *Store) Delete(ctx context.Context, key string) (bool, error) {
 
 	logger.WithField("exists", exists).Debug("Delete")
 	return exists, nil
+}
+
+func (s *Store) DeleteDirectory(ctx context.Context, key string) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if key == "" {
+		return errors.New("key is missing")
+	} else if !storeUnstructured.IsValidKey(key) {
+		return errors.New("key is invalid")
+	}
+
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"directory": s.directory, "key": key})
+	directoryPath := s.resolveKey(key)
+
+	fileInfo, err := os.Stat(directoryPath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			logger.WithError(err).Errorf("Unable to stat directory at path %q", directoryPath)
+			return errors.Wrapf(err, "unable to stat directory at path %q", directoryPath)
+		}
+	} else if !fileInfo.Mode().IsDir() {
+		logger.Errorf("Unexpected file at path %q", directoryPath)
+		return errors.Newf("unexpected file at path %q", directoryPath)
+	} else if removeErr := os.RemoveAll(directoryPath); removeErr != nil {
+		if !os.IsNotExist(removeErr) {
+			logger.WithError(removeErr).Errorf("Unable to remove directory at path %q", directoryPath)
+			return errors.Wrapf(removeErr, "unable to remove directory at path %q", directoryPath)
+		}
+	} else {
+		for key = path.Dir(key); key != "."; key = path.Dir(key) {
+			if err = os.Remove(s.resolveKey(key)); err != nil {
+				break
+			}
+		}
+	}
+
+	logger.Debug("DeleteDirectory")
+	return nil
 }
 
 func (s *Store) resolveKey(key string) string {

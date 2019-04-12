@@ -20,8 +20,8 @@ func CloneLevelAlert(datum *dataTypesSettingsCgm.LevelAlert) *dataTypesSettingsC
 	}
 	clone := &dataTypesSettingsCgm.LevelAlert{}
 	clone.Alert = *CloneAlert(&datum.Alert)
-	clone.Level = test.CloneFloat64(datum.Level)
-	clone.Units = test.CloneString(datum.Units)
+	clone.Level = pointer.CloneFloat64(datum.Level)
+	clone.Units = pointer.CloneString(datum.Units)
 	return clone
 }
 

@@ -31,26 +31,25 @@ type Dose struct {
 	Units      *string  `json:"units,omitempty" bson:"units,omitempty"`
 }
 
-func ParseDose(parser data.ObjectParser) *Dose {
-	if parser.Object() == nil {
+func ParseDose(parser structure.ObjectParser) *Dose {
+	if !parser.Exists() {
 		return nil
 	}
-	dose := NewDose()
-	dose.Parse(parser)
-	parser.ProcessNotParsed()
-	return dose
+	datum := NewDose()
+	parser.Parse(datum)
+	return datum
 }
 
 func NewDose() *Dose {
 	return &Dose{}
 }
 
-func (d *Dose) Parse(parser data.ObjectParser) {
-	d.Active = parser.ParseFloat("active")
-	d.Correction = parser.ParseFloat("correction")
-	d.Food = parser.ParseFloat("food")
-	d.Total = parser.ParseFloat("total")
-	d.Units = parser.ParseString("units")
+func (d *Dose) Parse(parser structure.ObjectParser) {
+	d.Active = parser.Float64("active")
+	d.Correction = parser.Float64("correction")
+	d.Food = parser.Float64("food")
+	d.Total = parser.Float64("total")
+	d.Units = parser.String("units")
 }
 
 func (d *Dose) Validate(validator structure.Validator) {

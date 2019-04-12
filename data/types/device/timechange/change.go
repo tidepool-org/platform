@@ -25,13 +25,12 @@ type Change struct {
 	To    *string `json:"to,omitempty" bson:"to,omitempty"`
 }
 
-func ParseChange(parser data.ObjectParser) *Change {
-	if parser.Object() == nil {
+func ParseChange(parser structure.ObjectParser) *Change {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewChange()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -39,10 +38,10 @@ func NewChange() *Change {
 	return &Change{}
 }
 
-func (c *Change) Parse(parser data.ObjectParser) {
-	c.Agent = parser.ParseString("agent")
-	c.From = parser.ParseString("from")
-	c.To = parser.ParseString("to")
+func (c *Change) Parse(parser structure.ObjectParser) {
+	c.Agent = parser.String("agent")
+	c.From = parser.String("from")
+	c.To = parser.String("to")
 }
 
 func (c *Change) Validate(validator structure.Validator) {

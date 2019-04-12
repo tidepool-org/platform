@@ -3,12 +3,13 @@ package test
 import (
 	"context"
 	"io"
+
+	storeUnstructured "github.com/tidepool-org/platform/store/unstructured"
 )
 
 type ExistsInput struct {
-	Context context.Context
-	UserID  string
-	ID      string
+	UserID string
+	ID     string
 }
 
 type ExistsOutput struct {
@@ -17,16 +18,15 @@ type ExistsOutput struct {
 }
 
 type PutInput struct {
-	Context context.Context
 	UserID  string
 	ID      string
 	Reader  io.Reader
+	Options *storeUnstructured.Options
 }
 
 type GetInput struct {
-	Context context.Context
-	UserID  string
-	ID      string
+	UserID string
+	ID     string
 }
 
 type GetOutput struct {
@@ -35,9 +35,8 @@ type GetOutput struct {
 }
 
 type DeleteInput struct {
-	Context context.Context
-	UserID  string
-	ID      string
+	UserID string
+	ID     string
 }
 
 type DeleteOutput struct {
@@ -46,26 +45,31 @@ type DeleteOutput struct {
 }
 
 type Store struct {
-	ExistsInvocations int
-	ExistsInputs      []ExistsInput
-	ExistsStub        func(ctx context.Context, userID string, id string) (bool, error)
-	ExistsOutputs     []ExistsOutput
-	ExistsOutput      *ExistsOutput
-	PutInvocations    int
-	PutInputs         []PutInput
-	PutStub           func(ctx context.Context, userID string, id string, reader io.Reader) error
-	PutOutputs        []error
-	PutOutput         *error
-	GetInvocations    int
-	GetInputs         []GetInput
-	GetStub           func(ctx context.Context, userID string, id string) (io.ReadCloser, error)
-	GetOutputs        []GetOutput
-	GetOutput         *GetOutput
-	DeleteInvocations int
-	DeleteInputs      []DeleteInput
-	DeleteStub        func(ctx context.Context, userID string, id string) (bool, error)
-	DeleteOutputs     []DeleteOutput
-	DeleteOutput      *DeleteOutput
+	ExistsInvocations    int
+	ExistsInputs         []ExistsInput
+	ExistsStub           func(ctx context.Context, userID string, id string) (bool, error)
+	ExistsOutputs        []ExistsOutput
+	ExistsOutput         *ExistsOutput
+	PutInvocations       int
+	PutInputs            []PutInput
+	PutStub              func(ctx context.Context, userID string, id string, reader io.Reader, options *storeUnstructured.Options) error
+	PutOutputs           []error
+	PutOutput            *error
+	GetInvocations       int
+	GetInputs            []GetInput
+	GetStub              func(ctx context.Context, userID string, id string) (io.ReadCloser, error)
+	GetOutputs           []GetOutput
+	GetOutput            *GetOutput
+	DeleteInvocations    int
+	DeleteInputs         []DeleteInput
+	DeleteStub           func(ctx context.Context, userID string, id string) (bool, error)
+	DeleteOutputs        []DeleteOutput
+	DeleteOutput         *DeleteOutput
+	DeleteAllInvocations int
+	DeleteAllInputs      []string
+	DeleteAllStub        func(ctx context.Context, userID string) error
+	DeleteAllOutputs     []error
+	DeleteAllOutput      *error
 }
 
 func NewStore() *Store {
@@ -74,7 +78,7 @@ func NewStore() *Store {
 
 func (s *Store) Exists(ctx context.Context, userID string, id string) (bool, error) {
 	s.ExistsInvocations++
-	s.ExistsInputs = append(s.ExistsInputs, ExistsInput{Context: ctx, UserID: userID, ID: id})
+	s.ExistsInputs = append(s.ExistsInputs, ExistsInput{UserID: userID, ID: id})
 	if s.ExistsStub != nil {
 		return s.ExistsStub(ctx, userID, id)
 	}
@@ -89,11 +93,11 @@ func (s *Store) Exists(ctx context.Context, userID string, id string) (bool, err
 	panic("Exists has no output")
 }
 
-func (s *Store) Put(ctx context.Context, userID string, id string, reader io.Reader) error {
+func (s *Store) Put(ctx context.Context, userID string, id string, reader io.Reader, options *storeUnstructured.Options) error {
 	s.PutInvocations++
-	s.PutInputs = append(s.PutInputs, PutInput{Context: ctx, UserID: userID, ID: id, Reader: reader})
+	s.PutInputs = append(s.PutInputs, PutInput{UserID: userID, ID: id, Reader: reader, Options: options})
 	if s.PutStub != nil {
-		return s.PutStub(ctx, userID, id, reader)
+		return s.PutStub(ctx, userID, id, reader, options)
 	}
 	if len(s.PutOutputs) > 0 {
 		output := s.PutOutputs[0]
@@ -108,7 +112,7 @@ func (s *Store) Put(ctx context.Context, userID string, id string, reader io.Rea
 
 func (s *Store) Get(ctx context.Context, userID string, id string) (io.ReadCloser, error) {
 	s.GetInvocations++
-	s.GetInputs = append(s.GetInputs, GetInput{Context: ctx, UserID: userID, ID: id})
+	s.GetInputs = append(s.GetInputs, GetInput{UserID: userID, ID: id})
 	if s.GetStub != nil {
 		return s.GetStub(ctx, userID, id)
 	}
@@ -125,7 +129,7 @@ func (s *Store) Get(ctx context.Context, userID string, id string) (io.ReadClose
 
 func (s *Store) Delete(ctx context.Context, userID string, id string) (bool, error) {
 	s.DeleteInvocations++
-	s.DeleteInputs = append(s.DeleteInputs, DeleteInput{Context: ctx, UserID: userID, ID: id})
+	s.DeleteInputs = append(s.DeleteInputs, DeleteInput{UserID: userID, ID: id})
 	if s.DeleteStub != nil {
 		return s.DeleteStub(ctx, userID, id)
 	}
@@ -140,6 +144,23 @@ func (s *Store) Delete(ctx context.Context, userID string, id string) (bool, err
 	panic("Delete has no output")
 }
 
+func (s *Store) DeleteAll(ctx context.Context, userID string) error {
+	s.DeleteAllInvocations++
+	s.DeleteAllInputs = append(s.DeleteAllInputs, userID)
+	if s.DeleteAllStub != nil {
+		return s.DeleteAllStub(ctx, userID)
+	}
+	if len(s.DeleteAllOutputs) > 0 {
+		output := s.DeleteAllOutputs[0]
+		s.DeleteAllOutputs = s.DeleteAllOutputs[1:]
+		return output
+	}
+	if s.DeleteAllOutput != nil {
+		return *s.DeleteAllOutput
+	}
+	panic("DeleteAll has no output")
+}
+
 func (s *Store) AssertOutputsEmpty() {
 	if len(s.ExistsOutputs) > 0 {
 		panic("ExistsOutputs is not empty")
@@ -152,5 +173,8 @@ func (s *Store) AssertOutputsEmpty() {
 	}
 	if len(s.DeleteOutputs) > 0 {
 		panic("DeleteOutputs is not empty")
+	}
+	if len(s.DeleteAllOutputs) > 0 {
+		panic("DeleteAllOutputs is not empty")
 	}
 }

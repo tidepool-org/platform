@@ -9,7 +9,7 @@ import (
 func NewSimple() *insulin.Simple {
 	datum := insulin.NewSimple()
 	datum.ActingType = pointer.FromString(test.RandomStringFromArray(insulin.SimpleActingTypes()))
-	datum.Brand = pointer.FromString(test.NewText(1, 100))
+	datum.Brand = pointer.FromString(test.RandomStringFromRange(1, 100))
 	datum.Concentration = NewConcentration()
 	return datum
 }
@@ -19,8 +19,8 @@ func CloneSimple(datum *insulin.Simple) *insulin.Simple {
 		return nil
 	}
 	clone := insulin.NewSimple()
-	clone.ActingType = test.CloneString(datum.ActingType)
-	clone.Brand = test.CloneString(datum.Brand)
+	clone.ActingType = pointer.CloneString(datum.ActingType)
+	clone.Brand = pointer.CloneString(datum.Brand)
 	clone.Concentration = CloneConcentration(datum.Concentration)
 	return clone
 }

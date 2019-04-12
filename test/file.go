@@ -6,17 +6,9 @@ import (
 )
 
 func RandomTemporaryFile() *os.File {
-	file, err := ioutil.TempFile("", "")
+	value, err := ioutil.TempFile("", "")
 	if err != nil {
 		panic(err)
 	}
-	return file
-}
-
-func RandomTemporaryDirectory() string {
-	directory, err := ioutil.TempDir("", "")
-	if err != nil {
-		panic(err)
-	}
-	return directory
+	return value
 }

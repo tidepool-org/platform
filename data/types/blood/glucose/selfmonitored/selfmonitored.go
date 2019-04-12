@@ -9,14 +9,16 @@ import (
 const (
 	Type = "smbg"
 
-	SubTypeLinked = "linked"
-	SubTypeManual = "manual"
+	SubTypeLinked  = "linked"
+	SubTypeManual  = "manual"
+	SubTypeScanned = "scanned"
 )
 
 func SubTypes() []string {
 	return []string{
 		SubTypeLinked,
 		SubTypeManual,
+		SubTypeScanned,
 	}
 }
 
@@ -32,14 +34,14 @@ func New() *SelfMonitored {
 	}
 }
 
-func (s *SelfMonitored) Parse(parser data.ObjectParser) error {
-	if err := s.Glucose.Parse(parser); err != nil {
-		return err
+func (s *SelfMonitored) Parse(parser structure.ObjectParser) {
+	if !parser.HasMeta() {
+		parser = parser.WithMeta(s.Meta())
 	}
 
-	s.SubType = parser.ParseString("subType")
+	s.Glucose.Parse(parser)
 
-	return nil
+	s.SubType = parser.String("subType")
 }
 
 func (s *SelfMonitored) Validate(validator structure.Validator) {

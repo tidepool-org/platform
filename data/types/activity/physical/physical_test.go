@@ -8,8 +8,8 @@ import (
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/activity/physical"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -24,11 +24,11 @@ func NewMeta() interface{} {
 
 func NewPhysical() *physical.Physical {
 	datum := physical.New()
-	datum.Base = *testDataTypes.NewBase()
+	datum.Base = *dataTypesTest.NewBase()
 	datum.Type = "physicalActivity"
 	datum.ActivityType = pointer.FromString(test.RandomStringFromArray(physical.ActivityTypes()))
 	if datum.ActivityType != nil && *datum.ActivityType == physical.ActivityTypeOther {
-		datum.ActivityTypeOther = pointer.FromString(test.NewText(1, 100))
+		datum.ActivityTypeOther = pointer.FromString(test.RandomStringFromRange(1, 100))
 	}
 	datum.Aggregate = pointer.FromBool(test.RandomBool())
 	datum.Distance = NewDistance()
@@ -37,7 +37,7 @@ func NewPhysical() *physical.Physical {
 	datum.Energy = NewEnergy()
 	datum.Flight = NewFlight()
 	datum.Lap = NewLap()
-	datum.Name = pointer.FromString(test.NewText(1, 100))
+	datum.Name = pointer.FromString(test.RandomStringFromRange(1, 100))
 	datum.ReportedIntensity = pointer.FromString(test.RandomStringFromArray(physical.ReportedIntensities()))
 	datum.Step = NewStep()
 	return datum
@@ -48,18 +48,18 @@ func ClonePhysical(datum *physical.Physical) *physical.Physical {
 		return nil
 	}
 	clone := physical.New()
-	clone.Base = *testDataTypes.CloneBase(&datum.Base)
-	clone.ActivityType = test.CloneString(datum.ActivityType)
-	clone.ActivityTypeOther = test.CloneString(datum.ActivityTypeOther)
-	clone.Aggregate = test.CloneBool(datum.Aggregate)
+	clone.Base = *dataTypesTest.CloneBase(&datum.Base)
+	clone.ActivityType = pointer.CloneString(datum.ActivityType)
+	clone.ActivityTypeOther = pointer.CloneString(datum.ActivityTypeOther)
+	clone.Aggregate = pointer.CloneBool(datum.Aggregate)
 	clone.Distance = CloneDistance(datum.Distance)
 	clone.Duration = CloneDuration(datum.Duration)
 	clone.ElevationChange = CloneElevationChange(datum.ElevationChange)
 	clone.Energy = CloneEnergy(datum.Energy)
 	clone.Flight = CloneFlight(datum.Flight)
 	clone.Lap = CloneLap(datum.Lap)
-	clone.Name = test.CloneString(datum.Name)
-	clone.ReportedIntensity = test.CloneString(datum.ReportedIntensity)
+	clone.Name = pointer.CloneString(datum.Name)
+	clone.ReportedIntensity = pointer.CloneString(datum.ReportedIntensity)
 	clone.Step = CloneStep(datum.Step)
 	return clone
 }
@@ -132,18 +132,18 @@ var _ = Describe("Physical", func() {
 				func(mutator func(datum *physical.Physical), expectedErrors ...error) {
 					datum := NewPhysical()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *physical.Physical) {},
 				),
 				Entry("type missing",
 					func(datum *physical.Physical) { datum.Type = "" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &types.Meta{}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &types.Meta{}),
 				),
 				Entry("type invalid",
 					func(datum *physical.Physical) { datum.Type = "invalidType" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "physicalActivity"), "/type", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "physicalActivity"), "/type", &types.Meta{Type: "invalidType"}),
 				),
 				Entry("type physicalActivity",
 					func(datum *physical.Physical) { datum.Type = "physicalActivity" },
@@ -157,24 +157,24 @@ var _ = Describe("Physical", func() {
 				Entry("activity type missing; activity type other exists",
 					func(datum *physical.Physical) {
 						datum.ActivityType = nil
-						datum.ActivityTypeOther = pointer.FromString(test.NewText(1, 100))
+						datum.ActivityTypeOther = pointer.FromString(test.RandomStringFromRange(1, 100))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type invalid; activity type other missing",
 					func(datum *physical.Physical) {
 						datum.ActivityType = pointer.FromString("invalid")
 						datum.ActivityTypeOther = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", physical.ActivityTypes()), "/activityType", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", physical.ActivityTypes()), "/activityType", NewMeta()),
 				),
 				Entry("activity type invalid; activity type other exists",
 					func(datum *physical.Physical) {
 						datum.ActivityType = pointer.FromString("invalid")
-						datum.ActivityTypeOther = pointer.FromString(test.NewText(1, 100))
+						datum.ActivityTypeOther = pointer.FromString(test.RandomStringFromRange(1, 100))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", physical.ActivityTypes()), "/activityType", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", physical.ActivityTypes()), "/activityType", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type americanFootball; activity type other missing",
 					func(datum *physical.Physical) {
@@ -187,7 +187,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("americanFootball")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type archery; activity type other missing",
 					func(datum *physical.Physical) {
@@ -200,7 +200,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("archery")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type australianFootball; activity type other missing",
 					func(datum *physical.Physical) {
@@ -213,7 +213,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("australianFootball")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type badminton; activity type other missing",
 					func(datum *physical.Physical) {
@@ -226,7 +226,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("badminton")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type barre; activity type other missing",
 					func(datum *physical.Physical) {
@@ -239,7 +239,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("barre")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type baseball; activity type other missing",
 					func(datum *physical.Physical) {
@@ -252,7 +252,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("baseball")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type basketball; activity type other missing",
 					func(datum *physical.Physical) {
@@ -265,7 +265,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("basketball")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type bowling; activity type other missing",
 					func(datum *physical.Physical) {
@@ -278,7 +278,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("bowling")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type boxing; activity type other missing",
 					func(datum *physical.Physical) {
@@ -291,7 +291,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("boxing")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type climbing; activity type other missing",
 					func(datum *physical.Physical) {
@@ -304,7 +304,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("climbing")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type coreTraining; activity type other missing",
 					func(datum *physical.Physical) {
@@ -317,7 +317,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("coreTraining")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type cricket; activity type other missing",
 					func(datum *physical.Physical) {
@@ -330,7 +330,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("cricket")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type crossCountrySkiing; activity type other missing",
 					func(datum *physical.Physical) {
@@ -343,7 +343,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("crossCountrySkiing")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type crossTraining; activity type other missing",
 					func(datum *physical.Physical) {
@@ -356,7 +356,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("crossTraining")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type curling; activity type other missing",
 					func(datum *physical.Physical) {
@@ -369,7 +369,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("curling")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type cycling; activity type other missing",
 					func(datum *physical.Physical) {
@@ -382,7 +382,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("cycling")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type dance; activity type other missing",
 					func(datum *physical.Physical) {
@@ -395,7 +395,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("dance")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type danceInspiredTraining; activity type other missing",
 					func(datum *physical.Physical) {
@@ -408,7 +408,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("danceInspiredTraining")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type downhillSkiing; activity type other missing",
 					func(datum *physical.Physical) {
@@ -421,7 +421,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("downhillSkiing")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type elliptical; activity type other missing",
 					func(datum *physical.Physical) {
@@ -434,7 +434,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("elliptical")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type equestrianSports; activity type other missing",
 					func(datum *physical.Physical) {
@@ -447,7 +447,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("equestrianSports")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type fencing; activity type other missing",
 					func(datum *physical.Physical) {
@@ -460,7 +460,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("fencing")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type fishing; activity type other missing",
 					func(datum *physical.Physical) {
@@ -473,7 +473,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("fishing")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type flexibility; activity type other missing",
 					func(datum *physical.Physical) {
@@ -486,7 +486,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("flexibility")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type functionalStrengthTraining; activity type other missing",
 					func(datum *physical.Physical) {
@@ -499,7 +499,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("functionalStrengthTraining")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type golf; activity type other missing",
 					func(datum *physical.Physical) {
@@ -512,7 +512,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("golf")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type gymnastics; activity type other missing",
 					func(datum *physical.Physical) {
@@ -525,7 +525,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("gymnastics")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type handball; activity type other missing",
 					func(datum *physical.Physical) {
@@ -538,7 +538,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("handball")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type handCycling; activity type other missing",
 					func(datum *physical.Physical) {
@@ -551,7 +551,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("handCycling")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type highIntensityIntervalTraining; activity type other missing",
 					func(datum *physical.Physical) {
@@ -564,7 +564,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("highIntensityIntervalTraining")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type hiking; activity type other missing",
 					func(datum *physical.Physical) {
@@ -577,7 +577,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("hiking")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type hockey; activity type other missing",
 					func(datum *physical.Physical) {
@@ -590,7 +590,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("hockey")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type hunting; activity type other missing",
 					func(datum *physical.Physical) {
@@ -603,7 +603,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("hunting")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type jumpRope; activity type other missing",
 					func(datum *physical.Physical) {
@@ -616,7 +616,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("jumpRope")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type kickboxing; activity type other missing",
 					func(datum *physical.Physical) {
@@ -629,7 +629,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("kickboxing")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type lacrosse; activity type other missing",
 					func(datum *physical.Physical) {
@@ -642,7 +642,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("lacrosse")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type martialArts; activity type other missing",
 					func(datum *physical.Physical) {
@@ -655,7 +655,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("martialArts")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type mindAndBody; activity type other missing",
 					func(datum *physical.Physical) {
@@ -668,7 +668,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("mindAndBody")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type mixedCardio; activity type other missing",
 					func(datum *physical.Physical) {
@@ -681,7 +681,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("mixedCardio")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type mixedMetabolicCardioTraining; activity type other missing",
 					func(datum *physical.Physical) {
@@ -694,7 +694,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("mixedMetabolicCardioTraining")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type other; activity type other missing",
 					func(datum *physical.Physical) {
@@ -707,20 +707,20 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("other")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type other; activity type other length; in range (upper)",
 					func(datum *physical.Physical) {
 						datum.ActivityType = pointer.FromString("other")
-						datum.ActivityTypeOther = pointer.FromString(test.NewText(100, 100))
+						datum.ActivityTypeOther = pointer.FromString(test.RandomStringFromRange(100, 100))
 					},
 				),
 				Entry("activity type other; activity type other length; out of range (upper)",
 					func(datum *physical.Physical) {
 						datum.ActivityType = pointer.FromString("other")
-						datum.ActivityTypeOther = pointer.FromString(test.NewText(101, 101))
+						datum.ActivityTypeOther = pointer.FromString(test.RandomStringFromRange(101, 101))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type paddleSports; activity type other missing",
 					func(datum *physical.Physical) {
@@ -733,7 +733,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("paddleSports")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type pilates; activity type other missing",
 					func(datum *physical.Physical) {
@@ -746,7 +746,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("pilates")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type play; activity type other missing",
 					func(datum *physical.Physical) {
@@ -759,7 +759,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("play")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type preparationAndRecovery; activity type other missing",
 					func(datum *physical.Physical) {
@@ -772,7 +772,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("preparationAndRecovery")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type racquetball; activity type other missing",
 					func(datum *physical.Physical) {
@@ -785,7 +785,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("racquetball")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type rowing; activity type other missing",
 					func(datum *physical.Physical) {
@@ -798,7 +798,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("rowing")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type rugby; activity type other missing",
 					func(datum *physical.Physical) {
@@ -811,7 +811,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("rugby")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type running; activity type other missing",
 					func(datum *physical.Physical) {
@@ -824,7 +824,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("running")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type sailing; activity type other missing",
 					func(datum *physical.Physical) {
@@ -837,7 +837,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("sailing")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type skatingSports; activity type other missing",
 					func(datum *physical.Physical) {
@@ -850,7 +850,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("skatingSports")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type snowboarding; activity type other missing",
 					func(datum *physical.Physical) {
@@ -863,7 +863,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("snowboarding")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type snowSports; activity type other missing",
 					func(datum *physical.Physical) {
@@ -876,7 +876,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("snowSports")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type soccer; activity type other missing",
 					func(datum *physical.Physical) {
@@ -889,7 +889,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("soccer")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type softball; activity type other missing",
 					func(datum *physical.Physical) {
@@ -902,7 +902,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("softball")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type squash; activity type other missing",
 					func(datum *physical.Physical) {
@@ -915,7 +915,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("squash")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type stairClimbing; activity type other missing",
 					func(datum *physical.Physical) {
@@ -928,7 +928,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("stairClimbing")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type stairs; activity type other missing",
 					func(datum *physical.Physical) {
@@ -941,7 +941,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("stairs")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type stepTraining; activity type other missing",
 					func(datum *physical.Physical) {
@@ -954,7 +954,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("stepTraining")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type surfingSports; activity type other missing",
 					func(datum *physical.Physical) {
@@ -967,7 +967,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("surfingSports")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type swimming; activity type other missing",
 					func(datum *physical.Physical) {
@@ -980,7 +980,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("swimming")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type tableTennis; activity type other missing",
 					func(datum *physical.Physical) {
@@ -993,7 +993,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("tableTennis")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type taiChi; activity type other missing",
 					func(datum *physical.Physical) {
@@ -1006,7 +1006,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("taiChi")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type tennis; activity type other missing",
 					func(datum *physical.Physical) {
@@ -1019,7 +1019,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("tennis")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type trackAndField; activity type other missing",
 					func(datum *physical.Physical) {
@@ -1032,7 +1032,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("trackAndField")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type traditionalStrengthTraining; activity type other missing",
 					func(datum *physical.Physical) {
@@ -1045,7 +1045,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("traditionalStrengthTraining")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type volleyball; activity type other missing",
 					func(datum *physical.Physical) {
@@ -1058,7 +1058,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("volleyball")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type walking; activity type other missing",
 					func(datum *physical.Physical) {
@@ -1071,7 +1071,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("walking")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type waterFitness; activity type other missing",
 					func(datum *physical.Physical) {
@@ -1084,7 +1084,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("waterFitness")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type waterPolo; activity type other missing",
 					func(datum *physical.Physical) {
@@ -1097,7 +1097,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("waterPolo")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type waterSports; activity type other missing",
 					func(datum *physical.Physical) {
@@ -1110,7 +1110,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("waterSports")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type wheelchairRunPace; activity type other missing",
 					func(datum *physical.Physical) {
@@ -1123,7 +1123,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("wheelchairRunPace")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type wheelchairWalkPace; activity type other missing",
 					func(datum *physical.Physical) {
@@ -1136,7 +1136,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("wheelchairWalkPace")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type wrestling; activity type other missing",
 					func(datum *physical.Physical) {
@@ -1149,7 +1149,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("wrestling")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type yoga; activity type other missing",
 					func(datum *physical.Physical) {
@@ -1162,7 +1162,7 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("yoga")
 						datum.ActivityTypeOther = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("distance missing",
 					func(datum *physical.Physical) { datum.Distance = nil },
@@ -1171,7 +1171,7 @@ var _ = Describe("Physical", func() {
 					func(datum *physical.Physical) {
 						datum.Distance.Units = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/distance/units", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/distance/units", NewMeta()),
 				),
 				Entry("distance valid",
 					func(datum *physical.Physical) { datum.Distance = NewDistance() },
@@ -1183,7 +1183,7 @@ var _ = Describe("Physical", func() {
 					func(datum *physical.Physical) {
 						datum.Duration.Units = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration/units", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration/units", NewMeta()),
 				),
 				Entry("duration valid",
 					func(datum *physical.Physical) { datum.Duration = NewDuration() },
@@ -1195,7 +1195,7 @@ var _ = Describe("Physical", func() {
 					func(datum *physical.Physical) {
 						datum.ElevationChange.Units = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/elevationChange/units", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/elevationChange/units", NewMeta()),
 				),
 				Entry("elevation change valid",
 					func(datum *physical.Physical) { datum.ElevationChange = NewElevationChange() },
@@ -1207,7 +1207,7 @@ var _ = Describe("Physical", func() {
 					func(datum *physical.Physical) {
 						datum.Energy.Units = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/energy/units", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/energy/units", NewMeta()),
 				),
 				Entry("energy change valid",
 					func(datum *physical.Physical) { datum.Energy = NewEnergy() },
@@ -1219,7 +1219,7 @@ var _ = Describe("Physical", func() {
 					func(datum *physical.Physical) {
 						datum.Flight.Count = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/flight/count", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/flight/count", NewMeta()),
 				),
 				Entry("flight valid",
 					func(datum *physical.Physical) { datum.Flight = NewFlight() },
@@ -1231,7 +1231,7 @@ var _ = Describe("Physical", func() {
 					func(datum *physical.Physical) {
 						datum.Lap.Count = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/lap/count", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/lap/count", NewMeta()),
 				),
 				Entry("lap valid",
 					func(datum *physical.Physical) { datum.Lap = NewLap() },
@@ -1241,21 +1241,21 @@ var _ = Describe("Physical", func() {
 				),
 				Entry("name empty",
 					func(datum *physical.Physical) { datum.Name = pointer.FromString("") },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/name", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/name", NewMeta()),
 				),
 				Entry("name length; in range (upper)",
-					func(datum *physical.Physical) { datum.Name = pointer.FromString(test.NewText(100, 100)) },
+					func(datum *physical.Physical) { datum.Name = pointer.FromString(test.RandomStringFromRange(100, 100)) },
 				),
 				Entry("name length; out of range (upper)",
-					func(datum *physical.Physical) { datum.Name = pointer.FromString(test.NewText(101, 101)) },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/name", NewMeta()),
+					func(datum *physical.Physical) { datum.Name = pointer.FromString(test.RandomStringFromRange(101, 101)) },
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/name", NewMeta()),
 				),
 				Entry("reported intensity missing",
 					func(datum *physical.Physical) { datum.ReportedIntensity = nil },
 				),
 				Entry("reported intensity invalid",
 					func(datum *physical.Physical) { datum.ReportedIntensity = pointer.FromString("invalid") },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"high", "low", "medium"}), "/reportedIntensity", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"high", "low", "medium"}), "/reportedIntensity", NewMeta()),
 				),
 				Entry("reported intensity high",
 					func(datum *physical.Physical) { datum.ReportedIntensity = pointer.FromString("high") },
@@ -1273,7 +1273,7 @@ var _ = Describe("Physical", func() {
 					func(datum *physical.Physical) {
 						datum.Step.Count = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/step/count", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/step/count", NewMeta()),
 				),
 				Entry("step valid",
 					func(datum *physical.Physical) { datum.Step = NewStep() },
@@ -1282,7 +1282,7 @@ var _ = Describe("Physical", func() {
 					func(datum *physical.Physical) {
 						datum.Type = "invalidType"
 						datum.ActivityType = pointer.FromString("invalid")
-						datum.ActivityTypeOther = pointer.FromString(test.NewText(1, 100))
+						datum.ActivityTypeOther = pointer.FromString(test.RandomStringFromRange(1, 100))
 						datum.Distance.Units = nil
 						datum.Duration.Units = nil
 						datum.ElevationChange.Units = nil
@@ -1292,17 +1292,17 @@ var _ = Describe("Physical", func() {
 						datum.ReportedIntensity = pointer.FromString("invalid")
 						datum.Step.Count = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "physicalActivity"), "/type", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", physical.ActivityTypes()), "/activityType", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/distance/units", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration/units", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/elevationChange/units", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/flight/count", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/lap/count", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/name", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"high", "low", "medium"}), "/reportedIntensity", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/step/count", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "physicalActivity"), "/type", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", physical.ActivityTypes()), "/activityType", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/activityTypeOther", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/distance/units", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration/units", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/elevationChange/units", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/flight/count", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/lap/count", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/name", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"high", "low", "medium"}), "/reportedIntensity", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/step/count", &types.Meta{Type: "invalidType"}),
 				),
 			)
 		})

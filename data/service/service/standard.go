@@ -5,7 +5,7 @@ import (
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	dataDeduplicatorFactory "github.com/tidepool-org/platform/data/deduplicator/factory"
 	"github.com/tidepool-org/platform/data/service/api"
-	"github.com/tidepool-org/platform/data/service/api/v1"
+	dataServiceApiV1 "github.com/tidepool-org/platform/data/service/api/v1"
 	dataSourceServiceClient "github.com/tidepool-org/platform/data/source/service/client"
 	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
 	dataSourceStoreStructuredMongo "github.com/tidepool-org/platform/data/source/store/structured/mongo"
@@ -302,7 +302,7 @@ func (s *Standard) initializeAPI() error {
 
 	s.Logger().Debug("Initializing api router")
 
-	if err = s.api.DEPRECATEDInitializeRouter(v1.Routes()); err != nil {
+	if err = s.api.DEPRECATEDInitializeRouter(dataServiceApiV1.Routes()); err != nil {
 		return errors.Wrap(err, "unable to initialize api router")
 	}
 

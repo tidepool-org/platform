@@ -27,7 +27,7 @@ func CloneAlerts(datum *dataTypesSettingsCgm.Alerts) *dataTypesSettingsCgm.Alert
 		return nil
 	}
 	clone := dataTypesSettingsCgm.NewAlerts()
-	clone.Enabled = test.CloneBool(datum.Enabled)
+	clone.Enabled = pointer.CloneBool(datum.Enabled)
 	clone.UrgentLow = CloneUrgentLowAlert(datum.UrgentLow)
 	clone.UrgentLowPredicted = CloneUrgentLowAlert(datum.UrgentLowPredicted)
 	clone.Low = CloneLowAlert(datum.Low)
@@ -94,7 +94,7 @@ func CloneAlert(datum *dataTypesSettingsCgm.Alert) *dataTypesSettingsCgm.Alert {
 		return nil
 	}
 	clone := &dataTypesSettingsCgm.Alert{}
-	clone.Enabled = test.CloneBool(datum.Enabled)
+	clone.Enabled = pointer.CloneBool(datum.Enabled)
 	clone.Snooze = CloneSnooze(datum.Snooze)
 	return clone
 }

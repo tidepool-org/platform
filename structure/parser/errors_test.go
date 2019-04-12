@@ -1,10 +1,10 @@
 package parser_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
-
-	"time"
 
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
@@ -41,7 +41,7 @@ var _ = Describe("Errors", func() {
 		Entry("is ErrorTypeNotArray with int parameter", structureParser.ErrorTypeNotArray(-1), "type-not-array", "type is not array", "type is not array, but int"),
 		Entry("is ErrorTypeNotArray with string parameter", structureParser.ErrorTypeNotArray("test"), "type-not-array", "type is not array", "type is not array, but string"),
 		Entry("is ErrorTypeNotArray with string array parameter", structureParser.ErrorTypeNotArray([]string{}), "type-not-array", "type is not array", "type is not array, but []string"),
-		Entry("is ErrorValueTimeNotParsable", structureParser.ErrorValueTimeNotParsable("abc", time.RFC3339), "value-not-parsable", "value is not a parsable time", `value "abc" is not a parsable time of format "2006-01-02T15:04:05Z07:00"`),
+		Entry("is ErrorValueTimeNotParsable", structureParser.ErrorValueTimeNotParsable("abc", time.RFC3339Nano), "value-not-parsable", "value is not a parsable time", `value "abc" is not a parsable time of format "2006-01-02T15:04:05.999999999Z07:00"`),
 		Entry("is ErrorNotParsed", structureParser.ErrorNotParsed(), "not-parsed", "not parsed", "not parsed"),
 	)
 })

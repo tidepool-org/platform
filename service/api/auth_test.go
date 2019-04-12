@@ -1,14 +1,13 @@
 package api_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
-	testAuth "github.com/tidepool-org/platform/auth/test"
+	authTest "github.com/tidepool-org/platform/auth/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
 	logNull "github.com/tidepool-org/platform/log/null"
@@ -84,7 +83,7 @@ var _ = Describe("Auth", func() {
 
 			Context("with server details", func() {
 				BeforeEach(func() {
-					details = request.NewDetails(request.MethodSessionToken, "", testAuth.NewSessionToken())
+					details = request.NewDetails(request.MethodSessionToken, "", authTest.NewSessionToken())
 				})
 
 				It("responds successfully", func() {
@@ -96,7 +95,7 @@ var _ = Describe("Auth", func() {
 
 			Context("with user details", func() {
 				BeforeEach(func() {
-					details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), testAuth.NewSessionToken())
+					details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), authTest.NewSessionToken())
 				})
 
 				It("responds successfully", func() {
@@ -147,7 +146,7 @@ var _ = Describe("Auth", func() {
 
 			Context("with server details", func() {
 				BeforeEach(func() {
-					details = request.NewDetails(request.MethodSessionToken, "", testAuth.NewSessionToken())
+					details = request.NewDetails(request.MethodSessionToken, "", authTest.NewSessionToken())
 				})
 
 				It("responds successfully", func() {
@@ -159,7 +158,7 @@ var _ = Describe("Auth", func() {
 
 			Context("with user details", func() {
 				BeforeEach(func() {
-					details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), testAuth.NewSessionToken())
+					details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), authTest.NewSessionToken())
 				})
 
 				It("responds with unauthorized error", func() {
@@ -212,7 +211,7 @@ var _ = Describe("Auth", func() {
 
 			Context("with server details", func() {
 				BeforeEach(func() {
-					details = request.NewDetails(request.MethodSessionToken, "", testAuth.NewSessionToken())
+					details = request.NewDetails(request.MethodSessionToken, "", authTest.NewSessionToken())
 				})
 
 				It("responds with unauthorized error", func() {
@@ -226,7 +225,7 @@ var _ = Describe("Auth", func() {
 
 			Context("with user details", func() {
 				BeforeEach(func() {
-					details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), testAuth.NewSessionToken())
+					details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), authTest.NewSessionToken())
 				})
 
 				It("responds successfully", func() {

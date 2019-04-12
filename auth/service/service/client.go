@@ -82,6 +82,44 @@ func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, c
 	return providerSession, nil
 }
 
+func (c *Client) DeleteAllProviderSessions(ctx context.Context, userID string) error {
+	ctx, logger := log.ContextAndLoggerWithField(ctx, "userId", userID)
+
+	ssn := c.authStore.NewProviderSessionSession()
+	defer ssn.Close()
+
+	// TODO: Add pagination if/when we ever get over one page of provider sessions
+	if providerSessions, err := ssn.ListUserProviderSessions(ctx, userID, nil, nil); err != nil {
+		logger.WithError(err).Warn("Unable to list user provider sessions")
+	} else {
+		for _, providerSession := range providerSessions {
+			c.deleteProviderSession(ctx, ssn, providerSession)
+		}
+	}
+
+	return ssn.DeleteAllProviderSessions(ctx, userID)
+}
+
+func (c *Client) deleteProviderSession(ctx context.Context, ssn authStore.ProviderSessionSession, providerSession *auth.ProviderSession) {
+	ctx, logger := log.ContextAndLoggerWithField(ctx, "providerSession", providerSession)
+
+	var prvdr provider.Provider
+	prvdr, err := c.providerFactory.Get(providerSession.Type, providerSession.Name)
+	if err != nil {
+		logger.WithError(err).Warn("Unable to get provider")
+	}
+
+	if err = ssn.DeleteProviderSession(ctx, providerSession.ID); err != nil {
+		logger.WithError(err).Warn("Unable to delete provider session")
+	}
+
+	if prvdr != nil {
+		if err = prvdr.OnDelete(ctx, providerSession.UserID, providerSession.ID); err != nil {
+			logger.WithError(err).Warn("Unable to delete provider session from provider")
+		}
+	}
+}
+
 func (c *Client) GetProviderSession(ctx context.Context, id string) (*auth.ProviderSession, error) {
 	ssn := c.authStore.NewProviderSessionSession()
 	defer ssn.Close()
@@ -131,6 +169,13 @@ func (c *Client) CreateUserRestrictedToken(ctx context.Context, userID string, c
 	defer ssn.Close()
 
 	return ssn.CreateUserRestrictedToken(ctx, userID, create)
+}
+
+func (c *Client) DeleteAllRestrictedTokens(ctx context.Context, userID string) error {
+	ssn := c.authStore.NewRestrictedTokenSession()
+	defer ssn.Close()
+
+	return ssn.DeleteAllRestrictedTokens(ctx, userID)
 }
 
 func (c *Client) GetRestrictedToken(ctx context.Context, id string) (*auth.RestrictedToken, error) {

@@ -7,8 +7,8 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/food"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -18,10 +18,10 @@ import (
 func NewIngredient(ingredientArrayDepthLimit int) *food.Ingredient {
 	datum := food.NewIngredient()
 	datum.Amount = NewAmount()
-	datum.Brand = pointer.FromString(test.NewText(1, 100))
-	datum.Code = pointer.FromString(test.NewText(1, 100))
+	datum.Brand = pointer.FromString(test.RandomStringFromRange(1, 100))
+	datum.Code = pointer.FromString(test.RandomStringFromRange(1, 100))
 	datum.Ingredients = NewIngredientArray(ingredientArrayDepthLimit)
-	datum.Name = pointer.FromString(test.NewText(1, 100))
+	datum.Name = pointer.FromString(test.RandomStringFromRange(1, 100))
 	datum.Nutrition = NewNutrition()
 	return datum
 }
@@ -32,10 +32,10 @@ func CloneIngredient(datum *food.Ingredient) *food.Ingredient {
 	}
 	clone := food.NewIngredient()
 	clone.Amount = CloneAmount(datum.Amount)
-	clone.Brand = test.CloneString(datum.Brand)
-	clone.Code = test.CloneString(datum.Code)
+	clone.Brand = pointer.CloneString(datum.Brand)
+	clone.Code = pointer.CloneString(datum.Code)
 	clone.Ingredients = CloneIngredientArray(datum.Ingredients)
-	clone.Name = test.CloneString(datum.Name)
+	clone.Name = pointer.CloneString(datum.Name)
 	clone.Nutrition = CloneNutrition(datum.Nutrition)
 	return clone
 }
@@ -95,7 +95,7 @@ var _ = Describe("Ingredient", func() {
 				func(mutator func(datum *food.Ingredient), expectedErrors ...error) {
 					datum := NewIngredient(3)
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *food.Ingredient) {},
@@ -105,7 +105,7 @@ var _ = Describe("Ingredient", func() {
 				),
 				Entry("amount invalid",
 					func(datum *food.Ingredient) { datum.Amount.Units = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amount/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amount/units"),
 				),
 				Entry("amount valid",
 					func(datum *food.Ingredient) { datum.Amount = NewAmount() },
@@ -115,35 +115,35 @@ var _ = Describe("Ingredient", func() {
 				),
 				Entry("brand empty",
 					func(datum *food.Ingredient) { datum.Brand = pointer.FromString("") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/brand"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/brand"),
 				),
 				Entry("brand length; in range (upper)",
-					func(datum *food.Ingredient) { datum.Brand = pointer.FromString(test.NewText(100, 100)) },
+					func(datum *food.Ingredient) { datum.Brand = pointer.FromString(test.RandomStringFromRange(100, 100)) },
 				),
 				Entry("brand length; out of range (upper)",
-					func(datum *food.Ingredient) { datum.Brand = pointer.FromString(test.NewText(101, 101)) },
-					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/brand"),
+					func(datum *food.Ingredient) { datum.Brand = pointer.FromString(test.RandomStringFromRange(101, 101)) },
+					errorsTest.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/brand"),
 				),
 				Entry("code missing",
 					func(datum *food.Ingredient) { datum.Code = nil },
 				),
 				Entry("code empty",
 					func(datum *food.Ingredient) { datum.Code = pointer.FromString("") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/code"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/code"),
 				),
 				Entry("code length; in range (upper)",
-					func(datum *food.Ingredient) { datum.Code = pointer.FromString(test.NewText(100, 100)) },
+					func(datum *food.Ingredient) { datum.Code = pointer.FromString(test.RandomStringFromRange(100, 100)) },
 				),
 				Entry("code length; out of range (upper)",
-					func(datum *food.Ingredient) { datum.Code = pointer.FromString(test.NewText(101, 101)) },
-					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/code"),
+					func(datum *food.Ingredient) { datum.Code = pointer.FromString(test.RandomStringFromRange(101, 101)) },
+					errorsTest.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/code"),
 				),
 				Entry("ingredients missing",
 					func(datum *food.Ingredient) { datum.Ingredients = nil },
 				),
 				Entry("ingredients invalid",
 					func(datum *food.Ingredient) { (*datum.Ingredients)[0] = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/ingredients/0"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/ingredients/0"),
 				),
 				Entry("ingredients valid",
 					func(datum *food.Ingredient) { datum.Ingredients = NewIngredientArray(3) },
@@ -153,21 +153,21 @@ var _ = Describe("Ingredient", func() {
 				),
 				Entry("name empty",
 					func(datum *food.Ingredient) { datum.Name = pointer.FromString("") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/name"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/name"),
 				),
 				Entry("name length; in range (upper)",
-					func(datum *food.Ingredient) { datum.Name = pointer.FromString(test.NewText(100, 100)) },
+					func(datum *food.Ingredient) { datum.Name = pointer.FromString(test.RandomStringFromRange(100, 100)) },
 				),
 				Entry("name length; out of range (upper)",
-					func(datum *food.Ingredient) { datum.Name = pointer.FromString(test.NewText(101, 101)) },
-					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/name"),
+					func(datum *food.Ingredient) { datum.Name = pointer.FromString(test.RandomStringFromRange(101, 101)) },
+					errorsTest.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/name"),
 				),
 				Entry("nutrition missing",
 					func(datum *food.Ingredient) { datum.Nutrition = nil },
 				),
 				Entry("nutrition invalid",
 					func(datum *food.Ingredient) { datum.Nutrition.Carbohydrate.Units = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/nutrition/carbohydrate/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/nutrition/carbohydrate/units"),
 				),
 				Entry("nutrition valid",
 					func(datum *food.Ingredient) { datum.Nutrition = NewNutrition() },
@@ -181,12 +181,12 @@ var _ = Describe("Ingredient", func() {
 						datum.Name = pointer.FromString("")
 						datum.Nutrition.Carbohydrate.Units = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amount/units"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/brand"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/code"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/ingredients/0"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/name"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/nutrition/carbohydrate/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amount/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/brand"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/code"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/ingredients/0"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/name"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/nutrition/carbohydrate/units"),
 				),
 			)
 		})
@@ -251,7 +251,7 @@ var _ = Describe("Ingredient", func() {
 				func(mutator func(datum *food.IngredientArray), expectedErrors ...error) {
 					datum := food.NewIngredientArray()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *food.IngredientArray) {},
@@ -263,7 +263,7 @@ var _ = Describe("Ingredient", func() {
 				),
 				Entry("nil",
 					func(datum *food.IngredientArray) { *datum = append(*datum, nil) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
 				),
 				Entry("single invalid",
 					func(datum *food.IngredientArray) {
@@ -271,7 +271,7 @@ var _ = Describe("Ingredient", func() {
 						invalid.Brand = pointer.FromString("")
 						*datum = append(*datum, invalid)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/0/brand"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/0/brand"),
 				),
 				Entry("single valid",
 					func(datum *food.IngredientArray) {
@@ -284,7 +284,7 @@ var _ = Describe("Ingredient", func() {
 						invalid.Brand = pointer.FromString("")
 						*datum = append(*datum, NewIngredient(3), invalid, NewIngredient(3))
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/1/brand"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/1/brand"),
 				),
 				Entry("multiple valid",
 					func(datum *food.IngredientArray) {
@@ -312,8 +312,8 @@ var _ = Describe("Ingredient", func() {
 						invalid.Brand = pointer.FromString("")
 						*datum = append(*datum, nil, invalid, NewIngredient(3))
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/1/brand"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/1/brand"),
 				),
 			)
 		})

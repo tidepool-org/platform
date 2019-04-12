@@ -3,6 +3,9 @@ package test
 import (
 	"strings"
 
+	netTest "github.com/tidepool-org/platform/net/test"
+	"github.com/tidepool-org/platform/pointer"
+	storeUnstructured "github.com/tidepool-org/platform/store/unstructured"
 	"github.com/tidepool-org/platform/test"
 )
 
@@ -20,4 +23,10 @@ func RandomKey() string {
 func RandomKeySegment() string {
 	return test.RandomStringFromRangeAndCharset(1, 1, CharsetKeyInitial) +
 		test.RandomStringFromRangeAndCharset(0, 63, CharsetKeyRemaining)
+}
+
+func RandomOptions() *storeUnstructured.Options {
+	datum := storeUnstructured.NewOptions()
+	datum.MediaType = pointer.FromString(netTest.RandomMediaType())
+	return datum
 }

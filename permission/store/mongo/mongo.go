@@ -62,7 +62,7 @@ func (p *PermissionsSession) DestroyPermissionsForUserByID(ctx context.Context, 
 		return errors.New("session closed")
 	}
 
-	startTime := time.Now()
+	now := time.Now()
 
 	groupID, err := permission.GroupIDFromUserID(userID, p.config.Secret)
 	if err != nil {
@@ -77,7 +77,7 @@ func (p *PermissionsSession) DestroyPermissionsForUserByID(ctx context.Context, 
 	}
 	removeInfo, err := p.C().RemoveAll(selector)
 
-	loggerFields := log.Fields{"userId": userID, "removeInfo": removeInfo, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"userId": userID, "removeInfo": removeInfo, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DestroyPermissionsForUserByID")
 
 	if err != nil {

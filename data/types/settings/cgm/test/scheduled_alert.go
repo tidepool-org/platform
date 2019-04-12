@@ -51,10 +51,10 @@ func CloneScheduledAlert(datum *dataTypesSettingsCgm.ScheduledAlert) *dataTypesS
 		return nil
 	}
 	clone := dataTypesSettingsCgm.NewScheduledAlert()
-	clone.Name = test.CloneString(datum.Name)
-	clone.Days = test.CloneStringArray(datum.Days)
-	clone.Start = test.CloneInt(datum.Start)
-	clone.End = test.CloneInt(datum.End)
+	clone.Name = pointer.CloneString(datum.Name)
+	clone.Days = pointer.CloneStringArray(datum.Days)
+	clone.Start = pointer.CloneInt(datum.Start)
+	clone.End = pointer.CloneInt(datum.End)
 	clone.Alerts = CloneAlerts(datum.Alerts)
 	return clone
 }

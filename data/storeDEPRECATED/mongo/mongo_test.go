@@ -1,12 +1,11 @@
 package mongo_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"context"
 	"math/rand"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
@@ -111,11 +110,11 @@ func DataSetDataAsInterface(dataSetData data.Data) []interface{} {
 }
 
 func DataSetDatumAsInterface(dataSetDatum data.Datum) interface{} {
-	bytes, err := bson.Marshal(dataSetDatum)
+	bites, err := bson.Marshal(dataSetDatum)
 	Expect(err).ToNot(HaveOccurred())
-	Expect(bytes).ToNot(BeNil())
+	Expect(bites).ToNot(BeNil())
 	var dataSetDatumAsInterface interface{}
-	Expect(bson.Unmarshal(bytes, &dataSetDatumAsInterface)).To(Succeed())
+	Expect(bson.Unmarshal(bites, &dataSetDatumAsInterface)).To(Succeed())
 	return dataSetDatumAsInterface
 }
 
@@ -241,14 +240,14 @@ var _ = Describe("Mongo", func() {
 					It("returns an error if the pagination size is less than minimum", func() {
 						pagination.Size = 0
 						resultDataSets, err := session.GetDataSetsForUserByID(ctx, userID, filter, pagination)
-						Expect(err).To(MatchError("pagination is invalid; value 0 is not between 1 and 100"))
+						Expect(err).To(MatchError("pagination is invalid; value 0 is not between 1 and 1000"))
 						Expect(resultDataSets).To(BeNil())
 					})
 
 					It("returns an error if the pagination size is greater than maximum", func() {
-						pagination.Size = 101
+						pagination.Size = 1001
 						resultDataSets, err := session.GetDataSetsForUserByID(ctx, userID, filter, pagination)
-						Expect(err).To(MatchError("pagination is invalid; value 101 is not between 1 and 100"))
+						Expect(err).To(MatchError("pagination is invalid; value 1001 is not between 1 and 1000"))
 						Expect(resultDataSets).To(BeNil())
 					})
 
