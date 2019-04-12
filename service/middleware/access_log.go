@@ -38,10 +38,23 @@ func NewAccessLog() (*AccessLog, error) {
 	return &AccessLog{}, nil
 }
 
+func (a *AccessLog) ignore(req *rest.Request) bool {
+	// ignore liveness and readiness probes
+	if req.URL.RequestURI() == "/status" {
+		return true
+	}
+	return false
+}
+
+// MiddlewareFunc adds logging of all calls, except those ignored above.
 func (a *AccessLog) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
 	return func(res rest.ResponseWriter, req *rest.Request) {
 		if handler != nil && res != nil && req != nil {
 			handler(res, req)
+
+			if a.ignore(req) {
+				return
+			}
 
 			// DEPRECATED: Needs to be replaced with context version
 			if logger := service.GetRequestLogger(req); logger != nil {
