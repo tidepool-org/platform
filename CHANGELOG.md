@@ -1,5 +1,7 @@
 ## HEAD
 
+## v1.31.0
+
 * Add image service
 * Add new dependencies for image service
 * Add blob and image types for association
@@ -49,7 +51,7 @@
 * Add user id to ArchiveDeviceDataUsingHashesFromDataSet selector to properly use indexes
 * Fix data set id validation to allow Jellyfish id format
 
-## v1.31.1
+## v1.30.1
 
 * Relax Dexcom API validations to match Tidepool data model validations
 * Rename insulin dose constants to properly include units
