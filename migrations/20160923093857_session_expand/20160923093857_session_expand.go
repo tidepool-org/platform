@@ -4,8 +4,8 @@ import (
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/globalsign/mgo/bson"
 	"github.com/urfave/cli"
-	"gopkg.in/mgo.v2/bson"
 
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/errors"

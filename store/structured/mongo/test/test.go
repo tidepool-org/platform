@@ -5,9 +5,9 @@ import (
 	"os"
 	"time"
 
+	mgo "github.com/globalsign/mgo"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	mgo "gopkg.in/mgo.v2"
 
 	"github.com/tidepool-org/platform/test"
 )

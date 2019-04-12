@@ -99,6 +99,20 @@
   version = "v1.0.0"
 
 [[projects]]
+  branch = "master"
+  digest = "1:78102ee4d536347316bc42e818340cc50902e45dbd7fdd524c5a1fc0cb07b588"
+  name = "github.com/globalsign/mgo"
+  packages = [
+    ".",
+    "bson",
+    "internal/json",
+    "internal/sasl",
+    "internal/scram",
+  ]
+  pruneopts = "UT"
+  revision = "eeefdecb41b842af6dc652aaea4026e8403e62df"
+
+[[projects]]
   digest = "1:97df918963298c287643883209a2c3f642e6593379f97ab400c2a2e219ab647d"
   name = "github.com/golang/protobuf"
   packages = ["proto"]
@@ -378,20 +392,6 @@
   version = "v1.4.7"
 
 [[projects]]
-  branch = "v2"
-  digest = "1:988de7520a09024d5d94cd99bd545afbf194893994ec759b1cda0a0bbb6adb80"
-  name = "gopkg.in/mgo.v2"
-  packages = [
-    ".",
-    "bson",
-    "internal/json",
-    "internal/sasl",
-    "internal/scram",
-  ]
-  pruneopts = "UT"
-  revision = "9856a29383ce1c59f308dd1cf0363a79b5bef6b5"
-
-[[projects]]
   branch = "v1"
   digest = "1:0caa92e17bc0b65a98c63e5bc76a9e844cd5e56493f8fdbb28fad101a16254d9"
   name = "gopkg.in/tomb.v1"
@@ -432,6 +432,8 @@
     "github.com/dgrijalva/jwt-go",
     "github.com/disintegration/imaging",
     "github.com/githubnemo/CompileDaemon",
+    "github.com/globalsign/mgo",
+    "github.com/globalsign/mgo/bson",
     "github.com/mitchellh/go-homedir",
     "github.com/mjibson/esc",
     "github.com/onsi/ginkgo",
@@ -449,8 +451,6 @@
     "golang.org/x/oauth2",
     "golang.org/x/oauth2/clientcredentials",
     "golang.org/x/tools/cmd/goimports",
-    "gopkg.in/mgo.v2",
-    "gopkg.in/mgo.v2/bson",
     "gopkg.in/tylerb/graceful.v1",
     "gopkg.in/yaml.v2",
   ]

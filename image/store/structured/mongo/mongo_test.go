@@ -6,12 +6,12 @@ import (
 	"sort"
 	"time"
 
+	mgo "github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	. "github.com/onsi/gomega/types"
-	mgo "gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 
 	associationTest "github.com/tidepool-org/platform/association/test"
 	"github.com/tidepool-org/platform/errors"
