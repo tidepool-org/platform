@@ -3,8 +3,8 @@ package test
 import (
 	"encoding/json"
 
+	"github.com/globalsign/mgo/bson"
 	"github.com/onsi/gomega"
-	"gopkg.in/mgo.v2/bson"
 )
 
 type ObjectFormat int

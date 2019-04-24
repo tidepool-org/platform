@@ -79,4 +79,4 @@ func MatchTime(datum *time.Time) gomegaTypes.GomegaMatcher {
 	return gomegaGstruct.PointTo(gomega.BeTemporally("==", *datum))
 }
 
-var now = time.Now().Truncate(time.Millisecond)
+var now = time.Now().Truncate(time.Millisecond).UTC()

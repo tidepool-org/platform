@@ -4,8 +4,8 @@ import (
 	"crypto/tls"
 	"net"
 
-	mgo "gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	mgo "github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -24,6 +24,7 @@ type Status struct {
 	Ping        string
 }
 
+//NewStore constructs a Store from a Config, using the given logger
 func NewStore(config *Config, logger log.Logger) (*Store, error) {
 	if config == nil {
 		return nil, errors.New("config is missing")
@@ -40,25 +41,23 @@ func NewStore(config *Config, logger log.Logger) (*Store, error) {
 	}
 	logger = logger.WithFields(loggerFields)
 
-	dialInfo := mgo.DialInfo{}
-	dialInfo.Addrs = config.Addresses
+	dialInfo, err := mgo.ParseURL(config.AsConnectionString())
+	if err != nil {
+		return nil, errors.Wrap(err, "URL is unparseable")
+	}
+
+	// override the DialServer is we are using TLS because we don't have the proper CA certs installed.
 	if config.TLS {
 		dialInfo.DialServer = func(serverAddr *mgo.ServerAddr) (net.Conn, error) {
 			return tls.Dial("tcp", serverAddr.String(), &tls.Config{InsecureSkipVerify: true}) // TODO: Secure this connection
 		}
 	}
-	dialInfo.Database = config.Database
-	if config.Username != nil {
-		dialInfo.Username = *config.Username
-	}
-	if config.Password != nil {
-		dialInfo.Password = *config.Password
-	}
+
 	dialInfo.Timeout = config.Timeout
 
 	logger.WithField("config", config).Debug("Dialing Mongo database")
 
-	session, err := mgo.DialWithInfo(&dialInfo)
+	session, err := mgo.DialWithInfo(dialInfo)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to dial database")
 	}
@@ -88,15 +87,18 @@ func NewStore(config *Config, logger log.Logger) (*Store, error) {
 	}, nil
 }
 
+//Store represents a live session to a Mongo database
 type Store struct {
 	Config  *Config
 	Session *mgo.Session
 }
 
+//IsClosed returns true if the session is closed
 func (s *Store) IsClosed() bool {
 	return s.Session == nil
 }
 
+//Close the session to the Mongo database
 func (s *Store) Close() error {
 	if s.Session != nil {
 		s.Session.Close()
@@ -105,6 +107,7 @@ func (s *Store) Close() error {
 	return nil
 }
 
+//Status returns the current state of the sessions
 func (s *Store) Status() interface{} {
 	status := &Status{
 		State: "CLOSED",
