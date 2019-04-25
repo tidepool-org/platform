@@ -4,11 +4,11 @@ import (
 	"context"
 	"time"
 
+	mgo "github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
-	mgo "gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 
 	"github.com/tidepool-org/platform/confirmation/store"
 	"github.com/tidepool-org/platform/confirmation/store/mongo"

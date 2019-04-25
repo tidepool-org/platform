@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/base64"
 
+	mgo "github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	mgo "gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 
 	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/log"
